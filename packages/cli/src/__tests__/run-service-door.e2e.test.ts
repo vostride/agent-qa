@@ -263,7 +263,7 @@ describe('leg (a) — POST /run with no Authorization header', () => {
 // compared: a wrong bearer, a malformed scheme and no header reach the same request-shape check,
 // and a cross-site request to an unknown path is refused identically to a known one.
 describe('leg (b) — POST /run with a wrong token', () => {
-  it('C432-TOKENLESS-RUN-SERVICE: a wrong legacy bearer is not read — the request reaches the body check', async () => {
+  it('a wrong legacy bearer is not read — the request reaches the body check', async () => {
     const service = await openRunService()
     const wrong = await fetch(`${service.origin}/run`, {
       method: 'POST',
@@ -412,7 +412,7 @@ describe('legs (c) and (d) — the authed path, end to end', () => {
 // can open'. There are no declared credentials and the door opens for every local caller; the
 // claim that survives is that it is the same door whether or not the client sends a bearer.
 describe('a door with no declared credential is a door nobody can open', () => {
-  it('C432-TOKENLESS-RUN-SERVICE: the door opens for a local caller with no credential, and a legacy bearer opens nothing more', async () => {
+  it('the door opens for a local caller with no credential, and a legacy bearer opens nothing more', async () => {
     const service = await openRunService()
     const [plain, legacy] = await Promise.all([
       fetch(`${service.origin}/ok`),
@@ -461,7 +461,7 @@ describe('GET /ok on the mounted door', () => {
   })
 })
 
-describe('one readiness predicate, two doors (402-05, D-15)', () => {
+describe('one readiness predicate, two doors', () => {
   it('is ONE function object — `ports.readiness` and the published `readiness` are the same reference', async () => {
     const configPath = fixtureWorkspace()
     const { DashboardDatabase } = await import('@vostride/agent-qa-dashboard')

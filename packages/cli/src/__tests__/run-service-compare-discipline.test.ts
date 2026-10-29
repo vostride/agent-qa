@@ -38,7 +38,7 @@ const { createEphemeralLiveUrlSigner } = await import('../composition/live-url-s
 beforeEach(() => { compareCalls.length = 0 })
 afterEach(() => { compareCalls.length = 0 })
 
-describe('the constant-time compare is REACHED, once per signature check (T-402-20, D-13)', () => {
+describe('the constant-time compare is REACHED, once per signature check', () => {
   it('reaches the primitive exactly once for a matching signature', () => {
     const signer = createEphemeralLiveUrlSigner()
     const signature = signer.sign('run:r_alpha|handle:0|exp:1735689600000')

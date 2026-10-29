@@ -198,7 +198,7 @@ function receiptLines(f: Fixture): number {
   return readFileSync(join(f.runDir, 'marks.jsonl'), 'utf8').trim().split('\n').length
 }
 
-describe('a mark under a lease-holding daemon is delegated whole (432-13 #1)', () => {
+describe('a mark under a lease-holding daemon is delegated whole', () => {
   it('C-MRK-DELEGATED-ONCE: a CLI mark under a live daemon lands once through the daemon, and the CLI never takes the lease', async () => {
     const f = fixture()
     const daemon = await startDaemon(f)

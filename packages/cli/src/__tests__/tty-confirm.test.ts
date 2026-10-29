@@ -86,7 +86,7 @@ const PROMPT_TEXT = /needs your approval|\[y\/N\]|\[y\/a\/N\]|Proceed\?/u
 describe('the CLI binds a confirmation exactly where there is somebody to ask', () => {
   // RE-SPELLED 2026-10-01 (432-16): was 'binds NOTHING without a terminal — the gate keeps its
   // deny-by-default'. There is no factory left to bind anything, with a terminal or without one.
-  it('C432-NO-CONFIRM-PORTS: the CLI host exports no terminal or chat confirm factory', () => {
+  it('the CLI host exports no terminal or chat confirm factory', () => {
     const exported = Object.keys(cliHost)
     expect(exported).not.toContain('createTtyConfirmPort')
     expect(exported).not.toContain('createChatConfirmPort')
@@ -96,7 +96,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
   // RE-SPELLED 2026-10-01 (432-16): was 'answers yes to an explicit yes', 'accepts the long form
   // too' and 'refuses everything else'. Their subject, the prompt, is gone from both packages that
   // composed it.
-  it('C432-NO-CONFIRM-PORTS: no prompt text survives in the CLI or the composition sources', () => {
+  it('no prompt text survives in the CLI or the composition sources', () => {
     const scanned = [
       ...productSources(join(__dirname, '..')),
       ...productSources(join(__dirname, '..', '..', '..', 'agent-local', 'src')),
@@ -107,7 +107,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     expect(scanned.filter((path) => PROMPT_TEXT.test(code(path)))).toEqual([])
   })
 
-  it('C432-NO-CONFIRM-PORTS: neither composition input can carry a confirm port', () => {
+  it('neither composition input can carry a confirm port', () => {
     type CliKeys = keyof ComposeCliLocalAgentInput
     type LocalKeys = keyof ComposeLocalAgentInput
     expectTypeOf<'confirm' extends CliKeys ? true : false>().toEqualTypeOf<false>()
@@ -125,7 +125,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     expect(composition).not.toMatch(/\breadonly chatConfirm\?:/)
   })
 
-  it('C432-NO-CONFIRM-PORTS: without a terminal, a mutating call completes in one call and reads no stdin', async () => {
+  it('without a terminal, a mutating call completes in one call and reads no stdin', async () => {
     const root = mkdtempSync(join(tmpdir(), 'tty-confirm-one-call-'))
     try {
       const configPath = join(root, 'agent-qa.config.yaml')
@@ -151,7 +151,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
 
   // 432-16 task 2: the same one-call claim through the real `agent-qa fn` door, with stdin as the
   // test runner leaves it (not a terminal): the change lands and nothing waits for an answer.
-  it('C432-NO-CONFIRM-PORTS: `agent-qa fn` applies a change without a terminal, in one call', async () => {
+  it('`agent-qa fn` applies a change without a terminal, in one call', async () => {
     const root = mkdtempSync(join(tmpdir(), 'tty-confirm-fn-door-'))
     const log = vi.spyOn(console, 'log').mockImplementation(() => {})
     const error = vi.spyOn(console, 'error').mockImplementation(() => {})
@@ -194,7 +194,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
   })
 
   // 432-13 (D-01/D-14): `agent-qa run` no longer binds it.
-  it('is bound by no run door since 432-13', () => {
+  it('is bound by no run door', () => {
     const run = code(join(__dirname, '..', 'commands', 'run.ts'))
     expect(run).toContain('createRunCommand')
     expect(run).not.toContain('createTtyConfirmPort')

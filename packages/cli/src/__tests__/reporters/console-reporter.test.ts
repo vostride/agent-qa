@@ -62,7 +62,7 @@ describe('createConsoleReporter', () => {
     expect(output).toMatch(/1 failed/)
   })
 
-  it('is replay-equivalent — identical envelope stream yields byte-identical output (D-04)', () => {
+  it('is replay-equivalent — identical envelope stream yields byte-identical output', () => {
     const fixture = buildReporterFixture()
     const a = createCapture()
     const b = createCapture()
@@ -104,7 +104,7 @@ describe('createConsoleReporter', () => {
 // assertion that the zero case changed nothing is only load-bearing if the same code path WOULD
 // have changed under a snapshot.
 
-describe('createConsoleReporter — the 390 D-15 quarantine disposition', () => {
+describe('createConsoleReporter — the quarantine disposition', () => {
   const ANNOTATION = ` ${QUARANTINE_TEST_ANNOTATION}`
   const SEGMENT = ' · 1 quarantined failure'
 
@@ -153,7 +153,7 @@ describe('createConsoleReporter — the 390 D-15 quarantine disposition', () => 
   })
 })
 
-describe('C441-DISPLAY', () => {
+describe('the console reporter prints masked payloads', () => {
   it('the console reporter prints the masked payload as it is', () => {
     const fixture = buildReporterFixture()
     const capture = createCapture()
@@ -210,7 +210,7 @@ function abortSkippedStream(): RunEventEnvelope[] {
   ]
 }
 
-describe('C444.1-REPORTER-WORDS', () => {
+describe('console words for abort-skipped and cancelled members', () => {
   it('the console names an abort-skipped member by its test', () => {
     const capture = createCapture()
     const reporter = createConsoleReporter({
@@ -546,7 +546,7 @@ describe('the console reporter under GitHub Actions', () => {
 })
 
 describe('renderQuarantineSummarySegment (the pure composer)', () => {
-  it('is SILENT at zero — every pre-390 summary line stays byte-frozen', () => {
+  it('is SILENT at zero — a summary line with no quarantined failure stays byte-frozen', () => {
     expect(renderQuarantineSummarySegment(0)).toBe('')
     expect(renderQuarantineSummarySegment(-1)).toBe('')
   })

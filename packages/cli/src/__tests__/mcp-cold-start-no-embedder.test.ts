@@ -298,7 +298,7 @@ const ALL_ANSWERED = [...EIGHT_READS.map((read) => read.tool),
 
 // ---- The cells ------------------------------------------------------------------------------------
 
-describe('COLD-MCP-NO-RUNTIME (D-09 · T-431-13 / T-431-14)', () => {
+describe('COLD-MCP-NO-RUNTIME', () => {
   it('the stdio `agent-qa mcp` door starts, lists and answers every populated read with no runtime load', async () => {
     expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}; run \`pnpm build\` first`).toBe(true)
     const p = discoveryProject(await freePort())
@@ -371,7 +371,7 @@ function runTrapped(code: string) {
   return { status: child.status, stdout: child.stdout, stderr: child.stderr, report: readReport(report) }
 }
 
-describe('TRAP-CONTROLS (T-431-14)', () => {
+describe('TRAP-CONTROLS', () => {
   it('derives the forbidden runtime from the acquisition imports and pins it', () => {
     const derived = lint.deriveForbiddenRuntime()
     expect(derived.roots).toEqual([...lint.PINNED_ACQUISITION_ROOTS])

@@ -260,7 +260,7 @@ function readEvents(eventsPath: string): RunEventEnvelope[] {
 
 const FIXTURE_BYTES = `${FIXTURE_EVENT_LINES.map((line) => JSON.stringify(line)).join('\n')}\n`
 
-describe('the post-run chip emitter (ANLZ-05, D-13/D-16)', () => {
+describe('the post-run chip emitter', () => {
   it('continues the run log seq and appends one pair per drained stage', async () => {
     const f = fixture()
     const tail = runPostRunTail(f.options())
@@ -292,7 +292,7 @@ describe('the post-run chip emitter (ANLZ-05, D-13/D-16)', () => {
   // `issues*` event names left `RUN_EVENT_TYPES` entirely. The cell survives as the runtime
   // proof that the reserved kind emits NOTHING — the enum removal alone cannot say that,
   // because a row could still be re-added naming any surviving name.
-  it('emits no issues chip at all — the reserved job kind emits nothing (D-15, 404 D-02)', async () => {
+  it('emits no issues chip at all — the reserved job kind emits nothing', async () => {
     const f = fixture()
     const tail = runPostRunTail(f.options())
     await stepEnqueue(f.agentQaRoot)
@@ -304,7 +304,7 @@ describe('the post-run chip emitter (ANLZ-05, D-13/D-16)', () => {
     expect(types.filter((type) => type.toLowerCase().includes('notif'))).toEqual([])
   })
 
-  it('appends NOTHING when the chain is handed to the daemon (D-13)', async () => {
+  it('appends NOTHING when the chain is handed to the daemon', async () => {
     const f = fixture()
     const tail = runPostRunTail(f.options({
       acquireWriterLease: () => ({ kind: 'held', holder: { pid: 4242 } }),
@@ -353,7 +353,7 @@ describe('the post-run chip emitter (ANLZ-05, D-13/D-16)', () => {
       expect(failure.willRetry).toBe(tail.report().drain === 'retry-scheduled')
     })
 
-  it('masks the failure chip\'s error through the run\'s own masker and bounds it (WR-08/P2)',
+  it('masks the failure chip\'s error through the run\'s own masker and bounds it',
     async () => {
       const SECRET = 'sk-live-388-07-do-not-log-me'
       const REDACTION = '«redacted:provider-key»'
@@ -406,7 +406,7 @@ describe('the post-run chip emitter (ANLZ-05, D-13/D-16)', () => {
     expect(failure.error).toContain('knowledge root')
   })
 
-  it('rides a direct append and never the run bus (D-16)', () => {
+  it('rides a direct append and never the run bus', () => {
     const source = readFileSync(
       new URL('../curation/post-run-chip-emitter.ts', import.meta.url),
       'utf8',
@@ -439,7 +439,7 @@ describe('the post-run chip emitter (ANLZ-05, D-13/D-16)', () => {
  * strongest statement of all of that is the byte cell: a run drained with a relay and a run drained
  * without one leave IDENTICAL files.
  */
-describe("the relay is the emitter's second sink and never its first (404 D-16)", () => {
+describe("the relay is the emitter's second sink and never its first", () => {
   it('hands the relay every appended envelope, in order, AFTER the line is on disk', async () => {
     const f = fixture()
     const relayed: RunEventEnvelope[] = []
@@ -579,8 +579,8 @@ async function readStatusThroughTheOp(
   }
 }
 
-describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
-  it('renders the queued-work summary from the op, token for token (D-08/D-14)', async () => {
+describe('the user-facing post-run lines', () => {
+  it('renders the queued-work summary from the op, token for token', async () => {
     const f = fixture()
     const tail = runPostRunTail(f.options({
       acquireWriterLease: () => ({ kind: 'held', holder: { pid: 4242 } }),
@@ -613,7 +613,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
     expect(JSON.stringify(status)).not.toContain('daemon will drain')
   })
 
-  it('renders D-08\'s own example when the stages actually differ (analysis complete, curation queued)',
+  it('renders the documented example when the stages actually differ (analysis complete, curation queued)',
     async () => {
       const f = fixture({ stopAfterFirstJob: true })
       // First tail: the budget is spent the instant `analyze-run` lands, so the chain stops
@@ -664,7 +664,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
     ])
   })
 
-  it('never promises a daemon drain for curation, the kind no daemon may claim (WR-09)',
+  it('never promises a daemon drain for curation, the kind no daemon may claim',
     async () => {
       // The defect this pins: the parenthetical was chosen by POSTURE alone and pasted onto
       // whichever stages were `pending`, so a handed-off leg told the user a daemon would
@@ -747,7 +747,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
       )
     })
 
-  it('prints the human notification line at chain terminal, from the row (D-09/D-12)',
+  it('prints the human notification line at chain terminal, from the row',
     async () => {
       const f = fixture()
       const tail = runPostRunTail(f.options())
@@ -771,7 +771,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
       expect(lines.some((message) => message.startsWith('post-processing —'))).toBe(false)
     })
 
-  it('says NOTHING at all when the step reported a failed hand-off (D-07, 404 D-05)',
+  it('says NOTHING at all when the step reported a failed hand-off',
     async () => {
       // The D-07 warning itself — the run id, "verdict and exit code are unaffected", and the
       // handoff's own path as the manual re-queue route — is now published by the SHELL, off the
@@ -787,7 +787,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
       expect(f.info).not.toHaveBeenCalled()
     })
 
-  it('reads status through the op and never opens the queue database itself (D-14)', () => {
+  it('reads status through the op and never opens the queue database itself', () => {
     const source = readFileSync(
       new URL('../curation/post-run-tail.ts', import.meta.url),
       'utf8',
@@ -799,7 +799,7 @@ describe('the user-facing post-run lines (D-07 / D-08 / D-09)', () => {
   })
 })
 
-describe('C444.1-INTERRUPTED', () => {
+describe('interrupted stages', () => {
   it('an interrupted stage emits no failure chip', () => {
     const f = fixture()
     const emitter = createPostRunChipEmitter({

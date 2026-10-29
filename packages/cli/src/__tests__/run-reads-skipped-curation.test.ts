@@ -178,7 +178,7 @@ async function overviewCuration(p: ReturnType<typeof skippedRuns>, runId: string
 
 // ---- C444-OVERVIEW-SKIPPED ------------------------------------------------------------------------
 
-describe('C444-OVERVIEW-SKIPPED', () => {
+describe('the overview carries skipped curation', () => {
   it("a gate run's overview carries skipped with reason gate-run beside its curation chip", async () => {
     const p = skippedRuns()
     const mcp = await mcpReader(p)
@@ -230,7 +230,7 @@ async function knowledgeCuration(p: ReturnType<typeof skippedRuns>, runId: strin
   return (knowledge as KnowledgeCuration).curation
 }
 
-describe('C444-KNOWLEDGE-SKIPPED', () => {
+describe('the knowledge read carries skipped curation', () => {
   it("a gate run's knowledge carries skipped with reason gate-run beside its curation chip", async () => {
     const p = skippedRuns()
     const mcp = await mcpReader(p)

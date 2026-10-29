@@ -110,7 +110,7 @@ async function capturePlannerRequest(
   return request
 }
 
-describe('INST-03 sampling provider-boundary proof', () => {
+describe('sampling provider-boundary proof', () => {
   it(
     'preserves pinned sampling params through createModel with a clamp-owned output cap',
     async () => {

@@ -129,7 +129,7 @@ async function mcpClient(deps: FunctionDeps): Promise<Client> {
   return client
 }
 
-describe('C444-STAGE-WORDS', () => {
+describe('complete is the finished stage word', () => {
   it('the CLI exit line prints complete', async () => {
     const status = await served({
       analyzeRun: { status: 'done', claimed: false },
@@ -151,7 +151,7 @@ describe('C444-STAGE-WORDS', () => {
   })
 })
 
-describe('C444-NOTIFICATION-VIEW', () => {
+describe('the served notification view', () => {
   it('the stored notification keeps done and the served view reads complete', async () => {
     const stored = storedNotification()
     const before = structuredClone(stored)
@@ -223,7 +223,7 @@ describe('C444-NOTIFICATION-VIEW', () => {
   })
 })
 
-describe('C444-STAGE-SKIPPED', () => {
+describe('skipped stages of a never-enqueued run', () => {
   it("a gate run's read carries skipped with reason gate-run and no exclusion field", async () => {
     const status = await served(undefined, GATE_RUN_HANDOFF)
     expect(status.skipped).toEqual({ reason: 'gate-run' })
@@ -288,7 +288,7 @@ function noVerdictDeps(status: string): FunctionDeps {
   }
 }
 
-describe('C444-NO-VERDICT', () => {
+describe('a run that ended with no verdict', () => {
   it('the CLI exit line prints skipped (no verdict)', async () => {
     const status = await invokeFunction(
       createFunctionRegistry({ deps: noVerdictDeps('failed') }),

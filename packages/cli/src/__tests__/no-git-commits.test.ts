@@ -130,8 +130,8 @@ function digestTree(root: string): Record<string, string> {
   return out
 }
 
-describe('C432-NO-GIT-COMMIT: three publications in one project leave git alone (D-07)', () => {
-  it('C432-NO-GIT-COMMIT: a config change, a mark fix and an authored test leave HEAD, the index and the history alone; git status shows each edit', async () => {
+describe('three publications in one project leave git alone', () => {
+  it('a config change, a mark fix and an authored test leave HEAD, the index and the history alone; git status shows each edit', async () => {
     const fixture = project()
     const git = commitProject(fixture)
     const before = repositoryState(git)
@@ -146,7 +146,7 @@ describe('C432-NO-GIT-COMMIT: three publications in one project leave git alone 
     expect(git('log', '--format=%s')).toBe('seed\n')
   }, 120_000)
 
-  it('C432-NO-GIT-COMMIT: the same three land in a dirty tree, keeping the person\'s own uncommitted edit, and nothing is staged', async () => {
+  it('the same three land in a dirty tree, keeping the person\'s own uncommitted edit, and nothing is staged', async () => {
     const fixture = project()
     const git = commitProject(fixture)
     writeFileSync(join(fixture.root, '.gitignore'), '.agent-qa/\n# a person was here\n')
@@ -160,7 +160,7 @@ describe('C432-NO-GIT-COMMIT: three publications in one project leave git alone 
     expect(readFileSync(join(fixture.root, '.gitignore'), 'utf8')).toContain('# and still editing')
   }, 120_000)
 
-  it('C432-NO-GIT-COMMIT: the same three land in a directory with no repository, and none is created', async () => {
+  it('the same three land in a directory with no repository, and none is created', async () => {
     const fixture = project()
     expectPublished(fixture, await publishAll(fixture))
     expect(existsSync(join(fixture.root, '.git')), 'a repository was created').toBe(false)
@@ -169,7 +169,7 @@ describe('C432-NO-GIT-COMMIT: three publications in one project leave git alone 
   // Repeated mark faults do not duplicate fixes (C432-MARK-RETRY-ONCE's claim, through the composed
   // CLI host): the receipt write is blocked once, the call fails, and the retry lands the same fix
   // without publishing it a second time — and still commits nothing.
-  it('C432-NO-GIT-COMMIT: a mark interrupted before its receipt lands its fix once on retry, and commits nothing either time', async () => {
+  it('a mark interrupted before its receipt lands its fix once on retry, and commits nothing either time', async () => {
     const fixture = project()
     const git = commitProject(fixture)
     const before = repositoryState(git)
@@ -217,8 +217,8 @@ function plantLegacy(fixture: Fixture): { readonly files: readonly string[]; rea
 /** Whether a chmod seal binds this process: not as root, and not on Windows. */
 const canSealFiles = process.platform !== 'win32' && process.getuid?.() !== 0
 
-describe('C432-LEFTOVERS-UNREAD: legacy approval state is neither created, needed nor opened (D-22, EDGE-14)', () => {
-  it('C432-LEFTOVERS-UNREAD: a fresh project publishes all three without creating a grant ledger, a proposal store or an execution audit', async () => {
+describe('legacy approval state is neither created, needed nor opened', () => {
+  it('a fresh project publishes all three without creating a grant ledger, a proposal store or an execution audit', async () => {
     const fixture = project()
     expectPublished(fixture, await publishAll(fixture))
     expect(existsSync(join(fixture.knowledgeRoot, 'grants.jsonl'))).toBe(false)
@@ -230,7 +230,7 @@ describe('C432-LEFTOVERS-UNREAD: legacy approval state is neither created, neede
   // 2026-10-03 (quick-261003-tsr, IN-17): a mode-0 seal binds no reader running as root, nor on
   // Windows, so there the cell could not measure "never opened"; it runs only where the seal holds,
   // and checks that it does.
-  it.runIf(canSealFiles)('C432-LEFTOVERS-UNREAD: present malformed legacy files, sealed against any open, change no answer and are left byte- and mode-identical', async () => {
+  it.runIf(canSealFiles)('present malformed legacy files, sealed against any open, change no answer and are left byte- and mode-identical', async () => {
     const clean = project()
     const expected = await publishAll(clean)
     expectPublished(clean, expected)

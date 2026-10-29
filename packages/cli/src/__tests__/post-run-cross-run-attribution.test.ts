@@ -359,7 +359,7 @@ async function driveTwoRuns(
   return { jobsRun: tailB.report().jobsRun, drain: tailB.report().drain }
 }
 
-describe('the chip trail is scoped to the run whose tail is draining (ANLZ-05, D-13)', () => {
+describe('the chip trail is scoped to the run whose tail is draining', () => {
   it('emits only for the run this tail is draining, never for a foreign claimed job', async () => {
     const f = fixture()
     const report = await driveTwoRuns(f)
@@ -390,7 +390,7 @@ describe('the chip trail is scoped to the run whose tail is draining (ANLZ-05, D
     expect(readFileSync(f.eventsPath(RUN_B), 'utf8')).not.toContain(RUN_A)
   })
 
-  it('never PUSHES a foreign envelope to the dashboard relay either (404 D-16, T-404-02)', async () => {
+  it('never PUSHES a foreign envelope to the dashboard relay either', async () => {
     // The relay is fed from inside `append`, which the drop-guard returns above — so the guard
     // that keeps run A out of run B's FILE is the same one that keeps it off run B's wire. Stated
     // as a cell because "the same guard" is a property of where a line sits, and where a line sits
@@ -448,7 +448,7 @@ const BACKLOG_PARENTHETICAL = ' (queued behind other runs; the daemon or a later
 const CURATION_BACKLOG_PARENTHETICAL =
   ' (queued behind other runs; a later local run will drain)'
 
-describe('a starved own-chain is reported as backlog-exhausted, never a bare pending (WR-01)', () => {
+describe('a starved own-chain is reported as backlog-exhausted, never a bare pending', () => {
   it('reports backlog-exhausted when the budget was spent entirely on another run\'s work',
     async () => {
       const f = fixture({ stopAfterFirstJob: true })

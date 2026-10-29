@@ -855,7 +855,7 @@ describe('EXPORT-ATOMIC: exclusive publication that never overwrites', () => {
   })
 })
 
-describe('DEDICATED-READ-VERBS: the manifest table matches the live verbs and stays off the roster', () => {
+describe('DEDICATED-READ-VERBS: the manifest table matches the live verbs', () => {
   it('names every new verb, its flags and the ops it invokes', () => {
     const program = new Command().addCommand(createRunsCommand()).addCommand(createKnowledgeCommand())
     const live = (path: string) => path.split(' ').reduce<Command | undefined>(

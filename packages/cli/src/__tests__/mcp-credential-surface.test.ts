@@ -372,7 +372,7 @@ function headless<T>(fn: () => Promise<T>): Promise<T> {
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 
 describe('A · the plants are what the ledger says they are (the non-vacuity gate)', () => {
-  it('(A1) every plant is really where the fixture put it, and the bytes are the pinned bytes',
+  it('every plant is really where the fixture put it, and the bytes are the pinned bytes',
     () => {
       const declared = readFileSync(join(root, SECRETS_FILE), 'utf8')
       for (const [name, value] of Object.entries(DECLARED_PLANTS)) {
@@ -396,7 +396,7 @@ describe('A · the plants are what the ledger says they are (the non-vacuity gat
       }
     })
 
-  it('(A2) the masker recognises exactly the two DECLARED plants, and nothing else', () => {
+  it('the masker recognises exactly the two DECLARED plants, and nothing else', () => {
     for (const [name, value] of Object.entries(DECLARED_PLANTS)) {
       expect(masking!.mask(value), `${name} was not masked`).toBe(`[secret:${name}]`)
     }
@@ -419,7 +419,7 @@ describe('A · the plants are what the ledger says they are (the non-vacuity gat
 })
 
 describe('B · no declared credential reaches the wire through a read tool', () => {
-  it('(B1) the echoing read path masks both declared plants, in the result AND in the frames',
+  it('the echoing read path masks both declared plants, in the result AND in the frames',
     async () => {
       await headless(async () => {
         for (const plant of [ENV_PLANT, TOKEN_PLANT]) {
@@ -438,7 +438,7 @@ describe('B · no declared credential reaches the wire through a read tool', () 
       })
     })
 
-  it('(B1b) the SUCCESS payload of a read tool that echoes the caller\'s own string is masked on '
+  it('the SUCCESS payload of a read tool that echoes the caller\'s own string is masked on '
     + 'BOTH channels — text and structuredContent', async () => {
     await headless(async () => {
       // 432-12: `agent_qa_show_proposal` left with the proposal round. The record read's not-found
@@ -459,7 +459,7 @@ describe('B · no declared credential reaches the wire through a read tool', () 
     })
   })
 
-  it('(B2) the other read doors carry no window of either declared plant either', async () => {
+  it('the other read doors carry no window of either declared plant either', async () => {
     await headless(async () => {
       for (const plant of [ENV_PLANT, TOKEN_PLANT]) {
         await call('agent_qa_get_entity', { ref: plant })
@@ -474,7 +474,7 @@ describe('B · no declared credential reaches the wire through a read tool', () 
 })
 
 describe('C · the error channels', () => {
-  it('(C1) an op-side refusal composed from the caller\'s own string is masked', async () => {
+  it('an op-side refusal composed from the caller\'s own string is masked', async () => {
     await headless(async () => {
       const answer = await call('agent_qa_get_run_digest', { runId: ENV_PLANT })
       expect(answer.isError, 'this cell needs the refusal path, not the success path').toBe(true)
@@ -482,7 +482,7 @@ describe('C · the error channels', () => {
     })
   })
 
-  it('(C2) the SDK-composed input-validation error is a channel this host does NOT mask, and it '
+  it('the SDK-composed input-validation error is a channel this host does NOT mask, and it '
     + 'is measured empty', async () => {
     await headless(async () => {
       // NAMED RATHER THAN ASSUMED. The SDK validates a call against the advertised `inputSchema`
@@ -510,7 +510,7 @@ describe('D · the direct change answer renders the caller\'s target, and masks 
   // 2026-09-30, 432-12 (D-05/D-13): the apply refusal payload is gone with the apply tools. The
   // payload that now carries caller-supplied content back is the change tool's own answer: a typed
   // absence echoes the target it was asked about, through the one masked serialization.
-  it('(D1) neither the prose nor the structured answer carries a window of a declared plant',
+  it('neither the prose nor the structured answer carries a window of a declared plant',
     async () => {
       await headless(async () => {
         for (const plant of [ENV_PLANT, TOKEN_PLANT]) {
@@ -537,7 +537,7 @@ describe('D · the direct change answer renders the caller\'s target, and masks 
 // (C441-MCP-DIFF below).
 
 describe('F · the controls, and the bound they measure', () => {
-  it('(F1) HOSTILE CONTROL: an UNSEEDED value travels the same channel verbatim, and the helper '
+  it('HOSTILE CONTROL: an UNSEEDED value travels the same channel verbatim, and the helper '
     + 'finds it', async () => {
     await headless(async () => {
       const answer = await call('agent_qa_get_run_digest', { runId: UNSEEDED_PLANT })
@@ -552,7 +552,7 @@ describe('F · the controls, and the bound they measure', () => {
     })
   })
 
-  it('(F2) THE BOUND, MEASURED: an opaque value under a credential-NAMED key the census does not '
+  it('THE BOUND, MEASURED: an opaque value under a credential-NAMED key the census does not '
     + 'enumerate reaches the wire inside a proposal diff', async () => {
     await client?.close().catch(() => {})
     await handler?.close().catch(() => {})
@@ -587,7 +587,7 @@ describe('F · the controls, and the bound they measure', () => {
   })
 })
 
-describe('C441-MCP-DIFF', () => {
+describe('config-change diffs over MCP', () => {
   it('a declared secret in a config-change diff reaches MCP as its named marker', async () => {
     await client?.close().catch(() => {})
     await handler?.close().catch(() => {})
@@ -614,8 +614,8 @@ describe('C441-MCP-DIFF', () => {
   })
 })
 
-describe('C441-CONFIG-SCAN', () => {
-  it('C441-CONFIG-SCAN a credential-shaped value written through the composed host is applied and '
+describe('credential-shaped config values', () => {
+  it('a credential-shaped value written through the composed host is applied and '
     + 'the file holds it', async () => {
     const probe = 'sk-PROBE-1234567890'
     await headless(async () => {
@@ -632,8 +632,8 @@ describe('C441-CONFIG-SCAN', () => {
   })
 })
 
-describe('G · redaction lands on credentials, not on the config (v1 M2 / P2 re-derived)', () => {
-  it('(G1) the credential-free members of the same payloads survive verbatim', async () => {
+describe('G · redaction lands on credentials, not on the config', () => {
+  it('the credential-free members of the same payloads survive verbatim', async () => {
     await headless(async () => {
       const listed = await client!.listTools()
       // The catalogue is readable: a masker that blackened everything would take from the model the

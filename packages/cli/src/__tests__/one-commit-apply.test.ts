@@ -128,7 +128,7 @@ describe('publishAuthoredTest (the direct writer)', () => {
   // operand separator before every caller-controlled path', 'issues no --amend, no -a and no
   // ref-moving subcommand' and 'bounds every git invocation with a finite timeout'. There is no git
   // invocation left to shape.
-  it('C432-NO-GIT-COMMIT: the host exports no one-commit apply, index helpers or git exec seam', () => {
+  it('the host exports no one-commit apply, index helpers or git exec seam', () => {
     const exported = Object.keys(cliHost)
     for (const name of [
       'applyTestDraftAsOneCommit', 'createTestDraftApplyPort', 'captureIndexEntry', 'restoreIndexEntry',
@@ -228,7 +228,7 @@ describe('publishAuthoredTest (the direct writer)', () => {
 /** Whether a read-only directory refuses this process a write: not as root, and not on Windows. */
 const canDenyWrites = process.platform !== 'win32' && process.getuid?.() !== 0
 
-describe('a FAILED apply leaves the repository exactly as it found it (394-18, CR-05)', () => {
+describe('a FAILED apply leaves the repository exactly as it found it', () => {
   // 2026-10-03 (quick-261003-tsr, IN-17): a read-only directory does not stop root, nor Windows,
   // from writing, so the failure cannot be caused there; the cell runs where it can be, and checks
   // that the directory really refuses a write before it measures the publish.
@@ -330,7 +330,7 @@ function assertNonUtf8BytesSurviveTheHarness(absolutePath: string, expected: Buf
 // inside the rollback's reach, the rollback byte-true. The direct writer digests and writes raw
 // bytes too; what is left to measure is that it accepts an untouched non-UTF-8 target and that a
 // failed write leaves those bytes exactly as they were.
-describe('the write is INSIDE the rollback\'s reach, and both halves are bytes (394-23)', () => {
+describe('the write is INSIDE the rollback\'s reach, and both halves are bytes', () => {
   it('digests the target\'s RAW BYTES, so a target that is not valid UTF-8 still matches the request', async () => {
     commitTarget(NON_UTF8_TARGET_BYTES, 'a person committed a test whose bytes are not UTF-8')
     assertNonUtf8BytesSurviveTheHarness(join(root, TARGET_PATH), NON_UTF8_TARGET_BYTES)
@@ -366,7 +366,7 @@ describe('the write is INSIDE the rollback\'s reach, and both halves are bytes (
  * nobody touched, the third says it still refuses what somebody did. 2026-10-01 (432-16): the
  * writer is `publishAuthoredTest`; the claims are unchanged.
  */
-describe('the digest the producer emits is the digest the apply computes (394-29)', () => {
+describe('the digest the producer emits is the digest the apply computes', () => {
   it('ACCEPTS an untouched non-UTF-8 target whose sourceDigest came through parseDraft', async () => {
     commitTarget(NON_UTF8_TARGET_BYTES, 'a person committed a test whose bytes are not UTF-8')
     assertNonUtf8BytesSurviveTheHarness(join(root, TARGET_PATH), NON_UTF8_TARGET_BYTES)

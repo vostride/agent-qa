@@ -373,7 +373,7 @@ async function digestThroughTheOp(f: Fixture, runId: string): Promise<RunDigest>
 
 const DIGEST_BLOCK_PREFIX = 'digest — '
 
-describe('SC3 — one heartbeat, N proposals, ONE digest, ONE notify row (PROP-04)', () => {
+describe('one heartbeat, N proposals, ONE digest, ONE notify row', () => {
   // RE-SPELLED 432-09 (D-05/D-25) from 'renders exactly one digest for the run, listing exactly its
   // own proposals': the one render stands; the digest now lists and counts no proposal of any run.
   it('renders exactly one digest for the run, and lists no proposal of any run', async () => {
@@ -416,7 +416,7 @@ describe('SC3 — one heartbeat, N proposals, ONE digest, ONE notify row (PROP-0
     expect(otherDigest).not.toHaveProperty('pendingProposalCount')
   })
 
-  it('leaves the durable notify row a single, unwidened, guard-passing record (D-16)', async () => {
+  it('leaves the durable notify row a single, unwidened, guard-passing record', async () => {
     const f = fixture()
     await mint(f, RUN_ID, 'checkout button')
     await mint(f, RUN_ID, 'payment button')
@@ -445,7 +445,7 @@ describe('SC3 — one heartbeat, N proposals, ONE digest, ONE notify row (PROP-0
     expect(JSON.stringify(guarded)).not.toContain('prop_')
   })
 
-  it('reports candidates staged this run as COUNTS, never as proposals to decide (D-13)',
+  it('reports candidates staged this run as COUNTS, never as proposals to decide',
     async () => {
       const f = fixture()
       await mint(f, RUN_ID, 'checkout button')

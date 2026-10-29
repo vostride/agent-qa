@@ -77,7 +77,7 @@ function readLease(knowledgeRoot: string): PlantedLease {
   return JSON.parse(readFileSync(join(knowledgeRoot, LEASE_FILE), 'utf8')) as PlantedLease
 }
 
-describePosix('a daemon killed mid-chain loses nothing (SC4, ANLZ-05 concurrency edge)', () => {
+describePosix('a daemon killed mid-chain loses nothing (concurrency edge)', () => {
   test(
     'leaves curate-memory claimed-not-lost, refuses a PID-blind takeover, and completes on '
     + 'restart with exactly one notification',

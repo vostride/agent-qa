@@ -251,7 +251,7 @@ afterEach(async () => {
 
 afterAll(cleanupPostRunDaemonRoots)
 
-describePosix('LIFE-02: runFinished.disposition on the shipped binary (D-09/D-12)', () => {
+describePosix('runFinished.disposition on the shipped binary', () => {
   beforeAll(() => {
     const freshness = buildFreshness(ANCHORED_BUILDS)
     expect(
@@ -342,7 +342,7 @@ describePosix('LIFE-02: runFinished.disposition on the shipped binary (D-09/D-12
       expect(report.failed, `the daemon reported a failure:\n${daemon.output()}`).toBe(false)
     }, LEG_TIMEOUT_MS)
 
-  it('--detach writes disposition: detached AND still leaves the durable row (Pitfall 8)', async () => {
+  it('--detach writes disposition: detached AND still leaves the durable row', async () => {
     const { root } = runFixtureProject('detached')
     const outcome = await spawnCollecting(root, [CLI_ENTRY, 'run', 'tests/probe-0.yaml', '--detach'])
     expect(
@@ -359,7 +359,7 @@ describePosix('LIFE-02: runFinished.disposition on the shipped binary (D-09/D-12
     expect(chipLines(events), 'nothing drained here, so nothing emitted').toEqual([])
   }, LEG_TIMEOUT_MS)
 
-  it('a gate-run writes disposition: detached and enqueues NOTHING (D-08)', async () => {
+  it('a gate-run writes disposition: detached and enqueues NOTHING', async () => {
     const { root } = runFixtureProject('gaterun')
     const outcome = await spawnCollecting(
       root,

@@ -304,8 +304,8 @@ describe('1 · changing config writes in the call and commits nothing', () => {
   })
 })
 
-describe('2 · C432-MCP-DIRECT-RECEIPT: knowledge changes apply on their one call', () => {
-  it('C432-MCP-DIRECT-RECEIPT: accept, reject and forget each change the real store once and answer the records they changed', async () => {
+describe('2 · knowledge changes apply on their one call', () => {
+  it('accept, reject and forget each change the real store once and answer the records they changed', async () => {
     const forgotten = publishRecord('Checkout')
     const rejected = publishRecord('Coupon')
     await driven(LEGACY, async (session) => {
@@ -339,7 +339,7 @@ describe('2 · C432-MCP-DIRECT-RECEIPT: knowledge changes apply on their one cal
     })
   })
 
-  it('C432-MCP-DIRECT-RECEIPT: a typed absence is data, and a malformed id is refused before any write', async () => {
+  it('a typed absence is data, and a malformed id is refused before any write', async () => {
     const recordId = publishRecord('Checkout')
     await driven(LEGACY, async (session) => {
       const absent = await call(session, KNOWLEDGE_TOOL, {
@@ -379,8 +379,8 @@ describe('3 · a repeated operation identity is the same change', () => {
   })
 })
 
-describe('4 · C432-MCP-NO-ELICITATION: there is no confirmation round on either era', () => {
-  it('C432-MCP-NO-ELICITATION: a 2026 client that can answer a form is never asked, and its one call lands', async () => {
+describe('4 · there is no confirmation round on either era', () => {
+  it('a 2026 client that can answer a form is never asked, and its one call lands', async () => {
     const recordId = publishRecord('Checkout')
     await driven(MODERN_CAPABLE, async (session) => {
       const answer = await call(session, KNOWLEDGE_TOOL, {
@@ -395,7 +395,7 @@ describe('4 · C432-MCP-NO-ELICITATION: there is no confirmation round on either
     })
   })
 
-  it('C432-MCP-NO-ELICITATION: `confirmed` is not an input — refused at the schema wall, and nothing changes', async () => {
+  it('`confirmed` is not an input — refused at the schema wall, and nothing changes', async () => {
     const recordId = publishRecord('Checkout')
     await driven(LEGACY, async (session) => {
       const before = commitCount()

@@ -81,7 +81,7 @@ if (childMode) {
 } else {
   afterAll(cleanupDualHostRoots)
 
-  describe('DAEM-08 dual-host byte identity', () => {
+  describe('dual-host byte identity', () => {
     it('leaves byte-identical bundles and ordered logical rows for mixed run postures', async () => {
     const fixtureRoot = makeRoot('fixture-mixed')
     const fixtureFile = join(fixtureRoot.root, 'shared-fixture.json')

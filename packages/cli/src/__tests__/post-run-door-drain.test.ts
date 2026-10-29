@@ -87,7 +87,7 @@ async function project(): Promise<ReturnType<typeof createInProcessFixture>> {
   return createInProcessFixture({ origin: target.origin, environment: 'local' })
 }
 
-describe('the detached post-run leg (404 D-06, RESEARCH Pitfall 2)', () => {
+describe('the detached post-run leg', () => {
   it('resolves execute() BEFORE the tail settles',
     async () => {
       const fixture = await project()

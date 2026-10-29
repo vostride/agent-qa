@@ -191,7 +191,7 @@ afterEach(() => {
   cleanupTempRoots()
 })
 
-describe('LIFE-01 (a): one verdict, after the last testFinished, on every run shape (D-15)', () => {
+describe('(a): one verdict, after the last testFinished, on every run shape', () => {
   it('leg 2 — a run-level cancel mid-member still publishes exactly one verdict, and it is cancelled', async () => {
     const calls: string[] = []
     const { session, eventsPath } = startLoggedRun(
@@ -249,7 +249,7 @@ describe('LIFE-01 (a): one verdict, after the last testFinished, on every run sh
   })
 })
 
-describePosix('LIFE-01 (a) leg 1: the shipped binary, with post-processing envelopes present', () => {
+describePosix('(a) leg 1: the shipped binary, with post-processing envelopes present', () => {
   it('a real `agent-qa run` writes one verdict, after every testFinished and BEFORE the first post-processing envelope', async () => {
     const freshness = buildFreshness(ANCHORED_BUILDS)
     expect(

@@ -40,8 +40,8 @@ function door() {
   }
 }
 
-describe('C432-TOKENLESS-RUN-SERVICE: the run-service bearer resolver is deleted, not bypassed', () => {
-  it('C432-TOKENLESS-RUN-SERVICE: the resolver module is gone and no CLI source imports it', () => {
+describe('the run-service bearer resolver is deleted, not bypassed', () => {
+  it('the resolver module is gone and no CLI source imports it', () => {
     expect(existsSync(join(SRC, 'composition', 'run-service-token-resolution.ts'))).toBe(false)
     const offenders: string[] = []
     const walk = (dir: string): void => {
@@ -60,7 +60,7 @@ describe('C432-TOKENLESS-RUN-SERVICE: the run-service bearer resolver is deleted
   // RE-SPELLED from 'start-time resolution refuses an unset declaration by NAME' and 'the masker is
   // seeded by DECLARED name': nothing is declared to the composer, so nothing can refuse, and it
   // holds no store. 441-48 (D-01): a door has no masking binder for it to call.
-  it('C432-TOKENLESS-RUN-SERVICE: the composer takes no declarations, refuses nothing, binds no store', () => {
+  it('the composer takes no declarations, refuses nothing, binds no store', () => {
     const composition = composeRunServicePorts({ door: door() })
     try {
       expect(Object.keys(composition.ports).sort()).toEqual(['attach', 'invokeRunStart', 'mintLiveUrl', 'readiness'])
@@ -74,7 +74,7 @@ describe('C432-TOKENLESS-RUN-SERVICE: the run-service bearer resolver is deleted
 
   // RE-SPELLED from 'the verdict has TWO arms and no permissive third (D-06)': there is no verdict.
   // Readiness carries no credential fact at all (432-22) — no credential can be configured.
-  it('C432-TOKENLESS-RUN-SERVICE: readiness reports no credential configured, whatever the environment holds', () => {
+  it('readiness reports no credential configured, whatever the environment holds', () => {
     const previous = process.env[PLANTED_VAR]
     process.env[PLANTED_VAR] = PLANTED
     try {
@@ -91,7 +91,7 @@ describe('C432-TOKENLESS-RUN-SERVICE: the run-service bearer resolver is deleted
 
 // 432-22: re-spelled from 'the config block accepts a declaration and refuses an inline value'. The
 // declaration and its default are gone; refusing a value is now refusing the whole key.
-describe('C432-OLD-KEYS-STRICT: services.dashboard declares no run-service token', () => {
+describe('services.dashboard declares no run-service token', () => {
   const base = {
     workspace: {
       testMatch: ['tests/**/*.yaml'],
@@ -104,7 +104,7 @@ describe('C432-OLD-KEYS-STRICT: services.dashboard declares no run-service token
     use: { mobile: { appState: 'preserve' } },
   }
 
-  it('C432-OLD-KEYS-STRICT: a declared entry, with or without an inline value, is refused by name', () => {
+  it('a declared entry, with or without an inline value, is refused by name', () => {
     for (const entry of [
       { name: 'ci', tokenEnvVar: PLANTED_VAR, trustScope: { org: 'acme' } },
       { name: 'ci', tokenEnvVar: PLANTED_VAR, trustScope: {}, token: PLANTED },
@@ -121,7 +121,7 @@ describe('C432-OLD-KEYS-STRICT: services.dashboard declares no run-service token
     }
   })
 
-  it('C432-OLD-KEYS-STRICT: a dashboard block without the key parses and materialises no token list', () => {
+  it('a dashboard block without the key parses and materialises no token list', () => {
     const parsed = AgentQaConfigSchema.parse({ ...base, services: { dashboard: { port: 3470 } } })
     expect(parsed.services?.dashboard).toEqual({ port: 3470 })
   })

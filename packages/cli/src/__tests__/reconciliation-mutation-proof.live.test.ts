@@ -222,7 +222,7 @@ function assertScenario(scenario: ChatScenario, arm: Arm): void {
   expect(executed).toHaveLength(scenario.expect.executed)
 }
 
-describe('the mutation proof announces which lane actually ran (T-392-32)', () => {
+describe('the mutation proof announces which lane actually ran', () => {
   it('names the gate condition, so a skip can never be mistaken for a pass', () => {
     process.stderr.write(
       `\n[D-16 mutation proof] ${SKIP_REASON ?? `running against ${String(LIVE_CONFIG)}`}\n`,
@@ -258,7 +258,7 @@ describe('the mutation proof announces which lane actually ran (T-392-32)', () =
 })
 
 describe.skipIf(SKIP_REASON !== undefined)(
-  'D-16: the deterministic override, proved by removing it',
+  'the deterministic override, proved by removing it',
   () => {
     let root: string
     let agentQaRoot: string
@@ -339,7 +339,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
       return { result, startedRuns }
     }
 
-    it('A5 AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
+    it('AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
       // FIRST, deliberately: everything below composes a host around this model, so a credential
       // failure reds ONE named case instead of two arms failing in two different-looking ways that
       // both mean "not logged in" — and a differential whose arms both fail for an unrelated
@@ -396,7 +396,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
       }
     }, 600_000)
 
-    it('A5 AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
+    it('AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
       // FIRST, deliberately: everything below composes a host around this model, so a credential
       // failure reds ONE named case instead of two arms failing in two different-looking ways that
       // both mean "not logged in" — and a differential whose arms both fail for an unrelated

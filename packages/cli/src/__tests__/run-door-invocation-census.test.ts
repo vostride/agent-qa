@@ -164,7 +164,7 @@ describe('the predicate self-check — before any verdict about this package', (
   })
 })
 
-describe('no file in the CLI package acquires startRun (T-401-11, INVK-02 criterion 2)', () => {
+describe('no file in the CLI package acquires startRun', () => {
   it('the complete set is empty — the core is the only way this door can begin a run', () => {
     const offenders = shippedSourceFiles(CLI_SRC)
       .filter((path) => acquiresStartRun(readFileSync(path, 'utf8')))

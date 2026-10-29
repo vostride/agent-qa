@@ -545,8 +545,8 @@ function hookEvents(events: Envelope[], phase: string) {
   return events.filter((e) => (e.type === 'hookStarted' || e.type === 'hookFinished') && e.payload.phase === phase)
 }
 
-describe('C433-HOOKED-RUN-EVENTS: a test\'s own hooks are part of its run\'s record (G-433-8, F-433-35)', () => {
-  it('C433-HOOKED-RUN-EVENTS: a test\'s setup hook is on the run\'s bus', async () => {
+describe('a test\'s own hooks are part of its run\'s record', () => {
+  it('a test\'s setup hook is on the run\'s bus', async () => {
     await runCommand('tests/**/*.yaml')
 
     const events = await runEvents()
@@ -568,7 +568,7 @@ describe('C433-HOOKED-RUN-EVENTS: a test\'s own hooks are part of its run\'s rec
     expect(mockRunMemberTest).toHaveBeenCalledTimes(1)
   })
 
-  it('C433-HOOKED-RUN-EVENTS: a test\'s teardown hook is on the run\'s bus', async () => {
+  it('a test\'s teardown hook is on the run\'s bus', async () => {
     await runCommand('tests/**/*.yaml')
 
     const events = await runEvents()
@@ -589,7 +589,7 @@ describe('C433-HOOKED-RUN-EVENTS: a test\'s own hooks are part of its run\'s rec
     expect(teardown[1]!.seq).toBeLessThan(testFinished!.seq)
   })
 
-  it('C433-HOOKED-RUN-EVENTS: a failing setup hook is a failed hook event', async () => {
+  it('a failing setup hook is a failed hook event', async () => {
     mockHookExecute.mockImplementation(async (hook: { id: string }) =>
       hook.id === SETUP_HOOK_ID
         ? { success: false, variables: {}, output: '', stdout: 'about to fail', stderr: 'boom', duration: 3, error: 'Hook exited with code 1: boom' }
@@ -615,7 +615,7 @@ describe('C433-HOOKED-RUN-EVENTS: a test\'s own hooks are part of its run\'s rec
     expect(events.some((e) => e.type === 'stepFinalized')).toBe(false)
   })
 
-  it('C433-HOOKED-RUN-EVENTS: hook output is masked', async () => {
+  it('hook output is masked', async () => {
     await runCommand('tests/**/*.yaml')
 
     const events = await runEvents()

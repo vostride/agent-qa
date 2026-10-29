@@ -121,12 +121,12 @@ async function harness() {
   return { fixture, connect, frames, list, mark, rawMark, refusals, ledgerBytes, registry: host.registry, port }
 }
 
-describe('419 MCP sovereign mark bearer differential', () => {
+describe('MCP sovereign mark bearer differential', () => {
   // RE-SPELLED 2026-10-01 (432-21, D-12) from 'anonymous/reader list the mark tool and its handler
   // refuses them when trustMode=%s'. The handler's credential refusal is deleted: a tokenless
   // caller lists the mark tool and lands the mark in the call. 432-22: the trustMode variants are
   // one case, because the key that varied them is deleted.
-  it('C432-TOKENLESS-MCP-MARK: a tokenless caller lists and lands a mark', async () => {
+  it('a tokenless caller lists and lands a mark', async () => {
     const h = await harness()
     const tokenless = await h.connect()
     const names = await h.list(tokenless)
@@ -151,7 +151,7 @@ describe('419 MCP sovereign mark bearer differential', () => {
   // authority never carries to later or concurrent anonymous requests'. There is no authority to
   // carry: a client sending a legacy bearer and a client sending none are the same caller, their
   // concurrent listings are identical, and two concurrent marks of one address land one receipt.
-  it('EDGE-17: concurrent tokenless requests share no credential authority, and a legacy bearer changes nothing', async () => {
+  it('concurrent tokenless requests share no credential authority, and a legacy bearer changes nothing', async () => {
     const h = await harness()
     const legacy = await h.connect({ authorization: `Bearer ${LEGACY_BEARER}` })
     const tokenless = await h.connect()
@@ -172,7 +172,7 @@ describe('419 MCP sovereign mark bearer differential', () => {
   // RE-SPELLED 2026-10-01 (432-21, D-12) from 'a knowledge-write-only credential lists and reaches
   // every tool, scopes gating nothing'. No credential exists; the one tokenless caller lists and
   // reaches every tool, and the function layer reads no field of it.
-  it('C432-ALL-OPS-AVAILABLE: the tokenless caller lists and reaches every tool, nothing gating it', async () => {
+  it('the tokenless caller lists and reaches every tool, nothing gating it', async () => {
     const h = await harness()
     const client = await h.connect()
     const names = await h.list(client)
@@ -197,8 +197,8 @@ describe('419 MCP sovereign mark bearer differential', () => {
 
 // 432-21 (D-13): the two guards the listener keeps, each measured alone with the other one passing,
 // and each before any body takes effect: a refused mark writes nothing to the ledger.
-describe('C432-RETAINED-MCP-HOST-ORIGIN: the MCP HTTP listener keeps its Host and Origin guards', () => {
-  it('C432-RETAINED-HOST: a non-localhost Host is refused before any server is built, with a localhost Origin', async () => {
+describe('the MCP HTTP listener keeps its Host and Origin guards', () => {
+  it('a non-localhost Host is refused before any server is built, with a localhost Origin', async () => {
     const h = await harness()
     const before = h.ledgerBytes()
     const refused = await h.rawMark({ host: 'evil.example', origin: `http://127.0.0.1:${h.port}` })
@@ -212,7 +212,7 @@ describe('C432-RETAINED-MCP-HOST-ORIGIN: the MCP HTTP listener keeps its Host an
     expect(h.refusals).toEqual(['host'])
   })
 
-  it('C432-RETAINED-ORIGIN: a non-localhost Origin is refused before any server is built, with a localhost Host', async () => {
+  it('a non-localhost Origin is refused before any server is built, with a localhost Host', async () => {
     const h = await harness()
     const before = h.ledgerBytes()
     const refused = await h.rawMark({ host: `127.0.0.1:${h.port}`, origin: 'https://evil.example' })
@@ -228,7 +228,7 @@ describe('C432-RETAINED-MCP-HOST-ORIGIN: the MCP HTTP listener keeps its Host an
     expect(h.refusals).toEqual(['origin'])
   })
 
-  it('C432-RETAINED-MCP-HOST-ORIGIN: a legacy bearer opens neither guard, and the refusal echoes nothing sent', async () => {
+  it('a legacy bearer opens neither guard, and the refusal echoes nothing sent', async () => {
     const h = await harness()
     const before = h.ledgerBytes()
     await expect(h.connect({ authorization: `Bearer ${LEGACY_BEARER}`, origin: 'https://evil.example' }))

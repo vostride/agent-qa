@@ -998,7 +998,7 @@ const MASKED_SURFACES: MaskedSurface[] = [
   },
 ]
 
-describe('SEAM-05 unmask boundary roll-call — MASKED side keeps markers (D-11/D-12)', () => {
+describe('unmask boundary roll-call — MASKED side keeps markers', () => {
   it.each(MASKED_SURFACES.map((surface) => [surface.name, surface] as const))(
     'masked surface %s keeps markers and leaks no original',
     async (_name, surface) => {
@@ -1046,7 +1046,7 @@ const SURFACE_ROLLCALL = [
   'machine:remote-run-analysis',
 ] as const
 
-describe('SEAM-05 unmask boundary roll-call — enrollment guard (T-363-31)', () => {
+describe('unmask boundary roll-call — enrollment guard', () => {
   it('every walked surface is enrolled in the SURFACE_ROLLCALL union exactly once', () => {
     const walked = MASKED_SURFACES.map((s) => s.name)
     expect(new Set(walked).size).toBe(walked.length)
@@ -1071,7 +1071,7 @@ const REFUSING_COMMANDS: readonly (readonly [string, readonly string[], boolean]
   ['knowledge maintain', ['knowledge', 'rebuild-index'], false],
 ]
 
-describe('C441-DISPLAY', () => {
+describe('reads refuse an unreadable secrets file', () => {
   const roots: string[] = []
 
   afterEach(() => {

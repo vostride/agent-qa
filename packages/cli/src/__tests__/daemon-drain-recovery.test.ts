@@ -117,7 +117,7 @@ function plantLease(
   writeFileSync(join(knowledgeRoot, LEASE_FILE), `${JSON.stringify(lease)}\n`, 'utf8')
 }
 
-describePosix('knowledge drain recovery across unreachable daemon hosts (CR-08)', () => {
+describePosix('knowledge drain recovery across unreachable daemon hosts', () => {
   const surrogates: ChildProcess[] = []
   const servers: Server[] = []
   const socketDirs: string[] = []
@@ -365,7 +365,7 @@ describePosix('knowledge drain recovery across unreachable daemon hosts (CR-08)'
  * Each leg drives a REAL `knowledge drain` through the shipped router and asserts on what the
  * command actually printed; only the removal outcome is forced (see the module double above).
  */
-describePosix('stranded quarantine evidence on every drain exit (WR-03)', () => {
+describePosix('stranded quarantine evidence on every drain exit', () => {
   const servers: Server[] = []
   const socketDirs: string[] = []
   const acceptedSockets: Socket[] = []

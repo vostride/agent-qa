@@ -298,7 +298,7 @@ function deliverLedger(from: Checkout, to: Checkout): void {
 
 // ---- the differential ---------------------------------------------------------------------------
 
-describe('the committed quarantine ledger crosses checkout roots (CR-02 / D-01)', () => {
+describe('the committed quarantine ledger crosses checkout roots', () => {
   it('suppresses on a checkout that never saw the machine that wrote the entry', () => {
     const machineA = checkout('agent-qa-390-portability-A-')
     const ciCheckoutB = checkout('agent-qa-390-portability-B-')
@@ -436,7 +436,7 @@ describe('the committed quarantine ledger crosses checkout roots (CR-02 / D-01)'
 // minted canonical identity or REFUSES with the ledger byte-unchanged. There is no third outcome —
 // no committed line the reader refuses, and no line that lists but can never match.
 
-describe('the human write verbs mint the identity the reader joins on (390-12 / D-01)', () => {
+describe('the human write verbs mint the identity the reader joins on', () => {
   function verbsUnder(env: Checkout): ReturnType<typeof createQuarantineOperations> {
     return createQuarantineOperations({
       resolveKnowledgeRoot: () => env.knowledgeRoot,

@@ -139,7 +139,7 @@ function editHost(configPath: string, options: { crashAfterWrite: boolean }) {
   }
 }
 
-describe('a mark retried after a crash inside its authoring edit (432-09 #4)', () => {
+describe('a mark retried after a crash inside its authoring edit', () => {
   it('C-MRK-EDIT-ONCE: answers the recorded write without a second model call or a second edit', async () => {
     const f = testEditFixture()
     const target = join(f.root, TEST_PATH)

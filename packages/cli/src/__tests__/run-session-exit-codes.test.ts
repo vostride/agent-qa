@@ -43,7 +43,7 @@ function count(haystack: string, needle: string): number {
 
 // (c) The D-14 table re-pinned at the CLI import — called directly for all five verdicts. This is
 // the CI-gate contract (T-361-08): the mapping the whole CLI now funnels through.
-describe('D-14 exit map re-pinned at the CLI boundary', () => {
+describe('exit map re-pinned at the CLI boundary', () => {
   it('passed and healed map to 0 (healed is ratified as a pass — the annotation is not the exit code)', () => {
     expect(mapVerdictToExitCode('passed')).toBe(0)
     expect(mapVerdictToExitCode('healed')).toBe(0)
@@ -88,7 +88,7 @@ describe('D-14 exit map re-pinned at the CLI boundary', () => {
 // on source text: `run-gate.e2e.test.ts` and `run-gate-suite.e2e.test.ts` drive the shipped binary
 // and assert a `runStarted` event on each path's allow control, and `run-invocation-core.test.ts`
 // asserts the core's event log end to end.
-describe('both CLI run paths exit through the verdict map (T-361-08)', () => {
+describe('both CLI run paths exit through the verdict map', () => {
   it('both paths compose the gated core — neither reaches the run shell any other way', () => {
     // 401-11 RESTATED THIS, and in the direction that makes it stronger. The two core compositions
     // this line counted were two copies of one composition; they are one now, in the drive both
@@ -111,7 +111,7 @@ describe('both CLI run paths exit through the verdict map (T-361-08)', () => {
 
 // (b) 362-06 SEAM-01/03 — the suite (multi-member) path runs inside `runSafetyScope`. 441-58 (D-06):
 // the run masks with its producer's redactor, and no run masking context is seeded.
-describe('the suite path runs inside runSafetyScope and masks with its own redactor (SEAM-01/03, 362-06)', () => {
+describe('the suite path runs inside runSafetyScope and masks with its own redactor', () => {
   // RE-SPELLED 2026-09-30 (432-13, D-14/D-15): was 'registers the --trust-session flag and reads
   // config.safety?.trustMode'. Nothing asks, so there is nothing for trust to satisfy.
   it('registers no --trust-session flag and reads no config.safety?.trustMode', () => {
@@ -167,7 +167,7 @@ describe('the suite path runs inside runSafetyScope and masks with its own redac
 // `process.exit(130)` grace timer after cancel, and BOTH clear it after `await session.done`, so a
 // genuinely un-settleable run still exits 130 (live Ctrl+C can never hang) and a clean completion
 // never leaks the timer. Source-anchored per this file's convention.
-describe('both handleShutdown paths arm + clear a bounded force-exit backstop (SESSION-04)', () => {
+describe('both handleShutdown paths arm + clear a bounded force-exit backstop', () => {
   // 2026-10-17 (444-08, D-30): the timer exits through forceExit, which closes this process's own
   // still-running row first.
   it('arms a bounded process.exit(130) grace timer in both handleShutdown sites', () => {
@@ -190,7 +190,7 @@ describe('both handleShutdown paths arm + clear a bounded force-exit backstop (S
 // (f) 362-06 SEAM-01/03 — the single-test path (the 363 demo path) activates the SAME seams with the
 // SAME helpers (Pitfall 7): BOTH startRun sites are wrapped in runSafetyScope, no identity mint
 // remains anywhere in production composition, and no trust reaches a run (D-15).
-describe('the single-test path activates the seams with no identity mint remaining (SEAM-01/03, 362-06)', () => {
+describe('the single-test path activates the seams with no identity mint remaining', () => {
   it('wraps BOTH run bodies in runSafetyScope', () => {
     // There is ONE run body now and both paths enter it, which is what "both are wrapped" meant.
     // Pinned as: one scope in the drive, none in the door, and two calls into the drive from it.
@@ -198,7 +198,7 @@ describe('the single-test path activates the seams with no identity mint remaini
     expect(count(runSource, 'runInProcessCliRun as typeof RunInProcessCliRun)(')).toBe(2)
   })
 
-  it('constructs no identity MaskingContext anywhere in production composition (Pitfall 7 warning sign)', () => {
+  it('constructs no identity MaskingContext anywhere in production composition', () => {
     expect(count(runSource, 'buildIdentityMasking')).toBe(0)
     expect(count(compositionSource, 'buildIdentityMasking')).toBe(0)
   })
@@ -222,7 +222,7 @@ describe('the single-test path activates the seams with no identity mint remaini
   // config.safety.trustMode'. No trust reaches a run at all now; the env-var guards stay.
   // 2026-10-01 (432-14, D-03): the hooks input no longer declares trust, so the drive passes none —
   // not even the constant `false` it handed the unread field.
-  it('routes no trust to a run: no flag, no config read, no env var (432-13)', () => {
+  it('routes no trust to a run: no flag, no config read, no env var', () => {
     expect(count(runSource, 'opts.trustSession')).toBe(0)
     expect(driveSource).not.toContain('options.trust')
     expect(driveSource).not.toContain('trustMode')
@@ -234,7 +234,7 @@ describe('the single-test path activates the seams with no identity mint remaini
 
 // (d) The config/setup exit-2 convention is untouched (D-14): exit 2 stays reserved for
 // config/setup errors and is NOT produced by the verdict map.
-describe('the config/setup exit-2 convention survives the cutover (D-14)', () => {
+describe('the config/setup exit-2 convention survives the cutover', () => {
   it('retains process.exit(2) config-error sites in run.ts', () => {
     expect(count(runSource, 'process.exit(2)')).toBeGreaterThanOrEqual(1)
   })

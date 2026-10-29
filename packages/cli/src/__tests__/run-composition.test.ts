@@ -37,8 +37,8 @@ afterAll(() => {
 // carried — a human-facing render unmasks exactly once while the record stays masked — is held by
 // every surviving human render (`unmask-boundary-rollcall.test.ts`); what is pinned here is that the
 // decorator cannot come back as an export of this module.
-describe('buildUnmaskingConfirm (D-11 / Pitfall 4)', () => {
-  it('C432-NO-ASK-PORTS: the confirm decorator is not exported, so nothing can wrap a prompt any more', () => {
+describe('buildUnmaskingConfirm', () => {
+  it('the confirm decorator is not exported, so nothing can wrap a prompt any more', () => {
     expect(Object.keys(runSessionComposition)).not.toContain('buildUnmaskingConfirm')
     // Non-vacuity: the namespace is the real module, with its retained presentation symbols.
     // (2026-10-02, 432-42: the live pause controller left too; the subscriber helper is the anchor.)
@@ -47,7 +47,7 @@ describe('buildUnmaskingConfirm (D-11 / Pitfall 4)', () => {
   })
 })
 
-describe('attachRunSubscribers (bus composition swap, 363-09)', () => {
+describe('attachRunSubscribers (bus composition swap)', () => {
   function fakeSession(): { subscribe: ReturnType<typeof vi.fn> } {
     return { subscribe: vi.fn((_from: number | undefined, _h: (e: RunEventEnvelope) => void) => () => {}) }
   }
@@ -92,7 +92,7 @@ describe('attachRunSubscribers (bus composition swap, 363-09)', () => {
     expect(bind).not.toHaveBeenCalled()
   })
 
-  it('best-effort flush: a rejecting subscriber flush never rejects the combined flush (RUNX-03)', async () => {
+  it('best-effort flush: a rejecting subscriber flush never rejects the combined flush', async () => {
     const session = fakeSession()
     const rejecting: RunSubscriberHandle = {
       handler: vi.fn(),
@@ -120,7 +120,7 @@ describe('attachRunSubscribers (bus composition swap, 363-09)', () => {
 // one `quarantined` argument — a wiring test that only asserted the argument was accepted would
 // stay green while a reporter silently ignored it.
 
-describe('attachRunSubscribers threads the quarantine snapshot to both reporters (390 D-15/D-16)', () => {
+describe('attachRunSubscribers threads the quarantine snapshot to both reporters', () => {
   it('renders the disposition on the console AND in the JUnit document from one input', async () => {
     const fixture = buildReporterFixture()
     const capture = createCapture()
@@ -147,7 +147,7 @@ describe('attachRunSubscribers threads the quarantine snapshot to both reporters
     expect(readFileSync(junitPath, 'utf8')).toContain(JUNIT_QUARANTINE_MARKER_BLOCK)
   })
 
-  it('BOTH startRun sites in run.ts pass the run-start snapshot (Pitfall 8)', () => {
+  it('BOTH startRun sites in run.ts pass the run-start snapshot', () => {
     const runSource = readFileSync(
       fileURLToPath(new URL('../commands/run.ts', import.meta.url)),
       'utf8',
@@ -199,7 +199,7 @@ describe('attachRunSubscribers threads the quarantine snapshot to both reporters
 // carve-out would then be scoping a file whose contents had gone somewhere else. So the export
 // set of the CLI-side module is pinned by exact equality, and any re-export statement at all is
 // an offender regardless of what it names.
-describe('the CLI run-session module exports presentation ONLY (385-08 / D-13)', () => {
+describe('the CLI run-session module exports presentation ONLY', () => {
   const moduleSource = readFileSync(
     fileURLToPath(new URL('../run-session-composition.ts', import.meta.url)),
     'utf8',

@@ -46,8 +46,8 @@ afterEach(async () => {
   for (const close of cleanups.splice(0).reverse()) await close()
 })
 
-describe('C432-TOKENLESS-MCP: the MCP bearer resolver is deleted, not bypassed', () => {
-  it('C432-TOKENLESS-MCP: the resolver module is gone and no CLI source imports it', () => {
+describe('the MCP bearer resolver is deleted, not bypassed', () => {
+  it('the resolver module is gone and no CLI source imports it', () => {
     expect(existsSync(join(SRC, 'composition', 'mcp-token-resolution.ts'))).toBe(false)
     const offenders: string[] = []
     const walk = (dir: string): void => {
@@ -63,7 +63,7 @@ describe('C432-TOKENLESS-MCP: the MCP bearer resolver is deleted, not bypassed',
     expect(offenders).toEqual([])
   })
 
-  it('C432-TOKENLESS-MCP: the command exports one tokenless caller and no grant, credential or sentinel', () => {
+  it('the command exports one tokenless caller and no grant, credential or sentinel', () => {
     for (const retired of ['MCP_DEFAULT_GRANTED_SCOPES', 'mcpFunctionCaller', 'MCP_AUTH_TOKEN_SENTINEL']) {
       expect(retired in mcpCommand, retired).toBe(false)
     }
@@ -72,8 +72,8 @@ describe('C432-TOKENLESS-MCP: the MCP bearer resolver is deleted, not bypassed',
   })
 })
 
-describe('C432-DECLARATION-KEYS: every caller the composition roots mint is attribution only', () => {
-  it('C432-DECLARATION-KEYS: the MCP, run-service, daemon, CLI and dashboard mints carry exactly surface and origin', async () => {
+describe('every caller the composition roots mint is attribution only', () => {
+  it('the MCP, run-service, daemon, CLI and dashboard mints carry exactly surface and origin', async () => {
     const { RUN_SERVICE_FUNCTION_CALLER, DASHBOARD_FUNCTION_CALLER } = await import('../commands/dashboard.js')
     const { DAEMON_FUNCTION_CALLER } = await import('../daemon/server.js')
     const { CLI_FUNCTION_CALLER } = await import('../composition/local-agent-host.js')
@@ -92,7 +92,7 @@ describe('C432-DECLARATION-KEYS: every caller the composition roots mint is attr
   })
 })
 
-describe('the listener reads no Authorization header (D-12)', () => {
+describe('the listener reads no Authorization header', () => {
   async function listener(): Promise<URL> {
     const registry = createFunctionRegistry({
       deps: {} as unknown as FunctionDeps,
@@ -134,7 +134,7 @@ describe('the listener reads no Authorization header (D-12)', () => {
 
   // RE-SPELLED from 'matchBearer answers three ways and never degrades a wrong credential (D-07)':
   // there is no verdict to degrade. Absent, malformed and unmatched headers are served identically.
-  it('C432-TOKENLESS-MCP: absent, malformed and unmatched bearers list the identical catalogue', async () => {
+  it('absent, malformed and unmatched bearers list the identical catalogue', async () => {
     const url = await listener()
     const frames: string[] = []
     const absent = await namesWith(url, undefined, frames)
@@ -150,7 +150,7 @@ describe('the listener reads no Authorization header (D-12)', () => {
 // 432-22: re-spelled from 'the token entry vocabulary speaks names, never values (D-06 refs-only)'
 // and 'the config block lands on services.mcp and defaults safely'. The vocabulary is deleted; the
 // claim that survives is that a token VALUE never reaches anything, now because no token block parses.
-describe('C432-OLD-KEYS-STRICT: services.mcp declares no token or stdio grant', () => {
+describe('services.mcp declares no token or stdio grant', () => {
   const base = {
     workspace: {
       testMatch: ['tests/**/*.yaml'],
@@ -163,17 +163,17 @@ describe('C432-OLD-KEYS-STRICT: services.mcp declares no token or stdio grant', 
     use: { mobile: { appState: 'preserve' } },
   }
 
-  it('C432-OLD-KEYS-STRICT: the token entry and stdio grant vocabulary is gone from the schema package', () => {
+  it('the token entry and stdio grant vocabulary is gone from the schema package', () => {
     const names = Object.keys(schemaApi)
     expect(names.filter(name => /^McpTokenEntry|^McpStdioGrant/.test(name))).toEqual([])
   })
 
-  it('C432-OLD-KEYS-STRICT: an empty services.mcp block parses and materialises nothing', () => {
+  it('an empty services.mcp block parses and materialises nothing', () => {
     const parsed = AgentQaConfigSchema.parse({ ...base, services: { mcp: {} } })
     expect(parsed.services?.mcp).toEqual({})
   })
 
-  it('C432-OLD-KEYS-STRICT: a declared token block or stdio grant is refused by name, never echoing a value', () => {
+  it('a declared token block or stdio grant is refused by name, never echoing a value', () => {
     for (const mcp of [
       { tokens: [{ name: 'ci', tokenEnvVar: PLANTED_VAR, scopes: ['read', 'config-write'] }] },
       { tokens: [{ name: 'ci', tokenEnvVar: PLANTED_VAR, token: PLANTED, scopes: ['read'] }] },

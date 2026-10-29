@@ -224,7 +224,7 @@ function probeTargetsFor(row: (typeof RUN_SERVICE_ROUTE_TABLE)[number]): readonl
 // present a declared credential, answered 401; they are now the three rungs of the same-site guard,
 // answered 403 `cross_site_refused`. The denominator, the shape law and the no-grant law are the
 // census's own and unchanged.
-describe('the refusal census: every route on the table, every failure class (D-06)', () => {
+describe('the refusal census: every route on the table, every failure class', () => {
   it('refuses all of them 403 with a body that is shape-identical beyond the reason', async () => {
     const service = await openRunService()
 
@@ -272,7 +272,7 @@ describe('the refusal census: every route on the table, every failure class (D-0
     expect([...new Set(observed.map((row) => row.error))]).toEqual(['cross_site_refused'])
   }, 60_000)
 
-  it('C432-TOKENLESS-RUN-SERVICE: a legacy Authorization header is neither needed nor read', async () => {
+  it('a legacy Authorization header is neither needed nor read', async () => {
     const service = await openRunService()
     const answers: string[] = []
     for (const legacy of LEGACY_HEADER_CLASSES) {
@@ -343,7 +343,7 @@ describe('a run started over the wire', () => {
 
   // 432-21 (D-12, EDGE-17): two concurrent tokenless starts are two runs, each under the id the core
   // minted for it — no request can choose an id, and no request shares another's.
-  it('C432-TOKENLESS-RUN-SERVICE: two concurrent tokenless starts get two distinct core-minted run ids', async () => {
+  it('two concurrent tokenless starts get two distinct core-minted run ids', async () => {
     const service = await openRunService()
     const start = () => fetch(`${service.origin}/run`, {
       method: 'POST',
@@ -417,7 +417,7 @@ function callsTo(code: string, name: string): number {
   return (withoutDeclarations.match(new RegExp(`\\b${name}\\s*\\(`, 'g')) ?? []).length
 }
 
-describe('the compare discipline is source-pinned, on stripped CODE (T-402-20)', () => {
+describe('the compare discipline is source-pinned, on stripped CODE', () => {
   const code = codeOf(readFileSync(TOKEN_MODULE, 'utf8'))
 
   it('has EXACTLY ONE timingSafeEqual call site — and the import line is not one of them', () => {
@@ -492,7 +492,7 @@ function channelsOf(error: unknown): readonly string[] {
   return channels
 }
 
-describe('the token value reaches no channel (T-402-21)', () => {
+describe('the token value reaches no channel', () => {
   // RE-SPELLED 2026-10-01 (432-21, D-12) from 'the STARTUP refusal names the variable and never a
   // value, and carries no cause' and 'an EMPTY or whitespace-only value refuses startup identically
   // to an unset one'. The composer reads no declaration and no environment, so there is no startup
@@ -569,7 +569,7 @@ describe('the token value reaches no channel (T-402-21)', () => {
 
 // ---- (6) THE SECOND REFUSAL OF `runId` (WINDOWS #231) -----------------------------------------
 
-describe('the door never forwards a caller’s run id, even with its own check bypassed (#231)', () => {
+describe('the door never forwards a caller’s run id, even with its own check bypassed', () => {
   it('the composition builds the request from patterns ALONE — an injected id is not honoured', async () => {
     // `RUN_SERVICE_REFUSED_REQUEST_FIELDS` rejects `runId` at the HTTP door. The core cannot refuse
     // it, because the local dashboard door supplies one from its queue. So the second refusal is

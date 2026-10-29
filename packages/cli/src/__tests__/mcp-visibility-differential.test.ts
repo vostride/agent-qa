@@ -334,7 +334,7 @@ function lastPayload(frames: readonly Frame[]): unknown {
 
 // RE-SPELLED 2026-10-01 (432-20, D-12) from '1 · the config tools are ABSENT from a caller without
 // config-write'. The listing filter is deleted: every token lists the same catalogue.
-describe('1 · the config tools are PRESENT for every caller (432-20)', () => {
+describe('1 · the config tools are PRESENT for every caller', () => {
   it('names the config tool in the shipped mapping, so the presence below is about something', () => {
     expect(CONFIG_TOOL_NAMES).toEqual(['agent_qa_change_config'])
   })
@@ -388,7 +388,7 @@ describe('2 · no tool is hidden, so a formerly hidden tool answers unlike a non
 // RE-SPELLED 2026-10-01 (432-20, D-12) from '3 · the function layer refuses independently of
 // anything a surface listed'. The second wall is deleted too: the function layer serves the op to
 // a caller holding no `config-write`, exactly as to one that holds it.
-describe('3 · the function layer reads no grant (432-20)', () => {
+describe('3 · the function layer reads no grant', () => {
   async function outcomeFor(caller: FunctionCaller): Promise<string> {
     try {
       return JSON.stringify(await invokeFunction(
@@ -428,7 +428,7 @@ describe('3 · the function layer reads no grant (432-20)', () => {
 
 // RE-SPELLED 2026-10-01 (432-20, D-12) from '4 · a caller granted EXACTLY a tool's required set
 // sees it; minus any one member, it does not'. There is no boundary: every grant set sees the tool.
-describe('4 · every grant set sees a three-scope tool, with no adjacency boundary (432-20)', () => {
+describe('4 · every grant set sees a three-scope tool, with no adjacency boundary', () => {
   it('names a three-scope tool, so the cells below have three sides to test', () => {
     const projection = AGENT_QA_TOOL_PROJECTIONS.find((entry) => entry.name === AUTHORING_TOOL)
     expect(projection, `${AUTHORING_TOOL} is not in the shipped mapping`).toBeDefined()
@@ -491,7 +491,7 @@ async function namesFromFactory(scopes: readonly string[]): Promise<string[]> {
 
 // RE-SPELLED 2026-10-01 (432-20, D-12) from '5 · a caller granted NOTHING is served an empty
 // catalogue'. The floor of the deleted law is gone: a caller granted nothing is served everything.
-describe('5 · a caller granted NOTHING is served the full catalogue (432-20)', () => {
+describe('5 · a caller granted NOTHING is served the full catalogue', () => {
   it('lists every tool a read caller lists', async () => {
     const nothing = await namesFromFactory([])
     expect(nothing.length).toBeGreaterThan(0)

@@ -115,7 +115,7 @@ describe('resolveTarget — product field', () => {
   })
 })
 
-describe('resolveTarget — environment declaration (D-06)', () => {
+describe('resolveTarget — environment declaration', () => {
   it('carries a declared local environment through', () => {
     const config = makeConfig({
       'local-form': { platform: 'web' as const, url: 'http://127.0.0.1:8931/form.html', environment: 'local' },
@@ -140,10 +140,10 @@ describe('resolveTarget — environment declaration (D-06)', () => {
 
 // 432-02 D-18: production joins the declared classes. The CLI resolver and eval's per-product
 // fold carry all four states, absence included, and never read a class off a hostname.
-describe('C432-TARGET-ENVIRONMENT-ROUNDTRIP: CLI target environment (432 D-18)', () => {
+describe('CLI target environment', () => {
   const STATES = ['local', 'shared', 'production', undefined] as const
 
-  it('C432-TARGET-ENVIRONMENT-ROUNDTRIP: resolveTarget carries local, shared, production and absence unchanged', () => {
+  it('resolveTarget carries local, shared, production and absence unchanged', () => {
     expectTypeOf<ResolvedTarget['environment']>().toEqualTypeOf<'local' | 'shared' | 'production' | undefined>()
     for (const environment of STATES) {
       const config = makeConfig({

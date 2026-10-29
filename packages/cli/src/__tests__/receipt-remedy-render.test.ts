@@ -29,12 +29,12 @@ function stripComments(source: string): string {
   return source.replace(/\/\*[\s\S]*?\*\/|(^|[^:])\/\/.*$/gm, (_m, kept?: string) => kept ?? '')
 }
 
-describe('C432-REMEDY-TYPES-ABSENT: the CLI has no remedy renderer', () => {
-  it('C432-REMEDY-TYPES-ABSENT: receipt-line exports the receipt render and nothing that renders a remedy', () => {
+describe('the CLI has no remedy renderer', () => {
+  it('receipt-line exports the receipt render and nothing that renders a remedy', () => {
     expect(Object.keys(receiptLineModule).sort()).toEqual(['receiptLine'])
   })
 
-  it('C432-REMEDY-TYPES-ABSENT: no command source spells the remedy vocabulary or its renderer', () => {
+  it('no command source spells the remedy vocabulary or its renderer', () => {
     for (const file of ['receipt-line.ts', 'run.ts', 'fn.ts']) {
       const code = stripComments(readFileSync(join(COMMANDS, file), 'utf8'))
       for (const needle of ['denialDetailLines', 'remediesRenderable' + 'By', 'Gate' + 'Remedy', 'FunctionDenied' + 'Error', '.remedies']) {
@@ -44,8 +44,8 @@ describe('C432-REMEDY-TYPES-ABSENT: the CLI has no remedy renderer', () => {
   })
 })
 
-describe('C432-PLAIN-REFUSAL: a refused run prints a plain reason and suggests nothing', () => {
-  it('C432-PLAIN-REFUSAL: a refused or failed receipt renders its own outcome and appends no suggested command', () => {
+describe('a refused run prints a plain reason and suggests nothing', () => {
+  it('a refused or failed receipt renders its own outcome and appends no suggested command', () => {
     const base: Omit<ClauseReceipt, 'status' | 'outcome'> = {
       clause: 'start a run on prod',
       functionId: 'runs.start',

@@ -40,7 +40,7 @@ describe('createJunitReporter', () => {
     expect(xml).toMatch(/\[FAILED\]/)
   })
 
-  it('stays MASKED — placeholders preserved, originals never written (D-11)', async () => {
+  it('stays MASKED — placeholders preserved, originals never written', async () => {
     const { xml, fixture } = await runJunit()
     // the declared marker survives XML-escaping (441-33: `[secret:<name>]`, not the old `<SECRET_n>`)
     expect(xml).toMatch(/\[secret:\w+\]/)
@@ -113,7 +113,7 @@ async function junitOf(envelopes: readonly RunEventEnvelope[]): Promise<string> 
   return xml
 }
 
-describe('C444.1-REPORTER-WORDS', () => {
+describe('JUnit words for abort-skipped and cancelled members', () => {
   it('JUnit names an abort-skipped member by its test', async () => {
     const xml = await junitOf(abortSkippedStream())
     expect(xml).toContain(
@@ -144,7 +144,7 @@ describe('C444.1-REPORTER-WORDS', () => {
 // input, because an assertion that nothing changed is only load-bearing if the same code path WOULD
 // have changed under the other input.
 
-describe('createJunitReporter — the 390 D-15 quarantine marker', () => {
+describe('createJunitReporter — the quarantine marker', () => {
   it('keeps the REAL <failure> and adds the marker — never a <skipped>, never an outcome rewrite', async () => {
     const { xml } = await runJunit([QUARANTINED_CHECKOUT])
     // the failure element the CI UI counts is still there, unchanged in kind

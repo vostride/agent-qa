@@ -29,7 +29,7 @@ afterEach(async () => {
   await rm(TMP_DIR, { recursive: true, force: true })
 })
 
-describe('flushWorkingMemory — happy path (D-13)', () => {
+describe('flushWorkingMemory — happy path', () => {
   it('writes a JSON artifact with masked values + kind/provenance, then disposes the store', async () => {
     const store = fakeStore([
       { key: 'otp', value: '4821', kind: 'extracted-value', provenance: 'observation' },
@@ -48,7 +48,7 @@ describe('flushWorkingMemory — happy path (D-13)', () => {
   })
 })
 
-describe('C441-COMMITTED', () => {
+describe('working-memory flush masking', () => {
   it('the working-memory flush masks a declared value and keeps the rest', async () => {
     const redactor = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz'))
     const store = fakeStore([
@@ -69,7 +69,7 @@ describe('C441-COMMITTED', () => {
   })
 })
 
-describe('flushWorkingMemory — never throws (Pitfall 5)', () => {
+describe('flushWorkingMemory — never throws', () => {
   it('resolves best-effort with the artifact when the mask throws, writing no raw value', async () => {
     const store = fakeStore([{ key: 'otp', value: '4821', kind: 'extracted-value', provenance: 'toolResult' }])
     const result = await flushWorkingMemory(store, {

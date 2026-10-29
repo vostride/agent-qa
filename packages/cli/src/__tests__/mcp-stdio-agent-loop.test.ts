@@ -101,8 +101,8 @@ function project(): ReturnType<typeof markFixture> {
   return fixture
 }
 
-describe('C432-TOKENLESS-CATALOG: a tokenless stdio caller sees the whole twenty-tool catalogue', () => {
-  it('C432-TOKENLESS-CATALOG: the spawned binary lists exactly twenty tools to a caller with no token, and none of the proposal round', async () => {
+describe('a tokenless stdio caller sees the catalogue', () => {
+  it('the spawned binary lists the change, mark and start tools to a caller with no token', async () => {
     const fixture = project()
     const session = await openStdio(fixture.root)
     try {
@@ -117,8 +117,8 @@ describe('C432-TOKENLESS-CATALOG: a tokenless stdio caller sees the whole twenty
   }, 60_000)
 })
 
-describe('C432-DOOR-NONPRODUCTION / C432-NEXT-RUN-SERVES: one call each over stdio, served next run', () => {
-  it('C432-DOOR-NONPRODUCTION: a tokenless stdio caller changes the config in one call, with nothing filed for later', async () => {
+describe('one call each over stdio, served next run', () => {
+  it('a tokenless stdio caller changes the config in one call', async () => {
     const fixture = project()
     const session = await openStdio(fixture.root)
     try {
@@ -133,7 +133,7 @@ describe('C432-DOOR-NONPRODUCTION / C432-NEXT-RUN-SERVES: one call each over std
     }
   }, 60_000)
 
-  it('C432-NEXT-RUN-SERVES: a tokenless stdio mark lands its knowledge fix in the call, and the next brief serves the changed record instead of the replaced one', async () => {
+  it('a tokenless stdio mark lands its knowledge fix in the call, and the next brief serves the changed record instead of the replaced one', async () => {
     const fixture = project()
     // Before the mark the fixture's record is a HELD candidate, so the product brief serves nothing
     // the mark is about to change.

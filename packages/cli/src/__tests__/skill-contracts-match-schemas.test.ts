@@ -93,7 +93,7 @@ function relativeCopy(copy: string): string {
   return path.relative(AGENT_QA_ROOT, copy).split(path.sep).join('/')
 }
 
-describe('C446-CONTRACTS', () => {
+describe('the contracts reference matches the schemas', () => {
   it('config.rootKeys in both copies are the config schema root keys in schema order', () => {
     expect(
       CONTRACTS_COPIES.every((copy) => existsSync(copy)),

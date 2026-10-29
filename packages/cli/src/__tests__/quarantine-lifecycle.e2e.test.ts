@@ -595,7 +595,7 @@ async function driveRun(env: Harness, script: RunScript, now = NOW): Promise<Dri
 
 // ---- the signature differential: runs A..H ----------------------------------------------------
 
-describe('the quarantine lifecycle, end to end (FLAK-02 / FLAK-03)', () => {
+describe('the quarantine lifecycle, end to end', () => {
   it('runs A..H: in at the crossing, suppressed-but-visible, auto-out after 5, honest again', async () => {
     const env = harness('agent-qa-390-lifecycle-')
 
@@ -730,7 +730,7 @@ describe('the quarantine lifecycle, end to end (FLAK-02 / FLAK-03)', () => {
 // So this pin gives the sibling a real failure and asserts the aggregate and the exit code, over a
 // ledger entry authored by the same detection ladder every other hop uses.
 
-describe('a quarantined failure never silences an un-quarantined one (CR-01)', () => {
+describe('a quarantined failure never silences an un-quarantined one', () => {
   it('the failing sibling runs AND fails the build at exit 1, behind a licensed failure', async () => {
     const env = harness('agent-qa-390-antisilencing-')
 
@@ -799,7 +799,7 @@ describe('a quarantined failure never silences an un-quarantined one (CR-01)', (
 // 390-19 made that class floor-eligible on the condition that the crossing ALSO carries the
 // per-test same-build pass∧fail — which 390-21 taught the fold to compute.
 
-describe('a failing member with no analysis budget can still be quarantined (G-390-5)', () => {
+describe('a failing member with no analysis budget can still be quarantined', () => {
   /** Every run here is scripted to blow the test deadline, and none of them gets an analyst. */
   const NO_BUDGET = {
     failureError: TEST_DEADLINE_ERROR,
@@ -936,7 +936,7 @@ describe('a failing member with no analysis budget can still be quarantined (G-3
 // with a full new deadline. Nobody has to notice, decide, claim, renew or release anything. The
 // multi-cycle characterization leg at the bottom of this block pins that loop directly.
 
-describe('the expiry lapse: what one lapsed deadline buys (D-11)', () => {
+describe('the expiry lapse: what one lapsed deadline buys', () => {
   // The crossing's 30-day deadline is behind both the run-start instant and the
   // composition's injected clock, independent of the date this test is executed.
   const PAST_NOW = '2026-06-01T12:00:00.000Z'

@@ -80,7 +80,7 @@ function opRow(
   )
 }
 
-describe('the committed catalog documents `scope` (D-19 doc half, committed surface)', () => {
+describe('the committed catalog documents `scope` (committed surface)', () => {
   it('carries a non-empty `scope` description naming the product, through the ONE loader', () => {
     // THE ONE LOADER, never a hand-resolved path. A `JSON.parse` spelled here would be the second
     // read path `loader.ts`'s header exists to make impossible, and this cell would then be a
@@ -110,7 +110,7 @@ describe('the committed catalog documents `scope` (D-19 doc half, committed surf
 /** The deleted catalog path, built from two halves so the 430 census never counts this file. */
 const DELETED_CATALOG_PATH = '/api/' + 'chat/catalog'
 
-describe('the dashboard serves no documentation surface of its own (served surface, 430 D-02)', () => {
+describe('the dashboard serves no documentation surface of its own (served surface)', () => {
   let origin: string
   let host: LocalAgentHost
   let server: Server

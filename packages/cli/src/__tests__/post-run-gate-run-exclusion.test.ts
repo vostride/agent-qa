@@ -531,7 +531,7 @@ describe('leg-3-quarantine-window — a flagged FAILURE never advances the detec
   })
 })
 
-describe('leg-4-curation-candidates-emitted — knowledge curation still consumes a gate run (C8)', () => {
+describe('leg-4-curation-candidates-emitted — knowledge curation still consumes a gate run', () => {
   it('emits candidates FROM the flagged handoff, identically to the unflagged twin', () => {
     // POSITIVE by design. `emitCurationCandidates` has zero occurrences of either marker today,
     // so C8 currently holds by accident of omission — an "asserts no exclusion" test would pass
@@ -570,7 +570,7 @@ describe('leg-4-curation-candidates-emitted — knowledge curation still consume
   })
 })
 
-describe('leg-5-analyze-run-queue — a flagged run is never queued at all (404 D-08)', () => {
+describe('leg-5-analyze-run-queue — a flagged run is never queued at all', () => {
   it('queues ZERO rows for the flagged twin and exactly one for the unflagged twin', async () => {
     const { flagged, plain } = twins()
 
@@ -607,7 +607,7 @@ describe('leg-5-analyze-run-queue — a flagged run is never queued at all (404 
     expect('excludedFromOutcomes' in payload).toBe(false)
   })
 
-  it('each marker suppresses the queue INDEPENDENTLY — the flags are distinct axes (C8/D-08)', async () => {
+  it('each marker suppresses the queue INDEPENDENTLY — the flags are distinct axes', async () => {
     // The adjacency WTST-06 resolves explicitly: the flags are DISTINCT axes. A gate run that
     // still counts (`gateRun` alone) and an excluded run that is not a gate run
     // (`excludedFromOutcomes` alone) are both real, and a skip that keyed on one flag while

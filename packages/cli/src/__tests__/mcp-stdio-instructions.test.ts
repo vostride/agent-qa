@@ -62,8 +62,8 @@ async function stdioInstructions(cwd: string): Promise<string | undefined> {
   }
 }
 
-describe('C433-MCP-INSTRUCTIONS-PARITY', () => {
-  it('C433-MCP-INSTRUCTIONS-PARITY: the shipped stdio server answers the instructions', async () => {
+describe('the stdio server instructions match the init guide', () => {
+  it('the shipped stdio server answers the instructions', async () => {
     const dir = tempDir()
     init(dir)
     const answered = await stdioInstructions(dir)
@@ -71,7 +71,7 @@ describe('C433-MCP-INSTRUCTIONS-PARITY', () => {
     expect(answered).toBe(AGENT_QA_MCP_INSTRUCTIONS)
   }, 180_000)
 
-  it('C433-MCP-INSTRUCTIONS-PARITY: every path the init guide forbids, the server forbids', () => {
+  it('every path the init guide forbids, the server forbids', () => {
     const guide = buildKnowledgeAgentGuide()
     for (const path of ['memory/index/', 'memory/queue/', '.lease', '.epoch', 'SQLite']) {
       expect(guide, `the guide no longer names ${path}`).toContain(path)
@@ -81,7 +81,7 @@ describe('C433-MCP-INSTRUCTIONS-PARITY', () => {
     expect(AGENT_QA_MCP_INSTRUCTIONS).toContain('.agent-qa/')
   })
 
-  it('C433-MCP-INSTRUCTIONS-PARITY: the first reads match the guide\'s map', () => {
+  it('the first reads match the guide\'s map', () => {
     const mcpTools = AGENT_QUESTION_MAP.map((row) => row.mcp)
     for (const tool of ['agent_qa_list_runs', 'agent_qa_get_run_overview']) {
       expect(mcpTools, tool).toContain(tool)
@@ -89,7 +89,7 @@ describe('C433-MCP-INSTRUCTIONS-PARITY', () => {
     }
   })
 
-  it('C433-MCP-INSTRUCTIONS-PARITY: init writes no CLAUDE.md', () => {
+  it('init writes no CLAUDE.md', () => {
     const fresh = tempDir()
     init(fresh, '--write-agent-instructions')
     expect(existsSync(join(fresh, 'AGENTS.md')), 'the pointer was not written to AGENTS.md').toBe(true)

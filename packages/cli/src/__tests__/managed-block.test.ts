@@ -158,7 +158,7 @@ function refusalOf(run: () => unknown): ManagedBlockRefusal {
 }
 
 describe('MANAGED-BYTES', () => {
-  it('spells the D-19 markers for both comment syntaxes', () => {
+  it('spells the managed-block markers for both comment syntaxes', () => {
     expect(managedBlockMarkers(AGENT_QA_INIT_GITIGNORE_BLOCK)).toEqual({
       start: '# agent-qa init:start',
       end: '# agent-qa init:end',

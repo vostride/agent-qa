@@ -57,7 +57,7 @@ afterEach(async () => {
 
 afterAll(cleanupPostRunDaemonRoots)
 
-describePosix('post-processing status survives a closed socket (SC4, ANLZ-05)', () => {
+describePosix('post-processing status survives a closed socket', () => {
   test(
     'answers mid-chain and after the daemon is gone, from durable rows alone, while the run log '
     + 'stays byte-identical across the whole drain',
@@ -177,7 +177,7 @@ describePosix('post-processing status survives a closed socket (SC4, ANLZ-05)', 
   )
 })
 
-describe('the one construction site that makes the daemon silent (D-13)', () => {
+describe('the one construction site that makes the daemon silent', () => {
   test('the chip emitter is built once, inside the acquired-lease branch, and nowhere else', () => {
     const tail = readFileSync(new URL('../curation/post-run-tail.ts', import.meta.url), 'utf8')
     // One construction site in the whole product, and it is downstream of both early returns —

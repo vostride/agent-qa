@@ -164,10 +164,10 @@ async function serveHolder(where: Fixture, registry: LocalAgentHost['registry'])
   }))
 }
 
-describe('a knowledge change routes by lease state (D-18)', () => {
+describe('a knowledge change routes by lease state', () => {
   // RE-SPELLED 2026-10-01 (432-16): was the pre-432 forget proposal applied through
   // `knowledge.proposal.apply` after a recorded standing approval.
-  it('commits in-process when no daemon holds the lease (v51 one-shot posture)', async () => {
+  it('commits in-process when no daemon holds the lease (one-shot posture)', async () => {
     const where = fixture('free')
     const recordId = await seedRecord(where)
     const agent = host(where)
@@ -189,7 +189,7 @@ describe('a knowledge change routes by lease state (D-18)', () => {
   // RE-SPELLED 2026-10-01 (432-16): the delegator used to be handed a proposal id through
   // `applyDelegate`; it now binds the CLI host's shipped change delegate and hands the change op and
   // its identity over.
-  it('delegates over the 386 socket to a live holder and never takes the lease', async () => {
+  it('delegates over the daemon socket to a live holder and never takes the lease', async () => {
     const where = fixture('held')
     const recordId = await seedRecord(where)
 
@@ -308,8 +308,8 @@ describe('a knowledge change routes by lease state (D-18)', () => {
 // 2026-09-30, 432-12 (D-05): a DIRECT knowledge change takes the same lease routing, with no
 // proposal id to hand over. The live holder receives the change op and the change's own identity
 // over the same socket, applies with its authority, and nothing is filed or claimed anywhere.
-describe('a direct knowledge change routes by lease state (432-12)', () => {
-  it('C432-KNOWLEDGE-DIRECT-BINDING: delegates the change op and its identity to a live holder over the 386 socket, filing nothing and never taking the lease', async () => {
+describe('a direct knowledge change routes by lease state', () => {
+  it('delegates the change op and its identity to a live holder over the daemon socket, filing nothing and never taking the lease', async () => {
     const where = fixture('direct-held')
     const recordId = await seedRecord(where)
 
@@ -386,7 +386,7 @@ describe('a direct knowledge change routes by lease state (432-12)', () => {
 // agent-qa daemon"). The holder is a process that is writing, not a missing daemon, so the CLI's
 // delegate now refuses by name with the holder's pid and the mark's wording. A registered daemon
 // nobody answers for keeps `DaemonNotRunningError`. Nothing is written in either case.
-describe('a knowledge change under a holder that is not a live daemon (quick 261002-hyg)', () => {
+describe('a knowledge change under a holder that is not a live daemon', () => {
   async function snapshot(where: Fixture): Promise<string> {
     const { readdirSync, readFileSync, statSync } = await import('node:fs')
     const lines: string[] = []

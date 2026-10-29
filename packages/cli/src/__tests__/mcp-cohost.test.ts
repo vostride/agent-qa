@@ -360,7 +360,7 @@ const MCP_PACKAGE_DIR = resolvePath(dirname(fileURLToPath(import.meta.url)), '..
 const MCP_ARTIFACT = resolvePath(MCP_PACKAGE_DIR, 'dist/index.js')
 const MCP_REBUILD_INSTRUCTION = 'run `pnpm --filter @vostride/agent-qa-mcp run build`'
 
-describe('this file measures a FRESH artifact (408-05 D-O)', () => {
+describe('this file measures a FRESH artifact', () => {
   it('reads a build no older than the sources it measures', () => {
     const artifact = statSync(MCP_ARTIFACT).mtimeMs
     for (const source of ['src/app-resource.ts', 'src/catalog.ts', 'src/live-link.ts']) {
@@ -375,7 +375,7 @@ describe('this file measures a FRESH artifact (408-05 D-O)', () => {
 
 // ---- 1. The guard order, reused verbatim (Pitfall 7 · T-408-10, T-408-11) ----------------------
 
-describe('the mounted endpoint keeps the standalone face\'s guard order (Pitfall 7)', () => {
+describe('the mounted endpoint keeps the standalone face\'s guard order', () => {
   it('refuses a non-localhost Host with 403 forbidden_host, before anything else', async () => {
     const answer = await rawRequest({
       Host: 'attacker.example.com',
@@ -420,7 +420,7 @@ describe('the mounted endpoint keeps the standalone face\'s guard order (Pitfall
 
 // ---- 2. D-03 on the wire: the served token validates IN THIS COMPOSITION -----------------------
 
-describe('a served App token validates against THIS composition\'s validator (D-03)', () => {
+describe('a served App token validates against THIS composition\'s validator', () => {
   it('serves wrapper HTML whose liveUrl passes the composition\'s own validate', async () => {
     const client = await connectAs(TOKEN_VALUE)
     try {
@@ -450,7 +450,7 @@ describe('a served App token validates against THIS composition\'s validator (D-
     }
   })
 
-  it('renders D-08\'s permanent-link slot, pointing at the tokenless page (closes 408-01\'s stub)', async () => {
+  it('renders the permanent-link slot, pointing at the tokenless page', async () => {
     const client = await connectAs(TOKEN_VALUE)
     try {
       const result = await client.readResource({ uri: APP_URI })
@@ -513,7 +513,7 @@ describe('a carrier result on this endpoint carries the link composed from the b
     }
   })
 
-  it('carries a TOKENLESS link — the permanent page, never a minted credential (D-08, T-408-12)', async () => {
+  it('carries a TOKENLESS link — the permanent page, never a minted credential', async () => {
     const client = await connectAs(TOKEN_VALUE)
     try {
       const result = (await client.callTool({
@@ -620,7 +620,7 @@ const MOUNT_ROWS: readonly MountRow[] = [
     port: MCP_HTTP_DEFAULT_PORT,
   },
   {
-    claim: 'mounts when services.mcp is declared with no token at all (432-21: the block is the'
+    claim: 'mounts when services.mcp is declared with no token at all (the block is the'
       + ' request; loopback and the Host/Origin guards bound the endpoint)',
     config: { services: { mcp: {} } },
     mount: true,
@@ -628,7 +628,7 @@ const MOUNT_ROWS: readonly MountRow[] = [
   },
   {
     claim: 'does NOT mount when services.mcp.enabled is the literal false, even with a token'
-      + ' declared (WR-01 / T-408-18)',
+      + ' declared',
     config: { services: { mcp: { enabled: false, tokens: [DECLARED_TOKEN] } } },
     mount: false,
   },
@@ -641,8 +641,8 @@ const MOUNT_ROWS: readonly MountRow[] = [
     mount: true,
   },
   {
-    claim: 'does NOT mount for a token declared under services.dashboard.mcp — the shape of the'
-      + ' always-undefined read 408-03 fixed, which the old source cells passed over',
+    claim: 'does NOT mount for a token declared under services.dashboard.mcp, a path the mount'
+      + ' never reads',
     config: { services: { dashboard: { mcp: { tokens: [DECLARED_TOKEN] } } } },
     mount: false,
   },
@@ -676,7 +676,7 @@ const MOUNT_ROWS: readonly MountRow[] = [
   },
 ]
 
-describe('the co-host mount decision is a FUNCTION of the parsed config (WR-01, WR-09)', () => {
+describe('the co-host mount decision is a FUNCTION of the parsed config', () => {
   for (const row of MOUNT_ROWS) {
     it(row.claim, () => {
       const plan = mcpMountPlanFor(row.config)
@@ -710,7 +710,7 @@ describe('the co-host mount decision is a FUNCTION of the parsed config (WR-01, 
 // cell could hand it a REAL occupied socket. The port these cells occupy is ephemeral rather than
 // the shipped default, so the suite never fights a developer's own running `agent-qa mcp --http`.
 
-describe('a failed bind on the optional MCP endpoint leaves the primary surface serving (WR-02)', () => {
+describe('a failed bind on the optional MCP endpoint leaves the primary surface serving', () => {
   it('answers no server handle and a warning naming the MCP endpoint and the occupied port', async () => {
     const squatter = createServer(() => {})
     await new Promise<void>((bound) => squatter.listen(0, MCP_HTTP_BIND_HOST, () => bound()))
@@ -758,7 +758,7 @@ describe('a failed bind on the optional MCP endpoint leaves the primary surface 
 // ---- 7. The two wiring facts, stated as source assertions and labelled as such -------------------
 
 describe('the shipped dashboard composition wires and closes the endpoint', () => {
-  it('SOURCE ASSERTION: the mount passes the LIVE-VIEW-BOUND registry — the wiring half of D-03,'
+  it('SOURCE ASSERTION: the mount passes the LIVE-VIEW-BOUND registry — the wiring half,'
     + ' whose behavioural half is the served-token cell above', () => {
     // The construct read is a PROPERTY ASSIGNMENT in the `createMcpHttpRequestListener({ … })`
     // argument: `registry: runHost.registry as FunctionRegistry`. It is code, not prose.
@@ -828,7 +828,7 @@ const UNSET_ENTRY_CONFIG = { services: { mcp: { tokens: [UNSET_ENTRY] } } }
 // 'the co-host resolves credentials without betting the dashboard on them (CR-01)', and the first two
 // cells were 'a declared-but-unset tokenEnvVar costs a warning, not the dashboard' and 'a refused
 // resolution leaves nothing to mount — the endpoint is never served without a credential'.
-describe('the co-host resolves no credentials (CR-01 retired)', () => {
+describe('the co-host resolves no credentials', () => {
   it('a declared-but-unset tokenEnvVar costs nothing — the plan reads no token and no environment', () => {
     // It costs NOTHING now: the decision reads no token entry and no environment, so there is no
     // refusal to warn about and nothing to escape. The source half: no dashboard code dereferences
@@ -875,7 +875,7 @@ const MCP_COMMAND_SOURCE = readFileSync(
 // standalone face reads no token declaration and is not routed through any co-host wrapper.
 // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-13): the describe was 'one error class, two call sites,
 // two correct answers (CR-01)'.
-describe('neither MCP face resolves a token (CR-01 retired)', () => {
+describe('neither MCP face resolves a token', () => {
   it('the standalone agent-qa mcp face reads no token declaration and resolves none', () => {
     expect(MCP_COMMAND_SOURCE).not.toContain('resolveMcpTokens(')
     expect(MCP_COMMAND_SOURCE).not.toContain('services?.mcp?.tokens')

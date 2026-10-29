@@ -2112,7 +2112,7 @@ describe('run command — exit codes', () => {
   // Depth at the stamp, NOT a source grep — this phase has twice measured a grep pass on the import
   // line alone (402-01 `timingSafeEqual`, 402-03 `resolveEffectiveWorkers`). Deleting the
   // `logger.runInMemberScope(...)` wrap leaves every stamp at depth 0 and reds this cell.
-  it('stamps each direct member run id INSIDE a member log scope (WINDOWS #233)', async () => {
+  it('stamps each direct member run id INSIDE a member log scope', async () => {
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({ tests: [makeTest()], errors: [] })
     mockRunMemberTest.mockResolvedValue({
@@ -2440,7 +2440,7 @@ describe('run command — reporter integration', () => {
     expect(exitSpy).toHaveBeenCalledWith(exitCode)
   })
 
-  it('composes analytics ONCE for a --all invocation — both subscribers hold the same port (D-19)', async () => {
+  it('composes analytics ONCE for a --all invocation — both subscribers hold the same port', async () => {
     // THE CLAIM IS OBJECT IDENTITY, not "both were configured the same way". `--all` drives the
     // suite path and then the direct path in one process; a rewire that composed at each attach
     // site would produce two ports, two opt-out decisions and two identity resolutions, and every
@@ -3621,7 +3621,7 @@ describe('run command — runtime cache paths', () => {
     expect(suiteConfig.cache).toBeDefined()
   })
 
-  it('does not recompute/purge cache entries post-run — the loop owns per-key invalidation (Phase 356)', async () => {
+  it('does not recompute/purge cache entries post-run — the loop owns per-key invalidation', async () => {
     // The v1 CLI post-run batch purge (recompute a step hash -> rm dir) is retired
     // (D-03/D-13): the redesigned per-key ActionPlanCache invalidates the exact failed
     // decision point inside the runner loop. The CLI never recomputes an opaque masked key,

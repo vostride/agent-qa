@@ -31,7 +31,7 @@ function tempDir(prefix: string): string {
 // D-20: computeRunConfigDigests is the ONE digest mint. Both the cache path (per-member) and
 // the handoff header (run-level) draw from a single call, so run identity and handoff identity
 // cannot fork.
-describe('computeRunConfigDigests (D-20 — one mint)', () => {
+describe('computeRunConfigDigests (one mint)', () => {
   const input = {
     configContent: 'config-yaml',
     members: [
@@ -111,7 +111,7 @@ describe('buildRunPorts (roots under .agent-qa)', () => {
 // event/handoff/artifact adapters from the SAME persistence root + runId, and buildMemberRunConfig
 // copies the exact neutral store port into MemberRunConfig without wrapping it. The CLI consumes
 // runner-local's public layout constants rather than duplicating slug/directory policy.
-describe('buildRunPorts — run-scoped evidence artifact store (CASS-02, Plan 13)', () => {
+describe('buildRunPorts — run-scoped evidence artifact store', () => {
   it('persists sentinel bytes through the neutral port and reads them back by returned sha under the run/blob namespace', () => {
     const configDir = tempDir('run-evidence-')
     const runId = 'r_evidence-roundtrip'
@@ -152,7 +152,7 @@ describe('buildRunPorts — run-scoped evidence artifact store (CASS-02, Plan 13
 // buildMemberRunConfig maps the resolved host impls into a MemberRunConfig; the run-scoped evidence
 // store must cross into member execution by strict identity (no wrapping) so Plan 12's loop producer
 // sees the exact run store.
-describe('buildMemberRunConfig — evidence store identity (CASS-02, Plan 13)', () => {
+describe('buildMemberRunConfig — evidence store identity', () => {
   it('copies the exact supplied evidenceArtifacts store into MemberRunConfig', () => {
     const configDir = tempDir('run-evidence-mc-')
     const store = buildRunPorts({ configDir, runId: 'r_member-config' }).evidenceArtifacts
@@ -243,7 +243,7 @@ describe('resolveRunExecutionContext (delegates to safety-local)', () => {
 // 403-13 (WR-06, LIVE-03): a SUBSCRIBER's fault has a NAMED destination on the shipped composition,
 // and the port is CARRIED across the RunPersistencePorts -> RunPorts hop at run-assembly.ts:175 —
 // read off the RunConfig the ASSEMBLER returns, not off buildRunPorts's own return value.
-describe('buildRunPorts — onSubscriberFault destination (403-13)', () => {
+describe('buildRunPorts — onSubscriberFault destination', () => {
   it('supplies a callable onSubscriberFault whose invocation is an observable process warning carrying the code', async () => {
     const configDir = tempDir('run-ports-fault-')
     const ports = buildRunPorts({ configDir, runId: 'r_fault-destination' })

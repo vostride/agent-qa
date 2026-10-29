@@ -19,7 +19,7 @@ function use(planner: Record<string, unknown>): Record<string, unknown> {
   return { planner }
 }
 
-describe('C436-EFFECTIVE-LIMITS', () => {
+describe('effective planner limits', () => {
   it('direct and suite members resolve the same limits from the same blocks', () => {
     const blocks = {
       project: use({ maxActions: 30, maxPlanningTurns: 30 }),

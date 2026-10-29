@@ -265,7 +265,7 @@ async function readDurableState(agentQaRoot: string): Promise<{
   }
 }
 
-describe('SC1 — the real post-run tail run twice (ANLZ-01, D-03/D-07)', () => {
+describe('the real post-run tail run twice', () => {
   it('produces exactly one analyze-run job, and the second run dedupes rather than errors', async () => {
     const f = fixture()
     const ids = chainJobIdsForRun(RUN_ID, DIGEST_JOB_ID_SOURCE)
@@ -312,7 +312,7 @@ describe('SC1 — the real post-run tail run twice (ANLZ-01, D-03/D-07)', () => 
     expect(first1.chain.match(/"kind":"analyze-run"/g) ?? []).toHaveLength(1)
   })
 
-  it('still enqueues under --detach, and drains nothing (D-03, Pitfall 8)', async () => {
+  it('still enqueues under --detach, and drains nothing', async () => {
     const f = fixture()
     const ids = chainJobIdsForRun(RUN_ID, DIGEST_JOB_ID_SOURCE)
     // 404 D-05/Pitfall 8: the hand-off happens in the shell's step, which does NOT skip it under

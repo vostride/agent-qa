@@ -262,8 +262,8 @@ function readdirSorted(dir: string): Dirent[] {
   return readdirSync(dir, { withFileTypes: true }).sort((a, b) => a.name.localeCompare(b.name))
 }
 
-describe('C432-NO-GIT-COMMIT: a config change has no author because it makes no commit (D-07)', () => {
-  it('C432-NO-GIT-COMMIT: the CLI host exports no commit, preserve-commit, trailer or author machinery', () => {
+describe('a config change has no author because it makes no commit', () => {
+  it('the CLI host exports no commit, preserve-commit, trailer or author machinery', () => {
     const exported = Object.keys(cliHost)
     for (const name of [
       'applyConfigProposalAsOneCommit',
@@ -292,7 +292,7 @@ describe('C432-NO-GIT-COMMIT: a config change has no author because it makes no 
     expect(exported).toContain('publishAuthoredTest')
   })
 
-  it('C432-NO-GIT-COMMIT: no product source passes git a commit, add or update-index argv', () => {
+  it('no product source passes git a commit, add or update-index argv', () => {
     // The matcher sees the shapes the deleted apply used, and not the drain's stage name.
     expect(GIT_HISTORY_ARGV.test("['commit', '--quiet', '-m', message, '--', targetPath]")).toBe(true)
     expect(GIT_HISTORY_ARGV.test("'commit', '--quiet', '-m', message,")).toBe(true)
@@ -305,7 +305,7 @@ describe('C432-NO-GIT-COMMIT: a config change has no author because it makes no 
   })
 
   it.each(DOORS.map((door) => [door.name, door] as const))(
-    'C432-NO-GIT-COMMIT: a config change over the %s door writes the file and leaves HEAD, the index and the history alone',
+    'a config change over the %s door writes the file and leaves HEAD, the index and the history alone',
     async (_name, door) => {
       const workspace = seedWorkspace()
       const before = repositoryState(workspace)
@@ -321,7 +321,7 @@ describe('C432-NO-GIT-COMMIT: a config change has no author because it makes no 
     },
   )
 
-  it('C432-NO-GIT-COMMIT: a config change lands in a dirty tree and in a directory with no repository', async () => {
+  it('a config change lands in a dirty tree and in a directory with no repository', async () => {
     const dirty = seedWorkspace()
     writeFileSync(join(dirty.root, 'notes.md'), 'a person\'s own work\n')
     writeFileSync(join(dirty.root, '.gitignore'), '.agent-qa/\nagent-qa-knowledge/\n# edited\n')
@@ -340,8 +340,8 @@ describe('C432-NO-GIT-COMMIT: a config change has no author because it makes no 
 
 // 432-16 task 2: the other two publications D-07 names — an authored test and a mark's fix — and
 // the retry edge of a config change, each read back off git.
-describe('C432-NO-GIT-COMMIT: every publication leaves the history alone (D-04, D-06, D-07)', () => {
-  it('C432-NO-GIT-COMMIT: a mark lands its gold, evidence and knowledge fix and leaves HEAD, the index and the history alone', async () => {
+describe('every publication leaves the history alone', () => {
+  it('a mark lands its gold, evidence and knowledge fix and leaves HEAD, the index and the history alone', async () => {
     const f = markFixture()
     roots.push(f.root)
     const git = (...args: string[]): string => execFileSync('git', args, { cwd: f.root, encoding: 'utf8' })
@@ -384,7 +384,7 @@ describe('C432-NO-GIT-COMMIT: every publication leaves the history alone (D-04, 
     expect(git('log', '--format=%an <%ae>')).not.toContain('agent-qa')
   })
 
-  it('C432-NO-GIT-COMMIT: an authored test is written to its target and leaves HEAD, the index and the history alone', () => {
+  it('an authored test is written to its target and leaves HEAD, the index and the history alone', () => {
     const workspace = seedWorkspace()
     mkdirSync(join(workspace.root, 'tests', '.agent-qa-drafts'), { recursive: true })
     writeFileSync(join(workspace.root, 'tests', '.agent-qa-drafts', 'draft.yaml'), 'name: a drafted test\n')
@@ -399,7 +399,7 @@ describe('C432-NO-GIT-COMMIT: every publication leaves the history alone (D-04, 
     expect(workspace.git('status', '--porcelain', '--', 'tests/drafted.yaml').trim()).toBe('?? tests/drafted.yaml')
   })
 
-  it('C432-NO-GIT-COMMIT: retrying the same config change answers no-change and still commits nothing', async () => {
+  it('retrying the same config change answers no-change and still commits nothing', async () => {
     const workspace = seedWorkspace()
     const before = repositoryState(workspace)
     const door = DOORS[0] as Door
@@ -413,7 +413,7 @@ describe('C432-NO-GIT-COMMIT: every publication leaves the history alone (D-04, 
   })
 })
 
-describe('a pre-432 config record is never applied or committed (D-07, D-22)', () => {
+describe('an older config record is never applied or committed', () => {
   // RE-SPELLED 2026-10-01 (432-16): cells (1)-(4) accepted a stored record and read its author off
   // `git log` — a dashboard-surfaced record (1), a chat-minted one (2), an unrecognised surface (4)
   // and a legacy record with none (3). The CLI host binds no config apply port now, so each of them
@@ -439,7 +439,7 @@ describe('a pre-432 config record is never applied or committed (D-07, D-22)', (
     ['(1) a dashboard-surfaced record', 'dashboard'],
     ['(3) a legacy record with no surface', undefined],
     ['(4) a record naming a surface this build does not know', 'voice> <someone-else@example.invalid'],
-  ] as const)('C432-NO-GIT-COMMIT: %s is refused as unknown, and the file and history stay put',
+  ] as const)('%s is refused as unknown, and the file and history stay put',
     async (_label, surface) => {
       const workspace = seedWorkspace()
       const id = plantLegacy(workspace, surface)
@@ -459,7 +459,7 @@ describe('a pre-432 config record is never applied or committed (D-07, D-22)', (
       expect(workspace.git('status', '--porcelain').trim()).toBe('')
     })
 
-  it('C432-NO-GIT-COMMIT: (2) a chat-minted record is refused as unknown, and the file and history stay put', async () => {
+  it('(2) a chat-minted record is refused as unknown, and the file and history stay put', async () => {
     const workspace = seedWorkspace()
     const { proposalId } = await filePre432ConfigProposal({
       configPath: workspace.configPath,
@@ -476,7 +476,7 @@ describe('a pre-432 config record is never applied or committed (D-07, D-22)', (
   })
 })
 
-describe('no door supplies a minting surface (432-17, D-05)', () => {
+describe('no door supplies a minting surface', () => {
   it('(5) no rostered door supplies a minting surface — the census, over the roster itself', () => {
     // RE-SPELLED 2026-10-01 (432-17): `mintingSurface` stamped the proposal records the inbox held,
     // and is deleted with them. The census now proves no door module still supplies one.

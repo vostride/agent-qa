@@ -136,7 +136,7 @@ function options(h: Harness): RunPostRunTailOptions {
   }
 }
 
-describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
+describe('the shared post-run tail', () => {
   it('hands off with a nudge and returns immediately when the lease is held', async () => {
     const h = harness({ lease: { kind: 'held', holder: { pid: 4242 } } as never })
     const tail = runPostRunTail(options(h))
@@ -151,7 +151,7 @@ describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
     expect(h.releaseLease).not.toHaveBeenCalled()
   })
 
-  it('pumps under a HANDED lease and never consults the writer lease again (Pitfall 3)', async () => {
+  it('pumps under a HANDED lease and never consults the writer lease again', async () => {
     // THE ONE-LEASE RULE, from the tail's side. The 404 D-10 post-verdict step acquires exactly
     // once and hands the authority over; a tail that consulted for itself would be answered
     // `held` — BY ITS OWN PROCESS — and would then "hand off" this run's chain to nobody, leaving
@@ -238,7 +238,7 @@ describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
     expect(tail.report()).toEqual({ enqueue: 'skipped', drain: 'retry-scheduled', jobsRun: 2 })
   })
 
-  it('does not report backlog-exhausted when a foreign retry-scheduled row is followed by the own chain of this run (G-388-3)',
+  it('does not report backlog-exhausted when a foreign retry-scheduled row is followed by the own chain of this run',
     async () => {
       const ran = [
         {
@@ -283,7 +283,7 @@ describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
     expect(h.runNextJob.mock.calls.length).toBeLessThan(4)
   })
 
-  it('reports backlog-exhausted when the budget went entirely to other runs\' jobs (WR-01)',
+  it('reports backlog-exhausted when the budget went entirely to other runs\' jobs',
     async () => {
       // The differential twin of the test above: same clock, same dispositions, same bound. The
       // ONE thing that differs is the id the pump kept claiming — a foreign one — and that is the
@@ -373,7 +373,7 @@ describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
       expect(tail.report().drain).toBe('drained')
     })
 
-  it('never reports `drained` when the pump THREW — the one exit outside the enumeration (WR-10)',
+  it('never reports `drained` when the pump THREW — the one exit outside the enumeration',
     async () => {
       // `drainOutcome` is set to 'drained' optimistically BEFORE the pump, and a throw escapes
       // the loop to the drain's catch without passing any of the five ChainPumpExit members.
@@ -401,7 +401,7 @@ describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
       expect(tail.report().jobsRun).toBe(0)
     })
 
-  it('ENQUEUES NOTHING — leg 1 belongs to the post-verdict step now (404 D-05)', async () => {
+  it('ENQUEUES NOTHING — leg 1 belongs to the post-verdict step now', async () => {
     // The complementary half of the relocation, and the one that can go silently wrong: a tail
     // that kept a queue write of its own would put a SECOND row-writing path back into the
     // product, and the store's idempotency index would hide it behind a `deduped` nobody reads.
@@ -425,7 +425,7 @@ describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
     expect(h.enqueue).not.toHaveBeenCalled()
   })
 
-  it('skips only the drain under --detach; the enqueue already happened in the shell (Pitfall 8)', async () => {
+  it('skips only the drain under --detach; the enqueue already happened in the shell', async () => {
     const h = harness()
     const tail = runPostRunTail({ ...options(h), enqueueOutcome: 'enqueued' })
 
@@ -463,7 +463,7 @@ describe('the shared post-run tail (ANLZ-01 / JOBQ-06, D-03/D-07)', () => {
   })
 })
 
-describe('C444.1-TAIL-BOUND', () => {
+describe('the tail budget signal', () => {
   it('every job the tail runs gets the tail budget signal', async () => {
     const seen: Array<AbortSignal | undefined> = []
     const timed = harness({
@@ -518,7 +518,7 @@ describe('C444.1-TAIL-BOUND', () => {
   })
 })
 
-describe('the tail can never reach the exit code (JOBQ-06)', () => {
+describe('the tail can never reach the exit code', () => {
   it('survives a tail whose own operation table cannot be resolved', async () => {
     // The environment `run.test.ts`'s mocked unit runs live in: a partially-stubbed
     // `runner-local` where merely BUILDING the operation table throws. Reproduced here as a

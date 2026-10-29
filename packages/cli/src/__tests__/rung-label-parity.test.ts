@@ -214,7 +214,7 @@ async function doctorRows(
   return rows
 }
 
-describe('the retrieval-rung cause labels are one wording on two doors (407-11)', () => {
+describe('the retrieval-rung cause labels are one wording on two doors', () => {
   afterAll(() => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
   })
@@ -419,7 +419,7 @@ describe('DOCTOR-CURRENT-SEPARATE', () => {
     }
   })
 
-  it('adds no current-health read op; current health stays on agent-qa doctor (D-23)', () => {
+  it('adds no current-health read op; current health stays on agent-qa doctor', () => {
     const registry = createFunctionRegistry({
       deps: {} as unknown as FunctionDeps,
       // 2026-10-02 (432-37, D-12): no `resolveExecutionContext` registry option, and the listing

@@ -120,7 +120,7 @@ async function expectSkippedExitLine(reason: PostProcessingSkipReason): Promise<
   return checked
 }
 
-describe('C444-SKIPPED-EXIT-LINE', () => {
+describe('the skipped run exit line', () => {
   it("a gate run's tail prints skipped (gate run) for both stages and starts no drain", async () => {
     expect(await expectSkippedExitLine('gate-run')).toBe(4)
   })

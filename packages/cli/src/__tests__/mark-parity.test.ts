@@ -133,7 +133,7 @@ async function dashboardDoor(scene: Scratch, input: { runId: string; kind: 'fals
   return receiptOf(await marked.json())
 }
 
-describe('419 mark receipt parity across the four sovereign doors', () => {
+describe('mark receipt parity across the four sovereign doors', () => {
   it.each(['false-fail', 'confirmed-bug'] as const)('%s receipts agree across fn, CLI, declared MCP and HTTP, none of them asked', async kind => {
     const template = markFixture()
     closers.push(() => rmSync(template.root, { recursive: true, force: true }))

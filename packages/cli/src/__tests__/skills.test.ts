@@ -131,7 +131,7 @@ describe('skills command', () => {
   })
 })
 
-describe('skills directory listing (EDGE-03/04)', () => {
+describe('skills directory listing', () => {
   const roots: string[] = []
 
   afterEach(async () => {
@@ -295,7 +295,7 @@ describe('the agent-qa-knowledge skill', () => {
 })
 
 // 2026-10-12 (440-03, D-12): after a stated-value refusal the agent shows what was lost and stops.
-describe('C440-SKILL', () => {
+describe('the authoring skill copies', () => {
   const sourceCopy = path.join(SOURCE_SKILLS_DIR, 'agent-qa-authoring', 'SKILL.md')
   const packagedCopy = path.resolve(
     path.dirname(fileURLToPath(import.meta.url)),
@@ -324,7 +324,7 @@ describe('C440-SKILL', () => {
 })
 
 // 2026-10-15 (441-46, D-25): only declared secrets are masked, and the skill says so.
-describe('C441-SKILL', () => {
+describe('the declared-secrets advice in the authoring skill', () => {
   const skillCopies = [
     path.join(SOURCE_SKILLS_DIR, 'agent-qa-authoring', 'SKILL.md'),
     path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../skills/agent-qa-authoring/SKILL.md'),
@@ -360,7 +360,7 @@ describe('C441-SKILL', () => {
 })
 
 // 2026-10-20 (446-06, D-15): the Codex metadata names the live server and no retired tool.
-describe('C446-SKILL-METADATA', () => {
+describe('skill metadata', () => {
   const trees = [
     SOURCE_SKILLS_DIR,
     path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../skills'),

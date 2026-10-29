@@ -452,7 +452,7 @@ function rejectTheStoreOpen(f: Fixture, message: string): Partial<PostRunTailOpe
   }
 }
 
-describe('JOBQ-06 — an induced post-processing failure is invisible to the verdict', () => {
+describe('an induced post-processing failure is invisible to the verdict', () => {
   it('is byte-identical to the clean run in exit code and verdict-scoped output', async () => {
     const clean = await runScenario(fixture())
     const failing = fixture()
@@ -561,7 +561,7 @@ describe('JOBQ-06 — an induced post-processing failure is invisible to the ver
   })
 })
 
-describe('JOBQ-06 — the structural halves', () => {
+describe('the structural halves', () => {
   it('runs the drain only after the verdict output is complete and the code is frozen',
     async () => {
       const f = fixture()

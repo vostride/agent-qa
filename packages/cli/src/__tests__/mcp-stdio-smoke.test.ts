@@ -158,7 +158,7 @@ describe('agent-qa mcp over spawned stdio', () => {
   // declared token whose variable was unset refused startup naming the variable; now the binary
   // starts and lists exactly what it lists for a project with no block at all. 432-22: the keys are
   // deleted, so the file fails strict validation; `agent-qa mcp`'s tolerant read serves anyway.
-  it('C432-TOKENLESS-MCP: a legacy token block with an unset variable refuses nothing and changes no listing', async () => {
+  it('a legacy token block with an unset variable refuses nothing and changes no listing', async () => {
     expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}`).toBe(true)
     const plain = await listOverStdio(fixtureProject())
     const legacy = await listOverStdio(fixtureProject(true))

@@ -83,7 +83,7 @@ function unescapeXml(value: string): string {
     .replace(/&amp;/g, '&')
 }
 
-describe('C439-UNPROVEN-REASON', () => {
+describe('the step failure reason in the reporters', () => {
   it('the reason text reaches JUnit and the console verbatim', async () => {
     let xml = ''
     const junit = createJunitReporter({

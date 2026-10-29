@@ -58,7 +58,7 @@ function readOnlyCuration() {
 
 const hashes = (dir: string) => files(dir).map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])
 
-describe('423-35 shared mark consequence plan (D-16)', () => {
+describe('shared mark consequence plan', () => {
   const roots: string[] = []
   afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
   function fixture() {
@@ -255,7 +255,7 @@ async function markedTemplate(roots: string[]): Promise<MarkedTemplate> {
   return { root: f.root, runSlug: f.runDir.split('/').at(-1)!, runId, receipts }
 }
 
-describe('423-18 read-only marks history host (D-19)', () => {
+describe('read-only marks history host', () => {
   const roots: string[] = []
   let template: MarkedTemplate
 
@@ -308,7 +308,7 @@ describe('423-18 read-only marks history host (D-19)', () => {
 
   // RE-SPELLED 432-09 from 'PROPOSAL-CURRENT/MISSING: drafted receipts join the store classifier
   // state; missing never reads as pending': history now joins the records each fix changed.
-  it('C432-MARK-HISTORY-APPLIED: each applied fix joins the records it changed, read now; an unbound or missing record is a typed absence', async () => {
+  it('each applied fix joins the records it changed, read now; an unbound or missing record is a typed absence', async () => {
     const s = scene()
     const [first, , third] = template.receipts as [MarkReceipt, MarkReceipt, MarkReceipt]
     const current = historyEntries(await historyOf(readsFor({ agentQaRoot: s.agentQaRoot, configPath: s.configPath }), template.runId))
@@ -335,7 +335,7 @@ describe('423-18 read-only marks history host (D-19)', () => {
     expect(missing.map(entry => entry.disposition.kind)).toEqual(['applied', 'confirmed-bug', 'applied'])
   })
 
-  it('C432-READS-INBOX-UNREAD: an unreadable legacy proposal tree changes no history and is never opened or written', async () => {
+  it('an unreadable legacy proposal tree changes no history and is never opened or written', async () => {
     const clean = scene()
     const expected = await historyOf(readsFor({ agentQaRoot: clean.agentQaRoot, configPath: clean.configPath }), template.runId)
     const s = scene()
@@ -405,7 +405,7 @@ describe('423-18 read-only marks history host (D-19)', () => {
     expect(tree(unreadable.root)).toEqual(unreadableBefore)
   })
 
-  it('HISTORY-HISTORICAL-DRAFT: a pre-432 drafted receipt stays readable, and what it changed is not invented', async () => {
+  it('HISTORY-HISTORICAL-DRAFT: an older drafted receipt stays readable, and what it changed is not invented', async () => {
     const s = scene()
     const lines = readFileSync(s.ledger, 'utf8').split('\n')
     const original = JSON.parse(lines[2]!) as MarkReceipt
@@ -422,7 +422,7 @@ describe('423-18 read-only marks history host (D-19)', () => {
 // 2026-09-15, 423 D-19: runs.marks.history registered and bound on every existing local host composition.
 const HISTORY = 'runs.marks.history'
 
-describe('423-18 marks history registration and host binding (D-19)', () => {
+describe('marks history registration and host binding', () => {
   const roots: string[] = []
   const closers: Array<() => void | Promise<void>> = []
   let template: MarkedTemplate
@@ -573,7 +573,7 @@ function bundleDirOf(f: PreviewFixture, recordId: string) {
   return join(f.knowledgeRoot, 'memory', 'storefront', 'bundles', recordId)
 }
 
-describe('423-19 content-led consequence preview over the read host (D-16/D-17)', () => {
+describe('content-led consequence preview over the read host', () => {
   const roots: string[] = []
   afterEach(() => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
@@ -810,7 +810,7 @@ describe('423-19 content-led consequence preview over the read host (D-16/D-17)'
 // Plan 423-21 projects it to MCP as agent_qa_preview_run_mark; fn reaches it now, with no model.
 const PREVIEW = 'runs.mark.preview'
 
-describe('423-19 runs.mark.preview registration and composed invocation (D-16)', () => {
+describe('runs.mark.preview registration and composed invocation', () => {
   const roots: string[] = []
   const closers: Array<() => void | Promise<void>> = []
   let template: MarkedTemplate
@@ -964,7 +964,7 @@ describe('423-19 runs.mark.preview registration and composed invocation (D-16)',
 
 // 2026-09-15, 423-21 D-18: both feedback reads over the shipped dashboard door's two HTTP boundaries,
 // against the same real ledger, proposals store and preview inputs the fn parity cells use.
-describe('423-21 feedback reads over both HTTP doors (D-18)', () => {
+describe('feedback reads over both HTTP doors', () => {
   const roots: string[] = []
   const closers: Array<() => void | Promise<void>> = []
   let template: MarkedTemplate
@@ -1107,7 +1107,7 @@ describe('423-21 feedback reads over both HTTP doors (D-18)', () => {
 // 2026-09-15, 423-21 D-04/D-18: the three new read ops, adjudicated against the one registry by the
 // conformance tables every surface leg reads: input contract, scenario row, MCP ruling, doc
 // adjudication, authed remote route binding and read policy points.
-describe('423-21 read-op adjudication (D-04/D-18)', () => {
+describe('read-op adjudication', () => {
   const NEW_READS = ['runs.evidence', 'runs.marks.history', 'runs.mark.preview'] as const
   const declarationOf = (opId: string) => {
     const declaration = registryDeclarations().find(entry => entry.id === opId)
