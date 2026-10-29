@@ -538,7 +538,6 @@ async function observeMark(context_: BrowserContext, origin: string, runId: stri
       .catch(() => [])
     await page.close()
   }
-  process.stderr.write(`419 mark fixture: ${JSON.stringify(harvest)}\n`)
   return harvest
 }
 
