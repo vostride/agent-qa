@@ -12,7 +12,7 @@ const INTERACTIVE_ROLES = new Set([
   'grid', 'menu', 'menubar', 'tree', 'treegrid',
 ])
 
-// 'dialog' and 'alertdialog' are kept so an open dialog is on the screen the judge reads.
+// `dialog` and `alertdialog` are kept so an open dialog is on the screen the judge reads.
 const CONTENT_ROLES = new Set([
   'heading', 'cell', 'listitem', 'article', 'region', 'navigation',
   'progressbar', 'tabpanel', 'row', 'dialog', 'alertdialog',
@@ -128,7 +128,6 @@ export function parseAriaSnapshot(ariaTree: string): {
   return { nodes, nativeRefs }
 }
 
-// Best-effort: a failure degrades to the viewport size and zero scroll instead of throwing.
 export async function captureWebScroll(page: Page): Promise<{
   viewport: { width: number; height: number }
   scroll: { offsetX: number; offsetY: number; contentWidth: number; contentHeight: number }
@@ -170,7 +169,7 @@ export async function captureWebScroll(page: Page): Promise<{
   }
 }
 
-// An unresolved node keeps no `bounds`, so the builder mints no ref for it.
+// An unresolved node keeps no `bounds`, so it gets no `refMap` entry rather than zero geometry.
 export async function enrichWebNodes(
   page: Page,
   nodes: InterimNode[],
@@ -264,7 +263,7 @@ export async function enrichWebNodes(
       if (title) labels.title = title
       if (Object.keys(labels).length > 0) node.labels = labels
 
-      // a control's reported value and limits; attributes are neither hashed nor rendered.
+      // A control's value and limits go in `attributes`, which are neither hashed nor rendered.
       const limits: Record<string, string> = {}
       for (const key of LIMIT_KEYS) {
         const value = coerceString((info as any)[key])

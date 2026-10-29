@@ -40,12 +40,7 @@ const NON_CHROMIUM_LAUNCH_BOUND_MS = 30_000
 let page: LiveStreamFixturePage | undefined
 let tall: LiveStreamFixturePage | undefined
 
-/**
- * TAB-FOLLOW's pages: a tall document with a fixed, animating box (so the compositor keeps
- * producing frames wherever the page is scrolled), scrolled on load to `?scroll=N`. Two pages with
- * different scroll offsets are two pages a frame's `scrollOffsetY` can tell apart. Local to this
- * file so the fixture page stays a byte-for-byte twin of the cli one.
- */
+// Local to this file so `live-stream-fixture-page.ts` stays a byte-for-byte twin of cli's.
 async function startTallAnimatingPage(): Promise<LiveStreamFixturePage> {
   const server = createServer((req, res) => {
     const scroll = Number(new URL(req.url ?? '/', 'http://127.0.0.1').searchParams.get('scroll') ?? 0)

@@ -143,7 +143,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private navigationTimeoutMs = DEFAULT_NAVIGATION_TIMEOUT_MS
   private disconnected = false
   private intentionalClose = false
-  // Routes and dialog arms persist until unroute or teardown; `cleanup()` drains both.
+  // Routes persist until unroute and a dialog arm until its dialog; `cleanup()` drains both.
   private armedRoutes = new Set<string>()
   private pendingDialogArm: ((dialog: Dialog) => void) | null = null
   private browserName: 'chromium' | 'firefox' | 'webkit' = 'chromium'
@@ -159,10 +159,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private lastScreencastSize: { width: number; height: number } | null = null
   private keepaliveEchoDeadline: number | null = null
   private screencastChain: Promise<void> = Promise.resolve()
-  // the labelled snapshot preview standing in for a screencast withdrawn mid-stream.
   private withdrawnSnapshot: LiveStreamCapability | null = null
   private screencastRecoveryTimer: ReturnType<typeof setTimeout> | null = null
-  // download and app-clipboard capture, Chromium only; armed around each execute().
   private operationCapture: OperationCapture | null = null
   // Firefox and WebKit run no capture and name themselves as the reason.
   operationCaptureSupport: OperationCaptureSupport | undefined
@@ -234,7 +232,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     }
   }
 
-  // Absent off Chromium or without a page; a tab switch re-binds it through `setActivePage`.
+  // Absence means no stream, not no preview: the runner's `liveStreamFor` wraps `screenshot()`.
   get liveStream(): LiveStreamCapability | undefined {
     if (this.browserName !== 'chromium') return undefined
     if (!this.page || !this.context) return undefined
@@ -375,8 +373,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     if (onFrame === null || !page || !context) return
     await this.detachScreencast()
     this.lastScreencastSize = null
-    // A headed browser may not paint a background tab (RESEARCH P15, assumption A4). A recovery
-    // attempt keeps the page where it is, so it never takes focus on a person's desktop.
+    // A headed browser may not paint a background tab; a recovery never steals desktop focus.
     if (options.focus !== false) {
       try { await page.bringToFront() } catch { /* best-effort */ }
     }
@@ -418,7 +415,6 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     })
   }
 
-  /** While the snapshot fallback runs, try the screencast again every SCREENCAST_RECOVERY_MS. */
   private armScreencastRecovery(): void {
     this.clearScreencastRecovery()
     const timer = setTimeout(() => {
@@ -518,16 +514,14 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     try { await this.recordingCapability?.stop() } catch { /* best-effort */ }
     this.recordingCapability = undefined
     this.recordingConfig = undefined
-    // 403: stop the screencast before the browser goes away so the CDP session is detached cleanly.
-    // Clearing the consumer first makes any re-bind still queued on the chain a no-op.
+    // Clear the consumer first so a queued re-bind no-ops; stop the screencast while CDP is up.
     this.screencastOnFrame = null
     await this.stopWithdrawnSnapshot()
     try { await this.screencastCapability?.stop() } catch { /* best-effort */ }
     this.screencastCapability = null
-    // close the clipboard read-back probe context before the browser goes.
+    // Close the clipboard read-back probe context before the browser goes.
     try { await this.operationCapture?.dispose() } catch { /* best-effort */ }
-    // Clear persistent route interception, network emulation, and any pending
-    // dialog arm BEFORE closing the browser so state never bleeds into the next test.
+    // Undo routes, offline mode and the dialog arm before closing, so the next test inherits none.
     if (this.context) {
       try { await this.context.unrouteAll({ behavior: 'ignoreErrors' }) } catch { /* best-effort */ }
       try { await this.context.setOffline(false) } catch { /* best-effort */ }
@@ -818,7 +812,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     const page = this.page!
     const resolver = new ElementResolver(page, this.lastRefs)
 
-    // An element that is no longer the observed one is a typed refusal with no page interaction.
+    // An element that differs from the observed one is a typed refusal with no page interaction.
     for (const ref of laneRefs(action)) {
       const entry = this.lastRefs[ref]
       if (entry === undefined) continue
@@ -982,7 +976,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       }
 
       case 'fileUpload': {
-        // Paths are pre-resolved to absolute by runner loop.ts
+        // Paths arrive absolute: the runner's `loop.ts` resolves them before dispatch.
         const { existsSync } = await import('node:fs')
         for (const filePath of action.files) {
           if (!existsSync(filePath)) {
@@ -1234,7 +1228,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
           await this.context!.setOffline(true)
           return { success: true }
         }
-        // throttle: Chromium-only via CDP; non-Chromium contexts reject newCDPSession.
+        // `throttle` is Chromium-only via CDP; other browsers reject `newCDPSession`.
         try {
           const cdp = await this.context!.newCDPSession(page)
           await cdp.send('Network.emulateNetworkConditions', {
@@ -1263,7 +1257,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       }
 
       case 'handleDialog': {
-        // One-shot arm for the next dialog; a re-arm replaces the pending arm.
+        // Drop the pending arm first, or stacked `page.once` handlers both answer the next dialog.
         if (this.pendingDialogArm) {
           page.off('dialog', this.pendingDialogArm)
           this.pendingDialogArm = null

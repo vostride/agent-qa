@@ -32,14 +32,13 @@ const STALE = page('stale', `
   </div>
   <div style="height: 3000px">Page tail</div>`)
 
-// proof-wheel.mjs: a 700 px list above a footer, so the document can scroll only 120 px.
+// A 700 px list above a footer, so the document can scroll only 120 px.
 const POINTER = page('pointer', `
   <style>body{margin:0} #list{height:700px;overflow:auto;margin:0} footer{height:120px}</style>
   <ul id="list">${Array.from({ length: 200 }, (_, i) => `<li><button>Item ${String(i)}</button></li>`).join('')}</ul>
   <footer>Footer</footer>`)
 
-// review2-body-prop*.mjs and review2-quirks.mjs: a ref near the top of a 3000 px page whose body
-// overflow propagates to the viewport, or a quirks-mode page.
+// A ref near the top of a 3000 px page whose body overflow propagates, or a quirks-mode page.
 const PROP_TAIL = '<div style="height:3000px"><button style="position:relative;top:10px">Item one</button></div><p>Footer text</p>'
 const PROP_BODY = `<!DOCTYPE html><html><head><style>html,body{height:100%} body{margin:0;overflow-x:hidden}</style></head><body>${PROP_TAIL}</body></html>`
 const PROP_BODY_Y = `<!DOCTYPE html><html><head><style>html{height:100%} body{height:100%;margin:0;overflow-y:auto}</style></head><body>${PROP_TAIL}</body></html>`
@@ -63,7 +62,7 @@ const FRAMED_ONLY = page('framed only', `
   <div style="height:3000px">Page tail</div>`)
 const FRAMED_ONLY_INNER = page('framed only inner', '<div style="height:2000px"><button>Framed item</button></div>')
 
-// review2-iframe-target3.mjs: an on-screen iframe away from the pointer, then 2000 px of page.
+// An on-screen iframe away from the pointer, then 2000 px of page.
 const PAY_FRAME = '<!DOCTYPE html><html><body><button>Pay now</button></body></html>'
 const FRAME_STYLE = 'margin-left:500px;width:400px;height:150px;border:0;display:block'
 const framePage = (src: string, style = FRAME_STYLE, before = '', after = '<div style="height:2000px">Body</div>'): string =>
@@ -80,14 +79,13 @@ const PAY_FRAME_DEEP = '<!DOCTYPE html><html><body><div style="height:1500px">To
 const FRAME_SCALED = framePage('/frame-pay', `${FRAME_STYLE};transform:scale(0.5)`, '', '<div style="height:850px">Body</div>')
 const FRAME_COVERED = framePage('/frame-pay', FRAME_STYLE, '',
   '<div style="height:850px">Body</div><div style="position:fixed;inset:0;background:rgba(0,0,0,0.3)"></div>')
-// review3-hung-frame-probe.mjs: an iframe whose server never answers (/hang).
+// An iframe whose server never answers (`/hang`).
 const HUNG_PROBE = `<!DOCTYPE html><html><body><h1>Account</h1><button>Top target</button><iframe src="/hang" style="width:300px;height:120px"></iframe>
 <div style="height:3000px"></div><button>Far target</button></body></html>`
 const HUNG_BESIDE_HEALTHY = '<!DOCTYPE html><html><body style="margin:0"><iframe src="/hang"></iframe>' +
   `<iframe id="pay" src="/frame-pay" style="${FRAME_STYLE}"></iframe><div style="height:850px">Body</div></body></html>`
 const HUNG_ABSENT = page('hung absent', '<h1>Account</h1><iframe src="/hang"></iframe><div style="height:1500px">Spacer</div>')
 
-// a copy of the target at the top, the real button 4000 px down.
 const decoyPage = (title: string, decoy: string): string => page(title, `
   ${decoy}
   <div style="height:4000px">Spacer</div>
@@ -102,8 +100,7 @@ const frameDecoy = (wrapper: string): string =>
   `<div style="${wrapper}"><iframe srcdoc="<button>Delete account</button>" style="width:400px;height:150px"></iframe></div>`
 const DECOY_FRAME_OPACITY = decoyPage('frame opacity', frameDecoy('opacity:0'))
 const DECOY_FRAME_HIDDEN = decoyPage('frame hidden', frameDecoy('visibility:hidden'))
-// review3-probe-misjudge.mjs: on-screen text in a display:contents holder or host, and a card
-// title under a transparent stretched-link overlay.
+// On-screen text in a `display:contents` holder or host, and a title under a clear overlay.
 const CONTENTS = page('contents',
   '<h1>Checkout</h1><div style="display:contents">Pay now</div><p>Short page</p><div style="height:1200px"></div><p>End</p>')
 const CONTENTS_HOST = page('host', `<h1>Checkout</h1><pay-button>Pay now</pay-button><div style="height:1200px"></div><p>End</p>
@@ -471,7 +468,6 @@ async function valueOf(tab: Page, expression: string): Promise<number> {
   return tab.evaluate<number>(expression)
 }
 
-// A ref near the top: `down` moves the page a viewport; `toEnd up` ends on the page's own top.
 async function refScrollsThePage(path: string): Promise<void> {
   const { web, tab } = await open(path)
   const ref = await refFor(web, 'button', 'Item one')
@@ -505,7 +501,7 @@ async function documentExtent(tab: Page): Promise<Extent> {
   })
 }
 
-// The proof-wheel.mjs setup: the document already at its bottom, the pointer inside the list.
+// The document already at its bottom, the pointer inside the list.
 async function openPointerList(): Promise<{ web: WebPlatformAdapter; tab: Page }> {
   const opened = await open('/pointer')
   await opened.tab.evaluate(() => {

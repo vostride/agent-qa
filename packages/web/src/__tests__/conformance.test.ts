@@ -15,8 +15,7 @@ const WEB_SNAPSHOT = [
   '  - button "Sign In" [ref=e8]',
 ].join('\n')
 
-// Nodes that "resolved" bounds during best-effort enrichment. The remainder stay
-// boundsless — the honest-absence reality the web walker produces (Pitfall #3).
+// Only these nodes get bounds; best-effort web enrichment leaves the rest boundsless.
 const ENRICHED_INDICES = new Set([1, 3, 5, 7])
 
 // Fixed timestamp so repeated builds are byte-identical (the determinism case builds
@@ -51,9 +50,6 @@ describe('web adapter conformance (shared cases)', () => {
     })
   }
 
-  // Web-specific pin beyond the shared cases: an element whose bounds enrichment could
-  // not resolve appears in elements[] but gets NO refMap entry, while a bounded sibling
-  // does — the web best-effort geometry reality (Pitfall #3).
   it('web best-effort geometry: boundsless element is in elements[] but absent from refMap', () => {
     const input = makeWebInput()
     const { state } = buildScreenState({ platform: input.platform, nodes: input.nodes, ...input.buildInput })

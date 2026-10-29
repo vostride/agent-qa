@@ -98,7 +98,7 @@ export function isChildFrameRef(nativeRef: string): boolean {
   return FRAME_REF.test(nativeRef)
 }
 
-/** Whether the page still holds the document the observation was taken from. */
+/** Whether the page still holds the observed document. */
 export async function checkDocument(
   page: Page,
   epoch: ObservationEpoch | undefined,

@@ -125,7 +125,6 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
 
       expect(result.success).toBe(true)
       expect(locator.inputValue).toHaveBeenCalled()
-      // Enter is pressed only after the re-read.
       expect(locator.press).toHaveBeenCalledWith('Enter')
       const readIdx = calls.indexOf('inputValue')
       const enterIdx = calls.lastIndexOf('press:Enter')
@@ -198,7 +197,6 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
 
       const result = await adapter.execute({ type: 'fill', ref, text: 'hello', clearMode: 'replace', submit: false } as unknown as ExecAction)
 
-      // fallback read attempted rather than crashing
       expect(locator.evaluate).toHaveBeenCalled()
       // never fabricate a re-read pair when nothing is readable
       expect(result.success).toBe(true)

@@ -206,7 +206,7 @@ const ARMING_PAGE = `<!DOCTYPE html>
 </html>
 `
 
-// a late download held across a probe reset, beside genuine clipboard writes.
+// A late download held across a probe reset, beside genuine clipboard writes.
 const HELD_PAGE = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><title>held fixture</title></head>
@@ -1291,7 +1291,7 @@ describe('which actions wait for a download to start', () => {
   }, 60_000)
 })
 
-// a probe reset closes only the probe; held downloads survive it.
+// A probe reset closes only the probe; held downloads survive it.
 const LATE_CSV: DownloadEvidence = {
   suggestedFilename: 'late.csv',
   extension: '.csv',

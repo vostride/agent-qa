@@ -350,7 +350,7 @@ describe('model-free step outcomes through the real loop', () => {
     expect(run.result.evidence!.limitStop).toBeUndefined()
     expect(site.state.saved).toEqual([])
     expect(planner.calls).toBe(3)
-    // Two rejected completions, then the give-up's own judgment.
+    // One call per rejected completion, plus the give-up's own judgment.
     expect(verifier.calls).toBe(3)
     expect(run.result.evidence!.conditionVerdicts?.ending).toBe('give-up')
     const clocks = run.result.evidence!.subActions
@@ -384,7 +384,7 @@ describe('model-free step outcomes through the real loop', () => {
     })
     expect(site.state.saved).toEqual([])
     expect(planner.calls).toBe(4)
-    // Four rejected completions, then the limit stop's own judgment.
+    // One call per rejected completion, plus the limit stop's own judgment.
     expect(verifier.calls).toBe(5)
     expect(run.result.evidence!.conditionVerdicts?.ending).toBe('limit-stop')
     expect(run.result.error).toBe(
@@ -417,7 +417,7 @@ describe('model-free step outcomes through the real loop', () => {
 
     expect(run.result.status).toBe('failed')
     expect(run.result.error).toContain('The invite dialog did not open')
-    // Two rejected completions, then the give-up's own judgment.
+    // One call per rejected completion, plus the give-up's own judgment.
     expect(verifier.calls).toBe(3)
     expect(run.result.evidence!.conditionVerdicts?.ending).toBe('give-up')
     expect(verifier.inputs.every((input) => !dialogCheck(input).pass)).toBe(true)

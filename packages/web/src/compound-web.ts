@@ -25,10 +25,7 @@ import type { RefMap } from './types.js'
 
 type BoundingBox = { x: number; y: number; width: number; height: number }
 
-// A value read of the SAME live handle. inputValue() throws for non-input/textarea/select
-// targets — fall back to an element value/textContent evaluate; if nothing is
-// readable, return undefined so the caller degrades honestly (signal-presence law: never
-// fabricate a re-read pair).
+// `inputValue()` throws outside input, textarea and select; unreadable is `undefined`, never `''`.
 export async function safeInputValue(locator: Locator): Promise<string | undefined> {
   try {
     return await locator.inputValue()
@@ -45,14 +42,13 @@ export async function safeInputValue(locator: Locator): Promise<string | undefin
   }
 }
 
-// Clear, type, re-read, then Enter, as one compound.
 export async function runWebFillCompound(
   locator: Locator,
   boundingBox: BoundingBox | undefined,
   action: Pick<Fill, 'text' | 'clearMode' | 'submit'>,
 ): Promise<ActionResult> {
   const isAppend = action.clearMode === 'append'
-  // The prior value is read before any typing, since append expects prior plus typed.
+  // The prior value is read before any typing, because append expects prior plus typed.
   const prior = isAppend ? (await safeInputValue(locator)) ?? '' : ''
   // Secure detection is web-live: the ARIA snapshot carries no input type.
   const secure = (await locator.getAttribute('type')) === 'password'
@@ -69,7 +65,6 @@ export async function runWebFillCompound(
   const actual = await safeInputValue(locator)
   const box = boundingBox ? { boundingBox } : {}
 
-  // Unreadable value: success with no fillReread block and no Enter, recorded unverified.
   if (actual === undefined) {
     return { success: true, ...box, metadata: { fillVerdict: { verb: 'fill', verdict: 'unverified' } } }
   }
@@ -243,7 +238,7 @@ async function wheelPointerChain(page: Page, dx: number, dy: number, axis: Axis)
 type ProbeBox = { left: number; top: number; right: number; bottom: number }
 type Judged = { state: TargetVisibility; rect?: ProbeBox }
 
-// the longest a child frame may take to answer its liveness check.
+// The longest a child frame may take to answer its liveness check.
 export const FRAME_PROBE_TIMEOUT_MS = 1_000
 
 // Self-contained: Playwright serializes this function into each frame.
