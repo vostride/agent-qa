@@ -18,8 +18,7 @@
 // `authoring-proposals-store.test.ts` are deleted with their subject. What either asserted that is
 // still true is carried here under its name: the change id that could address a path is refused,
 // every surviving contract projects to JSON Schema, an applied change receipt carries no proposal
-// field and no envelope parses as one. The protected-class set these cells also carried is deleted
-// by 432-18 (C432-NO-GRANT-CONTRACTS in `432-deleted-runtime-sets.test.ts`).
+// field and no envelope parses as one.
 
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'

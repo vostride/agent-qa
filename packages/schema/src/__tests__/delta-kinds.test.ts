@@ -9,15 +9,6 @@ import { DELTA_KINDS } from '../delta/delta'
  * cast satisfies the compiler, walks past that bar and REDs only here, by name. Both halves are
  * measured by hand-mutation: 409-MUTATION-LEDGER.md Rows 4 and 5.
  *
- * WHAT THIS CELL IS NOT. It is not a wall around the delta vocabulary the Issue-slot cleanup
- * DELETED. `Delta` and `DELTA_KINDS` are byte-identical across Phase 409, and the deleted
- * vocabulary's arms belonged to that vocabulary's own union rather than to `Delta`, so neither
- * half of D-04 changes state when the deleted vocabulary returns. That is measured rather than
- * argued: under a complete readmission this suite exits 0 with "Type Errors no errors", recorded
- * in 409-MUTATION-LEDGER.md Rows 10-13. The instrument that carries VOCB-01/VOCB-02 is the
- * lexical deletion census, `packages/arch/src/__tests__/412-issue-slot-deleted.test.ts`, whose
- * four vocabulary/brand cells RED by name under that same mutation.
- *
  * 2026-09-01 (Phase 409): the second delta vocabulary left with the Issue-slot cleanup.
  *
  * 2026-09-03 (Phase 412): the three per-phase census cells merged into one.

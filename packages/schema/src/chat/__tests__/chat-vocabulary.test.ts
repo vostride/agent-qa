@@ -282,9 +282,8 @@ describe('C432-HISTORICAL-READER — pre-432 approval rows still read (432-13)',
 
 // RE-SPELLED 2026-10-01 (432-18, D-14): 'the pin overlay denies, and only denies (D-21)' pinned
 // `pinDenies` over `ChatPinOverlay`. Both are deleted with the session pin overlay; the absence is
-// C432-PIN-ABSENT (agent `chat/__tests__/pin-overlay.test.ts`) and C432-NO-GRANT-CONTRACTS
-// (`__tests__/432-deleted-runtime-sets.test.ts`). The historical `/pin` row (`source: 'verb'`) still
-// parses, above.
+// checked here and by the agent's `chat/__tests__/pin-overlay.test.ts`. The historical `/pin` row
+// (`source: 'verb'`) still parses, above.
 describe('C432-PIN-ABSENT: the schema publishes no pin predicate (432-18)', () => {
   it('C432-PIN-ABSENT: no pin member is exported beside the session vocabulary', async () => {
     const barrel = await import('../index') as Record<string, unknown>
