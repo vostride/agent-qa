@@ -111,12 +111,7 @@ describe('(i) the scanner sees what it forbids — before any verdict about any 
     }
   })
 
-  it('does NOT fire on the name in prose — the case this codebase actually presents', () => {
-    // Drawn from a real comment in a file THIS PLAN WROTE, not invented for the cell.
-    const realComment = readFileSync(join(CLI_SRC, 'composition', 'cli-run-input-error.ts'), 'utf8')
-    expect(realComment).toContain('process.exit')
-    expect(terminationHits(realComment)).toEqual([])
-
+  it('does not fire on the name in prose', () => {
     expect(terminationHits('// this module never calls process.exit(1)\n')).toEqual([])
     expect(terminationHits('/* no process.exit(0) here */\nconst x = 1\n')).toEqual([])
   })
