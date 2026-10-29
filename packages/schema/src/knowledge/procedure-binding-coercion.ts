@@ -29,15 +29,7 @@ export function coerceProcedureBindingValue(
   return undefined
 }
 
-/**
- * One binding source entry on the availability contract: a NAME plus per-type capability
- * bits — never a value.
- *
- * D-08 firewall: raw values enter procedureSourceBinding as a pure function LOOP-SIDE; only
- * the name and the derived capability booleans exist on this contract. Presence of an entry
- * means a non-nullish value exists, which is exactly string-bindability, so no canBindString
- * member is needed.
- */
+// A name and capability bits, never a value; presence alone means a string can bind.
 export interface ProcedureSourceBinding {
   readonly name: string
   readonly canBindNumber: boolean

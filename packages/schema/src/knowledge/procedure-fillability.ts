@@ -1,16 +1,7 @@
 import type { ProcedureSourceBinding } from './procedure-binding-coercion'
 import type { ProcedureBodyPayload, ProcedureParameterSpec } from './procedure-steps'
 
-/**
- * Source-tagged binding capability available to procedure matching and replay binding.
- *
- * D-08 firewall: values never cross this contract in any form. Variables and memory carry
- * capability entries — a NAME plus per-type capability bits computed loop-side by
- * procedureSourceBinding over the same coercion the binder uses — and secrets carry names
- * only (the secret store binds solely as a string template). Keeping the three source sets
- * distinct lets the shared matcher apply the same source rules as the loop binder without
- * exposing a secret, test-variable value, or working-memory value to the knowledge layer.
- */
+// Values never cross this contract; secrets carry names only.
 export interface ProcedureBindingAvailability {
   variables: readonly ProcedureSourceBinding[]
   memory: readonly ProcedureSourceBinding[]
@@ -44,16 +35,7 @@ function isParameterAvailable(
 ): boolean {
   if (parameter.type === 'secret') return sources.secrets.has(parameter.name)
 
-  // WR-01's authoritative source law, completed to value-typed capability: the matrix is
-  // source x declared type x VALUE capability. Secret parameters use secrets only; strings
-  // use variables, memory, then secrets (entry presence means a non-nullish value exists,
-  // which is exactly string-bindability); numbers and booleans use a variables or memory
-  // entry whose capability bit is true, per-source OR. The bits are computed loop-side by
-  // procedureSourceBinding over the SAME coercion the binder uses
-  // (coerceProcedureBindingValue), so admitting a source here is exactly binder success.
-  // Name matching is exact code-unit Map-key equality — no trim, case fold, or unicode
-  // normalization. Any binder coercion change must update coerceProcedureBindingValue
-  // (one function, both sides), never this helper alone.
+  // Bits come from `coerceProcedureBindingValue`; change the binder there, never here alone.
   const variable = sources.variables.get(parameter.name)
   const memory = sources.memory.get(parameter.name)
   if (parameter.type === 'string') {

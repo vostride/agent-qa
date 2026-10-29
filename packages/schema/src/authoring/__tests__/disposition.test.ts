@@ -1,15 +1,3 @@
-// The draft-disposition contract, written BEFORE the vocabulary exists.
-//
-// D-18 in one sentence: `keep-eligible` requires all four gate booleans true AND the full
-// pinned N stability runs, and N=1 draft mode answers `unverified` unless a gate one run decides
-// said no (2026-10-03, 261003-cpv, WR-09: it was UNCONDITIONAL until then). That rule
-// lives structurally in the vocabulary — 394's accept flow consumes `computeDraftDisposition`
-// and is meant to be unable to re-derive its own answer — so the table below is the contract
-// this module is judged against, not a description of whatever it happens to compute.
-//
-// The first commit of this file is RED by construction: `../disposition`,
-// `../draft-receipt` and `../../functions/authoring` do not exist yet.
-
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -140,8 +128,6 @@ describe('computeDraftDisposition — the behavior table', () => {
     ).toBe('unverified')
   })
 
-  // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432 review WR-09): draft mode is no longer
-  // unconditional. A failing gate one run decides (1, 3 or 4) rejects; see the C261003-CPV cells.
   it('reads unverified in draft mode whatever the run counts, while gates 1, 3 and 4 pass', () => {
     for (const overrides of [
       { stabilityRunsCompleted: 0 },
@@ -226,8 +212,7 @@ describe('DraftReceiptSchema', () => {
   })
 
   it('refuses an unknown key nested inside a gate run record', () => {
-    // Map-not-territory: a gate run is a REF plus its judgment. Strictness
-    // here is what structurally prevents a run payload from being smuggled into the receipt.
+    // Strict, so a run payload cannot be smuggled into the receipt.
     expect(() =>
       DraftReceiptSchema.parse({
         ...FULL_RECEIPT,
@@ -258,8 +243,6 @@ describe('DraftReceiptSchema', () => {
   })
 })
 
-// the never-auto-keep rule is superseded. The disposition stays as
-// the verification report; what it now decides is whether the final draft is written to its target.
 type WritesTarget = (disposition: string) => boolean
 type ParseSchema = { safeParse(value: unknown): { success: boolean } }
 
@@ -315,8 +298,7 @@ describe('exactly keep-eligible, proposal-only and unverified final drafts are w
                   stabilityRunsRequested: requested,
                   stabilityRunsCompleted: completed,
                 })
-                // RE-SPELLED 2026-10-03: draft mode writes only when gates
-                // 1, 3 and 4 passed; gate 2 is the one a single run cannot decide.
+                // Draft mode writes only if gates 1, 3 and 4 passed; gate 2 needs several runs.
                 const singleRunPass = executesDefinitive && addsValue && falsifiableAssertion
                 expect(predicate(disposition)).toBe(allPass || (requested === 1 && singleRunPass))
                 cases += 1
@@ -335,8 +317,6 @@ describe('exactly keep-eligible, proposal-only and unverified final drafts are w
       expect(schema.safeParse({ file: WRITTEN_FILE, disposition, gates: ALL_TRUE }).success)
         .toBe(true)
     }
-    // RE-SPELLED 2026-10-03: draft mode writes an unverified draft whose gate 2
-    // could not be decided, and the receipt says so; a failing gate 1, 3 or 4 is a rejection.
     expect(schema.safeParse({
       file: WRITTEN_FILE,
       disposition: 'unverified',
@@ -427,11 +407,6 @@ describe('AuthoringVerifyDraftInputSchema', () => {
   })
 })
 
-// 2026-10-03 (quick 261003-cpv, 432 review WR-09): D-06 reads "writes the test file unless a
-// keep-gate rejected it". One draft-mode run decides gates 1, 3 and 4 (the run's own verdict, its
-// own fingerprint against the suite, the static assertion check); only gate 2, stability, needs
-// more than one run. So a draft-mode evaluation whose gate 1, 3 or 4 said no is `rejected` and not
-// written, and only gate 2 leaves a passing draft-mode draft `unverified`.
 describe('a draft-mode keep-gate that said no rejects the draft', () => {
   it('rejects a draft-mode evaluation whose gate 1, 3 or 4 is false', () => {
     for (const gate of ['executesDefinitive', 'addsValue', 'falsifiableAssertion'] as const) {

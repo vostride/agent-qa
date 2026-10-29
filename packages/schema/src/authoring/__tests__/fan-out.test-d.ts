@@ -1,15 +1,4 @@
-// The fan-out bound's three terms, pinned at the TYPE.
-//
-// A TERM CANNOT BE DROPPED SILENTLY. The bound is `initial N + K probes + final N`, and the two N
-// terms are structurally different quantities: the initial stability gate is early-stopped, the
-// final one runs on the repaired candidate. Exact key-set equality is what makes collapsing them
-// into a single doubled term a COMPILE error rather than something a reviewer has to notice — a
-// `toMatchTypeOf`-style contains check passes happily while a term disappears beside the ones it
-// still names, which is the one drift direction this file exists to catch.
-//
-// THIS FILE IS THE ONLY TYPE AUTHORITY FOR THE CLAIM. `vitest`'s `typecheck.include` is
-// `*.test-d.ts`, and a `.test.ts` is transpiled and never checked — so the runtime key census in
-// `fan-out.test.ts` and this pin are two halves of one mechanism rather than a duplicate.
+// Exact key equality, so collapsing the two N terms into one is a compile error.
 
 import { expectTypeOf } from 'vitest'
 

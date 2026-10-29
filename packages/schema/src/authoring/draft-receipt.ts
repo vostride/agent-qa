@@ -1,17 +1,4 @@
-// The draft receipt: what a keep-gate evaluation durably says about one draft (393, WTST-02).
-//
-// Two shape rules govern everything below.
-//
-// MAP, NOT TERRITORY. The receipt carries REFS to the runs it judged plus
-// the findings it derived — never run payloads, never resolved secrets, never post-interpolation
-// step text. Run bytes live in the run store, which is the only place that owns them. Every
-// object here is `.strict()`, so smuggling a payload in is a typed refusal rather than a field
-// nobody notices until it shows up in a durable file.
-//
-// KEYED, NOT POSITIONAL. `DraftGateResultsSchema` names its gates, so a later gate can join
-// without re-minting this DTO or renumbering anything a 394 consumer already reads.
-// the bug-repro anchoring gate that was to join here left with the
-// Issue-slot cleanup.
+// Refs to runs, never run payloads, secrets or interpolated step text; every object is strict.
 
 import { z } from 'zod'
 
@@ -43,46 +30,28 @@ export const DraftRefSchema = z.object({
 
 export type DraftRef = z.infer<typeof DraftRefSchema>
 
-/**
- * One parsed NL step, as gate 4's deterministic check classified it.
- *
- * Lands VERBATIM in the receipt: D-12 tunes ambiguity toward reject, which is only defensible
- * if the rejected author can read exactly which step was called what and why.
- */
+// Lands verbatim, so a rejected author can read which step was classified how.
 export const StepClassificationRowSchema = z.object({
   /** Pre-interpolation step text. Post-interpolation text can carry resolved secrets. */
   stepText: z.string(),
   role: z.enum(['assertion', 'action']),
-  /** Clause (ii) of D-09: references concrete expected content. Always false for actions. */
+  // References concrete expected content; always false for actions.
   falsifiable: z.boolean(),
   /** The vacuity-lexicon phrase this step matched, named so the author can see the term. */
   vacuityHit: z.string().optional(),
   /** Capture-signature pattern names hit by this step's expected value. */
   captureSignatureHits: z.array(z.string()),
-  /** D-10 tautology detection: the assertion restates a prior action's own content. */
+  // The assertion restates a prior action's own content.
   tautologyHit: z.boolean().optional(),
 }).strict()
 
 export type StepClassificationRow = z.infer<typeof StepClassificationRowSchema>
 
-/**
- * One stability run, as a REF plus the judgment made about it.
- *
- * `healed` is separable from `definitive` and from `memberOutcome` on purpose. Measured on the
- * frozen corpus (393-01, F3): the definitive-pass arm arrives as `healed`, not `passed` — the
- * accept control itself heals. A gate 1 that does not count a healed pass as a pass fails the
- * one draft it exists to accept. Recording the heal separately lets gate 1 count it as a pass
- * while 394 still reads the heal as the weak-grounding signal it is.
- *
- * `definitive` is a judgment, not a field copy. 393-01's F1 measured that
- * `termination.kind === 'infeasible'` does NOT separate gate 1 from gate 2 on this build — 19
- * of 21 failed members carry one — so no single terminal field decides definitiveness, and
- * `reason` is where the evaluator says what it actually read.
- */
+// `healed` is kept apart from `definitive`: a healed run counts as a pass for gate 1.
 export const GateRunRecordSchema = z.object({
   /** A ref into the run store. Deliberately not the run's contents. */
   runId: z.string().min(1),
-  /** The draft's own MEMBER outcome, not the aggregate verdict. */
+  // The draft's own member outcome, not the aggregate verdict.
   memberOutcome: z.string().min(1),
   definitive: z.boolean(),
   healed: z.boolean(),
@@ -92,19 +61,9 @@ export const GateRunRecordSchema = z.object({
 
 export type GateRunRecord = z.infer<typeof GateRunRecordSchema>
 
-/**
- * Gate 3's finding: which suite tests were compared, in which lane, and what was novel.
- *
- * `lane` is D-16's per-test disclosure. A suite test with run evidence is compared by anchor
- * fingerprint; an evidence-less one falls back to title/step-text similarity and over-flags
- * toward "covered" (the safe direction). Reporting the lane per test is what stops a
- * fingerprint-lane claim from being read into a text-lane guess.
- */
+// An evidence-less suite test falls back to text similarity, which over-flags toward covered.
 export const AddsValueFindingSchema = z.object({
-  /**
-   * Fingerprint elements absent from the suite union — NAMED, not counted. No
-   * similarity threshold exists to defend, so the receipt shows the elements themselves.
-   */
+  // Named, not counted: no similarity threshold exists, so the receipt shows the elements.
   novelElements: z.array(z.string()),
   comparedTests: z.array(z.object({
     filePath: z.string().min(1),
@@ -116,33 +75,9 @@ export const AddsValueFindingSchema = z.object({
 
 export type AddsValueFinding = z.infer<typeof AddsValueFindingSchema>
 
-/**
- * The four gate results, keyed by name (D-04: all four always evaluated, never short-circuited).
- *
- * Each carries `pass` plus a lean evidence sub-shape: counts and refs, with the rich tables
- * living once at the receipt level. Duplicating the tables inside each gate would create a
- * second answer to the same question, which is exactly what one-exported-vocabulary forbids.
- */
+// All four gates are always evaluated; rich tables live once, at the receipt level.
 export const DraftGateResultsSchema = z.object({
-  /**
-   * Gate 1: every run reached a DEFINITIVE verdict about the draft.
-   *
-   * THE ENFORCED RULE, as `stability-gates.ts` classifies it (393-09, WR-04 doc arm). The member
-   * outcome must be `passed`, `failed` or `healed` — a healed pass IS a pass (393-01 F3) — AND no
-   * step may carry a planning failure, a cycle flag, or ANY recorded termination. That last
-   * conjunct is the one this doc used to omit: a `failed` member whose step evidence records a
-   * termination is classified indefinitive, and the phase's survey of the demo run store found
-   * 9 of 9 failed members carrying one. So on current builds a definitive verdict is effectively
-   * a passing one — healed or clean — rather than the symmetric pass-or-fail this doc promised.
-   * D-17's `error` class has no enum member here (`RunStatus` is
-   * `passed | failed | healed | timeout | cancelled`); it arrives as a structural planning
-   * failure or as a run record that cannot be read back at all.
-   *
-   * The app-broken branch — a draft that fails because the APPLICATION is wrong — is therefore
-   * not a keep on this gate; it ends the invocation as a reported stop — the gate run's verdict on
-   * the op result, the draft retained on the shelf (411). Read this field as "the run answered",
-   * never as "a failing draft can be kept".
-   */
+  // A recorded termination makes even a `failed` member indefinitive; read it as the run answered.
   executesDefinitive: z.object({
     pass: z.boolean(),
     /** Refs into `gateRuns`. */
@@ -157,7 +92,7 @@ export const DraftGateResultsSchema = z.object({
     runRefs: z.array(z.string()),
     /** Distinct member outcomes observed; length > 1 is the flip. */
     distinctOutcomes: z.array(z.string()),
-    /** True when D-17's early-stop fired — the reason a completed count may be below N. */
+    // True when early-stop fired, which is why a completed count may be below N.
     earlyStopped: z.boolean(),
     reason: z.string().optional(),
   }).strict(),
@@ -191,14 +126,7 @@ export const DRAFT_GATE_NAMES = [
 
 export type DraftGateName = (typeof DRAFT_GATE_NAMES)[number]
 
-/**
- * The durable receipt. The op returns this AND persists it.
- *
- * `disposition` is the value `computeDraftDisposition` produced for this receipt's own gates
- * and counts. It is stored rather than recomputed at read time so the answer a consumer sees
- * is the answer that was actually given — a later retune of N must not silently rewrite the
- * history of decisions taken under the old one.
- */
+// Stored, not recomputed, so a later change to N never rewrites decisions already given.
 export const DraftReceiptSchema = z.object({
   schemaVersion: z.literal(CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION),
   draftRef: DraftRefSchema,
@@ -211,30 +139,11 @@ export const DraftReceiptSchema = z.object({
   disposition: z.enum(DRAFT_DISPOSITIONS),
   /** Epoch milliseconds. */
   evaluatedAt: z.number().int().nonnegative(),
-  /**
-   * The invoking session, as an OPAQUE string the caller supplied.
-   *
-   * OPTIONAL AT THE CURRENT VERSION, AND THE VERSION IS DELIBERATELY NOT BUMPED. `parseReceipt`
-   * throws `DraftReceiptSchemaVersionError` on any mismatch, so a bump would make `list()` throw
-   * on every receipt already on a developer's or a CI runner's disk — which is precisely how a
-   * funnel READ op becomes a crash. Optional-at-version-1 is the additive shape a stamp-and-
-   * hard-fail store can actually absorb.
-   *
-   * ABSENCE IS EXCLUSION, NEVER A DEFAULT. A session-scoped funnel window compares this by exact
-   * string equality; a receipt carrying no ref is left OUT rather than folded into whichever
-   * session happens to be asking. Defaulting it in would attribute another session's drafts —
-   * and, in the direction that matters, would inflate `built` under somebody else's keep rate.
-   */
+  // Absent excludes a receipt from session windows; it is never defaulted to the asking session.
   sessionRef: z.string().min(1).optional(),
 }).strict()
 
 export type DraftReceipt = z.infer<typeof DraftReceiptSchema>
-
-// ---- the written test ----------------------------------------------------------
-//
-// A final draft is written straight to its test path unless its gates rejected it. What the
-// author is told is which file was written — or why none was — beside how well the draft was
-// verified: the disposition and the four gate booleans, never collapsed into one verdict.
 
 /** The four gate booleans on their own, as a written-test receipt carries them. */
 export const DraftGateBooleansSchema = z.object({
@@ -288,12 +197,7 @@ export const TestFileWriteSchema = z.discriminatedUnion('kind', [
 
 export type TestFileWrite = z.infer<typeof TestFileWriteSchema>
 
-/**
- * The written-test receipt: the file, the disposition and the four gate booleans.
- *
- * A `rejected` disposition and a `rejected` not-written reason come together or not at all, and a
- * written file never carries a rejected disposition.
- */
+// A `rejected` disposition and a `rejected` not-written reason come together or not at all.
 export const WrittenTestReceiptSchema = z.object({
   file: TestFileWriteSchema,
   disposition: z.enum(DRAFT_DISPOSITIONS),
@@ -306,9 +210,7 @@ export const WrittenTestReceiptSchema = z.object({
       message: `a ${receipt.disposition} draft is never written`,
     })
   }
-  // an unverified draft is a draft-mode draft whose gates 1,
-  // 3 and 4 passed; one of them false is a rejection. Producer-parsed only: nothing persists this
-  // receipt, so the refinement reads no stored record.
+  // An `unverified` draft passed gates 1, 3 and 4; only producers parse this, not stored records.
   if (receipt.disposition === 'unverified' && !singleRunGatesPass(receipt.gates)) {
     ctx.addIssue({
       code: 'custom',

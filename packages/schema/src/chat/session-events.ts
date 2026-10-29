@@ -1,23 +1,4 @@
-// The chat session log's event grammar.
-//
-// MINTED IN SCHEMA, on the `run-notification.ts` precedent and for its stated reason rather than
-// by analogy: several packages read these bytes and none may import another. `agent` emits them
-// from the turn engine, `agent-local` writes and re-reads them as JSONL, `cli` renders them, and
-// M5's dashboard will parse the same file. A grammar that lived beside any one consumer would be
-// re-derived by the next, and the two spellings would drift on the first field either wanted.
-//
-// THE EVENT KIND UNION IS CLOSED AND COMPLETE FROM DAY ONE, including the kinds nothing emits
-// yet. CHAT-05 names `model_change`, `active_tools_change`, `compaction` and `aborted` as members
-// of the log grammar; declaring them late would make "this build does not know that kind" and
-// "that kind did not occur" the same bytes for every reader written in between — which is exactly
-// the ambiguity a versioned, append-only log exists to avoid.
-//
-// MAP, NOT TERRITORY. An event carries REFS and one-line summaries, never payload bodies.
-// The one exception is chat's own content: a user message IS the thing chat is a record of, so its
-// text is logged. A knowledge record, a config file's contents, a tool result — those live in
-// their own stores and appear here as an id and a sentence. The rule is not about size. It is that
-// this file is read by surfaces that render it directly, so a field that could carry a secret
-// would need a masking boundary at every one of them.
+// Events carry refs and one-line summaries only, so no renderer needs its own masking boundary.
 
 /**
  * Stamped into the header line and checked before any shape question on reopen.
@@ -28,42 +9,14 @@
  */
 export const CURRENT_CHAT_SESSION_SCHEMA_VERSION = 2
 
-/**
- * The first line of every session file, written and fsynced when the file is created.
- *
- * `model` and `toolsetHash` are the session's opening CONTEXT, not its running state: the log's
- * `model_change` and `active_tools_change` events carry drift from here onwards, so a reader
- * reconstructs "what was in force at turn N" by folding events over this header. Rewriting the
- * header on drift would make the file no longer append-only, which is the one property CHAT-05
- * asks for by name.
- */
+// Written once at create: drift arrives as events, so the file stays append-only.
 export interface ChatSessionHeader {
   schemaVersion: typeof CURRENT_CHAT_SESSION_SCHEMA_VERSION
   sessionId: string
   createdAt: string
   model: string
   toolsetHash: string
-  /**
-   * WHICH DOOR OPENED THIS CONVERSATION — optional, and on the HEADER.
-   *
-   * D-04 puts dashboard chat on this exact substrate "tagged with their surface". The obvious
-   * spelling is a field on each event, and it is the one thing this grammar cannot have: the guard
-   * below compares an EXACT key set per kind, so an extra field on any event kind makes every
-   * session file written before it unreadable by the build that comes after. The header's own
-   * guard is presence-based and tolerates keys it does not know, so the tag rides here, is written
-   * ONCE at create with the rest of the opening context, and never rewritten.
-   *
-   * ABSENT IS A REAL VALUE AND IT IS THE DEFAULT: a session opened by a host that did not name its
-   * surface. That is every file written before Phase 400 and every `agent-qa chat` session written
-   * after it — one population, not two, which is what keeps the absence unambiguous. Only a host
-   * that has a reason to distinguish itself supplies one, and `agent-qa dashboard` is the first.
-   *
-   * A PLAIN STRING RATHER THAN A CLOSED UNION, deliberately. The value is the surface's own name —
-   * the same word `FunctionCaller.surface` carries for the same door — and the surface roster grows
-   * by design (four doors today). A union here would make a session file written by a later build
-   * fail to typecheck against an older one for a field no decision is taken on: nothing branches on
-   * this value, it is a fact for a reader and a listing filter.
-   */
+  // On the header: event guards compare exact key sets, so an event field would break older files.
   surface?: string
 }
 
@@ -100,14 +53,7 @@ export const CHAT_TURN_STAGES = ['resolver', 'planner', 'reconcile', 'execute'] 
 
 export type ChatTurnStage = (typeof CHAT_TURN_STAGES)[number]
 
-/**
- * What a stage did with the turn.
- *
- * `skipped` is a first-class outcome and not an absence: a turn every clause of which the
- * deterministic table resolved does not consult the planner at all, and that is the tracer's whole
- * point (D-01/D-06 — the LLM is never touched). Logging nothing would make a skipped planner and
- * an unbound one identical in the record.
- */
+// `skipped` is an outcome, so a skipped planner never reads as an unbound one.
 export const CHAT_STAGE_OUTCOMES = ['resolved', 'skipped', 'unresolved'] as const
 
 export type ChatStageOutcome = (typeof CHAT_STAGE_OUTCOMES)[number]
@@ -130,13 +76,7 @@ export interface ChatSessionEventBase<K extends ChatSessionEventKind> {
   at: string
 }
 
-/**
- * What the person typed, verbatim.
- *
- * The ONE payload body in this vocabulary, and the exception is principled: the utterance is not
- * a reference to content held elsewhere, it IS the content, and a session log that recorded
- * "the user said something" would not be the triage report D-18 asks for.
- */
+// The utterance is logged verbatim because it is the content, not a reference.
 export interface ChatUserMessageEvent extends ChatSessionEventBase<'user_message'> {
   text: string
 }
@@ -147,14 +87,7 @@ export interface ChatStageOutcomeEvent extends ChatSessionEventBase<'stage_outco
   outcome: ChatStageOutcome
 }
 
-/**
- * One clause's trip through the function layer, as a REF and a sentence.
- *
- * `functionId` addresses the op; `outcome` is a ONE-LINE human summary; the result itself stays
- * wherever the op put it. `origin` records which caller the composition MINTED for this clause
- * (391 D-06, RESEARCH Pitfall 1) — a deterministic table hit is a person typing, a planner-planned
- * call is not, and the difference is a permission fact worth having in the record.
- */
+// `outcome` is a one-line summary; the result itself stays where the op put it.
 export interface ChatClauseReceiptEvent extends ChatSessionEventBase<'clause_receipt'> {
   clause: string
   functionId: string
@@ -163,41 +96,7 @@ export interface ChatClauseReceiptEvent extends ChatSessionEventBase<'clause_rec
   outcome: string
 }
 
-/**
- * WHAT ONE CLAUSE'S OP RETURNED — the turn's `results[]` entry, MASKED (399.1, D-05).
- *
- * THE SECOND PAYLOAD BODY IN THIS VOCABULARY, and like the first it is stated as an exception
- * rather than smuggled in. D-18's rule above is that an event carries REFS and one-line summaries,
- * because "this file is read by surfaces that render it directly, so a field that could carry a
- * secret would need a masking boundary at every one of them". That sentence is the REASON, and it
- * is satisfied here by the boundary being crossed BEFORE the bytes arrive rather than at each
- * reader: what rides this field is the function layer's masked payload, and nothing between the op
- * and this line restores a value. Each surface prints what the declared mask produced.
- *
- * VERBATIM-MASKED, NOT A DIGEST — the discretion D-05 left open, resolved. A digest would satisfy
- * the disclosure guard trivially and would also make the record unable to answer the question the
- * channel was minted for: 399's UAT rejected a chat surface that executed ops and could not say
- * what they returned, and a session log holding a hash of the answer reproduces that hole one
- * layer down. The result is the TURN'S OWN TERRITORY (392's receipt charter: the receipt is the
- * map, the territory travels beside it), so it is kept — as filed, masked.
- *
- * THE BINDING CONSTRAINT IS ON THE RECORD.
- * `.planning/phases/399.1-chat-render-contract/399.1-ADJUDICATION-transcript-cleartext.md`
- * § "The load-bearing corollary for D-05": op results can carry credentials, so persisting an
- * UNMASKED entry here would mint a second unadjudicated cleartext sink in this exact file — the
- * class that adjudication names — converting an inherited 392 posture gap into a 399.1 defect.
- * A repair of the two fields that DO carry cleartext today (`user_message.text`,
- * `clause_receipt.clause`) is filed separately as `T-399.1-04`; this kind must never become a
- * third.
- *
- * ONE EVENT PER CLAUSE THAT RAN, never per clause planned: a `not-run` clause has no result, and a
- * line claiming one would be the log asserting an op answered a call nobody made.
- *
- * `payload` IS `unknown` AND MUST BE JSON-REPRESENTABLE. The writer is a JSONL adapter, so an
- * `undefined` payload is written as `null` at the append site rather than omitted — an omitted key
- * would fail the exact-key guard below on reopen, turning an op that returns nothing into a corrupt
- * line.
- */
+// `payload` must be JSON: an `undefined` result is written as `null`, or the key guard refuses it.
 export interface ChatClauseResultEvent extends ChatSessionEventBase<'clause_result'> {
   functionId: string
   payload: unknown
@@ -208,14 +107,7 @@ export interface ChatTurnCompleteEvent extends ChatSessionEventBase<'turn_comple
   status: ChatTurnStatus
 }
 
-/**
- * A person's answer at an ask-tier gate. HISTORICAL ONLY.
- *
- * nothing writes this event any more. The chat confirm, the
- * `/pin` verb and the execution gate are deleted, so no build mints an `approval_decision`. The kind
- * and its exact key set stay so a session file a pre-432 build wrote keeps parsing: the session
- * guard throws on an unknown kind, and persisted history stays readable.
- */
+// Nothing writes this kind; it stays because the guard refuses unknown kinds in stored sessions.
 export interface ChatApprovalDecisionEvent extends ChatSessionEventBase<'approval_decision'> {
   /** The `fn:`-prefixed risk name the gate classified, not the bare op id. */
   actionClass: string
@@ -236,74 +128,34 @@ export interface ChatApprovalDecisionEvent extends ChatSessionEventBase<'approva
   source: 'gate' | 'verb'
 }
 
-/**
- * A clause nothing in this build handles.
- *
- * Logged on EVERY occurrence, in live sessions as well as scenario runs, which is what makes
- * CHAT-03's field rate a projection over logs rather than a new metric store. The gated ceiling
- * is computed over the frozen corpus; this event is what makes the ungated field number
- * observable at all.
- */
+// Logged on every occurrence, so the field rate is a projection over logs.
 export interface ChatMarkUnhandledEvent extends ChatSessionEventBase<'mark_unhandled'> {
   clause: string
   reason: string
 }
 
-/**
- * The session model changed (D-04, CHAT-05's named config event).
- *
- * `source` distinguishes the two ways it happens, and they are genuinely different facts: a person
- * typed `/model`, or the configuration on disk drifted and the session re-read it (391's
- * human-edits-always-win echo). Collapsing them would leave a reader unable to tell a deliberate
- * switch from one that happened to them.
- */
+// `source` tells a person's `/model` apart from configuration drift the session re-read.
 export interface ChatModelChangeEvent extends ChatSessionEventBase<'model_change'> {
   from: string
   to: string
   source: 'verb' | 'config_reread'
 }
 
-/**
- * The reachable toolset changed (D-04, CHAT-05's second named config event).
- *
- * Deltas plus the new fingerprint, not the whole set: the header already carries the opening hash,
- * so a reader folds these to reconstruct what was reachable at turn N. Logging the full set each
- * time would put a copy of the catalogue in the log on every drift.
- *
- * There is no `/tools` toggle producing these — the always-send-all law forbids one. What
- * produces them is a build or configuration that genuinely changed what exists.
- */
+// Deltas plus the new fingerprint; a reader folds them over the header's opening hash.
 export interface ChatActiveToolsChangeEvent extends ChatSessionEventBase<'active_tools_change'> {
   addedIds: readonly string[]
   removedIds: readonly string[]
   toolsetHash: string
 }
 
-/**
- * ONE event for the whole degrade pass.
- *
- * The stages of a degrade — hygiene, screenshot stripping, dedup, truncation — are FIELDS of one
- * pass and not sibling kinds, and that is a decision rather than a shorthand: they always run
- * together under one budget for one turn, so a reader asking "what did compaction cost here"
- * wants one row. Sibling kinds would make that question a join.
- *
- * `outcome` carries the substrate's own two answers verbatim (`degrade()`'s `DegradeOutcome`), so
- * the cannot-fit case is reported rather than folded into a success with smaller numbers.
- */
+// `outcome` carries `DegradeOutcome` verbatim, so a cannot-fit case is never reported as success.
 export interface ChatCompactionEvent extends ChatSessionEventBase<'compaction'> {
   beforeTokens: number
   afterTokens: number
   outcome: 'degraded' | 'pinned-content-exceeds-budget'
 }
 
-/**
- * A turn that ended without completing (D-19's two arms).
- *
- * `explicit` is a graceful Ctrl+C: the process was alive and wrote this itself. `synthesized` is
- * what the next-turn repair writes after a hard kill, where the dangling turn is inferred from a
- * tail that is not a boundary marker. Both are real and they are different — one says a person
- * stopped, the other says a machine died — and a single spelling would lose that.
- */
+// `explicit` is a graceful Ctrl+C; `synthesized` is the next-turn repair after a hard kill.
 export interface ChatAbortedEvent extends ChatSessionEventBase<'aborted'> {
   source: 'explicit' | 'synthesized'
 }
@@ -335,17 +187,7 @@ export class ChatSessionEventSchemaError extends Error {
   }
 }
 
-/**
- * The EXACT key set each kind carries, spelled once and read by the guard below.
- *
- * A total `Record` over the kind union, which is the compile-time half of the double lock: an
- * twelfth kind cannot be declared without saying what its line looks like. The guard is the
- * runtime half, and the two catch different drifts (`jobs/kinds.ts:619-627`).
- *
- * Exact key sets rather than presence checks, for `run-notification.ts`'s stated reason: a
- * presence check admits a record carrying an EXTRA field, and an extra field on a line several
- * surfaces render is exactly how a payload body arrives in a log that promised refs.
- */
+// Exact key sets, because a presence check would admit an extra field carrying a payload body.
 const EVENT_KEYS: Record<ChatSessionEventKind, readonly string[]> = {
   user_message: ['at', 'kind', 'text', 'turnId'],
   stage_outcome: ['at', 'kind', 'outcome', 'stage', 'turnId'],

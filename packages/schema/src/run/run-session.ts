@@ -27,7 +27,7 @@ export interface RunSession {
     onFrame: (frame: LiveFrame) => void,
     onEnd?: (reason: LiveFrameEndReason) => void,
   ): LiveFrameSubscription | undefined
-  /** What handle `handle` can stream right now. `{ kind: 'none' }` for an absent/finished handle. */
+  /** What handle `handle` can stream now; `{ kind: 'none' }` for an absent or finished handle. */
   streamCapabilityOf(handle: number): LiveStreamDeclaration
   /** Run-level cancel: abort the active member test, skip the rest, verdict `cancelled`. */
   cancel(): void

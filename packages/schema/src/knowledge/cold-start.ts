@@ -1,16 +1,11 @@
 import type { EvidenceToken } from '../ids/record-id'
 import type { PromotionGateInput } from './promotion-gate'
 
-/** LOCKED D-19 maximum for the always-on organic canary reservation. */
 export const COLD_START_MAX_RECORDS = 2
 
-/** LOCKED D-19 maximum share of the caller-supplied brief budget. */
 export const COLD_START_MAX_BUDGET_FRACTION = 0.2
 
-/**
- * PROVISIONAL D-20 candidate trust discount. M3 owns calibration from attributed outcomes;
- * this remains an internal constitution value, never a config key.
- */
+// An internal constitution value, never a config key.
 export const COLD_START_TRUST_DISCOUNT = 0.5
 
 export interface VettedCandidateInput extends Pick<
@@ -30,12 +25,7 @@ export interface VettedCandidateInput extends Pick<
   confirmedOutcomeEvidenceTokens: readonly EvidenceToken[]
 }
 
-/**
- * Implements the researcher-pinned V1-V9 positive predicate. D-21's LOCKED hard exclusions are
- * evaluated first: candidacy/open validity, withheld provenance, a memory-off anchor group, and
- * user-deprecated lineage can never become eligible through a trust discount. The remaining
- * positive checks are provisional until M3 calibrates real attributed outcomes.
- */
+// Hard exclusions run first, so no trust discount can make an excluded record eligible.
 export function isVettedCandidate(input: VettedCandidateInput): boolean {
   const candidacyPasses = input.status === 'candidate' && input.validityOpen
   if (
@@ -60,12 +50,7 @@ export interface ColdStartBudgetEntry {
   readonly tokenEstimate: number
 }
 
-/**
- * D-19's ALWAYS-ON organic canary channel, not a bootstrapping state machine. Warm stores keep
- * this reservation available so attributed candidate outcomes remain reachable. Selection is
- * pure, deterministic, and order-preserving; callers provide discounted-trust order and the real
- * brief budget, then the LOCKED two-record and twenty-percent walls apply, whichever is smaller.
- */
+// Always on, so warm stores keep canary outcomes reachable; the smaller of the two caps applies.
 export function applyColdStartSubCap<T extends ColdStartBudgetEntry>(
   vetted: readonly T[],
   budgetShareTokens: number,

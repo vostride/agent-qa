@@ -34,7 +34,7 @@ export const RUN_EVENT_TYPES = [
   'runError',
   // Liveness
   'heartbeat',
-  // Post-processing / status chips — DEFINED in v1, emitted by no M1 producer
+  // Post-processing / status chips, appended by the post-run tail rather than the bus
   'analysisStarted',
   'analysisCompleted',
   'analysisFailed',

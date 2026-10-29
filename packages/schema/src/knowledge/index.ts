@@ -106,9 +106,6 @@ export type {
   InspectRecordView,
   RecordChange,
 } from './maintenance-views'
-// the direct knowledge change contracts — the review vocabulary, the
-// change identity, the target refs, the forget and commit receipts, the change inputs and the change
-// output. The proposal payload and its apply contracts are deleted with the inbox.
 export {
   DeltaSchema,
   FORGET_RECEIPT_SCHEMA_VERSION,
@@ -149,7 +146,6 @@ export type {
   MarkChangeStamp,
   TombstonedRecord,
 } from './change'
-// the review-verb read contracts.
 export {
   BRIEF_WHY_NO_TRACE_REASONS,
   BRIEF_WHY_RESULT_KINDS,

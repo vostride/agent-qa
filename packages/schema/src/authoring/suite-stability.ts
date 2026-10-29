@@ -1,33 +1,4 @@
-// The mixed-verdict suite-stability read (394, D-14 · WTST-05).
-//
-// WHAT IT IS FOR. Gate 2 flips: the draft passed on one run and failed on another, so the keep
-// filter rejects it. The naive answer is to discard the draft silently, and it is the wrong one
-// often enough to matter — a target whose EXISTING tests are already flaky or quarantined is a
-// target where the application is unstable, and the honest message names that rather than telling
-// an author their test was no good. "Your app is unstable here, and these are the neighbours that
-// say so" and "your draft did not pass" are two different sentences, and the author can only act
-// on one of them.
-//
-// (That pair is spelled as two quoted clauses joined by `and`, never with the import keyword
-// between a word and a quoted phrase, because the arch dependency scan reads import specifiers
-// out of RAW BYTES with comments included, and prose shaped like a specifier is reported as an
-// undeclared external dependency. Fourth occurrence of that trap in this phase, all four in
-// prose — and the fifth was this very paragraph, when it first illustrated the shape verbatim.)
-//
-// IT STARTS ZERO RUNS, AND THAT IS THE WHOLE REASON D-14 IS READ-SIDE. WTST-08's fan-out preview
-// promises a bound before dispatch and the receipt reports what was spent; a stability check that
-// took its own runs would make the preview a number nobody could honour. Everything below is a
-// pure fold over evidence the project ALREADY has — the run-outcome projection and the quarantine
-// ledger — which is why it lives in `schema` and takes rows rather than ports.
-//
-// A DEGRADED POSTURE STATED IS NOT A CLEAN BILL OF HEALTH. A target with no history gets
-// `no-history` and says so. Returning `stable` for a target nothing has ever observed would be a
-// wrong answer wearing a correct one's clothes, and it is the one this vocabulary exists to make
-// unrepresentable: `stable` means evidence was read and it said stable.
-//
-// THE RESULT NAMES ITS EVIDENCE. `flakyNeighbours` carries identities, not a count and not a
-// boolean — an author told "some neighbours are flaky" cannot go and look, and the whole value of
-// this branch is that they can.
+// Starts no runs, so the fan-out preview stays a number the loop can honour.
 
 /**
  * The CLOSED posture vocabulary. Three members, and none of them covers another.
@@ -68,13 +39,7 @@ export interface SuiteNeighbourRow {
 export interface FlakyNeighbour {
   readonly filePath: string
   readonly testName: string
-  /**
-   * The `entities.resolve` reference, spelled `<filePath>::<testName>`.
-   *
-   * Deliberately NOT a `TST-###` short-ID: a short-ID exists only once something has sighted the
-   * entity, and no `TST` sighting source is wired on any host in this build — so printing one
-   * would publish an address that resolves to nothing (ENTY-01's never-guess law).
-   */
+  // Spelled `<filePath>::<testName>`, never a `TST` short ID, which would not resolve.
   readonly ref: string
   readonly reason: NeighbourInstabilityReason
   /** The distinct outcomes observed, when the reason is a flip. Empty for a quarantine entry. */

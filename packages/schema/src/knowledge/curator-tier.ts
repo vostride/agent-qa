@@ -1,25 +1,12 @@
 import type { CurationAuthorship } from '../delta/envelope'
 
-/**
- * D-06 curator capability tier. `full` = clean LLM authorship by a v46-capable family;
- * `degraded` = LLM authorship that needed repair, a weak/unknown family, or absent
- * authorship facts (conservative); `floor` = the deterministic fallback path.
- */
+// `degraded` covers repaired output, a weak or unknown family, and missing authorship facts.
 export type CuratorTier = 'full' | 'degraded' | 'floor'
 
-/**
- * D-03 closed procedure-parameter type union. `secret` exists so the extraction
- * disposition can structurally reject unparameterized secrets.
- */
+// `secret` exists so extraction can reject an unparameterized secret.
 export type ProcedureParamType = 'string' | 'number' | 'boolean' | 'secret'
 
-/**
- * PROVISIONAL v46-capable family prefixes: the tool-calling + structured-output rows of the
- * model package's family table. The list lives HERE (not in the model package) because schema
- * must never import from model — dependency direction. Matched case-insensitively at token
- * boundaries against `model.family ?? model.id` (RESEARCH A1: authorship stamps only
- * `model.id` today, so id is the fallback match key).
- */
+// Kept here because schema must not import the model package, which owns the family table.
 const CAPABLE_FAMILY_PREFIXES: readonly string[] = [
   'claude',
   'gpt-4o',
@@ -43,10 +30,7 @@ export function matchesCapableFamily(key: string): boolean {
   })
 }
 
-/**
- * The ONE pure, total D-06 tier derivation over raw authorship facts. Absent authorship and
- * every unknown shape resolve to `degraded` — never a throw, never a widened string.
- */
+// Absent authorship and every unknown shape resolve to `degraded`, never a throw.
 export function curatorTier(authorship: CurationAuthorship | undefined): CuratorTier {
   if (authorship === undefined) return 'degraded'
   if (authorship.path === 'deterministic-fallback') return 'floor'

@@ -1,48 +1,6 @@
-// The ONE fan-out arithmetic.
-//
-// WHAT THIS NUMBER IS FOR. WTST-08's owner decision is preview and honest reporting with NO
-// enforced pre-dispatch budget. That decision moves the whole mitigation for an unbounded fan-out
-// onto DISCLOSURE — the number a person is shown at the dispatch confirm is the control, and the
-// number the finished proposal reports is what makes the disclosure falsifiable. A preview lower
-// than the loop's own worst case is therefore a consent defect and never a rounding choice: it is a
-// person having agreed to less compute than was actually taken from them.
-//
-// WHY IT LIVES IN `schema`. The dispatch confirm is composed in `agent` and the report rides a
-// proposal arm this package owns, so a bound spelled in `agent` and read by a receipt would be an
-// arithmetic each surface restates. One function in the one package both sides already depend on is
-// what makes "the preview and the report cannot disagree" a structural fact rather than a habit. It
-// is also why the terms arrive as INPUTS: `DRAFT_STABILITY_RUNS_N` lives here, but the repair cap K
-// lives in `agent` beside the loop that spends it, and a schema that reached for it would need a
-// dependency edge pointing the wrong way.
-//
-// THE ORDERED CONTRACT — where each term comes from, and what one costs:
-//   initialN  the first stability gate, `DRAFT_STABILITY_RUNS_N` (or 1 when the caller asked for
-//             draft mode). EARLY-STOPPED: gate 2 stops on a verdict flip, so this term is an upper
-//             bound on that gate and not a promise that it will be spent.
-//   probeK    one probe run per repair iteration, bounded by `REPAIR_ITERATION_CAP`. A fenced or
-//             unparsable emission consumes an iteration WITHOUT starting a run, so this term is an
-//             upper bound too.
-//   finalN    the full stability gate on the repaired candidate, `DRAFT_STABILITY_RUNS_N` again.
-//             It is a SEPARATE quantity from `initialN` even when the two are numerically equal —
-//             the first judges what the model wrote, the second judges what repair produced.
-// EVERY ONE OF THESE RUNS IS A FULL CHILD `agent-qa run` PROCESS against the user's application,
-// not a function call. That is what makes nine of them a number worth putting in front of a person.
-//
-// THE TWO N TERMS ARE NEVER COLLAPSED. A `FanOutBound` carrying only a sum, or a single doubled
-// term, would let a later reader re-derive `2N + K` and lose the distinction — and with the shipped
-// constants the collapse is invisible, because both terms are 3. The terms are separate keys, the
-// type pins the key set by equality, and the runtime cells that catch a collapse are the ones that
-// use draft mode, where the two terms differ.
+// Terms arrive as inputs because the repair cap lives in `agent`, which schema must not import.
 
-// THE SHAPES ARE ZOD SCHEMAS AND THE TYPES ARE DERIVED FROM THEM. Until this plan the
-// shapes here were hand-written interfaces, which was correct while nothing crossed a wire: the
-// report was an in-process value the loop handed its own caller. `authoring.draft.write` now
-// CARRIES the report on its `.strict()` output contract, so the shape is validated at a boundary —
-// and a validator written beside an interface is two declarations of one shape, free to drift in
-// the direction where the schema accepts a report the type forbids or strips one the type requires.
-// Deriving is what makes the mirror structural rather than a habit. `.readonly()` is on every one
-// of them because the interfaces it replaces were readonly throughout, and a derived type that
-// quietly dropped the modifier would be a widening nobody asked for.
+// Types are derived from the zod schemas, so the wire validator and the type cannot drift.
 
 import { z } from 'zod'
 
@@ -112,14 +70,7 @@ export function computeFanOutBound(input: FanOutBoundInput): FanOutBound {
   }
 }
 
-/**
- * The bound of an invocation in which no draft ever reached verification.
- *
- * PRODUCED through the function rather than written as a literal `{initialN: 0, …, total: 0}`, so
- * it cannot pin a shape the function would not answer. A dedup refusal ends the invocation
- * before a byte is authored, so all three terms really are zero — this is a true value, not a
- * placeholder standing in for a number nobody computed.
- */
+// Produced by the function, not a literal, so it cannot pin a shape the function never answers.
 export const NO_RUNS_FAN_OUT_BOUND: FanOutBound = computeFanOutBound({
   initialN: 0,
   probeK: 0,
@@ -147,12 +98,7 @@ export const ConsumedRunSchema = z.object({
 
 export type ConsumedRun = z.infer<typeof ConsumedRunSchema>
 
-/**
- * What was previewed, beside what was actually consumed.
- *
- * Both numbers ride ONE object so a reader cannot be handed either alone. The actual alone leaves
- * the disclosure unfalsifiable; the preview alone is the defect WTST-08 exists to prevent.
- */
+// Both numbers ride one object so a reader is never handed either alone.
 export const FanOutReportSchema = z.object({
   previewed: FanOutBoundSchema,
   /** Distinct runs, in the order they finished, ties broken by run id. */

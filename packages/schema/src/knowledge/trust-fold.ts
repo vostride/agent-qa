@@ -12,16 +12,10 @@ export const ORIGIN_PRIORS = {
   import: { alpha: 0.5, beta: 1 },
 } as const satisfies Record<OriginClass, { alpha: number; beta: number }>
 
-/**
- * PROVISIONAL D-08 prior discount; M3 owns calibration against evidence-complete
- * outcomes. It multiplies alpha only and is an internal constant, never a config key.
- */
+// Multiplies alpha only; an internal constant, never a config key.
 export const EVIDENCE_INCOMPLETE_ALPHA_DISCOUNT = 0.5
 
-/**
- * PROVISIONAL D-10 serving-attribution weight. Phase 380 mints the first real
- * helpful/harmful events and M3 owns calibration; this is never a config key.
- */
+// An internal constant, never a config key.
 export const SERVING_ATTRIBUTION_WEIGHT = 0.25
 
 export type BundleStatus = 'active' | 'candidate' | 'superseded' | 'deprecated'
@@ -39,12 +33,7 @@ export interface DerivedTrustState {
     openedAtOrdinal: number
     closedAtOrdinal?: number
   }
-  /**
-   * 379 D-05 RATIFICATION: the latest surviving real confirmation. Retraction and
-   * window restoration never refresh this ordinal; staleness is derived as
-   * asOfBuild minus this value. Index projections must bump their schema version
-   * when adding this field so every existing bundle is re-projected (Plan 379-05).
-   */
+  // Retraction and window restoration never refresh this ordinal.
   lastConfirmedOrdinal: number
 }
 
@@ -68,13 +57,7 @@ function lifecycleStatus(event: BundleOutcomeEvent): BundleStatus | undefined {
   }
 }
 
-/**
- * Pure BNDL-03 derivation shared by bundle reads and Phase 375 rebuilds. Events
- * are deduplicated inside the fold, counters/status/validity are derived rather
- * than stored as frontmatter scalars, and the LLM never supplies the trust number.
- * Event-level origin is audit metadata only; the immutable bundle provenance
- * selects the origin-class prior through opts.
- */
+// Counters, status and validity are derived, never stored, and the model never supplies trust.
 export function foldBundleTrust(
   events: readonly BundleOutcomeEvent[],
   opts: {
@@ -99,8 +82,7 @@ export function foldBundleTrust(
   for (const event of survivingEvents) {
     switch (event.type) {
       case 'overturned':
-        // overturnsEvidenceToken is interpreted by survivingOutcomeEvents;
-        // the compensating audit line supplies no positive or harmful count.
+        // `overturnsEvidenceToken` is read by `survivingOutcomeEvents`; this line adds no count.
         break
       case 'confirmed':
         counters.confirmed += 1

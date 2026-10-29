@@ -1,9 +1,4 @@
-// The refusal surface of the RFC-6902 edit vocabulary (394, D-20 · WTST-07).
-//
-// Every cell here is about what the schema REFUSES, because acceptance is the easy half: a model
-// emitting `{op:'replace', path:'/steps/1', value:'…'}` is the happy path, and a model emitting
-// `{op:'move', from:'/steps/1', path:'/steps/3'}` is the one that has to be stopped before the
-// applier sees two pointers where the fence checks one.
+// A `move` names two pointers where the fence checks one, so it must be refused.
 
 import { describe, expect, it } from 'vitest'
 

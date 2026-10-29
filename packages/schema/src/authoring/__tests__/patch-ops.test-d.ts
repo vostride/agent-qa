@@ -1,8 +1,4 @@
-// Type-level pins on the edit vocabulary (394, D-20).
-//
-// The closed three-member op set is what makes the CST applier's `switch` exhaustive. A fourth
-// member added to `PATCH_OP_KINDS` would compile fine on its own; these assertions are what make
-// it fail HERE, next to the reason, rather than at whichever call site guesses wrong first.
+// A fourth op kind would compile alone; these assertions keep the applier's `switch` exhaustive.
 
 import { expectTypeOf } from 'vitest'
 

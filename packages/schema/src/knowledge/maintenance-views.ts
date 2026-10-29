@@ -80,38 +80,12 @@ export const RecordChangeSchema = z.object({
   atOrdinal: z.number().int().nonnegative(),
   evidenceToken: z.string().optional(),
   byRecordId: z.string().optional(),
-  /**
-   * present only when change === 'promoted' and the bundle's gate part
-   * names a strongest path; numbers and digests are COPIED from the receipt line,
-   * never derived at render.
-   */
+  // Present only on `promoted` with a strongest path; numbers are copied from the receipt.
   promotionPath: z.enum(PROMOTION_PATHS).optional(),
   promotionReceiptDigest: z.string().regex(/^[0-9a-f]{64}$/).optional(),
-  /**
-   * The run whose curation produced this change.
-   *
-   * ADDITIVE AND OPTIONAL, and `RECORD_CHANGE_SCHEMA_VERSION` deliberately does NOT move: every
-   * change ever written stays valid, and a reader that ignores the field reads exactly what it
-   * read before. Stamped by the reader entry's `diffSince` from the bundle's own
-   * `provenance.runId` (`mode: 'run-linked'`) for commit and promotion events.
-   *
-   * WHY A FIELD AND NOT A JOIN ON `curationJobId`. There is no single "this run's curation job
-   * id" to join on: commit stamps `curationJobId = candidateId`, promotion stamps
-   * `promote:<candidateId>`, and a canary outcome stamps a sha-derived observation id — none of
-   * which a `RecordChange` carries and none of which is the run. Absent when attribution is not
-   * derivable, because a change attributed to the wrong run is worse than one attributed to no
-   * run: a person reading "this run deprecated that fact" acts on it.
-   */
+  // Absent when attribution cannot be derived: a change tied to the wrong run is worse than none.
   sourceRunId: z.string().min(1).optional(),
-  /**
-   * The attributed observation this change came from, when it came from one.
-   *
-   * The second half of the run link, and a DIFFERENT axis from `sourceRunId` rather than a
-   * fallback for it. Canary outcomes are attributed by an observation id recomputed from the
-   * run's served-canary tuples — `canaryOutcomeObservationId({ candidateId, runId, testId,
-   * testIndex, stepIndex })` — so a consumer matches those changes by observation id while
-   * matching commit/promotion changes by run id. Absent for a change no observation produced.
-   */
+  // Canary changes match by observation id, commit and promotion changes by run id.
   observationId: z.string().min(1).optional(),
 }).strict().superRefine((value, ctx) => {
   if (value.change === 'promoted') return

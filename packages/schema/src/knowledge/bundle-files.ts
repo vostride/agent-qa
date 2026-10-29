@@ -8,7 +8,7 @@ import type { ExecutionContext } from '../run/run-status'
 import { createVersionGuard } from '../versioning/create-version-guard'
 import type { OriginClass } from './outcome-event'
 
-/** one version governs every committed JSON artifact in a bundle directory. */
+// One version governs every committed JSON artifact in a bundle directory.
 export const BUNDLE_SCHEMA_VERSION = 2
 
 const bundleKindSchema = z.enum(['fact', 'procedure', 'caution', 'unknown', 'policy'])
@@ -44,7 +44,7 @@ const curationAuthorshipSchema: z.ZodType<CurationAuthorship> = z.object({
     fingerprint: z.string().optional(),
   }).strict().optional(),
   executionContext: z.enum(executionContexts),
-  // 381-47 additive-optional diagnostic; never a trust/tier input (D-06 folds path alone).
+  // A diagnostic only; trust and tier never read it.
   fallbackReason: z
     .enum(['malformed', 'no-model', 'token-budget', 'model-error'])
     .optional(),
@@ -142,12 +142,9 @@ export const BundleProvenanceSchema = z.discriminatedUnion('mode', [
     curationJobId: z.string().optional(),
     sourceBuildOrdinal: z.number().optional(),
     authorship: curationAuthorshipSchema.optional(),
-    /** deterministic fallback output may request capable-model re-processing. */
+    // Deterministic fallback output may request capable-model re-processing.
     needsEnrichment: z.boolean().optional(),
-    /**
-     * injection-flagged candidates stay out of brief serving and ordinary promotion
-     * until a local-interactive re-review supersedes them.
-     */
+    // Injection-flagged candidates stay out of serving and promotion until a local re-review.
     withheld: z.boolean().optional(),
   }).strict(),
   z.object({
@@ -266,19 +263,13 @@ export interface MutableStateHashInput {
   outcomes: string | null
   relations: string | null
   artifactsIndex: string | null
-  /**
-   * D-03 additive measurement stream digest. Optionality preserves the exact
-   * mutable-state hash of bundles created before measurements.json exists.
-   */
+  // Optional so bundles without measurements.json keep their mutable-state hash.
   measurements?: string | null
-  /** omitted until the lazy gate part exists, preserving prior bundle hashes. */
+  // Omitted until the gate part exists, so bundle hashes without it stay the same.
   gates?: string | null
 }
 
-/**
- * BNDL-02 anti-collapse law: only mutable-file content digests enter this hash. Identity,
- * embedding status, and prose are structurally absent so Phase 375 can diff rebuild state.
- */
+// Only mutable-file content digests enter this hash; identity, embedding status and prose never do.
 export function computeMutableStateHash(input: MutableStateHashInput): string {
   return sha256hex(canonicalJson(input))
 }

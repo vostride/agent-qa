@@ -21,10 +21,7 @@ function normalizedAnchorText(anchor: Anchor): string {
   }
 }
 
-/**
- * PROVISIONAL Phase 374 rendering. Phase 376's embedding bench may refine this function, while
- * each manifest preserves the exact publish-time bytes for deterministic index rebuilds.
- */
+// Each manifest keeps the exact publish-time bytes, so a change here never breaks an index rebuild.
 export function renderEmbeddingInput(input: {
   summary: string
   body: string
@@ -41,7 +38,7 @@ export function renderEmbeddingInput(input: {
   ].join('\n')
 }
 
-/** one replay-consumable canonical JSON document per pre-action screen state. */
+// One replay-consumable canonical JSON document per pre-action screen state.
 export function screenStateSnapshotRelPath(stepIndex: number): string {
   if (!Number.isInteger(stepIndex) || stepIndex < 0) {
     throw new RangeError('screen-state stepIndex must be a non-negative integer')

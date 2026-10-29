@@ -1,7 +1,4 @@
-// D-04 committed procedure step-sequence contract. The payload is embedded in record.md as ONE
-// canonicalJson fenced block (lean + PR-reviewable); parseProcedureBody is fail-closed — any
-// malformation returns undefined (downstream treats unparseable as no-match/hint, T-381-01),
-// never a throw, never eval/dynamic dispatch.
+// Fail-closed: any malformation returns undefined, never a throw or dynamic dispatch.
 
 import { z } from 'zod'
 
@@ -9,13 +6,7 @@ import { canonicalJson } from '../determinism/canonical-json'
 import type { Anchor } from '../identity/anchor'
 import type { ProcedureParamType } from './curator-tier'
 
-/**
- * A descriptor-only element target. Replay re-finds it strictly: exactly one current
- * element with the same role, the exact observed `name` and, when stored, the `row` words. A
- * target without `name` cannot be judged strictly and is a guard miss. `nameNormalized` stays
- * for the readers that show it; `ordinal` is kept only so committed bodies still parse — nothing
- * new writes it and replay never reads it.
- */
+// Replay re-finds the target strictly; `ordinal` stays only so committed bodies parse.
 export interface ProcedureGuardTarget {
   role: string
   nameNormalized: string
@@ -24,10 +15,6 @@ export interface ProcedureGuardTarget {
   ordinal?: number
 }
 
-/**
- * The per-step replay guard: the target the step is about to act on, the page anchor
- * the step was authored against, and optional stable landmark texts for the guard fold.
- */
 export interface ProcedureGuardDescriptor {
   target: ProcedureGuardTarget
   pageAnchor: Extract<Anchor, { t: 'page' }>
@@ -67,17 +54,12 @@ export type ProcedureValueSlot =
   | { param: string }
   | { json: ProcedureJsonValue }
 
-/** One declared procedure parameter (D-03 closed type union). */
 export interface ProcedureParameterSpec {
   name: string
   type: ProcedureParamType
   required: boolean
 }
 
-/**
- * One committed procedure step: the authored instruction prose, the replayable action shape
- * (targets keyed by ref lane, values keyed by field), and the D-05 guard descriptor.
- */
 export interface ProcedureStepSpec {
   instruction: string
   action: {
@@ -155,9 +137,7 @@ const bodyPayloadSchema: z.ZodType<ProcedureBodyPayload> = z
   })
   .strict()
   .superRefine((payload, context) => {
-    // this committed codec is the fail-closed uniqueness AUTHORITY. Proposal-side
-    // checks are advisory; rejecting duplicate names here makes an ambiguous body unservable
-    // and unreplayable everywhere through parseProcedureBody's undefined-on-malformation law.
+    // This codec rejects duplicate parameter names, so an ambiguous body is never served.
     if (!Array.isArray(payload.parameters)) return
     const names = new Set<string>()
     payload.parameters.forEach((parameter, index) => {
@@ -184,11 +164,7 @@ export function serializeProcedureBody(payload: ProcedureBodyPayload): string {
   return `${FENCE_OPEN}\n${canonicalJson(payload)}\n${FENCE_CLOSE}\n`
 }
 
-/**
- * Fail-closed parse of a record.md body: locate the fenced block, JSON-parse it, and validate
- * structurally. ANY malformation — no fence, bad JSON, a param type outside the closed union,
- * an unknown key — returns undefined; this function never throws.
- */
+// Any malformation returns undefined; this function never throws.
 export function parseProcedureBody(body: string): ProcedureBodyPayload | undefined {
   const fenceStart = body.indexOf(FENCE_OPEN)
   if (fenceStart === -1) return undefined
@@ -207,13 +183,7 @@ export function parseProcedureBody(body: string): ProcedureBodyPayload | undefin
   return result.success ? result.data : undefined
 }
 
-/**
- * The ONE derivation of the ordered step keys feeding `computeStepSequenceSignature` for the
- * D-01 content address ({ kind: 'procedure', flowName, stepSignature }). Each key is the
- * canonicalJson of the step's structural shape — action type + descriptor targets + guard.
- * Authored prose (instruction/successAssertion) is EXCLUDED per the content-address prose ban,
- * and value slots are excluded so re-parameterization never forks procedure identity.
- */
+// Prose and value slots stay out of the keys, so re-parameterizing never forks procedure identity.
 export function procedureStepKeys(payload: ProcedureBodyPayload): string[] {
   return payload.steps.map((step) =>
     canonicalJson({

@@ -1,11 +1,3 @@
-// The mixed-verdict stability read's cells.
-//
-// EACH CELL NAMES ITS EVIDENCE, not only a posture. A result that answered `neighbours-flaky`
-// without saying WHICH neighbours would leave an author unable to go and look, which is the whole
-// value of the branch — so every cell here asserts the identities, and the two-sided pair is the
-// no-history cell beside the stable one: a read that answered `stable` for a target nothing has
-// observed would be a wrong answer wearing a correct one's clothes.
-
 import { describe, expect, it } from 'vitest'
 
 import {
@@ -50,7 +42,7 @@ describe('assessSuiteStability', () => {
         distinctOutcomes: ['passed', 'failed'],
       },
     ])
-    // The message names the APP, not the draft (D-14's whole point), and carries the ref.
+    // The message names the app, not the draft.
     expect(assessment.message).toContain('Your app is unstable')
     expect(assessment.message).toContain(`${TARGET}::shows the banner`)
   })

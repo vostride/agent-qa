@@ -1,6 +1,3 @@
-// 393: the keep-gate authoring vocabulary — the four separately-reported
-// gate booleans, the ONE disposition derivation, and the durable per-draft receipt.
-
 export { computeDraftDisposition, DRAFT_DISPOSITIONS, DRAFT_STABILITY_RUNS_N } from './disposition'
 export type {
   DraftDisposition,
@@ -27,7 +24,6 @@ export type {
   StepClassificationRow,
 } from './draft-receipt'
 
-// the direct write of a final authored test.
 export {
   DRAFT_WRITTEN_DISPOSITIONS,
   draftDispositionWritesTarget,
@@ -43,8 +39,6 @@ export {
 } from './draft-receipt'
 export type { TestFileWrite, WrittenTestReceipt } from './draft-receipt'
 
-// 394: the RFC-6902 edit vocabulary. Deliberately NOT the unified-diff `patch/`
-// vocabulary — see the header of `patch-ops.ts` for why the two are not unified.
 export {
   EDITABLE_POINTER_ROOTS,
   PATCH_OP_KINDS,
@@ -61,9 +55,6 @@ export type {
   TestEditPatchSet,
 } from './patch-ops'
 
-// the ONE evidence-ref vocabulary the router builds and the stop arm
-// carries, and where an authored test is written. 2026-10-01: the test-draft
-// envelope arm is deleted; an authored test is written in its own call.
 export {
   AUTHORED_SUITE_SLUG_MAX_LENGTH,
   authoredSuiteTargetPath,
@@ -75,8 +66,6 @@ export type {
   RunEvidenceRef,
 } from './proposal-arms'
 
-// the honesty funnel — the frozen four stages, the pinned ceiling
-// and floor, the ONE computation, and the mechanical no-success-framing screen.
 export {
   AUTHORING_FUNNEL_STAGES,
   AuthoringFunnelSchema,
@@ -97,10 +86,6 @@ export type {
   FunnelSideCounters,
 } from './funnel'
 
-// the ONE fan-out arithmetic. The preview and the written report both
-// read it, so the number announced before the runs and the number shown afterwards cannot be two
-// answers. 2026-10-01: no confirm reads it and no proposal arm is exported; an
-// authored test is written in its own call.
 export {
   ConsumedRunSchema,
   FAN_OUT_PHRASES,
@@ -123,7 +108,6 @@ export type {
   FanOutRunPurpose,
 } from './fan-out'
 
-// the mixed-verdict suite-stability read — pure, and it starts ZERO runs.
 export {
   NEIGHBOUR_INSTABILITY_REASONS,
   SUITE_STABILITY_POSTURES,
@@ -139,6 +123,4 @@ export type {
   SuiteStabilityPosture,
 } from './suite-stability'
 
-// procedure-by-reference. The vocabulary a compiled step is authored in,
-// derived out of the anchor alone so no learned-shelf record id can reach a committed test.
 export { procedureStepVocabulary } from './procedure-reference'

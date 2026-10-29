@@ -1,26 +1,10 @@
-// Where an authored test is written, and the run-evidence coordinate vocabulary.
-//
-// the `test-draft` envelope arm this module was named for is deleted with
-// the proposal inbox. An authored test that a keep-gate did not reject is written to its test path in
-// the call that authored it, and the op answers which file it wrote (`TestFileWriteSchema`), so
-// nothing waits for a person to accept it. What survives here is what that write and the run
-// evidence still need: the target path derived from the draft shelf, and the evidence coordinates
-// an authoring result carries. The module keeps its name so its history stays addressable.
-//
-// THE SUITE DIRECTORY IS NOT GUESSED, it is read off the shelf path (see `authoredSuiteTargetPath`).
+// The suite directory is read off the shelf path, never guessed.
 
 import { z } from 'zod'
 
 import { slugBranch } from '../ids/slug'
 
-/**
- * How long a slugged test name may be before it is cut.
- *
- * raise it if real authored names are being truncated into collisions — the apply refuses
- * a target that already exists, so a collision costs a refusal rather than an overwrite, which is
- * the direction to fail in but not a direction to sit in. It may not become unbounded: this value
- * becomes a filename, and some filesystems still cap a component at 255 bytes.
- */
+// Becomes a filename, so it stays bounded: some filesystems cap a name at 255 bytes.
 export const AUTHORED_SUITE_SLUG_MAX_LENGTH = 60
 
 /** The name a draft whose test name slugs to nothing at all is filed under. */
@@ -52,15 +36,7 @@ export function authoredSuiteTargetPath(draftShelfPath: string, testName: string
   return suiteDirectory.length > 0 ? `${suiteDirectory}/${name}` : name
 }
 
-/**
- * Which durable record an evidence coordinate addresses.
- *
- * THE ONE CHANNEL VOCABULARY. The router builds these coordinates and `authoring.draft.write`'s
- * `stop` arm carries them, and the two are the same thing seen from either side of the
- * result — so the words are spelled here, in `schema`, and the router imports them. A second
- * spelling inside `agent` would be free to drift from the one a caller was answered with, which is
- * the drift a wire projection can never detect because both halves would parse.
- */
+// Spelled here because the router builds these and `authoring.draft.write` returns them.
 export const RUN_EVIDENCE_CHANNELS = ['step-trace', 'state-before', 'state-after'] as const
 
 export type RunEvidenceChannel = (typeof RUN_EVIDENCE_CHANNELS)[number]

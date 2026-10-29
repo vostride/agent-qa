@@ -1,23 +1,13 @@
 import { z } from 'zod'
 
-/**
- * PROVISIONAL D-04 CUSUM allowance and decision interval in baseline-sigma
- * units. M3 owns calibration; these are internal constitution values, never
- * config keys.
- */
+// Internal constitution values in baseline-sigma units, never config keys.
 export const CUSUM_SLACK_K = 0.5
 export const CUSUM_DECISION_H = 5
 
-/**
- * PROVISIONAL D-03 EWMA smoothing factor. The moving average is descriptive
- * distribution output only; it is never detector authority or a config key.
- */
+// Descriptive output only; it is never detector authority or a config key.
 export const MEASUREMENT_EWMA_ALPHA = 0.2
 
-/**
- * PROVISIONAL D-04 weighted-gap significance and minimum mode size. M3 owns
- * calibration; these are internal constitution values, never config keys.
- */
+// Internal constitution values, never config keys.
 export const BIMODAL_GAP_THRESHOLD = 2.25
 export const BIMODAL_MIN_MODE_N = 3
 
@@ -26,25 +16,18 @@ export const MEASUREMENT_MIN_N = 5
 export const DRIFT_SIGMA_K = 3
 export const DRIFT_RELATIVE_THRESHOLD = 0.5
 
-/**
- * PROVISIONAL D-04 confidence and kind-variance prior values. Measurement
- * metrics have no common absolute scale, so the kind prior is coefficient-of-
- * variation based. M3 owns calibration; these are never config keys.
- */
+// Metrics share no absolute scale, so the kind prior is based on the coefficient of variation.
 export const CI_SEPARATION_Z = 1.96
 export const KIND_DEFAULT_CV = 0.3
 export const KIND_CV_FLOOR = 1
 export const SHRINKAGE_PSEUDO_N = 5
 
-/** PROVISIONAL D-04 revisit window for the stable-multimodal discriminator. */
+// The revisit window for the stable-multimodal discriminator.
 export const MULTIMODAL_TRAILING_BUILDS = 5
 
 const finiteNumberSchema = z.number().refine(Number.isFinite, 'Expected a finite number')
 
-/**
- * D-03's only stored detector input. The snapshot is written once when the
- * validity window opens; all current distribution and detector state is folded.
- */
+// The only stored detector input, written once when the validity window opens; the rest is folded.
 export const measurementBaselineSchema = z.object({
   mu0: finiteNumberSchema,
   sigma0: finiteNumberSchema.nonnegative(),
@@ -91,10 +74,7 @@ export interface DerivedMeasurementState {
   sigma: number
   /** Nearest-rank pooled quantile; absent when the fresh window is empty. */
   p50: number | undefined
-  /**
-   * Nearest-rank pooled timeout ceiling consumed by Phase 380. Pooling all
-   * modes makes a bimodal distribution safe by construction.
-   */
+  // Pools all modes, so a bimodal distribution is safe by construction.
   p95: number | undefined
   bands: MeasurementBand[]
   cusumPos: number
@@ -114,9 +94,8 @@ export type MeasurementDriftDecision =
 export interface MeasurementDriftWindowBuilds {
   /** Ordered source lines used to distinguish revisited modes from a regime walk. */
   observations?: readonly MeasurementObservation[]
-  /** Inclusive trailing build-ordinal width; defaults to the provisional M2 value. */
+  /** Inclusive trailing build-ordinal width; defaults to `MULTIMODAL_TRAILING_BUILDS`. */
   trailingBuilds?: number
-  /** Reserved for Plan 379-07's lineage/thrash fold without changing this seam. */
   lastSupersessionGapBuilds?: number
 }
 
@@ -135,11 +114,7 @@ export interface CusumStepResult extends CusumState {
   tripped: boolean
 }
 
-/**
- * Ratified D-04 change-point step. Two-sided CUSUM references the fixed stored
- * baseline; Page-Hinkley is deliberately excluded because its running-mean
- * reference reintroduces the self-updating-reference failure banned by §9.2.
- */
+// CUSUM against the fixed stored baseline; Page-Hinkley's running mean would drift with its input.
 export function cusumStep(
   state: Readonly<CusumState>,
   value: number,
@@ -181,11 +156,7 @@ function band(values: readonly number[]): MeasurementBand {
   }
 }
 
-/**
- * Ratified D-04 bimodality detector: a deterministic weighted largest-gap split
- * over an already sorted one-dimensional sample. At most two bands are emitted
- * in M2; recursive k-modal splitting is deferred.
- */
+// A deterministic weighted largest-gap split over a sorted sample; at most two bands.
 export function bimodalSplit(sorted: readonly number[]): BimodalSplit | undefined {
   const n = sorted.length
   if (n < 2 * BIMODAL_MIN_MODE_N) return undefined
@@ -221,10 +192,7 @@ export function bimodalSplit(sorted: readonly number[]): BimodalSplit | undefine
   }
 }
 
-/**
- * Ratified D-04 weak variance prior. A scale-free kind CV is necessary because
- * measurement values are generic string-sourced metrics with no shared unit.
- */
+// A scale-free kind CV, because measurement values share no unit.
 export function shrunkSigma(sampleSigma: number, n: number, mu0: number): number {
   const evidenceN = Math.max(0, n)
   const kindSigma = KIND_DEFAULT_CV * Math.max(Math.abs(mu0), KIND_CV_FLOOR)
@@ -267,12 +235,7 @@ function trailingModeVisits(
   }
 }
 
-/**
- * The D-04 decision order is intentionally linear and locked: minimum evidence,
- * confidence separation, absolute/relative thresholds, fixed-baseline CUSUM,
- * then the multimodal discriminator before any supersession is minted. Widen
- * decisions append evidence only and must never count toward thrash depth.
- */
+// The decision order is fixed; a widen decision appends evidence and never counts toward thrash.
 export function decideMeasurementDrift(
   input: Readonly<DecideMeasurementDriftInput>,
 ): MeasurementDriftDecision {
@@ -296,7 +259,7 @@ export function decideMeasurementDrift(
     return { decision: 'widen', reason: 'ci-overlap' }
   }
 
-  // Steps 3 and 4 arm supersession independently; reason precedence follows D-04.
+  // Steps 3 and 4 arm supersession independently.
   const sigmaThresholdPassed = difference > DRIFT_SIGMA_K * baselineSigma
   const relativeThresholdPassed = (
     difference > DRIFT_RELATIVE_THRESHOLD * Math.abs(baseline.mu0)
@@ -330,12 +293,7 @@ function nearestRank(sorted: readonly number[], quantile: number): number | unde
   return sorted[Math.min(index, sorted.length - 1)]
 }
 
-/**
- * Pure D-03 derivation over the append order supplied by measurements.json.
- * Welford and fixed-baseline CUSUM advance in one pass; values are then sorted
- * only for deterministic quantiles and the weighted-gap projection. No detector
- * state beyond the immutable baseline snapshot is persisted.
- */
+// Advances in append order; values are sorted only for quantiles and the gap split.
 export function foldMeasurements(
   baseline: MeasurementBaseline,
   lines: readonly MeasurementObservation[],

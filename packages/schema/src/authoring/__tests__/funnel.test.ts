@@ -1,19 +1,3 @@
-// The honesty funnel's cells.
-//
-// EACH CELL IS THE SOLE CATCHER FOR ONE PROPERTY. The four stage mappings, gate 4's exclusion,
-// both boundaries with a step either side, the zero-receipts posture, the rounding path, the
-// side counters, and the no-success-framing prohibition. A cell that would red for two reasons
-// cannot tell a reader which one broke.
-//
-// THE SUBJECT IS RESOLVED PER CELL rather than imported at the top, so a run taken before
-// `funnel.ts` exists reds as a LIST OF NAMED ROWS instead of one file that failed to load. The
-// denominator has to be real and complete before the implementation is written, and a file-level
-// import error names nothing.
-//
-// EVERY RECEIPT IS BUILT THROUGH `DraftReceiptSchema.parse`. The produced-not-literal law: a
-// corpus assembled as a type literal can pin a receipt shape the store would reject, and a
-// mutation differential over impossible fixtures cannot be told apart from a real closure.
-
 import { describe, expect, it } from 'vitest'
 
 import { CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION, DraftReceiptSchema } from '../draft-receipt'
@@ -36,11 +20,7 @@ interface ReceiptFixture {
   readonly disposition?: 'keep-eligible' | 'proposal-only' | 'rejected' | 'unverified'
 }
 
-/**
- * One receipt, PARSED. The four gate booleans are independently settable because D-04 forbids
- * short-circuiting — gate 3 is evaluated whether or not gates 1-2 passed — so a corpus that could
- * only express nested subsets would be unable to state the stages the way they are counted.
- */
+// The gate booleans are set independently because all four gates are always evaluated.
 function receipt(fixture: ReceiptFixture): DraftReceipt {
   const executesDefinitive = fixture.executesDefinitive ?? true
   const stableVerdict = fixture.stableVerdict ?? true
@@ -83,13 +63,7 @@ function receipt(fixture: ReceiptFixture): DraftReceipt {
   })
 }
 
-/**
- * `count` receipts, of which `kept` are keep-eligible and the rest rejected on gate 4 alone.
- *
- * Gate 4 is not a stage, so every receipt still counts at `passedStably` and `addedValue`, and the
- * only stage the split moves is `writeEligible` (2026-10-02, quick 261002-ctr: was `accepted`,
- * driven by applied decisions on proposals).
- */
+// Gate 4 is not a stage, so the split moves only `writeEligible`.
 function corpus(count: number, kept: number): { receipts: readonly DraftReceipt[] } {
   const receipts = Array.from({ length: count }, (_unused, index) => receipt({
     digest: `d${String(index).padStart(3, '0')}`,
@@ -131,9 +105,7 @@ describe('the frozen four-stage funnel', () => {
     const { computeAuthoringFunnel } = await loadFunnel()
     const funnel = computeAuthoringFunnel({
       receipts: [
-        // Gate 3 passed while gate 1 did NOT. D-04 evaluates all four regardless, so this is a
-        // receipt the store really produces — and it is what makes the stages independent counts
-        // over one denominator rather than nested subsets.
+        // Gate 3 passed and gate 1 did not: every gate is evaluated, so stages count apart.
         receipt({ digest: 'value-no-stability', executesDefinitive: false }),
         receipt({ digest: 'no-value', addsValue: false }),
       ],
@@ -144,8 +116,6 @@ describe('the frozen four-stage funnel', () => {
     expect(funnel.stages.passedStably).toBe(1)
   })
 
-  // replaces the two `accepted` cells (applied decisions counted;
-  // decisions outside the window not counted). No decision is recorded since 432 D-06.
   it('counts every disposition that writes a draft, and never `rejected`', async () => {
     const { computeAuthoringFunnel } = await loadFunnel()
     const funnel = computeAuthoringFunnel({
@@ -229,7 +199,7 @@ describe('the frozen four-stage funnel', () => {
 describe('the acceptance-failure flag', () => {
   it('FIRES on the seeded high-keep corpus and says the loop is not filtering', async () => {
     const { computeAuthoringFunnel } = await loadFunnel()
-    // D-13's own example: 22 of 23 kept — 95.65%, which displays as 96%.
+    // 22 of 23 is 95.65%, which displays as 96%.
     const { receipts } = corpus(23, 22)
     const funnel = computeAuthoringFunnel({ receipts, sideCounters: NO_SIDE_COUNTERS })
 
@@ -391,8 +361,6 @@ describe('the no-success-framing prohibition', () => {
   })
 })
 
-// 2026-10-03 (quick 261003-cpv, 432 review WR-09): the write-eligible count follows the disposition
-// table, so a draft-mode draft whose assertion was not falsifiable is not counted as written.
 describe('the funnel does not count a rejected draft-mode draft', () => {
   it('counts a draft-mode draft whose gate 4 said no as not write-eligible', async () => {
     const { computeAuthoringFunnel } = await loadFunnel()

@@ -34,16 +34,7 @@ const observationVariant = <T extends 'confirmed' | 'contradicted' | 'helpful' |
   origin: originClassSchema.optional(),
 }).strict()
 
-/**
- * The ONE canonical outcomes log carries attributed observations and explicit
- * lifecycle events. Helpful/harmful are minted now for Phase 380 attribution but
- * have no producer yet. Every line is real evidence or an explicit lifecycle
- * transition: evidence-incomplete is a prior discount, never a synthetic event
- * Lines are append-only and never rewritten after commit.
- *
- * Event lines intentionally carry no schemaVersion; the containing bundle manifest
- * governs their format version.
- */
+// Append-only, never rewritten; the bundle manifest governs the line format, not a line version.
 export const BundleOutcomeEventSchema = z.discriminatedUnion('type', [
   observationVariant('confirmed'),
   observationVariant('contradicted'),
@@ -54,13 +45,7 @@ export const BundleOutcomeEventSchema = z.discriminatedUnion('type', [
     type: z.literal('superseded'),
     byRecordId: z.string().transform(asRecordId),
   }).strict(),
-  /**
-   * 379 D-15 RATIFICATION: one retracted event replaces a bespoke window-reopen
-   * event. Matching the retracted evidence/job identity inverts confirmed,
-   * deprecated, superseded, and window-close effects through one fold rule, so
-   * retracting a victim's superseded and window-close events is the typed
-   * restoration that both reopens its window and re-derives its prior status.
-   */
+  // Retracting an event inverts its effect through one fold rule, which also reopens a window.
   z.object({
     ...commonEventShape,
     type: z.literal('retracted'),
@@ -82,10 +67,7 @@ export const BundleOutcomeEventSchema = z.discriminatedUnion('type', [
     type: z.literal('window-close'),
     closedAtOrdinal: z.number(),
   }).strict(),
-  /**
-   * a compensating line beside the evidence a user mark
-   * overturned — evidence only; no status moves here.
-   */
+  // A compensating line beside the evidence a user mark overturned; no status moves here.
   z.object({
     ...commonEventShape,
     type: z.literal(OVERTURNED_EVENT_TYPE),
@@ -150,7 +132,7 @@ export function survivingOutcomeEvents(
     (event) => {
       if (event.type === 'retracted' || event.type === 'overturned') return false
       if (retractedEventKeys.has(eventDedupKey(event))) return false
-      // even a malformed citation cannot cancel a lifecycle transition.
+      // Even a malformed citation cannot cancel a lifecycle transition.
       const isObservation = event.type === 'confirmed' || event.type === 'contradicted'
         || event.type === 'helpful' || event.type === 'harmful'
       return !isObservation || !overturnedEventKeys.has(eventDedupKey(event))

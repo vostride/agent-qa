@@ -1,28 +1,4 @@
-// Procedure-by-reference: the anchor vocabulary a compiled step is authored in (394, D-17).
-//
-// D-17 makes a procedure reference SEMANTIC rather than syntactic. The compiled draft carries an
-// ordinary natural-language step; at run time the shipped `getProcedure` seam matches that step
-// against the live procedure record and replays it. A later procedure fix therefore propagates,
-// because replay always reads the CURRENT record — and the committed test stays pure house-style
-// prose a person can read without knowing this mechanism exists. There is no `procedure:` literal
-// syntax, no parser change and no doc-model change: the whole reference is which WORDS the step
-// is written in.
-//
-// THE INPUT IS AN ANCHOR AND NOTHING ELSE, AND THAT IS THE MITIGATION. A served
-// procedure arrives as a `ProcedureMatch`, which carries `id` — a learned-shelf record id whose
-// supersession, withholding and garbage collection this project performs on its own schedule. An
-// authored test lives on the SOVEREIGN shelf and outlives every one of those events, so an id
-// embedded in it would rot: the record it names can be superseded or collected, and the committed
-// file would then point at something that is not there. Taking only the anchor makes that
-// structurally impossible rather than checked — there is no id in this function's argument to
-// leak, so no call site can leak one by accident.
-//
-// WHY THE ANCHOR IS ALSO THE RIGHT VOCABULARY, measured rather than assumed. `matchProcedure`
-// admits a candidate on anchor overlap and then folds the STEP TEXT in as a lexical term, so a
-// step written in the record's own words reaches a higher composed confidence than one written in
-// unrelated words — high enough, on a partially-matched anchor set, to cross the replay floor
-// instead of degrading to a hint. The knowledge-local suite drives both directions through the
-// real matcher.
+// Takes only the anchor, so no learned-shelf record id can reach a committed test.
 
 import type { Anchor } from '../identity/anchor'
 

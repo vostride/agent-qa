@@ -4,11 +4,7 @@ import { asEvidenceToken, type EvidenceToken } from '../ids/record-id'
 import type { Anchor } from '../identity/anchor'
 import { normalizeAnchor } from '../identity/normalize-anchor'
 
-/**
- * Pitfall 11: Confirm without a fresh token is a no-op. Tokens are derived by code at
- * emit-projection time, never accepted from model output, and downstream idempotency is keyed by
- * (recordId, evidenceToken, curationJobId).
- */
+// A confirm without a fresh token is a no-op; tokens are derived by code, never by the model.
 export function deriveEvidenceToken(input: {
   attributingObservationId: string
   anchor: Anchor

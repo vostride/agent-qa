@@ -1,5 +1,4 @@
-// Phase 374 gap closure: manifest identity is re-derived rather than trusted (BNDL-02,
-// D-03/D-07), keeping the read face authoritative over stored immutable semantics.
+// Manifest identity is re-derived, never trusted from storage.
 import { canonicalJson } from '../determinism/canonical-json'
 import {
   computeBundleIdentityHash,

@@ -1,14 +1,4 @@
-// The five knowledge review verbs' input and output contracts.
-//
-// Four of the five verbs are WIRING over functions the read-only reader entry already
-// exports (`inspectRecords`, `diffSince`, `listBundles`, the record read) — that is KREV-01's
-// own claim, and it only stays true if the DTOs here PROJECT those return shapes instead of
-// paraphrasing them. So the inspect and diff outputs carry the reader's own view schemas
-// verbatim; a paraphrase would have quietly become a second view to keep in step, and the
-// first field to drift would have been the one nobody looked at.
-//
-// The fifth verb — "why did the brief say this" — is the one with a real contract of its
-// own, and it is a contract about HONESTY rather than shape.
+// The inspect and diff outputs reuse the reader's view schemas verbatim, so they cannot drift.
 
 import { z } from 'zod'
 
@@ -39,41 +29,12 @@ export const BRIEF_WHY_NO_TRACE_REASONS = [
 
 export type BriefWhyNoTraceReason = (typeof BRIEF_WHY_NO_TRACE_REASONS)[number]
 
-/**
- * The complete arm set of {@link BriefWhyResultSchema}, as a value.
- *
- * Exported so the closure can be asserted as an exact member set. "No test exercises a
- * re-run arm" is a claim about a test file; this is a claim about the contract — and the
- * absent arm is the whole design. Re-running retrieval would answer about the index
- * as it stands NOW, while the question asked is always about then.
- */
+// No re-run arm: re-running retrieval answers about today's index, not the brief that was served.
 export const BRIEF_WHY_RESULT_KINDS = ['answered', 'no-trace'] as const
 
 export type BriefWhyResultKind = (typeof BRIEF_WHY_RESULT_KINDS)[number]
 
-/**
- * Validates an offered `ServedBrief` at the §A11 three-channel depth.
- *
- * `ServedBrief` is a TypeScript interface whose only runtime schema in the tree requires the
- * acceptance-grade `proof` block, and a historical brief — exactly the kind offered on the
- * no-trace arm — has no proof. So the offering is checked against the closed channel set
- * §A11 fixes, which is the structure any consumer of this arm renders, and no deeper.
- *
- * STRUCTURAL, not `z.custom`. 2026-08-02: the predicate form was correct and
- * unprojectable — `z.toJSONSchema` throws `Custom types cannot be represented in JSON Schema`
- * on it, and the function layer projects EVERY registered contract into an inert document at
- * registry-construction time. So the moment an op declared this union as its output,
- * building a registry threw and every capability in the process stopped listing, not just this
- * one. A predicate that cannot be described is a contract no catalog can publish, and 396's
- * MCP tool listing consumes exactly that description.
- *
- * `looseObject` rather than a strict one, because a real brief carries more than the three
- * channels (`proof`, and whatever §A11 adds next) and an offering is a value being PASSED ON,
- * not one being defined here. The acceptance and rejection behaviour is identical to the
- * predicate it replaces: an array carrying every channel as a named property is still refused,
- * a null is still refused, a missing digest is still refused, and a non-array channel is still
- * refused — measured against 387-02's nine-case rejection corpus, which is unchanged.
- */
+// Structural, not `z.custom`, because a custom type cannot be projected to JSON Schema.
 const ServedBriefOfferingSchema = z.looseObject({
   channel1: z.array(z.unknown()),
   channel2: z.array(z.unknown()),
@@ -81,14 +42,7 @@ const ServedBriefOfferingSchema = z.looseObject({
   briefDigest: z.string(),
 }) as unknown as z.ZodType<ServedBrief>
 
-/**
- * The why-verb's answer: the trace that was written down, or a named reason there is none —
- * and never a third thing.
- *
- * The two arms are structurally incompatible on purpose. A trace on the absence arm is
- * exactly the shape a re-run would arrive in, so the schema refuses it rather than trusting
- * a future implementer to remember why the arm is empty.
- */
+// The arms are incompatible on purpose: a trace on the absence arm is refused.
 export const BriefWhyResultSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('answered'),
@@ -106,15 +60,7 @@ export const BriefWhyResultSchema = z.discriminatedUnion('kind', [
 
 export type BriefWhyResult = z.infer<typeof BriefWhyResultSchema>
 
-/**
- * Which step's brief is being asked about.
- *
- * `runId` + `stepIndex` is the primary key and `recordId` filters within it (RESEARCH open
- * question 3). `testId` is the disambiguator that key needs in practice and did not have:
- * `stepIndex` is per TEST, so a run with two tests has two step 0s. It is optional because a
- * single-test run needs no disambiguation — and under the never-guess contract the verb
- * refuses an ambiguous address rather than picking the first test.
- */
+// `stepIndex` is per test, so a run with two tests needs `testId`; an ambiguous address is refused.
 export const BriefWhyInputSchema = z.object({
   runId: z.string().min(1),
   testId: z.string().min(1).optional(),
@@ -124,11 +70,6 @@ export const BriefWhyInputSchema = z.object({
 
 export type BriefWhyInput = z.infer<typeof BriefWhyInputSchema>
 
-/**
- * the knowledge fix a recorded user mark applies. 2026-10-01: the accept, reject
- * and forget inputs and the direct change contracts live in `./change`; a mark is applied by
- * `runs.mark` in the same call.
- */
 export const KnowledgeMarkInputSchema = z.object({
   target: KnowledgeTargetRefSchema,
   mark: MarkChangeStampSchema,
@@ -189,19 +130,7 @@ export const KnowledgeRecordShowOutputSchema = z.object({
 
 export type KnowledgeRecordShowOutput = z.infer<typeof KnowledgeRecordShowOutputSchema>
 
-/**
- * The show verb's answer: the record with its provenance, or a named absence.
- *
- * A closed union rather than a throw, because asking about a record id that no bundle carries
- * is an ordinary thing for a reviewer to do — an id gets pasted out of a stale issue, or a
- * record was forgotten between two reads — and the caller has to be able to tell that apart
- * from a store that could not be read at all. A verb that threw on both would have made the
- * routine case indistinguishable from the broken one.
- *
- * The found arm SPREADS {@link KnowledgeRecordShowOutputSchema}'s own shape rather than
- * restating its fields, so the two cannot drift: there is one declaration of what showing a
- * record yields, and this union only adds the discriminant that makes absence expressible.
- */
+// A missing record is an ordinary answer, not a throw, so it stays apart from an unreadable store.
 export const KnowledgeRecordShowResultSchema = z.discriminatedUnion('kind', [
   z.object({
     kind: z.literal('found'),
