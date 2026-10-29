@@ -53,7 +53,7 @@ function makeAndroidInput(): ConformanceInput {
   }
 }
 
-describe('android adapter conformance (shared D-09 cases)', () => {
+describe('android adapter conformance (shared cases)', () => {
   // Iterate the FULL exported case list — no cherry-picking.
   for (const conformanceCase of screenConformanceCases) {
     it(conformanceCase.name, () => {
@@ -73,7 +73,7 @@ describe('android adapter conformance (shared D-09 cases)', () => {
     expect(checkbox.labels.ariaLabel).toBe('Remember me toggle')
   })
 
-  it('maps checked/selected/focused truthfully; absent signals stay typed-absent (D-08)', () => {
+  it('maps checked/selected/focused truthfully; absent signals stay typed-absent', () => {
     const { nodes } = parseMobileSource(ANDROID_STATE_XML, 'android', VIEWPORT)
     const { state } = buildScreenState({ platform: 'android', nodes, viewport: VIEWPORT, scroll: deriveMobileScroll(nodes, VIEWPORT), coordSpace: 'viewport', timestamp: FIXED_TIMESTAMP })
 
@@ -94,7 +94,7 @@ describe('android adapter conformance (shared D-09 cases)', () => {
     expect(button.labels.ariaLabel).toBeUndefined()
   })
 
-  it('flows deriveMobileScroll output into metadata.scroll (D-10 best-effort approximation)', () => {
+  it('flows deriveMobileScroll output into metadata.scroll (best-effort approximation)', () => {
     const { nodes } = parseMobileSource(ANDROID_LOGIN_XML, 'android', VIEWPORT)
     const scroll = deriveMobileScroll(nodes, VIEWPORT)
     const { state } = buildScreenState({ platform: 'android', nodes, viewport: VIEWPORT, scroll, coordSpace: 'viewport', timestamp: FIXED_TIMESTAMP })

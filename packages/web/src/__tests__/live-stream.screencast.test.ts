@@ -214,7 +214,7 @@ async function detachPrivateScreencastSession(adapter: WebPlatformAdapter): Prom
   await session?.detach()
 }
 
-describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled (LIVE-01)', () => {
+describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled', () => {
   it('POSITIVE ARM: an animating page produces frames, k=5, zero tolerated failures', async () => {
     const adapter = await adapterOn(`${fixture().url}?animate=1`)
     const counts: number[] = []
@@ -347,7 +347,7 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled (LIVE-01)',
     }
   }, 180_000)
 
-  it('THE ACK IS THE THROTTLE: a viewer that never acks stops receiving frames (D-05/D-07)', async () => {
+  it('THE ACK IS THE THROTTLE: a viewer that never acks stops receiving frames', async () => {
     // The change-driven contract has TWO halves and the arms above measure only one. This is the
     // other: CDP will not produce frame N+1 until N is acked, which is what makes the ack a real
     // backpressure signal rather than a formality — and what makes the hub's ack bound and the
@@ -384,7 +384,7 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled (LIVE-01)',
     }
   }, 180_000)
 
-  it('TAB-FOLLOW: the running screencast follows the page the test acts on, with no end and no re-register (#273)', async () => {
+  it('TAB-FOLLOW: the running screencast follows the page the test acts on, with no end and no re-register', async () => {
     // RED while the screencast stays bound to the page it started on: every frame after the switch
     // still carries page A's scroll offset. Driven through a REAL hub, because "no end, no
     // re-register" is a fact about what a subscriber sees, not about the capability alone.

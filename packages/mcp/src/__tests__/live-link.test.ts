@@ -177,7 +177,7 @@ const resourceUriOf = (result: ToolCallResult): unknown =>
 
 // ---- 1. The composition (D-08: one composed string) --------------------------------------------
 
-describe('the permanent link is one composed string over the tokenless live page (D-08)', () => {
+describe('the permanent link is one composed string over the tokenless live page', () => {
   it('composes <base>/runs/<runId>/live', () => {
     expect(liveRunLinkOf(FIXTURE_BASE, 'run-9')).toBe('http://localhost:4100/runs/run-9/live')
   })
@@ -191,7 +191,7 @@ describe('the permanent link is one composed string over the tokenless live page
     )
   })
 
-  it('carries no token and no query of any kind — it is the TOKENLESS page (D-08, T-408-12)', () => {
+  it('carries no token and no query of any kind — it is the TOKENLESS page', () => {
     const link = liveRunLinkOf(FIXTURE_BASE, 'run-9')
     expect(link).not.toContain('?')
     expect(link).not.toContain('#')
@@ -201,7 +201,7 @@ describe('the permanent link is one composed string over the tokenless live page
 
 // ---- 2. The decoration, on the wire (D-05 / D-09) ----------------------------------------------
 
-describe('every carrier result carries the link AND the concrete App address (D-05, D-09)', () => {
+describe('every carrier result carries the link AND the concrete App address', () => {
   it('decorates a carrier result with the link line and _meta.ui.resourceUri', async () => {
     const result = await callTool('agent_qa_get_run_digest', { runId: ASKED_RUN_ID }, {
       base: FIXTURE_BASE,
@@ -269,7 +269,7 @@ describe('with no dashboard anywhere, the line is the NAMED ABSENCE and never a 
 // model reads. These cells drive `liveLinkLineFor` directly because it is the ONE place the
 // absence decision is implemented, and they assert the SHIPPED constants rather than a
 // transcription of their bytes.
-describe('the two absences are two sentences, and the base is the arm tested first (WR-03)', () => {
+describe('the two absences are two sentences, and the base is the arm tested first', () => {
   const BASE = 'http://127.0.0.1:7777'
 
   it('a base with NO resolvable run id names the missing RUN, not a knob already set', () => {
@@ -316,7 +316,7 @@ describe('the two absences are two sentences, and the base is the arm tested fir
 
 // ---- 4. `runIdFrom` routing (D-05) -------------------------------------------------------------
 
-describe('the concrete runId comes from the source the projection DECLARES (D-05)', () => {
+describe('the concrete runId comes from the source the projection DECLARES', () => {
   it("reads agent_qa_start_run's runId off the op OUTPUT", async () => {
     // Asked to start under one id, the scripted starter answers another. A decoration reading the
     // INPUT would name the id nobody ran under.

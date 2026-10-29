@@ -119,7 +119,7 @@ function retiredSpellingsIn(text: string): readonly string[] {
   return RETIRED_SPEC_TAG_SPELLINGS.filter((spelling) => text.includes(spelling))
 }
 
-describe('MCPS-07: the SEP citation gate', () => {
+describe('the SEP citation gate', () => {
   it('sweeps a non-empty, filesystem-produced set of modules', () => {
     const files = sweptFiles()
     // A sweep over zero files passes every assertion below it. This is the denominator.

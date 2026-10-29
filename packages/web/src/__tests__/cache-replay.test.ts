@@ -99,7 +99,7 @@ async function replay(cache: MemoryCache, numbers: readonly number[]) {
   return { run, planner, clicks: await pageClicks(web) }
 }
 
-describe('C438-STRICT-REPLAY', () => {
+describe('a cached target replays only onto one element with its role and exact name', () => {
   it('947 stored, replayed against 946 alone, is a miss', async () => {
     const cache = memoryCache()
     const first = await storeInvoice947(cache, [947])

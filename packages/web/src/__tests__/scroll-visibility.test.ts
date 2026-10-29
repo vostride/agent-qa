@@ -305,7 +305,7 @@ function untilVisible(text: string, maxSwipes: number, ref?: Ref) {
   }
 }
 
-describe('C436-SCROLL-VISIBILITY', () => {
+describe('untilVisible counts a target only when it is on screen', () => {
   it('on-screen plain text ends found', async () => {
     const { web, tab } = await open('/paragraphs')
     const result = await web.execute(untilVisible('Paragraph 190', 3))
@@ -360,7 +360,7 @@ describe('C436-SCROLL-VISIBILITY', () => {
   }, 60_000)
 })
 
-describe('C436-SCROLL-REF', () => {
+describe('a scroll by ref moves the scroller that holds the ref', () => {
   it('a listbox ref scrolls the listbox itself', async () => {
     const { web, tab } = await open('/listbox')
     const ref = await refFor(web, 'listbox', 'Rows')
@@ -535,7 +535,7 @@ async function openPointerList(): Promise<{ web: WebPlatformAdapter; tab: Page }
   return opened
 }
 
-describe('C436-SCROLL-POINTER', () => {
+describe('a scroll follows the scroller under the pointer', () => {
   it('toEnd with the pointer in a nested list follows the list to its end', async () => {
     const { web, tab } = await openPointerList()
     const result = await web.execute({
@@ -607,7 +607,7 @@ async function frameIntersectsViewport(tab: Page): Promise<boolean> {
   })()`)
 }
 
-describe('C436-SCROLL-FRAMES', () => {
+describe('untilVisible across iframes', () => {
   it('an on-screen target in a same-origin iframe ends found', async () => {
     const { web, tab } = await open('/frame-same')
     expect(await payNow(tab)).toBe('visible')
@@ -847,7 +847,7 @@ async function innerScrollTop(tab: Page): Promise<number> {
 
 const ZERO_SWIPES_FOUND = { swipes: 0, reversedOnce: false, outcome: 'found', endedBy: 'target-visible' }
 
-describe('C436-SCROLL-DECOYS', () => {
+describe('hidden, transparent and covered copies do not count as visible', () => {
   it('a visually hidden copy never ends found at zero swipes', async () => {
     const { web, tab } = await open('/decoy-sr-only')
     const result = await web.execute(untilVisible('Delete account', 10))

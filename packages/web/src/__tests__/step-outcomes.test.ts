@@ -139,7 +139,7 @@ const EXPORT_STEP = 'Export the orders as CSV'
 const exportCsv = (screen: Parameters<typeof refFor>[0]) =>
   act({ type: 'click', ref: refFor(screen, 'button', 'Export CSV') }, true, 'Export the orders as CSV')
 
-describe('C436-OUTCOME-EVIDENCE', () => {
+describe('model-free step outcomes through the real loop', () => {
   it('a download on an unchanged page passes on its name, extension and digest', async () => {
     const { web } = await open('/download')
     const planner = scriptedPlanner([exportCsv])

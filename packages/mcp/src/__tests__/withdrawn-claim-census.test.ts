@@ -687,7 +687,7 @@ const INNOCENT_PROSE_FIXTURES: readonly { readonly where: string; readonly text:
 
 // ---- The law ------------------------------------------------------------------------------------
 
-describe('the withdrawn host-rendered-channel claim survives nowhere in shipped prose (408-08 truth 4, host-rendered half)', () => {
+describe('the withdrawn host-rendered-channel claim survives nowhere in shipped prose', () => {
   it('(W0) CONTROL: the sweep resolves the workspace packages root, and the exclusion is exactly one path', () => {
     const files = sweptProseFiles()
 

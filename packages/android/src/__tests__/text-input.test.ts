@@ -334,7 +334,7 @@ const WEB_PRESS_ENTER = [
   `switch:${WEB_CTX}`,
 ]
 
-describe('C437-FILL-NATIVE', () => {
+describe('fill on the native setValue path', () => {
   it('an unreadable read-back still sends the requested Enter once', async () => {
     field.getTextThrows = true
 
@@ -493,7 +493,7 @@ describe('C437-FILL-NATIVE', () => {
     ['leading and trailing spaces and tabs', '\t  lead and trail  \t', false],
     ['commas, semicolons, pipes and quotes', `a,b;c|d "q" 's'`, false],
     ['accented, CJK and emoji characters', 'é ü 中文 😀', false],
-  ])('the D-08 texts are typed once and read back exact: %s', async (_label, text, multiline) => {
+  ])('whitespace, punctuation and non-ASCII texts are typed once and read back exact: %s', async (_label, text, multiline) => {
     field.multiline = multiline
 
     const result = await fill('Username', text)
@@ -721,7 +721,7 @@ describe('C437-FILL-NATIVE', () => {
 const CTRL_A = 'execute:mobile: pressKey:{"keycode":29,"metastate":4096}'
 const DEL = 'execute:mobile: pressKey:{"keycode":67}'
 
-describe('C437-FILL-KEYBOARD', () => {
+describe('fill on the keyboard (mobile: type) path', () => {
   it('a replace with submit is Ctrl+A, DEL, one mobile: type, read-back, one Enter', async () => {
     field.value = 'stale'
     field.focusHidden = true
@@ -789,7 +789,7 @@ describe('C437-FILL-KEYBOARD', () => {
     ['leading and trailing spaces and tabs', '\t  lead and trail  \t'],
     ['commas, semicolons, pipes and quotes', `a,b;c|d "q" 's'`],
     ['accented, CJK and emoji characters', 'é ü 中文 😀'],
-  ])('the D-08 texts are each one mobile: type call: %s', async (_label, text) => {
+  ])('whitespace, punctuation and non-ASCII texts are each one mobile: type call: %s', async (_label, text) => {
     field.focusHidden = true
     field.revealOnType = true
 
@@ -878,7 +878,7 @@ describe('C437-FILL-KEYBOARD', () => {
 
 // 437-07 (D-16): clearText on the native and keyboard paths is checked like a fill. Empty is
 // exact, leftover text is a mismatch, and an unreadable field is unverified.
-describe('C437-CLEAR', () => {
+describe('clearText is read back like a fill', () => {
   it('a native clear reads back empty and is exact', async () => {
     field.value = 'old text'
     field.hint = 'Username'
@@ -1126,7 +1126,7 @@ describe('C437-CLEAR', () => {
 
 // The assumption-delta invariant (437 D-12): every fill delivers its text through exactly one path
 // and presses Enter at most once. 437-06 adds the WebView cells and 437-07 the keyboard cells.
-describe('C437-ONE-PATH', () => {
+describe('every fill delivers its text through one path and presses Enter at most once', () => {
   it('a native setValue that throws is never typed again', async () => {
     field.setValueThrows = true
 
@@ -1284,7 +1284,7 @@ describe('C437-ONE-PATH', () => {
 // WebView context focuses the ref, a read-only probe checks the focus, W3C keys clear,
 // `mobile: type` from NATIVE_APP types, a read-only script reads the value back, and one
 // `mobile: pressKey 66` from NATIVE_APP submits. No script writes the field or builds a key event.
-describe('C437-FILL-WEBVIEW', () => {
+describe('fill on the WebView path', () => {
   const WRITES_OR_EVENTS = [
     /\.(value|innerText|textContent|innerHTML|outerHTML)\s*(\+?=)(?!=)/,
     /dispatchEvent/,
@@ -1654,7 +1654,7 @@ describe('C437-FILL-WEBVIEW', () => {
     ['leading and trailing spaces and tabs', '\t  lead and trail  \t'],
     ['commas, semicolons, pipes and quotes', `a,b;c|d "q" 's'`],
     ['accented, CJK and emoji characters', 'é ü 中文 😀'],
-  ])('the single-line D-08 texts reach mobile: type exactly once: %s', async (_label, text) => {
+  ])('single-line whitespace, punctuation and non-ASCII texts reach mobile: type exactly once: %s', async (_label, text) => {
     await webView()
 
     const result = await fill('Email', text)

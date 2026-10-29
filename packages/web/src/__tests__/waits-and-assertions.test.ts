@@ -84,7 +84,7 @@ function subResult(run: ScriptedStepRun, index: number): { success: boolean; err
 
 const rejectAll = () => scriptedVerifier(() => ({ pass: false, reason: 'Not shown' }))
 
-describe('C439-WAITS-AND-READS', () => {
+describe('waits and assertions through the real loop', () => {
   it('a text that never appears fails the wait and the planner sees why', async () => {
     const web = await withContent(CART_PAGE)
     const seen: { failureContext?: string } = {}

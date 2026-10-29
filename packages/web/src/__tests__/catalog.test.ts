@@ -215,7 +215,7 @@ describe.each(ADAPTERS)('web catalog RED — %s', (_label, factory) => {
     })
   })
 
-  describe('waitFor (schema on-shapes replace the degenerate legacy read — Pitfall 1)', () => {
+  describe('waitFor (schema on-shapes, not the legacy condition read)', () => {
     it('{on:"text"} drives real waiting logic keyed on the schema text, not the degenerate legacy condition read', async () => {
       const r = await adapter.execute({ type: 'waitFor', on: 'text', text: 'Loading', timeoutMs: 1000 } as unknown as ExecAction)
       expect(r.success).toBe(true)
@@ -243,7 +243,7 @@ describe.each(ADAPTERS)('web catalog RED — %s', (_label, factory) => {
     })
   })
 
-  describe('route / unroute (new cases, D-18)', () => {
+  describe('route / unroute', () => {
     it('route registers a context.route interception for the pattern', async () => {
       const r = await adapter.execute({ type: 'route', urlPattern: '**/api/**', body: '{"ok":true}', contentType: 'application/json' } as unknown as ExecAction)
       expect(r.success).toBe(true)
@@ -259,7 +259,7 @@ describe.each(ADAPTERS)('web catalog RED — %s', (_label, factory) => {
     })
   })
 
-  describe('networkState (new case, D-18)', () => {
+  describe('networkState', () => {
     it('offline → context.setOffline(true)', async () => {
       const r = await adapter.execute({ type: 'networkState', mode: 'offline' } as unknown as ExecAction)
       expect(r.success).toBe(true)
@@ -280,7 +280,7 @@ describe.each(ADAPTERS)('web catalog RED — %s', (_label, factory) => {
     })
   })
 
-  describe('storageState (new case, D-14 — adapter produces/consumes)', () => {
+  describe('storageState (the adapter produces and consumes it)', () => {
     it('save → context.storageState() and the state + name on the result', async () => {
       const r = await adapter.execute({ type: 'storageState', op: 'save', name: 'authed' } as unknown as ExecAction)
       expect(r.success).toBe(true)
@@ -294,7 +294,7 @@ describe.each(ADAPTERS)('web catalog RED — %s', (_label, factory) => {
     })
   })
 
-  describe('handleDialog (new case, D-12)', () => {
+  describe('handleDialog', () => {
     it('arms page.once("dialog"); accept:true → dialog.accept(promptText)', async () => {
       await adapter.execute({ type: 'handleDialog', accept: true, promptText: 'yes' } as unknown as ExecAction)
       expect(mockPage.once).toHaveBeenCalledWith('dialog', expect.any(Function))
@@ -321,7 +321,7 @@ describe.each(ADAPTERS)('web catalog RED — %s', (_label, factory) => {
     })
   })
 
-  describe('teardown clears persistent route/network/dialog state (Pitfall 7)', () => {
+  describe('teardown clears persistent route/network/dialog state', () => {
     it('cleanup() calls unrouteAll and setOffline(false)', async () => {
       await adapter.cleanup()
       expect(mockContext.unrouteAll).toHaveBeenCalled()

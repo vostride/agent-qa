@@ -143,7 +143,7 @@ function withoutDifference(value: unknown): string {
   return JSON.stringify(value, (key, inner: unknown) => (key === 'firstDifference' ? undefined : inner))
 }
 
-describe('C439-SAVED-FILE', () => {
+describe('a later step checks an earlier step\'s download', () => {
   it("a later step finds the exact line in the earlier step's download", async () => {
     const run = await downloadThenVerify('invoice-1042.csv', Buffer.from(INVOICE), LINE_STEP, ONE_LINE)
 

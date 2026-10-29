@@ -76,7 +76,7 @@ describe('iOS adapter conformance — shared spec against the real parse→build
   }
 })
 
-describe('iOS D-08 attribute pins — truthful mapping, no fabrication', () => {
+describe('iOS attribute mapping — truthful, no fabrication', () => {
   const make = makeIosInput(IOS_PINS_XML)
   const build = () => buildScreenState({ platform: 'ios', nodes: make().nodes, ...make().buildInput })
 
@@ -97,7 +97,7 @@ describe('iOS D-08 attribute pins — truthful mapping, no fabrication', () => {
     expect(disabled!.state.enabled).toBe(false)
   })
 
-  it('lifts a switch value "1" to checked true and renders [checked] (437 D-03)', () => {
+  it('lifts a switch value "1" to checked true and renders [checked]', () => {
     const { state } = build()
     const wifi = state.elements.find(e => e.name === 'Wifi')
     expect(wifi!.state.checked).toBe(true)
@@ -124,7 +124,7 @@ describe('iOS D-08 attribute pins — truthful mapping, no fabrication', () => {
     expect(cell!.hierarchy?.childRefs).toContain(email!.ref)
   })
 
-  it('flows the best-effort deriveMobileScroll approximation into metadata.scroll (D-10)', () => {
+  it('flows the best-effort deriveMobileScroll approximation into metadata.scroll', () => {
     const input = make()
     const { state } = buildScreenState({ platform: 'ios', nodes: input.nodes, ...input.buildInput })
     const expected = deriveMobileScroll(input.nodes, VIEWPORT)
@@ -135,7 +135,7 @@ describe('iOS D-08 attribute pins — truthful mapping, no fabrication', () => {
   })
 })
 
-describe('D-09 cross-platform identity — one builder, not the platform walker', () => {
+describe('cross-platform identity — one builder, not the platform walker', () => {
   const IDENTITY_XML = `<?xml version="1.0" encoding="UTF-8"?>
 <AppiumAUT>
   <XCUIElementTypeApplication name="App" label="App" x="0" y="0" width="390" height="844">

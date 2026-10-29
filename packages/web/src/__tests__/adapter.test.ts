@@ -215,7 +215,7 @@ describe('WebPlatformAdapter', () => {
       .rejects.toThrow('agent-qa install-browsers --webkit')
   })
 
-  describe('C436-OPERATION-EVIDENCE operation capture support', () => {
+  describe('operation capture support', () => {
     it('a Chromium adapter declares download and clipboard capture', async () => {
       await adapter.setup({ platform: 'web', browser: { name: 'chromium', headless: true } })
       expect(adapter.operationCaptureSupport).toEqual({ download: true, clipboard: true })
@@ -259,7 +259,7 @@ describe('WebPlatformAdapter', () => {
     expect(page.goto).toHaveBeenCalledWith('https://example.com', { waitUntil: 'domcontentloaded' })
   })
 
-  it('execute() assertValue read returns the RAW value on data — never an envelope (D-10 contract)', async () => {
+  it('execute() assertValue read returns the RAW value on data — never an envelope', async () => {
     await adapter.setup({ platform: 'web' })
 
     // The runner-side comparator does String(result.data); a `{ value }` wrapper
@@ -757,7 +757,7 @@ describe('WebPlatformAdapter', () => {
       expect(mockPage.evaluate).toHaveBeenCalledWith(expect.stringContaining('navigator.clipboard.writeText'))
     })
 
-    it('coalesces null textContent to empty string (Pitfall 5)', async () => {
+    it('coalesces null textContent to empty string', async () => {
       const locator = mockLocator
       locator.textContent.mockResolvedValueOnce(null)
       await adapter.setup({ platform: 'web' })

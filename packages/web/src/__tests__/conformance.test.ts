@@ -50,7 +50,7 @@ function makeWebInput(): ConformanceInput {
   }
 }
 
-describe('web adapter conformance (shared D-09 cases)', () => {
+describe('web adapter conformance (shared cases)', () => {
   // Iterate the FULL exported case list — no cherry-picking.
   for (const conformanceCase of screenConformanceCases) {
     it(conformanceCase.name, () => {

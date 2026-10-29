@@ -151,8 +151,8 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     return el.ref
   }
 
-  describe('EXEC-01 fill compound (D-05/D-06/D-07/D-08)', () => {
-    it('replace mode types then re-reads getAttribute("value") from the SAME handle (D-05)', async () => {
+  describe('fill compound', () => {
+    it('replace mode types then re-reads getAttribute("value") from the SAME handle', async () => {
       await adapter.setup({ platform: 'ios' })
       const ref = await refFor('Email')
       fieldValueReturn = 'user@test.com'
@@ -167,7 +167,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(readIdx).toBeGreaterThan(typeIdx)
     })
 
-    it('append mode captures prior getAttribute("value") BEFORE typing; expected = prior + typed (D-07)', async () => {
+    it('append mode captures prior getAttribute("value") BEFORE typing; expected = prior + typed', async () => {
       await adapter.setup({ platform: 'ios' })
       const ref = await refFor('Email')
       fieldValueReturn = 'abc'
@@ -189,7 +189,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(result.metadata?.fillVerdict).toEqual({ verb: 'fill', verdict: 'exact' })
     })
 
-    it('secure field (XCUIElementTypeSecureTextField) verdicts on non-emptiness only; raw value absent from result (D-06, Pitfall 7)', async () => {
+    it('secure field (XCUIElementTypeSecureTextField) verdicts on non-emptiness only; raw value absent from result', async () => {
       await adapter.setup({ platform: 'ios' })
       const ref = await refFor('Password')
       fieldValueReturn = '•••••••' // masked bullets — length may not equal typed length (A3)
@@ -202,7 +202,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(JSON.stringify(result)).not.toContain('topSecretPw')
     })
 
-    it('mismatch yields success:false + §7.1 error + fillReread meta, single-shot typing (D-08)', async () => {
+    it('mismatch yields success:false + §7.1 error + fillReread meta, single-shot typing', async () => {
       await adapter.setup({ platform: 'ios' })
       const ref = await refFor('Email')
       fieldValueReturn = 'wrong'
@@ -234,7 +234,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('EXEC-02 scroll untilVisible (Pitfall 9 selector-injection)', () => {
+  describe('scroll untilVisible escapes or refuses a hostile predicate target', () => {
     it('tries native mobile: scroll with a CONTAINS predicateString FIRST (A5)', async () => {
       await adapter.setup({ platform: 'ios' })
       await adapter.observe()
@@ -279,7 +279,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('C436-SCROLL iOS scroll signals (436-02 · D-25)', () => {
+  describe('iOS scroll signals', () => {
     type Primitives = { swipeOnce(direction: string, ref?: string): Promise<string> }
     const primitivesOf = (a: IOSPlatformAdapter): Promise<Primitives> =>
       (a as unknown as { buildIOSScrollPrimitives(d: string, m: number): Promise<Primitives> })
@@ -348,7 +348,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('EXEC-03 openApp resolution (D-10/D-12, Pitfall 5)', () => {
+  describe('openApp resolution', () => {
     it('success lane: resolves a CFBundleName label and launches via activateApp(resolvedId) with metadata', async () => {
       listAppsReturn = {
         'com.apple.mobilecal': { CFBundleName: 'Calendar' },
@@ -363,7 +363,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(result.metadata?.openApp).toMatchObject({ resolvedId: 'com.apple.mobilecal' })
     })
 
-    it('simulator lane: listApps throwing ⇒ appName variant returns a structured §7.1 error recommending an exact bundleId, never a crash (Pitfall 5)', async () => {
+    it('simulator lane: listApps throwing ⇒ appName variant returns a structured §7.1 error recommending an exact bundleId, never a crash', async () => {
       listAppsThrows = true
       await adapter.setup({ platform: 'ios' })
 

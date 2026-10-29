@@ -271,7 +271,7 @@ describe('AndroidPlatformAdapter', () => {
     })
   })
 
-  describe('C444.1-SESSION-START', () => {
+  describe('session start activates the app only when it is not already in the foreground', () => {
     const appPackage = 'dev.example.deeplinked'
 
     it('an app already in the foreground is not activated again', async () => {
@@ -457,7 +457,7 @@ describe('AndroidPlatformAdapter', () => {
       expect(state.tree).toContain('link "Example"')
     })
 
-    it('shape-validates attacker-shaped WEB_OBSERVER_SCRIPT results (T-352-11)', async () => {
+    it('shape-validates attacker-shaped WEB_OBSERVER_SCRIPT results', async () => {
       mockDriver.getContexts.mockResolvedValue(['NATIVE_APP', 'WEBVIEW_app.linear'])
       // Non-array nodes + a malformed record must never reach the builder: the whole
       // payload is rejected (nodes not an array) → falls back to native observation.
@@ -795,7 +795,7 @@ describe('AndroidPlatformAdapter', () => {
     })
   })
 
-  describe('C444.1-WEBVIEW-SCREENSHOT', () => {
+  describe('WebView screenshots paint an unset background white', () => {
     // sharp is runner-local's dependency, not android's, so it is resolved from there.
     const runnerLocal = createRequire(import.meta.url).resolve('@vostride/agent-qa-runner-local')
     const sharp = createRequire(runnerLocal)('sharp') as any
@@ -1013,7 +1013,7 @@ describe('AndroidPlatformAdapter', () => {
     })
   })
 
-  describe('screenshot — action-space alignment assertion (D-06)', () => {
+  describe('screenshot — action-space alignment assertion', () => {
     it('returns screenshot buffer without warning when dimensions match getWindowSize', async () => {
       await adapter.setup({ platform: 'android' })
       // SCREENSHOT_BASE64 is a 1x1 PNG, window is 1080x1920 → will warn but not throw
@@ -1030,7 +1030,7 @@ describe('AndroidPlatformAdapter', () => {
     })
   })
 
-  describe('liveStream (428 D-11)', () => {
+  describe('liveStream', () => {
     function contextSpies() {
       const spies = {
         getContext: vi.fn().mockResolvedValue('NATIVE_APP'),

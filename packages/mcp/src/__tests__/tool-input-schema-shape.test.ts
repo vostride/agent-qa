@@ -134,7 +134,7 @@ function withoutDescription(schema: unknown): Json {
   return rest
 }
 
-describe('C446-TOOL-SCHEMA', () => {
+describe('tool input schemas are plain objects with no top-level union', () => {
   it('every listed tool input is one plain object with properties and no top-level union', async () => {
     const tools = await listed()
     expect(tools.length).toBe(AGENT_QA_TOOL_PROJECTIONS.length)

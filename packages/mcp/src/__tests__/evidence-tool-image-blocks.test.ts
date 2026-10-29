@@ -150,7 +150,7 @@ function expectNoBytes(result: WireResult, bytes: Uint8Array): void {
   expect(leakedWindow(JSON.stringify(result), encode(bytes)), 'the refusal carried the artifact bytes').toBeUndefined()
 }
 
-describe('IMAGE-PNG / IMAGE-JPEG (D-07)', () => {
+describe('IMAGE-PNG / IMAGE-JPEG', () => {
   for (const [label, bytes, base64, mimeType] of [
     ['IMAGE-PNG', PNG, PNG_BASE64, 'image/png'],
     ['IMAGE-JPEG', JPEG, JPEG_BASE64, 'image/jpeg'],
@@ -309,7 +309,7 @@ function standInMask(name: string, value: string): (text: string) => string {
   return (text) => text.split(value).join(`[secret:${name}]`)
 }
 
-describe('IMAGE-MASK-WITHHOLD (T-431-10)', () => {
+describe('IMAGE-MASK-WITHHOLD', () => {
   it('(a) a masking refusal withholds the image and every byte', async () => {
     // The PNG is 70 bytes, so a masker that hides the spelling `70` cannot mask `byteLength` in
     // place and the whole result is withheld.
@@ -366,7 +366,7 @@ function maskerFor(secret: string): { readonly mask: (text: string) => string; r
   return { mask: standInMask('RUN_441', secret), dispose: () => undefined }
 }
 
-describe('EVIDENCE-ISOLATION (EDGE-18)', () => {
+describe('EVIDENCE-ISOLATION', () => {
   it('interleaved callers keep their own run, bytes and masking', async () => {
     const registry = registryOver(blobsOf({ [ALPHA]: [PNG], [BETA]: [JPEG] }))
     const alphaMask = maskerFor(ALPHA_SECRET)

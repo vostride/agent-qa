@@ -318,7 +318,7 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
     expect(mockMouseWheelFn).toHaveBeenCalledWith(0, -360)
   })
 
-  it('untilVisible scroll rides scrollUntilVisible metadata with the D-04 key set and leaves lastRefs untouched', async () => {
+  it('untilVisible scroll rides scrollUntilVisible metadata with its key set and leaves lastRefs untouched', async () => {
     await adapter.setup({ platform: 'web' })
     await adapter.observe()
     const refsBefore = { ...adapter['lastRefs'] }
@@ -434,7 +434,7 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
     )
   })
 
-  describe('keypress (phase 137)', () => {
+  describe('keypress', () => {
     const originalPlatform = process.platform
 
     afterEach(() => {

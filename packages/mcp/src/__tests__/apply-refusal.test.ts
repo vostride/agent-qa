@@ -40,10 +40,10 @@ import { FORGET_RECEIPT_SCHEMA_VERSION, MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } 
 // through the generic projection handler. The surviving claims are measured through the real
 // catalogue over a real client: the input reaches the one invoke unchanged, and both result channels
 // are masked from one serialization.
-describe('419 sovereign mark credential refusal', () => {
+describe('a mark through the MCP catalogue needs no credential', () => {
   const MARK_INPUT = { runId: 'run-alpha', kind: 'false-fail', note: 'untrusted-input' } as const
 
-  it('C432-TOKENLESS-MCP-MARK: a tokenless mark is invoked once with its input unchanged, and nothing refuses for a credential', async () => {
+  it('a tokenless mark is invoked once with its input unchanged, and nothing refuses for a credential', async () => {
     const port = directDeps(() => ({ outcome: 'applied' }))
     const marks: unknown[] = []
     const deps = { ...port.deps, feedback: {
@@ -82,7 +82,7 @@ describe('419 sovereign mark credential refusal', () => {
   // actionable MCP affordances'. The gate's denial error and its remedy vocabulary are deleted, so the
   // MCP error result has no denial arm and no remedy projection: every refusal renders its own
   // message, masked, and nothing is appended to it.
-  it('C432-REMEDY-TYPES-ABSENT: renders every refusal as its own masked message, with no remedy appended', () => {
+  it('renders every refusal as its own masked message, with no remedy appended', () => {
     const result = maskedToolError(new FunctionInputError('runs.mark', 'note: planted-secret'), text => text.replaceAll('planted-secret', '<SECRET>'))
     expect(result.content).toEqual([{ type: 'text', text: 'Invalid input for runs.mark: note: <SECRET>' }])
     expect(result.isError).toBe(true)
@@ -192,8 +192,8 @@ async function callSettled(session: Wire, name: string, args: Record<string, unk
 
 const RECORD_TARGET = { grain: 'record', recordId: 'rec-alpha' } as const
 
-describe('C432-MCP-DIRECT-RECEIPT: a knowledge change answers its receipt on the first call', () => {
-  it('C432-MCP-DIRECT-RECEIPT: the change tool applies once and masks both result channels from one serialization', async () => {
+describe('a knowledge change answers its receipt on the first call', () => {
+  it('the change tool applies once and masks both result channels from one serialization', async () => {
     const port = directDeps((request) => ({
       outcome: 'applied', verb: request.verb, operationId: '5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c1d',
       recordIds: ['rec-alpha', `rec-${PLANTED}`],
@@ -214,7 +214,7 @@ describe('C432-MCP-DIRECT-RECEIPT: a knowledge change answers its receipt on the
     expect(session.frames.join('\n')).not.toContain(PLANTED)
   })
 
-  it('C432-MCP-DIRECT-RECEIPT: a typed absence is data and a writer refusal is a masked error, both after one call', async () => {
+  it('a typed absence is data and a writer refusal is a masked error, both after one call', async () => {
     const absent = directDeps((request) => ({
       outcome: 'target-not-found', verb: request.verb,
       operationId: '5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c1d', target: request.input['target'],
@@ -242,8 +242,8 @@ describe('C432-MCP-DIRECT-RECEIPT: a knowledge change answers its receipt on the
   })
 })
 
-describe('C432-MCP-NO-ELICITATION: no confirmation input, no elicitation, no apply round', () => {
-  it('C432-MCP-NO-ELICITATION: a client that can answer a form is never asked, and the change lands on its one call', async () => {
+describe('no confirmation input, no elicitation, no apply round', () => {
+  it('a client that can answer a form is never asked, and the change lands on its one call', async () => {
     // 2026-10-03 (quick 261003-cpv, IN-21): an applied forget carries its forget receipt by rule.
     const port = directDeps((request) => ({
       outcome: 'applied', verb: request.verb, operationId: '5a4b3c2d-1e0f-4a9b-8c7d-6e5f4a3b2c1d',
@@ -266,7 +266,7 @@ describe('C432-MCP-NO-ELICITATION: no confirmation input, no elicitation, no app
     expect(session.frames.join('\n')).not.toContain('input_required')
   })
 
-  it('C432-MCP-NO-ELICITATION: no listed tool takes a confirmation or a proposal id, and confirmed is refused at the schema wall', async () => {
+  it('no listed tool takes a confirmation or a proposal id, and confirmed is refused at the schema wall', async () => {
     const port = directDeps(() => ({ outcome: 'applied' }))
     const session = await wire(port.deps)
     const tools = (await session.client.listTools()).tools
@@ -287,7 +287,7 @@ describe('C432-MCP-NO-ELICITATION: no confirmation input, no elicitation, no app
     expect(port.calls).toEqual([])
   })
 
-  it('C432-MCP-NO-ELICITATION: the refuse-and-teach module is gone, and the op layer takes no confirmation', async () => {
+  it('the refuse-and-teach module is gone, and the op layer takes no confirmation', async () => {
     expect(existsSync(new URL('../apply-refusal.ts', import.meta.url))).toBe(false)
     const port = directDeps(() => ({ outcome: 'applied' }))
     const registry = createFunctionRegistry({ deps: port.deps })

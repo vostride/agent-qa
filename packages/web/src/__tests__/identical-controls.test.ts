@@ -129,7 +129,7 @@ const clickSecondOkay: ScriptedTurn = (screen) => act(
   'Click the second Okay button',
 )
 
-describe('C438-IDENTICAL-CONTROLS', () => {
+describe('two identical Okay buttons', () => {
   it('descriptor path: an ambiguous step clicks nothing', async () => {
     const web = await open(TWO_OKAY_PAGE)
     const failureContexts: (string | undefined)[] = []

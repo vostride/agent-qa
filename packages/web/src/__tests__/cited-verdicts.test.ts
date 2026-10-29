@@ -138,7 +138,7 @@ const CONTACT_STEP = 'Submit the contact form'
 const DOWNLOAD_STEP = 'Download the report'
 const COPY_STEP = 'Copy the code shown on the page'
 
-describe('C439-JUDGED-CASES', () => {
+describe('a verdict passes only on pages and screens the step saw', () => {
   it('a total over all pages passes when every page was read', async () => {
     const web = await open('/orders/1')
     const planner = scriptedPlanner([extractTurn(false), nextPage, extractTurn(true)])

@@ -354,7 +354,7 @@ const directRead = (invoke: AppResourceInvoke): ReturnType<RecordedAppRegistrati
 
 // ---- The codec ---------------------------------------------------------------------------------
 
-describe('parseAppUri — the ONE codec for ui:// app addresses (T-396-08)', () => {
+describe('parseAppUri — the ONE codec for ui:// app addresses', () => {
   it('reads the run id out of a canonical app address', () => {
     expect(parseAppUri(`ui://agent-qa/live-run/${FIXTURE_RUN_ID}`)).toEqual({
       runId: FIXTURE_RUN_ID,
@@ -377,7 +377,7 @@ describe('parseAppUri — the ONE codec for ui:// app addresses (T-396-08)', () 
 
 // ---- Registration ------------------------------------------------------------------------------
 
-describe('registerAppResources — the D-02/D-03 gate', () => {
+describe('registerAppResources — which registries get the App template', () => {
   it('registers exactly one UNLISTED template, at the published address', () => {
     const { registry } = fixtureRegistry()
     const server = recordingServer()
@@ -398,7 +398,7 @@ describe('registerAppResources — the D-02/D-03 gate', () => {
   // RE-SPELLED 2026-10-01 (432-20, D-12) from 'registers NOTHING for a caller granted no read scope
   // (D-02)'. The scope gate is deleted: a caller granted nothing gets the same one template, and the
   // D-03 floor below (no mint op, or an unbound one) is what still registers nothing.
-  it('registers the same template for a caller granted no read scope (432-20, D-12)', () => {
+  it('registers the same template for a caller granted no read scope', () => {
     const { registry } = fixtureRegistry()
     const granted = recordingServer()
     const ungranted = recordingServer()
@@ -413,7 +413,7 @@ describe('registerAppResources — the D-02/D-03 gate', () => {
     expect(ungranted.calls.map((call) => call.name)).toEqual(granted.calls.map((call) => call.name))
   })
 
-  it('registers NOTHING on a registry that declares no mint op (D-03 floor)', () => {
+  it('registers NOTHING on a registry that declares no mint op', () => {
     const server = recordingServer()
     const registered = registerAppResources(server as never, {
       registry: { list: () => [] },
@@ -432,7 +432,7 @@ describe('registerAppResources — the D-02/D-03 gate', () => {
 
 // ---- The read: mint by reference, per handle, fresh ---------------------------------------------
 
-describe('resources/read mints through the ONE wall and serves the wrapper (D-01/D-06/D-10)', () => {
+describe('resources/read mints through the ONE wall and serves the wrapper', () => {
   it('serves one liveUrl per announced handle, each validating against the SAME signer', async () => {
     const { read, clock } = registerAndCapture({ handles: [0, 1] })
     const result = await read(new URL(`ui://agent-qa/live-run/${FIXTURE_RUN_ID}`))
@@ -455,7 +455,7 @@ describe('resources/read mints through the ONE wall and serves the wrapper (D-01
     expect([...handles].sort()).toEqual([0, 1])
   })
 
-  it('names the minted origin as the ONLY allowed frame AND connect domain (Pitfall 1, T-408-05)', async () => {
+  it('names the minted origin as the ONLY allowed frame AND connect domain', async () => {
     const { read } = registerAndCapture()
     const result = await read(new URL(`ui://agent-qa/live-run/${FIXTURE_RUN_ID}`))
     expect(result.contents[0]!.mimeType).toBe(APP_RESOURCE_MIME_TYPE)
@@ -470,7 +470,7 @@ describe('resources/read mints through the ONE wall and serves the wrapper (D-01
     })
   })
 
-  it('mints AGAIN on a second read — fresh-on-render, never a cached token (D-10)', async () => {
+  it('mints AGAIN on a second read — fresh-on-render, never a cached token', async () => {
     const { read } = registerAndCapture({ handles: [0] })
     const uri = new URL(`ui://agent-qa/live-run/${FIXTURE_RUN_ID}`)
     const first = liveUrlsIn(htmlOf(await read(uri)))
@@ -490,7 +490,7 @@ describe('resources/read mints through the ONE wall and serves the wrapper (D-01
 
 // ---- The roster's two arms, and the allowance that covers the document --------------------------
 
-describe('an announced-but-EMPTY roster is the SAME document as an unannounced one (WR-05, T-408-25)',
+describe('an announced-but-EMPTY roster is the SAME document as an unannounced one',
   () => {
     it('renders a live pane for handle 0, never `run-ended`, for a run announcing `handles: []`',
       async () => {
@@ -544,7 +544,7 @@ describe('an announced-but-EMPTY roster is the SAME document as an unannounced o
     })
   })
 
-describe('the served allowance covers EVERY pane the document can show (IN-02, T-408-26)', () => {
+describe('the served allowance covers EVERY pane the document can show', () => {
   it('names the shared origin ONCE for a two-handle document — not once per mint', async () => {
     const { read } = registerAndCapture({ handles: [0, 1] })
     const result = await read(new URL(`ui://agent-qa/live-run/${FIXTURE_RUN_ID}`))
@@ -581,7 +581,7 @@ describe('the served allowance covers EVERY pane the document can show (IN-02, T
 
 // ---- Honest absence ----------------------------------------------------------------------------
 
-describe('absence is named, never an error surface (D-07/D-11)', () => {
+describe('absence is named, never an error surface', () => {
   it('renders the not-live wrapper for a run this host holds no live session for', async () => {
     const { read } = registerAndCapture({ liveRunIds: [] })
     const result = await read(new URL(`ui://agent-qa/live-run/${FIXTURE_RUN_ID}`))
@@ -594,7 +594,7 @@ describe('absence is named, never an error surface (D-07/D-11)', () => {
     expect(result.contents[0]!._meta).toBeUndefined()
   })
 
-  it('refuses a malformed app address by name, echoing only MASKED caller text (T-408-02)', async () => {
+  it('refuses a malformed app address by name, echoing only MASKED caller text', async () => {
     const seen: string[] = []
     const { registry } = fixtureRegistry()
     const server = recordingServer()
@@ -627,7 +627,7 @@ describe('absence is named, never an error surface (D-07/D-11)', () => {
 
 // ---- The scanner this file's claims are read through --------------------------------------------
 
-describe('liveUrlsIn escapes its fixture origin — EVERY dot, not the first (IN-03)', () => {
+describe('liveUrlsIn escapes its fixture origin — EVERY dot, not the first', () => {
   it('matches on the fixture origin and NOT on a near-miss where a dot stood as a wildcard', () => {
     const token = 'aaa.bbb-ccc'
     const positive = `<iframe src="${FIXTURE_ORIGIN}/live/${FIXTURE_RUN_ID}#${token}"></iframe>`
@@ -645,8 +645,8 @@ describe('liveUrlsIn escapes its fixture origin — EVERY dot, not the first (IN
 
 // ---- The wrapper's own vocabulary --------------------------------------------------------------
 
-describe('the wrapper page vocabulary (D-11)', () => {
-  it('closes the state set at the five D-11 states', () => {
+describe('the wrapper page vocabulary', () => {
+  it('closes the state set at five states', () => {
     expect([...APP_WRAPPER_STATES]).toEqual([
       'connecting',
       'live',

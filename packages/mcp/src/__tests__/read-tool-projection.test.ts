@@ -177,7 +177,7 @@ describe('BUNDLES-OUTPUT-IDENTITY', () => {
   })
 })
 
-describe('the canonical contract table (D-04)', () => {
+describe('the canonical contract table', () => {
   it('resolves every canonical export from the built schema barrel', () => {
     for (const [tool, contract] of Object.entries(CANONICAL_CONTRACTS)) {
       expect(contract.input, `${tool} input`).toBeDefined()
@@ -266,7 +266,7 @@ function outputDocument(contract: unknown): unknown {
   return withoutDialect(standard.jsonSchema.output(TARGET))
 }
 
-describe('MCP-TOOLS-EXACT (D-04 / D-05 / D-07)', () => {
+describe('MCP-TOOLS-EXACT', () => {
   it('declares each new tool as a plain read over exactly its canonical ops', () => {
     for (const [tool, contract] of Object.entries(CANONICAL_CONTRACTS)) {
       const projection = projectionNamed(tool)
@@ -409,7 +409,7 @@ const DISPATCH_CALLS: readonly (readonly [string, Record<string, unknown>, strin
   ['agent_qa_get_run_evidence', { action: 'runs.artifact', runId: 'r_dispatch', sha: SHA }, 'runs.artifact'],
 ]
 
-describe('MCP-DISPATCH (D-04 / D-07)', () => {
+describe('MCP-DISPATCH', () => {
   it('reaches exactly the intended op for every named read and both fold arms', async () => {
     const audited: string[] = []
     const client = await connect(auditedRegistry(audited), callerWith(['read']))
@@ -483,7 +483,7 @@ function knowledgeDeps(): Record<string, unknown> {
   }
 }
 
-describe('RUN-KNOWLEDGE-WHOLE (D-05)', () => {
+describe('RUN-KNOWLEDGE-WHOLE', () => {
   it('answers exactly what runs.knowledge answers, every step of every test', async () => {
     const registry = registryWith(knowledgeDeps())
     const direct = await invokeFunction(registry, 'runs.knowledge', { runId: 'r_whole-knowledge' }, READ_CALLER)
@@ -509,7 +509,7 @@ const MOVED_RULINGS: Readonly<Record<string, string>> = {
   'runs.artifact': '405',
 }
 
-describe('RULING-ADDENDA (D-10)', () => {
+describe('RULING-ADDENDA', () => {
   it("keeps each moved op's prior ruling verbatim and appends a dated 431 addendum", () => {
     const actual: Record<string, string> = {}
     for (const entry of PROJECTED_RULING_ADDENDA) {

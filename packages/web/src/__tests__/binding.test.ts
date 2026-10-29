@@ -122,7 +122,7 @@ function changingBeforeDispatch(web: WebPlatformAdapter, script: string): WebPla
 
 const passes = scriptedVerifier(() => ({ pass: true, reason: 'the click landed' }))
 
-describe('C438-NATIVE-BINDING', () => {
+describe('dispatch binds to the observed element through aria-ref', () => {
   it('a moved row is followed, never the row now at its old position', async () => {
     const web = await open(ADDRESSES_PAGE)
     const planner = scriptedPlanner([
@@ -267,7 +267,7 @@ async function clickAfter(
   return web.execute({ type: 'click', ref: asRef(ref) } as never)
 }
 
-describe('C438-BINDING-OUTCOMES', () => {
+describe('binding outcomes when the page changes between observe and dispatch', () => {
   it('recycled: the Elm row text swapped under the same nodes is binding-changed', async () => {
     const web = await open(ADDRESSES_PAGE)
     const elm = refFor(await web.observe(), 'button', 'Edit label', 0)

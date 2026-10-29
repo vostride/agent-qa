@@ -236,7 +236,7 @@ async function runLeg(leg: Leg) {
   }
 }
 
-describe('C438-REORDERED-ROWS', () => {
+describe('rows that change between observation and dispatch', () => {
   it('navigated: stale-observation, nothing sent, never healed', async () => {
     const web = await open(ROWS_PAGE)
     const navigating = navigatingBeforeDispatch(web, ROWS_PAGE)

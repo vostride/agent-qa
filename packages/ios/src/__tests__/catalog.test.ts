@@ -222,7 +222,7 @@ describe('IOSPlatformAdapter catalog (RED — Wave-0)', () => {
     })
   })
 
-  describe('retired cases (Plan 07 deletes / re-keys them — pinned to the post-flip unreachable outcome)', () => {
+  describe('the retired assert, openLink and launchApp actions no longer succeed', () => {
     it('assert / openLink / launchApp are no longer handled as distinct successful cases', async () => {
       reset()
       const rAssert = await adapter.execute({ type: 'assert', condition: 'x' } as unknown as ExecAction)

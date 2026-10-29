@@ -206,7 +206,7 @@ function refusalOf(run: ScriptedStepRun): Record<string, unknown> | undefined {
 
 const passes = scriptedVerifier(() => ({ pass: true, reason: 'the click landed' }))
 
-describe('C438-STATED-TARGET', () => {
+describe('a stated target is checked against its ref', () => {
   it('a stated target that agrees with its ref is clicked', async () => {
     const web = await open(SUBMIT_PAGE)
     const planner = scriptedPlanner([
@@ -460,7 +460,7 @@ describe('C438-STATED-TARGET', () => {
   }, 60_000)
 })
 
-describe('C438-STATED-ROW', () => {
+describe('a stated row is checked against the ref\'s row', () => {
   async function runEditLabel(
     nth: number,
     target: { role: string; name: string; row?: string },

@@ -346,7 +346,7 @@ describe('IOSPlatformAdapter', () => {
     })
   })
 
-  describe('C437-TREE-TOGGLE — adapter-level iOS tree', () => {
+  describe('adapter-level iOS tree', () => {
     it('a switch with value "1" renders [checked] and one with value "0" does not', async () => {
       mockDriver.getPageSource.mockResolvedValue(
         IOS_XML.replace('label="Stay signed in" value="0"', 'label="Stay signed in" value="1"'),
@@ -417,7 +417,7 @@ describe('IOSPlatformAdapter', () => {
 
   // C437-IOS-TAP-HOLD (437-09): a zero-duration touch flipped an iOS 27 Settings switch knob 2 of
   // 11 times live; the same touch held 100 ms between down and up flipped it every time.
-  describe('C437-IOS-TAP-HOLD — single taps hold the touch between down and up', () => {
+  describe('single taps hold the touch between down and up', () => {
     function chainSteps(): string[] {
       const chain = mockDriver._pointerAction
       const steps: Array<[number, string]> = []
@@ -629,7 +629,7 @@ describe('IOSPlatformAdapter', () => {
     })
   })
 
-  describe('execute — openUniversalLink (re-key of openLink, D-19)', () => {
+  describe('execute — openUniversalLink (re-key of openLink)', () => {
     const LINK = 'https://bsky.app/hashtag/caturday'
     const APP = 'xyz.blueskyweb.app'
     const OTHER = 'com.example.other'
@@ -1100,7 +1100,7 @@ describe('IOSPlatformAdapter', () => {
     })
   })
 
-  describe('screenshot — stage-2 physical→logical alignment (D-05)', () => {
+  describe('screenshot — stage-2 physical→logical alignment', () => {
     it('resizes 1179x2556 physical buffer to 393x852 logical buffer matching getWindowSize', async () => {
       await adapter.setup({ platform: 'ios' })
       mockDriver.getWindowSize.mockResolvedValue({ width: 393, height: 852 })
@@ -1115,7 +1115,7 @@ describe('IOSPlatformAdapter', () => {
       expect(dims!.height).toBe(852)
     })
 
-    it('re-reads getWindowSize on every screenshot call (no caching — D-05, Pitfall 8)', async () => {
+    it('re-reads getWindowSize on every screenshot call (no caching)', async () => {
       await adapter.setup({ platform: 'ios' })
       mockDriver.getWindowSize.mockResolvedValue({ width: 393, height: 852 })
       mockDriver.takeScreenshot.mockResolvedValue(create1179x2556PngBase64())
@@ -1196,7 +1196,7 @@ describe('IOSPlatformAdapter', () => {
     })
   })
 
-  describe('liveStream (428 D-11)', () => {
+  describe('liveStream', () => {
     function contextSpies() {
       const spies = {
         getContext: vi.fn().mockResolvedValue('NATIVE_APP'),

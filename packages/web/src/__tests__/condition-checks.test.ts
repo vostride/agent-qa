@@ -209,7 +209,7 @@ async function openSettings(mode: 'working' | 'dead'): Promise<WebPlatformAdapte
   return web
 }
 
-describe('C439-AUTO12', () => {
+describe('the runner\'s checks over the verifier\'s per-condition output', () => {
   it('a confirmation dialog left open after Save never passes', async () => {
     const web = await open(DIALOG_LEFT_OPEN)
     const seen: { failureContext?: string } = {}

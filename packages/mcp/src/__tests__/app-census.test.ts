@@ -175,7 +175,7 @@ async function advertisedTools(): Promise<readonly AdvertisedTool[]> {
 const declaredCarriers = (): readonly ToolProjection[] =>
   AGENT_QA_TOOL_PROJECTIONS.filter((projection) => projection.ui !== undefined)
 
-describe('which tools carry the App is census-pinned DATA (408 D-05 / D-14, T-408-18)', () => {
+describe('which tools carry the App is census-pinned DATA', () => {
   it('(C1) the carrier set derived from the table equals the set the WIRE advertises', async () => {
     const fromTable = declaredCarriers()
       .map((projection) => projection.name)
@@ -403,7 +403,7 @@ async function callBothCarriers(client: Client): Promise<readonly ToolCallResult
   return [started, digest]
 }
 
-describe('an App-LESS host gets the link and NOT the App, in one flow (408 D-09 / D-14)', () => {
+describe('an App-LESS host gets the link and NOT the App, in one flow', () => {
   it('(C3) link-out present AND App un-obtainable, on a host where the App really exists',
     async () => {
       const url = await serveLiveHost({ base: DASHBOARD_BASE })

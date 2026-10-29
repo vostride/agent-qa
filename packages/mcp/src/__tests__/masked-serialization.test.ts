@@ -120,7 +120,7 @@ function receipt(value: string): unknown {
   return { kind: 'not-found', receipt: { echoed: value, note: 'nothing was found for it' } }
 }
 
-describe('X · the escape classes reach neither channel (CR-01)', () => {
+describe('X · the escape classes reach neither channel', () => {
   it('(X0) CONTROL: the masker holds every plant, and a plain value is masked on both channels',
     () => {
       const masker = seededMasker()

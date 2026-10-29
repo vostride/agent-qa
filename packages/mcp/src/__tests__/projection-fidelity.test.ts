@@ -162,7 +162,7 @@ describe('the advertised catalogue is what the mapping declares', () => {
   })
 })
 
-describe('the advertised schema equals the function layer\'s own projection (D-16)', () => {
+describe('the advertised schema equals the function layer\'s own projection', () => {
   // ALL FOURTEEN, ranged over the mapping rather than sampled. A subset here would be a cell that
   // holds for the tools somebody happened to think about.
   it('matches the registry projection for every tool, on both sides', async () => {
@@ -308,7 +308,7 @@ describe('the advertised schema equals the function layer\'s own projection (D-1
   })
 })
 
-describe('degradation is explicit, never a silently narrowed document (D-16)', () => {
+describe('degradation is explicit, never a silently narrowed document', () => {
   it('advertises no outputSchema for exactly the declared degradations, and says so', async () => {
     const advertised = await advertise()
     const withoutOutput = advertised
@@ -405,7 +405,7 @@ describe('the build is deterministic (idempotency)', () => {
 // door onto a credential channel, which is the one thing this phase may not let happen quietly.
 // What IS spelled out here is the expectation the census is compared against, which is the pin.
 
-describe('the App carrier declaration is registry data (408 D-05)', () => {
+describe('the App carrier declaration is registry data', () => {
   /** The `ProjectedOpSpec` `catalog.ts` builds for one op, assembled the same way it does. */
   function specsFor(projection: ToolProjection): readonly ProjectedOpSpec[] {
     const declared = declarations()

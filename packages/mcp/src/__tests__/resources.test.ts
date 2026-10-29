@@ -153,7 +153,7 @@ function recordingInvoke(answer: unknown = { kind: 'MEM', shortId: 'MEM-001' }):
   }
 }
 
-describe('the five templates are derived, not restated (D-13)', () => {
+describe('the five templates are derived, not restated', () => {
   // THE BAR: R2. Recipe one — computed from the same table the module reads, so a planted or
   // dropped template reds here.
   it('is exactly one template per entity kind, in the vocabulary order', () => {
@@ -180,7 +180,7 @@ describe('the five templates are derived, not restated (D-13)', () => {
   })
 })
 
-describe('the read handler resolves through entities.get (D-13 · D-02)', () => {
+describe('the read handler resolves through entities.get', () => {
   // THE BAR: R5, and R1 with it. The ref handed to the op is the CANONICAL short-ID the codec
   // produced — `MEM-1` in, `MEM-001` out — so an implementation that forwarded the raw URI, or that
   // split the string itself, reds here rather than passing something the op happens to accept too.
@@ -273,7 +273,7 @@ describe('the read handler resolves through entities.get (D-13 · D-02)', () => 
   })
 })
 
-describe('the codec is the only parser (D-13 · T-396-08)', () => {
+describe('the codec is the only parser', () => {
   // THE BAR: R1. `agentqa://memory/TST-001` names a memory segment and a TEST id. The codec refuses
   // it because the two halves disagree; a local regex that split segment from id would hand
   // `TST-001` to the op and answer about a test the caller never addressed. The invoke count is
@@ -312,7 +312,7 @@ describe('the codec is the only parser (D-13 · T-396-08)', () => {
 // The scope gate is deleted: whether the templates exist is a fact about the composition (does it
 // register entities.get?) and never about the caller. The URI codec still refuses every bad address
 // for every caller (the block above).
-describe('registration is a fact about the composition, never the caller (432-20, D-12)', () => {
+describe('registration is a fact about the composition, never the caller', () => {
   it('registers all five templates for a caller granted read', () => {
     const server = recordingServer()
 
@@ -329,7 +329,7 @@ describe('registration is a fact about the composition, never the caller (432-20
   })
 
   // RE-SPELLED from 'registers nothing for a caller granted nothing'.
-  it('C432-RESOURCES-ALL-CALLERS: registers the same five templates for every caller', () => {
+  it('registers the same five templates for every caller', () => {
     const callers: readonly FunctionCaller[] = [
       { surface: 'mcp', origin: 'agent' },
       caller([]),

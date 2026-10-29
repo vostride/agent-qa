@@ -365,7 +365,7 @@ async function serveAgentQa(
   return { url, minted }
 }
 
-describe('the ui:// read over the shipped node handler (D-09, T-408-01/T-408-06)', () => {
+describe('the ui:// read over the shipped node handler', () => {
   it('serves the App to a NEGOTIATING client, with tokens the shipped validator accepts', async () => {
     const { url, minted } = await serveAgentQa([0, 1])
     const client = await connect(url, { apps: true })
@@ -513,7 +513,7 @@ describe('the refusal arm runs before anything is invoked (acceptance: zero mint
 // because in this repository the prose is the record and a second copy is a second thing to keep in
 // step.
 
-describe('who may obtain a live-view credential (408-12; the 2026-09-01 ruling, road `demote`)', () => {
+describe('who may obtain a live-view credential', () => {
   it('a caller that merely DECLARES the Apps extension DOES obtain a freshly minted credential — the RECORDED posture, because the declaration is a host-capability signal and never an authorization control', async () => {
     // THE FORGING CALLER, and it takes no forging at all: `connect(url, { apps: true })` is a stock
     // `@modelcontextprotocol/client@2.0.0` with ONE added capability member. It renders nothing,
@@ -591,7 +591,7 @@ describe('who may obtain a live-view credential (408-12; the 2026-09-01 ruling, 
  */
 const PAST_THE_2027_TIME_BOMB = 2_000_000_000_000
 
-describe('WR-07: the fixture clock cannot expire its own fixtures (408-12)', () => {
+describe('the fixture clock cannot expire its own fixtures', () => {
   it('serves a document carrying a liveUrl under a system clock past 2027-01-15', async () => {
     // The stub goes in BEFORE the fixture is built, because the fixture reads `Date.now()` once at
     // construction — a stub installed afterwards would measure nothing. A spy rather than fake

@@ -561,7 +561,7 @@ function downloadsOf(result: ActionResult): DownloadEvidence[] | undefined {
   return result.metadata?.['download'] as DownloadEvidence[] | undefined
 }
 
-describe('C436-DOWNLOAD-CAPTURE', () => {
+describe('downloads are recorded on the action that started them', () => {
   it('a blob download is recorded on the click that started it', async () => {
     const web = await open()
     const ref = await refFor(web, 'button', 'Export CSV')
@@ -711,7 +711,7 @@ async function expectFilesGone(files: string[], count: number): Promise<void> {
   }
 }
 
-describe('C439-DOWNLOAD-HOLD', () => {
+describe('held download bytes', () => {
   it('the capture keeps bytes only in memory, returns them by sha256, evicts the oldest past 8 MiB and returns nothing after dispose', async () => {
     const web = await open(undefined, undefined, 'hold')
     const capture = (web as unknown as { operationCapture: OperationCapture }).operationCapture
@@ -748,7 +748,7 @@ describe('C439-DOWNLOAD-HOLD', () => {
   }, 120_000)
 })
 
-describe('C436-DOWNLOAD-DEADLINE', () => {
+describe('the download wait is bounded by the step time', () => {
   const limits: PlannerConfig = { maxActions: 5, maxPlanningTurns: 5, previousStepCount: 0 }
 
   it('the bound holds through the real loop', async () => {
@@ -832,7 +832,7 @@ describe('C436-DOWNLOAD-DEADLINE', () => {
 
 // The recording witness is the action's execution interval (424). The download-start grace
 // follows the action (436-10), so it must not stretch the interval the player paints and seeks.
-describe('C436-DOWNLOAD-CAPTURE recording witness', () => {
+describe('recording witness', () => {
   let videoDir: string | undefined
 
   afterEach(async () => {
@@ -907,7 +907,7 @@ async function permission(web: WebPlatformAdapter, name: string): Promise<string
   return web.getPage()!.evaluate(`navigator.permissions.query({ name: ${JSON.stringify(name)} }).then((status) => status.state)`)
 }
 
-describe('C436-CLIPBOARD-CAPTURE', () => {
+describe('clipboard writes are captured and read back', () => {
   it('an app writeText during a click is captured and read back', async () => {
     const web = await open(undefined, undefined, 'clipboard')
     const ref = await refFor(web, 'button', 'Copy order number')
@@ -948,7 +948,7 @@ describe('C436-CLIPBOARD-CAPTURE', () => {
   }, 60_000)
 })
 
-describe('C436-CLIPBOARD-CAPTURE copy events and exclusions', () => {
+describe('copy events and exclusions', () => {
   afterEach(() => { vi.restoreAllMocks() })
 
   it('an execCommand copy is captured from the copy event', async () => {
@@ -1038,7 +1038,7 @@ describe('C436-CLIPBOARD-CAPTURE copy events and exclusions', () => {
 })
 
 // 2026-10-08 (436-14): the read-back runs in an agent-qa-owned probe context (CR-01, IN-08).
-describe('C436-CLIPBOARD-READBACK', () => {
+describe('the clipboard read-back runs in a separate probe context', () => {
   afterEach(() => { vi.restoreAllMocks() })
 
   async function withTesterSecret(): Promise<WebPlatformAdapter> {
@@ -1180,7 +1180,7 @@ function canonical(value: unknown): string {
       : entry)
 }
 
-describe('C436-DOWNLOAD-ARMING', () => {
+describe('which actions wait for a download to start', () => {
   it('the activation set is exactly the download-starting web actions', () => {
     expect([...DOWNLOAD_ACTIVATION_ACTIONS].sort().join(',')).toBe([
       'click', 'doubleClick', 'executeScript', 'fileUpload', 'handleDialog',
@@ -1367,7 +1367,7 @@ async function heldSurvives(how: 'close' | 'crash'): Promise<void> {
   expect(clipboardOf(result)).toEqual([{ source: 'writeText', text: 'ORDER-4472', readBack: 'matched' }])
 }
 
-describe('C436-DOWNLOAD-HELD', () => {
+describe('a late download is held for the next action', () => {
   afterEach(() => { vi.restoreAllMocks() })
 
   it('a held late download survives a closed probe and is recorded late on the next action', async () => {
@@ -1402,7 +1402,7 @@ describe('C436-DOWNLOAD-HELD', () => {
   }, 60_000)
 })
 
-describe('C436-PROBE-LIFECYCLE', () => {
+describe('the clipboard probe is replaced when it closes or crashes', () => {
   afterEach(() => { vi.restoreAllMocks() })
 
   async function replacedOnce(how: 'close' | 'crash'): Promise<void> {
@@ -1484,7 +1484,7 @@ interface OwnCapture {
   frameEvaluate: ReturnType<typeof vi.spyOn>
 }
 
-describe('C436-CLIPBOARD-HEADED', () => {
+describe('clipboard capture by launch mode', () => {
   let own: OwnCapture | undefined
 
   afterEach(async () => {
@@ -1584,7 +1584,7 @@ describe('C436-CLIPBOARD-HEADED', () => {
 
 // 2026-10-08 (436-21, WR-17): in a headless launch the read-back confirms only a final claim that
 // changed the clipboard during the action, so a page cannot use it as a guessing oracle.
-describe('C436-CLIPBOARD-ORACLE', () => {
+describe('the clipboard read-back is no guessing oracle', () => {
   afterEach(() => { vi.restoreAllMocks() })
 
   async function holding(text: string, path = 'oracle'): Promise<WebPlatformAdapter> {
@@ -1710,7 +1710,7 @@ describe('C436-CLIPBOARD-ORACLE', () => {
 })
 
 // 2026-10-08 (436-24): a navigation that never answers ends the start window at the cap (CR-05).
-describe('C436-DOWNLOAD-WINDOW', () => {
+describe('the download start window ends at its cap', () => {
   const limits: PlannerConfig = { maxActions: 5, maxPlanningTurns: 5, previousStepCount: 0 }
   const CAPPED_MS = NAVIGATION_WINDOW_CAP_MS + 1_500
   const SLOW_MAIN: DownloadEvidence = {

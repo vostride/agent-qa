@@ -112,7 +112,7 @@ async function discovery(caller: FunctionCaller): Promise<string> {
   }))
 }
 
-describe('C432-TOKENLESS-CATALOG: identical discovery and dispatch for every caller (432-20, D-12)', () => {
+describe('identical discovery and dispatch for every caller', () => {
   it('lists the same tools and resource templates to every door caller', async () => {
     const answers = await Promise.all(Object.values(DOOR_CALLERS).map(discovery))
     const parsed = JSON.parse(answers[0]!) as { tools: { name: string }[]; templates: unknown[] }
@@ -174,7 +174,7 @@ function advertised(projection: ToolProjection): ToolOpContracts {
   return contracts
 }
 
-describe('toRegisterToolConfig (D-16)', () => {
+describe('toRegisterToolConfig', () => {
   const identity = (text: string): string => text
 
   it('derives the description from the op summary and advertises the op contracts', () => {

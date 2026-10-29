@@ -58,8 +58,8 @@ async function connectLoopback(): Promise<Client> {
 
 const FORBIDDEN = ['.agent-qa/', 'SQLite', 'memory/index/', 'memory/queue/', '.lease', '.epoch'] as const
 
-describe('C433-MCP-INSTRUCTIONS', () => {
-  it('C433-MCP-INSTRUCTIONS: the initialize result carries instructions', async () => {
+describe('the MCP server instructions', () => {
+  it('the initialize result carries instructions', async () => {
     const instructions = (await connect()).getInstructions()
     expect(typeof instructions).toBe('string')
     expect(instructions!.trim().length).toBeGreaterThan(0)
@@ -67,18 +67,18 @@ describe('C433-MCP-INSTRUCTIONS', () => {
     expect(barrel.AGENT_QA_MCP_INSTRUCTIONS.length).toBeLessThanOrEqual(1200)
   })
 
-  it('C433-MCP-INSTRUCTIONS: the loopback HTTP face answers the same instructions', async () => {
+  it('the loopback HTTP face answers the same instructions', async () => {
     const instructions = (await connectLoopback()).getInstructions()
     expect(typeof instructions).toBe('string')
     expect(instructions).toBe(barrel.AGENT_QA_MCP_INSTRUCTIONS)
   })
 
-  it('C433-MCP-INSTRUCTIONS: they name every path a coding agent must never open', async () => {
+  it('they name every path a coding agent must never open', async () => {
     const instructions = (await connect()).getInstructions() ?? ''
     for (const path of FORBIDDEN) expect(instructions, path).toContain(path)
   })
 
-  it('C433-MCP-INSTRUCTIONS: they name the first reads', async () => {
+  it('they name the first reads', async () => {
     const instructions = (await connect()).getInstructions() ?? ''
     const list = instructions.indexOf('agent_qa_list_runs')
     const overview = instructions.indexOf('agent_qa_get_run_overview')
@@ -88,7 +88,7 @@ describe('C433-MCP-INSTRUCTIONS', () => {
     expect(instructions).toContain('agent-qa-knowledge/AGENTS.md')
   })
 
-  it('C433-MCP-INSTRUCTIONS: every tool they name is registered', async () => {
+  it('every tool they name is registered', async () => {
     const client = await connect()
     const instructions = client.getInstructions() ?? ''
     const named = [...new Set([...instructions.matchAll(/agent_qa_[a-z_]+/g)].map((match) => match[0]))]

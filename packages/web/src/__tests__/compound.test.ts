@@ -133,7 +133,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     vi.clearAllMocks()
   })
 
-  describe('EXEC-01 fill compound (D-05/D-06/D-07/D-08)', () => {
+  describe('fill compound', () => {
     it('replace mode re-reads via inputValue() AFTER fill, and only presses Enter after the re-read when submit is true', async () => {
       const ref = await setupWithEmailField(adapter)
       inputValueReturn = 'hello'
@@ -182,7 +182,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(result.metadata?.fillReread).toMatchObject({ expected: 'abcXYZ', actual: 'abcXYZ' })
     })
 
-    it('mismatch yields success:false + §7.1 error + fillReread meta, with NO internal retry (D-08)', async () => {
+    it('mismatch yields success:false + §7.1 error + fillReread meta, with NO internal retry', async () => {
       const ref = await setupWithEmailField(adapter)
       inputValueReturn = 'wrong'
 
@@ -227,7 +227,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('C437-FILL-WEB', () => {
+  describe('fill re-read verdicts on web', () => {
     it('a re-read with formatting separators records normalized and presses Enter when submit is set', async () => {
       const ref = await setupWithEmailField(adapter)
       inputValueReturn = '+1 392-074-1751'
@@ -296,7 +296,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('EXEC-02 scroll untilVisible', () => {
+  describe('scroll untilVisible', () => {
     it('runs a native getByText scrollIntoView rung FIRST and records scrollUntilVisible metadata', async () => {
       await adapter.setup({ platform: 'web' })
       await adapter.observe()
@@ -315,7 +315,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('EXEC-02 scroll movement signals (436-02 · D-25)', () => {
+  describe('scroll movement signals', () => {
     type Offsets = { x: number; y: number; maxX: number; maxY: number }
 
     // A page whose evaluate answers the settle string, whose evaluateHandle answers the no-ref
@@ -469,7 +469,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('EXEC-03 openApp on web (D-09)', () => {
+  describe('openApp on web', () => {
     it('returns a structured error naming navigate(url) and never navigates the page', async () => {
       await adapter.setup({ platform: 'web' })
       mockPage.goto.mockClear()

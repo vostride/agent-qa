@@ -272,7 +272,7 @@ function productionSources(dir: string): string[] {
   return found
 }
 
-describe('ext-apps never crosses into production (Pitfall 3, T-408-19)', () => {
+describe('ext-apps never crosses into production', () => {
   it('(5) no file under src/ outside __tests__ IMPORTS the ext-apps package', () => {
     const sources = productionSources(SRC_ROOT)
     // The positive control FIRST: a census over an empty file list is a census that proves nothing,

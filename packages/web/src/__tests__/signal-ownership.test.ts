@@ -59,7 +59,7 @@ async function launchAndClose(adapter: WebPlatformAdapter): Promise<{ added: Add
   return { added, afterCleanup: stillAttached(added) }
 }
 
-describe('C444-CTRL-C-OWNED', () => {
+describe('Playwright signal listeners when the host owns its signals', () => {
   it('a browser launched for a host that owns its signals adds no Playwright SIGINT or SIGTERM listener', async () => {
     refuseWithoutChromium()
     const { added, afterCleanup } = await launchAndClose(new WebPlatformAdapter({ hostOwnsSignals: true }))

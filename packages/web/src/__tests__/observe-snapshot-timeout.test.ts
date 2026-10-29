@@ -113,7 +113,7 @@ function timeoutError(): Error {
   return Object.assign(new Error('locator.ariaSnapshot: Timeout exceeded'), { name: 'TimeoutError' })
 }
 
-describe('C436-OBSERVE-BOUND', () => {
+describe('the ai-mode snapshot timeout', () => {
   it('a main frame whose snapshot outlasts the short bound is still observed', async () => {
     const { web, tab, snapshot } = await open('/busy')
     const state = await web.observe()

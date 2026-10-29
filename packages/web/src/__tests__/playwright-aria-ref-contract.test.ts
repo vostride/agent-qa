@@ -82,7 +82,7 @@ async function pageClicks(page: Page): Promise<string[]> {
   return page.evaluate(() => (globalThis as unknown as { __clicks: string[] }).__clicks)
 }
 
-describe('C438-ARIA-REF-CONFORMANCE', () => {
+describe('the playwright-core aria-ref behaviour binding relies on', () => {
   it('refs follow a re-sorted node', async () => {
     const page = await open(ROWS_PAGE)
     const [elm] = refsOf(await aiSnapshot(page), 'button', 'Edit label')

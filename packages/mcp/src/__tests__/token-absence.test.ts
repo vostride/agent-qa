@@ -667,7 +667,7 @@ const PAST_THE_2027_TIME_BOMB = 2_000_000_000_000
 
 // ---- The law ------------------------------------------------------------------------------------
 
-describe('the minted liveUrl token reaches NO model-readable channel (408 D-01/D-14, T-408-17)', () => {
+describe('the minted liveUrl token reaches NO model-readable channel', () => {
   it('(A0) CONTROL: the flow really minted, and the ONE legal channel really carries the tokens',
     async () => {
       const flow = await driveFullFlow()
@@ -816,7 +816,7 @@ describe('the minted liveUrl token reaches NO model-readable channel (408 D-01/D
       ).toContain('tools/call:agent_qa_get_run_digest:content[].text')
     })
 
-  it('(A10) the fixture clock and the renderer clock are ONE clock — a system time past 2027-01-15 still renders a document carrying a liveUrl (WR-07, T-408-24)',
+  it('(A10) the fixture clock and the renderer clock are ONE clock — a system time past 2027-01-15 still renders a document carrying a liveUrl',
     async () => {
       // THE STUB GOES IN FIRST, because the fixture reads `Date.now()` once when it is built — a
       // stub installed afterwards would measure nothing. A spy rather than fake timers,

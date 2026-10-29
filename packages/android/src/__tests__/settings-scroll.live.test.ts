@@ -119,7 +119,7 @@ const toEndDown = (complete: boolean): Turn => () => act(
   'Scroll to the end of the settings list',
 )
 
-describe.skipIf(!LIVE)('C436-ANDROID-LIVE', () => {
+describe.skipIf(!LIVE)('Settings scrolling and step capture through the real loop on a live emulator', () => {
   let adapter: AndroidPlatformAdapter | undefined
 
   beforeEach(async () => {

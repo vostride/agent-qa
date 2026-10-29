@@ -135,7 +135,7 @@ async function judged(tab: Page, x: number, y: number, between?: () => Promise<u
 
 const ids = (members: IdentifiedScrollOffsets[] | undefined): string[] | undefined => members?.map((m) => m.id)
 
-describe('C436-WEBVIEW-SCRIPT the WebView scroller script in real Chromium (436-23 · D-25)', () => {
+describe('the WebView scroller script in real Chromium', () => {
   it('an iframe under the gesture reads unknown, never at-boundary', async () => {
     const tab = await open('/iframe-under')
     await toEnd(tab)

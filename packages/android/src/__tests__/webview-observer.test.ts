@@ -235,7 +235,7 @@ function textboxes(state: Awaited<ReturnType<typeof observe>>) {
   return state.elements.filter((e) => e.role === 'textbox')
 }
 
-describe('C437-WEBVIEW-OBSERVE', () => {
+describe('the WebView observer names fields by label and never observes typed or password text', () => {
   it('a labelled input and a labelled textarea both reach the tree, named by their labels', async () => {
     const state = await observe(
       page(

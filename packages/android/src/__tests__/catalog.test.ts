@@ -133,7 +133,7 @@ describe('AndroidPlatformAdapter catalog (RED — Wave-0)', () => {
     })
   })
 
-  describe('intent → mobile: startActivity typed args (T-360-02, Pitfall 6: zero shell interpolation)', () => {
+  describe('intent → mobile: startActivity typed args, with no shell interpolation', () => {
     it('typed action/extras reach mobile: startActivity, never an am-start shell string', async () => {
       reset()
       await adapter.execute({
@@ -173,7 +173,7 @@ describe('AndroidPlatformAdapter catalog (RED — Wave-0)', () => {
     })
   })
 
-  describe('keyevent → KEYCODE allow-list, args-array lane (T-360-02)', () => {
+  describe('keyevent → KEYCODE allow-list, args-array lane', () => {
     it('a KEYCODE_* string matching ^KEYCODE_[A-Z0-9_]+$ executes via a driver call carrying the code', async () => {
       reset()
       await adapter.execute({ type: 'keyevent', keycode: 'KEYCODE_ENTER' } as unknown as ExecAction)
@@ -244,7 +244,7 @@ describe('AndroidPlatformAdapter catalog (RED — Wave-0)', () => {
     })
   })
 
-  describe('retired cases (Plan 06 deletes them — pinned to the post-flip unreachable outcome)', () => {
+  describe('the retired assert, openLink and launchApp actions no longer succeed', () => {
     it('assert / openLink / launchApp are no longer handled as distinct successful cases', async () => {
       reset()
       const rAssert = await adapter.execute({ type: 'assert', condition: 'x' } as unknown as ExecAction)

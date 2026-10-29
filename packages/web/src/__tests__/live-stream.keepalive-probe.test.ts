@@ -51,13 +51,13 @@ function startedAdapter(cdp: unknown): { adapter: WebPlatformAdapter; internals:
   return { adapter, internals }
 }
 
-describe('428 review: the keepalive tells a bad moment from a withdrawn screencast', () => {
+describe('the keepalive tells a bad moment from a withdrawn screencast', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     vi.useRealTimers()
   })
 
-  it('WR-08 TRANSIENT-CAPTURE-KEEPS-SCREENCAST: a rejected capture on a session that still answers re-arms the keepalive', async () => {
+  it('TRANSIENT-CAPTURE-KEEPS-SCREENCAST: a rejected capture on a session that still answers re-arms the keepalive', async () => {
     const cdp = scriptedSession({ capture: false, probe: true })
     const { internals } = startedAdapter(cdp)
     const withdrawn = vi.spyOn(internals, 'handleScreencastWithdrawn').mockImplementation(() => undefined)
@@ -69,7 +69,7 @@ describe('428 review: the keepalive tells a bad moment from a withdrawn screenca
     internals.clearKeepalive()
   })
 
-  it('WR-08 TRANSIENT-CAPTURE-KEEPS-SCREENCAST: a session that fails the probe too is withdrawn', async () => {
+  it('TRANSIENT-CAPTURE-KEEPS-SCREENCAST: a session that fails the probe too is withdrawn', async () => {
     const cdp = scriptedSession({ capture: false, probe: false })
     const { internals } = startedAdapter(cdp)
     const withdrawn = vi.spyOn(internals, 'handleScreencastWithdrawn').mockImplementation(() => undefined)
@@ -79,7 +79,7 @@ describe('428 review: the keepalive tells a bad moment from a withdrawn screenca
     expect(withdrawn).toHaveBeenCalledWith(cdp)
   })
 
-  it('WR-08 SNAPSHOT-FALLBACK-RECOVERS: the fallback tries the screencast again, without taking focus, until it is back', async () => {
+  it('SNAPSHOT-FALLBACK-RECOVERS: the fallback tries the screencast again, without taking focus, until it is back', async () => {
     vi.useFakeTimers()
     const { internals } = startedAdapter(null)
     internals.withdrawnSnapshot = { stop: vi.fn(async () => undefined) }
@@ -101,7 +101,7 @@ describe('428 review: the keepalive tells a bad moment from a withdrawn screenca
     expect(rebind, 'nothing more once the screencast is back').toHaveBeenCalledTimes(2)
   })
 
-  it('WR-08 SNAPSHOT-FALLBACK-RECOVERS: stopping the fallback stops the recovery', async () => {
+  it('SNAPSHOT-FALLBACK-RECOVERS: stopping the fallback stops the recovery', async () => {
     vi.useFakeTimers()
     const { internals } = startedAdapter(null)
     internals.withdrawnSnapshot = { stop: vi.fn(async () => undefined) }

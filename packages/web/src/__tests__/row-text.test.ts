@@ -151,7 +151,7 @@ function withoutRowLines(snapshot: string): string {
   return snapshot.replace(/^(\s*-\s*)row\b/gm, '$1rowgroup')
 }
 
-describe('C438-ROW-PARSE', () => {
+describe('row text in the ai-mode snapshot', () => {
   it('the address list yields three listitems carrying their row text', async () => {
     const state = build(await snapshotOf(ADDRESSES_PAGE))
     const items = state.elements.filter((element) => element.role === 'listitem')

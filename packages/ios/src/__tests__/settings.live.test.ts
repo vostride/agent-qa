@@ -163,7 +163,7 @@ function tapsOn(executed: Action[], refs: Set<Ref>): Action[] {
   return executed.filter((a) => a.type === 'tap' && refs.has((a as { ref?: Ref }).ref as Ref))
 }
 
-describe.skipIf(!LIVE)('C437-IOS-LIVE', () => {
+describe.skipIf(!LIVE)('Settings switches and rows under desiredState on a live simulator', () => {
   let adapter: IOSPlatformAdapter | undefined
   let restore: SwitchTurn | undefined
 

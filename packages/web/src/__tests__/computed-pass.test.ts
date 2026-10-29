@@ -91,7 +91,7 @@ function clickThenGiveUp(seen: { failureContext?: string }): ScriptedTurn[] {
   ]
 }
 
-describe('C439-COMPUTED-PASS', () => {
+describe('a pass is computed from conditions that are met and cited', () => {
   it('a met condition cited from the final screen passes', async () => {
     const web = await open()
     const verifier = cannedVerifier(verification(

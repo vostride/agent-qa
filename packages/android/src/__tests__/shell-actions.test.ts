@@ -77,7 +77,7 @@ function keyevent(keycode: string) {
   return adapter.execute({ type: 'keyevent', keycode } as unknown as ExecAction)
 }
 
-describe('C437-SHELL-UNAVAILABLE', () => {
+describe('a refused mobile: shell records the action unavailable and any other driver error failed', () => {
   it('a refused keyevent is unavailable', async () => {
     shellError = new Error(SECURE_APPIUM_REFUSAL)
 

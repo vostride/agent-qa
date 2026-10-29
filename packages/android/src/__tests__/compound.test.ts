@@ -141,7 +141,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     return el.ref
   }
 
-  describe('EXEC-01 fill compound (D-05/D-06/D-07/D-08)', () => {
+  describe('fill compound', () => {
     it('replace mode types via setValue then re-reads getText() from the SAME focused handle, in order', async () => {
       await adapter.setup({ platform: 'android' })
       const ref = await refFor('Username')
@@ -204,7 +204,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(unsubmitted.metadata).not.toHaveProperty('fillSubmit')
     })
 
-    it('437 D-09: an unreadable re-read is unverified and still sends the requested Enter, after setValue and the read attempt', async () => {
+    it('an unreadable re-read is unverified and still sends the requested Enter, after setValue and the read attempt', async () => {
       await adapter.setup({ platform: 'android' })
       const ref = await refFor('Username')
       mockElement.getText.mockImplementation(() => { calls.push('getText'); return Promise.reject(new Error('stale element')) })
@@ -226,7 +226,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       })
     })
 
-    it('mismatch yields success:false + §7.1 error + fillReread meta, single-shot typing (D-08)', async () => {
+    it('mismatch yields success:false + §7.1 error + fillReread meta, single-shot typing', async () => {
       await adapter.setup({ platform: 'android' })
       const ref = await refFor('Username')
       focusedGetTextReturn = 'wrong'
@@ -257,7 +257,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('EXEC-02 scroll untilVisible (Pitfall 9 selector-injection)', () => {
+  describe('scroll untilVisible escapes or refuses a hostile selector target', () => {
     it('tries native mobile: scroll with the -android uiautomator strategy FIRST', async () => {
       await adapter.setup({ platform: 'android' })
       await adapter.observe()
@@ -304,7 +304,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('C436-SCROLL Android scroll signals (436-02 · D-25)', () => {
+  describe('Android scroll signals', () => {
     type Primitives = { swipeOnce(direction: string, ref?: string): Promise<string> }
     const primitivesOf = (a: AndroidPlatformAdapter): Promise<Primitives> =>
       (a as unknown as { buildAndroidScrollPrimitives(d: string, m: number): Promise<Primitives> })
@@ -403,7 +403,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('C436-SCROLL-WEBVIEW a WebView touch swipe is judged over every WebView scroller (436-18 · D-25)', () => {
+  describe('a WebView touch swipe is judged over every WebView scroller', () => {
     type Primitives = { swipeOnce(direction: string, ref?: string): Promise<string> }
     type Member = { id: string; x: number; y: number; maxX: number; maxY: number }
     // 2026-10-08 (436-23): members carry an identity; the document scroller is always `document`.
@@ -516,7 +516,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
     })
   })
 
-  describe('EXEC-03 openApp resolution (D-10/D-11/D-12)', () => {
+  describe('openApp resolution', () => {
     it('enumerates via mobile: listApps exactly ONCE across two consecutive resolutions (session cache)', async () => {
       listAppsReturn = { 'com.google.android.calendar': {}, 'com.android.settings': {} }
       await adapter.setup({ platform: 'android' })

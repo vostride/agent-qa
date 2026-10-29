@@ -163,7 +163,7 @@ async function openSettings(): Promise<AndroidPlatformAdapter> {
   return created
 }
 
-describe.skipIf(!LIVE)('C437-ANDROID-LIVE', () => {
+describe.skipIf(!LIVE)('Settings rows and switches under desiredState on a live emulator', () => {
   let adapter: AndroidPlatformAdapter | undefined
 
   beforeEach(async () => {
@@ -268,7 +268,7 @@ describe.skipIf(!LIVE)('C437-ANDROID-LIVE', () => {
   }, 240_000)
 })
 
-describe.skipIf(!LIVE || SECURE_APPIUM_URL === undefined)('C437-ANDROID-SECURE-LIVE', () => {
+describe.skipIf(!LIVE || SECURE_APPIUM_URL === undefined)('shell actions are recorded unavailable under secure Appium on a live emulator', () => {
   let adapter: AndroidPlatformAdapter | undefined
   let savedUrl: string | undefined
 

@@ -169,7 +169,7 @@ const SECURE_FIELD = '-ios class chain:**/XCUIElementTypeSecureTextField'
 const FOCUSED_TEXT_VIEW = '-ios class chain:**/XCUIElementTypeTextView[`hasFocus == 1`]'
 const SUBMIT_NOTICE = 'submit not sent: Return would add a new line in this multi-line field; tap its send or submit control'
 
-describe('IOSPlatformAdapter text input (AUTO-18)', () => {
+describe('IOSPlatformAdapter text input', () => {
   let adapter: IOSPlatformAdapter
   let mockDriver: ReturnType<typeof createMockDriver>
 
@@ -531,7 +531,7 @@ describe('IOSPlatformAdapter text input (AUTO-18)', () => {
     })
   })
 
-  describe('C437-FILL-IOS', () => {
+  describe('fill re-reads the iOS field and sends Return by the verdict', () => {
     it('a replace whose re-read equals the text records exact', async () => {
       await start()
       const ref = await refFor('Title')
@@ -573,7 +573,7 @@ describe('IOSPlatformAdapter text input (AUTO-18)', () => {
       })
     }
 
-    it('an unreadable re-read records unverified and still sends the requested Return once (WR-05, owner 2026-10-09)', async () => {
+    it('an unreadable re-read records unverified and still sends the requested Return once', async () => {
       unreadable(fields.title, 'title')
       await start()
       const ref = await refFor('Title')
@@ -692,7 +692,7 @@ describe('IOSPlatformAdapter text input (AUTO-18)', () => {
         })
       })
 
-      it('an append whose re-read equals the prior value is unverified (FA-1, owner 2026-10-08)', async () => {
+      it('an append whose re-read equals the prior value is unverified', async () => {
         await start()
         const ref = await refFor('Title')
 
@@ -706,7 +706,7 @@ describe('IOSPlatformAdapter text input (AUTO-18)', () => {
         expect(JSON.stringify(result)).not.toContain('abcXYZ')
       })
 
-      it('the same append into a single-line field with submit sends Return exactly once (FA-1, submit unchanged)', async () => {
+      it('the same append into a single-line field with submit sends Return exactly once', async () => {
         await start()
         const ref = await refFor('Title')
 
@@ -738,7 +738,7 @@ describe('IOSPlatformAdapter text input (AUTO-18)', () => {
     })
   })
 
-  describe('C438-IOS-UNIQUE-BOUNDS', () => {
+  describe('a fill uses only the one candidate whose rect matches the observed bounds', () => {
     beforeEach(() => {
       fields = { body: createField('body'), notes: createField('notes') }
     })

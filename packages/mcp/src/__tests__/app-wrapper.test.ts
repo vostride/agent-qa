@@ -93,7 +93,7 @@ const HINT_OF: Readonly<Record<AppWrapperState, string>> = {
   'run-ended': '',
 }
 
-describe('the closed state vocabulary (D-11)', () => {
+describe('the closed state vocabulary', () => {
   it('is exactly the five states this wrapper owns', () => {
     expect([...APP_WRAPPER_STATES]).toEqual([
       'connecting',
@@ -104,7 +104,7 @@ describe('the closed state vocabulary (D-11)', () => {
     ])
   })
 
-  it('renders every sentence it can ever show, RANGED over the exported state list (IN-04)', () => {
+  it('renders every sentence it can ever show, RANGED over the exported state list', () => {
     const html = render()
     // The census covers the vocabulary, not a subset of it a reader has to check by eye.
     expect(Object.keys(MESSAGE_OF), 'one message per state, no more').toHaveLength(
@@ -131,14 +131,14 @@ describe('the closed state vocabulary (D-11)', () => {
     }
   })
 
-  it('says exactly the CONTEXT sentence for a host that cannot reach the origin (D-11)', () => {
+  it('says exactly the CONTEXT sentence for a host that cannot reach the origin', () => {
     expect(APP_WRAPPER_UNREACHABLE_MESSAGE).toBe(
       "this host can't reach the live view — open it in your browser",
     )
   })
 })
 
-describe('expiry is an honest STATE, decided at render time (D-10)', () => {
+describe('expiry is an honest STATE, decided at render time', () => {
   it('renders `expired` when every mint has already aged out, with the sentence, the hint and the link', () => {
     const html = render({
       mints: [mint(0, NOW - 1), mint(1, NOW - 60_000)],
@@ -185,7 +185,7 @@ describe('expiry is an honest STATE, decided at render time (D-10)', () => {
   })
 })
 
-describe('a run this host holds no live session for (D-07)', () => {
+describe('a run this host holds no live session for', () => {
   it('renders `run-ended` with its sentence and assigns NO iframe src anywhere', () => {
     const html = renderAppWrapperPage({
       runId: RUN_ID,
@@ -216,7 +216,7 @@ describe('a run this host holds no live session for (D-07)', () => {
   })
 })
 
-describe('the frame, the picker and the link (D-06/D-08)', () => {
+describe('the frame, the picker and the link', () => {
   it('renders exactly one iframe, sandboxed and referrer-free', () => {
     const html = render({ mints: [mint(0, NOW + 300_000), mint(1, NOW + 300_000)] })
     expect(html.match(/<iframe\b/g) ?? []).toHaveLength(1)
@@ -301,7 +301,7 @@ describe('the frame, the picker and the link (D-06/D-08)', () => {
   })
 })
 
-describe('every value entering the script crosses the escape helper (T-403-09)', () => {
+describe('every value entering the script crosses the escape helper', () => {
   it('escapes a hostile run id that tries to close the script element', () => {
     const hostile = `run-</script><img src=x onerror=alert(1)>`
     const html = renderAppWrapperPage({
@@ -332,7 +332,7 @@ describe('every value entering the script crosses the escape helper (T-403-09)',
   })
 })
 
-describe('the wrapper renders NO run state of its own (D-11 prohibition)', () => {
+describe('the wrapper renders NO run state of its own', () => {
   it('has no step, status or verdict surface — structurally, not by wording', () => {
     const html = render({ mints: [mint(0, NOW + 300_000), mint(1, NOW + 300_000)] })
     for (const forbidden of [
