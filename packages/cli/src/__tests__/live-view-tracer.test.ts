@@ -422,7 +422,7 @@ describe('the tracer: one real CDP frame behind a function-layer-minted liveUrl'
 // socket. The server runs in THIS process, so its log is this process's console and standard
 // streams, captured for the whole exchange.
 
-/** Every line written to the console or the standard streams while `run` is in flight. */
+/** Records every console and standard-stream line written while `run` runs, and passes none on. */
 async function captureProcessLog<T>(run: () => Promise<T>): Promise<{ result: T; log: string }> {
   const lines: string[] = []
   const record = (...parts: unknown[]): void => {
@@ -435,16 +435,14 @@ async function captureProcessLog<T>(run: () => Promise<T>): Promise<{ result: T;
     vi.spyOn(console, 'error').mockImplementation(record),
     vi.spyOn(console, 'debug').mockImplementation(record),
   ]
-  const stdoutWrite = process.stdout.write.bind(process.stdout)
-  const stderrWrite = process.stderr.write.bind(process.stderr)
   const streamSpies = [
-    vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: unknown, ...rest: unknown[]) => {
+    vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: unknown) => {
       record(typeof chunk === 'string' ? chunk : Buffer.from(chunk as Uint8Array).toString('utf8'))
-      return (stdoutWrite as (...args: unknown[]) => boolean)(chunk, ...rest)
+      return true
     }) as typeof process.stdout.write),
-    vi.spyOn(process.stderr, 'write').mockImplementation(((chunk: unknown, ...rest: unknown[]) => {
+    vi.spyOn(process.stderr, 'write').mockImplementation(((chunk: unknown) => {
       record(typeof chunk === 'string' ? chunk : Buffer.from(chunk as Uint8Array).toString('utf8'))
-      return (stderrWrite as (...args: unknown[]) => boolean)(chunk, ...rest)
+      return true
     }) as typeof process.stderr.write),
   ]
   try {
@@ -481,8 +479,8 @@ describe('an editor token obeys every credential rule a run token does', () => {
       const { result, log } = await captureProcessLog(async () => {
         // THE CAPTURE'S OWN POSITIVE CONTROL: both channels are hooked, so an absence below is a
         // reading and not a deaf scanner.
-        console.log('428-12 capture control: console')
-        process.stderr.write('428-12 capture control: stderr\n')
+        console.log('capture control: console')
+        process.stderr.write('capture control: stderr\n')
 
         const mintResponse = await fetch(`${harness.origin}/api/live-editor/sessions/ed-log/live-url`)
         const mintBody = await mintResponse.text()
@@ -505,8 +503,8 @@ describe('an editor token obeys every credential rule a run token does', () => {
       })
 
       expect(result.mintStatus, 'the no-Origin caller mints').toBe(200)
-      expect(log, 'the capture saw the console').toContain('428-12 capture control: console')
-      expect(log, 'the capture saw stderr').toContain('428-12 capture control: stderr')
+      expect(log, 'the capture saw the console').toContain('capture control: console')
+      expect(log, 'the capture saw stderr').toContain('capture control: stderr')
       // THE NEEDLES' POSITIVE CONTROL: the mint's own body carries the token and its needle.
       expect(result.mintBody, 'the mint body is the one place the token is handed out').toContain(result.token)
       expect(result.mintBody).toContain('v2.')
