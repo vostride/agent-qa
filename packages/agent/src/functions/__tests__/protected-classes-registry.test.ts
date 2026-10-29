@@ -73,7 +73,7 @@ function declarations(): readonly FunctionDeclaration[] {
 describe('the protected action classes name real registered ops', () => {
   // RE-SPELLED 2026-10-01 (432-18) from 'is not vacuous: the catalogue and the protected set are both
   // non-empty': the catalogue still is, and the set is gone.
-  it('C432-NO-GRANT-CONTRACTS: the catalogue is non-empty and no protected-class set is published', () => {
+  it('the catalogue is non-empty and no protected-class set is published', () => {
     expect(declarations().length).toBeGreaterThan(0)
     const exported = Object.keys(schema)
     expect(exported.filter((name) => /protected/i.test(name)), 'a protected-class member is exported')
@@ -82,7 +82,7 @@ describe('the protected action classes name real registered ops', () => {
 
   // RE-SPELLED 2026-10-01 (432-18) from 'each member is the risk.name of EXACTLY ONE registered op'
   // and 'the BARE spelling of each member matches no registered op': both members' ops are deleted.
-  it('C432-NO-GRANT-OPS: neither former protected class names a registered op, prefixed or bare', () => {
+  it('neither former protected class names a registered op, prefixed or bare', () => {
     const names = declarations().flatMap((declaration) => [declaration.risk.name, declaration.id])
     for (const member of ['fn:proposals.accept', 'fn:grants.revoke']) {
       expect(names, member).not.toContain(member)

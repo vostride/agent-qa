@@ -39,7 +39,7 @@ function fullInput(): TieredPromptInput {
   }
 }
 
-describe('buildTieredPrompt (D-04 §1.4 skeleton)', () => {
+describe('buildTieredPrompt (§1.4 skeleton)', () => {
   it('is byte-deterministic: identical tier inputs produce identical {system, prompt}', () => {
     const first = buildTieredPrompt(fullInput())
     const second = buildTieredPrompt(fullInput())

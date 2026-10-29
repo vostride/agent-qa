@@ -7,7 +7,7 @@ import * as agent from '../../index.js'
 import { OPTIONAL_FUNCTION_DEP_KEYS } from '../spec'
 import type { FunctionDeps, OptionalFunctionDepKey } from '../spec'
 
-describe('optional function dep keys (419 GATE3-01)', () => {
+describe('optional function dep keys', () => {
   it('pins every host binding by name and declaration order', () => {
     expect([...OPTIONAL_FUNCTION_DEP_KEYS]).toEqual([
       'liveView',
@@ -64,7 +64,7 @@ const EXPECTED_BINDINGS = [
   'configWrite', 'secretMask',
 ]
 
-describe('C423-FEEDBACK-BINDINGS-EXACT', () => {
+describe('the feedback bindings', () => {
   it('pins the runtime roster exactly, with no missing, extra or repeated binding', () => {
     expect([...OPTIONAL_FUNCTION_DEP_KEYS]).toEqual(EXPECTED_BINDINGS)
     expect(new Set(OPTIONAL_FUNCTION_DEP_KEYS).size).toBe(OPTIONAL_FUNCTION_DEP_KEYS.length)
@@ -88,10 +88,10 @@ describe('C423-FEEDBACK-BINDINGS-EXACT', () => {
 
 // 2026-10-01, 432-18 (D-03/D-15): the standing-grant port leaves FunctionDeps with both rosters. The
 // type half of this claim is the same-named block in port-split.test-d.ts; this is the runtime half.
-describe('C432-GRANT-DEPS-ABSENT', () => {
+describe('no grant binding', () => {
   // RE-SPELLED 2026-10-14 (441-16, D-06) from '… and the roster counts 23': secretMask joins.
   // RE-SPELLED 2026-10-14 (441-39, D-15) from '… and the roster counts 24': the scan binding leaves.
-  it('C432-GRANT-DEPS-ABSENT: no optional binding names a grant port, and the roster counts 23', () => {
+  it('no optional binding names a grant port, and the roster counts 23', () => {
     const roster: readonly string[] = OPTIONAL_FUNCTION_DEP_KEYS
     expect(roster.includes('standingGrants'), 'standingGrants is still an optional binding').toBe(false)
     expect(roster.filter(key => /grant/i.test(key)), 'a grant-shaped binding replaced it').toEqual([])
@@ -117,15 +117,15 @@ const DEPS_TYPE_IS_EXACT: ExactKeys<
 > = true
 const OPTIONAL_TYPE_IS_ROSTER: Same<OptionalKeysOf<FunctionDeps>, OptionalFunctionDepKey> = true
 
-describe('C432-OPTIONAL-DEPS-EXACT', () => {
-  it('C432-OPTIONAL-DEPS-EXACT: the roster, the deps type and the agent barrel agree exactly', () => {
+describe('the optional binding roster', () => {
+  it('the roster, the deps type and the agent barrel agree exactly', () => {
     expect([DEPS_TYPE_IS_EXACT, OPTIONAL_TYPE_IS_ROSTER]).toEqual([true, true])
     expect([...OPTIONAL_FUNCTION_DEP_KEYS]).toEqual(EXPECTED_BINDINGS)
     // The barrel publishes the SAME runtime object, not a copy that could drift.
     expect(agent.OPTIONAL_FUNCTION_DEP_KEYS).toBe(OPTIONAL_FUNCTION_DEP_KEYS)
   })
 
-  it('C432-OPTIONAL-DEPS-EXACT: no binding is a permission, proposal, confirm or undo port', () => {
+  it('no binding is a permission, proposal, confirm or undo port', () => {
     const roster: readonly string[] = [...REQUIRED_DEP_KEYS, ...OPTIONAL_FUNCTION_DEP_KEYS]
     expect(roster).toHaveLength(27)
     // `authoringScope` is the authored-product scope port, not a permission scope, so the census

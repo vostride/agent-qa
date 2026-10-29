@@ -115,8 +115,8 @@ function numbered(count: number, from = 1): CompletedRunHandoff[] {
   })
 }
 
-describe('LIST-BOUNDARIES: runs.list order, cap and validation (D-08, EDGE-11..16)', () => {
-  it('returns [] for an empty store (EDGE-13)', async () => {
+describe('LIST-BOUNDARIES: runs.list order, cap and validation', () => {
+  it('returns [] for an empty store', async () => {
     expect(await harness([]).list({})).toEqual([])
   })
 
@@ -163,7 +163,7 @@ describe('LIST-BOUNDARIES: runs.list order, cap and validation (D-08, EDGE-11..1
     expect(reader.listCalls()).toBe(0)
   })
 
-  it('treats since as inclusive epoch milliseconds with no rounding (EDGE-12/16)', async () => {
+  it('treats since as inclusive epoch milliseconds with no rounding', async () => {
     const documents = [
       run({ runId: 'run-before', endedAt: 1_699_999_999_999 }),
       run({ runId: 'run-at', endedAt: 1_700_000_000_000 }),
@@ -176,7 +176,7 @@ describe('LIST-BOUNDARIES: runs.list order, cap and validation (D-08, EDGE-11..1
     expect(await harness(documents).list({ since: 0 })).toHaveLength(3)
   })
 
-  it('breaks an endedAt tie by runId descending, never by list order (EDGE-15)', async () => {
+  it('breaks an endedAt tie by runId descending, never by list order', async () => {
     const documents = [
       run({ runId: 'run-b', endedAt: 5_000 }),
       run({ runId: 'run-c', endedAt: 5_000 }),
@@ -200,7 +200,7 @@ describe('LIST-BOUNDARIES: runs.list order, cap and validation (D-08, EDGE-11..1
       .toEqual(['run-early-build', 'run-late-build'])
   })
 
-  it('reads one completed snapshot per invocation (EDGE-17)', async () => {
+  it('reads one completed snapshot per invocation', async () => {
     const reader = harness(numbered(5))
 
     await reader.list({ verdict: 'passed', test: 'checkout', limit: 2 })
@@ -259,7 +259,7 @@ describe('LIST-ROWS: every row names all of its tests', () => {
   })
 })
 
-describe('LIST-FILTERS: filters select before the cap (D-08, EDGE-13/14)', () => {
+describe('LIST-FILTERS: filters select before the cap', () => {
   it('filters by aggregate verdict before capping', async () => {
     const documents = [
       ...Array.from({ length: 21 }, (_, index) =>
@@ -323,7 +323,7 @@ describe('LIST-FILTERS: filters select before the cap (D-08, EDGE-13/14)', () =>
   })
 })
 
-describe('LIST-TARGETS: recorded targets through the narrow reader port (D-08, T-431-01)', () => {
+describe('LIST-TARGETS: recorded targets through the narrow reader port', () => {
   const recorded = (...names: string[]): RecordedTargets => ({ status: 'recorded', names })
 
   it('filters on an exact recorded target name before capping', async () => {

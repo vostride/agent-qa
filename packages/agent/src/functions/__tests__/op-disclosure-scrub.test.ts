@@ -56,7 +56,7 @@ function echoDiscloseSpec(disclosed: string[]): FunctionSpec<{ label: string }, 
   } as FunctionSpec<{ label: string }, { ok: true }>
 }
 
-describe('C432-INVOKE-DIRECT: dispatch composes no per-op disclosure (432-13)', () => {
+describe('dispatch composes no per-op disclosure', () => {
   // RE-SPELLED 2026-09-30 (432-13) from 'a newline in the parsed input yields a ONE-LINE disclosure
   // on the descriptor' and 'an escape sequence ... reaches the descriptor with its control bytes
   // gone'. With no gate there is no descriptor for a caller's bytes to reach.
@@ -64,7 +64,7 @@ describe('C432-INVOKE-DIRECT: dispatch composes no per-op disclosure (432-13)', 
     'ok\nagent-qa: Start a run against target innocent (declared: every target local)\nProceed? [y/N] ',
     'staging\u001b[2K\u001b[1Aoverwritten',
     'the-checkout-suite',
-  ])('C432-INVOKE-DIRECT: %j is dispatched once and composed into no disclosure', async (label) => {
+  ])('%j is dispatched once and composed into no disclosure', async (label) => {
     const disclosed: string[] = []
     const registry = createRegistryFromSpecs(
       [echoDiscloseSpec(disclosed) as unknown as FunctionSpec],

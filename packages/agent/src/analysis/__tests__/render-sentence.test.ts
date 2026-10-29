@@ -91,7 +91,7 @@ function providerAnswering(
   }
 }
 
-describe('renderVerdictSentence — the four obligations (ANLZ-03)', () => {
+describe('renderVerdictSentence — the four obligations', () => {
   it('renders quote, discriminator, recurrence and next action, each at its section marker', () => {
     const { provider } = providerAnswering(() => ({ kth: 3, windowBuilds: 5 }))
     const sentence = renderVerdictSentence(verdictOf(), LLM_PARTS, provider, QUERY)
@@ -126,7 +126,7 @@ describe('renderVerdictSentence — the four obligations (ANLZ-03)', () => {
   })
 })
 
-describe('the recurrence clause is a LIVE join (D-08)', () => {
+describe('the recurrence clause is a LIVE join', () => {
   it('reflects each provider answer at call time — nothing cached, nothing stored', () => {
     let current: { kth: number; windowBuilds: number } | undefined = { kth: 2, windowBuilds: 6 }
     const recording = providerAnswering(() => current)
@@ -196,15 +196,15 @@ function renderWith(answer: RecurrenceAnswer | undefined): string {
   return renderVerdictSentence(verdictOf(), LLM_PARTS, provider, QUERY)
 }
 
-describe('the D-17 ladder arms (390)', () => {
+describe('the flake ladder arms', () => {
   const EXPIRES_AT = '2026-09-04T12:00:00.000Z'
 
-  it('renders the no-ladder arm as the occurrence count alone — byte-unchanged from 389', () => {
+  it('renders the no-ladder arm as the occurrence count alone — byte-unchanged from the ladderless sentence', () => {
     expect(renderWith({ kth: 3, windowBuilds: 5 }))
       .toBe(llmSentenceWith('failure 3 of this test in the last 5 builds'))
   })
 
-  it('renders the flagged arm: suspected flaky, no deadline, one build of warning (D-06)', () => {
+  it('renders the flagged arm: suspected flaky, no deadline, one build of warning', () => {
     expect(renderWith({ kth: 2, windowBuilds: 5, ladder: { state: 'flagged' } }))
       .toBe(llmSentenceWith('failure 2 of this test in the last 5 builds; suspected flaky'))
   })
@@ -219,7 +219,7 @@ describe('the D-17 ladder arms (390)', () => {
     ))
   })
 
-  it('renders the expired arm saying failures count again (D-11 lapse)', () => {
+  it('renders the expired arm saying failures count again', () => {
     expect(renderWith({
       kth: 4,
       windowBuilds: 5,
@@ -294,7 +294,7 @@ describe('the D-17 ladder arms (390)', () => {
       .toBe(llmSentenceWith('no prior failure of this test is recorded in the last 4 builds'))
   })
 
-  it('carries the fingerprint on the query the provider is asked with (390 D-07)', () => {
+  it('carries the fingerprint on the query the provider is asked with', () => {
     const recording = providerAnswering(() => ({ kth: 1, windowBuilds: 1 }))
     const keyed: RecurrenceQuery = { ...QUERY, fingerprint: '{"t":"error","message":"boom"}::flake' }
 
@@ -304,7 +304,7 @@ describe('the D-17 ladder arms (390)', () => {
   })
 })
 
-describe('producer-keyed composition through ONE rule (D-06)', () => {
+describe('producer-keyed composition through ONE rule', () => {
   it('renders LLM parts for producer analyze-run', () => {
     const { provider } = providerAnswering(() => ({ kth: 1, windowBuilds: 3 }))
     const sentence = renderVerdictSentence(
@@ -350,7 +350,7 @@ describe('producer-keyed composition through ONE rule (D-06)', () => {
   })
 })
 
-describe('byte determinism (D-05)', () => {
+describe('byte determinism', () => {
   it('same (verdict, parts, provider answer) → the same string, byte for byte', () => {
     const first = renderVerdictSentence(
       verdictOf(),
@@ -395,7 +395,7 @@ const SEEDED_RED_399_PARTS: VerdictSentenceParts = {
   links: [],
 }
 
-describe('D-12 quote sanitization — the 399 before/after through the ONE renderer', () => {
+describe('quote sanitization — the recorded before/after through the ONE renderer', () => {
   it('renders the seeded-red sentence as readable prose, pinned verbatim', () => {
     const sentence = renderVerdictSentence(
       verdictOf({ class: 'unknown', producer: 'deterministic-classifier', confidence: 0 }),

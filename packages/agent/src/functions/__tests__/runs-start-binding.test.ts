@@ -299,7 +299,7 @@ function statusOf(registry: ReturnType<typeof registryWith>, id: string): string
   return registry.list(RUN_CALLER).find((declaration) => declaration.id === id)?.bindingStatus
 }
 
-describe('bindingStatus is a fact about a COMPOSITION, computed (D-16)', () => {
+describe('bindingStatus is a fact about a COMPOSITION, computed', () => {
   it('reads bound and unbound off ONE spec, from two registries in one process', () => {
     const bound = registryWith(recordingInvocation().port)
     const unbound = registryWith(undefined)

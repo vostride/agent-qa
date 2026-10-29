@@ -113,7 +113,7 @@ function successorKinds(requests: readonly ChainedJobRequest[]): string[] {
   return requests.map((request) => request.kind)
 }
 
-describe('the real post-run kinds (388 D-04)', () => {
+describe('the real post-run kinds', () => {
   it('declares curate-memory as the one allowed successor of analyze-run', () => {
     // The topology half — declared equals produced, and the list is asserted literally rather
     // than counted so the diff says WHAT returned. A second declared successor REDs here by
@@ -306,7 +306,7 @@ describe('curate-memory ends the post-run chain', () => {
   })
 })
 
-describe('C442-RUN-CONFIG-CURATION', () => {
+describe('a curation run handed back to its own project', () => {
   // 2026-10-16 (442-10, D-17): a hand-back is the existing retryable outcome carrying its reason.
   it('a curate-memory fold that hands its run back is retryable with its reason', async () => {
     const reason =

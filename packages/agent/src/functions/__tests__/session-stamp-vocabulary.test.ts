@@ -137,7 +137,7 @@ describe('the session facts the chat surface stamps are pinned to the ops that c
     expect(idsCarryingTopLevelKey('window').size).toBeGreaterThan(0)
   })
 
-  it('SET-EQUALS the sessionRef-carrying ops — a sibling cannot be silently omitted (CR-02)', () => {
+  it('SET-EQUALS the sessionRef-carrying ops — a sibling cannot be silently omitted', () => {
     // THE CELL. Its failure names the ids on both sides, because "the set is wrong" is not
     // something anybody can act on, and the whole defect was that nobody could see which op was
     // missing. Removing `authoring.draft.verify` from the constant reds this by that name.
@@ -159,7 +159,7 @@ describe('the session facts the chat surface stamps are pinned to the ops that c
     expect(idsCarryingTopLevelKey('sessionRef').has('runs.list')).toBe(false)
   })
 
-  it('the derivation SEES the whole catalogue — an opaque input reds by id (WR-05)', () => {
+  it('the derivation SEES the whole catalogue — an opaque input reds by id', () => {
     // The skip is silent by construction: a declaration the walk cannot read contributes to
     // neither side of the equalities above, so both stay green over an op nobody stamped. This
     // cell turns that into a decision point NAMING the offending id — at which point either the

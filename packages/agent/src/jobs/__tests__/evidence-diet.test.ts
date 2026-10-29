@@ -57,7 +57,7 @@ function historyOf(entries: readonly { buildOrdinal: number; passed: boolean }[]
 
 const byLength = (text: string): number => text.length
 
-describe('buildEvidencePacks — the D-02 diet', () => {
+describe('buildEvidencePacks — the evidence diet', () => {
   it('windows the failing step ± EVIDENCE_WINDOW_STEPS with both flanks present', () => {
     const handoff = buildSyntheticHandoff({ passingStepsBefore: 3, passingStepsAfter: 3 })
     const [pack] = buildEvidencePacks(handoff, [0], NO_HISTORY)
@@ -214,7 +214,7 @@ describe('buildEvidencePacks — the D-02 diet', () => {
   })
 })
 
-describe('compactEvidencePacks — the D-01 ladder', () => {
+describe('compactEvidencePacks — the compaction ladder', () => {
   const LONG = 'x'.repeat(QUOTE_FIELD_CAP + 200)
 
   function ladderPacks(): EvidencePack[] {
@@ -271,7 +271,7 @@ describe('compactEvidencePacks — the D-01 ladder', () => {
     }
   })
 
-  it('rung 1 strips screenshotRefs from every pack, text sections byte-identical (D-02/L9)', () => {
+  it('rung 1 strips screenshotRefs from every pack, text sections byte-identical', () => {
     const packs = ladderPacks()
     const [, atRung1] = resultsAtEveryRung(packs)
     for (const pack of atRung1.packs) expect(pack.screenshotRefs).toEqual([])
@@ -362,7 +362,7 @@ function withLimitStopOnFailingStep(
   }
 }
 
-describe('evidence-diet — the limit stop quote (436 D-12)', () => {
+describe('evidence-diet — the limit stop quote', () => {
   const limitStop: LimitStopEvidence = {
     limit: 'actions',
     configured: 30,

@@ -79,7 +79,7 @@ function stub() {
   return { port, mark, outcome }
 }
 
-describe('runs.mark registration and binding (419 GATE3-01)', () => {
+describe('runs.mark registration and binding', () => {
   it('declares the lowercase-dot identity, a non-read-only risk and the feedback binding', () => {
     expect(RUNS_MARK_FUNCTION_ID).toBe('runs.mark')
     expect(RUNS_MARK_FUNCTION_ID).toMatch(/^[a-z]+(?:\.[a-z]+)+$/)
@@ -121,8 +121,8 @@ describe('runs.mark registration and binding (419 GATE3-01)', () => {
 // RE-SPELLED 2026-09-30 (432-13, D-04/D-14) from 'no-TTY gate on the actual mark op (419
 // D-13/D-20)'. The op gate is gone: a mark from a no-TTY caller reaches the port once, whatever
 // credential it carries or lacks, and nobody is asked.
-describe('C432-INVOKE-DIRECT — the mark op reaches its port in one call (432-13)', () => {
-  it('C432-INVOKE-DIRECT: an uncredentialed MCP agent reaches the port once, with no refusal', async () => {
+describe('the mark op reaches its port in one call', () => {
+  it('an uncredentialed MCP agent reaches the port once, with no refusal', async () => {
     const { port, mark, outcome } = stub()
     expect(await invokeFunction(host(port), RUNS_MARK_FUNCTION_ID, INPUT, CALLER)).toEqual(outcome)
     expect(mark.mock.calls).toEqual([[INPUT]])
@@ -134,7 +134,7 @@ describe('C432-INVOKE-DIRECT — the mark op reaches its port in one call (432-1
     expect(mark.mock.calls).toEqual([[INPUT]])
   })
 
-  it('C432-INVOKE-DIRECT: a mismatched credential is not consulted, and the port is reached once', async () => {
+  it('a mismatched credential is not consulted, and the port is reached once', async () => {
     const { port, mark, outcome } = stub()
     expect(await invokeFunction(host(port), RUNS_MARK_FUNCTION_ID, INPUT, {
       ...CALLER, credential: { scope: { project: 'another-workspace' } },
@@ -180,7 +180,7 @@ describe('mark outcome classifications omit producer text', () => {
   })
 })
 
-describe('runs.detail mark projection (419 D-11/D-15)', () => {
+describe('runs.detail mark projection', () => {
   const rows: RunDetailRows = {
     runId: RUN_ID,
     // Deliberately not positional: marks join by testIndex, not by array offset.

@@ -213,7 +213,7 @@ async function carried(options: { readonly suiteText?: readonly SuiteText[] } = 
   return AuthoringDraftWriteOutputSchema.parse(answered)
 }
 
-describe('the op carries the fan-out report it computed (SC-5, the reporting half)', () => {
+describe('the op carries the fan-out report it computed (the reporting half)', () => {
   it('a drafted invocation answers with a fanOut report that survives the output contract', async () => {
     const output = await carried()
 
@@ -267,7 +267,7 @@ describe('the op carries the fan-out report it computed (SC-5, the reporting hal
 // 2026-09-30, 432 D-06: re-spelled in place. These cells pinned the proposal 394-18 filed before
 // the op answered. The drafted outcome is now written, not filed, so each keeps its subject — what
 // the op does with a drafted outcome before it answers — and measures the write.
-describe('the drafted outcome is WRITTEN before this op answers (432 D-06, was 394-18)', () => {
+describe('the drafted outcome is WRITTEN before this op answers', () => {
   it('writes the drafted outcome once through the shelf and files no proposal', async () => {
     const filed: AuthoringProposalWrite[] = []
     const published: { readonly draftPath: string; readonly targetPath: string }[] = []

@@ -220,7 +220,7 @@ function load399RedHandoff(): CompletedRunHandoff {
   return guardCompletedRunHandoff(JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')))
 }
 
-describe('the trimmed 399 red handoff fixture still loads through the shipped guard', () => {
+describe('the trimmed red handoff fixture still loads through the shipped guard', () => {
   it('is a captured red handoff that loads, with one failed member whose floor is unknown', () => {
     const handoff = load399RedHandoff()
 
@@ -278,7 +278,7 @@ describe('(a) a red synthetic run whose model answers validly is authored in ONE
   })
 })
 
-describe('(b) the REAL 399 red handoff is authored the same way', () => {
+describe('(b) the REAL recorded red handoff is authored the same way', () => {
   it('upgrades its unknown member when the quote is verbatim from the failing step', async () => {
     const handoff = load399RedHandoff()
     const failingStep = handoff.tests[0]?.steps[1]
@@ -325,7 +325,7 @@ describe('(c) an unparseable model answer degrades to the floor and the job stil
   })
 })
 
-describe('(d) a capability that throws propagates out of the handler (D-15, no catch)', () => {
+describe('(d) a capability that throws propagates out of the handler (no catch)', () => {
   it('rejects with the readTestHistory error rather than degrading to the floor', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const run = harness(handoff, {

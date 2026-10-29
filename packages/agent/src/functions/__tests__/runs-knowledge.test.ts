@@ -331,7 +331,7 @@ function realShapedDiff(snapshot: ReturnType<typeof fixedSnapshot>): RecordChang
 const identityOf = (row: RecordChange) =>
   [row.recordId, row.change, row.atOrdinal, row.byRecordId ?? '', row.evidenceToken ?? ''].join('|')
 
-describe('423 current content and fixed historical sections', () => {
+describe('current content and fixed historical sections', () => {
 
   it('USED-ALL-CHANNELS: one union batch enriches learned and every used channel', async () => {
     const showRecords = vi.fn(async ({ recordIds }: { recordIds: readonly string[] }) => recordIds.map(currentRecord))
@@ -584,7 +584,7 @@ async function ready(options: DepsOptions = {}) {
   return result
 }
 
-describe('the spec declares a read-tier, everywhere-bound contract (D-05)', () => {
+describe('the spec declares a read-tier, everywhere-bound contract', () => {
   it('names its id, scopes and risk the way its read siblings do', () => {
     expect(runsKnowledgeSpec.id).toBe('runs.knowledge')
     // RE-SPELLED 2026-10-01 (432-26, D-12) from `requiredScopes` equal to ['read']: the op declares
@@ -610,7 +610,7 @@ describe('the spec declares a read-tier, everywhere-bound contract (D-05)', () =
   // 432-24). What survives is the half a scope stood for: a sibling this read composes must itself
   // be a recognized read-only op, so the composition never performs a mutation the caller did not
   // ask for and no receipt records.
-  it('composes only siblings that declare the same read tier it does (407-12, WR-08)', () => {
+  it('composes only siblings that declare the same read tier it does', () => {
     expect(runsKnowledgeSpec.risk.readOnly).toBe(true)
     for (const spec of [runsPostProcessingSpec, knowledgeRecordsDiffSpec, runsDigestSpec]) {
       expect(spec.risk.readOnly, spec.id).toBe(runsKnowledgeSpec.risk.readOnly)
@@ -619,7 +619,7 @@ describe('the spec declares a read-tier, everywhere-bound contract (D-05)', () =
   })
 })
 
-describe('the Used half projects every step of every member test (LERN-01, D-03)', () => {
+describe('the Used half projects every step of every member test', () => {
   it('flat-maps both tests in order and keeps testIndex beside the per-test stepIndex', async () => {
     const result = await ready()
 
@@ -657,7 +657,7 @@ describe('the Used half projects every step of every member test (LERN-01, D-03)
     expect(result.steps[2]?.served.channel1[0]?.servedAsCanary).toBe(true)
   })
 
-  it('answers each step with the trace it recorded, or the named absence (D-04)', async () => {
+  it('answers each step with the trace it recorded, or the named absence', async () => {
     const result = await ready()
 
     expect(result.steps[0]?.trace).toEqual({
@@ -672,7 +672,7 @@ describe('the Used half projects every step of every member test (LERN-01, D-03)
     expect(result.steps[1]?.trace).toEqual({ kind: 'no-trace', reason: 'pre-trace-run' })
   })
 
-  it('passes a replay and a hint plan source through verbatim (D-07)', async () => {
+  it('passes a replay and a hint plan source through verbatim', async () => {
     const result = await ready()
 
     expect(result.steps[0]?.planSource).toEqual(REPLAY)
@@ -682,7 +682,7 @@ describe('the Used half projects every step of every member test (LERN-01, D-03)
   })
 })
 
-describe('the plan source is PICKED onto the wire, never spread (CR-01)', () => {
+describe('the plan source is PICKED onto the wire, never spread', () => {
   it('carries the runner-written flow cursor of a real replay onto the wire', async () => {
     // The exact input CR-01 reproduced a `ZodError` with: the arm is `.strict()`, the runner
     // writes `flow` unconditionally, and before 407-12 this refused rather than projected.
@@ -731,7 +731,7 @@ describe('the plan source is PICKED onto the wire, never spread (CR-01)', () => 
   })
 })
 
-describe('a pruned handoff is a result, not a throw (D-06)', () => {
+describe('a pruned handoff is a result, not a throw', () => {
   it('answers evidence-incomplete for a run the runs port cannot load', async () => {
     const result = await runsKnowledgeSpec.invoke(
       { runId: asRunId(RUN_ID) },
@@ -748,7 +748,7 @@ describe('a pruned handoff is a result, not a throw (D-06)', () => {
   })
 })
 
-describe('the store binding is derived from durable bytes (D-16)', () => {
+describe('the store binding is derived from durable bytes', () => {
   it('reads unbound when every step carries the no-reader truncation and no rung', async () => {
     const document = handoff([
       test(0, [
@@ -776,7 +776,7 @@ describe('the store binding is derived from durable bytes (D-16)', () => {
   })
 })
 
-describe('the recorded rung is projected per step and at run level (TRST-01, D-13)', () => {
+describe('the recorded rung is projected per step and at run level', () => {
   it('lifts the first recorded rung to the run and keeps it on the step that carries it', async () => {
     // 407-03 adds `StepEvidence.retrievalRung`; this op reads it forward-compatibly, so the
     // fixture attaches it structurally exactly as the runner will write it.
@@ -801,7 +801,7 @@ describe('the recorded rung is projected per step and at run level (TRST-01, D-1
   })
 })
 
-describe('the curation word and its counts mirror the chip (LERN-02, D-09/D-12)', () => {
+describe('the curation word and its counts mirror the chip', () => {
   it('reads pending with no counts when this host owns no queue database', async () => {
     const result = await ready()
 
@@ -836,7 +836,7 @@ describe('the curation word and its counts mirror the chip (LERN-02, D-09/D-12)'
   })
 })
 
-describe('learned changes are attributed, never windowed (LERN-02, D-10)', () => {
+describe('learned changes are attributed, never windowed', () => {
   const MINE = change({ recordId: 'rec-mine', sourceRunId: RUN_ID })
   const BY_OBSERVATION = change({ recordId: 'rec-obs', observationId: 'canary-outcome:abc' })
   const NEIGHBOUR = change({ recordId: 'rec-theirs', sourceRunId: OTHER_RUN_ID })
@@ -862,7 +862,7 @@ describe('learned changes are attributed, never windowed (LERN-02, D-10)', () =>
     expect(result.learned.changes.map((row) => row.recordId)).toEqual(['rec-mine', 'rec-obs'])
   })
 
-  it('projects only attributed canary rows, keyed by the step that served the line (D-08)', async () => {
+  it('projects only attributed canary rows, keyed by the step that served the line', async () => {
     const result = await ready({
       knowledge: {
         canaryAttributions: () => Promise.resolve({
@@ -905,7 +905,7 @@ describe('learned changes are attributed, never windowed (LERN-02, D-10)', () =>
   })
 })
 
-describe('an unrelated malformed bundle degrades the Learned enrichments, never the read (CR-03)', () => {
+describe('an unrelated malformed bundle degrades the Learned enrichments, never the read', () => {
   // The knowledge store's own fail-closed error, built the way the op must recognise it: BY NAME.
   // `packages/agent` is storage-neutral and cannot import `KnowledgeMaintenanceScanError` from
   // `knowledge-local`, and neither may this file — so the cell constructs the exact wire the op
@@ -989,7 +989,7 @@ describe('an unrelated malformed bundle degrades the Learned enrichments, never 
   })
 })
 
-describe('a partial attribution walk raises the flag by CONTRACT, and the op emits rows beside it (407-19, REVIEW WR-03)', () => {
+describe('a partial attribution walk raises the flag by CONTRACT, and the op emits rows beside it', () => {
   // Before 407-19 the ONLY reason a half-read store reached the wire as `scanIncomplete` was that
   // `diffSince` happened to throw on the same bundle. That coupling is not a contract: it does not
   // hold when the two reads see different stores, and it disappears the moment anyone applies
@@ -1006,7 +1006,7 @@ describe('a partial attribution walk raises the flag by CONTRACT, and the op emi
     outcome: 'confirmed' as const,
   }
 
-  it('raises scanIncomplete from the walk\'s OWN count, keeping BOTH lists (the CR-01 shape)', async () => {
+  it('raises scanIncomplete from the walk\'s OWN count, keeping BOTH lists', async () => {
     // The exact projection 407-18's rows-first view renders — now produced by the shipped op from
     // real inputs rather than hand-built in a view fixture: rows on both lists AND the flag.
     const result = await ready({
@@ -1056,7 +1056,7 @@ describe('a partial attribution walk raises the flag by CONTRACT, and the op emi
 
 // RE-SPELLED 432-09 (D-25) from 'the proposals line rides only where an inbox is bound (D-11)': the tab
 // shows what changed and never what awaits review, so no host joins a pending-proposal count.
-describe('no pending-proposal count rides the projection, inbox bound or not (432-09 D-25)', () => {
+describe('no pending-proposal count rides the projection, inbox bound or not', () => {
   it('carries no pendingProposalCount key on a host with no inbox', async () => {
     const result = await ready()
 
@@ -1121,7 +1121,7 @@ describe('the DTO never carries a null and always validates', () => {
 
 // ── 423 D-22: versioned rung causes through the existing runs.knowledge read ──────────────────
 // Hand-spelled bytes, because this storage-neutral package cannot call the knowledge-local fold.
-describe('423 recorded rung causes on runs.knowledge (D-22)', () => {
+describe('recorded rung causes on runs.knowledge', () => {
   const CURRENT_FOLDS = [
     { face: 'absent', rung: { schemaVersion: 2, rung: 'bundle-scan', reason: 'index-not-built' } },
     { face: 'locked', rung: { schemaVersion: 2, rung: 'bundle-scan', reason: 'index-locked' } },
@@ -1221,8 +1221,8 @@ describe('423 recorded rung causes on runs.knowledge (D-22)', () => {
 // Retried from three callers that differ in surface and origin, and that carry no scope at all,
 // both are served every time: each attempt reaches the same ports the same number of times, every
 // caller gets the same answer, and no audit row is written.
-describe('C432-ALL-OPS-AVAILABLE: the run knowledge reads serve every caller', () => {
-  it('C432-ALL-OPS-AVAILABLE: a retried runs.knowledge and runs.postprocessing are served alike to every caller', async () => {
+describe('the run knowledge reads serve every caller', () => {
+  it('a retried runs.knowledge and runs.postprocessing are served alike to every caller', async () => {
     const base = deps({
       bindPostProcessing: true,
       chain: {

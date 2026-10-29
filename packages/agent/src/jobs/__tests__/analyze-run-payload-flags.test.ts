@@ -82,7 +82,7 @@ async function runAnalyzeRun(payload: unknown): Promise<JobHandlerOutcome> {
   return createRealJobKindRegistry(LOAD_THROWS).require('analyze-run').handler(contextFor(payload))
 }
 
-describe('readAnalyzeRunPayload — WTST-06 D-20 flag propagation, read half', () => {
+describe('readAnalyzeRunPayload — flag propagation, read half', () => {
   it('accepts the legacy four-field payload with BOTH flags absent, never false', () => {
     const read = readAnalyzeRunPayload(LEGACY_PAYLOAD)
     expect(read).toBeDefined()
@@ -165,7 +165,7 @@ describe('readAnalyzeRunPayload — WTST-06 D-20 flag propagation, read half', (
   })
 })
 
-describe('the real analyze-run handler reads THIS reader (D-20 join)', () => {
+describe('the real analyze-run handler reads THIS reader', () => {
   it('lets a flagged payload past the shape refusal — it dies at the handoff load instead', async () => {
     const outcome = await runAnalyzeRun({
       ...LEGACY_PAYLOAD,

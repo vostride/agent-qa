@@ -165,7 +165,7 @@ describe('the three quarantine verbs are registered under the locked taxonomy', 
 // asserted `['read']` on list and `['knowledge-write']` on release and add. No verb declares a
 // scope now; the read/write split it pinned survives on the risk descriptor, asserted unchanged.
 
-describe('risk classification (D-13)', () => {
+describe('risk classification', () => {
   it('declares list read-tier and read-only', () => {
     expect(quarantineListSpec).not.toHaveProperty('requiredScopes')
     expect(quarantineListSpec.risk.readOnly).toBe(true)
@@ -246,7 +246,7 @@ describe('an unbound host refuses BY NAME, never a silent no-op', () => {
 // ---- Bound: the ops forward, and add nothing ---------------------------
 
 describe('with a port bound, each op forwards and adds nothing of its own', () => {
-  it('serves the port entries VERBATIM — the op re-sorts nothing (D-12 ordering is the port law)', async () => {
+  it('serves the port entries VERBATIM — the op re-sorts nothing (the port owns the ordering)', async () => {
     // Deliberately NOT in any order the op could have produced: unassigned last, expiry
     // descending, testName descending. A sort in the op would visibly rewrite this.
     const entries = [
@@ -324,8 +324,8 @@ describe('with a port bound, each op forwards and adds nothing of its own', () =
 // The two writes once required `knowledge-write`. Retried from three callers that differ in surface
 // and origin, and that carry no scope at all, each write is served every time: the port is reached
 // once per attempt, and every caller gets the same answer.
-describe('C432-ALL-OPS-AVAILABLE: the quarantine writes serve every caller', () => {
-  it('C432-ALL-OPS-AVAILABLE: a retried add and release are served alike to every caller', async () => {
+describe('the quarantine writes serve every caller', () => {
+  it('a retried add and release are served alike to every caller', async () => {
     const { port, added, released } = stubPort([])
     const registry = createFunctionRegistry({
       deps: deps(port),

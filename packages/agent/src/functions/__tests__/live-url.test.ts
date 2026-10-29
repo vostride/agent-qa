@@ -113,7 +113,7 @@ describe('base64url helpers are a round trip over the claims body', () => {
   })
 })
 
-describe('mintLiveUrlToken / validateLiveUrlToken (403 D-01/D-02)', () => {
+describe('mintLiveUrlToken / validateLiveUrlToken', () => {
   it('round-trips a freshly minted token to ok with the claims intact', () => {
     const token = mintLiveUrlToken(fakeSigner, claims())
     const verdict = validateLiveUrlToken(fakeSigner, token, AT_RUN_ALPHA)
@@ -172,7 +172,7 @@ describe('mintLiveUrlToken / validateLiveUrlToken (403 D-01/D-02)', () => {
     }
   })
 
-  it('refuses another run id as scope_mismatch (cross-run scope confusion, T-403-03)', () => {
+  it('refuses another run id as scope_mismatch (cross-run scope confusion)', () => {
     const token = mintLiveUrlToken(fakeSigner, claims())
     const other = { subject: { kind: 'run', id: 'run-other' }, now: NOW } as const
     expect(validateLiveUrlToken(fakeSigner, token, other))
@@ -187,7 +187,7 @@ describe('mintLiveUrlToken / validateLiveUrlToken (403 D-01/D-02)', () => {
       .toEqual({ kind: 'refused', reason: 'scope_mismatch' })
   })
 
-  it('puts the token in the FRAGMENT and nowhere else (D-04)', () => {
+  it('puts the token in the FRAGMENT and nowhere else', () => {
     const url = liveUrlOf('http://localhost:4321', 'run-alpha', 'v2.body.sig')
     expect(url).toBe('http://localhost:4321/live/run-alpha#v2.body.sig')
     expect(url.split('#')[0], 'no query, no path segment — the fragment is the only carriage')
@@ -196,7 +196,7 @@ describe('mintLiveUrlToken / validateLiveUrlToken (403 D-01/D-02)', () => {
   })
 })
 
-describe('the token names its subject; one kind never opens the other (428 D-07)', () => {
+describe('the token names its subject; one kind never opens the other', () => {
   const AS_RUN = { subject: { kind: 'run', id: 'shared' }, now: NOW } as const
   const AS_EDITOR = { subject: { kind: 'editor', id: 'shared' }, now: NOW } as const
   const runSubject = { kind: 'run', runId: 'shared', handle: 0 } as const
@@ -271,7 +271,7 @@ describe('the token names its subject; one kind never opens the other (428 D-07)
   })
 })
 
-describe('runs.liveurl through invokeFunction (403 D-03)', () => {
+describe('runs.liveurl through invokeFunction', () => {
   it('returns a schema-parseable result whose liveUrl is origin + /live/ + fragment', async () => {
     const live = recordingLiveView()
     const result = RunsLiveUrlResultSchema.parse(
@@ -328,7 +328,7 @@ describe('runs.liveurl through invokeFunction (403 D-03)', () => {
     expect(live.minted, 'one registration per mint — no more, no fewer').toHaveLength(2)
   })
 
-  it('NEVER puts the token or the URL in the classify outcome (LIVE-02, D-04)', async () => {
+  it('NEVER puts the token or the URL in the classify outcome', async () => {
     const live = recordingLiveView()
     const result = RunsLiveUrlResultSchema.parse(
       await invokeFunction(registryWith(live.port), RUNS_LIVE_URL_FUNCTION_ID, { runId: 'run-alpha', handle: 3 }, CALLER),

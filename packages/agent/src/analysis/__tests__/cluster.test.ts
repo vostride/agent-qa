@@ -29,7 +29,7 @@ function appBug(perTest: number, confidence: number): Verdict {
   }
 }
 
-describe('clusterVerdicts — the ANLZ-04 shape (D-14/D-15)', () => {
+describe('clusterVerdicts — one cluster per anchor and failure class', () => {
   it('folds 40 failures sharing one anchor and one class into ONE cluster of count 40', () => {
     const handoff = buildSyntheticHandoff({ failureCount: 40 })
     const resolved = resolveRunVerdicts(undefined, handoff)
@@ -89,7 +89,7 @@ describe('clusterVerdicts — the ANLZ-04 shape (D-14/D-15)', () => {
   })
 })
 
-describe('representative selection (D-15)', () => {
+describe('representative selection', () => {
   it('selects the highest-confidence member as representative', () => {
     const handoff = buildSyntheticHandoff({
       failureCount: 2,
@@ -117,7 +117,7 @@ describe('representative selection (D-15)', () => {
   })
 })
 
-describe('deterministic presentation (D-14)', () => {
+describe('deterministic presentation', () => {
   it('produces byte-identical output from shuffled input verdicts', () => {
     const handoff = buildSyntheticHandoff({
       failureCount: 6,
@@ -134,7 +134,7 @@ describe('deterministic presentation (D-14)', () => {
       .toBe(canonicalJson(clusterVerdicts(resolved, handoff)))
   })
 
-  it('carries fingerprint value, count and member refs ONLY — no minted identity (D-16)', () => {
+  it('carries fingerprint value, count and member refs ONLY — no minted identity', () => {
     const handoff = buildSyntheticHandoff({ failureCount: 2 })
     const clusters = clusterVerdicts(resolveRunVerdicts(undefined, handoff), handoff)
 

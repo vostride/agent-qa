@@ -326,8 +326,8 @@ describe('every way an edit can be wrong is a named refusal that proposes nothin
 
 // ---- 432 D-06: refine edits the written test itself ----------------------------------------------
 
-describe('C432-TEST-REFINE-WRITTEN: the edit is written over the file it read', () => {
-  it('C432-TEST-REFINE-WRITTEN: writes the edited draft over the file it read, guarded by its digest', async () => {
+describe('the edit is written over the file it read', () => {
+  it('writes the edited draft over the file it read, guarded by its digest', async () => {
     const benched = bench()
 
     const result = await edit(benched)
@@ -358,7 +358,7 @@ describe('C432-TEST-REFINE-WRITTEN: the edit is written over the file it read', 
     })
   })
 
-  it('C432-TEST-REFINE-WRITTEN: a file that changed since it was read is refused, and says so', async () => {
+  it('a file that changed since it was read is refused, and says so', async () => {
     const benched = bench({
       publish: (request) => Promise.resolve({
         kind: 'not-written' as const,
@@ -382,7 +382,7 @@ describe('C432-TEST-REFINE-WRITTEN: the edit is written over the file it read', 
     })
   })
 
-  it('C432-TEST-REFINE-WRITTEN: a write that failed is reported failed, never executed', async () => {
+  it('a write that failed is reported failed, never executed', async () => {
     const benched = bench({
       publish: (request) => Promise.resolve({
         kind: 'not-written' as const,

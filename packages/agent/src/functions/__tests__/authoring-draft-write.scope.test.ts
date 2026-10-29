@@ -160,7 +160,7 @@ function briefReads(trace: Trace): { readonly reads: number; readonly distinct: 
   return { reads: trace.briefScopes.length, distinct: [...seen.values()] }
 }
 
-describe('authoring.draft.write resolves an absent scope BEFORE the loop (WINDOWS 110)', () => {
+describe('authoring.draft.write resolves an absent scope BEFORE the loop', () => {
   it('derives once and runs the loop at the derived scope', async () => {
     const { deps, trace } = harness()
 

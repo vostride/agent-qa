@@ -267,7 +267,7 @@ it('EVIDENCE-CONTRACT rejects crossed documents, extra fields and false ready st
   expect(sniffEvidenceContentType(f.bytes)).toBe('application/octet-stream')
 })
 
-describe('C441-COLD-READ', () => {
+describe('runs.evidence masks with the declared mask', () => {
   const caller = { surface: 'test', origin: 'agent' } as FunctionCaller
   const aria: EvidenceDocument = { schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'aria',
     tree: 'textbox "Password" value="Hunter-42-zz" for qa@example.com; cookie session=undeclared-cookie-441' }

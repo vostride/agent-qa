@@ -97,7 +97,7 @@ async function served(f: Fixture): Promise<{ status: PostProcessingStatus; asked
   return { status, asked }
 }
 
-describe('C444-NO-VERDICT', () => {
+describe('a run that ended without a verdict', () => {
   it('a finished row with no handoff and no logged verdict reads skipped (no verdict)', async () => {
     const { status, asked } = await served({ row: { status: 'failed' }, events: STARTED_ONLY })
     expect(status.skipped).toEqual({ reason: 'no-verdict' })

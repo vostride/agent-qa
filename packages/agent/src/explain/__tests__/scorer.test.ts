@@ -58,7 +58,7 @@ describe('closestCapabilities — the answer', () => {
     expect(closestCapabilities('anything at all', [], 3)).toEqual([])
   })
 
-  it('answers [] when NOTHING overlaps — an unrelated suggestion would be the invention D-11 forbids', () => {
+  it('answers [] when NOTHING overlaps — an unrelated suggestion would be an invention', () => {
     expect(closestCapabilities('zzzz qqqq wwww', CATALOG_ROWS, 3)).toEqual([])
   })
 })

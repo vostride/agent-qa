@@ -71,7 +71,7 @@ function snapshot(): CurationSnapshot {
   })
 }
 
-describe('423 checkpoint-backed snapshot projection', () => {
+describe('checkpoint-backed snapshot projection', () => {
   it('NOTIFICATION-MASK: terminal-only snapshot crosses the same strict live mask without mutation', async () => {
     const mask = declaredMask({ SNAP_441: 'synthetic-snapshot-secret' })
     const recorded = snapshot()
@@ -219,7 +219,7 @@ describe('423 checkpoint-backed snapshot projection', () => {
   })
 })
 
-describe('423 durable stage projection', () => {
+describe('durable stage projection', () => {
   it('STAGE-ROWS projects exact recorded facts and masks failure text', async () => {
     const mask = declaredMask({ STAGE_441: 'synthetic-stage-secret' })
     const analysis: PostProcessingStageDetail = {
@@ -294,7 +294,7 @@ describe('423 durable stage projection', () => {
   })
 })
 
-describe('C441-COLD-READ', () => {
+describe('runs.post-processing masks with the declared mask', () => {
   it('runs.post-processing withholds without a mask', async () => {
     const recorded = snapshot()
     const failing = { status: 'failed' as const, claimed: false, lastFailureKind: 'permanent',

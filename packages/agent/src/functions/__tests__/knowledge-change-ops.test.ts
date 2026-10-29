@@ -135,8 +135,8 @@ function verbOf(id: string): string {
   return id.split('.')[1]!
 }
 
-describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the call', () => {
-  it('C432-KNOWLEDGE-CHANGE-OPS: each op hands the port one direct change and answers what it applied', async () => {
+describe('the three knowledge changes apply in the call', () => {
+  it('each op hands the port one direct change and answers what it applied', async () => {
     for (const id of CHANGE_IDS) {
       const recording = recordingPort()
       const outcome = await settled(
@@ -157,7 +157,7 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
     }
   })
 
-  it('C432-KNOWLEDGE-CHANGE-OPS: a tokenless caller changes knowledge in every execution context', async () => {
+  it('a tokenless caller changes knowledge in every execution context', async () => {
     // This process installs no ambient resolver, so the value read before is what is put back.
     const ambient = getActiveExecutionContext()
     try {
@@ -180,7 +180,7 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
     }
   })
 
-  it('C432-KNOWLEDGE-CHANGE-OPS: a caller identity is forwarded unchanged, so a retry repeats one change', async () => {
+  it('a caller identity is forwarded unchanged, so a retry repeats one change', async () => {
     const operationId = '7d3f9b1e-5c2a-4e8b-9f61-0a4b2c6d8e10'
     const recording = recordingPort()
     const host = registry(recording.port)
@@ -201,7 +201,7 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
     expect(first.value).toMatchObject({ outcome: 'applied', operationId })
   })
 
-  it('C432-KNOWLEDGE-CHANGE-OPS: malformed and empty ids are refused at the boundary, before the port', async () => {
+  it('malformed and empty ids are refused at the boundary, before the port', async () => {
     const cases: readonly (readonly [string, Record<string, unknown>])[] = [
       ['knowledge.accept', { target: { grain: 'record', recordId: '' } }],
       ['knowledge.forget', { target: { grain: 'bundle', shortId: 'TST-001' } }],
@@ -222,7 +222,7 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
     }
   })
 
-  it('C432-KNOWLEDGE-CHANGE-OPS: absence and refusal are answers; a proposal envelope is not a receipt', async () => {
+  it('absence and refusal are answers; a proposal envelope is not a receipt', async () => {
     const notFound = recordingPort((request) => ({
       outcome: 'target-not-found',
       verb: request.verb,

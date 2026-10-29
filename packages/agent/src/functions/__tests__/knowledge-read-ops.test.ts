@@ -276,7 +276,7 @@ describe('Test 2 — show returns the record with its provenance, and types its 
   })
 })
 
-describe('Test 3 — the empty store answers, it never throws (FUNC-04 empty edge)', () => {
+describe('Test 3 — the empty store answers, it never throws (empty edge)', () => {
   it('inspect returns an empty record list', async () => {
     expect(await knowledgeRecordsInspectSpec.invoke({ filter: {} }, deps()))
       .toEqual({ schemaVersion: 2, records: [] })
@@ -293,7 +293,7 @@ describe('Test 3 — the empty store answers, it never throws (FUNC-04 empty edg
   })
 })
 
-describe('Test 4 — each op owns a deterministic TOTAL order (the 384 convention)', () => {
+describe('Test 4 — each op owns a deterministic TOTAL order', () => {
   it('inspect sorts by record id then product, whatever order the port answered in',
     async () => {
       // Deliberately reversed, and with one record id shared across two products so the second
@@ -380,7 +380,7 @@ describe('Test 4 — each op owns a deterministic TOTAL order (the 384 conventio
 // a spec spells, so only the spec itself can show the key is gone. The other owners' blocks live in
 // `ops.test.ts`, which is outside 432-26's file list, so this owner's block sits beside the three
 // read verbs it covers.
-describe('C432-DECLARATION-KEYS: the 432-26 op specs carry no permission metadata', () => {
+describe('the post-processing, knowledge, ask, target-create, analysis and explain op specs carry no permission metadata', () => {
   const migrated = [
     { spec: runsPostProcessingSpec, resultKind: 'unary', boundThrough: 'postProcessing',
       risk: { name: 'fn:runs.postprocessing', recognized: true, readOnly: true } },
@@ -404,7 +404,7 @@ describe('C432-DECLARATION-KEYS: the 432-26 op specs carry no permission metadat
       risk: { name: 'fn:agent.explain', recognized: true, readOnly: true } },
   ] as const
 
-  it('C432-DECLARATION-KEYS: spells neither retired permission key on any of the ten specs', () => {
+  it('spells neither retired permission key on any of the ten specs', () => {
     expect(migrated.map(({ spec }) => spec.id)).toEqual([
       'runs.postprocessing',
       'knowledge.accept',
@@ -423,7 +423,7 @@ describe('C432-DECLARATION-KEYS: the 432-26 op specs carry no permission metadat
     }
   })
 
-  it('C432-DECLARATION-KEYS: keeps each spec\'s result kind, binding need, risk descriptor and classify fold', () => {
+  it('keeps each spec\'s result kind, binding need, risk descriptor and classify fold', () => {
     for (const { spec, resultKind, boundThrough, risk } of migrated) {
       expect(spec.resultKind, spec.id).toBe(resultKind)
       expect(spec.boundThrough, spec.id).toBe(boundThrough)
@@ -444,8 +444,8 @@ describe('C432-DECLARATION-KEYS: the 432-26 op specs carry no permission metadat
 // `read`. Retried from three callers that differ in surface and origin, and that carry no scope at
 // all, each verb is served every time: the port is reached once per attempt with exactly what the
 // caller sent, every caller gets the same answer, and no audit row is written.
-describe('C432-ALL-OPS-AVAILABLE: the 432-26 knowledge verbs serve every caller', () => {
-  it('C432-ALL-OPS-AVAILABLE: a retried accept, reject, inspect and show are served alike to every caller', async () => {
+describe('the knowledge accept, reject, inspect and show verbs serve every caller', () => {
+  it('a retried accept, reject, inspect and show are served alike to every caller', async () => {
     const changes: KnowledgeChangeRequest[] = []
     const filters: unknown[] = []
     const shown: string[] = []

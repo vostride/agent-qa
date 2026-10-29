@@ -167,7 +167,7 @@ describe(`${AUTHORING_FUNNEL_GET_FUNCTION_ID} — the honesty funnel's one read`
   // through the op, since nothing records one'. The terminal stage reads each receipt's stored
   // disposition, so twelve keep-eligible receipts are twelve write-eligible drafts, above the floor
   // and above the ceiling: the flag fires through the op again.
-  it('C261002-CTR-FUNNEL-WRITE-ELIGIBLE: raises ACCEPTANCE FAILURE through the op over twelve write-eligible receipts', async () => {
+  it('raises ACCEPTANCE FAILURE through the op over twelve write-eligible receipts', async () => {
     const answered = await invokeFunction(
       registryWith(funnelPort()),
       AUTHORING_FUNNEL_GET_FUNCTION_ID,

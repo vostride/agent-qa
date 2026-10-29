@@ -115,7 +115,7 @@ describe('the scanner can fail and does not fail on prose (the two controls)', (
   })
 })
 
-describe('KREV-01: every read verb is wiring over the reader entry', () => {
+describe('every read verb is wiring over the reader entry', () => {
   for (const file of READ_OP_FILES) {
     it(`${file} reaches for no memidex machinery, no ledger write and no trust fold`, () => {
       const scan = scanFile(join(OPS_DIR, file), FORBIDDEN)

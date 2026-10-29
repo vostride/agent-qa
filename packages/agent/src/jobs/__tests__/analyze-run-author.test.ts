@@ -130,7 +130,7 @@ function authorInput(
   }
 }
 
-describe('authorRunAnalysis: one whole-run call (D-01)', () => {
+describe('authorRunAnalysis: one whole-run call', () => {
   it('makes exactly ONE generate call on valid output, covering every unknown in one prompt', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 2 })
     const model = scriptedModel([outputOf([authoredEntry(0), authoredEntry(1)])])
@@ -155,7 +155,7 @@ describe('authorRunAnalysis: one whole-run call (D-01)', () => {
     expect(request.system ?? '').toMatch(/pattern/i)
   })
 
-  it('propagates a model throw to the caller — transport failure is job-retry territory (D-03)', async () => {
+  it('propagates a model throw to the caller — transport failure is job-retry territory', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const model: ScriptedModel['capability'] = {
       modelId: 'throwing',
@@ -216,7 +216,7 @@ describe('the merge law: upgrade unknown floor members ONLY', () => {
   })
 })
 
-describe('parse-with-repair, capped at exactly one round-trip (D-03)', () => {
+describe('parse-with-repair, capped at exactly one round-trip', () => {
   it('repairs malformed-then-valid in exactly 2 calls, carrying the per-test reject reasons', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const invented = 'the submit button vanished from the checkout page entirely'
@@ -297,7 +297,7 @@ describe('parse-with-repair, capped at exactly one round-trip (D-03)', () => {
   })
 })
 
-describe('the D-02 vision leg and the L9 text-only degradations', () => {
+describe('the vision leg and the text-only degradations', () => {
   const SHA_A = 'sha-aaaa'
   const SHA_B = 'sha-bbbb'
   const BYTES_A = new Uint8Array([1, 2, 3])

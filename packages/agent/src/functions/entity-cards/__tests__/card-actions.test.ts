@@ -116,7 +116,7 @@ function defaultRegistryIds(caller: FunctionCaller = FULL_CALLER): Set<string> {
 
 // ---- Test 1: every advertised action resolves in the default registry (D-11) --------------
 
-describe('cards advertise only what the registry contains (D-11)', () => {
+describe('cards advertise only what the registry contains', () => {
   it('resolves every id every kind can advertise, against the DEFAULT spec list', () => {
     const registryIds = defaultRegistryIds()
     // Non-vacuity first: an empty listing would satisfy nothing below by containing nothing,

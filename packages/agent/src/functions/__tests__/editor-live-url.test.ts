@@ -76,7 +76,7 @@ function mint(liveView: LiveViewPort | undefined, sessionId = 's1'): Promise<unk
   return invokeFunction(registryWith(liveView), EDITOR_LIVE_URL_FUNCTION_ID, { sessionId }, CALLER)
 }
 
-describe('editor.liveurl mints the editor subject (428 D-07)', () => {
+describe('editor.liveurl mints the editor subject', () => {
   it('MINTS-EDITOR-SUBJECT', async () => {
     const live = recordingLiveView()
     const result = EditorLiveUrlResultSchema.parse(await mint(live.port))

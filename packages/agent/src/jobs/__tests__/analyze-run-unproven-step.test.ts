@@ -197,7 +197,7 @@ function harness(handoff: CompletedRunHandoff, outputs: readonly string[]) {
   }
 }
 
-describe('C439-UNPROVEN-ANALYSIS', () => {
+describe('analysis of a run with an unproven step', () => {
   it('an unproven test is never model-labelled', async () => {
     const handoff = judgedHandoff('unverified')
     const floor = handoff.tests[0]?.rootCause as Verdict

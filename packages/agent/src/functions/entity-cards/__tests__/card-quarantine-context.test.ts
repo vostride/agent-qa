@@ -94,7 +94,7 @@ function quarantinePort(list: () => Promise<readonly QuarantineEntryState[]>) {
   }
 }
 
-describe('the card render context reads quarantine at the op boundary (390)', () => {
+describe('the card render context reads quarantine at the op boundary', () => {
   it('omits the member entirely when no quarantine port is bound — no throw, no guess', async () => {
     const context = await readEntityCardContext(deps(), [descriptor()])
 

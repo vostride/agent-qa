@@ -281,7 +281,7 @@ type HandSpelledOptionalDepKey =
   | 'scaffoldContent' | 'capabilityCatalog' | 'feedback' | 'feedbackReads' | 'configWrite'
   | 'secretMask'
 
-describe('C423-FEEDBACK-BINDINGS-EXACT', () => {
+describe('the feedback bindings', () => {
   test('pins the optional dep key union and its runtime roster in both directions', () => {
     expectTypeOf<OptionalFunctionDepKey>().toEqualTypeOf<HandSpelledOptionalDepKey>()
     expectTypeOf<(typeof OPTIONAL_FUNCTION_DEP_KEYS)[number]>().toEqualTypeOf<HandSpelledOptionalDepKey>()
@@ -307,19 +307,19 @@ describe('C423-FEEDBACK-BINDINGS-EXACT', () => {
 //
 // 2026-10-01, 432-18 (D-03/D-15). The type half of the claim whose runtime half is the same-named
 // block in optional-dep-keys.test.ts. Each assertion sits in a `test` block so vitest counts it.
-describe('C432-GRANT-DEPS-ABSENT', () => {
-  test('C432-GRANT-DEPS-ABSENT: FunctionDeps declares no standingGrants member', () => {
+describe('no standingGrants binding', () => {
+  test('FunctionDeps declares no standingGrants member', () => {
     expectTypeOf<Extract<keyof FunctionDeps, 'standingGrants'>>().toEqualTypeOf<never>()
   })
 
-  test('C432-GRANT-DEPS-ABSENT: OptionalFunctionDepKey has no standingGrants member', () => {
+  test('OptionalFunctionDepKey has no standingGrants member', () => {
     expectTypeOf<Extract<OptionalFunctionDepKey, 'standingGrants'>>().toEqualTypeOf<never>()
     expectTypeOf<Extract<(typeof OPTIONAL_FUNCTION_DEP_KEYS)[number], 'standingGrants'>>().toEqualTypeOf<never>()
   })
 
   // RE-SPELLED 2026-10-14 (441-16, D-06) from '… still counts 23 members …': secretMask joins.
   // RE-SPELLED 2026-10-14 (441-39, D-15) from '… still counts 24 members …': the scan key leaves.
-  test('C432-GRANT-DEPS-ABSENT: the roster still counts 23 members, so the absence is not vacuous', () => {
+  test('the roster still counts 23 members, so the absence is not vacuous', () => {
     expectTypeOf<(typeof OPTIONAL_FUNCTION_DEP_KEYS)['length']>().toEqualTypeOf<23>()
   })
 })

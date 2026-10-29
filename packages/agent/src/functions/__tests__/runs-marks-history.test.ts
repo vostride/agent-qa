@@ -127,7 +127,7 @@ function expectedFacts(value: MarkReceipt): Record<string, unknown> {
   return facts
 }
 
-describe('423-36 runs.marks.history contract (D-19)', () => {
+describe('runs.marks.history contract', () => {
   it.each(['A', 'B'] as const)('HISTORY-ORDINAL: sequence %s returns every receipt fact in ledger ordinal order', async name => {
     const entries = SEQUENCES[name]()
     const result = await read(entries)

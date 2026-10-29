@@ -88,7 +88,7 @@ function dispositionCallCount(store: FakeJobStore, verb: DispositionVerb): numbe
   return store.callCount(verb)
 }
 
-describe('bounded retry (D-18)', () => {
+describe('bounded retry', () => {
   it('retries a retryable report until the bound is spent, then fails', async () => {
     const invocations: number[] = []
     const harness = await harnessFor([
@@ -255,7 +255,7 @@ describe('bounded retry (D-18)', () => {
   })
 })
 
-describe('C444.1-RETRY-BACKOFF', () => {
+describe('the backoff a retry hands the store', () => {
   it('a retry hands the store the backoff it reports', async () => {
     let calls = 0
     const harness = await harnessFor([
@@ -297,7 +297,7 @@ describe('C444.1-RETRY-BACKOFF', () => {
   })
 })
 
-describe('thrown-handler disposition edges (386-21)', () => {
+describe('thrown-handler disposition edges', () => {
   it('proves both adjacent sides of the max-attempts boundary with declared successors', async () => {
     const harness = await harnessFor([
       declaration({
@@ -409,7 +409,7 @@ describe('thrown-handler disposition edges (386-21)', () => {
   })
 })
 
-describe('the poison job: a handler that throws still exhausts its bound (D-18)', () => {
+describe('the poison job: a handler that throws still exhausts its bound', () => {
   it('lands each thrown attempt and terminates on the declared bound', async () => {
     let calls = 0
     const harness = await harnessFor([
@@ -487,7 +487,7 @@ describe('abandoned claims', () => {
   })
 })
 
-describe('backoff as data (D-18)', () => {
+describe('backoff as data', () => {
   it.each([
     { backoff: { kind: 'none' } as const, expected: [0, 0, 0] },
     { backoff: { kind: 'fixed', delayMs: 500 } as const, expected: [500, 500, 500] },
@@ -520,7 +520,7 @@ describe('backoff as data (D-18)', () => {
   })
 })
 
-describe('declared-topology chaining (D-17)', () => {
+describe('declared-topology chaining', () => {
   it('chains a declared successor and stores it', async () => {
     const harness = await harnessFor([
       declaration({
@@ -567,7 +567,7 @@ describe('declared-topology chaining (D-17)', () => {
   })
 })
 
-describe('the permanent-failure disposition (D-20)', () => {
+describe('the permanent-failure disposition', () => {
   function producerHarness(
     next: readonly ChainedJobRequest[],
     allowedSuccessors: readonly JobKind[] = ['curate-memory'],
@@ -892,7 +892,7 @@ describe('the five real kinds, driven through the engine', () => {
   })
 })
 
-describe('construction-time unclaimable kinds (388-09, G-388-2 substrate)', () => {
+describe('construction-time unclaimable kinds', () => {
   it('passes the constructed exclusion set to the store on every runNextJob, and nothing without it', async () => {
     const clock = createSteppingClock()
     const store = createFakeJobStore(clock)

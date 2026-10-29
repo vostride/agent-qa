@@ -233,7 +233,7 @@ async function carried(hostDeps: FunctionDeps) {
   return AuthoringDraftWriteOutputSchema.parse(answered)
 }
 
-describe('the app-broken branch reports the verdict and stops (411 WTST-11)', () => {
+describe('the app-broken branch reports the verdict and stops', () => {
   it("a stop writes NO envelope of any kind — the proposals store is read after the invocation, never the loop's return", async () => {
     const filed: AuthoringProposalWrite[] = []
     const published: string[] = []

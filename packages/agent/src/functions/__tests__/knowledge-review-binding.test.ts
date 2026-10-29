@@ -35,7 +35,7 @@ import { knowledgeAcceptSpec } from '../ops/knowledge-accept-propose.js'
 // RE-SPELLED 2026-10-01 (432-17, D-05): this cell classified `knowledge.proposal.apply`'s policy
 // refusal, and that op is deleted with the inbox. The same refusal reaches a caller through the
 // direct accept's `refused` arm, and is still a refusal rather than an execution.
-it('419 policy materialization refusal is classified as refused rather than executed', () => {
+it('a policy materialization refusal is classified as refused rather than executed', () => {
   const verdict = knowledgeAcceptSpec.classify({ outcome: 'refused', verb: 'accept',
     operationId: 'policy-fixture-op', reason: 'policy-materialize-refused' })
   expect(verdict.status).toBe('refused')
@@ -168,7 +168,7 @@ describe('the knowledgeReview optional dep', () => {
 
   // 432-12 (D-05): the three knowledge changes bind through the SAME optional dep, and reach its
   // direct member. A host with no write port lists them unbound by name and refuses them by name.
-  it('C432-KNOWLEDGE-DIRECT-BINDING: the three changes are unbound without the port and reach its direct change with it', async () => {
+  it('the three changes are unbound without the port and reach its direct change with it', async () => {
     const reached: unknown[] = []
     const directPort = {
       // 2026-10-01 (432-17): `propose` and `apply` are deleted from the port; kept here as excess

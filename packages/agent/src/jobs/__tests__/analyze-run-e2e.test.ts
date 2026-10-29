@@ -206,7 +206,7 @@ function wireEntry(
   }
 }
 
-describe('40 red tests, one root cause → ONE cluster ×40 through the real path (ANLZ-04/SC4)', () => {
+describe('40 red tests, one root cause → ONE cluster ×40 through the real path', () => {
   it('authors, persists, checkpoints and serves: 1 cluster, count 40, 40 per-test sentences',
     async () => {
       const handoff = buildSyntheticHandoff({ failureCount: 40 })
@@ -299,7 +299,7 @@ describe('40 red tests, one root cause → ONE cluster ×40 through the real pat
   })
 })
 
-describe('the same fixture as the D-01 compaction stressor (forced channels intact)', () => {
+describe('the same fixture as the compaction stressor (forced channels intact)', () => {
   /** The ladder's injected estimator for this leg: characters as tokens, deterministic. */
   const byLength = (text: string): number => text.length
   /**

@@ -167,7 +167,7 @@ function harness(handoff: CompletedRunHandoff, outputs: readonly string[]) {
   }
 }
 
-describe('C436-LIMIT-STOP-ANALYSIS', () => {
+describe('analysis leaves limit-stopped members to the floor', () => {
   it('analyze-run does not author a limit-stopped member', async () => {
     const handoff = limitHandoff(true)
     const floorForLimit = handoff.tests[0]?.rootCause as Verdict

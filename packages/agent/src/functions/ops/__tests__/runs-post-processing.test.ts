@@ -186,7 +186,7 @@ const CHIP_BY_STATUS: Record<
 // a word about a slot that will never fill.
 // ------------------------------------------------------------------------------------------
 
-describe('the chip set and its vocabulary are closed (404 D-01/D-04)', () => {
+describe('the chip set and its vocabulary are closed', () => {
   it('projects EXACTLY the two chips, by key set', () => {
     // Read off the projection's own output rather than off the type: a type is erased before
     // anything runs, and it is the runtime object every surface iterates.
@@ -204,7 +204,7 @@ describe('the chip set and its vocabulary are closed (404 D-01/D-04)', () => {
   })
 })
 
-describe('projectPostProcessingChips is total over the durable chain state (D-14)', () => {
+describe('projectPostProcessingChips is total over the durable chain state', () => {
   it('maps EVERY job status, claimed and unclaimed, identically for both stages', () => {
     const produced = new Set<PostProcessingChipStatus>()
 
@@ -263,7 +263,7 @@ describe('projectPostProcessingChips is total over the durable chain state (D-14
 
 })
 
-describe('C444-STAGE-WORDS', () => {
+describe('the stage word for a finished stage', () => {
   it('the producer answers complete for a finished stage', () => {
     expect(projectPostProcessingChips({ analyzeRun: row('done'), curateMemory: row('done', true) }))
       .toEqual({ analysis: 'complete', curation: 'complete' })
@@ -274,7 +274,7 @@ describe('C444-STAGE-WORDS', () => {
   })
 })
 
-describe('the runs.postProcessing op (D-14/D-15)', () => {
+describe('the runs.postProcessing op', () => {
   it('asks the port for exactly the ids chainJobIdsForRun derives', async () => {
     const reader = recordingReader({})
     await invokeFunction(

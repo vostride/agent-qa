@@ -205,7 +205,7 @@ function declaredMask(secrets: Record<string, string>): MaskFn {
   return text => redactor.redactString(text)
 }
 
-describe('OVERVIEW-REGISTRY: runs.overview is a registered read over one completed run (D-06)', () => {
+describe('OVERVIEW-REGISTRY: runs.overview is a registered read over one completed run', () => {
   it('lists runs.overview as a bound read-only registry op', () => {
     const declaration = harness(singleTestScene()).registry.list(READER)
       .find((entry) => entry.id === OVERVIEW)

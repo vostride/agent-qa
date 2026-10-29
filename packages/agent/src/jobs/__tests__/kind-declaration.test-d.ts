@@ -27,7 +27,7 @@ describe('the declaration surface', () => {
   })
 })
 
-describe('the fallback-continuation producer (D-20 / D-11)', () => {
+describe('the fallback-continuation producer', () => {
   // The producer runs on the RESUME-legal side of the queue: it is what a permanently failed
   // job hands its chain so downstream work never waits on a dead head. It must therefore be
   // unable to reach a model at all, and the way that is guaranteed is the type — it receives

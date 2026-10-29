@@ -112,7 +112,7 @@ function recordingContext(options: {
   }
 }
 
-describe('recordLlmAuthorship: the checkpoint MISS (D-10)', () => {
+describe('recordLlmAuthorship: the checkpoint MISS', () => {
   it('authors exactly once and publishes the result BEFORE it returns', async () => {
     const model = countingModel('model-a')
     const probe = recordingContext({ model: model.capability })
@@ -191,7 +191,7 @@ describe('recordLlmAuthorship: the checkpoint MISS (D-10)', () => {
   })
 })
 
-describe('recordLlmAuthorship: the RECORDED checkpoint (D-10)', () => {
+describe('recordLlmAuthorship: the RECORDED checkpoint', () => {
   it('returns the recorded bytes and never invokes the author at all', async () => {
     const model = countingModel('model-a')
     const probe = recordingContext({
@@ -295,7 +295,7 @@ function queueOver(
   })
 }
 
-describe('recordLlmAuthorship through the engine (D-10 across a host boundary)', () => {
+describe('recordLlmAuthorship through the engine (across a host boundary)', () => {
   it('resumes into a FRESH engine and a FRESH model without authoring again', async () => {
     const clock = steppingClock()
     const store = createFakeJobStore(clock)
@@ -446,7 +446,7 @@ describe('recordLlmAuthorship through the engine (D-10 across a host boundary)',
 // run passes them vacuously and `pnpm typecheck` is where they bite.
 // ---------------------------------------------------------------------------------------
 
-describe('the model is reachable only as the author callback argument (D-11 layer 2)', () => {
+describe('the model is reachable only as the author callback argument', () => {
   it('gives a handler no model member at all', () => {
     expectTypeOf<keyof JobHandlerContext>().toEqualTypeOf<
       'job' | 'payload' | 'publishCheckpoint' | 'recordLlmAuthorship'
@@ -517,7 +517,7 @@ function scanWorkspaceSources(): ScannedFile[] {
   return files
 }
 
-describe('exactly one recordLlmAuthorship primitive exists (JOBQ-03 success criterion)', () => {
+describe('exactly one recordLlmAuthorship primitive exists', () => {
   const files = scanWorkspaceSources()
 
   // The scanner's own control. A walk that landed on the wrong directory would otherwise

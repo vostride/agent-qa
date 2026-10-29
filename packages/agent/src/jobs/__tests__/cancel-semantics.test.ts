@@ -89,7 +89,7 @@ async function rowOf(store: FakeJobStore, jobId: JobId) {
   return dump.jobs.find((row) => row.id === String(jobId))
 }
 
-describe('cancel on a QUEUED job: immediate (D-19)', () => {
+describe('cancel on a QUEUED job: immediate', () => {
   it('lands the job cancelled and no later claim ever returns it', async () => {
     let handlerCalls = 0
     const harness = await harnessFor([
@@ -138,7 +138,7 @@ describe('cancel on a QUEUED job: immediate (D-19)', () => {
   })
 })
 
-describe('cancel on a CLAIMED job: requested, then honoured at a boundary (D-19)', () => {
+describe('cancel on a CLAIMED job: requested, then honoured at a boundary', () => {
   /**
    * A kind whose handler publishes its schedule step by step and cancels itself partway, the
    * way an operator's cancel would arrive while the job is in flight.
@@ -366,7 +366,7 @@ describe('cancel on a CLAIMED job: requested, then honoured at a boundary (D-19)
   })
 })
 
-describe('cancel on a TERMINAL job: refused as a typed outcome (D-19)', () => {
+describe('cancel on a TERMINAL job: refused as a typed outcome', () => {
   it.each([
     { label: 'done', script: {}, expected: 'done' },
     { label: 'failed', script: { fail: true }, expected: 'failed' },
@@ -409,7 +409,7 @@ describe('cancel on a TERMINAL job: refused as a typed outcome (D-19)', () => {
   })
 })
 
-describe('cancel crosses the fence like every other mutation (D-07, T-385-02)', () => {
+describe('cancel crosses the fence like every other mutation', () => {
   it('refuses a stale epoch, changes nothing, and the current holder still succeeds', async () => {
     const harness = await harnessFor([declaration()])
     const enqueued = await harness.queue.enqueue('curate-memory', {}, 'run-1')

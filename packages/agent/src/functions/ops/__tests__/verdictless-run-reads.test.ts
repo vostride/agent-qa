@@ -101,7 +101,7 @@ async function refusal(
   throw new Error(`${functionId} answered instead of refusing`)
 }
 
-describe('C444-VERDICTLESS-READS', () => {
+describe('reads of a run with no verdict', () => {
   it('a finished row with no handoff answers that it ended before a verdict', async () => {
     for (const functionId of READS) {
       for (const status of ['failed', 'cancelled', 'passed', 'timeout']) {

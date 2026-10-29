@@ -160,7 +160,7 @@ const CONFIG_CHANGE_OPS: readonly FunctionSpec<never, ConfigChangeOutput>[] = [
   configTargetEditSpec,
 ] as unknown as readonly FunctionSpec<never, ConfigChangeOutput>[]
 
-describe('399.1 D-01/D-02 — the config-mutation family folds its own refusal arms', () => {
+describe('the config-mutation family folds its own refusal arms', () => {
   // RE-SPELLED 2026-10-01 (432-17): seven ops became six with the undo's deletion.
   it('declares a classifier on every one of the six ops sharing the union', () => {
     // Non-vacuity for every cell below: a spec with no classifier reports the LEGACY verdict, and
@@ -188,14 +188,14 @@ describe('399.1 D-01/D-02 — the config-mutation family folds its own refusal a
   // 2026-10-01 (432-17): 'folds a filed proposal to executed, naming the id a person decides on' is
   // deleted with the one op that still filed a proposal.
 
-  it('C432-CONFIG-APPLIED-OUTPUT: folds an applied change to executed, naming the files it wrote', () => {
+  it('folds an applied change to executed, naming the files it wrote', () => {
     for (const spec of CONFIG_CHANGE_OPS) {
       expect(spec.classify?.(applied as never), spec.id)
         .toEqual({ status: 'executed', outcome: 'applied: agent-qa.config.yaml' })
     }
   })
 
-  it('C432-CONFIG-MULTIFILE-TRUTH: folds an interrupted publication to failed, never executed', () => {
+  it('folds an interrupted publication to failed, never executed', () => {
     for (const spec of CONFIG_CHANGE_OPS) {
       expect(spec.classify?.(interrupted as never), spec.id)
         .toEqual({ status: 'failed', outcome: 'interrupted at agent-qa.config.yaml: file-changed' })
@@ -221,8 +221,8 @@ const KNOWLEDGE_CHANGE_OPS: readonly FunctionSpec<never, KnowledgeChangeOutput>[
 
 const OPERATION_ID = '2c4e6a8b-0d1f-4a3b-8c5d-7e9f1a2b3c4d'
 
-describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes fold their own answer', () => {
-  it('C432-KNOWLEDGE-CHANGE-OPS: an applied change is executed, a typed absence is executed, and a writer refusal is refused', () => {
+describe('the three knowledge changes fold their own answer', () => {
+  it('an applied change is executed, a typed absence is executed, and a writer refusal is refused', () => {
     for (const spec of KNOWLEDGE_CHANGE_OPS) {
       const verb = spec.id.split('.')[1] as 'accept' | 'reject' | 'forget'
       // RE-SPELLED 2026-10-03 (quick 261003-cpv, IN-21): a forget carries its receipt by rule.
@@ -258,7 +258,7 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes fold their own 
 
 // ---- authoring.draft.write: the RC-1b witness ---------------------------------------------------
 
-describe('399.1 D-01/D-02 — authoring.draft.write folds its dedup refusal', () => {
+describe('authoring.draft.write folds its dedup refusal', () => {
   it('reports refused, and names the test the intent duplicates', () => {
     // THE MEASURED WITNESS. 399's todo recorded this op returning its refusal arm while chat printed
     // `executed  authoring.draft.write completed`: the screen refused to author, and the person was
@@ -309,7 +309,7 @@ const authoringKeepRefused: AuthoringDraftWriteOutput = AuthoringDraftWriteOutpu
   fanOut: happyFanOut,
 })
 
-describe('C440-REFUSAL-FIELD', () => {
+describe('the draft-write refusal fold names its stage', () => {
   it('a stated-value refusal folds to refused, naming its stage and values, never a duplicate', () => {
     const verdict = authoringDraftWriteSpec.classify?.(authoringCompileRefused)
     expect(verdict?.status).toBe('refused')
@@ -340,7 +340,7 @@ describe('C440-REFUSAL-FIELD', () => {
 
 // ---- D-03: a result nobody can read is `failed`, never `executed` -------------------------------
 
-describe('399.1 D-03 — the fail-closed wrapper, driven', () => {
+describe('the fail-closed wrapper, driven', () => {
   /** A registry over the real specs, so the fold under test is the one the composition root runs. */
   const registry = createRegistryFromSpecs(
     [configFieldSetSpec as FunctionSpec],
@@ -393,7 +393,7 @@ describe('399.1 D-03 — the fail-closed wrapper, driven', () => {
  * against op-authored code going wrong cannot be measured with op-authored code that is right. The
  * casts below are the same casts the guard exists to survive.
  */
-describe('399.1-04 D-03 — the fail-closed branches a shipped op cannot reach', () => {
+describe('the fail-closed branches a shipped op cannot reach', () => {
   const SYNTHETIC_ID = 'synthetic.fold-probe'
 
   /** A registry over one hand-built spec, so each cell chooses what the classifier answers. */
@@ -489,7 +489,7 @@ describe('399.1-04 D-03 — the fail-closed branches a shipped op cannot reach',
  * runs over EXECUTABLE text (comments and string literals stripped by `executableSource`) so a
  * header explaining what the fold may not do is not read as the fold doing it.
  */
-describe('399.1 D-01 — no classifier pattern-matches a value', () => {
+describe('no classifier pattern-matches a value', () => {
   const VALUE_SNIFFING = [
     '.includes(',
     '.startsWith(',
@@ -693,8 +693,8 @@ describe('399.1 D-01 — no classifier pattern-matches a value', () => {
 
 // 2026-10-03 (quick 261003-cpv, 432 review IN-04): the three knowledge changes share ONE fold, the
 // `classifyConfigChangeOutput` precedent, so a later edit cannot teach one door a different report.
-describe('C261003-CPV-ONE-KNOWLEDGE-FOLD: the three knowledge changes fold through one function', () => {
-  it('C261003-CPV-ONE-KNOWLEDGE-FOLD: the shared fold inspects no value content and switches on the outcome', () => {
+describe('the three knowledge changes fold through one function', () => {
+  it('the shared fold inspects no value content and switches on the outcome', () => {
     const path = new URL('../../../src/functions/ops/knowledge-change-verdict.ts', import.meta.url).pathname
     const scan = scanFile(path, ['.includes(', '.startsWith(', '.endsWith(', '.indexOf(', '.match(',
       '.search(', '.toLowerCase(', '.toUpperCase(', 'RegExp'])
@@ -703,7 +703,7 @@ describe('C261003-CPV-ONE-KNOWLEDGE-FOLD: the three knowledge changes fold throu
     expect(executableSource(readFileSync(path, 'utf8'))).toContain('switch (output.outcome)')
   })
 
-  it('C261003-CPV-ONE-KNOWLEDGE-FOLD: every knowledge change spec declares the shared fold itself', async () => {
+  it('every knowledge change spec declares the shared fold itself', async () => {
     const shared = (await import('../ops/knowledge-change-verdict.js')).classifyKnowledgeChangeOutput
     expect(shared).toBeTypeOf('function')
     for (const spec of KNOWLEDGE_CHANGE_OPS) expect(spec.classify, spec.id).toBe(shared)

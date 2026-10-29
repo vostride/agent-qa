@@ -292,7 +292,7 @@ function runsSpent(output: Record<string, unknown>): unknown {
   return (output['fanOut'] as { readonly consumedTotal?: unknown } | undefined)?.consumedTotal
 }
 
-describe('C440-PUBLIC-PATH', () => {
+describe('authoring.draft.write on the historical substitution and its faithful twins', () => {
   it('the clean-failing fixture routes to a clean definitive assertion failure', () => {
     const draft = stagedDraftOf(FAITHFUL_FALSE_DOCUMENT)
     const route = routeRepairOrStop(draftRefOf(draft), cleanFailRun(draft))
@@ -406,7 +406,7 @@ function stepsOf(document: string): readonly string[] {
   return stagedDraftOf(document).steps
 }
 
-describe('C440-VALUE-COMPILE', () => {
+describe('stated values checked at compile', () => {
   it('a case-changed value is refused at compile', async () => {
     const host = publicPathHost({ document: CASE_CHANGED_DOCUMENT, runs: 'pass' })
     const output = await host.write(HISTORICAL_REQUEST)
@@ -493,7 +493,7 @@ describe('C440-VALUE-COMPILE', () => {
   })
 })
 
-describe('C440-PROMPTS', () => {
+describe('the compile prompt', () => {
   it('the compile prompt puts the request over project knowledge', async () => {
     const host = publicPathHost({ document: HISTORICAL_DOCUMENT, runs: 'pass' })
     await host.write(HISTORICAL_REQUEST)
@@ -536,7 +536,7 @@ const NUMBERED_COUNT_REQUEST =
   '1. open the products page\n2. check it lists 12 items and says "All Products"'
 const STEP_REQUEST = 'Step 1: open the products page. Step 2: check it says "All Products"'
 
-describe('C440-VALUE-COMPILE', () => {
+describe('numbered and step-labelled requests', () => {
   it('a numbered request with a faithful draft is kept and written', async () => {
     for (const request of [NUMBERED_REQUEST, NUMBERED_INLINE_REQUEST]) {
       const host = publicPathHost({ document: HISTORICAL_DOCUMENT, runs: 'pass' })
@@ -601,7 +601,7 @@ const DIGIT_QUOTED_REQUEST =
 const BRACKETED_TIME_REQUEST =
   'open the products page, check the slot [10:30] and check it says "All Products"'
 
-describe('C440-VALUE-COMPILE', () => {
+describe('values that start with digits and bracketed times', () => {
   it('a single-quoted value that starts with digits glued to a letter is refused at compile when the draft loses it', async () => {
     const host = publicPathHost({ document: HISTORICAL_DOCUMENT, runs: 'pass' })
     const output = await host.write(DIGIT_QUOTED_REQUEST)
@@ -643,7 +643,7 @@ const COLON_ONE_REQUEST =
 const MID_SENTENCE_STEP_REQUEST =
   'open the products page, check the wizard is on step 2. Then check it says "All Products"'
 
-describe('C440-VALUE-COMPILE', () => {
+describe('step numbers stated after a colon or mid-sentence', () => {
   it('a lone 1 stated after a colon is refused at compile when the draft loses it', async () => {
     const host = publicPathHost({ document: HISTORICAL_DOCUMENT, runs: 'pass' })
     const output = await host.write(COLON_ONE_REQUEST)
@@ -683,7 +683,7 @@ describe('C440-VALUE-COMPILE', () => {
 const HELD_STEP_HEADING_REQUEST =
   'open the products page, check the title shows: Step 1. Then click Next and check it shows Step 2. Then check it says "All Products"'
 
-describe('C440-VALUE-COMPILE', () => {
+describe('step numbers in a held step heading', () => {
   it('a step number stated in a held step heading is refused at compile when the draft loses it', async () => {
     const host = publicPathHost({ document: HISTORICAL_DOCUMENT, runs: 'pass' })
     const output = await host.write(HELD_STEP_HEADING_REQUEST)
@@ -719,7 +719,7 @@ steps:
   - Verify the products page says "All Products"
 `
 
-describe('C440-VALUE-COMPILE', () => {
+describe('a month-name date where a list marker would go', () => {
   it('a month-name date where the next list marker would go is refused at compile when the draft changes it', async () => {
     const cases = [
       [DATE_IN_LIST_REQUEST, ['Oct 3']],
@@ -760,7 +760,7 @@ steps:
   - Verify the products page says "All Products"
 `
 
-describe('C440-VALUE-COMPILE', () => {
+describe('a badge number beside a month-name date', () => {
   it('a stated badge number beside a month-name date is refused at compile when the draft changes it', async () => {
     const host = publicPathHost({ document: CHANGED_BADGE_DOCUMENT, runs: 'pass' })
     const output = await host.write(HELD_START_BESIDE_DATE_REQUEST)

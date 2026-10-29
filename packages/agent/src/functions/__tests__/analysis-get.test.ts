@@ -159,7 +159,7 @@ async function analysisOf(
   ) as AnalysisGetOutput
 }
 
-describe('analysis.get — binding and refusal (D-09/D-11)', () => {
+describe('analysis.get — binding and refusal', () => {
   it('lists unbound and refuses BY NAME in a composition with no analysis port', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const registry = registryWith({ handoff })
@@ -181,7 +181,7 @@ describe('analysis.get — binding and refusal (D-09/D-11)', () => {
   })
 })
 
-describe('analysis.get — the handoff floor (D-10)', () => {
+describe('analysis.get — the handoff floor', () => {
   it('answers a bound port with NO artifact via the floor: minted unknowns, honest parts', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 2, passedCount: 1 })
     const registry = registryWith({ handoff, analysis: readerOf(undefined) })
@@ -220,7 +220,7 @@ describe('analysis.get — the handoff floor (D-10)', () => {
   })
 })
 
-describe('analysis.get — the artifact leg and the one accessor (D-10/D-11)', () => {
+describe('analysis.get — the artifact leg and the one accessor', () => {
   it('serves upgraded class/producer through BOTH ops, and sentences through ONE', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const artifact = artifactFor(handoff)
@@ -434,7 +434,7 @@ function artifactCiting(
   }
 }
 
-describe('analysis.get — the evidence projection (D-01)', () => {
+describe('analysis.get — the evidence projection', () => {
   it('carries every verdict\'s own citedSteps and citedArtifacts, floor included', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 2, passedCount: 1 })
     const registry = registryWith({ handoff, analysis: readerOf(undefined) })
@@ -476,7 +476,7 @@ describe('analysis.get — the evidence projection (D-01)', () => {
   })
 })
 
-describe('analysis.get — read-time presence on cited artifacts (D-17)', () => {
+describe('analysis.get — read-time presence on cited artifacts', () => {
   async function citedArtifactUnder(
     evidenceBlobs: EvidenceBlobReaderPort | undefined,
     refs: Verdict['evidence']['citedArtifacts'] = [{ id: `decision-screenshot:${CITED_SHA}`, sha: CITED_SHA }],
@@ -643,8 +643,8 @@ function codeOf(path: string): string {
     .join('\n')
 }
 
-describe('analysis.get — the D-12 quote leg, through the ONE renderer (406)', () => {
-  it('serves the 399 seeded-red quote as readable prose — one renderer, one sentence', async () => {
+describe('analysis.get — the quote leg, through the ONE renderer', () => {
+  it('serves the recorded seeded-red quote as readable prose — one renderer, one sentence', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const registry = registryWith({
       handoff,

@@ -164,7 +164,7 @@ function expectedFloor(handoff: CompletedRunHandoff): Verdict[] {
     )
 }
 
-describe('the analyze-run tracer: artifact before checkpoint (389 D-09/D-10)', () => {
+describe('the analyze-run tracer: artifact before checkpoint', () => {
   const persistedFlake = deterministicVerdict('flake', 'retryCount 2 > 0', [0], 0)
   const handoff = buildSyntheticHandoff({
     failureCount: 2,
@@ -183,7 +183,7 @@ describe('the analyze-run tracer: artifact before checkpoint (389 D-09/D-10)', (
     expect(calls).toEqual(['persistAnalysis', 'record:verdicts-authored'])
   })
 
-  it('records exactly {runId, verdicts} — the frozen 388 D-02 byte-shape', async () => {
+  it('records exactly {runId, verdicts} — the frozen byte-shape', async () => {
     const { published, run } = harness(handoff)
     await run()
 
@@ -229,7 +229,7 @@ describe('the analyze-run tracer: artifact before checkpoint (389 D-09/D-10)', (
     expect(steplessPart?.groundingQuote).toEqual({ source: 'test-outcome', quote: 'failed' })
   })
 
-  it('never re-enters the author and never rewrites the artifact on resume (JOBQ-03)', async () => {
+  it('never re-enters the author and never rewrites the artifact on resume', async () => {
     const floor = expectedFloor(handoff)
     const recorded = new Map<string, unknown>([
       ['verdicts-authored', { runId: String(handoff.runId), verdicts: floor }],
@@ -250,7 +250,7 @@ describe('the analyze-run tracer: artifact before checkpoint (389 D-09/D-10)', (
     })
   })
 
-  it('resolveRunVerdicts answers the artifact when present and the floor when absent (D-10)', async () => {
+  it('resolveRunVerdicts answers the artifact when present and the floor when absent', async () => {
     const { artifacts, run } = harness(handoff)
     await run()
     const artifact = artifacts[0] as RunAnalysisArtifact
@@ -286,8 +286,8 @@ describe('the analyze-run tracer: artifact before checkpoint (389 D-09/D-10)', (
   })
 })
 
-describe('the full author behind the frozen checkpoint (389 plan 04, ANLZ-02/ANLZ-03)', () => {
-  it('upgrades unknown floor members and persists LLM parts beside template parts (D-06)', async () => {
+describe('the full author behind the frozen checkpoint', () => {
+  it('upgrades unknown floor members and persists LLM parts beside template parts', async () => {
     const persistedFlake = deterministicVerdict('flake', 'retryCount 2 > 0', [0], 0)
     const handoff = buildSyntheticHandoff({
       failureCount: 2,
@@ -326,7 +326,7 @@ describe('the full author behind the frozen checkpoint (389 plan 04, ANLZ-02/ANL
     expect(value.verdicts).toEqual(artifact.verdicts)
   })
 
-  it('zero failed tests: no model call, empty artifact still written, checkpoint still publishes (ANLZ-03)', async () => {
+  it('zero failed tests: no model call, empty artifact still written, checkpoint still publishes', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 0, passedCount: 2 })
     const { artifacts, generateCallCount, published, run } = harness(handoff)
 
@@ -358,7 +358,7 @@ describe('the full author behind the frozen checkpoint (389 plan 04, ANLZ-02/ANL
     expect(artifact.parts[0]?.discriminator).toBe('flake: retryCount 2 > 0')
   })
 
-  it('author transport failure propagates — no artifact, no checkpoint, retry territory (D-03)', async () => {
+  it('author transport failure propagates — no artifact, no checkpoint, retry territory', async () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const { artifacts, published, run } = harness(handoff, { generateError: 'socket hang up' })
 

@@ -107,7 +107,7 @@ describe('renderExplainOutput — the answer arm', () => {
 })
 
 describe('renderExplainOutput — invention is impossible by construction', () => {
-  it('a ghost id abstains rather than answering (T-398-10)', () => {
+  it('a ghost id abstains rather than answering', () => {
     const output = render({ citedRowIds: ['op:runs.deploy'] })
     expect(output.kind).toBe('abstention')
   })
@@ -136,7 +136,7 @@ describe('renderExplainOutput — invention is impossible by construction', () =
     expect(render({ citedRowIds: [] }).kind).toBe('abstention')
   })
 
-  it('an EMPTY catalog abstains regardless of what was cited (SC-2, D-12)', () => {
+  it('an EMPTY catalog abstains regardless of what was cited', () => {
     for (const citation of [
       { citedRowIds: [] },
       { citedRowIds: ['op:runs.start'] },
@@ -177,7 +177,7 @@ describe('renderExplainOutput — invention is impossible by construction', () =
   })
 })
 
-describe('renderExplainOutput — the abstention arm (D-11, prohibition P2)', () => {
+describe('renderExplainOutput — the abstention arm', () => {
   it('states uncertainty plainly, names the deterministic closest, and names the docs-gap path', () => {
     const output = render({ citedRowIds: ['op:runs.ghost'] }, CATALOG_ROWS, {
       query: 'how do I start a run',
@@ -218,7 +218,7 @@ describe('renderExplainOutput — the abstention arm (D-11, prohibition P2)', ()
     expect(output.renderedLines).toContain(EXPLAIN_ABSTENTION_TEMPLATES.noClose)
   })
 
-  it('P2: every abstention line comes from the FROZEN template set, and that set carries no blame', () => {
+  it('every abstention line comes from the FROZEN template set, and that set carries no blame', () => {
     // The vocabulary scan below is weak in general and total here: the templates are a closed,
     // frozen set, so scanning it ranges the complete surface a person can be shown — not a sample
     // of it. The composed closest-line is the one exception and it is row-derived, asserted above.

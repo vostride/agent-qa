@@ -87,7 +87,7 @@ async function harnessFor(declaration: JobKindDeclaration, model: JobModelCapabi
   return { store, queue, fence }
 }
 
-describe('C444.1-INTERRUPTED', () => {
+describe('an interrupted model request', () => {
   it('an aborted model request returns its job to the queue without spending an attempt', async () => {
     const controller = new AbortController()
     const waiting = waitingModel(controller)

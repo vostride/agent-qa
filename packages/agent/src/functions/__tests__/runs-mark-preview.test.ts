@@ -98,7 +98,7 @@ async function previewOf(answer: unknown, raw: unknown = input, secretMask?: Mas
   return { result, reads }
 }
 
-describe('423-37 runs.mark.preview contract (D-16/D-17)', () => {
+describe('runs.mark.preview contract', () => {
   it('PREVIEW-INPUT-IDENTICAL: the preview input is RunsMarkInputSchema itself and runs.mark gains no preview field', async () => {
     const op = previewSpec()
     expect(op.id).toBe('runs.mark.preview')

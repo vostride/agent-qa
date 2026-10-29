@@ -37,12 +37,12 @@ const SEEDED_RED_399_READABLE =
   'locator.click: Timeout 30000ms exceeded. Call log: - waiting for '
   + "getByRole('button', { name: 'Close ad', exact: true }).first()"
 
-describe('sanitizeQuoteText — control sequences out, whitespace collapsed (D-12)', () => {
+describe('sanitizeQuoteText — control sequences out, whitespace collapsed', () => {
   it('removes CSI/SGR sequences and collapses an embedded newline to one space', () => {
     expect(sanitizeQuoteText(`a${ESC}[2m b${ESC}[22m\nc`)).toBe('a b c')
   })
 
-  it('renders the 399 seeded-red quote as the readable one-line form, verbatim', () => {
+  it('renders the recorded seeded-red quote as the readable one-line form, verbatim', () => {
     const sanitized = sanitizeQuoteText(SEEDED_RED_399_QUOTE)
 
     expect(sanitized).toBe(SEEDED_RED_399_READABLE)
