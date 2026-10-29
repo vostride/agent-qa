@@ -9,7 +9,7 @@
 //
 // The launch failure is produced with an empty `PLAYWRIGHT_BROWSERS_PATH` (the 432 matrix's
 // no-browser pin), never a real Firefox. The CLI door is the built binary; the dashboard door is
-// composed in this process as `agent-qa dashboard` composes it (433-door-fixture).
+// composed in this process as `agent-qa dashboard` composes it, through the shared dashboard scene.
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -22,24 +22,11 @@ import { generateTestId } from '@vostride/agent-qa-ids'
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
-// 2026-10-19 (444.1-21, D-36): each in-process drive's own tail and member executions (a member's
-// finally writes its working-memory flush) are awaited before the project is removed.
+// Each in-process member execution is awaited before the project is removed, because a member's
+// finally writes its working-memory flush. The scene waits for each run's post-run work itself.
 const inFlight = vi.hoisted(() => ({
-  tails: [] as Array<Promise<void>>,
   members: [] as Array<Promise<unknown>>,
 }))
-
-vi.mock('../../composition/in-process-run-execution.js', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../../composition/in-process-run-execution.js')>()
-  return {
-    ...original,
-    runInProcessCliRun: async (...args: Parameters<typeof original.runInProcessCliRun>) => {
-      const outcome = await original.runInProcessCliRun(...args)
-      if (outcome.settled !== undefined) inFlight.tails.push(outcome.settled)
-      return outcome
-    },
-  }
-})
 
 vi.mock('../../commands/run.js', async (importOriginal) => {
   const original = await importOriginal<typeof import('../../commands/run.js')>()
@@ -90,8 +77,8 @@ const cleanups: Array<() => Promise<void>> = []
 
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup().catch(() => {})
-  while (inFlight.tails.length + inFlight.members.length > 0) {
-    await Promise.allSettled([...inFlight.tails.splice(0), ...inFlight.members.splice(0)])
+  while (inFlight.members.length > 0) {
+    await Promise.allSettled(inFlight.members.splice(0))
   }
 })
 

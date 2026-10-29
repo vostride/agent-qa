@@ -9,27 +9,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { DashboardDatabase } from '@vostride/agent-qa-dashboard'
-import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
-
-// 2026-10-19 (444.1-18, D-28): a dashboard-door run's post-processing tail is detached and logs
-// after the run settles; the door's afterAll waits for every tail before it closes the scene.
-const tails = vi.hoisted(() => [] as Array<{ done: boolean }>)
-
-vi.mock('../../composition/in-process-run-execution.js', async (importOriginal) => {
-  const original = await importOriginal<typeof import('../../composition/in-process-run-execution.js')>()
-  return {
-    ...original,
-    runInProcessCliRun: async (...args: Parameters<typeof original.runInProcessCliRun>) => {
-      const outcome = await original.runInProcessCliRun(...args)
-      if (outcome.settled !== undefined) {
-        const tail = { done: false }
-        tails.push(tail)
-        void outcome.settled.then(() => { tail.done = true })
-      }
-      return outcome
-    },
-  }
-})
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import {
   dashboardDbPath,
@@ -242,18 +222,10 @@ describe('C433-ARTIFACT-CAPTURED: the dashboard door', () => {
   }, CELL_BUDGET_MS * 2)
 
   afterAll(async () => {
-    try {
-      if (suiteRunId !== undefined) expect(tails, 'each triggered run left a post-processing tail').toHaveLength(2)
-      expect(
-        await waitFor(() => tails.every((tail) => tail.done), SETTLE_BUDGET_MS),
-        'the dashboard runs\' post-processing never finished',
-      ).toBe(true)
-    } finally {
-      await scene?.close()
-      await project?.close()
-      if (priorAmbient === undefined) delete process.env[POPULATED_SECRET_ENV_VAR]
-      else process.env[POPULATED_SECRET_ENV_VAR] = priorAmbient
-    }
+    await scene?.close()
+    await project?.close()
+    if (priorAmbient === undefined) delete process.env[POPULATED_SECRET_ENV_VAR]
+    else process.env[POPULATED_SECRET_ENV_VAR] = priorAmbient
   })
 
   it('C433-ARTIFACT-CAPTURED: the dashboard door replaces the queued source', async () => {
