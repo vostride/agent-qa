@@ -1,14 +1,4 @@
-/**
- * Run-outcome projection: per-test outcome counters and exercised-anchor sets.
- *
- * Third application of the handoff-to-projection fold idiom (after curation emit and canary
- * emit): a pure projection over one CompletedRunHandoff, a SQLite writer against the one
- * derived-index connection, and a full rebuild that reproduces identical tables from
- * `.agent-qa/runs/<runId>/handoff.json` scans alone (L12 — derived state is disposable).
- *
- * The projection knows ABOUT tests (identity, counters, anchors, flags) and never CONTAINS
- * them: no test file content enters the store, and tests are never memidex-indexed.
- */
+// A rebuild from stored handoffs reproduces these tables; no test file content is stored.
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import type { DatabaseSync } from 'node:sqlite'
@@ -65,28 +55,7 @@ import { readTestOutcomeHistory } from './run-outcome-read.js'
 import { applySuiteFingerprints, suiteFingerprintDeltas } from './suite-fingerprints.js'
 import type { SuiteFingerprintTestDelta } from './suite-fingerprints.js'
 
-/**
- * Stamped into the curation-tail receipt's projection component. Bump when the fold
- * semantics or table shapes change so already-receipted runs refold on the next tail.
- *
- * HOW THAT REFOLD ACTUALLY HAPPENS, because the receipt alone cannot do it. The tail
- * stores this number in each run's receipt, so a bump invalidates every receipt and the sweep
- * re-runs each historical run — but the per-run fold then answers 'already-applied' off the
- * durable marker and writes nothing. The stamp is therefore ALSO stored in the index itself, in
- * `run_outcome_projection_version`, and `reconcileRunOutcomesProjection` compares the two ONCE per
- * curation-tail sweep, before the per-run loop: a differing or absent stamp rebuilds the whole
- * projection family from the runs root through `rebuildRunOutcomes`, which clears the family
- * (marker included) and re-reads every `handoff.json` + `analysis.json` from disk. THAT is how an
- * already-receipted run contributes its elements. The per-run receipts then rewrite at the new
- * version through the same sweep. The family is derived, so the rebuild is the whole upgrade, and
- * it is a mechanism that runs, not an argument that it is unnecessary.
- *
- * NOT the case argued at `cli/src/commands/run.ts:1949`, where a bump was
- * deliberately declined: there the rebuild would have replayed stored handoffs carrying the OLD
- * identities, landing in the same mixed state the bump was meant to clear. Here the new table has
- * no historical rows at all, and every row it will hold is derivable from evidence the stored
- * handoffs already carry — so the refold produces the complete answer rather than a mixed one.
- */
+// Bump on fold or table change; a mismatch with the index's stamp rebuilds the whole family.
 export const RUN_OUTCOMES_PROJECTION_VERSION = 2
 
 export { LAST_OUTCOMES_LIMIT } from './run-outcome-constants.js'
@@ -101,40 +70,18 @@ const RUN_HANDOFF_FILE = 'handoff.json'
 /** Anchor extraction seam: the CLI tail passes its exercisedAnchors(step) walk. */
 export type ExtractStepAnchors = (step: StepEvidence) => Anchor[]
 
-/**
- * Projection inputs contain no exclusion override. The durable handoff marker is the sole
- * authority for current-run folds, sibling backfill, and full rebuild alike (D-14 §6).
- */
+// No exclusion override: the durable handoff marker decides for every fold path.
 export interface ProjectRunOutcomesOptions {
   extractAnchors: ExtractStepAnchors
-  /**
-   * The run's persisted analysis artifact when one exists (390 D-09, the `ProjectCanaryOutcomes
-   * Input.artifact` precedent). DATA, not a port: `foldRunOutcomes` and `rebuildRunOutcomes` each
-   * load it from the run's own dir through the one shared loader and hand it here, so ONE
-   * projection function with ONE signature serves both paths — a second signature only one path
-   * calls is exactly how L12 rebuild parity breaks in silence.
-   */
+  // Data loaded by both fold paths, so one projection signature keeps rebuild parity.
   artifact?: RunAnalysisArtifact
 }
 
-/**
- * What a FAILED member contributes to the fingerprint-keyed recurrence window.
- *
- * The fingerprint is composed through the ONE exported vocabulary — `failingStepOf`/`errorTextOf`
- * over `exercisedAnchors`, keyed by `failureFingerprint` — so this window and the render-time
- * cluster presentation cannot disagree about what "the same failure" is. The verdict class is part
- * of the key by recipe, which is why it travels beside it rather than being re-derived downstream.
- */
+// Built from the shared fingerprint vocabulary, so the window and cluster view agree.
 export interface RunOutcomeFailureKey {
   fingerprint: string
   verdictClass: VerdictClass
-  /**
-   * WHICH pipeline authored the class. Not part of the fingerprint and not stored on
-   * `run_fingerprint_windows` — it travels on the in-memory delta only, because the quarantine
-   * ladder's floor-eligibility gate needs to know whether the class is a statement about THIS
-   * TEST (an authored `analyze-run` verdict) or about the RUN (the deterministic floor, whose
-   * `environment` arms are one health-probe result applied to every failing member).
-   */
+  // Kept off the stored window: only the floor-eligibility gate needs it, on the in-memory delta.
   producer: Verdict['producer']
 }
 
@@ -144,7 +91,7 @@ export interface RunOutcomeTestDelta {
   passed: boolean
   heals: number
   flake: boolean
-  /** canonicalJson(normalizeAnchor(...)) keys — byte-deterministic (ABRF-02 encoding edge). */
+  // `canonicalJson(normalizeAnchor(...))` keys, byte-deterministic.
   anchorKeys: string[]
   /** Present for exactly the failed members — a pass contributes no window row. */
   failure?: RunOutcomeFailureKey
@@ -157,12 +104,7 @@ export interface RunOutcomesProjection {
   buildOrdinal: number
   excluded: boolean
   tests: RunOutcomeTestDelta[]
-  /**
-   * The suite-fingerprint deltas for the SAME members. They travel on this projection
-   * rather than being folded by a second pass so that one traversal of the handoff produces both
-   * tables, one transaction commits them, and one applied-runs marker covers them — which is what
-   * makes rebuild parity structural instead of asserted.
-   */
+  // Carried here so one traversal, one transaction and one marker cover both tables.
   fingerprints: SuiteFingerprintTestDelta[]
 }
 
@@ -174,36 +116,18 @@ export interface RebuildRunOutcomesOptions {
   extractAnchors: ExtractStepAnchors
 }
 
-/**
- * What one rebuild did, with its two skip causes kept APART (393 round 7, CR-01-WIDENED).
- *
- * A single conflating counter answered "how many runs did not fold" and nothing an operator could
- * act on: a malformed `handoff.json` and an unloadable `analysis.json` are different files, written
- * by different producers, and fixed differently. There is deliberately no third counter for a
- * projection or write failure — that class is no longer a skip at all. It propagates out of
- * `rebuildRunOutcomes` and the rebuild produces no report.
- */
+// Two skip causes kept apart; a projection or write failure propagates and yields no report.
 export interface RebuildRunOutcomesReport {
   folded: number
-  /** Runs whose `handoff.json` would not load or carries a pre-381 / structurally unsafe shape. */
+  /** Runs whose `handoff.json` would not load or has an old or structurally unsafe shape. */
   skippedHandoffs: number
-  /** Runs whose `handoff.json` loaded but whose `analysis.json` threw (the D-09 second document). */
+  // Runs whose `handoff.json` loaded but whose `analysis.json` threw.
   skippedArtifacts: number
 }
 
-/**
- * What the fold needs before it may evaluate the quarantine detection ladder.
- *
- * Grouped and OPTIONAL on purpose: a caller that cannot supply a clock does
- * not get a silently empty evaluation, it gets `{kind: 'not-evaluated', reason: 'not-requested'}`
- * on the report. "Detection ran and found nothing" and "detection never ran" are different facts.
- */
+// Optional, so a caller with no clock gets `not-evaluated` instead of an empty evaluation.
 export interface QuarantineDetectionOptions {
-  /**
-   * The ISO-8601 instant the evaluation is anchored to — the drain's own wall clock, read ONCE by
-   * the caller. The fold and the rule below it stay clock-free (390-01's purity-by-argument), which
-   * is what lets both expiry and the ladder be pinned one step either side.
-   */
+  // Read once by the caller; the fold and the rule stay clock-free.
   now: string
 }
 
@@ -212,24 +136,13 @@ export interface FoldRunOutcomesOptions {
   knowledgeRoot: string
   handoff: CompletedRunHandoff
   extractAnchors: ExtractStepAnchors
-  /**
-   * The run's own directory (`.agent-qa/runs/<slug(runId)>/`). When supplied, the fold loads
-   * `analysis.json` from it so the counters read RESOLVED verdicts. Absent — a caller that
-   * has no run dir — folds the deterministic floor, byte-identically to pre-390.
-   */
+  // When supplied, the fold reads resolved verdicts from `analysis.json`; absent folds the floor.
   runDir?: string
-  /** Present when the caller wants the D-08 detection step; absent skips it explicitly. */
+  // Present to run detection; absent skips it explicitly.
   quarantine?: QuarantineDetectionOptions
 }
 
-/**
- * What the fold's detection step did, as DATA (390 Pitfall 4).
- *
- * Every arm is a fact the caller can print. A ledger that could not be read is a value, not an
- * exception: a failure that vanished inside a catch is exactly how an `entered` event goes missing
- * in silence, and a missing `entered` event is a test that keeps failing builds with nobody told
- * why it was supposed to stop.
- */
+// Detection's outcome as data: an unreadable ledger is a value, not an exception lost in a catch.
 export type QuarantineFoldOutcome =
   | { kind: 'not-evaluated'; reason: 'already-applied' | 'not-requested' }
   /** The committed ledger could not be read at all — detection refuses rather than guessing. */
@@ -283,33 +196,7 @@ function countedOutcome(outcome: PerTestOutcome['outcome']): boolean | undefined
   }
 }
 
-/**
- * The RESOLVED VERDICT per member test, computed ONCE per fold (390 D-09, mirroring the canary
- * fold's `resolveAttributionClasses` member-for-member — same class of fold, same input treatment).
- *
- * It answers the whole `Verdict`, not just `.class`. Both layers below already HOLD one —
- * layer 1 reads `member.rootCause`, which IS a Verdict, and layer 2 reads `resolveRunVerdicts`,
- * which returns them — so keeping only the class was discarding `producer` one step short of the
- * quarantine decision that needs it.
- *
- * Two layers, in overwrite order:
- *
- *  1. Members OUTSIDE the accessor's domain first — a clean pass keeps its persisted class, which
- *     is how the runner's one pass-mintable `flake` (classifyRootCause's retry rule) still counts.
- *  2. THE one supersedable-verdict read, `resolveRunVerdicts`: artifact verdicts when the
- *     artifact is present, the deterministic floor when it is absent. It OVERWRITES layer 1
- *     wherever it governs, which is exactly how an unknown→flake upgrade moves the flake counter
- *     instead of the projection contradicting the resolved verdict.
- *
- * ACCEPTED SHAPE (the 389-06 precedent): a run whose artifact is written AFTER its fold does not
- * refold at the projection version it was folded at. The `run_outcome_applied_runs` marker is
- * final WITHIN a version, so an upgraded class reaches the counters and the fingerprint windows
- * only through LATER runs. ACROSS a version it is not final at all:
- * `reconcileRunOutcomesProjection` clears the marker through `rebuildRunOutcomes`, which re-reads
- * every artifact from disk — which is where a late upgrade eventually lands, and which is why the
- * version-4 note at the head of this file and this paragraph describe one mechanism rather than
- * contradicting each other.
- */
+// A late artifact reaches counters only through later runs or a version rebuild.
 function resolveProjectionClasses(
   handoff: CompletedRunHandoff,
   artifact: RunAnalysisArtifact | undefined,
@@ -319,8 +206,7 @@ function resolveProjectionClasses(
   for (const member of members) {
     if (member.rootCause !== undefined) verdicts.set(member.testIndex, member.rootCause)
   }
-  // The accessor traverses `tests` on the floor path; the rebuild's WR-03 wall admits a handoff
-  // whose `tests` key is absent, so it is normalized to the same empty array used above.
+  // A rebuilt handoff may lack `tests`, so it is normalized to the same empty array.
   for (const verdict of resolveRunVerdicts(artifact, { ...handoff, tests: members })) {
     verdicts.set(verdict.perTest, verdict)
   }
@@ -355,21 +241,7 @@ function testDelta(
   }
 }
 
-/**
- * The window key for one failed member.
- *
- * Every input rule is IMPORTED, never respelled here: which step the failure is about
- * (`failingStepOf`), which recorded bytes describe it (`errorTextOf`), which anchors it touched
- * (`exercisedAnchors`), and how those compose into the frozen key (`failureFingerprint`). The
- * anchor walk is schema's own — deliberately NOT the injected `extractAnchors` seam, which exists
- * so callers can vary the projection's anchor ROWS; keying the window through a variable seam would
- * let the window and the cluster presentation drift apart on a test host.
- *
- * A failed member always has a resolved verdict (`resolveRunVerdicts` mints `unknown` for a failure
- * carrying no verdict), so the fallbacks below are total-function guards, not expected paths. The
- * `producer` fallback matches `mintedUnknown`'s own value for the same reason the class fallback
- * matches its class: an absent verdict is exactly the floor's answer, never an authored one.
- */
+// Keyed through schema's anchor walk, not the injected seam, so window and cluster view agree.
 function failureKey(
   test: PerTestOutcome,
   resolved: Verdict | undefined,
@@ -395,11 +267,7 @@ export function projectRunOutcomes(
   const partition = projectionPartition(handoff.scope)
   const excluded = handoff.excludedFromOutcomes === true
   const resolvedClasses = resolveProjectionClasses(handoff, opts.artifact)
-  // THE ONE EXCLUSION GATE, and every projection below is computed from its output (393 D-15 /
-  // WTST-06). A flagged gate-run reaches no counter, no anchor row, no fingerprint element,
-  // because after this line there are no members to reach them with. A second gate — one per
-  // table — would be the shape in which the two could eventually disagree about the same run,
-  // which is exactly Pitfall 8: a gate-run seeding the union it is later compared against.
+  // The one exclusion gate; every table below derives from its output, so none can disagree.
   const members = excluded ? [] : (handoff.tests ?? [])
   const tests = members.flatMap((test) => {
     const delta = testDelta(test, opts.extractAnchors, resolvedClasses)
@@ -487,10 +355,7 @@ export function applyRunOutcomes(
       product, scope_tier, scope_key, file_path, test_name, anchor_normalized_json
     ) VALUES (?, ?, ?, ?, ?, ?)
   `)
-  // window rows commit in the SAME transaction as the counters and behind the SAME
-  // applied-runs marker, so a refold can neither double-count a recurrence nor leave counters and
-  // windows describing different histories. OR IGNORE makes the uniqueness constraint the second
-  // line of defence rather than an error path.
+  // Same transaction and marker as the counters, so a refold cannot double-count a recurrence.
   const insertWindow = db.prepare(`
     INSERT OR IGNORE INTO run_fingerprint_windows (
       product, file_path, test_name, fingerprint, verdict_class, build_ordinal, run_id
@@ -556,10 +421,7 @@ export function applyRunOutcomes(
         )
       }
     }
-    // the suite-fingerprint rows commit in the SAME transaction and behind the SAME
-    // applied-runs marker as the counters, on the 390 D-07 precedent one paragraph up. The write
-    // is convergent on its own (newest `(buildOrdinal, runId)` wins), so the marker is what makes
-    // the two tables describe one history rather than what makes this idempotent.
+    // Same transaction and marker as the counters, so both tables describe one history.
     applySuiteFingerprints(db, {
       product: projection.product,
       runId: projection.runId,
@@ -592,25 +454,7 @@ function isErrnoHostFault(error: unknown): boolean {
     && typeof (error as NodeJS.ErrnoException).code === 'string'
 }
 
-/**
- * One run's persisted analysis artifact, loaded from that run's OWN dir. THE shared
- * loader: the incremental fold and the full rebuild both call it, which is what keeps L12 parity
- * true rather than asserted.
- *
- * The fs glue is local; every rule that matters belongs to schema. An absent file is `undefined` —
- * the deterministic floor. A newer schemaVersion is the guard's typed hard failure, never swallowed
- * into a silent floor. A PRESENT file recording ANOTHER run's id is refused by identity
- * (`admitAnalysisArtifactForRun`, G-389-3A) and folds to the floor: counters and windows never key
- * off another run's verdicts, the 388 cross-instance class.
- *
- * THE LOADER ALWAYS RETHROWS, and what that costs is the CALLER's call (393 round 6, CR-01). On the
- * incremental `foldRunOutcomes` path the throw stands: one run's fold fails loudly rather than
- * silently recording a resolved run at its unresolved floor. In `rebuildRunOutcomes` the per-run
- * body catches the BAD-BYTES class and counts a skip, because there those throws would abandon a
- * family from one malformed run — while an errno-coded HOST fault rethrows from that same
- * call site (393 round 8, CR-01-READ). Two postures, one loader — do not "fix" this by softening
- * the loader.
- */
+// Always rethrows; the rebuild counts bad bytes as a skip, while the incremental fold fails loudly.
 function loadRunArtifact(runDir: string, runId: string): RunAnalysisArtifact | undefined {
   let bytes: string
   try {
@@ -638,9 +482,7 @@ function loadRebuildHandoff(file: string): CompletedRunHandoff | undefined {
   try {
     const guarded = guardCompletedRunHandoff(JSON.parse(bytes))
 
-    // WR-03 / L12 fail-closed boundary: EVERY structural access on this untrusted
-    // persisted document stays inside this try. A malformed file is a counted skip,
-    // never an exception that aborts the disposable derived-state rebuild.
+    // Every structural access on this untrusted document stays inside the try, so bad bytes skip.
     const tests = (guarded as { tests?: unknown }).tests
     if (tests !== undefined && !Array.isArray(tests)) return undefined
 
@@ -680,27 +522,7 @@ function readStoredProjectionVersion(db: DatabaseSync): number | undefined {
   return row?.version
 }
 
-/**
- * Full rebuild: scan and read every run dir under `runsRoot`, then clear the projection tables
- * and refold each loadable handoff. Reproduces tables byte-identical to the incremental fold
- * (L12); a rebuild over zero handoff dirs yields empty tables without error (ABRF-02
- * empty edge). BAD-BYTES load failures and pre-381 shapes are counted skips — including a run whose
- * `analysis.json` will not decode, which costs that run's contribution and nothing else (393 round
- * 6, CR-01). One undecodable artifact must never truncate a family this function has already
- * read; an errno-coded HOST fault on either document, on the runs root, or on any run dir
- * propagates BEFORE the family is deleted, so no sweep can stamp — or empty — a family the
- * filesystem prevented it from reading (418-12, CR-01-EXISTS).
- *
- * Phase A: no document is destroyed before every document was read — a host fault during reads
- * leaves the previous family and its stamp untouched (418-12, CR-02-DESTRUCTIVE, load-before-delete).
- * The list holds parsed handoffs for one sweep; the runs root is bounded by host run retention.
- *
- * Phase B is DELETE-FIRST, STAMP-LAST, and that order is the crash story rather than a style choice (393
- * CR-02). The version row is cleared with the family it describes and re-written only after the
- * refold loop has run to completion, so a crash anywhere in between leaves NO stamp — which
- * `reconcileRunOutcomesProjection` reads as a mismatch and rebuilds again. The projection
- * therefore self-heals from a partial rebuild instead of stamping a half-built family as current.
- */
+// Reads everything before deleting, then deletes first and stamps last, so a crash leaves no stamp.
 export function rebuildRunOutcomes(
   db: DatabaseSync,
   runsRoot: string,
@@ -708,9 +530,7 @@ export function rebuildRunOutcomes(
 ): RebuildRunOutcomesReport {
   const loaded: { handoff: CompletedRunHandoff; artifact?: RunAnalysisArtifact }[] = []
   const report: RebuildRunOutcomesReport = { folded: 0, skippedHandoffs: 0, skippedArtifacts: 0 }
-  // A missing runs root is the ABRF-02 empty edge, not a failure: the family is legitimately
-  // empty at the CURRENT semantics, so it still earns the stamp below — otherwise a project with
-  // no runs yet would rebuild on every single sweep forever.
+  // A missing runs root is an empty family and still earns the stamp, or every sweep would rebuild.
   if (pathPresent(runsRoot, 'directory') === 'present') {
     const runDirs = readdirSync(runsRoot, { withFileTypes: true })
       .filter((entry) => entry.isDirectory())
@@ -724,10 +544,7 @@ export function rebuildRunOutcomes(
         report.skippedHandoffs += 1
         continue
       }
-      // D-09 / L12: share the incremental artifact loader but keep the established per-run
-      // BAD-BYTES skip. Only the loader sits in this catch: host faults propagate, and
-      // projection/write failures in phase B must never be mistaken for malformed bytes.
-      // An unreadable artifact skips the whole run rather than inventing floor counters.
+      // Only the loader sits in this catch; host faults and later write failures still propagate.
       let artifact: RunAnalysisArtifact | undefined
       try {
         artifact = loadRunArtifact(runDir, String(handoff.runId))
@@ -780,34 +597,7 @@ export interface ReconcileRunOutcomesProjectionOptions {
   extractAnchors: ExtractStepAnchors
 }
 
-/**
- * THE version trigger: reconcile the stored fold semantics with the shipped ones.
- *
- * `RUN_OUTCOMES_PROJECTION_VERSION`'s doc block has always promised that a bump makes
- * already-receipted runs refold. Nothing performed that refold: `applyRunOutcomes` short-circuits
- * on the `run_outcome_applied_runs` marker before it can reach the fingerprint write, and nothing
- * cleared the marker on a version change — so on any project that folded runs before a bump, the
- * new table stayed empty forever and gate 3's fingerprint lane never had data to decide on. This
- * function is what makes that promise true, and it composes machinery that already existed rather
- * than adding a parallel path: `rebuildRunOutcomes` already clears the family, already re-reads
- * every `handoff.json` + `analysis.json` through the one shared loader, and already reaches
- * `applySuiteFingerprints` for every fold.
- *
- * ABSENT MEANS MISMATCH, deliberately. Every pre-stamp index reads as absent, which is exactly the
- * population that needs to converge; so does an index whose file was deleted, which is exactly the
- * population that needs to re-heal. Treating absence as "probably fine" would have made the
- * upgrade path the one path this function does not serve.
- *
- * WHY A REBUILD RATHER THAN A PER-RUN VERSION COLUMN. Refolding runs in place through the
- * incremental path would add each run's counters a SECOND time — the fold accumulates, it does not
- * replace. The rebuild is the mechanism precisely because it clears before it refolds, which is
- * also why the derived family is safe to move this way at all (L12: every row here is reproducible
- * from run artifacts on disk).
- *
- * a destructive rebuild of a shared derived family is a leased act. A caller
- * without authority gets a typed skip before opening a writer; it stays stale until a leased
- * sweep. The version check and entire rebuild share the current-authority generation lock.
- */
+// An absent stamp is a mismatch; it rebuilds, because refolding in place would double the counters.
 export function reconcileRunOutcomesProjection(
   opts: ReconcileRunOutcomesProjectionOptions,
 ): ReconcileRunOutcomesProjectionResult {
@@ -831,33 +621,7 @@ export function reconcileRunOutcomesProjection(
   })
 }
 
-/**
- * The D-08 detection step: evaluate the quarantine ladder over the JUST-COMMITTED window and
- * append whatever lifecycle events it authors.
- *
- * ORDERING, stated rather than pretended (Open Q1). The projection lives in SQLite and the ledger
- * is a committed JSONL file; there is no transaction that spans both, so this cannot be atomic and
- * the code does not claim to be. The append orders AFTER the projection commit, which means a
- * crash between the two leaves the counters applied and no event written.
- * That state SELF-HEALS: the window is still crossed, so the next applied fold re-evaluates and
- * appends then. The opposite order (append first) would have the strictly worse failure: a
- * quarantine entry for a run whose counters never landed.
- *
- * The reads below run on the same connection immediately after `applyRunOutcomes` returned
- * `'applied'`, so the recurrence they see includes this run.
- *
- * TWO PER-TEST OUTCOME READS THAT LOOK REDUNDANT AND ARE NOT. `testWindows` is built for
- * ENTRIES — tests the ledger already carries — and answers the EXIT question. The flake signature
- * is needed for CROSSINGS, and a crossing is by definition NOT in the ledger yet, so it has no
- * window here: the exit path reads windows for entries, the entry path needs a window for a test
- * that has none. That asymmetry is the whole reason the signature is computed in this function and
- * nowhere else — the failure loop is the only place holding both the crossing's identity and the db
- * handle at once.
- *
- * THE READ COST, stated honestly: one indexed point lookup per CROSSING failure, on a connection
- * already open, after the projection has committed. Crossings are rare by construction — this loop
- * is reached only for members that failed — so this is not a per-test cost on the common path.
- */
+// Appends after the projection commits; a crash between them self-heals on the next fold.
 function evaluateQuarantineForFold(
   db: DatabaseSync,
   projection: RunOutcomesProjection,
@@ -886,21 +650,7 @@ function evaluateQuarantineForFold(
       fingerprint: test.failure.fingerprint,
       verdictClass: test.failure.verdictClass,
       producer: test.failure.producer,
-      // THE PER-CROSSING FLAKE SIGNATURE, read from this test's OWN outcome window.
-      // `hasSameBuildPassAndFail` is called rather than re-derived: the exit path's
-      // `distinctOrdinalOutcomes` and this entry-side read share one `groupByBuildOrdinal`, so
-      // "what a build ordinal is" has exactly one spelling and the two directions cannot drift.
-      // A test with no history row answers false through the `?? []` — typed absence, never a
-      // throw and never a fabricated window. (Defensive in-tree: the reads below run after
-      // `applyRunOutcomes` returned `applied`, so a crossing test always has a row by now.)
-      //
-      // AND IT IS SCOPED TO THIS CROSSING'S OWN RECURRENCE WINDOW. The per-test
-      // outcome window keeps LAST_OUTCOMES_LIMIT entries, which is DEEPER than the detection
-      // window, so an unscoped read let a since-fixed flake episode license a new hard regression
-      // several ordinals later — the gate silencing exactly what the disposition table exists to
-      // keep failing the build. The floor here is `fingerprintRecurrence`'s floor, from the same
-      // export: the evidence and the count are bounded by ONE window, so evidence expires with the
-      // window that licensed nothing (D-07 windows-forgive; D-05 anti-silencing).
+      // Scoped to this crossing's recurrence window, so old flake evidence licenses nothing.
       sameBuildPassAndFail: hasSameBuildPassAndFail(
         (readTestOutcomeHistory(db, {
           product: projection.product,
@@ -918,15 +668,7 @@ function evaluateQuarantineForFold(
       ),
     }])
 
-  // Exit candidates are every entry in this product that is still LISTED — `quarantined` or
-  // `expired` — and not only the tests that ran here: a test whose window filled with passes
-  // several runs ago must still be released. A LAPSED entry is included because a test fixed while
-  // its window was lapsed is still listed and can otherwise only be closed by hand.
-  //
-  // TWO SITES, ONE RULE. `evaluateQuarantineDetection`'s release loop (quarantine/detection.ts)
-  // applies the same state test to the entries themselves. This filter decides whether a window is
-  // BUILT at all, so narrowing it alone silently disables the release for a whole state class while
-  // the pure rule's own tests stay green over windows the fold never hands it.
+  // Every listed entry, lapsed included, gets a window; the detection release loop must match this.
   const testWindows: QuarantineDetectionTestWindow[] = entries.flatMap((entry) => {
     if (entry.state === 'released' || entry.product !== projection.product) return []
     const history = readTestOutcomeHistory(db, {
@@ -962,16 +704,7 @@ function evaluateQuarantineForFold(
   }
 }
 
-/**
- * Incremental fold wrapper for the post-verdict tail: opens the one index writer, applies
- * the projection, and closes. The tail invokes it inside the SAME crash boundary and the
- * SAME (extended) receipt as candidate/canary emit — never a second marker file.
- *
- * Detection hangs off the `'applied'` arm ONLY. `applyRunOutcomes` answers
- * `'already-applied'` from an early return that fires before its transaction even opens, so
- * "a refold never double-quarantines" is true by POSITION — there is no second idempotency
- * condition here to keep in sync with the marker.
- */
+// Detection hangs off the `applied` arm only, so a refold never double-quarantines.
 export function foldRunOutcomes(opts: FoldRunOutcomesOptions): FoldRunOutcomesReport {
   const artifact = opts.runDir === undefined
     ? undefined

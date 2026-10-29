@@ -1,19 +1,4 @@
-// The per-run entity-resolution score report.
-//
-// D-08 asks for the corpus's resolution scores to be LOGGED, not merely asserted, and for the
-// log's shape to be asserted in turn. The reason is narrow and worth stating: the two D-07
-// constants are pinned rather than configured, so the only thing a future retune can be argued
-// from is a record of what the corpus actually scored — in both postures, case by case. An
-// assertion that passed tells you nothing about how close it came to failing; this file is what
-// turns "green" into evidence.
-//
-// The report carries no clock and no run id, so two runs of an unchanged corpus produce a
-// byte-identical file. That is deliberate: a diff against the committed constants' rationale is
-// only readable if the noise is absent, and a timestamp is noise a resolver report cannot use.
-//
-// Scores here are the NORMALISED agreement score the resolver itself reports (1.0 means every
-// leg ranked the candidate first, 0.5 means exactly one leg did). Logging the raw fused RRF
-// value instead would put 0.0328 next to tier (a)'s 1.0 and invite a reader to compare them.
+// No clock and no run id, so an unchanged corpus writes a byte-identical report.
 
 import { mkdirSync, writeFileSync } from 'node:fs'
 import { dirname } from 'node:path'

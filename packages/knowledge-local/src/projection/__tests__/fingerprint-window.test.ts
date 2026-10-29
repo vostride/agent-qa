@@ -1,18 +1,4 @@
-// The fingerprint-keyed recurrence window: detection's substrate.
-//
-// The window rows are what plan 05's rule reads, so two properties matter more than the counts:
-//
-//  1. The KEY is the one exported fingerprint over the one exported failing-step rule. The goldens
-//     below are literal BYTES derived from `normalizeAnchor` + `canonicalJson` + `failureFingerprint`
-//     read as source, not captured from a run — a golden anchored in the module's own vocabulary
-//     proves only that the code agrees with itself (the 383 lesson).
-//  2. The verdict CLASS folds into that key by recipe, so an unknown→flake upgrade produces a
-//     DIFFERENT window key for the same anchor. That is deliberate: the same anchor failing as a
-//     flake and failing as an app bug are two facts.
-//
-// Recurrence is counted over DISTINCT build ordinals — the window slides over ordinals, not runs
-// so two failing runs inside one build count once and an intermittent failure at ordinals
-// 5/7/9 still crosses at 9.
+// Goldens are bytes derived by reading the source, so the code cannot just agree with itself.
 import { DatabaseSync } from 'node:sqlite'
 
 import {

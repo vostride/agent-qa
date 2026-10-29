@@ -163,15 +163,7 @@ function citedEnvelope(
   }
 }
 
-/**
- * Construct the pure §7.9 fallback projection from one guarded queue job and its presented
- * neighbors. No model, filesystem, clock, or ambient process state participates.
- *
- * D-06 note: the restricted fallback NEVER authors procedures — segmentation and
- * parameterization are capable-model judgments, and a seed-draft procedure body would commit
- * a non-codec payload. A procedure-extraction job therefore falls back to a one-element Noop
- * (zero procedure deltas); content-addressed re-emission on a later drain retries extraction.
- */
+// Pure; a procedure job falls back to a one-element Noop, retried on a later drain.
 export function constructFallbackDeltas(
   job: CurationJobView,
   neighbors: NeighborRecord[],

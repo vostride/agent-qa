@@ -1,15 +1,4 @@
-// The MEM sighting source's status derivation.
-//
-// CR-04's shape, stated so the cases below are readable as a fix for it rather than as
-// arbitrary assertions: the resolver's private status table named three strings, two of which
-// (`withdrawn`, `retired`) are not members of `BundleStatus` at all, and it omitted
-// `deprecated` — the status every forget and every reject actually produces. Its reachable
-// domain was therefore `['superseded']`, so after a forget the card said `active` while the
-// receipt handed to the same caller said `tombstoned`.
-//
-// The regression cases here walk the COMPLETE `BundleStatus` union rather than the one member
-// that failed, because a table scoped to hand-picked members of a set whose hazard belongs to
-// the whole set is the defect, and a test scoped the same way would reproduce it.
+// Walks the complete `BundleStatus` union, not just the member that failed.
 
 import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -165,12 +154,6 @@ describe('the MEM sighting source reports the status the store actually derived'
     // `deprecated`, the sighting assertion below would be a test of the fixture, not the table.
     expect(derivedStatus(recordId)).toBe('deprecated')
 
-    // OBSERVED RED (2026-08-02, before the fix, against the unmodified
-    // TOMBSTONED_BUNDLE_STATUSES = ['withdrawn', 'superseded', 'retired'] at
-    // memory-source.ts:24):
-    //   AssertionError: expected 'active' to be 'tombstoned' // Object.is equality
-    //   - Expected: "tombstoned"   + Received: "active"
-    // That is CR-04 verbatim at the sighting seam.
     expect(sight(recordId)).toBe('tombstoned')
   })
 

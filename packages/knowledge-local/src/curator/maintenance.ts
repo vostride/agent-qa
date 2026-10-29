@@ -44,7 +44,7 @@ export type GcPassReport =
   | {
       kind: 'completed'
       summary: GcSummary
-      /** projection rows removed by the same-tail scoped cleanup; absent on zero-trim. */
+      // Projection rows removed by the same-tail cleanup; absent when nothing is trimmed.
       projectionRowsRemoved?: number
     }
   | { kind: 'failed'; message: string }
@@ -129,8 +129,7 @@ async function runWriterPass(
   const rebuild = await operations.rebuildIndex({
     knowledgeRoot: options.knowledgeRoot,
     ...(capability.kind === 'ready' ? { embedder: capability.embedder } : {}),
-    // Production rebuilds retain Phase 385's fresh authority fence at every mutation boundary.
-    // Fault-injection rebuilds keep their historical call shape and own their injected behavior.
+    // Production rebuilds re-check the authority fence at every mutation boundary.
     ...(injectedRebuild
       ? {}
       : {
@@ -189,11 +188,7 @@ export async function runMaintenanceTail(
   }
 
   try {
-    /**
-     * D-13 M2 has no gate receipts. Phase 380 adds live canary-reference exclusions; M3 supplies
-     * the real ordinal horizon through this seam. Budget gates the start only and never
-     * interrupts whole-dir trims.
-     */
+    // The budget gates only the start and never interrupts a whole-directory trim.
     const writerAuthority: WriterLeaseAuthority = {
       knowledgeRoot: options.knowledgeRoot,
       leaseId: options.lease.leaseId,

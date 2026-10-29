@@ -35,12 +35,7 @@ import {
   type ArtifactFreeCandidateProjectionInput,
 } from '../../__tests__/fixtures/curation-candidate-fixture.js'
 
-// the SIGKILL cells' 30 s bound is measured from the kill to the
-// recovered, consistent store, which is the recovery it states. It used to start before the child
-// was spawned, so it also timed a whole child vitest process booting to the boundary, and the
-// marker wait gave that boot 10 s: at load 120-180 the child was still printing vitest's banner
-// at 10 s ('timed out waiting for authored-intent marker', quick 261002-tmo forced gate 1). The
-// boot now has its own ceiling, and the cell budget covers both.
+// Measured from the kill to the recovered store; the child's boot has its own ceiling.
 const RECOVERY_BOUND_MS = 30_000
 const CHILD_BOOT_CEILING_MS = 60_000
 const SIGKILL_CELL_TIMEOUT_MS = CHILD_BOOT_CEILING_MS + RECOVERY_BOUND_MS + 30_000

@@ -246,7 +246,6 @@ describe('drainQueue one-shot serialized engine', () => {
       expect(create).toHaveBeenCalledWith(expect.objectContaining({
         sourceJobId: entryId, sourceRunId: payload.runId, sourceBuildOrdinal: 43,
       }))
-      // the canary store is handed no proposals root.
       expect(create.mock.calls[0]![0]).not.toHaveProperty('agentQaRoot')
       expect(lifecycle).toHaveBeenCalledWith({ kind: 'job-completed', candidateId: entryId })
       expect(listQueuedCandidates(knowledgeRoot)).toEqual([])
@@ -325,7 +324,6 @@ describe('drainQueue one-shot serialized engine', () => {
       operations: noWriterPass(),
     })
 
-    // the drain files no gate-inconsistency proposals, so the count left.
     expect(report).not.toHaveProperty('inconsistenciesFiled')
     expect(report).toMatchObject({
       kind: 'handed-off',
@@ -385,9 +383,7 @@ describe('drainQueue one-shot serialized engine', () => {
     expect(maxActiveAuthors).toBe(1)
   })
 
-  // 2026-10-03 (quick 261003-lgd, Phase 432 review WR-11): a beat that throws (the lease guard
-  // stayed busy for its whole wait, or its chain was refused) is recorded like a refusal, never
-  // thrown out of the drain loop.
+  // A beat that throws is recorded like a refusal, never thrown out of the drain loop.
   it('records a heartbeat that throws as a heartbeat failure and stops claiming', async () => {
     const candidateId = enqueue('beat-throws')
     const author = vi.fn<CuratorAuthor>()

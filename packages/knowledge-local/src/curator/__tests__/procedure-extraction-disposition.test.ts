@@ -1,6 +1,4 @@
-// PROC-01 write-side validation suite: the procedure disposition wall.
-// "LLM proposes, code disposes" — every reject is a deterministic
-// structural verdict against verified queue evidence, never LLM text.
+// Each procedure reject is a structural verdict on verified queue evidence, never model text.
 
 import { createHash } from 'node:crypto'
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'

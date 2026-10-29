@@ -1,15 +1,4 @@
-/**
- * Read side of the run-outcome projection (389 ANLZ-03, RESEARCH Pitfall 2).
- *
- * `run_test_outcomes` is written by `foldRunOutcomes`/`applyRunOutcomes`; this module is
- * the one place that queries it. Strictly read-only: one prepared SELECT, no statement
- * that mutates a row, ever — the writer half stays whole in `run-outcomes.ts`.
- *
- * KEY LAW — stable test identity is `(product, filePath, testName)`, exactly the
- * projection's primary key and per-test-outcome.ts's identity rule. Callers joining from
- * a handoff use `PerTestOutcome.filePath` + `testName`, NEVER `testId` (a per-run
- * explicit id, not a durable identity).
- */
+// Read-only; identity is `(product, filePath, testName)`, never the per-run `testId`.
 import type { DatabaseSync } from 'node:sqlite'
 
 import { LAST_OUTCOMES_LIMIT } from './run-outcome-constants.js'
@@ -103,18 +92,7 @@ export function readTestOutcomeHistory(
   }
 }
 
-/**
- * Every identity the projection has counted inside ONE file, in one product.
- *
- * The neighbours side of D-14's stability read: "which tests does this suite file already have run
- * evidence for". Keyed on the projection's own primary key, so `product` is REQUIRED for the same
- * reason `readTestOutcomeHistory` requires it — a query that dropped it would serve every
- * product's rows under one file path and report another application's tests as this target's.
- *
- * `test_name` ORDER, so a caller's message names its neighbours in a stable order across runs. An
- * empty array is the honest answer for a file the projection has never counted; the caller turns
- * that into a `no-history` posture rather than into a clean bill of health.
- */
+// `product` is required: without it another application's tests would appear as this target's.
 export function listTestsInFile(
   db: DatabaseSync,
   scope: { product: string; filePath: string },
@@ -130,13 +108,7 @@ export function listTestsInFile(
     .map((row) => String((row as { test_name: unknown }).test_name))
 }
 
-/**
- * D-02's forced discriminator channel: did the same step pass on the previous build?
- * Answers the entry with the greatest buildOrdinal STRICTLY below `currentBuildOrdinal`,
- * or `undefined` when no prior build is in the window (empty history, a single
- * current-build entry, or every entry at/above current) — prior-build honestly absent,
- * never faked from the current entry.
- */
+// The entry just below the current ordinal, or `undefined`; never faked from the current entry.
 export function priorBuildOutcome(
   history: TestOutcomeHistory,
   currentBuildOrdinal: number,
@@ -156,13 +128,7 @@ export interface FailureRecurrence {
   windowBuilds: number
 }
 
-/**
- * Feeds "Kth failure in the last N builds", computed LIVE at render time — counts
- * derived from the window on every call, never stored prose. 390 rebinds the same seam to
- * its fingerprint-window computation; this derivation is 389's binding, not the seam's
- * final owner. An empty history answers {kth: 0, windowBuilds: 0}: the renderer (plan 05)
- * turns zero-history into an explicit no-history clause, so absence stays typed.
- */
+// Derived live on every call; an empty history answers zeros, rendered as no history.
 export function failureRecurrence(
   history: TestOutcomeHistory,
   currentBuildOrdinal: number,

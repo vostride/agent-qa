@@ -1,9 +1,4 @@
-// Tier (b) and tier (c) of the never-guess resolver (Phase 387, D-05 / D-07 / ENTY-01/02).
-//
-// Every case below runs the REAL pipeline — `lexicalLeg` and `denseLeg` over a real entity
-// index, fused by `fuseWeightedRrf`. The only thing faked is the embedder, which is a fixed set
-// of unit vectors: no model runtime, no acquisition ladder, no network, and two runs of the
-// same corpus produce byte-identical rankings.
+// Runs the real pipeline; only the embedder is faked, as fixed unit vectors.
 
 import { randomUUID } from 'node:crypto'
 import { readFileSync, rmSync } from 'node:fs'
@@ -178,9 +173,7 @@ describe('the strong-hit rule: absolute threshold plus margin over the runner-up
       entity('TST-010', 'Checkout with a saved card'),
       entity('TST-011', 'Checkout with a stored card'),
     ]
-    // The legs DISAGREE about which near-twin is closer: lexical prefers TST-010 (it carries
-    // the query's `saved`), the dense leg prefers TST-011. Ranks 1/2 and 2/1 fuse to exactly
-    // the same number, which is the equal-strength case D-07 says must always disambiguate.
+    // Lexical prefers TST-010 and dense prefers TST-011; ranks 1/2 and 2/1 fuse to an exact tie.
     const seeded = await corpus(entities, new Map([
       ['test Checkout with a saved card', unit({ 0: 0.9, 1: 0.435889894354067 })],
       ['test Checkout with a stored card', unit({ 0: 1 })],

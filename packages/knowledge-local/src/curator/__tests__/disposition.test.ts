@@ -85,23 +85,7 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-/**
- * Build the in-process disposition checkpoint that carries ONE delta of ANY origin.
- *
- * Structural validation comes from `authoredCheckpointSchema` rather than
- * `parseAuthoredCheckpoint`, and the difference is exactly one thing: the latter additionally
- * applies `AUTHORED_CHECKPOINT_ORIGIN_ADMISSION`, the DRAIN's origin admission, which admits
- * only `agent`. Nothing structural is given up here — it is the same schema, one refinement
- * short.
- *
- * That is the right boundary for this corpus because it is the boundary the production callers
- * use. A user-origin Deprecate reaches `disposeDelta` through `bridgeDelta` (knowledge-store.ts)
- * and a system-origin one through `maintenanceCheckpoint` (rollback.ts); both build an
- * `AuthoredDeltaCheckpoint` as a plain object and neither parses at the drain boundary. Routing
- * these fixtures through `parseAuthoredCheckpoint` would have modelled a path that does not
- * exist and made 16 rows of this file unconstructible the moment that boundary narrowed —
- * measured, not hypothesised.
- */
+// Uses the structural schema, not the drain's origin admission, as production disposal callers do.
 function checkpoint(
   delta: Delta,
   neighborIds: RecordId[],
@@ -991,48 +975,7 @@ describe('disposeDelta measurement mechanism', () => {
   })
 })
 
-// ── CR-02′: what a cited-id-integrity failure FALLS BACK TO is decided by origin ──────────────
-//
-// `checkCitedIdIntegrity` used to have exactly one answer for every delta that failed it:
-// downgrade to `MintUnknown`. For a pipeline-authored delta that is the right answer — a broken
-// citation legitimately degrades an agent's proposed change into a clarification candidate a
-// person can look at. For a delta a PERSON authored it fabricates authorship: the mint is a
-// verbatim clone of the cited record's own content, republished as a fresh `candidate`, and a
-// human's `accept` over a record they had already rejected therefore RESURRECTED the fact they
-// removed and reported success (CR-02′, reproduced end-to-end in apply-review.test.ts).
-//
-// So the fallback is chosen from a TOTAL mapping over `DELTA_ORIGINS` rather than from a
-// hand-picked member set, and this corpus walks the same runtime registry: every origin the
-// vocabulary has gets an executed row, and a fifth origin reds this walk by existing.
-//
-// The expectation table below is declared INDEPENDENTLY of the production mapping on purpose —
-// importing `CITED_ID_INTEGRITY_FALLBACK_BY_ORIGIN` and asserting against itself would be a
-// tautology, and mutation probe m1 (flipping the `user` member to `mint-unknown`) has to red.
-//
-// RED BASELINE, observed against unmodified disposition.ts before the mapping landed:
-//
-//   × user-origin Confirm citing a deprecated record → refuses
-//     → AssertionError: a user delta must be REFUSED rather than converted into minted content:
-//       expected [Function] to throw an error
-//   (same failure for each of the three failure conditions; the agent/import/system rows were
-//   GREEN throughout, which is the preservation half of the claim and the reason they are here.)
-//
-// SECOND RED BASELINE, 387-17, observed against the shipped origin mapping when the condition
-// axis was added — the four user rows and the directed message case, transcribed from the run:
-//
-//   × user-origin Confirm whose cited id is not-a-persisted-neighbor → refuses
-//     → AssertionError: the refusal must name the condition it actually failed on:
-//       expected undefined to be 'not-a-persisted-neighbor'
-//   (…the same for missing-from-disk, deprecated and scope-mismatch)
-//   × the refusal message names the record, the delta kind and the failing condition
-//     → AssertionError: expected 'The record fact-el-button-sign-in-f8b263d47587b23a this Confirm
-//       cites is tombstoned or cannot be resolved in this store, …' to contain 'scope-mismatch'
-//
-// Note what did NOT red: the scope-mismatch ROW's refusal itself was green from the first run.
-// The shipped mapping already refused it — it was simply never EXECUTED, which is why round 2's
-// carve-out mutation could delete that behaviour and leave 70 tests green. That row is therefore
-// a coverage widening rather than a defect reproduction, and its load is measured by probe m1
-// rather than by its own first run. The stated limit belongs here, not in a claim about it.
+// A person's delta with a broken citation is refused, never minted into new content as theirs.
 describe('cited-id integrity: the fallback is total over DeltaOrigin', () => {
   const primary: Anchor = { t: 'el', role: 'button', name: 'Sign in' }
   const page: Anchor = { t: 'page', route: '/login' }
@@ -1100,25 +1043,7 @@ describe('cited-id integrity: the fallback is total over DeltaOrigin', () => {
   /** A scope key no fixture bundle is published under, so `sameScope` cannot accidentally hold. */
   const OTHER_SCOPE: ScopeKey = { tier: 'product', key: 'checkout-lane' }
 
-  /**
-   * How each condition is REACHED, declared locally and per-member.
-   *
-   * Only the keys come from the production vocabulary; every fixture and every expectation here
-   * is the corpus's own, on the 387-14 pattern-3 discipline — a table that imported production
-   * values to assert against would be a tautology no mutation could red.
-   *
-   * `scope-mismatch` is the member round 2 proved missing, and it is the only one that fails on a
-   * record this store can READ perfectly well: the bundle is intact, active, and in the persisted
-   * neighbour set, and the delta simply addresses it at a scope it does not carry. The other
-   * three all break the record's availability in some way, which is why a corpus built from them
-   * alone could believe availability was the whole failure domain.
-   *
-   * BOTH of the check's return sites are reached across this walk, and the split is exactly two:
-   * `not-a-persisted-neighbor` takes the early return that fires before the record is even looked
-   * up, and the other three share the or-ed second return. The earlier version of this note
-   * claimed one return site per condition and counted three of them — the miscount that let the
-   * fourth condition hide inside the second return without anybody noticing it was there.
-   */
+  // `scope-mismatch` fails on a readable record; the other three break availability.
   const CONDITION_FIXTURES = {
     'not-a-persisted-neighbor': () => {
       const victim = publishActive([primary, page])
@@ -1196,16 +1121,7 @@ describe('cited-id integrity: the fallback is total over DeltaOrigin', () => {
     }
   }
 
-  /**
-   * The MESSAGE tells the truth for every member of the domain — one directed case, not a row.
-   *
-   * The old message said the cited record "is tombstoned or cannot be resolved in this store",
-   * which is FALSE for exactly the condition round 2 found missing: a scope-mismatched record is
-   * neither tombstoned nor unresolvable, it is perfectly readable and addressed wrongly. A
-   * message that names half its domain sends an operator looking for a tombstone that is not
-   * there. This case is directed rather than per-row because what it pins is the phrasing, and a
-   * per-row copy of it would just re-assert the same three interpolations four times.
-   */
+  // The message names the condition: a scope-mismatched record is readable, not tombstoned.
   it('the refusal message names the record, the delta kind and the failing condition', () => {
     const { victim } = CONDITION_FIXTURES['scope-mismatch']()
     const delta = confirmCiting('user', victim.id)
@@ -1235,50 +1151,14 @@ describe('cited-id integrity: the fallback is total over DeltaOrigin', () => {
   })
 })
 
-// The expectation table below is declared INDEPENDENTLY of `AUTONOMOUS_DEPRECATE_BY_ORIGIN` on
-// 387-14's pattern-3 discipline: importing the production mapping and asserting against itself
-// would be a tautology no mutation could red. Probe m3 (flipping the `user` member's VALUE to
-// 'downgrade') has to red the user row, which is what proves the walk pins values rather than
-// merely observing that a table exists.
-//
-// RED BASELINE, observed against unmodified disposition.ts before the table landed (the check
-// read `input.delta.origin !== 'agent'`, a hand-picked single member of DELTA_ORIGINS):
-//
-//   FAIL  src/curator/__tests__/disposition.test.ts > the autonomy floor is total over
-//         DeltaOrigin > import-origin Deprecate of an ACTIVE record → downgraded
-//   AssertionError: a machine-authored Deprecate may not remove standing knowledge on its own
-//     authority: expected { kind: 'apply', delta: { …(7) } } to match object
-//     { kind: 'downgraded', …(2) }
-//     - "kind": "downgraded"     - "reason": "autonomous-deprecate"     + "kind": "apply"
-//
-//   Test Files  1 failed (1)
-//        Tests  1 failed | 40 passed (41)
-//
-// The agent, system and user rows and the non-active control were GREEN throughout. That is the
-// preservation half of the claim and the reason they are in the walk rather than left implicit:
-// a table that over-broadened into 'downgrade' for `user` would break `reject`/`forget`, the two
-// review verbs this phase exists for, and the user row is what reds if it does.
+// Declared apart from `AUTONOMOUS_DEPRECATE_BY_ORIGIN`, so flipping a value reds a row.
 describe('the autonomy floor is total over DeltaOrigin', () => {
   const primary: Anchor = { t: 'el', role: 'button', name: 'Sign in' }
   const page: Anchor = { t: 'page', route: '/login' }
 
   type AutonomyFloorOutcome = 'downgraded' | 'passes-floor'
 
-  /**
-   * What each origin is ALLOWED to do to standing knowledge, declared locally.
-   *
-   * `satisfies Record<DeltaOrigin, …>` here is the corpus's own totality, independent of
-   * production's: a fifth origin added to the union is a compile error in BOTH tables, and a row
-   * that exists in one but not the other cannot silently appear.
-   *
-   * This table answers "may this author tombstone a record the store is standing behind?". It is
-   * deliberately NOT the same question as `AUTHORED_CHECKPOINT_ORIGIN_ADMISSION` in
-   * author-contract.ts, which answers "may this origin arrive as DRAIN-AUTHORED curator output?".
-   * `system` is 'allow' here and 'rejected' there, and the two are consistent because rollback's
-   * and the canary's system-origin deltas reach `disposeDelta` through plain in-process
-   * checkpoints (rollback.ts `maintenanceCheckpoint`, knowledge-store.ts `bridgeDelta`) and never
-   * through the drain's authored-checkpoint boundary. See 387-20 D-3.
-   */
+  // Answers who may tombstone standing knowledge, not who may arrive as drain-authored output.
   const EXPECTED_FLOOR_BY_ORIGIN = {
     agent: 'downgraded',
     import: 'downgraded',

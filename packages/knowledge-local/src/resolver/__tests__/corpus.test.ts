@@ -1,22 +1,4 @@
-// The dual-posture entity-resolution corpus (Phase 387, D-08 / ENTY-01's validation clause).
-//
-// WHAT IS REAL HERE AND WHAT IS NOT
-//
-// Real: the addressing ledger (its own sqlite file), the entity index projection, `lexicalLeg`
-// over FTS5, `denseLeg` over stored vectors, `fuseWeightedRrf`, and `resolveEntityRef` — the
-// same entry every surface calls. Nothing is stubbed between the query and the answer.
-//
-// Not real: the embedding model. It is replaced by the fixture's authored geometry, because
-// D-08 requires the corpus to run in CI with no live stores and a floor host has no model at
-// all. See the fixture's header for how a cosine is computed by hand there.
-//
-// THE TWO POSTURES, AND WHY NEITHER SETS A FLAG
-//
-// `hybrid.ts` has no posture switch by design: `hasDenseCandidates` skips the dense leg when
-// nothing is embedded, and an absent leg contributes nothing to the fusion. So the floor
-// posture here is built by NOT embedding — which is what a host without a model actually looks
-// like — rather than by telling the resolver which rung to run. A posture the test selects is a
-// posture the test can get wrong; a posture that falls out of the data cannot.
+// Only the embedder is faked; the floor posture comes from embedding nothing, not from a flag.
 
 import { randomUUID } from 'node:crypto'
 import { readFileSync, rmSync } from 'node:fs'
@@ -199,12 +181,7 @@ interface Posture {
   close(): void
 }
 
-/**
- * Seed one posture: mint every address by sighting, project, and embed only for `full`.
- *
- * Sighting is what mints AND projects, so the corpus is built the way a running
- * system builds one — no direct writes to the ledger or the index anywhere in this file.
- */
+// Sighting mints and projects, so nothing writes to the ledger or index directly.
 async function seedPosture(root: string, name: CorpusPosture): Promise<Posture> {
   const ledger = openAddressingLedger({ path: join(root, `${name}-addresses.db`) })
   const index: EntityIndexHandle = openEntityIndex({ path: join(root, `${name}-index.db`) })
@@ -590,10 +567,7 @@ describe('the degradation invariant, in its two halves', () => {
   })
 
   it('is MORE confident at the floor in exactly the cases that declare it', () => {
-    // The monotone half — "the floor only ever ADDS disambiguation" — is empirically FALSE, and
-    // 387-03's handoff named the class before this corpus existed: a sole lexical match with no
-    // dense hit, tied by a dense-only rival, resolves at the floor and disambiguates in full.
-    // Asserting the strong form would have meant authoring a corpus with no case of that shape.
+    // The floor can be more confident than full: a sole lexical match tied by a dense-only rival.
     const rank = (resolution: EntityResolution): number => (
       resolution.kind === 'resolved' ? 0 : resolution.kind === 'ambiguous' ? 1 : 2
     )

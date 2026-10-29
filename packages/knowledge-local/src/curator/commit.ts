@@ -106,11 +106,7 @@ export interface CommitCurationDependencies {
   epoch: number
   profile: DispositionProfile
   drainState: DispositionDrainState
-  /**
-   * Multi-delta disposal: when set, terminal paths skip queue completion so the
-   * claimed candidate directory stays available for the checkpoint's remaining deltas.
-   * The drain leaves it unset on the final delta, which completes the job as before.
-   */
+  // Keeps the claimed candidate directory for the remaining deltas; unset on the final delta.
   deferCompletion?: true
   hooks?: {
     /**
@@ -150,17 +146,12 @@ interface CommittedBundleResult {
   bundleId: RecordId
   bundleDir: string
   deltaKind: Delta['kind']
-  /** D-16 exception-bucket observability; absent when the gate promotes or never runs. */
+  // Absent when the gate promotes or never runs.
   promotionHoldReason?: PromotionGateHoldReason
   promotionPath?: PromotionPath
 }
 
-/**
- * WHY a delta-noop disposition had nothing to apply. `authored-noop`
- * = a capable-model author deliberately emitted a Noop delta; the `fallback-*` members
- * name WHICH author fallback defeated extraction (the §7.9 one-element procedure Noop).
- * Benign noop reasons (evidence-token dedup, disposition rejects) never carry a cause.
- */
+// Why a delta-noop applied nothing; benign noops such as evidence-token dedup carry no cause.
 export type EmptyDeltaCause =
   | 'authored-noop'
   | 'fallback-malformed'
@@ -190,7 +181,7 @@ export interface ApplyIndexDeltaForBundleInput {
   product?: string
 }
 
-/** Shared Plan 378-10 projection authority used by commit and journal reconciliation. */
+// Shared projection authority for commit and journal reconciliation.
 export function applyIndexDeltaForBundle(input: ApplyIndexDeltaForBundleInput): void {
   projectBundleIndexRow(input)
 }
@@ -207,7 +198,7 @@ export function deriveIndexRowFromBundle(input: ApplyIndexDeltaForBundleInput): 
   projectBundleIndexRow(input)
 }
 
-/** Plan 379-06's replay-safe promoted-token composition, shared by both seams. */
+// Replay-safe promoted-token composition, shared by both seams.
 export function derivePromotedEvidenceToken(sourceToken: string): EvidenceToken {
   return asEvidenceToken(
     sha256hex(canonicalJson({ token: sourceToken, event: 'promoted' })),
@@ -284,8 +275,7 @@ function discriminant(
       return {
         kind: 'procedure',
         flowName: flow?.name ?? canonicalJson(draft.anchors[0]),
-        // procedureStepKeys is the schema-owned identity authority. Observation
-        // naturalKeys are evidence prose and must never enter the content address.
+        // Step keys are the identity; observation natural keys are prose and stay out of it.
         stepSignature: computeStepSequenceSignature(structuralProcedureStepKeys),
       }
     }
@@ -415,26 +405,7 @@ function artifactInputs(job: CommitCurationJob): ArtifactCopyInput[] {
   }))
 }
 
-/**
- * Pre-copy the job's artifacts into the preflight dir — and touch the filesystem only if it has
- * artifacts to copy.
- *
- * THE EMPTY SHORT-CIRCUIT IS NOT A MICRO-OPTIMISATION, it is what makes 387-17's write-free
- * `bridgeDelta` true on the SUCCESS path. `copyArtifacts` opens with an unconditional
- * `mkdirSync(destArtifactsDir, { recursive: true })`, and `preflightDir` lives INSIDE
- * `job.candidateDir` — so for a knowledge-port job, whose `candidateDir` deliberately no longer
- * exists, that one recursive mkdir re-created the entire `memory/queue/claimed/<lease>/<id>/…`
- * chain. `markDone` then removed the candidate and its lease dir again, but `memory/queue/claimed`
- * itself survived: MEASURED as `existsSync(claimedRoot) === true` after a successful port-bridged
- * fact `Add`. The corpus's whole-root digest counts directories, so that is residue, and the
- * regression case in knowledge-store.test.ts now reds if it comes back.
- *
- * PROVABLY INERT FOR THE DRAIN, which is the sibling-input half. A drain job's `candidateDir` is
- * a real directory that the queue wrote long before commit, its artifacts dir is created by this
- * call only to be removed by `commitCurationDelta`'s `finally`, and the result returned here for
- * an empty input list is the same object `copyArtifacts` builds for one: nothing copied, nothing
- * skipped, and evidence complete. A job WITH artifacts is untouched by this branch.
- */
+// No artifacts, no filesystem calls: a recursive `mkdirSync` would recreate the claimed queue tree.
 function preCopyArtifacts(
   job: CommitCurationJob,
   preflightDir: string,
@@ -723,12 +694,7 @@ function resolveExistingTarget(
   })
 }
 
-/**
- * derive the delta-noop cause from the checkpoint authorship commit already holds
- * (disposition stays authorship-blind). Absent fallbackReason on a fallback-path checkpoint
- * predates the stamp and maps to 'fallback-malformed' — the historical dominant cause
- * (F-381-45-1: three rejected proposals).
- */
+// An unstamped fallback checkpoint maps to `fallback-malformed`, its usual cause.
 function deriveEmptyDeltaCause(
   authorship: AuthoredDeltaCheckpoint['authorship'],
 ): EmptyDeltaCause {
@@ -849,8 +815,7 @@ export function commitCurationDelta(
       ...(measurementSeedValue(job) === undefined
         ? {}
         : { measurementValue: measurementSeedValue(job) }),
-      // procedure deltas are validated against durable queue evidence, so the
-      // extraction wall receives the payload's code-derived facts (never LLM text).
+      // Procedure deltas are checked against durable queue evidence, never model text.
       ...(job.payload.kind === 'procedure'
         ? {
             procedureEvidence: {
@@ -937,11 +902,7 @@ export function commitCurationDelta(
           disposed.reason === 'propose-only'
           || (draft.kind === 'fact' && draft.subtype === 'measurement')
         )
-          // D-02 propose-only keeps the replacement candidate distinct from its victim. The
-          // downgraded Add is still the Supersede's new validity window, so it keeps the
-          // original evidence token in its discriminant: a same-anchor correction never
-          // lands on the victim's id, and a later acceptance converges on the id a local
-          // Supersede of the same delta mints.
+          // Keeps the original evidence token, so a correction never lands on the victim's id.
           ? disposed.original
           : delta
       const renderInput: RenderBundlePartsInput = {
@@ -1025,14 +986,7 @@ export function commitCurationDelta(
         deps.knowledgeRoot,
         authority,
         () => {
-          /**
-           * the committing transition and the durable intent are the first writes of
-           * the held section, not the last writes before it. A superseded writer is refused
-           * by the entry ladder above and therefore cannot publish either, so no intent can
-           * exist that was not authored under live, exact authority. Both use the
-           * within-held forms: re-entering withCurrentWriterAuthority here would open a
-           * second connection against the BEGIN IMMEDIATE this callback already runs under.
-           */
+          // Within-held forms, because re-entering the fence here opens a second connection.
           writeJobStateWithinCurrentAuthority({
             knowledgeRoot: deps.knowledgeRoot,
             candidateId: job.candidateId,
@@ -1287,8 +1241,7 @@ export function commitCurationDelta(
               if (delta.kind !== 'Supersede') {
                 throw new TypeError('born-active disposition requires a Supersede delta')
               }
-              // §5.5.5 carve-out: a deterministic drift Supersede is exempt from candidate-gating
-              // and born active. Only drain-to-active disposition can set this D-02 marker.
+              // A deterministic drift Supersede is born active; only drain-to-active sets this.
               const promoted = appendOutcomeEvent(config, published.id, {
                   type: 'promoted',
                   evidenceToken: derivePromotedEvidenceToken(delta.evidenceToken),

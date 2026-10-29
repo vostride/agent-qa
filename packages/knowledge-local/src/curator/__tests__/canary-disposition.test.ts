@@ -68,11 +68,7 @@ describe('canary outcome deterministic disposition', () => {
     if (released.kind !== 'released') throw new Error('expected writer lease release')
   })
 
-  /**
-   * the port bridge can no longer synthesize an identity, so a store handed to a test
-   * must hold the genuine published lease. drainQueue acquires its own, which is why beforeEach
-   * still leaves the root unheld.
-   */
+  // The port bridge cannot synthesize an identity, so a test store must hold the published lease.
   function portAuthority(): { writerLeaseId: string; epoch: number } {
     const lease = acquireWriterLease(knowledgeRoot)
     if (lease.kind === 'acquired') return { writerLeaseId: lease.leaseId, epoch: lease.epoch }
@@ -411,8 +407,7 @@ describe('canary outcome deterministic disposition', () => {
     expect(listQueuedCandidates(knowledgeRoot)).toEqual([])
   })
 
-  // D-08 wall 1: serving a proposed-but-unapproved rule as a hypothesis is the
-  // confused-deputy shape — a rule is either sovereign or it is not yet a rule.
+  // A proposed but unapproved rule served as a hypothesis is a confused deputy.
   it('holds a promotion-ready policy candidate at the kind allowlist', () => {
     const otherwisePromotionReady = {
       status: 'candidate' as const,

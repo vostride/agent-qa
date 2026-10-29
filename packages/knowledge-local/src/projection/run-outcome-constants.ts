@@ -1,6 +1,2 @@
-/**
- * PROVISIONAL last-N window for per-test outcome history (~10 pending ABRF-02 ranking
- * measurements). Entries are {buildOrdinal, passed} — ordinals only, wall-clock never.
- * Shared by readers and writers without pulling writer authority into the read closure.
- */
+// Entries are `{buildOrdinal, passed}`, never wall-clock; shared without writer authority.
 export const LAST_OUTCOMES_LIMIT = 10

@@ -1,33 +1,4 @@
-// The suite-fingerprint table: gate 3's comparison substrate.
-//
-// A SIBLING of `run-outcomes.ts` inside the same derived-index discipline, not a new store. It
-// lives in the gitignored index, is computed at the SAME post-run fold from the SAME handoff
-// evidence, is keyed by the project-wide stable test identity (`filePath` + `testName`, never
-// `testId`), and is reproduced byte-identically by the rebuild — which is why bumping
-// `RUN_OUTCOMES_PROJECTION_VERSION` IS this table's migration (L12: derived state is disposable).
-//
-// WHAT A ROW IS. One `(product, filePath, testName, seq)` row per fingerprint element, where the
-// element bytes are minted by schema's `actionAnchorElement` (D-13's v1 recipe). No element
-// serialization exists in this package: a second spelling of "what is the same exercised surface"
-// is exactly what the sibling-recipe design in `verdict/action-anchor-fingerprint.ts` exists to
-// prevent, and gate 3 compares a draft's elements against these bytes.
-//
-// WHY THE ROWS CARRY `run_id` AND `build_ordinal`. "Latest evidence wins" has to mean something
-// order-independent, or the incremental fold and the rebuild would disagree the moment two runs
-// arrived in a different order than the rebuild scans them in (the rebuild sorts run dirs by
-// name). The replacement rule is therefore a COMPARISON — a fold replaces an identity's rows only
-// when its `(buildOrdinal, runId)` is strictly greater than what the table already holds — rather
-// than a last-writer-wins overwrite. That makes the table CONVERGENT: any permutation of the same
-// runs, and a full rebuild over them, land on the same rows. It is also why re-applying one run is
-// a no-op without needing the applied-runs marker to make it one.
-//
-// THE EXCLUSION (WTST-06, Pitfall 8). A gate-run handoff must never seed the union it is later
-// compared against — a draft would then be measured against its own evidence and every element
-// would read as already covered. The production path enforces this WITHOUT a second read: the one
-// `excludedFromOutcomes` read in `projectRunOutcomes` gates ONE member list, and both the outcome
-// deltas and the fingerprint deltas are computed from that already-gated list. The standalone
-// `foldSuiteFingerprints` door below takes the same decision as an argument for the same reason —
-// this module does not re-decide a fact the fold already established.
+// Rows are replaced only by a greater `(buildOrdinal, runId)`, so any fold order converges.
 
 import type { DatabaseSync } from 'node:sqlite'
 
@@ -39,19 +10,7 @@ import { ensureRunOutcomeTables } from '../index-open.js'
 /** The one table name, so the read port and every writer cannot spell it apart. */
 export const SUITE_FINGERPRINTS_TABLE = 'suite_fingerprints'
 
-/**
- * The element walk, re-exported from its home in `schema`.
- *
- * It lived here until gate 3's DRAFT side became its second reader. `agent` names neither this
- * package nor `core` and never will, so a walk that stayed here could only have been mirrored on
- * the draft side — and a mirrored recipe is two recipes, free to disagree the first time either
- * is retuned. Its own doc comment already promised that "the draft's own fingerprint is computed
- * by this same function at the consumer"; moving it is what makes that sentence true rather than
- * aspirational. `ASSERT_ACTION_TYPES` moved with it on the trigger its comment named.
- *
- * Re-exported rather than dropped because this module is where the fold's readers look for it,
- * and the package barrel already publishes the name.
- */
+// Re-exported from schema, where gate 3's draft side also reads it.
 export { testFingerprintElements }
 
 /** One test's ordered fingerprint elements, keyed by the stable identity. */
@@ -209,23 +168,11 @@ export function foldSuiteFingerprints(
   return projection
 }
 
-/**
- * The read port gate 3 consumes through composition.
- *
- * MINIMAL BY DESIGN. Conservatism lives in the normalizer, not here: this port answers
- * what the table holds and nothing more, so a later retune of "near-same elements normalize
- * equal" moves in exactly one place. There is no similarity verb here because there is no
- * similarity threshold to defend — gate 3's value test is set membership, spec §6.3 verbatim.
- */
+// Answers only what the table holds; normalization, not this port, decides near-same elements.
 export interface SuiteFingerprintIndex {
-  /** The union D-14's novel-element test compares against. Empty table, empty union. */
+  // The union the novel-element test compares against; an empty table gives an empty union.
   elementUnion(): Set<string>
-  /**
-   * The identities that HAVE fingerprint rows, sorted. The consumer subtracts these from the
-   * authored-test universe to derive the evidence-less set that rides D-16's text lane — which is
-   * why this port reports coverage rather than trying to enumerate the suite, a fact it does not
-   * own and could only guess at.
-   */
+  // Covered identities, sorted; the consumer subtracts them to find tests with no evidence.
   coveredTests(): Array<{ filePath: string; testName: string }>
   /** One identity's elements in exercised order; `[]` for an identity with no rows. */
   elementsForTest(filePath: string, testName: string): string[]

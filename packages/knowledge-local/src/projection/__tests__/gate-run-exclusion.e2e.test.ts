@@ -1,25 +1,4 @@
-// THE FROZEN INVK-06 CONSUMER CENSUS.
-//
-// WHAT A CENSUS IS FOR. INVK-06's sentence is "a gate run never counts toward flake counters or
-// issue candidacy". That is a COMPLETE-SET claim, and a complete-set claim is only worth the
-// discovery predicate underneath it. So this file does not transcribe a list from a plan: it
-// re-derives the predicate against the live tree on every run, pins the answer, and FAILS when a
-// consumer appears outside the pinned set — which is what makes a future reader of run outcomes
-// arrive as a red cell rather than as a silent new member of the denominator.
-//
-// THE PREDICATE IS SELF-CHECKED BEFORE IT IS TRUSTED (the 398 lesson). A census whose scan misses
-// the very file the exclusion lives in is red at rest and green in the report; every predicate
-// below is first run against its own KNOWN members and required to find them.
-//
-// AND IT IS CLOSED TRANSITIVELY (the 401-11 lesson: a pinned export's body is not the code it
-// runs). A marker-name grep is NOT sufficient here, and this census can prove it: the single
-// largest consumer of the exclusion decision — `suite-fingerprints.ts`, which carries it into the
-// fingerprint table — contains ZERO code references to either marker. It reads a member list
-// somebody else already gated. A one-hop census would have reported clean and missed it. So the
-// second predicate ranges the SUBSTRATE instead of the vocabulary: every producer of, and every
-// writer into, the tables flake counting and issue candidacy are computed from.
-//
-// vitest does not typecheck `.test.ts`; `tsc --noEmit` is this file's only type authority.
+// Each predicate must find its known members first; the substrate scan catches unnamed consumers.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
@@ -113,16 +92,7 @@ const MARKER_PATTERNS = [/gateRun/, /excludedFromOutcomes/] as const
 /** The boundary form the census deliberately does NOT use. Kept so the choice stays measurable. */
 const NARROWED_MARKER_PATTERNS = [/\bgateRun\b/, /\bexcludedFromOutcomes\b/] as const
 
-/**
- * Every file naming a marker in code, classified.
- *
- * `role` is the census's answer for that file, and every discovered file MUST have one — the
- * "n in, n classified" self-check below is what stops a silent drop.
- *
- *  - `consumer` — reads the marker to decide what feeds flake counting or issue candidacy.
- *  - `carrier`  — moves the marker between representations (schema, handoff, queue payload, ack).
- *  - `producer` — mints the marker onto a request or a run.
- */
+// `consumer` decides, `carrier` moves the marker, `producer` mints it; every file needs one.
 const MARKER_CENSUS: Readonly<Record<string, 'consumer' | 'carrier' | 'producer'>> = {
   // THE ONE EXCLUSION GATE. Everything the flake tables and the candidacy inputs are computed from
   // passes through this one `excluded ? [] : handoff.tests` line.
@@ -136,52 +106,23 @@ const MARKER_CENSUS: Readonly<Record<string, 'consumer' | 'carrier' | 'producer'
   'packages/schema/src/authoring/draft-receipt.ts': 'carrier',
   'packages/runner/src/run/ports.ts': 'carrier',
   'packages/runner/src/run/handoff-assembly.ts': 'carrier',
-  // the shell JOINED this census with its subject. The post-verdict step
-  // the shell awaits between `finalize` and `runFinished` takes both markers on its input, so the
-  // shell spreads them out of `RunConfig` onto that call. It decides NOTHING with them — it neither
-  // reads a marker to gate a table nor mints one onto a run — it moves them from the run's config
-  // into the step's input, which is what `carrier` names. The skip those markers eventually drive
-  // inside the step is 404-04's, and when it lands the step's own file joins as a second CONSUMER —
-  // which this census will demand be declared, deliberately.
+  // Spreads the markers from `RunConfig` onto the post-verdict step and decides nothing.
   'packages/runner/src/run/shell.ts': 'carrier',
   'packages/agent/src/functions/ops/runs-start.ts': 'carrier',
   'packages/agent/src/functions/ops/runs-get.ts': 'carrier',
-  // 2026-09-26 (425-02, D-08; renamed 444-11, D-39): `projectPostProcessingSkipped` re-states the
-  // markers as the reason a surface renders for a chain that was never enqueued. It gates no table
-  // and no enqueue; it moves the recorded fact onto the read DTO, which is what `carrier` names.
+  // Restates the markers as a reason on the read DTO; gates no table and no enqueue.
   'packages/agent/src/functions/ops/runs-post-processing.ts': 'carrier',
   'packages/agent/src/jobs/kinds.ts': 'carrier',
-  // IT LANDED, AND IT IS A CONSUMER — declared here, exactly as
-  // the paragraph above said this census would demand.
-  //
-  // The post-verdict step READS both markers to decide something: a run carrying either one
-  // enqueues no `analyze-run` at all. That is a decision, not a representation, so `carrier` would
-  // be a lie about what this file does with the values it holds.
-  //
-  // `packages/cli/src/curation/post-run-tail.ts` LEFT THIS CENSUS WITH ITS SUBJECT. It was a
-  // carrier because its `enqueue()` leg copied the two markers off the loaded handoff onto the
-  // `analyze-run` payload; D-05 moved that leg into the step and the tail names neither marker in
-  // code any more. REMOVED rather than relaxed, for the same reason `local-agent-host.ts` was in
-  // a census entry for a file that no longer names a marker is a claim nothing checks.
+  // Reads either marker to enqueue no `analyze-run`: a decision, so a consumer.
   'packages/cli/src/curation/post-verdict-step.ts': 'consumer',
   // The durable continuation validates the loaded handoff before publishing or recovering an
   // intent. Either marker refuses lifecycle ownership; the step keeps its enqueue decision. This
   // is a consumer, not a carrier.
   'packages/cli/src/curation/post-verdict-continuation.ts': 'consumer',
   'packages/cli/src/commands/run.ts': 'carrier',
-  // `packages/cli/src/composition/local-agent-host.ts` LEFT THIS CENSUS WITH
-  // ITS SUBJECT. It was a carrier because `MARKER_FLAGS` translated the two markers into the child
-  // flags `--gate-run` / `--excluded-from-outcomes` — the middle link 393 had to add
-  // before a gate run could reach a real CLI at all. D-01 deleted the child, so the table went with
-  // it and the file names neither marker in code any more. REMOVED rather than relaxed: this census
-  // is an equality between what the scan finds and what the register classifies, so a member the
-  // tree no longer contains is a permanently red pin, not a stricter one. The chain it linked is
-  // unbroken — `run-invocation-core.ts` below carries the markers onto the run in process, and
-  // `run-invocation-core.test.ts` / `run-invocation-evidence.test.ts` assert the carriage.
+  // Carries the markers onto the run in process.
   'packages/agent-local/src/composition/run-invocation-core.ts': 'carrier',
-  // the drive hands the request's flag to the run record; it decides
-  // nothing about what feeds learning. `core/src/run-attributes.ts` left this census with the
-  // builder's gate-run option (443-16, GAP-D6).
+  // Hands the request's flag to the run record and decides nothing.
   'packages/cli/src/composition/in-process-run-execution.ts': 'carrier',
 
   // Producers: the sites that put the marker on a request in the first place.
@@ -195,13 +136,7 @@ const MARKER_CENSUS: Readonly<Record<string, 'consumer' | 'carrier' | 'producer'
 
 // ---- predicate 2: the outcome substrate (the transitive half) ----------------------------------
 
-/**
- * The producers of, and the writers into, the tables INVK-06 is a claim about.
- *
- * Ranged by SYMBOL rather than by marker, because the consumer that matters most here never names
- * the marker at all. A new door that started writing `run_outcomes` or `suite_fingerprints` would
- * be invisible to predicate 1 and is caught by this one.
- */
+// Ranged by symbol, because the main consumer never names the marker; a new writer is caught here.
 const SUBSTRATE_PATTERNS = [
   /\bprojectRunOutcomes\b/,
   /\bapplyRunOutcomes\b/,
@@ -269,7 +204,7 @@ describe('the gate-run exclusion consumer census is frozen and self-checking', (
     const classified = Object.keys(MARKER_CENSUS).sort()
 
     expect(discovered.sort()).toEqual(classified)
-    // The register's own arithmetic, stated rather than implied (the 394 no-silent-drop lesson).
+    // Every discovered file is classified, and none is dropped.
     expect(discovered.length).toBe(Object.keys(MARKER_CENSUS).length)
   })
 
@@ -278,22 +213,7 @@ describe('the gate-run exclusion consumer census is frozen and self-checking', (
       .filter(([, role]) => role === 'consumer')
       .map(([file]) => file)
       .sort()
-    // TWO CONSUMERS SINCE 404-04, AND THE COUNT IS NOT WHAT THIS CELL IS ABOUT. The rule the
-    // original one-consumer pin encoded is that no two readers may disagree about the SAME
-    // question, and these two answer different ones over disjoint substrate:
-    //
-    //   `run-outcomes.ts`      — reads `excludedFromOutcomes` to decide what feeds FLAKE COUNTING.
-    //                            One gate, one `excluded ? [] : handoff.tests` line, and the
-    //                            fingerprint table is computed from its output rather than from a
-    //                            second read (which is what the carried-consumer cell below pins).
-    //   `post-verdict-step.ts` — reads EITHER marker to decide whether the run's curation chain is
-    //                            durably ENQUEUED at all. It touches no outcome table,
-    //                            writes no fingerprint and reads no projection.
-    //
-    // AN UNDECLARED entry, or any of these growing a read of another's substrate, is what this cell
-    // exists to refuse — so every consumer is named in full rather than counted. The continuation
-    // also refuses either marker before durable intent ownership or recovery; it delegates the
-    // enqueue to the step and never writes outcome projections.
+    // Each consumer answers a different question over disjoint substrate, so all are named in full.
     expect(consumers).toEqual([
       'packages/cli/src/curation/post-verdict-continuation.ts',
       'packages/cli/src/curation/post-verdict-step.ts',

@@ -335,8 +335,7 @@ describe('zero-model promotion floor acceptance', () => {
   })
 
   it('refuses procedure kind and commits a once-flagged row under zero-model fallback', async () => {
-    // the restricted fallback NEVER authors procedures. A procedure-extraction
-    // job under zero-model fallback disposes as a Noop — no bundle is written at all.
+    // The restricted fallback never authors procedures; the job disposes as a Noop with no bundle.
     const { report: procedureReport } = await drainWithoutModel({
       ...selectorProjection('procedure'),
       kind: 'procedure',
@@ -357,7 +356,6 @@ describe('zero-model promotion floor acceptance', () => {
     expect(loadedBundles()).toHaveLength(0)
 
     rmSync(knowledgeRoot, { recursive: true, force: true })
-    // the once-flagged row now carries no flag and takes the normal path.
     const { report } = await drainWithoutModel(selectorProjection('flagged'))
     expect(report).toMatchObject({ committed: 1, withheld: 0 })
     const flagged = onlyBundle().bundle

@@ -80,13 +80,7 @@ function stepEvidence(fixture: StepFixture): StepEvidence {
   } as unknown as StepEvidence
 }
 
-/**
- * `testIndex` is the run's per-member index and `rootCause.perTest` is the join key that names it
- * Both are derived from the member's position here rather than hardcoded: the 390 D-09
- * resolved-class map is keyed by that index, so a fixture where every member claimed index 0 and
- * every rootCause claimed perTest 1 described a handoff no runner can produce, and the classes of
- * unrelated members collapsed onto each other.
- */
+// Indexes come from the member's position, because the resolved-class map is keyed by them.
 function perTest(fixture: TestFixture, testIndex: number): PerTestOutcome {
   return {
     testId: fixture.testId,
@@ -362,10 +356,7 @@ describe('run-outcome projection fold', () => {
       'scope_tier',
       'test_name',
     ])
-    // 390 D-02, stated as its own assertion so a re-add reds with a named reason rather than as an
-    // opaque set mismatch: the derived quarantined flag is DELETED. One word, one truth — the
-    // committed ledger is the only thing this codebase now calls quarantined, and a projection
-    // column stamped from a lifetime flake threshold could only ever disagree with it.
+    // A re-added derived `quarantined` column would disagree with the committed ledger.
     expect(outcomeColumns).not.toContain('quarantined')
     const anchorColumns = db.prepare('PRAGMA table_info(run_test_anchors)').all()
       .map((row) => String((row as Record<string, unknown>).name))
@@ -820,11 +811,7 @@ describe('run-outcome projection fold', () => {
     expect(dumpTables(rebuilt)).toEqual(dumpTables(incremental))
   })
 
-  // 390 D-07 replaced this case's original assertion. It used to pin that crossing a lifetime
-  // flake threshold stamped a derived quarantined flag; the lifetime count is now a RANKING input
-  // only and never a quarantine trigger, because a counter that never forgives cannot express a
-  // lifecycle with an exit. The accumulation still matters and is still pinned — what is pinned
-  // additionally is that accumulating it produces no quarantine effect anywhere in the projection.
+  // The lifetime flake count only ranks; it never forgives, so it cannot drive a quarantine.
   it('accumulates a lifetime flake count that triggers no quarantine of its own', () => {
     const db = openDb()
     for (let ordinal = 1; ordinal <= 3; ordinal += 1) {

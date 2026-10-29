@@ -298,11 +298,7 @@ describe('knowledge-local barrel export', () => {
   })
 })
 
-// ---- listTestsInFile --------------------------------------------------------
-//
-// The neighbours side of D-14's stability read. The cross-product cell is the one that matters:
-// a query that dropped `product` would answer every application's tests under one file path, and
-// the gate-2 message would name another app's flaky test as this target's.
+// A query that dropped `product` would name another app's flaky test under the same file path.
 
 function insertRow(
   db: DatabaseSync,

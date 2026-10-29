@@ -56,11 +56,7 @@ type NonFactNeighborRecord = {
 export type NeighborRecord = NeighborRecordBase &
   ({ kind: 'fact'; subtype: FactSubtype } | NonFactNeighborRecord)
 
-/**
- * One authored outcome may carry multiple deltas: a procedure-extraction job can yield
- * whole-flow AND sub-flow candidates from one trajectory. Fact/caution authoring produces a
- * one-element array. The array is never empty.
- */
+// A procedure job may yield several deltas; fact and caution authoring yield one. Never empty.
 export type AuthorOutcome =
   | { kind: 'authored'; deltas: Delta[]; authorship: CurationAuthorship }
   | {
@@ -74,18 +70,11 @@ export type CuratorAuthor = (
   neighbors: NeighborRecord[],
 ) => Promise<AuthorOutcome>
 
-/**
- * Caller-owned disposition authority. Phase 379 may extend this profile with its deterministic
- * born-active drift-supersede carve-out without changing the author or checkpoint contracts.
- */
 export interface DispositionProfile {
   mode: 'drain-to-active' | 'propose-only'
 }
 
-/**
- * Resolve automatic curation authority from the run's already-captured execution context.
- * Local work applies directly; CI and cloud stay proposed for the rolling-PR flow.
- */
+// Local work applies directly; CI and cloud stay proposed for the rolling-PR flow.
 export function resolveDispositionProfile(
   executionContext: ExecutionContext,
 ): DispositionProfile {
@@ -169,7 +158,7 @@ const bundleDraftSchema: z.ZodType<CheckpointBundleDraft> = z
     body: z.string(),
     distilledEvidenceRef: artifactRefSchema,
     originStage: z.literal('run-curation'),
-    /** Transient CUR-02 signal consumed when commit renders run-linked provenance. */
+    // Transient signal consumed when commit renders run-linked provenance.
     needsEnrichment: z.literal(true).optional(),
   })
   .strict()
@@ -210,7 +199,7 @@ const curationAuthorshipSchema: z.ZodType<CurationAuthorship> = z
       .strict()
       .optional(),
     executionContext: z.enum(['local-interactive', 'local-headless', 'ci', 'cloud']),
-    // 381-47 additive-optional: an absent member still parses (pre-stamp checkpoints).
+    // Optional, so a checkpoint written before the stamp still parses.
     fallbackReason: z
       .enum(['malformed', 'no-model', 'token-budget', 'model-error'])
       .optional(),
@@ -281,18 +270,7 @@ const deltaSchema = z.discriminatedUnion('kind', [
     .strict(),
 ]) satisfies z.ZodType<Delta>
 
-/**
- * The SHARED structural boundary for a checkpoint. Neighbor membership and CAS freshness are
- * deliberately disposition checks, so this schema validates structure without applying them.
- * the checkpoint carries the authored outcome's FULL delta array — one durable authoring
- * checkpoint per job, disposed delta-by-delta through the commit boundary.
- *
- * Deliberately origin-WIDE, and that is not an oversight — see
- * `AUTHORED_CHECKPOINT_ORIGIN_ADMISSION` below. `AuthoredCheckpoint`'s inferred delta type is
- * the type every in-process checkpoint carries, including the user-origin deltas the review
- * verbs commit and the system-origin deltas rollback and the canary commit. Origin admission is
- * a property of the DRAIN's parse boundary, not of the checkpoint shape.
- */
+// Origin-wide on purpose: origin admission belongs to the drain's parse, not the checkpoint shape.
 export const authoredCheckpointSchema = z
   .object({
     schemaVersion: z.literal(AUTHORED_CHECKPOINT_SCHEMA_VERSION),
@@ -305,52 +283,7 @@ export const authoredCheckpointSchema = z
 
 export type AuthoredCheckpoint = z.infer<typeof authoredCheckpointSchema>
 
-/**
- * Which origins may cross the DRAIN's authored-checkpoint boundary.
- *
- * MECHANISM, stated so the claim can be reded rather than believed: totality is the `satisfies`
- * clause — a fifth member of `DeltaOrigin` is a compile error AT THIS TABLE — and each member's
- * behaviour is pinned by the DELTA_ORIGINS walk in `__tests__/author-contract.test.ts`, whose
- * expectations are declared independently of this literal. Dropping a member fails `tsc`;
- * flipping a member's value reds a named row.
- *
- * CONSEQUENCE the table exists for: `parseAuthoredCheckpoint` is the drain's only reader of the
- * durable `authored` job-state slot (drain.ts:992, crash recovery). Before this table, a
- * persisted checkpoint claiming `origin: 'user'` parsed, re-entered `commitCurationDelta`, and
- * on a broken citation threw `UserDeltaCitationIntegrityError` — which the drain records as a
- * COMMIT failure and requeues durably, so every subsequent drain retried the same deterministic
- * refusal and stopped the pass. A rejected origin is now a ZodError at parse, which drain.ts
- * :993-1003 routes to `quarantineMalformedClaim`: typed, terminal, once.
- *
- * PRODUCER ENUMERATION that decides the members — the slot's writers, not just the author:
- *
- *   - drain.ts:593 `persistCheckpoint` → `persistAuthoredCheckpoint` (queue/job-state.ts:218),
- *     carrying `checkpointFromAuthored` (drain.ts:537) over the INJECTED `options.author` seam.
- *     The two production authors are cli `curator-author.ts` and `curator/fallback.ts`, and both
- *     hard-code `agent`. This is the writer drain.ts:992 re-reads.
- *   - drain.ts:682 `preserveAuthoredCheckpointAndRequeue` re-persists that same parsed value.
- *   - commit.ts:1065 / :1183 write the slot with the origin of whatever delta is being
- *     committed, which for knowledge-port callers is `user` (the review verbs) or `system` (the
- *     canary Confirm). Those candidates are never queued and never claimed — 387-17's write-free
- *     `bridgeDelta` materializes no claimed candidate, and `reconcileOnDrainStart`'s
- *     `requeueCandidate` returns early unless a claimed or queued candidate directory exists —
- *     so the drain cannot reach their job state. A candidateId collision cannot bridge the gap
- *     either: `candidateContentAddress` hashes `sourceRunId: 'knowledge-port'` and an
- *     `attributingObservationId` derived from the delta's own canonical hash.
- *   - journal/reconcile.ts:173 carries an existing value forward on requeue; it mints no origin.
- *
- * Admitted set: exactly `{ agent }`. `user` is rejected because that is the retry-forever
- * closure. `import` and `system` are rejected because NO producer can put them here — admitting
- * an origin on the grounds that it exists somewhere in the vocabulary is how the widened enum
- * this table replaces came to admit `user` in the first place.
- *
- * NOT the same question as `AUTONOMOUS_DEPRECATE_BY_ORIGIN` in disposition.ts, which asks who
- * may tombstone standing knowledge. `system` is allowed there and rejected here without
- * contradiction: rollback's `maintenanceCheckpoint` and knowledge-store's `bridgeDelta` build
- * plain in-process checkpoints and never parse at this boundary. The two tables are in fact
- * mutually load-bearing — the floor can afford to let a `user` Deprecate through precisely
- * because this boundary guarantees the model cannot mint one.
- */
+// Only `agent` crosses: a persisted `user` checkpoint would retry a refusal on every drain.
 export const AUTHORED_CHECKPOINT_ORIGIN_ADMISSION = {
   agent: 'admitted',
   import: 'rejected',
@@ -358,11 +291,7 @@ export const AUTHORED_CHECKPOINT_ORIGIN_ADMISSION = {
   user: 'rejected',
 } as const satisfies Record<DeltaOrigin, 'admitted' | 'rejected'>
 
-/**
- * Structure PLUS drain origin admission. Applied per delta and at every array position: a check
- * written against `deltas[0]` would be the same one-member-of-a-set defect at the array axis,
- * and a widened checkpoint carries the job's full delta array.
- */
+// Checked per delta at every array position: a checkpoint carries the job's whole delta array.
 const drainAuthoredCheckpointSchema = authoredCheckpointSchema.superRefine((checkpoint, ctx) => {
   checkpoint.deltas.forEach((delta, index) => {
     if (AUTHORED_CHECKPOINT_ORIGIN_ADMISSION[delta.origin] === 'admitted') return
@@ -390,11 +319,7 @@ export function parseAuthoredCheckpoint(value: unknown): AuthoredCheckpoint {
   return drainAuthoredCheckpointSchema.parse(value)
 }
 
-/**
- * The per-delta commit unit sliced from a widened checkpoint. `commitCurationDelta` remains
- * the ONE serialized mutation boundary and disposes exactly one delta per call; the drain
- * slices the checkpoint and disposes each delta independently.
- */
+// `commitCurationDelta` disposes exactly one delta per call; the drain slices the checkpoint.
 export interface AuthoredDeltaCheckpoint {
   schemaVersion: typeof AUTHORED_CHECKPOINT_SCHEMA_VERSION
   delta: AuthoredCheckpoint['deltas'][number]

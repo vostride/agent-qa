@@ -212,19 +212,7 @@ describe('KnowledgePort procedure authoring boundary', () => {
       },
     })
 
-    // …and the SUCCESS path materializes no claimed tree either (387-17, CR-02″).
-    //
-    // The refusal case above pins that a REJECTED delta writes nothing. This is the other half,
-    // and it was found by measurement rather than by reasoning: with `bridgeDelta` made
-    // write-free, `preCopyArtifacts` still passed `job.candidateDir`-nested preflight path to
-    // `copyArtifacts`, whose opening `mkdirSync(…, { recursive: true })` re-created the whole
-    // `memory/queue/claimed/<lease>/<candidateId>/` chain for a job with NOTHING to copy.
-    // `markDone` removed the candidate and the lease dir on the way out, so the only survivor was
-    // `memory/queue/claimed` itself — invisible to every bundle-tree gate and to a files-only
-    // listing, which is precisely the blind spot CR-02″ lived in one round earlier.
-    //
-    // OBSERVED before the `preCopyArtifacts` empty short-circuit landed: `existsSync(claimedRoot)`
-    // was `true` here. Removing that short-circuit reds this line.
+    // The success path also leaves no claimed tree: an empty artifact copy creates no directories.
     expect(
       existsSync(claimedRoot(knowledgeRoot)),
       'a port-bridged commit that succeeds must leave no claimed queue tree behind either',
@@ -241,8 +229,7 @@ describe('KnowledgePort promote deterministic gate', () => {
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'knowledge-store-promote-'))
     knowledgeRoot = join(root, 'agent-qa-knowledge')
-    // promote() now runs its whole gate-and-write body inside the exact-authority
-    // fence, so this fixture has to hold the lease it mutates under rather than name one.
+    // `promote()` runs inside the authority fence, so this fixture must hold the lease.
     const lease = acquireWriterLease(knowledgeRoot)
     if (lease.kind !== 'acquired') throw new Error('expected a fresh writer lease')
     epoch = lease.epoch
@@ -456,9 +443,7 @@ describe('KnowledgePort promote deterministic gate', () => {
   }
 
   function crashWindowRetraction(): BundleOutcomeEvent {
-    // Simulates the reachable production window: a crash between a rollback's
-    // confirmation retraction and its Plan-23 promotion cascade leaves canonical
-    // active-with-zero-support until replay.
+    // A crash between a rollback's retraction and its cascade leaves active with zero support.
     return BundleOutcomeEventSchema.parse({
       type: 'retracted',
       evidenceToken: 'crash-window-retraction',

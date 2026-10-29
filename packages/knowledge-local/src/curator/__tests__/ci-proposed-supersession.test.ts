@@ -30,8 +30,7 @@ import {
 import type { AuthoredDeltaCheckpoint, DispositionProfile } from '../author-contract.js'
 import { AUTHORED_CHECKPOINT_SCHEMA_VERSION } from '../author-contract.js'
 
-// a correction keeps its victim's anchors and subtype, so the downgraded candidate must
-// keep the Supersede's own identity instead of landing on the victim's.
+// A correction keeps the victim's anchors, so the candidate keeps the Supersede's own identity.
 const ANCHORS: Anchor[] = [
   { t: 'el', role: 'button', name: 'Acknowledge' },
   { t: 'page', route: '/notice' },

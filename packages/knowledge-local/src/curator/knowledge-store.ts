@@ -66,14 +66,7 @@ import type {
   CommitCurationOutcome,
 } from './commit.js'
 
-/**
- * CR-02 takeover barriers. Test-only seams naming the three points at which a canary flow is
- * about to make canonical state durable; production callers omit them.
- *
- * The two entry barriers fire OUTSIDE the held section, which is what lets a schedule complete a
- * real takeover there and then observe the resumed writer's refusal. `beforeIndexProjection` fires
- * INSIDE it, so its schedule observes a contender blocked behind the tail instead.
- */
+// Entry barriers fire outside the held section, `beforeIndexProjection` inside it.
 export interface CanaryAuthorityHooks {
   /** Immediately before the negative arm enters its held section. */
   beforeNegativeAppend?: () => void
@@ -88,19 +81,12 @@ export interface CreateLocalKnowledgeStoreConfig {
   executionContext: ExecutionContext
   /** The holder's fresh lease epoch. Defaults to a fresh disk read for composition roots. */
   epoch?: number
-  /**
-   * The caller's real writer-lease id, paired with `epoch`.
-   *
-   * every canonical append, promotion, and index projection this store performs carries
-   * this identity into `withCurrentWriterAuthority`, so a store constructed by someone who is not
-   * the published holder is refused at its first canonical mutation instead of laundering a
-   * fabricated id. It is required precisely so no code path can omit it and fall back to one.
-   */
+  // Required, so a store built by a non-holder is refused at its first canonical mutation.
   writerLeaseId: string
   /** Port calls lack a run ordinal; callers with run context should supply it. */
   sourceBuildOrdinal?: number
   sourceRunId?: string
-  /** queue entry identity stamped as producedBy.jobId. */
+  // Queue entry identity stamped as `producedBy.jobId`.
   sourceJobId?: string
   screenStates?: readonly ScreenState[]
   onPromotionOutcome?: (report: PromotionOutcomeReport) => void
@@ -124,10 +110,7 @@ export interface PromotionOutcomeReport {
   promotionHoldReason?: PromotionGateHoldReason
 }
 
-/**
- * @deprecated `recordCanaryOutcome` is implemented. The exported class remains only so code
- * compiled against the pre-380 package surface does not lose its named import.
- */
+/** @deprecated `recordCanaryOutcome` is implemented; kept so older named imports resolve. */
 export class KnowledgeStoreNotImplementedError extends Error {
   readonly operation: 'recordCanaryOutcome'
 
@@ -166,7 +149,7 @@ export class KnowledgeCommitError extends Error {
   }
 }
 
-/** Typed WR-02 refusal for procedure drafts that require evidence this port cannot carry. */
+// Typed refusal for procedure drafts that need evidence this port cannot carry.
 export class KnowledgeUnsupportedDeltaError extends Error {
   readonly deltaKind: Delta['kind']
   readonly reason: 'procedure-evidence-unsupported'
@@ -236,8 +219,8 @@ function draft(delta: Delta): BundleDraft | undefined {
 }
 
 /**
- * @internal The evidence token the port bridge stamps on a delta's committed event. Exported
- * only so the review writer can recognise an explicit change that already landed.
+ * The token the port bridge stamps; exported so the review writer can spot a landed change.
+ * @internal
  */
 export function syntheticEvidenceToken(delta: Delta): string {
   if (delta.kind === 'Confirm' || delta.kind === 'Supersede') return delta.evidenceToken
@@ -298,48 +281,7 @@ function currentAuthority(
   }
 }
 
-/**
- * Bridge one port delta into the commit path's job shape — computing the claimed-candidate
- * ADDRESS and materializing NOTHING.
- *
- * WHY THE BRIDGE WRITES NOTHING (CR-02″). This function used to create the candidate's artifacts
- * directory and write its `payload.json` before returning (those two statements, and this file's
- * whole `node:fs` import with them, are gone — the corpus greps this file for a filesystem write
- * and expects to find none), and `commitWithProfile` calls it BEFORE `operation(...)` — which is
- * where `disposeDelta` runs the
- * §7.3.1 checks. So a delta the store REFUSES had already left a claimed curation candidate on
- * disk, seeded from `addressFields` with the cited record's own `summarySeed`, `anchors`,
- * `bodySeed` and `kind`. Nothing unwound it on the throw: `reconcileOnDrainStart` requeued that
- * directory under the next lease (`requeueClaimedWithinCurrentAuthority` takes every
- * `/^[0-9a-f]{64}$/` name with no provenance filter) and the curator re-authored the fact a
- * reviewer had just removed, one drain later, as `origin: 'agent'`.
- *
- * The repair is NOT an unwind. An unwind enumerates the artifacts today's bridge happens to
- * write, so the next check that throws from a new position leaks whatever the enumeration missed
- * — the same one-axis-out shape this phase has paid for repeatedly. Writing nothing is a
- * property of the path instead of a property of a cleanup: a thrown check at ANY position now
- * leaves no residue, because there was never anything to leave.
- *
- * WHAT MAKES IT SAFE — the port path has no on-disk consumer of the claimed form, each half
- * verified by reading:
- *   - disposition reads no `job.candidateDir`, and procedure drafts are refused by
- *     `commitWithProfile` BEFORE this function is called, pinned by knowledge-store.test.ts's
- *     "rejects before materializing any claimed candidate" case;
- *   - `addressFields` sets `artifactInventory: []`, so `commit.ts`'s `artifactInputs` maps over
- *     an empty list and `preCopyArtifacts` copies nothing;
- *   - every completed outcome ends in `markDone` → `writeJobState('done')` →
- *     `removeClaimedCandidate`, whose `rmSync(…, { force: true })` and `removeEmptyDir` are both
- *     no-ops on an absent directory.
- * The job keeps `candidateDir` / `payloadPath` / `artifactsDir` because `CommitCurationJob`'s
- * type requires them and the drain's own run-sourced candidates — which DO exist on disk — flow
- * through the same shape. Here they name an address, not a file.
- *
- * THE MECHANISM THAT REDS THIS. The claim above is not prose: reintroducing the two write
- * statements reds `apply-review.test.ts`'s "a refused accept leaves the WHOLE knowledge root
- * byte-identical (CR-02″)" with the leaked `memory/queue/claimed/…/payload.json` printed in the
- * diff, and reds its sibling adoption case with `jobsRequeued` back at 1. Probe m1 of 387-17 is
- * exactly that mutation, run and recorded.
- */
+// Computes the claimed-candidate address and writes nothing, so a refused delta leaves no residue.
 function bridgeDelta(
   config: CreateLocalKnowledgeStoreConfig,
   delta: Delta,
@@ -419,11 +361,7 @@ function unreachableCanaryOutcome(outcome: never): never {
   throw new TypeError(`unsupported canary outcome: ${canonicalJson(outcome)}`)
 }
 
-/**
- * Who is asking for this write. `automatic` is the curator and the agent port, whose authority
- * follows the run's execution context (432 D-08: ci/cloud stay proposed). `explicit` is a
- * person's mark, accept, reject or forget, which is authority in every context.
- */
+// `automatic` follows the run context (CI and cloud propose); `explicit` is a person's review.
 type WriteAuthority = 'automatic' | 'explicit'
 
 const EXPLICIT_PROFILE: DispositionProfile = Object.freeze({ mode: 'drain-to-active' })
@@ -443,12 +381,7 @@ function dispositionProfileFor(
 /** The write face an explicit review needs: commit, gated promotion and gate receipts only. */
 export type ExplicitReviewStore = Pick<KnowledgePort, 'commit' | 'promote' | 'recordGateReceipt'>
 
-/**
- * Realizes the agent write port over the canonical mutation path. D-08 propose-only is a
- * disposition profile inside commitCurationDelta, never a second mutation path. Because the port
- * carries bare deltas, this bridge materializes the smallest queue/checkpoint envelope and resolves
- * cited neighbor truth from canonical bundles before entering disposition.
- */
+// Propose-only is a disposition profile inside `commitCurationDelta`, never a second mutation path.
 export function createLocalKnowledgeStore(
   config: CreateLocalKnowledgeStoreConfig,
 ): KnowledgePort {
@@ -456,9 +389,8 @@ export function createLocalKnowledgeStore(
 }
 
 /**
- * @internal The narrow explicit-authority entry for the review writer. Not on the
- * package barrel: only `applyReview` / `applyExplicitReview` construct it, under the caller's
- * writer lease. Canary and proposal-only doors are deliberately absent from its face.
+ * Explicit-authority entry for the review writer only; canary and proposal-only doors are absent.
+ * @internal
  */
 export function createExplicitReviewStore(
   config: CreateLocalKnowledgeStoreConfig,
@@ -501,11 +433,7 @@ function buildLocalKnowledgeStore(
     candidateId: RecordId,
     profile: DispositionProfile = dispositionProfileFor(config, 'automatic'),
   ): PromotionOutcome {
-    /**
-     * later callers add evidence first, then ask this same gate to judge it. The
-     * execution posture is resolved at call time; canary evidence is always automatic, and
-     * only `promote` passes the store's own authority.
-     */
+    // The posture resolves at call time; canary evidence is always automatic.
     if (profile.mode === 'propose-only') {
       throw new KnowledgePromotionError(candidateId, 'propose-only')
     }
@@ -516,14 +444,7 @@ function buildLocalKnowledgeStore(
     }
     const appendConfig = bundleStoreConfig(resolved.product)
     if (resolved.observedStatus === 'active') {
-      /**
-       * the active fast path is a gate re-validation, never a bypass. A crash
-       * between a rollback's confirmation retraction and its Plan-23 promotion cascade
-       * leaves canonical active-with-zero-support until replay; attesting success over
-       * that stale authority would launder a rolled-back promotion. The same pure gate
-       * is re-evaluated over the promoted-set-aside status: the status the record
-       * would hold if its promoted authority were set aside.
-       */
+      // Re-validates the gate, not trusting `active`: a crashed rollback can leave zero support.
       const gateInput = assemblePromotionGateInput({
         knowledgeRoot: config.knowledgeRoot,
         bundleDir: resolved.bundleDir,
@@ -601,10 +522,7 @@ function buildLocalKnowledgeStore(
     if (gate.verdict === 'hold') {
       throw new KnowledgePromotionError(candidateId, gate.reason)
     }
-    // Keep v51's first-promotion identity, but do not reuse authority that the
-    // append-only fold has retracted. A recovery episode is keyed by the durable
-    // retractions of earlier promotions, so retries share an identity and a later
-    // hold/recovery gets a new one. Ordinary path upgrades still append no event.
+    // Reuse the first-promotion identity, but not authority the append-only fold has retracted.
     const promotedKeys = new Set(resolved.bundle.events
       .filter(event => event.type === 'promoted').map(eventDedupKey))
     const recoveryBoundary = [...new Set(resolved.bundle.events.flatMap(event =>
@@ -651,12 +569,7 @@ function buildLocalKnowledgeStore(
       supersedesSeenByAnchorKey: new Map(),
     }
     for (const delta of deltas) {
-      /**
-       * this bridge intentionally has no durable procedure observations or
-       * capture artifacts. Disposition would therefore return a guaranteed procedure Noop,
-       * which completed() would otherwise launder into a resolved void. Reject before
-       * bridgeDelta materializes a claimed queue envelope; evidence carriage remains M4 scope.
-       */
+      // This bridge carries no procedure evidence, so a procedure is refused up front.
       if (draft(delta)?.kind === 'procedure') {
         throw new KnowledgeUnsupportedDeltaError(delta.kind)
       }
