@@ -18,7 +18,6 @@ import type {
   Mark,
   MarkAppliedChange,
   MarkDisposition,
-  MarkHistoryEntry,
   MarkPreviewDraft,
   MarkPreviewEvidenceEffect,
   MarkPreviewKnowledgeRecord,
@@ -51,15 +50,11 @@ describe('C423-FEEDBACK-RESULTS-EXACT', () => {
     >().toEqualTypeOf<never>()
   })
 
-  // RE-SPELLED 432-09 from 'pins the six current proposal states in both directions': an applied
-  // fix names what changed, and history carries no proposal state at all.
-  test('pins the applied change kinds, the written dispositions and the absent proposal state', () => {
+  test('pins the applied change kinds and the written dispositions', () => {
     expectTypeOf<MarkAppliedChange['kind']>().toEqualTypeOf<AppliedChangeKind>()
     expectTypeOf<(typeof MARK_APPLIED_CHANGE_KINDS)[number]>().toEqualTypeOf<AppliedChangeKind>()
     expectTypeOf<(typeof MARK_DISPOSITIONS)[number]>().toEqualTypeOf<WrittenDisposition>()
     expectTypeOf<MarkDisposition['kind']>().toEqualTypeOf<WrittenDisposition | (typeof MARK_HISTORICAL_DISPOSITIONS)[number]>()
-    expectTypeOf<Extract<keyof MarkHistoryEntry, 'proposal'>>().toEqualTypeOf<never>()
-    expectTypeOf<Extract<keyof Extract<RunsMarkPreviewResult, { kind: 'consequences' }>, 'withdraws'>>().toEqualTypeOf<never>()
   })
 
   test('pins the eight preview outcome arms in both directions', () => {

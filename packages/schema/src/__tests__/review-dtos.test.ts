@@ -82,12 +82,8 @@ function receipt(overrides: Record<string, unknown> = {}): Record<string, unknow
   }
 }
 
-// RE-SPELLED 2026-10-01 (432-17, D-05/D-22). The knowledge proposal payload these cells parsed is
-// deleted with the inbox, and old proposal files are never parsed again. Each surviving claim moves
-// onto the direct change contract it now belongs to, under its old name where the claim is the same;
-// the payload-only cells (the pending/applied status axis, the forget preview and its missing
-// `forgottenAt`, the empty-delta Noop proposal) left with their subject and are carried by
-// C432-NO-ENVELOPE-EXPORTS in `432-direct-contracts.test.ts`.
+// Each claim below is checked on the direct knowledge change contract it belongs to. The change
+// outputs, inputs and receipts themselves are covered by `knowledge-change-contracts.test.ts`.
 const changeDeltas = z.array(DeltaSchema)
 
 describe('the mark change stamp and the mark review input (419 D-01)', () => {

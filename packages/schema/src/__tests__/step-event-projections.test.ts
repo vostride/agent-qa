@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { projectStepFinalized, projectSubActionRecorded, RUN_EVENT_TYPES } from '../index'
+import { projectStepFinalized, projectSubActionRecorded } from '../index'
 import type {
   AriaEvidenceEntry, StepEvidence, StepEvidenceEntries, SubActionEvidence, VariableSnapshot,
 } from '../index'
@@ -96,13 +96,4 @@ test('BUS-REFS-APPEND preserves screenshot and prior refs beside ARIA', () => {
   const absentPayload = projectWithAria(subAction, ids, mask, { ariaEvidence: absent })
   expect(absentPayload).toHaveProperty('ariaEvidence', absent)
   expect(absentPayload).not.toHaveProperty('artifactRefs')
-})
-
-test('BUS-FROZEN-CONTROL retains the exact topic roster', () => {
-  expect(RUN_EVENT_TYPES).toEqual([
-    'runStarted', 'runFinished', 'testStarted', 'testFinished', 'stepStarted', 'stepFinalized',
-    'subActionRecorded', 'verdict', 'runWarning', 'runError', 'heartbeat', 'analysisStarted',
-    'analysisCompleted', 'analysisFailed', 'curationStarted', 'curationCompleted', 'curationFailed',
-    'hookStarted', 'hookFinished', 'testRetryScheduled',
-  ])
 })

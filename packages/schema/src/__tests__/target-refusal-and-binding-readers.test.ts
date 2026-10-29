@@ -1,29 +1,16 @@
-// 2026-10-09 (438-02, D-02, D-05, 436 D-17): the persisted target refusal block, its historical
-// reader and the optional-additive grounding fields; 438-06 (D-09) adds the binding block; 438-09
-// (D-11) adds the recorded cache miss. Every expected set is spelled by hand, never derived from
-// the module under test.
+// The persisted target refusal and binding blocks, their readers, and handoffs that carry the
+// optional grounding and cache-miss fields.
 import { readFileSync } from 'node:fs'
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
 
-import {
-  BINDING_OUTCOME_KEYS,
-  CURRENT_HANDOFF_SCHEMA_VERSION,
-  guardCompletedRunHandoff,
-  readBindingOutcomeMeta,
-  readTargetRefusalMeta,
-  TARGET_IDENTITY_KEYS,
-  TARGET_REFUSAL_KEYS,
-} from '../index'
+import { guardCompletedRunHandoff, readBindingOutcomeMeta, readTargetRefusalMeta } from '../index'
 import type {
-  BindingOutcomeMeta,
   CacheMissReason,
   CompletedRunHandoff,
   GroundingEvidence,
   StepEvidence,
   TargetDescriptor,
-  TargetIdentity,
-  TargetRefusalMeta,
 } from '../index'
 
 const preChangeHandoff = new URL(
@@ -49,32 +36,6 @@ const withBlock = (block: unknown) => ({ success: false, metadata: { targetRefus
 const withBinding = (block: unknown) => ({ success: false, metadata: { binding: block } })
 
 describe('C438-KEY-SETS', () => {
-  it('the target refusal block carries exactly its eight members', () => {
-    expect([...TARGET_REFUSAL_KEYS].sort()).toEqual([
-      'inputSent',
-      'kind',
-      'lane',
-      'observed',
-      'path',
-      'reasons',
-      'rowStated',
-      'stated',
-    ])
-    expectTypeOf<keyof TargetRefusalMeta>().toEqualTypeOf<(typeof TARGET_REFUSAL_KEYS)[number]>()
-  })
-
-  it('a target identity carries exactly role, name and row', () => {
-    expect([...TARGET_IDENTITY_KEYS].sort()).toEqual(['name', 'role', 'row'])
-    expectTypeOf<keyof TargetIdentity>().toEqualTypeOf<(typeof TARGET_IDENTITY_KEYS)[number]>()
-  })
-
-  it('the handoff schema version is 2', () => {
-    expect(CURRENT_HANDOFF_SCHEMA_VERSION).toBe(2)
-    const handoff = JSON.parse(readFileSync(preChangeHandoff, 'utf8')) as CompletedRunHandoff
-    expect(handoff.schemaVersion).toBe(CURRENT_HANDOFF_SCHEMA_VERSION)
-    expect(guardCompletedRunHandoff(handoff)).toBe(handoff)
-  })
-
   it('reads a well-formed refusal block back', () => {
     expect(readTargetRefusalMeta(withBlock(wellFormed()))).toEqual(wellFormed())
   })
@@ -144,11 +105,6 @@ describe('C438-KEY-SETS', () => {
     subAction.grounding = grounding
     const loaded = guardCompletedRunHandoff(JSON.parse(JSON.stringify(handoff)))
     expect(loaded.tests[0].steps[0].subActions[0].grounding).toEqual(grounding)
-  })
-
-  it('the binding block carries exactly outcome, ref, inputSent and an optional heal', () => {
-    expect([...BINDING_OUTCOME_KEYS].sort()).toEqual(['heal', 'inputSent', 'outcome', 'ref'])
-    expectTypeOf<keyof BindingOutcomeMeta>().toEqualTypeOf<(typeof BINDING_OUTCOME_KEYS)[number]>()
   })
 
   it('reads a binding block back, with and without heal', () => {

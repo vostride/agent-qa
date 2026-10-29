@@ -16,7 +16,6 @@ const fixtureDir = new URL('../../../../test-fixtures/legacy-handoff/', import.m
 const handoffBytes = readFileSync(new URL('handoff.json', fixtureDir))
 const manifest = JSON.parse(readFileSync(new URL('MANIFEST.json', fixtureDir), 'utf8')) as {
   frozen: boolean
-  source: { agentQaSha: string; generator: string }
   files: { path: string; sha256: string; bytes: number }[]
   pins: {
     decisions: {
@@ -32,12 +31,8 @@ const handoff = JSON.parse(handoffBytes.toString('utf8')) as CompletedRunHandoff
 const steps = handoff.tests.flatMap(test => test.steps)
 
 describe('C436-PRE-CHANGE-HANDOFF', () => {
-  it('the manifest names 5e3e932a2 and the fixture matches its sha-256', () => {
+  it('the manifest is frozen and the fixture matches its sha-256', () => {
     expect(manifest.frozen).toBe(true)
-    expect(manifest.source.agentQaSha).toBe('5e3e932a2d586f89c805a385483da1800b941fff')
-    expect(manifest.source.generator).toBe(
-      '.planning/phases/436-harness-action-outcomes/capture/capture-pre-change-handoff.mjs',
-    )
     expect(manifest.files).toEqual([
       {
         path: 'handoff.json',

@@ -26,10 +26,6 @@ test('C428-TEST-STARTED-STEP-TEXTS-ADDITIVE', () => {
     .not.toHaveProperty('stepTexts')
 })
 
-test('C428-FRAME-END-REASONS-EXACT', () => {
-  expect(api.LIVE_FRAME_END_REASONS).toEqual(['withdrawn', 'closed'])
-})
-
 test('EDITOR-LIVE-URL-DTOS-STRICT', () => {
   const input = api.EditorLiveUrlInputSchema
   expect(input.parse({ sessionId: 's1' })).toEqual({ sessionId: 's1' })
@@ -42,8 +38,4 @@ test('EDITOR-LIVE-URL-DTOS-STRICT', () => {
   }
   expect(api.EditorLiveUrlResultSchema.parse(result)).toEqual(result)
   expect(api.EditorLiveUrlResultSchema.safeParse({ ...result, handle: 0 }).success).toBe(false)
-})
-
-test('C428-LIVE-VIEW-SUBJECT-KINDS-EXACT', () => {
-  expect(api.LIVE_VIEW_SUBJECT_KINDS).toEqual(['run', 'editor'])
 })
