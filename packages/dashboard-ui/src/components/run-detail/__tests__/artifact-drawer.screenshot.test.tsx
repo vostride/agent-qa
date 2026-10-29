@@ -105,7 +105,7 @@ function mountLightbox() {
 
 afterEach(() => { vi.unstubAllGlobals() })
 
-describe('the lightbox opens what the verdict cited (D-02)', () => {
+describe('the lightbox opens what the verdict cited', () => {
   it('mints its image src through the ONE route minter and nothing else', () => {
     const lightbox = mountLightbox()
     expect(lightbox.querySelector('img')?.getAttribute('src')).toBe(routes.runArtifact(RUN_ID, SHA))
@@ -128,7 +128,7 @@ describe('the lightbox opens what the verdict cited (D-02)', () => {
     expect(lightbox.querySelector('img')).toBeNull()
   })
 
-  it('says so when the blob vanished BETWEEN the read and the click (405 D-15)', async () => {
+  it('says so when the blob vanished BETWEEN the read and the click', async () => {
     const fetch = vi.fn().mockResolvedValue({ status: 404 })
     vi.stubGlobal('fetch', fetch)
     const lightbox = mountLightbox()

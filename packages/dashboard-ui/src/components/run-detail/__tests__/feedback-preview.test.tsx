@@ -146,7 +146,7 @@ function visibleText(): string {
   return texts.join('\n')
 }
 
-describe('426-06 the What this will do section', () => {
+describe('the What this will do section', () => {
   it('PREVIEW-LINES: the knowledge and change lines from the read, in order, and no id reaches visible text', async () => {
     const read = falseFail()
     if (read.kind !== 'consequences') throw new Error('fixture')
@@ -311,7 +311,7 @@ const REFUSALS: Record<(typeof MARK_PREVIEW_REFUSALS)[number], RunsMarkPreviewRe
 }
 const READ_FAILURES = ['network', 'ledger-corrupt', 'ledger-unavailable', 'refused', 'shape'] as const satisfies readonly FeedbackReadFailure[]
 
-describe('426-07 the special arms, the refusals and the failed read', () => {
+describe('the special arms, the refusals and the failed read', () => {
   it('PREVIEW-QUARANTINED: a quarantined read is one muted block naming its cause, with no consequence lines', () => {
     render({ state: 'quarantined', current: true, read: QUARANTINED })
     const block = line('quarantined')

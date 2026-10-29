@@ -138,8 +138,8 @@ afterEach(async () => {
   root = null
 })
 
-describe("C433-INSIGHTS-CURATION-UI: Memory curation state", () => {
-  it("C433-INSIGHTS-CURATION-UI: failed curation is named and never read as no activity", async () => {
+describe("Memory curation state", () => {
+  it("failed curation is named and never read as no activity", async () => {
     fetchInsightsKnowledgeChangesMock.mockResolvedValue(knowledgeRead({
       runsInWindow: 6,
       runsRead: 0,
@@ -154,7 +154,7 @@ describe("C433-INSIGHTS-CURATION-UI: Memory curation state", () => {
     expect(container?.textContent).not.toContain(EMPTY_CLAIM)
   })
 
-  it("C433-INSIGHTS-CURATION-UI: unfinished curation is named", async () => {
+  it("unfinished curation is named", async () => {
     fetchInsightsKnowledgeChangesMock.mockResolvedValue(knowledgeRead({
       runsInWindow: 6,
       runsRead: 4,
@@ -168,7 +168,7 @@ describe("C433-INSIGHTS-CURATION-UI: Memory curation state", () => {
     expect(section.textContent).not.toContain(EMPTY_CLAIM)
   })
 
-  it("C433-INSIGHTS-CURATION-UI: runs still in flight are named, not reported as unreadable", async () => {
+  it("runs still in flight are named, not reported as unreadable", async () => {
     fetchInsightsKnowledgeChangesMock.mockResolvedValue(knowledgeRead({
       runsInWindow: 5,
       runsRead: 5,
@@ -183,13 +183,13 @@ describe("C433-INSIGHTS-CURATION-UI: Memory curation state", () => {
     expect(section.textContent).not.toContain(EMPTY_CLAIM)
   })
 
-  it("C433-INSIGHTS-CURATION-UI: the empty claim needs every count at zero", async () => {
+  it("the empty claim needs every count at zero", async () => {
     await renderPage()
 
     expect(memorySection().textContent).toContain("No memory-curator activity in this window")
   })
 
-  it("C433-INSIGHTS-CURATION-UI: changing the window clears the previous window's counts until the new read lands", async () => {
+  it("changing the window clears the previous window's counts until the new read lands", async () => {
     fetchInsightsKnowledgeChangesMock.mockResolvedValue(knowledgeRead({
       byKind: { added: 6, confirmed: 2, superseded: 0, deprecated: 0, promoted: 0, purged: 0 },
     }))

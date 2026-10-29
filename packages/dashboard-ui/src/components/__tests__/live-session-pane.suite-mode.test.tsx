@@ -236,7 +236,7 @@ describe('LiveSessionPane suite mode', () => {
   })
 })
 
-describe('LiveSessionPane suite-mode live header (428 D-05)', () => {
+describe('LiveSessionPane suite-mode live header', () => {
   it('EDITOR-HEADER-MINIMAL: no "Running {test}" label and no session number in suite mode', () => {
     renderPane({
       tests: [{ ...selectedTest, status: 'running' }],

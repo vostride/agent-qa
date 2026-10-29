@@ -72,7 +72,7 @@ function open(card: Element, label: string) {
   act(() => trigger!.click())
 }
 
-describe('C444-ARTIFACT-MEMBERS', () => {
+describe("the Test tab's members", () => {
   it("the Test tab shows each member's source with that member", () => {
     const tab = mount(testsResponse())
     const cards = Array.from(tab.querySelectorAll('[data-suite-member-index]'))

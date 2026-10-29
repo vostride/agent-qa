@@ -195,7 +195,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe('C441-CONFIG', () => {
+describe('SecretValue and masked header values', () => {
   it("the secret field shows the server's text and offers no reveal", async () => {
     vi.mocked(fetchConfig).mockResolvedValue(
       answer(proxyWithHeaders({ 'x-access': '[secret:ACCESS_KEY]', 'x-region': 'eu-west' })) as never,
@@ -231,7 +231,7 @@ describe('C441-CONFIG', () => {
   })
 })
 
-describe('SecretValue (429-19 Task 1)', () => {
+describe('SecretValue', () => {
   it('REPLACE-VALUE-EMPTY-INPUT: Replace value shows an empty password input beside Save value and Keep current value, never the mask', async () => {
     await mount()
 

@@ -39,7 +39,7 @@ const sources = sourceFiles(SRC).map((path) => ({
   text: readFileSync(path, 'utf8'),
 }))
 
-describe('one live preview component (428 SC1)', () => {
+describe('one live preview component', () => {
   it('ONE-PREVIEW-COMPONENT: one file embeds the live view, nothing imports the old viewer, and no component paints a base64 live screenshot', () => {
     expect(sources.length).toBeGreaterThan(50)
 

@@ -238,7 +238,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('C444-TIMEOUT-BADGE', () => {
+describe('the timed-out badge and the status filters', () => {
   it("the Tests page shows a timed-out last run as a destructive Timed out badge", async () => {
     served.tests = [SLOW, QUICK].map(testFile)
     served.runs = [

@@ -88,7 +88,7 @@ function button(name: string): HTMLButtonElement {
   return found
 }
 
-describe('the save status faces (429-15 Task 2)', () => {
+describe('the save status faces', () => {
   it('SAVE-STATUS-TONES: each of the six states renders its data attribute, word and glyph', () => {
     expect(Object.keys(STATUSES)).toEqual([...SAVE_STATES])
 
@@ -160,7 +160,7 @@ describe('the save status faces (429-15 Task 2)', () => {
   })
 })
 
-describe('the polite region (429-15 Task 2)', () => {
+describe('the polite region', () => {
   it('SAVING-NOT-ANNOUNCED: Saving never reaches the polite region', () => {
     show(STATUSES.saving)
     expect(liveRegion().textContent).toBe('')
@@ -226,7 +226,7 @@ describe('the polite region (429-15 Task 2)', () => {
   })
 })
 
-describe('long text and motion (429-15 Task 2)', () => {
+describe('long text and motion', () => {
   it('UNDO-LINE-FULL-NAME: a long name truncates at max-w-40 and the full sentence is the accessible name', () => {
     const line = undoLine('delete-model', LONG_NAME)
     show({ state: 'undo', failingFieldKeys: [], undo: { line, name: LONG_NAME, token: 'u3' } })

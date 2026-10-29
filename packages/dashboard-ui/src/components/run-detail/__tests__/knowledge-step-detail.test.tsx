@@ -125,7 +125,7 @@ function deepestWithText(view: HTMLElement, text: string): HTMLElement | null {
   return matches.find((el) => !matches.some((other) => other !== el && el.contains(other))) ?? null
 }
 
-describe("the painted node is the one no other match contains (407-28 · IN-05)", () => {
+describe("the painted node is the one no other match contains", () => {
   const TARGET = "fact-page-https-example-com-9f2c1ad4"
 
   /** A `wrapper > leaf` chain whose leaf paints exactly `text`, tagged so a failure names it. */
@@ -156,7 +156,7 @@ describe("the painted node is the one no other match contains (407-28 · IN-05)"
   })
 })
 
-describe("a served line carries the trace that explains it, inline (D-04)", () => {
+describe("a served line carries the trace that explains it, inline", () => {
   // 427 D-19: Retrieval details is already a disclosure, so the trace reads on the line itself.
   it("LEDGER-TRACE-INLINE: marks the line answered and prints its leg, rank and score inline, behind no trigger", () => {
     const view = mount(<KnowledgeBriefLine line={line()} />)
@@ -219,7 +219,7 @@ describe("a served line carries the trace that explains it, inline (D-04)", () =
  *
  * These cells therefore pin the PROPERTY THAT SIZES, not the property that merely permits a break.
  */
-describe("a content-derived brief line can shrink its own box, not merely overflow it (G-407-2)", () => {
+describe("a content-derived brief line can shrink its own box, not merely overflow it", () => {
   const UNBROKEN_SUMMARY = "x".repeat(120)
   const UNBROKEN_ID = "fact-el-textbox-password-9a05ce7d3b1f4c28e6a09d5417bc32ea6f81d40c"
 
@@ -253,7 +253,7 @@ describe("a content-derived brief line can shrink its own box, not merely overfl
  * by exact text, and two identical strings in sibling subtrees is an ambiguity the helper's own
  * cells (below) exist to remove.
  */
-describe("every unbroken token in the expanded row can shrink its own box, whichever channel served it (G-407-13)", () => {
+describe("every unbroken token in the expanded row can shrink its own box, whichever channel served it", () => {
   const CHANNEL2_ID = "fact-page-https-automationexercise-com-view-cart-376e539e6c7b4e75"
   const CHANNEL3_SUMMARY = "https://automationexercise.com/product_details/44?variant=very-long-unbroken-query-string"
   const CHANNEL3_ID = "caution-el-button-add-to-cart-20f5876cc5299c11a4d0e93b7c6182fa"
@@ -301,7 +301,7 @@ describe("every unbroken token in the expanded row can shrink its own box, which
   })
 })
 
-describe("a canary line is marked ALWAYS, and its outcome is never blank (D-08)", () => {
+describe("a canary line is marked ALWAYS, and its outcome is never blank", () => {
   /** The painted node for `text`, which must be plain 12px text and never a tinted Badge. */
   function plainWord(view: HTMLElement, text: string): HTMLElement {
     const painted = deepestWithText(view, text)
@@ -380,7 +380,7 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank (D-08)"
   })
 })
 
-describe("each channel the step was served is named, and an empty one is left out (427 D-19)", () => {
+describe("each channel the step was served is named, and an empty one is left out", () => {
   it("LEDGER-OMITS-EMPTY-CHANNEL: a step served only channel 1 names channel 1 in a 12px eyebrow and nothing else", () => {
     const view = mount(<KnowledgeStepDetail detail={detail({ channel1: [line()] })} />)
 
@@ -421,7 +421,7 @@ describe("each channel the step was served is named, and an empty one is left ou
   })
 })
 
-describe("the cut ledger answers why it did NOT say something (D-04)", () => {
+describe("the cut ledger answers why it did NOT say something", () => {
   it("carries the ledger size on the disclosure and the producer cap in its label", () => {
     const view = mount(<KnowledgeStepDetail detail={detail({
       cut: {
@@ -450,7 +450,7 @@ describe("the cut ledger answers why it did NOT say something (D-04)", () => {
   })
 })
 
-describe("a replay states its guard outcome and a hint states its demotion (D-07)", () => {
+describe("a replay states its guard outcome and a hint states its demotion", () => {
   /** The plan-source row, which states its procedure and its sentence in plain text (427 D-19). */
   function planSourceRow(view: HTMLElement, procedureId: string): Element | null {
     const row = view.querySelector("[data-plan-source-outcome]")
@@ -487,7 +487,7 @@ describe("a replay states its guard outcome and a hint states its demotion (D-07
     expect(row?.textContent).toContain("replayed 5/5")
   })
 
-  it("keeps a demoted hint tellable apart from an ordinary one (G-381-4)", () => {
+  it("keeps a demoted hint tellable apart from an ordinary one", () => {
     const view = mount(<KnowledgeStepDetail detail={detail({
       planSource: { kind: "procedure-hint", procedureId: "procedure-flow-search-12cd", sentence: PROCEDURE_HINT_DEMOTED_TEXT, tone: "hint" },
     })} />)
@@ -529,7 +529,7 @@ describe("a channel longer than the page shows a page, and offers the rest", () 
   })
 })
 
-describe("producer text reaches the DOM as TEXT, never as markup (T-407-14)", () => {
+describe("producer text reaches the DOM as TEXT, never as markup", () => {
   it("renders a hostile brief summary as a text node — no element is created from it", () => {
     const hostile = '<img src=x onerror=alert(1)>'
     const view = mount(<KnowledgeStepDetail detail={detail({ channel1: [line({ summary: hostile })] })} />)

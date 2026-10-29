@@ -298,7 +298,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe("the page re-reads analysis on chip TRANSITIONS and on nothing else (D-03)", () => {
+describe("the page re-reads analysis on chip TRANSITIONS and on nothing else", () => {
   it("reads once at mount, again per changed chip word, and NOT on a repeated frame", async () => {
     await renderPage()
     expect(fetchRunAnalysisMock, "one read at mount").toHaveBeenCalledTimes(1)
@@ -322,7 +322,7 @@ describe("the page re-reads analysis on chip TRANSITIONS and on nothing else (D-
   })
 })
 
-describe("a failed member's group carries the op's sentence and its provenance (D-05/D-10)", () => {
+describe("a failed member's group carries the op's sentence and its provenance", () => {
   it("paints the sentence VERBATIM under the failed member, with the floor's provenance chip", async () => {
     const view = await renderPage()
 
@@ -362,7 +362,7 @@ describe("a failed member's group carries the op's sentence and its provenance (
       .toBe(provenanceLabel("analyze-run", 0.86))
   })
 
-  it("renders a sentence carrying markup as TEXT, never as an element (T-406-02)", async () => {
+  it("renders a sentence carrying markup as TEXT, never as an element", async () => {
     const hostile = '<img src=x onerror=alert(1)> observed (step 0): "boom"'
     fetchRunAnalysisMock.mockResolvedValue(analysisOf({
       sentences: [{ perTest: 0, testId: "t_checkout", sentence: hostile }],
@@ -387,7 +387,7 @@ describe("a failed member's group carries the op's sentence and its provenance (
   })
 })
 
-describe("the sentence's lifecycle is painted from the chip word (D-09/D-11)", () => {
+describe("the sentence's lifecycle is painted from the chip word", () => {
   it("marks the floor provisional while the chain runs, then swaps the sentence IN PLACE", async () => {
     const view = await renderPage()
 
@@ -415,7 +415,7 @@ describe("the sentence's lifecycle is painted from the chip word (D-09/D-11)", (
       .toBe("analyze-run")
   })
 
-  it("marks a permanently failed chain in the TREE, and does not re-grade the verdict (D-11)", async () => {
+  it("marks a permanently failed chain in the TREE, and does not re-grade the verdict", async () => {
     // THE CHIP IS IN THE HEADER AND THE MARKER IS IN THE TREE, which is the whole decision: a
     // reader scrolled into a 40-member suite must not have to look up to learn that the sentence
     // beside them is the deterministic floor and is never going to improve.
@@ -434,7 +434,7 @@ describe("the sentence's lifecycle is painted from the chip word (D-09/D-11)", (
   })
 })
 
-describe("the block's links do something (D-02, D-08)", () => {
+describe("the block's links do something", () => {
   it("selects the cited step in the tree, by the tree's own key", async () => {
     fetchRunDetailMock.mockResolvedValue(TWO_STEP_MEMBER)
     fetchRunAnalysisMock.mockResolvedValue(analysisOf({
@@ -508,7 +508,7 @@ describe("the block's links do something (D-02, D-08)", () => {
   })
 })
 
-describe("every member wears its outcome, and only a graded one carries a block (D-07/D-05)", () => {
+describe("every member wears its outcome, and only a graded one carries a block", () => {
   it("badges the passed member and the failed one, and blocks only the failed one", async () => {
     const view = await renderPage()
 
@@ -527,7 +527,7 @@ describe("every member wears its outcome, and only a graded one carries a block 
   })
 })
 
-describe("evidence the durable read found MISSING is said so, and changes nothing else (D-19)", () => {
+describe("evidence the durable read found MISSING is said so, and changes nothing else", () => {
   /** 64-hex content addresses; the second one's bytes are gone at read time (`present: false`). */
   const SHA_PRESENT = "a".repeat(64)
   const SHA_GONE = "b".repeat(64)
@@ -671,7 +671,7 @@ async function goToRunB(view: HTMLElement) {
   await flushRender()
 }
 
-describe("the analysis read is forgotten when the run id changes (CR-02)", () => {
+describe("the analysis read is forgotten when the run id changes", () => {
   beforeEach(() => {
     fetchRunDetailMock.mockImplementation(async (id: string) =>
       id === RUN_B ? TWO_MEMBERS_B : TWO_MEMBERS,

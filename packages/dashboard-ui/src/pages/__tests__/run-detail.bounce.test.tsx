@@ -253,7 +253,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe("the bounce keys on the run row, and never on the active-execution set (D-07)", () => {
+describe("the bounce keys on the run row, and never on the active-execution set", () => {
   it("a `running` row bounces to /live exactly once, with `replace`", async () => {
     fetchRunMock.mockResolvedValue(answers("running"))
     await renderAt()
@@ -289,7 +289,7 @@ describe("the bounce keys on the run row, and never on the active-execution set 
   })
 })
 
-describe("an arrival that carries the verdict never bounces, and catches its row up (D-07 race)", () => {
+describe("an arrival that carries the verdict never bounces, and catches its row up", () => {
   it("a `running` row under `arrivedOnVerdict` does not navigate — the viewer just watched it end", async () => {
     fetchRunMock.mockResolvedValue(answers("running"))
     await renderAt({ arrivedOnVerdict: "passed" })

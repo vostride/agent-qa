@@ -200,7 +200,7 @@ describe('SuiteMetadataForm', () => {
     expect(asterisks.length).toBeGreaterThanOrEqual(2)
   })
 
-  it('accepts filtered suggestions prop (caller filters capture: per D-18)', () => {
+  it('accepts a suggestions prop the caller has already filtered of capture: names', () => {
     const onChange = vi.fn()
     // Passing a pre-filtered list (no capture: namespace) — the caller's responsibility.
     mount(

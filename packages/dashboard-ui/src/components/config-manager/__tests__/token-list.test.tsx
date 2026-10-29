@@ -148,7 +148,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe('no token controls (432-22, re-spelled from 429-27 Task 1)', () => {
+describe('no token controls', () => {
   it('the MCP and dashboard sections render their fields and no token list, row, add row or stdio switch', async () => {
     await mount()
 
@@ -192,7 +192,7 @@ describe('no token controls (432-22, re-spelled from 429-27 Task 1)', () => {
     expect(EXPLICIT_ACTION_KINDS as readonly string[]).not.toContain('delete-run-service-token')
   })
 
-  it('C432-NO-TOKEN-CONTROLS: a retained MCP control still saves through the autosave transaction', async () => {
+  it('a retained MCP control still saves through the autosave transaction', async () => {
     await mount()
 
     await typeAndBlur(control(['services', 'mcp', 'port']), '4000')

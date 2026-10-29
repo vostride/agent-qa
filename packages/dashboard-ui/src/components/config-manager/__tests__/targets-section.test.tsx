@@ -211,7 +211,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe('TargetsSection and DevicesSection (429-22 Task 1)', () => {
+describe('TargetsSection and DevicesSection', () => {
   it('TARGET-EDIT-IN-ROW-AUTOSAVES: changing a target URL in its row writes that one leaf after the pause, with no dialog', async () => {
     await mount()
 
@@ -466,7 +466,7 @@ describe('TargetsSection and DevicesSection (429-22 Task 1)', () => {
     expect(environment?.textContent).toContain(TARGET_ENVIRONMENT_LABELS.production)
   })
 
-  it('C432-TARGET-CREATE-UI: Undeclared saves no environment key, and the compact row wraps its choices', async () => {
+  it('Undeclared saves no environment key, and the compact row wraps its choices', async () => {
     await mount()
 
     await click(buttonIn(section('targets'), ADD_TARGET_LABEL))
@@ -489,7 +489,7 @@ describe('TargetsSection and DevicesSection (429-22 Task 1)', () => {
     ])
   })
 
-  it('C432-TARGET-CREATE-UI: an existing production target reads back as Production when its row is edited', async () => {
+  it('an existing production target reads back as Production when its row is edited', async () => {
     vi.mocked(fetchConfig).mockResolvedValue(answer({
       registry: {
         targets: {
@@ -516,7 +516,7 @@ describe('TargetsSection and DevicesSection (429-22 Task 1)', () => {
     ])
   })
 
-  it('C432-TARGET-CREATE-UI: the chosen class is held with the draft, beside the typed name', async () => {
+  it('the chosen class is held with the draft, beside the typed name', async () => {
     await mount()
 
     await click(buttonIn(section('targets'), ADD_TARGET_LABEL))
@@ -533,8 +533,8 @@ describe('TargetsSection and DevicesSection (429-22 Task 1)', () => {
 
 // 2026-10-03 (quick 261003-cpv, 432 review IN-33): the guard that decides whether a draft writes
 // `registry.targets.<name>.environment` admits the three classes and nothing a prototype carries.
-describe('C261003-CPV-ENVIRONMENT-GUARD', () => {
-  it('C261003-CPV-ENVIRONMENT-GUARD: admits local, shared and production, and no inherited key', async () => {
+describe('the target environment guard', () => {
+  it('admits local, shared and production, and no inherited key', async () => {
     const { isTargetEnvironment } = await import('@/components/config-manager/targets-section')
     expect(typeof isTargetEnvironment).toBe('function')
     for (const value of ['local', 'shared', 'production']) expect(isTargetEnvironment(value), value).toBe(true)

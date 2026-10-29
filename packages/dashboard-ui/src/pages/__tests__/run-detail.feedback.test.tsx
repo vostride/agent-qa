@@ -389,7 +389,7 @@ afterEach(() => {
   vi.resetAllMocks()
 })
 
-describe('426-01 contextual feedback tracer', () => {
+describe('contextual feedback tracer', () => {
   it('TRACER-HEADER-ENTRY-TO-RECORDED: header entry → current preview → Send feedback → announced receipt', async () => {
     fetchRunDetailMock.mockImplementation(async () => markRunMock.mock.calls.length > 0 ? refreshed : initial)
     markRunMock.mockResolvedValue({ kind: 'marked', receipt })
@@ -522,7 +522,7 @@ function suiteDetail(member0: Partial<RunDetailMember> = {}): RunDetailProjectio
   })
 }
 
-describe('426-03 the header entry in a suite', () => {
+describe('the header entry in a suite', () => {
   it('SUITE-HEADER-TARGET-ON-LOAD: the auto-selected first step makes member 0 the target though member 1 failed', async () => {
     fetchRunDetailMock.mockResolvedValue(suiteDetail())
     await renderAt(`/runs/${RUN_ID}`)
@@ -569,7 +569,7 @@ describe('426-03 the header entry in a suite', () => {
   })
 })
 
-describe('426-03 the composer names, switches and refuses its test', () => {
+describe('the composer names, switches and refuses its test', () => {
   it('SWITCHER-RETARGETS: choosing another test re-targets the composer and leaves the filter and selection alone', async () => {
     fetchRunDetailMock.mockResolvedValue(suiteDetail())
     await renderAt(`/runs/${RUN_ID}?member=0`)
@@ -640,7 +640,7 @@ const SETUP_HOOK = {
 }
 const doors = () => container!.querySelectorAll('[data-feedback-entry]')
 
-describe('426-04 the step door on the page', () => {
+describe('the step door on the page', () => {
   it('TRIGGER-COUNT: two doors with a step selected, one with no selection, one with a hook selected', async () => {
     fetchExecutionLogsMock.mockResolvedValue({ logs: [SETUP_HOOK] })
     await renderAt(`/runs/${RUN_ID}`)
@@ -709,7 +709,7 @@ describe('426-04 the step door on the page', () => {
   })
 })
 
-describe('426-04 the passive trace on a member header', () => {
+describe('the passive trace on a member header', () => {
   it('MEMBER-GLYPH: a whole-test mark puts one named glyph after the member handle and before its outcome badge', async () => {
     fetchRunDetailMock.mockResolvedValue(suiteDetail({ marks: [receipt] }))
     await renderAt(`/runs/${RUN_ID}`)
@@ -763,7 +763,7 @@ async function openStep(address: string) {
   expect(composerTarget()).toBe(address)
 }
 
-describe('426-05 the pinned target and per-address drafts', () => {
+describe('the pinned target and per-address drafts', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
     fetchMarkPreviewMock.mockResolvedValue({ kind: 'read', result: CONSEQUENCES })
@@ -878,7 +878,7 @@ function suiteHalfMarked(): RunDetailProjection {
   return { ...suite, members: [suite.members[0]!, { ...suite.members[1]!, marks: undefined }] }
 }
 
-describe('426-05 focus in and out, and the page keys', () => {
+describe('focus in and out, and the page keys', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
     fetchMarkPreviewMock.mockResolvedValue({ kind: 'read', result: CONSEQUENCES })
@@ -1011,7 +1011,7 @@ describe('426-05 focus in and out, and the page keys', () => {
 /** The page's own sentence for a mark that failed (2026-10-02, 432-42: no typed denial is left). */
 const MARK_FAILED_TEXT = 'Could not complete the mark or refresh its receipt.'
 
-describe('426-05 the retained draft, per address', () => {
+describe('the retained draft, per address', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
   })
@@ -1105,7 +1105,7 @@ async function pickAndAdvance(kind: string) {
   await flushRender()
 }
 
-describe('426-06 the resolved step and Show step', () => {
+describe('the resolved step and Show step', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
   })
@@ -1173,7 +1173,7 @@ describe('426-06 the resolved step and Show step', () => {
   })
 })
 
-describe('426-06 the preview on screen is exact', () => {
+describe('the preview on screen is exact', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
   })
@@ -1299,7 +1299,7 @@ async function activateWithEnter(button: HTMLButtonElement) {
   await flushRender()
 }
 
-describe('426-07 each preview arm decides Send feedback on the page', () => {
+describe('each preview arm decides Send feedback on the page', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
   })
@@ -1535,7 +1535,7 @@ function historyOf(entries: readonly (Record<string, unknown> & { n: number })[]
 const historyEntryIds = (selector: string) =>
   [...(q(selector)?.querySelectorAll('[data-history-entry]') ?? [])].map(entry => entry.getAttribute('data-mark-id'))
 
-describe('426-09 the history read', () => {
+describe('the history read', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
     fetchMarkPreviewMock.mockResolvedValue({ kind: 'read', result: CONSEQUENCES_STEP_3 })
@@ -1591,7 +1591,7 @@ describe('426-09 the history read', () => {
   })
 })
 
-describe('426-09 the receipt shows in history', () => {
+describe('the receipt shows in history', () => {
   const PRIOR = historyMarkId(1)
   const RECEIPT: RunDetailMemberMark = {
     markId: historyMarkId(2),
@@ -1643,7 +1643,7 @@ describe('426-09 the receipt shows in history', () => {
   })
 })
 
-describe('426-09 the preview names its times from history', () => {
+describe('the preview names its times from history', () => {
   const PRIOR = 'mark_0123456789ab'
   const SUPERSEDES = previewOf({ latest: { kind: 'supersedes', markId: PRIOR, ordinal: 1 }, basis: { ledgerOrdinal: 1, priorMarkOrdinal: 1 } })
   const loaded = historyOf([{ n: 1, markId: PRIOR, markedAt: T_MARK, disposition: receipt.disposition, changedRecords: CHANGED }])
@@ -1680,8 +1680,8 @@ describe('426-09 the preview names its times from history', () => {
 
 // RE-SPELLED 432-09 (D-25) from '426-09 only the review command reaches the clipboard': no review
 // command remains, so nothing on the page writes the clipboard, and history names what changed.
-describe('432-09 no review command, and nothing reaches the clipboard', () => {
-  it('C432-NO-REVIEW-CTA: history names the applied change with no review control; typing a note or opening details writes nothing', async () => {
+describe('no review command, and nothing reaches the clipboard', () => {
+  it('history names the applied change with no review control; typing a note or opening details writes nothing', async () => {
     const writeText = vi.fn(async () => undefined)
     Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
     try {
@@ -1726,7 +1726,7 @@ function settleable() {
 // claim on the page's confirm channel, the waiting link and the awaiting-approval state — is
 // deleted. Each cell keeps its subject (what the page shows while one mark is in flight, across a
 // close, across addresses, after a refusal and across a run change) and pins the one-request path.
-describe('426-10 the mark approval is answered in the composer', () => {
+describe('the mark approval is answered in the composer', () => {
   beforeEach(() => {
     fetchRunDetailMock.mockResolvedValue(fourSteps)
   })
@@ -1847,7 +1847,7 @@ async function resizePage(width: number) {
   await flushRender()
 }
 
-describe('426-11 the open composer stacks under the evidence below 768px', () => {
+describe('the open composer stacks under the evidence below 768px', () => {
   const group = () => q('[data-resizable-group]')!
   const panels = () => [...container!.querySelectorAll('[data-resizable-panel]')]
   const panelIds = () => panels().map(panel => panel.getAttribute('data-panel-id'))
@@ -1947,7 +1947,7 @@ describe('426-11 the open composer stacks under the evidence below 768px', () =>
 // NO PILL ANYWHERE (426-15 · SC1, SC2, D-05). The two doors are the only way to leave feedback, and the
 // internal mark names appear only under Technical details. The page tests' stand-in for collapsible
 // sections always renders Technical details, so that subtree is skipped rather than opened.
-describe('426-15 the always-visible pills are gone', () => {
+describe('the always-visible pills are gone', () => {
   it('NO-PILL-ANYWHERE: a marked suite with the composer open and a preview landed renders no pill and no internal mark name', async () => {
     const stepMark: RunDetailMemberMark = { markId: 'mark_0123456789ac', kind: 'confirmed-bug', ordinal: 2, stepIndex: 0,
       disposition: { kind: 'confirmed-bug', confirmedRecords: 0 } }

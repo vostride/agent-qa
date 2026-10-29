@@ -132,7 +132,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe("C444-COMPLETED-TAB", () => {
+describe("the Completed tab", () => {
   it("the Completed tab asks for the five finished words", async () => {
     await renderRuns()
     const request = await openTab("Completed")

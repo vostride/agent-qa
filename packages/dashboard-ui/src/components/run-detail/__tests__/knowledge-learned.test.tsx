@@ -185,7 +185,7 @@ describe('receipt-backed promotion attribution', () => {
   })
 })
 
-describe("an unsettled curation says so in words, never in a spinner (D-12)", () => {
+describe("an unsettled curation says so in words, never in a spinner", () => {
   it("carries the pending word on the root and the one sentence a reader can act on", () => {
     const host = render({ state: "pending", sentence: CHANGES_PENDING_TEXT, rows: [] })
 
@@ -209,7 +209,7 @@ describe("an unsettled curation says so in words, never in a spinner (D-12)", ()
   })
 })
 
-describe("a failed curation states the consequence, not just the failure (D-12)", () => {
+describe("a failed curation states the consequence, not just the failure", () => {
   it("carries the failed word and says nothing was learned — and offers no retry", () => {
     const host = render({ state: "failed", sentence: CURATION_FAILED_TEXT, rows: [] })
 
@@ -230,7 +230,7 @@ describe("a failed curation states the consequence, not just the failure (D-12)"
 // `curation` and `learned` independently and the conformance file's `attributed-failed` world
 // carries both at once, so one paragraph could only ever speak for one of them while silently
 // standing in for the other. Both are pinned below, in document order, each by its own attribute.
-describe("a failed chain paints the records it committed and notes its fate BESIDE them (CR-01, G-407-12)", () => {
+describe("a failed chain paints the records it committed and notes its fate BESIDE them", () => {
   it("paints the row and the chain note, and prints NO sentence over the records", () => {
     const host = render({
       state: "failed",
@@ -298,7 +298,7 @@ describe("a failed chain paints the records it committed and notes its fate BESI
   })
 })
 
-describe("a settled curation with no counts says so — never a zero (D-12)", () => {
+describe("a settled curation with no counts says so — never a zero", () => {
   it("carries the counts-absent word, the sentence and the fragment, with no digit anywhere", () => {
     const host = render({
       state: "counts-absent",
@@ -315,7 +315,7 @@ describe("a settled curation with no counts says so — never a zero (D-12)", ()
   })
 })
 
-describe("a settled curation that changed nothing says that, and lists nothing (D-12)", () => {
+describe("a settled curation that changed nothing says that, and lists nothing", () => {
   it("renders the both-zero phrase beside the heading and the changed-nothing sentence", () => {
     const host = render({
       state: "complete",
@@ -353,7 +353,7 @@ describe("a settled curation that changed nothing says that, and lists nothing (
  * element rather than a second clause on the count line: a reader scanning the counts should not
  * have to parse a sentence out of them, and a cell should be able to assert the absence.
  */
-describe("the heading spells one number one way, and labels a coarser one (425-06)", () => {
+describe("the heading spells one number one way, and labels a coarser one", () => {
   it("LEARNED-BREAKDOWN-LINE: renders the five-bucket line in the heading's own count slot", () => {
     const breakdown = { added: 1, confirmed: 1, superseded: 1, deprecated: 1, proposed: 1 }
     const host = render({ state: "complete", countLine: curationBreakdownLine(breakdown), rows: [] })
@@ -394,7 +394,7 @@ describe("the heading spells one number one way, and labels a coarser one (425-0
  * cell addressing one must be able to assert the other, and a run whose numbers agree must be able
  * to assert that neither element exists at all.
  */
-describe("a mismatch is explained beneath the heading, and only when there is one (425-06)", () => {
+describe("a mismatch is explained beneath the heading, and only when there is one", () => {
   const breakdown = { added: 3, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 }
 
   it("RECONCILIATION-ONLY-ON-MISMATCH: renders the count and the cause as their own paragraphs", () => {
@@ -467,7 +467,7 @@ describe("a mismatch is explained beneath the heading, and only when there is on
   })
 })
 
-describe("the record list is one row per affected record, in 425's words (D-10, 427 D-15)", () => {
+describe("the record list is one row per affected record, in the curation bucket words", () => {
   const populated: LearnedView = {
     state: "complete",
     countLine: legacyCurationPairText(3, 1),
@@ -494,7 +494,7 @@ describe("the record list is one row per affected record, in 425's words (D-10, 
   })
 
   // RE-SPELLED 427-08 from 'renders the kind word in the row's badge as well as in its attribute'.
-  it("BUCKET-LABEL-VOCABULARY: each row's label reads the 425 breakdown word it is stamped with", () => {
+  it("BUCKET-LABEL-VOCABULARY: each row's label reads the curation breakdown word it is stamped with", () => {
     const snapshot = fiveBucketSnapshot()
     const host = render(learnedView(readyProjection("complete", {
       changes: snapshotChanges(), curationSnapshot: snapshot, sinceThen: { changes: [], count: 0 },
@@ -594,7 +594,7 @@ describe("the record list is one row per affected record, in 425's words (D-10, 
   })
 })
 
-describe("a curated NEW fact is painted, not denied (CR-04, R-407-15-01)", () => {
+describe("a curated NEW fact is painted, not denied", () => {
   // RE-SPELLED 427-08 from 'renders one li per kind for all FIVE Learned kinds, in the view's order'.
   // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 1): was "PROPOSED-HELD-FOR-REVIEW: a
   // proposed row says it is held for review". Nothing reviews it; it is recorded and not applied.
@@ -707,7 +707,7 @@ describe("a curated NEW fact is painted, not denied (CR-04, R-407-15-01)", () =>
   })
 })
 
-describe("an unreadable store is stamped on the root, never inferred from an empty list (407-14)", () => {
+describe("an unreadable store is stamped on the root, never inferred from an empty list", () => {
   const unreadable: LearnedView = {
     state: "complete",
     countLine: legacyCurationPairText(3, 1),
@@ -745,7 +745,7 @@ describe("an unreadable store is stamped on the root, never inferred from an emp
   })
 })
 
-describe("a partial read is painted beside the rows, and beneath an unsettled sentence (REVIEW CR-01, WR-05)", () => {
+describe("a partial read is painted beside the rows, and beneath an unsettled sentence", () => {
   it("paints the row, the incomplete stamp and the read note — and NO sentence", () => {
     const host = render({
       state: "complete",
@@ -817,11 +817,11 @@ describe("a partial read is painted beside the rows, and beneath an unsettled se
 
 // RE-SPELLED 432-09 (D-25) from 'the proposals line is a count and a door (D-11, T-407-22)': the half
 // shows what changed; no pending-proposals line, review command or copy control is rendered, in any state.
-describe("no pending-proposals line or review command is rendered (432-09 D-25)", () => {
+describe("no pending-proposals line or review command is rendered", () => {
   it.each([
     ["complete", { state: "complete", countLine: legacyCurationPairText(0, 0), sentence: NO_MEMORY_CHANGES_SENTENCE, rows: [] }],
     ["pending", { state: "pending", sentence: CHANGES_PENDING_TEXT, rows: [] }],
-  ] as const)("C432-NO-REVIEW-CTA: a %s half renders no proposals line, command or copy button", (_state, view) => {
+  ] as const)("a %s half renders no proposals line, command or copy button", (_state, view) => {
     const host = render(view as LearnedView)
 
     expect(host.querySelector("[data-pending-proposals]")).toBeNull()
@@ -833,7 +833,7 @@ describe("no pending-proposals line or review command is rendered (432-09 D-25)"
   })
 })
 
-describe("projection text reaches the DOM as TEXT, never as markup (T-407-21)", () => {
+describe("projection text reaches the DOM as TEXT, never as markup", () => {
   it("renders a hostile record id as a text node — no element is created from it", () => {
     const hostile = '<img src=x onerror=alert(1)>'
     const host = renderLedger([ledgerChange(hostile, "confirmed", 12)])
@@ -921,7 +921,7 @@ function sectionOf(host: HTMLElement): HTMLElement {
   return section
 }
 
-describe("423 D-15: a failed chain keeps its learned rows beside the snapshot sections (WIN #313)", () => {
+describe("a failed chain keeps its learned rows beside the snapshot sections", () => {
   it("FAILED-CHAIN-ROWS-RETAINED: a chain that learned before failing paints every served change, joined or absent", () => {
     const projection = readyProjection("failed", {
       changes: [

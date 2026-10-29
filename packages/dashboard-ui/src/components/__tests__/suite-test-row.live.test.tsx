@@ -85,7 +85,7 @@ describe('SuiteTestRow live mode', () => {
   })
 
   // D-13 playground — test-list edits (including remove) flow through during live session
-  it('SHOWS remove button when liveMode=true (D-13 playground)', () => {
+  it('SHOWS remove button when liveMode=true', () => {
     mount(<SuiteTestRow {...baseProps} liveMode />)
     const remove = container.querySelector('[aria-label^="Remove"]')
     expect(remove).toBeTruthy()

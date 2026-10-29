@@ -63,7 +63,7 @@ it('TREE-ROW-NO-PLAN-TEXT uses a truncated sentence and shows a stored secret ma
   expect(container.textContent).toBe("Filled 'Learn more' with [secret:PW]")
 })
 
-describe('C437-NO-INPUT-LABEL', () => {
+describe('a skipped tap that sent no input', () => {
   it('the tree item marks a skipped tap no-input', () => {
     const { sub } = mount(true)
     expect(container.querySelector('[data-sub-action]')!.getAttribute('data-sub-action-result')).toBe('success')

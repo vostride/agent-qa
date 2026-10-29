@@ -348,7 +348,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe("C444-RATE-WINDOW", () => {
+describe("pass rates and last runs from the batch summary reads", () => {
   it("the Tests page reads each test's rate from one batch read, not from its 200-run page", async () => {
     served.tests = [A, C].map(testFile)
     served.runs = [...A_PASSES, C_CANCEL]

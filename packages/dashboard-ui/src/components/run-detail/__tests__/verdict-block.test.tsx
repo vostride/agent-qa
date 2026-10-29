@@ -99,7 +99,7 @@ const SHA_GONE = "b".repeat(64)
 // THE MEMBER'S PILLS ARE GONE (426-15 · D-05). Every cell below used to drive the block's own mark
 // form; the behaviour now lives in the composer and its history, and each title names the cell that
 // proves it there. What stays here is the negative: the block renders no mark control at all.
-describe('419 member mark control', () => {
+describe('member mark control', () => {
   const mark: RunDetailMemberMark = { markId: 'mark_0123456789ab', kind: 'false-fail', ordinal: 2,
     disposition: { kind: 'drafted', fix: 'fact', proposalId: 'prop_0123456789ab', proposalKind: 'knowledge' } }
   const markAttributes = () => [...container.querySelectorAll('*')]
@@ -174,7 +174,7 @@ describe('419 member mark control', () => {
   })
 })
 
-describe("the sentence's lifecycle is a marker, and the marker is the view's (D-09/D-11)", () => {
+describe("the sentence's lifecycle is a marker, and the marker is the view's", () => {
   it("paints the provisional marker with its exported sentence while the chain may still upgrade", () => {
     const block = render({ marker: "provisional", markerText: ANALYSIS_PROVISIONAL_TEXT })
 
@@ -203,7 +203,7 @@ describe("the sentence's lifecycle is a marker, and the marker is the view's (D-
   })
 })
 
-describe("the provenance and the sentence keep their 406-01 contract (D-10, T-406-02)", () => {
+describe("the verdict block's provenance attributes and sentence", () => {
   it("keeps every attribute the tracer put on the block, and reads provenance off the view", () => {
     const block = render({
       producer: "analyze-run",
@@ -232,7 +232,7 @@ describe("the provenance and the sentence keep their 406-01 contract (D-10, T-40
   })
 })
 
-describe("a cited step is one click from its row (D-02, first half)", () => {
+describe("a cited step is one click from its row", () => {
   it("renders one button per cited step and hands the click back with both handles", () => {
     const onCitedStep = vi.fn()
     const block = render({ testIndex: 4, citedSteps: [2, 3] }, { onCitedStep })
@@ -254,7 +254,7 @@ describe("a cited step is one click from its row (D-02, first half)", () => {
   })
 })
 
-describe("a cluster is a sibling LINE under the sentence, never a panel (D-08)", () => {
+describe("a cluster is a sibling LINE under the sentence, never a panel", () => {
   it("counts the siblings on the line and links each one back to its own group", () => {
     const onSelectMember = vi.fn()
     const block = render(
@@ -288,7 +288,7 @@ describe("a cluster is a sibling LINE under the sentence, never a panel (D-08)",
   })
 })
 
-describe("a cited artifact is one click from the drawer (D-02, second half)", () => {
+describe("a cited artifact is one click from the drawer", () => {
   it("renders one button per present cited artifact and hands the click back its sha", () => {
     const onCitedArtifact = vi.fn()
     const block = render(
@@ -314,7 +314,7 @@ describe("a cited artifact is one click from the drawer (D-02, second half)", ()
   })
 })
 
-describe("evidence that is GONE is a chip where the link was, and a count beside it (D-19)", () => {
+describe("evidence that is GONE is a chip where the link was, and a count beside it", () => {
   /** One present ref and one whose bytes are gone — the shape D-19 is written about. */
   const ONE_OF_TWO: Partial<MemberVerdictView> = {
     citedArtifacts: [
@@ -489,7 +489,7 @@ describe('the records on the failing path in the block', () => {
 // THE RING IS `:focus` AND NOT `:focus-visible` ON PURPOSE. The door is activated by pointer as
 // often as by keyboard, and a browser suppresses `:focus-visible` after a mouse click — which
 // would move a reader somewhere and then give them nothing to show where they landed.
-describe("the verdict block is the door's landing site (425-09 · D-11)", () => {
+describe("the verdict block is the door's landing site", () => {
   it("VERDICT-BLOCK-FOCUSABLE: carries tabindex -1 and a focus ring, and takes focus on demand", () => {
     const host = render()
     const block = host.querySelector<HTMLElement>("[data-verdict-block]")!

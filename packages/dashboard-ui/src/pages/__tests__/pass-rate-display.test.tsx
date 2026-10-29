@@ -311,7 +311,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('C444-PASS-RATE', () => {
+describe('how the pages show a pass rate', () => {
   it("the test viewer shows an em dash for a test with no rate", async () => {
     for (const tab of ["overview", "insights"]) {
       trends = { passRate: null, totalRuns: 2, avgDuration: 1000, daily: [] }

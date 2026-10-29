@@ -530,7 +530,7 @@ describe('ConfigPage schema coverage', () => {
 
   // The page-writable leaves are the strict leaves less the four plugin leaves; each has a
   // rendered owner and the write door admits it.
-  it('C432-CONFIG-WRITABLE: exactly the page-writable leaves, each owned on the page, and only the four plugin leaves excluded', async () => {
+  it('exactly the page-writable leaves, each owned on the page, and only the four plugin leaves excluded', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 

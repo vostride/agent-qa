@@ -216,7 +216,7 @@ describe('RunResultsPanel on the run stream', () => {
   })
 })
 
-describe('RunResultsPanel renders the one live row (428 D-21)', () => {
+describe('RunResultsPanel renders the one live row', () => {
   it('PANEL-USES-SHARED-ROW: each reducer row is an li with its status, ticks and a glyph named by status', async () => {
     const view = await renderPanel()
 
@@ -263,7 +263,7 @@ describe('RunResultsPanel renders the one live row (428 D-21)', () => {
   })
 })
 
-describe('RunResultsPanel draws a row only when it has text (G-428-2, owner decision 2026-09-26 (2))', () => {
+describe('RunResultsPanel draws a row only when it has text', () => {
   const WAITING = 'Waiting for events...'
   const readings = (view: HTMLElement) =>
     [...view.querySelectorAll('li')].map((row) => [row.getAttribute('data-step-status'), row.textContent])
@@ -295,7 +295,7 @@ describe('RunResultsPanel draws a row only when it has text (G-428-2, owner deci
   })
 })
 
-describe('RunResultsPanel shows the whole label (G-428-1, owner decision 2026-09-26 (1))', () => {
+describe('RunResultsPanel shows the whole label', () => {
   const LONG =
     'Select "Show" from the navbar, scroll to the end and click more, wait for the whole list to finish '
     + 'loading, then check that every card keeps its full title and its supercalifragilistic caption'

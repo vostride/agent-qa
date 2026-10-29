@@ -189,7 +189,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe('ConfigField (429-17 Task 1)', () => {
+describe('ConfigField', () => {
   it('FIELD-UNSET-SHOWS-PLACEHOLDER-WRITES-NOTHING: an absent leaf shows its default as placeholder and writes nothing on mount, focus or blur', async () => {
     vi.mocked(fetchConfig).mockResolvedValue(answer({ workspace: {} }) as never)
     await mount()

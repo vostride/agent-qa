@@ -306,7 +306,7 @@ afterEach(() => {
   container = null
 })
 
-describe("the page owns ONE runs.knowledge read per run id (D-05)", () => {
+describe("the page owns ONE runs.knowledge read per run id", () => {
   it("reads exactly once for the id it was mounted at, and asks for that id", async () => {
     await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
 
@@ -331,7 +331,7 @@ describe("the page owns ONE runs.knowledge read per run id (D-05)", () => {
   })
 })
 
-describe("a rejected read is a STATE on the tab, never a skeleton that never resolves (D-06)", () => {
+describe("a rejected read is a STATE on the tab, never a skeleton that never resolves", () => {
   it("lands the refusal on data-knowledge-state=error with the producer's own reason", async () => {
     fetchRunKnowledgeMock.mockRejectedValue(new Error("read_failed"))
 
@@ -360,7 +360,7 @@ describe("a rejected read is a STATE on the tab, never a skeleton that never res
     expect(knowledgeState(view)).toBe("evidence-incomplete")
   })
 
-  it("says there is no store when the run was executed with no reader bound (D-16)", async () => {
+  it("says there is no store when the run was executed with no reader bound", async () => {
     fetchRunKnowledgeMock.mockResolvedValue({ ...POPULATED, knowledgeStore: "unbound" })
 
     const view = await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
@@ -370,7 +370,7 @@ describe("a rejected read is a STATE on the tab, never a skeleton that never res
   })
 })
 
-describe("a populated read paints the Used half, end to end (D-03 / D-04 / D-08)", () => {
+describe("a populated read paints the Used half, end to end", () => {
   it("derives the summary line and gives the served step its row", async () => {
     const view = await renderAt(`/runs/${RUN_ID}?tab=knowledge`)
     await openRetrievalDetails(view)
@@ -403,7 +403,7 @@ describe("a populated read paints the Used half, end to end (D-03 / D-04 / D-08)
   })
 })
 
-describe("427 D-02 / D-04 / D-05: a record given in three steps reads as one content-led row in a four-part tab", () => {
+describe("a record given in three steps reads as one content-led row in a four-part tab", () => {
   const SERVED_LINE = POPULATED.kind === "ready" ? POPULATED.steps[0]!.served.channel1[0]! : undefined
   const GROUPED: RunKnowledgeProjection = {
     ...POPULATED,
@@ -454,7 +454,7 @@ const SERVED_CHANGE = {
   sourceRunId: RUN_ID,
 }
 
-describe("a partial store read paints the rows it was handed AND says the read was partial (REVIEW CR-01)", () => {
+describe("a partial store read paints the rows it was handed AND says the read was partial", () => {
   // THE OP'S OWN SANCTIONED SHAPE, crossed through the real client double, the real
   // `projectKnowledgeView` and the real `KnowledgeLearned`. `runs.knowledge` degrades its two
   // Learned enrichments INDEPENDENTLY, so a failed attribution scan beside a readable diff ships
@@ -526,7 +526,7 @@ describe("a partial store read paints the rows it was handed AND says the read w
   })
 })
 
-describe("a served attribution row beats a FAILED curation chain, at the page (407-22 · owner ruling 2026-08-30, UAT item 11)", () => {
+describe("a served attribution row beats a FAILED curation chain, at the page", () => {
   // TWO QUESTIONS, TWO ANSWERS, ONE PAGE. `curation.status` comes from a sibling op; the
   // `canaryAttributions` rows come from the committed store walk. They are independent facts that
   // meet only in the view fold, and the tab has a place for each: the chip reports what the
@@ -621,7 +621,7 @@ describe("a served attribution row beats a FAILED curation chain, at the page (4
   })
 })
 
-describe("the Learned half paints what a failed chain committed, and states its fate beneath (407-26/27 · owner ruling 2026-08-31, REVIEW CR-01 / G-407-12)", () => {
+describe("the Learned half paints what a failed chain committed, and states its fate beneath", () => {
   // THE SAME LAW AS THE BLOCK ABOVE, ONE HALF OVER. 407-22 settled it for the canary line: a
   // chain that fell over cannot un-answer a line the store already answered. This settles it for
   // the record list — a chain that fell over cannot un-commit a record it already wrote — and the
@@ -711,7 +711,7 @@ describe("the Learned half paints what a failed chain committed, and states its 
  * is a control, and activation widens a hiding member filter; an address the run does not contain
  * is plain text).
  */
-describe("427 D-03: a step reference in Knowledge used takes the reader to that step", () => {
+describe("a step reference in Knowledge used takes the reader to that step", () => {
   function servedLine(id: string, summary: string) {
     return { id, kind: "fact", summary, trust: 0.9, status: "active", servedAsCanary: false, tier: "confirmed" }
   }

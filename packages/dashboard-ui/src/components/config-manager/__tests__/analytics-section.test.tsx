@@ -161,7 +161,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe('AnalyticsSection (429-21 Task 2)', () => {
+describe('AnalyticsSection', () => {
   it('PASS-RATE-ATTRIBUTES-SECRET-ROWS: each attribute is its key in clear and a SecretValue showing the server mask, a dotted key staying one segment', async () => {
     await mount()
 

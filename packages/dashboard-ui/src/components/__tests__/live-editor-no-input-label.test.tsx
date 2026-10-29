@@ -60,7 +60,7 @@ afterEach(() => {
   container = null
 })
 
-describe("C437-NO-INPUT-LABEL", () => {
+describe("a skipped tap that sent no input", () => {
   it("the live editor detail names a skipped tap no input sent in the muted colour", () => {
     const view = renderDetail(liveSubAction("no-input"))
     const outcome = outcomeOf(view)

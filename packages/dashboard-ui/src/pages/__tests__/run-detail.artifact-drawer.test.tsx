@@ -517,7 +517,7 @@ describe("RunDetailPage artifact drawer", () => {
   // never dead for the length of a plan. The cell asserts BOTH halves of that: the tab the page
   // hands down moved, and no drawer opened — a shortcut that quietly did both would be two
   // surfaces answering one keypress.
-  it("opens the Knowledge tab with M and keeps navigation state stable (D-02)", async () => {
+  it("opens the Knowledge tab with M and keeps navigation state stable", async () => {
     const view = await renderAt("/runs/run-1?step=0:0&sub=0")
     const stepTree = view.querySelector('[data-testid="step-tree"]') as HTMLElement
 
@@ -537,7 +537,7 @@ describe("RunDetailPage artifact drawer", () => {
 
   // The number key and the letter key reach the SAME tab — the legend promises both, and a
   // seventh trigger nobody can reach by number would be the one tab that broke the pattern.
-  it("opens the Knowledge tab with 7 as well (D-01)", async () => {
+  it("opens the Knowledge tab with 7 as well", async () => {
     const view = await renderAt("/runs/run-1?step=0:0&sub=0")
 
     await act(async () => {
@@ -660,7 +660,7 @@ describe("RunDetailPage artifact drawer", () => {
     expect(searchParams(view).get("tab")).toBe("network")
   })
 
-  it("opens the lightbox for an orphan cited artifact without opening the drawer (D-02)", async () => {
+  it("opens the lightbox for an orphan cited artifact without opening the drawer", async () => {
     fetchRunAnalysisMock.mockResolvedValue(analysisCiting(CITED_SHA))
     const view = await renderAt("/runs/run-1?step=0:0&sub=0")
 

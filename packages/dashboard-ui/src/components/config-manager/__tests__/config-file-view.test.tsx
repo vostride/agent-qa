@@ -139,7 +139,7 @@ afterEach(async () => {
   setClipboard(undefined)
 })
 
-describe('ConfigFileView (429-28 Task 2)', () => {
+describe('ConfigFileView', () => {
   it('FILE-VIEW-READ-ONLY-MASKED: the whole file, one li per line with the text the server sent, the path and the note, and nothing editable or revealable', async () => {
     await mount()
 

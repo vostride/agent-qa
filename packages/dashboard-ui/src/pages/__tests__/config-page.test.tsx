@@ -535,7 +535,7 @@ function tabStops(root: ParentNode): HTMLElement[] {
     .filter((element) => element.closest('[hidden], [aria-hidden="true"], .sr-only') === null)
 }
 
-describe('ConfigPage autosave wiring (429-16 Task 3)', () => {
+describe('ConfigPage autosave wiring', () => {
   it('STATUS-IN-TAB-BAR: the one status sits in the tab bar, outside the scrolling tab list', async () => {
     const view = await renderAt('/config/models')
 
@@ -1797,7 +1797,7 @@ describe('ConfigPage task tabs shell', () => {
     expect(buttonNames).not.toContain('Save Changes')
   })
 
-  it('C432-NO-TOKEN-CONTROLS: no tab renders a token section, token list, token row or the stdio switch', async () => {
+  it('no tab renders a token section, token list, token row or the stdio switch', async () => {
     await renderAt('/config/advanced')
 
     const panel = container!.querySelector('[data-config-panel="advanced"]') as HTMLElement

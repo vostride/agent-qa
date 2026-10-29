@@ -127,7 +127,7 @@ function tree(groups: RunDetailGroup[], showMemberChrome: boolean) {
   )
 }
 
-describe("the step tree groups by member (D-16)", () => {
+describe("the step tree groups by member", () => {
   it("renders one group per member in handle order, each named and handled", () => {
     const view = tree(
       [
@@ -164,7 +164,7 @@ describe("the step tree groups by member (D-16)", () => {
 
 })
 
-describe("every member wears its outcome, in the navbar's one palette (406 D-07)", () => {
+describe("every member wears its outcome, in the navbar's one palette", () => {
   // WHAT THIS REPLACED. Until 406-06 this file asserted the OPPOSITE — no badge on a member that
   // ran — because 405 D-16 was explicit that per-member outcomes beside the aggregate were 406's
   // DETL-04 and were not to be pre-claimed. 406 D-07 is that decision arriving: the badge goes on
@@ -207,7 +207,7 @@ describe("every member wears its outcome, in the navbar's one palette (406 D-07)
   })
 })
 
-describe("the toggle of a group that holds a verdict says so, collapsed or not (425 WR-01)", () => {
+describe("the toggle of a group that holds a verdict says so, collapsed or not", () => {
   function verdictFor(testIndex: number): MemberVerdictView {
     return {
       testIndex,
@@ -248,7 +248,7 @@ describe("the toggle of a group that holds a verdict says so, collapsed or not (
   })
 })
 
-describe("a re-run says so, and a first attempt says nothing (D-17)", () => {
+describe("a re-run says so, and a first attempt says nothing", () => {
   it("reads the re-run count off `attempts` for a member that was re-run", () => {
     const label = reranLabel(3)
     expect(label).toBeDefined()
@@ -265,8 +265,8 @@ describe("a re-run says so, and a first attempt says nothing (D-17)", () => {
   })
 })
 
-describe("a member that never ran renders honestly, never as an empty tree (D-18)", () => {
-  it("shows the did-not-run note BESIDE the badge, and the producer's own summary (405 D-18)", () => {
+describe("a member that never ran renders honestly, never as an empty tree", () => {
+  it("shows the did-not-run note BESIDE the badge, and the producer's own summary", () => {
     const view = tree(
       [
         group(
@@ -285,7 +285,7 @@ describe("a member that never ran renders honestly, never as an empty tree (D-18
     expect(view.textContent).toContain("skipped by fail-fast")
   })
 
-  it("shows the summary's stored marker as written, with no chip (D-28, 405 CR-03)", () => {
+  it("shows the summary's stored marker as written, with no chip", () => {
     const view = tree(
       [
         group(
@@ -305,7 +305,7 @@ describe("a member that never ran renders honestly, never as an empty tree (D-18
     expect(view.querySelector("[data-masked]")).toBeNull()
   })
 
-  it("leaves the member's NAME unmasked — structural identity is not a redaction (405 CR-03)", () => {
+  it("leaves the member's NAME unmasked — structural identity is not a redaction", () => {
     // A CONTROL, and the asymmetry it pins is deliberate. `testStarted.name` is published UNMASKED
     // beside `testId` as structural identity, so a name that happens to contain a marker-shaped
     // sentence is not a redaction the producer made. Sending it through the seam would claim one.
@@ -330,7 +330,7 @@ describe("a member that never ran renders honestly, never as an empty tree (D-18
   })
 })
 
-describe("a sub-action carries its action sentence and its result word (D-16)", () => {
+describe("a sub-action carries its action sentence and its result word", () => {
   it("renders the action sentence and addresses itself by ordinal", () => {
     const view = mount(
       <ul>

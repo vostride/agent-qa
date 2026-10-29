@@ -97,7 +97,7 @@ function openDetails(view: Extract<KnowledgeView, { state: "ready" }>): HTMLElem
   return host
 }
 
-describe("each step states the retrieval level it recorded, only when it was below the full index (D-19)", () => {
+describe("each step states the retrieval level it recorded, only when it was below the full index", () => {
   it("LEDGER-RUNG-LINE: a bundle-scan step reads its level and cause; a memidex step and a step with no rung read none", () => {
     const view = readyView([
       step(0, { retrievalRung: { schemaVersion: 2, rung: "bundle-scan", reason: "index-locked" } }),
@@ -119,7 +119,7 @@ describe("each step states the retrieval level it recorded, only when it was bel
   })
 })
 
-describe("every record id copies, and the result is announced (E8)", () => {
+describe("every record id copies, and the result is announced", () => {
   const SERVED = "fact-el-button-step-0-0f9a1c2b3d4e5f60"
   const CHANGED = "fact-page-https-example-com-9f2c1ad4"
 

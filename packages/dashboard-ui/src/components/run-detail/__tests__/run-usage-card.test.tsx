@@ -92,7 +92,7 @@ const ONE_MODEL: RunModelSummary = {
   declared: [{ provider: "openai", modelId: "gpt-5.6-terra", stepCount: 3 }],
 }
 
-describe("the usage card says the total and the identity (425-05 · D-24, UI-SPEC E5 populated)", () => {
+describe("the usage card says the total and the identity", () => {
   it("USAGE-CARD-POPULATED: a fully measured single-model run is two lines and no caveats", async () => {
     const card = await openCard(MEASURED, ONE_MODEL)
 
@@ -104,7 +104,7 @@ describe("the usage card says the total and the identity (425-05 · D-24, UI-SPE
     expect(card.className).toContain("max-w-[320px]")
   })
 
-  it("USAGE-CARD-POPULATED: the card holds no per-step table, no link and no cost (D-24)", async () => {
+  it("USAGE-CARD-POPULATED: the card holds no per-step table, no link and no cost", async () => {
     const card = await openCard(MEASURED, ONE_MODEL)
 
     expect(card.querySelector("table")).toBeNull()
@@ -113,7 +113,7 @@ describe("the usage card says the total and the identity (425-05 · D-24, UI-SPE
   })
 })
 
-describe("the card states a caveat only when there is one (425-05 · D-22/D-24, UI-SPEC E5 partial)", () => {
+describe("the card states a caveat only when there is one", () => {
   it("USAGE-CARD-PARTIAL: an undercount and a narrower cache window are stated, in reading order", async () => {
     const card = await openCard({
       measuredSteps: 2,
@@ -153,7 +153,7 @@ describe("the card states a caveat only when there is one (425-05 · D-22/D-24, 
   })
 })
 
-describe("an unmeasured run still says what it knows (425-05 · UI-SPEC E5 empty)", () => {
+describe("an unmeasured run still says what it knows", () => {
   it("USAGE-CARD-UNMEASURED: the totals line reads the label and the model line survives", async () => {
     const card = await openCard({ measuredSteps: 0, unmeasuredSteps: 3 }, ONE_MODEL)
 
@@ -165,7 +165,7 @@ describe("an unmeasured run still says what it knows (425-05 · UI-SPEC E5 empty
     expect(usageTotalsLine({ measuredSteps: 0, unmeasuredSteps: 3 })).toBe(TOKENS_NOT_MEASURED_LABEL)
   })
 
-  it("USAGE-CARD-UNMEASURED: a pre-423 run renders the label and no model line at all", async () => {
+  it("USAGE-CARD-UNMEASURED: a run with no measured step renders the label and no model line at all", async () => {
     const card = await openCard({ measuredSteps: 0, unmeasuredSteps: 3 })
 
     expect(lines(card).map(([kind]) => kind)).toEqual(["totals"])
@@ -174,7 +174,7 @@ describe("an unmeasured run still says what it knows (425-05 · UI-SPEC E5 empty
   })
 })
 
-describe("who answered this run (425-05 · D-23, UI-SPEC E5 zero-one-many)", () => {
+describe("who answered this run, for no, one or many models", () => {
   it("USAGE-MODEL-LINES: a differing responding id is named under the declared one", async () => {
     const card = await openCard(MEASURED, {
       ...ONE_MODEL,
@@ -206,7 +206,7 @@ describe("who answered this run (425-05 · D-23, UI-SPEC E5 zero-one-many)", () 
 })
 
 // T-425-05-01: a model id is a PRODUCER string, rendered as the stored text (D-28).
-describe("producer ids render as the stored text (425-05 · T-425-05-01)", () => {
+describe("producer ids render as the stored text", () => {
   it("USAGE-MODEL-LINES: a stored [secret:<name>] model id renders as text, with no chip", async () => {
     const card = await openCard(MEASURED, {
       declared: [{ provider: "openai", modelId: "[secret:MODEL_ID]", stepCount: 3 }],

@@ -245,8 +245,8 @@ async function errorMessages(): Promise<string[]> {
   return vi.mocked(toast.error).mock.calls.map(([message]) => String(message))
 }
 
-describe('C433-EDITOR-INVALID-SAVE', () => {
-  it('C433-EDITOR-INVALID-SAVE: create mode does not write, celebrate or navigate', async () => {
+describe('the test editor refuses to save an invalid test', () => {
+  it('create mode does not write, celebrate or navigate', async () => {
     await renderPage()
     await typeFilename('tests/invalid-433.yaml')
     await typeYaml(WALK_INVALID_CONTENT)
@@ -260,7 +260,7 @@ describe('C433-EDITOR-INVALID-SAVE', () => {
     expect.soft(navigateMock).not.toHaveBeenCalled()
   })
 
-  it('C433-EDITOR-INVALID-SAVE: a server refusal is shown, not celebrated', async () => {
+  it('a server refusal is shown, not celebrated', async () => {
     validateTestContentMock.mockResolvedValue({ valid: true, errors: [] })
     createTestFileMock.mockRejectedValue(
       new ApiError(400, 'Bad Request', { error: 'invalid_test_file', errors: [LINE_3_ERROR] }),
@@ -276,7 +276,7 @@ describe('C433-EDITOR-INVALID-SAVE', () => {
     expect(navigateMock).not.toHaveBeenCalled()
   })
 
-  it('C433-EDITOR-INVALID-SAVE: edit mode does not save invalid content', async () => {
+  it('edit mode does not save invalid content', async () => {
     params.value = { t_id: VALID_TEST_ID }
     await renderPage()
     await typeYaml(WALK_INVALID_CONTENT)
@@ -290,7 +290,7 @@ describe('C433-EDITOR-INVALID-SAVE', () => {
     expect(navigateMock).not.toHaveBeenCalled()
   })
 
-  it('C433-EDITOR-INVALID-SAVE: Run saves first and starts nothing on invalid content', async () => {
+  it('Run saves first and starts nothing on invalid content', async () => {
     params.value = { t_id: VALID_TEST_ID }
     await renderPage()
     await typeYaml(WALK_INVALID_CONTENT)
@@ -304,7 +304,7 @@ describe('C433-EDITOR-INVALID-SAVE', () => {
     expect(await successMessages()).not.toContain('Run started')
   })
 
-  it('C433-EDITOR-INVALID-SAVE: valid content still creates and opens the viewer', async () => {
+  it('valid content still creates and opens the viewer', async () => {
     validateTestContentMock.mockResolvedValue({ valid: true, errors: [] })
     await renderPage()
     await typeFilename('tests/login.yaml')

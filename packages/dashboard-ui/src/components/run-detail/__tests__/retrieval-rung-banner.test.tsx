@@ -88,7 +88,7 @@ function runRow(): RunRow {
   }
 }
 
-describe("the top rung and the unknown rung render NOTHING (D-14, D-16)", () => {
+describe("the top rung and the unknown rung render NOTHING", () => {
   it("renders no element at all for `memidex`", () => {
     const host = mount(<RetrievalRungBanner rung="memidex" />)
     expect(banner(host)).toBeNull()
@@ -102,7 +102,7 @@ describe("the top rung and the unknown rung render NOTHING (D-14, D-16)", () => 
   })
 })
 
-describe("only a warning class paints the strip, with its statement and the doctor pointer (427 D-20, D-23)", () => {
+describe("only a warning class paints the strip, with its statement and the doctor pointer", () => {
   it("WARNING-STRIP-WITH-POINTER: a corrupt index carries the DOM contract, its class glyph and the sentence of record", () => {
     const host = mount(<RetrievalRungBanner rung="bundle-scan" reason="index-corrupt" />)
     const el = banner(host)
@@ -150,7 +150,7 @@ describe("only a warning class paints the strip, with its statement and the doct
   })
 })
 
-describe("the tint is amber, and it is never red (D-19's rationale on the header)", () => {
+describe("the tint is amber, and it is never red", () => {
   it("paints the class glyph amber in the navbar variant", () => {
     const host = mount(<RetrievalRungBanner rung="static-floor" reason="native-runtime-unavailable" />)
     const icon = banner(host)?.querySelector("svg")
@@ -169,7 +169,7 @@ describe("the tint is amber, and it is never red (D-19's rationale on the header
   })
 })
 
-describe("two variants, one sentence (D-14)", () => {
+describe("two variants, one sentence", () => {
   it("the live variant is a `p` in the meta strip's idiom — amber text, no icon", () => {
     const host = mount(
       <RetrievalRungBanner variant="live" rung="static-floor" reason="native-runtime-unavailable" />,
@@ -207,7 +207,7 @@ describe("two variants, one sentence (D-14)", () => {
   })
 })
 
-describe("the run header wires it as a second row, once (D-14)", () => {
+describe("the run header wires it as a second row, once", () => {
   it("renders EXACTLY ONE banner when the durable read carried a warning-class rung", () => {
     const host = mount(
       <MemoryRouter>

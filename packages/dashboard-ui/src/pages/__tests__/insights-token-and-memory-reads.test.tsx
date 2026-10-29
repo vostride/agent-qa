@@ -157,15 +157,15 @@ afterEach(async () => {
   root = null
 })
 
-describe("C433-INSIGHTS-TRUTHFUL: Token Usage", () => {
-  it("C433-INSIGHTS-TRUTHFUL: Test Runs shows the runs' tokens", async () => {
+describe("Token Usage", () => {
+  it("Test Runs shows the runs' tokens", async () => {
     await renderPage()
 
     expect(testRunsValue()).toBe(formatTokens(684_477))
     expect(testRunsValue()).not.toBe("0")
   })
 
-  it("C433-INSIGHTS-TRUTHFUL: unmeasured steps are named", async () => {
+  it("unmeasured steps are named", async () => {
     fetchTokenEventStatsMock.mockResolvedValue(tokenStats({ testRunUnmeasuredSteps: 3 }))
 
     await renderPage()
@@ -173,7 +173,7 @@ describe("C433-INSIGHTS-TRUTHFUL: Token Usage", () => {
     expect(tokenSection().textContent).toMatch(/3 test-run steps recorded no token usage/)
   })
 
-  it("C433-INSIGHTS-TRUTHFUL: Test Runs never reads 0 when the runs recorded no token counts", async () => {
+  it("Test Runs never reads 0 when the runs recorded no token counts", async () => {
     fetchTokenEventStatsMock.mockResolvedValue({
       byModel: [],
       bySource: {},
@@ -188,7 +188,7 @@ describe("C433-INSIGHTS-TRUTHFUL: Token Usage", () => {
     expect(tokenSection().textContent).toMatch(/4 test-run steps recorded no token usage/)
   })
 
-  it("C433-INSIGHTS-TRUTHFUL: Test Runs never reads 0 beside live-editor usage when the runs recorded no token counts", async () => {
+  it("Test Runs never reads 0 beside live-editor usage when the runs recorded no token counts", async () => {
     fetchTokenEventStatsMock.mockResolvedValue({
       byModel: [{ date: "2026-10-04", model: "claude-live", promptTokens: 69_000, completionTokens: 900 }],
       bySource: { "live-editor": { promptTokens: 69_000, completionTokens: 900 } },
@@ -203,8 +203,8 @@ describe("C433-INSIGHTS-TRUTHFUL: Token Usage", () => {
   })
 })
 
-describe("C433-INSIGHTS-TRUTHFUL: Memory", () => {
-  it("C433-INSIGHTS-TRUTHFUL: Memory shows the curation that ran", async () => {
+describe("Memory", () => {
+  it("Memory shows the curation that ran", async () => {
     fetchInsightsKnowledgeChangesMock.mockResolvedValue(knowledgeRead({
       byKind: { added: 2, confirmed: 0, superseded: 0, deprecated: 0, promoted: 0, purged: 0 },
     }))
@@ -219,7 +219,7 @@ describe("C433-INSIGHTS-TRUTHFUL: Memory", () => {
     expect(fetchInsightsKnowledgeChangesMock).toHaveBeenCalledWith({ from: expect.any(String) })
   })
 
-  it("C433-INSIGHTS-TRUTHFUL: Memory says when it could not read", async () => {
+  it("Memory says when it could not read", async () => {
     fetchInsightsKnowledgeChangesMock.mockResolvedValue({ status: "unavailable", reason: "agent_host_unavailable" })
 
     await renderPage()
@@ -231,7 +231,7 @@ describe("C433-INSIGHTS-TRUTHFUL: Memory", () => {
     expect(section.querySelectorAll("[data-change-count]")).toHaveLength(0)
   })
 
-  it("C433-INSIGHTS-TRUTHFUL: Memory says when the read itself failed", async () => {
+  it("Memory says when the read itself failed", async () => {
     fetchInsightsKnowledgeChangesMock.mockRejectedValue(new Error("network down"))
 
     await renderPage()
@@ -241,7 +241,7 @@ describe("C433-INSIGHTS-TRUTHFUL: Memory", () => {
     expect(section.textContent).not.toMatch(/\b0\b/)
   })
 
-  it("C433-INSIGHTS-TRUTHFUL: Memory names the runs it could not read", async () => {
+  it("Memory names the runs it could not read", async () => {
     fetchInsightsKnowledgeChangesMock.mockResolvedValue(knowledgeRead({
       runsInWindow: 3,
       runsRead: 2,
@@ -255,7 +255,7 @@ describe("C433-INSIGHTS-TRUTHFUL: Memory", () => {
     expect(section.textContent).not.toContain("No memory-curator activity")
   })
 
-  it("C433-INSIGHTS-TRUTHFUL: Memory says when only the latest runs were read", async () => {
+  it("Memory says when only the latest runs were read", async () => {
     fetchInsightsKnowledgeChangesMock.mockResolvedValue(knowledgeRead({
       runsInWindow: 340,
       runsRead: 200,
@@ -269,7 +269,7 @@ describe("C433-INSIGHTS-TRUTHFUL: Memory", () => {
     expect(section.textContent).not.toContain("No memory-curator activity")
   })
 
-  it("C433-INSIGHTS-TRUTHFUL: the empty claim needs a complete read", async () => {
+  it("the empty claim needs a complete read", async () => {
     await renderPage()
 
     expect(memorySection().textContent).toContain("No memory-curator activity in this window")

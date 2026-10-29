@@ -40,7 +40,7 @@ function context(testNames: ReadonlyMap<number, string> = new Map()): StepRefCon
 
 const HOSTILE = "<img src=x onerror=alert(1)>"
 
-describe("a step reference names where it goes (UI-SPEC S3)", () => {
+describe("a step reference names where it goes", () => {
   it("STEP-REF-ACCESSIBLE-NAME: the button's aria-label is stepRefAccessibleName's and its visible text is only the number", () => {
     const address: StepAddress = { testIndex: 0, stepIndex: 1, stepText: "Open cart" }
 
@@ -73,7 +73,7 @@ describe("a step reference names where it goes (UI-SPEC S3)", () => {
   })
 })
 
-describe("producer text in a step reference stays text (T-427-03-01)", () => {
+describe("producer text in a step reference stays text", () => {
   it("STEP-REF-HOSTILE-TEXT: a hostile test name renders as text and a hostile step text lives only in aria-label", () => {
     const address: StepAddress = { testIndex: 0, stepIndex: 0, stepText: HOSTILE }
     const names = new Map([[0, HOSTILE]])

@@ -73,7 +73,7 @@ describe('StepNameWithPills', () => {
   })
 })
 
-describe('StepNameWithPills — stored step text is shown as written (D-28, D-20)', () => {
+describe('StepNameWithPills — stored step text is shown as written', () => {
   it("shows an old run's numbered placeholder in a DURABLE step text as the characters it holds", () => {
     if (!root || !container) throw new Error('Test root not initialized')
     const step = makeStep({ stepText: 'Enter password <SECRET_1> into the field' })

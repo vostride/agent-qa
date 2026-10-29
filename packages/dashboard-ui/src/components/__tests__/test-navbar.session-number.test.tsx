@@ -68,7 +68,7 @@ function findSessionBadge(): HTMLElement | null {
   }) as HTMLElement | null
 }
 
-describe('TestNavbar Session #N badge (D-33 retrofit)', () => {
+describe('TestNavbar Session #N badge', () => {
   it('renders Session #N badge when hasLiveSession=true, liveConnectionState=connected, and liveSessionNumber is a number', () => {
     mount(
       <TestNavbar

@@ -320,7 +320,7 @@ function occurrences(text: string, needle: string): number {
   return text.split(needle).length - 1
 }
 
-describe('LiveSessionPane live header (428 D-05)', () => {
+describe('LiveSessionPane live header', () => {
   it('EDITOR-HEADER-MINIMAL: the target, the draft badge and the actions, and nothing about the connection', () => {
     renderPane({
       draftState: 'unsaved',
@@ -389,7 +389,7 @@ describe('LiveSessionPane live header (428 D-05)', () => {
 // renders `LivePreview` with an editor subject where the image-polling viewer used to be, and the
 // editor's navigation and auth-state controls sit in the preview's chrome row, which renders only
 // when it has something to hold.
-describe('LiveSessionPane shared live preview (428 PXH-LIVE-01)', () => {
+describe('LiveSessionPane shared live preview', () => {
   it('EDITOR-RENDERS-SHARED-PREVIEW: a connected pane renders the editor subject\'s one embed and no live image', async () => {
     renderPane()
     await flush()

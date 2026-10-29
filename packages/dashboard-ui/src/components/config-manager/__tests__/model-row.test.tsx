@@ -306,7 +306,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe('ModelRow explicit actions (429-24 Task 1)', () => {
+describe('ModelRow explicit actions', () => {
   it('DELETE-MODEL-UNDO: Delete model removes the row at once in one undoable write, and Undo brings it back focused', async () => {
     await mount()
     const panel = await openModel('router')
@@ -506,7 +506,7 @@ describe('ModelRow explicit actions (429-24 Task 1)', () => {
   })
 })
 
-describe('ModelRow key and settings (429-24 Task 2)', () => {
+describe('ModelRow key and settings', () => {
   it('REPLACE-KEY-SAVES-THEN-TESTS: the new key saves server-side, then the test runs, and a failed test keeps the key', async () => {
     await mount()
     expect(buttonNamed(await openModel('gpt-5.6'), REPLACE_KEY_LABEL)).toBeNull()
@@ -653,7 +653,7 @@ describe('ModelRow key and settings (429-24 Task 2)', () => {
   })
 })
 
-describe('ModelRow header rename (429-47 Task 1 · deferred 429-24)', () => {
+describe('ModelRow header rename', () => {
   const HEADERS = ['registry', 'llms', { name: 'claude-proxy' }, 'providerHeaders']
 
   function headerNames() {
@@ -692,7 +692,7 @@ describe('ModelRow header rename (429-47 Task 1 · deferred 429-24)', () => {
   })
 })
 
-describe('ModelRow Sign in again (429-26 Task 2)', () => {
+describe('ModelRow Sign in again', () => {
   it('SIGN-IN-AGAIN-SAVED-ROW: an expired or not-connected sign-in row runs the sign-in flow for its saved name, then its test', async () => {
     vi.spyOn(window, 'open').mockImplementation(() => null)
     await mount()
@@ -755,7 +755,7 @@ describe('ModelRow Sign in again (429-26 Task 2)', () => {
 
 const MODAL_BUTTONS = ['Save Changes', 'Save Credential', 'Keep Credential', 'Delete Credential', 'Delete Configuration', 'Add Configuration']
 
-describe('The model modal\'s claims on a saved row (429-30 Task 1)', () => {
+describe("The model modal's claims on a saved row", () => {
   it('LEGACY-LLM-VISION-AND-CONTEXT-WINDOW: the row edits vision and context window by leaf, with no per-model screenshot sizing', async () => {
     await mount()
     const panel = await openModel('router')
@@ -866,7 +866,7 @@ describe('The model modal\'s claims on a saved row (429-30 Task 1)', () => {
 
 // 441-40 (D-29): a header shown as its declared marker is left out of the connection test, so the
 // server sends the saved value (routes.llm-test-saved-headers MASK-HEADER-NEVER-SENT).
-describe('C441-CONFIG', () => {
+describe('the model row and masked header values', () => {
   it('the model row does not resend a header shown as a marker', async () => {
     const proxy = { ...PROXY, providerHeaders: { 'X-Org': HEADER_MARKER, 'X-Trace': 't-1' } }
     vi.mocked(fetchConfig).mockResolvedValue(answer(modelsConfig([...LLMS, proxy])) as never)

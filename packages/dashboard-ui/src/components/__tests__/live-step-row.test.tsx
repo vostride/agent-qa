@@ -137,7 +137,7 @@ afterEach(() => {
   container = null
 })
 
-describe('THE LIVE STEP ROW (428 D-19/D-20)', () => {
+describe('THE LIVE STEP ROW', () => {
   it('GLYPH-TABLE-TOTAL-AND-INJECTIVE: every status has a glyph and no two statuses share one', () => {
     expect(new Set(Object.keys(LIVE_STEP_GLYPHS))).toEqual(new Set(STEP_STATUSES))
     expect(new Set(Object.values(LIVE_STEP_GLYPHS)).size).toBe(STEP_STATUSES.length)
@@ -275,7 +275,7 @@ describe('THE LIVE STEP ROW (428 D-19/D-20)', () => {
 
 // 2026-10-14 (441-37, D-20, D-28): a live label is shown as written. An old run's numbered
 // placeholder is the characters it holds, and no chip is painted.
-describe('SECRET PLACEHOLDERS ON A LIVE ROW (428 D-22, WINDOWS #289)', () => {
+describe('SECRET PLACEHOLDERS ON A LIVE ROW', () => {
   it('SECRET-PLACEHOLDER-AS-TEXT: an old <SECRET_n> placeholder is shown as written, with no chip', () => {
     const li = render(row({ status: 'running', text: 'type <SECRET_1> into Password' }))
     expect(li.children[1]?.textContent).toBe('type <SECRET_1> into Password')

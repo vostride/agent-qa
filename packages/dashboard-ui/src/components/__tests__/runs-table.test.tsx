@@ -452,7 +452,7 @@ describe("RunsTable", () => {
 
 // 2026-10-17 (443-07, D-09): a verify run's row carries the gate-run mark; the list shows it beside
 // the name and adds no filter for it.
-describe("C443-VERIFY-MARK", () => {
+describe("the Verify run mark on a gate run", () => {
   const GATE_RUN_KEY = "agent-qa.gate-run"
 
   function singleRun(id: string, name: string, attributes: Record<string, string>): SuiteRunRow {
@@ -514,7 +514,7 @@ describe("C443-VERIFY-MARK", () => {
 })
 
 // 2026-10-17 (443-18, GAP-D7): the badge alone displays the mark, explained and first-line aligned.
-describe("C443-VERIFY-BADGE", () => {
+describe("the Verify run badge", () => {
   const GATE_RUN_KEY = "agent-qa.gate-run"
   const EXPLANATION = "Started by authoring verify. Not used for learning."
 
@@ -590,7 +590,7 @@ describe("C443-VERIFY-BADGE", () => {
 
 // 2026-10-17 (444-16, D-05): in-row controls take the row's roving tab stop and never open the run;
 // the badge keeps its own slot; Target and Attributes truncate behind a tooltip.
-describe("C444-RUNS-TABLE", () => {
+describe("the runs table's badge, tab stops and truncated cells", () => {
   const GATE_RUN_KEY = "agent-qa.gate-run"
   const LONG_TARGET = "checkout-service-staging-eu-west-with-a-very-long-registry-name"
 

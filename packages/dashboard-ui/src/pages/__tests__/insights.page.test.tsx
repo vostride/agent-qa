@@ -461,7 +461,7 @@ afterEach(async () => {
 })
 
 describe("InsightsPage density and refresh behavior", () => {
-  it("exposes the Phase 205 scroll owner and connected no-card line grid contract", async () => {
+  it("exposes the scroll owner and the connected no-card line grid", async () => {
     await renderPage()
 
     const rootElement = container?.querySelector("[data-insights-page-root]")

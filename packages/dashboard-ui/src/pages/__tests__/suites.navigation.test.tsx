@@ -102,7 +102,7 @@ afterEach(() => {
   container.remove()
 })
 
-describe('suites list navigation (SC-4)', () => {
+describe('suites list navigation', () => {
   it('uses row interaction instead of the removed overlay link', async () => {
     await renderList()
     expect(container.querySelector('a[href="/suite/s_alpha-one"]')).toBeNull()

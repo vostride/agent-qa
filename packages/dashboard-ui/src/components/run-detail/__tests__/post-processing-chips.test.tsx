@@ -166,7 +166,7 @@ describe("two chips, in the ratified order, each saying its own word", () => {
 // THE TRACER (425-01 · D-06/D-07/D-10/D-13, UI-SPEC S3/S4). One indicator, end to end: the glyph
 // and the word a person sees, the focusable root that reaches the card by keyboard, and the card's
 // first line — the phase's copy cell. Every later state hangs off this anatomy.
-describe("a settled analysis indicator explains itself (D-13, roadmap SC3)", () => {
+describe("a settled analysis indicator explains itself", () => {
   it("TRACER-PASSING-ANALYSIS-CARD: glyph plus word on a focusable root, card line 1 is the sentence", async () => {
     const host = render(chipsView(
       {
@@ -196,7 +196,7 @@ describe("a settled analysis indicator explains itself (D-13, roadmap SC3)", () 
   })
 })
 
-describe("a pending chip says who is going to move it (D-22)", () => {
+describe("a pending chip says who is going to move it", () => {
   it("renders the posture the projection published, verbatim", async () => {
     const queued = (stage: "Analysis" | "Curation") => ({
       status: "pending",
@@ -218,7 +218,7 @@ describe("a pending chip says who is going to move it (D-22)", () => {
   })
 })
 
-describe("a terminal chip says what it committed (D-21)", () => {
+describe("a terminal chip says what it committed", () => {
   it("renders curation's counts in its card, and never on the analysis card", async () => {
     const host = render(chipsView(
       { status: "complete", card: { outcome: ANALYSIS_COMPLETE_NO_ISSUES_TEXT } },
@@ -229,7 +229,7 @@ describe("a terminal chip says what it committed (D-21)", () => {
     expect(lineOf(await cardOf(host, "analysis"), "outcome")).toBe(ANALYSIS_COMPLETE_NO_ISSUES_TEXT)
   })
 
-  it("renders the counts-absent line in the SAME slot — a `complete` chip is never silent about counts (D-12)", async () => {
+  it("renders the counts-absent line in the SAME slot — a `complete` chip is never silent about counts", async () => {
     const host = render(chipsView(
       { status: "complete" },
       { status: "complete", card: { outcome: `Curation complete — ${COUNTS_NOT_RECORDED_TEXT}` } },
@@ -241,7 +241,7 @@ describe("a terminal chip says what it committed (D-21)", () => {
 
 // THE LEGACY COUNT SENTENCE LEAVES HEADER CHROME (D-16, PXH-RUN-04). RED under return: restore the
 // old `curated N facts, deprecated M` line anywhere in the chips DOM or in a card and this goes red.
-describe("`curated N facts, deprecated M` is gone from the header (D-16)", () => {
+describe("`curated N facts, deprecated M` is gone from the header", () => {
   const LEGACY = /curated \d+ facts?, deprecated/
 
   it("HEADER-NO-LEGACY-COUNT: neither a snapshot-bearing nor a legacy-pair read spells it", async () => {
@@ -268,7 +268,7 @@ describe("`curated N facts, deprecated M` is gone from the header (D-16)", () =>
 // THE CHIP AS A DOOR (D-01). The chip stays PRESENTATIONAL: it is handed a callback and calls it.
 // It does not know a tab, a route or a run. Absent the callback it is exactly the shipped `<span>` —
 // a header rendered without a page behind it must not grow an affordance that goes nowhere.
-describe("the curation chip is a click-through into the Knowledge tab (D-01)", () => {
+describe("the curation chip is a click-through into the Knowledge tab", () => {
   const SETTLED_CURATION = {
     status: "complete",
     card: { outcome: `Curation complete — ${COUNTS_NOT_RECORDED_TEXT}` },
@@ -296,7 +296,7 @@ describe("the curation chip is a click-through into the Knowledge tab (D-01)", (
     )
   })
 
-  it("closes its card with the door line — the indicator itself is the control (D-10)", async () => {
+  it("closes its card with the door line — the indicator itself is the control", async () => {
     const host = renderWithClick(vi.fn())
     const card = await cardOf(host, "curation")
 
@@ -349,7 +349,7 @@ describe("the curation chip is a click-through into the Knowledge tab (D-01)", (
 // know that. So the affordance is the presence of the callback and nothing else — the component
 // makes no judgement about run status, which is the rule `onCurationClick` has carried since
 // 407-09 and the reason a header rendered without a page behind it grows no dead control.
-describe("the analysis indicator is the door to the verdict when the page gave it one (D-11)", () => {
+describe("the analysis indicator is the door to the verdict when the page gave it one", () => {
   const FAILED_ANALYSIS = {
     status: "failed",
     card: { outcome: `Analysis failed — ${FAILED_REASON_ABSENT_TEXT.handedOff}` },
@@ -480,7 +480,7 @@ describe("the analysis indicator is the door to the verdict when the page gave i
   })
 })
 
-describe("a failed chip is never blank (D-21 as narrowed)", () => {
+describe("a failed chip is never blank", () => {
   it("renders the producer's text VERBATIM and says whether the chain will try again", async () => {
     const host = render(chipsView(
       {
@@ -508,7 +508,7 @@ describe("a failed chip is never blank (D-21 as narrowed)", () => {
     expect(visibleTextOf(chip(host, "analysis"))).toBe(STAGE_INDICATOR_WORDS.analysis.failed)
   })
 
-  it("the failure text is a TEXT NODE — markup in it is escaped, never parsed (T-404-01)", async () => {
+  it("the failure text is a TEXT NODE — markup in it is escaped, never parsed", async () => {
     const host = render(chipsView(
       { status: "failed", card: { outcome: "Analysis failed — <img src=x onerror=alert(1)>" } },
       { status: "pending", card: { outcome: "Curation queued" } },
@@ -520,7 +520,7 @@ describe("a failed chip is never blank (D-21 as narrowed)", () => {
   })
 })
 
-describe("a refusal is its own state, and it is not a chip (D-23)", () => {
+describe("a refusal is its own state, and it is not a chip", () => {
   it("renders ONE unavailable element naming the refusal, and zero chips", () => {
     const host = render({ kind: "unavailable", error: "job_store_schema_version", reason: "stamped by another build" })
     const state = host.querySelectorAll('[data-chips-state="unavailable"]')
@@ -534,7 +534,7 @@ describe("a refusal is its own state, and it is not a chip (D-23)", () => {
     expect(host.querySelectorAll("[data-chip]")).toHaveLength(0)
   })
 
-  it("moves the refusal's error and reason into its card, each on its own line (D-09)", async () => {
+  it("moves the refusal's error and reason into its card, each on its own line", async () => {
     const host = render({ kind: "unavailable", error: "job_store_schema_version", reason: "stamped by another build" })
     const root = host.querySelector<HTMLElement>('[data-chips-state="unavailable"]')!
 
@@ -561,7 +561,7 @@ describe("a refusal is its own state, and it is not a chip (D-23)", () => {
 // word — the claim a grayscale render makes good on. `excluded` and `unavailable` share the dash
 // glyph ON PURPOSE, so their words are what separate them, which this cell measures rather than
 // asserts by eye.
-describe("every indicator state is readable with the colour stripped out (D-06, SC2)", () => {
+describe("every indicator state is readable with the colour stripped out", () => {
   /** Mount one view, read the analysis root's shape-and-word pair, unmount before the next. */
   function lookOf(loose: Record<string, unknown>): { glyph: string; words: string } {
     const host = render(chipsView(loose, loose))
@@ -685,7 +685,7 @@ describe("a card explains timing on its own line", () => {
 // cell would have to parse, and `data-chip-status` keeps the raw chip word on each root — so the
 // four-word vocabulary census still sees four words on a gate run, and a surface that does not know
 // about the skipped fact still reads exactly what the store said.
-describe("a run the chain never enqueued reads skipped on both indicators (D-08)", () => {
+describe("a run the chain never enqueued reads skipped on both indicators", () => {
   function skippedView(reason: PostProcessingSkipReason): PostProcessingView {
     const chipFor = (stage: "analysis" | "curation") => ({
       status: "pending",
@@ -762,7 +762,7 @@ function runRow(status: string): RunRow {
   }
 }
 
-describe("RunNavbar puts the chips beside the verdict badge (D-20)", () => {
+describe("RunNavbar puts the chips beside the verdict badge", () => {
   it("renders the chips AFTER the verdict badge, and the badge still appears exactly once", () => {
     const host = mount(
       <MemoryRouter><RunNavbar

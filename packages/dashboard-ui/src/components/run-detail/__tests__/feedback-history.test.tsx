@@ -143,7 +143,7 @@ function openRunList() {
   act(() => trigger!.click())
 }
 
-describe('426-09 the target list and the run list', () => {
+describe('the target list and the run list', () => {
   it('HISTORY-TARGET-FIRST: the target list holds the target\'s marks newest first; the run list is collapsed, then lists the ledger newest first with each target named', () => {
     mount()
     const target = q('[data-feedback-history="target"]')
@@ -208,7 +208,7 @@ describe('426-09 the target list and the run list', () => {
   })
 })
 
-describe('426-09 latest-mark-wins is explained once', () => {
+describe('latest-mark-wins is explained once', () => {
   it('HISTORY-REPLACED-EXPLAINED: any replaced entry puts one explanation above the target list; none replaced, none shown', () => {
     mount()
     const notes = container.querySelectorAll('[data-feedback-replaced-note]')
@@ -233,8 +233,8 @@ describe('426-09 latest-mark-wins is explained once', () => {
 
 // RE-SPELLED 432-09 from '426-09 a drafted proposal names its state and its review command': a mark
 // applies its fix in the call, so the entry says what changed and offers nothing to review (D-25).
-describe('432-09 an applied fix says in one line what it changed', () => {
-  it('C432-APPLIED-HISTORY-DOM: the knowledge line carries the changed record content, the file line the written path, both as text', () => {
+describe('an applied fix says in one line what it changed', () => {
+  it('the knowledge line carries the changed record content, the file line the written path, both as text', () => {
     const file = { kind: 'applied', fix: 'test-edit', change: { kind: 'test-file', filePath: 'tests/checkout.yaml', contentDigest: 'abc' } } as const
     mount({
       read: ledger([
@@ -264,7 +264,7 @@ describe('432-09 an applied fix says in one line what it changed', () => {
     expect([1, 2, 3].map(n => entryOf(target, markId(n))!.querySelectorAll('[data-history-applied]').length)).toEqual([1, 1, 1])
   })
 
-  it('C432-APPLIED-HISTORY-DOM: an entry that changed nothing has no applied line, and hostile record content stays text', () => {
+  it('an entry that changed nothing has no applied line, and hostile record content stays text', () => {
     mount({ read: ledger([{ n: 1, stepIndex: 1 }, { n: 2, stepIndex: 2, disposition: { kind: 'confirmed-bug', confirmedRecords: 1 } }]) })
     expect(q('[data-history-applied]')).toBeNull()
     act(() => root.unmount())
@@ -276,7 +276,7 @@ describe('432-09 an applied fix says in one line what it changed', () => {
     expect((globalThis as { __pwned?: boolean }).__pwned).toBeUndefined()
   })
 
-  it('C432-NO-REVIEW-CTA: no entry carries a proposal state, a review command or a copy control, and nothing under the history is a link', () => {
+  it('no entry carries a proposal state, a review command or a copy control, and nothing under the history is a link', () => {
     mount()
     openRunList()
     expect(q('[data-history-proposal-state]')).toBeNull()
@@ -289,7 +289,7 @@ describe('432-09 an applied fix says in one line what it changed', () => {
   })
 })
 
-describe('426-09 each way the history can be absent renders as itself', () => {
+describe('each way the history can be absent renders as itself', () => {
   const failures: FeedbackReadFailure[] = ['network', 'ledger-corrupt', 'ledger-unavailable', 'refused', 'shape']
   // The sentence is computed inside the cell, so a missing copy function fails its own cell only.
   const rows: [string, MarksHistoryRead, () => string, boolean][] = [
@@ -358,7 +358,7 @@ describe('426-09 each way the history can be absent renders as itself', () => {
   })
 })
 
-describe('426-09 producer text stays text, and the internal words stay out', () => {
+describe('producer text stays text, and the internal words stay out', () => {
   it('HISTORY-MASKED-NOTE-ESCAPED: a note or a step name carrying markup creates no element', () => {
     const hostileDetail = { ...detail, steps: detail.steps.map((step) => ({ ...step, stepText: HOSTILE })) }
     mount({ detail: hostileDetail, read: ledger([{ n: 1, stepIndex: 1, note: HOSTILE }]) })
@@ -383,10 +383,10 @@ describe('426-09 producer text stays text, and the internal words stay out', () 
 // 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW priority fix 2 and the D-09 pointer; 432 review IN-32):
 // ONE line per entry says what the mark did, never a disposition line plus a second line that can
 // contradict it, and the correction pointer appears with the first applied change.
-describe('C261003-CPV-HISTORY-ONE-LINE: one entry, one line about what it changed', () => {
+describe('one entry, one line about what it changed', () => {
   const lineOf = (entry: HTMLElement) => [...entry.querySelectorAll('[data-history-disposition], [data-history-applied]')]
 
-  it('C261003-CPV-HISTORY-ONE-LINE: an applied knowledge fix is one line naming the fix and its content', () => {
+  it('an applied knowledge fix is one line naming the fix and its content', () => {
     mount({ read: ledger([{ n: 1, stepIndex: 1, disposition: applied(), changedRecords: changed() }]) })
     const lines = lineOf(entryOf(q('[data-feedback-history="target"]'), markId(1))!)
     expect(lines).toHaveLength(1)
@@ -394,14 +394,14 @@ describe('C261003-CPV-HISTORY-ONE-LINE: one entry, one line about what it change
     expect(lines[0]!.getAttribute('data-history-applied')).toBe('knowledge')
   })
 
-  it('C261003-CPV-HISTORY-ONE-LINE: a historical drafted mark is one line that claims no change', () => {
+  it('a historical drafted mark is one line that claims no change', () => {
     mount({ read: ledger([{ n: 1, stepIndex: 1, disposition: { kind: 'drafted', fix: 'fact', proposalId: 'prop_0123456789ab', proposalKind: 'knowledge' } }]) })
     const lines = lineOf(entryOf(q('[data-feedback-history="target"]'), markId(1))!)
     expect(lines).toHaveLength(1)
     expect(lines[0]!.textContent).toBe('Recorded — a fix was drafted (older mark); what it changed was not recorded.')
   })
 
-  it('C261003-CPV-HISTORY-ONE-LINE (IN-32): an applied receipt with no records leaves no dangling prefix', () => {
+  it('an applied receipt with no records leaves no dangling prefix', () => {
     mount({ read: ledger([{ n: 1, stepIndex: 1, disposition: applied([]), changedRecords: [] }]) })
     const entry = entryOf(q('[data-feedback-history="target"]'), markId(1))!
     const lines = lineOf(entry)
@@ -410,7 +410,7 @@ describe('C261003-CPV-HISTORY-ONE-LINE: one entry, one line about what it change
     expect(entry.textContent).not.toContain('Changed knowledge:')
   })
 
-  it('C261003-CPV-HISTORY-ONE-LINE: the correction pointer shows with the first applied change, and not without one', () => {
+  it('the correction pointer shows with the first applied change, and not without one', () => {
     mount({ read: ledger([{ n: 1, stepIndex: 1, disposition: applied(), changedRecords: changed() }]) })
     const notes = container.querySelectorAll('[data-feedback-correction-note]')
     expect(notes).toHaveLength(1)

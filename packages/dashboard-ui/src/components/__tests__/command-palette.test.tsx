@@ -196,7 +196,7 @@ afterEach(() => {
   container.remove()
 })
 
-describe('command palette suite navigation (SC-4)', () => {
+describe('command palette suite navigation', () => {
   it('includes Hooks in the Pages group', async () => {
     await renderPalette()
 

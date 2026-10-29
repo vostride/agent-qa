@@ -135,7 +135,7 @@ describe("the first read has not landed (UI-SPEC page-level states)", () => {
   })
 })
 
-describe("the read failed or was refused (D-06)", () => {
+describe("the read failed or was refused", () => {
   it("states the failure, forwards the masked reason and points at doctor", () => {
     const error = "read_failed"
     const view = mount(<TabKnowledge view={{ state: "error", heading: READ_FAILED_HEADING, body: readFailedBody(error) }} />)
@@ -156,7 +156,7 @@ describe("the read failed or was refused (D-06)", () => {
   })
 })
 
-describe("the handoff was pruned (D-06)", () => {
+describe("the handoff was pruned", () => {
   it("renders the SHIPPED evidence-incomplete pane rather than inventing a second wording", () => {
     const view = mount(<TabKnowledge view={{ state: "evidence-incomplete" }} />)
 
@@ -165,7 +165,7 @@ describe("the handoff was pruned (D-06)", () => {
   })
 })
 
-describe("the project has no knowledge store (D-16)", () => {
+describe("the project has no knowledge store", () => {
   it("says so, and says the one thing that changes it", () => {
     const view = mount(<TabKnowledge view={{ state: "empty-no-store", heading: NO_STORE_HEADING, body: NO_STORE_BODY }} />)
 
@@ -175,7 +175,7 @@ describe("the project has no knowledge store (D-16)", () => {
   })
 })
 
-describe("a ready panel paints the Used half from the view it was handed (D-03)", () => {
+describe("a ready panel paints the Used half from the view it was handed", () => {
   it("heads the half, prints the derived summary, and gives every step its own row", () => {
     const steps = [
       row({ testIndex: 0, stepIndex: 0, briefLines: 3, canaryLines: 1, facts: ["3 brief lines", "1 canary"] }),
@@ -242,7 +242,7 @@ describe("a ready panel paints the Used half from the view it was handed (D-03)"
     expect(badges.map(b => b.textContent)).toEqual(["2 brief lines", "1 canary", "hint"])
   })
 
-  it("fills the row's detail slot with the channel sections it was served once it is expanded (407-06, 427 D-19)", () => {
+  it("fills the row's detail slot with the channel sections it was served once it is expanded", () => {
     const view = mount(<TabKnowledge view={readyView([row({
       detail: {
         channel1: [{
@@ -288,7 +288,7 @@ describe("a ready panel paints the Used half from the view it was handed (D-03)"
   })
 })
 
-describe("producer text reaches the DOM as TEXT, never as markup (T-407-06)", () => {
+describe("producer text reaches the DOM as TEXT, never as markup", () => {
   it("renders a hostile step title as a text node — no element is created from it", () => {
     const hostile = "Step 1 — <img src=x onerror=alert(1)>"
     const view = mount(<TabKnowledge view={readyView([row({ title: hostile })])} />)
@@ -309,7 +309,7 @@ describe("producer text reaches the DOM as TEXT, never as markup (T-407-06)", ()
 
 // THE FOUR SECTIONS, IN ORDER (427 · D-02, SC1). Knowledge used, then its effect, then what the
 // run wrote back, then the collapsed ledger — and each of the first three states itself when empty.
-describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order (427 D-02)", () => {
+describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order", () => {
   function allZeroView(): KnowledgeView {
     const projection = RunKnowledgeProjectionSchema.parse({
       kind: "ready", runId: "run-427-01-absence", buildOrdinal: 2, knowledgeStore: "bound", steps: [],
@@ -423,7 +423,7 @@ function learnedRows(view: HTMLElement): HTMLElement[] {
   return [...view.querySelectorAll<HTMLElement>("li[data-record-change]")]
 }
 
-describe("423 D-15: the page path keeps failed-chain rows and states the snapshot sections (WIN #313)", () => {
+describe("the page path keeps failed-chain rows and states the snapshot sections", () => {
   it("FAILED-CHAIN-ROWS-RETAINED: a failed chain's joined and absent changes reach the tab as rows", () => {
     const view = mount(<TabKnowledge view={pageView("failed", {
       changes: [

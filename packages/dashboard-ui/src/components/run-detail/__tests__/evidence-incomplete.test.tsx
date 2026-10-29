@@ -143,7 +143,7 @@ describe('EvidenceIncomplete', () => {
   })
 
   // 405's name kept as an alias, pinned so a later respelling of either has to be deliberate.
-  it('keeps the 405 screenshot name as an alias of the ratified label', () => {
+  it('keeps the screenshot-unavailable name as an alias of the evidence-incomplete label', () => {
     expect(SCREENSHOT_UNAVAILABLE_LABEL).toBe(EVIDENCE_INCOMPLETE_LABEL)
   })
 })

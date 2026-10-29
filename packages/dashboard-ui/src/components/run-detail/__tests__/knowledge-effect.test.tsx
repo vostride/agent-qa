@@ -146,7 +146,7 @@ function glyphClass(entry: HTMLElement): string {
   return [...(entry.querySelector("svg")?.classList ?? [])].find(name => name.startsWith("lucide-")) ?? ""
 }
 
-describe("every outcome has its own glyph and tone (D-12)", () => {
+describe("every outcome has its own glyph and tone", () => {
   it("EFFECT-GLYPH-PER-OUTCOME: eight outcomes, eight distinct aria-hidden glyphs, tone classes by group", () => {
     const view = mount(<KnowledgeEffect view={everyOutcome()} />)
 
@@ -191,7 +191,7 @@ describe("every outcome has its own glyph and tone (D-12)", () => {
   })
 })
 
-describe("a procedure replayed step by step is one entry (D-11, D-12, UI-SPEC S4 grouping)", () => {
+describe("a procedure replayed step by step is one entry", () => {
   it("EFFECT-REPLAY-GROUPED: six replayed steps of one six-step procedure paint one sentence sized by its flow", () => {
     const view = mount(<KnowledgeEffect view={effectSectionView(projection([0, 1, 2, 3, 4, 5].map(index => step(
       index,
@@ -206,7 +206,7 @@ describe("a procedure replayed step by step is one entry (D-11, D-12, UI-SPEC S4
   })
 })
 
-describe("the store's words never reach the Effect section (D-12)", () => {
+describe("the store's words never reach the Effect section", () => {
   it("EFFECT-NO-STORE-WORDS: every outcome, a replay and the uncounted line say none of them", async () => {
     const view = mount(<KnowledgeEffect view={everyOutcome()} />)
 
@@ -221,7 +221,7 @@ describe("the store's words never reach the Effect section (D-12)", () => {
   })
 })
 
-describe("uncounted trials are one quiet, explained line (D-14)", () => {
+describe("uncounted trials are one quiet, explained line", () => {
   it("EFFECT-UNCOUNTED-TOOLTIP: a focusable trigger with the fixed tooltip, no glyph and no warning tone", async () => {
     const view = mount(<KnowledgeEffect view={everyOutcome()} />)
 
@@ -279,7 +279,7 @@ describe("uncounted trials are one quiet, explained line (D-14)", () => {
   })
 })
 
-describe("an empty Effect section states its absence (SC1)", () => {
+describe("an empty Effect section states its absence", () => {
   it("EFFECT-ABSENCE: knowledge used but nothing measured, and nothing used at all", () => {
     const measuredNothing = mount(<KnowledgeEffect view={effectSectionView(projection([step(0, [line("rec_o", "a plain line", false)])]))} />)
     expect(section(measuredNothing).querySelector("h4")?.textContent).toBe(EFFECT_HEADING)
@@ -308,7 +308,7 @@ describe("an empty Effect section states its absence (SC1)", () => {
   })
 })
 
-describe("a record summary is text, never markup (T-427-07-02)", () => {
+describe("a record summary is text, never markup", () => {
   it("EFFECT-HOSTILE-TEXT: an img-onerror summary renders as text in the record line", () => {
     const hostile = "<img src=x onerror=alert(1)>"
     const view = mount(<KnowledgeEffect view={effectSectionView(projection(
@@ -323,7 +323,7 @@ describe("a record summary is text, never markup (T-427-07-02)", () => {
   })
 })
 
-describe("the steps in an effect sentence take the reader there (D-03)", () => {
+describe("the steps in an effect sentence take the reader there", () => {
   it("EFFECT-STEP-REFS: each step number in the sentence is a step-reference control", () => {
     const onSelect = vi.fn()
     const stepRefs: StepRefContext = { onSelect, resolvable: () => true, testNames: new Map() }

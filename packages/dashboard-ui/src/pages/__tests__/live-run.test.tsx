@@ -372,7 +372,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('the live page is two panes and nothing else (HNST-01, D-09)', () => {
+describe('the live page is two panes and nothing else', () => {
   it('the sentinels are pinned to the exact strings the sibling suites hardcode', () => {
     // 403-04's reducer suite and 403-06's Playwright suite each spell these literally. A rename
     // here would leave three suites hunting for three different needles, and all three green.
@@ -420,7 +420,7 @@ describe('the live page is two panes and nothing else (HNST-01, D-09)', () => {
 // RE-SPELLED 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5). The running glyph is still,
 // so the page no longer marks a row "in motion". These cells count the running status instead, and
 // NO-ACTION-COUNT asserts that no motion marker is left anywhere in the document.
-describe('the running row advances without inventing a phase (HNST-02, D-10)', () => {
+describe('the running row advances without inventing a phase', () => {
   // Was "finalizing clears the motion and keeps the status word".
   it('finalizing ends the running status and keeps the status word', async () => {
     await mount()
@@ -501,7 +501,7 @@ describe('the running row advances without inventing a phase (HNST-02, D-10)', (
   })
 })
 
-describe('a pending row reads its real step text or is not drawn (G-428-2, owner decision 2026-09-26 (2))', () => {
+describe('a pending row reads its real step text or is not drawn', () => {
   const rowReadings = () =>
     qa('[data-live-pane="steps"] li').map((row) => [row.getAttribute('data-step-status'), row.textContent])
 
@@ -550,7 +550,7 @@ describe('a pending row reads its real step text or is not drawn (G-428-2, owner
   })
 })
 
-describe('a member header only where there is more than one member (428 D-19)', () => {
+describe('a member header only where there is more than one member', () => {
   it('NO-REPEATED-SINGLE-MEMBER-TITLE: a single-member run says its title once', async () => {
     fetchRunMock.mockResolvedValue({
       run: { id: RUN_ID, name: 'Checkout flow', status: 'running', filePath: 'tests/a.yaml' },
@@ -604,7 +604,7 @@ describe('a member header only where there is more than one member (428 D-19)', 
   })
 })
 
-describe('NO-LIVENESS-PILL: the page makes no claim about the bus channel (428 D-03 supersedes HNST-03)', () => {
+describe('NO-LIVENESS-PILL: the page makes no claim about the bus channel', () => {
   // RE-SPELLED 2026-09-26 (428-16). These four cells were HNST-03's pill cells: `live` across
   // heartbeats, `lost` over an open and silent socket, `reconnecting` while dialling, and the
   // preview holding its state through each. D-03 removes the pill, so the same traffic now
@@ -681,7 +681,7 @@ describe('NO-LIVENESS-PILL: the page makes no claim about the bus channel (428 D
   })
 })
 
-describe('the header is the title, the file path, Cancel and view run detail (428 D-04)', () => {
+describe('the header is the title, the file path, Cancel and view run detail', () => {
   const header = (): Element => {
     const found = q('[data-tour-id="tour-live-run-status"]')?.parentElement
     if (found === null || found === undefined) throw new Error('the live header does not exist')
@@ -739,7 +739,7 @@ async function clickCancel(): Promise<void> {
   await pressCancel()
 }
 
-describe('C442-CANCEL-SENTENCE', () => {
+describe('the sentences in the cancel toasts', () => {
   it("the refusal toast shows the route's sentence", async () => {
     cancelRunMock.mockRejectedValueOnce(
       new ApiError(409, 'Conflict', { error: REFUSAL, reason: 'owned-by-live-process', ownerPid: 4242 }),
@@ -769,7 +769,7 @@ describe('C442-CANCEL-SENTENCE', () => {
   })
 })
 
-describe('C442-CANCEL-TOAST', () => {
+describe('the kind and id of each cancel toast', () => {
   it('an orphan answer shows its sentence as an info toast, never success', async () => {
     cancelRunMock.mockResolvedValueOnce({ cancelled: false, message: ORPHAN })
     await clickCancel()
@@ -823,7 +823,7 @@ describe('C442-CANCEL-TOAST', () => {
 const faviconHref = (): string | null =>
   document.querySelector('link[rel="icon"][type="image/svg+xml"]')?.getAttribute('href') ?? null
 
-describe('C444-CANCEL-ANSWERS', () => {
+describe('the cancel answers on the live-run page', () => {
   it("the live-run page shows a stop request as an info toast and keeps the run's status", async () => {
     cancelRunMock.mockResolvedValueOnce({ outcome: 'stop-requested', message: STOP_REQUESTED })
     await mount()
@@ -886,7 +886,7 @@ describe('C444-CANCEL-ANSWERS', () => {
   })
 })
 
-describe('a stream that carried no step is never a blank pane (HNST-01 empty edge)', () => {
+describe('a stream that carried no step is never a blank pane', () => {
   it('says `waiting for the first step` while live and `did not run` once the member settles', async () => {
     await mount()
     await open()
@@ -903,7 +903,7 @@ describe('a stream that carried no step is never a blank pane (HNST-01 empty edg
   })
 })
 
-describe('the page ends where the run ends, and MOVES the viewer with it (D-13, 2026-08-26)', () => {
+describe('the page ends where the run ends, and MOVES the viewer with it', () => {
   // WHAT REPLACED WHAT (Phase 404 · LIFE-01, D-13). 403 D-12 ended this page on the verdict and
   // deliberately went nowhere: run detail had not been rebuilt, and a redirect would have taken
   // the decision away from a person watching a failure land. 404 owns verdict-exactly-once and
@@ -957,7 +957,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it (D-13, 
   // the cell keeps its subject — the honest terminal band — and moves to the path where the band
   // is still the only truthful thing to render: a producer that ended a run without ever declaring
   // a verdict. The band is a FALLBACK now, and this is what it falls back from.
-  it('a `runFinished` with NO verdict renders the terminal band, links run detail, and goes nowhere (D-14 fallback)', async () => {
+  it('a `runFinished` with NO verdict renders the terminal band, links run detail, and goes nowhere', async () => {
     await mount()
     await open()
     await emit(runStarted(), testStarted(0, 'the member', 1), stepStarted())
@@ -989,7 +989,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it (D-13, 
   // classifies as `unknown_run` after this page has already folded envelopes is a retention window
   // that elapsed — the replay would land past the end. No verdict ever reaches the reducer, so
   // there is nothing to navigate on, and the honest thing is the band plus the durable link.
-  it('a close classified past the end (`unknown_run` with envelopes already seen) bands rather than navigates (D-14)', async () => {
+  it('a close classified past the end (`unknown_run` with envelopes already seen) bands rather than navigates', async () => {
     classifyRunStreamCloseMock.mockResolvedValue({ kind: 'unknown_run' })
     await mount()
     await open()
@@ -1015,7 +1015,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it (D-13, 
   })
 })
 
-describe('the preview is one embed or an honest sentence (LIVE-04, D-02, D-08)', () => {
+describe('the preview is one embed or an honest sentence', () => {
   // NO SENTENCE NAMES A POSITION FOR THE STEPS PANE (403-15, G-403-1). The live page renders the
   // step list BESIDE the preview and the served embed owns no step list at all, so a direction
   // word is false in every host; the pane names the steps pane by ROLE instead.
@@ -1027,7 +1027,7 @@ describe('the preview is one embed or an honest sentence (LIVE-04, D-02, D-08)',
   // answers `none` while the run is perfectly healthy. Reading that as the D-08 declared absence
   // printed `no live preview for this target` over a run that was about to stream. The
   // discriminator is the watched member's own lifecycle, and both halves are cells.
-  it('a member that FINISHES WITHOUT EVER STARTING A STEP gets the D-08 sentence, not motion for the rest of the run', async () => {
+  it('a member that FINISHES WITHOUT EVER STARTING A STEP gets the did-not-run sentence, not motion for the rest of the run', async () => {
     fetchLiveUrlMock.mockResolvedValue({
       liveUrl: 'http://x/live/r1#v2.a.b',
       expiresAt: BASE_TIME + TTL_MS,
@@ -1390,7 +1390,7 @@ describe('the preview is one embed or an honest sentence (LIVE-04, D-02, D-08)',
 // THE PREVIEW FOLLOWS THE RUNNING MEMBER (G-428-3, owner decision 2026-09-26 (3)). The owner saw a
 // suite's page sit on "This test finished while the run goes on" while its second member ran, with a
 // handle selector as the only way off it, and asked for the selector to go and the handle to follow.
-describe('the preview follows the running member, and nobody picks a handle (G-428-3)', () => {
+describe('the preview follows the running member, and nobody picks a handle', () => {
   it('FOLLOWS-RUNNING-MEMBER: when member 0 finishes and member 1 starts, the preview mints for handle 1', async () => {
     await mount()
     await open()
@@ -1432,7 +1432,7 @@ describe('the preview follows the running member, and nobody picks a handle (G-4
   })
 })
 
-describe('the wordless close is classified, never guessed (D-13, D-15, INVK-05)', () => {
+describe('the wordless close is classified, never guessed', () => {
   it('a replay floor re-attaches at the floor and says what it cost', async () => {
     classifyRunStreamCloseMock.mockResolvedValue({ kind: 'replay_floor', earliestAvailableSeq: 40 })
     await mount()
@@ -1508,7 +1508,7 @@ describe('the bus is the truth on this page', () => {
   })
 })
 
-describe('the live header says which rung served this run, from the evidence (407-10 · TRST-01, D-14)', () => {
+describe('the live header says which rung served this run, from the evidence', () => {
   const FLOOR = { schemaVersion: 2, rung: 'static-floor', reason: 'native-runtime-unavailable' } as const
   const TOP = { schemaVersion: 2, rung: 'memidex' } as const
   const BOOTSTRAP = { schemaVersion: 2, rung: 'bundle-scan', reason: 'index-not-built' } as const
@@ -1638,7 +1638,7 @@ class StubResizeObserver {
   }
 }
 
-describe('below 768 px the page stacks with the preview on top (428 D-06 · PXH-LIVE-04)', () => {
+describe('below 768 px the page stacks with the preview on top', () => {
   const group = (): Element => {
     const found = q('[data-resizable-group]')
     if (found === null) throw new Error('the panel group does not exist')

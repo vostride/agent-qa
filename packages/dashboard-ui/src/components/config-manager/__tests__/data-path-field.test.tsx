@@ -200,7 +200,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe('DataPathField (429-20 Task 1)', () => {
+describe('DataPathField', () => {
   it('APPLY-HIDDEN-WHEN-EQUAL: a path equal to the file shows no Apply, Keep current path or consequence line', async () => {
     await mount()
 

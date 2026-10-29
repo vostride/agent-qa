@@ -87,7 +87,7 @@ const REMOVED_REMEDY_SENTENCES = [
   'start a new chat ' + 'session to run it',
 ]
 
-describe('DenialBlock renders its reason only (D-06)', () => {
+describe('DenialBlock renders its reason only', () => {
   it('DENIAL-REASON-ONLY: renders the neutral reason alone, the same box whatever remedies the denial carries', () => {
     const reason =
       'fail-closed (ci): tier: this action needs an approval this context has not established'
@@ -145,7 +145,7 @@ describe('DenialBlock renders its reason only (D-06)', () => {
   // 2026-10-02 (432-44): the current owner of the 430 mutation leg R14 (was DENIAL-REASON-ONLY,
   // which stays). The box is one line, the reason, whatever it says; any line rendered after it, a
   // suggested command or a remedy chip, is the returned remedy render.
-  it('C432-430-R14-REASON-ONLY: the denial box holds one line, the reason, and no remedy line follows it', () => {
+  it('the denial box holds one line, the reason, and no remedy line follows it', () => {
     for (const reason of ['Target "shop" refused the mark: no unique address.', 'refused: plain reason', '']) {
       const dom = mount(<DenialBlock neutralReason={reason} />)
       const box = dom.querySelector('[data-entry="denial"]')
@@ -165,7 +165,7 @@ describe('DenialBlock renders its reason only (D-06)', () => {
   // 432-19, task 2: a denial reason STORED by a pre-432 build (a run row settled while the gate
   // existed) still reads back. The block renders the stored sentence verbatim — the masked
   // placeholder the server stored stays a placeholder — and adds nothing to it.
-  it('C432-HISTORICAL-READER: a stored pre-432 denial reason renders verbatim, masked placeholder included', () => {
+  it('a stored older denial reason renders verbatim, masked placeholder included', () => {
     const stored =
       'fail-closed (ci): declared tier: mutating-shared for <SECRET_0>: this action needs an approval this context has not established'
     const dom = mount(<DenialBlock neutralReason={stored} />)
@@ -180,8 +180,8 @@ describe('DenialBlock renders its reason only (D-06)', () => {
 
 // 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW pillars 2 and 3): a refusal reads as one, in the
 // project's destructive token rather than a raw warning amber, with an icon that adds no text.
-describe('C261003-CPV-DENIAL-READS-AS-REFUSAL', () => {
-  it('C261003-CPV-DENIAL-READS-AS-REFUSAL: semantic destructive token, an aria-hidden icon, and the reason alone as text', () => {
+describe('a denial reads as a refusal', () => {
+  it('semantic destructive token, an aria-hidden icon, and the reason alone as text', () => {
     const reason = 'The mark was not recorded: the step has no unique address.'
     const dom = mount(<DenialBlock neutralReason={reason} />)
     const block = dom.querySelector<HTMLElement>('[data-entry="denial"]')!

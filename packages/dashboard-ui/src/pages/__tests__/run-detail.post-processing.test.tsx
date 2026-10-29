@@ -381,7 +381,7 @@ describe("run detail owns the chip client, and hands the navbar its projection",
     })
   })
 
-  it("hands a refusal down as the unavailable view — never as chips (D-23)", async () => {
+  it("hands a refusal down as the unavailable view — never as chips", async () => {
     await renderPage()
     await act(async () => {
       onReadOf()({ kind: "unavailable", error: "function_not_bound", reason: "runs.postprocessing is not bound" })
@@ -396,7 +396,7 @@ describe("run detail owns the chip client, and hands the navbar its projection",
   // The tracer's page leg (425-01 · D-13): the outcome sentence must reach the navbar off the read
   // the page already holds. A projection that only composed correctly in a unit test would pass its
   // own cells and still hand this header nothing.
-  it("hands the navbar the passing run's analysis card, straight off the read (SC3)", async () => {
+  it("hands the navbar the passing run's analysis card, straight off the read", async () => {
     await renderPage()
     await act(async () => {
       onReadOf()(statusRead("complete", "complete", { disposition: "drained" }, {
@@ -556,7 +556,7 @@ async function invokeDoor(): Promise<void> {
   await act(async () => { (door as () => void)() })
 }
 
-describe("the failed run's analysis indicator is the door to its verdict (D-11)", () => {
+describe("the failed run's analysis indicator is the door to its verdict", () => {
   async function renderFailedRunWithVerdict(): Promise<void> {
     fetchRunMock.mockImplementation(async (id: string) => ({ run: runRow(id, "failed") }))
     fetchRunAnalysisMock.mockResolvedValue(analysisWithVerdict())

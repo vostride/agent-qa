@@ -117,7 +117,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe('SuiteEditorPage suite-id backfill (D-02)', () => {
+describe('SuiteEditorPage suite-id backfill', () => {
   it('auto-generates suite-id when loading a legacy suite missing the field and marks state as unsaved', async () => {
     mount()
     // Wait for fetchSuiteFile + fetchConfig + the backfill useEffect

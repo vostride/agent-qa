@@ -23,7 +23,7 @@ afterEach(() => { act(() => root.unmount()); container.remove() })
 const markAttributes = () => [...container.querySelectorAll('*')]
   .flatMap(element => element.getAttributeNames().filter(name => name.startsWith('data-mark')))
 
-describe('419 step marking', () => {
+describe('step marking', () => {
   it('uses the durable address: the row door opens feedback on 7:2 and the row submits nothing itself', () => {
     const onOpen = mountRow({ isSelected: true, selection: { type: 'step', stepId: step.id } })
     const trigger = triggers()[0]!
@@ -86,7 +86,7 @@ const row = () => container.querySelector<HTMLLIElement>('li[data-step-id]')!
 const triggers = () => [...container.querySelectorAll<HTMLButtonElement>('[data-feedback-entry="step"]')]
 const glyphs = () => [...container.querySelectorAll<HTMLElement>('[data-feedback-mark-glyph="step"]')]
 
-describe('426-04 the step door on the owning row', () => {
+describe('the step door on the owning row', () => {
   it('TRIGGER-ON-OWNING-ROW-ONLY: the selected row carries one 28px step door addressed to its step; an unselected row none', async () => {
     const onOpen = mountRow({ isSelected: true, selection: { type: 'step', stepId: step.id } })
     expect(triggers()).toHaveLength(1)
@@ -137,7 +137,7 @@ describe('426-04 the step door on the owning row', () => {
   })
 })
 
-describe('426-04 the passive trace on a marked row', () => {
+describe('the passive trace on a marked row', () => {
   it('GLYPH-ON-MARKED-ROW: a marked row that is not the door row carries one named glyph inside its button, before the duration', () => {
     mountRow({ isSelected: false, marks: [stepMark('confirmed-bug')] })
     expect(glyphs()).toHaveLength(1)

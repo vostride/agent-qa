@@ -271,7 +271,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-describe("the page reads ONE durable projection and groups it by member (D-16)", () => {
+describe("the page reads ONE durable projection and groups it by member", () => {
   it("renders one group per member, and asks for the run row and its detail exactly once each", async () => {
     const view = await renderAt("/runs/run-1")
 
@@ -323,7 +323,7 @@ describe("the page reads ONE durable projection and groups it by member (D-16)",
   })
 })
 
-describe("a single-member run shows no grouping chrome (D-16)", () => {
+describe("a single-member run shows no grouping chrome", () => {
   it("renders its steps with no member header and no filter", async () => {
     fetchRunDetailMock.mockResolvedValue(
       projection({
@@ -340,7 +340,7 @@ describe("a single-member run shows no grouping chrome (D-16)", () => {
   })
 })
 
-describe("a member that never ran renders honestly (D-18)", () => {
+describe("a member that never ran renders honestly", () => {
   it("shows the did-not-run note and the producer's own summary instead of an empty tree", async () => {
     fetchRunDetailMock.mockResolvedValue(
       projection({
@@ -360,7 +360,7 @@ describe("a member that never ran renders honestly (D-18)", () => {
   })
 })
 
-describe("a detail read that FAILED is not an empty run (D-03)", () => {
+describe("a detail read that FAILED is not an empty run", () => {
   it("renders an error posture distinct from the empty state, and does not navigate away", async () => {
     fetchRunDetailMock.mockRejectedValue(new Error("500 Internal Server Error"))
 

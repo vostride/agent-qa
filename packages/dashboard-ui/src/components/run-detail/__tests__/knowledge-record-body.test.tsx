@@ -191,7 +191,7 @@ describe("the curator's note is never the only thing said (memory.md §7.5)", ()
   })
 })
 
-describe("producer text in the full record is text (T-427-06-01)", () => {
+describe("producer text in the full record is text", () => {
   it("RECORD-BODY-HOSTILE-TEXT: a body and a note shaped like markup render as text and create no element", () => {
     const hostile = "<img src=x onerror=alert(1)>"
     const full = open(mountRecord({ body: hostile, narrative: hostile }))

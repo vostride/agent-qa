@@ -208,7 +208,7 @@ afterEach(async () => {
   localStorage.clear()
 })
 
-describe('ModelList closed rows (429-23 Task 1)', () => {
+describe('ModelList closed rows', () => {
   it('ONE-STATUS-WORD-PER-ROW: signed in, key saved, not connected and sign-in expired read one word each, with one Default badge', async () => {
     const auth = deferred<{ credentials: AuthCredentialInfo[] }>()
     vi.mocked(fetchAuthStatus).mockReturnValueOnce(auth.promise)
@@ -395,7 +395,7 @@ async function openModel(name: string) {
   expect(panelOf(name), name).not.toBeNull()
 }
 
-describe('ModelRow connection block (429-23 Task 2)', () => {
+describe('ModelRow connection block', () => {
   it('TEST-LINE-STATES: Test connection reads Testing, then Connected with no number, the server sentence verbatim when it fails, or Connected without a key', async () => {
     await mount()
     await openModel('router')

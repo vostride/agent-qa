@@ -153,7 +153,7 @@ afterEach(() => {
   container = null
 })
 
-describe("C444-RUN-DETAIL-CLASS", () => {
+describe("which runs show the failure sections", () => {
   it("a timed-out run shows its failure summary, error details and verdict link", async () => {
     expect(await renderRun("timeout")).toEqual({ summary: true, errorDetails: true, verdictDoor: "open" })
   })

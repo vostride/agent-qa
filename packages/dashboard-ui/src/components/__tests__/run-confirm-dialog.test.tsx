@@ -147,8 +147,8 @@ function approvalSurfaces(): Element[] {
   return [...marked, ...asking]
 }
 
-describe("the Run button starts a run in one request, with no dialog (432-14)", () => {
-  it("C432-NO-APPROVAL-DIALOG: the shell opens no confirm channel, and one click is one trigger request", async () => {
+describe("the Run button starts a run in one request, with no dialog", () => {
+  it("the shell opens no confirm channel, and one click is one trigger request", async () => {
     await renderShellAt("/tests")
     expect(
       harness.eventSources.filter((url) => url.includes("run-confirm")),
@@ -169,7 +169,7 @@ describe("the Run button starts a run in one request, with no dialog (432-14)", 
     expect(approvalSurfaces(), "an approval surface rendered after the click").toEqual([])
   })
 
-  it("C432-NO-APPROVAL-DIALOG: one feedback submit is one mark request carrying the body as written", async () => {
+  it("one feedback submit is one mark request carrying the body as written", async () => {
     await renderShellAt("/tests")
     await act(async () => { document.querySelector<HTMLButtonElement>("[data-mark-button]")!.click() })
     await vi.waitFor(() => {
@@ -184,7 +184,7 @@ describe("the Run button starts a run in one request, with no dialog (432-14)", 
     expect(approvalSurfaces()).toEqual([])
   })
 
-  it("C432-NO-APPROVAL-DIALOG: the shell and the composer ship no approval component", () => {
+  it("the shell and the composer ship no approval component", () => {
     const src = (path: string) => readFileSync(resolvePath(__dirname, path), "utf8")
     const shell = src("../../app.tsx")
     expect(shell).not.toContain("RunConfirm" + "Host")

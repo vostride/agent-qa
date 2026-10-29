@@ -448,7 +448,7 @@ async function navigateTo(id: string) {
 /** The page's own sentence for a failed mark (2026-10-02, 432-42: no typed denial is left). */
 const MARK_FAILED_TEXT = 'Could not complete the mark or refresh its receipt.'
 
-describe('419-15 scoped draft lifecycle', () => {
+describe('scoped draft lifecycle', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     fetchRunDetailMock.mockResolvedValue(initial)
@@ -657,7 +657,7 @@ async function click(selector: string) {
 const targetHistory = () =>
   [...(composer()?.querySelectorAll('[data-feedback-history="target"] [data-history-entry]') ?? [])].map(entry => entry.getAttribute('data-mark-id'))
 
-describe('419 page mark post/refetch', () => {
+describe('page mark post/refetch', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     fetchRunDetailMock.mockResolvedValue(initial)

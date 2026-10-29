@@ -125,7 +125,7 @@ function openTooltipText(): string {
     .join("|")
 }
 
-describe("426-03 the header's test-level feedback entry", () => {
+describe("the header's test-level feedback entry", () => {
   it("ENTRY-AFTER-BADGE: exactly one test entry, and it is the verdict badge's next sibling, for a test run and a suite run", () => {
     for (const run of [baseRun, suiteRun]) {
       mount(<RunNavbar run={run} shortcutsOpen={false} onToggleShortcuts={() => {}} feedbackEntry={entryProps()} />)

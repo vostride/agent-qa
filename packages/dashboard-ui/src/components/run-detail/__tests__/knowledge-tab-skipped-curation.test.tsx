@@ -167,7 +167,7 @@ function mountOpened(projection: ReadyProjection): HTMLElement {
   return tab
 }
 
-describe("C444-KNOWLEDGE-TAB-SKIPPED", () => {
+describe("the Knowledge tab when curation was skipped", () => {
   it("a gate run's Memory changes reads the gate run's curation-skipped sentence, not pending", () => {
     const section = changesSection(mount(<TabKnowledge view={view(world({ reason: "gate-run" }))} />))
 

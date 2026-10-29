@@ -104,7 +104,7 @@ afterEach(() => {
 const rows = () => [...container.querySelectorAll<HTMLElement>('[data-feedback-choice]')]
 const radios = () => [...container.querySelectorAll<HTMLElement>('[data-feedback-choice] [role="radio"]')]
 
-describe('426-02 feedback composer', () => {
+describe('feedback composer', () => {
   it('CHOICE-ORDER-STEP-OWN-RESULT: a passing step in a failed test opens with should-have-failed; the failed test opens with should-have-passed', () => {
     render(props(singleFailed, { testIndex: 0, stepIndex: 1 }))
     expect(container.querySelector('[data-feedback-choices]')?.getAttribute('data-feedback-outcome-class')).toBe('passed')
@@ -225,7 +225,7 @@ function textNodes(root: Element): Text[] {
   return nodes
 }
 
-describe('426-08 Technical details', () => {
+describe('Technical details', () => {
   it('TECHNICAL-DETAILS-ROWS: collapsed by default; opened, one row per fact the mark has, in the locked order and words', () => {
     render(props(singleFailed, { testIndex: 0, stepIndex: 2 }, {
       selected: 'false-pass',
@@ -307,7 +307,7 @@ describe('426-08 Technical details', () => {
 // can be in: no group, no answers, nothing that takes focus, and the submit row always present.
 const approvalSurface = () => container.querySelector('[data-feedback-approval], [data-confirm-answer], [data-confirm-outcome], [data-feedback-approval-waiting]')
 
-describe('426-10 the inline approval region', () => {
+describe('the inline approval region', () => {
   it('APPROVAL-IS-A-GROUP: a labelled group with the shipped title, the action class in mono and the preview as text', () => {
     for (const state of FEEDBACK_COMPOSER_STATES) {
       render(props(singleFailed, { testIndex: 0, stepIndex: 2 }, { state, selected: 'false-fail' }))

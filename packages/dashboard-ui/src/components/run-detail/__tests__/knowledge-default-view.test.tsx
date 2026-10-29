@@ -222,7 +222,7 @@ function openEverything(host: HTMLElement): void {
   throw new Error("Retrieval details kept a disclosure closed")
 }
 
-describe("the default view never shows a record id (SC2, D-10)", () => {
+describe("the default view never shows a record id", () => {
   it("NO-ID-IN-DEFAULT-VIEW: the used, effect and changes sections carry no id or digest, no row leads with one, and the not-found record still has its row", () => {
     const host = mount(<TabKnowledge view={richView()} />)
 
@@ -260,7 +260,7 @@ describe("the default view never shows a record id (SC2, D-10)", () => {
   })
 })
 
-describe("the default view speaks no retrieval machinery (SC4, D-19)", () => {
+describe("the default view speaks no retrieval machinery", () => {
   const MACHINERY = ["canary", "leg ", "rank ", "score ", "attribution", "digest", "tier ", "channel"]
 
   it("NO-MACHINERY-IN-DEFAULT-VIEW: the three sections' text names no storage word and no trust number", () => {

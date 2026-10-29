@@ -218,7 +218,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe("C444-MEMBER-HISTORY", () => {
+describe("each member's history on the Tests page", () => {
   it("a three-test run updates all three tests on the Tests page", async () => {
     served.tests = [LOGIN, CART, SEARCH].map((test) => testFile(test.name, test.path, test.testId))
     const three = run("r_three", "failed", "2026-10-17T10:00:00.000Z", [
@@ -278,7 +278,7 @@ describe("C444-MEMBER-HISTORY", () => {
   })
 })
 
-describe("C444-SUITE-HISTORY", () => {
+describe("each suite's history", () => {
   it("a run spanning two suites counts once in each suite's history", async () => {
     served.suites = [
       suiteFile("Checkout suite", "suites/checkout.yaml", "s_checkout"),
@@ -308,7 +308,7 @@ describe("C444-SUITE-HISTORY", () => {
   })
 })
 
-describe("C444-TEST-VIEWER", () => {
+describe("the test viewer's history request", () => {
   it("the test viewer asks for its test by id and path", async () => {
     await renderPage(`/test/${VIEWED.testId}`)
 

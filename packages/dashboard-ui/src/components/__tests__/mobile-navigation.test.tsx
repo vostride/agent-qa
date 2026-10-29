@@ -108,15 +108,15 @@ function navigationButtons(): HTMLButtonElement[] {
     .filter((button) => /navigation/i.test(button.getAttribute("aria-label") ?? button.textContent ?? ""))
 }
 
-describe("a navigation control at narrow widths (433-31, G-433-7)", () => {
-  it("C433-MOBILE-NAV-TRIGGER: narrow layouts render an Open navigation button", async () => {
+describe("a navigation control at narrow widths", () => {
+  it("narrow layouts render an Open navigation button", async () => {
     await renderShellAt("/runs", 400)
     const buttons = navigationButtons()
     expect(buttons.map((button) => button.getAttribute("aria-label"))).toEqual(["Open navigation"])
     expect(buttons[0].closest('[data-slot="sidebar-inset"]'), "the control sits outside the layout's inset").not.toBeNull()
   })
 
-  it("C433-MOBILE-NAV-TRIGGER: pressing it opens the navigation with the six top-level links", async () => {
+  it("pressing it opens the navigation with the six top-level links", async () => {
     await renderShellAt("/runs", 400)
     const [button] = navigationButtons()
     expect(button, "no Open navigation button to press").toBeDefined()
@@ -133,7 +133,7 @@ describe("a navigation control at narrow widths (433-31, G-433-7)", () => {
     expect(button.getAttribute("aria-expanded")).toBe("true")
   })
 
-  it("C433-MOBILE-NAV-TRIGGER: a page's bare Enter shortcut leaves Enter to the focused control", async () => {
+  it("a page's bare Enter shortcut leaves Enter to the focused control", async () => {
     await renderShellAt("/runs", 400)
     const [button] = navigationButtons()
     expect(button, "no Open navigation button to press").toBeDefined()
@@ -143,7 +143,7 @@ describe("a navigation control at narrow widths (433-31, G-433-7)", () => {
     expect(enter.defaultPrevented, "the Runs page's Enter shortcut cancelled Enter on the control").toBe(false)
   })
 
-  it("C433-MOBILE-NAV-TRIGGER: wide layouts render no navigation button", async () => {
+  it("wide layouts render no navigation button", async () => {
     await renderShellAt("/runs", 1280)
     expect(navigationButtons()).toEqual([])
     const links = Array.from(document.querySelectorAll('[data-slot="sidebar"] a')).map((link) => (link.textContent ?? "").trim())
