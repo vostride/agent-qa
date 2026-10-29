@@ -1,18 +1,4 @@
-// Engine-complete cooperative cancellation.
-//
-// D-19 names TWO behaviours and the lazy implementation collapses them into one. A queued job
-// cancels immediately, because nothing is running and there is nothing to be cooperative
-// about. A CLAIMED job does not: it becomes cancel-requested and the driver honours that at
-// the next checkpoint boundary, so work already done stays done and no half-finished side
-// effect is abandoned mid-step. An implementation that cancels both immediately passes any
-// test that only asks "does cancel work", and destroys the in-flight semantics 386's daemon is
-// written against; one that only ever records the request passes any test that only checks the
-// request was recorded. Every claim below therefore carries the control that separates it from
-// its opposite.
-//
-// "The next checkpoint boundary" is a specific place and the tests pin it: the checkpoint
-// already published stays published, the next one never starts, and a cancel that arrives
-// after the last boundary does not retroactively cancel a job that finished its work.
+// A queued job cancels at once; a claimed one stops at its next checkpoint boundary.
 
 import { describe, expect, it } from 'vitest'
 

@@ -59,11 +59,9 @@ const HANDOFF: CompletedRunHandoff = {
 
 const CAPABILITIES: PostRunJobCapabilities = {
   loadCompletedRunHandoff: () => HANDOFF,
-  // Never invoked by the analyze-run cases below; `complete: true` is the shape the widened
-  // contract requires, not a claim any assertion here turns on.
+  // Never invoked here; `complete: true` is the shape the contract requires.
   curateRun: async () => ({ curated: 0, deprecated: 0, complete: true }),
-  // The 389 artifact write is order-pinned in analyze-run-artifact.test.ts; here it only has
-  // to exist so the contract typechecks, exactly like `curateRun` above.
+  // Only has to exist so the contract typechecks; the write order is pinned elsewhere.
   persistAnalysis: () => {},
 }
 
@@ -90,10 +88,7 @@ function contextFor(payload: unknown): {
       publishCheckpoint: async (checkpointId: string, value: unknown) => {
         published.push({ checkpointId, value })
       },
-      // 389's analyze-run authors through the primitive, so the scripted context carries a
-      // faithful miss-path stand-in: invoke the author once, record what it returned, hand it
-      // back. The resume path and the ordering contract are pinned in
-      // analyze-run-artifact.test.ts; nothing here reads a recorded value.
+      // A faithful miss-path stand-in: invoke the author once, record its value, hand it back.
       recordLlmAuthorship: (async (checkpointId: string, author: (model: unknown) => Promise<unknown>) => {
         const value = await author({ modelId: 'stub', generate: async () => ({ text: '' }) })
         published.push({ checkpointId, value })
@@ -159,14 +154,12 @@ describe('the real post-run kinds', () => {
       reason: 'the handoff could not be read',
     })
 
-    // THE asymmetry this file exists for. Success and failure must produce the same instance
-    // set, or a dead analysis is exactly the case that enqueues the job D-04 forbids.
+    // Success and failure must produce the same successor set, or a dead analysis enqueues more.
     expect(successorKinds(continuations)).toEqual(['curate-memory'])
     expect(continuations[0]).toMatchObject({
       idempotencyKey: `${ANALYZE_JOB_ID}->curate-memory`,
       payload: {
-        // Pitfall 6 / 386 D-09: without these two the daemon-claimed successor resolves a
-        // drain-scoped posture and curation cannot find the run it is meant to fold.
+        // Without these the daemon misresolves the successor's posture and curation misses the run.
         runId: RUN_ID,
         executionContext: 'ci',
         verdicts: 'unknown',
@@ -175,11 +168,7 @@ describe('the real post-run kinds', () => {
     })
   })
 
-  // WR-03. The fold answers `complete: false` for candidate refusals, a cap exceeded,
-  // unresolved canaries, a failed outcome projection and requeues — and in every one of them it
-  // writes NO receipt. A handler that published `bundle-committed` anyway would name a
-  // checkpoint for an event that did not happen, and the chain terminal built from that
-  // checkpoint is the durable record three surfaces render.
+  // An incomplete fold writes no receipt, so publishing `bundle-committed` would name no event.
   it('reports an incomplete fold as retryable and publishes no bundle-committed', async () => {
     const { context, published } = contextFor({ runId: RUN_ID, executionContext: 'local-headless' })
     const outcome = await createRealJobKindRegistry({
@@ -307,7 +296,7 @@ describe('curate-memory ends the post-run chain', () => {
 })
 
 describe('a curation run handed back to its own project', () => {
-  // a hand-back is the existing retryable outcome carrying its reason.
+  // A hand-back is the existing retryable outcome carrying its reason.
   it('a curate-memory fold that hands its run back is retryable with its reason', async () => {
     const reason =
       'Run run-388-real-kinds keeps its knowledge in /tmp/other-root; it is left for a run of its own project.'

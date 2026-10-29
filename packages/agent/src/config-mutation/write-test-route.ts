@@ -1,59 +1,8 @@
-// Where a write_test request goes when the project has no target for it (395-08, D-14/D-15 ·
-// CFGM-05).
-//
-// THIS IS THE SEAM, AND FINDING IT WAS THE FIRST THING THIS PLAN HAD TO DO. The plan's design note
-// says "where the chat turn resolves a write_test request's target against configuredTargetNames".
-// No such place exists. `AuthoringDraftWriteInputSchema` carries `intent` (free text) and an
-// optional `scope`; the TARGET is decided inside the authoring loop, by a model, from a draft it
-// compiled — `loop.ts:583` reads the vocabulary and `loop.ts:647` checks the emitted name against
-// it, both AFTER an LLM call. So the pre-dispatch question cannot be "does the request's target
-// match" (there is no target on the request). It is: given this project's configured vocabulary and
-// the words the person actually typed, is there anything to author against at all?
-//
-// THE AUTHORING LOOP'S OWN BACKSTOP IS UNTOUCHED, WHICH IS RESEARCH PITFALL 6. This resolver runs
-// BEFORE dispatch and answers about the REQUEST; `AuthoringDraftUnconfiguredTargetError` runs after
-// compilation and answers about what the MODEL emitted. They guard different failures — a project
-// with nothing to write for, and a model that named a target this project does not declare — and
-// collapsing either into the other would leave one of them unguarded.
-//
-// THE PASSTHROUGH ARM IS THE COMMON CASE AND IT IS DELIBERATELY WIDE. "Write a test for the login
-// flow" in a configured project names no target and no hostname, and it must reach authoring
-// exactly as it does today: `deriveDefaultAuthoringScope` resolves the scope from the project's own
-// targets and committed tests, and the loop's backstop catches an emission that goes wrong. A
-// resolver that refused every intent it could not attribute would break the shipped path for the
-// majority of real requests, in the name of a from-zero case none of them are.
-//
-// THE REFUSAL ARM IS THEREFORE NARROW, AND ITS PRECONDITION IS THE PROJECT RATHER THAN THE WORDING:
-// a project that declares NO targets, and an utterance carrying no hostname. That is exactly D-15's
-// sentence — "anything else with no configured-target match gets a typed refusal asking for a URL or
-// target name" — read where it is actually true.
-//
-// THE SCAFFOLD ARM CARRIES THE SAME PRECONDITION SINCE 395-12. Scaffolding is the FROM-ZERO
-// path; a project that already declares targets authors against them. Offering the scaffold there
-// traded a working dispatch for a refusal about a site nobody named — a token like `readme.md` or
-// `index.html` parses as a hostname, and in a configured project that turn used to end in
-// `already-configured` for `readme-md`. The precondition is the project, in both arms.
-//
-// THE ARM TABLE, IN ORDER, BECAUSE THE ORDER IS THE CONTRACT:
-//
-//   1. a token that IS a configured target name              -> configured
-//   2. a hostname token whose DERIVED name is configured      -> configured
-//   3. a hostname token in a project that declares targets    -> passthrough
-//   4. a hostname token in a project that declares none       -> scaffold
-//   5. no hostname, and the project declares targets          -> passthrough
-//   6. no hostname, and the project declares none             -> refuse
-//
-// TOKENS, NOT SUBSTRINGS. A configured target named `shop` must not match the word `workshop`, and
-// a hostname must be a whole word rather than a fragment of one. The split is on characters that
-// cannot appear in a hostname or in a target name, so the tokens this sees are the words a person
-// typed.
+// Runs before dispatch; a project with no targets and no hostname in the request is refused.
 
 import { parseHostnameToken } from './hostname-gate.js'
 
-/**
- * A word: either a bracketed IPv6 origin, whose brackets must survive, or a run of what
- * a hostname and a registry key CAN hold. Everything else separates words.
- */
+// A bracketed IPv6 origin keeps its brackets; anything a hostname or key cannot hold splits words.
 const TOKEN = /(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/)?\[[0-9A-Fa-f:.]+\][A-Za-z0-9.:/?=&@_-]*|[A-Za-z0-9.:/?=&@_-]+/g
 
 export type WriteTestRoute =
@@ -104,13 +53,9 @@ export function resolveWriteTestRoute(input: {
     if (configured.has(verdict.targetName)) {
       return { kind: 'configured', name: verdict.targetName }
     }
-    // WR-05. A project that declares targets authors against them; `readme.md` and
-    // `index.html` both parse as hostnames, and offering a scaffold for one of them is how a turn
-    // that had a perfectly good authoring dispatch ended in `already-configured` for a site nobody
-    // named. The scaffold arm is the from-zero path and this is where it says so.
+    // A project with targets authors against them, so a file name parsed as a host is no scaffold.
     if (configured.size > 0) return { kind: 'passthrough' }
-    // The scaffold op re-parses what it is handed, so a kept scheme or port travels as the base URL
-    // A plain derivation still travels as the bare domain it always did.
+    // A kept scheme or port travels as the base URL; a plain derivation as the bare domain.
     const domain = verdict.baseUrl === `https://${verdict.domain}` ? verdict.domain : verdict.baseUrl
     return { kind: 'scaffold', domain, targetName: verdict.targetName }
   }
@@ -120,24 +65,13 @@ export function resolveWriteTestRoute(input: {
   return configured.size > 0 ? { kind: 'passthrough' } : { kind: 'refuse' }
 }
 
-/**
- * The refusal a write_test request against an unconfigurable project earns (D-15, 387's posture).
- *
- * 2026-10-03 (quick 261003-cpv, 432 review WR-02): it no longer promises a review. The scaffold
- * writes the configuration in its own call and the test is authored after it.
- */
+// The scaffold writes the configuration in its own call, then the test is authored.
 export const WRITE_TEST_UNCONFIGURED_DETAIL
   = 'this project has no agent-qa configuration, so there is no target to write a test against. '
     + 'Name the site\'s address (for example "write a test for example.com") and I will write the '
     + 'configuration for it, then author the test. I will not guess which site you meant.'
 
-/**
- * Why a scaffold the write_test route asked for left nothing to author against, in its own words
- * (261003-cpv, 432 review WR-03). A refused or interrupted answer carries its own `detail`; a
- * blocked one carries its summary line and reason; a no-change one wrote nothing because the
- * configuration already held it. The no-configuration sentence is never the answer here: the
- * person named the site, and the scaffold said why it wrote nothing.
- */
+// A scaffold answer that left nothing to author says why in its own words.
 export function writeTestScaffoldStopDetail(answer: {
   readonly outcome?: string
   readonly detail?: string

@@ -132,10 +132,7 @@ describe('createJobKindRegistry declaration validation', () => {
     expect(registry.list().map((entry) => entry.kind)).toEqual(['consolidate'])
   })
 
-  // The declared-but-empty hole. A kind registered `checkpointed: true` with an empty
-  // schedule contributes ZERO crash points to a registry-driven matrix, so the matrix passes
-  // for it vacuously while the coverage table says it is covered. Making that pair
-  // unregisterable is what turns "we remembered to fill the schedule in" into a structure.
+  // A checkpointed kind with no schedule would pass a crash matrix vacuously, so it is refused.
   it('refuses a checkpointed kind that declares no checkpoints', () => {
     expect(() =>
       createJobKindRegistry([completeDeclaration({ checkpointed: true, checkpointSchedule: [] })]),
@@ -259,8 +256,7 @@ describe('the real job kinds', () => {
     )
   })
 
-  // JOBQ-04 / C9, on the REAL kind rather than a stand-in, so a later "unification" refactor
-  // that starts checkpointing chat turns trips this by name.
+  // On the real kind, so checkpointing chat turns would fail here by name.
   it('registers chat as an uncheckpointed kind with no checkpoints at all', () => {
     const chat = createRealJobKindRegistry().require('chat')
     expect(chat.checkpointed).toBe(false)
@@ -335,9 +331,7 @@ describe('the stand-in handlers', () => {
     )
   })
 
-  // Plan 06 compares an interrupted history against an uninterrupted one, so a handler whose
-  // bytes depend on WHICH attempt published them would make every crash leg differ for a
-  // reason that has nothing to do with recovery.
+  // A handler whose bytes depend on the attempt would make every crash leg differ.
   it('publishes the same bytes on a later attempt as on the first', async () => {
     for (const declaration of REAL_JOB_KIND_DECLARATIONS) {
       const first = recordingContext(fakeJob(declaration.kind, { attempts: 1 }))

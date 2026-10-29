@@ -1,55 +1,4 @@
-// The config change construction pipeline (Phase 395, CFGM-01 / CFGM-02 / CFGM-04 · D-01 / D-03 /
-// D-09 / D-10 / D-11 / D-12 / D-17).
-//
-// THE SIX CONFIG OPERATIONS WRITE IN THE CALL. Step 7 below is now a
-// publication through the direct writer (`configWrite`): field changes through the config
-// transaction, whole files over the digest they were built from. A blocked change is answered as a
-// refusal carrying its report, and nothing is filed or written. Nothing here runs git.
-// `config.undo.propose` and the proposal filing it alone still used
-// are deleted with the proposal inbox; a written change is reverted with git.
-//
-// SEVEN STEPS IN ONE ORDER, AND THE ORDER IS THE CONTRACT:
-//
-//   1. RE-READ the committed files. CFGM-04's proposal-time law, and it is the first step rather
-//      than an optimisation: every digest this proposal records is a claim about what was on disk
-//      at the moment the proposal was made, so reading anything cached would make the apply's
-//      re-check compare against a file nobody looked at.
-//   2. MUTATE, comment-preservingly, through the host's yaml Document port. A parse→object→stringify
-//      round trip destroys every comment in the house-style config and widens the rendered diff past
-//      the point a person can review it, which is CFGM-01's whole subject.
-//   3. RENDER the diff and take the digests, through the ONE schema primitive. Construction
-//      and apply call the same export; that is the whole of the CR-02 mitigation.
-//   4. VALIDATE THE WHOLE CANDIDATE SET. CFGM-01 is explicit that validation runs BEFORE the
-//      change exists, so a mutation that breaks the config never becomes something a person can
-//      accept. It validates the ENTIRE candidate rather than the changed field, because D-03 removed
-//      the settable-field whitelist deliberately — the guards here are whole-input by construction
-//      or they are door enumeration — and since 395-05 the whole input is the whole FILE SET, not
-//      the config yaml alone: `config.hook.add` changes only the hooks file, and a validator that
-//      never saw it would have declared valid the one artifact that change wrote.
-//   5. CLASSIFY cross-boundary-ness from the actual VALUES, through `computeCrossBoundary`.
-//   6. PUBLISH through the direct writer and answer what it wrote.
-//
-// NO SECRET SCAN. A config change is not scanned for secrets and is
-// never blocked for what a value looks like: a value in a config field is the author's own text.
-// What a change shows — its diff, a validator's words — reaches people and models through the
-// declared-secret mask each door applies to what it shows.
-//
-// SIX OPS, ONE PIPELINE, AND THE SPLIT BETWEEN THEM IS THE POINT. Steps 3 to 6 are
-// `checkConfigCandidate` plus `publishConfigChange` and every action reaches them: what a
-// `config.target.create` and a `config.field.set` do differently is which bytes they hand it, never
-// what happens to those bytes afterwards. What the ops DO own is steps 1 and 2 plus their own
-// REQUEST refusals — a create against a name that exists, an edit against one that does not —
-// because those are facts about the ask rather than about the resulting configuration, and the two
-// dispositions are deliberately different answers (see `CONFIG_CHANGE_REFUSAL_REASONS`).
-//
-// A validation failure is answered as a refusal carrying its report, with nothing written or kept.
-//
-// NOTHING HERE COMMITS. The direct writer publishes files and runs no git; a person reviews and
-// reverts the change with their own tools.
-//
-// PURE OVER PORTS. Every host fact — bytes, the yaml edit, the document's shape, validation, the
-// writer — arrives as a dependency, so the pipeline is drivable end to end with no filesystem and
-// no git, and the composed case in `cli` drives it with the real ones.
+// Steps run in order: re-read, mutate, render, validate the whole file set, classify, publish.
 
 import {
   CONFIG_SET_GITIGNORE,
@@ -108,23 +57,14 @@ export interface ConstructConfigFieldSetInput {
   readonly value: ConfigFieldValue
 }
 
-/**
- * What the six config operations need: the files, the validator and the direct
- * writer that publishes the change in the call.
- */
+// The files, the validator and the direct writer that publishes the change in the call.
 export interface ConstructConfigChangeDeps {
   readonly configFiles: ConfigFilesPortLike
   readonly configValidate: ConfigValidatePortLike
   readonly configWrite: ConfigWritePortLike
 }
 
-/**
- * How a checked change is published.
- *
- * `fields` hands the change to the config transaction as field operations, so it merges onto the
- * file as it stands in its own write turn and keeps an outside edit to another field. `files`
- * publishes each changed file whole, over the digest it was built from.
- */
+// `fields` merges onto the file in its own write turn, keeping an outside edit to another field.
 export type ConfigPublication =
   | { readonly kind: 'fields'; readonly changes: readonly ConfigChange[] }
   | { readonly kind: 'files' }
@@ -144,54 +84,30 @@ export interface ConfigMutationPlan {
   readonly subject: string
   /** The one-line summary an applyable proposal carries. May print values; see below. */
   readonly summaryLine: string
-  /**
-   * Every SCALAR this change writes, with what it replaced.
-   *
-   * FLATTENED TO LEAVES, because the classifier's rules are about values: an origin comparison needs
-   * a URL and not the map that contains one. `flattenScalarEdits` does the flattening, so a
-   * structured write is classified on everything inside it rather than on the path of its root.
-   */
+  // Flattened to leaves, so a structured write is classified on every value inside it.
   readonly fieldEdits: readonly CrossBoundaryFieldEdit[]
-  /** Whether this proposal ADDS a hook. STATED by the op, never inferred from a path. */
+  // Whether this proposal adds a hook, stated by the op and never inferred from a path.
   readonly addsHook: boolean
   /** The pinned set with this change applied — every member, changed or not. */
   readonly candidate: readonly ConfigFileBytes[]
 }
 
-/**
- * The one-line summary an applied change's receipt carries.
- *
- * REFS AND VALUES, NEVER THE DIFF. The whole envelope vocabulary is map-not-territory about summary
- * lines, and this one keeps to it: what changed and to what, in one clause. The bytes are
- * in the change's own rendered diff.
- */
+// Refs and values in one clause, never the diff.
 export function configFieldSetSummaryLine(path: string, value: ConfigFieldValue): string {
   return `set ${path} to ${typeof value === 'string' ? value : String(value)}`
 }
 
-/**
- * The BLOCKED record's line: what was attempted and why it was refused, naming the subject only.
- *
- * IT TAKES A SUBJECT RATHER THAN A PATH, because five ops answer blocked refusals and only
- * one of them addresses a config path. What every subject has in common is that it is a REFERENCE —
- * a path, a target name, a hook name — which is the same class of fact `paths` already carries.
- */
+// Takes a subject, not a path, because most blocked ops do not address a config path.
 export function configBlockedSummaryLine(subject: string, detail: string): string {
   return `${subject} — blocked: ${detail}`
 }
 
-/**
- * Construct, validate and write a `config.field.set` change in the call.
- *
- * ANSWERS A TYPED RESULT for every ordinary outcome rather than throwing. `blocked` is a refusal
- * carrying the report, with nothing written or kept; `no-change` is a set of a value the config
- * already holds, which is neither an error nor a write.
- */
+// Answers a typed result; `no-change` sets a value the config already holds and writes nothing.
 export async function changeConfigField(
   input: ConstructConfigFieldSetInput,
   deps: ConstructConfigChangeDeps,
 ): Promise<ConfigChangeOutput> {
-  // (1) CFGM-04: re-read at proposal time. Everything below is about these bytes and no others.
+  // (1) Re-read now: everything below is about these bytes and no others.
   const set = await deps.configFiles.read()
   const target = requireConfigFile(set)
 
@@ -212,9 +128,7 @@ export async function changeConfigField(
       ...(edit.previousValue === undefined ? {} : { oldValue: edit.previousValue }),
       newValue: input.value,
     }],
-    // A field set writes a config value; it does not add a hook. `config.hook.add` is its own op and
-    // supplies this fact itself. Stated rather than inferred, because inferring "a hook was added"
-    // from a path would be the per-op map D-02 refused.
+    // Stated, not inferred: a field set adds no hook; `config.hook.add` states its own.
     addsHook: false,
     candidate: candidateSet(set, [{ path: target.path, bytes: edit.bytes }]),
   }, {
@@ -223,15 +137,7 @@ export async function changeConfigField(
   }, set, deps)
 }
 
-/**
- * Create a target in the call — and refuse a collision rather than merging one.
- *
- * A CREATE IS NEVER AN UPSERT, and this is CFGM-01's adjacency edge. `setIn` at an occupied path
- * REPLACES what is there, silently and comment-destructively: a person who asked to add a target
- * would get a proposal that quietly deleted the `environment` class, the `product` name and the
- * mobile fields of the one they already had, rendered as a diff they would have to read line by line
- * to notice. The refusal names the existing target and points at the op that edits one.
- */
+// A create is never an upsert: `setIn` at an occupied path replaces it and drops its comments.
 export async function createConfigTarget(
   input: ConfigTargetCreateInput & { readonly action: string },
   deps: ConstructConfigChangeDeps,
@@ -240,9 +146,6 @@ export async function createConfigTarget(
   const target = requireConfigFile(set)
   const entryPath = `${TARGETS_PATH}.${input.name}`
 
-  // no auth-state reference to admit. The input carried
-  // `authStateName` and wrote it to `use.authState`, which the committed configuration has no key
-  // for, so every such create was blocked by whole-config validation; the field is gone.
   const facts = await deps.configFiles.inspect({
     ...(target.bytes === undefined ? {} : { bytes: target.bytes }),
     paths: [entryPath, TARGETS_PATH],
@@ -259,10 +162,7 @@ export async function createConfigTarget(
     }
   }
 
-  // THE HOUSE STYLE, AS ONE BLOCK. `demo/init/agent-qa.config.yaml` writes a web target as
-  // `name: { platform, url }`, and writing it as one structured value rather than as two scalar sets
-  // means one parse, one rendered block, and a diff a person reads as the addition it is. The class
-  // is written only when declared: undeclared stays visibly undeclared, never defaulted.
+  // One structured block, so the diff reads as one addition; an undeclared class stays undeclared.
   const entry: ConfigStructuredValue = {
     platform: input.platform,
     url: input.url,
@@ -294,14 +194,7 @@ export async function createConfigTarget(
   }, { kind: 'fields', changes }, set, deps)
 }
 
-/**
- * Edit a target in the call — and refuse an absent target by NAME.
- *
- * THE REFUSAL LISTS THE CONFIGURED NAMES (387's never-guess posture, D-15's line). An edit of a
- * target nobody configured is almost always a near-miss — `shop` for `shop-web` — and a refusal that
- * says only "no such target" makes the next call another guess. The names are already readable
- * through `config.get`, so listing them discloses nothing.
- */
+// The refusal lists configured names, because an unknown target is usually a near miss.
 export async function editConfigTarget(
   input: ConfigTargetEditInput & { readonly action: string },
   deps: ConstructConfigChangeDeps,
@@ -310,8 +203,7 @@ export async function editConfigTarget(
   const target = requireConfigFile(set)
   const entryPath = `${TARGETS_PATH}.${input.name}`
 
-  // `changes.authStateName` is gone with the other two ops' field;
-  // a url is the only change, and it is not a reference.
+  // A url is the only change, and it is not a reference.
   const facts = await deps.configFiles.inspect({
     ...(target.bytes === undefined ? {} : { bytes: target.bytes }),
     paths: [entryPath, TARGETS_PATH],
@@ -364,25 +256,7 @@ export async function editConfigTarget(
   }, { kind: 'fields', changes }, set, deps)
 }
 
-/**
- * Declare a target's auth plugin in the call — references only, refused on the INPUT.
- *
- * WHAT IT WRITES, AND WHERE, IS A FACT ABOUT THIS PRODUCT'S CONFIGURATION SCHEMA RATHER THAN A
- * CHOICE. The committed configuration has exactly one place that declares an auth plugin and it is
- * the `plugins.auth` sequence (`AuthPluginDeclarationSchema`: `{ package }` or `{ path }`,
- * `.strict()`). It has NO place at all for an environment variable's name, which is why
- * `envVarName` is refused rather than written — see the `unsupported-reference` arm below.
- *
- * IT HAS NO PLACE FOR A STORED AUTH STATE'S BINDING EITHER. This op
- * once wrote `authStateName` to `use.authState`; `core`'s committed `UseSchema` is `.strict()` with
- * no such key (only a test's or a suite's own `use` has one), so whole-config validation answered
- * every such call `blocked / schema-fail`. The input field is deleted rather than written somewhere
- * the schema would also refuse.
- *
- * THE `target` IS RESOLVED, NEVER WRITTEN, and that is deliberate. Naming the target is what lets
- * the op refuse a declaration for a target nobody configured — a typed not-found with the configured
- * names, rather than a change that names nothing.
- */
+// Writes only `plugins.auth`, the one place the config declares an auth plugin; `target` resolves.
 export async function setConfigAuth(
   input: ConfigAuthSetInput & { readonly action: string },
   deps: ConstructConfigChangeDeps,
@@ -390,9 +264,7 @@ export async function setConfigAuth(
   const set = await deps.configFiles.read()
   const target = requireConfigFile(set)
 
-  // D-11 FIRST, OVER EVERY SUPPLIED REFERENCE, BEFORE THE DOCUMENT IS TOUCHED. `target` is not in
-  // this list because it is never written: a credential arriving there resolves against the registry
-  // and produces `target-not-found`, which discloses nothing and says something true.
+  // References are checked first, before the document is touched; `target` resolves, never writes.
   const refusal = refuseNonReferences([
     ...(input.pluginPackage === undefined
       ? []
@@ -468,23 +340,7 @@ export async function setConfigAuth(
   }, { kind: 'fields', changes }, set, deps)
 }
 
-/**
- * Add a hook in the call — the one action that writes a file other than the config.
- *
- * A HOOK IS CODE THIS PROJECT WILL RUN, which is why `addsHook` is STATED here rather than inferred
- * from a path and why every hook addition is cross-boundary regardless of what it contains.
- * The flag raises the `hook-added` cross-boundary reason on the applied receipt. (2026-10-03: the
- * grant machinery that refused on it is deleted.)
- *
- * THE ID IS MINTED BY THE HOST, NEVER FORMATTED HERE. `core`'s `HookDefinitionSchema` refuses any id
- * `isCanonicalHookId` does not accept, and that mint lives in a package this layer may not import
- * and draws randomness this layer may not read. A hand-built `h_`-prefixed string would parse as a
- * string, reach a person's repository, and be refused at the next run rather than at the proposal.
- *
- * THE APPEND IS PAST THE END OF WHAT THE DOCUMENT REPORTS, and a project with no hooks file at all
- * gets one created — which is the whole-new-file case publication already handles, arriving before
- * 395-08's scaffold needs it.
- */
+// The hook id is minted by the host, because `HookDefinitionSchema` refuses a hand-built one.
 export async function addConfigHook(
   input: ConfigHookAddInput & { readonly action: string },
   deps: ConstructConfigChangeDeps,
@@ -527,75 +383,18 @@ export async function addConfigHook(
     subject: `add hook ${input.name}`,
     summaryLine: `add ${input.runtime} hook ${input.name} running ${input.file}`,
     fieldEdits: flattenScalarEdits(`${HOOKS_PATH}.${at}`, entry, undefined),
-    // STATED, NOT INFERRED. This is the op that adds hooks; nothing has to guess.
+    // Stated, not inferred: this op adds hooks.
     addsHook: true,
     candidate: candidateSet(set, [{ path: hooksMember.path, bytes: written.bytes }]),
   }, { kind: 'files' }, set, deps)
 }
 
-/**
- * Everything `config.project.scaffold` needs beyond what every other action needs.
- *
- * A SEPARATE TYPE: the scaffold is the only action that renders content it did not compute from
- * the committed file, so widening the shared bundle would make six ops bind a port none of them can
- * reach.
- */
+// A separate type: only the scaffold renders content it did not compute from the committed file.
 export interface ConstructConfigScaffoldDeps extends ConstructConfigChangeDeps {
   readonly scaffoldContent: ConfigScaffoldContentPortLike
 }
 
-/**
- * Configure a project from zero, in ONE call.
- *
- * EVERY FILE IS PUBLISHED WHOLE, AND EVERY ONE IS CHECKED FIRST. The config, the hooks file and the
- * managed `.gitignore` block each carry the digest of the bytes this call read (or the fact that
- * the file was absent), and the direct writer checks all of them before it writes any. A file that
- * changes after that check stops the publication at that file: the answer names the files already
- * written, the one that refused and the ones never reached, and nothing is rolled back.
- *
- * THE GATE RUNS FIRST AND IT IS THE SECURITY PROPERTY. Nothing below is reached by a token
- * that is not a hostname, and the refusal names both continuations rather than a candidate. The
- * derivation the gate returns is the ONLY source of the target name and the base URL — this
- * function computes neither — so "the LLM never invents an origin" is a statement about which
- * function produced the bytes rather than about how the model was asked.
- *
- * A CONFIGURATION THIS SCAFFOLD WOULD OVERWRITE IS A REFUSAL — AND THAT IS DECLARED TARGETS, NEVER
- * A FILE'S EXISTENCE (395-12, narrowed · SC-5's entry point). The refusal protects a person's
- * configuration from being replaced wholesale, and what this op writes is the target registry. A
- * config file that declares NO targets has nothing here to overwrite, so it is MERGED: exactly
- * `registry.targets.<name>` is inserted into the person's own bytes and no other byte of that file
- * moves. The declared-target set arrives as a STRUCTURAL fact from the inspect port — names, never
- * values — for the reason this package parses no yaml at all.
- *
- * WHY THE OLD PREDICATE WAS A PINCER RATHER THAN A GUARD, recorded because the narrowing only reads
- * as safe against it. `resolveCliChatCapabilities` reads the chat model out of `registry.llms`,
- * which lives in the config file — so the only project that can reach this op through a chat turn
- * is a project that HAS a config file, which is precisely the project the file-existence predicate
- * refused. The two conditions closed on each other and CFGM-05's sentence could not complete for
- * any project at all (WINDOWS 132's two jaws, both reproduced live by 395-VERIFICATION). Under the
- * narrowing the serving class is every project that can chat: a model, no targets, one inserted
- * entry. A project with no model anywhere still cannot chat about anything, which is WINDOWS
- * 130/133's parked question about model resolution and not a config-mutation defect.
- *
- * `config.target.create` REMAINS THE OP for adding a target to a project that already declares one,
- * and the refusal still names it — now naming the targets it will not replace, so a person reads
- * WHICH configuration is standing in the way rather than merely that one is.
- *
- * IT IS ALWAYS CROSS-BOUNDARY, AND THAT IS COMPUTED RATHER THAN ASSERTED. The scaffold
- * writes a base URL where the committed configuration had none, so `computeCrossBoundary` sees an
- * edit whose old value is absent and whose new value is an origin — and it adds a hooks file and a
- * config file that did not exist. The flag is read off the classifier the same way every other
- * proposal's is; nothing here sets it by hand. 395-07's two-sided enforcement then makes a scaffold
- * unsatisfiable by any standing grant, from either side.
- *
- * `UnrenderableConfigDiffError` IS CAUGHT HERE AND NOWHERE ELSE, and the scope is the argument.
- * 395-02 minted that refusal for the case where two byte sequences decode identically and the diff
- * renders as a blank page; every other op composes bytes it authored from a file it just read, and
- * this is the one that folds a project's EXISTING `.gitignore` — arbitrary bytes, from a file this
- * product does not own — into a file it proposes. Answering it as a typed `refused` rather than
- * letting it escape as a fault is the difference between "this project's .gitignore is not text I
- * can show you a diff of" and a stack trace in a chat turn.
- */
+// Refuses only when targets are declared; a config file with none is merged into, not replaced.
 export async function scaffoldConfigProject(
   input: ConfigProjectScaffoldInput & { readonly action: string },
   deps: ConstructConfigScaffoldDeps,
@@ -605,14 +404,11 @@ export async function scaffoldConfigProject(
     return { outcome: 'refused', reason: 'not-a-hostname', detail: HOSTNAME_GATE_REFUSAL_DETAIL }
   }
 
-  // (1) CFGM-04: the re-read, exactly as every other action does it.
+  // (1) The re-read, as every other action does it.
   const set = await deps.configFiles.read()
   const existingConfig = requireConfigFile(set)
 
-  // THE PREDICATE, NARROWED. A config file with no `registry.targets` entries declares
-  // nothing this op would replace, so its existence alone is not a refusal. `inspect` answers the
-  // MAP's keys — names only, never values — which is the same structural read `config.target.create`
-  // already takes to list the names its own refusal offers.
+  // A config file with no `registry.targets` entries declares nothing this op would replace.
   const declaredTargets = existingConfig.bytes === undefined
     ? []
     : factsFor(
@@ -646,10 +442,7 @@ export async function scaffoldConfigProject(
     }
   }
 
-  // WHETHER THIS SCAFFOLD ADDS A HOOKS FILE IS A FACT ABOUT THE SET, not a constant. From zero it
-  // always does; merging into a project that already has one, it must not — and `addsHook` is
-  // STATED by the op, so it has to stop being stated when no hook is added or the classifier
-  // would flag `hook-added` for a file nobody touched.
+  // A hooks file is added only from zero, so `addsHook` must be false when merging into one.
   const hooksMember = set.files.find((file) => file.path === set.hooksFile)
   const addsHook = hooksMember?.bytes === undefined
 
@@ -657,8 +450,7 @@ export async function scaffoldConfigProject(
     targetName: verdict.targetName,
     baseUrl: verdict.baseUrl,
     ...(gitignore?.bytes === undefined ? {} : { existingGitignore: gitignore.bytes }),
-    // MERGE MODE, AND ONLY WHEN THERE ARE BYTES TO MERGE INTO. Absent here is the from-zero road,
-    // whose rendered bytes are byte-identical to what 395-08 shipped and what the goldens pin.
+    // Merge mode only when there are bytes to merge into; goldens pin the from-zero output.
     ...(existingConfig.bytes === undefined
       ? {}
       : {
@@ -683,9 +475,7 @@ export async function scaffoldConfigProject(
         { configPath: `${TARGETS_PATH}.${verdict.targetName}.platform`, newValue: 'web' },
         { configPath: `${TARGETS_PATH}.${verdict.targetName}.url`, newValue: verdict.baseUrl },
       ],
-      // The scaffolded hooks file declares one hook, which is code this project would then run.
-      // Stated by the op, as D-02 requires, and true exactly when the file did not exist a moment
-      // ago — see `addsHook`'s derivation above.
+      // True exactly when the hooks file did not exist; see `addsHook`'s derivation above.
       addsHook,
       candidate: candidateSet(set, [...rendered]),
     }, { kind: 'files' }, set, deps)
@@ -701,28 +491,10 @@ export async function scaffoldConfigProject(
   }
 }
 
-/**
- * What a hook's timeout is when the caller does not say.
- *
- * PINNED, WITH A RETUNE NOTE. `HookDefinitionSchema` makes `timeout` REQUIRED — there is
- * no schema default to inherit — so an op whose DTO marks it optional must supply one, and the
- * alternative to a pinned value is refusing every hook whose duration the caller did not think
- * about. `30s` is what `demo/init/hooks.yaml` writes. RETUNE: owned by whoever owns the hooks
- * vocabulary; a person who wants a different one writes it in the action, and a person who disagrees
- * with the default edits their hooks file, which is one reviewable diff away either way.
- */
+// `HookDefinitionSchema` requires `timeout`, so an omitted one takes this default.
 const DEFAULT_HOOK_TIMEOUT = '30s'
 
-/**
- * D-11's refusal, fired on the INPUT and before anything is mutated.
- *
- * SCHEMA VALIDATION OF A REFERENCE FIELD, NOT SECRET DETECTION.
- * `isLegalConfigReference` states what a reference IS and refuses the complement, so the rule names
- * nothing it refuses: no detector, no key-name rule and no credential shape.
- *
- * THE DETAIL DOES NOT QUOTE THE VALUE. The field is named, the law is named, and where a secret
- * belongs is named.
- */
+// Schema validation of a reference field, not secret detection; the detail never quotes the value.
 function refuseNonReferences(
   entries: readonly { field: string; kind: ConfigReferenceKind; value: string }[],
 ): ConfigChangeOutput | undefined {
@@ -768,14 +540,7 @@ type CandidateCheck =
   | { readonly kind: 'blocked'; readonly report: BlockedReport }
   | { readonly kind: 'ready'; readonly checked: CheckedCandidate }
 
-/**
- * Steps 3 to 5, for every action: render, validate, classify.
- *
- * WHAT ARRIVES IS A CANDIDATE SET, NOT A FILE. `renderConfigDiff` is handed exactly the members
- * whose bytes differ, so a change's `files` list is a statement about what changed rather than
- * about which files were considered — and the digests recorded per file are the ones publication
- * re-checks. Step 6 is the caller's: the six config operations publish.
- */
+// Handed only the members whose bytes differ, so `files` says what changed.
 async function checkConfigCandidate(
   plan: ConfigMutationPlan,
   set: ConfigFileSet,
@@ -795,29 +560,22 @@ async function checkConfigCandidate(
   }
   if (diffInput.length === 0) return { kind: 'no-change' }
 
-  // (3) THE ONE PRIMITIVE. Publication re-checks the digests it records here.
+  // (3) Publication re-checks the digests recorded here.
   const rendered = renderConfigDiff(diffInput)
 
-  // THE PRIMITIVE IS THE AUTHORITY ON WHETHER ANYTHING CHANGED, and this narrowing is where
-  // that authority is taken. The byte comparison above answers the same question earlier and more
-  // cheaply — which is why it stays: it lets a set of a value the config already holds skip the
-  // whole rest of the pipeline — but the answer that reaches a person comes from the same function
-  // that renders the diff, so the two halves cannot disagree about what "no change" means.
+  // The renderer decides whether anything changed, so the diff and `no-change` cannot disagree.
   if (rendered.outcome === 'unchanged') return { kind: 'no-change' }
 
   const digestsByPath = new Map(rendered.perFileDigests.map((digest) => [digest.path, digest]))
 
-  // (4) CFGM-01: the WHOLE candidate SET. The validator's own words are answered as they are; each
-  // door masks the declared values in what it shows.
+  // (4) The whole candidate set; each door masks declared values in what it shows.
   const validation = await deps.configValidate.validate({
     configFile: set.configFile,
     hooksFile: set.hooksFile,
     files: plan.candidate,
   })
   if (!validation.ok) {
-    // THE REPORT NAMES THE FILE THE ISSUE IS ABOUT, unioned with the files this change
-    // diffed. Both halves are kept: the diffed paths say what was being changed, the implicated
-    // ones say where to look.
+    // The report names the file the issue is about, unioned with the files this change diffed.
     const implicated = validation.issues.map((issue) => issue.path)
     return {
       kind: 'blocked',
@@ -849,10 +607,7 @@ async function checkConfigCandidate(
     }
   })
 
-  // (5) D-02, PER VALUE. The classifier compares the value each edit wrote against the one it
-  // replaced, and reads the pinned file set from the PORT'S OWN enumeration rather than a second
-  // list — `set.files` is what `enumerateConfigFileSet` answered for this workspace, so the
-  // out-of-set rule and the writer's scope cannot disagree about which files are config.
+  // (5) Per value, over the port's own file-set enumeration, so classifier and writer agree.
   const classified = computeCrossBoundary({
     fieldEdits: plan.fieldEdits,
     addsHook: plan.addsHook,
@@ -871,15 +626,7 @@ async function checkConfigCandidate(
   }
 }
 
-/**
- * Step 6 for the six config operations: publish in the call.
- *
- * A BLOCKED CHANGE IS ANSWERED AND NOTHING IS KEPT. The report carries no diff and no content, and
- * nothing reaches a store or the writer. A clean change goes to the direct writer: field changes
- * through the config transaction, whole files over their digests. The answer is what the writer
- * reports — the files it wrote, a refusal that wrote nothing, or the exact point a multi-file
- * publication stopped at.
- */
+// A blocked change is answered with nothing kept; a clean one goes to the direct writer.
 async function publishConfigChange(
   plan: ConfigMutationPlan,
   publication: ConfigPublication,
@@ -999,7 +746,7 @@ function fileWriteRefusal(
         + 'again and ask again.',
     }
   }
-  // 441 GAP3-D5: the fields arm's marker_written_back answer, for a whole file.
+  // The fields arm's `marker_written_back` answer, for a whole file.
   if (outcome.reason === 'marker_written_back') {
     return {
       outcome: 'refused',

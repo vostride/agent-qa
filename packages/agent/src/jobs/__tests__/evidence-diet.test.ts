@@ -1,21 +1,4 @@
-// The D-02 evidence diet and the D-01 compaction ladder.
-//
-// What is pinned, and why it can fail loudly:
-//
-//   window     the failing step ± EVIDENCE_WINDOW_STEPS neighbors, clamped at both trajectory
-//              edges — a failing step at index 0 or at the last step never indexes outside
-//              steps[].
-//   verbatim   packs QUOTE StepEvidence fields — stepText, verifierVerdict.reasoning, each
-//              subAction's plan and result.error — never paraphrase them.
-//   forced     the prior-build channel and the servedBrief + retrieval-trace channel are in
-//              EVERY pack and are canonicalJson-identical through every compaction rung
-//              (D-02: compaction squeezes the window, never the forced channels).
-//   refs       the failing step's decisionScreenshotRef entries travel as refs deduped by
-//              sha; rung 1 strips them from every pack while leaving all text sections
-//              byte-identical (D-02/L9 text-only degradation, a deterministic rung).
-//   ladder     deterministic over an injected estimator and budget — same inputs, same rung,
-//              same bytes; exhausting rung 4 returns the rung-4 result with overBudget: true,
-//              never a silently dropped test or channel.
+// Packs quote evidence verbatim, keep the forced channels through every rung, and drop no test.
 
 import {
   canonicalJson,
@@ -347,7 +330,7 @@ describe('compactEvidencePacks — the compaction ladder', () => {
   })
 })
 
-// ---- 436 D-12: the limit block is quoted for any reader ----------------------------------
+// ---- the limit block is quoted for any reader ----
 
 function withLimitStopOnFailingStep(
   handoff: CompletedRunHandoff,

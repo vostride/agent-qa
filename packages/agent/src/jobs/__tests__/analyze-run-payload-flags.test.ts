@@ -1,28 +1,4 @@
-// The READER half of WTST-06's payload propagation.
-//
-// `post-run-tail.ts` copies `gateRun` and `excludedFromOutcomes` from the loaded handoff onto the
-// enqueued `analyze-run` payload, and `AnalyzeRunPayloadSchema` validates that mint on the
-// producer side. This file pins the other end: the hand-rolled reader in `kinds.ts`, which is
-// deliberately NOT the schema — it reads payloads off a DURABLE queue, where a job may have been
-// written by an older or a newer build, so refusing an unexpected shape would strand work rather
-// than protect anything. The asymmetry is the design (see the schema module's header); this suite
-// exists so nobody "fixes" it into a second strict validator.
-//
-// Three claims, and the third is the one that makes the first two non-vacuous:
-//
-//  1. BACK-COMPAT. A four-field payload — byte-for-byte what every queued job in an existing
-//     store holds — is still read, and reads with BOTH flags absent rather than `false`. Absence
-//     and `false` are different answers: `false` would let a downstream `if (payload.gateRun !==
-//     undefined)` treat a perfectly ordinary run as a gate run.
-//  2. PER-AXIS. The two markers are DISTINCT axes (C8, 384 D-10 / 388 D-14): a gate run still
-//     feeds curation, so `gateRun` without `excludedFromOutcomes` is a real combination and must
-//     not be read as an implication of its sibling.
-//  3. THE READER UNDER TEST IS THE HANDLER'S READER. Claims 1 and 2 reach an exported function;
-//     on their own they would still hold if the handler had quietly grown a second parse. So the
-//     last two cases drive the REAL analyze-run handler through the registry and read which
-//     permanent refusal comes back — a flagged payload must get PAST the shape refusal and die at
-//     the handoff load, while a genuinely shapeless payload must die at the shape refusal. Both
-//     sides move; a one-sided version of this would pass against a handler that refuses nothing.
+// The queue reader is lenient on purpose: an old four-field payload reads with both flags absent.
 
 import type { Job, JobHandlerOutcome } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
@@ -110,9 +86,7 @@ describe('readAnalyzeRunPayload — flag propagation, read half', () => {
   })
 
   it('reads each flag independently — the two are DISTINCT axes (C8)', () => {
-    // C8, owner-ratified: gate runs DO feed curation. So `gateRun` alone is not a half-expressed
-    // exclusion, it is the ordinary shape of a verify-before-present run whose evidence still
-    // counts. Reading either flag as implying the other would silently widen the exclusion.
+    // Gate runs still feed curation, so `gateRun` alone does not imply `excludedFromOutcomes`.
     const gateOnly = readAnalyzeRunPayload({ ...LEGACY_PAYLOAD, gateRun: true })
     expect(gateOnly?.gateRun).toBe(true)
     expect(gateOnly?.excludedFromOutcomes).toBeUndefined()

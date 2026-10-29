@@ -1,20 +1,4 @@
-// The post-run chain's derived facts (Phase 388, RESEARCH Pattern 2).
-//
-// Everything the chain needs to know about itself is COMPUTED from `runId`, and that is the
-// mechanism the whole phase rests on rather than a convenience. Job ids are derived from
-// `(kind, idempotencyKey)` through an injected source, and successor keys are derived from
-// the predecessor's id — so given a run id alone, any process can name every job the chain
-// would have enqueued without reading a row, without a chains table, and without parent
-// pointers. The chip projection addresses exactly these ids; the chain-terminal check asks
-// which of them exist and whether each is terminal.
-//
-// The alternative — recording chain membership as state — would need a second durable fact
-// to be kept in step with the first, and the first thing a stale chain table does is report
-// a chain complete because it never heard about the job that is still running.
-//
-// The derivation is stated ONCE, here, and imported by everything that needs it. Two copies
-// of a hash input differing by a space are two different chains that look identical in
-// review.
+// Every chain job id is derived from `runId`, so no chain table can go stale.
 
 import type { JobId, JobKind, RunNotification, Verdict } from '@vostride/agent-qa-schema'
 import {
@@ -63,13 +47,7 @@ export function chainJobIdsForRun(runId: string, idSource: JobIdSource): ChainJo
   }
 }
 
-/**
- * The marker a permanently failed analysis leaves on the successors it hands on.
- *
- * Read by the notification builder to report the analysis stage honestly: the chain proceeded
- * with no verdicts, and the record has to say so even though the job that reports the
- * terminal is the one that succeeded afterwards.
- */
+// Lets the notification report that the chain proceeded with no verdicts.
 export const UNKNOWN_VERDICTS_MARKER = 'unknown'
 
 export interface ChainTerminalNotificationInput {

@@ -1,24 +1,4 @@
-// Per-kind declarations for the agent job queue.
-//
-// A kind cannot be registered without saying whether it checkpoints, WHICH checkpoints it
-// publishes, which successors it may chain to, how many attempts it gets, how those attempts
-// are spaced, and what becomes of its chain when it gives up. That is not documentation: the
-// engine reads every one of those fields, so a kind whose declaration lies about its
-// checkpoints refuses at the publish call rather than producing a job whose recovery
-// behaviour nobody can predict. It is also what lets a later harness iterate the registry —
-// kinds x declared checkpoints — instead of maintaining its own list that can silently fall
-// behind.
-//
-// Two refusal classes, with different jobs. An INCOMPLETE declaration is missing a field
-// entirely and is refused by field name, on the same discipline the function layer uses for
-// its required audit sink: substituting a default would mean a kind's recovery behaviour was
-// decided by whoever wrote the default rather than by whoever wrote the kind. An INCONSISTENT
-// declaration has every field and still cannot be true of any kind — and the case that
-// matters most is `checkpointed: true` beside an EMPTY schedule. A registry-driven crash
-// matrix derives its crash points from the declared schedule, so such a kind contributes
-// zero crash points: the matrix passes for it vacuously while its coverage table reports it
-// covered. Refusing the pair at construction makes that hole unrepresentable rather than
-// merely absent today.
+// A checkpointed kind with an empty schedule is refused, or a crash matrix covers it vacuously.
 
 import type { ChainedJobRequest, Job, JobHandlerOutcome, JobKind } from '@vostride/agent-qa-schema'
 
@@ -37,40 +17,14 @@ export interface JobHandlerContext {
    */
   readonly payload: unknown
   publishCheckpoint(checkpointId: string, value: unknown): Promise<void>
-  /**
-   * The ONE path from a job to a model (D-10 / D-11 layer 2).
-   *
-   * What is absent from this interface is the contract: there is no model member here, and
-   * this member's own signature is the only place a capability appears. A handler therefore
-   * cannot reach a model except by asking this primitive to record the asking — which is what
-   * makes a resumed job's re-invocation impossible by control flow rather than by discipline.
-   * The member set of this interface is pinned for exact equality by a test, so an ambient
-   * accessor cannot be added quietly beside it.
-   */
+  // The only path from a job to a model; its member set is pinned so no accessor can join it.
   readonly recordLlmAuthorship: BoundRecordLlmAuthorship
 }
 
-/**
- * What a handler reports.
- *
- * 385 plan 02 replaced this module's own outcome shape with the schema DTO. The two were the
- * same concept described twice, and the local one could not say a handler had FAILED at all —
- * a bare optional successor list makes "finished, chaining nothing" and "gave up" identical.
- * The TOPOLOGY of what may chain to what is still declared here, on the kind; only the
- * INSTANCES come back from the handler, which is what keeps an outcome-dependent chain
- * ordinary data while leaving the whole graph auditable in one place.
- */
+// The kind declares what may chain; the handler returns only the instances.
 export type JobHandler = (context: JobHandlerContext) => Promise<JobHandlerOutcome>
 
-/**
- * How a kind's retries are spaced — DATA, never a function.
- *
- * A callback would let a kind compute its own delay from whatever it liked, including the
- * wall clock, and the engine could then neither describe a kind's retry behaviour without
- * running it nor keep a dump deterministic. As data, the delay for attempt N is a pure
- * function of the policy and N, which is exactly what the driver computes and hands back to
- * whichever host decides when to pump next.
- */
+// Data, not a function, so the delay for attempt N is a pure function of the policy.
 export type JobBackoffPolicy =
   | { readonly kind: 'none' }
   | { readonly kind: 'fixed'; readonly delayMs: number }
@@ -81,14 +35,7 @@ export type JobBackoffPolicy =
       readonly maxDelayMs: number
     }
 
-/**
- * Everything a fallback continuation is allowed to know.
- *
- * The absences are the contract (D-20 / D-11 layer 2). There is no model capability here and
- * no place to pass one, so a producer cannot invoke a model however it is written — which is
- * what puts the permanent-failure path on the resume-legal side of the queue by construction
- * rather than by review.
- */
+// No model capability here, so a fallback producer cannot invoke a model.
 export interface FallbackContinuationInput {
   readonly job: Job
   readonly payload: unknown
@@ -106,12 +53,7 @@ export type FallbackContinuationProducer = (
   input: FallbackContinuationInput,
 ) => readonly ChainedJobRequest[]
 
-/**
- * What a kind declares should happen to its chain when it gives up.
- *
- * `'halt-chain'` enqueues nothing. A producer names the successors the chain proceeds with
- * instead — the analyze-run posture, whose downstream jobs must never wait on a dead head.
- */
+// `'halt-chain'` enqueues nothing; a producer names the successors the chain proceeds with.
 export type JobPermanentFailureDisposition = 'halt-chain' | FallbackContinuationProducer
 
 export interface JobKindDeclaration {

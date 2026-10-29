@@ -1,16 +1,4 @@
-// The BLOCKED posture, end to end through the real pipeline.
-//
-// a blocked change is ANSWERED and nothing is kept. The cells below read
-// the answer itself, and assert that nothing reached the store or the direct writer.
-//
-// a config change is not scanned for secrets. The one blocked road left
-// is a change whose resulting configuration does not validate; a credential-shaped value is the
-// author's own text and is written (C441-CONFIG-SCAN below). The cells whose subject was the scan
-// are deleted.
-//
-// THE DIFF PRIMITIVE IS THE PRODUCTION ONE. `renderConfigDiff` is imported from `packages/schema`;
-// the doubles are the host facts this layer may not touch — bytes on disk, the yaml edit, and the
-// writer.
+// A blocked change is answered and nothing is kept; the diff primitive is production's.
 
 import { utf8Decode, utf8Encode } from '@vostride/agent-qa-schema'
 import type { ConfigChangeOutput } from '@vostride/agent-qa-schema'
@@ -66,7 +54,7 @@ use:
 
 interface Harness {
   readonly deps: ConstructConfigChangeDeps
-  /** Every proposal the pipeline tried to file. 432-11: it never files one. */
+  // Every proposal the pipeline tried to file; it never files one.
   readonly filed: unknown[]
   /** Every call the direct writer received. */
   readonly written: unknown[]
@@ -175,12 +163,11 @@ describe('the blocked posture', () => {
     expect(answer.outcome).toBe('blocked')
     if (answer.outcome !== 'blocked') throw new Error('unreachable')
     expect(answer.blockedReason).toBe('schema-fail')
-    // the answered string is the port's PAIR joined — the file the issue is about, then
-    // the validator's own sentence — so the file is not guessed at from what the change diffed.
+    // The file the issue is about, then the validator's sentence, so the file is not guessed.
     expect(answer.validationIssues)
       .toEqual([`${CONFIG_FILE}: use.parallel: expected boolean, received string`])
     expect(answer.paths).toEqual([CONFIG_FILE])
-    // NOTHING IS KEPT OR WRITTEN. The report is the answer.
+    // Nothing is kept or written; the report is the answer.
     expect(test.filed).toHaveLength(0)
     expect(test.written).toHaveLength(0)
   })
@@ -209,8 +196,7 @@ describe('the blocked posture', () => {
     expect(answer.crossBoundary).toBe(false)
     expect(answer.crossBoundaryReasons).toEqual([])
 
-    // THE SAME PATH, A DIFFERENT VALUE — which is the whole of D-02 and the half a stub answering
-    // `false` unconditionally cannot produce.
+    // Same path, a different value: a stub that always answers `false` cannot produce this.
     const moved = harness({ config: CLEAN_CONFIG })
     const flagged = await propose(moved, { path: 'url', value: 'https://shop.evil.example/cart' })
     if (flagged.outcome !== 'applied') throw new Error('unreachable')
@@ -224,20 +210,13 @@ describe('the blocked posture', () => {
     expect(unflagged.crossBoundaryReasons).toEqual([])
   })
 
-  // RE-SPELLED 2026-10-01: nothing is filed any more, the accept op is deleted with
-  // the inbox, and so is the funnel that guarded an apply port no host binds.
   it('(8) no blocked record can be accepted: there is no apply funnel and no accept op', () => {
     expect('applyablePayload' in construct).toBe(false)
     expect('BlockedConfigProposalError' in construct).toBe(false)
   })
 })
 
-// ---- 432-11 D-05/D-07: a blocked construction is an answer, never a record -------------------
-//
-// C432-CONFIG-BLOCKED-NO-WRITE  a blocked change answers a typed refusal with its report, and
-//                               nothing reaches the proposal store or the direct writer.
-// C432-CONFIG-APPLIED-OUTPUT    a clean change is written in the call, and the answer names the
-//                               files and fields it changed, validated by the direct contract.
+// ---- a blocked construction is an answer, never a record ----
 
 /** The harness above plus a direct writer that records every call it receives. */
 function directHarness(options: Parameters<typeof harness>[0]) {
@@ -332,11 +311,7 @@ describe('the answer is what was written', () => {
     })
 })
 
-// ---- 441 D-15/D-04/D-23: no config change is scanned for secrets ---------------------------------
-//
-// C441-CONFIG-SCAN  a credential-shaped value is written, a config that already carries one still
-//                   yields its diff, and a reference field refuses only what is not a reference of
-//                   its kind, pointing at the secrets file.
+// ---- no config change is scanned for secrets ----
 
 describe('credential-shaped values in config fields', () => {
   it('a credential-shaped value in a free-text field is written', async () => {

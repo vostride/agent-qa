@@ -1,16 +1,4 @@
-// The tracer's end-to-end proof: artifact-before-checkpoint, one path only.
-//
-// Four contracts on one committed slice, each pinned where it can fail loudest:
-//
-//   D-09  the analysis artifact is durable BEFORE the verdicts-authored value is recorded —
-//         order-captured on the stubs, so moving the write after the author returns is a RED.
-//   D-02  the recorded checkpoint value is byte-shape `{runId, verdicts}` exactly as 388 froze
-//         it — asserted with an exact-keys check, never a subset match.
-//   JOBQ-03  a resume with a recorded value never re-enters the author and never rewrites the
-//         artifact — spy count 0 on both.
-//   D-10  `resolveRunVerdicts` is the one verdict read path: artifact verdicts when present,
-//         the handoff's deterministic floor when absent, and the minted `unknown` is
-//         byte-identical to the runner's own `deterministicVerdict` fill.
+// The artifact is durable before the verdicts value is recorded, and a resume never re-authors.
 
 import {
   asRecordId,
@@ -311,8 +299,7 @@ describe('the full author behind the frozen checkpoint', () => {
     expect(upgraded.class).toBe('app_bug')
     expect(upgraded.producer).toBe('analyze-run')
 
-    // D-06's one producer-keyed parts rule: template parts for the deterministic member,
-    // the LLM's own parts for the upgraded one.
+    // One producer-keyed rule: template parts for the deterministic member, LLM parts otherwise.
     expect(artifact.parts.map((part) => part.perTest)).toEqual([0, 1])
     expect(artifact.parts[0]?.discriminator).toBe('flake: retryCount 2 > 0')
     expect(artifact.parts[1]?.discriminator).toBe('the same step passed on the previous build')

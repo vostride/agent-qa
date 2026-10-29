@@ -1,33 +1,4 @@
-// The whole-run analyze-run author.
-//
-// ONE `model.generate` call authors every unknown-verdict failure together: the
-// author sees the cross-test pattern ("40 reds, one cause") that clustering and the
-// discriminator feed on, matches the once-per-run heartbeat unit, and never fans out
-// per test or adds a second LLM stage inside the one-checkpoint schedule.
-//
-// The model's answer is UNTRUSTED. It is parsed with the curator's deterministic repair
-// idiom (fence strip, trailing-comma removal — COPIED from `cli/src/curation/
-// curator-author.ts`, never imported: agent→cli is a banned direction), shaped by zod, and
-// then validated cross-document by schema's `validateAnalysisAgainstHandoff`. Rejects feed
-// exactly ONE repair round-trip whose feedback names each failing test and reason;
-// whatever still fails degrades to the deterministic unknown floor member for THAT test
-// only — valid siblings persist, and job-level retries stay reserved for transport
-// failures, which propagate out of this function uncaught.
-//
-// The merge law lives here and nowhere else: a floor verdict is replaced iff its class is
-// `unknown` AND a validated author verdict exists for its perTest; everything else passes
-// through byte-identical. `producer: 'analyze-run'` is forced code-side — model output
-// never chooses producer.
-//
-// D-02's screenshot channel rides the same single request: when the capability advertises
-// `vision` and a blob reader is bound and the post-compaction packs still carry
-// screenshotRefs, the failing steps' decision-screenshot bytes attach as the request's
-// optional `images`; every other posture is the L9 text-only degradation — a request
-// structurally identical to the pre-widening text request. The repair round-trip reuses
-// the same image set, never a re-fetch.
-//
-// The model arrives ONLY as the `JobModelCapability` argument the `recordLlmAuthorship`
-// callback hands its author — this module never imports a provider SDK.
+// One generate call for every unknown failure; output is repaired once, then degraded per test.
 
 import type {
   ArtifactRef,
@@ -59,23 +30,8 @@ import type {
 } from './evidence-diet.js'
 import type { JobModelCapability, JobModelRequest } from './record-llm-authorship.js'
 
-/**
- * The single in-attempt repair round-trip.
- *
- * Pinned, not config; retune from operational evidence: raise only if real
- * transcripts show a second repair regularly rescuing tests the first one could not —
- * every extra round-trip is a model call inside a job attempt whose transport failures
- * already carry their own 3-attempt bound.
- */
 export const AUTHOR_REPAIR_CAP = 1
 
-/**
- * The cap on decision-screenshot image parts attached to the one request.
- *
- * Pinned, not config; retune from operational evidence: raise if real
- * multi-failure transcripts show discriminating screenshots being cut at this cap, lower
- * if image payloads dominate request cost without moving verdict quality.
- */
 export const MAX_AUTHOR_IMAGES = 6
 
 export interface MemoryOnPathStampInput {
@@ -136,19 +92,13 @@ export interface AuthorRunAnalysisInput {
   readonly handoff: CompletedRunHandoff
   /** The deterministic floor exactly as the handler projects it — the merge base. */
   readonly floor: readonly Verdict[]
-  /** One evidence pack per unknown member (plan 03's diet), pre-compaction. */
+  /** One evidence pack per unknown member, pre-compaction. */
   readonly packs: readonly EvidencePack[]
-  /** Per-test failure history for the context tier (D-08's input-for-reasoning). */
+  // Per-test failure history for the context tier.
   readonly history: EvidenceHistoryLookup
-  /**
-   * D-01's TokenAccounting substrate entering as data. Absent → no compaction ladder
-   * (rung 0, packs whole) — a host without accounting still authors, it just cannot
-   * pre-shrink.
-   */
+  // Absent means no compaction ladder: packs go whole and nothing is pre-shrunk.
   readonly tokenBudget?: AuthorTokenBudget
-  /**
-   * D-02's capability-gated screenshot bytes, sha-addressed. Absent ⇒ text-only per L9.
-   */
+  // Screenshot bytes by sha; absent means text only.
   readonly readEvidenceBlob?: (sha: string) => Uint8Array | undefined
   /** The §1.4 `agent_context` parameter; defaults to the analyze-run provenance line. */
   readonly agentContext?: string
@@ -159,7 +109,7 @@ export interface AuthorRunAnalysisResult {
   readonly verdicts: Verdict[]
   /** LLM sentence parts for the UPGRADED members only, joined by perTest. */
   readonly authoredParts: VerdictSentenceParts[]
-  /** The D-01 ladder outcome, surfaced — `overBudget` is never swallowed. */
+  // The ladder outcome, surfaced; `overBudget` is never swallowed.
   readonly compaction: {
     readonly rung: CompactedEvidence['rung']
     readonly overBudget: boolean
@@ -307,9 +257,7 @@ function parseJsonWithRepair(text: string): unknown {
   }
 }
 
-// ---------------------------------------------------------------------------------------
-// Prompt composition: plan 03's stages, composed — never reimplemented.
-// ---------------------------------------------------------------------------------------
+// ---- prompt composition: the existing stages, composed and never reimplemented ----
 
 function stableTier(): PromptTierBlock[] {
   return [
@@ -399,9 +347,7 @@ function volatileTier(packs: readonly EvidencePack[]): PromptTierBlock[] {
   }))
 }
 
-// ---------------------------------------------------------------------------------------
-// The D-02 request gate: images attach iff vision + reader + surviving refs.
-// ---------------------------------------------------------------------------------------
+// Images attach only with vision, a blob reader and surviving refs.
 
 function collectImages(
   packs: readonly EvidencePack[],
@@ -555,11 +501,7 @@ function repairFeedback(rejects: readonly { perTest: number; reason: string }[])
   ].join('\n')
 }
 
-/**
- * The author: compose plan 03's stages around ONE `model.generate` call, repair once,
- * degrade per test, merge upgrade-only-unknown. Transport failures propagate uncaught —
- * the job's declared bound adjudicates those, never this function.
- */
+// One `model.generate` call, one repair, per-test degrade; transport failures propagate uncaught.
 export async function authorRunAnalysis(
   model: JobModelCapability,
   input: AuthorRunAnalysisInput,

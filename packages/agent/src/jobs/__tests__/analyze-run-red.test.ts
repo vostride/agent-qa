@@ -1,21 +1,4 @@
-// The ANLZ-01 red-run cells.
-//
-// `analyze-run` on a RED run, driven through the REAL handler with a fake
-// `JobModelCapability`: the happy path (a valid authored answer upgrades the `unknown` floor
-// member in ONE generate call), the degrade path (an unparseable answer keeps the
-// deterministic floor and the job still COMPLETES), and the propagate path (a capability that
-// throws rejects the handler — D-15's posture, no in-handler catch).
-//
-// Two red substrates on purpose. `buildSyntheticHandoff` is the phase-389 synthetic, cheap and
-// parameterizable; `fixtures/red-run-handoff.json` is a REAL recorded acceptance handoff with its
-// screen states trimmed out — same `unknown` floor member, same quotable
-// evidence — so the cells below answer for the document shape the 399 session actually
-// produced rather than only for the one this repo mints.
-//
-// The MEASURED throw itself (`handler-threw: Guardrail blocked outbound prompt leaf:
-// creditCard`) is NOT reproduced here: `406-ANLZ-01-REPRODUCTION.md` § Seam names the egress
-// guardrail in `packages/safety` as the throw site, so per this plan's own rule the seam cell
-// lives in that package as `guardrail/__tests__/analyze-run-red-seam.test.ts`.
+// A real recorded red handoff beside the synthetic, so cells cover the shape a session produced.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -49,17 +32,13 @@ import { buildSyntheticHandoff } from './fixtures/synthetic-handoff.js'
 
 const EVIDENCE_TEXT = 'Error: element "Submit" not found'
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
+// No `grantedScopes` or `safeMode` on the caller; the registry reads neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
 }
 
-// ------------------------------------------------------------------------------------------
-// The harness — the `analyze-run-e2e.test.ts` one, plus a `vision` flag on the scripted model
-// and a `readEvidenceBlob` seam on the capabilities (the two D-02 inputs cell (d) needs).
-// ------------------------------------------------------------------------------------------
+// The harness from `analyze-run-e2e.test.ts`, plus a `vision` flag and a `readEvidenceBlob` seam.
 
 interface HarnessOptions {
   /** Scripted model answers, one per generate call; unscripted calls answer ''. */
@@ -197,8 +176,7 @@ async function readThroughTheOp(
       },
       analysis: { getArtifact: () => artifact },
     } as FunctionDeps,
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
+    // No `resolveExecutionContext` registry option; the registry reads no context.
   })
   return (await invokeFunction(
     registry,
@@ -209,7 +187,7 @@ async function readThroughTheOp(
 }
 
 // ------------------------------------------------------------------------------------------
-// The trimmed 399 fixture — loaded through the SHIPPED guard, never a bare JSON.parse.
+// The trimmed recorded fixture, loaded through the shipped guard, never a bare JSON.parse.
 // ------------------------------------------------------------------------------------------
 
 const FIXTURE_PATH = fileURLToPath(

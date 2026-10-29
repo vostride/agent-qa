@@ -1,32 +1,4 @@
-// The one memoizing checkpointed effect (Phase 385, D-10 / D-11 layer 2).
-//
-// Every job's access to a model goes through this function and there is no second route. The
-// capability arrives as the author callback's ARGUMENT, so a handler cannot obtain one on its
-// own however it is written: the context that carries the model is built by the engine and is
-// never handed to a handler, and the handler-facing surface has no member of that kind and
-// nowhere to grow one (pinned by exact `keyof` equality in the tests). That is why this
-// package can stay provider-neutral while jobs still author with a model — the model is a
-// value the composition binds at the edge, never a name this package resolves.
-//
-// The control flow is the guarantee, not an optimization:
-//
-//   1. read the recorded value for this checkpoint
-//   2. HIT  -> return the recorded bytes; `author` is never reached at all
-//   3. MISS -> invoke `author` exactly once, publish what it produced, THEN return
-//
-// Step 3's order is the whole of JOBQ-03. A resume can only be re-invocation-free if the bytes
-// were durable before the caller ever saw them, so publishing after the return — or without
-// awaiting it — would leave a window in which a host dies holding an answer no store accepted,
-// and the next host has no choice but to ask the model again. The publish is awaited and its
-// failure propagates; this function never hands back a value the store has not taken.
-//
-// The memoization lives HERE and nowhere else. A conditional re-author written into a handler
-// (`if (!checkpoint) …`) is still a re-author, and five kinds each carrying their own copy of
-// that conditional is five chances to get it wrong — which is exactly the anti-pattern the
-// research names.
-//
-// five rather than six — the reserved sixth job kind left with the
-// Issue-slot cleanup.
+// Read the checkpoint; on a miss author once and publish before returning, so resumes never re-ask.
 
 import type { JobId } from '@vostride/agent-qa-schema'
 
@@ -40,15 +12,9 @@ import type { JobId } from '@vostride/agent-qa-schema'
 export interface JobModelRequest {
   readonly system?: string
   readonly prompt: string
-  /**
-   * Optional image parts riding the SAME request. Screenshots are
-   * capability-gated per the v46 negotiation the host binding surfaces as `vision` below:
-   * an author attaches evidence bytes here only when the capability advertises vision AND
-   * a blob reader is bound. Absent means a text-only request — the L9 graceful-degradation
-   * posture — and every pre-widening caller and stub stays assignable unchanged.
-   */
+  // Attached only when the capability advertises vision and a blob reader is bound; absent is text.
   readonly images?: readonly Uint8Array[]
-  // set by the engine from the host's per-run signal.
+  // Set by the engine from the host's per-run signal.
   readonly signal?: AbortSignal
 }
 
@@ -57,23 +23,10 @@ export interface JobModelOutput {
   readonly text: string
 }
 
-/**
- * The model, as a job may see it (D-11 layer 2).
- *
- * A TYPE, never an import: a job handler receives a value shaped like this from exactly one
- * place — the author callback's parameter — and the barrel publishes no accessor that could
- * produce one. `modelId` is here so a checkpoint's provenance is recordable without the engine
- * having to know anything else about the binding.
- */
+// A type, never an import: a handler gets one only as the author callback's parameter.
 export interface JobModelCapability {
   readonly modelId: string
-  /**
-   * Whether the bound model accepts image parts — the v46 capability
-   * negotiation surfaced as one flag by the host binding. OPTIONAL and absent means
-   * text-only: a text-only BYOM binding and every existing stub keep compiling and keep
-   * their L9 posture without declaring anything. Nothing else in the memoization
-   * contract moves with this flag.
-   */
+  // Whether the bound model accepts image parts; absent means text only.
   readonly vision?: boolean
   generate(request: JobModelRequest): Promise<JobModelOutput>
 }

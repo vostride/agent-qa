@@ -1,29 +1,4 @@
-// The per-VALUE cross-boundary classifier.
-//
-// WHAT MAKES EACH CELL RED, per cell rather than claimed for the file — a detector's bar is the
-// implementation it must fail on, never the suite it passes:
-//
-//   secret-adjacent   — a matcher that walked only downwards from the roots (the `plugins` cell), or
-//                       one that ignored `*` (the `registry.targets.*.authState` cell), or a
-//                       classifier that re-derived the rule here instead of calling the shipped one.
-//   new-origin        — ANY classifier that decides from the PATH. The three origin cells below hold
-//                       the path fixed at `registry.targets.shop.url` and vary only the VALUE, so a
-//                       rule keyed on field names answers the same for all three and fails two of
-//                       them. It also reds on comparing whole URLs (the same-origin-new-path cell
-//                       starts flagging) and on ignoring the scheme (the http→https cell stops).
-//   hook-added        — a classifier that inferred hooks from a path instead of reading the fact.
-//   out-of-set-path   — a membership test against a pattern rather than the enumerated set, and a
-//                       classifier that only ever looked at the config file.
-//   the negative      — a classifier that flags everything. Without it every cell above passes on
-//                       `crossBoundary: true` returned unconditionally, which is the single most
-//                       likely wrong implementation of a safety flag.
-//   the vocabulary    — `crossBoundaryReasons` widened back to `string`, or a reason invented here.
-//
-// THE PINNED SET ARRIVES THROUGH THE SHIPPED ENUMERATION, imported. `enumerateConfigFileSet` is the
-// same function `createConfigFilesPort` calls to decide which files it reads bytes for and which
-// 395-06's porcelain check will scope to. A copied list here would let this suite keep passing on
-// the day the set grows a member and the classifier stops seeing it — which is the failure this
-// import exists to make impossible, and it is a failure in the permissive direction.
+// The pinned file set is imported from `enumerateConfigFileSet`, so a new member is never missed.
 
 import {
   CROSS_BOUNDARY_REASONS,
@@ -55,9 +30,7 @@ describe('computeCrossBoundary — one reason per boundary, decided from values'
       fieldEdits: [{ configPath: 'plugins.auth.0.package', newValue: '@acme/auth' }],
     })).reasons).toEqual(['secret-adjacent-field'])
 
-    // ABOVE a root: `plugins` replaces the whole subtree including the auth declarations. 395-02
-    // measured this as the direction a first-draft matcher misses — and it is the WIDEST edit,
-    // which is the reverse of the risk ordering a downward-only rule would produce.
+    // Above a root: `plugins` replaces the whole subtree, auth declarations included.
     expect(computeCrossBoundary(facts({
       fieldEdits: [{ configPath: 'plugins', newValue: 'anything' }],
     })).reasons).toEqual(['secret-adjacent-field'])
@@ -68,9 +41,7 @@ describe('computeCrossBoundary — one reason per boundary, decided from values'
     })).reasons).toEqual(['secret-adjacent-field'])
   })
 
-  // THE THREE ORIGIN CELLS HOLD THE PATH FIXED AND VARY THE VALUE. That is the whole of D-02's
-  // "per VALUE, not per op": a classifier ranged over field paths cannot return two different
-  // answers for one path, and two of these three demand exactly that.
+  // The origin cells fix the path and vary the value, which a path-keyed classifier cannot pass.
   const URL_PATH = 'registry.targets.shop.url'
 
   it('does NOT flag a same-origin edit — the same host, a different page', () => {

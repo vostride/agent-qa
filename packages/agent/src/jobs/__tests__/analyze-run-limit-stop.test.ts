@@ -1,10 +1,4 @@
-// analyze-run never asks a model to label a limit stop.
-//
-// A limit-stopped member's floor verdict is `unknown` (the run ran out of limit, not into an
-// answer), and analyze-run authors every unknown floor member — so without the exclusion a model
-// could turn a dead control into an `app_bug`. The handler is driven end to end with the scripted
-// model and the in-memory recordLlmAuthorship from the analyze-run suites; the floor verdict for
-// the limit-stopped member comes from the runner's own classifier.
+// A limit-stopped member's `unknown` floor verdict is never handed to a model to label.
 
 import { canonicalJson, formatLimitStopReason, sha256hex } from '@vostride/agent-qa-schema'
 import type {

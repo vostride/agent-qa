@@ -1,15 +1,4 @@
-// A parameterizable synthetic CompletedRunHandoff builder.
-//
-// One substrate for the whole phase: the tracer's handler test drives it with a handful of
-// failures, plan 04's author harness scripts the `unknown` members it upgrades, plan 05's
-// cluster tests give N failures one shared anchor, and plan 07's ANLZ-04 acceptance scales
-// `failureCount` to 40. Built general NOW so none of them mints a second fixture vocabulary.
-//
-// Every failing member carries quotable captured evidence in all three places the template
-// author may quote from — `stepText`, `verifierVerdict.reasoning`, `subActions[].result.error`
-// — and the shared element/page anchors are reachable through the exercised-anchors walk
-// (`plannedAction.ref` resolves against `stateBefore.elements`, `stateBefore.url` mints the
-// page anchor). Step-less failures model the suite-bootstrap case: outcome without steps.
+// One parameterizable substrate, so no suite mints a second fixture vocabulary.
 
 import type {
   ArtifactRef,
@@ -45,20 +34,15 @@ export interface SyntheticHandoffOptions {
    * for the floor's minted `unknown`. Ranges over stepped failures only.
    */
   readonly rootCauseFor?: (failureIndex: number) => Verdict | undefined
-  /** The run's build ordinal (plan 03: prior-build history tests select strictly below it). */
+  /** The run's build ordinal; prior-build history selects strictly below it. */
   readonly buildOrdinal?: number
-  /** Passing steps BEFORE each stepped failure's failing step (plan 03 window-clamp tests). */
+  /** Passing steps before each stepped failure's failing step. */
   readonly passingStepsBefore?: number
-  /** Passing steps AFTER each stepped failure's failing step (plan 03 window-clamp tests). */
+  /** Passing steps after each stepped failure's failing step. */
   readonly passingStepsAfter?: number
-  /**
-   * Decision-screenshot refs on the failing step (plan 03, the D-02 screenshot channel):
-   * one sub-action is minted PER ref, each carrying `decisionScreenshotRef`, the first one
-   * also carrying the failing `result.error`. Absent → the single historical sub-action
-   * with no ref, byte-identical to the pre-plan-03 fixture.
-   */
+  // One sub-action per screenshot ref; absent leaves a single sub-action with no ref.
   readonly decisionScreenshotRefs?: readonly ArtifactRef[]
-  /** A serve-time retrieval trace attached to the failing step (plan 03 forced channel 2). */
+  /** A serve-time retrieval trace attached to the failing step. */
   readonly retrievalTrace?: ServedRetrievalTraceV1
 }
 
@@ -142,7 +126,7 @@ function failingStep(options: {
   }
 }
 
-/** A verifier-passed neighbor step (plan 03 window tests). */
+/** A verifier-passed neighbor step. */
 function passingStep(options: {
   readonly stepIndex: number
   readonly element: ElementInfo
@@ -165,14 +149,7 @@ function passingStep(options: {
   }
 }
 
-/**
- * Build a valid CompletedRunHandoff with the requested failure population.
- *
- * Member order (and therefore `testIndex`): stepped failures, then step-less failures,
- * then clean passes. Every stepped failure shares ONE anchor pair — the element and the
- * page route — which is exactly what plan 05's clustering and 390's recurrence window
- * group over.
- */
+// Members run stepped failures, step-less failures, then passes; stepped ones share one anchor.
 export function buildSyntheticHandoff(
   options: SyntheticHandoffOptions = {},
 ): CompletedRunHandoff {

@@ -1,58 +1,4 @@
-// The scaffold's derivation and its never-guess boundary.
-//
-// WHAT EACH CELL'S ACCEPTANCE BAR IS — the implementation it must RED on, never the suite it passes:
-//
-//   (G1) the derivation      — ANY implementation that is not the pinned rule, and the corpus is
-//                              RANGED over five different domains through ONE producer so that a
-//                              gate hard-coding `booking.com` fails four of them. A cell asserting
-//                              one domain's answer passes under a constant function; this one
-//                              cannot.
-//   (G2) the rejection corpus— a gate that accepts anything with a dot in it. Every member is a
-//                              NEAR MISS — a token that has a dot, or has legal labels, or is a
-//                              parseable URL — so a rule that merely looks for a dot reds on nine
-//                              of them. This is the corpus case the rule's own precondition
-//                              rejects, which is what stops the positive cells from being drawn
-//                              from inside the rule's assumption.
-//   (G3) the URL arm         — a host extraction by regex. `https://example.com@evil.example/` is
-//                              the case where "everything after // up to the first /" and "the
-//                              authority's host" are different strings, and only one of them is
-//                              the site.
-//   (S1) the refusal         — a scaffold that guessed. It asserts the typed reason, that the
-//                              detail names BOTH continuations, and — the half that matters — that
-//                              the token itself is not echoed back as a candidate origin.
-//   (S2) never reads         — a gate placed AFTER the re-read. The double throws if read, so a
-//                              refusal that had already gone to the filesystem fails by name.
-//   (S3) already-configured  — a scaffold that overwrote a DECLARED TARGET REGISTRY. Since 395-12
-//                              the predicate is the registry rather than the file: the double
-//                              answers a config that declares `shop` and the cell asserts NOTHING
-//                              was written, and that the refusal names what it will not replace.
-//  (S3b) the narrowing       — a predicate still keyed on the file EXISTING. The double answers a
-//                              config file that declares NO targets, and the op must reach the
-//                              content port in MERGE mode carrying the person's own bytes. Its
-//                              two-sidedness is (S3) one cell up: same op, same fixture family,
-//                              opposite verdict, and neither can be satisfied by a constant.
-//   (S4) the port gets the   — an op that handed the raw token to the content port, or derived the
-//        DERIVATION            target name a second time on the far side of the boundary. The
-//                              double records what it was asked for.
-//   (S5) crossBoundary       — a proposal that carried the flag as a constant. The value is read
-//                              off `computeCrossBoundary`'s own output through the real pipeline,
-//                              and the reasons are asserted by MEMBERSHIP so a classifier that
-//                              started flagging everything for one reason still fails the pair.
-//   (S6) one diff, three     — a scaffold that published file by file in separate calls. CFGM-05's
-//        files                 sentence is ONE diff; since 432-11 it is one publication of all
-//                              three files, and the cell counts the direct writer's calls.
-//   (S7, S8) deleted 2026-10-14: their subject was the construction scan.
-//   (S9) unrenderable        — 395-02's refusal escaping as a fault instead of being answered as
-//                              data. The scaffold is the one op that folds bytes it did not author
-//                              into a file it proposes, so it is the one that must answer it.
-//
-// THE CONTENT IS A DOUBLE HERE, AND THE REAL PRODUCER IS MEASURED IN `cli`. `packages/agent` may
-// not import `packages/cli`, where D-04's one scaffold producer lives. So this file measures the
-// PIPELINE — the gate, the refusals, the ordering, the classification, the single record — and
-// `cli/src/composition/__tests__/config-scaffold.test.ts` byte-pins what the real producer emits,
-// against committed goldens, for two different domains. Splitting them is the same call 395-04 and
-// 395-07 recorded: a double that could answer the question under test would make the cell a
-// statement about the double.
+// Each domain goes through one producer, so a gate hard-coding one domain fails the rest.
 
 import { isMap, isScalar, parseDocument } from 'yaml'
 
@@ -88,7 +34,7 @@ const DERIVATIONS = [
  * because a plausible weaker rule would accept it.
  */
 const REJECTED = [
-  // No dot at all — the case the phase's own utterance example produces.
+  // No dot at all, as in a typical utterance.
   'checkout flow',
   'booking',
   // A dot, and an illegal label: `_` is not DNS label syntax. Accepted by "has a dot".
@@ -122,7 +68,7 @@ interface Published {
   readonly files: readonly { path: string; baseDigest?: string; text: string }[]
 }
 
-/** What the content port was asked for — including 395-12's merge mode, when it is present. */
+// What the content port was asked for, including merge mode when present.
 interface RenderedCall {
   readonly targetName: string
   readonly baseUrl: string
@@ -193,12 +139,7 @@ function harness(options: {
             ],
           })
         },
-        // FAITHFUL SINCE 395-12, and it had to become so: the narrowed `already-configured`
-        // predicate reads the DECLARED TARGET NAMES structurally, so a double that threw here
-        // would be pinning the absence of the very read the fix is made of. It is the shipped
-        // host's own `parseDocument` → `getIn` → `keys` answer — names, never values — spelled
-        // over the same `yaml` API, which is a DEV dependency of this package: a test may parse
-        // what this package's source may not.
+        // Mirrors the host's `parseDocument`, `getIn` and `keys` answer: names, never values.
         inspect: ({ bytes, paths }) => {
           const document = parseDocument(bytes === undefined ? '' : utf8Decode(bytes))
           return Promise.resolve(paths.map((path) => {
@@ -311,8 +252,7 @@ describe('the hostname gate is the never-guess boundary, as a parse', () => {
       baseUrl: 'https://evil.example',
       targetName: 'evil-example',
     })
-    // A port is authority, not host — and since 432 D-20 (#134) an explicit port is kept on the
-    // base URL rather than dropped, so the target addresses the origin that was typed.
+    // A port is authority, not host, and an explicit port stays on the base URL.
     expect(parseHostnameToken('https://booking.com:8443/')).toMatchObject({
       domain: 'booking.com',
       baseUrl: 'https://booking.com:8443',
@@ -334,16 +274,13 @@ describe('config.project.scaffold refuses rather than guessing', () => {
     // person with a configured target list they were never told about.
     expect(answer.outcome === 'refused' && answer.detail).toContain('https://example.com')
     expect(answer.outcome === 'refused' && answer.detail).toContain('agent-qa.config.yaml')
-    // AND NO GUESS. The token does not come back dressed as a candidate origin, which is the whole
-    // of what D-15 forbids. The integrity half is above: the detail is asserted non-empty and to
-    // carry two specific sentences, so this absence is not an absence over nothing.
+    // No guess: the token does not come back as a candidate origin.
     expect(answer.outcome === 'refused' && answer.detail).not.toContain('checkout')
     expect(test.published).toHaveLength(0)
   })
 
   it('(S2) refuses ABOVE the re-read — a guess costs the filesystem nothing', async () => {
-    // The double throws on `read`. A gate placed after CFGM-04's re-read would surface that throw
-    // instead of the typed refusal, so this cell is the ORDER stated as a measurement.
+    // The double throws on `read`, so a gate placed after the re-read fails by name.
     const test = harness({ readThrows: true })
     await expect(scaffold(test, 'not_a_domain.x')).resolves.toMatchObject({
       reason: 'not-a-hostname',
@@ -352,9 +289,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
   })
 
   it('(S3) refuses a project that DECLARES targets, and writes nothing', async () => {
-    // A DESIGNED FIXTURE BREAK. This fixture was `workspace:\n  hooksFile: …` — a config
-    // file declaring no targets at all — so it measured "a config file exists". The predicate it
-    // pins now is the narrowed one: a target registry this scaffold would replace.
+    // A config file with a target registry the scaffold would replace.
     const test = harness({
       configBytes:
         'workspace:\n  hooksFile: hooks.yaml\n'
@@ -377,9 +312,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
 
   it('(S3b) MERGES a config file that declares no targets, carrying the person\'s own bytes',
     async () => {
-      // THE OTHER SIDE OF (S3), and the cell that reds on the pre-395-12 predicate: a config FILE
-      // exists, so the old rule refused — and refused precisely the class that can reach this op
-      // through a chat turn, because a project's chat model lives in `registry.llms`, in this file.
+      // A config file with no targets exists, and the scaffold merges into it instead of refusing.
       const configBytes = '# mine\nworkspace:\n  hooksFile: hooks.yaml\nregistry:\n  llms: []\n'
       const test = harness({ configBytes })
       const answer = await scaffold(test, 'booking.com')
@@ -403,10 +336,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
     })
 
   it('(S9) answers UNRENDERABLE as data rather than letting it escape as a fault', async () => {
-    // 395-02's refusal, reached the only way this pipeline can reach it: bytes that differ and
-    // decode identically. `0x80` and `0xFF` are both U+FFFD, so the diff of them renders as zero
-    // hunks — a person would be shown a blank page. The scaffold is the op that folds a project's
-    // OWN `.gitignore` into a file it proposes, which is why it is the one that must answer this.
+    // `0x80` and `0xFF` both decode to U+FFFD, so their diff renders as zero hunks.
     const test = harness({
       gitignoreBytes: Uint8Array.from([0x80]),
       content: () => [{ path: '.gitignore', bytes: Uint8Array.from([0xff]) }],
@@ -423,9 +353,7 @@ describe('the scaffold is one diff, published whole, over the whole set', () => 
     const test = harness()
     await scaffold(test, 'HTTPS://Booking.com/rooms')
 
-    // The port is asked for exactly what `parseHostnameToken` produced. An op that handed over the
-    // raw token — or that derived the name a second time on the far side — fails here, and the
-    // failure is the one D-13 is about: two derivations that can disagree.
+    // The port gets exactly what `parseHostnameToken` produced, so no second derivation exists.
     expect(test.rendered).toEqual([{ targetName: 'booking-com', baseUrl: 'https://booking.com' }])
   })
 
@@ -441,7 +369,7 @@ describe('the scaffold is one diff, published whole, over the whole set', () => 
     const answer = await scaffold(test, 'booking.com')
 
     expect(answer.outcome).toBe('applied')
-    // CFGM-05's sentence is ONE diff. Three files, one publication.
+    // One diff, three files, one publication.
     expect(test.published).toHaveLength(1)
     expect(test.published[0]?.files.map((file) => file.path))
       .toEqual(['.gitignore', CONFIG_FILE, 'hooks.yaml'])

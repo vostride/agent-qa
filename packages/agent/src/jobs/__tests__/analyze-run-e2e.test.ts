@@ -1,20 +1,4 @@
-// The ANLZ-04 acceptance E2E — 40 red tests, N distinct problems.
-//
-// The phase's headline story driven through the REAL path, never a shortcut: the real
-// analyze-run handler (floor → author → artifact → checkpoint) with a scripted model, then
-// the `analysis.get` op over the persisted artifact — the same op the CLI tail prints from
-// and the run page will serve. Three legs:
-//
-//   1. 40 failures, ONE shared anchor and cause → exactly 1 cluster, count 40, every member
-//      ref present — AND all 40 per-test sentences still served (ANLZ-03: presentation
-//      dedupes, sentences never disappear).
-//   2. The same run shape with TWO causes → exactly 2 clusters with correct membership
-//      (N problems — not 1, not 40).
-//   3. The SAME 40-failure fixture as the D-01 compaction stressor: a pinned tiny
-//      test-injected inputBudget forces every ladder rung (verified against the exported
-//      ladder itself), and the prompt the scripted model actually received still carries
-//      BOTH forced channels for every analyzed test — prior-build history and the served
-//      brief + retrieval trace — because compaction squeezes the window, never the channels.
+// Forty failures with one cause form one cluster and still serve forty sentences.
 
 import {
   canonicalJson,
@@ -46,8 +30,7 @@ import { buildSyntheticHandoff } from './fixtures/synthetic-handoff.js'
 
 const EVIDENCE_TEXT = 'Error: element "Submit" not found'
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
+// No `grantedScopes` or `safeMode` on the caller; the registry reads neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -175,8 +158,7 @@ async function readThroughTheOp(
       },
       analysis: { getArtifact: () => artifact },
     } as FunctionDeps,
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
+    // No `resolveExecutionContext` registry option; the registry reads no context.
   })
   return await invokeFunction(
     registry,
@@ -222,8 +204,7 @@ describe('40 red tests, one root cause → ONE cluster ×40 through the real pat
       if (outcome.status !== 'complete') {
         throw new Error(`expected complete, got ${outcome.status}`)
       }
-      // One whole-run model call; artifact durable strictly BEFORE the checkpoint value —
-      // the D-09 ordering, held at scale.
+      // One whole-run model call, with the artifact durable before the checkpoint value.
       expect(h.generateCallCount()).toBe(1)
       expect(h.calls).toEqual(['persistAnalysis', 'record:verdicts-authored'])
       const value = (h.published[0] as { value: unknown }).value as Record<string, unknown>
@@ -231,7 +212,7 @@ describe('40 red tests, one root cause → ONE cluster ×40 through the real pat
 
       const analysis = await readThroughTheOp(handoff, h.artifacts[0] as RunAnalysisArtifact)
 
-      // ANLZ-04's presentation law: 40 red tests present as ONE distinct problem.
+      // Forty red tests with one cause present as one distinct problem.
       expect(analysis.clusters).toHaveLength(1)
       const cluster = analysis.clusters[0]!
       expect(cluster.count).toBe(40)
@@ -240,8 +221,7 @@ describe('40 red tests, one root cause → ONE cluster ×40 through the real pat
         Array.from({ length: 40 }, (_, index) => `t_failed_${index}`),
       )
 
-      // ANLZ-03's floor: every member test still CARRIES its own sentence — presentation
-      // dedupes, sentences never disappear.
+      // Every member test still carries its own sentence.
       expect(analysis.sentences).toHaveLength(40)
       expect(analysis.sentences.map((entry) => entry.perTest)).toEqual(
         Array.from({ length: 40 }, (_, index) => index),
@@ -250,8 +230,7 @@ describe('40 red tests, one root cause → ONE cluster ×40 through the real pat
         expect(entry.sentence).toContain(`app_bug: observed (step 0): "${EVIDENCE_TEXT}"`)
         expect(entry.sentence).toContain('next: ')
       }
-      // The representative's sentence is LOOKED UP from the per-test list — the
-      // cluster view and the expanded view cannot drift.
+      // The representative's sentence is looked up from the per-test list, so views cannot drift.
       expect(cluster.representative.sentence).toBe(
         analysis.sentences.find((entry) => entry.perTest === cluster.representative.testIndex)!
           .sentence,

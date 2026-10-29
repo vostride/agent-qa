@@ -1,20 +1,5 @@
 import type { CurationSnapshot } from '@vostride/agent-qa-schema'
-// The real agent job kinds.
-//
-// The kind set is closed and shipped, and this module declares every member of it. The
-// declarations are the CONTRACT this phase ships; the handler bodies are deterministic
-// stand-ins, and the two are not the same kind of thing. Real semantics for analyze-run and
-// curate-memory arrive with the phases that own them — what has to exist now is a complete,
-// registry-driven description of how each kind checkpoints, chains, retries and gives up,
-// because the crash matrix iterates THAT rather than a list of its own.
-//
-// The stand-ins are scripted by payload, in the style of the v51 drain fixture's scripted
-// author: a handler publishes its own declared schedule with its own bytes and then does
-// exactly what the payload asked for. That matters for two separate reasons. Distinguishable
-// bytes mean a matrix comparing the recovered histories of every kind is comparing different
-// things rather than copies of one. Scriptable outcomes mean the adversarial legs — a chain, a
-// retryable report, a permanent one — can be driven through the REAL kinds instead of through
-// a synthetic stand-in that a later refactor could leave behind.
+// The real job kinds; stand-ins scripted by payload let tests drive them without a host.
 //
 // Deliberately absent from every published byte: the attempt number and any timestamp. A
 // checkpoint whose bytes changed with the attempt that wrote it would make an interrupted
@@ -129,25 +114,7 @@ function standInHandler(
   }
 }
 
-/**
- * analyze-run's ratified disposition: the chain proceeds with unknown verdicts (spec §1.2).
- *
- * Its downstream jobs must never wait on a dead head, so a permanently failed analysis hands
- * them the same successors a successful one would, marked as carrying no verdicts. Nothing
- * here reaches a model, and nothing here can: what it is given is the failed job, the payload
- * that job was handed, and the reason.
- *
- * "The same successors a successful one would" is true by construction: this fallback maps
- * over the one successor constant below, the same list the success path's `next`, the scripted
- * stand-in and the declaration itself all read. Declared equals produced, so a dead analysis
- * hands on exactly what a live one would and no path can enqueue what the topology never declared.
- *
- * The extra carries the run's identity and posture forward for the same reason the success
- * path does (Pitfall 6): the successor may be claimed by the daemon, which resolves posture
- * from `payload.executionContext`, and curation cannot fold a run directory
- * it was never told about. The unknown-verdicts marker travels with them so the chain
- * terminal can report the analysis stage honestly from a job that succeeded afterwards.
- */
+// Maps over the success path's successor constant, so a dead analysis hands on the same jobs.
 function analyzeRunFallback(input: FallbackContinuationInput): readonly ChainedJobRequest[] {
   const payload = asRecord(input.payload)
   return successorsOf(
@@ -166,41 +133,11 @@ function analyzeRunFallback(input: FallbackContinuationInput): readonly ChainedJ
 
 const ANALYZE_RUN_SUCCESSORS = ['curate-memory'] as const satisfies readonly JobKind[]
 
-/**
- * The host powers the two real post-run handlers need, injected by the composition.
- *
- * Both are things `agent` cannot do and must never learn to: reading a file is a host API in
- * a storageNeutral package, and the curation drain lives two packages away behind the writer
- * lease. Passing them as capabilities is what lets the handler bodies be real here while the
- * bindings stay where the ownership is — and it is also the seam a test uses to drive the
- * chain without a knowledge root.
- *
- * The whole interface is OPTIONAL at construction. A registry built without it keeps the
- * scripted stand-ins byte-identically, because several shipped suites — engine semantics,
- * kind registry, the kill matrix — drive the REAL kinds by scripting their payloads, and a
- * build where those kinds could only do real work would have no way to express "chain here,
- * fail permanently there" without a knowledge root and a run directory per case.
- */
+// File reads and the curation drain arrive as capabilities; without them the stand-ins run.
 export interface PostRunJobCapabilities {
-  /**
-   * The run's persisted handoff, addressed by `runId` alone.
-   *
-   * Hard-fails typed on a missing or malformed document rather than answering `undefined`:
-   * D-06 makes the PATH derived and the BYTES pinned, so "there is no handoff for this run"
-   * is a permanent condition of that run, never a transient one worth retrying.
-   */
+  // A missing or malformed handoff is permanent for that run, so it fails typed and is not retried.
   loadCompletedRunHandoff(runId: string): CompletedRunHandoff
-  /**
-   * The per-run fold, and the fold's own report of whether it FINISHED.
-   *
-   * `complete` is not a nicety on the side of the counts: the v51 fold answers `false` for
-   * candidate refusals, a cap exceeded, unresolved canaries, a failed outcome projection and
-   * requeues, and in every one of those cases it writes NO receipt so the run refolds later.
-   * Both production bindings used to return the counts alone, which is how a fold that refused
-   * became a stage the durable notification row called `done` — the one place in this phase
-   * where the record overstated what happened. It is part of the contract precisely so a
-   * binding cannot drop it silently: omit it and the binding stops typechecking.
-   */
+  // `complete` is required, so a binding cannot drop a fold's refusal and report it done.
   curateRun(input: {
     readonly runId: string
     readonly executionContext: unknown
@@ -210,61 +147,27 @@ export interface PostRunJobCapabilities {
     readonly deprecated: number
     readonly complete: boolean
     readonly snapshot?: CurationSnapshot
-    /** why a fold that did not complete handed its run back. */
+    // Why a fold that did not complete handed its run back.
     readonly reason?: string
   }>
-  /**
-   * Put one run's analysis artifact durably on disk.
-   *
-   * Called INSIDE the author callback, before the verdicts-authored value is recorded — the
-   * authorship primitive records only after the callback returns, so by the time any chip can
-   * read `done` the sentence is already fetchable. Authored never overstates. The binding is
-   * the host's (`agent-local` derives the path from `runId` the same way it derives the
-   * handoff's — a job payload never carries a path); a synchronous throw here propagates out
-   * of the author, no checkpoint is recorded, and the declared bound adjudicates the retry.
-   */
+  // Called inside the author callback, so the artifact is durable before the value is recorded.
   persistAnalysis(artifact: RunAnalysisArtifact): void
-  /**
-   * One test's recorded outcome history, keyed the projection's way — `product` =
-   * `slugBranch(scope.key)` plus the stable test identity `filePath` + `testName`, NEVER
-   * `testId` (389 plan 02's key law). Feeds D-02's forced prior-build channel and the
-   * author's failure-history reasoning input. OPTIONAL: production hosts bind
-   * knowledge-local's `readTestOutcomeHistory` in plan 06; unbound, the author runs with a
-   * typed no-history diet — degraded, never a crash.
-   */
+  // Keyed by product and the stable `filePath` + `testName`, never `testId`; unbound is no history.
   readTestHistory?(query: {
     readonly product: string
     readonly filePath: string
     readonly testName: string
   }): TestOutcomeHistoryLike | undefined
-  /**
-   * D-01's TokenAccounting substrate entering as DATA — the estimator and input budget the
-   * author's compaction ladder walks against. OPTIONAL: plan 06 binds it from the same
-   * profile resolution as the job model; unbound, the packs travel whole (no ladder) and
-   * the model call carries whatever they weigh.
-   */
+  // The estimator and input budget for the compaction ladder; unbound, packs travel whole.
   analysisTokenBudget?: {
     readonly estimate: (text: string) => number
     readonly inputBudget: number
   }
-  /**
-   * D-02's capability-gated screenshot bytes: the CASS-02 evidence-blob store read,
-   * sha-addressed within one run's directory. OPTIONAL: plan 06 binds it at the production
-   * hosts; unbound — or with a model that does not advertise vision — the author's request
-   * is text-only, the L9 graceful degradation, never an error.
-   */
+  // Screenshot bytes by sha within one run; unbound or without vision, the request is text only.
   readEvidenceBlob?(runId: string, sha: string): Uint8Array | undefined
 }
 
-/**
- * The minimal structural mirror of knowledge-local's `TestOutcomeHistory` row (389 plan 02).
- *
- * Declared HERE rather than imported because the dependency points the other way — this
- * package never names knowledge-local — and structural typing makes the real
- * `readTestOutcomeHistory` record assignable unchanged at the plan 06 binding. It also
- * matches `evidence-diet.ts`'s `EvidenceTestHistory` member-for-member, so one capability
- * answer feeds both the diet's prior-build channel and the author's reasoning input.
- */
+// A structural mirror of knowledge-local's row, matching `EvidenceTestHistory` member for member.
 export interface TestOutcomeHistoryLike {
   readonly passes: number
   readonly failures: number
@@ -274,27 +177,15 @@ export interface TestOutcomeHistoryLike {
   readonly lastBuildOrdinal: number | undefined
 }
 
-/**
- * The claim shape analyze-run is enqueued with. Anything else is unreadable input.
- *
- * The two markers below are ADDITIVE-OPTIONAL: the enqueue site copies them
- * from the loaded handoff, and every job already sitting in a durable queue predates them. They
- * are queue-level VISIBILITY, never integrity — the digest field above already covers the
- * handoff bytes these values also live inside, so a consumer that needs the authoritative
- * answer reads the handoff, not this copy.
- */
+// Both markers are optional, because queued jobs predate them; they are visibility, not integrity.
 export interface AnalyzeRunPayload {
   readonly runId: string
   readonly handoffDigest: string
   readonly handoffSchemaVersion: number
   readonly executionContext: ExecutionContext | undefined
-  /**
-   * D-10's verify-before-present gate-run marker, mirroring the handoff carrier's `?: true`
-   * idiom. A DISTINCT axis from `excludedFromOutcomes` — C8 ratified that gate runs DO feed
-   * curation, so neither marker may be read as implying the other.
-   */
+  // A distinct axis from `excludedFromOutcomes`: gate runs still feed curation.
   readonly gateRun?: true
-  /** D-14 §6's outcome-exclusion marker, same carrier idiom, same literal-only rule. */
+  // The outcome-exclusion marker, same carrier idiom, same literal-only rule.
   readonly excludedFromOutcomes?: true
 }
 
@@ -339,39 +230,17 @@ export function readAnalyzeRunPayload(value: unknown): AnalyzeRunPayload | undef
   }
 }
 
-/**
- * A permanent report, phrased once.
- *
- * Every unreadable-input path below is PERMANENT rather than retryable, and that is A1 rather
- * than pessimism: a payload whose shape is wrong, a handoff that is not there, bytes that
- * drifted — none of them becomes right on a second attempt, and retrying them would spend a
- * bound the poison-job case needs.
- */
+// Unreadable input is permanent: it never becomes right on a retry, which would waste the bound.
 function permanently(reason: string): JobHandlerOutcome {
   return { status: 'permanent', reason }
 }
 
-/**
- * Members whose outcome is worth a root-cause verdict.
- *
- * The complement of the runner's own presence rule: clean passes, skipped and
- * cancelled members are not failures to explain. Everything else gets a verdict, which is
- * what keeps the checkpoint's array in step with what the analysis chip claims to cover.
- */
+// Clean passes, skips and cancellations need no verdict; everything else gets one.
 function needsVerdict(test: PerTestOutcome): boolean {
   return test.outcome !== 'passed' && test.outcome !== 'skipped' && test.outcome !== 'cancelled'
 }
 
-/**
- * The D-02 bridge: PROJECT the verdicts the runner already persisted; never re-classify.
- *
- * Re-running the classifier here is not merely redundant, it is impossible to do faithfully —
- * it reads `TestResult.retryCount`, which `PerTestOutcome` deliberately does not carry, so a
- * handler that "re-classified" would be classifying from strictly less evidence and quietly
- * disagreeing with the verdict already on disk. An absent verdict is filled with the same
- * 'unknown' the classifier itself mints, so the array covers every failed member and 389 can
- * supersede exactly the ones that carry no signal.
- */
+// Projects persisted verdicts; re-classifying would lack `retryCount` and disagree with disk.
 function projectHandoffVerdicts(handoff: CompletedRunHandoff): Verdict[] {
   return handoff.tests
     .filter(needsVerdict)
@@ -395,11 +264,7 @@ function summarizeVerdicts(verdicts: readonly Verdict[]): {
   return { total: verdicts.length, byClass }
 }
 
-/**
- * The one concrete next action a template sentence names, total over the verdict union
- * A `Record` rather than an if-chain so an added class is a compile error here,
- * not an uncovered row — the 388-11 `postureOf` discipline.
- */
+// A `Record`, so an added class is a compile error here, not an uncovered row.
 const TEMPLATE_NEXT_ACTION: Record<Verdict['class'], string> = {
   test_bug: 'update the test to match the behaviour the app now has',
   app_bug: 'file the failure against the application with the quoted evidence',
@@ -411,17 +276,7 @@ const TEMPLATE_NEXT_ACTION: Record<Verdict['class'], string> = {
   timeout: 'investigate the slow dependency or raise the step timeout deliberately',
 }
 
-/**
- * A verbatim quote of captured evidence for one member test.
- *
- * Step selection and error-text precedence come from schema's ONE exported input rule
- * (`failingStepOf`/`errorTextOf`, hoisted by 390 plan 02): the first failed step else the last,
- * then the first sub-action error text else the verifier's own reasoning. This quote and the
- * fingerprint window are now the SAME rule by construction rather than by parallel maintenance.
- * A test that captured ZERO steps quotes its test-level outcome through the typed no-step arm —
- * never a fabricated stepIndex. Every branch quotes bytes the run actually recorded; templates
- * assemble around the quote, the quote itself is never authored.
- */
+// Step selection comes from `failingStepOf`/`errorTextOf`; a step-less test quotes its outcome.
 function templateGroundingQuote(test: PerTestOutcome | undefined): VerdictGroundingQuote {
   if (test === undefined) return { source: 'test-outcome', quote: 'failed' }
   const step = failingStepOf(test)
@@ -430,19 +285,7 @@ function templateGroundingQuote(test: PerTestOutcome | undefined): VerdictGround
   return { stepIndex: step.stepIndex, quote: errorTextOf(step, test) }
 }
 
-/**
- * Producer-keyed template parts for one floor verdict.
- *
- * Deterministic classes get code-authored parts derived from the hard signal that minted the
- * class — the classifier's rationale IS that signal, so the discriminator carries it.
- * `unknown` gets the honest "root cause undetermined" discriminator and the manual-inspection
- * next action; plan 04's LLM upgrade replaces exactly those members through the same author
- * callback, and nothing else changes shape.
- *
- * Exported (module-level, NOT on the package barrel) for the `analysis.get` op's floor leg:
- * a run with no artifact renders honest parts through THIS same rule — a second spelling of
- * the template inside the op would be exactly the D-06 drift the one-rule law forbids.
- */
+// Exported for `analysis.get`'s floor leg, so the op renders parts through this same rule.
 export function templateSentenceParts(
   verdict: Verdict,
   handoff: CompletedRunHandoff,
@@ -460,15 +303,7 @@ export function templateSentenceParts(
   }
 }
 
-/**
- * The real analyze-run body.
- *
- * Reads the run's handoff through the injected capability, refuses anything that is not the
- * document the enqueuer measured, authors the verdicts through `recordLlmAuthorship`, and
- * hands curation the one successor D-04 allows. The recorded SHAPE — `{runId, verdicts}` —
- * is the frozen 388 D-02 byte-shape; sentence parts live in the analysis artifact the author
- * persists BEFORE its value is recorded, never on the checkpoint.
- */
+// The recorded shape is `{runId, verdicts}`; sentence parts live in the artifact.
 function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler {
   return async (context) => {
     const payload = readAnalyzeRunPayload(context.payload)
@@ -496,9 +331,7 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
           String(payload.handoffSchemaVersion),
       )
     }
-    // D-06's bytes-drifted rule. The digest is the whole reason the payload carries no path:
-    // it pins that the bytes being analysed are the bytes the tail measured, whoever rewrote
-    // the file in between.
+    // The digest pins that the analysed bytes are the ones the tail measured.
     if (sha256hex(canonicalJson(handoff)) !== payload.handoffDigest) {
       return permanently(
         `the handoff for ${payload.runId} no longer digests to the bytes this job was ` +
@@ -506,26 +339,13 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
       )
     }
 
-    // The author swap. On a fresh pass the callback runs exactly once:
-    // floor projected, template parts authored, the artifact made durable through
-    // `persistAnalysis`, and only THEN is the returned value recorded on the declared
-    // checkpoint — the primitive awaits the record before handing the value back, so the
-    // artifact-before-checkpoint ordering is structural, not scheduled. On a resume with a
-    // recorded value, control never reaches this callback: the author is not re-invoked and
-    // the artifact is not rewritten (the recorded-value path).
+    // A fresh pass runs the callback once and persists the artifact before recording.
     const authored = await context.recordLlmAuthorship(
       'verdicts-authored',
-      // The full author (389 plan 04): the model capability arrives ONLY as this
-      // callback's argument. Unknown floor members are authored through
-      // `authorRunAnalysis` — one whole-run call, one repair, per-test degrade — and
-      // everything else passes through byte-identical; a floor with no unknown members
-      // (or no failures at all) reaches no model. Signature, artifact-write position and
-      // returned shape are final from plan 01.
+      // The model arrives only as this argument; a floor with no unknown members reaches no model.
       async (model) => {
         const floor = projectHandoffVerdicts(handoff)
-        // a limit stop is the run running out of limit, and 439 D-07: a step the
-        // verifier left unverified or inconclusive is unproven, not an application failure.
-        // Neither is something a model may label; their floor verdicts pass through byte-identical.
+        // A limit stop or an unproven step is no app failure, so its floor verdict passes through.
         const limitStopped = new Set(
           handoff.tests
             .filter((test) =>
@@ -540,7 +360,7 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
         let verdicts = floor
         const authoredParts = new Map<number, VerdictSentenceParts>()
         if (unknownTests.length > 0) {
-          // The projection's product key, spelled the projection's way (plan 02 key law).
+          // The projection's product key, spelled the projection's way.
           const product = slugBranch(handoff.scope.key)
           const history: EvidenceHistoryLookup = (identity) =>
             capabilities.readTestHistory?.({
@@ -568,9 +388,7 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
           for (const parts of result.authoredParts) authoredParts.set(parts.perTest, parts)
         }
 
-        // D-06's ONE producer-keyed parts rule: LLM parts for upgraded members, template
-        // parts for deterministic members — which is also what hands a degraded/unfilled
-        // `unknown` its honest "root cause undetermined" sentence.
+        // LLM parts for upgraded members, template parts for the rest.
         const sentenceParts = verdicts.map((verdict) =>
           verdict.producer === 'analyze-run'
             ? authoredParts.get(verdict.perTest) ?? templateSentenceParts(verdict, handoff)
@@ -603,9 +421,7 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
           { kind: 'analyze-run', allowedSuccessors: ANALYZE_RUN_SUCCESSORS },
           String(context.job.id),
           {
-            // Pitfall 6: a successor payload without these two is the DAEM-02 bug class — the
-            // daemon resolves a claimed job's posture from `payload.executionContext` (386
-            // D-09/D-12), and curation cannot find a run directory it was never told about.
+            // Without these the daemon misreads the posture and curation misses the run.
             runId: payload.runId,
             executionContext: payload.executionContext ?? handoff.executionContext,
             verdictSummary: summarizeVerdicts(verdicts),
@@ -616,18 +432,7 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
   }
 }
 
-/**
- * The real curate-memory body.
- *
- * The v51 curation fold runs INSIDE this job rather than beside it, which is what makes one
- * canonical pipeline out of two — and what makes the curation chip incapable of lying about
- * who did the work. The drain itself arrives as a capability: it needs the writer lease, a
- * knowledge root and a run directory, none of which this package may name.
- *
- * A capability that throws is reported as nothing at all: the engine catches it, spends an
- * attempt, and decides between a retry and a permanent failure from the declared bound. That
- * asymmetry is deliberate — this handler cannot know whether a drain failure is transient.
- */
+// The curation fold runs inside this job; a capability that throws spends an attempt.
 function realCurateMemoryHandler(capabilities: PostRunJobCapabilities): JobHandler {
   return async (context) => {
     const record = asRecord(context.payload)
@@ -642,12 +447,7 @@ function realCurateMemoryHandler(capabilities: PostRunJobCapabilities): JobHandl
       runId: record.runId,
       executionContext: record.executionContext,
     })
-    // WR-03. The gate sits BEFORE the publish, not after it: `bundle-committed` is named for an
-    // event, and a fold that refused wrote no bundle. Publishing it and then reporting the
-    // failure would leave the chain terminal reading counts off a checkpoint whose event never
-    // happened. Retryable rather than permanent because the fold's own recovery IS a refold —
-    // it withheld the receipt precisely so the run folds again — and the declared bound
-    // (maxAttempts: 3, onPermanentFailure: 'halt-chain') is what decides when refolding stops.
+    // Checked before publish: a fold that refused wrote no bundle, and refolding is its recovery.
     if (!counts.complete) {
       return {
         status: 'retryable',
@@ -656,8 +456,7 @@ function realCurateMemoryHandler(capabilities: PostRunJobCapabilities): JobHandl
             + 'under its declared bound',
       }
     }
-    // WR-02. The bundles are committed by now: a snapshot that does not validate is omitted and the
-    // legacy counts are published alone, rather than throwing into a retry of a finished fold.
+    // Bundles are committed: an invalid snapshot is omitted, never retrying a finished fold.
     const parsedSnapshot = counts.snapshot === undefined
       ? undefined
       : CurationSnapshotSchema.safeParse(counts.snapshot)
@@ -684,9 +483,7 @@ function realCurateMemoryHandler(capabilities: PostRunJobCapabilities): JobHandl
  */
 function declarationsFor(capabilities?: PostRunJobCapabilities) {
   return {
-  // JOBQ-04 / C9. Chat is NOT a checkpointed job and never becomes one: its state of record
-  // is the append-only session log, and the queue's checkpoint discipline covers background
-  // work only. One attempt, because there is no durable progress for a second one to resume.
+  // Chat is never checkpointed: its record is the session log, so one attempt.
   chat: {
     kind: 'chat',
     checkpointed: false,
@@ -713,8 +510,7 @@ function declarationsFor(capabilities?: PostRunJobCapabilities) {
       : realAnalyzeRunHandler(capabilities),
   },
 
-  // Two checkpoints, mirroring the v51 curation lifecycle: candidates are authored, then the
-  // bundle is committed. The second is the one whose recovery actually matters.
+  // Two checkpoints: candidates are authored, then the bundle is committed.
   //
   // It declares no successor: its finish is the chain's terminal.
   'curate-memory': {
@@ -748,36 +544,12 @@ function declarationsFor(capabilities?: PostRunJobCapabilities) {
   } satisfies Record<JobKind, JobKindDeclaration>
 }
 
-/**
- * The declarations as a list, in the order the kind vocabulary declares them.
- *
- * The NO-CAPABILITY set: analyze-run and curate-memory carry their scripted stand-ins here,
- * byte-identically to what 385 shipped. Everything registry-driven that does not compose a
- * host — the conformance suite, the crash matrix, the kill matrix's adversarial legs — reads
- * this list, and every one of them scripts those two kinds by payload.
- */
+// The no-capability set: harnesses read it and script analyze-run and curate-memory by payload.
 export const REAL_JOB_KIND_DECLARATIONS: readonly JobKindDeclaration[] = Object.freeze(
   Object.values(declarationsFor()) as readonly JobKindDeclaration[],
 )
 
-/**
- * A registry over exactly the real kinds.
- *
- * A fresh registry per call rather than a module-level singleton: a registry is a small,
- * cheap value, and one shared instance is how a test that registers something extra ends up
- * changing what every other test in the process sees.
- *
- * With `capabilities`, analyze-run and curate-memory dispatch their REAL bodies (388 D-01 /
- * D-02); without, they keep the scripted stand-ins. The stand-ins are the HARNESS affordance,
- * not a shipped posture: both production compositions bind capabilities — `composeLocalAgent`
- * when the run tail supplies its curation drain (plan 02), and the daemon's own composition
- * through the same input. A caller that gets a stand-in is a caller that asked for one.
- *
- * The DECLARATIONS are identical in both cases. Only the two handler slots move, so a matrix
- * that derives its crash points from the declared schedule covers the real bodies with no
- * harness change at all — which is the design intent 385 D-09 stated and this is the phase
- * that spends it.
- */
+// A fresh registry per call, so a test that registers extra kinds cannot leak into another.
 export function createRealJobKindRegistry(
   capabilities?: PostRunJobCapabilities,
 ): JobKindRegistry {

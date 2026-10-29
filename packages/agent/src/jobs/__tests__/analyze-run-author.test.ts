@@ -1,18 +1,4 @@
-// The whole-run author.
-//
-// `authorRunAnalysis` is a pure composition over injected capabilities: ONE `model.generate`
-// call over every unknown-verdict failure together (D-01 — no per-test fan-out, no second
-// LLM stage), parse-with-repair capped at exactly one round-trip, per-test degrade
-// to the deterministic floor for whatever still fails validation, and a merge law that
-// upgrades `unknown` floor members ONLY — deterministic verdicts pass through
-// byte-identical. The D-02 vision leg rides the same single request as optional image
-// parts, gated on the capability's declared `vision` and a bound blob reader; every other
-// posture is the L9 text-only degradation, structurally identical to the pre-widening
-// request.
-//
-// Every leg here drives a scripted JobModelCapability stub — a plain object, no network —
-// with a recorded-request capture, and the generate-call-count assertions are the D-01/D-03
-// contract: exactly 1 on valid output, exactly 2 when the single repair engages, never 3.
+// One whole-run generate call and at most one repair, so the call count is 1 or 2, never 3.
 
 import type { CompletedRunHandoff, Verdict } from '@vostride/agent-qa-schema'
 import { asRecordId, canonicalJson } from '@vostride/agent-qa-schema'

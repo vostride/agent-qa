@@ -1,42 +1,4 @@
-// The closed action class, one describe per action.
-//
-// every action WRITES IN THE CALL through the direct writer. The
-// writer double below applies field changes with the same yaml calls the config transaction makes
-// and stores whole files as published, so each cell reads the change back from what was written
-// rather than from a filed proposal. The per-action edges are unchanged.
-//
-// WHAT IS REAL HERE AND WHAT IS A DOUBLE. The OPS are real and are driven through `invoke` with
-// composed deps — never through a hand-built proposal literal, because a literal proposal is a
-// fixture asserting that somebody typed it correctly. The diff primitive and the classifier are
-// production's. The three doubles are the host facts this package may not touch: bytes on disk, the
-// yaml edit, and the store. Since 441 D-15 nothing in a config change is scanned for secrets.
-//
-// THE YAML DOUBLE USES THE REAL `yaml` LIBRARY, WITH THE SHIPPED PORT'S CALLS. 395-04's blocked
-// suite could get away with a line-level fake because `config.field.set` addresses one leaf; four of
-// the five ops here write a MAP or append to a SEQUENCE and three of them ask the document what it
-// already holds, and a hand-rolled stand-in for `setIn`/`getIn` would be a second implementation
-// whose agreement with production is the thing in question. `yaml` is a devDependency of this
-// package (the ownership contract pins RUNTIME dependencies), so the double calls what the port
-// calls. The remaining risk — that the double and the port diverge anyway — is closed on the other
-// side, in `cli`'s `config-ops-composed.test.ts`, which drives the REAL ports over a real file.
-//
-// WHAT MAKES EACH CELL RED, per op, because four near-identical ops invite four near-identical
-// vacuous suites. The question answered for each describe is: which edge is NOT shared with the
-// other three?
-//
-//   config.field.set     — shared baseline only. Its own edges are 395-04's file.
-//   config.target.create — THE COLLISION. `setIn` at an occupied path replaces it; a create that
-//                          merged or overwrote is the implementation this describe reds on, and no
-//                          other op has a collision posture to red on.
-//   config.target.edit   — THE NOT-FOUND, and the FIXED-PATH classifier pair: one path, two values,
-//                          two different answers. A classifier ranged over paths passes every other
-//                          op's cells and fails this one.
-//   config.auth.set      — THE INPUT REFUSAL and the ZERO STORE DELTA. A value that is not
-//                          a reference of its kind is refused on the input, before anything is
-//                          constructed, and nothing is written.
-//   config.hook.add      — A SECOND FILE. It writes the hooks file and not the config yaml, so a
-//                          pipeline that validated or diffed "the config" fails here while passing
-//                          every other describe.
+// Ops run through `invoke` over a real `yaml` double; `cli` drives the real ports over a file.
 
 import { createHash } from 'node:crypto'
 
@@ -79,12 +41,7 @@ const CALLER: FunctionCaller = {
   origin: 'human',
 }
 
-/**
- * The house style, comment-dense, with one target already configured.
- *
- * THE COMMENTS ARE SUBJECTS, not decoration: CFGM-01's reviewable-diff spirit is measured by
- * asserting they survive a structured write, which is what a plain-object round trip destroys.
- */
+// Comments are subjects: a structured write must keep them, which a plain-object round trip loses.
 const CONFIG = `# agent-qa Configuration
 
 # File discovery and project settings
@@ -114,8 +71,7 @@ const HOOKS = `hooks:
     network: true
 `
 
-// the config proposal payload type and the `configProposals` port are deleted.
-// The spy below is kept as an excess member so "nothing was filed" stays a measurement.
+// The spy below is an excess member, so nothing being filed stays a measurement.
 interface Filed {
   readonly kind: string
   readonly emittedBy: string
@@ -256,9 +212,7 @@ function harness(options: {
           file.bytes !== undefined && utf8Decode(file.bytes).includes(INVALID_MARKER))
         return Promise.resolve(bad.length === 0
           ? { ok: true as const }
-          // PAIRS, not pre-joined strings. The pipeline joins them for the record — so the
-          // cells' expected strings below are unchanged — and reads the path half into the blocked
-          // record's `paths`.
+          // Pairs, not joined strings: the pipeline joins them for the record and reads the paths.
           : {
             ok: false as const,
             issues: bad.map((file) => ({ path: file.path, message: 'seeded invalid' })),
@@ -271,8 +225,7 @@ function harness(options: {
         return Promise.resolve({ proposalId: `prop-${filed.length}` })
       },
     },
-    // the direct writer. It records what it was handed and answers as the host port does;
-    // what the host does with those changes is measured against real files in `cli`.
+    // Records what it was handed; `cli` measures what the host does with it against real files.
     configWrite: {
       applyFields: ({ changes }: { changes: readonly ConfigChange[] }) => {
         written.push({ kind: 'fields', changes })
@@ -363,14 +316,7 @@ function windows(value: string): string[] {
   return out
 }
 
-/**
- * The CFGM-01 sentence, asserted the same way for every action (432-11: now about a write).
- *
- * ONE HELPER RATHER THAN FIVE COPIES, so the shared claim reads identically and the per-op describes
- * contain only what is NOT shared. The claim: the answer carries the unified diff of the files as
- * the call read them, the change reached the direct writer exactly once, the files the answer names
- * are the ones written, and nothing was filed.
- */
+// One helper for the claim every action shares: diff as read, one write, named files, none filed.
 function assertTheCfgm01Sentence(test: Harness, answer: ConfigChangeOutput, options: {
   readonly action: string
   readonly files: readonly string[]
@@ -483,8 +429,7 @@ describe('config.target.create — a create is never an upsert (adjacency edge)'
     })
     if (answer.outcome !== 'applied') throw new Error('unreachable')
 
-    // THE ADDED LINES ARE THE WHOLE BLOCK AND NOTHING ELSE — a change that rewrote the file would
-    // show the whole document as changed, which is the reviewability CFGM-01 is about.
+    // The added lines are the block alone; a rewrite would show the whole document changed.
     const added = answer.shownDiff.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++'))
     expect(added).toEqual([
       '+    basket:',
@@ -503,9 +448,6 @@ describe('config.target.create — a create is never an upsert (adjacency edge)'
     expect(content).toContain('# How runs behave by default.')
   })
 
-  // RE-SPELLED 2026-10-02: was '… and binding an auth state is secret-adjacent
-  // too'. A create can no longer bind an auth state (the input field is gone), so it is a new origin
-  // and nothing else; the input refuses the retired field before any file is read.
   it('a created target is a NEW ORIGIN, and the retired auth-state field is refused on the input', async () => {
     const plain = harness()
     const first = await call(plain, 'config.target.create', {
@@ -570,9 +512,7 @@ describe('config.target.edit — never guess, and decide from the VALUE', () => 
   })
 
   it('THE EDGE: one FIXED path, two values, two different cross-boundary answers', async () => {
-    // The claim D-02 is about, and the one a classifier ranged over PATHS cannot make: both calls
-    // below edit `registry.targets.shop.url` — the same op, the same path, the same target — and
-    // the answers differ because the VALUES do.
+    // Both calls edit the same path, and the answers differ because the values do.
     const sameOrigin = harness()
     const near = await call(sameOrigin, 'config.target.edit', {
       name: 'shop',
@@ -601,8 +541,6 @@ describe('config.target.edit — never guess, and decide from the VALUE', () => 
 })
 
 describe('config.auth.set — refs only, refused on the INPUT', () => {
-  // RE-SPELLED 2026-10-02: the reference this cell wrote was `authStateName`,
-  // which the op no longer takes; the claim moves to the plugin declaration it still writes.
   it('carries the diff, the receipts and the config kind, and is secret-adjacent', async () => {
     const test = harness()
     const answer = await call(test, 'config.auth.set', {
@@ -664,8 +602,7 @@ describe('config.auth.set — refs only, refused on the INPUT', () => {
   })
 
   it('THE EDGE: a value that is not a reference is refused STRUCTURALLY, by what a reference IS', async () => {
-    // A base64-shaped token. What refuses it is the positive shape rule and nothing else: the rule
-    // names nothing it refuses (441 D-15/D-23 — no detector, no key-name rule).
+    // A base64-shaped token, refused by the positive shape rule alone.
     const unnamed = 'Zm9vYmFyYmF6cXV4Cg'
 
     const test = harness()
@@ -791,8 +728,7 @@ describe('config.hook.add — the one action that writes another file', () => {
     })
     if (answer.outcome !== 'applied') throw new Error('unreachable')
 
-    // STATED, NEVER INFERRED. A hook is code this project will run, so the flag is
-    // unconditional — it does not depend on what the hook does or where its file lives.
+    // A hook is code this project runs, so the flag is unconditional.
     expect(answer.crossBoundary).toBe(true)
     expect(answer.crossBoundaryReasons).toEqual(['hook-added'])
 
@@ -831,13 +767,6 @@ describe('config.hook.add — the one action that writes another file', () => {
   })
 })
 
-/**
- * The closed class, as a set the registry itself answers.
- *
- * WRITTEN AGAINST A NAMED CONSTANT THE LATER PLANS EXTEND, so this cell reds on an UNPLANNED op
- * rather than on the planned ones: 395-08's `config.project.scaffold` and D-07's `config.undo.*`
- * arrive by editing the constant beside the registration, in one commit a reviewer can read.
- */
 const EXPECTED_CONFIG_FAMILY = [
   'config.auth.set',
   'config.field.set',
@@ -859,10 +788,7 @@ describe('the config action class is CLOSED, and the registry is where that is l
 
     expect(family).toEqual([...EXPECTED_CONFIG_FAMILY])
 
-    // AND THE SHAPE OF THE CLASS, not only its membership: every one of these is a registry op in
-    // its own right — which is what makes the planner able to pick an action by tool name and 396
-    // able to project each as its own MCP tool — and every writing member declares itself a write.
-    // the `config-write` scope column is gone; the risk descriptor carries the claim.
+    // Each is a registry op the planner picks by tool name; every writing member declares a write.
     for (const id of EXPECTED_CONFIG_FAMILY) {
       const declaration = declarations.find((entry) => entry.id === id)
       expect(declaration, id).toBeDefined()
@@ -875,9 +801,7 @@ describe('the config action class is CLOSED, and the registry is where that is l
   })
 
   it('every config op names the direct writer as its binding and refuses by name without it', async () => {
-    // the direct writer is what these ops cannot run without. A host that does not
-    // bind it lists the five field and file ops unbound, and every one of the six refuses by name
-    // rather than filing the change somewhere else.
+    // Without the direct writer, every op refuses by name rather than filing the change elsewhere.
     const test = harness({ config: null })
     const { configWrite: _dropped, ...withoutWriter } = test.deps as unknown as Record<string, unknown>
     const registry = createFunctionRegistry({
@@ -900,17 +824,7 @@ describe('the config action class is CLOSED, and the registry is where that is l
   })
 })
 
-// ---- 432-11 D-05/D-07: every config operation writes in the call that asked for it ------------
-//
-// C432-CONFIG-THREE-OPS     config.field.set, config.target.create and config.target.edit hand
-//                           their field changes to the direct writer and answer what it wrote.
-// C432-CONFIG-SIX-OPS       config.auth.set, config.hook.add and config.project.scaffold do too:
-//                           the auth binding as field changes, the hooks file and the scaffold as
-//                           whole files carrying the digest they were built from.
-// C432-CONFIG-MULTIFILE-TRUTH a publication that fails part way reports exactly the files already
-//                           written, the one that failed and the ones never reached.
-//
-// Nothing reaches the proposal store on any of these roads.
+// ---- every config operation writes in the call that asked for it ----
 
 async function change(test: Harness, id: string, input: unknown): Promise<ConfigChangeOutput> {
   return await invokeFunction(registryFor(test), id, input, CALLER) as ConfigChangeOutput
@@ -950,7 +864,7 @@ describe('field, target create and target edit write in the call', () => {
         environment: 'production',
       })
 
-      // no `use.authState` set rides along; the field is gone.
+      // No `use.authState` set rides along.
       expect(answer).toMatchObject({
         outcome: 'applied',
         files: [CONFIG_FILE],
@@ -1053,8 +967,6 @@ describe('field, target create and target edit write in the call', () => {
 })
 
 describe('auth, hook and scaffold write in the call as well', () => {
-  // RE-SPELLED 2026-10-02: was '… binds the state and appends the plugin …'. The
-  // op binds no state now (the committed configuration has no key for one); it appends the plugin.
   it('config.auth.set appends the plugin as a field change',
     async () => {
       const test = harness()

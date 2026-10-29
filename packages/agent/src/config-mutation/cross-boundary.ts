@@ -1,34 +1,4 @@
-// The per-VALUE cross-boundary classifier.
-//
-// PER VALUE, NOT PER OP, AND THAT IS THE WHOLE DECISION. D-02 put this flag on the PROPOSAL because
-// a static map from op ids to answers cannot see the case that matters: `config.field.set` on
-// `registry.targets.shop.url` is an innocuous edit when the origin stays the same and a change of
-// which machine this product will drive when it does not. The same op, the same path, two different
-// answers — decided by the VALUES, which is the only place the difference exists.
-//
-// CLOSED REASONS, AND NOTHING ELSE MAY BE INVENTED. The output is constrained to
-// `CROSS_BOUNDARY_REASONS`, the closed vocabulary `schema` owns, because the grant machinery refuses
-// on these words and every surface renders them: a fifth class invented here would read fine in an
-// inbox and match nothing on the enforcement side. There are four reasons, and the vocabulary is
-// schema's.
-//
-// WHOLE-INPUT BY CONSTRUCTION. Nothing here is a whitelist of settable fields, and the two
-// rules that could most easily have become one are deliberately not:
-//
-//   - secret-adjacency is `isSecretAdjacentConfigField`, which is SHIPPED BESIDE THE CONSTANT it
-//     reads and matches subtree roots in both directions. It is imported rather than re-derived: a
-//     second spelling of that rule is a second judgement, and 395-02 already measured that the
-//     easy-to-miss direction (an edit ABOVE a root, which replaces the whole subtree) is the one
-//     that lets the WIDEST edit through unflagged.
-//   - new-origin is decided by PARSING BOTH VALUES, never by matching the path against a list of
-//     url-ish names. A config that grows a second URL-valued field next year is covered on the day
-//     it is added, which a name list would not be. The cost is stated: a value that parses as an
-//     absolute URL and is not one gets an origin comparison it did not need, which can only ever
-//     flag MORE, and flagging more asks a person a question they can answer in one word.
-//
-// ABSENT-TO-PRESENT IS A NEW ORIGIN. A target that had no URL and now has one is not "unchanged
-// origin"; it is the first origin, which is exactly the fresh ask D-14 says scaffolding a target
-// deserves.
+// Decided per value, not per op: one path can keep or change its origin depending on the values.
 
 import {
   CROSS_BOUNDARY_REASONS,
@@ -46,14 +16,7 @@ export interface CrossBoundaryFieldEdit {
   readonly newValue: ConfigFieldValue
 }
 
-/**
- * Everything the classifier is allowed to know. A record of FACTS, never of ports.
- *
- * `pinnedFileSet` ARRIVES AS AN ARGUMENT rather than being enumerated here, and the enumeration it
- * arrives from is `schema`'s `enumerateConfigFileSet` — the same one the host's config-files port
- * reads bytes for and 395-06's porcelain check scopes to. One enumeration, three consumers: a copy
- * here would fail in the permissive direction, silently, the day the set grew a member.
- */
+// `pinnedFileSet` comes from `enumerateConfigFileSet`, so a new member cannot slip past unflagged.
 export interface CrossBoundaryFacts {
   readonly fieldEdits: readonly CrossBoundaryFieldEdit[]
   /** Whether this proposal ADDS a hook — code this project will execute. Never inferred from a path. */
@@ -92,13 +55,7 @@ function originOf(value: ConfigFieldValue | undefined): string | undefined {
   return `${parsed.protocol}//${parsed.host}`
 }
 
-/**
- * Classify one proposal's cross-boundary-ness from its actual values.
- *
- * REASONS COME BACK IN `CROSS_BOUNDARY_REASONS` ORDER AND WITHOUT DUPLICATES, so two proposals that
- * cross the same boundaries render and compare identically regardless of the order a caller happened
- * to enumerate its edits in. Ordering that follows the input is ordering a caller can perturb.
- */
+// Reasons come back in `CROSS_BOUNDARY_REASONS` order without duplicates, whatever the input order.
 export function computeCrossBoundary(facts: CrossBoundaryFacts): CrossBoundaryVerdict {
   const found = new Set<CrossBoundaryReason>()
 

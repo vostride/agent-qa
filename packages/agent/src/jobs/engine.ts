@@ -1,15 +1,4 @@
-// The agent job queue engine.
-//
-// Pure semantics. This package is storageNeutral, so nothing here touches a host API: every
-// byte the engine causes to exist crosses `JobStorePort`. The driver is a PUMPABLE function
-// — `runNextJob` does one job and returns — never a loop with timers. Phase 385 ships no
-// production dispatcher at all; the first real host arrives with the daemon, and a driver
-// that owned its own scheduling would have to be taken apart again to let that host own it.
-//
-// All engine-visible time comes from the injected clock. A single ambient timestamp here
-// would make the deterministic dump the crash matrix compares differ for reasons that have
-// nothing to do with correctness, and the usual repair for a flaky equality
-// assertion is to loosen it — which would quietly retire the proof.
+// Pumpable and clock-injected: `runNextJob` does one job, and all time comes from the clock port.
 
 import type {
   ChainedJobRequest,
@@ -59,12 +48,7 @@ export interface JobIdSource {
   jobIdFor(kind: JobKind, idempotencyKey: string): JobId
 }
 
-/**
- * Thrown when an enqueue arrives without a usable idempotency key.
- *
- * The type already requires the argument; this covers the empty string, which types cannot
- * exclude and which would silently collapse every keyless caller onto one queue slot.
- */
+// Covers the empty string, which types cannot exclude and which would collapse keyless callers.
 export class MissingIdempotencyKeyError extends Error {
   override readonly name = 'MissingIdempotencyKeyError'
 
@@ -109,16 +93,7 @@ export class UndeclaredJobCheckpointError extends Error {
   }
 }
 
-/**
- * Raised at a checkpoint boundary when the job being run has been asked to stop.
- *
- * A thrown sentinel rather than a return value, because the boundary is inside a capability
- * the handler awaits and there is no other way to unwind a handler from underneath. A handler
- * MAY catch it — cooperative cancellation is cooperative — but catching it buys nothing: the
- * next boundary raises it again, and a kind whose handler swallowed every one of them would
- * simply run to the end, which is the same thing that happens to a kind with no boundary at
- * all. The driver catches it, records the cancellation and reports the boundary it stopped at.
- */
+// Unwinds the handler at a boundary; catching it buys nothing, as the next boundary rethrows.
 export class JobCancelledError extends Error {
   override readonly name = 'JobCancelledError'
 
@@ -138,33 +113,15 @@ export interface CreateAgentJobQueueOptions {
   readonly registry: JobKindRegistry
   readonly clock: ClockPort
   readonly idSource: JobIdSource
-  /**
-   * The model a job may author with, bound by the composition root.
-   *
-   * REQUIRED, and deliberately not defaultable. An optional capability would mean a queue
-   * could be built with none, and the only sensible behaviour for an author callback that
-   * cannot reach a model is to fail somewhere far from the composition that forgot it. Making
-   * it an argument of construction puts that decision where the binding is made. The engine
-   * never calls it: the only thing that happens to this value is that the authorship
-   * primitive hands it to an author callback, carrying the job's signal when a host passed one.
-   */
+  // Required at construction, so a queue can never be built without a model.
   readonly model: JobModelCapability
-  /**
-   * The kinds this host may never claim, fixed when its queue is composed.
-   *
-   * A CONSTRUCTION option, deliberately not a member of `RunNextJobInput`: whether a host
-   * may claim a kind is a fact about the HOST — which capabilities its composition can bind
-   * — and putting it on the per-call input would make it a decision every pump site
-   * re-makes, with every pump site a place the answers could diverge. Absent means what it
-   * means today: every declared kind is this host's to take.
-   */
+  // A construction option, because whether a host may claim a kind is a fact about the host.
   readonly unclaimableKinds?: readonly JobKind[]
 }
 
 export interface RunNextJobInput {
   readonly fence: JobStoreFence
-  // reaches every model request of the claimed job; an attempt
-  // that fails while it is aborted is released with its attempt refunded.
+  // Reaches every model request of the claimed job; an aborted failure refunds its attempt.
   readonly signal?: AbortSignal
 }
 
@@ -174,18 +131,9 @@ export interface RanJobOutcomeBase {
   /** The job AS CLAIMED. The store owns what its row says afterwards. */
   readonly job: Job
   readonly checkpointsPublished: readonly string[]
-  /**
-   * `false` in exactly one case: the attempt bound was already spent when the job was
-   * claimed, so the driver failed it without handing it to its handler.
-   */
+  // `false` only when the attempt bound was spent at the claim, so the handler never ran.
   readonly handlerInvoked: boolean
-  /**
-   * The payload of the job AS CLAIMED, so a host can attribute this outcome to whatever the
-   * payload names — a run, above all — without going back to the store for a row the job has
-   * already moved past. Optional because the outcome is the engine's fact and the
-   * payload is the caller's: nothing here reads it, and no fabricated outcome must grow a
-   * field to keep compiling.
-   */
+  // The payload as claimed, so a host can attribute the outcome without re-reading the store.
   readonly payload?: unknown
 }
 
@@ -198,15 +146,7 @@ export type RunNextJobOutcome =
   | (RanJobOutcomeBase & {
       readonly disposition: 'retry-scheduled'
       readonly reason: string
-      /**
-       * How long a host should wait before pumping this job again, computed from the kind's
-       * declared backoff policy and the attempt just spent.
-       *
-       * Returned rather than applied: 385 ships no dispatcher, and a driver that slept on its
-       * own would be the timer loop this engine deliberately is not. The same value goes to the
-       * store as the disposition's `retryAfterMs`, which stores the row's not-before time from
-       * its own clock and keeps the row out of every claim until then.
-       */
+      // Returned, not applied: the host decides when to pump; the store holds the row till then.
       readonly retryDelayMs: number
       readonly attemptsRemaining: number
     })
@@ -257,14 +197,7 @@ export interface AgentJobQueue {
   /** Claim, run, checkpoint and dispose of exactly one job. Returns when that job is done. */
   runNextJob(input: RunNextJobInput): Promise<RunNextJobOutcome>
 
-  /**
-   * Ask for one job to stop.
-   *
-   * Built with the driver rather than after it. The place a cooperative cancel is honoured is
-   * the seam between declared checkpoints, and that seam only exists inside `runNextJob` —
-   * adding the check later would mean reopening engine core with handlers already written
-   * against it. 385 exposes this on no surface at all; the phases that own job UX do that.
-   */
+  // Honoured at the seam between declared checkpoints inside `runNextJob`.
   cancel(input: CancelJobInput): Promise<JobCancelOutcome>
 
   /**
@@ -304,11 +237,7 @@ function defaultSummary(kind: JobKind, idempotencyKey: string): string {
 
 export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJobQueue {
   const { store, registry, clock, idSource, model, unclaimableKinds } = options
-  // Resolved once at construction, so every pump passes the same exclusion or none at all;
-  // a queue built without the option calls `claimNext(fence)` exactly as it did before.
-  // Copied and frozen at construction, never captured by reference: the caller keeps a
-  // handle on the array it passed, and a queue that claimed against that live array would let
-  // a post-construction write to it re-arm the exclusion this guard exists to hold.
+  // Copied and frozen at construction, so a later write to the caller's array cannot change it.
   const claimOptions: ClaimNextOptions | undefined =
     unclaimableKinds === undefined
       ? undefined
@@ -343,21 +272,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
     })
   }
 
-  /**
-   * The notification a finishing job should carry INTO its terminal transaction, if it is one
-   *
-   * Three conditions, and each excludes a different wrong record. The kind must be one whose
-   * finish can end a post-run chain — an unrelated kind has no run and no stages to report.
-   * The payload must name a run — a chain-member job enqueued by a harness with a scripted
-   * payload is not a run's chain, and inventing a dedupe key for it would collide with a real
-   * one. And the job must be chaining NOTHING: enqueuing a successor in this very transaction
-   * is the definition of a chain that has not finished, which is also why this is decided from
-   * the inserts rather than from the kind's declared topology.
-   *
-   * What is NOT decided here is whether the chain's other members are terminal. That is a
-   * question about rows at the instant of the write, and only the store can ask it inside the
-   * transaction that answers it.
-   */
+  // Only a run-naming chain kind that chains nothing ends a chain; the store checks the rest.
   function chainTerminalFor(input: {
     readonly job: Job
     readonly payload: unknown
@@ -390,13 +305,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
     }
   }
 
-  /**
-   * Land one job permanently, running whatever continuation its kind declared.
-   *
-   * Validation and deterministic request construction happen before durability. The store then
-   * receives the terminal parent and the complete continuation set in one fenced call, so there
-   * is no ordering choice here and no crash window for the engine to repair on replay.
-   */
+  // The terminal parent and its continuations reach the store in one fenced call.
   async function failPermanently(input: {
     readonly job: Job
     readonly payload: unknown
@@ -417,9 +326,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
     // declaration, and half of one already enqueued is worse than none.
     const inserts = successorRequests(declaration, requests)
 
-    // a permanent failure is a chain terminal too. Wiring notify into the completion
-    // path alone would leave the runs a user most needs to hear about silent — a curation that
-    // exhausted its attempts lands HERE and nowhere else.
+    // A permanent failure is a chain terminal too, so it carries the notification.
     const failed = await store.failAndChain(
       job.id,
       { kind: 'permanent', reason },
@@ -500,11 +407,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
        */
       const publishedValues = new Map<string, unknown>()
 
-      // D-18's bound, enforced HERE — on the claim, which is the one point a job that kills
-      // its host cannot skip. Checked only when recording a failure it would never fire for a
-      // handler that never returns, and that handler is exactly the one the bound is for. The
-      // attempt was already spent by the claim, so a job arriving with more attempts than its
-      // kind permits has had every attempt it was owed.
+      // Checked on the claim, the one point a job that kills its host cannot skip.
       if (job.attempts > declaration.maxAttempts) {
         return failPermanently({
           job,
@@ -529,18 +432,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
         }
       }
 
-      /**
-       * THE checkpoint boundary. Both ways into a checkpoint pass through here.
-       *
-       * The cancellation state is re-read every time rather than read once at the claim: a
-       * cancel that arrived while the job was running is precisely the case this exists for,
-       * and a value cached before the handler started could never see it. Reading it at the
-       * boundary is also what makes the boundary the boundary — the step in flight completes
-       * and is published, and the NEXT one never begins.
-       *
-       * A declaration error is decided first: a handler naming a checkpoint its kind never
-       * declared is wrong whether or not anyone asked the job to stop.
-       */
+      // Cancellation is re-read at every boundary, so a cancel that arrived mid-run is seen.
       let honoredAtCheckpoint: string | undefined
       const enterCheckpointBoundary = async (checkpointId: string): Promise<void> => {
         requireDeclaredCheckpoint(checkpointId)
@@ -605,9 +497,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
         }
       }
 
-      // The context that carries the model. It is built here and handed to the authorship
-      // primitive; it is NOT part of what the handler receives, which is the structural half
-      // of "a job has no ambient model accessor" (D-11 layer 2).
+      // Built here and kept from the handler, so a job has no ambient model accessor.
       const checkpointContext: JobCheckpointContext = {
         jobId: job.id,
         model: jobModel,

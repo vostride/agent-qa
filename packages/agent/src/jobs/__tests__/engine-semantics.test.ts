@@ -32,11 +32,7 @@ const idSource: JobIdSource = {
   jobIdFor: (kind, idempotencyKey) => `job_${kind}_${idempotencyKey}` as JobId,
 }
 
-/**
- * The queue needs a model bound and nothing in this file authors, so this
- * one refuses. A capability that answered would let a test in here start depending on model
- * output by accident; a capability that throws keeps the authorship proofs where they belong.
- */
+// Throws, so no test in this file can start depending on model output.
 const unusedModel: JobModelCapability = {
   modelId: 'test:unused',
   generate: async () => {
@@ -838,13 +834,7 @@ describe('the five real kinds, driven through the engine', () => {
     ])
   })
 
-  // Declared equals produced, so the case above (the success path, driven through the scripted
-  // stand-in that maps over the declared set) and the case below (the permanent-failure
-  // fallback) now measure the same one-element list from opposite sides. They agree on purpose:
-  // a build that narrowed one side without the other REDs whichever side moved, by name.
-  //
-  // the reserved sixth kind left with the Issue-slot cleanup, and 388
-  // D-04's declared/produced split collapsed with it.
+  // Declared equals produced, so this case and the next measure one list from opposite sides.
   it('proceeds with unknown verdicts, and only into curate-memory, when analyze-run permanently fails', async () => {
     await harness.queue.enqueue('analyze-run', { fail: 'permanent', reason: 'no model' }, 'run-1')
     const outcome = await harness.queue.runNextJob({ fence: harness.fence })

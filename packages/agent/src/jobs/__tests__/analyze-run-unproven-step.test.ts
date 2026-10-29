@@ -1,8 +1,4 @@
-// analyze-run never asks a model to label a test whose failing
-// step the verifier left unproven; its floor verdict (the runner classifier's 'unknown' with the
-// step's reason) passes through byte-identical. A not-met-only block stays eligible as today.
-// The evidence diet quotes the step's conditionVerdicts block, without a saved file's difference
-// text.
+// A failing step the verifier left unproven keeps its `unknown` floor verdict, never relabelled.
 
 import { canonicalJson, sha256hex } from '@vostride/agent-qa-schema'
 import type {

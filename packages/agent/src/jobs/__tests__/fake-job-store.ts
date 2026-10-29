@@ -1,12 +1,4 @@
-// An in-memory JobStorePort for the engine's unit seam.
-//
-// The engine holds policy and the store holds atomicity, so the engine's own tests
-// need a store that is FAITHFUL about the handful of facts its policy reads — the attempt is
-// spent at the claim, a claimed row is not claimable again, a retry disposition releases the
-// claim, a permanent one is terminal, and a duplicate (kind, key) merges into the row that is
-// already there. Everything the real store additionally guarantees (transactions, cross-
-// process fencing, durability) is proven against the real store in the agent-local package;
-// a second copy of those proofs here would only prove this file.
+// Faithful only about the facts the engine's policy reads; the real store is proven in agent-local.
 
 import type { Job, JobId, JobKind } from '@vostride/agent-qa-schema'
 
@@ -160,7 +152,7 @@ export function createFakeJobStore(clock: ClockPort): FakeJobStore {
       for (const row of rows.values()) {
         if (row.status !== 'queued' || row.claimed) continue
         if (excluded.has(row.kind)) continue
-        // the attempt is spent HERE, at the claim.
+        // The attempt is spent here, at the claim.
         row.attempts += 1
         row.claimed = true
         row.updatedAt = now
@@ -240,7 +232,7 @@ export function createFakeJobStore(clock: ClockPort): FakeJobStore {
       }
       row.cancelRequested = true
       row.updatedAt = clock.now()
-      // The two paths of D-19, decided by whether anybody is holding the job right now.
+      // Two cancel paths, decided by whether anybody is holding the job right now.
       if (row.claimed) {
         return { outcome: 'cancel-requested' }
       }
@@ -259,10 +251,7 @@ export function createFakeJobStore(clock: ClockPort): FakeJobStore {
       row.updatedAt = clock.now()
     },
 
-    // 413-13. The fake answers the requeue in the same terms the sqlite store does, because
-    // the engine's unit seam has to be able to stand a job up twice; forgetting the published
-    // checkpoints is not an optimisation here either — a fake that kept them would let a
-    // resumed handler read a value from an attempt the row no longer remembers.
+    // Requeue forgets published checkpoints, as the sqlite store does, so no stale value resumes.
     async requeueTerminal(jobId: JobId, fence: JobStoreFence): Promise<JobRequeueOutcome> {
       requireFence(fence)
       const row = requireRow(jobId)
