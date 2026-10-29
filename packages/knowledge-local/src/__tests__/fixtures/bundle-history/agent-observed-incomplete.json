@@ -1,0 +1,1376 @@
+[
+  {
+    "stage": "zero-events",
+    "events": [],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "ee086531b838ef75802819f0a84f959ab1f49cb3d3ffbd18583af31f1382ef58",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":0,\"contradicted\":0,\"harmful\":0,\"helpful\":0},\"lastConfirmedOrdinal\":10,\"status\":\"candidate\",\"trust\":0.3333333333333333,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "1-confirmed",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "181d976c38a161ce60ae8915112cf84bc6aac5b0e2167f9e352482f5321a805d",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "37be177f9d1738b1da2eeca15447fda7494d81f8e2577a2def9d34795ee6bc96",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":0,\"harmful\":0,\"helpful\":0},\"lastConfirmedOrdinal\":11,\"status\":\"candidate\",\"trust\":0.6,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "2-contradicted",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "16aec3f470ca740ebf83b17780031e64a6d7019bc565b72e92a4509ac4c3b2d9",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "150ab523aaaa773b927257106edb8fe9652d6f5107d0ad5d14c4eb21601961f0",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":0,\"helpful\":0},\"lastConfirmedOrdinal\":11,\"status\":\"candidate\",\"trust\":0.42857142857142855,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "3-helpful",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "2312d2e7d6b43dea931f9bc7f9dbdf06dc2060d90264f600e33386f4b92e17a3",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "6b828b8b76242dc207ce24ec0ab1487d32eaac163bb998bb007bdc4447953a83",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":0,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"candidate\",\"trust\":0.4666666666666667,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "4-harmful",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "7572df5ecdf65e213559622a92a8ec6f78dcbc9a691500b8bfc131a8ac05750a",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "2f9df3bd997646620b0f0ebe472103c979f435afccabd4343d05b878e8d1dcdd",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"candidate\",\"trust\":0.4375,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "5-promoted",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "fc39625f48bafd22e44af3948de09a1d82f983856a2c0541f08b1e56b218b455",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "8c864fd746cc97736692e9b116da27bc750bb46f2e49111bb99bc510b2c8d168",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"active\",\"trust\":0.4375,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "6-window-close",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "13bd43fdb6cf38a8fc57b9f1ed8cbda1d3e65d32693043f4458f3d49d19f64ae",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "53ecd28f4f8c55d06e60236a4a1404b4dcc9b0e30f7ca95fe0a2c795914bc847",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"active\",\"trust\":0.4375,\"validity\":{\"closedAtOrdinal\":16,\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "7-deprecated",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      },
+      {
+        "evidenceToken": "baseline-6",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 17,
+        "type": "deprecated",
+        "reason": "baseline history"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "61888fd543145f208f08e15920ae2a34d528dd152873a4639483163e65f84071",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "bb69172674f9f39b211a34b3f78f5a01bad0e315090aef8c336e0bddb74db78d",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"deprecated\",\"trust\":0.4375,\"validity\":{\"closedAtOrdinal\":16,\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "8-superseded",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      },
+      {
+        "evidenceToken": "baseline-6",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 17,
+        "type": "deprecated",
+        "reason": "baseline history"
+      },
+      {
+        "evidenceToken": "baseline-7",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 18,
+        "type": "superseded",
+        "byRecordId": "baseline-successor"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "df248021b91a9bc1ed542ea31ae42e9b4180348a3f234da62d1d87d146c72aa8",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "30506a63b3edf5bd0e4fb4638fddf00cfdbd4451062b457e2008a46b744ac777",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"superseded\",\"trust\":0.4375,\"validity\":{\"closedAtOrdinal\":16,\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "9-retracted",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      },
+      {
+        "evidenceToken": "baseline-6",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 17,
+        "type": "deprecated",
+        "reason": "baseline history"
+      },
+      {
+        "evidenceToken": "baseline-7",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 18,
+        "type": "superseded",
+        "byRecordId": "baseline-successor"
+      },
+      {
+        "evidenceToken": "baseline-8",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 19,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-7",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "f3ece660802b4ac78f36982e59f622234c9715fb56b3cc1c9e7dad0e32d5ce69",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "5996ad0adf445e6be863d50dfb95da410c36f6bed3d5da7c911f159c0bf29357",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"deprecated\",\"trust\":0.4375,\"validity\":{\"closedAtOrdinal\":16,\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "10-retracted",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      },
+      {
+        "evidenceToken": "baseline-6",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 17,
+        "type": "deprecated",
+        "reason": "baseline history"
+      },
+      {
+        "evidenceToken": "baseline-7",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 18,
+        "type": "superseded",
+        "byRecordId": "baseline-successor"
+      },
+      {
+        "evidenceToken": "baseline-8",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 19,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-7",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-9",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 20,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-6",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "a645e9c33a2e6c991205ba823a08626ed1d99b01fcb45047f72f02126e33d838",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "bbaf1b1799a1aa8a45c2664a382d72e13b70e0d60ae1f569605e3dafbdaa9613",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"active\",\"trust\":0.4375,\"validity\":{\"closedAtOrdinal\":16,\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "11-retracted",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      },
+      {
+        "evidenceToken": "baseline-6",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 17,
+        "type": "deprecated",
+        "reason": "baseline history"
+      },
+      {
+        "evidenceToken": "baseline-7",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 18,
+        "type": "superseded",
+        "byRecordId": "baseline-successor"
+      },
+      {
+        "evidenceToken": "baseline-8",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 19,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-7",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-9",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 20,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-6",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-10",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 21,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-5",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "bc25d0e8b570d775213638eb560ddb6a3432b456d998dcf05dc29ee1f9a4f541",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "efbcc2a0ef34a6efcfc3e8ff0a73a8753981874496ef452891150b42089a0c5e",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":11,\"status\":\"active\",\"trust\":0.4375,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "12-retracted",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      },
+      {
+        "evidenceToken": "baseline-6",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 17,
+        "type": "deprecated",
+        "reason": "baseline history"
+      },
+      {
+        "evidenceToken": "baseline-7",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 18,
+        "type": "superseded",
+        "byRecordId": "baseline-successor"
+      },
+      {
+        "evidenceToken": "baseline-8",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 19,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-7",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-9",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 20,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-6",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-10",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 21,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-5",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-11",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 22,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-0",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "92807835632715e1e770c356c19cd53b1a94b07e26cfe162ef6a34287a4cf78d",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "9a85a7d43342caa159c8f35951bdc89896bc065fba6a4881ff3542a8f5ad1934",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":0,\"contradicted\":1,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":10,\"status\":\"active\",\"trust\":0.25,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "13-overturned",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      },
+      {
+        "evidenceToken": "baseline-6",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 17,
+        "type": "deprecated",
+        "reason": "baseline history"
+      },
+      {
+        "evidenceToken": "baseline-7",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 18,
+        "type": "superseded",
+        "byRecordId": "baseline-successor"
+      },
+      {
+        "evidenceToken": "baseline-8",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 19,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-7",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-9",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 20,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-6",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-10",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 21,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-5",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-11",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 22,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-0",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-12",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 23,
+        "type": "overturned",
+        "overturnsEvidenceToken": "baseline-1",
+        "overturnsCurationJobId": "baseline-job",
+        "markId": "mark_0123456789ab"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "aa30e6bd3e6b469ef9a32594df4e4817aa5b4fb74ceef9b9a51d621c41352c42",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "0ac7579778e82fa40d9ac40e820f163ce5501accda2f9fc9828ad3aa7c274330",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":0,\"contradicted\":0,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":10,\"status\":\"active\",\"trust\":0.375,\"validity\":{\"openedAtOrdinal\":10}}"
+  },
+  {
+    "stage": "14-confirmed",
+    "events": [
+      {
+        "evidenceToken": "baseline-0",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 11,
+        "type": "confirmed"
+      },
+      {
+        "evidenceToken": "baseline-1",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 12,
+        "type": "contradicted"
+      },
+      {
+        "evidenceToken": "baseline-2",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 13,
+        "type": "helpful"
+      },
+      {
+        "evidenceToken": "baseline-3",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 14,
+        "type": "harmful"
+      },
+      {
+        "evidenceToken": "baseline-4",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 15,
+        "type": "promoted"
+      },
+      {
+        "evidenceToken": "baseline-5",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 16,
+        "type": "window-close",
+        "closedAtOrdinal": 16
+      },
+      {
+        "evidenceToken": "baseline-6",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 17,
+        "type": "deprecated",
+        "reason": "baseline history"
+      },
+      {
+        "evidenceToken": "baseline-7",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 18,
+        "type": "superseded",
+        "byRecordId": "baseline-successor"
+      },
+      {
+        "evidenceToken": "baseline-8",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 19,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-7",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-9",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 20,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-6",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-10",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 21,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-5",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-11",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 22,
+        "type": "retracted",
+        "retractsEvidenceToken": "baseline-0",
+        "retractsCurationJobId": "baseline-job",
+        "rollbackReceiptId": "baseline-rollback"
+      },
+      {
+        "evidenceToken": "baseline-12",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 23,
+        "type": "overturned",
+        "overturnsEvidenceToken": "baseline-1",
+        "overturnsCurationJobId": "baseline-job",
+        "markId": "mark_0123456789ab"
+      },
+      {
+        "evidenceToken": "baseline-13",
+        "curationJobId": "baseline-job",
+        "buildOrdinal": 24,
+        "type": "confirmed",
+        "origin": "user"
+      }
+    ],
+    "manifest": {
+      "schemaVersion": 2,
+      "id": "fact-el-button-sign-in-b7f140af0b800120",
+      "identityHash": "b7f140af0b800120ec85296a8ba8d4fa8aa64719ebf34b686434ccde8b113e7d",
+      "identityCore": {
+        "kind": "fact",
+        "subtype": "selector",
+        "primaryAnchor": {
+          "t": "el",
+          "role": "button",
+          "name": "sign in"
+        },
+        "scope": {
+          "tier": "product",
+          "key": "fixture-storefront"
+        },
+        "discriminantKey": "{\"elementRef\":{\"name\":\"sign in\",\"role\":\"button\"},\"kind\":\"fact\",\"subtype\":\"selector\"}"
+      },
+      "embeddingInput": "Sign in control on the login page\n\nSelecting Sign in submits the recorded credentials and advances to the account page.\n\nanchor: el:button:sign in\nanchor: page:/login",
+      "contentHashes": {
+        "artifacts.index.json": "e5c93e754e16d653401d9e672277849d109f52f8e0ccb6bd51b0ad90ee01abe5",
+        "evidence/outcomes.jsonl": "decb996399c12a6b397b7f4ee7b5ab66c517f2867180e9b48bb2abcf120ff976",
+        "provenance.json": "706b0871c8beb5fdab19a60d6b0c1f96396536b736ee7938122f3c91df1ac6ed",
+        "record.md": "654ef0cbc8704f635471a4d995b779c2179fe298ae90b3b1a81882dd52af4316",
+        "relations.json": "10de2e3196d69193c851c344b05a85fa324841a01b69fc2a0ba9d1e576fecc32"
+      },
+      "mutableStateHash": "498103f565a9bb5f8f66bb47b826d5c8302c379abd3f4c6b78c5bd702a8e60a7",
+      "evidenceIncomplete": true,
+      "complete": true,
+      "createdAtOrdinal": 10,
+      "originClass": "agent-observed"
+    },
+    "provenance": {
+      "schemaVersion": 2,
+      "mode": "standalone",
+      "originClass": "agent-observed",
+      "sourceDescription": "persisted prior characterization"
+    },
+    "expectedBytes": "{\"counters\":{\"confirmed\":1,\"contradicted\":0,\"harmful\":1,\"helpful\":1},\"lastConfirmedOrdinal\":24,\"status\":\"active\",\"trust\":0.5833333333333334,\"validity\":{\"openedAtOrdinal\":10}}"
+  }
+]

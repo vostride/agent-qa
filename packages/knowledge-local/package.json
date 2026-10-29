@@ -50,7 +50,8 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "regen:bundle-history": "vitest run src/__tests__/bundle-history.test.ts -u"
   },
   "dependencies": {
     "@huggingface/tokenizers": "0.2.0",

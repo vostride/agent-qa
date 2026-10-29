@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
@@ -9,12 +9,17 @@ import { rebuildIndex } from '../index-rebuild.js'
 import { openKnowledgeReader } from '../index-reader.js'
 import { acquireWriterLease } from '../lease/writer-lease.js'
 import { readRebuildRequest } from '../rebuild-marker.js'
+import { makeBundleDraftFixture, makeDiscriminantFixture } from './fixtures/bundle-fixture.js'
 
 const roots: string[] = []
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
-const input = JSON.parse(readFileSync(new URL('./fixtures/420-prior-baseline.json', import.meta.url), 'utf8'))
-  .cases.find((entry: { name: string }) => entry.name === 'agent-observed-clean').input as PublishBundleInput
+const input: PublishBundleInput = {
+  draft: makeBundleDraftFixture(), discriminant: makeDiscriminantFixture(),
+  originClass: 'agent-observed', createdAtOrdinal: 10, screenStates: [], initialEvents: [], relations: [],
+  provenance: { mode: 'standalone', sourceDescription: 'persisted prior characterization' },
+  artifacts: [],
+}
 
 async function indexedFixture() {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-trust-epoch-'))

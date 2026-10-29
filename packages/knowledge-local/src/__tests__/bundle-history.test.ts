@@ -1,5 +1,6 @@
-import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+// Per origin and evidence case, the bundle read after publish and after each appended history event
+// equals fixtures/bundle-history/<case>.json; the package's regen:bundle-history rewrites them.
+import { mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import {
@@ -19,20 +20,12 @@ interface Snapshot {
   provenance: BundleProvenance
   expectedBytes: string
 }
-interface BaselineCase {
+interface HistoryCase {
   name: string
   input: PublishBundleInput
   appended: BundleOutcomeEvent[]
-  snapshots: Snapshot[]
-}
-interface Baseline {
-  sourceRevision: string
-  captureCommand: string
-  cases: BaselineCase[]
 }
 
-const fixturePath = new URL('./fixtures/420-prior-baseline.json', import.meta.url)
-const capturePath = process.env.AGENT_QA_CAPTURE_PRIOR_BASELINE
 const origins: OriginClass[] = ['user', 'agent-verified', 'agent-observed', 'import']
 
 function history(): BundleOutcomeEvent[] {
@@ -54,7 +47,7 @@ function history(): BundleOutcomeEvent[] {
   }))
 }
 
-function inputs(): BaselineCase[] {
+function inputs(): HistoryCase[] {
   return origins.flatMap(originClass => [false, true].map(incomplete => ({
     name: `${originClass}-${incomplete ? 'incomplete' : 'clean'}`,
     input: {
@@ -64,24 +57,15 @@ function inputs(): BaselineCase[] {
       artifacts: [],
       ...(incomplete ? { preSkippedArtifacts: [{ ref: makeArtifactFixture().ref, stepIndex: 0, reason: 'pruned-source' as const }] } : {}),
     },
-    appended: history(), snapshots: [],
+    appended: history(),
   })))
 }
 
-// Explicit capture is a one-time characterization of the old revision. Ordinary assertions
-// only read the committed oracle; they never regenerate expectations from the current fold.
-const baseline: Baseline = capturePath === undefined
-  ? JSON.parse(readFileSync(fixturePath, 'utf8')) as Baseline
-  : {
-      sourceRevision: execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim(),
-      captureCommand: 'AGENT_QA_CAPTURE_PRIOR_BASELINE=/private/tmp/420-prior-baseline.json node ../../node_modules/vitest/vitest.mjs run src/__tests__/prior-baseline-capture.test.ts --reporter=verbose',
-      cases: inputs(),
-    }
-
-describe('420 independently captured persisted prior baseline', () => {
-  for (const entry of baseline.cases) {
-    it(`preserves old bytes for ${entry.name} across every persisted history prefix`, () => {
-      const root = mkdtempSync(join(tmpdir(), 'agent-qa-prior-baseline-'))
+describe('bundle bytes across publish and every appended history event', () => {
+  for (const entry of inputs()) {
+    it(`${entry.name} reads back its recorded bytes after publish and after each append`, async () => {
+      const root = mkdtempSync(join(tmpdir(), 'agent-qa-bundle-history-'))
+      const snapshots: Snapshot[] = []
       try {
         const config = { knowledgeRoot: join(root, 'knowledge'), productKey: 'baseline' }
         const published = publishBundle(config, entry.input)
@@ -103,19 +87,13 @@ describe('420 independently captured persisted prior baseline', () => {
             provenance: guardBundleProvenance(loaded.bundle.provenance),
             expectedBytes: canonicalJson(deriveBundleTrust(loaded.bundle)),
           }
-          if (capturePath !== undefined) entry.snapshots.push(snapshot)
-          else expect(snapshot).toEqual(entry.snapshots[index])
+          snapshots.push(snapshot)
         }
-        expect(entry.snapshots).toHaveLength(15)
+        expect(snapshots).toHaveLength(15)
+        await expect(`${JSON.stringify(snapshots, null, 2)}\n`).toMatchFileSnapshot(
+          `./fixtures/bundle-history/${entry.name}.json`,
+        )
       } finally { rmSync(root, { recursive: true, force: true }) }
     })
   }
-  it('pins all origin and evidence combinations with an independent source revision', () => {
-    expect(baseline.sourceRevision).toMatch(/^[0-9a-f]{40}$/)
-    expect(baseline.cases.map(entry => entry.name)).toEqual([
-      'user-clean', 'user-incomplete', 'agent-verified-clean', 'agent-verified-incomplete',
-      'agent-observed-clean', 'agent-observed-incomplete', 'import-clean', 'import-incomplete',
-    ])
-    if (capturePath !== undefined) writeFileSync(capturePath, JSON.stringify(baseline, null, 2) + '\n')
-  })
 })
