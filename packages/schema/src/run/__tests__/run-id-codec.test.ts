@@ -256,7 +256,7 @@ const RUN_ID_FIELD_VERDICTS: Readonly<
   },
 }
 
-describe('P1 — the SYMBOL-shaped predicate, and its own self-check first', () => {
+describe('the SYMBOL-shaped predicate, and its own self-check first', () => {
   const seen = (source: string): boolean => {
     BRANDING_DECLARATION_RE.lastIndex = 0
     return BRANDING_DECLARATION_RE.test(stripComments(source))
@@ -297,8 +297,8 @@ describe('P1 — the SYMBOL-shaped predicate, and its own self-check first', () 
   })
 })
 
-describe('P2 — the KEY-shaped predicate: every run-identifying field carries a verdict', () => {
-  it('sees a field declared without `asRunId` at all — the case P1 cannot', () => {
+describe('the KEY-shaped predicate: every run-identifying field carries a verdict', () => {
+  it('sees a field declared without `asRunId` at all — the case the symbol-shaped predicate cannot', () => {
     const probe = (source: string): boolean => {
       RUN_ID_FIELD_RE.lastIndex = 0
       return RUN_ID_FIELD_RE.test(source)
@@ -335,7 +335,7 @@ describe('P2 — the KEY-shaped predicate: every run-identifying field carries a
   })
 })
 
-describe('P3 — the RUNTIME-shaped predicate: the same object, and it refuses', () => {
+describe('the RUNTIME-shaped predicate: the same object, and it refuses', () => {
   it('every hardened surface holds the SAME codec instance', () => {
     expect(RunsStartInputSchema.shape.runId.unwrap()).toBe(runIdSchema)
     expect(RunSummarySchema.shape.runId).toBe(runIdSchema)

@@ -77,7 +77,7 @@ describe('quarantine ledger event vocabulary', () => {
     expect(QUARANTINE_EVENT_KINDS).not.toContain('expired')
   })
 
-  it('spells the typed unassigned owner literal (D-12 honest absence)', () => {
+  it('spells the typed unassigned owner literal (honest absence)', () => {
     expect(QUARANTINE_UNASSIGNED_OWNER).toBe('unassigned')
   })
 
@@ -203,7 +203,7 @@ describe('guardQuarantineLedgerEvent', () => {
     expect(versionError.supportedVersion).toBe(CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION)
   })
 
-  it('hard-fails a stored VERSION-1 line — the unmigratable-older arm (390-08 / CR-02)', () => {
+  it('hard-fails a stored VERSION-1 line — the unmigratable-older arm', () => {
     // A v1 line's filePath is a machine-local absolute path. Admitting it would seed the fold with
     // an identity no other checkout can produce, and "healing" it to a relative path would require
     // guessing a checkout root. The typed refusal is the honest answer, and it is FREE today

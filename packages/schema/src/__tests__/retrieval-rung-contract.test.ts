@@ -88,7 +88,7 @@ function readThroughEveryReader(recorded: Record<string, unknown>) {
   }
 }
 
-describe('C423-RUNG-REASONS-EXACT', () => {
+describe('retrieval rung reasons', () => {
   test('pins ten current reasons, in order, against an independent list', () => {
     expect(RETRIEVAL_RUNG_REASONS).toEqual([...CURRENT_REASONS])
     expect(new Set(RETRIEVAL_RUNG_REASONS).size).toBe(10)

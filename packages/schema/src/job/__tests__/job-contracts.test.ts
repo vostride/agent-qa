@@ -63,7 +63,7 @@ describe('jobEnqueueRequestSchema', () => {
     )
   })
 
-  it('rejects unknown top-level keys (T-385-06)', () => {
+  it('rejects unknown top-level keys', () => {
     expect(
       jobEnqueueRequestSchema.safeParse({ ...VALID_REQUEST, priority: 'high' }).success,
     ).toBe(false)
@@ -124,7 +124,7 @@ describe('jobCheckpointEnvelopeSchema', () => {
     ).toBe(false)
   })
 
-  it('rejects unknown top-level keys (T-385-06)', () => {
+  it('rejects unknown top-level keys', () => {
     expect(
       jobCheckpointEnvelopeSchema.safeParse({ ...VALID_ENVELOPE, recordedAt: 'x' }).success,
     ).toBe(false)

@@ -32,7 +32,7 @@ function makeHandoff(): CompletedRunHandoff {
   }
 }
 
-describe('CompletedRunHandoff gateRun carrier, minted at v4 (D-10)', () => {
+describe('CompletedRunHandoff gateRun carrier, minted at v4', () => {
   it('pins the current handoff schema version at 2', () => {
     expect(CURRENT_HANDOFF_SCHEMA_VERSION).toBe(2)
   })
@@ -57,7 +57,7 @@ describe('CompletedRunHandoff gateRun carrier, minted at v4 (D-10)', () => {
     expect(() => guardCompletedRunHandoff(withString)).toThrow()
   })
 
-  it('keeps gateRun and excludedFromOutcomes independent axes (Pitfall 5)', () => {
+  it('keeps gateRun and excludedFromOutcomes independent axes', () => {
     const gateOnly = guardCompletedRunHandoff({ ...makeHandoff(), gateRun: true })
     const excludedOnly = guardCompletedRunHandoff({
       ...makeHandoff(),

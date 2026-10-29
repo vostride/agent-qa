@@ -36,7 +36,7 @@ function handoffWith(conditionVerdicts: unknown): unknown {
   return JSON.parse(JSON.stringify(handoff))
 }
 
-describe('C446-REQUESTED-DIALOG-HANDOFF', () => {
+describe('a requested open dialog at the handoff loader', () => {
   it('a handoff whose step records a requested dialog loads and reads as proven', () => {
     let loaded: CompletedRunHandoff | undefined
     expect(() => {

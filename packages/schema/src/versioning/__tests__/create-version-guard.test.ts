@@ -228,7 +228,7 @@ function mutatedRootCause(
   return withRootCause(rootCause)
 }
 
-describe('createVersionGuard (D-13)', () => {
+describe('createVersionGuard', () => {
   it.each([null, undefined, 'document', 1])(
     'rejects non-object input %j with a document-naming TypeError',
     (value) => {
@@ -811,13 +811,13 @@ describe('guardCompletedRunHandoff factory instance compatibility', () => {
       }),
     ],
     [
-      'subActions element grounding attempts containing null (executed round-7 counterexample)',
+      'subActions element grounding attempts containing null',
       mutatedSubAction((subAction) => {
         subAction.grounding = { attempts: [null] }
       }),
     ],
     [
-      'subActions element grounding attempts is a string (executed round-7 counterexample)',
+      'subActions element grounding attempts is a string',
       mutatedSubAction((subAction) => {
         subAction.grounding = { attempts: 'oops' }
       }),
@@ -847,13 +847,13 @@ describe('guardCompletedRunHandoff factory instance compatibility', () => {
       }),
     ],
     [
-      'stateBefore elements member attributes with a numeric selector (executed round-7 counterexample)',
+      'stateBefore elements member attributes with a numeric selector',
       mutatedElement((element) => {
         element.attributes = { selector: 42 }
       }),
     ],
     [
-      'stateBefore elements member labels with a numeric testId (executed round-7 counterexample)',
+      'stateBefore elements member labels with a numeric testId',
       mutatedElement((element) => {
         element.attributes = {}
         element.labels = { testId: 42 }
@@ -866,7 +866,7 @@ describe('guardCompletedRunHandoff factory instance compatibility', () => {
       }),
     ],
     [
-      'subActions element stateAfter with a numeric url (executed round-9 counterexample)',
+      'subActions element stateAfter with a numeric url',
       mutatedSubAction((subAction) => {
         subAction.stateAfter = { url: 42 }
       }),
@@ -1059,7 +1059,7 @@ describe('guardCompletedRunHandoff factory instance compatibility', () => {
       }),
     ],
     [
-      'procedure-replay planSource with a well-formed flow cursor (F-381-51-1 · D-09)',
+      'procedure-replay planSource with a well-formed flow cursor',
       mutatedReplayPlanSource((source) => {
         source.flow = { cursor: 1, length: 2 }
       }),

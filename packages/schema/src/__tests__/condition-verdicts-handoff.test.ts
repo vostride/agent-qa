@@ -42,7 +42,7 @@ function handoffWith(block: unknown): unknown {
   return JSON.parse(JSON.stringify(handoff))
 }
 
-describe('C439-KEY-SETS', () => {
+describe('the condition verdicts block at the handoff loader', () => {
   it('a handoff whose step carries a well-formed block loads', () => {
     const loaded = guardCompletedRunHandoff(handoffWith(wellFormed()))
     expect(loaded.tests[0].steps[0].conditionVerdicts).toEqual(wellFormed())

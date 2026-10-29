@@ -6,7 +6,7 @@ const VALUE = 'Hunter-42-zz'
 const MARKER = '[secret:PW_441]'
 const mask = (text: string): string => text.split(VALUE).join(MARKER)
 
-describe('C441-GAP-WALKER', () => {
+describe('maskPayloadTree', () => {
   it('masks every object key and string leaf and leaves the input unchanged', () => {
     const input = { [VALUE]: { list: [`a ${VALUE}`, 3, true, null] } }
     const before = JSON.stringify(input)

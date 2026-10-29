@@ -130,7 +130,7 @@ function test(overrides: Partial<PerTestOutcome> & { steps: StepEvidence[] }): P
 // Group 1 — failingStepOf
 // ---------------------------------------------------------------------------------------
 
-describe('failingStepOf (hoisted from cluster.ts — 390 plan 02)', () => {
+describe('failingStepOf (hoisted from cluster.ts)', () => {
   it('answers undefined for a zero-step test — no fabricated step', () => {
     expect(failingStepOf(test({ steps: [] }))).toBeUndefined()
   })
@@ -166,7 +166,7 @@ describe('failingStepOf (hoisted from cluster.ts — 390 plan 02)', () => {
 // Group 2 — errorTextOf
 // ---------------------------------------------------------------------------------------
 
-describe('errorTextOf (hoisted from cluster.ts — 390 plan 02)', () => {
+describe('errorTextOf (hoisted from cluster.ts)', () => {
   it('answers the recorded test outcome when there is no step', () => {
     const stepless = test({ outcome: 'timeout', steps: [] })
     expect(errorTextOf(undefined, stepless)).toBe('timeout')
@@ -267,7 +267,7 @@ const CORPUS: { name: string; outcome: PerTestOutcome; class: Verdict['class'] }
   },
 ]
 
-describe('composition with the frozen fingerprint recipe (T-390-05)', () => {
+describe('composition with the frozen fingerprint recipe', () => {
   it('pins the element-anchored golden bytes', () => {
     expect(fingerprintOf(CORPUS[0]!.outcome, 'flake')).toBe(
       '{"name":"submit","ordinal":0,"role":"button","t":"el"}::flake',

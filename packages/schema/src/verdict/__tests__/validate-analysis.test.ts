@@ -498,10 +498,10 @@ describe('per-test granularity: one bad test never fails its siblings', () => {
   })
 })
 
-describe('perTest uniqueness ownership (WR-02 / G-389-3B): the guard owns it, not this boundary', () => {
+describe('perTest uniqueness ownership: the guard owns it, not this boundary', () => {
   const handoff = buildHandoff()
 
-  it('WR-02 non-owner pin: a duplicate-perTest artifact this validator does not re-check is refused upstream by guardRunAnalysisArtifact', () => {
+  it('non-owner pin: a duplicate-perTest artifact this validator does not re-check is refused upstream by guardRunAnalysisArtifact', () => {
     // Two verdicts for perTest 0 with CONTRADICTING classes, each of which validates
     // independently against the handoff — so this boundary answers ok BY DESIGN: it is the
     // two-document check, and duplicate perTest is a one-document structural property owned

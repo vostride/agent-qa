@@ -65,7 +65,7 @@ const IDENTITY = {
 
 // ---- The entry DTO: one vocabulary, imported ----------------------------
 
-describe('the quarantine entry DTO carries D-13 enumeration in full', () => {
+describe('the quarantine entry DTO carries every ledger field in full', () => {
   it('round-trips an entry carrying identity, fingerprint, class, owner, entered, expiry and state', () => {
     const parsed = QuarantineEntrySchema.parse(entry())
 
@@ -183,7 +183,7 @@ describe('quarantine.add contracts', () => {
     expect(entered.kind).toBe('entered')
   })
 
-  it('answers a renewed ARM for an already-quarantined identity — never a throw (D-13)', () => {
+  it('answers a renewed ARM for an already-quarantined identity — never a throw', () => {
     const renewed: QuarantineAddOutput = QuarantineAddOutputSchema.parse({
       kind: 'renewed',
       entry: entry({ owner: 'ada' }),

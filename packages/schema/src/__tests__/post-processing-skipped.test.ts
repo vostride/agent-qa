@@ -40,7 +40,7 @@ describe('EXCLUSION-SCHEMA-ROUNDTRIP', () => {
   })
 })
 
-describe('C425-EXCLUSION-REASONS-EXACT', () => {
+describe('post-processing skip reasons', () => {
   test('pins the reason list to an independent exact vocabulary through both barrels', () => {
     expect(POST_PROCESSING_SKIP_REASONS).toEqual(['gate-run', 'outcome-excluded', 'no-verdict'])
     expect(POST_PROCESSING_SKIP_REASONS).toHaveLength(3)

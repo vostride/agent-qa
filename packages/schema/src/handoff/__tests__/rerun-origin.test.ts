@@ -37,7 +37,7 @@ function handoff(rerunOrigin: unknown = origin()) {
       outcome: 'passed', steps: [], isRerun: true, rerunAttempt: 2, rerunOrigin }] }
 }
 
-describe('420 guarded rerun origin', () => {
+describe('guarded rerun origin', () => {
   it('rejects unsafe original attempt numbers', () => {
     for (const attempt of [-1, 0.5, Number.MAX_SAFE_INTEGER + 1, NaN, Infinity, '0']) {
       expect(() => guardCompletedRunHandoff(handoff({ ...origin(), attempt }))).toThrow()

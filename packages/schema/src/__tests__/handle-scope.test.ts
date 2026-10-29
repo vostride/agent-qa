@@ -120,7 +120,7 @@ describe('memberIndexOf — the one place a payload is asked which member it bel
   })
 })
 
-describe('passesHandleFilter — D-14: run-scoped ALWAYS passes, member-scoped only its own', () => {
+describe('passesHandleFilter — run-scoped ALWAYS passes, member-scoped only its own', () => {
   it('passes every run-scoped envelope to every handle, whatever the handle is', () => {
     for (const type of RUN_EVENT_TYPES.filter((t) => RUN_EVENT_SCOPE[t] === 'run')) {
       for (const handle of [0, 1, 7, 4242]) {

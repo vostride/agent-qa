@@ -22,7 +22,7 @@ describe('AnalyzeRunPayloadSchema', () => {
     expect(AnalyzeRunPayloadSchema.parse(CURRENT_PAYLOAD)).toEqual(CURRENT_PAYLOAD)
   })
 
-  it('accepts the payload with both D-20 flags', () => {
+  it('accepts the payload with both gateRun and excludedFromOutcomes', () => {
     const flagged = { ...CURRENT_PAYLOAD, gateRun: true, excludedFromOutcomes: true } as const
     expect(AnalyzeRunPayloadSchema.parse(flagged)).toEqual(flagged)
   })

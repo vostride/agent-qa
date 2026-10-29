@@ -1,14 +1,14 @@
 import { describe, expect, it } from 'vitest'
 import { RunDetailMemberSchema } from '../functions/runs'
 
-describe('RunDetailMember optional marks (419 D-15)', () => {
+describe('RunDetailMember optional marks', () => {
   const member = { testIndex: 0, attempts: 1 }
   const mark = {
     markId: 'mark_0123456789ab', kind: 'false-fail', ordinal: 1,
     disposition: { kind: 'quarantined', class: 'flake' },
   }
 
-  it('preserves the pre-419 member byte-for-byte without materializing marks', () => {
+  it('preserves a member recorded before marks byte-for-byte without materializing marks', () => {
     const parsed = RunDetailMemberSchema.parse(member)
     expect(parsed).toEqual(member)
     expect(JSON.stringify(parsed)).toBe(JSON.stringify(member))

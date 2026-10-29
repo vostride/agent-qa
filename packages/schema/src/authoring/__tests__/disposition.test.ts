@@ -123,7 +123,7 @@ const FULL_RECEIPT: DraftReceipt = {
   evaluatedAt: 1_754_800_000_000,
 }
 
-describe('computeDraftDisposition (393 D-18) — the behavior table', () => {
+describe('computeDraftDisposition — the behavior table', () => {
   it('returns keep-eligible when all four gates pass across the full pinned N', () => {
     expect(
       computeDraftDisposition(
@@ -167,7 +167,7 @@ describe('computeDraftDisposition (393 D-18) — the behavior table', () => {
     }
   })
 
-  it('returns rejected on a false gate even when runs stopped early (D-17)', () => {
+  it('returns rejected on a false gate even when runs stopped early', () => {
     // Early-stop on the first verdict flip leaves completed < N. The flip already proved
     // instability, so the short count must NOT downgrade the answer to proposal-only.
     expect(
@@ -214,7 +214,7 @@ describe('computeDraftDisposition (393 D-18) — the behavior table', () => {
   })
 })
 
-describe('DraftReceiptSchema (393 D-19, WTST-02)', () => {
+describe('DraftReceiptSchema', () => {
   it('round-trips a fully-populated receipt', () => {
     expect(DraftReceiptSchema.parse(FULL_RECEIPT)).toEqual(FULL_RECEIPT)
   })
@@ -246,7 +246,7 @@ describe('DraftReceiptSchema (393 D-19, WTST-02)', () => {
     ])
   })
 
-  it('records the heal on a gate run beside its definitiveness (F3, Pitfall 7)', () => {
+  it('records the heal on a gate run beside its definitiveness', () => {
     const parsed = DraftReceiptSchema.parse(FULL_RECEIPT)
     const healed = parsed.gateRuns.find((record) => record.healed)
     expect(healed).toBeDefined()
@@ -288,7 +288,7 @@ const MIXED_GATES = {
   falsifiableAssertion: false,
 } as const
 
-describe('EDGE-09: exactly keep-eligible, proposal-only and unverified final drafts are written (432 D-06)', () => {
+describe('exactly keep-eligible, proposal-only and unverified final drafts are written', () => {
   it('writes a target for exactly keep-eligible, proposal-only and unverified; never for rejected', () => {
     const predicate = writesTarget()
     expect(DRAFT_DISPOSITIONS.filter((disposition) => predicate(disposition)))
@@ -399,7 +399,7 @@ describe('EDGE-09: exactly keep-eligible, proposal-only and unverified final dra
   })
 })
 
-describe('AuthoringVerifyDraftInputSchema (393 D-01, 392 D-07)', () => {
+describe('AuthoringVerifyDraftInputSchema', () => {
   it('refuses an empty call — draftPath is required', () => {
     expect(() => AuthoringVerifyDraftInputSchema.parse({})).toThrow()
   })
@@ -432,7 +432,7 @@ describe('AuthoringVerifyDraftInputSchema (393 D-01, 392 D-07)', () => {
 // own fingerprint against the suite, the static assertion check); only gate 2, stability, needs
 // more than one run. So a draft-mode evaluation whose gate 1, 3 or 4 said no is `rejected` and not
 // written, and only gate 2 leaves a passing draft-mode draft `unverified`.
-describe('C261003-CPV-DRAFT-KEEP-GATES: a draft-mode keep-gate that said no rejects the draft', () => {
+describe('a draft-mode keep-gate that said no rejects the draft', () => {
   it('rejects a draft-mode evaluation whose gate 1, 3 or 4 is false', () => {
     for (const gate of ['executesDefinitive', 'addsValue', 'falsifiableAssertion'] as const) {
       for (const completed of [0, 1]) {

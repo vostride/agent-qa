@@ -84,7 +84,7 @@ describe('bus schema — envelope + event vocabulary (spec §2.2)', () => {
   // defined in bus schema 1 and emitted by no producer, ever, and left the enum when the
   // 2026-08-25 spec amendment retired the third chip. Asserted set-equal, not just
   // membership, so a re-added name reds this cell.
-  it('defines exactly the six chip events verbatim (spec §2.2 as amended 2026-08-25)', () => {
+  it('defines exactly the six chip events verbatim (spec §2.2)', () => {
     const chips = [
       'analysisStarted',
       'analysisCompleted',
@@ -126,7 +126,7 @@ describe('bus schema — envelope + event vocabulary (spec §2.2)', () => {
   })
 })
 
-describe('run-lifecycle payload headers (spec §2.2, D-04/D-05)', () => {
+describe('run-lifecycle payload headers (spec §2.2)', () => {
   it('RunStartedPayload carries the CompletedRunHandoff header fields + busSchemaVersion', () => {
     const runStarted: RunStartedPayload = {
       busSchemaVersion: CURRENT_BUS_SCHEMA_VERSION,
@@ -161,7 +161,7 @@ describe('run-lifecycle payload headers (spec §2.2, D-04/D-05)', () => {
   })
 })
 
-describe('MemberTestOutcome — the D-15 per-test union split', () => {
+describe('MemberTestOutcome — the per-test union split', () => {
   it('includes skipped and every RunStatus member', () => {
     const outcomes: MemberTestOutcome[] = [
       'passed',
@@ -178,7 +178,7 @@ describe('MemberTestOutcome — the D-15 per-test union split', () => {
     expectTypeOf<RunStatus>().toMatchTypeOf<MemberTestOutcome>()
   })
 
-  it('PerTestOutcome.outcome is assignable from MemberTestOutcome (D-15)', () => {
+  it('PerTestOutcome.outcome is assignable from MemberTestOutcome', () => {
     expectTypeOf<MemberTestOutcome>().toMatchTypeOf<PerTestOutcome['outcome']>()
     expectTypeOf<RunEventType>().toEqualTypeOf<(typeof RUN_EVENT_TYPES)[number]>()
   })
@@ -188,7 +188,7 @@ describe('MemberTestOutcome — the D-15 per-test union split', () => {
 // visibility as first-class typed events so the v1 Reporter interface can be deleted.
 // Envelope is untouched; the enum is extended append-only (spec §2.2). Payload shapes
 // mirror core/src/reporter/types.ts HookEvent/HookResultEvent (lines 25-52).
-describe('bus schema v1 — Phase 363 parity event vocabulary (D-01, spec §2.2)', () => {
+describe('bus schema v1 — parity event vocabulary (spec §2.2)', () => {
   it('appends hookStarted, hookFinished, testRetryScheduled at the end of the enum', () => {
     for (const type of ['hookStarted', 'hookFinished', 'testRetryScheduled']) {
       expect(RUN_EVENT_TYPES).toContain(type)
@@ -248,7 +248,7 @@ describe('bus schema v1 — Phase 363 parity event vocabulary (D-01, spec §2.2)
     expect(JSON.parse(JSON.stringify(payload))).toEqual(defined)
   })
 
-  it('TestRetryScheduledPayload carries the per-test attempt accounting (Q-3)', () => {
+  it('TestRetryScheduledPayload carries the per-test attempt accounting', () => {
     const payload: TestRetryScheduledPayload = {
       testId: 'checkout::happy-path',
       testIndex: 0,
@@ -267,7 +267,7 @@ describe('bus schema v1 — Phase 363 parity event vocabulary (D-01, spec §2.2)
   })
 })
 
-describe('bus schema v1 — Phase 363 widened payload fields (additive-optional, §2.2)', () => {
+describe('bus schema v1 — widened payload fields (additive-optional, §2.2)', () => {
   it('TestStartedPayload gains filePath + suite grouping + totalSteps (all optional)', () => {
     const base: TestStartedPayload = { testId: 't1', testIndex: 0, name: 'happy path' }
     expect(JSON.parse(JSON.stringify(base))).toEqual(base)

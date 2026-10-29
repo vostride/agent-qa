@@ -59,7 +59,7 @@ function ledgerOf(size: number): TraceLine[] {
   )
 }
 
-describe('ServedRetrievalTraceV1 (D-14 grain)', () => {
+describe('ServedRetrievalTraceV1', () => {
   it('accepts a full-attribution trace at RETRIEVAL_TRACE_SCHEMA_VERSION', () => {
     const parsed = ServedRetrievalTraceV1Schema.parse(trace())
 
@@ -123,7 +123,7 @@ describe('ServedRetrievalTraceV1 (D-14 grain)', () => {
   })
 })
 
-describe('TRACE_TRUNCATION_TOP_K (D-14 bounded truncation ledger)', () => {
+describe('TRACE_TRUNCATION_TOP_K (bounded truncation ledger)', () => {
   it('exports the bound as a positive integer constant', () => {
     expect(Number.isSafeInteger(TRACE_TRUNCATION_TOP_K)).toBe(true)
     expect(TRACE_TRUNCATION_TOP_K).toBeGreaterThan(0)
@@ -227,7 +227,7 @@ function handoffWithStep(step: Record<string, unknown>): Record<string, unknown>
   }
 }
 
-describe('CompletedRunHandoff v5 retrievalTrace beside-field (D-13)', () => {
+describe('CompletedRunHandoff v5 retrievalTrace beside-field', () => {
   it('pins the current handoff schema version at 2', () => {
     expect(CURRENT_HANDOFF_SCHEMA_VERSION).toBe(2)
   })
@@ -247,7 +247,7 @@ describe('CompletedRunHandoff v5 retrievalTrace beside-field (D-13)', () => {
     expect(error.supportedVersion).toBe(2)
   })
 
-  it('loads a v5 step that carries NO retrievalTrace (historical absence, D-15)', () => {
+  it('loads a v5 step that carries NO retrievalTrace (historical absence)', () => {
     const guarded = guardCompletedRunHandoff(makeHandoff())
 
     expect('retrievalTrace' in guarded.tests[0].steps[0]).toBe(false)

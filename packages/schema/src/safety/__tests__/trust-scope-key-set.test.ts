@@ -59,17 +59,17 @@ describe('the ONE scope key set', () => {
   })
 })
 
-describe('C432-NO-TRUST-CONTRACT: the wire leg is gone (432-22)', () => {
-  it('C432-NO-TRUST-CONTRACT: no grant-ledger guard and no projection module is left to range the key set', () => {
+describe('the wire leg is gone', () => {
+  it('no grant-ledger guard and no projection module is left to range the key set', () => {
     expect(existsSync(join(SAFETY_DIR, 'grant-ledger.ts')), 'safety/grant-ledger.ts is still present').toBe(false)
     expect(existsSync(join(SAFETY_DIR, 'grant-ops.ts')), 'safety/grant-ops.ts is still present').toBe(false)
   })
 
-  it('C432-NO-TRUST-CONTRACT: the safety barrel exports no trust-scope schema', () => {
+  it('the safety barrel exports no trust-scope schema', () => {
     expect(Object.keys(safety).filter(name => /TrustScope/.test(name))).toEqual([])
   })
 
-  it('C432-NO-TRUST-CONTRACT: no schema source spells the projection any more', () => {
+  it('no schema source spells the projection any more', () => {
     const offenders: string[] = []
     const walk = (dir: string): void => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {

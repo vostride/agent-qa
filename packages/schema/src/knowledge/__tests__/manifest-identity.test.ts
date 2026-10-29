@@ -45,7 +45,7 @@ function flipLastHex(value: string): string {
   return `${value.slice(0, -1)}${value.endsWith('0') ? '1' : '0'}`
 }
 
-describe('verifyManifestIdentity (BNDL-02, D-03/D-07)', () => {
+describe('verifyManifestIdentity', () => {
   it('accepts identity fields genuinely derived from the stored identity core', () => {
     expect(verifyManifestIdentity(makeGenuineManifest())).toEqual([])
   })

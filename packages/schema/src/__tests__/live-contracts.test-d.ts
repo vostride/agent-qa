@@ -10,7 +10,7 @@ import type {
   TestStartedPayload,
 } from '../index'
 
-test('C428-LIVE-STREAM-KINDS-EXACT', () => {
+test('live stream kinds are an exact union, and a declaration may also be none', () => {
   type Expected = 'cdp-screencast' | 'snapshot' | 'mjpeg' | 'webrtc'
   expectTypeOf<LiveStreamKind>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof LIVE_STREAM_KINDS)[number]>().toEqualTypeOf<Expected>()
@@ -19,7 +19,7 @@ test('C428-LIVE-STREAM-KINDS-EXACT', () => {
   expectTypeOf<LiveStreamDeclaration['kind']>().toEqualTypeOf<Expected | 'none'>()
 })
 
-test('C428-FRAME-END-REASONS-EXACT', () => {
+test('live frame end reasons are exactly withdrawn and closed', () => {
   type Expected = 'withdrawn' | 'closed'
   expectTypeOf<LiveFrameEndReason>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof LIVE_FRAME_END_REASONS)[number]>().toEqualTypeOf<Expected>()
@@ -27,7 +27,7 @@ test('C428-FRAME-END-REASONS-EXACT', () => {
   expectTypeOf<Exclude<Expected, LiveFrameEndReason>>().toEqualTypeOf<never>()
 })
 
-test('C428-LIVE-VIEW-SUBJECT-KINDS-EXACT', () => {
+test('live view subject kinds are exactly run and editor', () => {
   type Expected = 'run' | 'editor'
   expectTypeOf<LiveViewSubjectKind>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof LIVE_VIEW_SUBJECT_KINDS)[number]>().toEqualTypeOf<LiveViewSubjectKind>()
@@ -41,7 +41,7 @@ test('C428-LIVE-VIEW-SUBJECT-KINDS-EXACT', () => {
   void suite
 })
 
-test('C428-TEST-STARTED-STEP-TEXTS-OPTIONAL', () => {
+test('testStarted stepTexts is optional', () => {
   expectTypeOf<TestStartedPayload['stepTexts']>().toEqualTypeOf<readonly string[] | undefined>()
 
   const bare = { testId: 't1', testIndex: 0, name: 'a test' }

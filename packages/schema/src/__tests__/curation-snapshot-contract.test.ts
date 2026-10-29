@@ -105,7 +105,7 @@ test('INVALID-BREAKDOWN: notification guards reject malformed snapshot membershi
   }
 })
 
-test('C423-BUCKETS-EXACT: exactly five literals and version two with strict keys', () => {
+test('exactly five literals and version two with strict keys', () => {
   expect(CURATION_BREAKDOWN_BUCKETS).toEqual(['added', 'confirmed', 'superseded', 'deprecated', 'proposed'])
   expect(CurationBucketSchema.options).toEqual(['added', 'confirmed', 'superseded', 'deprecated', 'proposed'])
   expect(CURATION_BUCKET_PRECEDENCE).toEqual(['superseded', 'deprecated', 'proposed', 'added', 'confirmed'])

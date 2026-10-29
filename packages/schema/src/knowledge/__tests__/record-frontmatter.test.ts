@@ -39,7 +39,7 @@ function insertFrontmatterLine(markdown: string, line: string): string {
   return markdown.replace('\n---\n\n## Summary', `\n${line}\n---\n\n## Summary`)
 }
 
-describe('record.md deterministic frontmatter (BNDL-03/D-16)', () => {
+describe('record.md deterministic frontmatter', () => {
   it('round-trips all immutable frontmatter fields and markdown body', () => {
     expect(parseRecordMarkdown(emitRecordMarkdown(frontmatter, body))).toEqual({
       frontmatter,
@@ -85,7 +85,7 @@ describe('record.md deterministic frontmatter (BNDL-03/D-16)', () => {
   })
 
   it.each(['trust', 'counters', 'status', 'validity'])(
-    'rejects derived %s with a BNDL-03 error',
+    'rejects a derived %s key in frontmatter',
     (key) => {
       const smuggled = insertFrontmatterLine(
         emitRecordMarkdown(frontmatter, body),
@@ -137,7 +137,7 @@ describe('record.md deterministic frontmatter (BNDL-03/D-16)', () => {
   })
 })
 
-describe('embedding and snapshot renderings (D-02)', () => {
+describe('embedding and snapshot renderings', () => {
   it('renders normalized anchors in input order with the provisional exact bytes', () => {
     expect(renderEmbeddingInput({
       summary: 'Sign in',

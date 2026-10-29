@@ -38,7 +38,7 @@ type PreviewOutcome = 'consequences' | 'quarantined' | 'already-marked' | Refusa
 type MarkOutcome = 'marked' | 'already-marked' | Refusal
 type MarkKind = 'false-fail' | 'false-pass' | 'confirmed-bug'
 
-describe('C423-FEEDBACK-RESULTS-EXACT', () => {
+describe('mark result types are exact unions', () => {
   test('pins the four marks-history outcome arms in both directions', () => {
     expectTypeOf<RunsMarksHistoryResult['kind']>().toEqualTypeOf<HistoryOutcome>()
     expectTypeOf<(typeof MARKS_HISTORY_OUTCOMES)[number]>().toEqualTypeOf<HistoryOutcome>()

@@ -19,8 +19,8 @@ const baseEvent = {
   observationId: 'observation-a',
 }
 
-describe('BundleOutcomeEventSchema (D-08/D-09/D-10)', () => {
-  it('419 D-09 pins and round-trips the strict overturned citing arm', () => {
+describe('BundleOutcomeEventSchema', () => {
+  it('pins and round-trips the strict overturned citing arm', () => {
     expect(OVERTURNED_EVENT_TYPE).toBe('overturned')
     const line = {
       ...baseEvent, type: 'overturned', overturnsEvidenceToken: 'target',

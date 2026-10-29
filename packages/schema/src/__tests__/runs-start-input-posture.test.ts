@@ -46,7 +46,7 @@ const CONCURRENCY_SHAPED_KEYS = [
   'threads',
 ] as const
 
-describe('RunsStartInput refuses a concurrency override (D-12)', () => {
+describe('RunsStartInput refuses a concurrency override', () => {
   it('THE POSITIVE CONTROL — the base request, without any added key, parses', () => {
     // Without this, every refusal below could be a refusal of the base request and the cells would
     // read as green posture over a schema that refuses everything.

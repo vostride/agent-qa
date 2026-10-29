@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import { slugBranch } from '../slug'
 
-describe('slugBranch traversal-safe path segment (T-360-03)', () => {
+describe('slugBranch traversal-safe path segment', () => {
   it.each([
     ['feature/login', 'feature-login'],
     ['feature/foo\\bar', 'feature-foo-bar'],

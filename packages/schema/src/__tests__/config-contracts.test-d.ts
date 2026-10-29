@@ -20,7 +20,7 @@ import type {
   ProviderErrorClass,
 } from '../index'
 
-test('C429-CONFIG-WRITE-OPS-EXACT', () => {
+test('config write ops are exactly the six ops a change may use', () => {
   type Expected = 'set' | 'unset' | 'append' | 'set-if-absent' | 'move' | 'expect'
   expectTypeOf<ConfigWriteOp>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof CONFIG_WRITE_OPS)[number]>().toEqualTypeOf<Expected>()
@@ -30,7 +30,7 @@ test('C429-CONFIG-WRITE-OPS-EXACT', () => {
   expectTypeOf<ConfigChange['path'][number]>().toEqualTypeOf<ConfigPathSegment>()
 })
 
-test('C429-CONFIG-WRITE-DENIED-ROOTS-EXACT', () => {
+test('plugins is the only denied write root', () => {
   type Expected = 'plugins'
   expectTypeOf<ConfigWriteDeniedRoot>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof CONFIG_WRITE_DENIED_ROOTS)[number]>().toEqualTypeOf<Expected>()
@@ -38,7 +38,7 @@ test('C429-CONFIG-WRITE-DENIED-ROOTS-EXACT', () => {
   expectTypeOf<Exclude<Expected, ConfigWriteDeniedRoot>>().toEqualTypeOf<never>()
 })
 
-test('C429-CONFIG-WRITE-REFUSALS-EXACT', () => {
+test('config write refusals are an exact union', () => {
   type Expected =
     | 'invalid_write_input'
     | 'file_invalid'
@@ -54,7 +54,7 @@ test('C429-CONFIG-WRITE-REFUSALS-EXACT', () => {
   expectTypeOf<Exclude<Expected, ConfigWriteRefusal>>().toEqualTypeOf<never>()
 })
 
-test('C429-CONFIG-NAMED-ARRAYS-EXACT', () => {
+test('registry.llms is the only named array', () => {
   type Expected = 'registry.llms'
   expectTypeOf<ConfigNamedArray>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof CONFIG_NAMED_ARRAYS)[number]>().toEqualTypeOf<Expected>()
@@ -62,7 +62,7 @@ test('C429-CONFIG-NAMED-ARRAYS-EXACT', () => {
   expectTypeOf<Exclude<Expected, ConfigNamedArray>>().toEqualTypeOf<never>()
 })
 
-test('C429-PROVIDER-ERROR-CLASSES-EXACT', () => {
+test('provider error classes are an exact union', () => {
   type Expected =
     | 'auth_error'
     | 'model_not_found'
@@ -76,7 +76,7 @@ test('C429-PROVIDER-ERROR-CLASSES-EXACT', () => {
   expectTypeOf<Exclude<Expected, ProviderErrorClass>>().toEqualTypeOf<never>()
 })
 
-test('C429-LLM-SETUP-REFUSALS-EXACT', () => {
+test('LLM setup refusals are an exact union', () => {
   type Expected =
     | 'invalid_setup_input'
     | 'name_invalid'
@@ -92,7 +92,7 @@ test('C429-LLM-SETUP-REFUSALS-EXACT', () => {
   expectTypeOf<Exclude<Expected, LlmSetupRefusal>>().toEqualTypeOf<never>()
 })
 
-test('C429-CONFIG-ACTION-REFUSALS-EXACT', () => {
+test('config action refusals are exactly undo_expired and undo_conflict', () => {
   type Expected = 'undo_expired' | 'undo_conflict'
   expectTypeOf<ConfigActionRefusal>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof CONFIG_ACTION_REFUSALS)[number]>().toEqualTypeOf<Expected>()

@@ -122,7 +122,7 @@ describe('renderConfigDiff — the ONE primitive both halves of a config proposa
   const oldBytes = utf8Encode('use:\n  timeout: 30s\n')
   const newBytes = utf8Encode('use:\n  timeout: 45s\n')
 
-  it('digests RAW bytes, never a decoding of them (D-17 / the CR-02 class)', () => {
+  it('digests RAW bytes, never a decoding of them', () => {
     // A byte sequence NO UTF-8 decoding round-trips: 0x80 is a bare continuation byte, so
     // `utf8Encode(utf8Decode(bytes))` is three bytes of U+FFFD and not this value.
     const undecodable = Uint8Array.from([0x61, 0x80, 0x62])
@@ -135,7 +135,7 @@ describe('renderConfigDiff — the ONE primitive both halves of a config proposa
       .not.toBe(sha256hexBytes(utf8Encode(utf8Decode(undecodable))))
   })
 
-  it('renders the same bytes whatever order the caller enumerated the file set in (D-19)', () => {
+  it('renders the same bytes whatever order the caller enumerated the file set in', () => {
     const files = [
       { path: 'hooks.yaml', oldBytes: utf8Encode('h: 1\n'), newBytes: utf8Encode('h: 2\n') },
       { path: 'agent-qa.config.yaml', oldBytes, newBytes },
@@ -172,7 +172,7 @@ describe('renderConfigDiff — the ONE primitive both halves of a config proposa
       .toThrow(EmptyConfigDiffFileError)
   })
 
-  it('an unchanged file answers `unchanged` and carries no diff bytes at all (395-02)', () => {
+  it('an unchanged file answers `unchanged` and carries no diff bytes at all', () => {
     const rendered = renderConfigDiff([{ path: 'a', oldBytes, newBytes: oldBytes }])
     expect(rendered.outcome).toBe('unchanged')
     expect('diffBytes' in rendered).toBe(false)

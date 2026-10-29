@@ -18,7 +18,7 @@ type ExactlyEqual<A, B> =
   (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
 
 // Independent literal union; the never-bar fails to compile the moment either side grows.
-describe('C425-EXCLUSION-REASONS-EXACT', () => {
+describe('post-processing skip reasons', () => {
   test('pins exactly three skip reasons in both directions through both barrels', () => {
     const listMatchesUnion: ExactlyEqual<
       (typeof POST_PROCESSING_SKIP_REASONS)[number],

@@ -52,7 +52,7 @@ function fold(
   })
 }
 
-describe('419 D-09 overturned evidence cancellation', () => {
+describe('overturned evidence cancellation', () => {
   function overturn(target: BundleOutcomeEvent, token = 'overturn') {
     return event('overturned', token, 99, {
       overturnsEvidenceToken: target.evidenceToken,
@@ -90,7 +90,7 @@ describe('419 D-09 overturned evidence cancellation', () => {
   )
 })
 
-describe('foldBundleTrust priors and Beta evidence (D-08/D-10)', () => {
+describe('foldBundleTrust priors and Beta evidence', () => {
   it.each([
     ['user', 3 / 4],
     ['agent-verified', 2 / 3],
@@ -135,7 +135,7 @@ describe('foldBundleTrust priors and Beta evidence (D-08/D-10)', () => {
   })
 })
 
-describe('foldBundleTrust replay and merge laws (BNDL-03)', () => {
+describe('foldBundleTrust replay and merge laws', () => {
   it('moves no counter when the same evidence-token and job event is replayed', () => {
     const confirmed = event('confirmed', 'same-evidence')
 
@@ -210,7 +210,7 @@ describe('foldBundleTrust lifecycle derivation', () => {
   })
 })
 
-describe('foldBundleTrust retraction restoration (379 D-15)', () => {
+describe('foldBundleTrust retraction restoration', () => {
   it('restores the pre-supersession status and reopens the validity window', () => {
     const confirmed = event('confirmed', 'confirmed-at-5', 5)
     const superseded = event('superseded', 'superseded-at-8', 8, {

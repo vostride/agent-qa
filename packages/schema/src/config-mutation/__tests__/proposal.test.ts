@@ -124,11 +124,11 @@ describe('the six action inputs and the change file', () => {
     }).success).toBe(false)
   })
 
-  it('the undo and apply inputs and the apply receipts are deleted with their ops (D-07, D-09)', () => {
+  it('the undo and apply inputs and the apply receipts are deleted with their ops', () => {
     expect(RETIRED_ACTION_EXPORTS.filter((name) => name in actions)).toEqual([])
   })
 
-  it('the scaffold input carries the domain and nothing a model could invent (D-13)', () => {
+  it('the scaffold input carries the domain and nothing a model could invent', () => {
     expect(Object.keys(ConfigProjectScaffoldInputSchema.shape)).toEqual(['domain'])
   })
 
@@ -144,7 +144,7 @@ function namesAValueBearingField(keys: readonly string[]): string[] {
   return keys.filter((key) => /secret|password|token|credential|apikey|value|\bkey$/i.test(key))
 }
 
-describe('set_auth is refs-only by shape, not by discipline (D-11)', () => {
+describe('set_auth is refs-only by shape, not by discipline', () => {
   const keys = Object.keys(ConfigAuthSetInputSchema.shape)
 
   it('the predicate can fire — a control keyset carrying a credential field is caught', () => {
@@ -171,7 +171,7 @@ describe('set_auth is refs-only by shape, not by discipline (D-11)', () => {
   })
 })
 
-describe('the blocked arm cannot carry the payload it blocked (D-10)', () => {
+describe('the blocked arm cannot carry the payload it blocked', () => {
   // RE-SPELLED 2026-10-14 (441-39, D-15): the fixture was a guardrail block carrying scan findings.
   // A config change is no longer scanned, so the only blocked answer is a schema failure. The retired
   // names are spelled in parts so the phase's census grep for them finds no live spelling.
@@ -232,7 +232,7 @@ describe('the blocked arm cannot carry the payload it blocked (D-10)', () => {
   })
 
   // RE-SPELLED 2026-10-14 (441-39, D-15): was 'names one posture and two reasons (CFGM-01)'.
-  it('names one posture and one reason, and the guardrail reason is gone (CFGM-01, D-15)', () => {
+  it('names one posture and one reason, and the guardrail reason is gone', () => {
     expect([...CONFIG_BLOCKED_REASONS]).toEqual(['schema-fail'])
     expect(ConfigChangeOutputSchema.safeParse({ ...blocked, blockedReason: 'other' }).success)
       .toBe(false)
@@ -248,7 +248,7 @@ describe('the blocked arm cannot carry the payload it blocked (D-10)', () => {
       .toBe(false)
   })
 
-  it('the finding schema is deleted with the scan (D-15)', () => {
+  it('the finding schema is deleted with the scan', () => {
     expect(RETIRED_SCHEMA in actions).toBe(false)
   })
 })
@@ -283,7 +283,7 @@ describe('a produced applyable payload round-trips through its own schema', () =
   })
 })
 
-describe('(S1) the proposed arm cannot carry an EMPTY rendered diff (395-22 · CFGM-05)', () => {
+describe('the proposed arm cannot carry an EMPTY rendered diff', () => {
   // THE TWO HALVES OF THE SAME LAW, SPELLED ONCE EACH. `shownDiffBase64` on the stored payload has
   // carried `.min(1)` since D-19 — the bytes a person was shown may not be nothing — and the
   // proposed arm's `shownDiff` is the TEXT of exactly those bytes on its way to a surface. It
@@ -318,7 +318,7 @@ describe('(S1) the proposed arm cannot carry an EMPTY rendered diff (395-22 · C
   // stored payload; the applied arm's own bound above is the one surface that prints the diff.
 })
 
-describe('the cross-boundary reason vocabulary is closed (D-02)', () => {
+describe('the cross-boundary reason vocabulary is closed', () => {
   it('bounds exactly the four classes', () => {
     expect([...CROSS_BOUNDARY_REASONS]).toEqual([
       'secret-adjacent-field',
@@ -356,7 +356,7 @@ describe('the cross-boundary reason vocabulary is closed (D-02)', () => {
   })
 })
 
-describe('the secret-adjacent field set is roots, and matching is by subtree (D-03)', () => {
+describe('the secret-adjacent field set is roots, and matching is by subtree', () => {
   it('names the roots', () => {
     expect([...SECRET_ADJACENT_CONFIG_FIELDS]).toEqual([
       'workspace.envFile',
@@ -441,8 +441,8 @@ describe('the secret-adjacent field set is roots, and matching is by subtree (D-
 // 2026-09-30, 432-12 (D-05/D-09): the config change tool folds the six direct actions only. The undo
 // arm left with the proposal round, so the fold answers the one change contract and an undo call is
 // not an arm of it. 432-17 deleted the undo op and its input.
-describe('C432-MCP-TWENTY-TOOLS: the config change fold has six arms and no undo arm', () => {
-  it('C432-MCP-TWENTY-TOOLS: advertises the direct change contract alone and refuses the undo arm', () => {
+describe('the config change fold has six arms and no undo arm', () => {
+  it('advertises the direct change contract alone and refuses the undo arm', () => {
     expect(ConfigChangeFoldOutputSchema).toBe(ConfigChangeOutputSchema)
     expect(ConfigChangeFoldInputSchema.safeParse({ action: 'config.undo.propose' }).success).toBe(false)
     expect(ConfigChangeFoldInputSchema.safeParse({

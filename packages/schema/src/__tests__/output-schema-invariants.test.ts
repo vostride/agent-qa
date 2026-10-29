@@ -65,7 +65,7 @@ function writeOutput(overrides: Record<string, unknown>) {
   }
 }
 
-describe('C261003-CPV-SCHEMA-INVARIANTS (IN-21)', () => {
+describe('output schemas tie each optional field to the arm that owns it', () => {
   it('authoring.draft.write: written is present exactly on drafted and repaired', () => {
     const output = schema.AuthoringDraftWriteOutputSchema
     expect(output.safeParse(writeOutput({})).success).toBe(true)

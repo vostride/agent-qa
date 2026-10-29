@@ -18,7 +18,7 @@ function fixture(): ScreenState {
   }
 }
 
-describe('route-and-elements state identity, 418 D-11/D-23', () => {
+describe('route-and-elements state identity', () => {
   it('pins the persisted definition to an independently computed literal digest', () => {
     expect(distilledScreenStateDigest(fixture())).toBe(
       '6bf48f864d267dcccfde281e64ecc7ad43cd356e4eea77afa98a63c2cfc8dc81',

@@ -84,7 +84,7 @@ const PREVIEW_CASES: Record<(typeof PREVIEW_OUTCOMES)[number], unknown> = {
   'ambiguous-address': { kind: 'ambiguous-address', runId, candidates: [{ testIndex: 0 }, { testIndex: 1 }] },
 }
 
-describe('C423-FEEDBACK-RESULTS-EXACT', () => {
+describe('mark result vocabularies', () => {
   test('pins the marks-history outcome arms: runtime list, schema arms and parser', () => {
     expect([...MARKS_HISTORY_OUTCOMES]).toEqual([...HISTORY_OUTCOMES])
     expect(armsOf(RunsMarksHistoryResultSchema, 'kind')).toEqual([...HISTORY_OUTCOMES])

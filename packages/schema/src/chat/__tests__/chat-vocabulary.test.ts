@@ -58,7 +58,7 @@ function userMessage(): ChatSessionEvent {
 }
 
 describe('the chat session event vocabulary is closed and total', () => {
-  it('D-14: every declared kind has a meaning, and the union is exactly the declared list', () => {
+  it('every declared kind has a meaning, and the union is exactly the declared list', () => {
     expect(Object.keys(KIND_MEANING).sort()).toEqual([...CHAT_SESSION_EVENT_KINDS].sort())
     // Ten from day one, including the kinds nothing emits yet (CHAT-05 names four of them). A
     // kind declared late would make "this build does not know that kind" and "that kind did not
@@ -71,7 +71,7 @@ describe('the chat session event vocabulary is closed and total', () => {
     expect(CHAT_SESSION_EVENT_KINDS).toHaveLength(11)
   })
 
-  it('D-11 + 399.1 D-02: the receipt statuses are exactly four, closed', () => {
+  it('the receipt statuses are exactly four, closed', () => {
     // FOUR SINCE 2026-08-20, and the assertion is spelled out rather than counted for the reason it
     // always was: this is a published vocabulary, every surface renders every member, and a member
     // arriving or leaving must be a visible edit HERE and not an arithmetic change somewhere.
@@ -82,7 +82,7 @@ describe('the chat session event vocabulary is closed and total', () => {
     expect([...CLAUSE_RECEIPT_STATUSES]).toEqual(['executed', 'failed', 'not-run', 'refused'])
   })
 
-  it('399.1-03: exactly two of the four statuses mean the capability was REACHED', () => {
+  it('exactly two of the four statuses mean the capability was REACHED', () => {
     // THE PREDICATE EVERY ROLL-CALL OVER THIS SET NOW ASKS, pinned exhaustively over the set itself
     // rather than over a list somebody typed — so a FIFTH member arriving lands in one of these two
     // buckets by somebody's decision, and cannot join silently on whichever side the `||` chain
@@ -104,11 +104,11 @@ describe('the chat session event vocabulary is closed and total', () => {
     expect(reached.length + unreached.length).toBe(CLAUSE_RECEIPT_STATUSES.length)
   })
 
-  it('CHAT-02: a scenario expects one of exactly two things', () => {
+  it('a scenario expects one of exactly two things', () => {
     expect([...SCENARIO_EXPECTATIONS]).toEqual(['should_execute', 'fail_closed'])
   })
 
-  it('CHAT-01/precision: no member of the vocabulary carries a fractional confidence', () => {
+  it('no member of the vocabulary carries a fractional confidence', () => {
     // Stage-1 resolution is BINARY by construction (D-09): an exact predicate hit or nothing. A
     // confidence field anywhere in this vocabulary would be the first half of a threshold, and a
     // threshold is how an overriding path acquires a false-positive rate.
@@ -174,7 +174,7 @@ describe('guardChatSessionEvent refuses untrusted bytes by name', () => {
       .toThrow(ChatSessionEventSchemaError)
   })
 
-  it('D-18: accepts every kind this vocabulary declares, so the guard is not a four-kind guard', () => {
+  it('accepts every kind this vocabulary declares, so the guard is not a four-kind guard', () => {
     const samples: Record<ChatSessionEventKind, ChatSessionEvent> = {
       user_message: userMessage(),
       stage_outcome: { kind: 'stage_outcome', turnId: 't', at: AT, stage: 'resolver', outcome: 'resolved' },
@@ -234,8 +234,8 @@ describe('guardChatSessionEvent refuses untrusted bytes by name', () => {
 // 432-13 (D-14/D-22): no turn writes an `approval_decision` any more — the chat confirm and the
 // `/pin` verb that wrote them are gone from chat resolution. A session a person kept from before
 // still reopens: both historical sources parse, in order, beside the events a turn writes today.
-describe('C432-HISTORICAL-READER — pre-432 approval rows still read (432-13)', () => {
-  it('C432-HISTORICAL-READER: a pre-432 session line of each approval source and decision parses unchanged', () => {
+describe('historical approval rows still read', () => {
+  it('a historical session line of each approval source and decision parses unchanged', () => {
     const historical: ChatSessionEvent[] = [
       userMessage(),
       { kind: 'approval_decision', turnId: 'turn-1', at: AT, actionClass: 'fn:runs.mark', decision: 'accept', source: 'gate' },
@@ -256,7 +256,7 @@ describe('C432-HISTORICAL-READER — pre-432 approval rows still read (432-13)',
   // 432-42 (D-22): the reader stays and the WRITER does not. Every production source of the packages
   // that compose or run a chat turn is read, and no code line builds an event of the kind; a line
   // that only mentions it in a comment is not a writer.
-  it('C432-HISTORICAL-READER: no production source of a turn-writing package builds an approval event', () => {
+  it('no production source of a turn-writing package builds an approval event', () => {
     const packagesDir = fileURLToPath(new URL('../../../../', import.meta.url))
     const sources: string[] = []
     const walk = (dir: string): void => {
@@ -284,15 +284,15 @@ describe('C432-HISTORICAL-READER — pre-432 approval rows still read (432-13)',
 // `pinDenies` over `ChatPinOverlay`. Both are deleted with the session pin overlay; the absence is
 // checked here and by the agent's `chat/__tests__/pin-overlay.test.ts`. The historical `/pin` row
 // (`source: 'verb'`) still parses, above.
-describe('C432-PIN-ABSENT: the schema publishes no pin predicate (432-18)', () => {
-  it('C432-PIN-ABSENT: no pin member is exported beside the session vocabulary', async () => {
+describe('the schema publishes no pin predicate', () => {
+  it('no pin member is exported beside the session vocabulary', async () => {
     const barrel = await import('../index') as Record<string, unknown>
     expect(Object.keys(barrel).filter((name) => /^pin|pinOverlay/i.test(name))).toEqual([])
     expect(barrel['guardChatSessionEvent']).toBeTypeOf('function')
   })
 })
 
-describe('the scenario contract (CHAT-02)', () => {
+describe('the scenario contract', () => {
   it('validates a YAML-shaped scenario and rejects an unknown expectation', () => {
     const parsed = ChatScenarioSchema.parse({
       id: 'proposals-alias',
@@ -313,7 +313,7 @@ describe('the scenario contract (CHAT-02)', () => {
     ).toThrow()
   })
 
-  it('D-10: a fail_closed scenario can pin executed == 0 and name the clause', () => {
+  it('a fail_closed scenario can pin executed == 0 and name the clause', () => {
     const parsed = ChatScenarioSchema.parse({
       id: 'write-test-absent',
       class: 'compound',

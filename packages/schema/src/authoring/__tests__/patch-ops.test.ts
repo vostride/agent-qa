@@ -78,7 +78,7 @@ describe('PatchOpSchema — the ops that are NOT admitted', () => {
     expect(result.success).toBe(false)
   })
 
-  it('refuses a non-string value — a patch never installs a nested collection (D-02)', () => {
+  it('refuses a non-string value — a patch never installs a nested collection', () => {
     const result = PatchOpSchema.safeParse({
       op: 'replace',
       path: '/steps/1',
@@ -144,7 +144,7 @@ describe('TestEditPatchSetSchema — the {thoughts, patches} envelope', () => {
   })
 })
 
-describe('the editable-region fence (T-394-10)', () => {
+describe('the editable-region fence', () => {
   it('resolves the root of a pointer', () => {
     expect(pointerRootOf('/steps/1')).toBe('steps')
     expect(pointerRootOf('/name')).toBe('name')

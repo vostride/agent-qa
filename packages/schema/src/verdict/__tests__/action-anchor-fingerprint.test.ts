@@ -28,13 +28,13 @@ const USERNAME: Anchor = { t: 'el', role: 'textbox', name: 'Username' }
 const USERNAME_NOISY: Anchor = { t: 'el', role: '  TextBox ', name: '  Username\n ' }
 const SUBMIT: Anchor = { t: 'el', role: 'button', name: 'Submit' }
 
-describe('actionAnchorElement (393 D-13/D-14)', () => {
+describe('actionAnchorElement', () => {
   it('is deterministic: the same input yields byte-identical elements', () => {
     const input: ActionAnchorElementInput = { kind: 'action', type: 'click', anchor: SUBMIT }
     expect(actionAnchorElement(input)).toBe(actionAnchorElement(input))
   })
 
-  it('collapses casing and whitespace noise — conservatism lives in the normalizer (D-14)', () => {
+  it('collapses casing and whitespace noise — conservatism lives in the normalizer', () => {
     // D-14 has no similarity threshold to defend, so near-same elements MUST normalize equal
     // or the set difference over-reports novelty and gate 3 waves duplicates through.
     expect(actionAnchorElement({ kind: 'action', type: 'click', anchor: USERNAME_NOISY })).toBe(
@@ -121,7 +121,7 @@ describe('actionAnchorElement (393 D-13/D-14)', () => {
   })
 })
 
-describe('actionAnchorSequence (393 D-13)', () => {
+describe('actionAnchorSequence', () => {
   const STEPS: readonly ActionAnchorElementInput[] = [
     { kind: 'action', type: 'fill', anchor: USERNAME },
     { kind: 'action', type: 'click', anchor: SUBMIT },
@@ -153,7 +153,7 @@ describe('actionAnchorSequence (393 D-13)', () => {
 
 // 2026-10-09 (437-18, D-05, WR-03): a skipped tap sent no input but did not fail, so its anchor
 // is covered surface on both sides of gate 3, as it was before 437 recorded it `success: false`.
-describe('C437-NO-INPUT-READERS', () => {
+describe('a skipped tap in the test fingerprint', () => {
   const toggle = {
     ref: asRef('e1'),
     role: 'switch',
@@ -208,7 +208,7 @@ describe('C437-NO-INPUT-READERS', () => {
     }
   }
 
-  it("a skipped tap's anchor counts in the test fingerprint, as before 437", () => {
+  it("a skipped tap's anchor counts in the test fingerprint", () => {
     const skipped = testFingerprintElements(
       testWith({
         success: false,

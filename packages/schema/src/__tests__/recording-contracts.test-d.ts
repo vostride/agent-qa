@@ -5,7 +5,7 @@ import type { RecordingState, RecordingContentType, RecordingRef, RecordingEntry
 import type { SubActionRecordedPayload, TestFinishedPayload } from '../run/bus-events'
 import type { RunDetailMember, RunDetailSubAction, RunDetailRows } from '../functions/runs'
 
-test('C424-RECORDING-STATES-EXACT', () => {
+test('recording states are exactly present and absent', () => {
   type Expected = 'present' | 'absent'
   expectTypeOf<RecordingState>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof RECORDING_STATES)[number]>().toEqualTypeOf<Expected>()
@@ -14,7 +14,7 @@ test('C424-RECORDING-STATES-EXACT', () => {
   expectTypeOf<RecordingEntry['state']>().toEqualTypeOf<Expected>()
 })
 
-test('C424-RECORDING-TYPES-EXACT', () => {
+test('recording content types are exactly webm and mp4', () => {
   type Expected = 'video/webm' | 'video/mp4'
   expectTypeOf<RecordingContentType>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof RECORDING_CONTENT_TYPES)[number]>().toEqualTypeOf<Expected>()
@@ -22,7 +22,7 @@ test('C424-RECORDING-TYPES-EXACT', () => {
   expectTypeOf<Exclude<Expected, RecordingContentType>>().toEqualTypeOf<never>()
 })
 
-test('C424-RECORDING-REF-EXACT', () => {
+test('a recording ref id carries the recording: prefix, and an absent entry has a reason and no ref', () => {
   expectTypeOf<typeof RECORDING_REF_PREFIX>().toEqualTypeOf<'recording:'>()
   expectTypeOf<RecordingRef['id']>().toEqualTypeOf<`recording:${string}`>()
   expectTypeOf<RecordingEntry>().toEqualTypeOf<z.infer<typeof RecordingEntrySchema>>()

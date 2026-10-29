@@ -195,7 +195,7 @@ const listArms: readonly (readonly [string, unknown])[] = [
 ]
 
 describe('OUTPUT-CONTRACT-FIDELITY', () => {
-  test('A1: the runtime schemas themselves cannot be converted in output mode', () => {
+  test('the runtime schemas themselves cannot be converted in output mode', () => {
     for (const schema of [api.RunsListOutputSchema, api.RunsEvidenceResultSchema]) {
       expect(() => schema['~standard'].jsonSchema.output({ target: 'draft-2020-12' }))
         .toThrow('Transforms cannot be represented in JSON Schema')

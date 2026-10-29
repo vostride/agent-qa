@@ -21,7 +21,7 @@ import type {
 import type * as Notification from '../notification/index'
 
 // Independent literal unions: neither expected vocabulary is derived from production.
-describe('C423-STAGES-EXACT', () => {
+describe('post-processing detail stages and chips', () => {
   test('pins two detail stages in both directions through public exports', () => {
     expectTypeOf<PostProcessingDetailStage>().toEqualTypeOf<'analysis' | 'curation'>()
     expectTypeOf<(typeof POST_PROCESSING_DETAIL_STAGES)[number]>().toEqualTypeOf<
@@ -89,7 +89,7 @@ type ExactlyEqual<A, B> =
   (<T>() => T extends A ? 1 : 2) extends (<T>() => T extends B ? 1 : 2) ? true : false
 
 // Independent literal union; the never-bar fails to compile the moment either side grows.
-describe('C423-WITHHELD-EXACT', () => {
+describe('curation snapshot withheld reasons', () => {
   test('pins exactly two withheld reasons in both directions through both barrels', () => {
     const listMatchesUnion: ExactlyEqual<
       (typeof CURATION_SNAPSHOT_WITHHELD_REASONS)[number],

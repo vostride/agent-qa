@@ -75,7 +75,7 @@ const artifactsIndex = {
   }],
 }
 
-describe('committed bundle-file schemas (D-16)', () => {
+describe('committed bundle-file schemas', () => {
   it.each([
     ['manifest', BundleManifestSchema, manifest],
     ['provenance', BundleProvenanceSchema, provenance],
@@ -126,7 +126,7 @@ describe('committed bundle-file schemas (D-16)', () => {
   })
 })
 
-describe('computeMutableStateHash (BNDL-02)', () => {
+describe('computeMutableStateHash', () => {
   const input: MutableStateHashInput = {
     outcomes: DIGEST_A,
     relations: DIGEST_B,

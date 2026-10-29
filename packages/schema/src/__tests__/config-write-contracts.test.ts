@@ -1,11 +1,11 @@
 import { expect, test } from 'vitest'
 import * as api from '../index'
 
-test('C429-CONFIG-WRITE-OPS-EXACT', () => {
+test('lists the six config write ops', () => {
   expect(api.CONFIG_WRITE_OPS).toEqual(['set', 'unset', 'append', 'set-if-absent', 'move', 'expect'])
 })
 
-test('C429-CONFIG-WRITE-REFUSALS-EXACT', () => {
+test('lists the config write refusals in order', () => {
   expect(api.CONFIG_WRITE_REFUSALS).toEqual([
     'invalid_write_input',
     'file_invalid',
@@ -19,11 +19,11 @@ test('C429-CONFIG-WRITE-REFUSALS-EXACT', () => {
 })
 
 // 2026-10-01 (432-22, D-12): the two token lists left with their keys; the model list remains.
-test('C429-CONFIG-NAMED-ARRAYS-EXACT', () => {
+test('lists registry.llms as the only named array', () => {
   expect(api.CONFIG_NAMED_ARRAYS).toEqual(['registry.llms'])
 })
 
-test('C429-CONFIG-CHANGE-STRICT', () => {
+test('the config write request accepts well-formed changes and refuses malformed ones', () => {
   const schema = api.ConfigWriteRequestSchema
   const accepted = [
     { changes: [{ op: 'set', path: ['registry', 'llms', { name: 'gpt-5.6' }, 'model'], value: 'x' }] },
@@ -79,7 +79,7 @@ test('C429-CONFIG-CHANGE-STRICT', () => {
 })
 
 // 2026-10-01 (432-22, D-18/D-22): `safety` left the schema, so it left the denied roots too.
-test('C429-CONFIG-WRITE-DENIED-ROOTS-EXACT', () => {
+test('lists plugins as the only denied write root', () => {
   expect(api.CONFIG_WRITE_DENIED_ROOTS).toEqual(['plugins'])
 })
 
@@ -188,7 +188,7 @@ test('LEAF-OWNER', () => {
   expect(api.configLeafOwner('use.timeout.step')).toBe('use.timeout.step')
 })
 
-test('C429-PROVIDER-ERROR-CLASSES-EXACT', () => {
+test('lists the provider error classes in order', () => {
   expect(api.PROVIDER_ERROR_CLASSES).toEqual([
     'auth_error',
     'model_not_found',
@@ -273,7 +273,7 @@ test('EXTRACT-PROVIDER-ERROR', () => {
   expect(api.extractProviderError('x')).toEqual({ message: 'x' })
 })
 
-test('C429-LLM-SETUP-REFUSALS-EXACT', () => {
+test('lists the LLM setup refusals in order', () => {
   expect(api.LLM_SETUP_REFUSALS).toEqual([
     'invalid_setup_input',
     'name_invalid',
@@ -286,7 +286,7 @@ test('C429-LLM-SETUP-REFUSALS-EXACT', () => {
   ])
 })
 
-test('C429-CONFIG-ACTION-REFUSALS-EXACT', () => {
+test('lists the config action refusals', () => {
   expect(api.CONFIG_ACTION_REFUSALS).toEqual([
     'undo_expired',
     'undo_conflict',

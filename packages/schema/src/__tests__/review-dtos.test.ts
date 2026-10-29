@@ -86,7 +86,7 @@ function receipt(overrides: Record<string, unknown> = {}): Record<string, unknow
 // outputs, inputs and receipts themselves are covered by `knowledge-change-contracts.test.ts`.
 const changeDeltas = z.array(DeltaSchema)
 
-describe('the mark change stamp and the mark review input (419 D-01)', () => {
+describe('the mark change stamp and the mark review input', () => {
   const plan = {
     schemaVersion: IMPROVEMENT_PLAN_SCHEMA_VERSION, kind: 'knowledge', markId: markStamp.markId,
     feedbackSource: { runId: 'run-1', testIndex: 0, kind: 'false-fail' },
@@ -132,7 +132,7 @@ describe('the mark change stamp and the mark review input (419 D-01)', () => {
   })
 })
 
-describe('the review vocabulary and the change id (D-17)', () => {
+describe('the review vocabulary and the change id', () => {
   it('pins the verb vocabulary as an exact closed set', () => {
     expect(KNOWLEDGE_REVIEW_VERBS).toEqual(['accept', 'reject', 'forget', 'mark'])
   })
@@ -209,7 +209,7 @@ describe('change deltas (§7.3 vocabulary, imported not re-minted)', () => {
   })
 })
 
-describe('ForgetReceiptV1 (D-19 + D-04)', () => {
+describe('ForgetReceiptV1', () => {
   it('accepts a full receipt enumerating every tombstoned record with provenance', () => {
     const parsed = ForgetReceiptV1Schema.parse(receipt())
 
@@ -266,7 +266,7 @@ describe('ForgetReceiptV1 (D-19 + D-04)', () => {
   })
 })
 
-describe('ForgetTargetRef (D-19 record-or-bundle grain)', () => {
+describe('ForgetTargetRef (record-or-bundle grain)', () => {
   it('accepts an individual record id', () => {
     const parsed = ForgetTargetRefSchema.parse({ grain: 'record', recordId: 'rec-checkout-1' })
 
@@ -308,7 +308,7 @@ describe('ForgetTargetRef (D-19 record-or-bundle grain)', () => {
   })
 })
 
-describe('BriefWhyResult (D-15 typed honest absence)', () => {
+describe('BriefWhyResult (typed honest absence)', () => {
   const trace = {
     schemaVersion: RETRIEVAL_TRACE_SCHEMA_VERSION,
     servedLines: [{ recordId: 'rec-1', leg: 'dense', rank: 1, score: 0.7 }],
@@ -426,7 +426,7 @@ describe('BriefWhyResult (D-15 typed honest absence)', () => {
   })
 })
 
-describe('review-verb input and output DTOs (KREV-01 wiring contracts)', () => {
+describe('review-verb input and output DTOs (wiring contracts)', () => {
   it('accept and reject address a target; reject additionally carries a reason', () => {
     const target = { grain: 'record', recordId: 'rec-checkout-1' }
 

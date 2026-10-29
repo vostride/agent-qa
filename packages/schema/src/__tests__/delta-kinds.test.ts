@@ -16,7 +16,7 @@ import { DELTA_KINDS } from '../delta/delta'
 
 const SIX_SHIPPED_KINDS = ['Add', 'Confirm', 'Supersede', 'Deprecate', 'MintUnknown', 'Noop']
 
-describe('the §7.3 delta vocabulary (D-04 runtime wall)', () => {
+describe('the §7.3 delta vocabulary', () => {
   it('declares exactly the six §7.3 delta kinds, in declaration order', () => {
     // Declaration order, not sorted: `DELTA_KINDS` is an authored array, so the order is part of
     // what it claims. Listed rather than counted so the RED says WHAT joined or left.

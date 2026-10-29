@@ -3,7 +3,7 @@ import type { z } from 'zod'
 import type { Action, ActionFamily } from '../index'
 import { ACTION_FAMILIES, ACTION_FAMILY_BY_TYPE, ActionFamilySchema, actionFamilyOf } from '../index'
 
-test('C424-FAMILIES-EXACT', () => {
+test('ActionFamily is exactly the ten families of the list and the schema', () => {
   type Expected =
     | 'pointer' | 'input' | 'gesture' | 'navigate' | 'verify'
     | 'extract' | 'wait' | 'device' | 'environment' | 'script'
@@ -16,7 +16,7 @@ test('C424-FAMILIES-EXACT', () => {
   expectTypeOf<z.infer<typeof ActionFamilySchema>>().toEqualTypeOf<ActionFamily>()
 })
 
-test('C424-FAMILIES-EXHAUSTIVE', () => {
+test('the family map covers exactly the action types, and actionFamilyOf maps one to a family', () => {
   type Mapped = keyof typeof ACTION_FAMILY_BY_TYPE
   expectTypeOf<Exclude<Action['type'], Mapped>>().toEqualTypeOf<never>()
   expectTypeOf<Exclude<Mapped, Action['type']>>().toEqualTypeOf<never>()

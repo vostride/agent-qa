@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import * as api from '../index'
 
-test('C424-FAMILIES-EXACT', () => {
+test('the ten action families parse and an unknown family is refused', () => {
   expect(api.ACTION_FAMILIES).toEqual([
     'pointer', 'input', 'gesture', 'navigate', 'verify', 'extract', 'wait', 'device',
     'environment', 'script',
@@ -12,7 +12,7 @@ test('C424-FAMILIES-EXACT', () => {
   expect(api.ActionFamilySchema.safeParse('unknown').success).toBe(false)
 })
 
-test('C424-FAMILIES-EXHAUSTIVE', () => {
+test('every action type maps to one of the action families', () => {
   expect(api.ACTION_FAMILY_BY_TYPE).toBeDefined()
   expect(Object.keys(api.ACTION_FAMILY_BY_TYPE).sort()).toEqual([
     'click', 'doubleClick', 'rightClick', 'hover', 'focus', 'tap', 'doubleTap', 'multiTap',

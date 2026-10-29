@@ -17,7 +17,7 @@ import { failureFingerprint } from '../failure-fingerprint'
 const EL: Anchor = { t: 'el', role: 'button', name: 'Submit', ordinal: 0 }
 const PAGE: Anchor = { t: 'page', route: '/checkout' }
 
-describe('failureFingerprint (389 D-13)', () => {
+describe('failureFingerprint', () => {
   it('is deterministic: the same (anchors, class) yields byte-identical keys', () => {
     const first = failureFingerprint({ anchors: [EL, PAGE] }, 'flake')
     const second = failureFingerprint({ anchors: [EL, PAGE] }, 'flake')
@@ -70,7 +70,7 @@ describe('failureFingerprint (389 D-13)', () => {
   })
 })
 
-describe('exercisedAnchors promoted to schema (389 D-13)', () => {
+describe('exercisedAnchors promoted to schema', () => {
   it('walks element and page contact out of one step, pure over schema types', () => {
     const element = {
       ref: asRef('e1'),

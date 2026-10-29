@@ -4,7 +4,7 @@ import type { ModelUsage, ModelUsageRole, ModelUsageObservations } from '../inde
 import type { ModelTokenUsage, RunDetailStep, StepFinalizedPayload, RunStepTokenUsage } from '../index'
 import type { z } from 'zod'
 
-test('C423-MODEL-ROLES-EXACT: type roles are literally planner and verifier', () => {
+test('type roles are literally planner and verifier', () => {
   type Expected = 'planner' | 'verifier'
   expectTypeOf<ModelUsageRole>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof MODEL_USAGE_ROLES)[number]>().toEqualTypeOf<Expected>()
@@ -25,7 +25,7 @@ test('MODEL-USAGE-OPTIONAL: bus and persisted step share the schema-owned option
 
 // 2026-09-15, 423-25: the remaining introduced arms, spelled by hand. Cache creation stays out of
 // the contract by explicit phase exclusion, so its absence is pinned too.
-test('C423-MODEL-USAGE-ARMS-EXACT: call counters, attempt kinds and reported fields are exactly the recorded arms', () => {
+test('call counters, attempt kinds and reported fields are exactly the recorded arms', () => {
   type Attempt = ModelUsageObservations['attempts'][number]
   expectTypeOf<keyof ModelUsage>().toEqualTypeOf<'roles' | 'calls' | 'inputTokens' | 'outputTokens' | 'cachedInputTokens'>()
   expectTypeOf<keyof ModelUsage['calls']>().toEqualTypeOf<'started' | 'succeeded' | 'failed'>()

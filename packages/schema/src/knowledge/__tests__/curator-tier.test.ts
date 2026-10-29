@@ -7,7 +7,7 @@ function authorship(input: Partial<CurationAuthorship> & Pick<CurationAuthorship
   return { executionContext: 'local-headless', ...input }
 }
 
-describe('curatorTier (D-06 capability tier)', () => {
+describe('curatorTier (capability tier)', () => {
   it('is total over every authorship path and the absent case', () => {
     expect(curatorTier(authorship({ path: 'llm', model: { id: 'claude-sonnet-4' } }))).toBe('full')
     expect(curatorTier(authorship({ path: 'llm', model: { id: 'llama-3-8b' } }))).toBe('degraded')
@@ -35,7 +35,7 @@ describe('curatorTier (D-06 capability tier)', () => {
     expect(curatorTier(authorship({ path: 'llm', model: { id: 'mistral-large' } }))).toBe('degraded')
   })
 
-  it('ignores the diagnostic fallbackReason member (381-47: never a tier input)', () => {
+  it('ignores the diagnostic fallbackReason member (never a tier input)', () => {
     const bare = authorship({ path: 'deterministic-fallback' })
     const stamped = { ...bare, fallbackReason: 'malformed' as const }
     expect(curatorTier(stamped)).toBe(curatorTier(bare))

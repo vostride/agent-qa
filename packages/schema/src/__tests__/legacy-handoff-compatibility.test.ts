@@ -30,7 +30,7 @@ const manifest = JSON.parse(readFileSync(new URL('MANIFEST.json', fixtureDir), '
 const handoff = JSON.parse(handoffBytes.toString('utf8')) as CompletedRunHandoff
 const steps = handoff.tests.flatMap(test => test.steps)
 
-describe('C436-PRE-CHANGE-HANDOFF', () => {
+describe('the frozen legacy handoff fixture', () => {
   it('the manifest is frozen and the fixture matches its sha-256', () => {
     expect(manifest.frozen).toBe(true)
     expect(manifest.files).toEqual([

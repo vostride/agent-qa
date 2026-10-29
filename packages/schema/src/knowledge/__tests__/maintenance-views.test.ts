@@ -28,7 +28,7 @@ function maintenanceViews(): MaintenanceViewsModule {
 }
 
 describe('maintenance view contracts', () => {
-  it('419 D-19 preserves the pre-419 promoted fixture and optionally carries its receipt', () => {
+  it('preserves the older promoted fixture and optionally carries its receipt', () => {
     const legacy = { schemaVersion: RECORD_CHANGE_SCHEMA_VERSION, recordId: 'record-1', change: 'promoted', atOrdinal: 42 }
     expect(RecordChangeSchema.parse(legacy)).toEqual(legacy)
     const attributed = {
@@ -40,7 +40,7 @@ describe('maintenance view contracts', () => {
   })
 
   it.each(['added', 'confirmed', 'superseded', 'deprecated', 'purged'] as const)(
-    '419 D-19 refuses both promotion fields on %s at their own paths', (change) => {
+    'refuses both promotion fields on %s at their own paths', (change) => {
       for (const field of ['promotionPath', 'promotionReceiptDigest'] as const) {
         const result = RecordChangeSchema.safeParse({
           schemaVersion: RECORD_CHANGE_SCHEMA_VERSION, recordId: 'record-1', change, atOrdinal: 42,

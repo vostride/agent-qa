@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { normalizeAccessibleName } from '../index'
 
 describe('normalizeAccessibleName', () => {
-  it('SC3: dynamic count drift collapses to one identity', () => {
+  it('dynamic count drift collapses to one identity', () => {
     expect(normalizeAccessibleName('Cart (3)')).toBe(normalizeAccessibleName('Cart (0)'))
     expect(normalizeAccessibleName('Cart (3)')).toBe('cart')
   })

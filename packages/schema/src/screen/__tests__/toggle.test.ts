@@ -5,7 +5,7 @@ import {
   TOGGLE_ROLES as ROOT_TOGGLE_ROLES,
 } from '../../index'
 
-describe('C437-TOGGLE-CLASSIFIER', () => {
+describe('isToggleElement', () => {
   it('role switch, checkbox and radio are toggles with no attributes', () => {
     for (const role of ['switch', 'checkbox', 'radio']) {
       expect(isToggleElement({ role })).toBe(true)

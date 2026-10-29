@@ -35,7 +35,7 @@ const withBlock = (block: unknown) => ({ success: false, metadata: { targetRefus
 
 const withBinding = (block: unknown) => ({ success: false, metadata: { binding: block } })
 
-describe('C438-KEY-SETS', () => {
+describe('target refusal and binding readers', () => {
   it('reads a well-formed refusal block back', () => {
     expect(readTargetRefusalMeta(withBlock(wellFormed()))).toEqual(wellFormed())
   })

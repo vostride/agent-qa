@@ -5,13 +5,13 @@ import { RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION } from '../run/evidence'
 const sha = 'a'.repeat(64)
 const ref = (prefix: string) => ({ id: `${prefix}${sha}`, sha })
 
-describe('423 evidence contracts', () => {
-  test('C423-CONTENT-TYPES-EXACT', () => {
+describe('step evidence contracts', () => {
+  test('lists the network body content types and the 32768-byte body cap', () => {
     expect(api.NETWORK_BODY_CONTENT_TYPES).toEqual(['application/json', 'text/html', 'text/plain',
       'application/xml', 'text/xml', 'application/x-www-form-urlencoded'])
     expect(api.NETWORK_BODY_MAX_BYTES).toBe(32768)
   })
-  test('C423-KINDS-EXACT', () => {
+  test('evidence kinds parse and an unknown kind is refused', () => {
     expect(api.EVIDENCE_KINDS).toEqual(['console', 'network', 'a11y', 'aria', 'variables'])
     for (const kind of ['console', 'network', 'a11y', 'aria', 'variables']) {
       expect(api.EvidenceKindSchema.safeParse(kind).success).toBe(true)
@@ -19,7 +19,7 @@ describe('423 evidence contracts', () => {
     expect(api.EvidenceKindSchema.safeParse('video').success).toBe(false)
   })
 
-  test('C423-ABSENCE-EXACT', () => {
+  test('each absence reason parses on an absent entry and an unknown reason is refused', () => {
     expect(api.EVIDENCE_ABSENCE_REASONS).toEqual([
       'empty', 'not-captured', 'unsupported', 'unavailable', 'failed',
     ])
@@ -29,7 +29,7 @@ describe('423 evidence contracts', () => {
     expect(api.EvidenceAbsenceReasonSchema.safeParse('unknown').success).toBe(false)
   })
 
-  test('C423-REFS-EXACT', () => {
+  test('evidence refs parse for each prefix and refuse an unknown prefix or a mismatched sha', () => {
     expect(api.EVIDENCE_REF_PREFIXES).toEqual([
       'decision-screenshot:', 'console-evidence:', 'network-evidence:', 'a11y-evidence:', 'aria-state:',
     ])
@@ -41,7 +41,7 @@ describe('423 evidence contracts', () => {
     expect(api.EvidenceArtifactRefSchema.safeParse({ id: 'console-evidence:../x', sha: '../x' }).success).toBe(false)
   })
 
-  test('C423-PRESENCE-EXACT rejects absent counts while valid absence parses', () => {
+  test('rejects absent counts while valid absence parses', () => {
     const absent = { kind: 'console', state: 'absent', reason: 'empty' }
     expect(api.EvidenceEntrySchema.safeParse(absent).success).toBe(true)
     expect(api.EvidenceEntrySchema.safeParse({ ...absent, counts: { total: 0, errors: 0, warnings: 0 } }).success).toBe(false)
@@ -50,7 +50,7 @@ describe('423 evidence contracts', () => {
     expect(api.EvidenceEntrySchema.safeParse({ kind: 'console', state: 'present' }).success).toBe(false)
   })
 
-  test('C423-PRESENCE-EXACT accepts five present arms and rejects crossed refs/counts', () => {
+  test('accepts five present arms and rejects crossed refs/counts', () => {
     const entries = [
       { kind: 'console', state: 'present', ref: ref('console-evidence:'), counts: { total: 2, errors: 1, warnings: 1 } },
       { kind: 'network', state: 'present', ref: ref('network-evidence:'), counts: { total: 2, failed: 1, errored: 1 } },
@@ -76,14 +76,14 @@ describe('423 evidence contracts', () => {
     { schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'a11y', records: [{ ruleId: 'label', impact: 'serious', description: 'label missing', help: 'add label', helpUrl: 'https://example.test', nodes: [{ html: '<input>', target: ['input'] }] }] },
     { schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'aria', tree: 'button "Submit"' },
     { schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'variables', records: { account: { value: 'sample', source: 'capture' } } },
-  ])('C423-DOCUMENTS parses $kind and rejects wrong version/shape', document => {
+  ])('parses $kind and rejects wrong version/shape', document => {
     expect(api.EvidenceDocumentSchema.parse(document)).toEqual(document)
     expect(api.EvidenceDocumentSchema.safeParse({ ...document, schemaVersion: 3 }).success).toBe(false)
     expect(api.EvidenceDocumentSchema.safeParse({ ...document, kind: 'video' }).success).toBe(false)
     expect(api.EvidenceDocumentSchema.safeParse({ ...document, records: 42 }).success).toBe(false)
   })
 
-  test('C423-VARIABLES preserves all sources and rejects invented source', () => {
+  test('preserves all sources and rejects invented source', () => {
     for (const source of ['env', 'inline', 'suite', 'cli', 'capture', 'hook', 'step']) {
       const snapshot = { name: { value: 'value', source } }
       expect(api.VariableSnapshotSchema.parse(snapshot)).toEqual(snapshot)

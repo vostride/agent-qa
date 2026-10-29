@@ -33,7 +33,7 @@ function candidateInput(
   }
 }
 
-describe('isVettedCandidate V1-V9 (D-21)', () => {
+describe('isVettedCandidate positive and exclusion checks', () => {
   it('admits a fact candidate satisfying every positive and exclusion check', () => {
     expect(isVettedCandidate(candidateInput())).toBe(true)
   })
@@ -68,7 +68,7 @@ describe('isVettedCandidate V1-V9 (D-21)', () => {
   })
 })
 
-describe('applyColdStartSubCap locked walls (D-19/D-20)', () => {
+describe('applyColdStartSubCap locked walls', () => {
   it('selects at most two records even under a generous token budget', () => {
     const ranked = Array.from({ length: 5 }, (_, index) => ({
       id: `candidate-${index}`,
@@ -97,7 +97,7 @@ describe('applyColdStartSubCap locked walls (D-19/D-20)', () => {
 })
 
 describe('cold-start serving annotations', () => {
-  it('types D-05 and D-20 annotations without making them mandatory', () => {
+  it('types the unconfirmedSinceOrdinal and unverified annotations without making them mandatory', () => {
     const annotations: Pick<IndexEntry, 'unconfirmedSinceOrdinal' | 'unverified'> = {
       unconfirmedSinceOrdinal: 42,
       unverified: true,

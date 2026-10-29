@@ -59,7 +59,7 @@ describe('STAGE-DETAIL-OPTIONAL', () => {
   })
 })
 
-describe('C423-STAGES-EXACT', () => {
+describe('post-processing detail stages and chips', () => {
   test('pins the public detail list and schema to independent exact vocabularies', () => {
     expect(POST_PROCESSING_DETAIL_STAGES).toEqual(['analysis', 'curation'])
     expect(notification.POST_PROCESSING_DETAIL_STAGES).toBe(POST_PROCESSING_DETAIL_STAGES)
@@ -116,7 +116,7 @@ describe('C423-STAGES-EXACT', () => {
   })
 })
 
-describe('C423-WITHHELD-EXACT', () => {
+describe('curation snapshot withheld reasons', () => {
   const emptySnapshot = {
     schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION,
     rows: [],

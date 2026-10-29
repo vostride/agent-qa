@@ -16,7 +16,7 @@ import { describe, expect, it } from 'vitest'
 
 import { AUTHORING_LOOP_OUTCOMES } from '../authoring.js'
 
-describe('the loop outcome vocabulary is closed and spelled once (411 D-04)', () => {
+describe('the loop outcome vocabulary is closed and spelled once', () => {
   it('has exactly four outcomes, in declaration order', () => {
     expect(AUTHORING_LOOP_OUTCOMES).toEqual(['drafted', 'refused', 'repaired', 'stopped'])
 

@@ -39,7 +39,7 @@ function observation(
   }
 }
 
-describe('measurement line schemas (D-03)', () => {
+describe('measurement line schemas', () => {
   it('round-trips the strict baseline snapshot and rejects extra keys', () => {
     expect(measurementBaselineSchema.parse(baseline)).toEqual(baseline)
     expect(measurementBaselineSchema.safeParse({ ...baseline, detectorState: {} }).success)
@@ -60,7 +60,7 @@ describe('measurement line schemas (D-03)', () => {
   })
 })
 
-describe('foldMeasurements deterministic distribution (D-03)', () => {
+describe('foldMeasurements deterministic distribution', () => {
   it('seeds EWMA from the baseline and applies the exact one-line recurrence', () => {
     const empty = foldMeasurements(baseline, [])
     const oneLine = foldMeasurements(baseline, [observation(20, 0)])
@@ -131,7 +131,7 @@ describe('foldMeasurements deterministic distribution (D-03)', () => {
   )
 })
 
-describe('fixed-baseline two-sided CUSUM (D-04 ratification)', () => {
+describe('fixed-baseline two-sided CUSUM', () => {
   it('accumulates the exact positive and negative fixed-reference equations', () => {
     expect(cusumStep({ pos: 0, neg: 0 }, 13, 10, 2)).toEqual({
       pos: 2,
@@ -170,7 +170,7 @@ describe('fixed-baseline two-sided CUSUM (D-04 ratification)', () => {
   })
 })
 
-describe('weighted largest-gap bimodality (D-04 ratification)', () => {
+describe('weighted largest-gap bimodality', () => {
   it('splits a clearly separated two-band sample with enough observations per mode', () => {
     expect(bimodalSplit([9, 10, 11, 99, 100, 101])).toEqual({
       splitIndex: 3,
@@ -188,7 +188,7 @@ describe('weighted largest-gap bimodality (D-04 ratification)', () => {
   })
 })
 
-describe('D-04 locked measurement drift decision tree', () => {
+describe('locked measurement drift decision tree', () => {
   function decision(
     decisionBaseline: MeasurementBaseline,
     values: readonly number[],

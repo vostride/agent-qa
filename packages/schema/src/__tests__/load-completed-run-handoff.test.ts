@@ -41,7 +41,7 @@ function makeValidHandoff(): CompletedRunHandoff {
   }
 }
 
-describe('guardCompletedRunHandoff (D-19, §A8 version discipline)', () => {
+describe('guardCompletedRunHandoff (§A8 version discipline)', () => {
   it('returns a typed handoff for a document at the current schemaVersion', () => {
     const doc = makeValidHandoff()
     const guarded = guardCompletedRunHandoff(doc)
@@ -58,7 +58,7 @@ describe('guardCompletedRunHandoff (D-19, §A8 version discipline)', () => {
     expect(guarded.tests).toEqual([])
   })
 
-  it('rejects a pre-INST schemaVersion 1 with no migration registered', () => {
+  it('rejects a stored schemaVersion 1 with no migration registered', () => {
     const doc = { ...makeValidHandoff(), schemaVersion: 1 }
     let thrown: unknown
     try {
@@ -165,7 +165,7 @@ function makeHandoffWithStep(rung?: unknown): Record<string, unknown> {
   }
 }
 
-describe('member-grain rerun markers at the load boundary (418 D-09, approved OQ-1)', () => {
+describe('member-grain rerun markers at the load boundary', () => {
   function handoffWithRerunFields(fields: Record<string, unknown>) {
     const doc = makeHandoffWithStep()
     const tests = doc.tests as Record<string, unknown>[]
@@ -215,7 +215,7 @@ describe('step cache status at the load boundary', () => {
   })
 })
 
-describe('StepEvidence.retrievalRung at the load boundary (407 D-13, TRST-01)', () => {
+describe('StepEvidence.retrievalRung at the load boundary', () => {
   it('the current handoff schemaVersion is 2', () => {
     expect(CURRENT_HANDOFF_SCHEMA_VERSION).toBe(2)
   })
@@ -308,7 +308,7 @@ function replaySource(overrides: Record<string, unknown> = {}): Record<string, u
   }
 }
 
-describe("a replay plan source is admitted only in the wire's own domain (407-20, REVIEW WR-04)", () => {
+describe("a replay plan source is admitted only in the wire's own domain", () => {
   it('loads a step whose replay plan source carries the ordinals the runner writes', () => {
     const guarded = guardCompletedRunHandoff(replayHandoff(replaySource()))
     expect(guarded.tests[0]?.steps[0]?.planSource).toEqual({
@@ -439,7 +439,7 @@ function loaderAdmits(planSource: Record<string, unknown>): boolean {
   }
 }
 
-describe('the loader and the wire admit the same replay shapes — member for member (407-20)', () => {
+describe('the loader and the wire admit the same replay shapes — member for member', () => {
   it.each(
     ORDINAL_SLOTS.flatMap((slot) =>
       ORDINAL_CORPUS.map((value) => [slot, String(value)] as const),
@@ -479,7 +479,7 @@ describe('the loader and the wire admit the same replay shapes — member for me
 
 // 436-09 (D-06): the run's planner limits are copied from this record onto the strict
 // acknowledgement, so the loader admits exactly the records the wire accepts.
-describe('C436-EFFECTIVE-LIMITS the loader and the acknowledgement agree on plannerLimits', () => {
+describe('the loader and the acknowledgement agree on plannerLimits', () => {
   const entry = { testName: 'Bulk archive', filePath: 'tests/bulk.yaml', maxActions: 60, maxPlanningTurns: 30 }
   const corpus: readonly (readonly [string, unknown])[] = [
     ['run limits only', { maxActions: 30, maxPlanningTurns: 30 }],
@@ -520,7 +520,7 @@ describe('C436-EFFECTIVE-LIMITS the loader and the acknowledgement agree on plan
 })
 
 // 2026-10-19 (444.1-08, D-14): a healed sub-action's dispatch pair is checked where it is loaded.
-describe('C444.1-DISPATCH-PAIR', () => {
+describe('a healed sub-action dispatch pair at the load boundary', () => {
   const saveElement = {
     ref: 'e3',
     role: 'button',

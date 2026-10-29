@@ -42,7 +42,7 @@ function withDiscriminant(
   return { ...core, discriminantKey }
 }
 
-describe('bundle content address (D-05/D-06/D-07)', () => {
+describe('bundle content address', () => {
   it('preserves legacy policy keys and separates actual Supersede generations', () => {
     const policy = { kind: 'policy', ruleKey: ' Review Rule ' } as const
     expect(deriveDiscriminantKey(policy)).toBe('{"kind":"policy","ruleKey":"review rule"}')

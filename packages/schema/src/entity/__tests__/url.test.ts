@@ -17,7 +17,7 @@ import {
 
 const BASE = { baseUrl: 'https://qa.example.com', workspace: 'acme' }
 
-describe('ENTITY_URL_ROUTE is the pinned M5 contract', () => {
+describe('ENTITY_URL_ROUTE is the pinned route contract', () => {
   it('is the spec route, with every declared parameter present exactly once', () => {
     expect(ENTITY_URL_ROUTE).toBe('/t/:workspace/:kind/:shortId/:slug')
     for (const param of ENTITY_URL_ROUTE_PARAMS) {

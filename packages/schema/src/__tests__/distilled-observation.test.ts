@@ -21,7 +21,7 @@ const fullObservation = {
   observedAtOrdinal: 44,
 }
 
-describe('distilled observation disk contract (377 D-09)', () => {
+describe('distilled observation disk contract', () => {
   it('parses a full edge-feeding observation', () => {
     expect(distilledObservationSchema.parse(fullObservation)).toEqual(fullObservation)
   })

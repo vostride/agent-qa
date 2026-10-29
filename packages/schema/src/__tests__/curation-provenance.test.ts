@@ -21,7 +21,7 @@ const authorshipPathLabels: Record<CurationAuthorshipPath, string> = {
   'deterministic-fallback': 'code-authored fallback',
 }
 
-describe('curation provenance contracts (D-04/SAFE-01)', () => {
+describe('curation provenance contracts', () => {
   it('keeps authorship optional while accepting the closed authorship stamp', () => {
     const unstampedEnvelope: DeltaEnvelope = {
       origin: 'agent',

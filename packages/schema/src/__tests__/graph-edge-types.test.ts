@@ -36,7 +36,7 @@ const equivalentRelation = {
   }],
 }
 
-describe('Phase 377 graph edge ontology', () => {
+describe('graph edge ontology', () => {
   it('covers every graph edge type at the type boundary', () => {
     expect(Object.keys(GRAPH_EDGE_TYPES)).toHaveLength(16)
   })

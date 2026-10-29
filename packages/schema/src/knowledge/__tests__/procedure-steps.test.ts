@@ -135,7 +135,7 @@ function compositeValuePayload(): ProcedureBodyPayload {
   } as unknown as ProcedureBodyPayload
 }
 
-describe('procedure body codec (D-04)', () => {
+describe('procedure body codec', () => {
   it('round-trips a payload byte-identically through serialize -> parse', () => {
     const payload = threeStepPayload()
     const first = serializeProcedureBody(payload)
@@ -215,7 +215,7 @@ describe('procedure body codec (D-04)', () => {
     ).toEqual({ json: { param: 'x' } })
   })
 
-  it('round-trips targets carrying the exact name and row words (438 D-11)', () => {
+  it('round-trips targets carrying the exact name and row words', () => {
     const payload = threeStepPayload()
     const target = {
       role: 'button',
@@ -294,7 +294,7 @@ describe('procedure body codec (D-04)', () => {
   })
 })
 
-describe('replayability constants (Pitfall 6 — the one shared list)', () => {
+describe('replayability constants (the one shared list)', () => {
   it('mirrors the runner exclusion lists member-for-member', () => {
     expect([...NON_REPLAYABLE_ACTION_TYPES].sort()).toEqual(
       ['assertAI', 'extractAI', 'setVariable', 'tapCoordinate'].sort(),

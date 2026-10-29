@@ -18,7 +18,7 @@ type SharedReason =
 type CurrentReason = SharedReason | 'index-not-built' | 'index-locked' | 'index-corrupt'
 type Rung = 'memidex' | 'bundle-scan' | 'static-floor' | 'lexical-only'
 
-describe('C423-RUNG-REASONS-EXACT', () => {
+describe('retrieval rung reasons', () => {
   test('pins ten current reasons in both directions through public exports', () => {
     expectTypeOf<RetrievalRungReason>().toEqualTypeOf<CurrentReason>()
     expectTypeOf<(typeof RETRIEVAL_RUNG_REASONS)[number]>().toEqualTypeOf<CurrentReason>()

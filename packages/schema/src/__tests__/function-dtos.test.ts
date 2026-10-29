@@ -105,7 +105,7 @@ function makeMaskedConfig() {
   }
 }
 
-describe('function DTO schemas are strict (D-16)', () => {
+describe('function DTO schemas are strict', () => {
   it('rejects an unknown key on every exported function DTO schema', () => {
     for (const [name, schema] of Object.entries(functionSchemas)) {
       const parsed = schema.safeParse({ definitelyNotAField: 1 })
@@ -144,7 +144,7 @@ describe('function DTO schemas are strict (D-16)', () => {
   })
 })
 
-describe('runs op inputs (D-08/D-09/D-10)', () => {
+describe('runs op inputs', () => {
   it('accepts the gateRun carrier on the runs.start input and rejects unknown keys', () => {
     expect(RunsStartInputSchema.parse({ gateRun: true }).gateRun).toBe(true)
     expect('gateRun' in RunsStartInputSchema.parse({})).toBe(false)
@@ -157,7 +157,7 @@ describe('runs op inputs (D-08/D-09/D-10)', () => {
     expect(RunsGetInputSchema.safeParse({}).success).toBe(false)
   })
 
-  it('admits a recorded bus envelope as the runs.events stream element (D-08)', () => {
+  it('admits a recorded bus envelope as the runs.events stream element', () => {
     const recorded = {
       seq: 4,
       ts: 1_700_000_000_004,
@@ -180,7 +180,7 @@ describe('runs op inputs (D-08/D-09/D-10)', () => {
   })
 })
 
-describe('JSON-Schema projectability (D-14)', () => {
+describe('JSON-Schema projectability', () => {
   it('projects every exported function DTO schema without throwing', () => {
     for (const [name, schema] of Object.entries(functionSchemas)) {
       // `io: 'input'` is the wire projection: the branded-RunId schemas carry a

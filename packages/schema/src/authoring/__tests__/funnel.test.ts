@@ -146,7 +146,7 @@ describe('the frozen four-stage funnel', () => {
 
   // 2026-10-02 (quick 261002-ctr): replaces the two `accepted` cells (applied decisions counted;
   // decisions outside the window not counted). No decision is recorded since 432 D-06.
-  it('C261002-CTR-FUNNEL-WRITE-ELIGIBLE: counts every disposition D-06 writes, and never `rejected`', async () => {
+  it('counts every disposition that writes a draft, and never `rejected`', async () => {
     const { computeAuthoringFunnel } = await loadFunnel()
     const funnel = computeAuthoringFunnel({
       receipts: [
@@ -162,7 +162,7 @@ describe('the frozen four-stage funnel', () => {
     expect(funnel.line).toContain('· 3 write-eligible.')
   })
 
-  it('C261002-CTR-FUNNEL-WRITE-ELIGIBLE: reads the STORED disposition, not one recomputed from the gates', async () => {
+  it('reads the STORED disposition, not one recomputed from the gates', async () => {
     const { computeAuthoringFunnel } = await loadFunnel()
     // All four gates passed and the stored answer is `rejected`: the stored value is the answer
     // that was given, and the loop's write decision read it.
@@ -393,7 +393,7 @@ describe('the no-success-framing prohibition', () => {
 
 // 2026-10-03 (quick 261003-cpv, 432 review WR-09): the write-eligible count follows the disposition
 // table, so a draft-mode draft whose assertion was not falsifiable is not counted as written.
-describe('C261003-CPV-DRAFT-KEEP-GATES: the funnel does not count a rejected draft-mode draft', () => {
+describe('the funnel does not count a rejected draft-mode draft', () => {
   it('counts a draft-mode draft whose gate 4 said no as not write-eligible', async () => {
     const { computeAuthoringFunnel } = await loadFunnel()
     const { computeDraftDisposition } = await import('../disposition')

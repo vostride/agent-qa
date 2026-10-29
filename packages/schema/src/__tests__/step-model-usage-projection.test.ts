@@ -72,7 +72,7 @@ test.each(['failure', 'start'] as const)(
   },
 )
 
-test('C423-MODEL-ROLES-EXACT: runtime roles are literally planner and verifier', () => {
+test('runtime roles are literally planner and verifier', () => {
   expect(MODEL_USAGE_ROLES).toEqual(['planner', 'verifier'])
   expect(ModelUsageRoleSchema.options).toEqual(['planner', 'verifier'])
   expect(ModelUsageRoleSchema.safeParse('healer').success).toBe(false)

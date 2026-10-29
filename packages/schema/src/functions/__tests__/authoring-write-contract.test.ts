@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest'
 import { AuthoringDraftWriteInputSchema } from '../authoring.js'
 import { RunsStartInputSchema } from '../runs.js'
 
-describe('AuthoringDraftWriteInputSchema: scope is host-derivable (WINDOWS 110)', () => {
+describe('AuthoringDraftWriteInputSchema: scope is host-derivable', () => {
   it('accepts an input carrying only intent — scope is optional at the registry', () => {
     const parsed = AuthoringDraftWriteInputSchema.safeParse({ intent: 'x' })
     expect(parsed.success).toBe(true)

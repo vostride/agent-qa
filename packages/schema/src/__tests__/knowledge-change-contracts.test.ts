@@ -11,8 +11,8 @@ import { COMMIT_RECEIPT_SCHEMA_VERSION, FORGET_RECEIPT_SCHEMA_VERSION } from '..
 const record = { grain: 'record' as const, recordId: 'rec-1' }
 const OPERATION = '8e7d6c5b-4a39-4281-9706-f5e4d3c2b1a0'
 
-describe('C432-DIRECT-CONTRACTS: the direct change contracts live in knowledge/change.ts', () => {
-  it('C432-DIRECT-CONTRACTS: a change answers applied, target-not-found or refused, and nothing else', () => {
+describe('the direct change contracts live in knowledge/change.ts', () => {
+  it('a change answers applied, target-not-found or refused, and nothing else', () => {
     const output = schema.KnowledgeChangeOutputSchema
     // RE-SPELLED 2026-10-03 (quick 261003-cpv, IN-21): a forget now carries its receipt by rule, so
     // the bare applied answer is a reject's.
@@ -27,7 +27,7 @@ describe('C432-DIRECT-CONTRACTS: the direct change contracts live in knowledge/c
       .toBe(false)
   })
 
-  it('C432-DIRECT-CONTRACTS: the change inputs take the verb input plus an optional operation identity, strictly', () => {
+  it('the change inputs take the verb input plus an optional operation identity, strictly', () => {
     expect(schema.KnowledgeForgetChangeInputSchema.safeParse({ target: record }).success).toBe(true)
     expect(schema.KnowledgeForgetChangeInputSchema.safeParse({ target: record, operationId: OPERATION }).success).toBe(true)
     expect(schema.KnowledgeRejectChangeInputSchema.safeParse({ target: record }).success, 'a reject needs its reason')
@@ -48,7 +48,7 @@ describe('C432-DIRECT-CONTRACTS: the direct change contracts live in knowledge/c
     }
   })
 
-  it('C432-DIRECT-CONTRACTS: the forget receipt and the commit receipt are the change receipts', () => {
+  it('the forget receipt and the commit receipt are the change receipts', () => {
     const forget = {
       schemaVersion: FORGET_RECEIPT_SCHEMA_VERSION, proposalId: `prop_${OPERATION}`, tombstonedRecords: [], projectionsScrubbed: ['fts'],
       resultingBundleStatus: 'forgotten', forgottenAt: 1,
@@ -80,7 +80,7 @@ describe('C432-DIRECT-CONTRACTS: the direct change contracts live in knowledge/c
     }
   })
 
-  it('C432-DIRECT-CONTRACTS: a config change file is the direct writer\'s and refuses unknown keys', () => {
+  it('a config change file is the direct writer\'s and refuses unknown keys', () => {
     const file = { path: 'agent-qa.config.yaml', changeKind: 'modify', baseDigest: 'a'.repeat(64), newContentBase64: 'eDox' }
     expect(schema.ConfigChangeFileSchema.safeParse(file).success).toBe(true)
     expect([...schema.CONFIG_FILE_CHANGE_KINDS]).toEqual(['add', 'modify', 'delete'])

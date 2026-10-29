@@ -62,7 +62,7 @@ function drafted(extra: Record<string, unknown>): unknown {
   }
 }
 
-describe('C440-REFUSAL-FIELD', () => {
+describe('the stated-value refusal on the draft write output', () => {
   it('the refusal carries exactly stage and missingValues', () => {
     const parsed = AuthoringDraftWriteOutputSchema.parse(refused({ statedValueRefusal }))
     expect(Object.keys(parsed.statedValueRefusal ?? {}).sort()).toEqual(['missingValues', 'stage'])

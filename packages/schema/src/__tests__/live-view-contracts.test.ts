@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest'
 import * as api from '../index'
 
-test('C428-LIVE-STREAM-KINDS-EXACT', () => {
+test('a live stream declaration parses each stream kind or none and refuses others', () => {
   expect(api.LIVE_STREAM_KINDS).toEqual(['cdp-screencast', 'snapshot', 'mjpeg', 'webrtc'])
   for (const kind of [...api.LIVE_STREAM_KINDS, 'none']) {
     expect(api.LiveStreamDeclarationSchema.parse({ kind })).toEqual({ kind })
@@ -12,7 +12,7 @@ test('C428-LIVE-STREAM-KINDS-EXACT', () => {
 
 // G-428-2 (owner decision 2026-09-26 (2)): stepTexts is additive. A testStarted with it and one
 // without both parse as the frozen envelope and survive a JSON round trip unchanged.
-test('C428-TEST-STARTED-STEP-TEXTS-ADDITIVE', () => {
+test('a testStarted envelope parses and round-trips with or without stepTexts', () => {
   const bare: api.TestStartedPayload = { testId: 't1', testIndex: 0, name: 'a test', totalSteps: 2 }
   const withTexts: api.TestStartedPayload = { ...bare, stepTexts: ['Open the page', 'Type <SECRET_1> into Password'] }
   for (const payload of [bare, withTexts]) {

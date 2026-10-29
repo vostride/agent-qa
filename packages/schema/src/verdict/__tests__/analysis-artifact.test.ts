@@ -91,7 +91,7 @@ function expectShapeRefusal(candidate: unknown): void {
   expect(error).not.toBeInstanceOf(AnalysisVersionError)
 }
 
-describe('guardRunAnalysisArtifact: perTest uniqueness on both arrays (G-389-3B / WR-02)', () => {
+describe('guardRunAnalysisArtifact: perTest uniqueness on both arrays', () => {
   it('refuses two verdicts entries for the same perTest — contradicting classes, each shape-valid', () => {
     const artifact = artifactOf(
       [verdictFor(0, { class: 'unknown' }), verdictFor(0, { class: 'app_bug' })],
@@ -148,7 +148,7 @@ describe('guardRunAnalysisArtifact: a declared memoryOnPath', () => {
 // refusal the consumers fold to the deterministic floor — never adoption, never hard-fail.
 // ---------------------------------------------------------------------------------------
 
-describe('admitAnalysisArtifactForRun: recorded runId vs the run being resolved (G-389-3A)', () => {
+describe('admitAnalysisArtifactForRun: recorded runId vs the run being resolved', () => {
   it('admits a matching runId carrying the SAME artifact reference — identity, not a copy', () => {
     const artifact = artifactOf([verdictFor(0)], [partsFor(0)])
     const admission = admitAnalysisArtifactForRun(artifact, 'run-analysis-artifact-guard')

@@ -45,7 +45,7 @@ describe('jobSchema', () => {
     expect(jobSchema.safeParse({ ...VALID_JOB, attempts: 1.5 }).success).toBe(false)
   })
 
-  it('accepts the two terminal statuses the C6 break added', () => {
+  it('accepts the failed and cancelled terminal statuses', () => {
     expect(jobSchema.safeParse({ ...VALID_JOB, status: 'failed' }).success).toBe(true)
     expect(jobSchema.safeParse({ ...VALID_JOB, status: 'cancelled' }).success).toBe(true)
   })

@@ -11,12 +11,12 @@ const sha = 'a'.repeat(64)
 const ref = { id: `recording:${sha}`, sha }
 const present = { state: 'present', ref, contentType: 'video/webm', byteLength: 42 }
 
-test('C424-RECORDING-STATES-EXACT', () => {
+test('recording states are present and absent, and another state is refused', () => {
   expect(api.RECORDING_STATES).toEqual(['present', 'absent'])
   expect(api.RecordingEntrySchema.safeParse({ ...present, state: 'pending' }).success).toBe(false)
 })
 
-test('C424-RECORDING-TYPES-EXACT', () => {
+test('recording entries accept webm and mp4 and refuse other content types', () => {
   expect(api.RECORDING_CONTENT_TYPES).toEqual(['video/webm', 'video/mp4'])
   for (const contentType of ['video/webm', 'video/mp4']) {
     expect(api.RecordingEntrySchema.safeParse({ ...present, contentType }).success).toBe(true)
@@ -24,7 +24,7 @@ test('C424-RECORDING-TYPES-EXACT', () => {
   expect(api.RecordingEntrySchema.safeParse({ ...present, contentType: 'text/html' }).success).toBe(false)
 })
 
-test('C424-RECORDING-REF-EXACT', () => {
+test('a recording ref needs the recording: prefix, a matching lowercase sha and no traversal', () => {
   expect(api.RECORDING_REF_PREFIX).toBe('recording:')
   expect(api.RecordingRefSchema.parse(ref)).toEqual(ref)
   for (const invalid of [

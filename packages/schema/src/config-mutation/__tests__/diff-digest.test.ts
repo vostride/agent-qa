@@ -279,7 +279,7 @@ describe('a difference that renders as nothing is refused, not shown', () => {
   })
 })
 
-describe('the D-17 representation corpus — raw bytes, both call sites (RED-first)', () => {
+describe('the representation corpus — raw bytes, both call sites', () => {
   it('the CRLF corpus member digests the bytes it was handed, carriage returns and all', () => {
     const rendered = changed(renderConfigDiff([
       { path: CONFIG_PATH, oldBytes: LF_OLD, newBytes: CRLF_NEW },

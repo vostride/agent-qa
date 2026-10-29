@@ -4,7 +4,7 @@ import { CURATION_BREAKDOWN_BUCKETS, CURATION_BUCKET_PRECEDENCE, CurationSnapsho
 import type { CurationBucket, CurationSnapshot, CurationBreakdown,
   CurationSnapshotRow, CurationSnapshotChange, RunNotification } from '../index'
 
-test('C423-BUCKETS-EXACT: independent literal union and both never bars', () => {
+test('independent literal union and both never bars', () => {
   type Expected = 'added' | 'confirmed' | 'superseded' | 'deprecated' | 'proposed'
   expectTypeOf<CurationBucket>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof CURATION_BREAKDOWN_BUCKETS)[number]>().toEqualTypeOf<Expected>()

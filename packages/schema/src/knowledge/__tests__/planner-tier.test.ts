@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import * as api from '../../index'
 
-describe('420 planner capability evidence', () => {
+describe('planner capability evidence', () => {
   it('discloses missing planner identity as degraded', () => {
     expect(api.plannerCapabilityTier?.(undefined)).toEqual({
       tier: 'degraded', evidence: { kind: 'missing' },

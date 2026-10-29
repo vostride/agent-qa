@@ -5,7 +5,7 @@ import { deriveEvidenceToken } from '../knowledge/evidence-token'
 
 const pageAnchor = (route: string): Anchor => ({ t: 'page', route })
 
-describe('deriveEvidenceToken (Pitfall 11)', () => {
+describe('deriveEvidenceToken', () => {
   it('derives a stable branded token from observation, normalized anchor, and ordinal', () => {
     const input = {
       attributingObservationId: 'observation-checkout-submit',

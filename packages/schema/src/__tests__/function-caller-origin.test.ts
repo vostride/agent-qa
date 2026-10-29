@@ -10,7 +10,7 @@ import {
 import * as schema from '../index'
 import type { FunctionCaller } from '../index'
 
-describe('the actor-origin axis (391 D-06)', () => {
+describe('the actor-origin axis', () => {
   it('is closed at exactly two members', () => {
     expect(FUNCTION_CALLER_ORIGINS).toEqual(['human', 'agent'])
   })
@@ -39,7 +39,7 @@ describe('the actor-origin axis (391 D-06)', () => {
   })
 })
 
-describe('C432-DECLARATION-KEYS: the caller record after the permission wave (432-20, D-10/D-12)', () => {
+describe('the caller record after the permission wave', () => {
   it('types a tokenless caller with surface and origin alone — every permission field is optional', () => {
     // Compile-checked: until 432-20 `grantedScopes` and `safeMode` were required, so this literal
     // did not type. 2026-10-02 (432-39, D-02/D-10): the retired fields are deleted, so the record
@@ -92,7 +92,7 @@ describe('the capability-scope union', () => {
   // RE-SPELLED 2026-10-02 (432-39, D-10/D-12, C432-NO-PERMISSION-TYPES). The union and its six
   // members are deleted, test-write with them; no barrel exports a scope schema.
   // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'carries test-write as a sixth, distinct member (394 WTST-01)': the body asserts the absence, so the title does.
-  it('exports no capability-scope schema or type from the root barrel (C432-NO-PERMISSION-TYPES)', () => {
+  it('exports no capability-scope schema or type from the root barrel', () => {
     expect(Object.keys(schema)).not.toContain('FunctionScopeSchema')
     expect(Object.keys(schema).filter((name) => /FunctionScope/.test(name))).toEqual([])
     // Non-vacuity: the barrel is the real one, and the caller vocabulary that survives is in it.
@@ -136,8 +136,8 @@ describe('the capability-scope union', () => {
 // execution gate (which decided by it) is deleted. No new origin label is introduced, and the one
 // approval record the axis ever attributed — `approval_decision` — stays a READABLE historical kind
 // with no writer, so a session file a pre-432 build wrote still opens.
-describe('the origin axis after the gate (432-19)', () => {
-  it('C432-HISTORICAL-READER: the clause receipt carries origin, with its exact key set', () => {
+describe('the origin axis after the gate', () => {
+  it('the clause receipt carries origin, with its exact key set', () => {
     expect(Object.keys(ClauseReceiptSchema.shape).sort()).toEqual(
       ['clause', 'functionId', 'origin', 'outcome', 'status'],
     )
@@ -148,7 +148,7 @@ describe('the origin axis after the gate (432-19)', () => {
     }
   })
 
-  it('C432-HISTORICAL-READER: a pre-432 approval_decision line still parses, both sources and all three decisions', () => {
+  it('a historical approval_decision line still parses, both sources and all three decisions', () => {
     expect(CHAT_SESSION_EVENT_KINDS).toContain('approval_decision')
     for (const source of ['gate', 'verb'] as const) {
       for (const decision of ['accept', 'accept-always', 'deny'] as const) {
@@ -165,7 +165,7 @@ describe('the origin axis after the gate (432-19)', () => {
     }
   })
 
-  it('C432-HISTORICAL-READER: the historical kind keeps its exact key set — no field is added or dropped', () => {
+  it('the historical kind keeps its exact key set — no field is added or dropped', () => {
     const line = {
       kind: 'approval_decision',
       turnId: 't_0001',
@@ -181,7 +181,7 @@ describe('the origin axis after the gate (432-19)', () => {
       .toThrow(/approval_decision/)
   })
 
-  it('C432-HISTORICAL-READER: the origin vocabulary gains no approval-shaped label', () => {
+  it('the origin vocabulary gains no approval-shaped label', () => {
     expect([...FUNCTION_CALLER_ORIGINS]).toEqual(['human', 'agent'])
     for (const retired of ['approved', 'confirmed', 'granted', 'trusted']) {
       expect(FUNCTION_CALLER_ORIGINS as readonly string[]).not.toContain(retired)
@@ -192,7 +192,7 @@ describe('the origin axis after the gate (432-19)', () => {
 // 432-19, task 2: the historical reader over a WHOLE pre-432 turn, in file order, read twice. A
 // session an older build wrote interleaves the approval record with the kinds this build still
 // writes; every line reads back, and reading the same bytes again answers the same events.
-describe('C432-HISTORICAL-READER: a pre-432 turn reads back in order, and re-reading is stable', () => {
+describe('a historical turn reads back in order, and re-reading is stable', () => {
   const at = '2026-09-01T10:00:00.000Z'
   const turn = [
     { kind: 'user_message', turnId: 't_0007', at, text: 'write a test for the login page' },
@@ -202,7 +202,7 @@ describe('C432-HISTORICAL-READER: a pre-432 turn reads back in order, and re-rea
     { kind: 'turn_complete', turnId: 't_0007', at, status: 'completed' },
   ]
 
-  it('C432-HISTORICAL-READER: every line of the historical turn parses, in its written order', () => {
+  it('every line of the historical turn parses, in its written order', () => {
     const lines = turn.map((line) => JSON.parse(JSON.stringify(line)) as unknown)
     const read = lines.map((line) => guardChatSessionEvent(line, CURRENT_CHAT_SESSION_SCHEMA_VERSION))
     expect(read.map((event) => event.kind)).toEqual([
