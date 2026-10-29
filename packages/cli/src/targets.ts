@@ -9,7 +9,7 @@ export interface ResolvedTarget {
   appPackage?: string
   appActivity?: string
   device?: string
-  /** the target's declared environment; `undefined` means undeclared. */
+  // The target's declared environment; `undefined` means undeclared.
   environment?: 'local' | 'shared' | 'production'
 }
 
@@ -49,8 +49,7 @@ export function resolveTarget(
     appPackage: target.appPackage,
     appActivity: target.appActivity,
     device: target.device,
-    // Carried through UNCHANGED, undefined included: the resolver does not fill in a class for a
-    // target whose author did not declare one.
+    // Carried unchanged, `undefined` included: an undeclared target gets no filled-in class.
     environment: target.environment,
   }
 }

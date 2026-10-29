@@ -60,14 +60,7 @@ export type ClassifyDaemonRegistrationOutcome =
   | {
       kind: 'unreachable-lease-fresh'
       registration: DaemonRegistration
-      /**
-       * Absent exactly when the lease bytes could not be READ.
-       *
-       * CR-01 (round 5): the answer to "is this registration recoverable" is `no` for an
-       * unreadable `.lease`, and there is by construction no holder payload to attach — the file
-       * that names the holder is the file that could not be opened. Making it optional is what
-       * forces every rendering surface to say so rather than print a pid it never saw.
-       */
+      // Absent exactly when the lease bytes could not be read, so no surface prints an unseen pid.
       holder?: WriterLease
       /** Always present, so a refusal can name the errno that produced it. */
       lease: ReadWriterLeaseOutcome
@@ -335,15 +328,7 @@ export async function classifyDaemonRegistration(
       )
       switch (verdict.kind) {
         case 'fresh':
-        /**
-         * `unknown` answers held, with the same holder payload as `fresh`.
-         *
-         * This verdict selects registration deletion and socket unlink, and the two preconditions
-         * are correlated rather than independent — fd exhaustion produces both the failed identity
-         * handshake and the unreadable epoch at once. Treating "I could not read the authority
-         * state" as "nobody holds it" therefore de-registers a live, healthy daemon precisely when
-         * the host is under stress. The refusal is the only recoverable answer.
-         */
+        // `unknown` answers held: fd exhaustion fails both checks at once, so unknown is not free.
         case 'unknown':
           return {
             kind: 'unreachable-lease-fresh',
@@ -403,34 +388,7 @@ export class DaemonRegistrationRestoreError extends Error {
   }
 }
 
-/**
- * Compare first, then quarantine, verify, and remove only the generation the caller classified.
- *
- * The order is the contract. A candidate that fails the predicate is rejected from a plain read,
- * with zero filesystem mutations — the previous algorithm renamed to quarantine BEFORE comparing,
- * so a crash inside the window could leave a registration that was never this caller's parked
- * under a name no reader looks at (W-03).
- *
- * The quarantine step is NOT gone, and must not be "simplified" away: once the predicate has
- * matched, renaming out of the way before unlinking is what keeps the final delete from racing a
- * successor that publishes in the gap — a read-then-delete would delete whatever arrived. The
- * pre-read does not weaken that; it only stops the non-deleting path from mutating at all. So the
- * quarantined bytes are re-verified, because between the read and the rename another writer may
- * have won the path, and the bytes now in quarantine may be theirs.
- *
- * Restore is a rename, never a hard link: `linkSync` demands a filesystem that supports them, and
- * the old code's non-EEXIST link failure threw before the quarantine was cleaned up. Rename is
- * atomic and total, so at every seam of this routine the bytes exist under exactly one of the two
- * names. It clobbers, though, which is why the original name's vacancy is checked first and a
- * successor that already holds it wins outright: its registration is never overwritten by a
- * predecessor's cleanup. The predecessor's bytes are then left in quarantine as evidence and both
- * paths are named in the outcome, rather than being silently unlinked as they were before.
- *
- * Residual, deliberately recorded: `existsSync` then `renameSync` is not one atomic step, so a
- * publisher that arrives inside those few microseconds can still be clobbered. Closing it needs a
- * no-clobber rename primitive Node does not expose (`RENAME_NOREPLACE`); it is strictly smaller
- * than the whole-window exposure it replaces.
- */
+// Compare, then quarantine, re-verify and remove; restore by rename, ceding to a present successor.
 function removeRegistrationIfMatching(
   agentQaRoot: string,
   tag: string,

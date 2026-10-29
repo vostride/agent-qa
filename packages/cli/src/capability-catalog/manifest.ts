@@ -1,27 +1,4 @@
-// `init --agent`: the machine entry point.
-//
-// WHAT AN EXTERNAL AGENT GETS FROM ONE READ. Every capability this product has, in the words a
-// person reads, and whether THIS workspace has a configuration that reads. Local, non-interactive,
-// idempotent: it opens no prompt, writes no file and reaches no network.
-//
-// THE MANIFEST IS A LOAD, NOT A DERIVATION, and that is the whole of why SC-1's "the same manifest"
-// clause is a measurement rather than a promise. `loadCapabilityCatalog()` reads the committed
-// bytes; the rows cross into the output VERBATIM. There is no second recipe here that could be
-// improved out of agreement with the artifact, which is why `manifest ≡ catalog` can be a suite
-// cell at all.
-//
-// UNFILTERED BY DESIGN (D-16, prohibition P1). Every row is emitted, for every caller,
-// with no scope filter applied anywhere below. 2026-10-01 (432-20/432-21, D-12): there is no
-// per-caller filter anywhere else either — the MCP `tools/list` visibility law is deleted, so every
-// caller lists and calls what this manifest lists. The emitted `$note` says so in the document
-// itself, so a reader who never opens this source still learns it.
-//
-// NO SECRET PATH, STRUCTURALLY. 2026-10-01 (432-21/432-22, D-12): the posture
-// no longer reports declared MCP credentials at all — `services.mcp.tokens` is a deleted config key
-// (a file declaring it does not resolve), and the resolver that once turned a declared name into a
-// credential is deleted. 2026-10-02: the posture's `tokenEnvRefs`, `defaultScopes`
-// and `safeMode` members are deleted, so the posture carries only `configuration`. The
-// sentinel-absence cell in `conformance/manifest.test.ts` keeps that true as the file changes.
+// Rows cross verbatim from the committed catalog, unfiltered, so the manifest equals the catalog.
 
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
@@ -55,11 +32,7 @@ export interface DedicatedReadVerb {
   readonly opIds: readonly string[]
 }
 
-/**
- * The dedicated read verbs, each a thin client over the ops the manifest's rows
- * describe. They stay off the four-door surface roster: `fn` is the roster's CLI
- * door, and these verbs own no capability of their own.
- */
+// Thin clients over the ops the rows describe; `fn` is the CLI door on the surface roster.
 export const DEDICATED_READ_VERBS: readonly DedicatedReadVerb[] = Object.freeze([
   { verb: 'runs list', flags: ['--verdict', '--test', '--target', '--since', '--limit', '--json'], opIds: ['runs.list'] },
   { verb: 'runs overview', flags: ['--json'], opIds: ['runs.overview'] },
@@ -82,9 +55,6 @@ export interface AgentManifestInput {
   /** Where this workspace's configuration lives. Defaults to the conventional file under `cwd`. */
   readonly configPath?: string
 }
-
-// `tokenEnvRefsOf` is deleted. It projected `services.mcp.tokens` onto
-// names for the posture, and that key is no longer read by anything.
 
 /**
  * The whole manifest: the committed catalog, the projected map, and this workspace's posture.
@@ -129,9 +99,6 @@ export async function buildAgentManifest(
     // VERBATIM. No filter, no re-sort, no re-shape — see this file's header.
     rows: catalog.rows,
     posture: {
-      // no `defaultScopes`, `safeMode` or `tokenEnvRefs`. Each reported a
-      // constant since 432-20/21 (every scope name, `false`, empty) and leaves with the permission
-      // metadata it described.
       configuration,
     },
   }

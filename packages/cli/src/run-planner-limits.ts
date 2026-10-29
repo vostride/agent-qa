@@ -1,5 +1,4 @@
-// the one place a CLI run producer turns a member's merged `use` blocks into the
-// per-step planner config, and the one wording of the limits line the run prints before it starts.
+// Turns a member's merged `use` blocks into planner config, and words the limits line.
 import {
   resolvePlannerLimits,
   type PlannerLimits,

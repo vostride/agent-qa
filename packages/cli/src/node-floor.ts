@@ -1,4 +1,4 @@
-// imports nothing and stays ES2020; it runs on any Node the user has.
+// Imports nothing and stays ES2020, so it runs on any Node the user has.
 
 export const NODE_FLOOR_MAJOR = 24
 

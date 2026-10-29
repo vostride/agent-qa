@@ -59,10 +59,7 @@ export function bundles(knowledgeRoot: string): { dir: string; id: string; bundl
   })
 }
 
-/**
- * The committed knowledge bytes (432-06's idiom): canonical files under memory/, excluding the
- * re-projected index. Lease bookkeeping and index rebuilds are not effects of a change.
- */
+// Committed knowledge bytes under `memory/`, without the re-projected index or lease bookkeeping.
 export function canonicalKnowledge(knowledgeRoot: string): string[][] {
   const memory = join(knowledgeRoot, 'memory')
   return files(memory).filter(path => !path.startsWith(join(memory, 'index')))

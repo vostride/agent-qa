@@ -14,8 +14,7 @@ const roots: string[] = []
 afterEach(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
 describe('mark history on a config that does not load', () => {
-  // A config holding a removed key fails strictly, and the MCP server deliberately starts on
-  // one. OBSERVED RED on agent-qa 481f0a153: history() rejected with the config's own error.
+  // A config holding a removed key fails strictly, yet the MCP server starts on one.
   it('answers the changed records not-bound, and the rest of the history renders', async () => {
     const f = markFixture(); roots.push(f.root)
     const marked = await createFeedbackPortForHost(f.deps).mark({ runId: f.handoff.runId, kind: 'false-fail' })

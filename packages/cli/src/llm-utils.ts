@@ -230,17 +230,7 @@ export interface JobModelCapabilityDeps {
   generateTextImpl?: typeof generateText
 }
 
-/**
- * Bind an already-resolved model profile as the job queue's authorship capability (385 plan 05,
- * D-10/D-11).
- *
- * `JobModelCapability` is three structural fields, so no provider name crosses into
- * `@vostride/agent-qa-agent` and the queue stays provider-neutral. What crosses instead is this
- * closure, and the provider call inside it is the SAME `createModel` → `generateText` chain a run
- * and the curation author use — the accountant's own ceiling for the output cap, zero temperature,
- * no retries, so an authored checkpoint records a deterministic answer rather than one that
- * depended on which attempt produced it.
- */
+// Zero temperature and no retries, so an authored checkpoint records a deterministic answer.
 export function buildJobModelCapability(
   profile: ModelProfile,
   auth: ResolvedModelAuth,
@@ -252,9 +242,7 @@ export function buildJobModelCapability(
     getCapabilities: () => (deps.resolveCapabilitiesImpl ?? resolveCapabilities)(profile),
   })
   const generate = deps.generateTextImpl ?? generateText
-  // the v46 vision negotiation, surfaced from the SAME resolveCapabilities the
-  // accounting consults — the capability ADVERTISES what the profile resolves, and the gate
-  // below is enforced at this host boundary even when a caller mis-gates (L9).
+  // The vision gate is enforced here, at the host boundary, even when a caller mis-gates.
   const vision = (deps.resolveCapabilitiesImpl ?? resolveCapabilities)(profile).vision
 
   return {
@@ -269,11 +257,7 @@ export function buildJobModelCapability(
         ...(request.system === undefined ? {} : { system: request.system }),
         ...(request.signal === undefined ? {} : { abortSignal: request.signal }),
       }
-      // D-02's screenshot channel: images ride the SAME request as the prompt, mapped onto
-      // the SDK messages form only when `resolveVisionGate` allows attachment — one user
-      // message of a text part plus one image part per entry (the verifier turn-message
-      // precedent, runner/loop/verifier.ts). Against a text-only model the images strip and
-      // the call below is BYTE-IDENTICAL to a plain text request (L9).
+      // Images ride the prompt's request only when the gate allows; text-only calls stay plain.
       if (
         request.images !== undefined
         && request.images.length > 0
@@ -302,15 +286,7 @@ export function buildJobModelCapability(
   }
 }
 
-/**
- * The analyze-run author's compaction substrate, derived from the SAME profile resolution
- * as the job model (389-06, D-01 / 386 D-15: one source of truth, no second config knob).
- *
- * `estimate` is the accounting's own estimator applied to one text part; `inputBudget` is
- * the context window minus the output reservation the model call itself is charged with —
- * both read through the identical `resolveCapabilities(profile)` the capability's ceiling
- * uses, so budget and ceiling cannot drift.
- */
+// Estimator and budget read the same `resolveCapabilities(profile)` as the ceiling, so they agree.
 export function buildAnalysisTokenBudget(
   profile: ModelProfile,
   deps: JobModelCapabilityDeps = {},
@@ -325,15 +301,7 @@ export function buildAnalysisTokenBudget(
   }
 }
 
-/**
- * The CLI hosts' analysis token budget, resolved from the project's configured default LLM —
- * the SAME named-config path `resolveCliJobModel` rides.
- *
- * Degrades to `undefined` rather than throwing: a project with no usable LLM configuration
- * still opens its queue and drains deterministic work, and the author simply runs without a
- * compaction ladder (plan 04's rung-0 posture). The model capability reports its own
- * unavailability on the generate path; the budget never becomes a second failure site.
- */
+// Degrades to `undefined`: with no usable LLM the queue still drains and the author has no ladder.
 export async function resolveCliAnalysisTokenBudget(
   configPath: string,
   deps: JobModelCapabilityDeps = {},
@@ -365,15 +333,7 @@ export async function resolveCliJobModel(
   return buildJobModelCapability(profile, auth, createDeclaredSecretMask(configPath).mask, deps)
 }
 
-/**
- * What a chat session needs from this host in order to plan.
- *
- * THREE CAPABILITIES FROM ONE RESOLUTION, and the one-ness is the point. The model
- * stage 2 plans with, the accounting its degrade pass measures against, and the resolver `/model`
- * uses all come from the same named-config path `resolveCliJobModel` rides. A session that
- * compacted against a window its model does not have would be a second source of truth wearing
- * the same name.
- */
+// Model, accounting and `/model` resolver come from one named-config resolution.
 export interface CliChatCapabilities {
   readonly model: ChatLanguageModel
   readonly accounting: TokenAccounting
@@ -385,18 +345,7 @@ export interface CliChatCapabilities {
   readonly modelFor: (name: string) => Promise<ChatLanguageModel>
 }
 
-/**
- * The chat session's model, resolved from the project's configured default LLM.
- *
- * DEGRADES TO `undefined` RATHER THAN THROWING, on `resolveCliAnalysisTokenBudget`'s precedent and
- * for a reason specific to chat: a project with no usable LLM configuration must still be able to
- * open a conversation. Absent, the composition is HEADLESS — every canonical utterance still
- * routes deterministically, and anything the table cannot resolve fails the turn closed by name,
- * which is the correct behaviour rather than a degraded one.
- *
- * `agent-local` never constructs a model, so this is where `createModel` is reached; the
- * composition takes an already-built handle (CHAT-06's firewall, stated on the option itself).
- */
+// Degrades to `undefined`, composing a headless chat; `agent-local` never constructs a model.
 export async function resolveCliChatCapabilities(
   configPath: string,
   deps: JobModelCapabilityDeps = {},

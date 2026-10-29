@@ -1,31 +1,4 @@
-// The chat host's discovery UX, as a projection of the ONE catalog (Phase 398 plan 09 — XPLN-01,
-// D-01 / SC-1 / A3).
-//
-// WHAT THIS MODULE IS FOR. Two features arrive here at once — tab completion at the prompt and the
-// suggested lines a session opens with — and both are answers to "what can I type", which is a
-// question the committed capability catalog exists to be the single source of. Neither is allowed
-// to carry its own list. Everything below is derived from two shipped inputs and nothing else:
-//
-//   1. `loadCapabilityCatalog()`'s rows — the op ids reachable through the passthrough, and the
-//      alias rows plus their descriptions.
-//   2. `CHAT_HELP_ENTRIES` — the TYPED FORM of each alias, which the catalog does not carry and
-//      cannot: the resolver row named `test-ref` is typed `test`, and a candidate list built from
-//      row names alone would offer a person a word the resolver refuses. The two are held together
-//      by the both-directions census in `__tests__/conformance/help-census.test.ts`, so this is one
-//      mechanically-tied vocabulary read from two places rather than two vocabularies.
-//
-// PURE, AND THAT IS THE TESTABILITY. Nothing here reads a file, a stream or a clock. The command
-// loads the catalog once at session open and hands the rows in; a differential can hand in rows the
-// producer minted and read the candidates back.
-//
-// WHY THE `/`-ONLY RULE THE PLAN SKETCHED IS NOT WHAT SHIPPED. The plan described
-// candidates as "the catalog's alias rows (slash-alias forms)", which assumes an alias is typed
-// with a leading slash. The shipped resolver says otherwise: `run`, `status`, `test`, `digest` and
-// `proposals` are BARE words, and `/run` resolves to nothing at all. Offering `/run` would have
-// been this surface inventing a vocabulary, which is the precise failure SC-1 is about. So the
-// completer keys on what has been typed — a leading `/` completes the slash forms, a first word
-// completes the bare verbs — and every candidate it can ever emit is a form the shipped table
-// answers.
+// Completion keys on what is typed: a leading `/` completes slash forms, a first word bare verbs.
 
 import { CHAT_RESOLVER_TABLE, resolveClause } from '@vostride/agent-qa-agent'
 import type { ChatHelpEntry, ChatResolverTable } from '@vostride/agent-qa-agent'
@@ -79,15 +52,7 @@ export function typedVerbs(helpEntries: readonly ChatHelpEntry[]): {
 const PASSTHROUGH_PROBE_A = 'probe.one'
 const PASSTHROUGH_PROBE_B = 'probe.two'
 
-/**
- * Which typed form is the generic passthrough, recognised BY BEHAVIOUR rather than by its name.
- *
- * 398-01's producer already made this call and made it this way, for the reason that applies here
- * verbatim: `/fn` is the reach lever today, and a module that spelled `/fn` would be a second place
- * the passthrough is named — right until somebody renames it, after which this surface would offer
- * op completions behind a form that no longer takes an op. Two probes that differ prove the rule
- * BINDS WHAT IT WAS GIVEN, which is the whole of what makes a branch generic.
- */
+// Recognised by behaviour, not by name, so renaming `/fn` cannot strand op completions behind it.
 export function passthroughFormOf(
   helpEntries: readonly ChatHelpEntry[],
   table: ChatResolverTable = CHAT_RESOLVER_TABLE,

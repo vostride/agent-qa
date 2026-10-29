@@ -24,10 +24,7 @@ export interface FeedbackHostDeps {
    * that binds none refuses by name when the lease is held, and a retry resumes from the intent.
    */
   knowledgeChangeDelegate?: ExplicitReviewDelegate
-  /**
-   * 2026-10-02 (quick 261002-mrk, 432-13 #1): hands the whole mark to a live writer-lease holder
-   * before any lock, lease or write; `undefined` means no live holder, so the mark runs here.
-   */
+  // Hands the whole mark to a live lease holder before any lock or write; `undefined` runs it here.
   wholeMarkDelegate?: WholeMarkDelegate
   /** The lease this host already holds (the daemon): evidence and fix commit with it, never delegating. */
   writerAuthority?: MarkWriterAuthority
@@ -49,11 +46,7 @@ export interface MarkWriterAuthority {
   readonly authority: () => { readonly leaseId: string; readonly epoch: number }
 }
 
-/**
- * Who holds the writer lease, as a refusal names it. 2026-10-03 (quick 261003-lgd, Phase 432 review
- * IN-11): a dashboard or MCP host that runs a run in process holds the lease for that run's own
- * post-run curation, so the holder can be this very process; it is then not "another" one.
- */
+// An in-process run's host may hold the lease itself, so the holder is not always another process.
 function leaseHolderPhrase(holderPid: number): string {
   return holderPid === process.pid
     ? `This agent-qa process (pid ${holderPid}) is already writing to this knowledge store, for `
@@ -61,10 +54,7 @@ function leaseHolderPhrase(holderPid: number): string {
     : `Another agent-qa process (pid ${holderPid}) is writing to this knowledge store`
 }
 
-/**
- * 2026-10-02 (261002-mrk follow-up): an agent-qa process that is not a daemon held the knowledge
- * writer lease for the whole wait budget, so the mark was not started and nothing was written.
- */
+// A non-daemon agent-qa process holds the writer lease for the whole wait; nothing is written.
 export class MarkWriterLeaseBusyError extends Error {
   constructor(readonly holderPid: number, readonly waitedMs: number) {
     super(`${leaseHolderPhrase(holderPid)}; waited ${waitedMs}ms and nothing was marked. Retry the `
@@ -73,12 +63,7 @@ export class MarkWriterLeaseBusyError extends Error {
   }
 }
 
-/**
- * the knowledge-change sibling of {@link MarkWriterLeaseBusyError}.
- * A change met the writer lease held by another agent-qa process that is not a daemon, so it was
- * not handed anywhere and nothing was changed. `holderPid` is absent when the holder released
- * between the lease check and this refusal.
- */
+// A change met the lease held by a non-daemon process; `holderPid` is absent if it released.
 export class KnowledgeWriterLeaseBusyError extends Error {
   constructor(readonly holderPid: number | undefined) {
     super(holderPid === undefined
@@ -224,10 +209,7 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
                 change: { kind: 'knowledge', changeId: applied.changeId, recordIds: [...applied.recordIds] } }
             }
           } else if (draft.kind === 'test-edit') {
-            // decideMarkDraft admits a test edit only when this host binds the authoring edit, which
-            // writes the edited file itself, guarded by the digest it read. 261002-mrk: the
-            // write is recorded ahead under this intent's identity, so a retry after a crash inside
-            // the edit answers that write rather than asking the model and editing again.
+            // The edit's write is recorded ahead under this intent, so a crash retry answers it.
             const editScope = { recordPath: editRecordPath, operationId: intent.operationId }
             const written = answerRecordedMarkEdit({ ...editScope, configDir })
               ?? (await withMarkEditScope(editScope, () => deps.invokeAuthoringDraftEdit!({

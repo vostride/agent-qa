@@ -1,12 +1,4 @@
-// 2026-10-02 (quick 261002-mrk, 432-09 #4): a mark's test edit, recorded ahead of its write.
-//
-// `authoring.draft.edit` is one call (a model call, then a digest-guarded write), so the mark host
-// cannot checkpoint between the write and the return. The mark host therefore opens a scope keyed
-// by its intent's operation id, and the CLI's final-test writer records, inside that scope, which
-// bytes it is about to write over which bytes, durably and before the write. A retry consults the
-// record before invoking the edit again: the recorded bytes on disk are the first answer. An edit
-// outside a mark has no scope and records nothing. The record lives in the run's directory under
-// `.agent-qa/`, beside the mark intent.
+// A mark's test edit, recorded durably before its write, so a retry answers it, not re-edits.
 
 import { AsyncLocalStorage } from 'node:async_hooks'
 import {
@@ -86,21 +78,7 @@ function digestOf(path: string): string | undefined {
   }
 }
 
-/**
- * The recorded write's answer for this operation, or `undefined` when the edit must run: no record
- * for this operation, or the target still holds the bytes the edit read (the write never landed).
- *
- * 2026-10-03 (quick 261003-lgd, Phase 432 review WR-04): a target holding neither the bytes the
- * edit read nor the bytes it wrote (a person edited or deleted the test after the crash) is
- * answered from the record too: the mark completes with the write it recorded, and the person's
- * later change stays theirs. It is never edited again and the model is never asked again. It used to be
- * refused as `target-changed`, and since neither the record nor the intent was ever cleared on that
- * path, every retry, and every other mark on the run, failed the same way for good.
- *
- * What this cannot tell apart: the record is written just before the write, so a crash in the
- * moment between the two, followed by a person's change, also reads as "neither". The receipt then
- * names a write that did not land. Both windows are a few milliseconds of one synchronous call.
- */
+// A target with neither the read nor the written bytes is answered from the record, not re-edited.
 export function answerRecordedMarkEdit(
   input: MarkEditScope & { readonly configDir: string },
 ): TestFileWrite | undefined {

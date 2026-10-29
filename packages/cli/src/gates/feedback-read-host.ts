@@ -1,9 +1,4 @@
-// the read-only half of the feedback host. It reads the mark ledger and never
-// takes the run lock, touches an in-flight intent or creates a directory.
-// each applied knowledge fix joins the records it changed
-// through the knowledge store's batch read. No proposal store is read, readable or not.
-// preview runs runs.mark's shared plan with the same guarantees, and
-// takes only read capabilities: no lease, ledger transaction, freeze, wording model or writer.
+// Read-only: reads the mark ledger and joins changed records; no lock, lease, intent or writer.
 import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import type { KnowledgeReaderPort } from '@vostride/agent-qa-agent'
@@ -36,11 +31,7 @@ function changedRecordIdsOf(receipt: MarkReceipt): readonly string[] | undefined
 }
 
 export function createFeedbackReadsPortForHost(deps: FeedbackReadsHostDeps): FeedbackReadsPort {
-  /**
-   * One batch read over every record the ledger's applied fixes changed (423 D-20's join). A host
-   * with no config, or one whose config does not load, binds no read (`not-bound`); an unfinished
-   * scan is `scan-incomplete` for all.
-   */
+  // One batch read; no loadable config answers `not-bound`, an unfinished scan `scan-incomplete`.
   async function joinChangedRecords(recordIds: readonly string[]): Promise<(recordId: string) => MarkHistoryChangedRecord> {
     const absent = (reason: 'not-found' | 'scan-incomplete' | 'not-bound') => (recordId: string) =>
       ({ recordId, contentAbsence: { reason } })

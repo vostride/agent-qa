@@ -1,13 +1,4 @@
-/**
- * The daemon's resident agent-job pump and the two lifecycle events it records.
- *
- * `job-claimed` and `job-completed` carry an ADDITIVE optional `runId`, read off the claimed
- * job's payload, so an operator reading the ledger can attribute a job — a failed one above all
- * — to its run without correlating sub-second timestamps (406 D-16, closing
- * `399-friction-daemon-events-no-runid`). Nothing else from the payload crosses onto an event:
- * the daemon holds no masker, and the failure reason stays in the job store where it is read
- * through a seam that does.
- */
+// `job-claimed` and `job-completed` carry the job's `runId`; no other payload field crosses.
 import type {
   AgentJobQueue,
   JobStoreFence,

@@ -9,36 +9,17 @@ import type {
   TestStartedPayload,
 } from '@vostride/agent-qa-schema'
 
-// NOTE: this is a DURABLE artifact (CI archives it) — it stays MASKED. Payload
-// strings are written verbatim; the placeholders travel into the XML. This module never
-// restores originals anywhere. (T-363-15.)
+// A durable artifact CI archives, so it stays masked and never restores originals.
 
 export interface JunitReporterOptions {
   outputPath: string
   /** Injectable write target — defaults to fs. Receives (path, xmlString). */
   write?: (path: string, content: string) => Promise<void>
-  /**
-   * The run-start quarantine snapshot, taken AT CONSTRUCTION.
-   *
-   * Snapshot-at-construction rather than a new bus payload field: the CLI already folds the ledger
-   * once before `startRun` and holds the resolved set, so the bus schemas stay untouched and the
-   * disposition is fixed for the whole run exactly as the runner's own copy is. Records are matched
-   * through schema's ONE predicate, so this reporter and the aggregate verdict rule cannot disagree
-   * about which member's failure was licensed.
-   */
+  // Snapshotted at construction, so the bus schemas stay untouched and the disposition is fixed.
   quarantined?: readonly QuarantineAppliedEntry[]
 }
 
-/**
- * The exact bytes the marker adds to a `<testcase>`, exported so the suites can pin the
- * document difference rather than a substring of it.
- *
- * RESEARCH A1 [ASSUMED]: a testcase-level `<properties>` child is tolerated by pytest/Datadog/
- * CircleCI-style parsers but MAY be rejected by strict xunit2/Jenkins validators. It sits FIRST
- * inside the testcase, which is where the xunit2 schema puts properties, to give a strict validator
- * its best chance. The shape is deliberately ADDITIVE and SWAPPABLE — the contract is the real
- * `<failure>` beside it, which is pinned regardless of what happens to this block.
- */
+// First inside the testcase, where xunit2 puts properties; strict validators may still reject it.
 export const JUNIT_QUARANTINE_MARKER_BLOCK =
   '      <properties>\n'
   + '        <property name="quarantined" value="true"/>\n'
@@ -67,11 +48,7 @@ interface TestRecord {
   durationMs: number
   failureSummary?: string
   steps: StepRecord[]
-  /**
-   * the disposition, BESIDE `outcome` and never instead of it. Resolved once at
-   * `testFinished` from the run-start snapshot; `outcome` is never rewritten and no failed member
-   * is ever routed into the `<skipped>` branch — the test RAN, which is FLAK-02's whole point.
-   */
+  // Beside `outcome`, never instead: a failed member never routes into `<skipped>`.
   quarantined: boolean
 }
 
@@ -84,14 +61,7 @@ function escapeXml(str: string): string {
     .replace(/'/g, '&apos;')
 }
 
-/**
- * `createJunitReporter` — the bus-subscriber successor to core's `JUnitReporter`. Accumulates
- * testStarted/stepStarted/stepFinalized/testFinished into the v1 XML document model and writes
- * the file inside `flush()` — NEVER in the runFinished handler (Pitfall 6: bus delivery is sync
- * fire-and-forget; the CLI awaits flush after session.done before process.exit, so async writes
- * can't be lost). Dual-mode: a suite-grouped stream (testStarted carries suiteId) produces one
- * suite-level document.
- */
+// Writes the file in `flush()`, never in the `runFinished` handler, because bus delivery is sync.
 export function createJunitReporter(options: JunitReporterOptions): JunitReporterHandle {
   const writeTarget =
     options.write ??
@@ -143,9 +113,7 @@ export function createJunitReporter(options: JunitReporterOptions): JunitReporte
       durationMs: payload.durationMs ?? 0,
       failureSummary: payload.failureSummary,
       steps: stepsByTest.get(payload.testIndex) ?? [],
-      // The disposition is only RENDERED for a member that actually failed: this marker means "this
-      // red row did not fail the build", a claim a green row cannot make. Which tests are under
-      // quarantine at all is `quarantine.list`'s question, not this artifact's.
+      // Rendered only for a failed member: a green row cannot be a failure that did not count.
       quarantined:
         isFailed(payload.outcome)
         && quarantineAppliesToTest(options.quarantined, { filePath, testName: name }),
@@ -220,10 +188,7 @@ export function createJunitReporter(options: JunitReporterOptions): JunitReporte
 
   function buildTestCase(test: TestRecord, className: string): string {
     let xml = `    <testcase name="${escapeXml(test.name)}" classname="${escapeXml(className)}" time="${(test.durationMs / 1000).toFixed(3)}" file="${escapeXml(test.filePath)}">\n`
-    // additive, and additive only. The failure branch below is untouched, `failures=` on
-    // both enclosing elements still counts this member, and nothing here can reach the skipped
-    // branch — a CI UI that counts JUnit failures shows a red row on a green build, which is the
-    // correct amount of red.
+    // Additive only: `failures=` still counts this member, so CI shows a red row on a green build.
     if (test.quarantined) xml += JUNIT_QUARANTINE_MARKER_BLOCK
     if (isFailed(test.outcome)) {
       xml += `      <failure message="${escapeXml(failureMessage(test))}" type="TestFailure">\n`

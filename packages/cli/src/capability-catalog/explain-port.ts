@@ -1,29 +1,4 @@
-// The host half of `explain`.
-//
-// FOUR CAPABILITIES `packages/agent` NAMED AND COULD NOT IMPLEMENT, implemented here and nowhere
-// else: the catalog read, the model's citation over it, the local coverage append, and the two
-// counter hooks. `explain/port.ts` states why each one is a port; this file is the answer.
-//
-// THE ONE LOADER, NOT A SECOND READ (398-01 SC-1). `loadCatalog` calls `loadCapabilityCatalog` and
-// parses nothing itself. A `JSON.parse` spelled here would be the second read path that artifact's
-// whole discipline exists to prevent, and it would be invisible: both readers would be right on the
-// day they were written.
-//
-// THE ROWS ARE THE GROUNDING DATA, AND THAT IS AN OBLIGATION (398-04's note 1). `citeCapabilities`
-// puts EVERY loaded row in the prompt. A binding that prompted without them would degrade every
-// answer to a ghost citation — which abstains, so it is safe, and which is also useless, and which
-// nothing downstream could tell apart from `the catalog genuinely had nothing close`.
-//
-// WHAT IS DELIBERATELY *NOT* IN THE PROMPT: the invocation forms and the params documents. The
-// model may only answer with row ids, and every character a person reads is quoted out of a row by
-// the renderer — so sending the model the exact slash forms would be sending it the very
-// text it must never be the source of. It cannot reproduce what it was never shown.
-//
-// THE COVERAGE LOG IS LOCAL AND IT IS THE POINT. `query` is the one free-text
-// value in this feature. It is appended to `.agent-qa/explain-coverage.jsonl` under this project's
-// own runtime root and travels nowhere else: the counter hooks below carry COUNTS and have no
-// string field a query could occupy, which is D-14's no-free-text law expressed as a type rather
-// than as a rule somebody remembers at the send seam.
+// `query` stays in the local coverage log; the counter hooks carry counts with no string field.
 
 import { appendFileSync, closeSync, mkdirSync, openSync, readFileSync, readSync, statSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -47,18 +22,7 @@ import { loadCapabilityCatalog } from './loader.js'
  */
 export const EXPLAIN_COVERAGE_LOG_FILE_NAME = 'explain-coverage.jsonl'
 
-/**
- * One line of the coverage log.
- *
- * APPEND-ONLY, ONE JSON DOCUMENT PER LINE, NO ROTATION IN v2.0 — the run-artifact idiom this
- * runtime root already uses. SURF-FUT-02 reads this file later to decide whether docs-RAG has real
- * demand, so its shape is a contract with a consumer that does not exist yet, and readers must skip
- * a malformed trailing line rather than refuse the file (see {@link readExplainCoverageLog}).
- *
- * `catalogDigest` is the `rowsDigest` of the catalog THIS abstention was computed over, so a later
- * reader can tell `the catalog did not carry this capability` apart from `the catalog has changed
- * since`.
- */
+// Append-only JSON lines; `catalogDigest` tells a missing capability from a changed catalog.
 export interface ExplainCoverageRecord {
   /** ISO-8601, from the host clock. */
   readonly at: string
@@ -68,17 +32,7 @@ export interface ExplainCoverageRecord {
   readonly catalogDigest: string
 }
 
-/**
- * What an abstention reports to a counter.
- *
- * NO QUERY FIELD, AND THERE MUST NEVER BE ONE. The analytics union's `explain.abstained` member
- * declares counts and one boolean; a hook shaped wider than the event it feeds is an invitation,
- * and the one value it would be widened to carry is the exact value D-11 keeps on this machine.
- *
- * `catalogEmpty` is READ OFF THE LOAD, not inferred from an empty suggestion set. Those are two
- * different facts — a query with no lexical overlap against fifty rows also suggests nothing — and
- * a counter that conflated them would report "this install has no catalog" about a healthy one.
- */
+// No query field; `catalogEmpty` is read off the load, not inferred from no suggestions.
 export interface ExplainAbstainedCounts {
   readonly suggestedRowCount: number
   readonly catalogEmpty: boolean
@@ -87,33 +41,11 @@ export interface ExplainAbstainedCounts {
 export interface CreateCliCapabilityCatalogPortOptions {
   /** The project's runtime root, i.e. `<configDir>/.agent-qa`. Absolute. */
   readonly agentQaRoot: string
-  /**
-   * The model the citation call runs on — THE SAME OBJECT the chat host composed.
-   *
-   * Passed in already built, never resolved here, for the reason `chatModel` is passed into
-   * `composeLocalAgent` already built: `createModel` owns the masking middleware and the profile
-   * resolution, and a second construction site would be a model call that skipped both.
-   *
-   * ABSENT IS A REAL POSTURE. A project with no usable LLM configuration composes a host whose
-   * explain cannot cite — so it answers an EMPTY citation, which the renderer turns into the
-   * abstention arm, and the person is told plainly that nothing was grounded. That is the honest
-   * behaviour; the alternative (an answer assembled without a model) is the invention this whole
-   * feature exists to make impossible.
-   */
+  // Built by the chat host so `createModel` masks it; absent, explain answers an empty citation.
   readonly model?: ChatLanguageModel
   /** Injected in tests; defaults to the wall clock. */
   readonly now?: () => Date
-  /**
-   * Plan 10 binds these to the analytics port. Absent ⇒ no-ops, which is the correct composed
-   * behaviour for a host with no analytics: a counter nobody collects is not an error.
-   *
-   * `onAnswered` TAKES NOTHING, and the emptiness is a measurement rather than an oversight.
-   * `CapabilityCatalogPort.recordAnswered()` has no parameters — deliberately, because D-14 permits
-   * a count and nothing more — so this host is not TOLD how many rows were cited and cannot report
-   * it. A `citedRowCount: 0` passed along here would have been a number nobody counted, which is
-   * worse than an absence; the analytics member's own `cited_row_count` is OPTIONAL precisely so an
-   * omission is representable. Widening this is a port change, which is where it belongs.
-   */
+  // Absent, the hooks are no-ops; `onAnswered` takes nothing because the port reports no count.
   readonly onAnswered?: () => void
   readonly onAbstained?: (counts: ExplainAbstainedCounts) => void
   /** PRODUCED FIXTURES ONLY — the differentials load a zero-row catalog written through the
@@ -157,32 +89,11 @@ export function resolveExplainCoverageLogPath(agentQaRoot: string): string {
 /** What a read of the coverage log found, including what it could not read. */
 export interface ExplainCoverageLog {
   readonly records: readonly ExplainCoverageRecord[]
-  /**
-   * Lines that did not parse. Counted rather than thrown on, and REPORTED rather than swallowed.
-   *
-   * A reader that REFUSED the file would let one process killed mid-write poison the coverage
-   * signal permanently — the demand signal SURF-FUT-02 reads would be unavailable forever because
-   * of a laptop that slept once. A reader that skipped SILENTLY would be a coverage number quietly
-   * missing records nobody was told about. Counting is the answer to both.
-   */
+  // Counted and reported, so a torn write neither poisons the log nor goes unmentioned.
   readonly skippedLines: number
 }
 
-/**
- * Every complete record in the log, with unparseable lines skipped and counted (edge
- * XPLN-02/concurrency).
- *
- * THERE IS EXACTLY ONE WAY A LINE HERE CAN BE MALFORMED, which is what makes skipping safe rather
- * than lax: a record is written by ONE `appendFileSync` of one whole line, so nothing in this
- * design can produce a half-written line except a process dying mid-write. That line is the tail at
- * the moment it is torn — and it stops being the tail as soon as the next abstention appends, which
- * is why the rule is stated over ANY line rather than over the last one. (Measured 2026-08-17,
- * a first draft that skipped only the tail was correct for a file nobody wrote to again,
- * and the cell that appended after a torn line caught it.)
- *
- * A missing file reads as an empty log. That is not an error: a project where nothing has ever
- * abstained has no coverage to report, which is exactly what zero records says.
- */
+// Each line is one whole `appendFileSync`, so any malformed line is a torn write and is skipped.
 export function readExplainCoverageLog(path: string): ExplainCoverageLog {
   let text: string
   try {
@@ -243,15 +154,7 @@ const CITATION_SYSTEM_PROMPT = [
 /** The empty citation — what every failure of the model half degrades to. */
 const EMPTY_CITATION: ExplainCitation = Object.freeze({ citedRowIds: [] })
 
-/**
- * Parse a model's answer into the closed citation contract, or into nothing.
- *
- * ONE tolerant step and no more: the first `{` through the last `}`, because a model that wrapped
- * its JSON in a fence or a sentence produced the right answer in the wrong envelope. Everything
- * past that is a PARSE FAILURE and answers the empty citation — never a retry loop (which spends a
- * person's money to argue with a model about syntax) and never a free-form passthrough (which is
- * the command-capable channel D-10 closes at the DTO).
- */
+// One tolerant step, first `{` to last `}`; anything else is the empty citation, never a retry.
 function parseCitation(text: string): ExplainCitation {
   const candidates: string[] = [text.trim()]
   const first = text.indexOf('{')
@@ -332,17 +235,7 @@ export function createCliCapabilityCatalogPort(
         closestRowIds: [...record.closestRowIds],
         catalogDigest: lastDigest,
       }
-      // ONE WRITE, ONE LINE. The record is serialized whole and appended in a single call, so a
-      // process killed mid-append can leave at most an incomplete FINAL line — never an interleaved
-      // or half-overwritten earlier record. That is the whole of the concurrency posture, and
-      // `readExplainCoverageLog` is the other half of it.
-      //
-      // THE LEADING NEWLINE IS A REAL FIX, NOT A BELT-AND-BRACES ONE (measured 2026-08-17, 398-07).
-      // A torn tail has no terminator, so a plain append CONCATENATED the new record onto it and
-      // produced ONE corrupt line where there should have been a bad line and a good one — the new
-      // record was silently lost, which is worse than the torn write that caused it. Terminating
-      // the tail costs nothing, stays inside the SAME single write, and is what makes "a torn write
-      // never corrupts another record" true in both directions rather than only backwards.
+      // One write per record, led by a newline, so a torn tail never swallows the next record.
       mkdirSync(dirname(logPath), { recursive: true })
       const separator = endsWithNewline(logPath) ? '' : '\n'
       appendFileSync(logPath, `${separator}${JSON.stringify(line)}\n`, 'utf8')

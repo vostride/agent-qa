@@ -1,9 +1,4 @@
-// Run-end working-memory flush. Every value is masked with the run's
-// declared mask and written as is to `.agent-qa/artifacts`, then the store
-// is disposed. The flush never throws, so the run exit code is untouched (Pitfall 5).
-//
-// Boundary contract (Pitfall 7 boundary 3): mask() applies ONLY here at flush; the store and
-// turn content stay verbatim.
+// Masks every value only here, at flush, and never throws, so the exit code is untouched.
 
 import { mkdir, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -100,7 +95,7 @@ export async function flushWorkingMemory(
 
     return { path, entriesWritten: entries.length }
   } finally {
-    // WM-02 disposal always runs — on the clean path and any error path.
+    // Disposal always runs, on the clean path and any error path.
     try {
       store.dispose()
     } catch {

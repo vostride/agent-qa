@@ -1,34 +1,4 @@
-// The daemon dispatches runs through the ONE in-process core.
-//
-// WHAT THESE CELLS ARE ABOUT. The daemon used to answer `runs.start` by spawning a piped
-// `agent-qa run` child, tee-ing its stdout/stderr into two files beside the run and recording the
-// child's exit code. Three facts change with that retirement and each one needs saying out loud:
-//
-//   1. THE POSTURE IS CARRIED, NOT SNIFFED. The daemon hands the drive an EXPLICIT
-//      `local-headless` and no confirm port, so ask-tier work with no credential fails closed BY
-//      CONSTRUCTION. (Nothing asks now: the carried posture is what the ack reports, and a run
-//      starts whatever environment its target declares.) The old wire decided in the CHILD, whose context came from the child's own
-//      ambient — which is why the retired cell asserted `executionContext: 'ci'` when
-//      `GITHUB_ACTIONS` was set. So the cell below VARIES the ambient and requires the injected
-//      value to win. A cell that passed because the ambient default happened to be
-//      `local-headless` would prove nothing: this process pins exactly that at daemon startup.
-//   2. THE BUS EVENT LOG IS THE RECORD. No `run-child.stdout.log`, no
-//      `run-child.stderr.log`, ever again. The ABSENCE is asserted by listing the run directory,
-//      not by trusting the code path that stopped writing them.
-//   3. THE JOB-OUTCOME ANALYTICS SURVIVES THE MOVE. Same event name, same closed key set, same
-//      `job_kind`, same two-valued `outcome` — now read off the run's own completion instead of a
-//      child's exit code. The pre-change reading these are differenced against was taken on the
-//      old wire before a line moved and is pasted in `401-06-SUMMARY.md`.
-//
-// DRIVEN THROUGH THE PRODUCTION FRAMES. Every cell starts a REAL `runDaemonHost`, dispatches
-// through the REAL socket with `invokeViaDaemon`, and composes the REAL production run execution —
-// nothing here injects a `runExecution`. The 399/400 scar is a fixture that mounted the unit
-// without its production frames and proved a process-level truth on a bare router; the truths above
-// are all about what a daemon PROCESS does, so a bare port in a fixture could not carry them.
-//
-// EVERY RUN BELOW IS A REAL RUN. The fixture's model points at an unbindable port and
-// `PLAYWRIGHT_BROWSERS_PATH` is an empty directory, so a member fails fast — but it fails DOWNSTREAM
-// of `startRun`, which is the point: the artifacts a started run leaves are what these cells read.
+// Real daemons dispatch real runs: the carried posture wins and no capture files are written.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -72,15 +42,10 @@ afterAll(() => {
   if (pinnedTmpdir !== undefined) removeTempRoots([pinnedTmpdir.root])
 })
 
-// every drive call carries a record; each cell closes the ones it opened.
+// Every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 
-/**
- * The capture files that retired with the child.
- *
- * Spelled here rather than imported, and that is the point: nothing in the daemon's own closure
- * names them any more, so there is no constant left to import.
- */
+// Spelled here because nothing in the daemon's closure names them.
 const RETIRED_CAPTURE_FILES = ['run-child.stdout.log', 'run-child.stderr.log'] as const
 
 const TEST_MODEL: JobModelCapability = {
@@ -100,20 +65,7 @@ const temporaryRoots: string[] = []
 const shippedExecutionContextResolver = getActiveExecutionContext
 let restoreResolver: (() => void) | undefined
 
-/**
- * Vary the ambient AFTER the daemon has started, which is what makes the D-07 claim measurable.
- *
- * `runDaemonHost`'s first effect is `pinLocalHeadlessExecutionContext()`, so an ambient read taken
- * at any point during a dispatched run would answer `local-headless` for free. Re-pinning here
- * DEFEATS that startup pin, so a run that still gates as `local-headless` can only be doing it
- * because the daemon CARRIED the value into the invocation.
- *
- * BOTH AMBIENT CHANNELS ARE TURNED, not one. The resolver is what an in-process reader would
- * consult; `GITHUB_ACTIONS` is what a SPAWNED reader would have consulted, and it is set here as
- * well so this cell reds against the retired child wire too (measured: the pre-change daemon's
- * child recorded `executionContext: 'ci'` under exactly this env). One channel would have left the
- * other as a way for an ambient read to survive the cell.
- */
+// Re-pinned after startup, with `GITHUB_ACTIONS` set too, so only a carried context can win.
 function varyAmbientExecutionContext(value: 'ci' | 'local-interactive'): void {
   const savedGithubActions = process.env.GITHUB_ACTIONS
   process.env.GITHUB_ACTIONS = '1'
@@ -205,7 +157,7 @@ function readDaemonEvents(agentQaRoot: string): Array<Record<string, unknown>> {
     .map((line) => JSON.parse(line) as Record<string, unknown>)
 }
 
-/** Every file the invocation left in every run directory — the list the D-04 absence reads. */
+// Every file the invocation left in every run directory, for the absence check.
 function runDirFiles(fixture: InProcessFixture): string[] {
   return runDirs(fixture as never).flatMap((dir) => readdirSync(dir))
 }
@@ -335,10 +287,7 @@ describe('the daemon dispatches runs through the in-process core', () => {
         const runId = (acknowledged as { runId?: string }).runId
         expect(runId, `runs.start did not acknowledge a run: ${JSON.stringify(acknowledged)}`)
           .toMatch(/^r_/)
-        // THE ACK LAW, carried forward from the retired child cell: every field is read off the
-        // completed-run record, so an ack that is richer than the evidence cannot be produced. The
-        // `executionContext` here is D-07 arriving on the CALLER's surface — the ack a person or a
-        // dashboard reads says which posture the run was taken in.
+        // Every ack field is read off the completed-run record, so no ack exceeds the evidence.
         expect(acknowledged).toMatchObject({
           runId,
           executionContext: 'local-headless',
@@ -355,11 +304,9 @@ describe('the daemon dispatches runs through the in-process core', () => {
         expect(target.hits).toEqual(['/in-process-thing'])
         expect(buildOrdinalsExist(fixture as never)).toBe(true)
 
-        // RE-SPELLED 2026-09-30: the D-07 allow arm read the gate row's context. No row is
-        // written now; the carried context is the ack's `executionContext`, asserted above.
         expect(auditRows(fixture as never)).toEqual([])
 
-        // THE ABSENCE, read off the directory listing rather than off the code path.
+        // The absence, read off the directory listing rather than the code path.
         const files = runDirFiles(fixture)
         expect(files).toContain('events.jsonl')
         expect(files).toContain('handoff.json')
@@ -400,7 +347,7 @@ describe('the daemon dispatches runs through the in-process core', () => {
           run_id: runId,
           surface: 'daemon',
         })
-        // The OLD wire's key set (measured pre-change; see SUMMARY), plus 447-09's agent_product.
+        // The job event's closed key set, with `agent_product`.
         expect(Object.keys(jobEvents[0]?.properties ?? {}).sort()).toEqual([
           '$process_person_profile',
           'agent_product',
@@ -454,8 +401,7 @@ describe('the daemon dispatches runs through the in-process core', () => {
   )
 })
 
-// the worker carries its detected posture and asks nobody. A dispatched run
-// against a shared target starts under the carried `local-headless`, whatever the ambient says.
+// The worker asks nobody: a run against a shared target starts under the carried `local-headless`.
 describe('the worker starts a non-production run with no approval', () => {
   it(
     'a shared-target run dispatched to the daemon starts under the carried local-headless context',
@@ -560,44 +506,12 @@ describe('the daemon refuses a runs.start input naming scope before it reads any
   }, 120_000)
 })
 
-// ==============================================================================================
-// TRUTH 2 AS A COMPLETE-SET CENSUS — the daemon has NO capture-file writer and NO piped-child
-// consumer, anywhere it can reach.
-//
-// WHY A CENSUS AND NOT A READING. "The capture files are gone" is a claim about the files nobody
-// opened. The parity cell above proves that ONE dispatch left none behind; it cannot say that no
-// other daemon path writes one, and `daemon/` is not the boundary of what a daemon runs — the
-// dispatch reaches `commands/run.ts` and its whole member-production graph.
-//
-// AND IT IS CLOSED TRANSITIVELY, which is 401-11's scar spelled out: that plan's own census found
-// two functions that terminated the host TWO CALLS from the in-process entry, while a scan of the
-// pinned exported bodies reported clean. A closure that stopped at `daemon/**` would report this
-// daemon clean while a capture write sat one import away.
-//
-// THE DISCOVERY PREDICATE SELF-CHECKS, both directions:
-//   (i)  every acquisition form is planted in synthetic source and must be SEEN — the raw filename,
-//        a static import of the launcher, a destructured dynamic import, a namespace member call and
-//        a bare call. Not one remembered spelling;
-//   (ii) a DECLARATION of the launcher must NOT be seen, and neither must a prose mention. While
-//        `composition/local-agent-host.ts` still declared `createPipedLaunchChild`, that was the
-//        case the package actually presented, and a converse witness asserted the declaration was
-//        there so "zero consumers" could not be read as "zero occurrences". 401-10 DELETED the
-//        declaration, so the witness went with it; the planted-declaration case below is what still
-//        keeps a census that cannot tell a declaration from a call from passing;
-//  (iii) the closure is pinned to its own known members and floored, so a walk with a wrong root or
-//        an over-eager filter cannot return a small set and sweep it clean.
-// ==============================================================================================
+// No file the daemon reaches, transitively, writes a capture file or consumes a piped child.
 
 /** `packages/cli/src/daemon/__tests__` → two levels up is the package's shipped source tree. */
 const CLI_SRC = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
-/**
- * Drop block and line comments so a name that appears only in prose is never read as code.
- *
- * The `[^:]` guard keeps a protocol-relative URL from being mistaken for a line comment, which is
- * how this kind of stripper usually eats a file. One stripper idiom for the phase, so a reader
- * compares this census like with `run-door-invocation-census.test.ts`.
- */
+// Drops comments so prose names never read as code; `[^:]` spares protocol-relative URLs.
 function stripComments(source: string): string {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, '')
@@ -679,9 +593,7 @@ describe('the daemon has no capture-file writer and no piped-child consumer', ()
   })
 
   it('(ii) …and does NOT see a declaration, or a mention in prose', () => {
-    // Synthetic since 401-10: no file declares it any more. The distinction still has to hold, or
-    // a future re-mint that only DECLARED the launcher would read as a consumer and mask the real
-    // question — and, in the other direction, prose naming the retirement would read as a wire.
+    // A declaration alone must not read as a consumer, and prose naming it must not read as a wire.
     expect(consumesPipedLauncher('export function createPipedLaunchChild(\n  entry: string,\n) {}'))
       .toBe(false)
     expect(consumesPipedLauncher('// the daemon used to call createPipedLaunchChild here'))
@@ -723,7 +635,7 @@ describe('the daemon has no capture-file writer and no piped-child consumer', ()
   })
 })
 
-// the daemon's runs reach runs.db through the same record as every door.
+// The daemon's runs reach runs.db through the same record as every door.
 describe('the run record of a daemon-dispatched run', () => {
   it('a run the daemon dispatches writes its row, stamped with the daemon, trigger cli', async () => {
     const target = new CountingTarget()
@@ -757,7 +669,7 @@ describe('the run record of a daemon-dispatched run', () => {
   }, 180_000)
 })
 
-// a dispatched run reports its outcome beside the job event, printing nothing.
+// A dispatched run reports its outcome beside the job event, printing nothing.
 describe('the run outcome of a daemon-dispatched run', () => {
   it('a daemon-dispatched run emits its run outcome beside the job event', async () => {
     const target = new CountingTarget()
@@ -799,7 +711,7 @@ const AGENT_MARKERS = [
   'AGENT',
 ] as const
 
-// a job is attributed to its submitter, never to the daemon's launcher.
+// A job is attributed to its submitter, never to the daemon's launcher.
 describe('the submitter agent of a daemon job', () => {
   it('a daemon job reports its submitter agent product, and unknown when none was carried', async () => {
     const target = new CountingTarget()

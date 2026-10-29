@@ -74,20 +74,14 @@ export function createAgentQaProgram(): Command {
   program.addCommand(createEvalCommand())
   program.addCommand(createSkillsCommand())
   program.addCommand(createFnCommand())
-  // the one-shot chat verb, registered beside `fn` because it is the same KIND of
-  // thing — a thin client that invokes one registered op through `invokeFunction`.
+  // The one-shot chat verb, beside `fn`: a thin client invoking one op through `invokeFunction`.
   program.addCommand(createAskCommand())
-  // D-01's other surface. Two commands, ONE turn engine: the REPL and the one-shot verb differ in
-  // the session and the loop and in nothing else, which is why a routing change cannot be right in
-  // one of them and wrong in the other.
+  // The REPL shares the one-shot verb's turn engine; they differ only in session and loop.
   program.addCommand(createChatCommand())
-  // the per-run digest on demand. 2026-10-01: `agent-qa proposals`
-  // (the inbox and its `grants list | revoke` subtree) is deleted with no alias.
+  // The per-run digest on demand.
   program.addCommand(createDigestCommand())
   program.addCommand(createDaemonCommand())
-  // the agent job queue's operator verbs, registered beside the daemon that is its
-  // resident drainer — `pump --only <kind>` is the in-process drain for a host that must run one
-  // kind and leave the rest queued.
+  // Beside the daemon that drains it; `pump --only <kind>` drains one kind in process.
   program.addCommand(createAgentJobsCommand())
 
   return program

@@ -223,12 +223,7 @@ export function startHeartbeatSupervisor(
     reject?.(error)
   }
 
-  /**
-   * the graceful window elapsing is not permission to return. Authority is only safe to
-   * release once no beat can still land, so the escalation resolves from the terminate settlement
-   * or the exit event — whichever the thread reaches first — and a failed terminate is propagated
-   * rather than swallowed, so shutdown records it as a named stage failure.
-   */
+  // Released only once no beat can land: from the terminate settlement or exit, failures named.
   const escalateStop = (): void => {
     worker.terminate().then(
       () => finishStop(),

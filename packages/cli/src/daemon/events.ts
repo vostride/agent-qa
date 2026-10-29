@@ -31,11 +31,7 @@ export const DAEMON_EVENT_KINDS = [
   'embedder-worker-start',
   'embedder-worker-exit',
   'embedder-worker-terminate-escalated',
-  // the successor of `run-child-exit`, and the rename is the honest half of
-  // the retirement rather than a tidy-up. There is no child to exit any more — the daemon runs the
-  // run in its own process — so the fact this row records is the RUN's completion (`runId` +
-  // `outcome`), not a process's exit code. Keeping the old spelling would have left a reader of
-  // this ledger looking for a child that no longer exists.
+  // The run's completion (`runId` and `outcome`); the daemon runs it in-process, no child exit.
   'run-completed',
   'shutdown-stage-failed',
   'daemon-stopped',
@@ -49,12 +45,7 @@ const DAEMON_EVENT_KIND_SET: ReadonlySet<string> = new Set(DAEMON_EVENT_KINDS)
 export type DaemonEvent = Readonly<{ kind: DaemonEventKind } & Record<string, unknown>>
 
 export interface AppendDaemonEventOptions {
-  /**
-   * Focused durability seams; production uses `fsyncSync` and the best-effort directory fsync.
-   *
-   * Observing the descriptor and the directory is the only way to assert WR-02 without simulating
-   * a machine crash, so the observation points are part of the API rather than a mock of `node:fs`.
-   */
+  // Seams so a test observes both fsyncs without simulating a crash.
   readonly fsyncFile?: (descriptor: number) => void
   readonly fsyncDirectory?: (directory: string) => void
 }
@@ -94,18 +85,7 @@ function bestEffortFsyncDirectory(directory: string): void {
   }
 }
 
-/**
- * Append one daemon lifecycle fact under the project runtime root.
- *
- * `ts` is deliberately constructed before the event spread so it is the first persisted JSON
- * field, matching the execution-audit JSONL house format. The daemon is the single appender.
- *
- * this ledger is D-04's fencing post-mortem record and a `daemon status` source, so an
- * acknowledged append must survive a crash. Each record is written through an owned owner-only
- * descriptor and fsynced before the call returns; the append that CREATES the ledger also fsyncs
- * the parent, because until then the directory entry pointing at those durable bytes is not
- * itself durable. Later appends touch no directory entry and pay nothing.
- */
+// `ts` leads each record; records are fsynced, and the creating append fsyncs the parent too.
 export function appendDaemonEvent(
   agentQaRoot: string,
   event: DaemonEvent,

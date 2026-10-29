@@ -1,5 +1,4 @@
-// the deterministic half of runs.mark, shared by the writer and its preview.
-// Nothing here opens an intent, lease, model or audit dir, mints an id or time, or writes.
+// The deterministic half of `runs.mark`, shared by writer and preview; it opens and writes nothing.
 import { dirname, join, resolve } from 'node:path'
 import { chainJobIdsForRun, type KnowledgeReaderPort } from '@vostride/agent-qa-agent'
 import { createKnowledgeReader, DIGEST_JOB_ID_SOURCE, FsMarkLedger, HANDOFF_FILE, latestMarkReceiptFor, loadCompletedRunHandoff, LOCAL_CURATION_CAPABILITIES, RUNS_SUBDIR, type LocalCurationCapabilities } from '@vostride/agent-qa-agent-local'
@@ -202,10 +201,7 @@ const PLANNING_MARK_ID = 'mark_000000000000'
 
 type RecordJoin = Pick<MarkPreviewKnowledgeRecord, 'recordContent' | 'contentAbsence'>
 
-/**
- * D-17 via D-20's batch join: one maintenance scan over every reached record. No batch read is a
- * named `not-bound`, an unfinished scan is `scan-incomplete` for all, a miss is `not-found`.
- */
+// One maintenance scan over every reached record: `not-bound`, `scan-incomplete` or `not-found`.
 async function joinReachedRecords(reader: KnowledgeReaderPort, recordIds: readonly string[]): Promise<(recordId: string) => RecordJoin> {
   const showRecords = reader.showRecords
   if (showRecords === undefined) return () => ({ contentAbsence: { reason: 'not-bound' } })
@@ -232,8 +228,7 @@ export async function previewMarkConsequences(deps: MarkPreviewDeps, raw: unknow
   if (target.kind !== 'target') return target
   const { handoff, member, address } = target
   const ledger = new FsMarkLedger({ root: deps.agentQaRoot, runId: input.runId })
-  // One read. A corrupt ledger throws runs.mark's own MarkLedgerCorruptError, uncaught: the
-  // preview has exactly the writer's refusal arms and mints no ledger-corrupt arm of its own.
+  // One read; a corrupt ledger throws the writer's own `MarkLedgerCorruptError`, uncaught.
   const receipts = ledger.read()
   const plan = planMarkFeedback({ input, handoff, member, address, prior: latestMarkReceiptFor(receipts, input.runId, address),
     ledgerOrdinal: receipts.length, curation })

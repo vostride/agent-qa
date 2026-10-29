@@ -1,26 +1,4 @@
-// The ONE runtime read path for the committed capability catalog.
-//
-// ONE LOADER, FOUR CONSUMERS. `init --agent`, the chat `/` type-ahead, the starter prompts and the
-// `explain` op all answer questions about what exists, and every one of them answers from these
-// bytes through this function. A second read path — a `JSON.parse` spelled at a call site, a
-// consumer that kept its own list — is the drift SC-1 exists to make impossible, and it would be
-// invisible: both copies would be right on the day they were written.
-//
-// FAILS LOUD, NEVER EMPTY. A missing or unparseable artifact throws {@link
-// CapabilityCatalogUnavailableError} carrying the regen instruction. The alternative — returning
-// an empty catalog — is the worst possible failure for this artifact specifically: the `explain`
-// op's abstention arm is CORRECT behaviour for an empty catalog, so a silently empty load
-// would present a broken install as a well-behaved product that simply knows nothing.
-//
-// A PRODUCED EMPTY CATALOG IS VALID (edge XPLN-01/empty). Zero rows that came out of the producer
-// and through this parser is a real state and loads as one; it is only the ABSENCE of the artifact
-// that is an error. The two are different facts and the loader keeps them apart.
-//
-// THE RESOLUTION IS THE SKILLS WALK. `commands/skills.ts` already solved "find the package root
-// from wherever this module was loaded" for a directory that ships beside `dist`, and the catalog
-// ships the same way (`package.json` `files` carries `capability-catalog`). Walking rather than
-// guessing from `process.cwd()` is what makes the loader work identically from the repo, from a
-// global install and from `npx`.
+// Fails loud on a missing artifact, because an empty catalog would pass for a working install.
 
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -40,7 +18,7 @@ export const CAPABILITY_CATALOG_DIR_NAME = 'capability-catalog'
  */
 export const CAPABILITY_CATALOG_FILE_NAME = 'capability-catalog.json'
 
-/** The ONE writer. There is no test-runner update path to this artifact (397 D-07's discipline). */
+// The one writer; no test-runner update path reaches this artifact.
 export const CATALOG_REGEN_SCRIPT = 'scripts/regen-capability-catalog.sh'
 
 /**

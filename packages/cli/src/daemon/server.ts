@@ -42,7 +42,7 @@ export const invokeEnvelopeSchema = z
 
 export type InvokeEnvelope = z.infer<typeof invokeEnvelopeSchema>
 
-// the submitter's agent product, scoped to the request that carried it.
+// The submitter's agent product, scoped to the request that carried it.
 const invokeAgentProductScope = new AsyncLocalStorage<AnalyticsAgentProduct | undefined>()
 
 export function currentInvokeAgentProduct(): AnalyticsAgentProduct | undefined {
@@ -74,16 +74,7 @@ export const daemonIdentitySchema = z
 
 export type DaemonIdentity = z.infer<typeof daemonIdentitySchema>
 
-/**
- * The socket authenticates the local operator through its owner-only directory, so the caller is
- * minted here and never accepted from the wire.
- *
- * 2026-10-01 (432-20/432-21, D-12): no scope set and no safe-mode flag. The six-scope grant this
- * record held — and the reasoning that explained each scope by the execution gate's fail-closed
- * reading of `local-headless`, the grant ledger and the inbox accept — went with those
- * mechanisms: `invokeFunction` checks no scope, the gate and the ledger are deleted, and every
- * caller can call every operation. What stays is attribution.
- */
+// The owner-only socket directory authenticates the local operator, so the caller is minted here.
 export const DAEMON_FUNCTION_CALLER: FunctionCaller = Object.freeze({
   surface: 'daemon',
   // Nobody typed anything. The daemon is the standing counterexample to reading `surface` as a
@@ -209,17 +200,7 @@ const GENERATED_DAEMON_PIPE_TAIL = new RegExp(`^-${DAEMON_SOCKET_INSTANCE_PATTER
 /** The project-local default socket filename (`registration.ts`'s `daemonRegistrationSocketPath`). */
 const LEGACY_DAEMON_SOCKET_FILE = 'daemon.sock'
 
-/**
- * Can a daemon of this project ever have BOUND this address?
- *
- * containment alone answers "is this inside a directory we own", which is a strictly weaker
- * question — the runtime root and the hashed tmpdir directory hold this project's OTHER live
- * sockets too. An embedder worker binds `embedder-worker-<instance>.sock` in the same runtime root
- * and `<instance>.sock` in the same hashed tmpdir directory, so an address checked by containment
- * alone could name one of them and select a live socket for deletion. A daemon only ever binds
- * two filename shapes, so requiring one of them removes every other live socket in the project
- * from the blast radius without touching what a real generation records.
- */
+// Only the legacy or generated daemon filename passes, so other live sockets stay out of reach.
 function isBindableDaemonSocketFile(file: string): boolean {
   return file === LEGACY_DAEMON_SOCKET_FILE || GENERATED_DAEMON_SOCKET_FILE.test(file)
 }
@@ -250,32 +231,7 @@ function isWithin(candidateParent: string, container: string): boolean {
   return candidateParent === root || candidateParent.startsWith(root + sep)
 }
 
-/**
- * Prove a recorded socket address belongs to this project before anything deletes it.
- *
- * A registration's `socketPath` is `z.string().min(1)`: a forged, corrupted or merely stale
- * `daemon.json` can name any path on the machine, and removing that registration byte-exactly
- * proves only what the file said — never that the address it recorded is one this host owns.
- *
- * Two arms, because an ownership with an instance and one without carry different evidence:
- * - a registration naming an `instanceId` must record the exact address that instance is required
- *   to bind, so the check is equality against `daemonSocketPath` — containment would still admit
- *   another generation's live socket, and every real generation binds the computed address;
- * - an ownership that names no instance proves two independent things instead: containment
- *   in this project's own runtime root or the hashed tmpdir directory `daemonSocketPath` falls
- *   back to, AND a filename a daemon can actually bind (WR-06 — containment alone still admitted
- *   this project's OTHER live sockets, above all the embedder worker's). The PARENT directory is
- *   realpath'd, because a symlink planted inside the root would otherwise launder an arbitrary
- *   path into it (the socket itself is not resolved: a socket inode is not a symlink, and realpath
- *   on a missing path answers nothing).
- *
- * The named-pipe arm carries the same narrowing in the shape pipes have: no filename tail exists
- * there, so the bound is the generated name in full — the project prefix followed by the instance
- * discriminator, which is exactly what `daemonSocketPath`'s win32 branch constructs.
- *
- * Exported because it is the single deletion gate: `unlinkDaemonSocket` consumes it, and so must
- * every other reclaim path that ever selects a daemon socket from recorded bytes.
- */
+// The single deletion gate: a recorded address must be one this project's daemon could bind.
 export function isOwnedDaemonSocketPath(
   candidate: string,
   ownership: DaemonSocketOwnership,

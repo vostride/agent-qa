@@ -60,9 +60,7 @@ import { resolveConfig } from './config.js'
 import { resolveRunExecutionContext } from '@vostride/agent-qa-agent-local'
 import type { RunExecutionContext } from '@vostride/agent-qa-agent-local'
 
-// The @vostride/agent-qa-eval-local workspace edge (G5) is anchored by the real store/loader
-// value imports above; this type re-export stays for the report verb plan
-// that consumes record loads. Erased at build — no runtime coupling.
+// Type-only and erased at build; the value imports above anchor the eval-local edge.
 export type { ReplayRecordLoad } from '@vostride/agent-qa-eval-local'
 
 /** Replay's settings, taken from the flags of `agent-qa eval replay`. */
@@ -149,11 +147,7 @@ export async function resolveEvalSession(input: {
   }
 }
 
-/**
- * Typed named-input-not-found rejection: a `--run <slug>` or `--cassette <id>` naming
- * nothing on disk is the ONLY sweep-shape failure — the command layer maps it to exit 1.
- * Per-item load failures inside a sweep are DATA (`runsSkipped` / `loadRefusals`), never errors.
- */
+// The only sweep-shape failure, exit 1; per-item load failures are data, never errors.
 export class EvalNamedInputError extends Error {
   readonly inputKind: string
   readonly inputName: string
@@ -174,30 +168,21 @@ export class EvalNamedInputError extends Error {
   }
 }
 
-/** The extract verb's one DTO — the console renders FROM this, never around it. */
+// The extract verb's one DTO; the console renders from it, never around it.
 export interface ExtractVerbResult {
   /** Run dirs (with a handoff document) that entered the sweep after `--run` narrowing. */
   runsSwept: number
-  /** Per-run typed skips: unreadable / version-refused handoffs (D-02, never batch errors). */
+  // Per-run typed skips for unreadable or version-refused handoffs, never batch errors.
   runsSkipped: { runSlug: string; reason: string }[]
   /** Runs whose product partition differed from `--product`. */
   runsFiltered: number
   cassettesWritten: number
-  /**
-   * ExtractionReport counters folded verbatim: emitted-cassette completeness statuses and
-   * per-decision selection-skip reasons, keyed by the engine's own names.
-   */
+  // Extraction report counters folded verbatim, keyed by the engine's own names.
   completeness: Record<string, number>
   cassettesRoot: string
 }
 
-/**
- * The extract verb pipeline: sweep every handoff under `.agent-qa/runs/` (or the one
- * `--run` names), load each through the version-guarded runner-local loader (typed skips on
- * refusal — pre-366 documents surface here, never as batch errors), and hand every survivor to
- * the sanctioned engines: `extractRunCassettes` selects/projects, `FsCassetteStore` stages
- * idempotently (rm+mkdir recreate). The CLI adds NO selection, completeness, or dedup logic.
- */
+// Selection, completeness and dedup belong to the engines; the CLI adds none of them.
 export async function runExtractVerb(
   session: EvalSession,
   filters: { run?: string; product?: string } = {},
@@ -234,8 +219,7 @@ function sweepAndExtract(
   for (const runSlug of runSlugs) {
     let extraction: ReturnType<typeof extractRunCassettes>
     try {
-      // The version-guarded loader is the ONE handoff read path (never raw JSON.parse here):
-      // unreadable documents and version-guard refusals become typed per-run skips.
+      // The version-guarded loader is the one handoff read path; failures become per-run skips.
       const handoff = loadCompletedRunHandoff(resolve(runsRoot, runSlug, HANDOFF_FILE))
       if (
         filters.product !== undefined
@@ -299,7 +283,7 @@ function bumpCounter(counters: Record<string, number>, key: string): void {
 
 // ---- the replay verb ----------------------------------------------------------------------------
 
-/** D-04 judge honesty counters folded from the PERSISTED score records, never recomputed. */
+// Judge honesty counters folded from the persisted score records, never recomputed.
 export interface ReplayJudgeCounters {
   /** Whether a `--judge` name entered the batch. */
   configured: boolean
@@ -312,7 +296,7 @@ export interface ReplayJudgeCounters {
 
 /** The replay verb's one DTO; the console renders from it and `--json` prints it. */
 export interface ReplayVerbResult {
-  /** sha256hex over the sorted replayed cassette ids ('empty' literal for a zero batch, D-02). */
+  // sha256 hex over the sorted replayed cassette ids, or `empty` for a zero batch.
   batchKey: string
   /** Bundle dirs that entered the sweep (pre-load, pre-filter). */
   swept: number
@@ -431,7 +415,7 @@ export async function runReplayVerb(
     notInvoked: 0,
   })
 
-  // (4) empty batch: exit-0 data, no planner/judge resolution spend.
+  // An empty batch is exit-0 data and spends no planner or judge resolution.
   if (selected.length === 0) {
     notices.push('empty sweep — no staged cassette bundles matched')
     return {
@@ -456,7 +440,7 @@ export async function runReplayVerb(
   const judgeResolution = await resolveEvalJudge(session)
   if (judgeResolution.notice !== undefined) notices.push(judgeResolution.notice)
 
-  // (6) the replay loop, in sorted id order.
+  // The replay loop, in sorted id order.
   const recordStore = new FsReplayRecordStore({ root: agentQaRoot })
   const scoreStore = new FsScoreStore({ root: agentQaRoot })
   let modelCalls = 0
@@ -483,7 +467,7 @@ export async function runReplayVerb(
     })
   notices.push(...replayNotices)
 
-  // (7) fold judge dispositions FROM the persisted score records — never recomputed.
+  // Judge dispositions are folded from the persisted score records, never recomputed.
   const judge = zeroJudge(judgeResolution.judge !== undefined)
   let scored = 0
   for (const recordDir of replayedDirs) {
@@ -517,10 +501,7 @@ export async function runReplayVerb(
   }
 }
 
-/**
- * Fold one persisted CassetteScore's judge stamps into the DTO counters — the exact
- * buildEvalReport disposition read (metrics.ts), scalar-summed for the summary surface.
- */
+// The exact `buildEvalReport` disposition read, scalar-summed for the summary surface.
 function foldJudgeDispositions(score: CassetteScore, judge: ReplayJudgeCounters): void {
   const entries: readonly DecisionScoreEntry[] =
     score.kind === 'leaf' ? [score.entry] : score.kind === 'procedure' ? score.entries : []
@@ -610,12 +591,7 @@ export async function resolveEvalJudge(session: EvalSession): Promise<{
   return { judge }
 }
 
-/**
- * Resolve the replay planner from the config's `use.llm` named entry through the same
- * resolveNamedConfig → resolveModelAuth → toModelProfileAndAuth chain run uses.
- * An absent `use.llm` is a typed Error (unknown names throw llm-utils' typed
- * available-names error).
- */
+// The same named-config chain `run` uses; an absent `use.llm` is a typed error.
 export async function resolveReplayPlanner(
   session: EvalSession,
 ): Promise<{ profile: ModelProfile; auth: ResolvedModelAuth }> {
@@ -748,12 +724,7 @@ export async function runReportVerb(
 
 // ---- internals --------------------------------------------------------------------------------
 
-/**
- * The named-LLM resolution chain shared by judge and planner: resolveNamedConfig (typed
- * available-names error on unknown name) → resolveModelAuth → toModelProfileAndAuth. A `missing`
- * auth resolution is a typed Error naming `agent-qa auth login`. Lazy dynamic import per
- * the auth.ts house style.
- */
+// Shared by judge and planner; `missing` auth throws a typed error naming `agent-qa auth login`.
 async function resolveNamedProfile(
   name: string,
   configPath: string,
@@ -770,11 +741,7 @@ async function resolveNamedProfile(
   return toModelProfileAndAuth(config, auth)
 }
 
-/**
- * Load the workspace secrets file into a SecretStore (the run.ts loadRuntimeSecrets recipe,
- * reimplemented with typed errors — D-05 forbids touching the run module and D-08 forbids
- * process.exit here). Missing/unreadable/invalid all throw typed Errors naming the path.
- */
+// The run module's secrets recipe with typed errors, because this path may not call `process.exit`.
 async function loadEvalSecretStore(
   config: AgentQaConfig,
   configDir: string,
