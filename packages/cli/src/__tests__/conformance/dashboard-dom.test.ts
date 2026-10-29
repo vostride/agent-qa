@@ -5,14 +5,14 @@
 // running perfectly under vitest — the TS6059-shaped trap plan 400-08 hit from the other side: a
 // green that only one of the two compilers ever saw.
 
-// The shipped dashboard, in a REAL browser against the BUILT bundle (Phase 400 plan 09, D-11).
+// The shipped dashboard, in a REAL browser against the BUILT bundle.
 //
 // WHY THIS FILE EXISTS AT ALL. jsdom computes no styles, runs no bundler output, and resolves no
 // `import` the way a browser's module graph does. What runs below is the `vite build` bundle,
 // served by the shipped `agent-qa dashboard` command, driven by a real Chromium — so a claim made
 // here is a claim about what a person's browser is actually handed.
 //
-// 430 (2026-09-28, D-01/D-04/D-05/D-07): the dashboard no longer carries a conversation. The cells
+// 430: the dashboard no longer carries a conversation. The cells
 // that measured it are re-spelled as absence cells over the same built bundle: `/chat` lands on
 // Runs, no page links to or mounts a conversation, and the removed chat-worded remedy prose is not
 // in the shipped scripts.
@@ -284,7 +284,7 @@ describe('the shipped dashboard has no conversation', () => {
 
 describe('the instrument this file runs on, asserted rather than assumed', () => {
   it('drives the AUDITED playwright-core pin and never a version resolved at install time', () => {
-    // THE SUPPLY-CHAIN CLAIM (T-400-SC), read off the manifest. The package-legitimacy audit
+    // THE SUPPLY-CHAIN CLAIM, read off the manifest. The package-legitimacy audit
     // approved the canonical `microsoft/playwright` package, with no postinstall. Phase 424-35
     // upgraded the exact workspace pin to `playwright-core@1.61.0` with matching Chromium 1228;
     // `@playwright/test` remains absent. A range here (`^1.61.0`) would make the

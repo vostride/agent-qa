@@ -734,7 +734,7 @@ describe('the Knowledge tab on the shipped bundle at three geometries', () => {
     const reached = new Set(focused.map(entry => entry.id))
     const where = (group: string) => `${group}: ${JSON.stringify(focused.map(entry => `${entry.tag}:${entry.label ?? ''}`))}`
     for (const [group, ids] of Object.entries(inventory)) {
-      // 432-09 (D-25): the proposals group is the one retired member; its absence is asserted below.
+      // the proposals group is the one retired member; its absence is asserted below.
       if (group === 'proposals') continue
       expect(ids.length, `no ${group} on the page`).toBeGreaterThan(0)
       for (const id of ids) expect(reached.has(id), where(`${group} ${String(id)} never took focus`)).toBe(true)
@@ -770,7 +770,7 @@ describe('the Knowledge tab on the shipped bundle at three geometries', () => {
       expect(occurrences(`${name} ${description}`, meaning[id]!), `${control}: meaning announced other than once`).toBe(1)
     }
     for (const id of inventory.stepRefs) expect(labels[id], 'a step reference\'s accessible name').toMatch(/^Go to /)
-    // 432-09 (D-25): the tab shows what changed; no pending-proposals line or review copy control remains.
+    // the tab shows what changed; no pending-proposals line or review copy control remains.
     expect(inventory.proposals).toEqual([])
     expect(Object.values(labels).filter(label => label?.startsWith('Copy review command'))).toEqual([])
     for (const id of inventory.recordIdCopies) expect(labels[id]).toMatch(/^Copy record id /)

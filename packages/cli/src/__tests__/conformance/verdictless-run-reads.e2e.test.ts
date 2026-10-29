@@ -1,4 +1,4 @@
-// 2026-10-18 (444-13, D-17): the built bin and the stdio MCP server answer a run that ended without
+// the built bin and the stdio MCP server answer a run that ended without
 // a verdict with a plain sentence, and their lists keep listing completed runs only.
 
 import { mkdirSync, writeFileSync } from 'node:fs'

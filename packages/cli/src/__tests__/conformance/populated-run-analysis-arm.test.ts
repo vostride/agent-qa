@@ -1,4 +1,4 @@
-// The stub model server's ANALYSIS arm, measured offline (Phase 406, plan 07 — D-14).
+// The stub model server's ANALYSIS arm, measured offline.
 //
 // FAST AND HERMETIC: this file starts the stub and nothing else. No browser, no dashboard, no
 // spawned binary — it posts the two request shapes the arm dispatches on straight at the loopback

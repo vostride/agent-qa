@@ -1,4 +1,4 @@
-// C446-GUIDANCE-KEYS (446-04, D-16): dotted config keys in guidance, resolved in the live schema
+// dotted config keys in guidance, resolved in the live schema
 
 import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
 

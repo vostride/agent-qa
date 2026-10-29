@@ -1,4 +1,4 @@
-// 2026-10-16 (442-03, D-05, WINDOWS #551): a crash or interrupt finalizes only its own run's row.
+// a crash or interrupt finalizes only its own run's row.
 
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'

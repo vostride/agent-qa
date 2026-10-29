@@ -18,8 +18,8 @@
 // measured nothing.
 //
 // WHAT CHANGED SINCE 404-05, AND WHY IT MATTERS FOR TWO OPEN WINDOWS. `post-processing-anchors.
-// test.ts` gave up its terminal arm (WINDOWS #281) and `live-view-anchors.test.ts` cell (10) gave
-// up its detached-tail window (WINDOWS #282) for ONE shared structural reason: on a machine with no
+// test.ts` gave up its terminal arm and `live-view-anchors.test.ts` cell (10) gave
+// up its detached-tail window for ONE shared structural reason: on a machine with no
 // Playwright browser, the DIRECT-test producer records the member's throw as a FRAMEWORK error, and
 // `in-process-run-execution.ts` re-throws it four statements ABOVE the line that starts the
 // detached tail. No chain could pump on that harness, so nothing downstream of a verdict was
@@ -44,13 +44,13 @@
 // the real `agent-qa daemon` cell (3) starts anyway. Nothing is faked and no envelope is written by
 // this file.
 //
-// WHAT THIS FILE DOES NOT MEASURE, STATED RATHER THAN IMPLIED (WINDOWS #283). The push-vs-poll
+// WHAT THIS FILE DOES NOT MEASURE, STATED RATHER THAN IMPLIED. The push-vs-poll
 // differential — cell (1b) — is measured at the shipped dashboard's own two routes with a `fetch`
 // subscriber and a poller running at the client's own period, NOT through the browser's own
 // `EventSource`. The reason is a wall clock: this fixture's entire post-verdict chain settles about
 // 350 ms after the verdict, run detail costs about 310 ms to mount, and a page may not arrive any
 // earlier than the verdict because a cold `/runs/:id` on a live row bounces to `/live` by design
-// (D-07). So a browser gets perhaps forty
+// So a browser gets perhaps forty
 // milliseconds inside the window, and it lost the race on every arm measured. Rather than assert a
 // coin flip, cell (1) states what it CAN state unconditionally (at most one stream, ever; the same
 // terminal words; the chain painted from durable state) and adds the push assertion as an
@@ -204,7 +204,7 @@ const ANALYSIS_FAILED_PREFIX = 'Analysis failed — '
  * The three card-line addresses this file reads, spelled the way the component publishes them.
  *
  * `post-processing-chips.tsx` exports `STAGE_CARD_LINE_SELECTORS`, the closed record of all eight
- * addresses (425-08), and importing it is what this file would do if the cli package could reach
+ * addresses, and importing it is what this file would do if the cli package could reach
  * dashboard-ui. It cannot, so the three are re-spelled as LITERALS rather than built from a
  * `${kind}` template — a selector nobody can grep for is a contract with no declaration site here
  * either — and then checked against the published record below, so a re-spelling upstream reds this
@@ -234,7 +234,7 @@ for (const [kind, selector] of Object.entries(STAGE_CARD_LINES)) {
 const CARD_OPEN_BUDGET_MS = 5_000
 
 /**
- * A harvested timing line, split on the separator `stageTimingLine` composes with (425 D-12).
+ * A harvested timing line, split on the separator `stageTimingLine` composes with.
  *
  * The view joins its clauses with space, middle dot, space; splitting on anything looser would
  * read a clause that happened to contain a dot as two, and the assertions below name clauses.
@@ -280,7 +280,7 @@ interface PageObservation {
   /** `data-chip` → `data-chip-status`, as painted at the end. */
   readonly painted: Record<string, string>
   /**
-   * The analysis card's `outcome` line, read with the card open (425 D-09/D-12).
+   * The analysis card's `outcome` line, read with the card open.
    *
    * THE WORDS DID NOT GO AWAY, THEY MOVED. The failure reason, the absent-reason sentence and the
    * drain posture each used to be their own node beside the chip; they now arrive on this one line
@@ -288,7 +288,7 @@ interface PageObservation {
    * with nothing to say paints no card at all, so an absence here is a real absence.
    */
   readonly analysisOutcome?: string
-  /** The analysis card's `timing` line, if the read carried a job row to time (D-12). */
+  /** The analysis card's `timing` line, if the read carried a job row to time. */
   readonly analysisTiming?: string
   /** The analysis card's `retry` line — painted only when the envelope carried a retry intent. */
   readonly analysisRetry?: string
@@ -740,11 +740,11 @@ async function harvest(
       ]),
     ),
   )
-  // THE CARD IS WHERE THE WORDS LIVE NOW (425 D-09/D-12), SO THE HARVEST OPENS IT.
+  // THE CARD IS WHERE THE WORDS LIVE NOW, SO THE HARVEST OPENS IT.
   //
   // FOCUS, NOT HOVER. The page mounts one `TooltipProvider` with `delayDuration = 0` and Radix
   // opens on focus with no delay at all; focus also works identically on the `<span>` root and on
-  // the `<button>` a failed run WITH verdicts gets (425-09), so no arm needs to know which it has.
+  // the `<button>` a failed run WITH verdicts gets, so no arm needs to know which it has.
   //
   // THE CARD IS PORTALLED, so it is located on the document rather than under the chip. Radix paints
   // the content's children a SECOND time inside a visually-hidden `role="tooltip"` node for screen
@@ -863,7 +863,7 @@ async function driveInProcessArm(
     const traffic = trackPostProcessingTraffic(page, runId)
 
     // THE VIEWER ARRIVES THE WAY D-13 SENDS THEM, and this is not stylistic. `/runs/:id` opened
-    // COLD on a row that still reads live BOUNCES to `/live` by design (404-06, D-07/T-404-15) —
+    // COLD on a row that still reads live BOUNCES to `/live` by design —
     // only an in-app arrival carrying `arrivedOnVerdict` is exempt — so a direct navigation cannot
     // land before the verdict at all, and one fired the instant the `verdict` frame arrives spends
     // its whole budget loading, by which time this fixture's chain is routinely already over
@@ -1472,7 +1472,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
       + `reason to paint. recorded: ${JSON.stringify(recorded.redRunEventTypes)}`,
     ).toContain('analysisFailed')
     expect(red!.painted.analysis, `the analysis chip did not paint failed. html: ${red!.html.slice(0, 400)}`).toBe('failed')
-    // THE REASON MOVED ONTO THE CARD'S OUTCOME LINE (425 D-09/D-12), where it now shares an address
+    // THE REASON MOVED ONTO THE CARD'S OUTCOME LINE, where it now shares an address
     // with the absence sentence that stands in for it when nobody wrote one down. The claim is the
     // same one 404-08 made — the PRODUCER's masked, bounded string reaches the browser — so the
     // prefix is stripped and what is left is checked against the published absences.

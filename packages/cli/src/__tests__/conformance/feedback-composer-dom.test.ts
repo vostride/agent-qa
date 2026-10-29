@@ -707,7 +707,7 @@ describe('contextual feedback on the shipped bundle', () => {
 
       if (!await copyFromNetwork(page)) {
         // The plan's named fallback does not exist on the shipped page: the Variables tab renders
-        // no copy control and the masked chip is presentational by design (405-11 D-10).
+        // no copy control and the masked chip is presentational by design.
         throw new Error('The inspected step\'s Network panel offered no copy control, and the Variables tab renders none')
       }
       await page.waitForFunction(() => (window as unknown as { copied: string[] }).copied.length > 0, undefined, { timeout: 5_000 })

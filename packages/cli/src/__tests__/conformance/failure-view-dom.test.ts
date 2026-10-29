@@ -13,7 +13,7 @@
 // four on the BUILT bundle served by the SHIPPED `agent-qa dashboard` binary, against runs that
 // binary really executed, because that is where the milestone's acceptance constraint puts them.
 //
-// TWO DASHBOARDS, THREE DRIVES. Drive R is a RED run whose analysis the stub AUTHORS (D-14) — the
+// TWO DASHBOARDS, THREE DRIVES. Drive R is a RED run whose analysis the stub AUTHORS — the
 // path the 399 defect lived on, enqueue → pump → op → route → page, now that 406-07 has fixed the
 // egress guardrail that was reading a memory-relevance score as a credit card. The DELETION drive
 // is Drive R's own run with one blob removed from under it, so the before/after comparison is of
@@ -182,10 +182,10 @@ function publishedConstant(relativePath: string, name: string): string {
   return unescapeStringBody(entry[2] as string)
 }
 
-/** The provenance chip's first half when the model authored the verdict (D-10). */
+/** The provenance chip's first half when the model authored the verdict. */
 const LLM_VERDICT_LABEL = publishedConstant('lib/analysis-view.ts', 'LLM_VERDICT_LABEL')
 
-/** The word BOTH `evidence-incomplete` variants wear (406-05 · D-18). */
+/** The word BOTH `evidence-incomplete` variants wear. */
 const EVIDENCE_INCOMPLETE_LABEL = publishedConstant('lib/run-detail-view.ts', 'EVIDENCE_INCOMPLETE_LABEL')
 
 /**
@@ -201,7 +201,7 @@ function expectedProvenance(confidence: number): string {
 }
 
 /**
- * The member-level count line, composed from `missingEvidenceLine`'s own formula (D-19).
+ * The member-level count line, composed from `missingEvidenceLine`'s own formula.
  *
  * Same reasoning as {@link expectedProvenance}: the plural agrees with the TOTAL, because the noun
  * it modifies is the set the member cited rather than the subset that vanished.
@@ -239,7 +239,7 @@ interface PageHarvest {
   readonly sentences: readonly string[]
   /** Every `[data-verdict-provenance]`'s text. */
   readonly provenances: readonly string[]
-  /** Every `[data-verdict-marker]`'s word — empty on a terminal chain (D-09 / D-11). */
+  /** Every `[data-verdict-marker]`'s word — empty on a terminal chain. */
   readonly markers: readonly string[]
   /** Every clickable cited artifact's sha. */
   readonly citedArtifacts: readonly string[]
@@ -247,7 +247,7 @@ interface PageHarvest {
   readonly citedArtifactStates: readonly string[]
   /** Every `[data-evidence-missing]` count line, as `<attribute> :: <text>`. */
   readonly missingEvidence: readonly string[]
-  /** Every unavailable state with the incomplete flag on the page (D-18). */
+  /** Every unavailable state with the incomplete flag on the page. */
   readonly evidenceStates: readonly string[]
   /** Every `data-artifact-state` — the overview pane's own word. */
   readonly artifactStates: readonly string[]
@@ -331,7 +331,7 @@ interface AnalysisBody {
   readonly sentences?: { readonly perTest?: number; readonly sentence?: string }[]
 }
 
-/** One artifact ref as either op serves it (D-01 / D-17). */
+/** One artifact ref as either op serves it. */
 interface ArtifactRefWire {
   readonly id?: string
   readonly sha?: string
@@ -448,14 +448,14 @@ interface MarkHarvest {
   hostileElements: number
   approvalSeen: boolean
   dialogCountAtApproval?: number
-  /** 432-14: how many run-confirm streams the page opened. The channel is deleted, so zero. */
+  /** how many run-confirm streams the page opened. The channel is deleted, so zero. */
   confirmChannels: number
   previewStatus?: number
   responseStatus?: number
   responseBody?: unknown
   confirmFrames: Array<{ event: string; data: string }>
   markedAtWithinDrive: boolean
-  /** 432-42 (D-25): the new history entry's text, its controls and its applied line. */
+  /** the new history entry's text, its controls and its applied line. */
   historyText?: string
   historyControls?: number
   historyApplied?: number
@@ -495,7 +495,7 @@ async function observeMark(context_: BrowserContext, origin: string, runId: stri
       if (reply.url().endsWith('/mark-preview')) harvest.previewStatus = reply.status()
     })
     await page.goto(`${origin}/runs/${encodeURIComponent(runId)}`)
-    // 432-14 (D-14): the page opens no confirm stream any more, so presence is the entry itself.
+    // the page opens no confirm stream any more, so presence is the entry itself.
     await page.locator('[data-feedback-entry="test"]').click({ timeout: 10_000 })
     const composer = page.locator('[data-feedback-composer]')
     await composer.locator('[data-feedback-choice="false-fail"] [role="radio"]').click({ timeout: 10_000 })
@@ -504,7 +504,7 @@ async function observeMark(context_: BrowserContext, origin: string, runId: stri
     const response = page.waitForResponse(reply => reply.url().endsWith('/mark') && reply.request().method() === 'POST')
       .catch(() => undefined)
     await composer.locator('[data-feedback-submit]').click()
-    // 432-13: the mark is sent on the click; `approvalSeen` records whether an approval group rendered.
+    // the mark is sent on the click; `approvalSeen` records whether an approval group rendered.
     const reply = await response
     harvest.approvalSeen = await composer.locator('[data-feedback-approval]').count() > 0
     harvest.confirmChannels = (await page.evaluate(() =>
@@ -756,7 +756,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
       return
     }
 
-    // ---- DRIVE R: the red run whose analysis the model AUTHORS (D-14) ------------------------
+    // ---- DRIVE R: the red run whose analysis the model AUTHORS ------------------------
     try {
       redTarget = await startTargetPageServer()
       redStub = await startStubModelServer({
@@ -850,12 +850,12 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
       // 419 Wave-0 probe/mark drive: while the original evidence bytes are still available.
       recorded.mark = await observeMark(beforeContext, origin, runId, runDir)
 
-      // ---- THE DELETION (D-20) --------------------------------------------------------------
+      // ---- THE DELETION --------------------------------------------------------------
       //
       // THE ONLY "GC" THAT EXISTS. No retention policy ships, and none is introduced here: the
       // path is composed from THIS fixture project's own runtime root, this run's slug and the sha
       // the verdict cited, and it is asserted to be inside the project before anything is removed
-      // (T-406-28). One blob, in a directory the teardown deletes wholesale a moment later.
+      // One blob, in a directory the teardown deletes wholesale a moment later.
       const sha = recorded.analysisBefore?.verdicts?.[0]?.evidence?.citedArtifacts?.[0]?.sha
       if (sha === undefined) {
         recorded.deletionFailure = 'the authored verdict cited no evidence blob to delete'
@@ -1161,7 +1161,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
 
     // THE ENV CREDENTIAL AND THE EMAIL ARE SCOPED TO THE VERDICT BLOCK, DELIBERATELY, AND THE REASON
     // IS A CELL ONE FILE AWAY. Neither is a declared secret, so the run records both as written and
-    // the page shows them in the planner's reasoning (D-23) — `run-detail-failure-dom.test.ts` (3e)
+    // the page shows them in the planner's reasoning — `run-detail-failure-dom.test.ts` (3e)
     // asserts the credential IS inside the expanded failure banner. A whole-page assertion here
     // would therefore contradict a green cell that measures ratified behaviour. What
     // is this file's to claim is the ANALYSIS's sentence: it quotes the fixture's STEP TEXT, which
@@ -1226,7 +1226,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
     ).toEqual([])
   })
 
-  // ---- (3) THE DELETION FIXTURE (D-20) ----------------------------------------------------------
+  // ---- (3) THE DELETION FIXTURE ----------------------------------------------------------
 
   it('(3a) after deletion, the WIRE says it first: `present: false` on both ops', () => {
     driveOk()
@@ -1305,7 +1305,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
       `the page does not show the published \`evidence incomplete\` word.${context()}`,
     ).toContain(EVIDENCE_INCOMPLETE_LABEL)
 
-    // A REF KNOWN ABSENT IS NEVER REQUESTED (D-17). The op already said the bytes are gone; asking
+    // A REF KNOWN ABSENT IS NEVER REQUESTED. The op already said the bytes are gone; asking
     // anyway would turn a known fact into a 404 the page would then have to interpret.
     expect(
       page.artifactRequests.filter(url => url.endsWith(`/artifacts/${recorded.deletedSha}`)),
@@ -1340,7 +1340,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
   it('(3d) after deletion, UNCHANGED: the outcome badge, the producer and the sentence are byte-identical', () => {
     const before = harvestOf('before')
     const page = harvestOf('after')
-    // ONE MISSING SCREENSHOT IS NOT AN UNTRUSTWORTHY VERDICT (D-19). The whole-verdict badge that
+    // ONE MISSING SCREENSHOT IS NOT AN UNTRUSTWORTHY VERDICT. The whole-verdict badge that
     // would say otherwise was rejected; these three are the carriers of that decision.
     expect(
       page.memberOutcomes,
@@ -1364,14 +1364,14 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
     ).toEqual(before.provenances)
   })
 
-  // RE-SPELLED 2026-09-30 (432-13): was '... sent and approved inline, lands in history'. The mark
+  // RE-SPELLED 2026-09-30: was '... sent and approved inline, lands in history'. The mark
   // is sent with no approval: none renders and no question reaches the channel.
   it('(4a) the header entry opens the composer; false-fail, previewed, sent with no approval, lands in history', () => {
     driveOk()
     const mark = recorded.mark
     expect(mark, `the mark drive was never observed.${context()}`).toBeDefined()
     expect(mark!.failure, context()).toBeUndefined()
-    // 432-14: was `scopeSeen` — the page held the confirm channel. It holds none now.
+    // was `scopeSeen` — the page held the confirm channel. It holds none now.
     expect(mark!.confirmChannels, context()).toBe(0)
     expect(mark!.previewStatus, context()).toBe(200)
     expect(mark!.approvalSeen, context()).toBe(false)
@@ -1395,7 +1395,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
     // RESEARCH A5: markedAt is epoch milliseconds, taken during this drive.
     expect(mark!.markedAtWithinDrive, context()).toBe(true)
     expect(mark!.hostileElements, context()).toBe(0)
-    // 2026-10-02 (432-42, D-25): applied history on the shipped bundle — no control on the entry,
+    // applied history on the shipped bundle — no control on the entry,
     // no proposal/review/approval wording, and (no fix was drafted here) no applied line.
     expect(mark!.historyControls, context()).toBe(0)
     expect(mark!.historyText ?? '', context()).not.toMatch(/propos|review|approv|pending|waiting|accept/iu)

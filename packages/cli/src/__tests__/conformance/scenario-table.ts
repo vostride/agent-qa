@@ -1,4 +1,4 @@
-// The scenario table — the parity suite's ONE denominator (Phase 397 plan 03, D-09 / D-10 / D-12).
+// The scenario table — the parity suite's ONE denominator.
 //
 // THE CLAIM THIS FILE MAKES POSSIBLE. A capability exists iff it is one row: in the registry, and
 // here. Census equality between `registry.ids()` and this table's keys is asserted set-equal in BOTH
@@ -6,20 +6,20 @@
 // (D-15: that leg, running in the workspace `turbo run test` job, IS SC-4's CI rule — there is no
 // second diff-parsing mechanism on purpose).
 //
-// WHY TYPESCRIPT AND NOT YAML (D-09). Each row's `input` is typed against THAT op's own input
+// WHY TYPESCRIPT AND NOT YAML. Each row's `input` is typed against THAT op's own input
 // contract — the very schema object the op's spec validates with, imported from the schema package
 // exactly as `mapping.ts` imports it. A row whose input is the wrong shape for its op fails `tsc`,
 // which is a thing no YAML corpus can do. The chat scenario corpus (`scenarios/<class>/<id>.yml`)
 // keeps its own, different job (utterance routing); typed invocations stay here.
 //
-// SEEDED FROM 384's INVOCATION SAMPLES, WITH THEIR REASONING (D-10). Every `input` below arrived
+// SEEDED FROM 384's INVOCATION SAMPLES, WITH THEIR REASONING. Every `input` below arrived
 // from `packages/agent/src/__tests__/parity-coverage.test.ts`'s `INVOCATION_SAMPLES`, and the
 // per-op arguments for WHY each sample looks the way it does travelled with it — most of them turn
 // on the same fact, that `invokeFunction` validates input BEFORE it consults binding, so a sample
 // that failed its contract would make an unbound-refusal leg report an input error and certify
 // nothing about binding.
 //
-// TRANSITION NOTE, 2026-08-16 (D-10). `parity-coverage.test.ts` is NOT deleted by this plan. It
+// TRANSITION NOTE, 2026-08-16. `parity-coverage.test.ts` is NOT deleted by this plan. It
 // retires in plan 397-08, which owns the destination register for the assertions it still carries
 // (the binding-status pin, the id-taxonomy sweep, the contract-projection relation). Until then both
 // files exist and this table is the successor denominator: the census leg here is what a new
@@ -32,7 +32,7 @@
 // handle for, and, for all 41, by comparing each paired schema's projection to the projection the
 // registry itself published on the declaration.
 //
-// DATED RECONCILIATION, 2026-10-02 (432-40, D-02/D-05/D-12). The counts above are the 397
+// DATED RECONCILIATION, 2026-10-02. The counts above are the 397
 // originals and stay as written. Measured at the guidance cutover: 44 registry ops and 44 rows, 30
 // projected onto MCP behind 20 tools and 14 unprojected, 42 bound at the composition root and 2
 // unbound (C432-REGISTRY-GOLDEN pins these). The proposal and grant ops left in 432-17/18, and no
@@ -121,7 +121,7 @@ export const OP_INPUT_CONTRACTS = {
   'config.project.scaffold': ConfigProjectScaffoldInputSchema,
   'config.target.create': ConfigTargetCreateInputSchema,
   'config.target.edit': ConfigTargetEditInputSchema,
-  // 2026-09-25 (428 D-07): the editor subject's mint.
+  // the editor subject's mint.
   'editor.liveurl': EditorLiveUrlInputSchema,
   'entities.get': EntitiesGetInputSchema,
   'entities.resolve': EntitiesResolveInputSchema,
@@ -141,7 +141,7 @@ export const OP_INPUT_CONTRACTS = {
   'runs.detail': RunsDetailInputSchema,
   'runs.digest': RunsDigestInputSchema,
   'runs.events': RunsEventsInputSchema,
-  // 2026-09-15, 423-21 D-04/D-18: the typed evidence read and the two feedback reads. The preview
+  // the typed evidence read and the two feedback reads. The preview
   // validates with runs.mark's exact input singleton; it adds no input schema of its own.
   'runs.evidence': RunsEvidenceInputSchema,
   'runs.knowledge': RunsKnowledgeInputSchema,
@@ -151,7 +151,7 @@ export const OP_INPUT_CONTRACTS = {
   'runs.mark': RunsMarkInputSchema,
   'runs.mark.preview': RunsMarkInputSchema,
   'runs.marks.history': RunsMarksHistoryInputSchema,
-  // 2026-09-29 (431-08, D-06): the run overview, the agent's map of one completed run.
+  // the run overview, the agent's map of one completed run.
   'runs.overview': RunsOverviewInputSchema,
   'runs.postprocessing': RunsPostProcessingInputSchema,
   'runs.start': RunsStartInputSchema,
@@ -163,7 +163,7 @@ export type ScenarioOpId = keyof typeof OP_INPUT_CONTRACTS
 /** The wire shape a caller SENDS for one op — `z.input`, matching the projection's `io: 'input'`. */
 export type ScenarioInput<Id extends ScenarioOpId> = z.input<(typeof OP_INPUT_CONTRACTS)[Id]>
 
-// ---- The MCP partition, as row data joined to `mapping.ts` both ways (D-12) ---------------------
+// ---- The MCP partition, as row data joined to `mapping.ts` both ways ---------------------
 
 /**
  * The reason CLASSES an op can be unprojected under, as a closed vocabulary.
@@ -177,18 +177,18 @@ export type ScenarioInput<Id extends ScenarioOpId> = z.input<(typeof OP_INPUT_CO
  */
 export type UnprojectedReasonKey =
   | 'agent-ask-delegation-deferral'
-  // 2026-10-01 (432-18, D-15): `requires-human-origin` LEAVES the vocabulary. Its last member,
+  // `requires-human-origin` LEAVES the vocabulary. Its last member,
   // `grants.revoke`, is deleted with the grant ledger (`proposals.accept`/`reject` left in 432-17),
   // so no registered op declares `requiresHumanOrigin` and the class would be a member-less literal
   // (the 432-17 `proposal-round-removed` precedent).
-  // 2026-08-17 (398 D-09). The FOURTH class, and it is admitted rather than folded because the
+  // 2026-08-17. The FOURTH class, and it is admitted rather than folded because the
   // vocabulary's whole job is to keep genuinely different facts apart. `agent.explain` is not
   // scoped out of a workflow and is not a door that cannot open — the question it answers is one
   // the PROTOCOL already answers for machines, and 397 ruled the v1 discovery tool not-a-gap on
   // exactly that ground. Filing it under `not-mid-flight-read` would have been the available
   // shortcut and would have recorded a scoping decision where an argued one was made.
   | 'discovery-answered-by-protocol'
-  // 2026-08-25 (403-01 D-03). The FIFTH class, admitted on the fourth's own reasoning rather than
+  // 2026-08-25. The FIFTH class, admitted on the fourth's own reasoning rather than
   // folded. `runs.liveurl` is not scoped out of a workflow — minting a live-view URL is about as
   // mid-flight as a read gets — and it is not a door that cannot open. The fact is that the op
   // hands out a CREDENTIAL, and who may mint one over MCP is Phase 408's question. Filing it under
@@ -220,8 +220,8 @@ export type UnprojectedReasonKey =
   // moves. Recorded here because a disposition that changes is dated on the record, never edited
   // away.
   | 'credential-mint-deferral'
-  // 2026-09-30 (432-12, D-05) admitted a sixth class, `proposal-round-removed`, for the five pre-432
-  // proposal ops whose MCP tools left with the proposal round. 2026-10-01 (432-17, D-05): the ops are
+  // 2026-09-30 admitted a sixth class, `proposal-round-removed`, for the five pre-432
+  // proposal ops whose MCP tools left with the proposal round. 2026-10-01: the ops are
   // deleted from the registry, so the class has no member and leaves the vocabulary.
   | 'not-mid-flight-write'
   | 'not-mid-flight-read'
@@ -278,7 +278,7 @@ export type McpSurfaceExpectation =
  * `reachable` is a BOOLEAN rather than the literal `true` every row carries today, and the width is
  * deliberate: the field's job is to be joined against the live chat enumeration in both directions,
  * and a type that could only say `true` would make one of those directions unsayable. All 41 rows
- * say `true` because the planner binds the listing 1:1 (392 D-07/D-08) and the deterministic
+ * say `true` because the planner binds the listing 1:1 and the deterministic
  * resolver adds no capability the planner lacks — which is a MEASURED fact about the shipped
  * composition, asserted by `parity.test.ts`, not a property of this type.
  */
@@ -287,7 +287,7 @@ export interface ChatSurfaceExpectation {
 }
 
 /**
- * What one row claims about the `fn` door (2026-08-20, Phase 399.1 plan 06, D-07).
+ * What one row claims about the `fn` door.
  *
  * A BOOLEAN, on {@link ChatSurfaceExpectation}'s reasoning and not on {@link McpSurfaceExpectation}'s:
  * `fn` has no projection and no wire name — the id a person types IS the registry id — so there is
@@ -297,7 +297,7 @@ export interface ChatSurfaceExpectation {
  *
  * All 42 rows say `true`, and that is a MEASURED fact about the shipped composition rather than a
  * property of this type: `agent-qa fn <id>` resolves every id through `invokeFunction`, and since
- * 432-20 (D-12) no caller is narrowed by a grant — 2026-10-02 (432-39): the caller carries no scope
+ * 432-20 no caller is narrowed by a grant — 2026-10-02: the caller carries no scope
  * set at all — so the door's reach is the whole census. `parity.test.ts` asserts it both ways, so
  * the day the CLI door stops reaching an op this reads red.
  */
@@ -306,7 +306,7 @@ export interface FnSurfaceExpectation {
 }
 
 /**
- * What a person must be able to READ after this op answers, on every door (399.1 D-09).
+ * What a person must be able to READ after this op answers, on every door.
  *
  * WHY THE RENDER EXPECTATION IS A COLUMN ON THIS TABLE AND NOT A SECOND CORPUS. D-09's one-
  * denominator rule: the table is already census-equal to `registry.ids()` in both directions, so a
@@ -326,7 +326,7 @@ export interface FnSurfaceExpectation {
  *
  * THE SET IS THE OP'S REQUIRED OUTPUT FIELDS, DERIVED BY ONE RULE AND THEN REVIEWED — every required
  * property of the first arm of its output contract, sorted. Not a hand-picked subset: hand-picking
- * is the drop site RC-2 was caught being (D-04), and a suite that expected a curated few would be
+ * is the drop site RC-2 was caught being, and a suite that expected a curated few would be
  * asserting the same curation it is supposed to catch. Committing the derived set is the golden-
  * ledger idiom — an op whose required output fields change is then a reviewed one-line diff here.
  *
@@ -340,10 +340,10 @@ export interface RenderExpectation {
 }
 
 /**
- * What a person must be able to read off an ENTITY CARD, per kind, on every door (400-08, DASH-03).
+ * What a person must be able to read off an ENTITY CARD, per kind, on every door.
  *
  * A COLUMN ON THIS TABLE AND NOT A SECOND CENSUS, on {@link RenderExpectation}'s own reasoning
- * (399.1 D-09). DASH-03's parity clause holds the dashboard's card render and MCP's reference
+ * DASH-03's parity clause holds the dashboard's card render and MCP's reference
  * projection to ONE denominator; a dashboard-only card census beside this table would be a table
  * measured against itself, and the two would drift in the direction of whichever was edited more.
  *
@@ -441,11 +441,11 @@ export interface EntityCardRenderExpectation {
 const EVERY_ENTITY_CARD_KIND: EntityCardRenderExpectation = { kinds: ENTITY_KINDS }
 
 /**
- * The policy points every row declares (D-11), as expected VERDICTS.
+ * The policy points every row declares, as expected VERDICTS.
  *
  * The callers themselves are not spelled here and must not be: `policy-fixtures.ts` mints them.
  *
- * `refuse` is `allow` since 432-20 (D-12). It named the verdict for a caller holding the covering
+ * `refuse` is `allow` since 432-20. It named the verdict for a caller holding the covering
  * grant minus one scope, which was `deny`; no scope is declared or read any more, so the formerly
  * refused caller is allowed exactly as the covering one is. The point is kept as a column so the
  * retired claim reads as its direct replacement rather than vanishing.
@@ -458,7 +458,7 @@ export interface PolicyPointExpectations {
 /** One capability, as the suite drives it. */
 export interface ScenarioRow<Id extends ScenarioOpId = ScenarioOpId> {
   readonly opId: Id
-  /** A valid invocation fixture, typed against THIS op's contract at compile time (D-09). */
+  /** A valid invocation fixture, typed against THIS op's contract at compile time. */
   readonly input: ScenarioInput<Id>
   readonly perSurface: {
     readonly chat: ChatSurfaceExpectation
@@ -469,7 +469,7 @@ export interface ScenarioRow<Id extends ScenarioOpId = ScenarioOpId> {
   /** What a person must be able to read after this op answers — see {@link RenderExpectation}. */
   readonly renderExpect: RenderExpectation
   /**
-   * Present on exactly the ops that answer with an ENTITY CARD (400-08) — see
+   * Present on exactly the ops that answer with an ENTITY CARD — see
    * {@link EntityCardRenderCase}.
    *
    * Optional because most ops do not return one; a consumer partitions on the key's presence the
@@ -494,7 +494,7 @@ function scenario<Id extends ScenarioOpId>(row: ScenarioRow<Id>): ScenarioRow<Id
 
 const FIXTURE_RUN_ID = 'run-alpha'
 /**
- * A well-formed content address (405-05). 64 LOWERCASE hex, because `RunsArtifactInputSchema`
+ * A well-formed content address. 64 LOWERCASE hex, because `RunsArtifactInputSchema`
  * refuses everything else — a placeholder of any other shape would make every `runs.artifact` row
  * an input error, and the surfaces would then be measured refusing a malformed request rather than
  * reaching (or declining to reach) the capability.
@@ -508,9 +508,9 @@ const FIXTURE_ENTITY_SHORT_ID = 'MEM-001'
  * The rows are sorted by op id so this file reads as an index and a diff adding one is one hunk.
  */
 export const SCENARIO_TABLE = Object.freeze([
-  // 392 D-24: the message is non-empty (the contract's one requirement) and resolves to nothing.
+  // the message is non-empty (the contract's one requirement) and resolves to nothing.
   // Unprojected over MCP on the one exclusion with a DECISION behind it rather than a scoping line
-  // (396 D-03), which is why its reason key is its own class.
+  // which is why its reason key is its own class.
   scenario({
     opId: 'agent.ask',
     input: { message: 'nothing in this fixture can answer this' },
@@ -522,7 +522,7 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['receipts', 'results', 'sessionId', 'status', 'turnId'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 398 D-09: `query` is the whole input and it must be non-empty, so `{}` would report an INPUT
+  // `query` is the whole input and it must be non-empty, so `{}` would report an INPUT
   // error exactly where a binding refusal is wanted. The question is a real one a person asks and
   // is deliberately NOT a phrase this fixture's rows answer — the honest outcome under any
   // composition that runs it is the abstention arm, which is the arm this capability exists to be
@@ -538,7 +538,7 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['citations', 'kind', 'renderedLines'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 389 D-11: a PARSING input for a capability most compositions cannot run — validation precedes
+  // a PARSING input for a capability most compositions cannot run — validation precedes
   // the binding check, so a sample that failed the contract would make an unbound-refusal leg report
   // an input error and certify nothing about binding.
   //
@@ -560,7 +560,7 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['clusters', 'runId', 'sentences', 'verdicts'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 394-09 D-21: BOTH fields are non-empty and required, so `{}` would report an input error where
+  // BOTH fields are non-empty and required, so `{}` would report an input error where
   // a binding refusal is wanted. The ref is deliberately the exact-address spelling: free text would
   // be routed to the entity resolver, and this fixture resolves nothing.
   scenario({
@@ -574,14 +574,14 @@ export const SCENARIO_TABLE = Object.freeze([
       mcp: { reachable: { tool: 'agent_qa_refine_test' } },
       fn: { reachable: true },
     },
-    // 2026-09-30, 432 D-06: `written` — the edit lands in the file it edited, and says so.
-    // 2026-10-01 (432-17): `proposal` left the output with the authoring proposal record.
+    // `written` — the edit lands in the file it edited, and says so.
+    // `proposal` left the output with the authoring proposal record.
     renderExpect: {
       markers: ['draftRef', 'editedFrom', 'patches', 'thoughts', 'written'],
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 393 D-01: the path is well-formed, carries the extension the op requires, and names nothing in
+  // the path is well-formed, carries the extension the op requires, and names nothing in
   // any fixture; `draftMode` is optional and omitted.
   scenario({
     opId: 'authoring.draft.verify',
@@ -607,7 +607,7 @@ export const SCENARIO_TABLE = Object.freeze([
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 394 D-01: non-empty intent and a well-formed scope are the contract's two requirements.
+  // non-empty intent and a well-formed scope are the contract's two requirements.
   scenario({
     opId: 'authoring.draft.write',
     input: {
@@ -622,7 +622,7 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['fanOut', 'outcome'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 394-07 D-12: the window is REQUIRED and closed, so `{}` would report an input error.
+  // the window is REQUIRED and closed, so `{}` would report an input error.
   // `all-time` is the arm with no further field, which is the honest sample for a fixture that has
   // no session and no receipts.
   scenario({
@@ -645,7 +645,7 @@ export const SCENARIO_TABLE = Object.freeze([
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 395 D-03: PARSING inputs for the config write half, on the reasoning every unbound row shares.
+  // PARSING inputs for the config write half, on the reasoning every unbound row shares.
   scenario({
     opId: 'config.auth.set',
     input: { target: 'shop', pluginPackage: '@acme/auth' },
@@ -655,7 +655,7 @@ export const SCENARIO_TABLE = Object.freeze([
       fn: { reachable: true },
     },
     renderExpect: {
-      // 432-11 D-05: the op writes in the call and answers the files and fields it changed.
+      // the op writes in the call and answers the files and fields it changed.
       markers: [
         'crossBoundary',
         'crossBoundaryReasons',
@@ -677,7 +677,7 @@ export const SCENARIO_TABLE = Object.freeze([
       fn: { reachable: true },
     },
     renderExpect: {
-      // 432-11 D-05: the op writes in the call and answers the files and fields it changed.
+      // the op writes in the call and answers the files and fields it changed.
       markers: [
         'crossBoundary',
         'crossBoundaryReasons',
@@ -710,7 +710,7 @@ export const SCENARIO_TABLE = Object.freeze([
       fn: { reachable: true },
     },
     renderExpect: {
-      // 432-11 D-05: the op writes in the call and answers the files and fields it changed.
+      // the op writes in the call and answers the files and fields it changed.
       markers: [
         'crossBoundary',
         'crossBoundaryReasons',
@@ -723,7 +723,7 @@ export const SCENARIO_TABLE = Object.freeze([
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 395-08 D-13: the ONE field the model fills, hostname-shaped — the gate is the first thing the op
+  // the ONE field the model fills, hostname-shaped — the gate is the first thing the op
   // runs and a non-hostname would make this a refusal sample instead.
   scenario({
     opId: 'config.project.scaffold',
@@ -734,7 +734,7 @@ export const SCENARIO_TABLE = Object.freeze([
       fn: { reachable: true },
     },
     renderExpect: {
-      // 432-11 D-05: the op writes in the call and answers the files and fields it changed.
+      // the op writes in the call and answers the files and fields it changed.
       markers: [
         'crossBoundary',
         'crossBoundaryReasons',
@@ -747,7 +747,7 @@ export const SCENARIO_TABLE = Object.freeze([
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 395-05 D-01: PARSING inputs on the rows above reasoning.
+  // PARSING inputs on the rows above reasoning.
   scenario({
     opId: 'config.target.create',
     input: { name: 'shop', platform: 'web', url: 'https://shop.example.com' },
@@ -757,7 +757,7 @@ export const SCENARIO_TABLE = Object.freeze([
       fn: { reachable: true },
     },
     renderExpect: {
-      // 432-11 D-05: the op writes in the call and answers the files and fields it changed.
+      // the op writes in the call and answers the files and fields it changed.
       markers: [
         'crossBoundary',
         'crossBoundaryReasons',
@@ -779,7 +779,7 @@ export const SCENARIO_TABLE = Object.freeze([
       fn: { reachable: true },
     },
     renderExpect: {
-      // 432-11 D-05: the op writes in the call and answers the files and fields it changed.
+      // the op writes in the call and answers the files and fields it changed.
       markers: [
         'crossBoundary',
         'crossBoundaryReasons',
@@ -792,7 +792,7 @@ export const SCENARIO_TABLE = Object.freeze([
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 2026-09-25 (428 D-07): the editor subject's mint, mirroring runs.liveurl's row, in SORT
+  // the editor subject's mint, mirroring runs.liveurl's row, in SORT
   // position (the render matrix derives its cell names from this order). Unprojected on MCP by
   // ruling and keyed `credential-mint-deferral` for the same defining fact: the op hands out a
   // credential. Its result carries no `handle`, since an editor session has one stream.
@@ -834,10 +834,10 @@ export const SCENARIO_TABLE = Object.freeze([
     entityCardExpect: EVERY_ENTITY_CARD_KIND,
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 391 PROP-01 / D-03's `grants.list` and `grants.revoke` rows left with the ops (432-18).
-  // 387-08: valid INPUTS for capabilities most compositions cannot run — `invokeFunction` validates
+  // 391 PROP-01 / D-03's `grants.list` and `grants.revoke` rows left with the ops.
+  // valid INPUTS for capabilities most compositions cannot run — `invokeFunction` validates
   // before it consults the binding.
-  // 2026-09-30 (432-12 D-05): the three knowledge changes apply in the call and answer the records
+  // the three knowledge changes apply in the call and answer the records
   // they changed. The retired `.propose` ids have no row: they are not registered.
   scenario({
     opId: 'knowledge.accept',
@@ -850,14 +850,14 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['operationId', 'outcome', 'recordIds', 'verb'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 387 KREV-02: the fixture runs port records no run, so the honest answer is the typed no-trace
+  // the fixture runs port records no run, so the honest answer is the typed no-trace
   // arm — the arm this verb exists to be able to give.
   scenario({
     opId: 'knowledge.brief.why',
     input: { runId: FIXTURE_RUN_ID, stepIndex: 0 },
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-28 (431-04 D-04/D-07): projected; re-spelled with the mapping's move.
+      // projected; re-spelled with the mapping's move.
       mcp: { reachable: { tool: 'agent_qa_explain_brief' } },
       fn: { reachable: true },
     },
@@ -869,7 +869,7 @@ export const SCENARIO_TABLE = Object.freeze([
     input: {},
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-28 (431-04 D-04/D-07): projected; re-spelled with the mapping's move.
+      // projected; re-spelled with the mapping's move.
       mcp: { reachable: { tool: 'agent_qa_list_knowledge_bundles' } },
       fn: { reachable: true },
     },
@@ -903,12 +903,12 @@ export const SCENARIO_TABLE = Object.freeze([
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
   scenario({
-    // 416 D-17: keep the existing lexicographic scenario order (forget precedes gates).
+    // keep the existing lexicographic scenario order (forget precedes gates).
     opId: 'knowledge.gates.list',
     input: { recordId: 'rec-not-in-this-fixture' },
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-08, 419 D-19: the MCP carry from 416.
+      // the MCP carry from 416.
       mcp: { reachable: { tool: 'agent_qa_list_knowledge_gates' } },
       fn: { reachable: true },
     },
@@ -921,7 +921,7 @@ export const SCENARIO_TABLE = Object.freeze([
     input: { recordId: 'rec-not-in-this-fixture' },
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-28 (431-04 D-04/D-07): projected; re-spelled with the mapping's move.
+      // projected; re-spelled with the mapping's move.
       mcp: { reachable: { tool: 'agent_qa_show_knowledge_record' } },
       fn: { reachable: true },
     },
@@ -943,7 +943,7 @@ export const SCENARIO_TABLE = Object.freeze([
     input: { sinceOrdinal: 0 },
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-28 (431-04 D-04/D-07): projected; re-spelled with the mapping's move.
+      // projected; re-spelled with the mapping's move.
       mcp: { reachable: { tool: 'agent_qa_diff_knowledge_records' } },
       fn: { reachable: true },
     },
@@ -957,7 +957,7 @@ export const SCENARIO_TABLE = Object.freeze([
     input: { filter: {} },
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-28 (431-04 D-04/D-07): projected; re-spelled with the mapping's move.
+      // projected; re-spelled with the mapping's move.
       mcp: { reachable: { tool: 'agent_qa_inspect_knowledge_records' } },
       fn: { reachable: true },
     },
@@ -978,7 +978,7 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['operationId', 'outcome', 'recordIds', 'verb'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 390 D-13: the two write verbs take the three legs of stable test identity — a partial address
+  // the two write verbs take the three legs of stable test identity — a partial address
   // would report an input error where a binding refusal is wanted. The test named here exists in no
   // fixture; nothing is dispatched either way.
   scenario({
@@ -996,7 +996,7 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['entry', 'kind'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 390 D-13: `list` genuinely takes the empty query — enumeration is the verb.
+  // `list` genuinely takes the empty query — enumeration is the verb.
   scenario({
     opId: 'quarantine.list',
     input: {},
@@ -1023,12 +1023,12 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['entry', 'kind'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 391 D-16: a PARSING input for a capability most compositions cannot run.
-  // 405-01 D-03: THE durable run-detail read. Unprojected on MCP for the reason its `runs.` read
+  // a PARSING input for a capability most compositions cannot run.
+  // THE durable run-detail read. Unprojected on MCP for the reason its `runs.` read
   // siblings are — it is a completed-run read rather than a mid-flight one — and its markers are
   // the four top-level collections, so a projection that lost the token sum (whose three members
   // are absent by design) would red here rather than silently start declaring zeros.
-  // 405-05 D-12/D-13: THE ref-resolving read. Unprojected on MCP for its `runs.` read siblings'
+  // THE ref-resolving read. Unprojected on MCP for its `runs.` read siblings'
   // reason and one of its own — its result is a BASE64 BLOB, which is not a shape a `tools/call`
   // round trip wants and not a payload a conversation can do anything with. Its markers are the
   // four result keys, so a projection that lost `contentType` or `byteLength` would red here
@@ -1038,7 +1038,7 @@ export const SCENARIO_TABLE = Object.freeze([
     input: { runId: FIXTURE_RUN_ID, sha: FIXTURE_ARTIFACT_SHA },
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-28 (431-04 D-04/D-07): projected; re-spelled with the mapping's move.
+      // projected; re-spelled with the mapping's move.
       mcp: { reachable: { tool: 'agent_qa_get_run_evidence' } },
       fn: { reachable: true },
     },
@@ -1064,7 +1064,7 @@ export const SCENARIO_TABLE = Object.freeze([
       mcp: { reachable: { tool: 'agent_qa_get_run_digest' } },
       fn: { reachable: true },
     },
-    // 2026-09-30 (432-09, D-05/D-25): the proposal members are gone; the digest carries the fixes a
+    // the proposal members are gone; the digest carries the fixes a
     // run's marks applied (`markChanges`), read from the run's own ledger where a host binds it.
     renderExpect: {
       markers: [
@@ -1080,7 +1080,7 @@ export const SCENARIO_TABLE = Object.freeze([
   }),
   // The one STREAM op in the census. Unprojected because a `tools/call` is one round trip and has no
   // shape for a resumable event feed — the reason the mapping gives, and the reason its verdict
-  // legs need their own comparison mechanics (384 D-08).
+  // legs need their own comparison mechanics.
   scenario({
     opId: 'runs.events',
     input: { runId: FIXTURE_RUN_ID },
@@ -1092,7 +1092,7 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['payload', 'runId', 'seq', 'ts', 'type'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 2026-09-15, 423-21 D-04: the typed evidence read. In SORT position after `runs.events`.
+  // the typed evidence read. In SORT position after `runs.events`.
   // Unprojected over MCP on `runs.detail`'s completed-run footing, with read policy points. Its
   // markers are the ready arm's four required keys: the address read, the recorded entry, the
   // outcome and the parsed document.
@@ -1101,7 +1101,7 @@ export const SCENARIO_TABLE = Object.freeze([
     input: { runId: FIXTURE_RUN_ID, testIndex: 0, stepIndex: 0, kind: 'console' },
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-28 (431-04 D-04/D-07): projected; re-spelled with the mapping's move.
+      // projected; re-spelled with the mapping's move.
       mcp: { reachable: { tool: 'agent_qa_get_run_evidence' } },
       fn: { reachable: true },
     },
@@ -1131,7 +1131,7 @@ export const SCENARIO_TABLE = Object.freeze([
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 407 D-05: the Knowledge panel's ONE read. In SORT position after `runs.get` — this table is
+  // the Knowledge panel's ONE read. In SORT position after `runs.get` — this table is
   // compared against its own committed sorted order, so a row placed where it reads well rather
   // than where it sorts reds the render-parity leg. Unprojected over MCP on `runs.detail`'s
   // footing: a durable post-run read is not a mid-flight one.
@@ -1146,7 +1146,7 @@ export const SCENARIO_TABLE = Object.freeze([
     input: { runId: FIXTURE_RUN_ID },
     perSurface: {
       chat: { reachable: true },
-      // 2026-09-28 (431-04 D-04/D-07): projected; re-spelled with the mapping's move.
+      // projected; re-spelled with the mapping's move.
       mcp: { reachable: { tool: 'agent_qa_get_run_knowledge' } },
       fn: { reachable: true },
     },
@@ -1175,10 +1175,10 @@ export const SCENARIO_TABLE = Object.freeze([
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 388 D-14: a PARSING input for a capability most compositions cannot run.
-  // 403-01 (D-03): the mint. Unprojected on MCP because handing an agent-origin caller a live-view
+  // a PARSING input for a capability most compositions cannot run.
+  // the mint. Unprojected on MCP because handing an agent-origin caller a live-view
   // CREDENTIAL is Phase 408's question, not a side effect of registering the op.
-  // RESOLVED 2026-08-31 (408 D-01): the question is answered and the row does not move. Internal
+  // RESOLVED 2026-08-31: the question is answered and the row does not move. Internal
   // mint ONLY — the MCP server invokes this op by reference inside its `ui://agent-qa/live-run/`
   // App resource read (408 plans 01/03), so the minted token lands in host-rendered HTML and never
   // in tool-result text; a projected mint tool stays rejected. The op is unprojected BY RULING
@@ -1242,7 +1242,7 @@ export const SCENARIO_TABLE = Object.freeze([
     },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 2026-09-15, 423-21 D-18/D-19: marks history, a read tool with read policy points.
+  // marks history, a read tool with read policy points.
   scenario({
     opId: 'runs.marks.history',
     input: { runId: FIXTURE_RUN_ID },
@@ -1292,7 +1292,7 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['chips', 'runId'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // D-09: declared in full; every field is optional, so the empty object is the whole input.
+  // declared in full; every field is optional, so the empty object is the whole input.
   scenario({
     opId: 'runs.start',
     input: {},
@@ -1336,7 +1336,7 @@ export interface CensusDiff {
 }
 
 /**
- * The census self-check, as a PURE function of two id lists (D-10).
+ * The census self-check, as a PURE function of two id lists.
  *
  * TWO-DIRECTIONAL BY CONSTRUCTION. A one-directional census — "every row names a real op" — passes
  * forever on a table that has simply stopped growing, which is the exact failure mode two registers

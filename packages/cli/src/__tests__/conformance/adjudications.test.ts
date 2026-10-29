@@ -1,4 +1,4 @@
-// The inherited adjudications, made checkable (Phase 397 plan 05 — D-16 / D-17 / D-20).
+// The inherited adjudications, made checkable.
 //
 // WHY THIS FILE EXISTS. Earlier phases wrote promissory notes against 397: a reservation in
 // `function-scope.ts` saying this phase would extend the scope union, and two `adjudication: '397'`
@@ -46,7 +46,7 @@ const MAPPING_SOURCE_PATH = join(REPO_ROOT, 'packages/mcp/src/mapping.ts')
 
 const readSource = (path: string): string => readFileSync(path, 'utf8')
 
-// ---- D-16: the scope union — RETIRED by 432-20 (D-12) ------------------------------------------
+// ---- D-16: the scope union — RETIRED by 432-20 ------------------------------------------
 
 /**
  * The dated retirement note's anchor, and the two strings of the deleted growth rule.
@@ -55,7 +55,6 @@ const readSource = (path: string): string => readFileSync(path, 'utf8')
  * ranging every declaration's scopes against it. D-12 deletes the scope union's purpose, its growth
  * rule and the census rows that range it; what this block pins now is that retirement.
  */
-// 2026-10-02 (432-39): the retirement anchor's module is deleted; nothing reads it now.
 const DELETED_GROWTH_RULE_CLAUSES: readonly string[] = [
   'GROWTH RULE. A seventh member requires',
   'the census cell reds on an op whose `requiredScopes` names',
@@ -150,10 +149,10 @@ function degradedDispositionFindings(
 // ================================================================================================
 
 describe('the inherited adjudications, discharged at their artifacts', () => {
-  // RE-SPELLED 2026-10-01 (432-20, D-12) from 'D-16: the capability-scope union closes at six,
+  // RE-SPELLED 2026-10-01 from 'D-16: the capability-scope union closes at six,
   // dated'. The union no longer gates anything; its growth rule and census are deleted.
   describe('retired: the capability-scope union gates nothing', () => {
-    // RE-SPELLED 2026-10-02 (432-39, D-10/D-12): the union is DELETED, so the six members it held
+    // RE-SPELLED 2026-10-02: the union is DELETED, so the six members it held
     // until now are held nowhere. Title kept; the claim it guarded — a retired vocabulary cannot
     // quietly grow a member nothing reads — now holds because there is no vocabulary to grow.
     // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'holds exactly the six members the closure note ratifies': the body asserts the absence, so the title does.
@@ -166,7 +165,7 @@ describe('the inherited adjudications, discharged at their artifacts', () => {
 
     // RE-SPELLED from 'carries the dated closure note, and no longer carries the reservation it
     // replaced' and 'states the growth rule and carries its three lineage dates'. RE-SPELLED again
-    // 2026-10-02 (432-39, D-10/D-12): the module that carried the retirement note is deleted with
+    // the module that carried the retirement note is deleted with
     // the union, and no schema source states the growth rule or declares the union again. The
     // lineage notes live in the repository history with the file.
     // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'carries the dated retirement note, and no longer states the growth rule': the body asserts the absence, so the title does.
@@ -198,7 +197,7 @@ describe('the inherited adjudications, discharged at their artifacts', () => {
   })
 
   describe('the degraded output contracts adjudication', () => {
-    // 2026-09-28 (431-03, D-03/D-07): 397 adjudicated two entries. `agent_qa_list_runs` left the
+    // 397 adjudicated two entries. `agent_qa_list_runs` left the
     // list when `runs.list` declared its canonical output contract, which converts in output mode;
     // `packages/mcp`'s probe would now refuse that row as stale. The start acknowledgement stays.
     it('declares exactly the adjudicated entry that is still degraded', () => {

@@ -1,8 +1,6 @@
 // The three surface DRIVERS the verdict legs observe through (Phase 397 plan 04, D-11 / D-14;
 // the dashboard door added 2026-08-21, Phase 400 plan 01).
 //
-// 2026-09-28 (Phase 430, D-03): the dashboard driver is removed with the door it drove (430 D-02).
-//
 // WHAT A DRIVER IS FOR, AND WHY IT IS NOT A CONVENIENCE. `adapters.ts` answers what a surface can
 // REACH; this file answers what a surface DOES when something is asked of it. Those are different
 // questions and only the second one can see the defect this phase exists to name. An enumeration
@@ -49,7 +47,7 @@ import {
   getActiveExecutionContext,
   setActiveExecutionContextResolver,
 } from '@vostride/agent-qa-safety'
-// 2026-10-01 (432-19, D-17): safety no longer publishes the execution-audit row, and nothing writes
+// safety no longer publishes the execution-audit row, and nothing writes
 // `execution_audit.jsonl`. The harness still reads that path so the cells that assert "no decision
 // row" see a returning writer; the row is typed by the two fields they filter on.
 interface LegacyExecutionAuditRow {
@@ -97,14 +95,14 @@ export interface ChatDriveObservation {
   /** Every clause receipt of the drive, for a cell that needs to see what else happened. */
   readonly receipts: readonly ClauseReceipt[]
   /**
-   * Every op RESULT the drive produced, in clause execution order (2026-08-20, 399.1 plan 06).
+   * Every op RESULT the drive produced, in clause execution order.
    *
    * WHY THIS MEMBER EXISTS, AND WHY IT IS NOT A CONVENIENCE. Until 399.1 the two drivers in this
    * file answered in incommensurable vocabularies: chat reported a `ClauseReceipt` — a one-line map
    * of clause to outcome, by charter carrying no territory — while MCP reported
    * `McpCallAnswered.structured`, the op's whole typed result. A cell wanting to ask "do these two
    * doors show a person the same thing" had nothing on the chat side to compare, so no cell asked,
-   * and the answer was NO for forty of forty-two capabilities for two phases (G-399-2). `results[]`
+   * and the answer was NO for forty of forty-two capabilities for two phases. `results[]`
    * is 399.1 D-05's channel and this is the driver's read of it.
    *
    * READ OFF THE SESSION LOG'S `clause_result` EVENTS, on `receipt`'s own reasoning: the printed
@@ -116,7 +114,7 @@ export interface ChatDriveObservation {
   /**
    * The execution-audit rows this drive landed, in order — always none since 432-13.
    *
-   * The gate that authored them is deleted (432-19, D-15/D-17), so this is the absence witness: a
+   * The gate that authored them is deleted, so this is the absence witness: a
    * capability that started writing a decision row again would show up here.
    */
   readonly auditRows: readonly LegacyExecutionAuditRow[]
@@ -219,7 +217,7 @@ function readJsonLines(path: string): readonly Record<string, unknown>[] {
  * by typing. What this function contributes is the workspace, the typed lines and the reading of
  * what the surface wrote down. It decides nothing about verdicts.
  *
- * SINCE 432-13 (C432-CHAT-DIRECT) `/pin` is gone and nothing on this road refuses a capability; the
+ * SINCE 432-13 `/pin` is gone and nothing on this road refuses a capability; the
  * paragraphs below record why `pinBefore` WAS the refuse-direction mechanism until then.
  *
  * WHY `pinBefore` WAS THE REFUSE-DIRECTION MECHANISM, and this is worth reading once because it is a
@@ -276,7 +274,7 @@ export async function driveChatDispatch(
 export async function driveChatLines(
   typedLines: readonly string[],
   executionContext?: ExecutionContext,
-  // 431-08: a populated project the caller owns and removes; the default is this file's empty one.
+  // a populated project the caller owns and removes; the default is this file's empty one.
   workspace?: { readonly configPath: string },
 ): Promise<ChatDriveObservation> {
   const configPath = workspace?.configPath ?? fixtureWorkspace()
@@ -346,7 +344,7 @@ export async function driveChatLines(
  * What a drive wrote down, read off the runtime root the surface wrote it to.
  *
  * SHARED BY EVERY DRIVER IN THIS FILE, and that is the point rather than a convenience. The chat
- * door and the dashboard door are different transports over ONE session substrate (400 D-04), so a
+ * door and the dashboard door are different transports over ONE session substrate, so a
  * second reader here would be a second answer to what a turn recorded — and the cells that compare
  * the two doors would then be comparing two readings rather than two doors.
  *
@@ -354,7 +352,7 @@ export async function driveChatLines(
  * records, so a reader that parsed either could disagree with what the product wrote down.
  */
 /**
- * EXPORTED for the spawned-wire anchors (400-09), which must read the CHILD's runtime root.
+ * EXPORTED for the spawned-wire anchors, which must read the CHILD's runtime root.
  *
  * The anchors compare an in-process drive with a drive against the shipped `agent-qa dashboard`
  * binary, and the comparand on both sides has to be produced by the SAME reader — otherwise the
@@ -436,13 +434,13 @@ export async function driveMcpCall(input: {
   readonly toolName: string
   readonly args: Record<string, unknown>
   /**
-   * 2026-10-02 (432-39, D-12): the server's caller. Absent, the shipped tokenless
-   * `MCP_FUNCTION_CALLER`. Replaces the retired `grantedScopes` member (432-36), which only ever
+   * the server's caller. Absent, the shipped tokenless
+   * `MCP_FUNCTION_CALLER`. Replaces the retired `grantedScopes` member, which only ever
    * handed a scope set through as a smuggle: a cell proving a retired field is unread now builds its
-   * own smuggled caller and passes it here (C432-TOKENLESS-CATALOG).
+   * own smuggled caller and passes it here.
    */
   readonly caller?: FunctionCaller
-  // 2026-10-02 (432-36, D-12): no `executionContext` input. It fed only the registry's retired
+  // no `executionContext` input. It fed only the registry's retired
   // `resolveExecutionContext` option, which reads no context since 432-20, and no cell passed it.
 }): Promise<McpCallOutcome> {
   return withMcpClient(async (client: Client): Promise<McpCallOutcome> => {

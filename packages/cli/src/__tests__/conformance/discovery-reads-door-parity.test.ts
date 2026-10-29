@@ -1,4 +1,4 @@
-// Phase 431 plan 08 (D-03/D-06/D-11): the discovery reads over the four rostered doors, and the six
+// the discovery reads over the four rostered doors, and the six
 // dedicated CLI verbs as sugar over them.
 //
 // One completed run, written by the shipped writers (`discoveryRunFixtureProject`), is read through
@@ -202,7 +202,7 @@ interface RunServiceDoor {
 
 /**
  * The run-service router over the project's own composition, as the dashboard mounts it.
- * 2026-10-01 (432-21, D-12): tokenless — no `verifyBearer` port and no credential on the request.
+ * tokenless — no `verifyBearer` port and no credential on the request.
  */
 async function openRunServiceDoor(p: DiscoveryRunFixture): Promise<RunServiceDoor> {
   const composed = composeCliLocalAgent({ configPath: p.configPath, agentQaRoot: p.agentQaRoot })

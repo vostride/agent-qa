@@ -1,4 +1,4 @@
-// C445-SETUP-ERRORS (445-08, D-15, D-12; 445-16, D-41): each missing setup prerequisite names its fix
+// each missing setup prerequisite names its fix
 
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'

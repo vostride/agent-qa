@@ -1,4 +1,4 @@
-// C444-CRASH, C444-PENDING-AT-EXIT, C444-RESUME (444-19, D-20, D-37): crash, pending-at-exit and
+// crash, pending-at-exit and
 // retained-state resume on real `agent-qa` processes in one project, so every resume runs in the
 // workspace its run left behind.
 
@@ -52,12 +52,12 @@ const HOLD_BUDGET_MS = 120_000
 const BROWSER_SELF_EXIT_MS = 10_000
 const POLL_MS = 50
 const PENDING_BUDGET_MS = 600_000
-// 444.1 D-01: where the stalled leg stops waiting for its run to exit on its own; never asserted.
+// where the stalled leg stops waiting for its run to exit on its own; never asserted.
 const STALL_EXIT_CEILING_MS = DRAIN_BUDGET_MS + 120_000
 const RESUME_BUDGET_MS = 600_000
 const DAEMON_BOUND_MS = 120_000
 const DAEMON_STOP_BOUND_MS = 30_000
-// D-56: the hermetic TMPDIR is too deep for the daemon's socket path, so the daemon gets its own
+// the hermetic TMPDIR is too deep for the daemon's socket path, so the daemon gets its own
 // short root under /tmp, removed once it has stopped.
 const DAEMON_TMP_PREFIX = '/tmp/aq444-'
 
@@ -79,7 +79,7 @@ const CI_PENDING_SUFFIX = {
 } as const
 const STAGE_DRAINER = { analysis: 'any-host', curation: 'masked-leg-only' } as const
 type Stage = keyof typeof STAGE_DRAINER
-// The Completed tab's request (D-02): every finished word.
+// The Completed tab's request: every finished word.
 const FINISHED_WORDS = ['passed', 'healed', 'failed', 'timeout', 'cancelled'] as const
 
 interface Envelope {
@@ -378,7 +378,7 @@ function loggedEvents(project: PopulatedRunProject, runId: string): Envelope[] {
 }
 
 // A run may still be writing runs.db from another process; the read waits out its write lock, and
-// one that still fails is recorded as unreadable, which no cell accepts as a row (444-17).
+// one that still fails is recorded as unreadable, which no cell accepts as a row.
 function readRow(project: PopulatedRunProject, runId: string): RowView | string {
   const dbPath = resolveDashboardDbPath({ configDir: project.root })
   if (!existsSync(dbPath)) return 'absent: no runs.db'
@@ -524,7 +524,7 @@ async function untilHeld(model: StubModelServer, already: number, ended: () => b
 
 // A SIGKILLed CLI cannot close its browser. Whether Chromium leaves on its own (its pipe closed) is
 // measured within a bound and recorded; whatever is left is killed here, so none outlives the cell.
-// 2026-10-18 (444-25, D-62 IN-07): only by the identity recorded at the kill, never by pid alone.
+// only by the identity recorded at the kill, never by pid alone.
 async function measureChromiumAfterKill(facts: CrashFacts): Promise<void> {
   const pids = facts.chromiumAtKill ?? []
   const killedAt = Date.now()
@@ -618,7 +618,7 @@ function readExit(project: PopulatedRunProject, leg: PendingLeg, ended: Spawned)
   leg.output = output.slice(-3_000)
 }
 
-// 444.1 D-01: a failed run whose analyze-run author is held and never answered. The tail's budget
+// a failed run whose analyze-run author is held and never answered. The tail's budget
 // aborts the request and the run exits by itself; only a run still alive at the ceiling has its
 // author refused, so that it can end.
 async function driveStalled(): Promise<void> {
@@ -687,7 +687,7 @@ async function localRun(testPath: string): Promise<LocalRun> {
   return run
 }
 
-// D-56: the stub's hold is lifted, and one later local run's tail drains every queued chain,
+// the stub's hold is lifted, and one later local run's tail drains every queued chain,
 // oldest first, so the stalled run's analysis and curation finish there.
 async function driveResumeByRun(): Promise<void> {
   const { project, model } = await sharedProject()
@@ -729,7 +729,7 @@ function analyzeRunStatus(rows: JobRow[] | string): string | undefined {
   return Array.isArray(rows) ? rows.find((row) => row.kind === 'analyze-run')?.status : undefined
 }
 
-// D-56: `agent-qa daemon` in the same workspace, with a short TMPDIR. It is stopped once the
+// `agent-qa daemon` in the same workspace, with a short TMPDIR. It is stopped once the
 // detached run's analysis reads complete, and the cell confirms it and its children are gone.
 async function driveDaemon(): Promise<void> {
   const { project } = await sharedProject()
@@ -969,7 +969,7 @@ describe('a run whose process is killed', () => {
     const at = expectCrashDrove()
     expect(crash.postProcessing?.status, at).toBe(200)
     const status = (crash.postProcessing?.body as { status?: { skipped?: { reason?: string } } }).status
-    // The fact is derived only from a bound `readRecord` that found the closed row (D-14); an
+    // The fact is derived only from a bound `readRecord` that found the closed row; an
     // unknown id on the same dashboard derives none, so the reader answered for this row.
     expect(status?.skipped, at).toEqual({ reason: 'no-verdict' })
     expect(`skipped (${POST_PROCESSING_SKIP_REASON_WORDS[status!.skipped!.reason as 'no-verdict']})`, at)
@@ -1022,7 +1022,7 @@ describe('post-processing still pending when a run exits', () => {
     const at = seen(pending)
     const run = expectPendingAtExit(pending.stalled, 'failed', at)
     expect(run.reached, `the analyze-run author was held\n${at}`).toBe('held')
-    // 444.1 D-01: the run exited by itself with its author still held, and the tail's budget
+    // the run exited by itself with its author still held, and the tail's budget
     // aborted the request rather than anything answering it.
     expect(run.exitedWhileHeld, `the run exited with no refusal or release\n${at}`).toBe(true)
     expect(run.aliveAtCeiling, at).toBeUndefined()
@@ -1118,14 +1118,14 @@ describe('resuming pending post-processing', () => {
     expect(daemon?.killedByCell, `the daemon stopped on its own\n${at}`).toBeUndefined()
     expect(daemon?.aliveAfterStop, `the daemon and its children are gone\n${at}`).toEqual([])
     expect(daemon?.tmpdirRemoved, at).toBe(true)
-    // The daemon folds with no declared mask, so curate-memory is not claimable there (WR-09).
+    // The daemon folds with no declared mask, so curate-memory is not claimable there.
     expect(UNCLAIMABLE_BY_PROSE_POSTURE['no-masker'], at).toContain('curate-memory')
     const afterDaemon = resume.detachedJobsAfterDaemon as JobRow[]
     expect(Array.isArray(afterDaemon), at).toBe(true)
     expect(afterDaemon.find((job) => job.kind === 'analyze-run'), at).toMatchObject({ status: 'done' })
     expect(afterDaemon.find((job) => job.kind === 'curate-memory'), at)
       .toMatchObject({ status: 'queued', attempts: 0 })
-    // The durable reads carry no suffix; only the run's own exit line did (D-56).
+    // The durable reads carry no suffix; only the run's own exit line did.
     chipsAre(resume.detachedReadAfterDaemon, 'complete', 'pending', at)
     expect(stageWords(pending.detached?.exitLines?.[0]).curation, at).toBe('pending')
     expect(pending.detached?.exitLines?.[0], at).toContain(`curation: ${pendingWord('curation')} · `)

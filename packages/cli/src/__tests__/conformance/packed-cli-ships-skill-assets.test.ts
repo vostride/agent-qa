@@ -1,4 +1,4 @@
-// C446-PACKED-SKILLS (446-03, D-14): every skill asset resolves from the staged CLI tarball
+// every skill asset resolves from the staged CLI tarball
 
 import { execFileSync } from 'node:child_process'
 import {

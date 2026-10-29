@@ -7,7 +7,7 @@
 // be built inside `composeRunServicePorts`, which runs only when a credential is declared, so a
 // default dashboard streamed nothing and could mint nothing.
 //
-// WHAT PHASE 404 CHANGED HERE (2026-08-26 · 404-06 · LIFE-01, D-13/D-07). Cell (10) used to wait
+// WHAT PHASE 404 CHANGED HERE. Cell (10) used to wait
 // on the live page's terminal band on a REAL run. D-13 moves the viewer to run detail on the
 // verdict, so the band is unreachable there; the cell is re-pinned to the navigation itself and to
 // D-07's no-ping-pong rule, measured at the SUBSCRIBER'S OWN ordering — the one place in the
@@ -65,7 +65,7 @@ const ATTACH_BUDGET_MS = 60_000
 /** How long an SSE read or a socket exchange may take. */
 const WIRE_BUDGET_MS = 30_000
 /**
- * How long cell (10) holds past an observed `runFinished` (404-06 · D-07).
+ * How long cell (10) holds past an observed `runFinished`.
  *
  * The width of the `runs.start` door's DETACHED post-run tail (404-04 Task 2) — the window in
  * which a slow row write or a stale active set could have thrown the viewer back to `/live`. Read
@@ -208,7 +208,7 @@ beforeAll(async () => {
   expect(buildFreshness(DASHBOARD_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
     .toEqual({ missing: [], stale: [] })
 
-  // THE ZERO-TOKEN POSTURE, DELIBERATELY — the arm WINDOWS #264 lived in. Since 432-21 (D-12) it is
+  // THE ZERO-TOKEN POSTURE, DELIBERATELY — the arm WINDOWS #264 lived in. Since 432-21 it is
   // the only posture: no project declares a run-service credential.
   const project = runServiceFixtureProject('live-view')
   const port = await reserveEphemeralPort()
@@ -314,7 +314,7 @@ describe('the shipped zero-token dashboard serves a live view', () => {
     expect(forged.messages.find((m) => m.type === 'refused')?.reason).toBe('bad_signature')
     expect(forged.closeCode, 'a refusal closes with the live-view refusal code').toBe(4400)
 
-    // T-403-03: a VALID token presented on ANOTHER run's socket. The claims name the run they were
+    // a VALID token presented on ANOTHER run's socket. The claims name the run they were
     // minted for, so cross-run confusion is refused by name rather than silently attaching.
     const crossed = await speakToFrameSocket({
       origin: f.dashboard.origin, runId: 'r_some_other_run', token, until: ['refused'],
@@ -383,7 +383,7 @@ describe('the shipped zero-token dashboard serves a live view', () => {
     // And it is the LIVE VIEW, not the SPA fallback wearing its URL (Pitfall 10).
     expect(body).toContain('data-embed-state')
 
-    // THE EDITOR ARM (428 D-07). An editor session is served by the same embed page and frame
+    // THE EDITOR ARM. An editor session is served by the same embed page and frame
     // socket, so the same absence holds around an editor mint. Measured on the shipped composition
     // the live-view harness composes, because a real editor session in this binary would need a
     // declared model the run above must not see.
@@ -670,7 +670,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
     }
   }, 150_000)
 
-  // RE-PINNED 2026-08-26 (404-06 · LIFE-01, D-13/D-07). This cell was "(10) THE SHIPPED BINARY: a
+  // RE-PINNED 2026-08-26. This cell was "(10) THE SHIPPED BINARY: a
   // real run's live page reaches its honest terminal state", and it waited on `data-terminal-state`
   // — the live page's terminal band — on a REAL run. D-13 inverts that path: the verdict now moves
   // the viewer to run detail, so the band is unreachable here and the wait would hang for its whole

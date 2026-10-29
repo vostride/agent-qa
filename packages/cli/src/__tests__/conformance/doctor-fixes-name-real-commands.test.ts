@@ -1,4 +1,4 @@
-// C446-DOCTOR-FIXES (446-05, D-16): every command and key a doctor fix names is real
+// every command and key a doctor fix names is real
 
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

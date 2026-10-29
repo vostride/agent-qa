@@ -48,7 +48,7 @@ const BROWSER_INSTALL_INSTRUCTION =
   + '`pnpm exec playwright install chromium` and re-run. They must not be skipped when the browser '
   + 'is absent.'
 
-/** The keys a report may carry (428 D-15). Anything else is a leak. */
+/** The keys a report may carry. Anything else is a leak. */
 const REPORT_KEYS = new Set(['event', 'kind', 'ts', 'width', 'height', 'reason'])
 
 /** The value the host hint carries in these cells, as the dashboard will set it. */

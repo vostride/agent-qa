@@ -1,4 +1,4 @@
-// The WIRE anchors for the authed run service — criterion 4's instrument (Phase 402 plan 07, D-04).
+// The WIRE anchors for the authed run service — criterion 4's instrument.
 //
 // THE CLAIM THIS FILE OWNS, STATED FIRST. Phase 402's milestone acceptance criterion 4 is that
 // `RunSession` stays RPC-shaped: no in-process-only handle and no live object leaks across the
@@ -99,7 +99,7 @@ const RUN_SESSION_HANDLE_MEMBERS = [
   'subscribe',
   'cancel',
   'done',
-  // 403 D-05: both are closures over THIS process's per-run live-stream hub. `subscribeFrames`
+  // both are closures over THIS process's per-run live-stream hub. `subscribeFrames`
   // returns an object holding a `Set` of local callbacks; `streamCapabilityOf` reads a `Map` the
   // member executors filled with adapter objects. Neither has a serialization, and neither means
   // anything to a caller on another machine — the token that lets a remote viewer reach the frames
@@ -217,7 +217,7 @@ const RPC_SHAPE_CLEAN: RpcShapeReading = {
 // 403-02 adds `liveUrl`. `GET /api/runs/:runId/live-url` is a door the phase opened, its body is
 // minted by `runs.liveurl`, and it is the one document whose producer can see a `RunSession` and a
 // live-stream capability at the same moment — precisely where `subscribeFrames` or
-// `streamCapabilityOf` would leak if a shaping step ever grew one (LIVE-03).
+// `streamCapabilityOf` would leak if a shaping step ever grew one.
 const WIRE_DOCUMENT_CLASSES = [
   'ack',
   'errorBody',
@@ -325,7 +325,7 @@ async function readStream(
 let door: SpawnedDashboard | undefined
 let doorReady = false
 let doorDiagnostics = ''
-// 2026-10-01 (432-21, D-12): the run service is tokenless — a request carries no credential.
+// the run service is tokenless — a request carries no credential.
 const bearer: Record<string, string> = {}
 const authedJson = { ...bearer, 'Content-Type': 'application/json' }
 
@@ -339,7 +339,7 @@ beforeAll(async () => {
 
   const fixture = runServiceFixtureProject('anchors')
   const port = await reserveEphemeralPort()
-  // 432-21 (D-12): no credential reaches the child — none is declared and none is read.
+  // no credential reaches the child — none is declared and none is read.
   const spawned = await spawnDashboard(
     fixture.root,
     fixture.configPath,
@@ -443,7 +443,7 @@ describe('the run-service wire anchors', () => {
     ).toEqual([...RUN_SESSION_DATA_MEMBERS, ...RUN_SESSION_HANDLE_MEMBERS].sort())
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'refuses POST /run with no credential — 401 from
+  // RE-SPELLED 2026-10-01 from 'refuses POST /run with no credential — 401 from
   // the spawned binary, not a fixture'. No credential is asked for; the spawned binary's refusal is
   // a cross-site POST, answered before the body is read and before any run is queued.
   it('refuses a cross-site POST /run — 403 from the spawned binary, not a fixture', async () => {
@@ -465,7 +465,7 @@ describe('the run-service wire anchors', () => {
     sweepWireDocument('errorBody', raw, 'the refusal body must be pure JSON')
   }, WIRE_BUDGET_MS)
 
-  // THE LOCAL READINESS DOOR, PINNED AT THE COMPOSITION THAT SHIPS IT (WINDOWS #255).
+  // THE LOCAL READINESS DOOR, PINNED AT THE COMPOSITION THAT SHIPS IT.
   //
   // Criterion 2's preflight rests on ONE line in `commands/dashboard.ts` — the
   // `runServiceReadiness:` option handed to `startServer`. Phase-402 verification deleted that line
@@ -497,7 +497,7 @@ describe('the run-service wire anchors', () => {
   // THE ZERO-TOKEN ARM — history: `runServiceReadiness` used to be composed from TWO arms (a
   // credential-declaring one and a zero-token fallback), and a mutation that dropped the fallback
   // left 374/374 green while a token-less `agent-qa dashboard` answered `/api/run-readiness` 503.
-  // 2026-10-01 (432-21, D-12): there is one arm — the tokenless run service is always composed —
+  // there is one arm — the tokenless run service is always composed —
   // and this cell still spawns its OWN dashboard so a second child pins the same answer.
   it('serves the LOCAL readiness door with NO credential declared — the default posture', async () => {
     expect(buildFreshness(RUN_SERVICE_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
@@ -515,7 +515,7 @@ describe('the run-service wire anchors', () => {
       ).toBe(200)
       const readiness = RunServiceReadinessSchema.parse(JSON.parse(await response.text()))
       expect(readiness.hostComposed).toBe(true)
-      // Honest about what it is: composed, and (432-22) no credential fact at all.
+      // Honest about what it is: composed, and no credential fact at all.
       expect(Object.keys(readiness).sort()).toEqual(['contractVersion', 'hostComposed', 'service'])
     } finally {
       await child.stop()
@@ -562,14 +562,14 @@ describe('the run-service wire anchors', () => {
       expect(ack.testCount).toBeGreaterThan(0)
       sweepWireDocument('ack', ackBytes, 'the ack must be pure JSON with no handle residue')
 
-      // (1b) THE MINT BODY (403-02, LIVE-03). `GET /api/runs/:runId/live-url` is the ONE document
+      // (1b) THE MINT BODY. `GET /api/runs/:runId/live-url` is the ONE document
       // whose producer holds a live `RunSession` and a live-stream capability at the same instant:
       // `runs.liveurl` looks the session up in the registry and reads `streamCapabilityOf(handle)`
       // to declare the stream kind. If a shaping step ever carried the session or the capability
       // through instead of the declaration, the residue would land HERE and nowhere else — which is
       // why this door has to be inside the ring-3 sweep and not merely inside a schema parse.
       //
-      // No credential: the mint is on the LOCAL door (D-14), which the loopback bind guards. Polled
+      // No credential: the mint is on the LOCAL door, which the loopback bind guards. Polled
       // because the queue starts the run asynchronously, and bounded because every wait here is.
       const mintDeadline = Date.now() + 30_000
       let liveUrlBytes: string | undefined
@@ -610,7 +610,7 @@ describe('the run-service wire anchors', () => {
       const okBytes = await ok.text()
       const readiness = RunServiceReadinessSchema.parse(JSON.parse(okBytes))
       expect(readiness.hostComposed).toBe(true)
-      // 432-21/432-22 (D-12): no credential can be configured, and the answer carries no such fact.
+      // 432-21/432-22: no credential can be configured, and the answer carries no such fact.
       expect(Object.keys(readiness).sort()).toEqual(['contractVersion', 'hostComposed', 'service'])
       sweepWireDocument('readiness', okBytes, 'the readiness body must be pure JSON')
 
@@ -648,7 +648,7 @@ describe('the run-service wire anchors', () => {
       expect(observed).toContain('runStarted')
       expect(observed).toContain('runFinished')
 
-      // (4) D-15, THE RETAINED-RUN REPLAY, on the shipped binary (403-03 · INVK-05).
+      // (4) D-15, THE RETAINED-RUN REPLAY, on the shipped binary.
       //
       // The run above is OVER. Its session stays attachable for the registry's retention window,
       // and what D-15 promises for a reconnect inside that window is: everything after the resume
@@ -657,7 +657,7 @@ describe('the run-service wire anchors', () => {
       // then the socket must end, which is a fact about the whole production chain (the header
       // reaching the core, the `+ 1`, the bus's own replay of a closed run, and the teardown).
       //
-      // Driven on the LOCAL door with no credential (D-14), read to completion rather than to the
+      // Driven on the LOCAL door with no credential, read to completion rather than to the
       // first `runFinished`, and bounded: a stream that held the socket open would hang this cell
       // otherwise, and the aborted read is the failure we want to see instead.
       const finalSeq = Number(stream.frames.at(-1)?.id)

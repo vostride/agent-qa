@@ -1,4 +1,4 @@
-// C441-PROOF (441 D-22, D-30): what a run, `ask` and `chat` send, write and print carries
+// what a run, `ask` and `chat` send, write and print carries
 // `[secret:<name>]` for each declared value and never the value.
 
 import {
@@ -704,7 +704,7 @@ describe('ask, chat and run mask declared values', () => {
   }, CELL_BUDGET_MS)
 })
 
-// C441-NOTHING-ELSE (441 D-23, D-03): only declared values are masked, and nothing is blocked.
+// only declared values are masked, and nothing is blocked.
 const TWIN_VALUES = [
   'qa@example.com',
   'cookie-441-value',

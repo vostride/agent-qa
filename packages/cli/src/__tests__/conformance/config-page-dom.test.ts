@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-// Phase 429 on the shipped bundle (429-33): the built `agent-qa dashboard` serving the built
+// Phase 429 on the shipped bundle: the built `agent-qa dashboard` serving the built
 // dashboard-ui to a real Chromium, in a hermetic HOME so every auth.json read and write lands in a
 // throwaway store. A browser that cannot launch is a red, never a skip. Captures go only where
 // AGENT_QA_429_CAPTURE_DIR points. Run with --maxWorkers=1: the cells share one spawned dashboard.
@@ -60,19 +60,19 @@ const LEGACY_LINKS = [
   ['analytics', 'pass-rate-scope', 'project', 'pass-rate-scope', 'Pass-rate scope'],
 ] as const
 
-// Invented sentinels only (T-429-33-02): nothing here exists outside this file.
+// Invented sentinels only: nothing here exists outside this file.
 const SENTINELS = {
   header: 'zz-429-33-HEADER-SENTINEL-4c1e',
   access: 'zz-429-33-ACCESS-HEADER-9b27',
   udid: 'zz-429-33-UDID-SENTINEL-0d61',
   auth: 'zz-429-33-AUTH-JSON-SENTINEL-73fa',
 } as const
-// Undeclared values written inside comments, which the file view shows as written (441-21, D-29).
+// Undeclared values written inside comments, which the file view shows as written.
 const COMMENT_SENTINELS = {
   above: 'zz-429-41-COMMENTED-HEADER-SENTINEL-5e0a',
   trailing: 'zz-429-41-TRAILING-COMMENT-SENTINEL-a3d8',
 } as const
-// 432-22 (D-12): the MCP token list is deleted, so the file view's env-var-name witness is gone;
+// the MCP token list is deleted, so the file view's env-var-name witness is gone;
 // a plain MCP leaf stands in and must read in clear, untagged.
 const MCP_PORT = '3471'
 const PLUGIN_PACKAGE = '@example/agent-qa-auth'
@@ -228,7 +228,7 @@ class Harness {
     for (const page of opened.context.pages()) {
       const seen = await page.evaluate(() => (window as unknown as { __dialogsSeen?: string[] }).__dialogsSeen ?? []).catch(() => [])
       this.dialogs.push(...seen)
-      // 2026-10-02 (quick 261002-tmo): let a route handler still in flight finish before the
+      // let a route handler still in flight finish before the
       // context goes. OUTSIDE-EDIT-INTERLEAVED-SHIPPED's PATCH handler was mid `route.fetch()` when
       // the context closed under a forced gate at load up to 165, an unhandled `Request context
       // disposed` rejection that failed the CLI task with every cell green.
@@ -865,7 +865,7 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
     expect(realAuthFingerprint(), "the operator's own auth.json changed during the run").toBe(realAuthBefore)
   }, 120_000)
 
-  // 429-37 (CR-01): the outside edit lands and the page's own write follows before any poll could
+  // the outside edit lands and the page's own write follows before any poll could
   // see it. The revision poll answers the first loaded revision until that write lands and then
   // exactly what the write answered, as a real poll would, so only the write's own answer can make
   // the page re-read.

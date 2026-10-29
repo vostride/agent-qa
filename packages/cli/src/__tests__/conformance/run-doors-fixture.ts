@@ -38,7 +38,7 @@ import { CLI_ENTRY, buildFreshness, hermeticEnv } from './spawned-chat.js'
 export interface RecordedDoorOptions {
   /** Give the test one bash setup hook that exits 0. */
   readonly setupHook?: boolean
-  // 2026-10-14 (441-06): forwarded to the stub model as `fullBodies`.
+  // forwarded to the stub model as `fullBodies`.
   readonly fullBodies?: boolean
 }
 

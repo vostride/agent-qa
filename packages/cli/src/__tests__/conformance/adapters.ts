@@ -2,8 +2,8 @@
 // the `fn` door added 2026-08-20, Phase 399.1 plan 06, D-07; the dashboard door added 2026-08-21,
 // Phase 400 plan 01, D-09/D-12).
 //
-// 2026-09-28 (Phase 430, D-03): four adapters again, for `chat`, `mcp`, `fn` and `run-service`. The
-// dashboard chat door's adapter is removed with the door (430 D-02); the counts above are history.
+// four adapters again, for `chat`, `mcp`, `fn` and `run-service`. The
+// dashboard chat door's adapter is removed with the door; the counts above are history.
 //
 // WHAT AN ADAPTER ANSWERS, AND IN WHAT VOCABULARY. `enumerateOpIds()` returns the set of REGISTRY OP
 // IDS a surface can reach, never the surface's own names. D-01 makes the op id the comparison
@@ -20,7 +20,7 @@
 // capability reachable on a surface that the declared data never catalogued — is invisible to a
 // comparison of a table against itself.
 //
-// THE FOLD EXPANSION AND THE STRAY DIAGNOSTIC ARE THE SAME MECHANISM (D-01). An MCP tool stands in
+// THE FOLD EXPANSION AND THE STRAY DIAGNOSTIC ARE THE SAME MECHANISM. An MCP tool stands in
 // front of one or more ops per the declared mapping; expanding a listed tool through that mapping is
 // how a wire name becomes op ids, and a listed tool the mapping does not know is what is left over.
 // That leftover IS the uncatalogued-capability shape the FUNC-06 mutation plants, so it is returned
@@ -123,7 +123,7 @@ export interface SurfaceStray {
 }
 
 /**
- * A capability class a rostered door structurally does not expose — DECLARED, never absent (D-04).
+ * A capability class a rostered door structurally does not expose — DECLARED, never absent.
  *
  * WHY THIS IS A FIELD AND NOT A SILENCE. Four of the five rostered doors reach the whole registry
  * census, so "what this door cannot do" was never a question the roster had to answer. The run
@@ -173,7 +173,7 @@ export interface SurfaceAdapter {
 /**
  * The caller every census in this suite lists under.
  *
- * 2026-10-02 (432-37, D-12): no `grantedScopes` and no `safeMode`. Until 432-20 the listing was a
+ * no `grantedScopes` and no `safeMode`. Until 432-20 the listing was a
  * scope-subset check and safe mode hid the mutating ops, so the census needed every scope and safe
  * mode off; the registry reads neither now, so a census under this caller is the whole catalogue.
  * `origin: 'human'` is kept as the caller's provenance; no op refuses on it since 432-20.
@@ -183,13 +183,13 @@ export const CONFORMANCE_CENSUS_CALLER: FunctionCaller = Object.freeze({
   origin: 'human',
 })
 
-// 2026-10-02 (432-39, D-10/D-12): `MCP_ENUMERATION_SCOPES`, `mcpServerCaller` and the
+// `MCP_ENUMERATION_SCOPES`, `mcpServerCaller` and the
 // `MCP_ENUMERATION_CALLER` alias are deleted with the caller's `grantedScopes` member. The MCP
 // helpers below take a whole CALLER instead of a scope set: absent, the server's caller is the
 // shipped `MCP_FUNCTION_CALLER`; a cell that must show a retired field is unread builds its own
 // smuggled caller (a cast) and hands it in, so the smuggle is visible where the claim is made.
 
-// 2026-10-15 (441-29, D-15): no `ConformanceRegistryOptions`. Its last member forwarded the
+// no `ConformanceRegistryOptions`. Its last member forwarded the
 // registry's audit sink, which the registry no longer accepts, so the registry is built from deps.
 
 /**
@@ -280,7 +280,7 @@ export function expandMcpListedTools(
  */
 export async function withMcpClient<Answer>(
   body: (client: Client) => Promise<Answer>,
-  // 2026-10-02 (432-39, D-12): the caller the server is built over. Absent, the shipped tokenless
+  // the caller the server is built over. Absent, the shipped tokenless
   // `MCP_FUNCTION_CALLER`; a cell proving a retired field is unread passes its own smuggled caller.
   caller: FunctionCaller = MCP_FUNCTION_CALLER,
 ): Promise<Answer> {
@@ -306,7 +306,7 @@ export async function withMcpClient<Answer>(
 }
 
 /**
- * A real `tools/list`, off a real server. 2026-10-02 (432-39, D-12): the caller is handed through
+ * A real `tools/list`, off a real server. 2026-10-02: the caller is handed through
  * to {@link withMcpClient}; see there.
  */
 export async function listMcpToolNames(caller?: FunctionCaller): Promise<readonly string[]> {
@@ -334,7 +334,7 @@ export function plausibleMcpToolSpelling(opId: string): string {
 
 /**
  * The MCP surface's op-id reach, read off the wire and folded through the mapping. 2026-10-02
- * (432-39, D-12): the caller is handed through; see {@link withMcpClient}.
+ * the caller is handed through; see {@link withMcpClient}.
  */
 export async function enumerateMcpOpIds(caller?: FunctionCaller): Promise<SurfaceEnumeration> {
   const listedToolNames = await listMcpToolNames(caller)
@@ -397,7 +397,7 @@ export const CHAT_RESOLVER_PROBES: readonly ResolverProbe[] = Object.freeze([
   Object.freeze({ alias: 'test-ref', clause: 'test 42', role: 'capability-alias' }),
   Object.freeze({ alias: 'digest', clause: 'digest r_conformance', role: 'capability-alias' }),
   Object.freeze({ alias: 'model', clause: '/model a-model', role: 'directive' }),
-  // 432-13 (C432-CHAT-DIRECT): the `proposals` alias and the `/pin` directive left the table.
+  // the `proposals` alias and the `/pin` directive left the table.
   Object.freeze({ alias: 'fn', clause: '/fn runs.list {}', role: 'generic-passthrough' }),
   Object.freeze({ alias: 'help', clause: '/help', role: 'directive' }),
   Object.freeze({ alias: 'quit', clause: '/quit', role: 'directive' }),
@@ -536,7 +536,7 @@ export const chatSurfaceAdapter: SurfaceAdapter = Object.freeze({
   notApplicable: Object.freeze([]),
 })
 
-// ---- The fn side (2026-08-20, Phase 399.1 plan 06, D-07) ----------------------------------------
+// ---- The fn side ----------------------------------------
 
 /**
  * A project the `fn` listing can be taken in, and nothing more.
@@ -647,7 +647,7 @@ export const fnSurfaceAdapter: SurfaceAdapter = Object.freeze({
   notApplicable: Object.freeze([]),
 })
 
-// ---- The run-service side (2026-08-24, Phase 402 plan 07, D-04) ---------------------------------
+// ---- The run-service side ---------------------------------
 //
 // THE FIFTH DOOR, AND THE FIRST NARROW ONE. `roster.ts`'s 2026-08-16 registration note reserved a
 // row for "any post-v2.0 REST or SDK surface"; the authed run service is one, shipped by 402-01, and
@@ -698,7 +698,7 @@ export function runServiceRouteKey(row: { method: string; path: string }): strin
 }
 
 /**
- * What each published route of the run-service door stands in front of (402-07).
+ * What each published route of the run-service door stands in front of.
  *
  * DECLARED DATA, ASSERTED SET-EQUAL AGAINST THE SHIPPED TABLE IN BOTH DIRECTIONS by the fold below.
  * That two-way equality is what keeps this from being a table compared against itself: a route added
@@ -736,7 +736,7 @@ export const RUN_SERVICE_ROUTE_BINDINGS: readonly RunServiceRouteBinding[] = Obj
   }),
   Object.freeze({
     key: `GET ${RUN_SERVICE_DETAIL_TEMPLATE}`,
-    // 405-05 (D-12 / 402 D-16): the durable run-detail read, mounted behind the same authed door
+    // the durable run-detail read, mounted behind the same authed door
     // as its local twin. It DISPATCHES — the arm calls `serveRunDetailRead`, the SAME function
     // object `routes.ts` calls, which goes through `invokeFunction` to `runs.detail` under a
     // caller built from the verified bearer's trust scope.
@@ -744,17 +744,17 @@ export const RUN_SERVICE_ROUTE_BINDINGS: readonly RunServiceRouteBinding[] = Obj
   }),
   Object.freeze({
     key: `GET ${RUN_SERVICE_ARTIFACT_TEMPLATE}`,
-    // 405-05 (D-12 / 402 D-16): the ref-resolving read, on the row above's exact footing and
+    // the ref-resolving read, on the row above's exact footing and
     // through the same shared adapter — `serveRunArtifact`, one function object, two doors.
     opId: RUNS_ARTIFACT_FUNCTION_ID,
   }),
   Object.freeze({
     key: `GET ${RUN_SERVICE_ANALYSIS_TEMPLATE}`,
-    // 406-01 (D-04): the failure view's read, on the two rows above's exact footing and through
+    // the failure view's read, on the two rows above's exact footing and through
     // the same shared adapter — `serveRunAnalysisRead`, one function object, two doors.
     opId: ANALYSIS_GET_FUNCTION_ID,
   }),
-  // 2026-09-15 (423-21, D-04/D-18): the typed evidence read and the two feedback reads, each
+  // the typed evidence read and the two feedback reads, each
   // dispatched through the shared adapter the local door calls, masked on this door.
   Object.freeze({ key: `GET ${RUN_SERVICE_EVIDENCE_TEMPLATE}`, opId: RUNS_EVIDENCE_FUNCTION_ID }),
   Object.freeze({ key: `GET ${RUN_SERVICE_MARKS_TEMPLATE}`, opId: RUNS_MARKS_HISTORY_FUNCTION_ID }),
@@ -870,7 +870,7 @@ export async function withRunServiceDoor<Answer>(
   // Composing the SHIPPED composers rather than a stand-in is this module's whole rule.
   const sessions = createRunServiceSessionRegistry({ observeSessions: runDoor.observeSessions })
   const liveView = composeLiveView({ sessions, origin: () => boundOrigin })
-  // 405-05 (D-12 / 402 D-16): THE PROJECTION READER, bound over the same handle the ingest writes
+  // THE PROJECTION READER, bound over the same handle the ingest writes
   // through — exactly as `agent-qa dashboard` binds it. Without it `GET /run/:runId/detail` would
   // answer 503 `agent_host_unavailable`, which is a fact about a composition that forgot a port
   // rather than about the door this file is enumerating.
@@ -884,11 +884,11 @@ export async function withRunServiceDoor<Answer>(
     runBridge: runDoor.runBridge,
   })
   runDoor.bindHost(host)
-  // 432-21 (D-12): tokenless — no declared entries and no environment to read.
+  // tokenless — no declared entries and no environment to read.
   const runService = composeRunServicePorts({
     door: runDoor,
     sessions,
-    // 405-05: the SAME host the local door serves through, as `agent-qa dashboard` hands it.
+    // the SAME host the local door serves through, as `agent-qa dashboard` hands it.
     agentHost,
   })
   const started = await startServer({
@@ -940,7 +940,7 @@ export async function withRunServiceDoor<Answer>(
 export async function enumerateRunServiceOpIds(): Promise<SurfaceEnumeration> {
   const publishedKeys = RUN_SERVICE_ROUTE_TABLE.map((row) => runServiceRouteKey(row))
   const answered = await withRunServiceDoor(async (origin) => {
-    // 432-21 (D-12): the door asks for no credential.
+    // the door asks for no credential.
     const bearer: Record<string, string> = {}
     const keys: string[] = []
     let runId: string | undefined
@@ -995,7 +995,7 @@ export async function enumerateRunServiceOpIds(): Promise<SurfaceEnumeration> {
     }
 
     if (runId !== undefined) {
-      // 405-05 (D-12 / 402 D-16): THE TWO READ ROWS, DRIVEN.
+      // THE TWO READ ROWS, DRIVEN.
       //
       // WHAT COUNTS AS ANSWERED HERE, AND WHY IT IS NOT A 200. These two rows read DURABLE state
       // about a run the fixture only just started, so whether a projection or a blob exists yet is
@@ -1020,7 +1020,7 @@ export async function enumerateRunServiceOpIds(): Promise<SurfaceEnumeration> {
         }
       }
 
-      // 406-01 (D-04): THE ANALYSIS ROW, on the detail row's exact footing. `unknown_run` is
+      // THE ANALYSIS ROW, on the detail row's exact footing. `unknown_run` is
       // `analysis.get`'s own refusal, minted inside the op through `runs.get`, so a body carrying
       // it proves this row reached the capability rather than merely the door.
       const analysis = await fetch(
@@ -1051,7 +1051,7 @@ export async function enumerateRunServiceOpIds(): Promise<SurfaceEnumeration> {
     }
 
     if (runId !== undefined) {
-      // 423-21 (D-04/D-18): the evidence and feedback read rows, DRIVEN. Each counts as answered on
+      // the evidence and feedback read rows, DRIVEN. Each counts as answered on
       // the op's own vocabulary: a body its result contract parses, or the evidence read's own
       // `unknown_run` refusal for a run whose projection has not landed yet. 503 is never accepted.
       const run = encodeURIComponent(runId)
@@ -1102,7 +1102,7 @@ export const runServiceSurfaceAdapter: SurfaceAdapter = Object.freeze({
   id: 'run-service',
   enumerateOpIds: () => enumerateRunServiceOpIds(),
   /**
-   * WHAT THIS DOOR CANNOT DO, DECLARED (D-04) — and every member is a property of the door today.
+   * WHAT THIS DOOR CANNOT DO, DECLARED — and every member is a property of the door today.
    *
    * The list is derived from nothing: it is written, reviewed, and readable beside
    * `RUN_SERVICE_ROUTE_TABLE`, which publishes seven routes and no eighth. A reader can check every
@@ -1123,12 +1123,12 @@ export const runServiceSurfaceAdapter: SurfaceAdapter = Object.freeze({
     }),
     Object.freeze({
       capability: 'every OTHER read op the registry declares (runs.get, runs.list, knowledge.*, …)',
-      // 403-03: the grant gained `read` so the mint can dispatch, and the honest statement of what
+      // the grant gained `read` so the mint can dispatch, and the honest statement of what
       // still bounds this door is the ROUTE TABLE rather than the scope list. A scope is not a
       // route. 405-05 added the two run-shaped reads and 406-01 the analysis read, so the count is
       // seven paths of which five dispatch — and every one of the five is a row a reader can point
       // at, which is the property this entry exists to keep true.
-      // 423-21: the evidence read and the two feedback reads joined, so ten paths of which eight
+      // the evidence read and the two feedback reads joined, so ten paths of which eight
       // dispatch — still every one of them a row a reader can point at.
       why: 'the route table publishes ten paths and only eight of them dispatch — runs.start, '
         + 'runs.liveurl, runs.detail, runs.artifact, analysis.get, runs.evidence, '

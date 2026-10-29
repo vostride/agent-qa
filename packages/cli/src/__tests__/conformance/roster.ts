@@ -1,19 +1,19 @@
-// The surface roster: a pinned closed set (Phase 397 plan 01, D-04).
+// The surface roster: a pinned closed set.
 //
 // WHY A CLOSED SET AND NOT A DISCOVERY. "No private powers" is a claim about EVERY surface, and a
 // suite that ranged over whatever surfaces it happened to find would be measuring an accident. Two
 // surfaces exist today — the chat host and the MCP server — and they are named here as data so that
 // adding a third is a reviewed one-line diff rather than a silent widening of the claim.
 //
-// 2026-08-21 — FOUR ROWS. The sentence above is left as it was written because this file reads as a
+// FOUR ROWS. The sentence above is left as it was written because this file reads as a
 // dated history, and its counts are history too; the roster itself is what states the current set.
 //
-// 2026-09-28 — FOUR ROWS AGAIN (Phase 430, D-03). The dashboard chat door is deleted with its routes
-// (430 D-02), so its row and its adapter go with it; the counts above are left as written, and the
+// FOUR ROWS AGAIN. The dashboard chat door is deleted with its routes
+// so its row and its adapter go with it; the counts above are left as written, and the
 // roster below states the current set. `'dashboard'` stays a CALLER surface (run detail still reads
 // and marks through the host); it is no longer a registry-driven door.
 //
-// 2026-08-16 — THE REGISTRATION NOTE. A surface that lands after this date MUST arrive with a roster
+// THE REGISTRATION NOTE. A surface that lands after this date MUST arrive with a roster
 // row and an adapter, in the same change that ships it. Three are already anticipated:
 //
 //   * 398's capability catalogue, if it enumerates capabilities to a caller rather than only
@@ -25,7 +25,7 @@
 // A surface without a row is not "not yet covered" — it is a surface the parity claim silently
 // excludes itself from, which is worse than an uncovered one because the suite still reads green.
 //
-// 2026-08-17 — THE CAPABILITY CATALOGUE IS NOT A SURFACE (Phase 398, D-02). The first of the three
+// THE CAPABILITY CATALOGUE IS NOT A SURFACE. The first of the three
 // anticipated arrivals above has landed, and the answer to its "if it enumerates" condition is NO
 // ROW. A surface is an INVOCATION DOOR: dispatch, policy, and gate verdicts. The catalogue
 // (`packages/cli/capability-catalog/capability-catalog.json`, produced by `catalog.ts`) invokes
@@ -46,7 +46,7 @@
 // catalogue ever grows a read ENDPOINT — a caller asking a running process what exists, rather than
 // reading committed bytes — that endpoint is a door, and this note does not cover it.
 //
-// 2026-08-20 — THE `fn` DOOR IS THE THIRD ROW (Phase 399.1, D-07). This is the registration note
+// THE `fn` DOOR IS THE THIRD ROW. This is the registration note
 // above being honoured rather than an exception to it: `agent-qa fn` is an INVOCATION DOOR by the
 // 2026-08-17 test — it dispatches, it consults the gate, and a person reaches every registered
 // capability through it — and it had no row for three phases. 399's UAT is what made the omission

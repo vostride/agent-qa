@@ -134,9 +134,9 @@ describe('the catalog\'s example calls', () => {
       + 'params carry a construct the derivation will not guess at (today: a regular-expression '
       + '`pattern`). A new member is a deliberate decision, not a default.',
     ).toEqual([
-      // 2026-10-01 (432-17): `knowledge.proposal.apply` and `proposals.accept`/`reject`/`show` left
+      // `knowledge.proposal.apply` and `proposals.accept`/`reject`/`show` left
       // with the inbox, so the set is down to its one 405-05 member.
-      // 2026-08-27 (405-05 D-12/D-13): a FIFTH member, in sort position, and a deliberate one.
+      // a FIFTH member, in sort position, and a deliberate one.
       // `runs.artifact` requires a `sha` constrained to 64 lowercase hex, and the derivation will
       // not guess at a regular-expression `pattern` — which is right: an invented sha would be a
       // documented example call that resolves to nothing, teaching a reader a request the store
@@ -277,7 +277,7 @@ describe('the catalog\'s example calls', () => {
   })
 })
 
-// ---- `init --agent` (D-16) ---------------------------------------------------------------------
+// ---- `init --agent` ---------------------------------------------------------------------
 
 describe('the agent manifest', () => {
   const roots: string[] = []
@@ -351,7 +351,7 @@ describe('the agent manifest', () => {
     const manifest = await buildAgentManifest({
       configPath: join(fixtureProject('unfiltered'), 'agent-qa.config.yaml'),
     })
-    // 432-20 (D-12): rows carry no scope column any more, so "outside the default grant" is no
+    // rows carry no scope column any more, so "outside the default grant" is no
     // longer a property a row has. The claim survives as completeness: every registered op is a row,
     // including every config write the old default grant withheld.
     const opRows = manifest.rows.filter((row): row is CatalogOpRow => row.kind === 'op')
@@ -362,14 +362,14 @@ describe('the agent manifest', () => {
     expect(opRows.filter((row) => row.id.startsWith('config.') && row.id !== 'config.get').length)
       .toBeGreaterThan(0)
     // …and the note a reader gets says so, in the document rather than in a source file.
-    // RE-SPELLED 2026-10-02 (432-42, D-12) from `NOT A GRANT LIST`: there is no grant to contrast
+    // RE-SPELLED 2026-10-02 from `NOT A GRANT LIST`: there is no grant to contrast
     // with, so the note says the manifest is unfiltered and that nothing is permissioned.
     expect(manifest.$note.join(' ')).toContain('THIS MANIFEST IS UNFILTERED')
     expect(manifest.$note.join(' ')).toContain('there are no permissions')
     expect(manifest.$note.join(' ')).not.toMatch(/grant list/iu)
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from '… by env-ref NAME …'. The manifest reads no MCP token
+  // RE-SPELLED 2026-10-01 from '… by env-ref NAME …'. The manifest reads no MCP token
   // declaration any more, so a legacy block yields no ref at all; the never-by-value half is the claim
   // that survives, and it is still measured against a value that is SET while the manifest builds.
   it('reports a declared credential by env-ref NAME and never by value',
@@ -396,12 +396,12 @@ describe('the agent manifest', () => {
 
       const serialized = JSON.stringify(manifest, null, 2)
 
-      // 432-22 (D-22): the legacy block is a deleted key, so the config does not resolve.
+      // the legacy block is a deleted key, so the config does not resolve.
       expect(manifest.posture.configuration, 'a legacy token block must fail strict validation')
         .toBe('unresolved')
-      // 432-21 (D-12): no ref is reported — the legacy block is read by nothing. The non-vacuity
+      // no ref is reported — the legacy block is read by nothing. The non-vacuity
       // control is the rows: the manifest is whole, so the absence below is about a real document.
-      // 2026-10-02 (432-39, D-12): the posture has no ref member at all now.
+      // the posture has no ref member at all now.
       expect(manifest.posture, 'the manifest reported a legacy token declaration')
         .not.toHaveProperty('tokenEnvRefs')
       expect(manifest.rows.length, 'the manifest carried no rows').toBeGreaterThan(0)
@@ -419,7 +419,7 @@ describe('the agent manifest', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-02 (432-39, D-12): `AgentManifestTokenRefSchema` is deleted with the posture's
+  // RE-SPELLED 2026-10-02: `AgentManifestTokenRefSchema` is deleted with the posture's
   // `tokenEnvRefs`. The structural half survives one level up: the posture is `.strict()`, so a
   // token ref — with a value or without — cannot be added by accident; it stops parsing.
   // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'refuses a token ref carrying a value, rather than passing one through': the body asserts the absence, so the title does.
@@ -445,10 +445,10 @@ describe('the agent manifest', () => {
     expect(AgentManifestPostureSchema.safeParse({ configuration: 'resolved' }).success).toBe(true)
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12): the MCP default grant (every scope but `config-write`)
+  // RE-SPELLED 2026-10-01: the MCP default grant (every scope but `config-write`)
   // is deleted with the token resolver. Every caller reaches every op, so the posture reports the
   // WHOLE closed scope union, read off the union rather than restated, and safe mode is off.
-  // RE-SPELLED 2026-10-02 (432-39, D-12): the union, the grant and the safe-mode member are deleted,
+  // RE-SPELLED 2026-10-02: the union, the grant and the safe-mode member are deleted,
   // so there is nothing left to restate: the posture carries neither member, and the CLI mint no flag.
   // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'reads the shipped default grant and safe-mode state rather than restating them': the body asserts the absence, so the title does.
   it('reports a posture of exactly { configuration }, with no default grant or safe-mode member', async () => {

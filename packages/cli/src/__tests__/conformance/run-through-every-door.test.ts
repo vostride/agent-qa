@@ -1,4 +1,4 @@
-// C443-DOOR-MATRIX (Phase 443 plan 01; D-13, D-14, D-15, V2-RUN-02).
+// C443-DOOR-MATRIX.
 //
 // One single-test run through each door, against one project and one runs.db, with real headless
 // Chromium and the stub model. The project's target is declared `environment: production`, so every
@@ -159,7 +159,7 @@ function message(error: unknown): string {
   return error instanceof Error ? error.message : String(error)
 }
 
-// 2026-10-17 (443-01, D-13): post-run digests also name runs earlier doors started.
+// post-run digests also name runs earlier doors started.
 function onlyRunId(text: string): string {
   const earlier = new Set(records.map((record) => record.runId))
   const ids = printedRunIds(text).filter((runId) => !earlier.has(runId))
@@ -244,7 +244,7 @@ function stdioTransport(extraEnv: NodeJS.ProcessEnv = {}): StdioClientTransport 
   })
 }
 
-// 2026-10-17 (443-10, D-13): the MCP client drops stdout lines that are not JSON, so its error
+// the MCP client drops stdout lines that are not JSON, so its error
 // handler never sees a stray line. A preload in the CLI child (not its children) records every
 // byte the server writes to stdout.
 function stdoutTeeEnv(): NodeJS.ProcessEnv {
@@ -546,7 +546,7 @@ const DRIVERS: Readonly<Record<string, Driver>> = {
   },
 }
 
-// 2026-10-17 (443-01, D-13): the post-run tail appends curation events after runFinished.
+// the post-run tail appends curation events after runFinished.
 function holdsRunFinished(runId: string): boolean {
   try {
     return runStoreEvents(project, runId).some((event) => event.type === 'runFinished')
@@ -733,7 +733,7 @@ describe('a run through every door', () => {
     expect(project.secondTestId, 'the project has a failing test').toBeDefined()
 
     for (const row of ROWS) records.push({ row })
-    // 2026-10-17 (443-01, D-13): fn, ask and chat leave their hosts' knowledge writer lease held in
+    // fn, ask and chat leave their hosts' knowledge writer lease held in
     // this process (a CLI process exits with it), which the daemon refuses, so the daemon goes first.
     const daemonFirst = [...ROWS].sort((a, b) => Number(b.label === 'the daemon') - Number(a.label === 'the daemon'))
     for (const row of daemonFirst) {

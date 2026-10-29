@@ -1,4 +1,4 @@
-// THE POPULATED RUN, ON THE ARTIFACT A PERSON INSTALLS (Phase 405 plan 09 · DETL-01 / DETL-02).
+// THE POPULATED RUN, ON THE ARTIFACT A PERSON INSTALLS.
 //
 // WHAT THIS FILE PROVES. `populated-run-fixture.ts` is a PRODUCER, and a producer nobody has
 // watched produce is a fixture that will be discovered broken by whichever cell depends on it

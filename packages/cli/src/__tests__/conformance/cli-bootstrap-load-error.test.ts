@@ -1,4 +1,4 @@
-// 2026-10-18 (444-27, D-62 WR-01, D-47): the shipped bootstrap reports a CLI that fails while
+// the shipped bootstrap reports a CLI that fails while
 // loading with the framework line, then the error's stack, and exits 2. The built dist/cli.js is
 // copied alone beside a cli-main.js this file writes, so the failure is the bootstrap's to report.
 

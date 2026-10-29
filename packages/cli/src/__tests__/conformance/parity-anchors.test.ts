@@ -20,7 +20,7 @@
 // guard below is what keeps that shared artifact from being a PREVIOUS revision of the source the
 // rest of the suite is reasoning about.
 //
-// THE INSTRUMENT ITSELF LIVES IN `spawned-chat.ts`, AND ONLY THERE (399.1-01). The stale-dist
+// THE INSTRUMENT ITSELF LIVES IN `spawned-chat.ts`, AND ONLY THERE. The stale-dist
 // freshness guard, the hermetic child environment, the fixture project and the chat driver were all
 // defined in this file until phase 399.1 needed the same instrument for its render differential.
 // This file's own law about the driver — "a second spawn helper would be a second answer to 'what
@@ -155,7 +155,7 @@ function readChatAnchor(root: string): ChatAnchorReading {
 }
 
 /**
- * The 398-13 answer-channel utterance: the `/fn` passthrough, so stage 1 resolves it (D-06).
+ * The 398-13 answer-channel utterance: the `/fn` passthrough, so stage 1 resolves it.
  *
  * NOTHING ABOUT THIS STRING IS ASSERTED. It is the deterministic route and only that — a braced
  * JSON body the clause splitter keeps as one clause, naming the explain op and a question whose
@@ -210,7 +210,7 @@ async function driveChatInProcess(configPath: string): Promise<{ stdout: string;
   }
 }
 
-/** Drive the SHIPPED binary's `init --agent` against a project directory (398-08, D-16). */
+/** Drive the SHIPPED binary's `init --agent` against a project directory. */
 async function spawnAgentManifest(
   root: string,
   args: readonly string[],
@@ -282,9 +282,9 @@ describe('the built-binary anchors', () => {
       )
 
       const spawned = expandMcpListedTools(spawnedToolNames, AGENT_QA_TOOL_PROJECTIONS)
-      // 419 D-20: stdio has no request bearer. Compare the SAME caller posture.
-      // 432-20 (D-12): no tool is hidden from a bearer-less caller any more, so the binary lists
-      // every projected tool, the credential-required mark door included. 2026-10-02 (432-39): the
+      // stdio has no request bearer. Compare the SAME caller posture.
+      // no tool is hidden from a bearer-less caller any more, so the binary lists
+      // every projected tool, the credential-required mark door included. 2026-10-02: the
       // in-process side lists under the shipped `MCP_FUNCTION_CALLER` too — the binary's own caller.
       const inProcess = await enumerateMcpOpIds()
       expect([...spawnedToolNames].sort()).toEqual(AGENT_QA_TOOL_PROJECTIONS
@@ -515,8 +515,8 @@ describe('the built-binary anchors', () => {
       // THE POSTURE IS SHAPE-ASSERTED, NOT BYTE-PINNED, and that is the honest bar: it is a fact
       // about the workspace the binary ran in — a temporary directory here — so pinning its bytes
       // would pin the fixture. What must hold is that the section is WHOLE and reports the shipped
-      // default grant rather than a list this cell wrote down. 2026-10-01 (432-21, D-12): that grant
-      // is the whole closed scope union — no caller is withheld anything. 2026-10-02 (432-39, D-12):
+      // default grant rather than a list this cell wrote down. 2026-10-01: that grant
+      // is the whole closed scope union — no caller is withheld anything. 2026-10-02:
       // the posture's grant and safe-mode members are deleted, so WHOLE now means exactly the one
       // member that is left, and no retired member rides along.
       expect(Object.keys(manifest.posture), 'the shipped posture still reports a scope grant')
@@ -527,7 +527,7 @@ describe('the built-binary anchors', () => {
         .toEqual(['configuration'])
     }, 120_000)
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12): the NAME half is retired (no token declaration is read);
+  // RE-SPELLED 2026-10-01: the NAME half is retired (no token declaration is read);
   // the never-its-value half is measured unchanged.
   it('the shipped init --agent prints a declared credential\'s NAME and never its value',
     async () => {
@@ -561,14 +561,14 @@ describe('the built-binary anchors', () => {
 
       const manifest = AgentManifestSchema.parse(JSON.parse(outcome.stdout) as unknown)
 
-      // 2026-10-01 (432-22, D-22): the legacy token block is a deleted key, so the project's config
+      // the legacy token block is a deleted key, so the project's config
       // does not resolve (the ordinary strict error) and the manifest still answers, whole.
       expect(manifest.posture.configuration, 'a legacy token block must fail strict validation')
         .toBe('unresolved')
-      // 2026-10-01 (432-21, D-12): NO REF IS REPORTED — the legacy token block is read by nothing.
+      // NO REF IS REPORTED — the legacy token block is read by nothing.
       // The non-vacuity control is the whole document and the echo cell below: the binary ran, the
       // value was readable in its environment, and it printed it nowhere.
-      // 2026-10-02 (432-39, D-12): the posture has no ref member at all now.
+      // the posture has no ref member at all now.
       expect(manifest.posture, 'the shipped manifest reported a legacy token declaration')
         .not.toHaveProperty('tokenEnvRefs')
       expect(manifest.rows.length, 'the shipped manifest carried no rows').toBeGreaterThan(0)

@@ -1,4 +1,4 @@
-// 2026-10-17 (443-11, D-13): a project may set its log level to debug, and the per-test debug lines
+// a project may set its log level to debug, and the per-test debug lines
 // are the terminal door's to print. A protocol door's stdout holds only its protocol.
 
 import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs'

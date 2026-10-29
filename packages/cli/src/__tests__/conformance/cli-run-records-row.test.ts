@@ -1,6 +1,6 @@
-// 2026-10-17 (443-08, D-03/D-05/D-26): `agent-qa run` records every run it starts in runs.db,
+// `agent-qa run` records every run it starts in runs.db,
 // whatever the config holds, refuses a run it cannot record, and files a failure under the id it
-// prints. 443-09 (D-03/D-20): the reporter list never decides the row or screenshot capture.
+// prints. 443-09: the reporter list never decides the row or screenshot capture.
 
 import { createHash } from 'node:crypto'
 import { appendFileSync, existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
@@ -343,7 +343,7 @@ describe('the reporter list and the run record', () => {
   }, CELL_BUDGET_MS)
 })
 
-// 2026-10-17 (443-10, D-26): the suite producer prints nothing; only `agent-qa run` names the id.
+// the suite producer prints nothing; only `agent-qa run` names the id.
 describe('a suite preparation failure\'s output', () => {
   function stdoutNotOneJsonDocument(stdout: string): string {
     if (stdout.trim() === '') return ''

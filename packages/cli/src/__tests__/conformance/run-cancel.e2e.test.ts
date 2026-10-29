@@ -1,4 +1,4 @@
-// C444-REAL-CANCEL (444-17, D-12, D-11, D-31): a cancel is proven against a run that is really
+// a cancel is proven against a run that is really
 // running. Each leg parks a run inside step 1 on a real page in real headless Chromium (the stub
 // model holds the planning turn and never answers it), cancels it through one door and reads what
 // the run left: no later step, the held request aborted, the run's Chromium gone, a `cancelled`
@@ -314,7 +314,7 @@ function seen(facts: LegFacts): string {
   }, null, 2)
 }
 
-// The per-leg set (D-12): the run was parked in its step with a live browser, nothing ran after the
+// The per-leg set: the run was parked in its step with a live browser, nothing ran after the
 // cancel, the held request was aborted, the browser closed, the verdict and the handoff read
 // `cancelled`, and the row read `running` at every poll until the verdict envelope existed.
 function expectCancelledInPlace(facts: LegFacts): void {
@@ -327,7 +327,7 @@ function expectCancelledInPlace(facts: LegFacts): void {
   expect(facts.settled, `the run settled within ${String(SETTLE_BUDGET_MS)} ms of the cancel\n${at}`).toBe(true)
   expect(facts.stepsStartedAfterCancel, `no step started after the cancel\n${at}`).toBe(0)
   expect(facts.events?.filter((type) => type === 'stepStarted'), at).toEqual(['stepStarted'])
-  // D-51: the ratified one-terminal-record contract publishes exactly one record for the held
+  // the ratified one-terminal-record contract publishes exactly one record for the held
   // step, and it names no cause.
   expect(stepRecords(facts), `the held step has exactly one cancelled record\n${at}`).toEqual([
     { testIndex: 0, stepIndex: 0, status: 'cancelled', error: HELD_STEP_RECORD },

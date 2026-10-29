@@ -1,4 +1,4 @@
-// C444-CANCEL-RANKING (444-17, D-10, D-34): `runner.md` §2.1's ratified ranking on a real run.
+// `runner.md` §2.1's ratified ranking on a real run.
 // A direct run of three tests in member order (no `use.parallel`, so one worker): member 1 fails,
 // member 2 is parked inside its step by the stub model, and Ctrl+C lands there. The run reads
 // `cancelled` with exit 130, and every surface that lists members shows member 1 `failed`, member

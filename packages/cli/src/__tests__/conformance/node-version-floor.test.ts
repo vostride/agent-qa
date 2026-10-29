@@ -1,4 +1,4 @@
-// C445-NODE-FLOOR (445-01, D-21): an unsupported Node is refused before cli-main or node:sqlite loads
+// an unsupported Node is refused before cli-main or node:sqlite loads
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'

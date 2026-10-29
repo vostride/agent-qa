@@ -71,7 +71,7 @@ function explainRegistry(port: CapabilityCatalogPort): FunctionRegistry {
     deps: { capabilityCatalog: port } as unknown as Parameters<
       typeof createFunctionRegistry
     >[0]['deps'],
-    // 2026-10-01 (432-31, D-12): the pinned `resolveExecutionContext` registry option is dropped.
+    // the pinned `resolveExecutionContext` registry option is dropped.
     // The registry never read it (no op gate decides in a context), so the answer was already the
     // same on a laptop and on a runner.
   })
@@ -130,7 +130,7 @@ describe('the empty-catalog differential — PRODUCED, not literal', () => {
     writeFileSync(catalogPath, capabilityCatalogText(capabilityCatalogDocumentOf([])), 'utf8')
 
     // AND IT GOES BACK THROUGH THE ONE LOADER. The loader is built to tell a produced zero-row
-    // catalog apart from a missing one (398-01), and this is the cell that depends on it: if it
+    // catalog apart from a missing one, and this is the cell that depends on it: if it
     // threw here, the op would never reach its abstention arm at all.
     expect(loadCapabilityCatalog(catalogPath).rows).toEqual([])
 
@@ -427,7 +427,7 @@ function recordingModel(answer: string): { readonly model: ChatLanguageModel; pr
     // The parameter type is INFERRED from the mock's own constructor rather than annotated:
     // annotating it would mean naming `LanguageModelV3CallOptions`, i.e. naming the provider
     // protocol package in a `cli` source file, which is the dependency edge the model firewall
-    // exists to keep out of every package but `model` (CHAT-06).
+    // exists to keep out of every package but `model`.
     doGenerate: async (options) => {
       prompts.push(JSON.stringify(options.prompt))
       return {
@@ -446,7 +446,7 @@ function recordingModel(answer: string): { readonly model: ChatLanguageModel; pr
 
 describe('the grounding obligation, driven through the SHIPPED model path', () => {
   // THE CELLS ABOVE ALL DOCTOR `citeCapabilities`, WHICH IS WHY THIS BLOCK EXISTS. Measured
-  // 2026-08-17: a mutation that deleted the catalog from the prompt entirely left all fourteen of
+  // a mutation that deleted the catalog from the prompt entirely left all fourteen of
   // them green. That is precisely the gap plan 04 flagged and said nothing in `packages/agent` could
   // close — "a binding that prompts WITHOUT the rows degrades every answer to a ghost citation,
   // which abstains, so it is safe and useless" — and safe-and-useless is a state no assertion about
@@ -512,7 +512,7 @@ describe('the grounding obligation, driven through the SHIPPED model path', () =
   })
 })
 
-// ---- 398-10 (D-11 / D-18): the counter hooks, BOUND to a composed analytics port ---------------
+// ---- 398-10: the counter hooks, BOUND to a composed analytics port ---------------
 //
 // The two cells above prove the hooks FIRE. This one proves the CLI composition root actually ties
 // them to something — the failure mode is a host that builds a perfectly good port and never hands
@@ -596,7 +596,7 @@ describe('the composition root binds the counter hooks to the analytics port', (
 })
 
 
-// ---- 398-13 (D-21 · XPLN-02): the ANSWER ARM, at the turn boundary a person reads ---------------
+// ---- 398-13: the ANSWER ARM, at the turn boundary a person reads ---------------
 //
 // WHAT EVERY CELL ABOVE STRUCTURALLY CANNOT SEE. They all assert on the op's RETURN VALUE, which
 // was correct and complete the whole time — and 398-12's live run measured that the whole of what

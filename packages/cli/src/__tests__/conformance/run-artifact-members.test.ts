@@ -1,4 +1,4 @@
-// C444-ARTIFACT-MEMBERS (Phase 444 plan 03; D-07, V2-RUN-03).
+// C444-ARTIFACT-MEMBERS.
 //
 // One real two-test `agent-qa run` over the stub model and Chromium: the artifact its runs.db row
 // carries lists both members, each with its own file's YAML, rather than the first member's.

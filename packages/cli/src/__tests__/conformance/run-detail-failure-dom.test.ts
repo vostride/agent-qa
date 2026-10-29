@@ -2,7 +2,7 @@
 // The DOM lib is referenced HERE because this file's `page.evaluate` callbacks are compiled as
 // TypeScript and EXECUTED in a browser — `run-detail-dom.test.ts`'s reasoning, unchanged.
 
-// A FAILED RUN'S SUMMARY, IN THE MEDIUM A PERSON LOOKS AT (Phase 405 plan 14 · DETL-02, WINDOWS #287).
+// A FAILED RUN'S SUMMARY, IN THE MEDIUM A PERSON LOOKS AT.
 //
 // WHAT THIS FILE MEASURES THAT ITS SIBLING CANNOT. `run-detail-dom.test.ts` drives 405-09's
 // populated run, and that run PASSES — so `run.status === 'failed' && run.failureSummary` is false
@@ -28,7 +28,7 @@
 // THE DRIVING HAPPENS ONCE, IN `beforeAll`, AND THE CELLS ASSERT ON WHAT IT RECORDED. The drive
 // records and never asserts, so each named claim can be the only red under its own mutation.
 //
-// NO RESTART LEG. Since 441-15 (D-07) the dashboard serves the text a run stored and restores
+// NO RESTART LEG. Since 441-15 the dashboard serves the text a run stored and restores
 // nothing, so a second process would read exactly what the first one does. Cell (3e) reads the
 // banner's text on the FIRST process, which is the fact this file needs.
 //
@@ -38,8 +38,8 @@
 // copy in the TRUNCATED state, which is why this file's browser context is granted
 // `clipboard-read`/`clipboard-write`.
 //
-// THE DECLARED MARKER IS TEXT (441 D-28). The run stores a declared value as `[secret:<name>]`, and
-// the banner and the artifact drawer show that string as written, with no chip (C441-DISPLAY).
+// THE DECLARED MARKER IS TEXT. The run stores a declared value as `[secret:<name>]`, and
+// the banner and the artifact drawer show that string as written, with no chip.
 //
 // WHAT A RED ON (3f) MEANS, STATED BEFORE ANYONE IS TEMPTED. `runs.failure_summary` is an at-rest
 // sink no PASSING run ever writes, so this file's scan covers ground 405-12's cannot. If a planted
@@ -150,7 +150,7 @@ function unescapeStringBody(body: string): string {
  * test would drag a renderer in, and a hardcoded copy would go on passing against a page that says
  * something else.
  *
- * EITHER QUOTE STYLE, AND THE STYLE IS NOT THE CONSTANT'S BUSINESS (WINDOWS #297). This read used
+ * EITHER QUOTE STYLE, AND THE STYLE IS NOT THE CONSTANT'S BUSINESS. This read used
  * to accept single quotes only, so a DOUBLE-quoted constant (one whose text carries an apostrophe)
  * could not be read at all, and a Prettier or ESLint quote-style change turned a working read into
  * a `beforeAll` throw that red every cell at once, for a formatting reason. The body is matched to
@@ -174,7 +174,7 @@ function publishedConstant(relativePath: string, name: string): string {
   return unescapeStringBody(entry[2] as string)
 }
 
-// ── THE HELPER'S OWN CELL (WINDOWS #297). It is outside the drive's `describe` deliberately: it
+// ── THE HELPER'S OWN CELL. It is outside the drive's `describe` deliberately: it
 // reads one source file and nothing else, so it must not pull a spawned binary, a browser and a
 // real run in behind it. A helper whose failure mode is "throws in `beforeAll` and reds every cell
 // in the file at once" is worth three cells of its own.
@@ -197,7 +197,7 @@ describe('publishedConstant reads a constant whatever quotes it carries', () => 
   })
 })
 
-/** The declared value as the run stores it, and as every surface shows it (441 D-28). */
+/** The declared value as the run stores it, and as every surface shows it. */
 const DECLARED_SECRET_MARKER = `[secret:${POPULATED_SECRET_NAME}]`
 
 /** One response the browser actually received, as the cells that read it consume it. */
@@ -240,7 +240,7 @@ interface PageObservation {
   /**
    * Whether a `[data-failure-banner-toggle]` was present AND its click RESOLVED.
    *
-   * BOTH HALVES, BECAUSE THE FLAG IS A CELL'S DIAGNOSIS (WINDOWS #293). It was set unconditionally
+   * BOTH HALVES, BECAUSE THE FLAG IS A CELL'S DIAGNOSIS. It was set unconditionally
    * on the line after a click whose rejection was swallowed, so an element that existed and could
    * not be clicked — detached, obscured, timed out — reported `true`, and cell (3d) then red one
    * assertion later with a message naming the wrong cause on the slowest suite in the repository.
@@ -545,7 +545,7 @@ async function observeFailureBanner(
       }
     }
 
-    // THE FLAG RECORDS THE CLICK'S OUTCOME, NOT ITS ATTEMPT (WINDOWS #293). `toggled = true` used
+    // THE FLAG RECORDS THE CLICK'S OUTCOME, NOT ITS ATTEMPT. `toggled = true` used
     // to sit unconditionally after a `.catch(() => undefined)`, so a click that threw still
     // reported success and (3d) blamed a missing element for a click that failed on a present one.
     const toggle = page.locator('[data-failure-banner-toggle]')
@@ -614,7 +614,7 @@ async function observeFailureBanner(
  * Open the artifact drawer with its `i` shortcut, expand the suite member's raw YAML and read it.
  *
  * The run's test source is captured through the run's mask, so the member's step reads with the
- * stored `[secret:<name>]` the drawer shows as written (441 D-28).
+ * stored `[secret:<name>]` the drawer shows as written.
  */
 async function observeArtifactDrawer(page: Page): Promise<DrawerObservation> {
   let waitFailure: string | undefined
@@ -936,7 +936,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
       + `\`runs.failure_summary\` is the sink a passing run never writes.${context()}`,
     ).toBe(false)
 
-    // Undeclared values are recorded as written (D-01, D-12, D-23).
+    // Undeclared values are recorded as written.
     for (const [what, value] of [
       ['the env credential', POPULATED_SECRET_VALUE],
       ['the planted email address', POPULATED_EMAIL],

@@ -1,4 +1,4 @@
-// The classifier census: every registered capability folds its own result (399.1-04 · D-01).
+// The classifier census: every registered capability folds its own result.
 //
 // WHY A CENSUS AND NOT A REVIEW HABIT. D-01 put refusal knowledge in a per-op declared fold rather
 // than in a chat-side rule that pattern-matches values, because a rule that can only refuse what it
@@ -18,7 +18,7 @@
 // the shipped registry enumerates against (2) the op ids whose declaration carries `classifies`.
 // Both sides are read off real declarations from a composed host; neither is a list somebody typed.
 // The `classifies` projection exists precisely so this package — which cannot reach a `FunctionSpec`
-// by construction (BL-01 / 384 FUNC-03) — can ask the question without reading forty-four op files.
+// by construction — can ask the question without reading forty-four op files.
 //
 // AND THE THIRD REGISTER, WHICH IS THE ONE THAT CATCHES DRIFT. A live-only census passes forever on
 // a registry that quietly stopped declaring: `classifies` disappearing from an op would leave BOTH
@@ -83,7 +83,7 @@ describe('the classifier census: no capability ships without a fold', () => {
 
   it('carries exactly one classifier per registered capability, in both directions', () => {
     // BOTH DIRECTIONS, because a census that only checks one is the register that never notices it
-    // has stopped growing (397 D-10). The `stray` side is the one that fires if the classifying set
+    // has stopped growing. The `stray` side is the one that fires if the classifying set
     // is ever sourced from anywhere other than the same enumeration — a hand-written roster, a
     // second registry, a golden row for a capability that no longer exists — and it is asserted
     // rather than reasoned away, because "structurally impossible today" is a property of one

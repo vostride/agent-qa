@@ -143,7 +143,7 @@ beforeAll(async () => {
     frameBytes: png,
     frameKind: 'snapshot',
   })
-  // The hub's fallback seat (428-04): a screencast is declared, and the frames that arrive are
+  // The hub's fallback seat: a screencast is declared, and the frames that arrive are
   // snapshots. The label must follow the frames, not the declaration.
   plantStreamingRun({
     runId: FALLBACK_RUN,
@@ -197,7 +197,7 @@ async function cornerReading(page: Page): Promise<{ state: string | null; dot: s
   }))
 }
 
-// Since 2026-09-26 (428-34, G-428-4) a capture is the whole preview, chrome and picture, because
+// Since 2026-09-26 a capture is the whole preview, chrome and picture, because
 // the status sits in the chrome above the picture; it was the picture's box alone.
 async function capture(page: Page, name: string): Promise<void> {
   const directory = process.env[CAPTURE_DIR_ENV]

@@ -1,4 +1,4 @@
-// C446-RECIPE-LINKS (446-09, D-10, D-28): every starting point links the recipe page within its bounds
+// every starting point links the recipe page within its bounds
 
 import { describe, expect, it } from 'vitest'
 

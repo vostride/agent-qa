@@ -1,4 +1,4 @@
-// C445-KNOWLEDGE-GITIGNORE (445-06, D-22, D-34): a fresh workspace keeps the writer-authority SQLite files out of git (WINDOWS #510)
+// a fresh workspace keeps the writer-authority SQLite files out of git
 
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'

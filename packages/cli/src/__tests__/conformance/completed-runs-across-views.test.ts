@@ -1,4 +1,4 @@
-// C444-COMPLETED-VIEWS (444-18, D-04, D-02): three real `agent-qa run`s in one project, one that
+// three real `agent-qa run`s in one project, one that
 // passes, one that fails and one stopped with one SIGINT while its step is held, are then read on
 // the doors a user touches: the shipped dashboard's Completed tab in headless Chromium,
 // `agent-qa runs list --json` and MCP `agent_qa_list_runs` over stdio. Each id must be on all three

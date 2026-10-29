@@ -1,5 +1,5 @@
 /// <reference lib="dom" />
-// C444-RUNS-TABLE (Phase 444 plan 16; D-05, V2-RUN-03).
+// C444-RUNS-TABLE.
 //
 // The Runs list measured in real headless Chromium against the shipped dashboard, over runs.db rows
 // seeded before the dashboard starts. The drive records once per viewport in `beforeAll`; the cells

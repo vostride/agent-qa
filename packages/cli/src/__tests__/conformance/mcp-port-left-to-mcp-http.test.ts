@@ -1,4 +1,4 @@
-// C446-PORT-OWNER (446-01, D-05, D-26): agent-qa mcp --http alone owns port 3471
+// agent-qa mcp --http alone owns port 3471
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdtempSync, readFileSync } from 'node:fs'

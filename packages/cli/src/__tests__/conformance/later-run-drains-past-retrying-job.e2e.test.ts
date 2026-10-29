@@ -1,4 +1,4 @@
-// C444.1-RETRY-BACKOFF (444.1-12, D-23): two real `agent-qa run`s in one workspace. Run A fails
+// two real `agent-qa run`s in one workspace. Run A fails
 // and its analyze-run author is refused, so A's own tail leaves that row retrying. Run B passes,
 // and its tail must complete B's own chain behind A's retrying row instead of stopping on it.
 

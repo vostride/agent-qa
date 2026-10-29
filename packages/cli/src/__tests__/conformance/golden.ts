@@ -16,7 +16,7 @@
 // A hand-written golden can encode a value the producer cannot produce, and the diff leg then reds
 // only on that impossible row while agreeing with the code about everything real.
 //
-// THE REGEN CANNOT BE ONE KEYSTROKE (D-07). There is no `toMatchSnapshot` here and no `--update`
+// THE REGEN CANNOT BE ONE KEYSTROKE. There is no `toMatchSnapshot` here and no `--update`
 // path that reaches this file: nothing in this directory writes to `golden-registry.json` at all,
 // and `parity.test.ts` asserts that absence as source. The ONE writer is
 // `scripts/regen-capability-golden.sh --write`, which refuses to run while any other leg of the
@@ -89,7 +89,7 @@ export type GoldenPartition =
 /**
  * The risk descriptor's STATIC fields, and only those.
  *
- * 2026-10-02 (432-42, D-14/D-16): the descriptor's per-invocation `disclosure` and shell `command`
+ * the descriptor's per-invocation `disclosure` and shell `command`
  * members are deleted, so every member left but the caller's `surface` is projected;
  * `parity.test.ts` holds a register asserting that no descriptor in the census carries a key this
  * projection would silently drop.
@@ -108,11 +108,11 @@ export interface GoldenRiskProjection {
 /** One capability, as the ledger records it. */
 export interface GoldenRow {
   readonly id: string
-  // 2026-10-01 (432-20, D-10/D-12): the `requiredScopes` and `requiresHumanOrigin` columns are
+  // the `requiredScopes` and `requiresHumanOrigin` columns are
   // gone. Declarations carry no permission metadata, so the ledger has none to record.
-  // 2026-10-02 (432-42, D-14): the `discloses` column is gone with the per-op disclosure it recorded.
+  // the `discloses` column is gone with the per-op disclosure it recorded.
   /**
-   * Present only when the op folds its own result into a clause verdict (399.1 D-01).
+   * Present only when the op folds its own result into a clause verdict.
    *
    * CHANGE-CONTROL SURFACE, not decoration. An op that stops classifying its own result goes back
    * to reporting `executed` for every arm of its union — which is the defect G-399-2 measured, a
@@ -120,11 +120,11 @@ export interface GoldenRow {
    * one-line diff in this column.
    */
   readonly classifies?: true
-  /** Present only when the op declares render lines on top of the payload (399.1 D-04). */
+  /** Present only when the op declares render lines on top of the payload. */
   readonly rendersResult?: true
   readonly resultKind: string
   /**
-   * Whether the ONE shipped composition root binds this capability (D-08).
+   * Whether the ONE shipped composition root binds this capability.
    *
    * Read off a real `composeCliLocalAgent()` composition, never off a table. The third state is the
    * literal string `unbound`, so an unbound capability is a value in this column rather than a hole
@@ -341,7 +341,7 @@ export function goldenFileText(file: GoldenFile): string {
   return committedFileText(file)
 }
 
-// ---- The composition root (D-08) -----------------------------------------------------------------
+// ---- The composition root -----------------------------------------------------------------
 
 /**
  * A deterministic project the composition root can be built over, and nothing more.
@@ -376,7 +376,7 @@ function goldenRootWorkspace(): { readonly configPath: string; readonly projectR
 }
 
 /**
- * Compose the ONE shipped composition root and hand its declarations to a body (D-08, 385 D-15).
+ * Compose the ONE shipped composition root and hand its declarations to a body.
  *
  * THROUGH `composeCliLocalAgent`, which is `composeLocalAgent` plus this host's own bindings — the
  * function every shipped CLI surface composes through (`commands/chat.ts`, `commands/mcp.ts`,
@@ -416,7 +416,7 @@ export async function goldenFileFromRoot(): Promise<GoldenFile> {
   return withGoldenRootDeclarations((declarations) => goldenFileOf(declarations))
 }
 
-// ---- The comparator (D-06) -----------------------------------------------------------------------
+// ---- The comparator -----------------------------------------------------------------------
 
 /** One disagreement between the live ledger and the committed one, named by op and field. */
 export interface GoldenFinding {
@@ -445,7 +445,7 @@ function sameValue(left: unknown, right: unknown): boolean {
 /**
  * Every field on every row that disagrees, as data.
  *
- * PURE, TOTAL AND DRIVABLE. The named-RED requirement (D-06/D-07) is that a mismatch identifies the
+ * PURE, TOTAL AND DRIVABLE. The named-RED requirement is that a mismatch identifies the
  * OP and the FIELD rather than announcing that two hashes differ, and a comparator that only threw
  * could not be shown to do that without breaking the committed file. `parity.test.ts` drives this
  * with synthetically altered rows — a widened scope, a dropped risk hint, a moved partition — and
@@ -514,7 +514,7 @@ export function goldenFieldsThatMoved(
   return findings.filter((finding) => finding.opId === opId).map((finding) => finding.field)
 }
 
-// ---- The emit port the regen script reads (D-07) -------------------------------------------------
+// ---- The emit port the regen script reads -------------------------------------------------
 
 /**
  * The env flag under which the suite PRINTS a freshly minted ledger, and never writes one.

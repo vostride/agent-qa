@@ -33,7 +33,7 @@
 // (408-01 lost an afternoon to a stale `mcp/dist`; the gate that caught it is the reason this one
 // is here.)
 //
-// THE THIRD CELL IS THE NO-SECOND-EMBED LAW (D-04). The MCP App wrapper and the dashboard's own
+// THE THIRD CELL IS THE NO-SECOND-EMBED LAW. The MCP App wrapper and the dashboard's own
 // live page are TWO CONSUMERS OF ONE embed document, not two embed documents. The wrapper is
 // allowed to copy `embed-page.ts`'s IDIOMS — its state-machine shape, its `scriptLiteral` escape —
 // and is not allowed to copy its bytes or to reach into the package that owns it. A second serving

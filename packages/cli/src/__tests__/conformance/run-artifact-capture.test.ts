@@ -1,4 +1,4 @@
-// C433-ARTIFACT-CAPTURED (Phase 433 plan 29; G-433-5, F-433-15).
+// C433-ARTIFACT-CAPTURED.
 //
 // A run started with `agent-qa run` or from the dashboard's Run stores its test as written, its
 // resolved definition and the effective config on its run artifact, so the drawer has Test and
@@ -100,7 +100,7 @@ function expectTestCaptured(
   expect(route.status, `GET artifact: ${route.text}`).toBe(200)
   expect(route.body.missingSections, `missingSections ${context}\n${route.text.slice(0, 2_000)}`).toEqual([])
   expect(stored.source?.loadStatus, `stored source.loadStatus ${context}`).toBe('loaded')
-  // 441-58 (D-18): the run's redactor records a `{{secret:x}}` reference as `[secret:x]`.
+  // the run's redactor records a `{{secret:x}}` reference as `[secret:x]`.
   const recordedTestFile = testFile.replace(/\{\{secret:(\w+)\}\}/gu, '[secret:$1]')
   expect(stored.source?.rawYaml, `stored source.rawYaml is the test file's bytes ${context}`).toBe(recordedTestFile)
   expect(stored.source?.resolvedDefinition?.name, `resolved definition ${context}`).toBe(testName)
@@ -121,7 +121,7 @@ function expectPlantedLineMasked(raw: string, label: string): void {
   expect(envContent, `the stored config carries the env file as written (${label})`).toBeTypeOf('string')
   expect(envContent, `the planted declared value is its marker (${label})`)
     .toContain(`DOOR_PLANTED_DECLARED=[secret:${POPULATED_SECRET_NAME}]`)
-  // 441-58 (D-01, D-12): an environment credential is not a declared secret, so it is recorded as written.
+  // an environment credential is not a declared secret, so it is recorded as written.
   expect(envContent, `the planted ambient value is recorded as written (${label})`)
     .toContain(`DOOR_PLANTED_AMBIENT=${POPULATED_SECRET_VALUE}`)
 }
@@ -213,7 +213,7 @@ describe('the dashboard door', () => {
   }
 
   beforeAll(async () => {
-    // The env value is in this process's environment and is recorded as written (441-58, D-12).
+    // The env value is in this process's environment and is recorded as written.
     process.env[POPULATED_SECRET_ENV_VAR] = POPULATED_SECRET_VALUE
     project = await plantedProject('artifact-dashboard')
     scene = await openDashboardScene(project)

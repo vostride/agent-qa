@@ -58,7 +58,7 @@ import {
   type BundleStoreConfig,
   type PublishBundleInput,
 } from '@vostride/agent-qa-knowledge-local'
-// 407-25: the JOIN KEY, taken from the READ barrel that publishes it rather than re-derived here.
+// the JOIN KEY, taken from the READ barrel that publishes it rather than re-derived here.
 // The reader recomputes this id to find the event; a harness that PLANTS the event must compute
 // the same one, and a second spelling would produce a plant no read ever finds — a green
 // agreement over an empty set, which is the failure the non-vacuity block below exists to catch.
@@ -230,7 +230,7 @@ function publishedStringArray(
 }
 
 /**
- * A module-private `const NAME = { key: 'value', … }` table with bare keys, as a map (427 D-15).
+ * A module-private `const NAME = { key: 'value', … }` table with bare keys, as a map.
  *
  * `CHANGE_BUCKETS` is how `learnedView` maps a change kind onto 425's five words when a run has no
  * snapshot. It is read here rather than retyped so (c4)'s door projection maps the way the page
@@ -257,7 +257,7 @@ function postProcessingConstant(name: string): string {
   return match[1] as string
 }
 
-/** Each recorded reason's retrieval class and each class's tone (427 D-20, D-21), read from source. */
+/** Each recorded reason's retrieval class and each class's tone, read from source. */
 const RETRIEVAL_CLASS_BY_REASON = publishedLabelTable('RETRIEVAL_CLASS_BY_REASON')
 const RETRIEVAL_CLASS_TONES = publishedLabelTable('RETRIEVAL_CLASS_TONES')
 for (const retrievalClass of Object.values(RETRIEVAL_CLASS_BY_REASON)) {
@@ -271,7 +271,7 @@ const STEP_NO_BRIEF_TEXT = publishedConstant('STEP_NO_BRIEF_TEXT')
 const CHANGES_UNREADABLE_TEXT = publishedConstant('CHANGES_UNREADABLE_TEXT')
 const STORE_READ_INCOMPLETE_TEXT = publishedConstant('STORE_READ_INCOMPLETE_TEXT')
 /**
- * The note a failed chain prints BESIDE the records it had already committed (407-26/27).
+ * The note a failed chain prints BESIDE the records it had already committed.
  *
  * READ FROM SOURCE, never retyped: the wording is explicitly unsettled (it joins UAT item 10's
  * open copy decision), so a cell holding a literal copy would red on a rewording that is not a
@@ -280,7 +280,7 @@ const STORE_READ_INCOMPLETE_TEXT = publishedConstant('STORE_READ_INCOMPLETE_TEXT
 const CURATION_FAILED_PARTIAL_TEXT = publishedConstant('CURATION_FAILED_PARTIAL_TEXT')
 /** The five Learned kinds `learnedView` narrows to, READ FROM SOURCE and never retyped here. */
 const LEARNED_CHANGE_KINDS = publishedStringArray('LEARNED_CHANGE_KINDS')
-/** Each Learned kind's bucket word when a run has no snapshot (427 D-15), read from source. */
+/** Each Learned kind's bucket word when a run has no snapshot, read from source. */
 const CHANGE_BUCKETS = sourceKeyTable('CHANGE_BUCKETS')
 for (const kind of LEARNED_CHANGE_KINDS) {
   if (CHANGE_BUCKETS[kind] === undefined) {
@@ -291,7 +291,7 @@ for (const kind of LEARNED_CHANGE_KINDS) {
 const EFFECT_NOTHING_USED_TEXT = publishedConstant('EFFECT_NOTHING_USED_TEXT')
 /** What the changes section says when post-run processing changed nothing (427, SC1). */
 const NO_MEMORY_CHANGES_SENTENCE = publishedConstant('NO_MEMORY_CHANGES_SENTENCE')
-/** The breakdown line of an all-zero snapshot, read from the module that composes it (425 D-16). */
+/** The breakdown line of an all-zero snapshot, read from the module that composes it. */
 const NO_MEMORY_CHANGES_TEXT = postProcessingConstant('NO_MEMORY_CHANGES_TEXT')
 
 /**
@@ -628,7 +628,7 @@ function servedCanaryTupleOf(
 /**
  * Append ONE real attributing outcome event onto the bundle the run served as a canary.
  *
- * THROUGH `appendOutcomeEvent`, NEVER A RAW FILE APPEND (T-407-25-01). That writer rewrites the
+ * THROUGH `appendOutcomeEvent`, NEVER A RAW FILE APPEND. That writer rewrites the
  * manifest hash for the outcomes log, so the bundle stays integrity-clean and the maintenance walk
  * still LOADS it. A line appended straight to `outcomes.jsonl` would fail the integrity arm, the
  * walk would SKIP the bundle, and the plant would produce no row at all while the agreement below
@@ -667,7 +667,7 @@ function plantCanaryAttribution(
 /**
  * Force this run's `curate-memory` row terminal-failed in the project's OWN queue database.
  *
- * ADDRESSED BY THE DERIVATION THE READER USES (T-407-25-02). `chainJobIdsForRun(runId,
+ * ADDRESSED BY THE DERIVATION THE READER USES. `chainJobIdsForRun(runId,
  * DIGEST_JOB_ID_SOURCE).curateMemory` is the same expression `runs.postprocessing` evaluates to
  * find the row it projects, so the plant cannot address a row the read does not. Matching on
  * `kind = 'curate-memory'` would work today and hit a neighbouring run's row the moment a fixture
@@ -834,7 +834,7 @@ interface ServedLineObservation {
   readonly traceState: string
   readonly servedAsCanary: string
   /**
-   * `data-canary-outcome`, as the line stamped it — ABSENT when the attribute is absent (407-18).
+   * `data-canary-outcome`, as the line stamped it — ABSENT when the attribute is absent.
    *
    * The component omits the attribute entirely on a line that was not served as a canary, and an
    * empty string here would be indistinguishable from an outcome it forgot to stamp. That
@@ -872,20 +872,20 @@ interface PageObservation {
   readonly bannerRung?: string
   readonly bannerReason?: string
   readonly bannerText?: string
-  /** `data-retrieval-class` on the header banner (427 D-20). */
+  /** `data-retrieval-class` on the header banner. */
   readonly bannerClass?: string
-  /** The Knowledge used section's `[data-retrieval-statement]` class and tone (427 D-20). */
+  /** The Knowledge used section's `[data-retrieval-statement]` class and tone. */
   readonly statementClass?: string
   readonly statementTone?: string
-  /** How many `[data-doctor-pointer]` elements the page drew (427 D-23). */
+  /** How many `[data-doctor-pointer]` elements the page drew. */
   readonly doctorPointerCount: number
   /** `data-knowledge-state` after `7`. */
   readonly stateAfter7?: string
   /** Every `data-knowledge-section` in document order, read before Retrieval details was opened (427 SC1). */
   readonly sectionOrder: readonly string[]
-  /** The Knowledge used section's `[data-section-absence]` sentence, when it printed one (427 D-02). */
+  /** The Knowledge used section's `[data-section-absence]` sentence, when it printed one. */
   readonly usedAbsence?: string
-  /** The Retrieval details root's `data-state` after the drive opened it (427 D-19). */
+  /** The Retrieval details root's `data-state` after the drive opened it. */
   readonly retrievalDetailsState?: string
   /** The used, effect and changes sections' outerHTML on the resting tab (427 SC2). */
   readonly defaultSections: readonly DefaultSectionMarkup[]
@@ -919,13 +919,13 @@ interface PageObservation {
   /** The `[data-learned-sentence]` prose, when the half printed one. */
   readonly learnedSentence?: string
   /**
-   * The `[data-learned-chain-note]` prose, when the half printed one (407-27 · G-407-12).
+   * The `[data-learned-chain-note]` prose, when the half printed one.
    *
    * A NOTE BESIDE ROWS, never instead of them — absent is the half printing none, never an empty
    * string, exactly as `learnedSentence` is carried.
    */
   readonly learnedChainNote?: string
-  /** The `[data-learned-read-note]` prose beside rows served over a partial read (407-18). */
+  /** The `[data-learned-read-note]` prose beside rows served over a partial read. */
   readonly learnedReadNote?: string
   /** The channel-1 lines of the first row the drive expanded. */
   readonly servedLines: readonly ServedLineObservation[]
@@ -967,16 +967,16 @@ interface Recorded {
   }
   /**
    * The world the 2026-08-30 owner ruling is ABOUT: a curation chain that fell over while the
-   * store holds an outcome it really served (407-25, G-407-11).
+   * store holds an outcome it really served.
    */
   attributedFailed?: AttributedFailure
   /**
-   * The SIXTH world (407-31, G-407-12): a chain that fell over while the door still serves the
+   * The SIXTH world: a chain that fell over while the door still serves the
    * change records it had already committed — planted BEFORE the malformed bundle and reverted
    * behind itself. See `driveLaterWorlds`' docstring for why it cannot be driven anywhere else.
    */
   failedWithChanges?: FailedWithChanges
-  /** The unbroken-token layout differential, measured in the browser both ways (407-25, G-407-2). */
+  /** The unbroken-token layout differential, measured in the browser both ways. */
   wrapProbe?: WrapProbe
   dashboardStderr?: string
   failure?: string
@@ -988,11 +988,11 @@ const served: Recorded = {}
  * (a9)'s learned-nothing world, driven only when fixture A's own curation committed something
  * (assumption A4 false). Its one step is declared impossible by the planner, so the run resolves
  * no element and files no curation candidate: the chain settles having changed nothing, and D-24
- * records that as the all-zero snapshot (427-04).
+ * records that as the all-zero snapshot.
  */
 const quiet: Recorded = {}
 
-/** A served all-zero curation snapshot — the recorded "learned nothing" fact (427 D-24). */
+/** A served all-zero curation snapshot — the recorded "learned nothing" fact. */
 function allZeroSnapshot(projection: RunKnowledgeProjection | undefined): boolean {
   const snapshot = projection?.kind === 'ready' ? projection.learned.curationSnapshot : undefined
   return snapshot !== undefined
@@ -1174,7 +1174,7 @@ function channel1BranchOf(projection: RunKnowledgeProjection | undefined): strin
 }
 
 /**
- * The Memory changes rows the door's answer implies, as bucket and subject id (427 D-15).
+ * The Memory changes rows the door's answer implies, as bucket and subject id.
  *
  * MIRRORS `changeDrafts` (`packages/dashboard-ui/src/lib/knowledge-view.ts`). With a snapshot the
  * rows ARE its rows in its order, a supersession led by its replacement, then one row per
@@ -1422,7 +1422,7 @@ async function observeKnowledge(
     const learnedSentence = await textOf(page, '[data-learned-sentence]')
     const learnedChainNote = await textOf(page, '[data-learned-chain-note]')
     const learnedReadNote = await textOf(page, '[data-learned-read-note]')
-    // ATTRIBUTE-ADDRESSED, NOT TEXT-ADDRESSED (427 D-15/D-19). A row's bucket is its
+    // ATTRIBUTE-ADDRESSED, NOT TEXT-ADDRESSED. A row's bucket is its
     // `data-record-change`; its id is no longer on the row but in the opened Retrieval details, one
     // `dl[data-ledger-changes]` per row in the same order, subject id first.
     const learnedBuckets = await page
@@ -1628,7 +1628,7 @@ async function freshVisit(origin: string, runId: string): Promise<PageObservatio
   return observeKnowledge(browserContext, origin, runId)
 }
 
-// ── (c6): does an unbroken token FIT, measured in the browser, both ways (407-25, G-407-2) ───────
+// ── (c6): does an unbroken token FIT, measured in the browser, both ways ───────
 
 /** One pair of geometry readings, taken after a forced layout. */
 interface WrapGeometry {
@@ -1905,7 +1905,7 @@ async function driveLaterWorlds(
     visit: afterVisit,
   }
 
-  // ── THE SIXTH WORLD (407-31, G-407-12), HERE AND NOWHERE ELSE, AND UNDONE BEFORE THE NEXT LINE.
+  // ── THE SIXTH WORLD, HERE AND NOWHERE ELSE, AND UNDONE BEFORE THE NEXT LINE.
   //
   // IT CANNOT BE DRIVEN LATER. `plantMalformedBundle` below writes a bundle the maintenance walk
   // cannot load; `knowledgeRecordsDiffSpec` throws, `runs-knowledge.ts` catches `isScanIncomplete`
@@ -2285,7 +2285,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
 
   it('(a9) a run that used nothing and learned nothing states each absence', () => {
     // SC1 ON THE SHIPPED BINARY, OVER D-24's RECORDED FACT. A zero-effect curation publishes an
-    // all-zero snapshot (427-04), so "learned nothing" is a recorded breakdown the page reads, not
+    // all-zero snapshot, so "learned nothing" is a recorded breakdown the page reads, not
     // a missing one it infers. Fixture A is the world expected to carry it (assumption A4); when its
     // chain committed something, the cell asserts on the quiet world, whose curation committed
     // nothing, and names which world it read. It never skips.
@@ -2375,7 +2375,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toBe('answered')
 
     // The expectation is COMPUTED from the trace the run recorded, never typed: the page must say
-    // what serve time said, not what an index would say if asked again today (D-04).
+    // what serve time said, not what an index would say if asked again today.
     const step = projection.steps.find((candidate) =>
       candidate.served.channel1.some((line) => line.id === painted.recordId))
     expect(
@@ -2657,7 +2657,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       'the Learned half did not stamp `data-learned-read="incomplete"`, so a reader is shown an '
       + `absence with no way to tell it from an unreadable store.${context('served', served)}`,
     ).toBe('incomplete')
-    // RE-SPELLED 427-09 (D-15). Memory changes rows come from curation's fixed snapshot, which is
+    // RE-SPELLED 427-09. Memory changes rows come from curation's fixed snapshot, which is
     // not a store scan, so a partial scan no longer empties the list: the page paints exactly the
     // door's rows and names the partial read BESIDE them. With no row to list it still prints the
     // unreadable-store sentence.
@@ -2743,7 +2743,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         projection: served.afterRun?.projection,
         visit: served.afterRun?.visit,
       },
-      // THE SIXTH WORLD (407-31, G-407-12), AT ITS DRIVE POSITION — after `after-run`, before
+      // THE SIXTH WORLD, AT ITS DRIVE POSITION — after `after-run`, before
       // `malformed`. It is listed where it is DRIVEN rather than where it was added, because the
       // census is a record of the store's history and a row out of order would make the two
       // `changes` readings on either side of the malformed plant read as unrelated facts.
@@ -2761,7 +2761,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         projection: served.malformed?.projection,
         visit: served.malformed?.visit,
       },
-      // THE FIFTH WORLD (407-25, G-407-11): a chain that failed over a row the store really
+      // THE FIFTH WORLD: a chain that failed over a row the store really
       // served. Last in the array as it is last in the drive — see `driveLaterWorlds`' docstring.
       {
         world: 'attributed-failed',
@@ -2791,7 +2791,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         : -1,
       // ONE COLUMN ADDED BY 407-31, and it exists because widening the expanded-row predicate to
       // `servedLineCount` opened a way for AGREEMENT 3 and (c5) to pass over an EMPTY intersection
-      // (G-407-15). Both mirrors still compare CHANNEL-1 lines — that is the right comparison —
+      // Both mirrors still compare CHANNEL-1 lines — that is the right comparison —
       // but a step selected for its channel-2 brief line has an empty `channel1`, and the
       // agreement would then be `[]` against `[]`. Both sites BRANCH on that, and this column is
       // where the run REPORTS which arm it took, so a fixture change that moves the selection onto
@@ -3204,7 +3204,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toBe('failed')
     // ── AND THE ROWS HERE ARE THE DOOR'S SNAPSHOT ROWS, NOT A LAW ABOUT THE FAILED ARM.
     //
-    // RE-SPELLED 427-09 (D-15). Since the owner ruling of 2026-08-31 (REVIEW CR-01 · G-407-12) a
+    // RE-SPELLED 427-09. Since the owner ruling of 2026-08-31 (REVIEW CR-01 · G-407-12) a
     // settled-and-failed chain lists exactly what a settled-and-done one would, and AGREEMENT 1
     // enforces that on both settled arms. This world is driven AFTER `plantMalformedBundle`, so its
     // change-records read degrades permanently for this root and the door serves no change at all —

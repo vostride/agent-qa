@@ -49,13 +49,13 @@
 //
 //   (2) An ambient CREDENTIAL-SHAPED environment variable handed to the spawned dashboard. Its
 //       name ends in `_SECRET`, but it is not declared in the fixture's secrets file, and only a
-//       value declared there is masked (D-01, D-12). It survives into the planner's reasoning
+//       value declared there is masked. It survives into the planner's reasoning
 //       text and is recorded and shown as written.
 //
 // The email is undeclared too, so an address in the planner's reasoning is recorded and shown as
-// written (D-23).
+// written.
 //
-// AND ONE RUN THAT FAILS, ADDED BY 405-14 (WINDOWS #287). The run-detail page has a render site
+// AND ONE RUN THAT FAILS, ADDED BY 405-14. The run-detail page has a render site
 // that only exists on a FAILED run — the failure banner — and it was the last site on the rebuilt
 // page painting a producer string raw. Nothing could measure it, because the run above PASSES. So
 // this module gained ONE additive knob, `startStubModelServer({ plannerOutcome: 'stepFailed' })`,
@@ -64,7 +64,7 @@
 // the run reaches `runFinished` with a member `testFinished.outcome === 'failed'` carrying a
 // `failureSummary` that has masked placeholders in it.
 //
-// AND A MODEL THAT CAN AUTHOR, ADDED BY 406-07 (D-14). The stub's fourth arm answers the
+// AND A MODEL THAT CAN AUTHOR, ADDED BY 406-07. The stub's fourth arm answers the
 // analyze-run AUTHOR — the plain-text `generate` the post-run tail makes, carrying neither `tools`
 // nor `response_format`. Its default (`analysisOutcome: 'floor'`) is the prose sentence every 405
 // caller already gets, which `parseJsonWithRepair` rejects, so the author degrades to the
@@ -168,7 +168,7 @@ export const POPULATED_SUITE_PATH = 'suites/populated.suite.yaml'
 export const POPULATED_TEST_PATH = 'tests/populated.test.yaml'
 
 /**
- * The single step a FAILING populated run declares (405-14 · WINDOWS #287).
+ * The single step a FAILING populated run declares.
  *
  * THIS SENTENCE IS FIVE WORDS, AND THE COUNT IS LOAD-BEARING.
  * `generateFailureSummary` prints the step NAME first — `Step 1/1 "<name>" failed: ...` — and the
@@ -183,7 +183,7 @@ export const POPULATED_TEST_PATH = 'tests/populated.test.yaml'
  * way `truncateText` spends its budget (one word per whitespace-free token).
  * Three numbers in the block that stood here were wrong — the shipped step text's length, the
  * credential's distance from the marker, and a five-word claim positioned as if it justified the
- * first (WINDOWS #296).
+ * first.
  *
  * On a `stepFailed` turn the loop returns `Step failed: <reasoning>` as the step error and records
  * `Planner signaled step failure: <reasoning>` on the sub-action, so the summary reads:
@@ -207,7 +207,7 @@ export const POPULATED_FAILURE_STEP_TEXT =
   `Acknowledge the notice using {{secret:${POPULATED_SECRET_NAME}}}.`
 
 /**
- * The part of {@link POPULATED_FAILURE_STEP_TEXT} that survives SECRET REDACTION (406-10).
+ * The part of {@link POPULATED_FAILURE_STEP_TEXT} that survives SECRET REDACTION.
  *
  * WHY A PREFIX AND NOT THE WHOLE SENTENCE. The runner resolves `{{secret:NAME}}` and its
  * `SecretRedactor` rewrites the resolved value before anything is recorded or prompted, so the step
@@ -223,7 +223,7 @@ export const POPULATED_FAILURE_STEP_TEXT =
 export const POPULATED_FAILURE_STEP_MARKER = 'Acknowledge the notice using'
 
 /**
- * The second, PASSING step a two-member populated run declares (406-10).
+ * The second, PASSING step a two-member populated run declares.
  *
  * A SECOND MEMBER EXISTS FOR ONE REASON, AND IT IS A RENDER SITE. `showMemberChrome` is
  * `members.length > 1`, so a single-member run paints NO `data-member` wrapper and NO
@@ -426,7 +426,7 @@ export interface RecordedStubRequest {
    * a failure message is megabytes of noise around the sentence that matters.
    */
   readonly body: string
-  // 2026-10-14 (441-06, D-22): the whole body, recorded only under `fullBodies`.
+  // the whole body, recorded only under `fullBodies`.
   readonly fullBody?: string
 }
 
@@ -449,7 +449,7 @@ export interface StubModelServer extends FixtureServer {
    * which is the honest empty `citedArtifacts` the validator also accepts.
    */
   citeEvidenceFrom(agentQaRoot: string): void
-  // 2026-10-17 (444-01, D-12): the planning turns `holdOnlyStepText` parked.
+  // the planning turns `holdOnlyStepText` parked.
   readonly held: StubHeldTurns
 }
 
@@ -458,7 +458,7 @@ export interface StubHeldTurns {
   count(): number
   aborted(): number
   release(): void
-  // 2026-10-18 (444-19, D-56): answer every turn still parked with a 400 and keep the hold armed;
+  // answer every turn still parked with a 400 and keep the hold armed;
   // returns how many turns it refused.
   refuse(): number
 }
@@ -552,7 +552,7 @@ function plannerReasoning(): string {
 
 /**
  * The measured ANLZ-01 leaf — a MEMORY-RETRIEVAL RELEVANCE SCORE, carried into this fixture's
- * analyze-run prompt on purpose (406-11).
+ * analyze-run prompt on purpose.
  *
  * WHY A FIXTURE CARRIES A FLOAT AT ALL. The 399 defect was not "the analyze-run job throws"; it was
  * "the egress guardrail reads a printed float as a credit card". 406-07 measured the three literals
@@ -583,7 +583,7 @@ function plannerReasoning(): string {
 export const POPULATED_RETRIEVAL_SCORE = '1.0285714285714285'
 
 /**
- * The planner's reasoning on the arm that DECLARES THE STEP IMPOSSIBLE (405-14 · WINDOWS #287).
+ * The planner's reasoning on the arm that DECLARES THE STEP IMPOSSIBLE.
  *
  * THE SAME THREE PLANTED VALUES, RE-ORDERED — and the order is the only difference that matters.
  * `plannerReasoning` opens with the button sentence and reaches the email TWENTY-ONE words in,
@@ -600,7 +600,7 @@ function plannerFailureReasoning(): string {
     `Cannot acknowledge: the notice names ${POPULATED_EMAIL} as contact, the operator `
     + `credential is ${POPULATED_SECRET_VALUE}, and the declared step credential resolves to `
     + `${POPULATED_DECLARED_SECRET_VALUE}. None of the three may ever be recorded in clear. `
-    // APPENDED, NEVER INTERLEAVED (406-11). Every word position the block above measures — the
+    // APPENDED, NEVER INTERLEAVED. Every word position the block above measures — the
     // email at 21, the masking-seeded credential at 23, both relative to the banner's published
     // preview budget — is a position from the FRONT, so the leaf rides at the back where it moves
     // none of them. See {@link POPULATED_RETRIEVAL_SCORE} for why the sentence continues after the
@@ -622,7 +622,7 @@ function plannerFailureReasoning(): string {
  */
 export const ANALYSIS_PROMPT_MARKER = 'analyze-run: authoring root-cause verdicts'
 
-// 2026-10-18 (444-20, D-57): the curator author's own first instruction line
+// the curator author's own first instruction line
 // (`cli/src/curation/curator-author.ts`, `authoringInstructions`).
 export const CURATOR_PROMPT_MARKER = 'You are the agent-qa Curator.'
 
@@ -777,7 +777,7 @@ async function readBody(req: IncomingMessage): Promise<string> {
  * inventing product behaviour.
  */
 /**
- * What the stub is asked to be, on the ONE axis a caller may move (405-14).
+ * What the stub is asked to be, on the ONE axis a caller may move.
  *
  * ADDITIVE, WITH THE PASSING BEHAVIOUR AS THE DEFAULT. Every 405-09 and 405-12 caller passes
  * nothing and gets byte-for-byte the run it had: the same canned responses, the same usage triples,
@@ -800,7 +800,7 @@ export interface StubModelServerOptions {
    */
   readonly plannerOutcome?: 'stepComplete' | 'stepFailed'
   /**
-   * Narrow `plannerOutcome: 'stepFailed'` to the planning turns of ONE step (406-10).
+   * Narrow `plannerOutcome: 'stepFailed'` to the planning turns of ONE step.
    *
    * ADDITIVE, WITH TODAY'S BEHAVIOUR AS THE DEFAULT. Unset — every 405-14 caller — the failing arm
    * answers every planning turn exactly as it did, so a one-member failing run is byte-identical.
@@ -813,7 +813,7 @@ export interface StubModelServerOptions {
    */
   readonly failOnlyStepText?: string
   /**
-   * What the analyze-run AUTHOR is answered with (406-07 · D-14).
+   * What the analyze-run AUTHOR is answered with.
    *
    * ADDITIVE, WITH TODAY'S BEHAVIOUR AS THE DEFAULT. `'floor'` — the default, and what every
    * 405-09 / 405-12 / 405-14 caller that passes nothing gets — answers the author's plain-text
@@ -822,17 +822,17 @@ export interface StubModelServerOptions {
    * `OUTPUT_CONTRACT` object instead, so the persisted verdict carries `producer: 'analyze-run'`
    * and the failure view has an authored sentence to render.
    */
-  // 2026-10-18 (444-18, D-15): `'error'` refuses that one request shape with a 400.
+  // `'error'` refuses that one request shape with a 400.
   readonly analysisOutcome?: 'floor' | 'authored' | 'error'
-  // 2026-10-14 (441-06, D-22): record each request's whole body beside the bounded one.
+  // record each request's whole body beside the bounded one.
   readonly fullBodies?: boolean
-  // 2026-10-17 (444-01, D-12): a planning turn whose prompt carries this text is not answered until
+  // a planning turn whose prompt carries this text is not answered until
   // `held.release()`; like `failOnlyStepText`, it must survive the runner's secret redaction.
   readonly holdOnlyStepText?: string
-  // 2026-10-18 (444-19, D-56): the analyze-run author's request (the `ANALYSIS_PROMPT_MARKER` arm)
+  // the analyze-run author's request (the `ANALYSIS_PROMPT_MARKER` arm)
   // is parked with the held turns; `held.release()` answers it through the analysis arms below.
   readonly holdAnalysis?: boolean
-  // 2026-10-18 (444-20, D-57): a curator request (the `CURATOR_PROMPT_MARKER` arm) that presents a
+  // a curator request (the `CURATOR_PROMPT_MARKER` arm) that presents a
   // neighbor is answered with a Supersede of the first one; one presenting none gets the prose.
   readonly curatorOutcome?: 'supersede-first'
 }
@@ -962,7 +962,7 @@ export async function startStubModelServer(
           markArrived()
           return
         }
-        // The step-scoped narrowing (406-10), spelled where the outcome is decided rather than at
+        // The step-scoped narrowing, spelled where the outcome is decided rather than at
         // the option, so a turn the caller did not name is answered by the ORDINARY arm.
         answerPlanner(plannerOutcome === 'stepFailed'
           && (failOnlyStepText === undefined || prompt.includes(failOnlyStepText)))
@@ -976,16 +976,16 @@ export async function startStubModelServer(
           {
             role: 'assistant',
             content: JSON.stringify({
-              // 2026-10-11 (439-01): the verification lane answers per condition (D-07, D-10).
-              // 2026-10-11 (439-03): the quote is the whole step, so every step word is covered (D-02).
+              // the verification lane answers per condition.
+              // the quote is the whole step, so every step word is covered.
               conditions: [{
                 quote: /^Step goal: "(.*)"$/m.exec(prompt)?.[1] ?? POPULATED_BUTTON_LABEL,
                 verdict: 'met',
                 needs: 'none',
                 controlRef: '',
                 file: { name: '', match: 'none', text: '' },
-                // 2026-10-11 (439-04): a line of the final screen, which every verification turn
-                // carries; a give-up the verifier now judges (D-08) records no action to cite.
+                // a line of the final screen, which every verification turn
+                // carries; a give-up the verifier now judges records no action to cite.
                 citations: [finalScreenCitation(prompt)],
                 reasoning: 'The notice state changed.',
               }],
@@ -1006,7 +1006,7 @@ export async function startStubModelServer(
       }
 
       const answerText = (): void => {
-        // The FOURTH arm (406-07 · D-14), between `structured` and the prose fallback. It is
+        // The FOURTH arm, between `structured` and the prose fallback. It is
         // reached only when the caller asked for it AND the prompt carries the author's own
         // `agent_context` line, so every other plain-text call still lands on the fallback below.
         if (analysisOutcome === 'authored' && prompt.includes(ANALYSIS_PROMPT_MARKER)) {
@@ -1138,7 +1138,7 @@ export interface PopulatedRunProject {
   readonly suitePath: string
   readonly testPath: string
   readonly testId: string
-  /** The second member's id — present exactly when `secondStepText` was asked for (406-10). */
+  /** The second member's id — present exactly when `secondStepText` was asked for. */
   readonly secondTestId?: string
 }
 
@@ -1169,7 +1169,7 @@ export function populatedRunFixtureProject(
   label: string,
   addresses: { readonly modelBaseUrl: string; readonly targetUrl: string },
   /**
-   * The single step line the test file declares (405-14).
+   * The single step line the test file declares.
    *
    * A THIRD PARAMETER RATHER THAN A SIXTH RECIPE, on this module's own law read the other way: the
    * recipe's defining values are its two ADDRESSES, and both callers pass the same kind of address.
@@ -1179,7 +1179,7 @@ export function populatedRunFixtureProject(
   options: {
     readonly stepText?: string
     /**
-     * A SECOND test's step line, which makes this run a two-member one (406-10).
+     * A SECOND test's step line, which makes this run a two-member one.
      *
      * ADDITIVE AND ABSENT BY DEFAULT, so every 405 caller gets the one-member suite it had. It is
      * here rather than in a sixth recipe on this function's own law — the recipe's defining values
@@ -1268,7 +1268,7 @@ export function populatedRunFixtureProject(
     'utf8',
   )
 
-  // THE SECOND MEMBER, WHEN ONE WAS ASKED FOR (406-10). It is a second FILE rather than a second
+  // THE SECOND MEMBER, WHEN ONE WAS ASKED FOR. It is a second FILE rather than a second
   // step on the first test: members are tests, and two steps under one test would still be one
   // member — which is the exact thing this option exists to stop being true.
   const secondTestId = options.secondStepText === undefined ? undefined : generateTestId()
@@ -1444,7 +1444,7 @@ export async function drivePopulatedRun(
   }
 }
 
-// ---- The discovery run (431-08, D-06/D-07/D-11) -----------------------------------------------------
+// ---- The discovery run -----------------------------------------------------
 //
 // A COMPLETED RUN LEFT BEHIND BY THE SHIPPED WRITERS, NOT DRIVEN. The discovery reads read recorded
 // state, so this writes exactly what a finished run leaves: the handoff, content-addressed blobs

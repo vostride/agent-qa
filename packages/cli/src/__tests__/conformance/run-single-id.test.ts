@@ -1,4 +1,4 @@
-// C433-RUN-ONE-ID (Phase 433 plan 28; G-433-4, F-433-20, F-433-43).
+// C433-RUN-ONE-ID.
 //
 // A run started with `agent-qa run` and no `AGENT_QA_RUN_ID` is one run with one id: the run
 // store's event log, the project's dashboard database row and every run id the CLI prints agree,

@@ -1,4 +1,4 @@
-// C445-HARD-CUT (445-11, D-24, D-27, D-35; 445-17, D-42, D-43): a v1-shaped workspace survives the documented hard cut
+// a v1-shaped workspace survives the documented hard cut
 
 import { spawnSync } from 'node:child_process'
 import { createHash } from 'node:crypto'

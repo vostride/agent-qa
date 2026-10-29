@@ -227,7 +227,7 @@ describe('run header layout on the shipped bundle', () => {
 
   afterAll(async () => { await zoomContext?.close(); await reader?.stop(); await fixture?.close(); cleanupTempRoots() })
 
-  // WR-06: the precondition the poll above computes, asserted before any geometry reads it.
+  // the precondition the poll above computes, asserted before any geometry reads it.
   it('HEADER-FIXTURE-SETTLED', () => {
     expect(settled,
       'the post-run chain never reached a terminal answer inside the 30s budget, so the 400px geometry, '

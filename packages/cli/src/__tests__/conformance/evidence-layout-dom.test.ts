@@ -80,7 +80,7 @@ describe('evidence layout backstops on the shipped bundle', () => {
       await fixture.dashboard.stop()
       const env = populatedRunSpawnEnv()
       // A cold reader without the original environment: the fill value is not a declared secret,
-      // so the run recorded it as typed and the page renders it as written (D-12, D-23).
+      // so the run recorded it as typed and the page renders it as written.
       delete env[POPULATED_SECRET_ENV_VAR]
       const port = await reserveEphemeralPort()
       reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, port, 60_000, env)

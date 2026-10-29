@@ -1,4 +1,4 @@
-// 2026-10-20 (446-05, D-16): the C445-ROUTE-HELP walk over the built CLI's help, as findings
+// the C445-ROUTE-HELP walk over the built CLI's help, as findings
 
 import { spawnSync } from 'node:child_process'
 

@@ -1,4 +1,4 @@
-// C444-CTRL-C-OWNED (444-22, D-46, D-30): on `agent-qa run` a signal is answered by the run's own
+// on `agent-qa run` a signal is answered by the run's own
 // shutdown path, not by Playwright's. Each cell holds a real run inside its step (the stub model
 // parks the planning turn), sends one signal to the built bin and reads what the run left: the
 // exit, `runFinished`, the printed run id, the verdict, the runs.db row and the Chromium it had.
@@ -6,9 +6,9 @@
 // can pass (research Pitfall 4). Every other door keeps Playwright's handling: a dashboard run in
 // this process gains Playwright's listeners while its browser is open, and only `agent-qa run`'s
 // two producer calls name the option.
-// 2026-10-18 (444-25, D-60): a hang-up is a cancel on this door too, so one SIGHUP to a held direct
+// a hang-up is a cancel on this door too, so one SIGHUP to a held direct
 // run must end through the same path; the dashboard door still keeps Playwright's default.
-// 2026-10-18 (444-30, D-63): a terminal close under zsh delivers SIGHUP twice about 1 ms apart, so
+// a terminal close under zsh delivers SIGHUP twice about 1 ms apart, so
 // two SIGHUPs that far apart must end a held direct run once, through the same path.
 
 import { spawn } from 'node:child_process'

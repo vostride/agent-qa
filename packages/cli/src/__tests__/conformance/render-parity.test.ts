@@ -274,7 +274,7 @@ const MATRIX: readonly { readonly row: ScenarioRow; readonly door: RenderDoor }[
 
 describe('the rendered-output matrix: leg 8', () => {
   it('produces a result document for every registered capability, from its own contract', () => {
-    // THE DENOMINATOR CELL (D-09). Two named REDs: a capability the registry declares that this leg
+    // THE DENOMINATOR CELL. Two named REDs: a capability the registry declares that this leg
     // renders nothing for, and a document this leg renders for a capability the registry does not
     // declare. Both sides are read off live enumerations, so the leg cannot quietly stop ranging.
     const rendered = [...new Set(MATRIX.map((cell) => cell.row.opId))]

@@ -57,16 +57,16 @@ const TITLE_RUN = 'r_428_title'
 const SUITE_RUN = 'r_428_suite'
 const SECRET_RUN = 'r_428_secret'
 const LONG_RUN = 'r_428_long_label'
-/** A two-member suite whose second member starts while the page watches (428-33, G-428-3). */
+/** A two-member suite whose second member starts while the page watches. */
 const FOLLOW_RUN = 'r_428_suite_follow'
 
 const SINGLE_TITLE = 'Checkout keeps the basket'
 const SUITE_MEMBERS = ['the sign-in member', 'the basket member'] as const
 const SECRET_STEP_TEXT = 'type <SECRET_1> into Password'
-/** ROWS_RUN's three steps, as its testStarted carries them (428-30, G-428-2). */
+/** ROWS_RUN's three steps, as its testStarted carries them. */
 const ROWS_STEP_TEXTS = ['open the search page', 'search for the blue kettle', 'add the kettle to the basket'] as const
 /**
- * The owner's own example from the 2026-09-26 review (G-428-1), which the one-line row cut off at
+ * The owner's own example from the 2026-09-26 review, which the one-line row cut off at
  * 'wait f…', extended so it is longer than the steps pane at any width, with one old numbered
  * placeholder.
  */
@@ -171,7 +171,6 @@ beforeAll(async () => {
 
   // Rows in all three states: step 1 finished after two sub-actions, step 2 running after one, and
   // step 3 planned and pending. The pending row is drawn because testStarted carried its text
-  // (428-30, G-428-2).
   const rows = plantRun(ROWS_RUN, [{ name: 'the rows member', totalSteps: 3, stepTexts: ROWS_STEP_TEXTS }])
   harness.insertRunRow({ runId: ROWS_RUN, name: 'Search finds the blue kettle', status: 'running' })
   publishTo(rows, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: ROWS_STEP_TEXTS[0] })
@@ -192,7 +191,7 @@ beforeAll(async () => {
   const secret = plantRun(SECRET_RUN, [{ name: 'the secret member', totalSteps: 1 }])
   publishTo(secret, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: SECRET_STEP_TEXT })
 
-  // One running step whose label is longer than the steps pane (428-31, G-428-1).
+  // One running step whose label is longer than the steps pane.
   const long = plantRun(LONG_RUN, [{ name: 'the long member', totalSteps: 1, stepTexts: [LONG_STEP_TEXT] }])
   harness.insertRunRow({ runId: LONG_RUN, name: 'The long label', status: 'running' })
   publishTo(long, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: LONG_STEP_TEXT })
@@ -367,7 +366,7 @@ interface LongLabelReading {
   text: string
 }
 
-/** Measure the running row of LONG_RUN in the page as laid out (428-31, G-428-1). */
+/** Measure the running row of LONG_RUN in the page as laid out. */
 async function readLongLabel(page: Page): Promise<LongLabelReading> {
   const row = page.locator('[data-live-pane="steps"] li[data-step-status="running"]')
   await row.waitFor({ state: 'attached', timeout: 40_000 })
@@ -508,7 +507,7 @@ describe('the live step rows on the shipped bundle', () => {
     })
   }, 120_000)
 
-  // 2026-10-14 (441-37, D-20): an old run's numbered placeholder is shown as the characters it holds.
+  // an old run's numbered placeholder is shown as the characters it holds.
   it('SECRET-PLACEHOLDER-AS-TEXT-SHIPPED: a <SECRET_1> in a live label from an old run is shown as written, with no chip', async () => {
     await onLivePage(SECRET_RUN, async (page) => {
       const row = page.locator('[data-live-pane="steps"] li[data-step-status="running"]')
@@ -524,7 +523,7 @@ describe('the live step rows on the shipped bundle', () => {
   }, 120_000)
 })
 
-/** D-06: a flip may reload the moved iframe, and the embed must reconnect by itself within this. */
+/** a flip may reload the moved iframe, and the embed must reconnect by itself within this. */
 const FLIP_TO_GREEN_BUDGET_MS = 8_000
 
 describe('the live page layout on the shipped bundle', () => {
@@ -575,7 +574,7 @@ describe('the live page layout on the shipped bundle', () => {
         expect(steps.x + steps.width, `${context} — the steps are left of the preview`).toBeLessThanOrEqual(preview.x + 1)
         expect(Math.abs(steps.y - preview.y), `${context} — side by side`).toBeLessThanOrEqual(1)
       }
-      // Re-spelled 2026-09-26 (428-34, G-428-4): the dot was asserted inside the picture's box.
+      // Re-spelled 2026-09-26: the dot was asserted inside the picture's box.
       // Re-spelled 2026-09-26 (owner decision 2026-09-26 (6)): its own corner, not the chrome.
       expect(layout.dotInCorner, context).toBe(true)
       expect(layout.chromeRow, context).toBe(false)
@@ -664,7 +663,7 @@ function expectRecovered(reading: FlipReading, stacked: boolean): void {
   expect(reading.end.panes, context).toBe(2)
   expect(reading.end.embeds, context).toBe(1)
   expect(reading.end.dot, context).toBe('green')
-  // Re-spelled 2026-09-26 (428-34, G-428-4): each leg asserted the dot inside the picture's box.
+  // Re-spelled 2026-09-26: each leg asserted the dot inside the picture's box.
   // Re-spelled 2026-09-26 (owner decision 2026-09-26 (6)): its own corner, not the chrome.
   expect(reading.end.dotInCorner, context).toBe(true)
   expect(reading.end.chromeRow, context).toBe(false)

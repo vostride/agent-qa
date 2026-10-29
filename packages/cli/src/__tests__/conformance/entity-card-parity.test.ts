@@ -1,4 +1,4 @@
-// The entity card, held to ONE denominator across two doors (Phase 400 plan 08, DASH-03).
+// The entity card, held to ONE denominator across two doors.
 //
 // WHAT THIS LEG IS AND IS NOT. It is the MCP half of a claim whose other half lives in
 // `packages/dashboard-ui/src/__tests__/entity-card.test.ts`, and BOTH halves read the SAME rows:
@@ -30,7 +30,7 @@
 // and a reference that is not a canonical address for its own kind is a link nothing can
 // dereference.
 //
-// 430 (2026-09-28, D-04): the dashboard renders no card, so the dashboard half of DASH-03 is now the
+// 430: the dashboard renders no card, so the dashboard half of DASH-03 is now the
 // route contract in dashboard-ui's `entity-card.test.ts`: an href minted over an entity's own address
 // by the shared route map, and none for a kind the dashboard does not route.
 
@@ -60,7 +60,7 @@ const CARD_ROWS: readonly ScenarioRow[] = SCENARIO_TABLE.filter(
  * A canonical address for one kind, minted by the codec that defines one.
  *
  * `formatEntityUri` rather than a template string, so this is the address a card actually carries
- * rather than a spelling this file believes in. `TGT` is slug-addressed (D-03) and every other kind
+ * rather than a spelling this file believes in. `TGT` is slug-addressed and every other kind
  * is ordinal-addressed, which the codec knows and this file does not have to.
  */
 function canonicalReferenceFor(kind: EntityKind): string {

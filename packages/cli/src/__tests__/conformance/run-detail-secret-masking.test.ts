@@ -50,7 +50,7 @@ async function startFixture(
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-sinks-'))
   const db = new DashboardDatabase({ dbPath: join(root, 'dashboard.db') })
   const runId = generateRunId()
-  // 2026-10-14 (441-16, D-06): records hold the declared marker the run wrote; reads mask with the same store.
+  // records hold the declared marker the run wrote; reads mask with the same store.
   const redactor = new SecretRedactor(new SecretStore({ AUTH_STATE, ALLOWED }))
   const mask = (text: string) => redactor.redactString(text)
   const authPlaceholder = mask(AUTH_STATE)
@@ -90,8 +90,8 @@ async function startFixture(
       secretMask: mask,
       ...extraDeps?.(runId),
     } as FunctionDeps,
-    // 2026-10-02 (432-36, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
   const agentHost = composeDashboardAgentHost({ registry } as LocalAgentHost)
   const started = await startServer({
@@ -146,7 +146,7 @@ describe('guarded human read', () => {
   })
 
   it('HTTP-EVIDENCE-MACHINE real authenticated router retains placeholders and durable masked bytes', async () => {
-    // 432-21 (D-12/D-13): the machine door is tokenless; what it refuses is a cross-site read.
+    // the machine door is tokenless; what it refuses is a cross-site read.
     expect((await fetch(fixture.remoteUrl, { headers: { Origin: 'https://evil.example' } })).status).toBe(403)
     const response = await fetch(fixture.remoteUrl)
     expect(response.status).toBe(200)
@@ -212,7 +212,7 @@ describe('guarded human read', () => {
   })
 })
 
-// 2026-10-14 (441-37, D-28, D-20): the drawer shows and copies stored text as written.
+// the drawer shows and copies stored text as written.
 const KEY = 'key [secret:API_KEY] <EMAIL_81>'
 const VALUE = 'normal [secret:PASSWORD] <SECRET_82> [secret]'
 const NESTED = JSON.stringify({ [KEY]: [VALUE, { note: '[secret:API_KEY]' }] })
@@ -289,11 +289,11 @@ describe('rendered run-detail sinks', () => {
 // 423 D-19 · SC5: run detail's review controls re-homed off `routes.chat`. The three places that
 // used to navigate to Chat (member mark, step mark, Knowledge proposals CTA) are driven on the
 // built bundle over real registry reads, by keyboard. Since 426 D-22 the two mark pointers live in
-// the composer history, opened from the header entry and the step trigger; since 432-09 (D-25) all
+// the composer history, opened from the header entry and the step trigger; since 432-09 all
 // three show what changed and offer no review command. Scoped to the routed page's own `<main>` (inside the sidebar
 // inset): the global sidebar's
 // Chat entry is 430's removal, not this plan's.
-// 2026-09-30, 432-09 (D-25): each mark applied a knowledge fix, and history joins the changed record.
+// each mark applied a knowledge fix, and history joins the changed record.
 const MEMBER_RECORD = 'mem_member-423-24'
 const STEP_RECORD = 'mem_step-423-24'
 
@@ -327,8 +327,8 @@ function reviewDeps(runId: string): Partial<FunctionDeps> {
         : undefined,
     },
     knowledge: { diffSince: async () => [] },
-    // 432-09: a bound inbox with a pending proposal must not surface anywhere on the page.
-    // 2026-10-02 (432-42, D-05/D-22): the deleted inbox dep is no longer smuggled in; nothing reads it.
+    // a bound inbox with a pending proposal must not surface anywhere on the page.
+    // the deleted inbox dep is no longer smuggled in; nothing reads it.
   } as unknown as Partial<FunctionDeps>
 }
 
@@ -370,7 +370,7 @@ describe('run-detail review pointers', () => {
     await fixture?.close()
   })
 
-  // RE-SPELLED 432-09 (D-25) from 'NO-CHAT-TARGET: no run-detail target is routes.chat, and all three
+  // RE-SPELLED 432-09 from 'NO-CHAT-TARGET: no run-detail target is routes.chat, and all three
   // controls copy a runnable review command by keyboard': the three places that offered a review
   // command now show what changed and offer none, reached the same way by keyboard.
   it('NO-CHAT-TARGET: no run-detail target is routes.chat, and the three former review places show applied changes with no review command', async () => {
@@ -380,7 +380,7 @@ describe('run-detail review pointers', () => {
     const navigatedBefore = navigations.length
     expect((await regionTargets(page)).map(pathOf)).not.toContain(chatPath)
 
-    // The two mark histories, opened from the header entry and the step trigger (426 D-22).
+    // The two mark histories, opened from the header entry and the step trigger.
     const opens = [
       { selector: '[data-feedback-entry="test"]', address: '0:run', record: MEMBER_RECORD },
       { selector: '[data-step-id="0:0"] [data-feedback-entry="step"]', address: '0:0', record: STEP_RECORD },

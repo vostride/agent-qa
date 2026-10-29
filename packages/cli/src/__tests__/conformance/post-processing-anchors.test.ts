@@ -32,7 +32,7 @@
 // `in-process-run-execution.ts` re-throws at `takeFrameworkError()`, four statements ABOVE the
 // line that starts the detached `postRunTail`. So on this harness the tail never runs, for the
 // dashboard door exactly as `post-run-disposition.test.ts`'s header records it for the CLI's
-// (404-04 D-6). The plan for this cell assumed a chain that pumps; the harness cannot produce one
+// The plan for this cell assumed a chain that pumps; the harness cannot produce one
 // without installing a browser into the child, which would make every claim below contingent on
 // Chromium being present — the measurement `live-view-anchors.test.ts` refuses by name.
 //
@@ -43,7 +43,7 @@
 //   - the chip trail an in-process drain leaves — `post-run-chip-events.test.ts`, against a real
 //     store, a real handoff and the real handler bodies;
 //   - the dashboard door's drain leg emitting that trail — `dashboard-cancel-isolation.e2e.test.ts`
-//     (404-04), in-process, over a run that reaches a real verdict.
+//     in-process, over a run that reaches a real verdict.
 //
 // What is left HERE is everything only the shipped binary can say: the posture on both doors, the
 // active-set timing, the read route answering by name through the composed host, the live channel

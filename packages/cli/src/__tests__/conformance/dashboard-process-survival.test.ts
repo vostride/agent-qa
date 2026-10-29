@@ -147,7 +147,7 @@ function rawRequest(
 /**
  * The healthy request every cell drives before and after the hostile one.
  *
- * 2026-09-28 (430 D-02): re-pointed from the conversation capabilities read, which no longer
+ * re-pointed from the conversation capabilities read, which no longer
  * routes. `/api/stats` is a plain database read the hermetic dashboard answers 200 with no state;
  * the app-metadata read would reach the npm registry from a fresh HOME.
  */

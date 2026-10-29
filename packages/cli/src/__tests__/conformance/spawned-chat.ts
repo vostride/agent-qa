@@ -29,7 +29,7 @@
 // kind of false alarm that gets a guard deleted. THIS FILE lives under `__tests__` for that exact
 // reason: it is instrument, not product, and it must not make the guard cry wolf on itself.
 //
-// HERMETIC, AND WITHOUT A CREDENTIAL ANYWHERE (T-397-17, 396 D-17). Each spawned cell gets its own
+// HERMETIC, AND WITHOUT A CREDENTIAL ANYWHERE. Each spawned cell gets its own
 // `mkdtemp` project whose configuration is planted throwaway workspace globs and nothing else — no
 // token entry, no key, no LLM block — and the child is handed a constructed environment rather than
 // the test process's, so no ambient provider credential can reach it and no provider can be spent
@@ -86,7 +86,7 @@ export const ANCHORED_BUILDS: readonly { readonly pkg: string; readonly artifact
     Object.freeze({ pkg: 'agent-local', artifact: join('dist', 'index.js') }),
     Object.freeze({ pkg: 'mcp', artifact: join('dist', 'index.js') }),
     Object.freeze({ pkg: 'cli', artifact: join('dist', 'cli.js') }),
-    // 2026-10-18 (444-14, D-47): the bin entry only loads this bundle, which holds the CLI.
+    // the bin entry only loads this bundle, which holds the CLI.
     Object.freeze({ pkg: 'cli', artifact: join('dist', 'cli-main.js') }),
   ])
 
@@ -193,7 +193,7 @@ export function cleanupTempRoots(): void {
 /**
  * A real project on disk, produced rather than a literal path handed to a child.
  *
- * 2026-10-01 (432-22, D-12): no `stdio.grantConfigWrite`. It was the one non-default setting, and
+ * no `stdio.grantConfigWrite`. It was the one non-default setting, and
  * it made the MCP anchor like-for-like while stdio hid the configuration tools from callers without
  * the opt-in; since 432-21 every caller lists every tool, and 432-22 deletes the key. The fixture
  * declares an empty `services.mcp` block, which is what it declared besides the switch.
@@ -209,7 +209,7 @@ export function fixtureProject(
    *
    * Empty for every 397 anchor. The 398-08 refs-only cell passes entries to plant a pre-432 file:
    * since 432-22 the key is deleted, so such a file fails strict validation with the normal
-   * unrecognized-key error (D-22) and the value it names still travels only in a constructed child
+   * unrecognized-key error and the value it names still travels only in a constructed child
    * environment.
    */
   tokens: readonly { name: string; tokenEnvVar: string; scopes: readonly string[] }[] = [],
@@ -306,7 +306,7 @@ export async function spawnCollecting(
 
 /**
  * The utterance both halves type: the deterministic resolver route, which reaches no model.
- * 432-13: the bare `proposals` alias is gone (C432-CHAT-DIRECT). 432-17 deleted `proposals.list`
+ * the bare `proposals` alias is gone. 432-17 deleted `proposals.list`
  * itself, so the passthrough now reaches `quarantine.list`, another read-only empty-input listing.
  */
 export const CHAT_ANCHOR_UTTERANCE = '/fn quarantine.list'
@@ -345,7 +345,7 @@ export async function driveChatSpawned(
   })
 }
 
-// ---- Driving the shipped DASHBOARD (400-09) ----------------------------------------------------
+// ---- Driving the shipped DASHBOARD ----------------------------------------------------
 //
 // WHY THE DASHBOARD SPAWN LIVES HERE AND NOT IN THE TWO FILES THAT USE IT. `dashboard-anchors` and
 // `dashboard-dom` both drive the same child — the built `agent-qa dashboard` command, in the same
@@ -364,7 +364,7 @@ export async function driveChatSpawned(
  * every build and a guard that had to know them would be a second copy of the manifest.
  *
  * `dashboard-server` IS LOAD-BEARING AND NOT DECORATIVE, said here so nobody narrows this list back
- * to the chat five (400-16). `dashboard-process-survival.test.ts` asks whether one unauthenticated
+ * to the chat five. `dashboard-process-survival.test.ts` asks whether one unauthenticated
  * request ends the SHIPPED process, and its whole subject is `server.ts`'s request listener —
  * which the spawned `agent-qa dashboard` resolves through THIS artifact, because tsup leaves the
  * workspace dependency external. A survival cell run against a stale `dashboard-server/dist` would
@@ -388,7 +388,7 @@ export const DASHBOARD_ANCHORED_BUILDS: readonly {
 ])
 
 /**
- * The built dashboard UI a served `uiDir` points at — the bundle a browser is handed (403-06).
+ * The built dashboard UI a served `uiDir` points at — the bundle a browser is handed.
  *
  * IT LIVES BESIDE THE FRESHNESS LIST, deliberately: the guard one line up anchors
  * `dashboard-ui/dist/index.html`, and the directory that guard is about is the directory
@@ -518,7 +518,7 @@ export async function spawnDashboard(
   port: number,
   budgetMs = 60_000,
   /**
-   * Variables added to the CONSTRUCTED environment, never inherited from this process (402-07).
+   * Variables added to the CONSTRUCTED environment, never inherited from this process.
    *
    * A PARAMETER RATHER THAN A SECOND SPAWN HELPER, on this module's own law: the run-service
    * anchors need a declared credential in the child, and a copy of this function that also set an
@@ -576,7 +576,7 @@ export async function spawnDashboard(
   }
 }
 
-// ---- The RUN SERVICE fixture and its build list (402-07) ---------------------------------------
+// ---- The RUN SERVICE fixture and its build list ---------------------------------------
 //
 // WHY THIS RECIPE LIVES HERE AND NOT IN EITHER FILE THAT USES IT. Two cells drive the authed run
 // service and they drive it through DIFFERENT frames on purpose: the conformance adapter composes
@@ -592,7 +592,7 @@ export async function spawnDashboard(
 // child environment or an explicit `env` map. `fixtureProject`'s own argument applies unchanged —
 // what a file does not contain cannot be printed by a diagnostic nobody anticipated.
 
-// 2026-10-01 (432-21, D-12): `RUN_SERVICE_FIXTURE_TOKEN_VAR`, `RUN_SERVICE_FIXTURE_TOKEN` and
+// `RUN_SERVICE_FIXTURE_TOKEN_VAR`, `RUN_SERVICE_FIXTURE_TOKEN` and
 // `RUN_SERVICE_FIXTURE_ENTRY_NAME` are deleted with the run-service tokens. The run service is
 // tokenless and always mounted, so the fixture declares no credential and the frames present none.
 
@@ -604,7 +604,7 @@ export async function spawnDashboard(
  * it. A run started through this door executes in-process through `@vostride/agent-qa-runner`, and
  * the run gate, the scope resolution and the config schema it consults live in
  * `@vostride/agent-qa-core` — both of which the spawned `agent-qa dashboard` resolves through their
- * BUILT dists, because tsup leaves workspace dependencies external (WINDOWS #240). A wire anchor run
+ * BUILT dists, because tsup leaves workspace dependencies external. A wire anchor run
  * against a stale `runner/dist` would drive the previous revision of the very execution path whose
  * RPC shape it certifies, and would read as proof of this one.
  */
@@ -661,7 +661,7 @@ export function runServiceFixtureProject(label: string): {
             },
           },
         },
-        // 2026-10-01 (432-21, D-12): no `services.dashboard.runServiceTokens` declaration. Until
+        // no `services.dashboard.runServiceTokens` declaration. Until
         // then this fixture had a token-declaring arm and a zero-token arm, and the zero-token arm
         // (the default posture) was the one a composition could silently drop; with the tokens
         // deleted there is one posture, and every frame spawns it.
@@ -700,7 +700,7 @@ export function runServiceFixtureProject(label: string): {
   return { root, configPath }
 }
 
-// ---- The DRAINABLE fixture: a project whose dashboard-started run reaches a real verdict (404-08)
+// ---- The DRAINABLE fixture: a project whose dashboard-started run reaches a real verdict
 //
 // WHY A FOURTH RECIPE RATHER THAN A FLAG ON THE THIRD. `runServiceFixtureProject` above states, in
 // its own words, that "THE RUN IS EXPECTED TO FAIL, and that is fine" — every claim its two frames

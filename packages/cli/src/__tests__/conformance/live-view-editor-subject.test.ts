@@ -1,4 +1,4 @@
-// THE EDITOR SUBJECT ON THE SHIPPED COMPOSITION (428 D-07, PXH-LIVE-01).
+// THE EDITOR SUBJECT ON THE SHIPPED COMPOSITION.
 //
 // An editor session is the second subject a live view shows. These cells drive it through the
 // production server frame the live-view harness composes: the shipped `startServer`, the shipped

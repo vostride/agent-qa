@@ -153,7 +153,7 @@ export function plantLiveRun(input: PlantLiveRunInput): PlantedLiveRun {
       if (subscribers.size === 0 || stalled) return
       frameId += 1
       delivered.push(frameId)
-      // Stamped as a member's hub stamps them (428 D-15): capture time and the producing kind.
+      // Stamped as a member's hub stamps them: capture time and the producing kind.
       const kind = input.frameKind ?? (declaredCapability.kind === 'none' ? undefined : declaredCapability.kind)
       const frame: LiveFrame = {
         id: frameId,
@@ -338,7 +338,7 @@ export interface LiveViewHarness {
   readonly server: Server
   /**
    * The editor-subject registry, created once beside the run registry and handed to both the
-   * composition and the server, as `agent-qa dashboard` does (428 D-07).
+   * composition and the server, as `agent-qa dashboard` does.
    */
   readonly editorSubjects: LiveEditorSubjects
   /** Register a planted run with the session registry the whole composition reads through. */
@@ -346,7 +346,7 @@ export interface LiveViewHarness {
   /** The run registry's own lookup, the one the run mint and the frame socket's run arm read. */
   attachRun(runId: string): RunSession | undefined
   /**
-   * Write a run ROW for a planted run, and move its status (404-06 · LIFE-01, D-13/D-07).
+   * Write a run ROW for a planted run, and move its status.
    *
    * WHY A PLANTED SESSION NEEDS ONE. `plant` registers a session with the run-service registry —
    * which is what makes the run streamable and mintable — and nothing else. The dashboard's own
@@ -355,7 +355,7 @@ export interface LiveViewHarness {
    * from the live page to run detail has to supply it, exactly as a real run's subscriber would.
    *
    * `setRunStatus` IS THE SUBSCRIBER'S `updateRun` AT `verdict`, AS A SEAM THE CELL OWNS. In
-   * production those two facts — the `verdict` envelope and the row write — race by design (D-07),
+   * production those two facts — the `verdict` envelope and the row write — race by design,
    * and a fixture that coupled them could not express the losing side of that race. The cell fires
    * each one when it means to.
    */
@@ -467,7 +467,7 @@ export async function startLiveViewHarness(input: {
       // THE SHIPPED MINT, BY REFERENCE — the same function both doors call, so a cell that got a
       // liveUrl got it through the op-level gate and not around it.
       mintLiveUrl: mintLiveUrlThrough(host.registry, DASHBOARD_FUNCTION_CALLER),
-      // The editor subject's mint, through the same dispatcher under the same caller (428 D-07).
+      // The editor subject's mint, through the same dispatcher under the same caller.
       mintEditorLiveUrl: mintEditorLiveUrlThrough(host.registry, DASHBOARD_FUNCTION_CALLER),
     },
   })
@@ -508,7 +508,7 @@ export async function startLiveViewHarness(input: {
   }
 }
 
-// ---- The planted editor subject (428 D-07) ------------------------------------------------------
+// ---- The planted editor subject ------------------------------------------------------
 //
 // What the live editor's session manager registers for a session, with the adapter replaced by a
 // fake producer. The hub is the shipped `createLiveStreamHub`, so its lazy start, graced stop and

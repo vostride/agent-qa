@@ -25,13 +25,13 @@
 // its own run would take the whole file down with it and a mutation run would be measuring
 // blast radius instead of a property. The drive RECORDS and never asserts.
 //
-// ── THE TWO SECRET LANES, AND WHY CRITERION 2 IS SPLIT ACROSS TWO CELLS (WINDOWS #286).
+// ── THE TWO SECRET LANES, AND WHY CRITERION 2 IS SPLIT ACROSS TWO CELLS.
 //
 // 405-09 measured a fact this file must not paper over. There are TWO ways a value becomes secret
 // to this product and they have DIFFERENT observable fates on this page:
 //
 //   (A) A credential-shaped value handed to the run in an environment variable and NOT declared
-//       in the fixture's secrets file. Only declared values are masked (D-01, D-12), so the run
+//       in the fixture's secrets file. Only declared values are masked, so the run
 //       records it as written and the page shows it as written. Cells (2a)/(2d) are its acceptance.
 //
 //   (B) A value DECLARED in the fixture's secrets file (`.env.secrets.local`). The runner builds a `SecretRedactor` from
@@ -52,12 +52,12 @@
 //
 // ── WHAT THIS FILE DELIBERATELY DOES NOT ASSERT, STATED RATHER THAN IMPLIED.
 //
-// A/B SCREENSHOT SIDE-SELECTION (WINDOWS #284). 405-11 retired it: the bus records ONE decision
+// A/B SCREENSHOT SIDE-SELECTION. 405-11 retired it: the bus records ONE decision
 // screenshot per sub-action and no post-action capture, so there is no second side to select. This
 // file asserts one `<img>` and one real 200, and nothing about a pair.
 //
 // THE ARIA-TREE TAB has its own Phase 423/424 evidence probes. Owner screenshots on 2026-09-21
-// (424-33) retire the duplicate Overview token and hash/state rows. Cells (1d)/(1e) now protect
+// retire the duplicate Overview token and hash/state rows. Cells (1d)/(1e) now protect
 // the authoritative source facts plus the old DOM's absence; they no longer claim those facts
 // are visibly painted on Overview. Run-level accounting remains independently observed.
 
@@ -128,7 +128,7 @@ const TAIL_GRACE_MS = 2_000
 const USAGE_CARD_OPEN_BUDGET_MS = 5_000
 
 /**
- * The artifact route a decision screenshot's `<img>` must be addressed through (D-12).
+ * The artifact route a decision screenshot's `<img>` must be addressed through.
  *
  * SPELLED AS A SHAPE RATHER THAN AS THE MINTER'S OUTPUT, deliberately: this cell's claim is that
  * the browser requested the RUN-SCOPED, CONTENT-ADDRESSED route and got bytes back, and a check
@@ -223,7 +223,7 @@ interface PageObservation {
    * The run's token totals off the SAME `/detail` response the page rendered from.
    *
    * The sentence above has been captured since 405 and asserted by nobody; comparing it to a
-   * sentence composed here from this record is what turns it into a claim (425 D-21).
+   * sentence composed here from this record is what turns it into a claim.
    */
   readonly runTokens?: import('@vostride/agent-qa-schema').RunTokenTotals
   /** Whether focusing `[data-run-token-summary]` attached `[data-usage-card]` inside the budget. */
@@ -254,7 +254,7 @@ interface Recorded {
   envelopeTypes: string[]
   /** The first visit, on the process that executed the run. */
   first?: PageObservation
-  /** The second visit, on a dashboard process that has never seen this run execute (D-08). */
+  /** The second visit, on a dashboard process that has never seen this run execute. */
   afterRestart?: PageObservation
   /** Every run-stream frame the drive collected, serialised — the masked-side wire scan. */
   sseFrames?: string
@@ -500,7 +500,7 @@ async function observeRunDetail(
     const treeActionFamily = await attributeOf('[data-sub-action] [data-action-family]', 'data-action-family')
     const treePlanCount = await page.locator('[data-sub-action] [data-sub-action-plan]').count()
     const tokenSummary = await textOf('[data-token-summary]')
-    // THE TOKEN ROOT CARRIES ITS OWN ACCESSIBLE NAME (425-05 · D-21). The header's token line is a
+    // THE TOKEN ROOT CARRIES ITS OWN ACCESSIBLE NAME. The header's token line is a
     // focusable tooltip trigger with an `sr-only` sibling naming it, so the root's `textContent` is
     // the sentence AND that name run together. `(1f)` is a claim about the sentence a person reads,
     // so the name is dropped here rather than pattern-matched around downstream.
@@ -512,7 +512,7 @@ async function observeRunDetail(
       return (clone.textContent ?? '').trim()
     })
     const screenStateChip = await attributeOf('[data-screen-state]', 'data-screen-state')
-    // THE USAGE CARD IS OPENED FROM THE CONTROL A PERSON USES (425 D-21/D-24 · WR-05), with the
+    // THE USAGE CARD IS OPENED FROM THE CONTROL A PERSON USES, with the
     // stage-card idiom from `post-processing-dom.test.ts`: focus rather than hover, because the page
     // mounts one `TooltipProvider` with `delayDuration = 0` and Radix opens on focus with no delay.
     //
@@ -623,7 +623,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
 
     // THE SAME PORT ACROSS THE RESTART, so the second dashboard is the same door at the same
     // address and the only thing that changed is the PROCESS — which is precisely the fact the
-    // re-derivation claim (D-08) rests on.
+    // re-derivation claim rests on.
     const port = await reserveEphemeralPort()
     dashboard = await spawnDashboard(
       project.root,
@@ -831,7 +831,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
   })
 
   /**
-   * THE USAGE CARD, OPENED FROM ITS REAL TRIGGER ON THE SHIPPED BUNDLE (425 D-21/D-24 · WR-05).
+   * THE USAGE CARD, OPENED FROM ITS REAL TRIGGER ON THE SHIPPED BUNDLE.
    *
    * `run-usage-card.test.tsx` already mounts the real Radix primitives under a real provider and
    * drives `focus()`, so what this cell adds is the one link nothing else holds: the header's actual
@@ -955,7 +955,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
       + `(${recorded.scannedDbFiles.join(', ')}).${context()}`,
     ).toBe(false)
 
-    // Undeclared values are recorded as written (D-01, D-12, D-23).
+    // Undeclared values are recorded as written.
     for (const [what, value] of [
       ['the env credential', POPULATED_SECRET_VALUE],
       ['the planted email address', POPULATED_EMAIL],

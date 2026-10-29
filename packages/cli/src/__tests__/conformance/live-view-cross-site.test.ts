@@ -906,7 +906,7 @@ describe('the live-url mint door refuses a cross-site browser request', () => {
   }, 120_000)
 })
 
-// ---- the live-editor surface (428 D-08, WINDOWS #275) --------------------------------------------
+// ---- the live-editor surface --------------------------------------------
 //
 // ITS OWN SPAWNED DASHBOARD. An editor session constructs its planner at creation, so the project
 // declares a model: an `openai-compatible` stub that is never called, because no cell here plans a

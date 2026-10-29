@@ -1,4 +1,4 @@
-// The render anchors: what the SHIPPED chat binary prints when an op answers (Phase 399.1 plan 01).
+// The render anchors: what the SHIPPED chat binary prints when an op answers.
 //
 // THE DEFECT THESE CELLS EXIST FOR (G-399-2, measured 2026-08-20 at HEAD 50513a31). A credential
 // refusal, a validation refusal and a genuine success all rendered byte-identically on chat's
@@ -6,7 +6,7 @@
 // was written — and the person was told the mutation completed. The corrective information the
 // product had already computed and persisted (`blockedReason` distinguishing "you tried to write a
 // secret" from "your config is invalid"; the scan findings naming the detector and the file) never
-// reached the one person it was written for. 2026-10-14 (441-39, D-15): a config change is no
+// reached the one person it was written for. 2026-10-14: a config change is no
 // longer scanned, so the only blocked reason left is `schema-fail`.
 //
 // THE ASSERTION SURFACE IS CHILD STDOUT, AND THAT IS THE POINT (criterion 1's own words; 395's
@@ -32,10 +32,10 @@
 // Not one blocked reason, detector name, validation issue or diff line is spelled in this file.
 // Each cell drives the binary, reads the op's own answer off the session log the child wrote,
 // parses it with the SHIPPED contract, and asks whether those bytes reached the terminal. 2026-09-30,
-// 432-11 D-05: the answer used to be read off the proposal record the drive filed; the config op now
+// the answer used to be read off the proposal record the drive filed; the config op now
 // writes in the call and files nothing, so the child's own clause_result is the record.
 //
-// NO CREDENTIAL, REAL OR OTHERWISE. 2026-10-14 (441-18, D-15): config changes are not scanned, so
+// NO CREDENTIAL, REAL OR OTHERWISE. 2026-10-14: config changes are not scanned, so
 // the guardrail arm these cells once drove is gone. The refusal arm they drive instead is the
 // reference field's refs-only refusal, over a SYNTHETIC value that is not shaped like a variable
 // name. The child's environment is constructed rather than inherited so no ambient provider
@@ -144,7 +144,7 @@ interface RenderReading {
  *
  * PARSED WITH THE SHIPPED SCHEMA so a cell cannot build its expectation out of a shape the product
  * does not actually produce, and so an answer that stopped conforming is a red here rather than an
- * `undefined` quietly reaching a `toContain`. Nothing is filed any more (432-11), and the drive's
+ * `undefined` quietly reaching a `toContain`. Nothing is filed any more, and the drive's
  * runtime root is asserted to hold no proposal record.
  */
 function changeAnswer(root: string, opId: string = CONFIG_FIELD_SET_FUNCTION_ID): ConfigChangeOutput {
@@ -235,7 +235,7 @@ function withheld(label: string, reading: RenderReading): string {
 // ---- The anchors --------------------------------------------------------------------------------
 
 describe('the chat render anchors', () => {
-  // 2026-10-14 (441-18, D-15): 'prints the guardrail refusal and its findings when a mutation would
+  // 'prints the guardrail refusal and its findings when a mutation would
   // write a secret' is deleted with the construction scan it measured.
 
   it('prints the validation refusal and the validator\'s own words when the result is invalid',
@@ -260,7 +260,7 @@ describe('the chat render anchors', () => {
     }, 180_000)
 
   it('prints the reviewable diff when the mutation is genuinely proposed', async () => {
-    // 432-11: "genuinely proposed" now means genuinely WRITTEN — the success arm is `applied`.
+    // "genuinely proposed" now means genuinely WRITTEN — the success arm is `applied`.
     const reading = await driveFieldSet('success', SETTABLE_PATH, BENIGN_VALUE)
 
     expect(reading.answer.outcome, 'the success cell did not reach the applied arm')
@@ -273,7 +273,7 @@ describe('the chat render anchors', () => {
       expect(reading.slice, withheld('success', reading)).toContain(asRendered(path))
     }
 
-    // THE WHOLE DIFF, not a line of it (D-04). The default render is `JSON.stringify(payload, null,
+    // THE WHOLE DIFF, not a line of it. The default render is `JSON.stringify(payload, null,
     // 2)` precisely so it is structurally incapable of withholding a field, and a cell that settled
     // for one recognisable line would pass against a hand-picked field join — which is the RC-2
     // drop-site shape this phase's prohibition exists to forbid.
@@ -287,7 +287,7 @@ describe('the chat render anchors', () => {
     // would be the hardcoded shape this phase demotes (criterion 6); this cell reds if the
     // mechanism is `config.field.set` special-casing wearing a general name.
     //
-    // 432-11 D-05: the second op was `proposals.list`, reading the proposal the first turn filed.
+    // the second op was `proposals.list`, reading the proposal the first turn filed.
     // The first turn now WRITES the config in the call, so the second op is the configuration read
     // door, `config.get`, and the payload searched for is the value the first turn wrote — so this
     // cell cannot pass on a read that rendered an unchanged config honestly.
@@ -343,7 +343,7 @@ describe('the chat render anchors', () => {
       // WHY IT WAS MISSED, structurally rather than by oversight: `receipt-line.ts` renders
       // `  <status>  <op>  <clause>`, so the status word PRECEDES the clause the marker is and a
       // strict post-marker slice CANNOT carry it. `receiptLine` above reads the marker's own line.
-      // 2026-10-14 (441-18, D-15): the guardrail arm is replaced by the refs-only refusal.
+      // the guardrail arm is replaced by the refs-only refusal.
       const refused = await driveChange(
         'verdict-refs-only', REFS_ONLY_DRIVE.opId, REFS_ONLY_DRIVE.utterance)
       const schemaFail = await driveFieldSet('verdict-schema-fail', UNSETTABLE_PATH, BENIGN_VALUE)
@@ -395,7 +395,7 @@ describe('the chat render anchors', () => {
       // one its name claims — and a drive that reached the wrong op would red for the wrong reason.
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
       const fixture = fixtureProject('399-1-09-nested')
-      // 2026-10-14 (441-18, D-15): the inner refusal is the refs-only one, the guardrail being gone.
+      // the inner refusal is the refs-only one, the guardrail being gone.
       const inner = REFS_ONLY_DRIVE.utterance
       const outer = `/fn ${AGENT_ASK_FUNCTION_ID} ${JSON.stringify({ message: inner })}`
       const outcome = await driveChatSpawned(fixture.root, fixture.configPath, outer)
@@ -473,7 +473,7 @@ describe('the chat render anchors', () => {
     // ITS OWN NON-VACUITY, both ways: the three drives are asserted to have reached three different
     // filed outcomes first, so "the payloads differ" is a fact about this run rather than an
     // assumption, and three identical renderings of three identical payloads could not pass here.
-    // 2026-10-14 (441-18, D-15): the guardrail arm is replaced by the refs-only refusal.
+    // the guardrail arm is replaced by the refs-only refusal.
     const refused = await driveChange(
       'distinct-refs-only', REFS_ONLY_DRIVE.opId, REFS_ONLY_DRIVE.utterance)
     const schemaFail = await driveFieldSet('distinct-schema-fail', UNSETTABLE_PATH, BENIGN_VALUE)
@@ -509,7 +509,7 @@ describe('the chat render anchors', () => {
   }, 300_000)
 })
 
-// ---- The per-surface render anchors: in-process ≡ shipped, one cell per door (D-08) -------------
+// ---- The per-surface render anchors: in-process ≡ shipped, one cell per door -------------
 //
 // WHAT THESE THREE ADD THAT THE MATRIX CANNOT. `render-parity.test.ts` drives the shipped render
 // FUNCTIONS for all 42 capabilities on all three doors, in this process, against documents produced
@@ -543,7 +543,7 @@ describe('the chat render anchors', () => {
  * capability that no longer exists, while the rule re-lands on whatever the table's next qualifying
  * row is and says so.
  *
- * 2026-09-30 (432-12, D-05): THAT DAY CAME, and the rule is re-stated rather than bent. The row it
+ * THAT DAY CAME, and the rule is re-stated rather than bent. The row it
  * landed on, `proposals.list`, left the MCP door with the proposal round, and the next row with an
  * empty input and an object root is `runs.start` — which STARTS A RUN, so an empty fixture refuses
  * it and the anchors would measure a failure. Clause (2) is therefore widened from "the empty

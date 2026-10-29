@@ -1,4 +1,4 @@
-// C444-VERDICT-INDEPENDENCE (444-18, D-15, D-54): real `agent-qa run`s whose post-processing ends
+// real `agent-qa run`s whose post-processing ends
 // failed, skipped (gate run) or pending keep their verdict and exit code on the CLI, MCP and the
 // dashboard, and every surface prints D-13's stage words. The failed leg is a failed run whose
 // analyze-run author is refused: its own tail leaves the job retrying (`pending`), and two shipped
@@ -88,7 +88,7 @@ interface Reads {
 }
 
 // `runs.overview` carries the verdict and, in its Learned half, the curation chip and, for a chain
-// that was never enqueued, the skipped fact beside it (2026-10-18, 444-26, D-61).
+// that was never enqueued, the skipped fact beside it.
 interface OverviewDocument {
   readonly aggregateVerdict?: string
   readonly learned?: {
@@ -190,7 +190,7 @@ function verdictOf(project: PopulatedRunProject, runId: string): unknown {
   return undefined
 }
 
-// Read-only, waiting out a drainer's write lock (444-17). A read that still fails is thrown, and
+// Read-only, waiting out a drainer's write lock. A read that still fails is thrown, and
 // the caller records it as an unreadable sample the cells reject.
 function analyzeRunRow(project: PopulatedRunProject, runId: string): JobRow {
   const db = new DatabaseSync(join(project.agentQaRoot, 'agent-jobs.db'), { readOnly: true, timeout: 5_000 })

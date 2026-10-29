@@ -1,4 +1,4 @@
-// C444-CI-HEADLESS, C444-CI-PROPOSE-ONLY (444-20, D-21, D-22, D-38, D-42, D-57): the shipped bin
+// the shipped bin
 // under `CI=true`, stdin /dev/null and stdout piped, with no colour variable in its environment.
 
 import { spawn } from 'node:child_process'
@@ -210,7 +210,7 @@ function leg(key: string, verdict: Verdict, testPath: string, flags: readonly st
 }
 
 // The second CI run in the workspace sees the first run's record as a neighbor, and the stub's
-// curator arm authors a Supersede of it (D-57).
+// curator arm authors a Supersede of it.
 async function drive(): Promise<void> {
   target = await startTargetPageServer()
   model = await startStubModelServer({

@@ -5,14 +5,14 @@
 // THE HONEST LIVE SURFACE, IN A REAL BROWSER (403-06 Task 1 · HNST-01/02/03, LIVE-01/LIVE-04,
 // D-09..D-12; 404-06 · LIFE-01, D-13/D-14/D-07).
 //
-// WHAT PHASE 404 CHANGED HERE (2026-08-26). 403's D-12 ended the live page on the verdict and went
+// WHAT PHASE 404 CHANGED HERE. 403's D-12 ended the live page on the verdict and went
 // nowhere, and cell (6) below measured exactly that: `page.url()` still ended in `/live`. D-13
 // inverts it — the page now navigates to run detail the instant the reducer records the verdict,
 // replacing history. Cell (6) therefore keeps its SUBJECT (the honest terminal band) and moves to
 // the path where the band is still the truthful thing to paint: a `runFinished` with no verdict at
 // all. Cell (9) is the new one, and it measures the navigation itself on the built bundle: the URL
 // becomes `/runs/:id`, the verdict badge is painted in the header, the page does NOT bounce back
-// to `/live` while the durable row is still catching up (D-07), and Back returns to where the
+// to `/live` while the durable row is still catching up, and Back returns to where the
 // viewer came from rather than to a live page whose socket the door has already closed.
 //
 // WHY THIS FILE EXISTS. 403-05 proved the live page's contract in jsdom: 27 cells over a doubled
@@ -403,7 +403,7 @@ describe('the built live surface, in a real browser', () => {
 
       // AND THE PAGE DID RECEIVE IT. Without this the assertion above would pass on a page that
       // never got the envelope at all, which measures nothing.
-      // 428 D-19: the tick reaches the running row as data-step-ticks, never as a count; the wait
+      // the tick reaches the running row as data-step-ticks, never as a count; the wait
       // above is the proof it arrived.
       // RE-SPELLED 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5): this read the tick
       // as the breathing glyph's re-key. The glyph is still, so no motion marker is on the page.
@@ -425,13 +425,13 @@ describe('the built live surface, in a real browser', () => {
     const f = held()
     const ackedBefore = f.dom.ackedFrameIds().length
     await onLivePage('r_dom', async (page) => {
-      // RE-SPELLED 2026-09-26 (428-15): `embedded` with frames is `live` on the shared preview, and
-      // the embed sits inside the aspect box. Since 2026-09-26 (428-34, G-428-4) that box holds the
+      // RE-SPELLED 2026-09-26: `embedded` with frames is `live` on the shared preview, and
+      // the embed sits inside the aspect box. Since 2026-09-26 that box holds the
       // picture alone; the dot leads the preview's chrome above it.
       await page.locator('[data-preview-state="live"]').waitFor({ state: 'attached', timeout: 40_000 })
       const embed = page.locator('[data-preview-frame] [data-live-embed]')
       await embed.waitFor({ state: 'attached', timeout: 10_000 })
-      // The sandbox is the reason the token may ride the fragment at all (T-403-09).
+      // The sandbox is the reason the token may ride the fragment at all.
       expect(await embed.getAttribute('sandbox')).toBe('allow-scripts')
 
       const frame = await liveEmbedFrame(page)
@@ -500,7 +500,7 @@ describe('the built live surface, in a real browser', () => {
     })
   }, 120_000)
 
-  // (5a), (5b) AND (5c) RE-SPELLED 2026-09-26 (428-16 · D-03). They measured HNST-03's pill over
+  // (5a), (5b) AND (5c) RE-SPELLED 2026-09-26. They measured HNST-03's pill over
   // three kinds of real traffic: `live` across heartbeats, `lost` over an open and silent socket,
   // and `reconnecting` then `live` across a server-dropped socket. The owner removed bus liveness
   // from the page (a dead bus now shows only as rows that stop moving), so each cell keeps its
@@ -634,7 +634,7 @@ describe('the built live surface, in a real browser', () => {
     expect(f.dom.cancelCalls()).toBe(0)
   }, 180_000)
 
-  // RE-PINNED 2026-08-26 (404-06 · D-14). This cell was "(6) D-12: the run ends, the page freezes,
+  // RE-PINNED 2026-08-26. This cell was "(6) D-12: the run ends, the page freezes,
   // and it does not go anywhere", and its body published `verdict` AND `runFinished` before
   // asserting the band and a URL still ending in `/live`. D-13 makes that sequence navigate, so
   // the cell now publishes `runFinished` ALONE — a producer that ended a run without ever
@@ -691,7 +691,7 @@ describe('the built live surface, in a real browser', () => {
     expect(f.dom.cancelCalls(), 'D-16: no viewer ever cancelled this run').toBe(0)
   }, 150_000)
 
-  // RE-PINNED 2026-08-26 (404-06 · D-13). The `did not run` rows are now asserted BEFORE the
+  // RE-PINNED 2026-08-26. The `did not run` rows are now asserted BEFORE the
   // verdict is published, because after it the page is no longer on screen — the ORDER is the
   // re-pin. What the cell gains for it is a second measurement of the navigate, on a run whose
   // verdict is `failed` rather than `passed`: D-13 moves a viewer on the answer, not on a good
@@ -703,7 +703,7 @@ describe('the built live surface, in a real browser', () => {
     await onLivePage('r_none', async (page) => {
       await page.locator('[data-member-note]').waitFor({ state: 'attached', timeout: 30_000 })
       expect(await page.locator('[data-member-note]').textContent()).toBe(DID_NOT_RUN_NOTE)
-      // 428 D-19: a single-member run has no member header, so the note is the pane's sentence and
+      // a single-member run has no member header, so the note is the pane's sentence and
       // no outcome badge repeats what the verdict is about to say.
       expect(await page.locator('[data-member-note]').evaluate((node) => node.tagName)).toBe('P')
       expect(await page.locator('[data-member-outcome]').count()).toBe(0)

@@ -205,7 +205,7 @@ async function lensProof(page: Page, point: { x: number; y: number }, name: stri
   // settled media pixels, not the transient pre-observer rectangle.
   await page.evaluate(() => new Promise<void>(resolve => requestAnimationFrame(() => requestAnimationFrame(() => resolve()))))
   const media = page.locator('[data-media-transform] > video, [data-media-transform] > img')
-  // 2026-10-02 (quick 261002-tmo): wait, bounded, until the media reports its natural size and a
+  // wait, bounded, until the media reports its natural size and a
   // laid-out box. Read too early (a video whose metadata had not landed after the mode change),
   // the origin divided by a zero natural width and `mouse.move` got a non-finite point: `Protocol
   // error (Input.dispatchMouseEvent): Invalid parameters` (432-12 forced run 1, load ~16).
@@ -506,7 +506,7 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     observations.continuousDrag = drag
     const target = drag.find(row => row.member === 1)!.fraction * durations.reduce((sum, value) => sum + value, 0)
     const expectedLocal = target - durations[0]!
-    // 2026-10-10 (quick 261010-11a): on member 1's new source the player first seeks to the
+    // on member 1's new source the player first seeks to the
     // selected marker's offset and applies the click's own seek from that seek's `seeked`. A
     // read at an arbitrary moment could land between the two (0.33-0.43 s drift under load), so
     // the position is read at the click's settled seek.

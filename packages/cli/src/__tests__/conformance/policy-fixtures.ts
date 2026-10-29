@@ -1,4 +1,4 @@
-// The policy fixtures the verdict legs are driven with (Phase 397 plan 03, D-11).
+// The policy fixtures the verdict legs are driven with.
 //
 // WHAT THIS FILE OWNS. Two things, and neither is an expectation: the CALLERS each policy point is
 // exercised under, and the execution context those points are decided in. The parity suite owns the
@@ -6,7 +6,7 @@
 // it that way is what keeps the fixtures from quietly encoding the answer they are supposed to be
 // measuring.
 //
-// NO CALLER HOLDS A GRANT (2026-10-01, 432-20, D-12). Until the permission wave the covering caller
+// NO CALLER HOLDS A GRANT. Until the permission wave the covering caller
 // held exactly an op's declared scopes and the refusing caller withheld one. Declarations carry no
 // scopes and `invokeFunction` reads none, so the covering caller is the tokenless record every door
 // now mints, and the refuse point is retired — there is no grant left to withhold. No scope is
@@ -33,7 +33,7 @@ import { MCP_FUNCTION_CALLER } from '../../commands/mcp.js'
  */
 export const CONFORMANCE_EXECUTION_CONTEXT: ExecutionContext = 'local-interactive'
 
-// 2026-10-02 (432-39, D-12): `conformanceResolveExecutionContext`, the injected resolver form, is
+// `conformanceResolveExecutionContext`, the injected resolver form, is
 // deleted. Its only consumer was the registry's retired context option, deleted here too.
 
 /** A caller record in the suite's own surface, so an audit row can never be mistaken for a host's. */
@@ -47,7 +47,7 @@ function conformanceCaller(): FunctionCaller {
 }
 
 /**
- * The covering caller for an op: the tokenless record, holding no grant at all (432-20, D-12).
+ * The covering caller for an op: the tokenless record, holding no grant at all.
  *
  * Until 432-20 this held exactly the op's declared scopes, so a caller holding every scope could not
  * mask an op whose scopes had silently emptied. With no scopes declared or read, a caller holding
@@ -57,7 +57,7 @@ export function coveringCallerFor(_declaration: FunctionDeclaration): FunctionCa
   return conformanceCaller()
 }
 
-// 2026-10-01 (432-20, D-12): `refusingCallerFor` and `RefusingCallerFixture` are deleted. The refuse
+// `refusingCallerFor` and `RefusingCallerFixture` are deleted. The refuse
 // point was "the covering grant minus one scope, named"; no grant is read, so there is nothing to
 // withhold and no refusal on that axis to attribute.
 
@@ -81,7 +81,7 @@ export interface SurfaceShapedCallers {
  * The two surfaces' callers, each minted the way its own surface mints today: the chat resolver's
  * record verbatim, and the MCP door's one tokenless caller.
  *
- * They differ in `surface` and `origin`. Since 432-20 (D-10/D-12) neither is read by the function
+ * They differ in `surface` and `origin`. Since 432-20 neither is read by the function
  * layer to decide anything, and since 432-21 neither record carries a grant field at all, so the two
  * must answer alike for every capability.
  */
@@ -109,9 +109,9 @@ export function surfaceInertCallers(): SurfaceShapedCallers {
 
 /**
  * The two surfaces' callers stripped of every grant — the shortest caller each surface could hand
- * the function layer. Used by the retired refuse legs to show nothing refuses them (432-20).
+ * the function layer. Used by the retired refuse legs to show nothing refuses them.
  *
- * 2026-10-02 (432-39, D-12): the caller's `grantedScopes` member is deleted, so the explicit empty
+ * the caller's `grantedScopes` member is deleted, so the explicit empty
  * grant set is smuggled past the type with a cast — the refuse legs still hand a caller that SAYS it
  * holds nothing, and still prove nothing reads it.
  */

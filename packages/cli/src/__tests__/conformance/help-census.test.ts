@@ -247,7 +247,7 @@ function isCommentLine(line: string): boolean {
 /**
  * Whether a body names a directive form AS A FORM rather than as part of a path.
  *
- * MEASURED, NOT ASSUMED (2026-08-17): the first version of this sweep matched substrings and fired
+ * MEASURED, NOT ASSUMED: the first version of this sweep matched substrings and fired
  * on `commands/init.ts` for `'../model-defaults.js'` and for the URL `iana.org/help/…`. Both are
  * paths, and neither is a listing of anything. The boundary conditions are what make the difference
  * — a form a person types is preceded by whitespace or a quote and followed by whitespace,
@@ -320,7 +320,7 @@ describe('no second list of what chat understands', () => {
 /**
  * The AUTHORED skills tree, which is not the one that ships.
  *
- * MEASURED THE HARD WAY (2026-08-17). `packages/cli/skills` is a GENERATED COPY: the CLI package's
+ * MEASURED THE HARD WAY. `packages/cli/skills` is a GENERATED COPY: the CLI package's
  * `prepack` runs `copy:skills`, which deletes that directory and rebuilds it from this one. A guard
  * that read only the resolved (packaged) directory would certify a reconciliation that the next
  * `prepack` silently undoes — which is exactly what happened while this plan was being written, and
@@ -332,7 +332,7 @@ const SKILLS_SOURCE_DIR = 'skills'
 /**
  * Every file a skill DIRECTORY carries, not just its SKILL.md.
  *
- * MEASURED, AND THE REASON THIS IS NOT SCOPED TO SKILL.md (2026-08-17). The first version of the
+ * MEASURED, AND THE REASON THIS IS NOT SCOPED TO SKILL.md. The first version of the
  * guard read only the three SKILL.md files, and it would have passed while
  * `agent-qa-authoring/references/agent-qa-contracts.json` — a file the skill's own step 3 tells an
  * agent to LOAD — still instructed `agent_qa_generate_id`. A guard scoped to one file of a
@@ -935,7 +935,7 @@ describe('LIVE-GUIDANCE: the guide, pointer and every source and packaged skill 
   })
 })
 
-// 2026-10-01, 432-17 (D-02 / D-05 / D-09): `agent-qa proposals` is deleted with the inbox, including
+// `agent-qa proposals` is deleted with the inbox, including
 // its `grants list | revoke` subtree. No alias is kept, so the parse tree rejects the verb the way it
 // rejects any word it never had, and nothing in the help, the manifest or the dedicated-verb list
 // still names it.
@@ -968,7 +968,7 @@ describe('there is no proposals verb', () => {
   })
 })
 
-// ---- 432-40 (D-02 / D-05 / D-09 / D-24): the direct model, said with live names only ----------
+// ---- 432-40: the direct model, said with live names only ----------
 //
 // The LIVE-GUIDANCE cells above prove every NAME the guidance quotes is live. These prove what the
 // guidance SAYS: knowledge and config change through agent-qa and apply in the call, wrong knowledge
@@ -1293,7 +1293,7 @@ describe('curation and chat say where a change went, and point at no review', ()
   })
 })
 
-// C446-GUIDANCE-KEYS (446-04, D-16): every dotted config key in the guidance resolves in the schema
+// every dotted config key in the guidance resolves in the schema
 function catalogOpIds(): ReadonlySet<string> {
   return new Set(loadCapabilityCatalog().rows.flatMap((row) => (row.kind === 'op' ? [row.id] : [])))
 }
@@ -1357,7 +1357,7 @@ function bareInvocations(subjects: readonly GuidanceSubject[]): readonly string[
     .map((invocation) => `${subject.name}: "${invocation.text}" is not prefixed with npx`))
 }
 
-// C446-GUIDANCE-NPX (446-06, D-09): every command a skill quotes can be copied and run with a local install
+// every command a skill quotes can be copied and run with a local install
 describe('CLI commands quoted in agent guidance', () => {
   it('every CLI command a source or packaged skill quotes outside a text block reads npx agent-qa', () => {
     const skills = skillSubjects()
@@ -1399,7 +1399,7 @@ describe('CLI commands quoted in agent guidance', () => {
       .toEqual([['agent-qa runs list', false, '']])
   })
 
-  // 2026-10-20 (446-07, D-09, D-29): the map keeps bare verbs; only its rendering adds npx
+  // the map keeps bare verbs; only its rendering adds npx
   it('every CLI command the guide, the pointer and the MCP instructions quote reads npx agent-qa, while the question map keeps bare verbs', () => {
     const names: readonly string[] = ['generated guide', 'root pointer', 'MCP instructions']
     const generated = liveGuidanceInputs().subjects.filter((subject) => names.includes(subject.name))
@@ -1417,7 +1417,7 @@ describe('CLI commands quoted in agent guidance', () => {
 
 const EVIDENCE_KINDS = ['console', 'network', 'a11y', 'aria', 'variables'] as const
 
-// C446-PLACEHOLDERS (446-06, D-15): a skill explains each placeholder where it uses it
+// a skill explains each placeholder where it uses it
 describe('the build and evidence-kind placeholders in agent guidance', () => {
   it('every skill that names the build placeholder says it is a build ordinal or tag, and every skill that names runs evidence --kind names the five evidence kinds', () => {
     const findings: string[] = []
@@ -1455,7 +1455,7 @@ describe('the build and evidence-kind placeholders in agent guidance', () => {
   })
 })
 
-// 2026-10-21 (446-15, D-32): a forced init rebuilds agent-qa.config.yaml; a backtick ends a code span
+// a forced init rebuilds agent-qa.config.yaml; a backtick ends a code span
 const INIT_FORCE = /\binit\b[^`\n]*--force\b/u
 
 function initForceFindings(
@@ -1472,7 +1472,7 @@ function initForceFindings(
   return { scanned, findings: sorted(findings) }
 }
 
-// C446-NO-INIT-FORCE (446-15, D-32): agent-facing guidance never hands an agent a forced init
+// agent-facing guidance never hands an agent a forced init
 describe('agent guidance never offers init --force', () => {
   it('no agent-facing guidance offers agent-qa init with --force, which rebuilds the workspace config', () => {
     const { subjects } = liveGuidanceInputs()

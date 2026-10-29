@@ -165,7 +165,7 @@ export const FIXTURE_TAB_WAIT_MS = 30_000
  * Zoom the fixture tab to `factor` through the isolated MV3 extension's own `chrome.tabs` API and
  * answer Chrome's reported zoom.
  *
- * 2026-10-02 (quick 261002-tmo): `chrome.tabs.query({ url })` matches the exact url, and the run
+ * `chrome.tabs.query({ url })` matches the exact url, and the run
  * page rewrites its own address after load (`?step=0%3A0&sub=1`, measured in the tabs this probe
  * listed). A query that ran after the rewrite found nothing: `The isolated extension found no
  * fixture tab` (432-08 #5, 432-21 #7, 432-46 #1: up to six layout cells per forced gate at load

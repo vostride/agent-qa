@@ -1,8 +1,8 @@
-// The capability catalog's freshness and loader legs (Phase 398 plan 01 — XPLN-01, D-03).
+// The capability catalog's freshness and loader legs.
 //
 // These legs JOIN the 397 conformance suite rather than standing beside it: they run in the same
 // directory, under the same CI job, on every PR, and the regen script's refuse-while-red gate reads
-// the whole directory's result. One suite, one denominator (397 D-10).
+// the whole directory's result. One suite, one denominator.
 //
 // WHAT THE FRESHNESS LEG IS. The committed artifact is a photograph of the live seams. The leg
 // re-takes the photograph in memory and compares — and when they disagree it names WHICH ROW and
@@ -191,7 +191,7 @@ describe('the capability catalog loader', () => {
   })
 })
 
-// ---- The censuses (D-01 / D-05 / D-06 / D-07) ----------------------------------------------------
+// ---- The censuses ----------------------------------------------------
 //
 // THE LAW, RESTATED FOR THIS ARTIFACT. `scenario-table.ts` states it once for the registry: two
 // enumerations of one universe are asserted set-equal in BOTH directions, so a member that lands on
@@ -310,7 +310,7 @@ describe('the capability catalog census', () => {
         }
       }
 
-      // Every op is reachable in chat 1:1 (392 D-07/D-08), so the chat surface is on every row.
+      // Every op is reachable in chat 1:1, so the chat surface is on every row.
       if (!row.surfaces.includes('chat')) {
         disagreements.push(`${row.id}: the row omits the chat surface`)
       }
