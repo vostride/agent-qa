@@ -25,7 +25,7 @@ const TIMEOUT_ERROR = 'Timeout 30000ms exceeded waiting for locator'
 
 const threeScreens = () => [makeScreenState(), makeScreenState(), makeScreenState()]
 
-describe('re-ground-first self-heal (LOOP-04 / D-10)', () => {
+describe('re-ground-first self-heal', () => {
   it('heals a ref-resolution failure by re-grounding and re-executing WITHOUT a new planning turn', async () => {
     const adapter = makeAdapter({
       observeResults: threeScreens(),
@@ -43,7 +43,7 @@ describe('re-ground-first self-heal (LOOP-04 / D-10)', () => {
     expect(plannerSpy).toHaveBeenCalledTimes(1) // re-ground heal — no replan turn
   })
 
-  it('records the heal in the grounding trail only — StepEvidence.selfHeal stays unpopulated (D-11)', async () => {
+  it('records the heal in the grounding trail only — StepEvidence.selfHeal stays unpopulated', async () => {
     const adapter = makeAdapter({
       observeResults: threeScreens(),
       executeResults: [{ success: false, error: UNKNOWN_REF_ERROR }, { success: true }],

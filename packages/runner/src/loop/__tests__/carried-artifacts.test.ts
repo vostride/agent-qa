@@ -133,7 +133,7 @@ async function step(
   return executeStep(instruction, ports, makeStepContext({ stepInstruction: instruction, stepNumber, stepCount: 3 }))
 }
 
-describe('C439-CARRY', () => {
+describe('what an earlier step carries to a later one', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

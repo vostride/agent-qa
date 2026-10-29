@@ -112,7 +112,7 @@ describe('LLMVerifier', () => {
 
   // Phase 355-01 (CTXB-04 / D-10) — RED until Plan 06 injects the TokenAccounting port
   // into LLMVerifier and feeds recordUsage(result.usage, messages) after each response.
-  it('feeds the injected TokenAccounting recordUsage exactly once per response (D-10)', async () => {
+  it('feeds the injected TokenAccounting recordUsage exactly once per response', async () => {
     const { generateText } = await import('ai')
     const mockGenerateText = vi.mocked(generateText)
     mockGenerateText.mockResolvedValueOnce({

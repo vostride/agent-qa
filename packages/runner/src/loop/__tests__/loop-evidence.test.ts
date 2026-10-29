@@ -26,7 +26,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
   return overrides
 }
 
-describe('loop evidence matrix (SCREEN-02 / D-15)', () => {
+describe('loop evidence matrix', () => {
   it('(1) every recorded sub-action carries stateBefore with non-empty elements and refMap', async () => {
     const result = await executeStep('Click Log in', ports({ adapter: makeAdapter(), planner: makePlanner() }), makeStepContext())
     const sub = result.evidence!.subActions[0]
@@ -166,7 +166,7 @@ describe('loop evidence matrix (SCREEN-02 / D-15)', () => {
 // stamps it into every step's evidence. Three laws are pinned here because each one is a way
 // the banner could lie: a rung stamped on a run that served no brief (D-16), a rung lost
 // because a host probe was slow, and a step FAILED because asking about the host threw.
-describe('loop retrieval rung threading (407 D-13/D-16)', () => {
+describe('loop retrieval rung threading', () => {
   const rung: RecordedRetrievalRung = {
     schemaVersion: 2,
     rung: 'lexical-only',
@@ -198,7 +198,7 @@ describe('loop retrieval rung threading (407 D-13/D-16)', () => {
     expect(result.evidence!.retrievalRung).toEqual(rung)
   })
 
-  it('stamps NO rung when no knowledge reader is bound — no reader bound is not a rung (D-16)', async () => {
+  it('stamps NO rung when no knowledge reader is bound — no reader bound is not a rung', async () => {
     const result = await executeStep(
       'Click Log in',
       ports({

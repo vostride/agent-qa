@@ -42,7 +42,7 @@ function scriptedObserve(states: ScreenState[]) {
 
 const OPTS = { maxPolls: 4, intervalMs: 0, deadline: 0 }
 
-describe('settle gate (CACHE-05, D-09/D-16)', () => {
+describe('settle gate', () => {
   it('an already-stable screen settles on two consecutive matching hashes and returns that hash', async () => {
     const stable = screen('Cart')
     const { observe, rec } = scriptedObserve([stable, stable, stable])

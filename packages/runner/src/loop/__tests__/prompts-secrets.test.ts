@@ -19,7 +19,7 @@ function rule23(platform: (typeof PLATFORMS)[number]): string {
   return block.slice(block.indexOf('\n23. ') + 1)
 }
 
-describe('secret placeholder prompt contract (G-381-5)', () => {
+describe('secret placeholder prompt contract', () => {
   for (const platform of PLATFORMS) {
     const label = platform ?? 'undefined (platform-neutral)'
 
@@ -48,7 +48,7 @@ describe('secret placeholder prompt contract (G-381-5)', () => {
   }
 })
 
-describe('C441-PROMPTS', () => {
+describe('the secret forms in prompts and the tokenizer', () => {
   it('Rule 23 is one line that names both forms and how to type a secret', () => {
     for (const platform of PLATFORMS) {
       const rule = rule23(platform)

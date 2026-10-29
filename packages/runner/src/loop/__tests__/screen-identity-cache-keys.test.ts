@@ -190,7 +190,7 @@ async function savedCache() {
   return { cache, first }
 }
 
-describe('C436-CACHE-IDENTITY', () => {
+describe('screen identity in cache keys and replay', () => {
   it('cache keys for the fixed three-action fixture equal the pinned literals, and each passing turn is saved under its key', async () => {
     const cache = recordingCache()
     const { result, planner } = await firstRun(cache)

@@ -89,7 +89,7 @@ async function generateTextCalls() {
   return vi.mocked(generateText).mock.calls as { 0: { messages: unknown[] } }[]
 }
 
-describe('executePlanningTurn — in-turn grounding feedback (D-09)', () => {
+describe('executePlanningTurn — in-turn grounding feedback', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     toolCallSeq = 0
@@ -155,7 +155,7 @@ describe('executePlanningTurn — in-turn grounding feedback (D-09)', () => {
     expect(note.execute).toHaveBeenCalledTimes(1)
   })
 
-  it('preserves the schema_invalid throw path — malformed args are NOT converted to in-turn feedback (Q2)', async () => {
+  it('preserves the schema_invalid throw path — malformed args are NOT converted to in-turn feedback', async () => {
     // web_fill requires `text`; omitting it makes toolCallToActionPlan throw schema_invalid.
     await scriptResponses([
       { toolCalls: [actionCall('web_fill', { ref: 'e1', ...ENVELOPE })], usage: USAGE },

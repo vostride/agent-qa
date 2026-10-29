@@ -35,7 +35,7 @@ function cacheControlOf(message: SystemModelMessage): unknown {
     ?.cacheControl
 }
 
-describe('assemblePlannerSystemTiers — empty-tier drop (RUNX-01 / D2)', () => {
+describe('assemblePlannerSystemTiers — empty-tier drop', () => {
   it('drops the empty context tier for a bare test with no suite/test context (2 tiers, none empty)', () => {
     const system = assemblePlannerSystemTiers(makeContext(), { platform: 'web' })
 
@@ -83,7 +83,7 @@ describe('assemblePlannerSystemTiers — empty-tier drop (RUNX-01 / D2)', () => 
     expect(contentText(system.at(-1)!.content)).toContain('Current date:')
   })
 
-  it('appends composition-root capability notes to the stable tier and never a Custom rules block (KDIR-03)', () => {
+  it('appends composition-root capability notes to the stable tier and never a Custom rules block', () => {
     const system = assemblePlannerSystemTiers(makeContext(), {
       platform: 'web',
       capabilityNotes: 'Console log capture is DISABLED for this test run.',

@@ -111,7 +111,7 @@ const limits = (maxActions: number, maxPlanningTurns: number) => ({
   previousStepCount: 0,
 })
 
-describe('C439-ENDINGS', () => {
+describe('how a step that ends without a pass is judged', () => {
   it('a give-up is judged once and names the unproven condition', async () => {
     const step = 'Save the draft'
     const adapter = trackingAdapter()
@@ -142,7 +142,7 @@ describe('C439-ENDINGS', () => {
     expect(result.evidence?.limitUsage?.verifierCalls).toBe(1)
   })
 
-  it('an "N/A" infeasible declaration still names its unmet condition (folded todo 399 failure-reason placeholder)', async () => {
+  it('an "N/A" infeasible declaration still names its unmet condition', async () => {
     const step = 'Export the report'
     const adapter = trackingAdapter()
     const planner = scriptedPlanner([

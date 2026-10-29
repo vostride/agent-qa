@@ -146,7 +146,7 @@ const tapSend = makeActionPlan({
   stepComplete: true,
 })
 
-describe('verifier AFTER observation settles with a 500 ms interval (P6, L3)', () => {
+describe('verifier AFTER observation settles with a 500 ms interval', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
   })
@@ -261,7 +261,7 @@ describe('verifier AFTER observation settles with a 500 ms interval (P6, L3)', (
   })
 })
 
-describe('verifier author context carries the step position (P2, L2)', () => {
+describe('verifier author context carries the step position', () => {
   beforeEach(() => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout', 'Date'] })
   })

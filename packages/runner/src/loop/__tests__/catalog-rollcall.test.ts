@@ -176,7 +176,7 @@ async function dispatchReachesAdapter(action: Action, platform: Platform): Promi
   return calls.length > 0 || setVariableRouted
 }
 
-describe('D-20 catalog roll-call', () => {
+describe('catalog roll-call', () => {
   it('freezes the registered catalog at 56 / web 33 / android 30 / ios 27', () => {
     expect(registry.getAll()).toHaveLength(56)
     expect(registry.getForPlatform('web')).toHaveLength(33)
@@ -204,7 +204,7 @@ describe('D-20 catalog roll-call', () => {
     expect(offenders, `fixtures that failed the emission→plan conversion: ${offenders.join(' | ')}`).toEqual([])
   })
 
-  it('every registered id on every legal platform either mints or dispatches (RED until Plans 04-07/10)', async () => {
+  it('every registered id on every legal platform either mints or dispatches', async () => {
     // MINT_VERBS landed with the dispatch-mint module in Plan 08 (import now resolves).
     const { MINT_VERBS } = await import('../../compound/dispatch-mint.js')
     const mintSet = new Set<string>(MINT_VERBS as readonly string[])

@@ -15,7 +15,7 @@ function record(
   }
 }
 
-describe('createRecordLedger — combined turn serving authority (D-16/D-17/D-18)', () => {
+describe('createRecordLedger — combined turn serving authority', () => {
   it('admits at cap - 1, refuses a new id at cap, and keeps a counted id slot-free', () => {
     const first = record('record-first')
     const second = record('record-second')

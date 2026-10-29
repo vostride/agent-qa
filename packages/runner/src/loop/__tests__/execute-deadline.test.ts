@@ -32,7 +32,7 @@ async function runOnce(overrides: Partial<LoopPorts>): Promise<unknown[][]> {
   return calls
 }
 
-describe('C436-DOWNLOAD-DEADLINE', () => {
+describe('the time left to the step deadline reaches execute', () => {
   it('the loop hands execute the time left to the step deadline and the abort signal', async () => {
     const controller = new AbortController()
     const [[, options]] = await runOnce({ stepTimeout: 5_000, abortSignal: controller.signal })

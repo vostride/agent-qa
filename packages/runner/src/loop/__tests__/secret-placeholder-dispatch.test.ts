@@ -43,7 +43,7 @@ async function runOne(action: Record<string, unknown> & { type: string }) {
   return { calls, result, sub: result.evidence?.subActions[0] }
 }
 
-describe('C441-DISPATCH-REFUSAL', () => {
+describe('a masked secret placeholder is refused before dispatch', () => {
   it('a fill whose value is the masked placeholder never reaches the app', async () => {
     const { calls, sub } = await runOne({
       type: 'fill',

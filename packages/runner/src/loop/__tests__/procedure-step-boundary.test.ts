@@ -319,7 +319,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
 
 const STEP_0_TEXT = `Type "${PROBE_EMAIL}" into the Username field`
 
-describe('procedure step boundary (F-381-51-1 · D-09)', () => {
+describe('procedure step boundary', () => {
   it('harness fidelity: the stored click navigates to a form-less received page on a different route', async () => {
     // T-381-126 mitigation: assert the navigate-on-submit shape IN-SUITE before any
     // contract row leans on it. A fixture whose form persists after submit would prove the
@@ -416,7 +416,7 @@ describe('procedure step boundary (F-381-51-1 · D-09)', () => {
 // default on every early exit.
 // ---------------------------------------------------------------------------
 
-describe('cross-step flow carry (F-381-51-1 · D-09/D-10/D-11)', () => {
+describe('cross-step flow carry', () => {
   it('the carry drives body step 1 at test step 1 — fill at step 0, click at step 1, live at step 2', async () => {
     const flowCell: { carry?: ProcedureFlowCarry } = {}
     const { adapter, executed, currentScreen } = navigatingAdapter()
@@ -723,7 +723,7 @@ async function recoveryBlockFor(target: ProcedureBodyPayload['steps'][number]['g
   return learned.slice(learned.indexOf('Guarded replay recovery evidence'))
 }
 
-describe('C438-RECOVERY-NO-POSITION', () => {
+describe('structural recovery names role and name, never a position', () => {
   it('an ambiguous body target is recovered by role and name, with no position', async () => {
     const block = await recoveryBlockFor({ role: 'button', nameNormalized: 'okay', name: 'Okay' })
 

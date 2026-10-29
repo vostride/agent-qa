@@ -70,7 +70,7 @@ function output(conditions: ConditionJudgment[]): VerificationResult {
   return { conditions, dialogs: [], isAppError: false, reasoning: 'overall' }
 }
 
-describe('C439-GUARDS', () => {
+describe('condition guards for dialogs and control limits', () => {
   it('an Android alert title is one open dialog named by it', () => {
     const elements = [
       element('e1', 'text', 'Delete address?', { 'resource-id': 'android:id/alertTitle' }),
@@ -254,7 +254,7 @@ function metOn(quote: string): ConditionRecord {
   return { quote: 'the order row', verdict: 'met', reason: 'r', citations: [{ source: 'read', quote, found: true }] }
 }
 
-describe('C439-GUARDS narrowing', () => {
+describe('a passed re-read that narrows a failed assertion', () => {
   const cases: { title: string; reads: RecordedRead[]; cite: string; narrowed: boolean }[] = [
     {
       title: 'a substring of the failed expected value',
@@ -319,7 +319,7 @@ describe('C439-GUARDS narrowing', () => {
   }
 })
 
-describe('C439-GUARDS persistence', () => {
+describe('persistence proven by a re-read after a reload or reopen', () => {
   it('state-changing actions and observations', () => {
     const changing: Action[] = [
       { type: 'click', ref: asRef('e1') },

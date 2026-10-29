@@ -77,7 +77,7 @@ describe('executePlanningTurn', () => {
     toolCallSeq = 0
   })
 
-  it('exposes K as an internal constant defaulting to 4 (D-10)', () => {
+  it('exposes K as an internal constant defaulting to 4', () => {
     expect(DEFAULT_NON_ACTION_TOOL_BUDGET).toBe(4)
   })
 
@@ -340,7 +340,7 @@ describe('executePlanningTurn', () => {
     expect(JSON.stringify(calls[1][0].messages)).toContain('Tool budget exhausted')
   })
 
-  it('436 D-08: a bound gate debits each model call and a refused debit ends the turn with planning_limit_reached', async () => {
+  it('a bound gate debits each model call and a refused debit ends the turn with planning_limit_reached', async () => {
     const note = fakeNonActionTool()
     await scriptResponses([
       { toolCalls: [nonActionCall('fake_note', { q: 'a' })], usage: USAGE },

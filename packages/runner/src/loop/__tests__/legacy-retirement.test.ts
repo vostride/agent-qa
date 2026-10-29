@@ -83,7 +83,7 @@ function scan(): Finding[] {
   return findings
 }
 
-describe('D-19 retired-verb source scan', () => {
+describe('retired-verb source scan', () => {
   it('actually visits the four package source trees (guards against a false-green path bug)', () => {
     const files = scannedFiles()
     expect(files.length).toBeGreaterThan(20)
@@ -99,7 +99,7 @@ describe('D-19 retired-verb source scan', () => {
     }
   })
 
-  it('no retired verb literal, alias, or coaching phrase remains in runner/web/android/ios source (D-19)', () => {
+  it('no retired verb literal, alias, or coaching phrase remains in runner/web/android/ios source', () => {
     const findings = scan()
     const report = findings.map((f) => `  ${f.file}:${f.line} [${f.needle}] ${f.text}`).join('\n')
     expect(findings, `retired verb occurrences still present (${findings.length}):\n${report}`).toEqual([])

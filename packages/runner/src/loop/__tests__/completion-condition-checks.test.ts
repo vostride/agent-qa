@@ -98,7 +98,7 @@ async function run(step: string, verdict: VerificationResult, completionReasonin
   return { result, contexts, conditions }
 }
 
-describe('C439-CHECKS-LOOP', () => {
+describe('a step passes only when every requested condition is checked', () => {
   it('a two-part step judged on one part does not pass', async () => {
     const step = 'Add the blue mug to the cart and verify the cart shows 2 items'
     const { result, contexts, conditions } = await run(

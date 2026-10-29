@@ -3,7 +3,7 @@ import { guardActionData } from '../blob-guard.js'
 
 const MARKER = '…[truncated to fit context budget]'
 
-describe('guardActionData (D-06 pre-prompt blob-guard fallback)', () => {
+describe('guardActionData (pre-prompt blob-guard fallback)', () => {
   it('returns undefined for undefined input', () => {
     expect(guardActionData(undefined)).toBeUndefined()
   })

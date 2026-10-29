@@ -169,7 +169,7 @@ const invoice947: ProcedureGuardTarget = {
   name: 'Invoice 947',
 }
 
-describe('C438-PROCEDURE-STRICT', () => {
+describe('procedure replay matches its stored target strictly', () => {
   it('947 replays onto 947 beside 946', async () => {
     const screen = screenWith([
       el('e1', 'link', 'Invoice 946', 'invoice'),

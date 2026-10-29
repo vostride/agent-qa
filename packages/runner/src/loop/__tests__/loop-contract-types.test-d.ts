@@ -16,7 +16,7 @@ import type {
 
 import type { PlannerConfig } from '../types.js'
 
-describe('C436-KEY-SETS narrowed types', () => {
+describe('narrowed types', () => {
   it('PlannerConfig has exactly the limit pair and previousStepCount', () => {
     expectTypeOf<keyof PlannerConfig>().toEqualTypeOf<'maxActions' | 'maxPlanningTurns' | 'previousStepCount'>()
     expectTypeOf<PlannerConfig>().toEqualTypeOf<{ maxActions: number; maxPlanningTurns: number; previousStepCount: number }>()

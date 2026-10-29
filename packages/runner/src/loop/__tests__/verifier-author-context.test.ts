@@ -62,7 +62,7 @@ const before = makeScreenState()
 const after = makeScreenState({ url: 'https://example.test/after' })
 const action: Action = { type: 'click', ref: asRef('e2') }
 
-describe('buildVerificationPrompt — author context (P2)', () => {
+describe('buildVerificationPrompt — author context', () => {
   it('produces the pinned bytes with no context', () => {
     expect(buildVerificationPrompt('Reply to the post', before, after, action, true, '', undefined)).toBe(PINNED)
   })
@@ -130,7 +130,7 @@ describe('buildVerificationPrompt — author context (P2)', () => {
   })
 })
 
-describe('LLMVerifier — author context (P2)', () => {
+describe('LLMVerifier — author context', () => {
   beforeEach(() => {
     vi.mocked(generateText).mockReset()
     vi.mocked(generateText).mockResolvedValue({
@@ -166,7 +166,7 @@ describe('LLMVerifier — author context (P2)', () => {
   })
 })
 
-describe('executeStep — verifier author context wiring (P2)', () => {
+describe('executeStep — verifier author context wiring', () => {
   async function ninthArgFor(context: { testContext?: string; suiteContext?: string }): Promise<unknown[]> {
     const verify = vi.fn(async (step: string, _before: ScreenState, after: ScreenState, act: Action) => ({
       verification: scriptedVerification({ step, after, action: act, pass: true, reasoning: 'done' }),

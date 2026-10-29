@@ -139,7 +139,7 @@ async function runFivePresses(): Promise<StepRun> {
   return { trace, result }
 }
 
-describe('C436-NO-SCREEN-CHANGE', () => {
+describe('repeated actions on an unchanged screen', () => {
   it('five presses on an unchanged screen dispatch five times and pass', async () => {
     const { trace, result } = await runFivePresses()
 

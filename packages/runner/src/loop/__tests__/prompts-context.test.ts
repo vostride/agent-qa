@@ -136,7 +136,7 @@ describe('turn content rich previous step format (was step-prompt)', () => {
   })
 })
 
-describe('buildSystemPrompt custom-rules removal (Phase 373, KDIR-03 / T-373-07)', () => {
+describe('buildSystemPrompt custom-rules removal', () => {
   it('never renders a Custom rules block', () => {
     expect(buildSystemPrompt(undefined)).not.toContain('Custom rules:')
     expect(buildSystemPrompt('web')).not.toContain('Custom rules:')

@@ -38,7 +38,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
 // -----------------------------------------------------------------------------
 // EXEC-01 — atomic Fill with a verified re-read (clear→type→re-read→(Enter))
 // -----------------------------------------------------------------------------
-describe('EXEC-01 — Fill executes as one atomic compound producing a single ActionResult with a verified field re-read', () => {
+describe('Fill executes as one atomic compound producing a single ActionResult with a verified field re-read', () => {
   it('a genuine value-loss mismatch is an honest failure verdict with the byte-pinned fillReread shape and a §7.1 self-correcting error', () => {
     const miss = compareFillReread({ expected: 'hello', actual: 'helo', secure: false })
     expect(miss.ok).toBe(false)
@@ -49,7 +49,7 @@ describe('EXEC-01 — Fill executes as one atomic compound producing a single Ac
     expect(miss.selfCorrectingError).toContain('re-observe and retry')
   })
 
-  it('a card number the field re-groups with spaces is normalized, not a loss (437 D-06)', () => {
+  it('a card number the field re-groups with spaces is normalized, not a loss', () => {
     const formatted = compareFillReread({ expected: '4242424242424242', actual: '4242 4242 4242 4242', secure: false })
     expect(formatted.ok).toBe(true)
     expect(formatted.verdict).toBe('normalized')
@@ -57,7 +57,7 @@ describe('EXEC-01 — Fill executes as one atomic compound producing a single Ac
     expect(formatted.selfCorrectingError).toBeUndefined()
   })
 
-  it('secure fields are never exact: non-empty is unverified, and the raw value is never echoed (T-359-02 masking)', () => {
+  it('secure fields are never exact: non-empty is unverified, and the raw value is never echoed', () => {
     const secure = compareFillReread({ expected: 'topSecretPw', actual: 'topSecretPw', secure: true })
     expect(secure.ok).toBe(true)
     expect(secure.verdict).toBe('unverified')
@@ -88,7 +88,7 @@ function scrollPrimitives(
   }
 }
 
-describe('EXEC-02 — untilVisible re-observes between ≤maxSwipes swipes and terminates on target-visible / max-swipes / boundary', () => {
+describe('untilVisible re-observes between ≤maxSwipes swipes and terminates on target-visible / max-swipes / boundary', () => {
   it('terminates found the moment the target appears in the re-read tree', async () => {
     let call = 0
     const prims = scrollPrimitives(() => {
@@ -151,7 +151,7 @@ describe('EXEC-02 — untilVisible re-observes between ≤maxSwipes swipes and t
 // -----------------------------------------------------------------------------
 // EXEC-03 — openApp name→bundle resolution: never a silent wrong-app launch
 // -----------------------------------------------------------------------------
-describe('EXEC-03 — resolveAppName climbs exact → fuzzy(+margin) → ambiguous/unknown, never a coin-flip launch', () => {
+describe('resolveAppName climbs exact → fuzzy(+margin) → ambiguous/unknown, never a coin-flip launch', () => {
   const REGISTRY = [
     { id: 'com.google.android.calendar' },
     { id: 'com.spotify.music' },
@@ -206,8 +206,8 @@ interface LooseSub {
   result?: { success?: boolean; error?: string; metadata?: Record<string, unknown> }
 }
 
-describe('EXEC-04 — a satisfied desiredState no-ops at the dispatch seam without calling adapter.execute', () => {
-  it('a checked toggle with desiredState=checked mints a no-input no-op (437 D-05)', async () => {
+describe('a satisfied desiredState no-ops at the dispatch seam without calling adapter.execute', () => {
+  it('a checked toggle with desiredState=checked mints a no-input no-op', async () => {
     const observation = buildAgentScreenState({
       url: 'https://x.test/settings',
       elements: [{ ref: 'e1', role: 'checkbox', name: 'Wi-Fi', state: { checked: true }, bounds: { x: 20, y: 80, width: 300, height: 44 } }],
@@ -252,7 +252,7 @@ function scriptedAdapter(observation: ScreenState, result: ActionResult): Platfo
   }
 }
 
-describe('437 D-06 — an unverified fill still counts as one compound input', () => {
+describe('an unverified fill still counts as one compound input', () => {
   const observation = buildAgentScreenState({
     url: 'https://x.test/form',
     elements: [{ ref: 'e1', role: 'textbox', name: 'Name', bounds: { x: 20, y: 80, width: 300, height: 44 } }],
@@ -310,7 +310,7 @@ describe('437 D-06 — an unverified fill still counts as one compound input', (
     expect(result.evidence?.limitUsage?.compoundInputs).toBeUndefined()
   })
 
-  it('a pre-437 result with fillReread alone still counts one fill input', async () => {
+  it('a result with fillReread alone and no input block still counts one fill input', async () => {
     const result = await runOne(
       { type: 'fill', ref: 'e1', text: 'Ada', clearMode: 'replace', submit: false },
       { success: true, metadata: { fillReread: { expected: 'Ada', actual: 'Ada' } } },

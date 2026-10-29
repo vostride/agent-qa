@@ -73,7 +73,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
   return { plannerConfig: { maxActions: 4, maxPlanningTurns: 4, previousStepCount: 0 }, ...overrides }
 }
 
-describe('C439-ASSERT-EVIDENCE', () => {
+describe('assertValue reads as evidence for requested conditions', () => {
   it('two requested things cannot pass on one check', async () => {
     const step = 'Verify the URL ends with /orders and the total is 42.50'
     const adapter = readingAdapter({ success: true, data: 'https://shop.test/orders' })

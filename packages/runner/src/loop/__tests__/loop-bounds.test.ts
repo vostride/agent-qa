@@ -12,7 +12,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
   return overrides
 }
 
-describe('loop bounds (LOOP-02 / 436 D-10)', () => {
+describe('loop bounds', () => {
   it('an always-failing adapter terminates at the action limit with a failed result and no counter', async () => {
     let planCalls = 0
     const planner: Planner = {

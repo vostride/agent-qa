@@ -26,7 +26,7 @@ function recorderWithCachedSubAction(): EvidenceRecorder {
   return recorder
 }
 
-describe('EvidenceRecorder.finalize bypass signal (CACHE-02, D-08, Pitfall 7)', () => {
+describe('EvidenceRecorder.finalize bypass signal', () => {
   it('emits cacheStatus=bypass when the step is flagged non-cacheable', () => {
     const recorder = recorderWithCachedSubAction()
 

@@ -120,7 +120,7 @@ function expectCitable(result: ReturnType<typeof judge>): void {
   expect(result.pass).toBe(true)
 }
 
-describe('C439-CITATION-EVIDENCE', () => {
+describe('which record lines a verdict may cite', () => {
   it("a failed assertValue's expected value is not citable", () => {
     const step = 'Open the orders page'
     expectNotCitable(judge(URL_RECORD, step, [{ source: 'read', quote: 'https://x/orders' }]))

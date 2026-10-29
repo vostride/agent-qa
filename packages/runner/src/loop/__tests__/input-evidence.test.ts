@@ -101,7 +101,7 @@ function inputOf(step: Awaited<ReturnType<typeof executeStep>>): InputEvidence |
   return step.evidence?.subActions[0]?.operationEvidence?.input?.[0]
 }
 
-describe('C437-INPUT-EVIDENCE', () => {
+describe('input evidence in the verifier and planner prompts', () => {
   it('an unverified keyboard-path fill with a sent Enter reaches the verifier', async () => {
     const { captured, step } = await runVerified(FILL, {
       success: true,
@@ -227,7 +227,7 @@ describe('C437-INPUT-EVIDENCE', () => {
     expect(metaTurn).toBe(plannerTurn(bareContexts[1]))
   })
 
-  it('a pre-437 iOS submit block still derives', async () => {
+  it('a legacy fillSubmit block on an iOS fill still derives input evidence', async () => {
     const { captured, step } = await runVerified(FILL, {
       success: true,
       data: 'submit not sent: Return would add a new line in this multi-line field; tap its send or submit control',

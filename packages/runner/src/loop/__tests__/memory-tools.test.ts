@@ -94,7 +94,7 @@ function factory(
   })
 }
 
-describe('createMemoryTools — Channel 2 retrieval (D-11/D-12/D-17)', () => {
+describe('createMemoryTools — Channel 2 retrieval', () => {
   it('exposes exactly the restricted memory.search schema and rejects every privileged field', () => {
     const { tools } = factory(stubReader())
     const searchTool = tools['memory.search'].tool as {

@@ -80,7 +80,7 @@ afterEach(() => {
   vi.useRealTimers()
 })
 
-describe('planner system tiers — ordering (CTXB-01 / D-04)', () => {
+describe('planner system tiers — ordering', () => {
   it('assembles system as an ordered [stable, context, volatile] array of role:system messages', () => {
     const system = buildPlannerSystem(makeContext())
     expect(system).toHaveLength(3)
@@ -90,7 +90,7 @@ describe('planner system tiers — ordering (CTXB-01 / D-04)', () => {
   })
 })
 
-describe('planner system tiers — single cache breakpoint (CTXB-01 / D-05)', () => {
+describe('planner system tiers — single cache breakpoint', () => {
   it('places exactly one ephemeral cache_control breakpoint, on the context message', () => {
     const system = buildPlannerSystem(makeContext())
     expect(cacheControlOf(system[1])).toEqual({ type: 'ephemeral' })
@@ -100,7 +100,7 @@ describe('planner system tiers — single cache breakpoint (CTXB-01 / D-05)', ()
   })
 })
 
-describe('planner system tiers — cached-prefix byte-stability (CTXB-01 / D-05/D-07)', () => {
+describe('planner system tiers — cached-prefix byte-stability', () => {
   it('keeps stable + context tiers byte-identical across two turns of the same run', () => {
     const ctx = makeContext()
     const first = buildPlannerSystem(ctx)
@@ -111,7 +111,7 @@ describe('planner system tiers — cached-prefix byte-stability (CTXB-01 / D-05/
   })
 })
 
-describe('volatile tier — date-granularity stamp (CTXB-01 / D-07)', () => {
+describe('volatile tier — date-granularity stamp', () => {
   it('stamps the volatile tier at date granularity (identical bytes across two intra-day clock times)', () => {
     const ctx = makeContext()
     vi.useFakeTimers()
@@ -173,7 +173,7 @@ describe('volatile tier — date-granularity stamp (CTXB-01 / D-07)', () => {
   })
 })
 
-describe('served prompt-turn capture (CR-08 / D-11)', () => {
+describe('served prompt-turn capture', () => {
   it('snapshots the exact production tier bytes and their named SHA-256 digests', () => {
     const ctx = makeContext({
       promptDate: '2026-07-24',
@@ -230,7 +230,7 @@ describe('served prompt-turn capture (CR-08 / D-11)', () => {
   })
 })
 
-describe('per-turn state placement (CTXB-01 / D-04/D-09)', () => {
+describe('per-turn state placement', () => {
   it('emits per-turn screen/history state as turn messages, never in the system tiers', () => {
     const ctx = makeContext({
       previousSteps: [{ instruction: PREV_STEP_INSTRUCTION, outcome: 'passed' }],
@@ -260,7 +260,7 @@ describe('per-turn state placement (CTXB-01 / D-04/D-09)', () => {
   })
 })
 
-describe('empty ingredient slots (CTXB-02 / D-12)', () => {
+describe('empty ingredient slots', () => {
   it('omits working-memory and brief messages entirely when those slots are empty', () => {
     const ctx = makeContext() // no knowledgeBrief, no workingMemory
     const screen = makeScreenState()
@@ -275,7 +275,7 @@ describe('empty ingredient slots (CTXB-02 / D-12)', () => {
   })
 })
 
-describe('non-Anthropic provider no-op (CTXB-01 / D-05)', () => {
+describe('non-Anthropic provider no-op', () => {
   it('lets a non-Anthropic run read identical tier content while ignoring providerOptions.anthropic', () => {
     const context = buildContextTier(makeContext()) as SystemModelMessage
     // A non-Anthropic provider passes the message through untouched (a plain object spread

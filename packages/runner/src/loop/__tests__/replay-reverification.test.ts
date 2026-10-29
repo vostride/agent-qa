@@ -297,7 +297,7 @@ function ports(
   return { adapter, planner: live, verifier: judge, knowledgeReader: reader, procedureFlow: flow }
 }
 
-describe('C439-REPLAY', () => {
+describe('cache and procedure replays are re-verified', () => {
   it('a cache hit replays without planning and is re-verified', async () => {
     const cache = await seededCache()
     const live = planner([GIVE_UP])

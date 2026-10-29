@@ -32,7 +32,7 @@ function renderTurn(messages: ModelMessage[]): string {
   return messages.map((m) => (typeof m.content === 'string' ? m.content : m.content.map((p) => ('text' in p && typeof p.text === 'string' ? p.text : '')).join(''))).join('\n')
 }
 
-describe('WorkingMemoryStore — capture + latest-wins recall (D-12)', () => {
+describe('WorkingMemoryStore — capture + latest-wins recall', () => {
   it('stores structured entries and re-capturing a key replaces its value (one key ⇒ one current value)', () => {
     const store = new WorkingMemoryStore()
     store.capture([OTP], { step: 0 })
@@ -52,7 +52,7 @@ describe('WorkingMemoryStore — capture + latest-wins recall (D-12)', () => {
   })
 })
 
-describe('WorkingMemoryStore — redactSecretValue at capture (Pitfall 7 boundary 1)', () => {
+describe('WorkingMemoryStore — redactSecretValue at capture', () => {
   const redactor: SecretRedactorPort = { redactString: (v: string) => v.split('SECRET123').join('[secret]') }
 
   it('redacts a registered secret at capture; leaves unregistered values verbatim', () => {
@@ -66,7 +66,7 @@ describe('WorkingMemoryStore — redactSecretValue at capture (Pitfall 7 boundar
   })
 })
 
-describe('WorkingMemoryStore — run-scoped set + disposal (D-11)', () => {
+describe('WorkingMemoryStore — run-scoped set + disposal', () => {
   it('entries() returns the whole set (no filtering); dispose() empties the store', () => {
     const store = new WorkingMemoryStore()
     store.capture([OTP, { key: 'file', value: 'report.pdf', kind: 'filename', provenance: 'observation' }], { step: 0 })

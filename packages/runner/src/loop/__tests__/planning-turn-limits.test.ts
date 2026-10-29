@@ -99,7 +99,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
   return overrides
 }
 
-describe('C436-PLANNING-LIMITS', () => {
+describe('planner calls debited against the planning-turn limit', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

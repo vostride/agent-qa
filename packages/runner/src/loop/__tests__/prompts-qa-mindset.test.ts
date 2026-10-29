@@ -46,7 +46,7 @@ describe('QA mindset prompt rules', () => {
   const systemPrompt = buildSystemPrompt()
 
   // AGENT-QA-01: always move forward for multi-action steps
-  describe('AGENT-QA-01 — always move forward', () => {
+  describe('always move forward', () => {
     it('buildSystemPrompt contains forward progress rule', () => {
       expect(systemPrompt).toContain('ALWAYS MOVE FORWARD')
     })
@@ -60,12 +60,12 @@ describe('QA mindset prompt rules', () => {
       expect(systemPrompt).toContain('MOVE to the next sub-goal')
     })
 
-    it('buildSystemPrompt allows requested repetition (Rule 13, 436-03)', () => {
+    it('buildSystemPrompt allows requested repetition (Rule 13)', () => {
       expect(systemPrompt).toContain('do not repeat an action unless the step asks for repetition')
       expect(systemPrompt).not.toContain('do not retry the same action')
     })
 
-    it('buildSystemPrompt judges outcomes, not screen changes (Rule 22, 436-03)', () => {
+    it('buildSystemPrompt judges outcomes, not screen changes (Rule 22)', () => {
       expect(systemPrompt).toContain('22. OUTCOME EVIDENCE:')
       expect(systemPrompt).toContain('No visible change is not failure, and a visible change is not success.')
       expect(systemPrompt).not.toContain('STAGNATION FOCUS')
@@ -76,7 +76,7 @@ describe('QA mindset prompt rules', () => {
   // assertAI split and the reportValue answer channel + same-call verdict (was: the retired
   // assert-verb no-op coaching). Assertions preserved in spirit, re-targeted to the shipped
   // vocabulary — never weakened.
-  describe('ASSERT-ROUTE-01 — §12.2 assertValue/assertAI split and same-call verdict', () => {
+  describe('§12.2 assertValue/assertAI split and same-call verdict', () => {
     it('Rule 12 routes deterministic value checks to assertValue', () => {
       expect(systemPrompt).toContain('DETERMINISTIC VALUE CHECKS')
       expect(systemPrompt).toContain('assertValue')
@@ -102,29 +102,29 @@ describe('QA mindset prompt rules', () => {
   })
 
   // ASSERT-FAIL-01: assertion failure handling — infeasible terminal + strict literal + report-truth
-  describe('ASSERT-FAIL-01 -- assertion failure handling', () => {
-    it('Rule 12 declares infeasible as a typed terminal outcome (per D-04)', () => {
+  describe('assertion failure handling', () => {
+    it('Rule 12 declares infeasible as a typed terminal outcome', () => {
       expect(systemPrompt).toContain('IMPOSSIBLE OBJECTIVE')
       expect(systemPrompt).toContain('failureKind "infeasible"')
     })
 
-    it('Rule 12 blocks a setVariable sidestep for assertion failures (per D-04)', () => {
+    it('Rule 12 blocks a setVariable sidestep for assertion failures', () => {
       expect(systemPrompt).toContain('do NOT store a value via setVariable to sidestep it')
     })
 
-    it('Rule 12 contains strict literal assertion section (per D-05)', () => {
+    it('Rule 12 contains strict literal assertion section', () => {
       expect(systemPrompt).toContain('STRICT LITERAL ASSERTION')
       expect(systemPrompt).toContain('check the EXACT condition from the step text')
     })
 
-    it('Rule 12 enforces QA mindset on assertions -- report truth not make tests pass (per D-06)', () => {
+    it('Rule 12 enforces QA mindset on assertions -- report truth not make tests pass', () => {
       expect(systemPrompt).toContain('step text is the test spec')
       expect(systemPrompt).toContain('report truth, not make tests pass')
     })
   })
 
   // AGENT-QA-02: trust ARIA tree, verify with screenshots
-  describe('AGENT-QA-02 — trust but verify', () => {
+  describe('trust but verify', () => {
     it('buildSystemPrompt contains trust-but-verify rule', () => {
       expect(systemPrompt).toContain('TRUST THE ARIA TREE, VERIFY WITH SCREENSHOTS')
     })
@@ -147,12 +147,12 @@ describe('QA mindset prompt rules', () => {
   })
 
   // AGENT-QA-03: QA mindset concept
-  describe('AGENT-QA-03 — QA mindset', () => {
+  describe('QA mindset', () => {
     it('buildSystemPrompt contains QA mindset concept', () => {
       expect(systemPrompt).toContain('QA MINDSET')
     })
 
-    it('a verification turn with a screenshot requires visual evidence for quantity claims (439 D-19)', () => {
+    it('a verification turn with a screenshot requires visual evidence for quantity claims', () => {
       // 2026-10-11 (439-03): the screenshot-analysis prose rides only a turn that has an image.
       const state = buildAgentScreenState({ tree: 'button "Go"', elements: [], url: '', timestamp: 0 })
       const action = { type: 'click' as const, ref: asRef('e1') }
@@ -163,7 +163,7 @@ describe('QA mindset prompt rules', () => {
       expect(stableText(buildVerifierStableTier())).not.toContain('only confirm what you can count')
     })
 
-    it('verifier stable tier keeps the absence-of-change rule and states the per-condition contract (439 D-11)', () => {
+    it('verifier stable tier keeps the absence-of-change rule and states the per-condition contract', () => {
       const stable = stableText(buildVerifierStableTier())
       expect(stable).toContain('Absence of visible screen change is NOT evidence of failure')
       expect(stable).toContain('Requested conditions:')
@@ -186,7 +186,7 @@ describe('QA mindset prompt rules', () => {
   })
 
   // AGENT-QA-04: progressive escalation on verification failure
-  describe('AGENT-QA-04 — progressive escalation', () => {
+  describe('progressive escalation', () => {
     it('buildSystemPrompt contains progressive escalation ladder', () => {
       expect(systemPrompt).toContain('1st rejection')
       expect(systemPrompt).toContain('DIFFERENT APPROACH')
@@ -202,7 +202,7 @@ describe('QA mindset prompt rules', () => {
   })
 
   // STEP-CTX-01: cross-step context
-  describe('STEP-CTX-01 -- cross-step context', () => {
+  describe('cross-step context', () => {
     it('buildSystemPrompt contains Rule 16 cross-step context', () => {
       expect(systemPrompt).toContain('CROSS-STEP CONTEXT')
     })
@@ -213,7 +213,7 @@ describe('QA mindset prompt rules', () => {
   })
 
   // STEP-AMBIG-01: ambiguity detection
-  describe('STEP-AMBIG-01 -- ambiguity detection', () => {
+  describe('ambiguity detection', () => {
     it('buildSystemPrompt contains Rule 17 ambiguity detection', () => {
       expect(systemPrompt).toContain('AMBIGUITY DETECTION')
     })
@@ -236,7 +236,7 @@ describe('QA mindset prompt rules', () => {
   })
 
   // SCROLL-01: system prompt uses new scroll terminology
-  describe('SCROLL-01 — scroll terminology', () => {
+  describe('scroll terminology', () => {
     it('buildSystemPrompt Rule 3 references intent-first scroll modes (untilVisible / direction+amount)', () => {
       expect(systemPrompt).toContain('untilVisible')
       expect(systemPrompt).toContain('direction')
@@ -252,7 +252,7 @@ describe('QA mindset prompt rules', () => {
       expect(systemPrompt).toContain('reaching the boundary IS the goal')
     })
 
-    it('Rule 3 no longer reads an unchanged scroll as absence; Rule 8 keeps target-confirmed-absent (436-03)', () => {
+    it('Rule 3 no longer reads an unchanged scroll as absence; Rule 8 keeps target-confirmed-absent', () => {
       expect(systemPrompt).not.toContain('the element is not on this page')
       expect(systemPrompt).toContain('Target confirmed absent')
       expect(systemPrompt).toContain('stepFailed')
@@ -267,7 +267,7 @@ describe('QA mindset prompt rules', () => {
   })
 
   // AGENT-LOOP-01: step completion recognition via sub-action history
-  describe('AGENT-LOOP-01 — step completion recognition', () => {
+  describe('step completion recognition', () => {
     it('Rule 13 references sub-action history for step completion', () => {
       expect(systemPrompt).toContain('Review your previous actions')
       expect(systemPrompt).toContain('set stepComplete: true immediately')

@@ -31,7 +31,7 @@ import {
 
 const OK_USAGE = { usage: { inputTokens: 100, outputTokens: 20 } }
 
-describe('clamp arithmetic — safety policy (CTXB-04 / D-02)', () => {
+describe('clamp arithmetic — safety policy', () => {
   it('sets safety = max(256, ceil(0.02 * C)) and scales with the window', () => {
     // 4k local model: 2% of 4096 = 82 → the 256 absolute floor wins.
     expect(computeSafety(4096)).toBe(256)
@@ -42,7 +42,7 @@ describe('clamp arithmetic — safety policy (CTXB-04 / D-02)', () => {
   })
 })
 
-describe('clamp arithmetic — maxOutput (CTXB-04 / D-01)', () => {
+describe('clamp arithmetic — maxOutput', () => {
   it('computes max(floor, min(default, C − I − safety)) for representative windows', () => {
     // 4k-window local model: headroom comfortably above default.
     expect(
@@ -62,7 +62,7 @@ describe('clamp arithmetic — maxOutput (CTXB-04 / D-01)', () => {
   })
 })
 
-describe('input estimate includes tool schemas (CTXB-04 / §5.1)', () => {
+describe('input estimate includes tool schemas (§5.1)', () => {
   it('adds tool-schema tokens to I, lowering the resulting maxOutput', () => {
     const acc = makeFakeTokenAccounting({ estimate: (m) => JSON.stringify(m).length })
     const messages: ModelMessage[] = [{ role: 'user', content: 'hello' }]
@@ -78,7 +78,7 @@ describe('input estimate includes tool schemas (CTXB-04 / §5.1)', () => {
   })
 })
 
-describe('proactive degrade + pins (CTXB-04 / D-08/D-10)', () => {
+describe('proactive degrade + pins', () => {
   it('degrades before the call when estimate > budget, pinning observation + instruction', async () => {
     const observation: ModelMessage = { role: 'user', content: 'OBSERVATION: latest screen tree' }
     const instruction: ModelMessage = { role: 'user', content: 'Current step: "click Sign In"' }
@@ -104,7 +104,7 @@ describe('proactive degrade + pins (CTXB-04 / D-08/D-10)', () => {
   })
 })
 
-describe('reactive overflow retry-once (CTXB-04 / D-10)', () => {
+describe('reactive overflow retry-once', () => {
   it('re-degrades against the shrunk window and retries the call exactly once on overflow', async () => {
     const acc = makeFakeTokenAccounting({ contextWindow: 4096, maxOutput: 1024, estimate: 100 })
     const isOverflow = (e: unknown) => e instanceof Error && /context length/i.test(e.message)
@@ -135,7 +135,7 @@ describe('reactive overflow retry-once (CTXB-04 / D-10)', () => {
   })
 })
 
-describe('usage anchor (CTXB-04 / D-10)', () => {
+describe('usage anchor', () => {
   it('calls recordUsage exactly once per successful response with the full sent message set', async () => {
     const acc = makeFakeTokenAccounting({ estimate: 100 })
     const messages: ModelMessage[] = [{ role: 'user', content: 'hello' }]
@@ -155,7 +155,7 @@ describe('usage anchor (CTXB-04 / D-10)', () => {
   })
 })
 
-describe('cannot-fit outcome, never a crash (CTXB-04 / D-17)', () => {
+describe('cannot-fit outcome, never a crash', () => {
   it('surfaces the structured pinned-content-exceeds-budget outcome without throwing', async () => {
     const observation: ModelMessage = { role: 'user', content: 'OBSERVATION: latest screen' }
     const messages: ModelMessage[] = [observation]

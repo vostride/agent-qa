@@ -109,7 +109,7 @@ function makeCountingCache(): ActionPlanCache & { setCalls: number } {
 // EXEC-05 — termination verbs: reportValue + infeasible route through typed
 // evidence and the verdict, never implicit screen state.
 // -----------------------------------------------------------------------------
-describe('EXEC-05 — reportValue and explicit infeasible/stepFailed termination are first-class typed verbs into step evidence and the verdict', () => {
+describe('reportValue and explicit infeasible/stepFailed termination are first-class typed verbs into step evidence and the verdict', () => {
   it('a reportValue mint lands in StepEvidence.reportedValue and on the sub-action result with ZERO adapter.execute (platform-less answer verb)', async () => {
     const calls: Action[] = []
     const adapter = recordingAdapter(makeScreenState(), calls)
@@ -173,7 +173,7 @@ describe('EXEC-05 — reportValue and explicit infeasible/stepFailed termination
 // EXEC-06 — full catalog↔adapter reconciliation: every registered tool executes
 // on its legal platforms; legacy runtime-only verbs retired.
 // -----------------------------------------------------------------------------
-describe('EXEC-06 — every v45 registered tool executes on its legal platforms with the legacy runtime-only verbs retired', () => {
+describe('every v45 registered tool executes on its legal platforms with the legacy runtime-only verbs retired', () => {
   it('freezes the registered catalog at 56 registered / web 33 / android 30 / ios 27', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
@@ -205,8 +205,8 @@ describe('EXEC-06 — every v45 registered tool executes on its legal platforms 
 // EXEC-07 — AI assertions single-model + deterministic assertValue: assertAI is
 // cache-bypassed, assertValue judges without a vision round-trip.
 // -----------------------------------------------------------------------------
-describe('EXEC-07 — assertAI executes single-model cache-bypassed; assertValue is deterministic by construction and feeds the verifier without a vision round-trip', () => {
-  it('a scripted-judge assertAI step calls judgeClaim exactly once, the step verifier then decides once (verdictSource verifier-model, quick 261004-0hc), finalizes cacheStatus bypass, and never writes the cache', async () => {
+describe('assertAI executes single-model cache-bypassed; assertValue is deterministic by construction and feeds the verifier without a vision round-trip', () => {
+  it('a scripted-judge assertAI step calls judgeClaim exactly once, the step verifier then decides once (verdictSource verifier-model), finalizes cacheStatus bypass, and never writes the cache', async () => {
     const cache = makeCountingCache()
     const verifier = makeJudgeVerifier({ verdict: true, rationale: 'the welcome banner reads Welcome' })
     const calls: Action[] = []
@@ -276,7 +276,7 @@ describe('EXEC-07 — assertAI executes single-model cache-bypassed; assertValue
 // -----------------------------------------------------------------------------
 // Frozen catalog — the phase added typed verbs/params but registers no new tools.
 // -----------------------------------------------------------------------------
-describe('frozen tool catalog — Phase 360 registers no new tools', () => {
+describe('frozen tool catalog', () => {
   it('keeps 56 registered / web 33 / android 30 / ios 27', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)

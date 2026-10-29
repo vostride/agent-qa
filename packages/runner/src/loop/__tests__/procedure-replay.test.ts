@@ -405,8 +405,8 @@ const sourceAssociationPolarityRows: SourceAssociationPolarityRow[] = [
   },
 ]
 
-describe('procedure guarded replay (PROC-02 · D-09..D-12)', () => {
-  it('F-381-54-1 RED: authored prose cannot override structured parameter provenance', async () => {
+describe('procedure guarded replay', () => {
+  it('authored prose cannot override structured parameter provenance', async () => {
     const handoffBytes = readFileSync(
       new URL('./fixtures/f-381-54-1/handoff.json', import.meta.url),
     )
@@ -553,7 +553,7 @@ describe('procedure guarded replay (PROC-02 · D-09..D-12)', () => {
     expect(desiredContract, 'F-381-54-1_EXPECTED_RED_CONTRACT').toBe(true)
   })
 
-  it('F-381-54-1 projects the real renamed screen as one advisory textbox candidate', async () => {
+  it('projects the real renamed screen as one advisory textbox candidate', async () => {
     // 381-54-EVIDENCE records both renamed-screen failures. This row derives the candidate
     // from the preserved stateBefore; it makes no Username/Account-name equivalence claim.
     const handoff = JSON.parse(readFileSync(
@@ -2038,7 +2038,7 @@ function makeLedgerSpy(admitted: boolean): LedgerSpy {
   }
 }
 
-describe('planSource evidence + ledger-metered hint rendering (D-12 · T-381-20)', () => {
+describe('planSource evidence + ledger-metered hint rendering', () => {
   it('Test 1: replay planSource and cache-hit provenance never coexist on one step', async () => {
     // A replayed step: the cache is bound but never consulted; evidence carries the
     // procedure-replay planSource and no cache-hit fold.

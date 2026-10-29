@@ -69,7 +69,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
 
 const REMEMBER = [{ key: 'otp', value: '4821', kind: 'extracted-value', provenance: 'observation' }]
 
-describe('working-memory loop lifecycle (WM-01)', () => {
+describe('working-memory loop lifecycle', () => {
   it('captures remember[] BEFORE dispatching the navigating action (capture-before-navigate)', async () => {
     const log: string[] = []
     const wm = makeWmPort(log)
@@ -211,7 +211,7 @@ async function runDeclaredValueStep(extra: Partial<LoopPorts> = {}) {
   return { result, recordLines, record }
 }
 
-describe('C441-RUN-RECORDS', () => {
+describe('the loop records declared values by name', () => {
   it('the loop records a declared value by name and leaves undeclared values', async () => {
     const { result, recordLines, record } = await runDeclaredValueStep()
     expect(result.status).toBe('passed')

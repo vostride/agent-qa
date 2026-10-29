@@ -158,7 +158,7 @@ async function runDrag(
   return { a, planner, result }
 }
 
-describe('C438-HEAL-LANES', () => {
+describe('a heal re-finds each lane and refuses an unproven match', () => {
   it('a drag whose toRef binding is lost re-finds both lanes and drops on the re-found target', async () => {
     const { a, planner, result } = await runDrag(PRIOR, FRESH, BINDING_LOST_TO_REF)
 
@@ -316,7 +316,7 @@ async function runClickHeal(rowText: string, ports: Record<string, unknown> = {}
   return { a, prior, result }
 }
 
-describe('C438-HEAL-EVIDENCE', () => {
+describe('the heal grounding block', () => {
   it('the heal grounding block is masked like the live block', async () => {
     const { a, result } = await runClickHeal(`Order 12 ${MASKED}`, {
       secretRedactor: new SecretRedactor(new SecretStore({ PAY_LABEL: SECRET, ROW_WORD: MASKED })),
@@ -398,7 +398,7 @@ async function runSave(
 // from the heal's fresh observation, so its dispatch pair (healedDispatch) is recorded against that
 // observation (re-stamped with the planner call's capture stamp): every dispatched ref names, in the
 // dispatch stateBefore, the element the input was sent to. A heal that sends nothing records none.
-describe('C438-HEAL-RECORD', () => {
+describe('which observation a healed action is recorded against', () => {
   it('a healed click is recorded against the fresh observation it was sent to', async () => {
     const { a, result } = await runSave(SAVE_FRESH, [BINDING_LOST_TO_REF, { success: true }])
 
@@ -523,7 +523,7 @@ describe('C438-HEAL-RECORD', () => {
 })
 
 // 2026-10-19 (444.1-08, D-14): plannedAction/stateBefore stay what the planner chose and saw.
-describe('C444.1-DISPATCH-PAIR', () => {
+describe('a heal records the dispatch pair beside the planner pair', () => {
   it('a healed click keeps the planner pair and records the dispatch pair beside it', async () => {
     const { a, result } = await runSave(SAVE_FRESH, [BINDING_LOST_TO_REF, { success: true }])
 

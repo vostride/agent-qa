@@ -183,7 +183,7 @@ function judgeRecord(
   })
 }
 
-describe('C439-JUDGE', () => {
+describe('judging requested conditions', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -341,7 +341,7 @@ function uncoveredWords(step: string, quotes: string[]): string[] {
   return coverage.uncovered.map((token) => token.text)
 }
 
-describe('C439-COVERAGE', () => {
+describe('step word coverage by quoted conditions', () => {
   it('stop words never need coverage', () => {
     expect(uncoveredWords('Please verify that the banner is shown', ['banner'])).toEqual(['shown'])
     expect(uncoveredWords('Check the cart and then confirm it', ['cart'])).toEqual([])
@@ -430,7 +430,7 @@ describe('C439-COVERAGE', () => {
   })
 })
 
-describe('C439-PHRASES', () => {
+describe('verdict phrases about an unchanged page or an unproven effect', () => {
   it.each([
     ['The setting has not been saved', 'Save the setting', 'has not been saved'],
     ["The message wasn't sent", 'Send the message', "wasn't sent"],

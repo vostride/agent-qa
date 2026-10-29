@@ -54,7 +54,7 @@ function twoSubActionPorts(events?: LoopEventEmitPort): LoopPorts {
   return ports(events ? { adapter, planner, events } : { adapter, planner })
 }
 
-describe('loop live emission (D-02)', () => {
+describe('loop live emission', () => {
   it('(a) fires exactly one stepFinalized carrying the StepResult evidence, and one subActionRecorded per sub-action with monotonic indices', async () => {
     const spy = makeEventsPort()
     const result = await executeStep('Click Log in', twoSubActionPorts(spy.port), makeStepContext())
@@ -85,7 +85,7 @@ describe('loop live emission (D-02)', () => {
   })
 })
 
-describe('loop cache-key digest threading (D-20)', () => {
+describe('loop cache-key digest threading', () => {
   function capturingCache(): { cache: ActionPlanCache; keys: CacheKey[] } {
     const keys: CacheKey[] = []
     const cache: ActionPlanCache = {
@@ -135,7 +135,7 @@ describe('loop cache-key digest threading (D-20)', () => {
 
 // ---- 405 D-05: the step's measured token usage rides the stepFinalized extra ------------
 
-describe('loop tokenUsage on stepFinalized (405 D-05 — absent is not zero)', () => {
+describe('loop tokenUsage on stepFinalized (absent is not zero)', () => {
   it('(d) a step whose planner reported usage emits tokenUsage summing prompt + completion', async () => {
     const spy = makeEventsPort()
     const planner: Planner = {

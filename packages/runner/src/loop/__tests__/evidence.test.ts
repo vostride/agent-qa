@@ -41,7 +41,7 @@ const clickPlatform: PlatformAction = { type: 'click', ref: asRef('e2') }
 const passVerdict: VerifierVerdict = { pass: true, reasoning: 'goal met' }
 
 describe('EvidenceRecorder.recordSubAction', () => {
-  it('stores stateBefore as the FULL ScreenState with elements and refMap intact (Pitfall 3)', () => {
+  it('stores stateBefore as the FULL ScreenState with elements and refMap intact', () => {
     const recorder = new EvidenceRecorder()
     const stateBefore = makeScreenState()
     recorder.recordSubAction({
@@ -60,7 +60,7 @@ describe('EvidenceRecorder.recordSubAction', () => {
     expect(stored.refMap).toEqual(stateBefore.refMap)
   })
 
-  it('passes result through toRecordedActionResult — no screenshot bytes are stored (T-353-06)', () => {
+  it('passes result through toRecordedActionResult — no screenshot bytes are stored', () => {
     const recorder = new EvidenceRecorder()
     recorder.recordSubAction({
       plan: 'tap submit',
@@ -78,7 +78,7 @@ describe('EvidenceRecorder.recordSubAction', () => {
   })
 })
 
-describe('EvidenceRecorder.recordSubAction — artifact references (CASS-02)', () => {
+describe('EvidenceRecorder.recordSubAction — artifact references', () => {
   const decisionRef: ArtifactRef = { id: 'decision-screenshot:abc', sha: 'a'.repeat(64) }
   const auxRefs: ArtifactRef[] = [
     { id: 'aux:1', sha: 'b'.repeat(64) },
@@ -126,7 +126,7 @@ describe('EvidenceRecorder.recordSubAction — artifact references (CASS-02)', (
     expect('artifactRefs' in step.subActions[0]).toBe(false)
   })
 
-  it('records the ArtifactRef while the inline result screenshot bytes stay excluded (T-353-06)', () => {
+  it('records the ArtifactRef while the inline result screenshot bytes stay excluded', () => {
     const recorder = new EvidenceRecorder()
     recorder.recordSubAction({
       plan: 'tap submit',
@@ -160,7 +160,7 @@ describe('EvidenceRecorder.recordSubAction — artifact references (CASS-02)', (
 })
 
 describe('makeEmptyServedBrief', () => {
-  it('returns a self-consistent digest over empty channels (Pitfall 4 / D-05)', () => {
+  it('returns a self-consistent digest over empty channels', () => {
     const scope: ScopeKey = { tier: 'test', key: 'checkout' }
     const brief = makeEmptyServedBrief(scope, 42)
 
@@ -185,7 +185,7 @@ describe('makeEmptyServedBrief', () => {
 // 407-07 · D-13: the rung the HOST was on when this run was served, stamped beside
 // `retrievalTrace` and never inside `servedBrief` (the digest-stability argument 407-03
 // records). The recorder does not resolve it — it is handed one, once per run.
-describe('EvidenceRecorder retrievalRung stamping (407 D-13)', () => {
+describe('EvidenceRecorder retrievalRung stamping', () => {
   const rung: RecordedRetrievalRung = {
     schemaVersion: 2,
     rung: 'static-floor',
@@ -447,7 +447,7 @@ describe('projectLegacyTrace', () => {
 })
 
 // 2026-10-09 (437-17, D-05): a skipped tap is its own sub-action outcome, never 'failure'.
-describe('C437-NO-INPUT', () => {
+describe('skipped taps in the legacy trace', () => {
   const skippedTap: PlatformActionResult = {
     success: false,
     metadata: { idempotentNoop: { currentState: 'checked', inputSent: false } },
@@ -513,7 +513,7 @@ describe('C437-NO-INPUT', () => {
 })
 
 describe('EvidenceRecorder.recordSelfHeal', () => {
-  it('stores the {failedDecision, recoveringDecision} pair on the finalized StepEvidence (D-12)', () => {
+  it('stores the {failedDecision, recoveringDecision} pair on the finalized StepEvidence', () => {
     const recorder = new EvidenceRecorder()
     recorder.recordSubAction({
       plan: 'click wrong element',
@@ -610,7 +610,7 @@ describe('EvidenceRecorder.finalize — interpolatedVariables stamp', () => {
 // provenance value through recordMask at the loop's finalize call site. Masking here would
 // transform email-valued and credential-named bindings while plannedAction stayed raw,
 // breaking the emit fold's exact-string classification and REINTRODUCING G-381-3.
-describe('executeStep — provenance pairs are never masked (G-381-3 regression guard)', () => {
+describe('executeStep — provenance pairs are never masked', () => {
   // A redactor that transforms every string, so any provenance value routed through it shows.
   const transformingRedactor = { redactString: (text: string) => `MASKED(${text})` }
 

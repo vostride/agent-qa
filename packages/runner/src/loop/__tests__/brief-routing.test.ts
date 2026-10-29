@@ -82,7 +82,7 @@ function text(message: SystemModelMessage): string {
   return typeof message.content === 'string' ? message.content : JSON.stringify(message.content)
 }
 
-describe('BriefBlock prompt routing (BRIF-01 / D-03/D-05)', () => {
+describe('BriefBlock prompt routing', () => {
   it('routes L0 only to the cached-prefix context tier and learned L1/L2 only to volatile', () => {
     const cachedPrefix = text(buildContextTier(context()))
     const volatile = text(buildVolatileTier(context()))
@@ -122,7 +122,7 @@ describe('BriefBlock prompt routing (BRIF-01 / D-03/D-05)', () => {
   })
 })
 
-describe('BriefBlock channel-1 evidence (BRIF-01)', () => {
+describe('BriefBlock channel-1 evidence', () => {
   it('projects the served block into StepEvidence with a recomputed digest', () => {
     const recorder = new EvidenceRecorder()
     recorder.recordServedBrief({ scope, asOfBuild: 42, budget: 256, block, trace: emptyTrace() })
@@ -354,7 +354,7 @@ describe('BriefBlock channel-1 evidence (BRIF-01)', () => {
   })
 })
 
-describe('live lossless served-brief proof (E2E-01 / CR-07 / CR-08)', () => {
+describe('live lossless served-brief proof', () => {
   it('captures ordered production admissions and the exact bytes served on every replan', async () => {
     const promptDate = '2026-07-24'
     const procedureId = asRecordId('procedure-checkout-hint')

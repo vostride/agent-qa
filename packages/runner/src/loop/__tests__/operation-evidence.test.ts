@@ -95,7 +95,7 @@ async function runDownloadStep(first: ActionResult, verifier: Verifier = passing
   return { evidence: result.evidence!, emitted, contexts, status: result.status }
 }
 
-describe('C436-OPERATION-EVIDENCE', () => {
+describe('download evidence on the sub-action and in the history', () => {
   it('the sub-action carries masked download evidence and the recorded result no longer carries the metadata key', async () => {
     const { evidence, emitted, status } = await runDownloadStep({
       success: true,
@@ -218,7 +218,7 @@ async function runWith(adapter: PlatformAdapter, verifier: Verifier, maxActions 
   )
 }
 
-describe('C436-OPERATION-EVIDENCE verifier input and availability', () => {
+describe('operation evidence in verifier input, and capture availability', () => {
   it("the verifier receives the step's accumulated operation evidence", async () => {
     const calls: unknown[][] = []
     const adapter = makeAdapter({
@@ -307,7 +307,7 @@ describe('C436-OPERATION-EVIDENCE verifier input and availability', () => {
 })
 
 // 436-11 (D-21): the adapter hands over raw clipboard text; the loop masks it, then bounds it.
-describe('C436-CLIPBOARD-CAPTURE loop recording', () => {
+describe('clipboard capture recorded by the loop', () => {
   const LONG = 'secret ' + 'x'.repeat(2993)
   const STRADDLING = 'a'.repeat(CLIPBOARD_TEXT_LIMIT - 3) + 'secret' + 'b'.repeat(997)
 
@@ -446,7 +446,7 @@ function threeClicks(): ActionPlan[] {
   ]
 }
 
-describe('C436-DOWNLOAD-LATE', () => {
+describe('a download that starts after its action', () => {
   it('a late download reaches history and the verifier marked late', async () => {
     const contexts: StepContext[] = []
     const calls: unknown[][] = []

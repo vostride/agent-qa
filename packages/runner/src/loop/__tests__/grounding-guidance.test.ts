@@ -31,7 +31,7 @@ function targetDescriptorGuidance(platform: 'web' | 'android' | 'ios'): string {
   return end > 0 ? rest.slice(0, end) : rest
 }
 
-describe('363-02 planner grounding guidance (D-14 · LOOP-05)', () => {
+describe('planner grounding guidance', () => {
   // Test 1 (behavior block Test 1): the system guidance requires ref and target on every
   // element action (438 D-01), forbids emitting NEITHER, sends a target alone only with no
   // confident ref, and says a clearly different ref is refused as target-mismatch.

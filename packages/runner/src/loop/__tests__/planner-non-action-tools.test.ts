@@ -66,7 +66,7 @@ class RecordedExchangeMiss extends Error {
   }
 }
 
-describe('LLMPlanner nonActionTools seam (368-01)', () => {
+describe('LLMPlanner nonActionTools seam', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
@@ -149,7 +149,7 @@ describe('LLMPlanner nonActionTools seam (368-01)', () => {
     await expect(planner.plan('Click log in', screen, makeContext())).rejects.toBe(miss)
   })
 
-  it('Test 4: PlanningTurnError is the same class across the runner barrel (instanceof-classifiable, D-09)', async () => {
+  it('Test 4: PlanningTurnError is the same class across the runner barrel (instanceof-classifiable)', async () => {
     // The replay engine (plan 368-04) imports PlanningTurnError from the package entry and
     // instanceof-classifies structured planner failures — this must be the SAME class the
     // loop internals throw, or the classification silently misses.

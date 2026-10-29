@@ -71,7 +71,7 @@ function scriptedVerifier(results: ScriptedVerdict[]): Verifier & { calls: numbe
 
 const limits = (maxActions: number) => ({ maxActions, maxPlanningTurns: maxActions, previousStepCount: 0 })
 
-describe('C436-STEP-LIMITS', () => {
+describe('the action limit per step', () => {
   it('a live step stops at its action limit with a typed limit block', async () => {
     const adapter = countingAdapter()
     const planner = scriptedPlanner([makeActionPlan({ reasoning: '', stepComplete: false })])
@@ -312,7 +312,7 @@ function expectActionStop(result: Awaited<ReturnType<typeof executeStep>>, n: nu
   expect(result.evidence?.subActions).toHaveLength(n)
 }
 
-describe('C436-ACTION-PATHS', () => {
+describe('every action path is counted against the action limit', () => {
   it('live', async () => {
     const adapter = scriptedAdapter([{ success: true }])
     const planner = scriptedPlanner([makeActionPlan({ stepComplete: false })])
@@ -629,7 +629,7 @@ function slowAdapter(ms: number): PlatformAdapter & { executed: Action[] } {
 
 const LARGE = { maxActions: 1000, maxPlanningTurns: 1000, previousStepCount: 0 }
 
-describe('C436-BULK-AND-BOUNDS', () => {
+describe('bulk tasks and the other step bounds', () => {
   it('a 55-action bulk task completes at maxActions 60', async () => {
     const { adapter, planner, verifier } = bulkTask()
     const result = await executeStep(

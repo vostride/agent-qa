@@ -48,7 +48,7 @@ function renderTurn(messages: ModelMessage[]): string {
     .join('\n')
 }
 
-describe('D-13 re-run context block (LOOP-03)', () => {
+describe('re-run context block', () => {
   const screenState = makeScreenState()
 
   it('renders the re-run attempt number and failure summary when isRerun is true', () => {

@@ -48,7 +48,7 @@ function cacheOf(value: CachedPlanValue | null, spy?: { invalidate: () => void }
   }
 }
 
-describe('replay re-ground mapping (Q4)', () => {
+describe('replay re-ground mapping', () => {
   it('exact replay: a resolving locator replays with NO planner call (preserved contract)', async () => {
     const cached: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
@@ -157,7 +157,7 @@ describe('replay re-ground mapping (Q4)', () => {
     expect(plannerSpy).toHaveBeenCalledTimes(1)
   })
 
-  it('every grounded sub-action recorded during a live plan carries the §A8 grounding block (Pitfall 9)', async () => {
+  it('every grounded sub-action recorded during a live plan carries the §A8 grounding block', async () => {
     const result = await executeStep(
       'Click Log in',
       ports({ adapter: makeAdapter(), planner: makePlanner(), verifier: makeVerifier() }),

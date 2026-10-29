@@ -53,7 +53,7 @@ const before = makeScreenState()
 const after = makeScreenState({ url: 'https://example.test/after' })
 const action: Action = { type: 'click', ref: asRef('e2') }
 
-describe('buildVerifierStableTier — per-condition contract, expected errors and the error policy (P6, P2, 439 D-11)', () => {
+describe('buildVerifierStableTier — per-condition contract, expected errors and the error policy', () => {
   it('produces the pinned bytes', () => {
     expect(buildVerifierStableTier()).toBe(PINNED_STABLE)
   })
@@ -100,7 +100,7 @@ describe('buildVerifierStableTier — per-condition contract, expected errors an
   })
 })
 
-describe('buildVerificationPrompt — AI-judged actions are unverified planner claims (P5a)', () => {
+describe('buildVerificationPrompt — AI-judged actions are unverified planner claims', () => {
   it('renders an assertAI action as observation only with the unverified claim', () => {
     const assertAi = { type: 'assertAI', claim: 'The header is shown', mode: 'multimodal' } as unknown as Action
     const out = buildVerificationPrompt('Verify the header', before, after, assertAi, true, '', undefined)
@@ -119,7 +119,7 @@ describe('buildVerificationPrompt — AI-judged actions are unverified planner c
   })
 })
 
-describe('VerificationResultSchema — isAppError excludes expected errors (P6)', () => {
+describe('VerificationResultSchema — isAppError excludes expected errors', () => {
   it('says an expected error is not an application error', () => {
     const description = VerificationResultSchema.shape.isAppError.description
     expect(description).toBe(
@@ -128,7 +128,7 @@ describe('VerificationResultSchema — isAppError excludes expected errors (P6)'
   })
 })
 
-describe('LLMVerifier — stable tier and the per-call header (P6, P2)', () => {
+describe('LLMVerifier — stable tier and the per-call header', () => {
   beforeEach(() => {
     vi.mocked(generateText).mockReset()
     vi.mocked(generateText).mockResolvedValue({

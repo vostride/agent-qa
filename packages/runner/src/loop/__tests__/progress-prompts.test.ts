@@ -94,7 +94,7 @@ function rule(n: number, platform: Parameters<typeof buildSystemPrompt>[0] = 'we
 
 const PLATFORMS = ['web', 'android', 'ios', undefined] as const
 
-describe('C436-PROMPT', () => {
+describe('prompt rules without screen-change progress checks', () => {
   it('the stagnation and cycle-break blocks never render', () => {
     const legacySlots = {
       stagnation: {
@@ -178,7 +178,7 @@ describe('C436-PROMPT', () => {
     }
   })
 
-  it('Rule 23 is the 441 one-line secrets rule', () => {
+  it('Rule 23 is the one-line secrets rule', () => {
     for (const platform of PLATFORMS) expect(rule(23, platform)).toBe(RULE_23_441)
   })
 
@@ -201,8 +201,8 @@ describe('C436-PROMPT', () => {
   })
 })
 
-describe('C439-PROMPT', () => {
-  it('Rule 19 is the 439 text', () => {
+describe('Rule 19 completion wording', () => {
+  it('Rule 19 says completion needs its outcome in evidence', () => {
     for (const platform of PLATFORMS) {
       const rule19 = rule(19, platform)
       expect(rule19.startsWith('19. COMPLETION NEEDS ITS OUTCOME IN EVIDENCE:')).toBe(true)
@@ -223,8 +223,8 @@ describe('C439-PROMPT', () => {
   })
 })
 
-describe('C438-PROMPT', () => {
-  it('Rules 10 and 17 are the 438 text', () => {
+describe('Rules 10 and 17 wording', () => {
+  it('Rules 10 and 17 match their pinned text', () => {
     for (const n of [10, 17]) {
       expect(rule(n, 'web')).toBe(PINNED_RULES_438[n])
     }

@@ -48,7 +48,7 @@ function occurrences(source: string, needle: string): number {
   return source.split(needle).length - 1
 }
 
-describe('the loop threads the serve-time trace to the evidence seam (387-04)', () => {
+describe('the loop threads the serve-time trace to the evidence seam', () => {
   const source = statementsOf(readFileSync(join(loopDir, 'index.ts'), 'utf8'))
 
   it('hands the recorder the trace it was served, never a fabricated one', () => {
@@ -163,7 +163,7 @@ async function replanAfterFailure(cautions: ServedCautions): ReturnType<typeof e
   return executeStep('Click Log in', ports([cautions]), makeStepContext({ testName: 'Checkout Flow' }))
 }
 
-describe('a turn that injected ZERO cautions still lands the reader cut ledger (WR-10, 387-13)', () => {
+describe('a turn that injected ZERO cautions still lands the reader cut ledger', () => {
   it('Shape A: the reader ranked candidates and cut them all', async () => {
     // RED BASELINE, observed against unmodified production code before the fix:
     //   AssertionError: expected [] to deeply equal [ 'caution-cut-a', 'caution-cut-b' ]
@@ -252,7 +252,7 @@ async function endsAtBudget(
   )
 }
 
-describe('a step that ENDS before its staged ledger is consumed still lands it (WR-10′, 387-15)', () => {
+describe('a step that ENDS before its staged ledger is consumed still lands it', () => {
   it('terminal budget exit: the staged cut ledger survives the step that never replanned', async () => {
     // RED BASELINE, observed against unmodified production code before the drain existed:
     //   AssertionError: expected [] to deeply equal [ 'caution-cut-a', 'caution-cut-b' ]
@@ -415,7 +415,7 @@ function throwStatementsOf(text: string, shape: RegExp): string[] {
   return (text.match(/\bthrow\b[^\n]*/g) ?? []).map((s) => s.trim()).filter((s) => shape.test(s))
 }
 
-describe('the terminal drain sits at the ONE funnel every exit routes through (387-15)', () => {
+describe('the terminal drain sits at the ONE funnel every exit routes through', () => {
   const source = statementsOf(readFileSync(join(loopDir, 'index.ts'), 'utf8'))
 
   it('evidence is folded in exactly one place, and every terminal builder routes there', () => {
@@ -481,7 +481,7 @@ describe('the terminal drain sits at the ONE funnel every exit routes through (3
     expect(occurrences(source, 'recorder.recordServedCautions(')).toBe(2)
   })
 
-  it('every throw-shaped exit is a re-raise after a missed abort re-check (387-19)', () => {
+  it('every throw-shaped exit is a re-raise after a missed abort re-check', () => {
     // The disclosure in the backstop comment, measured. No count is pinned anywhere below.
     expect(throwIdiomViolations(source)).toEqual([])
 

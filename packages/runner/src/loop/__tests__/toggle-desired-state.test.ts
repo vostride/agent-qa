@@ -69,7 +69,7 @@ interface LooseSub {
   result?: { metadata?: Record<string, unknown> }
 }
 
-describe('C437-TOGGLE-LOOP', () => {
+describe('desiredState taps through the loop', () => {
   it('an ordinary button with selected false is tapped under desiredState unselected', async () => {
     const { calls, result } = await runOne(ordinaryButton(false), {
       type: 'tap',
@@ -207,7 +207,7 @@ function noopResult(success: boolean, idempotentNoop: Record<string, unknown>): 
   return { success, metadata: { idempotentNoop } }
 }
 
-describe('C437-NO-INPUT', () => {
+describe('a skipped tap is recorded as no input', () => {
   it('a skipped tap is recorded with success false, no error and inputSent false', async () => {
     const { calls, result } = await runPlans([
       makeActionPlan({ action: SKIPPED_TAP, stepComplete: true }),
@@ -272,7 +272,7 @@ describe('C437-NO-INPUT', () => {
     expect(calls).toHaveLength(0)
   })
 
-  it('readIdempotentNoopMeta reads the pre-437 block and the new block', () => {
+  it('readIdempotentNoopMeta reads the legacy block and the new block', () => {
     expect(readIdempotentNoopMeta(noopResult(true, { currentState: 'checked' }))).toEqual({
       currentState: 'checked',
     })
@@ -315,7 +315,7 @@ async function runCaptured(
 
 const NO_INPUT_ENTRY = { verb: 'tap', inputSent: false, currentState: 'checked' }
 
-describe('C437-NO-INPUT', () => {
+describe('a skipped tap reaches the verifier as input evidence', () => {
   it('the verifier receives the skipped tap as operation evidence', async () => {
     const { captured } = await runCaptured(checkedSwitch(), SKIPPED_TAP)
     expect(captured).toHaveLength(1)
@@ -410,7 +410,7 @@ const STOP_PLAN = makeActionPlan({
   stepFailed: true,
 })
 
-describe('C437-NO-INPUT', () => {
+describe('a skipped tap in the planner history', () => {
   it('the planner history shows the skipped tap with the no-input glyph', async () => {
     const contexts: StepContext[] = []
     const plans = [makeActionPlan({ action: SKIPPED_TAP, stepComplete: false }), STOP_PLAN]

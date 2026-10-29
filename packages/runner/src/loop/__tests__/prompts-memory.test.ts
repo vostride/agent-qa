@@ -63,7 +63,7 @@ function renderTurn(messages: ModelMessage[]): string {
   return messages.map(renderOne).join('\n')
 }
 
-describe('knowledge brief channel — volatile tier (D-12/D-13)', () => {
+describe('knowledge brief channel — volatile tier', () => {
   it('renders the knowledge brief in the volatile tier framed as hypotheses (L3, not commands)', () => {
     const brief = 'Login modal appears after clicking Sign In (trust: 0.80)'
     const context = makeStepContext({ knowledgeBrief: brief })
@@ -83,7 +83,7 @@ describe('knowledge brief channel — volatile tier (D-12/D-13)', () => {
   })
 })
 
-describe('working memory channel — structured turn content (D-12/D-13)', () => {
+describe('working memory channel — structured turn content', () => {
   it('emits a working-memory turn message from composeTurnMessages when the slot is set', () => {
     const emailValue = 'test@example.com'
     const context = makeStepContext({
@@ -96,7 +96,7 @@ describe('working memory channel — structured turn content (D-12/D-13)', () =>
     expect(renderTurn(messages)).toContain('email')
   })
 
-  it('omits the working-memory message entirely when the slot is empty (D-12 empty-slot omission)', () => {
+  it('omits the working-memory message entirely when the slot is empty', () => {
     const context = makeStepContext({ workingMemory: undefined })
     const messages = composeTurnMessages(context, makeScreenState())
 
@@ -106,7 +106,7 @@ describe('working memory channel — structured turn content (D-12/D-13)', () =>
   })
 })
 
-describe('the two channels are distinct (D-04/D-13)', () => {
+describe('the two channels are distinct', () => {
   it('keeps the brief above the breakpoint (volatile tier) and working memory in turn content', () => {
     const brief = 'Login modal appears after clicking Sign In (trust: 0.80)'
     const emailValue = 'test@example.com'
@@ -127,7 +127,7 @@ describe('the two channels are distinct (D-04/D-13)', () => {
   })
 })
 
-describe('served prompt-turn knowledge ingredients (CR-08 / D-11)', () => {
+describe('served prompt-turn knowledge ingredients', () => {
   it('retains policy, L1, and L2 ingredient bytes without trimming or normalization', () => {
     const policyL0 = '  Preserve policy leading spaces.\nPolicy trailing spaces.  \n'
     const learnedL1 = '\n  Caution with boundary whitespace.  \n'

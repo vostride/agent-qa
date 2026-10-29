@@ -98,7 +98,7 @@ const cfg = { maxActions: 4, maxPlanningTurns: 4, previousStepCount: 0 }
 // ---------------------------------------------------------------------------
 // Block A — reportValue mint (D-01/D-02/D-03)
 // ---------------------------------------------------------------------------
-describe('Block A — reportValue is a runner mint recorded as first-class evidence (D-01/D-03)', () => {
+describe('Block A — reportValue is a runner mint recorded as first-class evidence', () => {
   it('mints at the ONE chokepoint — zero adapter.execute — and metadata.reportedValue mirrors the emission value', async () => {
     const calls: Action[] = []
     const adapter = recordingAdapter(makeScreenState(), calls)
@@ -120,7 +120,7 @@ describe('Block A — reportValue is a runner mint recorded as first-class evide
     expect(meta?.value).toBe('ORD-12345')
   })
 
-  it('the answer lands in StepEvidence.reportedValue masked-before-record — a registered secret never appears raw in serialized evidence (D-03, T-360-01)', async () => {
+  it('the answer lands in StepEvidence.reportedValue masked-before-record — a registered secret never appears raw in serialized evidence', async () => {
     const store = new SecretStore({ TOKEN: 'sk-live-supersecret' })
     const redactor = new SecretRedactor(store)
     const calls: Action[] = []
@@ -140,7 +140,7 @@ describe('Block A — reportValue is a runner mint recorded as first-class evide
     expect(reportedValue?.value ?? '').not.toContain('supersecret')
   })
 
-  it('reportValue is non-terminal (D-02): stepComplete:false reports then continues', async () => {
+  it('reportValue is non-terminal: stepComplete:false reports then continues', async () => {
     const calls: Action[] = []
     const adapter = recordingAdapter(makeScreenState(), calls)
     const reportThenContinue = makeActionPlan({ action: { type: 'reportValue', value: 'partial answer' }, stepComplete: false })
@@ -161,8 +161,8 @@ describe('Block A — reportValue is a runner mint recorded as first-class evide
 // ---------------------------------------------------------------------------
 // Block B — uniqueValue mint + WM auto-write (D-16)
 // ---------------------------------------------------------------------------
-describe('Block B — uniqueValue mints a prefixed value from an injectable generator (D-16)', () => {
-  it('mintUniqueValue prefixes the value and takes an injectable generator (353 K=2 determinism)', async () => {
+describe('Block B — uniqueValue mints a prefixed value from an injectable generator', () => {
+  it('mintUniqueValue prefixes the value and takes an injectable generator', async () => {
     const mod = await importDispatchMint()
     const mintUniqueValue = mod.mintUniqueValue as (input: { prefix: string }, gen: () => string) => ActionResult
     const res = mintUniqueValue({ prefix: 'user_' }, () => 'ZZZ')
@@ -211,8 +211,8 @@ describe('Block B — uniqueValue mints a prefixed value from an injectable gene
 // ---------------------------------------------------------------------------
 // Block C — infeasible envelope (D-04)
 // ---------------------------------------------------------------------------
-describe('Block C — infeasible is a typed terminal outcome on the plan-field envelope (D-04)', () => {
-  it('toolCallToActionPlan surfaces failureKind + failureReason on the plan envelope (Pitfall 2 destructure, 358 remember[] precedent)', () => {
+describe('Block C — infeasible is a typed terminal outcome on the plan-field envelope', () => {
+  it('toolCallToActionPlan surfaces failureKind + failureReason on the plan envelope', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)
     // RED: failureKind/failureReason are not destructured in builder.ts yet ⇒ they fall into the
@@ -260,7 +260,7 @@ describe('Block C — infeasible is a typed terminal outcome on the plan-field e
     expect(Object.keys(termination ?? {}).sort()).toEqual(['kind', 'reason'])
   })
 
-  it('control: a plain stepFailed with no failureKind keeps today behavior — status failed, no termination block (D-04 byte-unchanged)', async () => {
+  it('control: a plain stepFailed with no failureKind keeps today behavior — status failed, no termination block', async () => {
     const calls: Action[] = []
     const adapter = recordingAdapter(makeScreenState(), calls)
     const plainFail = makeActionPlan({ action: { type: 'reportValue', value: 'n/a' }, stepComplete: false, stepFailed: true })

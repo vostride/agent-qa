@@ -33,7 +33,7 @@ function makeCacheSpy(): CacheSpy {
   }
 }
 
-describe('env/secret-set step bypasses the cache (CACHE-02, D-08)', () => {
+describe('env/secret-set step bypasses the cache', () => {
   it('classifies the set-variable step as non-cacheable', () => {
     const result = classifyStep({ stepText: 'set SESSION token', envSets: ['SESSION'] })
     expect(result.cacheable).toBe(false)

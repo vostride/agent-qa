@@ -110,7 +110,7 @@ function refusal(result: StepResult, index = 0): Record<string, unknown> | undef
     | undefined
 }
 
-describe('C438-STATED-TARGET-LOOP', () => {
+describe('the stated-target check in the loop', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

@@ -67,7 +67,7 @@ describe('LLMPlanner', () => {
     vi.clearAllMocks()
   })
 
-  it('projects a scripted tool call into a PlanResult with the v45 envelope intact (D-09)', async () => {
+  it('projects a scripted tool call into a PlanResult with the v45 envelope intact', async () => {
     const { generateText } = await import('ai')
     vi.mocked(generateText).mockResolvedValueOnce({
       toolCalls: [{ toolName: 'web_click', input: { ref: 'e1', ...CLICK_ENVELOPE } }],
@@ -144,7 +144,7 @@ describe('LLMPlanner', () => {
 
   // Phase 355-01 (CTXB-04 / D-10) — RED until Plan 05 injects the TokenAccounting port
   // into LLMPlanner and feeds recordUsage(result.usage, messages) after each response.
-  it('feeds the injected TokenAccounting recordUsage exactly once per response (D-10)', async () => {
+  it('feeds the injected TokenAccounting recordUsage exactly once per response', async () => {
     const { generateText } = await import('ai')
     vi.mocked(generateText).mockResolvedValueOnce({
       toolCalls: [{ toolName: 'web_click', input: { ref: 'e1', ...CLICK_ENVELOPE } }],
@@ -213,7 +213,7 @@ describe('LLMPlanner', () => {
   })
 })
 
-describe('C444.1-PLANNER-CANCEL', () => {
+describe('LLMPlanner cancellation', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

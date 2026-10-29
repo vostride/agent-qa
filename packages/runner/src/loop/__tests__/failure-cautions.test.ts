@@ -140,7 +140,7 @@ const elementPageAndFlow: Anchor[] = [
   ...pageAndFlow,
 ]
 
-describe('executeStep Channel 3 failure cautions (BRIF-02, D-13/D-14)', () => {
+describe('executeStep Channel 3 failure cautions', () => {
   it('calls getCautions once for grounding miss, action error, and verifier reject, but never for a passing step', async () => {
     const initial = makeScreenState()
     const missing = withoutLoginElement(initial)

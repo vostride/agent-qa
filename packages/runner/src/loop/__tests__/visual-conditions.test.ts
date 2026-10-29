@@ -92,7 +92,7 @@ async function run(options: {
 
 const finalScreenCitation = [{ source: 'final-screen' as const, quote: 'button "Log in"' }]
 
-describe('C439-VISION', () => {
+describe('visual conditions under a text-only gate', () => {
   it('a visual condition under a text-only gate is inconclusive', async () => {
     const result = verification([condition(finalScreenCitation, 'visual')])
     const { result: step, seen } = await run({ result, plans: [clickLogIn], visionGate: TEXT_ONLY })

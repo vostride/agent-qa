@@ -121,7 +121,7 @@ function download(name: string): DownloadEvidence {
   return { suggestedFilename: name, extension: '.csv', size: 42, sha256: 'd'.repeat(64), state: 'completed' }
 }
 
-describe('C439-STEP-RECORD', () => {
+describe('the step record the verifier reads', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })

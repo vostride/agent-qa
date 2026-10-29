@@ -92,7 +92,7 @@ function judgeProduct(answer: string, extraElements: ElementInfo[] = [], extraSc
   })
 }
 
-describe('C446-REQUESTED-DIALOG', () => {
+describe('an open dialog the step requested', () => {
   it('the verifier may answer that an open dialog is the state the step asked to open or see', () => {
     const answer = productAnswer('met', [{ name: 'Everyday Ceramic Mug', account: 'requested' }])
     const parsed = VerificationResultSchema.safeParse(JSON.parse(answer))
