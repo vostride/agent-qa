@@ -16,8 +16,8 @@
 //
 // THE REGEN CANNOT BE ONE KEYSTROKE. There is no snapshot here and no `--update` path: this module
 // offers the regen script a PRINT between sentinels (see {@link CATALOG_EMIT_BEGIN}), never a
-// write. The ONE writer is `scripts/398-regen-catalog.sh --write`, which refuses to run while any
-// other leg of this suite is red and whose `--selftest` proves that refusal fires.
+// write. The ONE writer is `scripts/regen-capability-catalog.sh --write`, which refuses to run
+// while any other leg of this suite is red and whose `--selftest` proves that refusal fires.
 //
 // ONE RECIPE. The script and the freshness leg call the same {@link capabilityCatalogFromRoot}, and
 // the composition it walks is the golden's own {@link withGoldenRootDeclarations} — so the two
@@ -1049,10 +1049,10 @@ export function catalogFindings(
  * The env flag under which the suite PRINTS a freshly minted catalog, and never writes one.
  *
  * A PRINT AND NOT A WRITE, deliberately — the golden's mechanism, for the golden's reason.
- * `scripts/398-regen-catalog.sh` runs the suite with this set, lifts the text out from between the
- * sentinels and writes the file ITSELF, only after its refuse-while-red gate has passed and only
- * under `--write`. So there is no value of any environment variable, and no runner flag, that
- * causes a test run to bless this artifact.
+ * `scripts/regen-capability-catalog.sh` runs the suite with this set, lifts the text out from
+ * between the sentinels and writes the file ITSELF, only after its refuse-while-red gate has passed
+ * and only under `--write`. So there is no value of any environment variable, and no runner flag,
+ * that causes a test run to bless this artifact.
  */
 export const CATALOG_EMIT_FLAG = 'AGENT_QA_398_CATALOG_EMIT'
 export const CATALOG_EMIT_BEGIN = '<<<398-01-CATALOG-BEGIN>>>'

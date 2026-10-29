@@ -3,7 +3,7 @@
     "GENERATED — the capability catalog for Phase 398 (XPLN-01, D-01/D-03/D-05).",
     "One row per registry capability, per chat alias and per shipped skill. This artifact is the ONE",
     "data source behind `init --agent`, the chat `/` type-ahead, the starter prompts and `explain`.",
-    "DO NOT EDIT BY HAND: regenerate with \"bash scripts/398-regen-catalog.sh --write\" and commit the",
+    "DO NOT EDIT BY HAND: regenerate with \"bash scripts/regen-capability-catalog.sh --write\" and commit the",
     "result as a deliberate, reviewed change. The script refuses to run while any other leg of the",
     "conformance suite is red, so a regeneration cannot launder an unrelated failure, and no",
     "test-runner update flag reaches this file.",

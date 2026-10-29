@@ -236,10 +236,10 @@ jobs:
       # held on macOS and was defeatable on Linux; a vacuity gate that only fires
       # on the author's laptop protects nothing in CI.
       - name: Conformance runner self-test
-        run: bash scripts/396-conformance.sh --selftest
+        run: bash scripts/mcp-conformance.sh --selftest
 
       - name: MCP conformance
-        run: bash scripts/396-conformance.sh
+        run: bash scripts/mcp-conformance.sh
 
   ps-hosts:
     name: ps-host legs (macos, ${{ matrix.group }})

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 397-regen-golden.sh — the ONE writer of the golden capability ledger (Phase 397 plan 06, D-07).
+# regen-capability-golden.sh — the ONE writer of the golden capability ledger.
 #
 # WHAT THIS IS FOR, IN ONE LINE: a capability ledger must not be one keystroke from silently
 # blessed. `packages/cli/src/__tests__/conformance/golden-registry.json` records every registered
@@ -35,12 +35,12 @@
 # workspace is therefore rebuilt in dependency order before anything is measured.
 #
 # USAGE
-#   bash agent-qa/scripts/397-regen-golden.sh              # from the super-repository root
-#   bash scripts/397-regen-golden.sh                       # from the agent-qa root: mint + diff only
-#   bash scripts/397-regen-golden.sh --write               # …and overwrite the committed ledger
-#   bash scripts/397-regen-golden.sh --selftest            # prove the refuse-while-red gate fires
-#   bash scripts/397-regen-golden.sh --no-build            # skip the rebuild (iteration only)
-#   bash scripts/397-regen-golden.sh --gate-only           # INTERNAL: run the gate, exit 0/1
+#   bash agent-qa/scripts/regen-capability-golden.sh       # from the super-repository root
+#   bash scripts/regen-capability-golden.sh                # from the agent-qa root: mint + diff only
+#   bash scripts/regen-capability-golden.sh --write        # …and overwrite the committed ledger
+#   bash scripts/regen-capability-golden.sh --selftest     # prove the refuse-while-red gate fires
+#   bash scripts/regen-capability-golden.sh --no-build     # skip the rebuild (iteration only)
+#   bash scripts/regen-capability-golden.sh --gate-only    # INTERNAL: run the gate, exit 0/1
 #
 # Case lookups and plain functions rather than associative arrays: macOS ships bash 3.2, where
 # `declare -A` silently becomes an indexed array and every named key reads as unbound under `set -u`.
@@ -130,7 +130,7 @@ FROZEN_MIN_ROWS=44
 EMIT_FLAG="AGENT_QA_397_GOLDEN_EMIT"
 EMIT_BEGIN="<<<397-06-GOLDEN-BEGIN>>>"
 EMIT_END="<<<397-06-GOLDEN-END>>>"
-SELFTEST_PROBE="$CLI_DIR/src/__tests__/conformance/397-regen-selftest-probe.test.ts"
+SELFTEST_PROBE="$CLI_DIR/src/__tests__/conformance/regen-capability-golden-selftest-probe.test.ts"
 
 MODE="run"
 DO_BUILD=1
@@ -145,7 +145,7 @@ for arg in "$@"; do
 done
 
 fatal() { echo "FATAL: $*" >&2; exit 1; }
-note() { echo "[397-regen-golden] $*" >&2; }
+note() { echo "[regen-capability-golden] $*" >&2; }
 
 # PORTABLE FORM, DELIBERATELY. `mktemp -d -t <prefix>` is a BSD idiom: on macOS it appends random
 # characters to the prefix, on GNU coreutils the same call FAILS with "too few X's in template".
@@ -212,14 +212,14 @@ try {
 INSPECT_MJS
 
 cat > "$SANDBOX/probe.test.ts" <<'PROBE_TS'
-// TRANSIENT — written by `scripts/397-regen-golden.sh --selftest` and removed by its EXIT trap.
+// TRANSIENT — written by `scripts/regen-capability-golden.sh --selftest` and removed by its EXIT trap.
 //
 // The gate this script carries refuses to regenerate the ledger while the conformance suite is red
 // for any reason other than the golden-diff cell itself. This file is the deliberate other reason:
 // it fails by name, so the selftest can observe the refusal fire instead of assuming it would.
 import { describe, expect, it } from 'vitest'
 
-describe('397-06 regen selftest probe', () => {
+describe('regen selftest probe', () => {
   it('fails on purpose so the refuse-while-red gate can be observed firing', () => {
     expect('the regen gate must refuse while this is red').toBe('and it must say which cell')
   })

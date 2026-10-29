@@ -41,7 +41,7 @@ export const CAPABILITY_CATALOG_DIR_NAME = 'capability-catalog'
 export const CAPABILITY_CATALOG_FILE_NAME = 'capability-catalog.json'
 
 /** The ONE writer. There is no test-runner update path to this artifact (397 D-07's discipline). */
-export const CATALOG_REGEN_SCRIPT = 'scripts/398-regen-catalog.sh'
+export const CATALOG_REGEN_SCRIPT = 'scripts/regen-capability-catalog.sh'
 
 /**
  * What a person holding a broken catalog has to DO, in the imperative.

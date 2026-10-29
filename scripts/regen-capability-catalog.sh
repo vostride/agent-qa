@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 398-regen-catalog.sh — the ONE writer of the committed capability catalog (Phase 398 plan 01, D-01).
+# regen-capability-catalog.sh — the ONE writer of the committed capability catalog.
 #
 # WHAT THIS IS FOR, IN ONE LINE: `packages/cli/capability-catalog/capability-catalog.json` is the
 # single data source behind `init --agent`, the chat `/` type-ahead, the starter prompts and the
@@ -31,12 +31,12 @@
 # workspace is therefore rebuilt in dependency order before anything is measured.
 #
 # USAGE
-#   bash agent-qa/scripts/398-regen-catalog.sh            # from the super-repository root
-#   bash scripts/398-regen-catalog.sh                     # from the agent-qa root: mint + diff only
-#   bash scripts/398-regen-catalog.sh --write             # …and overwrite the committed artifact
-#   bash scripts/398-regen-catalog.sh --selftest          # prove the refuse-while-red gate fires
-#   bash scripts/398-regen-catalog.sh --no-build          # skip the rebuild (iteration only)
-#   bash scripts/398-regen-catalog.sh --gate-only         # INTERNAL: run the gate, exit 0/1
+#   bash agent-qa/scripts/regen-capability-catalog.sh     # from the super-repository root
+#   bash scripts/regen-capability-catalog.sh              # from the agent-qa root: mint + diff only
+#   bash scripts/regen-capability-catalog.sh --write      # …and overwrite the committed artifact
+#   bash scripts/regen-capability-catalog.sh --selftest   # prove the refuse-while-red gate fires
+#   bash scripts/regen-capability-catalog.sh --no-build   # skip the rebuild (iteration only)
+#   bash scripts/regen-capability-catalog.sh --gate-only  # INTERNAL: run the gate, exit 0/1
 #
 # Case lookups and plain functions rather than associative arrays: macOS ships bash 3.2, where
 # `declare -A` silently becomes an indexed array and every named key reads as unbound under `set -u`.
@@ -141,7 +141,7 @@ FROZEN_MIN_ROWS=52
 EMIT_FLAG="AGENT_QA_398_CATALOG_EMIT"
 EMIT_BEGIN="<<<398-01-CATALOG-BEGIN>>>"
 EMIT_END="<<<398-01-CATALOG-END>>>"
-SELFTEST_PROBE="$CLI_DIR/src/__tests__/conformance/398-regen-selftest-probe.test.ts"
+SELFTEST_PROBE="$CLI_DIR/src/__tests__/conformance/regen-capability-catalog-selftest-probe.test.ts"
 
 MODE="run"
 DO_BUILD=1
@@ -156,7 +156,7 @@ for arg in "$@"; do
 done
 
 fatal() { echo "FATAL: $*" >&2; exit 1; }
-note() { echo "[398-regen-catalog] $*" >&2; }
+note() { echo "[regen-capability-catalog] $*" >&2; }
 
 # PORTABLE FORM, DELIBERATELY. `mktemp -d -t <prefix>` is a BSD idiom: on macOS it appends random
 # characters to the prefix, on GNU coreutils the same call FAILS with "too few X's in template".
@@ -226,14 +226,14 @@ try {
 INSPECT_MJS
 
 cat > "$SANDBOX/probe.test.ts" <<'PROBE_TS'
-// TRANSIENT — written by `scripts/398-regen-catalog.sh --selftest` and removed by its EXIT trap.
+// TRANSIENT — written by `scripts/regen-capability-catalog.sh --selftest` and removed by its EXIT trap.
 //
 // The gate this script carries refuses to regenerate the catalog while the conformance suite is red
 // for any reason other than the freshness cell itself. This file is the deliberate other reason:
 // it fails by name, so the selftest can observe the refusal fire instead of assuming it would.
 import { describe, expect, it } from 'vitest'
 
-describe('398-01 regen selftest probe', () => {
+describe('regen selftest probe', () => {
   it('fails on purpose so the refuse-while-red gate can be observed firing', () => {
     expect('the regen gate must refuse while this is red').toBe('and it must say which cell')
   })

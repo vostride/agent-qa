@@ -13,7 +13,7 @@
 # integers that produced it. A rate on its own hides a shrinking numerator and a shrinking
 # denominator equally well, and this project has paid for that lesson (the frozen-denominator law).
 #
-# HOW THIS FILE IS USED. `scripts/396-conformance.sh` passes it to the suite as `--expected-failures`
+# HOW THIS FILE IS USED. `scripts/mcp-conformance.sh` passes it to the suite as `--expected-failures`
 # and the suite's OWN exit code is the gate — there is no wrapper differ:
 #
 #     fails and IS listed here   -> exit 0   (known, ratcheted)
@@ -26,7 +26,7 @@
 #
 # NOTHING AUTO-EDITS THIS FILE. CI never commits. Every line below, and every deletion of one, is a
 # deliberate reviewed change — which is the only reason the number above can be trusted (D-19).
-# `bash scripts/396-conformance.sh --mint-baseline` prints a fresh body for a human to diff in.
+# `bash scripts/mcp-conformance.sh --mint-baseline` prints a fresh body for a human to diff in.
 #
 # ENTRY FORMAT: `- <scenario>:<check-id>`, PER CHECK and with NO SPACE after the colon (a space
 # makes it a YAML map and the suite refuses the file). Per-check rather than per-scenario on

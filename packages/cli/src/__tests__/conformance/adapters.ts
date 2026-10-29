@@ -291,7 +291,7 @@ export async function withMcpClient<Answer>(
       maskText: (text: string) => text,
     }),
   )
-  const client = new Client({ name: 'agent-qa-397-conformance', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-conformance', version: '0.0.0' })
   try {
     await client.connect(
       new StreamableHTTPClientTransport(new URL('http://conformance.local/mcp'), {

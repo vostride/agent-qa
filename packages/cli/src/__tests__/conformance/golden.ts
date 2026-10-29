@@ -19,10 +19,10 @@
 // THE REGEN CANNOT BE ONE KEYSTROKE (D-07). There is no `toMatchSnapshot` here and no `--update`
 // path that reaches this file: nothing in this directory writes to `golden-registry.json` at all,
 // and `parity.test.ts` asserts that absence as source. The ONE writer is
-// `scripts/397-regen-golden.sh --write`, which refuses to run while any other leg of the suite is
-// red — so a regen cannot launder an unrelated failure — and whose `--selftest` proves that refusal
-// fires. What this module offers the script is a PRINT (see {@link GOLDEN_EMIT_BEGIN}), never a
-// write, so the script owns the gate and the file both.
+// `scripts/regen-capability-golden.sh --write`, which refuses to run while any other leg of the
+// suite is red — so a regen cannot launder an unrelated failure — and whose `--selftest` proves
+// that refusal fires. What this module offers the script is a PRINT (see
+// {@link GOLDEN_EMIT_BEGIN}), never a write, so the script owns the gate and the file both.
 //
 // ONE RECIPE. The script and the diff leg call the same {@link goldenFileFromRoot}. A second
 // spelling of the projection — a regen that re-derived the rows its own way — would agree with
@@ -59,7 +59,7 @@ export const GOLDEN_PATH = join(CONFORMANCE_DIR, GOLDEN_FILE_NAME)
  * Exported so the failure messages, the file's own note and the Task-1 acceptance grep are all one
  * string rather than three that can drift.
  */
-export const GOLDEN_REGEN_SCRIPT = 'scripts/397-regen-golden.sh'
+export const GOLDEN_REGEN_SCRIPT = 'scripts/regen-capability-golden.sh'
 
 /**
  * What a person reading a red diff leg has to DO, in the imperative.
@@ -519,11 +519,11 @@ export function goldenFieldsThatMoved(
 /**
  * The env flag under which the suite PRINTS a freshly minted ledger, and never writes one.
  *
- * A PRINT AND NOT A WRITE, deliberately. `scripts/397-regen-golden.sh` runs the suite with this set,
- * lifts the text out from between the sentinels below and writes the file ITSELF — only after its
- * refuse-while-red gate has passed and only under `--write`. Nothing in this directory opens the
- * golden for writing (`parity.test.ts` asserts that as source), so there is no value of any
- * environment variable, and no runner flag, that causes a test run to bless the ledger.
+ * A PRINT AND NOT A WRITE, deliberately. `scripts/regen-capability-golden.sh` runs the suite with
+ * this set, lifts the text out from between the sentinels below and writes the file ITSELF — only
+ * after its refuse-while-red gate has passed and only under `--write`. Nothing in this directory
+ * opens the golden for writing (`parity.test.ts` asserts that as source), so there is no value of
+ * any environment variable, and no runner flag, that causes a test run to bless the ledger.
  */
 export const GOLDEN_EMIT_FLAG = 'AGENT_QA_397_GOLDEN_EMIT'
 export const GOLDEN_EMIT_BEGIN = '<<<397-06-GOLDEN-BEGIN>>>'

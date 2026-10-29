@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# 396-conformance.sh — MCPS-05: the external MCP conformance suite, pinned, frozen, ratcheted.
+# mcp-conformance.sh — the external MCP conformance suite, pinned, frozen, ratcheted.
 #
 # WHAT THIS IS FOR, IN ONE LINE: "know the number, don't hit one" (D-18). This script publishes a
 # raw-count conformance score for the shipped MCP server and reds only on a NEW failure. It is
@@ -62,11 +62,11 @@
 # when it could not fetch its own referee is vacuity gate 1 wearing a different hat.
 #
 # USAGE
-#   bash agent-qa/scripts/396-conformance.sh            # from the super-repository root
-#   bash scripts/396-conformance.sh                     # from the agent-qa root
-#   bash scripts/396-conformance.sh --selftest          # prove this script can fail
-#   bash scripts/396-conformance.sh --mint-baseline     # print a fresh baseline body to stdout
-#   bash scripts/396-conformance.sh --no-build          # skip `pnpm build` (iteration only)
+#   bash agent-qa/scripts/mcp-conformance.sh            # from the super-repository root
+#   bash scripts/mcp-conformance.sh                     # from the agent-qa root
+#   bash scripts/mcp-conformance.sh --selftest          # prove this script can fail
+#   bash scripts/mcp-conformance.sh --mint-baseline     # print a fresh baseline body to stdout
+#   bash scripts/mcp-conformance.sh --no-build          # skip `pnpm build` (iteration only)
 #
 # Case lookups and plain functions rather than associative arrays: macOS ships bash 3.2, where
 # `declare -A` silently becomes an indexed array and every named key reads as unbound under `set -u`.
@@ -98,7 +98,7 @@ for arg in "$@"; do
 done
 
 fatal() { echo "FATAL: $*" >&2; exit 1; }
-note() { echo "[396-conformance] $*" >&2; }
+note() { echo "[mcp-conformance] $*" >&2; }
 
 # PORTABLE FORM, DELIBERATELY. `mktemp -d -t <prefix>` is a BSD idiom: on macOS it appends random
 # characters to the prefix, and on GNU coreutils the same call FAILS with "too few X's in template".

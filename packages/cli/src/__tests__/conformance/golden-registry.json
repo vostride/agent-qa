@@ -3,7 +3,7 @@
     "GENERATED — the capability ledger for Phase 397 (FUNC-05 leg 6, D-05/D-07).",
     "One row per registered capability. A dropped risk hint, a changed schema",
     "digest or a moved MCP partition lands here as a one-line reviewable diff.",
-    "DO NOT EDIT BY HAND: regenerate with \"bash scripts/397-regen-golden.sh --write\" and commit the result",
+    "DO NOT EDIT BY HAND: regenerate with \"bash scripts/regen-capability-golden.sh --write\" and commit the result",
     "as a deliberate, reviewed change. The script refuses to run while any other leg of the",
     "conformance suite is red, so a regeneration cannot launder an unrelated failure, and no",
     "test-runner update flag reaches this file."

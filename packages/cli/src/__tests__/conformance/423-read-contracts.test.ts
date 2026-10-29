@@ -666,7 +666,8 @@ describe('423-38 committed artifacts carry the reviewed read contracts', () => {
       else if (!same(catalogRow, catalogOpRowOf(declaration!))) disagreements.push(`catalog:${opId}:differs`)
     }
     expect(disagreements, 'the committed artifacts lag the live read contracts; regenerate through '
-      + 'scripts/397-regen-golden.sh --write, then scripts/398-regen-catalog.sh --write').toEqual([])
+      + 'scripts/regen-capability-golden.sh --write, then '
+      + 'scripts/regen-capability-catalog.sh --write').toEqual([])
     for (const opId of ADDRESSED_OPS) {
       const declaration = declarations.find(entry => entry.id === opId)!
       expect(golden.rows.find(entry => entry.id === opId), opId).toEqual(goldenRowOf(declaration))
