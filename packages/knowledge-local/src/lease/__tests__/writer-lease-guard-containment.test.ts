@@ -29,14 +29,7 @@ import {
 } from '../writer-lease.js'
 import { RESOLVE_TS_SOURCE_HOOK } from './source-import-hook.js'
 
-/**
- * 2026-10-03 (quick 261003-lgd, Phase 432 review CR-01, WR-11, IN-24).
- *
- * The knowledge root is a git repository people share and pull, and a tracked symlink is checked
- * out even under an ignored directory. Nothing the lease guard does may follow, delete, rename or
- * write through a link, or leave the knowledge root. Every symlink target here is a temp
- * directory this file created, holding sentinel files that must survive byte for byte.
- */
+// Each symlink target is a temp directory this file creates, with sentinel files that must survive.
 const SOURCE_URL = new URL('../writer-lease.ts', import.meta.url).href
 
 type Attempt = { kind: string; [key: string]: unknown }
@@ -143,7 +136,6 @@ describe('the lease guard never reaches through a link or out of the knowledge r
     const beat = attempt(() => heartbeatLease({ knowledgeRoot, leaseId }))
 
     expect({ released, beat }).toMatchObject({
-      // the shared knowledge-root containment error, named for every writer.
       released: { kind: 'threw', name: 'KnowledgeRootContainmentError' },
       beat: { kind: 'threw', name: 'KnowledgeRootContainmentError' },
     })

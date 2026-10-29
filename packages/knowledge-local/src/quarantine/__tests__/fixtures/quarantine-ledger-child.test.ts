@@ -1,13 +1,4 @@
-// The SECOND OS process in the D-04 concurrent-writer proof.
-//
-// The idiom is 385-03's `job-store-child` fixture: a `.test.ts` that doubles as a child entry
-// point, gated by one environment variable, with every input arriving as a required env var and
-// every result handed back as ONE atomically-published JSON report. Three roles live here rather
-// than three files, because they share the identity contract and the marker plumbing.
-//
-// Every marker is published temp-then-rename, so the parent can never observe a half-written one,
-// and every wait is bounded — this file runs in CI beside a known contention-flake class, and an
-// unbounded poll is how a test joins it.
+// Markers publish by temp then rename, and every wait is bounded.
 
 import { existsSync, renameSync, writeFileSync } from 'node:fs'
 
@@ -63,13 +54,7 @@ async function waitFor(description: string, ready: () => boolean): Promise<void>
   }
 }
 
-/**
- * The identity mint the CLI host supplies, reduced to what this corpus needs.
- *
- * Every path in the contract is already workspace-relative, so the production recipe would be an
- * identity function over them. Passing them through unchanged keeps the mint out of the subject
- * under test — this file is about serialization, and 390-12 already owns the mint's own corpus.
- */
+// Contract paths are already workspace-relative, so the mint is the identity function.
 function mintIdentityPath(filePath: string): string {
   return filePath
 }
@@ -173,18 +158,7 @@ async function runSerializedAdd(context: ChildContext): Promise<Record<string, u
   }
 }
 
-/**
- * ROLE `unserialized-cycle`. THE CONTROL — the reddening input the protected assertions need.
- *
- * This is `operations.add`'s `decide` transcribed line for line (read the ledger, fold it against
- * one injected instant, look the identity up, route `renewed` vs `entered`, append), with exactly
- * two things changed: no lease is taken, and a barrier is opened between the fold and the append.
- *
- * The barrier is what makes the interleaving a FACT instead of a hope. The parent writes its own
- * event into that window, so the append below is provably authored against pre-window state — the
- * "read-fold-decide-append cycle loses an update" shape the D-04 truth names. A control that could
- * not produce this shape would leave every green assertion in the parent suite unfalsifiable.
- */
+// `operations.add`'s cycle with no lease and a barrier before the append, forcing a lost update.
 async function runUnserializedCycle(context: ChildContext): Promise<Record<string, unknown>> {
   const foldedPath = requiredEnv(QUARANTINE_CHILD_ENV.folded)
   const resumePath = requiredEnv(QUARANTINE_CHILD_ENV.resume)

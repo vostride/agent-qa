@@ -27,19 +27,7 @@ import {
 } from '../writer-lease.js'
 import { RESOLVE_TS_SOURCE_HOOK } from './source-import-hook.js'
 
-/**
- * a heartbeat must never resurrect a released lease.
- *
- * Phase 432 deferred items 432-19 #7 (with 432-13 #6, 432-14 #7, 432-17 #4): the beat read the
- * lease and then rewrote it without any exclusion against `releaseLease`, so a beat that read
- * before a release wrote after it. The released lease came back under the SAME id with a fresh
- * stamp and the current epoch, and the next acquire answered `held`.
- *
- * The interleaving is driven through the seam the 386-42 clobber cells already use: the beat's
- * only `Date.now()` is the stamp it takes between its last check and its only write. The release
- * runs on a REAL second thread loaded from this same source file, so the two sides contend the way
- * the daemon's heartbeat worker and its main thread do.
- */
+// A heartbeat must not resurrect a released lease; the release races the beat on a real thread.
 const SOURCE_URL = new URL('../writer-lease.ts', import.meta.url).href
 
 const GO = 0
@@ -321,19 +309,6 @@ describe('the lease-file guard itself', () => {
     expect(guardEntries()).toEqual([])
   })
 
-  /**
-   * 2026-10-03 (quick 261003-lgd, Phase 432 review CR-01 and WR-11): two cells here re-spelled.
-   *
-   * 'reclaims a guard directory with no owner in it and releases' asserted that the stray was
-   * unlinked; that bulk unlink is CR-01's deletion through a planted link. An ownerless directory
-   * is now moved aside whole (writer-lease-guard-containment.test.ts, cell d), and the release
-   * still lands. 'waits a live foreign section out for the busy window only' pinned WR-11: a
-   * guard with this process's pid and another thread's id, claimed just now, made the waiter
-   * throw before the residue bound could ever be reached. The waiter now outlasts the bound and
-   * reclaims (cell e there). What still refuses by name is a guard held by LIVE sections for the
-   * whole wait, which this cell now drives: each residue is reclaimed, a fresh live section takes
-   * the guard at that moment, and the waiter gives up after LEASE_GUARD_WAIT_MS, touching none.
-   */
   it('moves an ownerless guard directory aside whole, keeping its entries, and releases', () => {
     const acquired = acquireWriterLease(knowledgeRoot)
     if (acquired.kind !== 'acquired') throw new Error('expected an acquired writer lease')
@@ -399,17 +374,7 @@ describe('the lease-file guard itself', () => {
   }, 40_000)
 })
 
-/**
- * 2026-10-02 (quick 261002-lse follow-up): reclaiming a stale guard is a compare-and-swap.
- *
- * Two reclaimers can judge the SAME stale guard residue. The first reclaims it and holds a fresh,
- * live guard; the second must then reclaim nothing. It used to move whatever sat at the guard path
- * aside and put it back, so for that window the live holder's guard was gone: a third claimant got
- * in beside the live holder, and the holder's own release, missing its guard, left it orphaned.
- *
- * The stale guard is left by a real process SIGKILLed inside its section, so the cell does not
- * depend on how a guard is laid out on disk.
- */
+// Two reclaimers may judge one stale guard; the second must not touch the first's fresh guard.
 const HOLDER_GO = 0
 const HOLDER_IN_SECTION = 1
 const HOLDER_PROCEED = 2

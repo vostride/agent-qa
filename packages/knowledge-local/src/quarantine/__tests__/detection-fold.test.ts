@@ -1,19 +1,4 @@
-// Detection at its ONE correct site: inside the post-run fold, behind the applied-runs gate
-// (Phase 390, D-08 / Open Q1 / Pitfall 3 / Pitfall 4).
-//
-// These drive the REAL fold — real sqlite, real projection, real committed ledger bytes — because
-// the pure rule's table cannot see any of the three properties that matter here:
-//
-//  1. IDEMPOTENCY IS POSITIONAL. `applyRunOutcomes` answers `already-applied` from an early return
-//     that fires BEFORE its transaction opens, so hanging detection off the `applied` arm makes
-//     "a refold never double-quarantines" true by construction rather than by a re-checked
-//     condition. The differential that reds only on the SECOND drain is the Pitfall 3 warning sign.
-//  2. THE APPEND ORDERS AFTER THE COMMIT, and that is not atomic — deliberately. A prevented append
-//     leaves the window crossed and the NEXT applied fold re-evaluates and appends then. Documented
-//     and pinned as self-healing, never pretended atomic (Open Q1).
-//  3. A REFUSED READ IS DATA. A ledger failure that silently loses an `entered` event is the
-//     defect class Pitfall 4 names, so the refusal rides out on the fold report and the tail logs
-//     it. There is no bare catch anywhere on this path.
+// Drives the real fold: detection hangs off the `applied` arm, so a refold never re-quarantines.
 
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -105,35 +90,9 @@ function failingStep(): StepEvidence {
   } as unknown as StepEvidence
 }
 
-// ---- TWO VERDICT BUILDERS, FOR TWO PRODUCERS -----------------------------------------
-//
-// They are not one shortcut around the other. A verdict has exactly two producers and they are
-// built in opposite directions, so this file models both:
-//
-//  - THE FLOOR (`deterministic-classifier`) is a FUNCTION of a member's TestResult. So the floor
-//    corpus SCRIPTS a result and asks the runner's own `classifyRootCause` what it says — a caller
-//    asks for "a member that blew its deadline" and gets whatever the classifier answers, rather
-//    than asserting what it should have answered. 390-16 shipped green over the opposite: a
-//    `CompletedRunHandoff` carrying `class: 'flake'` WITH `producer: 'deterministic-classifier'`,
-//    behind an `as unknown as` cast, which the classifier cannot emit for ANY input. The
-//    `FoldVerdictSpec` union below is what makes that shape stop COMPILING instead of quietly
-//    passing.
-//  - AN AUTHORED VERDICT (`analyze-run`) is a MODEL OUTPUT. It has no deterministic producer to
-//    route through and the class genuinely IS the input, so the authored builder still takes a
-//    class name — and that is faithful, not a shortcut.
-//
-// WHAT THE SCRIPTED RESULT DOES AND DOES NOT DECIDE HERE. It produces the VERDICT. The handoff's
-// step evidence stays the fixture's own rich `failingStep()`, because this file's subject is the
-// fold and the failure fingerprint it derives; the end-to-end file (cli
-// `quarantine-lifecycle.e2e.test.ts`) is where the scripted result drives the real shell and the
-// steps come off the run too.
+// Floor verdicts come from `classifyRootCause` on a scripted result; authored ones name a class.
 
-/**
- * The runner's own test-deadline message, from the SINGLE MINT SITE that defines it
- * (`createTimeoutAbortReason`) — never a string literal. The matcher `isTestTimeoutMessage` and
- * this mint are deliberately single-sourced, so a literal here would pin a message the runner
- * stops emitting the day the format changes.
- */
+// From the runner's own mint, so the test follows the message if its format changes.
 const TEST_DEADLINE_ERROR = createTimeoutAbortReason('test', 30_000).message
 
 /** A member that blew the hard test budget ⇒ `deriveMemberOutcome` answers `'timeout'`. */
@@ -223,17 +182,7 @@ function verdictFor(spec: FoldVerdictSpec, perTest = 0): Verdict {
     : producedVerdict(spec.produced, perTest)
 }
 
-/**
- * Every leg in this file that does not name a verdict spec is about fold PLUMBING — the
- * applied-arm gate, the append/commit ordering, the owner carry-forward, the anti-silencing class
- * differential — and needs a verdict the gate genuinely ADMITS to exercise it. A floor-produced
- * verdict cannot be that verdict HERE: the floor arm requires a per-crossing
- * `sameBuildPassAndFail`, the fold computes it from the crossing test's own outcome window
- * and every plumbing fixture drives three distinct failing ordinals with no same-ordinal
- * pass — so its window carries no signature and the floor arm refuses it on the facts. The legs
- * that ARE about the producer axis name their spec explicitly, and the legs about the signature
- * build the two-runs-at-one-ordinal window the floor arm needs.
- */
+// Plumbing legs use an authored verdict: with no same-ordinal pass, the floor would refuse.
 const AUTHORED_FLAKE: FoldVerdictSpec = { authored: 'flake' }
 
 function handoffFixture(input: {
@@ -474,7 +423,7 @@ describe('the fold report surfaces every failure mode as data', () => {
 
   it('carries refused ledger lines rather than healing them away', () => {
     const env = harness('agent-qa-detect-refused')
-    // One good line and one a human damaged by hand — D-12 says this file is theirs to edit.
+    // One good line and one damaged by hand; humans may edit this file.
     writeLedger(env, `${canonicalJson(enteredEvent())}\n{"kind":"entered"\n`)
 
     const report = fold(env, handoffFixture({ runId: 'run-refused-1', buildOrdinal: 1 }))
@@ -535,17 +484,7 @@ describe('auto-exit through the real fold', () => {
     })
   })
 
-  // 390-17 / G-390-4, the probe's own measurement inverted into the shipped behavior. Feeding SIX
-  // consecutive passing ordinals to a test whose window had LAPSED measured `releasedAutoLines: 0`
-  // at every ordinal: a test that got FIXED during a lapse was listed as `expired` forever, and
-  // only a manual `release` closed it. That is FLAK-03's own counter-example — an entry a fixed
-  // test can never leave — so the exit path now applies in every state where an entry is LISTED.
-  //
-  // Driven through the REAL fold because the rule lives at TWO sites and either alone is a no-op:
-  // `evaluateQuarantineDetection`'s release-loop filter, and `evaluateQuarantineForFold`'s
-  // exit-candidate `testWindows` filter, which is what decides whether a window for a lapsed entry
-  // is BUILT at all. With only the first changed the pure rule answers correctly over a window that
-  // never arrives — a green unit test over a broken fold. Only a fold-level leg sees both.
+  // A lapsed entry still exits; the rule spans two filters, so only a fold-level test sees both.
   it('releases an entry whose deadline has already LAPSED, at the 5th passing ordinal and not the 4th', () => {
     const env = harness('agent-qa-detect-exit-expired')
     appendQuarantineEvents(
@@ -647,10 +586,7 @@ describe('auto-exit through the real fold', () => {
   })
 })
 
-// The owner rule through the REAL fold. The pure rule's table reads entries a
-// caller handed it; here the entries come from the committed ledger's own fold, so what is pinned
-// is that a claim a human wrote into the file survives the round trip through it — and that a
-// release they made deliberately ends the claim with the window.
+// Entries come from the committed ledger's fold, so a hand-written owner survives the round trip.
 
 describe("the auto-entry's owner through the real fold", () => {
   it("carries a human's claim across a LAPSE and re-entry", () => {
@@ -754,9 +690,7 @@ describe('the anti-silencing differential in BOTH directions: flake and app_bug'
 
     crossBothClasses(env)
 
-    // The join that makes this a product claim rather than a code claim: the SAME ledger the
-    // detection wrote is folded through plan 01's state fold, which is what a run start reads.
-    // The app_bug test is not in it, so its next failure still fails the build.
+    // The ledger the detection wrote, folded as a run start reads it: the app_bug test is absent.
     expect(activeQuarantineSet(env)).toEqual([FLAKE_TEST])
   })
 
@@ -771,29 +705,9 @@ describe('the anti-silencing differential in BOTH directions: flake and app_bug'
   })
 })
 
-// The floor-eligibility gate, driven to COMMITTED LEDGER BYTES.
-//
-// The pure rule's table cannot show what this suite shows. Until now the fold had only ever driven
-// `flake` and `app_bug` — the two classes this whole item is about, `environment` and `timeout`,
-// had zero end-to-end coverage, which is how a floor-minted crossing walked all the way to a
-// committed 30-day suppression through 44/44 green tests and a deep review.
-//
-// Every pair varies exactly ONE input: `rootCause.producer`. Same test, same step, same anchor,
-// same error text, same three build ordinals, same class.
+// Each pair varies only `rootCause.producer`; everything else is held the same.
 describe('a floor-produced crossing cannot buy a committed entry', () => {
-  // Both classes are still REFUSED end-to-end, but since 390-19 for DIFFERENT reasons, and the old
-  // name (`AUTHORED_REQUIRED_AUTO_CLASSES`) asserted a falsehood about one of them. `environment`
-  // is authored-required in QUARANTINE_FLOOR_ELIGIBILITY. `timeout` is FLOOR-ELIGIBLE and is
-  // refused here only for want of the per-crossing signature — and since 390-21 that is a fact
-  // about THESE FIXTURES rather than about the tree: `crossThreeInFive` drives three distinct
-  // failing ordinals, so the window the fold now reads carries no same-build pass∧fail. The leg
-  // that supplies one is in the 390-21 block above, and it enters. The observable answer here is
-  // identical to 390-16's; the reason is not, and this file must not re-assert a reason that
-  // stopped being true.
-  //
-  // PRODUCED, NOT DECLARED. Each row names a SCRIPTED MEMBER, and the class beside it is
-  // what `classifyRootCause` ANSWERS for that member — asserted below, so a row that stopped being
-  // producible reds here instead of silently pinning an input the runner cannot emit.
+  // `environment` needs an authored verdict; `timeout` lacks a same-build pass and fail here.
   const FLOOR_PRODUCED_CROSSINGS = [
     { verdictClass: 'environment' as VerdictClass, script: connectFailureResult },
     { verdictClass: 'timeout' as VerdictClass, script: timedOutResult },
@@ -828,7 +742,7 @@ describe('a floor-produced crossing cannot buy a committed entry', () => {
         producer: 'deterministic-classifier',
         occurrenceOrdinals: QUARANTINE_ESCALATE_THRESHOLD,
       })
-      // FLAK-02's join: nothing suppresses, so the next failure still fails the build.
+      // Nothing suppresses, so the next failure still fails the build.
       expect(foldQuarantineLedgerState(readQuarantineLedger(env.knowledgeRoot).events, NOW))
         .toEqual([])
     },
@@ -859,19 +773,6 @@ describe('a floor-produced crossing cannot buy a committed entry', () => {
     },
   )
 
-  // WHY THERE IS NO "floor-produced flake" LEG HERE, demonstrated rather than asserted.
-  //
-  // 390-16 wrote a leg claiming a floor-produced `flake` commits an entered line, and 390-19
-  // inverted it to a refusal for the one wave the fold's fill was a constant. Both were writing
-  // about an input the pipeline CANNOT BUILD, which is one of the four artifacts G-390-5 names as
-  // vacuous. So the leg is gone, and what replaces it is the floor's actual rule, run: the
-  // classifier mints `flake` only for a member that PASSED, and a passing member contributes no
-  // failure row, so no `QuarantineDetectionFailure` can ever carry class `flake` with the floor's
-  // producer. Every `flake` crossing the pipeline can build is AUTHORED, and is admitted by the
-  // first disjunct — which the `analyze-run` legs above already cover.
-  //
-  // Since 390-21 this is also enforced by the type system: `FoldVerdictSpec`'s two arms are
-  // mutually exclusive, so `{ produced: <a failing member>, authored: 'flake' }` does not compile.
   it('mints `flake` only on a member that PASSED, so no failure row can carry it', () => {
     const passedOnRetry = passedOnRetryResult()
     expect(deriveMemberOutcome(passedOnRetry)).toBe('passed')
@@ -879,8 +780,7 @@ describe('a floor-produced crossing cannot buy a committed entry', () => {
       class: 'flake',
       producer: 'deterministic-classifier',
     })
-    // The same member without the retry answers NO verdict at all — the D-01 presence rule: a
-    // clean pass is not a failure to explain.
+    // Without the retry the member gets no verdict: a clean pass is not a failure to explain.
     expect(classifyRootCause({
       result: { ...passedOnRetry, retryCount: 0 },
       outcome: deriveMemberOutcome({ ...passedOnRetry, retryCount: 0 }),
@@ -908,24 +808,7 @@ describe('a floor-produced crossing cannot buy a committed entry', () => {
   })
 })
 
-// THE PER-CROSSING FLAKE SIGNATURE, ANSWERED BY THE FOLD (390-21 Task 1, G-390-5).
-//
-// 390-19 made the floor arm require a per-crossing `sameBuildPassAndFail` and filled the fold's
-// only construction site with a constant `false`, so the floor disjunct was INERT IN-TREE BY
-// CONSTRUCTION for one wave. These legs are the closure of that interval: they drive the REAL fold
-// and observe the gate's answer change with the crossing test's OWN outcome history and nothing
-// else — same class, same producer, same crossing, same three occurrence ordinals.
-//
-// WHY THE FOLD IS THE ONLY PLACE THAT CAN ANSWER IT. `evaluateQuarantineForFold` builds
-// `testWindows` from the folded LEDGER ENTRIES — tests already quarantined — while the signature is
-// needed for a CROSSING, which is by definition not in the ledger yet and therefore has NO window.
-// The two reads look redundant and are not; the fold is simply the only site holding both the
-// crossing's identity and the db handle.
-//
-// THE REAL-WORLD BOUND, stated here because this is the file a reader learns the capability from:
-// two entries at one build ordinal require TWO SEPARATE APPLIED RUNS carrying the same
-// `handoff.buildOrdinal`. An in-run retry cannot produce it — the member-runner collapses retries
-// into one member outcome and `healed` counts as a pass — so the fixtures below fold two runs.
+// Two entries at one ordinal need two applied runs; an in-run retry collapses into one outcome.
 describe('a CROSSING test carries its own same-build pass∧fail into the gate', () => {
   /** One fold at `buildOrdinal`, floor-produced `timeout`, pass or fail. */
   function foldTimeout(env: FoldHarness, input: {
@@ -1022,22 +905,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
     })
   })
 
-  // THE STALENESS DIRECTION, RUN (390-24; closes the regression 390-19/390-21 shipped).
-  //
-  // WHY THIS SHAPE MATTERS, in the module's own vocabulary. A test flaked at ordinal 1 — two
-  // applied runs at ONE ordinal, one of them passing — and was then FIXED. Several ordinals later
-  // it starts failing HARD and deterministically: ordinals 6, 7, 8, no pass anywhere near them.
-  // If that since-fixed episode still licenses the floor arm, a NEW hard regression silences
-  // itself and stops failing the build — the exact outcome the disposition table exists to
-  // prevent, and a direct violation of D-05's anti-silencing posture and of D-07's windows-forgive
-  // law (evidence must expire with the window that licensed nothing). Measured entered-1 /
-  // escalated-0 against HEAD in the round-4 staleness probe; red-by-design here.
-  //
-  // THE ORDINALS ARE DERIVED, NOT GUESSED. The crossing is at 8, so its recurrence window is
-  // [8 - QUARANTINE_WINDOW_ORDINALS + 1, 8] = [4, 8]. The three failing ordinals 6, 7, 8 give
-  // exactly QUARANTINE_ESCALATE_THRESHOLD distinct occurrences and nothing crosses before 8
-  // (ordinal 7's own window [3, 7] holds only two), while the ordinal-1 pass-and-fail sits three
-  // ordinals BELOW the floor and is therefore out of this episode entirely.
+  // The crossing at 8 has window [4, 8]; nothing crosses earlier, and the ordinal-1 pair is below.
   it('REFUSES a crossing whose only pass-and-fail is OLDER than its own recurrence window', () => {
     const env = harness('agent-qa-390-24-stale-signature')
 
@@ -1069,17 +937,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
     })
   })
 
-  // THE OTHER SIDE OF THE SAME BOUNDARY. A guard needs a case it REJECTS and its exact
-  // edge, or the corpus is drawn from inside the rule's own assumption. Here the pass-and-fail
-  // sits EXACTLY at the window floor, so the `>=` comparison is pinned at the one ordinal where an
-  // off-by-one flips the answer — and the same ordinal is also the oldest occurrence carrying the
-  // crossing, which is what makes "one spelling of the floor" observable rather than asserted.
-  //
-  // ORDINAL SPACING, derived: occurrences at the floor, at crossing-1 and at the crossing are
-  // threshold-many inside [floor, crossing] while no EARLIER ordinal's own window holds
-  // threshold-many — ordinal crossing-1's window is [floor-1, crossing-1] and holds two. Contrast
-  // the plan's first sketch (floor, crossing-2, crossing-1, crossing), which crosses one ordinal
-  // EARLY and would have measured the entered line at crossing-1 instead of at the boundary.
+  // The pair sits exactly at the window floor, pinning the inclusive `>=` bound.
   it('ADMITS a pass-and-fail exactly AT the window floor — the boundary is inclusive', () => {
     const env = harness('agent-qa-390-24-floor-boundary')
 
@@ -1112,26 +970,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
     }])
   })
 
-  // THE OTHER END OF THE SAME WINDOW. 390-24 closed the floor; the ceiling stayed open,
-  // so the evidence filter implemented the half-open ray [windowFloor(b), infinity) while the
-  // recurrence SQL it is supposed to share a window with counts over the CLOSED interval
-  // [windowFloor(b), b]. A flake episode recorded ABOVE a crossing therefore licensed the floor
-  // arm of a hard regression sitting several ordinals BELOW it — D-05 anti-silencing violated in
-  // the mirror direction, and the three shipped docstrings that call the bound ENFORCED were
-  // simply not true of the code.
-  //
-  // THE SHAPE IS REACHABLE, MEASURED NOT ASSUMED. `buildOrdinal` is caller data copied verbatim
-  // from `RunConfig` (handoff-assembly.ts:169, shell.ts:100), so folds arrive out of ordinal
-  // order; `mergeOutcomeEntries` keeps the HIGHEST LAST_OUTCOMES_LIMIT entries, so a high-ordinal
-  // pair survives every later low-ordinal fold; and the writer's own `Math.max` at
-  // run-outcomes.ts:478-481 exists for no other reason than that lower-ordinal folds are reachable.
-  //
-  // THE ORDINALS ARE DERIVED. The crossing is at 8, so its recurrence window is [4, 8]. The three
-  // hard failing ordinals 6, 7 and 8 are exactly QUARANTINE_ESCALATE_THRESHOLD distinct
-  // occurrences and nothing crosses early (ordinal 7's own window [3, 7] holds two). The
-  // pass-and-fail pair sits at ordinal 12, strictly ABOVE the crossing, where the two-sided
-  // recurrence SQL never counts it — only the one-sided evidence filter could see it. All five
-  // entries fit inside LAST_OUTCOMES_LIMIT, so nothing is dropped by the merge.
+  // The pair at ordinal 12 sits above the crossing's window [4, 8]; folds may arrive out of order.
   it('REFUSES a crossing whose only pass-and-fail is ABOVE the crossing ordinal — the window is closed on both ends', () => {
     const env = harness('agent-qa-390-29-future-signature')
 
@@ -1166,25 +1005,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
   })
 })
 
-// The RUN-SCOPED mass-quarantine shape (390-16, G-390-3; measured in 390-UAT-DECISIONS-PROBE §3.1d).
-//
-// This is a SEPARATE pin from the per-class pairs above on purpose. It is the form the concern
-// actually takes in the field, it was invisible to the pure rule's table — which sees one failure
-// at a time and cannot express "one probe result applied to N tests" — and it survived 44/44 green
-// tests and a deep review.
-//
-// `classifyRootCause`'s `environment` arms `baselineProbe.error !== undefined` and
-// `baselineProbe.status >= 500` fire BEFORE any per-test signal and depend on nothing about the
-// individual test. One down staging dependency therefore classified 6 of 6 members as
-// `environment`; each crossed its own 3-in-5 independently; the result was 6 `entered` lines under
-// one shared 30-day deadline — a whole suite blanket-green off three red builds.
-//
-// THE BOUNDARY THIS PIN DOES NOT CLAIM. The producer gate closes the MEASURED mass event, because
-// the arms that produce it are floor arms. It does NOT make mass quarantine impossible in general:
-// six tests carrying AUTHORED `environment` verdicts still enter, and that is correct — an authored
-// verdict is a statement about each test, not one probe result applied to all of them. The
-// accept-direction leg below asserts exactly that, so the pin cannot be misread as the stronger
-// claim.
+// A floor `environment` verdict comes from the shared probe; authored ones still enter.
 describe('one down dependency cannot blanket-quarantine a suite', () => {
   const SUITE_SIZE = 6
 
@@ -1293,37 +1114,7 @@ describe('one down dependency cannot blanket-quarantine a suite', () => {
   })
 })
 
-// THE CAP'S INPUT DOMAIN, PRODUCED IN-TREE.
-//
-// `QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP` was pinned by VALUE in `detection.test.ts` and exercised
-// by a two-call drain leg there, but nothing in this tree had ever built its INPUT DOMAIN — more
-// than CAP floor-admissible crossings inside ONE `evaluateQuarantineDetection` call — through the
-// real pipeline. A gate pinned over an input the pipeline has not been shown to produce is the
-// shape this round exists to close, so the domain is produced here: a real suite handoff, real
-// projection, real ledger bytes, and floor verdicts the runner's own classifier answers for a
-// scripted timed-out member (never an authored class, which the cap deliberately exempts and which
-// therefore cannot measure it).
-//
-// WHAT THESE TWO LEGS PROVE, AND WHAT THEY DO NOT.
-//
-//  - PROVED: the cap's counter is per-call and it bites. Three members cross one evaluation on the
-//    floor arm; exactly CAP enter, chosen BY IDENTITY ORDER rather than by handoff order; the
-//    overflow member routes to `escalatedNotQuarantined` LOUDLY with the build still failing.
-//  - PROVED, and this is what makes the ORDER half of that sentence testable rather than asserted
-//    the first leg hands the fold its members in the exact REVERSE of identity order, so
-//    the two orders can no longer agree by accident. Its expectation is unchanged from when they
-//    did agree, which is the whole point — the same admitted set, in the same order, out of the
-//    opposite arrival sequence. The second leg keeps the agreeing order, so the pair pins the
-//    property from both directions.
-//  - PROVED: it RATE-LIMITS, it does not CONTAIN. The very next applied run admits the member the
-//    previous one refused — no human decision, no new evidence, just another red build — so the
-//    cumulative entered count reaches the full suite size one run later than it otherwise would.
-//    These two legs are the 2/2/2-across-three-evaluations measurement (2026-08-06, CAP=2 over a
-//    six-member suite) truncated to its first two evaluations and living in the corpus rather than
-//    only in a verifier probe. The cap buys TIME and VISIBILITY, never a ceiling on eventual
-//    entries — which is exactly what the constant's docstring now says.
-//  - NOT PROVED: nothing here says the fan-out was WORTH slowing. Whether a shared cause deserves
-//    a per-run budget at all is the retune question, and it stays open on operational evidence.
+// The cap rate-limits: the next applied run admits the member the previous one refused.
 describe('the floor cap rate-limits a multi-member fan-out', () => {
   // CAP + 1 — the SMALLEST suite that can overflow, so a refusal here is the cap's doing and not
   // an arbitrary surplus. Derived from the constant, never a literal 3: if the cap is ever retuned
@@ -1333,21 +1124,7 @@ describe('the floor cap rate-limits a multi-member fan-out', () => {
   const capMemberName = (index: number): string => `${TEST_NAME} [cap ${String(index)}]`
   const capMemberPath = (index: number): string => `suite/cap-member-${String(index)}.test.ts`
 
-  /**
-   * CAP_SUITE_SIZE distinct members in ONE run, every member failing or every member passing.
-   *
-   * Modeled on 390-16's `suiteHandoff` and sized off the cap instead of the measured suite. The
-   * digit-collapsing note there applies unchanged and is load-bearing here too: the error-text
-   * normalizer scrubs digits, so `(member 0)`…`(member N)` fold to ONE fingerprint — the real
-   * signature of a shared cause — while each member still gets its OWN quarantine entry, because
-   * recurrence is keyed on (product, fingerprint) and an entry is keyed on test identity.
-   *
-   * ARRIVAL ORDER IS AN INPUT. `reversed` emits the same members back to front, which is
-   * the exact opposite of the identity order the ladder admits in. Nothing else about the fixture
-   * moves — each member keeps its own index, name, path and verdict — so the flag is purely a
-   * statement about the SEQUENCE the fold is handed, and a leg that sets it is asserting that the
-   * sequence does not matter.
-   */
+  // Digits are normalized away, so members share one fingerprint but each gets its own entry.
   function capSuiteHandoff(input: {
     runId: string
     buildOrdinal: number
@@ -1399,21 +1176,7 @@ describe('the floor cap rate-limits a multi-member fan-out', () => {
     return fold(env, capSuiteHandoff(input))
   }
 
-  /**
-   * The shared episode, ordinals 1..3 — every ordinal DERIVED, none guessed.
-   *
-   * Ordinal 1 is driven TWICE (two applied runs at one build ordinal, one failing and one passing)
-   * because that pair IS the floor arm's per-test `sameBuildPassAndFail` signature, and every
-   * member needs its own. Failing ordinals 1, 2 and 3 are exactly QUARANTINE_ESCALATE_THRESHOLD
-   * distinct occurrences, so nothing crosses before 3 (ordinal 2's window holds two). The crossing
-   * at 3 has recurrence window [3 - QUARANTINE_WINDOW_ORDINALS + 1, 3] = [-1, 3], so the ordinal-1
-   * signature sits INSIDE it under 390-24's window scoping — which is what keeps this leg about
-   * the cap rather than accidentally about staleness.
-   *
-   * `reversed` applies to the WHOLE episode, not just the crossing run: every fold on the way in
-   * sees the same back-to-front sequence, so no earlier run can quietly re-establish the agreeing
-   * order the crossing run is meant to contradict.
-   */
+  // Ordinal 1 runs twice, failing then passing, which is each member's same-build signature.
   function driveToCrossing(
     env: FoldHarness,
     options: { reversed?: boolean } = {},
@@ -1440,14 +1203,7 @@ describe('the floor cap rate-limits a multi-member fan-out', () => {
     expect(report.quarantine.events.length + report.quarantine.escalatedNotQuarantined.length)
       .toBe(CAP_SUITE_SIZE)
 
-    // ADMITTED BY IDENTITY ORDER, asserted by value — WITH ARRIVAL ORDER DISAGREEING. The identity
-    // key is `quarantineIdentityKey`'s, compared by code unit, and the three
-    // members share a product, so `suite/cap-member-0` < `suite/cap-member-1` <
-    // `suite/cap-member-2` decides it. Every fold in this episode hands the members over back to
-    // front (cap 2 first, cap 0 last), so the two orders are exact opposites and the unchanged
-    // expectation below IS the order pin, not a coincidence riding on the fixture: a ladder that
-    // counted arrivals before sorting them admits [cap 2, cap 1] and reds right here. Measured
-    // 390-32 by bypassing the ladder's sort — this leg went red naming the arrival-order members.
+    // Members arrive back to front, so admitting by identity order is what this assertion pins.
     expect(report.quarantine.events).toHaveLength(QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP)
     expect(report.quarantine.events.map((event) => event.testName)).toEqual([
       'checkout retries the payment sheet [cap 0]',

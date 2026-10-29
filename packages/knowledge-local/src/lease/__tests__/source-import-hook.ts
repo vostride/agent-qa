@@ -1,9 +1,4 @@
-/**
- * a resolve hook for code that loads `writer-lease.ts` from SOURCE
- * in a worker thread or a child process (Node 24 type stripping), so no stale dist can decide a
- * cell. Source specifiers name the emitted `.js`; without a build step only the `.ts` exists, so a
- * relative `.js` that does not resolve is retried as `.ts`. Prepend it to the worker or `-e` code.
- */
+// Retries an unresolved relative `.js` as `.ts`, so a worker loads source, not a stale dist.
 export const RESOLVE_TS_SOURCE_HOOK = [
   "process.getBuiltinModule('node:module').registerHooks({",
   '  resolve(specifier, context, nextResolve) {',

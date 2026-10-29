@@ -1,14 +1,4 @@
-// The contract two REAL OS processes share when they contend for one `quarantine.jsonl`
-// (Phase 390, D-04 — the concurrent-writer-safety truth).
-//
-// Everything here is shared BY IMPORT rather than by convention, because the whole point of the
-// suite this serves is that the parent and the child agree byte-for-byte about the identity they
-// contend for and the events they author. Two copies of a testName that drifted apart would turn a
-// lost-update assertion into a comparison of two different keys, which passes for the wrong reason.
-//
-// This module deliberately holds no assertions and opens no file. It is imported by the parent
-// suite (`../ledger-cross-process.test.ts`) and by the child entry point
-// (`./quarantine-ledger-child.test.ts`), which run in different processes.
+// Shared by import, so the parent and child processes contend for the same identity and events.
 
 import { CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type {
@@ -41,15 +31,6 @@ export const QUARANTINE_CHILD_ENV = {
   rounds: 'AGENT_QA_QUARANTINE_CHILD_ROUNDS',
   burst: 'AGENT_QA_QUARANTINE_CHILD_BURST',
 } as const
-
-// A `SYNTHETIC_AUTHORITY` literal used to live here, for the daemon arm of the two control legs.
-// Its stated reason was that `underWriterLease` returned `decide()` for ANY handed-in authority and
-// never re-checked it against disk, which made a literal and a real acquisition indistinguishable
-// to the code under test. 390-15 removed that property: the authority arm now re-validates the
-// pair against the monotonic epoch and the lease file, so the literal is refused typed and both
-// legs acquire for real instead. The constant is deleted rather than retained with a new reason —
-// no leg needs an authority that is deliberately not current, and the refusal direction is pinned
-// where the refusal lives, in `../operations.test.ts`'s reclaim corpus.
 
 export type QuarantineChildRole =
   /** The PROTECTED leg: a CLI-shaped writer that acquires the MRSW lease on every verb call. */
@@ -170,17 +151,7 @@ export function burstEvent(writer: 'parent' | 'child', index: number): Quarantin
   )
 }
 
-/**
- * The CONTROL's fold: `foldQuarantineLedgerState` with 390-11 / WR-04 removed, and nothing else.
- *
- * Its only job is to answer whether the byte sequence the harness forced onto disk — a `renewed`
- * authored against pre-release state, landing AFTER the human's `released-manual` — is genuinely a
- * lost-update sequence. If this fold answered `released` too, the harness would never have created
- * the dangerous input and the protected assertion beside it would be vacuous.
- *
- * Deliberately minimal and single-identity: it exists to isolate ONE removed guard, not to be a
- * second implementation of the fold that could drift into disagreeing about anything else.
- */
+// The fold without its release guard, to prove the forced byte sequence really loses an update.
 export function foldWithoutReleaseGuard(
   events: readonly QuarantineLedgerEvent[],
 ): QuarantineEntryStateName | 'absent' {

@@ -1,43 +1,4 @@
-// RED-first pins for the detection ladder's PURE rule.
-//
-// The load-bearing properties are NAMED here rather than counted, and each is pinned two-sided:
-//
-//  1. The ladder boundaries. 1 ordinal is nothing, 2 is FLAGGED (visibility only — zero ledger
-//     bytes), 3 ESCALATES. One build of warning before action is the whole point of D-06, so the
-//     step below and the step above every threshold are both asserted.
-//  2. The gate is TWO TABLES PLUS A PER-CROSSING CONJUNCT. Both tables are TOTAL over the closed
-//     eight-class verdict vocabulary. DISPOSITION restricts auto-quarantine to the three §6.4 A3
-//     classes; the other FIVE escalate loudly and append nothing, so a real regression is never
-//     auto-silenced. FLOOR ELIGIBILITY then asks whether the evidence behind the class is
-//     about this test or about the run: `flake` and `timeout` are both `'floor-eligible'`, and
-//     every other class is `'authored-required'`. But NO class auto-quarantines on the
-//     deterministic floor's word alone — since 390-19 the floor arm additionally requires the
-//     crossing's own `sameBuildPassAndFail` signature, so the table answers whether the floor may
-//     decide this KIND of thing at all and the crossing answers whether there is per-test evidence
-//     in THIS one. Both tables are asserted key-for-key against VERDICT_CLASSES itself, so a ninth
-//     class cannot be silently un-decided on either axis.
-//  3. The per-run floor cap. Neither table can contain fan-out — every class the floor
-//     mints on a FAILING member is reachable from a run-scoped cause — so
-//     QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP bounds the floor-arm `entered` events one
-//     `evaluateQuarantineDetection` call may author, and one call is one run's fold. The overflow
-//     escalates LOUDLY and DRAINS on the next evaluation; that drain leg is the only one whose
-//     answer depends on the word PER-RUN, and the authored arm's exemption is pinned as a decision
-//     rather than left as an oversight.
-//  4. The same-build pass∧fail signature itself. `hasSameBuildPassAndFail` — the floor arm's second
-//     conjunct — is pinned directly, paired and directional: ONE ordinal carrying both answers
-//     HOLDS, one ordinal carrying one answer does not, and two builds (broke, then fixed) do not.
-//     That last leg is what a "some pass and some fail ANYWHERE in the window" relaxation reds.
-//  5. The committed ledger's ORDER is decided by BYTES, never by host collation.
-//     Every leg there fails against a collation ordering and passes against a code-unit one, so
-//     the determinism claim is a property of the strings rather than of the machine.
-//  6. Purity. `now` arrives as an argument and the module reads no clock, no fs and no database —
-//     asserted behaviourally (identical inputs, identical bytes) AND by a source scan, because a
-//     rule that reads a clock cannot have its expiry boundary pinned.
-//
-// The remaining clusters pin the constants and the lifecycle the ladder authors: the thresholds
-// themselves, the `entered` event an escalation writes, re-entry suppression while a window is
-// OPEN, the auto-entry's owner over a prior entry's state, and auto-exit at M passing
-// ordinals.
+// Each property is pinned two-sided: the step below and the step above every boundary.
 
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -98,14 +59,9 @@ function failure(
     testName: TEST_NAME,
     fingerprint: FINGERPRINT,
     verdictClass: 'flake',
-    // AUTHORED by default, so every pre-existing leg keeps varying exactly ONE axis: the
-    // disposition table's. The floor-eligibility axis is varied EXPLICITLY, in its own suite, with
-    // both producer values named on both sides. A shared default of 'deterministic-classifier'
-    // would have silently folded the two tables' effects together in every legacy assertion.
+    // Authored by default, so these legs vary only the disposition axis.
     producer: 'analyze-run',
-    // No signature by default, for the same reason the producer defaults to AUTHORED:
-    // every pre-existing leg keeps its exact current meaning and no legacy assertion silently
-    // changes direction. The signature axis is varied EXPLICITLY, on both sides, in its own suite.
+    // No signature by default; the signature axis is varied in its own suite.
     sameBuildPassAndFail: false,
     occurrenceOrdinals: QUARANTINE_ESCALATE_THRESHOLD,
     windowOrdinals: QUARANTINE_WINDOW_ORDINALS,
@@ -195,8 +151,7 @@ describe('the class gate is TOTAL over the closed verdict vocabulary', () => {
       const autoQuarantines = QUARANTINE_CLASS_DISPOSITIONS[verdictClass] === 'auto-quarantine'
       expect(result.events).toHaveLength(autoQuarantines ? 1 : 0)
       expect(result.escalatedNotQuarantined).toHaveLength(autoQuarantines ? 0 : 1)
-      // Either way the crossing is VISIBLE — an escalation that appends nothing must still be
-      // loud, or D-05's gate degrades into silence of a different shape.
+      // Either way the crossing surfaces: an escalation that appends nothing must still be loud.
       const surfaced = autoQuarantines
         ? result.events.map((event) => event.testName)
         : result.escalatedNotQuarantined.map((sighting) => sighting.testName)
@@ -221,25 +176,7 @@ describe('the class gate is TOTAL over the closed verdict vocabulary', () => {
   })
 })
 
-// THE FLOOR ARM: a floor-eligible CLASS and a per-test SIGNATURE (390-16 G-390-3, re-decided by
-// 390-19 G-390-5).
-//
-// The disposition table decides WHETHER a class may ever auto-quarantine. It cannot decide the
-// other axis: whether the EVIDENCE behind the class is about this test or about the whole run. The
-// floor-eligibility table answers that for the class — and 390-19 adds the second conjunct that
-// answers it for the CROSSING, because 390-16 shipped the class conjunct alone and the arm was
-// DEAD. The only floor-eligible class was `flake`, which `classifyRootCause` mints only on a member
-// that PASSED; a passing member produces no failure row and therefore no crossing. The disjunct
-// reduced to `producer === 'analyze-run'` and auto-quarantine was OFF for every project without an
-// analysis budget — the inverse of what the table's own docstring asserted.
-//
-// `timeout` carries the live floor path now: per-test but semantically thin, and the same-build
-// pass∧fail is exactly the thickness it was missing.
-//
-// EVERY LEG IS PAIRED AND DIRECTIONAL, and the two conjuncts have SEPARATE mutation targets —
-// deleting the signature conjunct reds the "without the signature" leg, deleting the class conjunct
-// reds the "environment even with the signature" leg. A corpus that cannot say which conjunct is
-// load-bearing is the defect 390-16 shipped, not the evidence.
+// Each conjunct has its own reddening leg, so the suite shows which one is load-bearing.
 describe('the floor arm: a floor-eligible class AND a per-test signature', () => {
   // Named from the TABLES rather than from string literals, so a future table edit REDS this
   // corpus instead of drifting past it.
@@ -256,9 +193,7 @@ describe('the floor arm: a floor-eligible class AND a per-test signature', () =>
     expect(
       VERDICT_CLASSES.filter((name) => QUARANTINE_FLOOR_ELIGIBILITY[name] === 'floor-eligible'),
     ).toEqual(['flake', 'timeout'])
-    // `environment` is the ONE auto-quarantine class the floor still may not act on alone. The five
-    // escalate-only classes keep the strict value deliberately: unobservable today, which is
-    // exactly why a future one-line disposition flip must not silently license the floor too
+    // Escalate-only classes stay authored-required, so a disposition flip cannot license the floor.
     expect([...AUTHORED_REQUIRED_AUTO_CLASSES]).toEqual(['environment'])
     expect([...FLOOR_ELIGIBLE_AUTO_CLASSES].sort()).toEqual(['flake', 'timeout'])
   })
@@ -309,17 +244,7 @@ describe('the floor arm: a floor-eligible class AND a per-test signature', () =>
     })
   })
 
-  // THE FLOOR-ELIGIBILITY CONJUNCT'S MUTATION TARGET. Deleting the class conjunct reds this leg
-  // and nothing else.
-  //
-  // A CONTROL ON AN ARM THIS ROUND DOES NOT TOUCH. `environment` is refused before this change and
-  // after it, which is what makes this a control — it is NOT evidence about the blast radius of the
-  // arm this round widens.
-  //
-  // IT IS ALSO THE GATE THAT ANSWERED FOR THE HISTORICALLY MEASURED FAN-OUT. Those six
-  // members classed `environment`, so they are refused right here, one conjunct BEFORE the per-run
-  // cap is ever consulted — which is why that event cannot be cited as evidence about the cap in
-  // either direction, and why the cap's value is not calibrated against it.
+  // Deleting the class conjunct reds this leg and nothing else.
   it('REFUSES a floor-produced environment crossing EVEN WITH the signature', () => {
     const result = evaluate({
       failures: [failure({
@@ -374,11 +299,7 @@ describe('the floor arm: a floor-eligible class AND a per-test signature', () =>
     },
   )
 
-  // `flake` is floor-eligible on its own merits and this row DECIDES NOTHING: the floor mints
-  // `flake` only on a member that passed, so every `flake` crossing the pipeline can build carries
-  // an authored producer and is admitted by the FIRST disjunct. The leg 390-16 wrote here — a
-  // floor-produced `flake` auto-quarantines — pinned an input the runner cannot emit, which is the
-  // vacuity G-390-5 is about. It is deliberately GONE rather than re-stated.
+  // The floor mints `flake` only on a passing member, so a buildable `flake` crossing is authored.
   it('auto-quarantines an analyze-run flake — the only flake crossing the pipeline builds', () => {
     const result = evaluate({
       failures: [failure({ verdictClass: 'flake', producer: 'analyze-run' })],
@@ -424,34 +345,7 @@ describe('the floor arm: a floor-eligible class AND a per-test signature', () =>
   })
 })
 
-// THE PER-RUN BUDGET on floor-path auto-quarantines (390-19, restated to 390-28's framing).
-//
-// WHY A COUNT AND NOT A CLASS — the half of the 390-19 reasoning that survives. 390-16's motivating
-// observation was a COUNT: one probe failure auto-quarantined six of six tests in a suite, and
-// 390-16 read it as a statement about a CLASS. That reading is unsound under `classifyRootCause`'s
-// branch order: its `outcome === 'timeout'` arm RETURNS before the `baselineProbe` arms that mint
-// `environment`, so a run-scoped hang or a flapping dependency arrives classed `timeout` — the class
-// this round makes floor-eligible. Every class the floor can mint on a FAILING member is reachable
-// from a run-scoped cause, so no class-based gate can bound fan-out. The gate is therefore a count.
-//
-// WHAT THE COUNT BUYS — TIME AND VISIBILITY, PER RUN. It RATE-LIMITS the floor arm and bounds
-// nothing eventual, which is the framing `detection.ts`'s module header and the constant's docstring
-// now state and which these titles are aligned to. Two readings the earlier text
-// carried were withdrawn there and are not restated here:
-//
-//  1. The historically measured fan-out event never reaches this counter at all. Those six members
-//     classed `environment`, whose floor eligibility is `authored-required`, so `autoQuarantines`
-//     answers `'refused'` one conjunct EARLIER and the cap is never consulted. Their zero entered
-//     lines are the FLOOR-ELIGIBILITY gate's doing — pinned in detection-fold.test.ts, not here —
-//     so this constant's value cannot be calibrated against that observation.
-//  2. It does not bound eventual entries. Every refused member crosses again on the next applied
-//     run and may be admitted THEN, with no human decision and no new evidence; the two-call drain
-//     leg below shows exactly that rather than asserting it, and detection-fold.test.ts carries the
-//     same shape through a real fold.
-//
-// Overflow is LOUD: past the cap an identity routes to `escalatedNotQuarantined` with the build
-// still failing — D-05's posture for a class-gated refusal, applied to a count-gated one. The cap
-// slows the floor path down; it does not close it.
+// Every floor class on a failing member can come from a run-scoped cause, so the gate is a count.
 describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling', () => {
   const SUITE_SIZE = 6
   const K = QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP
@@ -500,12 +394,7 @@ describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling'
     expect(QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP).toBeGreaterThan(1)
   })
 
-  // THE FAN-OUT DIFFERENTIAL. Removing the cap check reds THIS leg.
-  //
-  // The input arrives in REVERSE identity order — member 5 first, member 0 last — while
-  // the expected admissions below are unchanged from when the two orders agreed. That is what
-  // gives the by-identity half of this leg a reddening domain: a ladder that counted the crossings
-  // in the sequence it received them would admit members 5 and 4 and red on the first assertion.
+  // Input is in reverse identity order; counting arrivals would admit members 5 and 4.
   it('admits exactly K of SIX floor-produced crossings in ONE evaluation, by identity — input reversed', () => {
     const result = evaluate({
       failures: [...suite({
@@ -515,9 +404,7 @@ describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling'
       })].reverse(),
     })
 
-    // BY IDENTITY, not by arrival and not by position: the ladder sorts before it counts, so the
-    // reversed input above admits the SAME two members in the SAME order. The leg also keeps its
-    // meaning when 390-22 replaces the comparator.
+    // The ladder sorts before it counts, so reversed input admits the same two members in order.
     expect(result.events.map((event) => event.testName)).toEqual(MEMBER_NAMES.slice(0, K))
     expect(result.escalatedNotQuarantined.map((s) => s.testName)).toEqual(MEMBER_NAMES.slice(K))
     expect(result.events).toHaveLength(K)
@@ -547,12 +434,7 @@ describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling'
     ].sort()).toEqual([...MEMBER_NAMES].sort())
   })
 
-  // THE EXEMPTION, pinned as a DECISION rather than left as an oversight. An authored verdict is
-  // per-test evidence by construction — a model read THIS test's evidence and named its cause — so
-  // it does not carry the hazard the cap defends against, which is a RUN-level signal being read as
-  // per-test. Capping it would also silently regress the arm 390-16 shipped, on no measurement.
-  // THE RESIDUAL, stated: an authored run CAN still class many tests identically, so the authored
-  // path's fan-out is unchanged by this round (T-390-19-07, accepted).
+  // An authored verdict is per-test evidence, so the run-level hazard the cap guards is absent.
   it('does NOT cap the authored arm — six analyze-run crossings all enter', () => {
     const result = evaluate({
       failures: suite({ verdictClass: 'timeout', producer: 'analyze-run' }),
@@ -778,7 +660,7 @@ describe('ladder boundaries, pinned one step either side', () => {
         testName: TEST_NAME,
         fingerprint: FINGERPRINT,
         verdictClass: 'flake',
-        // The sighting mirrors the failure whole — the producer travels with it.
+        // The sighting mirrors the failure, producer included.
         producer: 'analyze-run',
         occurrenceOrdinals: 2,
         windowOrdinals: QUARANTINE_WINDOW_ORDINALS,
@@ -856,19 +738,7 @@ describe('re-entry suppression while a window is OPEN', () => {
   })
 })
 
-// ---- The auto-entry's owner, stated over the prior entry's state --
-
-// The auto-`entered` used to stamp the unassigned literal unconditionally, so a human who had
-// claimed an entry via `add --owner` lost that claim the next time the window lapsed and the
-// fingerprint re-crossed. `operations.ts`'s RENEW path already refuses to do this and says so in
-// its own comment — the rule was written down once and applied in one of the two places it governs.
-//
-// The rule is stated per prior-entry state because the two reachable states MEAN different things:
-// a lapsed window is the SAME window continuing (suppression stopped, nobody closed it, the person
-// who claimed it still holds it), while a released window was deliberately closed by a human and a
-// later crossing opens a genuinely new one — where D-12's honest-absence rule says `unassigned` is
-// the truthful answer. Both directions are pinned below on one fixture family, because a
-// carry-forward rule with only a positive case is satisfiable by carrying always.
+// A lapsed window keeps its owner; a released one reopens as `unassigned`.
 
 describe("the auto-entry's owner over the prior entry's state", () => {
   function enteredOwner(entries: QuarantineEntryState[]): unknown {
@@ -934,17 +804,7 @@ describe("the auto-entry's owner over the prior entry's state", () => {
   })
 })
 
-// ---- The per-test flake signature: a same-build pass∧fail ----
-//
-// `distinctOrdinalOutcomes`' own docstring already names this shape "the §8.2 flake signature
-// itself", and the exit path reads it in the SAFE direction: a mixed ordinal collapses to
-// not-passed so it can never buy a release. 390-19 reads the SAME grouping in the other direction,
-// as the per-test evidence the floor arm of the auto-quarantine gate now requires.
-//
-// PAIRED AND DIRECTIONAL BY CONSTRUCTION. A predicate with only a positive case is satisfiable by
-// `return true`, so each leg below has a negative partner that a relaxation would flip: the
-// two-builds leg is what a "some pass and some fail ANYWHERE in the window" relaxation reds, and
-// the one-answer leg is what dropping the pass∧fail conjunction reds.
+// A mixed ordinal never buys a release, and is the per-test evidence the floor arm requires.
 describe('the same-build pass∧fail signature', () => {
   function ordinals(...entries: readonly [number, boolean][]): QuarantineOrdinalOutcome[] {
     return entries.map(([buildOrdinal, passed]) => ({ buildOrdinal, passed }))
@@ -1063,12 +923,7 @@ describe('auto-exit at M passing ordinals', () => {
     ).toHaveLength(1)
   })
 
-  // 390-17 / G-390-4. The exit path is TOTAL across the states in which an entry is still LISTED.
-  // A lapsed window is still listed, still renewable and still in the triage queue, so a test
-  // FIXED while its window was lapsed genuinely leaves quarantine — a `released-auto` over it
-  // closes something real. Before this, only a manual `release` could, and a fixed test sat in the
-  // list forever. The half of the old filter that was always right — a CLOSED window stays closed —
-  // is kept and pinned on its own leg below, so the widened rule cannot swallow it.
+  // A lapsed entry is still listed, so a fixed test leaves it; a closed window stays closed.
   it('auto-releases an entry whose deadline has LAPSED — a fixed test leaves on the same terms', () => {
     const result = evaluate({
       entries: [activeEntry({ state: 'expired' })],

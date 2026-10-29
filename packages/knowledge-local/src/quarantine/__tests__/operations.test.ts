@@ -1,35 +1,4 @@
-// RED-first pins for the three quarantine verbs' implementation.
-//
-// `createQuarantineOperations` is where FLAK-03's list/release/add stop being contracts and start
-// being behaviour over the committed ledger. Four properties carry the weight here:
-//
-//  1. THE TRIAGE ORDER IS THE VERB'S LAW. Unassigned entries first — they are the queue a
-//     human works — then `firstEnteredAt` ascending, ties broken on identity bytes. The corpus
-//     below is built so that a naive implementation differs at EVERY level: the fold's own
-//     iteration order is `C, A, E, D, B, F` and the answer is `B, A, D, E, F, C`. Dropping
-//     unassigned-first, or sorting on the CURRENT window's instant instead of the first one, or
-//     losing the identity tie-break each produce a different sequence.
-//  2. RE-ENTRY IS THE INTENDED RECORD, NOT DUPLICATION. An entry that was released and
-//     crossed again carries several `entered` events; the fold answers ONE row whose `enteredAt`
-//     is the latest one and whose `firstEnteredAt` is the earliest. The queue reads the EARLIEST
-//     so a test on its seventh re-entry cannot present as the newest thing a human sees
-//     — which is what the sort did while it compared the current window's instant.
-//  3. WALL-CLOCK PURITY BY ARGUMENT (390-01, extended to serving by 390-03). `now` is REQUIRED and
-//     injected; this module reads no clock, asserted by a source scan, and each verb reads the
-//     injected clock exactly ONCE so two reads can never straddle one deadline.
-//  4. COMMITTED-TRUTH READ POSTURE. An unreadable ledger PROPAGATES its typed error from every
-//     verb. Healing it to "nothing is quarantined" would silently un-quarantine every entry in the
-//     file, which is the one silent flip this phase exists to prevent.
-//  5. SERIALIZATION IS THIS MODULE'S, NOT ITS CALLER'S. The write verbs run their
-//     whole read-fold-decide-append cycle inside the MRSW writer lease they take themselves, or
-//     inside a handed-in `writerAuthority` when this process already holds it (the daemon). The
-//     pins below drive BOTH directions — a verb that acquires leaves the epoch bumped and no lease
-//     residue, and a verb meeting a lease somebody else holds refuses typed with the ledger BYTE
-//     for byte unchanged. The refusing direction is the load-bearing one: the same call appends a
-//     line two tests above, so zero bytes is a measurement rather than an absence. And "already
-//     holds it" is CHECKED rather than believed: a handed-in authority is re-validated
-//     against the epoch and the lease on disk, so a daemon whose lease was reclaimed under it is
-//     refused typed instead of writing beside the writer that reclaimed.
+// Unassigned first, then `firstEnteredAt`, then identity bytes; the corpus differs at every level.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -112,15 +81,7 @@ function released(who: ReturnType<typeof identity>, at: string): QuarantineLedge
   } as QuarantineLedgerEvent
 }
 
-// ---- the injected identity mint -------------------------------------------------
-//
-// These verbs cannot know the checkout root, and `knowledge-local` cannot import `@vostride/
-// agent-qa-core` (only the surface packages may), so the mint arrives pre-bound from the host. The
-// RECIPE itself stays pinned where it lives — `core/src/workspace/__tests__/workspace-paths.test.ts`
-// — and the fixtures below are deliberately NOT re-implementations of it: each is the smallest
-// closure that exhibits one behaviour of the real mint (it rewrites, or it throws), so what these
-// pins measure is this module's THREADING of a mint rather than any mint's arithmetic. The two
-// halves meet with all parts real in `cli/src/__tests__/quarantine-ledger-portability.test.ts`.
+// `knowledge-local` cannot import core, so the identity mint arrives pre-bound from the host.
 
 /** The mint a host that speaks the canonical bytes already supplies: unchanged in, unchanged out. */
 function passthroughMint(filePath: string): string {
@@ -218,9 +179,7 @@ describe('createQuarantineOperations', () => {
       entered(A, '2026-01-01T00:00:00.000Z'),
       entered(E, '2026-02-01T00:00:00.000Z'),
       entered(D, '2026-02-01T00:00:00.000Z'),
-      // B: released, then crossed AGAIN. The intended record, not duplication — one
-      // folded row whose enteredAt is the LATEST entry and whose firstEnteredAt is the earliest.
-      // B is the whole point of this corpus: the two instants disagree on it and nowhere else.
+      // B is released and crosses again; it is the only row where the two instants disagree.
       entered(B, '2025-12-01T00:00:00.000Z'),
       released(B, '2025-12-15T00:00:00.000Z'),
       entered(B, '2026-04-01T00:00:00.000Z'),
@@ -264,10 +223,7 @@ describe('createQuarantineOperations', () => {
     ])
   })
 
-  // 390-18 / G-390-4. The inversion the probe named, isolated to a two-row corpus so it cannot be
-  // read off any other level of the sort: both rows unassigned, so the owner partition is silent;
-  // distinct identities and distinct instants, so the tie-break is silent. The ONLY thing that can
-  // decide this pair is which instant the comparison reads.
+  // Both rows unassigned, distinct identities: only the instant the sort reads decides.
   it('puts a test on its FOURTH entry ahead of one on its first, though its window is newer', async () => {
     await plant([
       // A: entered once, recently. One window, no history behind it.
@@ -377,7 +333,7 @@ describe('createQuarantineOperations', () => {
         owner: QUARANTINE_UNASSIGNED_OWNER,
         enteredAt: NOW,
         expiresAt: DEFAULT_EXPIRY,
-        // A first entry: one crossing, and the history begins now.
+        // A first entry: one crossing, and the history begins with it.
         enteredCount: 1,
         firstEnteredAt: NOW,
         state: 'quarantined',
@@ -532,8 +488,6 @@ describe('createQuarantineOperations', () => {
     expect(existsSync(join(knowledgeRoot, QUARANTINE_LEDGER_FILENAME))).toBe(false)
   })
 
-  // ---- the product partition ---------------------------------------------
-
   /** A product spelling a human types and every reader re-partitions: `slugBranch` rewrites it. */
   const RAW_PRODUCT = 'My Product'
   const SLUGGED_PRODUCT = 'My-Product'
@@ -545,14 +499,7 @@ describe('createQuarantineOperations', () => {
   /** A path outside the config directory — the input the real mint refuses rather than rewrites. */
   const ESCAPING_FILE = '../outside.yaml'
 
-  /**
-   * The human write verbs' input shape, with the filePath leg RANGEABLE.
-   *
-   * It used to hardcode the already-canonical `tests/checkout.yaml`, which 390-VERIFICATION.md
-   * names as the exact reason no fixture in the round could red on the filePath defect: the verb's
-   * filePath input domain had never been ranged over by anything, so every pin in this file agreed
-   * with an unminted implementation by construction.
-   */
+  // The `filePath` leg is rangeable, so a fixture can red on an unminted path.
   function human(fields: { product: string; filePath?: string }): {
     product: string
     filePath: string
@@ -605,23 +552,14 @@ describe('createQuarantineOperations', () => {
   })
 
   it('round-trips an ALREADY-slugged product byte-identically — the idempotence control', async () => {
-    // The conditional half of WR-01: a product already in slug form was never broken, which is
-    // exactly why no existing fixture caught the defect. It must not move now.
+    // A product already in slug form must stay as it is.
     await operations().add(human({ product: PRODUCT }))
 
     expect(ledgerLines()[0]).toMatchObject({ product: PRODUCT })
     expect((await operations().list())[0]).toMatchObject({ product: PRODUCT })
   })
 
-  // ---- the filePath identity mint (390-12 / D-01, the round-2 regression) -----------------
-  //
-  // The committed ledger is keyed on `(product, filePath, testName)` and every reader compares
-  // `filePath` with `===` against the workspace-relative identity the run path mints. Before this
-  // block the verbs copied the caller's spelling through: an absolute path became a permanently
-  // refused, unlistable, unreleasable, self-duplicating line in a COMMITTED artifact, and `./x`,
-  // `x\y`, `../x` folded and listed as `quarantined` while suppressing nothing. The two pins the
-  // round needed are here: what the verb STORES for an input the mint rewrites, and what it does
-  // for an input the mint refuses.
+  // The ledger compares `filePath` with `===`, so the verb must store the mint's output.
 
   it('stores the MINT\'S OUTPUT on the committed line, never the caller\'s spelling', async () => {
     const answer = await operations(NOW, undefined, trimmingMint)
@@ -665,15 +603,13 @@ describe('createQuarantineOperations', () => {
     await expect(verbs.add(input)).rejects.toMatchObject({ name: 'QuarantineIdentityRefusedError' })
     await expect(verbs.add(input)).rejects.toMatchObject({ name: 'QuarantineIdentityRefusedError' })
 
-    // 390-VERIFICATION.md measured the pre-fix behaviour as `line count after retry -> 2`. Zero is
-    // the whole point: a refused write leaves nothing for the next attempt to duplicate.
+    // A refused write leaves nothing for a retry to duplicate.
     expect(ledgerLines()).toHaveLength(0)
     expect(existsSync(join(knowledgeRoot, QUARANTINE_LEDGER_FILENAME))).toBe(false)
   })
 
   it('refuses the UNMINTABLE input BEFORE the lease — an input tripping both gates answers identity', async () => {
-    // The ordering claim is prose unless an input trips both gates and the answer names which one
-    // ran (390-11's idiom). With the mint inside the lease scope this answers `QuarantineLeaseHeldError`.
+    // Tripping both gates shows the order: the lease refuses first (`QuarantineLeaseHeldError`).
     const holder = foreignHolder()
 
     await expect(
@@ -739,7 +675,7 @@ describe('createQuarantineOperations', () => {
     for (const line of ledgerLines()) expect(line.filePath).toBe(CANONICAL_FILE)
   })
 
-  // ---- writer-lease serialization ---------------------------------
+  // Writer-lease serialization.
 
   function leaseFile(): string {
     return join(knowledgeRoot, LEASE_FILE)
@@ -853,19 +789,7 @@ describe('createQuarantineOperations', () => {
     releaseLease({ knowledgeRoot, leaseId: holder.leaseId })
   })
 
-  /**
-   * WR-02, and it is a COMPILE-time pin: declared, referenced, never called.
-   *
-   * `underWriterLease` releases in a `finally`, so an async `decide` hands back a PENDING promise
-   * and the lease is given up while the work it serializes is still running — the race CR-03
-   * closed, reinstated without failing to compile, because `Promise<Promise<X>>` collapses in the
-   * return position. The signature refuses it, and this directive is the only thing that can
-   * observe the refusal: `tsc --noEmit` reports `Unused '@ts-expect-error' directive` the moment
-   * the constraint is dropped. Measured in both directions, 390-12.
-   *
-   * Deliberately not inside an `it`: the point is that this text is TYPE-CHECKED, and running it
-   * would take a real lease against a real root for a call that must never happen.
-   */
+  // Type-checked, never called: without the sync constraint its expect-error goes unused.
   async function wr02AnAsyncDecideMustNotCompile(root: string): Promise<void> {
     // @ts-expect-error — a PromiseLike-returning `decide` cannot satisfy the synchronous signature
     await underWriterLease(root, undefined, async () => 'never runs')
@@ -907,14 +831,7 @@ describe('createQuarantineOperations', () => {
     expect(Date.now() - startedAtMs).toBeLessThan(5_000)
   })
 
-  // ---- the handed-in authority is FENCED against disk ------------------
-  //
-  // The daemon arm above rides an authority its process holds. The residual the two-OS-process
-  // harness measured is what happens when it no longer does: a daemon whose heartbeat starved and
-  // whose lease was then RECLAIMED still answers "yes, I already serialized myself" and keeps
-  // writing beside the writer that took the lease from it — two `entered` lines for one identity,
-  // and the verb answering an owner committed truth does not record. The pins below drive both
-  // directions of the fence that closes it.
+  // A daemon whose lease is reclaimed must be refused, not keep writing beside the new holder.
 
   /**
    * A REAL reclaim, forced with no clock and no waiting: acquire, release, acquire again.

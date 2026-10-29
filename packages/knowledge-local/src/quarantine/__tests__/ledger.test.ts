@@ -1,15 +1,4 @@
-// RED-first pins for the committed quarantine ledger's read + fold half.
-//
-// The ledger is the FIRST committed top-level operational artifact beside memory/ and policies/.
-// Two postures are load-bearing and pinned here:
-//
-//  1. Refusal-as-data on malformed lines — a mangled line surfaces in `refusedLines` while its
-//     neighbours still fold. Healing to absence would silently UN-quarantine a test (red builds),
-//     the exact silent flip this phase exists to prevent.
-//  2. A NEWER schemaVersion is a typed hard failure (committed truth), not a skipped line.
-//
-// The fold is PURE: `now` arrives as an argument, so expiry boundaries are pinned one second
-// either side with zero wall-clock reads.
+// A malformed line is refused as data while its neighbours fold; a newer `schemaVersion` throws.
 
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm, writeFile } from 'node:fs/promises'
@@ -201,7 +190,7 @@ describe('quarantine ledger read/fold', () => {
   })
 })
 
-// ---- The full lifecycle fold ----------------------------
+// The full lifecycle fold.
 
 const LATER_EXPIRY = '2026-10-04T10:00:00.000Z'
 const BETWEEN_EXPIRIES = '2026-09-20T10:00:00.000Z'
@@ -289,11 +278,7 @@ describe('quarantine ledger lifecycle fold', () => {
     expect(state[0].fingerprint).toBe('fp-2')
   })
 
-  // 390-11 / round-1 WR-04. The committed ledger is human-editable, so a `renewed` line
-  // authored after a release is reachable by hand. Honoring it would let a renewal SILENTLY re-open
-  // a window an operator deliberately closed — the anti-silencing direction this phase exists to
-  // hold. Re-entry has its own event; `entered` is what re-opens (and `operations.add` already
-  // routes a released entry there).
+  // The ledger is human-editable, so a hand-written `renewed` after a release must not reopen it.
   it('a renewal CANNOT resurrect a released window — the release stands', () => {
     const state = foldQuarantineLedgerState(
       [entered(), released('released-manual'), renewed()],
@@ -306,10 +291,7 @@ describe('quarantine ledger lifecycle fold', () => {
   })
 
   it('a renewal on a LAPSED window still extends and re-suppresses', () => {
-    // The released-guard above keys on the EVENT state, never the computed one: a lapsed entry
-    // still carries eventState 'quarantined' (expiry is applied after the fold), so D-11's
-    // renew-an-expired-entry behavior must survive it. `entered` expires before `now`; the renewal
-    // pushes the deadline past it.
+    // The guard keys on event state: a lapsed entry is still `quarantined`, so it renews.
     const state = foldQuarantineLedgerState([entered(), renewed()], BETWEEN_EXPIRIES)
     expect(foldQuarantineLedgerState([entered()], BETWEEN_EXPIRIES)[0].state).toBe('expired')
     expect(state[0].state).toBe('quarantined')
@@ -327,21 +309,7 @@ describe('quarantine ledger lifecycle fold', () => {
   })
 })
 
-// ---- The re-entry history the event log already held -
-
-// D-03 chose an append-only event log so that "this test has entered quarantine 3 times" is
-// answerable without a second artifact. The fold's `entered` arm discarded that answer with a
-// whole-record `entries.set(key, {…})`, so every read-side surface inherited an entry with no past.
-//
-// These are pins on a DERIVATION, not on a stored field. Nothing about the file format moves: no
-// new event kind, no `CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION` bump, no migration. Every ledger
-// that exists today answers both questions correctly on its next fold, off bytes it already holds.
-//
-// The two instants are DIFFERENT QUESTIONS and every leg below keeps them apart deliberately:
-// `enteredAt` is when the CURRENT window opened (what the expiry and the computed state are
-// relative to); `firstEnteredAt` is when this test's quarantine history began (what a human
-// triaging it is deciding about). A one-entry fixture cannot distinguish them, so none of the
-// legs below is a one-entry fixture.
+// `enteredAt` opens the current window, `firstEnteredAt` the first; every fixture has two entries.
 
 /** A second cycle's events, spelled once — release the first window, then cross again. */
 const SECOND_ENTRY_AT = '2026-08-30T10:00:00.000Z'
@@ -476,8 +444,6 @@ describe('quarantine ledger re-entry history', () => {
   })
 })
 
-// ---- appendQuarantineEvents: shape-checked committed writes --
-
 describe('appendQuarantineEvents', () => {
   let knowledgeRoot: string
 
@@ -537,11 +503,7 @@ describe('appendQuarantineEvents', () => {
     expect(existsSync(join(knowledgeRoot, QUARANTINE_LEDGER_FILENAME))).toBe(false)
   })
 
-  // 390-11 / WR-07. The write half and the read half range ONE predicate. A line the reader refuses
-  // is not a refusal, it is CORRUPTION of a committed artifact: it is invisible to `list`, answers
-  // `no-entry` on `release`, duplicates on retry, and prints `N unreadable line(s)` on every
-  // subsequent run — forever, with no verb able to undo it. The pre-check makes that class
-  // unrepresentable from EVERY caller, including a future third one.
+  // The write applies the reader's predicate: a line the reader refuses corrupts the ledger.
   const UNMATCHABLE_IDENTITY = './tests/a.yaml'
 
   it('refuses an event the READ would refuse — throws, writes nothing', () => {
@@ -583,40 +545,7 @@ describe('appendQuarantineEvents', () => {
     expect(readQuarantineLedger(knowledgeRoot).refusedLines).toEqual([])
   })
 
-  // 390-14 / G-390-1, corrected 390-22 / WR-02 + IN-02.
-  //
-  // THE READ'S GUARD IS FIVE LEGS IN ORDER, named rather than counted (`createVersionGuard`,
-  // packages/schema/src/versioning/create-version-guard.ts):
-  //   1. OBJECT-NESS        — a non-null object, else `TypeError`
-  //   2. FINITE-NUMBER      — `schemaVersion` is a number AND `Number.isFinite`, else `TypeError`
-  //   3. REJECT-NEWER       — `version > current`, else `QuarantineLedgerVersionError`
-  //   4. MIGRATION WALK     — every step from `version` to `current` needs a registered migration,
-  //                           else `QuarantineLedgerVersionError`. The registry is permanently
-  //                           empty, so EVERY older version lands here.
-  //   5. STRUCTURAL SHAPE   — `hasQuarantineEventShape`, else `TypeError`
-  // The write pre-check ranges legs 2/3/4 through one `=== CURRENT` comparison and leg 5 through
-  // the structural predicate directly. Three comments in this subsystem said "four legs" with the
-  // count cited as if load-bearing for the symmetry argument; the guard runs five, and the
-  // argument needs to know WHICH legs the write ranges, which a count carries none of.
-  //
-  // AND THE READ REFUSES IN TWO DIFFERENT WAYS. The old corpus merged them behind a read-side
-  // control written as a disjunction — "either some lines were refused and no events survived, OR
-  // something threw" — which passes under either mode, so the corpus could not see that two of its
-  // five members were testing a different mechanism from the other three:
-  //
-  //   WHOLE-FILE — `3`, `1`, `2.5` are finite and reach legs 3/4, which raise the typed
-  //     `QuarantineLedgerVersionError`. `readQuarantineLedger` deliberately lets that PROPAGATE, so
-  //     one such line takes the whole file down and `list`, `add` and `release` with it, leaving
-  //     the operator's only recovery a hand-edit of a file the verb that would show them its
-  //     contents also refuses to read. Two of the three (`1`, `2.5`) are OLDER-side, so a
-  //     reject-newer comparison alone would not close this. The check is `=== CURRENT`.
-  //
-  //   LINE-LEVEL — `NaN` and `Infinity` never survive serialization at all: `canonicalJson` turns
-  //     a non-finite number into `null`, so the bytes that reach disk carry
-  //     `"schemaVersion":null`, which fails leg 2 with a plain `TypeError`, which the reader folds
-  //     into a line-level refusal. The neighbours still fold and all three verbs keep working.
-  //     These two members are really testing a NULL version, and the write pre-check refuses them
-  //     for a different reason than the reader does.
+  // Finite versions refuse the whole file; `NaN` and `Infinity` become `null` and refuse one line.
   const WHOLE_FILE_REFUSED_VERSIONS: readonly (readonly [string, number])[] = [
     ['newer than this build', 3],
     ['older with no registered migration', 1],
@@ -650,7 +579,7 @@ describe('appendQuarantineEvents', () => {
     })
   }
 
-  /** The D-12 human path: hand-write the line past the gate and watch what the read does with it. */
+  // The human path: hand-write the line past the gate and watch what the read does with it.
   function handWrite(lines: readonly string[]): void {
     writeFileSync(
       join(knowledgeRoot, QUARANTINE_LEDGER_FILENAME),
@@ -757,7 +686,7 @@ describe('appendQuarantineEvents', () => {
   })
 })
 
-// ---- Phase 441, D-15: committed text is not scanned ---------------------
+// Committed ledger text is not scanned for secrets.
 
 describe('quarantine rows with credential-shaped text', () => {
   const CARD_TEST_NAME = 'checkout pays with 4242 4242 4242 4242'
@@ -806,11 +735,7 @@ describe('quarantine rows with credential-shaped text', () => {
 
 describe('the ledger is genuinely committed at the knowledge root', () => {
   it('is not swallowed by any knowledge-root ignore rule', () => {
-    // DR-1 is real: this is the FIRST committed top-level operational artifact beside memory/ and
-    // policies/, so its placement is verified against the shipped root's own ignore file rather
-    // than assumed from a precedent that does not exist. Every rule is checked, so a future rule
-    // that happened to match the ledger would red HERE rather than silently un-committing
-    // quarantine state (and with it FLAK-02's cross-machine promise).
+    // Checked against the shipped root's ignore file, so a rule matching the ledger reds here.
     const ignoreRules = [
       'memory/index/',
       'memory/queue/',
