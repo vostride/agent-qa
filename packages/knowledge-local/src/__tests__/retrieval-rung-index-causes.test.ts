@@ -180,7 +180,7 @@ describe('RUNG-SCHEMA', () => {
 })
 
 describe('LEGACY-HISTORICAL', () => {
-  it('never mints the historical index-unavailable word or the v1 stamp', () => {
+  it('records only schemaVersion 2 values whose index causes are the three distinct ones', () => {
     const embedders: EmbedderAxis[] = [
       ...EMBEDDERS,
       { kind: 'deferred', reason: 'cold-artifact' },
@@ -205,7 +205,6 @@ describe('LEGACY-HISTORICAL', () => {
         }
       }
     }
-    expect(reasons.has('index-unavailable')).toBe(false)
     expect([...reasons].filter((reason) => reason.startsWith('index-')).sort()).toEqual([
       'index-corrupt',
       'index-locked',
