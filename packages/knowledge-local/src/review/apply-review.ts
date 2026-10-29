@@ -344,7 +344,6 @@ async function commitInProcess(
   // would commit nothing), not a direct append, not a projection call — `commit`, exactly as any
   // curation write reaches it, through the store's explicit entry: a person's change is not
   // downgraded by the automatic propose-only profile, and every other check still applies.
-  // 419-COMMIT-DOOR: commitInProcess
   await store.commit([...change.deltas])
   return store
 }

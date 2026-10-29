@@ -11,7 +11,6 @@ export const AGENT_QA_ARCH_OWNERSHIP_CONTRACT = {
     'shipping any symbol to the published npm surface',
     'runtime/host/storage/provider access',
   ],
-  // 2026-09-08: the policy writer census uses the already-installed TypeScript compiler.
-  externalDependencies: ['typescript'],
+  externalDependencies: [],
   internalDependencies: [],
 } as const satisfies OwnershipContract

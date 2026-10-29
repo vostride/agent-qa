@@ -80,19 +80,16 @@ function materializeUnderAuthority(input: MaterializePolicyInput): MaterializeOu
   if (seen.has(input.recordId)) return { kind: 'unchanged', relPath, sectionBytes }
   if (input.existingOnly) throw new PolicyTextRefusedError()
   const text = `${exists ? '' : `# Policies — ${input.scope}\n`}${section}`
-  // 419-POLICY-WRITER: materialize directory
   mkdirSync(dirname(path), { recursive: true })
   const staged = `${path}.pending`
   let fd: number | undefined
   try {
     // Serialized by the existing writer transaction; a prior interrupted stage is replaceable.
-    // 419-POLICY-WRITER: materialize stage
     fd = openSync(staged, 'w', 0o600)
     writeFileSync(fd, Buffer.concat([previous, Buffer.from(text)]))
     fsyncSync(fd)
     closeSync(fd)
     fd = undefined
-    // 419-POLICY-WRITER: materialize
     renameSync(staged, path)
   } finally {
     if (fd !== undefined) closeSync(fd)
