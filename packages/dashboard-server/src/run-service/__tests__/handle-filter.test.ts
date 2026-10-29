@@ -343,7 +343,7 @@ describe('an invalid or unknown handle is refused BEFORE any stream header', () 
   })
 })
 
-describe('there is exactly ONE spelling of run-scoped-ness (T-402-15)', () => {
+describe('there is exactly ONE spelling of run-scoped-ness', () => {
   it('imports the schema predicate and re-derives nothing locally', async () => {
     // A SUPPLEMENT to the behavioural cells above, not the proof — 402-01 and 402-03 both watched
     // a source grep get satisfied by an import line while the expression it named was gutted. The

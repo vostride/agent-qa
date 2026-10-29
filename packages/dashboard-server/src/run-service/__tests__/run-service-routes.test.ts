@@ -149,7 +149,7 @@ async function readStream(url: string, headers: Record<string, string>): Promise
   }
 }
 
-describe('D-13 — the wire IS the bus envelope', () => {
+describe('the wire IS the bus envelope', () => {
   it('frames the envelope SEQ as the SSE id, not a stream-local counter', async () => {
     const origin = await mount()
     const stream = await readStream(
@@ -377,7 +377,7 @@ describe('the refusal-shape census walks the module\'s OWN route table', () => {
 // implementation. What only this file can measure is that the two rows are reachable AT ALL from
 // this door's dispatch — that the verdict passed, the pattern matched, the params were decoded and
 // the adapter ran — and that an uncomposed host says so in the local door's own word.
-describe('the READ rows dispatch through the injected host (405-05, D-12)', () => {
+describe('the READ rows dispatch through the injected host', () => {
   /**
    * A host whose `invokeFunction` refuses by NAME, exactly as an unbound composition's would —
    * and which RECORDS the op id it was handed, so a row's dispatch can be measured rather than
@@ -415,7 +415,7 @@ describe('the READ rows dispatch through the injected host (405-05, D-12)', () =
     expect(await response.json()).toEqual({ error: 'unknown_run' })
   })
 
-  it('reaches the ANALYSIS adapter through analysisGetFunctionId (406-01, D-04)', async () => {
+  it('reaches the ANALYSIS adapter through analysisGetFunctionId', async () => {
     const seen: string[] = []
     const origin = await mount(fakePorts({ agentHost: hostRefusing('RunNotFoundError', seen) }))
     const response = await fetch(`${origin}${RUN_SERVICE_ANALYSIS_TEMPLATE.replace(':runId', 'r_planted')}`)
@@ -568,7 +568,7 @@ function resumePorts(): RunServicePorts {
 const idsOfStream = (body: string): number[] =>
   [...body.matchAll(/^id: (\d+)$/gmu)].map((match) => Number(match[1]))
 
-describe('INVK-05 — the door honours Last-Event-ID and ?lastEventId=', () => {
+describe('the door honours Last-Event-ID and ?lastEventId=', () => {
   it('replays from subscribe(N + 1): no id at or below the resume point is ever re-sent', async () => {
     const origin = await mount(resumePorts())
     const stream = await readStream(`${origin}/run/r_planted/events?lastEventId=7`, {
@@ -618,7 +618,7 @@ describe('INVK-05 — the door honours Last-Event-ID and ?lastEventId=', () => {
   })
 })
 
-describe('INVK-05 / D-13 — the replay floor is a TYPED refusal carrying the recovery point', () => {
+describe('the replay floor is a TYPED refusal carrying the recovery point', () => {
   it('answers 410 replay_floor with the bus\'s own earliestAvailableSeq, before any head', async () => {
     const origin = await mount(resumePorts())
     const response = await fetch(`${origin}/run/r_floor/events?lastEventId=2`)
@@ -666,7 +666,7 @@ describe('INVK-05 / D-13 — the replay floor is a TYPED refusal carrying the re
   })
 })
 
-describe('D-14 — the handle filter survives a DEEP resume', () => {
+describe('the handle filter survives a DEEP resume', () => {
   it('serves handle 7 on a resume past the roster announcement instead of refusing it', async () => {
     // `runStarted` carries the roster and it is seq 1. On `subscribe(6, …)` it is not delivered, so
     // a door that derives the roster from the first envelope it sees would answer `unknown_handle`
@@ -687,7 +687,7 @@ describe('D-14 — the handle filter survives a DEEP resume', () => {
   })
 })
 
-describe('D-15 — a resume that lands past the end closes rather than hanging', () => {
+describe('a resume that lands past the end closes rather than hanging', () => {
   it('answers 200 with zero data frames and ENDS when the resume point is the final seq', async () => {
     const origin = await mount(resumePorts())
     const response = await fetch(`${origin}/run/r_planted/events?lastEventId=12`, {
@@ -979,7 +979,7 @@ function recordingMintPorts(
   return { ports, seen }
 }
 
-describe('D-03 / Q3 — the authed door mints a liveUrl', () => {
+describe('the authed door mints a liveUrl', () => {
   it('answers the mint result VERBATIM, with no second shaping of what a liveUrl is', async () => {
     const { ports } = recordingMintPorts()
     const origin = await mount(ports)

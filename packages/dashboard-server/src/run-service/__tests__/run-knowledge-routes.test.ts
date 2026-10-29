@@ -212,7 +212,7 @@ function recordingResponse(): {
 /** A loopback request, which is what the human arm's same-site guard admits. */
 const LOOPBACK = { headers: { host: '127.0.0.1:3470' } } as never
 
-describe('GET /api/runs/:id/knowledge — the read (D-05)', () => {
+describe('GET /api/runs/:id/knowledge — the read', () => {
   it('answers 200 with a ready projection for a recorded run', async () => {
     const outcome = await readRunKnowledge(hostOver(composeRegistry(recordedRun())), RUN_ID)
 
@@ -224,7 +224,7 @@ describe('GET /api/runs/:id/knowledge — the read (D-05)', () => {
     expect(outcome.body.steps).toHaveLength(1)
   })
 
-  it('answers 200 evidence-incomplete for an unknown run — the op RETURNS, it does not throw (D-06)', async () => {
+  it('answers 200 evidence-incomplete for an unknown run — the op RETURNS, it does not throw', async () => {
     // THE CELL THIS FILE EXISTS FOR. `runs.detail` would raise `RunNotFoundError` here and this
     // door would classify it 404 `unknown_run`; `runs.knowledge` does not, because the page has a
     // state to render for a pruned handoff and a refusal would hide it behind a grey error.
@@ -235,7 +235,7 @@ describe('GET /api/runs/:id/knowledge — the read (D-05)', () => {
     expect(outcome.body).toEqual({ kind: 'evidence-incomplete', runId: RUN_ID })
   })
 
-  it('refuses an id the op schema rejects with 400, and never reaches a dispatch (T-407-01)', async () => {
+  it('refuses an id the op schema rejects with 400, and never reaches a dispatch', async () => {
     let dispatched = 0
     const host = {
       ...hostOver(composeRegistry(recordedRun())),
@@ -323,7 +323,7 @@ describe('serveRunKnowledgeRead', () => {
 // with the arm registered in the wrong place, which is the "green that never ran" failure mode.
 
 describe('the /knowledge arm in routes.ts', () => {
-  it('is reached at all — it sits ABOVE the /api/runs/:id catch-all (Pitfall 2)', async () => {
+  it('is reached at all — it sits ABOVE the /api/runs/:id catch-all', async () => {
     const db = new DashboardDatabase({ dbPath: ':memory:' })
     databases.push(db)
     const started = await startServer({

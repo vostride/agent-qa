@@ -559,7 +559,7 @@ async function expectPatchRefused(changes: unknown[], initialConfig?: string): P
   return expectValidationRefused(await patchConfig(changes), configPath, before)
 }
 
-describe('settings writes through PATCH /api/config (429-32)', () => {
+describe('settings writes through PATCH /api/config', () => {
   it('persists the missing latest-schema sections through segment config paths', async () => {
     const { configManager } = await useSettingsWorkspace()
 
@@ -851,7 +851,7 @@ describe('settings writes through PATCH /api/config (429-32)', () => {
     expect(issues.some((issue) => dotted(issue) === 'knowledge.dir')).toBe(true)
   })
 
-  it('rejects an absolute knowledge.dir (repo-relative refine, T-373-06)', async () => {
+  it('rejects an absolute knowledge.dir (repo-relative refine)', async () => {
     const issues = await expectPatchRefused([set(['knowledge', 'dir'], '/etc/knowledge')])
 
     expect(issues.some((issue) => dotted(issue) === 'knowledge.dir')).toBe(true)
@@ -996,7 +996,7 @@ async function expectModelRefusedBothWays(
   return { connectBody, patchIssues }
 }
 
-describe('model list and default model writes through connect and PATCH (429-32)', () => {
+describe('model list and default model writes through connect and PATCH', () => {
   it('omits product-facing authMethod from GET /api/config', async () => {
     const { configManager, configPath } = await createConfigWorkspace([
       'workspace: {}',

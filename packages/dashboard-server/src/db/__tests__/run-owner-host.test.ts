@@ -67,8 +67,8 @@ function seedThenClassifyAfterRename(first: () => string, second: () => string) 
   }
 }
 
-describe('C442-HOST-IDENTITY', () => {
-  it('C442-HOST-IDENTITY a macOS host is its hardware UUID digest, unchanged when the host name changes', () => {
+describe('host identity', () => {
+  it('a macOS host is its hardware UUID digest, unchanged when the host name changes', () => {
     const reader = countedUuidReader(UUID)
     const resolve = createRunOwnerHostResolver({
       platform: 'darwin',
@@ -86,7 +86,7 @@ describe('C442-HOST-IDENTITY', () => {
     expect(reader.calls).toBe(1)
   })
 
-  it('C442-HOST-IDENTITY a macOS read failure names the host name under its own prefix, never equals a UUID identity, and is retried', () => {
+  it('a macOS read failure names the host name under its own prefix, never equals a UUID identity, and is retried', () => {
     const reader = countedUuidReader(undefined, UUID)
     const resolve = createRunOwnerHostResolver({
       platform: 'darwin',
@@ -108,7 +108,7 @@ describe('C442-HOST-IDENTITY', () => {
     expect(verdict).toBe('unknown')
   })
 
-  it('C442-HOST-IDENTITY Windows hosts keep os.hostname(), and Linux hosts name their pid namespace', () => {
+  it('Windows hosts keep os.hostname(), and Linux hosts name their pid namespace', () => {
     const windowsUuid = countedUuidReader(UUID)
     const windowsNamespace = countedNamespaceReader('pid:[4026532001]')
     const windows = createRunOwnerHostResolver({
@@ -133,7 +133,7 @@ describe('C442-HOST-IDENTITY', () => {
     expect(linuxUuid.calls).toBe(0)
   })
 
-  it("C442-HOST-IDENTITY this machine's identity is its UUID digest on macOS, its pid namespace and host name on Linux, and its host name elsewhere", () => {
+  it("this machine's identity is its UUID digest on macOS, its pid namespace and host name on Linux, and its host name elsewhere", () => {
     if (process.platform === 'darwin') {
       expect(resolveRunOwnerHost()).toMatch(UUID_IDENTITY)
     } else if (process.platform === 'linux') {
@@ -151,7 +151,7 @@ describe('C442-HOST-IDENTITY', () => {
     }
   })
 
-  it('C442-HOST-IDENTITY a dead owner stamped before the host name changed is still finalized as an orphan', () => {
+  it('a dead owner stamped before the host name changed is still finalized as an orphan', () => {
     const named = (platform: 'darwin' | 'win32', name: string) =>
       createRunOwnerHostResolver({ platform, hostname: () => name, readPlatformUuid: () => UUID })
     const renamed = seedThenClassifyAfterRename(
@@ -171,7 +171,7 @@ describe('C442-HOST-IDENTITY', () => {
     expect(byHostName.run?.status).toBe('running')
   })
 
-  it("C442-HOST-IDENTITY a handle injected without a host stamps and classifies with this machine's identity", () => {
+  it("a handle injected without a host stamps and classifies with this machine's identity", () => {
     const here = resolveRunOwnerHost()
     const db = new DashboardDatabase({
       dbPath: ':memory:',
@@ -250,7 +250,7 @@ function namespaceOwnership() {
   }
 }
 
-describe('C442-PID-NAMESPACE', () => {
+describe('pid namespace identity', () => {
   it('a Linux identity names this pid namespace and this host name, read once', () => {
     const reader = countedNamespaceReader(CONTAINER_NAMESPACE)
     const uuidReader = countedUuidReader(UUID)

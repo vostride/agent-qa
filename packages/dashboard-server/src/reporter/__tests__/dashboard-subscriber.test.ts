@@ -342,7 +342,7 @@ describe('createDashboardRunIngest', () => {
     expect(db.getRuns()).toHaveLength(0)
   })
 
-  it('subActionRecorded writes the whole payload verbatim, artifactRefs included (405 D-01/D-14)', () => {
+  it('subActionRecorded writes the whole payload verbatim, artifactRefs included', () => {
     const runId = 'r_subact-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india'
     const ingest = createDashboardRunIngest({
       db,
@@ -406,7 +406,7 @@ describe('createDashboardRunIngest', () => {
     expect(step?.tokenUsage).toBeUndefined()
   })
 
-  it('a measured stepFinalized persists its tokenUsage; an unmeasured one leaves the columns NULL (405 D-05/D-06)', () => {
+  it('a measured stepFinalized persists its tokenUsage; an unmeasured one leaves the columns NULL', () => {
     const runId = 'r_tokens-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-in'
     const ingest = createDashboardRunIngest({
       db,
@@ -451,7 +451,7 @@ describe('createDashboardRunIngest', () => {
     expect(unmeasured[0]).toEqual({ prompt_tokens: null, completion_tokens: null, total_tokens: null })
   })
 
-  it('a thin member — testFinished with no testStarted — still gets a row (405 D-18)', () => {
+  it('a thin member — testFinished with no testStarted — still gets a row', () => {
     const runId = 'r_thin-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india'
     const ingest = createDashboardRunIngest({
       db,
@@ -527,7 +527,7 @@ describe('createDashboardRunIngest', () => {
   })
 })
 
-describe('C442-OWNER-STAMP', () => {
+describe('the ingest owner stamp', () => {
   it('the ingest stamps its own row', () => {
     const self = { pid: 4242, incarnation: 'proc-starttime:7', host: 'h' }
     const owned = new DashboardDatabase({
@@ -566,7 +566,7 @@ describe('C442-OWNER-STAMP', () => {
   })
 })
 
-describe('C443-CLAIM', () => {
+describe('the ingest claim', () => {
   const SELF: RunOwner = { pid: 4242, incarnation: 'proc-starttime:7', host: 'h' }
   const OTHER: RunOwner = { pid: 4343, incarnation: 'proc-starttime:9', host: 'h' }
   const PROJECTIONS = ['run_members', 'run_steps', 'run_sub_actions', 'execution_logs', 'run_artifacts']
@@ -698,7 +698,7 @@ describe('C443-CLAIM', () => {
   })
 })
 
-describe('C443-INGEST-ID', () => {
+describe('the ingest run id', () => {
   const TABLES = ['run_members', 'run_steps', 'run_sub_actions', 'execution_logs', 'run_artifacts']
 
   function misfiled(id: string): string {
@@ -774,7 +774,7 @@ describe('C443-INGEST-ID', () => {
 })
 
 // 2026-10-17 (443-12, GAP-D1): the record must learn it owns its row before any write that can throw.
-describe('C443-RECORD-CLOSE', () => {
+describe('the closing write after a failed artifact write', () => {
   it('an ingest whose artifact write fails after its claim still reports the claimed row', () => {
     const owner: RunOwner = { pid: 4242, incarnation: 'proc-starttime:7', host: 'h' }
     const real = new DashboardDatabase({

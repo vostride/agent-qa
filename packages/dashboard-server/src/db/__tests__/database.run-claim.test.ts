@@ -59,7 +59,7 @@ function runningRowOf(handle: DashboardDatabase, name = 'Owned elsewhere'): stri
   })
 }
 
-describe('C443-CLAIM', () => {
+describe('claiming a run id', () => {
   it('a claim on a fresh id inserts a running row stamped with this handle', () => {
     const own = handleFor(SELF)
     expect(own.claimRunningRow('r_fresh', claimFields({ testId: 't_one', suiteId: 's_one' }))).toBe(true)
@@ -215,7 +215,7 @@ describe('C443-CLAIM', () => {
   })
 })
 
-describe('C443-OWN-FINALIZE', () => {
+describe('the own-row finalizer', () => {
   const OTHER: RunOwner = { pid: 5151, incarnation: 'proc-starttime:9', host: 'h' }
 
   it('the own-row finalizer writes each verdict status once', () => {
@@ -239,7 +239,7 @@ describe('C443-OWN-FINALIZE', () => {
   })
 })
 
-describe('C443-RECORD-CLOSE', () => {
+describe('the closing write', () => {
   const OTHER: RunOwner = { pid: 5151, incarnation: 'proc-starttime:9', host: 'h' }
   const endedAt = '2026-10-17T00:20:00.000Z'
 

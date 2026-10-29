@@ -63,7 +63,7 @@ async function callCreateSession(
     | { sessionId: string; sessionNumber: number | null }
 }
 
-describe('SessionManager per-entity counter (D-27, D-30)', () => {
+describe('SessionManager per-entity counter', () => {
   let manager: SessionManager
 
   beforeEach(() => {
@@ -147,7 +147,7 @@ describe('SessionManager per-entity counter (D-27, D-30)', () => {
     expect(typed.getCounter({ type: 'suite', id: 's_counted' })).toBe(2)
   })
 
-  it.skip('counter resets on server restart (documented — ephemeral per CONTEXT D-30)', () => {
+  it.skip('counter resets on server restart (documented, ephemeral)', () => {
     // Ephemeral-restart behavior is not exercised in unit tests — requires process-level
     // lifecycle. Skipped intentionally to document the contract.
   })

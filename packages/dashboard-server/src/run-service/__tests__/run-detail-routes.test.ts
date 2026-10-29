@@ -321,7 +321,7 @@ async function serveOneRun(options: { withHost?: boolean } = {}): Promise<number
   return (started.server.address() as AddressInfo).port
 }
 
-describe('GET /api/runs/:id/detail — the 405 tracer (D-01/D-03/D-14)', () => {
+describe('GET /api/runs/:id/detail', () => {
   it('serves the decision-screenshot artifactRefs sha the producer minted, whole', async () => {
     const port = await serveOneRun()
     const answer = await get(port, `/api/runs/${RUN_ID}/detail`)
@@ -404,7 +404,7 @@ describe('GET /api/runs/:id/detail — the 405 tracer (D-01/D-03/D-14)', () => {
     expect((answer.body as { error: string }).error).toBe('agent_host_unavailable')
   })
 
-  it('refuses a run id the op\'s own input schema rejects, before any dispatch (T-405-01)', async () => {
+  it('refuses a run id the op\'s own input schema rejects, before any dispatch', async () => {
     const port = await serveOneRun()
     // `..` is exactly the segment `slugBranch` would REWRITE, which `runIdSchema` refuses instead.
     const answer = await get(port, '/api/runs/..%2Fescape/detail')
@@ -463,7 +463,7 @@ async function serveEvidence() {
   }
 }
 
-describe('423 typed evidence HTTP doors', () => {
+describe('typed evidence HTTP doors', () => {
   const query = '?kind=console&testIndex=0&stepIndex=0'
   it('HTTP-EVIDENCE-HUMAN reaches the recorded evidence through the public operation', async () => {
     const f = await serveEvidence()
@@ -652,7 +652,7 @@ const postJson = (url: string, body: unknown, headers: Record<string, string> = 
   fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', ...headers },
     body: typeof body === 'string' ? body : JSON.stringify(body) })
 
-describe('423-21 feedback reads on both HTTP doors (D-18)', () => {
+describe('feedback reads on both HTTP doors', () => {
   it('HTTP-MARKS-HISTORY: both doors answer runs.marks.history exactly as the registry does, guarded and masked', async () => {
     const f = await serveFeedbackReads()
     const expected = await invokeFunction(f.registry, RUNS_MARKS_HISTORY_FUNCTION_ID, { runId: RUN_ID }, REGISTRY_CALLER)
@@ -879,7 +879,7 @@ async function serveOneArtifact(
 // malformed sha and for an absent file alike; a door that could not tell those apart would render
 // one grey error for a bad link, a GC'd screenshot and a traversal attempt.
 
-describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves (405-05, D-12/D-13/D-15)', () => {
+describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves', () => {
   it('serves the exact bytes under a content address, immutably and with nosniff', async () => {
     const served = await serveOneArtifact({ bytes: PNG_BYTES })
     const response = await fetch(
@@ -910,7 +910,7 @@ describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves (405-05, D-12
     expect(response.headers.get('etag')).toBe(`"${served.sha}"`)
   })
 
-  it('refuses a malformed sha with a fixed body that never echoes the request (T-405-14/T-405-18)', async () => {
+  it('refuses a malformed sha with a fixed body that never echoes the request', async () => {
     const served = await serveOneArtifact({ bytes: PNG_BYTES })
     const base = `http://127.0.0.1:${String(served.port)}/api/runs/${RUN_ID}/artifacts`
 
@@ -934,7 +934,7 @@ describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves (405-05, D-12
     expect(await upper.json()).toEqual({ error: 'malformed_sha' })
   })
 
-  it('tells an unknown RUN from an absent BLOB — two 404s, two words (D-15)', async () => {
+  it('tells an unknown RUN from an absent BLOB — two 404s, two words', async () => {
     const served = await serveOneArtifact({ bytes: PNG_BYTES })
     const origin = `http://127.0.0.1:${String(served.port)}`
 
@@ -963,7 +963,7 @@ describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves (405-05, D-12
     expect(await response.json()).toEqual({ error: 'agent_host_unavailable' })
   })
 
-  it('refuses a run id the op\'s own input schema rejects, touching no filesystem (T-405-14)', async () => {
+  it('refuses a run id the op\'s own input schema rejects, touching no filesystem', async () => {
     const served = await serveOneArtifact({ bytes: PNG_BYTES })
     const response = await fetch(
       `http://127.0.0.1:${String(served.port)}/api/runs/%2e%2e%2fescape/artifacts/${served.sha}`,
@@ -996,7 +996,7 @@ describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves (405-05, D-12
   })
 })
 
-describe('the artifact arm reads no store of its own (D-13, the fourth-door law)', () => {
+describe('the artifact arm reads no store of its own', () => {
   it('routes.ts names the evidence store nowhere — the bytes cross the function layer', async () => {
     const source = await readFile(new URL('../../server/routes.ts', import.meta.url), 'utf8')
     // A SOURCE ASSERTION, because the claim is about where a capability LIVES rather than about
@@ -1108,7 +1108,7 @@ async function serveBothDoors(body: unknown) {
   }
 }
 
-describe('C441-DISPLAY', () => {
+describe('stored markers on display', () => {
   it('the human door serves a stored marker unchanged', async () => {
     const projection = storedProjection('[secret:PW_441]')
     const doors = await serveBothDoors(projection)

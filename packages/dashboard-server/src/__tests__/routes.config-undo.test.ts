@@ -205,7 +205,7 @@ afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-describe('undoable config writes (429-11 Task 1)', () => {
+describe('undoable config writes', () => {
   it('UNDO-DELETE-MODEL-RESTORES: Undo puts the deleted model back at its index with its secret and comments', async () => {
     const configPath = await useConfig(modelsConfig())
 
@@ -371,7 +371,7 @@ describe('undoable config writes (429-11 Task 1)', () => {
 
 // 429-42 made a set-if-absent completion of use.browser.headless carry a root use.headless under
 // its new key and delete the root key; this pins that one Undo brings the owner's root key back.
-describe('undo of a set-if-absent completion (429-49)', () => {
+describe('undo of a set-if-absent completion', () => {
   it('UNDO-LEGACY-HEADLESS-RESTORED: Undo of a completion that moved a root use.headless puts the root key back and removes the browser keys', async () => {
     const legacy = knowledgeConfig([]).replace('use:\n', 'use:\n  headless: false\n')
     const configPath = await useConfig(legacy)
@@ -411,7 +411,7 @@ function signOut(name: string, headers: IncomingHttpHeaders = SAME_SITE): Promis
   return invokeRoute(`/api/auth/${encodeURIComponent(name)}`, { method: 'DELETE', headers })
 }
 
-describe('undoable sign-out and key removal (429-11 Task 2)', () => {
+describe('undoable sign-out and key removal', () => {
   it('UNDO-SIGN-OUT-RESTORES-SERVER-SIDE: Undo writes the identical credential back and no answer carries it', async () => {
     await useConfig(modelsConfig())
     authStore.current = { gpt: structuredClone(SIGNED_IN), other: { type: 'api', provider: 'openai-compatible', key: 'sk-other' } }
@@ -497,7 +497,7 @@ const CROSS_SITE_CALLERS: readonly { readonly name: string; readonly headers: In
   { name: 'a rebound Host', headers: { 'content-type': 'application/json', host: 'evil.example:4317', origin: 'http://evil.example:4317' } },
 ]
 
-describe('UNDO-SAME-SITE (429-11 Task 2)', () => {
+describe('UNDO-SAME-SITE', () => {
   for (const caller of CROSS_SITE_CALLERS) {
     it(`UNDO-SAME-SITE: POST /api/config/undo refuses ${caller.name} and restores nothing`, async () => {
       const configPath = await useConfig(modelsConfig())

@@ -185,7 +185,7 @@ function framesOf(body: string): readonly string[] {
   return body.split('\n\n').filter((frame) => frame.length > 0)
 }
 
-describe('SSE framing is the frozen envelope, verbatim (D-13)', () => {
+describe('SSE framing is the frozen envelope, verbatim', () => {
   it('each record is `id: seq`, `event: type`, `data: the envelope’s own JSON` — byte for byte', async () => {
     const session = sessionOverFeed()
     const port = await mountShippedHost(session)

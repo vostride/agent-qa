@@ -9,7 +9,7 @@ import type {
   LiveViewServerMessage,
 } from '../live-view/protocol.js'
 
-test('C428-REFUSAL-REASONS-EXACT', () => {
+test('live view refusal reasons are an exact union', () => {
   type Expected =
     | 'malformed'
     | 'bad_signature'
@@ -26,7 +26,7 @@ test('C428-REFUSAL-REASONS-EXACT', () => {
     .toEqualTypeOf<Expected>()
 })
 
-test('C428-END-REASONS-EXACT', () => {
+test('live view end reasons are an exact union', () => {
   type Expected = 'runFinished' | 'handleFinished' | 'sessionEnded'
   expectTypeOf<LiveViewEndReason>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof LIVE_VIEW_END_REASONS)[number]>().toEqualTypeOf<Expected>()
@@ -36,7 +36,7 @@ test('C428-END-REASONS-EXACT', () => {
     .toEqualTypeOf<Expected>()
 })
 
-test('C428-EMBED-STATES-EXACT', () => {
+test('live embed states are an exact union', () => {
   type Expected =
     | 'connecting'
     | 'live'
@@ -53,7 +53,7 @@ test('C428-EMBED-STATES-EXACT', () => {
   expectTypeOf<Exclude<Expected, LiveEmbedState>>().toEqualTypeOf<never>()
 })
 
-test('C428-EMBED-REPORT-EVENTS-EXACT', () => {
+test('live embed report events are an exact union', () => {
   type Expected = 'ready' | 'frame' | 'ended' | 'refused' | 'lost'
   expectTypeOf<LiveEmbedReportEvent>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof LIVE_EMBED_REPORT_EVENTS)[number]>().toEqualTypeOf<Expected>()

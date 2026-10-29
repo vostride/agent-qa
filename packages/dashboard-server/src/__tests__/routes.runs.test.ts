@@ -416,7 +416,7 @@ const RUN_ROUTE_BODY: Record<(typeof RUN_ROUTES)[number], Record<string, unknown
   '/api/queue/enqueue': { name: 'API Run' },
 }
 
-describe('C432-RUN-ROUTES-CROSS-SITE: the run trigger and the queue enqueue refuse a cross-site request', () => {
+describe('the run trigger and the queue enqueue refuse a cross-site request', () => {
   const CROSS_SITE_SHAPES: ReadonlyArray<readonly [string, IncomingHttpHeaders]> = [
     ['a foreign Origin', { origin: 'https://evil.example' }],
     ['the literal null Origin', { origin: 'null' }],
@@ -426,7 +426,7 @@ describe('C432-RUN-ROUTES-CROSS-SITE: the run trigger and the queue enqueue refu
 
   for (const path of RUN_ROUTES) {
     for (const [label, headers] of CROSS_SITE_SHAPES) {
-      it(`C432-RUN-ROUTES-CROSS-SITE: ${path} refuses ${label} before any run is queued`, async () => {
+      it(`${path} refuses ${label} before any run is queued`, async () => {
         const db = createMockDatabase()
         const { router, enqueued } = createQueueRouter(db)
         // A SIMPLE request — `text/plain` — the shape a page can send with no preflight.
@@ -443,7 +443,7 @@ describe('C432-RUN-ROUTES-CROSS-SITE: the run trigger and the queue enqueue refu
       })
     }
 
-    it(`C432-RUN-ROUTES-CROSS-SITE: a cross-site preflight to ${path} is refused with no grant`, async () => {
+    it(`a cross-site preflight to ${path} is refused with no grant`, async () => {
       const db = createMockDatabase()
       const { router, enqueued } = createQueueRouter(db)
       const res = await invokeRoute(router, path, {
@@ -458,9 +458,9 @@ describe('C432-RUN-ROUTES-CROSS-SITE: the run trigger and the queue enqueue refu
   }
 })
 
-describe('C432-RUN-ROUTES-SAME-ORIGIN: the dashboard\'s own Run and a local client still start runs', () => {
+describe('the dashboard\'s own Run and a local client still start runs', () => {
   for (const path of RUN_ROUTES) {
-    it(`C432-RUN-ROUTES-SAME-ORIGIN: the dashboard page's same-origin POST to ${path} queues one run`, async () => {
+    it(`the dashboard page's same-origin POST to ${path} queues one run`, async () => {
       const db = createMockDatabase()
       const { router, enqueued } = createQueueRouter(db)
       const res = await invokeRoute(router, path, {
@@ -477,7 +477,7 @@ describe('C432-RUN-ROUTES-SAME-ORIGIN: the dashboard\'s own Run and a local clie
       expect(enqueued).toHaveLength(1)
     })
 
-    it(`C432-RUN-ROUTES-SAME-ORIGIN: a local client with no Origin (CLI, curl, the harness) queues one run on ${path}`, async () => {
+    it(`a local client with no Origin (CLI, curl, the harness) queues one run on ${path}`, async () => {
       const db = createMockDatabase()
       const { router, enqueued } = createQueueRouter(db)
       const res = await postJson(router, path, RUN_ROUTE_BODY[path])
@@ -933,7 +933,7 @@ function seedScopedRun(
   })
 }
 
-describe('CR-02 — no run-reading response hands out the confirm scope', () => {
+describe('no run-reading response hands out the confirm scope', () => {
   let db: ReturnType<typeof createMockDatabase>
   let router: ReturnType<typeof createRouter>
 
@@ -1119,7 +1119,7 @@ describe('CR-02 — no run-reading response hands out the confirm scope', () => 
   })
 })
 
-describe('CR-02 — the read-path census cannot rot', () => {
+describe('the read-path census cannot rot', () => {
   /**
    * EVERY PUBLIC `DashboardDatabase` METHOD THAT HANDS OUT A RUN ROW must be wrapped by the
    * router's response-safe projection, or a door reading through it leaks again.
@@ -1255,7 +1255,7 @@ describe('the write door is an allowlist, and the allowlist is derivable', () =>
   })
 })
 
-describe('a persisted row\'s execution timeout is validated where it is consumed (T-401-G26)', () => {
+describe("a persisted row's execution timeout is validated where it is consumed", () => {
   it('REJECTS every value that would leave the run with no reclamation timer', () => {
     // `in-process-backend.ts:211` is `opts.timeout ?? defaultTimeout` — so a non-nullish invalid
     // value does not fall back, it DISARMS. Each of these is that.
@@ -1339,7 +1339,7 @@ const HUMAN_RUN_READS = [
   '/api/runs/run-alpha/artifact',
 ] as const
 
-describe('the local door serves stored run text unchanged on every human run read (441-15, D-07)', () => {
+describe('the local door serves stored run text unchanged on every human run read', () => {
   let db: ReturnType<typeof createMockDatabase>
 
   beforeEach(() => {

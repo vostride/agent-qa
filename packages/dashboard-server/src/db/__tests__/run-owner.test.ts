@@ -34,7 +34,7 @@ function ownershipOver(processes: Record<number, FakeProcess>): {
   return { ownership: { self: SELF, probe }, probed }
 }
 
-describe('C442-OWNER-CLASSIFY', () => {
+describe('classifying a run owner', () => {
   it("answers self for this process's own pid and start time", () => {
     const { ownership } = ownershipOver({ 100: { alive: true, incarnation: 'start:100' } })
     expect(classifyRunOwner({ ...SELF }, ownership)).toBe('self')
@@ -108,7 +108,7 @@ describe('C442-OWNER-CLASSIFY', () => {
   })
 })
 
-describe('C442-INCARNATION-FORMAT', () => {
+describe('start-time stamp formats', () => {
   const stampedAs = (incarnation: string): RunOwner => ({ pid: 200, incarnation, host: HOST })
 
   it('a live owner stamped in another start-time format is unknown, never gone', () => {
@@ -140,7 +140,7 @@ describe('C442-INCARNATION-FORMAT', () => {
   })
 })
 
-describe('C442-OWN-START-TIME', () => {
+describe('a start time missing on both sides', () => {
   it('a start time missing on both sides is never self, even for this pid on this host', () => {
     const unread: RunOwner = { pid: 100, incarnation: null, host: HOST }
     const { ownership, probed } = ownershipOver({ 100: { alive: true } })
@@ -149,7 +149,7 @@ describe('C442-OWN-START-TIME', () => {
   })
 })
 
-describe('C442-PROBE-THROWS', () => {
+describe('a start-time read that throws', () => {
   it('a start-time read that throws answers unknown', () => {
     const owner: RunOwner = { pid: 200, incarnation: 'start:200', host: HOST }
     const probe: RunOwnerProbe = {

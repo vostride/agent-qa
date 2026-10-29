@@ -95,8 +95,8 @@ function storedPayload(runId: string): Record<string, any> {
   return artifact!.payload as unknown as Record<string, any>
 }
 
-describe('C433-ARTIFACT-STAGING', () => {
-  it('C433-ARTIFACT-STAGING: the queued source is replaced by the loaded snapshot', async () => {
+describe('staging the loaded snapshot', () => {
+  it('the queued source is replaced by the loaded snapshot', async () => {
     const runId = enqueueLikeTheQueue('tests/login.yaml')
     const ingest = createDashboardRunIngest({ db, runId })
     ingest.handler(ev('runStarted', { memberTestCount: 1 }))
@@ -110,7 +110,7 @@ describe('C433-ARTIFACT-STAGING', () => {
     expect(await missingSections(runId)).toEqual([])
   })
 
-  it('C433-ARTIFACT-STAGING: the first snapshot wins', async () => {
+  it('the first snapshot wins', async () => {
     const runId = enqueueLikeTheQueue('suite run')
     const ingest = createDashboardRunIngest({ db, runId })
     ingest.handler(ev('runStarted', { memberTestCount: 2 }))
@@ -123,7 +123,7 @@ describe('C433-ARTIFACT-STAGING', () => {
     expect(payload.config.effectiveConfig).toEqual({ use: { llm: 'gpt-first' } })
   })
 
-  it('C433-ARTIFACT-STAGING: a finalized artifact is never re-staged', async () => {
+  it('a finalized artifact is never re-staged', async () => {
     const runId = enqueueLikeTheQueue('tests/login.yaml')
     const ingest = createDashboardRunIngest({ db, runId })
     ingest.handler(ev('runStarted', { memberTestCount: 1 }))
@@ -140,7 +140,7 @@ describe('C433-ARTIFACT-STAGING', () => {
     expect((after?.payload as unknown as Record<string, any>).source.loadStatus).toBe('queued')
   })
 
-  it('C433-ARTIFACT-STAGING: a CLI-door run without a queued row gets both sections', async () => {
+  it('a CLI-door run without a queued row gets both sections', async () => {
     const runId = 'r_cli-door-alpha-bravo-charlie-delta-echo-foxtrot-golf'
     const ingest = createDashboardRunIngest({ db, runId })
     // The member's snapshot can arrive before the bus delivers `runStarted`; it is held.

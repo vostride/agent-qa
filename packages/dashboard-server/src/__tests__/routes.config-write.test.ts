@@ -191,8 +191,8 @@ afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-describe('PATCH /api/config (429-01)', () => {
-  it('SC3-FIELD-MERGE: an outside edit and a human autosave both survive, comments kept', async () => {
+describe('PATCH /api/config', () => {
+  it('FIELD-MERGE: an outside edit and a human autosave both survive, comments kept', async () => {
     const configPath = await useConfigWorkspace()
     const outside = (await readFile(configPath, 'utf-8')).replace('headless: false', 'headless: true')
     await writeFile(configPath, outside, 'utf-8')
@@ -297,7 +297,7 @@ describe('PATCH /api/config (429-01)', () => {
   })
 })
 
-describe('PATCH /api/config concurrency, idempotency and file identity (429-05)', () => {
+describe('PATCH /api/config concurrency, idempotency and file identity', () => {
   it('TWO-SETTLES-BOTH-LAND: two PATCH requests started together both reach the file', async () => {
     const configPath = await useConfigWorkspace()
 
@@ -399,7 +399,7 @@ const matchWrite = {
   ],
 }
 
-describe('PATCH /api/config set-if-absent and expect (429-42)', () => {
+describe('PATCH /api/config set-if-absent and expect', () => {
   it('SET-IF-ABSENT-KEEPS-OUTSIDE-VALUE: completion never replaces a sibling already in the file', async () => {
     const configPath = await useConfigWorkspace()
     const outside = baseConfig.replace('  mobile:', '  planner:\n    maxActions: 99\n    maxPlanningTurns: 99\n    previousStepCount: 77\n  mobile:')
@@ -521,7 +521,7 @@ const policyConfig = baseConfig.replace('registry: {}', [
   '',
 ].join('\n')
 
-describe('PATCH /api/config path policy (429-44)', () => {
+describe('PATCH /api/config path policy', () => {
   // 432-22 (D-18/D-22): `safety` left the schema and the denied roots; its paths are still refused,
   // now as paths the published schema does not describe.
   it('WRITE-DOOR-REFUSES-DENIED-ROOTS: plugins and the retired safety root are refused 422 before anything is read or written', async () => {
@@ -683,7 +683,7 @@ const headerConfig = baseConfig.replace('registry: {}', [
 ].join('\n'))
 const HEADERS = ['registry', 'llms', { name: 'proxy' }, 'providerHeaders']
 
-describe('PATCH /api/config move (429-52)', () => {
+describe('PATCH /api/config move', () => {
   it('MOVE-KEEPS-VALUE-SERVER-SIDE: a header rename lands with its value and comment, and the answer never carries the value', async () => {
     const configPath = await useConfigWorkspace(headerConfig)
 
@@ -784,7 +784,7 @@ function classBody(source: string): string {
   return source.slice(start, end)
 }
 
-describe('one write path to the config file (429-32)', () => {
+describe('one write path to the config file', () => {
   it('LEGACY-WRITE-ROUTES-GONE: a PUT to each retired per-section route is an unknown route and the file is untouched', async () => {
     const configPath = await useConfigWorkspace()
     const before = await readFile(configPath)

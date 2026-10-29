@@ -272,7 +272,7 @@ describe('DashboardDatabase', () => {
       }
     })
 
-    it('REFUSES a database stamped at an older version rather than migrating it (Pitfall 4)', () => {
+    it('REFUSES a database stamped at an older version rather than migrating it', () => {
       const raw = createDashboardSqliteDatabase(':memory:')
       try {
         raw.exec(`
@@ -1055,7 +1055,7 @@ describe('DashboardDatabase', () => {
 const STAMPED_OWNER = { pid: 4242, incarnation: 'proc-starttime:7', host: 'h' }
 const inertProbe = { isAlive: () => true, incarnationOf: () => undefined }
 
-describe('C442-SCHEMA-V5', () => {
+describe('the runs table owner columns', () => {
   it('a fresh runs database opens at the current version with the owner columns', () => {
     expect(db['db'].pragma('user_version', { simple: true })).toBe(2)
     const columns = columnNames('runs')
@@ -1076,7 +1076,7 @@ describe('C442-SCHEMA-V5', () => {
   })
 })
 
-describe('C442-OWNER-STAMP', () => {
+describe('the owner stamp on a running row', () => {
   it('the queue flip stamps the dashboard', () => {
     const owned = new DashboardDatabase({
       dbPath: ':memory:',
@@ -1114,7 +1114,7 @@ describe('C442-OWNER-STAMP', () => {
   })
 })
 
-describe('C442-ORPHAN', () => {
+describe('finalizing orphaned runs', () => {
   const OTHER_OWNER = { pid: 5151, incarnation: 'proc-starttime:9', host: 'h' }
   let dir: string
   let first: DashboardDatabase
@@ -1223,7 +1223,7 @@ describe('C442-ORPHAN', () => {
   })
 })
 
-describe('C442-OWN-START-TIME', () => {
+describe('a run stamped before its start time was read', () => {
   let dir: string
 
   beforeEach(() => {

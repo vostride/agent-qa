@@ -171,7 +171,7 @@ async function workspaceWith(
 }
 
 // 436-19 (D-03, WR-11): the create door refuses the limits the CLI refuses, before any session.
-describe('C436-EFFECTIVE-LIMITS live door', () => {
+describe('live door', () => {
   it('a saved test file with an invalid limit is refused with 400 and no session', async () => {
     const { router, createSession } = await workspaceWith('    maxActions: 0')
     const res = await invoke(router, { platform: 'web', entity: { type: 'test', id: TEST_ID } })

@@ -235,7 +235,7 @@ function schemaOf(dbPath: string): string {
 const sha256 = (path: string): string =>
   createHash('sha256').update(readFileSync(path)).digest('hex')
 
-describe('C443-FRESH-OPEN', () => {
+describe('concurrent first open of a fresh runs database', () => {
   it('eight processes opening one fresh runs.db at once all succeed', async () => {
     const tally = new Map<string, number>()
     let okOpens = 0
@@ -327,7 +327,7 @@ describe('C443-FRESH-OPEN', () => {
   })
 })
 
-describe('C443-FRESH-BUILD', () => {
+describe('the builds these cells import are current', () => {
   it('a dist older than its source is refused with a rebuild instruction', () => {
     const pkg = join(root, 'fresh-build', 'pkg')
     const src = join(pkg, 'src')

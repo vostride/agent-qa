@@ -136,7 +136,7 @@ async function portIsFree(port: number): Promise<boolean> {
   return free
 }
 
-describe('the dashboard bind contract (D-07)', () => {
+describe('the dashboard bind contract', () => {
   it('binds LOOPBACK by default — read off the listening socket, not off the options', async () => {
     const { server } = await start({})
     expect(boundAddress(server)).toBe('127.0.0.1')
@@ -229,7 +229,7 @@ describe('the dashboard bind contract (D-07)', () => {
   // 2026-10-01 (432-21, D-12/D-13): the run-service tokens are deleted, and the loopback bind is
   // what D-13 keeps. The refusal is unconditional with the tokenless run service mounted, with and
   // without a legacy token declaration on disk, and an ordinary local start still binds and serves.
-  it('C432-RETAINED-LOOPBACK: refuses a non-loopback bind with and without a legacy token block, and an ordinary local start serves', async () => {
+  it('refuses a non-loopback bind with and without a legacy token block, and an ordinary local start serves', async () => {
     for (const legacyTokens of [false, true]) {
       const port = await reserveFreePort()
       await expect(start({ host: NON_LOOPBACK_HOST, port, mountService: true, legacyTokens }),
@@ -257,7 +257,7 @@ describe('the dashboard bind contract (D-07)', () => {
  * that built two equal-looking objects would pass against two implementations that agree today and
  * drift tomorrow, which is the failure D-15 exists to prevent.
  */
-describe('the local readiness door (D-15)', () => {
+describe('the local readiness door', () => {
   /** A readiness whose facts MOVE, so a door that snapshotted rather than called is visible. */
   function movingReadiness(): { fn: Readiness; flip: () => void } {
     let hostComposed = false

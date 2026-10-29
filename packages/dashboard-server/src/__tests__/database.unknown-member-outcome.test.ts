@@ -91,7 +91,7 @@ async function getJson(url: string): Promise<{ status: number; body: any }> {
   }
 }
 
-describe('C444-UNKNOWN-OUTCOME', () => {
+describe('a member outcome outside the vocabulary', () => {
   it('a member outcome outside the vocabulary is skipped by every history reader', () => {
     seedStrayHistory()
 

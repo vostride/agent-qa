@@ -222,7 +222,7 @@ afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-describe('GET /api/config through the declared mask (441-21, D-29)', () => {
+describe('GET /api/config through the declared mask', () => {
   it('GET-CARRIES-NO-SECRET: every declared value reads as its marker, an undeclared one as written, and no auth.json value is sent', async () => {
     await useConfigWorkspace(secretConfig, declaredMask({ ACCESS_KEY: SENTINELS.access, ROUTE_KEY: SENTINELS.header }))
 
@@ -395,7 +395,7 @@ const commentedConfig = [
   '',
 ].join('\n')
 
-describe('GET /api/config serves comments through the declared mask (441-21, D-29)', () => {
+describe('GET /api/config serves comments through the declared mask', () => {
   it('COMMENTED-SECRET-MASKED: a comment is served as written, and a declared value in it reads as its marker', async () => {
     const [oldSecret, prevSecret, liveSecret] = commentedSecrets
     const configPath = await useConfigWorkspace(
@@ -422,7 +422,7 @@ describe('GET /api/config serves comments through the declared mask (441-21, D-2
   })
 })
 
-describe('GET /api/config is same-site only with no cross-origin grant (429-41, CR-02)', () => {
+describe('GET /api/config is same-site only with no cross-origin grant', () => {
   it('GET-CONFIG-SAME-SITE-NO-GRANT: a cross-site or rebinding caller is refused before the read, and no answer grants a cross-origin read', async () => {
     const configPath = await useConfigWorkspace(commentedConfig)
     const readMasked = vi.spyOn(ConfigManager.prototype, 'readMasked')

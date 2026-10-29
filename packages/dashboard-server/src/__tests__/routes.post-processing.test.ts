@@ -183,7 +183,7 @@ async function get(port: number, path: string): Promise<Answer> {
   }
 }
 
-describe('the read route joins the op result with the run record (D-18/D-22)', () => {
+describe('the read route joins the op result with the run record', () => {
   it('answers the op result VERBATIM, with the disposition and the last per-stage failure', async () => {
     const status = chips('failed', 'complete')
     const { port, calls } = await serveWith({
@@ -215,7 +215,7 @@ describe('the read route joins the op result with the run record (D-18/D-22)', (
     }
   })
 
-  it('carries NO `failures` entry for a failed stage the record never wrote an envelope for (D-21)', async () => {
+  it('carries NO `failures` entry for a failed stage the record never wrote an envelope for', async () => {
     // The daemon drained this chain, or a later process did: nothing appended a chip line to this
     // run's log. The chip says `failed` because the DURABLE ROW says so, and the route composes no
     // prose to go with it — 404-03 decided the row carries no failure text, and inventing one here
@@ -285,7 +285,7 @@ describe('the read route joins the op result with the run record (D-18/D-22)', (
   })
 })
 
-describe('every refusal is NAMED (D-23) — never an all-pending body', () => {
+describe('every refusal is NAMED — never an all-pending body', () => {
   it('400 invalid_run_id for an id the op input schema refuses', async () => {
     const { port, calls } = await serveWith({ status: chips('pending', 'pending'), events: [] })
 

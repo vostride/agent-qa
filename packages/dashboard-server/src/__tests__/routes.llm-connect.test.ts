@@ -263,7 +263,7 @@ afterEach(async () => {
   tempDirs = []
 })
 
-describe('POST /api/llm/connect, key mode (429-10 Task 1)', () => {
+describe('POST /api/llm/connect, key mode', () => {
   it('CONNECT-NOTHING-WRITTEN-ON-FAIL: a failed test answers the shared sentence and writes nothing', async () => {
     const before = await fileText()
     mockGenerateText.mockRejectedValueOnce(new Error('401 unauthorized'))
@@ -380,7 +380,7 @@ const CROSS_SITE_CALLERS: readonly { readonly name: string; readonly headers: In
   { name: 'a rebound Host', headers: { 'content-type': 'application/json', host: 'evil.example:4317', origin: 'http://evil.example:4317' } },
 ]
 
-describe('the connect door (429-10 Task 1)', () => {
+describe('the connect door', () => {
   for (const caller of CROSS_SITE_CALLERS) {
     it(`CONNECT-SAME-SITE: ${caller.name} is refused with 403 and no cross-origin grant`, async () => {
       const before = await fileText()
@@ -449,7 +449,7 @@ function registerFakeClaudeSignIn(): void {
   })
 }
 
-describe('POST /api/llm/connect, saved credentials and sign-in (429-10 Task 2)', () => {
+describe('POST /api/llm/connect, saved credentials and sign-in', () => {
   it('CONNECT-EXISTING-CREDENTIAL: a same-provider key saved under the name is tested and nothing is written to auth.json', async () => {
     const saved = { type: 'api', provider: 'openai-compatible', key: 'sk-saved-elsewhere' }
     authStore.current = { 'gpt-5.6': saved }
@@ -528,7 +528,7 @@ const REFUSAL_CASES: readonly RefusalCase[] = [
   { word: 'credential_missing', status: 400, body: { name: 'gemini-draft', provider: 'gemini', model: 'gemini-2.5-pro' } },
 ]
 
-describe('CONNECT-REFUSALS (429-10 Task 2)', () => {
+describe('CONNECT-REFUSALS', () => {
   for (const refusal of REFUSAL_CASES) {
     it(`CONNECT-REFUSALS: ${refusal.word} (${JSON.stringify(refusal.body).slice(0, 80)}) writes nothing`, async () => {
       if (refusal.config) await useConfig(refusal.config)
@@ -550,7 +550,7 @@ describe('CONNECT-REFUSALS (429-10 Task 2)', () => {
   }
 })
 
-describe('repeats, races and the one name (429-10 Task 2)', () => {
+describe('repeats, races and the one name', () => {
   it('CONNECT-TWICE-NO-DUPLICATE: a second connect for a name that just saved answers name_taken', async () => {
     const first = await connect(keyDraft())
     expect(JSON.parse(first.body)).toMatchObject({ success: true })

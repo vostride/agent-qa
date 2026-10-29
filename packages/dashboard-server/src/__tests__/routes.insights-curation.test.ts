@@ -178,8 +178,8 @@ async function readWindow(planted: ReturnType<typeof plantHost>, query = `?from=
   return JSON.parse(res.body) as Record<string, unknown> & { byKind: Record<string, number> }
 }
 
-describe('C433-INSIGHTS-CURATION: curation state', () => {
-  it('C433-INSIGHTS-CURATION: every window run\'s curation failed: none is read and each is counted as failed', async () => {
+describe('curation state', () => {
+  it('every window run\'s curation failed: none is read and each is counted as failed', async () => {
     insertRun('r_failed_a', '2026-04-01T10:00:00.000Z')
     insertRun('r_failed_b', '2026-04-02T10:00:00.000Z')
     const planted = plantHost({
@@ -201,7 +201,7 @@ describe('C433-INSIGHTS-CURATION: curation state', () => {
     for (const count of Object.values(body.byKind)) expect(count).toBe(0)
   })
 
-  it('C433-INSIGHTS-CURATION: curation still running or queued is unfinished, not read', async () => {
+  it('curation still running or queued is unfinished, not read', async () => {
     insertRun('r_curating', '2026-04-01T10:00:00.000Z')
     insertRun('r_curation_queued', '2026-04-02T10:00:00.000Z')
     const planted = plantHost(
@@ -226,7 +226,7 @@ describe('C433-INSIGHTS-CURATION: curation state', () => {
     expect(planted.runIdsFor(POST_PROCESSING_ID)).toEqual(['r_curation_queued'])
   })
 
-  it('C433-INSIGHTS-CURATION: a run whose post-processing was skipped reads as complete', async () => {
+  it('a run whose post-processing was skipped reads as complete', async () => {
     insertRun('r_gate', '2026-04-01T10:00:00.000Z')
     const planted = plantHost({ r_gate: { curation: 'pending' } }, { r_gate: { skipped: 'gate-run' } })
 
@@ -243,7 +243,7 @@ describe('C433-INSIGHTS-CURATION: curation state', () => {
     expect(planted.runIdsFor(POST_PROCESSING_ID)).toEqual(['r_gate'])
   })
 
-  it('C433-INSIGHTS-CURATION: a pending run whose post-processing read throws is unfinished', async () => {
+  it('a pending run whose post-processing read throws is unfinished', async () => {
     insertRun('r_pending_unknown', '2026-04-01T10:00:00.000Z')
     const planted = plantHost({ r_pending_unknown: { curation: 'pending' } }, { r_pending_unknown: 'throw' })
 
@@ -252,7 +252,7 @@ describe('C433-INSIGHTS-CURATION: curation state', () => {
     expect(body).toMatchObject({ runsRead: 0, runsCurationUnfinished: 1, runsUnreadable: 0 })
   })
 
-  it('C433-INSIGHTS-CURATION: queued and running runs are in flight, not unreadable', async () => {
+  it('queued and running runs are in flight, not unreadable', async () => {
     insertRun('r_settled', '2026-04-01T10:00:00.000Z')
     insertRun('r_running', '2026-04-02T10:00:00.000Z', 'running')
     insertQueuedRun('r_queued')
@@ -275,7 +275,7 @@ describe('C433-INSIGHTS-CURATION: curation state', () => {
     expect(planted.runIdsFor(KNOWLEDGE_ID)).toEqual(['r_settled'])
   })
 
-  it('C433-INSIGHTS-CURATION: the counts add up and only counts leave the arm', async () => {
+  it('the counts add up and only counts leave the arm', async () => {
     insertRun('r_done', '2026-04-01T10:00:00.000Z')
     insertRun('r_failed', '2026-04-02T10:00:00.000Z')
     insertRun('r_curating', '2026-04-03T10:00:00.000Z')

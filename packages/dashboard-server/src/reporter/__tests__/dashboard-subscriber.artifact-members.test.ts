@@ -106,7 +106,7 @@ function storedPayload(): Record<string, any> {
   return artifact!.payload as unknown as Record<string, any>
 }
 
-describe('C444-ARTIFACT-MEMBERS', () => {
+describe('the run source lists every member', () => {
   it("a two-test run's source lists both members with their own YAML and config", () => {
     const ingest = startTwoTestRun()
     ingest.stageSnapshots(testSnapshot(LOGIN, LOGIN_YAML, 'staging'))

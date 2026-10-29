@@ -973,7 +973,7 @@ describe('LiveSession', () => {
 })
 
 // 436-09 (D-03): the live editor is a door; its limits come from the project config and the entity.
-describe('C436-EFFECTIVE-LIMITS live editor', () => {
+describe('live editor', () => {
   let session: LiveSession
 
   beforeEach(() => {
@@ -1038,7 +1038,7 @@ describe('C436-EFFECTIVE-LIMITS live editor', () => {
 })
 
 // 436-19 (D-03, WR-12): a live suite session runs each child at its own effective limits.
-describe('C436-EFFECTIVE-LIMITS live suite children', () => {
+describe('live suite children', () => {
   let session: LiveSession
 
   beforeEach(() => {
@@ -1124,7 +1124,7 @@ describe('C436-EFFECTIVE-LIMITS live suite children', () => {
 })
 
 // 436-19 (D-02, D-03, D-05, WR-11): the live door refuses, never ignores, a limit the CLI refuses.
-describe('C436-EFFECTIVE-LIMITS live refusal', () => {
+describe('live refusal', () => {
   function configManagerWith(config: Record<string, unknown>): ConfigManager {
     return { readWithRevision: async () => ({ kind: 'ok', config, raw: '', revision: 'r1' }) } as unknown as ConfigManager
   }

@@ -36,7 +36,7 @@ function seed(db: DashboardDatabase, status: string): string {
   })
 }
 
-describe('C444-NO-VERDICT', () => {
+describe('the stored run status', () => {
   it("the dashboard's reader answers the row's stored status and undefined for an unknown id", async () => {
     const db = database()
     try {

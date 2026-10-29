@@ -82,12 +82,12 @@ function viewer() {
   }
 }
 
-describe('428 review: a frame-socket renew keeps to what the socket greeted with', () => {
+describe('a frame-socket renew keeps to what the socket greeted with', () => {
   afterEach(() => {
     vi.useRealTimers()
   })
 
-  it('WR-07 RENEW-KEEPS-HANDLE: a valid token for another handle of the same run is refused scope_mismatch', () => {
+  it('RENEW-KEEPS-HANDLE: a valid token for another handle of the same run is refused scope_mismatch', () => {
     vi.useFakeTimers()
     vi.setSystemTime(BASE_TIME)
     const socket = viewer()
@@ -100,7 +100,7 @@ describe('428 review: a frame-socket renew keeps to what the socket greeted with
     expect(socket.closed()?.code).toBe(LIVE_VIEW_REFUSAL_CLOSE_CODE)
   })
 
-  it('WR-07 RENEW-NEVER-SHORTENS: an older still-valid token leaves the later deadline in place', async () => {
+  it('RENEW-NEVER-SHORTENS: an older still-valid token leaves the later deadline in place', async () => {
     vi.useFakeTimers()
     vi.setSystemTime(BASE_TIME)
     const socket = viewer()

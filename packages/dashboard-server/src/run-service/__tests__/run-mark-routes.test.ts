@@ -102,7 +102,7 @@ describe('markRun delegates to the shared gate and feedback port', () => {
   // RE-SPELLED 2026-09-30 (432-13) from 'denies without a frame or with an unwatched scope; the
   // dashboard receives no remedy'. No gate decides the mark, so it lands either way. 432-14: the
   // frame and scope are gone; two marks are two dispatches.
-  it('C432-INVOKE-DIRECT: lands the mark without a frame or with an unwatched scope', async () => {
+  it('lands the mark without a frame or with an unwatched scope', async () => {
     const f = fixture()
     for (let attempt = 0; attempt < 2; attempt += 1) {
       const result = await markRun(f.host, RUN_ID, { kind: 'false-fail', note: NOTE })
@@ -133,7 +133,7 @@ describe('registered POST /api/runs/:id/mark', () => {
     expect(await response.json()).toEqual(outcome)
   })
 
-  it('reaches the real router and answers the receipt text as stored (441 D-07)', async () => {
+  it('reaches the real router and answers the receipt text as stored', async () => {
     const f = fixture()
     const response = await fetch(await socket(f.host), {
       method: 'POST', headers: JSON_HEADERS, body: JSON.stringify({ kind: 'false-fail' }),
@@ -168,7 +168,7 @@ describe('registered POST /api/runs/:id/mark', () => {
 
   // RE-SPELLED 2026-09-30 (432-13) from 'returns the typed channel-less denial and rejects
   // malformed JSON without reflection'. A channel-less mark lands in the one request now.
-  it('C432-INVOKE-DIRECT: lands a channel-less mark, and rejects malformed JSON without reflection', async () => {
+  it('lands a channel-less mark, and rejects malformed JSON without reflection', async () => {
     const f = fixture()
     const url = await socket(f.host)
     const landed = await fetch(url, {

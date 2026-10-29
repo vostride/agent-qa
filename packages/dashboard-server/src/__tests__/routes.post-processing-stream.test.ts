@@ -58,8 +58,8 @@ const chips = (
 
 // ---- The relay, on its own ------------------------------------------------------------------
 
-describe('createPostProcessingRelay — the in-process listener registry (D-16)', () => {
-  it('delivers to listeners of the envelope OWN runId and to nobody else (T-404-02)', () => {
+describe('createPostProcessingRelay — the in-process listener registry', () => {
+  it('delivers to listeners of the envelope OWN runId and to nobody else', () => {
     const relay = createPostProcessingRelay()
     const mine: RunEventEnvelope[] = []
     const theirs: RunEventEnvelope[] = []
@@ -85,7 +85,7 @@ describe('createPostProcessingRelay — the in-process listener registry (D-16)'
     expect(seen).toEqual([])
   })
 
-  it('drops a THROWING listener for that delivery and still serves the others (T-404-14)', () => {
+  it('drops a THROWING listener for that delivery and still serves the others', () => {
     const relay = createPostProcessingRelay()
     const after: RunEventEnvelope[] = []
     relay.subscribe(RUN_ID, () => { throw new Error('a viewer fault') })
@@ -288,7 +288,7 @@ async function waitUntil(predicate: () => boolean, what: string): Promise<void> 
   throw new Error(`timed out waiting for ${what}`)
 }
 
-describe('the stream opens with a snapshot and relays until the chain is terminal (LIFE-04)', () => {
+describe('the stream opens with a snapshot and relays until the chain is terminal', () => {
   it('snapshot first, then every relayed envelope with the seq AS the id, then a final snapshot and close', async () => {
     const running = chips('running', 'pending')
     const fixture = await serve({
@@ -366,7 +366,7 @@ describe('the stream opens with a snapshot and relays until the chain is termina
   }, 20_000)
 })
 
-describe('the stream 204s rather than letting a browser reconnect forever (D-16, Pitfall 6)', () => {
+describe('the stream 204s rather than letting a browser reconnect forever', () => {
   it('204 with no body when the chain is ALREADY terminal at open', async () => {
     const fixture = await serve({
       status: chips('complete', 'failed'),
@@ -575,7 +575,7 @@ async function settle(): Promise<void> {
   await new Promise<void>((tick) => { setImmediate(tick) })
 }
 
-describe('UF-01 — the stream door answers its own throw and unwinds what it built', () => {
+describe('the stream door answers its own throw and unwinds what it built', () => {
   afterEach(() => { vi.useRealTimers() })
 
   it('a write that throws on a dead socket is ANSWERED (destroyed), never stranded as a rejection',
@@ -650,7 +650,7 @@ describe('UF-01 — the stream door answers its own throw and unwinds what it bu
       expect(fake.writes.length, 'and nothing writes at the dead socket ever again').toBe(2)
     })
 
-  it('a failure BEFORE the head is the sibling read door\'s refusal — a NAME, never the message (T-404-01)',
+  it('a failure BEFORE the head is the sibling read door\'s refusal — a NAME, never the message',
     async () => {
       // The other side of the guard: nothing has been sent, so the request is still owed an
       // answer, and the answer is the shape `servePostProcessingRead` gives an unclassified throw.

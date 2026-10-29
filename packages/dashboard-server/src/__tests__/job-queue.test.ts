@@ -439,7 +439,7 @@ describe('JobQueue no longer interprets a retired confirm-scope key', () => {
   })
 })
 
-describe('C443-QUEUE-FLIP', () => {
+describe('the pending-to-running flip', () => {
   const SELF = { pid: 4242, incarnation: 'proc-starttime:7', host: 'h' }
   const OTHER = { pid: 5151, incarnation: 'proc-starttime:9', host: 'h' }
   const inertProbe = { isAlive: () => true, incarnationOf: () => undefined }

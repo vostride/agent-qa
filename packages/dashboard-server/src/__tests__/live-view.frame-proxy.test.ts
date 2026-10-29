@@ -506,7 +506,7 @@ const jpeg = (id: number): LiveFrame => ({
 
 // ---- The cells ---------------------------------------------------------------------------------
 
-describe('the frame proxy through the production startServer frame (403 D-06/D-16)', () => {
+describe('the frame proxy through the production startServer frame', () => {
   it('(1) hello → ready → frame header + binary JPEG → ack reaches the run session', async () => {
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
@@ -633,7 +633,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(frame.attach).not.toHaveBeenCalled()
   })
 
-  it('(7) refuses a token minted for ANOTHER run — scope_mismatch — before attach (T-403-03)', async () => {
+  it('(7) refuses a token minted for ANOTHER run — scope_mismatch — before attach', async () => {
     const one = plantSession({ runId: 'r1' })
     const two = plantSession({ runId: 'r2' })
     const frame = await productionFrame({ r1: one.session, r2: two.session })
@@ -711,7 +711,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(await viewer.waitForClose()).toBe(1000)
   })
 
-  it('(23) a member FINISHING sends `ended { handleFinished }` on the still-open socket (CR-03)', async () => {
+  it('(23) a member FINISHING sends `ended { handleFinished }` on the still-open socket', async () => {
     // CR-03. A multi-member run settles one member at a time, and `shell.ts` withdraws that
     // handle's declaration the instant its race settles. Before this cell the hub dropped the
     // handle's subscriber set without a word, so this viewer sat on `data-embed-state="live"` over
@@ -758,7 +758,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(planted.cancels, 'and nothing about this touched the run (D-16)').toBe(0)
   })
 
-  it('(27) READY-AFTER-SUBSCRIBE: the subscription exists before the viewer is told ready (428 D-14, #274)', () => {
+  it('(27) READY-AFTER-SUBSCRIBE: the subscription exists before the viewer is told ready', () => {
     // DIRECT PROXY, and for the reason the fixture's header gives: the claim is about what had been
     // written to the socket at the instant `subscribeFrames` ran. A real socket receives
     // asynchronously, so a production-frame viewer would see `ready` after the subscription under
@@ -800,7 +800,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(viewer.texts.some((text) => text.type === 'ready'), 'and ready is never sent').toBe(false)
   })
 
-  it('(29) CLOSED-IS-NOT-HANDLE-FINISHED: a closed hub is not a finished member (428 RESEARCH P9)', async () => {
+  it('(29) CLOSED-IS-NOT-HANDLE-FINISHED: a closed hub is not a finished member', async () => {
     const capabilityFor = (): { capability: LiveStreamCapability; started: () => boolean } => {
       let running = false
       return {
@@ -888,7 +888,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(await viewer.waitForClose()).toBe(LIVE_VIEW_REFUSAL_CLOSE_CODE)
   })
 
-  it('(14) `renew` with a later token extends the socket PAST the first token\'s exp (D-02)', async () => {
+  it('(14) `renew` with a later token extends the socket PAST the first token\'s exp', async () => {
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
     const viewer = await openViewer(frame, '?runId=r1')
@@ -933,7 +933,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect((await other.waitFor(['refused'])).reason).toBe('expired')
   })
 
-  it('(16) DETACH: closing a viewer socket unsubscribes and touches NOTHING else on the run (D-16)', async () => {
+  it('(16) DETACH: closing a viewer socket unsubscribes and touches NOTHING else on the run', async () => {
     // T-403-07's cell. The RED bar is an implementation that cancels the run when its last viewer
     // leaves — "attach, don't own" is the law INVK-05 pins, and a viewer that can end a run by
     // closing a tab is a viewer that has become the owner.
@@ -985,7 +985,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(idsOf(b)).toEqual([1, 2, 3])
   })
 
-  it('(18) SLOW VIEWER: a backed-up socket is skipped for the frame and acked on its behalf (T-403-06)', async () => {
+  it('(18) SLOW VIEWER: a backed-up socket is skipped for the frame and acked on its behalf', async () => {
     // THE ONE CELL THAT DOES NOT USE `startServer`. The claim is about a socket whose
     // `bufferedAmount` is above the drop threshold, and `bufferedAmount` is a read-only property of
     // a real `ws` socket that no amount of production framing lets a test set. The gauge is what is
@@ -1019,7 +1019,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(healthy.map((received) => received.id)).toEqual([3])
   })
 
-  it('(24) A SOCKET THAT DIES BETWEEN THE HEADER AND THE BYTES costs itself the frame, not the run (WR-06)', async () => {
+  it('(24) A SOCKET THAT DIES BETWEEN THE HEADER AND THE BYTES costs itself the frame, not the run', async () => {
     // THE SECOND CELL THAT DOES NOT USE `startServer`, and for the same reason as (18): the claim
     // is about a socket whose `readyState` changes BETWEEN two statements of one callback, and a
     // real socket cannot be made to do that on cue. What is under test is the guard.
@@ -1054,7 +1054,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     ).toEqual([9])
   })
 
-  it('(26) TRACER-FRAME-TS: capture time and producer kind reach the header through a real hub (428 D-15, GAP-L3)', async () => {
+  it('(26) TRACER-FRAME-TS: capture time and producer kind reach the header through a real hub', async () => {
     // The one path PXH-LIVE-03's dot reads: producer -> real hub -> RunSession seam -> production
     // proxy -> the viewer's frame header. The proxy never stamps a time of its own; the hub stamps
     // timer.now() only when the producer supplied none.
@@ -1141,7 +1141,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(secondNonce, 'a nonce reused across responses is not a nonce').not.toBe(scriptNonce)
   })
 
-  it('(20) the served page carries the EXACT expired copy, in the branch that renders it (D-02, W6)', async () => {
+  it('(20) the served page carries the EXACT expired copy, in the branch that renders it', async () => {
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
     const body = await (await fetch(`${frame.origin}/live/r1`)).text()
@@ -1167,7 +1167,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(LIVE_EMBED_STATES, 'and `expired` is a declared state of the page').toContain('expired')
   })
 
-  it('(25) the served page carries the EXACT no-stream copy, in the branch keyed on kind none (403-15, G-403-1)', async () => {
+  it('(25) the served page carries the EXACT no-stream copy, in the branch keyed on kind none', async () => {
     const planted = plantSession({ runId: 'r1' })
     const frame = await productionFrame({ r1: planted.session })
     const body = await (await fetch(`${frame.origin}/live/r1`)).text()
@@ -1202,7 +1202,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     return { style, script }
   }
 
-  it('(34) SERVED-SESSION-ENDED-COPY: the EXACT session-ended copy, in the branch keyed on sessionEnded (428 D-07/D-09)', async () => {
+  it('(34) SERVED-SESSION-ENDED-COPY: the EXACT session-ended copy, in the branch keyed on sessionEnded', async () => {
     expect(LIVE_EMBED_SESSION_ENDED_MESSAGE, 'the copy is one exported constant').toBe('session ended')
     const { script } = await servedEmbed()
     expect(script, 'the served script must carry the exported session-ended message verbatim')
@@ -1218,7 +1218,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
     expect(LIVE_EMBED_STATES, 'and `session-ended` is a declared state of the page').toContain('session-ended')
   })
 
-  it('(35) SERVED-SNAPSHOT-PAINTER-BRANCH: both declared kinds paint, and the Blob names no MIME type (428 D-11/D-13, A2)', async () => {
+  it('(35) SERVED-SNAPSHOT-PAINTER-BRANCH: both declared kinds paint, and the Blob names no MIME type', async () => {
     const { script } = await servedEmbed()
     const readyAt = script.indexOf("msg.type === 'ready'")
     expect(readyAt, 'the served script has a ready branch').toBeGreaterThan(-1)
@@ -1251,7 +1251,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
       .toContain("root.setAttribute('data-embed-host'")
   })
 
-  it('(37) SERVED-REPORT-HAS-NO-TOKEN: every report to the host is closed-set words and numbers (428 D-15, Q-BRIDGE)', async () => {
+  it('(37) SERVED-REPORT-HAS-NO-TOKEN: every report to the host is closed-set words and numbers', async () => {
     const { script } = await servedEmbed()
     const definition = /function report\(payload\) \{[\s\S]*?\n {2}\}/u.exec(script)?.[0] ?? ''
     expect(definition, 'the served script defines one report function').not.toBe('')
@@ -1350,7 +1350,7 @@ describe('the frame proxy through the production startServer frame (403 D-06/D-1
   })
 })
 
-describe('the editor subject on the frame socket (428 D-07/D-09/D-10)', () => {
+describe('the editor subject on the frame socket', () => {
   const widthsOf = (viewer: DirectProxyViewer): number[] =>
     viewer.texts.filter((text) => text.type === 'frame').map((text) => text.width as number)
 

@@ -194,7 +194,7 @@ afterEach(async () => {
   tempDirs = []
 })
 
-describe('draft credentials (429-09 Task 2)', () => {
+describe('draft credentials', () => {
   it('DRAFT-CREDENTIAL-ACCEPTED: a key for a name not in registry.llms is saved and reported created', async () => {
     const res = await post('/api/auth/credential', {
       configName: 'gpt-5.6',
@@ -334,7 +334,7 @@ describe('draft credentials (429-09 Task 2)', () => {
   })
 })
 
-describe('moving a draft credential (429-09 Task 2)', () => {
+describe('moving a draft credential', () => {
   const MOVE = '/api/auth/credential/move'
 
   beforeEach(() => {
@@ -469,7 +469,7 @@ async function startSameSiteSession(): Promise<string> {
   return (JSON.parse(start.body) as { sessionId: string }).sessionId
 }
 
-describe('AUTH-DOORS-SAME-SITE (429-09 Task 3)', () => {
+describe('AUTH-DOORS-SAME-SITE', () => {
   beforeEach(() => {
     registerFakeSubscriptionPlugins()
     authStore.current = { 'draft-a': OPENAI_OAUTH }
@@ -521,7 +521,7 @@ describe('AUTH-DOORS-SAME-SITE (429-09 Task 3)', () => {
   })
 })
 
-describe('CREDENTIAL-WRITES-SERIALIZED (429-09 Task 3)', () => {
+describe('CREDENTIAL-WRITES-SERIALIZED', () => {
   it('CREDENTIAL-WRITES-SERIALIZED: two credential saves never interleave their auth.json writes', async () => {
     const events: string[] = []
     const slowWrite = async (name: string, credential: unknown) => {

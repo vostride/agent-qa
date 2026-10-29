@@ -579,7 +579,7 @@ describe('the local door CALLS the exported core — one implementation, not two
   })
 })
 
-describe('the local door serves the frozen envelope vocabulary (D-13)', () => {
+describe('the local door serves the frozen envelope vocabulary', () => {
   it('serves id=seq, event=type and data=the envelope, parseable under the schema', async () => {
     const origin = await localDoor()
     const stream = await read(`${origin}/api/run-stream/r_local`)
@@ -604,7 +604,7 @@ describe('the local door serves the frozen envelope vocabulary (D-13)', () => {
   })
 })
 
-describe('the local door applies the same handle filter (D-14)', () => {
+describe('the local door applies the same handle filter', () => {
   it.each([3, 7, 11] as const)('handle %i carries its OWN member events and every run-scoped one', async (handle) => {
     const origin = await localDoor()
     const stream = await read(`${origin}/api/run-stream/r_local?handle=${String(handle)}`)
@@ -712,7 +712,7 @@ describe('the PRODUCTION frame threads the attach port (server.ts, not the route
       .toEqual([...RUN_SCOPED_SEQS, ...MEMBER_SEQS[7]!].sort((a, b) => a - b))
   })
 
-  it('THE #264 ARM: streams with runServiceAttach alone and NO runService mounted', async () => {
+  it('THE ATTACH-ONLY ARM: streams with runServiceAttach alone and NO runService mounted', async () => {
     // WINDOWS #264, at the production frame. The zero-token dashboard declares no run-service
     // credential, so `runService` is absent — and it still executes runs, so its local door must
     // still stream them. `runServiceAttach` is a FIRST-CLASS `startServer` option rather than a
@@ -745,7 +745,7 @@ describe('the PRODUCTION frame threads the attach port (server.ts, not the route
     expect(idsOf(stream.body)).toEqual([25, 26, 30, 31])
   })
 
-  it('D-15: replays to the end and CLOSES on a run whose feed is already over', async () => {
+  it('replays to the end and CLOSES on a run whose feed is already over', async () => {
     // The socket ending is the claim — `getThroughServer` resolves on `end`, so a frame that held
     // the connection open would hang this cell rather than fail it, which is why the resume-past-
     // the-end row below is driven here too.
@@ -765,7 +765,7 @@ describe('the PRODUCTION frame threads the attach port (server.ts, not the route
     expect(past.body).toMatch(/^:ok\n\n/u)
   })
 
-  it('D-13: refuses the floor with 410 through the shipped frame', async () => {
+  it('refuses the floor with 410 through the shipped frame', async () => {
     const db = new DashboardDatabase({ dbPath: ':memory:' })
     const started = await startServer({ declaredSecretMask: (text) => text, db, port: 0, runServiceAttach: attachPort })
     closers.push(started.close)
@@ -778,7 +778,7 @@ describe('the PRODUCTION frame threads the attach port (server.ts, not the route
       .toEqual({ error: 'replay_floor', earliestAvailableSeq: FLOOR_EARLIEST_SEQ })
   })
 
-  it('D-15: answers 404 unknown_run for a run this process never started', async () => {
+  it('answers 404 unknown_run for a run this process never started', async () => {
     const db = new DashboardDatabase({ dbPath: ':memory:' })
     const started = await startServer({ declaredSecretMask: (text) => text, db, port: 0, runServiceAttach: attachPort })
     closers.push(started.close)

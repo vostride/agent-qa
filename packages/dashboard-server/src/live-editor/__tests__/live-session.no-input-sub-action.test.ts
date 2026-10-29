@@ -39,7 +39,7 @@ function stepWith(subActions: SubActionTrace[]): StepResult {
 const skipped = (index: number) =>
   subAction(index, { result: 'no-input', noInputSent: { currentState: 'checked' } })
 
-describe('C437-NO-INPUT-LABEL', () => {
+describe('a skipped tap in the live editor data', () => {
   it('the live editor data carries a skipped tap as no-input', () => {
     const [once] = toLiveSubActionData(stepWith([skipped(0)]))!
     expect(once!.result).toBe('no-input')

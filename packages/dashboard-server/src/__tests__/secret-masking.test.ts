@@ -220,7 +220,7 @@ function runHook(router: ReturnType<typeof createRouter>): Promise<MockResponse>
   })
 }
 
-describe('C441-GAP-DASHBOARD', () => {
+describe('declared values in dashboard answers', () => {
   beforeEach(() => {
     mockRunHook.mockResolvedValue({
       success: true,
@@ -356,7 +356,7 @@ const WRITE_LINES = [
   '',
 ]
 
-describe('C441-GAP-CONFIG-WRITE', () => {
+describe('config writes holding a shown marker', () => {
   async function writeWorkspace(): Promise<{ manager: ConfigManager; configPath: string; before: string }> {
     const { configPath } = await configWorkspace(WRITE_LINES)
     return { manager: new ConfigManager(configPath, declaredMask), configPath, before: await readFile(configPath, 'utf-8') }
@@ -445,7 +445,7 @@ const DELETE_SPARE: ConfigChange[] = [
   { op: 'unset', path: ['registry', 'llms', { name: 'spare' }] },
 ]
 
-describe('C441-GAP2-WRITE-BACK', () => {
+describe('config writes while a declared value is shown', () => {
   async function maskedNameWorkspace(): Promise<{ manager: ConfigManager; configPath: string }> {
     const { configPath } = await configWorkspace(maskedNameLines('model-qa-1'))
     return { manager: new ConfigManager(configPath, nameMask), configPath }
@@ -492,7 +492,7 @@ describe('C441-GAP2-WRITE-BACK', () => {
   })
 })
 
-describe('C441-GAP3-WRITE-BACK', () => {
+describe('replaceDocument and shown markers', () => {
   const revisionOf = (bytes: Uint8Array): string => createHash('sha256').update(bytes).digest('hex')
 
   it('replaceDocument refuses a document that adds a shown marker and leaves the file unchanged', async () => {

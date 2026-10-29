@@ -436,7 +436,7 @@ async function seedCountingClasses(): Promise<{ origin: string; tests: Record<Te
   return { origin, tests }
 }
 
-describe('C444-RATE-WINDOW', () => {
+describe('the list reads agree with the viewers on pass rate and last run', () => {
   it('a test reads one rate from the batch read and from its viewer at 200 runs and past 200', async () => {
     const window = await seedRateWindow()
     const { A, C, D, E } = window.tests

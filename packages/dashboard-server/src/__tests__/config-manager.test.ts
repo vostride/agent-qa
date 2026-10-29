@@ -520,7 +520,7 @@ function llmsOf(text: string): LlmEntry[] {
   return (parseYaml(text) as { registry: { llms: LlmEntry[] } }).registry.llms
 }
 
-describe('ConfigManager.applyChanges ops and selectors (429-05)', () => {
+describe('ConfigManager.applyChanges ops and selectors', () => {
   it('UNSET-PRUNES-EMPTY-PARENTS: an unset prunes every ancestor map it empties, and keeps a sibling', async () => {
     await writeFile(configPath, writeConfig(
       WRITE_BASE_LINES,
@@ -640,7 +640,7 @@ describe('ConfigManager.applyChanges ops and selectors (429-05)', () => {
 
 const BROKEN_YAML = 'a: 1\nb: [1, 2\nc: 3\n'
 
-describe('ConfigManager broken files, missing files and the mask guard (429-05)', () => {
+describe('ConfigManager broken files, missing files and the mask guard', () => {
   it('FILE-INVALID-REFUSED: a file that does not parse is refused and never rewritten', async () => {
     await writeFile(configPath, BROKEN_YAML)
 
@@ -920,7 +920,7 @@ function declaredMask(value: string, name: string): (text: string) => string {
   return (text) => text.split(value).join(`[secret:${name}]`)
 }
 
-describe('ConfigManager masked read (441-21)', () => {
+describe('ConfigManager masked read', () => {
   it('READ-MASKED-ALIASES-FAIL-CLOSED: an alias never carries a declared value past the mask', async () => {
     await writeFile(configPath, [
       'workspace:',
@@ -952,7 +952,7 @@ describe('ConfigManager masked read (441-21)', () => {
   })
 })
 
-describe('C441-CONFIG', () => {
+describe('declared secrets in the config editor', () => {
   it('the config editor shows an undeclared credential as written and a declared value as its marker', async () => {
     await writeFile(configPath, [
       'registry:',
@@ -1040,7 +1040,7 @@ describe('C441-CONFIG', () => {
 // 2026-09-30, 432-07 D-05/D-07 (EDGE-12): the transaction queue belongs to the resolved config path,
 // so every ConfigManager in this process (the dashboard's and a co-hosted direct writer's) takes
 // turns. It is not a cross-process lock.
-describe('C432-CONFIG-PATH-QUEUE: co-hosted writers of one config path share one queue', () => {
+describe('co-hosted writers of one config path share one queue', () => {
   const QUEUE_CONFIG = writeConfig(
     ['# The owner keeps this comment.'],
     WRITE_BASE_LINES,

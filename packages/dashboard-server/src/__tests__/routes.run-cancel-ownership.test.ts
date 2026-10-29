@@ -176,7 +176,7 @@ function refusalBodyOf(owner: RunOwner) {
   }
 }
 
-describe('C442-CANCEL-OWNER', () => {
+describe('a cancel on a run another process owns', () => {
   it("another live process's run is refused and nothing is written", async () => {
     const byQueue = seedRunning(ALIVE, 'Alive owner, queue')
     const byRoute = seedRunning(ALIVE, 'Alive owner, route')
@@ -239,7 +239,7 @@ describe('C442-CANCEL-OWNER', () => {
   })
 })
 
-describe('C442-CANCEL-ORPHAN', () => {
+describe('a cancel on an orphaned run', () => {
   it('a cancel on a run whose process is gone finalizes it as an orphan', async () => {
     const dashboard = await startDashboard()
     const byQueue = seedRunning(GONE, 'Gone owner, queue')
@@ -300,7 +300,7 @@ describe('C442-CANCEL-ORPHAN', () => {
   })
 })
 
-describe('C442-OWN-START-TIME', () => {
+describe('a cancel on a run stamped with no start time', () => {
   it('the dashboard cancels its own run stamped with no start time', () => {
     const own = new DashboardDatabase({ dbPath, runOwnership: { self: UNREAD_SELF, probe } })
     const ownStops: string[] = []
@@ -358,7 +358,7 @@ describe('C442-OWN-START-TIME', () => {
   })
 })
 
-describe('C442-PROBE-THROWS', () => {
+describe('a cancel when the start-time read throws', () => {
   it('a cancel answers 409, not 500, when the start-time read throws', async () => {
     const throwing: RunOwner = { pid: 3006, incarnation: 'inc-3006', host: HOST }
     const throwingProbe: RunOwnerProbe = {
@@ -401,7 +401,7 @@ const namespaceProbe: RunOwnerProbe = {
   incarnationOf: (pid) => (pid === 12 ? 'proc-starttime:12' : undefined),
 }
 
-describe('C442-PID-NAMESPACE', () => {
+describe('a cancel on a run owned from another pid namespace', () => {
   it('a cancel on a run owned from another pid namespace under this host name is refused with 409 and writes nothing', async () => {
     const here = linuxResolver('build-box', () => 'pid:[4026531836]')()
     const container = linuxResolver('build-box', () => 'pid:[4026532001]')()
@@ -440,7 +440,7 @@ describe('C442-PID-NAMESPACE', () => {
   })
 })
 
-describe('C442-CANCEL-RUN-ID', () => {
+describe('a cancel addressed by run id', () => {
   it('a cancel on a run whose id needs encoding reaches that run', async () => {
     const dashboard = await startDashboard()
     const ownId = seedRunning(SELF, 'Own run, id needs encoding', 'run a/b?c')

@@ -224,7 +224,7 @@ async function driveOpenRun(input: {
   return { backend, session: session!, release: () => release?.(), settled }
 }
 
-describe('the bus subscription answers the active list (405-07, D-19 · RESEARCH D7)', () => {
+describe('the bus subscription answers the active list', () => {
   it('`testName` COMES OFF THE SESSION, not off a buffer of its frames', async () => {
     const { backend, release } = await driveOpenRun({
       runId: PARITY_RUN_ID,
@@ -290,7 +290,7 @@ describe('the bus subscription answers the active list (405-07, D-19 · RESEARCH
   })
 })
 
-describe('native lifecycle mapping — cancel, timeout, completion (401-07, D-12)', () => {
+describe('native lifecycle mapping — cancel, timeout, completion', () => {
   it('KILL ABORTS THE SESSION — no signal, no grace timer, no process group', async () => {
     const drive: Drive = { settled: [] }
     let session: FakeRunSession | undefined
@@ -368,7 +368,7 @@ describe('native lifecycle mapping — cancel, timeout, completion (401-07, D-12
   })
 })
 
-describe('a refusal is not silence — the completion vocabulary (401-07, D-04/INVK-01)', () => {
+describe('a refusal is not silence — the completion vocabulary', () => {
   it('A REFUSAL — the starter rejects with NO session, and the reason reaches the consumers', async () => {
     const drive = await driveOneRun({
       runId: 'refused-run',
@@ -446,7 +446,7 @@ describe('a refusal is not silence — the completion vocabulary (401-07, D-04/I
   })
 })
 
-describe('two concurrent runs are isolated at the consumer surface (401-07, INVK-01 concurrency edge)', () => {
+describe('two concurrent runs are isolated at the consumer surface', () => {
   it('EACH HANDLE HOLDS ONLY ITS OWN RUN, AND KILLING ONE ABORTS ONLY THAT SESSION', async () => {
     const sessions = new Map<string, FakeRunSession>()
     const settled: Settled[] = []
@@ -527,7 +527,7 @@ describe('two concurrent runs are isolated at the consumer surface (401-07, INVK
   })
 })
 
-describe('the spawn vocabulary is gone from this module (401-07, INVK-01 source assertion)', () => {
+describe('the spawn vocabulary is gone from this module', () => {
   const source = readFileSync(
     join(dirname(fileURLToPath(import.meta.url)), '..', 'in-process-backend.ts'),
     'utf8',

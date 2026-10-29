@@ -178,7 +178,7 @@ function expectNoCanary(response: RawResponse): void {
   expect(response.raw).not.toContain(CANARY)
 }
 
-describe('the ref-addressed artifact route refuses encoded traversal at the raw wire (405-07, D-14)', () => {
+describe('the ref-addressed artifact route refuses encoded traversal at the raw wire', () => {
   it('documents where normalization happens: a LITERAL ../ never reaches the artifact door', async () => {
     // Sent as raw bytes — no client could produce this. The server's own `tryParseRequestUrl`
     // collapses it, so the request lands somewhere that is not the artifact route at all. This cell

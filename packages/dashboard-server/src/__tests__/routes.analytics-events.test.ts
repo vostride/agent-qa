@@ -124,7 +124,7 @@ beforeEach(async () => {
   router = createRouter({ db: createMockDatabase() as never })
 })
 
-describe('the dropped dashboard analytics bridge route (D-18/D-20)', () => {
+describe('the dropped dashboard analytics bridge route', () => {
   it('has no ingest endpoint: a v33 dashboard product event is refused, not accepted', async () => {
     const response = await invokeRoute('/api/analytics/events', routeBody({
       name: 'agent-qa.dashboard.opened',

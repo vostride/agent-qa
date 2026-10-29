@@ -9,7 +9,7 @@ import { DashboardDatabase } from '../db/database.js'
 import { createDashboardSqliteDatabase } from '../db/sqlite.js'
 import { createDashboardRunDetailReader } from '../run-service/run-detail-reader.js'
 
-it('REC-V3-ROW-READS-UNAVAILABLE-ORDINAL: cold registry reads only persisted v3 facts', async () => {
+it('a run stored without recordings reads each recording as absent, from its rows alone', async () => {
   const dir = mkdtempSync(join(tmpdir(), 'agent-qa-424-cold-'))
   const dbPath = join(dir, 'history.db')
   const runId = asRunId(generateRunId())

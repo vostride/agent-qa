@@ -131,8 +131,8 @@ async function sha256(path: string): Promise<string> {
   return createHash('sha256').update(await readFile(path)).digest('hex')
 }
 
-describe('C433-TEST-SAVE-REFUSES-INVALID', () => {
-  it('C433-TEST-SAVE-REFUSES-INVALID: POST refuses a repeated key and writes nothing', async () => {
+describe('test saves refuse invalid content', () => {
+  it('POST refuses a repeated key and writes nothing', async () => {
     const { dir, router, testFileManager } = await composeWorkspace()
 
     const res = await invoke(router, '/api/tests', 'POST', { path: 'tests/invalid-433.yaml', content: WALK_INVALID_CONTENT })
@@ -145,7 +145,7 @@ describe('C433-TEST-SAVE-REFUSES-INVALID', () => {
     expect(await exists(join(dir, 'tests', 'invalid-433.yaml'))).toBe(false)
   })
 
-  it('C433-TEST-SAVE-REFUSES-INVALID: PUT refuses invalid content and leaves the file unchanged', async () => {
+  it('PUT refuses invalid content and leaves the file unchanged', async () => {
     const { dir, router, testFileManager } = await composeWorkspace()
     const created = await invoke(router, '/api/tests', 'POST', { path: 'tests/login.yaml', content: validContent('Login') })
     expect(created.status).toBe(201)
@@ -162,7 +162,7 @@ describe('C433-TEST-SAVE-REFUSES-INVALID', () => {
     expect(await sha256(filePath)).toBe(before)
   })
 
-  it('C433-TEST-SAVE-REFUSES-INVALID: valid content still saves', async () => {
+  it('valid content still saves', async () => {
     const { dir, router } = await composeWorkspace()
     const filePath = join(dir, 'tests', 'login.yaml')
 

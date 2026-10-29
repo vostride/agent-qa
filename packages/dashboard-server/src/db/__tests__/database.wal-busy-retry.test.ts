@@ -52,7 +52,7 @@ afterEach(() => {
   rmSync(dir, { recursive: true, force: true })
 })
 
-describe('C443-WAL-BUSY', () => {
+describe('the WAL switch on a busy database', () => {
   it('a fresh open retries the WAL switch on an extended busy code', () => {
     wal.codes = [517, 261]
     let db: DashboardDatabase | undefined

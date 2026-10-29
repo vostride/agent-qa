@@ -596,7 +596,7 @@ async function guardLegs(name: string, body: (firstId: string) => string): Promi
 
 const SHOWN = '[secret:API_TOKEN]'
 
-describe('C444-LIST-WRITE-SAFE', () => {
+describe('test and suite list reads and id writes', () => {
   it('the Tests and Suites page reads sent together leave every id-less file whole under one id line, and every listed id opens', async () => {
     const lost: string[] = []
     const mismatched: string[] = []

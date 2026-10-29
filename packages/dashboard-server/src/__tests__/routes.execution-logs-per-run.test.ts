@@ -184,8 +184,8 @@ function summary(runId: string) {
   })).sort((a, b) => `${a.phase}:${a.name}`.localeCompare(`${b.phase}:${b.name}`))
 }
 
-describe('C433-HOOK-LOG-IDENTITY', () => {
-  it('C433-HOOK-LOG-IDENTITY: two runs of the same hooked test each keep their setup and teardown rows', async () => {
+describe('hook log rows are kept per run', () => {
+  it('two runs of the same hooked test each keep their setup and teardown rows', async () => {
     const mintedA: string[] = []
     const mintedB: string[] = []
     await ingestHookedTestRun(RUN_A, mintedA)
@@ -216,7 +216,7 @@ describe('C433-HOOK-LOG-IDENTITY', () => {
     }
   })
 
-  it("C433-HOOK-LOG-IDENTITY: a suite member's hook keeps its row in a second suite run", async () => {
+  it("a suite member's hook keeps its row in a second suite run", async () => {
     const mintedA: string[] = []
     const mintedB: string[] = []
     await ingestHookedSuiteRun(SUITE_RUN_A, mintedA)
@@ -228,7 +228,7 @@ describe('C433-HOOK-LOG-IDENTITY', () => {
     expect(summary(SUITE_RUN_B)).toEqual(expected)
   })
 
-  it('C433-HOOK-LOG-IDENTITY: two hook rows without an execution id in one millisecond both persist', () => {
+  it('two hook rows without an execution id in one millisecond both persist', () => {
     const ingest = createDashboardRunIngest({
       db,
       sourceSnapshot: { kind: 'test', testId: TEST_ID, name: 'Hooked test', filePath: 'tests/hooked.yaml', loadStatus: 'loaded' },
@@ -255,7 +255,7 @@ describe('C433-HOOK-LOG-IDENTITY', () => {
     expect(db.getExecutionLogs({ runId: RUN_A }).map((log) => log.name).sort()).toEqual(['first-hook', 'second-hook'])
   })
 
-  it("C433-HOOK-LOG-IDENTITY: a retried member keeps the final attempt's inline hook rows and its setup row", async () => {
+  it("a retried member keeps the final attempt's inline hook rows and its setup row", async () => {
     const ingest = createDashboardRunIngest({
       db,
       sourceSnapshot: { kind: 'test', testId: TEST_ID, name: 'Hooked test', filePath: 'tests/hooked.yaml', loadStatus: 'loaded' },

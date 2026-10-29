@@ -149,7 +149,7 @@ async function sha256(path: string): Promise<string> {
   return createHash('sha256').update(await readFile(path)).digest('hex')
 }
 
-describe('C441-GAP2-TEST-SAVE', () => {
+describe('test and suite saves whose target holds a shown marker', () => {
   it('a test save whose target holds a shown marker is refused and nothing is written', async () => {
     const { dir, router } = await composeWorkspace()
 

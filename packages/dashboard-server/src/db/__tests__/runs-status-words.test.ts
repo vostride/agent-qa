@@ -29,7 +29,7 @@ function freshFile(name: string): string {
   return dbPath
 }
 
-describe('C444-SCHEMA-V6', () => {
+describe('runs status words and the schema version', () => {
   it('a fresh runs database opens at version 2', () => {
     const raw = createDashboardSqliteDatabase(freshFile('fresh'))
     try {

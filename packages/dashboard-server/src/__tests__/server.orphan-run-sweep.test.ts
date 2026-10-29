@@ -103,7 +103,7 @@ function expectOrphanFinalized(id: string, pid: number): void {
   expect(artifact.payload.runtime).toMatchObject({ status: 'failed', duration: row.duration })
 }
 
-describe('C442-ORPHAN', () => {
+describe('the startup orphan sweep', () => {
   it("a starting dashboard finalizes a gone owner's run with the plain sentence", async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const id = seedRunning(GONE, 'Gone owner')
@@ -193,7 +193,7 @@ describe('C442-ORPHAN', () => {
   })
 })
 
-describe('C442-PROBE-THROWS', () => {
+describe('the startup sweep when the start-time read throws', () => {
   it('a dashboard starts and leaves the run running when the start-time read throws', async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const throwing: RunOwner = { pid: 2007, incarnation: 'inc-2007', host: HOST }
@@ -236,7 +236,7 @@ const namespaceProbe: RunOwnerProbe = {
   incarnationOf: (pid) => (pid === 12 ? 'proc-starttime:12' : undefined),
 }
 
-describe('C442-PID-NAMESPACE', () => {
+describe('the startup sweep beside another pid namespace', () => {
   it("a dashboard started beside a container that shares its host name leaves the container's runs running and byte-equal", async () => {
     const log = vi.spyOn(console, 'log').mockImplementation(() => undefined)
     const here = linuxResolver('build-box', () => 'pid:[4026531836]')()

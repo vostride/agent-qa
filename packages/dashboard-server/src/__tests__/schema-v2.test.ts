@@ -65,7 +65,7 @@ function writeV1Database(dbPath: string): void {
   }
 }
 
-describe('a fresh dashboard database opens at the current version (444 D-03)', () => {
+describe('a fresh dashboard database opens at the current version', () => {
   it('stamps user_version 2 and creates the three bus-shaped projection tables', () => {
     const db = new DashboardDatabase({ dbPath: join(workDir, 'fresh.db') })
     try {
@@ -109,7 +109,7 @@ describe('a fresh dashboard database opens at the current version (444 D-03)', (
   })
 })
 
-describe('an older or newer database is refused BY NAME, never migrated (D-02)', () => {
+describe('an older or newer database is refused BY NAME, never migrated', () => {
   it('refuses a v1 database with the remove-the-database message', () => {
     const dbPath = join(workDir, 'legacy-v1.db')
     writeV1Database(dbPath)
@@ -173,7 +173,7 @@ describe('an older or newer database is refused BY NAME, never migrated (D-02)',
   })
 })
 
-describe('the single-entry migration contract (D-02)', () => {
+describe('the single-entry migration contract', () => {
   it('accepts exactly one entry stamped at the schema version', () => {
     const raw = createDashboardSqliteDatabase(':memory:')
     try {

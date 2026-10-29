@@ -176,8 +176,8 @@ function collectKeys(value: unknown, keys = new Set<string>()): Set<string> {
   return keys
 }
 
-describe('C433-INSIGHTS-SOURCES: token usage', () => {
-  it('C433-INSIGHTS-SOURCES: run-step tokens count as test-run usage in the window', () => {
+describe('token usage', () => {
+  it('run-step tokens count as test-run usage in the window', () => {
     insertRun('r_in_window', '2026-04-01T10:00:00.000Z', 'gpt-5.4')
     insertStep('r_in_window', 0, usage('gpt-5.4-mini', 1000, 40))
     insertStep('r_in_window', 1, usage('gpt-5.4-mini', 2000, 60))
@@ -202,7 +202,7 @@ describe('C433-INSIGHTS-SOURCES: token usage', () => {
     expect(stats.testRunUnmeasuredSteps).toBe(1)
   })
 
-  it('C433-INSIGHTS-SOURCES: a measured step without a model identity falls back to the run model, then to unattributed', () => {
+  it('a measured step without a model identity falls back to the run model, then to unattributed', () => {
     insertRun('r_run_model', '2026-04-02T10:00:00.000Z', 'gpt-5.4')
     insertStep('r_run_model', 0, { tokenUsage: { promptTokens: 10, completionTokens: 2, totalTokens: 12 } })
     insertRun('r_no_model', '2026-04-03T10:00:00.000Z')
@@ -214,7 +214,7 @@ describe('C433-INSIGHTS-SOURCES: token usage', () => {
     expect(stats.byModel).toContainEqual({ date: '2026-04-03', model: 'unattributed', promptTokens: 7, completionTokens: 1 })
   })
 
-  it('C433-INSIGHTS-SOURCES: a step that made no model call is a measured zero, not unmeasured', () => {
+  it('a step that made no model call is a measured zero, not unmeasured', () => {
     insertRun('r_cached', '2026-04-04T10:00:00.000Z', 'gpt-5.4')
     insertStep('r_cached', 0, {
       cacheStatus: 'hit',
@@ -227,7 +227,7 @@ describe('C433-INSIGHTS-SOURCES: token usage', () => {
     expect(stats.testRunUnmeasuredSteps).toBe(0)
   })
 
-  it('C433-INSIGHTS-SOURCES: no double counting — a legacy test-run token event and run-step tokens are disjoint records, each counted once', () => {
+  it('no double counting — a legacy test-run token event and run-step tokens are disjoint records, each counted once', () => {
     insertRun('r_legacy_window', '2026-04-05T10:00:00.000Z', 'gpt-5.4')
     insertStep('r_legacy_window', 0, usage('gpt-5.4-mini', 200, 20))
     db.insertTokenEvent({ modelName: 'gpt-4-legacy', promptTokens: 300, completionTokens: 30, source: 'test-run' })
@@ -245,8 +245,8 @@ describe('C433-INSIGHTS-SOURCES: token usage', () => {
   })
 })
 
-describe('C433-INSIGHTS-SOURCES: knowledge changes', () => {
-  it('C433-INSIGHTS-SOURCES: knowledge changes are read per run through the agent host', async () => {
+describe('knowledge changes', () => {
+  it('knowledge changes are read per run through the agent host', async () => {
     insertRun('r_curated', '2026-04-01T10:00:00.000Z')
     insertRun('r_quiet', '2026-04-02T10:00:00.000Z')
     insertRun('r_old', '2025-06-01T10:00:00.000Z')
@@ -273,7 +273,7 @@ describe('C433-INSIGHTS-SOURCES: knowledge changes', () => {
     expect(res.headers['access-control-allow-origin']).toBeUndefined()
   })
 
-  it('C433-INSIGHTS-SOURCES: an unreadable run is counted as unreadable, not as zero', async () => {
+  it('an unreadable run is counted as unreadable, not as zero', async () => {
     insertRun('r_curated', '2026-04-01T10:00:00.000Z')
     insertRun('r_broken', '2026-04-02T10:00:00.000Z')
     insertRun('r_pruned', '2026-04-03T10:00:00.000Z')
@@ -288,7 +288,7 @@ describe('C433-INSIGHTS-SOURCES: knowledge changes', () => {
     expect((body.byKind as Record<string, number>).added).toBe(1)
   })
 
-  it('C433-INSIGHTS-SOURCES: no agent host answers unavailable', async () => {
+  it('no agent host answers unavailable', async () => {
     insertRun('r_curated', '2026-04-01T10:00:00.000Z')
     const router = createRouter({ db })
 
@@ -301,7 +301,7 @@ describe('C433-INSIGHTS-SOURCES: knowledge changes', () => {
     expect(body.byKind).toBeUndefined()
   })
 
-  it('C433-INSIGHTS-SOURCES: the read is capped at the latest 200 runs and says so', async () => {
+  it('the read is capped at the latest 200 runs and says so', async () => {
     for (let index = 0; index < 201; index += 1) {
       const minute = String(index % 60).padStart(2, '0')
       const hour = String(Math.floor(index / 60)).padStart(2, '0')
@@ -325,7 +325,7 @@ describe('C433-INSIGHTS-SOURCES: knowledge changes', () => {
     expect(read.has('r_cap_000')).toBe(false)
   })
 
-  it('C433-INSIGHTS-SOURCES: a cross-site page cannot drive the read', async () => {
+  it('a cross-site page cannot drive the read', async () => {
     insertRun('r_curated', '2026-04-01T10:00:00.000Z')
     const planted = plantHost({ r_curated: ['added'] })
     const router = createRouter({ db, agentHost: planted.host })

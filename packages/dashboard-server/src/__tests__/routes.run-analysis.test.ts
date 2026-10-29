@@ -270,7 +270,7 @@ async function serve(
   return (started.server.address() as AddressInfo).port
 }
 
-describe('GET /api/runs/:id/analysis — the 406 tracer (D-04 · DETL-04)', () => {
+describe('GET /api/runs/:id/analysis', () => {
   it('serves the floor verdict the op composed, quoting the step error the handoff recorded', async () => {
     const port = await serve()
     const answer = await get(port, `/api/runs/${RUN_ID}/analysis`)
@@ -302,7 +302,7 @@ describe('GET /api/runs/:id/analysis — the 406 tracer (D-04 · DETL-04)', () =
       .toContain(STEP_ERROR)
   })
 
-  it('is answered by the analysis arm and NOT by the /api/runs/:id catch-all (RESEARCH Pitfall 2)', async () => {
+  it('is answered by the analysis arm and NOT by the /api/runs/:id catch-all', async () => {
     const port = await serve()
     const answer = await get(port, `/api/runs/${RUN_ID}/analysis`)
     // The catch-all claims every four-segment GET under the prefix and answers `Not found` for
@@ -311,7 +311,7 @@ describe('GET /api/runs/:id/analysis — the 406 tracer (D-04 · DETL-04)', () =
     expect(answer.status).toBe(200)
   })
 
-  it('answers 404 unknown_run for a run nothing recorded, and never echoes the id (T-405-18)', async () => {
+  it('answers 404 unknown_run for a run nothing recorded, and never echoes the id', async () => {
     const port = await serve()
     const missing = 'r_absent-run-nobody-ever-started'
     const answer = await get(port, `/api/runs/${missing}/analysis`)

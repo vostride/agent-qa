@@ -205,7 +205,7 @@ function verdictOnCancel(verdict: string): (session: HeldSession) => void {
   }
 }
 
-describe('C444-CANCEL-REQUEST', () => {
+describe('a cancel on a running run asks it to stop', () => {
   it("a cancel on this dashboard's running run asks it to stop and writes nothing", async () => {
     const asked: string[] = []
     const queue = new JobQueue({
@@ -343,7 +343,7 @@ function finishOwnRow(id: string, status: string): void {
   })
 }
 
-describe('C444-CANCEL-ANSWERS', () => {
+describe('what a cancel answers', () => {
   it('a pending run answers 200 cancelled before it started', async () => {
     const backend = new RecordingBackend(true)
     const { origin } = await startDashboard(backend as unknown as ExecutionBackend)
@@ -411,7 +411,7 @@ describe('C444-CANCEL-ANSWERS', () => {
   })
 })
 
-describe('C444-NO-CAUSE-GUESS', () => {
+describe('a settled run is never guessed cancelled', () => {
   it('a settled run whose output says the browser closed is written failed, never cancelled', async () => {
     const backend = new RecordingBackend(true)
     await startDashboard(backend as unknown as ExecutionBackend)

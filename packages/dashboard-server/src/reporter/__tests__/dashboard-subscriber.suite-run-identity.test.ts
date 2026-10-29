@@ -102,9 +102,9 @@ const DOORS: Door[] = [
   },
 ]
 
-describe('C433-SUITE-RUN-IDENTITY', () => {
+describe("a suite run keeps the suite's identity", () => {
   for (const door of DOORS) {
-    it(`C433-SUITE-RUN-IDENTITY: the run row carries the suite's name and id, not the last member's — ${door.label}`, async () => {
+    it(`the run row carries the suite's name and id, not the last member's — ${door.label}`, async () => {
       const runId = await door.start()
       expect(db.getRuns().map((row) => row.id)).toEqual([runId])
       const row = db.getRun(runId)
@@ -112,7 +112,7 @@ describe('C433-SUITE-RUN-IDENTITY', () => {
         .toEqual({ name: SUITE_NAME, suiteId: SUITE_ID, testId: null, status: 'passed' })
     })
 
-    it(`C433-SUITE-RUN-IDENTITY: each member keeps its own identity — ${door.label}`, async () => {
+    it(`each member keeps its own identity — ${door.label}`, async () => {
       const runId = await door.start()
       const members = db.readRunDetailRows(runId)?.members ?? []
       expect(members.map((member) => [member.testIndex, member.testId, member.name, member.outcome])).toEqual(
@@ -120,7 +120,7 @@ describe('C433-SUITE-RUN-IDENTITY', () => {
       )
     })
 
-    it(`C433-SUITE-RUN-IDENTITY: the suite history lists the run and the last member's test history lists it by its member — ${door.label}`, async () => {
+    it(`the suite history lists the run and the last member's test history lists it by its member — ${door.label}`, async () => {
       const runId = await door.start()
       // `/api/analytics/suites/:suiteId` (suite viewer, /suites) reads these two.
       expect(db.getRunsBySuiteId(SUITE_ID).map((row) => row.id)).toEqual([runId])
@@ -133,7 +133,7 @@ describe('C433-SUITE-RUN-IDENTITY', () => {
     })
   }
 
-  it('C433-SUITE-RUN-IDENTITY: a single-test run is unchanged', async () => {
+  it('a single-test run is unchanged', async () => {
     const runId = db.insertPendingRun({ name: 'tests/login.yaml', filePath: 'tests/login.yaml' })
     db.updateRunStatus(runId, 'running')
     const testId = 't_login-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel'

@@ -156,7 +156,7 @@ async function getJson(url: string): Promise<{ status: number; body: any }> {
   return { status: response.status, body: await response.json() }
 }
 
-describe('C444-STATUS-CLASS', () => {
+describe('status word classes', () => {
   it('the classifier sorts the seven words into pass, fail, cancelled and live', async () => {
     const { runStatusClass, RUN_STATUS_WORDS } = await import('../db/run-status-class.js')
 
@@ -213,7 +213,7 @@ describe('C444-STATUS-CLASS', () => {
   })
 })
 
-describe('C444-RUNS-FILTER', () => {
+describe('the runs status filter', () => {
   it('repeated status parameters list every run in any of those words', async () => {
     const ids = seedSevenWords()
     const finishedIds = FINISHED.map((word) => ids[word]).sort()
@@ -250,7 +250,7 @@ describe('C444-RUNS-FILTER', () => {
   })
 })
 
-describe('C444-MEMBER-HISTORY', () => {
+describe('members on run history rows', () => {
   it('each run row lists its members with their test ids, paths, suites and outcomes', async () => {
     const id = seedRun('failed', { id: 'run_444-three', name: 'A · B +1 more' })
     db.upsertRunMember({ runId: id, testIndex: 2, testId: 't_c', name: 'C', filePath: 'tests/c.yaml', outcome: 'healed' })
@@ -307,7 +307,7 @@ describe('C444-MEMBER-HISTORY', () => {
   })
 })
 
-describe('C444-SUITE-HISTORY', () => {
+describe('suite history', () => {
   it("a run spanning two suites is listed under each suite's history", async () => {
     const spanning = seedRun('failed', { id: 'run_444-two-suites', name: 'One · Two', startedAt: '2026-10-01T11:00:00.000Z' })
     db.upsertRunMember({ runId: spanning, testIndex: 0, testId: 't_a', name: 'A', suiteId: 's_one', suiteName: 'One', outcome: 'passed' })
@@ -367,7 +367,7 @@ const A = { testId: 't_a', name: 'A', filePath: 'tests/a.yaml' }
 const B = { testId: 't_b', name: 'B', filePath: 'tests/b.yaml' }
 const C = { testId: 't_c', name: 'C', filePath: 'tests/c.yaml' }
 
-describe('C444-TEST-VIEWER', () => {
+describe('the test viewer', () => {
   it('the test viewer lists every run that ran the test, with that member\'s outcome', async () => {
     const multi = seedMemberRun('run_444-abc', 'failed', '2026-10-01T10:00:00.000Z', [
       { ...A, outcome: 'passed' },
@@ -470,7 +470,7 @@ describe('C444-TEST-VIEWER', () => {
 
 const RATED = { testId: 't_rate', name: 'Rate', filePath: 'tests/rate.yaml' }
 
-describe('C444-PASS-RATE', () => {
+describe('pass rate', () => {
   it("a test's rate counts only pass and fail member outcomes", async () => {
     const outcomes: ReadonlyArray<[string, string | undefined]> = [
       ['passed', 'passed'],

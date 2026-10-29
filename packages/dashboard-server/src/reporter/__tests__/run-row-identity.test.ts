@@ -53,7 +53,7 @@ function claim(members: readonly RunIdentityMember[] | undefined) {
   }
 }
 
-describe('C444-RUN-TITLE', () => {
+describe('multi-test run titles', () => {
   it('formatRunTitle names two tests, then counts the rest', () => {
     expect(formatRunTitle(['Login', 'Checkout'])).toBe('Login · Checkout')
     expect(formatRunTitle(['Login', 'Checkout', 'Search'])).toBe('Login · Checkout +1 more')
@@ -83,7 +83,7 @@ describe('C444-RUN-TITLE', () => {
   })
 })
 
-describe('C444-SINGLE-TITLE', () => {
+describe('the single-test run title', () => {
   it('a single-test run is titled, identified and filed by its test at the claim', () => {
     const only = member('Login')
     const { identity } = claim([only])
@@ -97,7 +97,7 @@ describe('C444-SINGLE-TITLE', () => {
   })
 })
 
-describe('C444-SUITE-TITLE', () => {
+describe('suite run titles', () => {
   it("a one-suite run keeps the suite's name and id", () => {
     const suite = { suiteId: generateSuiteId(), suiteName: 'Storefront smoke' }
     const { identity } = claim([member('Login', suite), member('Checkout', suite), member('Search', suite)])
@@ -171,7 +171,7 @@ function startRun(members: readonly RunIdentityMember[]) {
   return { runId, ingest, read, started, finished }
 }
 
-describe('C444-NO-MEMBER-WRITES', () => {
+describe('member events never write the run row', () => {
   it("a member's start writes nothing on the run row", () => {
     const loose = startRun([member('Login'), member('Checkout'), member('Search')])
     const atClaim = loose.read()
@@ -263,7 +263,7 @@ class CountingSession {
   }
 }
 
-describe('C444-BACKEND-RUN-STATUS', () => {
+describe('backend run status', () => {
   it('the active list and kill survive member 1 finishing', async () => {
     const runId = generateRunId()
     let session: CountingSession | undefined

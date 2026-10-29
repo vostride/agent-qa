@@ -72,7 +72,7 @@ const MODULES = walk(SRC_ROOT).map((path) => ({
   code: codeOnly(readFileSync(path, 'utf8')),
 }))
 
-describe('the dashboard run path (401-07, INVK-01)', () => {
+describe('the dashboard run path', () => {
   it('(i) THE SCANNER SEES WHAT IT FORBIDS — before any verdict about any module', () => {
     // A planted source, run through the SAME comment filter, must still carry every token.
     const planted = codeOnly([
@@ -132,7 +132,7 @@ describe('the dashboard run path (401-07, INVK-01)', () => {
   })
 })
 
-describe('queue retries are retired, and the retirement is on the record (401-07, D-12)', () => {
+describe('queue retries are retired, and the retirement is on the record', () => {
   const server = readFileSync(join(SRC_ROOT, 'server', 'server.ts'), 'utf8')
   const backendInterface = readFileSync(join(SRC_ROOT, 'execution', 'execution-backend.ts'), 'utf8')
 

@@ -82,13 +82,13 @@ function attach(session: LiveSession, onTerminate = vi.fn()): FakeSocket {
   return socket
 }
 
-describe('428 review: the editor control socket', () => {
+describe('the editor control socket across reconnects', () => {
   afterEach(() => {
     vi.restoreAllMocks()
     vi.useRealTimers()
   })
 
-  it('CR-01 RESULT-REACHES-RECONNECTED-SOCKET: a test that finishes after a reconnect reports to the new socket', async () => {
+  it('RESULT-REACHES-RECONNECTED-SOCKET: a test that finishes after a reconnect reports to the new socket', async () => {
     const session = new LiveSession('cr01-reconnected')
     const finished = deferred<LiveTestResultPayload>()
     vi.spyOn(session, 'executeTestCommand').mockReturnValue(finished.promise)
@@ -108,7 +108,7 @@ describe('428 review: the editor control socket', () => {
       .toMatchObject({ type: 'test-complete', test: { testExecutionId: 'exec-1' }, result: { status: 'cancelled' } })
   })
 
-  it('CR-01 RESULT-HELD-UNTIL-REATTACH: a test that finishes while no socket is attached is flushed to the next one', async () => {
+  it('RESULT-HELD-UNTIL-REATTACH: a test that finishes while no socket is attached is flushed to the next one', async () => {
     const session = new LiveSession('cr01-held')
     const finished = deferred<LiveTestResultPayload>()
     vi.spyOn(session, 'executeTestCommand').mockReturnValue(finished.promise)
@@ -126,7 +126,7 @@ describe('428 review: the editor control socket', () => {
     expect(second.sent[1]).toMatchObject({ test: { testExecutionId: 'exec-2' } })
   })
 
-  it('CR-01 HOOK-CAPTURE-KEEPS-REATTACHED-SINK: a socket that reattaches during a captured hook keeps receiving', async () => {
+  it('HOOK-CAPTURE-KEEPS-REATTACHED-SINK: a socket that reattaches during a captured hook keeps receiving', async () => {
     const session = new LiveSession('cr01-hooks')
     const gate = deferred<void>()
     const hook = { executionId: 'x', hookId: 'h', hookName: 'Seed', phase: 'setup', owner: { scope: 'suite' }, status: 'passed', createdAt: 'now' } as unknown as LiveHookPayload
@@ -158,7 +158,7 @@ describe('428 review: the editor control socket', () => {
     expect(before).toEqual([])
   })
 
-  it('WR-01 SUPERSEDED-SOCKET-CLOSED: a newer socket closes the one it replaced by name', () => {
+  it('SUPERSEDED-SOCKET-CLOSED: a newer socket closes the one it replaced by name', () => {
     const session = new LiveSession('wr01-closed')
     const first = attach(session)
     const second = attach(session)
@@ -167,7 +167,7 @@ describe('428 review: the editor control socket', () => {
     expect(second.closes).toEqual([])
   })
 
-  it('WR-01 SUPERSEDED-SOCKET-CANNOT-DRIVE: the replaced socket\'s commands are ignored and cannot end the session', async () => {
+  it('SUPERSEDED-SOCKET-CANNOT-DRIVE: the replaced socket\'s commands are ignored and cannot end the session', async () => {
     const session = new LiveSession('wr01-drive')
     const cleanup = vi.spyOn(session, 'cleanup')
     const onTerminate = vi.fn()
@@ -187,7 +187,7 @@ describe('428 review: the editor control socket', () => {
     expect(second.types().at(-1), 'the current socket still drives').toBe('session-state')
   })
 
-  it('WR-01 ONE-LOG-POLL: a replaced mobile socket stops draining device logs', async () => {
+  it('ONE-LOG-POLL: a replaced mobile socket stops draining device logs', async () => {
     vi.useFakeTimers()
     const session = new LiveSession('wr01-logs')
     vi.spyOn(session, 'getState').mockReturnValue({ ...session.getState(), platform: 'android', interactive: true })
@@ -199,7 +199,7 @@ describe('428 review: the editor control socket', () => {
     expect(drain, 'only the current socket polls').toHaveBeenCalledTimes(1)
   })
 
-  it('WR-02 END-CLOSES-CONTROL-SOCKET: a session ended elsewhere closes its socket as gone and arms no idle window', async () => {
+  it('END-CLOSES-CONTROL-SOCKET: a session ended elsewhere closes its socket as gone and arms no idle window', async () => {
     vi.useFakeTimers()
     const session = new LiveSession('wr02-closes')
     const onTerminate = vi.fn()
@@ -214,7 +214,7 @@ describe('428 review: the editor control socket', () => {
     expect(onTerminate).not.toHaveBeenCalled()
   })
 
-  it('WR-02 IDLE-TIMER-INERT-ONCE-ENDED: startIdleTimer on an ended session arms nothing', async () => {
+  it('IDLE-TIMER-INERT-ONCE-ENDED: startIdleTimer on an ended session arms nothing', async () => {
     vi.useFakeTimers()
     const session = new LiveSession('wr02-inert')
     await session.cleanup()
@@ -222,7 +222,7 @@ describe('428 review: the editor control socket', () => {
     expect(vi.getTimerCount()).toBe(0)
   })
 
-  it('WR-02 IDLE-TIMER-UNREF: the idle window never holds the process open', () => {
+  it('IDLE-TIMER-UNREF: the idle window never holds the process open', () => {
     const session = new LiveSession('wr02-unref')
     session.startIdleTimer(vi.fn())
     const timer = (session as unknown as { idleTimer: NodeJS.Timeout | null }).idleTimer
@@ -230,7 +230,7 @@ describe('428 review: the editor control socket', () => {
     session.clearIdleTimer()
   })
 
-  it('WR-02 EXPIRY-FAILURE-HANDLED: an idle expiry whose cleanup rejects is reported, not left unhandled', async () => {
+  it('EXPIRY-FAILURE-HANDLED: an idle expiry whose cleanup rejects is reported, not left unhandled', async () => {
     vi.useFakeTimers({ toFake: ['setTimeout', 'clearTimeout'] })
     vi.spyOn(LiveSession.prototype, 'initialize').mockResolvedValue(undefined)
     vi.spyOn(LiveSession.prototype, 'cleanup').mockRejectedValue(new Error('teardown failed'))
@@ -247,7 +247,7 @@ describe('428 review: the editor control socket', () => {
     expect(reported).toHaveBeenCalledWith(expect.stringContaining(sessionId), expect.any(Error))
   })
 
-  it('WR-03 TEARDOWN-NOT-HELD-BY-HUB: a hub close that never settles cannot keep the browser up', async () => {
+  it('TEARDOWN-NOT-HELD-BY-HUB: a hub close that never settles cannot keep the browser up', async () => {
     vi.useFakeTimers()
     const session = new LiveSession('wr03-hub')
     const adapterCleanup = vi.fn(async () => undefined)

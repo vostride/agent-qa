@@ -29,7 +29,7 @@ const config: LiveSessionConfig = {
   },
 }
 
-describe('428 editor session lifecycle at the manager', () => {
+describe('editor session lifecycle at the manager', () => {
   const managers: SessionManager[] = []
   const managerWith = (subjects = createLiveEditorSubjects()) => {
     const manager = new SessionManager({ liveEditorSubjects: subjects })

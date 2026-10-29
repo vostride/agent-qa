@@ -41,7 +41,7 @@ function failingPendingReads(): ReturnType<typeof vi.spyOn> {
   })
 }
 
-describe('C444-STOPPED-QUEUE', () => {
+describe('a stopped queue and failed dispatches', () => {
   it('after stop(), onSlotFreed for an active run neither reads the database nor rejects', async () => {
     const runId = startOne('android')
     queue.stop()

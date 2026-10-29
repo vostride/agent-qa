@@ -377,7 +377,7 @@ describe('ws-handler', () => {
     expect(ws.parsed(2).hook.variables.AUTH_TOKEN).toBe('hook-token')
   })
 
-  it('UNEXPECTED-CLOSE-DETACHES: an unexpected close detaches the session instead of ending it (428 D-09)', async () => {
+  it('UNEXPECTED-CLOSE-DETACHES: an unexpected close detaches the session instead of ending it', async () => {
     const handler = createSessionHandler(session as unknown as LiveSession, onTerminate)
     handler(ws as any)
 
@@ -477,7 +477,7 @@ describe('ws-handler', () => {
     expect(session.startIdleTimer).toHaveBeenCalledTimes(1)
   })
 
-  it('DETACH-CANCELS-IN-FLIGHT-STEP: a drop during an executing step cancels it server-side (A3 default)', async () => {
+  it('DETACH-CANCELS-IN-FLIGHT-STEP: a drop during an executing step cancels it server-side', async () => {
     session.status = 'executing'
     createSessionHandler(session as unknown as LiveSession, onTerminate)(ws as any)
 

@@ -329,7 +329,7 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
     expect(result.teardownHookExecutions.length).toBeGreaterThan(0)
   })
 
-  it('reuses the same adapter instance across steps (shared browser context, D-01)', async () => {
+  it('reuses the same adapter instance across steps (shared browser context)', async () => {
     await session.initialize(webConfig)
     const execute = getExecuteTestCommand(session)!
 
@@ -358,7 +358,7 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
     expect(adapterIds[1]).toBe(adapterIds[2])
   })
 
-  it('skips per-test teardown when per-test setup fails (Pitfall 2 / runner.ts break)', async () => {
+  it('skips per-test teardown when per-test setup fails', async () => {
     await session.initialize({
       ...webConfig,
       resolvedHooks: new Map([
@@ -428,7 +428,7 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
     expect(result.teardownHookExecutions.length).toBe(1)
   })
 
-  it('returns status:cancelled and STILL runs teardown on cancellation (D-25)', async () => {
+  it('returns status:cancelled and STILL runs teardown on cancellation', async () => {
     await session.initialize({
       ...webConfig,
       resolvedHooks: new Map([['post', makeHookDef('post')]]),

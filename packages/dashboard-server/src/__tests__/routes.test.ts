@@ -440,7 +440,7 @@ describe('API Routes', () => {
     })
   })
 
-  describe('phase 225 live timeline storage guardrails', () => {
+  describe('live timeline storage guardrails', () => {
     it('keeps live execution timeline state out of durable schema and artifacts', async () => {
       const [schemaSource, databaseSource, routesSource] = await Promise.all([
         readFile('src/db/schema.ts', 'utf-8'),

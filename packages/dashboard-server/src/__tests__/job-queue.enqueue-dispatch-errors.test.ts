@@ -21,7 +21,7 @@ afterEach(() => {
   db.close()
 })
 
-describe('C444-ENQUEUE-REPORTED', () => {
+describe('a dispatch that throws on enqueue', () => {
   it('a dispatch that throws on enqueue is reported and enqueue still returns the queued run', () => {
     queue.start(60_000)
     const pending = vi.spyOn(db, 'getPendingRuns').mockImplementationOnce(() => {

@@ -1282,7 +1282,7 @@ describe('reconciliation — the two predicates meet in the register', () => {
     expect(unobserved.sort()).toEqual(UNOBSERVABLE_DELETES.slice().sort())
   })
 
-  it('no parent/child producer survives — the D-11 headline, measured', async () => {
+  it('no parent/child producer survives, measured', async () => {
     const findings = await walkProductionChannels()
     if (CENSUS_PHASE === 'before') {
       // Task 1 commits the register BEFORE the deletion, so the headline is not yet true. The cell
@@ -1294,7 +1294,7 @@ describe('reconciliation — the two predicates meet in the register', () => {
   }, 60_000)
 })
 
-describe('the historical-row argument is retired, by name (405-07, D-02 · T-402-29)', () => {
+describe('the historical-row argument is retired, by name', () => {
   const roots: string[] = []
   afterAll(() => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
@@ -1304,7 +1304,7 @@ describe('the historical-row argument is retired, by name (405-07, D-02 · T-402
   // kept, and a cell drove the run list, the run detail and the artifact door against a seeded
   // operator database to prove it. The mitigation was correct for its phase and is now MOOT rather
   // than abandoned — the two cells below say why in the terms the mitigation was written in.
-  it('a database written before v2 is REFUSED by name, so no pre-405 row is ever rendered', () => {
+  it('a database written before v2 is REFUSED by name, so none of its rows is ever rendered', () => {
     const root = mkdtempSync(join(tmpdir(), 'agent-qa-census-'))
     roots.push(root)
     const file = join(root, 'runs.db')
