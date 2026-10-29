@@ -1,14 +1,7 @@
 /// <reference lib="dom" />
 // The DOM lib is referenced here because this file's `page.evaluate` callbacks run in a browser.
 
-// THE LIVE PAGE'S ROWS AND LAYOUT ON THE SHIPPED BUNDLE (428 SC4, D-06/D-19/D-20/D-22 · PXH-LIVE-04).
-//
-// jsdom proved the row and the layout contracts in `live-step-row.test.tsx` and `live-run.test.tsx`.
-// jsdom paints nothing and lays nothing out, so these cells make the same claims again on the BUILT
-// dashboard-ui bundle, served by the production `startServer` and driven by a real Chromium.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP. Captures go only where
-// AGENT_QA_428_CAPTURE_DIR points.
+// The row and layout claims again on the built bundle in real Chromium; jsdom lays nothing out.
 
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -63,13 +56,9 @@ const FOLLOW_RUN = 'r_428_suite_follow'
 const SINGLE_TITLE = 'Checkout keeps the basket'
 const SUITE_MEMBERS = ['the sign-in member', 'the basket member'] as const
 const SECRET_STEP_TEXT = 'type <SECRET_1> into Password'
-/** ROWS_RUN's three steps, as its testStarted carries them. */
+// ROWS_RUN's steps, as its testStarted carries them.
 const ROWS_STEP_TEXTS = ['open the search page', 'search for the blue kettle', 'add the kettle to the basket'] as const
-/**
- * The owner's own example from the 2026-09-26 review, which the one-line row cut off at
- * 'wait f…', extended so it is longer than the steps pane at any width, with one old numbered
- * placeholder.
- */
+// Longer than the steps pane at any width, with one older numbered placeholder.
 const LONG_STEP_TEXT =
   'Select "Show" from the navbar, scroll to the end and click more, wait for the whole list to finish '
   + 'loading, then type <SECRET_1> into the search box and check that every card in the grid keeps its '
@@ -116,10 +105,7 @@ function publishTestStarted(run: PlantedLiveRun, testIndex: number, member: Plan
   })
 }
 
-/**
- * Plant a run and start its members. The roster defaults to [0], the shape every run here had
- * before 428-33; `started` says how many members start at plant time, so a cell can start the rest.
- */
+// The roster defaults to `[0]`; `started` says how many members start at plant time.
 function plantRun(
   runId: string,
   members: readonly PlantedMember[],
@@ -169,8 +155,7 @@ beforeAll(async () => {
   const harness = await startLiveViewHarness({ label: '428-24-layout', uiDir: dashboardUiDist() })
   fixture = { harness, browser, jpeg }
 
-  // Rows in all three states: step 1 finished after two sub-actions, step 2 running after one, and
-  // step 3 planned and pending. The pending row is drawn because testStarted carried its text
+  // Finished, running and pending rows; the pending row draws because testStarted names it.
   const rows = plantRun(ROWS_RUN, [{ name: 'the rows member', totalSteps: 3, stepTexts: ROWS_STEP_TEXTS }])
   harness.insertRunRow({ runId: ROWS_RUN, name: 'Search finds the blue kettle', status: 'running' })
   publishTo(rows, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: ROWS_STEP_TEXTS[0] })
@@ -196,8 +181,7 @@ beforeAll(async () => {
   harness.insertRunRow({ runId: LONG_RUN, name: 'The long label', status: 'running' })
   publishTo(long, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: LONG_STEP_TEXT })
 
-  // A suite of two whose first member is running and whose second has not started (428-33,
-  // G-428-3). The follow cell finishes the first and starts the second while the page watches.
+  // The first member runs and the second waits; the follow cell starts it while the page watches.
   followRun = plantRun(FOLLOW_RUN, FOLLOW_MEMBERS, { roster: [0, 1], started: 1 })
   harness.insertRunRow({ runId: FOLLOW_RUN, name: 'The follow suite', status: 'running' })
   publishTo(followRun, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: FOLLOW_MEMBERS[0].stepTexts[0] })
@@ -262,11 +246,7 @@ interface PageLayout {
   steps: Box | null
   frame: Box | null
   dotBox: Box | null
-  // RE-SPELLED 2026-09-26 (428-34, owner decision 2026-09-26 (4), G-428-4). The reading used to say
-  // whether the picture's box contained the dot. The dot now leads the preview's chrome, so the
-  // reading says whether the chrome holds it and whether its box meets the picture's box at all.
-  // RE-SPELLED 2026-09-26 (owner decision 2026-09-26 (6)): the dot floats in its own top-right
-  // corner, so the reading says whether that corner holds it and whether a chrome row exists.
+  // Whether the dot's own top-right corner holds it, and whether a chrome row exists.
   dotInCorner: boolean
   chromeRow: boolean
   dotOverlapsFrame: boolean
@@ -456,9 +436,6 @@ describe('the live step rows on the shipped bundle', () => {
         expect(row.text, `${context} — no count`).not.toMatch(/action/iu)
         expect(row.text, `${context} — no duration`).not.toMatch(/\d\s*(?:ms|s|sec|m|min)\b/u)
       }
-      // RE-SPELLED 2026-09-26 (428-30, owner decision 2026-09-26 (2), G-428-2). This line pinned the
-      // pending row to the step-N placeholder. The owner removed it, so ROWS_RUN's testStarted now
-      // carries its step texts and the pending row reads its planted third text.
       expect(reading.rows.map((row) => row.text), context).toEqual([...ROWS_STEP_TEXTS])
       expect(reading.paneText, `${context} — the pane`).not.toMatch(/\d+:\d{2}|action/iu)
       expect(reading.progressbars, context).toBe(0)
@@ -507,7 +484,7 @@ describe('the live step rows on the shipped bundle', () => {
     })
   }, 120_000)
 
-  // an old run's numbered placeholder is shown as the characters it holds.
+  // An older run's numbered placeholder is shown as the characters it holds.
   it('SECRET-PLACEHOLDER-AS-TEXT-SHIPPED: a <SECRET_1> in a live label from an old run is shown as written, with no chip', async () => {
     await onLivePage(SECRET_RUN, async (page) => {
       const row = page.locator('[data-live-pane="steps"] li[data-step-status="running"]')
@@ -523,16 +500,10 @@ describe('the live step rows on the shipped bundle', () => {
   }, 120_000)
 })
 
-/** a flip may reload the moved iframe, and the embed must reconnect by itself within this. */
+// A flip may reload the moved iframe, and the embed must reconnect by itself within this.
 const FLIP_TO_GREEN_BUDGET_MS = 8_000
 
 describe('the live page layout on the shipped bundle', () => {
-  // RE-SPELLED 2026-09-26 (428-34, owner decision 2026-09-26 (4), G-428-4). Was "STACKED-AT-400: the
-  // preview is on top at full width with its dot on the picture, over two panes", which asserted the
-  // dot inside the picture's box. The dot is now in the chrome above the picture, at the pane's left.
-  //
-  // RE-SPELLED 2026-09-26 (owner decision 2026-09-26 (6)). Was "... with its dot in the chrome above
-  // the picture ...". The dot floats alone at the pane's top-right, and there is no chrome row.
   it('STACKED-AT-400: the preview is on top at full width with its dot floating at its top-right clear of the picture, over two panes', async () => {
     await onLivePage(ROWS_RUN, async (page) => {
       await waitForRowsInAllStates(page)
@@ -574,8 +545,6 @@ describe('the live page layout on the shipped bundle', () => {
         expect(steps.x + steps.width, `${context} — the steps are left of the preview`).toBeLessThanOrEqual(preview.x + 1)
         expect(Math.abs(steps.y - preview.y), `${context} — side by side`).toBeLessThanOrEqual(1)
       }
-      // Re-spelled 2026-09-26: the dot was asserted inside the picture's box.
-      // Re-spelled 2026-09-26 (owner decision 2026-09-26 (6)): its own corner, not the chrome.
       expect(layout.dotInCorner, context).toBe(true)
       expect(layout.chromeRow, context).toBe(false)
       expect(layout.dotOverlapsFrame, context).toBe(false)
@@ -593,8 +562,7 @@ describe('the live page layout on the shipped bundle', () => {
       const down = await flipAndWatch(page, NARROW, watch)
       expectRecovered(down, true)
 
-      // The way back moves the preview panel's node (React keeps the steps panel in place and moves
-      // the others), which is where a real browser reloads the iframe (428-16's note).
+      // The way back moves the preview panel's node, where a real browser reloads the iframe.
       const up = await flipAndWatch(page, DESKTOP, watch)
       expectRecovered(up, false)
     })
@@ -663,8 +631,6 @@ function expectRecovered(reading: FlipReading, stacked: boolean): void {
   expect(reading.end.panes, context).toBe(2)
   expect(reading.end.embeds, context).toBe(1)
   expect(reading.end.dot, context).toBe('green')
-  // Re-spelled 2026-09-26: each leg asserted the dot inside the picture's box.
-  // Re-spelled 2026-09-26 (owner decision 2026-09-26 (6)): its own corner, not the chrome.
   expect(reading.end.dotInCorner, context).toBe(true)
   expect(reading.end.chromeRow, context).toBe(false)
   expect(reading.end.dotOverlapsFrame, context).toBe(false)
@@ -673,10 +639,7 @@ function expectRecovered(reading: FlipReading, stacked: boolean): void {
     .toBeLessThan(FLIP_TO_GREEN_BUDGET_MS - 500)
 }
 
-// A SUITE'S PAGE FOLLOWS ITS RUNNING MEMBER, WITH NO SELECTOR (428-33 · G-428-3, owner decision
-// 2026-09-26 (3)). The planted run's frames ignore the handle, so every handle streams; a minted
-// liveUrl carries its handle only inside the signed fragment token, so the cell observes the mint
-// request `/live-url?handle=N` and the liveUrl its response answered with.
+// A minted liveUrl carries its handle only in the signed fragment, so the mint request is watched.
 
 interface MintSeen {
   handle: string | null

@@ -1,5 +1,4 @@
-// the shipped bin
-// under `CI=true`, stdin /dev/null and stdout piped, with no colour variable in its environment.
+// The shipped bin under `CI=true`, stdin `/dev/null` and stdout piped, with no colour variable set.
 
 import { spawn } from 'node:child_process'
 import { createHash } from 'node:crypto'
@@ -33,7 +32,7 @@ const COLOUR_CODE = '\x1b['
 const SPINNER_GLYPHS = /[⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏◐◓◑◒]/u
 const PROMPT_SHAPES = /\(y\/n\)|\[y\/N\]|\[Y\/n\]|\? .+ ›|Press (?:enter|any key)/iu
 
-// D-22, `post-run-tail.ts`'s `CI_PENDING_SUFFIX` per stage drainer.
+// `post-run-tail.ts`'s `CI_PENDING_SUFFIX` per stage drainer.
 const CI_PENDING_SUFFIX = {
   analysis: " (resumes only if this workspace's .agent-qa/ is kept and a later run or the daemon picks it up)",
   curation: " (resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up)",
@@ -41,7 +40,7 @@ const CI_PENDING_SUFFIX = {
 type Stage = keyof typeof CI_PENDING_SUFFIX
 
 const STAGE_WORD = /^(?:pending|running|complete|failed|skipped \((?:gate run|outcome-excluded|no verdict)\))$/u
-// The close-out's five buckets (`CURATION_BREAKDOWN_BUCKETS`) and D-57's outcome line.
+// The close-out's buckets (`CURATION_BREAKDOWN_BUCKETS`) and its outcome line.
 const BUCKETS_LINE =
   /^curation: added (\d+), confirmed (\d+), superseded (\d+), deprecated (\d+), proposed (\d+)$/u
 const PROMOTION_LINE = /^curation: \S+ (?:held: |promoted via )/u
@@ -209,8 +208,7 @@ function leg(key: string, verdict: Verdict, testPath: string, flags: readonly st
   return { key, verdict, testPath, flags, runId: generateRunId() }
 }
 
-// The second CI run in the workspace sees the first run's record as a neighbor, and the stub's
-// curator arm authors a Supersede of it.
+// The second CI run sees the first run's record as a neighbor, and the stub curator supersedes it.
 async function drive(): Promise<void> {
   target = await startTargetPageServer()
   model = await startStubModelServer({

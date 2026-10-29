@@ -1,23 +1,4 @@
-// THE PLANTED LIVE RUN, AND THE PRODUCTION SERVER FRAME AROUND IT (403-06, Tasks 1 and 2).
-//
-// WHY A PLANTED SESSION RATHER THAN A REAL RUN. `live-view-tracer.test.ts` already drives a REAL
-// `startRun` at a REAL Chromium, and that cell is what carries "a real CDP frame reaches the embed
-// page". What the two files here need is different: a run a cell can hold at an arbitrary point —
-// mid-step, silent for twenty-one seconds, terminal on command — and drive DETERMINISTICALLY while
-// a browser watches. A real run cannot be paused between two envelopes on demand, so a cell built
-// on one would have to sleep and hope, which is the shape of flake that reads as a product defect.
-//
-// WHAT IS STILL PRODUCTION HERE, AND IT IS ALMOST EVERYTHING. The bus is the shipped
-// `createRunEventBus` — its seq stamping, its replay window, its retention floor and its real
-// heartbeat timer. The server is the shipped `startServer` with the shipped `uiDir`, the shipped
-// `composeDashboardDoor`, the shipped `composeLiveView` (so the signer, the mint op and the
-// validator are all the real ones) and the shipped session registry. What is planted is exactly
-// the RunSession's own three seams — `subscribeFrames`, `streamCapabilityOf`, `cancel` — plus the
-// deferred `done`, which is the runner's designed injection surface stated as data.
-//
-// THE SPIES ARE THE POINT OF THE PLANT. `cancel` is a spy because INVK-05's claim is that no
-// number of viewers attaching and detaching can end a run, and the only way to measure "nobody
-// called it" is to hold the function that would have been called.
+// Planted so a cell can hold the run anywhere; bus, server, mint and registry are the shipped ones.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import type { Server } from 'node:http'
@@ -63,7 +44,7 @@ export interface PlantedLiveRun {
   ackedFrameIds(): readonly number[]
   /** Every frame id the producer handed out, in mint order. */
   deliveredFrameIds(): readonly number[]
-  /** How many times `cancel()` was called. INVK-05's whole claim is that this stays 0. */
+  // How many times `cancel()` is called; no viewer may raise it above 0.
   cancelCalls(): number
   /** How many frame subscriptions are open right now. */
   openFrameSubscriptions(): number
@@ -83,10 +64,7 @@ export interface PlantedLiveRun {
    * instant. A run whose cell never calls it behaves byte-identically to before.
    */
   latchCapability(next: LiveStreamDeclaration): void
-  /**
-   * Hold the producer's frames while the bus keeps its own heartbeat (428 SC3): the one fault in
-   * which the channel is alive and the picture is not.
-   */
+  // Hold the producer frames while the bus keeps its heartbeat: channel alive, picture not.
   stall(): void
   /** Let the producer emit again after `stall()`. */
   resume(): void
@@ -110,14 +88,7 @@ export interface PlantLiveRunInput {
   readonly frameKind?: LiveStreamKind
 }
 
-/**
- * One attachable run, planted over a REAL event bus.
- *
- * THE FRAME ID IS THE PRODUCER'S OWN MONOTONIC COUNTER, minted here per run and never derived from
- * anything the transport carries. 403-02 measured CDP's `sessionId` constant at 1 across 281
- * frames, so an id taken from there would collide on every frame and the ack protocol would have
- * nothing to distinguish.
- */
+// The frame id is the producer's own counter: CDP's `sessionId` stays constant across frames.
 export function plantLiveRun(input: PlantLiveRunInput): PlantedLiveRun {
   const bus = createRunEventBus({
     runId: input.runId,
@@ -131,17 +102,14 @@ export function plantLiveRun(input: PlantLiveRunInput): PlantedLiveRun {
   let frameId = 0
   let producer: ReturnType<typeof setInterval> | undefined
   let settled = false
-  // A STALL HOLDS THE PICTURE AND NOTHING ELSE. The bus's heartbeat timer is its own and keeps
-  // running, which is what lets a cell show that bus traffic cannot keep the dot green (428 SC3).
+  // A stall holds the picture only; the bus heartbeat runs on and must not keep the dot green.
   let stalled = false
   let heartbeats = 0
   const endListeners: ((reason: LiveFrameEndReason) => void)[] = []
   bus.subscribe(undefined, (envelope) => {
     if (envelope.type === 'heartbeat') heartbeats += 1
   })
-  // THE DECLARED CAPABILITY IS A VARIABLE, NOT A CONSTANT (403-07 gap 1). `input.capability` seeds
-  // it and `latchCapability` moves it; both seams below read THIS, so "absent at attach, present a
-  // beat later" — the production ordering — is expressible without a timer anywhere on the path.
+  // Both seams read this, so a capability absent at attach and present a beat later needs no timer.
   let declaredCapability: LiveStreamDeclaration = input.capability
 
   let settle: (completion: RunCompletion) => void = () => {}
@@ -336,29 +304,13 @@ export function openIdStream(url: string, input: { lastEventId?: number } = {}):
 export interface LiveViewHarness {
   readonly origin: string
   readonly server: Server
-  /**
-   * The editor-subject registry, created once beside the run registry and handed to both the
-   * composition and the server, as `agent-qa dashboard` does.
-   */
+  // Created once beside the run registry and handed to the composition and the server.
   readonly editorSubjects: LiveEditorSubjects
   /** Register a planted run with the session registry the whole composition reads through. */
   plant(run: PlantedLiveRun): void
   /** The run registry's own lookup, the one the run mint and the frame socket's run arm read. */
   attachRun(runId: string): RunSession | undefined
-  /**
-   * Write a run ROW for a planted run, and move its status.
-   *
-   * WHY A PLANTED SESSION NEEDS ONE. `plant` registers a session with the run-service registry —
-   * which is what makes the run streamable and mintable — and nothing else. The dashboard's own
-   * DURABLE row is written by the reporter subscriber, which only ingests runs the dashboard door
-   * itself started. Run DETAIL reads that row and nothing else, so a cell that navigates a viewer
-   * from the live page to run detail has to supply it, exactly as a real run's subscriber would.
-   *
-   * `setRunStatus` IS THE SUBSCRIBER'S `updateRun` AT `verdict`, AS A SEAM THE CELL OWNS. In
-   * production those two facts — the `verdict` envelope and the row write — race by design,
-   * and a fixture that coupled them could not express the losing side of that race. The cell fires
-   * each one when it means to.
-   */
+  // The reporter writes rows only for runs the door started, so a planted run's row is put here.
   insertRunRow(input: { readonly runId: string; readonly name: string; readonly status: string }): void
   setRunStatus(runId: string, status: string): void
   close(): Promise<void>
@@ -508,11 +460,7 @@ export async function startLiveViewHarness(input: {
   }
 }
 
-// ---- The planted editor subject ------------------------------------------------------
-//
-// What the live editor's session manager registers for a session, with the adapter replaced by a
-// fake producer. The hub is the shipped `createLiveStreamHub`, so its lazy start, graced stop and
-// close-time eviction are the real ones: the producer emits only while somebody is subscribed.
+// A fake producer over the shipped `createLiveStreamHub`, which emits only while subscribed.
 
 export interface PlantEditorSubjectInput {
   readonly sessionId: string

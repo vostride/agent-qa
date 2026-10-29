@@ -1,27 +1,4 @@
-// The help ↔ catalog census, the help text's argument contract, and the skills' command vocabulary
-// (Phase 398 plan 09 — XPLN-01, D-01 / SC-1 / Pitfall 5).
-//
-// WHAT THESE LEGS ARE FOR. `resolver-table.ts`'s header states a law in prose: help text kept
-// anywhere other than the canon it documents is a second list of what chat understands, free to
-// drift from the one that actually routes. It was a law nothing enforced, and it had already been
-// broken — the `digest` line advertised "the latest run digest" while the rule it sits fifteen
-// lines below refuses a bare `digest` on purpose. These cells turn the prose into a comparison.
-//
-// WHICH TWO SETS THE CENSUS COMPARES, SAID PLAINLY (397 D-14's lesson, re-measured in 398). It
-// compares (1) the alias tokens named by `CHAT_HELP_ENTRIES` against (2) the committed catalog's
-// alias rows, plus the shipped `CHAT_DIRECTIVES`, plus the aliases the catalog producer's own probe
-// table classifies as the passthrough. Every member of both sides is read from a shipped module or
-// the committed artifact; nothing here is a list somebody typed.
-//
-// AND WHAT IT THEREFORE CANNOT SEE. A census compares MEMBERSHIP. It is blind to a rule whose
-// matching CLAUSE moved while its name stayed — which is exactly the drift that was live in this
-// repo — so the argument-contract cell below closes that half by driving the shipped resolver with
-// each line's own bare verb. It is equally blind to a capability listing rendered on a surface
-// neither set enumerates: a second help string in some other command file is not a member of either
-// side, so it touches neither. The second-list sweep is the cell that watches for that, and it
-// watches by SEARCHING FOR THE VOCABULARY the shipped modules produce rather than by holding a list
-// of forbidden strings — a rule that can only refuse what it can name cannot be driven to zero by
-// naming more things.
+// Help is censused against the catalog, and the bare-verb cell catches a clause that moved.
 
 import {
   cpSync,
@@ -244,15 +221,7 @@ function isCommentLine(line: string): boolean {
   return trimmed.startsWith('//') || trimmed.startsWith('*') || trimmed.startsWith('/*')
 }
 
-/**
- * Whether a body names a directive form AS A FORM rather than as part of a path.
- *
- * MEASURED, NOT ASSUMED: the first version of this sweep matched substrings and fired
- * on `commands/init.ts` for `'../model-defaults.js'` and for the URL `iana.org/help/…`. Both are
- * paths, and neither is a listing of anything. The boundary conditions are what make the difference
- * — a form a person types is preceded by whitespace or a quote and followed by whitespace,
- * punctuation or the end of the string, which a path segment never is on both sides at once.
- */
+// A form a person types sits between whitespace or quotes; a path segment never does on both sides.
 function namesDirectiveForm(body: string, form: string): boolean {
   const escaped = form.replace(/[.*+?^${}()|[\]\\/]/gu, '\\$&')
   return new RegExp(`(^|[\\s'"\`(\\[,])${escaped}($|[\\s'"\`)\\],.;:!?])`, 'mu').test(body)
@@ -285,9 +254,7 @@ describe('no second list of what chat understands', () => {
           .filter((line) => !isCommentLine(line))
           .join('\n')
         const named = forms.filter((form) => namesDirectiveForm(code, form))
-        // TWO OR MORE is the shape of a LISTING. One form on its own is a module that mentions a
-        // directive (an error message about `/quit`, say); two or more in one module is a module
-        // that has started enumerating the vocabulary, which is the second list SC-1 forbids.
+        // Two or more forms in one module is a listing; one alone is a mention.
         if (named.length >= 2) findings.push(`${repoRelative} names ${named.join(', ')}`)
       }
     }
@@ -317,28 +284,10 @@ describe('no second list of what chat understands', () => {
   })
 })
 
-/**
- * The AUTHORED skills tree, which is not the one that ships.
- *
- * MEASURED THE HARD WAY. `packages/cli/skills` is a GENERATED COPY: the CLI package's
- * `prepack` runs `copy:skills`, which deletes that directory and rebuilds it from this one. A guard
- * that read only the resolved (packaged) directory would certify a reconciliation that the next
- * `prepack` silently undoes — which is exactly what happened while this plan was being written, and
- * `validate:publish` is what surfaced it. Both trees are ranged, so a fix applied to one and not the
- * other is a named RED rather than a regression waiting for the next release.
- */
+// `packages/cli/skills` is a copy `prepack` rebuilds from this tree, so both trees are ranged.
 const SKILLS_SOURCE_DIR = 'skills'
 
-/**
- * Every file a skill DIRECTORY carries, not just its SKILL.md.
- *
- * MEASURED, AND THE REASON THIS IS NOT SCOPED TO SKILL.md. The first version of the
- * guard read only the three SKILL.md files, and it would have passed while
- * `agent-qa-authoring/references/agent-qa-contracts.json` — a file the skill's own step 3 tells an
- * agent to LOAD — still instructed `agent_qa_generate_id`. A guard scoped to one file of a
- * multi-file input class certifies that file, not the class. The universe here is the whole
- * directory the CLI's own resolution finds, minus binaries.
- */
+// Every file in a skill directory, because agents load a skill's references too.
 function shippedSkillFiles(): readonly { name: string; path: string }[] {
   const resolved = resolveAgentQaSkillsDirectory(dirname(fileURLToPath(import.meta.url)))
   const roots = [join(agentQaRoot(), SKILLS_SOURCE_DIR)]
@@ -460,8 +409,7 @@ describe('the chat host\'s discovery UX is a projection of the catalog', () => {
         findings.push(`${candidate}: the shipped table binds nothing`)
         continue
       }
-      // Hoisted, because a second read of `resolution.entry` loses the narrowing under `tsc` even
-      // though `vitest --typecheck` accepts it — 398-04's trap, measured again here.
+      // Hoisted: a second read of `resolution.entry` loses the narrowing under `tsc`.
       const bound = resolution.entry.functionId
       if (!rows.some((row) => row.kind === 'op' && row.id === bound)) {
         findings.push(`${candidate}: binds ${bound}, which has no catalog row`)
@@ -497,13 +445,7 @@ describe('the chat host\'s discovery UX is a projection of the catalog', () => {
   })
 })
 
-// ---- 431 D-24: every name the published guidance quotes is live ---------------------------------
-//
-// The subjects are the generated guide, the root pointer, and every file of every skill in BOTH the
-// source tree and the packaged mirror `copy:skills` produces. Tool names are checked against the MCP
-// projection and the committed catalog's op rows; CLI invocations are resolved against the real
-// Commander tree (`createAgentQaProgram`) and, for the verbs the capability manifest lists, against
-// the manifest too. A packaged input that is absent or empty is a finding, never a skip.
+// Every name the published guidance quotes is live; an absent or empty packaged input is a finding.
 
 interface GuidanceSubject {
   readonly name: string
@@ -935,10 +877,6 @@ describe('LIVE-GUIDANCE: the guide, pointer and every source and packaged skill 
   })
 })
 
-// `agent-qa proposals` is deleted with the inbox, including
-// its `grants list | revoke` subtree. No alias is kept, so the parse tree rejects the verb the way it
-// rejects any word it never had, and nothing in the help, the manifest or the dedicated-verb list
-// still names it.
 describe('there is no proposals verb', () => {
   it('the live Commander tree and its help name no proposals command', () => {
     const program = createAgentQaProgram()
@@ -968,16 +906,9 @@ describe('there is no proposals verb', () => {
   })
 })
 
-// ---- 432-40: the direct model, said with live names only ----------
-//
-// The LIVE-GUIDANCE cells above prove every NAME the guidance quotes is live. These prove what the
-// guidance SAYS: knowledge and config change through agent-qa and apply in the call, wrong knowledge
-// is corrected by new feedback or forget, and no current text describes a proposal, an approval, a
-// grant, a confirm round or a permission. Old recorded argv and dated history notes in source are
-// not guidance and are not read here; the subjects are the generated guide, the root pointer, the
-// scaffolded knowledge README, every source and packaged skill file, and the committed catalogue.
+// What the guidance says: knowledge and config change through agent-qa and apply in the call.
 
-/** The six MCP names the proposal round had; none is projected since 432-12. */
+// MCP tool names no projection may carry.
 const RETIRED_CHANGE_TOOLS: readonly string[] = Object.freeze([
   'agent_qa_propose_knowledge_change',
   'agent_qa_propose_config_change',
@@ -1018,7 +949,7 @@ function approvalFindings(subjects: readonly GuidanceSubject[]): readonly string
   return findings
 }
 
-/** The D-24 rule, as the four facts a knowledge text must state. */
+// The facts a knowledge text must state.
 const KNOWLEDGE_RULE: readonly (readonly [string, RegExp])[] = Object.freeze([
   ['changes only through agent-qa', /changes only\s+through agent-qa/u],
   ['applies at once', /appl(?:y|ies) at once/u],
@@ -1082,9 +1013,7 @@ describe('current guidance describes changes that apply in the call', () => {
     expect(knowledgeRuleFindings({ name: 'planted', body: 'Edit the fact or the evidence.' })).toHaveLength(4)
   })
 
-  // The texts 432-40 replaced, as a historical witness: each sentence the census would have to
-  // miss for the old wording to return is named by it. Assembled from fragments so this file's own
-  // body is not a guidance subject that carries them.
+  // Assembled from fragments, so this file's body is not a guidance subject that carries them.
   it('the replaced README and authoring wording is named by the census', () => {
     const replaced = approvalFindings([
       { name: 'old README', body: ['content humans write or ', 'approve', ' — QA rules.'].join('') },
@@ -1196,7 +1125,7 @@ describe('the packaged skills are the source skills, byte for byte', () => {
   })
 })
 
-/** Retired op ids and tool names, as whole tokens (432-12/17/18 deleted them). */
+// Retired op ids and tool names, as whole tokens.
 const RETIRED_CAPABILITY = /\bproposals\.(?:list|show|accept|reject)\b|\bgrants\.(?:list|revoke)\b|\b(?:knowledge|config)\.proposal\.apply\b|\bconfig\.undo\.propose\b|\bagent_qa_(?:propose_[a-z_]+|apply_[a-z_]*proposal|list_proposals|show_proposal)\b/u
 
 /** Permission-shaped keys a catalogue row could carry. */
@@ -1293,7 +1222,7 @@ describe('curation and chat say where a change went, and point at no review', ()
   })
 })
 
-// every dotted config key in the guidance resolves in the schema
+// Every dotted config key in the guidance resolves in the schema.
 function catalogOpIds(): ReadonlySet<string> {
   return new Set(loadCapabilityCatalog().rows.flatMap((row) => (row.kind === 'op' ? [row.id] : [])))
 }
@@ -1357,7 +1286,7 @@ function bareInvocations(subjects: readonly GuidanceSubject[]): readonly string[
     .map((invocation) => `${subject.name}: "${invocation.text}" is not prefixed with npx`))
 }
 
-// every command a skill quotes can be copied and run with a local install
+// Every command a skill quotes can be copied and run with a local install.
 describe('CLI commands quoted in agent guidance', () => {
   it('every CLI command a source or packaged skill quotes outside a text block reads npx agent-qa', () => {
     const skills = skillSubjects()
@@ -1399,7 +1328,7 @@ describe('CLI commands quoted in agent guidance', () => {
       .toEqual([['agent-qa runs list', false, '']])
   })
 
-  // the map keeps bare verbs; only its rendering adds npx
+  // The map keeps bare verbs; only its rendering adds npx.
   it('every CLI command the guide, the pointer and the MCP instructions quote reads npx agent-qa, while the question map keeps bare verbs', () => {
     const names: readonly string[] = ['generated guide', 'root pointer', 'MCP instructions']
     const generated = liveGuidanceInputs().subjects.filter((subject) => names.includes(subject.name))
@@ -1417,7 +1346,7 @@ describe('CLI commands quoted in agent guidance', () => {
 
 const EVIDENCE_KINDS = ['console', 'network', 'a11y', 'aria', 'variables'] as const
 
-// a skill explains each placeholder where it uses it
+// A skill explains each placeholder where it uses it.
 describe('the build and evidence-kind placeholders in agent guidance', () => {
   it('every skill that names the build placeholder says it is a build ordinal or tag, and every skill that names runs evidence --kind names the five evidence kinds', () => {
     const findings: string[] = []
@@ -1455,7 +1384,7 @@ describe('the build and evidence-kind placeholders in agent guidance', () => {
   })
 })
 
-// a forced init rebuilds agent-qa.config.yaml; a backtick ends a code span
+// A forced init rebuilds agent-qa.config.yaml; a backtick ends a code span.
 const INIT_FORCE = /\binit\b[^`\n]*--force\b/u
 
 function initForceFindings(
@@ -1472,7 +1401,7 @@ function initForceFindings(
   return { scanned, findings: sorted(findings) }
 }
 
-// agent-facing guidance never hands an agent a forced init
+// Agent-facing guidance never hands an agent a forced init.
 describe('agent guidance never offers init --force', () => {
   it('no agent-facing guidance offers agent-qa init with --force, which rebuilds the workspace config', () => {
     const { subjects } = liveGuidanceInputs()

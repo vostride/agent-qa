@@ -382,8 +382,7 @@ async function captureTo(page: Page, name: string, zoomed = false) {
   const directory = process.env.AGENT_QA_427_CAPTURE_DIR
   if (!directory) return
   mkdirSync(directory, { recursive: true })
-  // Under real browser zoom a clip is in surface pixels (425's first 200% capture cropped to the
-  // top-left quadrant), so the zoomed capture is the viewport scaled by devicePixelRatio.
+  // Under browser zoom a clip is in surface pixels, so the viewport is scaled by devicePixelRatio.
   const clip = zoomed
     ? await page.evaluate(() => ({ x: 0, y: 0, width: innerWidth * devicePixelRatio, height: innerHeight * devicePixelRatio }))
     : undefined
@@ -514,7 +513,7 @@ async function driveGeometry(page: Page, label: string, capture: string, zoomed 
 }
 
 async function driveZoom(url: string, runId: string) {
-  // Real browser zoom: 425's isolated MV3 extension calls Chrome's own tabs.setZoom / getZoom.
+  // Real browser zoom: an isolated MV3 extension calls Chrome's own `tabs.setZoom` and `getZoom`.
   // https://developer.chrome.com/docs/extensions/reference/api/tabs#method-setZoom
   const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-427-zoom-')))
   const extension = join(zoomRoot, 'extension')
@@ -734,14 +733,14 @@ describe('the Knowledge tab on the shipped bundle at three geometries', () => {
     const reached = new Set(focused.map(entry => entry.id))
     const where = (group: string) => `${group}: ${JSON.stringify(focused.map(entry => `${entry.tag}:${entry.label ?? ''}`))}`
     for (const [group, ids] of Object.entries(inventory)) {
-      // the proposals group is the one retired member; its absence is asserted below.
+      // The `proposals` group is absent; that is asserted below.
       if (group === 'proposals') continue
       expect(ids.length, `no ${group} on the page`).toBeGreaterThan(0)
       for (const id of ids) expect(reached.has(id), where(`${group} ${String(id)} never took focus`)).toBe(true)
     }
     const normalize = (text: string) => text.replace(/\s+/g, ' ').trim()
     const occurrences = (text: string, part: string) => part.length === 0 ? 0 : text.split(part).length - 1
-    // Every Tab stop in the pane is a control Chromium can name (G-427-1, WCAG 4.1.2).
+    // Every Tab stop in the pane is a control Chromium can name (WCAG 4.1.2).
     for (const [index, entry] of focused.entries()) {
       if (!entry.inKnowledge) continue
       const control = `Tab stop ${String(index)} <${entry.tag}> named ${JSON.stringify(entry.ax.name)} (role ${JSON.stringify(entry.ax.role)})`
@@ -770,7 +769,7 @@ describe('the Knowledge tab on the shipped bundle at three geometries', () => {
       expect(occurrences(`${name} ${description}`, meaning[id]!), `${control}: meaning announced other than once`).toBe(1)
     }
     for (const id of inventory.stepRefs) expect(labels[id], 'a step reference\'s accessible name').toMatch(/^Go to /)
-    // the tab shows what changed; no pending-proposals line or review copy control remains.
+    // The tab shows what changed; no pending-proposals line or review copy control appears.
     expect(inventory.proposals).toEqual([])
     expect(Object.values(labels).filter(label => label?.startsWith('Copy review command'))).toEqual([])
     for (const id of inventory.recordIdCopies) expect(labels[id]).toMatch(/^Copy record id /)

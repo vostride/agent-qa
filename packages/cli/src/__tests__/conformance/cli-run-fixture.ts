@@ -1,5 +1,4 @@
-// Two real `agent-qa run` processes over one project and one runs.db, each parked at its browser
-// launch until the cell releases it. It returns data and never asserts.
+// Two real `agent-qa run` processes over one runs.db, each parked at browser launch until released.
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'

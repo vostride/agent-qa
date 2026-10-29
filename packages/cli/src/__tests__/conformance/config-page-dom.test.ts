@@ -1,8 +1,5 @@
 /// <reference lib="dom" />
-// Phase 429 on the shipped bundle: the built `agent-qa dashboard` serving the built
-// dashboard-ui to a real Chromium, in a hermetic HOME so every auth.json read and write lands in a
-// throwaway store. A browser that cannot launch is a red, never a skip. Captures go only where
-// AGENT_QA_429_CAPTURE_DIR points. Run with --maxWorkers=1: the cells share one spawned dashboard.
+// The built dashboard in real Chromium with a hermetic HOME; the cells share one spawned dashboard.
 
 import { chmodSync, existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs'
 import { homedir, tmpdir } from 'node:os'
@@ -72,8 +69,7 @@ const COMMENT_SENTINELS = {
   above: 'zz-429-41-COMMENTED-HEADER-SENTINEL-5e0a',
   trailing: 'zz-429-41-TRAILING-COMMENT-SENTINEL-a3d8',
 } as const
-// the MCP token list is deleted, so the file view's env-var-name witness is gone;
-// a plain MCP leaf stands in and must read in clear, untagged.
+// A plain MCP leaf, which the file view must show in clear and untagged.
 const MCP_PORT = '3471'
 const PLUGIN_PACKAGE = '@example/agent-qa-auth'
 const LONG_TARGET = 'checkout-staging-with-a-deliberately-long-target-name'
@@ -228,10 +224,7 @@ class Harness {
     for (const page of opened.context.pages()) {
       const seen = await page.evaluate(() => (window as unknown as { __dialogsSeen?: string[] }).__dialogsSeen ?? []).catch(() => [])
       this.dialogs.push(...seen)
-      // let a route handler still in flight finish before the
-      // context goes. OUTSIDE-EDIT-INTERLEAVED-SHIPPED's PATCH handler was mid `route.fetch()` when
-      // the context closed under a forced gate at load up to 165, an unhandled `Request context
-      // disposed` rejection that failed the CLI task with every cell green.
+      // Let in-flight handlers finish, or closing the context rejects `Request context disposed`.
       await page.unrouteAll({ behavior: 'wait' })
     }
     await opened.context.close()
@@ -521,7 +514,7 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle'
   }, 180_000)
 })
 
-// ---- Task 2: the continuous add flow, keyboard recovery and outside edits -------------------------
+// ---- The continuous add flow, keyboard recovery and outside edits ----
 
 const TYPED_KEY = 'zz-429-33-typed-key-not-a-credential-5e0a'
 const CONNECTED_SAVED = (name: string) => `Connected. Saved as ${name}.`
@@ -865,10 +858,7 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
     expect(realAuthFingerprint(), "the operator's own auth.json changed during the run").toBe(realAuthBefore)
   }, 120_000)
 
-  // the outside edit lands and the page's own write follows before any poll could
-  // see it. The revision poll answers the first loaded revision until that write lands and then
-  // exactly what the write answered, as a real poll would, so only the write's own answer can make
-  // the page re-read.
+  // The poll answers the first revision until the page's own write lands, so only it re-reads.
   it('OUTSIDE-EDIT-INTERLEAVED-SHIPPED', async () => {
     const { h, project: target } = live()
     resetProject(target)

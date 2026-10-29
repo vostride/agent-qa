@@ -79,8 +79,7 @@ describe('evidence layout backstops on the shipped bundle', () => {
       if (!settled) throw new Error('Post-run writer did not settle')
       await fixture.dashboard.stop()
       const env = populatedRunSpawnEnv()
-      // A cold reader without the original environment: the fill value is not a declared secret,
-      // so the run recorded it as typed and the page renders it as written.
+      // The fill value is no declared secret, so the page renders it as typed.
       delete env[POPULATED_SECRET_ENV_VAR]
       const port = await reserveEphemeralPort()
       reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, port, 60_000, env)
@@ -148,8 +147,7 @@ describe('evidence layout backstops on the shipped bundle', () => {
       await zoomContext.close()
       zoomContext = undefined
 
-      // Historical fixture: SQL NULL in the existing additive fields is precisely the migrated
-      // pre-424 shape. Keep the real decision images, steps and identities; invent no new data.
+      // SQL NULL in the additive fields is the migrated older shape; no new data is invented.
       await reader.stop()
       const db = new DatabaseSync(join(fixture.project.agentQaRoot, 'runs.db'))
       db.prepare('UPDATE run_members SET recording_json = NULL WHERE run_id = ?').run(fixture.drive.runId)

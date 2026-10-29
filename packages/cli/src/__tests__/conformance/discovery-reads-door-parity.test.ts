@@ -1,17 +1,4 @@
-// the discovery reads over the four rostered doors, and the six
-// dedicated CLI verbs as sugar over them.
-//
-// One completed run, written by the shipped writers (`discoveryRunFixtureProject`), is read through
-// the doors that exist: `fn`, the MCP HTTP door, the chat REPL and the authed run service. Each door
-// composes its own host over the same project, so agreement is between doors rather than between two
-// readings of one registry. The dedicated verbs are compared with their MCP tool and with `fn`; they
-// are not roster members and nothing here makes them one.
-//
-// Normalizations, and only these: the MCP SDK's legacy `{ result }` wrap of an array root, undone
-// only where the tool's advertised output schema is that wrap (`withoutLegacyResultWrap`); the chat
-// door's payload is the masked record the session log keeps, which the fixture's text leaves
-// unchanged. Run `pnpm build` at the repository root first: the MCP and dashboard packages resolve
-// through `dist`.
+// One completed run read through every door that exists; each door composes its own host over it.
 
 import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { createServer, type Server } from 'node:http'
@@ -47,7 +34,7 @@ import { discoveryRunFixtureProject, type DiscoveryRunFixture } from './populate
 import { OP_INPUT_CONTRACTS, scenarioRowFor } from './scenario-table.js'
 import { driveChatLines } from './surface-dispatch.js'
 
-/** The overview (new) and the eight reads 431-04 moved to MCP, plus the list every map starts from. */
+// The overview, the discovery reads and the list every map starts from.
 const DISCOVERY_OPS = [
   'knowledge.brief.why',
   'knowledge.bundles.list',
@@ -150,10 +137,7 @@ interface McpDoor {
   close(): Promise<void>
 }
 
-/**
- * The shipped `agent-qa mcp` HTTP listener over the project's own composition. 2026-10-01 (432-21,
- * D-12): tokenless; the client still sends the legacy reader bearer, which nothing reads.
- */
+// The shipped `agent-qa mcp` HTTP listener; the client's legacy bearer is read by nothing.
 async function openMcpDoor(p: DiscoveryRunFixture): Promise<McpDoor> {
   const composed = composeCliLocalAgent({ configPath: p.configPath, agentQaRoot: p.agentQaRoot })
   const masking = composeMcpMasking({ configPath: p.configPath })
@@ -200,10 +184,7 @@ interface RunServiceDoor {
   close(): Promise<void>
 }
 
-/**
- * The run-service router over the project's own composition, as the dashboard mounts it.
- * tokenless — no `verifyBearer` port and no credential on the request.
- */
+// The run-service router over the project's own composition, as the dashboard mounts it, tokenless.
 async function openRunServiceDoor(p: DiscoveryRunFixture): Promise<RunServiceDoor> {
   const composed = composeCliLocalAgent({ configPath: p.configPath, agentQaRoot: p.agentQaRoot })
   const agentHost = composeDashboardAgentHost(composed)

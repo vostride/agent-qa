@@ -1,26 +1,4 @@
-// THE SPAWNED-BINARY LIVE-VIEW ANCHORS (403-01 Task 5 · LIVE-02 / D-04 / D-14 — WINDOWS #264).
-//
-// EVERY CLAIM HERE IS ABOUT THE SHIPPED PROCESS. `live-view-tracer.test.ts` proves the frame path
-// in-process with a real browser; this file proves the COMPOSITION and the CARRIAGE on the actual
-// `agent-qa dashboard` binary, in the ZERO-TOKEN posture — deliberately, because that is the
-// default a project gets and it is exactly the arm in which #264 hid: the session registry used to
-// be built inside `composeRunServicePorts`, which runs only when a credential is declared, so a
-// default dashboard streamed nothing and could mint nothing.
-//
-// WHAT PHASE 404 CHANGED HERE. Cell (10) used to wait
-// on the live page's terminal band on a REAL run. D-13 moves the viewer to run detail on the
-// verdict, so the band is unreachable there; the cell is re-pinned to the navigation itself and to
-// D-07's no-ping-pong rule, measured at the SUBSCRIBER'S OWN ordering — the one place in the
-// repository where the `verdict` row write and a page's `fetchRun` race for real. The live-page
-// claims it used to carry (`data-preview-state="ended"`, the two-pane count) moved to
-// `live-view-dom.test.ts` cell (6), where a live page still stands at the end of a run.
-//
-// THE LOG-SCAN IS THE STRUCTURAL GUARANTEE (Pitfall 2). The masker is seeded once per run, so a
-// token minted mid-run is not masked by that run — which means "the token never lands anywhere
-// durable" cannot be an assertion about masking. It has to be a scan of the real channels: the
-// child's own stdout and stderr, every byte of every file the project wrote (the SQLite database
-// included), the SSE bytes, and the durable run record. With a POSITIVE CONTROL, because a scanner
-// that reads nothing reports no leak.
+// The shipped binary in its default tokenless posture; the token scan reads every real channel.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
@@ -64,13 +42,7 @@ const REBUILD_INSTRUCTION =
 const ATTACH_BUDGET_MS = 60_000
 /** How long an SSE read or a socket exchange may take. */
 const WIRE_BUDGET_MS = 30_000
-/**
- * How long cell (10) holds past an observed `runFinished`.
- *
- * The width of the `runs.start` door's DETACHED post-run tail (404-04 Task 2) — the window in
- * which a slow row write or a stale active set could have thrown the viewer back to `/live`. Read
- * the note inside cell (10) for what this fixture can and cannot reach in that window.
- */
+// The width of the `runs.start` door's detached post-run tail, where the viewer could be sent back.
 const TAIL_WINDOW_HOLD_MS = 5_000
 
 interface Fixture {
@@ -88,12 +60,7 @@ function held(): Fixture {
   return fixture
 }
 
-/**
- * The run's own recorded log, DISCOVERED rather than derived (404-06; `post-processing-anchors.ts`'s
- * `readRecordedEvents`, same argument). Re-deriving the runs-dir layout here would be a second
- * spelling of it; this fixture ran exactly one run, and this refuses rather than guesses if that is
- * ever untrue.
- */
+// Discovered rather than derived: re-deriving the runs-dir layout would be a second spelling of it.
 function readRecordedEvents(root: string): { seq: number; type: string }[] {
   const runsDir = join(root, '.agent-qa', 'runs')
   const dirs = readdirSync(runsDir, { withFileTypes: true })
@@ -208,8 +175,6 @@ beforeAll(async () => {
   expect(buildFreshness(DASHBOARD_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
     .toEqual({ missing: [], stale: [] })
 
-  // THE ZERO-TOKEN POSTURE, DELIBERATELY — the arm WINDOWS #264 lived in. Since 432-21 it is
-  // the only posture: no project declares a run-service credential.
   const project = runServiceFixtureProject('live-view')
   const port = await reserveEphemeralPort()
   const dashboard = await spawnDashboard(project.root, project.configPath, port)
@@ -314,8 +279,7 @@ describe('the shipped zero-token dashboard serves a live view', () => {
     expect(forged.messages.find((m) => m.type === 'refused')?.reason).toBe('bad_signature')
     expect(forged.closeCode, 'a refusal closes with the live-view refusal code').toBe(4400)
 
-    // a VALID token presented on ANOTHER run's socket. The claims name the run they were
-    // minted for, so cross-run confusion is refused by name rather than silently attaching.
+    // A valid token on another run's socket is refused by name, because the claims name their run.
     const crossed = await speakToFrameSocket({
       origin: f.dashboard.origin, runId: 'r_some_other_run', token, until: ['refused'],
     })
@@ -380,13 +344,10 @@ describe('the shipped zero-token dashboard serves a live view', () => {
     expect(body, 'the embed page is self-contained').not.toContain('<script src=')
     expect(body, 'the fragment never reaches the server, so a served document cannot carry it')
       .not.toContain('v2.')
-    // And it is the LIVE VIEW, not the SPA fallback wearing its URL (Pitfall 10).
+    // And it is the live view, not the SPA fallback wearing its URL.
     expect(body).toContain('data-embed-state')
 
-    // THE EDITOR ARM. An editor session is served by the same embed page and frame
-    // socket, so the same absence holds around an editor mint. Measured on the shipped composition
-    // the live-view harness composes, because a real editor session in this binary would need a
-    // declared model the run above must not see.
+    // The editor arm uses the live-view harness: a real editor session here needs a declared model.
     const harness = await startLiveViewHarness({ label: 'anchors-editor' })
     const editor = plantEditorSubject(harness, { sessionId: 'ed-anchor', kind: 'cdp-screencast' })
     try {
@@ -418,23 +379,7 @@ describe('the shipped zero-token dashboard serves a live view', () => {
   }, 60_000)
 })
 
-// ---- INVK-05 ON REAL SOCKETS, AND THE SHIPPED BINARY'S OWN LIVE PAGE (403-06 Task 2) ----------
-//
-// WHAT THE CELLS ABOVE DO NOT MEASURE. They drive ONE reader at a time, and every claim INVK-05
-// makes is about MORE THAN ONE: several surfaces attached at once, one of them walking away
-// mid-run, one of them coming back with a resume point, and a run that carries on regardless. A
-// single-reader fixture is structurally blind to all four — 388 paid for that lesson by name
-// ("single-run fixtures cannot see a cross-instance attribution defect, and ~35 differentials
-// didn't"), and the same shape applies to a single-VIEWER fixture here.
-//
-// THE FRAME IS THE PRODUCTION ONE. `startLiveViewHarness` composes the shipped `startServer` with
-// the shipped door, the shipped registry, the shipped mint and the built UI — see
-// `live-view-fixture.ts`. A bare router mounted in this file would answer every request below
-// identically while proving nothing about the process a person runs.
-//
-// THE `cancel` SPY IS THE WHOLE OF T-403-07. Attach is not ownership: no count of viewers
-// arriving, leaving or dying may reach the run. The only way to measure "nobody called it" is to
-// hold the function that would have been called, which is why the session is planted.
+// Several viewers attach, leave and resume; the `cancel` spy shows no viewer reaches the run.
 
 /**
  * The words `data-terminal-state` can carry for a run that ENDED.
@@ -619,9 +564,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
     const pageB = await held.newPage()
     try {
       publishTo(run, 'runStarted', { busSchemaVersion: CURRENT_BUS_SCHEMA_VERSION, memberTestCount: 1, handles: [0] })
-      // RE-SPELLED 2026-09-26 (428-30, owner decision 2026-09-26 (2), G-428-2). A row with no text
-      // is no longer drawn, so this testStarted carries its step texts and the pending rows both
-      // surfaces wait for and count are still drawn.
+      // A row with no text is not drawn, so testStarted carries the texts of the pending rows.
       publishTo(run, 'testStarted', {
         testId: 't0',
         testIndex: 0,
@@ -670,24 +613,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
     }
   }, 150_000)
 
-  // RE-PINNED 2026-08-26. This cell was "(10) THE SHIPPED BINARY: a
-  // real run's live page reaches its honest terminal state", and it waited on `data-terminal-state`
-  // — the live page's terminal band — on a REAL run. D-13 inverts that path: the verdict now moves
-  // the viewer to run detail, so the band is unreachable here and the wait would hang for its whole
-  // budget. The cell keeps its ONE real run, the whole production chain and nothing planted, and
-  // re-pins to the claim D-13 and D-07 actually make on it.
-  //
-  // WHAT MOVED OUT. The `data-preview-state="ended"` wait and the two-pane count are LIVE-PAGE
-  // claims about a run that ended; with the page gone by then they went to `live-view-dom.test.ts`
-  // cell (6) — the planted `runFinished`-with-no-verdict path, where the live page really does stay
-  // and where the ending is an instant the cell decides rather than one it waits out.
-  //
-  // WHAT THIS MEASURES THAT NOTHING ELSE DOES. `live-view-dom.test.ts` cell (9) drives a PLANTED
-  // session whose row this test writes: the ordering between the `verdict` envelope and the durable
-  // row is a seam the cell owns. Here neither is: the run is the spawned binary's own, the row is
-  // written by the dashboard's own reporter subscriber at its own `verdict`, and the page's own
-  // `fetchRun` races that write for real. If D-07's no-ping-pong rule is going to fail at the
-  // subscriber's real ordering, this is the cell it fails in.
+  // One real run: the page's `fetchRun` races the reporter's verdict row write for real here.
   it('(10) THE SHIPPED BINARY: a real run\'s verdict moves the viewer to run detail, and never back to /live', async () => {
     const f = held()
     const heldBrowser = browser
@@ -697,9 +623,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
     page.on('request', (request) => {
       if (request.url().includes('/api/run-stream/')) attaches.push(request.url())
     })
-    // EVERY MAIN-FRAME NAVIGATION, IN ORDER. A single end-state reading cannot tell "went to run
-    // detail and stayed" from "went, bounced to /live, and was sent back" — the ping-pong D-07
-    // forbids settles in exactly one tick, so the ONLY instrument that can see it is the list.
+    // Every main-frame navigation in order: only the list sees a bounce that settles in one tick.
     const navigations: string[] = []
     page.on('framenavigated', (frame) => {
       if (frame === page.mainFrame()) navigations.push(frame.url())
@@ -723,10 +647,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
         `landed on ${page.url()}; navigations ${JSON.stringify(navigations)}. ${childContext(f.dashboard)}`,
       ).toBe(true)
 
-      // THE BADGE FOLLOWS THE ROW, WITHIN THE CATCH-UP. The subscriber writes the row's status at
-      // the SAME `verdict` envelope this page navigated on, and the page's own `fetchRun` may win
-      // that race — D-07's bounded re-fetch is what turns "the row is a moment behind" into "the
-      // header says the verdict word a moment later" instead of "the viewer is back on /live".
+      // The page's `fetchRun` may beat the row write; the bounded re-fetch then updates the badge.
       const badge = page.locator('[data-verdict-badge]')
       await badge.waitFor({ state: 'attached', timeout: 3_000 })
       const verdictWord = await badge.getAttribute('data-verdict-badge')
@@ -736,24 +657,13 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
         + childContext(f.dashboard),
       ).toContain(verdictWord)
 
-      // AND NOW THE WINDOW AFTER THE END. The test opens its OWN reader on the same run so the hold
-      // below starts from an observed `runFinished` rather than from a number somebody guessed, and
-      // then holds a further 5 s — the width of the `runs.start` door's detached post-run tail
-      // (404-04 Task 2). See the note under the assertions for what this fixture can and cannot
-      // reach there.
+      // Its own reader starts the hold at an observed `runFinished`, then waits the tail's width.
       const reader = openIdStream(`${f.dashboard.origin}/api/run-stream/${encodeURIComponent(f.runId)}`)
       await reader.waitForEvent('runFinished', WIRE_BUDGET_MS)
       reader.abort()
       await page.waitForTimeout(TAIL_WINDOW_HOLD_MS)
 
-      // D-07, AS ONE READING OF THE WHOLE LIST, AND THE INSTRUMENT IS THE ORDER RATHER THAN THE
-      // COUNT. Measured: the initial `/live` entry appears TWICE, because `createBrowserRouter`
-      // normalises the URL on hydration with a same-document replace to the same address — both
-      // entries land before the arrival and neither is a bounce. A count-of-`/live` assertion
-      // would therefore have been red on a page doing nothing wrong, and would have said nothing
-      // about the failure it was aimed at. A PING-PONG IS AN ORDERING: `/runs/:id`, then `/live`
-      // again, then `/runs/:id` again. So every entry after the first run-detail arrival must be
-      // the run-detail URL, and the arrival must have been reached from a live page at all.
+      // Order, not count: hydration replaces `/live` with itself, so a second `/live` is no bounce.
       const firstDetail = navigations.findIndex((url) => /\/runs\/[^/]+$/u.test(url))
       expect(
         firstDetail,
@@ -772,19 +682,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
       ).toEqual([])
       expect(page.url().endsWith(`/runs/${f.runId}`), `ended on ${page.url()}`).toBe(true)
 
-      // WHAT THIS FIXTURE CANNOT REACH, STATED RATHER THAN IMPLIED (WINDOWS #281, 404-05 D-6 /
-      // 404-04 D-6). `spawnDashboard` runs the child under `hermeticEnv`, which points `HOME` into
-      // the temp project, so the member resolves no Playwright browser and raises a FRAMEWORK
-      // error — and `in-process-run-execution.ts` re-throws that ABOVE the line that starts the
-      // detached post-run tail. The tail therefore never runs here, and the 5 s hold above is a
-      // window in which no chain is draining. Everything asserted above IS measured: the verdict
-      // arrives, the page moves, the row catches up, and nothing re-enters /live through
-      // `runFinished` and five further seconds. The tail-window half is not.
-      //
-      // THIS ASSERTION IS THE TRIPWIRE. The day this fixture can reach a real verdict — a
-      // browserless member, an installed browser in the child, any harness change that makes the
-      // tail run — a chip envelope lands in this run's own log and this cell REDS, which is the
-      // signal to promote the hold above from a hold into a genuine tail-window measurement.
+      // No browser in the child, so the post-run tail never runs; a chip envelope reds that.
       const recorded = readRecordedEvents(f.root)
       const afterFinished = recorded
         .slice(recorded.findIndex((event) => event.type === 'runFinished') + 1)
@@ -796,9 +694,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
         + 'has been a vacuous window until now and this cell said so.',
       ).toEqual([])
 
-      // HNST-01 ON THE SHIPPED CHAIN, NOW READ OFF THE RUN-DETAIL DOCUMENT. `plannedAction` is a
-      // FIELD NAME the bus really carries, so its absence from the served document is a claim about
-      // this page and not about a payload shape nothing produces.
+      // `plannedAction` is a field the bus carries, so its absence is a claim about this page.
       const html = await page.evaluate(() => document.documentElement.outerHTML)
       expect(html.length, 'the positive control — a document was actually read').toBeGreaterThan(500)
       expect(html, 'no provisional payload field is reachable on the shipped surface')

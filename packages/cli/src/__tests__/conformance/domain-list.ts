@@ -1,62 +1,4 @@
-// The canonical id-domain taxonomy — ONE pinned list.
-//
-// WHAT THIS REPLACES. `packages/agent/src/__tests__/parity-coverage.test.ts` carried the taxonomy as
-// a `Set` literal that had been widened seven times, each widening a dated comment arguing its own
-// case in place. The literal worked, but the reconciliation it kept promising ("397 folds these")
-// never had a home, and a comment inside a `Set` is not something the product can be checked
-// against. This file is that home: the taxonomy is DATA, each member states what it owns in one
-// line, and `parity.test.ts` censuses the live registry against it in both directions.
-//
-// ADDING A DOMAIN IS A REVIEWED ONE-LINE DIFF. That is the whole design goal. A capability whose id
-// carries a domain absent from this table is a named RED naming the op and the domain — not a silent
-// widening, and not a `Set.add` buried in a test file. The reverse direction is asserted too: a
-// member here that no shipped capability uses must carry an explicit dated `reserved` sentence, so a
-// domain cannot linger as decoration nobody notices is empty.
-//
-// NO ID IS EVER RENAMED TO SUIT THIS LIST. The ids are the shipped, locked contract — they
-// are what a chat user's tool call, an MCP client's tool name and the golden ledger all address. The
-// taxonomy serves them. Every one of the seven widenings recorded below happened because that rule
-// was applied: the id landed, and the list moved.
-//
-// ---------------------------------------------------------------------------------------------
-// THE FOLD, 2026-08-16.
-//
-// 384 D-15 fixed the taxonomy at eight domains: tests · runs · memory · analysis · eval · gates ·
-// config · agent (the list is still quoted in `packages/agent/src/functions/spec.ts`, which now
-// points here instead of repeating it). Six later phases each argued, on its own footing and in a
-// dated note, that a capability it was shipping belonged to a domain the eight did not contain:
-//
-//   * `knowledge`   2026-07-28 (386 planner note) — D-06's locked seed ids include
-//                   `knowledge.bundles.list`, so the taxonomy widened rather than the id being
-//                   renamed. This is the note that established the rule the five below follow.
-//   * `entities`    2026-08-02 — two read verbs over one ADDRESSING surface; filing them
-//                   under runs, memory or analysis would have made the domain list decorative.
-//   * `quarantine`  2026-08-05 — a lifecycle with its own entry, exit and enumeration
-//                   verbs; neither a run, a memory nor an analysis.
-//   * `proposals`   2026-08-07 — the decision inbox. The envelope is KIND-generic
-//                   (`PROPOSAL_KINDS` is a closed four-member discriminant today), so filing the
-//                   inbox under `knowledge.` would have been the tempting move and the wrong one.
-//   * `grants`      2026-08-07 — a standing approval OUTLIVES the proposal that minted
-//                   it, so the list/revoke pair had to be tellable apart from the inbox verbs at
-//                   exactly the moment a person needs to tell them apart.
-//   * `authoring`   2026-08-10 — writing a test is the thing runs, memories, analyses,
-//                   quarantine entries, proposals and grants are all ABOUT; filing the keep-gate
-//                   evaluator under `tests.` would have conflated it with the suite-execution verbs
-//                   D-15 reserved that domain for.
-//
-// Each of those six is a first-class member below, with no residual "extension" status: a domain
-// argued for once and shipped is a domain, and marking six of the fourteen as second-class would
-// re-create in this file exactly the two-tier taxonomy the fold exists to end.
-//
-// ONE OF THE SEVEN DATED NOTES DID NOT HOLD, AND THE CORRECTION IS PART OF THE FOLD. The 2026-08-09
-// note introduced `agent` as "the sixth taxonomy EXTENSION". It is not an extension:
-// `agent` is a member of D-15's original eight (384 CONTEXT D-15; `functions/spec.ts`'s docstring),
-// so `agent.ask` needed no widening at all and the `Set.add` was a duplicate — which is why the
-// retired literal held FIFTEEN entries for FOURTEEN distinct domains. The 2026-08-10 note inherited
-// the arithmetic and called `authoring` "the SEVENTH extension"; it is the sixth. Both counts were
-// checked against the code during this fold rather than transcribed, which is how the discrepancy
-// surfaced. No id and no domain changes as a result — only the count, and this sentence.
-// ---------------------------------------------------------------------------------------------
+// Adding a domain is a one-line diff here; ids are never renamed to suit this list.
 
 /** One domain in the canonical taxonomy. */
 export interface CanonicalDomain {
@@ -75,15 +17,7 @@ export interface CanonicalDomain {
   readonly reserved?: string
 }
 
-/**
- * The taxonomy. Fourteen members: D-15's eight, plus the six domains later phases argued for.
- * Fifteen since 2026-09-25: `editor` joined when `editor.liveurl` landed.
- * Thirteen since 2026-10-02: `proposals` and `grants` are removed, not held.
- * Their ops were deleted by 432-17/18 with no alias, and a held name would only argue for
- * reviving an approval surface the phase deleted; nothing parses a persisted id by this list.
- *
- * Sorted by domain so a diff adding one is a single line in a predictable place.
- */
+// Sorted by domain, so a diff adding one is a single line in a predictable place.
 export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
   Object.freeze({
     domain: 'agent',
@@ -201,13 +135,7 @@ export interface DomainCensusDiff {
   readonly staleReservations: readonly string[]
 }
 
-/**
- * The pure membership core, over an explicit taxonomy argument.
- *
- * TAKING THE TAXONOMY AS A PARAMETER rather than closing over `CANONICAL_ID_DOMAINS` is what lets
- * the control cells drive every branch on synthetic input, without mutating a shipped table and
- * without a skip. A self-check that cannot be shown to fire certifies nothing (the 394 lesson).
- */
+// The taxonomy is a parameter, so the control cells drive every branch on synthetic input.
 export function domainCensus(
   opIds: readonly string[],
   taxonomy: readonly CanonicalDomain[] = CANONICAL_ID_DOMAINS,
@@ -231,12 +159,5 @@ export function domainCensus(
   })
 }
 
-/**
- * The id GRAMMAR, carried across from the retired 384 stub's taxonomy sweep.
- *
- * Lowercase dot segments and nothing else. The underscore exclusion is load-bearing rather than
- * cosmetic: `chat/tool-names.ts` maps `.` ↔ `_` as a bijection and refuses an id carrying the
- * separator it maps onto, so an id with an underscore would be unreachable from the chat surface —
- * which is why `authoring.draft.verify` is spelled that way and not `authoring.verify_draft`.
- */
+// No underscores: chat maps `.` to `_` as a bijection, so an id with `_` is unreachable from chat.
 export const OP_ID_GRAMMAR = /^[a-z]+(?:\.[a-z]+)+$/

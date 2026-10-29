@@ -1,4 +1,4 @@
-// every command and key a doctor fix names is real
+// Every command and key a doctor fix names is real.
 
 import { mkdtempSync, readFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

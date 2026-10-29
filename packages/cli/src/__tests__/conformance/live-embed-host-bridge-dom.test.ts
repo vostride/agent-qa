@@ -1,23 +1,7 @@
 /// <reference lib="dom" />
 // The DOM lib is referenced here because this file's `page.evaluate` callbacks run in a browser.
 
-// THE EMBED-TO-HOST BRIDGE, IN A REAL BROWSER (428 D-10/D-15, RESEARCH Q-BRIDGE).
-//
-// The served embed page reports what it sees to whichever page frames it, over
-// `window.parent.postMessage(payload, '*')`. These cells build that host page themselves
-// (`page.setContent`), frame the embed exactly as the dashboard will (`sandbox="allow-scripts"`,
-// no `allow-same-origin`), and keep a message only when `event.source` is that iframe's own
-// `contentWindow`. `event.origin` is recorded beside it and is expected to be the string `'null'`:
-// the embed sits in an opaque origin, so the origin is not a trust signal and identity is the
-// check.
-//
-// WHAT IS PRODUCTION. The server, the mint doors, the validator, the frame socket and the embed
-// document are the shipped ones (`startLiveViewHarness`). A streaming run's frames go through a
-// real `createLiveStreamHub`, so the capture time and the producer kind on the wire are stamped the
-// way a member's hub stamps them. The editor subject is `plantEditorSubject`, minted through the
-// editor door.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP (the live-view DOM cells' rule, inherited).
+// Messages are kept by `event.source` identity: the sandboxed embed's origin is `'null'`.
 
 import {
   LIVE_EMBED_HOST_PARAM,

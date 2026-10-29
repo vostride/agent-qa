@@ -1,4 +1,4 @@
-// C447: run outcomes from every door that composes analytics, allowlisted, never changing a verdict
+// Run outcomes from every door that composes analytics are allowlisted and never change a verdict.
 
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'

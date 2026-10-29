@@ -10,9 +10,7 @@ import { recordingFixture, type RecordingFixture } from './recording-dom-fixture
 import { populatedRunSpawnEnv, POPULATED_SECRET_ENV_VAR } from './populated-run-fixture.js'
 import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard, trackTempRoot } from './spawned-chat.js'
 
-// Real producer + shipped bundle: the run is recorded by the shipped runner and every door, draft
-// and copy below is the built dashboard's own. Nothing is mocked or skipped. Captures go only where
-// AGENT_QA_426_CAPTURE_DIR points, never into 424's or 425's directories.
+// Real producer and shipped bundle, nothing mocked or skipped; captures go only to the capture dir.
 const DESKTOP = { width: 1280, height: 800 }
 const MODAL = '[role="dialog"],[aria-modal]'
 const NOTE = 'The notice closed before the evidence settled'
@@ -56,8 +54,7 @@ async function captureTo(page: Page, name: string, zoomed = false) {
   const directory = process.env.AGENT_QA_426_CAPTURE_DIR
   if (!directory) return
   mkdirSync(directory, { recursive: true })
-  // Under real browser zoom a clip is in surface pixels, not page pixels (425's first 200% capture
-  // cropped to the top-left quadrant), so the zoomed capture is the viewport scaled by devicePixelRatio.
+  // Under browser zoom a clip is in surface pixels, so the viewport is scaled by devicePixelRatio.
   const clip = zoomed
     ? await page.evaluate(() => ({ x: 0, y: 0, width: innerWidth * devicePixelRatio, height: innerHeight * devicePixelRatio }))
     : undefined
@@ -174,7 +171,7 @@ const DESKTOP_LABEL = '1280x800'
 const NARROW_LABEL = '400x800'
 const ZOOM_LABEL = 'zoom2-from-1280x800'
 const GEOMETRY_LABELS = [DESKTOP_LABEL, NARROW_LABEL, ZOOM_LABEL]
-// WINDOWS #480's band, composer closed: 808px and 888px headers beside the 192px sidebar.
+// The composer closed at mid widths: 808px and 888px headers beside the 192px sidebar.
 const MID_WIDTHS = [1000, 1080]
 const HEADER_LABELS = [DESKTOP_LABEL, ...MID_WIDTHS.map(width => `${width}x800`), NARROW_LABEL, ZOOM_LABEL]
 const DOCKED_NARROW_LABEL = '1000x800-docked'
@@ -207,7 +204,7 @@ async function settleHeader(page: Page) {
   await frames(page)
 }
 
-/** 425's header measurement, on this file's own feedback-bound host, with the entry named. */
+/** The header measurement, on this file's own feedback-bound host, with the entry named. */
 async function measureHeader(page: Page, label: string) {
   await settleHeader(page)
   const geometry = await page.evaluate(() => {
@@ -456,10 +453,7 @@ async function resizeTo(page: Page, width: number, layout: 'docked' | 'stacked')
   return await page.locator('[data-feedback-composer]').getAttribute('data-feedback-layout')
 }
 
-/**
- * RESEARCH A4 on the shipped bundle: react-resizable-panels is assumed to keep a panel's children
- * mounted when the arrangement's panel ids change. Stored nodes are compared across a round trip.
- */
+// react-resizable-panels should keep children mounted when panel ids change; nodes are compared.
 async function paneWidths(page: Page) {
   return await page.evaluate(() => ['run-tree', 'run-evidence', 'run-feedback']
     .map(id => Math.round(document.getElementById(id)?.getBoundingClientRect().width ?? -1)))
@@ -551,7 +545,7 @@ async function driveLayout(browser: Browser, url: string) {
   await measureContrast(page, 'light')
   await setTheme(page, 'dark')
   remount = await observeRemount(page)
-  // 426-04's container query: a docked page this narrow leaves the tree's door row under 14rem.
+  // A docked page this narrow leaves the tree's door row under 14rem.
   await resizeTo(page, 1000, 'docked')
   await measureStepRow(page, DOCKED_NARROW_LABEL)
   await page.close()
@@ -574,8 +568,7 @@ async function driveLayout(browser: Browser, url: string) {
   await captureTo(narrow, 'composer-400')
   await context.close()
 
-  // Real browser zoom, not device density: 425's isolated MV3 extension calls Chrome's own
-  // setZoom/getZoom on the fixture tab.
+  // Real browser zoom, not device density: an isolated MV3 extension calls `setZoom` on the tab.
   // https://developer.chrome.com/docs/extensions/reference/api/tabs#method-setZoom
   const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-426-zoom-')))
   const extension = join(zoomRoot, 'extension')
@@ -648,8 +641,7 @@ describe('contextual feedback on the shipped bundle', () => {
       await page.locator('[data-feedback-entry="step"]').waitFor({ timeout: 15_000 })
       await frames(page)
 
-      // Open Question 4, observed rather than assumed: the host binds feedback, so member 0
-      // carries a marks array, and the consequences read answers for it on this run.
+      // The host binds feedback, so member 0 carries a marks array the consequences read answers.
       settled = await page.evaluate(async runId => {
         const detail = await fetch(`/api/runs/${encodeURIComponent(runId)}/detail`)
         const body = await detail.json() as { members?: Array<{ testIndex: number; testId?: string; marks?: unknown }>; steps?: Array<{ testIndex?: number }> }
@@ -678,10 +670,7 @@ describe('contextual feedback on the shipped bundle', () => {
       triggers = { loaded, kinds, afterEscape: await doors.count(),
         selectedAfterEscape: await page.locator('[role="treeitem"][aria-selected="true"]').count() }
 
-      // SC4: compose on one step, then select a different step, open an evidence tab and copy a
-      // value. Only the first step's network record carries a response body (the page load); the
-      // later steps' failing fetch is recorded without one, so its panel offers nothing to copy.
-      // The draft therefore sits on step 2 and the inspection happens on step 1.
+      // Only step 1's network record has a body to copy, so the draft sits on step 2.
       const modalCounts: Record<string, number> = {}
       const composed = page.locator('[data-step-id="0:1"]')
       const inspected = page.locator('[data-step-id="0:0"]')
@@ -706,8 +695,7 @@ describe('contextual feedback on the shipped bundle', () => {
       modalCounts.otherStepSelected = await modalCount(page)
 
       if (!await copyFromNetwork(page)) {
-        // The plan's named fallback does not exist on the shipped page: the Variables tab renders
-        // no copy control and the masked chip is presentational by design.
+        // The Variables tab renders no copy control; the masked chip is presentational.
         throw new Error('The inspected step\'s Network panel offered no copy control, and the Variables tab renders none')
       }
       await page.waitForFunction(() => (window as unknown as { copied: string[] }).copied.length > 0, undefined, { timeout: 5_000 })
@@ -845,7 +833,7 @@ describe('contextual feedback on the shipped bundle', () => {
         expect(overlaps(entry!.box, item.box), `${where}: entry ${JSON.stringify(entry!.box)} overlaps ${item.key} ${JSON.stringify(item.box)}`).toBe(false)
       }
       expect(geometry.entryOnTop, `${where}: a pointer at the entry's centre hits ${geometry.entryHit}`).toBe(true)
-      // 425's BADGE-DOMINANT-GEOMETRY measurement, unchanged.
+      // The badge-dominant geometry measurement.
       const badge = geometry.texts.find(text => text.kind === 'badge')
       expect(badge, `${where}: no text-bearing verdict badge`).toBeDefined()
       expect(badge!.fontSize, `${where}: badge font-size`).toBe(14)
@@ -921,7 +909,7 @@ describe('contextual feedback on the shipped bundle', () => {
     for (const [index, width] of remount!.panes.after.entries()) {
       expect(Math.abs(width - remount!.panes.before[index]!), `${where}: pane ${String(index)}`).toBeLessThanOrEqual(1)
     }
-    // 426-11's handed-over A4 check: the player itself survives the switch, and with it its position.
+    // The player survives the switch, and with it its position.
     expect(remount!.player.present, where).toBe(true)
     expect(remount!.player.section, where).toBe(true)
     if (remount!.player.video) {
@@ -936,8 +924,7 @@ describe('contextual feedback on the shipped bundle', () => {
     expect(remount!.network.selectedAfter, where).toBe('true')
   })
 
-  // 426-04's container query, which jsdom cannot run: the door row moves its duration onto its own
-  // line below 14rem and keeps it beside the name above, and name, duration and door never meet.
+  // A container query jsdom cannot run: below 14rem the duration moves onto its own line.
   it('STEP-ROW-DOOR-WRAP', () => {
     expect(stepRows.map(row => row.label), JSON.stringify(failures)).toEqual([DESKTOP_LABEL, DOCKED_NARROW_LABEL, NARROW_LABEL, ZOOM_LABEL])
     expect(stepRows.some(row => row.width < ROW_WRAP_BELOW_PX), JSON.stringify(stepRows)).toBe(true)

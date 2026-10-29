@@ -1,31 +1,4 @@
-// The inherited adjudications, made checkable.
-//
-// WHY THIS FILE EXISTS. Earlier phases wrote promissory notes against 397: a reservation in
-// `function-scope.ts` saying this phase would extend the scope union, and two `adjudication: '397'`
-// entries in `mapping.ts`'s degraded-output list. The deletion inventory's pending rows were ruled
-// too; that inventory is retired.
-// D-20 pays them AT the artifact that carries the promise, dated and in place, rather than in a
-// central adjudication document — so the artifacts answer and the phase SUMMARY only narrates.
-//
-// A RULING WRITTEN IN PROSE IS A RULING THAT CAN GO STALE SILENTLY, and this phase's whole thesis
-// is that a claim nothing checks is not a claim. So each ruling above is joined here to the thing it
-// describes: the scope union's LENGTH and MEMBERS beside its closure note, and the degraded entries
-// beside their dated comments. Re-opening the union un-dated or deleting a disposition comment is a
-// named RED in this file rather than a diff nobody reads.
-//
-// EVERY REGISTER HERE SELF-CHECKS IN BOTH DIRECTIONS. The lesson this project keeps re-learning is
-// that a register asserting completeness over an artifact it silently failed to parse reports a
-// clean bill of health for an empty set. So the unknown-scope census and the degraded-comment
-// scanner are each a PURE function over text or data, driven both against the real artifact and
-// against synthetic controls — one well-formed (must produce no finding) and one deliberately
-// broken (must produce exactly one, naming the offender). The controls are spelled
-// `..._397_05` so 397-09's mutation script can tell an intentional fixture from a planted one.
-//
-// WHAT THIS FILE DELIBERATELY DOES NOT ASSERT. The degraded contracts' ABSENCE of an advertised
-// `outputSchema` is owned by `packages/mcp`'s own projection suite, which probes the conversion in
-// both directions at server build (RESEARCH Pitfall 9). Re-pinning it here would be the
-// redundant-mechanism trap: two registers over one universe, free to diverge. This file asserts the
-// JOIN — that each entry names a real projected tool and op — and nothing more.
+// Each ruling is checked against the artifact it describes; each scanner also runs on controls.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
@@ -46,15 +19,8 @@ const MAPPING_SOURCE_PATH = join(REPO_ROOT, 'packages/mcp/src/mapping.ts')
 
 const readSource = (path: string): string => readFileSync(path, 'utf8')
 
-// ---- D-16: the scope union — RETIRED by 432-20 ------------------------------------------
+// ---- The scope union, retired ----
 
-/**
- * The dated retirement note's anchor, and the two strings of the deleted growth rule.
- *
- * Until 432-20 this block pinned the union CLOSED at six members, its growth rule, and a census
- * ranging every declaration's scopes against it. D-12 deletes the scope union's purpose, its growth
- * rule and the census rows that range it; what this block pins now is that retirement.
- */
 const DELETED_GROWTH_RULE_CLAUSES: readonly string[] = [
   'GROWTH RULE. A seventh member requires',
   'the census cell reds on an op whose `requiredScopes` names',
@@ -65,11 +31,7 @@ interface KeyBearing {
   readonly id: string
 }
 
-/**
- * Declarations that still carry a scope or origin requirement — empty since 432-20.
- *
- * A PURE FUNCTION over declarations so the control below can drive it with one that does.
- */
+// Pure over declarations, so the control below can drive it with one that carries a requirement.
 function permissionBearingFindings(declarations: readonly KeyBearing[]): readonly string[] {
   return declarations.flatMap((declaration) =>
     ['requiredScopes', 'requiresHumanOrigin']
@@ -77,7 +39,6 @@ function permissionBearingFindings(declarations: readonly KeyBearing[]): readonl
       .map((key) => `${declaration.id} carries ${key}`))
 }
 
-/** Every non-test schema source, read once (432-39: the scope module is deleted). */
 function schemaSources(): readonly string[] {
   const texts: string[] = []
   const walk = (dir: string): void => {
@@ -149,13 +110,7 @@ function degradedDispositionFindings(
 // ================================================================================================
 
 describe('the inherited adjudications, discharged at their artifacts', () => {
-  // RE-SPELLED 2026-10-01 from 'D-16: the capability-scope union closes at six,
-  // dated'. The union no longer gates anything; its growth rule and census are deleted.
   describe('retired: the capability-scope union gates nothing', () => {
-    // RE-SPELLED 2026-10-02: the union is DELETED, so the six members it held
-    // until now are held nowhere. Title kept; the claim it guarded — a retired vocabulary cannot
-    // quietly grow a member nothing reads — now holds because there is no vocabulary to grow.
-    // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'holds exactly the six members the closure note ratifies': the body asserts the absence, so the title does.
     it('exports the retired six-member scope union from no barrel', () => {
       expect(Object.keys(schema), 'the scope union is still exported').not.toContain('FunctionScopeSchema')
       expect(Object.keys(schema).filter((name) => /FunctionScope/.test(name))).toEqual([])
@@ -163,12 +118,6 @@ describe('the inherited adjudications, discharged at their artifacts', () => {
       expect(Object.keys(schema)).toContain('FUNCTION_CALLER_ORIGINS')
     })
 
-    // RE-SPELLED from 'carries the dated closure note, and no longer carries the reservation it
-    // replaced' and 'states the growth rule and carries its three lineage dates'. RE-SPELLED again
-    // the module that carried the retirement note is deleted with
-    // the union, and no schema source states the growth rule or declares the union again. The
-    // lineage notes live in the repository history with the file.
-    // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'carries the dated retirement note, and no longer states the growth rule': the body asserts the absence, so the title does.
     it('keeps the union module deleted, and no schema source states the growth rule or declares the union', () => {
       expect(existsSync(SCOPE_SOURCE_PATH), 'function-scope.ts is still present').toBe(false)
       const sources = schemaSources()
@@ -197,9 +146,6 @@ describe('the inherited adjudications, discharged at their artifacts', () => {
   })
 
   describe('the degraded output contracts adjudication', () => {
-    // 397 adjudicated two entries. `agent_qa_list_runs` left the
-    // list when `runs.list` declared its canonical output contract, which converts in output mode;
-    // `packages/mcp`'s probe would now refuse that row as stale. The start acknowledgement stays.
     it('declares exactly the adjudicated entry that is still degraded', () => {
       expect(DEGRADED_OUTPUT_CONTRACTS.map((entry) => [entry.tool, entry.opId])).toEqual([
         ['agent_qa_start_run', 'runs.start'],
@@ -255,8 +201,7 @@ describe('the inherited adjudications, discharged at their artifacts', () => {
     })
 
     it('joins each degraded entry to a real projected tool and op, and asserts nothing more', () => {
-      // The JOIN only. Whether the tool advertises an outputSchema is probed at server build and
-      // owned by the projection suite (Pitfall 9); a second pin here could disagree with it.
+      // Only the join: the projection suite owns whether a tool advertises an outputSchema.
       for (const entry of DEGRADED_OUTPUT_CONTRACTS) {
         const projection = AGENT_QA_TOOL_PROJECTIONS.find((candidate) => candidate.name === entry.tool)
         expect(projection, `${entry.tool} is degraded but no longer a projected tool`).toBeDefined()

@@ -1,13 +1,4 @@
-// THE EDITOR SUBJECT ON THE SHIPPED COMPOSITION.
-//
-// An editor session is the second subject a live view shows. These cells drive it through the
-// production server frame the live-view harness composes: the shipped `startServer`, the shipped
-// `composeDashboardDoor` and `composeLiveView`, the editor mint door dispatched through the shipped
-// registry under the dashboard caller, and the real frame socket. What is planted is the session's
-// frame-facing slice (`plantEditorSubject`), over a real `createLiveStreamHub`.
-//
-// The claims: an editor subject is minted, opened, streamed and ended exactly like a run, a token
-// of one kind never opens the other, and an editor session is never a run.
+// An editor subject is minted, opened, streamed and ended like a run; a token never crosses kinds.
 
 import { randomBytes } from 'node:crypto'
 import { connect } from 'node:net'

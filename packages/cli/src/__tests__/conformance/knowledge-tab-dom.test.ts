@@ -2,48 +2,7 @@
 // The DOM lib is referenced HERE because this file's `page.evaluate` callbacks are compiled as
 // TypeScript and EXECUTED in a browser — `run-detail-dom.test.ts`'s reasoning, unchanged.
 
-// THE KNOWLEDGE TAB AND THE RUNG BANNER, IN THE MEDIUM A PERSON LOOKS AT (Phase 407 plan 11 ·
-// LERN-01 / LERN-02 / TRST-01, D-01 / D-02 / D-03 / D-04 / D-13 / D-14 / D-15).
-//
-// WHAT THIS FILE IS FOR. 407-02 through 407-10 each proved one leg with jsdom and unit cells: the
-// op projects, the route serves, the view module folds the copy, the component paints the
-// attribute. This file is the phase's acceptance on the artifact a person installs — it drives the
-// BUILT dashboard bundle served by the SHIPPED `agent-qa dashboard`, over a real socket, in a real
-// headless Chromium, against runs the binary really executed, and asserts on what the browser drew
-// and on what the browser's own `/api/runs/:id/knowledge` response said.
-//
-// PAGE ↔ OP PARITY RATHER THAN A HOST ASSUMPTION. Every claim about the rung banner is stated
-// against the projection THIS PAGE FETCHED, not against a rung this file believes a CI host would
-// reach. A machine's embedder ladder is not a fixed point: the same commit answers `memidex` on a
-// laptop with a downloaded model and `lexical-only` on a runner without one, and a cell pinning
-// either word would be measuring the machine. The ONE deterministic rung here is fixture (A)'s,
-// and it is deterministic for a structural reason rather than a hopeful one — the populated
-// fixture ships an EMPTY `agent-qa-knowledge` directory with no index, the fold reads the index
-// axis FIRST, and an absent index folds to `bundle-scan` / `index-not-built` whatever the embedder did.
-// If a future fixture change adds an index, (a1)/(a2) must switch to the parity form (b3) uses.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP — `run-detail-dom.test.ts`'s law. The one
-// conditional in this file is `describePosix`, and it exists because the dashboard child is
-// stopped with SIGTERM and the runs write POSIX runtime roots.
-//
-// THE DRIVING HAPPENS ONCE PER FIXTURE, IN `beforeAll`, AND THE CELLS ASSERT ON WHAT IT RECORDED.
-// Two fixtures, because the two halves of LERN-01 need two different worlds:
-//
-//   (A) `knowledge-tab-dom-scan` — the populated fixture UNCHANGED. Empty knowledge root, no
-//       index, so retrieval serves nothing and the rung is the deterministic `bundle-scan`. This
-//       is where the silent header and the tab's fresh-index statement, the empty Used half, the
-//       `m` shortcut, the deleted memory tab and the `curation` chip click-through are measured.
-//
-//   (B) `knowledge-tab-dom-served` — the same fixture with ONE published bundle at the run's own
-//       product scope and a rebuilt index, seeded BEFORE the binary is spawned. This is the only
-//       world in which a served channel-1 line and its serve-time why-trace exist to be looked at,
-//       and a served line is the LERN-01 claim.
-//
-// EVERY SENTENCE IS READ OUT OF THE MODULE THAT PUBLISHES IT. `packages/cli` cannot import a React
-// package's lib (dashboard-ui ships built app assets, not a library entry), so the copy tables are
-// EXTRACTED from `dashboard-ui/src/lib/knowledge-view.ts` as source text — `run-detail-dom.test.ts`
-// and `post-processing-dom.test.ts`'s `publishedConstant` idiom, widened to a `Record` literal.
-// A hardcoded copy would go on passing against a page that says something else.
+// Rung claims are checked against the projection the page fetched; the rung varies by machine.
 
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -58,10 +17,7 @@ import {
   type BundleStoreConfig,
   type PublishBundleInput,
 } from '@vostride/agent-qa-knowledge-local'
-// the JOIN KEY, taken from the READ barrel that publishes it rather than re-derived here.
-// The reader recomputes this id to find the event; a harness that PLANTS the event must compute
-// the same one, and a second spelling would produce a plant no read ever finds — a green
-// agreement over an empty set, which is the failure the non-vacuity block below exists to catch.
+// Taken from the read barrel: a plant whose id is spelled differently is never found by the reader.
 import { canaryOutcomeObservationId } from '@vostride/agent-qa-knowledge-local/reader'
 import {
   DISTILLED_OBSERVATION_SCHEMA_VERSION,
@@ -162,39 +118,10 @@ function publishedLabelTable(name: string): Record<string, string> {
   return table
 }
 
-/**
- * An exported array literal of single-quoted members, as a list.
- *
- * The `publishedConstant` idiom applied to a CLOSED VOCABULARY. `LEARNED_CHANGE_KINDS` is the one
- * this file needs and it is the table R-407-15-01 widened to five, so hand-typing the members here
- * would leave (c4) re-deriving the door's answer from a vocabulary the view no longer holds — a
- * cell that goes on passing against a page filtering by a different set. A source read that finds
- * nothing THROWS, so the cell reds with the reason rather than falling back to a literal.
- *
- * IT USED TO THROW ONLY ON ZERO, WHICH IS THE ONE FAILURE THAT CANNOT HAPPEN QUIETLY (G-407-19 ·
- * REVIEW IN-01). The two that CAN are a capture that stopped early and a member the recovery regex
- * cannot see, and each yields a SHORTER list in silence — leaving (c4) narrowing the door's answer
- * by a subset of the vocabulary the view actually holds. Both are now rejected directly:
- *
- *   1. A CAPTURED SLICE CONTAINING A FURTHER `[`. `[^\]]*` stops at the first `]`, so a nested
- *      array — or a member holding one — truncates the literal mid-way.
- *   2. A QUOTE CENSUS THE RECOVERED MEMBERS DO NOT ACCOUNT FOR. Members are recovered with
- *      `/'([^']+)'/gu`, so the census MUST count apostrophes, double quotes AND backticks: a
- *      member respelled `"promoted"` contributes ZERO apostrophes, drops silently out of the list,
- *      and leaves an apostrophe-only tally reading exactly `2 * members.length` — the check would
- *      pass on IN-01's own named failure mode and be a check-shaped thing rather than a check.
- *      Counting all three and requiring `2 * members.length` is what actually rejects it.
- *
- * WHAT IS DELIBERATELY NOT ASSERTED IS THE MEMBER COUNT. `LEARNED_CHANGE_KINDS.length === 5` would
- * read as a rejection of a narrowing and act as a freeze on the vocabulary — and whether the table
- * holds four kinds or five is UAT item 9, still open and still the owner's. These two checks reject
- * a SILENT narrowing without ruling on what the right size is.
- */
+// Throws on a nested `[` or on quotes the members do not account for, so a silent narrowing reds.
 function publishedStringArray(
   name: string,
-  // THE SOURCE IS A PARAMETER SO THE TWO REJECTIONS CAN BE DRIVEN. `(c7)` hands it a hand-built
-  // slice carrying IN-01's own named failure mode; every real caller takes the default and reads
-  // the module that publishes the vocabulary.
+  // A parameter, so a cell can drive both rejections with a hand-built slice.
   source: string = knowledgeViewSource(),
 ): readonly string[] {
   const block = new RegExp(`export const ${name}[^=]*=\\s*\\[([^\\]]*)\\]`, 'u')
@@ -229,13 +156,7 @@ function publishedStringArray(
   return members
 }
 
-/**
- * A module-private `const NAME = { key: 'value', … }` table with bare keys, as a map.
- *
- * `CHANGE_BUCKETS` is how `learnedView` maps a change kind onto 425's five words when a run has no
- * snapshot. It is read here rather than retyped so (c4)'s door projection maps the way the page
- * does; a table this cannot read THROWS.
- */
+// Read, not retyped, so the door projection maps kinds as the page does; unreadable throws.
 function sourceKeyTable(name: string): Record<string, string> {
   const block = new RegExp(`const ${name}[^=]*=\\s*\\{([\\s\\S]*?)\\n\\}`, 'u').exec(knowledgeViewSource())
   if (block === null) throw new Error(`${name} is no longer an object literal in ${KNOWLEDGE_VIEW_REL}`)
@@ -270,13 +191,7 @@ const NO_BRIEF_SERVED_TEXT = publishedConstant('NO_BRIEF_SERVED_TEXT')
 const STEP_NO_BRIEF_TEXT = publishedConstant('STEP_NO_BRIEF_TEXT')
 const CHANGES_UNREADABLE_TEXT = publishedConstant('CHANGES_UNREADABLE_TEXT')
 const STORE_READ_INCOMPLETE_TEXT = publishedConstant('STORE_READ_INCOMPLETE_TEXT')
-/**
- * The note a failed chain prints BESIDE the records it had already committed.
- *
- * READ FROM SOURCE, never retyped: the wording is explicitly unsettled (it joins UAT item 10's
- * open copy decision), so a cell holding a literal copy would red on a rewording that is not a
- * defect, and — worse — would go on passing if the view stopped publishing the note at all.
- */
+// Read from source: a literal reds on a rewording and passes if the view drops the note.
 const CURATION_FAILED_PARTIAL_TEXT = publishedConstant('CURATION_FAILED_PARTIAL_TEXT')
 /** The five Learned kinds `learnedView` narrows to, READ FROM SOURCE and never retyped here. */
 const LEARNED_CHANGE_KINDS = publishedStringArray('LEARNED_CHANGE_KINDS')
@@ -287,9 +202,9 @@ for (const kind of LEARNED_CHANGE_KINDS) {
     throw new Error(`CHANGE_BUCKETS in ${KNOWLEDGE_VIEW_REL} maps no bucket for the Learned kind \`${kind}\``)
   }
 }
-/** What the effect section says when the run used no stored knowledge (427 D-02, SC1). */
+// What the effect section says when the run used no stored knowledge.
 const EFFECT_NOTHING_USED_TEXT = publishedConstant('EFFECT_NOTHING_USED_TEXT')
-/** What the changes section says when post-run processing changed nothing (427, SC1). */
+/** What the changes section says when post-run processing changed nothing. */
 const NO_MEMORY_CHANGES_SENTENCE = publishedConstant('NO_MEMORY_CHANGES_SENTENCE')
 /** The breakdown line of an all-zero snapshot, read from the module that composes it. */
 const NO_MEMORY_CHANGES_TEXT = postProcessingConstant('NO_MEMORY_CHANGES_TEXT')
@@ -308,13 +223,7 @@ function retrievalClassOf(reason: string | undefined): string {
   return retrievalClass
 }
 
-/**
- * The why-trace line, composed from the projection's own trace entry.
- *
- * `traceLineText`'s shape (`knowledge-view.ts:193`) with the three numbers taken from the trace
- * the RUN recorded — never typed, which is the whole of D-04's honesty claim: the page must say
- * what the serve-time trace said, not what an index would say if asked again today.
- */
+// Numbers come from the trace the run recorded: the page says what serve time said, not a re-query.
 function traceLineText(leg: string, rank: number, score: number): string {
   return `leg ${leg} · rank ${String(rank)} · score ${score.toFixed(3)}`
 }
@@ -408,10 +317,7 @@ async function seedServedRecord(project: {
   readonly root: string
   readonly agentQaRoot: string
 }): Promise<{ readonly id: string; readonly outcome: string }> {
-  // ONE SPELLING OF THE STORE HANDLE (REVIEW IN-04). `bundleStoreFor` was extracted for exactly
-  // this config — its docstring already says "the store handle both writers below take, differing
-  // only in the lease they hold" — and a second literal here is the drift the helper exists to
-  // prevent. The lease is the only member that ever differed.
+  // `bundleStoreFor` is the one spelling of the store handle; only the lease differs.
   const storeConfig = bundleStoreFor(project, 'knowledge-tab-dom-seed')
   const published = publishBundleForTest(storeConfig, seededBundleInput())
   if (published.kind !== 'published') return { id: '', outcome: published.kind }
@@ -419,7 +325,7 @@ async function seedServedRecord(project: {
   return { id: String(published.id), outcome: 'published' }
 }
 
-// ── The two worlds 407-17 adds: a fact curated AFTER the run, and one unreadable bundle ──────────
+// ── A fact curated after the run, and one unreadable bundle ──
 
 /**
  * The summary the after-run record carries — a DIFFERENT control from the seed's.
@@ -434,13 +340,7 @@ const AFTER_RUN_SUMMARY = 'The Dismiss control closes the notice after acknowled
 /** The lease the after-run publish takes, and the curation job it names. */
 const AFTER_RUN_LEASE = 'knowledge-tab-dom-after-run'
 
-/**
- * The unreadable bundle directory, named to sort FIRST inside `bundles/`.
- *
- * `enumerateMaintenanceBundleDirs` sorts by name, so an `aaa-` prefix puts the throw at the very
- * front of the maintenance walk — the harshest ordering for the per-bundle skip 407-14 added, and
- * the one that would have failed loudest before it.
- */
+// `enumerateMaintenanceBundleDirs` sorts by name, so `aaa-` puts the throw first in the walk.
 const MALFORMED_BUNDLE_DIR = 'aaa-malformed-0000000000000000'
 
 /** The store handle both writers below take, differing only in the lease they hold. */
@@ -455,16 +355,7 @@ function bundleStoreFor(
   }
 }
 
-/**
- * A bundle born at the run's OWN build ordinal, linked to the run, carrying no outcome events.
- *
- * THIS IS THE COMMONEST CURATION OUTCOME, and every value here is chosen to make it one. `diffSince`
- * synthesises an `added` change when a bundle's earliest ordinal is GREATER than the since-ordinal
- * it was asked about; the op asks `max(0, buildOrdinal - 1)`, so a record created at the run's own
- * ordinal is inside the window by exactly one. `initialEvents: []` is what makes the earliest
- * ordinal the manifest's `createdAtOrdinal` rather than a confirming event's — a record that was
- * merely BORN, which is the shape 407-04 stamps `sourceRunId` onto and 407-15 finally paints.
- */
+// Born at the run's ordinal with no events, so `diffSince` from `buildOrdinal - 1` says `added`.
 function afterRunBundleInput(
   runId: string,
   testId: string,
@@ -544,14 +435,7 @@ function publishAfterRun(
   return { id: String(published.id), outcome: 'published' }
 }
 
-/**
- * Plant ONE bundle directory the maintenance walk cannot load, beside the healthy ones.
- *
- * A directory whose `manifest.json` is not JSON is a `bundle-load` throw out of
- * `loadMaintenanceBundle` — the exact shape 407-14's per-bundle skip and by-name fold were built
- * for. It is planted LAST in the drive, because from this point every read of this store is a
- * degraded one.
- */
+// Planted last in the drive, because every later read of this store is degraded.
 function plantMalformedBundle(project: { readonly root: string }): string {
   const dir = join(
     project.root,
@@ -566,7 +450,7 @@ function plantMalformedBundle(project: { readonly root: string }): string {
   return dir
 }
 
-// ── The FIFTH world 407-25 adds: a chain that failed over a row the store really served ─────────
+// ── A chain that failed over a row the store really served ──
 
 /** The lease the attribution plant takes, and the curation job its event names. */
 const ATTRIBUTED_FAILED_LEASE = 'knowledge-tab-dom-attributed-failed'
@@ -625,17 +509,7 @@ function servedCanaryTupleOf(
   return undefined
 }
 
-/**
- * Append ONE real attributing outcome event onto the bundle the run served as a canary.
- *
- * THROUGH `appendOutcomeEvent`, NEVER A RAW FILE APPEND. That writer rewrites the
- * manifest hash for the outcomes log, so the bundle stays integrity-clean and the maintenance walk
- * still LOADS it. A line appended straight to `outcomes.jsonl` would fail the integrity arm, the
- * walk would SKIP the bundle, and the plant would produce no row at all while the agreement below
- * passed over an empty set.
- *
- * The event's `observationId` is recomputed with the reader's own derivation, so the walk finds it.
- */
+// Through `appendOutcomeEvent`, which updates the manifest hash; a raw append fails integrity.
 function plantCanaryAttribution(
   project: { readonly root: string; readonly agentQaRoot: string },
   runId: string,
@@ -664,23 +538,7 @@ function plantCanaryAttribution(
   return { observationId, outcome: appended.kind }
 }
 
-/**
- * Force this run's `curate-memory` row terminal-failed in the project's OWN queue database.
- *
- * ADDRESSED BY THE DERIVATION THE READER USES. `chainJobIdsForRun(runId,
- * DIGEST_JOB_ID_SOURCE).curateMemory` is the same expression `runs.postprocessing` evaluates to
- * find the row it projects, so the plant cannot address a row the read does not. Matching on
- * `kind = 'curate-memory'` would work today and hit a neighbouring run's row the moment a fixture
- * drives two.
- *
- * The row is opened WRITABLE with a busy timeout while the dashboard child is still serving; the
- * chip read (`post-processing-reader.ts`) opens the file read-only per request with no caching, so
- * the next page load and the next projection read both see this write.
- *
- * Returns the number of rows the UPDATE actually changed. Nought is the plant that addressed
- * nothing, and the cell asserts against it rather than letting the world read `done` and the
- * agreement pass for the wrong reason.
- */
+// Addressed by `chainJobIdsForRun`, the reader's own derivation, so it hits the row it reads.
 function plantFailedCuration(
   project: { readonly agentQaRoot: string },
   runId: string,
@@ -702,7 +560,7 @@ function plantFailedCuration(
   }
 }
 
-// ── The SIXTH world 407-31 adds: a failed chain over records the door still serves ───────────────
+// ── A failed chain over records the door still serves ──
 
 /**
  * Read the five columns `plantFailedCuration` writes, for the row it addresses.
@@ -747,17 +605,7 @@ function snapshotCurationJobRow(
   }
 }
 
-/**
- * Put the five columns back exactly as {@link snapshotCurationJobRow} found them.
- *
- * WHY A REVERT AT ALL. The sixth world has to be planted BEFORE `plantMalformedBundle` — see
- * `driveLaterWorlds`' docstring — and the two worlds driven after it were recorded against a
- * `curate-memory` row reading `done`. Leaving this plant standing would silently rewrite both of
- * their readings and make round 4's census incomparable with round 3's.
- *
- * Returns the number of rows the UPDATE changed. Exactly one is the claim, and the guard asserts
- * it TOGETHER with a re-read of the five columns: a matched row is not a restored row.
- */
+// Reverted so the worlds driven later read a `done` row; the guard re-reads every column written.
 function restoreCurationJobRow(
   project: { readonly agentQaRoot: string },
   runId: string,
@@ -833,19 +681,13 @@ interface ServedLineObservation {
   readonly recordId: string
   readonly traceState: string
   readonly servedAsCanary: string
-  /**
-   * `data-canary-outcome`, as the line stamped it — ABSENT when the attribute is absent.
-   *
-   * The component omits the attribute entirely on a line that was not served as a canary, and an
-   * empty string here would be indistinguishable from an outcome it forgot to stamp. That
-   * distinction is the whole subject of (c4)'s third agreement.
-   */
+  // Absent when the attribute is absent: an empty string would look like an outcome left unstamped.
   readonly canaryOutcome?: string
-  /** The line's inline trace (`leg … · rank … · score …`, 427 D-19). Absent when there was none. */
+  // The line's inline trace (`leg … · rank … · score …`), absent when there is none.
   readonly whyText?: string
 }
 
-/** One default-view section's markup, read before Retrieval details was opened (427 SC2). */
+/** One default-view section's markup, read before Retrieval details opens. */
 interface DefaultSectionMarkup {
   readonly section: string
   readonly html: string
@@ -881,17 +723,17 @@ interface PageObservation {
   readonly doctorPointerCount: number
   /** `data-knowledge-state` after `7`. */
   readonly stateAfter7?: string
-  /** Every `data-knowledge-section` in document order, read before Retrieval details was opened (427 SC1). */
+  /** Every `data-knowledge-section` in document order, read before Retrieval details opens. */
   readonly sectionOrder: readonly string[]
   /** The Knowledge used section's `[data-section-absence]` sentence, when it printed one. */
   readonly usedAbsence?: string
   /** The Retrieval details root's `data-state` after the drive opened it. */
   readonly retrievalDetailsState?: string
-  /** The used, effect and changes sections' outerHTML on the resting tab (427 SC2). */
+  /** The used, effect and changes sections' outerHTML on the resting tab. */
   readonly defaultSections: readonly DefaultSectionMarkup[]
-  /** Every `[data-row-primary]` text on the resting tab (427 SC2). */
+  /** Every `[data-row-primary]` text on the resting tab. */
   readonly rowPrimaries: readonly string[]
-  /** Retrieval details' outerHTML with the served step row expanded (427 SC2). */
+  /** Retrieval details' outerHTML with the served step row expanded. */
   readonly retrievalDetailsHtml?: string
   /** The `[data-used-summary]` sentence, as painted inside the opened Retrieval details. */
   readonly usedSummary?: string
@@ -903,27 +745,17 @@ interface PageObservation {
   readonly firstRowNoBriefText?: string
   /** `data-learned-state` on the Learned half's root, when the half rendered. */
   readonly learnedState?: string
-  /**
-   * Every Memory changes row, in document order: the row's bucket (`data-record-change`, 427 D-15)
-   * and the subject id Retrieval details lists for it at the same index (`dl[data-ledger-changes]`
-   * → `[data-ledger-row="record"]`, 427 D-19). A row no longer carries its id; `?` is a side the
-   * page did not paint.
-   */
+  // Every Memory changes row in order: its bucket, and the id Retrieval details lists at its index.
   readonly learnedRows: readonly LearnedRow[]
   /** `[data-learned-count-line]`, when the heading printed one. */
   readonly learnedCountLine?: string
-  /** Every `[data-knowledge-section]` with the `[data-section-absence]` sentences inside it (427 SC1). */
+  /** Every `[data-knowledge-section]` with the `[data-section-absence]` sentences inside it. */
   readonly sectionAbsences: readonly { readonly section: string; readonly absences: readonly string[] }[]
   /** `data-learned-read` on the Learned root. Absent IS the clean read — never an empty string. */
   readonly learnedRead?: string
   /** The `[data-learned-sentence]` prose, when the half printed one. */
   readonly learnedSentence?: string
-  /**
-   * The `[data-learned-chain-note]` prose, when the half printed one.
-   *
-   * A NOTE BESIDE ROWS, never instead of them — absent is the half printing none, never an empty
-   * string, exactly as `learnedSentence` is carried.
-   */
+  // A note beside rows, never instead of them; absent when the half prints none.
   readonly learnedChainNote?: string
   /** The `[data-learned-read-note]` prose beside rows served over a partial read. */
   readonly learnedReadNote?: string
@@ -931,11 +763,11 @@ interface PageObservation {
   readonly servedLines: readonly ServedLineObservation[]
   /** `data-knowledge-state` after `1` — absent is the tab having been left. */
   readonly stateAfterOverview?: string
-  /** `data-knowledge-state` after `m` (D-02's re-pointed shortcut). */
+  // `data-knowledge-state` after the `m` shortcut.
   readonly stateAfterM?: string
-  /** Every tab trigger label inside the artifact drawer, in document order (D-02's deletion). */
+  // Every tab trigger label inside the artifact drawer, in document order.
   readonly drawerTabLabels: readonly string[]
-  /** The `curation` chip's own tag name, lower-cased. `button` is the D-01 click-through. */
+  // The `curation` chip's tag name, lower-cased; `button` is the click-through.
   readonly curationChipTag?: string
   /** `data-knowledge-state` after the `curation` chip was pressed. */
   readonly stateAfterChip?: string
@@ -965,16 +797,9 @@ interface Recorded {
     readonly projectionBody?: string
     readonly visit?: PageObservation
   }
-  /**
-   * The world the 2026-08-30 owner ruling is ABOUT: a curation chain that fell over while the
-   * store holds an outcome it really served.
-   */
+  // A curation chain that fell over while the store holds an outcome it really served.
   attributedFailed?: AttributedFailure
-  /**
-   * The SIXTH world: a chain that fell over while the door still serves the
-   * change records it had already committed — planted BEFORE the malformed bundle and reverted
-   * behind itself. See `driveLaterWorlds`' docstring for why it cannot be driven anywhere else.
-   */
+  // A chain that fell over while the door still serves its committed change records.
   failedWithChanges?: FailedWithChanges
   /** The unbroken-token layout differential, measured in the browser both ways. */
   wrapProbe?: WrapProbe
@@ -984,12 +809,7 @@ interface Recorded {
 
 const scan: Recorded = {}
 const served: Recorded = {}
-/**
- * (a9)'s learned-nothing world, driven only when fixture A's own curation committed something
- * (assumption A4 false). Its one step is declared impossible by the planner, so the run resolves
- * no element and files no curation candidate: the chain settles having changed nothing, and D-24
- * records that as the all-zero snapshot.
- */
+// Driven only when fixture A's curation committed something; its one step is declared impossible.
 const quiet: Recorded = {}
 
 /** A served all-zero curation snapshot — the recorded "learned nothing" fact. */
@@ -1138,21 +958,7 @@ function readyProjection(
 // spell its documented arm ORDER (the canary word), and both carry the source location so the two
 // move together.
 
-/**
- * How many brief lines a step was served, across ALL THREE channels.
- *
- * MIRRORS `servedLineCount` (`packages/dashboard-ui/src/lib/knowledge-view.ts:882`) and shares its
- * name deliberately: that function is what `stepRow` stamps `data-brief-lines` from, and
- * `data-brief-lines` is the attribute this file's own harvest picks the expanded row BY — the
- * first row whose value is greater than zero (`observeKnowledge`). Any mirror that derives the
- * expanded row differently can select a DIFFERENT step from the one the page actually expanded,
- * and then compare two unrelated things and call the result an agreement.
- *
- * THAT IS WHAT WAS WRONG (G-407-15 · REVIEW WR-03, round-2 WR-04 part 1). Two sites derived the
- * row as `channel1.length > 0` while the attribute sums three channels. A step serving only a
- * channel-2 read trace has `data-brief-lines="1"` and is what the harvest expands, while a
- * channel-1-only predicate skips past it to some later step.
- */
+// Mirrors `servedLineCount` across all channels, or it can pick a step other than the one expanded.
 function servedLineCount(step: RunKnowledgeStep): number {
   return step.served.channel1.length + step.served.channel2.length + step.served.channel3.length
 }
@@ -1173,17 +979,7 @@ function channel1BranchOf(projection: RunKnowledgeProjection | undefined): strin
   return (expanded?.served.channel1.length ?? 0) > 0 ? 'non-empty' : 'empty'
 }
 
-/**
- * The Memory changes rows the door's answer implies, as bucket and subject id.
- *
- * MIRRORS `changeDrafts` (`packages/dashboard-ui/src/lib/knowledge-view.ts`). With a snapshot the
- * rows ARE its rows in its order, a supersession led by its replacement, then one row per
- * since-then change of a published kind. Without one, `learned.changes` narrowed to
- * `LEARNED_CHANGE_KINDS` group per record in first-appearance order, a replacement's Add folds into
- * the supersession it completes, and the group takes the first `CURATION_BUCKET_PRECEDENCE` bucket.
- * It does NOT re-filter by run: `runs.knowledge` already did that join. This is the DOOR side of
- * the agreement; `PageObservation.learnedRows` is the PAGE side.
- */
+// Mirrors `changeDrafts` in `knowledge-view.ts`: the door side of the agreement with `learnedRows`.
 function learnedRowsOf(
   projection: Extract<RunKnowledgeProjection, { kind: 'ready' }>,
 ): readonly LearnedRow[] {
@@ -1227,18 +1023,7 @@ function learnedRowsOf(
   })
 }
 
-/**
- * The word a canary line must wear, re-derived from the projection.
- *
- * MIRRORS `canaryOutcomeWord` (`packages/dashboard-ui/src/lib/knowledge-view.ts`), rule for rule
- * and IN ITS ORDER, which is load-bearing. Three arms since 407-22 (owner ruling 2026-08-30, UAT
- * item 11) — the chain's word is consulted on the FIRST line and nowhere else:
- *   1. an unsettled chain reads `pending` — a partial read does not change that;
- *   2. a row that WAS read wins on EITHER settled arm, whatever else the scan could not reach: a
- *      chain that fell over cannot un-commit an outcome it already appended, and the chip beside
- *      the line is where the chain's fate is reported;
- *   3. with no row, the READ decides: `unknown` when partial, `not-attributed` when clean.
- */
+// Mirrors `canaryOutcomeWord` rule for rule and in its order, which decides the word.
 function expectedCanaryWord(
   curationStatus: string,
   attribution: RunKnowledgeCanaryAttribution | undefined,
@@ -1261,10 +1046,7 @@ async function attributeOf(page: Page, selector: string, name: string): Promise<
   return (await node.getAttribute(name)) ?? undefined
 }
 
-/**
- * Open the collapsed Retrieval details section, where 427 D-19 moved the per-step ledger, and wait
- * for its root to read open. Records rather than throws, like every other wait in this file.
- */
+// Open Retrieval details, which holds the per-step ledger; records rather than throws.
 async function openRetrievalDetails(page: Page): Promise<string | undefined> {
   const details = page.locator('[data-knowledge-section="retrieval-details"]').first()
   if ((await details.count()) === 0) return undefined
@@ -1292,17 +1074,7 @@ async function detailsMarkup(page: Page): Promise<string | undefined> {
   return details.evaluate((node) => node.outerHTML).catch(() => undefined)
 }
 
-/**
- * Open one run's detail page and harvest the whole Knowledge story a person can reach.
- *
- * THE TAB IS REACHED BY THE KEY A PERSON PRESSES rather than by a `?tab=` deep link: `7` is the
- * shortcut D-01 put on the seventh tab and a deep link would reach the same panel while skipping
- * the binding this file exists to measure.
- *
- * EVERY WAIT RECORDS RATHER THAN THROWS, and the harvest runs whatever happened — a drive that
- * threw would leave every cell reporting "the drive stopped early" and nothing about the page a
- * person would have been looking at.
- */
+// Reached by the `7` key, not a `?tab=` link, so the binding is measured; every wait records.
 async function observeKnowledge(
   browserContext: BrowserContext,
   origin: string,
@@ -1384,8 +1156,7 @@ async function observeKnowledge(
     const doctorPointerCount = await page.locator('[data-doctor-pointer]').count()
 
     const stateAfter7 = await attributeOf(page, '[data-knowledge-state]', 'data-knowledge-state')
-    // THE ORDER IS READ ON THE RESTING TAB, then the ledger is opened: 427 D-19 put the per-step
-    // rows behind a collapsed Retrieval details, and every harvest below reads them from there.
+    // The order is read on the resting tab; then Retrieval details is opened for the ledger.
     const sectionOrder = await page.locator('[data-knowledge-section]').evaluateAll(
       (sections) => sections.map((section) => section.getAttribute('data-knowledge-section') ?? '?'),
     )
@@ -1398,7 +1169,7 @@ async function observeKnowledge(
       })),
     )
     const learnedCountLine = await textOf(page, '[data-learned-count-line]')
-    // SC2 is read on the RESTING tab: what the three default sections carry before anything opens.
+    // Read on the resting tab: what the default sections carry before anything opens.
     const defaultSections: DefaultSectionMarkup[] = await page.locator('[data-knowledge-section]').evaluateAll(
       (sections) => sections
         .filter((section) => ['used', 'effect', 'changes'].includes(section.getAttribute('data-knowledge-section') ?? ''))
@@ -1422,9 +1193,7 @@ async function observeKnowledge(
     const learnedSentence = await textOf(page, '[data-learned-sentence]')
     const learnedChainNote = await textOf(page, '[data-learned-chain-note]')
     const learnedReadNote = await textOf(page, '[data-learned-read-note]')
-    // ATTRIBUTE-ADDRESSED, NOT TEXT-ADDRESSED. A row's bucket is its
-    // `data-record-change`; its id is no longer on the row but in the opened Retrieval details, one
-    // `dl[data-ledger-changes]` per row in the same order, subject id first.
+    // A row's bucket is its `data-record-change`; its id is in Retrieval details, in row order.
     const learnedBuckets = await page
       .locator('[data-learned-state] li[data-record-change]')
       .evaluateAll((rows) => rows.map((row) => row.getAttribute('data-record-change') ?? '?'))
@@ -1466,8 +1235,7 @@ async function observeKnowledge(
           // `null` here is the attribute being ABSENT, which is the clean answer for a
           // non-canary line; it is carried through as an absent key, never as an empty string.
           canaryOutcome: element.getAttribute('data-canary-outcome'),
-          // The mono paragraphs inside the line: the first is the record id, and the trace answer
-          // is the one that starts `leg ` — inline since 427 D-19, with no disclosure to open.
+          // The first mono paragraph is the record id; the trace is the one starting `leg `.
           monoText: Array.from(element.querySelectorAll('p.font-mono'))
             .map((node) => (node.textContent ?? '').trim())
             .filter((text) => text !== ''),
@@ -1489,8 +1257,7 @@ async function observeKnowledge(
     }
     if (retrievalDetailsHtml === undefined) retrievalDetailsHtml = await detailsMarkup(page)
 
-    // ── D-02's re-pointed `m`. The tab is left first, so "still on knowledge" cannot pass for
-    // "the key brought us back".
+    // The tab is left first, so staying on knowledge cannot pass for the `m` key bringing it back.
     await page.keyboard.press('1')
     await page.waitForTimeout(200)
     const stateAfterOverview = await attributeOf(
@@ -1504,13 +1271,7 @@ async function observeKnowledge(
       .catch(() => undefined)
     const stateAfterM = await attributeOf(page, '[data-knowledge-state]', 'data-knowledge-state')
 
-    // ── D-01's click-through: the chip is a control, and pressing it lands on the tab.
-    //
-    // MEASURED BEFORE THE DRAWER LEG, and the order is load-bearing rather than tidy. Closing the
-    // drawer with `Escape` runs the page's own escape shortcut, whose second arm CLEARS THE STEP
-    // SELECTION — and with no step selected the detail pane renders its "select a step" placeholder
-    // instead of any tab, so a chip click measured after the drawer would land on a page with no
-    // tab panel at all and report an absence that has nothing to do with the chip.
+    // Before the drawer leg: closing it with `Escape` clears the step selection and every tab.
     await page.keyboard.press('1')
     await page.waitForTimeout(200)
     const chip = page.locator('[data-chip="curation"]').first()
@@ -1628,7 +1389,7 @@ async function freshVisit(origin: string, runId: string): Promise<PageObservatio
   return observeKnowledge(browserContext, origin, runId)
 }
 
-// ── (c6): does an unbroken token FIT, measured in the browser, both ways ───────
+// ── (c6): does an unbroken token fit, measured in the browser both ways ──
 
 /** One pair of geometry readings, taken after a forced layout. */
 interface WrapGeometry {
@@ -1651,36 +1412,13 @@ interface WrapProbe {
   readonly withoutUtility?: WrapGeometry
 }
 
-/** The break utility 407-23 shipped onto the brief-line summary span. */
+// The break utility on the brief-line summary span.
 const WRAP_UTILITY_CLASS = 'wrap-anywhere'
 
 /** The pathological input the UAT measured: 120 identical characters, no break opportunity. */
 const UNBROKEN_TOKEN = 'x'.repeat(120)
 
-/**
- * Substitute an unbroken 120-character token into the served line's summary and measure the row,
- * with the break utility and then without it.
- *
- * WHAT THE SUBSTITUTION IS. A real layout measurement of a real element, with its real classes, in
- * its real container, in the same built bundle a person installs.
- *
- * WHAT IT IS NOT. A claim that this fixture naturally produces such a token. It cannot: the seeded
- * summary is prose by design, and changing the fixture would move (b1)/(b2)'s subject. The question
- * this cell answers is content-INDEPENDENT — given this node, in this row, does an unbroken token
- * fit — so substituting the content is the honest way to ask it rather than a way to dodge it.
- *
- * BOTH HALVES ARE MEASURED BECAUSE ONLY THE PAIR IS EVIDENCE. A single reading showing no overrun
- * is equally consistent with "the fix works" and "this viewport happened to be wide enough". The
- * differential — same node, same viewport, same token, one class removed — is what pins the fix as
- * the cause of its own effect.
- *
- * THE NODE IS ADDRESSED BY ITS TEXT, never by position, following 407-23's `deepestWithText` idiom:
- * the deepest element inside the served line whose text is exactly the projection's own summary. A
- * positional selector would silently measure a neighbouring element if the row were rearranged.
- *
- * The probe restores the original text and class list before returning, and reports the class list
- * it read back so a failed restore is visible rather than inferred.
- */
+// Measured with the break utility and without it: only the pair shows the class causes the fit.
 async function probeUnbrokenTokenWrap(
   origin: string,
   runId: string,
@@ -1748,13 +1486,7 @@ async function probeUnbrokenTokenWrap(
             classListAfter: '',
           }
         }
-        // ADDRESSED BY TEXT, AND THE RULE IS CONTAINMENT (G-407-23 · REVIEW IN-05). The match that
-        // contains no other match — DELIBERATELY the same rule 407-28 gave `deepestWithText` in
-        // `knowledge-step-detail.test.tsx`, so the Chromium probe and the jsdom cell address "the
-        // painted node" by one law. The old rule took the LAST match in document order, which
-        // coincides with the deepest only while the subtree holds ONE match chain; a later SIBLING
-        // subtree painting the same exact string is also "last", and the probe would then measure
-        // an unrelated box and report it as the summary's geometry.
+        // The match containing no other match, as `deepestWithText` picks, so both probes agree.
         const candidates = Array.from(line.querySelectorAll('*')).filter(
           (node) => (node.textContent ?? '').trim() === summary,
         )
@@ -1810,17 +1542,7 @@ async function probeUnbrokenTokenWrap(
   }
 }
 
-/**
- * The `.wrap-anywhere` rules the BUILT stylesheet carries, whole-rule, selector list included.
- *
- * KEYED ON SELECTOR PRESENCE IN THE DIST CSS, never on a bare declaration and never on one exact
- * minified rule body. `overflow-wrap:anywhere` ALREADY ships in that file today for the
- * arbitrary-value class `[overflow-wrap:anywhere]`, emitted at 13 sites across 7 files — so a
- * declaration grep is green before the fix and green after it and distinguishes nothing. And a
- * byte-exact grep for `.wrap-anywhere{overflow-wrap:anywhere}` would fail the day an emitter
- * grouped identical bodies into a selector list (`.foo,.wrap-anywhere{…}`) while the utility
- * worked perfectly — pushing a CORRECT implementation onto 407-23's contingency branch.
- */
+// Keyed on the selector: the bare declaration also ships for an arbitrary-value class.
 function distCssRulesMatching(pattern: RegExp): readonly string[] {
   const assets = join(PACKAGES_ROOT, 'dashboard-ui', 'dist', 'assets')
   if (!existsSync(assets)) return []
@@ -1835,40 +1557,7 @@ function distCssRulesMatching(pattern: RegExp): readonly string[] {
   return rules
 }
 
-/**
- * The two worlds that can only exist AFTER the first reading, in the only order they can be read.
- *
- * BOTH ARE MUTATIONS OF A STORE A DASHBOARD IS ALREADY SERVING, which is the point: the question
- * is not whether the op can project a store built this way, but whether the SHIPPED door answers
- * correctly when the store changes under it. The order is forced — the malformed plant makes every
- * subsequent read of this root a degraded one, so the after-run world has to be measured first or
- * not at all.
- *
- * THREE WORLDS SINCE 407-25, AND THE THIRD GOES LAST FOR THE SAME REASON THE SECOND DID.
- * `attributed-failed` plants a real attributing outcome event and forces this run's `curate-memory`
- * row terminal-failed, producing the shape the 2026-08-30 owner ruling is about: a chain that fell
- * over while the store holds a row it really served. Both of its plants run AFTER the malformed
- * visit BECAUSE the malformed world is the only world that currently paints the partial-read word,
- * and an attribution row planted before it would replace the `unknown` crossing round 2 fought for
- * on the built bundle. Reordering is forbidden.
- *
- * WHAT THE ORDERING DOES NOT BUY, SAID HERE SO NOBODY "FIXES" THE CENSUS BY MOVING THE PLANTS
- * EARLIER: the fifth world INHERITS `scanIncomplete: true`, and that is correct rather than a
- * contradiction. A SKIPPED BUNDLE IS PERMANENT FOR THIS ROOT. `attributingOutcomesByObservationId`
- * (`canary-attribution.ts`) counts a skip for the malformed directory on EVERY later walk of the
- * root — its own docstring says why, "a bundle that will not load has no readable manifest id, so
- * there is no honest way to decide it was irrelevant" — and `runs-knowledge.ts` raises the flag off
- * any non-zero skip count. So TWO census rows carry the flag from here on. Ordering preserves the
- * malformed world's RECORDED reading; it was never going to preserve the flag's exclusivity.
- *
- * AND THAT COSTS THE MEASUREMENT NOTHING, which is precisely why `(c5)` measures the ROW-WINS law
- * rather than the flag arm. In the fifth world the attribution row is PRESENT, so `canaryOutcomeWord`
- * decides on its second arm and never reaches the flag at all. The flag arm keeps its own untouched
- * witness in the malformed world, recorded before either plant ran.
- *
- * THE FIRST FIXTURE'S DRIVE IS UNTOUCHED. `knowledge-tab-dom-scan` never reaches here, so (a1)-(a7)
- * measure exactly the page they measured before.
- */
+// The order is forced: the malformed plant makes every later read of this root a degraded one.
 async function driveLaterWorlds(
   project: { readonly root: string; readonly agentQaRoot: string },
   origin: string,
@@ -1905,26 +1594,7 @@ async function driveLaterWorlds(
     visit: afterVisit,
   }
 
-  // ── THE SIXTH WORLD, HERE AND NOWHERE ELSE, AND UNDONE BEFORE THE NEXT LINE.
-  //
-  // IT CANNOT BE DRIVEN LATER. `plantMalformedBundle` below writes a bundle the maintenance walk
-  // cannot load; `knowledgeRecordsDiffSpec` throws, `runs-knowledge.ts` catches `isScanIncomplete`
-  // and publishes `changes: []`, and THE SKIP IS PERMANENT FOR THIS ROOT. Every world after that
-  // line reads `changes: 0` — round 3's census records exactly that for `malformed` and for
-  // `attributed-failed` — so a world that must hold a served change row beside a failed chain has
-  // to be driven while the change-records read is still intact, which is here.
-  //
-  // THE EXISTING PLANTS MUST SEE THE STORE AS THEY SEE IT TODAY, which is why the jobs-table
-  // change is undone rather than left standing. Nothing below this block is reordered and nothing
-  // below it is given a different store: the plant is one UPDATE to one `jobs` row, and the row is
-  // put back before `plantMalformedBundle` runs.
-  //
-  // AND THE REVERT IS PROVEN RATHER THAN TRUSTED. Two independent witnesses, in the guard and not
-  // here: a re-read of the same five columns with the same reader, deep-equalled against the
-  // snapshot; and the malformed world's own chain word, which still reads `done`. Nothing in this
-  // block asserts — both row counts and both column readings are REPORTED, exactly as the fifth
-  // world reports its append verdict, so a plant that did nothing or a restore that put back four
-  // columns of five is named by the guard rather than swallowed by a passing agreement.
+  // Driven here and undone at once: after the malformed plant every world reads `changes: 0`.
   const curationSnapshot = snapshotCurationJobRow(project, runId)
   const failedRowsUpdated = plantFailedCuration(project, runId)
   const failedRead: Recorded = {}
@@ -2117,8 +1787,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     stubServer = await startStubModelServer()
     const addresses = { modelBaseUrl: stubServer.baseUrl, targetUrl: targetServer.url }
 
-    // SEQUENTIAL, NOT CONCURRENT. Each fixture drives a real Chromium inside a real run through a
-    // real dashboard; two at once on one machine is the resource contention WINDOWS #309 recorded.
+    // Sequential: each fixture drives Chromium through a real dashboard; parallel fixtures contend.
     await driveFixture('knowledge-tab-dom-scan', scan, false, addresses)
     await driveFixture('knowledge-tab-dom-served', served, true, addresses)
     if (!allZeroSnapshot(scan.visit?.projection)) {
@@ -2284,11 +1953,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
   })
 
   it('(a9) a run that used nothing and learned nothing states each absence', () => {
-    // SC1 ON THE SHIPPED BINARY, OVER D-24's RECORDED FACT. A zero-effect curation publishes an
-    // all-zero snapshot, so "learned nothing" is a recorded breakdown the page reads, not
-    // a missing one it infers. Fixture A is the world expected to carry it (assumption A4); when its
-    // chain committed something, the cell asserts on the quiet world, whose curation committed
-    // nothing, and names which world it read. It never skips.
+    // Fixture A should carry the all-zero snapshot; otherwise the quiet world is read and named.
     visitOf('scan', scan)
     const scanSnapshot = scan.visit?.projection?.kind === 'ready'
       ? scan.visit.projection.learned.curationSnapshot ?? '(absent)'
@@ -2374,8 +2039,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       + `absence for a line the run recorded a trace for.${context('served', served)}`,
     ).toBe('answered')
 
-    // The expectation is COMPUTED from the trace the run recorded, never typed: the page must say
-    // what serve time said, not what an index would say if asked again today.
+    // Computed from the trace the run recorded: the page says what serve time said, not a re-query.
     const step = projection.steps.find((candidate) =>
       candidate.served.channel1.some((line) => line.id === painted.recordId))
     expect(
@@ -2539,15 +2203,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toBeGreaterThan(0)
   })
 
-  // ── (C) The two worlds the gap round was written for, measured on the same built bundle.
-  //
-  // WHY THEY ARE HERE AND NOT IN A UNIT CELL. 407-14 proved the op folds a named scan error and
-  // 407-15 proved the view paints an `added` row — each against a fixture the plan itself
-  // constructed. Neither proved that the SHIPPED binary, serving a real store that a real run
-  // really wrote, reaches those arms: the seam between the two is a store on disk, an HTTP door
-  // and a bundle in a browser, and a seam is exactly what a green unit suite cannot see. These
-  // three cells drive the same run these fixtures already drove, with the store mutated underneath
-  // it, and read the answer off the page.
+  // Driven on the shipped binary over a real store: the seam between op and view is on disk.
 
   it('(c1) a fact curated AFTER the run, linked to it, is served as an added change and painted as an added row', () => {
     visitOf('served', served)
@@ -2657,10 +2313,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       'the Learned half did not stamp `data-learned-read="incomplete"`, so a reader is shown an '
       + `absence with no way to tell it from an unreadable store.${context('served', served)}`,
     ).toBe('incomplete')
-    // RE-SPELLED 427-09. Memory changes rows come from curation's fixed snapshot, which is
-    // not a store scan, so a partial scan no longer empties the list: the page paints exactly the
-    // door's rows and names the partial read BESIDE them. With no row to list it still prints the
-    // unreadable-store sentence.
+    // Rows come from curation's fixed snapshot, so a partial scan keeps them and names the read.
     const doorRows = learnedRowsOf(ready)
     expect(
       painted.learnedRows,
@@ -2683,10 +2336,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
   })
 
   it('(c3) every projection this file read parses against the wire contract', () => {
-    // THE CR-01 CLASS, ON THE SHIPPED DOOR. `readSettledProjection` only STORES a parsed body, so a
-    // projection that failed its own contract would leave `recorded.projection` undefined and every
-    // other cell reporting a missing read. This cell reads the RAW body instead, so the failure is
-    // named as what it is — the op serving a shape its own schema refuses.
+    // Reads the raw body, so an op serving a shape its own schema refuses is named as that.
     const reads = [
       { label: 'scan', recorded: scan, body: scan.projectionBody },
       { label: 'served', recorded: served, body: served.projectionBody },
@@ -2710,28 +2360,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
   })
 
   it('(c4) the page and the door agree, world by world — Learned rows, the read stamp, and every served line\'s outcome word', () => {
-    // THE CR-01 LAW ON THE SHIPPED ARTIFACT, OVER EVERY WORLD THIS FILE BUILDS (REVIEW CR-01).
-    //
-    // 407-18 restored the agreement at the view, 407-19 made the op raise the flag by contract and
-    // 407-20 closed the loader↔wire seam — each proven green at its own layer. What no unit cell
-    // can see is whether the two halves of the tab and the door still tell ONE story after three
-    // packages moved underneath them. This cell asks the same page these fixtures already drove,
-    // in every world they reach, three questions:
-    //
-    //   (1) are the Learned rows painted exactly the door's `learned.changes` narrowed to the five
-    //       published kinds, in order, whenever the curation chain has SETTLED — and nothing at
-    //       all when it has not (D-12: an unsettled chain has not finished deciding)?
-    //   (2) is `data-learned-read="incomplete"` present exactly when `learned.scanIncomplete` is
-    //       `true` — absent, never empty, on a clean read?
-    //   (3) does every painted served line wear the word the projection implies, by
-    //       `canaryOutcomeWord`'s own three-arm order — unsettled chain, then a served row, then
-    //       the read — and no attribute at all on a line that was not served as a canary?
-    //
-    // THE CENSUS IS THE MEASUREMENT OF REACHABILITY BOUND (a). One row per world, recording
-    // `(scanIncomplete, changes.length, canary lines painted)`, carried verbatim in every failure
-    // message below. The cell does NOT assert the bound — it is a cardinality of the worlds that
-    // exist, not a law, and asserting it would red the day someone builds the world the op already
-    // sanctions.
+    // Per world: painted rows equal the door's, the incomplete flag matches, canary words agree.
 
     const worlds = [
       { world: 'scan', label: 'scan' as const, recorded: scan, projection: scan.projection, visit: scan.visit },
@@ -2743,10 +2372,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         projection: served.afterRun?.projection,
         visit: served.afterRun?.visit,
       },
-      // THE SIXTH WORLD, AT ITS DRIVE POSITION — after `after-run`, before
-      // `malformed`. It is listed where it is DRIVEN rather than where it was added, because the
-      // census is a record of the store's history and a row out of order would make the two
-      // `changes` readings on either side of the malformed plant read as unrelated facts.
+      // Listed where it is driven, after `after-run` and before `malformed`.
       {
         world: 'failed-with-changes',
         label: 'served' as const,
@@ -2761,8 +2387,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         projection: served.malformed?.projection,
         visit: served.malformed?.visit,
       },
-      // THE FIFTH WORLD: a chain that failed over a row the store really
-      // served. Last in the array as it is last in the drive — see `driveLaterWorlds`' docstring.
+      // A chain that failed over a row the store served; last here as it is last in the drive.
       {
         world: 'attributed-failed',
         label: 'served' as const,
@@ -2782,20 +2407,12 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       changes: entry.projection?.kind === 'ready' ? entry.projection.learned.changes.length : -1,
       canaryLines: (entry.visit?.servedLines ?? [])
         .filter((line) => line.servedAsCanary === 'true').length,
-      // TWO COLUMNS ADDED BY 407-25, and every column that was here keeps its name so the round-2
-      // four-row table and this five-row one can be read side by side. `curation` is the chain word
-      // the projection carried; `attributions` is how many rows the store served for it.
+      // `curation` is the projection's chain word; `attributions` counts the rows the store served.
       curation: entry.projection?.kind === 'ready' ? entry.projection.curation.status : '(none)',
       attributions: entry.projection?.kind === 'ready'
         ? entry.projection.learned.canaryAttributions.length
         : -1,
-      // ONE COLUMN ADDED BY 407-31, and it exists because widening the expanded-row predicate to
-      // `servedLineCount` opened a way for AGREEMENT 3 and (c5) to pass over an EMPTY intersection
-      // Both mirrors still compare CHANNEL-1 lines — that is the right comparison —
-      // but a step selected for its channel-2 brief line has an empty `channel1`, and the
-      // agreement would then be `[]` against `[]`. Both sites BRANCH on that, and this column is
-      // where the run REPORTS which arm it took, so a fixture change that moves the selection onto
-      // an all-channel-2 step is a visible column change rather than a silently emptied agreement.
+      // Reports which arm the channel-1 comparison took, so an empty agreement shows as a column.
       channel1Branch: channel1BranchOf(entry.projection),
     }))
 
@@ -2817,17 +2434,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       ).toBeDefined()
       const painted = entry.visit as PageObservation
 
-      // ── AGREEMENT 1: rows painted ⇔ rows served, narrowed to the published kinds.
-      //
-      // THREE ARMS, AND SINCE 407-31 TWO OF THEM LIST ROWS. `attributed-failed` was the first
-      // SETTLED-BUT-FAILED world this file drove, and the old two-valued `settled = status ===
-      // 'done'` classified it as UNSETTLED — reporting a settled chain under a law it is not
-      // breaking. 407-25 split the arm and left its expectation where it was, because the shipped
-      // `failed` arm returned `rows: []` and no world could show otherwise. Both halves of that
-      // have now moved: the owner ruled (2026-08-31, REVIEW CR-01, G-407-12), 407-26 hoisted the
-      // fold above the whole status ladder, and the sixth world holds a served change row over a
-      // failed chain so the expectation below is NON-EMPTY on this arm rather than `[]` against
-      // `[]`.
+      // A failed but settled chain lists rows exactly as a done one does.
       const chainWord = ready.curation.status
       const arm = chainWord === 'pending' || chainWord === 'running'
         ? 'unsettled'
@@ -2859,15 +2466,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         + `every arm (REVIEW WR-05).${seen}`,
       ).toBe(ready.learned.scanIncomplete === true ? 'incomplete' : undefined)
 
-      // ── AGREEMENT 3: every painted served line wears the word the projection implies.
-      //
-      // THE EXPANDED ROW IS DERIVED THE WAY THE HARVEST DERIVES IT — `servedLineCount`, the same
-      // three-channel sum `data-brief-lines` is stamped from, because that attribute is what
-      // `observeKnowledge` picks the row BY. The old predicate here read `channel1.length > 0`
-      // and the comment beneath it claimed `data-brief-lines` IS `channel1.length`; both were
-      // wrong, and a step briefed only on channel 2 would have been expanded by the page and
-      // skipped by this mirror (G-407-15 · REVIEW WR-03). Matching by index rather than by id is
-      // what makes a MISSING line a red instead of a silently skipped one.
+      // Expanded row by `servedLineCount`, as the harvest picks it; by index, so a gap reds.
       const expanded = ready.steps.find((step) => servedLineCount(step) > 0) ?? ready.steps[0]
       const doorLines = expanded?.served.channel1 ?? []
       // THE WIDENING'S OWN HOLE, STATED RATHER THAN FALLEN INTO. `doorLines` stays on channel 1 —
@@ -2942,19 +2541,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       + `alone.${censusOf('after-run')}${context('served', served)}`,
     ).toBeGreaterThanOrEqual(1)
 
-    // ── NON-VACUITY, on the SIXTH WORLD — nine assertions, nine messages, nine reasons.
-    //
-    // THIS IS THE ONLY WORLD IN WHICH G-407-12 IS MEASURABLE ON THE ARTIFACT A PERSON INSTALLS,
-    // and it costs nine assertions because it has nine independent ways to be a world that proves
-    // nothing. The law under test — a settled-and-failed chain lists exactly what a settled-and-done
-    // one would — is a claim about a chain that is `failed` AND holds rows. Either half missing and
-    // AGREEMENT 1's settled-and-failed arm compares `[]` with `[]` and passes having measured
-    // nothing, which is WR-04's failure mode landing on the very arm this round exists to rule.
-    //
-    // THE READ MUST ALSO BE CLEAN. `learnedView` has a partial-read arm as well as a failed-chain
-    // arm; a world carrying `scanIncomplete` would leave a reader unable to say which arm the
-    // agreement exercised. That is why the sixth world is planted BEFORE the malformed bundle
-    // rather than beside the fifth.
+    // Each precondition of the failed-with-changes world is asserted alone, or agreement is empty.
     const failedWithChangesReady = served.failedWithChanges?.projection?.kind === 'ready'
       ? served.failedWithChanges.projection
       : undefined
@@ -3059,13 +2646,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       + `the four original rows are no longer byte-identical.${seenFWC}`,
     ).toBe('complete')
 
-    // ── NON-VACUITY, on the FIFTH WORLD — three assertions, three messages, three reasons.
-    //
-    // WR-04 named this failure mode on this very cell in round 2: an agreement over an empty
-    // intersection passes. `attributed-failed` has THREE preconditions and they fail
-    // independently — the curation plant can address no row, the attribution plant's append can be
-    // refused, and the page can paint no canary line — so a single combined assertion would report
-    // whichever happened to be checked first and hide the other two.
+    // Each precondition is asserted alone, so a failure names which plant or paint did not happen.
     const attributedFailedReady = served.attributedFailed?.projection?.kind === 'ready'
       ? served.attributedFailed.projection
       : undefined
@@ -3105,22 +2686,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
   })
 
   it('(c5) the ruling on the shipped page — a served row beats a failed chain, and the chip still says the chain fell over', () => {
-    // THE OWNER RULING OF 2026-08-30 (UAT item 11, gap G-407-11), STATED DIRECTLY RATHER THAN
-    // THROUGH THE GENERIC MIRROR.
-    //
-    // (c4)'s third agreement measures this world too — `expectedCanaryWord` carries 407-22's law,
-    // so agreement 3 over `attributed-failed` IS the ruling re-derived. This cell says it once
-    // more WITHOUT the mirror, because the mirror could drift and because the ruling has a SECOND
-    // half the mirror does not reach: the chain's fate and the store's answer are two different
-    // facts a reader must be able to see side by side. `not attributed` is a positive claim that
-    // the store was consulted and answered no; the projection here disproves it while the Learned
-    // half goes on reporting, correctly, that the chain failed.
-    //
-    // IT MEASURES THE ROW-WINS ARM, NOT THE FLAG ARM, and that is deliberate. This world inherits
-    // `scanIncomplete: true` from the malformed bundle planted before it (permanent for this root
-    // — see `driveLaterWorlds`). With a row present, `canaryOutcomeWord` decides on its SECOND arm
-    // and never consults the flag, so the inherited flag changes nothing here. The flag arm keeps
-    // its own witness in the malformed world.
+    // Stated without the mirror: the chain's fate and the store's answer are separate facts.
     const recorded = served.attributedFailed
     const seen = context('served', served)
 
@@ -3140,12 +2706,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       + `is about.${seen}`,
     ).toBe('failed')
 
-    // ── HALF ONE OF THE RULING: the served line wears the row's own outcome.
-    //
-    // THE SAME `servedLineCount` DERIVATION AGREEMENT 3 USES (G-407-15 · REVIEW WR-03). This cell
-    // copied the channel-1-only predicate a second time when it was written; it now shares the
-    // harvest's own rule, and — because that rule can select a step whose `channel1` is empty —
-    // states its empty case rather than comparing `[]` with `[]`.
+    // The same `servedLineCount` derivation as agreement 3, with its empty `channel1` case stated.
     const expanded = ready.steps.find((step) => servedLineCount(step) > 0) ?? ready.steps[0]
     const doorLines = expanded?.served.channel1 ?? []
     const canaryLines = visit.servedLines
@@ -3202,18 +2763,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       `the Learned half's root does not read \`failed\` in the attributed-failed world, so the `
       + `page is no longer saying the two facts side by side.${seen}`,
     ).toBe('failed')
-    // ── AND THE ROWS HERE ARE THE DOOR'S SNAPSHOT ROWS, NOT A LAW ABOUT THE FAILED ARM.
-    //
-    // RE-SPELLED 427-09. Since the owner ruling of 2026-08-31 (REVIEW CR-01 · G-407-12) a
-    // settled-and-failed chain lists exactly what a settled-and-done one would, and AGREEMENT 1
-    // enforces that on both settled arms. This world is driven AFTER `plantMalformedBundle`, so its
-    // change-records read degrades permanently for this root and the door serves no change at all —
-    // asserted FIRST. What the page lists is curation's fixed snapshot, which no store scan
-    // produces, so the rows are the door's snapshot rows, bucket from the row and id from Retrieval
-    // details.
-    //
-    // THE LAW IS MEASURED IN THE SIXTH WORLD, `failed-with-changes`, which is planted BEFORE the
-    // malformed bundle precisely so it can hold both a failed chain and served change records.
+    // Driven after the malformed plant, so the door serves no change; the page lists snapshot rows.
     expect(
       ready.learned.changes.length,
       `the attributed-failed world's door served \`learned.changes\` after all, so this world no `
@@ -3230,17 +2780,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
   })
 
   it('(c6) an unbroken 120-char summary fits the row with the break utility and overruns it without — measured, both ways', () => {
-    // G-407-2, MEASURED WHERE THE UAT FOUND IT: real Chromium, the built bundle, the shipped
-    // `agent-qa dashboard`, the same 1280px-wide default viewport the UAT drove.
-    //
-    // The UAT recorded `scrollW 895 vs clientW 639` — a 256px horizontal overrun — on a row whose
-    // summary held 120 identical characters. 407-23 replaced `break-words` with `wrap-anywhere`
-    // (`overflow-wrap: anywhere`), which is the spelling that participates in intrinsic sizing.
-    // This cell asks the browser whether that is true HERE, and asks it twice.
-    //
-    // THE PAIR IS THE EVIDENCE, NOT EITHER READING. "No overrun" alone is equally consistent with a
-    // wide viewport. The second reading removes ONE class from the SAME node in the SAME layout and
-    // the overrun comes back — which is what makes the fix the cause of its own effect.
+    // The pair is the evidence: removing one class from the same node brings the overrun back.
     const probe = served.wrapProbe
     const seen = `\n(c6) probe: ${JSON.stringify(probe ?? null)}${context('served', served)}`
 
@@ -3263,11 +2803,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       `the summary node the probe addressed does not carry \`${WRAP_UTILITY_CLASS}\`, so the `
       + `second reading removed nothing and the differential is not a differential.${seen}`,
     ).toContain(WRAP_UTILITY_CLASS)
-    // COMPARED AS SETS, NOT AS STRINGS (G-407-20 · REVIEW IN-02). `DOMTokenList.add` APPENDS, so
-    // byte equality between the two class lists holds only while `wrap-anywhere` happens to be the
-    // LAST token in the component's className — reorder the className and this assertion reds
-    // while the probe behaved perfectly. What the probe actually promises is that the node was put
-    // back the way it was found, and that is a claim about the SET of classes.
+    // Compared as sets: `DOMTokenList.add` appends, so string equality depends on class order.
     const classSet = (list: string | undefined): readonly string[] =>
       (list ?? '').split(/\s+/u).filter((token) => token !== '').sort()
     expect(
@@ -3297,22 +2833,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
   })
 
   it('(c6b) the built stylesheet defines the utility the component ships — by SELECTOR, in the dist CSS', () => {
-    // NEVER A BARE DECLARATION GREP. `overflow-wrap:anywhere` is in this file TODAY for the
-    // arbitrary-value class `[overflow-wrap:anywhere]`, emitted at 13 sites across 7 files
-    // (`reasoning-pipeline.tsx`, `live-mode-auth-state-control.tsx`, `live-session-pane.tsx`,
-    // `reasoning-pipeline.wrap.test.tsx`, `auth-states-section.tsx`, `tab-overview.tsx`,
-    // `editor-step-detail.tsx`). A declaration grep was green before 407-23 and is green after it,
-    // and distinguishes nothing.
-    //
-    // NEVER ONE EXACT MINIFIED RULE BODY EITHER. `.wrap-anywhere{overflow-wrap:anywhere}` is only
-    // ONE of the shapes a correct emitter produces; an emitter that grouped identical bodies into a
-    // selector list would fail a byte-exact grep while the utility worked perfectly, and would push
-    // a CORRECT implementation onto the contingency branch below.
-    //
-    // 407-23's CONTINGENCY HAS EXACTLY ONE TRIGGER: the `.wrap-anywhere` SELECTOR is ABSENT. It is
-    // not the expected path — the pinned Tailwind 4.2.4 defines the utility (`dist/lib.js` carries
-    // `t("wrap-anywhere",[["overflow-wrap","anywhere"]])`), so the named branch is the one that
-    // should be taken, and 407-23 measured it being taken.
+    // Keyed on the selector, not the declaration, which also ships for an arbitrary-value class.
     const named = distCssRulesMatching(/\.wrap-anywhere[,{]/)
     const componentSource = readFileSync(
       join(
@@ -3341,10 +2862,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       return
     }
 
-    // ── THE FALLBACK, entered ONLY on absence of the named selector, and NOT vacuous. It needs
-    // BOTH halves: the escaped rule already ships in the dist CSS today, and the source tsx is the
-    // very file 407-23's contingency would have just written, so either half alone moves the
-    // vacuity rather than removing it.
+    // The fallback needs both the escaped dist rule and the source class, or it stays vacuous.
     const escaped = distCssRulesMatching(/\.\\\[overflow-wrap\\:anywhere\\\][,{]/)
     expect(
       escaped.filter((rule) => rule.includes('overflow-wrap:anywhere')).length,
@@ -3362,17 +2880,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
   })
 
   it('(c7) the vocabulary read refuses a slice it can only partly see — nested bracket, and a member in another delimiter', () => {
-    // G-407-19 · REVIEW IN-01, DRIVEN RATHER THAN ASSERTED IN A DOCSTRING.
-    //
-    // `publishedStringArray` used to throw only on ZERO members, which is the one narrowing that
-    // cannot happen quietly. The two that can each produce a SHORTER list in silence, leaving (c4)
-    // re-deriving the door's answer from a subset of the vocabulary the view actually holds.
-    //
-    // THE SECOND SLICE IS THE ONE THAT MATTERS. Members are recovered with `/'([^']+)'/gu`, so a
-    // member respelled `"promoted"` contributes ZERO apostrophes: it drops out of the recovered
-    // list AND out of an apostrophe-only census at the same time, and the tally still reads
-    // `2 * members.length`. Only a census counting apostrophes, double quotes and backticks
-    // together rejects it — which is exactly what this cell proves is happening.
+    // Driven with a nested array and a double-quoted member; a census of all quotes rejects both.
     const nested = "export const FAKE_KINDS = ['added', ['confirmed'], 'promoted'] as const"
     expect(
       () => publishedStringArray('FAKE_KINDS', nested),

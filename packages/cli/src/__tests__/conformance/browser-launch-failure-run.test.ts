@@ -1,15 +1,4 @@
-// C433-LAUNCH-FAILURE.
-//
-// A run whose browser never launches was recorded `cancelled` with no cause on both doors, and
-// nobody had cancelled it. It is a failed run: the member that could not start is `failed` with a
-// failure summary naming the launch failure, the members after it are skipped without launching and
-// say why, the dashboard row reads `failed` with the same cause, and `agent-qa run` still prints the
-// framework error and exits 2, now naming the run id it recorded. A cancel a person makes is still
-// `cancelled`, and a member that never launched records no failed recording.
-//
-// The launch failure is produced with an empty `PLAYWRIGHT_BROWSERS_PATH` (the 432 matrix's
-// no-browser pin), never a real Firefox. The CLI door is the built binary; the dashboard door is
-// composed in this process as `agent-qa dashboard` composes it, through the shared dashboard scene.
+// A run whose browser never launches is `failed` with the launch cause on both doors.
 
 import { createServer, type IncomingMessage, type Server, type ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -354,7 +343,7 @@ describe('the dashboard door', () => {
       expect(await waitFor(() => model.requests.length > 0, 150_000), 'the member launched its browser and reached planning').toBe(true)
 
       const cancel = await fetch(`${scene.origin}/api/runs/${encodeURIComponent(runId)}/cancel`, { method: 'POST' })
-      // a running run's cancel is a stop request, answered 202.
+      // A running run's cancel is a stop request, answered 202.
       expect(cancel.status, await cancel.text()).toBe(202)
       expect(await waitFor(() => scene.settled.some((entry) => entry.runId === runId), 120_000), 'the run settles').toBe(true)
       await waitFor(() => unsettledRuns(project).length === 0, 60_000)

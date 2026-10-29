@@ -1,22 +1,7 @@
 /// <reference lib="dom" />
 // The DOM lib is referenced here because this file's `page.evaluate` callbacks run in a browser.
 
-// THE LIVE PREVIEW'S STATUS ON THE SHIPPED PAGE (428 SC2/SC3, D-02/D-13/D-15/D-16 · PXH-LIVE-02/03).
-//
-// jsdom proved the status's contract in `live-preview.test.tsx`: one dot, its name, its tooltip,
-// the snapshot label, the reduced-motion rule. jsdom computes no animation and lays nothing out, so
-// every claim here is made again on the BUILT dashboard-ui bundle, served by the production
-// `startServer` and driven by a real headless Chromium: one green dot and nothing on the live page
-// animating (owner decision 2026-09-26 (5), G-428-5), a dot floating alone at the preview's top-right,
-// outside the chrome and clear of the picture (owner decision 2026-09-26 (6)), amber when frames
-// stop while the bus keeps heartbeating, and the literal snapshot label when the frames are
-// snapshots.
-//
-// THE RUN IS PLANTED AND THE SERVER IS NOT (see `live-view-fixture.ts`). Every word a cell expects
-// is read out of `lib/live-preview.ts`, so a copy change that forgets these cells turns them red.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP. Captures go only where
-// AGENT_QA_428_CAPTURE_DIR points.
+// Status claims again on the built bundle in real Chromium; every expected word is from source.
 
 import { mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -70,7 +55,7 @@ const GREEN_NAME = publishedMember('lib/live-preview.ts', 'LIVE_DOT_NAMES', 'gre
 const GREEN_MEANING = publishedMember('lib/live-preview.ts', 'LIVE_DOT_MEANINGS', 'green')
 const AMBER_NAME = publishedMember('lib/live-preview.ts', 'LIVE_DOT_NAMES', 'amber')
 
-/** SC3: the freshness window (5 s) plus the corner's 1 s clock and one 500 ms report, with margin. */
+/** The freshness window (5 s) plus the corner's 1 s clock and one 500 ms report, with margin. */
 const STALL_TO_AMBER_BUDGET_MS = 7_000
 const RESUME_TO_GREEN_BUDGET_MS = 3_000
 const STALL_HEARTBEAT_MS = 1_000
@@ -143,8 +128,7 @@ beforeAll(async () => {
     frameBytes: png,
     frameKind: 'snapshot',
   })
-  // The hub's fallback seat: a screencast is declared, and the frames that arrive are
-  // snapshots. The label must follow the frames, not the declaration.
+  // A screencast is declared but snapshots arrive; the label follows the frames.
   plantStreamingRun({
     runId: FALLBACK_RUN,
     heartbeatMs: 10_000,
@@ -197,8 +181,7 @@ async function cornerReading(page: Page): Promise<{ state: string | null; dot: s
   }))
 }
 
-// Since 2026-09-26 a capture is the whole preview, chrome and picture, because
-// the status sits in the chrome above the picture; it was the picture's box alone.
+// A capture is the whole preview area, not the picture's box alone.
 async function capture(page: Page, name: string): Promise<void> {
   const directory = process.env[CAPTURE_DIR_ENV]
   if (!directory) return
@@ -272,7 +255,7 @@ async function statusGeometry(page: Page): Promise<StatusGeometry> {
   return { ...reading, section, area, frame, dot }
 }
 
-/** Owner decision 2026-09-26 (6): alone at the preview area's top-right, no chrome row, never over the picture. */
+// Alone at the preview area's top-right, with no chrome row, never over the picture.
 function expectDotTopRightOfContainer(geometry: StatusGeometry, label: string): void {
   const { section, area, frame, dot } = geometry
   const context = `${label}: ${JSON.stringify(geometry)}`
@@ -369,15 +352,6 @@ describe('the live preview corner on the shipped bundle', () => {
     })
   }, 120_000)
 
-  // RE-SPELLED 2026-09-26 (428-34, owner decision 2026-09-26 (4), G-428-4). This cell was
-  // CORNER-ON-PICTURE, "the dot sits inside the picture's box, in its top-right quarter". The owner
-  // saw the dot cover the tested page's own header and asked for it "at the top left of the browser
-  // container", so the dot is measured against the preview container and its chrome, clear of the
-  // picture, at both widths.
-  //
-  // RE-SPELLED 2026-09-26 (owner decision 2026-09-26 (6)). Was "DOT-TOP-LEFT-OF-CONTAINER: the dot
-  // is in the chrome at the container's top-left, ...". The dot left the chrome row for its own
-  // corner at the preview area's top-right, and a bare live frame renders no chrome row at all.
   it('DOT-TOP-RIGHT-OF-CONTAINER: the dot floats alone at the preview\'s top-right with no chrome row, and its box never meets the picture\'s', async () => {
     await onLivePage(DOT_RUN, async (page) => {
       await waitForGreen(page)
@@ -489,10 +463,6 @@ describe('the live preview corner on the shipped bundle', () => {
     })
   }, 120_000)
 
-  // RE-SPELLED 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5). This cell was
-  // REDUCED-MOTION-DOT-STILL, "under prefers-reduced-motion the green dot does not animate", whose
-  // control was that the same dot pulsed without the preference. Both readings are now still, for
-  // the dot and for the running glyph.
   it('DOT-STILL-UNDER-ANY-MOTION-PREFERENCE: the green dot and the running glyph are still with and without reduced motion', async () => {
     await onLivePage(DOT_RUN, async (page) => {
       await waitForGreen(page)

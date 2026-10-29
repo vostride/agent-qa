@@ -1,6 +1,4 @@
-// two real `agent-qa run`s in one workspace. Run A fails
-// and its analyze-run author is refused, so A's own tail leaves that row retrying. Run B passes,
-// and its tail must complete B's own chain behind A's retrying row instead of stopping on it.
+// Run A leaves its analyze row retrying; run B's tail must still complete B's own chain behind it.
 
 import { spawn } from 'node:child_process'
 import { join } from 'node:path'

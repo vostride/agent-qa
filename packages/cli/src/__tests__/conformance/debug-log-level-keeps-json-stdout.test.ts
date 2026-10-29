@@ -1,5 +1,4 @@
-// a project may set its log level to debug, and the per-test debug lines
-// are the terminal door's to print. A protocol door's stdout holds only its protocol.
+// A project may log at debug; a protocol door's stdout still holds only its protocol.
 
 import { appendFileSync, existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'

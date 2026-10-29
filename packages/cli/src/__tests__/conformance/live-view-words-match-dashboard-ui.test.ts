@@ -1,11 +1,4 @@
-// EVERY WORD THE DASHBOARD-UI FIREWALL FORCES TO BE WRITTEN TWICE, PINNED EQUAL (428 D-15 · PXH-LIVE-02/03).
-//
-// dashboard-ui imports only ids and schema, so the live preview spells the embed's report events,
-// its host parameter, the frame socket's refusal and end reasons, and the control socket's
-// session-gone close code a second time in `lib/live-preview.ts`. This package may read both
-// sides: the server's constants through `@vostride/agent-qa-dashboard`, the UI's by reading its
-// source, as `live-view-dom.test.ts` reads published sentences. A one-sided change reds the cell
-// that owns the word, and the message carries both spellings.
+// Words the UI firewall forces to be written twice, read from both sides and pinned equal.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'

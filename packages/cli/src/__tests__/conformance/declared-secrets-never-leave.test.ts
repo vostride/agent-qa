@@ -1,5 +1,4 @@
-// what a run, `ask` and `chat` send, write and print carries
-// `[secret:<name>]` for each declared value and never the value.
+// What a run, `ask` and `chat` send, write and print carries `[secret:<name>]`, never the value.
 
 import {
   existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync,
@@ -47,10 +46,7 @@ function echoOf(text: string): string {
 const FREE_FORM_UTTERANCE = `keep ${SHORT} and ${LONG} in mind`
 const ECHO_UTTERANCE = echoOf(`${SHORT} ${LONG}`)
 
-// The input files each cell passes (the secrets file; the run leg's test file), D-21 media by
-// extension or by signature (knowledge bundles store screenshots by content address, with no
-// extension), runs/<id>/blobs/, and the D-18 keys blanked in handoff.json (`stateBefore` and
-// `stateAfter` are the handoff's screen state).
+// Excluded: the cells' input files, media by extension or signature, blobs, blanked handoff keys.
 const EXCLUDED = {
   mediaExtensions: ['.png', '.jpg', '.jpeg', '.webp', '.webm', '.mp4', '.zip'],
   mediaSignatures: [
@@ -704,7 +700,7 @@ describe('ask, chat and run mask declared values', () => {
   }, CELL_BUDGET_MS)
 })
 
-// only declared values are masked, and nothing is blocked.
+// Only declared values are masked, and nothing is blocked.
 const TWIN_VALUES = [
   'qa@example.com',
   'cookie-441-value',

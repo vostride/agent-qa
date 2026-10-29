@@ -1,11 +1,5 @@
 /// <reference lib="dom" />
-// C444-RUNS-TABLE.
-//
-// The Runs list measured in real headless Chromium against the shipped dashboard, over runs.db rows
-// seeded before the dashboard starts. The drive records once per viewport in `beforeAll`; the cells
-// assert on what it recorded. With AGENT_QA_444_UAT_DIR set, the drive also saves a full-page
-// screenshot per narrow viewport there; the gate never sets it, so nothing is written outside the
-// temp root.
+// The Runs list in real Chromium over seeded runs.db rows, recorded per viewport in `beforeAll`.
 
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'

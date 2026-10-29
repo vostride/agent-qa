@@ -1,4 +1,4 @@
-// dotted config keys in guidance, resolved in the live schema
+// Dotted config keys in guidance, resolved in the live schema.
 
 import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
 

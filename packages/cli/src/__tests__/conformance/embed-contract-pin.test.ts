@@ -1,45 +1,4 @@
-// THE 403 EMBED CONTRACT, FROZEN BY MEASUREMENT (408-05 · criterion 3 · D-04 / T-408-16).
-//
-// WHY THIS FILE EXISTS. Phase 408's third success criterion is a promise of ABSENCE: the MCP App
-// embeds the exact `liveUrl` Phase 403 mints, and nothing about the 403 embed surface — its served
-// document, its transport, its two path constants — changes to make that work. Every plan in this
-// phase has so far kept that promise in PROSE ("no file under `packages/dashboard-server/` in any
-// commit of this plan"), and a promise phrased as a diff review is a promise that holds exactly
-// until nobody reviews the diff. This file converts it into a cell: the embed page's rendered bytes
-// hash to a RECORDED constant, and the two protocol constants are pinned by literal value.
-//
-// WHAT A RED HERE MEANS, AND WHAT TO DO ABOUT IT. It does not mean "you broke something". It means
-// the frozen surface moved, which a later phase is perfectly entitled to do — the MJPEG/WebRTC
-// transports LIVE-04 anticipates would move it, for instance. It means the move must be a CONSCIOUS
-// act: re-mint the constant below in that phase's OWN dated commit, beside the change that earned
-// it, so the re-mint is a reviewable line rather than a silent drift under a green suite. Forcing
-// that act is the entire point of the pin.
-//
-// WHY A HASH AND NOT A GOLDEN FILE. The embed page is 5KB of HTML with an inline script; a
-// committed golden of it would be a second copy of the document, free to disagree with the first,
-// and re-minting it would be a 5KB diff nobody reads rather than a one-line diff everybody does.
-// The hash is the smallest artifact that still names any byte-level change. The byte COUNT is
-// recorded beside it for exactly one reason: a hash mismatch tells a reader nothing about the
-// scale of what moved, and `5172 -> 5240` tells them where to look.
-//
-// WHY THE INPUT IS FIXED AND SYNTHETIC. `renderLiveEmbedPage` is a pure function of `{runId,
-// nonce}` — no clock, no randomness, no environment (measured; the nonce is minted by its CALLER,
-// which is what keeps the renderer pure). Two fixed strings therefore pin the whole document.
-//
-// THE STALE-ARTIFACT HOLE, CLOSED. This cell renders through the package barrel, i.e. through
-// `dashboard-server/dist` — which is what ships, and which is also free to be older than the source
-// beside it. A stale artifact would let this pin stay green across the very edit it exists to
-// catch, so the freshness of the two source files that compose this contract is asserted first.
-// (408-01 lost an afternoon to a stale `mcp/dist`; the gate that caught it is the reason this one
-// is here.)
-//
-// THE THIRD CELL IS THE NO-SECOND-EMBED LAW. The MCP App wrapper and the dashboard's own
-// live page are TWO CONSUMERS OF ONE embed document, not two embed documents. The wrapper is
-// allowed to copy `embed-page.ts`'s IDIOMS — its state-machine shape, its `scriptLiteral` escape —
-// and is not allowed to copy its bytes or to reach into the package that owns it. A second serving
-// of the embed contract would be free to disagree with the first, which is the
-// one-implementation-behind-doors law this repository keeps. The census reads the wrapper's own
-// source file, comment-stripped, so a comment EXPLAINING the rule does not fail the rule.
+// The embed page's rendered bytes hash to a recorded constant; a red means the surface moved.
 
 import { readFileSync, statSync } from 'node:fs'
 import { createHash } from 'node:crypto'
@@ -74,15 +33,7 @@ const REBUILD_INSTRUCTION =
 /** The fixed, synthetic input the recorded hash was minted over. */
 const PIN_INPUT = Object.freeze({ runId: 'pin-run', nonce: 'pin-nonce' })
 
-/**
- * The 403 embed page's rendered bytes, sha256, MEASURED on 2026-09-25 by 428 D-10 (the embed
- * paints snapshots, reports to its host, honours the host hint and names an ended editor session).
- * Re-mint only in a phase that deliberately changes the page.
- *
- * Frozen by Phase 408's criterion 3. A phase that legitimately changes the embed page re-mints this
- * in its own dated commit — see the header. Do not "fix" a red here by re-running the hash into the
- * constant as part of an unrelated change: that is the exact silent drift the pin forbids.
- */
+// The embed page's rendered bytes, sha256; re-mint only with a deliberate change to the page.
 const EMBED_PAGE_SHA256 = 'c637a7c4007e6cb51451d360869a8cfe3fbf0b7d8366d48b1a9baf792947d72a'
 
 /** The same render's length in UTF-8 bytes, so a mismatch says how much moved and not just that. */
@@ -129,10 +80,7 @@ describe('the embed contract is frozen, and the freeze is measured', () => {
   })
 
   it('pins the two path constants the whole live-view transport is addressed by', () => {
-    // BY VALUE, not by round-trip. Comparing the constant to itself would pass through any rename;
-    // these literals are the strings a served page, a frame socket and every consumer agree on, and
-    // 408 changes neither (LIVE-04: the wrapper and the embed contract must survive a transport
-    // swap UNCHANGED, so the addresses are part of what is frozen).
+    // By value: these are the strings the served page, the frame socket and consumers share.
     expect(LIVE_EMBED_PATH_PREFIX, 'the served embed page\'s path prefix').toBe('/live/')
     expect(LIVE_VIEW_WS_PATH, 'the frame socket\'s path').toBe('/api/live-view/ws')
   })

@@ -1,13 +1,4 @@
-// The capability catalog's freshness and loader legs.
-//
-// These legs JOIN the 397 conformance suite rather than standing beside it: they run in the same
-// directory, under the same CI job, on every PR, and the regen script's refuse-while-red gate reads
-// the whole directory's result. One suite, one denominator.
-//
-// WHAT THE FRESHNESS LEG IS. The committed artifact is a photograph of the live seams. The leg
-// re-takes the photograph in memory and compares — and when they disagree it names WHICH ROW and
-// WHICH FIELD, because "the catalog is stale" is not something a person can act on and
-// "runs.digest.description moved" is.
+// The freshness leg re-takes the catalog in memory and names the row and field that moved.
 
 import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -191,17 +182,7 @@ describe('the capability catalog loader', () => {
   })
 })
 
-// ---- The censuses ----------------------------------------------------
-//
-// THE LAW, RESTATED FOR THIS ARTIFACT. `scenario-table.ts` states it once for the registry: two
-// enumerations of one universe are asserted set-equal in BOTH directions, so a member that lands on
-// either side alone is a named RED on every PR. Every cell below is that law applied to a different
-// pair — the catalog against the golden, the alias rows against the shipped resolver table, the
-// skill rows against the skills directory, the doc table against the registry.
-//
-// ONE-DIRECTION EQUALITY IS THE FAILURE THIS PREVENTS. A cell asserting only that every catalog row
-// has a golden row would stay green through a capability that shipped without a catalog entry —
-// which is precisely the drift D-01 exists to make impossible.
+// Each census asserts two enumerations of one universe set-equal in both directions.
 
 describe('the capability catalog census', () => {
   let catalog: CapabilityCatalog
@@ -281,8 +262,7 @@ describe('the capability catalog census', () => {
       const tool = projectedTools.get(row.id)
       const unprojected = UNPROJECTED_OPS.find((entry) => entry.opId === row.id)
 
-      // Exactly one of the two arms, per row. Both present would be a row claiming a door and a
-      // dated decision not to have one; neither would be the blank D-06 replaces with a reason.
+      // Exactly one arm per row: a door, or the reason it has none.
       const arms = [row.mcpTool, row.mcpUnprojectedReasonKey].filter((value) => value !== undefined)
       if (arms.length !== 1) {
         disagreements.push(`${row.id}: ${arms.length} mcp arms present, expected exactly 1`)
@@ -368,8 +348,7 @@ describe('the capability catalog census', () => {
         continue
       }
       if (row.docPath === null) {
-        // The explicit-absent arm is only honest if it says WHY. A null with no reason is the
-        // blank D-07 refuses.
+        // An explicit absence needs a reason.
         if ((row.docAbsentReason ?? '').trim() === '') {
           broken.push(`${label}: carries a null docPath with no reason`)
         }

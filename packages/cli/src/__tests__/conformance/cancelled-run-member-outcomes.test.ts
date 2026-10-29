@@ -1,9 +1,4 @@
-// `runner.md` §2.1's ratified ranking on a real run.
-// A direct run of three tests in member order (no `use.parallel`, so one worker): member 1 fails,
-// member 2 is parked inside its step by the stub model, and Ctrl+C lands there. The run reads
-// `cancelled` with exit 130, and every surface that lists members shows member 1 `failed`, member
-// 2 `cancelled` and member 3 `skipped`: the CLI overview, the MCP overview and the dashboard's run
-// detail, each read once after the run exits.
+// On a cancelled run, a member before the cancel is `failed`, at it `cancelled`, after `skipped`.
 
 import { spawn } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'

@@ -1,38 +1,4 @@
-// Does the SHIPPED dashboard PROCESS survive a malformed request path? (Phase 400 plan 16, gap 7.)
-//
-// WHY THIS FILE EXISTS RATHER THAN MORE CELLS IN `dashboard-door-security.test.ts`. That corpus
-// mounts `createServer(createChatRouter(...))` — the shipped composer and the shipped router, in
-// THIS process. It closed gap 7's chat-router leg and it is mutation-pinned. But the two frames
-// that parse the request URL BEFORE the chat router ever runs — `server.ts`'s async request
-// listener and `routes.ts`'s router head — are excluded from that mount by construction, so the
-// corpus read green while one unauthenticated request ended the process a person actually starts.
-// The gap-7 verification measured exactly that: `GET //% HTTP/1.1` closed the socket with zero
-// bytes and killed the child. A cell that cannot spawn the binary cannot ask this question, so
-// every cell here spawns `agent-qa dashboard` out of `dist` and drives it over a real socket.
-//
-// THE ASSERTION EVERY CELL SHARES IS SURVIVAL, NOT A STATUS. "The door answered 400" is a fact
-// about one response; "the process served the NEXT request" is the fact the truth names, and it is
-// the one a status assertion cannot stand in for — a dying process and a refusing process both
-// fail to hand back a body. So each cell drives a healthy request BEFORE the hostile one (proving
-// the process was serving), drives the hostile one, then drives the healthy one AGAIN on the SAME
-// process. At HEAD the third drive is `ECONNREFUSED`, which is what a dead process looks like from
-// outside.
-//
-// RAW SOCKETS RATHER THAN `fetch`, on `dashboard-door-security.test.ts`'s own argument: a URL
-// builder will not carry `//%`, and it will not emit `http://[` as a request target at all. The
-// client below writes the request line verbatim and reports `status: 0` when NO bytes arrive,
-// which is what makes this gap's red legible — "never answered" reads differently from "answered
-// wrongly". It is a second copy of that idiom on purpose and with a narrow justification: the
-// original is a private function inside a mutation-pinned test file, and importing across two test
-// files (or editing that file to export it) would put a corpus this plan is fenced away from into
-// this plan's diff. The two copies answer the same question about different servers.
-//
-// ONE PROCESS PER CELL. A survival cell whose subject died has poisoned every later cell in the
-// same process, and the failure would be reported against whichever cell happened to run next.
-// Spawning per cell costs seconds and buys a failure message that names its own question.
-//
-// HERMETIC AND MODEL-FREE, inherited from `spawned-chat.ts`: an `mkdtemp` project with no token
-// entry, no key and no LLM block, and a constructed child environment.
+// Each cell spawns `agent-qa dashboard` and checks it serves a request after the hostile one.
 
 import { connect } from 'node:net'
 
@@ -144,13 +110,7 @@ function rawRequest(
 
 // ---- the survival instrument -------------------------------------------------------------------
 
-/**
- * The healthy request every cell drives before and after the hostile one.
- *
- * re-pointed from the conversation capabilities read, which no longer
- * routes. `/api/stats` is a plain database read the hermetic dashboard answers 200 with no state;
- * the app-metadata read would reach the npm registry from a fresh HOME.
- */
+// `/api/stats` is a plain database read the hermetic dashboard answers 200 with no state.
 const HEALTHY_LINE = 'GET /api/stats'
 
 interface Survival {
@@ -215,14 +175,7 @@ async function survive(
   }
 }
 
-/**
- * The three assertions every survival cell makes, in the order that makes its OWN red legible.
- *
- * SURVIVAL IS ASSERTED FIRST, deliberately. Phase 400 has twice recorded a cell whose leading
- * assertion understated the defect underneath it. Here the defect IS the death, so the death is
- * what the first failure message must say; a status assertion firing first would report "expected
- * +0 to be 400" for a process that no longer exists.
- */
+// Survival is asserted first, so a dead process is not reported as a wrong status.
 function expectSurvived(label: string, result: Survival): void {
   expect(
     result.before.status,

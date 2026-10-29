@@ -1,4 +1,4 @@
-// every starting point links the recipe page within its bounds
+// Every starting point links the recipe page within its bounds.
 
 import { describe, expect, it } from 'vitest'
 

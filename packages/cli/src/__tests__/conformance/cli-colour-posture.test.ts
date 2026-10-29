@@ -1,5 +1,4 @@
-// the shipped bin prints no colour code without a terminal. The
-// environment is built here from hermeticEnv, never from the 433 fixture's spawn env.
+// The shipped bin prints no colour code without a terminal; the env comes from `hermeticEnv`.
 
 import { spawn } from 'node:child_process'
 import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'

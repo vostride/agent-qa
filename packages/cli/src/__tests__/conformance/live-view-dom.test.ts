@@ -2,41 +2,7 @@
 // The DOM lib is referenced HERE because this file's `page.evaluate` callbacks are compiled as
 // TypeScript and EXECUTED in a browser — `dashboard-dom.test.ts`'s reasoning, unchanged.
 
-// THE HONEST LIVE SURFACE, IN A REAL BROWSER (403-06 Task 1 · HNST-01/02/03, LIVE-01/LIVE-04,
-// D-09..D-12; 404-06 · LIFE-01, D-13/D-14/D-07).
-//
-// WHAT PHASE 404 CHANGED HERE. 403's D-12 ended the live page on the verdict and went
-// nowhere, and cell (6) below measured exactly that: `page.url()` still ended in `/live`. D-13
-// inverts it — the page now navigates to run detail the instant the reducer records the verdict,
-// replacing history. Cell (6) therefore keeps its SUBJECT (the honest terminal band) and moves to
-// the path where the band is still the truthful thing to paint: a `runFinished` with no verdict at
-// all. Cell (9) is the new one, and it measures the navigation itself on the built bundle: the URL
-// becomes `/runs/:id`, the verdict badge is painted in the header, the page does NOT bounce back
-// to `/live` while the durable row is still catching up, and Back returns to where the
-// viewer came from rather than to a live page whose socket the door has already closed.
-//
-// WHY THIS FILE EXISTS. 403-05 proved the live page's contract in jsdom: 27 cells over a doubled
-// EventSource, five mutation controls, a sentinel asserted on serialised HTML. That is the right
-// instrument for a contract and the wrong one for a claim about PIXELS A PERSON LOOKS AT. jsdom
-// runs no bundler output, paints no canvas, opens no socket and decodes no JPEG. Every claim below
-// is about the BUILT `dashboard-ui` bundle, served by the production `startServer` frame with its
-// real `uiDir`, driven by a real headless Chromium — the artifact a person is actually handed.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP. No conditional skip, no environment
-// predicate, no try/catch that swallows the launch. A skipped visual suite exits 0 having measured
-// nothing, which is the exact shape of vacuous green this repository has been bitten by before.
-//
-// THE RUN IS PLANTED AND THE SERVER IS NOT. See `live-view-fixture.ts` for what that trade buys
-// and what it costs: the bus, the server, the mint, the validator, the registry and the bundle are
-// all the shipped ones; the RunSession's three seams are held so a cell can hold a run mid-step
-// and measure a twenty-one-second silence without sleeping and hoping.
-//
-// THE TIMING CELLS RUN IN REAL TIME, DELIBERATELY. They once measured HNST-03's liveness pill over
-// a real socket and a real bus heartbeat. 428 D-03 removed the pill, and (5a)-(5c) now measure
-// that the SHIPPED page says nothing about the channel across the same eleven seconds of
-// heartbeats, twenty-one seconds of an open and silent socket, and a dropped socket. Fake timers
-// cannot answer those questions for the built bundle, so these are wall-clock arms and every arm
-// is reported.
+// Every claim is about the built bundle in real Chromium; the timing cells run in real time.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -68,23 +34,11 @@ const BROWSER_INSTALL_INSTRUCTION =
   + 'IS ABSENT — they are the only cells in this repository that measure the live surface in the '
   + 'medium a person actually sees.'
 
-/**
- * THE SENTINELS. One constant each, fed through the producer and asserted absent on the SERIALISED
- * document — 403-04's law, applied at the surface. Two spellings because they ride two different
- * payload fields, and a single spelling could not tell which one leaked.
- */
+// One sentinel per payload field, so a leak names its field; each is absent from the page.
 const SENTINEL_REASONING = 'SENTINEL-REASONING-7f3a'
 const SENTINEL_ACTION = 'SENTINEL-ACTION-9c1e'
 
-/**
- * A published sentence, read out of the component that publishes it.
- *
- * SPELLED ONCE, AND THAT PLACE IS THE SOURCE. 403-05 exported these as constants so this file
- * could bind to them rather than retype them; importing a `.tsx` into a Node test would drag a
- * renderer in, so the literal is EXTRACTED instead. Either way this cell fails when the sentence
- * moves, which is the whole point — a hardcoded copy would go on passing against a page that says
- * something else.
- */
+// Extracted from source: importing a `.tsx` drags a renderer in, and a copied sentence goes stale.
 function publishedSentence(relativePath: string, name: string): string {
   const source = readFileSync(join(PACKAGES_ROOT, 'dashboard-ui', 'src', relativePath), 'utf8')
   const match = new RegExp(`${name}\\s*=\\s*'([^']+)'`, 'u').exec(source)
@@ -261,13 +215,7 @@ async function previewWordUntil(page: Page, want: string, budgetMs: number): Pro
   return seen
 }
 
-/**
- * THE NON-VACUITY CONTROL: what the SHIPPED mint door answers for this run at this instant.
- *
- * Without it a red below could be the FIXTURE failing to latch rather than the PANE failing to
- * re-mint, and the two are byte-identical from the outside (401's `auditRows: []` on both legs).
- * This asks the same door the pane asks, over HTTP, at the moment the pane's next retry would.
- */
+// What the shipped mint door answers at this instant, so a red is the pane and not the fixture.
 async function mintStreamKind(runId: string, handle = 0): Promise<string> {
   const response = await fetch(
     `${held().harness.origin}/api/runs/${encodeURIComponent(runId)}/live-url?handle=${String(handle)}`,
@@ -366,9 +314,7 @@ describe('the built live surface, in a real browser', () => {
       testIndex: 0,
       stepIndex: 0,
       subActionIndex: 0,
-      // THE FIVE FIELDS D-10 REFUSES, every one carrying a sentinel. The reducer reads two
-      // coordinates out of this payload and nothing else; this cell proves that at the surface
-      // rather than at the type.
+      // Every refused field carries a sentinel; the reducer reads only its coordinates from it.
       plan: SENTINEL_REASONING,
       plannedAction: { type: SENTINEL_ACTION, to: SENTINEL_REASONING },
       grounding: { rationale: SENTINEL_REASONING },
@@ -392,27 +338,19 @@ describe('the built live surface, in a real browser', () => {
       await page.locator('[data-step-status="running"]').waitFor({ state: 'attached', timeout: 20_000 })
       await page.locator('[data-step-ticks="1"]').waitFor({ state: 'attached', timeout: 20_000 })
 
-      // ON THE SERIALISED DOCUMENT, never on a query for visible text. 403-05's M1 mutation leaks
-      // the payload through a `title=` attribute: a visible-text assertion stays green under it and
-      // this one does not.
+      // On the serialised document: a `title=` leak passes a visible-text assertion.
       const html = await page.evaluate(() => document.documentElement.outerHTML)
       expect(html.length, 'the positive control — a document was actually read').toBeGreaterThan(500)
       expect(html, 'the half-finished reasoning is not reachable while the step runs')
         .not.toContain(SENTINEL_REASONING)
       expect(html, 'nor is the action that has not been taken yet').not.toContain(SENTINEL_ACTION)
 
-      // AND THE PAGE DID RECEIVE IT. Without this the assertion above would pass on a page that
-      // never got the envelope at all, which measures nothing.
-      // the tick reaches the running row as data-step-ticks, never as a count; the wait
-      // above is the proof it arrived.
-      // RE-SPELLED 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5): this read the tick
-      // as the breathing glyph's re-key. The glyph is still, so no motion marker is on the page.
+      // The tick reaches the running row as `data-step-ticks`, proving the page got the envelope.
       expect(await page.locator('[data-step-status="running"][data-step-ticks="1"]').count()).toBe(1)
       expect(await page.locator('[data-step-motion]').count()).toBe(0)
       expect(await page.locator('[data-step-ticks' + '-label]').count()).toBe(0)
 
-      // D-09's inertness, measured rather than asserted about the props: there is nothing in the
-      // steps pane a person can click to open the thing that is not there.
+      // Nothing in the steps pane can be clicked to open the absent thing.
       expect(
         await page.locator('[data-live-pane="steps"] a, [data-live-pane="steps"] button, '
           + '[data-live-pane="steps"] [role="button"], [data-live-pane="steps"] [onclick]').count(),
@@ -425,9 +363,7 @@ describe('the built live surface, in a real browser', () => {
     const f = held()
     const ackedBefore = f.dom.ackedFrameIds().length
     await onLivePage('r_dom', async (page) => {
-      // RE-SPELLED 2026-09-26: `embedded` with frames is `live` on the shared preview, and
-      // the embed sits inside the aspect box. Since 2026-09-26 that box holds the
-      // picture alone; the dot leads the preview's chrome above it.
+      // `embedded` with frames reads `live`; the aspect box holds the picture alone.
       await page.locator('[data-preview-state="live"]').waitFor({ state: 'attached', timeout: 40_000 })
       const embed = page.locator('[data-preview-frame] [data-live-embed]')
       await embed.waitFor({ state: 'attached', timeout: 10_000 })
@@ -454,15 +390,7 @@ describe('the built live surface, in a real browser', () => {
   }, 120_000)
 
   it('(4) a handle that declares `none` gets a sentence, never a frame that never arrives', async () => {
-    // THE REGRESSION PIN FOR GAP 1, and the property cell (8)'s re-mint could have broken. `none`
-    // is TWO situations wearing one word, and only one of them is the D-08 declared absence:
-    //  - the watched member has not started a step, so its browser is not up yet — a NOT-YET, and
-    //    printing `no live preview for this target` over it is a lie about a run that is about to
-    //    stream (the whole of gap 1);
-    //  - the watched member HAS started and still declares `none` — genuinely nothing to stream,
-    //    and the sentence is the honest answer.
-    // A retry that fired from the second case would poll straight through a declared absence and
-    // turn the sentence into a flicker. Both halves are asserted here so neither can drift.
+    // `none` before the member's first step is a not-yet, after it a declared absence.
     await onLivePage('r_none', async (page) => {
       await page.locator('[data-preview-state="waiting"]').waitFor({ state: 'attached', timeout: 40_000 })
       expect(
@@ -500,12 +428,7 @@ describe('the built live surface, in a real browser', () => {
     })
   }, 120_000)
 
-  // (5a), (5b) AND (5c) RE-SPELLED 2026-09-26. They measured HNST-03's pill over
-  // three kinds of real traffic: `live` across heartbeats, `lost` over an open and silent socket,
-  // and `reconnecting` then `live` across a server-dropped socket. The owner removed bus liveness
-  // from the page (a dead bus now shows only as rows that stop moving), so each cell keeps its
-  // number and its traffic and now asserts that the SHIPPED page renders no `[data-liveness]` and
-  // no activity age through it. Each keeps a positive control: the page provably heard the bus.
+  // The page renders no `[data-liveness]`; a positive control shows it heard the bus.
   it('(5a) k=5 — 11 s of heartbeat-only traffic renders no liveness element', async () => {
     const f = held()
     const arms: { arm: number; liveness: number; activityWords: boolean; rows: number; attaches: number }[] = []
@@ -564,12 +487,7 @@ describe('the built live surface, in a real browser', () => {
           activityWords: await page.evaluate(() => /last activity|no activity yet/iu.test(document.body.textContent ?? '')),
           attaches: attaches.length,
         }
-        // THE POSITIVE CONTROL. One envelope into the SAME socket reaches the rows with the attach
-        // count unchanged, so the socket was open and delivering the whole silent window, and the
-        // page still said nothing about it.
-        // RE-SPELLED 2026-09-26 (428-30, owner decision 2026-09-26 (2), G-428-2). A row with no text
-        // is no longer drawn, so this testStarted carries its one step text and the row it waits
-        // for and counts is still drawn.
+        // One envelope into the same socket reaches the rows with the attach count unchanged.
         publishTo(quiet, 'testStarted', {
           testId: 't0', testIndex: 0, name: 'the quiet member', totalSteps: 1, stepTexts: ['open the quiet page'],
         })
@@ -634,25 +552,12 @@ describe('the built live surface, in a real browser', () => {
     expect(f.dom.cancelCalls()).toBe(0)
   }, 180_000)
 
-  // RE-PINNED 2026-08-26. This cell was "(6) D-12: the run ends, the page freezes,
-  // and it does not go anywhere", and its body published `verdict` AND `runFinished` before
-  // asserting the band and a URL still ending in `/live`. D-13 makes that sequence navigate, so
-  // the cell now publishes `runFinished` ALONE — a producer that ended a run without ever
-  // declaring a verdict, which is the first of D-14's paths and the one nothing else measures.
-  // The band is what a viewer gets when the page CANNOT move them to a record of an answer,
-  // because there is no answer. The navigate half moved to cell (9).
-  //
-  // THE TWO CLAIMS THAT CAME DOWN FROM `live-view-anchors.test.ts` CELL (10). That cell used to
-  // wait on the live page's `data-preview-state="ended"` and count its two panes on a REAL run;
-  // D-13 means a real run's live page is gone by then. Both are live-page claims about a run that
-  // ENDED, which is precisely this cell's subject, so they land here — on a planted run whose
-  // ending the cell decides, which is a strictly more deterministic instrument for them anyway.
+  // `runFinished` alone, with no verdict: the band is what a viewer gets when there is no answer.
   it('(6) a run that ends with NO verdict bands honestly, and goes nowhere', async () => {
     const f = held()
     await onLivePage('r_dom', async (page, attaches) => {
       await page.locator('[data-live-pane="steps"]').waitFor({ state: 'attached', timeout: 20_000 })
-      // The page has attached and folded the run once its rows are on screen (428 D-03 removed the
-      // liveness pill this cell used to wait on).
+      // The page has attached and folded the run once its rows are on screen.
       await page.locator('[data-live-pane="steps"] li').first().waitFor({ state: 'attached', timeout: 40_000 })
 
       publishTo(f.dom, 'stepFinalized', { testIndex: 0, stepIndex: 0, status: 'passed', durationMs: 1200 })
@@ -666,7 +571,7 @@ describe('the built live surface, in a real browser', () => {
       const previewState = await page.locator('[data-preview-state]').getAttribute('data-preview-state')
       expect(previewState, 'a run this page has watched END has nothing left to embed').toBe('run-ended')
       expect(await page.locator('[data-live-pane]').count(), 'two panes, to the last frame').toBe(2)
-      // No liveness element at the end either: 428 D-03 removed the pill from the page entirely.
+      // No liveness element at the end either.
       expect(
         await page.locator('[data-liveness]').count(),
         'no liveness element on the live page (428 D-03)',
@@ -691,11 +596,7 @@ describe('the built live surface, in a real browser', () => {
     expect(f.dom.cancelCalls(), 'D-16: no viewer ever cancelled this run').toBe(0)
   }, 150_000)
 
-  // RE-PINNED 2026-08-26. The `did not run` rows are now asserted BEFORE the
-  // verdict is published, because after it the page is no longer on screen — the ORDER is the
-  // re-pin. What the cell gains for it is a second measurement of the navigate, on a run whose
-  // verdict is `failed` rather than `passed`: D-13 moves a viewer on the answer, not on a good
-  // answer, and a failing run is precisely the one 403 worried about redirecting.
+  // The `did not run` rows are asserted before the verdict, which moves the page away.
   it('(7) a member that never started a step says so — and THEN the verdict moves the viewer', async () => {
     const f = held()
     publishTo(f.none, 'testFinished', { testId: 't0', testIndex: 0, outcome: 'skipped', durationMs: 5 })
@@ -703,8 +604,7 @@ describe('the built live surface, in a real browser', () => {
     await onLivePage('r_none', async (page) => {
       await page.locator('[data-member-note]').waitFor({ state: 'attached', timeout: 30_000 })
       expect(await page.locator('[data-member-note]').textContent()).toBe(DID_NOT_RUN_NOTE)
-      // a single-member run has no member header, so the note is the pane's sentence and
-      // no outcome badge repeats what the verdict is about to say.
+      // A single-member run has no member header, so the note is the pane's sentence.
       expect(await page.locator('[data-member-note]').evaluate((node) => node.tagName)).toBe('P')
       expect(await page.locator('[data-member-outcome]').count()).toBe(0)
       expect(
@@ -723,17 +623,7 @@ describe('the built live surface, in a real browser', () => {
   }, 90_000)
 
   it('(8) the pane re-mints and embeds under production ordering', async () => {
-    // THE GAP THIS CELL EXISTS FOR (403-VERIFICATION gap 1). `startRun` publishes the session
-    // SYNCHRONOUSLY at seq 1; `registerAdapterLiveStream` runs only once the member's browser is
-    // up. Every navigation into this page in the shipped UI happens the instant the run is
-    // triggered — so the pane mounts BETWEEN those two facts, and a pane that minted once got
-    // `{ kind: 'none' }` and latched `no live preview for this target` for the rest of the run.
-    //
-    // WHY NO CELL COULD SEE IT BEFORE: `live-view-fixture.ts` declared `streamCapabilityOf: () =>
-    // input.capability`, a CONSTANT that exists before any viewer does. `latchCapability` makes the
-    // production ordering expressible — as an EVENT this cell fires, never a wall clock, because
-    // in production the two facts are causally ordered (`run-composition.ts:602`, `run.ts:4091`)
-    // and a harness that raced them would be a coin flip whose losing side looks like the defect.
+    // `latchCapability` fires the browser-up event, so the pane must re-mint after an early `none`.
     const arms: Record<string, unknown>[] = []
 
     for (let k = 0; k < 5; k += 1) {
@@ -803,15 +693,7 @@ describe('the built live surface, in a real browser', () => {
   }, 600_000)
 
   it('(8b) the `unknown_run`-at-attach arm, behind the production page', async () => {
-    // ARM 2 — the run this process has not published YET. The pane's mint answers `unknown_run`.
-    //
-    // WHAT THIS ARM MEASURES IS THE WHOLE PAGE, not the pane alone, and that distinction is the
-    // finding: the verifier's adversarial probe drove `PreviewPane` in isolation and watched it
-    // latch `unavailable`. Behind the production frame the page ALSO attaches its run stream, and
-    // `/api/run-stream/:id` reads the SAME session registry the mint reads — so an unplanted run
-    // refuses BOTH doors, `classifyRunStreamClose` answers `unknown_run`, and D-15's `runOver`
-    // fires. Every reading below is recorded so the ordering these two doors resolve in is a
-    // fact on the record rather than a premise.
+    // The page attaches its run stream too, and both doors refuse an unplanted run.
     const arms: Record<string, unknown>[] = []
 
     for (let k = 0; k < 5; k += 1) {
@@ -851,20 +733,14 @@ describe('the built live surface, in a real browser', () => {
       expect(arm.afterPlant, `${context} — ARM 2`).toBe('live')
     }
   }, 600_000)
-  // ---- 404-06 · LIFE-01, D-13/D-14/D-07 --------------------------------------------------------
+  // ---- The verdict navigation ----
   it('(9) the verdict MOVES the viewer to run detail, the badge paints, and Back does not return to a dead live page', async () => {
     const f = held()
     const run = plantLiveRun({ runId: 'r_nav', heartbeatMs: 10_000, capability: { kind: 'none' } })
     plantedRuns.push(run)
     f.harness.plant(run)
 
-    // THE ROW IS PLANTED `running`, AND THAT IS THE NON-VACUITY CONTROL FOR D-07. In production
-    // the dashboard subscriber writes the row at the SAME `verdict` envelope the page navigates
-    // on, and a `fetchRun` a millisecond later can legitimately still read `running`. Run detail's
-    // retired predicate — and its new one, without the navigation-state gate — would bounce that
-    // reading straight back to `/live`, which navigates here again: T-404-15. This cell holds the
-    // row at `running` ACROSS the navigation on purpose, so the no-bounce claim is measured
-    // against the losing side of the race rather than around it.
+    // The row stays `running` across the navigation, so no-bounce meets the race's losing side.
     f.harness.insertRunRow({ runId: 'r_nav', name: 'the navigating run', status: 'running' })
     publishTo(run, 'runStarted', { busSchemaVersion: CURRENT_BUS_SCHEMA_VERSION, memberTestCount: 1, handles: [0] })
     publishTo(run, 'testStarted', { testId: 't0', testIndex: 0, name: 'the navigating member', totalSteps: 1 })

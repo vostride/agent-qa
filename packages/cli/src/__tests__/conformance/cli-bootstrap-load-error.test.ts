@@ -1,6 +1,4 @@
-// the shipped bootstrap reports a CLI that fails while
-// loading with the framework line, then the error's stack, and exits 2. The built dist/cli.js is
-// copied alone beside a cli-main.js this file writes, so the failure is the bootstrap's to report.
+// The bootstrap reports a load failure with the framework line and the stack, and exits 2.
 
 import { spawn } from 'node:child_process'
 import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'

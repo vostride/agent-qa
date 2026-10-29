@@ -1,38 +1,4 @@
-// The classifier census: every registered capability folds its own result.
-//
-// WHY A CENSUS AND NOT A REVIEW HABIT. D-01 put refusal knowledge in a per-op declared fold rather
-// than in a chat-side rule that pattern-matches values, because a rule that can only refuse what it
-// can NAME cannot be driven to zero by naming more things. The price of that choice is coverage: an
-// op that declared no fold reported the legacy `executed` for every result it could return, and did
-// so silently — which is how forty ops rendered nothing for two phases. This file is the register
-// that makes the gap countable, and its failure names the op.
-//
-// TWO LAYERS, AND NEITHER IS THE OTHER'S RESTATEMENT. `FunctionSpec.classify` is REQUIRED as of this
-// plan, so an op file that declares none does not compile — that is the layer that catches the
-// ordinary case, at the keystroke. It is also defeatable: a spec registered through an `as`-cast, a
-// spread of a partial literal, or a registry assembled from a different type entirely all satisfy
-// `tsc` and ship an op with no fold. This census reads the SHIPPED registry's own listing, so it
-// answers the question the type cannot: what does the product actually contain.
-//
-// WHICH TWO SETS THE CENSUS COMPARES, SAID PLAINLY (397 D-14's lesson). It compares (1) the op ids
-// the shipped registry enumerates against (2) the op ids whose declaration carries `classifies`.
-// Both sides are read off real declarations from a composed host; neither is a list somebody typed.
-// The `classifies` projection exists precisely so this package — which cannot reach a `FunctionSpec`
-// by construction — can ask the question without reading forty-four op files.
-//
-// AND THE THIRD REGISTER, WHICH IS THE ONE THAT CATCHES DRIFT. A live-only census passes forever on
-// a registry that quietly stopped declaring: `classifies` disappearing from an op would leave BOTH
-// sides above smaller together, and both directions would still be equal. The golden ledger is a
-// committed artifact a person reviewed, so the last cell asserts the live classifying set is
-// set-equal to the golden's `classifies` column — an op that stops folding is then a named RED here
-// and a one-line ledger diff in review, rather than a silent return to `executed`.
-//
-// WHAT THIS FILE CANNOT SEE. A census compares MEMBERSHIP. It is blind to a classifier that is
-// present and WRONG — one that folds a refusal arm to `executed`, say. That half is
-// `packages/agent/src/functions/__tests__/refusal-classifiers.test.ts`'s, which drives each fold
-// over fixtures produced through the op's own output contract, and it is deliberately not
-// duplicated here: a second copy of that judgement in a package that cannot reach a spec would be a
-// weaker restatement free to disagree with the real one.
+// `classify` is a required type, but a cast defeats it, so this reads the shipped registry.
 
 import { existsSync, readFileSync } from 'node:fs'
 
@@ -63,10 +29,7 @@ function sorted(values: Iterable<string>): readonly string[] {
 
 describe('the classifier census: no capability ships without a fold', () => {
   it('declares a classifier on every registered capability, naming any that does not', () => {
-    // THE PRIMARY DIRECTION, and the one a person reads when it fires: the ids, sorted, of every op
-    // the registry enumerates whose declaration carries no fold. `toEqual([])` prints them, which is
-    // the named-RED requirement — the failure a person needs is "which capability", not "one too
-    // few" (397 D-06/D-07's own words, applied to a second register).
+    // `toEqual([])` prints the ids of ops with no fold, so the failure names the capability.
     const undeclared = sorted(
       registryDeclarations()
         .filter((declaration) => declaration.classifies !== true)
@@ -82,13 +45,7 @@ describe('the classifier census: no capability ships without a fold', () => {
   })
 
   it('carries exactly one classifier per registered capability, in both directions', () => {
-    // BOTH DIRECTIONS, because a census that only checks one is the register that never notices it
-    // has stopped growing. The `stray` side is the one that fires if the classifying set
-    // is ever sourced from anywhere other than the same enumeration — a hand-written roster, a
-    // second registry, a golden row for a capability that no longer exists — and it is asserted
-    // rather than reasoned away, because "structurally impossible today" is a property of one
-    // afternoon's code and this register outlives it. `censusDiff`'s ability to fire on EACH side is
-    // proven by the control cell below rather than assumed from this cell's green.
+    // Both directions, so a classifying set sourced from anywhere else shows as a stray.
     const diff = censusDiff(registryOpIds(), classifyingOpIds())
 
     expect(

@@ -1,23 +1,4 @@
-// THE CROSS-SITE MINT DOOR (403 gap round 1, plan 08 — ROADMAP SC-2 / LIVE-02).
-//
-// WHAT THIS FILE MEASURES, AND WHY IT IS THE CHOKE POINT. The `liveUrl` token is the frame
-// socket's only credential: a page that cannot obtain a token cannot open the socket. Phase 403's
-// verification found the token itself excellent and the DOOR THAT HANDS IT OUT wide open —
-// `GET /api/runs/:runId/live-url` asked for nothing and answered `Access-Control-Allow-Origin: *`,
-// so any page open in the developer's own browser could `fetch` a view token and stream the app
-// under test. A loopback bind stops a remote HOST; it is not a defence against another ORIGIN in
-// the developer's browser.
-//
-// EVERY REFUSAL CELL HERE CARRIES ITS ALLOWED TWIN, and that is the file's central discipline. A
-// request that was REFUSED and a request that never REACHED the door are byte-identical from the
-// outside: a 403 from a working guard, a 404 from a route that failed to register and a dead
-// socket from a server that never came up all read as "not 200". So the cross-site cell issues the
-// SAME request shape without the hostile origin in the same breath, and cells (3)/(4) pin the two
-// legitimate callers standing alone. A refusal with no passing twin cannot tell a guard from a
-// broken server.
-//
-// EVERY CELL DRIVES THE SPAWNED `agent-qa dashboard` BINARY, in the zero-token posture — the
-// default a project gets.
+// Every refusal cell has an allowed twin: a refusal and a dead server look the same from outside.
 
 import { randomBytes } from 'node:crypto'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -906,15 +887,7 @@ describe('the live-url mint door refuses a cross-site browser request', () => {
   }, 120_000)
 })
 
-// ---- the live-editor surface --------------------------------------------
-//
-// ITS OWN SPAWNED DASHBOARD. An editor session constructs its planner at creation, so the project
-// declares a model: an `openai-compatible` stub that is never called, because no cell here plans a
-// step. The cells above keep their zero-model project, whose run lifecycle they depend on.
-//
-// One real editor session is created through the no-Origin door (a headless Chromium in the
-// child), so cell (10) has a session to mint for. The control-socket and door refusals use an id
-// no session holds, so a guard that failed could not end the real session.
+// Its own dashboard: an editor session builds its planner at creation, so a model is declared.
 
 const EDITOR_MODEL_NAME = 'cross-site-stub'
 /** Nothing listens here; the stub model is constructed and never called. */

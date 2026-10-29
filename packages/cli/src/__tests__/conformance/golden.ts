@@ -1,32 +1,4 @@
-// The golden capability ledger: the projection, the composition-root census, and the comparator
-// (Phase 397 plan 06 — FUNC-05 leg 6, D-05 / D-06 / D-07 / D-08).
-//
-// WHAT THE GOLDEN IS FOR. Every other leg in this suite answers a question about TODAY: is this
-// capability reachable, does this surface refuse it, do the two schemas agree. None of them can see
-// a change — a risk hint quietly dropped, a capability quietly moved out of
-// the MCP partition — because each of those leaves a tree that is entirely self-consistent. The
-// golden is the only artifact here that compares the product against its own past, and it does it
-// the way a reviewer can read: one committed JSON file, one row per capability, one line per field.
-// A dropped risk hint is a one-line diff in a pull request. That is the whole mechanism. A widened
-// scope was too until the scopes were deleted, and the ledger lost both permission columns.
-//
-// PRODUCED, NEVER AUTHORED. Every value in a row comes out of a real registry — the declarations of
-// a REAL `composeLocalAgent()` composition (through the CLI's own `composeCliLocalAgent`), joined to
-// the shipped `mapping.ts` partition. Nothing below states an op id, a risk hint or a tool name.
-// A hand-written golden can encode a value the producer cannot produce, and the diff leg then reds
-// only on that impossible row while agreeing with the code about everything real.
-//
-// THE REGEN CANNOT BE ONE KEYSTROKE. There is no `toMatchSnapshot` here and no `--update`
-// path that reaches this file: nothing in this directory writes to `golden-registry.json` at all,
-// and `parity.test.ts` asserts that absence as source. The ONE writer is
-// `scripts/regen-capability-golden.sh --write`, which refuses to run while any other leg of the
-// suite is red — so a regen cannot launder an unrelated failure — and whose `--selftest` proves
-// that refusal fires. What this module offers the script is a PRINT (see
-// {@link GOLDEN_EMIT_BEGIN}), never a write, so the script owns the gate and the file both.
-//
-// ONE RECIPE. The script and the diff leg call the same {@link goldenFileFromRoot}. A second
-// spelling of the projection — a regen that re-derived the rows its own way — would agree with
-// whatever the code does on the day it ran, which is a golden that pins nothing.
+// Every row is produced from a real registry; `regen-capability-golden.sh --write` writes it.
 
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -61,13 +33,7 @@ export const GOLDEN_PATH = join(CONFORMANCE_DIR, GOLDEN_FILE_NAME)
  */
 export const GOLDEN_REGEN_SCRIPT = 'scripts/regen-capability-golden.sh'
 
-/**
- * What a person reading a red diff leg has to DO, in the imperative.
- *
- * Spelled as an instruction rather than as a bare path because the sentence is the whole user
- * interface of D-07: the ledger changed, and the way to change it is a reviewed commit produced by
- * this script — not an `--update` flag, which does not exist for this file.
- */
+// An instruction, not a bare path: the ledger changes only by a reviewed commit from this script.
 export const GOLDEN_REGEN_INSTRUCTION = `run ${GOLDEN_REGEN_SCRIPT} --write from the agent-qa root `
   + 'and commit the ledger as a reviewed change'
 
@@ -77,27 +43,10 @@ export type GoldenPartition =
   | { readonly kind: 'projected'; readonly tool: string }
   /** Deliberately not projected, citing the class of the shipped `UNPROJECTED_OPS` reason. */
   | { readonly kind: 'unprojected'; readonly reason: UnprojectedReasonKey }
-  /**
-   * Neither — the capability appears in no half of the declared mapping.
-   *
-   * Pitfall 11's shape applied to the partition: a capability the mapping has simply forgotten is a
-   * real state, and a projection that dropped the row (or wrote `null`) would hide it inside an
-   * absent key. It is spelled, so the golden shows it and `parity.test.ts` reds by name.
-   */
+  // A capability the mapping forgot is a real state, so it is spelled rather than dropped.
   | { readonly kind: 'uncatalogued' }
 
-/**
- * The risk descriptor's STATIC fields, and only those.
- *
- * the descriptor's per-invocation `disclosure` and shell `command`
- * members are deleted, so every member left but the caller's `surface` is projected;
- * `parity.test.ts` holds a register asserting that no descriptor in the census carries a key this
- * projection would silently drop.
- *
- * Absence is preserved rather than defaulted, on the rule the declaration itself follows: `false`
- * and an absent key would be two spellings of one fact, and a defaulted column would make the
- * golden claim an opinion the op does not hold.
- */
+// Absence is kept, not defaulted: `false` and an absent key would be two spellings of one fact.
 export interface GoldenRiskProjection {
   readonly name: string
   readonly recognized: boolean
@@ -108,28 +57,12 @@ export interface GoldenRiskProjection {
 /** One capability, as the ledger records it. */
 export interface GoldenRow {
   readonly id: string
-  // the `requiredScopes` and `requiresHumanOrigin` columns are
-  // gone. Declarations carry no permission metadata, so the ledger has none to record.
-  // the `discloses` column is gone with the per-op disclosure it recorded.
-  /**
-   * Present only when the op folds its own result into a clause verdict.
-   *
-   * CHANGE-CONTROL SURFACE, not decoration. An op that stops classifying its own result goes back
-   * to reporting `executed` for every arm of its union — which is the defect G-399-2 measured, a
-   * security control refusing while the terminal said the change completed. That regression is a
-   * one-line diff in this column.
-   */
+  // An op that stops classifying reports `executed` for every arm; this column makes that a diff.
   readonly classifies?: true
   /** Present only when the op declares render lines on top of the payload. */
   readonly rendersResult?: true
   readonly resultKind: string
-  /**
-   * Whether the ONE shipped composition root binds this capability.
-   *
-   * Read off a real `composeCliLocalAgent()` composition, never off a table. The third state is the
-   * literal string `unbound`, so an unbound capability is a value in this column rather than a hole
-   * a reader has to notice.
-   */
+  // The third state is the literal `unbound`, so an unbound capability is a value, not a hole.
   readonly bindingStatusAtRoot: string
   readonly risk: GoldenRiskProjection
   /** sha256 of the canonical JSON of the inert input projection. */
@@ -218,16 +151,7 @@ export interface UnaccountedField {
   readonly key: string
 }
 
-/**
- * Every field the golden would drop WITHOUT SAYING SO.
- *
- * THE NO-SILENT-DROP REGISTER (the phase's own house law, and 394's lesson stated as code). A
- * projection that lists the fields it carries is a projection that silently loses the next field
- * somebody adds: the declaration gains `costsMoney`, the ledger keeps 41 identical rows, and the
- * one column a reviewer would have wanted never exists. So the accounting is two-sided — every key
- * on every declaration must be either PROJECTED or EXCLUDED-WITH-A-REASON — and this function is
- * pure so `parity.test.ts` can drive it with a synthetic declaration carrying a key nobody wrote.
- */
+// Every declaration key is projected or excluded with a reason, so a new field cannot vanish.
 export function unaccountedGoldenFields(
   declarations: readonly FunctionDeclaration[],
 ): readonly UnaccountedField[] {
@@ -275,10 +199,7 @@ export function goldenPartitionOf(
   const entry = unprojected.find((candidate) => candidate.opId === opId)
   if (entry === undefined) return { kind: 'uncatalogued' }
   const reason = unprojectedReasonKeyOf(entry.reason)
-  // An unclassifiable reason is NOT quietly rewritten as `uncatalogued`: the op is catalogued, its
-  // prose simply moved outside the declared vocabulary, and 397-03's classifier cell owns that
-  // failure by name. Reporting it here as `uncatalogued` would move one file's defect into another
-  // file's column.
+  // An unclassifiable reason stays `unprojected`: the classifier cell owns that failure.
   return reason === undefined ? { kind: 'uncatalogued' } : { kind: 'unprojected', reason }
 }
 
@@ -343,15 +264,7 @@ export function goldenFileText(file: GoldenFile): string {
 
 // ---- The composition root -----------------------------------------------------------------
 
-/**
- * A deterministic project the composition root can be built over, and nothing more.
- *
- * The 397-04 driver's fixture, for its reasons: `AgentQaConfigSchema` requires `use.mobile.appState`
- * unconditionally, and one declared target puts the project in the ordinary posture rather than the
- * empty-project one. Nothing here is read to produce a binding status — `resolveBindingStatus` asks
- * only whether this composition supplied the optional dep an op names — but a composition built over
- * an unopenable project is not the composition the product builds.
- */
+// `AgentQaConfigSchema` requires `use.mobile.appState`, and one target gives the ordinary posture.
 function goldenRootWorkspace(): { readonly configPath: string; readonly projectRoot: string } {
   const projectRoot = mkdtempSync(join(tmpdir(), 'agent-qa-397-06-root-'))
   const configPath = join(projectRoot, 'agent-qa.config.yaml')
@@ -375,17 +288,7 @@ function goldenRootWorkspace(): { readonly configPath: string; readonly projectR
   return { configPath, projectRoot: dirname(resolve(configPath)) }
 }
 
-/**
- * Compose the ONE shipped composition root and hand its declarations to a body.
- *
- * THROUGH `composeCliLocalAgent`, which is `composeLocalAgent` plus this host's own bindings — the
- * function every shipped CLI surface composes through (`commands/chat.ts`, `commands/mcp.ts`,
- * `commands/fn.ts`). Composing `composeLocalAgent` directly here would be composing a host no
- * command builds, and the binding column would then describe an assembly that ships to nobody.
- *
- * The host is closed and the workspace removed in a `finally`, so no cell can observe what another
- * left behind and no run leaves a project tree in the temp directory.
- */
+// Through `composeCliLocalAgent`, the root every shipped command composes.
 export async function withGoldenRootRegistry<Answer>(
   body: (registry: FunctionRegistry) => Answer | Promise<Answer>,
 ): Promise<Answer> {
@@ -399,12 +302,7 @@ export async function withGoldenRootRegistry<Answer>(
   }
 }
 
-/**
- * The root's own listing, under the census caller (every caller sees the same list since 432-20).
- *
- * The declarations are inert frozen data, so carrying them out past the host's lifetime carries no
- * handle on the composition — which is what lets a `beforeAll` take the census once.
- */
+// The declarations are inert frozen data, so they outlive the host and `beforeAll` takes them once.
 export async function withGoldenRootDeclarations<Answer>(
   body: (declarations: readonly FunctionDeclaration[]) => Answer | Promise<Answer>,
 ): Promise<Answer> {
@@ -442,19 +340,7 @@ function sameValue(left: unknown, right: unknown): boolean {
   return canonicalJson(left) === canonicalJson(right)
 }
 
-/**
- * Every field on every row that disagrees, as data.
- *
- * PURE, TOTAL AND DRIVABLE. The named-RED requirement is that a mismatch identifies the
- * OP and the FIELD rather than announcing that two hashes differ, and a comparator that only threw
- * could not be shown to do that without breaking the committed file. `parity.test.ts` drives this
- * with synthetically altered rows — a widened scope, a dropped risk hint, a moved partition — and
- * asserts each one is named.
- *
- * It reports FIELDS, not a diff document: the structural diff is vitest's own, printed by the
- * `toEqual` the leg performs per named op. Building a second diff renderer here would be a second
- * mechanism for a job the runner already does better.
- */
+// Pure and total, so a mismatch names its op and field without breaking the committed file.
 export function goldenFindings(
   live: readonly GoldenRow[],
   committed: readonly GoldenRow[],
