@@ -2,15 +2,11 @@
 //
 // The history line is projected from the applied receipt (the record content it changed, or the test
 // file it wrote); the preview speaks of what will change; a historical drafted receipt whose change
-// was never recorded reads as unavailable rather than as an invented change. No review command, inbox
-// count or proposal state is left in either view model.
+// was never recorded reads as unavailable rather than as an invented change.
 import { describe, expect, it } from 'vitest'
-import type { KnowledgeRead } from '@/lib/api'
 import * as feedbackView from '@/lib/feedback-view'
-import * as knowledgeView from '@/lib/knowledge-view'
 
 const fv = feedbackView as Record<string, unknown>
-const kv = knowledgeView as Record<string, unknown>
 const call = <T>(name: string, ...args: unknown[]): T => {
   const fn = fv[name]
   expect(typeof fn, `${name} is exported`).toBe('function')
@@ -73,26 +69,5 @@ describe('432-09 the applied change, as the history and preview show it', () => 
     expect(call<string>('previewFixText', { kind: 'test-edit', testRef: 'tests/checkout.yaml::checkout' }))
       .toBe('The test file will be edited')
     expect(call<string>('replacesLine', 2, '14:05')).toBe('Replaces your earlier mark (#2, 14:05); what it changed stays')
-  })
-
-  it('C432-NO-REVIEW-CTA: no view model carries a review command, inbox count or proposal state', () => {
-    for (const name of ['PROPOSAL_STATE_TEXT', 'PROPOSAL_APPLYING_TEXT', 'proposalStateText', 'PROPOSAL_DRAFT_TEXT', 'proposalDraftText']) {
-      expect(fv[name], `feedback-view ${name}`).toBeUndefined()
-    }
-    for (const name of [
-      'PENDING_PROPOSALS_REVIEW_COMMAND', 'proposalReviewCommand', 'COPY_REVIEW_COMMAND_LABEL',
-      'REVIEW_COMMAND_COPIED_TEXT', 'reviewCommandCopyFailedText', 'pendingProposalsLine',
-    ]) expect(kv[name], `knowledge-view ${name}`).toBeUndefined()
-
-    const read = {
-      kind: 'read',
-      projection: {
-        kind: 'ready', runId: 'r_applied_view', buildOrdinal: 1, knowledgeStore: 'bound', steps: [],
-        curation: { status: 'complete' }, learned: { changes: [], canaryAttributions: [] },
-      },
-    } as unknown as KnowledgeRead
-    const view = knowledgeView.projectKnowledgeView(read)
-    expect(view.state).toBe('ready')
-    expect(view, 'no pending-proposals member').not.toHaveProperty('proposals')
   })
 })

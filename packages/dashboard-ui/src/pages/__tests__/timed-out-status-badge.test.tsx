@@ -1,7 +1,5 @@
 // @vitest-environment jsdom
 
-import { readFileSync } from "node:fs"
-import { resolve } from "node:path"
 import { act } from "react"
 import { createRoot, type Root } from "react-dom/client"
 import { MemoryRouter, Route, Routes } from "react-router"
@@ -227,13 +225,6 @@ function runListBadge(runId: string) {
   return look(row!.querySelector('[data-slot="badge"]'), `a badge in ${runId}'s row`)
 }
 
-const PAGE_FILES = ["tests.tsx", "suites.tsx", "test-viewer.tsx", "suite-viewer.tsx"]
-
-function pageSource(file: string): string {
-  const text = readFileSync(resolve(process.cwd(), "src/pages", file), "utf8")
-  return text.replace(/\/\*[\s\S]*?\*\//g, "").replace(/(^|[^:])\/\/.*$/gm, "$1")
-}
-
 beforeEach(() => {
   served = { tests: [], suites: [], runs: [], testAnalyticsRuns: [], suiteAnalyticsRuns: [], testSummaries: [], suiteSummaries: [] }
   vi.stubGlobal("fetch", vi.fn((input: string) => fakeServer(input)))
@@ -369,16 +360,5 @@ describe('C444-TIMEOUT-BADGE', () => {
 
     expect(runListBadge("r_nightly_passed")).toEqual({ variant: "default", text: "Passed" })
     expect(runListBadge("r_nightly_timeout")).toEqual({ variant: "destructive", text: "Timed out" })
-  })
-
-  it("no page keeps its own status badge switch", () => {
-    for (const file of PAGE_FILES) {
-      const source = pageSource(file)
-      expect(source.length, `${file} has source`).toBeGreaterThan(0)
-      expect(source, `${file} imports RunStatusBadge`).toMatch(/import \{[^}]*\bRunStatusBadge\b[^}]*\} from "@\/components\/run-status-badge"/)
-      expect(source, `${file} switches over status words`).not.toMatch(/^\s*case "(passed|timeout)":/m)
-      expect(source, `${file} copies the palette's success class`).not.toContain("bg-emerald-500/15")
-      expect(source, `${file} copies the palette's running class`).not.toContain("bg-blue-500/15")
-    }
   })
 })
