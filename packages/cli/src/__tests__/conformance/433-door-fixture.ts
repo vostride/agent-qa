@@ -209,9 +209,13 @@ export interface DashboardScene {
   close(): Promise<void>
 }
 
+/** How long `close()` waits for the scene's runs' post-run work before it tears down and throws. */
+const POST_RUN_BOUND_MS = 90_000
+
 /**
- * The dashboard in this process, composed as 432-direct-parity's `openDashboard` composes it, over
- * the project's own runs database so it reads what the CLI wrote.
+ * The dashboard in this process, composed the way `agent-qa dashboard` composes it, over the
+ * project's own runs database so it reads what the CLI wrote. `close()` waits for every run's
+ * post-run work first, because that work logs after the run settles.
  */
 export async function openDashboardScene(
   project: PopulatedRunProject,
@@ -265,10 +269,19 @@ export async function openDashboardScene(
     close: async () => {
       if (closed) return
       closed = true
+      let timer: NodeJS.Timeout | undefined
+      const bound = new Promise<'bound'>((done) => {
+        timer = setTimeout(() => { done('bound') }, POST_RUN_BOUND_MS)
+      })
+      const waited = await Promise.race([runDoor.postRunSettled().then(() => 'settled' as const), bound])
+      clearTimeout(timer)
       started.close()
       runService.dispose()
       await door.host.close()
       db.close()
+      if (waited === 'bound') {
+        throw new Error(`post-run work was still running ${String(POST_RUN_BOUND_MS)} ms after close`)
+      }
     },
   }
 }

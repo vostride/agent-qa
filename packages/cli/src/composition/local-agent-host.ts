@@ -422,6 +422,9 @@ function createComposedRunExecution(input: {
         // A NON-ZERO EXIT CODE IS A REAL RUN, not an error — the same rule the child's exit code
         // carried. What decides whether a run happened is the durable evidence
         // `createLocalRunInvocation` reads back, which no code here can fake.
+        if (outcome.settled !== undefined) {
+          input.runBridge?.onPostRun?.(outcome.runId, outcome.settled)
+        }
         return { runId: outcome.runId as RunId }
       } catch (error) {
         // ONE NARROW CATCH, AND IT CONVERTS EXACTLY ONE THING (D-03).
@@ -551,8 +554,9 @@ export interface ComposeCliLocalAgentInput {
    * also lends its runs.db handle and, if it leases devices, that run's device. A door that wants
    * none of it passes nothing; the dashboard is the only door that wants any of it today.
    *
-   * IT IS A PASS-THROUGH, NOT A DECISION. Every member but `record` is handed to
-   * `runInProcessCliRun` as the option of the same name; `record` is lent to the run's record. This
+   * IT IS A PASS-THROUGH, NOT A DECISION. `record` is lent to the run's record, `chipRelay` goes to
+   * the post-run tail, `onPostRun` is handed the run's post-run promise, and every other member is
+   * handed to `runInProcessCliRun` as the option of the same name. This
    * host adds nothing and defaults nothing — `onSession` in
    * particular is CHAINED onto the door's own local capture rather than replacing it, because that
    * capture is what the ack-law catch below reads to tell a started run from one that never began.
@@ -569,12 +573,14 @@ export interface ComposeCliLocalAgentInput {
     /**
      * This host's SECOND chip sink (404 D-16) — the dashboard's live push channel.
      *
-     * A PASS-THROUGH LIKE ITS FOUR SIBLINGS: this composition neither creates nor defaults it. It
+     * A PASS-THROUGH LIKE ITS SIBLINGS: this composition neither creates nor defaults it. It
      * is handed to `composeCliPostRunTail` as `relay`, which threads it to the chip emitter in
      * 404-05. A host that watches its own runs' chips supplies one; every other door passes
      * nothing and the emitter writes only to `events.jsonl`, exactly as it does today.
      */
     readonly chipRelay?: (envelope: RunEventEnvelope) => void
+    /** The host's view of a run's detached post-run work, handed over once the run returns. */
+    readonly onPostRun?: (runId: string, settled: Promise<void>) => void
   }
   /** The `agent-qa.trigger` this host's runs record outside any `withRunDoor` scope (443-06, D-10). */
   runTrigger?: RunAttributeTrigger

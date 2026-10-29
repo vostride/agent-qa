@@ -472,6 +472,12 @@ export interface DashboardRunDoor {
    * reach back and affect that run.
    */
   observeSessions(observer: (session: RunSession) => void): () => void
+  /**
+   * Resolves once every run's detached post-run work this door has seen has settled, including
+   * work that starts while it waits. `agent-qa dashboard`'s own shutdown does not call it, so work
+   * still running at shutdown is left for the job queue to resume.
+   */
+  postRunSettled(): Promise<void>
   // 441-48 (D-01): the door holds no secrets of its own for masking. Its masking binder and store
   // set are deleted; a run masks the values its project declares and nothing a door minted.
 }
@@ -559,6 +565,7 @@ export async function createDashboardRunDoor(input: {
   const entries = new Map<string, DashboardRunEntry>()
   /** 402-01: everyone watching the ONE bridge this process's host publishes sessions through. */
   const sessionObservers = new Set<(session: RunSession) => void>()
+  const postRun = new Set<Promise<void>>()
   let boundHost: LocalAgentHost | undefined
 
   const runBridge: NonNullable<ComposeCliLocalAgentInput['runBridge']> = {
@@ -588,6 +595,11 @@ export async function createDashboardRunDoor(input: {
     },
     resolveAppiumUrl: (runId: string): string | undefined => entries.get(runId)?.appiumUrl,
     resolveRunFlags: (runId: string): DashboardRunFlags | undefined => entries.get(runId)?.flags,
+    onPostRun: (_runId: string, settled: Promise<void>): void => {
+      postRun.add(settled)
+      const drop = (): void => { postRun.delete(settled) }
+      void settled.then(drop, drop)
+    },
   }
 
   const backend = createInProcessExecutionBackend({
@@ -643,6 +655,9 @@ export async function createDashboardRunDoor(input: {
     observeSessions: (observer): (() => void) => {
       sessionObservers.add(observer)
       return () => { sessionObservers.delete(observer) }
+    },
+    postRunSettled: async (): Promise<void> => {
+      while (postRun.size > 0) await Promise.allSettled([...postRun])
     },
   }
 }
