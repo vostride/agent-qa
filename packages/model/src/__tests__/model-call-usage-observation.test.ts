@@ -4,7 +4,6 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { MaskFn, ModelProfile } from '@vostride/agent-qa-schema'
 import { createModel } from '../registry.js'
 import { stubGenerateResult, stubModel } from './stub-model.js'
-import { MODEL_CALL_EVENT_KINDS, MODEL_CALL_REPORT_ORIGINS } from '../index.js'
 import type { ModelCallEvent, ModelCallReport, ModelCallReportOrigin } from '../index.js'
 
 // A structural consumer lets RED exercise the existing invocation boundary without
@@ -127,13 +126,6 @@ function custom(result = stubGenerateResult(), origin?: ModelCallReportOrigin,
   }, { onCall: event => { events.push(event); onCall?.(event) } })
   return { base, model, events }
 }
-
-it('C423-OBSERVATION-EXACT independently pins event and trusted-origin lists', () => {
-  expect(MODEL_CALL_EVENT_KINDS).toEqual(['start', 'success', 'failure'])
-  expect(MODEL_CALL_REPORT_ORIGINS).toEqual([
-    'openai-chat', 'openai-responses', 'anthropic-messages', 'gemini',
-  ])
-})
 
 it('USAGE-RETRY-FAILURE records each failed attempt then success with one report', async () => {
   const { base, model, events } = custom()

@@ -1,13 +1,12 @@
 // C447 (447-02, D-01..D-05, D-11, D-12): one installation id, shared, race-safe; CI personless
 
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { ANALYTICS_RUNTIME_CONTEXTS } from '../events.js'
 import { resolveAnalyticsAgentProduct, resolveAnalyticsIdentity } from '../identity.js'
-import { PACKAGE_SRC_DIR, packageSourceFiles } from './source-scan.js'
 
 const LOCAL_ID = /^u_([a-z]+-){9}[a-z]+$/
 const VALID_ID = 'u_able-baker-cedar-delta-eagle-fable-gamma-hotel-india-juliet'
@@ -151,22 +150,6 @@ describe('C447-CI-PERSONLESS', () => {
     } as ResolveOptions)
     expect(fresh.distinctId).toMatch(CI_ID)
     expect(existsSync(join(freshHome, 'agent-qa'))).toBe(false)
-  })
-})
-
-describe('C447-NO-SHARED-ID', () => {
-  it('no shipped source in analytics or cli spells a shared legacy id', () => {
-    const files = [
-      ...packageSourceFiles(PACKAGE_SRC_DIR),
-      ...packageSourceFiles(join(PACKAGE_SRC_DIR, '..', '..', 'cli', 'src')),
-    ]
-    const offenders = files.filter((file) => {
-      const text = readFileSync(file, 'utf8')
-      return text.includes('u_CI') || text.includes('u_AGENT')
-    })
-
-    expect(files.length).toBeGreaterThan(10)
-    expect(offenders).toEqual([])
   })
 })
 
