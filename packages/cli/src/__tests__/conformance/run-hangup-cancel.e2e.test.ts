@@ -251,6 +251,7 @@ interface DashboardReport {
   finished?: boolean
   attachedAfterFinish?: number
   error?: string
+  closeError?: string
 }
 
 async function driveDashboardHold(): Promise<DashboardReport> {
@@ -306,7 +307,11 @@ async function driveDashboardHold(): Promise<DashboardReport> {
     return facts
   } finally {
     rig.model.held.release()
-    await scene?.close().catch(() => undefined)
+    try {
+      await scene?.close()
+    } catch (error) {
+      facts.closeError = error instanceof Error ? error.message : String(error)
+    }
     const sceneAdded = addedSince(beforeScene)
     for (const signal of OWNED_SIGNALS) {
       for (const listener of sceneAdded[signal]) process.removeListener(signal, listener)
@@ -443,6 +448,7 @@ describe('Ctrl-C and hangup end agent-qa run through its own path', () => {
     const facts = await driveDashboardHold()
     const seen = JSON.stringify(facts, null, 2)
     expect(facts.error, seen).toBeUndefined()
+    expect(facts.closeError, `the dashboard scene's close failed\n${seen}`).toBeUndefined()
     expect(facts.reached, seen).toBe('held')
     expect(facts.addedAtHold?.SIGINT ?? 0, `the browser launch added a SIGINT listener\n${seen}`).toBeGreaterThanOrEqual(1)
     expect(facts.addedAtHold?.SIGTERM ?? 0, `the browser launch added a SIGTERM listener\n${seen}`).toBeGreaterThanOrEqual(1)

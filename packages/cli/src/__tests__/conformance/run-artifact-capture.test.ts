@@ -222,10 +222,16 @@ describe('the dashboard door', () => {
   }, CELL_BUDGET_MS * 2)
 
   afterAll(async () => {
-    await scene?.close()
-    await project?.close()
-    if (priorAmbient === undefined) delete process.env[POPULATED_SECRET_ENV_VAR]
-    else process.env[POPULATED_SECRET_ENV_VAR] = priorAmbient
+    try {
+      await scene?.close()
+    } finally {
+      try {
+        await project?.close()
+      } finally {
+        if (priorAmbient === undefined) delete process.env[POPULATED_SECRET_ENV_VAR]
+        else process.env[POPULATED_SECRET_ENV_VAR] = priorAmbient
+      }
+    }
   })
 
   it('the dashboard door replaces the queued source', async () => {

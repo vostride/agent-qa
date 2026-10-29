@@ -96,9 +96,15 @@ afterEach(async () => {
   open.restoreReading?.()
   for (const { child } of open.children) child.stdin?.end()
   await Promise.allSettled(open.children.map(({ closed }) => closed))
-  await open.scene?.close()
-  await open.project.close()
-  rmSync(open.root, { recursive: true, force: true })
+  try {
+    await open.scene?.close()
+  } finally {
+    try {
+      await open.project.close()
+    } finally {
+      rmSync(open.root, { recursive: true, force: true })
+    }
+  }
 })
 afterAll(() => { removeInProcessFixtures() })
 
