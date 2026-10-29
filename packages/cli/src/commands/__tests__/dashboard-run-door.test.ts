@@ -201,7 +201,7 @@ function pinAmbient(value: 'ci' | 'local-interactive' | 'local-headless', ciMark
   }
 }
 
-describe('a dashboard-triggered run is one more caller of runs.start (401-07, D-10 / INVK-01)', () => {
+describe('a dashboard-triggered run is one more caller of runs.start', () => {
   // RE-SPELLED 2026-09-30 (432-13): was '... and BOTH gates left a row'.
   it('THE ALLOW ARM — the run happens IN PROCESS, and NEITHER gate leaves a row', async () => {
     const target = new CountingTarget()
@@ -266,7 +266,7 @@ describe('a dashboard-triggered run is one more caller of runs.start (401-07, D-
   }, 180_000)
 })
 
-describe('two concurrent dashboard runs are isolated (401-07, INVK-01 concurrency edge)', () => {
+describe('two concurrent dashboard runs are isolated', () => {
   it('OWN RUN DIR, OWN EVENT LOG, OWN DB ROW, OWN BUFFER', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -321,7 +321,7 @@ describe('two concurrent dashboard runs are isolated (401-07, INVK-01 concurrenc
   }, 240_000)
 })
 
-describe('the queue’s argv operands, read rather than forwarded (401-07)', () => {
+describe('the queue’s argv operands, read rather than forwarded', () => {
   it('PATHS BECOME PATTERNS AND `--disable-cache` BECOMES A FLAG', () => {
     expect(partitionDashboardRunArgs(['tests/a.yaml', '--disable-cache', 'tests/b.yaml']))
       .toEqual({
@@ -362,7 +362,7 @@ describe('the queue’s argv operands, read rather than forwarded (401-07)', () 
   }, 180_000)
 })
 
-describe('the Appium lease travels as data, not as a child’s environment (401-07, truth 5)', () => {
+describe('the Appium lease travels as data, not as a child’s environment', () => {
   const priorEnv = process.env.AGENT_QA_APPIUM_URL
   afterEach(() => {
     if (priorEnv === undefined) delete process.env.AGENT_QA_APPIUM_URL

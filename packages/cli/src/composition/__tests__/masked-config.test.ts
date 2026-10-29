@@ -229,7 +229,7 @@ describe('buildMaskedResolvedConfig', () => {
   })
 })
 
-describe('C441-CONFIG', () => {
+describe('declared values in the config.get view', () => {
   it('a declared value is masked and flagged in the config.get view', () => {
     const resolved = {
       use: { buildTag: DECLARED_VALUE },

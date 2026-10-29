@@ -38,13 +38,13 @@ import {
   type SuiteFixture,
 } from './suite-run-fixture.js'
 
-describe('(1) argv → request: runMarkers maps this command\'s two options (393, WTST-06)', () => {
+describe("(1) argv → request: runMarkers maps this command's two options", () => {
   it('carries both markers when both flags are set', () => {
     expect(runMarkers({ gateRun: true, excludedFromOutcomes: true }))
       .toEqual({ gateRun: true, excludedFromOutcomes: true })
   })
 
-  it('carries each marker on its own — they are DISTINCT axes (C8)', () => {
+  it('carries each marker on its own — they are DISTINCT axes', () => {
     // C8 ratifies that a gate-run still feeds curation, so "verify-before-present" and "keep this
     // run out of the outcome projection" are two decisions and a caller may take either alone.
     expect(runMarkers({ gateRun: true })).toEqual({ gateRun: true })
@@ -79,7 +79,7 @@ describe('(1) argv → request: runMarkers maps this command\'s two options (393
 // ASSERTED ON THE PARSED RESULT, never on prose. `Object.hasOwn` rather than `=== undefined`,
 // because "the key is absent" and "the key is present holding undefined" serialize differently into
 // the handoff and only one of them is what `?: true` means.
-describe('(2) request boundary: RunsStartInput markers accept only literal true (INVK-06 edge)', () => {
+describe('(2) request boundary: RunsStartInput markers accept only literal true', () => {
   it.each(['gateRun', 'excludedFromOutcomes'] as const)('%s: true is carried', (field) => {
     const parsed = RunsStartInputSchema.parse({ [field]: true })
     expect(parsed[field]).toBe(true)
@@ -128,7 +128,7 @@ describe('(2) request boundary: RunsStartInput markers accept only literal true 
 //
 // PAIRED, differing in exactly the two flags: marked, and unmarked. Without the unmarked control a
 // door that stamped `gateRun: true` on EVERY run would pass the marked cell.
-describe('(3) carriage: the markers ride argv → request → RunConfig → handoff (INVK-06)', () => {
+describe('(3) carriage: the markers ride argv → request → RunConfig → handoff', () => {
   const target = new CountingTarget()
   let fixtures: SuiteFixture[] = []
 

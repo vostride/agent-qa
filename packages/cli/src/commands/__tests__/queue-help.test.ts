@@ -64,7 +64,7 @@ function qualifiersIn(prose: string): string[] {
 }
 
 describe('agent-qa queue help text — the three-queue vocabulary', () => {
-  it('keeps the command named "queue" (D-22)', () => {
+  it('keeps the command named "queue"', () => {
     expect(createQueueCommand().name()).toBe('queue')
   })
 

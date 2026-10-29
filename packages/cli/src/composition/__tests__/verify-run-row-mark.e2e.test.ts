@@ -88,7 +88,7 @@ function rowAttributes(runId: string): Record<string, string> | undefined {
   }
 }
 
-describe('C443-VERIFY-RUN', () => {
+describe('the verify run mark on a run row', () => {
   it('a verify run started through authoring keeps its flag and exclusion and has a marked row', async () => {
     const composed = composeCliLocalAgent({
       agentQaRoot: project.agentQaRoot,

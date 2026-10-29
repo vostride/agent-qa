@@ -115,7 +115,7 @@ async function propose(input: {
   }
 }
 
-describe('CFGM-01 on the surfaces a person reads (D-10)', () => {
+describe('on the surfaces a person reads', () => {
   it('(G) a yaml parse failure names WHERE, never WHAT — and the record names the right file',
     async () => {
       const marker = 'zeta-nine-deploy-marker'
@@ -178,8 +178,8 @@ function proposalFiles(): string[] {
   }
 }
 
-describe('C432-CONFIG-BLOCKED-NO-WRITE: a blocked change is refused in the call and leaves no record', () => {
-  it('C432-CONFIG-BLOCKED-NO-WRITE: a schema failure answers position-only issues and files nothing',
+describe('a blocked change is refused in the call and leaves no record', () => {
+  it('a schema failure answers position-only issues and files nothing',
     async () => {
       const marker = 'zeta-nine-deploy-marker'
       writeFileSync(configPath, configText({ note: 'nothing to see here' }))
@@ -193,7 +193,7 @@ describe('C432-CONFIG-BLOCKED-NO-WRITE: a blocked change is refused in the call 
       expect(readFileSync(configPath, 'utf8')).toBe(configText({ note: 'nothing to see here' }))
     })
 
-  it('C432-CONFIG-BLOCKED-NO-WRITE: CONTROL: the same edit on a clean config is written in the call', async () => {
+  it('CONTROL: the same edit on a clean config is written in the call', async () => {
     writeFileSync(configPath, configText({ note: 'nothing to see here' }))
     const answer = await propose({ path: 'use.timeout.step', value: '45s' }) as Record<string, unknown>
 

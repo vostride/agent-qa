@@ -45,7 +45,7 @@ describe('runs mark thin client', () => {
     expect(readFileSync(join(f.runDir, 'marks.jsonl'), 'utf8').trim().split('\n')).toHaveLength(1)
   })
 
-  it('applies a no-TTY mark with no credential and no confirmation (432-13)', async () => {
+  it('applies a no-TTY mark with no credential and no confirmation', async () => {
     const f = markFixture(); root = f.root
     const errors = vi.spyOn(console, 'error').mockImplementation(() => {})
     vi.spyOn(console, 'log').mockImplementation(() => {})

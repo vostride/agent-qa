@@ -241,7 +241,7 @@ function runIdBearingTables(db: DatabaseSync): string[] {
     .sort()
 }
 
-describe('an interrupted gate run leaves nothing a full rebuild can reconstruct (INVK-06, truth 7)', () => {
+describe('an interrupted gate run leaves nothing a full rebuild can reconstruct', () => {
   it('THE SUBSTITUTED MEMBER REACHES THE RECIPES IT CLAIMS TO', () => {
     // The control is worth nothing if its member cannot be counted or fingerprinted, so this is
     // asserted through the shipped recipes rather than believed.

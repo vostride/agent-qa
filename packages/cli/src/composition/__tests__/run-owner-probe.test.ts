@@ -31,7 +31,7 @@ function requirePid(child: ChildProcess): number {
   return child.pid
 }
 
-describe('C442-OWNER-STAMP', () => {
+describe('the owner stamp the CLI composes', () => {
   it('the CLI composes its own pid, start time and host', () => {
     const composed = composeRunOwnership()
     const db = new DashboardDatabase({ dbPath: ':memory:', runOwnership: composed })
@@ -49,7 +49,7 @@ describe('C442-OWNER-STAMP', () => {
   })
 })
 
-describe('C442-OWNER-CLASSIFY', () => {
+describe('owner classification over real processes', () => {
   it('the composed probe reads real processes', async () => {
     requirePosix()
     const ownership = completeRunOwnership(composeRunOwnership())
@@ -84,7 +84,7 @@ describe('C442-OWNER-CLASSIFY', () => {
   })
 })
 
-describe('C442-OWN-START-TIME', () => {
+describe("reading the CLI's own start time", () => {
   it('the CLI retries an unread own start time and keeps the first one it reads', () => {
     const ownReads: number[] = []
     const ownership = completeRunOwnership(createRunOwnership({

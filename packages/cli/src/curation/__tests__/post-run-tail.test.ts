@@ -424,7 +424,7 @@ const ANALYZE_COMPLETED = {
   job: { id: String(OWN_CHAIN.analyzeRun) },
 }
 
-describe('the digest block — in-process analyze-run completed (D-17, over 389 D-12/D-15)', () => {
+describe('the digest block — in-process analyze-run completed', () => {
   it('prints the digest after the exit line, bytes identical to the op result', async () => {
     const h = harness({ runNextJob: pump([ANALYZE_COMPLETED]), status: completeStatus() })
     const tail = runPostRunTail(options(h))
@@ -462,7 +462,7 @@ describe('the digest block — in-process analyze-run completed (D-17, over 389 
     expect(h.readRunDigest.mock.calls[0]![1]).toBe(runId)
   })
 
-  it('prints the block after the terminal human line when the chain finished (D-09 + D-17)', async () => {
+  it('prints the block after the terminal human line when the chain finished', async () => {
     const h = harness({
       runNextJob: pump([ANALYZE_COMPLETED]),
       status: { ...completeStatus(), notification: terminalNotification() },
@@ -573,7 +573,7 @@ describe('the digest block — in-process analyze-run completed (D-17, over 389 
   })
 })
 
-describe('the extended exit line — everything else gets count + command (D-17, 388 D-08)', () => {
+describe('the extended exit line — everything else gets count + command', () => {
   it('extends the summary line under --detach: no block, no wait, one copy-paste', async () => {
     const h = harness()
     const tail = runPostRunTail(options(h))
@@ -675,7 +675,7 @@ describe('the extended exit line — everything else gets count + command (D-17,
   })
 })
 
-describe('C441-GAP-DISPLAY', () => {
+describe('declared values in post-run tail warnings', () => {
   it('a post-run tail warning shows a declared value only as its marker', async () => {
     const redactor = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz\n'))
     const h = harness({
@@ -699,7 +699,7 @@ describe('C441-GAP-DISPLAY', () => {
   })
 })
 
-describe('prohibitions: never-wait and print-not-publish (388 D-03 / C13)', () => {
+describe('prohibitions: never-wait and print-not-publish', () => {
   it('the print path emits NO chip or bus event — chips observe pump outcomes only', async () => {
     const h = harness({ runNextJob: pump([ANALYZE_COMPLETED]), status: completeStatus() })
     const tail = runPostRunTail(options(h))
@@ -735,7 +735,7 @@ describe('prohibitions: never-wait and print-not-publish (388 D-03 / C13)', () =
   })
 })
 
-describe('C444.1-TAIL-BOUND', () => {
+describe('the chain terminal line after a retry', () => {
   const FOREIGN_RETRY = {
     ran: true,
     disposition: 'retry-scheduled',
@@ -863,7 +863,7 @@ const COMMITTED_SNAPSHOT = CurationSnapshotSchema.parse({
   breakdown: { added: 1, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 },
 })
 
-describe('425 D-20 — the chain-terminal line a real snapshot-bearing run prints', () => {
+describe('the chain-terminal line a real snapshot-bearing run prints', () => {
   it('CHAIN-LINE-SNAPSHOT-BRANCH lists the five buckets in order, zeros included', async () => {
     const root = mkdtempSync(join(tmpdir(), 'agent-qa-425-07-'))
     chainRoots.push(root)
@@ -1180,7 +1180,7 @@ function closeOutRun(
   })
 }
 
-describe('CR-01 — an acquired writer lease is released on EVERY path out of drain()', () => {
+describe('an acquired writer lease is released on EVERY path out of drain()', () => {
   it('releases it when composing the host throws, instead of holding the fence for its TTL',
     async () => {
       const fence = writerFence()
@@ -1269,7 +1269,7 @@ describe('CR-01 — an acquired writer lease is released on EVERY path out of dr
     })
 })
 
-describe('the fallback consult, and the one door that declines it (WR-04 / 404 D-06)', () => {
+describe('the fallback consult, and the one door that declines it', () => {
   /** A step whose probe finds a CURRENT-EPOCH holder: plan `none`, so the take answers nothing. */
   async function stepWithAHolder(
     fence: ReturnType<typeof writerFence>,

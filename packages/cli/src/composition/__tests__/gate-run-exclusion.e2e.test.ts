@@ -209,7 +209,7 @@ function foldedRows(
   }
 }
 
-describe('a gate run reaches no counter and no candidacy input (INVK-06, D-15)', () => {
+describe('a gate run reaches no counter and no candidacy input', () => {
   it('THE SUBSTITUTED MEMBER REACHES THE RECIPES IT CLAIMS TO', () => {
     // Half 2 is worth nothing if its member cannot be counted or fingerprinted, so this is asserted
     // through the SHIPPED recipes rather than believed. `suiteFingerprintDeltas` is the same

@@ -166,7 +166,7 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe('C432-CONFIG-OUTSIDE-EDIT: a generated change merges onto the file as it is at its turn', () => {
+describe('a generated change merges onto the file as it is at its turn', () => {
   it('a field change queued behind another writer keeps the outside edit made while it waited', async () => {
     const port = writePort()
     const { held, release } = await holdQueue(configPath)
@@ -210,7 +210,7 @@ describe('C432-CONFIG-OUTSIDE-EDIT: a generated change merges onto the file as i
   })
 })
 
-describe('C432-CONFIG-PATH-QUEUE: the direct writer and the dashboard manager share one queue per path', () => {
+describe('the direct writer and the dashboard manager share one queue per path', () => {
   it('overlapping disjoint writes from both writers all land', async () => {
     const port = writePort()
     const manager = new dashboard.ConfigManager(configPath, (text) => text)
@@ -292,7 +292,7 @@ describe('C432-CONFIG-PATH-QUEUE: the direct writer and the dashboard manager sh
   })
 })
 
-describe('C432-NO-GIT-COMMIT: direct config writes need no repository and leave git alone', () => {
+describe('direct config writes need no repository and leave git alone', () => {
   it('a dirty config and unrelated staged content publish without moving HEAD or the index', async () => {
     git('init', '--quiet')
     git('config', 'user.name', 'agent-qa direct config test')
@@ -345,7 +345,7 @@ describe('C432-NO-GIT-COMMIT: direct config writes need no repository and leave 
   })
 })
 
-describe('C432-CONFIG-DIRECT: whole-file publications are checked, atomic and truthful', () => {
+describe('whole-file publications are checked, atomic and truthful', () => {
   it('publishes a new file and a changed file in the order given, leaving no temp files', async () => {
     const gitignore = '.agent-qa/\n'
     writeFileSync(join(root, '.gitignore'), gitignore)

@@ -20,7 +20,7 @@ function controllerFor(deps: ShutdownControllerDeps): NodeJS.SignalsListener {
   return deliver
 }
 
-describe('C444-HANGUP-ONCE', () => {
+describe('repeated hang-up and interrupt signals', () => {
   it('a second SIGHUP gives one cancel, one grace timer and no exit', () => {
     const deps = makeDeps()
     const deliver = controllerFor(deps)

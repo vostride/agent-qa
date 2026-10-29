@@ -328,8 +328,8 @@ async function seededProject() {
   return { project, victimId, siblingId }
 }
 
-describe('432 local headless learning through the existing worker path (D-03, D-08)', () => {
-  it('C432-LOCAL-TRACER: a local-headless daemon drain publishes a real supersession', async () => {
+describe('local headless learning through the existing worker path', () => {
+  it('a local-headless daemon drain publishes a real supersession', async () => {
     const { project, victimId, siblingId } = await seededProject()
     const candidateId = enqueueRunCandidate(project, 'local-headless')
     const author = vi.fn(supersedingAuthor(victimId))
@@ -361,7 +361,7 @@ describe('432 local headless learning through the existing worker path (D-03, D-
     expect(deriveBundleTrust(byId(project, siblingId)).status).toBe('active')
   }, 30_000)
 
-  it('C432-NEXT-RUN-SERVES: the next brief serves the replacement instead of the superseded record', async () => {
+  it('the next brief serves the replacement instead of the superseded record', async () => {
     const { project, victimId, siblingId } = await seededProject()
     enqueueRunCandidate(project, 'local-headless')
     const daemon = startDaemon(project, supersedingAuthor(victimId))

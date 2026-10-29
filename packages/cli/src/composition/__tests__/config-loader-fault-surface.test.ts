@@ -387,8 +387,8 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe('a committed config the parser cannot read names WHERE, never WHAT (395-14 · F-01)', () => {
-  it('(F1) config.field.set faults with the position and none of the file\'s content', async () => {
+describe('a committed config the parser cannot read names WHERE, never WHAT', () => {
+  it("config.field.set faults with the position and none of the file's content", async () => {
     seedConfig(faultyConfigText({ credential: true }))
 
     const { error } = await invokeComposed({
@@ -406,7 +406,7 @@ describe('a committed config the parser cannot read names WHERE, never WHAT (395
     expect(message).toContain(CONFIG_FILE)
   })
 
-  it('(F2) config.target.create faults the same way — the guard is in the LOADER', async () => {
+  it('config.target.create faults the same way — the guard is in the LOADER', async () => {
     seedConfig(faultyConfigText({ credential: true }))
 
     const { error } = await invokeComposed({
@@ -420,7 +420,7 @@ describe('a committed config the parser cannot read names WHERE, never WHAT (395
     expect(message).toContain(CONFIG_FILE)
   })
 
-  it('(F3) config.project.scaffold faults the same way — the third op, from zero', async () => {
+  it('config.project.scaffold faults the same way — the third op, from zero', async () => {
     seedConfig(faultyConfigText({ credential: true }))
 
     const { error } = await invokeComposed({
@@ -434,7 +434,7 @@ describe('a committed config the parser cannot read names WHERE, never WHAT (395
     expect(message).toContain(CONFIG_FILE)
   })
 
-  it('(F4) agent-qa validate reports the same fault position-only — the SIBLING site', async () => {
+  it('agent-qa validate reports the same fault position-only — the SIBLING site', async () => {
     seedConfig(faultyConfigText({ credential: true }))
 
     // THE ROAD `agent-qa validate` TAKES. The command catches its own `resolveConfig` failure and
@@ -454,7 +454,7 @@ describe('a committed config the parser cannot read names WHERE, never WHAT (395
     expect(rendered).toMatch(/line \d+, column \d+/)
   })
 
-  it('(F5) the chat answer carries EXACTLY this string — refusalMessage returns .message',
+  it('the chat answer carries EXACTLY this string — refusalMessage returns .message',
     async () => {
       seedConfig(faultyConfigText({ credential: true }))
 
@@ -486,8 +486,8 @@ describe('a committed config the parser cannot read names WHERE, never WHAT (395
 // person's file back at them while ten cells stayed green. The two cells here change the assertion
 // SURFACE rather than the case count: the serialization as a printer reads it, and the shipped
 // binary's entire stdout+stderr.
-describe('the loader\'s error is clean as a VALUE, and the shipped command reports it (395-16)', () => {
-  it('(S1) the rejection serializes position-only — util.inspect and .stack, not just .message',
+describe('the loader\'s error is clean as a VALUE, and the shipped command reports it', () => {
+  it('the rejection serializes position-only — util.inspect and .stack, not just .message',
     async () => {
       seedConfig(faultyConfigText({ credential: true }))
 
@@ -520,7 +520,7 @@ describe('the loader\'s error is clean as a VALUE, and the shipped command repor
       expect(error?.message).toContain(CONFIG_FILE)
     })
 
-  it('(S2) the SHIPPED `agent-qa config show` reports the position and never crash-prints the file',
+  it('the SHIPPED `agent-qa config show` reports the position and never crash-prints the file',
     () => {
       seedConfig(faultyConfigText({ credential: true }))
 
@@ -555,8 +555,8 @@ describe('the loader\'s error is clean as a VALUE, and the shipped command repor
 // filters diagnostics to `d.file === configPath`. Every cell here asserts over the WHOLE rendered
 // `formatDiagnostics` output with NO per-file filter, which is the string the command writes to
 // stdout and the surface a person reads.
-describe('every member of the config file set reports position-only (395-16)', () => {
-  it('(H1) a hooks.yaml the parser cannot read renders position-only in the WHOLE output',
+describe('every member of the config file set reports position-only', () => {
+  it('a hooks.yaml the parser cannot read renders position-only in the WHOLE output',
     async () => {
       // The config member must PARSE, so the road reaches its sibling at all.
       seedConfig(WELL_FORMED_CONFIG)
@@ -575,7 +575,7 @@ describe('every member of the config file set reports position-only (395-16)', (
         .toMatch(/not readable as YAML at line \d+, column \d+/)
     })
 
-  it('(H2) BOTH members poisoned at once — one whole-surface assertion over the set', async () => {
+  it('BOTH members poisoned at once — one whole-surface assertion over the set', async () => {
     // THE SHAPE (F4)'s FILTER MADE IMPOSSIBLE. One rendering, every member's diagnostics in it, and
     // one assertion per planted value. A guard that covers the member it was written for and misses
     // the one beside it cannot pass this cell by being filtered out of view.
@@ -616,7 +616,7 @@ describe('every member of the config file set reports position-only (395-16)', (
     ).toBe(2)
   })
 
-  it('(SU1) a suite file the parser cannot read renders position-only — the third member',
+  it('a suite file the parser cannot read renders position-only — the third member',
     async () => {
       // WINDOWS 139, driven on the road `agent-qa validate` walks: the suite file is DISCOVERED
       // through the workspace's own suiteMatch glob, not handed in as a path.
@@ -651,8 +651,8 @@ describe('every member of the config file set reports position-only (395-16)', (
 // is a straight copy of the person's own line, printed by `run.ts:599-613` and persisted into the
 // dashboard DB at `run.ts:2676`. A store is a surface with a delay, so the message fix alone does
 // not hold on the `run` road — hence two cells, one per channel.
-describe('the plain-test member reports position-only on BOTH channels (395-18)', () => {
-  it('(V1) the SHIPPED `agent-qa validate` renders a plain test yaml position-only', () => {
+describe('the plain-test member reports position-only on BOTH channels', () => {
+  it('the SHIPPED `agent-qa validate` renders a plain test yaml position-only', () => {
     // The config member must PARSE, so discovery resolves a workspace and the road reaches the
     // plain-test member at all.
     seedConfig(WELL_FORMED_CONFIG)
@@ -681,7 +681,7 @@ describe('the plain-test member reports position-only on BOTH channels (395-18)'
     expect(run.status, `an unreadable test file is still an error exit: ${combined}`).toBe(1)
   })
 
-  it('(V2) the producer\'s own ParseError is position-only in message AND in source', () => {
+  it("the producer's own ParseError is position-only in message AND in source", () => {
     // THE SECOND CHANNEL, PINNED AT ITS SOURCE. `ParseError.source` never reaches the `validate`
     // road (`validateTestFile` maps only file/line/column/message/severity), so (V1) cannot see it.
     // It reaches the `run` road's printer and the dashboard DB, which is why it is asserted on the
@@ -721,8 +721,8 @@ describe('the plain-test member reports position-only on BOTH channels (395-18)'
 // deleted with its cell. They are here rather than in a deferral row because they are `agent-qa`'s
 // own person-visible roads, which is the boundary the plan draws: dashboard surfaces defer (WINDOWS
 // 140), CLI and core surfaces get fixed in the pass that finds them.
-describe('the other person-visible yaml-parse roads report position-only (395-18)', () => {
-  it('(V3) the SHIPPED `agent-qa run --suite` never quotes the suite file back', () => {
+describe('the other person-visible yaml-parse roads report position-only', () => {
+  it('the SHIPPED `agent-qa run --suite` never quotes the suite file back', () => {
     seedConfig(WELL_FORMED_CONFIG)
     seedWorkspaceSupportFiles()
     seedFile('hooks.yaml', 'hooks: []\n')
@@ -748,7 +748,7 @@ describe('the other person-visible yaml-parse roads report position-only (395-18
     expect(combined, `the command's output:\n${combined}`).toMatch(/leak\.suite\.yaml/)
   })
 
-  it('(V4) the SHIPPED `agent-qa devices list` never crash-prints agent-qa.local.yaml', () => {
+  it('the SHIPPED `agent-qa devices list` never crash-prints agent-qa.local.yaml', () => {
     // `loadLocalBindings` (cli/src/devices.ts:67) parsed `agent-qa.local.yaml` unguarded, so the
     // raw `YAMLParseError` left the process through Node's default uncaught printer — the excerpt,
     // the stack, and the `linePos` object, all of it. The config below names a device so the
@@ -868,8 +868,8 @@ describe('a refused agent-qa.local.yaml refuses the command that reads it', () =
   })
 })
 
-describe('the controls: the guard fires on the FAULT, and on nothing else (395-14)', () => {
-  it('(F6) a WELL-FORMED config still changes — the guard fired zero times', async () => {
+describe('the controls: the guard fires on the FAULT, and on nothing else', () => {
+  it('a WELL-FORMED config still changes — the guard fired zero times', async () => {
     seedConfig(WELL_FORMED_CONFIG)
 
     const { answer, error } = await invokeComposed({
@@ -884,7 +884,7 @@ describe('the controls: the guard fires on the FAULT, and on nothing else (395-1
     expect((answer as { outcome?: string }).outcome).toBe('applied')
   })
 
-  it('(F7) the same fault with NO credential anywhere still reports its position', async () => {
+  it('the same fault with NO credential anywhere still reports its position', async () => {
     // THE PRECONDITION-GUARDED CORPUS LAW. Every other road cell is drawn from inside the rule's
     // own assumption — a fault WITH a secret beside it. A fix keyed on detecting a secret rather
     // than on the fault would pass all of them and red here, and a fallback that hid the fault
@@ -906,8 +906,8 @@ describe('the controls: the guard fires on the FAULT, and on nothing else (395-1
   })
 })
 
-describe('the shared primitive answers rather than crashes (395-14 · WR-08 / F-09)', () => {
-  it('(W1) a null or primitive throw gets the value-free fallback, and no TypeError', () => {
+describe('the shared primitive answers rather than crashes', () => {
+  it('a null or primitive throw gets the value-free fallback, and no TypeError', () => {
     // THE 395-10 COPY READ `.linePos` OFF THE ARGUMENT UNGUARDED. `throw null` is a legal throw, and
     // `null.linePos` is a TypeError raised inside the code whose entire job is to turn a fault into
     // a sentence — the fault would be replaced by a crash in the reporter.
@@ -921,8 +921,8 @@ describe('the shared primitive answers rather than crashes (395-14 · WR-08 / F-
   })
 })
 
-describe('the ENOENT arms are byte-identical (395-14 · T-395-41)', () => {
-  it('(E1) a missing file answers the empty object, and the required loader\'s VERBATIM sentence',
+describe('the ENOENT arms are byte-identical', () => {
+  it("a missing file answers the empty object, and the required loader's VERBATIM sentence",
     async () => {
       const missing = join(root, 'nowhere', 'agent-qa.config.yaml')
 
@@ -946,7 +946,7 @@ describe('the ENOENT arms are byte-identical (395-14 · T-395-41)', () => {
       expect(error?.name).toBe('ConfigFileNotFoundError')
     })
 
-  it('(E1b) a non-ENOENT READ fault is rethrown untouched — the guard is parse-scoped', async () => {
+  it('a non-ENOENT READ fault is rethrown untouched — the guard is parse-scoped', async () => {
     // A directory where a file should be is EISDIR, a fact about the filesystem and not about any
     // file's content. A catch broad enough to reword it would be reporting a yaml position for a
     // file that was never parsed.
@@ -993,8 +993,8 @@ function runShippedCli(...args: string[]): { status: number | null; combined: st
   return { status: run.status, combined: `${run.stdout ?? ''}${run.stderr ?? ''}` }
 }
 
-describe('a healthy config\'s values are shown and written as they are (395-20 · F-03)', () => {
-  it('(K4a) an ordinary value still WRITES and still says so — the no-over-redaction control', () => {
+describe("a healthy config's values are shown and written as they are", () => {
+  it('an ordinary value still WRITES and still says so — the no-over-redaction control', () => {
     seedConfig(WELL_FORMED_CONFIG)
     seedSecretsFile()
 
@@ -1007,7 +1007,7 @@ describe('a healthy config\'s values are shown and written as they are (395-20 �
     expect(status).toBe(0)
   })
 
-  it('(K4b) base URLs, target names and ports still render VERBATIM at show', () => {
+  it('base URLs, target names and ports still render VERBATIM at show', () => {
     seedConfig(CONTROL_CONFIG)
     seedSecretsFile()
 
@@ -1037,8 +1037,8 @@ describe('a healthy config\'s values are shown and written as they are (395-20 �
 const STAGING_ONLY_KEY = 'stagingOnlyMarker'
 const STAGING_ONLY_VALUE = 'staging-sentinel-value-395-24'
 
-describe('the config verbs read and write the file --config names (395-24 · WR-03)', () => {
-  it('(W3) `--config staging.yaml config set` writes STAGING and leaves the default byte-identical', () => {
+describe('the config verbs read and write the file --config names', () => {
+  it('`--config staging.yaml config set` writes STAGING and leaves the default byte-identical', () => {
     seedConfig(WELL_FORMED_CONFIG)
     seedSecretsFile()
     const stagingPath = join(root, 'staging.yaml')
@@ -1064,7 +1064,7 @@ describe('the config verbs read and write the file --config names (395-24 · WR-
     ).toBe(0)
   })
 
-  it('(W3-show) `--config staging.yaml config show` renders the row only STAGING carries', () => {
+  it('`--config staging.yaml config show` renders the row only STAGING carries', () => {
     seedConfig(WELL_FORMED_CONFIG)
     seedSecretsFile()
     writeFileSync(
@@ -1150,8 +1150,8 @@ function expectNoRawNodeStack(combined: string, what: string): void {
     .not.toContain(root)
 }
 
-describe('the config verbs report their faults instead of crashing (395-27 · WR-01/WR-02)', () => {
-  it('(W8) `config set` on an unwritable path REPORTS it and leaves the default byte-identical', () => {
+describe('the config verbs report their faults instead of crashing', () => {
+  it('`config set` on an unwritable path REPORTS it and leaves the default byte-identical', () => {
     seedConfig(WELL_FORMED_CONFIG)
     const defaultBefore = readFileSync(configPath, 'utf8')
 
@@ -1171,7 +1171,7 @@ describe('the config verbs report their faults instead of crashing (395-27 · WR
     expect(combined, `a failed write claimed success:\n${combined}`).not.toContain('saved to')
   })
 
-  it('(W8-read) the same verb\'s READ fault reports too — the sibling one line above the write', () => {
+  it("the same verb's READ fault reports too — the sibling one line above the write", () => {
     // THE HALF A GUARD ON THE WRITE ALONE WOULD HAVE LEFT OPEN, measured before it was closed:
     //   $ agent-qa --config adir config set version 9
     //   Error: EISDIR: illegal operation on a directory, read
@@ -1192,7 +1192,7 @@ describe('the config verbs report their faults instead of crashing (395-27 · WR
       .toBe(defaultBefore)
   })
 
-  it('(W9) `--config nope.yaml config show` says the file is ABSENT and exits non-zero', () => {
+  it('`--config nope.yaml config show` says the file is ABSENT and exits non-zero', () => {
     seedConfig(WELL_FORMED_CONFIG)
 
     const { status, combined } = runShippedCli('--config', ABSENT_CONFIG_PATH, 'config', 'show')
@@ -1219,7 +1219,7 @@ describe('the config verbs report their faults instead of crashing (395-27 · WR
     expectNoRawNodeStack(combined, '`config show` over an absent named file')
   })
 
-  it('(W9-control) the UNFLAGGED road in a project with NO config is measured unchanged', () => {
+  it('CONTROL: the UNFLAGGED road in a project with NO config is measured unchanged', () => {
     // THE PRE-CHANGE READING, TAKEN ON THE TREE AS 395-26 LEFT IT AND ASSERTED VERBATIM:
     //   exit 0, stdout "\nResolved Configuration:\n\n  (no config values)\n\n"
     // No `seedConfig` — this project genuinely declares no configuration, which is the state the
@@ -1268,8 +1268,8 @@ const ARRAY_LEAK_CONFIG = WELL_FORMED_CONFIG.replace(
         X-Client-Auth: ${PLANTED_ARRAY_HEADER}`,
 )
 
-describe('credentials nested in an array subtree (395-23 · F-03-R4a)', () => {
-  it('(K6) non-credential members of that same array still render VERBATIM', () => {
+describe('credentials nested in an array subtree', () => {
+  it('non-credential members of that same array still render VERBATIM', () => {
     expect(ARRAY_LEAK_CONFIG, 'the container fixture must differ from the plain well-formed one')
       .not.toBe(WELL_FORMED_CONFIG)
     seedConfig(ARRAY_LEAK_CONFIG)
@@ -1351,8 +1351,8 @@ firstUse: *shared
 secondUse: *shared
 `
 
-describe('a cyclic config is bounded output and a repeated one is not (395-27 · WR-03)', () => {
-  it('(W10) an alias CYCLE renders a bounded marker and `config show` completes', () => {
+describe('a cyclic config is bounded output and a repeated one is not', () => {
+  it('an alias CYCLE renders a bounded marker and `config show` completes', () => {
     // THE FIXTURE IS WHAT IT CLAIMS, ASSERTED BY IDENTITY. A fixture that merely LOOKS cyclic would
     // make every assertion below a measurement of nothing.
     const parsed = parseYaml(CYCLIC_ALIAS_CONFIG) as Record<string, Record<string, unknown>>
@@ -1414,7 +1414,7 @@ describe('a cyclic config is bounded output and a repeated one is not (395-27 ·
     expect(healthy.status, 'the measured healthy status').toBe(0)
   })
 
-  it('(W10-control) a REPEATED alias is not a cycle — both copies render VERBATIM', () => {
+  it('CONTROL: a REPEATED alias is not a cycle — both copies render VERBATIM', () => {
     // THE FIXTURE IS SHARED AND NOT CYCLIC, BOTH ASSERTED BY IDENTITY. Shared identity is what
     // makes a visited-set guard fire here; the absence of a cycle is what makes firing WRONG.
     const parsed = parseYaml(REPEATED_ALIAS_CONFIG) as Record<string, Record<string, unknown>>

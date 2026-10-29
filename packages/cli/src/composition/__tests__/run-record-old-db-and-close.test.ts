@@ -28,7 +28,7 @@ function configDir(): string {
 
 const sha256 = (path: string): string => createHash('sha256').update(readFileSync(path)).digest('hex')
 
-describe('C444-SCHEMA-V6', () => {
+describe("an old runs database and the incomplete record's close", () => {
   it('the record refuses a version 5 runs database before the run starts', async () => {
     const dir = configDir()
     const dbPath = join(dir, '.agent-qa', 'runs.db')

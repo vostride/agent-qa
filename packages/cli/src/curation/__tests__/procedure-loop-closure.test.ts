@@ -321,7 +321,7 @@ function handoffWithSteps(input: {
   }
 }
 
-describe('procedure loop closure (PROC-01/PROC-02/ABRF-01/ABRF-02, D-01..D-12)', () => {
+describe('procedure loop closure', () => {
   let root: string
   let agentQaRoot: string
   let knowledgeRoot: string
@@ -736,7 +736,7 @@ describe('procedure loop closure (PROC-01/PROC-02/ABRF-01/ABRF-02, D-01..D-12)',
     return { executed, counters, contextFor, flowCell, stepPorts }
   }
 
-  it('executes the committed credential procedure through every stored guard (CR-03)', { timeout: 60_000 }, async () => {
+  it('executes the committed credential procedure through every stored guard', { timeout: 60_000 }, async () => {
     await ensureCommittedProcedure()
 
     const { executed, counters, contextFor, flowCell, stepPorts } = replayHarness()
@@ -810,7 +810,7 @@ describe('procedure loop closure (PROC-01/PROC-02/ABRF-01/ABRF-02, D-01..D-12)',
     expect(flowCell.carry).toBeUndefined()
   })
 
-  it('a real guarded replay run survives runs.knowledge\'s own output contract (407-12, CR-01)', { timeout: 60_000 }, async () => {
+  it('a real guarded replay run survives runs.knowledge\'s own output contract', { timeout: 60_000 }, async () => {
     // THE SEAM CR-01 BROKE AT, CROSSED BY A REAL PRODUCER. The three `StepEvidence` objects fed
     // in below are the ones the CR-03 cell's real `executeStep` loop just recorded against a
     // really-committed procedure — not a hand-mirrored fixture — and they go through the SHIPPED
@@ -1055,7 +1055,7 @@ describe('procedure loop closure (PROC-01/PROC-02/ABRF-01/ABRF-02, D-01..D-12)',
     expect(report.procedure).toEqual({ emitted: 1, refused: 0, unresolved: 0 })
   })
 
-  it('structural dedup: re-draining the same flow disposes as Confirm — no second bundle (D-01)', { timeout: 60_000 }, async () => {
+  it('structural dedup: re-draining the same flow disposes as Confirm — no second bundle', { timeout: 60_000 }, async () => {
     await ensureCommittedProcedure()
 
     const confirmedBefore = deriveBundleTrust(procedureBundles()[0]!).counters.confirmed
@@ -1253,7 +1253,7 @@ describe('procedure loop closure (PROC-01/PROC-02/ABRF-01/ABRF-02, D-01..D-12)',
 //
 // WHAT REDS. A future phase that narrows at the projection, or adds a second induction path, goes
 // red HERE rather than silently changing what "induction only from verified passes" means.
-describe('which drafts induce is a recorded decision, not an accident (394-11, D-07)', () => {
+describe('which drafts induce is a recorded decision, not an accident', () => {
   const base = handoffFor('run-induction-doc', 7)
   const onlyTest = base.tests[0]!
 

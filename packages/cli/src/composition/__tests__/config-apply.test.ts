@@ -280,7 +280,7 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
   // RE-SPELLED 2026-10-01 (432-16): was '(b) accepting adds exactly ONE commit of exactly the
   // config file, byte-matched'. No apply port is bound; the direct change's byte equality is (a).
   // RE-SPELLED 2026-10-01 (432-17): the accept op is deleted, so the refusal is an unknown function.
-  it('(b) accepting a pre-432 record is refused unbound: no commit, and the file keeps its bytes', async () => {
+  it('(b) accepting an old proposal record is refused unbound: no commit, and the file keeps its bytes', async () => {
     const registry = registryFor()
     const id = await pre432Proposal()
     // The record is still on disk and still names the promised bytes; nothing applies them.
@@ -376,7 +376,7 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
 
 // 2026-09-30, 432-07 D-05/D-07: the direct writer publishes the tracer's field edit in one call.
 // 432-11 switched `config.field.set` onto it; cell (a) above is the op's own road.
-describe('C432-CONFIG-DIRECT: the tracer edit through the direct writer', () => {
+describe('the tracer edit through the direct writer', () => {
   it('publishes the field edit byte-matched with its comments, files no proposal and makes no commit', async () => {
     const create = (hostModule as Record<string, unknown>).createConfigWritePort
     expect(typeof create, 'the direct config writer is exported').toBe('function')

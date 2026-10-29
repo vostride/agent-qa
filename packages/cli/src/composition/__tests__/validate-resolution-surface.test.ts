@@ -225,8 +225,8 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe('a project the product scaffolds is validated, not attested over an empty set (395-21 · F-05)', () => {
-  it('(Z1) bare `validate` in an init-scaffolded project CHECKS FILES', () => {
+describe('a project the product scaffolds is validated, not attested over an empty set', () => {
+  it('bare `validate` in an init-scaffolded project CHECKS FILES', () => {
     scaffoldWithShippedInit()
     writeFileUnder(join('tests', 'z1-added.yaml'), VALID_TEST)
 
@@ -256,7 +256,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(second.status, `a member with errors is an error exit:\n${second.combined}`).toBe(1)
   }, 180_000)
 
-  it('(Z2) a config that cannot be resolved is named LOUDLY, exits non-zero, and leaks nothing', () => {
+  it('a config that cannot be resolved is named LOUDLY, exits non-zero, and leaks nothing', () => {
     const configText = scaffoldWithShippedInit()
     makeConfigUnresolvable(configText)
 
@@ -283,7 +283,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
     expect(status, `an unresolvable config is a non-zero exit:\n${combined}`).not.toBe(0)
   }, 180_000)
 
-  it('(Z4) the verbs that DO load the declared plugin name the package and the remedy, not a require stack', () => {
+  it('the verbs that DO load the declared plugin name the package and the remedy, not a require stack', () => {
     // THE INIT-SIDE MEMBER, DISPOSED AS A SOURCE FIX (395-21 · Task 2). Task 1 took validate off the
     // plugin road entirely, which is right for a validator and wrong as a general answer: `run` and
     // `devices list` genuinely need the plugin the scaffold declared, and in a fresh project they
@@ -314,7 +314,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
     }
   }, 180_000)
 
-  it('(Z6) the workspace-match gate is BACK in the init-scaffolded project — the amplifier road is closed', () => {
+  it('the workspace-match gate is BACK in the init-scaffolded project — the amplifier road is closed', () => {
     // THE REACHABILITY AMPLIFIER, ON ITS OWN FILE. A swallowed resolution did two things, and only
     // one of them was the false green: it also left `workspace` undefined, which drops
     // `validateProject`'s workspace-match gate and sends `validate <any>.yaml` straight down the
@@ -348,7 +348,7 @@ apiToken: ${PLANTED_HOOKS_CREDENTIAL}
     expect(status, `a refused file is an error exit:\n${combined}`).toBe(1)
   }, 180_000)
 
-  it('(Z5) explicit-file validate of a poisoned plain test in an UNRESOLVABLE project renders position-only', () => {
+  it('explicit-file validate of a poisoned plain test in an UNRESOLVABLE project renders position-only', () => {
     // THE ROAD THE VERIFIER ACTUALLY DROVE (395-VERIFICATION · CR-02's reachability paragraph).
     // When the config does not resolve, `workspace` is undefined and `validateProject` takes the
     // ungated explicit-file arm — no workspace-match refusal, straight into `validateTestFile` ->
@@ -398,7 +398,7 @@ apiToken: ${PLANTED_HOOKS_CREDENTIAL}
   // half — the misnaming is its own defect and gets its own cell, because a fix that made
   // `--config` resolve while still reporting the default's name would pass (W1) alone.
 
-  it('(W1) `--config staging.yaml validate` validates STAGING.YAML — the flag is not ignored', () => {
+  it('`--config staging.yaml validate` validates STAGING.YAML — the flag is not ignored', () => {
     const configText = scaffoldWithShippedInit()
     // THE NON-DEFAULT NAME, AND NO DEFAULT FILE AT ALL. With `agent-qa.config.yaml` still present the
     // cell could pass on the defect: the fallback would find a valid config and report a real count.
@@ -425,7 +425,7 @@ apiToken: ${PLANTED_HOOKS_CREDENTIAL}
     ).toBe(0)
   }, 180_000)
 
-  it('(W2) a failure names the file the person ASKED ABOUT, never one they did not', () => {
+  it('a failure names the file the person ASKED ABOUT, never one they did not', () => {
     // THE NAMING CONTROL. Pre-fix this printed
     //   Cannot read config file: ENOENT: … open 'agent-qa.config.yaml'
     //   Config resolution failed: Config file not found: agent-qa.config.yaml
@@ -444,7 +444,7 @@ apiToken: ${PLANTED_HOOKS_CREDENTIAL}
     ).toBe(0)
   }, 120_000)
 
-  it('(Z3) a project with NO config refuses — the state the guard must reject, before and after', () => {
+  it('a project with NO config refuses — the state the guard must reject, before and after', () => {
     // THE PRECONDITION-GUARDED CONTROL (384 · round 4): without a case the new posture's guard
     // REJECTS, every cell here is drawn from inside the rule's own assumption. There is no
     // successful no-config validate state today and this plan introduces none.

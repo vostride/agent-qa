@@ -350,7 +350,7 @@ afterEach(async () => {
   await rm(tmpRoot, { recursive: true, force: true })
 })
 
-describe('runExtractVerb — sweep-by-default over the sanctioned engines (D-01/D-02)', () => {
+describe('runExtractVerb — sweep-by-default over the sanctioned engines', () => {
   it('sweeps every recorded handoff and writes staged cassette bundles with faithful counters', async () => {
     const { dir, configPath } = await writeFixture()
     saveRun(dir, 'run-alpha')
@@ -372,7 +372,7 @@ describe('runExtractVerb — sweep-by-default over the sanctioned engines (D-01/
     expect(cassetteFiles).toHaveLength(4)
   })
 
-  it('surfaces unreadable and pre-366 handoffs as typed skips, never batch errors (D-02)', async () => {
+  it('surfaces unreadable and schema-version-1 handoffs as typed skips, never batch errors', async () => {
     const { dir, configPath } = await writeFixture()
     saveRun(dir, 'run-alpha')
     saveRun(dir, 'run-beta')
@@ -403,7 +403,7 @@ describe('runExtractVerb — sweep-by-default over the sanctioned engines (D-01/
     expect(result.cassettesWritten).toBe(4)
   })
 
-  it('narrows to --run and throws the typed named-input error for a missing slug (D-08)', async () => {
+  it('narrows to --run and throws the typed named-input error for a missing slug', async () => {
     const { dir, configPath } = await writeFixture()
     saveRun(dir, 'run-alpha')
     saveRun(dir, 'run-beta')
@@ -421,7 +421,7 @@ describe('runExtractVerb — sweep-by-default over the sanctioned engines (D-01/
     )
   })
 
-  it('counts product-scope mismatches as filtered, not extracted (D-02)', async () => {
+  it('counts product-scope mismatches as filtered, not extracted', async () => {
     const { dir, configPath } = await writeFixture()
     saveRun(dir, 'run-shop', { scope: { tier: 'product', key: 'shop' } })
     saveRun(dir, 'run-suite-scoped')
@@ -435,7 +435,7 @@ describe('runExtractVerb — sweep-by-default over the sanctioned engines (D-01/
     expect(result.completeness).toEqual({ complete: 2 })
   })
 
-  it('re-sweeps idempotently — identical DTO and identical staged bytes (D-02)', async () => {
+  it('re-sweeps idempotently — identical DTO and identical staged bytes', async () => {
     const { dir, configPath } = await writeFixture()
     saveRun(dir, 'run-alpha')
     saveRun(dir, 'run-beta', { withCachedStep: true })
@@ -699,7 +699,7 @@ describe('runReplayVerb sweeps staged cassettes through the sanctioned compositi
     expect(second.batchKey).toBe(result.batchKey)
   })
 
-  it('threads the session-seeded masking factory: a secrets-file value crosses the boundary as a placeholder (D-06)', async () => {
+  it('threads the session-seeded masking factory: a secrets-file value crosses the boundary as a placeholder', async () => {
     const { dir, configPath } = await writeReplayFixture(`EVAL_FIXTURE_TOKEN=${FAKE_REPLAY_SECRET}\n`)
     saveRun(dir, 'run-secret', {
       stepText: `Use the token ${FAKE_REPLAY_SECRET} then click Continue`,
@@ -720,7 +720,7 @@ describe('runReplayVerb sweeps staged cassettes through the sanctioned compositi
     expect(boundaryPayload).not.toContain(FAKE_REPLAY_SECRET)
   })
 
-  it('folds a corrupt bundle into loadRefusals by reason and still replays the rest (D-08)', async () => {
+  it('folds a corrupt bundle into loadRefusals by reason and still replays the rest', async () => {
     const { dir, configPath } = await writeReplayFixture()
     saveRun(dir, 'run-alpha')
     const session = await sessionFor(configPath)
@@ -740,7 +740,7 @@ describe('runReplayVerb sweeps staged cassettes through the sanctioned compositi
     expect(result.scored).toBe(2)
   })
 
-  it('applies the ONE filter vocabulary on the loaded set: --cassette, --run, --product (D-02)', async () => {
+  it('applies the ONE filter vocabulary on the loaded set: --cassette, --run, --product', async () => {
     const { dir, configPath } = await writeReplayFixture()
     saveRun(dir, 'run-shop', { scope: { tier: 'product', key: 'shop' } })
     saveRun(dir, 'run-plain')
@@ -787,7 +787,7 @@ describe('runReplayVerb sweeps staged cassettes through the sanctioned compositi
     expect(byProduct.batchKey).toBe(computeBatchKey(shopIds))
   })
 
-  it('completes without a judge: configured false with the notice riding the DTO (D-03/370)', async () => {
+  it('completes without a judge: configured false with the notice riding the DTO', async () => {
     const { dir, configPath } = await writeReplayFixture()
     saveRun(dir, 'run-alpha')
     const session = await sessionFor(configPath)
@@ -958,7 +958,7 @@ describe('runReportVerb builds one report from the staged records', () => {
     expect(await readFile(scoreFile, 'utf8')).toBe(originalScore)
   })
 
-  it('assembles ONE whole-corpus report from every persisted replay record (the Wave 0 gap)', async () => {
+  it('assembles ONE whole-corpus report from every persisted replay record', async () => {
     const { dir, session, ids } = await scoredRecordsFixture()
     expect(ids).toHaveLength(2)
     const leafId = ids.find(id => id.endsWith('-leaf'))!
@@ -995,7 +995,7 @@ describe('runReportVerb builds one report from the staged records', () => {
     expect(existsSync(join(dir, 'agent-qa-eval'))).toBe(false)
   })
 
-  it('threads judge identity honestly: present / absent / mixed, never fabricated (Pitfall 4)', async () => {
+  it('threads judge identity honestly: present / absent / mixed, never fabricated', async () => {
     const { dir, session, ids } = await scoredRecordsFixture()
     const [firstId, secondId] = [ids[0]!, ids[1]!]
 
@@ -1056,7 +1056,7 @@ describe('createEvalCommand registers extract, replay and report', () => {
     expect(cmd.description()).toContain('extract, replay, report')
   })
 
-  it('declares the D-02 filter vocabulary on extract: --run, --product, --json', () => {
+  it('declares the filter vocabulary on extract: --run, --product, --json', () => {
     const extract = createEvalCommand().commands.find(sub => sub.name() === 'extract')
     const flags = extract?.options.map(option => option.long) ?? []
     expect(flags).toEqual(expect.arrayContaining(['--run', '--product', '--json']))
@@ -1091,7 +1091,7 @@ describe('agent-qa eval report renders and exits from its DTO', () => {
     vi.restoreAllMocks()
   })
 
-  it('report --json emits exactly one JSON DTO on stdout (Pitfall 11)', async () => {
+  it('report --json emits exactly one JSON DTO on stdout', async () => {
     const { configPath } = await scoredRecordsFixture()
     const { logs, errors } = captureConsole()
 
@@ -1131,12 +1131,12 @@ describe('agent-qa eval report renders and exits from its DTO', () => {
   })
 })
 
-describe('agent-qa eval extract — rendering and exit semantics (D-04/D-08)', () => {
+describe('agent-qa eval extract — rendering and exit semantics', () => {
   afterEach(() => {
     vi.restoreAllMocks()
   })
 
-  it('--json emits exactly one JSON DTO on stdout and nothing else (Pitfall 11)', async () => {
+  it('--json emits exactly one JSON DTO on stdout and nothing else', async () => {
     const { dir, configPath } = await writeFixture()
     saveRun(dir, 'run-alpha')
     saveRun(dir, 'run-beta', { withCachedStep: true })
@@ -1155,7 +1155,7 @@ describe('agent-qa eval extract — rendering and exit semantics (D-04/D-08)', (
     expect(process.exitCode).not.toBe(1)
   })
 
-  it('renders the human summary from the same DTO fields without --json (D-04)', async () => {
+  it('renders the human summary from the same DTO fields without --json', async () => {
     const { dir, configPath } = await writeFixture()
     saveRun(dir, 'run-alpha')
     const { logs, errors } = captureConsole()
@@ -1171,7 +1171,7 @@ describe('agent-qa eval extract — rendering and exit semantics (D-04/D-08)', (
     expect(() => JSON.parse(rendered)).toThrow()
   })
 
-  it('a named --run with no handoff sets process.exitCode 1 — the ONLY extract failure (D-08)', async () => {
+  it('a named --run with no handoff sets process.exitCode 1 — the ONLY extract failure', async () => {
     const { dir, configPath } = await writeFixture()
     saveRun(dir, 'run-alpha')
     const { logs, errors } = captureConsole()
@@ -1202,7 +1202,7 @@ describe('agent-qa eval extract — rendering and exit semantics (D-04/D-08)', (
     expect(dto.runsSkipped).toEqual([])
   })
 
-  it('config/session resolution errors map to exit 1 with the message on stderr (D-08)', async () => {
+  it('config/session resolution errors map to exit 1 with the message on stderr', async () => {
     const dir = await mkdtemp(join(tmpRoot, 'fixture-'))
     const configPath = join(dir, 'agent-qa.config.yaml')
     await writeFile(configPath, CONFIG_YAML)
@@ -1253,7 +1253,7 @@ describe('agent-qa eval replay renders and exits from its DTO', () => {
     }
   })
 
-  it('--json emits exactly one JSON DTO on stdout; an empty sweep is data with batchKey "empty" (Pitfall 11/D-02)', async () => {
+  it('--json emits exactly one JSON DTO on stdout; an empty sweep is data with batchKey "empty"', async () => {
     const { configPath } = await writeReplayFixture()
     const { logs } = captureConsole()
 
@@ -1272,7 +1272,7 @@ describe('agent-qa eval replay renders and exits from its DTO', () => {
       seed: null, seedHonored: null })
   })
 
-  it('renders the human summary from the DTO fields only, "0 ties" honestly (D-04)', async () => {
+  it('renders the human summary from the DTO fields only, "0 ties" honestly', async () => {
     const { configPath } = await writeReplayFixture()
     const { logs, errors } = captureConsole()
 
@@ -1292,7 +1292,7 @@ describe('agent-qa eval replay renders and exits from its DTO', () => {
     expect(() => JSON.parse(rendered)).toThrow()
   })
 
-  it('a named --cassette with no staged match sets exitCode 1 (D-08)', async () => {
+  it('a named --cassette with no staged match sets exitCode 1', async () => {
     const { configPath } = await writeReplayFixture()
     const { logs, errors } = captureConsole()
 
@@ -1306,7 +1306,7 @@ describe('agent-qa eval replay renders and exits from its DTO', () => {
     expect(logs).toEqual([])
   })
 
-  it('a sweep containing only load refusals exits 0 — refusal counters are data, not errors (D-08)', async () => {
+  it('a sweep containing only load refusals exits 0 — refusal counters are data, not errors', async () => {
     const { dir, configPath } = await writeReplayFixture()
     const corruptDir = join(dir, '.agent-qa', 'eval', 'cassettes', 'corrupt-bundle')
     await mkdir(corruptDir, { recursive: true })

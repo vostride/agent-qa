@@ -61,7 +61,7 @@ async function cancelWith(status: number, body: unknown): Promise<CancelResult> 
   return { exits, printed: lines.join('\n') }
 }
 
-describe('C442-CANCEL-SENTENCE', () => {
+describe('queue cancel exit codes for a refusal and a cancel', () => {
   it('queue cancel prints a refusal and exits non-zero', async () => {
     const refused = await cancelWith(409, {
       error: REFUSAL,
@@ -127,7 +127,7 @@ async function cancelApart(runId: string, status: number, body: unknown): Promis
   return { exits, stdout: out.join('\n'), stderr: err.join('\n'), asked: [...asked] }
 }
 
-describe('C442-QUEUE-CANCEL-OUTPUT', () => {
+describe('queue cancel output streams and request URL', () => {
   it('queue cancel prints a refusal to stderr and exits 1, and an orphan answer to stdout with exit 0', async () => {
     const refused = await cancelApart(RUN_ID, 409, {
       error: REFUSAL,
@@ -161,7 +161,7 @@ describe('C442-QUEUE-CANCEL-OUTPUT', () => {
   })
 })
 
-describe('C444-CANCEL-ANSWERS', () => {
+describe('queue cancel answers for a stop request, a finished run and a run it cannot stop', () => {
   it('queue cancel prints a stop request and exits 0', async () => {
     const result = await cancelApart(RUN_ID, 202, {
       outcome: 'stop-requested',

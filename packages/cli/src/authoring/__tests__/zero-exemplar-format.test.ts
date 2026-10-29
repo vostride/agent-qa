@@ -320,7 +320,7 @@ describe('a zero-exemplar scope compiles a document the SHIPPED parser accepts',
     expect(parsed.draft.steps.length).toBeGreaterThan(0)
   })
 
-  it('reaches ParsedDraftLike.context from stage 3 — the root the gate scans (WR-06)', async () => {
+  it('reaches ParsedDraftLike.context from stage 3 — the root the gate scans', async () => {
     // THE CLAIM, AND WHY IT IS MADE HERE. `ParsedDraftLike.context` was widened into the shape in
     // 394-15 so the draft check could read it, and nothing on the compile path had
     // ever populated it: the format block told stage 3 that four keys were all a document may
@@ -347,7 +347,7 @@ describe('a zero-exemplar scope compiles a document the SHIPPED parser accepts',
     expect(parsed.draft.context).toBe(staging.draft.context)
   })
 
-  it('chooses `target` from the served vocabulary when product ≠ target name (WR-07)', async () => {
+  it('chooses `target` from the served vocabulary when product ≠ target name', async () => {
     // THE HARD BRANCH, AND IT IS REACHABLE BY CONSTRUCTION. `deriveDefaultAuthoringScope` answers
     // a PRODUCT (`resolveTarget(...).product`, i.e. `target.product ?? targetName`), `compileDraft`
     // renders only `${tier}:${key}`, nothing validates `target` before `runs.start`, and `target`
@@ -388,7 +388,7 @@ describe('a zero-exemplar scope compiles a document the SHIPPED parser accepts',
     expect(parsedTarget).not.toBe(scope.key)
   })
 
-  it('refuses an off-vocabulary `target` before stage 4, through the SHIPPED parser (WR-04)', async () => {
+  it('refuses an off-vocabulary `target` before stage 4, through the SHIPPED parser', async () => {
     // THE CASE THE GUARD REJECTS, PRODUCED BY THE REAL EMISSION PATH. The value compared here is
     // `ParsedDraftLike.target` as `createDraftAuthoringPort.stageDraft` derived it — `parseTestFile`
     // over the bytes the generator emitted — and the vocabulary is what the same host read out of

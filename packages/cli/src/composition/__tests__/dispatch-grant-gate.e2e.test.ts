@@ -171,7 +171,7 @@ function pinAmbient(value: 'ci' | 'local-interactive' | 'local-headless', ciMark
   }
 }
 
-describe('one human ask, N gated runs, every one of them gated (D-08)', () => {
+describe('one human ask, N gated runs, every one of them gated', () => {
   /** The start artifacts every arm below asserts, identically. */
   function expectStartedWithNoDecision(fixture: Fixture, outcome: { ack?: RunStartAcknowledgement; error?: unknown }): void {
     expect(outcome.error, `runs.start refused: ${String(outcome.error)}`).toBeUndefined()
@@ -225,7 +225,7 @@ describe('one human ask, N gated runs, every one of them gated (D-08)', () => {
   // starts all the same' and 'AN UNRELATED CALLER DURING AN OPEN DISPATCH — starts, and no row
   // borrows the dispatch (CR-03)': with no overlay there is no grant to die or to borrow. The
   // surviving claim is that a run starts whatever an old ledger says, and leaves it as it was.
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: a run beside an old, damaged grants.jsonl starts and leaves it byte-identical', async () => {
+  it('a run beside an old, damaged grants.jsonl starts and leaves it byte-identical', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -243,7 +243,7 @@ describe('one human ask, N gated runs, every one of them gated (D-08)', () => {
     }
   }, 300_000)
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: the host takes no dispatch overlay and agent-local publishes none', () => {
+  it('the host takes no dispatch overlay and agent-local publishes none', () => {
     expect(Object.keys(agentLocal).filter((name) => /dispatchgrant/i.test(name))).toEqual([])
   })
 })

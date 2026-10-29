@@ -67,7 +67,7 @@ function fixture(over: Record<string, unknown> = {}) {
   return { root, input, drainQueue, info, canaryDetail }
 }
 
-describe('423 curation tail snapshot', () => {
+describe('curation tail snapshot', () => {
   it('TAIL-SNAPSHOT-ROUNDTRIP persists exact rows and returns the immutable completed receipt after later effects', async () => {
     const f = fixture()
     const first = await tailModule.curateCompletedRun(f.input)

@@ -40,7 +40,7 @@ function record(host?: RunRecordHostBinding) {
 
 const sha256 = (path: string): string => createHash('sha256').update(readFileSync(path)).digest('hex')
 
-describe('C443-RECORD-OPEN', () => {
+describe('opening a run record', () => {
   it('a record whose open failed refuses the same run again', async () => {
     const configDir = tempRoot()
     const path = join(configDir, '.agent-qa', 'runs.db')

@@ -174,7 +174,7 @@ async function daemonMask(withConfigPath: boolean): Promise<MaskFn | undefined> 
   return composed.mask
 }
 
-describe('C441-CHAT', () => {
+describe('declared secrets in chat transcripts and turn results', () => {
   it('a declared secret typed in chat is masked in user_message and clause_receipt', async () => {
     await typeInChat()
 
@@ -263,7 +263,7 @@ async function sendInChat(
   }
 }
 
-describe('C441-GAP-TRANSCRIPT', () => {
+describe('a declared value used as a payload key', () => {
   it('a declared value used as a payload key is masked in the session file and the turn result', async () => {
     const refused = await sendInChat(KEYED_INPUT_MESSAGE)
     const answered = await sendInChat(KEYED_RESULT_MESSAGE, KEYED_RUN_DETAIL)
@@ -280,7 +280,7 @@ describe('C441-GAP-TRANSCRIPT', () => {
   })
 })
 
-describe('C441-GAP2-TRANSCRIPT', () => {
+describe('chat sessions with a one-character declared value', () => {
   beforeEach(() => {
     writeFileSync(join(root, '.env.secrets.local'), `T_441=t\nPW_441=${DECLARED}\n`)
   })
@@ -338,7 +338,7 @@ describe('C441-GAP2-TRANSCRIPT', () => {
   })
 })
 
-describe('C441-GAP3-TRANSCRIPT', () => {
+describe('a chat model name holding a declared value', () => {
   const CHAT_MODEL_ID = `fixture:${DECLARED}`
 
   const declaredIdChatModel = {

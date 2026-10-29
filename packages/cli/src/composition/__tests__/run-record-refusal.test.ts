@@ -114,7 +114,7 @@ function rawRow(path: string, runId: string): string {
   }
 }
 
-describe('C443-RECORD-REFUSAL', () => {
+describe('a run record that cannot open refuses the run', () => {
   it('a version-4 runs.db refuses the run naming the file and leaves it untouched', async () => {
     const project = fixture()
     const path = runsDbOf(project)
@@ -252,7 +252,7 @@ describe('C443-RECORD-REFUSAL', () => {
   }, RUN_BUDGET_MS)
 })
 
-describe('C443-RECORD-INCOMPLETE', () => {
+describe('a record write that fails after the start', () => {
   it('a write that fails after the start leaves the verdict and says the record is incomplete', async () => {
     const project = fixture()
     const real = new DashboardDatabase({ dbPath: runsDbOf(project), runOwnership: composeRunOwnership() })
@@ -297,7 +297,7 @@ describe('C443-RECORD-INCOMPLETE', () => {
 
 // 2026-10-17 (443-12, GAP-D1): the D-27 close-out in the two windows C443-RECORD-INCOMPLETE does not
 // reach: a write that fails right after the claim, and one that fails after a member finished.
-describe('C443-RECORD-CLOSE', () => {
+describe('a failed write still closes the row with the verdict status', () => {
   function failOn(
     real: DashboardDatabase,
     method: 'insertRunArtifact' | 'updateRun',

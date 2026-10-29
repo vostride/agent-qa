@@ -101,7 +101,7 @@ function cold(p: ReturnType<typeof project>) {
   }
 }
 
-describe('Wave 18 cold read masking recovery', () => {
+describe('cold read masking recovery', () => {
   it('COLD-TWO-EVENTS reads one confirmed record with both actual checkpoint events intact', async () => {
     const p = project()
     const recorded = snapshot(p.runId)

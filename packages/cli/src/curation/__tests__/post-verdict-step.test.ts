@@ -207,7 +207,7 @@ describe('probeWriterLease — the decision read, total over the four read kinds
   })
 })
 
-describe('dispositionOf — total over the lease probe domain (404 D-09/D-11)', () => {
+describe('dispositionOf — total over the lease probe domain', () => {
   it('held ⇒ handedOff, with nothing to warn about', () => {
     expect(
       dispositionOf({ probe: { kind: 'held' }, leaseSkipped: false }),
@@ -252,7 +252,7 @@ describe('dispositionOf — total over the lease probe domain (404 D-09/D-11)', 
     ).toBe('post-processing-unbound')
   })
 
-  it('a FAILED enqueue ⇒ detached plus post-run-enqueue-failed, whatever the lease said (D-11)', () => {
+  it('a FAILED enqueue ⇒ detached plus post-run-enqueue-failed, whatever the lease said', () => {
     const outcome = dispositionOf({
       enqueue: 'failed',
       enqueueError: 'Post-run analysis was not queued for r_x (SQLITE_BUSY)',
@@ -289,7 +289,7 @@ describe('dispositionOf — total over the lease probe domain (404 D-09/D-11)', 
     ).toEqual({ disposition: 'drained' })
   })
 
-  it('a supplied authority OUTRANKS a held probe — the daemon is not handed off to itself (Pitfall 3)', () => {
+  it('a supplied authority OUTRANKS a held probe — the daemon is not handed off to itself', () => {
     expect(
       dispositionOf({
         enqueue: 'enqueued',
@@ -302,7 +302,7 @@ describe('dispositionOf — total over the lease probe domain (404 D-09/D-11)', 
     ).toEqual({ disposition: 'drained' })
   })
 
-  it('a gate-run skip and a --detach skip are the SAME answer: detached, no warning (D-08/D-09)', () => {
+  it('a gate-run skip and a --detach skip are the SAME answer: detached, no warning', () => {
     expect(
       dispositionOf({ enqueue: 'skipped', leaseSkipped: true }),
       'a gate run queued nothing on purpose',
@@ -314,7 +314,7 @@ describe('dispositionOf — total over the lease probe domain (404 D-09/D-11)', 
   })
 })
 
-describe('enqueueAnalyzeRun — THE one durable hand-off (404 D-05, relocated from the tail)', () => {
+describe('enqueueAnalyzeRun — THE one durable hand-off', () => {
   it('queues analyze-run with the handoff digest and the runId as the idempotency key', async () => {
     const operations = stubOperations()
     const outcome = await enqueueAnalyzeRun({
@@ -398,7 +398,7 @@ describe('enqueueAnalyzeRun — THE one durable hand-off (404 D-05, relocated fr
   })
 })
 
-describe('createPostVerdictStep — decide without mutating, acquire only for a pump (404 D-10, Pitfall 3)', () => {
+describe('createPostVerdictStep — decide without mutating, acquire only for a pump', () => {
   it('a free lease reads drained and ACQUIRES NOTHING until a pump asks', async () => {
     const operations = stubOperations()
     const step = createPostVerdictStep({
@@ -564,7 +564,7 @@ describe('createPostVerdictStep — decide without mutating, acquire only for a 
   })
 })
 
-describe('createPostVerdictStep — the D-05/D-08/D-09 arms, in the order the step imposes', () => {
+describe('createPostVerdictStep — the gate-run, exclusion and detach arms, in the order the step imposes', () => {
   const step = (extra: Record<string, unknown> = {}, operations = stubOperations()) => ({
     operations,
     step: createPostVerdictStep({
@@ -656,7 +656,7 @@ describe('createPostVerdictStep — the D-05/D-08/D-09 arms, in the order the st
     expect(operations.readWriterLease).not.toHaveBeenCalled()
   })
 
-  it('D-08: gateRun ⇒ NO enqueue, NO lease read, detached, and nothing warned', async () => {
+  it('gateRun ⇒ NO enqueue, NO lease read, detached, and nothing warned', async () => {
     const operations = stubOperations()
     const { step: composed } = step({}, operations)
 
@@ -674,7 +674,7 @@ describe('createPostVerdictStep — the D-05/D-08/D-09 arms, in the order the st
     expect(operations.acquireWriterLease).not.toHaveBeenCalled()
   })
 
-  it('D-08: excludedFromOutcomes ALONE skips too — the two markers are DISTINCT axes (C8)', async () => {
+  it('excludedFromOutcomes ALONE skips too — the two markers are DISTINCT axes', async () => {
     const operations = stubOperations()
     const { step: composed } = step({}, operations)
 
@@ -690,7 +690,7 @@ describe('createPostVerdictStep — the D-05/D-08/D-09 arms, in the order the st
     ).not.toHaveBeenCalled()
   })
 
-  it('--detach ENQUEUES and skips only the lease (D-09, RESEARCH Pitfall 8)', async () => {
+  it('--detach ENQUEUES and skips only the lease', async () => {
     const operations = stubOperations()
     const { step: composed } = step({ detach: true }, operations)
 

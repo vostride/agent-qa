@@ -52,7 +52,7 @@ function blockReceipt(runDir: string) {
   return () => rmSync(staged, { recursive: true, force: true })
 }
 
-describe('419 feedback host', () => {
+describe('feedback host', () => {
   let root: string | undefined
   afterEach(() => { if (root) rmSync(root, { recursive: true, force: true }) })
   const hashes = (dir: string) => files(dir).map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])
@@ -271,11 +271,11 @@ describe('419 feedback host', () => {
 })
 
 // A mark applies its fix in the call and returns an applied receipt.
-describe('432-09 marks apply their fix once and return an applied receipt', () => {
+describe('marks apply their fix once and return an applied receipt', () => {
   let root: string | undefined
   afterEach(() => { if (root) rmSync(root, { recursive: true, force: true }) })
 
-  it('C432-MARK-APPLIED-RECEIPT: the receipt names the records or test file changed, exactly as stored, and nothing is filed', async () => {
+  it('the receipt names the records or test file changed, exactly as stored, and nothing is filed', async () => {
     const f = markFixture(); root = f.root
     const result = await createFeedbackPortForHost(f.deps).mark({ runId: f.handoff.runId, kind: 'false-fail' })
     if (result.kind !== 'marked') throw new Error('expected a mark')
@@ -313,7 +313,7 @@ describe('432-09 marks apply their fix once and return an applied receipt', () =
   })
 
   const checkpoints = ['after evidence', 'after fix publication', 'before receipt'] as const
-  it.each(checkpoints)('C432-MARK-RETRY-ONCE: a knowledge mark interrupted %s lands its fix exactly once on retry', async checkpoint => {
+  it.each(checkpoints)('a knowledge mark interrupted %s lands its fix exactly once on retry', async checkpoint => {
     const f = markFixture(); root = f.root
     const real = realApply()
     let publications = 0
@@ -362,7 +362,7 @@ describe('432-09 marks apply their fix once and return an applied receipt', () =
       .toEqual({ kind: 'already-marked', receipt: result.receipt })
   })
 
-  it('C432-MARK-RETRY-ONCE: a test-edit mark interrupted before its receipt reuses the written file without a second edit', async () => {
+  it('a test-edit mark interrupted before its receipt reuses the written file without a second edit', async () => {
     const f = testBugFixture(); root = f.root
     const member = f.handoff.tests[0]!
     const edited = writtenEdit(member.filePath!, member.testName!, member.testId!)
@@ -375,7 +375,7 @@ describe('432-09 marks apply their fix once and return an applied receipt', () =
     expect(invokeAuthoringDraftEdit, 'the file is written once').toHaveBeenCalledOnce()
   })
 
-  it('C432-MARK-LEASE-RECOVERY: a fix that finds the writer lease held refuses by name, hands a delegate the validated request, and never steals the lease', async () => {
+  it('a fix that finds the writer lease held refuses by name, hands a delegate the validated request, and never steals the lease', async () => {
     const f = markFixture(); root = f.root
     const real = realApply()
     let holder: { leaseId: string; epoch: number } | undefined

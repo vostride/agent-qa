@@ -275,7 +275,7 @@ function code(path: string): string {
     .join('\n')
 }
 
-describe('D-05: the human commits first, and the agent commits only what was approved', () => {
+describe('the human commits first, and the agent commits only what was approved', () => {
   // RE-SPELLED 2026-10-01 (432-16): was '(1) a dirty proposal file produces TWO commits — human
   // first, and only the second is the agent's'. Nothing commits now, so there is no order to keep:
   // the change is written around the person's edit and both stay uncommitted.
@@ -294,7 +294,7 @@ describe('D-05: the human commits first, and the agent commits only what was app
 
   // RE-SPELLED 2026-10-01 (432-16): was '(1b) the receipt names both commits, human first'. A
   // pre-432 record over the same dirty file is refused by name and writes nothing.
-  it('(1b) a pre-432 record over a dirty file is refused unbound, and the person\'s bytes stay put', async () => {
+  it("(1b) an old proposal record over a dirty file is refused unbound, and the person's bytes stay put", async () => {
     const id = await proposeField({ path: 'use.timeout.step', value: '45s' })
     const humanEdit = SEEDED_CONFIG.replace('test: 90m', 'test: 45m')
     writeFileSync(configPath, humanEdit)
@@ -338,7 +338,7 @@ describe('D-05: the human commits first, and the agent commits only what was app
   })
 })
 
-describe('CFGM-04: a concurrent human edit always beats the agent (D-18)', () => {
+describe('a concurrent human edit always beats the agent', () => {
   // RE-SPELLED 2026-10-01 (432-16): the two racers were applies of pre-432 proposals; they are now
   // two whole-file publications built from the same bytes.
   it('(4) two publications racing over one file: the second refuses at the digest re-check', async () => {
@@ -457,7 +457,7 @@ describe('the multi-file rollback: an interrupted apply leaves no partial config
   })
 })
 
-describe('CFGM-03 idempotency: the retry gets the ORIGINAL receipt, both commits of it', () => {
+describe('idempotency: the retry gets the ORIGINAL receipt, both commits of it', () => {
   // RE-SPELLED 2026-10-01 (432-16): was '(9) a second apply of a two-commit proposal answers
   // already-applied naming human AND agent'. A retried change answers `no-change`.
   it('(9) a repeated change answers no-change and writes nothing more', async () => {
@@ -473,7 +473,7 @@ describe('CFGM-03 idempotency: the retry gets the ORIGINAL receipt, both commits
 
   // RE-SPELLED 2026-10-01 (432-16): was '(9b) a ONE-commit apply's retry names only the agent
   // commit'. The pre-432 retry verb is unbound, and it answers the same way every time.
-  it('(9b) a pre-432 retry through config.proposal.apply is refused unbound, alike each time', async () => {
+  it('(9b) an old proposal record retried through config.proposal.apply is refused unbound, alike each time', async () => {
     const id = await proposeField({ path: 'use.timeout.step', value: '45s' })
     const registry = registryFor()
     for (let attempt = 0; attempt < 2; attempt += 1) {
@@ -485,10 +485,10 @@ describe('CFGM-03 idempotency: the retry gets the ORIGINAL receipt, both commits
   })
 })
 
-describe('D-07: undo is a proposal, and it rides the one gated write path', () => {
+describe('undo is a proposal, and it rides the one gated write path', () => {
   // RE-SPELLED 2026-10-01 (432-16): was '(10) with no agent config commit in history, the undo
   // refuses by name and files nothing'. There is no history source to consult at all.
-  it('(10) C432-NO-CONFIG-UNDO-PORT: the undo refuses unbound by name and files nothing', async () => {
+  it('(10) the undo refuses unbound by name and files nothing', async () => {
     await change(registryFor(), { path: 'use.timeout.step', value: '45s' })
     const before = repositoryState()
 
@@ -501,7 +501,7 @@ describe('D-07: undo is a proposal, and it rides the one gated write path', () =
 
   // RE-SPELLED 2026-10-01 (432-16): was '(11) undo restores the pre-mutation bytes EXACTLY, as one
   // more trailered agent commit'. A change is a plain edit, and git restores it exactly.
-  it('(11) C432-NO-CONFIG-UNDO-PORT: a change is undone with git restore, byte-exactly', async () => {
+  it('(11) a change is undone with git restore, byte-exactly', async () => {
     const seeded = readFileSync(configPath)
     await change(registryFor(), { path: 'use.timeout.step', value: '45s' })
     expect(readFileSync(configPath).equals(seeded)).toBe(false)
@@ -541,7 +541,7 @@ describe('D-07: undo is a proposal, and it rides the one gated write path', () =
 
   // RE-SPELLED 2026-10-01 (432-17, D-09): `config.undo.propose` and `config.proposal.apply` are
   // deleted, so the registry publishes no undo and no apply; a revert is `git restore` (11).
-  it('(14) there is no revert VERB — the registry publishes a propose op and nothing else (L10)', async () => {
+  it('(14) there is no revert VERB — the registry publishes a propose op and nothing else', async () => {
     // The checkable half of "one write path". If a direct-revert op is ever added, this cell is
     // where it shows up.
     const ids = registryFor().list(HUMAN).map((entry) => entry.id).filter((id) => id.startsWith('config.'))
@@ -553,7 +553,7 @@ describe('D-07: undo is a proposal, and it rides the one gated write path', () =
   })
 })
 
-describe('the config dir is NOT the repository root (395-11 · CR-03)', () => {
+describe('the config dir is NOT the repository root', () => {
   // RE-SPELLED 2026-10-01 (432-16): was '(15) an undo at sub/dir names the configDir-relative
   // member, modifies it, and restores its bytes'. The undo is unbound at sub/dir too; the change
   // lands on the configDir-relative member and a restore there is exact.
@@ -574,7 +574,7 @@ describe('the config dir is NOT the repository root (395-11 · CR-03)', () => {
   // RE-SPELLED 2026-10-01 (432-16): was '(16) a git answer naming a path OUTSIDE the pinned set is
   // refused by name, and nothing is filed'. The host asks git nothing, so there is no answer to
   // check: it carries no git invocation at all.
-  it('(16) C432-NO-CONFIG-UNDO-PORT: the CLI host asks git nothing — no log, no show, no spawn', () => {
+  it('(16) the CLI host asks git nothing — no log, no show, no spawn', () => {
     const host = code(join(__dirname, '..', 'local-agent-host.ts'))
     expect(host).toContain('export function createConfigWritePort')
     expect(host).not.toMatch(/['"]git['"]/)
@@ -603,7 +603,7 @@ describe('the config dir is NOT the repository root (395-11 · CR-03)', () => {
 // something is not refused and nothing is committed for them: their dirty bytes, their staged work
 // and the repository's HEAD stay exactly as they were, and a multi-file publication that stops part
 // way says which files it wrote.
-describe('C432-NO-GIT-COMMIT: the direct writer leaves a person\'s work and history alone', () => {
+describe('the direct writer leaves a person\'s work and history alone', () => {
   function directPort(): NonNullable<FunctionDeps['configWrite']> {
     const create = (hostModule as Record<string, unknown>).createConfigWritePort
     expect(typeof create, 'the direct config writer is exported').toBe('function')

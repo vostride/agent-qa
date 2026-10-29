@@ -218,7 +218,7 @@ async function submit(page: Page, door: Door = 'test', kind = 'confirmed-bug') {
   return composer
 }
 
-describe('419 real browser mark confirmation', () => {
+describe('real browser mark confirmation', () => {
   // RE-SPELLED 2026-09-30 (432-13): was 'asks on /api/run-confirm/channel; accept appends one
   // receipt and refetches its history'. One click records it; nothing is asked on the channel.
   it('records on one click with no approval; appends one receipt and refetches its history', async () => {
@@ -309,7 +309,7 @@ describe('419 real browser mark confirmation', () => {
     }, 45_000)
   }
 
-  it('C432-BROWSER-MARK-ONE-SUBMIT: one submit is one mark request, and a reload shows the applied change', async () => {
+  it('one submit is one mark request, and a reload shows the applied change', async () => {
     const s = await scene()
     await noConfirmChannel(s.page)
     // false-fail is the choice whose fix the fixture's mark host applies (the themes cell's own).

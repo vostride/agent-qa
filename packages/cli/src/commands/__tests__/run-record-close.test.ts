@@ -89,7 +89,7 @@ function rawRow(dbPath: string, runId: string): string {
   }
 }
 
-describe('C444-VERDICTLESS-CLOSE', () => {
+describe('a run that ends with no verdict closes its own row', () => {
   it('a run that ends with no verdict closes its own row failed with the plain sentence', async () => {
     const dir = configDir()
     const real = ownDatabase(dir)
@@ -200,7 +200,7 @@ function ownRecord(attributes = doorRunAttributes('cli')) {
   return record
 }
 
-describe('C444-RECORD-CLOSED', () => {
+describe('a closed run record refuses to open', () => {
   it('a record closed while its open is in flight releases the handle and refuses', async () => {
     const control = configDir()
     const opened = ownRecord()

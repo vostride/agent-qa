@@ -212,7 +212,7 @@ describe('the chain: the resolved count → the RunConfig the shell reads', () =
     expect(assembly.config.workers).toBe(4)
   })
 
-  it('leaves the field ABSENT for a sequential run, so the pre-402 RunConfig is unchanged', async () => {
+  it('leaves the field ABSENT for a sequential run, so its RunConfig has no workers member', async () => {
     for (const workers of [undefined, 1]) {
       const assembly = await assembleCliRun(assemblyInput(workers))
 

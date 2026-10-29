@@ -113,7 +113,7 @@ function healedRun(): CompletedRunHandoff {
   }
 }
 
-describe('C444.1-DISPATCH-PAIR', () => {
+describe('curation of a healed sub-action', () => {
   it('curation projects a healed sub-action from the pair it dispatched', () => {
     const candidates = projectCurationCandidates(healedRun())
     const [target] = candidates.filter((row) => row.kind === 'procedure')

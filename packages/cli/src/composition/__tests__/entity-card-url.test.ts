@@ -119,7 +119,7 @@ async function cardFor(dashboard: Record<string, unknown>): Promise<EntityCard> 
   return result as EntityCard
 }
 
-describe('the card url is derived through the real masked-config path (D-10)', () => {
+describe('the card url is derived through the real masked-config path', () => {
   it('renders the pinned route from a base the masker publishes verbatim', async () => {
     const card = await cardFor({
       baseUrl: 'https://qa.example.com',
@@ -151,7 +151,7 @@ describe('the card url is derived through the real masked-config path (D-10)', (
   })
 })
 
-describe('C441-CONFIG', () => {
+describe('the card url base path', () => {
   it('a card url keeps the base path prefix as written', async () => {
     const card = await cardFor({
       baseUrl: 'https://qa.example.com/qa',

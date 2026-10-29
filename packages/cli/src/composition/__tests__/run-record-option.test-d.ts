@@ -5,7 +5,7 @@ import type { InProcessCliRunExecutionOptions } from '../in-process-run-executio
 import type { ComposeCliLocalAgentInput } from '../local-agent-host.js'
 
 // 2026-10-17 (443-10, D-16): every drive call carries the record its door built.
-describe('C443-ONE-RECORD', () => {
+describe('every drive call carries the record its door built', () => {
   test("the drive's runRecord option is required and never undefined", () => {
     expectTypeOf<InProcessCliRunExecutionOptions['runRecord']>().toEqualTypeOf<RunRecord>()
     type Optional = object extends Pick<InProcessCliRunExecutionOptions, 'runRecord'> ? true : false
@@ -14,7 +14,7 @@ describe('C443-ONE-RECORD', () => {
     expectTypeOf<AdmitsUndefined>().toEqualTypeOf<false>()
   })
 
-  test("the CLI host's run bridge has no subscriber member", () => {
+  test("the CLI host's run bridge carries a record member", () => {
     type Bridge = NonNullable<ComposeCliLocalAgentInput['runBridge']>
     expectTypeOf<Extract<keyof Bridge, 'record'>>().toEqualTypeOf<'record'>()
   })

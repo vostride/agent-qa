@@ -514,7 +514,7 @@ describe('(3) THE RECONCILIATION — what each predicate is blind to, the other 
     ).toEqual([])
   })
 
-  it('EVERY REACHED HOLDER THE PIN DOES NOT SCAN IS NAMED — the 401-08 catch', () => {
+  it('EVERY REACHED HOLDER THE PIN DOES NOT SCAN IS NAMED', () => {
     // THIS is the assertion the self-check pattern cannot make about itself. If `PINNED_SET`'s
     // directories were narrowed tomorrow, cell (1) would stay green — its holders would still
     // equal its allow-list — and this one would red with the dropped module's name.

@@ -604,13 +604,13 @@ it('recovery enqueues a pending intent whose workspace has no declared secrets f
   expect(existsSync(f.pendingPath)).toBe(false)
 })
 
-it.each(['direct', 'suite'] as const)('CR-11 actual %s command keeps failed exit one when first SIGINT interrupts the real shared preparation wait', async (mode) => {
+it.each(['direct', 'suite'] as const)('actual %s command keeps failed exit one when first SIGINT interrupts the real shared preparation wait', async (mode) => {
   await commandSignalFixture(mode, 'post-verdict')
 }, 30_000)
 
 it.each((['direct', 'suite'] as const).flatMap(mode =>
   (['active-run', 'second-signal'] as const).map(timing => ({ mode, timing })),
-))('CR-11 actual $mode command retains $timing exit 130', async ({ mode, timing }) => {
+))('actual $mode command retains $timing exit 130', async ({ mode, timing }) => {
   await commandSignalFixture(mode, timing)
 }, 30_000)
 
@@ -690,7 +690,7 @@ async function commandSignalFixture(mode: 'direct' | 'suite', timing: 'post-verd
   expect(fetch).not.toHaveBeenCalled()
 }
 
-it('CR-11 actual --all command freezes an earlier suite failure into a passing direct result', async () => {
+it('actual --all command freezes an earlier suite failure into a passing direct result', async () => {
   const f = continuationFixture()
   isolateUpdateCheck()
   vi.spyOn(console, 'log').mockImplementation(() => undefined)

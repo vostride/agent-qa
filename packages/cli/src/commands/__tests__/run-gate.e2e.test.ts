@@ -233,9 +233,9 @@ const RETIRED_APPROVAL_TEXT = /\[y\/N\]|\[y\/a\/N\]|needs your approval|Proceed\
 
 // `agent-qa run` asks nobody. A CI job with stdin that is not a terminal starts a run; the piped
 // stdin below is held open and never written, so a run that waited on an answer would never exit.
-describe('C432-HEADLESS-START — CI with a non-TTY stdin starts the run (432-13)', () => {
+describe('CI with a non-TTY stdin starts the run', () => {
   it.each(['undeclared-thing', 'shared-thing'])(
-    'C432-HEADLESS-START: CI=true against a %s target starts, with no refusal, no prompt and no gate row',
+    'CI=true against a %s target starts, with no refusal, no prompt and no gate row',
     async (target) => {
       const result = await runCliWithEnv({ CI: 'true' }, `tests/${target}.yaml`)
 
@@ -285,7 +285,7 @@ describe('the CLI door starts a no-tty run, and --trust-session is gone', () => 
 // What discriminates them from a broken invocation is the paired control: the same binary, the
 // same target, the same piped stdio, one environment variable different — and the run starts,
 // writes `runStarted`, bumps the ordinal and knocks on the target.
-describe('the environment door cannot name a malformed or colliding run id (CR-04)', () => {
+describe('the environment door cannot name a malformed or colliding run id', () => {
   it('a MALFORMED AGENT_QA_RUN_ID is refused, and no run directory is created at all', async () => {
     const result = await runCliWithEnv(
       { AGENT_QA_RUN_ID: 'not-a-minted-id' },

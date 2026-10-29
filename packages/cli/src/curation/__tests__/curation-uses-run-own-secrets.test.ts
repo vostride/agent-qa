@@ -399,7 +399,7 @@ async function handedBackByB(p: Project, reasonPart: string): Promise<void> {
   nothingOfRunA(p)
 }
 
-describe('C442-RUN-CONFIG-CURATION', () => {
+describe('curation masks each run with its own secrets', () => {
   it(
     "run B's tail curates run A only under A's secrets (janitor)",
     async () => {
@@ -616,7 +616,7 @@ function temporaryFiles(p: Project, runId: string): string[] {
   return readdirSync(completedRunDir(p.agentQaRoot, runId)).filter((name) => name.endsWith('.tmp'))
 }
 
-describe('C442-RUN-CONFIG-CURATION', () => {
+describe('the run-config record', () => {
   it("a run's post-verdict step records its own config", async () => {
     for (const input of [{}, { gateRun: true as const }]) {
       const p = project({ sharedKnowledge: true })

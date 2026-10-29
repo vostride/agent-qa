@@ -12,7 +12,7 @@ import {
   MarkWriterLeaseBusyError,
 } from '../feedback-host.js'
 
-describe('mark refusals name the way out (261003-lgd)', () => {
+describe('mark refusals name the way out', () => {
   // 2026-10-03 (quick 261003-mqc): the target-not-found cell that stood here asserted a refusal
   // naming the intent file to remove. A refused planned fix now closes the mark under its own
   // identity with a not-applied receipt (mark-refused-fix-close.test.ts), and removing the intent

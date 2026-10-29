@@ -164,7 +164,7 @@ afterEach(() => {
   roots = []
 })
 
-describe('pumpAgentJobs — the kind-filtered, lease-holding drain (413 D-04/D-06)', () => {
+describe('pumpAgentJobs — the kind-filtered, lease-holding drain', () => {
   it('runs only analyze-run and leaves the curate-memory successor queued and unclaimed', async () => {
     const harness = makeHarness()
     await harness.enqueue('analyze-run', { runId: 'r_fixture', chain: true }, 'r_fixture')
@@ -435,7 +435,7 @@ function composedFixture(): ComposedFixture {
   }
 }
 
-describe('defaultAgentJobsOpsDeps — the composition the shipped pump runs (413-10 defect)', () => {
+describe('defaultAgentJobsOpsDeps — the composition the shipped pump runs', () => {
   it('persists analysis.json for a pumped analyze-run and leaves curate-memory unclaimed', async () => {
     const fixture = composedFixture()
 
@@ -617,7 +617,7 @@ describe('defaultAgentJobsOpsDeps — the composition the shipped pump runs (413
 // would hand the REAL handler the stand-in's empty `verdicts-authored` payload as recorded
 // authorship — it would author nothing and report `completed`, reproducing the defect exactly.
 
-describe('requeueAgentJob — returning a terminal agent job to the queue (413-14)', () => {
+describe('requeueAgentJob — returning a terminal agent job to the queue', () => {
   it('a requeued analyze-run runs its author again and re-chains its successor exactly once', async () => {
     const harness = makeHarness()
     await harness.enqueue('analyze-run', { runId: 'r_requeue', chain: true }, 'r_requeue')

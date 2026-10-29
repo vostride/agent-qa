@@ -346,7 +346,7 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe('the pinned config set answers for a project that has no config file (D-02/D-05)', () => {
+describe('the pinned config set answers for a project that has no config file', () => {
   it('(1) enumerates three members, and the scaffold writes exactly those it touches', async () => {
     // THE SHIPPED ENUMERATION, ASKED DIRECTLY. A project with no config file names no hooks file
     // either, so the answer comes from the default — which is the enumeration's own business and
@@ -370,7 +370,7 @@ describe('the pinned config set answers for a project that has no config file (D
   })
 })
 
-describe('the derivation is byte-pinned through the real producer (D-13/D-16)', () => {
+describe('the derivation is byte-pinned through the real producer', () => {
   for (const row of [
     { domain: 'booking.com', targetName: 'booking-com', golden: 'scaffold-booking-com.diff' },
     {
@@ -427,7 +427,7 @@ describe('the derivation is byte-pinned through the real producer (D-13/D-16)', 
   })
 })
 
-describe('the scaffold writes exactly the bytes it shows, in the call (CFGM-03/CFGM-04 · D-14)', () => {
+describe('the scaffold writes exactly the bytes it shows, in the call', () => {
   it('(5/6/7) writes with no confirm asked, and APPENDS the managed block to the project\'s own gitignore',
     async () => {
       const answer = applied(await scaffold(registryFor({ confirm: true }), 'booking.com'))
@@ -465,7 +465,7 @@ describe('the scaffold writes exactly the bytes it shows, in the call (CFGM-03/C
   })
 })
 
-describe('undoing a scaffold is WINDOWS 128\'s case, measured (D-07 · 395-06)', () => {
+describe('undoing a scaffold', () => {
   it('(11) a direct scaffold leaves no agent commit, so the undo has nothing to take back', async () => {
     // 432-11 D-07/D-09: the scaffold's files are plain edits a person reverts with git.
     // RE-SPELLED 2026-10-01 (432-16): the undo used to find no agent commit and refuse
@@ -486,7 +486,7 @@ describe('undoing a scaffold is WINDOWS 128\'s case, measured (D-07 · 395-06)',
   })
 })
 
-describe('a project that already has a configuration is refused, not overwritten (D-15)', () => {
+describe('a project that already has a configuration is refused, not overwritten', () => {
   it('(9) refuses `already-configured` for a config that DECLARES targets, and writes nothing',
     async () => {
       // A DESIGNED FIXTURE BREAK (395-12). This fixture used to be `workspace:\n  hooksFile: …` —
@@ -519,7 +519,7 @@ describe('a project that already has a configuration is refused, not overwritten
   })
 })
 
-describe('a configuration with ZERO declared targets is MERGED, never replaced (395-12 · SC-5)', () => {
+describe('a configuration with ZERO declared targets is MERGED, never replaced', () => {
   it('(13) inserts exactly one target entry and preserves every other byte of the person\'s config',
     async () => {
       seedZeroTargetConfig()
@@ -670,12 +670,12 @@ async function composedScaffoldId(): Promise<string> {
 // RE-SPELLED 2026-10-01 (432-17, D-05): `config.proposal.apply` is deleted, so each cell below is now
 // refused as an unknown function — still before any record or config is read, still never by the
 // pre-fix `Config file not found`, and still without consulting a confirm.
-describe('config.proposal.apply reaches its own answer from ZERO (395-12 · SC-5\'s third arm)', () => {
+describe('config.proposal.apply reaches its own answer from ZERO', () => {
   // RE-SPELLED 2026-09-30 (432-13, D-14/D-15): was '... with the confirm OBSERVED asked'.
   // RE-SPELLED 2026-10-01 (432-16, D-07): was '(14) applies a from-zero scaffold as ONE commit, with
   // no confirm asked'. The composed CLI host binds no config apply port, so the verb refuses by name
   // before it reads the record or the (absent) config — never the pre-fix `Config file not found`.
-  it('(14) a pre-432 from-zero scaffold record is refused unbound, and nothing is written or committed', async () => {
+  it('(14) an old from-zero scaffold proposal record is refused unbound, and nothing is written or committed', async () => {
     const id = await composedScaffoldId()
     const before = commitCount()
 
@@ -728,7 +728,7 @@ describe('config.proposal.apply reaches its own answer from ZERO (395-12 · SC-5
   })
 })
 
-describe('the config dir is NOT the repository root (395-11 · CR-03\'s create direction)', () => {
+describe('the config dir is NOT the repository root when a scaffold creates its files', () => {
   it('(12) a from-zero scaffold at sub/dir lands its three members THERE, once each, in one commit',
     async () => {
       const configDir = relocateToSubdir()
@@ -809,8 +809,8 @@ type ParsedConfig = {
   use?: { llm?: string }
 }
 
-describe('C432-TARGET-CREATE-ENVIRONMENT: the class reaches the committed file (D-19)', () => {
-  it('C432-TARGET-CREATE-ENVIRONMENT: a production create writes its declaration, read back through the shipped schema',
+describe('the class reaches the committed file', () => {
+  it('a production create writes its declaration, read back through the shipped schema',
     async () => {
       seedOneTargetConfig()
       applied(await createTarget(registryFor({ confirm: true }), {
@@ -828,7 +828,7 @@ describe('C432-TARGET-CREATE-ENVIRONMENT: the class reaches the committed file (
       expect(written.registry?.targets?.shop).toEqual({ platform: 'web', url: 'https://shop.example.com' })
     })
 
-  it('C432-TARGET-CREATE-ENVIRONMENT: a duplicate create is refused and the file is untouched', async () => {
+  it('a duplicate create is refused and the file is untouched', async () => {
     seedOneTargetConfig()
     const before = readFileSync(configPath, 'utf8')
     const answer = await createTarget(registryFor({ confirm: true }), {
@@ -843,7 +843,7 @@ describe('C432-TARGET-CREATE-ENVIRONMENT: the class reaches the committed file (
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
   })
 
-  it('C432-TARGET-CREATE-ENVIRONMENT: a Unicode label the registry refuses is blocked by validation, not rewritten',
+  it('a Unicode label the registry refuses is blocked by validation, not rewritten',
     async () => {
       seedOneTargetConfig()
       const answer = await createTarget(registryFor({ confirm: true }), {
@@ -862,8 +862,8 @@ describe('C432-TARGET-CREATE-ENVIRONMENT: the class reaches the committed file (
     })
 })
 
-describe('C432-LOCALHOST-ORIGIN: the local demo app scaffolds from zero (D-20 · #134)', () => {
-  it('C432-LOCALHOST-ORIGIN: http://127.0.0.1:8931 keeps its scheme and port and validates', async () => {
+describe('the local demo app scaffolds from zero', () => {
+  it('http://127.0.0.1:8931 keeps its scheme and port and validates', async () => {
     const answer = applied(await scaffold(registryFor({ confirm: true }), 'http://127.0.0.1:8931/form.html'))
 
     const derived = writtenConfig()
@@ -875,7 +875,7 @@ describe('C432-LOCALHOST-ORIGIN: the local demo app scaffolds from zero (D-20 ·
       .toBe('configure this project for http://127.0.0.1:8931 as target ip-127-0-0-1-8931')
   })
 
-  it('C432-LOCALHOST-ORIGIN: localhost and bracketed IPv6 loopback scaffold with their ports', async () => {
+  it('localhost and bracketed IPv6 loopback scaffold with their ports', async () => {
     for (const [domain, name, url] of [
       ['localhost:5173', 'localhost-5173', 'https://localhost:5173'],
       ['http://[::1]:3000', 'ipv6-loopback-3000', 'http://[::1]:3000'],
@@ -892,8 +892,8 @@ describe('C432-LOCALHOST-ORIGIN: the local demo app scaffolds from zero (D-20 ·
   })
 })
 
-describe('C432-LOCALHOST-ORIGIN: retries and rewritten spellings (D-20 · #134)', () => {
-  it('C432-LOCALHOST-ORIGIN: a second scaffold of an applied local origin is refused, and the file is kept',
+describe('local origin retries and rewritten spellings', () => {
+  it('a second scaffold of an applied local origin is refused, and the file is kept',
     async () => {
       const registry = registryFor({ confirm: true })
       applied(await scaffold(registry, 'http://localhost:3000'))
@@ -908,7 +908,7 @@ describe('C432-LOCALHOST-ORIGIN: retries and rewritten spellings (D-20 · #134)'
       expect(readFileSync(configPath, 'utf8')).toBe(written)
     })
 
-  it('C432-LOCALHOST-ORIGIN: a spelling the parser would rewrite into loopback writes nothing', async () => {
+  it('a spelling the parser would rewrite into loopback writes nothing', async () => {
     for (const domain of ['http://127.1:3000', 'http://2130706433/', 'ftp://localhost']) {
       const answer = await scaffold(registryFor({ confirm: true }), domain)
       expect(answer, domain).toMatchObject({ outcome: 'refused', reason: 'not-a-hostname' })
@@ -918,8 +918,8 @@ describe('C432-LOCALHOST-ORIGIN: retries and rewritten spellings (D-20 · #134)'
   })
 })
 
-describe('C432-SCAFFOLD-LLMS: the scaffold keeps the model registry and its selection (D-20 · #130)', () => {
-  it('C432-SCAFFOLD-LLMS: the zero-target merge writes every model entry and the selected model',
+describe('the scaffold keeps the model registry and its selection', () => {
+  it('the zero-target merge writes every model entry and the selected model',
     async () => {
       seedZeroTargetConfig()
       applied(await scaffold(registryFor({ confirm: true }), 'http://localhost:3000'))
@@ -939,7 +939,7 @@ describe('C432-SCAFFOLD-LLMS: the scaffold keeps the model registry and its sele
       expect(readFileSync(join(root, '.gitignore'), 'utf8').startsWith(SEEDED_GITIGNORE)).toBe(true)
     })
 
-  it('C432-SCAFFOLD-LLMS: the merge does not repair an inconsistent selection — validation refuses it', async () => {
+  it('the merge does not repair an inconsistent selection — validation refuses it', async () => {
     writeFileSync(configPath, ZERO_TARGET_CONFIG.replace('  llm: judge\n', '  llm: ghost\n'))
     git('add', '--', CONFIG_FILE)
     git('commit', '--quiet', '-m', 'a selection naming no registered model')
@@ -949,7 +949,7 @@ describe('C432-SCAFFOLD-LLMS: the scaffold keeps the model registry and its sele
     expect(answer.outcome === 'blocked' && answer.validationIssues?.join('\n')).toContain('ghost')
   })
 
-  it('C432-SCAFFOLD-LLMS: the from-zero producer writes the model entries it is given, with a coherent selection',
+  it('the from-zero producer writes the model entries it is given, with a coherent selection',
     () => {
       const entries = [
         { name: 'judge', provider: 'openai-subscription', model: 'gpt-5.6-terra' },
@@ -1003,7 +1003,7 @@ describe('C432-SCAFFOLD-LLMS: the scaffold keeps the model registry and its sele
   // carries a domain and nothing else, and from zero there is no configuration to read a model
   // from, so it passes no model entries (D-13: none is invented). #130's from-zero half therefore
   // stays bare; only the merge half (a zero-target config keeps its own `registry.llms`) is fixed.
-  it('C261003-CPV-SCAFFOLD-PORT-NO-MODEL: the production port renders no model half from zero', async () => {
+  it('the production port renders no model half from zero', async () => {
     const rendered = await createScaffoldContentPort().render({
       targetName: 'booking-com',
       baseUrl: 'https://booking.com',
@@ -1016,7 +1016,7 @@ describe('C432-SCAFFOLD-LLMS: the scaffold keeps the model registry and its sele
     expect(AgentQaConfigSchema.safeParse(config).success).toBe(true)
   })
 
-  it('C432-SCAFFOLD-LLMS: with no model given, the from-zero config carries no model half and still validates',
+  it('with no model given, the from-zero config carries no model half and still validates',
     () => {
       const files = buildScaffoldFileSet({
         cacheDir: '.agent-qa/cache',
@@ -1085,8 +1085,8 @@ async function waitUntil(condition: () => boolean): Promise<boolean> {
   return true
 }
 
-describe('C432-CONFIG-SIX-OPS: the scaffold writes every file before it answers', () => {
-  it('C432-CONFIG-SIX-OPS: a from-zero scaffold publishes three files, commits nothing and files nothing',
+describe('the scaffold writes every file before it answers', () => {
+  it('a from-zero scaffold publishes three files, commits nothing and files nothing',
     async () => {
       const before = commitCount()
       const answer = await invokeFunction(
@@ -1106,8 +1106,8 @@ describe('C432-CONFIG-SIX-OPS: the scaffold writes every file before it answers'
     })
 })
 
-describe('C432-CONFIG-MULTIFILE-TRUTH: a partial publication reports exactly what it wrote', () => {
-  it('C432-CONFIG-MULTIFILE-TRUTH: the config changing in its turn stops the scaffold after .gitignore',
+describe('a partial publication reports exactly what it wrote', () => {
+  it('the config changing in its turn stops the scaffold after .gitignore',
     async () => {
       const serialize = (dashboard as Record<string, unknown>).serializeConfigWrite as
         | (<T>(path: string, work: () => Promise<T>) => Promise<T>)

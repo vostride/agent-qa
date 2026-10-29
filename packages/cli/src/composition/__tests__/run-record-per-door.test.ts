@@ -169,7 +169,7 @@ async function postRun(scene: Scene, project: Fixture): Promise<string> {
   return runId as string
 }
 
-describe('C443-RUN-RECORD', () => {
+describe('one run record per door', () => {
   it('a runs.start through the shared host writes one row under the returned id, stamped with this process', async () => {
     const project = fixture()
     const ack = await startThroughHost(project, { patterns: [project.testPattern] })
@@ -205,7 +205,7 @@ describe('C443-RUN-RECORD', () => {
   }, RUN_BUDGET_MS)
 })
 
-describe('C443-RECORD-PATH', () => {
+describe('the runs.db a run record writes', () => {
   it("a run naming another config writes that config's runs.db", async () => {
     const host = fixture()
     const other = fixture()

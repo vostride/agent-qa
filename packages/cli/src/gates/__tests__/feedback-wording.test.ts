@@ -18,7 +18,7 @@ vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), gen
 const declared = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz'))
 const declaredMask = (text: string) => declared.redactString(text)
 
-describe('419 bounded feedback wording', () => {
+describe('bounded feedback wording', () => {
   let root: string
   let input: WordingInput
   let model: ReturnType<typeof vi.fn<typeof createModel>>
@@ -134,7 +134,7 @@ describe('419 bounded feedback wording', () => {
   })
 })
 
-describe('C441-EGRESS', () => {
+describe('a declared value in feedback wording', () => {
   let root: string | undefined
   afterEach(() => { vi.restoreAllMocks(); if (root) rmSync(root, { recursive: true, force: true }) })
 

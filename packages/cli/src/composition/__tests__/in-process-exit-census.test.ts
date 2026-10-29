@@ -233,7 +233,7 @@ function reachableFromPinnedExports(): Map<string, RunTsDeclaration> {
   return reached
 }
 
-describe('(ii) no module on the in-process path can terminate its host (T-401-31)', () => {
+describe('(ii) no module on the in-process path can terminate its host', () => {
   it('the discovery set is pinned to named members and has a floor', () => {
     const closure = inProcessModuleClosure().map((file) => file.slice(CLI_SRC.length + 1))
     // Named known members: the entry point, the assembler it composes, and the file whose producers

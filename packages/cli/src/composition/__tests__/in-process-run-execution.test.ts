@@ -89,7 +89,7 @@ function plain(lines: readonly string[]): string[] {
   return lines.map((line) => line.replace(/\[[0-9;]*m/g, ''))
 }
 
-describe('the in-process run path refuses inputs instead of terminating its host (401-11, T-401-31)', () => {
+describe('the in-process run path refuses inputs instead of terminating its host', () => {
   it('a missing env file is a typed refusal carrying the command’s own line and exit code 1', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -184,7 +184,7 @@ describe('the in-process run path refuses inputs instead of terminating its host
     }
   })
 
-  it('a test file that parses to zero runnable tests is the RUNX-06 refusal, exit code 2', async () => {
+  it('a test file that parses to zero runnable tests is refused with exit code 2', async () => {
     const files = ['/tmp/whatever/tests/empty.yaml']
     const refusal = await refusalFrom(async () => { refuseZeroRunnableTests(files, []) })
     expect(plain(refusal.lines)).toEqual([
@@ -345,7 +345,7 @@ function handoffs(fixture: { project: string; suitePattern: string }): unknown[]
     .map((path) => JSON.parse(readFileSync(path, 'utf8')) as unknown)
 }
 
-describe('a door holding only a RunsStartInput gets a policy-gated run, in process (401-11)', () => {
+describe('a door holding only a RunsStartInput gets a policy-gated run, in process', () => {
   it('THE COMPOSABILITY CELL — { patterns } and a posture, and a real run happens', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -548,7 +548,7 @@ describe('a door holding only a RunsStartInput gets a policy-gated run, in proce
 // pair now pins, both ways round. The injected context is still what the run carries
 // (`resolveExecutionContext: () => input.executionContext` in run-composition); its only reader until
 // 432-19 is the in-run gate hook, which no action of this fixture reaches.
-describe('C432-DOOR-NONPRODUCTION: a shared target starts whatever the injected or ambient context (432-13)', () => {
+describe('a shared target starts whatever the injected or ambient context', () => {
   it.each([
     { ambient: 'local-interactive', injected: 'ci' },
     { ambient: 'ci', injected: 'local-interactive' },
@@ -578,7 +578,7 @@ describe('C432-DOOR-NONPRODUCTION: a shared target starts whatever the injected 
 // port was its only consumer; no door asks about a run any more. What stays true on the door's own
 // road is the reach half: a two-target invocation drives BOTH declared targets. The disclosure text
 // itself keeps its unit cells beside `buildRunDisclosure` until 432-18/19 retire it.
-describe('the CLI door drives every target a two-target invocation names (401-14, W-1; 432-13)', () => {
+describe('the CLI door drives every target a two-target invocation names', () => {
   it('a TWO-TARGET shared invocation starts and probes both declared targets', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -603,7 +603,7 @@ describe('the CLI door drives every target a two-target invocation names (401-14
   }, 120_000)
 })
 
-describe('the run-start baseline is taken PER MEMBER and deduped by URL (401-19, WR-04)', () => {
+describe('the run-start baseline is taken PER MEMBER and deduped by URL', () => {
   it('two members naming two different web targets: each target is probed, once', async () => {
     // The direct producer's road. Both targets declare `local`, so the run is allowed with no
     // confirm and the only axis left is which URLs assembly reaches for.
@@ -724,7 +724,7 @@ describe('the run-start baseline is taken PER MEMBER and deduped by URL (401-19,
 // 441-58 (D-14): the drive writes no masking-digests sidecar beside events.jsonl
 // ---------------------------------------------------------------------------
 
-describe('a dashboard-launched run leaves no masking-digests sidecar (441-58, D-14)', () => {
+describe('a dashboard-launched run leaves no masking-digests sidecar', () => {
   it('a run directory holds events.jsonl and no masking-digests.json', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -806,7 +806,7 @@ function onlyStepText(lines: readonly string[]): string {
   return stepTexts[0]!
 }
 
-describe('C441-RUN-RECORDS', () => {
+describe('declared secrets in in-process run records', () => {
   it("an in-process run's events.jsonl holds the declared marker and the email as written", async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -906,7 +906,7 @@ describe('C441-RUN-RECORDS', () => {
 
 // 2026-10-17 (443-08, D-05): a runs.start that names a suite opens its record before the suite is
 // prepared, so an unopenable runs.db refuses it before any plugin loads.
-describe('C443-RECORD-REFUSAL', () => {
+describe('a suite run opens its record before preparing the suite', () => {
   it('a runs.start whose pattern is a suite opens the record before preparing the suite', async () => {
     const target = new CountingTarget()
     await target.listen()

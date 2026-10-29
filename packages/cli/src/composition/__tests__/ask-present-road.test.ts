@@ -197,7 +197,7 @@ afterEach(() => {
 })
 
 describe('agent-qa ask, at a terminal, over a project with nothing to test against', () => {
-  it('(A2) with NO presentation port bound the scaffold still writes and the turn authors — nothing asks',
+  it('with NO presentation port bound the scaffold still writes and the turn authors — nothing asks',
     async () => {
       // THE SHIPPED PRE-FIX SHAPE, EXACTLY. `ask.ts` bound no `chatPresent` and passed no confirm,
       // so `composeCliLocalAgent` supplied `createTtyConfirmPort()` — a real prompt a person can
@@ -241,7 +241,7 @@ describe('agent-qa ask, at a terminal, over a project with nothing to test again
       expect(filedProposals()).toHaveLength(0)
     })
 
-  it('(A1) with the port bound the change is RENDERED once it is written, and nothing asks for it',
+  it('with the port bound the change is RENDERED once it is written, and nothing asks for it',
     async () => {
       // THE GUARD-ACCEPTS CONTROL, and it carries two claims at once.
       //

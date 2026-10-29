@@ -208,7 +208,7 @@ async function queued(scene: Scene, path: string, body: unknown): Promise<string
   return runId as string
 }
 
-describe('C443-DOOR-TRIGGER', () => {
+describe('the trigger each run door records', () => {
   it('fn records cli', async () => {
     const project = fixture()
     const host = composeCliLocalAgent({ agentQaRoot: project.agentQaRoot, configPath: project.configPath })

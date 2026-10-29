@@ -164,8 +164,8 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe('the 395-05 actions over the real ports (D-01)', () => {
-  it('(C1) creates a target as one house-style block, written to the file in the call', async () => {
+describe('the target and hook actions over the real ports', () => {
+  it('creates a target as one house-style block, written to the file in the call', async () => {
     const answer = await call('config.target.create', {
       name: 'shop',
       platform: 'web',
@@ -181,7 +181,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
     expect(filed).toHaveLength(0)
   })
 
-  it('(C2) refuses a collision, with candidates read off the REAL document', async () => {
+  it('refuses a collision, with candidates read off the REAL document', async () => {
     const answer = await call('config.target.create', {
       name: 'local-form',
       platform: 'web',
@@ -197,7 +197,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
     expect(writtenText()).toBe(SEEDED_CONFIG)
   })
 
-  it('(C3) every comment in the committed file survives a structured write', async () => {
+  it('every comment in the committed file survives a structured write', async () => {
     await call('config.target.create', {
       name: 'shop',
       platform: 'web',
@@ -215,7 +215,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
     }
   })
 
-  it('(C4) an edit at a FIXED path answers differently for two values', async () => {
+  it('an edit at a FIXED path answers differently for two values', async () => {
     const near = await call('config.target.edit', {
       name: 'local-form',
       changes: { url: 'http://127.0.0.1:8931/other.html' },
@@ -234,7 +234,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
     expect(far.crossBoundaryReasons).toEqual(['new-origin'])
   })
 
-  it('(C5) a credential in an auth reference is refused, and the file is never opened for writing',
+  it('a credential in an auth reference is refused, and the file is never opened for writing',
     async () => {
       // 2026-10-02 (quick 261002-ctr): carried in `pluginPackage` (was `authStateName`, deleted).
       const answer = await call('config.auth.set', {
@@ -248,7 +248,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
       expect(readFileSync(configPath, 'utf8')).toBe(SEEDED_CONFIG)
     })
 
-  it('(H1) a hook is appended with an id the REAL canonical check accepts', async () => {
+  it('a hook is appended with an id the REAL canonical check accepts', async () => {
     const answer = await call('config.hook.add', {
       name: 'Seed the cart',
       runtime: 'node',
@@ -275,7 +275,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
     expect(content).toContain('name: Seed the cart')
   })
 
-  it('(H2) the REAL hooks schema validates the candidate — an unreadable duration blocks', async () => {
+  it('the REAL hooks schema validates the candidate — an unreadable duration blocks', async () => {
     // `HookDefinitionSchema.timeout` is refined through `ms()`, and the ACTION's DTO accepts any
     // non-empty string, so this is a candidate only whole-input validation can refuse. It reds on
     // the validator this code had before 395-05, which read the config yaml and nothing else.
@@ -293,7 +293,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
     expect(answer.validationIssues?.join(' ')).toContain('Invalid duration format')
   })
 
-  it('(H3) CONTROL: the same hook with a readable duration is written', async () => {
+  it('CONTROL: the same hook with a readable duration is written', async () => {
     // WITHOUT THIS, (H2) would pass against a validator that refuses every hooks file. The control
     // is what makes the refusal a fact about the duration rather than about the file.
     const answer = await call('config.hook.add', {
@@ -306,7 +306,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
     expect(writtenText('hooks.yaml')).toContain('timeout: 45s')
   })
 
-  it('(H4) a duplicate hook NAME is refused by the hooks schema, not by this code', async () => {
+  it('a duplicate hook NAME is refused by the hooks schema, not by this code', async () => {
     // The refinement lives in `core`'s `HooksFileSchema`, and this cell is what says the pipeline
     // reaches it. An op that had grown its own duplicate check would be a second, weaker copy.
     const answer = await call('config.hook.add', {
@@ -319,7 +319,7 @@ describe('the 395-05 actions over the real ports (D-01)', () => {
     expect(answer.validationIssues?.join(' ')).toContain('Duplicate hook name')
   })
 
-  it('(H5) a project with no hooks file gets one, and it validates', async () => {
+  it('a project with no hooks file gets one, and it validates', async () => {
     rmSync(join(root, 'hooks.yaml'))
     const answer = await call('config.hook.add', {
       name: 'Seed the cart',
@@ -458,8 +458,8 @@ async function runAllSix(door: typeof viaHost): Promise<void> {
     : []).toEqual([])
 }
 
-describe('C432-CONFIG-SIX-OPS: every config operation writes in the call through the real host', () => {
-  it('C432-CONFIG-SIX-OPS: all six through the composed host in a dirty repository leave git alone',
+describe('every config operation writes in the call through the real host', () => {
+  it('all six through the composed host in a dirty repository leave git alone',
     async () => {
       writeFileSync(configPath, ZERO_TARGET_CONFIG)
       gitIn(root, 'init', '--quiet')
@@ -480,7 +480,7 @@ describe('C432-CONFIG-SIX-OPS: every config operation writes in the call through
       expect(readFileSync(configPath, 'utf8')).toContain('  # mine\n')
     })
 
-  it('C432-CONFIG-SIX-OPS: all six through agent-qa fn in a directory with no repository', async () => {
+  it('all six through agent-qa fn in a directory with no repository', async () => {
     writeFileSync(configPath, ZERO_TARGET_CONFIG)
     writeFileSync(join(root, '.env.secrets.local'), '')
     expect(spawnSync('git', ['rev-parse', '--git-dir'], { cwd: root, encoding: 'utf8' }).status)
@@ -521,7 +521,7 @@ function settle(ms = 50): Promise<void> {
 // configuration has no such key, so through real whole-config validation `config.auth.set`,
 // `config.target.create` and `config.target.edit` answered `blocked / schema-fail` on every call that
 // used it. The field is deleted from all three. These cells are the absence witness and the reason.
-describe('C261002-CTR-NO-AUTH-STATE-FIELD: the committed configuration binds no auth state, so no op takes one', () => {
+describe('the committed configuration binds no auth state, so no op takes one', () => {
   it('the REAL whole-config validation refuses an auth-state binding at both places an op could write it', async () => {
     const validate = createConfigValidatePort()
     const candidate = (text: string) => validate.validate({
@@ -568,8 +568,8 @@ describe('C261002-CTR-NO-AUTH-STATE-FIELD: the committed configuration binds no 
   })
 })
 
-describe('C432-CONFIG-THREE-OPS: the direct write meets an outside edit in its own turn', () => {
-  it('C432-CONFIG-THREE-OPS: a field set keeps an outside edit to another field, and its diff is its own',
+describe('the direct write meets an outside edit in its own turn', () => {
+  it('a field set keeps an outside edit to another field, and its diff is its own',
     async () => {
       const { held, release } = await holdTurn(configPath)
       const pending = call('config.field.set', { path: 'use.parallel', value: true })
@@ -590,7 +590,7 @@ describe('C432-CONFIG-THREE-OPS: the direct write meets an outside edit in its o
       expect(readFileSync(configPath, 'utf8')).toBe(outside.replace('parallel: false', 'parallel: true'))
     })
 
-  it('C432-CONFIG-THREE-OPS: a create whose name is taken while it waits refuses, keeps the outside target, and a retry says why',
+  it('a create whose name is taken while it waits refuses, keeps the outside target, and a retry says why',
     async () => {
       const { held, release } = await holdTurn(configPath)
       const pending = call('config.target.create', {
@@ -626,8 +626,8 @@ describe('C432-CONFIG-THREE-OPS: the direct write meets an outside edit in its o
     })
 })
 
-describe('C432-CONFIG-MULTIFILE-TRUTH: a whole-file write that meets an outside edit says exactly what happened', () => {
-  it('C432-CONFIG-MULTIFILE-TRUTH: a hooks file edited while the write waited is not overwritten, and a retry lands on the edit',
+describe('a whole-file write that meets an outside edit says exactly what happened', () => {
+  it('a hooks file edited while the write waited is not overwritten, and a retry lands on the edit',
     async () => {
       const hooksPath = join(root, 'hooks.yaml')
       const { held, release } = await holdTurn(hooksPath)
@@ -665,7 +665,7 @@ describe('C432-CONFIG-MULTIFILE-TRUTH: a whole-file write that meets an outside 
       expect(filed).toHaveLength(0)
     })
 
-  it('C432-CONFIG-MULTIFILE-TRUTH: CONTROL: with no outside edit the same hook is written whole, first time',
+  it('CONTROL: with no outside edit the same hook is written whole, first time',
     async () => {
       const answer = await call('config.hook.add', {
         name: 'Seed the cart',
@@ -681,7 +681,7 @@ describe('C432-CONFIG-MULTIFILE-TRUTH: a whole-file write that meets an outside 
 // host, so it refuses unbound by name instead of answering the proposal union's `no-agent-commit`
 // refusal. The claim it guarded — nothing is written, committed or filed — is unchanged.
 // RE-SPELLED 2026-10-01 (432-17, D-09): the undo op is deleted, so it is refused as an unknown function.
-describe('retained control: config.undo.propose still files its own proposal until 432-17', () => {
+describe('config.undo.propose is refused as an unknown function', () => {
   it('the undo answers the proposal union and, with no agent commit, refuses by name and writes nothing', async () => {
     gitIn(root, 'init', '--quiet')
     gitIn(root, 'config', 'user.name', 'agent-qa undo control')
@@ -699,7 +699,7 @@ describe('retained control: config.undo.propose still files its own proposal unt
   })
 })
 
-describe('C441-GAP3-WRITE-BACK', () => {
+describe('config.hook.add with a shown marker', () => {
   const MARKED_HOOK = { name: '[secret:X]-login', runtime: 'node', file: 'hooks/[secret:X]-login.ts' }
 
   // The fields arm's marker_written_back clause, read off a real refusal on the same host.

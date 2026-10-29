@@ -173,7 +173,7 @@ interface ProbeResult {
   readonly error?: unknown
 }
 
-describe('one human ask, N gated runs, driven from the authoring loop (D-08 · UAT 9 · WR-03)', () => {
+describe('one human ask, N gated runs, driven from the authoring loop', () => {
   it('THE STORE SURVIVES EVERY PRODUCTION FRAME — and reaches nobody outside the dispatch', async () => {
     const target = new CountingTarget()
     await target.listen()

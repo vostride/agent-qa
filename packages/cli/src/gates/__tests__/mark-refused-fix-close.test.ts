@@ -25,7 +25,7 @@ function markTokens(f: ReturnType<typeof markFixture>, markId: string): number {
     event.evidenceToken === `mark:${markId}`).length
 }
 
-describe('a refused planned fix closes the mark under its own identity (261003-mqc)', () => {
+describe('a refused planned fix closes the mark under its own identity', () => {
   it.each(['target-not-found', 'policy-materialize-refused'] as const)(
     'a knowledge fix answered %s: one not-applied receipt, evidence once, and the run takes a new mark',
     async outcome => {

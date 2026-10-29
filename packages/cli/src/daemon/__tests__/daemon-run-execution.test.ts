@@ -318,7 +318,7 @@ async function dispatchThroughDaemon(input: {
   return { acknowledged, refusal, analyticsEvents: sent, hostErrors, stdoutWrites: writesToStdout }
 }
 
-describe('the daemon dispatches runs through the in-process core (401-06, INVK-02)', () => {
+describe('the daemon dispatches runs through the in-process core', () => {
   it(
     'PARITY — the dispatched run happens in process: job analytics, a run-completed daemon event, and NO capture files',
     async () => {
@@ -456,9 +456,9 @@ describe('the daemon dispatches runs through the in-process core (401-06, INVK-0
 
 // 432-13 (D-01/D-14): the worker carries its detected posture and asks nobody. A dispatched run
 // against a shared target starts under the carried `local-headless`, whatever the ambient says.
-describe('C432-DAEMON-DIRECT — the worker starts a non-production run with no approval (432-13)', () => {
+describe('the worker starts a non-production run with no approval', () => {
   it(
-    'C432-DAEMON-DIRECT: a shared-target run dispatched to the daemon starts under the carried local-headless context',
+    'a shared-target run dispatched to the daemon starts under the carried local-headless context',
     async () => {
       const target = new CountingTarget()
       await target.listen()
@@ -655,7 +655,7 @@ function daemonReachableModules(entry: string): { modules: string[]; unresolved:
   return { modules: [...seen].sort(), unresolved }
 }
 
-describe('the daemon has no capture-file writer and no piped-child consumer (401-06, D-01/D-04)', () => {
+describe('the daemon has no capture-file writer and no piped-child consumer', () => {
   const DAEMON_ENTRY = join(CLI_SRC, 'daemon', 'host.ts')
 
   /** Named here rather than read off the scan: a walker that stops reaching these must FAIL. */
@@ -724,7 +724,7 @@ describe('the daemon has no capture-file writer and no piped-child consumer (401
 })
 
 // 2026-10-17 (443-06, D-02): the daemon's runs reach runs.db through the same record as every door.
-describe('C443-DAEMON-RECORD', () => {
+describe('the run record of a daemon-dispatched run', () => {
   it('a run the daemon dispatches writes its row, stamped with the daemon, trigger cli', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -758,7 +758,7 @@ describe('C443-DAEMON-RECORD', () => {
 })
 
 // 2026-10-21 (447-08, D-16): a dispatched run reports its outcome beside the job event, printing nothing.
-describe('C447-DAEMON-OUTCOME', () => {
+describe('the run outcome of a daemon-dispatched run', () => {
   it('a daemon-dispatched run emits its run outcome beside the job event', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -800,7 +800,7 @@ const AGENT_MARKERS = [
 ] as const
 
 // 2026-10-21 (447-09, D-14): a job is attributed to its submitter, never to the daemon's launcher.
-describe('C447-DAEMON-CONTEXT', () => {
+describe('the submitter agent of a daemon job', () => {
   it('a daemon job reports its submitter agent product, and unknown when none was carried', async () => {
     const target = new CountingTarget()
     await target.listen()

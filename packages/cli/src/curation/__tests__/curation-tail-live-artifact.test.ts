@@ -212,7 +212,7 @@ const sentinelShapedProposal = JSON.stringify({
   ],
 })
 
-describe('F-381-48-1 live-artifact staged reproduction (Plan 381-49)', () => {
+describe('the live-artifact staged reproduction', () => {
   it('fixture faithfulness: handoff bytes are the live run bytes and no receipt rode along', () => {
     const digest = createHash('sha256')
       .update(readFileSync(join(fixtureDir, HANDOFF_FILE)))

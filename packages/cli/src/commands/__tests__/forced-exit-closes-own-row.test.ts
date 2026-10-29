@@ -70,7 +70,7 @@ function rawRow(dbPath: string, runId: string): string {
 
 const count = (text: string, needle: string): number => text.split(needle).length - 1
 
-describe('C444-SIGNAL-ASKS', () => {
+describe("signals and the forced exit close only this process's own running row", () => {
   it('the first signal cancels the session and arms the grace timer, and nothing else', () => {
     const deps: ShutdownControllerDeps = {
       cancel: vi.fn(),

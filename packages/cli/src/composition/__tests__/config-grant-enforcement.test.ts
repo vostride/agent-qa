@@ -211,10 +211,10 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe('a config change applies in the call and records no approval (D-05, D-15)', () => {
+describe('a config change applies in the call and records no approval', () => {
   // RE-SPELLED 2026-10-01 (432-16): was the headless denial of `proposals.accept` (before 432-13)
   // and then its mint-side refusal with no ask. The change is now made directly.
-  it('(M0) CONTROL: headless, a flagged change applies with no ask and writes no grant', async () => {
+  it('CONTROL: headless, a flagged change applies with no ask and writes no grant', async () => {
     await mintGrant(UNRELATED_CLASS)
     const before = ledgerBytes()
 
@@ -228,7 +228,7 @@ describe('a config change applies in the call and records no approval (D-05, D-1
 
   // RE-SPELLED 2026-10-01 (432-16): was 'refuses the mint, applies anyway, and leaves the ledger
   // byte-identical'. There is no mint to refuse; the change carries its reasons as data.
-  it('C432-NO-GIT-COMMIT: (M1) a flagged change lands, names its reasons, and leaves the ledger and history alone', async () => {
+  it('a flagged change lands, names its reasons, and leaves the ledger and history alone', async () => {
     await mintGrant(UNRELATED_CLASS)
     const before = ledgerBytes()
     expect(before).toBeDefined()
@@ -246,7 +246,7 @@ describe('a config change applies in the call and records no approval (D-05, D-1
 
   // RE-SPELLED 2026-10-01 (432-16): was 'an in-scope proposal accepted with --always DOES record
   // one'. No change records an approval now, in scope or not.
-  it('C432-NO-GIT-COMMIT: (M2) an in-scope change lands with no reasons and records nothing either', async () => {
+  it('an in-scope change lands with no reasons and records nothing either', async () => {
     await mintGrant(UNRELATED_CLASS)
     const before = ledgerBytes()
 
@@ -261,7 +261,7 @@ describe('a config change applies in the call and records no approval (D-05, D-1
 
   // 432-16 task 2: the retry edge. A repeated flagged change is the same change: it answers
   // no-change, writes nothing, and still records no approval.
-  it('C432-NO-GIT-COMMIT: (M1b) retrying the flagged change answers no-change and records nothing', async () => {
+  it('retrying the flagged change answers no-change and records nothing', async () => {
     await mintGrant(UNRELATED_CLASS)
     const before = ledgerBytes()
     await change(FLAGGED)
@@ -281,8 +281,8 @@ describe('a config change applies in the call and records no approval (D-05, D-1
   })
 })
 
-describe('C432-NO-CONFIG-UNDO-PORT: the pre-432 apply and undo verbs are unbound on the CLI host', () => {
-  it('C432-NO-CONFIG-UNDO-PORT: the host exports no undo source or config apply port', () => {
+describe('the retired config apply and undo verbs are unbound on the CLI host', () => {
+  it('the host exports no undo source or config apply port', () => {
     const exported = Object.keys(cliHost)
     for (const name of [
       'createConfigUndoSourcePort',
@@ -301,7 +301,7 @@ describe('C432-NO-CONFIG-UNDO-PORT: the pre-432 apply and undo verbs are unbound
 
   // RE-SPELLED 2026-10-01 (432-17, D-05/D-09): both verbs are deleted, so they are not listed at all
   // and each is refused as an unknown function; the undo still reads no history and files nothing.
-  it('C432-NO-CONFIG-UNDO-PORT: both verbs are listed unbound, and the undo reads no history and files nothing', async () => {
+  it('both verbs are listed unbound, and the undo reads no history and files nothing', async () => {
     const host = composeCliLocalAgent({ agentQaRoot, configPath })
     try {
       const listed = new Map(host.registry.list(CLI_FUNCTION_CALLER).map((entry) => [entry.id, entry]))
@@ -322,7 +322,7 @@ describe('C432-NO-CONFIG-UNDO-PORT: the pre-432 apply and undo verbs are unbound
     expect(commitCount()).toBe(1)
   })
 
-  it('C432-NO-CONFIG-UNDO-PORT: an unknown id is refused unbound before any record is read', async () => {
+  it('an unknown id is refused unbound before any record is read', async () => {
     const host = composeCliLocalAgent({ agentQaRoot, configPath })
     try {
       await expect(invokeFunction(
@@ -339,18 +339,18 @@ describe('C432-NO-CONFIG-UNDO-PORT: the pre-432 apply and undo verbs are unbound
 
 // 2026-10-01 (432-17): "refused unbound" became "refused as an unknown function" with the apply's
 // deletion; the claims (nothing committed, the grant does not decide) are unchanged.
-describe('a pre-432 record is refused unbound, grant or no grant (D-07, D-22)', () => {
+describe('an old proposal record is refused unbound, grant or no grant', () => {
   // RE-SPELLED 2026-10-01 (432-16): (R3) with no grant the flagged apply applied directly after
   // 432-13; (R1) a covering grant did not match a flagged record; (R2) the same grant admitted an
   // in-scope one; (R4) a doctored flag with no reasons was still refused. With no config apply port
   // bound, every one of them is refused by name above every mutation, so the grant is no longer
   // what decides and nothing is committed.
   it.each([
-    ['(R3) a flagged record with no grant', FLAGGED, false, false],
-    ['(R1) a flagged record under a covering grant', FLAGGED, true, false],
-    ['(R2) an in-scope record under the same grant', IN_SCOPE, true, false],
-    ['(R4) a record doctored to carry the flag with no reasons', IN_SCOPE, true, true],
-  ] as const)('C432-NO-GIT-COMMIT: %s is refused unbound and commits nothing', async (
+    ['a flagged record with no grant', FLAGGED, false, false],
+    ['a flagged record under a covering grant', FLAGGED, true, false],
+    ['an in-scope record under the same grant', IN_SCOPE, true, false],
+    ['a record doctored to carry the flag with no reasons', IN_SCOPE, true, true],
+  ] as const)('%s is refused unbound and commits nothing', async (
     _label, input, grant, doctor,
   ) => {
     if (grant) await mintGrant(CONFIG_APPLY_CLASS)
@@ -375,7 +375,7 @@ describe('a pre-432 record is refused unbound, grant or no grant (D-07, D-22)', 
 
   // RE-SPELLED 2026-10-01 (432-18) from '(B) the grant read still folds the committed ledger until
   // 432-18 deletes it': the read is deleted with the ledger.
-  it('C432-NO-GRANT-OPS: (B) the grant read is an unknown function, and the old ledger is untouched', async () => {
+  it('the grant read is an unknown function, and the old ledger is untouched', async () => {
     await mintGrant(CONFIG_APPLY_CLASS)
     const before = ledgerBytes()
     const host = composeCliLocalAgent({ agentQaRoot, configPath })

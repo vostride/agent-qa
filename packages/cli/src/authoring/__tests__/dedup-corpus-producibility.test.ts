@@ -54,7 +54,7 @@ const SUITE_FILES = readdirSync(SUITE_DIR)
   .filter((entry) => entry.endsWith('.yaml'))
   .sort()
 
-describe('the dedup corpus suite side is producible by the shipped parser (CR-01)', () => {
+describe('the dedup corpus suite side is producible by the shipped parser', () => {
   it('walks the whole suite directory, and the frozen table names exactly those documents', () => {
     // A vacuous walk is the failure mode an `it.each` cannot report: zero files yields zero cells
     // and a green file. Both directions are pinned here — the directory is non-empty, and the

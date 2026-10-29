@@ -165,7 +165,7 @@ function committedFilesUnder(dir: string): string[] {
     .filter((file) => !relative(dir, file).startsWith(join('memory', 'index')))
 }
 
-describe('C441-GAP-CURATION', () => {
+describe('curation candidates queue declared values only masked', () => {
   it("a fact candidate's seeds, anchors and natural keys are queued only masked", () => {
     const root = mkdtempSync(join(tmpdir(), 'c441-gap-fact-'))
     try {
@@ -334,7 +334,7 @@ function typedSlot(input: {
   }
 }
 
-describe('C441-GAP2-CURATION', () => {
+describe('a typed value that contains a declared value', () => {
   it('a typed value that only contains a declared value is queued as a masked literal', () => {
     const { slot, payloads } = typedSlot({
       runId: 'r-c441-gap2-extra',

@@ -173,12 +173,12 @@ function pinAmbient(value: 'ci' | 'local-interactive' | 'local-headless', ciMark
 // 432-13 (D-01/D-14/D-15): the fn/chat/MCP door's runs.start asks nobody. An undeclared or shared
 // target starts from a CI or headless context with the one call, and no decision row is written at
 // either gate because neither gate exists.
-describe('C432-DOOR-NONPRODUCTION — the host door starts a non-production run in one call (432-13)', () => {
+describe('the host door starts a non-production run in one call', () => {
   it.each([
     ['undeclared', undefined, 'ci'],
     ['shared', 'shared', 'local-headless'],
   ] as const)(
-    'C432-DOOR-NONPRODUCTION: a %s target (environment %s) from %s starts and is acknowledged, with no gate row',
+    'a %s target (environment %s) from %s starts and is acknowledged, with no gate row',
     async (_label, environment, context) => {
       const target = new CountingTarget()
       await target.listen()
@@ -283,7 +283,7 @@ describe('the fn/MCP door starts a run and asks nothing', () => {
   }, 120_000)
 })
 
-describe('the empty-input and suite edges of a bare runs.start (401-05, INVK-02)', () => {
+describe('the empty-input and suite edges of a bare runs.start', () => {
   it('AN ARGUMENT-LESS runs.start RESOLVES THE CONFIGURED DEFAULT SET — both members of it ran', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -384,7 +384,7 @@ function digestsUnder(dir: string): Record<string, string> {
   return digests
 }
 
-describe('the typed door refuses a malformed or colliding run id (CR-04)', () => {
+describe('the typed door refuses a malformed or colliding run id', () => {
   it('a PATH-SHAPED id is refused by the CODEC, before the op runs at all', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -527,7 +527,7 @@ describe('the typed door refuses a malformed or colliding run id (CR-04)', () =>
 // `daemon/host.ts`, and 10,575 of `android/src/adapter.ts`. Measured: under the two-pass stripper
 // E1 below returns SIX files and the daemon door is not one of them. Under the one-pass
 // alternation it returns seven. A census cannot be more complete than its stripper.
-describe('the door census — every way a caller can name a run id (CR-04)', () => {
+describe('the door census — every way a caller can name a run id', () => {
   const PACKAGES_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..')
 
   /**

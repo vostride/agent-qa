@@ -554,7 +554,7 @@ function addBundles(deltas: Delta[]) {
   })
 }
 
-describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
+describe('procedure-extraction author path', () => {
   it('yields whole-flow and sub-flow Add deltas whose bodies round-trip the codec', async () => {
     const outcome = await author([wholeFlowPlusSubFlow])(procedureJob(), [])
 
@@ -629,7 +629,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     expect(bundle!.body).not.toContain('/evil')
   })
 
-  it('force-parameterizes a masked-secret value the proposal missed (D-03)', async () => {
+  it('force-parameterizes a masked-secret value the proposal missed', async () => {
     const outcome = await author([wholeFlowPlusSubFlow])(procedureJob(), [])
     if (outcome.kind !== 'authored') throw new Error('expected authored outcome')
     const [wholeFlow] = addBundles(outcome.deltas)
@@ -876,7 +876,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     )
   })
 
-  it('states the span-replayability and flowName-echo contract rules in the prompt (G-381-1)', async () => {
+  it('states the span-replayability and flowName-echo contract rules in the prompt', async () => {
     const { author: run, prompts } = capturingAuthor([wholeFlowPlusSubFlow])
     await run(procedureJob(), [])
 
@@ -892,7 +892,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     expect(system).toMatch(/never by (a )?new|never invent|verbatim/i)
   })
 
-  it('marks each presented trajectory step replayable by the builder predicate (G-381-1)', async () => {
+  it('marks each presented trajectory step replayable by the builder predicate', async () => {
     const { author: run, prompts } = capturingAuthor([naiveWholeFlowProposal])
     await run(liveShapedJob(), [])
 
@@ -921,7 +921,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     ])
   })
 
-  it('clamps a naive whole-flow span off its non-replayable tail and builds (G-381-1)', async () => {
+  it('clamps a naive whole-flow span off its non-replayable tail and builds', async () => {
     const outcome = await author([naiveWholeFlowProposal])(liveShapedJob(), [])
 
     expect(outcome.kind).toBe('authored')
@@ -935,7 +935,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     expect(payload?.successAssertion).toBe('The checkout page is shown')
   })
 
-  it('pins the delta flow anchor to seed.flowName against an invented proposal name (G-381-1)', async () => {
+  it('pins the delta flow anchor to seed.flowName against an invented proposal name', async () => {
     const outcome = await author([naiveWholeFlowProposal])(liveShapedJob(), [])
     if (outcome.kind !== 'authored') throw new Error('expected authored outcome')
     const [bundle] = addBundles(outcome.deltas)
@@ -971,7 +971,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     })
   })
 
-  it('still rejects a span whose INTERIOR step is non-replayable (contiguity, D-02)', async () => {
+  it('still rejects a span whose INTERIOR step is non-replayable (contiguity)', async () => {
     const proposal = JSON.stringify({
       candidates: [
         {
@@ -1010,7 +1010,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     expect(outcome).toEqual({ kind: 'fallback-required', reason: 'malformed' })
   })
 
-  it('names the ACTUAL per-candidate constraint in procedure retry feedback (G-381-1)', async () => {
+  it('names the ACTUAL per-candidate constraint in procedure retry feedback', async () => {
     const proposal = JSON.stringify({
       candidates: [
         {
@@ -1036,7 +1036,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     expect(retry).toMatch(/flowName/)
   })
 
-  it('shows sourceName on rendered value slots and demands it in the prompt (G-381-3)', async () => {
+  it('shows sourceName on rendered value slots and demands it in the prompt', async () => {
     const { author: run, prompts } = capturingAuthor([sourcedProposal('PROBE_USER', 'PROBE_TOKEN')])
 
     await run(sourcedJob(), [])
@@ -1052,7 +1052,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
     expect(prompts[0]!.system).toMatch(/sourceName/)
   })
 
-  it('commits the binding names against a proposal that invented its own (G-381-3)', async () => {
+  it('commits the binding names against a proposal that invented its own', async () => {
     const outcome = await author([sourcedProposal('username', 'probe_token')])(sourcedJob(), [])
     if (outcome.kind !== 'authored') throw new Error('expected authored outcome')
     const payload = parseProcedureBody(addBundles(outcome.deltas)[0]!.body)
@@ -1241,7 +1241,7 @@ describe('procedure-extraction author path (PROC-01 D-02/D-03)', () => {
   })
 })
 
-describe('C438-PROCEDURE-WRITE', () => {
+describe('procedure names and row words as written', () => {
   const WRITE_PAGE = 'https://shop.example/invoices'
 
   function writeElement(
@@ -1432,7 +1432,7 @@ describe('C438-PROCEDURE-WRITE', () => {
 // after the page shifted is projected and authored into a procedure body that names the elements
 // the healed input was sent to. The evidence comes from two real `executeStep` runs, not a
 // hand-built fixture, so the pair curation reads is the pair the loop recorded.
-describe('C438-HEALED-BODY', () => {
+describe("a healed action's procedure body", () => {
   const HEALED_PAGE = 'https://shop.example/editor'
 
   function healedScreen(nodes: InterimNode[]): ScreenState {
@@ -1652,7 +1652,7 @@ describe('C438-HEALED-BODY', () => {
   })
 })
 
-describe('C441-CURATION', () => {
+describe('declared secrets in curated candidates', () => {
   const DECLARED = 'Hunter-42-zz'
   const EMAIL = 'qa@example.com'
   const PAGE = 'https://shop.example/account'
@@ -1819,7 +1819,7 @@ describe('C441-CURATION', () => {
   })
 })
 
-describe('C441-GAP2-CURATION', () => {
+describe('a typed value that contains a declared value', () => {
   it('a typed value that only contains a declared value is never authored as the secret parameter', async () => {
     const redactor = new SecretRedactor(new SecretStore({ PW: 'hunter2' }))
     const handoff: CompletedRunHandoff = {

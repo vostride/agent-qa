@@ -345,7 +345,7 @@ function project(
   })
 }
 
-describe('projectCanaryOutcomes (PROM-02/D-21)', () => {
+describe('projectCanaryOutcomes', () => {
   it('attributes a normalized resolved-element contact to one positive step outcome', async () => {
     const outcomes = project(handoff([step()]), new Map([[CANDIDATE, [{
       t: 'el',
@@ -620,7 +620,7 @@ describe('emitCanaryOutcomes', () => {
   )
 })
 
-describe('projectCanaryOutcomes planSource attribution (PROC-02/D-11/D-12)', () => {
+describe('projectCanaryOutcomes planSource attribution', () => {
   const procedureAnchors = new Map([[PROCEDURE, PROCEDURE_ANCHORS]])
 
   it('projects a positive procedure outcome for a verified-PASS replayed step', async () => {
@@ -853,7 +853,7 @@ describe('projectCanaryOutcomes planSource attribution (PROC-02/D-11/D-12)', () 
     }
   })
 
-  it('projects channel1 and planSource outcomes independently from one step (Pin 1)', async () => {
+  it('projects channel1 and planSource outcomes independently from one step', async () => {
     const outcomes = project(
       handoff([step({ planSource: replaySource() })]),
       new Map<string, Anchor[]>([
@@ -901,7 +901,7 @@ describe('projectCanaryOutcomes planSource attribution (PROC-02/D-11/D-12)', () 
  * the root-cause classifier gate (D-11), the PROC-01 zero-replay empty projection, and
  * Pin 1 (served-brief) attribution.
  */
-describe('F-381-51-1 obs 3: verdict-gated positive procedure canaries (381-53)', () => {
+describe('verdict-gated positive procedure canaries', () => {
   const FIXTURE_PROCEDURE = asRecordId(
     'procedure-flow-t-posing-clock-inject-pill-adds-i-29ff61a3638ac355',
   )
@@ -966,7 +966,7 @@ describe('F-381-51-1 obs 3: verdict-gated positive procedure canaries (381-53)',
       .toEqual([])
   })
 
-  it('P1: a passing test keeps one positive per verified-PASS replayed step (380 D-21)', async () => {
+  it('a passing test keeps one positive per verified-PASS replayed step', async () => {
     const outcomes = project(
       handoff([
         step({ stepIndex: 0, candidateIds: [], planSource: replaySource() }),
@@ -991,7 +991,7 @@ describe('F-381-51-1 obs 3: verdict-gated positive procedure canaries (381-53)',
     ])
   })
 
-  it('P2: a staleness miss in a failed test still projects a negative (D-11)', async () => {
+  it('a staleness miss in a failed test still projects a negative', async () => {
     const outcomes = project(
       handoff(
         [step({
@@ -1009,7 +1009,7 @@ describe('F-381-51-1 obs 3: verdict-gated positive procedure canaries (381-53)',
     ])
   })
 
-  it('P3: the classifier gate keeps misses silent on non-attributable failures', async () => {
+  it('the classifier gate keeps misses silent on non-attributable failures', async () => {
     for (const excluded of ['environment', 'timeout', 'flake'] as const) {
       expect(project(
         handoff(
@@ -1025,7 +1025,7 @@ describe('F-381-51-1 obs 3: verdict-gated positive procedure canaries (381-53)',
     }
   })
 
-  it('P4: zero procedure-replay steps project zero procedure attributions (PROC-01 empty edge)', async () => {
+  it('zero procedure-replay steps project zero procedure attributions', async () => {
     const outcomes = project(
       handoff([step({ stepIndex: 0 }), step({ stepIndex: 1, pass: false })]),
       new Map<string, Anchor[]>([
@@ -1041,7 +1041,7 @@ describe('F-381-51-1 obs 3: verdict-gated positive procedure canaries (381-53)',
       .toHaveLength(2)
   })
 
-  it('P5: served-brief (Pin 1) attribution over the verbatim fixture keeps its exact counts', async () => {
+  it('served-brief attribution over the verbatim fixture keeps its exact counts', async () => {
     const fixture = loadCompletedRunHandoff(fixturePath)
     const outcomes = project(fixture, fixtureAnchors())
 
@@ -1120,7 +1120,7 @@ describe('emitCanaryOutcomes procedure counters', () => {
 
 // ————— 389-06: the D-10 attribution rewire + the SC2 cross-run supersession differential —————
 
-describe('SC2 — the cross-run supersession differential (389-06, D-10)', () => {
+describe('the cross-run supersession differential', () => {
   const RUN_A = 'run-supersession-aaa'
   const RUN_B = 'run-supersession-bbb'
   const CANDIDATE_ANCHOR: Anchor = { t: 'el', role: 'button', name: 'checkout', ordinal: 0 }
@@ -1230,7 +1230,7 @@ describe('SC2 — the cross-run supersession differential (389-06, D-10)', () =>
     expect(report.unresolved).toBe(0)
   })
 
-  it('SC2: two runs and a supersession — exactly ONE attributed observation per (runId, testId)', async () => {
+  it('two runs and a supersession — exactly ONE attributed observation per (runId, testId)', async () => {
     const log: CanaryOutcome[] = []
     const dirA = tempRunDir()
     const dirB = tempRunDir()
@@ -1267,7 +1267,7 @@ describe('SC2 — the cross-run supersession differential (389-06, D-10)', () =>
     for (const outcome of log) expect(outcome.runOutcome).toBe('negative')
   })
 
-  it('a foreign artifact on run B\'s OWN dir never flips B\'s attribution (G-389-3A)', async () => {
+  it("a foreign artifact on run B's OWN dir never flips B's attribution", async () => {
     // The two-sided-contract pin law again, at the fold's loader: the file is PRESENT on
     // B's own runDir in BOTH legs — only the recorded runId varies. A copied/restored run
     // directory is run A's bytes on B's path; admission by identity keeps B on its floor.
@@ -1294,7 +1294,7 @@ describe('SC2 — the cross-run supersession differential (389-06, D-10)', () =>
     expect(controlReport.unresolved).toBe(0)
   })
 
-  it('reads verdicts through the D-10 accessor only (source pin + grep gate)', async () => {
+  it('reads verdicts through resolveRunVerdicts only (source pin + grep gate)', async () => {
     const source = readFileSync(
       new URL('../emit-canary-outcomes.ts', import.meta.url),
       'utf8',
@@ -1305,7 +1305,7 @@ describe('SC2 — the cross-run supersession differential (389-06, D-10)', () =>
     expect(source.split('test.rootCause').length - 1).toBe(0)
   })
 
-  it('run_outcome_applied_runs holds through the upgrade — a re-fold never double-counts (T-389-15)', async () => {
+  it('run_outcome_applied_runs holds through the upgrade — a re-fold never double-counts', async () => {
     const { applyRunOutcomes, indexDbPath, projectRunOutcomes, readTestOutcomeHistory } =
       await vi.importActual<typeof import('@vostride/agent-qa-knowledge-local')>(
         '@vostride/agent-qa-knowledge-local',

@@ -280,7 +280,7 @@ describe('the run button never asks: a click starts the run', () => {
   // address the browser) is retired — no scope is written or read, which C432-DASHBOARD-RUN-DIRECT
   // pins. HALF TWO survives for rows written before 432-14: a row that still holds a scope never
   // hands it back on a read.
-  it('CR-02 — the queue still addresses the triggering browser, and no read-path response hands the scope back (401-18)', async () => {
+  it('the queue still addresses the triggering browser, and no read-path response hands the scope back', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -360,7 +360,7 @@ describe('the run button never asks: a click starts the run', () => {
     }
   }, 240_000)
 
-  it('NO LIVE CHANNEL — the trigger is headless, nobody is asked, and the run starts (Pitfall 3)', async () => {
+  it('NO LIVE CHANNEL — the trigger is headless, nobody is asked, and the run starts', async () => {
     // The honest-claim rule's other arm survives: with nobody holding a channel the trigger does
     // not claim interactivity. It no longer decides whether the run may start.
     const target = new CountingTarget()
@@ -389,8 +389,8 @@ describe('the run button never asks: a click starts the run', () => {
 // run door, which entered it around `runs.start`. All of that is deleted with the run-confirm pair:
 // the click is the request, the queue dispatches it, and nothing names or waits for a browser.
 
-describe('C432-DASHBOARD-RUN-DIRECT', () => {
-  it('C432-DASHBOARD-RUN-DIRECT: one trigger request starts the run, and a stray scope field is neither kept nor forwarded', async () => {
+describe('a dashboard trigger starts its run directly', () => {
+  it('one trigger request starts the run, and a stray scope field is neither kept nor forwarded', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -458,7 +458,7 @@ function runMetadataBearingReads(runId: string): readonly string[] {
   ]
 }
 
-describe('G-401-18-CR01 — the confirm scope leaves on no door and can be planted on no run', () => {
+describe('the confirm scope leaves on no door and can be planted on no run', () => {
   // RE-SPELLED 2026-10-01 (432-14, D-14/D-22): the trigger no longer writes a scope, so the run is
   // planted in exactly the two places `JobQueue.enqueue` wrote one before 432-14 — the row and the
   // artifact payload — as a database carried over from then would hold it. Everything after the

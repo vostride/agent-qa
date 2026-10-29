@@ -130,8 +130,8 @@ afterEach(() => {
   rmSync(root, { recursive: true, force: true })
 })
 
-describe('CFGM-03 / D-06: an accepted config apply cascades into nothing', () => {
-  it('(Z1) the job store is deep-equal across the accept, and (Z2) the same probe DOES see an enqueue',
+describe('an accepted config apply cascades into nothing', () => {
+  it('the job store is deep-equal across the accept, and the same probe DOES see an enqueue',
     async () => {
       const host = composeCliLocalAgent({
         agentQaRoot,
@@ -202,8 +202,8 @@ describe('CFGM-03 / D-06: an accepted config apply cascades into nothing', () =>
 
 // 2026-09-30, 432-07 D-05/D-07: the same absence for the direct writer. A config change is a file
 // edit and nothing else: it starts no run and enqueues no job, and it makes no commit either.
-describe('C432-CONFIG-DIRECT: a direct config write cascades into nothing', () => {
-  it('(Z4) the job store and the runs directory are unchanged across a direct write, and the probe still sees an enqueue',
+describe('a direct config write cascades into nothing', () => {
+  it('the job store and the runs directory are unchanged across a direct write, and the probe still sees an enqueue',
     async () => {
       const host = composeCliLocalAgent({
         agentQaRoot,

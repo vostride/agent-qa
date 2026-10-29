@@ -39,7 +39,7 @@ function eventEnvelopes(fixture: { project: string }): RunEventEnvelope[] {
   })
 }
 
-describe('G-428-2: the recorded run announces its step texts at testStarted (428-28)', () => {
+describe('the recorded run announces its step texts at testStarted', () => {
   it('STEP-TEXTS-RIDE-TESTSTARTED', async () => {
     const target = new CountingTarget()
     await target.listen()

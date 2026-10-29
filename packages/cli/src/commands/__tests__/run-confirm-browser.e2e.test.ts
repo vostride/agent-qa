@@ -379,11 +379,11 @@ function startedContext(scene: Scene, runId: string): unknown {
   return started?.payload?.executionContext
 }
 
-describe('the run trigger confirm loop, closed through a real browser (UAT item 15, Truth 6)', () => {
+describe('the run trigger confirm loop, closed through a real browser', () => {
   // RE-SPELLED 2026-10-01 (432-14): was 'SINGLE CONFIRM — the EventSource carries the scope, and
   // clicking Run starts the run with no dialog' (432-13). The page holds no channel and the trigger
   // carries no scope, so the claim is now the click itself: one request, one run.
-  it('C432-BROWSER-RUN-ONE-CLICK: one click is one trigger request, and a non-production run starts at once', async () => {
+  it('one click is one trigger request, and a non-production run starts at once', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -432,7 +432,7 @@ describe('the run trigger confirm loop, closed through a real browser (UAT item 
 
   // RE-SPELLED 2026-09-30 (432-13): was 'OVERLAPPING CONFIRMS — the arriving question WAITS ...'
   // (G-401-15). Two clicks now start two runs and no question is raised, queued or reaped.
-  it('OVERLAPPING CONFIRMS — two clicks start two runs, and no question is raised, queued or reaped (G-401-15)', async () => {
+  it('OVERLAPPING CONFIRMS — two clicks start two runs, and no question is raised, queued or reaped', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {

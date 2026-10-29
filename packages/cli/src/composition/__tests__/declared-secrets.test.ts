@@ -80,7 +80,7 @@ function refusalOf(run: () => unknown): DeclaredSecretsUnavailableError {
   throw new Error('expected a DeclaredSecretsUnavailableError')
 }
 
-describe('C441-LOADER', () => {
+describe('the declared secrets loader', () => {
   it('the mask names each value declared in workspace.secretsFile', () => {
     const { configPath } = project(`SHORT=q^7\nLONG=${LONG}\n`)
     const { mask } = createDeclaredSecretMask(configPath)
@@ -173,7 +173,7 @@ describe('C441-LOADER', () => {
   })
 })
 
-describe('C441-GAP-LOADER', () => {
+describe('the loader follows a rewritten config', () => {
   it('one mask follows the secrets file a rewritten config names', () => {
     const { root, configPath } = project(null, { secretsFile: 'a.secrets' })
     writeFileSync(join(root, 'a.secrets'), 'A_441=alpha-value-1\n')
@@ -209,7 +209,7 @@ const usage = {
   outputTokens: { total: 0, text: 0, reasoning: 0 },
 }
 
-describe('C441-EGRESS', () => {
+describe('a declared value at model egress', () => {
   it('a declared value reaches a recording model as its named marker', async () => {
     const { configPath } = project(`SHORT=q^7\nLONG=${LONG}\n`)
     const { mask } = createDeclaredSecretMask(configPath)

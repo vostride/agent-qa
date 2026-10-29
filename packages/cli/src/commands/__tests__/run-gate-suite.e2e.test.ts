@@ -69,7 +69,7 @@ describe('the CLI suite path starts a no-tty run', () => {
 // SUITE: `probeHits: ["/suite-thing","/suite-thing"]`, `build-ordinals.json` present, a full
 // `runStarted…runFinished` event log, a handoff, exit 1. The suite path simply had no `--dry-run`
 // handling; only the single-test path did. Every assertion below is red on that build.
-describe('--dry-run stops before the core on the suite path (RESEARCH Open Q2 / D-02)', () => {
+describe('--dry-run stops before the core on the suite path', () => {
   it('reports the suite and its members, and starts nothing — not even a gate decision', async () => {
     const fixture = fixtureFor('local')
 

@@ -175,7 +175,7 @@ const PRODUCER_SEED: RunAttributes = {
   team: 'checkout',
 }
 
-describe('C443-RECORD-FLUSH', () => {
+describe("a rejected run's record is finalized", () => {
   it('a run that rejects after its session started still finalizes its record', async () => {
     posixOnly()
     const project = fixture()
@@ -232,7 +232,7 @@ describe('C443-RECORD-FLUSH', () => {
   }, RUN_BUDGET_MS)
 })
 
-describe('C443-RECORD-RUNNER', () => {
+describe("a queued run's record attributes", () => {
   it("a queued run keeps its routes' attributes over the producer's", async () => {
     posixOnly()
     const project = fixture()

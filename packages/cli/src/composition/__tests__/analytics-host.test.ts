@@ -323,7 +323,7 @@ describe('composeAnalyticsHost', () => {
   })
 })
 
-describe('the composition-root census (398-14, D-19 · ANLY-01)', () => {
+describe('the composition-root census', () => {
   it('discovers EXACTLY the five shipped composition roots — a sixth reds by absence', () => {
     const discovered = compositionRootCallSites()
       .map((site) => site.file)
@@ -374,7 +374,7 @@ describe('the composition-root census (398-14, D-19 · ANLY-01)', () => {
   // client's shutdown count afterwards — a bigger instrument than this item warrants. What this
   // cell buys is that the drain cannot be silently deleted: removing one awaited call reds here
   // with the count named.
-  it("drains the memoised analytics host before the run action's terminal exits (398-15, WR-06)", () => {
+  it("drains the memoised analytics host before the run action's terminal exits", () => {
     const runCommand = shippedSourceFiles(CLI_SRC).find(
       (file) => file.slice(CLI_SRC.length) === 'commands/run.ts',
     )
@@ -480,7 +480,7 @@ function eventCarrying(host: CliAnalyticsHost, text: string): AgentQaAnalyticsEv
   } as AgentQaAnalyticsEvent
 }
 
-describe('C441-ANALYTICS', () => {
+describe('declared secrets in analytics payloads', () => {
   it('a declared value in an analytics property leaves as its named marker', async () => {
     const configPath = declaringProject('SHORT_441=q^7\n')
     const { host, sent } = await shippedSendPath({ mask: createDeclaredSecretMask(configPath).mask })
@@ -534,7 +534,7 @@ describe('C441-ANALYTICS', () => {
   })
 })
 
-describe('C447-NO-TRANSPORT', () => {
+describe('an opted-out host builds no transport', () => {
   it('an opted-out or blank-key host constructs no transport and resolves no identity', async () => {
     const optedOutFactory = vi.fn(() => recordingTransport())
     const override = { capture: vi.fn(), flush: vi.fn(), shutdown: vi.fn() }
@@ -596,7 +596,7 @@ function nextTurn(): Promise<void> {
   return new Promise((resolve) => setImmediate(resolve))
 }
 
-describe('C447-IDENTITY-BOUND', () => {
+describe('identity resolution is bounded', () => {
   it('a stalled identity resolution releases composition at the bound and nothing is sent under any id', async () => {
     // Loaded before the clock is faked, so a dynamic import by the host resolves from the cache.
     await import('@vostride/agent-qa-agent-local')
@@ -670,7 +670,7 @@ afterAll(() => {
   for (const root of c447Roots) rmSync(root, { recursive: true, force: true })
 })
 
-describe('C447-CI-DETECTOR', () => {
+describe('CI classification through the execution-context detector', () => {
   it('the host classifies CI through the execution-context detector and passes it to identity resolution', async () => {
     const arms: {
       readonly label: string
@@ -709,7 +709,7 @@ describe('C447-CI-DETECTOR', () => {
   })
 })
 
-describe('C447-CI-DISTINCT', () => {
+describe('distinct CI identities per composition', () => {
   it('two CI compositions carry two different ci_ ids, each one stable across its own events', async () => {
     vi.stubEnv('CI', '1')
     const home = mkdtempSync(join(tmpdir(), 'agent-qa-447-ci-home-'))

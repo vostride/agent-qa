@@ -141,7 +141,7 @@ afterAll(async () => {
   removeInProcessFixtures()
 })
 
-describe('cancelling one of two concurrently executing dashboard runs (401 UAT 14 / truth 5, D-12)', () => {
+describe('cancelling one of two concurrently executing dashboard runs', () => {
   it('ABORTS THE NAMED RUN MID-FLIGHT AND LEAVES THE OTHER TO ITS OWN VERDICT, EACH UNDER ITS OWN runId', async () => {
     const target = new CountingTarget()
     await target.listen()
