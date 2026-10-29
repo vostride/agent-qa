@@ -190,15 +190,13 @@ export function createEvalCommand(): Command {
               ...(opts.product === undefined ? {} : { product: opts.product }),
             })
             if (opts.json) {
-              // D-04/Pitfall 11: exactly one JSON document on stdout — typed skips are DATA
-              // inside the DTO, and any notice belongs on stderr.
+              // One JSON document on stdout; typed skips are DTO data, and notices go to stderr.
               console.log(guardJsonText(JSON.stringify(result, null, 2)))
             } else {
               printSummary(renderExtractSummary(result))
             }
           } catch (err) {
-            // EvalNamedInputError and config/session resolution errors are the only
-            // failure modes — the command layer maps them all to exit code 1.
+            // Named-input, config and session resolution errors are the only failures, all exit 1.
             printFailure(err)
             process.exitCode = 1
           } finally {
@@ -262,15 +260,13 @@ export function createEvalCommand(): Command {
               ...(opts.product === undefined ? {} : { product: opts.product }),
             })
             if (opts.json) {
-              // D-04/Pitfall 11: exactly one JSON document on stdout — refusal counters, judge
-              // dispositions, and notices are DATA inside the DTO; progress already rode stderr.
+              // One JSON document on stdout; counters and notices are data; progress is on stderr.
               console.log(guardJsonText(JSON.stringify(result, null, 2)))
             } else {
               printSummary(renderReplaySummary(result))
             }
           } catch (err) {
-            // typed named-input/config/auth errors are the only failure modes — refusal
-            // counters and judge errors are data and never reach this catch.
+            // Typed input, config and auth errors land here; counters and judge errors are data.
             printFailure(err)
             process.exitCode = 1
           } finally {

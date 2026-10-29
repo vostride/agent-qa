@@ -1,14 +1,9 @@
-// The instructions `init` hands coding agents (431 D-14..D-18 · PXH-AGENT-01/02): the thin
-// generated guide at `agent-qa-knowledge/AGENTS.md`, and the root pointer's block body.
-//
-// NO IMPORTS, deliberately. `scripts/validate-agent-instructions.mjs` loads this file straight from
-// source to lint the exact bytes init writes, so it must stay plain erasable TypeScript.
+// No imports, because `validate-agent-instructions.mjs` loads this source to lint init's bytes.
 
 export const KNOWLEDGE_SKILL_NAME = 'agent-qa-knowledge'
 
 export const CODING_AGENTS_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
 
-/** Transitional: M7 makes agent setup default-on and may retire it. */
 export const WRITE_AGENT_INSTRUCTIONS_FLAG = '--write-agent-instructions'
 
 export interface AgentQuestion {
@@ -17,7 +12,7 @@ export interface AgentQuestion {
   readonly mcp: string
 }
 
-/** One question per read, each answered by a D-11 verb and its D-04 tool; the run map first. */
+// One question per read, each answered by a verb and its tool; the run map first.
 export const AGENT_QUESTION_MAP: readonly AgentQuestion[] = Object.freeze([
   {
     question: 'What happened in a run, and where is everything it recorded?',
@@ -115,7 +110,7 @@ export function buildKnowledgeAgentGuide(): string {
   ].join('\n')
 }
 
-/** The root pointer's block body, written between the D-19 markers or printed with them. */
+// The root pointer's block body, written between the managed markers or printed with them.
 export function buildAgentInstructionPointer(): readonly string[] {
   return Object.freeze([
     '## agent-qa',

@@ -1,15 +1,4 @@
-// SESSION-04 / RUNX-02 (D1): the CLI's run-level SIGINT, SIGTERM and SIGHUP controller (SIGHUP
-// since 444-25, D-60). Extracted from the inline `handleShutdown` in run.ts so the
-// first-vs-second-signal contract is unit-testable in isolation with plain injected seams (no real
-// signals, no real timers).
-//
-// The FIRST signal asks: it marks exit code 130, routes the abort into the active RunSession cancel
-// and arms the unref'd force-exit backstop (owned by the caller, so the 361-13 anchors stay in
-// run.ts). It writes nothing and never force-exits; a clean settle exits through the verdict map.
-//
-// A second (and any further) SIGINT or SIGTERM is a HARD force-exit: it calls `exit(130)` at once,
-// independent of the grace timer, so a repeated Ctrl+C is always effective. 2026-10-18 (444-30,
-// D-63): a SIGHUP after the first signal never counts, because a terminal close delivers it twice.
+// The first signal cancels and arms the backstop; a second SIGINT or SIGTERM exits 130 at once.
 
 export interface ShutdownControllerDeps {
   /** Route the abort into the active RunSession (`activeRunSession?.cancel()`). Best-effort. */

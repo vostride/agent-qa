@@ -1,27 +1,4 @@
-// THE DASHBOARD RUN DOOR.
-//
-// Neither gate on this road exists: the queued run is dispatched with no op-level decision and no
-// run-level `evaluate()`, so no row is written at either, whatever environment the target declares.
-// The posture cell reads the context off the run's own `runStarted` payload.
-//
-// WHAT IS UNDER TEST is the whole door a browser click reaches: the queue's backend →
-// `createDashboardRunDoor`'s starter → the shipped `invokeFunction` → the 384 registry → the REAL
-// op-level gate → the composed host's default run execution → the in-process drive → the core's ONE
-// `evaluate()` → a real run → the bus. Nothing on that path is substituted.
-//
-// THE OBSERVATION SURFACE MOVED TO THE BUS ITSELF. These cells used to
-// read the backend's per-run replay buffer — a re-minted frame shape kept alive for one SSE route,
-// deleted with that route. They now subscribe to the run's OWN `RunSession` through the door's
-// published `observeSessions`, so what a cell asserts is the frozen §2.2 envelope the run actually
-// published rather than a copy of it with an added `id`. Per-run isolation is measured the same way
-// and means more: the sessions are distinct objects, not two entries in one map. `composeDashboardDoor` and `createDashboardRunDoor` are the SAME
-// composers the `agent-qa dashboard` command calls, which is the whole reason they are published:
-// a cell that assembled its own starter would be measuring a door this product does not ship.
-//
-// THE RED BASELINE, which is the point of the retirement rather than an incidental improvement.
-// Before this plan the dashboard's queue spawned `agent-qa run` and read its stdout, so a run that
-// never started reached the browser as an empty run: the child printed its reason on ITS stderr,
-// exited 2, and the dashboard recorded "Process exited before test completed".
+// Drives the shipped door from the queue's backend through `invokeFunction` to a real run's bus.
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -114,10 +91,7 @@ async function composeDoor(fixture: Fixture): Promise<Driven> {
     settled.push({ runId, status, details })
   })
 
-  // the run's own bus, watched through the door's published fan-out. `subscribe(1,
-  // …)` is replay-then-live from the first seq — the same constant the backend attaches at — so a
-  // recorder registered before `execute` sees every envelope regardless of when the door names the
-  // session.
+  // `subscribe(1, …)` replays from the first seq, so a recorder set before `execute` sees all.
   const recorded = new Map<string, { seq: number; type: string; runId: string }[]>()
   runDoor.observeSessions((session) => {
     const id = session.id as unknown as string
@@ -136,7 +110,6 @@ async function composeDoor(fixture: Fixture): Promise<Driven> {
 }
 
 /** Enqueue a row the way the dashboard's queue does, so the ingest has a real row to adopt. */
-// A queued row as `JobQueue` hands it to the backend: pending, then flipped to running.
 function enqueue(db: DashboardDatabase, name: string): string {
   const id = db.insertRun({
     name,
@@ -177,7 +150,7 @@ async function runThroughQueue(
   return driven.settled[driven.settled.length - 1]!
 }
 
-// ---- the ambient channels, varied against the door's own answer -----------------------
+// The ambient channels, varied against the door's own answer.
 
 const shippedExecutionContextResolver = getActiveExecutionContext
 let restoreAmbient: (() => void) | undefined
@@ -202,7 +175,6 @@ function pinAmbient(value: 'ci' | 'local-interactive' | 'local-headless', ciMark
 }
 
 describe('a dashboard-triggered run is one more caller of runs.start', () => {
-  // RE-SPELLED 2026-09-30: was '... and BOTH gates left a row'.
   it('THE ALLOW ARM — the run happens IN PROCESS, and NEITHER gate leaves a row', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -223,7 +195,6 @@ describe('a dashboard-triggered run is one more caller of runs.start', () => {
       expect(target.hits).toEqual(['/in-process-thing'])
       expect(buildOrdinalsExist(fixture)).toBe(true)
 
-      // (b) NO ROW AT EITHER GATE — and still no dashboard carve-out: no door writes one
       expect(opAuditRows(fixture).filter((row) => row.action === 'fn:runs.start')).toEqual([])
       expect((auditRows(fixture) as AuditRow[]).filter((row) => row.action === 'run:start')).toEqual([])
 
@@ -255,8 +226,6 @@ describe('a dashboard-triggered run is one more caller of runs.start', () => {
 
       await runThroughQueue(driven, { runId, args: [fixture.testPattern], source: 'dashboard' })
 
-      // RE-SPELLED 2026-09-30: read off the run's own `runStarted` payload, since the
-      // `run:start` row that carried it is no longer written.
       const started = driven.envelopes(runId).find((event) => event.type === 'runStarted') as
         { payload?: { executionContext?: string } } | undefined
       expect(started?.payload?.executionContext).toBe('local-headless')

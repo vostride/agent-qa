@@ -1,11 +1,3 @@
-// `agent-qa agent-jobs` — the surface half of 413 D-04 / D-06.
-//
-// Three claims, none of them a snapshot: the help obeys the three-queue vocabulary relation
-// `queue-help.test.ts` enforces for every other queue surface; `--only` refuses an undeclared kind
-// by NAMING the declared ones (a driver that mistypes a kind must be told the vocabulary, not just
-// that it was wrong); and `list --json` prints a DTO that carries a run id and no payload body —
-// the T-413-47 disclosure boundary, asserted on the bytes an operator actually sees.
-
 import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -50,11 +42,7 @@ function proseOf(help: string): string {
 
 function qualifiersIn(prose: string): string[] {
   const found = new Set<string>()
-  // Both boundaries, not just the trailing one. The trailing lookahead alone made the relation
-  // fire inside `requeue` — a VERB whose last five letters happen to spell the noun — and would
-  // have forced the 413-14 subcommand to be named something other than what it does. A compound
-  // word is not an unqualified use of the noun; a bare "the queue" still is, and the control cell
-  // below still reddens on it.
+  // Both boundaries are guarded, so a compound like `requeue` does not count as the noun.
   const singular = /(?<![\w-])queue(?![\w-])/g
   for (let m = singular.exec(prose); m !== null; m = singular.exec(prose)) {
     const before = prose.slice(0, m.index)
@@ -105,8 +93,6 @@ function harnessDeps(): {
             queue: host.queue,
             model: NEVER_AUTHORS,
             idSource: DIGEST_JOB_ID_SOURCE,
-            // Stated, not omitted: this double composes no posture, and the empty set is a fact
-            // about it rather than a field nobody got round to.
             unclaimableKinds: [],
           },
           close: async () => {

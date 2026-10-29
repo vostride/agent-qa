@@ -1,10 +1,4 @@
-// The run reads under `agent-qa runs`.
-//
-// Each verb is a thin client: it normalizes its flags, composes the local agent, invokes the
-// canonical op with CLI_FUNCTION_CALLER and prints what came back. `--json` prints the op's whole
-// result unchanged, so it equals what the matching MCP tool returns. Without it, one compact line
-// per test, step or record carries the addresses the next command takes; bodies, traces and
-// documents stay in `--json`.
+// Thin clients: `--json` prints the op's whole result, as the MCP tool does; plain is terse.
 
 import { dirname, resolve } from 'node:path'
 
@@ -230,7 +224,7 @@ function firstPresentKind(step: RunOverviewStep): string | undefined {
     .find((kind) => evidence[kind].state === 'present')
 }
 
-// a chain that was never enqueued reads skipped (<reason>), not its chip.
+// A chain never enqueued reads `skipped (<reason>)`, not its chip.
 function curationWord(curation: Pick<RunOverviewLearned['curation'], 'status' | 'skipped'>): string {
   return curation.skipped === undefined
     ? curation.status

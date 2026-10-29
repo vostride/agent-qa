@@ -1,29 +1,4 @@
-// THE RUN TRIGGER'S BROWSER CONFIRM.
-//
-// SINCE 432-13 the run button's run asks nobody: there is no op gate and no run gate on
-// this road, so no `confirm_request` frame is ever raised for a run, whether or not the triggering
-// browser holds its channel. The first describe was re-spelled to pin that absence; the scope
-// read/write hardening and the trigger-interactivity rule below are unchanged. History kept.
-//
-// SINCE 432-14 there is no channel, no scope and no posture left: the run-confirm pair,
-// the confirm registry and the door's per-scope context are deleted. Every cell below that drove
-// them is re-spelled onto what survives — the click starts the run, a row written before 432-14
-// still never hands its scope back, the queue door still refuses planted metadata, and nothing in
-// the tree builds a parking lot or reaps a question.
-//
-// WHAT IS UNDER TEST is the whole path a person's click reaches: `POST /api/runs/trigger` →
-// the shipped `JobQueue` → the injected run door → `invokeFunction(runs.start)` → the real op-level
-// gate → the in-process drive → the core's ONE `evaluate()` → the ask arm → the SHIPPED confirm
-// registry's parking lot → a real SSE frame on a real socket → a real answer POST. Every frame is
-// the production one: `startServer` builds the router, the queue and the reconciliation, and
-// `composeDashboardDoor` / `createDashboardRunDoor` are the same composers `agent-qa dashboard`
-// calls. Nothing below calls a route handler with a fake request or resolves a promise the product
-// would not have resolved.
-//
-// WHY IT LIVES IN THE CLI PACKAGE. The plan filed it under `packages/dashboard-server`, but a cell
-// that needs a REAL gated run needs the composed host, and `dashboard-server` may not name
-// `@vostride/agent-qa-agent*` (validate:arch). The door is composed here for exactly that reason —
-// `dashboard-run-door.test.ts` is its sibling and made the same move.
+// A click on Run starts the run through the shipped queue and door; nothing asks or parks.
 
 import { randomUUID } from 'node:crypto'
 import { existsSync, mkdirSync, readdirSync, readFileSync } from 'node:fs'
@@ -91,7 +66,7 @@ interface Scene {
   readonly fixture: Fixture
   readonly db: DashboardDatabase
   settled(): { runId: string; status: string; details: Record<string, unknown> }[]
-  /** The run's OWN bus envelopes, in seq order, recorded off its session. */
+  // The run's own bus envelopes, in seq order, recorded off its session.
   buffered(runId: string): Record<string, unknown>[]
   /**
    * Every `ExecuteOptions` the queue handed the SHIPPED execution backend, in order.
@@ -108,11 +83,7 @@ interface Scene {
 
 const openScenes: Scene[] = []
 
-/**
- * The dashboard as the shipped command starts it, over a project the fixture wrote.
- *
- * the confirm window `timeoutMs` used to set is deleted with the registry that owned it.
- */
+// The dashboard as the shipped command starts it, over a project the fixture wrote.
 async function openScene(input: {
   readonly fixture: Fixture
 }): Promise<Scene> {
@@ -164,10 +135,7 @@ async function openScene(input: {
     agentHost: door.agentHost,
   })
 
-  // the run's OWN bus, watched through the door's published
-  // `observeSessions`. This used to read the backend's per-run replay buffer, which existed for one
-  // SSE route and was deleted with it; `subscribe(1, …)` is replay-then-live from the first seq, so
-  // a recorder registered here sees every envelope of every run this door starts.
+  // `subscribe(1, …)` replays from the first seq, so a recorder here sees every envelope.
   const recordedEnvelopes = new Map<string, Record<string, unknown>[]>()
   runDoor.observeSessions((session) => {
     const id = session.id as unknown as string
@@ -205,11 +173,7 @@ afterEach(async () => {
 })
 afterAll(() => { removeInProcessFixtures() })
 
-/**
- * Click the run button — the shipped trigger route, with the fixture's own standalone test.
- *
- * `strayScope` is what a pre-432-14 page would still send; nothing reads it.
- */
+// Click Run through the shipped trigger route; `strayScope` is an older page's field nobody reads.
 async function triggerRun(scene: Scene, strayScope?: string): Promise<string> {
   const response = await fetch(`${scene.origin}/api/runs/trigger`, {
     method: 'POST',
@@ -268,17 +232,13 @@ describe('the run button never asks: a click starts the run', () => {
       expect(buildOrdinalsExist(fixture)).toBe(true)
       expect(target.hits).toEqual(['/in-process-thing'])
       expect(scene.buffered(runId).map((event) => event['type'])).toContain('runStarted')
-      // the door names nobody, so the run records the one context it answers.
+      // The door names nobody, so the run records the one context it answers.
       expect(startedContext(scene, runId)).toBe('local-headless')
     } finally {
       await target.close()
     }
   }, 240_000)
 
-  // RE-SPELLED 2026-10-01: HALF ONE (the scope rides the persisted row so the queue can
-  // address the browser) is retired — no scope is written or read, which C432-DASHBOARD-RUN-DIRECT
-  // pins. HALF TWO survives for rows written before 432-14: a row that still holds a scope never
-  // hands it back on a read.
   it('the queue still addresses the triggering browser, and no read-path response hands the scope back', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -336,9 +296,6 @@ describe('the run button never asks: a click starts the run', () => {
     }
   }, 300_000)
 
-  // RE-SPELLED 2026-10-01: there is no channel whose closing could deny. The claim that
-  // survives is that the page going away changes nothing: the retired channel path is 404, and a
-  // run triggered and left alone starts.
   it('CHANNEL VANISH — closing the tab denies nothing: the run it triggered still starts', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -382,12 +339,6 @@ describe('the run button never asks: a click starts the run', () => {
   }, 240_000)
 })
 
-// ---- 432-14: the Run control is one request ------------------------------------------
-//
-// The trigger route used to accept a confirm scope, persist it on the queued row and hand it to the
-// run door, which entered it around `runs.start`. All of that is deleted with the run-confirm pair:
-// the click is the request, the queue dispatches it, and nothing names or waits for a browser.
-
 describe('a dashboard trigger starts its run directly', () => {
   it('one trigger request starts the run, and a stray scope field is neither kept nor forwarded', async () => {
     const target = new CountingTarget()
@@ -419,35 +370,7 @@ describe('a dashboard trigger starts its run directly', () => {
   }, 240_000)
 })
 
-// ---- G-401-18-CR01: the SEVENTH door, and the write door that plants into it -------------------
-//
-// 401-18 closed the confirm-scope leak on `runs.metadata` and shipped a census asserting it had
-// found every door. It had not. `JobQueue.enqueue` writes the SAME client-supplied `opts.metadata`
-// object twice — once to `runs.metadata` and once to `run_artifacts.payload.metadata`
-// (`job-queue.ts:75-78`) — and `GET /api/runs/:id/artifact` serves the second one verbatim. The
-// census could not see it because its predicate was a RETURN-ANNOTATION grep over `database.ts`,
-// and `getRunArtifact(runId): RunArtifactRow | null` names no run row; DOOR 3's own cell seeded an
-// artifact with no payload at all, so its `not.toContain` was incapable of failing.
-//
-// THE PREDICATE THIS CELL USES INSTEAD, stated: **every GET whose response payload can transitively
-// contain a run's metadata object**. That question is answered by driving the PRODUCTION WRITER —
-// enqueue a run carrying a scope and read every such door back off one real run — not by asking
-// which database methods spell `RunRow`. A fixture that does not drive the production writer cannot
-// falsify the production writer.
-//
-// AND THE WRITE HALF, decided in 401-23 under the owner's standing delegation. Reading a scope buys
-// ADDRESSING a victim's dialog; PLANTING one buys choosing the run that dialog is asked about. The
-// pair is the escalation, so both doors close here — a read-side strip with an open write door is
-// half a fix, and this project has measured one-sided hardening minting regressions three times.
-
-/**
- * Every GET whose response payload can transitively contain a run's metadata object.
- *
- * DERIVED FROM THE WRITER, NOT FROM A HAND-LIST OF THE DOORS THIS ROUND HAPPENED TO FIND.
- * `JobQueue.enqueue` persists the caller's `metadata` in exactly two places — the run row and the
- * run artifact's payload — so the set is: every endpoint that serializes a run row (the detail, the
- * list, the queue's own status view) plus the one that serializes an artifact payload.
- */
+// Every GET that serializes a run row or a run artifact payload, where `enqueue` stores `metadata`.
 function runMetadataBearingReads(runId: string): readonly string[] {
   return [
     `/api/runs/${runId}`,
@@ -458,10 +381,6 @@ function runMetadataBearingReads(runId: string): readonly string[] {
 }
 
 describe('the confirm scope leaves on no door and can be planted on no run', () => {
-  // RE-SPELLED 2026-10-01: the trigger no longer writes a scope, so the run is
-  // planted in exactly the two places `JobQueue.enqueue` wrote one before 432-14 — the row and the
-  // artifact payload — as a database carried over from then would hold it. Everything after the
-  // plant is the same shipped read path it always measured.
   it('READ HALF — a run driven through JobQueue.enqueue hands its scope back on none of the metadata-bearing GETs', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -496,9 +415,7 @@ describe('the confirm scope leaves on no door and can be planted on no run', () 
 
       await waitFor(() => { expect(scene.settled()).toHaveLength(1) })
 
-      // THE ARTIFACT DOOR REALLY SERVED THIS RUN'S PAYLOAD — asserted BEFORE any absence, because
-      // an empty body, a `null` artifact or a payload with no `metadata` satisfies every absence
-      // below for the wrong reason. That is the precise failure 401-18's DOOR 3 shipped.
+      // Assert the artifact carries this run's payload first, or every absence below is vacuous.
       const bundle = await (await fetch(`${scene.origin}/api/runs/${runId}/artifact`)).json() as {
         run: { id: string }
         artifact: { payload: Record<string, unknown> } | null
@@ -648,20 +565,6 @@ describe('the confirm scope leaves on no door and can be planted on no run', () 
   }, 180_000)
 })
 
-// ---- The honest-claim rule, both ways (401-09, Pitfall 3 / D-07) -------------------------------
-//
-// THE CELLS ABOVE MEASURE IT THROUGH A REAL RUN's AUDIT ROW, which is the surface a person reads.
-// These measured PRODUCTION'S OWN PREDICATE, named per scope, through the door's published posture.
-//
-// RE-SPELLED 2026-10-01: the predicate, the published posture and the scope
-// entry are deleted with the channel they read. A run's recorded context is measured by the cells
-// above (`local-headless`, whatever the page does); what these pin is that the door no longer
-// publishes a per-scope answer to disagree with it.
-
-// RE-TITLED 2026-10-03 (quick-261003-tsr, IN-12): the describe was 'the trigger claims
-// interactivity only while a browser is holding its channel', and its two cells were 'THE TRIGGER
-// RULE — no channel is headless, a live channel is interactive, and back again' and 'THE
-// CONVERSATION RULE IS UNTOUCHED — a watched, idle conversation is still headless'.
 describe('the door publishes no per-scope posture', () => {
   it('THE TRIGGER RULE IS RETIRED — neither the door nor its host publishes a context resolver or a trigger scope', async () => {
     const fixture = createInProcessFixture({ origin: 'http://127.0.0.1:1' })
@@ -681,8 +584,6 @@ describe('the door publishes no per-scope posture', () => {
   })
 
   it('THE CONVERSATION RULE IS RETIRED — the host carries no confirms member a conversation could watch', async () => {
-    // The conversation arm of the rule went with the trigger's: the door holds no registry a
-    // conversation could open a channel on, so there is nothing to watch.
     const fixture = createInProcessFixture({ origin: 'http://127.0.0.1:1' })
     const door = composeDashboardDoor({
       agentQaRoot: fixture.agentQaRoot,
@@ -697,18 +598,7 @@ describe('the door publishes no per-scope posture', () => {
   })
 })
 
-// ---- ONE PARKING LOT (401-09, D-11's prohibition) ---------------------------------------------
-//
-// TWO INDEPENDENTLY-SHAPED predicates, reconciled against each other, because 401-08 measured that a
-// single self-checked predicate silently drops the members its own known set does not name. One
-// ranges the FACTORY (who builds a registry); the other ranges the SUBSTRATE (which module can turn
-// silence into a denial) and shares no vocabulary with the first.
-//
-// RE-SPELLED 2026-10-01: the one lot is deleted, so both predicates now range to
-// the empty set — no call site builds a registry and no module reaps a question into a denial.
-
 describe('there is one parking lot, and the run trigger uses it', () => {
-  // RE-SPELLED 2026-10-01: the title is kept for the history; both cells now pin zero.
   const FIRST_PARTY = ['packages/cli/src', 'packages/dashboard-server/src']
 
   function sourceFiles(): string[] {
@@ -731,10 +621,7 @@ describe('there is one parking lot, and the run trigger uses it', () => {
 
   it('PREDICATE 1 (the factory) — no call site builds a confirm registry', () => {
     const files = sourceFiles()
-    // THE DISCOVERY PREDICATE'S OWN FLOOR. A walker that found nothing would make every claim below
-    // vacuously true, which is the shape a wrong path constant produces (401's own scar).
-    // 118 at the time of writing; the floor is a floor, not a pin — a pin would red on every new
-    // module, and what this line is defending against is a walker that found nothing.
+    // A floor, not a pin: a walker that found nothing would make every claim below vacuous.
     expect(files.length).toBeGreaterThan(100)
     expect(files.some((file) => file.endsWith('commands/dashboard.ts'))).toBe(true)
 

@@ -443,7 +443,7 @@ export function createAuthCommand(): Command {
         let model: ReturnType<typeof createModel>
         try {
           const { profile, auth: modelAuth } = toModelProfileAndAuth(planner, auth as any)
-          // fixed probe text, nothing to mask.
+          // Fixed probe text, nothing to mask.
           model = createModel(profile, modelAuth, (text) => text)
         } catch (err: unknown) {
           console.log(pc.red(err instanceof Error ? err.message : String(err)))

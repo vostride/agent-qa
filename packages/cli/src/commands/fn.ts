@@ -1,8 +1,4 @@
-// `agent-qa fn` — the generic function-layer invoker.
-//
-// A permanent registry debug/discovery surface: list what exists, invoke by id. It is a
-// thin client by construction — it resolves a root, builds the registry at the composition
-// root, and calls `invokeFunction`. It owns no capability of its own.
+// A registry debug surface: list what exists, invoke by id; it owns no capability of its own.
 
 import { dirname, resolve } from 'node:path'
 
@@ -58,7 +54,6 @@ function compositionInput(
   command: Command,
 ): { agentQaRoot: string; configPath: string } {
   const configPath = resolve(globalOptions(command).config ?? 'agent-qa.config.yaml')
-  // no minting surface — nothing is filed for a door to be named on.
   return {
     agentQaRoot: resolve(dirname(configPath), '.agent-qa'),
     configPath,
@@ -112,9 +107,7 @@ interface SeqStamped {
   type?: string
 }
 
-// 2026-10-15 (441-68, GAP2-D3): `seq`, `ts`, `runId` and `type` keep their keys, so `seq` stays the
-// resume token. `seq`, `ts` and `type` are code vocabulary and keep their values; a person can choose
-// a run id, so it is masked. Every other member is masked keys and leaves.
+// Keys `seq`, `ts`, `runId` and `type` stay; `runId`'s value is masked, as is every other member.
 function streamLine(element: unknown, mask: MaskFn): unknown {
   if (typeof element !== 'object' || element === null || Array.isArray(element)) {
     return maskPayloadTree(element, mask)
@@ -129,14 +122,7 @@ function streamLine(element: unknown, mask: MaskFn): unknown {
   }
 }
 
-/**
- * Render a stream as it arrives.
- *
- * `--json` emits NDJSON — one self-contained JSON document per line — because a stream has
- * no closing bracket to wait for, and that stays true when 386 attaches to a live run.
- * Human mode prints one line per event and closes with the last seq observed, which is
- * exactly the value to hand back as `--from` on the next invocation.
- */
+// NDJSON under `--json`, as a stream has no closing bracket; human mode ends on the last seq.
 async function renderStream(
   stream: AsyncIterable<unknown>,
   json: boolean,
@@ -164,26 +150,12 @@ async function renderStream(
   }
 }
 
-// leaves are masked before serialization, so a declared value holding a
-// JSON-special character can neither break the document nor slip past the mask.
-// 2026-10-15 (441-62, GAP-D2): keys too.
+// Keys and leaves are masked before serialization, so a JSON-special value cannot slip past.
 function emitJson(mask: MaskFn, value: unknown): void {
   console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
 }
 
-/**
- * The bytes `agent-qa fn` prints for a unary result — the honest baseline.
- *
- * PROMOTED TO AN EXPORT ON 2026-08-20 rather than copied (399.1 plan 06). It was one inline
- * expression until the conformance suite needed to drive this door's render for all 42 capabilities,
- * and the available shortcut was to write `JSON.stringify(result, null, 2)` a second time inside the
- * suite. That second spelling is the RC-2 defect in miniature: two renders of one door, free to
- * disagree, with the measured one green while the shipped one drops a field. There is one render
- * here and the suite drives it.
- *
- * IT DOES NOT PRINT AND IT DOES NOT MASK. The emitters below own both: each prints through the
- * command's declared mask, and nothing restores a value.
- */
+// Exported so the conformance suite drives the same render; it neither prints nor masks.
 export function renderFnResult(result: unknown): string {
   return JSON.stringify(result, null, 2)
 }
@@ -192,10 +164,7 @@ function emitHuman(mask: MaskFn, text: string): void {
   printRunText(mask(text))
 }
 
-/**
- * The listing projection: identity and contract metadata only, never zod internals. No scope
- * column since 432-20: declarations carry no permission metadata.
- */
+// Identity and contract metadata only, never zod internals.
 function declarationRow(declaration: FunctionDeclaration): {
   id: string
   summary: string
@@ -298,8 +267,7 @@ export function createFnCommand(deps: FnCommandDeps = {}): Command {
               dirname(composition.configPath),
             )
           : undefined
-        // daemon routing is explicit. A live registration never changes the default,
-        // while the explicit route does not compose a second local host before going over wire.
+        // Daemon routing is explicit: a live registration never changes the default route.
         const localRegistry = viaDaemon
           ? undefined
           : composeCliLocalAgent({
@@ -340,8 +308,7 @@ export function createFnCommand(deps: FnCommandDeps = {}): Command {
             })
           : await invokeFunction(localRegistry!, id, input, CLI_FUNCTION_CALLER)
 
-        // The registry knows which ops stream; the rendering follows the RESULT so
-        // the invoker needs no per-id knowledge of its own.
+        // Rendering follows the result, so the invoker needs no per-id knowledge of streaming ops.
         if (isStream(result)) {
           await renderStream(result, options.json === true, mask)
           return
@@ -351,7 +318,7 @@ export function createFnCommand(deps: FnCommandDeps = {}): Command {
           emitJson(mask, result)
           return
         }
-        // 441-62 (CR-A01): mask the structure first; the text mask alone misses escaped values.
+        // The structure is masked first; the text mask alone misses escaped values.
         emitHuman(mask, renderFnResult(maskPayloadTree(result, mask)))
       } catch (error) {
         reportError(error, mask)

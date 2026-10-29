@@ -1,27 +1,4 @@
-// The two durable run markers, end to end on the CLI door (INVK-06; 393 WTST-06, re-aimed by 401).
-//
-// WHAT CHANGED UNDER THIS FILE, AND WHY IT STILL MATTERS. Until Phase 401 `runs.start` executed a
-// run by re-entering this command AS A CHILD PROCESS, so `--gate-run` and `--excluded-from-outcomes`
-// were the only channel the two markers had into `RunConfig`: the chain was
-// request → port → child argv → command flag → RunConfig → handoff. On the invocation core the
-// middle of that chain is gone — request → RunConfig, mapped on ONE line inside
-// `run-invocation-core.ts` — and 401-04 put this command's SUITE path on that core too, so the
-// carriage a `gateRun` takes today crosses a wire that did not exist when these cells were written.
-//
-// Three claims live here, at three altitudes, and each one is asserted where it is actually decided:
-//
-//   1. argv → request. `runMarkers` is the option→field mapping, and it is where a `false` must
-//      already be gone. Pure function, asserted directly.
-//   2. request → REFUSAL. `RunsStartInputSchema` types both fields `z.literal(true).optional()`, so
-//      `false` is a SCHEMA REFUSAL rather than a coercion — one step either side of the threshold,
-//      asserted on the parsed result and never on log text.
-//   3. request → RunConfig → handoff. Asserted on the shipped binary, reading the handoff back
-//      through the PRODUCTION store (`createRunsReader`) rather than by re-deriving a path — the
-//      document a reader gets is the document the version guard admits.
-//
-// THE FULL EXCLUSION-CONSUMER DIFFERENTIAL IS NOT HERE. Whether `projectRunOutcomes` and the
-// fingerprint fold actually exclude a marked run is plan 401-08's census, over its own frozen
-// consumer set. This file proves CARRIAGE on this door and stops there — one producer per claim.
+// The `--gate-run` and `--excluded-from-outcomes` markers, from argv to the handoff on disk.
 
 import { rmSync } from 'node:fs'
 import { join } from 'node:path'
@@ -112,22 +89,7 @@ describe('(2) request boundary: RunsStartInput markers accept only literal true'
   })
 })
 
-// ---------------------------------------------------------------------------------------------
-// (3) argv → request → RunConfig → handoff, on the binary a person runs.
-//
-// THE SUITE DOOR, because that is the wire 401-04 changed. The markers used to be spread straight
-// onto the suite path's own `startRun` literal; they now ride `RunsStartInput` into the core, which
-// stamps them over whatever the assembler returned. Both cells drive `dist/cli.js` — a reading taken
-// on a stale dist compares two copies of the previous build and calls the result a measurement.
-//
-// READ BACK THROUGH THE PRODUCTION STORE. `createRunsReader(agentQaRoot)` is the same enumeration
-// `runs.get` uses: it walks `<root>/runs/<slug>/handoff.json` and loads each document through
-// `guardCompletedRunHandoff`. So the markers are read as the version guard admits them, not as raw
-// JSON text a cell re-derived a path to — and a marker that survived onto disk in a shape the guard
-// rejects would show up here as an absent document rather than as a passing assertion.
-//
-// PAIRED, differing in exactly the two flags: marked, and unmarked. Without the unmarked control a
-// door that stamped `gateRun: true` on EVERY run would pass the marked cell.
+// Read back through `createRunsReader`, so the markers are what the handoff version guard admits.
 describe('(3) carriage: the markers ride argv → request → RunConfig → handoff', () => {
   const target = new CountingTarget()
   let fixtures: SuiteFixture[] = []

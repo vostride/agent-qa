@@ -56,19 +56,7 @@ describe('the CLI suite path starts a no-tty run', () => {
   }, 180_000)
 })
 
-// ---------------------------------------------------------------------------------------------
-// --dry-run: the disposition RESEARCH Open Q2 records under D-02, measured rather than asserted.
-//
-// "Stops BEFORE invoking the core" is an ORDERING claim, and briefing §C's rule is that an ordering
-// claim is proven by the ABSENCE of the downstream side effects, not by the absence of output. So
-// this cell asserts the absence of the run's artifacts — and there is no audit row EITHER. A dry
-// run is not a refused run; it is a question about what would
-// run, and a decision about nothing has nothing to record.
-//
-// AND IT IS A REAL BEHAVIOUR FIX. On the pre-migration binary this exact invocation EXECUTED THE
-// SUITE: `probeHits: ["/suite-thing","/suite-thing"]`, `build-ordinals.json` present, a full
-// `runStarted…runFinished` event log, a handoff, exit 1. The suite path simply had no `--dry-run`
-// handling; only the single-test path did. Every assertion below is red on that build.
+// Stopping before the core is proven by absent run artifacts, not by absent output.
 describe('--dry-run stops before the core on the suite path', () => {
   it('reports the suite and its members, and starts nothing — not even a gate decision', async () => {
     const fixture = fixtureFor('local')

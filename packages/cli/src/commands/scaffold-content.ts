@@ -1,33 +1,4 @@
-// The scaffold's CONTENT, shared by both write paths.
-//
-// ONE SOURCE OF TRUTH FOR SUBSTANCE, TWO WRITE PATHS SPLIT BY ACTOR. `agent-qa init` writes these
-// bytes directly for a human who asked for them at a terminal; `config.project.scaffold` renders
-// the SAME bytes as a `ConfigProposal` diff a person approves. D-04's claim is that the two
-// scaffolds cannot drift, and the only way to make that a property of the code rather than a
-// promise is for there to be one producer. The functions below were MOVED here out of `init.ts`
-// and `init-filesystem.ts` rather than copied: there is no second copy left to drift from.
-//
-// PURE OVER ITS INPUTS. Nothing here reads `fs`, `process` or a clock. That is what lets the
-// proposal path render the same content into file bytes without performing any of `init`'s
-// filesystem machinery — preflight, atomic publish, marker-last ordering — which stays where it is
-// because it is about WRITING, and writing is the half the two actors do differently.
-//
-// IT NAMES NO INTERNAL PACKAGE, AND THAT IS THE FUNC-02 FIREWALL RATHER THAN A PREFERENCE. The
-// surface firewall's ledger "only ever SHRINKS: new surface code can never join it", so a file
-// written today may not import `@vostride/agent-qa-core` or `@vostride/agent-qa-model` at all. The
-// two host facts the config's defaults need — the cache directory and the auth-state directory —
-// arrive as ARGUMENTS from the two callers that are ledgered for them, and the provider registry
-// stays entirely on `init`'s side of the boundary: what this module receives is `llmEntries`, the
-// already-resolved list, because "which providers exist" is a question about this machine and
-// "what does a scaffolded config look like" is not.
-//
-// WHAT DELIBERATELY DID NOT MOVE: `TARGET_GITIGNORE_ENTRIES` (init-filesystem.ts) and
-// `buildGitignoreEntries` (init.ts). Those two are a deliberate pair of literal copies pinned
-// against each other by the runtime-versus-defaults agreement test, because `init-filesystem.js` is
-// mocked wholesale by the init suite. Collapsing them onto one constant here would make that test
-// compare a value against itself. This module owns the block's header line and takes the
-// entries as an argument; markers, in-place splice and append are the shared managed-block
-// writer's (`managed-block.ts`, 431 D-19).
+// One pure producer of scaffold content for `init` and `config.project.scaffold`.
 
 import { DEFAULT_PLANNER_LIMITS } from '@vostride/agent-qa-schema'
 import { parseDocument, stringify } from 'yaml'
@@ -106,15 +77,7 @@ export function hasMobile(platform: InitPlatformInput): boolean {
   return normalizePlatformSelection(platform).capabilities.includes('mobile')
 }
 
-/**
- * The `registry.targets` block.
- *
- * `targets` IS AN OVERRIDE RATHER THAN A DEFAULT SINCE 395-08. `init` scaffolds the two Komazon
- * example targets on the playground so a fresh project has something to run;
- * `config.project.scaffold` derives exactly ONE target from the utterance's domain and must not
- * carry init's example targets into a person's repository they never asked for. The parameter is
- * the difference between those two callers and nothing else about the config changes.
- */
+// `targets` is an override: init passes example targets, the scaffold one derived target.
 export function buildTargets(
   platform: InitPlatformInput,
   override?: Record<string, unknown>,
@@ -140,15 +103,7 @@ export function buildTargets(
   return targets
 }
 
-/**
- * The host facts the config's defaults need, INJECTED.
- *
- * `llmEntries` IS ALREADY RESOLVED, and that is the whole of the boundary. Turning an
- * `InitLLMConfig` into a registry entry means asking the provider registry whether the provider
- * needs a base URL, and whether it is a subscription provider; both are questions about what this
- * machine has installed. `init` answers them and hands the answers over. The scaffold path answers
- * them by having no LLMs at all.
- */
+// `llmEntries` arrives resolved, because provider needs are facts about this machine.
 export interface ScaffoldConfigFacts {
   readonly llmEntries: readonly Record<string, unknown>[]
   /** `use.llm`. Defaults to the first entry's name; schema validation refuses one naming no entry. */
@@ -199,8 +154,7 @@ export function buildScaffoldConfig(
       logging: { level: 'warn' },
     },
     registry: {
-      // THE MODEL HALF IS WRITTEN ONLY WHEN THERE IS A MODEL (432 D-20, #130). `init` always has
-      // one; a scaffold given none writes neither key, rather than writing and then deleting them.
+      // The model half is written only when there is a model; with none, neither key is written.
       ...(facts.llmEntries.length === 0 ? {} : { llms: [...facts.llmEntries] }),
       targets: buildTargets(platform, facts.targets),
     },
@@ -297,14 +251,12 @@ export function renderScaffoldConfigYaml(config: Record<string, unknown>): strin
   return addYamlComments(stringify(config))
 }
 
-// the proposal writes no hook script, so its hooks file names none.
+// The proposal writes no hook script, so its hooks file names none.
 export function buildHooksFile(_platform: InitPlatformInput): string {
   return 'hooks: []\n'
 }
 
-// ---------------------------------------------------------------------------------------------
-// The managed .gitignore block: the hash-comment variant of the shared writer.
-// ---------------------------------------------------------------------------------------------
+// The managed `.gitignore` block: the hash-comment variant of the shared writer.
 
 export function managedGitignoreContent(entries: readonly string[]): ManagedBlockContent {
   return {
@@ -331,16 +283,14 @@ export function composeManagedGitignore(
   return composeManagedBlock(existing, managedGitignoreContent(entries))
 }
 
-// ---------------------------------------------------------------------------------------------
 // The from-zero scaffold file set.
-// ---------------------------------------------------------------------------------------------
 
 export const SCAFFOLD_CONFIG_FILE = 'agent-qa.config.yaml'
 export const SCAFFOLD_HOOKS_FILE = 'hooks.yaml'
 export const SCAFFOLD_GITIGNORE_FILE = '.gitignore'
 
 export interface ScaffoldContentInput {
-  /** `services.cache.dir` — a host default the caller supplies (FUNC-02, see the file header). */
+  // `services.cache.dir`, a host default the caller supplies.
   readonly cacheDir: string
   /** `services.authState.dir` — same. */
   readonly authStatesDir: string
@@ -350,29 +300,13 @@ export interface ScaffoldContentInput {
   readonly baseUrl: string
   /** The managed block's rules, supplied by the caller — see this file's header. */
   readonly gitignoreEntries: readonly string[]
-  /**
-   * The model registry entries the from-zero config carries, already resolved (432 D-20, #130).
-   * Absent or empty, the config has no model half at all. Merge mode ignores it: the person's own
-   * `registry.llms` and `use.llm` are kept byte-for-byte by the one-entry insert.
-   *
-   * 2026-10-03 (quick 261003-cpv, 432 review IN-09): NO PRODUCTION CALLER PASSES IT. The scaffold
-   * port's request carries a domain only, and from zero there is no configuration to read a model
-   * from; inventing one is what D-13 forbids. `init` builds its config through `buildScaffoldConfig`
-   * and does not reach this producer. So #130 is fixed for the merge half only, and a from-zero
-   * scaffold stays bare. The seam is kept for a caller that has resolved entries to hand over.
-   */
+  // Already-resolved model entries; absent or empty, the from-zero config has no model half.
   readonly llmEntries?: readonly Record<string, unknown>[]
   /** `use.llm` for the from-zero config; defaults to the first entry's name. */
   readonly selectedLlm?: string
   /** What the project's `.gitignore` holds right now, or absent when it has none. */
   readonly existingGitignore?: string
-  /**
-   * MERGE MODE: the project's existing configuration, which declares no targets.
-   *
-   * ABSENT IS THE FROM-ZERO ROAD and it is byte-for-byte what it always was — the committed goldens
-   * pin that, and they did not move when this field was added. Present, the producer inserts
-   * exactly one `registry.targets` entry into these bytes and emits no other change to that file.
-   */
+  // Merge mode: absent is the from-zero road; present, exactly one target entry is inserted.
   readonly existingConfig?: ScaffoldMergeTarget
 }
 
@@ -387,20 +321,7 @@ export interface ScaffoldMergeTarget {
   readonly hooksPresent: boolean
 }
 
-/**
- * The person's own configuration with exactly ONE target entry inserted.
- *
- * `parseDocument` → `setIn` → `toString` IS THE SHIPPED IDIOM, and it is the same one
- * `agent-qa config set` and `createConfigFilesPort.setField` ride — chosen for the same
- * load-bearing reason rather than for style: a parse → object → stringify round trip destroys every
- * comment in a comment-dense config and widens the rendered diff past the point a person can review
- * it, which is the whole of what CFGM-01 asks a proposal to be.
- *
- * ONE `setIn` AND NOTHING ELSE. Not a merge of two documents, not a re-serialization, not a
- * normalization pass: one write at one path. Every other key, comment, blank line and ordering
- * decision in the file is the person's, and the proposal's diff is the insertion by construction
- * rather than by a filter applied afterwards.
- */
+// One `setIn` on the parsed document, because a parse and stringify round trip destroys comments.
 export function mergeScaffoldTargetEntry(input: {
   readonly existingText: string
   readonly targetName: string
@@ -420,30 +341,7 @@ export interface ScaffoldContentFile {
   readonly text: string
 }
 
-/**
- * The whole from-zero scaffold, as content (D-04's propose half · CFGM-05's one reviewable diff).
- *
- * THREE FILES AND EXACTLY THREE, and they are the three `enumerateConfigFileSet` answers: the
- * config yaml, the hooks file it names, and the `.gitignore` whose managed block this product
- * maintains. That is not a coincidence to be preserved by care — the apply's pathspec and the
- * classifier's `out-of-set-path` rule read that same enumeration, so a fourth file here would be
- * flagged cross-boundary on its own path and refused by an apply that could not scope to it.
- *
- * NO INVENTED LLM ENTRY, AND NONE DROPPED (D-13 · 432 D-20, #130). The utterance carried a domain;
- * it did not carry a provider, a model or an API base, so a scaffold given no model writes no
- * model half — `registry.llms` is optional and `use.llm` is only checked when present, so the
- * config validates. Entries a caller does hand over are written with a coherent `use.llm`, never
- * removed, and an inconsistent selection is left for schema validation to refuse. `init` is the
- * path that ASKS, and it passes its answers to `buildScaffoldConfig` directly; the scaffold port
- * hands this producer none.
- *
- * PLATFORM IS `web`, STATED. A hostname is a web origin; there is no mobile fact in a domain token.
- *
- * TWO MODES, ONE PRODUCER. With `existingConfig` present the config member is the
- * person's own bytes plus one inserted target entry, and the hooks file is rendered only when the
- * project has none — see `ScaffoldMergeTarget`. The `.gitignore` upsert is the same in both modes,
- * because it always was an upsert.
- */
+// Exactly the files `enumerateConfigFileSet` names; any other path is refused by the apply.
 export function buildScaffoldFileSet(input: ScaffoldContentInput): readonly ScaffoldContentFile[] {
   const gitignore: ScaffoldContentFile = {
     path: SCAFFOLD_GITIGNORE_FILE,

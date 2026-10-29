@@ -1,10 +1,4 @@
-// THE ONE PER-MEMBER TARGET PASS both of `run`'s producers now call.
-//
-// AGAINST A HAND-BUILT CONFIG, DELIBERATELY, and that is the same road WR-02 is about:
-// `resolveTarget` reads `(config as any).registry?.targets` and casts, so a config assembled in
-// memory is what reaches it in a programmatic host. It is also the only way to put a MOBILE member
-// and a WEB member in one call without standing up a device — the claim being ranged is which
-// member gets a probe URL, and that is decided here, before anything is fetched.
+// A hand-built config reaches `resolveTarget` in a programmatic host, mixing web and mobile.
 
 import { describe, expect, it } from 'vitest'
 

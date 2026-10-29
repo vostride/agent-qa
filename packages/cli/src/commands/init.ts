@@ -13,9 +13,7 @@ import {
 } from '@vostride/agent-qa-core'
 import { guardJsonText, reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import { getProvider, listProviders } from '@vostride/agent-qa-model'
-// the scaffold's CONTENT, shared with `config.project.scaffold`. This file keeps the
-// filesystem machinery and the interactive conversation; the substance being written comes from
-// one producer, so the two scaffolds cannot drift.
+// The scaffold's content comes from the shared producer, so the two scaffolds cannot drift.
 import {
   SUBSCRIPTION_AUTH_PACKAGE,
   SUPPORTED_INIT_PLATFORMS,
@@ -31,11 +29,7 @@ import {
   type PlatformCapability,
   type Platform,
 } from './scaffold-content.js'
-// TYPE-ONLY at the top, VALUE lazily below — the same rule the `--agent` branch follows and for the
-// same measured reason: this module's graph is loaded by every `init` run and by every test of one,
-// and the analytics binding reaches this package's barrel (for the shipped version) which reaches
-// far more of the host than a scaffold writer needs. Measured 2026-08-17: a top-level import breaks
-// `init.test.ts`, whose partial `node:fs` mock does not carry every export that graph consumes.
+// Type-only here and the value loaded lazily: the analytics graph breaks `init.test.ts`'s fs mock.
 import type { composeAnalyticsHost as ComposeAnalyticsHost } from '../composition/analytics-host.js'
 import {
   KNOWLEDGE_GITIGNORE_PROBES,
@@ -64,13 +58,10 @@ import {
   type ManagedBlockContent,
 } from './managed-block.js'
 
-// The platform vocabulary and the scaffold's content producers live in `scaffold-content.ts` now
-// Re-exported here because this module is their public door.
+// Re-exported because this module is their public door.
 export { SUPPORTED_INIT_PLATFORMS, parseInitPlatform } from './scaffold-content.js'
 
-// HOST DEFAULTS, READ HERE AND PASSED DOWN. `scaffold-content.ts` may not name
-// `@vostride/agent-qa-core` — the surface firewall's ledger never grows — so the two directory
-// defaults are resolved on this side of the boundary and handed over as facts.
+// `scaffold-content.ts` may not name `@vostride/agent-qa-core`, so the defaults are resolved here.
 const INIT_CACHE_DIR = DEFAULT_AGENT_QA_CACHE_DIR || '.agent-qa/cache'
 const INIT_AUTH_STATES_DIR = DEFAULT_AGENT_QA_AUTH_STATES_DIR || '.agent-qa/auth-states'
 
@@ -83,13 +74,7 @@ function isSubscriptionProvider(provider: string): boolean {
   return getProvider(provider)?.subscription === true
 }
 
-/**
- * An `InitLLMConfig` as the registry writes it — the ONE question the provider registry answers.
- *
- * IT STAYS ON THIS SIDE OF THE BOUNDARY. `needsBaseURL` and `subscription` are facts
- * about what this machine has installed, and `scaffold-content.ts` may not ask. It receives the
- * answers.
- */
+// `needsBaseURL` and `subscription` are facts about this machine, so they stay on this side.
 function toLLMEntry(config: InitLLMConfig): Record<string, unknown> {
   const llmEntry: Record<string, unknown> = {
     name: config.name,
@@ -108,14 +93,7 @@ function buildSingleLLMConfig(provider: string, model: string, baseURL?: string)
   return { name: 'default', provider, model, baseURL }
 }
 
-/**
- * The interactive scaffold's config — the same shape `config.project.scaffold` renders.
- *
- * THE SIGNATURE IS UNCHANGED, deliberately: `init-config-schema.test.ts` and `init.test.ts` drive
- * it, and this function's answer is byte-identical to what it was before the shared module existed.
- * What moved is the SHAPE; what stayed is the provider resolution above and the host defaults, both
- * of which are questions about this machine rather than about a scaffold.
- */
+// The interactive scaffold's config, the same shape `config.project.scaffold` renders.
 export function buildDefaultConfig(
   platform: InitPlatformInput,
   providerOrLLMs: string | InitLLMConfig[],
@@ -158,7 +136,7 @@ const INIT_LLM_NAMES: Record<InitLLMChoice, string> = {
   gemini: 'Gemini API',
 }
 
-// the defaults @ai-sdk/openai and @ai-sdk/anthropic use with no baseURL.
+// The defaults @ai-sdk/openai and @ai-sdk/anthropic use with no baseURL.
 export const INIT_BASE_URL_DEFAULTS: Readonly<Record<string, string>> = {
   'openai-compatible': 'https://api.openai.com/v1',
   'anthropic-compatible': 'https://api.anthropic.com/v1',
@@ -194,7 +172,7 @@ const SHIPPING_ADDRESS_HOOK_ID = 'h_phi-arts-vis-band-aira-streng-twig-roi-mino-
 const KOMAZON_SHIPPING_HOOK_PATH = 'tests/examples/komazon-shipping-hook.yaml'
 const SHIPPING_ADDRESS_SCRIPT_PATH = 'scripts/examples/make-shipping-address.mjs'
 
-// every run starts a fresh session, so the journey asks for no reset.
+// Every run starts a fresh session, so the journey asks for no reset.
 function buildKomazonCheckoutTest(): string {
   return `test-id: ${KOMAZON_CHECKOUT_TEST_ID}
 name: Komazon checkout journey
@@ -209,7 +187,7 @@ steps:
 `
 }
 
-// a suite replaces a member's target, so the bug URL is a step.
+// A suite replaces a member's target, so the bug URL is a step.
 function buildKomazonCartTotalBugTest(): string {
   return `test-id: ${KOMAZON_CART_TOTAL_BUG_TEST_ID}
 name: Komazon cart total (fails on the deliberate cart-total bug)
@@ -233,7 +211,7 @@ tests:
 `
 }
 
-// web init's own hooks file; the proposal keeps hooks: [].
+// Web init's own hooks file; the proposal keeps `hooks: []`.
 function buildExampleHooksFile(): string {
   return `hooks:
   - id: ${SHIPPING_ADDRESS_HOOK_ID}
@@ -255,7 +233,7 @@ await writeFile('/tmp/agent-qa.env', \`SHIPPING_ADDRESS="\${address}"\\n\`, 'utf
 `
 }
 
-// every run starts a fresh session, so the sample asks for no reset.
+// Every run starts a fresh session, so the sample asks for no reset.
 function buildKomazonShippingHookTest(): string {
   return `test-id: ${KOMAZON_SHIPPING_HOOK_TEST_ID}
 name: Komazon checkout with a shipping address from a hook
@@ -395,7 +373,7 @@ const DEFAULT_SECRETS_FILE = '.env.secrets.local'
 const SECRETS_FILE_MODE = 0o600
 export const EXAMPLE_SECRET_LINE = 'KOMAZON_PASSWORD=komazon123'
 
-// applied only when init creates the file (preserveOnForce).
+// Applied only when init creates the file (`preserveOnForce`).
 function buildSecretsFile(platform: InitPlatformInput): string {
   if (!hasWeb(platform)) return ''
   return "# The Komazon playground's public demo password (printed on its sign-in page); "
@@ -412,11 +390,7 @@ function buildGitignoreEntries(): string[] {
   return [
     directoryGitignoreEntry(INIT_RUNTIME_DIR),
     directoryGitignoreEntry(INIT_AUTH_STATES_DIR),
-    // 394: the draft shelf, which lives INSIDE `tests/` because that is the only
-    // location a run will admit — see the two-sided admission note in
-    // `composition/local-agent-host.ts`. Spelled literally here for the same reason the durable
-    // temporary rule below is: init-filesystem.js is mocked wholesale by the init suite, and
-    // `TARGET_GITIGNORE_ENTRIES` is the other copy the agreement test pins this against.
+    // Spelled literally because the init suite mocks init-filesystem.js; a test pins both equal.
     'tests/.agent-qa-drafts/',
     'node_modules/',
     DEFAULT_LOCAL_CONFIG_FILE,
@@ -464,16 +438,7 @@ const KNOWLEDGE_GITIGNORE_FUNCTIONAL_LINES = [
   '.*.agent-qa-init-*.tmp',
 ] as const
 
-// The committed/derived split below is verbatim from spec/v2/knowledge-store.md §4 — do not
-// paraphrase. Future-shelf lines (skills/.staging/) ship now so the split never needs a later
-// edit.
-//
-// The final rule is a DELIBERATE DIVERGENCE from that spec section and is labelled as such in
-// the emitted file. It is not part of the committed/derived split; it is an operational rule
-// for this tool's own publication temporaries. It has to live here rather than in the project
-// .gitignore because a knowledge tree is routinely its own repository — measured: a nested
-// repository does not inherit its parent's .gitignore — and because `init` verifies the
-// knowledge root BEFORE the project managed block exists.
+// Verbatim from spec/v2/knowledge-store.md §4, except the labelled rule for publish temporaries.
 function buildKnowledgeGitignore(): string {
   return `# agent-qa-knowledge/.gitignore
 memory/index/
@@ -492,9 +457,7 @@ skills/.staging/
 `
 }
 
-// comment-only — zero active rules. An un-authored active rule would be
-// sovereign prompt bytes on every run. HTML comments are stripped at serve time,
-// so this scaffold is an empty policy until a human writes a rule below it.
+// Comment-only: an active rule would be prompt bytes on every run; HTML comments are stripped.
 function buildGlobalPolicyTemplate(): string {
   return `<!--
 agent-qa policies — global scope
@@ -518,11 +481,7 @@ an empty policy. Add rules below this comment block to activate them.
 `
 }
 
-// the substantive human entry point for the committed knowledge root.
-// the README states the guide's rule — knowledge changes only through
-// agent-qa, applies at once, and wrong knowledge is corrected by new feedback or forget — and no
-// longer cites a design-doc path a user's checkout does not have (431 D7 friction). Its other D7
-// items (policies/global.md's wording, CLI/MCP setup, `<build>`/`--kind`) stay with M7.
+// The human entry point for the knowledge root; it states the guide's rule for changing knowledge.
 export function buildKnowledgeReadme(): string {
   return `# agent-qa-knowledge
 
@@ -675,7 +634,7 @@ function connectionSteps(config: Record<string, unknown>, dir: string): InitNext
   return steps
 }
 
-// the same commands, in the same order, as the published quickstart.
+// The same commands, in the same order, as the published quickstart.
 function initNextSteps(
   platform: InitPlatformInput,
   config: Record<string, unknown>,
@@ -726,8 +685,7 @@ function agentInstructionPointerBlock(): string {
   return renderManagedBlock(agentInstructionPointerContent())
 }
 
-// the config marker is init's completion record, so a root block that fails to publish
-// must say the scaffold is incomplete rather than leave a half-written project looking done.
+// The config marker records completion, so a failed root block reports the scaffold incomplete.
 function incompleteScaffoldError(error: unknown): Error {
   const reason = error instanceof Error ? error.message : String(error)
   return new Error(
@@ -738,8 +696,7 @@ function incompleteScaffoldError(error: unknown): Error {
   )
 }
 
-// printed flush left, because an indented marker line is not a marker and the managed
-// writer would refuse the pasted file as ambiguous.
+// Printed flush left: an indented marker line is not a marker, and the writer would refuse it.
 function printAgentInstructionPointer(): void {
   console.log('')
   console.log(`  Coding agents: add this block to ${ROOT_AGENT_INSTRUCTIONS_FILE} at the project root:`)
@@ -750,13 +707,7 @@ function printAgentInstructionPointer(): void {
 export interface InitCommandHooks {
   afterWrite?: (result: InitFileResult, boundary: number) => void
   onComplete?: (outcomes: readonly InitFileResult[]) => void
-  /**
-   * How this invocation composes its analytics.
-   *
-   * A seam for the same reason the two hooks above are: `init` writes into a directory, and the
-   * production composition resolves the real identity store. A suite substitutes it to observe the
-   * one event this command emits without touching a home directory.
-   */
+  // A seam so a suite observes the one event without touching a home directory.
   composeAnalytics?: typeof ComposeAnalyticsHost
   isTTY?: boolean
 }
@@ -820,7 +771,7 @@ function buildScaffoldFilePlans(
       force,
       true,
     ),
-    // agent-qa's generated file, so --force regenerates it (not preserveOnForce).
+    // agent-qa's generated file, so `--force` regenerates it (not `preserveOnForce`).
     scaffoldFilePlan(
       dir,
       join(KNOWLEDGE_ROOT_DIR, 'AGENTS.md'),
@@ -878,7 +829,7 @@ function printOutcomeSummary(dir: string, outcomes: readonly InitFileResult[]): 
   }
 }
 
-// printed flush left so the line can be pasted as is.
+// Printed flush left so the line can be pasted as is.
 function printExampleSecretLine(): void {
   console.log('')
   console.log(`  Add this line to ${DEFAULT_SECRETS_FILE} so the examples can sign in:`)
@@ -924,11 +875,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
       'print the JSON capability manifest (catalog and local posture) and exit; writes nothing',
     )
     .action(async (opts, command: Command) => {
-      // `--agent` IS A READ, AND IT RETURNS BEFORE ANYTHING ELSE HAPPENS. Ahead of it lies
-      // the whole of init: prompts, a scaffold plan, files. Returning here rather than threading a
-      // flag through the prompt checks is what makes "non-interactive, idempotent, writes nothing" a
-      // property of the control flow instead of a claim about it — there is no branch below this
-      // one that a manifest read can reach.
+      // `--agent` is a read that returns before any prompt or file, so no branch below can write.
       if (opts.agent === true) {
         const releaseStdout = reserveStdoutForData()
         try {
@@ -952,61 +899,28 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         } finally {
           releaseStdout()
         }
-        // AND NOTHING IS EMITTED ON THIS PATH. `--agent`
-        // is a READ — it writes no file, creates no project, and returns before any scaffold exists
-        // — so there is no init to report the completion of. Reporting one would count every
-        // manifest read a coding agent makes as a project being initialised, which is the single
-        // number this member exists to get right.
+        // `--agent` writes nothing, so it emits no init event.
         return
       }
 
       const initStartedAt = Date.now()
       const dir = resolve(opts.dir)
       const force = opts.force ?? false
-      // the ONE path the opt-out read consults, resolved once. Same derivation the
-      // `--agent` branch above already uses — `--dir`-relative unless an explicit `--config` was
-      // given — because `init` is a command aimed at a directory, and honouring a declaration out
-      // of the caller's shell instead would be honouring the wrong project's.
+      // The one path the opt-out read consults: `--dir`-relative unless `--config` is given.
       const analyticsConfigPath =
         command.parent?.opts<{ config?: string }>().config ?? join(dir, 'agent-qa.config.yaml')
 
       const tty = hooks.isTTY ?? process.stdin.isTTY === true
       let asked = false
 
-      /**
-       * The init/scaffold member, emitted from the ONE place that knows how the run
-       * ended — which is why it is a function called from two sites rather than a line at one.
-       *
-       * The outcome is DERIVED from the file outcomes, never assumed: anything created makes this a
-       * `created`, anything only rewritten an `updated`, and a run that changed nothing an
-       * `unchanged`. `preserved` is the filesystem layer's word for a file left alone, and it is
-       * what makes the third arm reachable — including through the "already initialized, use
-       * --force" answer below, which is the common way a person reaches it.
-       *
-       * `failed` is not emitted from here and cannot be: a scaffold that throws never reaches
-       * either call site. Retune: a `failed` arm needs a catch around the whole write phase, which
-       * is a change to how this command reports errors, not to what it measures.
-       *
-       * The binding is imported LAZILY for the reason recorded at the type-only import up top.
-       */
+      // Derives the outcome from file outcomes; a scaffold that throws reaches neither call site.
       const emitInitCompleted = async (
         results: readonly { readonly outcome: InitFileResult['outcome'] }[],
       ): Promise<void> => {
         const { analyticsEvent, composeAnalyticsHost } = await import(
           '../composition/analytics-host.js'
         )
-        // the config THIS COMMAND IS OPERATING ON is read here and handed to the one
-        // opt-out decision — `analyticsConfigPath` above, i.e. the global `--config` when given and
-        // otherwise the target directory's own config file, resolved once at the top of the action.
-        //
-        // An absent or unresolvable config yields `undefined`, and that is a real posture rather
-        // than a gap: a fresh directory genuinely has no declaration to honour yet, and refusing to
-        // scaffold over a telemetry read would be refusing the capability over the telemetry
-        // (`mcp.ts`'s ratified try/catch). `resolveConfig` is imported lazily for the same measured
-        // reason the analytics binding is — see the type-only import up top.
-        // Both readers come from the SAME lazy import — the module-graph reason above applies to
-        // the pair, and taking them together also makes it structurally impossible for the raw
-        // privacy read to drift onto a different module than the validating read.
+        // Reads this command's own config for the opt-out; an absent config yields `undefined`.
         const { readAnalyticsPrivacyDeclaration, resolveConfig } = await import('../config.js')
         let config: Awaited<ReturnType<typeof resolveConfig>> | undefined
         try {
@@ -1017,9 +931,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         } catch {
           config = undefined
         }
-        // F-1 / CR-01, at init's root: see the note at chat.ts's composition. `analyticsConfigPath`
-        // is reused verbatim, so the declaration is read from the same file this action already
-        // decided its config lives in — including the `--config` case.
+        // Reuses `analyticsConfigPath`, so the declaration comes from the file already chosen.
         const analyticsConfig = config ?? await readAnalyticsPrivacyDeclaration(analyticsConfigPath)
         const analytics = await (hooks.composeAnalytics ?? composeAnalyticsHost)({
           surface: 'cli',
@@ -1158,7 +1070,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
           && result.classification === 'regular',
       )
       if (knowledgeGitignoreWasPresent) {
-        // the refusal prints its message only, never a stack trace.
+        // The refusal prints its message only, never a stack trace.
         try {
           warnForMissingKnowledgeGitignoreRules(knowledgeGitignorePath)
           verifyEffectiveGitignore({
@@ -1184,22 +1096,7 @@ export function createInitCommand(hooks: InitCommandHooks = {}): Command {
         hooks.afterWrite?.(result, boundary)
       }
 
-      // The managed block goes down FIRST, before any other write can create a temporary.
-      // Every scaffold write publishes through a sibling temporary carrying the
-      // destination's own content, and until this block exists no rule covers that name —
-      // so ordering it after the scaffold loop left a window in which `.env.secrets.local`'s
-      // 0600 temporary was untracked and `git add .` could pick it up. The single temporary
-      // this cannot cover is its own, whose content is .gitignore bytes and never a
-      // credential.
-      //
-      // CORRECTION (round 10): that "single temporary" claim was measured against THIS root
-      // only. A knowledge tree that is its own repository does not inherit this file, so the
-      // knowledge root has its own first-write rule — see `buildScaffoldFilePlans`, where the
-      // knowledge `.gitignore` now leads its group for exactly this reason. One uncovered
-      // temporary per root, each of them a `.gitignore`'s own.
-      //
-      // Verifying here does NOT make "no files were changed" true — this write has already
-      // happened. The refusal states what actually happened instead; see `changed` below.
+      // Written first, so no later scaffold temporary exists before its ignore rule does.
       recordOutcome(upsertManagedGitignoreBlock(
         targetGitignorePath,
         buildGitignoreEntries(),

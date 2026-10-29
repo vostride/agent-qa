@@ -1,15 +1,4 @@
-// The one managed-block writer, shared by every file agent-qa keeps a
-// block in: the target `.gitignore` (hash comments) and a project's `AGENTS.md` (HTML comments),
-// and M7's skills blocks after them.
-//
-// A block is identified by owner, block name and comment syntax. The bytes between its two
-// marker lines are agent-qa's and are regenerated; every byte outside them is the user's and is
-// returned exactly as it arrived — line endings, Unicode and final-newline state included.
-// An existing block is therefore rewritten where it stands by slicing the original string, never
-// by splitting and rejoining lines or moving the block to the end of the file.
-//
-// PURE. No `fs`, no clock: the proposal path composes the same bytes the init path writes. The
-// filesystem half (lock, re-read, atomic publish) is `upsertManagedBlock` in init-filesystem.ts.
+// Every byte outside the two markers is returned as it arrived; the block is sliced in place.
 
 export type ManagedBlockCommentSyntax = 'hash' | 'html'
 

@@ -1,15 +1,4 @@
-// `agent-qa agent-jobs` operates the AGENT JOB QUEUE — the v52 durable background-job substrate in
-// `.agent-qa/agent-jobs.db`. It is not the run queue (v1 test executions, `agent-qa queue`) and not
-// the curation queue (v51 knowledge curation, drained under the writer lease). D-21's three names
-// are load-bearing here for one concrete reason: the D-06 disposal step discards CURATOR jobs, and
-// an operator who reached for `agent-qa queue cancel` would be cancelling rows in a different
-// store entirely.
-//
-// `pump --only <kind>` is the in-process, writer-lease-holding, kind-filtered
-// drain. The campaign driver pumps `analyze-run` per leg so seeding reads real verdicts, and the
-// `curate-memory` successor that drain enqueues stays queued for the disposal step to list and
-// cancel. See `../composition/agent-jobs-ops.ts` for why the filter is a construction option on the
-// queue rather than a check in a loop.
+// The agent job queue in `.agent-qa/agent-jobs.db`, distinct from the run and curation queues.
 
 import { Command, InvalidArgumentError } from 'commander'
 import pc from 'picocolors'
@@ -90,14 +79,7 @@ function renderRefusal(refusal: Extract<PumpAgentJobsOutcome, { kind: 'refused' 
   return pc.red(`agent job queue: refusal [${refusal.reason}]: ${detail}`)
 }
 
-/**
- * The listing, with the 422 D-16 conclusion column beside the kind it explains.
- *
- * The column is ALWAYS printed, not added only when some row has a conclusion. A table whose
- * shape depended on its contents would mean an operator comparing two listings could not tell a
- * queue with no quarantines from a build that does not report them, and a driver parsing columns
- * by position would silently read the run id as a conclusion the first time one appeared.
- */
+// The conclusion column is always printed, so a column-parsing driver never misreads the run id.
 function renderList(result: ListAgentJobsOutcome): string {
   if (result.jobs.length === 0) return 'agent job queue: empty'
   const header = [

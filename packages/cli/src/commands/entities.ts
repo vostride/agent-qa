@@ -1,15 +1,4 @@
-// `agent-qa entities` — the entity addressing debug verb.
-//
-// It replaces `ids`, which minted id-agent word-ids from the terminal and therefore owned a
-// capability the function layer now publishes. The machinery `ids` reached for did not go
-// away — `packages/ids` is what the addressing ledger maps FROM — but the CLI no longer names
-// it, because a surface that can mint an identifier is a surface with a private power (L10).
-//
-// Shaped after `fn.ts`, deliberately and almost line for line: resolve a project root, build
-// the registry at the composition root, call `invokeFunction`, render what comes back. The
-// only thing this file knows that `fn` does not is how to READ a resolution — which arm means
-// what, and which fields a human needs to see in each. That is presentation, and presentation
-// is the whole of what a surface is allowed to own.
+// Presentation only: the function layer resolves entities, and this verb renders each arm.
 
 import { dirname, resolve } from 'node:path'
 
@@ -82,15 +71,14 @@ function compositionInput(command: Command): { agentQaRoot: string; configPath: 
   return { agentQaRoot: resolve(dirname(configPath), '.agent-qa'), configPath }
 }
 
-/** The invocation's declared mask, refusing at start (E3) when the secrets file cannot be read. */
+/** The invocation's declared mask, refusing at start when the secrets file cannot be read. */
 function declaredSecretsFor(command: Command): DeclaredSecretMask {
   const declaredSecrets = createDeclaredSecretMask(compositionInput(command).configPath)
   declaredSecrets.redactor()
   return declaredSecrets
 }
 
-// everything this file prints is masked and never restored; JSON is
-// masked leaf by leaf before it is serialized. 2026-10-15 (441-62, IN-A07): keys too.
+// Everything printed is masked and never restored; JSON is masked by key and leaf first.
 function emitJson(mask: MaskFn, value: unknown): void {
   console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
 }
@@ -143,11 +131,7 @@ function renderAction(action: ActionRef): string {
   return `    ${action.label} ${pc.dim(`(${action.functionId})`)}`
 }
 
-/**
- * The full card. `url` is rendered only when the producer supplied one — D-10 keeps it absent
- * until a dashboard base URL is configured, and printing a placeholder here would put a dead
- * link in front of a reader who has no way to tell it from a live one.
- */
+// `url` prints only when the producer supplied one, so no placeholder reads as a live link.
 function renderCard(card: EntityCard, indent = ''): string {
   const lines = [
     `${indent}${pc.bold(card.id)}  ${pc.dim(card.uri)}`,
@@ -167,14 +151,7 @@ function renderCard(card: EntityCard, indent = ''): string {
   return lines.join('\n')
 }
 
-/**
- * Render the resolution ARM FOR ARM, as an exhaustive switch.
- *
- * A default branch would have let a fourth arm added to the vocabulary later print as
- * something plausible; here it is a compile error. That matters more for this union than for
- * most: ENTY-01's never-guess contract is exactly the promise that a surface never renders a
- * maybe, and the three arms are how the contract reaches a human.
- */
+// An exhaustive switch, so a new resolution arm is a compile error rather than a printed guess.
 function renderResolution(resolution: EntityCardResolution): string {
   switch (resolution.kind) {
     case 'resolved':

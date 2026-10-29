@@ -20,9 +20,6 @@ import {
 import { isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
-// 407-30 (REVIEW IN-06): the row renderer lives in its own module now. This command imports the
-// five symbols its emit loop prints with, and re-exports NOTHING — this file's surface is the
-// check contract below plus `createDoctorCommand`.
 import {
   composeRow,
   formatCheckRow,
@@ -31,8 +28,7 @@ import {
   resolveTerminalWidth,
 } from './doctor-row.js'
 
-// exported so `doctor-knowledge-checks.ts` can build rows this printer prints without
-// restating the row contract. The three types are the whole of what a row is.
+// Exported so `doctor-knowledge-checks.ts` builds rows without restating the row contract.
 export type CheckStatus = 'pass' | 'warn' | 'fail' | 'skip'
 
 export interface CheckResult {
@@ -367,7 +363,7 @@ function checkLLMConnection(config: Record<string, unknown> | null): DoctorCheck
         }
         const { generateText } = await import('ai')
         const { profile, auth: modelAuth } = toModelProfileAndAuth(llm, auth as any)
-        // fixed probe text, nothing to mask.
+        // Fixed probe text, nothing to mask.
         const testModel = createModel(profile, modelAuth, (text) => text)
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 10000)
@@ -646,9 +642,7 @@ export function createDoctorCommand(): Command {
         checkNodeVersion(),
         checkConfigFile(configPath),
         checkLegacyV1MemoryData(configPath),
-        // the knowledge substrate's three rows sit here — directly after the legacy v1
-        // memory row, because they are the same subject — and before config validation, so the
-        // rung reads as the conclusion of the store and embedder rows above it.
+        // After the legacy v1 memory row and before config validation, concluding the store rows.
         ...createKnowledgeChecks({ config, configPath }),
         checkConfigValidation(config, configPath),
         checkSecretsFile(config, configPath),
@@ -673,13 +667,7 @@ export function createDoctorCommand(): Command {
       let hasFailure = false
       const results: { check: DoctorCheck; result: CheckResult }[] = []
 
-      // every line below goes through the width budget. Colour is applied HERE
-      // and only here, by handing named decorators to the same `composeRow` the formatter used to
-      // derive its plain line — so the printed line and the pinned one are one recipe run twice.
-      //
-      // THIS CHANGE IS CONFINED TO ROW RENDERING. No probe, no capability discovery and no
-      // registration cleanup is touched by it: the checks above still answer exactly what they
-      // answered before, and doctor still only reads.
+      // Colour is applied only here, through the `composeRow` the formatter uses for plain lines.
       const width = resolveTerminalWidth()
       // Rows quote config names, so under GitHub Actions the table prints once as one wrapped
       // block after the last check; elsewhere each row prints as its check finishes.

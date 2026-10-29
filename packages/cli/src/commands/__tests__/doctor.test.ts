@@ -19,7 +19,6 @@ vi.mock('@vostride/agent-qa-core', () => ({
   AgentQaConfigSchema: { safeParse: vi.fn().mockReturnValue({ success: true }) },
 }))
 
-// checkDockerAvailable moved to runner-local in Phase 363 D-06.
 vi.mock('@vostride/agent-qa-runner-local', () => ({
   checkDockerAvailable: vi.fn(),
 }))

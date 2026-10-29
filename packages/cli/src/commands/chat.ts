@@ -1,31 +1,4 @@
-// `agent-qa chat` — the interactive REPL.
-//
-// A THIN CLIENT, on `fn.ts`'s idiom and `ask.ts`'s reasoning. Every line a person types becomes ONE
-// `invokeFunction(agent.ask, …)` call. This file owns no turn capability: the routing, the
-// reconciliation, the execution, the session log and the directives all live behind a registered
-// op, so this whole surface could be deleted and every one of them would still be reachable from
-// the MCP projection, the daemon and the scenario harness (§3's L10 law, made structural by D-24).
-//
-// THE ONE-SHOT AND THE REPL ARE THE SAME TURN. What differs is the session and the loop, and
-// nothing else — `ask` is a single-turn session on the same log grammar, which is why chat
-// needs no special case in the adapter and why a routing change cannot be right in one surface and
-// wrong in the other.
-//
-// THE CANON IS CONSULTED IN EXACTLY ONE PLACE, and it is not here. `/help`, `/quit` and `/model`
-// are resolver table entries, so they travel the same turn entry as any other utterance and the
-// engine's handlers carry them out. This file never matches a `/` prefix of its own: a REPL
-// that recognised `/quit` itself would be a second list of what chat understands, free to disagree
-// with the one that actually routes. `/quit` is observed through the live state the engine mutates.
-//
-// NOTHING ASKS. A typed line is carried out by its turn; there is no inline confirm
-// and no three-answer decision prompt. The REPL reads only the lines a person types. A refused
-// clause prints its refusal sentence beside its receipt.
-//
-// EVERYTHING PRINTED CROSSES THE DECLARED MASK, and nothing restores it.
-//
-// NO MODEL IS BUILT HERE, and the arch rollcall pins that. Whatever model a turn uses is
-// resolved by the composition; a chat surface constructing its own client would be a model egress
-// with none of `createModel`'s masking, profile resolution or auth.
+// A thin client: each typed line is one `agent.ask` call, and `/` commands route in the engine.
 
 import { dirname, resolve } from 'node:path'
 import { createInterface } from 'node:readline'
@@ -83,48 +56,20 @@ interface ChatOptions {
   list?: boolean
 }
 
-/**
- * The seams a test substitutes, and the whole of them.
- *
- * The streams, because a suite that needed a real terminal would be a suite that never runs; and
- * the interrupt registration, because raising a real SIGINT in a test measures the runner's signal
- * disposition rather than what this file does with one. Everything else — the registry, the
- * session adapter, the banner's reads — is the real composition in every invocation including the
- * tested ones.
- *
- * 2026-10-03 (quick-261003-tsr, IN-10): `isTty` is deleted. It decided whether an inline confirm
- * was built, and none has been since 432-13.
- */
+// The seams a test substitutes: the streams and the interrupt registration; the rest is real.
 export interface ChatCommandDeps {
   input?: NodeJS.ReadableStream
   output?: NodeJS.WritableStream
   onInterruptHandler?: (handler: () => Promise<void>) => void
-  /**
-   * How this invocation resolves what a chat session plans with (392 plan 09).
-   *
-   * On the list for the same reason the streams are: the default reaches a provider, and a suite
-   * that had to would be a suite that never runs offline. The DEFAULT is the production path and
-   * every tested invocation that does not substitute it takes that path.
-   */
+  // Substitutable because the default reaches a provider, so a suite could not run offline.
   chatCapabilities?: (configPath: string) => Promise<CliChatCapabilities | undefined>
-  /**
-   * How this invocation composes its analytics.
-   *
-   * On the list for the same reason `chatCapabilities` is: the default is the production path, and
-   * on a configured machine it resolves the real identity store and constructs a live client. A
-   * suite that could not substitute it would either touch a real home directory or be unable to
-   * observe an emission at all — and an emission nothing observes is the defect this phase keeps
-   * finding, where a host builds the right event and drops it.
-   */
+  // Substitutable so a suite neither touches a real home directory nor misses an emission.
   composeAnalytics?: typeof composeAnalyticsHost
 }
 
 function globalOptions(command: Command): { config?: string } {
   return command.parent?.opts<{ config?: string }>() ?? {}
 }
-
-// `CHAT_DOOR_SURFACE`, the word this door minted proposals as,
-// is deleted with the proposal records it stamped.
 
 /** Everything the composition root needs, derived from one flag — the `fn.ts` derivation. */
 function compositionInput(
@@ -137,20 +82,11 @@ function compositionInput(
   }
 }
 
-/**
- * One turn, rendered.
- *
- * The SAME vocabulary `ask` prints, because they are the same turn — the receipt line is
- * literally shared now (`receipt-line.ts`, imported by both surfaces) and the shapes below are the
- * shapes `ask` reports. A REPL with its own wording would make a person's scripted run and their
- * conversation disagree about what happened, and two copies of one line is how that starts.
- */
+// The same vocabulary `ask` prints, from the shared `receipt-line.ts`, because they are one turn.
 function renderTurn(result: AgentAskResult): string {
   const lines: string[] = []
   if (result.refusedLineCount !== undefined) {
-    // ONE LINE, and it has to be said (392-03's note to this plan): a resumed session with
-    // permanent mid-file damage is still a usable conversation, and a REPL that mentioned nothing
-    // would re-create the swallow that plan removed. The file itself is the damage report.
+    // A resumed session with mid-file damage stays usable, so the REPL says so in one line.
     lines.push(
       pc.yellow(
         `${result.refusedLineCount} line(s) of this session could not be read; `
@@ -159,9 +95,7 @@ function renderTurn(result: AgentAskResult): string {
     )
   }
   if (result.receipts.length > 0) lines.push(...result.receipts.map(receiptLine))
-  // 399.1: what the ops RETURNED, between the receipts that say they ran and the
-  // prose the planner wrote. The order is the order the facts were established, and the payload
-  // is rendered whole.
+  // What the ops returned, between their receipts and the planner's prose, rendered whole.
   lines.push(...renderClauseResults(result.results, result.receipts.length))
   if (result.answer !== undefined) lines.push(result.answer)
   if (result.status === 'fail_closed') {
@@ -191,8 +125,7 @@ function renderListing(listing: ChatSessionListing): string {
     }
   }
   if (listing.refused.length > 0) {
-    // NOT decoration. A listing that dropped the files it could not read would leave a
-    // person unable to find a conversation that exists, with nothing to look at.
+    // A listing that dropped unreadable files would hide conversations that exist.
     lines.push(pc.yellow(`${listing.refused.length} session file(s) could not be read:`))
     for (const refused of listing.refused) {
       lines.push(`  ${refused.file}: ${refused.reason}`)
@@ -233,13 +166,7 @@ function reportError(error: unknown, mask?: MaskFn): void {
   printRunText(pc.red(shown), (block) => console.error(block))
 }
 
-/**
- * Which session this invocation continues, or `undefined` for a fresh one.
- *
- * BOTH RESUME PATHS ARE VALIDATED BEFORE THE LOOP OPENS, and a failure is a typed refusal rather
- * than a create. The adapter refuses an unknown id too, but it would refuse it on the FIRST TURN —
- * after a person had already typed something into what looked like their old conversation.
- */
+// Both resume paths are validated before the loop opens, not refused on the first typed turn.
 function resolveSessionId(
   agentQaRoot: string,
   options: ChatOptions,
@@ -289,9 +216,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
       const composition = compositionInput(command)
       let host: LocalAgentHost | undefined
       let analytics: CliAnalyticsHost | undefined
-      // The session aggregate, accumulated as the loop runs and read once at close. Every one of
-      // these is a COUNT: what a person typed and what the turn answered are theirs, and the union
-      // has no field either could ride.
+      // The session aggregate, read once at close; every field is a count, never typed text.
       const startedAt = Date.now()
       let turnCount = 0
       let functionCallCount = 0
@@ -314,33 +239,10 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
 
         const sessionId = resolveSessionId(composition.agentQaRoot, options)
 
-        /**
-         * WHICH CONVERSATION THIS REPL IS IN.
-         *
-         * `--session` seeds it, and a fresh conversation has no id at all until the engine mints
-         * one on the first turn. KEPT CURRENT BY THE COMPOSITION'S OWN NOTIFICATION as well as by
-         * the turn's return value: `observeSessionEvent` fires on each durable append, so the id is
-         * the composition's own answer rather than this file's guess.
-         */
+        // Seeded by `--session`, then kept current by `observeSessionEvent` on each durable append.
         let activeSessionId = sessionId
 
-        // THIS COMMAND'S ANALYTICS COMPOSITION ROOT, after `--list` has already
-        // returned. A listing composes no host and emits nothing, and composing here would resolve
-        // the identity store for a read that never opened a conversation.
-        //
-        // THE CONFIG IS READ HERE AND HANDED OVER (398-14, closing D-19's live hole). The earlier
-        // note here deferred this read as "a second config read on the open path", and that
-        // deferral WAS the defect: `analytics.privacy` is a shipped, user-settable field, and a
-        // root that composes without a config drops it silently while the decision that reads it
-        // stays correct one layer below. `daemon` and `mcp` already pay this same read at open.
-        //
-        // TOLERANT, on `mcp.ts`'s ratified posture: a project whose configuration will not resolve
-        // still gets a conversation. Refusing a surface over its telemetry configuration would be
-        // refusing the capability over the telemetry. `undefined` is then passed as ABSENT rather
-        // than as a hole, so the binding's own default posture applies.
-        //
-        // `loadAuthPlugins: false` because this read exists for one boolean: a telemetry read has
-        // no business executing a project's auth plugins as a side effect.
+        // Read tolerantly and without auth plugins, so `analytics.privacy` applies on a bad config.
         let config: Awaited<ReturnType<typeof resolveConfig>> | undefined
         try {
           config = await resolveConfig({
@@ -350,10 +252,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
         } catch {
           config = undefined
         }
-        // F-1 / CR-01: a document that fails VALIDATION can still carry a privacy DECLARATION, and
-        // discarding it transmitted against a user who had set the flag. Reading is not validating,
-        // so the availability posture above is untouched — this cannot refuse the surface, it can
-        // only ever add an opt-out. Same path expression, so it reads the file the validator read.
+        // A document that fails validation can still declare privacy, so the opt-out is read too.
         const analyticsConfig = config
           ?? await readAnalyticsPrivacyDeclaration(globalOptions(command).config)
         analytics = await (deps.composeAnalytics ?? composeAnalyticsHost)({
@@ -362,11 +261,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
           maskingContext: { mask: declaredSecrets.mask },
         })
 
-        // CHAT-06, and the one place in this file that reaches a provider resolution — once, when
-        // a conversation opens, after `--list` has already returned. It answers `undefined` on a
-        // project with no usable LLM configuration, which composes a headless host rather than
-        // refusing to open: every canonical utterance still routes, and anything else fails the
-        // turn closed by name (392 plan 09, discharging 392-08's unbound `chatModelFor`).
+        // `undefined` on a project with no usable LLM composes a headless host, not a refusal.
         const chatCapabilities = (deps.chatCapabilities ?? resolveCliChatCapabilities)(
           composition.configPath,
         )
@@ -375,7 +270,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
         host = composeCliLocalAgent({
           ...composition,
           declaredSecrets,
-          // the explain counter hooks bind against this port inside the composition root.
+          // The explain counter hooks bind against this port inside the composition root.
           analytics,
           ...(chatModel === undefined
             ? {}
@@ -384,20 +279,9 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
               chatModelFor: chatModel.modelFor,
               chatAccounting: chatModel.accounting,
             }),
-          // no chat confirm is built. The composition asks nobody, so a turn's
-          // clauses run once and the session log gains no `approval_decision` row.
-          //
-          // the composition's own notification that a conversation has appended an
-          // event, which is how the box above learns its id DURING the first turn rather than
-          // after it. Nothing else is done with it here — the REPL renders from the turn result.
+          // Tells the REPL its session id during the first turn rather than after it.
           observeSessionEvent: (id) => { activeSessionId = id },
-          // the mid-turn render, on THE SAME STREAM this file's own turn output
-          // writes to, which is why the stream is resolved here rather than defaulted inside the
-          // engine, which has no streams.
-          //
-          // UNCONDITIONAL, INCLUDING UNDER PIPED STDIN. A scripted session is still a transcript
-          // somebody reads, and it is the surface the live lane greps; suppressing the render for
-          // non-TTY would make the one automatable reading of this clause unavailable.
+          // The mid-turn render, on the turn output's stream, unconditional under piped stdin too.
           chatPresent: (text: string) => {
             const stream = deps.output ?? process.stdout
             printRunText(declaredSecrets.mask(text), (block) => {
@@ -407,9 +291,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
         })
         const chat = host.chat
 
-        // D-19's graceful arm, registered before the first turn can start. It writes the explicit
-        // `aborted` event for whatever is in flight and is a no-op between turns; the hard-kill
-        // arm needs nothing, because a torn tail is repaired on the next open.
+        // Writes `aborted` for an in-flight turn; a hard kill's torn tail is repaired on open.
         const interrupt = async (): Promise<void> => {
           endReason = 'interrupt'
           await chat.abortActiveTurn()
@@ -424,13 +306,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
           })
         }
 
-        // ONE read on open, at most one line, and silence when there is nothing to say. It
-        // runs through the same invoke binding a turn dispatches through, with this surface's own
-        // caller, because opening a chat is a person asking.
-        // 399.1: the same classified envelope the composition root's binding answers with, built
-        // the same way — `foldFunctionResult` over the same registry the call dispatched through.
-        // A banner binding that skipped the fold would be a second, quieter answer to "what does
-        // this seam return", which is the shape this phase is removing rather than adding to.
+        // One read on open, through the same invoke binding and fold a turn dispatches through.
         const banner = await composeBanner(
           async (functionId, input, caller) => {
             const payload = await invokeFunction(host!.registry, functionId, input, caller)
@@ -440,11 +316,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
         )
         if (banner !== undefined) emitHuman(print, banner)
 
-        // 398 plan 09, D-01/SC-1: the ONE catalog, loaded ONCE, feeding both discovery features.
-        // It is loaded here rather than lazily because the loader FAILS LOUD — a missing artifact
-        // is a broken install, and the named error carrying the regen instruction is what a person
-        // needs, not a session that quietly knows nothing. This surface parses nothing itself; a
-        // `JSON.parse` at this call site would be the second read path SC-1 exists to prevent.
+        // Loaded eagerly because the loader fails loud: a missing catalog is a broken install.
         const catalog = loadCapabilityCatalog()
 
         const prompt = createInterface({
@@ -498,11 +370,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
               CLI_FUNCTION_CALLER,
             )) as AgentAskResult
 
-            // the turn aggregate. `tool_call_count` is the number of CLAUSE RECEIPTS
-            // the turn produced — the capabilities it actually invoked — read off the result rather
-            // than counted here, so it cannot disagree with what the person was shown. Tokens are
-            // absent because this surface is not told any: `AgentAskResult` carries no accounting,
-            // and a zero would be a measurement nobody made.
+            // `tool_call_count` counts clause receipts; tokens are absent, as the result has none.
             turnCount += 1
             functionCallCount += result.receipts.length
             analytics?.port.capture(analyticsEvent(analytics, 'agent-qa.chat.turn.completed', {
@@ -513,7 +381,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
 
             activeSessionId = result.sessionId
             if (!announced) {
-              // Printed ONCE, and printed at all because it is what `--session` takes.
+              // Printed once, because it is what `--session` takes.
               emitHuman(print, pc.dim(`session ${result.sessionId}`))
               announced = true
             }
@@ -535,14 +403,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
             process.exitCode = undefined
           }
 
-          // `/quit` is read off the live state the engine mutates, never matched here — one
-          // vocabulary for what a person can type, consulted where it routes.
-          //
-          // READ THROUGH THIS LOOP'S OWN SESSION (392 plan 13). The state is one container per
-          // conversation now, so a surface asks about the conversation it is running: this REPL
-          // holds exactly one, learned from `--session`/`--continue` up front or from the first
-          // turn's result. `undefined` is the honest answer before a turn has opened anything, and
-          // a session that has opened nothing has not asked to close.
+          // `/quit` is read off this session's engine state; before a first turn nothing closes.
           if (activeSessionId !== undefined && chat.stateFor(activeSessionId)?.closing === true) break
           if (!promptClosed) prompt.prompt()
         }
@@ -551,16 +412,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
         endReason = 'error'
         reportError(error, mask)
       } finally {
-        // ONE session event per invocation that opened a conversation, emitted where the host is
-        // closed so it cannot be missed by a path that returns early. A `--list` never reaches
-        // here with analytics composed, and an invocation that refused an unknown session id
-        // composed none either — neither opened a session, so neither reports one.
-        //
-        // `slash_command_count` IS DELIBERATELY ABSENT. Counting it here would mean matching a `/`
-        // prefix in this file, and this surface's own law (see the header) is that it never
-        // recognises one: the canon is a resolver table entry, consulted where it routes. A second
-        // reading of what chat understands, kept here for a chart, is exactly the drift that law
-        // exists to prevent. RETUNE: the count belongs wherever the turn is routed.
+        // One session event per opened conversation, emitted at close so no early return misses it.
         if (analytics !== undefined) {
           analytics.port.capture(analyticsEvent(analytics, 'agent-qa.chat.session.completed', {
             duration_ms: Date.now() - startedAt,

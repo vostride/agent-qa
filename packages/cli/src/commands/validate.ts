@@ -12,48 +12,17 @@ export function createValidateCommand(): Command {
     .description('Validate config, test files, and suite references')
     .argument('[files...]', 'specific files to validate (default: auto-discover all)')
     .action(async (files: string[], _options: unknown, command: Command) => {
-      // THREE PARAMETERS, BECAUSE THIS COMMAND TAKES AN ARGUMENT. Commander invokes
-      // an action with `(...declaredArguments, options, command)`. `validate` declares `[files...]`,
-      // so the Command arrives THIRD. Bound as `(files, command)` the second name held the OPTIONS
-      // OBJECT, `command.parent` was undefined, and `--config` fell through to the default below —
-      // silently on the pre-395-21 road, and loudly after it: every `--config` invocation failed
-      // naming `agent-qa.config.yaml`, a file the person had not mentioned. The derivation now reads
-      // the ROOT program's opts exactly as `ask.ts`'s `globalOptions` does.
+      // Commander passes `(files, options, command)`, so the root `--config` comes off the third.
       const configPath = command.parent?.opts<{ config?: string }>().config ?? 'agent-qa.config.yaml'
       let workspace
       let resolutionFailure: string | undefined
 
       try {
-        // NO AUTH PLUGINS ON THE VALIDATION ROAD (395-21 · F-05). Validation reads config VALUES:
-        // which files the workspace names, which globs discover them, which schema they must
-        // satisfy. Auth plugins are EXECUTION machinery — loading one cannot change which files
-        // exist or which schema applies, and it can only add a way for resolution to fail. It did:
-        // the product's own `agent-qa init --platform web` declares an optional subscription-auth
-        // package that a fresh project has not installed yet, `loadLLMAuthPlugins` resolves it with
-        // a bare `require.resolve`, and the throw reached the catch below. The measured
-        // consequence was a validator that reported `All files valid (0 file(s) checked)` over a
-        // project holding eight test files.
+        // No auth plugins: validation reads config values, and a missing plugin would fail it.
         const config = await resolveConfig({ configPath, loadAuthPlugins: false })
         workspace = resolveWorkspacePaths({ config, configPath })
       } catch (err) {
-        // CAPTURED, NOT SWALLOWED. This used to be a bare `catch {}` whose comment said
-        // `validateProject will report config read/schema diagnostics` — true, and not enough:
-        // `workspace` stays undefined, so the bare road discovers NOTHING and the explicit-file
-        // road loses the workspace-match gate. The diagnostics are still deferred (the config arm
-        // at core/src/validation/validate.ts:40-88 re-detects read, parse and schema faults), but
-        // the failure itself is now held and surfaced below.
-        //
-        // ONLY THE MESSAGE. No `cause`, no stack, no file bytes — the loader's messages have been
-        // position-only since 395-16, and (Z2)'s zero-occurrence assertion is the watchdog on this
-        // road.
-        //
-        // EVERY THROWN VALUE PRODUCES A STRING. This reached `.message` through an
-        // `err as Error` cast, and a cast is not a check: a plugin doing
-        // `throw 'boom'` left `resolutionFailure` UNDEFINED, and the guard below reads undefined as
-        // "resolution succeeded" — the false green 395-21 exists to kill, re-entered through a
-        // different door. `throw null` was worse still: the property read TypeErrors inside the
-        // catch. Reachable only through third-party plugin code, and that is precisely the code this
-        // process does not control.
+        // Every thrown value becomes a message string, so a primitive throw cannot pass as success.
         resolutionFailure = err instanceof Error ? err.message : String(err)
       }
 

@@ -1,28 +1,4 @@
-// A self-contained `agent-qa run` SUITE-path fixture, driven through the shipped binary.
-//
-// Phase 401 plan 04. Two cell files need the same thing — the suite door's gate legs
-// (`run-gate-suite.e2e.test.ts`) and the INVK-06 marker carriage legs (`run-markers.test.ts`) — and
-// they need it to be the SAME thing, because "the markers still carry" and "the gate now decides"
-// are two readings of one wire. A helper rather than two fixtures, so a divergence between them
-// cannot become a divergence in what the two claims are about.
-//
-// NOT A TEST FILE: vitest's include here is `src/**/__tests__/**/*.test.ts`, so this module is
-// imported, never collected.
-//
-// WHY THE SUITE PATH NEEDS MORE FIXTURE THAN THE SINGLE-TEST PATH DID. `run-gate.e2e.test.ts`
-// (plan 03) gets away with no `registry.llms` because the single-test path resolves its model
-// lazily, inside the member closure — the run STARTS and then fails downstream. The suite path
-// resolves models eagerly in `prepareSuite`, so with no llm config it dies at
-// `Provider "anthropic-subscription" requires an auth plugin` BEFORE a run could begin, and an
-// allow control that never reaches `startRun` cannot show that the gate let anything through.
-// So the fixture declares an `openai-compatible` config (auth-optional: a missing credential
-// resolves `unauthenticated` rather than `missing`) pointed at a port nothing listens on. The run
-// starts, plans, fails to reach the model, and finishes — which is all any cell here asserts.
-//
-// THE MODEL'S BASE URL IS DELIBERATELY NOT THE COUNTING SERVER. Port 1 is unbindable; a model call
-// therefore fails at connect and never reaches the loopback server below. If it did, a planner
-// retry would land in `probeHits` and the "nobody knocked" assertion would be measuring the
-// planner instead of the run-start probe.
+// Port 1 is unbindable, so a model call fails at connect and never reaches the counting server.
 
 import { spawn } from 'node:child_process'
 import {
@@ -53,13 +29,7 @@ import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 export const CLI_DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'dist', 'cli.js')
 
 export interface AuditRow {
-  /**
-   * When the decision was taken.
-   *
-   * ON THE TYPE BECAUSE A MULTI-RUN CELL NEEDS IT. `auditRows` concatenates one run-scoped sink per
-   * run directory, in directory order, which is not the order the decisions were taken in — so a
-   * cell with two runs has to sort, and could not.
-   */
+  // The decision time; rows arrive in run directory order, so multi-run cells sort on it.
   ts: string
   action: string
   riskTier: string
@@ -86,7 +56,7 @@ export class CountingTarget {
   private originValue = ''
   hits: string[] = []
 
-  /** `onHit` runs as each request arrives, before it is answered (2026-10-03, quick-261003-tsr). */
+  // `onHit` runs as each request arrives, before it is answered.
   constructor(private readonly onHit?: (url: string) => void) {}
 
   async listen(): Promise<void> {
@@ -200,17 +170,7 @@ export function createSuiteFixture(input: {
   return { project, suitePattern: 'suites/gate.suite.yaml' }
 }
 
-/**
- * Run the shipped binary with PIPED stdio — no tty on either end, which is what makes the context
- * non-interactive and the fail-closed arm reachable. That is the same shape a CI job, a cron entry
- * or a redirected shell gives the process.
- *
- * ASYNCHRONOUS, AND THAT IS LOAD-BEARING RATHER THAN STYLE (plan 03's measured defect, inherited
- * here deliberately). `spawnSync` blocks this process's event loop until the child exits — the
- * loopback target above included. The child's baseline probe then connects, waits for a response
- * nobody can send, and aborts on its own timeout, so the counter reads empty on EVERY leg and the
- * deny cells pass on a measurement that could not have failed.
- */
+// Asynchronous: `spawnSync` would block the loopback target, so every probe would read empty.
 export async function runCli(
   fixture: SuiteFixture,
   ...args: string[]

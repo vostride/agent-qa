@@ -1,10 +1,4 @@
-// Phase 364 Plan 03 (RUNX-02 / D1): the first-vs-second-signal contract for the extracted CLI
-// shutdown controller. The controller owns the SIGINT/SIGTERM dispatch logic that was inline in
-// run.ts `handleShutdown`: the FIRST signal runs the graceful path (exitCode 130, route into the
-// RunSession cancel, arm the unref'd force-exit backstop) and a
-// SECOND signal HARD force-exits (130) immediately — independent of the grace timer and of any
-// wedged async `done`. Every effectful dependency is injected so the whole controller is
-// deterministic with plain spies (no real signals, no real timers).
+// The first signal cancels the run and arms the backstop; a second SIGINT or SIGTERM exits at once.
 import { describe, it, expect, vi } from 'vitest'
 import { createShutdownController, type ShutdownControllerDeps } from '../shutdown-controller.js'
 
@@ -94,8 +88,6 @@ describe('createShutdownController — first-vs-second-signal contract', () => {
 })
 
 describe('the shutdown controller cancels only its own run', () => {
-  // was "finalizes this process's own run once, on the first signal";
-  // the first signal writes no row now, and only run.ts's forced exit closes its own.
   it("the shutdown controller cancels this process's own run once, on the first signal", () => {
     const deps = makeDeps()
     const controller = createShutdownController(deps)

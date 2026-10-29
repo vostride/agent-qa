@@ -1,22 +1,4 @@
-// The knowledge read verbs — all three of them thin clients now.
-//
-// `bundles` was the phase-384 exemplar: it owns no data access of its own, asks the function
-// layer for `knowledge.bundles.list`, and renders what it is handed. As of 387 `inspect` and
-// `diff` are the same shape over `knowledge.records.inspect` and `knowledge.records.diff` —
-// the review-verb family's read half. Nothing about what the verbs DO changed; what changed is
-// that the query, the store read and the trust fold are reached through `invokeFunction`
-// instead of by naming the packages that perform them, which is what cleared this file's three
-// firewall-ledger entries.
-//
-// One capability is not a function-layer verb and did not become one: resolving a build TAG to
-// an ordinal is run-persistence bookkeeping, not knowledge. It reaches its machinery through
-// the composition edge every host shares (see agent-local's build-ordinals module) rather than
-// through a package this surface may not name.
-//
-// every verb prints through the declared mask its invocation reads from
-// `workspace.secretsFile`, and nothing restores a value.
-// Gate output additionally crosses the committed-text safety check before either
-// renderer runs. Producer masks and receipt digests are preserved, never regenerated.
+// Thin clients over `invokeFunction`; the build tag resolves through the shared composition edge.
 
 import { dirname, resolve } from 'node:path'
 
@@ -151,7 +133,7 @@ function functionLayerInput(command: Command): { agentQaRoot: string; configPath
   return { agentQaRoot: resolve(dirname(configPath), '.agent-qa'), configPath }
 }
 
-/** The composition input with the invocation's declared mask, refusing at start (E3) without one. */
+/** The composition input with the invocation's declared mask, refusing at start without one. */
 function declaredReadInput(
   command: Command,
 ): { agentQaRoot: string; configPath: string; declaredSecrets: DeclaredSecretMask } {
@@ -227,8 +209,7 @@ function resolvedDiffOrdinal(
   return ordinal
 }
 
-// everything this file prints is masked and never restored; JSON is
-// masked leaf by leaf before it is serialized. 2026-10-15 (441-62, IN-A07): keys too.
+// Everything printed is masked and never restored; JSON is masked by key and leaf first.
 function emitJson(mask: MaskFn, value: unknown): void {
   console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
 }
@@ -662,10 +643,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
       }
     })
 
-  // The exemplar thin client. Registered LAST on purpose: the source-shape
-  // assertion in knowledge-bundles-command.test.ts reads this verb's whole registration as
-  // the slice running to the end of the file, and fails loudly if a later verb is appended
-  // after it rather than silently covering less.
+  // Registered last: a source-shape test reads this registration as the slice to the file's end.
   command
     .command('bundles')
     .description('List committed knowledge bundles through the agent function layer')

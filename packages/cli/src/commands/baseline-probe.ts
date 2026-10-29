@@ -1,18 +1,11 @@
-// Run-start baseline health probe. ONE global-fetch GET against the web target's
-// base URL, executed here at the CLI composition root — the runner's ports ban node:*, so only
-// the RESULT crosses into RunConfig.baselineProbe. Every failure (abort, connect, DNS) is caught
-// and returned as a value; the function never rejects and never retries — a probe failure is
-// itself the environment signal the deterministic root-cause classifier consumes, never a run
-// abort. No HTTP-client dependency (Node 24 global fetch).
+// The runner bans `node:*`, so this probe runs at the CLI and only its result enters `RunConfig`.
 
 import type { BaselineProbeResult } from '@vostride/agent-qa-runner'
 
 export async function runBaselineProbe(url: string, timeoutMs = 4000): Promise<BaselineProbeResult> {
   const startedAt = Date.now()
   try {
-    // redirect: 'manual' — a 3xx is a healthy baseline (only >=500 classifies environment), and
-    // not following the chain keeps the raw status deterministic. AbortSignal.timeout bounds the
-    // probe to a fixed budget; single attempt, no retry.
+    // `redirect: 'manual'` keeps the raw status; a 3xx is healthy and only 5xx means environment.
     const response = await fetch(url, {
       method: 'GET',
       redirect: 'manual',

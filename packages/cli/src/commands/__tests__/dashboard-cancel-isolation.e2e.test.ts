@@ -1,45 +1,4 @@
-// CANCELLING ONE OF TWO CONCURRENT DASHBOARD RUNS (401 UAT item 14 / Truth 5, D-12 — INVK-01).
-//
-// WHAT WAS MISSING, AND WHY THIS FILE EXISTS. 401-07 measured its own door-level cancel cell
-// VACUOUS and recorded the measurement (`deferred-items.md` item 7): in every other in-process
-// fixture in this phase `PLAYWRIGHT_BROWSERS_PATH` is an empty directory, so the member fails its
-// browser check in tens of milliseconds. A run therefore reaches its verdict before an abort can
-// unwind anything, both arms produce the identical event log, and both settle the same way — so an
-// assertion drawn there discriminates NOTHING. What ships measures ROUTING at the door (a cancel
-// reaches the run it names) and the abort's EFFECT only over fake sessions whose `cancel()` can be
-// counted. The invariant the truth actually states — **an abort unwinds a LIVE run, and only that
-// run** — was exercised by nothing. The deferred item names the missing piece exactly: "a member
-// the cell can hold open ... That is a fixture, not a fix." This is that fixture.
-//
-// THE HOLDABLE MEMBER, AND WHY IT IS NOT A SUBSTITUTION OF THE THING UNDER TEST. Every frame from
-// the queue's backend down to the runner shell is the shipped one: `createDashboardRunDoor` →
-// `composeDashboardDoor` → the shipped `invokeFunction` → the op gate → the composed host's run
-// execution → `runInProcessCliRun` → the core → `startRun` → the real `produceSuiteRunMembers`
-// closure → `adapter.setup` → `chromium.launch(...)`. What is stood in for is the BROWSER BINARY —
-// the external world, not this product's code. A stand-in executable is planted at the path
-// playwright itself reports (`chromium.executablePath()`, under a per-fixture
-// `PLAYWRIGHT_BROWSERS_PATH`); it records its arrival and then parks until this cell releases it.
-// The member is then genuinely, provably still executing inside the shipped web adapter.
-//
-// LIVENESS IS ASSERTED, NEVER INFERRED, and never from a clock. There is no `sleep` anywhere in
-// the hold: the stand-in writes an arrival file (carrying the argv playwright launched it with)
-// and blocks on a release file this cell alone creates. Before the cancel is issued the cell
-// asserts (a) BOTH stand-ins arrived, (b) each was launched by playwright (`--remote-debugging-pipe`
-// in the recorded argv), (c) NO release has been issued, and (d) each run has published
-// `runStarted` + `testStarted` and NEITHER `testFinished` NOR `runFinished`. After the cancelled
-// run settles it asserts its release file STILL does not exist — so the member never returned, and
-// "cancelled mid-flight" cannot be confused with "already finished before we asked".
-//
-// WHY A SUITE AND WHY TWO MEMBERS. The truncation has to be real. The direct-test producer wraps
-// its executor in a catch that sets a framework error and calls `activeRunSession.cancel()`, so a
-// browser-less DIRECT run cancels ITSELF and lands on the same `cancelled` verdict a real abort
-// produces — measured, and it is half of why the shipped cell is vacuous. The suite producer
-// carries no such wrapper (`takeFrameworkError: () => undefined`), so a released member's throw
-// reaches the shell as a member ERROR: `runWarning` + a failed member, which poisons the suite's
-// fail-fast group and publishes member 1's `testFinished`. The shell's CANCEL branch, by contrast,
-// skips every remaining member SILENTLY (`skippedPerTestOutcome`, no publish). Two members is
-// therefore the smallest fixture in which the cancelled run's log is missing work the surviving
-// run's log has.
+// A stand-in browser holds each member open, so the cancel lands on a live run, not a finished one.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -89,22 +48,7 @@ interface Envelope {
   reason?: string
 }
 
-// THE HOLDABLE MEMBER LIVES IN `holdable-browser.ts`, imported above. It has a second
-// consumer now — `composition/__tests__/interrupted-gate-run-exclusion.e2e.test.ts` — and a fixture
-// whose whole value is that liveness is ASSERTED cannot afford two spellings: the weaker copy
-// would go green having measured nothing. That module's header names every load-bearing property,
-// including the `PLAYWRIGHT_BROWSERS_PATH`-before-anything-touches-playwright ordering hazard that
-// this cell's plant depends on.
-
-/** The event types a run wrote to ITS OWN durable log, in order. */
-/**
- * The RUN-SCOPED prefix of a run's log: everything up to and including `runFinished`.
- *
- * 404 D-06 gave the `runs.start` door a drain leg, so a finished run's log continues with the chip
- * envelopes that drain emits. Those are post-processing and this cell is about the run, so the
- * comparison is made over the prefix — and a chip line that appeared BEFORE `runFinished` would be
- * caught by the ordering assertion at the call site rather than silently trimmed here.
- */
+// The run-scoped prefix of a log: the drain appends chip envelopes after `runFinished`.
 function runScopedTypes(fixture: Fixture, runId: string): string[] {
   const all = loggedTypes(fixture, runId)
   const finishedAt = all.indexOf('runFinished')
@@ -168,12 +112,7 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
       runDoor.backend.on('run-settled', (runId: string, status: string, details: RunSettledDetails) => {
         settled.push({ runId, status, details })
       })
-      // the run's OWN bus, watched through the door's published
-      // `observeSessions` fan-out. This used to read the backend's per-run replay buffer, which
-      // existed for one SSE route and was deleted with it. `subscribe(1, …)` is replay-then-live
-      // from the first seq, so a recorder registered here sees every envelope of every run the
-      // door starts — and each list is a different SESSION, which is a stronger isolation claim
-      // than two entries in one map.
+      // `subscribe(1, …)` replays from the first seq, so a recorder here sees every envelope.
       const recorded = new Map<string, Envelope[]>()
       runDoor.observeSessions((session) => {
         const id = session.id as unknown as string
@@ -240,7 +179,7 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
       // member was STILL PARKED. Nothing released it, so the run cannot have reached its verdict by
       // finishing — the abort is what ended it.
       expect(browsers.releasesIssued()).toBe(0)
-      // the status is the run's own verdict; kill adds no reason.
+      // The status is the run's own verdict; kill adds no reason.
       expect(settled[0]!.status).toBe('cancelled')
       expect(settled[0]!.details.reason).toBeUndefined()
 
@@ -260,21 +199,7 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
       expect(bySettledRun.get(survivor)!.status).toBe('failed')
       expect(bySettledRun.get(survivor)!.details.reason).toBeUndefined()
 
-      // ---- (6) THE CANCELLED RUN'S LOG IS TRUNCATED, NOT MERELY PRESENT ----------------------
-      //
-      // Both runs ran the SAME two-member suite, and both `runStarted` envelopes promise two
-      // members. The cancelled run's log carries ONE member's run and stops; the survivor's
-      // carries the member-0 failure, the `runWarning` that failure raised, and member 1's
-      // fail-fast `testFinished`. Every event the cancelled run is missing is work the survivor
-      // did — which is the claim, stated as a subset rather than as "both logs are non-empty".
-      // the member the cancel skipped is published as `skipped`.
-      //
-      // the run's log now continues PAST `runFinished`. This door drains
-      // its own post-processing chain in-process, so the chip envelopes the drain emits land in
-      // the run's own `events.jsonl` — which is the whole point of giving `runs.start` a drain leg
-      // and is why a dashboard user's chips advance at all. The claim this cell makes is about the
-      // RUN, so it is stated over the run-scoped PREFIX (everything up to and including
-      // `runFinished`) and the post-processing tail is asserted separately as what it is.
+      // Every event the cancelled run lacks is work the survivor did, over the run-scoped prefix.
       const cancelledTypes = runScopedTypes(fixture, cancelled)
       const survivorTypes = runScopedTypes(fixture, survivor)
       expect(cancelledTypes).toEqual([
@@ -283,8 +208,6 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
       expect(survivorTypes).toEqual([
         'runStarted', 'testStarted', 'runWarning', 'testFinished', 'testFinished', 'verdict', 'runFinished',
       ])
-      // Nothing post-processing precedes `runFinished`, on either run — LIFE-01's own ordering,
-      // re-measured here because this is where a chip line would first be seen out of place.
       for (const runId of [cancelled, survivor]) {
         const all = loggedTypes(fixture, runId)
         const finishedAt = all.indexOf('runFinished')

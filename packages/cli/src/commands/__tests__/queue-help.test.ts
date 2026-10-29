@@ -8,15 +8,7 @@ import { createQueueCommand } from '../queue.js'
 import { createDaemonCommand } from '../daemon.js'
 import { createKnowledgeCommand } from '../knowledge.js'
 
-/**
- * The three-queue vocabulary pin.
- *
- * A snapshot of whatever the help happens to say would pass forever and prove nothing, so this
- * file asserts a RELATION instead: every singular occurrence of the word "queue" in the help must
- * carry exactly one of three qualifiers, and the set of qualifiers found must be all three. A
- * regression that collapses two queues onto one name shrinks the set; a regression that says bare
- * "queue" adds a qualifier that is not in the set. Both redden here.
- */
+// Each bare `queue` in the help carries a `CANONICAL_ORDER` qualifier, and every one appears.
 const CANONICAL_ORDER = ['run queue', 'curation queue', 'agent job queue'] as const
 const QUALIFIERS = ['run', 'curation', 'agent job'] as const
 
@@ -34,12 +26,7 @@ function helpOutput(cmd = createQueueCommand()): string {
   return buffer
 }
 
-/**
- * Occurrences of the command's own NAME are exempt, and only there: D-22 ratifies that the v1
- * command stays `agent-qa queue`, so commander's usage line is the one place a bare token is
- * correct. Dropping the whole line rather than the token keeps the exemption narrow enough that
- * prose can never hide behind it.
- */
+// The usage line names the command `queue`; dropping that whole line keeps prose from hiding there.
 function proseOf(help: string): string {
   return help
     .split('\n')
@@ -49,11 +36,7 @@ function proseOf(help: string): string {
 
 function qualifiersIn(prose: string): string[] {
   const found = new Set<string>()
-  // Both boundaries, not just the trailing one. The trailing lookahead alone made the relation
-  // fire inside `requeue` — a VERB whose last five letters happen to spell the noun — and would
-  // have forced the 413-14 subcommand to be named something other than what it does. A compound
-  // word is not an unqualified use of the noun; a bare "the queue" still is, and the control cell
-  // below still reddens on it.
+  // Both boundaries are guarded, so a compound like `requeue` does not count as the noun.
   const singular = /(?<![\w-])queue(?![\w-])/g
   for (let m = singular.exec(prose); m !== null; m = singular.exec(prose)) {
     const before = prose.slice(0, m.index)

@@ -1,11 +1,5 @@
 /// <reference lib="dom" />
-// Real Chromium, shipped UI and the composed mark and detail routes. No provider calls.
-// An absent browser or stale build fails, never skips. Each cell owns an independent ledger.
-// a mark asks nobody. The first three cells, the draft-retention matrix and the
-// themes cell were re-spelled from approve/deny/no-channel onto the one-click mark; the approval
-// group is asserted never to render. 432-14: the composer's approval component, the page's confirm
-// channel and the scope the mark carried are deleted, so the page opens no stream and one submit is
-// one request carrying the composer's own body.
+// Real Chromium, the shipped UI and the composed mark and detail routes; no provider calls.
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { chromium, type Browser, type BrowserContext, type Page, type Locator } from 'playwright-core'
@@ -26,7 +20,7 @@ const { scratchHome } = await vi.hoisted(async () => {
 })
 vi.mock('node:os', async original => ({ ...await original<typeof import('node:os')>(), homedir: () => scratchHome }))
 const RECHECK_DIR = process.env.AGENT_QA_MARK_UI_RECHECK_DIR
-// the two doors into the one composer.
+// The two doors into the one composer.
 const TEST_ENTRY = '[data-feedback-entry="test"]'
 const STEP_ENTRY = '[data-step-id="0:0"] [data-feedback-entry="step"]'
 const COMPOSER = '[data-feedback-composer]'
@@ -87,11 +81,10 @@ async function wire(page: Page): Promise<Wire> {
 
 async function scene() {
   const fixture = markFixture()
-  // 2026-10-14 (441-16, E3): the door's run reads refuse without a readable secrets file.
+  // The door's run reads refuse without a readable secrets file.
   writeFileSync(join(fixture.root, '.env.secrets.local'), '')
   const config = parse(readFileSync(fixture.configPath, 'utf8'))
-  // the fixture declares no `safety` block (the key is deleted), so there is no
-  // trust mode to remove; the config is re-serialized unchanged.
+  // The fixture declares no `safety` block, so the config is re-serialized unchanged.
   expect(config.safety).toBeUndefined()
   writeFileSync(fixture.configPath, stringify(config))
   const db = new DashboardDatabase({ dbPath: ':memory:' })
@@ -140,7 +133,7 @@ async function scene() {
   return { page, pageErrors, rows, marks, outsideLoopback, runId: handoff.runId }
 }
 
-/** the page holds no stream to be asked on, whichever view it is showing. */
+// The page holds no stream to be asked on, whichever view it shows.
 async function noConfirmChannel(page: Page) {
   expect((await wire(page)).eventSources.filter(url => url.includes('run-confirm'))).toEqual([])
 }
@@ -183,8 +176,7 @@ async function settled(composer: Locator, text: string) {
 async function recordedSentence(composer: Locator) {
   const entry = composer.locator('[data-feedback-history="target"] [data-history-entry][data-history-new]')
   await entry.waitFor()
-  // the history line now carries what the fix changed after the
-  // disposition, so the recorded sentence is composed from the line's disposition lead alone.
+  // The history line carries the fix's change after the disposition, so only the lead is read.
   const disposition = await entry.locator('[data-history-disposition-lead]').textContent() ?? ''
   return `Feedback recorded — ${disposition.replace(/^Recorded — /, '')}.`
 }
@@ -219,8 +211,6 @@ async function submit(page: Page, door: Door = 'test', kind = 'confirmed-bug') {
 }
 
 describe('real browser mark confirmation', () => {
-  // RE-SPELLED 2026-09-30: was 'asks on /api/run-confirm/channel; accept appends one
-  // receipt and refetches its history'. One click records it; nothing is asked on the channel.
   it('records on one click with no approval; appends one receipt and refetches its history', async () => {
     const s = await scene()
     await noConfirmChannel(s.page)
@@ -241,9 +231,6 @@ describe('real browser mark confirmation', () => {
     expect(s.pageErrors).toEqual([])
   }, 45_000)
 
-  // RE-SPELLED 2026-09-30: was 'without a confirm channel renders its reason only and
-  // appends no ledger line'. The channel is not needed: the mark is recorded without it. 432-14:
-  // no page holds a channel any more, so this is every mark, and the cell no longer blocks one.
   it('without a confirm channel still records the mark, with no refusal rendered', async () => {
     const s = await scene()
     const response = s.page.waitForResponse(response => response.url().endsWith('/mark') && response.request().method() === 'POST')
@@ -258,8 +245,6 @@ describe('real browser mark confirmation', () => {
     expect(s.pageErrors).toEqual([])
   }, 45_000)
 
-  // RE-SPELLED 2026-09-30: was 'deny renders the typed denial and appends no ledger
-  // line'. There is no deny to give: no approval group renders and nothing is parked.
   it('offers no deny: the approval group never renders and nothing is parked', async () => {
     const s = await scene()
     const composer = await submit(s.page)
@@ -271,8 +256,6 @@ describe('real browser mark confirmation', () => {
     expect(s.pageErrors).toEqual([])
   }, 45_000)
 
-  // RE-SPELLED 2026-09-30: the 'deny' and 'no-channel' failures no longer exist — both
-  // record the mark — so the retention matrix ranges the two failures that still keep a draft.
   for (const door of ['test', 'step'] as const) {
     it.each(['transport', 'refetch'])('retains the ' + door + ' draft after %s with actual ledger accounting', async failure => {
       const s = await scene()
@@ -378,7 +361,7 @@ describe('real browser mark confirmation', () => {
       if (RECHECK_DIR) expect(existsSync(join(RECHECK_DIR, `marks-${theme}.png`))).toBe(true)
     }
     expect(s.rows()).toHaveLength(0)
-    // no approval group is rendered, so the mark is sent with Enter on the submit control.
+    // No approval group renders, so the mark is sent with Enter on the submit control.
     const composer = await openComposer(s.page, 'test')
     await choice(composer, 'false-fail').click()
     await previewCurrent(composer)
@@ -389,9 +372,7 @@ describe('real browser mark confirmation', () => {
     expect(await s.page.locator('[role="dialog"], [aria-modal]').count()).toBe(0)
     expect(s.rows()).toHaveLength(1)
     expect(await composer.locator('[data-feedback-note]').inputValue()).toBe('')
-    // RE-SPELLED 432-09 from '423 D-19: the drafted receipt's review control copies a
-    // runnable CLI command': the mark applied its fix, so the entry states what changed, as text,
-    // and offers no review control or link.
+    // The mark applied its fix, so the entry states the change as text, with no review control.
     const applied = targetEntries(composer).first().locator('[data-history-applied]')
     expect(['knowledge', 'test-file']).toContain(await applied.getAttribute('data-history-applied'))
     expect(await applied.isVisible()).toBe(true)

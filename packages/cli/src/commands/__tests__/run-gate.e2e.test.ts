@@ -146,15 +146,7 @@ async function runCli(...args: string[]): Promise<{ status: number | null; stdou
   return await runCliWithEnv({}, ...args)
 }
 
-/**
- * The same shipped binary, with named environment variables set.
- *
- * `AGENT_QA_RUN_ID` IS A DOOR ONTO A RUN'S IDENTITY, and it is a door the typed contract does not
- * range: `run.ts` builds its `RunsStartInput` literal in-process, so an id arriving this way never
- * passes `RunsStartInputSchema` at all. That is precisely why the shape and collision refusals live
- * in the invocation core and not only in the codec — and why they have to be measured HERE, on the
- * process a person starts, rather than at the typed door where a different refusal would answer.
- */
+// `AGENT_QA_RUN_ID` never passes `RunsStartInputSchema`, so its refusals are measured here.
 async function runCliWithEnv(
   overrides: Record<string, string>,
   ...args: string[]
@@ -269,22 +261,7 @@ describe('the CLI door starts a no-tty run, and --trust-session is gone', () => 
   }, 180_000)
 })
 
-// ---------------------------------------------------------------------------------------------
-// THE ENVIRONMENT DOOR.
-//
-// WHY THIS DOOR NEEDS ITS OWN CELLS. Hardening `RunsStartInputSchema` covers the fn, chat, MCP,
-// daemon and dashboard doors, all of which parse. It covers this one not at all: `run.ts` reads
-// `process.env.AGENT_QA_RUN_ID`, mints a fallback, and hands the value to the drive as a request
-// literal — no codec is consulted anywhere on that road. A fix measured only at the typed door
-// would be one-sided hardening on exactly the shape this phase has shipped repeatedly.
-//
-// WHY AN ABSENT RUN DIRECTORY IS THE CORRECT EVIDENCE HERE, and not the never-got-there failure
-// mode. Every denial cell above asserted a `run:start` row EXISTS before believing its verdict (until 432-13),
-// because a deny and a run that never reached the gate are otherwise the same empty directory.
-// These refusals land ABOVE the gate by design, so there is no row and the absence IS the claim.
-// What discriminates them from a broken invocation is the paired control: the same binary, the
-// same target, the same piped stdio, one environment variable different — and the run starts,
-// writes `runStarted`, bumps the ordinal and knocks on the target.
+// The paired control differs by one environment variable and starts, so no run is the refusal.
 describe('the environment door cannot name a malformed or colliding run id', () => {
   it('a MALFORMED AGENT_QA_RUN_ID is refused, and no run directory is created at all', async () => {
     const result = await runCliWithEnv(
@@ -292,9 +269,7 @@ describe('the environment door cannot name a malformed or colliding run id', () 
       'tests/local-thing.yaml',
     )
 
-    // The person sees a decision about the id, named. Not a framework error, and not a stack:
-    // 401-18 shipped "a refusal is carried as a fact and described as one", and a refusal rendered
-    // as a crash would undo it at a new door.
+    // The refusal names the id; it is not rendered as a framework error or a stack.
     expect(result.stderr).toContain('not-a-minted-id')
     expect(result.stderr).toContain('run id')
     expect(result.stderr).not.toContain('Framework error')
@@ -324,8 +299,7 @@ describe('the environment door cannot name a malformed or colliding run id', () 
   it('an EMPTY AGENT_QA_RUN_ID no longer runs into the shared runs/default/ directory', async () => {
     const result = await runCliWithEnv({ AGENT_QA_RUN_ID: '' }, 'tests/local-thing.yaml')
 
-    // `?? generateRunId()` keeps `''`, and `slugBranch('')` is `'default'` — so before this plan
-    // every run started with a blank id shared one directory, and each one appended to the last.
+    // `slugBranch('')` is `'default'`, so blank ids would share one run directory.
     expect(existsSync(join(project, '.agent-qa', 'runs', 'default'))).toBe(false)
     expect(runDirs()).toEqual([])
     expect(result.status).not.toBe(0)
@@ -341,7 +315,6 @@ describe('the environment door cannot name a malformed or colliding run id', () 
     const before = digestsUnder(victimDir)
     // Non-vacuity: the victim really holds the artifacts a collision would tamper with.
     expect(Object.keys(before)).toContain('events.jsonl')
-    // `execution_audit.jsonl` was the gate row's file; the start writes none now.
     expect(Object.keys(before)).toContain('handoff.json')
     const hitsAfterFirst = [...probeHits]
 

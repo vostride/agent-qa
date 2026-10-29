@@ -4,35 +4,7 @@
 // are otherwise unresolved names under `tsc --noEmit` while running perfectly under vitest.
 // `conformance/dashboard-dom.test.ts` carries the same reference for the same reason.
 
-// THE RUN TRIGGER'S CONFIRM LOOP, CLOSED THROUGH A REAL BROWSER (Phase 401, UAT item 15 / Truth 6).
-//
-// SINCE 432-13 there was no loop to close: the run button's run asked nobody. SINCE
-// 432-14 there is nothing left of the loop at all — no channel the page holds open, no scope the
-// trigger carries, no dialog in the bundle. The cells below drive the same real clicks and pin that
-// a click is one request and the run starts at once. History below kept as written.
-//
-// WHAT WAS UNVERIFIED, AND WHY IT STAYED THAT WAY. 401-09 built both halves of this loop and could
-// measure neither end against the other: the SERVER end is driven end-to-end by
-// `run-trigger-confirm.test.ts` over `fetch`-parsed SSE, and the DIALOG's render was driven in jsdom,
-// which has no `EventSource`. The wire itself was source-pinned.
-//
-// SO THIS FILE PUTS A REAL CHROMIUM IN FRONT OF A REALLY-RUNNING DASHBOARD. The server is
-// `startServer` with the shipped `uiDir`, so what the browser downloads is `dashboard-ui`'s own
-// `vite build` output — the bundle a person installs. The door is `composeDashboardDoor` /
-// `createDashboardRunDoor`, the same composers `agent-qa dashboard` calls, which is why this file
-// lives in `packages/cli` beside its server-side sibling (`dashboard-server` may not name
-// `@vostride/agent-qa-agent*`; validate:arch).
-//
-// NOTHING BELOW SUBSTITUTES FOR THE TRANSPORT. The page's `EventSource` is REPLACED BY A SUBCLASS
-// OF THE NATIVE ONE, which calls `super(url)` and records the URL. The page's requests are read off
-// Chromium's own request events, bodies included.
-//
-// AND THE RUN IS STARTED BY CLICKING THE PRODUCT'S OWN BUTTON. The cells select a row on the tests
-// page and walk the real Run → Run path.
-//
-// A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP, and a stale `dist` is a red before that:
-// `dashboard-dom.test.ts`'s two rules, inherited verbatim. There is no environment predicate in
-// this file.
+// Real Chromium against a running dashboard: one click on Run is one request and starts the run.
 
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -179,7 +151,7 @@ interface Scene {
   readonly fixture: Fixture
   readonly db: DashboardDatabase
   settled(): { runId: string; status: string; details: Record<string, unknown> }[]
-  /** The run's OWN bus envelopes, in seq order, recorded off its session. */
+  // The run's own bus envelopes, in seq order, recorded off its session.
   buffered(runId: string): Record<string, unknown>[]
   close(): Promise<void>
 }
@@ -242,10 +214,7 @@ async function openScene(input: { fixture: Fixture }): Promise<Scene> {
     executionBackend: runDoor.backend,
     agentHost: door.agentHost,
   })
-  // the run's OWN bus, watched through the door's published
-  // `observeSessions`. This used to read the backend's per-run replay buffer, which existed for one
-  // SSE route and was deleted with it; `subscribe(1, …)` is replay-then-live from the first seq, so
-  // a recorder registered here sees every envelope of every run this door starts.
+  // `subscribe(1, …)` replays from the first seq, so a recorder here sees every envelope.
   const recordedEnvelopes = new Map<string, Record<string, unknown>[]>()
   runDoor.observeSessions((session) => {
     const id = session.id as unknown as string
@@ -298,12 +267,7 @@ async function waitFor(assertion: () => void, timeoutMs = 180_000): Promise<void
 
 // ---- the person at the keyboard -----------------------------------------------------------------
 
-/**
- * Open the dashboard and dismiss the first-visit tour.
- *
- * there is no scope frame to wait for any more. The page is ready when the tests table has
- * rendered the fixture's own row, which is what a person waits for before clicking.
- */
+// Opens the dashboard, dismisses the tour and waits for the fixture's row in the tests table.
 async function openDashboard(scene: Scene): Promise<{ page: Page; pageErrors: string[] }> {
   const context = await browser!.newContext()
   openContexts.push(context)
@@ -379,9 +343,6 @@ function startedContext(scene: Scene, runId: string): unknown {
 }
 
 describe('the run trigger confirm loop, closed through a real browser', () => {
-  // RE-SPELLED 2026-10-01: was 'SINGLE CONFIRM — the EventSource carries the scope, and
-  // clicking Run starts the run with no dialog'. The page holds no channel and the trigger
-  // carries no scope, so the claim is now the click itself: one request, one run.
   it('one click is one trigger request, and a non-production run starts at once', async () => {
     const target = new CountingTarget()
     await target.listen()
@@ -429,8 +390,6 @@ describe('the run trigger confirm loop, closed through a real browser', () => {
     }
   }, 300_000)
 
-  // RE-SPELLED 2026-09-30: was 'OVERLAPPING CONFIRMS — the arriving question WAITS ...'
-  // Two clicks now start two runs and no question is raised, queued or reaped.
   it('OVERLAPPING CONFIRMS — two clicks start two runs, and no question is raised, queued or reaped', async () => {
     const target = new CountingTarget()
     await target.listen()

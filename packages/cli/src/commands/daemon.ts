@@ -1,6 +1,4 @@
-// `agent-qa daemon` is the standing host for the CURATION QUEUE and AGENT JOB QUEUE. It never
-// serves the RUN QUEUE — v1 test executions remain owned by the dashboard server. D-21's three
-// names stay explicit here so a user cannot mistake one queue's leaseholder for another's worker.
+// Hosts the curation and agent job queues, never the run queue, which the dashboard server owns.
 
 import { dirname, resolve } from 'node:path'
 
@@ -186,10 +184,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         const configDir = dirname(configPath)
         const config = await resolveConfig({ configPath, loadAuthPlugins: false })
         const declaredSecrets = createDeclaredSecretMask(configPath)
-        // THIS COMMAND'S ANALYTICS COMPOSITION ROOT. The daemon is a standing
-        // process, so it composes eagerly — unlike `run`, there is no early-returning path here for
-        // a lazy composition to protect, and the host it is handed to emits from the moment it
-        // starts dispatching work.
+        // A standing daemon emits from its first dispatch, so it composes eagerly.
         const analytics = await composeAnalyticsHost({
           surface: 'daemon',
           config,
@@ -203,8 +198,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
           config: createConfigReader(configPath, declaredSecrets.mask),
           // Same model chain as the CLI, so `createModel` masks its egress with declared secrets.
           model: () => resolveCliJobModel(configPath),
-          // the author's compaction budget from the SAME named-config profile
-          // resolution as the model binding above — no second config surface.
+          // The author's compaction budget from the same named-config profile as the model binding.
           analysisTokenBudget: () => resolveCliAnalysisTokenBudget(configPath),
           author: () => resolveDaemonCuratorAuthor(configPath),
         })
@@ -269,7 +263,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
     .description('Gracefully stop the registered live daemon')
     .action(async (_opts: unknown, command: Command) => {
       try {
-        // stop reads only .agent-qa/, so a pre-v2 config cannot block it.
+        // `stop` reads only `.agent-qa/`, so a pre-v2 config cannot block it.
         const agentQaRoot = deps.resolveAgentQaRoot(configPathFor(command))
         const inspected = await inspectRegistration(deps, agentQaRoot)
         if (inspected.kind !== 'live') {

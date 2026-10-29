@@ -19,7 +19,7 @@ export function renderMarkOutcome(dto: RunsMarkOutcome): string {
       : d.kind === 'applied' ? (d.change.kind === 'knowledge'
         ? `applied ${d.fix}: ${d.change.recordIds.length === 0 ? 'no record changed' : `changed ${d.change.recordIds.join(', ')}`}`
         : `applied ${d.fix}: wrote ${d.change.filePath}`)
-      // A pre-432 receipt read back from an existing ledger; no writer produces it now.
+      // An older drafted receipt read back from a ledger; no writer produces it.
       : d.kind === 'drafted' ? `drafted: ${d.fix} (recorded before fixes applied directly)`
       : d.kind === 'no-draftable-fix' ? 'no draftable fix'
       : d.kind === 'not-applied' ? `${d.fix} not applied: ${d.reason}`

@@ -1,12 +1,4 @@
-// Explicit byte export for `agent-qa runs evidence --screenshot <sha> --out <file>`.
-//
-// The destination must not exist in any form, and its parent must already be a directory (possibly
-// reached through a link): nothing is overwritten, the destination itself is never followed through
-// a link, and no directory is created on the way. Bytes go to a sibling
-// temporary opened exclusively, then publish with link(2), which fails rather than replaces when a
-// competitor published first. The temporary this call created is the only file it ever removes.
-// Everything from the temporary's creation to its removal is synchronous, so a signal handler
-// cannot run in the middle of a publication.
+// Publishes with link(2), which fails rather than replaces when a competitor published first.
 
 import { createHash, randomUUID } from 'node:crypto'
 import {

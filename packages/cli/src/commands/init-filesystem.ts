@@ -17,10 +17,7 @@ import {
   type Stats,
 } from 'node:fs'
 import { basename, dirname, relative, resolve, sep } from 'node:path'
-// the managed block's SHAPE — markers, header line, splice and append — lives with the
-// rest of the scaffold's content, so the proposal path composes the identical bytes this path
-// writes. What stays here is the WRITING: classification, lock, atomic publish, preserve
-// semantics.
+// The managed block's shape lives with the scaffold content; this file does the writing.
 import { composeManagedBlock, type ManagedBlockContent } from './managed-block.js'
 import { managedGitignoreContent } from './scaffold-content.js'
 
@@ -69,29 +66,7 @@ export interface GitignoreProbe {
   requiredRule?: string
 }
 
-/**
- * Covers the namespace `writeDurableTemporary` publishes through. That temporary is a
- * sibling of its destination carrying the DESTINATION'S content at the destination's mode —
- * for `.env.secrets.local`, live credential bytes at 0600 — and it survives any cleanup that
- * cannot run, including a SIGINT between the content write and the unlink. Without this rule
- * real git reports it untracked, so `git add .` picks it up.
- *
- * The spelling is measured, not reasoned: `git check-ignore` decides it, and the leading dot
- * plus the literal `.agent-qa-init-` infix and `.tmp` suffix keep it inside this module's own
- * namespace — `notes.agent-qa-init.md` and `.env.secrets.local.tmp` both stay visible.
- *
- * **The rule has to be present in EVERY root that can be a repository, and it has to be the
- * first write into each.** Round 9 established that the target root's block is the first write
- * of the run, and recorded that its own temporary was therefore "the only uncovered one in the
- * whole run". CORRECTION (round 10): that was measured against the target root's git alone. A
- * knowledge tree is routinely its own repository, and a nested repository does not inherit its
- * parent's `.gitignore` — measured `VISIBLE` with the parent block in place. While the
- * knowledge `.gitignore` was ordered after `README.md` and `policies/global.md`, those two
- * temporaries were uncovered at the instant they existed in that case (README and policy
- * template bytes, never credential bytes). Both roots now write their covering rule first, so
- * the accurate statement is one uncovered temporary PER ROOT and it is that root's own
- * `.gitignore`.
- */
+// Every root that can be a repository writes this rule first; nested repos do not inherit it.
 export const DURABLE_TEMPORARY_GITIGNORE_RULE = '.*.agent-qa-init-*.tmp'
 
 // A concrete name of the exact shape the module produces, so the probe asks git about a real
@@ -144,8 +119,7 @@ export const KNOWLEDGE_GITIGNORE_PROBES = [
     expected: 'ignored',
     requiredRule: 'memory/queue/',
   },
-  // the writer-lease guard lives under `memory/queue/` so that the
-  // rule every knowledge repository already has keeps it out of commits; init's probe proves it.
+  // The writer-lease guard sits under `memory/queue/`, which every knowledge repo already ignores.
   {
     path: 'memory/queue/lease-guard/owner-00000000-0000-4000-8000-000000000000',
     expected: 'ignored',
@@ -188,8 +162,6 @@ export const KNOWLEDGE_GITIGNORE_PROBES = [
     expected: 'ignored',
     requiredRule: DURABLE_TEMPORARY_GITIGNORE_RULE,
   },
-  // 391 D-11 probed `grants.jsonl` as commit-visible here. 2026-10-01: the grant
-  // ledger is deleted, so init no longer asks git about it; an old file is left exactly as it is.
   { path: 'memory/example/bundles/fact-example/record.md', expected: 'visible' },
   { path: 'memory/example/bundles/fact-example/manifest.json', expected: 'visible' },
   {
@@ -202,10 +174,7 @@ export const KNOWLEDGE_GITIGNORE_PROBES = [
 export const TARGET_GITIGNORE_ENTRIES = [
   '.agent-qa/',
   '.agent-qa/auth-states/',
-  // 394: the draft shelf. It sits INSIDE `tests/` on purpose — see the two-sided
-  // admission note in `composition/local-agent-host.ts` — which is exactly why it needs a rule of
-  // its own: everything else under `tests/` is a file the user means to commit, and an authored
-  // draft is not one until they accept it.
+  // The draft shelf sits inside `tests/`, so it needs its own rule to stay out of commits.
   'tests/.agent-qa-drafts/',
   'node_modules/',
   'agent-qa.local.yaml',
@@ -423,14 +392,7 @@ function unlinkIfPresent(path: string): void {
   }
 }
 
-/**
- * What real git says about a leftover temporary at the moment the operator is told about it.
- *
- * `undetermined` is a first-class answer rather than a fallback to `covered`. The whole defect
- * this replaces was a sentence that claimed coverage it had not established; claiming
- * commit-visibility that has not been established would be the same defect facing the other
- * way. When git cannot answer, the message says so and still directs the removal.
- */
+// `undetermined` is its own answer, so the message never claims coverage git did not confirm.
 type TemporaryCoverage = 'covered' | 'commit-visible' | 'undetermined'
 
 // Resolved LAZILY. Built at the call site, where the destination and therefore the root the
@@ -447,10 +409,7 @@ function durableTemporaryCoverageProbe(
   destination: string,
   temporary: string,
 ): TemporaryCoverageProbe {
-  // The question is put at the DESTINATION's own directory, not at the plan root: a knowledge
-  // tree is routinely its own repository and does not inherit its parent's rules (see the
-  // round-10 correction on `DURABLE_TEMPORARY_GITIGNORE_RULE`), so the root that decides is
-  // whichever one git itself resolves from the file's own location.
+  // Asked at the destination's directory, because a nested knowledge repo ignores parent rules.
   const directory = dirname(resolve(destination))
   const name = basename(temporary)
   return () => {
@@ -605,10 +564,7 @@ function confirmPublishedDestination(
       refuseModeEnforcement(path, 'because the destination changed at publication')
     }
   } catch (error) {
-    // the unlink STAYS. For a credential-bearing publication, leaving a file at a
-    // mode that could not be confirmed is the worse failure, and on the replacement path
-    // the rename has already consumed the original bytes before this runs. What changes
-    // is only that the refusal now SAYS which disposition it took.
+    // The unlink stays: a credential file at an unconfirmed mode is worse than a missing one.
     unlinkIfPresent(path)
     throw withRefusalDisposition(error, REFUSAL_DISPOSITION_REMOVED)
   } finally {
@@ -712,13 +668,7 @@ function octalMode(mode: number): string {
   return (mode & PERMISSION_MASK).toString(8).padStart(4, '0')
 }
 
-// The two dispositions a refusal can carry, appended after the existing reason so every
-// reason string still reads verbatim at the head of the message. They are deliberately
-// non-overlapping — neither is a substring of the other — so a caller holding only the
-// thrown message can tell a removed destination from a retained one. Ratified as D-22.
-// The token both disposition sentences open with, so the two sentences cannot drift apart in
-// how they announce themselves to a reader. Nothing in this module DECIDES anything by
-// looking for this token in a message: see `dispositionedRefusals` below for why.
+// Both disposition sentences open with this token; nothing decides by searching a message for it.
 const REFUSAL_DISPOSITION_LEAD = 'Disposition:'
 
 const REFUSAL_DISPOSITION_REMOVED
@@ -872,10 +822,7 @@ function enforceRetainedFileMode(
 ): void {
   if (!MODE_ENFORCEMENT_SUPPORTED) return
 
-  // The retention disposition wraps the WHOLE body, not a single throw, so the
-  // classification refusals raised before the descriptor is opened carry it too. This
-  // function is the sole site that leaves the destination alone, which is why the
-  // disposition is a property of the path rather than of any one reason.
+  // Wraps the whole body, so classification refusals before the descriptor opens carry it too.
   try {
     if (
       inspection.classification !== 'regular'
@@ -965,85 +912,7 @@ function enforceRetainedFileMode(
   }
 }
 
-/**
- * Publishes one scaffold destination and returns one of three outcomes:
- *
- * - `created` — the destination was absent and was published by the exclusive path
- *   (`link` from a durable temporary).
- * - `updated` — the destination existed, `force` was set without `preserveOnForce`, and it
- *   was published by the atomic-replacement path (`rename` over the existing inode).
- * - `preserved` — the destination existed and was kept; when the plan declares a mode AND
- *   the host platform enforces POSIX permissions, its permission bits are enforced in place
- *   on the retained inode.
- *
- * **Mode enforcement is conditional on the platform.** Every mode claim here — on all three
- * outcomes — holds only where `process.platform !== 'win32'`. On win32 a declared mode is a
- * silent no-op: nothing is applied, nothing is confirmed, and no refusal is raised, so a
- * plan that declares owner-only bits publishes at whatever mode the host gives it. This is
- * the shipped behaviour, stated rather than changed.
- *
- * **A refused post-publication confirmation DESTROYS the destination.** On both the
- * `created` and `updated` paths, if the mode or identity of the published file cannot be
- * confirmed after publication, the destination is UNLINKED before the refusal is rethrown.
- * On the `updated` path this is not recoverable: the `rename` has already consumed the
- * bytes the destination held beforehand, and this function does not retain a copy of them.
- *
- * A refused RETENTION behaves oppositely: the destination is neither removed nor
- * rewritten, so it is left in place at an unconfirmed mode with its contents intact.
- *
- * The asymmetry is deliberate, not accidental. For a credential-bearing publication a file
- * left at a mode that could not be confirmed is the worse failure, and on the replacement
- * path "leave it alone" was never available — the rename runs before the confirmation. The
- * two outcomes are told apart from the thrown error alone: every refusal this function
- * raises appends exactly one disposition sentence stating whether the destination was
- * unlinked or left in place. That is a floor, held by an outermost backstop rather than by
- * each throw site, so a refusal added anywhere beneath this function inherits it.
- *
- * **The floor is held by identity, not by reading the message.** Whether a refusal already
- * carries a disposition is recorded by adding the error OBJECT to a module-private `WeakSet`
- * at the moment the sentence is appended; the backstop tests membership. It is not decided by
- * looking for the disposition's lead token in the message. That distinction is load-bearing:
- * every refusal message embeds the destination path verbatim and the destination path is a
- * caller-supplied parameter, so a message-reading predicate handed those bytes a decision
- * about what this code did. Under identity marking a destination path cannot suppress the
- * disposition, cannot invert which of the two is reported, and cannot produce a second one,
- * because no decision is taken from the message at all. What a caller-supplied path CAN still
- * do is put the lead token, or an entire disposition sentence, inside the reason — so a
- * message may contain either more than once. Only the sentence appended past the reason is
- * this function's claim; a reader recovering the claim programmatically should take it from
- * the suffix past the root `cause`'s message rather than by scanning the whole string.
- *
- * Exactly two classes of error escape WITHOUT a disposition, and neither is a refusal of
- * this function's:
- *
- * - an error thrown by a caller-supplied hook, which is rethrown carrying its own message
- *   rather than restated as an init refusal with a claim about the destination. This holds
- *   for EVERY throw value, not only object ones: a primitive cannot carry an identity mark,
- *   so it is wrapped in an `Error` whose message is the value's own string form and whose
- *   `cause` is the value itself, and the wrapper is what gets marked;
- * - an error raised after a publication has already SUCCEEDED (the parent-directory fsync),
- *   for which neither sentence is true — the destination was rewritten, so it was not
- *   retained, and it was not unlinked either.
- *
- * Two limits on the EVIDENCE for this floor. The first is carried forward: the refusal walk
- * asserting it enumerates 15 of the 21 refusal sites reachable beneath this function — the 15
- * counted from `REFUSAL_PATH_WALK`, and round 10 adds no refusal site to this module — so the
- * floor is structural by construction but sampled by test.
- *
- * The second was the temporary-cleanup `finally` in both publication paths, and it is
- * RE-MEASURED rather than restated. That `finally` calls `cleanUpTemporaryWithoutMasking`,
- * which does not throw: measured against a wedged directory it emits a warning and returns, so
- * nothing escapes from it to be stamped at all. The exclusive path's post-link removal, which
- * DID escape and was stamped retained over a destination it had just created, now runs through
- * that same cleanup. What replaces the limit, measured on the same fixture: a temporary that
- * could not be removed keeps the published destination's link count at 2, so a mode-declaring
- * plan refuses at the identity confirmation — and if THAT refusal's own D-22 unlink of the
- * destination also fails, the resulting error reaches the backstop and is stamped retained
- * about a destination this module had just created with new content. That site is inside the
- * D-22 region, which round 10 leaves byte-unchanged, so it is disclosed rather than fixed.
- *
- * Ratified as decision D-22.
- */
+// A failed post-publish confirmation unlinks the destination; a failed retention keeps it.
 export function writeScaffoldFileAtomic(
   plan: InitPathPlan,
   hooks: InitFilesystemHooks = {},
@@ -1221,11 +1090,7 @@ function refuseIfChangedSinceRead(
   }
 }
 
-/**
- * Everything `upsertManagedBlock` would refuse, checked without taking its lock or writing
- * so a caller can refuse before its first write. The writer checks it all again
- * under the lock: this answer authorizes nothing.
- */
+// Checks without the lock or a write so a caller can refuse early; the writer rechecks it.
 export function preflightManagedBlock(plan: ManagedBlockUpsertPlan): InitPreflightResult {
   const path = resolve(plan.path)
   const inspection = inspectInitPath(path, resolve(plan.root ?? dirname(path)))
@@ -1235,16 +1100,7 @@ export function preflightManagedBlock(plan: ManagedBlockUpsertPlan): InitPreflig
   return { path, classification: inspection.classification }
 }
 
-/**
- * Upserts one managed block into a file.
- *
- * Cooperative writers serialize per target on an exclusively created sibling lock. Under it the
- * target is classified and read again, composed, and published through `writeScaffoldFileAtomic`,
- * so a failure leaves either the prior file or the complete new one. A replacement takes the
- * writer's default mode and refuses if the target changed since it was read. An existing lock refuses
- * with `ManagedBlockLockRefusal`; only a lock this call created (same inode) is removed, and it
- * never touches a temporary it did not create.
- */
+// Serialized per target on an exclusive sibling lock; a failure leaves the prior or the new file.
 export function upsertManagedBlock(
   plan: ManagedBlockUpsertPlan,
   hooks: InitFilesystemHooks = {},

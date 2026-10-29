@@ -36,16 +36,7 @@ import type { CheckResult, DoctorCheck } from './doctor.js'
 
 const { foldRetrievalRung, indexDbPath } = LOCAL_KNOWLEDGE_PROBES
 
-/**
- * The closed reason vocabulary rendered for a person, as a TOTAL map rather than a switch with a
- * default: a new `RetrievalRungReason` becomes a compile error here instead of a blank cause
- * printed after an em dash. 407-11 pins this table equal to the dashboard's copy of it — the two
- * surfaces share no UI module, so the labels are defined twice by necessity and asserted equal.
- *
- * doctor is CURRENT health, so its rows only ever print the three live index causes
- * (not built, locked, corrupt). `index-unavailable` keeps a label solely because the table is
- * shared with recorded runs, where it means a pre-423 scan whose cause was never recorded.
- */
+// A total map, so a new `RetrievalRungReason` fails to compile; a test pins it equal to the UI's.
 export const RUNG_CAUSE_LABELS: Record<RetrievalRungReason, string> = {
   'native-runtime-unavailable': 'native ONNX runtime unavailable',
   'profile-unresolved': 'embedder profile unresolved (deferred)',
@@ -59,13 +50,10 @@ export const RUNG_CAUSE_LABELS: Record<RetrievalRungReason, string> = {
   'index-corrupt': 'knowledge index corrupt, rebuild requested, scanning bundles',
 }
 
-/** no knowledge reader bound is not a rung. Every row still prints; none is omitted. */
+// No knowledge reader bound is not a rung; every row still prints.
 export const NO_KNOWLEDGE_ROOT_MESSAGE = 'no knowledge root configured'
 
-/**
- * The 399 wording of record. The folded failure is named by its CAUSE, not its symptom,
- * and the raw worker stderr that carries it never reaches the terminal.
- */
+// Names the folded failure by its cause; the raw worker stderr never reaches the terminal.
 export const EMBEDDER_WORKER_NOT_REGISTERED_TEXT = 'daemon embedder worker not registered: could not resolve profile (deferred)'
 
 const STORE_FIX_PREFIX = 'Rebuild the index with `agent-qa knowledge rebuild-index`, or remove the corrupt file at'
@@ -129,14 +117,7 @@ interface KnowledgeCheckContext {
   probe: () => Promise<KnowledgeProbe>
 }
 
-/**
- * D-16/D-19's "no knowledge root configured" predicate.
- *
- * A VALIDATED config always materialises `knowledge.dir` (the schema defaults it), and doctor
- * loads the RAW config — so "the key is absent" cannot be the test. The two facts that can make
- * this host have no store are: the config could not be read or named a root at all, or the
- * directory it names is not on disk.
- */
+// A validated config always has `knowledge.dir`, so doctor checks the raw config and the disk.
 function resolveKnowledgeRootOnDisk(
   config: Record<string, unknown> | null,
   configPath: string,
@@ -146,17 +127,7 @@ function resolveKnowledgeRootOnDisk(
   return existsSync(root) ? root : null
 }
 
-/**
- * Printed relative to the cwd so it stays short and copy-pasteable — but its length is NOT
- * bounded: a deeper project, or a run from the filesystem root, widens it without limit.
- *
- * This docstring used to claim the reason WORD was the only variable-length segment of a row.
- * The 407 UAT measured that false: at `COLUMNS=80` the `Knowledge store` FAIL row came to 113
- * columns with a 7-character reason word, and the reason vocabulary is a closed four-value enum
- * capped at 14 characters (`absent|corrupt|locked|schema-version`), so the length came from the
- * PATH. What bounds a row now is the RENDERER — `formatCheckRow` in `doctor.ts` — which is where
- * the budget belongs, because no message length can overrun a width the renderer enforces.
- */
+// Cwd-relative and unbounded in length; the row renderer enforces the width, not this path.
 function displayPath(absolute: string): string {
   return relative(process.cwd(), absolute) || '.'
 }
@@ -198,8 +169,7 @@ function createKnowledgeStoreCheck(context: KnowledgeCheckContext): DoctorCheck 
       if (face.source === 'index') {
         return { status: 'pass', message: `index open at ${context.relativeRoot} (memidex)` }
       }
-      // Present-but-unopenable is the ERRORED subsystem D-19 reserves `fail` for. The reason WORD
-      // goes to the terminal; the driver's own text (which quotes paths) stays out of it.
+      // Present but unopenable fails; the reason word prints, never the driver's path text.
       if (face.filePresent) {
         return {
           status: 'fail',
@@ -231,10 +201,7 @@ function createEmbedderCheck(context: KnowledgeCheckContext): DoctorCheck {
       if (context.knowledgeRoot === null) return SKIPPED
       const { embedder, embedderRung, daemon } = await context.probe()
 
-      // D-20's second half, consulted FIRST when it exists: an in-process probe answers "what can
-      // this process do", which is not the same question as "does the standing daemon actually
-      // have an embedder". A host can resolve native in-process while the daemon has been serving
-      // every run of the day with none.
+      // Consulted first: the standing daemon may lack an embedder this process can resolve.
       if (daemon !== undefined && daemon.registration.kind !== 'parsed') {
         const stderr = stringField(daemon.lastExit, 'stderr') ?? ''
         const exitReason = stringField(daemon.lastExit, 'reason')
@@ -268,8 +235,7 @@ function createRetrievalRungCheck(context: KnowledgeCheckContext): DoctorCheck {
     check: async (): Promise<CheckResult> => {
       if (context.knowledgeRoot === null) return SKIPPED
       const { rung } = await context.probe()
-      // never a failure. A lower rung is a rung reached by design, and this row is the one
-      // that would otherwise red the CI gate of every host running on the floor on purpose.
+      // A lower rung is reached by design, so it passes rather than failing a CI gate on the floor.
       if (rung.rung === 'memidex') return { status: 'pass', message: 'memidex' }
       return { status: 'warn', message: `${rung.rung} — ${causeLabel(rung)}` }
     },
@@ -299,14 +265,12 @@ export function createKnowledgeChecks(
   let pending: Promise<KnowledgeProbe> | undefined
 
   async function runProbe(root: string): Promise<KnowledgeProbe> {
-    // Asking must not change the knowledge root: a checkpointed index is opened immutably, so the
-    // probe creates no SQLite -wal/-shm beside it (quick 261002-hyg, 432-09 #5).
+    // Opened immutably, so the probe creates no SQLite `-wal` or `-shm` beside the index.
     const face = classify(root, { inspectCheckpointedImmutably: true })
 
     let embedder: AcquireEmbedderOutcome
     try {
-      // `allowDownload: false` is not an option this surface offers: a probe that fetched a model
-      // would CHANGE the answer by asking the question.
+      // A probe that downloaded a model would change the answer by asking the question.
       embedder = await capability({ preferredProfile, allowDownload: false, agentQaRoot })
     } catch {
       embedder = { kind: 'deferred', reason: 'load-failure' }

@@ -17,11 +17,11 @@ export { createEntitiesCommand } from './entities.js'
 export { createEvalCommand } from './eval.js'
 export { createSkillsCommand } from './skills.js'
 export { createAskCommand } from './ask.js'
-// the REPL, beside the one-shot verb it shares a turn engine with.
+// The REPL, beside the one-shot verb it shares a turn engine with.
 export { createChatCommand } from './chat.js'
 export { createFnCommand } from './fn.js'
-// the inbox/grants decision surface and the on-demand per-run digest.
+// The on-demand per-run digest.
 export { createDigestCommand } from './digest.js'
 export { createDaemonCommand } from './daemon.js'
-// the agent job queue's operator verbs — list, the kind-filtered pump, cancel.
+// The agent job queue's operator verbs: list, the kind-filtered pump and cancel.
 export { createAgentJobsCommand } from './agent-jobs.js'
