@@ -1,29 +1,4 @@
-// The declared fold contracts.
-//
-// WHY THIS FILE IS IN `schema` AND NOT IN `packages/mcp`. A fold is an MCP-surface idea: several
-// sibling registry ops arrive through ONE tool with a discriminated-union input, because the
-// registry is finer-grained than the workflow a caller is actually in. The natural home for
-// the composition is therefore the MCP package — and it cannot live there. That package's runtime
-// dependency allow-list is exactly the two protocol packages (D-20, enforced by `validate:arch`),
-// deliberately naming no validator library, and composing a discriminated union is a zod operation.
-// The alternative — composing at the JSON-Schema level inside `packages/mcp` — is worse than
-// inconvenient: every arm below is a `.strict()` object, so `additionalProperties: false` would
-// REJECT the discriminant key that a JSON-Schema-level composition had just added to it. A fold
-// built that way would advertise a contract that refuses every call made against it.
-//
-// So the composition happens where zod lives, which is also where this repository mints its DTOs
-// Nothing here is a new shape: every arm is an op's OWN input DTO with one literal
-// property added, and every fold output is composed from the arms' own output contracts. No field
-// is re-declared, so an arm that gains a field gains it here on the next build.
-//
-// THE DISCRIMINANT VALUE IS THE OP ID. Not a short verb — `'config.field.set'`, not `'set_field'`.
-// That is what makes the tool handler's dispatch mechanical rather than a second lookup table: the
-// handler reads the discriminant, checks it against the tool's DECLARED op set, and invokes exactly
-// that op. A short verb would have needed a verb -> op map somewhere, and a map is a place two
-// spellings of one fact can disagree. The op ids are spelled as literals here because this package
-// may not import the function layer; `packages/mcp`'s tool-schema test reads them back OUT of the
-// listed fold schema and compares them against the tool's declared op set, so the restatement is
-// checked against a produced schema rather than trusted.
+// Lives in schema because `packages/mcp` may not import zod; the discriminant value is the op id.
 
 import { z } from 'zod'
 
@@ -67,14 +42,7 @@ import {
  */
 export const TOOL_FOLD_DISCRIMINANT = 'action'
 
-/**
- * The prose a caller reads about the discriminant, carried ON the schema.
- *
- * D-16's last clause is that human-facing descriptions live on the zod schemas so one source feeds
- * both surfaces. The discriminant is the one field of a fold that no arm DTO can describe — it does
- * not exist until the fold is composed — so if its meaning is not attached here it is attached
- * nowhere, and a caller is left inferring the vocabulary from a `const` list.
- */
+// The discriminant is the one field no arm DTO describes, so its description lives here.
 const DISCRIMINANT_DESCRIPTION =
   'Which registry operation this call is for. The value is the operation id itself; the rest of '
   + 'the object is that operation\'s own input.'
@@ -84,18 +52,7 @@ function armLiteral<Id extends string>(opId: Id): z.ZodLiteral<Id> {
   return z.literal(opId).describe(DISCRIMINANT_DESCRIPTION)
 }
 
-/**
- * Compose the output a fold advertises from its arms' own output contracts.
- *
- * DEDUPED BY OBJECT IDENTITY, and the collapse is the point rather than an optimisation. The six
- * config actions and the three knowledge changes each answer with literally the same schema
- * object, so a `z.union` over them would advertise `anyOf: [X, X, X, …]` — a document that says
- * nothing the single member does not, while implying to a reader that the arms differ. When the
- * arms genuinely differ (the authoring fold), the union survives and is advertised.
- *
- * Identity and not deep equality: two structurally identical schemas built in two places are
- * exactly the drift D-16 exists to forbid, so collapsing them would hide it.
- */
+// Deduped by object identity, so structurally equal copies stay visible as drift.
 function foldOutput(arms: readonly z.ZodType[]): z.ZodType {
   const distinct: z.ZodType[] = []
   for (const arm of arms) if (!distinct.includes(arm)) distinct.push(arm)
@@ -154,13 +111,7 @@ const configArms = [
   }),
 ] as const
 
-/**
- * D-01's own named example, and the reason `.extend()` on the shipped DTOs matters rather than a
- * fresh shape per arm: 395 made every one of these `.strict()` on a stated security argument (an
- * unrecognised key from a model is either a hallucination the op would ignore or a smuggling
- * attempt), and extending preserves that — a `bogus` key is still refused at the boundary, now
- * one layer earlier, by the SDK, before the handler runs.
- */
+// `.extend()` keeps each DTO strict, so an unknown key is refused before the handler runs.
 export const ConfigChangeFoldInputSchema = z.discriminatedUnion(
   TOOL_FOLD_DISCRIMINANT,
   configArms,
@@ -168,13 +119,8 @@ export const ConfigChangeFoldInputSchema = z.discriminatedUnion(
 
 export type ConfigChangeFoldInput = z.infer<typeof ConfigChangeFoldInputSchema>
 
-/**
- * the six config operations answer what they wrote. 432-12 removed the
- * undo arm, so every arm answers the one change contract and the union collapses to it.
- */
+// Every arm answers the one change contract, so the union collapses to it.
 export const ConfigChangeFoldOutputSchema = foldOutput(configArms.map(() => ConfigChangeOutputSchema))
-
-// ---- `agent_qa_change_knowledge`: accept, reject, forget, applied in the call ------------
 
 const knowledgeArms = [
   KnowledgeAcceptChangeInputSchema.extend({
@@ -201,13 +147,6 @@ export const KnowledgeChangeFoldOutputSchema = foldOutput(
 
 // ---- the run evidence read: a step's parsed evidence, or one of its blobs by sha ---------------
 
-/**
- * Compose a fold's output CONTRACT from its arms' canonical output contracts.
- *
- * The runtime side is `foldOutput` over the arms' own runtime schemas, so validation is still each
- * arm's exact schema. The document is the arms' own documents under one `anyOf`, in arm order, each
- * without its dialect marker; one distinct arm is simply that arm's contract.
- */
 function foldOutputContract(arms: readonly OutputContract[]): OutputContract {
   const distinct: OutputContract[] = []
   for (const arm of arms) if (!distinct.includes(arm)) distinct.push(arm)
@@ -234,10 +173,6 @@ const evidenceArms = [
   }),
 ] as const
 
-/**
- * D-07's one evidence read over two ops: a recorded row address answers the parsed, masked
- * document; a sha answers that run's blob. Both arms stay strict.
- */
 export const RunsEvidenceFoldInputSchema = z.discriminatedUnion(
   TOOL_FOLD_DISCRIMINANT,
   evidenceArms,

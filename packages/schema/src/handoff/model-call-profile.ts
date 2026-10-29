@@ -1,8 +1,4 @@
-/**
- * Optional sampling intent/effective values. An absent field means the provider
- * default and is never fabricated. `maxOutputTokens` is deliberately excluded:
- * the output ceiling is owned exclusively by `executeClampedCall`.
- */
+// Absent means the provider default; the output ceiling belongs to `executeClampedCall` alone.
 export interface SamplingParams {
   temperature?: number
   topP?: number
@@ -10,21 +6,12 @@ export interface SamplingParams {
   seed?: number
 }
 
-/**
- * The verifier identity projection recorded beside its verdict.
- */
 export interface ModelIdentity {
   provider: string
   modelId: string
 }
 
-/**
- * Root-declared decision-context intent, constructed once per role and threaded
- * to both the call site and recorder so declared, applied, and recorded values share one
- * source. `maxOutputTokens` is the declared ceiling that feeds the clamp's default
- * input, not a second writer. This evidence vocabulary is deliberately distinct from
- * `model-profile/model-profile.ts`'s `ModelProfile`, which describes model configuration.
- */
+// Built once per role so the call site and the recorder share one source of declared values.
 export interface DeclaredModelProfile {
   provider: string
   modelId: string
@@ -33,11 +20,7 @@ export interface DeclaredModelProfile {
   sampling?: SamplingParams
 }
 
-/**
- * Per-call observed reality for the final, decision-producing response of a planning
- * turn. Every enrichment is optional: providers may omit the resolved id
- * or fingerprint, and effective values are recorded only when known, never fabricated.
- */
+// Every enrichment is optional and recorded only when known, never fabricated.
 export interface ModelCallRecord {
   resolvedModelId?: string
   fingerprint?: string

@@ -14,21 +14,10 @@ import type {
   TestRetryScheduledPayload,
 } from './bus-events'
 
-/**
- * The masking seam. Every payload projection takes a `MaskFn` and routes every
- * string it produces through it. Pre-362 the CLI passes an identity function; 362's
- * masking-context seeding replaces it with the real redactor with ZERO further wiring —
- * the same discipline `StepEvidence.workingMemory` already follows.
- */
+// Every payload projection routes each string it produces through a `MaskFn`.
 export type MaskFn = (text: string) => string
 
-/**
- * Structural walk that applies `mask` to every string value reachable from `value`.
- * Arrays and plain objects are walked; numbers/booleans/null pass through unchanged.
- * Pure — the input is never mutated (a fresh structure is returned). This is the
- * terminal pass every projection runs so no value-bearing string field can escape the
- * D-09 seam.
- */
+// The terminal pass of every projection, so no string escapes the mask; the input is not mutated.
 export function maskPayloadStrings<T>(value: T, mask: MaskFn): T {
   return walk(value, mask) as T
 }
@@ -82,11 +71,7 @@ function walkTree(value: unknown, mask: MaskFn): unknown {
   return value
 }
 
-/**
- * `StepEvidence` → `stepFinalized` payload. Carries `cacheStatus`, the
- * `verifierVerdict`, a boolean `selfHealOccurred` FLAG (never the `selfHeal` body), and
- * the `briefDigest` — the `ServedBrief`'s own digest field travels, never its body.
- */
+// Only flags and digests travel: never the `selfHeal` body or the `ServedBrief` body.
 export function projectStepFinalized(
   evidence: StepEvidence,
   ids: { testIndex: number; stepIndex: number },
@@ -113,15 +98,11 @@ export function projectStepFinalized(
     verifierVerdict: evidence.verifierVerdict,
     selfHealOccurred: evidence.selfHeal !== undefined,
     briefDigest: evidence.servedBrief.briefDigest,
-    // Phase 363 D-01 additive-optional appends (RESEARCH Q1). These are plain extra inputs
-    // sourced from the runner `StepResult` — NOT fields on the §A8 StepEvidence DTO
-    // (Pitfall 2). Omitted when absent so no undefined-hole survives JSON round-trip.
+    // Spread only when defined, so no undefined hole survives a JSON round-trip.
     ...(extra?.status !== undefined ? { status: extra.status } : {}),
     ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
     ...(extra?.error !== undefined ? { error: extra.error } : {}),
-    // same spread-when-defined rule, for the same
-    // reason — an unmeasured step carries NO key rather than a zero triple. The three
-    // members are numbers, so `maskPayloadStrings` walks past them untouched.
+    // An unmeasured step carries no key rather than a zero triple.
     ...usage,
     ...(extra?.evidence !== undefined ? { evidence: extra.evidence } : {}),
     // Snapshot names are data-bearing keys. The terminal walk below masks their values.
@@ -130,10 +111,7 @@ export function projectStepFinalized(
           Object.entries(extra.variableSnapshot).map(([name, value]) => [mask(name), value]),
         ) }
       : {}),
-    // same spread-when-defined rule, read from the
-    // EVIDENCE rather than from `extra` — unlike the 363 appends above, the rung IS a
-    // `StepEvidence` field. A step whose evidence recorded no rung carries no key, so
-    // absence on the wire keeps meaning "no ladder was named" and never "the top rung".
+    // Absence keeps meaning no ladder was named, never the top rung.
     ...(evidence.retrievalRung !== undefined ? { retrievalRung: evidence.retrievalRung } : {}),
   }
   const masked = maskPayloadStrings(payload, mask)
@@ -146,32 +124,7 @@ export function projectStepFinalized(
   return masked
 }
 
-/**
- * `SubActionEvidence` → `subActionRecorded` payload. The raw `stateBefore`/
- * `stateAfter` are collapsed to `screenStateHash` identity strings and destructured away
- * (the `toRecordedActionResult` idiom — never `delete`); `result` is already a
- * `RecordedActionResult` by evidence construction so no live screenshot bytes ride the bus.
- *
- * 2026-08-27 (Phase 405 plan 01, D-14 · RESEARCH D1): `decisionScreenshotRef` STOPS BEING
- * DISCARDED. Until this date it was destructured out and voided beside `stateBefore`, and the
- * consequence was measured rather than suspected: `artifactRefs` is declared on the payload,
- * no runner code sets `evidence.artifactRefs`, and the ONE ref the runner does mint per live
- * decision — the sha-keyed decision screenshot the v50 `FsEvidenceArtifactStore` already
- * writes — reached the handoff and the analysis jobs and never the wire. So the dashboard's
- * projection had nothing to persist and the run-detail page had no screenshot to render.
- *
- * THIS IS CONTENT ON A FROZEN SHAPE, not a shape change (the 363 D-01 class, and RESEARCH
- * Open Q1 recorded here as the dated decision it is). The payload TYPE, the envelope and the
- * event NAME are untouched; an existing optional field acquires its first producer. The ref
- * is APPENDED to whatever `artifactRefs` the evidence already carried rather than replacing
- * it, because the two are different claims — "everything this sub-action produced" and "the
- * frame the planner decided from" — and a decision screenshot that silently displaced a
- * store-written ref would lose evidence to gain evidence.
- *
- * The array is spread in only when NON-EMPTY (the absent-is-spread-away idiom every optional
- * on this payload follows): an empty array would be a second spelling of "no artifacts", and
- * a reader that had to tell `[]` from missing would be learning a distinction nothing means.
- */
+// The decision screenshot ref is appended to `artifactRefs`, never replacing a store-written ref.
 export function projectSubActionRecorded(
   evidence: SubActionEvidence,
   ids: { testIndex: number; stepIndex: number; subActionIndex: number },
@@ -211,10 +164,6 @@ export function projectSubActionRecorded(
   return maskPayloadStrings(payload, mask)
 }
 
-/**
- * `PerTestOutcome` → `testFinished` payload. Identity + `outcome` only; the
- * embedded `steps` array is destructured away and never rides the bus.
- */
 export function projectTestFinished(
   outcome: PerTestOutcome,
   mask: MaskFn,
@@ -234,9 +183,7 @@ export function projectTestFinished(
     testId: rest.testId,
     testIndex: rest.testIndex,
     outcome: rest.outcome,
-    // Phase 363 D-01 additive-optional appends (RESEARCH Q1). Plain extra inputs sourced
-    // from the runner `TestResult` — NOT fields on the §A8 PerTestOutcome DTO (Pitfall 2).
-    // `failureSummary` is a string so it routes through the mask like every payload string.
+    // `failureSummary` is a string, so it passes through the mask like every payload string.
     ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
     ...(extra?.failureSummary !== undefined
       ? { failureSummary: extra.failureSummary }
@@ -249,12 +196,6 @@ export function projectTestFinished(
   return maskPayloadStrings(payload, mask)
 }
 
-// --- Hook lifecycle + retry projections (Phase 363 D-01 parity appends, spec §2.2) ----
-
-/**
- * Hook identity → `hookStarted` payload. Pure structural pass: absent optional
- * identity fields are omitted (no undefined holes), every string routes through the mask.
- */
 export function projectHookStarted(
   input: HookStartedPayload,
   mask: MaskFn,
@@ -271,11 +212,7 @@ export function projectHookStarted(
   return maskPayloadStrings(payload, mask)
 }
 
-/**
- * Hook result → `hookFinished` payload. `stdout`/`stderr`/`error` and each
- * `variables` VALUE are routed through the mask by the terminal string walk — keys pass
- * through because {@link maskPayloadStrings} masks values only. Absent optionals are omitted.
- */
+// Masks values only, so `variables` keys pass through unmasked.
 export function projectHookFinished(
   input: HookFinishedPayload,
   mask: MaskFn,
@@ -299,12 +236,7 @@ export function projectHookFinished(
   return maskPayloadStrings(payload, mask)
 }
 
-/**
- * Retry accounting → `testRetryScheduled` payload (resolves RESEARCH Open Q-3). No mask
- * param: the payload carries only identifiers and scheduling accounting (testId, indices,
- * attempt counts, a coarse reason) — no captured secret-bearing streams. Absent `reason`
- * is omitted so no undefined-hole survives JSON round-trip.
- */
+// No mask: the payload carries identifiers and retry counts only, never captured streams.
 export function projectTestRetryScheduled(
   input: TestRetryScheduledPayload,
 ): TestRetryScheduledPayload {

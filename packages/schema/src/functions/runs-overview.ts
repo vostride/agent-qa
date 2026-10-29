@@ -1,14 +1,4 @@
-// `runs.overview` — one completed run as a compact address map.
-//
-// A MAP, NOT A DOCUMENT. Every field is either identity, a verdict, a count the run stored or the
-// literal address another read op takes. Bodies, traces, evidence documents and bytes stay behind
-// those addresses. Output ids are plain strings; the input keeps the branded run-id codec.
-//
-// Addresses, by the op that takes them:
-//   runs.artifact         { runId, sha }                                      screenshots, recordings
-//   runs.evidence         { runId, testIndex, stepIndex, subActionIndex?, kind }  step evidence, ARIA
-//   knowledge.brief.why   { runId, testId, stepIndex }                         served brief
-//   knowledge.record.show { recordId }                                         used and learned records
+// A map of addresses: bodies, traces, evidence and bytes stay behind the read ops that take them.
 
 import { z } from 'zod'
 

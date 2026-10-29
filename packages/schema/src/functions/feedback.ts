@@ -1,4 +1,3 @@
-// the Gate-3 neutral contracts.
 import { z } from 'zod'
 
 import { MARKS } from '../knowledge/gate-receipt'
@@ -88,7 +87,7 @@ export const MarkDispositionSchema = z.discriminatedUnion('kind', [
     fix: z.enum(MARK_FIX_KINDS),
     reason: z.enum(MARK_FIX_REFUSALS),
   }).strict(),
-  /** Historical (read only): a pre-432 mark that filed a proposal. Its change was never recorded. */
+  /** A read-only historical mark that filed a proposal; its change was never recorded. */
   z.object({
     kind: z.literal('drafted'),
     fix: z.enum(MARK_FIX_KINDS),
@@ -192,8 +191,7 @@ export const ImprovementPlanSchema = z.discriminatedUnion('kind', [
 ])
 export type ImprovementPlan = z.infer<typeof ImprovementPlanSchema>
 
-// the commit receipt is a direct change receipt and lives with the change
-// contracts; it is re-exported here so every existing import keeps its path.
+// Defined with the change contracts and re-exported for importers of this module.
 export { COMMIT_RECEIPT_SCHEMA_VERSION, CommitReceiptSchema } from '../knowledge/change'
 export type { CommitReceipt } from '../knowledge/change'
 
@@ -211,23 +209,16 @@ export function deriveMarkStepId(testIndex: number, stepIndex: number): string {
   return `${testIndex}:${stepIndex}`
 }
 
-// no mark refusal body. `MarkRefusalSchema` described the 403 the browser
-// door answered when the execution gate denied a mark; the gate is deleted, no route
-// answers that body, and the dashboard's branch that read it is deleted with it.
-
 /** Shared by runs.mark and runs.detail's ledger projection. */
 export interface FeedbackPort {
   mark(input: RunsMarkInput): Promise<RunsMarkOutcome>
   marksFor(runId: RunId): Promise<readonly MarkReceipt[]>
 }
 
-/** The ledger's latest-wins address: member plus step, testId deliberately excluded. */
+// The latest-wins key is member and step only; `testId` is not part of it.
 export function markAddressKey(address: Pick<MarkAddress, 'testIndex' | 'stepIndex'>): string {
   return `${address.testIndex}:${address.stepIndex ?? 'run'}`
 }
-
-// marks history. 2026-09-30, 432-09: each applied knowledge fix
-// joins the records it changed, read now; nothing is read from a proposal store.
 
 export const RunsMarksHistoryInputSchema = z.object({ runId: runIdSchema }).strict()
 export type RunsMarksHistoryInput = z.infer<typeof RunsMarksHistoryInputSchema>
@@ -330,11 +321,7 @@ export const MarkPreviewEvidenceEffectSchema = z.discriminatedUnion('direction',
 ])
 export type MarkPreviewEvidenceEffect = z.infer<typeof MarkPreviewEvidenceEffectSchema>
 
-/**
- * one record the mark reaches, led by its joined content (or the typed reason
- * there is none) and followed by its complete planned effects. A record the store cannot read keeps
- * its id and is `unreadable`, exactly as the writer skips it.
- */
+// A record the store cannot read keeps its id and is `unreadable`, as the writer skips it.
 export const MarkPreviewKnowledgeRecordSchema = z.object({
   recordId: z.string().min(1),
   ...recordJoinShape,
@@ -480,10 +467,6 @@ export type MarkHistoryRead =
  */
 export interface FeedbackReadsPort {
   history(runId: RunId): Promise<MarkHistoryRead>
-  /**
-   * runs.mark's deterministic plan for this exact input, stopping before any intent,
-   * lease, model call, id mint or write. Optional until a host implements it; a
-   * feedbackReads binding without it leaves runs.mark.preview unbound by name.
-   */
+  // Plans only: no lease, model call, id mint or write; a host without it leaves the op unbound.
   preview?(input: RunsMarkInput): Promise<RunsMarkPreviewResult>
 }

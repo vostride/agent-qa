@@ -1,18 +1,10 @@
-// the read-time record join shared by runs.knowledge rows and the
-// runs.mark.preview knowledge records. Its own module so feedback.ts and runs.ts both use it.
 import { z } from 'zod'
 
 import type { KnowledgeRecordShowResult } from '../knowledge/review-verbs'
 import { InspectRecordViewSchema } from '../knowledge/maintenance-views'
 import type { MaskFn } from '../run/bus-projections'
 
-/**
- * Why a row carries no joined record content.
- *
- * `not-found` is the store's own answer for this identity (for example a purged record), while
- * `scan-incomplete` means the batch read could not finish and `not-bound` means this host binds no
- * batch record read. The row itself is always retained.
- */
+// `not-found` is the store's answer, `scan-incomplete` an unfinished read, `not-bound` no read.
 export const RUN_KNOWLEDGE_CONTENT_ABSENCE_REASONS = [
   'not-found',
   'scan-incomplete',
@@ -23,10 +15,7 @@ export const RunKnowledgeContentAbsenceSchema = z.object({
   reason: z.enum(RUN_KNOWLEDGE_CONTENT_ABSENCE_REASONS),
 }).strict()
 
-/**
- * The record as the maintenance read shows it NOW. Every `current*` member is read-time
- * state; the row it rides on keeps its own historical `change`/`atOrdinal` or served trust/status.
- */
+// Every `current*` member is read-time state; the row keeps its own historical change and trust.
 export const RunKnowledgeRecordContentSchema = z.object({
   content: z.string(),
   summary: z.string(),
@@ -66,10 +55,7 @@ export function oneJoinArm(
   }
 }
 
-/**
- * The one record join: a found maintenance read, picked field by field. Trust and
- * status are `deriveBundleTrust`'s answer as shown, never recomputed; masking is a separate step.
- */
+// Trust and status are `deriveBundleTrust`'s answer, never recomputed; masking is a separate step.
 export function projectRecordContent(result: Extract<KnowledgeRecordShowResult, { kind: 'found' }>): RunKnowledgeRecordContent {
   const { record } = result
   return {

@@ -1,18 +1,4 @@
-// The canonical output contract (2026-09-28, Phase 431 plan 03 · D-03/D-07 · research A1).
-//
-// WHY A COMPANION AND NOT THE SCHEMA ITSELF. A runtime contract that brands a run id
-// (`z.string().transform(asRunId)`) or preserves an own `__proto__` variable (a transform behind the
-// record) cannot be converted in zod's OUTPUT mode: the converter refuses any transform. Before 431
-// the only answers were to omit the advertised output (the 397 degradation) or to advertise the
-// INPUT-mode document as though it were the output. The first withholds a contract that exists; the
-// second is a second recipe presented as the first.
-//
-// An `OutputContract` is one Standard Schema object with two faces. `validate` IS the runtime
-// schema's own validation — the same object, never a re-parse through a wire schema, so no
-// transform, refinement or preserved key can be lost. `jsonSchema.output` is an explicit document
-// derived from the runtime schema's own output conversion, where exactly the declared WIRE TERMINALS
-// below are described by the wire half their transform consumes. Every other unrepresentable
-// construct fails the derivation by name, so the document can never be an any-valued stand-in.
+// Zod cannot convert a transform in output mode, so the output document is derived separately.
 
 import { z } from 'zod'
 

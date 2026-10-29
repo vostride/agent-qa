@@ -1,28 +1,3 @@
-// THE run-id codec, and the census that makes "one codec" a claim about the boundary.
-//
-// WHY A CENSUS AND NOT A CELL PER SITE. `packages/schema/src` is not one door onto a run's
-// identity; before this plan it declared FOUR bare `z.string().transform(asRunId)` codecs, and
-// hardening the one a report names is the one-sided hardening this phase has shipped repeatedly.
-// The claim worth making is a COMPLETE-SET claim — every declaration in this package either IS the
-// shared hardened codec or carries a recorded verdict — and a claim of that shape can only be
-// discharged by enumerating.
-//
-// THREE PREDICATES, DELIBERATELY DIFFERENT IN SHAPE, because a census is only as complete as its
-// discovery rule and a self-check only ever sees narrowings that reach the members it names:
-//
-//   P1  SYMBOL-shaped. Every declaration that turns a string into a branded `RunId` — i.e. every
-//       use of `asRunId` in a codec position. Complete-set: exactly one file, `run/run-id.ts`.
-//   P2  KEY-shaped. Every `runId:` / `runRef:` field declared with a zod value, keyed on the
-//       PROPERTY rather than on the symbol — so a future codec spelled without `asRunId`
-//       (`z.string().transform(v => v as RunId)`) is still seen. Partitioned per FILE against a
-//       written verdict table.
-//   P3  RUNTIME-shaped. The surfaces P1/P2 name are asserted to hold the SAME OBJECT, and to
-//       REFUSE a path-shaped id when actually parsed. Text cannot fake this one, and it is the
-//       only predicate that measures behaviour rather than source.
-//
-// P2 exists because P1 alone is a grep for a name. P1 exists because P2 alone is a grep for a key
-// and would miss a codec assigned to a differently-named field. P3 exists because both are text.
-
 import { readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -63,10 +38,10 @@ function shippedSourceFiles(root: string): string[] {
   return found
 }
 
-/** P1 — a declaration that BRANDS a string as a `RunId`. */
+/** A declaration that brands a string as a `RunId`. */
 const BRANDING_DECLARATION_RE = /\.(?:transform|pipe)\s*\(\s*asRunId\s*\)|as\s+RunId\b/g
 
-/** P2 — a run-identifying field declared with a zod value. */
+/** A run-identifying field declared with a zod value. */
 const RUN_ID_FIELD_RE = /\brun(?:Id|Ref|Ids|Refs)\s*:\s*(runIdSchema|z\.[A-Za-z0-9_.()' ,-]*)/g
 
 /**
@@ -249,8 +224,7 @@ const RUN_ID_FIELD_VERDICTS: Readonly<
   },
   'knowledge/review-verbs.ts': {
     hardened: 0,
-    // 2 -> 1. The change ops' input carries no run attribution; what remains
-    // is `BriefWhyInput.runId`, the address of the run a why-question is about.
+    // The one plain string is `BriefWhyInput.runId`, the run a why-question is about.
     plainString: 1,
     verdict: "reaches no path join — the run a brief-why question addresses, read through the runs port.",
   },

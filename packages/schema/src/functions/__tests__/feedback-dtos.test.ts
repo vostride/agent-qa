@@ -40,8 +40,7 @@ const commitReceipt = {
 describe('Gate-3 neutral feedback contracts', () => {
   it('pins the quarantine, disposition and fix vocabularies in declaration order', () => {
     expect(MARK_QUARANTINE_CLASSES).toEqual(['flake', 'environment', 'timeout'])
-    // the writer applies a fix; `drafted` is only read back (MARK_HISTORICAL_DISPOSITIONS).
-    // `not-applied` closes a mark whose planned fix was refused.
+    // `drafted` is read back only, via `MARK_HISTORICAL_DISPOSITIONS`, so this list omits it.
     expect(MARK_DISPOSITIONS).toEqual(['quarantined', 'applied', 'no-draftable-fix', 'confirmed-bug', 'not-applied'])
     expect(MARK_FIX_KINDS).toEqual(['fact', 'caution', 'procedure-hint', 'test-edit'])
   })

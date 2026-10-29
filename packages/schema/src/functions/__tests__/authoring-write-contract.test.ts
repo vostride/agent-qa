@@ -1,10 +1,3 @@
-// The registry contract for `authoring.draft.write`'s `scope`.
-//
-// A live planner refused the op by name because `scope` was a REQUIRED `{tier, key}` and nothing
-// on the model's side enumerates the valid keys. The fix is `runs.start`'s own law applied one op
-// over — the declaration optionalizes, the host derives on absence — so the half measured here is
-// the DECLARATION: an input carrying only an intent has to parse.
-
 import { describe, expect, it } from 'vitest'
 
 import { AuthoringDraftWriteInputSchema } from '../authoring.js'

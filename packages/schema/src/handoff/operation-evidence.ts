@@ -1,7 +1,5 @@
-// Operation-specific evidence an action produced outside the page (436 D-19..D-23). Type-only
-// DTOs plus their key sets. No downloaded byte, file path or text preview is ever part of them.
+// No downloaded byte, file path or text preview is ever part of these DTOs.
 
-/** One download the action started, as the browser finished it. */
 export interface DownloadEvidence {
   suggestedFilename: string
   /** The filename's extension including the dot, or '' when it has none. */
@@ -18,7 +16,6 @@ export interface DownloadEvidence {
   late?: true
 }
 
-/** One clipboard write the app made during the action. */
 export interface ClipboardEvidence {
   source: 'writeText' | 'write' | 'copy-event'
   text: string
@@ -26,19 +23,15 @@ export interface ClipboardEvidence {
   readBack: 'matched' | 'mismatched' | 'unavailable'
 }
 
-/** How a fill's read-back compared with the requested text. */
 export type FillVerdict = 'exact' | 'normalized' | 'mismatch' | 'unverified'
 
-/** Which route delivered a fill's text. */
 export type InputPath = 'native' | 'webview' | 'keyboard'
 
-/** What happened to a requested submit after a fill. */
 export type SubmitOutcome = 'sent' | 'not-sent' | 'unavailable' | 'failed'
 
-/** Why a requested submit was not sent. */
 export type SubmitReason = 'mismatch' | 'multi-line-field' | 'input-failed' | 'focus-lost'
 
-/** What one action's input actually delivered. `currentState` is masked. */
+// `currentState` is masked before it is recorded.
 export interface InputEvidence {
   verb: string
   inputSent: boolean
@@ -51,14 +44,12 @@ export interface InputEvidence {
   unavailableReason?: string
 }
 
-/** Evidence that rides the action that produced it. */
 export interface OperationEvidence {
   downloads?: DownloadEvidence[]
   clipboard?: ClipboardEvidence[]
   input?: InputEvidence[]
 }
 
-/** Whether the step's platform could capture each operation at all. */
 export interface OperationCaptureAvailability {
   download: 'available' | 'unavailable'
   clipboard: 'available' | 'unavailable'

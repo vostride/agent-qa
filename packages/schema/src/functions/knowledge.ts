@@ -9,18 +9,7 @@ import { PROMOTION_GATE_HOLD_REASONS, type PromotionGateVerdict } from '../knowl
 
 export const KNOWLEDGE_BUNDLE_SUMMARY_SCHEMA_VERSION = 2
 
-/**
- * One committed knowledge bundle as `knowledge.bundles.list` projects it
- *
- * Deliberately a LISTING row, not a record view: it carries bundle identity, product
- * qualification, the derived trust state a reviewer triages on, and the one-line summary —
- * never the record body, evidence, relations, or screen states. 387's five review verbs
- * extend this stub with the deeper projections they need; nothing here is meant to be the
- * final shape of a record inspection.
- *
- * All trust-shaped fields are DERIVED (the v51 trust fold), never authored: a surface
- * renders them and never recomputes them.
- */
+// Trust fields are derived by the trust fold; a surface renders them and never recomputes them.
 export interface KnowledgeBundleSummary {
   /** The record id, which is also the bundle directory name. */
   bundleId: string
@@ -109,7 +98,6 @@ export const KnowledgeBundleSummarySchema = z.object({
   evidenceIncomplete: z.boolean(),
 }).strict() satisfies z.ZodType<KnowledgeBundleSummary>
 
-// the listing's whole result, named so the op and the MCP tool share one object.
 export const KnowledgeBundlesListOutputSchema = z.array(KnowledgeBundleSummarySchema)
 
 /**
@@ -121,7 +109,6 @@ export const KnowledgeBundlesListInputSchema = z.object({}).strict()
 
 export type KnowledgeBundlesListInput = z.infer<typeof KnowledgeBundlesListInputSchema>
 
-// history, standing evidence and the live verdict are one schema-owned answer.
 export const KnowledgeGatesListInputSchema = z.object({ recordId: z.string().min(1) }).strict()
 export const PromotionGateVerdictSchema = z.discriminatedUnion('verdict', [
   z.object({

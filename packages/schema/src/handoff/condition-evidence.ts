@@ -1,6 +1,3 @@
-// The per-condition verdict block. Type-only DTOs plus their key sets and
-// one reader predicate; the runner computes the verdicts, readers keep reading whatever shipped.
-
 export const CONDITION_VERDICTS = ['met', 'not-met', 'unverified', 'inconclusive'] as const
 export type ConditionVerdict = (typeof CONDITION_VERDICTS)[number]
 

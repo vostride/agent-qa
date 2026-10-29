@@ -33,10 +33,8 @@ export type {
   TerminationEvidence,
   VerdictSource,
 } from './verb-evidence'
-// 2026-10-07 (436-04, D-11..D-13): the per-step limit stop and usage.
 export type { CompoundInputCount, LimitStopEvidence, StepLimitUsage } from './limit-evidence'
 export { formatLimitStopReason, LIMIT_STOP_EVIDENCE_KEYS, STEP_LIMIT_USAGE_KEYS } from './limit-evidence'
-// the per-condition verdict block.
 export type {
   CitationSource,
   ConditionCitation,
@@ -59,7 +57,6 @@ export {
   CONDITION_VERDICTS_EVIDENCE_KEYS,
   stepOutcomeUnproven,
 } from './condition-evidence'
-// 2026-10-07 (436-10, D-19..D-23): operation-specific evidence on the triggering action.
 export type {
   ClipboardEvidence,
   DownloadEvidence,
@@ -71,7 +68,6 @@ export {
   DOWNLOAD_EVIDENCE_KEYS,
   OPERATION_CAPTURE_AVAILABILITY_KEYS,
 } from './operation-evidence'
-// what an action's input delivered, on the same evidence.
 export type {
   FillVerdict,
   InputEvidence,

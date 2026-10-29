@@ -1,14 +1,6 @@
 import { z } from 'zod'
 
-/**
- * The live-view transport families a run handle can declare. `cdp-screencast` is
- * the continuous stream; `snapshot` is the labelled 1s fallback frames arrive through when
- * continuous streaming is unavailable, delivered on the same hub, socket
- * and embed page. `snapshot` supersedes 403 D-08's rejection of stills (the dated note lands in
- * 428 Plan 27). `mjpeg` (mobile, M6) and `webrtc` (headful phase 2) are named here so a consumer
- * switches on a DECLARED kind rather than on a browser name or an adapter class (LIVE-04's
- * prohibition).
- */
+// Consumers switch on a declared kind, never on a browser name or an adapter class.
 export type LiveStreamKind = 'cdp-screencast' | 'snapshot' | 'mjpeg' | 'webrtc'
 // prettier-ignore
 export const LIVE_STREAM_KINDS = [
@@ -34,12 +26,7 @@ export const LiveStreamDeclarationSchema = z.discriminatedUnion('kind', [
   z.object({ kind: z.literal('none') }).strict(),
 ])
 
-/**
- * Per-frame geometry as the producer reported it (CDP `screencastFrame.metadata`), plus the frame's
- * time. `timestamp` is the frame's CAPTURE time in integer epoch milliseconds, stamped by the
- * producer at capture. It is the one definition of a frame's time on every layer: the
- * hub fills it from its own clock only when a producer left it out, and never overwrites it.
- */
+// `timestamp` is capture time in epoch ms; the hub fills it only when the producer left it out.
 export interface LiveFrameMetadata {
   width: number
   height: number
@@ -48,11 +35,7 @@ export interface LiveFrameMetadata {
   scrollOffsetY?: number
 }
 
-/**
- * ONE live frame as DATA: an id to ack with, the encoded bytes, and geometry. No
- * `Page`, no `CDPSession`, no handle of any kind crosses this type — which is what lets frames
- * travel a side channel while the run event bus stays silent about them.
- */
+// No `Page`, `CDPSession` or other handle crosses this type, so frames can travel a side channel.
 export interface LiveFrame {
   id: number
   bytes: Uint8Array

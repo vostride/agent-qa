@@ -1,22 +1,12 @@
-// The per-step limit evidence (436 D-11..D-13). Type-only DTOs plus their key sets and the one
-// reason formatter; the runner records them, readers keep reading whatever shipped.
-
 import type { PlannerLimits } from '../config/planner-limits'
 
-/**
- * The typed limit stop. Present only when a limit refused the next dispatch of its kind.
- * It is never an application failure, a planning failure, a termination or a verdict.
- */
+// Present only when a limit refused a dispatch; it is never a failure, a termination or a verdict.
 export interface LimitStopEvidence {
   limit: 'actions' | 'planning-turns'
   configured: number
   used: number
   reason: string
-  /**
-   * The step's requested outcome as a whole. Since 439 D-08 (superseding 436 D-13) the verifier
-   * judges the stop once, and its per-condition verdicts sit beside this block in
-   * `StepEvidence.conditionVerdicts`.
-   */
+  // The verifier judges the stop once; its verdicts sit in `StepEvidence.conditionVerdicts`.
   requestedOutcome: 'unverified'
   /** The last verifier rejection's reasoning, masked-before-record. */
   lastVerifierRejection?: string
@@ -24,14 +14,13 @@ export interface LimitStopEvidence {
   lastPlannerReasoning?: string
 }
 
-/** Inner inputs of one compound action, which count once against the action limit. */
+// A compound action's inner inputs count once against the action limit.
 export interface CompoundInputCount {
   subActionIndex: number
   kind: 'scroll' | 'fill'
   count: number
 }
 
-/** What a step execution used against its limits. */
 export interface StepLimitUsage {
   limits: PlannerLimits
   actionsUsed: number

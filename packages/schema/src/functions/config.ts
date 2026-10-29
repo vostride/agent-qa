@@ -16,18 +16,7 @@ export type ConfigValueSource =
   | 'cli-flag'
   | 'test-file'
 
-/**
- * One resolved configuration key/value pair, rendered and passed through the declared-secret
- * mask while it is constructed.
- *
- * The mask is applied at construction, so a surface holding a `MaskedResolvedConfig` never
- * holds a declared value to redact downstream: each one already reads as its
- * `[secret:<name>]` marker. Nothing else hides a value: no path, key name, placeholder or URL
- * reduction.
- *
- * `value` is always a rendered string (numbers, booleans, and nested values are stringified
- * at construction) so the mask applies to every value alike.
- */
+// Masked and stringified at construction, so no holder of this type sees a declared secret.
 export interface MaskedConfigEntry {
   /** Dot-path key into the resolved configuration tree. */
   key: string
@@ -38,13 +27,6 @@ export interface MaskedConfigEntry {
   masked: boolean
 }
 
-/**
- * The `config.get` result: the masked, provenance-annotated resolved configuration read
- * that seeds 395's config class.
- *
- * A flat entry list rather than a nested tree — provenance is per-leaf, and a flat list is
- * the shape both a table renderer and a JSON-Schema projection want.
- */
 export interface MaskedResolvedConfig {
   schemaVersion: typeof MASKED_RESOLVED_CONFIG_SCHEMA_VERSION
   /** The configuration file the read resolved against, as the caller addressed it. */
