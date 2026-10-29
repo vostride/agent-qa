@@ -410,7 +410,7 @@ function producePreV4Project(options: {
   return { knowledgeRoot, runsRoot }
 }
 
-describe('reconcileRunOutcomesProjection — the projection-version backfill (393 CR-02)', () => {
+describe('reconcileRunOutcomesProjection — the projection-version backfill', () => {
   it('converges a pre-v4 index: suite_fingerprints goes empty -> populated with no counter drift', () => {
     const { knowledgeRoot, runsRoot } = producePreV4Project()
 
@@ -486,7 +486,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill (39
     })
   })
 
-  it('an excludedFromOutcomes gate-run contributes zero rows through the rebuild (WTST-06)', () => {
+  it('an excludedFromOutcomes gate-run contributes zero rows through the rebuild', () => {
     const { knowledgeRoot, runsRoot } = producePreV4Project()
     expect(reconcileRunOutcomesProjection({ knowledgeRoot, runsRoot, extractAnchors }).kind)
       .toBe('rebuilt')
@@ -527,7 +527,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill (39
       .toEqual(metaBefore)
   })
 
-  it('costs ONE run, never the family, when a run dir carries a truncated analysis.json (CR-01)', () => {
+  it('costs ONE run, never the family, when a run dir carries a truncated analysis.json', () => {
     const { knowledgeRoot, runsRoot } = producePreV4Project({
       artifacts: { '002-login': TRUNCATED_ARTIFACT_BYTES },
     })
@@ -569,7 +569,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill (39
     })
   })
 
-  it('refuses to stamp when a PROJECTION-layer throw aborts the rebuild, and self-heals next sweep (CR-01-WIDENED, projection half)', () => {
+  it('refuses to stamp when a PROJECTION-layer throw aborts the rebuild, and self-heals next sweep (projection half)', () => {
     const { knowledgeRoot, runsRoot } = producePreV4Project()
 
     // The injected seam is consumed by `testDelta` inside `projectRunOutcomes` — a PURE computation
@@ -655,7 +655,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill (39
     })
   })
 
-  it('propagates a host fault reading handoff.json: previous complete family survived, then the healed sweep rebuilds (CR-01-READ)', () => {
+  it('propagates a host fault reading handoff.json: previous complete family survived, then the healed sweep rebuilds', () => {
     const { knowledgeRoot, runsRoot } = producePreV4Project()
     expect(reconcileRunOutcomesProjection({ knowledgeRoot, runsRoot, extractAnchors }).kind)
       .toBe('rebuilt')
@@ -695,7 +695,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill (39
     })
   })
 
-  it('propagates a host fault reading analysis.json: previous complete family survived, then the healed sweep rebuilds (CR-01-READ)', () => {
+  it('propagates a host fault reading analysis.json: previous complete family survived, then the healed sweep rebuilds', () => {
     const { knowledgeRoot, runsRoot } = producePreV4Project()
     expect(reconcileRunOutcomesProjection({ knowledgeRoot, runsRoot, extractAnchors }).kind)
       .toBe('rebuilt')
@@ -734,7 +734,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill (39
     })
   })
 
-  it('reads a VALID analysis.json through the reconcile-driven rebuild (WR-06, the other half)', () => {
+  it('reads a VALID analysis.json through the reconcile-driven rebuild (the other half)', () => {
     const { knowledgeRoot, runsRoot } = producePreV4Project({
       runs: [...HISTORICAL_RUNS, FLAKE_RUN],
       artifacts: { [FLAKE_RUN_ID]: canonicalJson(flakeArtifact(FLAKE_RUN_ID)) },

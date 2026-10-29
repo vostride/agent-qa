@@ -76,7 +76,7 @@ function writerArrives(knowledgeRoot: string): void {
   }
 }
 
-describe('IN-26: the immutable probe against a writer that arrives mid-check', () => {
+describe('the immutable probe against a writer that arrives mid-check', () => {
   it('answers busy (locked), not corrupt, when a writer opened the index during the check', async () => {
     const knowledgeRoot = await healthyRoot()
     race.afterOpen = () => writerArrives(knowledgeRoot)

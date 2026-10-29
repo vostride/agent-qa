@@ -45,7 +45,7 @@ interface RecordInput {
   vector?: Float32Array
 }
 
-describe('RETR-01 fail-closed retrieval legs', () => {
+describe('fail-closed retrieval legs', () => {
   let root: string
   let knowledgeRoot: string
   let writer: IndexWriterHandle

@@ -149,7 +149,7 @@ function refusingMint(filePath: string): string {
   return filePath
 }
 
-describe('createQuarantineOperations (D-12/D-13)', () => {
+describe('createQuarantineOperations', () => {
   let knowledgeRoot: string
   let clockReads: number
 
@@ -201,7 +201,7 @@ describe('createQuarantineOperations (D-12/D-13)', () => {
 
   // ---- list -------------------------------------------------------------------------------
 
-  it('lists [] for a ledger that was never created — the FLAK-03 empty edge', async () => {
+  it('lists [] for a ledger that was never created — the empty edge', async () => {
     expect(await operations().list()).toEqual([])
   })
 
@@ -211,7 +211,7 @@ describe('createQuarantineOperations (D-12/D-13)', () => {
     expect(await operations().list()).toEqual([])
   })
 
-  it('orders unassigned first, then firstEnteredAt ascending, ties on identity bytes (D-12)', async () => {
+  it('orders unassigned first, then firstEnteredAt ascending, ties on identity bytes', async () => {
     // File order — and therefore the fold's Map iteration order — is C, A, E, D, B, F.
     await plant([
       entered(C, '2026-03-01T00:00:00.000Z', { owner: 'alice' }),
@@ -322,7 +322,7 @@ describe('createQuarantineOperations (D-12/D-13)', () => {
     expect(entries.map((entry) => entry.filePath)).toEqual(['tests/d.yaml', 'tests/e.yaml'])
   })
 
-  it('carries the re-entry history onto every listed entry (390-18)', async () => {
+  it('carries the re-entry history onto every listed entry', async () => {
     await plant([
       entered(A, '2026-01-01T00:00:00.000Z'),
       released(A, '2026-01-20T00:00:00.000Z'),
@@ -442,7 +442,7 @@ describe('createQuarantineOperations (D-12/D-13)', () => {
     expect(ledgerLines()[1]).not.toHaveProperty('owner')
   })
 
-  it('renews an EXPIRED entry back into suppression (D-11 keeps it renewable)', async () => {
+  it('renews an EXPIRED entry back into suppression (an expired entry stays renewable)', async () => {
     await plant([entered(A, '2026-01-01T00:00:00.000Z', { expiresAt: '2026-02-01T00:00:00.000Z' })])
 
     const answer = await operations().add(A)
@@ -451,7 +451,7 @@ describe('createQuarantineOperations (D-12/D-13)', () => {
     expect(answer.entry).toMatchObject({ state: 'quarantined', expiresAt: DEFAULT_EXPIRY })
   })
 
-  it('opens a FRESH window on a released identity — D-10 re-entry needs no special rule', async () => {
+  it('opens a FRESH window on a released identity — re-entry needs no special rule', async () => {
     await plant([
       entered(A, '2026-01-01T00:00:00.000Z'),
       released(A, '2026-01-02T00:00:00.000Z'),
@@ -500,7 +500,7 @@ describe('createQuarantineOperations (D-12/D-13)', () => {
     })
   })
 
-  it('releases an EXPIRED entry — its window is still open, it just stopped suppressing (D-11)', async () => {
+  it('releases an EXPIRED entry — its window is still open, it just stopped suppressing', async () => {
     await plant([entered(A, '2026-01-01T00:00:00.000Z', { expiresAt: '2026-02-01T00:00:00.000Z' })])
 
     const answer = await operations().release(A)
@@ -872,7 +872,7 @@ describe('createQuarantineOperations (D-12/D-13)', () => {
   }
   void wr02AnAsyncDecideMustNotCompile
 
-  it('runs a SYNCHRONOUS decide under the lease — the direction the WR-02 pin needs to be about it', async () => {
+  it('runs a SYNCHRONOUS decide under the lease, so the compile pin is about the promise', async () => {
     // Non-vacuity for the compile pin above: the same call with a synchronous closure compiles AND
     // executes, so the `@ts-expect-error` is about the promise, not about a broken signature.
     expect(await underWriterLease(knowledgeRoot, undefined, () => 'decided')).toBe('decided')
@@ -880,7 +880,7 @@ describe('createQuarantineOperations (D-12/D-13)', () => {
     expect(existsSync(leaseFile())).toBe(false)
   })
 
-  it('RECLAIMS a STALE lease and writes — the arm the fresh-holder fixture can never produce (WR-03)', async () => {
+  it('RECLAIMS a STALE lease and writes — the arm the fresh-holder fixture can never produce', async () => {
     // `foreignHolder()` acquires microseconds before the assertion, so every refusal pin above
     // meets a FRESH holder and the reclaim arm was unreachable from this corpus — the recorded
     // precondition-guarded rule corpus law. Planting an aged heartbeat is what produces it.

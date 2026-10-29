@@ -140,7 +140,7 @@ function digest(path: string): string {
   return createHash('sha256').update(readFileSync(path)).digest('hex')
 }
 
-describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, written, renamed or cleaned up', () => {
+describe('an old grants.jsonl is never read, written, renamed or cleaned up', () => {
   let root: string
   let knowledgeRoot: string
   let agentQaRoot: string
@@ -197,13 +197,13 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
     return readdirSync(knowledgeRoot).filter((name) => /grant/i.test(name) && name !== LEGACY_LEDGER)
   }
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: the recorder sees a call that does reach the legacy ledger', () => {
+  it('the recorder sees a call that does reach the legacy ledger', () => {
     // The control. Without it, "no recorded path" could be a recorder that records nothing.
     expect(existsSync(ledger)).toBe(true)
     expect(touchedLedger()).toEqual([ledger])
   })
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: explicit accept, reject and forget apply in every context and never open it', async () => {
+  it('explicit accept, reject and forget apply in every context and never open it', async () => {
     const before = digest(ledger)
     const targets = CONTEXTS.map((context) => ({
       context,
@@ -236,7 +236,7 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
     expect(grantShapedSiblings(), 'a grant-shaped replacement store appeared').toEqual([])
   }, 120_000)
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: quarantine add, list and release never open it', async () => {
+  it('quarantine add, list and release never open it', async () => {
     const before = digest(ledger)
     const ops = quarantine()
     recorder.paths.length = 0
@@ -252,7 +252,7 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
     expect(grantShapedSiblings()).toEqual([])
   }, 120_000)
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: the knowledge reads answer beside it and never open it', () => {
+  it('the knowledge reads answer beside it and never open it', () => {
     const before = digest(ledger)
     const recordId = publish('read')
     recorder.paths.length = 0
@@ -270,7 +270,7 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
   // Carried from the deleted grant verbs' "refuses typed when another writer holds the lease, leaving
   // the ledger byte-unchanged": the direct writers refuse a held lease by name, and the legacy file is
   // untouched either way.
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: a held writer lease refuses the direct writers by name and leaves it untouched', async () => {
+  it('a held writer lease refuses the direct writers by name and leaves it untouched', async () => {
     const before = digest(ledger)
     const recordId = publish('held')
     const holder = acquireWriterLease(knowledgeRoot)
@@ -293,7 +293,7 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
   }, 120_000)
 
   // 432-18 task 2: the retry, unreadable-file and absent-file edges.
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: a retried explicit change answers its first outcome and still never opens it', async () => {
+  it('a retried explicit change answers its first outcome and still never opens it', async () => {
     const before = digest(ledger)
     const recordId = publish('retry')
     recorder.paths.length = 0
@@ -313,7 +313,7 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
     expect(digest(ledger)).toBe(before)
   }, 120_000)
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: the direct writers work while the old ledger cannot be read at all', async () => {
+  it('the direct writers work while the old ledger cannot be read at all', async () => {
     const recordId = publish('unreadable')
     chmodSync(ledger, 0o000)
     try {
@@ -330,7 +330,7 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
     expect(readFileSync(ledger, 'utf8')).toBe(LEGACY_BYTES)
   }, 120_000)
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: with no old ledger, no direct writer creates one in any context', async () => {
+  it('with no old ledger, no direct writer creates one in any context', async () => {
     rmSync(ledger)
     const targets = CONTEXTS.map((context) => ({ context, recordId: publish(`absent ${context}`) }))
     for (const [index, { context, recordId }] of targets.entries()) {
@@ -345,7 +345,7 @@ describe('C432-GRANTS-UNREAD-WRITER-ABSENT: an old grants.jsonl is never read, w
     expect(readdirSync(knowledgeRoot).filter((name) => /grant/i.test(name))).toEqual([])
   }, 120_000)
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: no grant reader, writer or verb is exported or present', () => {
+  it('no grant reader, writer or verb is exported or present', () => {
     const exported = new Set(Object.keys(knowledgeLocal))
     expect(exported.size, 'the barrel is empty, so the census would be vacuous').toBeGreaterThan(0)
     expect(RETIRED_EXPORTS.filter((name) => exported.has(name)), 'a retired grant member is exported')

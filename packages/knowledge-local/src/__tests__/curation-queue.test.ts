@@ -57,7 +57,7 @@ function sha(bytes: Uint8Array): string {
   return createHash('sha256').update(bytes).digest('hex')
 }
 
-describe('curation queue atomic emit drop (CUR-04/T-378-07..09)', () => {
+describe('curation queue atomic emit drop', () => {
   let root: string
   let knowledgeRoot: string
   let sourceRoot: string
@@ -583,7 +583,7 @@ describe('curation queue atomic emit drop (CUR-04/T-378-07..09)', () => {
     })
   })
 
-  describe('C441-CAPTURE', () => {
+  describe('artifacts captured on a password field', () => {
     const DECLARED = 'Hunter-42-zz'
     const TOKEN = 'tok-441'
     const STEP = 4
@@ -710,7 +710,7 @@ describe('curation queue atomic emit drop (CUR-04/T-378-07..09)', () => {
     })
   })
 
-  describe('C441-CURATION', () => {
+  describe('queue rows written with retired capture fields', () => {
     // Spelled in parts: the retired field names appear nowhere in packages (441-25, census leg 10).
     const RETIRED_RECEIPT_KEY = ['capture', 'Receipt'].join('')
 

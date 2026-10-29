@@ -113,7 +113,7 @@ describe('resolver tier (a)', () => {
     expect(await resolveEntityRef('bundle-checkou', deps)).toEqual({ kind: 'none', reason: 'no-match' })
   })
 
-  it('mints once per entity and keeps first-mention order (D-01)', async () => {
+  it('mints once per entity and keeps first-mention order', async () => {
     // Ordinals reflect first MENTION, not creation: `bundle-login` is second in the source and
     // first in the ledger because it was referenced first.
     expect(await resolveEntityRef('bundle-login', deps)).toMatchObject({
@@ -127,7 +127,7 @@ describe('resolver tier (a)', () => {
     })
   })
 
-  it('names the successor slug on a renamed target, and only once recorded (D-03)', async () => {
+  it('names the successor slug on a renamed target, and only once recorded', async () => {
     await resolveEntityRef('checkout', deps)
     const before = await resolveEntityRef('TGT-checkout', deps)
     if (before.kind !== 'resolved') throw new Error('expected the resolved arm')

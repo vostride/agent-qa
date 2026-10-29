@@ -58,7 +58,7 @@ interface MeasurementFixture {
   baseline: MeasurementBaseline
 }
 
-describe('queue-to-commit measurement drift acceptance (DCAY-02)', () => {
+describe('queue-to-commit measurement drift acceptance', () => {
   let root: string
   let knowledgeRoot: string
   let fallbackAuthor: ReturnType<typeof vi.fn<CuratorAuthor>>

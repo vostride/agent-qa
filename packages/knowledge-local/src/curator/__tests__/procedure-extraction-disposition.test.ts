@@ -162,7 +162,7 @@ function dispose(
   })
 }
 
-describe('procedure extraction disposition — structural candidacy (D-02)', () => {
+describe('procedure extraction disposition — structural candidacy', () => {
   it('rejects a procedure Add whose body parseProcedureBody cannot decode', () => {
     const outcome = dispose(
       addDelta({ body: 'Enter email, enter password, and submit the form.' }),
@@ -322,7 +322,7 @@ describe('procedure extraction disposition — structural candidacy (D-02)', () 
   })
 })
 
-describe('procedure extraction disposition — binding integrity & secrets (D-03)', () => {
+describe('procedure extraction disposition — binding integrity & secrets', () => {
   it('ignores boolean scalar slots when checking parameter-reference integrity', () => {
     const payload = makeProcedureBodyPayloadFixture()
     payload.steps[0]!.action.values.submit = true
@@ -380,7 +380,7 @@ describe('procedure extraction disposition — binding integrity & secrets (D-03
   })
 })
 
-describe('C441-CAPTURE', () => {
+describe('values typed into credential-type fields', () => {
   it('a value typed into a credential-type field is not secret by its field type', () => {
     const payload = makeProcedureBodyPayloadFixture()
     payload.parameters = payload.parameters.filter(({ name }) => name !== 'password')
@@ -398,7 +398,7 @@ describe('C441-CAPTURE', () => {
   })
 })
 
-describe('C441-GAP-CURATION', () => {
+describe('the named secret marker as a typed value', () => {
   it('a step whose typed value is the named secret marker is refused as a masked literal', () => {
     const payload = makeProcedureBodyPayloadFixture()
     payload.parameters = payload.parameters.filter(({ name }) => name !== 'password')
@@ -417,7 +417,7 @@ describe('C441-GAP-CURATION', () => {
   })
 })
 
-describe('procedure extraction commit path — artifact cap & egress backstop (A3/T-381-07)', () => {
+describe('procedure extraction commit path — artifact cap & egress backstop', () => {
   interface HarnessArtifact {
     bytes: Buffer
     stepIndex: number

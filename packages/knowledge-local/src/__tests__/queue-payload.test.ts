@@ -79,7 +79,7 @@ function strictAddressInput(): Parameters<
   }
 }
 
-describe('curation candidate projection and payload contracts (SAFE-02)', () => {
+describe('curation candidate projection and payload contracts', () => {
   it('requires source descriptors before copy', () => {
     const {
       schemaVersion: _schemaVersion,
@@ -325,7 +325,7 @@ describe('format-local durability versions and strict public surface', () => {
   })
 })
 
-describe('C441-CURATION', () => {
+describe('new queue payloads carry no retired fields', () => {
   // Spelled in parts: the retired field names appear nowhere in packages (441-25, census leg 10).
   const RETIRED_KEYS = [
     ['capture', 'Evidence'].join(''),

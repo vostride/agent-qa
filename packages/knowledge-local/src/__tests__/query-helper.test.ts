@@ -15,7 +15,7 @@ function query(anchors: readonly Anchor[], screenState?: ScreenState) {
   })
 }
 
-describe('RETR-02 retrieval query construction', () => {
+describe('retrieval query construction', () => {
   it('preserves raw selectors only in lexical text and renders deterministic semantic text', () => {
     const input = {
       intent: 'Complete checkout',

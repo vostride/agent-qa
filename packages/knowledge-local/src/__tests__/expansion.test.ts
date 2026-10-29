@@ -40,7 +40,7 @@ interface RankedNeighbor {
   recencyOrdinal: number
 }
 
-describe('GRPH-01 deterministic one-hop expansion', () => {
+describe('deterministic one-hop expansion', () => {
   let db: DatabaseSync
   let nextRecordRowid: number
   let recordRowids: Map<string, number>

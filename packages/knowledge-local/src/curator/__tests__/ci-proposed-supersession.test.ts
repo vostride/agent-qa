@@ -202,7 +202,7 @@ function fileHashes(dir: string): Record<string, string> {
   return out
 }
 
-describe('C444-PROPOSED-SUPERSESSION', () => {
+describe('proposed supersession in ci', () => {
   it('in ci a same-anchor correction is a separate candidate and the victim stays byte-unchanged', () => {
     const ws = workspace()
     const victim = seedVictim(ws, 'ci')

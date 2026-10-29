@@ -98,7 +98,7 @@ function relation(overrides: Partial<BundleRelation> = {}): BundleRelation {
   }
 }
 
-describe('bundle append atomic checkpoint units (D-11/BNDL-03)', () => {
+describe('bundle append atomic checkpoint units', () => {
   let root: string
   let config: BundleStoreConfig
   let id: RecordId
@@ -574,7 +574,7 @@ describe('bundle append atomic checkpoint units (D-11/BNDL-03)', () => {
   })
 })
 
-describe('C441-COMMITTED', () => {
+describe('committed records with credential-shaped text', () => {
   const SUMMARY = 'Pay with card 4242 4242 4242 4242 at checkout'
   const BODY = 'Send Bearer abc123def456ghi789 with key AKIAIOSFODNN7EXAMPLE, then mail qa@example.com.'
   let root: string

@@ -80,7 +80,7 @@ describe('precedence rerank (spec §5.5.6)', () => {
   })
 })
 
-describe('assembly-time ordinal collapse (D-16)', () => {
+describe('assembly-time ordinal collapse', () => {
   it('collapses cosmetically different agent anchors onto the maximum creation ordinal', () => {
     const oldEntry = entry('r_old', {
       createdAtOrdinal: 4,
@@ -144,7 +144,7 @@ describe('assembly-time ordinal collapse (D-16)', () => {
   })
 })
 
-describe('primary-anchor diversity (D-15)', () => {
+describe('primary-anchor diversity', () => {
   it('caps normalized element and flow anchors while leaving other anchors untouched', () => {
     const entries = [
       entry('r_el_1'),

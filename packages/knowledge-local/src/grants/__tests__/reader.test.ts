@@ -102,7 +102,7 @@ describe('a legacy grant ledger authorizes nothing, in any state, because nothin
     }, 60_000)
   }
 
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: no standing-approval reader is exported to consult it', () => {
+  it('no standing-approval reader is exported to consult it', () => {
     const exported = Object.keys(knowledgeLocal)
     expect(exported).not.toContain('createStandingApprovalReader')
     expect(exported.filter((name) => /approval|grant/i.test(name))).toEqual([])

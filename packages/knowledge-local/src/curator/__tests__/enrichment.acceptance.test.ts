@@ -22,7 +22,7 @@ import {
 
 const flowAnchor = { t: 'flow', name: 'Checkout flow' } as const
 
-describe('fallback to capable-model enrichment in place (CUR-02)', () => {
+describe('fallback to capable-model enrichment in place', () => {
   let root: string
   let knowledgeRoot: string
 

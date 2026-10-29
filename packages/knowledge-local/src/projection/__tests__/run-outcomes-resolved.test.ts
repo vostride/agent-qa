@@ -199,7 +199,7 @@ function writeRunDir(input: {
   return runDir
 }
 
-describe('D-09: the projection fold consumes resolved verdicts', () => {
+describe('the projection fold consumes resolved verdicts', () => {
   it('folds the deterministic floor when no artifact exists — an unknown failure is not a flake', () => {
     const db = openDb()
     const handoff = unknownFailureHandoff({ runId: 'run-floor-aaa', buildOrdinal: 4 })
@@ -209,7 +209,7 @@ describe('D-09: the projection fold consumes resolved verdicts', () => {
     expect(flakeCountOf(db)).toBe(0)
   })
 
-  it('folds the RESOLVED class when an artifact upgrades unknown to flake (D-09)', () => {
+  it('folds the RESOLVED class when an artifact upgrades unknown to flake', () => {
     const db = openDb()
     const runId = 'run-upgraded-bbb'
     const handoff = unknownFailureHandoff({ runId, buildOrdinal: 4 })
@@ -222,7 +222,7 @@ describe('D-09: the projection fold consumes resolved verdicts', () => {
     expect(flakeCountOf(db)).toBe(1)
   })
 
-  it('refuses a FOREIGN-runId artifact at the loader and answers the floor (G-389-3A)', () => {
+  it('refuses a FOREIGN-runId artifact at the loader and answers the floor', () => {
     const runsRoot = tempDir('agent-qa-resolved-foreign-')
     const knowledgeRoot = tempDir('agent-qa-foreign-knowledge-')
     const runId = 'run-own-ccc'
@@ -269,7 +269,7 @@ describe('D-09: the projection fold consumes resolved verdicts', () => {
     }
   })
 
-  it('rebuilds byte-identical tables from run dirs alone over a MIXED artifact history (L12)', () => {
+  it('rebuilds byte-identical tables from run dirs alone over a MIXED artifact history', () => {
     const runsRoot = tempDir('agent-qa-resolved-parity-')
     const incrementalRoot = tempDir('agent-qa-parity-incremental-')
     const rebuildRoot = tempDir('agent-qa-parity-rebuild-')

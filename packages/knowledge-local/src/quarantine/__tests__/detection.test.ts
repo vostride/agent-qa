@@ -162,7 +162,7 @@ function evaluate(input: {
 }
 
 describe('detection ladder constants', () => {
-  it('pins the memory.md §9.5 trigger and the D-06/D-10/D-11 defaults verbatim', () => {
+  it('pins the memory.md §9.5 trigger and the quarantine defaults verbatim', () => {
     expect(QUARANTINE_FLAG_FLOOR).toBe(2)
     expect(QUARANTINE_ESCALATE_THRESHOLD).toBe(3)
     expect(QUARANTINE_WINDOW_ORDINALS).toBe(5)
@@ -178,7 +178,7 @@ describe('detection ladder constants', () => {
     expect(source).not.toMatch(/process\.env/)
   })
 
-  it('spells the A3 auto-quarantine set exactly once, derived from the disposition table', () => {
+  it('spells the auto-quarantine set exactly once, derived from the disposition table', () => {
     expect([...AUTO_QUARANTINE_CLASSES].sort()).toEqual(['environment', 'flake', 'timeout'])
   })
 })
@@ -207,7 +207,7 @@ describe('the class gate is TOTAL over the closed verdict vocabulary', () => {
     },
   )
 
-  it('never auto-quarantines the five non-A3 classes, at ANY recurrence', () => {
+  it('never auto-quarantines the five classes outside that set, at ANY recurrence', () => {
     const nonA3 = VERDICT_CLASSES.filter((name) => !AUTO_QUARANTINE_CLASSES.includes(name))
     expect(nonA3).toHaveLength(5)
     const result = evaluate({
@@ -243,7 +243,7 @@ describe('the class gate is TOTAL over the closed verdict vocabulary', () => {
 // deleting the signature conjunct reds the "without the signature" leg, deleting the class conjunct
 // reds the "environment even with the signature" leg. A corpus that cannot say which conjunct is
 // load-bearing is the defect 390-16 shipped, not the evidence.
-describe('the floor arm: a floor-eligible class AND a per-test signature (390-19)', () => {
+describe('the floor arm: a floor-eligible class AND a per-test signature', () => {
   // Named from the TABLES rather than from string literals, so a future table edit REDS this
   // corpus instead of drifting past it.
   const FLOOR_ELIGIBLE_AUTO_CLASSES: readonly VerdictClass[] = AUTO_QUARANTINE_CLASSES
@@ -456,7 +456,7 @@ describe('the floor arm: a floor-eligible class AND a per-test signature (390-19
 // Overflow is LOUD: past the cap an identity routes to `escalatedNotQuarantined` with the build
 // still failing — D-05's posture for a class-gated refusal, applied to a count-gated one. The cap
 // slows the floor path down; it does not close it.
-describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling (390-19/390-28)', () => {
+describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling', () => {
   const SUITE_SIZE = 6
   const K = QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP
 
@@ -628,7 +628,7 @@ describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling 
   })
 })
 
-describe('the committed ledger order is decided by BYTES, never by host collation (390-22 / WR-06)', () => {
+describe('the committed ledger order is decided by BYTES, never by host collation', () => {
   // The module's docstring claims the committed ledger's bytes do not depend on projection
   // iteration order. `localeCompare` with no locale argument resolves against the HOST's default
   // locale and ICU build, so the claim was a property of the machine rather than of the code.
@@ -843,7 +843,7 @@ describe('re-entry suppression while a window is OPEN', () => {
     expect(result.events).toHaveLength(1)
   })
 
-  it('re-enters a test whose entry has EXPIRED — suppression already stopped (D-11)', () => {
+  it('re-enters a test whose entry has EXPIRED — suppression already stopped', () => {
     const result = evaluate({
       failures: [failure()],
       entries: [activeEntry({ state: 'expired' })],
@@ -851,7 +851,7 @@ describe('re-entry suppression while a window is OPEN', () => {
     expect(result.events).toHaveLength(1)
   })
 
-  it('re-enters a RELEASED test that crosses again (D-10: re-entry needs no special rule)', () => {
+  it('re-enters a RELEASED test that crosses again (re-entry needs no special rule)', () => {
     const result = evaluate({
       failures: [failure()],
       entries: [activeEntry({ state: 'released' })],
@@ -874,7 +874,7 @@ describe('re-entry suppression while a window is OPEN', () => {
 // the truthful answer. Both directions are pinned below on one fixture family, because a
 // carry-forward rule with only a positive case is satisfiable by carrying always.
 
-describe("the auto-entry's owner over the prior entry's state (390-18)", () => {
+describe("the auto-entry's owner over the prior entry's state", () => {
   function enteredOwner(entries: QuarantineEntryState[]): unknown {
     const result = evaluate({ failures: [failure()], entries })
     expect(result.events).toHaveLength(1)
@@ -949,7 +949,7 @@ describe("the auto-entry's owner over the prior entry's state (390-18)", () => {
 // `return true`, so each leg below has a negative partner that a relaxation would flip: the
 // two-builds leg is what a "some pass and some fail ANYWHERE in the window" relaxation reds, and
 // the one-answer leg is what dropping the pass∧fail conjunction reds.
-describe('the same-build pass∧fail signature (390-19)', () => {
+describe('the same-build pass∧fail signature', () => {
   function ordinals(...entries: readonly [number, boolean][]): QuarantineOrdinalOutcome[] {
     return entries.map(([buildOrdinal, passed]) => ({ buildOrdinal, passed }))
   }
@@ -1007,7 +1007,7 @@ describe('the same-build pass∧fail signature (390-19)', () => {
   })
 })
 
-describe('auto-exit at M passing ordinals (D-10)', () => {
+describe('auto-exit at M passing ordinals', () => {
   it('releases after exactly QUARANTINE_AUTO_EXIT_PASSES distinct passing ordinals', () => {
     const result = evaluate({
       entries: [activeEntry()],

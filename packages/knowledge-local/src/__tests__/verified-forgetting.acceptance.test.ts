@@ -450,7 +450,7 @@ async function expectZeroRecall(triggerId: RecordId, asOfBuild: number): Promise
   expect(ids(results.graph)).not.toContain(triggerId)
 }
 
-describe('verified forgetting acceptance (DCAY-04 D-12)', () => {
+describe('verified forgetting acceptance', () => {
   it('proves positive then zero recall across FTS, dense, graph, renderings, and anchors', async () => {
     const corpus = publishCorpus()
     await expect(

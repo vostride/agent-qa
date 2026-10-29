@@ -151,7 +151,7 @@ describe('materializePolicy sovereign authored shelf', () => {
   })
 })
 
-describe('C441-COMMITTED', () => {
+describe('policy files with credential-shaped text', () => {
   let root: string
   let writerAuthority: { leaseId: string; epoch: number }
   beforeEach(() => {

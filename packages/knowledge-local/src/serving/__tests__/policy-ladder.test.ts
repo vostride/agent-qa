@@ -56,7 +56,7 @@ describe('authored policy ladder', () => {
     return file
   }
 
-  it('419 materialized fenced policy round-trips through the actual ladder', () => {
+  it('materialized fenced policy round-trips through the actual ladder', () => {
     const writerAuthority = acquireWriterLease(knowledgeRoot)
     if (writerAuthority.kind !== 'acquired') throw new Error('lease unavailable')
     materializePolicy({ knowledgeRoot, recordId: 'policy-roundtrip', scope: 'Shop Product',
@@ -78,7 +78,7 @@ describe('authored policy ladder', () => {
     })
   })
 
-  it('preserves the two active Phase 383 policy lines byte-for-byte', () => {
+  it('preserves the two active authored policy lines byte-for-byte', () => {
     writePolicy(
       'policies/global.md',
       `${INIT_GLOBAL_POLICY_SCAFFOLD}${PHASE_383_ACTIVE_POLICY}`,

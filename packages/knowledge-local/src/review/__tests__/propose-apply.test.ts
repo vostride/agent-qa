@@ -81,7 +81,7 @@ function hashTree(root: string): string {
   return digest.digest('hex')
 }
 
-describe('a change computes its target and deltas, and a refused change writes nothing (D-17)', () => {
+describe('a change computes its target and deltas, and a refused change writes nothing', () => {
   let root: string
   let knowledgeRoot: string
   let agentQaRoot: string
@@ -183,7 +183,7 @@ describe('a change computes its target and deltas, and a refused change writes n
     expect(hashTree(knowledgeRoot)).toBe(before)
   })
 
-  it('forget tombstones the same record through a bundle ref and a record ref alike (D-19)', async () => {
+  it('forget tombstones the same record through a bundle ref and a record ref alike', async () => {
     const recordId = publish('checkout button')
     const resolved = resolveReviewTarget(knowledgeRoot, { grain: 'bundle', shortId: 'MEM-001' },
       (shortId) => (shortId === 'MEM-001' ? recordId : undefined))

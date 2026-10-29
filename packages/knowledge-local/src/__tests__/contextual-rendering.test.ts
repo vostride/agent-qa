@@ -37,7 +37,7 @@ import { makeFakeEmbedder } from './fixtures/fake-embedder.js'
 
 type RecordKind = 'fact' | 'procedure' | 'caution'
 
-describe('RETR-02 deterministic contextual rendering', () => {
+describe('deterministic contextual rendering', () => {
   let db: DatabaseSync
 
   beforeEach(() => {
@@ -189,7 +189,7 @@ describe('RETR-02 deterministic contextual rendering', () => {
 
 type PublishedBundle = Extract<PublishBundleOutcome, { kind: 'published' }>
 
-describe('RETR-02 contextual rendering rebuild integration', () => {
+describe('contextual rendering rebuild integration', () => {
   let root: string
   let knowledgeRoot: string
 

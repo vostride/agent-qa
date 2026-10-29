@@ -110,7 +110,7 @@ function moduleUnavailableError(): Error {
   })
 }
 
-describe('foldRetrievalRung — the index axis is folded FIRST (D-17)', () => {
+describe('foldRetrievalRung — the index axis is folded FIRST', () => {
   it.each<[string, EmbedderAxis]>([
     ['a live native embedder', READY_NATIVE],
     ['the static floor', READY_FLOOR],
@@ -197,7 +197,7 @@ describe('foldRetrievalRung — the index axis is folded FIRST (D-17)', () => {
   })
 })
 
-describe('classifyIndexFace — the ladder as a PURE READ (T-407-10)', () => {
+describe('classifyIndexFace — the ladder as a PURE READ', () => {
   it('reports absent with filePresent false and writes NO rebuild marker', () => {
     const knowledgeRoot = scaffoldedRoot()
 

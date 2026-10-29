@@ -234,7 +234,7 @@ const LOGIN_FILL_ELEMENT = actionAnchorElement({
   route: '/login',
 })
 
-describe('the suite-fingerprint table (393 D-15, gate 3s comparison substrate)', () => {
+describe('the suite-fingerprint table (the gate comparison substrate)', () => {
   it('writes one ordered row set per (filePath, testName) from sub-action evidence', () => {
     const db = openDb()
     foldThroughRunOutcomes(db, handoffFixture({
@@ -267,7 +267,7 @@ describe('the suite-fingerprint table (393 D-15, gate 3s comparison substrate)',
 
   it(
     'writes ZERO fingerprint rows for a handoff flagged excludedFromOutcomes — '
-    + 'a gate-run never seeds the union it is later compared against (WTST-06, Pitfall 8)',
+    + 'a gate-run never seeds the union it is later compared against',
     () => {
       const db = openDb()
       foldThroughRunOutcomes(db, handoffFixture({
@@ -349,7 +349,7 @@ describe('the suite-fingerprint table (393 D-15, gate 3s comparison substrate)',
     ])
   })
 
-  it('contributes no rows for a test with no usable sub-action evidence (D-16s text lane)', () => {
+  it('contributes no rows for a test with no usable sub-action evidence (the text lane)', () => {
     const db = openDb()
     foldThroughRunOutcomes(db, handoffFixture({
       runId: 'run-fp-bare',
@@ -403,7 +403,7 @@ describe('the suite-fingerprint table (393 D-15, gate 3s comparison substrate)',
   })
 })
 
-describe('the suite-fingerprint read port (393 D-15 / D-16)', () => {
+describe('the suite-fingerprint read port', () => {
   it('answers a union whose size is the distinct element count in the table', () => {
     const db = openDb()
     foldThroughRunOutcomes(db, handoffFixture({
@@ -432,7 +432,7 @@ describe('the suite-fingerprint read port (393 D-15 / D-16)', () => {
     )
   })
 
-  it('reports the covered identities so the consumer can derive the evidence-less set (D-16)', () => {
+  it('reports the covered identities so the consumer can derive the evidence-less set', () => {
     const db = openDb()
     foldThroughRunOutcomes(db, handoffFixture({
       runId: 'run-fp-a',
@@ -458,7 +458,7 @@ describe('the suite-fingerprint read port (393 D-15 / D-16)', () => {
     ])
   })
 
-  it('answers an empty union and no covered tests over an empty table (D-16 empty-suite edge)', () => {
+  it('answers an empty union and no covered tests over an empty table (the empty-suite edge)', () => {
     const index = createSuiteFingerprintIndex(openDb(), { product: SHOP_PRODUCT })
 
     expect(index.elementUnion()).toEqual(new Set())
@@ -492,7 +492,7 @@ afterEach(() => {
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
-describe('rebuild identity for the suite-fingerprint table (WTST-06 ordering, L12)', () => {
+describe('rebuild identity and ordering for the suite-fingerprint table', () => {
   /**
    * Three runs over two identities, one of them a flagged gate-run:
    *  - `run-a` (ordinal 4) covers checkout and login.

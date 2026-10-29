@@ -626,8 +626,8 @@ describe.sequential('embedder worker discovery', () => {
   )
 })
 
-describe('C442-INCARNATION-FORMAT', () => {
-  it('C442-INCARNATION-FORMAT an embedder registration stamped in another start-time format is unverifiable, and an equal-format different one is a mismatch', () => {
+describe('embedder registration start-time format', () => {
+  it('an embedder registration stamped in another start-time format is unverifiable, and an equal-format different one is a mismatch', () => {
     const projectRoot = temporaryProject('incarnation-format')
     const agentQaRoot = embedderWorkerAgentQaRoot(projectRoot)
     const own = resolveProcessIncarnation(process.pid)

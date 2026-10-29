@@ -55,7 +55,7 @@ const ELEMENT_OBSERVATION: DistilledObservation = {
   observedAtOrdinal: 42,
 }
 
-describe('KnowledgePort procedure authoring boundary (WR-02/D-02)', () => {
+describe('KnowledgePort procedure authoring boundary', () => {
   let root: string
   let knowledgeRoot: string
   let epoch: number
@@ -232,7 +232,7 @@ describe('KnowledgePort procedure authoring boundary (WR-02/D-02)', () => {
   })
 })
 
-describe('KnowledgePort promote deterministic gate (PROM-01/D-17)', () => {
+describe('KnowledgePort promote deterministic gate', () => {
   let root: string
   let knowledgeRoot: string
   let epoch: number

@@ -21,7 +21,7 @@ import {
   type CommitIntent,
 } from '../journal/intent-journal.js'
 
-describe('per-candidate commit intent journal (CUR-04)', () => {
+describe('per-candidate commit intent journal', () => {
   let root: string
   let knowledgeRoot: string
 

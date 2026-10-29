@@ -43,7 +43,7 @@ const CREATION_JOB_ID = 'job-ladder-seed'
  * organic canary stream — queue -> drain -> Confirm evidence -> matcher confirmation fold —
  * with no hand-seeded outcome events. The compounding loop closes end-to-end inside M2.
  */
-describe('procedure confirmation ladder (PROC-01/PROC-02 D-05)', () => {
+describe('procedure confirmation ladder', () => {
   let root: string
   let knowledgeRoot: string
 

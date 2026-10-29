@@ -37,7 +37,7 @@ function entry(overrides: Partial<OriginStampedEntry> = {}): OriginStampedEntry 
   }
 }
 
-describe('brief line rendering (BRIF-01 / D-03)', () => {
+describe('brief line rendering', () => {
   it('renders every typed serving annotation in one line', () => {
     const rendered = renderBriefLine(entry({
       unconfirmedSinceOrdinal: 17,

@@ -68,7 +68,7 @@ function batch(): Batch {
   return method!
 }
 
-describe('423 one maintenance record join', () => {
+describe('the maintenance record join', () => {
   it('JOIN-ONCE: 100 unique IDs plus duplicates enumerate once and preserve request order', () => {
     const f = fixture()
     const recordIds = [f.id, ...Array.from({ length: 99 }, (_, i) => `missing-${i}`)]

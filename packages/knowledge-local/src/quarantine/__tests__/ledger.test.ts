@@ -79,7 +79,7 @@ describe('quarantine ledger read/fold', () => {
     expect(QUARANTINE_LEDGER_FILENAME).toBe('quarantine.jsonl')
   })
 
-  it('folds a missing ledger to empty state — byte-identical pre-390 run behavior', async () => {
+  it('folds a missing ledger to empty state — byte-identical behavior for a store with no ledger', async () => {
     const read = readQuarantineLedger(knowledgeRoot)
     expect(read).toEqual({ events: [], refusedLines: [] })
     expect(foldQuarantineLedgerState(read.events, ENTERED_AT)).toEqual([])
@@ -120,7 +120,7 @@ describe('quarantine ledger read/fold', () => {
     ])
   })
 
-  it('folds a lapsed entry to state expired — never a silent forever-suppression (D-11)', async () => {
+  it('folds a lapsed entry to state expired — never a silent forever-suppression', async () => {
     await writeLedger([JSON.stringify(entered())])
     const { events } = readQuarantineLedger(knowledgeRoot)
     const state = foldQuarantineLedgerState(events, JUST_AFTER_EXPIRY)
@@ -274,7 +274,7 @@ describe('quarantine ledger lifecycle fold', () => {
     }
   })
 
-  it('a released entry RE-ENTERS on a later entered event (D-10, no special rule)', () => {
+  it('a released entry RE-ENTERS on a later entered event (no special rule)', () => {
     const state = foldQuarantineLedgerState(
       [
         entered(),
@@ -305,7 +305,7 @@ describe('quarantine ledger lifecycle fold', () => {
     expect(state[0].expiresAt).toBe(EXPIRES_AT)
   })
 
-  it('a renewal on a LAPSED window still extends and re-suppresses (D-11 untouched)', () => {
+  it('a renewal on a LAPSED window still extends and re-suppresses', () => {
     // The released-guard above keys on the EVENT state, never the computed one: a lapsed entry
     // still carries eventState 'quarantined' (expiry is applied after the fold), so D-11's
     // renew-an-expired-entry behavior must survive it. `entered` expires before `now`; the renewal
@@ -349,7 +349,7 @@ const SECOND_EXPIRY = '2026-09-29T10:00:00.000Z'
 const THIRD_ENTRY_AT = '2026-09-25T10:00:00.000Z'
 const THIRD_EXPIRY = '2026-10-25T10:00:00.000Z'
 
-describe('quarantine ledger re-entry history (390-18)', () => {
+describe('quarantine ledger re-entry history', () => {
   it('answers entered-once, since its own instant, for a single entry', () => {
     const state = foldQuarantineLedgerState([entered()], JUST_BEFORE_EXPIRY)
     expect(state[0].enteredCount).toBe(1)
@@ -478,7 +478,7 @@ describe('quarantine ledger re-entry history (390-18)', () => {
 
 // ---- appendQuarantineEvents: shape-checked committed writes (D-04) --
 
-describe('appendQuarantineEvents (D-04)', () => {
+describe('appendQuarantineEvents', () => {
   let knowledgeRoot: string
 
   beforeEach(async () => {
@@ -759,7 +759,7 @@ describe('appendQuarantineEvents (D-04)', () => {
 
 // ---- Phase 441, D-15: committed text is not scanned ---------------------
 
-describe('C441-COMMITTED', () => {
+describe('quarantine rows with credential-shaped text', () => {
   const CARD_TEST_NAME = 'checkout pays with 4242 4242 4242 4242'
   const BEARER_OWNER = 'oncall Bearer abc123def456ghi789'
   let knowledgeRoot: string

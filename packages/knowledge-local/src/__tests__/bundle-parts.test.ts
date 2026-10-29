@@ -101,7 +101,7 @@ function part(input: ReturnType<typeof renderBundleParts>, relPath: string) {
   return found
 }
 
-describe('renderBundleParts committed layout (D-01/D-02)', () => {
+describe('renderBundleParts committed layout', () => {
   // 2026-09-07, 416 D-03: optional seventh mutable part; G-12 measures this cell.
   it('declares exactly the seven mutable bundle targets, in declaration order', () => {
     expect([...MUTABLE_BUNDLE_TARGETS]).toEqual([

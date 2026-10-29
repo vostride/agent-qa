@@ -222,7 +222,7 @@ function purgeReceiptSchemaApi(): PurgeReceiptSchemaApi {
   return candidate as PurgeReceiptSchemaApi
 }
 
-describe('DCAY-05 sovereign purge', () => {
+describe('sovereign purge', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -720,7 +720,7 @@ describe('DCAY-05 sovereign purge', () => {
     ).toBe(false)
   })
 
-  it('C432-PURGE-DRIFT: a refused stale preview leaves the store whole and a fresh preview purges every copy', async () => {
+  it('a refused stale preview leaves the store whole and a fresh preview purges every copy', async () => {
     const anchors = [
       { t: 'el', role: 'button', name: 'Preview drift retry target' },
       { t: 'page', route: '/purge/affected-set/drift-retry' },
@@ -2178,7 +2178,7 @@ describe('DCAY-05 sovereign purge', () => {
     })
   })
 
-  describe('CR-04 crash-durable purge intent', () => {
+  describe('crash-durable purge intent', () => {
     const BOUNDARIES = [
       'afterIntentWritten',
       'afterProjectionPurge',
@@ -2454,7 +2454,7 @@ describe('DCAY-05 sovereign purge', () => {
     })
   })
 
-  describe('DCAY-05 revive-then-purge receipt series', () => {
+  describe('revive-then-purge receipt series', () => {
     function seriesReceiptPath(recordId: string, cycle: number): string {
       return join(
         knowledgeRoot,
@@ -2716,7 +2716,7 @@ describe('DCAY-05 sovereign purge', () => {
   })
 })
 
-describe('C441-GAP-OLD-DATA', () => {
+describe('purge over older quarantined payloads', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -2784,7 +2784,7 @@ describe('C441-GAP-OLD-DATA', () => {
     })}\n`, 'utf8')
   }
 
-  it('a purge completes past a pre-441 quarantined payload that names nothing purged', () => {
+  it('a purge completes past an older quarantined payload that names nothing purged', () => {
     const target = publishTarget('quarantined-survivor')
     const candidateId = 'd'.repeat(64)
     const quarantined = quarantinedCandidateDir(knowledgeRoot, candidateId)
@@ -2796,7 +2796,7 @@ describe('C441-GAP-OLD-DATA', () => {
     expect(existsSync(join(quarantined, 'payload.json'))).toBe(true)
   })
 
-  it('a pre-441 payload carrying the purged summary is swept with the purge', () => {
+  it('an older payload carrying the purged summary is swept with the purge', () => {
     const target = publishTarget('legacy-seed-match')
     const loaded = knowledgeLocal.loadBundle(target.dir)
     if (loaded.kind !== 'loaded') throw new Error('expected a loaded target bundle')

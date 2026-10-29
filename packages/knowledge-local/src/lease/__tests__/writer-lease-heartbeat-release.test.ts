@@ -113,7 +113,7 @@ function waitForReleaseToLandOrContend(flags: Int32Array): void {
   }
 }
 
-describe('a release cannot land inside a heartbeat (261002-lse, 432-19 #7)', () => {
+describe('a release cannot land inside a heartbeat', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -205,7 +205,7 @@ describe('a release cannot land inside a heartbeat (261002-lse, 432-19 #7)', () 
   })
 })
 
-describe('the lease-file guard itself (261002-lse)', () => {
+describe('the lease-file guard itself', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -447,7 +447,7 @@ import(url).then((lease) => {
 })
 `
 
-describe('two reclaimers of one stale guard (261002-lse follow-up)', () => {
+describe('two reclaimers of one stale guard', () => {
   let root: string
   let knowledgeRoot: string
 

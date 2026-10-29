@@ -386,7 +386,7 @@ function enteredEvent(overrides: Partial<Record<string, unknown>> = {}): Quarant
   } as QuarantineLedgerEvent
 }
 
-describe('detection is gated on the applied arm (D-08)', () => {
+describe('detection is gated on the applied arm', () => {
   it('appends exactly one entered line when a run crosses 3-in-5 as a flake', () => {
     const env = harness('agent-qa-detect-cross')
 
@@ -453,7 +453,7 @@ describe('detection is gated on the applied arm (D-08)', () => {
   })
 })
 
-describe('the append orders AFTER the commit, and self-heals (Open Q1)', () => {
+describe('the append orders AFTER the commit, and self-heals', () => {
   it('appends no SECOND entered once the window is open — re-entry is suppressed', () => {
     const env = harness('agent-qa-detect-once')
     crossThreeInFive(env)
@@ -466,7 +466,7 @@ describe('the append orders AFTER the commit, and self-heals (Open Q1)', () => {
   })
 })
 
-describe('the fold report surfaces every failure mode as data (Pitfall 4)', () => {
+describe('the fold report surfaces every failure mode as data', () => {
   function writeLedger(env: FoldHarness, text: string): void {
     mkdirSync(env.knowledgeRoot, { recursive: true })
     writeFileSync(ledgerPath(env), text, 'utf8')
@@ -497,7 +497,7 @@ describe('the fold report surfaces every failure mode as data (Pitfall 4)', () =
   })
 })
 
-describe('auto-exit through the real fold (D-10, FLAK-03)', () => {
+describe('auto-exit through the real fold', () => {
   function seedQuarantined(env: FoldHarness): void {
     appendQuarantineEvents(env.knowledgeRoot, [enteredEvent()])
   }
@@ -652,7 +652,7 @@ describe('auto-exit through the real fold (D-10, FLAK-03)', () => {
 // is that a claim a human wrote into the file survives the round trip through it — and that a
 // release they made deliberately ends the claim with the window.
 
-describe("the auto-entry's owner through the real fold (390-18)", () => {
+describe("the auto-entry's owner through the real fold", () => {
   it("carries a human's claim across a LAPSE and re-entry", () => {
     const env = harness('agent-qa-detect-owner-lapse')
     appendQuarantineEvents(
@@ -697,7 +697,7 @@ describe("the auto-entry's owner through the real fold (390-18)", () => {
   })
 })
 
-describe('the anti-silencing differential: D-05 in BOTH directions', () => {
+describe('the anti-silencing differential in BOTH directions: flake and app_bug', () => {
   const FLAKE_TEST = `${TEST_NAME} [flake]`
   const APP_BUG_TEST = `${TEST_NAME} [app_bug]`
 
@@ -749,7 +749,7 @@ describe('the anti-silencing differential: D-05 in BOTH directions', () => {
     expect(ledgerLines(env).map((line) => line.testName)).toEqual([FLAKE_TEST])
   })
 
-  it('closes the loop to FLAK-02: the app_bug test is absent from the active set', () => {
+  it('closes the loop to the run-start snapshot: the app_bug test is absent from the active set', () => {
     const env = harness('agent-qa-anti-silencing-snapshot')
 
     crossBothClasses(env)
@@ -780,7 +780,7 @@ describe('the anti-silencing differential: D-05 in BOTH directions', () => {
 //
 // Every pair varies exactly ONE input: `rootCause.producer`. Same test, same step, same anchor,
 // same error text, same three build ordinals, same class.
-describe('a floor-produced crossing cannot buy a committed entry (390-16)', () => {
+describe('a floor-produced crossing cannot buy a committed entry', () => {
   // Both classes are still REFUSED end-to-end, but since 390-19 for DIFFERENT reasons, and the old
   // name (`AUTHORED_REQUIRED_AUTO_CLASSES`) asserted a falsehood about one of them. `environment`
   // is authored-required in QUARANTINE_FLOOR_ELIGIBILITY. `timeout` is FLOOR-ELIGIBLE and is
@@ -926,7 +926,7 @@ describe('a floor-produced crossing cannot buy a committed entry (390-16)', () =
 // two entries at one build ordinal require TWO SEPARATE APPLIED RUNS carrying the same
 // `handoff.buildOrdinal`. An in-run retry cannot produce it — the member-runner collapses retries
 // into one member outcome and `healed` counts as a pass — so the fixtures below fold two runs.
-describe('a CROSSING test carries its own same-build pass∧fail into the gate (390-21)', () => {
+describe('a CROSSING test carries its own same-build pass∧fail into the gate', () => {
   /** One fold at `buildOrdinal`, floor-produced `timeout`, pass or fail. */
   function foldTimeout(env: FoldHarness, input: {
     runId: string
@@ -1038,7 +1038,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate (
   // exactly QUARANTINE_ESCALATE_THRESHOLD distinct occurrences and nothing crosses before 8
   // (ordinal 7's own window [3, 7] holds only two), while the ordinal-1 pass-and-fail sits three
   // ordinals BELOW the floor and is therefore out of this episode entirely.
-  it('REFUSES a crossing whose only pass-and-fail is OLDER than its own recurrence window (WR-05)', () => {
+  it('REFUSES a crossing whose only pass-and-fail is OLDER than its own recurrence window', () => {
     const env = harness('agent-qa-390-24-stale-signature')
 
     const CROSSING_ORDINAL = 8
@@ -1132,7 +1132,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate (
   // pass-and-fail pair sits at ordinal 12, strictly ABOVE the crossing, where the two-sided
   // recurrence SQL never counts it — only the one-sided evidence filter could see it. All five
   // entries fit inside LAST_OUTCOMES_LIMIT, so nothing is dropped by the merge.
-  it('REFUSES a crossing whose only pass-and-fail is ABOVE the crossing ordinal — the window is closed on both ends (390-29)', () => {
+  it('REFUSES a crossing whose only pass-and-fail is ABOVE the crossing ordinal — the window is closed on both ends', () => {
     const env = harness('agent-qa-390-29-future-signature')
 
     const CROSSING_ORDINAL = 8
@@ -1185,7 +1185,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate (
 // verdict is a statement about each test, not one probe result applied to all of them. The
 // accept-direction leg below asserts exactly that, so the pin cannot be misread as the stronger
 // claim.
-describe('one down dependency cannot blanket-quarantine a suite (390-16)', () => {
+describe('one down dependency cannot blanket-quarantine a suite', () => {
   const SUITE_SIZE = 6
 
   /** N distinct failing members in ONE run — distinct TESTS, one shared failure signature. */
@@ -1324,7 +1324,7 @@ describe('one down dependency cannot blanket-quarantine a suite (390-16)', () =>
 //    entries — which is exactly what the constant's docstring now says.
 //  - NOT PROVED: nothing here says the fan-out was WORTH slowing. Whether a shared cause deserves
 //    a per-run budget at all is the retune question, and it stays open on operational evidence.
-describe('the floor cap rate-limits a multi-member fan-out (390-28)', () => {
+describe('the floor cap rate-limits a multi-member fan-out', () => {
   // CAP + 1 — the SMALLEST suite that can overflow, so a refusal here is the cap's doing and not
   // an arbitrary surplus. Derived from the constant, never a literal 3: if the cap is ever retuned
   // the fixture resizes with it and the leg keeps measuring the same property.

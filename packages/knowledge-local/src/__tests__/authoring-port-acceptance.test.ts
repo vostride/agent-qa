@@ -66,7 +66,7 @@ function runLinkedProvenance(): BundleProvenance {
   }
 }
 
-describe('createAuthoringReader through the public barrels (375-08 idiom)', () => {
+describe('createAuthoringReader through the public barrels', () => {
   let root: string
   let knowledgeRoot: string
 

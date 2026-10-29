@@ -19,7 +19,7 @@ import {
 } from '../retrieval/constants.js'
 import { classifyQuery } from '../retrieval/query-class.js'
 
-describe('D-06 query classification', () => {
+describe('query classification', () => {
   it.each([
     '#submit-btn',
     '[data-testid="cart"]',

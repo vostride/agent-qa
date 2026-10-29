@@ -116,7 +116,7 @@ function fiveBucketFixture() {
   return f
 }
 
-describe('423 curation snapshot', () => {
+describe('curation snapshot', () => {
   it('REPLACEMENT-INDEPENDENT-CONFIRM keeps actual confirmation after suppressing only replacement Add', () => {
     const f = commitFixture()
     const active = { ...f.deps, profile: { mode: 'drain-to-active' as const } }

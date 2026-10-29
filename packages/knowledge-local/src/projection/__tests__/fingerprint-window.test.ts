@@ -190,7 +190,7 @@ function windowRows(db: DatabaseSync): Record<string, unknown>[] {
   `).all() as unknown as Record<string, unknown>[]
 }
 
-describe('the fingerprint-keyed recurrence window (D-07)', () => {
+describe('the fingerprint-keyed recurrence window', () => {
   it('stamps the projection at version 2 so receipted runs refold on the next tail', () => {
     expect(RUN_OUTCOMES_PROJECTION_VERSION).toBe(2)
   })
@@ -328,7 +328,7 @@ describe('fingerprintRecurrence — distinct ordinals, sliding window', () => {
     })
   })
 
-  it('crosses on non-consecutive ordinals inside the window (the D-07 slide)', () => {
+  it('crosses on non-consecutive ordinals inside the sliding window', () => {
     const db = openDb()
     for (const buildOrdinal of [5, 7, 9]) {
       fold(db, handoffFixture({

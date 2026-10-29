@@ -85,7 +85,7 @@ function expectEdge(
   }))
 }
 
-describe('deterministic graph derivation (377 D-09/D-10)', () => {
+describe('deterministic graph derivation', () => {
   it('derives every observation-backed edge class with observation recency', () => {
     const { edges } = deriveObservationEdges([observation()], context)
     const stepKey = { naturalKey: 'submit checkout', ordinal: 3 }

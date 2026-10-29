@@ -34,7 +34,7 @@ import {
   type ArtifactFreeCandidateProjectionInput,
 } from './fixtures/curation-candidate-fixture.js'
 
-describe('curation queue claim and durable lifecycle (CUR-04)', () => {
+describe('curation queue claim and durable lifecycle', () => {
   let root: string
   let knowledgeRoot: string
   let authority: CurrentWriterAuthority

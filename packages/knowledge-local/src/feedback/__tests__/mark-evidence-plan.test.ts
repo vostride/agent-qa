@@ -36,7 +36,7 @@ function treeBytes(dir: string): Map<string, string> {
   return out
 }
 
-describe('423-17 mark evidence planning half (D-16)', () => {
+describe('mark evidence planning half', () => {
   let root: string
   let knowledgeRoot: string
   const runId = asRunId('marked-run')

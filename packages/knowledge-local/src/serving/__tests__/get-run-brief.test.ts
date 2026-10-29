@@ -51,7 +51,7 @@ function policy(
   }
 }
 
-describe('tiered run brief assembly (BRIF-01 / KDIR-04)', () => {
+describe('tiered run brief assembly', () => {
   it('fills L0 verbatim before L1 cautions and L2 procedures and facts', () => {
     const policyText = 'POLICY: preserve authored bytes\n'
     const userSummary = `User-authored fact: ${'u'.repeat(150)}`

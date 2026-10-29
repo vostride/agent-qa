@@ -55,7 +55,7 @@ function walkFiles(root: string): string[] {
   return paths.sort()
 }
 
-describe('publishBundle staged committed publish (D-11/D-12/D-15)', () => {
+describe('publishBundle staged committed publish', () => {
   let root: string
   let knowledgeRoot: string
   let artifactSource: string
@@ -121,7 +121,7 @@ describe('publishBundle staged committed publish (D-11/D-12/D-15)', () => {
     return join(knowledgeRoot, 'memory', slugBranch(config().productKey), 'bundles')
   }
 
-  it('lazily creates and atomically publishes the complete BNDL-01 tree', () => {
+  it('lazily creates and atomically publishes the complete bundle tree', () => {
     expect(existsSync(join(knowledgeRoot, 'memory'))).toBe(false)
 
     const outcome = publishBundle(config(), input())

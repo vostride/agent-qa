@@ -245,7 +245,7 @@ describe('matchProcedure kind-aware admission', () => {
     ).toBeUndefined()
   })
 
-  it('admits an active-status procedure (impossible in M2 but total)', () => {
+  it('admits an active-status procedure (unreachable today, but the match is total)', () => {
     const match = matchProcedure(matchInput([candidate({ id: 'proc-active', status: 'active' })]))
 
     expect(match?.id).toBe('proc-active')
@@ -286,7 +286,7 @@ describe('matchProcedure anchor matching', () => {
     ).toBeUndefined()
   })
 
-  it('F-381-67-1 fixture invariant: current-target intent retains the same replay match', () => {
+  it('fixture invariant: current-target intent retains the same replay match', () => {
     const ladderAnchors: Anchor[] = [
       { t: 'flow', name: 't_posing-clock-inject-pill-adds-ima-rename-video-emu-fault' },
       { t: 'page', route: 'http://127.0.0.1:8931/form.html' },

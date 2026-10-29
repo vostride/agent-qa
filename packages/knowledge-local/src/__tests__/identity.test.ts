@@ -22,7 +22,7 @@ import {
   makeScreenStateFixture,
 } from './fixtures/bundle-fixture.js'
 
-describe('BNDL-02 stable bundle identity over the live store', () => {
+describe('stable bundle identity over the live store', () => {
   let root: string
   let config: BundleStoreConfig
 

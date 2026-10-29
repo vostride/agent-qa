@@ -8,7 +8,7 @@ async function markerApi() {
   return import('../rebuild-marker.js')
 }
 
-describe('D-07 durable rebuild marker', () => {
+describe('durable rebuild marker', () => {
   let root: string
   let knowledgeRoot: string
   let markerFile: string

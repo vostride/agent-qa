@@ -227,8 +227,8 @@ afterEach(() => {
   for (const dir of tempDirs.splice(0)) rmSync(dir, { recursive: true, force: true })
 })
 
-describe('run-outcome projection fold (ABRF-02, D-14)', () => {
-  it('skips without writer authority before opening or touching the index (418-12 WR-03)', () => {
+describe('run-outcome projection fold', () => {
+  it('skips without writer authority before opening or touching the index', () => {
     const knowledgeRoot = tempDir('projection-no-authority-')
     const options = { knowledgeRoot, runsRoot: join(knowledgeRoot, 'runs'), extractAnchors }
     expect(reconcileRunOutcomesProjection(options))
@@ -247,7 +247,7 @@ describe('run-outcome projection fold (ABRF-02, D-14)', () => {
     handle.close()
   })
 
-  it('rebuilds under current authority and refuses a stale epoch before any deletion (418-12 WR-03)', () => {
+  it('rebuilds under current authority and refuses a stale epoch before any deletion', () => {
     const knowledgeRoot = tempDir('projection-current-authority-')
     const options = { knowledgeRoot, runsRoot: join(knowledgeRoot, 'runs'), extractAnchors }
     const authority = acquireWriterLease(knowledgeRoot)
@@ -522,7 +522,7 @@ describe('run-outcome projection fold (ABRF-02, D-14)', () => {
     expect(dumpTables(db)).toEqual(before)
   })
 
-  it('contributes zero rows or anchors when the durable handoff marker is set (Pitfall 7)', () => {
+  it('contributes zero rows or anchors when the durable handoff marker is set', () => {
     const db = openDb()
     const excluded = handoffFixture({
       runId: 'run-gate',
@@ -548,7 +548,7 @@ describe('run-outcome projection fold (ABRF-02, D-14)', () => {
     ])
   })
 
-  it('rebuild reproduces an incremental fold with one of three handoffs excluded (L12)', () => {
+  it('rebuild reproduces an incremental fold with one of three handoffs excluded', () => {
     const handoffs = [
       handoffFixture({
         runId: '001-first',
@@ -641,7 +641,7 @@ describe('run-outcome projection fold (ABRF-02, D-14)', () => {
   })
 
   it.skipIf(process.getuid?.() === 0).each(['002-login', 'runs-holder'])(
-    'refuses EACCES at %s without returning a folded report (418-12 CR-01-EXISTS)',
+    'refuses EACCES at %s without returning a folded report',
     (faultSite) => {
       const holder = tempDir('run-outcomes-refusal-')
       const runsRoot = join(holder, 'runs')
@@ -695,7 +695,7 @@ describe('run-outcome projection fold (ABRF-02, D-14)', () => {
     },
   )
 
-  it('rebuild over an empty or missing runs dir yields empty tables without error (ABRF-02 empty edge)', () => {
+  it('rebuild over an empty or missing runs dir yields empty tables without error (the empty edge)', () => {
     const emptyRoot = tempDir('run-outcomes-empty-')
     const db = openDb()
     expect(rebuildRunOutcomes(db, emptyRoot, { extractAnchors })).toEqual({
@@ -712,7 +712,7 @@ describe('run-outcome projection fold (ABRF-02, D-14)', () => {
     expect(db.prepare('SELECT COUNT(*) AS n FROM run_test_anchors').get()).toMatchObject({ n: 0 })
   })
 
-  it('skips pre-fix handoffs lacking per-test testName with a counted skip, never a throw (A2)', () => {
+  it('skips pre-fix handoffs lacking per-test testName with a counted skip, never a throw', () => {
     const runsRoot = tempDir('run-outcomes-skip-')
     const good = handoffFixture({
       runId: '001-good',

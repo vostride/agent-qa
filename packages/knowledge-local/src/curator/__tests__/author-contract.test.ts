@@ -41,7 +41,7 @@ const scope: ScopeKey = { tier: 'product', key: 'storefront' }
 //
 // The agent row, the agent round-trip admit control, and all FOUR structural-schema separation
 // controls were green throughout — the preservation half.
-describe('the drain authored-checkpoint boundary admits origins from a total table (IN-04)', () => {
+describe('the drain authored-checkpoint boundary admits origins from a total table', () => {
   type OriginAdmission = 'parses' | 'rejects'
 
   /**
@@ -189,7 +189,7 @@ describe('the drain authored-checkpoint boundary admits origins from a total tab
   }
 })
 
-describe('the authored checkpoint keeps the run\'s actual execution context (D-08)', () => {
+describe('the authored checkpoint keeps the run\'s actual execution context', () => {
   const CONTEXTS = ['local-interactive', 'local-headless', 'ci', 'cloud'] as const satisfies
     readonly ExecutionContext[]
 

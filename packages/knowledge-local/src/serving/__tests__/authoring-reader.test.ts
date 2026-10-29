@@ -221,7 +221,7 @@ describe('createAuthoringReader dense retrieval', () => {
       .resolves.toEqual(lexicalBrief)
   })
 
-  it('joins id-different-from-name projection and discovery into one verified exemplar (WR-02)', async () => {
+  it('joins id-different-from-name projection and discovery into one verified exemplar', async () => {
     const filePath = join(root, 'tests', 'guest-checkout.yaml')
     const testId = 'checkout-guest-1'
     const testName = 'Guest checkout with promo'
@@ -351,7 +351,7 @@ describe('createAuthoringReader dense retrieval', () => {
     expect(brief.exemplars[0]).not.toHaveProperty('passRate')
   })
 
-  it('keeps anchors tuple-true for old-colliding file/test names (WR-01, ABRF-02)', async () => {
+  it('keeps anchors tuple-true for old-colliding file/test names', async () => {
     foldOutcomeHandoff(knowledgeRoot, outcomeHandoff({
       runId: 'run-collide-one',
       scope: SCOPE,
@@ -535,7 +535,7 @@ describe('createAuthoringReader dense retrieval', () => {
       foldExemplar(CONTROL_REF, { runId: 'run-ledger-control', buildOrdinal: 41 })
     })
 
-    it('serves both tests when the ledger is absent (the FLAK-03 empty-input floor)', async () => {
+    it('serves both tests when the ledger is absent (the empty-input floor)', async () => {
       expect(await exemplarNames(BEFORE_EXPIRY)).toEqual([
         CONTROL_REF.testName,
         QUARANTINED_REF.testName,
@@ -548,7 +548,7 @@ describe('createAuthoringReader dense retrieval', () => {
       expect(await exemplarNames(BEFORE_EXPIRY)).toEqual([CONTROL_REF.testName])
     })
 
-    it('stops excluding once the deadline lapses — expiry is COMPUTED from now (D-11)', async () => {
+    it('stops excluding once the deadline lapses — expiry is COMPUTED from now', async () => {
       writeLedger([ledgerEvent({})])
 
       expect(await exemplarNames(AFTER_EXPIRY)).toEqual([

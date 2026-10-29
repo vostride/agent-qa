@@ -76,7 +76,7 @@ function observation(
   }
 }
 
-describe('GRPH-01 graph rebuild determinism', () => {
+describe('graph rebuild determinism', () => {
   let root: string
 
   beforeEach(async () => {

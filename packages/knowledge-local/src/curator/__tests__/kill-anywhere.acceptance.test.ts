@@ -753,7 +753,7 @@ async function proveMutableEnrichmentSigkill(): Promise<void> {
   }
 }
 
-describe('kill-anywhere recovery across memory.md §8.7 lifecycle boundaries (CUR-04)', () => {
+describe('kill-anywhere recovery across memory.md §8.7 lifecycle boundaries', () => {
   const matrix: readonly FaultPoint[] = [
     'after-emit-before-claim',
     'after-claim-before-author',

@@ -224,7 +224,7 @@ const SUBSTRATE_CENSUS: Readonly<Record<string, string>> = {
     'publishes `foldRunOutcomes` as a curation capability — a pass-through with no call site of its own',
 }
 
-describe('the INVK-06 consumer census is frozen and self-checking (D-15)', () => {
+describe('the gate-run exclusion consumer census is frozen and self-checking', () => {
   it('THE MARKER PREDICATE FINDS ITS OWN KNOWN MEMBERS before it is trusted', () => {
     // A predicate narrowed — to one package, to one directory, to a stricter word boundary — that
     // no longer sees the file the exclusion actually lives in must fail HERE, loudly, rather than

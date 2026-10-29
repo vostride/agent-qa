@@ -46,7 +46,7 @@ import { applyExplicitReview } from '../apply-review.js'
 const ANCHOR: Anchor = { t: 'el', role: 'Button', name: 'Checkout' }
 const SCOPE: ScopeKey = { tier: 'product', key: 'release-storefront' }
 
-describe('an applied explicit change survives a release that throws (WR-11)', () => {
+describe('an applied explicit change survives a release that throws', () => {
   let root: string
   let knowledgeRoot: string
   let agentQaRoot: string

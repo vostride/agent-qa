@@ -125,7 +125,7 @@ function idsOf(resolution: EntityResolution): string[] {
   return []
 }
 
-describe('D-07 the strong-hit rule: absolute threshold plus margin over the runner-up', () => {
+describe('the strong-hit rule: absolute threshold plus margin over the runner-up', () => {
   let root: string
   let corpora: EntityIndexHandle[]
 
@@ -173,7 +173,7 @@ describe('D-07 the strong-hit rule: absolute threshold plus margin over the runn
     expect(scoresOf(resolution)[0]).toBeCloseTo(1, 10)
   })
 
-  it('always disambiguates two entities of equal strength, never resolves one (D-07)', async () => {
+  it('always disambiguates two entities of equal strength, never resolves one', async () => {
     const entities = [
       entity('TST-010', 'Checkout with a saved card'),
       entity('TST-011', 'Checkout with a stored card'),
@@ -301,7 +301,7 @@ describe('D-07 the strong-hit rule: absolute threshold plus margin over the runn
   })
 })
 
-describe('D-07 the constants sit where the fusion scale puts them', () => {
+describe('the constants sit where the fusion scale puts them', () => {
   it('normalises one leg leading alone to exactly the absolute threshold', () => {
     const oneLegRankOne = RESOLVER_LEG_WEIGHT_LEXICAL / (C_RRF + 1)
 
@@ -325,7 +325,7 @@ describe('D-07 the constants sit where the fusion scale puts them', () => {
   })
 })
 
-describe('D-05 tier (b) composes the existing pipeline and implements no scoring of its own', () => {
+describe('tier (b) composes the existing pipeline and implements no scoring of its own', () => {
   function statements(): string {
     return readFileSync(new URL('../hybrid.ts', import.meta.url), 'utf8')
       .split('\n')
@@ -368,7 +368,7 @@ describe('D-05 tier (b) composes the existing pipeline and implements no scoring
   })
 })
 
-describe('ENTY-01 tier (a) falls through to tier (b), and an address never does', () => {
+describe('tier (a) falls through to tier (b), and an address never does', () => {
   let root: string
   let ledger: AddressingLedger
   let handle: EntityIndexHandle

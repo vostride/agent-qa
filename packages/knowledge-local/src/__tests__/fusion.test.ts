@@ -35,7 +35,7 @@ function fused(
   }
 }
 
-describe('weighted reciprocal-rank fusion (D-06/D-07)', () => {
+describe('weighted reciprocal-rank fusion', () => {
   it('sums weighted ranks and orders equal scores by bundle id', () => {
     const ranked = fuseWeightedRrf([
       {
@@ -139,7 +139,7 @@ describe('weighted reciprocal-rank fusion (D-06/D-07)', () => {
   })
 })
 
-describe('pre-fusion admission (D-06)', () => {
+describe('pre-fusion admission', () => {
   it('admits on any one floor at equality and rejects when every clause fails', () => {
     const floors = { tauDense: 0.38 }
 
@@ -182,7 +182,7 @@ describe('pre-fusion admission (D-06)', () => {
   })
 })
 
-describe('expansion slot cap (D-07)', () => {
+describe('expansion slot cap', () => {
   it('removes only expanded entries beyond ceil(f*N) and preserves the direct tail', () => {
     const ranked = [
       fused('r_d0', 1, 'direct'),

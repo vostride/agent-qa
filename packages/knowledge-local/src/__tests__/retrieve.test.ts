@@ -49,7 +49,7 @@ function event(
   })
 }
 
-describe('379 read-side lifecycle treatments', () => {
+describe('read-side lifecycle treatments', () => {
   let root: string
   let knowledgeRoot: string
 

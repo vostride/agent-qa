@@ -159,7 +159,7 @@ const freshWriters: ReadonlyArray<readonly [string, readonly string[], () => unk
       ruleText: 'Dismiss the cookie banner first', writerAuthority: authority() })],
 ]
 
-describe('every knowledge writer refuses a link out of the knowledge root (261003-mqc)', () => {
+describe('every knowledge writer refuses a link out of the knowledge root', () => {
   for (const [writer, links, run] of freshWriters) {
     for (const linkAt of links) {
       it(`${writer}, through ${linkAt} linked outside`, () => {

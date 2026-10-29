@@ -59,7 +59,7 @@ beforeEach(() => {
   observeTokenizerRuntime()
 })
 
-describe('FLOOR-LAZY-IMPORT (D-09)', () => {
+describe('FLOOR-LAZY-IMPORT', () => {
   it('importing the floor wrapper, the acquisition ladder and the package barrel loads no tokenizer runtime', async () => {
     const floor = await import('../embedder-floor.js')
     await import('../embedder-acquire.js')

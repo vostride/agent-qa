@@ -82,7 +82,7 @@ function onlyDelta(jobView: FallbackJobFixture, neighbors: FallbackNeighborFixtu
   return deltas[0]!
 }
 
-describe('constructFallbackDeltas restricted BYOM projection (CUR-02)', () => {
+describe('constructFallbackDeltas restricted BYOM projection', () => {
   it('types the fallback-only job and neighbor facts at the author boundary', () => {
     expectTypeOf<CurationJobView['attributingObservationId']>().toEqualTypeOf<string>()
     expectTypeOf<CurationJobView['executionContext']>().toEqualTypeOf<ExecutionContext>()
@@ -239,7 +239,7 @@ describe('constructFallbackDeltas restricted BYOM projection (CUR-02)', () => {
     ).toBe(true)
   })
 
-  it('never authors a procedure: an extraction job falls back to a one-element Noop (D-06)', () => {
+  it('never authors a procedure: an extraction job falls back to a one-element Noop', () => {
     const deltas = constructFallbackDeltas(
       job({
         kind: 'procedure',
@@ -358,7 +358,7 @@ describe('assertRestrictedFallbackDelta commit-side boundary', () => {
   })
 })
 
-describe('fallback and capable-author identity convergence (CUR-02)', () => {
+describe('fallback and capable-author identity convergence', () => {
   function publishInput(draft: Extract<Delta, { kind: 'Add' }>['bundle']): PublishBundleInput {
     const primary = draft.anchors[0]
     if (draft.kind !== 'fact' || draft.subtype !== 'selector' || primary?.t !== 'el') {

@@ -59,7 +59,7 @@ function expectLoaded(outcome: LoadBundleOutcome): LoadedBundle {
   return outcome.bundle
 }
 
-describe('bundle read, integrity, and disk-driven trust (D-03/D-08)', () => {
+describe('bundle read, integrity, and disk-driven trust', () => {
   let root: string
   let bundleDir: string
   let screenState: ScreenState

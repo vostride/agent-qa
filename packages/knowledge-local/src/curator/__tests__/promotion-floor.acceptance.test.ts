@@ -45,7 +45,7 @@ const NO_INDEX_MAINTENANCE = {
   vectorReconciliationOutstanding: false,
 } as const
 
-describe('zero-model promotion floor acceptance (PROM-01/D-18)', () => {
+describe('zero-model promotion floor acceptance', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -295,7 +295,7 @@ describe('zero-model promotion floor acceptance (PROM-01/D-18)', () => {
       expect(author).not.toHaveBeenCalled()
     })
 
-  it('RATIFIED A2: fallback-authored evidence-complete fact drains queue → gate → active', async () => {
+  it('fallback-authored evidence-complete fact drains queue → gate → active', async () => {
     const { report } = await drainWithoutModel(selectorProjection('primary'))
 
     expect(report).toMatchObject({ committed: 1, downgraded: 0, withheld: 0 })
@@ -316,7 +316,7 @@ describe('zero-model promotion floor acceptance (PROM-01/D-18)', () => {
     expect(deriveBundleTrust(bundle).status).toBe('active')
   })
 
-  it('RATIFIED A2: fallback-authored bare behavioral evidence stays needs-enrichment', async () => {
+  it('fallback-authored bare behavioral evidence stays needs-enrichment', async () => {
     await drainWithoutModel({
       ...selectorProjection('bare-behavioral'),
       kind: 'fact',

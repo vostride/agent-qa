@@ -33,7 +33,7 @@ const STORED_ANCHOR = {
   ordinal: 1,
 } satisfies Anchor
 
-describe('D-16 widened lexical-only matching', () => {
+describe('widened lexical-only matching', () => {
   let root: string
   let knowledgeRoot: string
 

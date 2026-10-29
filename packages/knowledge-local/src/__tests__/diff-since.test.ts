@@ -72,7 +72,7 @@ describe('diffSince deterministic maintenance history', () => {
     }
   }
 
-  it.each([3, 6])('419 promoted rows copy sovereign path and digest at ordinal %s, including immediate promotion', async ordinal => {
+  it.each([3, 6])('promoted rows copy sovereign path and digest at ordinal %s, including immediate promotion', async ordinal => {
     const recordId = publishFact('Sovereign checkout', 'shop', 3, [])
     const lease = acquireWriterLease(knowledgeRoot)
     if (lease.kind !== 'acquired') throw new Error('fixture lease unavailable')
@@ -448,7 +448,7 @@ describe('diffSince deterministic maintenance history', () => {
   // it is DURABLE — the bundle's own `run-linked` provenance and the outcome event's observation
   // id — and nowhere else. A change attributed to the wrong run is worse than one attributed to
   // no run at all, because a person reading "this run deprecated that fact" acts on it.
-  describe('the run link (LERN-02, D-10)', () => {
+  describe('the run link', () => {
     it("stamps the bundle's own run on the synthetic added change", () => {
       const recordId = publishFact('Run linked added', 'run-linked-added', 3, [], {
         mode: 'run-linked',

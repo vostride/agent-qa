@@ -37,7 +37,7 @@ function caution(
   }
 }
 
-describe('Channel-3 caution selection (BRIF-02 / D-14)', () => {
+describe('Channel-3 caution selection', () => {
   it('fills the caution budget in el then page then flow precision order', () => {
     const result = selectCautions({
       candidates: [

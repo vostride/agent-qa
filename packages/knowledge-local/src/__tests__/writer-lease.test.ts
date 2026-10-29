@@ -493,7 +493,7 @@ function observeExit(child: ChildProcessWithoutNullStreams): Promise<{
   })
 }
 
-describe('writer lease acquire, heartbeat, release, and stale self-heal (CUR-03/CUR-04)', () => {
+describe('writer lease acquire, heartbeat, release, and stale self-heal', () => {
   let root: string
   let knowledgeRoot: string
   let now: ReturnType<typeof vi.spyOn>
@@ -536,7 +536,7 @@ describe('writer lease acquire, heartbeat, release, and stale self-heal (CUR-03/
     expect(readFileSync(join(knowledgeRoot, EPOCH_FILE), 'utf8').trim()).toBe('1')
   })
 
-  it('reclaims a fresh-looking holder whose recorded epoch no longer matches disk (WR-04)', () => {
+  it('reclaims a fresh-looking holder whose recorded epoch no longer matches disk', () => {
     const first = acquireWriterLease(knowledgeRoot)
     expect(first.kind).toBe('acquired')
     if (first.kind !== 'acquired') throw new Error('expected first acquired writer lease')
@@ -1026,7 +1026,7 @@ describe('writer lease mutation lock ownership', () => {
  * second freshness channel for an unreadable epoch to be laundered through, and no contention
  * state for the beat to diverge into.
  */
-describe('three-valued freshness and the lock-free heartbeat (CR-01/CR-03)', () => {
+describe('three-valued freshness and the lock-free heartbeat', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -1084,7 +1084,7 @@ describe('three-valued freshness and the lock-free heartbeat (CR-01/CR-03)', () 
    * answer is `unknown`, so nothing inside the derivation resolves it toward either boolean.
    */
   it.runIf(canMakeFilesUnreadable)(
-    'answers unknown for an unreadable epoch over both a fresh and a stale lease (CR-01)',
+    'answers unknown for an unreadable epoch over both a fresh and a stale lease',
     () => {
       const acquired = acquireWriterLease(knowledgeRoot)
       if (acquired.kind !== 'acquired') throw new Error('expected an acquired writer lease')
@@ -1142,7 +1142,7 @@ describe('three-valued freshness and the lock-free heartbeat (CR-01/CR-03)', () 
    * a contender reading `.lease` saw a holder ageing out while the module reported it healthy.
    * Asserting the on-disk heartbeat rules that divergence out: there is one place freshness lives.
    */
-  it('heartbeats a held-transaction root without entering the mutation lock (CR-03)', () => {
+  it('heartbeats a held-transaction root without entering the mutation lock', () => {
     const acquired = acquireWriterLease(knowledgeRoot)
     if (acquired.kind !== 'acquired') throw new Error('expected an acquired writer lease')
     const before = ageLeaseOnDisk(5_000)
@@ -1159,7 +1159,7 @@ describe('three-valued freshness and the lock-free heartbeat (CR-01/CR-03)', () 
     expect(leaseOnDisk().heartbeatAtMs).toBeGreaterThan(before.heartbeatAtMs)
   }, 15_000)
 
-  it('refuses a foreign lease id under a held transaction and writes nothing (CR-03)', () => {
+  it('refuses a foreign lease id under a held transaction and writes nothing', () => {
     const superseded = acquireWriterLease(knowledgeRoot)
     if (superseded.kind !== 'acquired') throw new Error('expected an acquired writer lease')
     expect(releaseLease({ knowledgeRoot, leaseId: superseded.leaseId })).toEqual({
@@ -1182,7 +1182,7 @@ describe('three-valued freshness and the lock-free heartbeat (CR-01/CR-03)', () 
     expect(readFileSync(leaseFile())).toEqual(bytesBefore)
   }, 15_000)
 
-  it('refuses a superseded-epoch holder under a held transaction and writes nothing (W-01)', () => {
+  it('refuses a superseded-epoch holder under a held transaction and writes nothing', () => {
     const acquired = acquireWriterLease(knowledgeRoot)
     if (acquired.kind !== 'acquired') throw new Error('expected an acquired writer lease')
     const lease = leaseOnDisk()
@@ -1204,7 +1204,7 @@ describe('three-valued freshness and the lock-free heartbeat (CR-01/CR-03)', () 
   }, 15_000)
 
   it.runIf(canMakeFilesUnreadable)(
-    'refuses an unreadable-epoch beat by name and writes nothing (CR-01)',
+    'refuses an unreadable-epoch beat by name and writes nothing',
     () => {
       const acquired = acquireWriterLease(knowledgeRoot)
       if (acquired.kind !== 'acquired') throw new Error('expected an acquired writer lease')
@@ -1229,7 +1229,7 @@ describe('three-valued freshness and the lock-free heartbeat (CR-01/CR-03)', () 
    * no lease rewrite, no epoch rewrite.
    */
   it.runIf(canMakeFilesUnreadable)(
-    'refuses instead of escalating when the epoch turns unreadable over a live holder (CR-01)',
+    'refuses instead of escalating when the epoch turns unreadable over a live holder',
     async () => {
       const permitFile = join(root, 'unreadable-epoch-holder.permit')
       const holder = spawnAuthorityHolder(knowledgeRoot, permitFile)
@@ -1298,7 +1298,7 @@ const DEAD_OWNER_INCARNATION = `${incarnationFormat(
   resolveProcessIncarnation(process.pid) ?? '',
 )}:incarnation-of-a-process-that-already-died`
 
-describe('mutation-lock owner process incarnation (CR-04)', () => {
+describe('mutation-lock owner process incarnation', () => {
   let root: string
   let knowledgeRoot: string
   const spawned: ChildProcessWithoutNullStreams[] = []
@@ -1642,7 +1642,7 @@ describe('mutation-lock owner process incarnation (CR-04)', () => {
    * The `elapsedMs` assertion is the leg's own precondition, not decoration: an upgrade that
    * returned promptly never blocked, which means the window was missed and the case proved nothing.
    */
-  it('completes a schema upgrade that loses the ALTER race to another connection (W-06)', async () => {
+  it('completes a schema upgrade that loses the ALTER race to another connection', async () => {
     seedMutationLockRow({
       pid: process.pid,
       acquiredAtMs: Date.now() - 600_000,
@@ -1704,7 +1704,7 @@ describe('mutation-lock owner process incarnation (CR-04)', () => {
    * typed unreclaimable refusal, while discarding it lets the flow proceed onto a table that still
    * has no `incarnation` column and die there with a raw SQL logic error.
    */
-  it('keeps a non-duplicate upgrade failure meaningful instead of swallowing it (W-06)', () => {
+  it('keeps a non-duplicate upgrade failure meaningful instead of swallowing it', () => {
     seedMutationLockRow({
       pid: process.pid,
       acquiredAtMs: Date.now() - 600_000,
@@ -1732,7 +1732,7 @@ describe('mutation-lock owner process incarnation (CR-04)', () => {
   }, 40_000)
 
   /** A repeated upgrade over an already-upgraded store stays a no-op (the cheap half of W-06). */
-  it('leaves an already-upgraded store untouched when the upgrade runs again (W-06)', () => {
+  it('leaves an already-upgraded store untouched when the upgrade runs again', () => {
     seedMutationLockRow({
       pid: process.pid,
       acquiredAtMs: Date.now() - 600_000,
@@ -1760,7 +1760,7 @@ describe('mutation-lock owner process incarnation (CR-04)', () => {
  * main thread is precisely the V-02 finding this phase reproduced, and its children are precisely
  * these zombies.
  */
-describe('escalation cost and budget on the acquisition hot path (W-05)', () => {
+describe('escalation cost and budget on the acquisition hot path', () => {
   let root: string
   let knowledgeRoot: string
   const spawned: ChildProcessWithoutNullStreams[] = []
@@ -1870,7 +1870,7 @@ describe('escalation cost and budget on the acquisition hot path (W-05)', () => 
   }
 
   it.runIf(process.platform !== 'win32')(
-    'charges the post-signal exit wait to the acquisition budget instead of adding to it (W-05)',
+    'charges the post-signal exit wait to the acquisition budget instead of adding to it',
     async () => {
       const orphanPid = await spawnNonReapingOwner()
       seedAttributedOwnerRow(orphanPid, 'never-reaped-generation')
@@ -1919,7 +1919,7 @@ describe('escalation cost and budget on the acquisition hot path (W-05)', () => 
   )
 
   it.runIf(process.platform !== 'win32')(
-    'resolves the owner incarnation once per escalated attempt, never inside the exit wait (W-05)',
+    'resolves the owner incarnation once per escalated attempt, never inside the exit wait',
     async () => {
       const orphanPid = await spawnNonReapingOwner()
       seedAttributedOwnerRow(orphanPid, 'resolution-count-generation')
@@ -1961,7 +1961,7 @@ describe('escalation cost and budget on the acquisition hot path (W-05)', () => 
  * child process so a still-defective build fails as "no outcome within the watchdog" rather than
  * hanging the suite, which is exactly how the verifier had to observe it (SIGKILL at 25 s / 100 s).
  */
-describe('writer lease acquisition deadline against an unreclaimable owner (V-02)', () => {
+describe('writer lease acquisition deadline against an unreclaimable owner', () => {
   let root: string
   let knowledgeRoot: string
   const spawned: ChildProcessWithoutNullStreams[] = []
@@ -2238,7 +2238,7 @@ describe('writer lease acquisition deadline against an unreclaimable owner (V-02
 const runsPsIncarnation = process.platform !== 'win32' && process.platform !== 'linux'
 const itOnPsHosts = runsPsIncarnation ? it : it.skip
 
-describe('budget-capped process-incarnation resolution on the escalation path (WR-04)', () => {
+describe('budget-capped process-incarnation resolution on the escalation path', () => {
   let root: string
   let knowledgeRoot: string
   let shadowDir: string
@@ -2363,7 +2363,7 @@ describe('budget-capped process-incarnation resolution on the escalation path (W
   `
 
   itOnPsHosts(
-    'caps one ps fork at the budget it was handed and reports the pid unverifiable (WR-04)',
+    'caps one ps fork at the budget it was handed and reports the pid unverifiable',
     async () => {
       // The rejecting input: a process table that never answers. Without the cap this fork runs to
       // completion and the caller's whole deadline is spent inside a single resolution.
@@ -2396,7 +2396,7 @@ describe('budget-capped process-incarnation resolution on the escalation path (W
   )
 
   itOnPsHosts(
-    'delivers no signal when the process table cannot answer inside the budget (WR-04)',
+    'delivers no signal when the process table cannot answer inside the budget',
     async () => {
       const exitPermit = join(root, 'surrogate.exit')
       const surrogate = track(spawnIdleSurrogate(exitPermit))
@@ -2434,7 +2434,7 @@ describe('budget-capped process-incarnation resolution on the escalation path (W
   )
 
   itOnPsHosts(
-    'withholds the signal on an exhausted budget too, where the cap sits on its floor (WR-04)',
+    'withholds the signal on an exhausted budget too, where the cap sits on its floor',
     async () => {
       const exitPermit = join(root, 'surrogate.exit')
       const surrogate = track(spawnIdleSurrogate(exitPermit))
@@ -2593,7 +2593,7 @@ describe('budget-capped process-incarnation resolution on the escalation path (W
   }
 
   itOnPsHosts(
-    'retries a timed-out own-pid resolution on a later claim and attributes the row (round-5 regression 2)',
+    'retries a timed-out own-pid resolution on a later claim and attributes the row',
     async () => {
       // Phase 1's rejecting input: a process table that will not answer inside the cap, so the
       // claimant genuinely cannot prove its own incarnation and writes an unattributed row.
@@ -2636,7 +2636,7 @@ describe('budget-capped process-incarnation resolution on the escalation path (W
   )
 
   itOnPsHosts(
-    'caps the own-pid fork with the acquisition budget rather than the bare constant (round-5 regression 1)',
+    'caps the own-pid fork with the acquisition budget rather than the bare constant',
     async () => {
       shadowPs('#!/bin/sh\nexec /bin/sleep 30\n')
       // 400 ms is below PROCESS_INCARNATION_PS_TIMEOUT_MS and above PROCESS_INCARNATION_PS_FLOOR_MS,
@@ -2742,7 +2742,7 @@ describe('budget-capped process-incarnation resolution on the escalation path (W
  * `mutation-lock-unreclaimable` refusal. A raw `SqliteError` from that read reached neither: it
  * propagated straight out of `acquireWriterLease`.
  */
-describe('store contention during acquisition diagnostics (WR-05)', () => {
+describe('store contention during acquisition diagnostics', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -2783,7 +2783,7 @@ describe('store contention during acquisition diagnostics (WR-05)', () => {
     return dbPath
   }
 
-  it('refuses by name instead of throwing when the authority store is too busy to read (WR-05)', () => {
+  it('refuses by name instead of throwing when the authority store is too busy to read', () => {
     const dbPath = seedJournalledAuthorityStore()
     const blocker = new DatabaseSync(dbPath)
     blocker.exec('PRAGMA busy_timeout = 0')
@@ -2864,7 +2864,7 @@ describe('store contention during acquisition diagnostics (WR-05)', () => {
  * from OUTSIDE the module that defines them — through the package index itself — so the assertion
  * is about the surface rather than about the file.
  */
-describe('writer lease public export surface (IN-04)', () => {
+describe('writer lease public export surface', () => {
   it('publishes no unreachable acquisition-refusal symbols', () => {
     const surface = publicWriterSurface as unknown as Record<string, unknown>
     expect(surface.ACQUIRE_WRITER_LEASE_DEADLINE_MS).toBeUndefined()
@@ -2889,7 +2889,7 @@ describe('writer lease public export surface (IN-04)', () => {
  * law names: the `chmod 0o000` primitive was already in this file six times and every one of them
  * targeted `EPOCH_FILE`. Here it targets `LEASE_FILE`.
  */
-describe('the unreadable lease read and every consumer that names it (round-5 CR-01)', () => {
+describe('the unreadable lease read and every consumer that names it', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -3174,7 +3174,7 @@ describe('the unreadable lease read and every consumer that names it (round-5 CR
  * locked/busy, and an unopenable file is neither) and pinning the arm rather than the direction
  * would convert a future typed refusal into a test failure for no reason.
  */
-describe('the writer-authority DB as an unreadable authority input (386-47)', () => {
+describe('the writer-authority DB as an unreadable authority input', () => {
   let root: string
   let knowledgeRoot: string
   const spawnedHere: ChildProcessWithoutNullStreams[] = []
@@ -3305,7 +3305,7 @@ describe('the writer-authority DB as an unreadable authority input (386-47)', ()
  * Both cases redden when `atomicRewrite(.epoch)` and `atomicRewrite(.lease)` are swapped, which is
  * the only reason either of them is evidence for the ordering the argument rests on.
  */
-describe('the lock-free beat astride a reclaim: CR-03 containment by the epoch fence (386-42)', () => {
+describe('the lock-free beat astride a reclaim: containment by the epoch fence', () => {
   let root: string
   let knowledgeRoot: string
   let now: ReturnType<typeof vi.spyOn>
@@ -3604,7 +3604,7 @@ function useSpawnedChildren(prefix: string): {
   }
 }
 
-describe('C442-CROSS-ENV', () => {
+describe('start-time tokens across reader environments', () => {
   const READING_ENVIRONMENT = { TZ: 'Asia/Kathmandu', LC_ALL: 'C', LANG: 'C' }
   const OWNER_ENVIRONMENT_A = { TZ: 'UTC', LC_ALL: 'fr_FR.UTF-8', LANG: 'fr_FR.UTF-8' }
   const OTHER_READER_ENVIRONMENT = {
@@ -3614,7 +3614,7 @@ describe('C442-CROSS-ENV', () => {
   }
   const { root, track } = useSpawnedChildren('knowledge-writer-cross-env-')
 
-  it('C442-CROSS-ENV one live process reads as one start-time token from readers with different time zones, locales and a shadowing ps', async () => {
+  it('one live process reads as one start-time token from readers with different time zones, locales and a shadowing ps', async () => {
     refuseWithoutPosixRunLifecycle()
     const subject = track(spawnIdleSurrogate(join(root(), 'subject.exit')))
     await waitForOutput(subject, 'surrogate-alive\n')
@@ -3647,7 +3647,7 @@ describe('C442-CROSS-ENV', () => {
     expect(tokens).toEqual(Object.fromEntries(readers.map(([label]) => [label, first])))
   }, 60_000)
 
-  it('C442-CROSS-ENV a mutation-lock holder stamped under another time zone, locale or ps is read as itself, never as a reused pid', async () => {
+  it('a mutation-lock holder stamped under another time zone, locale or ps is read as itself, never as a reused pid', async () => {
     refuseWithoutPosixRunLifecycle()
     const owners: [string, NodeJS.ProcessEnv][] = [
       ['A', OWNER_ENVIRONMENT_A],
@@ -3701,10 +3701,10 @@ describe('C442-CROSS-ENV', () => {
   }, 90_000)
 })
 
-describe('C442-INCARNATION-FORMAT', () => {
+describe('lock start-time format stamps', () => {
   const { root, track } = useSpawnedChildren('knowledge-writer-incarnation-format-')
 
-  it('C442-INCARNATION-FORMAT a ps host stamps ps-lstart-utc read by /bin/ps in UTC and the C locale, and Linux stamps proc-starttime', () => {
+  it('a ps host stamps ps-lstart-utc read by /bin/ps in UTC and the C locale, and Linux stamps proc-starttime', () => {
     const token = resolveProcessIncarnation(process.pid)
     if (process.platform === 'win32') {
       expect(token).toBeUndefined()
@@ -3722,7 +3722,7 @@ describe('C442-INCARNATION-FORMAT', () => {
     expect(token).toBe(`ps-lstart-utc:${lstart}`)
   })
 
-  it('C442-INCARNATION-FORMAT a mutation-lock row stamped in another start-time format is never reclaimed and its live owner never signalled', async () => {
+  it('a mutation-lock row stamped in another start-time format is never reclaimed and its live owner never signalled', async () => {
     refuseWithoutPosixRunLifecycle()
     const knowledgeRoot = join(root(), 'agent-qa-knowledge')
     const surrogate = track(spawnIdleSurrogate(join(root(), 'surrogate.exit')))

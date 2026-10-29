@@ -33,7 +33,7 @@ async function scanApi() {
 
 type PublishedBundle = Extract<PublishBundleOutcome, { kind: 'published' }>
 
-describe('IDX-02 authoritative degraded bundle scan', () => {
+describe('authoritative degraded bundle scan', () => {
   let root: string
   let knowledgeRoot: string
 

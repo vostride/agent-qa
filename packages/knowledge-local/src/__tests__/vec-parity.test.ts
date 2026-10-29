@@ -34,7 +34,7 @@ const BUNDLE_COUNT = 24
  */
 const PARITY_DISTANCE_TOLERANCE = 1e-5
 
-describe('IDX-01 vec0 and brute dense-search parity', () => {
+describe('vec0 and brute dense-search parity', () => {
   let root: string
   let knowledgeRoot: string
 

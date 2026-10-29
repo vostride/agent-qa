@@ -326,7 +326,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     } })
   }
 
-  it.each(['fact', 'caution'] as const)('419 confirmed %s fix commits user content and one sovereign Gate-3 receipt', async kind => {
+  it.each(['fact', 'caution'] as const)('confirmed %s fix commits user content and one sovereign Gate-3 receipt', async kind => {
     const recordId = publish('checkout button')
     const proposalId = proposeMark(recordId, kind, kind === 'caution')
     const create = vi.spyOn(knowledgeStore, 'createExplicitReviewStore')
@@ -366,7 +366,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     } finally { create.mockRestore() }
   })
 
-  it('419 concurrent mark applies answer the same durable receipt and commit once', async () => {
+  it('concurrent mark applies answer the same durable receipt and commit once', async () => {
     // RE-SPELLED (432-17): without a claim, the overlapping call meets the first one's writer lease
     // and is refused by name with no host delegate; its retry under the same identity answers the
     // first call's receipt and commits nothing more. The composed port serializes its own calls.
@@ -383,7 +383,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(retried.commitReceipt?.gate3).toHaveLength(1)
   })
 
-  it('419 Confirm readback names only its target and advances beyond earlier gate-only ordinals', async () => {
+  it('Confirm readback names only its target and advances beyond earlier gate-only ordinals', async () => {
     const recordId = publish('previously gated checkout')
     const unrelated = publish('unrelated checkout')
     const lease = acquireWriterLease(knowledgeRoot)
@@ -409,7 +409,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
 
   // 432 D-04 replaces the 419 propose-only refusal: an explicit mark is authority in every
   // context, so the CI apply commits and promotes while the record keeps its actual context.
-  it('419 mark application in ci commits under the actual context and promotes through the sovereign gate', async () => {
+  it('mark application in ci commits under the actual context and promotes through the sovereign gate', async () => {
     const recordId = publish('CI checkout')
     const proposalId = proposeMark(recordId)
     const result = applyReview({ agentQaRoot, knowledgeRoot, proposalId, executionContext: 'ci' })
@@ -440,7 +440,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     return result.id
   }
 
-  it('419 policy accept materializes and supersedes to a reference with honest Gate-3 approval, never promotes', async () => {
+  it('policy accept materializes and supersedes to a reference with honest Gate-3 approval, never promotes', async () => {
     const recordId = publishPolicy()
     const proposalId = proposeAccept(recordId)
     const result = await applyReview({ agentQaRoot, knowledgeRoot, proposalId })
@@ -471,7 +471,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
       policy: { ...result.commitReceipt?.policy, outcome: 'unchanged' } })
   })
 
-  it('419 policy marker refusal commits nothing and files nothing', async () => {
+  it('policy marker refusal commits nothing and files nothing', async () => {
     const recordId = publishPolicy('This rule contains --> and cannot be materialized')
     const proposalId = proposeAccept(recordId)
     const before = hashTree(join(knowledgeRoot, 'memory'))
@@ -485,7 +485,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect((await applyReview({ agentQaRoot, knowledgeRoot, proposalId })).outcome).toBe('policy-materialize-refused')
   })
 
-  it('C441-COMMITTED a policy file with credential-shaped text is applied as written', async () => {
+  it('a policy file with credential-shaped text is applied as written', async () => {
     const body = 'Pay with 4242 4242 4242 4242 and send Bearer abc123def456ghi789'
     const recordId = publishPolicy(body)
     const result = await applyReview({ agentQaRoot, knowledgeRoot, proposalId: proposeAccept(recordId) })
@@ -675,7 +675,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(listBundles(knowledgeRoot).filter((row) => row.status === 'deprecated')).toHaveLength(1)
   })
 
-  it('names the already-tombstoned state rather than destroying twice (FUNC-04 adjacency)', async () => {
+  it('names the already-tombstoned state rather than destroying twice', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
 
@@ -741,7 +741,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(forgetEvents).toHaveLength(1)
   })
 
-  it('a tombstone this forget committed but never recorded still answers its scrubs, then stays stable (261002-lse)', async () => {
+  it('a tombstone this forget committed but never recorded still answers its scrubs, then stays stable', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
     const proposalId = proposeForget(recordId)
@@ -759,7 +759,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(JSON.stringify(again)).toBe(JSON.stringify(recovered))
   })
 
-  it('a second, independent forget keeps WR-02 empty scrubs, and its own retry is identical (261002-lse)', async () => {
+  it('a second, independent forget keeps empty scrubs, and its own retry is identical', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
     const firstId = proposeForget(recordId)
@@ -831,7 +831,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   // CLONE of the fact the reviewer just rejected — same anchors, same scope, same summary —
   // published `status: candidate`, which `isEligibleCandidate` re-admits into serving.
 
-  it('a reject over an ALREADY-DEPRECATED target (prior reject) mints nothing (CR-02)', async () => {
+  it('a reject over an ALREADY-DEPRECATED target (prior reject) mints nothing', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
 
@@ -857,7 +857,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expectNoUnauthoredMint(recordId, 'deprecated', before)
   })
 
-  it('a reject over an ALREADY-DEPRECATED target (prior FORGET) mints nothing (CR-02)', async () => {
+  it('a reject over an ALREADY-DEPRECATED target (prior FORGET) mints nothing', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
 
@@ -877,7 +877,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expectNoUnauthoredMint(recordId, 'deprecated', before)
   })
 
-  it('a reject over an ALREADY-SUPERSEDED target mints nothing (CR-02)', async () => {
+  it('a reject over an ALREADY-SUPERSEDED target mints nothing', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
 
@@ -899,7 +899,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expectNoUnauthoredMint(recordId, 'superseded', before)
   })
 
-  it('a forget over an already-superseded target claims ZERO scrubs it did not perform (WR-02)', async () => {
+  it('a forget over an already-superseded target claims ZERO scrubs it did not perform', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
     supersede(recordId)
@@ -927,7 +927,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expectNoUnauthoredMint(recordId, 'superseded', before)
   })
 
-  it('a THIRD addressed operation on a twice-applied record id still resolves (CR-02)', async () => {
+  it('a THIRD addressed operation on a twice-applied record id still resolves', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
 
@@ -957,7 +957,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expectNoUnauthoredMint(recordId, 'deprecated', before)
   })
 
-  it('CONTROL: a first reject over a LIVE candidate target still commits (CR-02)', async () => {
+  it('CONTROL: a first reject over a LIVE candidate target still commits', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
     // Drawn from OUTSIDE the rescoped guard's own assumption: the guard's precondition is
@@ -1154,7 +1154,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     for (const provenance of TOMBSTONING_PROVENANCES) {
       it(
         `${verb} over a target already deprecated by a prior applied ${provenance} `
-          + `→ ${expectation} (CR-02′)`,
+          + `→ ${expectation}`,
         async () => {
           const recordId = publish('checkout button')
           await projectIndex()
@@ -1199,7 +1199,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     }
   }
 
-  it('ADMIT: accept over a SUPERSEDED target still commits an ordinary Confirm (CR-02′)', async () => {
+  it('ADMIT: accept over a SUPERSEDED target still commits an ordinary Confirm', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
     // Superseded through ordinary curation, never through a review verb — a tombstoned-looking
@@ -1233,7 +1233,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     // from "the cited-id-integrity check failed" to "the target looks tombstoned".
   })
 
-  it('ADMIT: accept over a LIVE candidate commits normally (CR-02′, SOUND-10 extended)', async () => {
+  it('ADMIT: accept over a LIVE candidate commits normally', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
     expect(rowsFor(recordId)[0]?.status).toBe('candidate')
@@ -1301,7 +1301,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     return entries.filter((entry) => entry.slice(2).startsWith('memory/'))
   }
 
-  it('a refused accept leaves the WHOLE knowledge root byte-identical (CR-02″)', async () => {
+  it('a refused accept leaves the WHOLE knowledge root byte-identical', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
     const tombstoning = await applyReview({
@@ -1375,7 +1375,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     }
   })
 
-  it('the next drain adopts NOTHING from a refused accept (CR-02″ requeue half)', async () => {
+  it('the next drain adopts NOTHING from a refused accept (requeue half)', async () => {
     const recordId = publish('checkout button')
     await projectIndex()
     const tombstoning = await applyReview({
@@ -1424,7 +1424,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(rowsFor(recordId)[0]?.status).toBe('deprecated')
   })
 
-  it('refuses an input claiming BOTH writerAuthority and delegate (WR-04)', async () => {
+  it('refuses an input claiming BOTH writerAuthority and delegate', async () => {
     const recordId = publish('checkout button')
     const proposalId = proposeForget(recordId)
 

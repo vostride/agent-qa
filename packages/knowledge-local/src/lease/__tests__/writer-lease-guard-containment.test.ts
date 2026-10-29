@@ -63,7 +63,7 @@ function deadPid(): number {
   return exited.pid
 }
 
-describe('the lease guard never reaches through a link or out of the knowledge root (CR-01)', () => {
+describe('the lease guard never reaches through a link or out of the knowledge root', () => {
   let root: string
   let knowledgeRoot: string
   let outside: string
@@ -213,7 +213,7 @@ describe('the lease guard never reaches through a link or out of the knowledge r
   }, 20_000)
 })
 
-describe('a residue left by a thread of this very process is reclaimed in a waiter\'s budget (WR-11)', () => {
+describe('a residue left by a thread of this very process is reclaimed in a waiter\'s budget', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -274,7 +274,7 @@ describe('a residue left by a thread of this very process is reclaimed in a wait
       .toMatchObject({ kind: 'heartbeated' })
   }, 40_000)
 
-  it('(IN-24) sweeps a staging directory a dead holder leaked, and leaves a live one alone', () => {
+  it('sweeps a staging directory a dead holder leaked, and leaves a live one alone', () => {
     const acquired = acquireWriterLease(knowledgeRoot)
     if (acquired.kind !== 'acquired') throw new Error('expected an acquired writer lease')
     const parent = dirname(join(knowledgeRoot, LEASE_GUARD_DIR))

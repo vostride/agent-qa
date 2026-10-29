@@ -1027,7 +1027,7 @@ describe('drainQueue daemon substrate', () => {
    * point at which a takeover either completes (and must find nothing landed) or is blocked (and
    * must observe the tail's holder), which is the only way "one held section" is executable.
    */
-  describe('canary tail authority barriers (CR-02)', () => {
+  describe('canary tail authority barriers', () => {
     type AcquireWithDeadline = (
       knowledgeRoot: string,
       hooks?: { mutationLockTakeoverMs?: number },

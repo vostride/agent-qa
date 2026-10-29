@@ -9,7 +9,7 @@ import { MUTABLE_BUNDLE_TARGETS } from '../journal/bundle-mutation.js'
 import { gateReceiptsFor } from '../gates/gate-receipt-read.js'
 import { markReceipt, createPromotionFloorFixture } from '../curator/__tests__/fixtures/promotion-floor-fixture.js'
 
-describe('416 lazy journaled gate part', () => {
+describe('lazy journaled gate part', () => {
   let root: string
   let fixture: ReturnType<typeof createPromotionFloorFixture>
   beforeEach(() => {

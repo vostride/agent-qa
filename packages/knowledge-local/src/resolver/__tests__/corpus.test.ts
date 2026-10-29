@@ -341,7 +341,7 @@ function outcome(caseId: string, posture: CorpusPosture): EntityResolution {
   return found
 }
 
-describe('D-08 the corpus is a committed population, not a handful of examples', () => {
+describe('the corpus is a committed population, not a handful of examples', () => {
   it('holds at least a hundred entities spanning the five mintable kinds', () => {
     expect(CORPUS_ENTITIES.length).toBeGreaterThanOrEqual(100)
 
@@ -377,7 +377,7 @@ describe('D-08 the corpus is a committed population, not a handful of examples',
   })
 })
 
-describe('D-08 every case is scored in both postures and the log says so', () => {
+describe('every case is scored in both postures and the log says so', () => {
   it('logs one row per case per posture, in score order, on the reported scale', () => {
     expect(reportShapeProblems(report, CORPUS_CASES.map((testCase) => testCase.id))).toEqual([])
     expect(report.cases.length).toBe(CORPUS_CASES.length * CORPUS_POSTURES.length)
@@ -428,7 +428,7 @@ describe('D-08 every case is scored in both postures and the log says so', () =>
   })
 })
 
-describe('D-08 the corpus is deterministic', () => {
+describe('the corpus is deterministic', () => {
   it('answers a second full execution identically, outcome for outcome', async () => {
     const second = await runCorpus(postures)
     expect(second.rows).toEqual(run.rows)
@@ -511,7 +511,7 @@ function disagreements(
   return problems
 }
 
-describe('ENTY-01 never guess: no case resolves to an entity nobody named', () => {
+describe('never guess: no case resolves to an entity nobody named', () => {
   it('answers every case as its declaration says, in both postures', () => {
     const problems: string[] = []
     for (const testCase of CORPUS_CASES) {
@@ -549,7 +549,7 @@ describe('ENTY-01 never guess: no case resolves to an entity nobody named', () =
   })
 })
 
-describe('D-08 the degradation invariant, in its two halves', () => {
+describe('the degradation invariant, in its two halves', () => {
   it('compares two genuinely different hosts', () => {
     // The vacuity a mutation probe found. Every claim below diffs `full` against `floor`, and a
     // "floor" that had been embedded like the full posture would satisfy all of them by being
@@ -609,7 +609,7 @@ describe('D-08 the degradation invariant, in its two halves', () => {
   })
 })
 
-describe('D-07 equal strength always disambiguates', () => {
+describe('equal strength always disambiguates', () => {
   it('offers both twins at an identical score rather than picking one', () => {
     const equalStrength = CORPUS_CASES.filter((testCase) => testCase.equalStrength === true)
     expect(equalStrength.length).toBeGreaterThanOrEqual(5)
@@ -632,7 +632,7 @@ describe('D-07 equal strength always disambiguates', () => {
   })
 })
 
-describe('ENTY-01 an exact address answers identically whatever the host can embed', () => {
+describe('an exact address answers identically whatever the host can embed', () => {
   it('resolves every address form at the exact-match score in both postures', () => {
     const exact = CORPUS_CASES.filter((testCase) => testCase.category === 'exact')
     expect(exact.length).toBeGreaterThanOrEqual(5)
@@ -652,7 +652,7 @@ describe('ENTY-01 an exact address answers identically whatever the host can emb
   })
 })
 
-describe('D-08 the degradation gate is one an input can actually redden', () => {
+describe('the degradation gate is one an input can actually redden', () => {
   /**
    * The rankings the resolver itself produced, re-decidable at a margin the corpus chooses.
    *

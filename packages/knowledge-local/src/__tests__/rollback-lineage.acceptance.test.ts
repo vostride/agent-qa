@@ -394,7 +394,7 @@ function publishThrashUnknown(
   return published
 }
 
-describe('rollback-aware lineage acceptance (DCAY-03/DCAY-05)', () => {
+describe('rollback-aware lineage acceptance', () => {
   it('rollback removes lineage influence so the next Supersede trips only at three surviving events', () => {
     const first = publishGeneration(1, 1)
     const second = publishGeneration(2, 2)
@@ -544,7 +544,7 @@ describe('rollback-aware lineage acceptance (DCAY-03/DCAY-05)', () => {
   })
 })
 
-describe('rollback-aware GC recent-K acceptance (DCAY-05)', () => {
+describe('rollback-aware GC recent-K acceptance', () => {
   it('GC recent-K ignores a retracted newer supersession when choosing the retained generation', () => {
     const generationA = publishGeneration(21, 1)
     const generationB = publishGeneration(22, 3)

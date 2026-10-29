@@ -572,7 +572,7 @@ describe('ROADMAP success criterion 5 — normalized and contextual renderings',
     },
   )
 
-  it('contains no wall-clock reads in Phase 377 decision modules', () => {
+  it('contains no wall-clock reads in the retrieval decision modules', () => {
     const wallClockCall = /\b(?:Date\.now|performance\.now)\s*\(|\bnew\s+Date\s*\(/
     for (const file of phaseSourceFiles()) {
       expect(readFileSync(file, 'utf8'), file).not.toMatch(wallClockCall)

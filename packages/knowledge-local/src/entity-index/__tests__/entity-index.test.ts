@@ -126,7 +126,7 @@ function lexicalBundleIds(handle: EntityIndexHandle, text: string): string[] {
     .map(({ bundleId }) => bundleId)
 }
 
-describe('D-06 the entity index is a rebuildable projection in its own database file', () => {
+describe('the entity index is a rebuildable projection in its own database file', () => {
   let root: string
   let knowledgeRoot: string
   let handle: EntityIndexHandle
@@ -257,7 +257,7 @@ describe('D-06 the entity index is a rebuildable projection in its own database 
   })
 })
 
-describe('D-06 an entity title is never retrievable as a learned fact', () => {
+describe('an entity title is never retrievable as a learned fact', () => {
   const ENTITY_MARKER = 'zqxentitymarker'
   const RECORD_MARKER = 'zqxrecordmarker'
 
@@ -384,7 +384,7 @@ describe('D-06 an entity title is never retrievable as a learned fact', () => {
   })
 })
 
-describe('D-01 a sighting maintains the projection, and a rebuild is driven by the ledger', () => {
+describe('a sighting maintains the projection, and a rebuild is driven by the ledger', () => {
   let root: string
   let handle: EntityIndexHandle
   let ledger: AddressingLedger
@@ -455,7 +455,7 @@ describe('D-01 a sighting maintains the projection, and a rebuild is driven by t
   })
 })
 
-describe('D-06 no statement in entity-index/ can reach the knowledge index', () => {
+describe('no statement in entity-index/ can reach the knowledge index', () => {
   // The plan's criterion was written as "no statement names the records FTS table". It cannot
   // be that: this projection presents the records SHAPE on purpose, because that is what
   // reusing `lexicalLeg`/`denseLeg` means (see the module header), so the words `records` and

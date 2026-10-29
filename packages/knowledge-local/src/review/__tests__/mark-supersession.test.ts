@@ -152,7 +152,7 @@ it.each([false, true])('commits a real same-kind same-anchor floor replacement b
   expect(bundles()).toHaveLength(3)
 })
 
-it('applies the same real floor replacement through the direct writer in ci, once per operation, and a later mark supersedes it (432-06)', async () => {
+it('applies the same real floor replacement through the direct writer in ci, once per operation, and a later mark supersedes it', async () => {
   const root = mkdtempSync(join(tmpdir(), 'mark-supersession-direct-'))
   roots.push(root)
   const knowledgeRoot = join(root, 'knowledge')

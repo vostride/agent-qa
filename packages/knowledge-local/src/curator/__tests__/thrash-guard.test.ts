@@ -500,7 +500,7 @@ function tripThrashGuard() {
   return { lineage, tripping, replacementId: tripping.outcome.bundleId }
 }
 
-describe('thrash guard lineage and lifecycle (DCAY-03)', () => {
+describe('thrash guard lineage and lifecycle', () => {
   it('folds only superseded events across the locked trailing window', () => {
     tripThrashGuard()
     const folded = foldSupersessionLineage(scanCanonicalBundles(knowledgeRoot), {
@@ -774,7 +774,7 @@ describe('thrash guard lineage and lifecycle (DCAY-03)', () => {
   })
 })
 
-describe('scope-windowed first-seen burst guard (DCAY-03)', () => {
+describe('scope-windowed first-seen burst guard', () => {
   it('folds nine first-seen page anchors above the provisional threshold and four below it', () => {
     seedFirstSeen(9)
     seedFirstSeen(4, '/small-catalog', 100)

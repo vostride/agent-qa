@@ -76,7 +76,7 @@ function learnedCandidates(count: number): OriginStampedEntry[] {
     candidate(`fact-${String(index).padStart(3, '0')}`))
 }
 
-describe('Channel-1 run brief returns brief and trace as one value (D-16)', () => {
+describe('Channel-1 run brief returns brief and trace as one value', () => {
   it('attributes every learned brief line with record id, leg, rank and score', () => {
     const served = assembleRunBrief({
       candidates: [
@@ -302,7 +302,7 @@ describe('Channel-1 run brief returns brief and trace as one value (D-16)', () =
   })
 })
 
-describe('Channel-3 caution selection returns block and trace as one value (D-16)', () => {
+describe('Channel-3 caution selection returns block and trace as one value', () => {
   function caution(id: string, overrides: Partial<IndexEntry> = {}): IndexEntry {
     return {
       id: asRecordId(id),
@@ -367,7 +367,7 @@ describe('Channel-3 caution selection returns block and trace as one value (D-16
   })
 })
 
-describe('§10.6 authoring channel returns brief and trace as one value (D-16)', () => {
+describe('§10.6 authoring channel returns brief and trace as one value', () => {
   const TARGET_ANCHORS: Anchor[] = [
     { t: 'page', route: '/login' },
     { t: 'flow', name: 'Sign in flow' },
@@ -577,7 +577,7 @@ describe('§10.6 authoring channel returns brief and trace as one value (D-16)',
   })
 })
 
-describe('a trace line is always persistable (387-04)', () => {
+describe('a trace line is always persistable', () => {
   it('normalizes a non-finite score and a sub-1 rank rather than emitting an unloadable trace', () => {
     // 387-02 gave the handoff loader a present-implies-valid clause for the trace, so ONE bad
     // number would make an entire run handoff unloadable instead of degrading one attribution.
@@ -603,7 +603,7 @@ describe('a trace line is always persistable (387-04)', () => {
   })
 })
 
-describe('the retrieval-leg vocabulary is one vocabulary (387-02 handoff note 1)', () => {
+describe('the retrieval-leg vocabulary is one vocabulary', () => {
   it('agrees with the schema vocabulary from the knowledge-local side', () => {
     // `schema` declares RETRIEVAL_TRACE_LEGS; `retrieval/legs.ts` declares a module-private
     // CandidateLeg. Only this package can see both, and the runtime half of the check lives in

@@ -40,7 +40,7 @@ function occurrences(source: string, needle: string): number {
   return source.split(needle).length - 1
 }
 
-describe('the trace reuses the selection the brief already ran (387-04 acceptance)', () => {
+describe('the trace reuses the selection the brief already ran', () => {
   const path = join(serving, 'get-run-brief.ts')
 
   it('runs the serving selection exactly twice — the eligible and budgeted passes', () => {
@@ -85,7 +85,7 @@ describe('the trace reuses the selection the brief already ran (387-04 acceptanc
   })
 })
 
-describe('both trace-returning siblings carry a trace in their signature (387-04)', () => {
+describe('both trace-returning siblings carry a trace in their signature', () => {
   it('declares a trace on the caution and authoring results', () => {
     const cautions = statements(join(serving, 'get-cautions.ts'))
     const authoring = statements(join(serving, 'get-authoring-brief.ts'))

@@ -86,7 +86,7 @@ function commitFixture() {
   return { root, authority, deps, claimed, supersede, victim, victimJob, add, draft, job, checkpoint, rows }
 }
 
-describe('423 curation effect recovery', () => {
+describe('curation effect recovery', () => {
   function reopen(f: ReturnType<typeof commitFixture>) {
     expect(releaseLease({ knowledgeRoot: f.root, leaseId: f.authority.leaseId }).kind).toBe('released')
     const lease = acquireWriterLease(f.root)

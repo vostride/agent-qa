@@ -108,7 +108,7 @@ async function settled(input: ApplyExplicitReviewInput): Promise<ExplicitReviewR
   }))
 }
 
-describe('432 direct explicit knowledge writer (D-04, D-05, D-08, D-09, D-11)', () => {
+describe('direct explicit knowledge writer', () => {
   let root: string
   let knowledgeRoot: string
   let agentQaRoot: string
@@ -190,7 +190,7 @@ describe('432 direct explicit knowledge writer (D-04, D-05, D-08, D-09, D-11)', 
   // cell drives four contexts through a real writer lease and promotion gates (about 4 s alone); in
   // the forced workspace gate beside the rest of this package it took 17-20 s and reached vitest's
   // 15 s default in three consecutive runs. The claim is unchanged.
-  it('C432-EXPLICIT-ALL-CONTEXTS: explicit mark, accept, reject and forget apply in every execution context, including explicit CI promotion', async () => {
+  it('explicit mark, accept, reject and forget apply in every execution context, including explicit CI promotion', async () => {
     for (const context of EXECUTION_CONTEXTS) {
       useRoot(context)
 
@@ -269,7 +269,7 @@ describe('432 direct explicit knowledge writer (D-04, D-05, D-08, D-09, D-11)', 
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
   })
 
-  it('C432-EXPLICIT-LEASE: a held lease is delegated the direct request, bounded and never stolen', async () => {
+  it('a held lease is delegated the direct request, bounded and never stolen', async () => {
     const recordId = publish('delegated checkout')
     const request = { verb: 'forget' as const, input: { target: { grain: 'record' as const, recordId } } }
     const holder = acquireWriterLease(knowledgeRoot)
@@ -306,7 +306,7 @@ describe('432 direct explicit knowledge writer (D-04, D-05, D-08, D-09, D-11)', 
     }
   })
 
-  it('C432-EXPLICIT-RETRY: a repeated operation identity lands its effects once and returns the same record ids, and a later mark leaves the earlier fix intact', async () => {
+  it('a repeated operation identity lands its effects once and returns the same record ids, and a later mark leaves the earlier fix intact', async () => {
     const victim = publish('retried checkout')
     const request = { verb: 'mark' as const, input: markInput(victim) }
     const first = await explicit({ ...base('ci'), request })

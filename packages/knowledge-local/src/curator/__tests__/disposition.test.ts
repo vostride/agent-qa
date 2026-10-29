@@ -280,7 +280,7 @@ function measurementCandidate(value: string, buildOrdinal: number) {
   }
 }
 
-describe('Curator author contract (CUR-01/SAFE-01)', () => {
+describe('Curator author contract', () => {
   it('round-trips a structurally valid authored checkpoint with resolved ids', () => {
     expect(authoredCheckpointSchema.parse(authoredCheckpoint)).toEqual(authoredCheckpoint)
     expect(parseAuthoredCheckpoint(authoredCheckpoint)).toEqual(authoredCheckpoint)
@@ -295,7 +295,7 @@ describe('Curator author contract (CUR-01/SAFE-01)', () => {
     expect(() => authoredCheckpointSchema.parse(absentFromNeighborSet)).not.toThrow()
   })
 
-  it('maps all SAFE-01 execution contexts to their authority mode', () => {
+  it('maps all four execution contexts to their authority mode', () => {
     for (const executionContext of ['local-interactive', 'local-headless'] as const) {
       expect(resolveDispositionProfile(executionContext)).toEqual({ mode: 'drain-to-active' })
     }
@@ -335,7 +335,7 @@ describe('Curator author contract (CUR-01/SAFE-01)', () => {
   })
 })
 
-describe('disposeDelta deterministic authority (CUR-01/SAFE-01)', () => {
+describe('disposeDelta deterministic authority', () => {
   const primary: Anchor = { t: 'el', role: 'button', name: 'Sign in' }
   const page: Anchor = { t: 'page', route: '/login' }
 
@@ -678,7 +678,7 @@ describe('disposeDelta deterministic authority (CUR-01/SAFE-01)', () => {
   })
 })
 
-describe('automatic curation disposition by execution context (D-08)', () => {
+describe('automatic curation disposition by execution context', () => {
   const primary: Anchor = { t: 'el', role: 'button', name: 'Place order' }
   const page: Anchor = { t: 'page', route: '/checkout' }
   const LOCAL_CONTEXTS = ['local-interactive', 'local-headless'] as const
@@ -765,7 +765,7 @@ describe('automatic curation disposition by execution context (D-08)', () => {
       .toMatchObject({ kind: 'apply', delta: deprecate })
   })
 
-  it('C432-CURATION-CONTEXT: automatic ci and cloud curation keeps Supersede and Deprecate proposed', () => {
+  it('automatic ci and cloud curation keeps Supersede and Deprecate proposed', () => {
     for (const context of REMOTE_CONTEXTS) {
       knowledgeRoot = join(root, `agent-qa-knowledge-${context}`)
       const { id: victimId, dir: victimDir } = publishActive([primary, page])
@@ -814,7 +814,7 @@ describe('automatic curation disposition by execution context (D-08)', () => {
   })
 })
 
-describe('disposeDelta measurement mechanism #9 (DCAY-02)', () => {
+describe('disposeDelta measurement mechanism', () => {
   const baseline: MeasurementBaseline = {
     mu0: 100,
     sigma0: 1,
@@ -1033,7 +1033,7 @@ describe('disposeDelta measurement mechanism #9 (DCAY-02)', () => {
 // carve-out mutation could delete that behaviour and leave 70 tests green. That row is therefore
 // a coverage widening rather than a defect reproduction, and its load is measured by probe m1
 // rather than by its own first run. The stated limit belongs here, not in a claim about it.
-describe('cited-id integrity: the fallback is total over DeltaOrigin (CR-02′)', () => {
+describe('cited-id integrity: the fallback is total over DeltaOrigin', () => {
   const primary: Anchor = { t: 'el', role: 'button', name: 'Sign in' }
   const page: Anchor = { t: 'page', route: '/login' }
 
@@ -1258,7 +1258,7 @@ describe('cited-id integrity: the fallback is total over DeltaOrigin (CR-02′)'
 // preservation half of the claim and the reason they are in the walk rather than left implicit:
 // a table that over-broadened into 'downgrade' for `user` would break `reject`/`forget`, the two
 // review verbs this phase exists for, and the user row is what reds if it does.
-describe('the autonomy floor is total over DeltaOrigin (WR-03)', () => {
+describe('the autonomy floor is total over DeltaOrigin', () => {
   const primary: Anchor = { t: 'el', role: 'button', name: 'Sign in' }
   const page: Anchor = { t: 'page', route: '/login' }
 

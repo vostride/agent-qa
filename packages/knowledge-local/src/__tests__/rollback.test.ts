@@ -109,7 +109,7 @@ function rollbackApi(): RollbackApi {
 const PRODUCT = 'rollback-storefront'
 const SCOPE = { tier: 'product', key: PRODUCT } as const
 
-describe('DCAY-05 provenance-keyed rollback resolution', () => {
+describe('provenance-keyed rollback resolution', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -681,7 +681,7 @@ describe('DCAY-05 provenance-keyed rollback resolution', () => {
     })
   })
 
-  it('never revives a SAFE-02 suppressed record through supersede, restore, and backfill', async () => {
+  it('never revives a suppressed record through supersede, restore, and backfill', async () => {
     const anchors: Anchor[] = [
       { t: 'el', role: 'button', name: 'redacted checkout' },
       { t: 'page', route: '/rollback/redacted-checkout' },

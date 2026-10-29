@@ -152,7 +152,7 @@ const acquireFailClosed = acquireWriterLease as (
 
 const PRODUCT = 'writer-authority-fencing'
 
-describe('writer authority and bundle publication are one indivisible protocol (CR-01)', () => {
+describe('writer authority and bundle publication are one indivisible protocol', () => {
   let root: string
   let knowledgeRoot: string
 
@@ -1577,7 +1577,7 @@ describe('writer authority and bundle publication are one indivisible protocol (
     return { leaseId: successor.leaseId, epoch: successor.epoch }
   }
 
-  it('quarantines an intent from a generation reconciliation already superseded (CR-09)', () => {
+  it('quarantines an intent from a generation reconciliation already superseded', () => {
     const authority = acquireAuthority()
     const seeded = seedCompletedCandidate(authority, '100')
     const successor = takeOver()
@@ -1627,7 +1627,7 @@ describe('writer authority and bundle publication are one indivisible protocol (
     expect(durableTailSnapshot()).toEqual(before)
   })
 
-  it('still replays the crash journal of the generation it inherits (CR-09 control)', () => {
+  it('still replays the crash journal of the generation it inherits', () => {
     const authority = acquireAuthority()
     const seeded = seedCompletedCandidate(authority, '100')
     // A predecessor crashed after publishing its intent and before its index apply.
@@ -1651,7 +1651,7 @@ describe('writer authority and bundle publication are one indivisible protocol (
     expect(indexRecordExists(seeded.bundleId)).toBe(true)
   })
 
-  it('reconciles the same journal state twice with no second-pass effect (DAEM-09)', () => {
+  it('reconciles the same journal state twice with no second-pass effect', () => {
     const authority = acquireAuthority()
     const seeded = seedCompletedCandidate(authority, '100')
     writeCommitIntent(knowledgeRoot, {
@@ -1682,7 +1682,7 @@ describe('writer authority and bundle publication are one indivisible protocol (
     expect(durableTailSnapshot()).toEqual(afterFirstPass)
   })
 
-  it('never lets a writer paused before the tail entry publish an intent behind its successor (CR-09)', () => {
+  it('never lets a writer paused before the tail entry publish an intent behind its successor', () => {
     const authority = acquireAuthority()
     const victim = seedMeasurementVictim(authority, '100')
     const replacement = measurementSupersede(authority, victim.bundleId, '204', 47)
@@ -1856,7 +1856,7 @@ describe('writer authority and bundle publication are one indivisible protocol (
     expect(source).not.toContain('const beforePublish = staleEpoch(deps)')
   })
 
-  it('creates the commit intent lexically inside the tail that finalizes publication (CR-09)', () => {
+  it('creates the commit intent lexically inside the tail that finalizes publication', () => {
     const source = readFileSync(new URL('../curator/commit.ts', import.meta.url), 'utf8')
     const tailStart = source.indexOf('return withCurrentWriterAuthority(')
 
@@ -1877,7 +1877,7 @@ describe('writer authority and bundle publication are one indivisible protocol (
    * comment lines so the token's surviving provenance uses (hash source, error text, attribution
    * prefixes) are deliberately out of scope — only identity positions are banned.
    */
-  it('names no fabricated writer identity anywhere in the knowledge store (CR-02)', () => {
+  it('names no fabricated writer identity anywhere in the knowledge store', () => {
     const source = readFileSync(new URL('../curator/knowledge-store.ts', import.meta.url), 'utf8')
     const identityAssignments = source
       .split('\n')
@@ -1890,7 +1890,7 @@ describe('writer authority and bundle publication are one indivisible protocol (
     expect(source).toContain("source: 'knowledge-port'")
   })
 
-  it('projects every canary canonical mutation from inside a held section (CR-02)', () => {
+  it('projects every canary canonical mutation from inside a held section', () => {
     const source = readFileSync(new URL('../curator/knowledge-store.ts', import.meta.url), 'utf8')
 
     expect(source).toContain('withCurrentWriterAuthority(')

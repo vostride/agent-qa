@@ -97,7 +97,7 @@ function markerReason(knowledgeRoot: string): string {
   return JSON.parse(readFileSync(markerPath(knowledgeRoot), 'utf8')).reason
 }
 
-describe('openKnowledgeReader — one open on the healthy path (CR-02)', () => {
+describe('openKnowledgeReader — one open on the healthy path', () => {
   it('opens a healthy index EXACTLY ONCE and serves from it', async () => {
     const knowledgeRoot = await healthyRoot()
     opener.mockClear()

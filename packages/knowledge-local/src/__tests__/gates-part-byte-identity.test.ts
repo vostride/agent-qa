@@ -11,7 +11,7 @@ import { markReceipt, createPromotionFloorFixture } from '../curator/__tests__/f
 import { canaryAttributionsFor } from '../serving/canary-attribution.js'
 import { canaryOutcomeObservationId } from '../serving/canary-observation-id.js'
 
-describe('416 D-03 — persisted gates part byte identity (SC1)', () => {
+describe('persisted gates part byte identity', () => {
   it('preserves trust and attributed canary rows with exactly the optional manifest difference', () => {
     const root = mkdtempSync(join(tmpdir(), '416-gates-byte-identity-'))
     try {

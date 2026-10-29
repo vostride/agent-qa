@@ -27,7 +27,7 @@ import {
   makeProcedureScreenStateSequenceFixture,
 } from '../../__tests__/fixtures/bundle-fixture.js'
 
-describe('D-02 procedure-kind commit mint contract', () => {
+describe('procedure-kind commit mint contract', () => {
   let root: string
   let knowledgeRoot: string
   let epoch: number

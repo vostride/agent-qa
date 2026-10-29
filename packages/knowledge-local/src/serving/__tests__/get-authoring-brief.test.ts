@@ -186,7 +186,7 @@ function authoringBriefOnly(
   return assembleAuthoringBrief(input).brief
 }
 
-describe('assembleAuthoringBrief screenless determinism (ABRF-01)', () => {
+describe('assembleAuthoringBrief screenless determinism', () => {
   it('produces byte-identical briefs for identical store + projection + inputs on the lexical floor', () => {
     const first = authoringBriefOnly(baseInput())
     const second = authoringBriefOnly(baseInput())
@@ -199,7 +199,7 @@ describe('assembleAuthoringBrief screenless determinism (ABRF-01)', () => {
   })
 })
 
-describe('assembleAuthoringBrief tight-budget precedence (ABRF-01, Pitfall 8)', () => {
+describe('assembleAuthoringBrief tight-budget precedence', () => {
   it('sheds facts first, then exemplars, then procedures, cautions last — and reports the shed', () => {
     const full = authoringBriefOnly(baseInput())
     const stages = {
@@ -270,7 +270,7 @@ describe('assembleAuthoringBrief tight-budget precedence (ABRF-01, Pitfall 8)', 
   })
 })
 
-describe('assembleAuthoringBrief exemplar ranking (D-15)', () => {
+describe('assembleAuthoringBrief exemplar ranking', () => {
   it('ranks by trust x recent-pass-rate x relevance and holds the exemplar/procedure caps', () => {
     const rows = [
       projectionRow({
@@ -322,7 +322,7 @@ describe('assembleAuthoringBrief exemplar ranking (D-15)', () => {
   })
 })
 
-describe('assembleAuthoringBrief hard excludes + degraded posture (D-15, ABRF-02)', () => {
+describe('assembleAuthoringBrief hard excludes + degraded posture', () => {
   it('hard-excludes the first observed flake before exemplar scoring', () => {
     const row = projectionRow({
       filePath: 'auth/one-flake.spec.ts',
@@ -454,7 +454,7 @@ describe('assembleAuthoringBrief hard excludes + degraded posture (D-15, ABRF-02
   })
 })
 
-describe('assembleAuthoringBrief refs not copies (D-16)', () => {
+describe('assembleAuthoringBrief refs not copies', () => {
   it('serves exemplar references with bounded excerpts, never full test text', () => {
     const brief = authoringBriefOnly(baseInput())
 
@@ -477,7 +477,7 @@ describe('assembleAuthoringBrief refs not copies (D-16)', () => {
   })
 })
 
-describe('assembleAuthoringBrief adversarial delimiter collisions (ABRF-02, WR-01)', () => {
+describe('assembleAuthoringBrief adversarial delimiter collisions', () => {
   it('serves both the projected exemplar and the distinct never-run test under old-colliding names', () => {
     const brief = authoringBriefOnly(baseInput({
       projectionRows: [projectionRow({ filePath: 'a::b', testName: 'c' })],
@@ -549,7 +549,7 @@ describe('assembleAuthoringBrief adversarial delimiter collisions (ABRF-02, WR-0
   })
 })
 
-describe('assembleAuthoringBrief typed-empty coverage (D-13)', () => {
+describe('assembleAuthoringBrief typed-empty coverage', () => {
   it('carries a present, empty coverage map on every result', () => {
     const full = authoringBriefOnly(baseInput())
     const empty = authoringBriefOnly(baseInput({

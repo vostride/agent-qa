@@ -69,7 +69,7 @@ import {
 
 type PublishedBundle = Extract<PublishBundleOutcome, { kind: 'published' }>
 
-describe('drain-start crash reconciliation (CUR-04)', () => {
+describe('drain-start crash reconciliation', () => {
   let root: string
   let knowledgeRoot: string
   let indexRows: Set<string>
@@ -596,7 +596,7 @@ describe('drain-start crash reconciliation (CUR-04)', () => {
     expect(existsSync(transactionDir)).toBe(true)
   })
 
-  describe('stale-intent quarantine is collision-proof and crash-calm (W-08)', () => {
+  describe('stale-intent quarantine is collision-proof and crash-calm', () => {
     function journalDir(): string {
       return join(knowledgeRoot, JOURNAL_SUBDIR)
     }

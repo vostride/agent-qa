@@ -24,7 +24,7 @@ const STAGE_SYMBOLS = [
   'rerankPrecedence',
 ] as const
 
-describe('D-13 knowledge-local barrel surface', () => {
+describe('knowledge-local barrel surface', () => {
   it('exposes only the composed retrieval entry and query helper as runtime functions', () => {
     const surface = knowledgeLocal as unknown as Record<string, unknown>
 

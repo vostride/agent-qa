@@ -125,7 +125,7 @@ function blockFor(ms: number): void {
   Atomics.wait(new Int32Array(new SharedArrayBuffer(Int32Array.BYTES_PER_ELEMENT)), 0, 0, ms)
 }
 
-describe('quarantine ledger under real cross-process contention (D-04)', () => {
+describe('quarantine ledger under real cross-process contention', () => {
   let base: string
   let root: string
   let markers: {

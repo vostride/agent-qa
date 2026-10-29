@@ -167,7 +167,7 @@ function digestDirectory(dir: string): Readonly<Record<string, string>> {
   return out
 }
 
-describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claimed, published or migrated', () => {
+describe('old proposal files are never opened, claimed, published or migrated', () => {
   let root: string
   let knowledgeRoot: string
   let agentQaRoot: string
@@ -213,7 +213,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
     return recorder.paths.filter((path) => path === inbox || path.startsWith(prefix))
   }
 
-  it('C432-PROPOSAL-FILES-UNREAD: the recorder sees a call that does reach the proposals directory', () => {
+  it('the recorder sees a call that does reach the proposals directory', () => {
     // The control. Without it, "no recorded path" could be a recorder that records nothing.
     expect(readdirSync(inbox).length).toBe(Object.keys(LEGACY_FILES).length)
     expect(touchedInbox()).toEqual([inbox])
@@ -221,7 +221,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
 
   // Twelve real fsync'd writes across four contexts: 2.1 s alone, past vitest's 15 s default in
   // 432-17 gate run 5 at load average 18. Same budget as C432-EXPLICIT-ALL-CONTEXTS (432-14).
-  it('C432-PROPOSAL-FILES-UNREAD: explicit accept, reject and forget apply in every context and never open an old proposal file', async () => {
+  it('explicit accept, reject and forget apply in every context and never open an old proposal file', async () => {
     const before = digestDirectory(inbox)
     // Fixture publication is not under measurement; only the door and the reads are.
     const targets = CONTEXTS.map((context) => ({
@@ -254,7 +254,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
       .toEqual(before)
   }, 120_000)
 
-  it('C432-PROPOSAL-FILES-UNREAD: a retried explicit change answers its first outcome and still opens no old proposal file', async () => {
+  it('a retried explicit change answers its first outcome and still opens no old proposal file', async () => {
     const before = digestDirectory(inbox)
     const recordId = publish('retry')
     recorder.paths.length = 0
@@ -274,7 +274,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
     expect(digestDirectory(inbox)).toEqual(before)
   }, 120_000)
 
-  it('C432-PROPOSAL-FILES-UNREAD: an old proposal id is not a change target, and naming one opens nothing', async () => {
+  it('an old proposal id is not a change target, and naming one opens nothing', async () => {
     const before = digestDirectory(inbox)
     recorder.paths.length = 0
 
@@ -289,7 +289,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
     expect(digestDirectory(inbox)).toEqual(before)
   })
 
-  it('C432-PROPOSAL-FILES-UNREAD: a change applies while the old proposals directory cannot be read at all', async () => {
+  it('a change applies while the old proposals directory cannot be read at all', async () => {
     const recordId = publish('unreadable')
     chmodSync(inbox, 0o000)
     try {
@@ -305,7 +305,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
     expect(Object.keys(digestDirectory(inbox)).sort()).toEqual(Object.keys(LEGACY_FILES).sort())
   }, 120_000)
 
-  it('C432-PROPOSAL-FILES-UNREAD: the knowledge reads answer with old and malformed proposal files present and never open one', () => {
+  it('the knowledge reads answer with old and malformed proposal files present and never open one', () => {
     const before = digestDirectory(inbox)
     const recordId = publish('read')
     recorder.paths.length = 0
@@ -322,7 +322,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
     expect(digestDirectory(inbox)).toEqual(before)
   })
 
-  it('C432-PROPOSAL-FILES-UNREAD: no store, inbox or proposal apply door is exported or present to open them', () => {
+  it('no store, inbox or proposal apply door is exported or present to open them', () => {
     const exported = new Set(Object.keys(knowledgeLocal))
     expect(RETIRED_EXPORTS.filter((name) => exported.has(name)), 'a retired proposal member is exported')
       .toEqual([])
@@ -333,7 +333,7 @@ describe('C432-PROPOSAL-FILES-UNREAD: old proposal files are never opened, claim
     expect(typeof knowledgeLocal.applyExplicitReview).toBe('function')
   })
 
-  it('C432-PROPOSAL-FILES-UNREAD: automatic candidate state remains — CI and cloud still propose, and the relation still parses', () => {
+  it('automatic candidate state remains — CI and cloud still propose, and the relation still parses', () => {
     expect(resolveDispositionProfile('ci')).toEqual({ mode: 'propose-only' })
     expect(resolveDispositionProfile('cloud')).toEqual({ mode: 'propose-only' })
     expect(resolveDispositionProfile('local-headless')).toEqual({ mode: 'drain-to-active' })

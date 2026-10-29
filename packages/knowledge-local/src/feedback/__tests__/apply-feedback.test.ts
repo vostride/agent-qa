@@ -81,7 +81,7 @@ describe('mechanical mark triage and selection', () => {
   })
 })
 
-describe('C437-NO-INPUT-READERS', () => {
+describe('assertion drift after a skipped tap', () => {
   const skippedTap = { success: false,
     metadata: { idempotentNoop: { currentState: 'checked', inputSent: false } } }
   const base = { kind: 'false-fail' as const, stepIndex: 0, served: [] }
