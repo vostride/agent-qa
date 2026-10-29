@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { materializePolicy, PolicyTextRefusedError, policyShelfPath } from '../materialize.js'
 import { acquireWriterLease, releaseLease, WriterAuthorityLostError } from '../../lease/writer-lease.js'
 
-// 441-41: the stage open is the seam inside the transaction now that no audit sink is called.
+// the stage open is the seam inside the transaction now that no audit sink is called.
 const stageHook = vi.hoisted(() => ({ beforeStage: undefined as (() => void) | undefined }))
 vi.mock('node:fs', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:fs')>()

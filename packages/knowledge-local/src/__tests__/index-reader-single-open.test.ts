@@ -152,7 +152,7 @@ describe('openKnowledgeReader — one open on the healthy path', () => {
 
     expect(classifyIndexFace(knowledgeRoot)).toEqual({ source: 'index' })
     expect(opener.mock.calls.length).toBe(1)
-    // T-407-10: asking about the index is not a mutation of it, and it is not a connection leak.
+    // asking about the index is not a mutation of it, and it is not a connection leak.
     expect(closeCalls).toBe(1)
     expect(markerExists(knowledgeRoot)).toBe(false)
   })

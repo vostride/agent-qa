@@ -1,4 +1,4 @@
-// The entity index projection (Phase 387, D-06).
+// The entity index projection.
 //
 // Three claims, and the third is the load-bearing one: an entity is not a learned fact, and a
 // run brief that ever served one would pollute planner context and corrupt trust math. That
@@ -442,7 +442,7 @@ describe('a sighting maintains the projection, and a rebuild is driven by the le
     await resolveEntityRef('bundle-checkout', deps())
     await resolveEntityRef('bundle-login', deps())
     // An address whose owning store has forgotten the entity. It keeps resolving through tier
-    // (a) forever (D-04) but must not become a fuzzy-match target with no title.
+    // (a) forever but must not become a fuzzy-match target with no title.
     ledger.mint('MEM', 'bundle-vanished')
     handle.connection.db.exec('DELETE FROM records')
 

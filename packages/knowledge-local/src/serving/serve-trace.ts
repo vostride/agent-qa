@@ -1,4 +1,4 @@
-// Serve-time trace composition for the four serving channels (Phase 387, KREV-02 · D-13/D-14/D-16).
+// Serve-time trace composition for the four serving channels.
 //
 // D-16 makes producing a trace inseparable from serving: every serving entry returns brief and
 // trace as ONE value, so no code path can hand a caller a brief while quietly discarding how it
@@ -87,7 +87,7 @@ export function traceLine(input: {
 }
 
 /**
- * Bound the truncation ledger at the pinned top-K (D-14). The cut set is unbounded in principle;
+ * Bound the truncation ledger at the pinned top-K. The cut set is unbounded in principle;
  * the ledger keeps the highest-ranked cuts because those are the ones a "why didn't it mention X"
  * question is actually asked about. Input order IS rank order at every call site, so this keeps a
  * prefix rather than re-sorting a ranking somebody else produced.

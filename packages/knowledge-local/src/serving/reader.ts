@@ -368,7 +368,7 @@ function findReadableBundle(
   const hydrated = hydrateRows(config, [row], false)[0]
   if (hydrated === undefined) return undefined
   /**
-   * G-381-4: `currentServingEntries` is the BRIEF/CAUTION serving wall — it admits candidates
+   * `currentServingEntries` is the BRIEF/CAUTION serving wall — it admits candidates
    * only through the vetted-canary flag, which is fact/caution-only, so a committed procedure
    * (agent-verified candidate, promotion-excluded in M2 by 379 D-16) was permanently unreadable
    * even when `getProcedure` had just recommended replaying it. The read face therefore falls
@@ -466,7 +466,7 @@ function servingReader(
       const entries = currentServingEntries(
         hydrateRows(config, readIndexRows(config, scope), true),
       )
-      // D-16: the composite is returned verbatim. The reader does not unwrap and re-wrap it,
+      // the composite is returned verbatim. The reader does not unwrap and re-wrap it,
       // so there is no point in this path at which a brief exists without its trace.
       return assembleRunBrief({
         candidates: entries,
@@ -531,7 +531,7 @@ function servingReader(
     },
 
     emitCanaryOutcome(payload: CanaryOutcome) {
-      // D-20: one synchronous, atomic, content-addressed emit pattern.
+      // one synchronous, atomic, content-addressed emit pattern.
       enqueueCanaryOutcome(config.knowledgeRoot, payload)
     },
   }

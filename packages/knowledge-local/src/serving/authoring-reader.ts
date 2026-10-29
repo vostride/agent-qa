@@ -1,5 +1,5 @@
 /**
- * knowledge-local implementation of the agent-side AuthoringReadPort (D-13): the 4th channel's
+ * knowledge-local implementation of the agent-side AuthoringReadPort: the 4th channel's
  * composition boundary. Shares the serving reader's hydration internals and the one derived
  * index SQLite; keeps servingReader/KnowledgeHintReader untouched.
  */
@@ -47,7 +47,7 @@ export interface AuthoringReaderDependencies {
   /** Test/integration seam; production omission uses denseLeg's automatic acquisition ladder. */
   embedder?: EmbedderPort
   /**
-   * ISO-8601 instant the quarantine fold compares expiry against (390 D-11). A seam rather than a
+   * ISO-8601 instant the quarantine fold compares expiry against. A seam rather than a
    * clock read inside the fold: `'expired'` is COMPUTED from this value, so pinning an expiry
    * boundary one second either side has to be possible without waiting for wall time. Production
    * omission reads the clock ONCE per brief, at this composition boundary.
@@ -67,12 +67,12 @@ interface OutcomeRow {
 }
 
 /**
- * The identities the committed ledger currently suppresses (390 D-02), keyed exactly the way the
+ * The identities the committed ledger currently suppresses, keyed exactly the way the
  * projection is keyed — `(product, filePath, testName)`, with the ledger's `product` carrying the
  * same slugged partition the projection rows do.
  *
  * Only `'quarantined'` counts. `'expired'` and both released states are deliberately NOT excluded:
- * an entry whose deadline lapsed has stopped suppressing (D-11) while staying listed, and a
+ * an entry whose deadline lapsed has stopped suppressing while staying listed, and a
  * released entry is a decision someone made.
  *
  * NO try/catch. A ledger this build cannot read propagates its typed error, because the one
@@ -312,7 +312,7 @@ export function createAuthoringReader(
     async getAuthoringBrief(intent: string, scope: ScopeKey): Promise<AuthoringBrief> {
       const entries = hydrateRows(config, readIndexRows(config, scope), false)
       // ONE clock read per brief, here at the composition boundary — the quarantine fold below is
-      // pure in `now` (D-11), and a second read could put two rows on two sides of one deadline.
+      // pure in `now`, and a second read could put two rows on two sides of one deadline.
       const projectionRows = readProjectionRows(
         config,
         scope,
@@ -323,7 +323,7 @@ export function createAuthoringReader(
         projectionRows,
         deps.discoverKnownTests?.() ?? [],
       )
-      // D-16: the assembly seam ALWAYS produces the trace, so capture is already running for the
+      // the assembly seam ALWAYS produces the trace, so capture is already running for the
       // 4th channel. The AuthoringReadPort contract still carries only the brief because there is
       // no authoring evidence artifact to persist it onto yet; 393/394 mint the draft receipt and
       // then only have to stop discarding this value. Deliberately not a fabricated persistence
@@ -331,7 +331,7 @@ export function createAuthoringReader(
       const { brief } = assembleAuthoringBrief({
         entries,
         projectionRows,
-        // D-16: the consumer owns the filesystem and supplies identity refs only. Projection
+        // the consumer owns the filesystem and supplies identity refs only. Projection
         // identities remain a deterministic floor, while never-run tests widen the universe.
         knownTests,
         intent,

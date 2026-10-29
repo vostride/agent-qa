@@ -463,7 +463,7 @@ describe('createAuthoringReader dense retrieval', () => {
     expect(brief.exemplars).toEqual([])
   })
 
-  // 390 D-02 — the exemplar quarantine exclude used to read a DERIVED column the projection
+  // the exemplar quarantine exclude used to read a DERIVED column the projection
   // stamped from a lifetime flake threshold. That column is gone: the committed ledger is now the
   // one thing called "quarantined", and every case below varies exactly ONE input (the ledger
   // bytes, or the clock the fold is asked about) while the projection rows stay identical.

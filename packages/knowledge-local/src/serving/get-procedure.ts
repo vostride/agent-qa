@@ -18,7 +18,7 @@ import {
  * D-05 replay-eligibility confirmation bars per curator tier (PROVISIONAL, retrieval/constants.ts
  * style — internal constitution values, never config keys; M3 owns calibration from attributed
  * outcomes). Degraded authorship needs a higher confirmation bar than full; floor tier has no bar
- * because it is hint-only forever (D-06) and is deliberately absent from this record.
+ * because it is hint-only forever and is deliberately absent from this record.
  */
 export const PROCEDURE_REPLAY_CONFIRMATIONS: Record<'full' | 'degraded', number> = {
   full: 2,
@@ -81,7 +81,7 @@ export interface MatchProcedureInput {
   intent: string
   /** ScreenState-derived anchors; normalized here via canonicalJson(normalizeAnchor(...)). */
   anchors: readonly Anchor[]
-  /** Source-tagged binding NAMES only — no value ever reaches the matcher (D-08). */
+  /** Source-tagged binding NAMES only — no value ever reaches the matcher. */
   availability: ProcedureBindingAvailability
   /** Optional additive dense-leg scores keyed by record id, present only when an embedder is up. */
   denseScoreByRecordId?: ReadonlyMap<string, number>
@@ -98,7 +98,7 @@ function compareRecordId(left: IndexEntry, right: IndexEntry): number {
 }
 
 /**
- * The ONE kind-aware procedure admission predicate, shared by BOTH serving faces (G-381-4):
+ * The ONE kind-aware procedure admission predicate, shared by BOTH serving faces:
  * the MATCH face (`matchProcedure` below) and the READ face (`findReadableBundle` in
  * serving/reader.ts). Procedures can never be `active` in M2 (379 D-16 excludes procedure-kind
  * from promotion) and the brief's vetted-candidate path is fact/caution-only, so candidate-status
@@ -110,7 +110,7 @@ function compareRecordId(left: IndexEntry, right: IndexEntry): number {
  * replay into a hint. Keep this the sole admission authority for both faces so they cannot
  * diverge again. This is READ admission, never promotion — nothing here makes a procedure
  * `active`, brief-servable, or caution-servable. TRUST lives in the fold (hint/replay), never in
- * admission (T-381-11).
+ * admission.
  */
 export function admitsProcedure({ entry, bundle }: ProcedureMatchCandidate): boolean {
   if (entry.kind !== 'procedure') return false
@@ -144,7 +144,7 @@ function lexicalRelevance(bundle: ProcedureMatchCandidate['bundle'], intent: str
 /**
  * Surviving Confirm evidence minus the creation/authoring observation. A run-linked bundle's
  * creation event shares the bundle-creating candidate id with provenance.curationJobId; counting
- * it would cross every D-05 bar one organic canary early (CR-03). Re-extraction and canary
+ * it would cross every D-05 bar one organic canary early. Re-extraction and canary
  * confirmations arrive from distinct curation jobs and continue to count.
  */
 function confirmationCount(
@@ -185,7 +185,7 @@ export function matchProcedure(input: MatchProcedureInput): ProcedureMatch | und
     const anchorScore = anchorRelevance(candidate.entry, requestedKeys)
     if (anchorScore === 0) return []
 
-    // Unparseable bodies are skipped fail-closed (T-381-01), matching parseProcedureBody's law.
+    // Unparseable bodies are skipped fail-closed, matching parseProcedureBody's law.
     const payload = parseProcedureBody(candidate.bundle.body)
     if (payload === undefined) return []
 
@@ -211,7 +211,7 @@ export function matchProcedure(input: MatchProcedureInput): ProcedureMatch | und
       candidate.bundle.provenance,
     )
     // The shared schema contract is also enforced by the loop binder. Matcher admission and
-    // loop-side source/type binding therefore cannot drift (WR-03).
+    // loop-side source/type binding therefore cannot drift.
     const { fillable } = procedureParameterFillability(payload, input.availability)
 
     // Laplace-shaped confirmation factor: 0 confirmations => 0.5, saturating toward 1. Hint

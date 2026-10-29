@@ -206,7 +206,7 @@ export function diffSince(options: DiffSinceOptions): RecordChange[] {
         recordId: bundle.manifest.id,
         change: 'added',
         atOrdinal: earliestOrdinal,
-        // 407-04 (D-10): the appearance of a record IS the run's doing whenever the bundle
+        // the appearance of a record IS the run's doing whenever the bundle
         // records one — no `curationJobId` match is needed, because no event produced this
         // change. A standalone bundle names no run and gets no key.
         ...(bundle.provenance.mode === 'run-linked'

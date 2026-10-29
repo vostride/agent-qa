@@ -84,7 +84,7 @@ function truncationSignal(
 }
 
 /**
- * The Channel-1 brief together with the serve-time trace that explains it (D-13/D-16). One value,
+ * The Channel-1 brief together with the serve-time trace that explains it. One value,
  * never two calls: a caller cannot obtain the brief without also receiving how it was chosen.
  */
 export interface AssembledRunBrief {
@@ -139,7 +139,7 @@ function assembleTrace(
 
 /**
  * Assemble the deterministic Channel-1 brief over records already loaded by the reader, together
- * with its serve-time retrieval trace (D-13/D-16).
+ * with its serve-time retrieval trace.
  * L0 is sovereign and whole; the supplied budget applies only to learned L1/L2 records.
  *
  * The trace covers the LEARNED lines only. Sovereign L0 user facts never enter the ranking — they

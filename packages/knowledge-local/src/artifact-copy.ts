@@ -1,8 +1,8 @@
 // Binary artifact bytes land only in the gitignore-covered artifacts/ directory and bypass the
-// committed-text checkpoint, following the eval-local blob precedent (BNDL-01/D-13). The writer
+// committed-text checkpoint, following the eval-local blob precedent. The writer
 // commits a separately checkpointed inventory containing only this function's `copied` rows.
 // This layer verifies content hashes, enforces copied-byte caps, and never emits a row before its
-// content-addressed file exists. 2026-10-15 (441-25, D-28/D-21): DOM and accessibility snapshots
+// content-addressed file exists. 2026-10-15: DOM and accessibility snapshots
 // are written through the caller's declared mask; every other artifact is copied byte-for-byte.
 
 import { createHash } from 'node:crypto'

@@ -1,4 +1,4 @@
-// D-08: the shared brief renderer lives in runner.
+// the shared brief renderer lives in runner.
 // Keep knowledge-local's serving import paths stable through these re-exports.
 export {
   CHARS_PER_TOKEN_ESTIMATE,

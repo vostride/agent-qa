@@ -164,7 +164,7 @@ function preFilter(
   const admittedScopeKeys = new Set(predicate.binds.slice(1))
 
   return input.candidates.filter((candidate) => {
-    // D-08: a rule is either sovereign or it is not yet a rule.
+    // a rule is either sovereign or it is not yet a rule.
     if (candidate.kind === 'policy') return false
     if (
       material.includeSuperseded !== true
@@ -314,7 +314,7 @@ function stageCandidates(
 
 /**
  * One selected record together with the two facts the selection ALREADY computed about it:
- * the score it was ordered by and its 1-based position in that order (KREV-02 · D-13/D-14).
+ * the score it was ordered by and its 1-based position in that order.
  *
  * These are not new quantities. `score` is exactly what `scoreCandidates` produced and
  * `compareScored` ordered by; `rank` is the position that order put the record in. The serve-time

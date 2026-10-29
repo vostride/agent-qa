@@ -180,7 +180,7 @@ describe('the addressing ledger', () => {
     // direction this assertion exists to catch.
     expect(Object.keys(ledger).sort()).toEqual([
       'close',
-      // 387-03: enumeration, which the entity index is rebuilt FROM (D-06). It reads and
+      // enumeration, which the entity index is rebuilt FROM. It reads and
       // cannot write, so it frees no ordinal — the exact-set assertion is doing its job by
       // making a new member somebody's deliberate decision rather than an unnoticed one.
       'listAddresses',
@@ -201,7 +201,7 @@ describe('the addressing ledger', () => {
 
     expect(ledger.listAddresses().map(({ shortId }) => shortId))
       .toEqual(['MEM-001', 'MEM-002', 'TGT-checkout'])
-    // Ordinals reflect FIRST-MENTION order (D-01), not the order of the machine ids — the
+    // Ordinals reflect FIRST-MENTION order, not the order of the machine ids — the
     // listing sorts by address, so a rebuild driven from it is stable across processes.
     expect(ledger.listAddresses().map(({ machineId }) => machineId))
       .toEqual(['bundle-b', 'bundle-a', 'checkout'])

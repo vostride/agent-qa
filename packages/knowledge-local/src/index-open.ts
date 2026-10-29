@@ -422,7 +422,7 @@ function bootstrapVecSchema(db: DatabaseSync, activeProfile: EmbeddingProfile): 
 }
 
 /**
- * Run-outcome projection tables (381-05, D-14/D-15).
+ * Run-outcome projection tables.
  *
  * Derived per-test outcome counters and exercised-anchor sets live in this same gitignored
  * index SQLite — one derived-state home, one writer role, no new DB file. Rows carry test
@@ -430,7 +430,7 @@ function bootstrapVecSchema(db: DatabaseSync, activeProfile: EmbeddingProfile): 
  * counters, and normalized anchors ONLY; no test file content ever enters the store.
  * `run_outcome_applied_runs` is the per-product/runId idempotency marker that makes
  * refolding a crash-rerun tail safe (receipt-gated at the caller, DB-gated here).
- * `run_fingerprint_windows` (390 D-07/D-09) carries one row per applied FAILED member keyed by
+ * `run_fingerprint_windows` carries one row per applied FAILED member keyed by
  * the failure fingerprint, which is the substrate the quarantine detection rule windows over.
  * All four tables are disposable: `rebuildRunOutcomes` reproduces them from
  * `.agent-qa/runs/<runId>/handoff.json` (plus each run's `analysis.json`) scans alone (L12).

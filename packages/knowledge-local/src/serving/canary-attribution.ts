@@ -1,4 +1,4 @@
-// What became of the canary lines a run served (Phase 407, LERN-02 · D-08).
+// What became of the canary lines a run served.
 //
 // A canary has two halves that never live in the same place. The SERVING half — "this brief line
 // was offered as a canary" — is a fact about the run and is read from its evidence. The
@@ -99,7 +99,7 @@ function isAttributingType(type: string): type is CanaryAttributionOutcome {
  * would trust a filesystem convention no contract states. Bundles outside the candidate set are
  * enumerated but their outcomes are never folded.
  *
- * A BUNDLE THAT WILL NOT LOAD ATTRIBUTES NOTHING, AND DENIES NOTHING (407-14, CR-03). One corrupt,
+ * A BUNDLE THAT WILL NOT LOAD ATTRIBUTES NOTHING, AND DENIES NOTHING. One corrupt,
  * truncated or tampered directory — quite possibly one the asking run never served a line from —
  * used to throw straight through this walk and turn the caller's whole read into a failure. It is
  * SKIPPED instead: it can contribute no outcome (that is what "will not load" means), and it has

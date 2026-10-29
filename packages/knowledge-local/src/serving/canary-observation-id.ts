@@ -1,4 +1,4 @@
-// The canary observation identity, in a module the READ face may import (Phase 407, D-08/D-10).
+// The canary observation identity, in a module the READ face may import.
 //
 // MOVED from `curator/disposition.ts` rather than copied. The writer stamps this id onto the
 // outcome event it appends and the reader recomputes it to find that event again, so a second
@@ -16,7 +16,7 @@ import { canonicalJson, sha256hex } from '@vostride/agent-qa-schema'
 import type { CanaryOutcome } from '@vostride/agent-qa-schema'
 
 /**
- * D-22: bind one canary observation to the served candidate and attributed step. The schema
+ * bind one canary observation to the served candidate and attributed step. The schema
  * evidence-token recipe adds the exercised anchor and build ordinal; together those fields are
  * the complete replay identity required by §7.5.1.
  */

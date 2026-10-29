@@ -1,5 +1,5 @@
 /**
- * The D-16 structural claim, pinned where a runtime case cannot pin it (Phase 387-04).
+ * The D-16 structural claim, pinned where a runtime case cannot pin it.
  *
  * D-16 says it is IMPOSSIBLE to serve without producing a trace. That is a claim about SIGNATURES,
  * and this package's vitest config type-checks `*.test-d.ts` only — 387-02 proved the consequence

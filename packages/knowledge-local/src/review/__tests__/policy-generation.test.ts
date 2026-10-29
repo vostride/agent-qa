@@ -9,7 +9,7 @@ import { acquireWriterLease, releaseLease } from '../../lease/writer-lease.js'
 import { readPolicyLadder } from '../../serving/policy-ladder.js'
 import { applyExplicitReview } from '../apply-review.js'
 
-// RE-SPELLED 2026-10-01 (432-17, D-05): the accept is applied directly with a stable operation
+// RE-SPELLED 2026-10-01: the accept is applied directly with a stable operation
 // identity instead of proposed and then applied by proposal id. The applied-record readback became a
 // same-identity retry, which writes nothing twice and reports the shelf `unchanged` for that call.
 

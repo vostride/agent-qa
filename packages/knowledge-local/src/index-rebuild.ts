@@ -114,7 +114,7 @@ export const EMBED_STATUS_PENDING = 'pending'
 export const EMBED_STATUS_PRESENT = 'present'
 /**
  * SAFE-02 terminal state: lexical projection exists, but dense bytes must never be backfilled.
- * 2026-10-15 (441-24, D-27): nothing writes it now; rows indexed before 441 may still hold it.
+ * nothing writes it now; rows indexed before 441 may still hold it.
  */
 export const EMBED_STATUS_SUPPRESSED = 'suppressed'
 /**
@@ -753,7 +753,7 @@ function emitRelationEdges(
           continue
         }
         /**
-         * D-22: `renamed-from` is the one intentional dead-target relation. The live replacement
+         * `renamed-from` is the one intentional dead-target relation. The live replacement
          * owns the edge, so audit expansion can still traverse new → old after the victim's own
          * recall rows and edges are structurally scrubbed. Every other dead target stays omitted.
          */

@@ -6,7 +6,7 @@ export const MODEL_CACHE_DIR_ENV_VAR = 'AGENT_QA_MODEL_CACHE_DIR'
 /**
  * Resolve the shared model cache used by every native embedder acquisition.
  *
- * D-11: one download per machine across all projects, with artifacts identified
+ * one download per machine across all projects, with artifacts identified
  * by (model_id, revision). An explicit agent-qa override wins, then the XDG
  * cache root, with the conventional home cache as the final fallback.
  */

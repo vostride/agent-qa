@@ -1,4 +1,4 @@
-// The read-only bundle listing served by the /reader entry (Phase 384, D-06).
+// The read-only bundle listing served by the /reader entry.
 //
 // `knowledge.bundles.list` had no reader-entry function before this module: bundle
 // enumeration and loading lived only behind the writer-gated main entry, so a surface that

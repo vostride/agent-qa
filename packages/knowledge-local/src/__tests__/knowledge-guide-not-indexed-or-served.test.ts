@@ -1,4 +1,4 @@
-// 431-10 · D-17 · PXH-AGENT-01: the guide `init` writes at `agent-qa-knowledge/AGENTS.md` is
+// the guide `init` writes at `agent-qa-knowledge/AGENTS.md` is
 // never indexed as learned memory and never served as policy. Structure already guarantees it —
 // the scanner descends `memory/<product>/bundles/` and the policy ladder reads two named files —
 // so these cells run the real rebuild and the real serving reader rather than adding exclusion

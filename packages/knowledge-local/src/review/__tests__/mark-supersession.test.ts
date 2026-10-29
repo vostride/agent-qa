@@ -13,7 +13,7 @@ import * as stores from '../../curator/knowledge-store.js'
 import { applyExplicitReview } from '../apply-review.js'
 import type { ApplyExplicitReviewInput } from '../apply-review.js'
 
-// RE-SPELLED 2026-10-01 (432-17, D-04/D-05): the first cell applied its mark through a filed
+// RE-SPELLED 2026-10-01: the first cell applied its mark through a filed
 // proposal and the proposal door. It now applies the same mark directly under a stable operation
 // identity (the mark intent's identity), the interruption is injected after the sovereign promotion
 // lands instead of at the deleted applied-record publication, and "already-applied" is the

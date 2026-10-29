@@ -210,7 +210,7 @@ describe('diffSince deterministic maintenance history', () => {
       evidenceToken: 'superseded-at-12',
       byRecordId: confirmedId,
     })
-    // 407-04 (LERN-02, D-10): the synthetic `added` change carries the bundle's OWN run link,
+    // the synthetic `added` change carries the bundle's OWN run link,
     // which every fixture here publishes with `mode: 'run-linked'`. The lifecycle changes above
     // do not, because this fixture's provenance names no `curationJobId` for their events to
     // match — which is the point of the rule and not an omission in the fixture.
@@ -723,7 +723,7 @@ describe('diffSince deterministic maintenance history', () => {
   })
 })
 
-// 407-04: the canary observation identity moved to `serving/canary-observation-id.ts` so the
+// the canary observation identity moved to `serving/canary-observation-id.ts` so the
 // READER entry may import it — `curator/disposition.ts` names the writer-side bundle store, the
 // egress checkpoint and the queue payloads, none of which a read may reach. The move is only
 // safe if it is a MOVE: the writer stamps this id onto the event it appends and the reader

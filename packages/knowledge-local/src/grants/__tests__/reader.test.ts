@@ -1,13 +1,13 @@
-// No ledger state authorizes anything, because nothing reads the ledger (432-18, D-14/D-15/D-22).
+// No ledger state authorizes anything, because nothing reads the ledger.
 //
-// RE-SPELLED 2026-10-01 (432-18). This suite pinned the standing-approval reader's fail-closed
-// posture over a DAMAGED committed ledger (Phase 391 plan 08): an intact grant came back, a folded
+// RE-SPELLED 2026-10-01. This suite pinned the standing-approval reader's fail-closed
+// posture over a DAMAGED committed ledger: an intact grant came back, a folded
 // revoke returned nothing, and a revoke line damaged in place returned nothing either, because an
 // authorization file the build cannot fully read is not a licence. 432-13 removed every gate that
 // consulted the reader and 432-18 deletes the reader with the ledger, so the three cases keep their
 // fixtures and change their claim: whatever the old file holds — an active grant, a revoked one or a
 // damaged revoke line — the direct change commits exactly as it does with no file at all, and the
-// file is left byte-identical. There is no reader left to ask (C432-GRANTS-UNREAD-WRITER-ABSENT).
+// file is left byte-identical. There is no reader left to ask.
 
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

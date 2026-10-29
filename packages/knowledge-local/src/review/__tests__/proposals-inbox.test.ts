@@ -1,13 +1,13 @@
-// C432-PROPOSAL-FILES-UNREAD: old proposal files stay on disk and nothing opens them (432-17,
+// old proposal files stay on disk and nothing opens them (432-17,
 // D-02 / D-05 / D-22).
 //
-// RE-SPELLED 2026-10-01 (432-17). This file was the corpus for the Phase 391 proposals inbox over
+// RE-SPELLED 2026-10-01. This file was the corpus for the Phase 391 proposals inbox over
 // 387's store substrate: the `.rejected.json` sibling, enumeration over the five durable name shapes,
 // expiry computed at read, the WR-03 orphaned-claim reap and the absorb-as-data reading of 387-era
 // bare documents. 432 deletes that inbox with the store, the claim/rename machinery and the
 // envelope, so every one of those claims lost its subject. What survives is the claim the inbox
-// owed the files it leaves behind: a workspace that still holds them is a fresh workspace (D-02),
-// they are never read, claimed, published, reaped or migrated (D-22), and a malformed one cannot
+// owed the files it leaves behind: a workspace that still holds them is a fresh workspace,
+// they are never read, claimed, published, reaped or migrated, and a malformed one cannot
 // break anything because nothing parses it.
 //
 // HOW "NEVER OPENED" IS MEASURED. `node:fs` and `node:fs/promises` are wrapped for this file's
@@ -19,7 +19,7 @@
 // the same wrapper and requires it to be recorded.
 //
 // AUTOMATIC CANDIDATE STATE IS NOT THE INBOX. Curation's `proposed-supersession-of` relation and
-// the CI/cloud propose-only profile are a knowledge-candidate disposition and survive (D-08); the
+// the CI/cloud propose-only profile are a knowledge-candidate disposition and survive; the
 // last cell keeps them measured beside the absence.
 
 import { createHash } from 'node:crypto'
@@ -220,7 +220,7 @@ describe('old proposal files are never opened, claimed, published or migrated', 
   })
 
   // Twelve real fsync'd writes across four contexts: 2.1 s alone, past vitest's 15 s default in
-  // 432-17 gate run 5 at load average 18. Same budget as C432-EXPLICIT-ALL-CONTEXTS (432-14).
+  // 432-17 gate run 5 at load average 18. Same budget as C432-EXPLICIT-ALL-CONTEXTS.
   it('explicit accept, reject and forget apply in every context and never open an old proposal file', async () => {
     const before = digestDirectory(inbox)
     // Fixture publication is not under measurement; only the door and the reads are.

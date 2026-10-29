@@ -1,11 +1,11 @@
-// The addressing ledger (Phase 387, ENTY-01 / D-01 / D-02 / D-03 / D-04).
+// The addressing ledger.
 //
 // The one DURABLE, never-rebuilt store this phase mints. Everything else 387 builds is a
 // projection that a rebuild heals; this file is not, and the difference is the whole reason
 // it lives in its own database beside `agent-jobs.db` rather than as a table inside the
 // knowledge index. Index tables are rebuildable by law, and rebuilding an ordinal ledger
 // would REASSIGN published addresses — `MEM-001` in a CI log from last month would start
-// pointing at a different memory (D-02).
+// pointing at a different memory.
 //
 // Three laws, and each is enforced by the database rather than by discipline:
 //
@@ -13,7 +13,7 @@
 //                  convention about which functions this module exports — a rule that holds
 //                  against a future call site, an older binary, and someone at a sqlite3
 //                  prompt. The exported surface is open/mint/lookup, and the triggers are
-//                  what make that surface's narrowness a property of the data (D-04).
+//                  what make that surface's narrowness a property of the data.
 //   never-reuse    ordinals come from `MAX(ordinal) + 1` per kind, and since nothing is ever
 //                  deleted that sequence is strictly increasing forever. `UNIQUE(kind,
 //                  ordinal)` means a second row could not claim a spent one even if some
@@ -23,10 +23,10 @@
 //                  (kind, machine-id) simultaneously BOTH return the winner's ordinal and
 //                  neither sees a constraint error (the 385 D-02 idiom).
 //
-// Lease-free, deliberately (D-02). Addressing metadata is not learned knowledge, and the CLI
+// Lease-free, deliberately. Addressing metadata is not learned knowledge, and the CLI
 // has to be able to mint with no daemon running. Nothing here reads the writer lease, and
 // nothing on a run/test/bundle CREATION path calls it — minting happens only when something
-// SIGHTS an entity (D-01).
+// SIGHTS an entity.
 
 import { mkdirSync } from 'node:fs'
 import { dirname } from 'node:path'
@@ -60,7 +60,7 @@ export const ADDRESSING_LEDGER_USER_VERSION = 2
  */
 export const ADDRESSING_LEDGER_BUSY_TIMEOUT_MS = 2000
 
-/** The ledger's own file name under the agent-qa root, beside `agent-jobs.db` (D-02). */
+/** The ledger's own file name under the agent-qa root, beside `agent-jobs.db`. */
 export const ADDRESSING_LEDGER_DB_FILE = 'entity-addresses.db'
 
 /** A ledger file this build cannot read. Refused before a single schema statement runs. */
@@ -80,7 +80,7 @@ export class AddressingLedgerSchemaVersionError extends Error {
 }
 
 /**
- * An EXPLICITLY recorded target rename (D-03).
+ * An EXPLICITLY recorded target rename.
  *
  * There is no heuristic rename detection in this file and there must not be. Inferring that
  * two target slugs are "the same target" from their spelling, their order of appearance or
@@ -98,7 +98,7 @@ export interface TargetRename {
 export interface EntityAddress {
   readonly kind: EntityKind
   readonly machineId: string
-  /** Present for ordinal-addressed kinds; absent for slug-addressed ones (D-03). */
+  /** Present for ordinal-addressed kinds; absent for slug-addressed ones. */
   readonly ordinal?: number
   readonly shortId: string
   readonly mintedAt: string
@@ -122,12 +122,12 @@ export interface AddressingLedger {
    *
    * READ-only, and the append-only law is what makes it worth having: this list only grows, so
    * a caller enumerating it is reading a complete history rather than a snapshot that could
-   * have lost rows. The entity index is rebuilt FROM this (D-06) — a projection can only claim
+   * have lost rows. The entity index is rebuilt FROM this — a projection can only claim
    * to heal if the thing it is rebuilt from can be enumerated in full.
    */
   listAddresses(): EntityAddress[]
   /**
-   * Record that a config target was renamed (D-03). See {@link TargetRename} for why this is
+   * Record that a config target was renamed. See {@link TargetRename} for why this is
    * the only way a link between two slugs ever comes to exist.
    *
    * Both slugs are minted, so both keep their own permanent address: the predecessor keeps
@@ -231,7 +231,7 @@ export function openAddressingLedger(options: OpenAddressingLedgerOptions): Addr
 
   // Every statement is parameterized. No SQL in this file is built by concatenating a caller's
   // string, and the two `PRAGMA` statements above are the only interpolations — both of pinned
-  // integer constants declared in this module (T-387-01-01).
+  // integer constants declared in this module.
   const insertAddress = db.prepare(
     `INSERT INTO addresses (kind, machine_id, ordinal, short_id, minted_at)
      VALUES (?, ?, ?, ?, ?)

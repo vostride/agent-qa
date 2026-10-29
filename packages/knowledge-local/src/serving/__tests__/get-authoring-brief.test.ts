@@ -176,7 +176,7 @@ function baseInput(
 }
 
 /**
- * 387-04: `assembleAuthoringBrief` returns `{ brief, trace }` as ONE value (D-16 covers the
+ * `assembleAuthoringBrief` returns `{ brief, trace }` as ONE value (D-16 covers the
  * §10.6 4th channel too). These cases pin the BRIEF, which is unchanged; the composite and the
  * authoring channel's per-line leg attribution are pinned in `serve-trace.test.ts`.
  */

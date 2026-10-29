@@ -145,13 +145,12 @@ export function writeReconciledEpochWithinCurrentAuthority(
 export type QuarantineStaleCommitIntentOutcome =
   /** The bytes were preserved under `name`, which `listCommitIntents` never returns. */
   | { kind: 'quarantined'; name: string }
-  /** The source intent no longer exists: nothing to preserve, nothing to count. */
   | { kind: 'already-gone' }
 
 /**
  * Preserve a superseded generation's intent bytes under a name `listCommitIntents` never
  * returns. Discarding them silently would erase the only record that a fenced-out writer
- * reached the journal at all (T-386-28-03).
+ * reached the journal at all.
  *
  * The name carries a per-invocation discriminator because `(epoch, candidateId)` is not unique
  * over time: one candidate can be authored more than once at the same stale epoch, and a

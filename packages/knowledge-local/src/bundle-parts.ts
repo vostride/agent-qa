@@ -1,4 +1,4 @@
-// Deterministic committed-part rendering for one immutable bundle publication (D-01/D-02).
+// Deterministic committed-part rendering for one immutable bundle publication.
 // Every returned text part is checkpointed as one unit by bundle-publish; manifest.json is
 // deliberately rendered last and hashes every preceding committed part without hashing itself.
 

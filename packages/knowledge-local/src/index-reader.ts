@@ -6,7 +6,7 @@
  * while healthy readers stay read-only and query-only through openIndexReaderConnection. This
  * module never acquires the writer role or rebuilds inline.
  *
- * ONE ladder, ONE core, two callers (407 D-17, 407-13 CR-02): `classifyIndexFaceWithConnection`
+ * ONE ladder, ONE core, two callers: `classifyIndexFaceWithConnection`
  * runs the degrade ladder exactly once per call and hands back the live connection on the healthy
  * arm. `classifyIndexFace` is the PROBE wrapper — it releases that connection and writes nothing,
  * so `doctor`, the retrieval-rung resolver and the local composition root can ask about the index
@@ -237,7 +237,7 @@ function safeBundleDir(knowledgeRoot: string, hit: KnowledgeHit): string | undef
   return join(knowledgeRoot, 'memory', hit.product, 'bundles', hit.bundleId)
 }
 
-/** D-09: refresh complete truth from a digest-verified bundle and preserve ranking metadata. */
+/** refresh complete truth from a digest-verified bundle and preserve ranking metadata. */
 function recheckAuthoritativeHits<THit extends KnowledgeHit>(
   knowledgeRoot: string,
   hits: readonly THit[],
@@ -386,7 +386,7 @@ function scanReader(knowledgeRoot: string): InternalKnowledgeReader {
       return scanBundles({ knowledgeRoot, text, ...opts })
     },
     lookupAnchor(anchor, opts = {}): KnowledgeHit[] {
-      // D-16: vec:none is the only reader rung allowed to widen beyond full identity.
+      // vec:none is the only reader rung allowed to widen beyond full identity.
       // Normalize through the schema authority before the scan compares role + name.
       return scanBundles({ knowledgeRoot, anchor: normalizeAnchor(anchor), ...opts })
     },
@@ -792,7 +792,7 @@ function degrade(
 }
 
 /**
- * Which face the derived index presents to a reader RIGHT NOW (407 D-17).
+ * Which face the derived index presents to a reader RIGHT NOW.
  *
  * `scan` carries the reason the ladder degraded, the detail the rebuild request would have
  * quoted, and whether the file was there at all — `absent` and `corrupt` are the same word to a
@@ -808,7 +808,7 @@ export type IndexFace =
     }
 
 /**
- * The degrade ladder, ONE core, with the live connection on the healthy arm (407-13, CR-02).
+ * The degrade ladder, ONE core, with the live connection on the healthy arm.
  *
  * The healthy arm returns the connection it just probed WITHOUT closing it, because the caller
  * that is about to serve from the index must keep the very connection the ladder blessed. Closing
@@ -877,7 +877,7 @@ function classifyIndexFaceWithConnection(
 }
 
 /**
- * The degrade ladder as a PURE READ (407 D-17, T-407-10).
+ * The degrade ladder as a PURE READ.
  *
  * ONE ladder, ONE core, two callers. {@link openKnowledgeReader} below is the SERVING facade: it
  * keeps the connection the core blessed and keeps the side effect — a degraded open still writes
@@ -952,7 +952,7 @@ function indexFileChangedSince(knowledgeRoot: string, before: IndexFileFingerpri
 /**
  * The SERVING facade: classify once, then serve from the connection the classifier blessed.
  *
- * 407-13 (CR-02): this used to call the pure probe and then open a SECOND connection of its own,
+ * this used to call the pure probe and then open a SECOND connection of its own,
  * so a lock acquired in the gap between the probe's close and this open degraded a healthy index
  * — writing the durable rebuild marker and dropping every later retrieval in the process to
  * bundle scan on nothing but contention. It also let `resolveRetrievalRung` report `memidex` while

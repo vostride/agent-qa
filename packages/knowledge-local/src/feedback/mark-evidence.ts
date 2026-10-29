@@ -1,5 +1,5 @@
-// 2026-09-08, 419 D-04/D-09/D-10: append evidence under the caller's authority.
-// 2026-09-15, 423 D-16: executes the shared read-only plan; only the append half stays here.
+// append evidence under the caller's authority.
+// executes the shared read-only plan; only the append half stays here.
 import { asRecordId, type CompletedRunHandoff, type ExecutionContext, type MarkReceipt } from '@vostride/agent-qa-schema'
 import { appendOutcomeEvent } from '../bundle-append.js'
 import type { BundleStoreConfig } from '../bundle-publish.js'

@@ -9,14 +9,14 @@ import type { QueryClass } from './query-class.js'
 export const C_RRF = 60
 
 /**
- * Maximum one-hop graph fan-out per seed (GRPH-01/D-08).
+ * Maximum one-hop graph fan-out per seed.
  *
  * LOCKED at 32 by the phase requirement so graph expansion stays bounded and reproducible.
  */
 export const FAN_OUT_CAP = 32
 
 /**
- * Positive-scale lexical admission floor (D-05/D-06).
+ * Positive-scale lexical admission floor.
  *
  * Calibrated 2026-07-15 from the schema-v2 `quoted-token-or-v1` serving replay: positive-scale
  * p05 6.864719139232, using linear interpolation and floored to two decimals. SQLite FTS5 returns negated raw bm25()
@@ -26,7 +26,7 @@ export const FAN_OUT_CAP = 32
 export const TAU_LEX = 6.86
 
 /**
- * Identity-column BM25 weight (D-03).
+ * Identity-column BM25 weight.
  *
  * PROVISIONAL 10 pending the Plan 377-09 lexical calibration receipt. The runtime-verified
  * (10, 5, 1) triple keeps identity matches above context-only matches.
@@ -34,7 +34,7 @@ export const TAU_LEX = 6.86
 export const FTS_WEIGHT_IDENTITY = 10
 
 /**
- * Self-content BM25 weight (D-03).
+ * Self-content BM25 weight.
  *
  * PROVISIONAL 5 pending the Plan 377-09 lexical calibration receipt. It preserves self-field
  * relevance between identity and situating context.
@@ -42,7 +42,7 @@ export const FTS_WEIGHT_IDENTITY = 10
 export const FTS_WEIGHT_CONTENT = 5
 
 /**
- * Situating-context BM25 weight (D-03).
+ * Situating-context BM25 weight.
  *
  * PROVISIONAL 1 pending the Plan 377-09 lexical calibration receipt. Context contributes recall
  * without outranking an otherwise-equivalent identity match.
@@ -50,7 +50,7 @@ export const FTS_WEIGHT_CONTENT = 5
 export const FTS_WEIGHT_CONTEXT = 1
 
 /**
- * Maximum situating-line length in characters (D-02).
+ * Maximum situating-line length in characters.
  *
  * PROVISIONAL 240 pending retrieval-quality measurements; the constant-driven shape remains
  * internal and config-free at roughly one to two sentences.
@@ -58,7 +58,7 @@ export const FTS_WEIGHT_CONTEXT = 1
 export const SITUATING_LINE_MAX_CHARS = 240
 
 /**
- * Maximum expanded share of a requested result budget (D-07).
+ * Maximum expanded share of a requested result budget.
  *
  * PROVISIONAL 0.25 pending recorded-query evaluation. capExpansion applies ceil(f * N), ensuring
  * graph-derived candidates cannot starve direct matches.
@@ -66,7 +66,7 @@ export const SITUATING_LINE_MAX_CHARS = 240
 export const EXPANSION_FRACTION_F = 0.25
 
 /**
- * Fusion-weight discount for graph-expanded candidates (D-07).
+ * Fusion-weight discount for graph-expanded candidates.
  *
  * PROVISIONAL 0.5 pending recorded-query evaluation; expanded evidence remains secondary to the
  * same query class's direct lexical, dense, and anchor legs.
@@ -74,7 +74,7 @@ export const EXPANSION_FRACTION_F = 0.25
 export const EXPANSION_DISCOUNT_WEIGHT = 0.5
 
 /**
- * Graph-node degree above which expansion skips the hub entirely (D-08).
+ * Graph-node degree above which expansion skips the hub entirely.
  *
  * PROVISIONAL 64 pending graph-volume measurements. Ubiquity is treated as a poison signal, never
  * as implicit relevance.
@@ -82,7 +82,7 @@ export const EXPANSION_DISCOUNT_WEIGHT = 0.5
 export const HUB_DEGREE_THRESHOLD = 64
 
 /**
- * Maximum distinct-seed fan-in admitted for an expanded candidate (D-11).
+ * Maximum distinct-seed fan-in admitted for an expanded candidate.
  *
  * PROVISIONAL 4 pending graph-volume measurements. Direct matches remain eligible above this
  * threshold, while ubiquitous expansion candidates are excluded.
@@ -104,7 +104,7 @@ type QueryClassWeightVector = {
 }
 
 /**
- * Fixed weighted-RRF vector for each deterministic query class (D-06).
+ * Fixed weighted-RRF vector for each deterministic query class.
  *
  * PROVISIONAL vectors pending M3's learned per-product replacements. Plain RRF with all three
  * weights equal to 1 is the declared cold-start floor; learning may replace vectors, never the

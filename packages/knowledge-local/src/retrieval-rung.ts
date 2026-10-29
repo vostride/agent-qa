@@ -1,9 +1,9 @@
 /**
- * The ONE fold from the host's two retrieval axes to the recorded rung (407 TRST-01 · D-13/D-17).
+ * The ONE fold from the host's two retrieval axes to the recorded rung.
  *
- * ONE resolver, three callers: the runner's evidence recorder (407-07) stamps the value into
- * `StepEvidence.retrievalRung`, `doctor` (407-08) grades it live, and the run header banner
- * (407-10) renders the recorded copy. Three callers deriving a rung independently from the same
+ * ONE resolver, three callers: the runner's evidence recorder stamps the value into
+ * `StepEvidence.retrievalRung`, `doctor` grades it live, and the run header banner
+ * renders the recorded copy. Three callers deriving a rung independently from the same
  * two axes is exactly how a banner and a doctor row come to disagree about one machine, so the
  * fold table lives here once and its cells are pinned by `__tests__/retrieval-rung.test.ts`.
  *
@@ -40,7 +40,7 @@ export type IndexAxis = IndexFace
 export type EmbedderAxis = AcquireEmbedderOutcome
 
 /**
- * `RebuildReason` → the recorded cause (423 D-22), as a total map for the same reason as below.
+ * `RebuildReason` → the recorded cause, as a total map for the same reason as below.
  *
  * `schema-version` and `corrupt` share one cause: both mean "rebuild requested" and the operator
  * does the same thing for either. `index-unavailable` is deliberately NOT a value here — it is the
@@ -65,7 +65,7 @@ const DEFERRED_REASONS: Record<DeferReason, RetrievalRungReason> = {
 }
 
 /**
- * Fold the two axes into the value that gets recorded (D-17).
+ * Fold the two axes into the value that gets recorded.
  *
  * ORDERING IS PART OF THE CONTRACT: the index axis is consulted FIRST. No dense leg can run
  * against an index that will not open, whatever the embedder resolved to, so a `scan` face is
@@ -119,10 +119,10 @@ export interface ResolveRetrievalRungOptions {
 }
 
 /**
- * Probe both axes and fold them (D-17). NEVER throws, NEVER downloads, NEVER writes.
+ * Probe both axes and fold them. NEVER throws, NEVER downloads, NEVER writes.
  *
  * - `allowDownload: false` is hard-coded, not an option: this call answers "what is this host
- *   doing today", and a probe that fetched a model would change the answer by asking it (T-407-09).
+ *   doing today", and a probe that fetched a model would change the answer by asking it.
  * - A `scan` face short-circuits before the embedder is touched at all. The fold does not need the
  *   embedder axis in that arm, and the probe can cost a model load.
  * - A rejected capability probe folds to `deferred/load-failure` rather than propagating. This

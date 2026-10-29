@@ -497,7 +497,7 @@ describe('writer authority and bundle publication are one indivisible protocol',
   })
 
   /**
-   * CR-01: an authority refusal is only trustworthy when the mutation demonstrably never ran and
+   * an authority refusal is only trustworthy when the mutation demonstrably never ran and
    * the decision was reached with the mutation lock held. `lockAcquired`/`finalCompare` pin the
    * decision point: the lock was taken, and the post-identity failpoint was never reached.
    */
@@ -1873,7 +1873,7 @@ describe('writer authority and bundle publication are one indivisible protocol',
   })
 
   /**
-   * CR-02: the knowledge port used to name a writer identity it did not hold. The filter drops
+   * the knowledge port used to name a writer identity it did not hold. The filter drops
    * comment lines so the token's surviving provenance uses (hash source, error text, attribution
    * prefixes) are deliberately out of scope — only identity positions are banned.
    */

@@ -50,7 +50,7 @@ export type AppendOutcome =
   | { kind: 'duplicate' }
   | { kind: 'not-found' }
 
-/** 416 D-04: receipt identity is its verified content digest, before any committed write. */
+/** receipt identity is its verified content digest, before any committed write. */
 export function appendGateReceipt(
   config: BundleStoreConfig, id: RecordId, receipt: GateReceipt,
 ): AppendOutcome {
@@ -69,7 +69,7 @@ export function appendGateReceipt(
     rewriteManifest(manifest, GATES_REL_PATH, rewrittenText))
 }
 
-/** 416 D-05/D-07: one promotion line per candidate/path; lifecycle bytes remain unchanged. */
+/** one promotion line per candidate/path; lifecycle bytes remain unchanged. */
 export function appendPromotionReceipt(
   config: BundleStoreConfig,
   id: RecordId,

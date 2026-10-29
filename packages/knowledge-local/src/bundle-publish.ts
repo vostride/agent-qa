@@ -1,4 +1,4 @@
-// Bundle publication is the D-11/D-12/D-15 store seam beneath KnowledgePort (D-04).
+// Bundle publication is the D-11/D-12/D-15 store seam beneath KnowledgePort.
 // It copies capped artifacts into an invisible sibling staging directory, writes every
 // committed text part with manifest.json last (§7.8), then atomically renames.
 // BNDL-02/D-05 only treats an occupied target as already-exists after full-identity equality.
@@ -244,7 +244,7 @@ export function stageBundle(
   }
 
   const stagingRoot = join(bundlesDir, '.staging')
-  // 261003-mqc: a `memory/`, product or `bundles/` linked out of the knowledge root is refused
+  // a `memory/`, product or `bundles/` linked out of the knowledge root is refused
   // before anything is staged; the rename into `bundlesDir` then stays inside it too.
   assertWithinKnowledgeRoot(config.knowledgeRoot, stagingRoot)
   const stagingBasename = `.staged-epoch-${config.writerEpoch ?? 0}-${randomUUID()}`

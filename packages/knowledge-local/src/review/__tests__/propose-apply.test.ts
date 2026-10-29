@@ -1,7 +1,6 @@
 // The review target and the deltas a change computes, and a refused change writes nothing
-// (Phase 387-08, KREV-01 / D-17 · D-19).
 //
-// RE-SPELLED 2026-10-01 (432-17, D-05/D-22). This file was the corpus for the propose half and the
+// RE-SPELLED 2026-10-01. This file was the corpus for the propose half and the
 // proposals store: a propose computed a proposal and wrote it under `<agentQaRoot>/proposals/`
 // without touching the knowledge root, and the store claimed, published and restored proposals under
 // a race. Both are deleted with the inbox. What the corpus established that is still true is kept
@@ -10,7 +9,7 @@
 //   - a mark plan that fails its integrity check is refused BEFORE anything is written;
 //   - a target that names nothing is a typed `target-not-found`, never a throw, and writes nothing;
 //   - accept computes a user `Confirm` and reject a user `Deprecate` carrying the reviewer's reason;
-//   - forget addresses the same record through either grain (D-19).
+//   - forget addresses the same record through either grain.
 //
 // Left with their subject, and carried by C432-PROPOSAL-FILES-UNREAD's absence cells: the filed
 // mark proposal and its persisted wording, the propose-writes-nothing invariance over three verbs,

@@ -127,7 +127,7 @@ const PurgeAffectedSetSchema = z.object({
 export const PURGE_INTENT_SCHEMA_VERSION = 2
 
 /**
- * D-14/CR-04: the durable, content-free purge intent published before the first irreversible
+ * the durable, content-free purge intent published before the first irreversible
  * mutation. It embeds the complete receipt payload plus the exact resolved bundle dirs, queue
  * candidate ids, and queue payload dirs, so a retry after a crash replays destruction from
  * persisted identities and completes to byte-identical receipt publication instead of returning
@@ -472,7 +472,7 @@ function removeEmptyQueueParents(
   }
 }
 
-/** One exact queue deletion decided before any destruction (CR-03). */
+/** One exact queue deletion decided before any destruction. */
 export interface QueueSweepTarget {
   candidateDir: string
   /** Queue-entry identity used by the transport and job-state store, not payload lineage. */
@@ -631,7 +631,7 @@ function sweepQueuePayloads(
 ): void {
   const root = queueRoot(input.knowledgeRoot)
   for (const target of targets) {
-    // 261003-mqc: never delete through a queue directory linked out of the knowledge root.
+    // never delete through a queue directory linked out of the knowledge root.
     assertWithinKnowledgeRoot(input.knowledgeRoot, target.candidateDir)
     assertWithinKnowledgeRoot(input.knowledgeRoot,
       dirname(jobStatePath(input.knowledgeRoot, target.candidateId)))
@@ -1254,7 +1254,7 @@ function publishReceiptAndRetire(
   receiptCycle: number,
 ): PurgeRecordOutcome {
   input.hooks?.beforeReceiptPublish?.()
-  // 261003-mqc: `memory/receipts/` linked out of the knowledge root is refused before writing.
+  // `memory/receipts/` linked out of the knowledge root is refused before writing.
   assertWithinKnowledgeRoot(input.knowledgeRoot,
     dirname(receiptCyclePath(input.knowledgeRoot, input.recordId, receiptCycle)))
   const writeOutcome = writeDurableExclusive(
@@ -1340,7 +1340,7 @@ function resumeFromIntent(input: PurgeRecordInput, intent: PurgeIntent): PurgeRe
 /**
  * Hard-remove one confirmed-sensitive record from every recoverable local-store surface.
  *
- * Recovery invariant (CR-04): nothing irreversible ever precedes a durable intent, so a retry
+ * Recovery invariant: nothing irreversible ever precedes a durable intent, so a retry
  * either re-resolves intact state (crash before the intent) or replays the intent's persisted
  * identities to the identical completion receipt (crash at any later boundary).
  *
@@ -1384,7 +1384,7 @@ export function purgeRecord(input: PurgeRecordInput): PurgeRecordOutcome {
   // The exact queue deletion set came from the same canonical resolution shown to the caller.
   const queueSweepTargets = resolved.queueSweepTargets
 
-  // The intent publication is the LAST act before the first irreversible mutation (CR-04).
+  // The intent publication is the LAST act before the first irreversible mutation.
   const intent = buildIntent(
     input,
     receipt,

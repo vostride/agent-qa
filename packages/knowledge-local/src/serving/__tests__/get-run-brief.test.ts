@@ -6,7 +6,7 @@ import type { PolicyLadder } from '../policy-ladder.js'
 import { assembleRunBrief } from '../get-run-brief.js'
 
 /**
- * 387-04: `assembleRunBrief` returns `{ brief, trace }` as ONE value (D-16). These cases pin the
+ * `assembleRunBrief` returns `{ brief, trace }` as ONE value. These cases pin the
  * BRIEF's own tiering, budgeting and order-independence, which are unchanged; the composite
  * itself and every trace claim are pinned in `serve-trace.test.ts`.
  */

@@ -24,7 +24,7 @@ import { renderEntity, type EntityRendering } from './renderings.js'
 /**
  * The projection's own file name, beside the knowledge index rather than inside it.
  *
- * Beside, because an entity is not a learned fact (D-06). Its own file, because the knowledge
+ * Beside, because an entity is not a learned fact. Its own file, because the knowledge
  * index's schema version, rebuild and per-profile vec bookkeeping belong to records, and
  * sharing them would have coupled two projections whose only similarity is their shape.
  */
@@ -43,7 +43,7 @@ export const ENTITY_INDEX_USER_VERSION = 2
 export const ENTITY_INDEX_BUSY_TIMEOUT_MS = 2000
 
 /**
- * How often a standing daemon re-renders the projection from its sources (D-06).
+ * How often a standing daemon re-renders the projection from its sources.
  *
  * PROVISIONAL 600_000 (ten minutes); retune from operational evidence without adding config,
  * the `LEASE_HEARTBEAT_TTL_MS` house style. What it is bounding is STALENESS of a title or a
@@ -53,7 +53,7 @@ export const ENTITY_INDEX_BUSY_TIMEOUT_MS = 2000
  *
  * Deliberately its own interval rather than the daemon's `MAINTENANCE_CADENCE_MS`. That
  * cadence runs the lease-holding maintenance tail; this sweep must never require the writer
- * lease (D-02/D-06) because it writes only this file, and sharing a timer with lease-gated
+ * lease because it writes only this file, and sharing a timer with lease-gated
  * work would have made a lease-free projection stop being maintained the moment a lease was
  * lost — a coupling nothing in the projection's own contract asks for.
  */
@@ -76,7 +76,7 @@ export const ENTITY_INDEX_SCOPE_KEY = 'scope:entities'
  *
  * The scope predicate excludes `deprecated`/`superseded` rows from every scan. An entity that
  * a store reports as quarantined or tombstoned is still a nameable thing that must resolve
- * (D-04), so its row stays admissible and the store's own word lives in `status_source`.
+ * so its row stays admissible and the store's own word lives in `status_source`.
  */
 const ENTITY_INDEX_ROW_STATUS = 'active'
 
@@ -168,7 +168,7 @@ export interface OpenEntityIndexOptions {
   readonly path: string
   /**
    * The knowledge root the path lives under. When given, the path's directory chain must stay
-   * inside it (261003-mqc): a linked `memory/` or `memory/index/` is refused before the open.
+   * inside it: a linked `memory/` or `memory/index/` is refused before the open.
    */
   readonly knowledgeRoot?: string
   readonly timeoutMs?: number
@@ -360,7 +360,7 @@ export interface EntityIndexSweepReport {
  *
  * A sweep is maintenance of a disposable projection, so it writes only where a row disagrees
  * with its source. It never touches the addressing ledger — the ledger is not a projection
- * (D-02) — and it takes no writer lease, because everything it writes lives in this file.
+ * and it takes no writer lease, because everything it writes lives in this file.
  */
 export function sweepEntityIndex(
   handle: EntityIndexHandle,

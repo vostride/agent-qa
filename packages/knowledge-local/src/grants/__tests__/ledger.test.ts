@@ -1,14 +1,14 @@
-// C432-GRANTS-UNREAD-WRITER-ABSENT: a workspace's old grants.jsonl stays on disk and nothing opens
-// it (432-18, D-14 / D-15 / D-22).
+// a workspace's old grants.jsonl stays on disk and nothing opens
+// it.
 //
-// RE-SPELLED 2026-10-01 (432-18). This file was the corpus for the Phase 391 committed grant ledger:
+// RE-SPELLED 2026-10-01. This file was the corpus for the Phase 391 committed grant ledger:
 // the read and pure fold (ENOENT, empty, unparseable and structurally broken lines refused as data,
 // unknown scope keys, newer versions hard-failing, file-order folding, revoke-by-id) and the checked
 // append (canonical JSON, the two version legs, the shape leg, the committed-egress checkpoint,
 // all-or-nothing). 432-18 deletes the ledger, its reader, the grant verbs and every export, so each
 // of those claims lost its subject. What survives is what the ledger owes the file it leaves
-// behind: a workspace that still holds `grants.jsonl` is a fresh workspace (D-02), the file is
-// never read, written, renamed or cleaned up (D-22), and a damaged one cannot break anything because
+// behind: a workspace that still holds `grants.jsonl` is a fresh workspace, the file is
+// never read, written, renamed or cleaned up, and a damaged one cannot break anything because
 // nothing parses it. No grant-shaped store replaces it.
 //
 // THE WRITER-LEASE AND EGRESS CLAIMS MOVE TO THE DIRECT WRITERS. The deleted grant verbs refused

@@ -45,7 +45,7 @@ function isOnlyLiteralShape(value: string, tokens: readonly string[]): boolean {
 }
 
 /**
- * Classify query text through anchored linear-time detectors only (D-06/T-377-09).
+ * Classify query text through anchored linear-time detectors only.
  * Empty or detector-free input is semantic; literal-shaped input plus prose is mixed.
  */
 export function classifyQuery(lexicalQuery: string): QueryClass {

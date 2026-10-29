@@ -1,4 +1,4 @@
-// `canaryAttributionsFor` — what became of the canary lines a run served (Phase 407, D-08).
+// `canaryAttributionsFor` — what became of the canary lines a run served.
 //
 // The join is between two things a run cannot hold at once: the SERVE-time marker, which is a
 // fact about the run and lives in its evidence, and the ATTRIBUTED outcome, which is a fact about
@@ -413,7 +413,7 @@ describe('canaryAttributionsFor joins served canary tuples to committed outcomes
     // The skip must be exercised BEFORE the line under test, and `enumerateMaintenanceBundleDirs`
     // sorts by DIRECTORY name — which is content-derived, NOT the anchor's display name. So the
     // published directory is renamed under a controlled `aaa-` prefix and this cell ASSERTS it
-    // now sorts first, instead of assuming an ordering nothing establishes (IN-06).
+    // now sorts first, instead of assuming an ordering nothing establishes.
     const sibling = publishCandidateEntry('Tampered sibling', [])
     const bundlesDir = dirname(sibling.dir)
     const tamperedName = `aaa-tampered-${basename(sibling.dir).slice(-16)}`

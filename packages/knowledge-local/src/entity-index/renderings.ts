@@ -12,7 +12,7 @@
 // they either match or they do not, and BM25 over the identity column is exactly the right
 // instrument for that. They live there and nowhere else.
 //
-// The one deliberate crossing is slug-addressed kinds (D-03): a target's machine id ALREADY is
+// The one deliberate crossing is slug-addressed kinds: a target's machine id ALREADY is
 // the human name its config gave it, so `checkout-web` is meaning, not a digest. Its words are
 // split out and embedded, because refusing to would make the one kind whose machine id is
 // readable the one kind semantic phrasing could not find.
@@ -71,7 +71,7 @@ export function renderEntityForEmbedding(descriptor: EntityDescriptor): string {
 export function renderEntity(descriptor: EntityDescriptor): EntityRendering {
   const identity = [descriptor.shortId, descriptor.uri, descriptor.machineId]
   // A recorded rename keeps the predecessor findable by the successor's handle too, which is
-  // what makes an old CI log's short-ID an explanation rather than a dead end (D-03/D-04).
+  // what makes an old CI log's short-ID an explanation rather than a dead end.
   if (descriptor.successorMachineId !== undefined) identity.push(descriptor.successorMachineId)
 
   return {

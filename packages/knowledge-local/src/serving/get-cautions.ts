@@ -28,7 +28,7 @@ export interface CautionSelectionResult {
   block: CautionBlock
   overflow?: CautionSelectionOverflow
   /**
-   * The serve-time trace for this Channel-3 selection (D-16). Produced as part of selecting, not
+   * The serve-time trace for this Channel-3 selection. Produced as part of selecting, not
    * as a second pass over the result: `rank` is the position in the ranking below and `score` is
    * the trust value that ranking ordered by after the anchor-match priority.
    */
@@ -135,7 +135,7 @@ export function selectCautions(input: SelectCautionsInput): CautionSelectionResu
       renderedCost: candidate.cost,
     })
     /**
-     * D-16: the trace records the ONE ranking this loop walks. `rank` is that position; `score`
+     * the trace records the ONE ranking this loop walks. `rank` is that position; `score`
      * is the trust the ranking ordered by within an anchor-match priority band, so a caution and
      * a cut caution report the same quantity. The band itself is not a score and is deliberately
      * not flattened into one — the rank already carries it.

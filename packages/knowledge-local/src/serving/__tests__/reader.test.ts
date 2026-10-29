@@ -662,7 +662,7 @@ describe('openKnowledgeReader synchronous serving port', () => {
     expect(reader.read(unvettedFact)).toBeUndefined()
   })
 
-  // 387-04: the byte comparisons below now cover the COMPOSITE `{ brief, trace }`, so they pin
+  // the byte comparisons below now cover the COMPOSITE `{ brief, trace }`, so they pin
   // the serve-time trace's bytes as well as the brief's. That is deliberately stronger than the
   // pre-387 form — a leaked procedure would show up as a trace attribution even if the rendered
   // brief text somehow hid it.

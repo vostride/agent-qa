@@ -182,7 +182,7 @@ function collapseKey(entry: RerankEntry): string | undefined {
 }
 
 /**
- * Collapse agent-authored supersession groups onto their maximum creation ordinal (D-16).
+ * Collapse agent-authored supersession groups onto their maximum creation ordinal.
  * Sovereign user entries and both annotated sides of a MintUnknown conflict always survive.
  */
 export function collapseByOrdinal<T extends RerankEntry>(

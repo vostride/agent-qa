@@ -1,4 +1,4 @@
-// 432-06: the direct explicit knowledge writer (D-04, D-05, D-08, D-09, D-11).
+// the direct explicit knowledge writer.
 //
 // An explicit mark, accept, reject or forget is authority in every execution context, so it
 // lands in the call: no inbox envelope is written or read, the actual ExecutionContext is kept
@@ -186,7 +186,7 @@ describe('direct explicit knowledge writer', () => {
     return listBundles(knowledgeRoot).find(row => row.bundleId === recordId)?.status
   }
 
-  // 2026-10-01 (432-14): an explicit per-test timeout, on 432-09's label-calibration precedent. The
+  // an explicit per-test timeout, on 432-09's label-calibration precedent. The
   // cell drives four contexts through a real writer lease and promotion gates (about 4 s alone); in
   // the forced workspace gate beside the rest of this package it took 17-20 s and reached vitest's
   // 15 s default in three consecutive runs. The claim is unchanged.

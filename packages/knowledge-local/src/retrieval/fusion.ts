@@ -84,7 +84,7 @@ export function admitCandidate(
 }
 
 /**
- * Fuse already-admitted per-leg rankings with weighted RRF (D-06/D-07).
+ * Fuse already-admitted per-leg rankings with weighted RRF.
  * Expanded contributions receive the fixed discount, while final ties end in bundle identity.
  */
 export function fuseWeightedRrf<T extends FusionCandidate>(
@@ -145,7 +145,7 @@ export function fuseWeightedRrf<T extends FusionCandidate>(
 }
 
 /**
- * Keep at most ceil(f*N) expanded candidates while preserving every direct candidate (D-07).
+ * Keep at most ceil(f*N) expanded candidates while preserving every direct candidate.
  * Input rank order is preserved. retrieve() owns final top-N after assembly and recheck.
  */
 export function capExpansion<T extends Pick<FusionCandidate, 'source'>>(

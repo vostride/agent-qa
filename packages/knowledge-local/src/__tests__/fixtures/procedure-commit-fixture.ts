@@ -40,7 +40,7 @@ export interface CommitFixtureProcedureOptions {
  * authored Add delta, driven through `commitCurationDelta`.
  */
 /**
- * CR-01: the commit fence now requires the exact published holder, so this fixture holds a real
+ * the commit fence now requires the exact published holder, so this fixture holds a real
  * lease instead of naming one. An existing holder is adopted so a suite that already acquired
  * keeps its own identity rather than being fenced out by its own fixture.
  */

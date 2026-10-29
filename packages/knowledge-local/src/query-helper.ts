@@ -1,5 +1,5 @@
 /**
- * The deterministic memory.md §5.5.8 query door (377 D-13). Every identity anchor is normalized
+ * The deterministic memory.md §5.5.8 query door. Every identity anchor is normalized
  * through the schema authority before keys or matching helpers are derived. Raw selector atoms
  * remain lexical-only; dense text and fallback regions are assembled from structured fields.
  */
@@ -264,7 +264,7 @@ function buildFallbackRenderings(
 /**
  * Build both recall inputs from structured runner state. Fallback renderings are candidates only:
  * callers use them after exact/normalized anchor lookup misses and may set the admission
- * anchorExact carve-out only after a lexical hit re-confirms reconfirmToken (T-377-23).
+ * anchorExact carve-out only after a lexical hit re-confirms reconfirmToken.
  */
 export function buildRetrievalQuery(input: RetrievalQueryInput): RetrievalQuery {
   const normalizedAnchors = input.anchors.map((anchor) => normalizeAnchor(anchor))

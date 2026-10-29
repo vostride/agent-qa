@@ -1,4 +1,4 @@
-// `showRecord` — one committed record with the provenance that justifies it (Phase 387, KREV-01).
+// `showRecord` — one committed record with the provenance that justifies it.
 //
 // WIRING, in the sense KREV-01's claim requires: every value here is read off the bundle the
 // maintenance scanner already loads, and the view is the SAME projection `inspectRecords`

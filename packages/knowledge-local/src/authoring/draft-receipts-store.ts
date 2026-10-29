@@ -1,9 +1,9 @@
-// The durable draft-receipts store (Phase 393, D-19 · WTST-02).
+// The durable draft-receipts store.
 //
 // A KEEP-GATE EVALUATION IS A DECISION SOMEBODY HAS TO BE ABLE TO READ BACK. The op returns the
 // receipt AND persists it, because 394's accept flow carries it as evidence refs and the author of
 // a rejected draft is owed the exact reason days later — neither of which survives in memory. So
-// this is the proposals-store idiom (387 D-17 / 391 D-10) applied to a second kind of durable
+// this is the proposals-store idiom applied to a second kind of durable
 // record: one `<contentDigest>.json` per draft under a gitignored `<agentQaRoot>/draft-receipts/`,
 // a sibling of `proposals/`, written atomically through a `.tmp` name that is never enumerated.
 //
@@ -17,7 +17,7 @@
 // secrets (D-19, map-not-territory). That is enforced structurally rather than by convention:
 // `DraftReceiptSchema` is `.strict()` and is parsed on the way OUT as well as on the way in, so a
 // payload smuggled onto a receipt is a typed refusal at the moment of writing rather than a field
-// somebody notices in a durable file months later (T-393-02).
+// somebody notices in a durable file months later.
 //
 // STAMP AND HARD-FAIL. The schema pins `schemaVersion` as a literal. A record written under a
 // future shape is refused loudly here rather than reinterpreted under today's — the house

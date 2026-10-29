@@ -197,7 +197,7 @@ describe('matchProcedure kind-aware admission', () => {
   })
 
   /**
-   * G-381-4: the same predicate is the read face's admission wall (reader.ts
+   * the same predicate is the read face's admission wall (reader.ts
    * findReadableBundle). Pinning it directly keeps the two faces from diverging again — every
    * row below is exactly a row of the matcher's own admission table above.
    */

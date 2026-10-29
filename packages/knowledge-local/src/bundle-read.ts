@@ -128,7 +128,7 @@ export function readMeasurements(bundleDir: string): Measurements | undefined {
   }
 }
 
-/** 416 D-03/D-04: absence is normal; a present receipt must attest this bundle and its bytes. */
+/** absence is normal; a present receipt must attest this bundle and its bytes. */
 export function readGateReceipts(bundleDir: string, bundleId: string): GateLine[] | undefined {
   const file = join(bundleDir, GATES_REL_PATH)
   if (!existsSync(file)) return undefined

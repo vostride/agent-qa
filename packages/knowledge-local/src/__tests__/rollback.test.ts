@@ -709,7 +709,7 @@ describe('provenance-keyed rollback resolution', () => {
     })
     await knowledgeLocal.rebuildIndex({ knowledgeRoot, embedder: makeFakeEmbedder() })
 
-    // 2026-10-15 (441-24, D-27): nothing writes the terminal value now; an old row may hold it.
+    // nothing writes the terminal value now; an old row may hold it.
     writeLegacySuppressedRow(victim.id)
     expect(embedState(victim.id)).toEqual({
       embedStatus: EMBED_STATUS_SUPPRESSED,

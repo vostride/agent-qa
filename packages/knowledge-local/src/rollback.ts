@@ -151,7 +151,7 @@ export type ResolveRollbackAffectedSetInput =
   | RollbackCampaignInput
 
 /**
- * CR-02: a rollback must never attest success at a resolution ordinal that is powerless to
+ * a rollback must never attest success at a resolution ordinal that is powerless to
  * change lifecycle status. At equal buildOrdinal the trust fold's fixed STATUS_PRECEDENCE keeps
  * active above deprecated, and an older event can never replace a newer status, so a
  * non-strictly-later resolvedAtOrdinal cannot causally invert a minted bundle.
@@ -855,7 +855,7 @@ function latestSurvivingLifecycleOrdinal(bundle: LoadedBundle): number {
 }
 
 /**
- * Atomic strictly-later causal preflight (CR-02). Runs before ANY append or projection write:
+ * Atomic strictly-later causal preflight. Runs before ANY append or projection write:
  * every minted bundle in the resolved set must be invertible at input.resolvedAtOrdinal. A
  * bundle is admitted when its surviving fold status is already deprecated (the inverse
  * end-state already holds) or when its log already carries this receipt's exact

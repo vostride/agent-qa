@@ -223,7 +223,7 @@ export function expandOneHop(
   const byBundle = new Map<string, CandidateAccumulator>()
 
   for (const seed of normalizeSeeds(seeds)) {
-    // D-12: global records remain direct-match-only and never descend into product records.
+    // global records remain direct-match-only and never descend into product records.
     if (!seedMayExpand(db, seed.bundleId)) continue
     for (const seedNodeId of seed.nodeIds) {
       if (hubs.has(seedNodeId)) continue

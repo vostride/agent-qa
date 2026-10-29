@@ -1,5 +1,5 @@
 /**
- * Executable source assertions for the 387-04 acceptance criteria (KREV-02 · D-13).
+ * Executable source assertions for the 387-04 acceptance criteria.
  *
  * These claims are about what the serve path DOES NOT do — "no second selection pass for the
  * trace", "no score recomputed at persistence time" — and a claim of absence has no runtime

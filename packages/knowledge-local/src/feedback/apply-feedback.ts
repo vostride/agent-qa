@@ -1,4 +1,4 @@
-// 2026-09-08, 419 D-02/D-07/D-12: mechanical drafting over recorded data only.
+// mechanical drafting over recorded data only.
 import {
   IMPROVEMENT_PLAN_SCHEMA_VERSION,
   ImprovementPlanSchema,

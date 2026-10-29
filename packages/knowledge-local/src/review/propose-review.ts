@@ -1,11 +1,11 @@
-// Resolve a review target and compute the deltas a change writes (Phase 387, KREV-01 / D-17 · D-19).
+// Resolve a review target and compute the deltas a change writes.
 //
 // Every function in this module is a READ of the knowledge store. Nothing here imports the curator,
 // `commit`, `publishBundle`, `appendOutcomeEvent`, the index, or the writer lease — there is no
 // handle in this file through which a byte of the knowledge store could change. `apply-review.ts`
 // holds the one write path and calls in here for the target and the deltas.
 //
-// 2026-10-01 (432-17, D-05/D-22): the propose half that minted proposal files into
+// the propose half that minted proposal files into
 // `<agentQaRoot>/proposals/` is deleted with the inbox. A change applies in the call through
 // `applyExplicitReview`; old proposal files are never read again. The module keeps its name so its
 // history stays addressable.
@@ -44,7 +44,7 @@ import { enumerateBundleDirs } from '../bundle-scan.js'
  */
 export const FORGET_SCRUBBED_PROJECTIONS: readonly KnowledgeProjection[] = ['fts', 'vec', 'graph']
 
-/** Resolves a `MEM-` short-ID to the machine id it addresses, or `undefined` (D-01/D-04). */
+/** Resolves a `MEM-` short-ID to the machine id it addresses, or `undefined`. */
 export type ResolveBundleShortId = (shortId: string) => string | undefined
 
 /** A validated mark, accept, reject or forget, in the shape the review verbs take. */
@@ -129,10 +129,10 @@ export function resolveReviewTarget(
  * and the projection unit's `scrubDeadRecallRows` removes the lexical, dense and graph recall rows
  * on the next projection. A new kind would have been a SECOND write vocabulary reaching the same
  * machinery — and the destructive verb, `purgeRecord`, is D-14's true-delete exemption which
- * forget is explicitly not (D-19).
+ * forget is explicitly not.
  *
  * `changeId` is the stable identity of the change, derived from the caller's operation identity
- * (432-06). Accept's evidence
+ * Accept's evidence
  * token and forget's reason are derived from it, so a retried change is the same change.
  */
 export function reviewDeltasFor(

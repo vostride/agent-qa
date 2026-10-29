@@ -1,5 +1,5 @@
 /**
- * Screenless authoring-brief assembly (ABRF-01/ABRF-02, D-13/D-15/D-16).
+ * Screenless authoring-brief assembly.
  *
  * The 4th serving channel: facts/cautions/procedures from already-hydrated store entries plus
  * projection-ranked exemplar TEST REFERENCES — no ScreenState anywhere in the signature. The
@@ -54,11 +54,11 @@ import { matchProcedure, type ProcedureMatchCandidate } from './get-procedure.js
  */
 export const AUTHORING_EXEMPLAR_CAP = 4
 
-/** PROVISIONAL top-N procedures served to the authoring consumer (D-15). */
+/** PROVISIONAL top-N procedures served to the authoring consumer. */
 export const AUTHORING_PROCEDURE_CAP = 5
 
 /**
- * PROVISIONAL bounded-excerpt budget in UTF-16 code units (D-16). The excerpt is title +
+ * PROVISIONAL bounded-excerpt budget in UTF-16 code units. The excerpt is title +
  * outcome outline composed from projection-known metadata — never test file content.
  */
 export const AUTHORING_EXCERPT_CHAR_BUDGET = 240
@@ -98,7 +98,7 @@ export interface AuthoringExemplarRow {
   failures: number
   heals: number
   flakeCount: number
-  /** Resolved by the hydrating reader from the committed quarantine ledger (390 D-02). */
+  /** Resolved by the hydrating reader from the committed quarantine ledger. */
   quarantined: boolean
   /** Last-N window entries — ordinals only, wall-clock never. */
   lastOutcomes: readonly { buildOrdinal: number; passed: boolean }[]
@@ -192,7 +192,7 @@ function scoreEntries(
       const dense = input.denseScoreByRecordId?.get(String(entry.id)) ?? 0
       // The three weighted terms are named once and both summed AND attributed from, so the
       // recorded leg is a decomposition of the number that actually ranked this entry rather
-      // than a second, independently computed opinion about it (KREV-02).
+      // than a second, independently computed opinion about it.
       const contributions: Record<RetrievalTraceLeg, number> = {
         anchor: anchorOverlapShare(candidateKeys, targetKeys),
         lexical: AUTHORING_LEXICAL_WEIGHT
@@ -449,7 +449,7 @@ interface ServableItem {
 }
 
 /**
- * The §10.6 authoring brief together with its serve-time trace (D-16). The 4th channel returns the
+ * The §10.6 authoring brief together with its serve-time trace. The 4th channel returns the
  * composite for the same reason the run brief does — capture is generic at the SEAM, so 393/394
  * inherit it by destructuring rather than by re-implementing it.
  */

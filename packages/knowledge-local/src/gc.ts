@@ -216,7 +216,7 @@ function buildWithinKExclusion(
  * Trim only whole superseded bundle directories after constructing every D-13
  * exclusion set. No projection SQL exists here by design: the drain tail feeds
  * trimmedRecordIds straight into removeBundleProjectionRows, so the disposable
- * index heals in the same drain (WR-01).
+ * index heals in the same drain.
  *
  * RATIFICATION: this typed in-memory summary, surfaced through drain diagnostics,
  * is the low-cost §9.2-style operational note. GC writes no persisted note artifact.
@@ -278,7 +278,7 @@ export function runKnowledgeGc(
       input.knowledgeRoot,
       writerAuthority,
       () => {
-        // 261003-mqc: never delete a bundle reached through a link out of the knowledge root.
+        // never delete a bundle reached through a link out of the knowledge root.
         assertWithinKnowledgeRoot(input.knowledgeRoot, candidate.dir)
         rmSync(candidate.dir, { recursive: true, force: false })
       },

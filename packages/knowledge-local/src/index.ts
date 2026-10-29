@@ -10,7 +10,7 @@ export {
 } from './canary-emit.js'
 export type { QueuedCanaryPayloadRead } from './canary-emit.js'
 
-// 387 ENTY-01 — entity addressing: the durable ledger and the tier-(a) resolver.
+// entity addressing: the durable ledger and the tier-(a) resolver.
 //
 // The composition root is the only importer of this entry (the reader carve-out enforces
 // that), so a surface reaching the resolver goes through composeLocalAgent and the function
@@ -32,7 +32,7 @@ export {
   describeAllEntities,
   getEntityDescriptor,
   resolveEntityRef,
-  // 387 D-01: the sighting leg, published so the LIST-VERB sighting site mints through the
+  // the sighting leg, published so the LIST-VERB sighting site mints through the
   // same mechanism the resolver's own hit does rather than through a second copy of it.
   sightEntity,
 } from './resolver/resolve.js'
@@ -72,11 +72,11 @@ export type {
   OpenEntityIndexOptions,
 } from './entity-index/entity-index.js'
 
-// 2026-10-01 (432-18, D-14/D-15/D-22): the committed standing-grant ledger, its reader and the grant
+// the committed standing-grant ledger, its reader and the grant
 // verbs are deleted. An old `grants.jsonl` stays on disk and nothing in this package opens it.
-// 390 D-01/D-03/D-11: the committed quarantine ledger — read, pure state fold. The event DTOs and
+// the committed quarantine ledger — read, pure state fold. The event DTOs and
 // the state vocabulary live in schema; this package owns the bytes and the fold over them.
-// The APPEND is deliberately NOT published (390-11 / WR-07): it writes a committed artifact whose
+// The APPEND is deliberately NOT published: it writes a committed artifact whose
 // unserialized-third-caller residual is real, and a smaller public write surface is a smaller
 // residual. The three in-package writers — the verbs, detection, and the run-outcome projection —
 // import it from './quarantine/ledger.js' directly, so nothing outside was withheld from anyone.
@@ -91,7 +91,7 @@ export type {
   QuarantineLedgerRead,
   RefusedQuarantineLine,
 } from './quarantine/ledger.js'
-// 390 D-05/D-06/D-07/D-10: the detection ladder's pure rule and its pinned thresholds. Plan 06's
+// the detection ladder's pure rule and its pinned thresholds. Plan 06's
 // provider composes these; QUARANTINE_WINDOW_ORDINALS is deliberately absent here because it is
 // already published below from the window read that declares it — one symbol, one export site.
 export {
@@ -112,14 +112,14 @@ export type {
   QuarantineDisposition,
   QuarantineOrdinalOutcome,
 } from './quarantine/detection.js'
-// 390 D-12/D-13: the three verbs' one implementation. The PORT type lives in schema (both `agent`
+// the three verbs' one implementation. The PORT type lives in schema (both `agent`
 // and this package consume it and neither may import the other); what is published here is the
 // factory the composition root binds, plus the two literals a manual entry records where an auto
 // entry records a real fingerprint.
-// `QuarantineIdentityRefusedError` is on the barrel (390-12) because a surface rendering
+// `QuarantineIdentityRefusedError` is on the barrel because a surface rendering
 // `quarantine.add` needs to tell an operator WHY a path was refused, and an error it cannot name
 // is an error it renders as "unknown". Its blocked-write sibling went with the committed-egress
-// check (441-41, D-15). This is an
+// check. This is an
 // error type, not a power — `underWriterLease` and `appendQuarantineEvents` stay off the barrel,
 // where 390-11 put the second one, because the committed-write surface only ever shrinks.
 export {
@@ -293,7 +293,7 @@ export type {
   RunOutcomesProjection,
   RunOutcomeTestDelta,
 } from './projection/run-outcomes.js'
-// 389 ANLZ-03 — the run-outcome projection's read side: per-test failure history keyed
+// the run-outcome projection's read side: per-test failure history keyed
 // (product, filePath, testName), plus the two pure derivations 389's consumers compose
 // (D-02 prior-build discriminator channel; D-08 live kth-failure recurrence join).
 export {
@@ -308,8 +308,8 @@ export type {
   TestOutcomeHistory,
   TestOutcomeIdentity,
 } from './projection/run-outcome-read.js'
-// 390 FLAK-01 — the fingerprint-keyed recurrence window: detection's substrate, read per query
-// over the sliding ordinal window (D-07). Keyed by (product, fingerprint), never testId.
+// the fingerprint-keyed recurrence window: detection's substrate, read per query
+// over the sliding ordinal window. Keyed by (product, fingerprint), never testId.
 export {
   fingerprintRecurrence,
   QUARANTINE_WINDOW_ORDINALS,
@@ -320,7 +320,7 @@ export type {
   FingerprintWindowIdentity,
   FingerprintWindowRow,
 } from './projection/fingerprint-window-read.js'
-// 393 D-15 WTST-06 — the suite-fingerprint table: gate 3's comparison substrate, folded by the
+// the suite-fingerprint table: gate 3's comparison substrate, folded by the
 // same pass as the run-outcome projection and read through `createSuiteFingerprintIndex`. Keyed
 // by the stable (filePath, testName) identity, never testId; gate-run handoffs never enter it.
 export {
@@ -590,7 +590,7 @@ export type {
   RunMaintenanceTailOptions,
 } from './curator/maintenance.js'
 /**
- * IN-04: `ACQUIRE_WRITER_LEASE_DEADLINE_MS` and `WriterLeaseUnreclaimableError` are deliberately
+ * `ACQUIRE_WRITER_LEASE_DEADLINE_MS` and `WriterLeaseUnreclaimableError` are deliberately
  * NOT re-exported here. Nothing outside `lease/writer-lease.ts` imported either one, and the CLI —
  * the only surface that renders the refusal — reaches this package through `agent-local`'s
  * composition edge, so binding them would have meant widening a second package's surface to keep a
@@ -660,9 +660,9 @@ export type { DiffSinceOptions } from './diff-since.js'
 export { showRecord } from './show-record.js'
 export type { ShowRecordOptions } from './show-record.js'
 
-// 387-08 KREV-01 D-17/D-18/D-19: the knowledge review write path. Published through the WRITER
+// the knowledge review write path. Published through the WRITER
 // entry and deliberately not through `/reader`: this is the one path a change's bytes take.
-// 2026-10-01 (432-17, D-05/D-22): the propose half, the proposals store, its claim/rename machinery
+// the propose half, the proposals store, its claim/rename machinery
 // and the inbox are deleted; a change applies in the call and old proposal files are never read.
 export { FORGET_SCRUBBED_PROJECTIONS } from './review/propose-review.js'
 export type { ResolveBundleShortId, ReviewChangeRequest } from './review/propose-review.js'
@@ -671,7 +671,7 @@ export {
   ApplyDelegateTimeoutError,
   ApplyDelegateUnavailableError,
   ReviewTargetVanishedError,
-  // 432-06 D-04/D-05: the direct door — a validated explicit change applied in the call, with
+  // the direct door — a validated explicit change applied in the call, with
   // no envelope, in every execution context. The explicit store entry beneath it stays internal.
   applyExplicitReview,
 } from './review/apply-review.js'
@@ -682,7 +682,7 @@ export type {
   ExplicitReviewRequest,
   ExplicitReviewResult,
 } from './review/apply-review.js'
-// 393 D-19 WTST-02 — the draft-receipts store: the atomic-file store idiom applied to keep-gate
+// the draft-receipts store: the atomic-file store idiom applied to keep-gate
 // receipts. One schema-versioned `<contentDigest>.json` per draft under the gitignored
 // `<agentQaRoot>/draft-receipts/`, written atomically, refs never run payloads.
 export {
@@ -732,7 +732,7 @@ export type {
 
 export type LocalKnowledgeStore = KnowledgePort
 export type LocalKnowledgeReader = KnowledgeHintReader
-// 416 D-03/D-04: committed gate part read/write seams (writer entry only).
+// committed gate part read/write seams (writer entry only).
 export { GATES_REL_PATH, readGateReceipts } from './bundle-read.js'
 export { appendGateReceipt, appendPromotionReceipt } from './bundle-append.js'
 export { MUTABLE_BUNDLE_TARGETS } from './journal/bundle-mutation.js'

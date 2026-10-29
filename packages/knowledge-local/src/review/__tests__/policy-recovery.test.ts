@@ -11,7 +11,7 @@ import { readPolicyLadder } from '../../serving/policy-ladder.js'
 import { applyExplicitReview, ReviewTargetVanishedError } from '../apply-review.js'
 import type { ApplyExplicitReviewInput } from '../apply-review.js'
 
-// RE-SPELLED 2026-10-01 (432-17, D-05): every change is applied directly under a stable operation
+// RE-SPELLED 2026-10-01: every change is applied directly under a stable operation
 // identity instead of proposed and applied by proposal id. A crash that used to land between the
 // commit and the applied-record publication is injected at the same store boundaries the commit
 // crosses (after the Supersede, after the Gate-3 receipt), and "already-applied" is the same-identity

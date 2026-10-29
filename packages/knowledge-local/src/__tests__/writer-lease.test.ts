@@ -48,7 +48,7 @@ import { RESOLVE_TS_SOURCE_HOOK } from '../lease/__tests__/source-import-hook.js
 
 const WRITER_LEASE_MODULE_URL = new URL('../lease/writer-lease.ts', import.meta.url).href
 /**
- * 2026-10-03 (quick 261003-mqc): `writer-lease.ts` now imports the shared knowledge-root
+ * `writer-lease.ts` now imports the shared knowledge-root
  * containment check, so a child loading it from source resolves its `.js` specifiers to `.ts`.
  */
 const LEASE_SOURCE_CHILD_ARGV = [
@@ -187,7 +187,7 @@ function waitForFileInTest(file: string, timeoutMs: number): Promise<void> {
 }
 
 /**
- * Wait for a subprocess-written pid file to hold a COMPLETE value, then answer it (395-17).
+ * Wait for a subprocess-written pid file to hold a COMPLETE value, then answer it.
  *
  * 395-15's discipline applied to the read site it did not reach: a marker another process writes
  * is ready when its CONTENT parses, never when its inode appears. `writeFileSync` in the child is
@@ -1019,7 +1019,7 @@ describe('writer lease mutation lock ownership', () => {
 })
 
 /**
- * CR-01 + CR-03: one three-valued freshness derivation, and a beat the mutation lock cannot starve.
+ * one three-valued freshness derivation, and a beat the mutation lock cannot starve.
  *
  * The two live together because they are the same mechanism change: freshness is derived from the
  * disk epoch and the lease TTL alone, and the heartbeat writes `.lease` directly. There is no
@@ -1277,7 +1277,7 @@ describe('three-valued freshness and the lock-free heartbeat', () => {
 })
 
 /**
- * CR-04: the mutation-lock row's generation token authenticates the ROW, not the process that
+ * the mutation-lock row's generation token authenticates the ROW, not the process that
  * currently occupies the recorded pid. After a crash plus pid reuse, escalation would otherwise be
  * a local arbitrary-process-termination primitive.
  *
@@ -2222,7 +2222,7 @@ describe('writer lease acquisition deadline against an unreclaimable owner', () 
 })
 
 /**
- * WR-04: the `ps` fork on the pre-signal path is the last wait beneath the acquisition deadline
+ * the `ps` fork on the pre-signal path is the last wait beneath the acquisition deadline
  * that could outlive it.
  *
  * The guard-REJECTING input domain is a process table that will not answer: these legs hand the
@@ -2734,7 +2734,7 @@ describe('budget-capped process-incarnation resolution on the escalation path', 
 })
 
 /**
- * WR-05: store contention on the owner read is a typed absence, not daemon death.
+ * store contention on the owner read is a typed absence, not daemon death.
  *
  * The rejecting input is a store nobody can read: `readCommittedMutationLockOwner` opens read-only
  * with `timeout: 0`, and both of its callers publish its answer as part of a promise — the
@@ -2857,7 +2857,7 @@ describe('store contention during acquisition diagnostics', () => {
 })
 
 /**
- * IN-04: the lease module's public export surface carries no fallow symbols.
+ * the lease module's public export surface carries no fallow symbols.
  *
  * A symbol exported from the package index and imported by nobody is a claim the package makes
  * about its own contract that no consumer has ever tested. The two named residuals are checked

@@ -1,12 +1,12 @@
-// Apply: the ONE path a knowledge change's bytes take (Phase 387, KREV-01 / D-17 · D-18; 432-06).
+// Apply: the ONE path a knowledge change's bytes take.
 //
-// An explicit mark, accept, reject or forget applies in the call (432 D-04/D-05). The caller's stable
+// An explicit mark, accept, reject or forget applies in the call. The caller's stable
 // operation identity is the change identity, so a retry is the same change: its evidence tokens,
 // receipts and record ids repeat and nothing lands twice. Every change routes its deltas through the
 // Curator's `commit()` — the same epoch-fenced path every curation write takes — and the receipt is
 // assembled around the commit from the disposition outcome plus post-commit reads.
 //
-// LEASE ROUTING (D-18) is decided by `acquireWriterLease` itself rather than by a classification
+// LEASE ROUTING is decided by `acquireWriterLease` itself rather than by a classification
 // this module performs first. That is deliberate: a read-then-decide would have a window between
 // the read and the acquire, and the primitive already refuses a fresh holder. So "the lease is
 // held by somebody alive" arrives here as an ordinary `held` outcome, and the caller delegates the
@@ -17,7 +17,7 @@
 // narrow explicit entry, which skips only the automatic propose-only downgrade and keeps the actual
 // ExecutionContext on every durable record. Delta validation and every promotion gate still apply.
 //
-// 2026-10-01 (432-17, D-05/D-22): the proposal door is deleted with the inbox — the claim by atomic
+// the proposal door is deleted with the inbox — the claim by atomic
 // rename, the applied/rejected publication, the in-flight wait and the restore-to-pending on failure.
 // Old proposal files are never read again.
 
@@ -70,7 +70,7 @@ import { FORGET_SCRUBBED_PROJECTIONS, resolveReviewTarget, reviewDeltasFor } fro
 import type { ResolveBundleShortId, ReviewChangeRequest } from './propose-review.js'
 
 /**
- * How long a delegating process waits for the leaseholder to finish an apply (D-18).
+ * How long a delegating process waits for the leaseholder to finish an apply.
  *
  * PINNED, not configured, on the `LEASE_HEARTBEAT_TTL_MS` idiom. 30s is chosen as "longer than any
  * commit this store performs, shorter than a person's patience": a commit is a handful of file
@@ -112,7 +112,7 @@ export class ReviewTargetVanishedError extends Error {
 }
 
 /**
- * One review change: a validated direct request (432-06). `id` is the receipt identity, derived from
+ * One review change: a validated direct request. `id` is the receipt identity, derived from
  * the caller's stable operation identity.
  */
 interface ReviewChange {
@@ -201,7 +201,7 @@ function locateRecord(knowledgeRoot: string, recordId: string) {
  * `every`, not `some`: a bundle-grained verb over a partially-tombstoned set still has work to
  * do, and treating it as complete would be the silent partiality D-19 forbids.
  *
- * Judged through the SHARED mapping (387-11) rather than a table local to this module. The local
+ * Judged through the SHARED mapping rather than a table local to this module. The local
  * table this replaced named `withdrawn` and `retired` — neither is a `BundleStatus` member, so
  * both were dead weight — and the shared one is `satisfies Record<BundleStatus, …>`, which makes
  * a fifth member a compile error here instead of a status that silently reads as untombstoned.
@@ -281,7 +281,7 @@ function landedEffects(
  * nothing — including in the one case that matters, where the commit tombstoned less than the
  * preview predicted.
  *
- * `projectionsScrubbed` is a PARAMETER for the same reason (WR-02). It used to be the constant
+ * `projectionsScrubbed` is a PARAMETER for the same reason. It used to be the constant
  * scrub set spliced in unconditionally, which made the receipt right by construction on the one
  * path where it was wrong: the short-circuit runs no commit, so no projection is rebuilt and no
  * recall row is removed, and a receipt naming three scrubs there asserts work nobody performed.
@@ -615,7 +615,7 @@ async function writeReviewChange(
     if (recorded !== undefined && canonicalJson(recordedIds) === canonicalJson(recordIds)) {
       return { kind: 'applied', recordIds, forgetReceipt: recorded }
     }
-    // WR-02: when something ELSE tombstoned these records, no commit ran for this change, so no
+    // when something ELSE tombstoned these records, no commit ran for this change, so no
     // projection was rebuilt and no recall row was removed. The scrub list is EMPTY because that
     // is what happened. A tombstone this change itself committed (its receipt was never recorded)
     // did scrub them, and says so.
@@ -644,7 +644,7 @@ async function writeReviewChange(
 }
 
 /**
- * A leaseholder never delegates, and the input may not claim to be both (WR-04).
+ * A leaseholder never delegates, and the input may not claim to be both.
  *
  * The two fields are mutually exclusive by MEANING: `writerAuthority` says "I hold the lease and
  * will commit in this process", `delegate` says "somebody else holds it and here is how to reach
@@ -709,7 +709,7 @@ export interface ExplicitReviewDelegation {
 }
 
 /**
- * Hand the direct request to the leaseholder and wait bounded for its answer (D-18). Injected as
+ * Hand the direct request to the leaseholder and wait bounded for its answer. Injected as
  * an optional operation rather than built here: `knowledge-local` neither knows nor may know that a
  * unix socket exists. A host supplies its transport; the leaseholder's own composition supplies
  * nothing, which makes delegation recursion impossible by construction.
@@ -821,7 +821,7 @@ async function applyExplicitAsHolder(
 }
 
 /**
- * Apply an explicit knowledge change in the call (432-06, D-04/D-05/D-09/D-11).
+ * Apply an explicit knowledge change in the call.
  *
  * No envelope is written, claimed or reloaded. A holder commits with its own authority, a free lease is acquired and released, and a live holder is
  * handed the same validated request and identity, bounded, and is never stolen from. Retrying
@@ -855,7 +855,7 @@ export async function applyExplicitReview(input: ApplyExplicitReviewInput): Prom
   try {
     return await applyExplicitAsHolder(writer, request, changeId, acquired, input.resolveBundleShortId)
   } finally {
-    // An applied change is never reported as failed because the release after it threw (WR-11).
+    // An applied change is never reported as failed because the release after it threw.
     releaseLeaseAfterWork({ knowledgeRoot: input.knowledgeRoot, leaseId: acquired.leaseId })
   }
 }

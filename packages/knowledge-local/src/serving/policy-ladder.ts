@@ -4,7 +4,7 @@ import { join } from 'node:path'
 import { slugBranch } from '@vostride/agent-qa-schema'
 
 /**
- * D-07: Provisional authored-policy warning threshold. This is an operator
+ * Provisional authored-policy warning threshold. This is an operator
  * signal only, never a serving budget or user-facing configuration key.
  */
 const POLICY_SIZE_WARNING_CHARACTERS = 16_000
@@ -157,7 +157,7 @@ export function readPolicyLadder(
   knowledgeRoot: string,
   product?: string,
 ): PolicyLadder {
-  // D-06: The ladder is deliberately closed at two rungs, general before specific.
+  // The ladder is deliberately closed at two rungs, general before specific.
   const requestedFiles = ['policies/global.md']
   if (product !== undefined && product.length > 0) {
     // Product identity is data, not a caller-controlled path. Reuse the shared
@@ -171,7 +171,7 @@ export function readPolicyLadder(
   })
 
   return {
-    // D-07: Validated active policy bytes are concatenated whole. Labels frame
+    // Validated active policy bytes are concatenated whole. Labels frame
     // sources but no active text is summarized, truncated, normalized, or reflowed.
     text: renderPolicyLadder(rungs),
     files: rungs.map(({ file }) => file),

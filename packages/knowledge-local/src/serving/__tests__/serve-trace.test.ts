@@ -1,5 +1,5 @@
 /**
- * The serve-time retrieval trace at every serving entry (Phase 387-04, KREV-02 · D-13/D-14/D-16).
+ * The serve-time retrieval trace at every serving entry.
  *
  * These cases pin what the trace CLAIMS, not merely that a trace object exists. Two failure modes
  * this file is deliberately built against:

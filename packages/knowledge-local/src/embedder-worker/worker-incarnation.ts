@@ -33,7 +33,7 @@ export function ownEmbedderWorkerIncarnation(): string {
 /**
  * Compare the registration's recorded incarnation against the pid's CURRENT occupant.
  *
- * CR-05: a schema-valid registration naming a live pid whose socket has stopped answering is not
+ * a schema-valid registration naming a live pid whose socket has stopped answering is not
  * proof that the worker is still there. Once the worker died, the kernel is free to hand its pid to
  * a stranger, and every decision keyed on that number alone targets whoever holds it now. The one
  * fact that separates them is assigned by the OS and cannot be forged from inside the file: when

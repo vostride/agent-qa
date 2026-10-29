@@ -340,7 +340,7 @@ async function probeCapability({
 }
 
 /**
- * Resolve the automatic ladder once per profile for this process (D-17).
+ * Resolve the automatic ladder once per profile for this process.
  *
  * Every host/runtime failure collapses to a typed capability outcome; callers cannot select a
  * rung. Injected test seams receive an isolated memo while production keys solely by the stable

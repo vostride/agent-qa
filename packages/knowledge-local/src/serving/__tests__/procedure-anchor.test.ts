@@ -1,4 +1,4 @@
-// D-17's two halves, measured through the REAL matcher (394-09 · WTST-01).
+// D-17's two halves, measured through the REAL matcher.
 //
 // Procedure-by-reference is a claim with two parts, and this file exists because only one of them
 // can be checked where the authoring code lives.
@@ -207,7 +207,7 @@ describe('a step that matches no procedure simply plans normally', () => {
 
 describe('the vocabulary is derived from the anchor alone', () => {
   it('renders every anchor arm in the record own words, and can carry no record id', () => {
-    // The function's ARGUMENT is the mitigation (T-394-38): a `ProcedureMatch` carries `id`, and a
+    // The function's ARGUMENT is the mitigation: a `ProcedureMatch` carries `id`, and a
     // vocabulary derived from an `Anchor` has no id in scope to leak into an authored file. This
     // cell states that as a property of the values it produces, arm by arm, so a later widening of
     // the signature to take the whole match would have to move this line too.

@@ -1,6 +1,6 @@
-// Apply routes through the ONE commit path, race-safely and idempotently (387-08, KREV-01).
+// Apply routes through the ONE commit path, race-safely and idempotently.
 //
-// RE-SPELLED 2026-10-01 (432-17, D-05/D-22). The proposal door this corpus drove is deleted with the
+// RE-SPELLED 2026-10-01. The proposal door this corpus drove is deleted with the
 // inbox. Every case now stages its change in memory (`stage`, below) and applies it through
 // `applyExplicitReview` under a stable operation identity; the receipt id is `prop_<identity>`, the
 // shape receipts already carried, so the receipt assertions are unchanged. What each door-specific
@@ -367,7 +367,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   })
 
   it('concurrent mark applies answer the same durable receipt and commit once', async () => {
-    // RE-SPELLED (432-17): without a claim, the overlapping call meets the first one's writer lease
+    // RE-SPELLED: without a claim, the overlapping call meets the first one's writer lease
     // and is refused by name with no host delegate; its retry under the same identity answers the
     // first call's receipt and commits nothing more. The composed port serializes its own calls.
     const proposalId = proposeMark(publish('concurrent checkout'))
@@ -423,7 +423,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     const entry = enumerateBundleDirs(knowledgeRoot).map(found => loadBundle(found.dir))
       .find(loaded => loaded.kind === 'loaded' && loaded.bundle.manifest.id === id)
     expect(entry?.kind === 'loaded' && entry.bundle.provenance).toMatchObject({ authorship: { executionContext: 'ci' } })
-    // RE-SPELLED (432-17): no applied record is written; the same-identity retry answers the receipt.
+    // RE-SPELLED: no applied record is written; the same-identity retry answers the receipt.
     expect((await applyReview({ agentQaRoot, knowledgeRoot, proposalId, executionContext: 'ci' })).commitReceipt)
       .toEqual(receipt)
   })
@@ -480,7 +480,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(result).not.toHaveProperty('commitReceipt')
     expect(hashTree(join(knowledgeRoot, 'memory'))).toBe(before)
     expect(existsSync(join(knowledgeRoot, 'policies'))).toBe(false)
-    // RE-SPELLED (432-17): nothing was filed to restore; a retry refuses the same way.
+    // RE-SPELLED: nothing was filed to restore; a retry refuses the same way.
     expect(existsSync(join(agentQaRoot, 'proposals'))).toBe(false)
     expect((await applyReview({ agentQaRoot, knowledgeRoot, proposalId })).outcome).toBe('policy-materialize-refused')
   })
@@ -629,7 +629,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   })
 
   it('is idempotent: a same-identity retry commits nothing', async () => {
-    // RE-SPELLED (432-17): the proposal door answered the FIRST receipt verbatim off its applied
+    // RE-SPELLED: the proposal door answered the FIRST receipt verbatim off its applied
     // record. The direct door keeps no such record: a retried forget lands nothing and answers the
     // same records, and re-mints its receipt (deferred-items 432-16 #3). What is asserted is the
     // half that survives — nothing is committed twice.
@@ -649,7 +649,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   })
 
   it('records exactly one application even when two applies overlap', async () => {
-    // RE-SPELLED (432-17): both calls are started before either is awaited. With no claim to race
+    // RE-SPELLED: both calls are started before either is awaited. With no claim to race
     // for, the first acquires the writer lease synchronously and the overlapping call meets it held
     // and, with no delegate on this host, is refused BY TYPE. Exactly one call commits, and the
     // store shows one application.
@@ -777,7 +777,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     expect(JSON.stringify(secondRetried)).toBe(JSON.stringify(second))
   })
 
-  // ── CR-03: deleted 2026-10-01 (432-17). The four claim-window cases (a parked claim refused by
+  // ── CR-03: deleted 2026-10-01. The four claim-window cases (a parked claim refused by
   // type, a winner publishing or restoring during the wait, an id never minted) measured the
   // claim/rename machinery the inbox owned. A change is no longer claimed: the identity is the
   // caller's, and a live writer is met through the lease (see the overlap case above).
@@ -788,7 +788,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   // a forget had tombstoned — and the defect lived in every other cell. `propose-review.ts` emits
   // an IDENTICAL `Deprecate` delta for reject (:183-188) and forget (:190-195), so the hazard
   // belongs to the DELTA KIND; a guard scoped to one verb of the emitting set is the same
-  // root-cause shape as a status table scoped to hand-picked members of a union (387-11 / CR-04).
+  // root-cause shape as a status table scoped to hand-picked members of a union.
   // The cases are therefore written over the whole set, not over the member that failed.
   //
   // RED BASELINE, observed against unmodified apply-review.ts (short-circuit still
@@ -914,7 +914,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
 
     const receipt = forgotten.forgetReceipt
     if (receipt === undefined) throw new Error('a forget must produce a receipt')
-    // WR-02: the branch committed nothing and scrubbed nothing. `scrubSetSchema`
+    // the branch committed nothing and scrubbed nothing. `scrubSetSchema`
     // (schema/src/knowledge/proposal.ts:140-146) admits any unique SUBSET including the empty one,
     // so an honest empty list is expressible — and a receipt asserting work nobody did is exactly
     // what propose-review.ts:44-45 forbids.
@@ -982,7 +982,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
   })
 
   it('leaves the change RETRYABLE when the commit refuses', async () => {
-    // RE-SPELLED (432-17): there is no pending proposal to keep applicable. A held lease refuses the
+    // RE-SPELLED: there is no pending proposal to keep applicable. A held lease refuses the
     // change before anything is written, and the same identity applies once the lease is free.
     const recordId = publish('checkout button')
     const proposalId = proposeForget(recordId)
@@ -1449,6 +1449,6 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
     // EACH FIELD ALONE still works, and neither half is duplicated here: `delegate` alone is
     // covered by 'delegates instead of stealing when a live holder exists, and waits BOUNDED'
     // above, and `writerAuthority` alone by the daemon-authority suite in
-    // knowledge-proposal-apply's tests (387-10). What this case adds is only the conjunction.
+    // knowledge-proposal-apply's tests. What this case adds is only the conjunction.
   })
 })

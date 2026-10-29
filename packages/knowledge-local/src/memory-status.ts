@@ -1,4 +1,4 @@
-// The ONE bundle-status → MEM card-status mapping (Phase 387 plan 11, CR-04 / ENTY-02 / D-04).
+// The ONE bundle-status → MEM card-status mapping.
 //
 // WHY THIS IS A MODULE AND NOT TWO PRIVATE TABLES
 //

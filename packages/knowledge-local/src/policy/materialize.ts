@@ -37,7 +37,7 @@ export type MaterializeOutcome = { kind: 'written' | 'unchanged'; relPath: strin
 /**
  * The authored shelf is append-only under the caller's writer lease. An existing section ID
  * always wins, including when its human-edited body differs. Never rewrite that body.
- * The authored text is written as given; no detector scans it (Phase 441, D-15).
+ * The authored text is written as given; no detector scans it.
  */
 export function materializePolicy(input: MaterializePolicyInput): MaterializeOutcome {
   return withCurrentWriterAuthority(input.knowledgeRoot, input.writerAuthority, () => materializeUnderAuthority(input))
@@ -49,7 +49,7 @@ function materializeUnderAuthority(input: MaterializePolicyInput): MaterializeOu
   }
   const { open, close } = policySectionMarkers(input.recordId)
   const path = policyShelfPath(input.knowledgeRoot, input.scope)
-  // 261003-mqc: a `policies/` linked out of the knowledge root is refused before any write.
+  // a `policies/` linked out of the knowledge root is refused before any write.
   assertWithinKnowledgeRoot(input.knowledgeRoot, dirname(path))
   const relPath = relative(input.knowledgeRoot, path)
   const section = `\n${open}\n${input.title ? `### ${input.title}\n` : ''}${input.ruleText.trim()}\n${close}\n`
