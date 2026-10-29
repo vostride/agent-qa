@@ -1,38 +1,4 @@
-// The entity index: a rebuildable projection of the addressing ledger (Phase 387, D-06).
-//
-// WHY THIS IS A RECORDS-SHAPED DATABASE IN ITS OWN FILE
-//
-// D-05 says tier (b) of the resolver is the memidex hybrid pipeline — not a second scoring
-// engine, not fuse.js. `lexicalLeg` and `denseLeg` are the pipeline, and both are written
-// against a fixed projection shape: an FTS5 table joined to a row table carrying scope, status
-// and embedding columns. Reusing them therefore means presenting that shape, which is what
-// this module builds. The alternative — entity-shaped tables plus a hand-rolled BM25/cosine
-// query beside them — would have been a second scoring engine wearing a different name, and
-// the degradation ladder, the admission floors and the FTS escaping would all have had to be
-// rebuilt with it.
-//
-// The separation Pitfall 6 demands is achieved by the FILE, not by the table names. This
-// database lives beside the knowledge index and shares nothing with it: no statement here
-// resolves, opens or writes `knowledge.db`, and the projection tables inside this file are
-// reachable only through a handle opened from `entityIndexDbPath`. An entity therefore cannot
-// be served as a learned fact, because the serving reader opens a different file entirely —
-// asserted directly, with a positive control, in this module's suite.
-//
-// WHY THE DENSE RUNG IS ALWAYS BRUTE
-//
-// `denseVec0` refuses to answer unless the database carries the records index's private
-// vec-cleanup epoch marker, whose value is a module-private constant of `index-open.ts`.
-// Stamping it from here would be a second, unpinned spelling of somebody else's invariant —
-// exactly the drift the projection law exists to avoid — and RESEARCH A3 resolved that the
-// per-profile vec bookkeeping stays untouched. The entity corpus is bounded by the number of
-// things a human can name, where a brute cosine scan costs nothing worth optimising. So the
-// connection pins `brute` on every host, and no `vec0` virtual table is ever created here.
-//
-// WHY IT MAY BE DESTROYED AT WILL
-//
-// Every row is derived from the addressing ledger plus the owning stores. The ledger is the
-// one durable truth (D-02) and is never rebuilt; this file is disposable, and a full rebuild
-// heals arbitrary damage — deleted rows, a corrupted rendering, an orphaned FTS entry.
+// Records-shaped for the retrieval legs, in its own file so no write reaches `knowledge.db`.
 
 import { mkdirSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -191,7 +157,7 @@ const SCHEMA_STATEMENTS = [
 ] as const
 
 export interface EntityIndexHandle {
-  /** The connection shape the retrieval legs take. `vec` is pinned `brute` — see the header. */
+  /** `vec` is `brute`: `denseVec0` needs the records index's private vec-cleanup epoch marker. */
   readonly connection: IndexReaderConnection
   readonly path: string
   close(): void

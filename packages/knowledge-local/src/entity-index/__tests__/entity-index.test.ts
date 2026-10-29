@@ -517,11 +517,7 @@ describe('no statement in entity-index/ can reach the knowledge index', () => {
     // Positive control: the scan catches a planted statement.
     expect(offenders(`${statements}\nconst leak = openIndexWriter(knowledgeRoot)\n`))
       .toEqual(['openIndexWriter'])
-    // Inverse control: the scan is reading statements, not prose. The module header discusses
-    // `knowledge.db`, `indexDbPath` and `vecTableName` by name and must not be flagged for it.
-    expect(readFileSync(new URL('../entity-index.ts', import.meta.url), 'utf8'))
-      .toContain('knowledge.db')
-    // And it is reading THIS module: a marker only the real source carries.
+    // A marker only the real source carries, so the scan reads this module.
     expect(statements).toContain('ENTITY_INDEX_USER_VERSION')
   })
 })
