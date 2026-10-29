@@ -1,4 +1,4 @@
-// `init --agent`: the machine entry point (Phase 398 plan 08, D-16 · XPLN-01 / XPLN-03).
+// `init --agent`: the machine entry point.
 //
 // WHAT AN EXTERNAL AGENT GETS FROM ONE READ. Every capability this product has, in the words a
 // person reads, and whether THIS workspace has a configuration that reads. Local, non-interactive,
@@ -10,16 +10,16 @@
 // improved out of agreement with the artifact, which is why `manifest ≡ catalog` can be a suite
 // cell at all.
 //
-// 2026-08-17 — UNFILTERED BY DESIGN (D-16, prohibition P1). Every row is emitted, for every caller,
+// UNFILTERED BY DESIGN (D-16, prohibition P1). Every row is emitted, for every caller,
 // with no scope filter applied anywhere below. 2026-10-01 (432-20/432-21, D-12): there is no
 // per-caller filter anywhere else either — the MCP `tools/list` visibility law is deleted, so every
 // caller lists and calls what this manifest lists. The emitted `$note` says so in the document
 // itself, so a reader who never opens this source still learns it.
 //
-// NO SECRET PATH, STRUCTURALLY (395 D-11, T-398-17). 2026-10-01 (432-21/432-22, D-12): the posture
+// NO SECRET PATH, STRUCTURALLY. 2026-10-01 (432-21/432-22, D-12): the posture
 // no longer reports declared MCP credentials at all — `services.mcp.tokens` is a deleted config key
 // (a file declaring it does not resolve), and the resolver that once turned a declared name into a
-// credential is deleted. 2026-10-02 (432-39, D-12): the posture's `tokenEnvRefs`, `defaultScopes`
+// credential is deleted. 2026-10-02: the posture's `tokenEnvRefs`, `defaultScopes`
 // and `safeMode` members are deleted, so the posture carries only `configuration`. The
 // sentinel-absence cell in `conformance/manifest.test.ts` keeps that true as the file changes.
 
@@ -56,8 +56,8 @@ export interface DedicatedReadVerb {
 }
 
 /**
- * The dedicated read verbs (431 D-11), each a thin client over the ops the manifest's rows
- * describe. They stay off the four-door surface roster (430 D-03): `fn` is the roster's CLI
+ * The dedicated read verbs, each a thin client over the ops the manifest's rows
+ * describe. They stay off the four-door surface roster: `fn` is the roster's CLI
  * door, and these verbs own no capability of their own.
  */
 export const DEDICATED_READ_VERBS: readonly DedicatedReadVerb[] = Object.freeze([
@@ -73,7 +73,7 @@ export const DEDICATED_READ_VERBS: readonly DedicatedReadVerb[] = Object.freeze(
   { verb: 'knowledge brief-why', flags: ['--step', '--test', '--record', '--json'], opIds: ['knowledge.brief.why'] },
 ].map((entry) => Object.freeze({ ...entry, flags: Object.freeze(entry.flags), opIds: Object.freeze(entry.opIds) })))
 
-/** `init`'s opt-in that writes the root pointer block into AGENTS.md (431 D-18/D-20). */
+/** `init`'s opt-in that writes the root pointer block into AGENTS.md. */
 export const INIT_AGENT_INSTRUCTIONS_VERB: { readonly verb: 'init', readonly flags: readonly string[] } =
   Object.freeze({ verb: 'init', flags: Object.freeze([WRITE_AGENT_INSTRUCTIONS_FLAG]) })
 
@@ -83,7 +83,7 @@ export interface AgentManifestInput {
   readonly configPath?: string
 }
 
-// 2026-10-01 (432-21, D-12): `tokenEnvRefsOf` is deleted. It projected `services.mcp.tokens` onto
+// `tokenEnvRefsOf` is deleted. It projected `services.mcp.tokens` onto
 // names for the posture, and that key is no longer read by anything.
 
 /**
@@ -129,7 +129,7 @@ export async function buildAgentManifest(
     // VERBATIM. No filter, no re-sort, no re-shape — see this file's header.
     rows: catalog.rows,
     posture: {
-      // 2026-10-02 (432-39, D-12): no `defaultScopes`, `safeMode` or `tokenEnvRefs`. Each reported a
+      // no `defaultScopes`, `safeMode` or `tokenEnvRefs`. Each reported a
       // constant since 432-20/21 (every scope name, `false`, empty) and leaves with the permission
       // metadata it described.
       configuration,

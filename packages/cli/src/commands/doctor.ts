@@ -31,7 +31,7 @@ import {
   resolveTerminalWidth,
 } from './doctor-row.js'
 
-// 407 D-18: exported so `doctor-knowledge-checks.ts` can build rows this printer prints without
+// exported so `doctor-knowledge-checks.ts` can build rows this printer prints without
 // restating the row contract. The three types are the whole of what a row is.
 export type CheckStatus = 'pass' | 'warn' | 'fail' | 'skip'
 
@@ -367,7 +367,7 @@ function checkLLMConnection(config: Record<string, unknown> | null): DoctorCheck
         }
         const { generateText } = await import('ai')
         const { profile, auth: modelAuth } = toModelProfileAndAuth(llm, auth as any)
-        // 2026-10-12 (441-04, D-06): fixed probe text, nothing to mask.
+        // fixed probe text, nothing to mask.
         const testModel = createModel(profile, modelAuth, (text) => text)
         const controller = new AbortController()
         const timeout = setTimeout(() => controller.abort(), 10000)
@@ -646,7 +646,7 @@ export function createDoctorCommand(): Command {
         checkNodeVersion(),
         checkConfigFile(configPath),
         checkLegacyV1MemoryData(configPath),
-        // 407 D-18: the knowledge substrate's three rows sit here — directly after the legacy v1
+        // the knowledge substrate's three rows sit here — directly after the legacy v1
         // memory row, because they are the same subject — and before config validation, so the
         // rung reads as the conclusion of the store and embedder rows above it.
         ...createKnowledgeChecks({ config, configPath }),
@@ -673,7 +673,7 @@ export function createDoctorCommand(): Command {
       let hasFailure = false
       const results: { check: DoctorCheck; result: CheckResult }[] = []
 
-      // 407-24 (G-407-3): every line below goes through the width budget. Colour is applied HERE
+      // every line below goes through the width budget. Colour is applied HERE
       // and only here, by handing named decorators to the same `composeRow` the formatter used to
       // derive its plain line — so the printed line and the pinned one are one recipe run twice.
       //

@@ -43,13 +43,13 @@ import { WorkingMemoryStore, runMemberTest, createStepModelScope, memberStepText
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
 import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory } from '@vostride/agent-qa-runner'
-// 390 D-16: the run-start ledger fold lives at the local composition root (the CLI's shipped source
+// the run-start ledger fold lives at the local composition root (the CLI's shipped source
 // does not name the knowledge package — 387 D-20); this host calls the ONE resolved helper.
 import { resolveRunQuarantineSnapshot } from '@vostride/agent-qa-agent-local'
-// 401-11 (D-02): the door renders the core's refusal; it no longer COMPOSES the core. That moved,
+// the door renders the core's refusal; it no longer COMPOSES the core. That moved,
 // with the assembler hand-off, the audit sink, the safety-hook runner and the safety scope, into the ONE in-process drive both of this door's paths now call.
 import { RunIdAlreadyInUseError, RunIdNotMintedError } from '@vostride/agent-qa-agent-local'
-// 401-11: the ONE in-process drive. BOTH of this door's paths are callers of it — the door supplies
+// the ONE in-process drive. BOTH of this door's paths are callers of it — the door supplies
 // its posture, its members and its post-verdict tail; the drive owns the order.
 //
 // DEFERRED, NOT STATIC. `in-process-run-execution.ts` imports this file's producers relatively (the
@@ -57,7 +57,7 @@ import { RunIdAlreadyInUseError, RunIdNotMintedError } from '@vostride/agent-qa-
 // here closes an ESM cycle at module-evaluation time. A call-time `await import` keeps every edge in
 // that cycle a call-time edge, which is the condition under which ESM tolerates one at all.
 import type { runInProcessCliRun as RunInProcessCliRun } from '../composition/in-process-run-execution.js'
-// 401-11: the typed input failure this file's preflight now THROWS instead of exiting on.
+// the typed input failure this file's preflight now THROWS instead of exiting on.
 // It lives in a leaf module rather than in `in-process-run-execution.ts` because that module
 // imports this one's producers — see `cli-run-input-error.ts`'s header.
 import { CliRunInputError } from '../composition/cli-run-input-error.js'
@@ -178,7 +178,7 @@ export function resolveMemberTargetFacts(
     }
     try {
       const resolved = resolveTarget(config, targetName)
-      // D-04: web targets only. A mobile member contributes no URL and therefore receives no
+      // web targets only. A mobile member contributes no URL and therefore receives no
       // baseline — the device-session-create failure is the equivalent environment signal there.
       probeUrls.push(resolved.platform === 'web' && resolved.url ? resolved.url : undefined)
       firstResolvedProduct ??= resolved.product
@@ -240,7 +240,7 @@ function resolveIsCI(env: NodeJS.ProcessEnv = process.env): boolean {
 }
 
 /**
- * Composition-root construction of the redesigned action cache (Phase 356, D-01/D-05/D-14).
+ * Composition-root construction of the redesigned action cache.
  * Builds the runner-local `FsActionCache` behind a resolved branch `CachePolicy`, injected into the
  * runner loop's cache port via RunTest/RunSuite config.
  */
@@ -267,7 +267,7 @@ async function buildActionCacheContext(params: {
 }
 
 /**
- * Composition-root construction of the run-scoped storage-state store (Phase 360, D-14). Builds
+ * Composition-root construction of the run-scoped storage-state store. Builds
  * the runner-local `FsStorageStateStore` rooted at the run's `.agent-qa` runtime dir (the
  * FsActionCache rooting idiom) — the raw-but-local auth-persistence home under
  * `.agent-qa/storage-states/`. Injected into the runner loop's `storageState` port; all fs writes
@@ -497,9 +497,9 @@ export interface RunOptions {
   detach?: boolean
   gateRun?: boolean
   excludedFromOutcomes?: boolean
-  /** 402-03 (D-12): `--parallel` / `--no-parallel`, an ordinary override of `use.parallel`. */
+  /** `--parallel` / `--no-parallel`, an ordinary override of `use.parallel`. */
   parallel?: boolean
-  /** 402-03 (D-12): `--workers <count>`, an ordinary override of `use.workers`. Argv is a string. */
+  /** `--workers <count>`, an ordinary override of `use.workers`. Argv is a string. */
   workers?: string
 }
 
@@ -529,7 +529,7 @@ export function runMarkers(opts: RunOptions): { gateRun?: true; excludedFromOutc
 }
 
 /**
- * THE RUN'S CONCURRENCY CONFIG — read at the producer, never from a request (402-03, D-12).
+ * THE RUN'S CONCURRENCY CONFIG — read at the producer, never from a request.
  *
  * IT IS AN ORDINARY `use`-BUCKET OVERRIDE AND NOTHING ELSE. The two flags ride `mergeUseBlocks`,
  * the same helper and the same precedence (`config.use` < flags) every other `use` override in
@@ -782,7 +782,7 @@ function directRunSource(bindings: readonly ParsedTestBinding[]): Record<string,
   }
 }
 
-// 2026-10-17 (443-05, D-02/D-22): the one run-record builder. It lives here because this file is the
+// the one run-record builder. It lives here because this file is the
 // CLI's only ledgered home for the dashboard package (FUNC-02 surface firewall).
 export interface RunRecordHostBinding {
   readonly db: DashboardDatabase
@@ -866,7 +866,7 @@ export function createRunRecord(input: {
     let useHost = false
     let handle: DashboardDatabase
     let free: boolean
-    // 2026-10-17 (443-05, D-05): a runs.db that cannot be opened refuses the run before any effect.
+    // a runs.db that cannot be opened refuses the run before any effect.
     try {
       dashboard = await import('@vostride/agent-qa-dashboard')
       dbPath = dashboard.resolveDashboardDbPath({
@@ -881,7 +881,7 @@ export function createRunRecord(input: {
     } catch (error) {
       throw new RunRecordUnavailableError(dbPath, error)
     }
-    // 2026-10-17 (444-09, D-25): a close that landed during the open releases the handle it built.
+    // a close that landed during the open releases the handle it built.
     if (closed) {
       if (!useHost) handle.close()
       throw refuseClosed()
@@ -932,7 +932,7 @@ export function createRunRecord(input: {
         : attach.attributes === undefined
           ? input.attributes
           : { ...attach.attributes, [ATTR_TRIGGER]: input.attributes[ATTR_TRIGGER] }
-      // 2026-10-17 (443-07, D-09): a verify run's row is marked from the run's own gate-run flag.
+      // a verify run's row is marked from the run's own gate-run flag.
       const attributes = attach.gateRun === true
         ? { ...(own ?? db.getRun(runId)?.attributes), [ATTR_GATE_RUN]: 'true' }
         : own
@@ -992,7 +992,7 @@ export function createRunRecord(input: {
             }
           }
           stopped = true
-          // 2026-10-17 (444-09, D-16): no verdict closes the own row as failed, guessing no cause.
+          // no verdict closes the own row as failed, guessing no cause.
           if (verdict === undefined && ownRow !== undefined) {
             try {
               const startedMs = Date.parse(handle.getRun(runId)?.startedAt ?? '')
@@ -1007,7 +1007,7 @@ export function createRunRecord(input: {
             }
           }
           if (incompleteReason === undefined) return
-          // 2026-10-17 (443-05, D-27): the verdict stands; the run's own row is closed once, best effort.
+          // the verdict stands; the run's own row is closed once, best effort.
           if (verdict !== undefined && ownRow !== undefined) {
             try {
               handle.closeOwnRun(runId, { status: verdict, endedAt: new Date().toISOString() })
@@ -1031,7 +1031,7 @@ export function createRunRecord(input: {
   }
 }
 
-// 2026-10-17 (444-08, D-30): only a forced exit closes a row, and only this process's still-running one.
+// only a forced exit closes a row, and only this process's still-running one.
 export function closeOwnRowAtForcedExit(record: RunRecord): void {
   const id = record.ownRowId()
   if (record.db === undefined || id === undefined) return
@@ -1058,7 +1058,7 @@ async function maybePrintPostRunUpdateNotice(context: AgentQaUpdateNoticeContext
 /**
  * The rendered parse-error report, as LINES rather than as console writes.
  *
- * 401-11: an input refusal CARRIES what it used to print, so the door that has a terminal renders
+ * an input refusal CARRIES what it used to print, so the door that has a terminal renders
  * it and a door that has none does something else with it. `formatParseErrors` below is now this
  * function plus a loop, which is what keeps the two from drifting into two reports.
  */
@@ -1385,7 +1385,7 @@ export interface RunInvocationInputs {
  * strings — with one change: every failure that used to render and call `process.exit` now throws a
  * `CliRunInputError` carrying those same rendered lines and that same exit code. The command prints
  * `lines` and terminates with `exitCode`, so its observable behaviour is unchanged to the byte;
- * every other door gets a typed refusal instead of a dead host (T-401-31).
+ * every other door gets a typed refusal instead of a dead host.
  *
  * IT STAYS IN THIS FILE, and that is the surface firewall's answer rather than a preference. The
  * preflight needs `@vostride/agent-qa-core`'s parser, workspace walker and env reader plus the two
@@ -1508,7 +1508,7 @@ export async function resolveRunInvocationInputs(
     )
   }
 
-  // Workspace agent-rules loading removed in Phase 373 (KDIR-03); policy serving
+  // Workspace agent-rules loading removed in Phase 373; policy serving
   // returns via Reader L0 policies in Phase 380.
 
   // Resolve effective log level: the door's own fold (CLI flag > --verbose/--quiet) > config > fallback
@@ -1607,7 +1607,7 @@ export async function resolveRunInvocationInputs(
   }
 }
 
-// 2026-08-24 (402-09, D-11): `kind` is narrowed from the full `RunArtifactKind` breadth to the one
+// `kind` is narrowed from the full `RunArtifactKind` breadth to the one
 // value this process can still produce. The parent/child kinds are RETAINED on the schema union
 // (existing artifact documents carry them) but nothing mints them any more, so a parameter that
 // still admitted them would be an affordance with no caller.
@@ -1705,7 +1705,7 @@ async function resolveSelectedAuthStateForRun(input: {
       target: { platform: input.resolvedTarget.platform },
     })
   } catch (err) {
-    // 401-11: a config refusal, not a dead host. Found by the task-4 census's TRANSITIVE route-2
+    // a config refusal, not a dead host. Found by the task-4 census's TRANSITIVE route-2
     // scan — this helper is two calls from the in-process path (`produceDirectRunMembers` → the
     // member closure → here), so a daemon serving a run whose auth-state config is wrong would have
     // exited on it. A scan that stopped at the exported bodies would have called the path clean.
@@ -1815,7 +1815,7 @@ async function executeSuites(
     userRunAttributes: RunAttributes
   } | undefined,
   hooksContext: { resolvedHooks: Map<string, HookDefinition>; sandboxOptions: SandboxRunnerOptions } | undefined,
-  // 398-10: the invocation's analytics, composed ONCE at the command root and handed down. It is a
+  // the invocation's analytics, composed ONCE at the command root and handed down. It is a
   // memoised resolver rather than a value for the reason `--list` and `--dry-run` exist: composing
   // resolves the identity store, and a command that never starts a run should not mint one. The
   // memo is what keeps "lazily" from becoming "twice".
@@ -1823,7 +1823,7 @@ async function executeSuites(
   loadPlugins: () => Promise<void>,
 ): Promise<number> {
   const { parseSuiteFile, parseTestFile, patchTestForSuite } = await import('@vostride/agent-qa-core')
-  // 401-04: `startRun` is NOT among these. BOTH of this command's paths reach it through
+  // `startRun` is NOT among these. BOTH of this command's paths reach it through
   // `createRunInvocationCore`, and a binding held here would be a second way in.
   const { LLMPlanner, LLMVerifier, mapVerdictToExitCode } = await import('@vostride/agent-qa-runner')
   const { readFile } = await import('node:fs/promises')
@@ -1832,7 +1832,7 @@ async function executeSuites(
   const configFilePath = globalOpts.config ?? 'agent-qa.config.yaml'
   const configDir = path.dirname(path.resolve(configFilePath))
 
-  // 401-11: the read-only preflight is its own exported producer now — `--dry-run` stops on it,
+  // the read-only preflight is its own exported producer now — `--dry-run` stops on it,
   // and a programmatic door reaches the same parse without reaching this command.
   const preflight = await resolveSuitePreflight({ suiteFiles, config, configDir })
 
@@ -1872,9 +1872,9 @@ async function executeSuites(
 
   let shutdownRequested = false
   let frozenExitCode: number | undefined
-  // SESSION-04 (D-01/D-03): the CLI owns the ONE run-level SIGINT. When a RunSession is live the
+  // the CLI owns the ONE run-level SIGINT. When a RunSession is live the
   // handler routes the abort into `session.cancel()` (skip the rest, aggregate `cancelled`); core's
-  // per-test SIGINT registration is suppressed because the executor threads ctx.abortSignal (D-03).
+  // per-test SIGINT registration is suppressed because the executor threads ctx.abortSignal.
   let activeRunSession: { cancel(): void } | undefined
   const curationAbortController = new AbortController()
   // SESSION-04 force-exit backstop (Plan 361-13 Task 3): armed on cancel, cleared after
@@ -1885,7 +1885,7 @@ async function executeSuites(
     graceTimer = undefined
   }
 
-  // 2026-10-17 (443-08, D-02/D-03): one record per invocation, written whatever the config holds.
+  // one record per invocation, written whatever the config holds.
   const record = createRunRecord({
     attributes: buildCliRunAttributes(variableContext?.userRunAttributes ?? {}, 'local'),
     warn: (line) => printRunText(pc.yellow(line), (text) => console.warn(text)),
@@ -1919,7 +1919,7 @@ async function executeSuites(
   process.on('SIGHUP', shutdownController.handleSignal)
 
 
-  // 401-11 (D-01/D-02): the suite half's members and executor come from the ONE producer that owns
+  // the suite half's members and executor come from the ONE producer that owns
   // that chain — the SAME function a door holding nothing but a `RunsStartInput` with a suite
   // pattern reaches through `produceMembersFromPatterns`. `executeSuites` drives it; it no longer
   // is it.
@@ -1955,10 +1955,10 @@ async function executeSuites(
     const runDigests = { runLevel: produced.configDigests }
     let suiteQuarantined: readonly QuarantineAppliedEntry[] = []
 
-    // 363-09: the run-level bus subscribers (Pitfall 8 — the SAME attach helper both of this door's
-    // paths use). Analytics rides the bus (D-16); the drive attaches the record.
+    // the run-level bus subscribers (Pitfall 8 — the SAME attach helper both of this door's
+    // paths use). Analytics rides the bus; the drive attaches the record.
     const extraSubscribers: RunSubscriberHandle[] = []
-    // 398-10 (D-17/D-20): the re-homed subscriber over the port this command composed at its root.
+    // the re-homed subscriber over the port this command composed at its root.
     // `config` is NOT passed — the opt-out posture is already expressed by which transport that port
     // holds, and a subscriber that re-read it would be the second decision site D-19 abolished.
     const analyticsHost = analytics === undefined ? undefined : await analytics()
@@ -1974,7 +1974,7 @@ async function executeSuites(
     // NOTHING ASKS. This door builds no confirm channel and carries no session trust: a suite starts
     // at a terminal, on a piped stdio and in CI alike, whatever environment its targets declare.
 
-    // 401-11 (D-01/D-02): THE SUITE PATH IS A CALLER OF THE SAME ONE IN-PROCESS DRIVE the single-test
+    // THE SUITE PATH IS A CALLER OF THE SAME ONE IN-PROCESS DRIVE the single-test
     // path calls. With this, `createRunInvocationCore` is composed in exactly ONE place in the whole
     // CLI door, and the two near-identical post-`done` bodies became one.
     const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
@@ -1987,7 +1987,7 @@ async function executeSuites(
         // The members this door already produced — the SAME suite factory the default dispatcher
         // reaches for a suite pattern, handed over rather than re-run.
         produceMembers: async () => produced,
-        // 404 D-05/D-09: what the shell's post-verdict step should do about POST-PROCESSING for this
+        // what the shell's post-verdict step should do about POST-PROCESSING for this
         // run. `--detach` asks this process not to SPEND itself on the chain, so it skips the LEASE —
         // never the enqueue, which the step performs either way (RESEARCH Pitfall 8). The literal-only
         // spread is the same house rule the INVK-06 markers ride: an absent flag is an ABSENT field.
@@ -2003,7 +2003,7 @@ async function executeSuites(
             console: reporterSelection.console ? { verbose: false, logLevel: effectiveLogLevel } : false,
             junitOutputPath: reporterSelection.junit ? opts.junitOutput : undefined,
             extraSubscribers,
-            // 390 D-15: the SAME resolved set the run was assembled with, so the reporters and the
+            // the SAME resolved set the run was assembled with, so the reporters and the
             // aggregate verdict rule describe one disposition rather than two.
             quarantined,
           })
@@ -2020,7 +2020,7 @@ async function executeSuites(
           return frozenExitCode
         },
         afterVerdict: async ({ exitCode: verdictExitCode, mask, postVerdict, postVerdictDeadlineMs }) => {
-          // 388-02 D-01: ONE shared post-run tail serves both of this command's tail sites
+          // ONE shared post-run tail serves both of this command's tail sites
           // (Pitfall 1). 404 D-05: the ENQUEUE is no longer one of its legs — the shell's
           // post-verdict step performed it before `runFinished`, on this door and on every other,
           // and it ran under `--detach` too (Pitfall 8). What is detach-gated is the in-process
@@ -2043,12 +2043,12 @@ async function executeSuites(
           return await runVerdictFirstCurationTail({
             exitCode: verdictExitCode,
             detach: opts.detach === true,
-            // 404 D-10: pump under the lease the shell's post-verdict step decided on. Routing
+            // pump under the lease the shell's post-verdict step decided on. Routing
             // it here rather than letting `drain()` consult for itself is what keeps acquire ->
             // pump -> release one lease; a second consult would answer `held` by this very
             // process and hand the chain off to nobody (RESEARCH Pitfall 3).
             //
-            // HANDED AS A THUNK, NOT AS A VALUE (2026-08-27, CR-01). Taking the authority is what
+            // HANDED AS A THUNK, NOT AS A VALUE. Taking the authority is what
             // acquires it, and evaluating the take as the ARGUMENT acquired it before `drain()`
             // was even entered — where a composition failure could then return past the release
             // and past the step's own no-leak backstop, leaving the fence held for its TTL. The
@@ -2056,7 +2056,7 @@ async function executeSuites(
             runTail: () => postRunTail.drain({
               takeLease: () => postVerdict.takeAcquiredLease(),
             }),
-            // 388-04 D-08: the close-out line runs on BOTH paths, --detach included.
+            // the close-out line runs on BOTH paths, --detach included.
             finish: (input) => postRunTail.finish(input),
             onUnexpectedError: () => {
               curationTailLog.warn(unexpectedCurationTailWarning(executionContext))
@@ -2065,7 +2065,7 @@ async function executeSuites(
         },
       },
       {
-        // THE MARKERS RIDE THE REQUEST (INVK-06). `runMarkers` maps this command's two options onto
+        // THE MARKERS RIDE THE REQUEST. `runMarkers` maps this command's two options onto
         // the two literal-`true` fields; request → RunConfig is the core's job, and there is no argv
         // link left inside the invocation.
         runId: asRunId(runId),
@@ -2112,7 +2112,7 @@ export class CliRunParseError extends CliRunInputError {
 /**
  * The id mint, published so the ONE in-process drive can hand it to the core.
  *
- * `mintRunId` is a REQUIRED core option (401-03): `agent-local` does not depend on the id package,
+ * `mintRunId` is a REQUIRED core option: `agent-local` does not depend on the id package,
  * and an id shape invented there would be a second spelling of a run's identity. The drive lives in
  * `packages/cli/src/composition/`, which may not name `@vostride/agent-qa-core` either — so the mint
  * travels the same relative route every other producer here does.
@@ -2120,7 +2120,7 @@ export class CliRunParseError extends CliRunInputError {
 export const mintCliRunId = generateRunId
 
 /**
- * The mint's inverse, published the same way and for the same reason (401-20 · CR-04).
+ * The mint's inverse, published the same way and for the same reason.
  *
  * `isMintedRunId` is a REQUIRED core option with no default: an optional predicate with a
  * permissive fallback would be the accept-any-string defect wearing a type. It travels beside
@@ -2325,7 +2325,7 @@ export async function resolveSuitePreflight(input: {
 }
 
 /**
- * THE SUITE-HALF MEMBER PRODUCER (Phase 401 plan 11).
+ * THE SUITE-HALF MEMBER PRODUCER.
  *
  * The counterpart of `produceDirectRunMembers`, and it exists for the same reason: the chain that
  * turns a suite file into `assembleCliRun`'s required `members`/`executor` lived unexported inside
@@ -2369,7 +2369,7 @@ export interface SuiteRunMemberProductionInput {
   /** The run's record, opened before this producer loads its plugins or prepares a suite. */
   readonly runRecord?: RunRecord
   readonly terminal?: RunTerminal
-  // 2026-10-17 (444-22, D-46; 2026-10-18 444-25, D-60): only agent-qa run passes this; its
+  // only agent-qa run passes this; its
   // controller owns SIGINT, SIGTERM and SIGHUP.
   readonly hostOwnsSignals?: true
 }
@@ -2427,7 +2427,7 @@ export async function produceSuiteRunMembers(
   await input.loadPlugins()
 
   const { parseTestFile, patchTestForSuite } = await import('@vostride/agent-qa-core')
-  // 401-04: `startRun` is NOT among these — every path reaches it through the invocation core.
+  // `startRun` is NOT among these — every path reaches it through the invocation core.
   const { LLMPlanner, LLMVerifier } = await import('@vostride/agent-qa-runner')
   const { readFile } = await import('node:fs/promises')
   const path = await import('node:path')
@@ -2436,7 +2436,7 @@ export async function produceSuiteRunMembers(
   void activeRunSession
   const suiteSnapshots = createRunArtifactSnapshotChannel()
 
-  // 2026-10-17 (443-08, D-26): a preparation failure is filed under this run's own id, once.
+  // a preparation failure is filed under this run's own id, once.
   const recordPreparationFailure = (row: {
     name: string
     failureSummary: string
@@ -2469,7 +2469,7 @@ export async function produceSuiteRunMembers(
     /** ABSOLUTE — every byte read (parse, upload resolution, artifacts) runs off this leg. */
     absolutePath: string
     /**
-     * Workspace-relative durable IDENTITY (390-08 / D-01): the descriptor, the handoff, the
+     * Workspace-relative durable IDENTITY: the descriptor, the handoff, the
      * projection and the committed quarantine ledger all key on this leg, so it must be the same
      * bytes on every checkout. A machine-local path here is exactly the CR-02 defect.
      */
@@ -2477,7 +2477,7 @@ export async function produceSuiteRunMembers(
   }
 
   // A suite fully resolved by the composition root, ready to contribute its members to the ONE
-  // RunSession (D-04). Suite-level orchestration (setup hooks + adapter setup + nav / teardown +
+  // RunSession. Suite-level orchestration (setup hooks + adapter setup + nav / teardown +
   // auth capture + reporter end-calls) is captured as the lazy lifecycle `setup`/`teardown` the
   // shell drives when a member of this suite first runs / when the run crosses a suite boundary.
   type PreparedSuite = {
@@ -2621,7 +2621,7 @@ export async function produceSuiteRunMembers(
         resolvedDefinition: testDef,
         loadStatus: 'loaded',
       })
-      // 390-08 (CR-02 / D-01): mint the durable identity HERE, beside the resolve that produced
+      // mint the durable identity HERE, beside the resolve that produced
       // `absolutePath`, through core's one exported recipe. `relativePath` is the suite ref as the
       // author typed it (it may carry a leading `./`), so it is deliberately NOT reused as identity
       // — the direct-run path has no such ref and would then mint different bytes for the same file.
@@ -2772,7 +2772,7 @@ export async function produceSuiteRunMembers(
 
     const suiteSecretRedactor = variableContext?.secretRedactor
     const suiteMask = (text: string): string => {
-      // 2026-10-14 (441-04, D-06): a suite run without its redactor never reaches a provider.
+      // a suite run without its redactor never reaches a provider.
       if (suiteSecretRedactor === undefined) {
         throw new Error('This suite run has no secrets redactor; the model request was not sent.')
       }
@@ -2782,7 +2782,7 @@ export async function produceSuiteRunMembers(
     const verifierModel = createModel(verifierProfile, verifierAuth, suiteMask)
     // D-04 lazy thunk: resolveCapabilities re-reads the profile per call so a mid-run
     // overflow-driven window shrink is picked up on the next turn. Separate instances per
-    // role (planner vs verifier) so each owns its own cache anchor (D-11).
+    // role (planner vs verifier) so each owns its own cache anchor.
     const plannerAccounting = createTokenAccounting({ getCapabilities: () => resolveCapabilities(plannerProfile) })
     const verifierAccounting = createTokenAccounting({ getCapabilities: () => resolveCapabilities(verifierProfile) })
 
@@ -2795,7 +2795,7 @@ export async function produceSuiteRunMembers(
       redactor: variableContext?.secretRedactor,
     })
 
-    // Workspace agent-rules injection removed in Phase 373 (KDIR-03); policy serving returns
+    // Workspace agent-rules injection removed in Phase 373; policy serving returns
     // via Reader L0 policies in Phase 380. Only CLI-internal capability notes remain.
     let suiteCapabilityNotes = ''
     if (suiteLogCapture?.console === false) {
@@ -2831,7 +2831,7 @@ export async function produceSuiteRunMembers(
     // 363-09/363-11 (D-01 clean cut, CLI side): the v1 Reporter constructions are GONE. The bus
     // subscribers (console, junit and wire print masked payloads; dashboard ingest; analytics) are
     // attached in the core's `onSession` hook below via `attachRunSubscribers` — the ONE run-level
-    // attach point, which moved with the run start it follows (401-04). No reporter is threaded into
+    // attach point, which moved with the run start it follows. No reporter is threaded into
     // the runner config.
 
     // Wire the redesigned action cache (runner-local FsActionCache + branch policy), injected into
@@ -2847,11 +2847,11 @@ export async function produceSuiteRunMembers(
       actionCache = ctx.cache
     }
 
-    // WM-01/WM-02: ONE run-scoped working-memory store spans all suite member tests; threaded
+    // ONE run-scoped working-memory store spans all suite member tests; threaded
     // into each test's runner loop and flushed redacted once at suite end (finally below).
     const suiteWorkingMemory = new WorkingMemoryStore(variableContext?.secretRedactor)
 
-    // D-14 (Phase 360): ONE run-scoped storage-state store (raw-but-local auth persistence) rooted
+    // ONE run-scoped storage-state store (raw-but-local auth persistence) rooted
     // at the run's `.agent-qa` dir, mirroring the FsActionCache rooting idiom. All fs writes live in
     // runner-local (arch lint: storageNeutral); the runner loop records only { name, fingerprint }.
     const suiteStorageState = await buildStorageStateStore(configDir)
@@ -2859,7 +2859,7 @@ export async function produceSuiteRunMembers(
     const captureScreenshots = opts.screenshotMode === 'every-step'
 
     const suiteArtifactContext = buildRunArtifactContext({
-      // 402-09 (D-11): an ordinary run artifact. The suite identity survives in the run row's
+      // an ordinary run artifact. The suite identity survives in the run row's
       // `suite_id` and in this document's own `source.kind: 'suite'` snapshot.
       kind: 'test',
       configContent,
@@ -2923,7 +2923,7 @@ export async function produceSuiteRunMembers(
       accessibility: config.services?.accessibility,
       accessibilityCheck: runWebAccessibilityCheck,
       vision: resolveVisionConfig(config.services?.vision),
-      // D-11: resolve the vision gate once per run at the composition root and thread it
+      // resolve the vision gate once per run at the composition root and thread it
       // structurally into the loop. 439 D-19: undeclared vision follows the capability table.
       visionGate: resolveVisionGate({ vision: visionFromConfig(plannerCfg.vision, plannerCapabilities) }),
       authStateCapture: suiteAuthStateCapturePaths
@@ -2943,7 +2943,7 @@ export async function produceSuiteRunMembers(
     ;(suiteConfig as any).secretsFileMetadata = variableContext?.secretsFileMetadata
 
     // Suite-level run-scoped values the former runSuite resolved internally, now resolved at the
-    // composition root and composed per-member at the CLI (Phase 363). The suite-level orchestration
+    // composition root and composed per-member at the CLI. The suite-level orchestration
     // (setup hooks + adapter.setup + nav / teardown + auth capture) runs from the lazy lifecycle
     // hooks the shell drives (suiteSetup/suiteTeardown below).
     const preparedSuiteArtifact = (suiteConfig.artifactContext as { artifact?: Record<string, unknown> } | undefined)?.artifact
@@ -3107,7 +3107,7 @@ export async function produceSuiteRunMembers(
 
   // ---- Compose the ONE RunSession per invocation (D-01/D-04, SESSION-01/04/05) ---------------
   // Resolve every suite up front (parse/target/model/reporter/cache resolution + suiteConfig).
-  // 401-11: resolution errors are `CliRunInputError` throws inside `prepareSuite` now (the same
+  // resolution errors are `CliRunInputError` throws inside `prepareSuite` now (the same
   // config-error contract, D-14, minus the dead host — T-401-31).
   const preparedSuites: PreparedSuite[] = []
   for (const suiteFile of suiteFiles) {
@@ -3118,9 +3118,9 @@ export async function produceSuiteRunMembers(
 
   // Flat ordered member list across all suites (file order, then in-suite order). Each member's
   // failFastGroup = its suite file, preserving today's within-suite fail-fast while other suites
-  // still run (D-15). testIndex = global array position (the shell's authoritative index).
+  // still run. testIndex = global array position (the shell's authoritative index).
   //
-  // 390-08 (CR-02 / D-01): descriptor `filePath` is the WORKSPACE-RELATIVE identity, not the
+  // descriptor `filePath` is the WORKSPACE-RELATIVE identity, not the
   // absolute path. RUN_OUTCOMES_PROJECTION_VERSION is deliberately NOT bumped alongside it: a
   // projection rebuild replays stored handoffs, which still carry the absolute identities their runs
   // wrote, so the rebuild would land in the same mixed state it was meant to clear. Pre-390-08 rows
@@ -3141,7 +3141,7 @@ export async function produceSuiteRunMembers(
       // carries `identityPath`, every byte read carries `absolutePath`.
       const { test, absolutePath, identityPath } = prepared.testEntries[i]
       suiteMemberUses.push(test.use as Record<string, unknown> | undefined)
-      // 436 D-03: suites stop ignoring use.planner.*; the same helper as the direct producer.
+      // suites stop ignoring use.planner.*; the same helper as the direct producer.
       const plannerConfig = memberPlannerConfig(
         { project: config.use, suite: prepared.suite.use, test: test.use },
         5,
@@ -3154,12 +3154,12 @@ export async function produceSuiteRunMembers(
         testIndex: globalIndex,
         name: test.name,
         failFastGroup: prepared.suiteKey,
-        // 402-02 (D-09): every suite member shares its suite's ONE adapter, and the suite
+        // every suite member shares its suite's ONE adapter, and the suite
         // lifecycle admits one active suite at a time — so suite members declare the exclusive
         // lane and the bounded member pool never runs two of them at once, whatever `workers`
         // says. The direct path declares no lane because each direct test builds its own adapter.
         exclusiveLane: SUITE_LIFECYCLE_LANE,
-        // 363 D-01: parity descriptor fields the shell rides onto testStarted. Suite grouping is
+        // parity descriptor fields the shell rides onto testStarted. Suite grouping is
         // per-suite (id/name/index/total); filePath + totalSteps are per-member.
         filePath: identityPath,
         suiteId: prepared.suite['suite-id'],
@@ -3167,7 +3167,7 @@ export async function produceSuiteRunMembers(
         suiteIndex,
         suiteTotal: preparedSuites.length,
         totalSteps: test.steps.length,
-        // G-428-2: read off the unpatched test; patchTestForSuite leaves steps alone and
+        // read off the unpatched test; patchTestForSuite leaves steps alone and
         // toMemberTest passes them through, so these are the texts stepStarted announces.
         stepTexts: test.steps.map((step) => memberStepText(step)),
       })
@@ -3181,7 +3181,7 @@ export async function produceSuiteRunMembers(
           setup: () => suiteSetup(prepared),
           teardown: () => suiteTeardown(prepared),
         },
-        // 403 D-05: the suite's one adapter, read by the executor only for its live-stream
+        // the suite's one adapter, read by the executor only for its live-stream
         // declaration once `ensureReady` has resolved the suite setup that calls `adapter.setup()`.
         adapter: prepared.suiteConfig.adapter,
         run: async (ctx) => {
@@ -3195,11 +3195,11 @@ export async function produceSuiteRunMembers(
             return bootstrapResult
           }
 
-          // 363-11 (D-05): the per-member orchestration that used to live in core's
+          // the per-member orchestration that used to live in core's
           // executeSuiteMember now runs at the CLI composition root — patch the test for the suite,
           // run per-test setup hooks, init the core-owned memory index, execute on runner soil via
           // runMemberTest (buildMemberRunConfig injects the adapter-backed handlers), run per-test
-          // teardown hooks, then destroy the memory index + run the core-owned curator (D-05).
+          // teardown hooks, then destroy the memory index + run the core-owned curator.
           const suiteConfig = prepared.suiteConfig
           const patched = patchTestForSuite(test, prepared.suite, memberSuiteIndex)
           const secretStore = (suiteConfig as any).secretStore
@@ -3259,7 +3259,7 @@ export async function produceSuiteRunMembers(
             storageState: suiteConfig.storageState,
             compressor: suiteConfig.compressor,
             knowledgeReader: prepared.knowledge?.reader,
-            // 407 D-13: the rung this run was SERVED on, resolved once when the composition
+            // the rung this run was SERVED on, resolved once when the composition
             // opened and carried into every step's evidence — so a run served on the static
             // floor stays labelled that way forever, even after the host is fixed.
             knowledgeRetrievalRung: prepared.knowledge?.retrievalRung,
@@ -3286,7 +3286,7 @@ export async function produceSuiteRunMembers(
             sink: ctx.events,
             testIndex: ctx.testIndex,
             abortSignal: ctx.abortSignal,
-            // CASS-02: bind the run-scoped screenshot store the shell threaded onto the member ctx.
+            // bind the run-scoped screenshot store the shell threaded onto the member ctx.
             evidenceArtifacts: ctx.evidenceArtifacts,
             captureScreenshots: suiteConfig.captureScreenshots,
             accessibility: suiteConfig.accessibility,
@@ -3336,7 +3336,7 @@ export async function produceSuiteRunMembers(
     }
   }
 
-  // D-20: the ONE digest mint — per-member cache pairs + the run-level handoff pair; both consumers
+  // the ONE digest mint — per-member cache pairs + the run-level handoff pair; both consumers
   // (per-member cache via ctx, run-level handoff via RunConfig) draw from this single call.
   const runDigests = computeRunConfigDigests({ configContent, members: digestMembers })
   perMemberDigests = runDigests.perMember
@@ -3381,7 +3381,7 @@ export async function produceSuiteRunMembers(
     suitePlannerMembers,
   )
 
-  // 433-29 (G-433-5): the suite's own source and config, masked with the run's redactor. The channel
+  // the suite's own source and config, masked with the run's redactor. The channel
   // replays to late listeners, so they are emitted once, as the producer returns.
   for (const prepared of preparedSuites) {
     if (isSnapshotRecord(prepared.suiteArtifact)) {
@@ -3443,7 +3443,7 @@ export async function produceSuiteRunMembers(
       for (const prepared of preparedSuites) {
         const knowledge = openRunKnowledgeComposition({
           knowledgeRoot,
-          // 407 D-13: the hosted runtime root the embedder probe discovers its worker under —
+          // the hosted runtime root the embedder probe discovers its worker under —
           // the same `resolvePath(configDir, '.agent-qa')` idiom every other door here uses.
           agentQaRoot: resolvePath(configDir, '.agent-qa'),
           resolveRetrievalRung: resolveHostRetrievalRung,
@@ -3470,7 +3470,7 @@ export async function produceSuiteRunMembers(
 }
 
 /**
- * THE TEST-HALF MEMBER PRODUCER (Phase 401 plan 11).
+ * THE TEST-HALF MEMBER PRODUCER.
  *
  * `assembleCliRun` requires `members` and an `executor`; a `RunsStartInput` carries neither; and the
  * chain that turns one into the other lived unexported inside this command's action body. That is
@@ -3506,14 +3506,14 @@ export interface DirectRunMemberProductionInput {
   /** The invocation's memoised analytics host. Absent ⇒ no analytics, the daemon's posture. */
   readonly analytics?: () => Promise<CliAnalyticsHost>
   /**
-   * The id the drive decided for this run (433-28, G-433-4). A member takes the shell's
+   * The id the drive decided for this run. A member takes the shell's
    * `ctx.runId` first and this second; it never decides an id of its own.
    */
   readonly runId?: string
   /** Reports each member's own run id. The command uses it to keep its crash-finalizer honest. */
   readonly onMemberRunId?: (runId: string) => void
   readonly terminal?: RunTerminal
-  // 2026-10-17 (444-22, D-46; 2026-10-18 444-25, D-60): only agent-qa run passes this; its
+  // only agent-qa run passes this; its
   // controller owns SIGINT, SIGTERM and SIGHUP.
   readonly hostOwnsSignals?: true
   /**
@@ -3540,7 +3540,7 @@ export interface ProducedCliRunMembers {
   readonly configDigests: ConfigDigests
   readonly product: string
   /**
-   * The run's effective planner limits and the members whose own limits differ (436 D-06), from
+   * The run's effective planner limits and the members whose own limits differ, from
    * the same per-member resolution the member closures run under.
    */
   readonly plannerLimits?: PlannerLimitsRecord
@@ -3549,13 +3549,13 @@ export interface ProducedCliRunMembers {
   readonly knowledgeRoot: string
   /**
    * ONE ENTRY PER MEMBER, in `members` order: the URL whose health reading belongs to THAT member,
-   * or `undefined` for a member no probe applies to (401-19, WR-04).
+   * or `undefined` for a member no probe applies to.
    *
    * A config read — the fetch itself happens inside `assembleCliRun`, which dedupes by URL so members sharing a target cost one GET.
    */
   readonly memberProbeUrls: readonly (string | undefined)[]
   /**
-   * The run's CONFIG-RESOLVED concurrency pair (402-03, D-12) — `use.parallel` and `use.workers`
+   * The run's CONFIG-RESOLVED concurrency pair — `use.parallel` and `use.workers`
    * as the producer read them, with this command's two flags already folded in by the ordinary
    * `use`-bucket precedence.
    *
@@ -3576,7 +3576,7 @@ export interface ProducedCliRunMembers {
    */
   readonly logger?: CliRunLoggerHandle
   /**
-   * The run's redactor over the secrets read at its start (441-12, D-06/D-11). The drive puts it on
+   * The run's redactor over the secrets read at its start. The drive puts it on
    * `RunConfig.secretRedactor`, and the shell masks every bus event with it.
    */
   readonly secretRedactor: SecretRedactorPort
@@ -3587,7 +3587,7 @@ export interface ProducedCliRunMembers {
     readonly attributes?: RunAttributes
   }
   /**
-   * The producer's snapshot channel (433-29, G-433-5): each member's loaded test and config, and a
+   * The producer's snapshot channel: each member's loaded test and config, and a
    * suite's own source and config, masked with the run's redactor. Late listeners get a replay.
    */
   readonly onMemberSnapshot?: (listener: RunArtifactSnapshotListener) => () => void
@@ -3609,7 +3609,7 @@ export interface ProducedCliRunMembers {
   finalize?(): Promise<void>
   /** The run's plugin load, which the core awaits once the request and its run id are allowed. */
   readonly loadPlugins: () => Promise<void>
-  /** The run's own config's `services.dashboard.dbPath`, resolved only when the record opens (D-08). */
+  /** The run's own config's `services.dashboard.dbPath`, resolved only when the record opens. */
   readonly configuredRunsDbPath?: string
   /** The masked source and target names the run stages as `artifact.json`. */
   readonly runArtifact?: RunArtifactStageInput
@@ -3652,13 +3652,13 @@ export async function produceDirectRunMembers(
   // command held them in its own scope.
   let frameworkError: unknown | undefined
   let frameworkSkipReason: string | undefined
-  // Kept for the producer interface; a framework error no longer cancels the run (433-35).
+  // Kept for the producer interface; a framework error no longer cancels the run.
   let activeRunSession: { cancel(): void } | undefined
   void activeRunSession
 
-  // 401-04: `startRun` is NOT among these. BOTH of this door's paths reach it through
+  // `startRun` is NOT among these. BOTH of this door's paths reach it through
   // `createRunInvocationCore`, and a binding held here would be a second way in.
-  // 401-11: `mapVerdictToExitCode` is not among them either — mapping the verdict belongs to the
+  // `mapVerdictToExitCode` is not among them either — mapping the verdict belongs to the
   // ONE drive both paths call, not to each path's own copy of the arithmetic.
   const { LLMPlanner, LLMVerifier } = await import('@vostride/agent-qa-runner')
 
@@ -3670,12 +3670,12 @@ export async function produceDirectRunMembers(
   let singleRunProduct = 'unknown'
   let singleBuildOrdinal = 0
 
-  // WM-01/WM-02: one run-scoped working-memory store per run, constructed with the run's
+  // one run-scoped working-memory store per run, constructed with the run's
   // SecretRedactor (capture-time redaction live); threaded into the loop and flushed
   // redacted at run end (finally-positioned below).
   const singleWorkingMemory = new WorkingMemoryStore(runtimeSecrets.secretRedactor)
 
-  // D-14 (Phase 360): one run-scoped storage-state store per run, rooted at the run's
+  // one run-scoped storage-state store per run, rooted at the run's
   // `.agent-qa` dir (the FsActionCache rooting idiom); threaded into the loop's storageState port.
   const singleStorageState = await buildStorageStateStore(configDir)
 
@@ -3688,7 +3688,7 @@ export async function produceDirectRunMembers(
     displayLevel: effectiveLogLevel as any,
     ndjson: process.env.AGENT_QA_LIVE_EVENTS === 'true',
     redactor: runtimeSecrets.secretRedactor,
-    // WINDOWS #233: the composition root owns every reach into the world, this one included —
+    // the composition root owns every reach into the world, this one included —
     // `core`'s host baseline is a shrinking debt record, so the async-context primitive is injected
     // rather than imported there. Without it `runInMemberScope` throws instead of silently letting
     // concurrent members share one run id.
@@ -3712,7 +3712,7 @@ export async function produceDirectRunMembers(
 
   const results: TestResult[] = []
 
-  // 436 D-03: each member's limits from its own merged blocks, through the helper the suite
+  // each member's limits from its own merged blocks, through the helper the suite
   // producer calls too. Flag overrides carry no planner keys.
   const directPlannerConfigs = filtered.map(({ test }) =>
     memberPlannerConfig({ project: config.use, test: test.use }, 3))
@@ -3754,7 +3754,7 @@ export async function produceDirectRunMembers(
     }
     analyticsTestId = testDef['test-id']
 
-    // 433-28 (G-433-4, F-433-20): the run core decided this run's id; the member adopts it.
+    // the run core decided this run's id; the member adopts it.
     const runId = ctx.runId ?? producedRunId
     if (runId === undefined) {
       throw new Error('A member needs the run id its run decided; neither the run shell nor the producer supplied one.')
@@ -3914,7 +3914,7 @@ export async function produceDirectRunMembers(
       const resolvedAuth = await resolveModelAuth(configName, plannerCfg)
       const { profile: plannerProfile, auth: plannerAuth } = toModelProfileAndAuth(plannerCfg, resolvedAuth)
       const { profile: verifierProfile, auth: verifierAuth } = toModelProfileAndAuth(verifierCfg, resolvedAuth)
-      // D-03: retain the first already-resolved planner identity used by this RunSession.
+      // retain the first already-resolved planner identity used by this RunSession.
       // The post-verdict Curator reuses these exact objects and never resolves config again.
       singleCurationModelDeps ??= { profile: plannerProfile, auth: plannerAuth }
       const plannerCapabilities = resolveCapabilities(plannerProfile)
@@ -3953,7 +3953,7 @@ export async function produceDirectRunMembers(
       }
       const knowledge = openRunKnowledgeComposition({
         knowledgeRoot: resolveKnowledgeRoot(config.knowledge, configDir),
-        // 407 D-13: same hosted runtime root as the suite door — both doors resolve the rung.
+        // same hosted runtime root as the suite door — both doors resolve the rung.
         agentQaRoot: resolvePath(configDir, '.agent-qa'),
         resolveRetrievalRung: resolveHostRetrievalRung,
         product: testResolvedTarget.product,
@@ -4025,7 +4025,7 @@ export async function produceDirectRunMembers(
         },
         secretRedactor: runtimeSecrets.secretRedactor,
       })
-      // 433-29 (G-433-5, F-433-15): this member's test as written and effective config, masked
+      // this member's test as written and effective config, masked
       // with the run's redactor, for every door's dashboard ingest.
       memberSnapshots.emit(maskRunArtifactSnapshot(artifactContext.artifact, { mask: singleRunMask }))
 
@@ -4034,7 +4034,7 @@ export async function produceDirectRunMembers(
         : sandboxOptions
       const authAwareSandboxOptions = getAuthAwareSandboxOptions()
 
-      // Per-test setup hooks: run BEFORE test execution (D-01, D-03)
+      // Per-test setup hooks: run BEFORE test execution
       let perTestSetupVars: Record<string, string> = {}
       let testStartTime = Date.now()
       let setupHookFailed = false
@@ -4090,15 +4090,15 @@ export async function produceDirectRunMembers(
       }
 
       if (setupHookFailed) {
-        // Synthesized failed TestResult feeds the shell's member-outcome derivation (D-16).
+        // Synthesized failed TestResult feeds the shell's member-outcome derivation.
         return setupFailureResult!
       }
 
-      // 363-11 (D-05): execute the member on runner soil via runMemberTest. The core
+      // execute the member on runner soil via runMemberTest. The core
       // runTest/runTestWithRetry wrapper is deleted; retry lives inside runMemberTest, and the
       // adapter-backed handlers (runJS/appium/a11y/failure-shot) + secret resolver are wired by
       // the shared buildMemberRunConfig helper (Pitfall 8 — the suite path uses the same helper).
-      // 403 D-05: the direct path's adapter is set up above; declare its live stream before the
+      // the direct path's adapter is set up above; declare its live stream before the
       // first step so a viewer attaching to this handle sees the member's own browser.
       registerAdapterLiveStream(ctx, adapter ?? undefined)
 
@@ -4110,7 +4110,7 @@ export async function produceDirectRunMembers(
         // D-08/Q10: the sharp compressor injected from the composition root (sharp left core).
         compressor: buildScreenshotCompressor(logger?.createScopedLogger('adapter')),
         knowledgeReader: knowledge.reader,
-        // 407 D-13: see the suite door above — one resolve per run, carried, never re-probed.
+        // see the suite door above — one resolve per run, carried, never re-probed.
         knowledgeRetrievalRung: knowledge.retrievalRung,
         knowledgeBudgets: knowledge.budgets,
         knowledgeAsOfBuild: singleBuildOrdinal,
@@ -4136,7 +4136,7 @@ export async function produceDirectRunMembers(
         sink: ctx.events,
         testIndex: ctx.testIndex,
         abortSignal: ctx.abortSignal,
-        // CASS-02: bind the run-scoped screenshot store the shell threaded onto the member ctx.
+        // bind the run-scoped screenshot store the shell threaded onto the member ctx.
         evidenceArtifacts: ctx.evidenceArtifacts,
         captureScreenshots,
         accessibility: config.services?.accessibility,
@@ -4176,7 +4176,7 @@ export async function produceDirectRunMembers(
 
       const teardownSandboxOptions = getAuthAwareSandboxOptions()
 
-      // Per-test teardown hooks: run AFTER test execution (D-01, D-03)
+      // Per-test teardown hooks: run AFTER test execution
       if (resolvedHooks && teardownSandboxOptions && (testDef as any).teardown?.length) {
         const { runHooks } = await import('@vostride/agent-qa-runner')
         for (const hookId of (testDef as any).teardown) {
@@ -4198,7 +4198,7 @@ export async function produceDirectRunMembers(
       results.push(result)
       input.terminal?.printRunAttributes(testAttributes)
 
-      // Post-run cache invalidation is no longer done here (Phase 356, D-03/D-13):
+      // Post-run cache invalidation is no longer done here:
       // the redesigned per-key ActionPlanCache invalidates the exact failed decision
       // point inside the runner loop (loop/index.ts on a failed step). The retired v1
       // batch recompute cannot reproduce the new opaque masked keys (they fold a runtime
@@ -4208,7 +4208,7 @@ export async function produceDirectRunMembers(
       return result
     } finally {
       if (adapter) await adapter.cleanup()
-      // WM-02 (D-13): redacted flush + disposal on every run outcome (pass/fail/error).
+      // redacted flush + disposal on every run outcome (pass/fail/error).
       // The helper never throws, so the run exit code is untouched (Pitfall 5).
       await flushWorkingMemory(singleWorkingMemory, {
         artifactsDir: resolvePath(configDir, config.services?.dashboard?.artifactsDir ?? RUNTIME_ARTIFACTS_DIR),
@@ -4216,7 +4216,7 @@ export async function produceDirectRunMembers(
       })
     }
     } catch (err) {
-      // 363-09 (D-16): mobile setup-failure telemetry previously fed the v1 AnalyticsRunReporter
+      // mobile setup-failure telemetry previously fed the v1 AnalyticsRunReporter
       // here. Analytics now rides the bus via `createAnalyticsRunSubscriber`; a pre-runner setup
       // failure re-throws (below) into the framework-error path and emits no testFinished envelope,
       // so this niche pre-runner telemetry is a known gap (re-addressable when the runner emits a
@@ -4224,17 +4224,17 @@ export async function produceDirectRunMembers(
       throw err
     }
   }
-  // Parser-minted bindings are the ONE source for member identity and digest bytes (D-20).
-  // Digests must still be resolved before startRun (D-04).
+  // Parser-minted bindings are the ONE source for member identity and digest bytes.
+  // Digests must still be resolved before startRun.
   //
-  // 390-08 (CR-02 / D-01): `configDir` is handed in so the descriptor's identity leg is the
+  // `configDir` is handed in so the descriptor's identity leg is the
   // WORKSPACE-RELATIVE form of the binding's own path — the same bytes on every checkout, which
   // is what lets the committed ledger written on one machine suppress on another. The bindings
   // keep their absolute paths for every read below.
   const { members, digestMembers } = buildDirectRunMembers(filtered, configDir)
   let perMemberDigests: ConfigDigests[] = []
   //
-  // WINDOWS #233: `logger` is ONE manager for the whole run (built above, outside this closure) and
+  // `logger` is ONE manager for the whole run (built above, outside this closure) and
   // each member stamps it with its own run id. Since 402-02/402-03 these members run CONCURRENTLY
   // whenever `use.parallel` is set, and an unscoped stamp is a single mutable field — the last
   // member to mint an id claimed every buffered line, its siblings' included. Each member therefore
@@ -4247,7 +4247,7 @@ export async function produceDirectRunMembers(
       ),
     )
 
-  // D-20: the ONE digest mint — per-member cache pairs (suiteFileContent absent ⇒ a
+  // the ONE digest mint — per-member cache pairs (suiteFileContent absent ⇒ a
   // single-member run collapses the run-level pair to the member values).
   const runDigests = computeRunConfigDigests({ configContent, members: digestMembers })
   perMemberDigests = runDigests.perMember
@@ -4287,7 +4287,7 @@ export async function produceDirectRunMembers(
     if (!binding) {
       throw new Error(`No test-member binding for testIndex ${ctx.testIndex} (testId ${member.testId})`)
     }
-    // 433-35 (G-433-11, F-433-44): a member that could not start (its browser never launched, a
+    // a member that could not start (its browser never launched, a
     // setup error) fails the run with its cause. It is not a cancel: nobody cancelled the run. The
     // members after it are skipped without launching, and each says which earlier member failed.
     if (frameworkSkipReason !== undefined) {
@@ -4396,10 +4396,10 @@ export function createRunCommand(): Command {
     .option('--device <name>', 'Override the mobile test/suite device for this run')
     .option('--var <kv...>', 'set variable KEY=VALUE (repeatable)')
     .option('--run-attr <kv...>', 'attach run attribute KEY=VALUE; repeatable')
-    // 432-13 (D-14): the session trust flag is gone — nothing asks, so there is nothing to trust
+    // the session trust flag is gone — nothing asks, so there is nothing to trust
     // past. Commander refuses it as an unknown option.
     .option('--detach', 'skip the post-verdict knowledge curation tail')
-    // 402-03 (D-12): the config knob's flag half. ORDINARY OVERRIDES — they ride the same
+    // the config knob's flag half. ORDINARY OVERRIDES — they ride the same
     // `use`-bucket precedence every other flag here does, and there is no request field to match
     // them: a remote caller cannot raise the concurrency of a target its config owner tuned.
     .option('--parallel', 'run this run\'s members concurrently (config: use.parallel)')
@@ -4413,10 +4413,10 @@ export function createRunCommand(): Command {
       'exclude this run from the outcome projection: no flake counters, no exemplar ranking, no quarantine window',
     )
     .action(async (patterns: string[], opts: RunOptions, command: Command) => {
-      // 2026-10-17 (443-08, D-02; 444-09): the direct path's record, so the catch can close it.
+      // the direct path's record, so the catch can close it.
       let _crashRecord: RunRecord | undefined
       let _crashSecretRedactor: SecretRedactor | undefined
-      // 433-35 (G-433-11): the run this invocation started, so a framework error names the id it recorded.
+      // the run this invocation started, so a framework error names the id it recorded.
       let _startedRunId: string | undefined
 
       // 398-15 (WR-06, paired with CR-01): DRAIN THE MEMOISED ANALYTICS HOST BEFORE THIS ACTION
@@ -4465,14 +4465,14 @@ export function createRunCommand(): Command {
           // headless is handled per-platform in platformConfig setup below
         }
 
-        // 401-11: THE INPUT PREFLIGHT IS A PRODUCER NOW, and this door is one of its callers.
+        // THE INPUT PREFLIGHT IS A PRODUCER NOW, and this door is one of its callers.
         // Everything it used to do inline — resolve the config, read the raw config bytes, parse
         // `--var`/`--run-attr`, load the secrets store, read the env file, read and validate the
         // hooks file, and discover BOTH halves of the `{ tests, suites }` split — happens in
         // `resolveRunInvocationInputs`, in the same order, producing the same strings. What changed
         // is who terminates: the producer throws a `CliRunInputError` and THIS door prints its
         // `lines` and exits with its `exitCode` (see the action's catch), so a daemon composing the
-        // same producer survives a missing `.env` instead of dying on it (T-401-31).
+        // same producer survives a missing `.env` instead of dying on it.
         const inputs = await resolveRunInvocationInputs({
           ...(globalOpts.config === undefined ? {} : { configPath: globalOpts.config }),
           patterns: patterns ?? [],
@@ -4519,7 +4519,7 @@ export function createRunCommand(): Command {
         let discoveredTestFiles: string[] = [...inputs.discovered.tests]
         const discoveredSuiteFiles: string[] = [...inputs.discovered.suites]
 
-        // 398-10 (D-17/D-19/D-20): THIS COMMAND'S ANALYTICS COMPOSITION ROOT. One decision, one
+        // THIS COMMAND'S ANALYTICS COMPOSITION ROOT. One decision, one
         // identity, one port for the whole invocation — including a `--all` run that drives the
         // suite path and then the direct path, which shared a process-global service in v1 and
         // shares a memoised object now.
@@ -4528,7 +4528,7 @@ export function createRunCommand(): Command {
         // return without starting a run, and composing would resolve the identity store — writing
         // `~/.agent-qa/analytics.json` on a machine that has none — for an invocation that emits
         // nothing. The first attach site pays for it; there is never a second.
-        // `composedAnalytics` and its once-only drain are declared above the `try` (398-15, WR-06).
+        // `composedAnalytics` and its once-only drain are declared above the `try`.
         const analytics = async (): Promise<CliAnalyticsHost> => (
           composedAnalytics ??= await composeAnalyticsHost({ surface: 'cli', config })
         )
@@ -4545,7 +4545,7 @@ export function createRunCommand(): Command {
               cwd: process.cwd(),
             })
           }
-          await drainAnalytics() // 398-15 (WR-06): terminal exit 1 of 3 — the suite-only path.
+          await drainAnalytics() // terminal exit 1 of 3 — the suite-only path.
           process.exit(exitCode)
         }
 
@@ -4579,7 +4579,7 @@ export function createRunCommand(): Command {
 
         const reporterSelection = requireReporterSelection(opts)
         let currentRunId: string | undefined
-        // 2026-10-17 (443-08, D-03/D-05): one record for this path, written whatever the config holds.
+        // one record for this path, written whatever the config holds.
         const record = createRunRecord({
           attributes: buildCliRunAttributes(userRunAttributes, 'local'),
           warn: (line) => printRunText(pc.yellow(line), (text) => console.warn(text)),
@@ -4597,7 +4597,7 @@ export function createRunCommand(): Command {
           )
           const validationRunId = createTestRunId()
           const validationAttributes = buildCliRunAttributes(userRunAttributes, 'local')
-          // 2026-10-17 (443-08, D-26): the failure row is filed under the id this command prints.
+          // the failure row is filed under the id this command prints.
           await record.open({
             runId: validationRunId,
             configDir,
@@ -4677,7 +4677,7 @@ export function createRunCommand(): Command {
 
         const filtered = parseResult.bindings
 
-        // RUNX-06: `filtered` is `parseResult.bindings` verbatim — no grep/filter narrows it here — so
+        // `filtered` is `parseResult.bindings` verbatim — no grep/filter narrows it here — so
         // `filtered.length === 0` means discovery RESOLVED >=1 test file (the exit-2 guards above
         // already proved that) but parsing produced ZERO runnable tests. Starting a run from here
         // would assemble a zero-member RunSession and render a benign-looking "Tests: 0 of 0 passed"
@@ -4754,13 +4754,13 @@ export function createRunCommand(): Command {
         process.on('SIGHUP', shutdownController.handleSignal)
 
 
-        // 401-11 (D-01/D-02): ONE members/executor assembly on this door, and this path is a
+        // ONE members/executor assembly on this door, and this path is a
         // CALLER of it rather than its only owner. The member closure, the descriptors, the digest
         // mint, the declared target class, the probe URL and the executor wrapper all live in
         // `produceDirectRunMembers` now — the SAME producer a door holding nothing but a
         // `RunsStartInput` reaches through `produceMembersFromPatterns`. Two copies of this chain
         // would be two answers to what a member of this run is.
-        // 433-28 (G-433-4): decided once, before the members exist, and handed to the producer,
+        // decided once, before the members exist, and handed to the producer,
         // the dashboard ingest and the drive alike.
         const singleRunId = process.env.AGENT_QA_RUN_ID ?? generateRunId()
 
@@ -4789,7 +4789,7 @@ export function createRunCommand(): Command {
 
         const singleExecutionContext = resolveRunExecutionContext()
 
-        // 401-11 (D-01/D-02): THE SINGLE-TEST PATH IS A CALLER OF THE ONE IN-PROCESS DRIVE.
+        // THE SINGLE-TEST PATH IS A CALLER OF THE ONE IN-PROCESS DRIVE.
         //
         // What used to be an inline `startRun`, then an inline `createRunInvocationCore`, is now a
         // call. The drive owns the ORDER and the run-scoped machinery every door needs identically —
@@ -4803,7 +4803,7 @@ export function createRunCommand(): Command {
         // the dashboard db, the curation tail, the `--all` exit-code fold and the three terminal
         // exits. A drive that reached for any of those would be a library that owns its host.
         const singleExtraSubscribers: RunSubscriberHandle[] = []
-        // 398-10: same factory, same composed port — Pitfall 8's rule applied to analytics.
+        // same factory, same composed port — Pitfall 8's rule applied to analytics.
         const singleAnalytics = await analytics()
         singleExtraSubscribers.push(buildAnalyticsRunSubscriber({
           analytics: singleAnalytics,
@@ -4824,7 +4824,7 @@ export function createRunCommand(): Command {
               // because this door needed them for `--list-tests`, `--dry-run` and its parse-error
               // report before it could get here.
               produceMembers: async () => produced,
-              // 404 D-05/D-09: what the shell's post-verdict step should do about POST-PROCESSING for this
+              // what the shell's post-verdict step should do about POST-PROCESSING for this
               // run. `--detach` asks this process not to SPEND itself on the chain, so it skips the LEASE —
               // never the enqueue, which the step performs either way (RESEARCH Pitfall 8). The literal-only
               // spread is the same house rule the INVK-06 markers ride: an absent flag is an ABSENT field.
@@ -4868,7 +4868,7 @@ export function createRunCommand(): Command {
                 return frozenExitCode
               },
               afterVerdict: async ({ exitCode, mask, postVerdict, postVerdictDeadlineMs }) => {
-                // 388-02: the same shared tail as the multi-suite site above, and the same 404
+                // the same shared tail as the multi-suite site above, and the same 404
                 // D-05 posture — the enqueue happened in the shell, so this handle has two legs.
                 const postRunTail = composeCliPostRunTail({
                   postVerdict,
@@ -4888,12 +4888,12 @@ export function createRunCommand(): Command {
                 return await runVerdictFirstCurationTail({
                   exitCode,
                   detach: opts.detach === true,
-                  // 404 D-10 / CR-01: the same one-lease rule, and the same take-inside-`drain()`
+                  // the same one-lease rule, and the same take-inside-`drain()`
                   // thunk, as the multi-suite site above.
                   runTail: () => postRunTail.drain({
                     takeLease: () => postVerdict.takeAcquiredLease(),
                   }),
-                  // 388-04 D-08: the close-out line runs on BOTH paths, --detach included.
+                  // the close-out line runs on BOTH paths, --detach included.
                   finish: (input) => postRunTail.finish(input),
                   onUnexpectedError: () => {
                     curationTailLog.warn(unexpectedCurationTailWarning(singleExecutionContext))
@@ -4929,10 +4929,10 @@ export function createRunCommand(): Command {
           liveEvents: process.env.AGENT_QA_LIVE_EVENTS,
           cwd: process.cwd(),
         })
-        await drainAnalytics() // 398-15 (WR-06): terminal exit 2 of 3 — the verdict path.
+        await drainAnalytics() // terminal exit 2 of 3 — the verdict path.
         process.exit(exitCode)
       } catch (err) {
-        // 401-11 (T-401-31): AN INPUT REFUSAL, RENDERED BY THE DOOR THAT HAS A TERMINAL.
+        // AN INPUT REFUSAL, RENDERED BY THE DOOR THAT HAS A TERMINAL.
         //
         // Every input failure on the in-process path — a missing `.env`, an unreadable hooks file,
         // a secrets file that is not there, a pattern that matched nothing, a file that parsed to
@@ -4948,7 +4948,7 @@ export function createRunCommand(): Command {
           }
           process.exit(err.exitCode)
         }
-        // 401-20 (CR-04): THE IDENTITY REFUSALS ARE DECISIONS, AND ARE DESCRIBED AS ONES. Measured
+        // THE IDENTITY REFUSALS ARE DECISIONS, AND ARE DESCRIBED AS ONES. Measured
         // before this branch existed: `AGENT_QA_RUN_ID=not-a-minted-id agent-qa run …` printed
         // `Framework error: agent-qa cannot start a run under "not-a-minted-id"` — a refusal
         // rendered as a crash, which is the exact defect 401-18 closed at the dashboard's read
@@ -4966,7 +4966,7 @@ export function createRunCommand(): Command {
           await drainAnalytics()
           process.exit(2)
         }
-        // 2026-10-17 (443-08, D-05): a run this command cannot record is refused, exit 2, no id.
+        // a run this command cannot record is refused, exit 2, no id.
         if (err instanceof RunRecordUnavailableError) {
           printRunText(
             pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
@@ -4981,13 +4981,13 @@ export function createRunCommand(): Command {
           (text) => console.error(text),
         )
 
-        // 2026-10-17 (444-09, D-19): no cause is guessed and no row is written here; the record's
-        // flush already closed a verdictless own row (D-16).
-        // The run already recorded its verdict and the cause (433-35), so the id is how to read it.
+        // no cause is guessed and no row is written here; the record's
+        // flush already closed a verdictless own row.
+        // The run already recorded its verdict and the cause, so the id is how to read it.
         if (_startedRunId !== undefined) printRunId(_startedRunId)
 
         try { _crashRecord?.close() } catch {}
-        await drainAnalytics() // 398-15 (WR-06): terminal exit 3 of 3 — the action's error path.
+        await drainAnalytics() // terminal exit 3 of 3 — the action's error path.
         process.exit(2)
       }
     })

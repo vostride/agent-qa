@@ -1,10 +1,10 @@
-// The one managed-block writer (431 D-19 · PXH-AGENT-02), shared by every file agent-qa keeps a
+// The one managed-block writer, shared by every file agent-qa keeps a
 // block in: the target `.gitignore` (hash comments) and a project's `AGENTS.md` (HTML comments),
-// and M7's skills blocks after them (OAS-AGENT-05).
+// and M7's skills blocks after them.
 //
 // A block is identified by owner, block name and comment syntax. The bytes between its two
 // marker lines are agent-qa's and are regenerated; every byte outside them is the user's and is
-// returned exactly as it arrived (D-20) — line endings, Unicode and final-newline state included.
+// returned exactly as it arrived — line endings, Unicode and final-newline state included.
 // An existing block is therefore rewritten where it stands by slicing the original string, never
 // by splitting and rejoining lines or moving the block to the end of the file.
 //

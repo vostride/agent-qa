@@ -54,7 +54,7 @@ export const CLI_DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..'
 
 export interface AuditRow {
   /**
-   * When the decision was taken (401-09).
+   * When the decision was taken.
    *
    * ON THE TYPE BECAUSE A MULTI-RUN CELL NEEDS IT. `auditRows` concatenates one run-scoped sink per
    * run directory, in directory order, which is not the order the decisions were taken in — so a
@@ -115,7 +115,7 @@ export class CountingTarget {
   }
 }
 
-/** A target's `environment:` declaration — `undefined` writes NO declaration at all (D-06). */
+/** A target's `environment:` declaration — `undefined` writes NO declaration at all. */
 export type FixtureEnvironment = 'local' | 'shared' | undefined
 
 export interface SuiteFixture {

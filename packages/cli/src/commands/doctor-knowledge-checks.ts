@@ -42,7 +42,7 @@ const { foldRetrievalRung, indexDbPath } = LOCAL_KNOWLEDGE_PROBES
  * printed after an em dash. 407-11 pins this table equal to the dashboard's copy of it — the two
  * surfaces share no UI module, so the labels are defined twice by necessity and asserted equal.
  *
- * 423 D-22: doctor is CURRENT health, so its rows only ever print the three live index causes
+ * doctor is CURRENT health, so its rows only ever print the three live index causes
  * (not built, locked, corrupt). `index-unavailable` keeps a label solely because the table is
  * shared with recorded runs, where it means a pre-423 scan whose cause was never recorded.
  */
@@ -59,12 +59,12 @@ export const RUNG_CAUSE_LABELS: Record<RetrievalRungReason, string> = {
   'index-corrupt': 'knowledge index corrupt, rebuild requested, scanning bundles',
 }
 
-/** D-16: no knowledge reader bound is not a rung. Every row still prints; none is omitted. */
+/** no knowledge reader bound is not a rung. Every row still prints; none is omitted. */
 export const NO_KNOWLEDGE_ROOT_MESSAGE = 'no knowledge root configured'
 
 /**
- * The 399 wording of record (D-20). The folded failure is named by its CAUSE, not its symptom,
- * and the raw worker stderr that carries it never reaches the terminal (T-407-18).
+ * The 399 wording of record. The folded failure is named by its CAUSE, not its symptom,
+ * and the raw worker stderr that carries it never reaches the terminal.
  */
 export const EMBEDDER_WORKER_NOT_REGISTERED_TEXT = 'daemon embedder worker not registered: could not resolve profile (deferred)'
 
@@ -199,7 +199,7 @@ function createKnowledgeStoreCheck(context: KnowledgeCheckContext): DoctorCheck 
         return { status: 'pass', message: `index open at ${context.relativeRoot} (memidex)` }
       }
       // Present-but-unopenable is the ERRORED subsystem D-19 reserves `fail` for. The reason WORD
-      // goes to the terminal; the driver's own text (which quotes paths) stays out of it (T-407-18).
+      // goes to the terminal; the driver's own text (which quotes paths) stays out of it.
       if (face.filePresent) {
         return {
           status: 'fail',
@@ -268,7 +268,7 @@ function createRetrievalRungCheck(context: KnowledgeCheckContext): DoctorCheck {
     check: async (): Promise<CheckResult> => {
       if (context.knowledgeRoot === null) return SKIPPED
       const { rung } = await context.probe()
-      // D-19: never a failure. A lower rung is a rung reached by design, and this row is the one
+      // never a failure. A lower rung is a rung reached by design, and this row is the one
       // that would otherwise red the CI gate of every host running on the floor on purpose.
       if (rung.rung === 'memidex') return { status: 'pass', message: 'memidex' }
       return { status: 'warn', message: `${rung.rung} — ${causeLabel(rung)}` }
@@ -306,7 +306,7 @@ export function createKnowledgeChecks(
     let embedder: AcquireEmbedderOutcome
     try {
       // `allowDownload: false` is not an option this surface offers: a probe that fetched a model
-      // would CHANGE the answer by asking the question (T-407-19).
+      // would CHANGE the answer by asking the question.
       embedder = await capability({ preferredProfile, allowDownload: false, agentQaRoot })
     } catch {
       embedder = { kind: 'deferred', reason: 'load-failure' }

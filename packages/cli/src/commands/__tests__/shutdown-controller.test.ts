@@ -94,7 +94,7 @@ describe('createShutdownController — first-vs-second-signal contract', () => {
 })
 
 describe('the shutdown controller cancels only its own run', () => {
-  // 2026-10-17 (444-08, D-30): was "finalizes this process's own run once, on the first signal";
+  // was "finalizes this process's own run once, on the first signal";
   // the first signal writes no row now, and only run.ts's forced exit closes its own.
   it("the shutdown controller cancels this process's own run once, on the first signal", () => {
     const deps = makeDeps()

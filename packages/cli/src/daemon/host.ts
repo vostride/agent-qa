@@ -135,7 +135,7 @@ type ReadEmbedderWorkerRegistrationOutcome = ReturnType<
   typeof LOCAL_DAEMON_CAPABILITIES.readEmbedderWorkerRegistration
 >
 
-// 2026-08-23 — D-04: THE TYPED BUS EVENT LOG IS THE RUN'S RECORD, and the two run-scoped capture
+// D-04: THE TYPED BUS EVENT LOG IS THE RUN'S RECORD, and the two run-scoped capture
 // constants that used to live on this line are gone with the child that produced them.
 //
 // The daemon answered `runs.start` by spawning a piped `agent-qa run`, tee-ing the child's stdout
@@ -280,8 +280,8 @@ export interface DaemonHostOptions {
   /** Already-host-owned model factory; agent-local never constructs a provider. */
   model: () => JobModelCapability | Promise<JobModelCapability>
   /**
-   * The analyze-run author's compaction budget factory (389-06), derived by the caller
-   * from the SAME profile resolution as `model` (386 D-15). Resolved once at queue open
+   * The analyze-run author's compaction budget factory, derived by the caller
+   * from the SAME profile resolution as `model`. Resolved once at queue open
    * by the shared composition; absent or `undefined`-answering means no ladder.
    */
   analysisTokenBudget?: ComposeLocalAgentInput['analysisTokenBudget']
@@ -294,7 +294,7 @@ export interface DaemonHostOptions {
   /** Plan 05 binds the recorded path to the live invoke server. */
   socketPath?: string
   /**
-   * The invocation's composed analytics (398-10, D-17/D-18).
+   * The invocation's composed analytics.
    *
    * A PARAMETER, like every other capability this host is handed. `commands/daemon.ts` composes it
    * once at its root; this module emits through the port it is given and composes nothing, which is
@@ -490,7 +490,7 @@ function captureWorkerOutput(stream: Readable): CapturedWorkerOutput {
 }
 
 /**
- * The quarantine identity mint this daemon composes with (390-12 / D-01).
+ * The quarantine identity mint this daemon composes with.
  *
  * Two arms, on the same `configPath` branch this file already uses for the run executor (:268 —
  * production always resolves it in `commands/daemon.ts`; legacy and test hosts omit it):
@@ -523,7 +523,7 @@ async function resolveQuarantineIdentityMint(
 }
 
 /**
- * The keep-gate evaluator's host half for this daemon (393 D-01), or nothing.
+ * The keep-gate evaluator's host half for this daemon, or nothing.
  *
  * REACHED THROUGH A DEFERRED IMPORT, and the mechanism is not a lint dodge — it is the rule this
  * file's own head already follows twice. The implementation needs `parseTestFile` and
@@ -531,13 +531,13 @@ async function resolveQuarantineIdentityMint(
  * waives an exact (file, specifier) PAIR and `daemon/host.ts` holds no entry for core; and the
  * ledger only ever SHRINKS, so a new leak in a file written after 2026-07-28 is fixed rather than
  * waived. `composition/local-agent-host.ts` already carries the pair, so the factory is minted
- * there and reached from here exactly as `createQuarantineIdentityMint` (390-12) is. The import also keeps the CLI composition graph out of a
+ * there and reached from here exactly as `createQuarantineIdentityMint` is. The import also keeps the CLI composition graph out of a
  * `configPath`-less legacy or test host, which is the second reason all three are deferred.
  *
  * ABSENT WHERE THERE IS NO CONFIG PATH, and the absence is the report. A host with no workspace
  * cannot resolve a checkout root, so it cannot mint the identity gates 1-2 join on nor enumerate
  * the suite gate 3 compares against — which makes it a host that cannot verify a draft. Omitting
- * the field lists `authoring.draft.verify` as `unbound` BY NAME (D-09), where the quarantine mint
+ * the field lists `authoring.draft.verify` as `unbound` BY NAME, where the quarantine mint
  * one function up instead binds a THROWING closure: the difference is that the mint is REQUIRED by
  * the composition and this is optional, so this one can express the same fact structurally rather
  * than at the first call.
@@ -575,7 +575,7 @@ async function resolveHolderFeedback(input: {
 }
 
 /**
- * Compose this daemon's run execution over the ONE in-process drive (401-06, D-01/D-04/D-07).
+ * Compose this daemon's run execution over the ONE in-process drive.
  *
  * REACHED THROUGH A DEFERRED IMPORT, for the same two reasons the three resolvers above are, plus
  * one this seam adds. `composition/in-process-run-execution.ts` imports `commands/run.ts`'s member
@@ -631,7 +631,7 @@ async function composeDaemonRunExecution(input: {
   /**
    * The one place a dispatched run is known to have finished, and both per-run effects live here.
    *
-   * 398-10 (D-18) moved with the wire unchanged. `job_kind: 'run'` and no other arm: the union's
+   * 398-10 moved with the wire unchanged. `job_kind: 'run'` and no other arm: the union's
    * kinds are run/suite/recovery/unknown, and the curation drain — this daemon's other queue — is
    * none of them, so reporting it would put a number on a chart saying a job of an unnamed kind
    * happened, which is worse than silence. `duration_ms` stays absent because nothing here measured
@@ -657,7 +657,7 @@ async function composeDaemonRunExecution(input: {
 
   return {
     async execute(request) {
-      // 2026-10-21 (447-09, D-14): the job is its submitter's, so it reports the submitter's product.
+      // the job is its submitter's, so it reports the submitter's product.
       const jobAnalytics: CliAnalyticsHost | undefined =
         analytics === undefined
           ? undefined
@@ -685,7 +685,7 @@ async function composeDaemonRunExecution(input: {
       // Read ONCE per run, here, so the conditional spread and the value it spreads are the same
       // reading — two calls could straddle a lease this daemon lost between them.
       const daemonAuthority = input.resolveWriterAuthority()
-      // 2026-10-17 (443-06, D-02): the record's incomplete line goes to the daemon's log, never stdout.
+      // the record's incomplete line goes to the daemon's log, never stdout.
       const runRecord = createRunRecord({
         attributes: doorRunAttributes('cli'),
         warn: (line: string) => input.logger.error(line),
@@ -697,7 +697,7 @@ async function composeDaemonRunExecution(input: {
           {
             configPath,
             agentQaRoot: input.agentQaRoot,
-            // D-07: THE POSTURE TRAVELS EXPLICITLY. The startup `pinLocalHeadlessExecutionContext()`
+            // THE POSTURE TRAVELS EXPLICITLY. The startup `pinLocalHeadlessExecutionContext()`
             // STAYS — it is this process's detected context — and every dispatched run records
             // THIS value, so a varied ambient cannot move it. Asserted in
             // `__tests__/daemon-run-execution.test.ts`.
@@ -729,7 +729,7 @@ async function composeDaemonRunExecution(input: {
               ? {}
               : { postProcessing: { writerAuthority: daemonAuthority } }),
             onSession: (session) => { startedRunId = session.id as unknown as string },
-            // 2026-10-21 (447-08, D-16): subscribed directly, because `attachRunSubscribers`'
+            // subscribed directly, because `attachRunSubscribers`'
             // wire reporter can print to stdout.
             ...(jobAnalytics === undefined || runSession === undefined ? {} : {
               subscribers: ({ session }) => {
@@ -781,7 +781,7 @@ async function composeDaemonRunExecution(input: {
  * install the independent heartbeat, then recover and compose under the protected epoch.
  */
 export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
-  // D-09: this is deliberately the first effect and is never injectable or TTY-dependent.
+  // this is deliberately the first effect and is never injectable or TTY-dependent.
   LOCAL_DAEMON_CAPABILITIES.pinLocalHeadlessExecutionContext()
 
   const operations = { ...defaultOperations(), ...input.operations }
@@ -950,7 +950,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
     return 1
   }
   operations.trace?.('lease-acquired')
-  // 404 D-09: the door's runs now report `drained` off THIS pair rather than re-consulting a lease
+  // the door's runs now report `drained` off THIS pair rather than re-consulting a lease
   // this process is holding (Pitfall 3).
   daemonWriterAuthority = { leaseId: acquired.leaseId, epoch: acquired.epoch }
 
@@ -1211,7 +1211,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
   }
 
   /**
-   * CR-05: the ONLY signal path for a registered worker pid, and it is unreachable without a
+   * the ONLY signal path for a registered worker pid, and it is unreachable without a
    * verified 'match' incarnation verdict at its single call site below.
    */
   const terminateRegisteredEmbedderWorker = async (
@@ -1291,7 +1291,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       return { kind: 'adopt', registration }
     }
 
-    // CR-05: liveness plus a dead socket says the WORKER is gone, not who holds its pid now. The
+    // liveness plus a dead socket says the WORKER is gone, not who holds its pid now. The
     // OS-anchored incarnation is the only thing that can tell those apart, and without a 'match'
     // the daemon replaces the worker without touching that process at all — which it can afford to
     // do because the fresh generation binds its own socket and cannot collide with the occupant.
@@ -1572,7 +1572,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
     })
 
     /**
-     * WR-01: a receipt-required session may legitimately start with no candidates, and work can
+     * a receipt-required session may legitimately start with no candidates, and work can
      * arrive between the initial inspection and the loop's first observation. Resolving the author
      * eagerly fixed it to `undefined` for that whole session, so the arrival was drained
      * unauthored. The author is therefore resolved — and the configuration validated — at the
@@ -2142,7 +2142,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       },
     })
     localAgent = operations.composeLocalAgent({
-      // 2026-10-14 (441-55, D-06): a host with no config path (test hosts only) declares nothing.
+      // a host with no config path (test hosts only) declares nothing.
       mask: input.configPath === undefined
         ? (text: string) => text
         : (await import('../composition/declared-secrets.js'))
@@ -2155,12 +2155,12 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
       // 390-12 / D-01. Resolved on the `configPath` branch above: bound to the real checkout root
       // in production, fail-closed in a legacy or test host that has none.
       mintQuarantineIdentityPath: await resolveQuarantineIdentityMint(input.configPath),
-      // 389-06: the author's compaction budget, host-derived from the same profile
-      // resolution as the model above and resolved once at queue open (386 D-15).
+      // the author's compaction budget, host-derived from the same profile
+      // resolution as the model above and resolved once at queue open.
       ...(input.analysisTokenBudget === undefined
         ? {}
         : { analysisTokenBudget: input.analysisTokenBudget }),
-      // 388 D-01: a `curate-memory` job this daemon claims must perform the SAME v51 per-run
+      // a `curate-memory` job this daemon claims must perform the SAME v51 per-run
       // fold the CLI tail performs, or the canonical pipeline would have two bodies and the
       // curation chip would depend on which process happened to hold the lease. The authority
       // handed in is the lease this process already owns — the 387-08 D-18 idiom — because a
@@ -2191,7 +2191,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
               info: (message: string) => logger.info(message),
             },
           })
-          // WR-03 / D-01: the same fields the CLI binding returns — but the two bindings are
+          // the same fields the CLI binding returns — but the two bindings are
           // NOT equivalent, and the reason is declared one field above: only a leg folding with
           // the declared mask bound may claim the kind that runs the same fold.
           return {
@@ -2203,13 +2203,13 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         },
       },
       ...(runExecution === undefined ? {} : { runExecution }),
-      // 393 D-01 / 385 D-15: the SAME keep-gate binding the CLI composes, because both hosts
+      // the SAME keep-gate binding the CLI composes, because both hosts
       // compose the same root. Conditionally spread, so a daemon with no workspace lists the
       // capability `unbound` BY NAME rather than binding one that cannot resolve a draft path.
       ...(draftAuthoring === undefined ? {} : { draftAuthoring }),
-      // 432-16 (D-07): no one-commit test-draft apply is bound here or on the CLI host — agent-qa
+      // no one-commit test-draft apply is bound here or on the CLI host — agent-qa
       // makes no git commits — so both hosts list the pre-432 accept's test-draft route unbound.
-      // 387-08 D-18 / D-5: this process IS the writer-lease holder, so an apply it performs hands
+      // this process IS the writer-lease holder, so an apply it performs hands
       // in the authority it already owns rather than asking for a lease it cannot be granted
       // twice — a holder that calls `acquireWriterLease` is told `held` by itself and then has
       // nobody to delegate to. Same two fields the drain and maintenance paths already pass.

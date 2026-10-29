@@ -38,7 +38,7 @@ export interface ConsoleReporterOptions {
   isTTY?: boolean
   columns?: number
   /**
-   * The run-start quarantine snapshot (390 D-15/D-16), taken AT CONSTRUCTION — the same set the
+   * The run-start quarantine snapshot, taken AT CONSTRUCTION — the same set the
    * runner's aggregate verdict rule was handed, matched through schema's ONE predicate so the human
    * line and the exit code cannot tell different stories about the same member.
    */
@@ -47,14 +47,14 @@ export interface ConsoleReporterOptions {
 }
 
 /**
- * What a quarantined FAILURE reads as (390 D-15). Three facts in one phrase, in the order a reader
+ * What a quarantined FAILURE reads as. Three facts in one phrase, in the order a reader
  * needs them: it is under quarantine, it FAILED (no skipped-mapping, no pass-with-note — the test
  * ran, which is FLAK-02's point), and that failure is not in the build's failing tally.
  */
 export const QUARANTINE_TEST_ANNOTATION = 'QUARANTINED — failed, not counted'
 
 /**
- * The summary line's separate count segment (390 D-15) — a pure string composer, the
+ * The summary line's separate count segment — a pure string composer, the
  * `renderChainTerminalLine` idiom, so it can be pinned by value without rendering a run.
  *
  * SILENT at zero, and that silence is load-bearing: every pre-390 summary line stays byte-frozen on
@@ -69,7 +69,7 @@ export function renderQuarantineSummarySegment(count: number): string {
  * The reporter handle every subscriber factory returns. `handler` is attached to the run
  * session bus; `flush` is awaited by the CLI after `session.done`.
  *
- * 2026-10-02 (432-42, D-14): no `pauseLive`/`resumeLive`. They cleared the live TTY line for a
+ * no `pauseLive`/`resumeLive`. They cleared the live TTY line for a
  * confirm prompt; no run asks, so nothing pauses the line.
  */
 export interface ConsoleReporterHandle {
@@ -84,8 +84,8 @@ interface TestMeta {
 
 /**
  * `createConsoleReporter` — the bus-subscriber successor to core's `ConsoleReporter`
- * (D-01/D-03). Pure accumulation from typed envelopes (D-04, replay-equivalent). Payloads are
- * printed as masked at their source (441 D-07).
+ * Pure accumulation from typed envelopes (D-04, replay-equivalent). Payloads are
+ * printed as masked at their source.
  */
 export function createConsoleReporter(options: ConsoleReporterOptions = {}): ConsoleReporterHandle {
   const verbose = options.verbose ?? false
@@ -126,7 +126,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
     return colorize ? fn(text) : text
   }
 
-  // --- accumulation state (D-04) ---------------------------------------------
+  // --- accumulation state ---------------------------------------------
   let memberTestCount = 0
   let currentSuiteId: string | undefined
   let sawSuite = false
@@ -153,7 +153,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
   let testsSkipped = 0
   let testsCancelled = 0
   let totalDurationMs = 0
-  // 390 D-14: counted SEPARATELY and never subtracted from `testsFailed` — the member outcome stays
+  // counted SEPARATELY and never subtracted from `testsFailed` — the member outcome stays
   // truthful, and this is the segment that explains the green build's arithmetic.
   let quarantinedFailures = 0
 
@@ -336,7 +336,7 @@ export function createConsoleReporter(options: ConsoleReporterOptions = {}): Con
 
     // Only a FAILED member carries the disposition: the annotation's claim is "this failure is not
     // counted", which a passing member cannot make. Which tests are under quarantine at all is
-    // `quarantine.list`'s question (FLAK-03), not this line's.
+    // `quarantine.list`'s question, not this line's.
     const quarantined =
       failed
       && quarantineAppliesToTest(options.quarantined, {

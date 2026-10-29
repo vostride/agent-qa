@@ -1,8 +1,8 @@
-// 2026-09-15, 423 D-19: the read-only half of the feedback host. It reads the mark ledger and never
+// the read-only half of the feedback host. It reads the mark ledger and never
 // takes the run lock, touches an in-flight intent or creates a directory.
-// 2026-09-30, 432-09 (D-04/D-22/D-25): each applied knowledge fix joins the records it changed
+// each applied knowledge fix joins the records it changed
 // through the knowledge store's batch read. No proposal store is read, readable or not.
-// 2026-09-15, 423 D-16/D-17: preview runs runs.mark's shared plan with the same guarantees, and
+// preview runs runs.mark's shared plan with the same guarantees, and
 // takes only read capabilities: no lease, ledger transaction, freeze, wording model or writer.
 import { existsSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'

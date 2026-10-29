@@ -1,4 +1,4 @@
-// The scaffold's CONTENT, shared by both write paths (Phase 395, D-04 · CFGM-05).
+// The scaffold's CONTENT, shared by both write paths.
 //
 // ONE SOURCE OF TRUTH FOR SUBSTANCE, TWO WRITE PATHS SPLIT BY ACTOR. `agent-qa init` writes these
 // bytes directly for a human who asked for them at a terminal; `config.project.scaffold` renders
@@ -141,7 +141,7 @@ export function buildTargets(
 }
 
 /**
- * The host facts the config's defaults need, INJECTED (FUNC-02).
+ * The host facts the config's defaults need, INJECTED.
  *
  * `llmEntries` IS ALREADY RESOLVED, and that is the whole of the boundary. Turning an
  * `InitLLMConfig` into a registry entry means asking the provider registry whether the provider
@@ -297,13 +297,13 @@ export function renderScaffoldConfigYaml(config: Record<string, unknown>): strin
   return addYamlComments(stringify(config))
 }
 
-// 2026-10-19 (445-02, D-40): the proposal writes no hook script, so its hooks file names none.
+// the proposal writes no hook script, so its hooks file names none.
 export function buildHooksFile(_platform: InitPlatformInput): string {
   return 'hooks: []\n'
 }
 
 // ---------------------------------------------------------------------------------------------
-// The managed .gitignore block: the hash-comment variant of the shared writer (431 D-19).
+// The managed .gitignore block: the hash-comment variant of the shared writer.
 // ---------------------------------------------------------------------------------------------
 
 export function managedGitignoreContent(entries: readonly string[]): ManagedBlockContent {
@@ -332,7 +332,7 @@ export function composeManagedGitignore(
 }
 
 // ---------------------------------------------------------------------------------------------
-// The from-zero scaffold file set (395-08, D-04/D-13 · CFGM-05).
+// The from-zero scaffold file set.
 // ---------------------------------------------------------------------------------------------
 
 export const SCAFFOLD_CONFIG_FILE = 'agent-qa.config.yaml'
@@ -344,7 +344,7 @@ export interface ScaffoldContentInput {
   readonly cacheDir: string
   /** `services.authState.dir` — same. */
   readonly authStatesDir: string
-  /** The derived target name, e.g. `booking-com`. Deterministic host code produces it (D-13). */
+  /** The derived target name, e.g. `booking-com`. Deterministic host code produces it. */
   readonly targetName: string
   /** The derived base URL, e.g. `https://booking.com`. Same producer, same rule. */
   readonly baseUrl: string
@@ -367,7 +367,7 @@ export interface ScaffoldContentInput {
   /** What the project's `.gitignore` holds right now, or absent when it has none. */
   readonly existingGitignore?: string
   /**
-   * MERGE MODE (395-12): the project's existing configuration, which declares no targets.
+   * MERGE MODE: the project's existing configuration, which declares no targets.
    *
    * ABSENT IS THE FROM-ZERO ROAD and it is byte-for-byte what it always was — the committed goldens
    * pin that, and they did not move when this field was added. Present, the producer inserts
@@ -388,7 +388,7 @@ export interface ScaffoldMergeTarget {
 }
 
 /**
- * The person's own configuration with exactly ONE target entry inserted (395-12 · CFGM-05).
+ * The person's own configuration with exactly ONE target entry inserted.
  *
  * `parseDocument` → `setIn` → `toString` IS THE SHIPPED IDIOM, and it is the same one
  * `agent-qa config set` and `createConfigFilesPort.setField` ride — chosen for the same
@@ -435,11 +435,11 @@ export interface ScaffoldContentFile {
  * config validates. Entries a caller does hand over are written with a coherent `use.llm`, never
  * removed, and an inconsistent selection is left for schema validation to refuse. `init` is the
  * path that ASKS, and it passes its answers to `buildScaffoldConfig` directly; the scaffold port
- * hands this producer none (2026-10-03, 261003-cpv, IN-09).
+ * hands this producer none.
  *
  * PLATFORM IS `web`, STATED. A hostname is a web origin; there is no mobile fact in a domain token.
  *
- * TWO MODES, ONE PRODUCER (395-12, D-04). With `existingConfig` present the config member is the
+ * TWO MODES, ONE PRODUCER. With `existingConfig` present the config member is the
  * person's own bytes plus one inserted target entry, and the hooks file is rendered only when the
  * project has none — see `ScaffoldMergeTarget`. The `.gitignore` upsert is the same in both modes,
  * because it always was an upsert.

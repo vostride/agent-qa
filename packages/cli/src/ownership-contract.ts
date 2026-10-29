@@ -14,11 +14,11 @@ export const AGENT_QA_CLI_EXTERNAL_DEPENDENCIES = [
   '@inquirer/input',
   '@inquirer/password',
   '@inquirer/select',
-  // 2026-08-15 (Phase 396 plan 01, D-09): the MCP stdio serving entry. It lives on THIS package and
+  // the MCP stdio serving entry. It lives on THIS package and
   // not on `packages/mcp` because it owns a process — it takes over this process's stdin and stdout
   // and negotiates the protocol era for the connection — and owning the process is what a host does.
   // The projection package stays free of every host API, which is what keeps its own two-dep
-  // allow-list (D-20) honest.
+  // allow-list honest.
   '@modelcontextprotocol/server',
   'ai',
   'commander',
@@ -28,12 +28,12 @@ export const AGENT_QA_CLI_EXTERNAL_DEPENDENCIES = [
   'zod',
 ] as const
 export const AGENT_QA_CLI_INTERNAL_DEPENDENCIES = [
-  // 384 FUNC-01: the function layer the CLI invokes capabilities through.
+  // the function layer the CLI invokes capabilities through.
   '@vostride/agent-qa-agent',
-  // 2026-07-29 (Phase 385 plan 08, D-13): the local composition root. The CLI no longer builds a
+  // the local composition root. The CLI no longer builds a
   // run session itself; it supplies presentation ports and delegates.
   '@vostride/agent-qa-agent-local',
-  // 2026-08-17 (Phase 398 plan 10, D-17/D-20): the bounded analytics package. Every host in this
+  // the bounded analytics package. Every host in this
   // surface binds it at its own composition root through `composition/analytics-host.ts`, which is
   // the only file here that names `composeAnalytics`. It arrives on THIS list rather than staying
   // an implementation detail of `core` because the whole point of D-17 is that telemetry is a
@@ -46,7 +46,7 @@ export const AGENT_QA_CLI_INTERNAL_DEPENDENCIES = [
   '@vostride/agent-qa-eval',
   '@vostride/agent-qa-eval-local',
   '@vostride/agent-qa-ios',
-  // 2026-08-17 (Phase 398 plan 10, D-18): the ids package STAYED off this list, and the round trip
+  // the ids package STAYED off this list, and the round trip
   // is worth recording. `daemon/host.ts` needs to know whether a dispatched run's id is canonical
   // before it can ride the analytics union's `run_id` — a known-id codec, and nothing parses an
   // event on the way to the transport. The first attempt imported `isCanonicalRunId` here and was
@@ -54,14 +54,14 @@ export const AGENT_QA_CLI_INTERNAL_DEPENDENCIES = [
   // The filter is published by `@vostride/agent-qa-analytics` instead (`analyticsRunId`), which is
   // the package that owns the field, already depends on ids, and is admitted by the firewall.
   //
-  // 2026-08-12 (Phase 394 plan 11, FUNC-02): the ids package is GONE from this list for exactly
+  // the ids package is GONE from this list for exactly
   // the reason recorded below it. `create-test` and `create-suite` were the CLI's only shipped
   // source naming it — they minted a test or suite id locally to stamp into a scaffolded YAML file
   // — and both verbs are retired behind the authoring loop, which mints nothing on a surface. The
   // workspace dependency STAYS: this package's tests still construct and check canonical ids, and
   // the contract describes what the shipped source names.
   //
-  // 2026-08-02 (Phase 387 plan 09, D-20): knowledge-local is GONE from this list, not moved. The
+  // knowledge-local is GONE from this list, not moved. The
   // CLI's last direct reach into the knowledge package was `knowledge-read.ts`'s inspect/diff, and
   // those verbs are now thin clients over `knowledge.records.*`. The package is still a workspace
   // dependency because this package's TESTS construct real stores; the contract describes what the
@@ -70,7 +70,7 @@ export const AGENT_QA_CLI_INTERNAL_DEPENDENCIES = [
   '@vostride/agent-qa-model',
   '@vostride/agent-qa-runner',
   '@vostride/agent-qa-runner-local',
-  // 2026-10-15 (Phase 441 plan 43, D-15): the safety package is GONE from this list. Its last
+  // the safety package is GONE from this list. Its last
   // shipped import was `curation/curation-tail.ts`'s audit sink type, deleted with the curation
   // audit sink. This package's tests still import it, so it stays as a devDependency.
   '@vostride/agent-qa-safety-local',

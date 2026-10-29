@@ -42,7 +42,7 @@ export const invokeEnvelopeSchema = z
 
 export type InvokeEnvelope = z.infer<typeof invokeEnvelopeSchema>
 
-// 2026-10-21 (447-09, D-14): the submitter's agent product, scoped to the request that carried it.
+// the submitter's agent product, scoped to the request that carried it.
 const invokeAgentProductScope = new AsyncLocalStorage<AnalyticsAgentProduct | undefined>()
 
 export function currentInvokeAgentProduct(): AnalyticsAgentProduct | undefined {
@@ -212,7 +212,7 @@ const LEGACY_DAEMON_SOCKET_FILE = 'daemon.sock'
 /**
  * Can a daemon of this project ever have BOUND this address?
  *
- * WR-06: containment alone answers "is this inside a directory we own", which is a strictly weaker
+ * containment alone answers "is this inside a directory we own", which is a strictly weaker
  * question — the runtime root and the hashed tmpdir directory hold this project's OTHER live
  * sockets too. An embedder worker binds `embedder-worker-<instance>.sock` in the same runtime root
  * and `<instance>.sock` in the same hashed tmpdir directory, so an address checked by containment

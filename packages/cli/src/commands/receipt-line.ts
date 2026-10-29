@@ -15,7 +15,7 @@
 // the plain summary" branch, because a conditional render is a drop path with a condition on it,
 // and a drop path is the defect this module closes.
 //
-// STILL NEVER A PAYLOAD (D-18). `outcome` is a one-line summary by its schema's own contract — for
+// STILL NEVER A PAYLOAD. `outcome` is a one-line summary by its schema's own contract — for
 // a failure the function layer's refusal NAME, for a fan-out the report's own sentence — so what
 // this adds to the line is the same class of fact the line already carried, not a result body.
 //
@@ -61,7 +61,7 @@ const STATUS_STYLE = {
   'not-run': pc.dim,
 } as const satisfies Record<ClauseReceiptStatus, (text: string) => string>
 
-// 2026-10-01 (432-19, D-15): the denial-detail renderer and its remedy text table are deleted. They
+// the denial-detail renderer and its remedy text table are deleted. They
 // rendered the execution gate's typed remedies under a denial; the gate and its remedy vocabulary
 // are gone, and the one remaining run refusal (production without the config opt-in) is a plain
 // sentence the door prints as it is.

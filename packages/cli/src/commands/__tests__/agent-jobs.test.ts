@@ -106,7 +106,7 @@ function harnessDeps(): {
             model: NEVER_AUTHORS,
             idSource: DIGEST_JOB_ID_SOURCE,
             // Stated, not omitted: this double composes no posture, and the empty set is a fact
-            // about it rather than a field nobody got round to (CR-02).
+            // about it rather than a field nobody got round to.
             unclaimableKinds: [],
           },
           close: async () => {

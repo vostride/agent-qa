@@ -1,4 +1,4 @@
-// C444-HANGUP-ONCE (444-30, D-63): a terminal close under interactive zsh delivers SIGHUP twice,
+// a terminal close under interactive zsh delivers SIGHUP twice,
 // about 1 ms apart, so a SIGHUP after the first signal is never a second ask. A SIGINT or SIGTERM
 // after any first signal still force-exits. Signals are delivered the way `process.on` calls a
 // listener: with the signal's name as the first argument.

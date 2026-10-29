@@ -12,7 +12,7 @@ export function createValidateCommand(): Command {
     .description('Validate config, test files, and suite references')
     .argument('[files...]', 'specific files to validate (default: auto-discover all)')
     .action(async (files: string[], _options: unknown, command: Command) => {
-      // THREE PARAMETERS, BECAUSE THIS COMMAND TAKES AN ARGUMENT (395-24 · WR-01). Commander invokes
+      // THREE PARAMETERS, BECAUSE THIS COMMAND TAKES AN ARGUMENT. Commander invokes
       // an action with `(...declaredArguments, options, command)`. `validate` declares `[files...]`,
       // so the Command arrives THIRD. Bound as `(files, command)` the second name held the OPTIONS
       // OBJECT, `command.parent` was undefined, and `--config` fell through to the default below —
@@ -47,7 +47,7 @@ export function createValidateCommand(): Command {
         // position-only since 395-16, and (Z2)'s zero-occurrence assertion is the watchdog on this
         // road.
         //
-        // EVERY THROWN VALUE PRODUCES A STRING (395-24 · WR-04). This reached `.message` through an
+        // EVERY THROWN VALUE PRODUCES A STRING. This reached `.message` through an
         // `err as Error` cast, and a cast is not a check: a plugin doing
         // `throw 'boom'` left `resolutionFailure` UNDEFINED, and the guard below reads undefined as
         // "resolution succeeded" — the false green 395-21 exists to kill, re-entered through a

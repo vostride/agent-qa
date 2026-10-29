@@ -61,7 +61,7 @@ import { resolveRunExecutionContext } from '@vostride/agent-qa-agent-local'
 import type { RunExecutionContext } from '@vostride/agent-qa-agent-local'
 
 // The @vostride/agent-qa-eval-local workspace edge (G5) is anchored by the real store/loader
-// value imports above (372-05/06); this type re-export stays for the report verb plan (372-07)
+// value imports above; this type re-export stays for the report verb plan
 // that consumes record loads. Erased at build — no runtime coupling.
 export type { ReplayRecordLoad } from '@vostride/agent-qa-eval-local'
 
@@ -150,7 +150,7 @@ export async function resolveEvalSession(input: {
 }
 
 /**
- * Typed named-input-not-found rejection (D-08): a `--run <slug>` or `--cassette <id>` naming
+ * Typed named-input-not-found rejection: a `--run <slug>` or `--cassette <id>` naming
  * nothing on disk is the ONLY sweep-shape failure — the command layer maps it to exit 1.
  * Per-item load failures inside a sweep are DATA (`runsSkipped` / `loadRefusals`), never errors.
  */
@@ -174,7 +174,7 @@ export class EvalNamedInputError extends Error {
   }
 }
 
-/** The extract verb's one DTO — the console renders FROM this, never around it (D-04). */
+/** The extract verb's one DTO — the console renders FROM this, never around it. */
 export interface ExtractVerbResult {
   /** Run dirs (with a handoff document) that entered the sweep after `--run` narrowing. */
   runsSwept: number
@@ -185,14 +185,14 @@ export interface ExtractVerbResult {
   cassettesWritten: number
   /**
    * ExtractionReport counters folded verbatim: emitted-cassette completeness statuses and
-   * per-decision selection-skip reasons, keyed by the engine's own names (D-04).
+   * per-decision selection-skip reasons, keyed by the engine's own names.
    */
   completeness: Record<string, number>
   cassettesRoot: string
 }
 
 /**
- * The extract verb pipeline (D-01/D-02): sweep every handoff under `.agent-qa/runs/` (or the one
+ * The extract verb pipeline: sweep every handoff under `.agent-qa/runs/` (or the one
  * `--run` names), load each through the version-guarded runner-local loader (typed skips on
  * refusal — pre-366 documents surface here, never as batch errors), and hand every survivor to
  * the sanctioned engines: `extractRunCassettes` selects/projects, `FsCassetteStore` stages
@@ -235,7 +235,7 @@ function sweepAndExtract(
     let extraction: ReturnType<typeof extractRunCassettes>
     try {
       // The version-guarded loader is the ONE handoff read path (never raw JSON.parse here):
-      // unreadable documents and version-guard refusals become typed per-run skips (D-02).
+      // unreadable documents and version-guard refusals become typed per-run skips.
       const handoff = loadCompletedRunHandoff(resolve(runsRoot, runSlug, HANDOFF_FILE))
       if (
         filters.product !== undefined
@@ -318,13 +318,13 @@ export interface ReplayVerbResult {
   swept: number
   /** Cassettes that replayed to a ReplayResult through the sanctioned composition. */
   replayed: number
-  /** Typed loadCassetteBundle refusals folded by reason — data, never batch errors (D-08). */
+  /** Typed loadCassetteBundle refusals folded by reason — data, never batch errors. */
   loadRefusals: Record<string, number>
   /** Typed replay refusals (plus harness errors) folded by reason — the batch never aborts. */
   replayRefusals: Record<string, number>
   /** Persisted score.json records read back after the loop (refusals are never scored). */
   scored: number
-  /** Judge dispositions read from the persisted tie/settled stamps (D-04). */
+  /** Judge dispositions read from the persisted tie/settled stamps. */
   judge: ReplayJudgeCounters
   /** The staged replay-records root the persisted outcomes landed under. */
   replaysRoot: string
@@ -431,7 +431,7 @@ export async function runReplayVerb(
     notInvoked: 0,
   })
 
-  // (4) empty batch: exit-0 data, no planner/judge resolution spend (D-02).
+  // (4) empty batch: exit-0 data, no planner/judge resolution spend.
   if (selected.length === 0) {
     notices.push('empty sweep — no staged cassette bundles matched')
     return {
@@ -456,7 +456,7 @@ export async function runReplayVerb(
   const judgeResolution = await resolveEvalJudge(session)
   if (judgeResolution.notice !== undefined) notices.push(judgeResolution.notice)
 
-  // (6) the replay loop, in sorted id order (D-07).
+  // (6) the replay loop, in sorted id order.
   const recordStore = new FsReplayRecordStore({ root: agentQaRoot })
   const scoreStore = new FsScoreStore({ root: agentQaRoot })
   let modelCalls = 0
@@ -483,7 +483,7 @@ export async function runReplayVerb(
     })
   notices.push(...replayNotices)
 
-  // (7) fold judge dispositions FROM the persisted score records — never recomputed (D-04).
+  // (7) fold judge dispositions FROM the persisted score records — never recomputed.
   const judge = zeroJudge(judgeResolution.judge !== undefined)
   let scored = 0
   for (const recordDir of replayedDirs) {
@@ -519,7 +519,7 @@ export async function runReplayVerb(
 
 /**
  * Fold one persisted CassetteScore's judge stamps into the DTO counters — the exact
- * buildEvalReport disposition read (metrics.ts), scalar-summed for the summary surface (D-04).
+ * buildEvalReport disposition read (metrics.ts), scalar-summed for the summary surface.
  */
 function foldJudgeDispositions(score: CassetteScore, judge: ReplayJudgeCounters): void {
   const entries: readonly DecisionScoreEntry[] =
@@ -612,7 +612,7 @@ export async function resolveEvalJudge(session: EvalSession): Promise<{
 
 /**
  * Resolve the replay planner from the config's `use.llm` named entry through the same
- * resolveNamedConfig → resolveModelAuth → toModelProfileAndAuth chain run uses (D-03).
+ * resolveNamedConfig → resolveModelAuth → toModelProfileAndAuth chain run uses.
  * An absent `use.llm` is a typed Error (unknown names throw llm-utils' typed
  * available-names error).
  */
@@ -751,7 +751,7 @@ export async function runReportVerb(
 /**
  * The named-LLM resolution chain shared by judge and planner: resolveNamedConfig (typed
  * available-names error on unknown name) → resolveModelAuth → toModelProfileAndAuth. A `missing`
- * auth resolution is a typed Error naming `agent-qa auth login` (D-08). Lazy dynamic import per
+ * auth resolution is a typed Error naming `agent-qa auth login`. Lazy dynamic import per
  * the auth.ts house style.
  */
 async function resolveNamedProfile(

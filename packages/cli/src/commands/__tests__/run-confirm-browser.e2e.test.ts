@@ -6,7 +6,7 @@
 
 // THE RUN TRIGGER'S CONFIRM LOOP, CLOSED THROUGH A REAL BROWSER (Phase 401, UAT item 15 / Truth 6).
 //
-// SINCE 432-13 (D-14/D-15) there was no loop to close: the run button's run asked nobody. SINCE
+// SINCE 432-13 there was no loop to close: the run button's run asked nobody. SINCE
 // 432-14 there is nothing left of the loop at all — no channel the page holds open, no scope the
 // trigger carries, no dialog in the bundle. The cells below drive the same real clicks and pin that
 // a click is one request and the run starts at once. History below kept as written.
@@ -41,7 +41,6 @@ import { chromium } from 'playwright-core'
 import type { Browser, BrowserContext, Page } from 'playwright-core'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
-// 2026-10-19 (444.1-24, D-39): each drive and its detached tail are awaited before removal.
 const tails = vi.hoisted(() => [] as Array<Promise<void>>)
 
 vi.mock('../../composition/in-process-run-execution.js', async (importOriginal) => {
@@ -180,7 +179,7 @@ interface Scene {
   readonly fixture: Fixture
   readonly db: DashboardDatabase
   settled(): { runId: string; status: string; details: Record<string, unknown> }[]
-  /** The run's OWN bus envelopes, in seq order, recorded off its session (405-07). */
+  /** The run's OWN bus envelopes, in seq order, recorded off its session. */
   buffered(runId: string): Record<string, unknown>[]
   close(): Promise<void>
 }
@@ -243,7 +242,7 @@ async function openScene(input: { fixture: Fixture }): Promise<Scene> {
     executionBackend: runDoor.backend,
     agentHost: door.agentHost,
   })
-  // 2026-08-27 (405-07, D-19): the run's OWN bus, watched through the door's published
+  // the run's OWN bus, watched through the door's published
   // `observeSessions`. This used to read the backend's per-run replay buffer, which existed for one
   // SSE route and was deleted with it; `subscribe(1, …)` is replay-then-live from the first seq, so
   // a recorder registered here sees every envelope of every run this door starts.
@@ -302,7 +301,7 @@ async function waitFor(assertion: () => void, timeoutMs = 180_000): Promise<void
 /**
  * Open the dashboard and dismiss the first-visit tour.
  *
- * 432-14: there is no scope frame to wait for any more. The page is ready when the tests table has
+ * there is no scope frame to wait for any more. The page is ready when the tests table has
  * rendered the fixture's own row, which is what a person waits for before clicking.
  */
 async function openDashboard(scene: Scene): Promise<{ page: Page; pageErrors: string[] }> {
@@ -380,8 +379,8 @@ function startedContext(scene: Scene, runId: string): unknown {
 }
 
 describe('the run trigger confirm loop, closed through a real browser', () => {
-  // RE-SPELLED 2026-10-01 (432-14): was 'SINGLE CONFIRM — the EventSource carries the scope, and
-  // clicking Run starts the run with no dialog' (432-13). The page holds no channel and the trigger
+  // RE-SPELLED 2026-10-01: was 'SINGLE CONFIRM — the EventSource carries the scope, and
+  // clicking Run starts the run with no dialog'. The page holds no channel and the trigger
   // carries no scope, so the claim is now the click itself: one request, one run.
   it('one click is one trigger request, and a non-production run starts at once', async () => {
     const target = new CountingTarget()
@@ -430,8 +429,8 @@ describe('the run trigger confirm loop, closed through a real browser', () => {
     }
   }, 300_000)
 
-  // RE-SPELLED 2026-09-30 (432-13): was 'OVERLAPPING CONFIRMS — the arriving question WAITS ...'
-  // (G-401-15). Two clicks now start two runs and no question is raised, queued or reaped.
+  // RE-SPELLED 2026-09-30: was 'OVERLAPPING CONFIRMS — the arriving question WAITS ...'
+  // Two clicks now start two runs and no question is raised, queued or reaped.
   it('OVERLAPPING CONFIRMS — two clicks start two runs, and no question is raised, queued or reaped', async () => {
     const target = new CountingTarget()
     await target.listen()

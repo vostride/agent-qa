@@ -186,7 +186,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
         const configDir = dirname(configPath)
         const config = await resolveConfig({ configPath, loadAuthPlugins: false })
         const declaredSecrets = createDeclaredSecretMask(configPath)
-        // 398-10 (D-17/D-19): THIS COMMAND'S ANALYTICS COMPOSITION ROOT. The daemon is a standing
+        // THIS COMMAND'S ANALYTICS COMPOSITION ROOT. The daemon is a standing
         // process, so it composes eagerly — unlike `run`, there is no early-returning path here for
         // a lazy composition to protect, and the host it is handed to emits from the moment it
         // starts dispatching work.
@@ -203,8 +203,8 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
           config: createConfigReader(configPath, declaredSecrets.mask),
           // Same model chain as the CLI, so `createModel` masks its egress with declared secrets.
           model: () => resolveCliJobModel(configPath),
-          // 389-06: the author's compaction budget from the SAME named-config profile
-          // resolution as the model binding above (386 D-15) — no second config surface.
+          // the author's compaction budget from the SAME named-config profile
+          // resolution as the model binding above — no second config surface.
           analysisTokenBudget: () => resolveCliAnalysisTokenBudget(configPath),
           author: () => resolveDaemonCuratorAuthor(configPath),
         })
@@ -269,7 +269,7 @@ export function createDaemonCommand(deps: DaemonCommandDeps = DEFAULT_DEPS): Com
     .description('Gracefully stop the registered live daemon')
     .action(async (_opts: unknown, command: Command) => {
       try {
-        // 2026-10-20 (445-17, D-42): stop reads only .agent-qa/, so a pre-v2 config cannot block it.
+        // stop reads only .agent-qa/, so a pre-v2 config cannot block it.
         const agentQaRoot = deps.resolveAgentQaRoot(configPathFor(command))
         const inspected = await inspectRegistration(deps, agentQaRoot)
         if (inspected.kind !== 'live') {

@@ -336,7 +336,7 @@ export async function classifyDaemonRegistration(
       switch (verdict.kind) {
         case 'fresh':
         /**
-         * CR-01: `unknown` answers held, with the same holder payload as `fresh`.
+         * `unknown` answers held, with the same holder payload as `fresh`.
          *
          * This verdict selects registration deletion and socket unlink, and the two preconditions
          * are correlated rather than independent — fd exhaustion produces both the failed identity

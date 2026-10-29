@@ -40,7 +40,7 @@ function testBugFixture() {
 function writtenEdit(filePath: string, testName: string, testId: string, text = 'steps:\n  - naïve café ✓ — 日本\n'): AuthoringDraftEditOutput {
   const contentDigest = createHash('sha256').update(Buffer.from(text, 'utf8')).digest('hex')
   const draftRef = { filePath, testId, testName, contentDigest }
-  // 2026-10-01 (432-17, D-06): the edit answer carries no test-draft proposal arm.
+  // the edit answer carries no test-draft proposal arm.
   return { draftRef, editedFrom: { filePath, testName, boundBy: 'exact-ref' }, patches: [], thoughts: 'Correct assertion',
     written: { kind: 'written', filePath, contentDigest } }
 }
@@ -57,7 +57,7 @@ describe('feedback host', () => {
   afterEach(() => { if (root) rmSync(root, { recursive: true, force: true }) })
   const hashes = (dir: string) => files(dir).map(path => [path, createHash('sha256').update(readFileSync(path)).digest('hex')])
   // RE-SPELLED 432-09 from 'draft false-fail files a real mark fact proposal with user Supersede and
-  // floor wording': the same floor-worded user Supersede now lands in the call (D-04).
+  // floor wording': the same floor-worded user Supersede now lands in the call.
   it('draft false-fail applies a real mark fact as a user Supersede with floor wording', async () => {
     const f = markFixture(); root = f.root
     let worded: ImprovementPlan | undefined
@@ -288,7 +288,7 @@ describe('marks apply their fix once and return an applied receipt', () => {
     const stored = new Set(bundles(f.knowledgeRoot).map(row => row.id))
     expect(disposition.change.recordIds.length).toBeGreaterThan(0)
     for (const recordId of disposition.change.recordIds) expect(stored.has(recordId), recordId).toBe(true)
-    // EDGE-10: the receipt is the stored line, value for value; no ordinal or address is re-derived.
+    // the receipt is the stored line, value for value; no ordinal or address is re-derived.
     const line = readFileSync(join(f.runDir, 'marks.jsonl'), 'utf8').trim()
     expect(JSON.parse(line)).toEqual(result.receipt)
     expect(Number.isInteger(result.receipt.ordinal) && result.receipt.ordinal === 1).toBe(true)

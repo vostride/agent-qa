@@ -17,7 +17,7 @@ import {
   type Stats,
 } from 'node:fs'
 import { basename, dirname, relative, resolve, sep } from 'node:path'
-// D-04: the managed block's SHAPE — markers, header line, splice and append — lives with the
+// the managed block's SHAPE — markers, header line, splice and append — lives with the
 // rest of the scaffold's content, so the proposal path composes the identical bytes this path
 // writes. What stays here is the WRITING: classification, lock, atomic publish, preserve
 // semantics.
@@ -144,7 +144,7 @@ export const KNOWLEDGE_GITIGNORE_PROBES = [
     expected: 'ignored',
     requiredRule: 'memory/queue/',
   },
-  // 2026-10-02 (quick 261002-lse): the writer-lease guard lives under `memory/queue/` so that the
+  // the writer-lease guard lives under `memory/queue/` so that the
   // rule every knowledge repository already has keeps it out of commits; init's probe proves it.
   {
     path: 'memory/queue/lease-guard/owner-00000000-0000-4000-8000-000000000000',
@@ -188,7 +188,7 @@ export const KNOWLEDGE_GITIGNORE_PROBES = [
     expected: 'ignored',
     requiredRule: DURABLE_TEMPORARY_GITIGNORE_RULE,
   },
-  // 391 D-11 probed `grants.jsonl` as commit-visible here. 2026-10-01 (432-18, D-22): the grant
+  // 391 D-11 probed `grants.jsonl` as commit-visible here. 2026-10-01: the grant
   // ledger is deleted, so init no longer asks git about it; an old file is left exactly as it is.
   { path: 'memory/example/bundles/fact-example/record.md', expected: 'visible' },
   { path: 'memory/example/bundles/fact-example/manifest.json', expected: 'visible' },
@@ -202,7 +202,7 @@ export const KNOWLEDGE_GITIGNORE_PROBES = [
 export const TARGET_GITIGNORE_ENTRIES = [
   '.agent-qa/',
   '.agent-qa/auth-states/',
-  // 394 (T-394-03): the draft shelf. It sits INSIDE `tests/` on purpose — see the two-sided
+  // 394: the draft shelf. It sits INSIDE `tests/` on purpose — see the two-sided
   // admission note in `composition/local-agent-host.ts` — which is exactly why it needs a rule of
   // its own: everything else under `tests/` is a file the user means to commit, and an authored
   // draft is not one until they accept it.
@@ -605,7 +605,7 @@ function confirmPublishedDestination(
       refuseModeEnforcement(path, 'because the destination changed at publication')
     }
   } catch (error) {
-    // D-22: the unlink STAYS. For a credential-bearing publication, leaving a file at a
+    // the unlink STAYS. For a credential-bearing publication, leaving a file at a
     // mode that could not be confirmed is the worse failure, and on the replacement path
     // the rename has already consumed the original bytes before this runs. What changes
     // is only that the refusal now SAYS which disposition it took.
@@ -875,7 +875,7 @@ function enforceRetainedFileMode(
   // The retention disposition wraps the WHOLE body, not a single throw, so the
   // classification refusals raised before the descriptor is opened carry it too. This
   // function is the sole site that leaves the destination alone, which is why the
-  // disposition is a property of the path rather than of any one reason (D-22).
+  // disposition is a property of the path rather than of any one reason.
   try {
     if (
       inspection.classification !== 'regular'
@@ -1042,7 +1042,7 @@ function enforceRetainedFileMode(
  * about a destination this module had just created with new content. That site is inside the
  * D-22 region, which round 10 leaves byte-unchanged, so it is disclosed rather than fixed.
  *
- * Ratified as decision D-22 (phase 383).
+ * Ratified as decision D-22.
  */
 export function writeScaffoldFileAtomic(
   plan: InitPathPlan,
@@ -1223,7 +1223,7 @@ function refuseIfChangedSinceRead(
 
 /**
  * Everything `upsertManagedBlock` would refuse, checked without taking its lock or writing
- * (431 D-20), so a caller can refuse before its first write. The writer checks it all again
+ * so a caller can refuse before its first write. The writer checks it all again
  * under the lock: this answer authorizes nothing.
  */
 export function preflightManagedBlock(plan: ManagedBlockUpsertPlan): InitPreflightResult {
@@ -1236,7 +1236,7 @@ export function preflightManagedBlock(plan: ManagedBlockUpsertPlan): InitPreflig
 }
 
 /**
- * Upserts one managed block into a file (431 D-19/D-20 · EDGE-02).
+ * Upserts one managed block into a file.
  *
  * Cooperative writers serialize per target on an exclusively created sibling lock. Under it the
  * target is classified and read again, composed, and published through `writeScaffoldFileAtomic`,

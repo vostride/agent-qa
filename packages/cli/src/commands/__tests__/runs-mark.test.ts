@@ -20,13 +20,13 @@ describe('runs mark thin client', () => {
     return new Command().exitOverride().option('--config <path>').addCommand(runs)
   }
 
-  // RE-SPELLED 2026-09-30 (432-13, D-14/D-15). The tracer answered a `[y/N]` prompt on a terminal
+  // RE-SPELLED 2026-09-30. The tracer answered a `[y/N]` prompt on a terminal
   // stream and asserted the prompt named `fn:runs.mark`; the no-TTY cell asserted `Denied runs.mark`
   // even under configured trustMode. `runs mark` asks nobody now: the terminal stream is handed to
   // the door and never written, and the no-TTY mark applies with the one call.
   it('tracer: confirmed-bug goes through the real function door with no confirmation asked', async () => {
     const f = markFixture(); root = f.root
-    // 2026-10-01 (432-16): there is no terminal confirm factory any more. A port that records any
+    // there is no terminal confirm factory any more. A port that records any
     // ask is smuggled past the input type, which no longer declares one; nothing may read it.
     let prompt = ''
     const compose = host.composeCliLocalAgent
@@ -61,7 +61,7 @@ describe('runs mark thin client', () => {
       .rejects.toThrow(/false-fail.*false-pass.*confirmed-bug/)
   })
 
-  // 432-09 (D-04/D-22): the terminal receipt names what the fix changed; a pre-432 drafted receipt
+  // the terminal receipt names what the fix changed; a pre-432 drafted receipt
   // read back from a ledger says it was drafted and names no proposal to act on.
   it('renders an applied receipt with the records or file it changed, and a historical draft without a proposal id', () => {
     const base = { schemaVersion: MARK_RECEIPT_SCHEMA_VERSION as typeof MARK_RECEIPT_SCHEMA_VERSION, markId: 'mark_0123456789ab', runId: asRunId('run-render'), runSlug: 'run-render',

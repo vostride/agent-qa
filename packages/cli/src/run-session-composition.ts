@@ -1,9 +1,9 @@
-// What is left of the CLI run-session composition after the D-13 dissection (Phase 385 plan 08).
+// What is left of the CLI run-session composition after the D-13 dissection.
 //
 // Until this phase this module was 1035 lines and held the whole composition. The host-neutral
 // majority now lives in the local agent package's composition subtree, beside where every other
 // host will reach it, and this file holds ONLY the part that a terminal is required to run: the
-// reporter attachment and the live-line seam those reporters own. 2026-10-01 (432-14, D-03/D-14):
+// reporter attachment and the live-line seam those reporters own. 2026-10-01:
 // the readline default is gone — nothing in a run asks, so the CLI hands the per-run registrar no
 // confirm channel at all; 432-19 deleted the human-output unmasking confirm decorator with the
 // confirm port it wrapped.
@@ -40,18 +40,18 @@ import type {
 // and raise ReplayIncompleteError (bus.ts collectReplay/D-07). This is the full replay-then-live floor.
 export const REPLAY_FROM_START = 1
 
-// 2026-10-02 (432-42, D-14): the console pause/resume seam is deleted. It let the confirm decorator
+// the console pause/resume seam is deleted. It let the confirm decorator
 // clear the live line before a prompt; 432-19 deleted the decorator and nothing read the seam since.
 
-// 2026-10-01 (432-19, D-14/D-15): `buildUnmaskingConfirm` is deleted with `ConfirmPort`. It
+// `buildUnmaskingConfirm` is deleted with `ConfirmPort`. It
 // unmasked the action name on a confirm prompt for a person to read; nothing in a run asks any more,
 // so there is no prompt to unmask and no port to decorate.
 
-// 2026-10-15 (441-30, D-12/D-15): the per-run hook registrar's CLI assembly is deleted. Its hooks
+// the per-run hook registrar's CLI assembly is deleted. Its hooks
 // carried only the masking and guardrail provider hooks this phase removes, so a run binds none.
 
 /**
- * The run-completion analytics subscriber, built from the host's composed port (398-10, D-17/D-20).
+ * The run-completion analytics subscriber, built from the host's composed port.
  *
  * IT LIVES HERE, BESIDE `attachRunSubscribers`, FOR THE REASON THAT HELPER DOES: `run.ts` has two
  * `startRun` sites (Pitfall 8) and a subscriber constructed separately at each is a subscriber that
@@ -90,7 +90,7 @@ export interface AttachRunSubscribersInput {
   /** Prebuilt out-of-package subscribers (dashboard ingest, analytics) constructed by run.ts. */
   extraSubscribers?: readonly RunSubscriberHandle[]
   /**
-   * The run-start quarantine snapshot (390 D-15/D-16) — the SAME resolved set `startRun` was given.
+   * The run-start quarantine snapshot — the SAME resolved set `startRun` was given.
    *
    * It arrives here rather than on the bus because this is the one place either reporter is
    * constructed (Pitfall 8), so this is the one place the disposition can be dropped. Both surfaces

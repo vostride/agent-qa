@@ -10,7 +10,7 @@
 // until 399.1's `results[]`, so the render had nothing to print even in principle; this is the
 // other half of that repair.
 //
-// THE DEFAULT IS THE COMPLETE PAYLOAD, PRETTY-PRINTED, AND THAT IS THE DECISION (D-04). It mirrors
+// THE DEFAULT IS THE COMPLETE PAYLOAD, PRETTY-PRINTED, AND THAT IS THE DECISION. It mirrors
 // `fn.ts`'s `emitHuman(JSON.stringify(result, null, 2))` — the door the UAT called honest — and it
 // is chosen for a property no curated render has: it is STRUCTURALLY INCAPABLE of withholding a
 // field. A hand-picked join of the fields somebody thought mattered is a drop site with a list
@@ -21,7 +21,7 @@
 //
 // PER-OP FOLDS ADD AND NEVER SUPPRESS. A registry-declared `renderResult` composes a human sentence
 // on top of this; it does not filter, replace or elide it. That is a law rather than a convention
-// (D-04/D-06): any future elision must be ANNOUNCED — "N bytes elided, `agent-qa fn <op>` for the
+// any future elision must be ANNOUNCED — "N bytes elided, `agent-qa fn <op>` for the
 // full result" — and never silent. There is no size cap in this phase and no knob for one; 386
 // D-15's pinned-constants law says no knob ships before evidence says what to set it to.
 //

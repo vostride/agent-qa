@@ -16,10 +16,10 @@
 // STDOUT IS THE PROTOCOL CHANNEL. Every diagnostic goes to stderr, and the stdio server reserves
 // stdout while it serves so text wrapped under GitHub Actions stays on stderr too.
 //
-// TWO TRANSPORTS, ONE SERVER (D-10, plan 05). `--http` binds a stateless loopback endpoint beside
+// TWO TRANSPORTS, ONE SERVER. `--http` binds a stateless loopback endpoint beside
 // the stdio default. Both reach `buildAgentQaMcpServer` through the same `mcpServerDeps` helper with
 // the same caller, so the two transports cannot disagree about what a caller sees or can call.
-// 2026-10-01 (432-21, D-12/D-13): they used to differ in exactly one thing, how a caller's scope
+// they used to differ in exactly one thing, how a caller's scope
 // set was resolved — a bearer header on HTTP, a config switch on stdio. Both are deleted, with the
 // token declarations they read: every caller lists and calls every tool. What still differs is the
 // network boundary, and only HTTP has one.
@@ -28,7 +28,7 @@
 // rather than as middleware for that reason: Host, then Origin, then — and only then — the MCP
 // handler. A request that fails either never reaches a factory, so a rebound DNS name or a page on
 // another origin cannot reach a server build at all. The bearer rung that stood between them and
-// the handler is deleted (432-21, D-12); the two guards and the loopback bind are what D-13 keeps.
+// the handler is deleted; the two guards and the loopback bind are what D-13 keeps.
 //
 // NO CORS HEADER IS EMITTED, ANYWHERE. The deleted v1 bridge answered every request and every
 // preflight with `Access-Control-Allow-Origin: *`, which on a loopback JSON-RPC endpoint is an
@@ -71,13 +71,13 @@ export const MCP_STDIO_STARTUP_MESSAGE =
   'agent-qa MCP server running over stdio. Waiting for MCP client messages on stdin. '
   + 'Stdout is reserved for MCP protocol traffic.'
 
-/** The only interface the HTTP face is ever bound to (D-10). */
+/** The only interface the HTTP face is ever bound to. */
 export const MCP_HTTP_BIND_HOST = '127.0.0.1'
 
 /** The default port for `--http` with no argument. The v1 endpoint used the same one. */
 export const MCP_HTTP_DEFAULT_PORT = 3471
 
-// 2026-10-01 (432-21, D-12): `MCP_AUTH_TOKEN_SENTINEL` is deleted. It filled `AuthInfo.token` so a
+// `MCP_AUTH_TOKEN_SENTINEL` is deleted. It filled `AuthInfo.token` so a
 // resolved bearer verdict could ride `req.auth` without the presented value; there is no verdict
 // and no `req.auth` any more.
 
@@ -85,10 +85,10 @@ export const MCP_HTTP_DEFAULT_PORT = 3471
  * The caller this host mints — one record, for every request on both transports.
  *
  * `origin: 'agent'` and not `'human'`: nobody typed an MCP request, so the composition root says an
- * agent is what it is (391 D-06). Since 432-20 nothing reads `origin` to decide what a caller may
+ * agent is what it is. Since 432-20 nothing reads `origin` to decide what a caller may
  * do; it stays because the receipts that already record a caller's origin still read it.
  *
- * 2026-10-01 (432-21, D-12): no scope set, no safe-mode flag and no credential. The bearer header
+ * no scope set, no safe-mode flag and no credential. The bearer header
  * that once chose a scope set, the stdio config switch that added `config-write`, and the
  * knowledge-write credential a declared bearer carried are all deleted. Every caller is this one.
  */
@@ -100,8 +100,8 @@ export const MCP_FUNCTION_CALLER: FunctionCaller = Object.freeze({
 /** How a request was refused before it reached any server instance. */
 export type McpHttpRefusal = 'host' | 'origin'
 
-// 2026-10-14 (441-07, D-01): only the project's declared secrets are masked, never the environment.
-// 2026-10-14 (441-07, D-06): both transports and the dashboard's co-hosted endpoint mask with it.
+// only the project's declared secrets are masked, never the environment.
+// both transports and the dashboard's co-hosted endpoint mask with it.
 export function composeMcpMasking(input: { configPath: string }): DeclaredSecretMask {
   return createDeclaredSecretMask(input.configPath)
 }
@@ -110,14 +110,14 @@ export function composeMcpMasking(input: { configPath: string }): DeclaredSecret
  * Bind the one caller to a registry and a masker.
  *
  * THE ONE PLACE deps are composed, so stdio and HTTP cannot drift into two different servers.
- * 2026-10-01 (432-21, D-12): a transport supplies nothing here any more — not a scope set, not a
+ * a transport supplies nothing here any more — not a scope set, not a
  * credential — so both build the identical deps object.
  */
 function mcpServerDeps(input: {
   registry: Parameters<typeof buildAgentQaMcpServer>[0]['registry']
   maskText: (text: string) => string
   /**
-   * Which dashboard this process is pointed at (408 plan 03, D-08/D-09).
+   * Which dashboard this process is pointed at.
    *
    * THREADED THROUGH THIS FUNCTION AND NOWHERE ELSE, on this function's own stated law: the two
    * transports build one deps object. A supplier passed at
@@ -138,12 +138,12 @@ function mcpServerDeps(input: {
 }
 
 /**
- * The loopback request listener: Host, Origin, handler — in that order (D-10, D-13).
+ * The loopback request listener: Host, Origin, handler — in that order.
  *
  * EXPORTED because a differential that drives anything other than this function is measuring a
  * second implementation of the guard order. MCPS-04's cells bind a real socket to this listener and
  * speak real `Host` and `Origin` headers over it, which is the only way to assert on the surface a
- * caller actually reads. 2026-10-01 (432-21, D-12): the bearer rung is deleted; an `Authorization`
+ * caller actually reads. 2026-10-01: the bearer rung is deleted; an `Authorization`
  * header is neither required nor read.
  *
  * `onRefusal` exists so a test can tell WHICH wall answered without this function writing a
@@ -186,7 +186,7 @@ export function createMcpHttpRequestListener(input: {
       return refuse(res, 403, 'forbidden_origin')
     }
 
-    // 2026-10-01 (432-21, D-12): no bearer rung. Every request that passed the two guards above
+    // no bearer rung. Every request that passed the two guards above
     // is served by the same caller, so no request can carry or donate authority to another, and
     // nothing a caller sends reaches `req.auth` or a protocol response.
     const nodeHandler = createAgentQaMcpNodeHandler(() => mcpServerDeps({
@@ -194,7 +194,7 @@ export function createMcpHttpRequestListener(input: {
       maskText: input.maskText,
       ...(input.liveLink === undefined ? {} : { liveLink: input.liveLink }),
     }))
-    // 2026-10-17 (443-06, D-24): a run this request starts records `mcp`, on whichever host serves it.
+    // a run this request starts records `mcp`, on whichever host serves it.
     withRunDoor('mcp', () => { void nodeHandler(req, res) })
   }
 }
@@ -219,7 +219,7 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
       try {
         const program = command.parent
         const globalOpts = program?.opts<{ config?: string }>() ?? {}
-        // 2026-10-16 (442-08, D-18): tolerant, plugin-free; only analytics and the dashboard base.
+        // tolerant, plugin-free; only analytics and the dashboard base.
         let config: Awaited<ReturnType<typeof resolveConfig>> | undefined
         try {
           config = await resolveConfig({ configPath: globalOpts.config, loadAuthPlugins: false })
@@ -255,7 +255,7 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
         const declared = composeMcpMasking({ configPath })
         const maskText = declared.mask
 
-        // 2026-10-21 (447-06, D-09): an invalid config's privacy flag is read raw, as in chat.
+        // an invalid config's privacy flag is read raw, as in chat.
         const analyticsConfig = config ?? await readAnalyticsPrivacyDeclaration(globalOpts.config)
         const analytics = await (deps.composeAnalytics ?? composeAnalyticsHost)({
           surface: 'mcp',
@@ -264,26 +264,26 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
         })
 
         const host = composeCliLocalAgent({
-          // 2026-10-14 (441-07, D-06): the host and the transport share one declared-secret loader.
+          // the host and the transport share one declared-secret loader.
           declaredSecrets: declared,
-          // 398-10 (D-11/D-18): the explain counter hooks bind against this port inside the
+          // the explain counter hooks bind against this port inside the
           // composition root, so `agent.explain` is countable over MCP exactly as it is in chat.
           analytics,
           agentQaRoot,
           configPath,
           runTrigger: 'mcp',
-          // 2026-10-01 (432-17, D-05): no minting surface — a change is written in the call and
+          // no minting surface — a change is written in the call and
           // nothing is filed for a later reader to attribute.
-          // 432-16 (D-14): no confirm port exists to refuse. 396-01 D-09 passed `confirm: undefined`
+          // no confirm port exists to refuse. 396-01 D-09 passed `confirm: undefined`
           // here so the host would never write a prompt onto the JSON-RPC stdout; the host has no
           // prompt and no such field now.
           // `knowledgeChangeDelegate` is deliberately NOT passed. The composition root's own default
           // is already a closure over `invokeViaDaemon` — the same socket every other capability
           // crosses — so a change that needs a lease a running daemon holds is handed to that
-          // daemon. Supplying one here would be a second transport for one job (D-09).
+          // daemon. Supplying one here would be a second transport for one job.
         })
 
-        // 2026-08-17 (Phase 398 plan 10, D-18): `agent-qa.mcp.tool.invoked` HAS NO EMITTER YET, and
+        // `agent-qa.mcp.tool.invoked` HAS NO EMITTER YET, and
         // saying so here is more honest than a half-wired one.
         //
         // There is no seam this host can reach. A tool call is dispatched inside

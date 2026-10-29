@@ -78,7 +78,7 @@ function bestEffortFsyncDirectory(directory: string): void {
 /**
  * Append one daemon-owned drain provenance record without rewriting earlier sessions.
  *
- * WR-03: fsyncing the file makes its bytes durable, but on the append that CREATES the ledger
+ * fsyncing the file makes its bytes durable, but on the append that CREATES the ledger
  * the directory entry pointing at those bytes is not. A crash in that window loses the whole
  * chain even though the append returned success, and a client waiting on the first receipt of a
  * session then times out or repeats work it cannot see was done. Later appends touch no

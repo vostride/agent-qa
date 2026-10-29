@@ -1,6 +1,6 @@
 // The knowledge maintenance verbs: drain, rebuild-index, rollback, purge.
 //
-// 2026-08-02 (Phase 387 plan 09, D-20): this file's three firewall-ledger entries are cleared,
+// this file's three firewall-ledger entries are cleared,
 // and what happened is an IMPORT-TOPOLOGY migration — no subcommand gained, lost or changed a
 // behaviour. Each capability now arrives through an edge a surface is sanctioned to name:
 //
@@ -70,7 +70,7 @@ import {
 import { daemonSocketOwnershipFor, unlinkDaemonSocket } from '../daemon/server.js'
 
 // The eleven maintenance verbs, taken off the local host's curation capabilities rather than
-// imported from the knowledge package directly (D-14). Bound once here so every call site below is
+// imported from the knowledge package directly. Bound once here so every call site below is
 // the line it always was: this phase moves where the verbs come FROM and changes nothing about what
 // the command does with them.
 const {
@@ -113,7 +113,7 @@ export interface DrainOptions {
   status?: boolean
   json?: boolean
   /**
-   * Quarantined registration paths a routing attempt left behind (WR-03). NOT a CLI flag.
+   * Quarantined registration paths a routing attempt left behind. NOT a CLI flag.
    *
    * It rides the options object because that is the one value every drain exit already receives:
    * a router that computed the evidence next to a single `return` is how three of the four exits
@@ -252,7 +252,7 @@ function declaredMaskFor(command: Command): MaskFn {
   return declaredSecrets.mask
 }
 
-// 2026-10-14 (441-14, D-07): everything this file prints is masked and never restored; JSON is
+// everything this file prints is masked and never restored; JSON is
 // masked leaf by leaf before it is serialized. 2026-10-15 (441-62, IN-A07): keys too.
 function emitJson(mask: MaskFn, value: unknown): void {
   console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
@@ -603,7 +603,7 @@ function removeClassifiedDrainRegistration(
 /**
  * Reclaim the exactly-removed generation's own address, through startup's gate and no other.
  *
- * 386-34 left this socket on disk (WINDOWS #39) because the client had no way to prove a recorded
+ * 386-34 left this socket on disk because the client had no way to prove a recorded
  * path was safe to delete; 386-38 built that proof and made it `unlinkDaemonSocket`'s own
  * precondition. So this is not a second, drain-local rule — it is the same function, given the
  * same scope, derived by the same helper the daemon's startup recovery uses. A refusal is not an
@@ -701,7 +701,7 @@ function collectStrandedQuarantine(
  *
  * D-14's law in one place: a fresh holder keeps its lease and gets named; registration bytes
  * this command cannot parse select nothing at all. Either refusal also names any quarantined
- * evidence a prior removal attempt left behind (WR-03) — the refusal is the operator's only
+ * evidence a prior removal attempt left behind — the refusal is the operator's only
  * output on these paths, so it is the only place the parked bytes can be reported.
  */
 function refuseDrainRouting(
@@ -795,7 +795,7 @@ async function routeDrain(
   }
 
   /**
-   * WR-03: the evidence ledger, hoisted above every exit that can follow a removal attempt.
+   * the evidence ledger, hoisted above every exit that can follow a removal attempt.
    *
    * A predecessor's bytes parked under a name nobody reads is a fact about the SYSTEM, not about
    * whichever branch the router happened to take next — so it is accumulated once here and read by
@@ -1270,7 +1270,7 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
         mask = declaredMaskFor(rollbackCommand)
         const selector = rollbackSelector(options)
         const paths = await resolveKnowledgePaths(rollbackCommand)
-        // Running the command is the intent (Phase 432 D-14). The preview is still resolved and
+        // Running the command is the intent. The preview is still resolved and
         // shown outside the lease, and the lease rechecks it before the first write.
         const previewInput = rollbackInput(selector, paths, 0)
         const previewAffected = resolveRollbackAffectedSet(previewInput)
@@ -1325,7 +1325,7 @@ export function registerKnowledgeMaintainCommands(command: Command): void {
         mask = purgeMask
         const recordId = asRecordId(recordIdValue)
         const paths = await resolveKnowledgePaths(purgeCommand)
-        // The explicit record id is the whole selection (Phase 432 D-14): no repeated id, no
+        // The explicit record id is the whole selection: no repeated id, no
         // prompt. A target that changes between this preview and the lease is refused below.
         const preview = resolvePurgeAffectedSet({
           knowledgeRoot: paths.knowledgeRoot,

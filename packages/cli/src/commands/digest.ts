@@ -1,4 +1,4 @@
-// `agent-qa digest` — the per-run digest, on demand (Phase 391, D-17).
+// `agent-qa digest` — the per-run digest, on demand.
 //
 // The third of D-17's three channels. The tail prints the block when this process's own pump
 // completed the analysis under the one budget; the exit line points here when it did not; and
@@ -60,7 +60,7 @@ function compositionInput(command: Command): { agentQaRoot: string; configPath: 
 /**
  * The most recently FINISHED run: the first row of a one-row `runs.list`.
  *
- * The op orders completed runs newest finished first with `runId` breaking a tie (431 D-08), the
+ * The op orders completed runs newest finished first with `runId` breaking a tie, the
  * same first row the chat banner digests, so this verb asks for exactly one row rather than
  * re-sorting a capped page it would otherwise have to trust was complete.
  */

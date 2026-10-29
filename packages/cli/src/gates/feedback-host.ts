@@ -16,7 +16,7 @@ export interface FeedbackHostDeps {
   configPath: string
   agentQaRoot: string
   invokeAuthoringDraftEdit?: (input: AuthoringDraftEditInput) => Promise<AuthoringDraftEditOutput>
-  /** The direct knowledge writer a mark's fix goes through (432-09). Injectable so a cell can fault it. */
+  /** The direct knowledge writer a mark's fix goes through. Injectable so a cell can fault it. */
   applyKnowledgeChange?: typeof applyKnowledgeChange
   /**
    * How this host reaches a live writer-lease holder with a mark's fix: the holder is handed the
@@ -74,7 +74,7 @@ export class MarkWriterLeaseBusyError extends Error {
 }
 
 /**
- * 2026-10-02 (quick 261002-hyg): the knowledge-change sibling of {@link MarkWriterLeaseBusyError}.
+ * the knowledge-change sibling of {@link MarkWriterLeaseBusyError}.
  * A change met the writer lease held by another agent-qa process that is not a daemon, so it was
  * not handed anywhere and nothing was changed. `holderPid` is absent when the holder released
  * between the lease check and this refusal.
@@ -225,7 +225,7 @@ export function createFeedbackPortForHost(deps: FeedbackHostDeps): FeedbackPort 
             }
           } else if (draft.kind === 'test-edit') {
             // decideMarkDraft admits a test edit only when this host binds the authoring edit, which
-            // writes the edited file itself, guarded by the digest it read (432-08). 261002-mrk: the
+            // writes the edited file itself, guarded by the digest it read. 261002-mrk: the
             // write is recorded ahead under this intent's identity, so a retry after a crash inside
             // the edit answers that write rather than asking the model and editing again.
             const editScope = { recordPath: editRecordPath, operationId: intent.operationId }

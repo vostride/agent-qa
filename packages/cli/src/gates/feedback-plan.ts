@@ -1,4 +1,4 @@
-// 2026-09-15, 423 D-16: the deterministic half of runs.mark, shared by the writer and its preview.
+// the deterministic half of runs.mark, shared by the writer and its preview.
 // Nothing here opens an intent, lease, model or audit dir, mints an id or time, or writes.
 import { dirname, join, resolve } from 'node:path'
 import { chainJobIdsForRun, type KnowledgeReaderPort } from '@vostride/agent-qa-agent'
@@ -232,7 +232,7 @@ export async function previewMarkConsequences(deps: MarkPreviewDeps, raw: unknow
   if (target.kind !== 'target') return target
   const { handoff, member, address } = target
   const ledger = new FsMarkLedger({ root: deps.agentQaRoot, runId: input.runId })
-  // One read (WR-10). A corrupt ledger throws runs.mark's own MarkLedgerCorruptError, uncaught: the
+  // One read. A corrupt ledger throws runs.mark's own MarkLedgerCorruptError, uncaught: the
   // preview has exactly the writer's refusal arms and mints no ledger-corrupt arm of its own.
   const receipts = ledger.read()
   const plan = planMarkFeedback({ input, handoff, member, address, prior: latestMarkReceiptFor(receipts, input.runId, address),

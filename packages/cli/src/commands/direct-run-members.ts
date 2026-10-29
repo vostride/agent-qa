@@ -14,7 +14,7 @@ export interface DirectRunMembers {
  * identity, so every downstream handoff and projection must copy the binding's file — never some
  * other file the composition root happened to have in hand.
  *
- * 390-08 (CR-02 / D-01): the descriptor's identity leg is the WORKSPACE-RELATIVE form of that same
+ * the descriptor's identity leg is the WORKSPACE-RELATIVE form of that same
  * binding path, minted through core's one exported `workspaceRelativeIdentityPath`. This is a
  * NORMALIZATION of the binding's own file, not a second source of identity — the ABRF-02 law above
  * still holds. It has to happen here rather than at the call site because this is the unit the
@@ -39,7 +39,7 @@ export function buildDirectRunMembers(
       // NO failFastGroup — the single-test path runs all members then aggregates.
       filePath: workspaceRelativeIdentityPath(configDir, filePath),
       totalSteps: test.steps.length,
-      // G-428-2: the raw texts member-runner will announce at stepStarted; the shell masks them.
+      // the raw texts member-runner will announce at stepStarted; the shell masks them.
       stepTexts: test.steps.map((step) => memberStepText(step)),
     })),
     digestMembers: bindings.map(({ fileContent }) => ({ testFileContent: fileContent })),

@@ -18,7 +18,7 @@
 // loads the catalog once at session open and hands the rows in; a differential can hand in rows the
 // producer minted and read the candidates back.
 //
-// WHY THE `/`-ONLY RULE THE PLAN SKETCHED IS NOT WHAT SHIPPED (2026-08-17). The plan described
+// WHY THE `/`-ONLY RULE THE PLAN SKETCHED IS NOT WHAT SHIPPED. The plan described
 // candidates as "the catalog's alias rows (slash-alias forms)", which assumes an alias is typed
 // with a leading slash. The shipped resolver says otherwise: `run`, `status`, `test`, `digest` and
 // `proposals` are BARE words, and `/run` resolves to nothing at all. Offering `/run` would have

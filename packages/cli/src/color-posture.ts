@@ -1,4 +1,4 @@
-// 2026-10-18 (444-14, D-42): picocolors turns colour on whenever CI is set, so a log without a
+// picocolors turns colour on whenever CI is set, so a log without a
 // terminal got ANSI codes. This module imports nothing: it must run before anything loads picocolors.
 
 export function applyColorPosture(env: NodeJS.ProcessEnv, stdoutIsTTY: boolean): void {

@@ -1,4 +1,4 @@
-// The ONE runtime read path for the committed capability catalog (Phase 398 plan 01, D-01/D-03).
+// The ONE runtime read path for the committed capability catalog.
 //
 // ONE LOADER, FOUR CONSUMERS. `init --agent`, the chat `/` type-ahead, the starter prompts and the
 // `explain` op all answer questions about what exists, and every one of them answers from these
@@ -9,7 +9,7 @@
 // FAILS LOUD, NEVER EMPTY. A missing or unparseable artifact throws {@link
 // CapabilityCatalogUnavailableError} carrying the regen instruction. The alternative — returning
 // an empty catalog — is the worst possible failure for this artifact specifically: the `explain`
-// op's abstention arm is CORRECT behaviour for an empty catalog (D-12), so a silently empty load
+// op's abstention arm is CORRECT behaviour for an empty catalog, so a silently empty load
 // would present a broken install as a well-behaved product that simply knows nothing.
 //
 // A PRODUCED EMPTY CATALOG IS VALID (edge XPLN-01/empty). Zero rows that came out of the producer

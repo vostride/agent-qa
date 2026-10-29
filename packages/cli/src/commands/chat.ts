@@ -1,4 +1,4 @@
-// `agent-qa chat` — the interactive REPL (Phase 392, D-01 / D-17 / D-23 / D-24).
+// `agent-qa chat` — the interactive REPL.
 //
 // A THIN CLIENT, on `fn.ts`'s idiom and `ask.ts`'s reasoning. Every line a person types becomes ONE
 // `invokeFunction(agent.ask, …)` call. This file owns no turn capability: the routing, the
@@ -6,8 +6,8 @@
 // op, so this whole surface could be deleted and every one of them would still be reachable from
 // the MCP projection, the daemon and the scenario harness (§3's L10 law, made structural by D-24).
 //
-// THE ONE-SHOT AND THE REPL ARE THE SAME TURN (D-01). What differs is the session and the loop, and
-// nothing else — `ask` is a single-turn session on the same log grammar (D-17), which is why chat
+// THE ONE-SHOT AND THE REPL ARE THE SAME TURN. What differs is the session and the loop, and
+// nothing else — `ask` is a single-turn session on the same log grammar, which is why chat
 // needs no special case in the adapter and why a routing change cannot be right in one surface and
 // wrong in the other.
 //
@@ -17,13 +17,13 @@
 // that recognised `/quit` itself would be a second list of what chat understands, free to disagree
 // with the one that actually routes. `/quit` is observed through the live state the engine mutates.
 //
-// NOTHING ASKS (432-13, D-14). A typed line is carried out by its turn; there is no inline confirm
+// NOTHING ASKS. A typed line is carried out by its turn; there is no inline confirm
 // and no three-answer decision prompt. The REPL reads only the lines a person types. A refused
-// clause prints its refusal sentence beside its receipt (432-42, D-18).
+// clause prints its refusal sentence beside its receipt.
 //
-// EVERYTHING PRINTED CROSSES THE DECLARED MASK, and nothing restores it (441 D-07).
+// EVERYTHING PRINTED CROSSES THE DECLARED MASK, and nothing restores it.
 //
-// NO MODEL IS BUILT HERE, and the arch rollcall pins that (CHAT-06). Whatever model a turn uses is
+// NO MODEL IS BUILT HERE, and the arch rollcall pins that. Whatever model a turn uses is
 // resolved by the composition; a chat surface constructing its own client would be a model egress
 // with none of `createModel`'s masking, profile resolution or auth.
 
@@ -108,7 +108,7 @@ export interface ChatCommandDeps {
    */
   chatCapabilities?: (configPath: string) => Promise<CliChatCapabilities | undefined>
   /**
-   * How this invocation composes its analytics (398-10).
+   * How this invocation composes its analytics.
    *
    * On the list for the same reason `chatCapabilities` is: the default is the production path, and
    * on a configured machine it resolves the real identity store and constructs a live client. A
@@ -123,7 +123,7 @@ function globalOptions(command: Command): { config?: string } {
   return command.parent?.opts<{ config?: string }>() ?? {}
 }
 
-// 2026-10-01 (432-17, D-05): `CHAT_DOOR_SURFACE`, the word this door minted proposals as (400-05),
+// `CHAT_DOOR_SURFACE`, the word this door minted proposals as,
 // is deleted with the proposal records it stamped.
 
 /** Everything the composition root needs, derived from one flag — the `fn.ts` derivation. */
@@ -140,7 +140,7 @@ function compositionInput(
 /**
  * One turn, rendered.
  *
- * The SAME vocabulary `ask` prints, because they are the same turn (D-01) — the receipt line is
+ * The SAME vocabulary `ask` prints, because they are the same turn — the receipt line is
  * literally shared now (`receipt-line.ts`, imported by both surfaces) and the shapes below are the
  * shapes `ask` reports. A REPL with its own wording would make a person's scripted run and their
  * conversation disagree about what happened, and two copies of one line is how that starts.
@@ -159,7 +159,7 @@ function renderTurn(result: AgentAskResult): string {
     )
   }
   if (result.receipts.length > 0) lines.push(...result.receipts.map(receiptLine))
-  // 399.1 (D-04/D-05): what the ops RETURNED, between the receipts that say they ran and the
+  // 399.1: what the ops RETURNED, between the receipts that say they ran and the
   // prose the planner wrote. The order is the order the facts were established, and the payload
   // is rendered whole.
   lines.push(...renderClauseResults(result.results, result.receipts.length))
@@ -175,7 +175,7 @@ function renderTurn(result: AgentAskResult): string {
   return lines.join('\n')
 }
 
-/** The listing, including the half a person has to go and look at (392-03). */
+/** The listing, including the half a person has to go and look at. */
 function renderListing(listing: ChatSessionListing): string {
   const lines: string[] = []
   if (listing.sessions.length === 0) {
@@ -191,7 +191,7 @@ function renderListing(listing: ChatSessionListing): string {
     }
   }
   if (listing.refused.length > 0) {
-    // NOT decoration (392-03). A listing that dropped the files it could not read would leave a
+    // NOT decoration. A listing that dropped the files it could not read would leave a
     // person unable to find a conversation that exists, with nothing to look at.
     lines.push(pc.yellow(`${listing.refused.length} session file(s) could not be read:`))
     for (const refused of listing.refused) {
@@ -234,7 +234,7 @@ function reportError(error: unknown, mask?: MaskFn): void {
 }
 
 /**
- * Which session this invocation continues, or `undefined` for a fresh one (D-17).
+ * Which session this invocation continues, or `undefined` for a fresh one.
  *
  * BOTH RESUME PATHS ARE VALIDATED BEFORE THE LOOP OPENS, and a failure is a typed refusal rather
  * than a create. The adapter refuses an unknown id too, but it would refuse it on the FIRST TURN —
@@ -291,7 +291,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
       let analytics: CliAnalyticsHost | undefined
       // The session aggregate, accumulated as the loop runs and read once at close. Every one of
       // these is a COUNT: what a person typed and what the turn answered are theirs, and the union
-      // has no field either could ride (D-18).
+      // has no field either could ride.
       const startedAt = Date.now()
       let turnCount = 0
       let functionCallCount = 0
@@ -315,7 +315,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
         const sessionId = resolveSessionId(composition.agentQaRoot, options)
 
         /**
-         * WHICH CONVERSATION THIS REPL IS IN (401-01, D-13).
+         * WHICH CONVERSATION THIS REPL IS IN.
          *
          * `--session` seeds it, and a fresh conversation has no id at all until the engine mints
          * one on the first turn. KEPT CURRENT BY THE COMPOSITION'S OWN NOTIFICATION as well as by
@@ -324,7 +324,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
          */
         let activeSessionId = sessionId
 
-        // 398-10 (D-17/D-19): THIS COMMAND'S ANALYTICS COMPOSITION ROOT, after `--list` has already
+        // THIS COMMAND'S ANALYTICS COMPOSITION ROOT, after `--list` has already
         // returned. A listing composes no host and emits nothing, and composing here would resolve
         // the identity store for a read that never opened a conversation.
         //
@@ -375,7 +375,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
         host = composeCliLocalAgent({
           ...composition,
           declaredSecrets,
-          // 398-10: the explain counter hooks bind against this port inside the composition root.
+          // the explain counter hooks bind against this port inside the composition root.
           analytics,
           ...(chatModel === undefined
             ? {}
@@ -384,14 +384,14 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
               chatModelFor: chatModel.modelFor,
               chatAccounting: chatModel.accounting,
             }),
-          // 432-13 (D-14): no chat confirm is built. The composition asks nobody, so a turn's
+          // no chat confirm is built. The composition asks nobody, so a turn's
           // clauses run once and the session log gains no `approval_decision` row.
           //
-          // 401-01 (D-13): the composition's own notification that a conversation has appended an
+          // the composition's own notification that a conversation has appended an
           // event, which is how the box above learns its id DURING the first turn rather than
           // after it. Nothing else is done with it here — the REPL renders from the turn result.
           observeSessionEvent: (id) => { activeSessionId = id },
-          // 395-13, D-14: the mid-turn render, on THE SAME STREAM this file's own turn output
+          // the mid-turn render, on THE SAME STREAM this file's own turn output
           // writes to, which is why the stream is resolved here rather than defaulted inside the
           // engine, which has no streams.
           //
@@ -424,7 +424,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
           })
         }
 
-        // D-23: ONE read on open, at most one line, and silence when there is nothing to say. It
+        // ONE read on open, at most one line, and silence when there is nothing to say. It
         // runs through the same invoke binding a turn dispatches through, with this surface's own
         // caller, because opening a chat is a person asking.
         // 399.1: the same classified envelope the composition root's binding answers with, built
@@ -498,7 +498,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
               CLI_FUNCTION_CALLER,
             )) as AgentAskResult
 
-            // 398-10 (D-18): the turn aggregate. `tool_call_count` is the number of CLAUSE RECEIPTS
+            // the turn aggregate. `tool_call_count` is the number of CLAUSE RECEIPTS
             // the turn produced — the capabilities it actually invoked — read off the result rather
             // than counted here, so it cannot disagree with what the person was shown. Tokens are
             // absent because this surface is not told any: `AgentAskResult` carries no accounting,
@@ -513,7 +513,7 @@ export function createChatCommand(deps: ChatCommandDeps = {}): Command {
 
             activeSessionId = result.sessionId
             if (!announced) {
-              // Printed ONCE, and printed at all because it is what `--session` takes (D-17).
+              // Printed ONCE, and printed at all because it is what `--session` takes.
               emitHuman(print, pc.dim(`session ${result.sessionId}`))
               announced = true
             }

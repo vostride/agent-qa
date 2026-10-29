@@ -27,7 +27,7 @@ const DEFAULT_CONFIG_FILE = 'agent-qa.config.yaml'
 const SHOWN_MARKER = /\[secret:\w+\]/
 
 /**
- * The path the person named, read off the ROOT program (395-24 · WR-03).
+ * The path the person named, read off the ROOT program.
  *
  * Both verbs used to hardcode `'agent-qa.config.yaml'` while the root program had carried
  * `--config <path>` all along, so `agent-qa --config staging.yaml config set version 9` reported
@@ -40,7 +40,7 @@ const SHOWN_MARKER = /\[secret:\w+\]/
  * Walking the chain to the root is the same derivation, generalized — and it is the whole chain
  * rather than two hops so a later regrouping of the verbs cannot silently reintroduce the default.
  *
- * AND IT ANSWERS BOTH FACTS AT ONCE (395-27 · WR-02). `showAction` needs to know not only WHICH
+ * AND IT ANSWERS BOTH FACTS AT ONCE. `showAction` needs to know not only WHICH
  * path resolved but whether the person NAMED it, because those two roads take opposite postures on
  * a file that is not there: a named file that is absent is a refusal, and a project that declares
  * no config at all is a truthful empty table. A second walk of the command chain to answer the
@@ -68,7 +68,7 @@ function rootConfigPath(command: Command): { readonly path: string; readonly exp
   }
 }
 
-// A filesystem fault reports its `code` and the path as typed, and exits non-zero (395-27 · WR-01).
+// A filesystem fault reports its `code` and the path as typed, and exits non-zero.
 function reportConfigFileFailure(verb: 'read' | 'write', configPath: string, err: unknown): void {
   const code = (err as NodeJS.ErrnoException).code ?? `${verb} failed`
   console.error(pc.red(`Could not ${verb} ${configPath}: ${code}`))
@@ -148,7 +148,7 @@ async function setAction(key: string, value: string | undefined, command: Comman
   try {
     await writeFile(configPath, doc.toString())
   } catch (err: unknown) {
-    // THE FROZEN ITEM (395-27 · WR-01). The read above was guarded and this was bare, so a
+    // THE FROZEN ITEM. The read above was guarded and this was bare, so a
     // person-supplied path with a directory that does not exist ended the process as an uncaught
     // rejection: `node:internal/fs/promises:642`, the absolute resolved path, and the frame list.
     // The success line below is NOT reached — a write that did not happen does not report one.
@@ -158,7 +158,7 @@ async function setAction(key: string, value: string | undefined, command: Comman
   // THE SENTENCE NAMES THE FILE THAT CHANGED, not the default. Rendered exactly as the person typed
   // it (WR-07's discipline: a person-facing path is the one they can read), so the unflagged road
   // still says `agent-qa.config.yaml` and the flagged road says what it actually wrote.
-  // 2026-10-15 (441-63, T-441-45): the line goes through the declared mask; without one it drops
+  // the line goes through the declared mask; without one it drops
   // the value rather than refusing a write that already happened.
   let line = `\u2713 ${key} saved to ${configPath}`
   try {
@@ -172,7 +172,7 @@ async function setAction(key: string, value: string | undefined, command: Comman
 }
 
 async function showAction(command: Command): Promise<void> {
-  // THE OP REPORTS, IT DOES NOT CRASH (395-16 · CR-01). This await was bare, so an unreadable
+  // THE OP REPORTS, IT DOES NOT CRASH. This await was bare, so an unreadable
   // committed config left the command as an uncaught rejection and Node's default printer rendered
   // the error with its whole cause chain — the one road a person reaches this error on was also the
   // one road that printed the most. The typed arm answers the error's own position-only sentence
@@ -180,7 +180,7 @@ async function showAction(command: Command): Promise<void> {
   // subject" — still true of the PARSE guard, and 395-27 gave the filesystem fault its own guard
   // below rather than leaving it to the printer.)
   //
-  // AND IT DOES NOT DESCRIBE A FILE THAT IS NOT THERE (395-27 · WR-02). `loadConfigFile` swallows
+  // AND IT DOES NOT DESCRIBE A FILE THAT IS NOT THERE. `loadConfigFile` swallows
   // `ENOENT` and answers `{}`, which is the RIGHT answer for a project that declares no config and
   // the WRONG one for a file the person explicitly named: `--config nope.yaml config show` printed
   // `(no config values)` at exit 0 — a read the person will believe they performed. So the loader
@@ -213,7 +213,7 @@ async function showAction(command: Command): Promise<void> {
     }
     throw err
   }
-  // 2026-10-15 (441-20, D-01): a project with no config file declares no secrets file to mask.
+  // a project with no config file declares no secrets file to mask.
   let mask: MaskFn = (text) => text
   if (explicit || existsSync(configPath)) {
     const declaredSecrets = createDeclaredSecretMask(configPath)

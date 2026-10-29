@@ -93,7 +93,7 @@ function digestOf(path: string): string | undefined {
  * 2026-10-03 (quick 261003-lgd, Phase 432 review WR-04): a target holding neither the bytes the
  * edit read nor the bytes it wrote (a person edited or deleted the test after the crash) is
  * answered from the record too: the mark completes with the write it recorded, and the person's
- * later change stays theirs. It is never edited again and the model is never asked again (D-15). It used to be
+ * later change stays theirs. It is never edited again and the model is never asked again. It used to be
  * refused as `target-changed`, and since neither the record nor the intent was ever cleared on that
  * path, every retry, and every other mark on the run, failed the same way for good.
  *

@@ -46,7 +46,6 @@ import { join } from 'node:path'
 
 import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-// 2026-10-19 (444.1-24, D-39): each drive and its detached tail are awaited before removal.
 const tails = vi.hoisted(() => [] as Array<Promise<void>>)
 
 vi.mock('../../composition/in-process-run-execution.js', async (importOriginal) => {
@@ -90,7 +89,7 @@ interface Envelope {
   reason?: string
 }
 
-// THE HOLDABLE MEMBER LIVES IN `holdable-browser.ts` (401-22), imported above. It has a second
+// THE HOLDABLE MEMBER LIVES IN `holdable-browser.ts`, imported above. It has a second
 // consumer now — `composition/__tests__/interrupted-gate-run-exclusion.e2e.test.ts` — and a fixture
 // whose whole value is that liveness is ASSERTED cannot afford two spellings: the weaker copy
 // would go green having measured nothing. That module's header names every load-bearing property,
@@ -169,7 +168,7 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
       runDoor.backend.on('run-settled', (runId: string, status: string, details: RunSettledDetails) => {
         settled.push({ runId, status, details })
       })
-      // 2026-08-27 (405-07, D-19): the run's OWN bus, watched through the door's published
+      // the run's OWN bus, watched through the door's published
       // `observeSessions` fan-out. This used to read the backend's per-run replay buffer, which
       // existed for one SSE route and was deleted with it. `subscribe(1, …)` is replay-then-live
       // from the first seq, so a recorder registered here sees every envelope of every run the
@@ -183,7 +182,7 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
         session.subscribe(1, (envelope) => { own.push(envelope as unknown as Envelope) })
       })
       const buffered = (runId: string): Envelope[] => recorded.get(runId) ?? []
-      // A queued row as `JobQueue` hands it to the backend: pending, then flipped (443-04).
+      // A queued row as `JobQueue` hands it to the backend: pending, then flipped.
       const enqueue = (name: string): string => {
         const id = db.insertRun({
           name,
@@ -241,7 +240,7 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
       // member was STILL PARKED. Nothing released it, so the run cannot have reached its verdict by
       // finishing — the abort is what ended it.
       expect(browsers.releasesIssued()).toBe(0)
-      // 2026-10-17 (444-06, D-43): the status is the run's own verdict; kill adds no reason.
+      // the status is the run's own verdict; kill adds no reason.
       expect(settled[0]!.status).toBe('cancelled')
       expect(settled[0]!.details.reason).toBeUndefined()
 
@@ -268,9 +267,9 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
       // carries the member-0 failure, the `runWarning` that failure raised, and member 1's
       // fail-fast `testFinished`. Every event the cancelled run is missing is work the survivor
       // did — which is the claim, stated as a subset rather than as "both logs are non-empty".
-      // 2026-10-17 (444-08, D-34): the member the cancel skipped is published as `skipped`.
+      // the member the cancel skipped is published as `skipped`.
       //
-      // 2026-08-26 (404 D-06): the run's log now continues PAST `runFinished`. This door drains
+      // the run's log now continues PAST `runFinished`. This door drains
       // its own post-processing chain in-process, so the chip envelopes the drain emits land in
       // the run's own `events.jsonl` — which is the whole point of giving `runs.start` a drain leg
       // and is why a dashboard user's chips advance at all. The claim this cell makes is about the

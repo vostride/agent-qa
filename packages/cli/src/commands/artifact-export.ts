@@ -1,4 +1,4 @@
-// Explicit byte export for `agent-qa runs evidence --screenshot <sha> --out <file>` (431-07).
+// Explicit byte export for `agent-qa runs evidence --screenshot <sha> --out <file>`.
 //
 // The destination must not exist in any form, and its parent must already be a directory (possibly
 // reached through a link): nothing is overwritten, the destination itself is never followed through

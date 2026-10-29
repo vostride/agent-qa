@@ -252,7 +252,7 @@ export function buildJobModelCapability(
     getCapabilities: () => (deps.resolveCapabilitiesImpl ?? resolveCapabilities)(profile),
   })
   const generate = deps.generateTextImpl ?? generateText
-  // 389-06 D-02: the v46 vision negotiation, surfaced from the SAME resolveCapabilities the
+  // the v46 vision negotiation, surfaced from the SAME resolveCapabilities the
   // accounting consults — the capability ADVERTISES what the profile resolves, and the gate
   // below is enforced at this host boundary even when a caller mis-gates (L9).
   const vision = (deps.resolveCapabilitiesImpl ?? resolveCapabilities)(profile).vision
@@ -327,7 +327,7 @@ export function buildAnalysisTokenBudget(
 
 /**
  * The CLI hosts' analysis token budget, resolved from the project's configured default LLM —
- * the SAME named-config path `resolveCliJobModel` rides (386 D-15).
+ * the SAME named-config path `resolveCliJobModel` rides.
  *
  * Degrades to `undefined` rather than throwing: a project with no usable LLM configuration
  * still opens its queue and drains deterministic work, and the author simply runs without a
@@ -366,9 +366,9 @@ export async function resolveCliJobModel(
 }
 
 /**
- * What a chat session needs from this host in order to plan (392 plan 09, CHAT-06 / D-04).
+ * What a chat session needs from this host in order to plan.
  *
- * THREE CAPABILITIES FROM ONE RESOLUTION, and the one-ness is the point (386 D-15). The model
+ * THREE CAPABILITIES FROM ONE RESOLUTION, and the one-ness is the point. The model
  * stage 2 plans with, the accounting its degrade pass measures against, and the resolver `/model`
  * uses all come from the same named-config path `resolveCliJobModel` rides. A session that
  * compacted against a window its model does not have would be a second source of truth wearing
@@ -392,7 +392,7 @@ export interface CliChatCapabilities {
  * for a reason specific to chat: a project with no usable LLM configuration must still be able to
  * open a conversation. Absent, the composition is HEADLESS — every canonical utterance still
  * routes deterministically, and anything the table cannot resolve fails the turn closed by name,
- * which is the correct behaviour rather than a degraded one (D-08).
+ * which is the correct behaviour rather than a degraded one.
  *
  * `agent-local` never constructs a model, so this is where `createModel` is reached; the
  * composition takes an already-built handle (CHAT-06's firewall, stated on the option itself).

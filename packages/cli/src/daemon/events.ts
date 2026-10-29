@@ -31,7 +31,7 @@ export const DAEMON_EVENT_KINDS = [
   'embedder-worker-start',
   'embedder-worker-exit',
   'embedder-worker-terminate-escalated',
-  // 401-06 (D-01/D-04): the successor of `run-child-exit`, and the rename is the honest half of
+  // the successor of `run-child-exit`, and the rename is the honest half of
   // the retirement rather than a tidy-up. There is no child to exit any more — the daemon runs the
   // run in its own process — so the fact this row records is the RUN's completion (`runId` +
   // `outcome`), not a process's exit code. Keeping the old spelling would have left a reader of
@@ -100,7 +100,7 @@ function bestEffortFsyncDirectory(directory: string): void {
  * `ts` is deliberately constructed before the event spread so it is the first persisted JSON
  * field, matching the execution-audit JSONL house format. The daemon is the single appender.
  *
- * WR-02: this ledger is D-04's fencing post-mortem record and a `daemon status` source, so an
+ * this ledger is D-04's fencing post-mortem record and a `daemon status` source, so an
  * acknowledged append must survive a crash. Each record is written through an owned owner-only
  * descriptor and fsynced before the call returns; the append that CREATES the ledger also fsyncs
  * the parent, because until then the directory entry pointing at those durable bytes is not

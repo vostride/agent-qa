@@ -1,4 +1,4 @@
-// Run-start baseline health probe (D-04, RCC-02). ONE global-fetch GET against the web target's
+// Run-start baseline health probe. ONE global-fetch GET against the web target's
 // base URL, executed here at the CLI composition root — the runner's ports ban node:*, so only
 // the RESULT crosses into RunConfig.baselineProbe. Every failure (abort, connect, DNS) is caught
 // and returned as a value; the function never rejects and never retries — a probe failure is
@@ -12,7 +12,7 @@ export async function runBaselineProbe(url: string, timeoutMs = 4000): Promise<B
   try {
     // redirect: 'manual' — a 3xx is a healthy baseline (only >=500 classifies environment), and
     // not following the chain keeps the raw status deterministic. AbortSignal.timeout bounds the
-    // probe to a fixed budget (T-373-14); single attempt, no retry (T-373-13).
+    // probe to a fixed budget; single attempt, no retry.
     const response = await fetch(url, {
       method: 'GET',
       redirect: 'manual',

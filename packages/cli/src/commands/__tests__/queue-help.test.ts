@@ -9,7 +9,7 @@ import { createDaemonCommand } from '../daemon.js'
 import { createKnowledgeCommand } from '../knowledge.js'
 
 /**
- * The three-queue vocabulary pin (JOBQ-07 / D-21 / D-22).
+ * The three-queue vocabulary pin.
  *
  * A snapshot of whatever the help happens to say would pass forever and prove nothing, so this
  * file asserts a RELATION instead: every singular occurrence of the word "queue" in the help must

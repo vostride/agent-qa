@@ -20,7 +20,7 @@ import pc from 'picocolors'
 import type { CheckStatus } from './doctor.js'
 
 // ---------------------------------------------------------------------------
-// The row renderer (407-24 · G-407-3).
+// The row renderer.
 //
 // A diagnostic command is read on the terminal somebody already has. Before this, the composed row
 // had no width awareness at all: `padDots` budgeted 60 columns for name-plus-message while the
@@ -37,7 +37,7 @@ import type { CheckStatus } from './doctor.js'
 export const DEFAULT_TERMINAL_WIDTH = 80
 
 /**
- * The narrowest width this command will act on, whatever the environment claims (407-30).
+ * The narrowest width this command will act on, whatever the environment claims.
  *
  * The arithmetic, not a taste: the shortest row this command can compose is FIFTEEN columns —
  * four indent, one name character, two separator, two dots at the `MIN_DOTS` floor, two separator,
@@ -172,7 +172,7 @@ export interface CheckRow extends RowSegments {
  * width. That is deliberate: the over-long tokens this command prints are index paths and shas,
  * and a path silently truncated to fit is a diagnostic a person copies and cannot use.
  *
- * The `/\s+/` split is a NO-OP on separators now (407-29): every caller hands it a pre-flattened
+ * The `/\s+/` split is a NO-OP on separators now: every caller hands it a pre-flattened
  * string, so it can no longer be the place where a narrow terminal quietly normalises spacing a
  * wide terminal printed verbatim. The two paths see the same bytes and differ only in where the
  * line breaks fall.
@@ -238,7 +238,7 @@ function segmentsFor(
 }
 
 /**
- * A message is ONE LINE by the time the budget sees it (407-29 · G-407-14).
+ * A message is ONE LINE by the time the budget sees it.
  *
  * A producer newline is not a layout instruction — it is a byte that would silently push the
  * status word off the name line, past a length check that counted it as ONE COLUMN. Nothing this

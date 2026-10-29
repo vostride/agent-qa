@@ -147,7 +147,7 @@ async function runCli(...args: string[]): Promise<{ status: number | null; stdou
 }
 
 /**
- * The same shipped binary, with named environment variables set (401-20).
+ * The same shipped binary, with named environment variables set.
  *
  * `AGENT_QA_RUN_ID` IS A DOOR ONTO A RUN'S IDENTITY, and it is a door the typed contract does not
  * range: `run.ts` builds its `RunsStartInput` literal in-process, so an id arriving this way never
@@ -270,7 +270,7 @@ describe('the CLI door starts a no-tty run, and --trust-session is gone', () => 
 })
 
 // ---------------------------------------------------------------------------------------------
-// THE ENVIRONMENT DOOR (2026-08-23, plan 20 · CR-04).
+// THE ENVIRONMENT DOOR.
 //
 // WHY THIS DOOR NEEDS ITS OWN CELLS. Hardening `RunsStartInputSchema` covers the fn, chat, MCP,
 // daemon and dashboard doors, all of which parse. It covers this one not at all: `run.ts` reads
@@ -341,7 +341,7 @@ describe('the environment door cannot name a malformed or colliding run id', () 
     const before = digestsUnder(victimDir)
     // Non-vacuity: the victim really holds the artifacts a collision would tamper with.
     expect(Object.keys(before)).toContain('events.jsonl')
-    // 432-13: `execution_audit.jsonl` was the gate row's file; the start writes none now.
+    // `execution_audit.jsonl` was the gate row's file; the start writes none now.
     expect(Object.keys(before)).toContain('handoff.json')
     const hitsAfterFirst = [...probeHits]
 

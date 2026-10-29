@@ -5,7 +5,7 @@
 // an operator who reached for `agent-qa queue cancel` would be cancelling rows in a different
 // store entirely.
 //
-// 413 D-04 / D-06: `pump --only <kind>` is the in-process, writer-lease-holding, kind-filtered
+// `pump --only <kind>` is the in-process, writer-lease-holding, kind-filtered
 // drain. The campaign driver pumps `analyze-run` per leg so seeding reads real verdicts, and the
 // `curate-memory` successor that drain enqueues stays queued for the disposal step to list and
 // cancel. See `../composition/agent-jobs-ops.ts` for why the filter is a construction option on the

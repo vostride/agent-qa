@@ -1,4 +1,4 @@
-// 436 D-03/D-06: the one place a CLI run producer turns a member's merged `use` blocks into the
+// the one place a CLI run producer turns a member's merged `use` blocks into the
 // per-step planner config, and the one wording of the limits line the run prints before it starts.
 import {
   resolvePlannerLimits,

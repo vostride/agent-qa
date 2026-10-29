@@ -1,4 +1,4 @@
-// 2026-10-19 (445-01, D-21): imports nothing and stays ES2020; it runs on any Node the user has.
+// imports nothing and stays ES2020; it runs on any Node the user has.
 
 export const NODE_FLOOR_MAJOR = 24
 

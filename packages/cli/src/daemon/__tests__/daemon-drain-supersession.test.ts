@@ -405,7 +405,7 @@ describe('local headless learning through the existing worker path', () => {
       expect.objectContaining({ type: 'proposed-supersession-of', targetId: victimId }),
     )
     expect(relations).not.toContainEqual(expect.objectContaining({ type: 'supersedes' }))
-    // 2026-10-18 (444-20, D-58): the proposed correction is its own candidate. It never lands on
+    // the proposed correction is its own candidate. It never lands on
     // the victim's id, so the victim carries no relation to itself.
     const proposals = bundles(project)
       .filter(({ manifest }) => manifest.id !== victimId && manifest.id !== siblingId)

@@ -1,4 +1,4 @@
-// The run reads under `agent-qa runs` (431 D-11/D-12/D-13).
+// The run reads under `agent-qa runs`.
 //
 // Each verb is a thin client: it normalizes its flags, composes the local agent, invokes the
 // canonical op with CLI_FUNCTION_CALLER and prints what came back. `--json` prints the op's whole
@@ -230,7 +230,7 @@ function firstPresentKind(step: RunOverviewStep): string | undefined {
     .find((kind) => evidence[kind].state === 'present')
 }
 
-// 2026-10-18 (444-26, D-61): a chain that was never enqueued reads skipped (<reason>), not its chip.
+// a chain that was never enqueued reads skipped (<reason>), not its chip.
 function curationWord(curation: Pick<RunOverviewLearned['curation'], 'status' | 'skipped'>): string {
   return curation.skipped === undefined
     ? curation.status

@@ -8,7 +8,7 @@ export const KNOWLEDGE_SKILL_NAME = 'agent-qa-knowledge'
 
 export const CODING_AGENTS_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
 
-/** Transitional: M7 makes agent setup default-on and may retire it (OAS-AGENT-01, D-02). */
+/** Transitional: M7 makes agent setup default-on and may retire it. */
 export const WRITE_AGENT_INSTRUCTIONS_FLAG = '--write-agent-instructions'
 
 export interface AgentQuestion {
@@ -115,7 +115,7 @@ export function buildKnowledgeAgentGuide(): string {
   ].join('\n')
 }
 
-/** The root pointer's block body (D-18), written between the D-19 markers or printed with them. */
+/** The root pointer's block body, written between the D-19 markers or printed with them. */
 export function buildAgentInstructionPointer(): readonly string[] {
   return Object.freeze([
     '## agent-qa',

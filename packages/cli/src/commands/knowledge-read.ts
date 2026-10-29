@@ -1,4 +1,4 @@
-// The knowledge read verbs — all three of them thin clients now (D-05/D-07, 387 D-20).
+// The knowledge read verbs — all three of them thin clients now.
 //
 // `bundles` was the phase-384 exemplar: it owns no data access of its own, asks the function
 // layer for `knowledge.bundles.list`, and renders what it is handed. As of 387 `inspect` and
@@ -13,7 +13,7 @@
 // the composition edge every host shares (see agent-local's build-ordinals module) rather than
 // through a package this surface may not name.
 //
-// 2026-10-14 (441-14, D-07): every verb prints through the declared mask its invocation reads from
+// every verb prints through the declared mask its invocation reads from
 // `workspace.secretsFile`, and nothing restores a value.
 // Gate output additionally crosses the committed-text safety check before either
 // renderer runs. Producer masks and receipt digests are preserved, never regenerated.
@@ -96,7 +96,7 @@ interface BriefWhyOptions {
  */
 const KNOWLEDGE_BUNDLES_LIST_ID = 'knowledge.bundles.list'
 
-/** The record-level read verbs `inspect` and `diff` are clients of (387 D-20, KREV-01). */
+/** The record-level read verbs `inspect` and `diff` are clients of. */
 const KNOWLEDGE_RECORDS_INSPECT_ID = 'knowledge.records.inspect'
 const KNOWLEDGE_RECORDS_DIFF_ID = 'knowledge.records.diff'
 const KNOWLEDGE_GATES_LIST_ID = 'knowledge.gates.list'
@@ -227,7 +227,7 @@ function resolvedDiffOrdinal(
   return ordinal
 }
 
-// 2026-10-14 (441-14, D-07): everything this file prints is masked and never restored; JSON is
+// everything this file prints is masked and never restored; JSON is
 // masked leaf by leaf before it is serialized. 2026-10-15 (441-62, IN-A07): keys too.
 function emitJson(mask: MaskFn, value: unknown): void {
   console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))
@@ -662,7 +662,7 @@ export function registerKnowledgeReadCommands(command: Command): void {
       }
     })
 
-  // The exemplar thin client (D-05/D-07). Registered LAST on purpose: the source-shape
+  // The exemplar thin client. Registered LAST on purpose: the source-shape
   // assertion in knowledge-bundles-command.test.ts reads this verb's whole registration as
   // the slice running to the end of the file, and fails loudly if a later verb is appended
   // after it rather than silently covering less.

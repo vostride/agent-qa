@@ -1,11 +1,11 @@
-// THE RUN TRIGGER'S BROWSER CONFIRM (Phase 401 plan 09 — D-11 / D-15 / D-16, INVK-02).
+// THE RUN TRIGGER'S BROWSER CONFIRM.
 //
-// SINCE 432-13 (D-14/D-15) the run button's run asks nobody: there is no op gate and no run gate on
+// SINCE 432-13 the run button's run asks nobody: there is no op gate and no run gate on
 // this road, so no `confirm_request` frame is ever raised for a run, whether or not the triggering
 // browser holds its channel. The first describe was re-spelled to pin that absence; the scope
 // read/write hardening and the trigger-interactivity rule below are unchanged. History kept.
 //
-// SINCE 432-14 (D-14/D-15) there is no channel, no scope and no posture left: the run-confirm pair,
+// SINCE 432-14 there is no channel, no scope and no posture left: the run-confirm pair,
 // the confirm registry and the door's per-scope context are deleted. Every cell below that drove
 // them is re-spelled onto what survives — the click starts the run, a row written before 432-14
 // still never hands its scope back, the queue door still refuses planted metadata, and nothing in
@@ -91,7 +91,7 @@ interface Scene {
   readonly fixture: Fixture
   readonly db: DashboardDatabase
   settled(): { runId: string; status: string; details: Record<string, unknown> }[]
-  /** The run's OWN bus envelopes, in seq order, recorded off its session (405-07). */
+  /** The run's OWN bus envelopes, in seq order, recorded off its session. */
   buffered(runId: string): Record<string, unknown>[]
   /**
    * Every `ExecuteOptions` the queue handed the SHIPPED execution backend, in order.
@@ -111,7 +111,7 @@ const openScenes: Scene[] = []
 /**
  * The dashboard as the shipped command starts it, over a project the fixture wrote.
  *
- * 432-14: the confirm window `timeoutMs` used to set is deleted with the registry that owned it.
+ * the confirm window `timeoutMs` used to set is deleted with the registry that owned it.
  */
 async function openScene(input: {
   readonly fixture: Fixture
@@ -164,7 +164,7 @@ async function openScene(input: {
     agentHost: door.agentHost,
   })
 
-  // 2026-08-27 (405-07, D-19): the run's OWN bus, watched through the door's published
+  // the run's OWN bus, watched through the door's published
   // `observeSessions`. This used to read the backend's per-run replay buffer, which existed for one
   // SSE route and was deleted with it; `subscribe(1, …)` is replay-then-live from the first seq, so
   // a recorder registered here sees every envelope of every run this door starts.
@@ -208,7 +208,7 @@ afterAll(() => { removeInProcessFixtures() })
 /**
  * Click the run button — the shipped trigger route, with the fixture's own standalone test.
  *
- * `strayScope` is what a pre-432-14 page would still send; nothing reads it (C432-DASHBOARD-RUN-DIRECT).
+ * `strayScope` is what a pre-432-14 page would still send; nothing reads it.
  */
 async function triggerRun(scene: Scene, strayScope?: string): Promise<string> {
   const response = await fetch(`${scene.origin}/api/runs/trigger`, {
@@ -225,7 +225,6 @@ async function triggerRun(scene: Scene, strayScope?: string): Promise<string> {
   return body.runId!
 }
 
-// 432-14: the run-confirm channel reader that stood here is deleted with the channel.
 
 async function waitFor(assertion: () => void, timeoutMs = 180_000): Promise<void> {
   const startedAt = Date.now()
@@ -269,14 +268,14 @@ describe('the run button never asks: a click starts the run', () => {
       expect(buildOrdinalsExist(fixture)).toBe(true)
       expect(target.hits).toEqual(['/in-process-thing'])
       expect(scene.buffered(runId).map((event) => event['type'])).toContain('runStarted')
-      // 432-14: the door names nobody, so the run records the one context it answers.
+      // the door names nobody, so the run records the one context it answers.
       expect(startedContext(scene, runId)).toBe('local-headless')
     } finally {
       await target.close()
     }
   }, 240_000)
 
-  // RE-SPELLED 2026-10-01 (432-14): HALF ONE (the scope rides the persisted row so the queue can
+  // RE-SPELLED 2026-10-01: HALF ONE (the scope rides the persisted row so the queue can
   // address the browser) is retired — no scope is written or read, which C432-DASHBOARD-RUN-DIRECT
   // pins. HALF TWO survives for rows written before 432-14: a row that still holds a scope never
   // hands it back on a read.
@@ -337,7 +336,7 @@ describe('the run button never asks: a click starts the run', () => {
     }
   }, 300_000)
 
-  // RE-SPELLED 2026-10-01 (432-14): there is no channel whose closing could deny. The claim that
+  // RE-SPELLED 2026-10-01: there is no channel whose closing could deny. The claim that
   // survives is that the page going away changes nothing: the retired channel path is 404, and a
   // run triggered and left alone starts.
   it('CHANNEL VANISH — closing the tab denies nothing: the run it triggered still starts', async () => {
@@ -383,7 +382,7 @@ describe('the run button never asks: a click starts the run', () => {
   }, 240_000)
 })
 
-// ---- 432-14 (D-14/D-15): the Run control is one request ------------------------------------------
+// ---- 432-14: the Run control is one request ------------------------------------------
 //
 // The trigger route used to accept a confirm scope, persist it on the queued row and hand it to the
 // run door, which entered it around `runs.start`. All of that is deleted with the run-confirm pair:
@@ -459,7 +458,7 @@ function runMetadataBearingReads(runId: string): readonly string[] {
 }
 
 describe('the confirm scope leaves on no door and can be planted on no run', () => {
-  // RE-SPELLED 2026-10-01 (432-14, D-14/D-22): the trigger no longer writes a scope, so the run is
+  // RE-SPELLED 2026-10-01: the trigger no longer writes a scope, so the run is
   // planted in exactly the two places `JobQueue.enqueue` wrote one before 432-14 — the row and the
   // artifact payload — as a database carried over from then would hold it. Everything after the
   // plant is the same shipped read path it always measured.
@@ -654,7 +653,7 @@ describe('the confirm scope leaves on no door and can be planted on no run', () 
 // THE CELLS ABOVE MEASURE IT THROUGH A REAL RUN's AUDIT ROW, which is the surface a person reads.
 // These measured PRODUCTION'S OWN PREDICATE, named per scope, through the door's published posture.
 //
-// RE-SPELLED 2026-10-01 (432-14, D-14/D-15): the predicate, the published posture and the scope
+// RE-SPELLED 2026-10-01: the predicate, the published posture and the scope
 // entry are deleted with the channel they read. A run's recorded context is measured by the cells
 // above (`local-headless`, whatever the page does); what these pin is that the door no longer
 // publishes a per-scope answer to disagree with it.
@@ -705,11 +704,11 @@ describe('the door publishes no per-scope posture', () => {
 // ranges the FACTORY (who builds a registry); the other ranges the SUBSTRATE (which module can turn
 // silence into a denial) and shares no vocabulary with the first.
 //
-// RE-SPELLED 2026-10-01 (432-14, D-14): the one lot is deleted, so both predicates now range to
+// RE-SPELLED 2026-10-01: the one lot is deleted, so both predicates now range to
 // the empty set — no call site builds a registry and no module reaps a question into a denial.
 
 describe('there is one parking lot, and the run trigger uses it', () => {
-  // RE-SPELLED 2026-10-01 (432-14): the title is kept for the history; both cells now pin zero.
+  // RE-SPELLED 2026-10-01: the title is kept for the history; both cells now pin zero.
   const FIRST_PARTY = ['packages/cli/src', 'packages/dashboard-server/src']
 
   function sourceFiles(): string[] {

@@ -107,7 +107,7 @@ export const DASHBOARD_WORKSPACE_CONFIG_KEY = 'services.dashboard.workspace'
  * DERIVED FROM THE CLI'S OWN MINT, with the surface name — attribution only, never a permission
  * input — as the single difference. `origin` rides along unchanged and deliberately — a person
  * clicking in a browser this machine's own process is serving is the same fact the CLI mints
- * `human` for. 2026-10-01 (432-21, D-12): the CLI mint carries no scope set or safe-mode flag, so
+ * `human` for. 2026-10-01: the CLI mint carries no scope set or safe-mode flag, so
  * neither does this one.
  */
 export const DASHBOARD_FUNCTION_CALLER: FunctionCaller = Object.freeze({
@@ -115,7 +115,7 @@ export const DASHBOARD_FUNCTION_CALLER: FunctionCaller = Object.freeze({
   surface: 'dashboard',
 })
 
-// 2026-10-01 (432-14, D-15): `askingSessionOf` is deleted with the gate posture it fed. No
+// `askingSessionOf` is deleted with the gate posture it fed. No
 // invocation through this door enters a frame, so nothing reads who is asking.
 
 /**
@@ -136,32 +136,32 @@ export function composeDashboardAgentHost(host: LocalAgentHost): AgentHost {
   return {
     registry: host.registry,
     caller: DASHBOARD_FUNCTION_CALLER,
-    // 404-05 (D-16/D-18/D-22): the two ids the post-processing routes dispatch, PASSED as data.
+    // the two ids the post-processing routes dispatch, PASSED as data.
     // `packages/dashboard-server` may not import this package (validate:arch), so the ids reach
     // it the only way an id can — as data from the composition that already knows them.
     runsPostProcessingFunctionId: RUNS_POST_PROCESSING_FUNCTION_ID,
     runsEventsFunctionId: RUNS_EVENTS_FUNCTION_ID,
-    // 405-01 (D-03): the third id the run-service routes dispatch, on the same footing and for the
+    // the third id the run-service routes dispatch, on the same footing and for the
     // same reason. `packages/dashboard-server` may not import this package (validate:arch), so the
     // id reaches it the only way an id can — as data from the composition that already knows it.
     runsDetailFunctionId: RUNS_DETAIL_FUNCTION_ID,
     runsEvidenceFunctionId: RUNS_EVIDENCE_FUNCTION_ID,
-    // 405-05 (D-12/D-13): the fourth id the run-service routes dispatch, on the same footing and
+    // the fourth id the run-service routes dispatch, on the same footing and
     // for the same reason — with the sharper one that this route serves BYTES, and the alternative
     // to an id is `packages/dashboard-server` constructing an evidence store from two URL segments.
     runsArtifactFunctionId: RUNS_ARTIFACT_FUNCTION_ID,
-    // 406-01 (D-04): the fifth id, on the same footing and for the same reason. It is what the
+    // the fifth id, on the same footing and for the same reason. It is what the
     // failure view's read dispatches on both doors — `analysis.get` is the single producer of a
     // run's verdict sentences, and the dashboard package can only learn its name as data.
     analysisGetFunctionId: ANALYSIS_GET_FUNCTION_ID,
-    // 407-01 (D-05): the sixth id, on the same footing and for the same reason. It is what the
+    // the sixth id, on the same footing and for the same reason. It is what the
     // Knowledge tab's read dispatches — `runs.knowledge` is the single producer of what a run used
     // and learned, and the dashboard package can only learn its name as data.
     runsKnowledgeFunctionId: RUNS_KNOWLEDGE_FUNCTION_ID,
     runsMarkFunctionId: RUNS_MARK_FUNCTION_ID,
     runsMarksHistoryFunctionId: RUNS_MARKS_HISTORY_FUNCTION_ID,
     runsMarkPreviewFunctionId: RUNS_MARK_PREVIEW_FUNCTION_ID,
-    // 2026-10-01 (432-14, D-14/D-15): every invocation is the shipped `invokeFunction`, bound. It
+    // every invocation is the shipped `invokeFunction`, bound. It
     // used to run inside an asking-session frame the gate's context resolver and the confirm port
     // read; both are deleted, so there is no frame to enter and no op is special-cased.
     invokeFunction: (
@@ -175,7 +175,6 @@ export function composeDashboardAgentHost(host: LocalAgentHost): AgentHost {
 
 /**
  * The masked config reader, with the bound origin standing in for an UNSET dashboard base URL
- * (400-01, D-16 / 387 D-10).
  *
  * ONE MECHANISM, TWO SUPPLIERS. 387 D-10 made the entity card's `url` config-derived and absent by
  * default, read through the masker at `services.dashboard.baseUrl`; that knob stays THE mechanism
@@ -269,7 +268,7 @@ function hasVerbatim(masked: MaskedResolvedConfig, key: string): boolean {
   return entry !== undefined && !entry.masked && entry.value.trim() !== ''
 }
 
-// 2026-10-01 (432-14, D-14/D-15): the dashboard's gate posture machinery is deleted — the asking
+// the dashboard's gate posture machinery is deleted — the asking
 // scope frame, `postureFor` and its reachability predicates, and the browser confirm factory that
 // parked ask-tier questions in the run-confirm registry. Nothing through this door is asked, so
 // there is no asker to name and no reachability to prove. The door answers one execution context
@@ -282,7 +281,7 @@ export interface DashboardDoorInput {
   /** The configuration file this door resolves against. */
   readonly configPath: string
   /**
-   * The origin this server bound, read per configuration lookup (D-16).
+   * The origin this server bound, read per configuration lookup.
    *
    * A FACTORY because the server has not bound a port when the door is composed, and an ephemeral
    * port is a real posture. Answering `undefined` leaves the operator's config knob — or its
@@ -293,7 +292,7 @@ export interface DashboardDoorInput {
    * An EXPLICIT OVERRIDE of the context this door's calls and runs are recorded under (D-05, spec
    * §2.2).
    *
-   * 2026-10-01 (432-14, D-14/D-15): ABSENT MEANS `local-headless`, for every call. The per-scope
+   * ABSENT MEANS `local-headless`, for every call. The per-scope
    * posture this used to be derived from — is a person reachable on a confirm channel for the scope
    * being gated — is deleted with the channel. What the value still does is travel: a run records
    * it, and the curation profile reads it (both local contexts drain alike, D-08). The door never
@@ -306,7 +305,7 @@ export interface DashboardDoorInput {
    */
   readonly resolveExecutionContext?: () => ExecutionContext
   /**
-   * What this door needs back from the runs it triggers (401-07, D-09 — INVK-01).
+   * What this door needs back from the runs it triggers.
    *
    * PASSED STRAIGHT THROUGH to `composeCliLocalAgent`, and this composer decides nothing about it.
    * Absent (the conformance suite's posture, and any caller that triggers no run) composes exactly
@@ -314,7 +313,7 @@ export interface DashboardDoorInput {
    */
   readonly runBridge?: ComposeCliLocalAgentInput['runBridge']
   /**
-   * 403 D-03: the live-view mint seam `runs.liveurl` binds through.
+   * the live-view mint seam `runs.liveurl` binds through.
    *
    * PASSED STRAIGHT THROUGH to `composeCliLocalAgent`, on the same rule as `runBridge` above — this
    * composer decides nothing about it. Absent (the conformance suite's posture, and any door with
@@ -322,7 +321,7 @@ export interface DashboardDoorInput {
    */
   readonly liveView?: ComposeCliLocalAgentInput['liveView']
   /**
-   * 405 D-03: the durable run-detail projection read `runs.detail` binds through.
+   * the durable run-detail projection read `runs.detail` binds through.
    *
    * PASSED STRAIGHT THROUGH to `composeCliLocalAgent`, on the same rule as `runBridge` and
    * `liveView` above — this composer decides nothing about it and constructs no database. Absent,
@@ -336,9 +335,9 @@ export interface DashboardDoorInput {
 export interface DashboardDoor {
   readonly host: LocalAgentHost
   readonly agentHost: AgentHost
-  // 441-21 (D-29): the mask the host and its config reader share, for the server's config editor.
+  // the mask the host and its config reader share, for the server's config editor.
   readonly declaredSecretMask: MaskFn
-  // 2026-10-01 (432-14, D-14/D-15): the published posture measurement and the run-trigger scope
+  // the published posture measurement and the run-trigger scope
   // entry are deleted with the posture and the scope. The run door needs nothing back from this
   // composition but the host (`bindHost`).
 }
@@ -346,7 +345,7 @@ export interface DashboardDoor {
 /**
  * Compose the dashboard's host — ONE composer, for production and for the suites that measure it.
  *
- * 2026-09-28, 430 D-02: it composes no conversation. What it serves is run detail, the run
+ * it composes no conversation. What it serves is run detail, the run
  * trigger, marks, the run-service door and the co-hosted MCP endpoint.
  *
  * PUBLISHED AND SINGULAR. The conformance fixtures compose the host through this function; if one
@@ -382,7 +381,7 @@ export function composeDashboardDoor(input: DashboardDoorInput): DashboardDoor {
     return name === '' || name === '/' || name === '.' ? undefined : name
   })()
 
-  // 2026-10-01 (432-14, D-14/D-15): ONE CONTEXT FOR EVERY CALL. The door used to derive it per
+  // ONE CONTEXT FOR EVERY CALL. The door used to derive it per
   // invocation from the asking scope it entered and whether a confirm channel was live on it; the
   // scope, the channel and the confirm port it bound here are deleted. Without a live channel that
   // derivation always answered `local-headless`, so that is the answer, unless the caller
@@ -395,9 +394,9 @@ export function composeDashboardDoor(input: DashboardDoorInput): DashboardDoor {
     agentQaRoot: input.agentQaRoot,
     configPath: input.configPath,
     declaredSecrets,
-    // 403 D-03: forwarded untouched, conditionally spread — an absent port is an ABSENT field.
+    // forwarded untouched, conditionally spread — an absent port is an ABSENT field.
     ...(input.liveView === undefined ? {} : { liveView: input.liveView }),
-    // 405 D-03: forwarded untouched, conditionally spread — an absent port is an ABSENT field.
+    // forwarded untouched, conditionally spread — an absent port is an ABSENT field.
     ...(input.runDetail === undefined ? {} : { runDetail: input.runDetail }),
     config: overlayDashboardBaseUrl(
       createConfigReader(input.configPath, declaredSecrets.mask),
@@ -416,7 +415,7 @@ export function composeDashboardDoor(input: DashboardDoorInput): DashboardDoor {
 }
 
 
-// ---- The fourth door's RUN trigger (401-07, D-01/D-09/D-10 — INVK-01) ------------------------
+// ---- The fourth door's RUN trigger ------------------------
 
 /**
  * The dashboard's queue used to start a run by SPAWNING `agent-qa run` and reading the child's
@@ -425,12 +424,12 @@ export function composeDashboardDoor(input: DashboardDoorInput): DashboardDoor {
  * process that runs that server, and injected. That is the same arrangement, and the same reason,
  * as `agentHost` two hundred lines below.
  *
- * D-10 — THE RUN BUTTON IS ONE MORE CALLER OF `runs.start`. The starter below invokes the composed
+ * THE RUN BUTTON IS ONE MORE CALLER OF `runs.start`. The starter below invokes the composed
  * host's own registry through the shipped `invokeFunction`, so the receipt classification and the
  * ack-read-off-the-durable-record apply identically to a browser click and to a sentence typed at
  * `agent-qa chat`. There is no dashboard carve-out and no second spelling of "start a run".
  *
- * 2026-10-01 (432-14, D-14/D-15): ONE CLICK IS ONE CALL. From 401-09 this door minted a confirm
+ * ONE CLICK IS ONE CALL. From 401-09 this door minted a confirm
  * scope per queued run and ran the invocation inside it, so an ask-tier run could ask the browser
  * that triggered it. There is nothing left to ask (432-13 removed the gates), so the scope, its
  * entry and the posture it decided are deleted: every dashboard run is dispatched as it is, and the
@@ -450,7 +449,7 @@ export interface DashboardRunDoor {
    */
   bindHost(host: LocalAgentHost): void
   /**
-   * The composed host, or nothing if it has not been bound yet (402-01).
+   * The composed host, or nothing if it has not been bound yet.
    *
    * PUBLISHED SO A SECOND DOOR IN THIS PROCESS CAN READ THE SAME STATE the run starter's own guard
    * throws on. `/ok`'s `hostComposed` fact and the invoke path's refusal are then two readings of
@@ -458,7 +457,7 @@ export interface DashboardRunDoor {
    */
   resolveHost(): LocalAgentHost | undefined
   /**
-   * Watch every `RunSession` this process's host starts, whichever door started it (402-01).
+   * Watch every `RunSession` this process's host starts, whichever door started it.
    *
    * WHY A FAN-OUT AND NOT A SECOND BRIDGE. `composeCliLocalAgent` takes ONE `runBridge`, so there
    * is exactly one place a started session becomes visible in this process. The queue's own routing
@@ -481,7 +480,7 @@ export interface DashboardRunDoor {
    * resume.
    */
   postRunSettled(): Promise<void>
-  // 441-48 (D-01): the door holds no secrets of its own for masking. Its masking binder and store
+  // the door holds no secrets of its own for masking. Its masking binder and store
   // set are deleted; a run masks the values its project declares and nothing a door minted.
 }
 
@@ -551,10 +550,10 @@ export async function createDashboardRunDoor(input: {
   /** The dashboard database THIS SERVER holds. One connection, one writer, one process. */
   readonly db: unknown
   /**
-   * The post-processing relay's `publish`, as the chip emitter's SECOND SINK (404-05, D-16).
+   * The post-processing relay's `publish`, as the chip emitter's SECOND SINK.
    *
    * Threaded through the BRIDGE because that is the seam the tail is composed behind: the drain leg
-   * `runs.start` starts (404-04) reads `runBridge.chipRelay` and hands it to
+   * `runs.start` starts reads `runBridge.chipRelay` and hands it to
    * `composeCliPostRunTail` as `relay`, which hands it to the one `createChipEmitter` site. Passing
    * it to `startServer` alone would give the server a registry nothing publishes to.
    *
@@ -566,7 +565,7 @@ export async function createDashboardRunDoor(input: {
   const { createInProcessExecutionBackend } = await import('@vostride/agent-qa-dashboard')
 
   const entries = new Map<string, DashboardRunEntry>()
-  /** 402-01: everyone watching the ONE bridge this process's host publishes sessions through. */
+  /** everyone watching the ONE bridge this process's host publishes sessions through. */
   const sessionObservers = new Set<(session: RunSession) => void>()
   const executions = new Set<Promise<unknown>>()
   const postRun = new Set<Promise<void>>()
@@ -580,21 +579,21 @@ export async function createDashboardRunDoor(input: {
   let boundHost: LocalAgentHost | undefined
 
   const runBridge: NonNullable<ComposeCliLocalAgentInput['runBridge']> = {
-    // 404-05 (D-16): the chip emitter's second sink, on the conditional-spread house rule — an
+    // the chip emitter's second sink, on the conditional-spread house rule — an
     // absent relay is an ABSENT field, so the drain leg's own `relay === undefined` arm decides.
     ...(input.chipRelay === undefined ? {} : { chipRelay: input.chipRelay }),
-    // THE BRIDGE HOOK (D-09). Routed by the session's OWN id rather than by "the run in flight",
+    // THE BRIDGE HOOK. Routed by the session's OWN id rather than by "the run in flight",
     // because this door runs as many at once as the queue has slots.
     onSession: (session: RunSession): void => {
       entries.get(session.id as unknown as string)?.onSession(session)
-      // 402-01: and every watcher, whichever door started the run. See `observeSessions`.
+      // and every watcher, whichever door started the run. See `observeSessions`.
       for (const observer of [...sessionObservers]) {
         try {
           observer(session)
         } catch { /* one watcher's failure is not another's, and never the run's */ }
       }
     },
-    // 2026-10-17 (443-05, D-02/D-06): every run's record writes through this one handle when its
+    // every run's record writes through this one handle when its
     // runs.db is this file, and a queued run keeps its routes' attributes.
     record: {
       db: input.db as never,
@@ -642,7 +641,7 @@ export async function createDashboardRunDoor(input: {
         }
         // THE SHIPPED DISPATCHER, NOT THE PORT UNDERNEATH IT. Going straight to the run execution
         // would skip the receipt classification and the ack law — which is the dashboard carve-out
-        // D-10 exists to refuse. 2026-10-01 (432-14, D-14): dispatched as it is, inside no scope.
+        // D-10 exists to refuse. 2026-10-01: dispatched as it is, inside no scope.
         await invokeFunction(
           host.registry as FunctionRegistry,
           'runs.start',
@@ -675,9 +674,9 @@ export async function createDashboardRunDoor(input: {
 }
 
 
-// ---- The run service's composition (402-01, D-01/D-02/D-04/D-05/D-06 — INVK-03) -----------------
+// ---- The run service's composition -----------------
 
-// 2026-10-01 (432-21, D-12): `RUN_SERVICE_GRANTED_SCOPES` and `runServiceCallerFor(trustScope)` are
+// `RUN_SERVICE_GRANTED_SCOPES` and `runServiceCallerFor(trustScope)` are
 // deleted. The door's least-privilege scope list and the matched token's trust scope it carried into
 // `FunctionCaller.credential` went with the run-service tokens: every caller can call every
 // operation, and the door mints one caller for every request.
@@ -690,7 +689,7 @@ export const RUN_SERVICE_SURFACE = 'run-service'
  *
  * NOT `DASHBOARD_FUNCTION_CALLER`. That caller mints `origin: 'human'` for a person clicking in this
  * machine's own browser; a request on this door arrived from a client over a socket, and the honest
- * answer to "did a person decide this" is no, so `origin: 'agent'` (391 D-06). Since 432-20 nothing
+ * answer to "did a person decide this" is no, so `origin: 'agent'`. Since 432-20 nothing
  * reads `origin` to decide what may happen; the receipts that record it still read it.
  */
 export const RUN_SERVICE_FUNCTION_CALLER: FunctionCaller = Object.freeze({
@@ -699,17 +698,17 @@ export const RUN_SERVICE_FUNCTION_CALLER: FunctionCaller = Object.freeze({
 })
 
 /**
- * THE READINESS PREDICATE — ONE DECLARATION SITE, TWO DOORS (D-15).
+ * THE READINESS PREDICATE — ONE DECLARATION SITE, TWO DOORS.
  *
  * Exported rather than inlined into `composeRunServicePorts` because `/ok` is not the only place
- * this question is asked: the local door's preflight (402-05) serves the SAME answer, and D-15's
+ * this question is asked: the local door's preflight serves the SAME answer, and D-15's
  * whole content is that there is one readiness spelling rather than two that agree today. A second
  * copy of these three facts is how the remote door and the dashboard start disagreeing about
  * whether this process can run anything.
  *
  * EVERY FIELD IS MEASURED, AND NOTHING IS PREDICTED. `hostComposed` reads the SAME box the run
  * starter's guard throws on — not a parallel flag — so `/ok` cannot say yes where `POST /run` says
- * no. 2026-10-01 (432-22, D-12): there is no `authConfigured` fact; no credential can be configured.
+ * no. 2026-10-01: there is no `authConfigured` fact; no credential can be configured.
  * `contractVersion` is a constant, which is the point of it: a caller learns which route set it is
  * talking to without this process guessing anything.
  *
@@ -733,14 +732,14 @@ export interface RunServiceCompositionInput {
   /**
    * The run door this process composed — the host box and the one session bridge.
    *
-   * 2026-10-01 (432-21, D-12): no `entries` and no `env`. The declared run-service tokens this
+   * no `entries` and no `env`. The declared run-service tokens this
    * composer dereferenced, and the environment it read them from, are deleted.
    */
   readonly door: Pick<DashboardRunDoor, 'resolveHost' | 'observeSessions'>
   /** How long a finished run stays attachable. Defaults to the registry's own window. */
   readonly retentionMs?: number
   /**
-   * 403 D-14 (WINDOWS #264): the process's ALREADY-COMPOSED session registry, when there is one.
+   * the process's ALREADY-COMPOSED session registry, when there is one.
    *
    * The command hoists the registry above the door composition, because building the lookup only
    * inside this composer is precisely how the local run-stream door came to answer 503 for a run
@@ -749,7 +748,7 @@ export interface RunServiceCompositionInput {
    */
   readonly sessions?: RunServiceSessionRegistry
   /**
-   * 405-05 (D-12 / 402 D-16): the composed agent host the two READ rows dispatch through.
+   * the composed agent host the two READ rows dispatch through.
    *
    * PASSED STRAIGHT THROUGH, on `sessions`' own rule — this composer decides nothing about it and
    * composes no host of its own. It is the SAME `agentHost` the local door was handed: one
@@ -762,12 +761,12 @@ export interface RunServiceCompositionInput {
 
 export interface RunServiceComposition {
   /**
-   * Handed to `startServer` as `runService`. 2026-10-01 (432-21, D-12): the composition carries no
+   * Handed to `startServer` as `runService`. 2026-10-01: the composition carries no
    * `secretStore` and no `tokenCount` — there are no declared credentials to seed or count.
    */
   readonly ports: RunServicePorts
   /**
-   * THE READINESS PREDICATE THIS COMPOSITION BUILT (402-05, D-15).
+   * THE READINESS PREDICATE THIS COMPOSITION BUILT.
    *
    * PUBLISHED SO THE LOCAL DOOR CAN SERVE THE SAME FUNCTION OBJECT — not an equal one. `ports`
    * above carries it too, and they are the identical reference by construction; a cell pins that
@@ -786,7 +785,7 @@ export interface RunServiceComposition {
  * caller mint or starter beside this one would be measuring a door this product does not ship,
  * which is the lookalike-assembly failure the conformance suite refuses by name.
  *
- * 2026-10-01 (432-21, D-12): NO TOKENS ARE DEREFERENCED. The declared run-service credentials, the
+ * NO TOKENS ARE DEREFERENCED. The declared run-service credentials, the
  * startup refusal for an unset one and the store that seeded their values into the run masker are
  * deleted; this composer cannot refuse startup any more, and every request runs as
  * {@link RUN_SERVICE_FUNCTION_CALLER}.
@@ -818,10 +817,10 @@ export function composeRunServicePorts(input: RunServiceCompositionInput): RunSe
     const request: RunsStartInput = start.patterns === undefined || start.patterns.length === 0
       ? {}
       : { patterns: [...start.patterns] }
-    // THE SHIPPED DISPATCHER, NOT THE PORT UNDERNEATH IT (D-04). Going straight to the run
+    // THE SHIPPED DISPATCHER, NOT THE PORT UNDERNEATH IT. Going straight to the run
     // execution would skip the input validation, the core's refusals, the receipt
     // classification and the ack law — the carve-out the no-private-powers law refuses.
-    // 2026-10-17 (443-06, D-24): this request's run records `api`; the queue and the co-hosted MCP
+    // this request's run records `api`; the queue and the co-hosted MCP
     // endpoint share the host and record their own.
     const result = await withRunDoor('api', () => invokeFunction(
       host.registry as FunctionRegistry,
@@ -840,7 +839,7 @@ export function composeRunServicePorts(input: RunServiceCompositionInput): RunSe
    * THE SAME HELPER THE LOCAL DOOR CALLS, by reference — see `mintLiveUrlThrough`. The two doors
    * differ in the `FunctionCaller`'s surface and origin and in nothing else. The minted token binds
    * its own subject (run, handle) and expiry, and the frame socket validates those independently of
-   * which door minted it (D-13). 2026-10-01 (432-21, D-12): the verified bearer's trust scope this
+   * which door minted it. 2026-10-01: the verified bearer's trust scope this
    * mint ran under is deleted with the bearer.
    *
    * AN UNCOMPOSED HOST IS `live_view_unavailable`, NOT A CRASH. It is the same genuine host fact
@@ -872,15 +871,15 @@ export function composeRunServicePorts(input: RunServiceCompositionInput): RunSe
     attach: (runId) => sessions.attach(runId),
     readiness,
     mintLiveUrl,
-    // 405-05: conditionally spread on the house rule an absent port follows everywhere in this
+    // conditionally spread on the house rule an absent port follows everywhere in this
     // file — an absent host must be an ABSENT field, because the door reads exactly this record to
     // decide whether it can dispatch a read at all.
     ...(input.agentHost === undefined ? {} : { agentHost: input.agentHost }),
   }
 
-  // 2026-10-01 (432-21, D-12): no store is bound here. Until then the declared run-service token
-  // values were seeded into every run's masker from this line (402-06, WINDOWS #224); the tokens
-  // are deleted, and since 441-48 (D-01) the door seeds no masker at all — a run masks the values
+  // no store is bound here. Until then the declared run-service token
+  // values were seeded into every run's masker from this line; the tokens
+  // are deleted, and since 441-48 the door seeds no masker at all — a run masks the values
   // its project declares.
   return {
     ports,
@@ -891,10 +890,10 @@ export function composeRunServicePorts(input: RunServiceCompositionInput): RunSe
 }
 
 /**
- * The co-hosted MCP endpoint's mount decision, as a value (408-09 WR-01 / WR-09).
+ * The co-hosted MCP endpoint's mount decision, as a value.
  *
  * `mount` is the whole answer to "does this dashboard bind a second listener at all"; `port` is the
- * clamped port it would bind. 2026-10-01 (432-21, D-12): no `tokenCount` — the MCP token
+ * clamped port it would bind. 2026-10-01: no `tokenCount` — the MCP token
  * declarations are no longer read.
  */
 export interface McpCoHostMountPlan {
@@ -913,16 +912,16 @@ export interface McpCoHostMountPlan {
  *    the schema declares it `optional()`. Only an operator who writes `enabled: false` turns the
  *    surface off while keeping the block on file.
  *
- * 2026-10-01 (432-21, D-12): CONDITION 1 REPLACES "at least one token entry must be declared".
+ * CONDITION 1 REPLACES "at least one token entry must be declared".
  * That condition read `services.mcp.tokens`, which is no longer read: the endpoint asks no caller for
  * a bearer, and the request a block declares is the request to serve the surface. What keeps the
  * endpoint off other machines and other websites is the loopback bind and the Host/Origin guards in
- * `createMcpHttpRequestListener` (D-13), not a credential count. A config that still declares
- * `services.mcp.tokens` fails strict validation (D-22), so it never reaches this decision; a project
+ * `createMcpHttpRequestListener`, not a credential count. A config that still declares
+ * `services.mcp.tokens` fails strict validation, so it never reaches this decision; a project
  * with no block still gets none.
  *
  * Until 408-09 the `enabled` condition did not exist: it was declared in `McpConfigSchema` and read
- * NOWHERE (WR-01, T-408-18). A knob that reads as a control and controls nothing is the defect class
+ * NOWHERE. A knob that reads as a control and controls nothing is the defect class
  * this function exists to prevent, which is why the decision is a FUNCTION a cell can drive over a
  * config record.
  *
@@ -953,7 +952,7 @@ export function mcpMountPlanFor(config: unknown): McpCoHostMountPlan {
 }
 
 /**
- * What binding the co-hosted MCP listener left behind (408-09 WR-01 / WR-02).
+ * What binding the co-hosted MCP listener left behind.
  *
  * `server` is the handle the CALLER should keep — `undefined` when the bind failed, which is what
  * makes "the dashboard survives a failed optional mount" observable rather than argued.
@@ -965,7 +964,7 @@ export interface McpCoHostListenResult {
 }
 
 /**
- * Bind the co-hosted MCP listener, scoping EVERY failure on it to itself (408-09, WR-02 · T-408-17).
+ * Bind the co-hosted MCP listener, scoping EVERY failure on it to itself.
  *
  * WHY THIS IS A FUNCTION AND NOT FOUR LINES AT THE MOUNT SITE. The mount runs AFTER `startServer`
  * has bound and the dashboard is already serving, and before 408-09 a bind failure here rejected a
@@ -1027,8 +1026,8 @@ export async function mountCoHostedMcp(input: {
   return { server, boundPort, warning: undefined }
 }
 
-// 2026-10-01 (432-21, D-12): `McpCoHostCredentials` and `coHostedMcpCredentialsFor` are deleted.
-// They dereferenced `services.mcp.tokens` after the mount decision (408-17, CR-01) and refused the
+// `McpCoHostCredentials` and `coHostedMcpCredentialsFor` are deleted.
+// They dereferenced `services.mcp.tokens` after the mount decision and refused the
 // mount when a declared variable was unset; with no token declarations read, the mount plan above
 // is the whole decision, and there is no dereference left to fail.
 
@@ -1098,7 +1097,7 @@ async function startDashboardBackedServices(
 
     const {
       DashboardDatabase,
-      // 405-01 (D-03): the reader adapter over THIS server's one database handle. Built here
+      // the reader adapter over THIS server's one database handle. Built here
       // because the composition root that holds both the database and the function layer is this
       // command — `packages/dashboard-server` cannot reach the registry to bind itself.
       createDashboardRunDetailReader,
@@ -1124,7 +1123,7 @@ async function startDashboardBackedServices(
       }
     }
 
-    // ---- The dashboard's host (400-01, D-01/D-05/D-08/D-16; 430 D-02) --------------------------
+    // ---- The dashboard's host --------------------------
     //
     // COMPOSED HERE AND HANDED OVER. The host lives in this process, which is the process
     // dashboard-server runs in — D-01's requirement, met without dashboard-server acquiring the
@@ -1136,15 +1135,15 @@ async function startDashboardBackedServices(
     // `overlayDashboardBaseUrl` for why this is a mutable box rather than a value.
     let boundOrigin: string | undefined
 
-    // 2026-10-01 (432-14, D-14): no confirm registry is created. The run-confirm pair that served
+    // no confirm registry is created. The run-confirm pair that served
     // it, and the composition's browser confirm that parked questions in it, are deleted.
 
-    // ---- The run door (401-07, D-01/D-09/D-10) -------------------------------------------------
+    // ---- The run door -------------------------------------------------
     //
     // COMPOSED BEFORE THE HOST AND BOUND AFTER IT, for the reason `composed` and `boundOrigin`
     // inside `composeDashboardDoor` are boxes: the bridge is an INPUT to the composition and the
     // starter needs the composition's registry, so one of the two has to be read at call time.
-    // ---- The post-processing chip relay (404-05, D-16) ---------------------------------------
+    // ---- The post-processing chip relay ---------------------------------------
     //
     // ONE OBJECT, TWO HALVES, AND THEY HAVE TO BE THE SAME ONE. `publish` becomes the chip
     // emitter's second sink, down inside whatever tail this process's drain leg composes; the relay
@@ -1167,12 +1166,12 @@ async function startDashboardBackedServices(
     // local `/api/run-stream/:runId` door answered 503 about runs this very process was executing.
     // It is composed here, once, and the run service receives it rather than building a second.
     const sessions = createRunServiceSessionRegistry({ observeSessions: runDoor.observeSessions })
-    // 428 D-07: the editor-subject registry, created once beside the run registry. The same object
+    // the editor-subject registry, created once beside the run registry. The same object
     // is the function layer's editor lookup (through `composeLiveView`) and the server's (the
     // session manager registers into it, the frame socket attaches from it), so the mint and the
     // socket can never disagree about which editor sessions exist.
     const editorSubjects = createLiveEditorSubjects()
-    // The signer, the mint port and the validator, joined once. 441-48 (D-01): it registers no
+    // The signer, the mint port and the validator, joined once. 441-48: it registers no
     // minted token for masking — a door-minted credential is not a declared secret.
     const liveView = composeLiveView({
       sessions,
@@ -1185,11 +1184,11 @@ async function startDashboardBackedServices(
       configPath: configFilePath,
       boundOrigin: () => boundOrigin,
       liveView: liveView.liveView,
-      // 405 D-03: the SAME `db` the ingest writes through, read back through the function layer.
+      // the SAME `db` the ingest writes through, read back through the function layer.
       // One handle, one writer, one process — and the page's read now crosses the registry
       // instead of reaching into SQLite from inside a route handler.
       runDetail: createDashboardRunDetailReader(db),
-      // NO `resolveExecutionContext` (400-13): the door answers its own, which since 432-14 is
+      // NO `resolveExecutionContext`: the door answers its own, which since 432-14 is
       // `local-headless` for every call. Nothing here reaches `setActiveExecutionContextResolver`
       // either: that setter is a process global and would re-answer the question for every
       // composition in this process (Pitfall 5).
@@ -1197,22 +1196,22 @@ async function startDashboardBackedServices(
     })
     runDoor.bindHost(runHost)
 
-    // ---- The run service (402-01, D-02/D-05/D-06 — INVK-03) -----------------------------------
+    // ---- The run service -----------------------------------
     //
     // COMPOSED HERE FOR `agentHost`'s AND `executionBackend`'s OWN REASON: the ports name
     // `runs.start`, `invokeFunction` and the composed local host, none of which
     // `packages/dashboard-server` may import. The server mounts the module; this process supplies
     // everything it reaches through.
     //
-    // 2026-10-01 (432-21, D-12/D-13): MOUNTED UNCONDITIONALLY, AND TOKENLESS. It used to mount only
+    // MOUNTED UNCONDITIONALLY, AND TOKENLESS. It used to mount only
     // when `services.dashboard.runServiceTokens` declared a credential, and an unset declared
-    // variable refused startup here. That key is deleted (432-22): the door asks for no credential,
+    // variable refused startup here. That key is deleted: the door asks for no credential,
     // and what guards it is the same-site check above its route table and the loopback bind every
     // door in this process shares.
     const configuredHost = typeof servicesConfig.host === 'string' && servicesConfig.host.trim() !== ''
       ? (servicesConfig.host as string).trim()
       : undefined
-    // 405-05 (D-12 / 402 D-16): the SAME host the local door serves through. Not a second
+    // the SAME host the local door serves through. Not a second
     // composition, which is what makes `/run/:runId/detail` and the local `/api/runs/:id/detail` one
     // capability behind two front doors rather than two implementations of one idea.
     const runService = composeRunServicePorts({ door: runDoor, sessions, agentHost })
@@ -1220,22 +1219,22 @@ async function startDashboardBackedServices(
     const { close, port: listeningPort } = await startServer({
       db,
       port,
-      // 402-05 (D-07 — INVK-03): the interface this server binds. A non-loopback value is REFUSED
+      // the interface this server binds. A non-loopback value is REFUSED
       // pre-listen, unconditionally — the credential count that once exempted it was deleted in
-      // the phase-402 verification round, and the credentials themselves in 432-21 (D-12). The
+      // the phase-402 verification round, and the credentials themselves in 432-21. The
       // config schema still does not refuse a non-loopback host at parse time, so the refusal reads
       // as a security decision rather than a config-shape error.
       ...(configuredHost === undefined ? {} : { host: configuredHost }),
-      // 402-05 (D-15): the LOCAL readiness door — the identical function object the run service's
+      // the LOCAL readiness door — the identical function object the run service's
       // `/ok` serves. What is deliberately NOT here is a second copy of these three facts.
       runServiceReadiness: runService.readiness,
-      // 403 D-14 (WINDOWS #264): the session lookup, read off the hoisted registry so the local
+      // the session lookup, read off the hoisted registry so the local
       // run-stream door and the frame socket can attach to a run this process is executing.
       runServiceAttach: sessions.attach,
-      // 404-05 (D-16): the other half of the relay above — a run this process drains is a run this
+      // the other half of the relay above — a run this process drains is a run this
       // process can push chips for.
       postProcessingRelay,
-      // 403 D-03/D-06: the live-view seam, likewise on both arms. `validate` is the function
+      // the live-view seam, likewise on both arms. `validate` is the function
       // layer's own validator by reference; `mintLiveUrl` dispatches the op through the SHIPPED
       // dispatcher, so the mint pays the op-level gate and the receipt classification exactly as
       // `runs.start` does — a direct call to the port underneath would be the carve-out the
@@ -1250,14 +1249,14 @@ async function startDashboardBackedServices(
           runHost.registry as FunctionRegistry,
           DASHBOARD_FUNCTION_CALLER,
         ),
-        // 428 D-07: the same dispatcher, the same caller, the editor subject. `editor.liveurl` is
+        // the same dispatcher, the same caller, the editor subject. `editor.liveurl` is
         // reached only through this door; it is unprojected from MCP by ruling.
         mintEditorLiveUrl: mintEditorLiveUrlThrough(
           runHost.registry as FunctionRegistry,
           DASHBOARD_FUNCTION_CALLER,
         ),
       },
-      // 428 D-07: the registry `composeLiveView` reads above, handed to the server by reference.
+      // the registry `composeLiveView` reads above, handed to the server by reference.
       liveEditorSubjects: editorSubjects,
       uiDir,
       artifactsDir: resolve(configDir, artifactsDir),
@@ -1267,15 +1266,15 @@ async function startDashboardBackedServices(
       llmConfig: dashboardLLMConfig,
       authFetch,
       agentHost,
-      // INVK-01: the queue executes through this, in this process, over `runs.start`. A dashboard
+      // the queue executes through this, in this process, over `runs.start`. A dashboard
       // started without it would answer 503 from the execution routes — which is what an
       // unresolvable `agent-qa` binary used to produce, and the honest shape of the same absence.
       executionBackend: runDoor.backend,
-      // 432-21 (D-12): always present — the run service mounts tokenlessly.
+      // always present — the run service mounts tokenlessly.
       runService: runService.ports,
     })
 
-    // D-16: the second supplier, now that there is a port to name. Loopback rather than a hostname,
+    // the second supplier, now that there is a port to name. Loopback rather than a hostname,
     // matching where this server binds.
     boundOrigin = `http://localhost:${String(listeningPort)}`
 
@@ -1302,15 +1301,15 @@ async function startDashboardBackedServices(
     // name and a page on another origin by exactly the code the standalone face does, and emits no
     // CORS header for the same reason it does not.
     //
-    // 2026-10-01 (432-21, D-12): NO CREDENTIAL FAMILY. The `services.mcp.tokens` bearer this
+    // NO CREDENTIAL FAMILY. The `services.mcp.tokens` bearer this
     // endpoint used to require (Open Question 4: one credential family per surface) is deleted, so
     // the endpoint serves the same tokenless caller the standalone face does, and a run-service
     // bearer is not a thing either.
     //
     // THE MOUNT DECISION IS `mcpMountPlanFor`, AND IT IS THE ONLY PLACE ITS CONDITIONS ARE SPELLED
-    // (408-09, WR-01 / WR-09 · T-408-18): a declared `services.mcp` block that does not say
+    // a declared `services.mcp` block that does not say
     // `enabled: false`. Until 432-21 the second condition was "at least one token declared", and
-    // 408-17 (CR-01) moved the token dereference that followed it behind the decision so an unset
+    // 408-17 moved the token dereference that followed it behind the decision so an unset
     // `tokenEnvVar` could not take a serving dashboard down; with no dereference left, that ordering
     // hazard is gone with it.
     const mcpPlan = mcpMountPlanFor(config)
@@ -1346,7 +1345,7 @@ async function startDashboardBackedServices(
           },
         }),
       )
-      // THE OPTIONAL SURFACE CANNOT TAKE THE PRIMARY ONE DOWN (408-09, WR-02 · T-408-17). The
+      // THE OPTIONAL SURFACE CANNOT TAKE THE PRIMARY ONE DOWN. The
       // dashboard is already serving by the time this line runs, so a failure here costs the
       // operator a warning that NAMES the MCP endpoint and the port, not their dashboard. The
       // handle `mountCoHostedMcp` answers is the handle this command keeps: `undefined` on failure,
@@ -1373,15 +1372,15 @@ async function startDashboardBackedServices(
       shuttingDown = true
       console.log(pc.dim(`\nShutting down ${labels.shutdown}...`))
       close()
-      // 408 plan 03: the co-hosted MCP listener is this command's to close, beside the dashboard's
+      // the co-hosted MCP listener is this command's to close, beside the dashboard's
       // own — it is a socket this process bound, and a shutdown that left it listening would leave
       // an endpoint over a registry whose door is closing underneath it.
       mcpServer?.close()
-      // 402-01: unregister the session observer and drop every retained handle. Without it the
+      // unregister the session observer and drop every retained handle. Without it the
       // run door's observer set keeps a closure alive that keeps this map alive that keeps every
       // finished run's bus alive.
       runService.dispose()
-      // 403 D-14: the hoisted registry is the command's to dispose — `composeRunServicePorts`
+      // the hoisted registry is the command's to dispose — `composeRunServicePorts`
       // leaves a registry it did not build alone.
       sessions.dispose()
       process.exit(0)

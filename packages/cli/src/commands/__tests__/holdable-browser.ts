@@ -3,7 +3,7 @@
 // NOT A TEST FILE: vitest's include here is `src/**/__tests__/**/*.test.ts`, so this module is
 // imported, never collected.
 //
-// WHY IT IS A SHARED PRIMITIVE AND NOT A SECOND COPY (401-22). It was born inside
+// WHY IT IS A SHARED PRIMITIVE AND NOT A SECOND COPY. It was born inside
 // `dashboard-cancel-isolation.e2e.test.ts` (401 UAT item 14) and now has a second consumer,
 // `composition/__tests__/interrupted-gate-run-exclusion.e2e.test.ts`. The whole value of this
 // fixture is that a member's LIVENESS is ASSERTED rather than inferred, and an assertion is only
@@ -47,7 +47,7 @@
 //    the hold: no `sleep`, no timing window, no "act within N ms and hope". The stand-in blocks
 //    until the cell says otherwise.
 //
-//    2026-10-02 (quick 261002-tmo): the argv is written to a pending file and RENAMED into
+//    the argv is written to a pending file and RENAMED into
 //    `arrived-N`. A direct write created the file before its bytes landed, and a caller counting
 //    arrivals could read it in that gap: under forced gates at load 22-86 the cancel-isolation
 //    cell read the argv as '' (`expected '' to contain '--remote-debugging-pipe'`, 432-03 #1,
@@ -160,7 +160,6 @@ export function plantHoldableBrowser(host: HoldableBrowserHost): HoldableBrowser
         'fs.renameSync(`${control}/pending-arrival-${ordinal}`, `${control}/arrived-${ordinal}`)',
         '// Property 5 — no clock: park until the cell alone says otherwise.',
         'const parked = () => {',
-        // 2026-10-19 (444.1-24, D-39): a removed root lets it go too, so removal strands no stand-in.
         '  if (!fs.existsSync(control) || fs.existsSync(`${control}/release-${ordinal}`)) process.exit(1)',
         '  setTimeout(parked, 25)',
         '}',

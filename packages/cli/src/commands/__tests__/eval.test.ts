@@ -1,8 +1,8 @@
-// Phase 372-05 — the eval command family's first verb: extract (D-01), sweep-by-default with the
+// Phase 372-05 — the eval command family's first verb: extract, sweep-by-default with the
 // D-02 filter vocabulary, typed per-run skips (never batch errors), D-04 DTO-faithful rendering,
 // and D-08 exit semantics. Task 1 pins runExtractVerb; Task 2 pins the commander wiring.
 // Phase 372-06 adds the replay verb: sweep staged cassette bundles through runCassetteReplay with
-// the session's seeded masking factory (D-06), the D-03 judge bag and typed refusal counters.
+// the session's seeded masking factory, the D-03 judge bag and typed refusal counters.
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import { Command } from 'commander'
 import { APICallError } from 'ai'
@@ -252,9 +252,9 @@ function buildHandoff(input: {
   withCachedStep?: boolean
   schemaVersion?: number
   stepText?: string
-  /** 413-06 D-04: the member outcome the deterministic floor keys its verdict domain off. */
+  /** the member outcome the deterministic floor keys its verdict domain off. */
   outcome?: MemberTestOutcome
-  /** 413-06 D-04: the persisted deterministic classification (a passed+retry member reads flake). */
+  /** the persisted deterministic classification (a passed+retry member reads flake). */
   rootCause?: Verdict
 }): CompletedRunHandoff {
   const scope = input.scope ?? SUITE_SCOPE
@@ -362,7 +362,7 @@ describe('runExtractVerb — sweep-by-default over the sanctioned engines', () =
     expect(result.runsSkipped).toEqual([])
     expect(result.runsFiltered).toBe(0)
     // Each run stages one leaf + one procedure cassette; run-beta's cached step is a
-    // selection skip counted by the engine's report, never re-derived by the CLI (D-04).
+    // selection skip counted by the engine's report, never re-derived by the CLI.
     expect(result.cassettesWritten).toBe(4)
     expect(result.completeness).toEqual({ complete: 4, 'cache-hit': 1 })
     expect(result.cassettesRoot).toBe(resolve(dir, '.agent-qa', 'eval', 'cassettes'))
@@ -450,7 +450,7 @@ describe('runExtractVerb — sweep-by-default over the sanctioned engines', () =
   })
 })
 
-// ---- 372-06 Task 1: runReplayVerb — sweep, seeded masking, judge bag (D-02/D-06/D-08) ---------
+// ---- 372-06 Task 1: runReplayVerb — sweep, seeded masking, judge bag ---------
 
 /** The config-registry model id the captured-boundary stub keys off (createModel passthrough). */
 const REPLAY_STUB_MODEL_ID = 'replay-cli-stub'
@@ -485,7 +485,7 @@ async function writeReplayFixture(
 ): Promise<{ dir: string; configPath: string }> {
   const dir = await mkdtemp(join(tmpRoot, 'replay-fixture-'))
   const configPath = join(dir, 'agent-qa.config.yaml')
-  // 413-06: the registry model id is what the D-19 profile key is composed FROM, so a baseline
+  // the registry model id is what the D-19 profile key is composed FROM, so a baseline
   // cell swaps it while keeping every other fixture property (localhost baseURL, no credential).
   await writeFile(
     configPath,
@@ -810,7 +810,7 @@ describe('runReplayVerb sweeps staged cassettes through the sanctioned compositi
   })
 })
 
-// ---- 372-07 Task 2: runReportVerb — whole-corpus assembly from persisted records (D-13/D-14) --
+// ---- 372-07 Task 2: runReportVerb — whole-corpus assembly from persisted records --
 
 /** Extract + replay one recorded run so real replay.json/score.json records exist on disk. */
 async function scoredRecordsFixture(
@@ -965,7 +965,7 @@ describe('runReportVerb builds one report from the staged records', () => {
     const procedureId = ids.find(id => !id.endsWith('-leaf'))!
     await writeRefusalReplayRecord(dir, 'refusal-fixture')
     // The leaf carries a contrastive-negative label leg: its full-match decision must move OUT
-    // of the headline and INTO the negative buckets (D-08) — proof the pairing reached
+    // of the headline and INTO the negative buckets — proof the pairing reached
     // buildEvalReport through the staged-label join.
     await setStagedLabelPairing(dir, leafId, 'contrastive-negative', procedureId)
 
@@ -1013,13 +1013,13 @@ describe('runReportVerb builds one report from the staged records', () => {
     expect(present.report.judge).toEqual(JUDGE_BLOCK_A)
 
     // Two DIFFERING blocks ⇒ 'mixed': buildEvalReport called WITHOUT a judge block, notice
-    // emitted — an identity is never synthesized (T-372-20).
+    // emitted — an identity is never synthesized.
     await setScoreJudgeBlock(dir, secondId, JUDGE_BLOCK_B)
     const mixed = await runReportVerb(session)
     expect(mixed.judgeIdentity).toBe('mixed')
     expect(mixed.report.judge).toBeUndefined()
     expect(mixed.notices.some(notice => notice.includes('mixed'))).toBe(true)
-    // 413-15: the mixture is stamped on the report as data, so the comparator can see it.
+    // the mixture is stamped on the report as data, so the comparator can see it.
     expect(mixed.report.judgeIdentity).toBe('mixed')
   })
 

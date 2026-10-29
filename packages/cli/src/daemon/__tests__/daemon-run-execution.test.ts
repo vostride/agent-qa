@@ -1,10 +1,10 @@
-// The daemon dispatches runs through the ONE in-process core (Phase 401 plan 06, INVK-02).
+// The daemon dispatches runs through the ONE in-process core.
 //
 // WHAT THESE CELLS ARE ABOUT. The daemon used to answer `runs.start` by spawning a piped
 // `agent-qa run` child, tee-ing its stdout/stderr into two files beside the run and recording the
 // child's exit code. Three facts change with that retirement and each one needs saying out loud:
 //
-//   1. THE POSTURE IS CARRIED, NOT SNIFFED (D-07). The daemon hands the drive an EXPLICIT
+//   1. THE POSTURE IS CARRIED, NOT SNIFFED. The daemon hands the drive an EXPLICIT
 //      `local-headless` and no confirm port, so ask-tier work with no credential fails closed BY
 //      CONSTRUCTION. (Nothing asks now: the carried posture is what the ack reports, and a run
 //      starts whatever environment its target declares.) The old wire decided in the CHILD, whose context came from the child's own
@@ -12,7 +12,7 @@
 //      `GITHUB_ACTIONS` was set. So the cell below VARIES the ambient and requires the injected
 //      value to win. A cell that passed because the ambient default happened to be
 //      `local-headless` would prove nothing: this process pins exactly that at daemon startup.
-//   2. THE BUS EVENT LOG IS THE RECORD (D-04). No `run-child.stdout.log`, no
+//   2. THE BUS EVENT LOG IS THE RECORD. No `run-child.stdout.log`, no
 //      `run-child.stderr.log`, ever again. The ABSENCE is asserted by listing the run directory,
 //      not by trusting the code path that stopped writing them.
 //   3. THE JOB-OUTCOME ANALYTICS SURVIVES THE MOVE. Same event name, same closed key set, same
@@ -72,11 +72,11 @@ afterAll(() => {
   if (pinnedTmpdir !== undefined) removeTempRoots([pinnedTmpdir.root])
 })
 
-// 2026-10-17 (443-08, D-22): every drive call carries a record; each cell closes the ones it opened.
+// every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 
 /**
- * The capture files that retired with the child (D-04).
+ * The capture files that retired with the child.
  *
  * Spelled here rather than imported, and that is the point: nothing in the daemon's own closure
  * names them any more, so there is no constant left to import.
@@ -344,7 +344,7 @@ describe('the daemon dispatches runs through the in-process core', () => {
           executionContext: 'local-headless',
           testCount: 1,
         })
-        // A daemon serving a dispatch prints nothing: no reporters (D-04), no console tee.
+        // A daemon serving a dispatch prints nothing: no reporters, no console tee.
         expect(stdoutWrites).toBe(0)
         const events = eventTypes(fixture as never)
         expect(events).toContain('runStarted')
@@ -355,11 +355,11 @@ describe('the daemon dispatches runs through the in-process core', () => {
         expect(target.hits).toEqual(['/in-process-thing'])
         expect(buildOrdinalsExist(fixture as never)).toBe(true)
 
-        // RE-SPELLED 2026-09-30 (432-13): the D-07 allow arm read the gate row's context. No row is
+        // RE-SPELLED 2026-09-30: the D-07 allow arm read the gate row's context. No row is
         // written now; the carried context is the ack's `executionContext`, asserted above.
         expect(auditRows(fixture as never)).toEqual([])
 
-        // D-04: THE ABSENCE, read off the directory listing rather than off the code path.
+        // THE ABSENCE, read off the directory listing rather than off the code path.
         const files = runDirFiles(fixture)
         expect(files).toContain('events.jsonl')
         expect(files).toContain('handoff.json')
@@ -454,7 +454,7 @@ describe('the daemon dispatches runs through the in-process core', () => {
   )
 })
 
-// 432-13 (D-01/D-14): the worker carries its detected posture and asks nobody. A dispatched run
+// the worker carries its detected posture and asks nobody. A dispatched run
 // against a shared target starts under the carried `local-headless`, whatever the ambient says.
 describe('the worker starts a non-production run with no approval', () => {
   it(
@@ -723,7 +723,7 @@ describe('the daemon has no capture-file writer and no piped-child consumer', ()
   })
 })
 
-// 2026-10-17 (443-06, D-02): the daemon's runs reach runs.db through the same record as every door.
+// the daemon's runs reach runs.db through the same record as every door.
 describe('the run record of a daemon-dispatched run', () => {
   it('a run the daemon dispatches writes its row, stamped with the daemon, trigger cli', async () => {
     const target = new CountingTarget()
@@ -757,7 +757,7 @@ describe('the run record of a daemon-dispatched run', () => {
   }, 180_000)
 })
 
-// 2026-10-21 (447-08, D-16): a dispatched run reports its outcome beside the job event, printing nothing.
+// a dispatched run reports its outcome beside the job event, printing nothing.
 describe('the run outcome of a daemon-dispatched run', () => {
   it('a daemon-dispatched run emits its run outcome beside the job event', async () => {
     const target = new CountingTarget()
@@ -799,7 +799,7 @@ const AGENT_MARKERS = [
   'AGENT',
 ] as const
 
-// 2026-10-21 (447-09, D-14): a job is attributed to its submitter, never to the daemon's launcher.
+// a job is attributed to its submitter, never to the daemon's launcher.
 describe('the submitter agent of a daemon job', () => {
   it('a daemon job reports its submitter agent product, and unknown when none was carried', async () => {
     const target = new CountingTarget()

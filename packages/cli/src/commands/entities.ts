@@ -1,4 +1,4 @@
-// `agent-qa entities` — the entity addressing debug verb (Phase 387, D-20).
+// `agent-qa entities` — the entity addressing debug verb.
 //
 // It replaces `ids`, which minted id-agent word-ids from the terminal and therefore owned a
 // capability the function layer now publishes. The machinery `ids` reached for did not go
@@ -89,7 +89,7 @@ function declaredSecretsFor(command: Command): DeclaredSecretMask {
   return declaredSecrets
 }
 
-// 2026-10-14 (441-14, D-07): everything this file prints is masked and never restored; JSON is
+// everything this file prints is masked and never restored; JSON is
 // masked leaf by leaf before it is serialized. 2026-10-15 (441-62, IN-A07): keys too.
 function emitJson(mask: MaskFn, value: unknown): void {
   console.log(guardJsonText(JSON.stringify(maskPayloadTree(value, mask), null, 2)))

@@ -1,4 +1,4 @@
-// `agent-qa fn` — the generic function-layer invoker (Phase 384, D-05).
+// `agent-qa fn` — the generic function-layer invoker.
 //
 // A permanent registry debug/discovery surface: list what exists, invoke by id. It is a
 // thin client by construction — it resolves a root, builds the registry at the composition
@@ -58,7 +58,7 @@ function compositionInput(
   command: Command,
 ): { agentQaRoot: string; configPath: string } {
   const configPath = resolve(globalOptions(command).config ?? 'agent-qa.config.yaml')
-  // 2026-10-01 (432-17, D-05): no minting surface — nothing is filed for a door to be named on.
+  // no minting surface — nothing is filed for a door to be named on.
   return {
     agentQaRoot: resolve(dirname(configPath), '.agent-qa'),
     configPath,
@@ -164,7 +164,7 @@ async function renderStream(
   }
 }
 
-// 2026-10-14 (441-14, D-07): leaves are masked before serialization, so a declared value holding a
+// leaves are masked before serialization, so a declared value holding a
 // JSON-special character can neither break the document nor slip past the mask.
 // 2026-10-15 (441-62, GAP-D2): keys too.
 function emitJson(mask: MaskFn, value: unknown): void {
@@ -172,7 +172,7 @@ function emitJson(mask: MaskFn, value: unknown): void {
 }
 
 /**
- * The bytes `agent-qa fn` prints for a unary result — the honest baseline (399 D-14, 399.1 D-04).
+ * The bytes `agent-qa fn` prints for a unary result — the honest baseline.
  *
  * PROMOTED TO AN EXPORT ON 2026-08-20 rather than copied (399.1 plan 06). It was one inline
  * expression until the conformance suite needed to drive this door's render for all 42 capabilities,
@@ -194,7 +194,7 @@ function emitHuman(mask: MaskFn, text: string): void {
 
 /**
  * The listing projection: identity and contract metadata only, never zod internals. No scope
- * column since 432-20 (D-12): declarations carry no permission metadata.
+ * column since 432-20: declarations carry no permission metadata.
  */
 function declarationRow(declaration: FunctionDeclaration): {
   id: string
@@ -298,7 +298,7 @@ export function createFnCommand(deps: FnCommandDeps = {}): Command {
               dirname(composition.configPath),
             )
           : undefined
-        // D-07: daemon routing is explicit. A live registration never changes the default,
+        // daemon routing is explicit. A live registration never changes the default,
         // while the explicit route does not compose a second local host before going over wire.
         const localRegistry = viaDaemon
           ? undefined
@@ -340,7 +340,7 @@ export function createFnCommand(deps: FnCommandDeps = {}): Command {
             })
           : await invokeFunction(localRegistry!, id, input, CLI_FUNCTION_CALLER)
 
-        // The registry knows which ops stream (D-08); the rendering follows the RESULT so
+        // The registry knows which ops stream; the rendering follows the RESULT so
         // the invoker needs no per-id knowledge of its own.
         if (isStream(result)) {
           await renderStream(result, options.json === true, mask)

@@ -23,7 +23,7 @@ function getGlobalConfigPath(command: Command): string | undefined {
     ?? command.parent?.opts<{ config?: string }>().config
 }
 
-/** Typed integer flag parser (D-08): a non-integer `--k`/`--seed` is a loud invalid-value error. */
+/** Typed integer flag parser: a non-integer `--k`/`--seed` is a loud invalid-value error. */
 function parseIntegerFlag(flagName: string): (value: string) => number {
   return (value: string): number => {
     if (!/^-?\d+$/.test(value.trim())) {
@@ -197,7 +197,7 @@ export function createEvalCommand(): Command {
               printSummary(renderExtractSummary(result))
             }
           } catch (err) {
-            // D-08: EvalNamedInputError and config/session resolution errors are the only
+            // EvalNamedInputError and config/session resolution errors are the only
             // failure modes — the command layer maps them all to exit code 1.
             printFailure(err)
             process.exitCode = 1
@@ -269,7 +269,7 @@ export function createEvalCommand(): Command {
               printSummary(renderReplaySummary(result))
             }
           } catch (err) {
-            // D-08: typed named-input/config/auth errors are the only failure modes — refusal
+            // typed named-input/config/auth errors are the only failure modes — refusal
             // counters and judge errors are data and never reach this catch.
             printFailure(err)
             process.exitCode = 1

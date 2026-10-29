@@ -1,4 +1,4 @@
-// THE ONE PER-MEMBER TARGET PASS both of `run`'s producers now call (401-19, WR-04).
+// THE ONE PER-MEMBER TARGET PASS both of `run`'s producers now call.
 //
 // AGAINST A HAND-BUILT CONFIG, DELIBERATELY, and that is the same road WR-02 is about:
 // `resolveTarget` reads `(config as any).registry?.targets` and casts, so a config assembled in

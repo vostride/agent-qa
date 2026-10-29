@@ -1,4 +1,4 @@
-// `agent-qa ask "<message>"` — the one-shot chat verb (Phase 392, D-01 / D-24).
+// `agent-qa ask "<message>"` — the one-shot chat verb.
 //
 // A THIN CLIENT, on `fn.ts`'s idiom and for its reason. It resolves a root, composes the local
 // host, and calls `invokeFunction` with `agent.ask`. It owns no turn capability of its own: the
@@ -9,13 +9,13 @@
 // THE ONE-SHOT AND THE REPL ARE THE SAME TURN. D-01's two surfaces exist so scripting and
 // conversation do not diverge, and the mechanism for that is not discipline — it is that both go
 // through this same op with the same input contract. `ask` is a single-turn session on the same
-// log grammar (D-17), which is why it needs no special case in the adapter.
+// log grammar, which is why it needs no special case in the adapter.
 //
-// NOTHING ASKS (432-13, D-01/D-14). The command used to inherit a terminal confirm from
+// NOTHING ASKS. The command used to inherit a terminal confirm from
 // `composeCliLocalAgent`, and a scripted `ask` in CI failed closed at the op gate. Both are gone: a
 // clause runs once, at a terminal and in CI alike, and the receipt says what it did.
 //
-// IT STILL SHOWS WHAT A TURN RENDERS MID-TURN (395-22 · CR-03 · CFGM-05). This command binds
+// IT STILL SHOWS WHAT A TURN RENDERS MID-TURN. This command binds
 // `chatPresent` on `process.stdout` — through the declared mask, unconditional — so a scaffold or a
 // fan-out report a turn produces is in the transcript beside the receipts, exactly as the REPL
 // prints it. And where a proposal cannot be displayed at all, the route refuses before dispatch
@@ -58,7 +58,7 @@ function compositionInput(
   command: Command,
 ): { agentQaRoot: string; configPath: string } {
   const configPath = resolve(globalOptions(command).config ?? 'agent-qa.config.yaml')
-  // 2026-10-01 (432-17, D-05): no minting surface — nothing is filed for a door to be named on.
+  // no minting surface — nothing is filed for a door to be named on.
   return {
     agentQaRoot: resolve(dirname(configPath), '.agent-qa'),
     configPath,
@@ -68,7 +68,7 @@ function compositionInput(
 function renderTurn(result: AgentAskResult): string {
   const lines = [pc.dim(`session ${result.sessionId} · turn ${result.turnId}`)]
   // A `--session` resume can land on a damaged log, and a scripted caller that heard nothing about
-  // it would carry on against a conversation quietly missing part of itself (392-03).
+  // it would carry on against a conversation quietly missing part of itself.
   if (result.refusedLineCount !== undefined) {
     lines.push(
       pc.yellow(`${result.refusedLineCount} line(s) of this session could not be read.`),
@@ -77,7 +77,7 @@ function renderTurn(result: AgentAskResult): string {
   if (result.receipts.length > 0) {
     lines.push(...result.receipts.map(receiptLine))
   }
-  // 399.1 (D-04/D-05): the same payload block the REPL prints, from the same module — the one-shot
+  // 399.1: the same payload block the REPL prints, from the same module — the one-shot
   // and the conversation are the same turn, and a scripted caller that was shown less than the
   // person at the prompt would be the drift D-01 forbids.
   lines.push(...renderClauseResults(result.results, result.receipts.length))
@@ -85,12 +85,12 @@ function renderTurn(result: AgentAskResult): string {
   return lines.join('\n')
 }
 
-// 2026-10-14 (441-06, D-07): everything this file prints is masked and never restored.
+// everything this file prints is masked and never restored.
 function emitHuman(mask: MaskFn, text: string): void {
   printRunText(mask(text))
 }
 
-// 395-22 · D-14: the mid-turn render, on stdout and unconditional (piped stdin included).
+// the mid-turn render, on stdout and unconditional (piped stdin included).
 function chatPresentThrough(mask: MaskFn): (text: string) => void {
   return (text) => {
     printRunText(mask(text), (block) => {
@@ -173,9 +173,9 @@ export function createAskCommand(): Command {
           // A scripted `ask` whose request was not carried out must not look like success to the
           // shell that called it. Both non-success statuses raise, so the exit code and the
           // rendered receipts agree — reporting one without the other is how a CI step goes green
-          // on a turn that refused everything (D-08 / D-11).
+          // on a turn that refused everything.
           //
-          // 2026-08-20 (399.1-09, D-12) — WHAT THIS GATE NOW SEES, AND WHAT IT DELIBERATELY DOES
+          // WHAT THIS GATE NOW SEES, AND WHAT IT DELIBERATELY DOES
           // NOT. Nothing below changed; what changed is upstream. The turn aggregate is derived
           // from the receipt vocabulary rather than from whether the op threw, so a `failed`
           // receipt — thrown OR returned — reaches the `clause-failed` branch below. Until then
@@ -183,7 +183,7 @@ export function createAskCommand(): Command {
           // set only in the engine's catch, and a turn carrying a `failed` receipt exited 0.
           //
           // A REFUSED-ONLY TURN DELIBERATELY KEEPS THE SUCCESS EXIT. `refused` means the control
-          // worked and the op answered (D-02), so it is not a failure to stop or to raise on; and
+          // worked and the op answered, so it is not a failure to stop or to raise on; and
           // the `fn` door was measured exiting 0 on the identical blocked payload. E2E-02 clause 2
           // makes door DISAGREEMENT the defect class, so moving this door alone would mint a parity
           // break inside the phase that exists to close one. The refusal reaches a reader on the

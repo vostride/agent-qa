@@ -61,7 +61,7 @@ function parseEnvValue(key: string, value: string): unknown {
  * verbatim excerpt of the person's source, which was measured carrying a planted credential out of
  * three ops.
  *
- * AND THE CAUSE IS SANITIZED TOO, BECAUSE THE RUNTIME READS THE CAUSE CHAIN (395-16 · CR-01).
+ * AND THE CAUSE IS SANITIZED TOO, BECAUSE THE RUNTIME READS THE CAUSE CHAIN.
  * An earlier revision of this class attached the raw `YAMLParseError` as `cause` on the reasoning
  * that no composed member reads it. That reasoning was false of the runtime, and shipped as a
  * defect: a thrown value is read by far more than the code that composed it. Node's DEFAULT
@@ -223,7 +223,7 @@ export function mergeUseBlocks(
 
 // Every scalar is its own row (`registry.llms[0].baseURL`); an empty array stays a `[]` leaf.
 // The cycle guard is path-scoped, so a repeated YAML alias renders in full and only a node that
-// contains itself becomes `<circular>` (395-27 · WR-03).
+// contains itself becomes `<circular>`.
 const CIRCULAR_MARKER = '<circular>'
 
 function flattenObject(
@@ -260,7 +260,7 @@ function flattenObject(
 
 type ConfigSource = 'global config' | 'test yaml' | 'cli flag'
 
-// 2026-10-15 (441-20, D-29): values print as written, through the caller's declared-secret mask.
+// values print as written, through the caller's declared-secret mask.
 export function formatConfigDebug(
   globalConfig: unknown,
   testConfig: unknown,
@@ -316,7 +316,7 @@ export function formatConfigDebug(
  *
  * WHY THIS EXISTS. The composition roots that emit telemetry read their config through a tolerant
  * `try { resolveConfig() } catch { undefined }`, because refusing a surface over its telemetry
- * configuration would be refusing the capability over the telemetry (T-398-32). That posture is
+ * configuration would be refusing the capability over the telemetry. That posture is
  * right and is unchanged. What was wrong is that the `catch` collapsed TWO different states into
  * one `undefined`:
  *
@@ -451,7 +451,7 @@ export function resolveConfiguredKnowledgeRoot(
 }
 
 /**
- * The same root, from a RAW config (407 D-18/D-19).
+ * The same root, from a RAW config.
  *
  * `doctor` deliberately loads the config unvalidated so it can REPORT on a broken one, so it
  * never has an `AgentQaConfig` to hand the resolver above. The schema's own `dir` default is what

@@ -1,4 +1,4 @@
-// The host half of `explain` (Phase 398 plan 07 — XPLN-02, D-09 / D-10 / D-11).
+// The host half of `explain`.
 //
 // FOUR CAPABILITIES `packages/agent` NAMED AND COULD NOT IMPLEMENT, implemented here and nowhere
 // else: the catalog read, the model's citation over it, the local coverage append, and the two
@@ -16,10 +16,10 @@
 //
 // WHAT IS DELIBERATELY *NOT* IN THE PROMPT: the invocation forms and the params documents. The
 // model may only answer with row ids, and every character a person reads is quoted out of a row by
-// the renderer (D-10) — so sending the model the exact slash forms would be sending it the very
+// the renderer — so sending the model the exact slash forms would be sending it the very
 // text it must never be the source of. It cannot reproduce what it was never shown.
 //
-// THE COVERAGE LOG IS LOCAL AND IT IS THE POINT (D-11 / T-398-15). `query` is the one free-text
+// THE COVERAGE LOG IS LOCAL AND IT IS THE POINT. `query` is the one free-text
 // value in this feature. It is appended to `.agent-qa/explain-coverage.jsonl` under this project's
 // own runtime root and travels nowhere else: the counter hooks below carry COUNTS and have no
 // string field a query could occupy, which is D-14's no-free-text law expressed as a type rather
@@ -48,7 +48,7 @@ import { loadCapabilityCatalog } from './loader.js'
 export const EXPLAIN_COVERAGE_LOG_FILE_NAME = 'explain-coverage.jsonl'
 
 /**
- * One line of the coverage log (D-11).
+ * One line of the coverage log.
  *
  * APPEND-ONLY, ONE JSON DOCUMENT PER LINE, NO ROTATION IN v2.0 — the run-artifact idiom this
  * runtime root already uses. SURF-FUT-02 reads this file later to decide whether docs-RAG has real
@@ -69,7 +69,7 @@ export interface ExplainCoverageRecord {
 }
 
 /**
- * What an abstention reports to a counter (D-14 / D-18).
+ * What an abstention reports to a counter.
  *
  * NO QUERY FIELD, AND THERE MUST NEVER BE ONE. The analytics union's `explain.abstained` member
  * declares counts and one boolean; a hook shaped wider than the event it feeds is an invitation,
@@ -88,7 +88,7 @@ export interface CreateCliCapabilityCatalogPortOptions {
   /** The project's runtime root, i.e. `<configDir>/.agent-qa`. Absolute. */
   readonly agentQaRoot: string
   /**
-   * The model the citation call runs on — THE SAME OBJECT the chat host composed (CHAT-06).
+   * The model the citation call runs on — THE SAME OBJECT the chat host composed.
    *
    * Passed in already built, never resolved here, for the reason `chatModel` is passed into
    * `composeLocalAgent` already built: `createModel` owns the masking middleware and the profile
@@ -177,7 +177,7 @@ export interface ExplainCoverageLog {
  * design can produce a half-written line except a process dying mid-write. That line is the tail at
  * the moment it is torn — and it stops being the tail as soon as the next abstention appends, which
  * is why the rule is stated over ANY line rather than over the last one. (Measured 2026-08-17,
- * 398-07: a first draft that skipped only the tail was correct for a file nobody wrote to again,
+ * a first draft that skipped only the tail was correct for a file nobody wrote to again,
  * and the cell that appended after a torn line caught it.)
  *
  * A missing file reads as an empty log. That is not an error: a project where nothing has ever
