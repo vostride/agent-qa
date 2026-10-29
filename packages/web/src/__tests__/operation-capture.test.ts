@@ -1,12 +1,12 @@
-// C436-DOWNLOAD-CAPTURE (436 D-19, D-20) and C436-CLIPBOARD-CAPTURE (436 D-21): real headless
+// real headless
 // Chromium downloads and app clipboard writes served from a local fixture, captured on the action
-// that produced them. C436-DOWNLOAD-DEADLINE (436-15): the download wait ends at the step deadline.
-// C436-DOWNLOAD-ARMING (436-16): every download-starting action is armed, a slow attachment is
+// that produced them. C436-DOWNLOAD-DEADLINE: the download wait ends at the step deadline.
+// every download-starting action is armed, a slow attachment is
 // waited for, and a late download is held for the next action or deleted at cleanup.
-// C436-DOWNLOAD-WINDOW (436-24): a navigation that never answers, from any frame or popup, ends the
-// start window at NAVIGATION_WINDOW_CAP_MS or half the action's time left (CR-05).
-// 2026-10-08 (436-27): the acting page's own main-frame navigation waits up to half the time left,
-// so a slow export is recorded on its click (WR-21); subframes and popups keep the cap.
+// a navigation that never answers, from any frame or popup, ends the
+// start window at NAVIGATION_WINDOW_CAP_MS or half the action's time left.
+// the acting page's own main-frame navigation waits up to half the time left,
+// so a slow export is recorded on its click; subframes and popups keep the cap.
 
 import { createHash } from 'node:crypto'
 import { existsSync } from 'node:fs'
@@ -109,7 +109,7 @@ const CLIPBOARD_PAGE = `<!DOCTYPE html>
 </html>
 `
 
-// The proof-clip.mjs shape (CR-01): a page claims a write it never made and polls the clipboard.
+// The proof-clip.mjs shape: a page claims a write it never made and polls the clipboard.
 const READBACK_PAGE = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><title>read-back fixture</title></head>
@@ -185,10 +185,10 @@ const READBACK_PAGE = `<!DOCTYPE html>
 </html>
 `
 
-// 436-16 (WR-05): the proof-dl.mjs form, a script-started navigation to an attachment the server
+// the proof-dl.mjs form, a script-started navigation to an attachment the server
 // answers late, a download a timer starts after the start window, and a clipboard write during a
-// slow download's completion wait (IN-09).
-// 2026-10-24 (261024-3w1): Chromium consumes the click's transient activation when the navigation
+// slow download's completion wait.
+// Chromium consumes the click's transient activation when the navigation
 // becomes a download, and a writeText without activation is rejected ("Write permission denied")
 // although clipboard-write is granted. A timer write 800 ms later therefore depended on whether
 // activation was consumed first. The cell now calls lateCopy() from inside the completion wait,
@@ -223,7 +223,7 @@ const ARMING_PAGE = `<!DOCTYPE html>
 </html>
 `
 
-// 436-21 (WR-18): a late download held across a probe reset, beside genuine clipboard writes.
+// a late download held across a probe reset, beside genuine clipboard writes.
 const HELD_PAGE = `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><title>held fixture</title></head>
@@ -265,7 +265,7 @@ const HEADED_PAGE = `<!DOCTYPE html>
 </html>
 `
 
-// 436-21 (WR-17): the review2-oracle.mjs shape and its neighbours. Every claim here goes through
+// the review2-oracle.mjs shape and its neighbours. Every claim here goes through
 // the binding by name; only the buttons that call writeText make a genuine write.
 const ORACLE_PAGE = `<!DOCTYPE html>
 <html lang="en">
@@ -344,7 +344,7 @@ const ORACLE_POPUP = `<!DOCTYPE html>
 </html>
 `
 
-// 436-24 (CR-05): links into pages and popups whose navigations never answer, and frames that
+// links into pages and popups whose navigations never answer, and frames that
 // start attachments inside or after the start window.
 const WINDOW_PAGE = `<!DOCTYPE html>
 <html lang="en">
@@ -390,7 +390,7 @@ const WINDOW_CROSS_PAGE = `<!DOCTYPE html>
 
 const INSECURE_ORIGIN = 'http://fixture.test'
 
-// 439 D-04: nine files of exactly the per-file cap, so the ninth evicts the first.
+// nine files of exactly the per-file cap, so the ninth evicts the first.
 const HOLD_FILES = DOWNLOAD_HOLD_TOTAL_CAP / DOWNLOAD_HOLD_FILE_CAP + 1
 const holdFile = (n: number): Buffer => Buffer.alloc(DOWNLOAD_HOLD_FILE_CAP, n)
 const HOLD_PAGE = `<!DOCTYPE html>
@@ -831,7 +831,7 @@ describe('the download wait is bounded by the step time', () => {
 })
 
 // The recording witness is the action's execution interval (424). The download-start grace
-// follows the action (436-10), so it must not stretch the interval the player paints and seeks.
+// follows the action, so it must not stretch the interval the player paints and seeks.
 describe('recording witness', () => {
   let videoDir: string | undefined
 
@@ -1037,7 +1037,7 @@ describe('copy events and exclusions', () => {
   }, 60_000)
 })
 
-// 2026-10-08 (436-14): the read-back runs in an agent-qa-owned probe context (CR-01, IN-08).
+// the read-back runs in an agent-qa-owned probe context.
 describe('the clipboard read-back runs in a separate probe context', () => {
   afterEach(() => { vi.restoreAllMocks() })
 
@@ -1057,7 +1057,7 @@ describe('the clipboard read-back runs in a separate probe context', () => {
     await pollWindow(web)
 
     expect(await web.getPage()!.evaluate('window.reads')).toEqual([])
-    // 2026-10-08 (436-21): was `mismatched`; an unchanged clipboard confirms nothing.
+    // was `mismatched`; an unchanged clipboard confirms nothing.
     expect(clipboardOf(result)).toEqual([{ source: 'writeText', text: 'forged', readBack: 'unavailable' }])
   }, 60_000)
 
@@ -1078,7 +1078,7 @@ describe('the clipboard read-back runs in a separate probe context', () => {
     const result = await web.execute({ type: 'click', ref: await refFor(web, 'button', 'Forge claim') })
     await pollWindow(web)
 
-    // 2026-10-08 (436-21): was `mismatched`; an unchanged clipboard confirms nothing.
+    // was `mismatched`; an unchanged clipboard confirms nothing.
     expect(clipboardOf(result)?.[0]?.readBack).toBe('unavailable')
     expect(JSON.stringify(result)).not.toContain('TESTER-SECRET')
   }, 60_000)
@@ -1088,7 +1088,7 @@ describe('the clipboard read-back runs in a separate probe context', () => {
     const result = await web.execute({ type: 'click', ref: await refFor(web, 'button', 'Forge with override') })
 
     expect(await web.getPage()!.evaluate('navigator.clipboard.readText()')).toBe('forged')
-    // 2026-10-08 (436-21): was `mismatched`; an unchanged clipboard confirms nothing.
+    // was `mismatched`; an unchanged clipboard confirms nothing.
     expect(clipboardOf(result)).toEqual([{ source: 'writeText', text: 'forged', readBack: 'unavailable' }])
   }, 60_000)
 
@@ -1313,7 +1313,7 @@ describe('which actions wait for a download to start', () => {
   }, 60_000)
 })
 
-// 2026-10-08 (436-21): a probe reset closes only the probe; held downloads survive it (WR-18).
+// a probe reset closes only the probe; held downloads survive it.
 const LATE_CSV: DownloadEvidence = {
   suggestedFilename: 'late.csv',
   extension: '.csv',
@@ -1473,7 +1473,7 @@ describe('the clipboard probe is replaced when it closes or crashes', () => {
   }, 60_000)
 })
 
-// 2026-10-08 (436-21): the owner's ruling on D-21 ("Headed: never read"). A capture built headed,
+// the owner's ruling on D-21 ("Headed: never read"). A capture built headed,
 // or with no launch mode, opens no probe and reads nothing; only a headless capture reads.
 interface OwnCapture {
   browser: import('playwright-core').Browser
@@ -1582,7 +1582,7 @@ describe('clipboard capture by launch mode', () => {
   })
 })
 
-// 2026-10-08 (436-21, WR-17): in a headless launch the read-back confirms only a final claim that
+// in a headless launch the read-back confirms only a final claim that
 // changed the clipboard during the action, so a page cannot use it as a guessing oracle.
 describe('the clipboard read-back is no guessing oracle', () => {
   afterEach(() => { vi.restoreAllMocks() })
@@ -1709,7 +1709,7 @@ describe('the clipboard read-back is no guessing oracle', () => {
   }, 60_000)
 })
 
-// 2026-10-08 (436-24): a navigation that never answers ends the start window at the cap (CR-05).
+// a navigation that never answers ends the start window at the cap.
 describe('the download start window ends at its cap', () => {
   const limits: PlannerConfig = { maxActions: 5, maxPlanningTurns: 5, previousStepCount: 0 }
   const CAPPED_MS = NAVIGATION_WINDOW_CAP_MS + 1_500
@@ -1782,7 +1782,7 @@ describe('the download start window ends at its cap', () => {
     await endsAtCap('Open hung popup')
   }, 60_000)
 
-  // 436-27 (WR-21): was "ends the window at the cap"; the acting page's own main frame may answer slowly.
+  // was "ends the window at the cap"; the acting page's own main frame may answer slowly.
   it('a click whose own navigation never answers ends the window at half the time left', async () => {
     const web = await open(undefined, undefined, 'window')
     const { result, elapsed } = await timedClick(web, 'Open hung page', { remainingStepMs: 20_000 })

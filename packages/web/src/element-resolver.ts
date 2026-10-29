@@ -7,7 +7,7 @@ import type { RefMap } from './types.js'
 const ACTIONS_WITHOUT_REF = new Set(['navigate', 'waitFor', 'delay', 'waitForUrl', 'assertValue'])
 
 /**
- * The adapter-private native binding of an observation (438 D-06). Each builder ref whose node
+ * The adapter-private native binding of an observation. Each builder ref whose node
  * carried a Playwright ai-mode ref keeps that native ref plus the observed role, exact name and
  * row text; a node without one gets no entry. `elements` is the built state's element list, index
  * aligned with `nodes`.

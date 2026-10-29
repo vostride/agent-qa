@@ -45,7 +45,7 @@ export async function safeInputValue(locator: Locator): Promise<string | undefin
   }
 }
 
-// EXEC-01: clear→type→RE-READ→(Enter) as one compound (D-05/D-06/D-07/D-08).
+// clear→type→RE-READ→(Enter) as one compound.
 export async function runWebFillCompound(
   locator: Locator,
   boundingBox: BoundingBox | undefined,
@@ -69,7 +69,7 @@ export async function runWebFillCompound(
   const actual = await safeInputValue(locator)
   const box = boundingBox ? { boundingBox } : {}
 
-  // Unreadable value: success with no fillReread block and no Enter, recorded unverified (437 D-06).
+  // Unreadable value: success with no fillReread block and no Enter, recorded unverified.
   if (actual === undefined) {
     return { success: true, ...box, metadata: { fillVerdict: { verb: 'fill', verdict: 'unverified' } } }
   }
@@ -247,7 +247,7 @@ async function wheelPointerChain(page: Page, dx: number, dy: number, axis: Axis)
 type ProbeBox = { left: number; top: number; right: number; bottom: number }
 type Judged = { state: TargetVisibility; rect?: ProbeBox }
 
-// 2026-10-08 (436-26): the longest a child frame may take to answer its liveness check (CR-08).
+// the longest a child frame may take to answer its liveness check.
 export const FRAME_PROBE_TIMEOUT_MS = 1_000
 
 // In-page judge for every candidate of one frame, in that frame's own viewport. Ancestors are
@@ -261,9 +261,9 @@ export const FRAME_PROBE_TIMEOUT_MS = 1_000
 // - visible: the hit lands on the element, inside it, or on an ancestor of a pointer-events:none
 //   or text-judged element. A clip is skipped once the element or a node below the clipping
 //   ancestor is fixed or absolutely positioned, since it may escape the clip; the hit test decides.
-// 2026-10-19 (444.1-01, D-04): a display:contents or zero-area element is judged by its contents'
+// a display:contents or zero-area element is judged by its contents'
 // client rects, and is unknown when they have no area or its own box clips them.
-// 2026-10-19 (444.1-01, D-04): the hit walks elementsFromPoint from the top, past elements that
+// the hit walks elementsFromPoint from the top, past elements that
 // are transparent: opacity 0, or unpainted (with their ::before and ::after) with no text there.
 function judgeCandidates(elements: unknown[]): unknown {
   const g = globalThis as any
@@ -488,7 +488,7 @@ type PendingFrames = WeakMap<Frame, Promise<unknown>>
 // search, is unknown with no evaluate. Otherwise the bound covers the liveness check only: a frame
 // that has not answered `1` within FRAME_PROBE_TIMEOUT_MS is unknown and its check is parked in
 // `pending` until it settles; a frame that answers is judged and projected with no bound.
-// 2026-10-19 (444.1-02, D-06): a slow but healthy frame is judged, not cut off (WR-24).
+// a slow but healthy frame is judged, not cut off.
 async function probeChildFrameBounded(frame: Frame, target: string, pending: PendingFrames): Promise<TargetVisibility> {
   if (frame.url() === '' || pending.has(frame)) return 'unknown'
   const liveness = frame.evaluate('1')
@@ -516,12 +516,12 @@ async function probeChildFrameBounded(frame: Frame, target: string, pending: Pen
 // Is any element carrying `target` (text, label, alt or title; Playwright's case-insensitive,
 // whitespace-normalized substring match) on screen now, in the main frame or any child frame?
 // Any visible candidate is visible; else any unknown is unknown; else hidden. An error on the main
-// frame answers unknown, and on a child frame makes that frame unknown (436-17 · D-24/D-25).
-// 2026-10-08 (436-22): tri-state over every frame, each child frame's candidates projected through
+// frame answers unknown, and on a child frame makes that frame unknown.
+// tri-state over every frame, each child frame's candidates projected through
 // its frame elements (review CR-07). Hidden: visibility, opacity 0, a box under 2x2 or outside the
 // viewport. Unknown: a nested-scroller clip, a covered or clipped centre point, a frame target not
 // on screen inside its frame, a transformed, zoomed or covered frame (review WR-16).
-// 2026-10-08 (436-26): evaluateAll waits for a child frame's execution context, which a frame that
+// evaluateAll waits for a child frame's execution context, which a frame that
 // never answers never gets (review CR-08). Child frames are judged at once, each frame's liveness
 // check bounded by FRAME_PROBE_TIMEOUT_MS and sent once while it is pending; a frame with no
 // committed document is unknown at once. The main frame and a live frame's judge are unbounded.
@@ -548,8 +548,8 @@ async function probeOnScreen(page: Page, target: string, pending: PendingFrames)
 // stays bound to the pre-compound observation. probeTargetVisible decides target visibility for
 // the loop: page-wide, every frame, and it ignores the container ref. swipeOnce reports what the
 // offsets proved; the no-ref wheel measures the scrollers under the pointer before and after.
-// 2026-10-08 (436-22): probeTargetVisible answers visible, hidden or unknown.
-// 2026-10-08 (436-26): one pending-frame memo per primitives instance, so per search (CR-08).
+// probeTargetVisible answers visible, hidden or unknown.
+// one pending-frame memo per primitives instance, so per search.
 export function buildScrollPrimitives(page: Page, lastRefs: RefMap, magnitude: number): ScrollPrimitives {
   const pending: PendingFrames = new WeakMap()
   return {
@@ -582,7 +582,7 @@ export function buildScrollPrimitives(page: Page, lastRefs: RefMap, magnitude: n
   }
 }
 
-// EXEC-02: both schema Scroll modes over the shared loops. ONE ActionResult carrying
+// both schema Scroll modes over the shared loops. ONE ActionResult carrying
 // metadata.scrollUntilVisible; the gesture itself succeeds — the outcome and what ended it ride
 // the metadata, not the success flag.
 export async function runWebScrollCompound(page: Page, lastRefs: RefMap, action: Scroll): Promise<ActionResult> {
@@ -618,7 +618,7 @@ export async function runWebScrollCompound(page: Page, lastRefs: RefMap, action:
   return { success: true, metadata: { scrollUntilVisible: meta } }
 }
 
-// EXEC-03 web lane (D-09): openApp is not executable on web — self-correct to navigate(url).
+// EXEC-03 web lane: openApp is not executable on web — self-correct to navigate(url).
 export function webOpenAppError(): ActionResult {
   return {
     success: false,

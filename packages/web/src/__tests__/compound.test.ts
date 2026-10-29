@@ -54,7 +54,7 @@ function makeLocator() {
 
 let locator: ReturnType<typeof makeLocator>
 
-// 438 D-06: page.locator(':root') answers the ai snapshot (observe and the pre-dispatch binding
+// page.locator(':root') answers the ai snapshot (observe and the pre-dispatch binding
 // check); any other selector is the observed element's aria-ref locator.
 const rootLocator = { ariaSnapshot: vi.fn().mockResolvedValue('- textbox "Email" [ref=e1]') }
 
@@ -141,9 +141,9 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       const result = await adapter.execute({ type: 'fill', ref, text: 'hello', clearMode: 'replace', submit: true } as unknown as ExecAction)
 
       expect(result.success).toBe(true)
-      // Re-read from the SAME live handle after typing (D-05).
+      // Re-read from the SAME live handle after typing.
       expect(locator.inputValue).toHaveBeenCalled()
-      // Enter is pressed only after the re-read (D-07).
+      // Enter is pressed only after the re-read.
       expect(locator.press).toHaveBeenCalledWith('Enter')
       const readIdx = calls.indexOf('inputValue')
       const enterIdx = calls.lastIndexOf('press:Enter')
@@ -175,7 +175,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       const result = await adapter.execute({ type: 'fill', ref, text: 'XYZ', clearMode: 'append', submit: false } as unknown as ExecAction)
 
       expect(result.success).toBe(true)
-      // prior-capture BEFORE any typing (D-07)
+      // prior-capture BEFORE any typing
       expect(calls[0]).toBe('inputValue')
       expect(locator.pressSequentially).toHaveBeenCalledWith('XYZ')
       expect(locator.press).toHaveBeenCalledWith('End')
@@ -194,7 +194,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
         fillReread: { expected: 'intended', actual: 'wrong' },
         fillVerdict: { verb: 'fill', verdict: 'mismatch' },
       })
-      // single-shot typing — no silent re-attempt (D-08)
+      // single-shot typing — no silent re-attempt
       expect(locator.fill).toHaveBeenCalledTimes(1)
     })
 

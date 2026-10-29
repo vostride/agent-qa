@@ -1,7 +1,7 @@
 // A model-free scripted planner and verifier driving the real runner loop (executeStep) over a
-// real WebPlatformAdapter (436 D-28). The planner finds refs by role and accessible name in the
+// real WebPlatformAdapter. The planner finds refs by role and accessible name in the
 // ScreenState the loop hands it; the verifier is a plain function of what the loop gives it,
-// including the step's operation evidence (436-10). No model is called anywhere.
+// including the step's operation evidence. No model is called anywhere.
 
 import { executeStep, scriptedVerification } from '@vostride/agent-qa-runner'
 import type {
@@ -87,13 +87,13 @@ export interface VerifierInput {
   after: ScreenState
   action: Action
   operationEvidence?: OperationEvidence
-  /** 439 D-03: the step record the loop handed the verifier. */
+  /** the step record the loop handed the verifier. */
   record?: VerifierStepRecord
 }
 
 /**
  * `{ pass, reason }` maps through scriptedVerification. Given `citations`, `needs`, `file` or
- * `verdict` (439-07), the check is one condition quoting the whole step with those fields; its
+ * `verdict`, the check is one condition quoting the whole step with those fields; its
  * verdict is `verdict`, else met on pass and not-met otherwise.
  */
 export interface VerifierVerdict {
@@ -214,7 +214,7 @@ export async function runScriptedStep(options: {
   stepTimeout?: number
   abortSignal?: AbortSignal
   visionGate?: LoopPorts['visionGate']
-  /** 439 D-04: the test's carry cell, shared by its steps. */
+  /** the test's carry cell, shared by its steps. */
   carriedArtifacts?: CarriedArtifacts
   stepNumber?: number
 }): Promise<ScriptedStepRun> {

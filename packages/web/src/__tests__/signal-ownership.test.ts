@@ -1,4 +1,4 @@
-// C444-CTRL-C-OWNED (444-22, D-46; 444-25, D-60): a browser launched for a host that owns its
+// a browser launched for a host that owns its
 // signals leaves SIGINT, SIGTERM and SIGHUP to that host and keeps only Playwright's `exit`
 // listener; every other launch keeps Playwright's listeners. Real headless
 // Chromium through WebPlatformAdapter; Playwright's listeners are the ones the launch adds to

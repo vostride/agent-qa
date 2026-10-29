@@ -130,7 +130,7 @@ describe('a pass is computed from conditions that are met and cited', () => {
 
     expect(run.result.status).toBe('failed')
     expect(run.result.evidence!.verifierVerdict.pass).toBe(false)
-    // The completion, then the give-up's own judgment (439 D-08), which records the last block.
+    // The completion, then the give-up's own judgment, which records the last block.
     expect(verifier.calls).toBe(2)
     expect(run.result.evidence!.conditionVerdicts!.ending).toBe('give-up')
     const recorded = run.result.evidence!.conditionVerdicts!.conditions

@@ -5,7 +5,7 @@
 // to the container that was actually scrolled: the element, its nearest scrolling ancestor over
 // the flat tree, or document.scrollingElement, which reports them only when it has scroll range on
 // the swiped axis.
-// 2026-10-08 (436-22): the walk follows the flat tree (slot, parent, shadow host), never takes a
+// the walk follows the flat tree (slot, parent, shadow host), never takes a
 // body whose overflow propagates to the viewport as a container, and the document fallback scrolls
 // and measures document.scrollingElement; with none, it reports no offsets (review CR-06).
 

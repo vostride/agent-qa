@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest'
 import { buildScreenState, screenConformanceCases, type ConformanceInput } from '@vostride/agent-qa-runner'
 import { parseAriaSnapshot } from '../observer.js'
 
-// The shared adapter conformance suite (D-09) run against the WEB walker: real
+// The shared adapter conformance suite run against the WEB walker: real
 // Playwright ARIA snapshot text is parsed by parseAriaSnapshot into the interim nodes
 // the builder consumes, then every case in screenConformanceCases asserts the pinned
 // builder-contract invariants over those nodes. Enrichment is simulated (a subset of

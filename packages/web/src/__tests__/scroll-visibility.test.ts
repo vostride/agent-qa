@@ -3,11 +3,11 @@
 // container ref scrolls and measures only the container it names. C436-SCROLL-POINTER (436-18 ·
 // D-24/D-25, review CR-02): a no-ref wheel is judged by the scrollers under the pointer. Real
 // headless Chromium through WebPlatformAdapter, fixtures served from a loopback node:http server.
-// 2026-10-08 (436-22): C436-SCROLL-REF adds the propagating body, quirks mode, body and html
+// C436-SCROLL-REF adds the propagating body, quirks mode, body and html
 // scrollers, shadow roots and an iframe-only ref (review CR-06). C436-SCROLL-FRAMES: the probe
 // sees every frame and answers visible, hidden or unknown (review CR-07). C436-SCROLL-DECOYS:
-// hidden, transparent and covered copies never count, positioned targets are hit-tested (WR-16).
-// 2026-10-08 (436-26): C436-SCROLL-FRAMES adds iframes that never answer (review CR-08).
+// hidden, transparent and covered copies never count, positioned targets are hit-tested.
+// C436-SCROLL-FRAMES adds iframes that never answer (review CR-08).
 
 import { createServer } from 'node:http'
 import type { Server, ServerResponse } from 'node:http'
@@ -98,7 +98,7 @@ const HUNG_BESIDE_HEALTHY = '<!DOCTYPE html><html><body style="margin:0"><iframe
   `<iframe id="pay" src="/frame-pay" style="${FRAME_STYLE}"></iframe><div style="height:850px">Body</div></body></html>`
 const HUNG_ABSENT = page('hung absent', '<h1>Account</h1><iframe src="/hang"></iframe><div style="height:1500px">Spacer</div>')
 
-// WR-16: a copy of the target at the top, the real button 4000 px down.
+// a copy of the target at the top, the real button 4000 px down.
 const decoyPage = (title: string, decoy: string): string => page(title, `
   ${decoy}
   <div style="height:4000px">Spacer</div>

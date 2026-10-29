@@ -1,4 +1,4 @@
-// The web native binding (438 D-06, D-07, D-09). Each observed ref keeps Playwright's native
+// The web native binding. Each observed ref keeps Playwright's native
 // aria-ref plus the observed role, exact name and row text; the observation keeps a main-frame
 // document handle as its epoch. Before a ref-bearing dispatch the adapter re-checks the bound
 // element through one fresh `:root` ai snapshot, which also refreshes Playwright's ref map for the
@@ -36,7 +36,7 @@ export interface SnapshotRootOptions {
 
 type BindingEntry = RefMap[string]
 
-// The action lanes that name an observed element; each is re-checked before dispatch (D-07).
+// The action lanes that name an observed element; each is re-checked before dispatch.
 const BINDING_LANES = ['ref', 'fromRef', 'toRef'] as const
 
 const FRAME_REF = /^f\d+e/
@@ -105,7 +105,7 @@ export function isChildFrameRef(nativeRef: string): boolean {
   return FRAME_REF.test(nativeRef)
 }
 
-/** Whether the page still holds the document the observation was taken from (D-09). */
+/** Whether the page still holds the document the observation was taken from. */
 export async function checkDocument(
   page: Page,
   epoch: ObservationEpoch | undefined,

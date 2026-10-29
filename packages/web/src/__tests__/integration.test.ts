@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'
 import { WebPlatformAdapter } from '../adapter.js'
 
-// The fill compound (Phase 359) re-reads via inputValue() after typing — the mock echoes the
+// The fill compound re-reads via inputValue() after typing — the mock echoes the
 // last filled value back so replace-mode fills verify green.
 let lastFilledValue = ''
 const mockClickFn = vi.fn().mockResolvedValue(undefined)
@@ -16,7 +16,7 @@ const mockHoverFn = vi.fn().mockResolvedValue(undefined)
 const mockLocatorEvaluateFn = vi.fn().mockResolvedValue(undefined)
 const mockNthFn = vi.fn().mockReturnThis()
 
-// An ai-mode snapshot: every line carries Playwright's native [ref=eN] (438 D-06).
+// An ai-mode snapshot: every line carries Playwright's native [ref=eN].
 const REALISTIC_ARIA_TREE = [
   '- navigation "Main Nav" [ref=e1]',
   '  - link "Home" [ref=e2]',
@@ -238,7 +238,7 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
     expect(state.refMap).toBeDefined()
 
     // The native binding — one entry per observed element, keyed by the minted ref, holding
-    // the snapshot's native ref and the observed role and exact name (438 D-06).
+    // the snapshot's native ref and the observed role and exact name.
     const lastRefs = adapter['lastRefs']
     expect(Object.keys(lastRefs).length).toBe(state.elements.length)
     for (const el of state.elements) {
@@ -298,7 +298,7 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
 
     expect(result.success).toBe(true)
     // container scroll resolves the ref through ElementResolver to the observed element's
-    // aria-ref locator, never a position, and runs inside that element (438 D-06)
+    // aria-ref locator, never a position, and runs inside that element
     expect(mockAriaRefLocatorFn).toHaveBeenCalledWith('aria-ref=e12')
     expect(located.nth).not.toHaveBeenCalled()
     const scrollCall = mockLocatorEvaluateFn.mock.calls.find((call: unknown[]) => typeof call[0] === 'function')
@@ -335,7 +335,7 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
     // The mock page reports no offsets, so nothing proves movement or a boundary: both directions
     // use their budget and the search stays unresolved.
     expect(meta).toEqual({ swipes: 4, reversedOnce: true, outcome: 'unresolved', endedBy: 'max-swipes' })
-    // the light probe never re-mints refs (D-03)
+    // the light probe never re-mints refs
     expect(adapter['lastRefs']).toEqual(refsBefore)
   })
 

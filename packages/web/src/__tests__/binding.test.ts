@@ -3,9 +3,9 @@
 // between observation and dispatch is followed, never substituted by the row now at its old
 // position, and an exact name beside a near-twin resolves. Real headless Chromium through the real
 // loop; pages are inline snippets.
-// 2026-10-09 (438-06): C438-BINDING-OUTCOMES (D-07, D-08, D-09) names each way a target stops being
+// C438-BINDING-OUTCOMES names each way a target stops being
 // the observed element at the adapter, and pins the benign changes that keep a binding.
-// 2026-10-19 (444.1-09, D-15): an enclosing article's prose is not part of a nested row's binding.
+// an enclosing article's prose is not part of a nested row's binding.
 
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Action, ExecuteOptions, PlannerConfig } from '@vostride/agent-qa-runner'

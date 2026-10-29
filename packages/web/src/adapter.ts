@@ -50,15 +50,15 @@ interface PageLogBuffers {
   pendingRequests: Map<string, { url: string; method: string; headers: Record<string, string>; startTime: number; postData?: string }>
 }
 
-// 2026-10-08 (436-24): a frame or navigation that never answers must not hold observe, the
-// screenshot or a Chromium click (CR-05). The ai-mode snapshot waits for each child frame and the
+// a frame or navigation that never answers must not hold observe, the
+// screenshot or a Chromium click. The ai-mode snapshot waits for each child frame and the
 // screenshot for document.fonts.ready, which a hung iframe keeps pending; both are bounded here. A
 // Chromium click no longer waits for the navigation it starts to commit: the capture's start
 // window owns that wait and ends it at NAVIGATION_WINDOW_CAP_MS.
-// 2026-10-08 (436-27): the short snapshot bound applies to the first attempt only. Playwright
+// the short snapshot bound applies to the first attempt only. Playwright
 // absorbs a child frame's timeout, so a TimeoutError means the main frame itself was slow: the
-// snapshot is taken once more with OBSERVE_SNAPSHOT_RETRY_TIMEOUT_MS (CR-09). The acting page is
-// passed to the capture, whose own main-frame navigation waits up to half the time left (WR-21).
+// snapshot is taken once more with OBSERVE_SNAPSHOT_RETRY_TIMEOUT_MS. The acting page is
+// passed to the capture, whose own main-frame navigation waits up to half the time left.
 /** The longest observe's first ai-mode snapshot waits; a child frame that has not answered by then is left empty. */
 export const OBSERVE_SNAPSHOT_TIMEOUT_MS = 5_000
 /** The bound a main-frame snapshot gets after it outlasts the short one: Playwright's default, the pre-436-24 bound. */
@@ -70,9 +70,9 @@ const OBSERVE_SNAPSHOT: SnapshotRootOptions = {
 /** The longest screenshot() waits before it gives up and returns undefined. */
 export const SCREENSHOT_TIMEOUT_MS = 5_000
 
-// 436 D-22: the adapter carries the capture on metadata.download and metadata.clipboard; the loop
+// the adapter carries the capture on metadata.download and metadata.clipboard; the loop
 // masks it, moves it onto the sub-action's operationEvidence and removes both keys from the
-// recorded result (D-16).
+// recorded result.
 function withOperationMetadata(result: ActionResult, captured: CapturedOperations | undefined): ActionResult {
   const download = captured?.downloads?.length ? captured.downloads : undefined
   const clipboard = captured?.clipboard?.length ? captured.clipboard : undefined
@@ -104,7 +104,7 @@ function readSeamStorageState(action: unknown): Parameters<BrowserContext['setSt
  * `live-stream.screencast.test.ts` measures both halves on a real Chromium: an animating page yields
  * hundreds of frames in 3 s WITH acks and 3 without.
  *
- * A STATIC PAGE STILL PRODUCES A FRAME EVERY 2 S (428 D-15). After `LIVE_KEEPALIVE_QUIET_MS` without
+ * A STATIC PAGE STILL PRODUCES A FRAME EVERY 2 S. After `LIVE_KEEPALIVE_QUIET_MS` without
  * a screencast frame the capability takes a fresh `Page.captureScreenshot` on the same CDP session
  * and emits it, so the viewer's freshness dot stays green on a page that is simply still. It is a
  * new capture stamped when it resolves, never the last frame re-sent: a wedged renderer produces
@@ -145,7 +145,7 @@ const SCREENCAST_ACK_WINDOW = 64
 const KEEPALIVE_ECHO_WINDOW_MS = 250
 
 /**
- * How often a screencast that fell back to snapshots tries to come back (428 WR-08). A withdrawal is
+ * How often a screencast that fell back to snapshots tries to come back. A withdrawal is
  * not always permanent, and without a way back one bad moment labels the rest of the run a
  * snapshot preview.
  */
@@ -160,7 +160,7 @@ function decodeBase64(data: string): Uint8Array {
 }
 
 export interface WebPlatformAdapterOptions {
-  // 2026-10-17 (444-22, D-46; 2026-10-18 444-25, D-60): only a host with its own SIGINT, SIGTERM
+  // only a host with its own SIGINT, SIGTERM
   // and SIGHUP path (agent-qa run) sets this.
   readonly hostOwnsSignals?: true
 }
@@ -173,7 +173,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private browser: Browser | null = null
   private context: BrowserContext | null = null
   private page: Page | null = null
-  // The native binding of the last observation and its document (438 D-06). Neither crosses the
+  // The native binding of the last observation and its document. Neither crosses the
   // port (observe returns only the ScreenState).
   private lastRefs: RefMap = {}
   private epoch: ObservationEpoch | undefined
@@ -183,32 +183,32 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private disconnected = false
   private intentionalClose = false
   // Persistent route interception + one-shot dialog arms live until an explicit unroute or
-  // test teardown (D-12/D-18); cleanup() drains both so nothing bleeds across tests (Pitfall 7).
+  // test teardown; cleanup() drains both so nothing bleeds across tests (Pitfall 7).
   private armedRoutes = new Set<string>()
   private pendingDialogArm: ((dialog: Dialog) => void) | null = null
-  // 403 D-05: the live screencast's CDP session, owned here and never handed out.
+  // the live screencast's CDP session, owned here and never handed out.
   private browserName: 'chromium' | 'firefox' | 'webkit' = 'chromium'
   private screencast: CDPSession | null = null
   private screencastCapability: LiveStreamCapability | null = null
   private recordingCapability: ScreencastRecording | undefined
   private recordingPageRevision = 0
   private recordingConfig: PlatformConfig['recording']
-  // 403-02: the PRODUCT's frame identity, and the CDP ack token it maps to. See `liveStream`.
+  // the PRODUCT's frame identity, and the CDP ack token it maps to. See `liveStream`.
   private screencastFrameSeq = 0
   private screencastAckTokens = new Map<number, number>()
-  // 428 D-15: the running screencast's consumer, its quiet-page keepalive, and the size a keepalive
+  // the running screencast's consumer, its quiet-page keepalive, and the size a keepalive
   // frame reports (the last screencast frame's device size).
   private screencastOnFrame: ((frame: LiveFrame) => void) | null = null
   private keepaliveTimer: ReturnType<typeof setTimeout> | null = null
   private lastScreencastSize: { width: number; height: number } | null = null
   private keepaliveEchoDeadline: number | null = null
   private screencastChain: Promise<void> = Promise.resolve()
-  // 428 D-12: the labelled snapshot preview standing in for a screencast withdrawn mid-stream.
+  // the labelled snapshot preview standing in for a screencast withdrawn mid-stream.
   private withdrawnSnapshot: LiveStreamCapability | null = null
   private screencastRecoveryTimer: ReturnType<typeof setTimeout> | null = null
-  // 436 D-19, D-21: download and app-clipboard capture, Chromium only; armed around each execute().
+  // download and app-clipboard capture, Chromium only; armed around each execute().
   private operationCapture: OperationCapture | null = null
-  // 436 D-23: Firefox and WebKit run no capture and name themselves as the reason.
+  // Firefox and WebKit run no capture and name themselves as the reason.
   operationCaptureSupport: OperationCaptureSupport | undefined
 
   async setup(config: PlatformConfig): Promise<void> {
@@ -269,8 +269,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.attachLogListeners(this.page)
 
     if (browserName === 'chromium') {
-      // 2026-10-08 (436-15): the step deadline reaches the capture per action through execute().
-      // 2026-10-08 (436-21): owner ruling on D-21, a headed or undetermined launch never reads.
+      // the step deadline reaches the capture per action through execute().
+      // owner ruling on D-21, a headed or undetermined launch never reads.
       this.operationCapture = new OperationCapture({ headless: isHeadlessLaunch({ headless }, process.env) })
       await this.operationCapture.attach(this.context)
       this.operationCaptureSupport = { download: true, clipboard: true }
@@ -280,7 +280,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   }
 
   /**
-   * 403 D-05/LIVE-01: the Chromium screencast producer, or ABSENT when this adapter cannot stream.
+   * the Chromium screencast producer, or ABSENT when this adapter cannot stream.
    *
    * Absence means "no continuous stream", not "no preview": since 428-05 the composition's
    * `liveStreamFor` wraps this adapter's `screenshot()` in the labelled 1 s snapshot producer, both
@@ -349,7 +349,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     return capability
   }
 
-  /** Run `step` after every earlier start, stop and re-bind has settled (428 D-18). */
+  /** Run `step` after every earlier start, stop and re-bind has settled. */
   private onScreencastChain(step: () => Promise<void>): Promise<void> {
     const run = this.screencastChain.then(step)
     this.screencastChain = run.catch(() => undefined)
@@ -382,7 +382,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
         void cdp.send('Page.screencastFrameAck', { sessionId: event.sessionId }).catch(() => undefined)
         return
       }
-      // `LiveFrame.id` IS NOT `event.sessionId`, AND CONFLATING THEM WAS A BUG (403-02).
+      // `LiveFrame.id` IS NOT `event.sessionId`, AND CONFLATING THEM WAS A BUG.
       //
       // `sessionId` is CDP's ack TOKEN. Measured on Chromium 1.59.1 it is `1` for every frame
       // of a stream — 281 frames, one distinct value. `LiveFrame.id` is the PRODUCT's frame
@@ -413,7 +413,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
         metadata: {
           width: metadata.deviceWidth,
           height: metadata.deviceHeight,
-          // CDP's `TimeSinceEpoch` is SECONDS; every other layer reads epoch ms (428 D-15).
+          // CDP's `TimeSinceEpoch` is SECONDS; every other layer reads epoch ms.
           ...(metadata.timestamp === undefined
             ? {}
             : { timestamp: Math.round(metadata.timestamp * 1000) }),
@@ -425,7 +425,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   }
 
   /**
-   * The one place the page the test acts on changes (428 D-18). Recording keeps following its
+   * The one place the page the test acts on changes. Recording keeps following its
    * starting page through the revision counter (424 reconciliation 25(d)); the live screencast,
    * when running, re-binds to the new page on the serialised chain.
    */
@@ -500,7 +500,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     })
   }
 
-  /** While the snapshot fallback runs, try the screencast again every SCREENCAST_RECOVERY_MS (428 WR-08). */
+  /** While the snapshot fallback runs, try the screencast again every SCREENCAST_RECOVERY_MS. */
   private armScreencastRecovery(): void {
     this.clearScreencastRecovery()
     const timer = setTimeout(() => {
@@ -545,11 +545,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   }
 
   /**
-   * 428 D-15: a fresh capture on the same CDP session, emitted as a frame with no ack token (the ack
+   * a fresh capture on the same CDP session, emitted as a frame with no ack token (the ack
    * path drops ids it never minted a token for). A capture that rejects emits nothing. While the
    * capability is started under a live browser, a session that then fails a trivial probe too is a
    * withdrawn screencast (D-12, see `handleScreencastWithdrawn`); one that still answers only had a
-   * bad moment, such as a cross-process navigation, and re-arms (428 WR-08). One that never settles
+   * bad moment, such as a cross-process navigation, and re-arms. One that never settles
    * emits nothing and arms nothing, which is the honest amber.
    */
   private async fireKeepalive(cdp: CDPSession): Promise<void> {
@@ -613,7 +613,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     await this.stopWithdrawnSnapshot()
     try { await this.screencastCapability?.stop() } catch { /* best-effort */ }
     this.screencastCapability = null
-    // 2026-10-08 (436-14): close the clipboard read-back probe context before the browser goes.
+    // close the clipboard read-back probe context before the browser goes.
     try { await this.operationCapture?.dispose() } catch { /* best-effort */ }
     // Pitfall 7: clear persistent route interception, network emulation, and any pending
     // dialog arm BEFORE closing the browser so state never bleeds into the next test.
@@ -661,7 +661,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     await waitForPageReady(page)
 
     // The epoch is taken before the snapshot, so a document replaced at any point after it is
-    // refused as stale-observation at dispatch (D-09).
+    // refused as stale-observation at dispatch.
     const epoch = await captureEpoch(page)
     try {
       const state = await this.observeDocument(page)
@@ -677,10 +677,10 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private async observeDocument(page: Page): Promise<ScreenState> {
     // ai-mode snapshot: Playwright annotates each element with a native [ref=eN] handle
     // (adapter-PRIVATE) that aria-ref locators resolve against — the enrichment ground
-    // truth and the dispatch handle (D-06).
+    // truth and the dispatch handle.
     const ariaTree = await snapshotRoot(page, OBSERVE_SNAPSHOT)
 
-    // parse -> enrich -> scroll: the interim-node walker (352-03), exact per-element
+    // parse -> enrich -> scroll: the interim-node walker, exact per-element
     // enrichment via aria-ref locators, and exact window scroll/viewport capture.
     const { nodes, nativeRefs } = parseAriaSnapshot(ariaTree)
     if (nodes.length > 0) {
@@ -712,7 +712,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     const capture = this.operationCapture
     await capture?.arm(action, options, this.page)
     const result = await this.executeWithErrorResult(action)
-    // The download-start grace and the clipboard read-back follow the action (436-10, 436-11); the
+    // The download-start grace and the clipboard read-back follow the action; the
     // recorded interval is the action's.
     this.recordingCapability?.endAction()
     let captured: CapturedOperations | undefined
@@ -804,7 +804,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     return all.filter(e => e.url.includes(urlPattern))
   }
 
-  /** 439 D-04: a completed download's bytes held in memory, by its sha256. */
+  /** a completed download's bytes held in memory, by its sha256. */
   readDownloadBytes(sha256: string): Uint8Array | undefined {
     return this.operationCapture?.readDownloadBytes(sha256)
   }
@@ -914,14 +914,14 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     const page = this.page!
     const resolver = new ElementResolver(page, this.lastRefs)
 
-    // 438 D-07, D-09: the element each lane names must still be the one observed; anything else is
+    // the element each lane names must still be the one observed; anything else is
     // a typed refusal with no page interaction. A ref absent from the map keeps the Unknown ref
     // path.
     for (const ref of laneRefs(action)) {
       const entry = this.lastRefs[ref]
       if (entry === undefined) continue
       // A scroll's ref names its container, not an input target: only its document is checked,
-      // and a lost or child-frame container reads unknown in the compound (436 D-25).
+      // and a lost or child-frame container reads unknown in the compound.
       const check = action.type === 'scroll'
         ? await checkDocument(page, this.epoch)
         : await checkBinding(page, this.epoch, entry, OBSERVE_SNAPSHOT)
@@ -1239,7 +1239,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       }
 
       case 'assertValue': {
-        // D-10: the adapter RESOLVES the requested source to a raw value on ActionResult.data;
+        // the adapter RESOLVES the requested source to a raw value on ActionResult.data;
         // the runner-side comparator applies the op and judges. The adapter never compares.
         let value: unknown
         if ('expr' in action) {
@@ -1305,7 +1305,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       }
 
       case 'route': {
-        // D-18: persistent interception until an explicit unroute or teardown. Planner-authored
+        // persistent interception until an explicit unroute or teardown. Planner-authored
         // status/headers/body fulfil the matched request (a mocked response body crosses into
         // page context — declared destructive in the risk metadata, Plan 09).
         await this.context!.route(action.urlPattern, async (route) => {
@@ -1336,7 +1336,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
           await this.context!.setOffline(true)
           return { success: true }
         }
-        // throttle: Chromium-only via CDP; non-Chromium contexts reject newCDPSession (D-18).
+        // throttle: Chromium-only via CDP; non-Chromium contexts reject newCDPSession.
         try {
           const cdp = await this.context!.newCDPSession(page)
           await cdp.send('Network.emulateNetworkConditions', {
@@ -1355,7 +1355,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       }
 
       case 'storageState': {
-        // D-14: the adapter only PRODUCES/CONSUMES the raw blob. On save it returns the state +
+        // the adapter only PRODUCES/CONSUMES the raw blob. On save it returns the state +
         // name (the Plan 10 seam strips + persists it — never fs here); on restore it applies the
         // seam-injected blob via setStorageState (present in pinned 1.59.1 — never hand-rolled).
         if (action.op === 'save') {
@@ -1367,7 +1367,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       }
 
       case 'handleDialog': {
-        // D-12: one-shot arm for the NEXT dialog; a re-arm REPLACES the pending arm (never stacks).
+        // one-shot arm for the NEXT dialog; a re-arm REPLACES the pending arm (never stacks).
         if (this.pendingDialogArm) {
           page.off('dialog', this.pendingDialogArm)
           this.pendingDialogArm = null
@@ -1391,7 +1391,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
         return { success: false, error: 'executeScript is a mobile-only action' }
       }
 
-      // Runner-minted / author-channel verbs (D-01/D-15/D-16): reportValue, uniqueValue, assertAI,
+      // Runner-minted / author-channel verbs: reportValue, uniqueValue, assertAI,
       // extractAI, and setVariable are intercepted at the dispatch seam and never reach the adapter.
       // A grouped §7.1 defensive case surfaces a dispatch-routing error if one arrives here;
       // assertNever remains the backstop for a genuinely unknown schema verb.

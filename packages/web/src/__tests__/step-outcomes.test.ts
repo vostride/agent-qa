@@ -53,7 +53,7 @@ interface DraftServer {
   close(): Promise<void>
 }
 
-// 2026-10-11 (439-07): the background save is re-read after a reload (D-18), so its page is served
+// the background save is re-read after a reload, so its page is served
 // here and renders what the server kept; "Save draft" still changes nothing on the page.
 async function draftServer(): Promise<DraftServer> {
   const saved: string[] = []
@@ -281,7 +281,7 @@ describe('model-free step outcomes through the real loop', () => {
         plannerConfig: LIMITS,
       })
       expect(first.result.status).toBe('passed')
-      // 2026-10-08 (436-21): the replay stands for a later run, whose clipboard does not already
+      // the replay stands for a later run, whose clipboard does not already
       // hold the copied text; rewriting identical text reads `unavailable` (owner ruling on D-21).
       await web.getPage()!.evaluate("navigator.clipboard.writeText('BEFORE-REPLAY')")
 
@@ -357,7 +357,7 @@ describe('model-free step outcomes through the real loop', () => {
     expect(run.result.evidence!.limitStop).toBeUndefined()
     expect(site.state.saved).toEqual([])
     expect(planner.calls).toBe(3)
-    // Two rejected completions, then the give-up's own judgment (439 D-08).
+    // Two rejected completions, then the give-up's own judgment.
     expect(verifier.calls).toBe(3)
     expect(run.result.evidence!.conditionVerdicts?.ending).toBe('give-up')
     const clocks = run.result.evidence!.subActions
@@ -391,7 +391,7 @@ describe('model-free step outcomes through the real loop', () => {
     })
     expect(site.state.saved).toEqual([])
     expect(planner.calls).toBe(4)
-    // Four rejected completions, then the limit stop's own judgment (439 D-08).
+    // Four rejected completions, then the limit stop's own judgment.
     expect(verifier.calls).toBe(5)
     expect(run.result.evidence!.conditionVerdicts?.ending).toBe('limit-stop')
     expect(run.result.error).toBe(
@@ -424,7 +424,7 @@ describe('model-free step outcomes through the real loop', () => {
 
     expect(run.result.status).toBe('failed')
     expect(run.result.error).toContain('The invite dialog did not open')
-    // Two rejected completions, then the give-up's own judgment (439 D-08).
+    // Two rejected completions, then the give-up's own judgment.
     expect(verifier.calls).toBe(3)
     expect(run.result.evidence!.conditionVerdicts?.ending).toBe('give-up')
     expect(verifier.inputs.every((input) => !dialogCheck(input).pass)).toBe(true)
@@ -434,7 +434,7 @@ describe('model-free step outcomes through the real loop', () => {
   it('the same button passes when it opens the dialog (the dead dialog\'s twin)', async () => {
     await open('/dialog')
     const planner = scriptedPlanner(inviteTurns)
-    // 439 D-16: the open invite dialog is the requested outcome, so the verifier accounts it as
+    // the open invite dialog is the requested outcome, so the verifier accounts it as
     // unrelated (it shows nothing left undone); an unaccounted open dialog would block the pass.
     const scripted = scriptedVerifier(dialogCheck)
     const verifier: Verifier = {
@@ -627,7 +627,7 @@ describe('model-free step outcomes through the real loop', () => {
     const tickers = run.result.evidence!.subActions
       .map((s) => s.stateBefore.elements.find((e) => e.role === 'heading' && e.name.startsWith('Updated'))?.name)
     expect(new Set(tickers).size, 'the ticker changed while the feed did not move').toBe(2)
-    // No completion is claimed; the one call is the give-up's own judgment (439 D-08).
+    // No completion is claimed; the one call is the give-up's own judgment.
     expect(verifier.calls).toBe(1)
     expect(run.result.evidence!.conditionVerdicts?.ending).toBe('give-up')
     expect(planner.calls).toBe(2)

@@ -12,7 +12,7 @@ const INTERACTIVE_ROLES = new Set([
   'grid', 'menu', 'menubar', 'tree', 'treegrid',
 ])
 
-// 439 D-16: 'dialog' and 'alertdialog' are kept so an open dialog is on the screen the judge reads.
+// 'dialog' and 'alertdialog' are kept so an open dialog is on the screen the judge reads.
 const CONTENT_ROLES = new Set([
   'heading', 'cell', 'listitem', 'article', 'region', 'navigation',
   'progressbar', 'tabpanel', 'row', 'dialog', 'alertdialog',
@@ -27,7 +27,7 @@ const LINE_PATTERN = /^(\s*-\s*)(\w+)(?:\s+"([^"]*)")?(.*)$/
 const QUOTED_LINE_PATTERN = /^(\s*-\s*)'(\w+)(?:\s+"([^"]*)")?(.*)'\s*$/
 // Playwright's ai-mode snapshot annotates each element with a native reference,
 // e.g. `- button "Login" [ref=e5]`. These refs are adapter-PRIVATE handles for
-// aria-ref locators; they are NEVER copied into the node identity (D-03).
+// aria-ref locators; they are NEVER copied into the node identity.
 const REF_ANNOTATION = /\[ref=([A-Za-z0-9_-]+)\]/
 const BRACKET_ATTR = /\[(\w+)(?:=([^\]]*))?\]/g
 // The inline text after a line's bracket annotations: `- paragraph [ref=e7]: 7 Elm Street`.
@@ -67,7 +67,7 @@ function appendText(node: InterimNode, text: string | undefined): void {
  * (unannotated) snapshot text.
  *
  * No ref minting and no tree rendering happen here — the shared runner builder
- * owns both (D-01/D-02/D-03).
+ * owns both.
  */
 export function parseAriaSnapshot(ariaTree: string): {
   nodes: InterimNode[]
@@ -196,7 +196,7 @@ export async function captureWebScroll(page: Page): Promise<{
  * Resolve exact per-element geometry, state, and labels through Playwright
  * `aria-ref=` locators (the engine's own ground truth) instead of the removed
  * in-page inferred-role heuristic. The ai-mode native refs stay adapter-private
- * handles; builder-minted refs remain the only public identity (D-03).
+ * handles; builder-minted refs remain the only public identity.
  *
  * Enrichment mutates the interim nodes in place and is best-effort: a node whose
  * ref fails to resolve (or has no ref) keeps `bounds` absent — the builder's
@@ -272,7 +272,7 @@ export async function enrichWebNodes(
     if (!Array.isArray(raw)) return
 
     // Coerce untrusted evaluate results to expected primitives before writing them
-    // into the interim nodes (T-352-05): numbers for geometry, strings for labels;
+    // into the interim nodes: numbers for geometry, strings for labels;
     // malformed entries degrade to absent fields.
     for (let k = 0; k < targetIndices.length; k++) {
       const info = raw[k]
@@ -299,7 +299,7 @@ export async function enrichWebNodes(
       if (title) labels.title = title
       if (Object.keys(labels).length > 0) node.labels = labels
 
-      // 439 D-16: a control's reported value and limits; attributes are neither hashed nor rendered.
+      // a control's reported value and limits; attributes are neither hashed nor rendered.
       const limits: Record<string, string> = {}
       for (const key of LIMIT_KEYS) {
         const value = coerceString((info as any)[key])

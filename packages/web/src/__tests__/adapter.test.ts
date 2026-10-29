@@ -8,7 +8,7 @@ let mockPageListeners: Record<string, Function[]> = {}
 let mockPage2Listeners: Record<string, Function[]> = {}
 let newPageCallCount = 0
 
-// 438 D-06: one locator double answers page.locator(':root') (the ai snapshot, taken at observe and
+// one locator double answers page.locator(':root') (the ai snapshot, taken at observe and
 // again by the pre-dispatch binding check) and page.locator('aria-ref=e1') (the observed element).
 const DEFAULT_TREE = '- button "Test" [ref=e1]'
 const mockLocator = {

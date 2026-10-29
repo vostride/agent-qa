@@ -2,7 +2,7 @@
 // element with its role and exact name. 'Invoice 947' and 'Invoice 946' share a cache key (both
 // normalize to 'invoice'), so the second run is a key hit; the stored name decides whether it
 // replays. Real headless Chromium through the real runner loop; pages are inline snippets.
-// 438-09 (D-11): a key hit that does not replay is a recorded miss with its typed reason.
+// a key hit that does not replay is a recorded miss with its typed reason.
 
 import { afterEach, describe, expect, it } from 'vitest'
 import type { PlannerConfig } from '@vostride/agent-qa-runner'

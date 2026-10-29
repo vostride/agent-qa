@@ -68,7 +68,7 @@ const KEEPALIVE_MIN_GAP_MS = 1_800
 /** TIMESTAMP-EPOCH-MS: a capture time in epoch ms is within this of the receiver's clock. */
 const EPOCH_MS_TOLERANCE_MS = 5_000
 /**
- * The bound on each non-chromium launch in the getter-gates cell (quick 261004-lvn). Playwright's
+ * The bound on each non-chromium launch in the getter-gates cell. Playwright's
  * default launch timeout (3 min in playwright-core 1.61.0) equals the cell's 180 s budget, so an
  * unbounded launch that hangs used up the cell before its own catch could run. Firefox 1532 never
  * launches on this macOS host (433-01: launch timeout x3 at 60 s; a 15 s probe on 2026-10-04 timed

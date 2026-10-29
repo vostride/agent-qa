@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { WebPlatformAdapter } from '../adapter.js'
 
 // ---------------------------------------------------------------------------
-// Wave-0 RED catalog suite — Phase 360 Plan 02, Task 2 (EXEC-06; D-12/D-14/D-18).
+// Wave-0 RED catalog suite — Phase 360 Plan 02, Task 2.
 //
 // Pins the driver-call contract for every web verb gaining or changing execution this
 // phase (new cases: focus/route/unroute/networkState/storageState/handleDialog; fold
@@ -101,7 +101,7 @@ function makePage() {
     waitForSelector: vi.fn().mockImplementation(() => { calls.push('page.waitForSelector'); return Promise.resolve(null) }),
     waitForFunction: vi.fn().mockImplementation(() => { calls.push('page.waitForFunction'); return Promise.resolve(null) }),
     getByText: vi.fn().mockReturnValue({ waitFor: vi.fn().mockResolvedValue(undefined), first: vi.fn().mockReturnThis() }),
-    // 438 D-06: ':root' answers the ai snapshot the pre-dispatch binding check reads; any other
+    // ':root' answers the ai snapshot the pre-dispatch binding check reads; any other
     // selector is the observed element's aria-ref locator.
     locator: vi.fn().mockImplementation((selector: string) => (selector === ':root'
       ? { ariaSnapshot: vi.fn().mockResolvedValue('- textbox "Email" [ref=e1]') }
