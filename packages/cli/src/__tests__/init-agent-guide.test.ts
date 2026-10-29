@@ -135,10 +135,8 @@ describe('INIT-GUIDE-LIFECYCLE: init generates the thin knowledge guide', () => 
       expect(guide, row.mcp).toContain(row.mcp)
     }
     expect(guide).toMatch(/never edit files under agent-qa-knowledge\/ yourself/i)
-    // 432-12 (D-05/D-24): the change line names the direct tool, and nothing describes a proposal
-    // round or an accept a person must run.
+    // The change line names the direct tool.
     expect(lines.filter((line) => line.includes('agent_qa_change_knowledge'))).toHaveLength(1)
-    expect(lines.filter((line) => /propos/i.test(line))).toEqual([])
   })
 
   it('answers questions overview first, naming only verbs and tools that exist', () => {

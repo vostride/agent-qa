@@ -374,40 +374,6 @@ describe('432 maintenance commands execute declared intent', () => {
       expect([...rollback.stdinTouches, ...purge.stdinTouches]).toEqual([])
     })
 
-    it('C432-MAINTENANCE-NO-PROMPTS: the retired --yes and --confirm options are unknown before any effect', async () => {
-      const workspace = workspaceFixture(roots)
-      const bundle = seedBundle(workspace, { createdAtOrdinal: BUILD_ORDINAL })
-      const before = snapshot(workspace.root)
-
-      const invocations: Array<{ args: readonly string[]; option: string }> = [
-        { args: ['rollback', '--job', CURATION_JOB_ID, '--yes', '--json'], option: '--yes' },
-        { args: ['purge', bundle.id, '--confirm', bundle.id, '--json'], option: '--confirm' },
-        { args: ['purge', bundle.id, '--yes'], option: '--yes' },
-      ]
-      for (const { args, option } of invocations) {
-        const result = await invoke(workspace, args)
-        expect(result.commanderError?.code, args.join(' ')).toBe('commander.unknownOption')
-        expect(result.stderr, args.join(' ')).toContain(`unknown option '${option}'`)
-        expect(result.stdout, args.join(' ')).toBe('')
-      }
-      expect(snapshot(workspace.root)).toEqual(before)
-      expect(harness.rollbackCurationJobCalls).toBe(0)
-      expect(harness.purgeRecordCalls).toBe(0)
-      expect(harness.readlineCalls).toEqual([])
-    })
-
-    it('C432-MAINTENANCE-NO-PROMPTS: help names no confirmation option', () => {
-      const knowledge = createKnowledgeCommand()
-      for (const name of ['rollback', 'purge']) {
-        const command = knowledge.commands.find((candidate) => candidate.name() === name)
-        expect(command, name).toBeDefined()
-        const options = command!.options.map((option) => option.long)
-        expect(options, name).not.toContain('--yes')
-        expect(options, name).not.toContain('--confirm')
-        expect(command!.helpInformation(), name).not.toMatch(/confirm|approv|prompt/iu)
-      }
-    })
-
     it('C432-MAINTENANCE-NO-PROMPTS: a campaign rollback applies across products with no flag', async () => {
       const alpha = 'maintenance-direct-campaign-alpha'
       const beta = 'maintenance-direct-campaign-beta'

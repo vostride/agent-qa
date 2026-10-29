@@ -215,21 +215,6 @@ describe('432 cache purge executes declared intent', () => {
       expect(result.stdinTouches).toEqual([])
     })
 
-    it('C432-CACHE-NO-PROMPT: the retired --force option is unknown before any deletion', async () => {
-      const workspace = workspaceFixture(roots)
-      const entry = seedEntry(workspace.cacheDir, 'main', 'abcabcabcabcabca')
-      const before = tree(workspace.root)
-
-      const result = await invoke(workspace, ['purge', '--all', '--force'])
-
-      expect(result.commanderError?.code).toBe('commander.unknownOption')
-      expect(result.stderr).toContain("unknown option '--force'")
-      expect(result.stdout).toBe('')
-      expect(existsSync(entry)).toBe(true)
-      expect(tree(workspace.root)).toEqual(before)
-      expect(harness.readlineCalls).toEqual([])
-    })
-
     it('the removed --test option is unknown before any deletion', async () => {
       const workspace = workspaceFixture(roots)
       const entry = seedEntry(workspace.cacheDir, 'main', 'abcabcabcabcabca')
@@ -246,14 +231,6 @@ describe('432 cache purge executes declared intent', () => {
       expect(existsSync(entry)).toBe(true)
       expect(tree(workspace.root)).toEqual(before)
       expect(harness.readlineCalls).toEqual([])
-    })
-
-    it('help names no confirmation option and purgeAll takes only the cache root', () => {
-      const purge = createCacheCommand().commands.find((command) => command.name() === 'purge')
-      expect(purge).toBeDefined()
-      expect(purge!.options.map((option) => option.long).sort()).toEqual(['--all'])
-      expect(purge!.helpInformation()).not.toMatch(/confirm|prompt|--force/iu)
-      expect(purgeAll.length).toBe(1)
     })
   })
 

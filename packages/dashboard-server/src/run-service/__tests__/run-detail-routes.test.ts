@@ -534,7 +534,7 @@ describe('typed evidence HTTP doors', () => {
 //
 // The routes format nothing: the registry's own ops answer through a file-backed read port, so the
 // HTTP bodies are compared with a direct invocation of the same registry. The real ledger host
-// lives in the CLI, whose 423-feedback-reads suite drives these same routes over its real stores.
+// lives in the CLI, whose mark-preview-history suite drives these same routes over its real stores.
 // 2026-09-30, 432-09: the first mark applied a knowledge fix, and its changed record is joined.
 
 const FEEDBACK_NOTE_SECRET = 'synthetic-423-21-note-token'

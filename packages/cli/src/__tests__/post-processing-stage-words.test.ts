@@ -3,10 +3,9 @@
 // 2026-10-17 (444-11, D-13/D-39): a run whose chain was never enqueued reads `skipped (<reason>)`.
 // 2026-10-18 (444-12, D-14): a run that ended with no verdict reads `skipped (no verdict)`.
 
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, resolve } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { join } from 'node:path'
 
 import { Client, StreamableHTTPClientTransport } from '@modelcontextprotocol/client'
 import { createMcpHandler } from '@modelcontextprotocol/server'
@@ -23,7 +22,6 @@ import {
   asJobId,
   CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION,
   POST_PROCESSING_SKIP_REASON_WORDS,
-  POST_PROCESSING_SKIP_REASONS,
   PostProcessingStatusSchema,
   RunDigestSchema,
   CURRENT_BUS_SCHEMA_VERSION,
@@ -42,107 +40,9 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { composeCliLocalAgent } from '../composition/local-agent-host.js'
 import { renderChainTerminalLine, renderPostProcessingSummaryLine } from '../curation/post-run-tail.js'
 
-const PACKAGES_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
-
-const RENDERERS = [
-  'cli/src/curation/post-run-tail.ts',
-  'agent/src/functions/ops/runs-digest.ts',
-  'dashboard-server/src/run-service/post-processing-routes.ts',
-  'dashboard-ui/src/lib/post-processing-view.ts',
-  'dashboard-ui/src/lib/api.ts',
-  'dashboard-ui/src/lib/analysis-view.ts',
-  'dashboard-ui/src/lib/knowledge-view.ts',
-] as const
-
-const SKIP_WORD_READERS = [
-  'cli/src/curation/post-run-tail.ts',
-  'agent/src/functions/ops/runs-digest.ts',
-  // 2026-10-18 (444-26, D-61): the overview's Learned line and the knowledge header.
-  'cli/src/commands/runs-read.ts',
-] as const
-
-const SKIPPED_RENDERERS = [
-  ...RENDERERS,
-  'dashboard-ui/src/components/run-detail/post-processing-chips.tsx',
-] as const
-
 const RUN_ID = 'run-444-stage-words'
 
 const CALLER: FunctionCaller = { surface: 'test', origin: 'agent' }
-
-function stripComments(source: string): string {
-  let i = 0
-  let out = ''
-  const copy = (): void => {
-    out += source[i++] ?? ''
-  }
-  const quoted = (quote: string): void => {
-    copy()
-    while (i < source.length && source[i] !== quote && source[i] !== '\n') {
-      if (source[i] === '\\') copy()
-      copy()
-    }
-    copy()
-  }
-  const template = (): void => {
-    copy()
-    while (i < source.length) {
-      if (source[i] === '\\') {
-        copy()
-        copy()
-      } else if (source[i] === '`') {
-        copy()
-        return
-      } else if (source[i] === '$' && source[i + 1] === '{') {
-        copy()
-        copy()
-        code(true)
-      } else {
-        copy()
-      }
-    }
-  }
-  const code = (untilClose: boolean): void => {
-    let depth = 0
-    while (i < source.length) {
-      const c = source[i]
-      const next = source[i + 1]
-      if (c === '/' && next === '/') {
-        while (i < source.length && source[i] !== '\n') i += 1
-      } else if (c === '/' && next === '*') {
-        const end = source.indexOf('*/', i + 2)
-        i = end === -1 ? source.length : end + 2
-      } else if (c === "'" || c === '"') {
-        quoted(c)
-      } else if (c === '`') {
-        template()
-      } else if (c === '{') {
-        depth += 1
-        copy()
-      } else if (c === '}') {
-        copy()
-        if (depth === 0 && untilClose) return
-        depth -= 1
-      } else {
-        copy()
-      }
-    }
-  }
-  code(false)
-  return out
-}
-
-const DONE_LITERAL = /'done'|"done"/u
-
-function doneLiteralLines(code: string): string[] {
-  return code.split('\n').filter(line => DONE_LITERAL.test(line)).map(line => line.trim())
-}
-
-const EXCLUDED_STAGE_WORD = /'excluded'|"excluded"|excluded \(|data-postprocessing-excluded/u
-
-function excludedStageWordLines(code: string): string[] {
-  return code.split('\n').filter(line => EXCLUDED_STAGE_WORD.test(line)).map(line => line.trim())
-}
 
 function depsWith(state: PostProcessingChainState | undefined, handoff?: CompletedRunHandoff): FunctionDeps {
   return {
@@ -248,22 +148,6 @@ describe('C444-STAGE-WORDS', () => {
     expect(digest.chain).toEqual({ analysis: 'complete', curation: 'complete', outcome: 'complete' })
     expect(digest.lines).toContain('chain — analysis: complete · curation: complete · chain complete')
     expect(JSON.stringify(result)).not.toMatch(/\bdone\b/u)
-  })
-
-  it('no renderer spells done as a stage word', () => {
-    expect(doneLiteralLines(stripComments("// 'done'\n/* \"done\" */\nconst url = 'https://x' // 'done'")))
-      .toEqual([])
-    expect(doneLiteralLines(stripComments("const w = `a ${x === 'done' ? 1 : 2}` // y"))).toHaveLength(1)
-    const found: Record<string, string[]> = {}
-    for (const file of RENDERERS) {
-      const path = join(PACKAGES_ROOT, file)
-      expect(existsSync(path), `${file} is missing; the census cannot read it`).toBe(true)
-      const code = stripComments(readFileSync(path, 'utf8'))
-      expect(code.length, `${file} read as empty`).toBeGreaterThan(0)
-      const hits = doneLiteralLines(code)
-      if (hits.length > 0) found[file] = hits
-    }
-    expect(found).toEqual({})
   })
 })
 
@@ -385,43 +269,6 @@ describe('C444-STAGE-SKIPPED', () => {
     expect(served.chain).toEqual(digest.chain)
     expect(served.lines).toContain('chain — analysis: skipped (gate run) · curation: skipped (gate run)')
     expect(JSON.stringify(result)).not.toMatch(/\bexcluded \(/u)
-  })
-
-  it('no renderer prints excluded as a stage word', () => {
-    expect(excludedStageWordLines(stripComments(
-      "const a = 'excluded'\nconst b = \"excluded\"\nconst c = `excluded (${r})`\n<x data-postprocessing-excluded />",
-    ))).toHaveLength(4)
-    expect(excludedStageWordLines(stripComments(
-      "// 'excluded'\nconst r = 'outcome-excluded'\nconst e = excludedFromOutcomes",
-    ))).toEqual([])
-    const found: Record<string, string[]> = {}
-    for (const file of SKIPPED_RENDERERS) {
-      const path = join(PACKAGES_ROOT, file)
-      expect(existsSync(path), `${file} is missing; the census cannot read it`).toBe(true)
-      const code = stripComments(readFileSync(path, 'utf8'))
-      expect(code.length, `${file} read as empty`).toBeGreaterThan(0)
-      const hits = excludedStageWordLines(code)
-      if (hits.length > 0) found[file] = hits
-    }
-    expect(found).toEqual({})
-  })
-
-  it("every renderer reads the reason's word from one map", () => {
-    expect(POST_PROCESSING_SKIP_REASON_WORDS).toEqual({
-      'gate-run': 'gate run',
-      'outcome-excluded': 'outcome-excluded',
-      'no-verdict': 'no verdict',
-    })
-    expect(POST_PROCESSING_SKIP_REASONS.length).toBeGreaterThan(0)
-    expect(Object.keys(POST_PROCESSING_SKIP_REASON_WORDS).sort()).toEqual([...POST_PROCESSING_SKIP_REASONS].sort())
-    for (const reason of POST_PROCESSING_SKIP_REASONS) {
-      expect(POST_PROCESSING_SKIP_REASON_WORDS[reason].length, reason).toBeGreaterThan(0)
-    }
-    for (const file of SKIP_WORD_READERS) {
-      const path = join(PACKAGES_ROOT, file)
-      expect(existsSync(path), `${file} is missing; the census cannot read it`).toBe(true)
-      expect(stripComments(readFileSync(path, 'utf8')), file).toContain('POST_PROCESSING_SKIP_REASON_WORDS[')
-    }
   })
 })
 

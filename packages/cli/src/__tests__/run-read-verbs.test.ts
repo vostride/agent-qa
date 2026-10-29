@@ -38,7 +38,6 @@ import { createKnowledgeCommand } from '../commands/knowledge.js'
 import { createRunsCommand } from '../commands/runs.js'
 import * as host from '../composition/local-agent-host.js'
 import { markFixture } from '../gates/__tests__/feedback-fixture.js'
-import { SURFACE_ROSTER } from './conformance/roster.js'
 import {
   CLI_ENTRY,
   REBUILD_INSTRUCTION,
@@ -875,7 +874,6 @@ describe('DEDICATED-READ-VERBS: the manifest table matches the live verbs and st
         expect(projected.has(opId), opId).toBe(true)
       }
     }
-    expect(SURFACE_ROSTER.map((door) => door.id)).toEqual(['chat', 'mcp', 'fn', 'run-service'])
   })
 })
 

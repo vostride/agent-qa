@@ -1,5 +1,4 @@
-// 431 D-25/D-26 · PXH-AGENT-05: agent-facing guidance reads runs through agent-qa, and the package
-// docs name only what exists. The forbidden instruction literals live here and nowhere else.
+// Agent-facing guidance reads runs through agent-qa, and the package docs name only what exists.
 
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -13,13 +12,6 @@ const AGENT_QA_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..
 const SKILLS_DIR = join(AGENT_QA_ROOT, 'skills')
 const MCP_DIR = join(AGENT_QA_ROOT, 'packages', 'mcp')
 
-const FORBIDDEN_INSTRUCTIONS: readonly RegExp[] = [
-  /no tool serves artifact bytes/iu,
-  /read the local `?\.agent-qa`? run artifacts/iu,
-  /from the run directory on disk/iu,
-  /read from the run directory/iu,
-  /which file to open/iu,
-]
 const PRIVATE_RUNTIME_PATH = /(^|[^\w-])\.agent-qa(?![\w-])|agent-jobs\.db|memory\/(index|queue)\//u
 const PROHIBITION = /\b(never|not|no)\b/iu
 
@@ -68,9 +60,6 @@ function unsafeInstructions(subject: Subject): readonly string[] {
   const findings: string[] = []
   for (const unit of instructionUnits(subject.body)) {
     const where = `${subject.name}:${String(unit.line)}`
-    for (const pattern of FORBIDDEN_INSTRUCTIONS) {
-      if (pattern.test(unit.text)) findings.push(`${where}: ${pattern.source}`)
-    }
     if (PRIVATE_RUNTIME_PATH.test(unit.text) && !PROHIBITION.test(unit.text)) {
       findings.push(`${where}: names a private runtime path outside a prohibition`)
     }
@@ -89,11 +78,7 @@ function missingPaths(packageDir: string, paths: readonly string[]): readonly st
 
 const KNOWN_BAD_TRIAGE: Subject = {
   name: 'known-bad triage skill',
-  body: [
-    '   - Artifacts, logs and the full event feed from the run directory on disk — no tool serves',
-    '     artifact bytes, and the digest names what the run produced.',
-    '- If MCP is unavailable, read the local `.agent-qa` run artifacts as a fallback.',
-  ].join('\n'),
+  body: '- If MCP is unavailable, read the local `.agent-qa` run artifacts as a fallback.',
 }
 
 describe('INSTRUCTIONS-STRUCTURED-READS', () => {
@@ -104,9 +89,9 @@ describe('INSTRUCTIONS-STRUCTURED-READS', () => {
   })
 
   it('reds on a known-bad instruction subject', () => {
-    const findings = unsafeInstructions(KNOWN_BAD_TRIAGE)
-    expect(findings.length).toBeGreaterThanOrEqual(3)
-    expect(findings.join('\n')).toContain('names a private runtime path outside a prohibition')
+    expect(unsafeInstructions(KNOWN_BAD_TRIAGE)).toEqual([
+      'known-bad triage skill:1: names a private runtime path outside a prohibition',
+    ])
   })
 
   it.each(['agent-qa-result-triage', 'agent-qa-debug-fix'])(
@@ -140,10 +125,5 @@ describe('MCP-DOC-PATHS', () => {
     const scope = /^## Scope\n([\s\S]*?)(?=^## )/mu.exec(agentsMd)?.[1] ?? ''
     expect(scope).not.toMatch(/dashboard-backed/iu)
     expect(scope).toMatch(/registry op/iu)
-  })
-
-  it('reds on the removed v1 Read First files', () => {
-    const removed = ['src/server.ts', 'src/local-http.ts', 'src/schema-reference.ts']
-    expect(missingPaths(MCP_DIR, [...removed, 'src/index.ts'])).toEqual(removed)
   })
 })

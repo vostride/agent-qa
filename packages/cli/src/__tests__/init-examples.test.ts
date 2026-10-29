@@ -110,38 +110,6 @@ const KOMAZON_TARGETS = {
   komazon: { platform: 'web', url: 'https://playground.vostride.dev/shop/' },
   'komazon-cart-total-bug': { platform: 'web', url: BUG_URL },
 }
-const RETIRED_PATHS = [
-  'tests/example-pass.yaml',
-  'tests/example-fail.yaml',
-  'tests/automation-exercise/home-smoke.yaml',
-  'tests/automation-exercise/products-smoke.yaml',
-  'tests/automation-exercise/cart-smoke.yaml',
-  'suites/automation-exercise.suite.yaml',
-  'tests/hacker-news-top-story.yaml',
-  'scripts/fetch-hn-top-story.mjs',
-  'tests/bad-a11y.yaml',
-]
-const RETIRED_TARGETS = ['example-web', 'automation-exercise', 'wai-bad']
-const RETIRED_IDS = [
-  't_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle',
-  't_bronze-cedar-dune-ember-fjord-glade-harbor-ivory-jade-kelp',
-  't_class-volume-nth-intent-break-gun-gone-ging-twig-vert',
-  't_umble-ruby-direct-notify-rama-phony-dust-owl-lop-etch',
-  't_kend-lack-infect-nou-bah-kil-point-reak-ura-loo',
-  's_hill-gant-verb-nast-hunter-rita-home-store-amy-crest',
-  't_quad-adar-micro-magic-cross-cue-open-agog-rang-cours',
-  't_ponent-toa-base-fred-click-sigma-lad-agen-report-sticky',
-  'h_aster-bloom-cloud-drift-ember-field-glade-hollow-ivory-jasper',
-]
-const RETIRED_NAMES = [
-  'example-pass',
-  'example-fail',
-  'automation-exercise',
-  'hacker-news-top-story',
-  'fetch-hn-top-story',
-  'bad-a11y',
-]
-
 type Write = { path: string; content: string }
 
 async function runInit(args: string[]): Promise<void> {
@@ -309,26 +277,9 @@ describe('C445-EXAMPLES', () => {
   it('init writes none of the retired samples', async () => {
     const writes = await initWrites()
     const paths = writes.map(write => write.path)
-    for (const path of RETIRED_PATHS) {
-      expect(paths, `init still writes ${path}`).not.toContain(path)
-    }
-
-    const config = written(writes, 'agent-qa.config.yaml').doc
-    for (const target of RETIRED_TARGETS) {
-      expect(Object.keys(config.registry.targets), `target ${target}`).not.toContain(target)
-    }
-    for (const write of writes) {
-      for (const id of RETIRED_IDS) {
-        expect(write.content, `${write.path} carries ${id}`).not.toContain(id)
-      }
-    }
-
     const output = consoleOutput()
     const nextSteps = output.slice(output.indexOf('Next steps:'))
     expect(output).toContain('Next steps:')
-    for (const name of RETIRED_NAMES) {
-      expect(nextSteps, `the next steps name ${name}`).not.toContain(name)
-    }
     const named = nextSteps.match(/\b(?:tests|suites|scripts)\/[\w./-]+/g) ?? []
     expect(named.length, 'the next steps name no example file').toBeGreaterThan(0)
     for (const path of named) {

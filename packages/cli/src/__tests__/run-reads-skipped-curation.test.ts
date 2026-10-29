@@ -3,7 +3,7 @@
 // gate run's never-run curation no longer reads as a bare `pending`. The fact is the same fold
 // `runs.postprocessing` serves, read from the run's own handoff.
 //
-// Built on 431-knowledge-run-reads.test.ts's harness: completed handoffs written through
+// Built on run-read-verbs.test.ts's harness: completed handoffs written through
 // FsHandoffStore, the in-process `cli()` driver over createRunsCommand(), and the composed MCP
 // reader. The fixtures live in this file (437 D-19).
 

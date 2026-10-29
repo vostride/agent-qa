@@ -1,5 +1,5 @@
-// 2026-10-03 (quick 261003-lgd, Phase 432 review WR-05): mark history reads on a config that does
-// not load. Its own file because the 423 mutation driver counts 423-feedback-reads.test.ts exactly.
+// Mark history reads on a config that does not load. The history reads on a config that loads are
+// in packages/cli/src/__tests__/mark-preview-history.test.ts.
 
 import { readFileSync, rmSync, writeFileSync } from 'node:fs'
 

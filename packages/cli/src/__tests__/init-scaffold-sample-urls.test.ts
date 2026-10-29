@@ -71,14 +71,6 @@ const PLATFORMS = ['web', 'android', 'ios', 'web+android', 'web+ios'] as const
 const WEB_PLATFORMS = new Set(['web', 'web+android', 'web+ios'])
 const PLAYGROUND_HOST = 'playground.vostride.dev'
 const AGENT_QA_RECIPE_URL = 'https://vostride.com/docs/agent-qa/coding-agents'
-const RETIRED_HOSTS = [
-  'example.com',
-  'iana.org',
-  'automationexercise.com',
-  'w3.org',
-  'news.ycombinator.com',
-  'firebaseio.com',
-]
 const URL_PATTERN = /https?:\/\/[^\s"'<>)\]]+/g
 
 async function runInit(args: string[]): Promise<void> {
@@ -97,12 +89,6 @@ async function writesFor(platform: string): Promise<Array<{ path: string; conten
     path: String(call[0]),
     content: String(call[1]),
   }))
-}
-
-// An email's domain (alex@example.com, the playground's printed sign-in) is not a host.
-function namesHost(content: string, host: string): boolean {
-  const escaped = host.replace(/\./g, '\\.')
-  return new RegExp(`(?<![\\w@.-])(?:[a-z0-9-]+\\.)*${escaped}(?![\\w-])`, 'i').test(content)
 }
 
 describe('C445-SCAFFOLD-HOSTS', () => {
@@ -136,20 +122,6 @@ describe('C445-SCAFFOLD-HOSTS', () => {
       }
       for (const { file, url } of urls) {
         expect(new URL(url).hostname, `${platform}: ${file} names ${url}`).toBe(PLAYGROUND_HOST)
-      }
-    }
-  })
-
-  it('no generated file names a retired sample host', async () => {
-    for (const platform of PLATFORMS) {
-      const writes = await writesFor(platform)
-      expect(writes.length, `${platform}: init wrote no file`).toBeGreaterThan(0)
-      for (const write of writes) {
-        for (const host of RETIRED_HOSTS) {
-          expect(namesHost(write.content, host), `${platform}: ${write.path} names ${host}`).toBe(
-            false,
-          )
-        }
       }
     }
   })

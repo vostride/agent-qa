@@ -8,7 +8,7 @@
 // graph loaded. A failing factory re-registers itself, so a retry is a genuine second load.
 //
 // The cross-process proof (a real MCP host under a pre-import loader trap) is
-// packages/cli/src/__tests__/431-mcp-no-embedder.test.ts.
+// packages/cli/src/__tests__/mcp-cold-start-no-embedder.test.ts.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'

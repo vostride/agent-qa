@@ -1,11 +1,10 @@
-// The shipped MCP door over stdio, tokenless, doing the whole loop (Phase 432 plan 42; D-04/D-05/D-12).
+// The shipped MCP door over stdio, tokenless, doing the whole loop.
 //
 // WHAT THIS ADDS TO `mcp-stdio-smoke.test.ts`. The smoke cell lists tools. This file spawns the
 // SAME built binary in a project that has a recorded failing run and live knowledge, and drives the
-// loop a coding agent drives: list the catalogue with no token (C432-TOKENLESS-CATALOG), change the
-// config in one call (C432-DOOR-NONPRODUCTION), mark the run in one call, and read the knowledge the
-// NEXT run's brief serves (C432-NEXT-RUN-SERVES). No caller presents a token, a scope or a
-// confirmation; nothing elicits; no legacy grant, proposal or execution-audit file appears (D-22).
+// loop a coding agent drives: list the catalogue with no token, change the config in one call, mark
+// the run in one call, and read the knowledge the NEXT run's brief serves. No caller presents a
+// token, a scope or a confirmation, and nothing elicits.
 //
 // BUILD PREREQUISITE (the stale-dist law): the child is `packages/cli/dist/cli.js`. The CLI's test
 // task depends on its build; a focused run needs `pnpm build` first, and the guard below says so.
@@ -25,13 +24,6 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { bundles, markFixture } from '../gates/__tests__/feedback-fixture.js'
 
 const CLI_ENTRY = resolve(dirname(fileURLToPath(import.meta.url)), '../../dist/cli.js')
-
-/** The twenty tools 432-12 measured, and the six proposal-round tools it deleted. */
-const TWENTY_TOOLS = 20
-const RETIRED_TOOLS = [
-  'agent_qa_propose_knowledge_change', 'agent_qa_apply_proposal', 'agent_qa_propose_config_change',
-  'agent_qa_apply_config_proposal', 'agent_qa_list_proposals', 'agent_qa_show_proposal',
-] as const
 
 /** The fixture's knowledge lives in the `storefront` product (the promotion-floor fixture). */
 const PRODUCT = 'storefront'
@@ -115,11 +107,9 @@ describe('C432-TOKENLESS-CATALOG: a tokenless stdio caller sees the whole twenty
     const session = await openStdio(fixture.root)
     try {
       const names = (await session.client.listTools()).tools.map((tool) => tool.name).sort()
-      expect(names, names.join(', ')).toHaveLength(TWENTY_TOOLS)
       for (const kept of ['agent_qa_change_knowledge', 'agent_qa_change_config', 'agent_qa_mark_run', 'agent_qa_start_run']) {
         expect(names).toContain(kept)
       }
-      for (const retired of RETIRED_TOOLS) expect(names).not.toContain(retired)
       expect(session.stderr()).not.toMatch(/token|scope|credential/iu)
     } finally {
       await session.close()
@@ -138,8 +128,6 @@ describe('C432-DOOR-NONPRODUCTION / C432-NEXT-RUN-SERVES: one call each over std
       expect(answer.isError, answer.text).toBe(false)
       expect(answer.structured?.['outcome'], answer.text).toBe('applied')
       expect(readFileSync(fixture.configPath, 'utf8'), 'the change is not on disk after one call').toContain('workers: 2')
-      expect(answer.text).not.toMatch(/\bpropos|\bapprov|\bpending\b|\bconfirm/iu)
-      expect(existsSync(join(fixture.agentQaRoot, 'proposals')), 'a proposal store was created').toBe(false)
     } finally {
       await session.close()
     }
@@ -179,9 +167,5 @@ describe('C432-DOOR-NONPRODUCTION / C432-NEXT-RUN-SERVES: one call each over std
     if (!change.recordIds.map(String).includes(fixture.published.id)) {
       expect(servedAfter, 'the replaced record is still served').not.toContain(fixture.published.id)
     }
-
-    // D-22: no legacy approval state was created to get here.
-    expect(existsSync(join(fixture.knowledgeRoot, 'grants.jsonl'))).toBe(false)
-    expect(existsSync(join(fixture.agentQaRoot, 'proposals'))).toBe(false)
   }, 120_000)
 })

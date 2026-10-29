@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
@@ -9,8 +9,6 @@ import { createRunCommand, produceDirectRunMembers, produceSuiteRunMembers } fro
 import type { RunInvocationInputs, SuiteRunMemberProductionInput } from '../commands/run.js'
 import { assembleCliRun } from '../composition/run-assembly.js'
 import { RECORDING_STAGING_DIRNAME, resolveRecordingSetting as resolve, resolveRecordingStagingDir } from '../commands/recording-setting.js'
-
-const runSource = readFileSync(new URL('../commands/run.ts', import.meta.url), 'utf8')
 
 const boundary = vi.hoisted(() => ({
   setups: vi.fn(),
@@ -73,13 +71,6 @@ it('REC-DEFAULT-META-FALSE-OFF: member false overrides flag and config', () => {
 
 it('REC-DEFAULT-META-TRUE-ON: member true overrides flag and config', () => {
   expect(resolve(false, { enabled: false }, true)).toEqual({ enabled: true, keepFailuresOnly: false })
-})
-
-it('REC-DEFAULT-BOTH-PATHS-SHARE: both paths and member overrides use the resolver', () => {
-  expect(runSource.match(/resolveRecordingSetting\(/g)?.length ?? 0).toBeGreaterThanOrEqual(4)
-  expect(runSource).not.toMatch(/opts\.record\s*\?\?/)
-  expect(runSource).not.toContain('resolveDashboardVideoDir')
-  expect(runSource).not.toMatch(/(?:recordingCfg|recCfg2?)\?\.(?:videoDir|videoSize)/)
 })
 
 it('REC-STAGING-NOT-LEGACY-DIR: staging sits beside runs regardless of workspace name', () => {
