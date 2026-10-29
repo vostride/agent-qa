@@ -1,9 +1,9 @@
-// The BLOCKED posture, end to end through the real pipeline (Phase 395-04, CFGM-01 · D-09/D-10).
+// The BLOCKED posture, end to end through the real pipeline.
 //
-// 2026-09-30, 432-11 D-05: a blocked change is ANSWERED and nothing is kept. The cells below read
+// a blocked change is ANSWERED and nothing is kept. The cells below read
 // the answer itself, and assert that nothing reached the store or the direct writer.
 //
-// 2026-10-14, 441 D-15/D-23: a config change is not scanned for secrets. The one blocked road left
+// a config change is not scanned for secrets. The one blocked road left
 // is a change whose resulting configuration does not validate; a credential-shaped value is the
 // author's own text and is written (C441-CONFIG-SCAN below). The cells whose subject was the scan
 // are deleted.
@@ -175,12 +175,12 @@ describe('the blocked posture', () => {
     expect(answer.outcome).toBe('blocked')
     if (answer.outcome !== 'blocked') throw new Error('unreachable')
     expect(answer.blockedReason).toBe('schema-fail')
-    // 395-10: the answered string is the port's PAIR joined — the file the issue is about, then
+    // the answered string is the port's PAIR joined — the file the issue is about, then
     // the validator's own sentence — so the file is not guessed at from what the change diffed.
     expect(answer.validationIssues)
       .toEqual([`${CONFIG_FILE}: use.parallel: expected boolean, received string`])
     expect(answer.paths).toEqual([CONFIG_FILE])
-    // 432-11: NOTHING IS KEPT OR WRITTEN. The report is the answer.
+    // NOTHING IS KEPT OR WRITTEN. The report is the answer.
     expect(test.filed).toHaveLength(0)
     expect(test.written).toHaveLength(0)
   })
@@ -224,7 +224,7 @@ describe('the blocked posture', () => {
     expect(unflagged.crossBoundaryReasons).toEqual([])
   })
 
-  // RE-SPELLED 2026-10-01 (432-17, D-05): nothing is filed any more, the accept op is deleted with
+  // RE-SPELLED 2026-10-01: nothing is filed any more, the accept op is deleted with
   // the inbox, and so is the funnel that guarded an apply port no host binds.
   it('(8) no blocked record can be accepted: there is no apply funnel and no accept op', () => {
     expect('applyablePayload' in construct).toBe(false)

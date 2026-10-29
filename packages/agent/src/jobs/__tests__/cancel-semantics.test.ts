@@ -1,4 +1,4 @@
-// Engine-complete cooperative cancellation (Phase 385 plan 05, D-19).
+// Engine-complete cooperative cancellation.
 //
 // D-19 names TWO behaviours and the lazy implementation collapses them into one. A queued job
 // cancels immediately, because nothing is running and there is nothing to be cooperative

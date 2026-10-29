@@ -1,4 +1,4 @@
-// The one unconditional refinement round (394-09, D-18 · WTST-01/WTST-07).
+// The one unconditional refinement round.
 //
 // THE MUTATION THIS FILE MUST GO RED ON: gating the round behind a condition — the obvious one
 // being "skip the round when the first retrieval already returned facts". That is the trigger
@@ -95,7 +95,7 @@ function harness(options: HarnessOptions): Harness {
   const wholeDocumentWrites: string[] = []
 
   const read: AuthoringReadPortLike = {
-    // 394-33 WR-07: the `target` vocabulary. The refinement round is the subject here and it
+    // the `target` vocabulary. The refinement round is the subject here and it
     // carries no format block, so this is read by the compile call alone.
     configuredTargetNames: (): Promise<readonly string[]> => Promise.resolve(['local-form']),
     getAuthoringBrief(query: string): Promise<AuthoringBrief> {

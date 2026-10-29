@@ -1,4 +1,4 @@
-// Bounded repair, fenced on both sides of the passing prefix (Phase 394, D-09/D-10 · WTST-04).
+// Bounded repair, fenced on both sides of the passing prefix.
 //
 // WHAT THIS FILE IS FOR. The router (`router.ts`) has already decided that a failing draft is the
 // DRAFT's problem rather than the application's. This file bounds what may be done about it: how
@@ -7,7 +7,7 @@
 // answered in exactly one place each, and a second reading of either is the failure mode this
 // phase's whole arc is built to prevent.
 //
-// THE PASSING PREFIX IS PROTECTED TWICE, AND THE TWO HALVES CATCH DIFFERENT THINGS (D-09).
+// THE PASSING PREFIX IS PROTECTED TWICE, AND THE TWO HALVES CATCH DIFFERENT THINGS.
 //
 //   STATIC   `fencePatchAgainstPassingPrefix` reads every RFC-6902 path in the set and refuses the
 //            WHOLE set if any of them addresses a step position inside the prefix. It runs before
@@ -65,7 +65,7 @@ import { missingStatedValues, statedValuesMissingReason } from './stated-values.
 import { buildTieredPrompt } from '../prompt/tiered-prompt-builder.js'
 
 /**
- * K: how many repair iterations one draft gets. PINNED, never config (386 D-15).
+ * K: how many repair iterations one draft gets. PINNED, never config.
  *
  * RETUNE NOTE. Raising this multiplies the fan-out preview LINEARLY — the bound a user approves at
  * dispatch is initial N + K probes + final N, so K=5 turns a 7-run preview into a 9-run one for
@@ -83,7 +83,7 @@ import { buildTieredPrompt } from '../prompt/tiered-prompt-builder.js'
 export const REPAIR_ITERATION_CAP = 3
 
 /**
- * The `agent_context` every repair call carries into the ONE tiered prompt builder (389 D-04).
+ * The `agent_context` every repair call carries into the ONE tiered prompt builder.
  *
  * Pinned rather than computed, on `AUTHORING_COMPILE_AGENT_CONTEXT`'s reasoning: it lands in the
  * stable tier, which is the byte prefix a provider's prompt cache keys on, so a per-invocation
@@ -96,7 +96,7 @@ export const REPAIR_AGENT_CONTEXT =
 /**
  * The steps that already worked, and the run that says so.
  *
- * PREFIX IDENTITY, SPELLED ONCE (D-09): step POSITIONS in the BEST PRIOR RUN. `length` is the
+ * PREFIX IDENTITY, SPELLED ONCE: step POSITIONS in the BEST PRIOR RUN. `length` is the
  * count of leading steps that passed, so the protected set is `[0, length)` — a contiguous prefix
  * and not the set of every step that is not currently failing. The difference is load-bearing: a
  * step AFTER the failure never ran, so nobody has seen it pass, and protecting it would fence off
@@ -115,7 +115,7 @@ export interface PassingPrefix {
  * Returning it rather than raising is what lets the caller count the refusal against K without a
  * `try` around the one call in the loop body that is supposed to be able to say no — and a fenced
  * patch MUST consume an iteration, or a model that emits nothing but fenced patches never
- * terminates (T-394-23).
+ * terminates.
  */
 export class PassingPrefixViolationError extends Error {
   constructor(
@@ -140,7 +140,7 @@ export class PassingPrefixViolationError extends Error {
  * says it broke one WITHOUT asking. The second is the more interesting signal and would be lost
  * inside a shared class.
  *
- * ITS FOUR FIELDS ARE ONE COORDINATE, AND THEY NAME THE PROBED MEMBER (CR-01). A run record is
+ * ITS FOUR FIELDS ARE ONE COORDINATE, AND THEY NAME THE PROBED MEMBER. A run record is
  * addressed by (runId, filePath, testName, stepIndex), so the run id alone is half an address —
  * and the half a reader would otherwise supply from the PRE-repair draft names a file this probe
  * never opened, because every applied patch set re-stages the candidate under its new digest. All
@@ -223,21 +223,21 @@ export interface RepairDeps {
   readonly shelf: DraftShelfPortLike
   readonly runs: DraftRunPortLike
   /**
-   * The session the invocation was entered with, carried to the final stability gate (394-17).
+   * The session the invocation was entered with, carried to the final stability gate.
    *
    * Handed in rather than re-derived, and ABSENT when the invocation had none — the caller reads
    * it off the receipt stage 4 already minted, so there is one source for the whole invocation.
    */
   readonly sessionRef?: string
   /**
-   * The suite the draft proposes to JOIN, carried to the final stability gate (394-19, D-14).
+   * The suite the draft proposes to JOIN, carried to the final stability gate.
    *
    * Handed in rather than re-derived for `sessionRef`'s reason exactly: the repaired candidate is
    * the SAME draft with patched steps, so it joins the same suite, and a second derivation here
    * would be a second answer to a question the invocation already answered.
    */
   readonly targetSuitePath?: string
-  // 2026-10-12 (440-05, D-07): the request's stated values, which no repair patch may lose.
+  // the request's stated values, which no repair patch may lose.
   readonly statedValues: readonly string[]
 }
 
@@ -328,7 +328,7 @@ export function fencePatchAgainstPassingPrefix(
 }
 
 /**
- * A repair patch tried to change what the test IS. A VALUE, never thrown (WR-01).
+ * A repair patch tried to change what the test IS. A VALUE, never thrown.
  *
  * Returned rather than raised for {@link PassingPrefixViolationError}'s reason exactly: the caller
  * counts the refusal against K, so a model that emits nothing but renames still terminates.
@@ -360,7 +360,7 @@ export class RepairIdentityViolationError extends Error {
  *
  * A THIRD CONTROL, AND NONE OF THE THREE SUBSTITUTES FOR ANOTHER. `EDITABLE_POINTER_ROOTS` bounds
  * which part of the DOCUMENT any patch may touch, and it admits `name` deliberately — a user asking
- * `authoring.draft.edit` for a rename is asking for something legitimate (D-21), and narrowing that
+ * `authoring.draft.edit` for a rename is asking for something legitimate, and narrowing that
  * shared control would take the power away from the caller that is entitled to it.
  * `fencePatchAgainstPassingPrefix` bounds which STEPS a repair may touch and cannot express a rule
  * about a root that addresses no step. This one bounds what the REPAIR LANE may do, which is why it
@@ -382,7 +382,7 @@ export function fencePatchAgainstDraftIdentity(
   return null
 }
 
-// 2026-10-12 (440-05, D-07): returned rather than thrown, so the caller counts it against K.
+// returned rather than thrown, so the caller counts it against K.
 export class RepairStatedValueViolationError extends Error {
   constructor(readonly missingValues: readonly string[]) {
     super(
@@ -533,16 +533,16 @@ function probeStartInput(draft: ParsedDraftLike): Parameters<DraftRunPortLike['s
 // ---- the loop -----------------------------------------------------------------------------------
 
 /**
- * Repair a draft the router sent here, at most {@link REPAIR_ITERATION_CAP} times (D-09/D-10).
+ * Repair a draft the router sent here, at most {@link REPAIR_ITERATION_CAP} times.
  *
- * ONE PROBE PER ITERATION, STABILISE AT THE END (D-10). Each iteration verifies with a single run,
+ * ONE PROBE PER ITERATION, STABILISE AT THE END. Each iteration verifies with a single run,
  * because a full pinned-N stability gate per iteration would multiply the fan-out by N for
  * candidates that mostly do not survive. The pinned-N gate then runs ONCE, on the final candidate,
  * before any disposition exists — which is what makes a repaired draft keep-eligible at all: a
  * single-run evaluation is `unverified` at best by rule 1 of the disposition table, so a loop
  * that stopped at the probe could never produce a draft anyone is allowed to keep.
  *
- * PROBES MINT NO RECEIPT (T-394-24). A probe goes through the run port directly; only the final
+ * PROBES MINT NO RECEIPT. A probe goes through the run port directly; only the final
  * gate goes through `verifyDraft`, which is the registered op that persists one. The receipt is
  * per DRAFT, and a funnel counting `1 + K` receipts for one draft would report a filter rate over
  * a denominator of attempts rather than of drafts.
@@ -557,7 +557,7 @@ export async function repairDraft(route: RepairRoute, deps: RepairDeps): Promise
 
   let candidate = deps.draft
   let lastRefusal = 'no iteration was taken'
-  // 394-08 / WTST-08: the probe runs this sequence actually started, so the caller can report what
+  // the probe runs this sequence actually started, so the caller can report what
   // was CONSUMED rather than what was attempted. `iterations` cannot answer that question — a
   // fenced or unparsable emission spends an iteration and starts nothing — and an actual-runs
   // figure derived from the iteration count would over-report by exactly the refusals D-09 exists
@@ -609,14 +609,14 @@ export async function repairDraft(route: RepairRoute, deps: RepairDeps): Promise
       continue
     }
 
-    // 2026-10-12 (440-05, D-07): the try is spent, nothing runs and `candidate` stays put.
+    // the try is spent, nothing runs and `candidate` stays put.
     const valueViolation = fencePatchAgainstStatedValues(staged.draft, deps.statedValues)
     if (valueViolation !== null) {
       lastRefusal = valueViolation.message
       continue
     }
 
-    // 2026-10-14 (441-03, D-10): a literal [secret:NAME] spends the try and starts no probe.
+    // a literal [secret:NAME] spends the try and starts no probe.
     try {
       refuseLiteralSecretMarkers(staged.draft)
     } catch (error) {
@@ -694,7 +694,7 @@ function parsePatchSet(text: string): TestEditPatchSet | string {
   return parsed.data
 }
 
-// 394-08: `repairFanOutBound` used to live here, returning a bare number over its own `+`. It is
+// `repairFanOutBound` used to live here, returning a bare number over its own `+`. It is
 // GONE, replaced by `authoringFanOutBound` in `loop.ts` over `computeFanOutBound` in `schema` —
 // which is the ONE arithmetic the dispatch confirm and the finished proposal both read. Two
 // additions of the same three terms is precisely how a preview begins promising a number the

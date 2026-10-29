@@ -1,4 +1,4 @@
-// Stage 2 — dedup-before-author, the deterministic suite-wide text lane (Phase 394, D-04/D-16).
+// Stage 2 — dedup-before-author, the deterministic suite-wide text lane.
 //
 // WHAT THIS LANE DOES, in order:
 //
@@ -19,7 +19,7 @@
 // non-deterministic filter cannot be proven against a frozen corpus, and a filter nobody can prove
 // is a filter whose false-refusal rate is a matter of opinion. What this lane trades away is
 // recall on a crafted paraphrase, and that is bounded rather than unowned — gate 3 remains the
-// anchor-level backstop for near-duplicates that slip the text screen (T-394-15).
+// anchor-level backstop for near-duplicates that slip the text screen.
 //
 // WHY THE FAILURE DIRECTION IS TOWARD REFUSE. Not re-argued here: `adds-value.ts`'s own comment on
 // `TEXT_FALLBACK_SIMILARITY_THRESHOLD` states the asymmetry for the same comparison on the same
@@ -36,7 +36,7 @@ import type { SuiteTestIdentity, SuiteTextCorpusEntryLike } from './ports.js'
 /**
  * Similarity at or above which an intent is refused as a near-duplicate of an existing test.
  *
- * A PINNED CONSTANT, never config (386 D-15).
+ * A PINNED CONSTANT, never config.
  *
  * IT SITS BELOW GATE 3's, DELIBERATELY. `TEXT_FALLBACK_SIMILARITY_THRESHOLD` is 0.5; this is 0.45.
  * The two answer different questions on the same scale — gate 3 asks whether a draft that has
@@ -50,7 +50,7 @@ import type { SuiteTestIdentity, SuiteTextCorpusEntryLike } from './ports.js'
  * frozen corpus at `__tests__/fixtures/dedup-corpus/expectations.json` and report three things.
  * ALL THREE WERE RE-MEASURED 2026-08-13 on the producible input distribution; the numbers this
  * comment carried until then were taken over whole test DOCUMENTS, which no caller can send, and
- * so described a lane nobody was ever running (394-31, WINDOWS 118).
+ * so described a lane nobody was ever running.
  *   (a) WHICH ROWS MOVE. The corpus carries a boundary triple — 0.4444444444, 0.4500000000 and
  *       0.4545454545 — so the immediate neighbourhood is already instrumented. The value is
  *       0.45 rather than a rounder number because 0.45 is the value the corpus can sit EXACTLY
@@ -150,7 +150,7 @@ export type DedupScreening =
 /**
  * The `entities.resolve` reference for a suite test — the house spelling, in one place.
  *
- * DELEGATES to `suiteTestRef` rather than re-forming the string (394-09). Two spellings of one
+ * DELEGATES to `suiteTestRef` rather than re-forming the string. Two spellings of one
  * reference were live in the tree — this one and the schema's, minted there with the words "so no
  * surface invents a second" — and while they agreed the drift was invisible. The one that survives
  * is the one in `schema`, because the binder that CONSUMES this ref lives on the other side of the
@@ -209,7 +209,7 @@ function scoreIntentAgainst(
  *
  * The intent stands in for the draft's text because at this point there IS no draft, which is what
  * makes the screen worth doing at all. It is scored through `textOverlap`, the shipped comparison
- * gate 3's degraded lane already screens with (393 D-16), rather than through a second recipe: two
+ * gate 3's degraded lane already screens with, rather than through a second recipe: two
  * notions of "how alike are these two tests" would let the pre-authoring screen and the post-run
  * gate disagree about the same pair. Which TEXTS that recipe is pointed at is
  * {@link scoreIntentAgainst}'s subject.

@@ -1,4 +1,4 @@
-// 2026-10-12 (440-01, D-03): the request's stated values and the draft steps that lose them. Pure,
+// the request's stated values and the draft steps that lose them. Pure,
 // linear and model-free, because the request is untrusted text from any caller.
 
 type QuoteKind = 'double' | 'curly' | 'single'
@@ -54,8 +54,8 @@ function letterOrNumberAt(text: string, index: number): boolean {
   return LEADING_LETTER_OR_NUMBER.test(text.slice(index, index + 2))
 }
 
-// 2026-10-12 (440-08, WR-01): an inch mark (`15"`) and a leading elision (`'90s`) open no quote.
-// 2026-10-12 (440-10, WR-06): only a decade such as `'90s` is an elision, so `'4K'` is a value.
+// an inch mark (`15"`) and a leading elision (`'90s`) open no quote.
+// only a decade such as `'90s` is an elision, so `'4K'` is a value.
 function openerAt(text: string, index: number): QuoteKind | undefined {
   const char = text[index]
   if (char === '"') return letterOrNumberBefore(text, index) ? undefined : 'double'
@@ -78,13 +78,13 @@ function closerOf(text: string, kind: QuoteKind, from: number): number {
   return -1
 }
 
-// 2026-10-12 (440-10, WR-07): an IPv6 literal holds `::` or at least six colons, so a bracketed
+// an IPv6 literal holds `::` or at least six colons, so a bracketed
 // time or ratio is a value.
 function holdsIpv6Groups(inside: string): boolean {
   return inside.includes('::') || inside.split(':').length > 6
 }
 
-// 2026-10-12 (440-08, WR-03): an IP or bracketed IPv6 host, with or without a port, states nothing.
+// an IP or bracketed IPv6 host, with or without a port, states nothing.
 function isAddress(chunk: string): boolean {
   const bare = chunk.startsWith('(') ? chunk.slice(1) : chunk
   return (
@@ -120,10 +120,10 @@ function endsSentence(text: string, tokenEnd: number): boolean {
   return isSpace(text[tokenEnd]) && LEADING_UPPERCASE.test(text.slice(tokenEnd + 1, tokenEnd + 3))
 }
 
-// 2026-10-12 (440-11, WR-05): a step label counts like a list marker, from a run start and by the
+// a step label counts like a list marker, from a run start and by the
 // next number.
-// 2026-10-12 (440-13, WR-09): a held step label and its next label that each end a sentence wait for a third, as list markers do.
-// 2026-10-12 (440-13, WR-11): the open run and the held candidate are kept apart, so a held 1 inside an item never takes over its list.
+// a held step label and its next label that each end a sentence wait for a third, as list markers do.
+// the open run and the held candidate are kept apart, so a held 1 inside an item never takes over its list.
 function blankStepLabels(text: string, chars: string[]): void {
   const open: Run = { next: 0, delimiter: '', pending: [], sentenceLike: false }
   const held: Run = { next: 0, delimiter: '', pending: [], sentenceLike: false }
@@ -170,13 +170,13 @@ function blankStepLabels(text: string, chars: string[]): void {
   }
 }
 
-// 2026-10-12 (440-07, CR-01): a list counts from 1 at a line, sentence or colon start, and each
+// a list counts from 1 at a line, sentence or colon start, and each
 // next number with the same delimiter continues it.
-// 2026-10-12 (440-11, WR-08): a run starting after a colon or a sentence end waits for its 2, and
+// a run starting after a colon or a sentence end waits for its 2, and
 // two numbers that each end a sentence wait for a 3.
-// 2026-10-12 (440-13, WR-11): the open run and the held candidate are kept apart, so a held 1 inside an item never takes over its list.
-// 2026-10-12 (440-13, WR-10): a held 1) or (1) gets the sentence guard too.
-// 2026-10-12 (440-15, WR-12): a number right after a month name is that date's day, never a list marker.
+// the open run and the held candidate are kept apart, so a held 1 inside an item never takes over its list.
+// a held 1) or (1) gets the sentence guard too.
+// a number right after a month name is that date's day, never a list marker.
 // 2026-10-12 (440-16, round-4 regression): a skipped day at the held start or next clears it.
 function blankListMarkers(text: string, chars: string[]): void {
   const open: Run = { next: 0, delimiter: '', pending: [], sentenceLike: false }
@@ -313,7 +313,7 @@ export function extractStatedValues(request: string): readonly string[] {
       if (close === -1) {
         unclosed.add(kind)
       } else if (kind === 'single' && close === index + 2 && text[index + 1] === 'n') {
-        // 2026-10-12 (440-08, WR-01): `rock 'n' roll` is text, not a quoted `n`.
+        // `rock 'n' roll` is text, not a quoted `n`.
       } else {
         parts.push({ start: segmentStart, end: index })
         parts.push({ start: index, end: close + 1, quoted: tidy(text.slice(index + 1, close)) })
@@ -326,7 +326,7 @@ export function extractStatedValues(request: string): readonly string[] {
   }
   parts.push({ start: segmentStart, end: text.length })
 
-  // 2026-10-12 (440-11, WR-08): runs are read over the whole request with quoted values masked, so
+  // runs are read over the whole request with quoted values masked, so
   // a list is confirmed across a quoted value and no marker is read inside one.
   const masked = parts
     .map(({ start, end, quoted }) =>

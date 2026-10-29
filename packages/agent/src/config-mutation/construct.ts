@@ -1,12 +1,12 @@
 // The config change construction pipeline (Phase 395, CFGM-01 / CFGM-02 / CFGM-04 · D-01 / D-03 /
 // D-09 / D-10 / D-11 / D-12 / D-17).
 //
-// 2026-09-30, 432-11 D-05/D-07: THE SIX CONFIG OPERATIONS WRITE IN THE CALL. Step 7 below is now a
+// THE SIX CONFIG OPERATIONS WRITE IN THE CALL. Step 7 below is now a
 // publication through the direct writer (`configWrite`): field changes through the config
 // transaction, whole files over the digest they were built from. A blocked change is answered as a
 // refusal carrying its report, and nothing is filed or written. Nothing here runs git.
-// 2026-10-01, 432-17 D-05/D-09: `config.undo.propose` and the proposal filing it alone still used
-// are deleted with the proposal inbox; a written change is reverted with git (D-07).
+// `config.undo.propose` and the proposal filing it alone still used
+// are deleted with the proposal inbox; a written change is reverted with git.
 //
 // SEVEN STEPS IN ONE ORDER, AND THE ORDER IS THE CONTRACT:
 //
@@ -17,7 +17,7 @@
 //   2. MUTATE, comment-preservingly, through the host's yaml Document port. A parse→object→stringify
 //      round trip destroys every comment in the house-style config and widens the rendered diff past
 //      the point a person can review it, which is CFGM-01's whole subject.
-//   3. RENDER the diff and take the digests, through the ONE schema primitive (D-17). Construction
+//   3. RENDER the diff and take the digests, through the ONE schema primitive. Construction
 //      and apply call the same export; that is the whole of the CR-02 mitigation.
 //   4. VALIDATE THE WHOLE CANDIDATE SET. CFGM-01 is explicit that validation runs BEFORE the
 //      change exists, so a mutation that breaks the config never becomes something a person can
@@ -26,15 +26,15 @@
 //      or they are door enumeration — and since 395-05 the whole input is the whole FILE SET, not
 //      the config yaml alone: `config.hook.add` changes only the hooks file, and a validator that
 //      never saw it would have declared valid the one artifact that change wrote.
-//   5. CLASSIFY cross-boundary-ness from the actual VALUES (D-02), through `computeCrossBoundary`.
-//   6. PUBLISH through the direct writer and answer what it wrote (432-11).
+//   5. CLASSIFY cross-boundary-ness from the actual VALUES, through `computeCrossBoundary`.
+//   6. PUBLISH through the direct writer and answer what it wrote.
 //
-// NO SECRET SCAN (2026-10-14, 441 D-15/D-23). A config change is not scanned for secrets and is
+// NO SECRET SCAN. A config change is not scanned for secrets and is
 // never blocked for what a value looks like: a value in a config field is the author's own text.
 // What a change shows — its diff, a validator's words — reaches people and models through the
 // declared-secret mask each door applies to what it shows.
 //
-// SIX OPS, ONE PIPELINE, AND THE SPLIT BETWEEN THEM IS THE POINT (395-05, D-01). Steps 3 to 6 are
+// SIX OPS, ONE PIPELINE, AND THE SPLIT BETWEEN THEM IS THE POINT. Steps 3 to 6 are
 // `checkConfigCandidate` plus `publishConfigChange` and every action reaches them: what a
 // `config.target.create` and a `config.field.set` do differently is which bytes they hand it, never
 // what happens to those bytes afterwards. What the ops DO own is steps 1 and 2 plus their own
@@ -45,7 +45,7 @@
 // A validation failure is answered as a refusal carrying its report, with nothing written or kept.
 //
 // NOTHING HERE COMMITS. The direct writer publishes files and runs no git; a person reviews and
-// reverts the change with their own tools (D-07).
+// reverts the change with their own tools.
 //
 // PURE OVER PORTS. Every host fact — bytes, the yaml edit, the document's shape, validation, the
 // writer — arrives as a dependency, so the pipeline is drivable end to end with no filesystem and
@@ -109,7 +109,7 @@ export interface ConstructConfigFieldSetInput {
 }
 
 /**
- * What the six config operations need (432-11 D-05/D-07): the files, the validator and the direct
+ * What the six config operations need: the files, the validator and the direct
  * writer that publishes the change in the call.
  */
 export interface ConstructConfigChangeDeps {
@@ -119,7 +119,7 @@ export interface ConstructConfigChangeDeps {
 }
 
 /**
- * How a checked change is published (432-11 D-05/D-07).
+ * How a checked change is published.
  *
  * `fields` hands the change to the config transaction as field operations, so it merges onto the
  * file as it stands in its own write turn and keeps an outside edit to another field. `files`
@@ -145,14 +145,14 @@ export interface ConfigMutationPlan {
   /** The one-line summary an applyable proposal carries. May print values; see below. */
   readonly summaryLine: string
   /**
-   * Every SCALAR this change writes, with what it replaced (D-02).
+   * Every SCALAR this change writes, with what it replaced.
    *
    * FLATTENED TO LEAVES, because the classifier's rules are about values: an origin comparison needs
    * a URL and not the map that contains one. `flattenScalarEdits` does the flattening, so a
    * structured write is classified on everything inside it rather than on the path of its root.
    */
   readonly fieldEdits: readonly CrossBoundaryFieldEdit[]
-  /** Whether this proposal ADDS a hook. STATED by the op, never inferred from a path (D-02). */
+  /** Whether this proposal ADDS a hook. STATED by the op, never inferred from a path. */
   readonly addsHook: boolean
   /** The pinned set with this change applied — every member, changed or not. */
   readonly candidate: readonly ConfigFileBytes[]
@@ -162,7 +162,7 @@ export interface ConfigMutationPlan {
  * The one-line summary an applied change's receipt carries.
  *
  * REFS AND VALUES, NEVER THE DIFF. The whole envelope vocabulary is map-not-territory about summary
- * lines (391 D-18), and this one keeps to it: what changed and to what, in one clause. The bytes are
+ * lines, and this one keeps to it: what changed and to what, in one clause. The bytes are
  * in the change's own rendered diff.
  */
 export function configFieldSetSummaryLine(path: string, value: ConfigFieldValue): string {
@@ -172,7 +172,7 @@ export function configFieldSetSummaryLine(path: string, value: ConfigFieldValue)
 /**
  * The BLOCKED record's line: what was attempted and why it was refused, naming the subject only.
  *
- * IT TAKES A SUBJECT RATHER THAN A PATH (395-05), because five ops answer blocked refusals and only
+ * IT TAKES A SUBJECT RATHER THAN A PATH, because five ops answer blocked refusals and only
  * one of them addresses a config path. What every subject has in common is that it is a REFERENCE —
  * a path, a target name, a hook name — which is the same class of fact `paths` already carries.
  */
@@ -181,7 +181,7 @@ export function configBlockedSummaryLine(subject: string, detail: string): strin
 }
 
 /**
- * Construct, validate and write a `config.field.set` change in the call (432-11).
+ * Construct, validate and write a `config.field.set` change in the call.
  *
  * ANSWERS A TYPED RESULT for every ordinary outcome rather than throwing. `blocked` is a refusal
  * carrying the report, with nothing written or kept; `no-change` is a set of a value the config
@@ -240,7 +240,7 @@ export async function createConfigTarget(
   const target = requireConfigFile(set)
   const entryPath = `${TARGETS_PATH}.${input.name}`
 
-  // 2026-10-02 (quick 261002-ctr): no auth-state reference to admit. The input carried
+  // no auth-state reference to admit. The input carried
   // `authStateName` and wrote it to `use.authState`, which the committed configuration has no key
   // for, so every such create was blocked by whole-config validation; the field is gone.
   const facts = await deps.configFiles.inspect({
@@ -262,7 +262,7 @@ export async function createConfigTarget(
   // THE HOUSE STYLE, AS ONE BLOCK. `demo/init/agent-qa.config.yaml` writes a web target as
   // `name: { platform, url }`, and writing it as one structured value rather than as two scalar sets
   // means one parse, one rendered block, and a diff a person reads as the addition it is. The class
-  // (432 D-19) is written only when declared: undeclared stays visibly undeclared, never defaulted.
+  // is written only when declared: undeclared stays visibly undeclared, never defaulted.
   const entry: ConfigStructuredValue = {
     platform: input.platform,
     url: input.url,
@@ -310,7 +310,7 @@ export async function editConfigTarget(
   const target = requireConfigFile(set)
   const entryPath = `${TARGETS_PATH}.${input.name}`
 
-  // 2026-10-02 (quick 261002-ctr): `changes.authStateName` is gone with the other two ops' field;
+  // `changes.authStateName` is gone with the other two ops' field;
   // a url is the only change, and it is not a reference.
   const facts = await deps.configFiles.inspect({
     ...(target.bytes === undefined ? {} : { bytes: target.bytes }),
@@ -365,7 +365,7 @@ export async function editConfigTarget(
 }
 
 /**
- * Declare a target's auth plugin in the call — references only, refused on the INPUT (D-11).
+ * Declare a target's auth plugin in the call — references only, refused on the INPUT.
  *
  * WHAT IT WRITES, AND WHERE, IS A FACT ABOUT THIS PRODUCT'S CONFIGURATION SCHEMA RATHER THAN A
  * CHOICE. The committed configuration has exactly one place that declares an auth plugin and it is
@@ -373,7 +373,7 @@ export async function editConfigTarget(
  * `.strict()`). It has NO place at all for an environment variable's name, which is why
  * `envVarName` is refused rather than written — see the `unsupported-reference` arm below.
  *
- * 2026-10-02 (quick 261002-ctr): IT HAS NO PLACE FOR A STORED AUTH STATE'S BINDING EITHER. This op
+ * IT HAS NO PLACE FOR A STORED AUTH STATE'S BINDING EITHER. This op
  * once wrote `authStateName` to `use.authState`; `core`'s committed `UseSchema` is `.strict()` with
  * no such key (only a test's or a suite's own `use` has one), so whole-config validation answered
  * every such call `blocked / schema-fail`. The input field is deleted rather than written somewhere
@@ -472,7 +472,7 @@ export async function setConfigAuth(
  * Add a hook in the call — the one action that writes a file other than the config.
  *
  * A HOOK IS CODE THIS PROJECT WILL RUN, which is why `addsHook` is STATED here rather than inferred
- * from a path (D-02) and why every hook addition is cross-boundary regardless of what it contains.
+ * from a path and why every hook addition is cross-boundary regardless of what it contains.
  * The flag raises the `hook-added` cross-boundary reason on the applied receipt. (2026-10-03: the
  * grant machinery that refused on it is deleted.)
  *
@@ -527,14 +527,14 @@ export async function addConfigHook(
     subject: `add hook ${input.name}`,
     summaryLine: `add ${input.runtime} hook ${input.name} running ${input.file}`,
     fieldEdits: flattenScalarEdits(`${HOOKS_PATH}.${at}`, entry, undefined),
-    // STATED, NOT INFERRED (D-02). This is the op that adds hooks; nothing has to guess.
+    // STATED, NOT INFERRED. This is the op that adds hooks; nothing has to guess.
     addsHook: true,
     candidate: candidateSet(set, [{ path: hooksMember.path, bytes: written.bytes }]),
   }, { kind: 'files' }, set, deps)
 }
 
 /**
- * Everything `config.project.scaffold` needs beyond what every other action needs (395-08, D-04).
+ * Everything `config.project.scaffold` needs beyond what every other action needs.
  *
  * A SEPARATE TYPE: the scaffold is the only action that renders content it did not compute from
  * the committed file, so widening the shared bundle would make six ops bind a port none of them can
@@ -545,7 +545,7 @@ export interface ConstructConfigScaffoldDeps extends ConstructConfigChangeDeps {
 }
 
 /**
- * Configure a project from zero, in ONE call (D-04/D-13/D-15 · CFGM-05; 432-11 D-05/D-07).
+ * Configure a project from zero, in ONE call.
  *
  * EVERY FILE IS PUBLISHED WHOLE, AND EVERY ONE IS CHECKED FIRST. The config, the hooks file and the
  * managed `.gitignore` block each carry the digest of the bytes this call read (or the fact that
@@ -553,7 +553,7 @@ export interface ConstructConfigScaffoldDeps extends ConstructConfigChangeDeps {
  * changes after that check stops the publication at that file: the answer names the files already
  * written, the one that refused and the ones never reached, and nothing is rolled back.
  *
- * THE GATE RUNS FIRST AND IT IS THE SECURITY PROPERTY (D-15). Nothing below is reached by a token
+ * THE GATE RUNS FIRST AND IT IS THE SECURITY PROPERTY. Nothing below is reached by a token
  * that is not a hostname, and the refusal names both continuations rather than a candidate. The
  * derivation the gate returns is the ONLY source of the target name and the base URL — this
  * function computes neither — so "the LLM never invents an origin" is a statement about which
@@ -581,7 +581,7 @@ export interface ConstructConfigScaffoldDeps extends ConstructConfigChangeDeps {
  * and the refusal still names it — now naming the targets it will not replace, so a person reads
  * WHICH configuration is standing in the way rather than merely that one is.
  *
- * IT IS ALWAYS CROSS-BOUNDARY, AND THAT IS COMPUTED RATHER THAN ASSERTED (D-14/D-02). The scaffold
+ * IT IS ALWAYS CROSS-BOUNDARY, AND THAT IS COMPUTED RATHER THAN ASSERTED. The scaffold
  * writes a base URL where the committed configuration had none, so `computeCrossBoundary` sees an
  * edit whose old value is absent and whose new value is an origin — and it adds a hooks file and a
  * config file that did not exist. The flag is read off the classifier the same way every other
@@ -609,7 +609,7 @@ export async function scaffoldConfigProject(
   const set = await deps.configFiles.read()
   const existingConfig = requireConfigFile(set)
 
-  // THE PREDICATE, NARROWED (395-12). A config file with no `registry.targets` entries declares
+  // THE PREDICATE, NARROWED. A config file with no `registry.targets` entries declares
   // nothing this op would replace, so its existence alone is not a refusal. `inspect` answers the
   // MAP's keys — names only, never values — which is the same structural read `config.target.create`
   // already takes to list the names its own refusal offers.
@@ -648,7 +648,7 @@ export async function scaffoldConfigProject(
 
   // WHETHER THIS SCAFFOLD ADDS A HOOKS FILE IS A FACT ABOUT THE SET, not a constant. From zero it
   // always does; merging into a project that already has one, it must not — and `addsHook` is
-  // STATED by the op (D-02), so it has to stop being stated when no hook is added or the classifier
+  // STATED by the op, so it has to stop being stated when no hook is added or the classifier
   // would flag `hook-added` for a file nobody touched.
   const hooksMember = set.files.find((file) => file.path === set.hooksFile)
   const addsHook = hooksMember?.bytes === undefined
@@ -704,7 +704,7 @@ export async function scaffoldConfigProject(
 /**
  * What a hook's timeout is when the caller does not say.
  *
- * PINNED, WITH A RETUNE NOTE (386 D-15). `HookDefinitionSchema` makes `timeout` REQUIRED — there is
+ * PINNED, WITH A RETUNE NOTE. `HookDefinitionSchema` makes `timeout` REQUIRED — there is
  * no schema default to inherit — so an op whose DTO marks it optional must supply one, and the
  * alternative to a pinned value is refusing every hook whose duration the caller did not think
  * about. `30s` is what `demo/init/hooks.yaml` writes. RETUNE: owned by whoever owns the hooks
@@ -714,9 +714,9 @@ export async function scaffoldConfigProject(
 const DEFAULT_HOOK_TIMEOUT = '30s'
 
 /**
- * D-11's refusal, fired on the INPUT and before anything is mutated (395-05).
+ * D-11's refusal, fired on the INPUT and before anything is mutated.
  *
- * SCHEMA VALIDATION OF A REFERENCE FIELD, NOT SECRET DETECTION (441 D-15/D-23).
+ * SCHEMA VALIDATION OF A REFERENCE FIELD, NOT SECRET DETECTION.
  * `isLegalConfigReference` states what a reference IS and refuses the complement, so the rule names
  * nothing it refuses: no detector, no key-name rule and no credential shape.
  *
@@ -769,12 +769,12 @@ type CandidateCheck =
   | { readonly kind: 'ready'; readonly checked: CheckedCandidate }
 
 /**
- * Steps 3 to 5, for every action (395-05): render, validate, classify.
+ * Steps 3 to 5, for every action: render, validate, classify.
  *
  * WHAT ARRIVES IS A CANDIDATE SET, NOT A FILE. `renderConfigDiff` is handed exactly the members
  * whose bytes differ, so a change's `files` list is a statement about what changed rather than
  * about which files were considered — and the digests recorded per file are the ones publication
- * re-checks. Step 6 is the caller's: the six config operations publish (432-11).
+ * re-checks. Step 6 is the caller's: the six config operations publish.
  */
 async function checkConfigCandidate(
   plan: ConfigMutationPlan,
@@ -795,10 +795,10 @@ async function checkConfigCandidate(
   }
   if (diffInput.length === 0) return { kind: 'no-change' }
 
-  // (3) THE ONE PRIMITIVE. Publication re-checks the digests it records here (D-17/D-19).
+  // (3) THE ONE PRIMITIVE. Publication re-checks the digests it records here.
   const rendered = renderConfigDiff(diffInput)
 
-  // 395-02: THE PRIMITIVE IS THE AUTHORITY ON WHETHER ANYTHING CHANGED, and this narrowing is where
+  // THE PRIMITIVE IS THE AUTHORITY ON WHETHER ANYTHING CHANGED, and this narrowing is where
   // that authority is taken. The byte comparison above answers the same question earlier and more
   // cheaply — which is why it stays: it lets a set of a value the config already holds skip the
   // whole rest of the pipeline — but the answer that reaches a person comes from the same function
@@ -815,7 +815,7 @@ async function checkConfigCandidate(
     files: plan.candidate,
   })
   if (!validation.ok) {
-    // WR-11: THE REPORT NAMES THE FILE THE ISSUE IS ABOUT, unioned with the files this change
+    // THE REPORT NAMES THE FILE THE ISSUE IS ABOUT, unioned with the files this change
     // diffed. Both halves are kept: the diffed paths say what was being changed, the implicated
     // ones say where to look.
     const implicated = validation.issues.map((issue) => issue.path)
@@ -872,7 +872,7 @@ async function checkConfigCandidate(
 }
 
 /**
- * Step 6 for the six config operations: publish in the call (432-11 D-05/D-07).
+ * Step 6 for the six config operations: publish in the call.
  *
  * A BLOCKED CHANGE IS ANSWERED AND NOTHING IS KEPT. The report carries no diff and no content, and
  * nothing reaches a store or the writer. A clean change goes to the direct writer: field changes

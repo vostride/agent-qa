@@ -64,7 +64,7 @@ export function chainJobIdsForRun(runId: string, idSource: JobIdSource): ChainJo
 }
 
 /**
- * The marker a permanently failed analysis leaves on the successors it hands on (D-20).
+ * The marker a permanently failed analysis leaves on the successors it hands on.
  *
  * Read by the notification builder to report the analysis stage honestly: the chain proceeded
  * with no verdicts, and the record has to say so even though the job that reports the

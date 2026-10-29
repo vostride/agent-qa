@@ -66,7 +66,7 @@ describe('runStabilityGates — the consecutive-run gates', () => {
     expect(result.runsCompleted).toBe(2)
     expect(result.earlyStopped).toBe(true)
     expect(result.distinctOutcomes).toEqual(['passed', 'failed'])
-    // Early-stop skips RUNS, never a GATE (D-04). Exactly two runs were taken.
+    // Early-stop skips RUNS, never a GATE. Exactly two runs were taken.
     expect(startCount).toBe(2)
   })
 

@@ -7,7 +7,7 @@
 // facts it is refining against — and a difference nobody intended is exactly what a second copy
 // produces the first time either side is edited.
 //
-// WHAT A PROCEDURE CONTRIBUTES, AND WHAT IT MUST NOT (D-17 · T-394-38). `ProcedureMatch` carries
+// WHAT A PROCEDURE CONTRIBUTES, AND WHAT IT MUST NOT. `ProcedureMatch` carries
 // `id`, a learned-shelf record id. This module reads `flowAnchor` and never `id`, so the vocabulary
 // a step is authored in is the record's own words while the record's ADDRESS never reaches the
 // model at all. That ordering is the whole mitigation: bytes a model was never shown are bytes it
@@ -18,7 +18,7 @@ import { procedureStepVocabulary } from '@vostride/agent-qa-schema'
 import type { AuthoringBrief } from '@vostride/agent-qa-schema'
 
 /**
- * The instruction that turns a served procedure into an ordinary step (D-17).
+ * The instruction that turns a served procedure into an ordinary step.
  *
  * Pinned as a constant for the reason {@link AUTHORING_COMPILE_AGENT_CONTEXT} is: it lands in the
  * stable prompt tier, which is the byte prefix a provider's prompt cache keys on, so a
@@ -34,7 +34,7 @@ export const PROCEDURE_BY_REFERENCE_INSTRUCTION =
   + 'invent a special syntax: the test file stays plain prose, and the flow is recognised when the '
   + 'test runs. A step that matches no listed flow is simply written as you would write any other.'
 
-// 2026-10-12 (440-02, D-04): appended to the compile and refine `Role` bodies.
+// appended to the compile and refine `Role` bodies.
 export const REQUEST_WINS_INSTRUCTION =
   'The request\'s stated subject, values and checks win over what this project knows: use '
   + 'project knowledge only to decide how to reach them, never to replace them, and keep every '
@@ -44,7 +44,7 @@ export const REQUEST_WINS_INSTRUCTION =
 export const TEST_DOCUMENT_FORMAT_BLOCK_TITLE = 'Test document format'
 
 /**
- * The title of the CONTEXT block serving this project's `target` vocabulary (394-33, WR-07).
+ * The title of the CONTEXT block serving this project's `target` vocabulary.
  *
  * CONTEXT AND NOT STABLE, unlike its neighbour above. Target names are per-project facts, and the
  * stable tier is the byte prefix a provider's prompt cache keys on — a project-dependent body
@@ -91,7 +91,7 @@ steps:
 `
 
 /**
- * The document SCHEMA, served through a channel that does not depend on memory (WINDOWS 111).
+ * The document SCHEMA, served through a channel that does not depend on memory.
  *
  * Pinned as a constant and landed in the stable tier for the reason
  * {@link PROCEDURE_BY_REFERENCE_INSTRUCTION} is: it is a standing rule about how any document is
@@ -101,7 +101,7 @@ steps:
  * `exemplarBlockBody` answers the empty string of prose there. A format rule carried only by the
  * exemplar block is therefore a format rule the first authored test never sees.
  *
- * EVERY SENTENCE HERE IS TRUE AGAINST `TestDefinitionSchema` (394-33, WR-06), AND THAT IS A
+ * EVERY SENTENCE HERE IS TRUE AGAINST `TestDefinitionSchema`, AND THAT IS A
  * STANDING OBLIGATION RATHER THAN A ONE-TIME EDIT. A prompt that pins a schema by enumeration is a
  * SECOND SPELLING of that schema, free to drift from the first the moment either side is touched —
  * the same hazard `TEST_DOCUMENT_FORMAT_EXAMPLE` is composed in rather than retyped to avoid. The
@@ -145,7 +145,7 @@ export function exemplarBlockBody(brief: AuthoringBrief): string {
 }
 
 /**
- * The brief's cautions, procedures and facts, in the precedence the brief itself locked (ABRF-01).
+ * The brief's cautions, procedures and facts, in the precedence the brief itself locked.
  *
  * The procedure line renders {@link procedureStepVocabulary} over the flow anchor. The previous
  * form printed `JSON.stringify(flowAnchor)` for any arm that was not a flow, which put a serialized

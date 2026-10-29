@@ -1,4 +1,4 @@
-// The passing-prefix fence and the K bound, proven from BOTH sides (Phase 394, D-09/D-10 · WTST-04).
+// The passing-prefix fence and the K bound, proven from BOTH sides.
 //
 // D-09'S RULE HAS TWO HALVES AND NEITHER SUBSTITUTES FOR THE OTHER. The static fence reads
 // RFC-6902 paths and refuses a patch that NAMES a step inside the passing prefix, before anything
@@ -272,7 +272,7 @@ function gateBooleans(receipt: DraftReceipt) {
  * The integrity cell asserts the rename really happens here before any cell relies on it not
  * happening through repair.
  *
- * IT ALSO MOVES THE DRAFT'S PATH, for the same reason (WR-04). `applyPatches` re-stages the patched
+ * IT ALSO MOVES THE DRAFT'S PATH, for the same reason. `applyPatches` re-stages the patched
  * document, and staging addresses a draft by the digest of its new bytes — so the repaired draft
  * lives at a new shelf file and the pre-patch one is not rewritten in place. A stand-in that spread
  * `...draft` and changed only the digest certified an identity production does not have, and any
@@ -461,7 +461,7 @@ describe('the patch corpus is producible', () => {
 // ---- WR-01: repair may fix mechanics, never identity -------------------------------------------
 //
 // `EDITABLE_POINTER_ROOTS` admits `/name` — correctly, because `authoring.draft.edit` serves a
-// USER who asked for a rename (D-21) — and `fencePatchAgainstPassingPrefix` inspects only `/steps`
+// USER who asked for a rename — and `fencePatchAgainstPassingPrefix` inspects only `/steps`
 // pointers. So a repair patch could rename the test, and `loop.ts:827-841` claims exactly what a
 // rename breaks: the stability target is derived ONCE from the PRE-repair draft, while the accept
 // target is recomputed from the REPAIRED ref through `testDraftProposal`. A rename desyncs them,
@@ -527,7 +527,7 @@ describe('identity-fence: repair cannot change what the test IS', () => {
     const repaired = outcome.kind === 'repaired' ? outcome.draft : DRAFT
     // WHAT THE FENCE ACTUALLY GUARANTEES: the NAME. It is the whole of the fence's grant, and it is
     // the only one of the two inputs that survives a repair — the shelf path moves with the digest
-    // on every applied set, which this cell asserts rather than ignores (WR-04).
+    // on every applied set, which this cell asserts rather than ignores.
     expect(repaired.testName).toBe(DRAFT.testName)
     expect(repaired.filePath).not.toBe(DRAFT.filePath)
     // AND THE PROPERTY THE SINGLE DERIVATION NEEDS, which is not that both inputs are equal: the
@@ -813,13 +813,13 @@ describe('stage 5: the app-broken branch cannot reach repair', () => {
     // very first thing it would do is ask for a patch — so this harness has nothing to give it.
     const bench = harness([], { probes: [] }, { [ROUTING_RUN_ID]: [CLEAN_FAIL_MEMBER] })
 
-    // 394-08: stage 5 answers `{outcome, fanOut}` — the runs an invocation spent are known only
+    // stage 5 answers `{outcome, fanOut}` — the runs an invocation spent are known only
     // where repair is entered, so the report leaves from here rather than being totalled outside.
     const { outcome } = await routeAfterVerify(DRAFT, REJECTED_RECEIPT, {
       read: {
         getAuthoringBrief: () => { throw new Error('stage 5 does not read the brief') },
         suiteTextCorpus: () => { throw new Error('stage 5 does not screen the suite') },
-        // 394-33 WR-07: stage 5 compiles nothing, so a vocabulary read here would be a read
+        // stage 5 compiles nothing, so a vocabulary read here would be a read
         // nobody makes — it throws for the same reason its two neighbours do.
         configuredTargetNames: () => { throw new Error('stage 5 serves no target vocabulary') },
       },
@@ -840,13 +840,13 @@ describe('stage 5: the app-broken branch cannot reach repair', () => {
     const { routeAfterVerify } = await import('../loop.js')
     const bench = harness([], { probes: [] }, { [ROUTING_RUN_ID]: [CLEAN_FAIL_MEMBER] })
 
-    // 394-08: stage 5 answers `{outcome, fanOut}` — the runs an invocation spent are known only
+    // stage 5 answers `{outcome, fanOut}` — the runs an invocation spent are known only
     // where repair is entered, so the report leaves from here rather than being totalled outside.
     const { outcome } = await routeAfterVerify(DRAFT, REJECTED_RECEIPT, {
       read: {
         getAuthoringBrief: () => { throw new Error('stage 5 does not read the brief') },
         suiteTextCorpus: () => { throw new Error('stage 5 does not screen the suite') },
-        // 394-33 WR-07: stage 5 compiles nothing, so a vocabulary read here would be a read
+        // stage 5 compiles nothing, so a vocabulary read here would be a read
         // nobody makes — it throws for the same reason its two neighbours do.
         configuredTargetNames: () => { throw new Error('stage 5 serves no target vocabulary') },
       },
@@ -857,12 +857,12 @@ describe('stage 5: the app-broken branch cannot reach repair', () => {
       .toBe('clean-definitive-assertion-fail')
     expect(outcome.kind === 'stopped' && outcome.route.evidenceRefs.length).toBeGreaterThan(0)
     // An ORDINARY stop carries no abandonment key and no prose field — nothing a model wrote
-    // survives on this arm, which is the key set rather than a value (411 D-05).
+    // survives on this arm, which is the key set rather than a value.
     expect(Object.keys(outcome).sort()).toEqual(['draftRef', 'kind', 'receipt', 'route'])
   })
 })
 
-// 2026-10-12 (440-05, D-07): a repair patch that loses a stated value is fenced beside the identity
+// a repair patch that loses a stated value is fenced beside the identity
 // fence, before anything runs, and spends the try. DRAFT's step 3 carries "Saved".
 const LOSES_SAVED = patchSet('reword the banner check', [
   { op: 'replace', path: '/steps/3', value: 'Verify the confirmation banner says "Done"' },

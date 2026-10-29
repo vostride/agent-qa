@@ -1,4 +1,4 @@
-// D-14's LIVE arm: the gate-2 flip consults the suite's recorded stability (394-17 · WTST-05).
+// D-14's LIVE arm: the gate-2 flip consults the suite's recorded stability.
 //
 // WHAT WAS DEAD. `gatherSuiteStability` shipped in 394-07 exported, barrel-listed and unit-tested,
 // with ZERO production callers and an unbound `outcomes` port — so the "your app is unstable here"
@@ -41,7 +41,7 @@ const PRODUCT = 'local-form'
 const TARGET = ACCEPT_CONTROL_DRAFT.filePath
 
 /**
- * A LOOP-SHAPED draft: staged on the one-test-per-file shelf, not committed to a suite (394-19).
+ * A LOOP-SHAPED draft: staged on the one-test-per-file shelf, not committed to a suite.
  *
  * This is the shape `authoring.draft.write` actually evaluates. Its `filePath` is a digest-named
  * file under `tests/.agent-qa-drafts/` holding exactly one test — so a stability read targeted at
@@ -91,7 +91,7 @@ function recordingOutcomes(
 }
 
 /**
- * A projection that answers ONLY for the file it actually has rows for (394-19).
+ * A projection that answers ONLY for the file it actually has rows for.
  *
  * `recordingOutcomes` above echoes back whatever path it is asked about, which is right for cells
  * whose subject is the message and wrong for a cell whose subject is WHICH FILE was asked about:
@@ -152,7 +152,7 @@ const LOOP_FLIPPING_RUNS = [
 
 interface EvaluationFixture {
   readonly runs: readonly (readonly MemberFixture[])[]
-  /** Absent means the standalone posture: the draft's own file IS its target (394-19). */
+  /** Absent means the standalone posture: the draft's own file IS its target. */
   readonly draft?: ParsedDraftLike
   /** The suite the draft proposes to JOIN. Absent means the fallback is under test. */
   readonly targetSuitePath?: string

@@ -1,6 +1,6 @@
-// The whole-run analyze-run author (Phase 389, plan 04 — D-01/D-02/D-03, ANLZ-02).
+// The whole-run analyze-run author.
 //
-// ONE `model.generate` call authors every unknown-verdict failure together (D-01): the
+// ONE `model.generate` call authors every unknown-verdict failure together: the
 // author sees the cross-test pattern ("40 reds, one cause") that clustering and the
 // discriminator feed on, matches the once-per-run heartbeat unit, and never fans out
 // per test or adds a second LLM stage inside the one-checkpoint schedule.
@@ -9,7 +9,7 @@
 // idiom (fence strip, trailing-comma removal — COPIED from `cli/src/curation/
 // curator-author.ts`, never imported: agent→cli is a banned direction), shaped by zod, and
 // then validated cross-document by schema's `validateAnalysisAgainstHandoff`. Rejects feed
-// exactly ONE repair round-trip (D-03) whose feedback names each failing test and reason;
+// exactly ONE repair round-trip whose feedback names each failing test and reason;
 // whatever still fails degrades to the deterministic unknown floor member for THAT test
 // only — valid siblings persist, and job-level retries stay reserved for transport
 // failures, which propagate out of this function uncaught.
@@ -60,9 +60,9 @@ import type {
 import type { JobModelCapability, JobModelRequest } from './record-llm-authorship.js'
 
 /**
- * The single in-attempt repair round-trip (D-03).
+ * The single in-attempt repair round-trip.
  *
- * Pinned, not config (386 D-15); retune from operational evidence: raise only if real
+ * Pinned, not config; retune from operational evidence: raise only if real
  * transcripts show a second repair regularly rescuing tests the first one could not —
  * every extra round-trip is a model call inside a job attempt whose transport failures
  * already carry their own 3-attempt bound.
@@ -70,9 +70,9 @@ import type { JobModelCapability, JobModelRequest } from './record-llm-authorshi
 export const AUTHOR_REPAIR_CAP = 1
 
 /**
- * The cap on decision-screenshot image parts attached to the one request (D-02).
+ * The cap on decision-screenshot image parts attached to the one request.
  *
- * Pinned, not config (386 D-15); retune from operational evidence: raise if real
+ * Pinned, not config; retune from operational evidence: raise if real
  * multi-failure transcripts show discriminating screenshots being cut at this cap, lower
  * if image payloads dominate request cost without moving verdict quality.
  */
@@ -157,7 +157,7 @@ export interface AuthorRunAnalysisInput {
 export interface AuthorRunAnalysisResult {
   /** The merged array: floor order, unknown members upgraded, all else byte-identical. */
   readonly verdicts: Verdict[]
-  /** LLM sentence parts for the UPGRADED members only, joined by perTest (D-06). */
+  /** LLM sentence parts for the UPGRADED members only, joined by perTest. */
   readonly authoredParts: VerdictSentenceParts[]
   /** The D-01 ladder outcome, surfaced — `overBudget` is never swallowed. */
   readonly compaction: {

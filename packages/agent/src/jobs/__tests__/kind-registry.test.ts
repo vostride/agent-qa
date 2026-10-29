@@ -79,7 +79,7 @@ function recordingContext(
       publishCheckpoint: async (checkpointId, value) => {
         published.push({ checkpointId, value })
       },
-      // 385 plan 05: the stand-ins never author, and this file drives them without an engine.
+      // the stand-ins never author, and this file drives them without an engine.
       // A refusal rather than a stub answer, so a handler that quietly started authoring would
       // fail here loudly instead of being handed a plausible-looking value.
       recordLlmAuthorship: async () => {
@@ -132,7 +132,7 @@ describe('createJobKindRegistry declaration validation', () => {
     expect(registry.list().map((entry) => entry.kind)).toEqual(['consolidate'])
   })
 
-  // The declared-but-empty hole (D-09). A kind registered `checkpointed: true` with an empty
+  // The declared-but-empty hole. A kind registered `checkpointed: true` with an empty
   // schedule contributes ZERO crash points to a registry-driven matrix, so the matrix passes
   // for it vacuously while the coverage table says it is covered. Making that pair
   // unregisterable is what turns "we remembered to fill the schedule in" into a structure.

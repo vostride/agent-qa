@@ -1,4 +1,4 @@
-// The type-level half of the stop arm's no-proposal law (411 D-12 · WTST-11).
+// The type-level half of the stop arm's no-proposal law.
 //
 // D-12's runtime cell reads the proposals STORE after an app-broken invocation and counts zero
 // envelopes. That measures what the op WROTE. It cannot measure what the loop's arm could carry: a

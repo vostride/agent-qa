@@ -1,4 +1,4 @@
-// The funnel projection's cells (394-07, D-12/D-14 · WTST-05).
+// The funnel projection's cells.
 //
 // THE CONTROL SHAPE IS TWO-SIDED ON EVERY DISCRIMINATOR. A window that admitted nothing and a
 // window that admitted everything would both pass a suite screened on one side only — 394-04's
@@ -237,14 +237,14 @@ describe('projectAuthoringFunnel', () => {
     // Against the PRODUCER'S OWN TALLY, never a restated integer: if the mint stopped attributing,
     // `alpha.length` and `built` move apart rather than both matching a hard-coded 2.
     expect(funnel.stages.built).toBe(alpha.length)
-    // RE-SPELLED 2026-10-02 (quick 261002-ctr): `writeEligible` replaces `accepted` (0 since
+    // RE-SPELLED 2026-10-02: `writeEligible` replaces `accepted` (0 since
     // 432-17), counted off the minted receipts' own stored dispositions — the producer's tally.
     expect(funnel.stages.writeEligible)
       .toBe(alpha.filter((row) => draftDispositionWritesTarget(row.disposition)).length)
     expect(funnel.stages.writeEligible).toBeGreaterThan(0)
   })
 
-  // RE-SPELLED 2026-10-02 (quick 261002-ctr): was 'reads `accepted` off recorded acceptances, and
+  // RE-SPELLED 2026-10-02: was 'reads `accepted` off recorded acceptances, and
   // none are recorded since 432-17' (0 whatever the receipts said). The terminal stage now reads
   // the receipts' stored dispositions, so it counts what the loop writes.
   it('counts the write-eligible receipts the store holds', async () => {

@@ -1,4 +1,4 @@
-// The D-02 evidence diet and the D-01 compaction ladder (Phase 389, plan 03).
+// The D-02 evidence diet and the D-01 compaction ladder.
 //
 // What is pinned, and why it can fail loudly:
 //

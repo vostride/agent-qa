@@ -1,4 +1,4 @@
-// Gates 1 and 2 — the stability driver (Phase 393, D-02/D-17 · WTST-02).
+// Gates 1 and 2 — the stability driver.
 //
 // Gate 1 asks whether the draft reached a DEFINITIVE verdict; gate 2 asks whether that verdict
 // HELD. Both are answered from execution evidence alone — never from `analyze-run`'s authoring
@@ -6,7 +6,7 @@
 // member-test outcome rather than the run's aggregate, because the aggregate carries
 // quarantine-aware rules that are noise for a draft nobody has ever run before.
 //
-// EVERY START INPUT CARRIES BOTH MARKERS (D-02, T-393-03). `gateRun: true` and
+// EVERY START INPUT CARRIES BOTH MARKERS. `gateRun: true` and
 // `excludedFromOutcomes: true` are distinct axes and both are set on every run this module takes.
 // A gate-run that entered the outcome fold would seed the very union gate 3 later compares the
 // draft against, and the corruption accumulates in a derived index rather than announcing itself.
@@ -84,7 +84,7 @@ export interface StabilityGatesResult {
 }
 
 /**
- * Member outcomes that represent a FINAL answer about the draft (D-17).
+ * Member outcomes that represent a FINAL answer about the draft.
  *
  * `healed` is here and it is load-bearing rather than lenient: 393-01 measured the accept
  * control's definitive pass arriving as `healed`, not `passed` (F3), on the very draft the corpus
@@ -129,7 +129,7 @@ function recordedHeal(member: PerTestOutcome): boolean {
 }
 
 /**
- * Whether this run reached a FINAL answer about the draft, and what was read to decide (D-17).
+ * Whether this run reached a FINAL answer about the draft, and what was read to decide.
  *
  * THE ENUM IS NOT ENOUGH, AND NEITHER IS ANY SINGLE TERMINAL FIELD. 393-01 measured both halves.
  * F1: a draft naming controls the target does not have comes back `failed` — a definitive value —
@@ -221,9 +221,9 @@ function gateRunStartInput(draft: ParsedDraftLike): RunsStartInput {
 }
 
 /**
- * Take up to `runsRequested` gate-runs and answer gates 1 and 2 (D-17).
+ * Take up to `runsRequested` gate-runs and answer gates 1 and 2.
  *
- * EARLY-STOP SKIPS RUNS, NEVER A GATE (D-04/D-17). Once two different verdicts have been observed
+ * EARLY-STOP SKIPS RUNS, NEVER A GATE. Once two different verdicts have been observed
  * the flip is proven and the remaining runs cannot un-prove it, so they are not taken. Both
  * booleans are still computed and both are still reported — what shrinks is `runsCompleted`, which
  * is why `computeDraftDisposition` reads a short count as `rejected` rather than as `proposal-only`

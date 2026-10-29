@@ -1,4 +1,4 @@
-// The STOPPED outcome an ABANDONED repair produces (394-21, WR-09 · 411 D-05/D-08).
+// The STOPPED outcome an ABANDONED repair produces.
 //
 // WHAT WENT WRONG AND WHY IT IS THIS FILE'S SUBJECT. `routeAfterVerify`'s exhausted route built a
 // stop route carrying `signalClass: 'indefinitive-failure'` and then spread over the result of the
@@ -9,7 +9,7 @@
 // two of its three assignment sites are model-emitted text). The law that spread broke survives
 // the Issue-slot cleanup: the arm is built from the ROUTE and from nothing a model wrote.
 //
-// THE MARKER LAW SURVIVES, WITH NOWHERE LEFT TO LAND. Nothing is minted for a stop now (411 D-10),
+// THE MARKER LAW SURVIVES, WITH NOWHERE LEFT TO LAND. Nothing is minted for a stop now,
 // so what a person reads is the op's `stop` payload — projected by `projectStop` from the route and
 // the receipt's own last gate run, with no prose field on it at all. These cells therefore measure
 // the PAYLOAD a durable reader would see, and the marker-absence half asserts over both the payload
@@ -252,7 +252,7 @@ function bench(input: {
     // document and hands the bytes to `stageDraft`, which addresses them by their NEW digest. This
     // double used to spread `...candidate` and change only the digest, keeping a `filePath`
     // production had already left behind — which is why every cell over it read a pre-repair
-    // coordinate as correct (CR-01).
+    // coordinate as correct.
     applyPatches(candidate: ParsedDraftLike, set: TestEditPatchSet): Promise<DraftStageOutcome> {
       const contentDigest = `${candidate.contentDigest}+${set.patches.length}`
       return Promise.resolve({
@@ -289,7 +289,7 @@ function bench(input: {
     startedPaths,
     deps: {
       read: {
-        // 394-33 WR-07: served for completeness; this bench's model is scripted and reads none.
+        // served for completeness; this bench's model is scripted and reads none.
         configuredTargetNames: () => Promise.resolve(['local-form']),
         getAuthoringBrief: () => Promise.resolve({
           scope: { tier: 'product', key: 'local-form' },
@@ -461,7 +461,7 @@ describe('an abandoned repair produces a stopped outcome built from the route an
 // above this line passed against that literal, because each of them asked what the arm does NOT
 // carry (a signal class outside the vocabulary, model bytes) and none asked what it DOES.
 //
-// A stop with no evidence and no failure point is unauditable by construction (T-394-90), and the
+// A stop with no evidence and no failure point is unauditable by construction, and the
 // module's own `AuthoringLoopUnroutableEvidenceError` doc calls reporting one "the cardinal error
 // pointed the other way". The evidence assertion sits at the HEAD of each cell so the RED a
 // pre-fix run reports is the missing evidence rather than a later field masking it.
@@ -499,7 +499,7 @@ describe('an abandoned repair stops with evidence a person can trace', () => {
     expect(evidenceRefsOf(payload).length).toBeGreaterThan(0)
     const failurePoint = payload.failurePoint as Record<string, unknown> | null
     expect(failurePoint).not.toBeNull()
-    // The RUN rides the payload's top level (411 D-06), so a null failure point still names it —
+    // The RUN rides the payload's top level, so a null failure point still names it —
     // and the failure point itself carries no `runId` of its own.
     expect(payload.runId).toBe(ROUTED_RUN_ID)
     expect(payload.memberOutcome).toBe('failed')
@@ -597,7 +597,7 @@ describe('the abandonment\'s typed facts reach the reported stop', () => {
     expect(evidenceRefsOf(payload).some((ref) => ref.runId === ROUTED_RUN_ID)).toBe(true)
     expect(payload.repairIterations).toBe(1)
 
-    // THE COORDINATE JOINS THE RUN IT NAMES (CR-01). A `RunEvidenceRef` is read as the four-tuple
+    // THE COORDINATE JOINS THE RUN IT NAMES. A `RunEvidenceRef` is read as the four-tuple
     // (runId, filePath, testName, stepIndex), so naming the probe run while carrying the PRE-repair
     // path addresses a member that run has none of. The expected path is the one the harness saw
     // the loop start the probe on, not a path this cell recomputes.

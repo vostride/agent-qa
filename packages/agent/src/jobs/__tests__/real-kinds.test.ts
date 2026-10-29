@@ -60,7 +60,7 @@ const HANDOFF: CompletedRunHandoff = {
 const CAPABILITIES: PostRunJobCapabilities = {
   loadCompletedRunHandoff: () => HANDOFF,
   // Never invoked by the analyze-run cases below; `complete: true` is the shape the widened
-  // contract requires (WR-03), not a claim any assertion here turns on.
+  // contract requires, not a claim any assertion here turns on.
   curateRun: async () => ({ curated: 0, deprecated: 0, complete: true }),
   // The 389 artifact write is order-pinned in analyze-run-artifact.test.ts; here it only has
   // to exist so the contract typechecks, exactly like `curateRun` above.
@@ -307,7 +307,7 @@ describe('curate-memory ends the post-run chain', () => {
 })
 
 describe('a curation run handed back to its own project', () => {
-  // 2026-10-16 (442-10, D-17): a hand-back is the existing retryable outcome carrying its reason.
+  // a hand-back is the existing retryable outcome carrying its reason.
   it('a curate-memory fold that hands its run back is retryable with its reason', async () => {
     const reason =
       'Run run-388-real-kinds keeps its knowledge in /tmp/other-root; it is left for a run of its own project.'

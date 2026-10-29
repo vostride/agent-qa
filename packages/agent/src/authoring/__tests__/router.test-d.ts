@@ -1,4 +1,4 @@
-// The type-level half of SC-2 (Phase 394, D-08 · WTST-04).
+// The type-level half of SC-2.
 //
 // SC-2's claim is about what is NOT REACHABLE, and a behavioural corpus can only ever say what a
 // particular input produced. Three things are pinned here that no runtime cell can pin:
@@ -111,7 +111,6 @@ expectTypeOf<RouterMechanicsSignalName>().toEqualTypeOf<
   | 'member-timeout'
   | 'member-cancelled'
 >()
-// 2026-10-07 (436-06): the two signals that left with the progress subsystem (D-14) are rejected.
 expectTypeOf<'cycle'>().not.toExtend<RouterMechanicsSignalName>()
 expectTypeOf<'stagnation'>().not.toExtend<RouterMechanicsSignalName>()
 expectTypeOf<RunEvidenceChannel>().toEqualTypeOf<
@@ -142,7 +141,7 @@ expectTypeOf<keyof RunEvidenceRef>().toEqualTypeOf<
   'runId' | 'filePath' | 'testName' | 'stepIndex' | 'subActionIndex' | 'channel'
 >()
 
-// ---- 4. the stop branch cannot reach the repair entry point (394-06, D-08 · T-394-22) ---------
+// ---- 4. the stop branch cannot reach the repair entry point ---------
 //
 // SC-2's second half, and the one a behavioural cell cannot carry: `repairDraft` takes a
 // `RepairRoute`, so wiring the app-broken branch into it is a COMPILE error rather than a

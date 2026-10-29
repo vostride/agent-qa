@@ -1,14 +1,14 @@
-// The never-guess boundary, as a parse (Phase 395, D-13/D-15 · CFGM-05).
+// The never-guess boundary, as a parse.
 //
 // A POSITIVE RULE ABOUT WHAT A HOSTNAME IS, NEVER A LIST OF WHAT IT IS NOT. `isLegalConfigReference`
-// (395-05) is this file's in-tree precedent and the reason is the same one D-03 gives for refusing a
+// is this file's in-tree precedent and the reason is the same one D-03 gives for refusing a
 // settable-field whitelist: a rule that can only refuse what it can NAME cannot be driven to zero by
 // naming more things. So there is no deny list of "words that look like domains", no lexicon of
 // prepositions to strip, no catalogue of TLDs. There is one predicate — this string IS a hostname —
 // and everything that does not satisfy it is refused by the same sentence.
 //
 // WHY A PARSE AND NOT A PROMPT. The model picks the TOKEN out of the utterance; nothing below asks
-// it whether the token is a site (D-13). `booking.com` against `booking.de` is a coin flip a review
+// it whether the token is a site. `booking.com` against `booking.de` is a coin flip a review
 // should not have to catch, and the whole point of the split is that the derivation a person
 // approves is one deterministic function of bytes they typed.
 //
@@ -140,7 +140,7 @@ function hostStem(host: string, typed: string): string | undefined {
 }
 
 /**
- * Does this token parse as a hostname, and if so what does the scaffold derive from it (D-15)?
+ * Does this token parse as a hostname, and if so what does the scaffold derive from it?
  *
  * TRAILING DOT IS NOT STRIPPED, DELIBERATELY. `example.com.` is a legal fully-qualified name in DNS
  * and an empty final label here, so it is refused rather than silently rewritten — the rule is that

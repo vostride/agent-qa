@@ -1,4 +1,4 @@
-// Gate 3 — adds-value (Phase 393, D-13/D-14/D-16 · WTST-02).
+// Gate 3 — adds-value.
 //
 // SET SEMANTICS, NO THRESHOLD, ON THE PRIMARY LANE (D-14, spec §6.3 verbatim). The draft adds
 // value when at least one of its fingerprint elements is absent from the union of the suite's.
@@ -13,7 +13,7 @@
 // — and this module never derives them, which is what stops a second recipe from appearing on the
 // draft side and turning a comparison of two tests into a comparison of two derivations.
 //
-// THE TEXT LANE IS DEGRADED, AND SAYS SO PER TEST (D-16). A suite test the derived index has no
+// THE TEXT LANE IS DEGRADED, AND SAYS SO PER TEST. A suite test the derived index has no
 // evidence for cannot join the set comparison at all, and dropping it would let a draft look novel
 // purely because the thing it duplicates has never been run. So those tests join on text
 // similarity instead, over-flagging toward "already covered" — the safe direction, symmetric with
@@ -37,7 +37,7 @@ import type { SuiteFingerprintIndexLike, SuiteTextCorpusEntryLike } from './port
 /**
  * Similarity at or above which an evidence-less suite test counts as already covering the draft.
  *
- * A PINNED CONSTANT, never config (386 D-15). It is the only number in this gate, and it exists
+ * A PINNED CONSTANT, never config. It is the only number in this gate, and it exists
  * only on the degraded lane — the fingerprint lane has none by ratified design.
  *
  * RETUNE COMMENT — and this one comes with its measurement. The pair the constant has to separate
@@ -106,7 +106,7 @@ function tokens(texts: readonly string[]): Set<string> {
  *
  * TWO READINGS OF ONE COMPARISON, not two comparisons. `textSimilarity` is the score alone and is
  * what this gate decides on; 394's stage-2 dedup refusal has to NAME the evidence that produced
- * its verdict (D-04), and a shared-token count recomputed on the other side of that seam would be
+ * its verdict, and a shared-token count recomputed on the other side of that seam would be
  * a second tokenizer — the one thing D-16 says must not exist, since two normalizers let a
  * pre-authoring screen and a post-run gate disagree about the same pair. So the count is reported
  * out of the same traversal over the same {@link tokens} normalizer, and there is still exactly
@@ -185,7 +185,7 @@ export function addsValueGate(input: AddsValueGateInput): AddsValueGateResult {
   const union = input.index.elementUnion()
   const covered = input.index.coveredTests()
 
-  // D-16: a truly empty suite trivially passes — everything is uncovered. Stated as its own rule
+  // a truly empty suite trivially passes — everything is uncovered. Stated as its own rule
   // rather than left to fall out of the novel-element count, which answers `false` for a draft
   // with no elements and would deny the first test a project ever writes.
   if (union.size === 0 && input.textCorpus.length === 0) {

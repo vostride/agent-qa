@@ -1,24 +1,24 @@
-// The gate evaluator (Phase 393, D-03/D-04/D-18 · WTST-02).
+// The gate evaluator.
 //
 // ONE call takes a parsed draft to a persisted, schema-valid receipt: four separately-named gate
 // booleans, the per-step classification table, the per-run records, the adds-value finding, and a
 // disposition that this module does not compute.
 //
-// ALL FOUR GATES, ALWAYS (D-04). There is no short-circuit anywhere below, and the omission is
+// ALL FOUR GATES, ALWAYS. There is no short-circuit anywhere below, and the omission is
 // the point rather than an oversight. The frozen corpus proves gate INDEPENDENCE — the
 // "page loaded"-only draft must report executes ✓ · stable ✓ · adds-value ✓ · falsifiable ✗ so
 // that gate 4 is demonstrably the only catcher — and a vector with three of its four entries
-// missing proves nothing at all. Early-stop inside gate 2 (D-17) skips redundant RUNS; it never
+// missing proves nothing at all. Early-stop inside gate 2 skips redundant RUNS; it never
 // skips a gate. The case that makes this concrete is a draft whose gate 1 fails: gates 2, 3 and 4
 // are still computed and still reported, and gate 3 in particular reports what the evidence
 // actually supports rather than a default.
 //
-// THE DISPOSITION IS NOT DERIVED HERE (D-18). `computeDraftDisposition` is imported and its
+// THE DISPOSITION IS NOT DERIVED HERE. `computeDraftDisposition` is imported and its
 // return is assigned. No `switch`, no `if` chain, no "keep-eligible when all four are true"
 // reading of the rule lives in this package — 394 consumes the disposition and must be
 // structurally unable to re-derive its own, which is only true if this side cannot either.
 //
-// MAP, NOT TERRITORY (D-19, T-393-02). The receipt is built strictly against `DraftReceiptSchema`:
+// MAP, NOT TERRITORY. The receipt is built strictly against `DraftReceiptSchema`:
 // run IDs as refs, pre-interpolation step text, findings. There is no field on it that could hold
 // a run payload or a resolved secret, and `.strict()` makes an attempt to add one a typed refusal
 // rather than a durable leak.
@@ -70,11 +70,11 @@ export interface EvaluateDraftInput {
    *
    * Consequential rather than a speed knob — `computeDraftDisposition` answers a one-run
    * evaluation `unverified` at best, so nothing evaluated this way is keep-eligible however its
-   * four booleans read (D-18, SC3); a false gate 1, 3 or 4 still rejects it (261003-cpv, WR-09).
+   * four booleans read (D-18, SC3); a false gate 1, 3 or 4 still rejects it.
    */
   readonly draftMode?: boolean
   /**
-   * The invoking session, spread onto the receipt when the caller supplied one (394-17, D-12).
+   * The invoking session, spread onto the receipt when the caller supplied one.
    *
    * ABSENCE IS EXCLUSION AND THIS MODULE ADDS NO DEFAULT — the receipt schema's own rule, and the
    * reason the spread below is conditional rather than an assignment. A surface that owns a
@@ -83,7 +83,7 @@ export interface EvaluateDraftInput {
    */
   readonly sessionRef?: string
   /**
-   * The suite file this draft proposes to JOIN — the stability read's target (394-19, D-14).
+   * The suite file this draft proposes to JOIN — the stability read's target.
    *
    * CHOSEN BY THE CALLER, with the draft's own file as the fallback. The shelf path a loop-staged
    * draft carries is a STAGING fact, not a membership fact: it names a digest-named file holding
@@ -103,7 +103,7 @@ export interface EvaluateDraftPorts {
   /** Injected so a receipt's `evaluatedAt` is pinnable in a test. Defaults to the wall clock. */
   readonly now?: () => number
   /**
-   * D-14's read side, consulted ONLY when gate 2 flips (394-17 · WTST-05).
+   * D-14's read side, consulted ONLY when gate 2 flips.
    *
    * ONE BUNDLE OF TWO HALVES that are useless apart, on the `AuthoringFunnelPortLike` reasoning
    * one level down. `port` is the funnel's read bundle — which carries NO run capability at all,
@@ -114,7 +114,7 @@ export interface EvaluateDraftPorts {
    * answers `undefined` when nothing was observed, and the consultation is then SKIPPED —
    * deriving a product from configuration instead would be a second rule for a fact the write
    * side already decides, and the first time the two disagreed this message would report another
-   * application's flakiness as this target's (T-394-68).
+   * application's flakiness as this target's.
    */
   readonly suiteStability?: {
     readonly port: AuthoringFunnelPortLike
@@ -150,9 +150,9 @@ function draftFingerprintElements(members: readonly PerTestOutcome[]): string[] 
 }
 
 /**
- * Evaluate one parsed draft through all four keep-gates and persist the receipt (WTST-02).
+ * Evaluate one parsed draft through all four keep-gates and persist the receipt.
  *
- * Returns the receipt AND writes it (D-19), so a caller never has to re-read the store to learn
+ * Returns the receipt AND writes it, so a caller never has to re-read the store to learn
  * what was just decided.
  */
 export async function evaluateDraft(
@@ -193,7 +193,7 @@ export async function evaluateDraft(
     textCorpus: ports.textCorpus,
   })
 
-  // Gate 4 — the deterministic static check, whose table lands verbatim on the receipt (D-11).
+  // Gate 4 — the deterministic static check, whose table lands verbatim on the receipt.
   const falsifiable = assertionStrengthGate({ steps: input.draft.steps })
 
   const runRefs = stability.gateRuns.map((row) => row.runId)
@@ -268,7 +268,7 @@ function stabilityGateOneReason(pass: boolean, runCount: number): string {
 }
 
 /**
- * Read the target's recorded stability, on a FLIP and only on a flip (D-14, 394-17).
+ * Read the target's recorded stability, on a FLIP and only on a flip.
  *
  * THREE WAYS TO GET NOTHING, and all three are the honest answer rather than a degraded guess: the
  * verdict did not flip (there is nothing to explain), the composition bound no consultation, or no

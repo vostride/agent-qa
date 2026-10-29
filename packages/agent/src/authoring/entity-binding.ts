@@ -1,4 +1,4 @@
-// Never-guess binding for an LLM-supplied entity name (394-09, D-19 · T-394-35).
+// Never-guess binding for an LLM-supplied entity name.
 //
 // A name a model chose decides WHICH of a person's tests an edit rewrites. D-19's rule is that such
 // a name binds only on a UNIQUE HIGH-CONFIDENCE hit; ambiguity, weakness and absence are each a
@@ -64,7 +64,7 @@ export interface EntityBinding {
 }
 
 /**
- * The name matched more than one entity (D-19, T-394-35).
+ * The name matched more than one entity.
  *
  * A SEPARATE CLASS from {@link UnresolvedEntityNameError} rather than one error with a kind, on the
  * `authoring-verify-draft.ts` precedent, and here the distinction is what a caller does next:
@@ -149,8 +149,8 @@ function identityOf(descriptor: EntityDescriptor): BoundTestIdentity | undefined
 /**
  * Bind every supplied name, or refuse by name on the first one that cannot be bound.
  *
- * REFUSES ON THE FIRST FAILURE, and refuses the WHOLE set — the applier's own posture (394-03) and
- * the repair fence's (394-06). Binding what it could and reporting the rest would hand a caller a
+ * REFUSES ON THE FIRST FAILURE, and refuses the WHOLE set — the applier's own posture and
+ * the repair fence's. Binding what it could and reporting the rest would hand a caller a
  * partially-bound edit, which is the shape in which somebody eventually applies the bound half.
  *
  * Order is preserved, so a caller that supplied `[testRef]` reads its answer at index 0 without

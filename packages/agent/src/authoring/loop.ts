@@ -1,4 +1,4 @@
-// The six-stage authoring loop (Phase 394, D-01/D-02 · WTST-01).
+// The six-stage authoring loop.
 //
 // ONE function takes a plain-English intent to a verified draft with a real receipt. The six
 // stages are evaluated in THIS order, once each, and the order is the contract rather than an
@@ -20,7 +20,7 @@
 //                REGISTERED op. No gate is re-implemented here and no disposition is re-derived
 //                here — `computeDraftDisposition` is the one site, and the receipt already
 //                carries what it decided.
-//   5. route     Turn the receipt into an outcome. Deterministic by contract (D-08): a clean
+//   5. route     Turn the receipt into an outcome. Deterministic by contract: a clean
 //                definitive assertion-fail must never reach repair, because "repairing" one means
 //                rewriting the expectation to match what the app shows, which is oracle capture.
 //   6. compound  NO CODE, AND THAT IS THE POINT. `projectProcedureTargets` already fires for every
@@ -114,7 +114,7 @@ export const AUTHORING_LOOP_STAGES = [
 export type AuthoringLoopStage = (typeof AUTHORING_LOOP_STAGES)[number]
 
 /**
- * The `agent_context` every compile call carries into the ONE tiered prompt builder (389 D-04).
+ * The `agent_context` every compile call carries into the ONE tiered prompt builder.
  *
  * A pinned string rather than a computed one: it lands in the stable tier, which is the byte
  * prefix provider prompt caches key on, so a per-invocation value would defeat the caching the
@@ -132,9 +132,9 @@ export const AUTHORING_COMPILE_AGENT_CONTEXT =
  * branches on rather than new cases behind a discriminant they already read.
  *
  * The `stopped` arm carries the ROUTE and the abandonment facts and writes nothing — the op
- * projects the result's `stop` payload from it (411 D-05).
+ * projects the result's `stop` payload from it.
  *
- * 2026-09-30, 432 D-06: the `drafted` and `repaired` arms carry the WRITTEN-TEST RECEIPT where they
+ * the `drafted` and `repaired` arms carry the WRITTEN-TEST RECEIPT where they
  * used to carry a proposal for a person to accept. The final draft is written to its target unless
  * its final receipt is `rejected`, and the receipt says which file was written or why none was.
  */
@@ -166,12 +166,12 @@ export type AuthoringLoopOutcome =
       readonly route: StopRoute
       /**
        * ITS KIND AND ITS SPEND ARE ONE PARAMETER, so `repairAbandonment` and `repairIterations`
-       * land on the op's payload together or not at all (394-21, WR-09). Present as one object or
+       * land on the op's payload together or not at all. Present as one object or
        * absent — never two independent optionals, which could disagree: a kind with no spend, or a
        * spend on a stop repair never touched, which reads as "repair was tried and cost nothing".
        *
        * `iterations` is `RepairOutcome.iterations` INCLUDING iterations a fence refused, which
-       * started nothing — which is why it is not derivable from the run ids `fanOut` counts (D-08).
+       * started nothing — which is why it is not derivable from the run ids `fanOut` counts.
        */
       readonly abandonment?: {
         readonly kind: RepairAbandonment['kind']
@@ -185,7 +185,7 @@ export interface AuthoringLoopInput {
   /** Handed straight through to stage 4. See the op's input contract for what it costs. */
   readonly draftMode?: true
   /**
-   * The invoking session, threaded to EVERY receipt this invocation mints (394-17, D-12).
+   * The invoking session, threaded to EVERY receipt this invocation mints.
    *
    * Both of them: stage 4's own evaluation and the final stability gate a repaired candidate goes
    * through. A thread that stopped at the first would attribute first-try drafts and silently
@@ -195,7 +195,7 @@ export interface AuthoringLoopInput {
 }
 
 /**
- * The fan-out ONE invocation of this loop can cost, in child `agent-qa run` processes (D-03/D-10).
+ * The fan-out ONE invocation of this loop can cost, in child `agent-qa run` processes.
  *
  * THE SINGLE PLACE THE THREE TERMS ARE ASSEMBLED, and the only caller of `computeFanOutBound` in
  * this package. The dispatch confirm renders what this returns and the finished proposal reports
@@ -222,7 +222,7 @@ export function authoringFanOutBound(input: { readonly draftMode?: true }): FanO
 export interface AuthoringLoopDeps {
   readonly read: AuthoringReadPortLike
   /**
-   * The compile half, plus stage 5's run reader (394-06).
+   * The compile half, plus stage 5's run reader.
    *
    * The run capability rides this bundle rather than arriving as a third dep: see the port's own
    * `runs` doc. What it buys the loop is that "can this host author" stays ONE question with one
@@ -237,7 +237,7 @@ export interface AuthoringLoopDeps {
  * `stages` is DATA the loop answers with, not a test hook. Plan 04's refusal ends an invocation
  * at stage 2 and plan 05's repair re-enters stages 3-4, so "where did this stop" and "how many
  * times did it iterate" are questions about a real invocation that a caller — and the funnel's
- * side counters (D-15) — has to be able to ask. It is also what makes the ordering claim
+ * side counters — has to be able to ask. It is also what makes the ordering claim
  * checkable at all: the trace is pushed by each stage as it is entered, so a reordered loop
  * reports a reordered trace.
  */
@@ -248,7 +248,7 @@ export interface AuthoringLoopResult {
   /** Which named side counters this invocation incremented. See the vocabulary's doc block. */
   readonly sideCounters: readonly AuthoringLoopSideCounter[]
   /**
-   * What was previewed at dispatch, beside the runs this invocation actually spent (WTST-08).
+   * What was previewed at dispatch, beside the runs this invocation actually spent.
    *
    * ON THE RESULT AND NOT ONLY ON THE PROPOSAL ARM, because a stage-2 refusal has no arm — D-04
    * ends it with no draft, no receipt and no envelope — and "this invocation cost nothing" is a
@@ -256,7 +256,7 @@ export interface AuthoringLoopResult {
    */
   readonly fanOut: FanOutReport
   /**
-   * What stage 3's one refinement round did (D-18).
+   * What stage 3's one refinement round did.
    *
    * ABSENT exactly when the round never ran — a stage-2 refusal, or a compile refusal for a lost
    * stated value — and present on every other invocation, including the ones where the round
@@ -269,7 +269,7 @@ export interface AuthoringLoopResult {
 }
 
 /**
- * Facts about an invocation that are counted BESIDE the funnel, never as a stage of it (D-15).
+ * Facts about an invocation that are counted BESIDE the funnel, never as a stage of it.
  *
  * A dedup refusal is the first member, and the distinction is the whole reason the vocabulary
  * exists. Plan 07 projects the loop as a funnel — how many intents reached compile, verify, a
@@ -287,9 +287,9 @@ export type AuthoringLoopSideCounter = (typeof AUTHORING_LOOP_SIDE_COUNTERS)[num
  * The model emitted something that is not a parsable test document.
  *
  * A NAMED refusal and not a retry: this tracer takes one model call by design, and a second
- * attempt hidden inside the first would make the fan-out preview (D-03) a number that does not
+ * attempt hidden inside the first would make the fan-out preview a number that does not
  * describe what happens. The bytes were never written — the shelf parses before it writes — so
- * there is no partial draft to clean up either (T-394-06).
+ * there is no partial draft to clean up either.
  */
 export class AuthoringDraftUnparsableError extends Error {
   constructor(readonly reason: string) {
@@ -302,7 +302,7 @@ export class AuthoringDraftUnparsableError extends Error {
 }
 
 /**
- * The model emitted a `target` this project does not declare (394-37, WR-04).
+ * The model emitted a `target` this project does not declare.
  *
  * A REFUSAL AND NOT A REPAIR, and the two halves of that are separate facts. It cannot be
  * repaired: `target` is outside `EDITABLE_POINTER_ROOTS`, so no patch the repair loop may emit
@@ -376,7 +376,7 @@ export class AuthoringLoopUnroutableEvidenceError extends Error {
 }
 
 /**
- * THE FINAL-WRITE BRANCH (432 D-06, EDGE-09): whether a final draft is written to its target.
+ * THE FINAL-WRITE BRANCH: whether a final draft is written to its target.
  *
  * It is also the set stage 5 answers `drafted` for, because the two are one fact: the gates did
  * not say no. `unverified` is a DRAFT-MODE evaluation whose gates 1, 3 and 4 passed (rule 1 of the
@@ -402,7 +402,7 @@ function draftRefOf(draft: ParsedDraftLike): DraftRef {
 }
 
 /**
- * Write the final draft, or say why it was not written (432 D-06/D-07).
+ * Write the final draft, or say why it was not written.
  *
  * The target is derived from where the DRAFT already sits (394-10's recipe). There is deliberately
  * no `sourceDigest`: a loop-authored draft is a NEW file (D-02 — creation is not an edit), so the
@@ -429,7 +429,7 @@ async function writeFinalDraft(
       },
     }
   }
-  // 2026-10-12 (440-05, D-08): the exact draft about to be written is checked here, the only door
+  // the exact draft about to be written is checked here, the only door
   // to publish, so no route can write a draft that lost a stated value.
   const missingValues = missingStatedValues(statedValues, draft.steps)
   if (missingValues.length > 0) return { missingValues }
@@ -474,7 +474,7 @@ async function compileDraft(
   shelf: DraftShelfPortLike,
   read: AuthoringReadPortLike,
 ): Promise<ParsedDraftLike> {
-  // WR-07: the `target` vocabulary, read HERE rather than threaded in from the caller. It is
+  // the `target` vocabulary, read HERE rather than threaded in from the caller. It is
   // needed by exactly one prompt and nothing else in the invocation consults it, so a value
   // fetched at the top of `runAuthoringLoop` would be a read the dedup refusal path pays for and
   // never uses — and one more argument that could be edited in transit.
@@ -524,7 +524,7 @@ async function compileDraft(
   const staged = await shelf.write(emitted.text)
   if (staged.kind === 'unparsable') throw new AuthoringDraftUnparsableError(staged.reason)
 
-  // THE VOCABULARY IS SERVED AND THEN CHECKED (394-37, WR-04). Round 5 read `targetNames` for the
+  // THE VOCABULARY IS SERVED AND THEN CHECKED. Round 5 read `targetNames` for the
   // prompt above and compared it against nothing, and a prompt is ADVICE: a model that skips the
   // `target` bullet — copying the block's own example, say — emits a name this project does not
   // declare, and the check that would have caught it is eight lines up in a local variable.
@@ -609,7 +609,7 @@ async function consumedProbeRuns(
  * a single run document because a routing rule that also chose its own evidence would be two rules
  * in one function. Which of an evaluation's several runs supplies that document is a fact about
  * the EVALUATION, and it is answered here: the last one taken, because gate 2 early-stops on a
- * verdict flip (D-17) and the run that stopped it is the one carrying the failure the gates
+ * verdict flip and the run that stopped it is the one carrying the failure the gates
  * ultimately reported. An absent record yields `undefined`, which the router refuses BY NAME
  * rather than routing on.
  */
@@ -631,7 +631,7 @@ async function routingHandoff(
  * the repair instead of merely stating that one did. Appended BESIDE the routed run's own refs: the
  * routed run says why the draft failed, this says why repair stopped, and they are different runs.
  *
- * ALL FOUR FIELDS COME FROM THE ERROR, AND THAT IS THE FIX RATHER THAN A TIDY-UP (CR-01). This used
+ * ALL FOUR FIELDS COME FROM THE ERROR, AND THAT IS THE FIX RATHER THAN A TIDY-UP. This used
  * to take `filePath`/`testName` from the invocation's `draftRef`, which is the PRE-repair draft: a
  * probe runs the candidate `applyPatches` just staged, and staging addresses a draft by the digest
  * of its new bytes, so the two paths differ by construction on every iteration that reached a run.
@@ -642,7 +642,7 @@ async function routingHandoff(
  *
  * WHAT IS DELIBERATELY NOT READ: `error.message`, and through it `RepairExhaustedError.lastRefusal`,
  * which ends in the model's own bytes. There is no prose field on the stop payload for it to reach
- * (411 D-05), and this read stays a read of typed coordinates.
+ * and this read stays a read of typed coordinates.
  *
  * The exhausted arm gets no such ref because it has no such coordinate — its last iteration may have
  * been a fenced patch or an unparsable emission, neither of which started a run.
@@ -672,9 +672,9 @@ function withRegressedProbeEvidence(
 /**
  * Stage 5 — the receipt becomes an outcome; the drafted and repaired ones carry their envelope arm.
  *
- * The stopped outcome carries the ROUTE the loop derived and nothing is minted for it (411 D-10).
+ * The stopped outcome carries the ROUTE the loop derived and nothing is minted for it.
  *
- * 2026-09-02 (Phase 411): the proposal arm for a correctly-failing draft left with the Issue-slot
+ * the proposal arm for a correctly-failing draft left with the Issue-slot
  * cleanup.
  *
  * TWO DERIVATIONS, ASKED IN ORDER, NEITHER RE-IMPLEMENTED HERE. The first is
@@ -702,7 +702,7 @@ export async function routeAfterVerify(
   statedValues: readonly string[],
   previewed: FanOutBound = NO_RUNS_FAN_OUT_BOUND,
   /**
-   * The suite the draft proposes to JOIN, threaded to repair's final stability gate (394-19).
+   * The suite the draft proposes to JOIN, threaded to repair's final stability gate.
    *
    * HANDED IN rather than re-derived here, on the `sessionRef` posture one field over: the caller
    * computed it once for stage 4's own verify, and a second `authoredSuiteTargetPath` call at this
@@ -756,7 +756,7 @@ export async function routeAfterVerify(
   // `handoff` is defined here: the router refuses `no-run-evidence` by name, and that refusal was
   // already converted above — so reaching a repair arm at all means a run document was read.
   // THE SESSION IS READ OFF THE RECEIPT THAT WAS JUST MINTED, never threaded a second time
-  // (394-17, D-12). The repaired candidate belongs to the same invocation as the draft that
+  // The repaired candidate belongs to the same invocation as the draft that
   // failed, so its receipt must carry the same attribution — and taking it from the record stage 4
   // already wrote makes that true by construction instead of by two threads agreeing. An
   // unattributed evaluation stays unattributed through repair for the same reason.
@@ -806,7 +806,7 @@ export async function routeAfterVerify(
     }
   }
 
-  // THE ABANDONED ARM READS THE RUN IT WAS ROUTED ON (CR-02). It used to be an empty literal —
+  // THE ABANDONED ARM READS THE RUN IT WAS ROUTED ON. It used to be an empty literal —
   // `failurePoint: null`, `evidenceRefs: []` — built with `handoff` and `route.failingStepIndex`
   // both in scope, so a person was handed a durable stop naming no step, no run and no trace. The
   // derivation is the router's, shared with the ordinary stop arm rather than repeated here: an
@@ -875,7 +875,7 @@ export async function runAuthoringLoop(
 
   stages.push('compile')
   const compiled = await compileDraft(input, brief, deps.shelf, deps.read)
-  // 2026-10-12 (440-02, D-05): a compiled draft that loses a stated value is refused before refine,
+  // a compiled draft that loses a stated value is refused before refine,
   // with no retry and no run spent.
   const missing = missingStatedValues(statedValues, compiled.steps)
   if (missing.length > 0) {
@@ -891,7 +891,7 @@ export async function runAuthoringLoop(
       fanOut: buildFanOutReport({ previewed: NO_RUNS_FAN_OUT_BOUND, runs: [] }),
     }
   }
-  // THE ROUND IS UNCONDITIONAL AND IT IS INSIDE STAGE 3 (D-18). Unconditional: there is no `if`
+  // THE ROUND IS UNCONDITIONAL AND IT IS INSIDE STAGE 3. Unconditional: there is no `if`
   // above this line and no argument that could turn it off — see `refine.ts` for why a trigger
   // heuristic is the thing D-18 rules out rather than the thing it configures. Inside stage 3
   // rather than beside it: `AUTHORING_LOOP_STAGES` is a pinned six, refining is part of producing
@@ -900,10 +900,10 @@ export async function runAuthoringLoop(
   const refinement = await refineDraft(compiled, input, deps)
   const draft = refinement.draft
 
-  // 2026-10-14 (441-03, D-10): a draft that would type a literal [secret:NAME] ends here.
+  // a draft that would type a literal [secret:NAME] ends here.
   refuseLiteralSecretMarkers(draft)
 
-  // 2026-10-01 (432-19, D-15): the dispatch runs directly. The optional dispatch-grant scope that
+  // the dispatch runs directly. The optional dispatch-grant scope that
   // used to wrap stages 4-6 is deleted; no host bound it after 432-18 and nothing asks for an
   // approval a gate run could collect.
   return await runAuthoringLoopDispatch(input, deps, {
@@ -941,14 +941,14 @@ async function runAuthoringLoopDispatch(
   stages.push('verify')
   // WHERE THE FINAL WRITE WILL PUT IT, computed ONCE for the whole invocation through the SAME
   // exported recipe the final write uses (`writeFinalDraft`'s `targetPath`) — so the suite the
-  // stability read consults and the suite the draft is written into cannot disagree (394-19, D-14).
+  // stability read consults and the suite the draft is written into cannot disagree.
   // ONE DERIVATION IS ONLY ENOUGH BECAUSE THE INPUT THAT MOVES DOES NOT REACH THE ANSWER: this value
   // is derived here from the PRE-repair draft and recomputed at the write from the REPAIRED draft,
   // whose shelf path is a DIFFERENT file — repair re-stages every patched candidate under its new
   // digest — and `authoredSuiteTargetPath` drops that filename, keeping only the suite directory and
   // a slug of the test NAME. The name is therefore the one input a repair could move the target
   // with, and that is now ENFORCED rather than assumed — `fencePatchAgainstDraftIdentity` refuses a
-  // repair patch addressing `/name` (WR-01), so both ends of the recipe read the same name.
+  // repair patch addressing `/name`, so both ends of the recipe read the same name.
   // Without it the read targets `draft.filePath`, a one-test shelf artifact whose only member is
   // the draft itself, and `neighbours-flaky` is unreachable from this entry point for any app.
   const targetSuitePath = authoredSuiteTargetPath(draft.filePath, draft.testName)

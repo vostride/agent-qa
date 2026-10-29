@@ -1,4 +1,4 @@
-// Stage 5 — the frozen repair-vs-stop denominator (Phase 394 D-08 · WTST-04; 411 D-01/D-03).
+// Stage 5 — the frozen repair-vs-stop denominator.
 //
 // Ten rows, each the SOLE CATCHER for one property, and each one's rationale in
 // `fixtures/router-corpus/expectations.json` says which. The table is frozen: a row that stops
@@ -182,7 +182,7 @@ describe('the frozen router corpus is intact', () => {
   })
 
   it('names five stop-direction rows, and they are the rows that route to stop', () => {
-    // Three since 394; the two historical rows joined on 2026-10-07 (436 D-14).
+    // Three since 394; the two historical rows joined on 2026-10-07.
     const stopRows = EXPECTATIONS.rows
       .filter((row) => row.expected.route === 'stop')
       .map((row) => row.id)
@@ -237,8 +237,8 @@ describe('the frozen router corpus is intact', () => {
       expect(rowNamed(EXPECTATIONS.baseRow).expected.route).toBe('stop')
     }
 
-    // 2026-10-07 (436-06): the two removed signals pair against the signature cell by the same one
-    // field and now land on the SAME arm and class — the proof that they route nothing (D-14).
+    // the two removed signals pair against the signature cell by the same one
+    // field and now land on the SAME arm and class — the proof that they route nothing.
     for (const [id, field] of [
       ['historical-cycle', 'cycleSteps'],
       ['historical-stagnation', 'stagnationSteps'],

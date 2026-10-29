@@ -1,4 +1,4 @@
-// The one unconditional draft-as-query refinement round (394-09, D-18 · WTST-01/WTST-07).
+// The one unconditional draft-as-query refinement round.
 //
 // After the whole-document compile, the loop re-retrieves keyed on the DRAFT'S OWN steps and
 // anchors and gives the model exactly one pass to improve what it just wrote — emitted as RFC-6902
@@ -46,9 +46,9 @@ import {
 import { buildTieredPrompt } from '../prompt/tiered-prompt-builder.js'
 
 /**
- * How many refinement rounds run per compiled draft. Exactly one, always (D-18).
+ * How many refinement rounds run per compiled draft. Exactly one, always.
  *
- * RETUNE — what a change to this number has to report, and what it may not be.
+ * what a change to this number has to report, and what it may not be.
  *
  * It may NOT become a condition. Raising it to 2 is a retune; making the second round fire only
  * when some signal says the first one found something is not a retune, it is the trigger heuristic
@@ -69,7 +69,7 @@ import { buildTieredPrompt } from '../prompt/tiered-prompt-builder.js'
 export const REFINEMENT_ROUNDS = 1
 
 /**
- * The `agent_context` the refinement call carries into the ONE tiered prompt builder (389 D-04).
+ * The `agent_context` the refinement call carries into the ONE tiered prompt builder.
  *
  * A pinned string, distinct from the compile call's, for the reason that one is pinned: it lands in
  * the stable tier, which is the byte prefix a provider's prompt cache keys on. Distinct because the
@@ -108,7 +108,7 @@ export interface RefineDraftDeps {
 }
 
 /**
- * The draft, as the retrieval query for its own second round (D-18).
+ * The draft, as the retrieval query for its own second round.
  *
  * The test's NAME and its STEP TEXT, in document order, and nothing else. Not the intent — see the
  * header. Not the file path or the digest either: those are addresses this host minted, they name
@@ -216,7 +216,7 @@ export async function refineDraft(
   }
   if (staged.kind === 'unparsable') return { kind: 'not-applied', draft, reason: staged.reason }
 
-  // 2026-10-12 (440-04, D-06): a patch that loses a stated value is dropped; the compiled draft
+  // a patch that loses a stated value is dropped; the compiled draft
   // already passed the same check at compile.
   const missing = missingStatedValues(extractStatedValues(input.intent), staged.draft.steps)
   if (missing.length > 0) {

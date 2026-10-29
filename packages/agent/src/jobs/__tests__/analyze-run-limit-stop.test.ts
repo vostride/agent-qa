@@ -1,4 +1,4 @@
-// 436 D-12: analyze-run never asks a model to label a limit stop.
+// analyze-run never asks a model to label a limit stop.
 //
 // A limit-stopped member's floor verdict is `unknown` (the run ran out of limit, not into an
 // answer), and analyze-run authors every unknown floor member — so without the exclusion a model

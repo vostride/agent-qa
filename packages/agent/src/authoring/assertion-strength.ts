@@ -9,13 +9,13 @@
 // get to choose it. A projection is cheap; a second judgment would be two answers to
 // "is this draft's oracle real", free to disagree.
 //
-// DETERMINISTIC BY CONSTRUCTION (D-06). No I/O, no clock, no config, no model. The hermetic
+// DETERMINISTIC BY CONSTRUCTION. No I/O, no clock, no config, no model. The hermetic
 // lane runs this per-commit with no LLM by contract, which is only possible if the check
 // cannot reach one.
 //
-// AMBIGUITY TUNES TOWARD REJECT (D-12). Every borderline arm below returns "not falsifiable".
+// AMBIGUITY TUNES TOWARD REJECT. Every borderline arm below returns "not falsifiable".
 // That is defensible only because the rejection is READABLE: the per-step table lands verbatim
-// in the receipt (D-11), so a rejected author is told which step was called what, which vacuity
+// in the receipt, so a rejected author is told which step was called what, which vacuity
 // phrase it matched, and which capture pattern named its expected value. A gate that tunes
 // toward reject without saying why is just a gate that says no.
 
@@ -38,7 +38,7 @@ export interface ParsedDraftStepsLike {
 /**
  * The closed assertion-verb set — D-09 clause (i).
  *
- * A PINNED CONSTANT, never config (386 D-15). RETUNE COMMENT: these six are the verbs a person
+ * A PINNED CONSTANT, never config. RETUNE COMMENT: these six are the verbs a person
  * writes when the next sentence is a CLAIM about the app rather than an instruction to it.
  * Every verb added here is a verb that can now open an assertion, which moves the gate's
  * numerator directly — clause (i) is satisfiable by one more shape of step, and every draft
@@ -63,7 +63,7 @@ export const ASSERTION_VERBS = [
 ] as const
 
 /**
- * The closed action-verb set — used ONLY to detect a mixed act-and-verify step (D-12).
+ * The closed action-verb set — used ONLY to detect a mixed act-and-verify step.
  *
  * A PINNED CONSTANT, never config. RETUNE COMMENT: these fourteen are the verbs that open an
  * INSTRUCTION to the app. They are read at exactly one place — the leading token of a clause
@@ -146,7 +146,7 @@ export const VACUOUS_ASSERTION_PHRASES = [
  * Widening this set makes more assertions falsifiable without a quoted literal, which is the arm
  * most likely to accept a weak oracle — re-run the frozen corpus, and prefer a quoted literal.
  *
- * WHAT ONE RETUNE HERE MOVES — RE-DERIVED 2026-08-10 (393-15). This set is the relation's ANCHOR:
+ * WHAT ONE RETUNE HERE MOVES — RE-DERIVED 2026-08-10. This set is the relation's ANCHOR:
  * every member is a position the leftward walk starts from. A member added here therefore widens
  * WHICH STATES count as checkable and nothing else — the element side of the relation still answers
  * by `ELEMENT_NOUNS` membership alone, and the refusal side by everything that is not an element
@@ -169,7 +169,7 @@ export const EXPECTED_STATE_TERMS = [
 ] as const
 
 /**
- * The closed element-noun set — the positive lexicon that resolves the relation TRUE (393-13, 393-15).
+ * The closed element-noun set — the positive lexicon that resolves the relation TRUE.
  *
  * A PINNED CONSTANT, never config. RETUNE COMMENT, AND ITS DIRECTION IS THE INVERSE OF THE THREE
  * EXCLUSION SETS THIS REPLACED: a member is a common name for a CONTROL or a LANDMARK on a page —
@@ -231,7 +231,7 @@ export const ELEMENT_NOUNS = [
 ] as const
 
 /**
- * The closed page-whole noun set — the relation's SUBJECT REFUSER (393-15).
+ * The closed page-whole noun set — the relation's SUBJECT REFUSER.
  *
  * A PINNED CONSTANT, never config, and it is exactly the seven nouns the `ELEMENT_NOUNS` doc above
  * already names as deliberately absent. It is declared as its own set because the relation needs to
@@ -273,7 +273,7 @@ export const PAGE_WHOLE_NOUNS = [
 ] as const
 
 /**
- * The closed function-word set — the leftward walk's CONTINUE set (393-17).
+ * The closed function-word set — the leftward walk's CONTINUE set.
  *
  * A PINNED CONSTANT, never config. These are the ONLY tokens the walk may cross between an
  * expected-state term and the noun that is its subject. Everything else stops the walk, which is
@@ -296,7 +296,7 @@ export const PAGE_WHOLE_NOUNS = [
  * listing it would be a member with no live position. And every open adverb class beyond `still`
  * and `not`, because an open class cannot be closed and a set that tries is a set that leaks.
  *
- * RETUNE COMMENT, and its direction is `ELEMENT_NOUNS`' rather than `PAGE_WHOLE_NOUNS`' (D-12).
+ * RETUNE COMMENT, and its direction is `ELEMENT_NOUNS`' rather than `PAGE_WHOLE_NOUNS`'.
  * ADDING a member is an ACCEPT-direction move — one more token the walk may bridge, so claims that
  * were refused start passing — and therefore arrives with the real draft it rescues plus a
  * frozen-corpus re-run. OMISSION fails toward REJECT: an exotic intervening adverb refuses a genuine
@@ -338,7 +338,7 @@ export const FUNCTION_WORDS = [
  * SCOPE, honestly (D-10, the W-09 discipline): this narrows the oracle-capture class, it does
  * not eliminate it. A semantically wrong but syntactically clean expectation — a plausible
  * human-shaped value that simply is not what the app should show — passes every pattern here.
- * 394's authoring provenance is the closure that remains. 2026-09-02 (Phase 412): bug-repro
+ * 394's authoring provenance is the closure that remains. 2026-09-02: bug-repro
  * anchoring left with the Issue-slot cleanup.
  *
  * Order is by name, alphabetically, and is NOT load-bearing: every pattern is tried and the
@@ -352,7 +352,7 @@ export const CAPTURE_SIGNATURE_PATTERNS = [
 ] as const
 
 /**
- * The closed separator set for a MIXED act-and-verify step (D-12).
+ * The closed separator set for a MIXED act-and-verify step.
  *
  * A PINNED CONSTANT, never config. RETUNE COMMENT: these are the joins a person types when
  * one step secretly contains two — `Verify the form is submitted and click Continue`. A step
@@ -393,7 +393,7 @@ const QUOTED_LITERAL_RE = /"([^"]*)"/g
  */
 const MONEY_AMOUNT_RE = /(?<![\p{L}\p{N}])[$€£¥₹]\d+(?:[.,]\d+)*(?![\p{L}\p{N}])/gu
 
-/** The frozen contract shape plan 01's `corpus-static-gates.test.ts` pinned (D-08). */
+/** The frozen contract shape plan 01's `corpus-static-gates.test.ts` pinned. */
 export interface AssertionStrengthStep {
   readonly text: string
   readonly kind: 'assertion' | 'action'
@@ -442,7 +442,7 @@ function isActionVerb(token: string): boolean {
 /**
  * Every double-quoted span of a step, unfiltered — what the author actually typed.
  *
- * TWO VIEWS BECAUSE THERE ARE TWO QUESTIONS (393-15). This RAW view answers the TAUTOLOGY question:
+ * TWO VIEWS BECAUSE THERE ARE TWO QUESTIONS. This RAW view answers the TAUTOLOGY question:
  * an action that typed `""` really did type it, and an assertion restating that same span is still
  * restating a prior action's own content. `quotedLiterals` below answers the CONCRETENESS question:
  * an empty span expects nothing, so it cannot be the expected value that makes an assertion
@@ -466,7 +466,7 @@ function quotedSpans(text: string): string[] {
  *
  * The filter is a `trim` test rather than a falsiness test because `" "` asserts exactly as little
  * as `""` does. Without it, bare `Verify ""` satisfied `literals.length > 0` and short-circuited
- * the concreteness arm — a quoted expected value that expects nothing (393-13). Read by the
+ * the concreteness arm — a quoted expected value that expects nothing. Read by the
  * concreteness arm and by the capture-signature scan; never by the tautology comparison.
  */
 function quotedLiterals(text: string): string[] {
@@ -510,7 +510,7 @@ function vacuityRemainder(text: string): string {
 }
 
 /**
- * Whether an assertion step secretly contains an instruction (D-12).
+ * Whether an assertion step secretly contains an instruction.
  *
  * A separator, and then a clause whose OWN leading token is an action verb. The leading-token
  * rule is the same one role classification uses, and for the same reason: an action verb
@@ -534,7 +534,7 @@ function isMixedActAndVerify(text: string): boolean {
  * Whether the assertion names an element that is IN an expected state — D-09 clause (ii)'s second
  * route to concreteness, as ONE relation rather than two unrelated scans.
  *
- * THE RULE ENFORCED, verbatim (393-15, 393-17). The post-verb residue, with double-quoted spans already
+ * THE RULE ENFORCED, verbatim. The post-verb residue, with double-quoted spans already
  * removed, is tokenized ONCE: split on whitespace, each piece through `normalizeToken` (lowercased,
  * non-letters stripped). For every index whose token is an `EXPECTED_STATE_TERMS` member, walk LEFT
  * from that index one token at a time and answer on the FIRST token that is not a function word: an
@@ -678,7 +678,7 @@ function namesElementInExpectedState(text: string): boolean {
 }
 
 /**
- * The capture-signature patterns a quoted expected value hits, by NAME (D-10).
+ * The capture-signature patterns a quoted expected value hits, by NAME.
  *
  * Per whitespace-delimited token of each literal, so a value that embeds a machine id inside a
  * sentence is still caught, and reported as a sorted deduplicated set so the receipt reads the
@@ -698,7 +698,7 @@ function captureSignatureHits(literals: readonly string[]): string[] {
 }
 
 /**
- * The per-step classification table (D-11).
+ * The per-step classification table.
  *
  * The ONE judgment in this module. Prior-action captures accumulate as the walk proceeds, which is
  * what makes the tautology rule directional: an assertion cannot restate content that has not been
@@ -818,7 +818,7 @@ export function assertionStrengthGate(draft: ParsedDraftStepsLike): AssertionStr
 }
 
 /**
- * The frozen proving suite's contract (D-08) — a projection, never a second judgment.
+ * The frozen proving suite's contract — a projection, never a second judgment.
  *
  * `corpus-static-gates.test.ts` was committed RED against this exact signature before any of
  * this module existed, and it names its fields `text`/`kind` where the receipt schema names

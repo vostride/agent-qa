@@ -1,4 +1,4 @@
-// 2026-10-14 (441-03, D-10, D-23): the loop refuses a draft that would type a literal
+// the loop refuses a draft that would type a literal
 // [secret:NAME] and accepts every other draft text unchanged.
 
 import type { AuthoringBrief, DraftReceipt, ScopeKey } from '@vostride/agent-qa-schema'
@@ -109,7 +109,7 @@ function loopOver(steps: readonly string[], testName = TEST_NAME, context?: stri
   const published: string[] = []
 
   const read: AuthoringReadPortLike = {
-    // 394-33 WR-07: the `target` vocabulary, present because the port requires it.
+    // the `target` vocabulary, present because the port requires it.
     configuredTargetNames: () => Promise.resolve(['local-form']),
     getAuthoringBrief: () => Promise.resolve(EMPTY_BRIEF),
     suiteTextCorpus: () => Promise.resolve(SUITE_TEXT),

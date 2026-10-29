@@ -1,4 +1,4 @@
-// The stage order and the single public entry, pinned structurally (394 plan 02, D-01 · WTST-01).
+// The stage order and the single public entry, pinned structurally.
 //
 // THE MUTATION THIS FILE MUST GO RED ON: moving the dedup call site in `loop.ts` to after the
 // compile call. That is the reordering "dedup-before-author" forbids — it turns a screen that
@@ -74,7 +74,7 @@ const INTENT = 'Check that the local account form shows its heading'
 const SCOPE: ScopeKey = { tier: 'product', key: 'local-form' }
 
 /**
- * The `target` vocabulary this host declares (394-33, WR-07).
+ * The `target` vocabulary this host declares.
  *
  * NEITHER NAME IS `SCOPE.key`, and that is deliberate. `deriveDefaultAuthoringScope` answers a
  * PRODUCT, so the scope key and a configured target name are different kinds of value that only
@@ -89,7 +89,7 @@ const STAGED_PATH = `tests/.agent-qa-drafts/${ACCEPT_CONTROL_DRAFT.contentDigest
 /**
  * The draft this host's shelf answers with — the accept control, ON A TARGET THIS HOST DECLARES.
  *
- * The retarget is not cosmetic (394-37, WR-04). Until the compile stage compared the vocabulary it
+ * The retarget is not cosmetic. Until the compile stage compared the vocabulary it
  * serves against the draft it stages, this file's shelf could answer a draft named `local-form`
  * while its read port declared `local-form-web` and `storefront-web` — a host whose own fixture
  * staged a test it could not have run. Nothing could see the disagreement, because nothing looked;
@@ -150,7 +150,7 @@ function observedLoop() {
       observed.push('dedup')
       return Promise.resolve(SUITE_TEXT)
     },
-    // 394-33 WR-07: the `target` vocabulary the compile prompt serves. TWO names, and neither is
+    // the `target` vocabulary the compile prompt serves. TWO names, and neither is
     // the scope key — so a block that rendered the scope, or rendered one name because there was
     // only one, cannot satisfy the pins below.
     configuredTargetNames: (): Promise<readonly string[]> =>
@@ -227,7 +227,7 @@ function observedLoop() {
         },
       )
     },
-    // 432 D-06: the final write. Not a stage name of its own — it is the tail of `route`, so it can
+    // the final write. Not a stage name of its own — it is the tail of `route`, so it can
     // only happen once `verify` has been observed.
     publish(request) {
       expect(observed.at(-1)).toBe('verify')
@@ -559,7 +559,7 @@ describe('the loop has exactly one public entry', () => {
   })
 })
 
-// ---- 432 D-06 (EDGE-09): the final write, one disposition at a time -----------------------------
+// ---- 432 D-06: the final write, one disposition at a time -----------------------------
 //
 // Stage 5 is driven directly with a receipt per disposition, so each arm of the rule is measured
 // on its own: which final drafts reach the writer, what they ask it to write, and that the receipt
@@ -655,7 +655,7 @@ describe('exactly the non-rejected final dispositions are written', () => {
   }[] = [
     { disposition: 'keep-eligible', gates: ALL_PASS, runs: { requested: 3, completed: 3 } },
     { disposition: 'proposal-only', gates: ALL_PASS, runs: { requested: 3, completed: 2 } },
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, WR-09): draft mode writes a draft whose gates 1, 3
+    // RE-SPELLED 2026-10-03: draft mode writes a draft whose gates 1, 3
     // and 4 passed, and the receipt carries the booleans unchanged; a false one rejects it.
     {
       disposition: 'unverified',
@@ -793,7 +793,7 @@ describe('a draft-mode draft a keep-gate rejected is not written', () => {
     })
 })
 
-// 2026-10-12 (440-05, D-08): the keep check is driven directly, since compile, refine and repair
+// the keep check is driven directly, since compile, refine and repair
 // already hold the values on the normal path. STAGED_DRAFT's steps carry `alice` and `Local Form`.
 describe('stated values checked at keep', () => {
   const GATE_RUN_IDS = ['r_keep-gate-0', 'r_keep-gate-1', 'r_keep-gate-2'] as const

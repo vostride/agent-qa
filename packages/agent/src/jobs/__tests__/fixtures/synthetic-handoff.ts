@@ -1,4 +1,4 @@
-// A parameterizable synthetic CompletedRunHandoff builder (Phase 389, plan 01).
+// A parameterizable synthetic CompletedRunHandoff builder.
 //
 // One substrate for the whole phase: the tracer's handler test drives it with a handful of
 // failures, plan 04's author harness scripts the `unknown` members it upgrades, plan 05's

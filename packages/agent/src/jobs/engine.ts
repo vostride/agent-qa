@@ -1,4 +1,4 @@
-// The agent job queue engine (Phase 385, D-05 / D-08 / D-17 / D-18 / D-20).
+// The agent job queue engine.
 //
 // Pure semantics. This package is storageNeutral, so nothing here touches a host API: every
 // byte the engine causes to exist crosses `JobStorePort`. The driver is a PUMPABLE function
@@ -8,7 +8,7 @@
 //
 // All engine-visible time comes from the injected clock. A single ambient timestamp here
 // would make the deterministic dump the crash matrix compares differ for reasons that have
-// nothing to do with correctness (D-03), and the usual repair for a flaky equality
+// nothing to do with correctness, and the usual repair for a flaky equality
 // assertion is to loosen it — which would quietly retire the proof.
 
 import type {
@@ -60,7 +60,7 @@ export interface JobIdSource {
 }
 
 /**
- * Thrown when an enqueue arrives without a usable idempotency key (D-08).
+ * Thrown when an enqueue arrives without a usable idempotency key.
  *
  * The type already requires the argument; this covers the empty string, which types cannot
  * exclude and which would silently collapse every keyless caller onto one queue slot.
@@ -77,7 +77,7 @@ export class MissingIdempotencyKeyError extends Error {
   }
 }
 
-/** Thrown when a handler asks to chain to a successor its kind never declared (D-17). */
+/** Thrown when a handler asks to chain to a successor its kind never declared. */
 export class UndeclaredJobSuccessorError extends Error {
   override readonly name = 'UndeclaredJobSuccessorError'
 
@@ -110,7 +110,7 @@ export class UndeclaredJobCheckpointError extends Error {
 }
 
 /**
- * Raised at a checkpoint boundary when the job being run has been asked to stop (D-19).
+ * Raised at a checkpoint boundary when the job being run has been asked to stop.
  *
  * A thrown sentinel rather than a return value, because the boundary is inside a capability
  * the handler awaits and there is no other way to unwind a handler from underneath. A handler
@@ -139,7 +139,7 @@ export interface CreateAgentJobQueueOptions {
   readonly clock: ClockPort
   readonly idSource: JobIdSource
   /**
-   * The model a job may author with, bound by the composition root (D-10).
+   * The model a job may author with, bound by the composition root.
    *
    * REQUIRED, and deliberately not defaultable. An optional capability would mean a queue
    * could be built with none, and the only sensible behaviour for an author callback that
@@ -150,7 +150,7 @@ export interface CreateAgentJobQueueOptions {
    */
   readonly model: JobModelCapability
   /**
-   * The kinds this host may never claim, fixed when its queue is composed (388-09).
+   * The kinds this host may never claim, fixed when its queue is composed.
    *
    * A CONSTRUCTION option, deliberately not a member of `RunNextJobInput`: whether a host
    * may claim a kind is a fact about the HOST — which capabilities its composition can bind
@@ -163,7 +163,7 @@ export interface CreateAgentJobQueueOptions {
 
 export interface RunNextJobInput {
   readonly fence: JobStoreFence
-  // 2026-10-19 (444.1-13, D-01): reaches every model request of the claimed job; an attempt
+  // reaches every model request of the claimed job; an attempt
   // that fails while it is aborted is released with its attempt refunded.
   readonly signal?: AbortSignal
 }
@@ -176,13 +176,13 @@ export interface RanJobOutcomeBase {
   readonly checkpointsPublished: readonly string[]
   /**
    * `false` in exactly one case: the attempt bound was already spent when the job was
-   * claimed, so the driver failed it without handing it to its handler (D-18).
+   * claimed, so the driver failed it without handing it to its handler.
    */
   readonly handlerInvoked: boolean
   /**
    * The payload of the job AS CLAIMED, so a host can attribute this outcome to whatever the
    * payload names — a run, above all — without going back to the store for a row the job has
-   * already moved past (406 D-16). Optional because the outcome is the engine's fact and the
+   * already moved past. Optional because the outcome is the engine's fact and the
    * payload is the caller's: nothing here reads it, and no fabricated outcome must grow a
    * field to keep compiling.
    */
@@ -205,7 +205,7 @@ export type RunNextJobOutcome =
        * Returned rather than applied: 385 ships no dispatcher, and a driver that slept on its
        * own would be the timer loop this engine deliberately is not. The same value goes to the
        * store as the disposition's `retryAfterMs`, which stores the row's not-before time from
-       * its own clock and keeps the row out of every claim until then (444.1 D-23).
+       * its own clock and keeps the row out of every claim until then.
        */
       readonly retryDelayMs: number
       readonly attemptsRemaining: number
@@ -258,7 +258,7 @@ export interface AgentJobQueue {
   runNextJob(input: RunNextJobInput): Promise<RunNextJobOutcome>
 
   /**
-   * Ask for one job to stop (D-19).
+   * Ask for one job to stop.
    *
    * Built with the driver rather than after it. The place a cooperative cancel is honoured is
    * the seam between declared checkpoints, and that seam only exists inside `runNextJob` —
@@ -306,7 +306,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
   const { store, registry, clock, idSource, model, unclaimableKinds } = options
   // Resolved once at construction, so every pump passes the same exclusion or none at all;
   // a queue built without the option calls `claimNext(fence)` exactly as it did before.
-  // Copied and frozen at construction, never captured by reference (WR-11): the caller keeps a
+  // Copied and frozen at construction, never captured by reference: the caller keeps a
   // handle on the array it passed, and a queue that claimed against that live array would let
   // a post-construction write to it re-arm the exclusion this guard exists to hold.
   const claimOptions: ClaimNextOptions | undefined =
@@ -345,7 +345,6 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
 
   /**
    * The notification a finishing job should carry INTO its terminal transaction, if it is one
-   * (388 D-09 / D-10 / D-12).
    *
    * Three conditions, and each excludes a different wrong record. The kind must be one whose
    * finish can end a post-run chain — an unrelated kind has no run and no stages to report.
@@ -357,7 +356,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
    *
    * What is NOT decided here is whether the chain's other members are terminal. That is a
    * question about rows at the instant of the write, and only the store can ask it inside the
-   * transaction that answers it (385 D-05).
+   * transaction that answers it.
    */
   function chainTerminalFor(input: {
     readonly job: Job
@@ -392,7 +391,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
   }
 
   /**
-   * Land one job permanently, running whatever continuation its kind declared (D-20).
+   * Land one job permanently, running whatever continuation its kind declared.
    *
    * Validation and deterministic request construction happen before durability. The store then
    * receives the terminal parent and the complete continuation set in one fenced call, so there
@@ -418,7 +417,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
     // declaration, and half of one already enqueued is worse than none.
     const inserts = successorRequests(declaration, requests)
 
-    // D-12: a permanent failure is a chain terminal too. Wiring notify into the completion
+    // a permanent failure is a chain terminal too. Wiring notify into the completion
     // path alone would leave the runs a user most needs to hear about silent — a curation that
     // exhausted its attempts lands HERE and nowhere else.
     const failed = await store.failAndChain(
@@ -531,7 +530,7 @@ export function createAgentJobQueue(options: CreateAgentJobQueueOptions): AgentJ
       }
 
       /**
-       * THE checkpoint boundary (D-19). Both ways into a checkpoint pass through here.
+       * THE checkpoint boundary. Both ways into a checkpoint pass through here.
        *
        * The cancellation state is re-read every time rather than read once at the claim: a
        * cancel that arrived while the job was running is precisely the case this exists for,

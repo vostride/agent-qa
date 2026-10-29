@@ -1,6 +1,6 @@
-// An in-memory JobStorePort for the engine's unit seam (Phase 385 plan 04).
+// An in-memory JobStorePort for the engine's unit seam.
 //
-// The engine holds policy and the store holds atomicity (D-05), so the engine's own tests
+// The engine holds policy and the store holds atomicity, so the engine's own tests
 // need a store that is FAITHFUL about the handful of facts its policy reads — the attempt is
 // spent at the claim, a claimed row is not claimable again, a retry disposition releases the
 // claim, a permanent one is terminal, and a duplicate (kind, key) merges into the row that is
@@ -160,7 +160,7 @@ export function createFakeJobStore(clock: ClockPort): FakeJobStore {
       for (const row of rows.values()) {
         if (row.status !== 'queued' || row.claimed) continue
         if (excluded.has(row.kind)) continue
-        // D-18: the attempt is spent HERE, at the claim.
+        // the attempt is spent HERE, at the claim.
         row.attempts += 1
         row.claimed = true
         row.updatedAt = now

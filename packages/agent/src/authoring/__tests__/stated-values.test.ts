@@ -1,4 +1,4 @@
-// 2026-10-12 (440-01, D-03/D-02): the stated-value check, model-free, with its false-refusal
+// the stated-value check, model-free, with its false-refusal
 // controls. The subject is imported inside each cell so a missing module reds every row by name.
 
 import { readFileSync } from 'node:fs'
@@ -248,7 +248,7 @@ describe('reworded and added draft text is kept', () => {
   })
 })
 
-// 2026-10-12 (440-07, D-02/D-03; CR-01): list markers are not stated values.
+// list markers are not stated values.
 describe('list and step numbers are not stated values', () => {
   it('a numbered list written inline states no list number', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -416,7 +416,7 @@ describe('stated values inside lists', () => {
   })
 })
 
-// 2026-10-12 (440-08, D-02/D-03; WR-01, WR-03): inch marks, in-word apostrophes and addresses state nothing.
+// inch marks, in-word apostrophes and addresses state nothing.
 describe('inch marks, apostrophes and addresses state nothing', () => {
   it('an inch mark opens no quoted value', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -515,7 +515,7 @@ describe('quoted values beside inch marks and address-shaped numbers', () => {
   })
 })
 
-// 2026-10-12 (440-10, D-02/D-03; WR-06, WR-07): a digit-led quoted value and a bracketed time are stated values again.
+// a digit-led quoted value and a bracketed time are stated values again.
 describe('digit-led quotes, decade elisions and bracketed times', () => {
   it('a single-quoted value that starts with digits glued to a letter is a stated value', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -586,7 +586,7 @@ describe('bracketed IPv6 hosts state nothing', () => {
   })
 })
 
-// 2026-10-12 (440-11, D-02/D-03; WR-08, WR-05): a run that starts mid-line waits for its 2, and a step label counts only in label position.
+// a run that starts mid-line waits for its 2, and a step label counts only in label position.
 describe('numbers after a colon or a sentence end, and mid-sentence step numbers', () => {
   it('a number stated after a colon or a sentence end is a stated value when no list follows it', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -697,7 +697,7 @@ describe('lists after a colon or a sentence state no list number', () => {
   })
 })
 
-// 2026-10-12 (440-13, D-02/D-03; WR-09, WR-11, WR-10): held step headings, nested held starts and held paren runs.
+// held step headings, nested held starts and held paren runs.
 describe('held list starts and step labels', () => {
   it('a held step label and its next label that each end a sentence are stated values until a third label follows, and a capitalized two-label step list is the known boundary', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -899,7 +899,7 @@ describe('a confirmed held list states no number', () => {
   })
 })
 
-// 2026-10-12 (440-15, D-02/D-03; WR-12, IN-06, IN-07): month-name dates beside list runs, the at-once reset in both passes and the step twin of a restarted list.
+// month-name dates beside list runs, the at-once reset in both passes and the step twin of a restarted list.
 describe('month-name dates where a list marker would go', () => {
   it('a month-name date is a stated value even where the next list marker would go, and an item that ends in a month name before the next marker is the known boundary', async () => {
     const { extractStatedValues, missingStatedValues } = await load()

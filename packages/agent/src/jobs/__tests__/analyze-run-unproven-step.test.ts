@@ -1,8 +1,8 @@
-// C439-UNPROVEN-ANALYSIS (439 D-07): analyze-run never asks a model to label a test whose failing
+// analyze-run never asks a model to label a test whose failing
 // step the verifier left unproven; its floor verdict (the runner classifier's 'unknown' with the
 // step's reason) passes through byte-identical. A not-met-only block stays eligible as today.
 // The evidence diet quotes the step's conditionVerdicts block, without a saved file's difference
-// text (439 D-17, 436 D-20).
+// text.
 
 import { canonicalJson, sha256hex } from '@vostride/agent-qa-schema'
 import type {

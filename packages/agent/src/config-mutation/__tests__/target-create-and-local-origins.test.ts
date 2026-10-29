@@ -1,12 +1,12 @@
-// Target creation class and local origins (432-05 · D-19, D-20 · PXH-SAFE-03).
+// Target creation class and local origins.
 //
 // WHAT EACH NAMED CELL REDS ON:
 //
-//   C432-TARGET-CREATE-ENVIRONMENT — a create that accepts the class but drops it on the way into
+//   a create that accepts the class but drops it on the way into
 //     the registry entry, a create that defaults an undeclared target to some class, or a create that
 //     lets a second declaration overwrite an existing target. Read back from the bytes the direct
 //     writer published (432-11: the create writes in the call), never from the input.
-//   C432-LOCALHOST-ORIGIN — a gate that still needs a dot and an alphabetic TLD (every local spelling
+//   a gate that still needs a dot and an alphabetic TLD (every local spelling
 //     refused), one that upgrades an explicit http to https or drops an explicit port, and one that
 //     widens into guessing: non-loopback IPs, obfuscated loopback spellings and non-web schemes stay
 //     refused. The write_test route and the scaffold op are measured too, because a derivation the
@@ -256,7 +256,7 @@ describe('a target declares its class at creation', () => {
     expect(writtenTarget(test, 'strasse')).toEqual({ platform: 'web', url: 'https://a.example' })
   })
 
-  // RE-SPELLED 2026-10-02 (quick 261002-ctr): was '… sits beside an auth binding …'. The create
+  // RE-SPELLED 2026-10-02: was '… sits beside an auth binding …'. The create
   // binds no auth state now (the committed configuration has no key for one), so the file gains no
   // `use.authState` beside the class.
   it('the class is written and named in the summary line', async () => {

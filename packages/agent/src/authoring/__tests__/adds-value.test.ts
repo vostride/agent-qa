@@ -117,7 +117,7 @@ describe('addsValueGate — the fingerprint lane', () => {
     expect(byName.get('Touches only A')).toBe(false)
     expect(byName.get('Covers A and B')).toBe(true)
     // The gate itself turns on the UNION, which holds both — the per-test rows explain, they do
-    // not decide (D-14).
+    // not decide.
     expect(result.pass).toBe(false)
   })
 
@@ -230,7 +230,7 @@ describe('addsValueGate — lane precedence', () => {
     // The veto direction, which no case covered before this one: the primary lane has evidence and
     // says NOVEL, and a degraded-lane resemblance is recorded beside it. D-14 gives the verdict to
     // the lane with evidence; the text lane is a fallback for identities the index cannot speak
-    // for, not a veto over the identities it can (D-16).
+    // for, not a veto over the identities it can.
     const result = addsValueGate({
       draft: NEAR_DUPLICATE_DRAFT,
       draftElements: ['el-username', 'el-novel'],

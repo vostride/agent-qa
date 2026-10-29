@@ -1,6 +1,6 @@
-// The closed action class, one describe per action (Phase 395-05, D-01/D-02/D-11 · CFGM-01).
+// The closed action class, one describe per action.
 //
-// 2026-09-30, 432-11 D-05/D-07: every action WRITES IN THE CALL through the direct writer. The
+// every action WRITES IN THE CALL through the direct writer. The
 // writer double below applies field changes with the same yaml calls the config transaction makes
 // and stores whole files as published, so each cell reads the change back from what was written
 // rather than from a filed proposal. The per-action edges are unchanged.
@@ -31,7 +31,7 @@
 //   config.target.edit   — THE NOT-FOUND, and the FIXED-PATH classifier pair: one path, two values,
 //                          two different answers. A classifier ranged over paths passes every other
 //                          op's cells and fails this one.
-//   config.auth.set      — THE INPUT REFUSAL (D-11) and the ZERO STORE DELTA. A value that is not
+//   config.auth.set      — THE INPUT REFUSAL and the ZERO STORE DELTA. A value that is not
 //                          a reference of its kind is refused on the input, before anything is
 //                          constructed, and nothing is written.
 //   config.hook.add      — A SECOND FILE. It writes the hooks file and not the config yaml, so a
@@ -114,7 +114,7 @@ const HOOKS = `hooks:
     network: true
 `
 
-// 2026-10-01 (432-17): the config proposal payload type and the `configProposals` port are deleted.
+// the config proposal payload type and the `configProposals` port are deleted.
 // The spy below is kept as an excess member so "nothing was filed" stays a measurement.
 interface Filed {
   readonly kind: string
@@ -256,9 +256,9 @@ function harness(options: {
           file.bytes !== undefined && utf8Decode(file.bytes).includes(INVALID_MARKER))
         return Promise.resolve(bad.length === 0
           ? { ok: true as const }
-          // 395-10: PAIRS, not pre-joined strings. The pipeline joins them for the record — so the
+          // PAIRS, not pre-joined strings. The pipeline joins them for the record — so the
           // cells' expected strings below are unchanged — and reads the path half into the blocked
-          // record's `paths` (WR-11).
+          // record's `paths`.
           : {
             ok: false as const,
             issues: bad.map((file) => ({ path: file.path, message: 'seeded invalid' })),
@@ -271,7 +271,7 @@ function harness(options: {
         return Promise.resolve({ proposalId: `prop-${filed.length}` })
       },
     },
-    // 432-11: the direct writer. It records what it was handed and answers as the host port does;
+    // the direct writer. It records what it was handed and answers as the host port does;
     // what the host does with those changes is measured against real files in `cli`.
     configWrite: {
       applyFields: ({ changes }: { changes: readonly ConfigChange[] }) => {
@@ -503,7 +503,7 @@ describe('config.target.create — a create is never an upsert (adjacency edge)'
     expect(content).toContain('# How runs behave by default.')
   })
 
-  // RE-SPELLED 2026-10-02 (quick 261002-ctr): was '… and binding an auth state is secret-adjacent
+  // RE-SPELLED 2026-10-02: was '… and binding an auth state is secret-adjacent
   // too'. A create can no longer bind an auth state (the input field is gone), so it is a new origin
   // and nothing else; the input refuses the retired field before any file is read.
   it('a created target is a NEW ORIGIN, and the retired auth-state field is refused on the input', async () => {
@@ -601,7 +601,7 @@ describe('config.target.edit — never guess, and decide from the VALUE', () => 
 })
 
 describe('config.auth.set — refs only, refused on the INPUT', () => {
-  // RE-SPELLED 2026-10-02 (quick 261002-ctr): the reference this cell wrote was `authStateName`,
+  // RE-SPELLED 2026-10-02: the reference this cell wrote was `authStateName`,
   // which the op no longer takes; the claim moves to the plugin declaration it still writes.
   it('carries the diff, the receipts and the config kind, and is secret-adjacent', async () => {
     const test = harness()
@@ -669,7 +669,6 @@ describe('config.auth.set — refs only, refused on the INPUT', () => {
     const unnamed = 'Zm9vYmFyYmF6cXV4Cg'
 
     const test = harness()
-    // 2026-10-02 (quick 261002-ctr): carried in `pluginPackage` (was `authStateName`, deleted).
     const answer = await call(test, 'config.auth.set', { target: 'shop', pluginPackage: unnamed })
     expect(answer.outcome).toBe('refused')
     if (answer.outcome !== 'refused') throw new Error('unreachable')
@@ -792,7 +791,7 @@ describe('config.hook.add — the one action that writes another file', () => {
     })
     if (answer.outcome !== 'applied') throw new Error('unreachable')
 
-    // STATED, NEVER INFERRED (D-02). A hook is code this project will run, so the flag is
+    // STATED, NEVER INFERRED. A hook is code this project will run, so the flag is
     // unconditional — it does not depend on what the hook does or where its file lives.
     expect(answer.crossBoundary).toBe(true)
     expect(answer.crossBoundaryReasons).toEqual(['hook-added'])
@@ -847,7 +846,6 @@ const EXPECTED_CONFIG_FAMILY = [
   'config.project.scaffold',
   'config.target.create',
   'config.target.edit',
-  // 2026-10-01 (432-17, D-05/D-09): `config.proposal.apply` and `config.undo.propose` are deleted.
 ] as const
 
 describe('the config action class is CLOSED, and the registry is where that is legible', () => {
@@ -864,7 +862,7 @@ describe('the config action class is CLOSED, and the registry is where that is l
     // AND THE SHAPE OF THE CLASS, not only its membership: every one of these is a registry op in
     // its own right — which is what makes the planner able to pick an action by tool name and 396
     // able to project each as its own MCP tool — and every writing member declares itself a write.
-    // 432-20 (D-12): the `config-write` scope column is gone; the risk descriptor carries the claim.
+    // the `config-write` scope column is gone; the risk descriptor carries the claim.
     for (const id of EXPECTED_CONFIG_FAMILY) {
       const declaration = declarations.find((entry) => entry.id === id)
       expect(declaration, id).toBeDefined()
@@ -877,7 +875,7 @@ describe('the config action class is CLOSED, and the registry is where that is l
   })
 
   it('every config op names the direct writer as its binding and refuses by name without it', async () => {
-    // 432-11 D-05: the direct writer is what these ops cannot run without. A host that does not
+    // the direct writer is what these ops cannot run without. A host that does not
     // bind it lists the five field and file ops unbound, and every one of the six refuses by name
     // rather than filing the change somewhere else.
     const test = harness({ config: null })
@@ -952,7 +950,7 @@ describe('field, target create and target edit write in the call', () => {
         environment: 'production',
       })
 
-      // 2026-10-02 (quick 261002-ctr): no `use.authState` set rides along; the field is gone.
+      // no `use.authState` set rides along; the field is gone.
       expect(answer).toMatchObject({
         outcome: 'applied',
         files: [CONFIG_FILE],
@@ -1055,7 +1053,7 @@ describe('field, target create and target edit write in the call', () => {
 })
 
 describe('auth, hook and scaffold write in the call as well', () => {
-  // RE-SPELLED 2026-10-02 (quick 261002-ctr): was '… binds the state and appends the plugin …'. The
+  // RE-SPELLED 2026-10-02: was '… binds the state and appends the plugin …'. The
   // op binds no state now (the committed configuration has no key for one); it appends the plugin.
   it('config.auth.set appends the plugin as a field change',
     async () => {

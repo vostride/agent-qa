@@ -1,4 +1,4 @@
-// Shared gate-run fixtures for the authoring suites (393-06).
+// Shared gate-run fixtures for the authoring suites.
 //
 // The evaluator reads execution EVIDENCE — a run document's member outcome, its per-step
 // sub-actions, and the elements those sub-actions resolved against on the pre-action screen — so
@@ -33,7 +33,7 @@ import type { DraftRunPortLike, ParsedDraftLike, SuiteFingerprintIndexLike } fro
 
 // ---- 394-05 widening -------------------------------------------------------------------------
 //
-// The router (394-05) reads FAILURE evidence, and every builder below was written by 393 for the
+// The router reads FAILURE evidence, and every builder below was written by 393 for the
 // gate evaluator, which only ever needed passing or mechanically-broken members. Four additive
 // optional members close that gap: a step whose verifier said NO (`failedSteps`), the path that
 // produced that verdict (`verdictSourceSteps`), the exhausted-ladder terminal block
@@ -71,17 +71,17 @@ export interface MemberFixture {
   readonly cycleSteps?: readonly number[]
   /** Step indices carrying a recorded self-heal. */
   readonly selfHealSteps?: readonly number[]
-  /** Step indices whose verifier said NO — `verifierVerdict.pass === false` (394-05). */
+  /** Step indices whose verifier said NO — `verifierVerdict.pass === false`. */
   readonly failedSteps?: readonly number[]
-  /** Which path produced a step's verdict, per step (394-05). Absent ⇒ the step records none. */
+  /** Which path produced a step's verdict, per step. Absent ⇒ the step records none. */
   readonly verdictSourceSteps?: readonly VerdictSourceFixture[]
-  /** Step indices carrying the exhausted-ladder stagnation terminal block (394-05). */
+  /** Step indices carrying the exhausted-ladder stagnation terminal block. */
   readonly stagnationSteps?: readonly number[]
-  /** Steps a per-step limit stopped (436-06). Each such step's verifier said no with the reason. */
+  /** Steps a per-step limit stopped. Each such step's verifier said no with the reason. */
   readonly limitStopSteps?: readonly LimitStopFixture[]
 }
 
-/** One step's limit stop, as the runner's limit funnel records it (436-04/05). */
+/** One step's limit stop, as the runner's limit funnel records it. */
 export interface LimitStopFixture {
   readonly stepIndex: number
   readonly limit: LimitStopEvidence['limit']
@@ -257,7 +257,7 @@ export function memberOutcome(fixture: MemberFixture): PerTestOutcome {
 }
 
 /**
- * The aggregate a run document carries, DERIVED from its members rather than pinned (394-05).
+ * The aggregate a run document carries, DERIVED from its members rather than pinned.
  *
  * A document whose member timed out while its `aggregateVerdict` read `passed` is not a document
  * the runner can produce, and the router's corpus must not be able to pin one. Skips are not
@@ -373,7 +373,7 @@ export const ACCEPT_CONTROL_DRAFT: ParsedDraftLike = {
   testId: 't_hong-lat-plot-noise-memory-common-binary-tol-liv-argent',
   filePath: 'tests/accept-control.yaml',
   testName: 'Confirm the local account form page heading',
-  // Required since 394-37 (WR-04): the compile stage compares this against the served vocabulary.
+  // Required since 394-37: the compile stage compares this against the served vocabulary.
   target: 'local-form',
   steps: [
     'Type "alice" into the Username field',
@@ -398,7 +398,7 @@ export function acceptControlMember(outcome: MemberTestOutcome = 'healed'): Memb
   }
 }
 
-// ---- the shelf path a patched draft moves to (394-28, CR-01) -----------------------------------
+// ---- the shelf path a patched draft moves to -----------------------------------
 
 /**
  * Where a re-staged draft LIVES: the same shelf directory, named by its NEW content digest.

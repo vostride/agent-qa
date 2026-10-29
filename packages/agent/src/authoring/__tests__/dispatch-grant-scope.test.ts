@@ -1,4 +1,4 @@
-// D-08's DISPATCH SCOPE, AS THE LOOP KEPT IT (Phase 401 plan 08) — RE-SPELLED 2026-10-01 (432-19,
+// D-08's DISPATCH SCOPE, AS THE LOOP KEPT IT — RE-SPELLED 2026-10-01 (432-19,
 // D-15; 432-18 deferred #2).
 //
 // This file measured the LIFETIME of the optional dispatch-grant scope: entered once, after every
@@ -149,7 +149,7 @@ function bench(input: {
       if (input.failVerify === true) throw new Error('the evaluator could not judge this draft')
       return keepEligibleReceipt(runIds)
     },
-    // 432 D-06: the final write. It starts no run, so it sits outside what this file measures.
+    // the final write. It starts no run, so it sits outside what this file measures.
     publish: (request: { readonly targetPath: string }) => Promise.resolve({
       kind: 'written' as const,
       filePath: request.targetPath,

@@ -1,4 +1,4 @@
-// The sessionRef write path (394-17, D-12 · WTST-05).
+// The sessionRef write path.
 //
 // WHY THIS FILE EXISTS. `DraftReceipt.sessionRef` has had a READER since 394-07 —
 // `scopeReceiptsToWindow`'s session arm compares it by exact string equality — and no writer at

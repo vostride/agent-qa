@@ -1,10 +1,10 @@
-// What a blocked config change answers (Phase 395-02, D-10 · T-395-04; 432-11, 432-17).
+// What a blocked config change answers.
 //
 import { describe, expect, it } from 'vitest'
 
 import * as construct from '../construct.js'
 
-// RE-SPELLED 2026-10-01 (432-17, D-05/D-10). The three `applyablePayload` cells measured the one
+// RE-SPELLED 2026-10-01. The three `applyablePayload` cells measured the one
 // funnel every config apply passed through: a blocked record refused by name, the refusal quoting
 // nothing of the record, an applyable payload passed through unchanged. The apply ops, the stored
 // payloads and the funnel are deleted with the inbox; a blocked change is answered in its own call

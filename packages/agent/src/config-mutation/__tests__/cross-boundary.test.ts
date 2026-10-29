@@ -1,4 +1,4 @@
-// The per-VALUE cross-boundary classifier (Phase 395-04, D-02 · CFGM-01).
+// The per-VALUE cross-boundary classifier.
 //
 // WHAT MAKES EACH CELL RED, per cell rather than claimed for the file — a detector's bar is the
 // implementation it must fail on, never the suite it passes:

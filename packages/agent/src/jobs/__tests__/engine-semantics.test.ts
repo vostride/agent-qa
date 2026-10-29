@@ -33,7 +33,7 @@ const idSource: JobIdSource = {
 }
 
 /**
- * The queue needs a model bound (385 plan 05, D-10) and nothing in this file authors, so this
+ * The queue needs a model bound and nothing in this file authors, so this
  * one refuses. A capability that answered would let a test in here start depending on model
  * output by accident; a capability that throws keeps the authorship proofs where they belong.
  */
@@ -843,7 +843,7 @@ describe('the five real kinds, driven through the engine', () => {
   // fallback) now measure the same one-element list from opposite sides. They agree on purpose:
   // a build that narrowed one side without the other REDs whichever side moved, by name.
   //
-  // 2026-09-01 (Phase 409): the reserved sixth kind left with the Issue-slot cleanup, and 388
+  // the reserved sixth kind left with the Issue-slot cleanup, and 388
   // D-04's declared/produced split collapsed with it.
   it('proceeds with unknown verdicts, and only into curate-memory, when analyze-run permanently fails', async () => {
     await harness.queue.enqueue('analyze-run', { fail: 'permanent', reason: 'no model' }, 'run-1')

@@ -1,4 +1,4 @@
-// Gate 4's unit contract (393-04; D-09, D-10, D-11, D-12).
+// Gate 4's unit contract.
 //
 // This suite is the module-local half of the proof. The other half lives in
 // `packages/cli/src/authoring/__tests__/corpus-static-gates.test.ts`, which drives the SAME
@@ -286,7 +286,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   // way — any rule that consults letter case reds at least one casing cell, and any rule that
   // decides concreteness by NON-membership in an exclusion list reds at least one padding cell.
   //
-  // THE MEMBER-NOUN AXIS (393-15) — the axis every prior round's controls missed. Rounds 2–5 each
+  // THE MEMBER-NOUN AXIS — the axis every prior round's controls missed. Rounds 2–5 each
   // varied only the axis just fixed, and round 5's own "crossing" cells crossed PADDING with
   // CASING: two axes that were already closed. The defect was sitting somewhere else entirely.
   // These loops vary WHICH NOUN sits in the sentence (all 33 lexicon members, generated from the
@@ -314,7 +314,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
     'Verify THE SUBMIT BUTTON IS DISABLED',
   ] as const
 
-  // THE PADDING AXIS (393-13). These eight are the verifier's own re-measurement of the round-4
+  // THE PADDING AXIS. These eight are the verifier's own re-measurement of the round-4
   // rule: every one of them PASSED gate 4 while `Verify the page is visible` was refused, because
   // the inserted function word — a negation, a copula, a modal, an adverb — was a member of no
   // exclusion list and therefore read as an element name. The claim each one makes is the same
@@ -378,7 +378,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
     'Verify The Submit Button Is Not Visible',
   ] as const
 
-  // THE SUBJECT-NOUN FORM AXIS (393-17) — the axis the round-6 rule actually reads, and the SIXTH
+  // THE SUBJECT-NOUN FORM AXIS — the axis the round-6 rule actually reads, and the SIXTH
   // the same defect has occupied (letter case -> two-sided letter case -> exclusion-list membership
   // -> member-noun position -> subject-noun FORM). The round-6 refuser was ENUMERATED: the leftward
   // walk resolved FALSE only on one of seven exact, lowercase, singular page-whole spellings and
@@ -872,7 +872,7 @@ describe('assertionStrengthGate — the two clauses composed', () => {
     expect(result.falsifiableAssertionCount).toBe(1)
   })
 
-  // 393-06: the reason string is the ONLY place D-12's mixed act-and-verify signal reaches a
+  // the reason string is the ONLY place D-12's mixed act-and-verify signal reaches a
   // receipt reader — `StepClassificationRowSchema` is strict and carries no `mixedHit`, and adding
   // one was declined because a bare boolean names nothing the step text does not already show.
   // That makes the reason load-bearing rather than decorative, and it was WRONG here: a mixed step

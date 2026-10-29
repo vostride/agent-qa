@@ -12,17 +12,17 @@
 //                     Adding `yaml` to that list to bring the mutation in-layer would have widened
 //                     the boundary rather than respected it, so the edit lives with the reader that
 //                     already owns the file format.
-//   configValidate  — whole-config validation (CFGM-01) is `core`'s `AgentQaConfigSchema` /
+//   configValidate  — whole-config validation is `core`'s `AgentQaConfigSchema` /
 //                     `validateProject`, and `agent` does not depend on `core` — `validate:arch`
 //                     reds that edge with no legal repair.
 //   configWrite     — 2026-09-30, 432-07: the direct writer. Its transaction is the dashboard's
 //                     config file transaction, which this package cannot name either.
 //
-// 2026-10-01 (432-17, D-05/D-07/D-09): the git apply (`configApply`), the proposal filer
+// the git apply (`configApply`), the proposal filer
 // (`configProposals`) and the undo source (`configUndoSource`) are deleted with the proposal inbox.
 // A change is written in its own call and reverted with git; agent-qa makes no commit.
 //
-// THE READ IS RAW BYTES ON PURPOSE (D-17). A port that answered text would put a decode between the
+// THE READ IS RAW BYTES ON PURPOSE. A port that answered text would put a decode between the
 // file and the digest taken over it, which is 394's CR-02 defect class in its original form: two
 // halves of one digest contract, each hashing a different representation, agreeing on every input
 // anybody happened to try.
@@ -44,7 +44,7 @@ import type {
 export type ConfigFieldValue = string | number | boolean
 
 /**
- * A value of any shape the configuration format can hold (395-05).
+ * A value of any shape the configuration format can hold.
  *
  * SCALARS ARE NOT ENOUGH ONCE MORE THAN ONE OP WRITES. `config.field.set` addresses one leaf, so its
  * DTO's scalar union was the whole vocabulary. `config.target.create` writes a target ENTRY — a map
@@ -63,7 +63,7 @@ export type ConfigStructuredValue =
   | { readonly [key: string]: ConfigStructuredValue }
 
 /**
- * What the document holds at a path, as a STRUCTURAL fact rather than as a value (395-05).
+ * What the document holds at a path, as a STRUCTURAL fact rather than as a value.
  *
  * WHY THIS EXISTS AT ALL: three of this phase's ops have to answer a question about the document
  * before they may mutate it. Does `registry.targets.shop` already exist (a create is never an
@@ -111,7 +111,7 @@ export interface ConfigFileSet {
   /** Which member of {@link ConfigFileSet.files} is the config yaml a field edit addresses. */
   readonly configFile: string
   /**
-   * Which member is the hooks file (395-05).
+   * Which member is the hooks file.
    *
    * NAMED RATHER THAN GUESSED. `config.hook.add` writes this member and no other, and the two ways
    * to find it without being told are both wrong: matching on `hooks.yaml` ignores the fact that
@@ -126,7 +126,7 @@ export interface ConfigFileSet {
 /**
  * What the comment-preserving edit produced, and what it replaced.
  *
- * `previousValue` RIDES THE SAME PARSE THAT WROTE THE NEW ONE (395-04, D-02). The per-value
+ * `previousValue` RIDES THE SAME PARSE THAT WROTE THE NEW ONE. The per-value
  * cross-boundary classifier has to compare the committed value against the proposed one — a base URL
  * pointing at a NEW origin is the case a per-op map cannot see — and the only alternative to
  * returning it here was a second read of the same bytes through a second parse, free to disagree
@@ -163,7 +163,7 @@ export interface ConfigFilesPortLike {
     readonly value: ConfigStructuredValue
   }): Promise<ConfigFieldSetResult>
   /**
-   * What the document HOLDS at each path, structurally (395-05). See {@link ConfigPathFacts}.
+   * What the document HOLDS at each path, structurally. See {@link ConfigPathFacts}.
    *
    * EVERY PATH IN ONE CALL, SO EVERY ANSWER COMES FROM ONE PARSE. An op that asked twice could be
    * told the target is absent and then, from a second parse of the same bytes, be given a key list
@@ -174,7 +174,7 @@ export interface ConfigFilesPortLike {
     readonly paths: readonly string[]
   }): Promise<readonly ConfigPathFacts[]>
   /**
-   * A fresh canonical hook id (395-05).
+   * A fresh canonical hook id.
    *
    * A HOST FACT FOR THE REASON `mintProposalId` IS ONE. `core`'s `HookDefinitionSchema` refuses any
    * id `isCanonicalHookId` does not accept — `h_` followed by ten id-agent words — and that mint
@@ -188,7 +188,7 @@ export interface ConfigFilesPortLike {
 }
 
 /**
- * One thing whole-config validation said, and the file it said it ABOUT (395-10 · WR-11).
+ * One thing whole-config validation said, and the file it said it ABOUT.
  *
  * THE MESSAGE IS THE VALIDATOR'S OWN WORDS; the path is not. This layer neither classifies nor
  * renders the words — a closed issue vocabulary here would be a second, weaker copy of `core`'s
@@ -218,7 +218,7 @@ export interface ConfigValidationIssue {
 }
 
 /**
- * What whole-config validation said about the candidate config (CFGM-01).
+ * What whole-config validation said about the candidate config.
  */
 export type ConfigValidation =
   | { readonly ok: true }
@@ -250,7 +250,7 @@ export interface ConfigValidatePortLike {
 }
 
 /**
- * What a direct field change did to the config yaml (2026-09-30, 432-07 D-05/D-07).
+ * What a direct field change did to the config yaml.
  *
  * `applied` names the revision the change merged onto, which is the file as it stood in the
  * change's own turn and so includes any outside edit made meanwhile. A refusal wrote nothing.
@@ -282,7 +282,7 @@ export interface ConfigFilePublication {
 }
 
 /**
- * What a multi-file publication actually did (432-07 D-05/D-07).
+ * What a multi-file publication actually did.
  *
  * `refused` is decided before any write. `interrupted` is a later failure, and `written` names
  * exactly the files that now hold their new bytes. There is no rollback and no journal: the files
@@ -313,7 +313,7 @@ export type ConfigFilePublishOutcome =
   }
 
 /**
- * The direct config writer (2026-09-30, 432-07 D-05/D-07): generated changes publish in the call
+ * The direct config writer: generated changes publish in the call
  * that made them, with no proposal and no git.
  *
  * FIELD CHANGES STAY FIELD CHANGES until the host rereads the file in that path's write turn, the
@@ -330,7 +330,7 @@ export interface ConfigWritePortLike {
 }
 
 /**
- * The scaffold's CONTENT, rendered by the host that owns it (395-08, D-04 · CFGM-05).
+ * The scaffold's CONTENT, rendered by the host that owns it.
  *
  * A PORT BECAUSE THE CONTENT LIVES IN `cli` AND `agent` MAY NOT IMPORT IT. D-04's whole claim is
  * that `agent-qa init` and `config.project.scaffold` write ONE substance; the substance is the
@@ -349,7 +349,7 @@ export interface ConfigWritePortLike {
  * proposal's diff shows exactly that. Absent and empty are deliberately different — the first is
  * a file the apply CREATES, the second a file it rewrites.
  *
- * `existingConfig` IS THE SECOND MODE OF THE ONE PRODUCER (395-12, D-04 · CFGM-05), and it is a
+ * `existingConfig` IS THE SECOND MODE OF THE ONE PRODUCER, and it is a
  * MODE rather than a second port because D-04's claim is that there is one substance: a second
  * renderer would be exactly the drift D-04 exists to make impossible. Present when the project HAS
  * a configuration that declares no targets — the class SC-5 has to serve, because a project able to

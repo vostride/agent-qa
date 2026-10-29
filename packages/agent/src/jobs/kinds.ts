@@ -144,7 +144,7 @@ function standInHandler(
  *
  * The extra carries the run's identity and posture forward for the same reason the success
  * path does (Pitfall 6): the successor may be claimed by the daemon, which resolves posture
- * from `payload.executionContext` (386 D-09/D-12), and curation cannot fold a run directory
+ * from `payload.executionContext`, and curation cannot fold a run directory
  * it was never told about. The unknown-verdicts marker travels with them so the chain
  * terminal can report the analysis stage honestly from a job that succeeded afterwards.
  */
@@ -167,7 +167,7 @@ function analyzeRunFallback(input: FallbackContinuationInput): readonly ChainedJ
 const ANALYZE_RUN_SUCCESSORS = ['curate-memory'] as const satisfies readonly JobKind[]
 
 /**
- * The host powers the two real post-run handlers need, injected by the composition (D-01).
+ * The host powers the two real post-run handlers need, injected by the composition.
  *
  * Both are things `agent` cannot do and must never learn to: reading a file is a host API in
  * a storageNeutral package, and the curation drain lives two packages away behind the writer
@@ -191,7 +191,7 @@ export interface PostRunJobCapabilities {
    */
   loadCompletedRunHandoff(runId: string): CompletedRunHandoff
   /**
-   * The per-run fold, and the fold's own report of whether it FINISHED (WR-03).
+   * The per-run fold, and the fold's own report of whether it FINISHED.
    *
    * `complete` is not a nicety on the side of the counts: the v51 fold answers `false` for
    * candidate refusals, a cap exceeded, unresolved canaries, a failed outcome projection and
@@ -210,11 +210,11 @@ export interface PostRunJobCapabilities {
     readonly deprecated: number
     readonly complete: boolean
     readonly snapshot?: CurationSnapshot
-    /** 2026-10-16 (442-10, D-17): why a fold that did not complete handed its run back. */
+    /** why a fold that did not complete handed its run back. */
     readonly reason?: string
   }>
   /**
-   * Put one run's analysis artifact durably on disk (389 D-09).
+   * Put one run's analysis artifact durably on disk.
    *
    * Called INSIDE the author callback, before the verdicts-authored value is recorded — the
    * authorship primitive records only after the callback returns, so by the time any chip can
@@ -275,9 +275,9 @@ export interface TestOutcomeHistoryLike {
 }
 
 /**
- * The claim shape analyze-run is enqueued with (D-06). Anything else is unreadable input.
+ * The claim shape analyze-run is enqueued with. Anything else is unreadable input.
  *
- * The two markers below are ADDITIVE-OPTIONAL (393 D-20, WTST-06): the enqueue site copies them
+ * The two markers below are ADDITIVE-OPTIONAL: the enqueue site copies them
  * from the loaded handoff, and every job already sitting in a durable queue predates them. They
  * are queue-level VISIBILITY, never integrity — the digest field above already covers the
  * handoff bytes these values also live inside, so a consumer that needs the authoritative
@@ -354,7 +354,7 @@ function permanently(reason: string): JobHandlerOutcome {
 /**
  * Members whose outcome is worth a root-cause verdict.
  *
- * The complement of the runner's own presence rule (373-07): clean passes, skipped and
+ * The complement of the runner's own presence rule: clean passes, skipped and
  * cancelled members are not failures to explain. Everything else gets a verdict, which is
  * what keeps the checkpoint's array in step with what the analysis chip claims to cover.
  */
@@ -397,7 +397,7 @@ function summarizeVerdicts(verdicts: readonly Verdict[]): {
 
 /**
  * The one concrete next action a template sentence names, total over the verdict union
- * (389 D-06). A `Record` rather than an if-chain so an added class is a compile error here,
+ * A `Record` rather than an if-chain so an added class is a compile error here,
  * not an uncovered row — the 388-11 `postureOf` discipline.
  */
 const TEMPLATE_NEXT_ACTION: Record<Verdict['class'], string> = {
@@ -412,7 +412,7 @@ const TEMPLATE_NEXT_ACTION: Record<Verdict['class'], string> = {
 }
 
 /**
- * A verbatim quote of captured evidence for one member test (389 D-06).
+ * A verbatim quote of captured evidence for one member test.
  *
  * Step selection and error-text precedence come from schema's ONE exported input rule
  * (`failingStepOf`/`errorTextOf`, hoisted by 390 plan 02): the first failed step else the last,
@@ -431,7 +431,7 @@ function templateGroundingQuote(test: PerTestOutcome | undefined): VerdictGround
 }
 
 /**
- * Producer-keyed template parts for one floor verdict (389 D-06).
+ * Producer-keyed template parts for one floor verdict.
  *
  * Deterministic classes get code-authored parts derived from the hard signal that minted the
  * class — the classifier's rationale IS that signal, so the discriminator carries it.
@@ -461,7 +461,7 @@ export function templateSentenceParts(
 }
 
 /**
- * The real analyze-run body (D-02 / D-06 / 389 D-09).
+ * The real analyze-run body.
  *
  * Reads the run's handoff through the injected capability, refuses anything that is not the
  * document the enqueuer measured, authors the verdicts through `recordLlmAuthorship`, and
@@ -506,7 +506,7 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
       )
     }
 
-    // The author swap (389 D-09/JOBQ-03). On a fresh pass the callback runs exactly once:
+    // The author swap. On a fresh pass the callback runs exactly once:
     // floor projected, template parts authored, the artifact made durable through
     // `persistAnalysis`, and only THEN is the returned value recorded on the declared
     // checkpoint — the primitive awaits the record before handing the value back, so the
@@ -523,7 +523,7 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
       // returned shape are final from plan 01.
       async (model) => {
         const floor = projectHandoffVerdicts(handoff)
-        // 436 D-12: a limit stop is the run running out of limit, and 439 D-07: a step the
+        // a limit stop is the run running out of limit, and 439 D-07: a step the
         // verifier left unverified or inconclusive is unproven, not an application failure.
         // Neither is something a model may label; their floor verdicts pass through byte-identical.
         const limitStopped = new Set(
@@ -617,7 +617,7 @@ function realAnalyzeRunHandler(capabilities: PostRunJobCapabilities): JobHandler
 }
 
 /**
- * The real curate-memory body (D-01).
+ * The real curate-memory body.
  *
  * The v51 curation fold runs INSIDE this job rather than beside it, which is what makes one
  * canonical pipeline out of two — and what makes the curation chip incapable of lying about

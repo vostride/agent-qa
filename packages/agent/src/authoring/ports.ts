@@ -1,4 +1,4 @@
-// The gate evaluator's ports (Phase 393, D-02/D-03 · WTST-02).
+// The gate evaluator's ports.
 //
 // The evaluator needs three capabilities this package cannot name: it must START AND READ RUNS
 // (the runner's composition), it must READ THE SUITE FINGERPRINT INDEX (knowledge-local's derived
@@ -60,18 +60,18 @@ export interface ParsedDraftLike {
    * the parser already decided.
    *
    * IT IS HERE BECAUSE IT IS CHECKED, and unlike `context` it is checked precisely because it is
-   * NOT editable (394-37, WR-04). `runs.start` types this value into a live application:
+   * NOT editable. `runs.start` types this value into a live application:
    * `resolveTarget` throws on a name the config does not declare, inside a real child process, up
    * to `DRAFT_STABILITY_RUNS_N` times — and `target` is outside `EDITABLE_POINTER_ROOTS`, so no
    * repair patch may correct it. The one place that can refuse it cheaply is the compile stage,
    * which already holds the vocabulary it serves the prompt; this field is what lets it compare.
    */
   readonly target: string
-  /** Pre-interpolation NL step text. Post-interpolation text can carry resolved secrets (D-19). */
+  /** Pre-interpolation NL step text. Post-interpolation text can carry resolved secrets. */
   readonly steps: readonly string[]
   /**
    * The parsed test's `context` block, pre-interpolation, optional exactly as
-   * `TestDefinitionSchema.context` is — post-interpolation text can carry resolved secrets (D-19).
+   * `TestDefinitionSchema.context` is — post-interpolation text can carry resolved secrets.
    *
    * IT IS HERE BECAUSE IT IS EDITABLE. `context` is one of the three `EDITABLE_POINTER_ROOTS`, so
    * a patch can write it; a mirror that omitted it made the credential gate blind to a whole root
@@ -96,12 +96,12 @@ export interface DraftRunPortLike {
   get(runId: string): Promise<CompletedRunHandoff | undefined>
 }
 
-// 2026-10-01 (432-19, D-15): `DispatchGrantPortLike` is deleted. It scoped a dispatch-wide run
+// `DispatchGrantPortLike` is deleted. It scoped a dispatch-wide run
 // approval; nothing asks for one any more and no host bound it after 432-18, so the loop runs its
 // dispatch directly.
 
 /**
- * The suite-fingerprint read port (D-15), mirroring `createSuiteFingerprintIndex`'s three verbs.
+ * The suite-fingerprint read port, mirroring `createSuiteFingerprintIndex`'s three verbs.
  *
  * Synchronous, because the real implementation reads a local SQLite table and is. Partition
  * scoping is the binder's job: the real factory REQUIRES a product, so a bound index is already
@@ -142,7 +142,7 @@ export interface SuiteTextCorpusEntryLike {
 }
 
 /**
- * The durable receipts store (D-19), mirroring `createDraftReceiptsStore`'s write verb.
+ * The durable receipts store, mirroring `createDraftReceiptsStore`'s write verb.
  *
  * Only `put` — this evaluator writes and never reads back. The real store's `get`/`list` exist for
  * 394's proposal envelope, and a port that named verbs its holder never calls would invite a
@@ -153,7 +153,7 @@ export interface DraftReceiptsStoreLike {
 }
 
 /**
- * The READ half of the same store (394-07, D-12 · WTST-05) — the funnel's whole substrate.
+ * The READ half of the same store — the funnel's whole substrate.
  *
  * A SECOND, NARROWER MIRROR rather than a `list` member added to the write port above, and the
  * split is the point: the evaluator writes and never reads back, and the funnel reads and never
@@ -203,7 +203,7 @@ export interface AuthoringReadPortLike {
   getAuthoringBrief(intent: string, scope: ScopeKey): Promise<AuthoringBrief>
   suiteTextCorpus(): Promise<readonly SuiteTextCorpusEntryLike[]>
   /**
-   * The names a `target` may legally take in this project (394-33, WR-07).
+   * The names a `target` may legally take in this project.
    *
    * A VOCABULARY, NOT A DERIVATION, and that is the whole of what it fixes. `TestDefinitionSchema`
    * requires a `target`, nothing validates one before `runs.start` types it into a live
@@ -275,7 +275,7 @@ export type DraftStageOutcome =
  */
 export interface DraftShelfPortLike {
   /**
-   * The model stage 3 authors with — built by the host through `createModel` (389 D-04).
+   * The model stage 3 authors with — built by the host through `createModel`.
    *
    * A FACTORY and not an object, on the composition root's own `model` idiom: a model is
    * resolved at most once and lazily, when something actually needs one, so a composition can
@@ -285,7 +285,7 @@ export interface DraftShelfPortLike {
   /** Parse, then write, in that order. An unparsable draft leaves nothing on disk. */
   write(contents: string): Promise<DraftStageOutcome>
   /**
-   * Apply an RFC-6902 patch set to a staged draft and stage the result (394-06, D-09/D-20).
+   * Apply an RFC-6902 patch set to a staged draft and stage the result.
    *
    * THE ONE PATCH APPLIER, REACHED THROUGH A PORT RATHER THAN AN IMPORT. `applyPatchSetToTestDoc`
    * lives in `core` — it needs the yaml CST so untouched nodes keep their source bytes — and this
@@ -301,7 +301,7 @@ export interface DraftShelfPortLike {
    */
   applyPatches(draft: ParsedDraftLike, patchSet: TestEditPatchSet): Promise<DraftStageOutcome>
   /**
-   * The run capability stage 5 reads evidence through and the repair arm probes with (394-06).
+   * The run capability stage 5 reads evidence through and the repair arm probes with.
    *
    * ON THIS BUNDLE rather than as a fourth loop dep, on the bundle's own stated reasoning: none of
    * these capabilities is independently bindable. `verifyDraft` already dispatches an op that
@@ -327,7 +327,7 @@ export interface DraftShelfPortLike {
    */
   verifyDraft(input: AuthoringVerifyDraftInput): Promise<DraftReceipt>
   /**
-   * Write a staged draft's bytes to its test path (432 D-06/D-07). The direct final-test writer.
+   * Write a staged draft's bytes to its test path. The direct final-test writer.
    *
    * ON THIS BUNDLE because it is not independently bindable either: a host that can stage a draft
    * on its shelf is the host that can put those bytes in its suite. The host keeps the guards the
@@ -351,7 +351,7 @@ export interface TestFilePublishRequestLike {
   readonly sourceDigest?: string
 }
 
-// 2026-10-01 (432-17, D-05/D-06/D-07): the authoring proposal writer (`AuthoringProposalsWritePortLike`,
+// the authoring proposal writer (`AuthoringProposalsWritePortLike`,
 // `AuthoringProposalWrite`) and the one-commit apply (`DraftApplyPortLike` and its request/result)
 // are deleted. An authored test is written in its own call through `DraftShelfPortLike.publish`, and
 // agent-qa makes no git commit.

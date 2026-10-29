@@ -25,7 +25,7 @@
 // that conditional is five chances to get it wrong — which is exactly the anti-pattern the
 // research names.
 //
-// 2026-09-01 (Phase 409): five rather than six — the reserved sixth job kind left with the
+// five rather than six — the reserved sixth job kind left with the
 // Issue-slot cleanup.
 
 import type { JobId } from '@vostride/agent-qa-schema'
@@ -41,14 +41,14 @@ export interface JobModelRequest {
   readonly system?: string
   readonly prompt: string
   /**
-   * Optional image parts riding the SAME request (389 D-02). Screenshots are
+   * Optional image parts riding the SAME request. Screenshots are
    * capability-gated per the v46 negotiation the host binding surfaces as `vision` below:
    * an author attaches evidence bytes here only when the capability advertises vision AND
    * a blob reader is bound. Absent means a text-only request — the L9 graceful-degradation
    * posture — and every pre-widening caller and stub stays assignable unchanged.
    */
   readonly images?: readonly Uint8Array[]
-  // 2026-10-19 (444.1-13, D-01): set by the engine from the host's per-run signal.
+  // set by the engine from the host's per-run signal.
   readonly signal?: AbortSignal
 }
 
@@ -68,7 +68,7 @@ export interface JobModelOutput {
 export interface JobModelCapability {
   readonly modelId: string
   /**
-   * Whether the bound model accepts image parts (389 D-02) — the v46 capability
+   * Whether the bound model accepts image parts — the v46 capability
    * negotiation surfaced as one flag by the host binding. OPTIONAL and absent means
    * text-only: a text-only BYOM binding and every existing stub keep compiling and keep
    * their L9 posture without declaring anything. Nothing else in the memoization

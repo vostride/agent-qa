@@ -1,4 +1,4 @@
-// Procedure-by-reference, the authoring half (394-09, D-17 · T-394-38).
+// Procedure-by-reference, the authoring half.
 //
 // This file owns the half that is a property of what the compile prompt renders and of what ends
 // up on the shelf: a served procedure reaches the model as its own ANCHOR VOCABULARY and as
@@ -92,7 +92,7 @@ async function driveCompile() {
   const written: string[] = []
 
   const read: AuthoringReadPortLike = {
-    // 394-33 WR-07: the `target` vocabulary. This file's claim is about PROCEDURE vocabulary,
+    // the `target` vocabulary. This file's claim is about PROCEDURE vocabulary,
     // so the list is present and minimal.
     configuredTargetNames: () => Promise.resolve(['local-form']),
     getAuthoringBrief: () => Promise.resolve(BRIEF_WITH_PROCEDURE),

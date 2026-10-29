@@ -1,4 +1,4 @@
-// The READER half of WTST-06's payload propagation (Phase 393, D-20).
+// The READER half of WTST-06's payload propagation.
 //
 // `post-run-tail.ts` copies `gateRun` and `excludedFromOutcomes` from the loaded handoff onto the
 // enqueued `analyze-run` payload, and `AnalyzeRunPayloadSchema` validates that mint on the

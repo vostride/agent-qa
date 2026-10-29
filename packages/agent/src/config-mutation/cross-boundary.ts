@@ -1,4 +1,4 @@
-// The per-VALUE cross-boundary classifier (Phase 395-04, D-02 · CFGM-01).
+// The per-VALUE cross-boundary classifier.
 //
 // PER VALUE, NOT PER OP, AND THAT IS THE WHOLE DECISION. D-02 put this flag on the PROPOSAL because
 // a static map from op ids to answers cannot see the case that matters: `config.field.set` on
@@ -12,7 +12,7 @@
 // inbox and match nothing on the enforcement side. There are four reasons, and the vocabulary is
 // schema's.
 //
-// WHOLE-INPUT BY CONSTRUCTION (D-03). Nothing here is a whitelist of settable fields, and the two
+// WHOLE-INPUT BY CONSTRUCTION. Nothing here is a whitelist of settable fields, and the two
 // rules that could most easily have become one are deliberately not:
 //
 //   - secret-adjacency is `isSecretAdjacentConfigField`, which is SHIPPED BESIDE THE CONSTANT it
@@ -93,7 +93,7 @@ function originOf(value: ConfigFieldValue | undefined): string | undefined {
 }
 
 /**
- * Classify one proposal's cross-boundary-ness from its actual values (D-02).
+ * Classify one proposal's cross-boundary-ness from its actual values.
  *
  * REASONS COME BACK IN `CROSS_BOUNDARY_REASONS` ORDER AND WITHOUT DUPLICATES, so two proposals that
  * cross the same boundaries render and compare identically regardless of the order a caller happened

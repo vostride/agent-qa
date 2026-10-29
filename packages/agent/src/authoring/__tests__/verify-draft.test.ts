@@ -6,7 +6,7 @@
 // corpus proof mean anything (D-07, the precondition-guarded-rule law).
 //
 // The step texts are copied verbatim from `fixtures/corpus/accept-control.yaml`; the fixture is
-// the source of truth and the corpus is frozen (D-08).
+// the source of truth and the corpus is frozen.
 
 import {
   computeDraftDisposition,

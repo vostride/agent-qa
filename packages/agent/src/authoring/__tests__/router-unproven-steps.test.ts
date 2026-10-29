@@ -1,7 +1,7 @@
-// C439-ROUTER-UNPROVEN (439 D-07): a member whose failing step the verifier left unproven, with no
+// a member whose failing step the verifier left unproven, with no
 // mechanics signal, routes to the stop arm as indefinitive-failure, never to repair. A not-met
 // block keeps today's clean-definitive route, an infeasible step keeps its termination's repair
-// route (D-08), a member timeout keeps its mechanics route, and a limit stop keeps rule 1b.
+// route, a member timeout keeps its mechanics route, and a limit stop keeps rule 1b.
 
 import { guardCompletedRunHandoff } from '@vostride/agent-qa-schema'
 import type {

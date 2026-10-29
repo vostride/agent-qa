@@ -1,4 +1,4 @@
-// The tracer's end-to-end proof: artifact-before-checkpoint, one path only (Phase 389, plan 01).
+// The tracer's end-to-end proof: artifact-before-checkpoint, one path only.
 //
 // Four contracts on one committed slice, each pinned where it can fail loudest:
 //
@@ -218,7 +218,7 @@ describe('the analyze-run tracer: artifact before checkpoint', () => {
     expect(flakePart?.groundingQuote).toEqual({ stepIndex: 0, quote: EVIDENCE_TEXT })
     expect(flakePart?.discriminator).toBe('flake: retryCount 2 > 0')
 
-    // The floor's unknown gets the honest undetermined discriminator (D-06).
+    // The floor's unknown gets the honest undetermined discriminator.
     const unknownPart = artifact.parts.find((part) => part.perTest === 1)
     expect(unknownPart?.discriminator).toBe('root cause undetermined')
     expect(unknownPart?.nextAction).toContain('inspect the run manually')

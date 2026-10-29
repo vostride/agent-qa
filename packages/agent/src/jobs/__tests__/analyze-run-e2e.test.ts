@@ -1,4 +1,4 @@
-// The ANLZ-04 acceptance E2E — 40 red tests, N distinct problems (Phase 389, plan 07).
+// The ANLZ-04 acceptance E2E — 40 red tests, N distinct problems.
 //
 // The phase's headline story driven through the REAL path, never a shortcut: the real
 // analyze-run handler (floor → author → artifact → checkpoint) with a scripted model, then
@@ -46,8 +46,8 @@ import { buildSyntheticHandoff } from './fixtures/synthetic-handoff.js'
 
 const EVIDENCE_TEXT = 'Error: element "Submit" not found'
 
-// 2026-10-01 (432-35, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -175,8 +175,8 @@ async function readThroughTheOp(
       },
       analysis: { getArtifact: () => artifact },
     } as FunctionDeps,
-    // 2026-10-01 (432-35, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
   return await invokeFunction(
     registry,
@@ -250,7 +250,7 @@ describe('40 red tests, one root cause → ONE cluster ×40 through the real pat
         expect(entry.sentence).toContain(`app_bug: observed (step 0): "${EVIDENCE_TEXT}"`)
         expect(entry.sentence).toContain('next: ')
       }
-      // The representative's sentence is LOOKED UP from the per-test list (D-15) — the
+      // The representative's sentence is LOOKED UP from the per-test list — the
       // cluster view and the expanded view cannot drift.
       expect(cluster.representative.sentence).toBe(
         analysis.sentences.find((entry) => entry.perTest === cluster.representative.testIndex)!

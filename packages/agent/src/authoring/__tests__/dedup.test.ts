@@ -1,4 +1,4 @@
-// Stage 2 — the frozen dedup denominator (Phase 394, D-04/D-16 · WTST-01).
+// Stage 2 — the frozen dedup denominator.
 //
 // Twelve rows, each the SOLE CATCHER for one property, and each one's rationale in
 // `fixtures/dedup-corpus/expectations.json` says which. The table is frozen: a row that stops
@@ -467,7 +467,7 @@ describe('dedupBeforeAuthor against the frozen corpus', () => {
     const screening = dedupBeforeAuthor(intent, corpus)
 
     if (screening.kind !== 'duplicate') throw new Error('the obvious duplicate must refuse')
-    // D-04: refuse-and-link carries the two named continuations. Two, not "at least one" -- a
+    // refuse-and-link carries the two named continuations. Two, not "at least one" -- a
     // refusal offering only "extend that test" cannot be acted on by an author whose draft is a
     // different assertion about the same flow. The vocabulary is the SCHEMA's, which is the
     // assertion that no second spelling was minted in this package.

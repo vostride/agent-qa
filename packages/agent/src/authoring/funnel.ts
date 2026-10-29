@@ -1,9 +1,9 @@
-// The funnel projection and the mixed-verdict stability gather (394-07, D-12/D-14 · WTST-05).
+// The funnel projection and the mixed-verdict stability gather.
 //
 // A PROJECTION AND NOTHING ELSE. Everything here reads durable records this project already keeps
 // — the draft receipts, the run-outcome projection, the quarantine ledger —
 // scopes them to a window, and hands them to `computeAuthoringFunnel`, which owns every number.
-// NOTHING NEW IS PERSISTED (D-12): the receipts ARE the funnel's truth, so every caller of the one
+// NOTHING NEW IS PERSISTED: the receipts ARE the funnel's truth, so every caller of the one
 // read op — today, a read-scoped function caller; there is no CLI funnel command and no per-run
 // digest section — reads the same numbers by construction rather than by consumers agreeing to.
 // This module re-derives nothing and re-sorts nothing that the computation owns.
@@ -15,7 +15,7 @@
 // attribute another author's drafts, and in the direction that matters it would inflate `built`
 // under somebody else's keep rate.
 //
-// THE STABILITY GATHER STARTS ZERO RUNS (D-14). It reads the outcome history and the quarantine
+// THE STABILITY GATHER STARTS ZERO RUNS. It reads the outcome history and the quarantine
 // ledger, both of which are records of runs that already happened, and hands rows to the pure
 // `assessSuiteStability`. WTST-08's fan-out preview promises a bound before dispatch; a stability
 // check that took its own runs would make that promise one nobody could honour, which is why D-14
@@ -56,7 +56,7 @@ export interface SuiteOutcomeHistoryPortLike {
    * (product, filePath, testName) and nothing else is a stable identity there. A port shaped
    * without it could only be bound by guessing a product or by serving every product's history
    * under one file path — and the second would report another application's flakiness as this
-   * target's, which is the whole failure the message exists to avoid (T-394-68).
+   * target's, which is the whole failure the message exists to avoid.
    */
   testsIn(product: string, filePath: string): Promise<readonly SuiteTestIdentity[]>
   /** One identity's recorded member outcomes, newest last. */
@@ -66,7 +66,7 @@ export interface SuiteOutcomeHistoryPortLike {
 /**
  * The capability `authoring.funnel.get` binds through — the funnel's reads, bundled.
  *
- * 2026-10-01 (432-17, D-06): the proposals inbox read is deleted with the inbox. An authored test
+ * the proposals inbox read is deleted with the inbox. An authored test
  * that a keep-gate did not reject is written in its own call, so no person accepts it afterwards
  * and nothing records such a decision. The terminal stage reads the receipts alone (see
  * {@link projectAuthoringFunnel}).
@@ -115,10 +115,10 @@ export function scopeReceiptsToWindow(
  * Project the funnel over one window.
  *
  * `dedupRefusals` is deliberately left ABSENT: a stage-2 refusal ends the invocation with nothing
- * authored — no draft, no receipt and no gate-run (D-04) — so nothing on this host durably records
+ * authored — no draft, no receipt and no gate-run — so nothing on this host durably records
  * one, and reporting `0` would say "no author was ever refused" about something nothing counts.
  *
- * THE TERMINAL STAGE IS READ OFF THE RECEIPTS (2026-10-02, quick 261002-ctr). It was `accepted`,
+ * THE TERMINAL STAGE IS READ OFF THE RECEIPTS. It was `accepted`,
  * applied decisions read off `test-draft` proposal envelopes. Since 432-08 a draft a keep-gate did
  * not reject is written to its test path in the call that authored it and nothing is filed, and
  * 432-17 deleted the inbox, so `accepted` read 0 on every host. `writeEligible` counts the receipts

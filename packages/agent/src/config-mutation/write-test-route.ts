@@ -28,7 +28,7 @@
 // sentence — "anything else with no configured-target match gets a typed refusal asking for a URL or
 // target name" — read where it is actually true.
 //
-// THE SCAFFOLD ARM CARRIES THE SAME PRECONDITION SINCE 395-12 (WR-05). Scaffolding is the FROM-ZERO
+// THE SCAFFOLD ARM CARRIES THE SAME PRECONDITION SINCE 395-12. Scaffolding is the FROM-ZERO
 // path; a project that already declares targets authors against them. Offering the scaffold there
 // traded a working dispatch for a refusal about a site nobody named — a token like `readme.md` or
 // `index.html` parses as a hostname, and in a configured project that turn used to end in
@@ -38,7 +38,7 @@
 //
 //   1. a token that IS a configured target name              -> configured
 //   2. a hostname token whose DERIVED name is configured      -> configured
-//   3. a hostname token in a project that declares targets    -> passthrough   (WR-05, 395-12)
+//   3. a hostname token in a project that declares targets    -> passthrough
 //   4. a hostname token in a project that declares none       -> scaffold
 //   5. no hostname, and the project declares targets          -> passthrough
 //   6. no hostname, and the project declares none             -> refuse
@@ -51,7 +51,7 @@
 import { parseHostnameToken } from './hostname-gate.js'
 
 /**
- * A word: either a bracketed IPv6 origin (432 D-20), whose brackets must survive, or a run of what
+ * A word: either a bracketed IPv6 origin, whose brackets must survive, or a run of what
  * a hostname and a registry key CAN hold. Everything else separates words.
  */
 const TOKEN = /(?:[A-Za-z][A-Za-z0-9+.-]*:\/\/)?\[[0-9A-Fa-f:.]+\][A-Za-z0-9.:/?=&@_-]*|[A-Za-z0-9.:/?=&@_-]+/g
@@ -67,13 +67,13 @@ export type WriteTestRoute =
     readonly kind: 'passthrough'
   }
   | {
-    /** A hostname this project does not configure. Scaffold it, then author (D-14). */
+    /** A hostname this project does not configure. Scaffold it, then author. */
     readonly kind: 'scaffold'
     readonly domain: string
     readonly targetName: string
   }
   | {
-    /** No targets, no hostname. Ask; never guess (D-15). */
+    /** No targets, no hostname. Ask; never guess. */
     readonly kind: 'refuse'
   }
 
@@ -104,13 +104,13 @@ export function resolveWriteTestRoute(input: {
     if (configured.has(verdict.targetName)) {
       return { kind: 'configured', name: verdict.targetName }
     }
-    // WR-05 (395-12). A project that declares targets authors against them; `readme.md` and
+    // WR-05. A project that declares targets authors against them; `readme.md` and
     // `index.html` both parse as hostnames, and offering a scaffold for one of them is how a turn
     // that had a perfectly good authoring dispatch ended in `already-configured` for a site nobody
     // named. The scaffold arm is the from-zero path and this is where it says so.
     if (configured.size > 0) return { kind: 'passthrough' }
     // The scaffold op re-parses what it is handed, so a kept scheme or port travels as the base URL
-    // (432 D-20). A plain derivation still travels as the bare domain it always did.
+    // A plain derivation still travels as the bare domain it always did.
     const domain = verdict.baseUrl === `https://${verdict.domain}` ? verdict.domain : verdict.baseUrl
     return { kind: 'scaffold', domain, targetName: verdict.targetName }
   }
@@ -124,7 +124,7 @@ export function resolveWriteTestRoute(input: {
  * The refusal a write_test request against an unconfigurable project earns (D-15, 387's posture).
  *
  * 2026-10-03 (quick 261003-cpv, 432 review WR-02): it no longer promises a review. The scaffold
- * writes the configuration in its own call and the test is authored after it (D-05/D-14/D-24).
+ * writes the configuration in its own call and the test is authored after it.
  */
 export const WRITE_TEST_UNCONFIGURED_DETAIL
   = 'this project has no agent-qa configuration, so there is no target to write a test against. '

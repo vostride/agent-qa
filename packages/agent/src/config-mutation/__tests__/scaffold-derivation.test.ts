@@ -1,4 +1,4 @@
-// The scaffold's derivation and its never-guess boundary (Phase 395-08, D-13/D-15 · CFGM-05).
+// The scaffold's derivation and its never-guess boundary.
 //
 // WHAT EACH CELL'S ACCEPTANCE BAR IS — the implementation it must RED on, never the suite it passes:
 //
@@ -41,7 +41,7 @@
 //   (S6) one diff, three     — a scaffold that published file by file in separate calls. CFGM-05's
 //        files                 sentence is ONE diff; since 432-11 it is one publication of all
 //                              three files, and the cell counts the direct writer's calls.
-//   (S7, S8) deleted 2026-10-14 (441 D-15): their subject was the construction scan.
+//   (S7, S8) deleted 2026-10-14: their subject was the construction scan.
 //   (S9) unrenderable        — 395-02's refusal escaping as a fault instead of being answered as
 //                              data. The scaffold is the one op that folds bytes it did not author
 //                              into a file it proposes, so it is the one that must answer it.
@@ -352,7 +352,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
   })
 
   it('(S3) refuses a project that DECLARES targets, and writes nothing', async () => {
-    // A DESIGNED FIXTURE BREAK (395-12). This fixture was `workspace:\n  hooksFile: …` — a config
+    // A DESIGNED FIXTURE BREAK. This fixture was `workspace:\n  hooksFile: …` — a config
     // file declaring no targets at all — so it measured "a config file exists". The predicate it
     // pins now is the narrowed one: a target registry this scaffold would replace.
     const test = harness({

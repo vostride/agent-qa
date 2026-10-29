@@ -1,4 +1,4 @@
-// The fan-out preview against what the loop ACTUALLY spends (Phase 394-08, D-03/D-10 · WTST-08).
+// The fan-out preview against what the loop ACTUALLY spends.
 //
 // THE PROHIBITION THIS FILE MAKES MECHANICAL. A preview lower than the loop's own worst case is a
 // consent defect: a person approved a number and the loop took more. Asserting that the two numbers
@@ -234,7 +234,7 @@ function bench(input: {
       if (receipt === undefined) throw new Error('the bench was asked for a receipt it has none of')
       return Promise.resolve(receipt)
     },
-    // 432 D-06: the final write. It starts no run, so it cannot move a single figure below.
+    // the final write. It starts no run, so it cannot move a single figure below.
     publish: (request: { readonly targetPath: string }) => {
       published.push(request.targetPath)
       return Promise.resolve({
@@ -254,7 +254,7 @@ function bench(input: {
     },
     deps: {
       read: {
-        // 394-33 WR-07: the `target` vocabulary the compile prompt serves. This bench never
+        // the `target` vocabulary the compile prompt serves. This bench never
         // inspects it — its model is scripted — so one name is the whole answer.
         configuredTargetNames: () => Promise.resolve(['local-form']),
         getAuthoringBrief: () => Promise.resolve({
@@ -375,7 +375,7 @@ describe('the loop cannot exceed the bound its own dispatch confirm rendered', (
     ])
   })
 
-  // 2026-09-30, 432 D-06: re-spelled in place. The proposal arm these figures rode is gone — the
+  // re-spelled in place. The proposal arm these figures rode is gone — the
   // repaired draft is written, not proposed — so the same two figures are read off the report the
   // invocation answers with, and the iteration count off the repaired arm itself.
   it('reports the two figures TOGETHER on the repaired arm a person reads', async () => {
@@ -401,7 +401,7 @@ describe('the loop cannot exceed the bound its own dispatch confirm rendered', (
     expect(iterations).toBe(REPAIR_ITERATION_CAP)
   })
 
-  // 432 D-06 (EDGE-09), the repaired arm: the FINAL receipt decides the write, exactly as a
+  // 432 D-06, the repaired arm: the FINAL receipt decides the write, exactly as a
   // first-pass one does. A repair that reached a passing probe but whose final stability gate
   // rejected the candidate is reported as repaired and NOT written — its bytes stay on the shelf.
   it('writes a repaired draft only when its final gate did not reject it', async () => {

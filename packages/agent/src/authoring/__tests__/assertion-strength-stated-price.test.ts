@@ -1,4 +1,4 @@
-// C446-STATED-PRICE (446-11, D-25): an unquoted money amount in an assertion is a concrete expected value
+// an unquoted money amount in an assertion is a concrete expected value
 
 import { describe, expect, it } from 'vitest'
 

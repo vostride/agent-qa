@@ -1,4 +1,4 @@
-// Stage 5's deterministic repair-vs-stop derivation (Phase 394 D-08 · WTST-04; 411 D-01).
+// Stage 5's deterministic repair-vs-stop derivation.
 //
 // ONE function decides whether a failing draft is the DRAFT's problem or the APPLICATION's, and
 // this file is the only place that decision is made. The table below is the contract, not an
@@ -15,13 +15,13 @@
 //   1b. SOME step carries a typed `limitStop` block -> `indefinitive-failure` -> STOP. The run ran
 //      out of an action or planning-turn limit rather than into an answer, so it says nothing
 //      about the application, and repairing it could iterate a dead control into a passing test
-//      (436 D-14). Evaluated before rule 2, so a verdictSource on another step never makes it
+//      Evaluated before rule 2, so a verdictSource on another step never makes it
 //      definitive; a limit is never a mechanics signal.
 //   1c. SOME step the verifier left unproven (`stepOutcomeUnproven`: a condition unverified or
 //      inconclusive, none not met) and carrying no mechanics signal -> `indefinitive-failure` ->
 //      STOP. Nothing says the application failed, and repairing it would rewrite an unproven claim
 //      into a passing one (439 D-07, after 436 D-14's limit stop). An infeasible step keeps its
-//      termination as its primary reason (439 D-08) and routes by rule 3.
+//      termination as its primary reason and routes by rule 3.
 //   2. SOME step is a CLEAN DEFINITIVE ASSERTION-FAIL — its verifier said no, a `verdictSource`
 //      records which path produced that verdict, and that step carries no mechanics signal of
 //      its own. Then:
@@ -56,7 +56,7 @@
 // through, and the identity is a lookup key rather than a decision input: every value that
 // decides is a field of the run's own `PerTestOutcome` or `StepEvidence`. The model writes nothing
 // this arm carries: the stop's payload is projected downstream from the route and from typed facts,
-// once the branch is already chosen, and no prose field survives on it (411 D-05).
+// once the branch is already chosen, and no prose field survives on it.
 //
 // THE STOP CARRIES REFS, NEVER PAYLOADS (391 D-18, map not territory). WTST-04 asks the stop arm
 // to name the exact trace and the a11y snapshot at the failure point; both already live on the
@@ -118,7 +118,7 @@ export type RouterStopSignalClass =
  * member-level and carried by the outcome rather than by any step, which is why a scan over
  * `StepEvidence` alone cannot see them.
  */
-// 2026-10-07 (436-06): 'cycle' and 'stagnation' left with the progress subsystem (D-14); their
+// 'cycle' and 'stagnation' left with the progress subsystem; their
 // blocks survive only in pre-change handoffs and are no longer read as mechanics.
 export const ROUTER_MECHANICS_SIGNALS = [
   'termination',
@@ -173,7 +173,7 @@ export interface RepairRoute {
  * no step verdict to point at; `evidenceRefs` is not, because a stop a reader cannot trace is not
  * a report.
  *
- * 2026-09-02 (Phase 411): the proposal arm for a correctly-failing draft left with the Issue-slot
+ * the proposal arm for a correctly-failing draft left with the Issue-slot
  * cleanup.
  */
 export interface StopRoute {
@@ -236,12 +236,12 @@ function stepMechanics(step: StepEvidence): readonly RouterMechanicsSignalName[]
   return found
 }
 
-/** A step a per-step action or planning-turn limit stopped (436 D-12). Never a mechanics signal. */
+/** A step a per-step action or planning-turn limit stopped. Never a mechanics signal. */
 export function stepLimitStopped(step: StepEvidence): boolean {
   return step.limitStop !== undefined
 }
 
-/** A step the verifier left unverified or inconclusive, with nothing not met (439 D-07). */
+/** A step the verifier left unverified or inconclusive, with nothing not met. */
 export function stepUnproven(step: StepEvidence): boolean {
   return stepOutcomeUnproven(step)
 }
@@ -369,14 +369,14 @@ function stopEvidenceFor(
 }
 
 /**
- * The stop arm for a repair the loop ABANDONED, over the run the router already read (CR-02).
+ * The stop arm for a repair the loop ABANDONED, over the run the router already read.
  *
  * WHY IT LIVES HERE AND NOT AT THE CALL SITE. An exhausted or prefix-regressed repair produces the
  * same artifact class as a first-pass stop — `routeAfterVerify`'s own header says so — and that
  * class's evidence is derived in exactly one place. Building it in `loop.ts` would be a second
  * answer to "which step does this stop point at", assembled from the same fields, free to
  * disagree; building it from a literal is what shipped, and a durable stop with no failure point
- * and no refs is unauditable by construction (T-394-90).
+ * and no refs is unauditable by construction.
  *
  * `signalClass` is `indefinitive-failure` and nothing else: the classification the run's own
  * evidence carried belonged to the REPAIR arm (`execution-mechanics`), and repair having failed is
@@ -415,7 +415,7 @@ export function stopRouteForAbandonedRepair(
 }
 
 /**
- * The one deterministic repair-versus-stop derivation (D-08).
+ * The one deterministic repair-versus-stop derivation.
  *
  * Pure: it reads the run document and mutates nothing. Total over every classification the table
  * produces — the two non-routing classes refuse BY NAME rather than returning an arm, which is

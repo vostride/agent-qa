@@ -1,4 +1,4 @@
-// Per-kind declarations for the agent job queue (Phase 385, D-09 / D-17 / D-18 / D-20).
+// Per-kind declarations for the agent job queue.
 //
 // A kind cannot be registered without saying whether it checkpoints, WHICH checkpoints it
 // publishes, which successors it may chain to, how many attempts it gets, how those attempts
@@ -51,7 +51,7 @@ export interface JobHandlerContext {
 }
 
 /**
- * What a handler reports (D-17/D-18).
+ * What a handler reports.
  *
  * 385 plan 02 replaced this module's own outcome shape with the schema DTO. The two were the
  * same concept described twice, and the local one could not say a handler had FAILED at all —
@@ -63,7 +63,7 @@ export interface JobHandlerContext {
 export type JobHandler = (context: JobHandlerContext) => Promise<JobHandlerOutcome>
 
 /**
- * How a kind's retries are spaced (D-18) — DATA, never a function.
+ * How a kind's retries are spaced — DATA, never a function.
  *
  * A callback would let a kind compute its own delay from whatever it liked, including the
  * wall clock, and the engine could then neither describe a kind's retry behaviour without
@@ -107,7 +107,7 @@ export type FallbackContinuationProducer = (
 ) => readonly ChainedJobRequest[]
 
 /**
- * What a kind declares should happen to its chain when it gives up (D-20).
+ * What a kind declares should happen to its chain when it gives up.
  *
  * `'halt-chain'` enqueues nothing. A producer names the successors the chain proceeds with
  * instead — the analyze-run posture, whose downstream jobs must never wait on a dead head.
@@ -116,12 +116,12 @@ export type JobPermanentFailureDisposition = 'halt-chain' | FallbackContinuation
 
 export interface JobKindDeclaration {
   readonly kind: JobKind
-  /** `false` means the kind resumes NOTHING after a crash — chat's posture (JOBQ-04). */
+  /** `false` means the kind resumes NOTHING after a crash — chat's posture. */
   readonly checkpointed: boolean
   /** The complete set of checkpoint ids this kind may publish, in schedule order. */
   readonly checkpointSchedule: readonly string[]
   readonly allowedSuccessors: readonly JobKind[]
-  /** Attempts are spent at CLAIM (D-18), so this bound holds even for a job that never returns. */
+  /** Attempts are spent at CLAIM, so this bound holds even for a job that never returns. */
   readonly maxAttempts: number
   readonly backoff: JobBackoffPolicy
   readonly onPermanentFailure: JobPermanentFailureDisposition
@@ -149,7 +149,7 @@ export class UnknownJobKindError extends Error {
   }
 }
 
-/** Thrown at construction when a declaration omits a field the engine reads (D-09). */
+/** Thrown at construction when a declaration omits a field the engine reads. */
 export class IncompleteJobKindDeclarationError extends Error {
   override readonly name = 'IncompleteJobKindDeclarationError'
 

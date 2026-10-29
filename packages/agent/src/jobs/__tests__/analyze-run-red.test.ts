@@ -1,4 +1,4 @@
-// The ANLZ-01 red-run cells (Phase 406, plan 07 — D-13/D-14/D-15).
+// The ANLZ-01 red-run cells.
 //
 // `analyze-run` on a RED run, driven through the REAL handler with a fake
 // `JobModelCapability`: the happy path (a valid authored answer upgrades the `unknown` floor
@@ -49,8 +49,8 @@ import { buildSyntheticHandoff } from './fixtures/synthetic-handoff.js'
 
 const EVIDENCE_TEXT = 'Error: element "Submit" not found'
 
-// 2026-10-01 (432-35, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -197,8 +197,8 @@ async function readThroughTheOp(
       },
       analysis: { getArtifact: () => artifact },
     } as FunctionDeps,
-    // 2026-10-01 (432-35, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
   return (await invokeFunction(
     registry,

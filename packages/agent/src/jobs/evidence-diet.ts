@@ -1,4 +1,4 @@
-// The D-02 evidence diet and the D-01 compaction ladder (Phase 389, plan 03).
+// The D-02 evidence diet and the D-01 compaction ladder.
 //
 // WHAT A PACK IS. One per unknown-verdict failed test: the failing step plus a bounded
 // neighbor window, QUOTING StepEvidence fields verbatim — `stepText`,
@@ -8,7 +8,7 @@
 // Assembly (here) is kept separate from rendering (plan 04's author feeds packs into the
 // prompt's volatile tier), which is what makes the ladder testable on bytes.
 //
-// THE TWO FORCED CHANNELS (D-02). Every pack carries (1) the test's prior-build outcome,
+// THE TWO FORCED CHANNELS. Every pack carries (1) the test's prior-build outcome,
 // derived from a caller-injected history record, and (2) the failing step's `servedBrief`
 // plus its serve-time `retrievalTrace` — rendered so the author can honestly set
 // memoryMisdirectionRuledOut. Compaction squeezes the WINDOW, never these channels
@@ -20,7 +20,7 @@
 // attaches image parts only when the v46 vision negotiation allows. Rung 1 of the ladder
 // strips the refs — text-only BYOM degradation is a deterministic rung, not an ad-hoc drop.
 //
-// NO IMPORTED ESTIMATOR (D-01). Token estimation arrives as injected data — a
+// NO IMPORTED ESTIMATOR. Token estimation arrives as injected data — a
 // `(text) => number` plus a numeric budget — satisfying the TokenAccounting substrate
 // without this package importing model. Plan 06's binding passes
 // `TokenAccounting.estimate` through the capability.
@@ -44,7 +44,7 @@ import type {
 /**
  * Neighbor steps quoted either side of the failing step.
  *
- * Pinned, not config (386 D-15); retune from operational evidence: raise if discriminators
+ * Pinned, not config; retune from operational evidence: raise if discriminators
  * in real transcripts routinely cite out-of-window steps; never add a knob for it.
  */
 export const EVIDENCE_WINDOW_STEPS = 2
@@ -52,7 +52,7 @@ export const EVIDENCE_WINDOW_STEPS = 2
 /**
  * The rung-4 per-field quote cap, in characters.
  *
- * Pinned, not config (386 D-15); retune from operational evidence: raise if discriminating
+ * Pinned, not config; retune from operational evidence: raise if discriminating
  * error text is routinely cut mid-signal at this cap in real over-budget transcripts.
  */
 export const QUOTE_FIELD_CAP = 500
@@ -179,7 +179,7 @@ function quoteStep(step: StepEvidence, role: 'failing' | 'neighbor'): EvidenceSt
   }
 }
 
-/** A saved file's text never enters a prompt (439 D-17, 436 D-20): keep only its verdicts. */
+/** A saved file's text never enters a prompt: keep only its verdicts. */
 function withoutFileText(block: ConditionVerdictsEvidence): ConditionVerdictsEvidence {
   return {
     ...block,

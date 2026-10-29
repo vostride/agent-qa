@@ -1,4 +1,4 @@
-// Never-guess entity binding, all four directions (394-09, D-19 · T-394-35).
+// Never-guess entity binding, all four directions.
 //
 // THE MUTATION THIS FILE MUST GO RED ON: binding a lone candidate regardless of confidence — in the
 // shape it would actually arrive in, which is `none.closestSuggestion` promoted to a binding. That

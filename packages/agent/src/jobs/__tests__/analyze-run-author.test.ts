@@ -1,8 +1,8 @@
-// The whole-run author (Phase 389, plan 04 — D-01/D-02/D-03, ANLZ-02).
+// The whole-run author.
 //
 // `authorRunAnalysis` is a pure composition over injected capabilities: ONE `model.generate`
 // call over every unknown-verdict failure together (D-01 — no per-test fan-out, no second
-// LLM stage), parse-with-repair capped at exactly one round-trip (D-03), per-test degrade
+// LLM stage), parse-with-repair capped at exactly one round-trip, per-test degrade
 // to the deterministic floor for whatever still fails validation, and a merge law that
 // upgrades `unknown` floor members ONLY — deterministic verdicts pass through
 // byte-identical. The D-02 vision leg rides the same single request as optional image
