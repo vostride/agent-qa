@@ -20,14 +20,14 @@ import {
   printedRunIds,
   refuseWithoutRecordingTools,
   type DashboardScene,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import {
   chromiumDescendants,
   killRecorded,
   livePidsAfter,
   recordProcesses,
   type RecordedProcess,
-} from './444-process-tree.js'
+} from './process-tree.js'
 import {
   ANALYSIS_PROMPT_MARKER,
   POPULATED_BUTTON_LABEL,

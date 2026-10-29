@@ -15,7 +15,7 @@ import { chromium } from 'playwright-core'
 import type { Browser, Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { printedRunIds, refuseWithoutRecordingTools, spawnCliRun } from './433-door-fixture.js'
+import { printedRunIds, refuseWithoutRecordingTools, spawnCliRun } from './run-doors-fixture.js'
 import {
   POPULATED_BUTTON_LABEL,
   POPULATED_FAILURE_STEP_MARKER,

@@ -21,7 +21,7 @@ import {
   spawnCliRun,
   type CliRunOutcome,
   type RecordedDoorProject,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import {
   POPULATED_BUTTON_LABEL,
   POPULATED_TARGET_NAME,

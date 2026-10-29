@@ -41,7 +41,7 @@ vi.mock('../../curation/post-run-tail-composition.js', async (importOriginal) =>
   }
 })
 
-import { openDashboardScene, recordedDoorProject, type DashboardScene } from './433-door-fixture.js'
+import { openDashboardScene, recordedDoorProject, type DashboardScene } from './run-doors-fixture.js'
 import { populatedRunSpawnEnv } from './populated-run-fixture.js'
 import { cleanupTempRoots } from './spawned-chat.js'
 

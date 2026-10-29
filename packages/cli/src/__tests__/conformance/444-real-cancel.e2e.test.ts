@@ -24,9 +24,9 @@ import {
   refuseWithoutRecordingTools,
   runStoreEvents,
   type DashboardScene,
-} from './433-door-fixture.js'
-import { chromiumDescendants, livePidsAfter } from './444-process-tree.js'
-import { refuseWithoutPosixRunLifecycle } from './442-run-fixture.js'
+} from './run-doors-fixture.js'
+import { chromiumDescendants, livePidsAfter } from './process-tree.js'
+import { refuseWithoutPosixRunLifecycle } from './cli-run-fixture.js'
 import {
   POPULATED_BUTTON_LABEL,
   populatedRunFixtureProject,

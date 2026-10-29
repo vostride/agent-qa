@@ -10,7 +10,7 @@ import { generateTestId } from '@vostride/agent-qa-ids'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
 import { INIT_BASE_URL_DEFAULTS } from '../../commands/init.js'
-import { refuseWithoutRecordingTools } from './433-door-fixture.js'
+import { refuseWithoutRecordingTools } from './run-doors-fixture.js'
 import {
   POPULATED_RUN_ANCHORED_BUILDS,
   populatedRunFixtureProject,

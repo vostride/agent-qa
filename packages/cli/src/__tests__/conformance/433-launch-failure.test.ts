@@ -57,7 +57,7 @@ import {
   runStoreIds,
   spawnCliRun,
   type CliRunOutcome,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import type { PopulatedRunProject } from './populated-run-fixture.js'
 import { reserveEphemeralPort, spawnDashboard } from './spawned-chat.js'
 

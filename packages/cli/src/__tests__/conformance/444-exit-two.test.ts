@@ -14,7 +14,7 @@ import { resolveDashboardDbPath } from '@vostride/agent-qa-dashboard'
 import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { printedRunIds, refuseWithoutRecordingTools } from './433-door-fixture.js'
+import { printedRunIds, refuseWithoutRecordingTools } from './run-doors-fixture.js'
 import {
   POPULATED_PASSING_STEP_TEXT,
   POPULATED_TARGET_NAME,

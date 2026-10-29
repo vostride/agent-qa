@@ -14,7 +14,7 @@ import {
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { parse, stringify } from 'yaml'
 
-import { refuseWithoutRecordingTools } from './433-door-fixture.js'
+import { refuseWithoutRecordingTools } from './run-doors-fixture.js'
 import {
   POPULATED_MODEL_ID,
   POPULATED_PASSING_STEP_TEXT,

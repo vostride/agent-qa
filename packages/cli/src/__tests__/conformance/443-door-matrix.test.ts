@@ -36,7 +36,7 @@ import {
   runStoreEvents,
   spawnCliRun,
   type DashboardScene,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import {
   POPULATED_FAILURE_STEP_MARKER,
   POPULATED_FAILURE_STEP_TEXT,

@@ -20,7 +20,7 @@ import {
   type CliRunOutcome,
   type DashboardScene,
   type RecordedDoorProject,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import {
   POPULATED_DECLARED_SECRET_VALUE,
   POPULATED_SECRET_NAME,

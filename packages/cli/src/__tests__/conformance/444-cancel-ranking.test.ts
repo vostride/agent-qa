@@ -20,7 +20,7 @@ import {
   runStoreEvents,
   spawnCliRun,
   type DashboardScene,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import {
   POPULATED_BUTTON_LABEL,
   POPULATED_FAILURE_STEP_MARKER,

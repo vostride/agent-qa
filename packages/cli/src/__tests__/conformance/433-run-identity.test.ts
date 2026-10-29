@@ -17,7 +17,7 @@ import {
   spawnCliRun,
   type CliRunOutcome,
   type RecordedDoorProject,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import { populatedRunSpawnEnv } from './populated-run-fixture.js'
 import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard } from './spawned-chat.js'
 

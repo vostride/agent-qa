@@ -17,7 +17,7 @@ import {
   spawnCliRun,
   type CliRunOutcome,
   type RecordedDoorProject,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import { populatedRunSpawnEnv } from './populated-run-fixture.js'
 import { CLI_ENTRY, cleanupTempRoots, hermeticEnv } from './spawned-chat.js'
 import { CURRENT_BUS_SCHEMA_VERSION } from '@vostride/agent-qa-schema'

@@ -9,7 +9,7 @@ import { DatabaseSync } from 'node:sqlite'
 import { generateRunId } from '@vostride/agent-qa-ids'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-import { printedRunIds, refuseWithoutRecordingTools } from './433-door-fixture.js'
+import { printedRunIds, refuseWithoutRecordingTools } from './run-doors-fixture.js'
 import {
   POPULATED_FAILURE_STEP_MARKER,
   POPULATED_FAILURE_STEP_TEXT,

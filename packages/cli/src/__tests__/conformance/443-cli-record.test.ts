@@ -25,8 +25,8 @@ import {
   removeInProcessFixtures,
 } from '../../composition/__tests__/in-process-run-fixture.js'
 import type { InProcessFixture } from '../../composition/__tests__/in-process-run-fixture.js'
-import { refuseWithoutPosixRunLifecycle, startCliRun } from './442-run-fixture.js'
-import type { CliRunExit } from './442-run-fixture.js'
+import { refuseWithoutPosixRunLifecycle, startCliRun } from './cli-run-fixture.js'
+import type { CliRunExit } from './cli-run-fixture.js'
 
 const memberConfigs = vi.hoisted(() => [] as Array<{ captureScreenshots?: boolean }>)
 

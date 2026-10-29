@@ -16,7 +16,7 @@ import {
   refuseWithoutRecordingTools,
   spawnCliRun,
   type RecordedDoorProject,
-} from './433-door-fixture.js'
+} from './run-doors-fixture.js'
 import { POPULATED_BUTTON_LABEL, POPULATED_TARGET_NAME } from './populated-run-fixture.js'
 import { cleanupTempRoots } from './spawned-chat.js'
 

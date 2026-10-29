@@ -21,8 +21,8 @@ import {
   seedRunningRow,
   startCliRun,
   twoRunProject,
-} from './442-run-fixture.js'
-import type { CellBrowsers, StartedCliRun, TwoRunProject } from './442-run-fixture.js'
+} from './cli-run-fixture.js'
+import type { CellBrowsers, StartedCliRun, TwoRunProject } from './cli-run-fixture.js'
 import { removeInProcessFixtures } from '../../composition/__tests__/in-process-run-fixture.js'
 
 const CELL_BUDGET_MS = 300_000
@@ -272,7 +272,7 @@ function expectOrphanFinalized(project: TwoRunProject, row: SeededRow): void {
 // The scene is the dashboard as `agent-qa dashboard` composes it, with the real run ownership. Its
 // fixture loads playwright-core, so it is imported only after this process has planted its browser.
 async function openSceneOver(at: Cell) {
-  const { openDashboardScene } = await import('./433-door-fixture.js')
+  const { openDashboardScene } = await import('./run-doors-fixture.js')
   return openDashboardScene(
     {
       root: at.project.project,

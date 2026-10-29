@@ -22,8 +22,8 @@ import {
   readRow,
   refuseWithoutPosixRunLifecycle,
   twoRunProject,
-} from './442-run-fixture.js'
-import type { TwoRunProject } from './442-run-fixture.js'
+} from './cli-run-fixture.js'
+import type { TwoRunProject } from './cli-run-fixture.js'
 import { removeInProcessFixtures } from '../../composition/__tests__/in-process-run-fixture.js'
 
 const CELL_BUDGET_MS = 120_000
@@ -228,7 +228,7 @@ function snapshot(at: Cell, id: string): string {
 
 // The scene's fixture loads playwright-core, so it is imported only when a cell needs the scene.
 async function openSceneOver(at: Cell): Promise<Scene> {
-  const { openDashboardScene } = await import('./433-door-fixture.js')
+  const { openDashboardScene } = await import('./run-doors-fixture.js')
   const scene = await openDashboardScene(
     {
       root: at.project.project,

@@ -1,6 +1,6 @@
-// C444-PROCESS-IDENTITY (444-25, D-62 IN-07): a 444 cell kills a process it recorded only while that
-// pid still runs the recorded command line, so a reused pid is never signalled. Each cell spawns its
-// own `/bin/sleep 60` and always reaps it through its handle.
+// process-tree.ts kills a process it recorded only while that pid still runs the recorded command
+// line, so a reused pid is never signalled. Each cell spawns its own `/bin/sleep 60` and always reaps
+// it through its handle.
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
@@ -31,9 +31,9 @@ function refuseWithoutPosix(): void {
 }
 
 async function processIdentity(): Promise<ProcessIdentity> {
-  const tree = (await import('./444-process-tree.js')) as Record<string, unknown>
-  expect(typeof tree.recordProcesses, '444-process-tree exports recordProcesses').toBe('function')
-  expect(typeof tree.killRecorded, '444-process-tree exports killRecorded').toBe('function')
+  const tree = (await import('./process-tree.js')) as Record<string, unknown>
+  expect(typeof tree.recordProcesses, 'process-tree exports recordProcesses').toBe('function')
+  expect(typeof tree.killRecorded, 'process-tree exports killRecorded').toBe('function')
   return tree as unknown as ProcessIdentity
 }
 
