@@ -373,7 +373,7 @@ function kindsOf(events: readonly ChatSessionEvent[]): string[] {
 }
 
 describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-stage origins', () => {
-  describe('D-10 — a fail-closed verdict costs the turn everything and executes nothing', () => {
+  describe('a fail-closed verdict costs the turn everything and executes nothing', () => {
     it('performs ZERO invocations when a clause is unroutable', async () => {
       const run = harness()
       const result = await run.runTurn({ message: '/fn quarantine.list and write a test for two factor auth' })
@@ -386,7 +386,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       expect(result.unhandled?.clause).toBe('write a test for two factor auth')
     })
 
-    it('appends a mark_unhandled event naming the clause (D-15/D-18)', async () => {
+    it('appends a mark_unhandled event naming the clause', async () => {
       const run = harness()
       await run.runTurn({ message: '/fn quarantine.list and write a test for two factor auth' })
 
@@ -440,7 +440,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
   // function layer, so `executed == 0` stayed true through the defect. These cases measure the
   // other seat. (432-13: the shipped probe was `/pin`, now an ordinary unroutable clause; the
   // effectful directive left is `/model`, and no turn writes an `approval_decision` row.)
-  describe('CR-04 — no directive side effect precedes the reconciliation verdict (D-10)', () => {
+  describe('no directive side effect precedes the reconciliation verdict', () => {
     // RE-SPELLED 2026-09-30 (432-13) from 'records NO pin when the turn is refused, though it names
     // one'. `/pin` is no longer a directive, so the same utterance is two unroutable clauses; the
     // claim that survives is that a refused turn leaves no approval row and invokes nothing.
@@ -567,8 +567,8 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
 
   // 432-13 (D-14/D-15): chat resolution has no approval route left. `/pin` is not a directive, so it
   // is an ordinary unroutable clause, and no turn writes an `approval_decision` row.
-  describe('C432-CHAT-DIRECT — no pin directive and no approval writer (432-13)', () => {
-    it('C432-CHAT-DIRECT: `/pin` is an unroutable clause, and nothing is pinned or recorded as an approval', async () => {
+  describe('no pin directive and no approval writer', () => {
+    it('`/pin` is an unroutable clause, and nothing is pinned or recorded as an approval', async () => {
       const run = harness({ directives: true })
       const result = await run.runTurn({ message: '/pin fn:runs.start' })
 
@@ -586,7 +586,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       expect(run.invocations).toEqual([])
     })
 
-    it('C432-CHAT-DIRECT: direct change ops dispatch once each through /fn, with no approval row', async () => {
+    it('direct change ops dispatch once each through /fn, with no approval row', async () => {
       const run = harness()
       const result = await run.runTurn({
         message: '/fn knowledge.forget {"recordId":"mem_1"} and /fn config.field.set {"path":"use.timeout","value":45000}',
@@ -603,8 +603,8 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
 
   // EDGE-03 (PXH-SAFE-01/ordering): explicit operations in one utterance run, receipt and log in the
   // order the person declared them even when every event carries the same timestamp.
-  describe('EDGE-03 — declared order survives tied timestamps (432-13)', () => {
-    it('EDGE-03: three explicit operations under one frozen clock keep their declared execution and receipt order', async () => {
+  describe('declared order survives tied timestamps', () => {
+    it('three explicit operations under one frozen clock keep their declared execution and receipt order', async () => {
       const run = harness({ fixedClock: true })
       const result = await run.runTurn({
         message: 'digest RUN-9 and /fn config.field.set {"path":"use.timeout","value":45000} and status',
@@ -621,7 +621,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  describe('D-11 — utterance order, stop on failure, receipts for every clause', () => {
+  describe('utterance order, stop on failure, receipts for every clause', () => {
     it('executes table-bound clauses in utterance order', async () => {
       const run = harness()
       const result = await run.runTurn({ message: '/fn quarantine.list and status' })
@@ -718,7 +718,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       })
     })
 
-    it('does NOT stop the chain on a RETURNED refused verdict (D-12 posture CONTROL)', async () => {
+    it('does NOT stop the chain on a RETURNED refused verdict (the posture control)', async () => {
       // A D-12 POSTURE CONTROL, GREEN BEFORE AND AFTER THE FIX, and it is the reason the fix reads
       // `receipt.status === 'failed'` rather than "anything that is not `executed`". D-11 stops on
       // FAILURE; D-02 ruled that a refusal is not a failure — the control worked, the op ran and
@@ -749,7 +749,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  describe('D-05/399.1-05 — the turn\'s results[] reaches the log as MASKED clause_result events', () => {
+  describe('the turn\'s results[] reaches the log as MASKED clause_result events', () => {
     // WHY THIS KIND EXISTS AT ALL. `results[]` is the channel D-05 minted for what the ops
     // RETURNED, and it is what `renderTurn` prints and every `agent.ask` client reads. A session
     // log that carried the receipt map but not the territory would make "what did this turn
@@ -801,7 +801,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       expect((persisted[0] as { functionId: string } | undefined)?.functionId).toBe(PROPOSALS_LIST)
     })
 
-    it('leaves the clause_receipt line untouched — the map is still a map (D-18)', async () => {
+    it('leaves the clause_receipt line untouched — the map is still a map', async () => {
       // THE CHARTER SURVIVES THE ADDITION. 392's receipt ruling is that a receipt carries refs and
       // a sentence; the territory travels beside it. A payload that had leaked onto the receipt
       // would be the prohibition this whole vocabulary is built on, satisfied by a sibling kind.
@@ -816,7 +816,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  describe('Pitfall 1 — the origin comes from the stage that PROVED the binding', () => {
+  describe('the origin comes from the stage that PROVED the binding', () => {
     it('mints human for table-bound clauses and agent for planner-bound ones', async () => {
       const run = harness({
         planned: { toolCalls: [{ toolName: toToolName(RUNS_DIGEST), input: { runId: 'RUN-1' } }] },
@@ -856,7 +856,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  describe('CHAT-01 — an answered turn completes without acting', () => {
+  describe('an answered turn completes without acting', () => {
     it('performs zero invocations and returns the prose', async () => {
       const run = harness({
         planned: {
@@ -891,7 +891,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
    * either admission would move a denominator D-15 froze at 11 hermetic / 3 live. The live lane at
    * k≥5 is the third seam, and it is the one that gates.
    */
-  describe('392-16 — a style modifier is not a clause the model has to claim (G-392-1)', () => {
+  describe('a style modifier is not a clause the model has to claim', () => {
     it('completes the turn the live lane saw refused, with no mark_unhandled row', async () => {
       const run = harness({
         planned: {
@@ -921,7 +921,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  describe('CHAT-04/CHAT-05 wiring — the hook and the ledger', () => {
+  describe('wiring — the hook and the ledger', () => {
     it('runs the compaction pass BEFORE the planner is consulted', async () => {
       const run = harness({
         compaction: true,
@@ -1060,7 +1060,7 @@ function authoringHarness(report: unknown): Harness {
   })
 }
 
-describe('D-18 exception — the authoring receipt carries the fan-out report (394-14)', () => {
+describe('exception — the authoring receipt carries the fan-out report', () => {
   // 399.1-03: the exception moved OUT of `turn-engine.ts` and onto this op's own `classify`. The
   // claim is unchanged and the enforcement got stronger — it was an id comparison inside a shared
   // summariser, and it is a member of one spec now. The receipt line is the op's own words, which
@@ -1152,7 +1152,7 @@ describe('D-18 exception — the authoring receipt carries the fan-out report (3
 
 const SESSION_ID = 'chat-test-session'
 
-describe('the authoring sessionRef stamp (394-17)', () => {
+describe('the authoring sessionRef stamp', () => {
   it('stamps the session\'s OWN id into the write op\'s args', async () => {
     const run = harness({
       planned: {
@@ -1205,7 +1205,7 @@ describe('the authoring sessionRef stamp (394-17)', () => {
     expect(run.invocations[0]?.input).not.toHaveProperty('sessionRef')
   })
 
-  it('OVERWRITES a planner-emitted ref on the VERIFY op too (CR-02)', async () => {
+  it('OVERWRITES a planner-emitted ref on the VERIFY op too', async () => {
     // THE SIBLING THE ONE-ID GUARD MISSED. `authoring.draft.verify` carries `sessionRef` on its
     // own input schema, spreads it onto the receipt it persists, and is planner-reachable like
     // every other registered op — so a guard that names only the write op leaves the same
@@ -1242,8 +1242,8 @@ describe('the authoring sessionRef stamp (394-17)', () => {
 // through byte-untouched, because a model may legitimately ask a question this surface's default
 // does not answer.
 
-describe('the authoring funnel window stamp (394-19)', () => {
-  it('DEFAULTS an absent window to this session — D-12\'s surface default, constructed', async () => {
+describe('the authoring funnel window stamp', () => {
+  it('DEFAULTS an absent window to this session — the surface default, constructed', async () => {
     const run = harness({
       planned: { toolCalls: [{ toolName: FUNNEL_TOOL, input: {} }] },
       results: { [AUTHORING_FUNNEL_GET_FUNCTION_ID]: { ok: true } },

@@ -60,7 +60,7 @@ function inputOf(
 }
 
 describe('deterministicOverrideStrategy: the table wins, and an unroutable clause costs the turn', () => {
-  describe('D-12 — the override wins on the action set AND on the bound arguments', () => {
+  describe('the override wins on the action set AND on the bound arguments', () => {
     // ONE input, TWO tests. The model plans a THIRD action and mis-binds the first; the two
     // failures a broken override produces (an extra action; the model's argument) are different
     // defects, so they get different tests over the same fixture.
@@ -219,7 +219,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
     })
   })
 
-  describe('the two fail-closed arms (D-10)', () => {
+  describe('the two fail-closed arms', () => {
     it('refuses the whole turn when a clause is unmapped and unplanned, naming it', () => {
       const first = clause('proposals', 0)
       const second = clause('write a test for two factor auth', 1)
@@ -323,7 +323,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       expect(verdict.reason).toContain('nothing in the request was carried out.')
     })
 
-    it('BOUNDS an ESCAPING payload — the delimiter the model cannot close (394-37, WR-03)', () => {
+    it('BOUNDS an ESCAPING payload — the delimiter the model cannot close', () => {
       // WHAT THE CELL ABOVE CANNOT SEE, AND WHY THAT MATTERS. Its `invented` fixture is quote-free,
       // so both of its structural assertions hold for a payload that CLOSES the attribution: the
       // delimiter was `"`, the single most likely character for a planner's prose to contain, and
@@ -428,7 +428,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
   // question is the VERDICT KIND rather than the plan length. The old suite asserted `plan.length`
   // on a benign informational clause, which is the same number a silent drop produces — which is
   // exactly why the defect survived 284 green tests.
-  describe('CR-03 — answer_only consumes the clause it NAMES, and no other', () => {
+  describe('answer_only consumes the clause it NAMES, and no other', () => {
     it('refuses when an unbound ACTION clause was never named, however well the other was answered', () => {
       // THE VERIFICATION-REQUIRED CASE. Clause 1 is table-bound, clause 2 is an unroutable action,
       // and the model answered clause 1 in prose. Pre-fix this returned `execute` with clause 2
@@ -573,7 +573,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
   // history has fixtures carrying an `answer` field alongside the calls it was projected from —
   // and a corpus of unproducible inputs reddens on mutation while proving nothing about the
   // shipped path (the produced-not-literal corpus law).
-  describe('392-14 — a claim covers a clause only when it NAMES it and SAYS something', () => {
+  describe('a claim covers a clause only when it NAMES it and SAYS something', () => {
     const fromCalls = (
       calls: readonly { readonly toolName: string; readonly input: unknown }[],
     ): PlannerStageOutcome => readBackPlan(calls)
@@ -689,7 +689,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       expect(answer.indexOf('ANSWER-ONE')).toBeLessThan(answer.indexOf('ANSWER-TWO'))
     })
 
-    it('(P4) consumes ONE occurrence per claim when the same clause text repeats', () => {
+    it('consumes ONE occurrence per claim when the same clause text repeats', () => {
       // The ACCEPT half and the REJECT half of the same guard in one case: occurrence 0 IS covered
       // by the single well-formed claim, and occurrence 1 is NOT. `answered` was a set of clause
       // TEXT while `mapped` was keyed by clause INDEX, so one claim spoke for both.
@@ -722,7 +722,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       expect(ANSWER_ONLY_INPUT_SCHEMA.safeParse({ clause: 'x', text: 'y' }).success).toBe(true)
     })
 
-    it('(S1b) requires a NAMED clause in the schema too, the last one-sided field pinned (392-15)', () => {
+    it('(S1b) requires a NAMED clause in the schema too, the last one-sided field pinned', () => {
       // WR-01. `clause` was left bare `z.string()` in the commit that pinned `text` to `.min(1)`,
       // so the model was shown a contract admitting `clause: ""` against a reader that has always
       // refused it — the same one-sided shape three rounds were spent closing, one field over.
@@ -749,7 +749,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
   //
   // EVERY `planned` IS BUILT THROUGH THE REAL `readBackPlan`, for the reason the 392-14 block above
   // states: a hand-written outcome literal can pin an input the producer cannot emit.
-  describe('392-15 — arity accounting: an unattributable plan is a NAMED refusal, never a positional guess', () => {
+  describe('arity accounting: an unattributable plan is a NAMED refusal, never a positional guess', () => {
     const fromCalls = (
       calls: readonly { readonly toolName: string; readonly input: unknown }[],
     ): PlannerStageOutcome => readBackPlan(calls)
@@ -776,7 +776,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
             answer: verdict.answer,
           }
 
-    describe('(AR-1) surplus from a MAPPED clause — the verifier\'s CR-01, verbatim', () => {
+    describe('(AR-1) surplus from a MAPPED clause — the verifier\'s case, verbatim', () => {
       // The model made a call about "run test 42", which the TABLE had already resolved. That call
       // is never removed from `proposed` and the mapped clause never advances the cursor, so the
       // next clause needing a proposal pops it: "summarise the last failure" was executed as
@@ -814,7 +814,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       })
     })
 
-    describe('(AR-2) surplus with the MIDDLE clause mapped — CR-01b, two clauses mis-bound', () => {
+    describe('(AR-2) surplus with the MIDDLE clause mapped — two clauses mis-bound', () => {
       // Worse than AR-1 and for the same reason: the defect is not confined to clauses AFTER the
       // mapped one. Pre-fix, clause 0 took the model's `runs_start` args and clause 2 was bound to
       // `runs.digest` — a request to list proposals executing a digest of a run nobody named.
@@ -899,7 +899,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       })
     })
 
-    it('(AR-5) discards a leftover WHOLE when no clause needs a proposal (probe X3)', () => {
+    it('(AR-5) discards a leftover WHOLE when no clause needs a proposal', () => {
       // THE ASYMMETRY'S MODEL-FACING HALF, and the reason the accounting is not simply
       // `proposed.length === 0 || refuse`. With zero needy clauses no call can be popped by
       // anybody, so a surplus mis-binds nothing and there is no subject to name a refusal about.
@@ -954,7 +954,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       )
     })
 
-    describe('(AR-7) equality beside a mapped clause BINDS (probe X1\'s action half)', () => {
+    describe('(AR-7) equality beside a mapped clause BINDS', () => {
       const first = clause('run test 42', 0)
       const second = clause('summarise the last failure', 1)
       const digestCall = {
@@ -1029,7 +1029,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
     })
   })
 
-  describe('the strategy is pure — which is what makes the D-16 differential meaningful', () => {
+  describe('the strategy is pure — which is what makes the differential meaningful', () => {
     const source = readFileSync(
       fileURLToPath(new URL('../reconcile.ts', import.meta.url)),
       'utf8',

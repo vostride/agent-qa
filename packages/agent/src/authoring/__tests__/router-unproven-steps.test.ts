@@ -72,7 +72,7 @@ function handoffWith(
   return handoff
 }
 
-describe('C439-ROUTER-UNPROVEN', () => {
+describe('routing a draft with an unproven step', () => {
   it('an unproven step with no mechanics routes to stop as indefinitive-failure', () => {
     const handoff = handoffWith(member(), block('unverified'))
     expect(stepUnproven(handoff.tests[0].steps[1])).toBe(true)

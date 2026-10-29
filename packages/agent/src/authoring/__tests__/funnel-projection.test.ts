@@ -247,7 +247,7 @@ describe('projectAuthoringFunnel', () => {
   // RE-SPELLED 2026-10-02 (quick 261002-ctr): was 'reads `accepted` off recorded acceptances, and
   // none are recorded since 432-17' (0 whatever the receipts said). The terminal stage now reads
   // the receipts' stored dispositions, so it counts what the loop writes.
-  it('C261002-CTR-FUNNEL-WRITE-ELIGIBLE: counts the write-eligible receipts the store holds', async () => {
+  it('counts the write-eligible receipts the store holds', async () => {
     const funnel = await projectAuthoringFunnel(
       { scope: 'all-time' },
       port({ receipts: [receipt('a'), receipt('b'), receipt('c')] }),

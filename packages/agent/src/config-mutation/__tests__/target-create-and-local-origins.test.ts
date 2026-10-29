@@ -181,9 +181,9 @@ async function create(
   return await createConfigTarget({ action: CREATE, ...parsed }, test.deps)
 }
 
-describe('C432-TARGET-CREATE-ENVIRONMENT: a target declares its class at creation (D-19)', () => {
+describe('a target declares its class at creation', () => {
   for (const environment of ['local', 'shared', 'production'] as const) {
-    it(`C432-TARGET-CREATE-ENVIRONMENT: ${environment} is written into the new registry entry`, async () => {
+    it(`${environment} is written into the new registry entry`, async () => {
       const test = harness()
       const answer = await create(test, {
         name: 'checkout',
@@ -207,7 +207,7 @@ describe('C432-TARGET-CREATE-ENVIRONMENT: a target declares its class at creatio
     })
   }
 
-  it('C432-TARGET-CREATE-ENVIRONMENT: an undeclared create stays undeclared — no class is defaulted', async () => {
+  it('an undeclared create stays undeclared — no class is defaulted', async () => {
     const test = harness()
     await create(test, { name: 'checkout', platform: 'web', url: 'https://checkout.example.com' })
 
@@ -216,7 +216,7 @@ describe('C432-TARGET-CREATE-ENVIRONMENT: a target declares its class at creatio
     expect(Object.hasOwn(entry, 'environment')).toBe(false)
   })
 
-  it('C432-TARGET-CREATE-ENVIRONMENT: a create never overwrites an existing target, whatever class it declares', async () => {
+  it('a create never overwrites an existing target, whatever class it declares', async () => {
     const test = harness()
     const answer = await create(test, {
       name: 'shop',
@@ -238,7 +238,7 @@ describe('C432-TARGET-CREATE-ENVIRONMENT: a target declares its class at creatio
     expect(writtenTarget(test, 'shop')).toMatchObject({ environment: 'shared' })
   })
 
-  it('C432-TARGET-CREATE-ENVIRONMENT: the collision check is exact, so a Unicode label is its own name', async () => {
+  it('the collision check is exact, so a Unicode label is its own name', async () => {
     const test = harness({
       config: 'registry:\n  targets:\n    strasse:\n      platform: web\n      url: https://a.example\n',
     })
@@ -259,7 +259,7 @@ describe('C432-TARGET-CREATE-ENVIRONMENT: a target declares its class at creatio
   // RE-SPELLED 2026-10-02 (quick 261002-ctr): was '… sits beside an auth binding …'. The create
   // binds no auth state now (the committed configuration has no key for one), so the file gains no
   // `use.authState` beside the class.
-  it('C432-TARGET-CREATE-ENVIRONMENT: the class is written and named in the summary line', async () => {
+  it('the class is written and named in the summary line', async () => {
     const test = harness()
     const answer = await create(test, {
       name: 'checkout',
@@ -282,7 +282,7 @@ describe('C432-TARGET-CREATE-ENVIRONMENT: a target declares its class at creatio
       .toBe('create web target checkout at https://checkout.example.com')
   })
 
-  it('C432-TARGET-CREATE-ENVIRONMENT: the input admits exactly the three classes, optionally', () => {
+  it('the input admits exactly the three classes, optionally', () => {
     const base = { name: 'checkout', platform: 'web', url: 'https://checkout.example.com' }
     for (const environment of ['local', 'shared', 'production']) {
       expect(ConfigTargetCreateInputSchema.safeParse({ ...base, environment }).success).toBe(true)
@@ -343,8 +343,8 @@ const STILL_REFUSED = [
   '   ',
 ] as const
 
-describe('C432-LOCALHOST-ORIGIN: the hostname gate admits local origins by parsing them (D-20 · #134)', () => {
-  it('C432-LOCALHOST-ORIGIN: localhost, IPv4 and bracketed IPv6 loopback keep their scheme and port', () => {
+describe('the hostname gate admits local origins by parsing them', () => {
+  it('localhost, IPv4 and bracketed IPv6 loopback keep their scheme and port', () => {
     for (const row of LOCAL_ORIGINS) {
       expect(parseHostnameToken(row.token), `token ${row.token}`).toEqual({
         kind: 'hostname',
@@ -355,7 +355,7 @@ describe('C432-LOCALHOST-ORIGIN: the hostname gate admits local origins by parsi
     }
   })
 
-  it('C432-LOCALHOST-ORIGIN: a plain hostname defaults to https, and an explicit scheme or port is kept exactly', () => {
+  it('a plain hostname defaults to https, and an explicit scheme or port is kept exactly', () => {
     for (const row of HOSTNAME_ORIGINS) {
       expect(parseHostnameToken(row.token), `token ${row.token}`).toEqual({
         kind: 'hostname',
@@ -366,7 +366,7 @@ describe('C432-LOCALHOST-ORIGIN: the hostname gate admits local origins by parsi
     }
   })
 
-  it('C432-LOCALHOST-ORIGIN: non-web schemes, other addresses and rewritten loopback spellings stay refused', () => {
+  it('non-web schemes, other addresses and rewritten loopback spellings stay refused', () => {
     for (const token of STILL_REFUSED) {
       expect(parseHostnameToken(token), `token ${JSON.stringify(token)}`).toEqual({ kind: 'not-a-hostname' })
     }
@@ -375,7 +375,7 @@ describe('C432-LOCALHOST-ORIGIN: the hostname gate admits local origins by parsi
     expect(ConfigProjectScaffoldInputSchema.safeParse({ domain: '' }).success).toBe(false)
   })
 
-  it('C432-LOCALHOST-ORIGIN: the scaffold op hands the content port the kept scheme and port', async () => {
+  it('the scaffold op hands the content port the kept scheme and port', async () => {
     const test = harness({ config: 'workspace:\n  hooksFile: hooks.yaml\n' })
     const answer = await scaffoldConfigProject(
       { action: 'config.project.scaffold', domain: 'http://127.0.0.1:8931/form.html' },
@@ -388,7 +388,7 @@ describe('C432-LOCALHOST-ORIGIN: the hostname gate admits local origins by parsi
       .toBe('configure this project for http://127.0.0.1:8931 as target ip-127-0-0-1-8931')
   })
 
-  it('C432-LOCALHOST-ORIGIN: a write_test route hands on a spelling that re-derives the same origin', () => {
+  it('a write_test route hands on a spelling that re-derives the same origin', () => {
     for (const [intent, token] of [
       ['write a test for http://localhost:3000 please', 'http://localhost:3000'],
       ['write a test for the form at http://[::1]:8931/form.html', 'http://[::1]:8931/form.html'],
@@ -409,7 +409,7 @@ describe('C432-LOCALHOST-ORIGIN: the hostname gate admits local origins by parsi
       .toEqual({ kind: 'scaffold', domain: 'booking.com', targetName: 'booking-com' })
   })
 
-  it('C432-LOCALHOST-ORIGIN: a local origin whose derived name is configured routes to that target', () => {
+  it('a local origin whose derived name is configured routes to that target', () => {
     expect(resolveWriteTestRoute({
       intent: 'write a test for http://localhost:3000',
       configuredTargetNames: ['localhost-3000'],

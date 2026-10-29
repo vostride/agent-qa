@@ -40,15 +40,15 @@ const RETIRED_SCHEMA_PIN_EXPORTS = ['pinDenies'] as const
 /** A directive spelling no version of the table ever declared — the ordinary unknown directive. */
 const NEVER_DECLARED = '/frobnicate'
 
-describe('C432-PIN-ABSENT: the session pin overlay is gone', () => {
-  it('C432-PIN-ABSENT: the holder and its schema predicate are deleted', () => {
+describe('the session pin overlay is gone', () => {
+  it('the holder and its schema predicate are deleted', () => {
     // The control: the directory the holder lived in is the one this file sits under.
     expect(existsSync(join(HERE, '..', 'resolver-table.ts'))).toBe(true)
     expect(existsSync(AGENT_PIN_MODULE), 'agent/src/chat/pin-overlay.ts is still present').toBe(false)
     expect(existsSync(SCHEMA_PIN_MODULE), 'schema/src/chat/pin-overlay.ts is still present').toBe(false)
   })
 
-  it('C432-PIN-ABSENT: neither barrel publishes a pin member at runtime', () => {
+  it('neither barrel publishes a pin member at runtime', () => {
     const agentKeys = new Set(Object.keys(agent))
     const schemaKeys = new Set(Object.keys(schema))
     expect(agentKeys.size, 'the agent barrel is empty, so the census would be vacuous').toBeGreaterThan(0)
@@ -57,7 +57,7 @@ describe('C432-PIN-ABSENT: the session pin overlay is gone', () => {
     expect([...agentKeys].filter((name) => /pin(overlay|error|_action)/i.test(name))).toEqual([])
   })
 
-  it('C432-PIN-ABSENT: a session chat state carries no pin set and no way to record one', () => {
+  it('a session chat state carries no pin set and no way to record one', () => {
     const state = createChatState({ activeModel: 'unbound' })
     expect(Object.keys(state.read()).sort()).toEqual(['activeModel', 'closing', 'conversation'])
     expect(Object.keys(state).sort()).toEqual([
@@ -65,7 +65,7 @@ describe('C432-PIN-ABSENT: the session pin overlay is gone', () => {
     ])
   })
 
-  it('C432-PIN-ABSENT: /pin resolves exactly as a directive nobody declared, binding no op', () => {
+  it('/pin resolves exactly as a directive nobody declared, binding no op', () => {
     for (const argument of ['fn:runs.start', 'runs.start', 'config-write', '']) {
       const pin = resolveClause(CHAT_RESOLVER_TABLE, `/pin ${argument}`.trim())
       const unknown = resolveClause(CHAT_RESOLVER_TABLE, `${NEVER_DECLARED} ${argument}`.trim())
@@ -76,13 +76,13 @@ describe('C432-PIN-ABSENT: the session pin overlay is gone', () => {
 
   // 432-18 task 2: spelling edges. None of them is a near-miss for a pin any more — each is the
   // same unresolved clause a directive nobody declared is.
-  it('C432-PIN-ABSENT: case, whitespace and suffix variants of /pin resolve as unknown directives too', () => {
+  it('case, whitespace and suffix variants of /pin resolve as unknown directives too', () => {
     for (const clause of ['/PIN fn:runs.start', '/Pin runs.list', '/pin\tfn:runs.start', '  /pin  fn:runs.list  ', '/pinned fn:runs.start', '/pin/fn:runs.start']) {
       expect(resolveClause(CHAT_RESOLVER_TABLE, clause), JSON.stringify(clause)).toEqual({ kind: 'unresolved' })
     }
   })
 
-  it('C432-PIN-ABSENT: no resolver row is keyed on a pin', () => {
+  it('no resolver row is keyed on a pin', () => {
     const aliases = CHAT_RESOLVER_TABLE.map((row) => row.alias)
     expect(aliases.length, 'the resolver table is empty, so the absence would be vacuous').toBeGreaterThan(0)
     expect(aliases.filter((alias) => /^\/?pin$/.test(alias))).toEqual([])

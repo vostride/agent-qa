@@ -48,7 +48,7 @@ function facts(overrides: Partial<CrossBoundaryFacts> = {}): CrossBoundaryFacts 
   }
 }
 
-describe('computeCrossBoundary — one reason per boundary, decided from values (D-02)', () => {
+describe('computeCrossBoundary — one reason per boundary, decided from values', () => {
   it('flags a secret-adjacent field through the SHIPPED matcher, in both directions', () => {
     // Under a root: the obvious case.
     expect(computeCrossBoundary(facts({

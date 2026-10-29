@@ -351,7 +351,7 @@ describe('every corpus fixture is what its side of the comparison actually recei
     expect((utterance as string).length).toBeGreaterThan(0)
   })
 
-  it('copies the 393 suite VERBATIM, so the two denominators describe one world', () => {
+  it('copies the corpus suite VERBATIM, so the two denominators describe one world', () => {
     // 393's corpus scores against these three documents. If a copy drifts, the claim that stage 2
     // and gate 3 screen the same world is silently false, and no other cell would notice.
     const localForm = suiteEntry('uat-381-local-form')
@@ -477,7 +477,7 @@ describe('dedupBeforeAuthor against the frozen corpus', () => {
     expect(AUTHORING_DEDUP_CONTINUATIONS.join(' ')).toContain('assertion')
   })
 
-  it('REFUSES BY RETURNING, never by throwing (D-04: a typed op result)', async () => {
+  it('REFUSES BY RETURNING, never by throwing (a typed op result)', async () => {
     const { dedupBeforeAuthor } = await loadDedup()
     const row = rowNamed('obvious-duplicate')
     const { intent, corpus } = inputsFor(row)

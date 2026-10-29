@@ -132,7 +132,7 @@ describe('found bytes travel whole, under a content type sniffed from their own 
   })
 })
 
-describe('sniffEvidenceContentType — a total function of the first bytes (T-405-15)', () => {
+describe('sniffEvidenceContentType — a total function of the first bytes', () => {
   it('never answers a type a browser will execute, whatever the bytes say they are', () => {
     // The XSS leg stated as a table: an SVG document and an HTML document both sniff to the
     // opaque default, because a served blob that a browser renders as markup is a script the
@@ -167,7 +167,7 @@ describe('RunsArtifactInputSchema — the sha shape is the contract, not a route
     expect(RunsArtifactInputSchema.safeParse({ runId: RUN_ID, sha: `${SHA}0` }).success).toBe(false)
   })
 
-  it('refuses a traversal-shaped sha before any path could be assembled (T-405-14)', () => {
+  it('refuses a traversal-shaped sha before any path could be assembled', () => {
     expect(RunsArtifactInputSchema.safeParse({ runId: RUN_ID, sha: '../../etc/passwd' }).success).toBe(false)
   })
 

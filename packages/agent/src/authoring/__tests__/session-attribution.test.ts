@@ -274,7 +274,7 @@ describe('the sessionRef write path — through repair', () => {
     expect((verifyInputs[0] as { sessionRef?: string }).sessionRef).toBe('sess-alpha')
   })
 
-  it('carries the JOIN TARGET to the final stability gate too (394-19)', async () => {
+  it('carries the JOIN TARGET to the final stability gate too', async () => {
     // The same thread, one field over. A repaired candidate is the SAME draft with patched steps,
     // so it joins the same suite — a target that stopped at stage 4 would leave every repaired
     // draft judged against its own one-test shelf file, which is the arm 394-19 exists to close.

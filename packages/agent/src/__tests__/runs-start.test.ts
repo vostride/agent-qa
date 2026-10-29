@@ -97,7 +97,7 @@ describe('runs.start declaration', () => {
       .toBeUndefined()
   })
 
-  it('carries the D-10 gateRun marker on its declared input', () => {
+  it('carries the gateRun marker on its declared input', () => {
     expect(runsStartSpec.input.safeParse({ gateRun: true }).success).toBe(true)
     expect(runsStartSpec.input.safeParse({ gateRun: false }).success).toBe(false)
     expect(runsStartSpec.input.safeParse({}).success).toBe(true)
@@ -119,7 +119,7 @@ describe('runs.start declaration', () => {
 })
 
 // 436-09 (D-06): the acknowledgement carries the limits the run recorded, never the request's.
-describe('C436-EFFECTIVE-LIMITS runs.start acknowledgement', () => {
+describe('runs.start acknowledgement', () => {
   const plannerLimits = {
     maxActions: 30,
     maxPlanningTurns: 30,
@@ -228,7 +228,7 @@ describe('runs.start is visibly unbound, never silently missing', () => {
   // RE-SPELLED 2026-09-30 (432-13, D-15) from 'audits the attempt: the gate verdict precedes the
   // binding refusal (D-11)'. No gate decides the attempt; the binding refusal is the whole answer,
   // named, and no decision row is written.
-  it('C432-INVOKE-DIRECT: an unbound attempt refuses by name and records no decision row', async () => {
+  it('an unbound attempt refuses by name and records no decision row', async () => {
     const thrown = await invokeFunction(registryWithRunsStart(), 'runs.start', {}, RUN_CALLER)
       .catch((error: unknown) => error)
 
@@ -260,7 +260,7 @@ describe('runs.start is visibly unbound, never silently missing', () => {
   // Retried, from callers that differ in every field a caller still carries, the unbound start
   // meets the same named refusal every time, and never a permission error; the bound stream beside
   // it answers each caller alike.
-  it('C432-ALL-OPS-AVAILABLE: a retried unbound start refuses by binding alone for every caller', async () => {
+  it('a retried unbound start refuses by binding alone for every caller', async () => {
     const registry = registryWithRunsStart()
     const callers: readonly FunctionCaller[] = [
       RUN_CALLER,
@@ -293,7 +293,7 @@ describe('runs.start is visibly unbound, never silently missing', () => {
   // 432-24 (D-12): `runs.list` lost its scope too, so the bound read beside the unbound start is
   // now a migrated op as well. Retried from the same three callers it is SERVED every time — the
   // port is reached once per attempt, and every caller gets the same answer.
-  it('C432-ALL-OPS-AVAILABLE: a retried bound runs.list is served alike to every caller', async () => {
+  it('a retried bound runs.list is served alike to every caller', async () => {
     const deps = fakeDeps()
     let listCalls = 0
     const registry = createRegistryFromSpecs([runsListSpec, runsEventsSpec, runsStartSpec], {

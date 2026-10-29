@@ -231,7 +231,7 @@ describe('invokeFunction pipeline', () => {
   // RE-SPELLED 2026-09-30 (432-13) from 'audits every successful read invocation exactly once (D-11
   // uniform gating)'. The read still dispatches exactly once; no gate decides it, so no row records
   // a decision.
-  it('C432-INVOKE-DIRECT: a read dispatches exactly once and writes no execution-audit row', async () => {
+  it('a read dispatches exactly once and writes no execution-audit row', async () => {
     const deps = spyDeps([handoff('run-beta', 12), handoff('run-alpha', 11)])
     const registry = createRegistryFromSpecs([runsListSpec], registryOptions({ deps: deps.deps }))
 
@@ -271,7 +271,7 @@ function markLikeSpec(invocations: { count: number }): FunctionSpec<{ runId: str
   } as FunctionSpec<{ runId: string }, { ok: true }>
 }
 
-describe('C432-INVOKE-DIRECT — invokeFunction dispatches with no gate (432-13)', () => {
+describe('invokeFunction dispatches with no gate', () => {
   it.each(['ci', 'local-headless', 'local-interactive'] as const)(
     'a mutating op in %s returns once with no confirm port and no audit row',
     async (context) => {
@@ -290,7 +290,7 @@ describe('C432-INVOKE-DIRECT — invokeFunction dispatches with no gate (432-13)
     },
   )
 
-  it('C432-INVOKE-DIRECT: invalid input and a missing binding still refuse by name, dispatching nothing', async () => {
+  it('invalid input and a missing binding still refuse by name, dispatching nothing', async () => {
     const invocations = { count: 0 }
     const registry = createRegistryFromSpecs(
       [
@@ -313,8 +313,8 @@ describe('C432-INVOKE-DIRECT — invokeFunction dispatches with no gate (432-13)
   })
 })
 
-describe('432-20 (D-12): retry and refusal order with no permission check', () => {
-  it('C432-ALL-OPS-AVAILABLE: a retry after an input refusal dispatches exactly once, for a grantless caller', async () => {
+describe('retry and refusal order with no permission check', () => {
+  it('a retry after an input refusal dispatches exactly once, for a grantless caller', async () => {
     const deps = spyDeps()
     const registry = createRegistryFromSpecs([runsListSpec], registryOptions({ deps: deps.deps }))
     const grantless: FunctionCaller = { surface: 'test', origin: 'agent' }

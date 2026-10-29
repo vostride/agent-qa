@@ -89,7 +89,7 @@ describe('the op refuses BY NAME rather than answering about a projection it can
   })
 })
 
-describe('projectRunTokenTotals — absent is not zero (D-06)', () => {
+describe('projectRunTokenTotals — absent is not zero', () => {
   it('answers two counts and NO sums when nothing was measured', () => {
     const totals = projectRunTokenTotals([])
     expect(totals).toEqual({ measuredSteps: 0, unmeasuredSteps: 0 })
@@ -172,7 +172,7 @@ describe('projectRunTokenTotals — absent is not zero (D-06)', () => {
 })
 
 describe('the declaration', () => {
-  it('carries an id the D-15 taxonomy admits', () => {
+  it('carries a dotted lowercase op id', () => {
     expect(RUNS_DETAIL_FUNCTION_ID).toMatch(/^[a-z]+(?:\.[a-z]+)+$/)
     expect(runsDetailSpec.id).toBe(RUNS_DETAIL_FUNCTION_ID)
   })
@@ -235,7 +235,7 @@ function depsWithBlobs(
   } as unknown as FunctionDeps
 }
 
-describe('runs.detail — presence per artifact ref (D-17)', () => {
+describe('runs.detail — presence per artifact ref', () => {
   const ROWS: RunDetailRows = {
     ...EMPTY_ROWS,
     steps: [step()],
@@ -349,8 +349,8 @@ describe('runs.detail — presence per artifact ref (D-17)', () => {
 // `invokeFunction`, retried from three callers that differ in surface and origin and carry no
 // scope, each is served every time: every attempt reads the same ports the same number of times,
 // every caller gets the same projection, and no audit row is written.
-describe('C432-ALL-OPS-AVAILABLE: the 432-27 run reads serve every caller', () => {
-  it('C432-ALL-OPS-AVAILABLE: a retried runs.detail and runs.overview are served alike to every caller', async () => {
+describe('the run detail and overview reads serve every caller', () => {
+  it('a retried runs.detail and runs.overview are served alike to every caller', async () => {
     const document: CompletedRunHandoff = {
       schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
       runId: RUN_ID,

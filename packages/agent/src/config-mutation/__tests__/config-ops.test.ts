@@ -400,7 +400,7 @@ function assertTheCfgm01Sentence(test: Harness, answer: ConfigChangeOutput, opti
   expect(test.validated).toHaveLength(1)
 }
 
-describe('config.field.set — the shared baseline (395-01/04 own its own edges)', () => {
+describe('config.field.set — the shared baseline', () => {
   it('carries the diff, the receipts and the config kind', async () => {
     const test = harness()
     const answer = await call(test, 'config.field.set', { path: 'use.parallel', value: true })
@@ -425,7 +425,7 @@ describe('config.field.set — the shared baseline (395-01/04 own its own edges)
   })
 })
 
-describe('config.target.create — a create is never an upsert (CFGM-01 adjacency edge)', () => {
+describe('config.target.create — a create is never an upsert (adjacency edge)', () => {
   it('carries the diff, the receipts and the config kind', async () => {
     const test = harness()
     const answer = await call(test, 'config.target.create', {
@@ -528,7 +528,7 @@ describe('config.target.create — a create is never an upsert (CFGM-01 adjacenc
   })
 })
 
-describe('config.target.edit — never guess, and decide from the VALUE (D-02/D-15)', () => {
+describe('config.target.edit — never guess, and decide from the VALUE', () => {
   it('carries the diff, the receipts and the config kind', async () => {
     const test = harness()
     const answer = await call(test, 'config.target.edit', {
@@ -600,7 +600,7 @@ describe('config.target.edit — never guess, and decide from the VALUE (D-02/D-
   })
 })
 
-describe('config.auth.set — refs only, refused on the INPUT (D-11, ratified as law)', () => {
+describe('config.auth.set — refs only, refused on the INPUT', () => {
   // RE-SPELLED 2026-10-02 (quick 261002-ctr): the reference this cell wrote was `authStateName`,
   // which the op no longer takes; the claim moves to the plugin declaration it still writes.
   it('carries the diff, the receipts and the config kind, and is secret-adjacent', async () => {
@@ -620,7 +620,7 @@ describe('config.auth.set — refs only, refused on the INPUT (D-11, ratified as
     expect(answer.shownDiff).toContain('@acme/auth')
   })
 
-  it('C261002-CTR-NO-AUTH-STATE-FIELD: authStateName is refused on the input by all three ops, and nothing is written', async () => {
+  it('authStateName is refused on the input by all three ops, and nothing is written', async () => {
     for (const [id, input] of [
       ['config.auth.set', { target: 'shop', authStateName: 'shop-default' }],
       ['config.target.create', { name: 'basket', platform: 'web', url: 'https://basket.example.com', authStateName: 'shop-default' }],
@@ -729,7 +729,7 @@ describe('config.auth.set — refs only, refused on the INPUT (D-11, ratified as
   })
 })
 
-describe('config.hook.add — the one action that writes another file (D-02)', () => {
+describe('config.hook.add — the one action that writes another file', () => {
   it('carries the diff, the receipts and the config kind — for the HOOKS file', async () => {
     const test = harness({ hooks: HOOKS })
     const answer = await call(test, 'config.hook.add', {
@@ -850,7 +850,7 @@ const EXPECTED_CONFIG_FAMILY = [
   // 2026-10-01 (432-17, D-05/D-09): `config.proposal.apply` and `config.undo.propose` are deleted.
 ] as const
 
-describe('the config action class is CLOSED, and the registry is where that is legible (D-01)', () => {
+describe('the config action class is CLOSED, and the registry is where that is legible', () => {
   it('registers exactly the expected config family, and every member is config-write', () => {
     const registry = registryFor(harness())
     const declarations = registry.list(CALLER)
@@ -922,8 +922,8 @@ function addedLines(diff: string): string[] {
   return diff.split('\n').filter((line) => line.startsWith('+') && !line.startsWith('+++'))
 }
 
-describe('C432-CONFIG-THREE-OPS: field, target create and target edit write in the call', () => {
-  it('C432-CONFIG-THREE-OPS: config.field.set writes the field and answers what it changed', async () => {
+describe('field, target create and target edit write in the call', () => {
+  it('config.field.set writes the field and answers what it changed', async () => {
     const test = harness()
     const answer = await change(test, 'config.field.set', { path: 'use.parallel', value: true })
 
@@ -942,7 +942,7 @@ describe('C432-CONFIG-THREE-OPS: field, target create and target edit write in t
     expect(test.filed).toHaveLength(0)
   })
 
-  it('C432-CONFIG-THREE-OPS: config.target.create writes the entry only while the name is still free',
+  it('config.target.create writes the entry only while the name is still free',
     async () => {
       const test = harness()
       const answer = await change(test, 'config.target.create', {
@@ -978,7 +978,7 @@ describe('C432-CONFIG-THREE-OPS: field, target create and target edit write in t
       expect(test.filed).toHaveLength(0)
     })
 
-  it('C432-CONFIG-THREE-OPS: config.target.edit writes the changed url and nothing else', async () => {
+  it('config.target.edit writes the changed url and nothing else', async () => {
     const test = harness()
     const answer = await change(test, 'config.target.edit', {
       name: 'shop',
@@ -999,7 +999,7 @@ describe('C432-CONFIG-THREE-OPS: field, target create and target edit write in t
     expect(test.filed).toHaveLength(0)
   })
 
-  it('C432-CONFIG-THREE-OPS: a request refusal writes nothing and files nothing', async () => {
+  it('a request refusal writes nothing and files nothing', async () => {
     const collision = harness()
     const refused = await change(collision, 'config.target.create', {
       name: 'shop',
@@ -1021,7 +1021,7 @@ describe('C432-CONFIG-THREE-OPS: field, target create and target edit write in t
     }
   })
 
-  it('C432-CONFIG-THREE-OPS: the same value twice is no change, and the writer is not called', async () => {
+  it('the same value twice is no change, and the writer is not called', async () => {
     const test = harness()
     const answer = await change(test, 'config.field.set', { path: 'use.parallel', value: false })
     expect(answer).toEqual({ outcome: 'no-change', path: 'set use.parallel' })
@@ -1029,7 +1029,7 @@ describe('C432-CONFIG-THREE-OPS: field, target create and target edit write in t
     expect(test.filed).toEqual([])
   })
 
-  it('C432-CONFIG-THREE-OPS: a create the transaction refuses answers the refusal and claims nothing',
+  it('a create the transaction refuses answers the refusal and claims nothing',
     async () => {
       // The name was free when the call read the file and taken by the time the write took its
       // turn: the transaction's expect refuses, and the answer says the file moved.
@@ -1054,10 +1054,10 @@ describe('C432-CONFIG-THREE-OPS: field, target create and target edit write in t
     })
 })
 
-describe('C432-CONFIG-SIX-OPS: auth, hook and scaffold write in the call as well', () => {
+describe('auth, hook and scaffold write in the call as well', () => {
   // RE-SPELLED 2026-10-02 (quick 261002-ctr): was '… binds the state and appends the plugin …'. The
   // op binds no state now (the committed configuration has no key for one); it appends the plugin.
-  it('C432-CONFIG-SIX-OPS: config.auth.set appends the plugin as a field change',
+  it('config.auth.set appends the plugin as a field change',
     async () => {
       const test = harness()
       const answer = await change(test, 'config.auth.set', {
@@ -1080,7 +1080,7 @@ describe('C432-CONFIG-SIX-OPS: auth, hook and scaffold write in the call as well
       expect(test.filed).toHaveLength(0)
     })
 
-  it('C432-CONFIG-SIX-OPS: config.auth.set refuses a value that is not a reference before anything is written', async () => {
+  it('config.auth.set refuses a value that is not a reference before anything is written', async () => {
     const test = harness()
     const answer = await change(test, 'config.auth.set', {
       target: 'shop',
@@ -1090,7 +1090,7 @@ describe('C432-CONFIG-SIX-OPS: auth, hook and scaffold write in the call as well
     expect(test.written).toEqual([])
   })
 
-  it('C432-CONFIG-SIX-OPS: config.hook.add publishes the hooks file over the bytes it was built from',
+  it('config.hook.add publishes the hooks file over the bytes it was built from',
     async () => {
       const test = harness({ hooks: HOOKS })
       const answer = await change(test, 'config.hook.add', {
@@ -1119,7 +1119,7 @@ describe('C432-CONFIG-SIX-OPS: auth, hook and scaffold write in the call as well
       expect(test.filed).toHaveLength(0)
     })
 
-  it('C432-CONFIG-SIX-OPS: a hooks file that does not exist yet is published with no base digest',
+  it('a hooks file that does not exist yet is published with no base digest',
     async () => {
       const test = harness({ hooks: undefined })
       const answer = await change(test, 'config.hook.add', {
@@ -1134,7 +1134,7 @@ describe('C432-CONFIG-SIX-OPS: auth, hook and scaffold write in the call as well
       expect(call.files[0]?.text).toContain('timeout: 30s')
     })
 
-  it('C432-CONFIG-SIX-OPS: config.project.scaffold publishes every file of the scaffold in one call',
+  it('config.project.scaffold publishes every file of the scaffold in one call',
     async () => {
       const test = harness({ config: null })
       const answer = await change(test, 'config.project.scaffold', { domain: 'booking.com' })
@@ -1159,8 +1159,8 @@ describe('C432-CONFIG-SIX-OPS: auth, hook and scaffold write in the call as well
     })
 })
 
-describe('C432-CONFIG-MULTIFILE-TRUTH: a partial publication is reported as exactly what happened', () => {
-  it('C432-CONFIG-MULTIFILE-TRUTH: a failure after the first file names the written, failed and unreached files',
+describe('a partial publication is reported as exactly what happened', () => {
+  it('a failure after the first file names the written, failed and unreached files',
     async () => {
       const test = harness({
         config: null,
@@ -1188,7 +1188,7 @@ describe('C432-CONFIG-MULTIFILE-TRUTH: a partial publication is reported as exac
       expect(test.filed).toHaveLength(0)
     })
 
-  it('C432-CONFIG-MULTIFILE-TRUTH: a file that changed before any write refuses and nothing is written',
+  it('a file that changed before any write refuses and nothing is written',
     async () => {
       const test = harness({
         hooks: HOOKS,

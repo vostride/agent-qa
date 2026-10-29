@@ -150,7 +150,7 @@ async function refusalOf(loop: ReturnType<typeof loopOver>): Promise<unknown> {
     .then(() => undefined, (error: unknown) => error)
 }
 
-describe('C441-DRAFT-MARKER', () => {
+describe('masked placeholders in a loop draft', () => {
   it('the loop refuses a draft whose step would type a masked placeholder', async () => {
     const loop = loopOver(['Open the local account form', 'Type [secret:PW] into Password'])
 

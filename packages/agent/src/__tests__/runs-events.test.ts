@@ -187,11 +187,11 @@ describe('runs.events replay', () => {
   })
 })
 
-describe('runs.events through invokeFunction (D-11 one dispatch path)', () => {
+describe('runs.events through invokeFunction (one dispatch path)', () => {
   // RE-SPELLED 2026-09-30 (432-13, D-15) from 'audits the invocation BEFORE the first event is
   // yielded'. There is no op gate, so a stream dispatch records no decision; what survives is that
   // every event reaches the caller through the one dispatch path.
-  it('C432-INVOKE-DIRECT: a stream dispatch writes no audit row and yields every event', async () => {
+  it('a stream dispatch writes no audit row and yields every event', async () => {
     const spy = eventsDeps({ events: FIVE_EVENTS })
     const registry = createRegistryFromSpecs([runsEventsSpec], {
       deps: spy.deps,

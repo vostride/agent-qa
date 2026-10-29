@@ -99,7 +99,7 @@ function registry() {
   return createFunctionRegistry({ deps: emptyDeps() })
 }
 
-describe('tool-names: the dotted-id <-> provider-safe bijection (Pitfall 8)', () => {
+describe('tool-names: the dotted-id <-> provider-safe bijection', () => {
   it('maps the dot taxonomy onto the provider-safe charset', () => {
     expect(toToolName('runs.start')).toBe('runs_start')
     expect(fromToolName('runs_start')).toBe('runs.start')
@@ -144,7 +144,7 @@ describe('tool-names: the dotted-id <-> provider-safe bijection (Pitfall 8)', ()
   })
 })
 
-describe('projectPlannerTools: the registry walk IS the toolset (D-07)', () => {
+describe('projectPlannerTools: the registry walk IS the toolset', () => {
   it('projects every registered op 1:1, plus exactly the two meta-tools, and nothing else', () => {
     const walked = registry().list(PLANNER_CALLER)
     const tools = projectPlannerTools(registry(), PLANNER_CALLER)
@@ -160,12 +160,12 @@ describe('projectPlannerTools: the registry walk IS the toolset (D-07)', () => {
     expect(Object.keys(tools).sort()).toEqual(expected)
   })
 
-  it('includes agent.ask itself — op-calls-op recursion is ordinary composition (D-24)', () => {
+  it('includes agent.ask itself — op-calls-op recursion is ordinary composition', () => {
     const tools = projectPlannerTools(registry(), PLANNER_CALLER)
     expect(Object.hasOwn(tools, 'agent_ask')).toBe(true)
   })
 
-  it('carries NO execute callback on any tool — nothing can run before reconciliation (D-10)', () => {
+  it('carries NO execute callback on any tool — nothing can run before reconciliation', () => {
     const tools = projectPlannerTools(registry(), PLANNER_CALLER)
     for (const [name, definition] of Object.entries(tools)) {
       expect(
@@ -210,7 +210,7 @@ describe('projectPlannerTools: the registry walk IS the toolset (D-07)', () => {
     }
   })
 
-  it('shapes both meta-tools around the CLAUSE they are about (CHAT-01/D-08/CR-03)', async () => {
+  it('shapes both meta-tools around the CLAUSE they are about', async () => {
     const tools = projectPlannerTools(registry(), PLANNER_CALLER)
     const unhandled = tools[MARK_UNHANDLED_TOOL_NAME]
     const answer = tools[ANSWER_ONLY_TOOL_NAME]
@@ -227,7 +227,7 @@ describe('projectPlannerTools: the registry walk IS the toolset (D-07)', () => {
     expect((answerSchema.required ?? []).slice().sort()).toEqual(['clause', 'text'])
   })
 
-  it('FORBIDS refusing over an optional field, in the tool description itself (WINDOWS 110)', () => {
+  it('FORBIDS refusing over an optional field, in the tool description itself', () => {
     // 394-30's live refusal, stated as a rule the model reads at the tool it misused. The planner
     // called `mark_unhandled` on a turn whose only obstacle was an OMITTED OPTIONAL FIELD — a field
     // its own contract lists outside `required` — so the refusal was not "no tool can do this" but
@@ -257,7 +257,7 @@ describe('projectPlannerTools: the registry walk IS the toolset (D-07)', () => {
   })
 })
 
-describe('projectPlannerTools: the model is not shown what the host stamps (394-22, G-1)', () => {
+describe('projectPlannerTools: the model is not shown what the host stamps', () => {
   it('WITHHOLDS sessionRef from every op the host stamps it onto, and nothing else', async () => {
     // The declaration objects the transform actually sees, so the last assertion is about the
     // shared projection rather than about a second listing that would hide an in-place edit.
@@ -300,7 +300,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps (394-
     }
   })
 
-  it('makes window OPTIONAL, keeps the wider arms, and says the host supplies it (D-12)', async () => {
+  it('makes window OPTIONAL, keeps the wider arms, and says the host supplies it', async () => {
     const walked = registry().list(PLANNER_CALLER)
     const tools = projectPlannerTools({ list: () => walked }, PLANNER_CALLER)
     expect(WINDOW_STAMPED_FUNCTION_IDS.size).toBeGreaterThan(0)
@@ -425,7 +425,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps (394-
     }
   })
 
-  it('shows NO sessionRef in a window arm either — the not-shown law has no exception (WR-02)',
+  it('shows NO sessionRef in a window arm either — the not-shown law has no exception',
     async () => {
       // WR-02. `modelFacingInput`'s window branch dropped the session arm's REQUIREDNESS and left
       // the property in place, while its own comment claimed the ref was gone — so the model was

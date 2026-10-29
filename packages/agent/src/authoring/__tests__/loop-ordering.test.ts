@@ -327,7 +327,7 @@ describe('the six-stage order is structural, not a habit of the code', () => {
     expect(loop.written).toHaveLength(1)
   })
 
-  it('calls the model exactly TWICE — compile, then D-18 one refinement round', async () => {
+  it('calls the model exactly TWICE — compile, then one refinement round', async () => {
     const loop = observedLoop()
 
     const result = await runAuthoringLoop({ intent: INTENT, scope: SCOPE }, loop.deps)
@@ -388,7 +388,7 @@ function renderedBlocks(text: string): readonly RenderedBlock[] {
   })
 }
 
-describe('the document schema rides the stable tier, not the exemplar block (WINDOWS 111)', () => {
+describe('the document schema rides the stable tier, not the exemplar block', () => {
   it('names the required keys in a STABLE block, on a brief carrying ZERO exemplars', async () => {
     const loop = observedLoop()
 
@@ -436,7 +436,7 @@ describe('the document schema rides the stable tier, not the exemplar block (WIN
       ])
   })
 
-  it('serves the configured target names in the CONTEXT tier, beside Scope (394-33, WR-07)', async () => {
+  it('serves the configured target names in the CONTEXT tier, beside Scope', async () => {
     const loop = observedLoop()
 
     await runAuthoringLoop({ intent: INTENT, scope: SCOPE }, loop.deps)
@@ -647,7 +647,7 @@ function writerShelf(
 
 const FINAL_TARGET = authoredSuiteTargetPath(STAGED_DRAFT.filePath, STAGED_DRAFT.testName)
 
-describe('EDGE-09: exactly the non-rejected final dispositions are written (432 D-06)', () => {
+describe('exactly the non-rejected final dispositions are written', () => {
   const written: readonly {
     readonly disposition: DraftDisposition
     readonly gates: DraftGateBooleans
@@ -734,7 +734,7 @@ describe('EDGE-09: exactly the non-rejected final dispositions are written (432 
 // no is rejected by the disposition table (D-06: "writes the test file unless a keep-gate rejected
 // it"), so stage 5 never hands it to the writer. The disposition is COMPUTED here rather than
 // scripted, so the cell reds on the table, not on a fixture.
-describe('C261003-CPV-DRAFT-KEEP-GATES: a draft-mode draft a keep-gate rejected is not written', () => {
+describe('a draft-mode draft a keep-gate rejected is not written', () => {
   const ONE_RUN = { requested: 1, completed: 1 } as const
 
   function draftModeReceipt(gates: DraftGateBooleans, runId?: string): DraftReceipt {
@@ -795,7 +795,7 @@ describe('C261003-CPV-DRAFT-KEEP-GATES: a draft-mode draft a keep-gate rejected 
 
 // 2026-10-12 (440-05, D-08): the keep check is driven directly, since compile, refine and repair
 // already hold the values on the normal path. STAGED_DRAFT's steps carry `alice` and `Local Form`.
-describe('C440-VALUE-KEEP', () => {
+describe('stated values checked at keep', () => {
   const GATE_RUN_IDS = ['r_keep-gate-0', 'r_keep-gate-1', 'r_keep-gate-2'] as const
 
   function keepEligibleReceipt(): DraftReceipt {

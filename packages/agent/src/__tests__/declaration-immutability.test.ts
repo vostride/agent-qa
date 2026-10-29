@@ -150,7 +150,7 @@ function eachReachableNode(
   }
 }
 
-describe('the listed view is inert (BL-01)', () => {
+describe('the listed view is inert', () => {
   it('freezes the whole reachable graph of every declaration, naming no field', () => {
     const declarations = buildRegistry().list(FULLY_GRANTED)
 
@@ -258,7 +258,7 @@ describe('the listed view is inert (BL-01)', () => {
 // cells are the relation between the two artifacts — every op's declaration and the spec it was
 // projected from — so a hand-maintained flag, or a projection that drifts off the spec, reds here
 // rather than rotting into a golden nobody can falsify.
-describe('the disclose presence flag is projected from the spec (D-05)', () => {
+describe('the disclose presence flag is projected from the spec', () => {
   function specsOf(registry: ReturnType<typeof buildRegistry>): ReadonlyMap<string, FunctionSpec> {
     const internals = registryInternals(registry)
     if (internals === undefined) throw new Error('the registry exposes no internals')
@@ -308,7 +308,7 @@ describe('the disclose presence flag is projected from the spec (D-05)', () => {
   })
 })
 
-describe('declaration views are deeply frozen (CR-04)', () => {
+describe('declaration views are deeply frozen', () => {
   // RE-SPELLED 2026-10-01 (432-20, D-12) from 'freezes every listed declaration, its
   // requiredScopes, and its risk descriptor'. Declarations carry no `requiredScopes`.
   it('freezes every listed declaration and its risk descriptor', () => {
@@ -324,7 +324,7 @@ describe('declaration views are deeply frozen (CR-04)', () => {
   // RE-SPELLED 2026-10-01 (432-20, D-12) from 'kills the CR-04 escalation: the repro write throws
   // and the caller is still refused'. There is no scope requirement on a listing to vacate and no
   // refusal to survive it: the write throws because the view is frozen, and config.get is served.
-  it('kills the CR-04 escalation: the repro write throws and there is no requirement to vacate', async () => {
+  it('a write to the listed view throws and there is no requirement to vacate', async () => {
     const registry = buildRegistry()
     const declaration = configGet(registry.list(ZERO_SCOPE_CALLER))
 
@@ -423,7 +423,7 @@ const REQUIRED_DECLARATION_KEYS = [
 // 2026-10-02 (432-42, D-14): `discloses` left the optional flags with the per-op disclosure.
 const OPTIONAL_DECLARATION_FLAGS = ['classifies', 'rendersResult'] as const
 
-describe('C432-DECLARATION-KEYS: runtime declarations carry no permission metadata', () => {
+describe('runtime declarations carry no permission metadata', () => {
   it('pins the exact key set of every real declaration, and no scope or origin key', () => {
     expect(DECLARATION_TYPE_HAS_SCOPES).toBe(false)
     expect(DECLARATION_TYPE_HAS_HUMAN_ORIGIN).toBe(false)

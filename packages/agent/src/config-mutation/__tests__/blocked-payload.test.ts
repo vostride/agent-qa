@@ -22,8 +22,8 @@ describe('applyablePayload — the funnel every config apply passes through', ()
 //                               record reference; a stored proposal payload is not a direct answer.
 // C432-CONFIG-APPLIED-OUTPUT    the applied arm requires the files and fields that were written.
 
-describe('C432-CONFIG-BLOCKED-NO-WRITE: the direct answer names no record', () => {
-  it('C432-CONFIG-BLOCKED-NO-WRITE: a blocked answer parses without a proposal id and refuses one', async () => {
+describe('the direct answer names no record', () => {
+  it('a blocked answer parses without a proposal id and refuses one', async () => {
     const schema = await import('@vostride/agent-qa-schema') as Record<string, unknown>
     const contract = schema.ConfigChangeOutputSchema as
       | { safeParse(value: unknown): { success: boolean } }
@@ -51,8 +51,8 @@ describe('C432-CONFIG-BLOCKED-NO-WRITE: the direct answer names no record', () =
   })
 })
 
-describe('C432-CONFIG-APPLIED-OUTPUT: the applied answer names what was written', () => {
-  it('C432-CONFIG-APPLIED-OUTPUT: files and fields are required and non-empty', async () => {
+describe('the applied answer names what was written', () => {
+  it('files and fields are required and non-empty', async () => {
     const schema = await import('@vostride/agent-qa-schema') as Record<string, unknown>
     const contract = schema.ConfigChangeOutputSchema as
       | { safeParse(value: unknown): { success: boolean } }

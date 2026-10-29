@@ -72,7 +72,7 @@ function onlyRow(steps: readonly string[]) {
   return row
 }
 
-describe('classifyDraftSteps — role classification (D-09 clause (i))', () => {
+describe('classifyDraftSteps — role classification (clause (i))', () => {
   it('classifies a leading assertion verb as an assertion', () => {
     expect(onlyRow(['Verify the page says "Received!"']).role).toBe('assertion')
   })
@@ -106,7 +106,7 @@ describe('classifyDraftSteps — role classification (D-09 clause (i))', () => {
   })
 })
 
-describe('classifyDraftSteps — falsifiability (D-09 clause (ii))', () => {
+describe('classifyDraftSteps — falsifiability (clause (ii))', () => {
   it('a quoted expected literal makes an assertion falsifiable', () => {
     const row = onlyRow(['Verify the page says "Received!"'])
 
@@ -118,7 +118,7 @@ describe('classifyDraftSteps — falsifiability (D-09 clause (ii))', () => {
     expect(onlyRow(['Verify the Submit button is disabled']).falsifiable).toBe(true)
   })
 
-  it('an expected-state term with no named element is NOT falsifiable (D-12)', () => {
+  it('an expected-state term with no named element is NOT falsifiable', () => {
     // `visible` is a member; nothing in the step says visible WHAT. Tune toward reject.
     expect(onlyRow(['Verify the content is visible']).falsifiable).toBe(false)
   })
@@ -149,7 +149,7 @@ describe('classifyDraftSteps — falsifiability (D-09 clause (ii))', () => {
   })
 })
 
-describe('classifyDraftSteps — capture signatures (D-10)', () => {
+describe('classifyDraftSteps — capture signatures', () => {
   it('flags a 32-char hex expected value and NAMES the pattern', () => {
     const row = onlyRow([
       'Verify the page shows the submission reference "3f9c1ab27d5e4086bb17c2e5a94d0f6b"',
@@ -196,7 +196,7 @@ describe('classifyDraftSteps — capture signatures (D-10)', () => {
   })
 })
 
-describe('classifyDraftSteps — tautology (D-10)', () => {
+describe('classifyDraftSteps — tautology', () => {
   it('flags an assertion that restates a PRIOR action step\'s own literal', () => {
     const row = onlyRow([
       'Type "alice" into the Username field',
@@ -231,7 +231,7 @@ describe('classifyDraftSteps — tautology (D-10)', () => {
   })
 })
 
-describe('classifyDraftSteps — mixed act-and-verify steps (D-12)', () => {
+describe('classifyDraftSteps — mixed act-and-verify steps', () => {
   it('an assertion whose residue also names an action verb contributes no falsifiable assertion', () => {
     const row = onlyRow(['Verify the form is submitted and click the "Continue" button'])
 
@@ -264,7 +264,7 @@ describe('classifyDraftSteps — mixed act-and-verify steps (D-12)', () => {
   })
 })
 
-describe('the concreteness relation — a page-whole SUBJECT is refused whatever else the sentence mentions (393-12, 393-13, 393-15, 393-17)', () => {
+describe('the concreteness relation — a page-whole SUBJECT is refused whatever else the sentence mentions', () => {
   // WHY THESE CONTROLS REACH THE CONCRETENESS ARM, by construction rather than by hope.
   //
   // No unquoted step below carries a double-quoted span, so `concrete` cannot short-circuit on
@@ -681,7 +681,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
     expect(result.table[0]?.captureSignatureHits).toEqual([])
   })
 
-  it.each(RESTATED_EMPTY_CAPTURES)('refuses an assertion restating a prior EMPTY capture (WR-01): $assertion', ({ action, assertion }) => {
+  it.each(RESTATED_EMPTY_CAPTURES)('refuses an assertion restating a prior EMPTY capture: $assertion', ({ action, assertion }) => {
     const row = onlyRow([action, assertion])
 
     expect(row.role).toBe('assertion')
@@ -796,7 +796,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   })
 })
 
-describe('classifyDraftSteps — the table (D-11)', () => {
+describe('classifyDraftSteps — the table', () => {
   it('emits exactly one row per input step, in order, with the text carried verbatim', () => {
     const steps = [
       'Type "alice" into the Username field',
@@ -817,7 +817,7 @@ describe('classifyDraftSteps — the table (D-11)', () => {
   })
 })
 
-describe('assertionStrengthGate — the two clauses composed (D-09)', () => {
+describe('assertionStrengthGate — the two clauses composed', () => {
   it('fails clause (i): no step classifies as an assertion at all', () => {
     const result = assertionStrengthGate({
       steps: [
@@ -878,7 +878,7 @@ describe('assertionStrengthGate — the two clauses composed (D-09)', () => {
   // That makes the reason load-bearing rather than decorative, and it was WRONG here: a mixed step
   // carrying a quoted literal fell through to the "no quoted expected value" fallback, so the
   // durable receipt explained the refusal with a statement contradicted by the step beside it.
-  it('says a mixed act-and-verify step was mixed, rather than that it quoted nothing (D-12)', () => {
+  it('says a mixed act-and-verify step was mixed, rather than that it quoted nothing', () => {
     const result = assertionStrengthGate({
       steps: ['Verify the page says "Saved" and click Continue'],
     })
@@ -889,7 +889,7 @@ describe('assertionStrengthGate — the two clauses composed (D-09)', () => {
     expect(result.reason).not.toContain('no quoted expected value')
   })
 
-  it('still reports the no-concrete-content cause when that is genuinely why (D-09 clause (ii))', () => {
+  it('still reports the no-concrete-content cause when that is genuinely why (clause (ii))', () => {
     // The fallback is not dead — it is the honest answer for an assertion that names nothing,
     // and this pairs with the case above so a fix to one cannot silently swallow the other.
     const result = assertionStrengthGate({ steps: ['Verify the content is correct'] })
@@ -900,7 +900,7 @@ describe('assertionStrengthGate — the two clauses composed (D-09)', () => {
     expect(result.reason).not.toContain('acts and verifies in one step')
   })
 
-  it('states the relation the walk decides, VERBATIM, on a step the stop refused (393-17)', () => {
+  it('states the relation the walk decides, VERBATIM, on a step the stop refused', () => {
     // THE SECOND FALSE TAIL, pinned so a third cannot land quietly. The tail this replaced said no
     // element noun stood NEAREST the anchor among the walk's set-nouns — which is a durable false
     // statement about exactly this step, because `button` is an element noun and is the nearest such
@@ -916,7 +916,7 @@ describe('assertionStrengthGate — the two clauses composed (D-09)', () => {
     )
   })
 
-  it('never tells an author who NAMED an element that they named none (393-15)', () => {
+  it('never tells an author who NAMED an element that they named none', () => {
     // The receipt the plural author gets. `Verify the Submit buttons are disabled` loses gate 4 for
     // a real and disclosed reason — membership is exact, so `buttons` is not `button` — but the
     // durable explanation may not deny that the step named an element, because it did. The old tail
@@ -1143,7 +1143,7 @@ describe('the frozen corpus classes, by literal step text (4180c78b)', () => {
   })
 })
 
-describe('the lexicons are closed pinned sets (D-09, the 392-16 discipline)', () => {
+describe('the lexicons are closed pinned sets', () => {
   it('every lexicon is frozen at its declared membership', () => {
     expect([...ASSERTION_VERBS]).toEqual(['assert', 'check', 'confirm', 'ensure', 'expect', 'verify'])
     expect([...VACUOUS_ASSERTION_PHRASES]).toEqual([

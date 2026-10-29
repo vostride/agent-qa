@@ -79,7 +79,7 @@ function pass(messages: readonly ModelMessage[], contextWindow: number) {
   })
 }
 
-describe('CHAT-04 / D-20: the pinned trigger policy', () => {
+describe('the pinned trigger policy', () => {
   it('pins COMPACTION_RATIO at 0.5 and CHAT_MINIMUM_CONTEXT, each with a retune comment', () => {
     expect(COMPACTION_RATIO).toBe(0.5)
     expect(CHAT_MINIMUM_CONTEXT).toBeGreaterThan(0)
@@ -105,7 +105,7 @@ describe('CHAT-04 / D-20: the pinned trigger policy', () => {
   })
 })
 
-describe('CHAT-04: the threshold', () => {
+describe('the threshold', () => {
   // contextWindow 32768 -> threshold 16384 tokens -> 65536 chars exactly.
   const WINDOW = 32768
   const THRESHOLD_CHARS = 65536
@@ -139,7 +139,7 @@ describe('CHAT-04: the threshold', () => {
   })
 })
 
-describe('CHAT-04/empty: the degenerate histories', () => {
+describe('the degenerate histories', () => {
   it('an empty history is a no-op — no throw, no degrade, no event', () => {
     const result = pass([], 32768)
     expect(result.messages).toEqual([])
@@ -156,7 +156,7 @@ describe('CHAT-04/empty: the degenerate histories', () => {
   })
 })
 
-describe('CHAT-04: the budget floor', () => {
+describe('the budget floor', () => {
   it('floors the budget at CHAT_MINIMUM_CONTEXT rather than at half a tiny window', () => {
     // contextWindow 4000 -> threshold 2000 tokens (8000 chars); the floor (8192) is what the
     // conversation is asked to fit under, so a 3000-token history is NOT shredded to 2000.
@@ -170,7 +170,7 @@ describe('CHAT-04: the budget floor', () => {
   })
 })
 
-describe('CHAT-04: the hard-truncate fallback cannot wedge a session', () => {
+describe('the hard-truncate fallback cannot wedge a session', () => {
   // The protected set (system + final + the chat pin) alone exceeds the budget. degrade's own
   // contract is that it never throws and never violates a pin — this is chat's half of that.
   const unfittable: ModelMessage[] = [
@@ -210,7 +210,7 @@ describe('CHAT-04: the hard-truncate fallback cannot wedge a session', () => {
   })
 })
 
-describe('CHAT-04: the chat pin, as a two-sided differential', () => {
+describe('the chat pin, as a two-sided differential', () => {
   // TWO SIDES, ONE SUBSTRATE (the 388/389/390 differential law). Each case runs the SAME fixture
   // twice against the same shipped `degrade`: once through `maybeCompact`, which supplies the chat
   // pin, and once directly with no pin at all. Asserting only the pinned side would prove nothing —
@@ -277,7 +277,7 @@ describe('CHAT-04: the chat pin, as a two-sided differential', () => {
   })
 })
 
-describe('CHAT-04 / the assumption-delta invariant: ONE event per pass', () => {
+describe('the assumption-delta invariant: ONE event per pass', () => {
   async function runHook(messages: readonly ModelMessage[], contextWindow: number) {
     const emitted: ChatCompactionEvent[] = []
     const retained: (readonly ModelMessage[])[] = []
@@ -333,7 +333,7 @@ describe('CHAT-04 / the assumption-delta invariant: ONE event per pass', () => {
     expect(damaged.emitted[0]?.turnId).toBe('turn-7')
   })
 
-  it('defaults its conversation to the REPAIRED replay it was handed (CHAT-05 ordering)', async () => {
+  it('defaults its conversation to the REPAIRED replay it was handed', async () => {
     const emitted: ChatCompactionEvent[] = []
     const retained: (readonly ModelMessage[])[] = []
     const hook = createChatCompactionHook({
@@ -484,7 +484,7 @@ function compactionKnobKeys(keys: readonly string[]): string[] {
   })
 }
 
-describe('D-20: the knob-absence gate', () => {
+describe('the knob-absence gate', () => {
   it('walks a real, non-empty config-schema key inventory', () => {
     const keys = collectConfigSchemaKeys()
     // A walker that silently returned nothing would pass the assertion below forever.

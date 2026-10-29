@@ -273,7 +273,7 @@ async function scaffold(test: Harness, domain: string): Promise<ConfigChangeOutp
   return await scaffoldConfigProject({ action: ACTION, domain }, test.deps)
 }
 
-describe('the hostname gate is the never-guess boundary, as a parse (D-15)', () => {
+describe('the hostname gate is the never-guess boundary, as a parse', () => {
   it('(G1) derives the same rule for every domain — one producer, five different answers', () => {
     // PRODUCED, NOT LITERAL: each row's expectation is a derivation of its OWN token, and no two
     // rows share one. A gate returning a constant fails four; a gate keyed on `booking.com` fails
@@ -320,7 +320,7 @@ describe('the hostname gate is the never-guess boundary, as a parse (D-15)', () 
   })
 })
 
-describe('config.project.scaffold refuses rather than guessing (D-15 · CFGM-05)', () => {
+describe('config.project.scaffold refuses rather than guessing', () => {
   it('(S1) answers a typed refusal naming both continuations, and echoes no origin', async () => {
     const test = harness({ readThrows: true })
     const answer = await scaffold(test, 'checkout flow')
@@ -418,7 +418,7 @@ describe('config.project.scaffold refuses rather than guessing (D-15 · CFGM-05)
   })
 })
 
-describe('the scaffold is one diff, published whole, over the whole set (CFGM-05 · D-04/D-14)', () => {
+describe('the scaffold is one diff, published whole, over the whole set', () => {
   it('(S4) hands the content port the GATE\'S derivation and nothing else', async () => {
     const test = harness()
     await scaffold(test, 'HTTPS://Booking.com/rooms')

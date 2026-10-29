@@ -354,7 +354,7 @@ async function editThrough(
   return { settled, published }
 }
 
-describe('C441-DRAFT-MARKER', () => {
+describe('masked placeholders in a repair patch', () => {
   it('a repair patch that writes a masked placeholder spends the iteration and starts no probe', async () => {
     const bench = harness([emit(MARKER_PATCH), emit(CLEAN_PATCH)], ['passing'])
 

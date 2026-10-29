@@ -160,7 +160,7 @@ async function propose(
   )
 }
 
-describe('the blocked posture (CFGM-01 · D-10)', () => {
+describe('the blocked posture', () => {
   it('(1) answers BLOCKED when the whole config no longer validates, and keeps nothing', async () => {
     const test = harness({
       config: CLEAN_CONFIG,
@@ -264,8 +264,8 @@ function directHarness(options: Parameters<typeof harness>[0]) {
   return { test, deps, writes }
 }
 
-describe('C432-CONFIG-BLOCKED-NO-WRITE: a blocked change is refused in the call and nothing is kept', () => {
-  it('C432-CONFIG-BLOCKED-NO-WRITE: schema-fail answers its issues, files no record and writes nothing',
+describe('a blocked change is refused in the call and nothing is kept', () => {
+  it('schema-fail answers its issues, files no record and writes nothing',
     async () => {
       const { test, deps, writes } = directHarness({
         config: CLEAN_CONFIG,
@@ -289,8 +289,8 @@ describe('C432-CONFIG-BLOCKED-NO-WRITE: a blocked change is refused in the call 
     })
 })
 
-describe('C432-CONFIG-APPLIED-OUTPUT: the answer is what was written', () => {
-  it('C432-CONFIG-APPLIED-OUTPUT: a clean change names its file, its field and its diff', async () => {
+describe('the answer is what was written', () => {
+  it('a clean change names its file, its field and its diff', async () => {
     const { test, deps, writes } = directHarness({ config: CLEAN_CONFIG })
 
     const answer = await configFieldSetSpec.invoke({ path: 'use.timeout.step', value: '45s' }, deps)
@@ -311,7 +311,7 @@ describe('C432-CONFIG-APPLIED-OUTPUT: the answer is what was written', () => {
     expect(test.filed).toEqual([])
   })
 
-  it('C432-CONFIG-APPLIED-OUTPUT: the file named is the one the writer reports, not the one the call read',
+  it('the file named is the one the writer reports, not the one the call read',
     async () => {
       const { deps } = directHarness({ config: CLEAN_CONFIG })
       const renamed = {
@@ -338,8 +338,8 @@ describe('C432-CONFIG-APPLIED-OUTPUT: the answer is what was written', () => {
 //                   yields its diff, and a reference field refuses only what is not a reference of
 //                   its kind, pointing at the secrets file.
 
-describe('C441-CONFIG-SCAN', () => {
-  it('C441-CONFIG-SCAN a credential-shaped value in a free-text field is written', async () => {
+describe('credential-shaped values in config fields', () => {
+  it('a credential-shaped value in a free-text field is written', async () => {
     const { test, deps, writes } = directHarness({ config: BUILD_TAG_CONFIG })
 
     const answer = await configFieldSetSpec.invoke({ path: 'use.buildTag', value: PROBE }, deps)
@@ -356,7 +356,7 @@ describe('C441-CONFIG-SCAN', () => {
     expect(test.filed).toEqual([])
   })
 
-  it('C441-CONFIG-SCAN a config that already carries a credential-shaped value still yields its diff',
+  it('a config that already carries a credential-shaped value still yields its diff',
     async () => {
       const test = harness({ config: CONFIG_WITH_COMMITTED_BEARER })
 
@@ -369,7 +369,7 @@ describe('C441-CONFIG-SCAN', () => {
       expect(test.written).toHaveLength(1)
     })
 
-  it('C441-CONFIG-SCAN a reference field still refuses a value that is not a reference, naming the secrets file',
+  it('a reference field still refuses a value that is not a reference, naming the secrets file',
     async () => {
       const test = harness({ config: CLEAN_CONFIG })
 

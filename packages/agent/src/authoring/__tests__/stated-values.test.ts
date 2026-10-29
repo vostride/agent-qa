@@ -12,7 +12,7 @@ async function load() {
 
 const HISTORICAL_REQUEST = 'open the products page and check it says "Kitchen Appliances"'
 
-describe('C440-STATED-VALUES', () => {
+describe('quoted values, numbers, prices and dates are stated values', () => {
   it('a double-quoted string is one stated value, kept as typed', async () => {
     const { extractStatedValues } = await load()
     expect(extractStatedValues('check it says "Kitchen Appliances"')).toEqual([
@@ -204,7 +204,7 @@ describe('C440-STATED-VALUES', () => {
   })
 })
 
-describe('C440-FALSE-REFUSAL', () => {
+describe('reworded and added draft text is kept', () => {
   it('reworded unquoted words are kept', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     expect(
@@ -249,7 +249,7 @@ describe('C440-FALSE-REFUSAL', () => {
 })
 
 // 2026-10-12 (440-07, D-02/D-03; CR-01): list markers are not stated values.
-describe('C440-FALSE-REFUSAL', () => {
+describe('list and step numbers are not stated values', () => {
   it('a numbered list written inline states no list number', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     const values = extractStatedValues(
@@ -331,7 +331,7 @@ describe('C440-FALSE-REFUSAL', () => {
   })
 })
 
-describe('C440-STATED-VALUES', () => {
+describe('stated values inside lists', () => {
   it('a number, price or quoted value inside a list item is still a stated value', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     const values = extractStatedValues('1. open the shop 2. add 2 items 3. check the total is $20')
@@ -417,7 +417,7 @@ describe('C440-STATED-VALUES', () => {
 })
 
 // 2026-10-12 (440-08, D-02/D-03; WR-01, WR-03): inch marks, in-word apostrophes and addresses state nothing.
-describe('C440-FALSE-REFUSAL', () => {
+describe('inch marks, apostrophes and addresses state nothing', () => {
   it('an inch mark opens no quoted value', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     const values = extractStatedValues('check the 15" laptop and the 13" laptop are listed')
@@ -460,7 +460,7 @@ describe('C440-FALSE-REFUSAL', () => {
   })
 })
 
-describe('C440-STATED-VALUES', () => {
+describe('quoted values beside inch marks and address-shaped numbers', () => {
   it('a quoted value next to an inch mark stays protected', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     const values = extractStatedValues('check the 15" laptop shows "In Stock"')
@@ -516,7 +516,7 @@ describe('C440-STATED-VALUES', () => {
 })
 
 // 2026-10-12 (440-10, D-02/D-03; WR-06, WR-07): a digit-led quoted value and a bracketed time are stated values again.
-describe('C440-STATED-VALUES', () => {
+describe('digit-led quotes, decade elisions and bracketed times', () => {
   it('a single-quoted value that starts with digits glued to a letter is a stated value', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     expect(
@@ -574,7 +574,7 @@ describe('C440-STATED-VALUES', () => {
   })
 })
 
-describe('C440-FALSE-REFUSAL', () => {
+describe('bracketed IPv6 hosts state nothing', () => {
   it('a bracketed IPv6 host in compressed or full form states nothing', async () => {
     const { extractStatedValues } = await load()
     expect(extractStatedValues('open [fe80::1] and check 2 items')).toEqual(['2'])
@@ -587,7 +587,7 @@ describe('C440-FALSE-REFUSAL', () => {
 })
 
 // 2026-10-12 (440-11, D-02/D-03; WR-08, WR-05): a run that starts mid-line waits for its 2, and a step label counts only in label position.
-describe('C440-STATED-VALUES', () => {
+describe('numbers after a colon or a sentence end, and mid-sentence step numbers', () => {
   it('a number stated after a colon or a sentence end is a stated value when no list follows it', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     expect(extractStatedValues('check the badge shows: 1. Then click checkout')).toEqual(['1'])
@@ -672,7 +672,7 @@ describe('C440-STATED-VALUES', () => {
   })
 })
 
-describe('C440-FALSE-REFUSAL', () => {
+describe('lists after a colon or a sentence state no list number', () => {
   it('a list after a colon or a sentence states no list number once its next marker follows, across a quoted value too', async () => {
     const { extractStatedValues } = await load()
     expect(extractStatedValues('Checkout test: 1. click "Add to cart" 2. open the cart')).toEqual([
@@ -698,7 +698,7 @@ describe('C440-FALSE-REFUSAL', () => {
 })
 
 // 2026-10-12 (440-13, D-02/D-03; WR-09, WR-11, WR-10): held step headings, nested held starts and held paren runs.
-describe('C440-STATED-VALUES', () => {
+describe('held list starts and step labels', () => {
   it('a held step label and its next label that each end a sentence are stated values until a third label follows, and a capitalized two-label step list is the known boundary', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     const request =
@@ -871,7 +871,7 @@ describe('C440-STATED-VALUES', () => {
   })
 })
 
-describe('C440-FALSE-REFUSAL', () => {
+describe('a confirmed held list states no number', () => {
   it('a held step list states no step number once its third label follows or its labels do not each end a sentence', async () => {
     const { extractStatedValues } = await load()
     expect(
@@ -900,7 +900,7 @@ describe('C440-FALSE-REFUSAL', () => {
 })
 
 // 2026-10-12 (440-15, D-02/D-03; WR-12, IN-06, IN-07): month-name dates beside list runs, the at-once reset in both passes and the step twin of a restarted list.
-describe('C440-STATED-VALUES', () => {
+describe('month-name dates where a list marker would go', () => {
   it('a month-name date is a stated value even where the next list marker would go, and an item that ends in a month name before the next marker is the known boundary', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     const heldStart = '1. check the badge shows: 1. Then check the date is Oct 2. Then check out'
@@ -989,7 +989,7 @@ describe('C440-STATED-VALUES', () => {
 })
 
 // 2026-10-12 (440-16, D-03; the round-4 regression): a month-name day at a held start or the held next number clears the held run.
-describe('C440-STATED-VALUES', () => {
+describe('a month-name day clears a held run', () => {
   it('a month-name day where a held run would start or take its next number clears the held run, so a later 2 never confirms a stale held 1, and a list after a colon whose first item states that day is the known boundary', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
     const dayAtNext =

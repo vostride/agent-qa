@@ -332,7 +332,7 @@ describe('the router routes every frozen row to its arm, on the signal the row n
   })
 })
 
-describe('the stop arm carries the evidence WTST-04 names', () => {
+describe('the stop arm carries the trace and a11y evidence refs', () => {
   it('refs the exact trace and both a11y snapshots at the failure point', async () => {
     const { routeRepairOrStop } = await loadRouter()
     const route = routeRepairOrStop(DRAFT_REF, handoffFor(rowNamed(EXPECTATIONS.baseRow)))
@@ -450,7 +450,7 @@ function limitMember(overrides: Partial<MemberFixture> = {}): MemberFixture {
   }
 }
 
-describe('436 D-14: a limit-stopped draft routes to stop, never repair', () => {
+describe('a limit-stopped draft routes to stop, never repair', () => {
   it('ROUTER_MECHANICS_SIGNALS equals the four remaining members, in order', async () => {
     // From the module itself: the agent barrel does not export the constant.
     const { ROUTER_MECHANICS_SIGNALS } = await loadRouter()
@@ -554,7 +554,7 @@ describe('436 D-14: a limit-stopped draft routes to stop, never repair', () => {
     },
   )
 
-  it('the 436-01 pre-change handoff classifies and routes without throwing', async () => {
+  it('an older handoff that still carries stagnation and cycle fields classifies and routes without throwing', async () => {
     const { classifyFailureEvidence, routeRepairOrStop } = await loadRouter()
     const handoff = guardCompletedRunHandoff(
       JSON.parse(readFileSync(PRE_CHANGE_HANDOFF_PATH, 'utf8')),

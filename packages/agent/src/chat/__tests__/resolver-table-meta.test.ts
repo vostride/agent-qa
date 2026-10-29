@@ -89,7 +89,7 @@ function readScenario(directory: string, id: string): ChatScenario {
 
 const TABLE_ALIASES = CHAT_RESOLVER_TABLE.map((rule) => rule.alias)
 
-describe('every resolver-table entry has a scenario (D-05, table → file)', () => {
+describe('every resolver-table entry has a scenario (table → file)', () => {
   it.each(TABLE_ALIASES)('alias %s has scenarios/deterministic/<alias>.yml', (alias) => {
     expect(
       existsSync(join(DETERMINISTIC_ROOT, `${alias}.yml`)),
@@ -110,7 +110,7 @@ describe('every resolver-table entry has a scenario (D-05, table → file)', () 
   })
 })
 
-describe('every deterministic scenario names a table entry (D-05, file → table)', () => {
+describe('every deterministic scenario names a table entry (file → table)', () => {
   it('is an EXACT set: the canon plus the pinned edge cases, nothing else', () => {
     expect(scenarioIdsIn(DETERMINISTIC_ROOT)).toEqual(
       [...TABLE_ALIASES, ...EDGE_SCENARIOS].sort(),
@@ -125,7 +125,7 @@ describe('every deterministic scenario names a table entry (D-05, file → table
   })
 })
 
-describe('the fail-closed arm names what it refused (D-08)', () => {
+describe('the fail-closed arm names what it refused', () => {
   it.each([...TABLE_ALIASES, ...EDGE_SCENARIOS])(
     'scenario %s that expects fail_closed pins zero executions and names the clause',
     (id) => {
@@ -140,7 +140,7 @@ describe('the fail-closed arm names what it refused (D-08)', () => {
   )
 })
 
-describe('the canon compound pair exists as committed data (CHAT-02)', () => {
+describe('the canon compound pair exists as committed data', () => {
   it('is an EXACT set — the frozen denominator, never a directory listing', () => {
     expect(scenarioIdsIn(COMPOUND_ROOT)).toEqual([...COMPOUND_SCENARIOS].sort())
   })
@@ -168,7 +168,7 @@ describe('the canon compound pair exists as committed data (CHAT-02)', () => {
     },
   )
 
-  it('pins the spec example on the ARRIVED arm, both clauses routed (394-11, D-08/D-10)', () => {
+  it('pins the spec example on the ARRIVED arm, both clauses routed', () => {
     // THIS PIN CHANGED ARM WITH THE CORPUS, and that is the second half of D-08's flip law. The
     // cell was admitted asserting that `write_test` was in no registry, so pre-flight atomicity
     // refused the whole turn and the runnable second clause did not get to run either. 394
@@ -186,7 +186,7 @@ describe('the canon compound pair exists as committed data (CHAT-02)', () => {
     expect(scenario.expect.ops).toEqual(['authoring.draft.write', 'runs.start'])
   })
 
-  it('pins the happy path at planned == executed == 2 in utterance order (D-11/D-12)', () => {
+  it('pins the happy path at planned == executed == 2 in utterance order', () => {
     const scenario = readScenario(COMPOUND_ROOT, 'run-42-and-digest')
     expect(scenario.class).toBe('compound')
     // The digest clause NAMES its run (392-09, after the first live execution of this file). The

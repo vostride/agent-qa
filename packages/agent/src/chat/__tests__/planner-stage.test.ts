@@ -159,7 +159,7 @@ describe('readBackPlan: the shaping, in isolation', () => {
     ])
   })
 
-  it('carries answer_only through as a call, projecting NOTHING off it (392-14)', () => {
+  it('carries answer_only through as a call, projecting NOTHING off it', () => {
     // The projection this replaced lifted the first call's `text` onto the outcome as a
     // convenience. Once the tool contract asked for one call per answered clause that convenience
     // carried strictly less than the calls it came from, and reconciliation trusted it — so the
@@ -195,7 +195,7 @@ describe('readBackPlan: the shaping, in isolation', () => {
   })
 })
 
-describe('createPlannerStage: generateText in, plan out (D-10)', () => {
+describe('createPlannerStage: generateText in, plan out', () => {
   it('returns the model plan and executes NOTHING — no tool carries a callback', async () => {
     const outcome = await stage(
       stubModel([
@@ -216,7 +216,7 @@ describe('createPlannerStage: generateText in, plan out (D-10)', () => {
     }
   })
 
-  it('surfaces answer_only as a tool call for reconciliation to read (CHAT-01)', async () => {
+  it('surfaces answer_only as a tool call for reconciliation to read', async () => {
     const outcome = await stage(
       stubModel([
         {
@@ -233,7 +233,7 @@ describe('createPlannerStage: generateText in, plan out (D-10)', () => {
     expect(outcome.toolCalls[0]?.input).toEqual({ text: 'There are three proposals pending.' })
   })
 
-  it('carries mark_unhandled through untouched, for reconciliation to act on (D-08)', async () => {
+  it('carries mark_unhandled through untouched, for reconciliation to act on', async () => {
     const outcome = await stage(
       stubModel([
         {

@@ -54,7 +54,7 @@ describe('splitClauses — the conjunction grammar', () => {
   })
 })
 
-describe('splitClauses — quote protection (RESEARCH Pitfall 5)', () => {
+describe('splitClauses — quote protection', () => {
   it('does not split a conjunction inside a double-quoted span', () => {
     expect(texts('write a test for "add and remove items"')).toEqual([
       'write a test for "add and remove items"',
@@ -119,7 +119,7 @@ describe('splitClauses — quote protection (RESEARCH Pitfall 5)', () => {
  * none away, so no utterance that split before splits differently unless it contains an unquoted
  * bracket, which is JSON and not English.
  */
-describe('splitClauses — bracket protection (397-04)', () => {
+describe('splitClauses — bracket protection', () => {
   it('keeps a multi-member JSON object whole, so `/fn` reaches every capability', () => {
     expect(texts('/fn config.field.set {"path":"workspace.testMatch","value":"x"}')).toEqual([
       '/fn config.field.set {"path":"workspace.testMatch","value":"x"}',
@@ -227,8 +227,8 @@ describe('STYLE_MODIFIER_PHRASES', () => {
   })
 })
 
-describe('splitClauses — a style modifier is not a request (392-16, G-392-1)', () => {
-  it('routes the G-392-1 utterance as the single question it is', () => {
+describe('splitClauses — a style modifier is not a request', () => {
+  it('routes a style-modified question as the single question it is', () => {
     // The measured gap, at its own seam. `in one sentence` instructs the FORM of the answer and
     // names nothing this build has; split off as its own clause it is a phantom the model has to
     // claim back byte-for-byte, and missing it refuses the whole turn.

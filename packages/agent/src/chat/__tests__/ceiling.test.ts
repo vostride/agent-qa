@@ -66,7 +66,7 @@ describe('computeMarkUnhandledRate projects counts, never a division', () => {
     })
   })
 
-  it('stores no quotient — the pair of counts IS the answer (D-15)', () => {
+  it('stores no quotient — the pair of counts IS the answer', () => {
     // The field rate is a projection over session logs using this same function, and a stored
     // quotient would be a second number that could disagree with the counts it came from.
     const counts = computeMarkUnhandledRate(events(['mark_unhandled']), 3)
@@ -75,13 +75,13 @@ describe('computeMarkUnhandledRate projects counts, never a division', () => {
 })
 
 describe('ceilingExceeded is strict greater-than on cross-multiplied integers', () => {
-  it('PASSES a count exactly at the ceiling (CHAT-03/boundary, the low side)', () => {
+  it('PASSES a count exactly at the ceiling (boundary, the low side)', () => {
     // 2/10 is exactly 1/5. The gate must not fail a corpus that sits on its own pin, or the pin
     // would be a number nobody could ever satisfy.
     expect(ceilingExceeded({ unhandledCount: 2, denominator: 10 })).toBe(false)
   })
 
-  it('FAILS one more than the ceiling (CHAT-03/boundary, the high side)', () => {
+  it('FAILS one more than the ceiling (boundary, the high side)', () => {
     expect(ceilingExceeded({ unhandledCount: 3, denominator: 10 })).toBe(true)
   })
 
@@ -90,7 +90,7 @@ describe('ceilingExceeded is strict greater-than on cross-multiplied integers', 
     expect(ceilingExceeded({ unhandledCount: 0, denominator: 1 })).toBe(false)
   })
 
-  it('FAILS 20.1% — the case a rounded percentage would report as met (CHAT-03/precision)', () => {
+  it('FAILS 20.1% — the case a rounded percentage would report as met (precision)', () => {
     // The whole reason the comparison is exact. An implementation computing `rate * 100` and
     // rounding to whole percent reads 20 here and passes; the cross-multiplied integers read
     // 201 * 5 = 1005 > 1000 * 1 = 1000 and fail.

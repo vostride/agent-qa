@@ -353,7 +353,7 @@ describe('one shared path: the same op, the same dispatch, for both callers', ()
 // RE-SPELLED 2026-10-01 (432-20, D-12) from 'safe mode filters the listing and enforces nothing
 // (FUNC-03)'. The listing filter is deleted with the scopes; the claim that survives is that a
 // caller record decides neither what is listed nor what is served.
-describe('no caller field filters the listing or the dispatch (432-20, D-12)', () => {
+describe('no caller field filters the listing or the dispatch', () => {
   it('lists every capability for A and for B — the same list, with no permission keys', () => {
     expect(REGISTRY.list(CALLER_A).map((declaration) => declaration.id))
       .toEqual([...ALL_FUNCTION_IDS])
@@ -410,7 +410,7 @@ describe('no caller field filters the listing or the dispatch (432-20, D-12)', (
 // RE-SPELLED 2026-10-01 (432-20, D-12) from 'a claimed scope is not a held scope (SC3 / T-384-13)'.
 // No scope is held or checked any more; what survives is that the strict input contract is still
 // the only thing a payload meets, so a payload can claim nothing.
-describe('a payload can claim nothing, and a record grants nothing (SC3 / 432-20)', () => {
+describe('a payload can claim nothing, and a record grants nothing', () => {
   it('serves a caller whose record lacks the scope like any other caller', async () => {
     const outcome = invokeFunction(REGISTRY, 'runs.start', {}, CALLER_C)
 
@@ -469,7 +469,7 @@ const credentialProbeSpec: FunctionSpec<Record<string, never>, { ok: true }> = {
   invoke: () => Promise.resolve({ ok: true as const }),
 }
 
-describe('the credential flows to the gate untouched (D-13)', () => {
+describe('the credential flows to the gate untouched', () => {
   const probeRegistry = createRegistryFromSpecs([credentialProbeSpec as FunctionSpec], {
     deps: DEPS,
   })
@@ -492,7 +492,7 @@ describe('the credential flows to the gate untouched (D-13)', () => {
   // scope to show the credential could flip a verdict there. The gate and its scope check are
   // deleted, so there is no layer at which the credential can be decisive: the case above is no
   // longer the inert half of a pair, it is the whole answer.
-  it('C432-NO-EVALUATE: is decisive nowhere — the gate that could read it is gone', async () => {
+  it('is decisive nowhere — the gate that could read it is gone', async () => {
     expect(Object.keys(safety)).not.toContain('evaluate')
     expect(Object.keys(safety)).not.toContain('scopeMatches')
     // Served with and without the credential, in every context.
@@ -546,7 +546,7 @@ const anyOriginSpec: FunctionSpec<Record<string, never>, { ok: true }> = {
 // uniformly (391 D-06)'. The check and its refusal class are deleted; a spec that still declares
 // the key (smuggled past the type since 432-39 deleted it) is served to an agent-origin caller
 // exactly as to a person.
-describe('a declared human-origin requirement is read by nothing (432-20, D-10/D-12)', () => {
+describe('a declared human-origin requirement is read by nothing', () => {
   let dispatches = 0
   const countedHumanOnly: FunctionSpec<Record<string, never>, { ok: true }> = {
     ...humanOnlySpec,
@@ -682,7 +682,7 @@ const PRESENTATION_HUMAN = {
 } as FunctionCaller
 const PRESENTATION_AGENT: FunctionCaller = { surface: 'mcp', origin: 'agent' }
 
-describe('C432-ALL-OPS-AVAILABLE: every operation, every caller (432-20, D-12)', () => {
+describe('every operation, every caller', () => {
   it('reaches the same outcome for every registered op whoever calls, and never a permission refusal', async () => {
     const counted = countingDeps()
     const registry = createFunctionRegistry({ deps: counted.deps })
@@ -715,7 +715,7 @@ describe('C432-ALL-OPS-AVAILABLE: every operation, every caller (432-20, D-12)',
   })
 })
 
-describe('EDGE-02 PXH-SAFE-01/empty: empty and null input (432-20)', () => {
+describe('empty and null input', () => {
   it('refuses a null input to every op through its strict schema, with zero dependency calls', async () => {
     const counted = countingDeps()
     const registry = createFunctionRegistry({ deps: counted.deps })

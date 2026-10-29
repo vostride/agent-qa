@@ -217,7 +217,7 @@ describe('the gate-2 flip consults the suite\'s recorded stability', () => {
     expect(receipt.gates.stableVerdict.reason).not.toContain('submits the form')
   })
 
-  it('asks the projection with the OBSERVED product, never a guessed one (T-394-68)', async () => {
+  it('asks the projection with the OBSERVED product, never a guessed one', async () => {
     const { port, calls } = recordingOutcomes({ 'shows the banner': ['passed', 'failed'] })
     await evaluate({ runs: FLIPPING_RUNS, stability: { outcomes: port, product: PRODUCT } })
 

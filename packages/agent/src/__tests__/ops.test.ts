@@ -327,7 +327,7 @@ describe('config.get', () => {
 })
 
 describe('the seed capability set', () => {
-  it('registers exactly the four D-06 read ids', () => {
+  it('registers exactly the four seed read ids', () => {
     expect([
       runsListSpec.id,
       runsGetSpec.id,
@@ -388,7 +388,7 @@ describe('knowledge.gates.list', () => {
 // a raw-spec cell proves the op-spec owner actually removed them. The second half pins what must NOT
 // move with them — id, result kind, binding need, risk descriptor and the classify fold — so a
 // metadata removal that also dropped a binding or changed a tier reds here by name.
-describe('C432-DECLARATION-KEYS: the 432-23 op specs carry no permission metadata', () => {
+describe('the funnel, records diff, entity resolve, verify, events, draft write, run get, forget, start and target edit specs carry no permission metadata', () => {
   const migrated = [
     { spec: authoringFunnelGetSpec, resultKind: 'unary', boundThrough: 'authoringFunnel',
       risk: { name: 'fn:authoring.funnel.get', recognized: true, readOnly: true } },
@@ -451,7 +451,7 @@ describe('C432-DECLARATION-KEYS: the 432-23 op specs carry no permission metadat
 // The second group of ten, pinned the same way as 432-23's above: absence at the SPEC, and an exact
 // pin beside it of what must not move with the metadata. Kept as its own block so each op-spec owner
 // extends a list it owns rather than one shared expectation.
-describe('C432-DECLARATION-KEYS: the 432-24 op specs carry no permission metadata', () => {
+describe('the artifact, list, config get, digest, field set, draft edit, brief why, live URL, mark preview and mark specs carry no permission metadata', () => {
   const migrated = [
     { spec: runsArtifactSpec, resultKind: 'unary', boundThrough: 'evidenceBlobs',
       risk: { name: 'fn:runs.artifact', recognized: true, readOnly: true } },
@@ -512,7 +512,7 @@ describe('C432-DECLARATION-KEYS: the 432-24 op specs carry no permission metadat
 // The third group of ten, pinned as 432-23's and 432-24's are. Four of them are writers (the two
 // config writers and the two quarantine writes), so the risk descriptor beside the absence is what
 // still states that they write; runs.evidence also keeps its declared output representation.
-describe('C432-DECLARATION-KEYS: the 432-25 op specs carry no permission metadata', () => {
+describe('the hook add, bundles list, scaffold, editor live URL, evidence, entity get, marks history and quarantine specs carry no permission metadata', () => {
   const migrated = [
     { spec: configHookAddSpec, resultKind: 'unary', boundThrough: 'configWrite',
       risk: { name: 'fn:config.hook.add', recognized: true, readOnly: false } },
@@ -576,7 +576,7 @@ describe('C432-DECLARATION-KEYS: the 432-25 op specs carry no permission metadat
 // config.auth.set is the writer among them: its risk descriptor and its `configWrite` binding are
 // what still say it writes. runs.detail and runs.overview keep their `runDetail` binding, which is
 // what lists them `unbound` on a host with no projection database.
-describe('C432-DECLARATION-KEYS: the 432-27 op specs carry no permission metadata', () => {
+describe('the auth set, gates list, run detail and run overview specs carry no permission metadata', () => {
   const migrated = [
     { spec: configAuthSetSpec, resultKind: 'unary', boundThrough: 'configWrite',
       risk: { name: 'fn:config.auth.set', recognized: true, readOnly: false } },
@@ -624,8 +624,8 @@ describe('C432-DECLARATION-KEYS: the 432-27 op specs carry no permission metadat
 // both are served every time: each port is reached once per attempt with what the caller sent,
 // every caller gets the same answer, and no audit row is written. config.auth.set's reference law
 // still refuses a value that is not a name, for every caller alike, before the writer is reached.
-describe('C432-ALL-OPS-AVAILABLE: the 432-27 gate read and auth writer serve every caller', () => {
-  it('C432-ALL-OPS-AVAILABLE: a retried knowledge.gates.list and config.auth.set are served alike to every caller', async () => {
+describe('the gate read and auth writer serve every caller', () => {
+  it('a retried knowledge.gates.list and config.auth.set are served alike to every caller', async () => {
     const encoder = new TextEncoder()
     const decoder = new TextDecoder()
     const configFile = 'agent-qa.config.yaml'

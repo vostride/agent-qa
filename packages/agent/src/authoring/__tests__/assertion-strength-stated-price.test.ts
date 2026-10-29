@@ -18,7 +18,7 @@ const SCAFFOLD_CART_TOTAL_EXAMPLE = [
   'Verify the bag contains exactly two Everyday Ceramic Mugs and the order total is $53.00.',
 ]
 
-describe('C446-STATED-PRICE', () => {
+describe('an unquoted stated price in an assertion', () => {
   it('the leg draft with an unquoted bag total price passes the falsifiable-assertion gate', () => {
     const gate = assertionStrengthGate({ steps: LEG_DRAFT })
 

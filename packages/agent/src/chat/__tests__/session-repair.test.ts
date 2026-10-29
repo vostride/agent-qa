@@ -141,7 +141,7 @@ describe('a torn FINAL line is skipped, reported, and never thrown over', () => 
   })
 })
 
-describe('a DANGLING turn is closed by a synthesized abort (D-19 arm two)', () => {
+describe('a DANGLING turn is closed by a synthesized abort (arm two)', () => {
   it('synthesizes for a turn whose last event is not a boundary', () => {
     const repair = repairSession(linesOf(USER_1, DONE_1, USER_2, RECEIPT_2), {
       declaredVersion: VERSION,
@@ -212,7 +212,7 @@ describe('the declared version travels as an argument and is asked BEFORE any sh
 })
 
 describe('replay rebuilds the live conversation, and only from repaired events', () => {
-  it('renders the user text verbatim and every receipt as a one-liner (D-18)', () => {
+  it('renders the user text verbatim and every receipt as a one-liner', () => {
     const repair = repairSession(linesOf(USER_1, RECEIPT_1, DONE_1), {
       declaredVersion: VERSION,
       now,

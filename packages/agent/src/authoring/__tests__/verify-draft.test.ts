@@ -78,7 +78,7 @@ describe('evaluateDraft — the tracer path', () => {
     expect(receipt.stabilityRunsCompleted).toBe(DRAFT_STABILITY_RUNS_N)
   })
 
-  it('reports every gate the vocabulary names — no gate is skipped (D-04)', async () => {
+  it('reports every gate the vocabulary names — no gate is skipped', async () => {
     const runs = fakeRunPort({
       runs: [[acceptControlMember()], [acceptControlMember()], [acceptControlMember()]],
     })
@@ -116,7 +116,7 @@ describe('evaluateDraft — the tracer path', () => {
     expect(DraftReceiptSchema.safeParse(JSON.parse(JSON.stringify(receipt))).success).toBe(true)
   })
 
-  it('names the uncovered element rather than counting it (D-14)', async () => {
+  it('names the uncovered element rather than counting it', async () => {
     const receipt = await evaluateDraft(
       { draft: ACCEPT_CONTROL_DRAFT },
       {
@@ -143,7 +143,7 @@ describe('evaluateDraft — the tracer path', () => {
    * step text rather than from evidence would produce, since a text-invented anchor matches a
    * resolved one only by accident.
    */
-  it('returns addsValue FALSE when the suite union already holds every element (D-14)', async () => {
+  it('returns addsValue FALSE when the suite union already holds every element', async () => {
     const receipt = await evaluateDraft(
       { draft: ACCEPT_CONTROL_DRAFT },
       {
@@ -178,7 +178,7 @@ describe('evaluateDraft — the tracer path', () => {
     expect(receipt.disposition).toBe('rejected')
   })
 
-  it('sets BOTH gate-run markers on every start input the run port saw (D-02, T-393-03)', async () => {
+  it('sets BOTH gate-run markers on every start input the run port saw', async () => {
     const runs = fakeRunPort({
       runs: [[acceptControlMember()], [acceptControlMember()], [acceptControlMember()]],
     })
@@ -218,7 +218,7 @@ describe('evaluateDraft — the tracer path', () => {
     expect(runs.startInputs).toHaveLength(1)
   })
 
-  it('counts a healed pass as a pass and records the heal (F3, Pitfall 7)', async () => {
+  it('counts a healed pass as a pass and records the heal', async () => {
     const receipt = await evaluateDraft(
       { draft: ACCEPT_CONTROL_DRAFT },
       {
@@ -238,7 +238,7 @@ describe('evaluateDraft — the tracer path', () => {
     expect(receipt.gates.stableVerdict.distinctOutcomes).toEqual(['passed'])
   })
 
-  it('forces `unverified` in draft mode with exactly one run consumed (SC3, D-18)', async () => {
+  it('forces `unverified` in draft mode with exactly one run consumed', async () => {
     const runs = fakeRunPort({ runs: [[acceptControlMember()]] })
     const receipt = await evaluateDraft(
       { draft: ACCEPT_CONTROL_DRAFT, draftMode: true },
@@ -260,7 +260,7 @@ describe('evaluateDraft — the tracer path', () => {
     expect(receipt.disposition).toBe('unverified')
   })
 
-  it('takes its disposition from computeDraftDisposition and nowhere else (D-18)', async () => {
+  it('takes its disposition from computeDraftDisposition and nowhere else', async () => {
     const receipt = await evaluateDraft(
       { draft: ACCEPT_CONTROL_DRAFT },
       {
@@ -287,7 +287,7 @@ describe('evaluateDraft — the tracer path', () => {
     }))
   })
 
-  it('carries refs, never run payloads or resolved step text (D-19, T-393-02)', async () => {
+  it('carries refs, never run payloads or resolved step text', async () => {
     const receipt = await evaluateDraft(
       { draft: ACCEPT_CONTROL_DRAFT },
       {

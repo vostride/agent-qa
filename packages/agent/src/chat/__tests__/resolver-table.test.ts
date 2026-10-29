@@ -29,9 +29,9 @@ function aliasOf(clause: string): string | undefined {
   return resolution.kind === 'resolved' ? resolution.alias : undefined
 }
 
-describe('CHAT_RESOLVER_TABLE — the closed canon (D-06)', () => {
+describe('CHAT_RESOLVER_TABLE — the closed canon', () => {
   // 432-13 (D-05/D-14): `proposals` and `pin` left the canon with the inbox and the op gate.
-  it('is exactly the D-06 canon: no more aliases, no fewer', () => {
+  it('is exactly the canon: no more aliases, no fewer', () => {
     expect(CHAT_RESOLVER_TABLE.map((rule) => rule.alias)).toEqual([
       'run',
       'status',
@@ -49,7 +49,7 @@ describe('CHAT_RESOLVER_TABLE — the closed canon (D-06)', () => {
     expect(new Set(aliases).size).toBe(aliases.length)
   })
 
-  it('does not carry the two verbs D-04 excluded', () => {
+  it('does not carry the two excluded verbs', () => {
     expect(resolve('/tools')).toBeUndefined()
     expect(resolve('/compact')).toBeUndefined()
   })
@@ -57,8 +57,8 @@ describe('CHAT_RESOLVER_TABLE — the closed canon (D-06)', () => {
 
 // 432-13 (D-05/D-14): chat resolution routes no pin directive and no proposal inbox. Direct
 // knowledge and config changes are reached by their own ids through the one `/fn` branch.
-describe('C432-CHAT-DIRECT — chat resolution carries no approval route (432-13)', () => {
-  it('C432-CHAT-DIRECT: /pin and the proposals inbox no longer resolve, and help names neither', () => {
+describe('chat resolution carries no approval route', () => {
+  it('/pin and the proposals inbox no longer resolve, and help names neither', () => {
     expect(resolveClause(CHAT_RESOLVER_TABLE, '/pin fn:runs.start')).toEqual({ kind: 'unresolved' })
     expect(resolveClause(CHAT_RESOLVER_TABLE, 'proposals')).toEqual({ kind: 'unresolved' })
     expect([...CHAT_DIRECTIVES]).toEqual(['model', 'help', 'quit'])
@@ -69,7 +69,7 @@ describe('C432-CHAT-DIRECT — chat resolution carries no approval route (432-13
     )
   })
 
-  it('C432-CHAT-DIRECT: direct knowledge and config changes resolve to their own op ids', () => {
+  it('direct knowledge and config changes resolve to their own op ids', () => {
     expect(resolve('/fn knowledge.forget {"recordId":"mem_1"}')).toEqual({
       kind: 'op',
       functionId: 'knowledge.forget',
@@ -101,7 +101,7 @@ describe('resolveClause — the op-bound canon', () => {
     })
   })
 
-  it('binds `test <n>` and a bare short-ID to the never-guess resolution ladder (387 D-05)', () => {
+  it('binds `test <n>` and a bare short-ID to the never-guess resolution ladder', () => {
     expect(resolve('test 42')).toEqual({
       kind: 'op',
       functionId: ENTITIES_RESOLVE_FUNCTION_ID,
@@ -141,7 +141,7 @@ describe('resolveClause — the op-bound canon', () => {
   })
 })
 
-describe('resolveClause — the /fn passthrough (D-06)', () => {
+describe('resolveClause — the /fn passthrough', () => {
   it('resolves any registry id through ONE branch, with no body meaning no input', () => {
     expect(resolve('/fn runs.list')).toEqual({
       kind: 'op',
@@ -158,7 +158,7 @@ describe('resolveClause — the /fn passthrough (D-06)', () => {
     })
   })
 
-  it('resolves an op id no registry knows, so invokeFunction refuses it by name (D-08)', () => {
+  it('resolves an op id no registry knows, so invokeFunction refuses it by name', () => {
     // The backstop is FREE: the table validates no id, `invokeFunction` step 1 raises
     // `UnknownFunctionError` naming it, and the turn fails with that name in the receipt.
     expect(resolve('/fn write_test {"name":"2fa"}')).toEqual({
@@ -180,7 +180,7 @@ describe('resolveClause — the /fn passthrough (D-06)', () => {
   })
 })
 
-describe('resolveClause — the directive canon (D-04)', () => {
+describe('resolveClause — the directive canon', () => {
   // RE-SPELLED 2026-09-30 (432-13) from 'resolves /model and /pin to directives that name NO
   // registry op': `/pin` is no longer a directive.
   it('resolves /model to a directive that names NO registry op, and /pin to nothing', () => {
@@ -204,18 +204,18 @@ describe('resolveClause — the directive canon (D-04)', () => {
   })
 })
 
-describe('resolveClause — binary resolution, no partial matches (CHAT-01 boundary)', () => {
+describe('resolveClause — binary resolution, no partial matches', () => {
   it.each([
     ['propsals', 'a misspelled alias'],
     ['statuss', 'a near-miss on a bare verb'],
     ['run', 'a verb missing its required argument'],
     ['digest', 'a digest with no run named'],
     ['/model', 'a directive missing its required argument'],
-    ['/pin', 'the retired pin verb, bare (432-13)'],
+    ['/pin', 'the retired pin verb, bare'],
     ['test', 'a test-ref with nothing referenced'],
     ['show me the digest', 'ordinary prose that mentions a canonical word'],
     ['status please', 'a bare verb with anything at all after it'],
-    ['/tools', 'a verb D-04 excluded'],
+    ['/tools', 'an excluded verb'],
   ])('does not resolve %j (%s)', (clause) => {
     expect(resolveClause(CHAT_RESOLVER_TABLE, clause)).toEqual({ kind: 'unresolved' })
   })
@@ -238,7 +238,7 @@ describe('resolveClause — binary resolution, no partial matches (CHAT-01 bound
   })
 })
 
-describe('the table as a structure (D-05 / 387 D-11)', () => {
+describe('the table as a structure', () => {
   const source = readFileSync(
     fileURLToPath(new URL('../resolver-table.ts', import.meta.url)),
     'utf8',

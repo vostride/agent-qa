@@ -441,7 +441,7 @@ async function drain(result: unknown): Promise<unknown> {
   return result
 }
 
-describe('the 384 coverage stub retires with a destination for every block (D-10)', () => {
+describe('the coverage stub retires with a destination for every block', () => {
   it('pins the retirement register against the pre-deletion block census', () => {
     // T-397-19, and the 394 lesson made mechanical: an equality nobody can re-derive is an
     // assertion, not a check. The three numbers are the three greps quoted in this file's header,
@@ -607,8 +607,8 @@ const RETIRED_PROPOSAL_OP_IDS = [
   'config.undo.propose',
 ] as const
 
-describe('C432-NO-PROPOSAL-OPS: the proposal, apply and undo ops are not capabilities', () => {
-  it('C432-NO-PROPOSAL-OPS: the registry lists none of the seven retired ids and no proposals domain', () => {
+describe('the proposal, apply and undo ops are not capabilities', () => {
+  it('the registry lists none of the seven retired ids and no proposals domain', () => {
     const ids = declarations().map(declaration => declaration.id)
     expect(ids.length, 'the listing is empty, so the absence below would be vacuous').toBeGreaterThan(0)
     expect(RETIRED_PROPOSAL_OP_IDS.filter(id => ids.includes(id)), 'a retired proposal op is registered')
@@ -620,7 +620,7 @@ describe('C432-NO-PROPOSAL-OPS: the proposal, apply and undo ops are not capabil
     }
   })
 
-  it('C432-NO-PROPOSAL-OPS: invoking a retired id is refused as an unknown function', async () => {
+  it('invoking a retired id is refused as an unknown function', async () => {
     const built = registry()
     for (const id of RETIRED_PROPOSAL_OP_IDS) {
       const refused = await invokeFunction(built, id, {}, FULLY_GRANTED).then(
@@ -637,8 +637,8 @@ describe('C432-NO-PROPOSAL-OPS: the proposal, apply and undo ops are not capabil
 // revoke, and every door refuses both ids as unknown functions before any dependency is consulted.
 const RETIRED_GRANT_OP_IDS = ['grants.list', 'grants.revoke'] as const
 
-describe('C432-NO-GRANT-OPS: the standing-grant ops are not capabilities', () => {
-  it('C432-NO-GRANT-OPS: the registry lists neither grant op and no grants domain', () => {
+describe('the standing-grant ops are not capabilities', () => {
+  it('the registry lists neither grant op and no grants domain', () => {
     const ids = declarations().map(declaration => declaration.id)
     expect(ids.length, 'the listing is empty, so the absence below would be vacuous').toBeGreaterThan(0)
     expect(RETIRED_GRANT_OP_IDS.filter(id => ids.includes(id)), 'a retired grant op is registered').toEqual([])
@@ -649,7 +649,7 @@ describe('C432-NO-GRANT-OPS: the standing-grant ops are not capabilities', () =>
     ).toEqual([])
   })
 
-  it('C432-NO-GRANT-OPS: invoking a retired grant id is refused as an unknown function', async () => {
+  it('invoking a retired grant id is refused as an unknown function', async () => {
     const built = registry()
     for (const id of RETIRED_GRANT_OP_IDS) {
       for (const input of [{}, { grantId: 'grant_0123456789abcdef' }]) {

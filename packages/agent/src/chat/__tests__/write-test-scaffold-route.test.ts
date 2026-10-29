@@ -486,7 +486,7 @@ function harness(options: {
   }
 }
 
-describe('the write_test route is deterministic and narrow (D-15)', () => {
+describe('the write_test route is deterministic and narrow', () => {
   it('routes a configured target name, a hostname, and neither — by TOKEN, never by substring', () => {
     expect(resolveWriteTestRoute({
       intent: 'write a test for the checkout on shop',
@@ -512,7 +512,7 @@ describe('the write_test route is deterministic and narrow (D-15)', () => {
     })).toEqual({ kind: 'configured', name: 'booking-com' })
   })
 
-  it('(WR-05) never offers the scaffold in a project that already declares targets', () => {
+  it('never offers the scaffold in a project that already declares targets', () => {
     // A HOSTNAME-SHAPED TOKEN THAT IS NOT A SITE. `readme.md` and `index.html` both satisfy
     // `parseHostnameToken` — a dot, legal labels, an alphabetic final label — so before 395-12 the
     // scaffold arm fired on them in ANY project, and a configured project's turn ended in
@@ -559,7 +559,7 @@ describe('the write_test route is deterministic and narrow (D-15)', () => {
   })
 })
 
-describe('one turn: detect, scaffold, author (D-14 · CFGM-05; 432-11 D-05)', () => {
+describe('one turn: detect, scaffold, author', () => {
   it('(R1) dispatches authoring untouched for an ordinary request in a configured project', async () => {
     const test = harness({ targets: ['shop'] })
     const result = await test.runTurn({ message: 'write a test for the login flow' })
@@ -681,7 +681,7 @@ describe('one turn: detect, scaffold, author (D-14 · CFGM-05; 432-11 D-05)', ()
   // here: the person named the site, and the scaffold said why it wrote nothing.
   // 2026-10-14 (441-18, D-15): 'a guardrail-blocked scaffold says the guardrail found a secret, and
   // where' is deleted with the route's guardrail branch; no scaffold is blocked for a secret.
-  it('C261003-CPV-SCAFFOLD-REASONS: a schema-blocked scaffold says the result would not be valid, with the issue',
+  it('a schema-blocked scaffold says the result would not be valid, with the issue',
     async () => {
       const test = harness({
         targets: [],
@@ -703,7 +703,7 @@ describe('one turn: detect, scaffold, author (D-14 · CFGM-05; 432-11 D-05)', ()
       expect(reason).not.toContain('Name the site')
     })
 
-  it('C261003-CPV-SCAFFOLD-REASONS: a no-change scaffold says the configuration already holds it', async () => {
+  it('a no-change scaffold says the configuration already holds it', async () => {
     const test = harness({
       targets: [],
       scaffoldAnswer: { outcome: 'no-change', path: 'configure this project for https://booking.com' },
@@ -718,13 +718,13 @@ describe('one turn: detect, scaffold, author (D-14 · CFGM-05; 432-11 D-05)', ()
   })
 
   // 2026-10-03 (quick 261003-cpv, 432 review WR-02): the refusal describes the no-review model.
-  it('C261003-CPV-UNCONFIGURED-WORDING: the unconfigured refusal promises no review step', () => {
+  it('the unconfigured refusal promises no review step', () => {
     expect(WRITE_TEST_UNCONFIGURED_DETAIL).not.toMatch(/review/i)
     expect(WRITE_TEST_UNCONFIGURED_DETAIL).toContain('write the configuration')
     expect(WRITE_TEST_UNCONFIGURED_DETAIL).toContain('write a test for example.com')
   })
 
-  it('(R10 · WR-05) passes a hostname-shaped NON-SITE token through in a configured project',
+  it('(R10) passes a hostname-shaped NON-SITE token through in a configured project',
     async () => {
       // RED, MEASURED BY MUTATION rather than quoted from history: with WR-05's precondition
       // removed, `readme.md` parses as a hostname and this turn scaffolds and WRITES a target for

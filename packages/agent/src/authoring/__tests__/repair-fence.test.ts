@@ -872,7 +872,7 @@ const LOWERCASES_SAVED = patchSet('reword the banner check', [
   { op: 'replace', path: '/steps/3', value: 'Verify the confirmation banner says "saved"' },
 ])
 
-describe('C440-VALUE-REPAIR', () => {
+describe('stated values checked on a repair patch', () => {
   it('a repair patch that loses a stated value is refused before any run and spends the try',
     async () => {
       const { repairDraft, REPAIR_ITERATION_CAP } = await loadRepair()

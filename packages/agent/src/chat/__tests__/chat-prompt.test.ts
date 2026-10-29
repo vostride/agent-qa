@@ -37,7 +37,7 @@ function input(overrides: Partial<ChatPromptInput> = {}): ChatPromptInput {
   }
 }
 
-describe('buildChatPrompt: one builder, chat blocks (392-EXTENDS)', () => {
+describe('buildChatPrompt: one builder, chat blocks', () => {
   it('calls buildTieredPrompt exactly once — no sibling renderer, no second assembly', () => {
     const calls = CHAT_PROMPT_SOURCE.match(/buildTieredPrompt\(/g) ?? []
     expect(calls).toHaveLength(1)

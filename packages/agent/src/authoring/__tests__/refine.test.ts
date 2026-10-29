@@ -317,7 +317,7 @@ describe('a refinement that cannot be used leaves the compiled draft standing', 
   })
 })
 
-describe('C440-REFINE-REQUEST', () => {
+describe('the refine prompt carries the request', () => {
   it('the refine prompt carries the request as its first context block', async () => {
     const bench = harness({ emission: patchSetEmission([]) })
 
@@ -339,7 +339,7 @@ describe('C440-REFINE-REQUEST', () => {
   })
 })
 
-describe('C440-PROMPTS', () => {
+describe('the refine prompt over project knowledge', () => {
   it('the refine prompt puts the request over project knowledge', async () => {
     const { REQUEST_WINS_INSTRUCTION } = await import('../brief-blocks.js')
     const bench = harness({ emission: patchSetEmission([]) })
@@ -350,7 +350,7 @@ describe('C440-PROMPTS', () => {
   })
 })
 
-describe('C440-VALUE-REFINE', () => {
+describe('stated values checked on a refine patch', () => {
   const STATED = 'check the banner says "confirmation banner"'
   const LOSING_STEP = 'Verify the success notice is visible'
   const losingPatch = patchSetEmission([{ op: 'replace', path: '/steps/3', value: LOSING_STEP }])

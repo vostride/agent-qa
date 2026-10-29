@@ -50,7 +50,7 @@ const ACCEPT_CONTROL_TEXT = {
 
 const EMPTY_INDEX = fakeFingerprintIndex([])
 
-describe('addsValueGate — the fingerprint lane (D-14)', () => {
+describe('addsValueGate — the fingerprint lane', () => {
   it('passes on at least one element absent from the union, and NAMES it', () => {
     const result = addsValueGate({
       draft: ACCEPT_CONTROL_TEXT,
@@ -137,7 +137,7 @@ describe('addsValueGate — the fingerprint lane (D-14)', () => {
   })
 })
 
-describe('addsValueGate — the text fallback lane (D-16)', () => {
+describe('addsValueGate — the text fallback lane', () => {
   it('fails the gate when an evidence-less suite test is similar enough to the draft', () => {
     const result = addsValueGate({
       draft: NEAR_DUPLICATE_DRAFT,
@@ -177,7 +177,7 @@ describe('addsValueGate — the text fallback lane (D-16)', () => {
     expect(controlScore).toBeLessThan(TEXT_FALLBACK_SIMILARITY_THRESHOLD)
   })
 
-  it('a score exactly AT the threshold reads as covered — ties fail the gate (D-16)', () => {
+  it('a score exactly AT the threshold reads as covered — ties fail the gate', () => {
     // Over-flagging toward "already covered" is the safe direction, so the boundary belongs on the
     // covered side. A strict `>` would hand the tie to the draft.
     const identical = {
@@ -214,7 +214,7 @@ describe('addsValueGate — the text fallback lane (D-16)', () => {
   })
 })
 
-describe('addsValueGate — lane precedence (D-14/D-16, CR-01)', () => {
+describe('addsValueGate — lane precedence', () => {
   /**
    * An evidence-less sibling whose tokens are the draft's own, so `textSimilarity` returns 1.0 —
    * the strongest possible text-lane "covered" claim. Its identity is NOT in the fingerprint
@@ -274,7 +274,7 @@ describe('addsValueGate — lane precedence (D-14/D-16, CR-01)', () => {
     expect(result.reason).not.toContain('text fallback lane')
   })
 
-  it('the text lane still DECIDES when the index is empty — the state D-16 wrote it for', () => {
+  it('the text lane still DECIDES when the index is empty — the state it exists for', () => {
     const result = addsValueGate({
       draft: NEAR_DUPLICATE_DRAFT,
       draftElements: ['el-novel'],
@@ -287,7 +287,7 @@ describe('addsValueGate — lane precedence (D-14/D-16, CR-01)', () => {
   })
 })
 
-describe('addsValueGate — the empty suite (D-16)', () => {
+describe('addsValueGate — the empty suite', () => {
   it('passes trivially when the union AND the text corpus are both empty', () => {
     const result = addsValueGate({
       draft: ACCEPT_CONTROL_TEXT,
@@ -326,7 +326,7 @@ describe('addsValueGate — the empty suite (D-16)', () => {
 })
 
 describe('addsValueGate — a draft with no observed evidence', () => {
-  it('reports FALSE against a covered suite, and says why (D-04: gate 3 is still answered)', () => {
+  it('reports FALSE against a covered suite, and says why (gate 3 is still answered)', () => {
     // The gate-1-failed case, named rather than emergent. A draft whose runs produced no succeeded
     // sub-actions has no elements, so nothing can be shown to be novel — and the honest answer is
     // "not shown to add value", not a default. The receipt has to say which of the two it is.

@@ -43,7 +43,7 @@ async function gates(
   return { result, startCount: runPort.startInputs.length }
 }
 
-describe('runStabilityGates — D-17', () => {
+describe('runStabilityGates — the consecutive-run gates', () => {
   it('three consecutive passes: gate 1 true, gate 2 true, three runs completed', async () => {
     const { result, startCount } = await gates([[member()], [member()], [member()]])
 
@@ -70,7 +70,7 @@ describe('runStabilityGates — D-17', () => {
     expect(startCount).toBe(2)
   })
 
-  it('every gate is still answered after an early stop — no gate is skipped (D-04)', async () => {
+  it('every gate is still answered after an early stop — no gate is skipped', async () => {
     const { result } = await gates([
       [member({ outcome: 'passed' })],
       [member({ outcome: 'failed' })],
@@ -84,7 +84,7 @@ describe('runStabilityGates — D-17', () => {
       .toBe(true)
   })
 
-  it('an infeasible termination is indefinitive even though the enum reads `failed` (F1)', async () => {
+  it('an infeasible termination is indefinitive even though the enum reads `failed`', async () => {
     const { result } = await gates([
       [member({ outcome: 'failed', infeasibleSteps: [0] })],
       [member({ outcome: 'failed', infeasibleSteps: [0] })],
@@ -169,7 +169,7 @@ describe('runStabilityGates — D-17', () => {
     }
   })
 
-  it('a healed pass counts as a pass AND the row records the heal (F3, Pitfall 7)', async () => {
+  it('a healed pass counts as a pass AND the row records the heal', async () => {
     const { result } = await gates([
       [acceptControlMember('healed')],
       [acceptControlMember('healed')],

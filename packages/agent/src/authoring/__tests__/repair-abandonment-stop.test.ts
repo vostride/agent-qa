@@ -488,7 +488,7 @@ function ordinaryArmEvidence(): { failurePoint: unknown; evidenceRefs: readonly 
   return { failurePoint: route.failurePoint, evidenceRefs: route.evidenceRefs as readonly EvidenceRefRow[] }
 }
 
-describe('an abandoned repair stops with evidence a person can trace (CR-02)', () => {
+describe('an abandoned repair stops with evidence a person can trace', () => {
   it('EXHAUSTED: the stop carries evidence refs and a failure point naming the routed run', async () => {
     const harness = bench({
       emissions: [MODEL_DOCUMENT, REFUSAL_MARKER, REFUSAL_MARKER, REFUSAL_MARKER],

@@ -195,7 +195,7 @@ describe('the corpus manifest is versioned and internally coherent', () => {
     }
   })
 
-  it('assigns each class its D-13 lane, with every exception NAMED', () => {
+  it('assigns each class its lane, with every exception NAMED', () => {
     // The rule is about what a cell NEEDS, and the class is usually a faithful proxy for it:
     // `deterministic` never touches the LLM by contract, `planner` cannot be answered without one.
     // A `compound` cell is live BY DEFAULT because its clauses usually reach a model — but a
@@ -276,7 +276,7 @@ describe('file -> manifest: an unlisted file is a build error (the anti-treadmil
   })
 })
 
-describe('the manifest and 392-02s structural cap describe ONE corpus', () => {
+describe('the manifest and the structural cap describe ONE corpus', () => {
   it.each(CHAT_RESOLVER_TABLE.map((rule) => rule.alias))(
     'resolver-table alias %s is in the manifest as a deterministic scenario',
     (alias) => {
@@ -285,7 +285,7 @@ describe('the manifest and 392-02s structural cap describe ONE corpus', () => {
   )
 })
 
-describe('every argsPin is what stage 1 actually binds (D-12, corpus walk)', () => {
+describe('every argsPin is what stage 1 actually binds (corpus walk)', () => {
   // WHY HERE AND NOT IN THE COMPOSED RUNNER. `ClauseReceipt` carries no arguments and must not:
   // D-18 keeps the session log refs-and-one-liners because surfaces render it directly, and op
   // input is exactly the field that could carry a secret. So the bound argument is not observable

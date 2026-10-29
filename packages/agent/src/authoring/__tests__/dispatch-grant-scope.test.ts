@@ -189,7 +189,7 @@ const LOOP_INPUT: AuthoringLoopInput = {
   scope: { tier: 'product', key: 'local-form' },
 }
 
-describe('the authoring dispatch runs directly (D-08 scope deleted, 432-19)', () => {
+describe('the authoring dispatch runs directly, with no scope', () => {
   it('EVERY MODEL CALL PRECEDES THE FIRST RUN, AND THE RUNS ARE THE DISPATCH — the whole sequence', async () => {
     const harness = bench({ gateRuns: 3 })
     await runAuthoringLoop(LOOP_INPUT, harness.deps)
@@ -206,7 +206,7 @@ describe('the authoring dispatch runs directly (D-08 scope deleted, 432-19)', ()
     ])
   })
 
-  it('C432-NO-ASK-PORTS: a host that still binds the deleted scope does not have it entered', async () => {
+  it('a host that still binds the deleted scope does not have it entered', async () => {
     // The deletion's own claim. A stale composition handing `dispatchGrants` is ignored: no `enter`,
     // no `exit`, the same runs in the same order and the same result as with nothing bound.
     const stale = bench({ gateRuns: 3, bindStaleScope: true })
