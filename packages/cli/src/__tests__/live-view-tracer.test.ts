@@ -448,6 +448,9 @@ async function captureProcessLog<T>(run: () => Promise<T>): Promise<{ result: T;
   try {
     const result = await run()
     return { result, log: lines.join('\n') }
+  } catch (error) {
+    const reason = error instanceof Error ? error.message : String(error)
+    throw new Error(`${reason}\ncaptured log:\n${lines.join('\n')}`, { cause: error })
   } finally {
     for (const spy of [...spies, ...streamSpies]) spy.mockRestore()
   }
@@ -484,6 +487,9 @@ describe('an editor token obeys every credential rule a run token does', () => {
 
         const mintResponse = await fetch(`${harness.origin}/api/live-editor/sessions/ed-log/live-url`)
         const mintBody = await mintResponse.text()
+        if (mintResponse.status !== 200) {
+          expect(mintResponse.status, `the no-Origin caller mints; the server answered ${mintBody}`).toBe(200)
+        }
         const minted = EditorLiveUrlResultSchema.parse(JSON.parse(mintBody))
         const token = minted.liveUrl.split('#')[1] as string
 
@@ -499,10 +505,9 @@ describe('an editor token obeys every credential rule a run token does', () => {
 
         const socketTexts = await watchEditor(harness.origin, 'ed-log', token, async () => { await editor.end() })
         bodies.push(['the frame socket\'s text messages', socketTexts.join('\n')])
-        return { mintStatus: mintResponse.status, mintBody, liveUrl: minted.liveUrl, token, bodies, socketTexts }
+        return { mintBody, liveUrl: minted.liveUrl, token, bodies, socketTexts }
       })
 
-      expect(result.mintStatus, 'the no-Origin caller mints').toBe(200)
       expect(log, 'the capture saw the console').toContain('capture control: console')
       expect(log, 'the capture saw stderr').toContain('capture control: stderr')
       // THE NEEDLES' POSITIVE CONTROL: the mint's own body carries the token and its needle.
