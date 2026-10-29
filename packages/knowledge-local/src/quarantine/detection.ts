@@ -91,104 +91,19 @@ import type { QuarantineIdentity } from './identity.js'
 // and the window it is counted against drift apart.
 export { QUARANTINE_WINDOW_ORDINALS } from '../projection/fingerprint-window-read.js'
 
-/**
- * Visibility floor (D-06): distinct occurrence ordinals at which a fingerprint becomes suspected
- * flaky. Pinned, never config — retune from operational evidence in this source, where the change
- * is reviewable.
- */
+// Distinct occurrence ordinals, not runs, at which a fingerprint is flagged as suspected flaky.
 export const QUARANTINE_FLAG_FLOOR = 2
 
-/**
- * `memory.md` §9.5's locked trigger, verbatim: the same fingerprint at three distinct ordinals
- * inside the window escalates. Pinned constant with no config key (386 D-15) — retune it here.
- */
+// The same fingerprint at this many distinct ordinals inside the window escalates.
 export const QUARANTINE_ESCALATE_THRESHOLD = 3
 
-/**
- * THE PER-RUN BUDGET for mass auto-quarantine on the FLOOR path (390-19 / G-390-5): at most this
- * many `entered` events may be authored on the floor arm in ONE `evaluateQuarantineDetection` call.
- * One call is one run's fold, so this is PER RUN — and PER RUN is the whole of it, which is why
- * this reads "budget" and not "containment" (390-28 / WR-02; see the measurement below).
- *
- * WHY A COUNT AND NOT A CLASS. 390-16's motivating observation was itself a count — one probe
- * failure auto-quarantined 6 of 6 tests in a suite — and it was read as a statement about the class
- * `environment`. That reading is unsound under `classifyRootCause`'s branch order: its
- * `outcome === 'timeout'` arm RETURNS before the `baselineProbe` arms that mint `environment`, so a
- * run-scoped hang arrives classed `timeout`. Every class the floor can mint on a FAILING member is
- * reachable from a run-scoped cause, so no class-based gate can contain fan-out. This constant
- * states the property directly instead of proxying it through class semantics.
- *
- * WHAT THIS CONSTANT ACTUALLY BUYS: A RATE LIMIT, NOT CONTAINMENT (390-28 / WR-02, correcting the
- * 390-19 text). Two claims stood here and both were false, in opposite directions:
- *
- *  1. IT WOULD NOT HAVE CAUGHT THE MOTIVATING EVENT — that event never reaches this counter. The
- *     measured 6-of-6 members classed `environment`, and `QUARANTINE_FLOOR_ELIGIBILITY.environment`
- *     is `authored-required`, so `autoQuarantines` answers `'refused'` for a floor-produced
- *     `environment` crossing one conjunct EARLIER; the cap is consulted only when that call answers
- *     `'floor'`. Zero entered lines for those six is the CLASS gate's doing, pinned by
- *     detection-fold.test.ts's "writes ZERO entered lines for six floor-produced environment
- *     failures". The `timeout` RE-DERIVATION of the same event — a run-scoped hang arriving in a
- *     floor-eligible class, per WHY A COUNT above — is INFERRED and has never been observed in the
- *     field; it is the reason the cap exists, not evidence that the cap caught anything.
- *  2. IT DOES NOT BOUND EVENTUAL ENTRIES. Measured 2026-08-06 at CAP=2 over a SUITE=6 fan-out: six
- *     floor-admissible crossings enter 2 / 2 / 2 across three consecutive evaluations and ALL SIX
- *     are quarantined by run 3. Each refused member is admitted on the next applied run with no
- *     human decision and no new evidence — which is exactly what OVERFLOW IS LOUD says below, so
- *     the retracted containment clause contradicted its own docstring a paragraph later.
- *     The first two evaluations of that shape now live in the corpus rather than only in a probe:
- *     detection-fold.test.ts's "the floor cap rate-limits a multi-member fan-out (390-28)" produces
- *     CAP + 1 floor admissions in ONE real fold, admits exactly CAP by identity order, and admits
- *     the refused member on the very next run.
- *
- * So the purchase is TIME AND VISIBILITY, per run: every crossing this counter refuses is one build
- * in which a human sees the identity in `escalatedNotQuarantined` with the build still red, before
- * anything silences it. That is worth having and it is all of it.
- *
- * WHY 2 SPECIFICALLY, on the half that survives. Strictly above 1, so the mechanism is not a de
- * facto single-shot and two genuinely independent flaky tests can still both land in one run. A run
- * asking to silence three or more tests on the floor's word alone is the shape of FAN-OUT, not of
- * independent flakiness — simultaneity is the signal a shared cause leaves. The number is a
- * per-run BUDGET on that shape, and 2 is where the budget was set; it is not derived from the
- * 6-of-6 observation, which the class gate already refuses.
- *
- * IT SHARES `QUARANTINE_FLAG_FLOOR`'s VALUE BY COINCIDENCE AND IS NOT DERIVED FROM IT. Said
- * explicitly so a later retune of the flag floor cannot silently move this number too. A pinned
- * constant with no config key (386 D-15); retune it here, on its own evidence.
- *
- * OVERFLOW IS LOUD, NEVER DROPPED. Past the cap an identity routes to `escalatedNotQuarantined`
- * with the build still failing — D-05's already-ratified posture for a class-gated refusal, applied
- * to a count-gated one. It crosses again on the next applied run and may be admitted THEN; one that
- * stops failing was never a quarantine candidate. Nothing is lost: the cap slows the floor path
- * down, it does not close it.
- *
- * THE AUTHORED ARM IS EXEMPT, DELIBERATELY. An authored verdict is per-test evidence by
- * construction — a model read THIS test's evidence and named its cause — so it does not carry the
- * hazard this cap defends against, which is a RUN-level signal being read as per-test. Capping it
- * would also silently regress the arm 390-16 shipped, on no measurement. THE HONEST RESIDUAL: an
- * authored run CAN still class many tests identically, so the authored path's fan-out is unchanged
- * by this round — stated, not closed (T-390-19-07, accepted).
- */
+// Per-run cap on floor-arm entries; overflow escalates and may enter on the next applied run.
 export const QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP = 2
 
-/**
- * D-10's exit: M consecutive PASSING distinct build ordinals release a quarantined test. Five is
- * symmetric with the detection window by design (~17% escape odds for a 30%-failure flake) and sits
- * inside LAST_OUTCOMES_LIMIT, so no window widening is needed. Retune from operational evidence.
- */
+// Consecutive passing distinct build ordinals that release a test; within `LAST_OUTCOMES_LIMIT`.
 export const QUARANTINE_AUTO_EXIT_PASSES = 5
 
-/**
- * D-11's default lifetime in days. On lapse suppression STOPS and the entry stays listed as
- * `expired`.
- *
- * This is a REVIEW CADENCE, not a cap, and the difference is the fact somebody retuning the number
- * most needs: a still-crossing fingerprint re-enters with a fresh `expiryFrom(now)` on the very
- * next fold, indefinitely and with no attenuation. Measured over four full cycles (2026-08-06): 4
- * `entered` lines, 4 distinct deadlines, 0 released, cycle 4 indistinguishable from cycle 1. So
- * raising this number lengthens the gap between red builds; it does not change how many there
- * eventually are. A human deadline in a human-reviewed file; retune from operational evidence,
- * never from config.
- */
+// A review cadence, not a cap: a still-crossing fingerprint re-enters with a fresh deadline.
 export const QUARANTINE_DEFAULT_EXPIRY_DAYS = 30
 
 /** What escalation does with a verdict class. */
