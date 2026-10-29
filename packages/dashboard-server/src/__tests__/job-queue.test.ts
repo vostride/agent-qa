@@ -144,8 +144,8 @@ describe('JobQueue', () => {
       })
     })
 
-    // 2026-10-17 (444-06, D-01, D-11): the cell that pinned the `cancel-running` event is deleted
-    // with the event; C444-CANCEL-REQUEST in 444-cancel-request.test.ts pins the stop request.
+    // The stop request a cancel sends to a running run is checked in
+    // routes.run-cancel-request.test.ts.
 
     // 2026-08-24 (402-09, D-11): the cell that stood here asserted the child-cancellation fan-out.
     // The fan-out is deleted with the model that minted its children; this is the same claim with

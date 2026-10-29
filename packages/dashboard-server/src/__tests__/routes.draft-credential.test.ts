@@ -405,7 +405,7 @@ describe('moving a draft credential (429-09 Task 2)', () => {
   })
 })
 
-// 429-09 Task 3: the five auth doors, driven the way 428-live-editor-doors.test.ts drives the
+// The five auth doors, driven the way live-editor.routes-and-sockets.test.ts drives the
 // live-editor doors, plus the rebound Host a DNS-rebinding page presents.
 const FOREIGN_ORIGIN = 'http://evil.example'
 const CROSS_SITE_CALLERS: readonly { readonly name: string; readonly headers: IncomingHttpHeaders }[] = [
