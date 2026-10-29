@@ -196,16 +196,7 @@ import type { AppWrapperMint } from './app-wrapper.js'
 import { liveRunLinkOf } from './live-link.js'
 import type { LiveLinkSupplier } from './live-link.js'
 
-/**
- * The official MCP Apps extension id (spec revision 2026-01-26).
- *
- * RESTATED LOCALLY RATHER THAN IMPORTED, and the reason is a measured peer conflict:
- * `@modelcontextprotocol/ext-apps` declares `peerDependencies: { '@modelcontextprotocol/sdk':
- * '^1.29.0' }` — the v1 monolith — while this package ships the 2.0.0 split SDK, so importing its
- * `/server` entry would drag a second SDK generation into production (Pitfall 3). The string is
- * therefore ours, and Plan 06's census pins it against ext-apps' shipped schema so a typo'd
- * reverse-DNS id cannot fail silently as "never negotiated".
- */
+// Restated, not imported: ext-apps peer-depends on SDK v1, and this package ships the v2 split SDK.
 export const MCP_APPS_EXTENSION_ID = 'io.modelcontextprotocol/ui'
 
 /** The media type an App resource is served as. Restated locally for the reason above. */

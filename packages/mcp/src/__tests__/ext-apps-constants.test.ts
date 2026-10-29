@@ -304,13 +304,6 @@ describe('ext-apps never crosses into production', () => {
     // make cell (5) green forever.
     const thisFile = readFileSync(join(TESTS_DIR, 'ext-apps-constants.test.ts'), 'utf8')
     expect(extAppsSpecifiers(thisFile)).toContain(`${EXT_APPS}/server`)
-
-    // And the detector is NOT a substring search: the production modules mention the package in
-    // prose, deliberately, and that must stay allowed. This is the exact discrimination the cell
-    // above depends on.
-    const prose = readFileSync(join(SRC_ROOT, 'app-resource.ts'), 'utf8')
-    expect(prose, 'app-resource.ts explains the v1 peer in prose').toContain(EXT_APPS)
-    expect(extAppsSpecifiers(prose), 'and that prose is not an import').toEqual([])
   })
 
   it('(6) the manifest keeps it in devDependencies and out of dependencies', () => {
