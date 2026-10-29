@@ -1,6 +1,4 @@
-# `test <n>` goes through 387 D-05's three-tier never-guess ladder, and the ref it carries is
-# what the person typed — VERBATIM. Pre-chewing `test 42` into `42` here would be a second
-# resolution grammar in front of the one that exists to be the only one.
+# The ref carries what the person typed, verbatim; `entities.resolve` owns the grammar.
 id: test-ref
 class: deterministic
 lane: hermetic

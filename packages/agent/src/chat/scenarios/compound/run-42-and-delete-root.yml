@@ -1,21 +1,4 @@
-# THE CR-03 PROBE, ADMITTED AS A PERMANENT CELL (392-11, gap round).
-#
-# THIS UTTERANCE IS THE VERIFIER'S OWN. Run through the shipped stack with one `answer_only` in the
-# model's plan, it used to COMPLETE: receipts `[["run test 42","executed"]]`, `mark_unhandled` rows
-# 0, and the second clause absent from the entire result. A turn-level answer consumed every clause
-# the merge had no binding for, so the request to delete the knowledge root was not refused — it
-# stopped being mentioned. The corpus could not see it because `compound/` cells assert
-# `executed == 0` on the fail-closed arm and this defect left `executed == 1` on a COMPLETED turn.
-#
-# WHY THE SECOND CLAUSE IS AN ACTION AND NOT A QUESTION. The old answer-arm test used "what is a
-# flake" and asserted the plan length — the same observable a silent drop produces. The dangerous
-# case is the one where prose is not an acceptable outcome: nothing in this build deletes a
-# knowledge root, so the only honest answers are a refusal naming that clause or nothing at all.
-#
-# LIVE LANE, because the first clause is table-resolvable and the second must reach a REAL planner
-# to prove the thing worth proving: that a live model, free to answer in prose, cannot make an
-# unroutable action disappear. Its defect-shape RED is recorded in 392-11-SUMMARY.md against the
-# reconcile suite, which is where a hermetic reddening for this shape can exist at all.
+# A live planner free to answer in prose must not make an unroutable action clause disappear.
 id: run-42-and-delete-root
 class: compound
 lane: live

@@ -1,30 +1,4 @@
-# THE CONFIGURATION NO CELL IN EITHER LANE EVER HAD (392-15, third gap round, CR-01).
-#
-# A TABLE-MAPPED CLAUSE BESIDE A PLANNER-BOUND CLAUSE, ON A TURN THAT COMPLETED. Six `compound/`
-# cells existed before this one and not one of them was this shape: `run-42-and-digest` has BOTH
-# clauses mapped, so stage 2 is skipped entirely and the alignment path is never walked; every other
-# cell refuses before it gets there. So the corpus could not see CR-01 three rounds running, and the
-# reason was structural rather than bad luck — the acceptance set was drawn from inside the
-# alignment rule's own precondition (392-VERIFICATION round 3).
-#
-# WHAT THE SCRIPT ENCODES. `run test 42` resolves at stage 1 to `runs.start {patterns: ["test 42"]}`,
-# so stage 2 is asked only about `summarise the last failure` — and the scripted planner answers with
-# TWO calls, the verifier's CR-01 probe verbatim: `runs_start {patterns: ["tests/everything.spec.ts"]}`
-# (a call about the clause the TABLE already resolved) followed by `runs_digest {runId: "RUN-1"}`.
-# The model's patterns are deliberately unlike the table's so the pre-fix failure shows WHOSE
-# arguments executed. Against the pre-fix tree this turn `completed` with TWO executed receipts, the
-# second naming "summarise the last failure" against `runs.start` carrying the MODEL's patterns —
-# a second test run nobody asked for, under a receipt naming a clause that asked for a digest, and
-# `runs_digest` discarded with no row of any kind.
-#
-# FAULT INJECTION AGAINST THE GUARD, NOT AN LLM MOCK. D-13's "no mocks in either lane" rules out a
-# cell whose OUTCOME would be the stand-in's behaviour — that is the `should_execute` arm, which no
-# scripted cell may join. The model is the untrusted party this mechanism constrains, so a script
-# encoding the adversarial shape is in the same family as the mutation differentials: the claim is
-# that the guard refuses whatever the model says.
-#
-# `fail_closed`, so the ceiling's `should_execute` denominators do not move: 11 hermetic,
-# 3 live, before and after.
+# A scripted planner makes an extra call about the table-mapped clause; the turn must refuse.
 id: run-42-and-summarise-extra-call
 class: compound
 lane: hermetic

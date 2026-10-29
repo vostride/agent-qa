@@ -1,12 +1,4 @@
-# `/model <name>` is CANON — stage 1 recognises it at once — and plan 08 BOUND its handler, so this
-# file flipped from `fail_closed` to `should_execute` and the flip IS that plan's arrival proof
-# (392-02 wrote it as a FLIPS-TO and said not to loosen it early).
-#
-# `executed: 0` ON A TURN THAT DID WHAT WAS ASKED. A directive names no capability — it changes what
-# the SESSION is — so it crosses the function layer zero times, and the count that proves the work
-# happened is not an invocation count. That is why `emitsSessionEvent` exists: the `model_change`
-# row, with `source: verb`, is the observable difference between a `/model` that switched the
-# session and a `/model` that was quietly ignored.
+# A directive crosses the function layer zero times, so the `model_change` row proves it ran.
 id: model
 class: deterministic
 lane: hermetic

@@ -1,34 +1,4 @@
-# THE SPEC'S OWN EXAMPLE, FLIPPED BY 394.
-#
-# WHAT THIS CELL USED TO ASSERT. `write_test` was in no registry, so the planner could not plan the
-# first clause and no stub pretended otherwise. D-10's strict pre-flight atomicity then refused the
-# WHOLE turn with zero executions: the runnable second clause did not get to run just because it
-# happened to come second. That refusal was the arm this file was committed to pin.
-#
-# WHAT IT ASSERTS NOW. Phase 394 registered the loop as `authoring.draft.write`, so both clauses
-# route and pre-flight has a plan it can admit instead of a turn it must refuse. Two planned
-# actions, two executed, IN UTTERANCE ORDER — the `run-42-and-digest` shape, for the same reason:
-# order is meaning, and "run it" is about the test the first clause just authored.
-#
-# WHY THE SECOND CLAUSE CAN BIND AT ALL, stated because the `run-42-and-digest` finding is the trap
-# next to this one. `RunsDigestInput` REQUIRES a run id, which is why that cell's digest clause had
-# to name its run: under pre-flight atomicity clause two's arguments cannot depend on clause one's
-# result. `RunsStartInput` is different — every field on it is optional — so "run it" is bindable
-# without knowing anything clause one is about to produce, and 392's own header for this file
-# already called the second clause runnable for that reason.
-#
-# THE READING THIS PIN CHOOSES, recorded so a drain does not have to re-derive it. There is a second
-# defensible answer: the loop VERIFIES by executing (stage 4's gate runs), so a planner could treat
-# "and run it" as discharged by the first action and plan one. Two is pinned because the corpus
-# asserts ROUTING — each clause reaching the capability it names — and a clause silently absorbed
-# into its neighbour is indistinguishable here from a clause dropped. If the live drain measures a
-# single planned action, that is a finding about this expectation, and it is fixed by editing this
-# cell and bumping the corpus version, never by loosening the assertion until it fits.
-#
-# WHAT THE LIVE DRAIN MUST SUPPLY. `authoring.draft.write` is `mutating-shared` and the v48
-# gate denies that tier outside `local-interactive`; a vitest worker resolves `local-headless`. This
-# cell needs a trust credential, a standing approval or an overridden context, or it reds on the
-# gate rather than on routing.
+# `RunsStartInput` has no required field, so `run it` binds without clause one's result.
 id: write-test-2fa-and-run
 class: compound
 lane: live

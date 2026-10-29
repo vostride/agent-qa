@@ -1,10 +1,4 @@
-# REPL chrome. It is in the table because the table is the vocabulary a person types, and the REPL
-# that consumes it recognises `/help` from the same one list as everything else. Bound by plan 08.
-#
-# `answerContains` rather than an event, because chrome leaves no row: `/help` changes nothing about
-# the session, so there is nothing for the log to record and the only honest proof is what came
-# back. `/fn` is the fragment pinned because it is the REACH lever — a help text that stopped
-# naming it would leave a person believing the thin canon is the whole capability set.
+# `/help` leaves no session row, so the answer text is the proof, and it must name `/fn`.
 id: help
 class: deterministic
 lane: hermetic

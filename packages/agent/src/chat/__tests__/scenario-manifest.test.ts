@@ -1,29 +1,4 @@
-// THE FROZEN DENOMINATOR (Phase 392 plan 09, D-15 / CHAT-03 / RESEARCH Pitfall 2).
-//
-// CHAT-03's ceiling is a RATIO, and a ratio is only a measurement if its denominator holds still.
-// This project's dominant historical failure is the opposite: a scoring set that grows as work is
-// added, so the number improves without anyone deciding it should. `SCENARIO_CORPUS` is the answer
-// — an explicit, versioned list of every scenario by class — and this file is what makes the list
-// true. Both directions are walked:
-//
-//   manifest -> file: every listed scenario exists, parses through the schema, and AGREES with
-//                     what the manifest says about it (class, lane, expectation kind).
-//   file -> manifest: every `.yml` under `scenarios/` is listed. A file dropped on disk without a
-//                     manifest line FAILS THE BUILD, which is the whole anti-treadmill mechanism:
-//                     the only way into the denominator is a deliberate edit to a committed list.
-//
-// THE EXPECTATION KIND IS PINNED HERE TOO, and that is deliberate rather than incidental. The
-// ceiling is computed over `should_execute` entries, so the kind IS part of the denominator's
-// definition — a scenario quietly flipping from `fail_closed` to `should_execute` would move the
-// number the ceiling holds down. D-08's flip law already says a flip is a phase's arrival proof;
-// pinning the kind makes that flip a two-file edit rather than a one-file one.
-//
-// RECONCILIATION WITH 392-02's STRUCTURAL CAP (`resolver-table-meta.test.ts`). That file also pins
-// an exact scenario set, for a different claim: every resolver-table row is characterised. The two
-// denominators must be the same set or the phase has two answers to "what is the corpus", so this
-// file asserts the manifest against the same on-disk directories AND asserts that every table alias
-// appears in the manifest. The manifest is authoritative for the CEILING; the meta-test stays
-// authoritative for "no untested top-level branch". Neither can drift from the other in silence.
+// Walks both directions, so a scenario joins the ceiling's denominator only by a manifest line.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -73,38 +48,8 @@ describe('the corpus manifest is versioned and internally coherent', () => {
   })
 
   it('is exactly the corpus its version says it is', () => {
-    // THE SIZE AND THE VERSION MOVE TOGETHER, in one commit, or the ratio reported afterwards is a
-    // number about a set nobody can name. v4 was 392-11's gap round: 18 + two regression cells.
-    // v5 is 392-14's: 20 + the two the ROUND-2 verification found still invisible. v6 is 392-15's:
-    // 22 + the mixed-mapping cell the ROUND-3 verification found neither lane had. v7 is 394-11's
-    // ARRIVAL FLIP: the size is unchanged at 23 and two live cells change arm, which is exactly the
-    // case this pin exists to make visible — a flip moves the denominator without moving the size.
-    //
-    // v8 IS 395-09's ARRIVAL ADMISSION, and it is the OTHER movement this pair exists to tell apart.
-    // 392 D-08 designed the config handoff as a flip; 395's research enumerated the whole v7 corpus
-    // and found no config cell to flip, so the handoff lands as an admission instead. The size rises
-    // to 24 AND the live denominator rises to 6 — both, together — where v7's flip moved only the
-    // denominator. Reading the two numbers in one assertion is the only thing that distinguishes
-    // "a capability arrived" from "a cell changed its mind", and after this commit a reader can say
-    // which happened without reconstructing it from the diff.
-    //
-    // v9 IS 398-07's EXPLAIN ARRIVAL, an admission on v8's shape: two `planner/` cells for a
-    // capability that did not exist in v8's build, so the size rises to 26 AND the live denominator
-    // rises to 8 — both, together, which is what distinguishes this from a flip.
-    //
-    // v10 IS 432-13's TWO RETIREMENTS: `pin` and `proposals` stay in the corpus as `fail_closed`
-    // absence cells, so the size is unchanged at 26 and the hermetic denominator falls to 9 — a flip
-    // in the other direction, stated rather than slipped through.
     expect(SCENARIO_CORPUS.length).toBe(26)
     expect(SCENARIO_CORPUS_VERSION).toBe(10)
-    // The denominators the ceiling is computed over, pinned per lane. Every gap-round cell is
-    // `fail_closed` precisely so these two numbers did NOT move — a corpus round that quietly grew
-    // the denominator would report a better rate for having done work (the treadmill law). What
-    // DOES move them is a deliberate flip, and 394-11 is the first one: the live count rises by the
-    // two write-test cells the authoring loop makes routable, and the hermetic count is unchanged
-    // because `fn-unknown-op` names an id this build still does not register (see its manifest
-    // comment — the loop shipped as `authoring.draft.write`, so that cell keeps proving the
-    // negative rather than joining the population).
     const denominator = (lane: string): number =>
       SCENARIO_CORPUS.filter((entry) => entry.lane === lane && entry.kind === 'should_execute')
         .length
@@ -113,15 +58,6 @@ describe('the corpus manifest is versioned and internally coherent', () => {
   })
 
   it('records the authoring loop\'s arrival flip by name: two cells route, and two still refuse', () => {
-    // D-08's FLIP LAW, made an assertion rather than a paragraph. The authoring loop registering
-    // `authoring.draft.write` is what moves these lines, so a build that lost the op would red HERE
-    // as well as in the parity walk — and a reader who found all four cells refusing would know the
-    // capability had regressed rather than having to reconstruct it.
-    //
-    // THE TWO THAT STAY REFUSING ARE THE POINT OF THIS CELL. A phase that registers ops can make an
-    // unknown-op test pass for the wrong reason, so the negative direction is pinned beside the
-    // positive one: `fn-unknown-op` addresses an id nothing registers, and `pin-and-write-test`
-    // measures the CR-04 directive/pin probe rather than the write-test half.
     const kindOf = (id: string): string | undefined =>
       SCENARIO_CORPUS.find((entry) => entry.id === id)?.kind
     expect(kindOf('write-test-for-checkout')).toBe('should_execute')
@@ -131,15 +67,6 @@ describe('the corpus manifest is versioned and internally coherent', () => {
   })
 
   it('records the config-edit arrival by name: an ADMITTED live cell, not a flipped one', () => {
-    // THE SAME LAW, EXECUTED THE OTHER WAY. The size pin above says the
-    // corpus grew; this says WHAT it grew by, so a build that dropped the cell reds naming the
-    // capability rather than reporting an off-by-one about a set.
-    //
-    // AND THE ADMISSION IS ASSERTED TO BE ONE. `find` answering undefined is the shape a flip would
-    // have left — a cell that already existed and changed arm — so the presence assertion is what
-    // makes this row about an admission at all. It is stated as `should_execute` beside it because
-    // an admitted cell landing `fail_closed` would join the corpus without joining the denominator,
-    // which is the movement 392 D-08's handoff was NOT asking for.
     const admitted = SCENARIO_CORPUS.find((entry) => entry.id === 'config-edit-timeout')
     expect(admitted).toBeDefined()
     expect(admitted?.class).toBe('planner')
@@ -148,18 +75,7 @@ describe('the corpus manifest is versioned and internally coherent', () => {
   })
 
   it('records the explain arrival by name: TWO admitted live cells, one per question shape', () => {
-    // THE SAME LAW AS 395's ROW ABOVE, applied to a pair. The size pin says the corpus grew by two;
-    // this says WHAT it grew by, so a build that dropped either cell reds naming the shape of
-    // question it stopped covering rather than reporting an off-by-one about a set.
-    //
-    // BOTH ARE ASSERTED TO BE ADMISSIONS. `find` answering undefined is the shape a flip would have
-    // left — a cell that already existed and changed arm — so the presence assertions are what make
-    // these rows about admissions at all.
-    //
-    // AND THE OP ID IS IMPORTED, NEVER SPELLED. The scenario files are DATA and carry the id as a
-    // literal like every other row; this cell is the tie back to the registry, so renaming
-    // `agent.explain` reds here instead of leaving two corpus rows pointing at a capability that no
-    // longer exists — which is the failure a corpus of literals cannot see about itself.
+    // The op id is imported, so renaming `agent.explain` fails here instead of orphaning rows.
     for (const id of ['what-can-you-do', 'how-do-i-explain']) {
       const admitted = SCENARIO_CORPUS.find((entry) => entry.id === id)
       expect(admitted, `${id} is not in the corpus`).toBeDefined()
@@ -184,15 +100,10 @@ describe('the corpus manifest is versioned and internally coherent', () => {
     // is an edit to this file as well as to the manifest.
     const HERMETIC_COMPOUND = new Set([
       'pin-and-write-test',
-      // 392-14. Both halves of each are reachable without a live model: `pin-and-pin-nonsense` is
-      // two directives, so stage 1 resolves the whole utterance; and the empty-answer sibling is
-      // driven by a SCRIPTED planner in the hermetic runner, because the shape under test is one
-      // the model is the untrusted source of rather than one a live model would reliably produce.
+      // Two directives resolve at stage 1, and the empty-answer sibling runs on a scripted planner.
       'pin-and-pin-nonsense',
       'run-42-and-delete-root-empty-answer',
-      // 392-15. Same reason as the empty-answer sibling: the shape under test is one the MODEL is
-      // the untrusted source of — an extra action call about a clause the table already resolved —
-      // so it is driven by a SCRIPTED planner rather than hoped for from a live one.
+      // The extra action call comes from the model, so a scripted planner drives it hermetically.
       'run-42-and-summarise-extra-call',
     ])
     for (const entry of SCENARIO_CORPUS) {
@@ -266,12 +177,7 @@ describe('the manifest and the structural cap describe ONE corpus', () => {
 })
 
 describe('every argsPin is what stage 1 actually binds (corpus walk)', () => {
-  // WHY HERE AND NOT IN THE COMPOSED RUNNER. `ClauseReceipt` carries no arguments and must not:
-  // D-18 keeps the session log refs-and-one-liners because surfaces render it directly, and op
-  // input is exactly the field that could carry a secret. So the bound argument is not observable
-  // from a turn result, and the composed runner asserts it only where an injected port sees it
-  // (the run executor). This walk is the other half — the claim is about the TABLE's binding, and
-  // the table is where a binding is decided, so this is the mechanism rather than a proxy for it.
+  // `ClauseReceipt` carries no arguments, so the table's bound arguments are checked here.
   const PINNED = SCENARIO_CORPUS.filter((corpusEntry) => corpusEntry.class === 'deterministic')
     .map((corpusEntry) => ({
       corpusEntry,

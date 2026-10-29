@@ -1,15 +1,3 @@
-// THE CEILING'S ARITHMETIC.
-//
-// A GATE THAT CANNOT FAIL IS WORSE THAN NO GATE, so the two things this file proves are that the
-// comparison FAILS when it should and PASSES at the boundary — in that order of importance. Every
-// case below is a pair: the count that must pass and the next count up, which must not.
-//
-// THE PRECISION CASES ARE NOT PEDANTRY. The failure this codebase has actually shipped is a
-// threshold that rounds in the implementer's favour: a rate expressed as a percentage and compared
-// after rounding turns 20.1% into 20% and reports a breached ceiling as met. `1000 / 201` below is
-// exactly that case, and it is the reason the ceiling is a `{ num, den }` rational compared by
-// cross-multiplication over integers rather than a float.
-
 import { describe, expect, it } from 'vitest'
 import type { ChatSessionEvent } from '@vostride/agent-qa-schema'
 

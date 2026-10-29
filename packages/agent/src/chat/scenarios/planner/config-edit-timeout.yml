@@ -1,38 +1,4 @@
-# PHASE 395's ARRIVAL PROOF — AND IT IS AN ADMISSION, NOT A FLIP.
-#
-# 392 D-08 designed the handoff as a flip: "the config fail_closed chat scenario moves fail_closed ->
-# should_execute". 395-RESEARCH went looking for that cell and enumerated all 23 files in the v7
-# corpus plus every manifest line. THERE IS NO CONFIG CELL. Nothing was ever admitted to flip, so
-# executing D-08's handoff faithfully means ADMITTING one — which moves the corpus SIZE (23 -> 24)
-# and the live denominator (5 -> 6) together, where a flip would have moved only the denominator.
-# Both numbers are pinned in `scenario-manifest.test.ts` and in the live lane's own header cell, and
-# they are pinned side by side precisely so an admission cannot be mistaken for a flip afterwards.
-#
-# WHAT THIS CELL USED TO BE UNABLE TO ASSERT. Before 395 the registry held `config.get` and nothing
-# else about configuration: every write path was a person editing YAML by hand. An utterance asking
-# for a configuration change had no reachable op at all, so the honest outcome was `mark_unhandled`,
-# and a cell asserting otherwise would have been asserting a capability into existence.
-#
-# WHAT IT ASSERTS NOW. 395 registered eight config ops, the planner binds every registry op 1:1
-# and `config.field.set` addresses ANY schema-addressable path — so the plainest
-# possible request to change one configuration value is routable. The utterance below is exactly
-# that request, phrased as an action in prose the stage-1 resolver table cannot match: every table
-# rule is prefix-anchored on its own verb (`run `, `status`, `test `, `digest `, `/fn`…), and this
-# line begins with `set`, which no rule owns. The model is therefore the only thing that can route
-# it, which is what makes this a measurement of the registry projection rather than of the table.
-#
-# PLANNED EQUALS EXECUTED, on 394's flip shape. A cell asserting only `completed` would be satisfied
-# by a turn that planned the capability and never reached it, or by one that answered in prose about
-# how a person might edit their config. One planned action, one executed action, and the op id
-# spelled out. It reds on a build that unregisters the config family, on a host that leaves any of
-# the four config deps unbound (the op's four-way guard throws `FunctionNotBoundError`, so the
-# receipt's status stops being `executed` while the turn still completes), and on a planner that
-# stopped projecting registry ops as tools.
-#
-# THE PROPOSAL THIS TURN FILES TOUCHES NOTHING THE LIVE LANE CARES ABOUT. Construction re-reads the
-# gate config's bytes and writes a pending record under the lane's own temp `.agent-qa/proposals/`;
-# the configured YAML is not modified by a propose op under any outcome, and the temp root is
-# removed in `afterAll`.
+# Begins with `set`, which no table rule owns, so only the planner can route it.
 id: config-edit-timeout
 class: planner
 lane: live

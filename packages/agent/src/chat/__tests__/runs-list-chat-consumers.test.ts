@@ -1,8 +1,4 @@
-// the chat consumers of `runs.list` agree on chronology.
-//
-// The banner and the resolver are driven over the REAL `runs.list` spec through `invokeFunction`,
-// with more completions than the default cap and build ordinals that disagree with completion
-// order. The digest read is scripted only to record which run the banner chose to digest.
+// Drives the real `runs.list` spec with build ordinals that disagree with completion order.
 
 import { CURRENT_HANDOFF_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type {
@@ -21,8 +17,6 @@ import { composeBanner } from '../banner.js'
 import type { ChatInvokeBinding } from '../ports.js'
 import { CHAT_RESOLVER_TABLE, resolveClause } from '../resolver-table.js'
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
 const CALLER: FunctionCaller = {
   surface: 'chat',
   origin: 'human',
@@ -71,8 +65,6 @@ function listRegistry(documents: readonly CompletedRunHandoff[]) {
         readStepEvidence: () => Promise.resolve({ kind: 'run-not-recorded' } as const),
       },
     } as unknown as FunctionDeps,
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
   })
 }
 

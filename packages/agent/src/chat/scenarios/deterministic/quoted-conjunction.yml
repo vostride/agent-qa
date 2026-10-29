@@ -1,10 +1,4 @@
-# THE PITFALL-5 GUARD, seeded day one (RESEARCH Pitfall 5).
-#
-# A regex split on the same token set tears this utterance into `run "add` and `remove items"`,
-# the second of which no capability handles — so the turn fails closed, loudly, on a request that
-# was never compound. That is not a cosmetic bug: CHAT-03's ceiling is measured over this corpus,
-# and a splitter that manufactures phantom clauses inflates the very number the ceiling holds
-# down. ONE clause, one execution, and the quoted span survives into the bound argument intact.
+# A regex split would tear this quoted span into a phantom clause; it must bind as one.
 id: quoted-conjunction
 class: deterministic
 lane: hermetic

@@ -1,30 +1,4 @@
-# PHASE 398's ARRIVAL PROOF, SECOND OF TWO — the `how do I X` half of XPLN-02's phrasing pair.
-#
-# WHY A SECOND CELL AND NOT A SECOND ASSERTION ON THE FIRST. XPLN-02 names two shapes of question,
-# and they are two shapes rather than two wordings: `what can you do` asks for an enumeration and
-# `how do I X` asks for the way to do ONE thing. A planner that routed the first and answered the
-# second in prose would be a real, reachable half-failure, and a corpus carrying only the
-# enumeration form could not see it. This is the same argument the resolver-table corpus makes for
-# keeping the near-miss cell beside the canonical one.
-#
-# THE X IS DELIBERATELY NOT A CAPABILITY THE MODEL COULD JUST INVOKE. "How do I quarantine a test"
-# names `quarantine.add`, and routing THERE would be correct behaviour and would measure nothing
-# about explain — the question would have been answered by doing the thing. So the utterance asks
-# for the COMMAND, which is the one thing only the catalog can supply and the one thing D-10 forbids
-# a model to compose: every character of an invocation a person reads is quoted out of a catalog row
-# by the renderer, so a turn that answered this from model memory is exactly the turn this phase
-# exists to make impossible.
-#
-# Nothing in the stage-1 resolver table matches it — the rules are prefix-anchored on their own
-# verbs and this line begins with `explain`, which no rule owns — so the model is the only thing
-# that can route it.
-#
-# PLANNED EQUALS EXECUTED, on its sibling's reasoning, and the same three regressions red it: the op
-# unregistered, the `capabilityCatalog` dep unbound at the composition root, or the planner no
-# longer projecting registry ops as tools.
-#
-# UNRUN AT THE COMMIT THAT ADMITTED IT: `AGENT_QA_LIVE_CHAT_CONFIG` was unset, so this row
-# is corpus-pinned and its first live execution is its first measurement.
+# Asks for the command, which only the catalog can supply, so a prose answer cannot pass.
 id: how-do-i-explain
 class: planner
 lane: live

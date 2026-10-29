@@ -1,10 +1,3 @@
-// The conjunction grammar's behavioural pin (Phase 392, D-09 / RESEARCH Pitfall 5).
-//
-// Every case here is a claim about what a person typed and what the turn engine is therefore
-// obliged to route. The quoted-conjunction cases are the load-bearing ones: a regex `split()` on
-// the same token set passes every other test in this file and fails those two, which is exactly
-// why the implementation is a character scan with an explicit quote state.
-
 import { describe, expect, it } from 'vitest'
 
 import { CONJUNCTION_TOKENS, STYLE_MODIFIER_PHRASES, splitClauses } from '../clause-split.js'
@@ -88,37 +81,12 @@ describe('splitClauses — quote protection', () => {
   })
 
   it('treats an apostrophe as a quote opener, which is the safe direction', () => {
-    // "don't split this and that" — the apostrophe opens a span that never closes, so the
-    // whole tail is protected. Over-protection costs a clause that could have been split;
-    // under-protection manufactures a phantom clause and a spurious refusal. Pitfall 5 says
-    // which way to be wrong.
+    // An apostrophe opens a span that never closes; over-protection beats a phantom clause.
     expect(texts("don't split this and that")).toEqual(["don't split this and that"])
   })
 })
 
-/**
- * Bracket protection — `/fn`'s JSON body.
- *
- * FOUND BY DRIVING THE SHIPPED REPL, not by reading the file. `/help` advertises
- * `/fn <op> [json]` as "invoke any registered function by id — every capability, one branch", and
- * D-06 rests the whole thin-table design on that claim. But a JSON object with more than one member
- * carries a STRUCTURAL comma — outside any quoted span, because it sits between a value's closing
- * quote and the next key's opening one — and `,` is a pinned separator. So
- * `/fn config.target.create {"name":"shop","platform":"web","url":"https://shop.example.com"}` was
- * torn into three pieces, none of which parses as `/fn`'s body, and a person who typed exactly what
- * the help text told them to type was answered "No capability in this build handles …".
- *
- * Measured over Phase 397's scenario table: 14 of the 41 registered capabilities have an input
- * whose smallest valid JSON encoding contains a structural comma. For those 14 the reach lever did
- * not reach.
- *
- * THE FIX IS THE MODULE'S OWN RULE APPLIED TO A SECOND KIND OF SPAN. A quoted span already protects
- * its separators; a bracketed span now does the same, on exactly the asymmetry the file's head
- * states — over-protection costs a clause that could have been split, under-protection manufactures
- * a phantom clause and a spurious refusal. It adds no token to {@link CONJUNCTION_TOKENS} and takes
- * none away, so no utterance that split before splits differently unless it contains an unquoted
- * bracket, which is JSON and not English.
- */
+// A JSON body has structural commas outside quotes, so a bracketed span protects its separators.
 describe('splitClauses — bracket protection', () => {
   it('keeps a multi-member JSON object whole, so `/fn` reaches every capability', () => {
     expect(texts('/fn config.field.set {"path":"workspace.testMatch","value":"x"}')).toEqual([
@@ -195,14 +163,7 @@ describe('splitClauses — word boundaries and empty pieces', () => {
   })
 })
 
-/**
- * The seven phrases, written HERE as literals rather than imported from the module under test.
- *
- * A case that reads its expectation out of the code it measures cannot fail when both move
- * together (392-15's own recorded lesson). The import-side pin that asserts the constant IS this
- * list lives in its own case above; these literals are the independent statement of what a person
- * may type and still be understood.
- */
+// Literals, not imports: a case that reads its expectation from the code under test cannot fail.
 const PINNED_MODIFIERS = [
   'briefly',
   'concisely',
@@ -255,8 +216,7 @@ describe('splitClauses — a style modifier is not a request', () => {
   )
 
   it('keeps a modifier that is the only thing the person typed', () => {
-    // The fail-safe floor. Zero clauses is not an outcome this splitter may produce: refusing
-    // something a person typed is recoverable, dropping it silently is not (Pitfall 5's asymmetry).
+    // Zero clauses is never an outcome: a refusal is recoverable, a silent drop is not.
     expect(texts('briefly')).toEqual(['briefly'])
   })
 

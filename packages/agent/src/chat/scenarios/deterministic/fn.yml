@@ -1,7 +1,4 @@
-# The passthrough: ONE tested branch giving deterministic access to every registry op
-# without the table growing a row per op. No body means `{}`, exactly as `agent-qa fn` defaults.
-# the subject was `proposals.list`, deleted with the inbox; `quarantine.list`
-# is the same kind of op — read-only, empty input, an empty listing on a fresh project.
+# One branch reaches every registry op; no body means `{}`, as `agent-qa fn` defaults.
 id: fn
 class: deterministic
 lane: hermetic

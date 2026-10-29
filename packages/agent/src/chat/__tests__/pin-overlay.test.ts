@@ -1,22 +1,3 @@
-// there is no session pin overlay.
-//
-// RE-SPELLED 2026-10-01. This file pinned the `/pin` holder's contract:
-// normalisation to the `fn:` spelling, the unknown-class refusal, the live gate predicate and the
-// tighten-only member set. 432-13 removed `/pin` from chat resolution together with the op gate it
-// tightened, and 432-18 deletes the holder (`agent/src/chat/pin-overlay.ts`), its schema predicate
-// (`schema/src/chat/pin-overlay.ts`) and the chat state's pin field. Every one of those claims lost
-// its subject; what survives is the absence:
-//
-//   - neither module exists and no barrel publishes a pin member at runtime,
-//   - a session's chat state carries no pin set,
-//   - `/pin <class>` follows the ordinary unknown-directive behaviour: the resolver answers it
-//     exactly as it answers a directive nobody ever declared, and it binds no op, so the turn
-//     engine hands it to the planner like any other clause stage 1 leaves unresolved,
-//   - the resolver keys that remain are the ones a session still has.
-//
-// Independent chat session concurrency and clause receipt ordering are measured where sessions run
-// (agent-local `chat-session-isolation.e2e.test.ts`, `chat-directives-hermetic.e2e.test.ts`).
-
 import { existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -74,8 +55,6 @@ describe('the session pin overlay is gone', () => {
     }
   })
 
-  // 432-18 task 2: spelling edges. None of them is a near-miss for a pin any more — each is the
-  // same unresolved clause a directive nobody declared is.
   it('case, whitespace and suffix variants of /pin resolve as unknown directives too', () => {
     for (const clause of ['/PIN fn:runs.start', '/Pin runs.list', '/pin\tfn:runs.start', '  /pin  fn:runs.list  ', '/pinned fn:runs.start', '/pin/fn:runs.start']) {
       expect(resolveClause(CHAT_RESOLVER_TABLE, clause), JSON.stringify(clause)).toEqual({ kind: 'unresolved' })

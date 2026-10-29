@@ -1,22 +1,4 @@
-# THE CANON HAPPY PATH, and the named target of the reconciliation mutation proof.
-#
-# THE DIGEST CLAUSE NAMES ITS RUN, and the change is a FINDING rather than an adjustment (392-09,
-# first live execution of this file). As originally written the second clause was `show me the
-# digest` — and that scenario is unsatisfiable BY CONSTRUCTION, not by model quality. D-10's strict
-# pre-flight atomicity decides the whole plan BEFORE the first side effect, so clause two's
-# arguments cannot depend on clause one's result; `RunsDigestInputSchema` requires `runId`; and
-# therefore no plan exists in which `show me the digest` binds the run that `run test 42` is about
-# to start. The live lane refused the turn, correctly, naming that clause. A scenario that can only
-# ever fail closed cannot pin a happy path.
-#
-# Two clauses, both routable by different stages: `run test 42` is table-resolvable and therefore
-# model-independent, `show me the digest` is prose the planner routes. Planned equals executed
-# equals two, in UTTERANCE ORDER — order is meaning, and the digest clause is asking about
-# the run the first clause started.
-#
-# The deterministic mapper's verdict beats the model's on both the action set and the bound
-# arguments: a model that planned a different test id for clause one still executes 42.
-# Switch the override off and this scenario reds — which is the whole differential.
+# The digest clause names its run: the plan is fixed before clause one's run exists.
 id: run-42-and-digest
 class: compound
 lane: live

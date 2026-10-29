@@ -1,6 +1,4 @@
-# `status` binds to the runs LISTING and not to the single-run read, because a person who typed
-# one bare word supplied no id and `runs.get` refuses without one. The adjudication is recorded
-# on the table entry itself.
+# `status` binds the runs listing, because one bare word supplies no id and `runs.get` needs one.
 id: status
 class: deterministic
 lane: hermetic

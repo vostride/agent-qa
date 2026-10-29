@@ -1,19 +1,3 @@
-// Stage 2 produces a PLAN and nothing else.
-//
-// WHAT THE STUB MODEL IN THIS FILE IS, AND WHAT IT IS NOT. It is a TYPE-LEVEL fake of the
-// TRANSPORT seam: an object implementing the SDK's language-model interface that answers with
-// scripted content parts, so the read-back shaping can be asserted without a network. It is NOT an
-// LLM mock in the sense D-13 rules out — that rule is about scenario lanes, where a mocked model
-// would mean the corpus measures the mock's behaviour instead of a model's, and those lanes stay
-// mock-free (deterministic scenarios never reach the model at all; planner and compound scenarios
-// run live). Nothing here asserts what a model WOULD say. Every case asserts what this stage does
-// with what it is given, which is a property of this code and of no model.
-//
-// The load-bearing case is the negative one: after a turn in which the model proposed several
-// actions, NOTHING happened. That is D-10 measured rather than described — and it is measurable
-// here precisely because `projectPlannerTools` omits every execute callback, so there is no
-// function for the SDK to have called.
-
 import { describe, expect, it } from 'vitest'
 
 import { createPlannerStage, readBackPlan } from '../planner-stage.js'
@@ -37,14 +21,12 @@ type StubLanguageModel = Extract<ChatLanguageModel, { specificationVersion: 'v3'
 type StubCallOptions = Parameters<StubLanguageModel['doGenerate']>[0]
 type StubGenerateResult = Awaited<ReturnType<StubLanguageModel['doGenerate']>>
 
-// the retired `grantedScopes` and `safeMode` fields are dropped; nothing
-// read them.
 const CALLER: FunctionCaller = {
   surface: 'chat',
   origin: 'agent',
 }
 
-/** Every request now names its session (392 plan 13): the context a stage builds is per-session. */
+// Every request names its session, because the context a stage builds is per-session.
 const SESSION = 'session-planner-stage'
 
 const CLAUSES: readonly ChatClause[] = [
@@ -181,9 +163,7 @@ describe('readBackPlan: the shaping, in isolation', () => {
   })
 
   it('keeps BOTH answer_only calls when a model emitted two', () => {
-    // The case the removed projection lost. The prompt asks for one call per answered clause, and
-    // every one of them has to survive to the merge or a clause is counted as answered while its
-    // answer is thrown away (392-VERIFICATION round 2, path (4)).
+    // Every `answer_only` call reaches the merge, or a clause counts as answered with no answer.
     const outcome = readBackPlan([
       { toolName: ANSWER_ONLY_TOOL_NAME, input: { text: 'first' } },
       { toolName: ANSWER_ONLY_TOOL_NAME, input: { text: 'second' } },

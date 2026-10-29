@@ -1,5 +1,4 @@
-# The `run <test-ref>` alias. The reference is handed to the run-start op as a pattern,
-# verbatim: the table binds what the person typed and the op resolves it.
+# The reference reaches the run-start op verbatim as a pattern; the op resolves it.
 id: run
 class: deterministic
 lane: hermetic

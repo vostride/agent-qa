@@ -1,45 +1,4 @@
-# PHASE 398's ARRIVAL PROOF, FIRST OF TWO — AND IT IS AN ADMISSION, NOT A FLIP.
-#
-# 395-09 established the shape this follows: a capability that did not exist in the previous corpus
-# and does in this one joins as a NEW member, so the corpus SIZE and the live denominator move
-# together. `scenario-manifest.test.ts` pins both numbers side by side precisely so an admission and
-# a flip cannot be confused after the fact — a flip moves the denominator alone.
-#
-# WHAT NO CELL COULD ASSERT BEFORE. Until 398 there was no capability that answered a question about
-# what this product can do. "What can you do" had no reachable op, so the only honest outcomes were
-# `answer_only` prose out of model memory or `mark_unhandled`, and a cell claiming otherwise would
-# have been asserting a capability into existence. 398 registers `agent.explain`, the planner binds
-# every registry op 1:1, and the question is routable.
-#
-# THE PHRASING IS AN ACTION, and the distinction is one this corpus paid for. `list-recent-runs` was
-# re-authored after its first live execution because, asked as a QUESTION about the project, the
-# model read it as a request for information and answered in prose — which is `answer_only`
-# behaving correctly and leaves the cell measuring the wrong thing. So the utterance below asks for
-# something to be DONE and names the catalog, which is what `agent.explain`'s own summary describes.
-# Nothing in the stage-1 resolver table can match it: every rule there is prefix-anchored on its own
-# verb (`run `, `status`, `test `, `digest `, `/fn`, `help`…), and this line begins with `list the`,
-# which no rule owns. The model is therefore the only thing that can route it, which is what makes
-# this a measurement of the registry projection rather than of the table.
-#
-# PLANNED EQUALS EXECUTED, on 394's and 395's flip shape. A cell asserting only `completed` would be
-# satisfied by a turn that planned the capability and never reached it, or by one that answered in
-# prose about what the tool can do — which is the exact failure mode XPLN-02 exists to forbid, and
-# the one this cell must be able to see. It reds on a build that unregisters `agent.explain`, on a
-# host that leaves the `capabilityCatalog` dep unbound (the op throws `FunctionNotBoundError`, so
-# the receipt stops reading `executed` while the turn still completes), and on a planner that
-# stopped projecting registry ops as tools.
-#
-# THIS CELL NEEDS NO CREDENTIAL BEYOND THE LANE'S OWN. `agent.explain` carries a read-only,
-# recognized risk descriptor, and since 432 no op declares a scope and nothing gates a
-# call by execution context, so it runs in every context like every other op (re-spelled
-# 2026-10-02, 432-42). It starts nothing and writes nothing but one line into the lane's own temp
-# `.agent-qa/explain-coverage.jsonl`, which is removed with the temp root.
-#
-# UNRUN AT THE COMMIT THAT ADMITTED IT. The live lane is gated on
-# `AGENT_QA_LIVE_CHAT_CONFIG`, which was unset in that session, so this row is corpus-pinned and not
-# yet measured. The first live execution is its first measurement, and — as with `list-recent-runs`
-# — if the model answers in prose rather than routing, the utterance is what gets re-authored, never
-# the assertion.
+# Begins with `list the`, which no table rule owns, so only the planner can route it.
 id: what-can-you-do
 class: planner
 lane: live

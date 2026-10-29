@@ -1,19 +1,4 @@
-# THE answer_only ARM (D-07's second meta-tool, live lane).
-#
-# A question about the DOMAIN rather than about this project: nothing in the registry can answer it,
-# and nothing in the registry needs to. The turn must complete with prose and ZERO invocations,
-# which is a genuinely different outcome from both of its neighbours — a turn that ran an op it did
-# not need, and a turn that failed closed because it could not find one.
-#
-# THAT DISTINCTION IS THE MEASUREMENT. `mark_unhandled` is the fail-closed path, and a planner that
-# reached for it whenever no tool applied would make the ceiling a measure of how many questions
-# were asked rather than of how much routing was missed. This cell is the one that reds if
-# `answer_only` stops being reachable.
-#
-# NO `answerContains`: the prose is the model's and pinning a fragment of it would make this cell a
-# phrasing assertion. What is asserted is the SHAPE — completed, no ops, an answer present. (398
-# grounds this answer in a capability catalog; until then it is ungrounded model memory, which is
-# exactly why nothing here asserts that it is correct.)
+# A domain question, so the turn must complete with prose and no invocations.
 id: explain-flaky
 class: planner
 lane: live

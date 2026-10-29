@@ -1,26 +1,4 @@
-// The chat-open banner.
-//
-// ONE READ, ONCE, WHEN A PERSON OPENS A CONVERSATION. There is no timer in this file, no watcher,
-// and no second pass — 388 D-14's one-read law is the whole design, and the reason is that the
-// alternative is not "a fresher banner" but a background process that keeps a project's stores
-// warm for a person who may have walked away. Live push is M5's, where a transport earns it.
-//
-// AT MOST ONE LINE, AND USUALLY NONE. A REPL that greeted every open with a status report trains a
-// person to skip the greeting, and then the one open that had something to say goes unread. So the
-// idle case is SILENCE rather than a reassuring sentence.
-//
-// EVERY READ DEGRADES TO SILENCE. A banner may never block chat open, and it may never turn an
-// unbound or refused op into a failure the person has to deal with before they can type.
-//
-// the pending-proposals half is deleted with the inbox. Nothing is
-// filed for a person to decide, and old proposal files are never read, so the banner is the latest
-// run's digest headline or silence.
-//
-// IT COMPOSES REGISTERED OPS AND NOTHING ELSE. Every fact here is read through the same
-// `invokeFunction` binding a turn dispatches through, with the session's own caller — the read is
-// user-initiated, so it is read exactly as the person typing `digest` would read it. This file
-// reaches no store, holds no reader, and widens no DTO: `RunDigest.lines` is carried across
-// verbatim, which is the one-renderer law applied to a greeting.
+// One read when a conversation opens, at most one line, and every read degrades to silence.
 
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
 
@@ -41,24 +19,14 @@ async function readOrNothing(
   caller: FunctionCaller,
 ): Promise<unknown> {
   try {
-    // THE PAYLOAD ONLY (399.1). The seam answers a classified envelope now, and the banner is the
-    // one consumer that legitimately wants none of it: it composes a greeting out of two reads, it
-    // reports no receipt, and a verdict has nowhere on a banner to go. The fragments below parse
-    // what they read, so a payload that is not what they expect renders nothing — the posture this
-    // function already had for a read that threw.
+    // Only the payload: a banner reports no receipt, and an unexpected payload renders nothing.
     return (await invoke(functionId, input, caller)).payload
   } catch {
     return undefined
   }
 }
 
-/**
- * The latest run this project produced, or nothing.
- *
- * `runs.list` owns the chronology: newest finished first, `runId` breaking a tie, so the
- * banner asks for one row and takes it. Choosing again here would be a second ordering free to
- * disagree with `agent-qa digest`, which reads the same first row.
- */
+// `runs.list` owns the chronology, so the banner takes its first row as `agent-qa digest` does.
 function latestRunId(answer: unknown): string | undefined {
   if (!Array.isArray(answer)) return undefined
   return (answer as readonly { runId?: string }[])[0]?.runId

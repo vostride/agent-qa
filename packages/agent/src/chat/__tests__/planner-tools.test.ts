@@ -1,20 +1,3 @@
-// The planner's action vocabulary IS the registry.
-//
-// Three claims, and they are deliberately not the same claim:
-//
-//   1. THE SET. The toolset ids equal the registry walk plus exactly two meta-tools. Computed
-//      from the walk, never from a number: a literal count would make this file a census of the
-//      catalogue as it stood the day it was written, and 393-395's new ops would fail it rather
-//      than joining it. The always-send-all law says the model sees everything the registry
-//      offers; the assertion says it sees nothing else.
-//   2. NOTHING RUNS. No tool in the set carries an execute callback, asserted per tool. This is
-//      what makes D-10's "reconciliation completes BEFORE the first side effect" structural: the
-//      SDK has no function to call, so `generateText` returns a plan and cannot enact one. A
-//      comment saying so would be a promise; an absent property is a fact.
-//   3. THE NAME MAPPING IS LOSSLESS. Round-tripped over EVERY id the walk produced, not over a
-//      sample — a misdispatch costs whichever single op happened to collide, so a sample is the
-//      one measurement shape that can miss it (Pitfall 8 / T-392-15).
-
 import { asSchema } from 'ai'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type { FunctionCaller } from '@vostride/agent-qa-schema'
@@ -22,15 +5,12 @@ import { describe, expect, it } from 'vitest'
 
 import { createFunctionRegistry } from '../../functions/registry.js'
 import type { FunctionDeclaration, FunctionDeps } from '../../functions/spec.js'
-// Read from the module the STAMP lives in, on purpose: the claim under test is that the projection
-// withholds exactly what `stampSessionFacts` writes, so the two sides must read one value.
+// Read from the stamp's module, so the projection and `stampSessionFacts` share one value.
 import {
   SESSION_STAMPED_FUNCTION_IDS,
   WINDOW_STAMPED_FUNCTION_IDS,
 } from '../turn-engine.js'
-// The THIRD projection set, read from the leaf module the other two live in. It is not a stamp —
-// nothing is written at the invoke — so it is not re-exported from `turn-engine.js`: what it
-// declares is that the COMPOSITION resolves the field, and the sentence the model is shown says so
+// Not a stamp: the composition resolves the field, so it is not re-exported from `turn-engine.js`.
 import { HOST_DERIVED_SCOPE_FUNCTION_IDS } from '../session-stamps.js'
 import {
   ANSWER_ONLY_TOOL_NAME,
@@ -80,15 +60,7 @@ function emptyDeps(): FunctionDeps {
   }
 }
 
-/**
- * The planner's caller: agent origin (Pitfall 1), and NOT in safe mode.
- *
- * Safe mode is a cosmetic listing filter, so composing the toolset through a safe-mode caller
- * would hand the model a smaller vocabulary than the host can run — the hidden-door shape the
- * always-send-all law exists to refuse. The composition mints this caller; the walk equivalence
- * below compares against the SAME caller either way, which is why that assertion holds whatever
- * a host decides here.
- */
+// The planner's caller has agent origin; every caller lists the same ops.
 const PLANNER_CALLER: FunctionCaller = {
   surface: 'chat',
   origin: 'agent',
@@ -119,10 +91,7 @@ describe('tool-names: the dotted-id <-> provider-safe bijection', () => {
   })
 
   it('refuses an id carrying the separator it would map ONTO, rather than colliding quietly', () => {
-    // The mapping is a bijection over the id grammar it accepts, and this is where it says so.
-    // An id already carrying an underscore has two pre-images under the inverse, so the honest
-    // answer is a named refusal at the projection rather than a tool name that silently
-    // misdispatches to whichever op the reverse mapping happened to land on.
+    // An id with an underscore has two pre-images, so the projection refuses it by name.
     expect(() => toToolName('runs.post_processing')).toThrow(ChatToolNameError)
   })
 
@@ -148,9 +117,6 @@ describe('projectPlannerTools: the registry walk IS the toolset', () => {
     const walked = registry().list(PLANNER_CALLER)
     const tools = projectPlannerTools(registry(), PLANNER_CALLER)
 
-    // The denominator is the WALK. No numeric literal appears here on purpose: a count would
-    // freeze the catalogue at today's size, and 393-395 add ops whose whole arrival proof is
-    // that they appear in this set without anyone editing it.
     const expected = [
       ...walked.map((declaration) => toToolName(declaration.id)),
       ...CHAT_META_TOOL_NAMES,
@@ -178,9 +144,6 @@ describe('projectPlannerTools: the registry walk IS the toolset', () => {
     const tools = projectPlannerTools(registry(), PLANNER_CALLER)
     for (const declaration of walked) {
       const projected = tools[toToolName(declaration.id)]
-      // A description-bearing op's description is its summary PLUS the sentence its set owns, and
-      // the describe below owns those claims; here the summary is still the whole of it (394-22,
-      // 394-26). The set-equality cell is what keeps this skip list from growing silently.
       if (
         WINDOW_STAMPED_FUNCTION_IDS.has(declaration.id)
         || HOST_DERIVED_SCOPE_FUNCTION_IDS.has(declaration.id)
@@ -195,16 +158,11 @@ describe('projectPlannerTools: the registry walk IS the toolset', () => {
     for (const declaration of walked) {
       const projected = tools[toToolName(declaration.id)]
       expect(projected).toBeDefined()
-      // The stamped ops' projections are the declaration's MINUS what the host writes at the
-      // invoke; the describe below pins that subtraction field by field (394-22, G-1).
       if (
         SESSION_STAMPED_FUNCTION_IDS.has(declaration.id)
         || WINDOW_STAMPED_FUNCTION_IDS.has(declaration.id)
       ) continue
-      // Compared as a DOCUMENT rather than by identity: `jsonSchema()` normalises what it is
-      // handed, so object identity would be an assertion about the SDK's internals. What matters
-      // is that the tool's schema is the declaration's published projection — the same view 396's
-      // MCP listing consumes — and not a second one derived here.
+      // Compared as a document: `jsonSchema()` normalises input, so identity would test the SDK.
       expect(await schemaDocumentOf(projected?.inputSchema)).toEqual(declaration.input)
     }
   })
@@ -219,19 +177,11 @@ describe('projectPlannerTools: the registry walk IS the toolset', () => {
     const unhandledSchema = await schemaDocumentOf(unhandled?.inputSchema)
     const answerSchema = await schemaDocumentOf(answer?.inputSchema)
     expect(Object.keys(unhandledSchema.properties ?? {}).sort()).toEqual(['clause', 'reason'])
-    // `answer_only` names its clause too, and that field is what makes the coverage claim
-    // per-clause rather than per-turn: without it one answer consumed every unbound clause of a
-    // compound request. The two meta-tools now agree on the vocabulary.
     expect(Object.keys(answerSchema.properties ?? {}).sort()).toEqual(['clause', 'text'])
     expect((answerSchema.required ?? []).slice().sort()).toEqual(['clause', 'text'])
   })
 
   it('FORBIDS refusing over an optional field, in the tool description itself', () => {
-    // 394-30's live refusal, stated as a rule the model reads at the tool it misused. The planner
-    // called `mark_unhandled` on a turn whose only obstacle was an OMITTED OPTIONAL FIELD — a field
-    // its own contract lists outside `required` — so the refusal was not "no tool can do this" but
-    // "I decided a tool I have needs something it says it does not". The description below is the
-    // nearest surface to that decision: it is attached to the very call being made.
     const tools = projectPlannerTools(registry(), PLANNER_CALLER)
     const description = tools[MARK_UNHANDLED_TOOL_NAME]?.description ?? ''
 
@@ -281,19 +231,13 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
         id,
         keys: Object.keys(declared.properties ?? {}).filter((key) => key !== 'sessionRef').sort(),
       })
-      // THE RULE, NOT TODAY'S ACCIDENT. This pinned the projected `required` list EQUAL to
-      // the declared one, which is true only because `sessionRef` is optional on both stamped ops
-      // — so `dropRequired` cannot currently fire and the cell certified a no-op. What the
-      // transform promises is a SUBTRACTION: the day a sibling op declares the ref required, this
-      // stays green on the correct behaviour instead of redding on it, and a transform that
-      // stopped subtracting reds by the id it left behind.
+      // Checks the subtraction: `sessionRef` is optional on both ops, so equality proves nothing.
       expect({ id, required: [...(document.required ?? [])].sort() }).toEqual({
         id,
         required: [...(declared.required ?? [])].filter((key) => key !== 'sessionRef').sort(),
       })
 
-      // the declaration's projection is the registry's SHARED inert view — the same one
-      // 396's MCP listing reads — so the transform must have cloned before editing.
+      // The projection is the registry's shared view, so the transform must clone first.
       expect({ id, stillDeclares: Object.hasOwn(schemaOf(declaration!).properties ?? {}, 'sessionRef') })
         .toEqual({ id, stillDeclares: true })
     }
@@ -309,15 +253,13 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
       expect({ id, listed: declaration !== undefined }).toEqual({ id, listed: true })
       const declared = schemaOf(declaration!)
 
-      // NON-VACUITY: the contract as declared REQUIRES the window, which is what a live planner
-      // refused over — it cannot know a session ref, so a required session-shaped window is a
-      // field it can only guess at (UAT item 1).
+      // Non-vacuity: the declared contract requires the window, which a planner cannot fill.
       expect({ id, declaredRequired: [...(declared.required ?? [])] })
         .toEqual({ id, declaredRequired: ['window'] })
 
       const document = await schemaDocumentOf(tools[toToolName(id)]?.inputSchema)
       expect({ id, required: document.required }).toEqual({ id, required: undefined })
-      // The PROPERTY stays: a model may legitimately ask all-time or last-n.
+      // The property stays: a model may ask for all-time or last-n.
       expect({ id, keeps: Object.hasOwn(document.properties ?? {}, 'window') })
         .toEqual({ id, keeps: true })
 
@@ -335,9 +277,6 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
         expect({ id, was: [...(declaredArm.required ?? [])].sort() })
           .toEqual({ id, was: ['scope', 'sessionRef'] })
         expect({ id, now: [...(arm.required ?? [])] }).toEqual({ id, now: ['scope'] })
-        // The session arm, minus exactly the ref — the arm is otherwise structurally the
-        // declaration's. Comparing against the declared arm UNCHANGED is what certified the
-        // property staying, which is the accident WR-02 named.
         const { sessionRef: _withheld, ...expectedArmProperties } = declaredArm.properties ?? {}
         expect({ id, arm: { ...arm, required: null } }).toEqual({
           id,
@@ -346,8 +285,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
       }
 
       const description = tools[toToolName(id)]?.description ?? ''
-      // The catalogue text is still the catalogue's — the sentence is APPENDED, never a rewrite,
-      // because `declaration.summary` is what 396's MCP listing renders.
+      // The sentence is appended, so `declaration.summary` stays what the MCP listing renders.
       expect({ id, startsWithSummary: description.startsWith(declaration!.summary) })
         .toEqual({ id, startsWithSummary: true })
       expect(description).toContain('The host supplies a session-scoped')
@@ -356,11 +294,6 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
   })
 
   it('TRANSFORMS EXACTLY THE STAMPED UNION — the two sides cannot drift apart', async () => {
-    // THE TWO-SIDED PIN, in the shape `session-stamp-vocabulary.test.ts` uses one layer down: the
-    // derived side is read off the LIVE projection (which ids came back structurally different
-    // from their declaration), the pinned side is the union of the two constants the STAMP
-    // consults. A stamped op the transform misses reds by the omitted NAME; a transform that
-    // starts editing an unstamped op's schema reds by the extra one.
     const walked = registry().list(PLANNER_CALLER)
     const tools = projectPlannerTools({ list: () => walked }, PLANNER_CALLER)
 
@@ -379,15 +312,6 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
   })
 
   it('TELLS the planner to pass a scope the person named, and states the refusal honestly', async () => {
-    // WINDOWS 110's projection half, ROUND 5. 394-26 made the field optional at the registry, gave
-    // the host the derivation, and said so in this sentence — and 394-30 measured a live planner
-    // refusing the turn anyway, on a scope requirement its own tool contract denies. The sentence
-    // that shipped closed with "pass `scope` only to author for a DIFFERENT target", which reads as
-    // an instruction NOT to supply a scope the person had already named, and it promised a host
-    // derivation that in fact refuses on any multi-product project (six candidates on the demo
-    // workspace → `AuthoringScopeUnresolvableError`). Both halves are re-pinned here: the planner is
-    // told to carry the person's own words into `scope`, and the multi-product refusal is stated as
-    // what it is rather than implied away.
     const walked = registry().list(PLANNER_CALLER)
     const tools = projectPlannerTools({ list: () => walked }, PLANNER_CALLER)
     expect(HOST_DERIVED_SCOPE_FUNCTION_IDS.size).toBeGreaterThan(0)
@@ -405,7 +329,7 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
         .toEqual({ id, requiresScope: false })
 
       const description = tools[toToolName(id)]?.description ?? ''
-      // APPENDED, never a rewrite: `declaration.summary` is what 396's MCP listing renders.
+      // Appended, never a rewrite: `declaration.summary` is what the MCP listing renders.
       expect({ id, startsWithSummary: description.startsWith(declaration!.summary) })
         .toEqual({ id, startsWithSummary: true })
       // Pinned VERBATIM and whole, not by fragment: the defect was a subordinate clause at the end
@@ -426,11 +350,6 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
 
   it('shows NO sessionRef in a window arm either — the not-shown law has no exception',
     async () => {
-      // WR-02. `modelFacingInput`'s window branch dropped the session arm's REQUIREDNESS and left
-      // the property in place, while its own comment claimed the ref was gone — so the model was
-      // still shown a field the host overwrites unconditionally, one level down from where the
-      // top-level withhold removes it. The law at the module's head is "not shown at all"; this
-      // cell is that law read at the arm.
       const walked = registry().list(PLANNER_CALLER)
       const tools = projectPlannerTools({ list: () => walked }, PLANNER_CALLER)
       expect(WINDOW_STAMPED_FUNCTION_IDS.size).toBeGreaterThan(0)
@@ -463,7 +382,6 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
               .filter((key) => key !== 'sessionRef')
               .sort(),
           })
-          // T-394-85 at the arm: the shared inert declaration still carries it.
           expect({ id, index, stillDeclares: Object.hasOwn(
             unionArms(schemaOf(declaration!).properties?.window)[index]?.properties ?? {},
             'sessionRef',
@@ -474,11 +392,6 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
     })
 
   it('ANNOTATES EXACTLY THE DESCRIPTION-BEARING UNION — the two sides cannot drift apart', () => {
-    // The 394-22 two-sided pin, applied to the DESCRIPTION channel rather than the schema one. The
-    // derived side is read off the live projection — which ids came back with a description that
-    // is not their catalogue summary — and the pinned side is the union of the two constants that
-    // OWN a sentence. An op that gains a sentence without joining a set reds by its extra name; an
-    // op in a set whose sentence never got appended reds by its omitted one.
     const walked = registry().list(PLANNER_CALLER)
     const tools = projectPlannerTools({ list: () => walked }, PLANNER_CALLER)
 

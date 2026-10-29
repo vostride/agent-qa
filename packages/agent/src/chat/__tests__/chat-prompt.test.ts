@@ -1,17 +1,3 @@
-// Chat's prompt rides the ONE builder (Phase 392 plan 04 — 389 D-04, the 392-EXTENDS contract).
-//
-// The claim under test is not "the prompt reads well". It is that chat EXTENDS the shipped tiered
-// builder by passing richer blocks and its own `agent_context`, rather than minting a second
-// renderer beside it. Two prompt idioms is precisely the refactor 389 D-04 exists to prevent, and
-// the way that failure actually arrives is a caller who needed one more section and wrote its own
-// assembly rather than one more block.
-//
-// So the assertions are structural: the module's source calls the builder exactly once and names
-// `agent_context`; the output is the two TEXT legs and nothing else; identical inputs produce
-// byte-identical bytes. That last one is what a provider prompt cache depends on — a clock, a
-// random id or a Set iteration anywhere in the assembly would make the stable prefix novel on
-// every turn, and it would never show up as a failing behaviour, only as a bill.
-
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -74,26 +60,12 @@ describe('buildChatPrompt: one builder, chat blocks', () => {
 
   it('states the planning discipline the reconciler and the ceiling both measure', () => {
     const system = buildChatPrompt(input()).system ?? ''
-    // One call per clause, in utterance order; answer_only for informational turns; mark_unhandled
-    // naming the clause when nothing available can do it. These three sentences are what CHAT-03's
-    // ceiling is a measurement OF, so their presence is asserted rather than assumed.
     expect(system).toContain('answer_only')
     expect(system).toContain('mark_unhandled')
     expect(system.toLowerCase()).toContain('utterance order')
   })
 
   it('says what a tool REQUIRES, so a clause cannot be refused over an optional field', () => {
-    // WINDOWS 110, the planner half. 394-30 drove a live turn against a dist proven to serve
-    // `authoring.draft.write` with `required: ["intent"]` and `scope` optional, and the planner
-    // refused it anyway — in words no source file in this repo contains: "it requires a target
-    // scope identifier and none was supplied". That is not a routing mistake and it is not a
-    // missing capability. It is the planner ASSERTING a requirement its own tool contract denies,
-    // and then spending the whole turn on it (D-10 refuses the turn whole).
-    //
-    // The prompt already told it to refuse rather than invent an identifier. What it never said is
-    // WHICH inputs a tool actually demands — so "needs an identifier" was left to the model's own
-    // judgement, and its judgement was wrong in the direction that costs the person the turn. The
-    // rule below puts that decision back in the schema's vocabulary, where it is checkable.
     const system = buildChatPrompt(input()).system ?? ''
     expect(system).toContain(
       "A tool's required inputs are exactly the `required` list in its schema. Never mark a clause "
@@ -111,11 +83,7 @@ describe('buildChatPrompt: one builder, chat blocks', () => {
   })
 
   it('numbers the clause list by POSITION, so a hole-punched subset never starts at "2."', () => {
-    // THE SHAPE THE ENGINE ACTUALLY PASSES (392-15, WR-02 / CR-01's reachability half). Stage 2 is
-    // asked only about the clauses stage 1 could not bind, so `clauses` here is a SUBSET carrying
-    // its original indices — and numbering by `clause.index + 1` rendered it with a hole, under an
-    // instruction to make one call per clause. A model planning for the item it was never shown is
-    // the surplus call the reconciler cannot attribute to anything.
+    // Stage 2 sees only unbound clauses, so `clauses` is a subset keeping its original indices.
     const { prompt, system } = buildChatPrompt(
       input({
         utterance: 'run test 42 and summarise the last failure',
@@ -144,9 +112,6 @@ describe('buildChatPrompt: one builder, chat blocks', () => {
   it('carries supplied session facts as one-liners, and nothing when none were supplied', () => {
     const withFacts = buildChatPrompt(input({ facts: ['3 proposals pending'] }))
     expect(withFacts.prompt).toContain('3 proposals pending')
-    // D-18's refs-not-payloads applied to the prompt: a fact is a sentence a person could read,
-    // never a serialized result. The absence case exists so a host with nothing to say adds no
-    // empty header — structure exists only where content does.
     const withoutFacts = buildChatPrompt(input())
     expect(withoutFacts.prompt).not.toContain('Session facts')
   })
@@ -154,9 +119,7 @@ describe('buildChatPrompt: one builder, chat blocks', () => {
   it('renders the prior conversation before the current utterance', () => {
     const { prompt } = buildChatPrompt(
       input({
-        // `ModelMessage`, produced the way the shipped path produces it: `replayToModelMessages`
-        // is the ONE projection from the log's replay shape, and this block renders what
-        // compaction left of its output (plan 08's chat-state decision).
+        // Produced by `replayToModelMessages`, the one projection from the log's replay shape.
         conversation: replayToModelMessages({
           messages: [
             { role: 'user', text: 'show me the proposals', turnId: 't1' },

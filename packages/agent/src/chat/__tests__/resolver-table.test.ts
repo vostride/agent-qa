@@ -1,10 +1,4 @@
-// The closed canon's behavioural pin.
-//
-// Two properties are load-bearing here and both are about what the table REFUSES. The first is
-// that its alias set is exactly D-06's canon and nothing else — the table is a cap, and a cap that
-// grows without anybody noticing is not one. The second is that resolution is BINARY: a near-miss
-// resolves to nothing at all rather than to a best guess, because this path OVERRIDES a model's
-// plan and an overriding path with a false-positive rate is worse than no override.
+// Resolution is binary: a near-miss resolves to nothing, because this path overrides the plan.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -30,7 +24,6 @@ function aliasOf(clause: string): string | undefined {
 }
 
 describe('CHAT_RESOLVER_TABLE — the closed canon', () => {
-  // `proposals` and `pin` left the canon with the inbox and the op gate.
   it('is exactly the canon: no more aliases, no fewer', () => {
     expect(CHAT_RESOLVER_TABLE.map((rule) => rule.alias)).toEqual([
       'run',
@@ -55,8 +48,6 @@ describe('CHAT_RESOLVER_TABLE — the closed canon', () => {
   })
 })
 
-// chat resolution routes no pin directive and no proposal inbox. Direct
-// knowledge and config changes are reached by their own ids through the one `/fn` branch.
 describe('chat resolution carries no approval route', () => {
   it('/pin and the proposals inbox no longer resolve, and help names neither', () => {
     expect(resolveClause(CHAT_RESOLVER_TABLE, '/pin fn:runs.start')).toEqual({ kind: 'unresolved' })
@@ -123,9 +114,6 @@ describe('resolveClause — the op-bound canon', () => {
     })
   })
 
-  // RE-SPELLED 2026-09-30 from 'binds bare `proposals` to the whole inbox': the alias is
-  // gone. 2026-10-01: the inbox op is deleted too, so `/fn proposals.list` resolves to a
-  // passthrough naming an id the registry answers as an unknown function.
   it('binds no bare `proposals` alias; the inbox read is reached through /fn', () => {
     expect(resolve('proposals')).toBeUndefined()
     expect(resolve('/fn proposals.list')).toEqual({
@@ -181,8 +169,6 @@ describe('resolveClause — the /fn passthrough', () => {
 })
 
 describe('resolveClause — the directive canon', () => {
-  // RE-SPELLED 2026-09-30 from 'resolves /model and /pin to directives that name NO
-  // registry op': `/pin` is no longer a directive.
   it('resolves /model to a directive that names NO registry op, and /pin to nothing', () => {
     expect(resolve('/model claude-opus-5')).toEqual({
       kind: 'directive',
@@ -254,9 +240,7 @@ describe('the table as a structure', () => {
   })
 
   it('has no fractional-confidence member anywhere in the resolution vocabulary', () => {
-    // Stage-1 resolution is binary by construction. A confidence number would be the
-    // first half of a threshold, and a threshold is how an overriding path acquires a
-    // false-positive rate. Comment mentions are fine; a field is not.
+    // Stage-1 resolution is binary; a confidence field would be the first half of a threshold.
     const codeLines = source
       .split('\n')
       .filter((line) => !line.trimStart().startsWith('//') && !line.trimStart().startsWith('*'))

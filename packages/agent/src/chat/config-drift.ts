@@ -1,23 +1,4 @@
-// configuration changes are EVENTS, not silent state.
-//
-// TWO PURE FUNCTIONS AND NO I/O. One folds what a session last RECORDED about its configuration out
-// of the log it already has; the other diffs that against what the host re-read, and answers in
-// events. Neither reads a file, resolves a profile or walks a registry — the current state arrives
-// as data from the composition root, which is the only place that knows how this host resolves a
-// model and enumerates a toolset. A drift module that re-read the configuration itself would be a
-// second resolution path, free to disagree with the one the turn actually runs under.
-//
-// WHY DRIFT IS AN EVENT AND NOT A HEADER REWRITE. The log is append-only by contract, so
-// the opening context stays on the header forever and everything after it is a delta a reader folds
-// forward. That is what makes "what was in force at turn N" answerable at all; rewriting the header
-// would give the file one truth — the latest — and destroy every earlier one.
-//
-// THE UNKNOWN-PREVIOUS-IDS ARM IS AN HONEST GAP, STATED. A header carries the toolset HASH and not
-// the ids behind it, so a session reopened after a build change can prove the reachable set moved
-// and cannot name what moved. Both facts are kept: the event fires, because the hash is the drift,
-// and its deltas are EMPTY, because nothing in the record knows them. Filling them with the current
-// set would put a fabricated delta into an append-only file, which is worse than an unnamed one —
-// a reader can act on "changed, contents unknown" and cannot act on a delta that is wrong.
+// Drift is an event, not a header rewrite, so what was in force at each turn stays answerable.
 
 import type {
   ChatActiveToolsChangeEvent,
@@ -44,15 +25,7 @@ export interface ChatConfigState {
   readonly toolset: ChatToolsetFingerprint
 }
 
-/**
- * Which turn a drift belongs to, when it happened, and WHY the model moved.
- *
- * `source` distinguishes the two ways a model changes and they are genuinely different facts: a
- * person typed `/model`, or the configuration on disk drifted and the session re-read it (391's
- * human-edits-always-win echo). Collapsing them would leave a reader unable to tell a deliberate
- * switch from one that happened to them. The `verb` arm is what plan 08's directive handler stamps;
- * both arms produce the SAME event through this one function rather than through two emitters.
- */
+// `source` tells a typed `/model` apart from a re-read config, through this one function.
 export interface ChatConfigDriftStamp {
   readonly turnId: string
   readonly at: string
@@ -67,15 +40,7 @@ function added(before: readonly string[], after: readonly string[]): string[] {
   return after.filter((id) => !known.has(id)).sort()
 }
 
-/**
- * Diff two configuration states into the events the session log carries.
- *
- * MODEL FIRST when both drifted, because a reader folding the log rebuilds "what was in force" in
- * that order and because the model is the fact a person is far more likely to be looking for. The
- * order is fixed rather than incidental: it is bytes in an append-only file that several surfaces
- * render, and two builds emitting them in different orders would make the file's shape depend on
- * which one wrote it.
- */
+// Model first when both drift, so every build writes the append-only log in one order.
 export function diffChatConfig(
   previous: ChatConfigState,
   current: ChatConfigState,

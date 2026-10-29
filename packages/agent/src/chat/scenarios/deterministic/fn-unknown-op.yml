@@ -1,19 +1,4 @@
-# D-08's FREE BACKSTOP. `/fn` validates no op id — deliberately. The id travels to
-# `invokeFunction`, whose step 1 raises `UnknownFunctionError` naming it before any dependency is
-# touched, so a typo and a capability that has not shipped yet come back named from the one place
-# that knows what is registered. A check inside the table would be a second catalogue.
-#
-# DID NOT FLIP WHEN THE AUTHORING LOOP LANDED, and that is a measurement. This header used
-# to say the cell would flip once `write_test` was registered. Phase 394 shipped the six-stage loop
-# as `authoring.draft.write`; `write_test` is the spec's NOUN for the capability and is not a
-# function id anywhere in the registry. So this utterance still hands `invokeFunction` an id nothing
-# registers, and the cell still measures the only thing it was admitted for — the backstop naming an
-# unknown op before any dependency is touched. The arrival proof is the two LIVE write-test cells.
-#
-# THE NEGATIVE IS WHY THIS MATTERS. A phase that registers ops can make an unknown-op test pass for
-# the wrong reason, at which point the corpus has lost its proof that a typo comes back named. If
-# some later phase does register an id spelled `write_test`, the correct edit is to re-author this
-# utterance around an id that stays unknown — never to flip the arm and keep the utterance.
+# The id stays unregistered, so `invokeFunction` names an unknown op before touching anything.
 id: fn-unknown-op
 class: deterministic
 lane: hermetic

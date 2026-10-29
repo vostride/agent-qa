@@ -1,19 +1,3 @@
-// The chat-open banner: one read, one line, and nothing that keeps running.
-//
-// WHAT IS BEING MEASURED is the READ DISCIPLINE, not the wording. 388 D-14's one-read law and D-23
-// together say a banner is a thing that happens once when a person opens a conversation — so the
-// spy counts here are the assertions, and the rendered text is the cheap part. A banner that
-// polled would pass every wording assertion in this file and fail the whole point of the feature.
-//
-// AND IT MAY NEVER BLOCK CHAT OPEN. Each read degrades to silence on refusal, which is why the
-// refused-read case is here beside the happy one: a project whose runs cannot be read still gets a
-// REPL, and the read it could not do is not the person's problem at the moment they typed
-// `agent-qa chat`.
-//
-// RE-SPELLED 2026-10-01: the pending-proposals half of the banner is deleted
-// with the inbox. The cells that named pending proposals now pin that the banner never reads the
-// retired `proposals.list` id and never mentions proposals; the one-read and silence claims keep
-// their names over the digest half.
 const RETIRED_PROPOSALS_LIST = 'proposals.list'
 
 import { readFileSync } from 'node:fs'
@@ -62,9 +46,7 @@ async function run(
     calls.push(functionId)
     const answer = answers[functionId]
     if (answer === undefined) throw new Error(`FunctionNotBoundError: ${functionId}`)
-    // The classified envelope the seam answers with since 399.1, carrying the LEGACY verdict — the
-    // one an op that declares no classifier produces. The banner reads the payload and nothing
-    // else, so a scripted verdict here would be a fact this cell is not about.
+    // The legacy verdict an unclassified op produces; the banner reads only the payload.
     return { payload: answer(), verdict: { status: 'executed', outcome: '' }, foldLines: [] }
   }
   const line = await composeBanner(invoke, CALLER)
@@ -87,8 +69,7 @@ describe('the chat banner reads once and says at most one thing', () => {
       [RUNS_LIST_FUNCTION_ID]: () => [],
     })
 
-    // NOT an empty string and not "nothing pending": a REPL that printed a line on every open
-    // would train a person to skip the line, which is the failure mode a banner has.
+    // A line printed on every open would train a person to skip the banner.
     expect(line).toBeUndefined()
   })
 
@@ -112,8 +93,7 @@ describe('the chat banner reads once and says at most one thing', () => {
       [RUNS_DIGEST_FUNCTION_ID]: () => ({ lines: ['RUN-1: green'], runId: 'RUN-1' }),
     })
 
-    // The load-bearing assertion of this file. D-23 and 388 D-14 both say ONE read; a duplicate
-    // here is the first step of the walk that becomes a poll.
+    // One read per id: a duplicate read is the first step towards a poll.
     for (const id of new Set(calls)) {
       expect(calls.filter((call) => call === id), id).toHaveLength(1)
     }
@@ -130,7 +110,6 @@ describe('the chat banner reads once and says at most one thing', () => {
   })
 
   it('says nothing when only the digest half is refused', async () => {
-    // RE-SPELLED: there is no second half left to name, so a refused digest is silence.
     const { line } = await run({
       [RUNS_LIST_FUNCTION_ID]: () => [RUN_SUMMARY],
     })

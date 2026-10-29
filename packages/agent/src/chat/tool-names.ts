@@ -1,20 +1,4 @@
-// The dotted-id ↔ provider-safe tool-name mapping (Phase 392 plan 04, RESEARCH Pitfall 8).
-//
-// Registry ids are a lowercase dot taxonomy — `runs.start`, `entities.resolve` — and
-// several providers reject a tool name containing anything outside `[a-zA-Z0-9_-]`. So the planner
-// needs a rename, and the rename needs an INVERSE: what comes back from the model is a tool name,
-// and the only thing the function layer answers to is a function id.
-//
-// SPELLED ONCE, HERE. 396 projects the same registry onto MCP and will need the same rename; if it
-// spells its own, a capability's wire name depends on which surface asked, and the two are free to
-// drift the first time an id grammar changes. One module, both directions, property-tested over the
-// whole registry walk rather than over samples — a collision costs whichever single op happened to
-// collide, which is the one defect shape a sample cannot be relied on to contain.
-//
-// THE MAPPING IS TOTAL ON THE GRAMMAR IT ACCEPTS, AND REFUSES OUTSIDE IT. `.` ↔ `_` is a bijection
-// only while ids carry no underscore and no id maps onto a meta-tool name. Both conditions are
-// CHECKED rather than assumed, in both directions, because the failure they prevent is silent: a
-// tool call misdispatching to a capability nobody asked for.
+// Several providers refuse tool names outside `[a-zA-Z0-9_-]`, so ids map `.` to `_` and back.
 
 /** How a registry id separates its domain and verb. */
 const FUNCTION_ID_SEPARATOR = '.'
@@ -37,27 +21,10 @@ export class ChatToolNameError extends Error {
   }
 }
 
-/**
- * The model's answer for a turn it answers in prose.
- *
- * A first-class action rather than the absence of one: a turn where the person asked a question
- * executes zero ops and returns text, so `the model planned nothing` has to stay distinguishable
- * against `the model answered` — two facts a reader of the log must be able to tell apart.
- *
- * (The backticks are not stylistic. `packages/arch`'s dependency lint reads every source line
- * looking for a specifier, and its pattern is one particular English word ahead of a quoted
- * phrase — so ordinary prose in that shape is reported as an undeclared package import. Two
- * sibling plans have already reddened `validate:arch` this way.)
- */
+// A first-class action, so a turn the model answered differs in the log from one it left unplanned.
 export const ANSWER_ONLY_TOOL_NAME = 'answer_only'
 
-/**
- * The model's answer for a clause no available tool can carry out.
- *
- * The capability is ABSENT from the registry — 393-395 have not shipped it — so it is absent from
- * the toolset, and this is how the model says so by name instead of improvising with something
- * adjacent. The turn then fails closed naming the clause, with zero executions.
- */
+// How the model names a clause no tool can carry out, so the turn fails closed with no execution.
 export const MARK_UNHANDLED_TOOL_NAME = 'mark_unhandled'
 
 /** The two orchestration tools, and no others. */

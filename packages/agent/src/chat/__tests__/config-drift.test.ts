@@ -1,16 +1,4 @@
-// configuration changes are EVENTS.
-//
-// THE EVENTS ARE GUARDED, NOT MERELY SHAPED. Every case below runs the produced event through
-// `guardChatSessionEvent` — the same exact-key check a reopen applies to bytes off disk. A suite
-// that only compared fields would happily bless an event carrying one extra key, which is precisely
-// what the guard refuses and precisely how a payload body arrives in a log that promised refs.
-//
-// THE UNKNOWN-PREVIOUS-IDS ARM IS THE ONE WORTH READING. A session's header records the toolset
-// HASH and not the ids, so a reopen days later can tell that the reachable set changed and cannot
-// name the difference. Both facts are represented rather than one of them being quietly rounded
-// off: the event still fires (the hash IS the drift) and its deltas are empty (nothing knows what
-// moved). The alternative — inventing `addedIds: everything` — would put a fabricated delta in an
-// append-only log that several surfaces render.
+// A header records the toolset hash, not its ids, so a drift found on reopen has empty deltas.
 
 import { describe, expect, it } from 'vitest'
 

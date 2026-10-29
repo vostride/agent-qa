@@ -1,26 +1,4 @@
-# D-08's LIVE ARM, FLIPPED BY 394 — the phase's arrival proof.
-#
-# WHAT THIS CELL USED TO ASSERT. Nothing in the tool set could author a test, so the model had no
-# call to make, and the turn had to fail closed NAMING the clause rather than reaching for a
-# neighbouring op — running the checkout tests, listing them, opening a proposal about them. That
-# was the cell the ceiling existed for: `mark_unhandled` firing here was the honest answer a build
-# that cannot write tests owes the person who asked.
-#
-# WHAT IT ASSERTS NOW. Phase 394 registered the six-stage loop as `authoring.draft.write`, the chat
-# planner binds every registry op 1:1, and this prose is the plainest possible request
-# for it. So the same utterance must now COMPLETE, through that op and no other. The flip moved
-# this file and its manifest line together, which is what D-08's flip law asks a phase to do.
-#
-# PLANNED EQUALS EXECUTED, and that pin is the difference between arrival and a label. A cell that
-# only asserted `completed` would be satisfied by a turn that planned the capability and never
-# reached it, or by one that answered in prose about how a test might be written. One planned
-# action, one executed action, and the op id spelled out.
-#
-# WHAT THE LIVE DRAIN MUST SUPPLY. `authoring.draft.write` is `mutating-shared`, and the
-# v48 gate denies that tier in every execution context except `local-interactive`. A vitest worker
-# resolves `local-headless`, so this cell needs a trust credential, a standing approval or an
-# explicitly overridden context before the model is ever consulted — otherwise it reds on the gate
-# rather than on routing, which is a true refusal about the HOST and not about this corpus.
+# Pins one planned and one executed `authoring.draft.write`, so a turn that only plans fails.
 id: write-test-for-checkout
 class: planner
 lane: live

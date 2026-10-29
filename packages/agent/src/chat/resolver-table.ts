@@ -1,28 +1,4 @@
-// The deterministic stage-1 resolver table.
-//
-// One module, hand-authored, CLOSED. Each entry is a pattern and what the pattern resolves to —
-// never a second capability vocabulary. The rule is 387 D-11's and it is absolute: EVERY function
-// id below is IMPORTED from the module that declares it, never written as a literal. An op renamed
-// at its declaration must break this file's compile rather than leave an alias pointing at a string
-// nothing dispatches (`functions/entity-cards/actions.ts:10-14`).
-//
-// THE TABLE IS A CAP, WHICH IS WHY IT IS THIS SMALL. D-06's canon is the verbs the spec names plus
-// the verbs 391 shipped, and then ONE generic `/fn <op> [args]` branch that reaches every registry
-// op without the table growing by one row per op. A table that grew with the registry would be a
-// second listing of the catalogue, drifting from the first; a table that stayed small by hiding
-// ops would be a curated tool set, which the always-send-all law forbids. `/fn` is how both are
-// avoided at once: one tested branch, total reach, zero per-op maintenance.
-//
-// RESOLUTION IS BINARY. `ChatResolution` has exactly two variants and NO CONFIDENCE MEMBER, and
-// the absence is load-bearing. This path OVERRIDES a model's plan on both the action set and
-// the bound arguments, so a false positive here does not degrade an answer — it executes a
-// capability nobody asked for. A confidence number would be the first half of a threshold, and a
-// threshold is exactly how an overriding path acquires a false-positive rate. A near-miss — a
-// misspelling, a verb with its required argument missing — therefore resolves to NOTHING and flows
-// on to the planner, which is allowed to be wrong because it is not allowed to override.
-//
-// NO `/tools`, NO `/compact`. The first fights the always-send-all law; the second is a
-// manual lever over a mechanism 392 keeps automatic.
+// Every function id is imported from its declaring module, so a rename breaks this file's compile.
 
 import { parseShortId } from '@vostride/agent-qa-schema'
 
@@ -31,17 +7,7 @@ import { RUNS_DIGEST_FUNCTION_ID } from '../functions/ops/runs-digest.js'
 import { RUNS_LIST_FUNCTION_ID } from '../functions/ops/runs-list.js'
 import { RUNS_START_FUNCTION_ID } from '../functions/ops/runs-start.js'
 
-/**
- * The session-scoped directives: canon that maps to NO registry op.
- *
- * Closed and spelled once. `/model` changes how THIS SESSION behaves (D-04's model override and its
- * `model_change` event); `/help` and `/quit` are REPL chrome. None of them is a capability, which is
- * why none of them has a function id — and they are in the table anyway, because the table is the
- * vocabulary a person types and the meta-test demands a scenario for every row of it.
- *
- * `/pin` is gone. It was a session deny overlay over the op gate, and there is no op
- * gate; a clause spelled `/pin …` is now an ordinary clause nothing in the table resolves.
- */
+// Session directives map to no registry op, but sit in the table because it is what a person types.
 export const CHAT_DIRECTIVES = ['model', 'help', 'quit'] as const
 
 export type ChatDirectiveName = (typeof CHAT_DIRECTIVES)[number]
@@ -139,12 +105,7 @@ function parseFnBody(body: string | undefined): Record<string, unknown> | undefi
   return parsed as Record<string, unknown>
 }
 
-/**
- * THE CANON. Ordered, and the order is the first-match walk (see `resolveClause`).
- *
- * No two rules overlap today, so the order is documentation rather than semantics — and it is
- * written in D-06's own listing order so it stays readable as one.
- */
+// Ordered: `resolveClause` takes the first rule that binds.
 export const CHAT_RESOLVER_TABLE: ChatResolverTable = Object.freeze([
   rule({
     alias: 'run',
@@ -160,14 +121,7 @@ export const CHAT_RESOLVER_TABLE: ChatResolverTable = Object.freeze([
   }),
   rule({
     alias: 'status',
-    // ADJUDICATION (the plan asks for it recorded here): the candidates were `runs.list` and
-    // `runs.get`. `runs.get` addresses exactly one run BY ID and refuses without one, so it
-    // cannot answer a person who typed a bare word — the id is the very thing they did not
-    // supply. `runs.list` takes `{}`, answers the 20 most recently finished runs newest first
-    // and is the only read in the registry whose contract answers "what has happened
-    // here lately" without being told what to look at. `status <run>` is not minted:
-    // `digest <run>` already owns "tell me about that one run", and two verbs for it would be
-    // two answers.
+    // `runs.list` takes `{}` and answers recent runs; `runs.get` refuses without the run id.
     resolve: (clause) =>
       isExactly('status')(clause)
         ? { kind: 'op', functionId: RUNS_LIST_FUNCTION_ID, input: {} }
@@ -175,12 +129,7 @@ export const CHAT_RESOLVER_TABLE: ChatResolverTable = Object.freeze([
   }),
   rule({
     alias: 'test-ref',
-    // 387 D-05's never-guess ladder does the resolving, and the ref it receives is WHAT THE
-    // PERSON TYPED, verbatim. `entities.resolve` accepts "any reference at all — short-ID, URI,
-    // or free text", so pre-chewing `test 42` into `42` here would be this file inventing a
-    // second resolution grammar in front of the one that exists to be the only one. Two forms
-    // match: the `test <n>` phrase and a bare well-formed short-ID, the latter recognised through
-    // the schema's own parser rather than a regex spelled here.
+    // The ref passes verbatim to `entities.resolve`, which owns the only resolution grammar.
     resolve: (clause) => {
       const trimmed = clause.trim()
       const named = argumentAfter('test', clause)
@@ -202,8 +151,6 @@ export const CHAT_RESOLVER_TABLE: ChatResolverTable = Object.freeze([
       return { kind: 'op', functionId: RUNS_DIGEST_FUNCTION_ID, input: { runId: reference } }
     },
   }),
-  // the `proposals` inbox alias is gone. Changes apply in the call, so there is
-  // no pending-decision inbox to route a bare word to. 432-17 deleted the inbox and its ops too.
   rule({
     alias: 'model',
     resolve: (clause) => {
@@ -213,10 +160,7 @@ export const CHAT_RESOLVER_TABLE: ChatResolverTable = Object.freeze([
   }),
   rule({
     alias: 'fn',
-    // THE PASSTHROUGH. The op id is NOT validated here — deliberately. `invokeFunction`'s
-    // step 1 raises `UnknownFunctionError` naming the id before any dependency is touched, so a
-    // typo and a capability that has not shipped yet both come back named, for free, from the one
-    // place that knows what is registered. A check here would be a second catalogue.
+    // The op id is unchecked here: `invokeFunction` names an unknown id before touching anything.
     resolve: (clause) => {
       const rest = argumentAfter('/fn', clause)
       if (rest === undefined) return undefined
@@ -263,14 +207,7 @@ export function directiveNotBoundReason(directive: ChatDirectiveName, clause: st
   )
 }
 
-/**
- * Stage 1 for one clause: the FIRST rule that binds, or `unresolved`.
- *
- * First-match rather than unique-match, and the table is ordered rather than a map, because D-06's
- * canon has forms that could legitimately overlap as it grows, and "the earlier, more specific rule
- * wins" is a rule a reader of the table can see. Precision is 1.0 by construction — every rule is
- * an exact predicate over the clause, so a miss is a miss and never a guess.
- */
+// First match over an ordered table, so the earlier, more specific rule wins if rules overlap.
 export function resolveClause(table: ChatResolverTable, clause: string): ChatResolution {
   for (const rule of table) {
     const entry = rule.resolve(clause)
@@ -279,63 +216,22 @@ export function resolveClause(table: ChatResolverTable, clause: string): ChatRes
   return { kind: 'unresolved' }
 }
 
-/**
- * One line of `/help`, in a shape a census can read.
- *
- * WHY THE ENTRIES ARE STRUCTURED AND THE STRING IS DERIVED. `CHAT_HELP_TEXT` used to be ten
- * hand-aligned sentences, and a sentence is not something a test can join to anything: the only
- * assertion available over it was a substring match somebody remembered to write. The fields below
- * are the join keys — `alias` names the row of `CHAT_RESOLVER_TABLE` the line documents, and
- * `syntax` is the FORM A PERSON TYPES, first token and all — so "the help text agrees with what
- * chat understands" became a set comparison and "this line claims an argument is optional" became a
- * probe of the shipped rule.
- *
- * THE CENSUS-TIE DECISION (398 plan 09, planned 2026-08-16, executed 2026-08-17 · D-01/SC-1).
- * The discretion call was whether help re-derives from the committed capability catalog or stays
- * here with a mechanical tie. It stays HERE. `packages/agent` is storage-neutral — it cannot read a
- * committed artifact off disk without acquiring a filesystem dependency the whole package is built
- * to not have — so re-deriving at runtime would move help out of the package that owns the
- * vocabulary and into the one that ships bytes. The tie gives the same guarantee without the move:
- * `packages/cli/src/__tests__/conformance/help-census.test.ts` set-equals these aliases against the
- * catalog's alias rows plus the shipped directives plus the passthrough, in BOTH directions, so a
- * help line with no capability behind it and a capability with no help line are each a named RED.
- * The header's one-list law is unchanged; what changed is that it is now enforced rather than
- * asked for.
- */
+// Structured so `help-census.test.ts` in cli can join each line to a table row and its syntax.
 export interface ChatHelpEntry {
   /** The `CHAT_RESOLVER_TABLE` row this line documents. The census's join key. */
   readonly alias: string
-  /**
-   * What a person types, verbatim, including the leading `/` where there is one.
-   *
-   * `<angle>` marks a REQUIRED argument and `[square]` an optional one, and the distinction is
-   * load-bearing rather than typographic: a conformance cell reads it and drives the shipped rule
-   * with the bare verb, so a line promising that a verb works alone when the rule refuses it — the
-   * exact drift this plan found on `digest` — is a failure rather than a reading.
-   */
+  // `<angle>` is required and `[square]` optional; a conformance cell drives the bare verb.
   readonly syntax: string
   /** What the line says the verb does. */
   readonly summary: string
 }
 
-/**
- * What `/help` prints, one entry per row of the table above.
- *
- * IT LIVES BESIDE THE TABLE, and that is the point rather than the filing: the canon a person can
- * type is `CHAT_RESOLVER_TABLE`, and help text kept anywhere else would be a second list of what
- * chat understands, free to drift from the one that actually routes. `/fn` is named explicitly
- * because it is the reach lever — every registry op is one deterministic branch away, which is why
- * the alias set stays thin.
- */
+// Beside the table, so help cannot drift into a second list of what chat understands.
 export const CHAT_HELP_ENTRIES: readonly ChatHelpEntry[] = Object.freeze([
   Object.freeze({ alias: 'run', syntax: 'run <test>', summary: 'start a run for a test' }),
   Object.freeze({ alias: 'status', syntax: 'status', summary: 'the recent runs' }),
   Object.freeze({ alias: 'test-ref', syntax: 'test <n>', summary: 'show a test by reference' }),
-  // 2026-08-17 (398 plan 09): this line used to read `digest` / "the latest run digest", and both
-  // halves were false. The rule fifteen lines up requires a reference and treats a bare `digest` as
-  // a near-miss precisely so the table never guesses which run somebody meant — so the help text
-  // was advertising a guess the resolver refuses to make. The argument-contract cell in
-  // `help-census.test.ts` is what now holds the two together.
+  // `digest` needs a run reference: the resolver treats a bare `digest` as a near-miss.
   Object.freeze({ alias: 'digest', syntax: 'digest <run>', summary: "that run's digest" }),
   Object.freeze({
     alias: 'fn',

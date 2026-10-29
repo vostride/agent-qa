@@ -1,6 +1,4 @@
-# REPL chrome, as `/help`. Bound by plan 08: the handler asks the live state to close and the loop
-# reads that, rather than the REPL matching the raw line itself — one vocabulary for what a person
-# can type, consulted in one place.
+# The handler asks the live state to close, so the REPL never matches the raw line itself.
 id: quit
 class: deterministic
 lane: hermetic

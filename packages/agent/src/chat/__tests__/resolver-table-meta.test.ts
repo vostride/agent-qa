@@ -1,19 +1,4 @@
-// THE STRUCTURAL CAP.
-//
-// "No new top-level branches without a test" is not reviewer discipline here — it is
-// BUILD-IMPOSSIBLE. This file walks the resolver table and demands a scenario file for every row,
-// so an eleventh alias added to the canon fails the suite until somebody says, in committed data,
-// what typing it is supposed to do. That is the whole mechanism, and it is why plan 01 shipped
-// the table with ONE entry: adding six aliases before the thing that makes untested branches
-// impossible would have been six untested branches.
-//
-// IT WALKS BOTH DIRECTIONS. Table → file catches a branch nobody characterised. File → table
-// catches the opposite drift, a scenario claiming canon status for an alias that no longer
-// exists, which would otherwise sit in the corpus asserting something about a code path that was
-// deleted. The second direction is an EXACT set comparison against the table's aliases plus a
-// pinned list of the edge scenarios that deliberately belong to no single row — a frozen
-// denominator by construction (D-15 / RESEARCH Pitfall 2), never a `glob` whose contents are
-// whatever happens to be on disk.
+// Walks both directions: a table row with no scenario file and a file with no row both fail.
 
 import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
@@ -39,39 +24,25 @@ const COMPOUND_ROOT = join(SCENARIOS_ROOT, 'compound')
  * a directory listing.
  */
 const EDGE_SCENARIOS = [
-  // Pitfall 5: a quoted conjunction must not manufacture a second clause.
+  // A quoted conjunction must not manufacture a second clause.
   'quoted-conjunction',
-  // CHAT-01 boundary: a misspelled alias does not resolve at stage 1, and there is no partial arm.
+  // A misspelled alias does not resolve at stage 1, and there is no partial arm.
   'near-miss-alias',
-  // an op id no registry knows comes back named, from `invokeFunction` rather than a check
-  // inside the table.
+  // An op id no registry knows comes back named, from `invokeFunction` rather than the table.
   'fn-unknown-op',
-  // two RETIRED aliases, kept as measured absences. `/pin` and the bare
-  // `proposals` inbox left the table; each cell pins that the clause is now unroutable and the
-  // turn refuses by name with zero executions ("re-spelled, never deleted").
+  // `/pin` and bare `proposals` are absence cells: unroutable clauses that refuse by name.
   'pin',
   'proposals',
 ] as const
 
-/**
- * The compound cells, as committed data (CONTEXT specifics; 392-11's gap round).
- *
- * The canon PAIR plus the two regression cells the gap round admitted — the verifier's own probes
- * for CR-03 (a model answer erasing an unroutable action clause) and CR-04 (a directive carried out
- * on a turn that was then refused). They are listed here for the same reason the pair was: this set
- * is exact, so a file appearing in `compound/` without a line here fails the build.
- */
+// Exact set: a file in `compound/` without a line here fails the build.
 const COMPOUND_SCENARIOS = [
   'write-test-2fa-and-run',
   'run-42-and-digest',
   'run-42-and-delete-root',
   'pin-and-write-test',
-  // 392-14's pair: the hermetic sibling of the live CR-03 cell (so the class is proved per commit
-  // rather than behind an announced-skipped gate), and the multi-directive batch arm.
   'run-42-and-delete-root-empty-answer',
   'pin-and-pin-nonsense',
-  // 392-15's cell: a table-mapped clause beside a planner-bound one, with the model making an extra
-  // action call about the mapped one. The mixed-mapping configuration neither lane had.
   'run-42-and-summarise-extra-call',
 ] as const
 
@@ -104,8 +75,7 @@ describe('every resolver-table entry has a scenario (table → file)', () => {
     // be found by one direction of the walk and missed by the other.
     expect(scenario.id).toBe(alias)
     expect(scenario.class).toBe('deterministic')
-    // Deterministic scenarios never touch the LLM BY CONTRACT, which is why they need no mock
-    // and why "no mocks in either lane" is a true statement rather than an aspiration.
+    // Deterministic scenarios never reach the model, which is why they need no mock.
     expect(scenario.lane).toBe('hermetic')
   })
 })
@@ -131,9 +101,7 @@ describe('the fail-closed arm names what it refused', () => {
     (id) => {
       const scenario = readScenario(DETERMINISTIC_ROOT, id)
       if (scenario.expect.kind !== 'fail_closed') return
-      // D-10's atomicity is not a property of the failure path — it is the whole claim. A
-      // fail-closed scenario that stayed silent about the count would pass against a turn that
-      // ran half the request and then refused.
+      // A fail-closed scenario pins zero executions, or a half-run then refused turn passes.
       expect(scenario.expect.executed).toBe(0)
       expect(scenario.expect.namesClause).toBeTruthy()
     },
@@ -154,10 +122,7 @@ describe('the canon compound pair exists as committed data', () => {
   ])(
     'gap-round cell %s pins a refusal that NAMES its clause and leaves a countable row',
     (id) => {
-      // Both cells exist because a refusal that carried something out was invisible to
-      // `executed == 0`. What each one pins is the pair: nothing ran, AND the refusal is on the
-      // log — the `mark_unhandled` row is what CHAT-03's field rate is a projection over, so a
-      // clause erased without one would be missing from the measurement as well as from the answer.
+      // Each cell pins that nothing ran and that a `mark_unhandled` row was logged.
       const scenario = readScenario(COMPOUND_ROOT, id)
       expect(scenario.class).toBe('compound')
       expect(scenario.expect.kind).toBe('fail_closed')
@@ -169,11 +134,6 @@ describe('the canon compound pair exists as committed data', () => {
   )
 
   it('pins the spec example on the ARRIVED arm, both clauses routed', () => {
-    // THIS PIN CHANGED ARM WITH THE CORPUS, and that is the second half of D-08's flip law. The
-    // cell was admitted asserting that `write_test` was in no registry, so pre-flight atomicity
-    // refused the whole turn and the runnable second clause did not get to run either. 394
-    // registered the loop as `authoring.draft.write`, and a meta-test still pinning the refusal
-    // would have made the flip a one-file edit that this file then contradicted.
     const scenario = readScenario(COMPOUND_ROOT, 'write-test-2fa-and-run')
     expect(scenario.class).toBe('compound')
     expect(scenario.utterance).toBe('write a test for 2FA and run it')
@@ -189,11 +149,7 @@ describe('the canon compound pair exists as committed data', () => {
   it('pins the happy path at planned == executed == 2 in utterance order', () => {
     const scenario = readScenario(COMPOUND_ROOT, 'run-42-and-digest')
     expect(scenario.class).toBe('compound')
-    // The digest clause NAMES its run (392-09, after the first live execution of this file). The
-    // original `show me the digest` was unsatisfiable by construction rather than by model quality:
-    // D-10 decides the whole plan before the first side effect, so clause two cannot be handed the
-    // run clause one is about to start, and `runId` is required. The file's own head carries the
-    // finding; this pin moves with it so the change stays a deliberate two-file edit.
+    // The digest clause names its run, because the plan is fixed before clause one starts a run.
     expect(scenario.utterance).toBe('run test 42 and show me the digest for RUN-1')
     expect(scenario.expect.kind).toBe('should_execute')
     expect(scenario.expect.planned).toBe(2)

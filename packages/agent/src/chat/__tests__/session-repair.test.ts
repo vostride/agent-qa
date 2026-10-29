@@ -1,15 +1,4 @@
-// What a DAMAGED session file means.
-//
-// D-19 names exactly two crash shapes and this file pins exactly those two, in both directions:
-// a torn FINAL line (the process died mid-write) and a DANGLING turn (the last event is not a
-// boundary marker, so a turn was in flight when the process died). Everything else that fails a
-// guard is ordinary damage, and damage is DATA — a named refusal beside the events that still
-// fold, never an exception that costs a caller a whole conversation over one bad line.
-//
-// The two shapes are deliberately not collapsed. A torn tail is the EXPECTED cost of a crash and
-// its loss is bounded by the fsync discipline; a mid-file line that will not guard was written by
-// another build or damaged in place, and it stays damaged forever. Reporting both as "a refused
-// line" would tell an operator to go and fix a file whose real problem is that it was killed.
+// A torn final line is a crash's expected cost; a mid-file line that fails its guard is damage.
 
 import { describe, expect, it } from 'vitest'
 
@@ -103,8 +92,6 @@ describe('a torn FINAL line is skipped, reported, and never thrown over', () => 
     ])
   })
 
-  // The distinction D-19 rests on. Only a JSON.parse failure ON THE LAST LINE is a tear; the same
-  // failure in the middle of the file is damage that will still be there tomorrow.
   it('refuses a mid-file unparseable line and keeps folding its neighbours', () => {
     const lines = [
       ...linesOf(USER_1),
@@ -197,8 +184,7 @@ describe('a DANGLING turn is closed by a synthesized abort (arm two)', () => {
 })
 
 describe('the declared version travels as an argument and is asked BEFORE any shape question', () => {
-  // 392-01's decision, still holding: the file states its version once on the header and no line
-  // restates it, so the version reaches the guard as an argument the open path has already read.
+  // The header states the version once, so it reaches the guard as an argument, not a field.
   it('names the VERSION, not a field, when a foreign-version log carries malformed bytes', () => {
     const repair = repairSession([raw(2, JSON.stringify({ kind: 'nonsense' }))], {
       declaredVersion: 99,
@@ -237,10 +223,7 @@ describe('replay rebuilds the live conversation, and only from repaired events',
     expect(replay.messages.map((message) => message.turnId)).toEqual(['t1', 't1'])
   })
 
-  // THE ORDERING, made falsifiable. Replay over the raw events carries the dangling turn's partial
-  // work; replay over the REPAIRED events does not. So a caller that pruned before repairing would
-  // prune a different conversation than the one that actually happened — which is why CHAT-05 says
-  // the repair runs before the pruning and not merely that both happen.
+  // Replay over raw events keeps the dangling turn's work, so repair must run before pruning.
   it('sees a different conversation before repair than after, so the order is not decoration', () => {
     const lines = linesOf(USER_1, DONE_1, USER_2, RECEIPT_2)
     const repair = repairSession(lines, { declaredVersion: VERSION, now })

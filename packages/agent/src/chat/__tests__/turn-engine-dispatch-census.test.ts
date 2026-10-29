@@ -1,15 +1,4 @@
-// C-HYG-CHAT-DISPATCH-CENSUS (quick 261002-hyg, 432-45 #4): chat has no private powers, measured on
-// the dispatch path rather than on one render cell.
-//
-// Every clause the turn engine carries out must cross the `ChatInvokeBinding` the composition root
-// supplies, because that binding is the one door to `invokeFunction` (input validation, binding,
-// read scope). 432-45 found that a `quarantine.list` answered from inside the engine red nothing in
-// the conformance directory: the drives counted a filed result, and the short-circuit still files
-// one. This census drives every clause kind through the REAL resolver table, splitter and
-// reconciliation strategy, with the invoke seat a spy, and holds one invariant for each turn: the
-// ops whose receipts the session log records as carried out are exactly the ops the spy was asked
-// for, one call each, in order. Kinds: every registry op through the `/fn` passthrough, the four
-// table aliases, a compound utterance, a planner-bound clause, and the write_test route's scaffold.
+// Every carried-out clause must cross the `ChatInvokeBinding`: one spy call per receipt, in order.
 
 import { describe, expect, it } from 'vitest'
 

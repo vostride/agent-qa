@@ -1,18 +1,4 @@
-// Stages 3 and 4 of the turn engine, measured (Phase 392 plan 07 — D-10 / D-11 / D-18, Pitfall 1).
-//
-// THE PORT DOUBLES HERE ARE ENGINE-MECHANICS DOUBLES, NOT SCENARIO MOCKS. D-13's "no mocks in
-// either lane" is a rule about the SCENARIO corpus: a deterministic scenario never touches the LLM
-// by contract, and a planner scenario runs against a live model. This file is neither. It drives
-// the engine's own wiring, so the planner seat holds a scripted port and the dispatch seat holds a
-// spy — because the claims under test are "nothing was invoked", "these were invoked in this
-// order" and "this caller was minted", none of which is observable through a real adapter without
-// also making a real request. The resolver table, the clause splitter and the reconciliation
-// strategy are the REAL shipped ones, which is what keeps the routing under test genuine.
-//
-// THE ZERO-INVOCATION ASSERTION IS THE FILE'S CENTRE. D-10 says reconciliation completes before the
-// first side effect, and the only way to measure "before" is to count effects on a turn that got
-// refused. A suite that checked the refusal MESSAGE and not the spy would pass against an engine
-// that ran the first clause and then changed its mind.
+// The planner and dispatch seats are doubles so effects can be counted; the routing is real.
 
 import { describe, expect, it } from 'vitest'
 
@@ -64,9 +50,7 @@ import type {
 } from '../ports.js'
 import type { ChatConfigState } from '../config-drift.js'
 
-// RE-SPELLED 2026-10-01: `proposals.list` is deleted with the inbox. `quarantine.list` is
-// the read op folded in its place: it declares the same kind of classifier (`output.entries.length`)
-// over the same `{ entries }` shape, so every claim below keeps its subject.
+// A read op with an `output.entries.length` classifier over an `{ entries }` shape.
 const PROPOSALS_LIST = 'quarantine.list'
 const RUNS_LIST = 'runs.list'
 const RUNS_DIGEST = 'runs.digest'
@@ -81,10 +65,7 @@ const PLANNER_CALLER: FunctionCaller = {
   origin: 'agent',
 }
 
-/**
- * A refusal shape `invokeFunction` publishes, as a scripted stand-in with the same NAME.
- * the input refusal, since the gate's denial error is deleted.
- */
+// A refusal shape `invokeFunction` publishes, as a scripted stand-in with the same name.
 class FunctionInputError extends Error {
   override readonly name = 'FunctionInputError'
 }
@@ -106,8 +87,7 @@ function memoryLog(): MemoryLog {
     model: 'unbound',
     toolsetHash: 'hash-0',
   }
-  // The double answers the HANDLE contract: the write verbs come back from `open()`
-  // scoped to the session it opened, so a turn cannot reach a log-level append — there is none.
+  // Write verbs come from `open()` scoped to the session, so a turn has no log-level append.
   const log: MemoryLog = {
     events,
     boundaries: 0,
@@ -148,7 +128,7 @@ interface Harness {
   readonly invocations: Invocation[]
   readonly ordering: string[]
   readonly plannerCalls: number
-  /** What `/model` was actually asked to switch to. EMPTY is the CR-04 assertion. */
+  // What `/model` was asked to switch to; empty means the refused turn ran no directive.
   readonly modelCalls: string[]
   runTurn(input: AgentAskInput): Promise<AgentAskResult>
 }
@@ -158,61 +138,17 @@ interface HarnessOptions {
   readonly failOn?: string
   readonly reconcile?: ReconcileStrategy
   readonly compaction?: boolean
-  /**
-   * Bind SPY directive handlers, plus the config thunk the `/model` event path needs.
-   *
-   * A directive's side effects are the model override and the event it produces — neither of
-   * which is observable through the invoke spy, because a directive never travels the function
-   * layer. So CR-04's claim ("nothing happened on a refused turn") needs its own seat, and this is
-   * it. (432-13: `/pin` is gone; its handler seat went with it.)
-   */
+  // A directive never travels the function layer, so its effects need their own seat.
   readonly directives?: boolean
-  /**
-   * The `/model` argument the spy REFUSES in its pre-flight (392-14, E3; `/pin` until 432-13).
-   *
-   * The composed host resolves a named model in `validate` and throws for one it cannot resolve,
-   * and the engine turns that into the refusal path. A batch needs a second directive that says no.
-   */
+  // The `/model` argument the spy refuses in pre-flight, so a batch can hold a directive saying no.
   readonly unresolvableModel?: string
-  /**
-   * What the invoke seat ANSWERS, per function id.
-   *
-   * The spy resolved a fixed `{ ok: true }` for every op while nothing on this surface read an op
-   * RESULT — D-18's map-not-territory rule meant the receipt line was a function of the id alone.
-   * The fan-out report is that rule's one recorded exception, so the seat now has to be able to
-   * answer with a real result for the one op whose result reaches a rendered line.
-   */
+  // The fan-out report is the one result that reaches a rendered line, so the seat can answer it.
   readonly results?: Readonly<Record<string, unknown>>
-  /**
-   * Answer ONE timestamp for every event of the turn. Order must come from the
-   * utterance, never from a clock that happens to move between clauses.
-   */
+  // One timestamp for every event, so order must come from the utterance, not a clock.
   readonly fixedClock?: boolean
 }
 
-/**
- * The ops this harness folds through the REAL composition-root fold.
- *
- * TWO SPECS, AND THE SECOND ONE IS THE MEASUREMENT. `authoring.draft.write` declares the fan-out
- * disclosure; `quarantine.list` (`proposals.list` until 432-17) declares a classifier that says only
- * how many entries it listed,
- * and routing it through the SAME `foldFunctionResult` is what lets the blast-radius cell below see
- * a shared runner that started folding everybody's result with one op's rule. While the exception
- * was an id comparison inside `turn-engine.ts` that widening was one deleted line away and
- * mutation S of the phase's mutation driver (since removed) made it; the fold is a member of one spec now, so the
- * only place the same widening can still be written is the runner's post-classify seat — which is
- * exactly where mutation S went.
- *
- * `proposals.list` USED TO DECLARE NOTHING, and mutation S attacked the
- * runner's absent-classifier branch. `classify` is a REQUIRED member now — there is no undeclared
- * op left anywhere in the registry to leak onto — so both the control below and mutation S moved
- * onto the seat that still exists: what the runner does with the verdict an op DID declare. The
- * claim is unchanged: one field, on one op.
- *
- * Spelled as the specs THEMSELVES rather than mimicked: a hand-written stand-in would be a second
- * copy of the disclosure, and these cells would then agree with the copy while the shipped fold
- * drifted.
- */
+// The real specs, not stand-ins: a copied disclosure would agree with itself as the fold drifts.
 const FOLD_REGISTRY = createRegistryFromSpecs(
   [authoringDraftWriteSpec as FunctionSpec, quarantineListSpec as FunctionSpec],
   {
@@ -226,15 +162,7 @@ const FOLD_IDS: ReadonlySet<string> = new Set(
   [AUTHORING_DRAFT_WRITE_FUNCTION_ID, PROPOSALS_LIST],
 )
 
-/**
- * An EMPTY listing, produced through the folded read op's own output contract.
- *
- * PRODUCED, NEVER TYPED. The op declares a classifier as of plan 04, and a classifier is run over
- * whatever this seat answers with — so a hand-written `{ ok: true }` would hand the shipped fold an
- * input its contract cannot produce, and the fail-closed guard would answer
- * `failed/unclassifiable-result` for a cell whose subject is something else entirely. Parsing it
- * here means a fixture describing an impossible shape reds AT THIS LINE.
- */
+// Parsed through the output contract, so a fixture the classifier cannot produce fails here.
 const PROPOSALS_LIST_RESULT: QuarantineListOutput = QuarantineListOutputSchema.parse({ entries: [] })
 
 /**
@@ -278,9 +206,6 @@ function harness(options: HarnessOptions = {}): Harness {
     reconcile: options.reconcile ?? deterministicOverrideStrategy,
     sessionLog: log,
     mint: {
-      // no session is stamped onto the caller. The production mint
-      // stopped stamping one when the deny overlay that read it was deleted, the port no longer
-      // takes the session, and `FunctionCaller.sessionId` is deleted.
       forStage: (stage: ChatBindingStage): FunctionCaller =>
         stage === 'resolver' ? RESOLVER_CALLER : PLANNER_CALLER,
     },
@@ -288,19 +213,7 @@ function harness(options: HarnessOptions = {}): Harness {
       ordering.push(`invoke:${functionId}`)
       invocations.push({ functionId, input, caller })
       if (functionId === options.failOn) return Promise.reject(new FunctionInputError('refused'))
-      // 399.1: the envelope, run through the REAL composition-root fold.
-      //
-      // It used to script `{ status: 'executed', outcome: '' }` for everything, which was right
-      // while the only fold in existence was `config.field.set`'s and every cell here was about
-      // ordering, atomicity and receipt COUNTS. The D-18 fan-out disclosure is now a member of
-      // `authoring.draft.write`'s spec rather than an id comparison inside `turn-engine.ts`, so a
-      // harness that kept scripting the legacy verdict would assert about a mechanism it had
-      // switched off. `FOLD_REGISTRY` runs `foldFunctionResult` — the one the composition root
-      // runs — so the cells measure the shipped disclosure and not a copy of it. Ops outside
-      // `FOLD_IDS` keep the legacy envelope, which is what an unclassified op reports in
-      // production, and is also what `foldFunctionResult` REFUSES to answer for an id its registry
-      // does not hold (fail-closed) — so the guard is here rather than a `failed` verdict every
-      // ordering cell would then have to explain.
+      // `FOLD_REGISTRY` runs `foldFunctionResult`; other ops keep the unclassified envelope.
       const payload = options.results?.[functionId] ?? defaultResultFor(functionId)
       if (!FOLD_IDS.has(functionId)) {
         return Promise.resolve({
@@ -315,10 +228,7 @@ function harness(options: HarnessOptions = {}): Harness {
     ...(options.directives === true
       ? {
           config: (): ChatConfigState => ({ model: activeModel, toolset: { hash: 'hash-0' } }),
-          // A FACTORY, as the engine now asks for (392 plan 13): the handlers a turn runs belong to
-          // the session running it. This harness drives one session at a time, so the factory
-          // ignores the id and the spies stay the same objects — what is under test here is the
-          // ORDER effects happen in, and the per-session keying has its own composed differential.
+          // A factory, as the engine asks; this harness runs one session, so it ignores the id.
           directives: (): ChatDirectiveHandlers => ({
             // THE BATCH PRE-FLIGHT, mirroring the composition: it asks the same question `model`
             // answers and records NOTHING, so a turn whose second directive is unresolvable is
@@ -379,8 +289,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       const result = await run.runTurn({ message: '/fn quarantine.list and write a test for two factor auth' })
 
       expect(result.status).toBe('fail_closed')
-      // The measurement D-10 is actually about. Not "the failing clause was skipped" — the
-      // clause that COULD have run did not, because the verdict preceded every effect.
+      // The clause that could have run did not, because the verdict precedes every effect.
       expect(run.invocations).toHaveLength(0)
       expect(result.receipts).toHaveLength(0)
       expect(result.unhandled?.clause).toBe('write a test for two factor auth')
@@ -433,17 +342,8 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  // CR-04, the gap round. THE DIRECTIVE LOOP USED TO RUN BEFORE THE VERDICT, so a turn
-  // whose second clause was unroutable returned `fail_closed` — with the message "nothing in the
-  // request was carried out" — while the directive it named was already in force. Every existing
-  // case in this file measured effects through the INVOKE spy, and a directive never travels the
-  // function layer, so `executed == 0` stayed true through the defect. These cases measure the
-  // other seat. (432-13: the shipped probe was `/pin`, now an ordinary unroutable clause; the
-  // effectful directive left is `/model`, and no turn writes an `approval_decision` row.)
+  // A directive never travels the function layer, so these cases measure the directive seat.
   describe('no directive side effect precedes the reconciliation verdict', () => {
-    // RE-SPELLED 2026-09-30 from 'records NO pin when the turn is refused, though it names
-    // one'. `/pin` is no longer a directive, so the same utterance is two unroutable clauses; the
-    // claim that survives is that a refused turn leaves no approval row and invokes nothing.
     it('records NO approval row when a turn naming the retired /pin is refused', async () => {
       const run = harness({ directives: true })
       const result = await run.runTurn({
@@ -477,8 +377,6 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       }).toEqual({ status: 'fail_closed', switched: [], verbModelChanges: 0 })
     })
 
-    // RE-SPELLED 2026-09-30: the directive carried out is `/model`, and the op beside it
-    // is reached through `/fn` now that the `proposals` alias is gone.
     it('still carries the directive out on the execute arm, and its line still leads', async () => {
       const run = harness({ directives: true })
       const result = await run.runTurn({ message: '/model claude-fast and /fn quarantine.list' })
@@ -487,7 +385,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       expect(run.modelCalls).toEqual(['claude-fast'])
       expect(run.log.events.filter((event) => event.kind === 'approval_decision')).toHaveLength(0)
       expect(run.invocations.map((call) => call.functionId)).toEqual([PROPOSALS_LIST])
-      // Directive lines lead the answer — the person asked for the model switch FIRST.
+      // Directive lines lead the answer, because the person asked for the model switch first.
       expect(result.answer?.split('\n')[0]).toContain('model: claude-fast')
     })
 
@@ -523,17 +421,8 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  // 392-14, the CR-04 RESIDUAL (392-VERIFICATION round 2, E3/E3b). The primary fix above is real —
-  // the execution loop moved below the verdict and the single-directive control proves it. But the
-  // loop itself applies directives ONE AT A TIME and returns on the first refusal, so a turn whose
-  // SECOND directive says no kept the first one's irrevocable effect and its append-only row. The
-  // status was already right; that is what makes this shape so hard to see from the outside, and
-  // why each case folds the status and the two effects into one `toEqual` rather than asserting
-  // them in sequence. A refusal that carried something out is worse than a refusal that lied about
-  // it, because the person is told the session is unchanged and it is not.
+  // A later directive's refusal must leave no earlier directive's effect or row behind.
   describe('E3 — the directive BATCH is refused whole: no earlier directive survives a later one', () => {
-    // RE-SPELLED 2026-09-30 from 'records NO pin when a LATER directive in the same turn
-    // refuses': the batch is two `/model` directives, the second of which the pre-flight refuses.
     it('applies NO earlier directive when a LATER directive in the same turn refuses', async () => {
       const run = harness({ directives: true, unresolvableModel: 'nonsense-model' })
       const result = await run.runTurn({
@@ -565,8 +454,6 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  // chat resolution has no approval route left. `/pin` is not a directive, so it
-  // is an ordinary unroutable clause, and no turn writes an `approval_decision` row.
   describe('no pin directive and no approval writer', () => {
     it('`/pin` is an unroutable clause, and nothing is pinned or recorded as an approval', async () => {
       const run = harness({ directives: true })
@@ -601,8 +488,6 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  // EDGE-03 (PXH-SAFE-01/ordering): explicit operations in one utterance run, receipt and log in the
-  // order the person declared them even when every event carries the same timestamp.
   describe('declared order survives tied timestamps', () => {
     it('three explicit operations under one frozen clock keep their declared execution and receipt order', async () => {
       const run = harness({ fixedClock: true })
@@ -669,28 +554,10 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
       expect(receipts.map((event) => event.status)).toEqual(['failed', 'not-run'])
     })
 
-    // ---- 399.1-09 (gap round 1, D-12): the stop gate reads the RECEIPT, not the ending ----------
-    //
-    // THE THREE CELLS ABOVE ALL FAIL BY THROWING. `failOn` rejects, the engine's catch mints the
-    // `failed` receipt AND sets the flag, and the chain stops — which was a complete statement of
-    // D-11 for exactly as long as a failure could only arrive as an exception. It is not any more:
-    // 399.1 made the receipt status the op's OWN verdict, and every arm of a typed refusal RETURNS.
-    // So a fold answering `failed` produced a `failed` receipt over which the aggregate still said
-    // `completed`, the gate never tripped, and the clause after it ran anyway. That is RC-1b
-    // restated one layer up, and the two cells below are its differential.
-    //
-    // THE GUARD-REJECT CONTROL IS ALREADY WRITTEN AND IS NOT DUPLICATED HERE: 'executes table-bound
-    // clauses in utterance order' (the first cell in this describe) is the all-executed turn — no
-    // receipt says `failed`, nothing stops, the aggregate stays `completed`. A rule with a guard
-    // needs a case its guard REJECTS, and that is the one.
+    // A typed refusal returns rather than throws, so the stop gate reads the receipt.
 
     it('stops the chain and fails the turn on a RETURNED failed verdict', async () => {
-      // PRODUCED THROUGH THE REAL FOLD, NEVER SCRIPTED. `results` here is the op's RESULT, and the
-      // harness routes every `FOLD_IDS` result through `foldFunctionResult` — the same function the
-      // composition root runs. `quarantine.list`'s declared classifier reads `output.entries.length`;
-      // an object with no `entries` is a result its own fold cannot read, so D-03's fail-closed
-      // wrapper answers `failed`/`unclassifiable-result` as a RETURN. Scripting a verdict literal
-      // into the invoke seat would have pinned a verdict no producer can emit.
+      // Without `entries` the classifier cannot read the result, so the fold returns `failed`.
       const run = harness({ results: { [PROPOSALS_LIST]: { inbox: 'not the contract' } } })
       const result = await run.runTurn({ message: '/fn quarantine.list and status' })
 
@@ -703,10 +570,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
         outcome: 'unclassifiable-result',
       })
 
-      // THE THREE FACTS IN ONE `toEqual`, on E3's precedent above: the aggregate, the receipt
-      // sequence and what was actually invoked are one claim about one turn, and asserting them in
-      // sequence would report only the first of the three that is wrong. The clause after a failure
-      // was never attempted — thrown or returned, identically.
+      // One `toEqual` over aggregate, receipts and invocations, so every wrong fact is reported.
       expect({
         status: result.status,
         receipts: result.receipts.map((receipt) => receipt.status),
@@ -719,12 +583,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
 
     it('does NOT stop the chain on a RETURNED refused verdict (the posture control)', async () => {
-      // A D-12 POSTURE CONTROL, GREEN BEFORE AND AFTER THE FIX, and it is the reason the fix reads
-      // `receipt.status === 'failed'` rather than "anything that is not `executed`". D-11 stops on
-      // FAILURE; D-02 ruled that a refusal is not a failure — the control worked, the op ran and
-      // came back, which is precisely what `clauseReachedCapability` already counts. A guard that
-      // stopped here would turn every declined write into a turn that abandoned the rest of the
-      // person's sentence.
+      // A refusal is not a failure: the op ran and came back, so the chain does not stop.
       const run = harness({
         planned: {
           toolCalls: [{
@@ -750,19 +609,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
   })
 
   describe('the turn\'s results[] reaches the log as MASKED clause_result events', () => {
-    // WHY THIS KIND EXISTS AT ALL. `results[]` is the channel D-05 minted for what the ops
-    // RETURNED, and it is what `renderTurn` prints and every `agent.ask` client reads. A session
-    // log that carried the receipt map but not the territory would make "what did this turn
-    // actually get back" unanswerable from the record — which is the same hole 399's UAT rejected
-    // on the render surface, one file down.
-    //
-    // AND WHY IT IS MASKED. `results[]` carries the function layer's masked payload and NOTHING
-    // restores a value on the way here (each surface's emit masks with the declared secrets).
-    // Persisting anything else would mint a SECOND unadjudicated cleartext sink in the very file
-    // the 399.1 adjudication names — see
-    // `.planning/phases/399.1-chat-render-contract/399.1-ADJUDICATION-transcript-cleartext.md`
-    // § "The load-bearing corollary for D-05". This describe pins the count and the verbatim
-    // payload; the byte-level absence proof is in `agent-local`, on a real file.
+    // `results[]` carries the masked payload, and nothing unmasks it on the way here.
 
     it('appends ONE clause_result per clause that RAN, carrying the payload verbatim', async () => {
       const run = harness()
@@ -802,9 +649,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
 
     it('leaves the clause_receipt line untouched — the map is still a map', async () => {
-      // THE CHARTER SURVIVES THE ADDITION. 392's receipt ruling is that a receipt carries refs and
-      // a sentence; the territory travels beside it. A payload that had leaked onto the receipt
-      // would be the prohibition this whole vocabulary is built on, satisfied by a sibling kind.
+      // A receipt carries refs and a sentence; the payload travels beside it, never on it.
       const run = harness()
       await run.runTurn({ message: '/fn quarantine.list and status' })
 
@@ -841,10 +686,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
 
     it('mints agent when a strategy binds a TABLE-resolvable clause through the planner', async () => {
-      // The T-392-23 shape, and the reason `source` is carried rather than re-derived. A caller
-      // matching the action back against the mapper set would answer `human` here — handing a
-      // model-produced invocation the self-grant power 391 D-06 withholds. Reachable only through
-      // the D-16 strategy seam, which is exactly the seat an attacker-shaped mistake would sit in.
+      // `source` is carried, not re-derived: matching back would mark a model-made call as `human`.
       const smuggling: ReconcileStrategy = (input) => ({
         kind: 'execute',
         plan: input.mapped.map((resolved) => ({ ...resolved, source: 'planner' as const })),
@@ -874,23 +716,6 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
   })
 
-  /**
-   * a style modifier is not a clause the model has to claim.
-   *
-   * THE CLOSURE IS ANCHORED ON WHAT A PERSON READS, NOT ON THE SPLITTER'S RETURN VALUE. The gap
-   * was measured in the live lane as a refusal — a sentence asserting no capability handles
-   * `in one sentence`, on a turn whose question the model had in fact answered — and a case that
-   * asserted only `splitClauses(...)` has one element would be phrased in the fixed module's own
-   * vocabulary, which is the shape this phase has watched close a round and leave the class alive.
-   * This case drives the REAL splitter, the REAL resolver table and the REAL reconciliation
-   * strategy, so what it measures is the refusal ceasing to be emitted.
-   *
-   * WHY NOT A CORPUS CELL. The composed shape is a `should_execute` turn: a hermetic cell of that
-   * kind would need a scripted model standing in for the real one, which D-13 forbids for exactly
-   * those cells; a `fail_closed` cell would pin the PRE-fix behaviour, which the fix removes; and
-   * either admission would move a denominator D-15 froze at 11 hermetic / 3 live. The live lane at
-   * k≥5 is the third seam, and it is the one that gates.
-   */
   describe('a style modifier is not a clause the model has to claim', () => {
     it('completes the turn the live lane saw refused, with no mark_unhandled row', async () => {
       const run = harness({
@@ -960,22 +785,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
   })
 })
 
-// ---- D-18's one recorded exception: the fan-out report on the receipt -------
-//
-// WHY A RECEIPT LINE IS THE RIGHT SURFACE FOR IT, and why that is not a hole in D-18. The receipt's
-// charter is "which op ran and how it went"; for `authoring.draft.write` the cost IS how it went,
-// and the same surface asked this person to approve a number before the loop spent anything. A
-// disclosure whose second half never reaches a screen is a control with nothing behind it: they
-// approved nine runs and had no way to learn eleven were taken. What the exception admits is one
-// typed field on one op — counts, run refs and a boolean, read through `FanOutReportSchema` — and
-// never a payload body.
-//
-// THE LINE IS RENDERED, NEVER RECOMPUTED. Every fixture below is PRODUCED by `buildFanOutReport`
-// and every expectation is composed by `renderFanOutReport`, so a surface that copied the sentence
-// instead of calling the renderer is invisible here while both agree — which is exactly why
-// mutation R of the phase's mutation driver (since removed) made them disagree and required these
-// cells to red. A cell pinning a restated string literal would stay green through that mutation and
-// would be measuring its own copy of the wording.
+// Fixtures come from `buildFanOutReport`, expectations from `renderFanOutReport`.
 
 /** The report a nine-run preview and a three-run happy path produce. Built, never typed. */
 const HAPPY_REPORT = buildFanOutReport({
@@ -1011,23 +821,10 @@ const VERIFY_UTTERANCE = 'check the shelved draft again'
 const FUNNEL_TOOL = toToolName(AUTHORING_FUNNEL_GET_FUNCTION_ID)
 const FUNNEL_UTTERANCE = 'how is this session doing so far'
 
-/**
- * The loop outcome every cell here drives, named ONCE.
- *
- * The receipt line is now the op's OWN verdict rather than the engine's `<id> completed`, so this
- * word appears in both the fixture and the expectation. Spelling it twice would let a cell agree
- * with a restated copy of itself while the harness drove something else.
- */
+// Named once, so a cell cannot agree with a restated copy of itself.
 const AUTHORING_OUTCOME = 'drafted'
 
-/**
- * The dedup REFUSAL arm, produced through the op's own output contract.
- *
- * PARSED, NEVER TYPED — the same move `PROPOSALS_LIST_RESULT` makes above and the shape
- * `refusal-classifiers.test.ts` mints for this op's refusal cell. A hand-written stand-in would hand
- * the shipped classifier an input its contract cannot produce, and the D-12 control below would then
- * be pinning the fail-closed wrapper instead of the refusal it means to pin.
- */
+// Parsed through the output contract, so the control pins the refusal, not the fail-closed wrapper.
 const AUTHORING_REFUSED_RESULT: AuthoringDraftWriteOutput = AuthoringDraftWriteOutputSchema.parse({
   outcome: 'refused',
   refusal: {
@@ -1061,10 +858,6 @@ function authoringHarness(report: unknown): Harness {
 }
 
 describe('exception — the authoring receipt carries the fan-out report', () => {
-  // the exception moved OUT of `turn-engine.ts` and onto this op's own `classify`. The
-  // claim is unchanged and the enforcement got stronger — it was an id comparison inside a shared
-  // summariser, and it is a member of one spec now. The receipt line is the op's own words, which
-  // is why the expectations below no longer carry the engine's `<id> completed` prefix.
   it('extends the outcome line with the RENDERER’s own sentence', async () => {
     const run = authoringHarness(HAPPY_REPORT)
     const result = await run.runTurn({ message: AUTHORING_UTTERANCE })
@@ -1096,8 +889,7 @@ describe('exception — the authoring receipt carries the fan-out report', () =>
     const run = authoringHarness(EXCEEDED_REPORT)
     const result = await run.runTurn({ message: AUTHORING_UTTERANCE })
 
-    // Until this line existed, `exceedsPreview` was a flag nothing could surface and
-    // FAN_OUT_PHRASES.exceeded had no path to a screen at all (394-VERIFICATION, fan-out.ts:228).
+    // This line is the only path `FAN_OUT_PHRASES.exceeded` has to a screen.
     expect(EXCEEDED_REPORT.exceedsPreview).toBe(true)
     // Asserted against the CONSTANT, never a restated copy of the sentence: a literal here would
     // be a second place this project's words live, which is what the phrase table exists to stop.
@@ -1105,11 +897,7 @@ describe('exception — the authoring receipt carries the fan-out report', () =>
   })
 
   it('leaves every OTHER op’s line untouched — one field, on one op', async () => {
-    // The D-18 blast radius, measured. The exception is a named branch, not "render whatever the
-    // result carried": a fix that appended a report to every receipt would pass all three cells
-    // above and red this one, which is what makes them a subset rather than restatements.
-    // The result carries a parsable report AND is a real `quarantine.list` output, so the only
-    // reason its line could grow the disclosure is a runner that stopped asking whose rule it is.
+    // A real `quarantine.list` result with a report: only a misrouted rule grows its line.
     const run = harness({
       results: { [PROPOSALS_LIST]: { ...PROPOSALS_LIST_RESULT, fanOut: HAPPY_REPORT } },
     })
@@ -1120,9 +908,7 @@ describe('exception — the authoring receipt carries the fan-out report', () =>
   })
 
   it('renders NOTHING extra when the result carries no parsable report', async () => {
-    // A malformed or absent `fanOut` must not produce a fabricated line and must not throw the
-    // turn away. The receipt falls back to the plain one-liner: the honest answer when the field
-    // the exception admits is not there is to say only what D-18 always said.
+    // A malformed or absent `fanOut` falls back to the plain receipt line and does not throw.
     const run = harness({
       planned: {
         toolCalls: [{
@@ -1137,18 +923,11 @@ describe('exception — the authoring receipt carries the fan-out report', () =>
     const result = await run.runTurn({ message: AUTHORING_UTTERANCE })
 
     expect(result.status).toBe('completed')
-    // The VERDICT survives an unparsable disclosure and the SENTENCE does not: the op still says
-    // what happened, and says nothing about a report it could not read.
     expect(result.receipts[0]?.outcome).toBe(AUTHORING_OUTCOME)
   })
 })
 
-// ---- the sessionRef stamp -----------------------------------
-//
-// The session is a fact about THIS COMPOSITION, and the receipt the loop mints is attributed with
-// it so the per-session funnel window has anything to select. The stamp is an OVERWRITE and never
-// a default-if-absent: a planner-emitted `sessionRef` is a value a MODEL wrote, and honouring it
-// would let a model claim another author's session — T-392-23's shape, one op over.
+// The stamp overwrites: a planner-emitted `sessionRef` would let a model claim another session.
 
 const SESSION_ID = 'chat-test-session'
 
@@ -1171,9 +950,6 @@ describe('the authoring sessionRef stamp', () => {
   })
 
   it('OVERWRITES a planner-emitted ref rather than honouring it', async () => {
-    // The spoofing direction. A model that wrote `sessionRef: 'sess-victim'` into its tool call
-    // must not have that value reach the registry — the receipt it would mint would report this
-    // draft under somebody else's keep rate, which is exactly the inflation D-12 forbids.
     const run = harness({
       planned: {
         toolCalls: [{
@@ -1229,18 +1005,7 @@ describe('the authoring sessionRef stamp', () => {
   })
 })
 
-// ---- the funnel window stamp --------------------------------
-//
-// THE READ SIDE, AND ITS LAW IS THE OTHER ONE. D-12's "default scope = current session" is a
-// SURFACE default — the op cannot construct it because `FunctionSpec.invoke` never sees a caller —
-// so the surface that KNOWS its session is the one that supplies it. That makes the window stamp a
-// DEFAULT-IF-ABSENT, which the receipt ref deliberately is not: an unattributed receipt must stay
-// unattributed (absence is exclusion), while an unscoped ASK has a right answer for a chat caller.
-//
-// The session arm's REF is still an overwrite, for the write side's reason: which session is being
-// asked about is this composition's fact, not the model's. The all-time and last-n arms pass
-// through byte-untouched, because a model may legitimately ask a question this surface's default
-// does not answer.
+// The window stamp is a default-if-absent, while the session arm's ref is overwritten.
 
 describe('the authoring funnel window stamp', () => {
   it('DEFAULTS an absent window to this session — the surface default, constructed', async () => {
