@@ -1,6 +1,6 @@
-// The per-kind `keyFacts[]` projections (Phase 387, ENTY-02 / D-04 / D-12 / D-19).
+// The per-kind `keyFacts[]` projections.
 //
-// D-12: a key fact is COMPUTED DETERMINISTICALLY FROM STORE DATA and is never LLM-authored.
+// a key fact is COMPUTED DETERMINISTICALLY FROM STORE DATA and is never LLM-authored.
 // This module is where that promise is kept, and it is kept structurally rather than by
 // discipline: every function here is a pure function of values it is handed, it imports
 // nothing but the schema vocabulary, and it has no parameter through which a model, a clock,
@@ -19,9 +19,9 @@
 // failure this module exists to exclude, wearing a deterministic costume. Each kind's richer
 // facts land in its row below on the day its sighting source reports them.
 //
-// The one place richer content exists TODAY is the forget receipt (D-19), which is designed
+// The one place richer content exists TODAY is the forget receipt, which is designed
 // to be both the apply verb's return value and the content a forgotten entity's permanent
-// address resolves to afterwards (D-04). `forgetReceiptKeyFacts` is that second use.
+// address resolves to afterwards. `forgetReceiptKeyFacts` is that second use.
 
 import { ENTITY_IDENTITY_FACT_LABELS, formatEntityUri } from '@vostride/agent-qa-schema'
 import type {
@@ -50,7 +50,7 @@ export { ENTITY_IDENTITY_FACT_LABELS }
 export const ENTITY_RENAMED_TO_FACT_LABEL = 'renamed to'
 
 /**
- * The labels a quarantined `TST` card projects under, in the order they render (390 D-12/D-17).
+ * The labels a quarantined `TST` card projects under, in the order they render.
  *
  * Three facts, and the third is the only interesting choice. D-17 puts the OCCURRENCE COUNT
  * ("3rd occurrence in 5 builds") in the rendered sentence, where a live provider join can compute
@@ -59,7 +59,7 @@ export const ENTITY_RENAMED_TO_FACT_LABEL = 'renamed to'
  * for the count here would mean giving the card producer a store handle, which is the one thing
  * ENTY-02's determinism claim rests on it not having.
  *
- * THAT RULE DOES NOT RANGE THE RE-ENTRY HISTORY (390-20). D-17's occurrence count is a count over
+ * THAT RULE DOES NOT RANGE THE RE-ENTRY HISTORY. D-17's occurrence count is a count over
  * BUILDS — "3rd occurrence in 5 builds" is a join against a live provider, and it is still out of
  * reach here for exactly the reason above. `enteredCount` and `firstEnteredAt` are a different
  * number: the fold DERIVES them from `entered` events already committed to the ledger, and they
@@ -75,7 +75,7 @@ export const QUARANTINE_FACT_LABELS = {
   occurrence: 'quarantine occurrence',
 } as const
 
-/** The labels a forget receipt projects under, in the order they render (D-19). */
+/** The labels a forget receipt projects under, in the order they render. */
 export const FORGET_RECEIPT_FACT_LABELS = {
   records: 'records forgotten',
   recordIds: 'record ids',
@@ -115,14 +115,14 @@ function renameFact(descriptor: EntityDescriptor): KeyFact[] {
 }
 
 /**
- * An open quarantine window rendered as facts (390 D-12).
+ * An open quarantine window rendered as facts.
  *
  * Reached only from the `TST` row of the table below, and only for an entry the join already
  * decided is suppressing — an expired or released window contributes NOTHING here, because the
  * card's status says `active` for both and a fact announcing a quarantine beside it would be the
  * card contradicting itself.
  *
- * WHICH INSTANT THE OCCURRENCE FACT ANSWERS (390-20), and why it is not always the same one. An
+ * WHICH INSTANT THE OCCURRENCE FACT ANSWERS, and why it is not always the same one. An
  * entry on its FIRST window has one instant to state and states it exactly as it always has. An
  * entry on a LATER lap has two, and since 390-27 it states BOTH, in this order and for these
  * reasons: this test's quarantine history began at `firstEnteredAt`, which LEADS because it is the
@@ -132,7 +132,7 @@ function renameFact(descriptor: EntityDescriptor): KeyFact[] {
  * current window's instant beside a clause promising RECURRENCE handed a human two different
  * answers to one question: the queue ordering a test by January while the card said April. Stating
  * the history's instant alone printed a computed deadline beside a premise the card had dropped,
- * so a reader could not check `expires` against anything the card showed (IN-02). Stating both, in
+ * so a reader could not check `expires` against anything the card showed. Stating both, in
  * that order, is what closes each without re-opening the other — see the `occurrenceValue`
  * docstring below, which renders exactly this. `quarantine-ledger.ts`'s own docstring calls these
  * two instants close enough to be exactly the first hazard; naming the sibling here is cheaper
@@ -164,7 +164,7 @@ function quarantineFacts(entry: QuarantineEntryState | undefined): KeyFact[] {
  * quarantine fact renders; "214 days ago" would make this fact a function of the wall clock in a
  * producer whose determinism is pinned and which holds no clock to read.
  *
- * THE LATER-LAP ARM CARRIES BOTH INSTANTS (390-27, IN-02). The sibling `expires` fact is DERIVED
+ * THE LATER-LAP ARM CARRIES BOTH INSTANTS. The sibling `expires` fact is DERIVED
  * from `enteredAt`, and an arm stating only `firstEnteredAt` put a computed deadline on the card
  * beside a premise the card had dropped — a human reading "expires 2026-09-04" next to "4 windows
  * since 2026-06-01" cannot check the one against the other, because the instant the deadline was
@@ -187,7 +187,7 @@ function occurrenceValue(entry: QuarantineEntryState): string {
 }
 
 /**
- * A forget receipt rendered as facts (D-19 + D-04).
+ * A forget receipt rendered as facts.
  *
  * The record ids are rendered as ONE fact carrying the whole list rather than as one fact per
  * record, and that is the reconciliation of two rules that would otherwise fight: D-19 says
@@ -232,7 +232,7 @@ export function forgetReceiptKeyFacts(receipt: ForgetReceiptV1): KeyFact[] {
 /** What a projection is handed: the store's descriptor, plus the receipt when one survives. */
 export interface KeyFactInput {
   readonly descriptor: EntityDescriptor
-  /** The forget receipt for a forgotten `MEM` bundle (D-04/D-19), when the caller holds one. */
+  /** The forget receipt for a forgotten `MEM` bundle, when the caller holds one. */
   readonly forgetReceipt?: ForgetReceiptV1
   /**
    * The SUPPRESSING quarantine window for a `TST` entity (390), already joined by the producer.
@@ -268,7 +268,7 @@ export const KEY_FACT_PROJECTIONS = {
 } as const satisfies Record<EntityKind, KeyFactProjection>
 
 /**
- * Project one entity's key facts (D-12).
+ * Project one entity's key facts.
  *
  * BOUNDED BY CONSTRUCTION, not by truncation, and the difference is the whole reason the
  * receipt renders as it does. Every row above emits a fixed, small number of facts whatever

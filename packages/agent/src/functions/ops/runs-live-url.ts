@@ -1,4 +1,4 @@
-// `runs.liveurl` — the ONE producer of live-view capability tokens (403 D-03).
+// `runs.liveurl` — the ONE producer of live-view capability tokens.
 //
 // WHY THIS IS A FUNCTION-LAYER OP AND NOT A DASHBOARD ROUTE. The `liveUrl` is a credential of the
 // v48 family, and the milestone's constraint is that surfaces are thin clients over one typed
@@ -52,7 +52,7 @@ export const runsLiveUrlSpec: FunctionSpec<RunsLiveUrlInput, RunsLiveUrlResult> 
   output: RunsLiveUrlResultSchema,
   risk: { name: `fn:${RUNS_LIVE_URL_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * THE OUTCOME SENTENCE NEVER CONTAINS THE TOKEN OR THE URL (LIVE-02, D-04).
+   * THE OUTCOME SENTENCE NEVER CONTAINS THE TOKEN OR THE URL.
    *
    * A clause verdict is a thing surfaces PRINT — into chat transcripts, receipts and the audit
    * sink — so interpolating the result here would put a live credential into every durable record
@@ -86,7 +86,7 @@ export const runsLiveUrlSpec: FunctionSpec<RunsLiveUrlInput, RunsLiveUrlResult> 
       exp,
     })
     // The one observation point for minted tokens, complete because this op is the only minter.
-    // 2026-10-14 (441-16, D-01): no shipped host binds it; it never gates producing the link.
+    // no shipped host binds it; it never gates producing the link.
     liveView.onMinted?.(token)
 
     return { liveUrl: liveUrlOf(origin, input.runId, token), expiresAt: exp, handle, stream }

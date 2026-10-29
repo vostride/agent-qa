@@ -1,22 +1,22 @@
-// `config.field.set` — the first of the closed typed action class (Phase 395, D-01/D-03 · CFGM-01).
+// `config.field.set` — the first of the closed typed action class.
 //
-// ONE REGISTERED OP PER ACTION (D-01). The closed action class is legible in the registry itself,
+// ONE REGISTERED OP PER ACTION. The closed action class is legible in the registry itself,
 // the planner picks actions by tool name, and 396's MCP projection and 397's parity walk pick this
 // up with no harness change. A union op carrying a mode string would have projected as one tool
 // whose real vocabulary lives inside a string field nothing validates.
 //
-// IT WRITES IN THE CALL AND COMMITS NOTHING (2026-09-30, 432-11 D-05/D-07). The change is
+// IT WRITES IN THE CALL AND COMMITS NOTHING. The change is
 // constructed, scanned and validated exactly as before, and then published through the direct
 // writer rather than filed as a proposal: the answer names the files and fields it changed. A
 // blocked change is answered with its report and nothing is kept. No git runs; the change is a
 // plain edit a person sees in `git diff` and reverts with `git restore`.
 //
-// NO SCOPE (2026-10-01, 432-24, D-12). This op once declared `config-write`, so 396's safe-mode
+// NO SCOPE. This op once declared `config-write`, so 396's safe-mode
 // filter could hide it and a caller holding only `read` could not reach it. Every door can call
 // every operation now; what guards a config write is the construction, scan and whole-config
 // validation below, not who asked.
 //
-// ANY SCHEMA-ADDRESSABLE PATH (D-03). There is no settable-field whitelist, and the absence is the
+// ANY SCHEMA-ADDRESSABLE PATH. There is no settable-field whitelist, and the absence is the
 // decision: a rule that can only refuse what it can NAME cannot be driven to zero by naming more
 // things. The guards are whole-input by construction — post-mutation validation of the ENTIRE
 // config in the pipeline, and D-02's per-value classifier when 395-04 lands it.
@@ -44,7 +44,7 @@ export const configFieldSetSpec: FunctionSpec<ConfigFieldSetInput, ConfigChangeO
     readOnly: false,
   },
   /**
-   * This op's own union, folded into a clause verdict (2026-08-20, Phase 399.1 D-01/D-02).
+   * This op's own union, folded into a clause verdict.
    *
    * THE MAPPING MOVED TO `config-propose-verdict.ts` IN 399.1-03, unchanged, when the other six ops
    * answering with this same union got classifiers of their own. It was written here first because
@@ -54,9 +54,9 @@ export const configFieldSetSpec: FunctionSpec<ConfigFieldSetInput, ConfigChangeO
    */
   classify: classifyConfigChangeOutput,
   async invoke(input, deps): Promise<ConfigChangeOutput> {
-    // THREE DEPS, ONE `boundThrough`: the files, the validator and the direct writer (432-11). The
+    // THREE DEPS, ONE `boundThrough`: the files, the validator and the direct writer. The
     // declared name is the writer; all three are checked here, by name, so an in-layer caller
-    // holding the spec gets the same refusal a pipeline caller would. No scan (441 D-15).
+    // holding the spec gets the same refusal a pipeline caller would. No scan.
     const { configFiles, configValidate, configWrite } = deps
     if (
       configFiles === undefined

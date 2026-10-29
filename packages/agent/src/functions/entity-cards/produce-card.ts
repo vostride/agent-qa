@@ -1,4 +1,4 @@
-// THE entity card producer (Phase 387, ENTY-02 / D-04 / D-10 / D-11 / D-12).
+// THE entity card producer.
 //
 // One producer, in the function layer, and every surface's card is its output. That is not a
 // tidiness claim — it is what makes the chat card, the MCP `structuredContent` and M5's UI
@@ -11,7 +11,7 @@
 // trust fields, applied to entity state. The owning store decided what an entity's status
 // is; this function's job is to carry that decision into the card vocabulary and to REFUSE
 // rather than repair a status the kind does not declare. `EntityCardSchema.parse` is where
-// that refusal happens (D-12), so an unrecognised store state surfaces as a named contract
+// that refusal happens, so an unrecognised store state surfaces as a named contract
 // failure at the seam instead of as a card that quietly reads `active`.
 //
 // The function stays SYNCHRONOUS and PURE. Everything it needs beyond the descriptor arrives
@@ -36,7 +36,7 @@ import { projectKeyFacts } from './key-facts.js'
 /** What the producer needs about ONE entity beyond its descriptor. */
 export interface EntityCardRenderInput extends EntityCardContext {
   /**
-   * The forget receipt for a forgotten `MEM` bundle (D-04 + D-19).
+   * The forget receipt for a forgotten `MEM` bundle.
    *
    * Supplied by whoever already holds one — the forget verb, which produced it, and later a
    * store lookup for an address whose bundle is gone. It is an INPUT rather than something
@@ -49,7 +49,7 @@ export interface EntityCardRenderInput extends EntityCardContext {
  * A receipt was supplied for something that is not a knowledge bundle.
  *
  * A refusal rather than a silent drop. `ForgetReceiptV1.resultingBundleStatus` is drawn from
- * the `MEM` card's own status vocabulary (D-19), so a receipt attached to a run or a target
+ * the `MEM` card's own status vocabulary, so a receipt attached to a run or a target
  * is not merely irrelevant, it is a claim about a status that kind does not declare — and
  * dropping it would render a card that omits the very fact the caller asked to show.
  */
@@ -75,7 +75,7 @@ function statusFor(
   descriptor: EntityDescriptor,
   input: EntityCardRenderInput,
   /**
-   * 390 D-12: the SUPPRESSING window this entity sits under, already joined. Passed in rather
+   * the SUPPRESSING window this entity sits under, already joined. Passed in rather
    * than recomputed so the status and the key facts are decided by literally one evaluation —
    * a card can never say `quarantined` above facts that describe no window, or the reverse.
    *
@@ -92,7 +92,7 @@ function statusFor(
 }
 
 /**
- * THE join between an entity and the committed ledger (390 D-11/D-12), spelled once.
+ * THE join between an entity and the committed ledger, spelled once.
  *
  * Three gates, each refusing a different wrong answer:
  *
@@ -100,7 +100,7 @@ function statusFor(
  *  - REPORTED IDENTITY. The join key is `(product, filePath, testName)`, which the store must
  *    have REPORTED — never `machineId` (a per-run explicit id) and never the title. A descriptor
  *    that carries no identity answers `active`, which is honest: this store cannot say.
- *  - STATE. Only `quarantined` counts. An `expired` window has STOPPED suppressing (D-11) and a
+ *  - STATE. Only `quarantined` counts. An `expired` window has STOPPED suppressing and a
  *    `released` one is closed, so both
  *    are `active` tests whose history lives in `quarantine.list`. A card that showed `expired`
  *    as `quarantined` would tell a reader the failing build in front of them is licensed.
@@ -120,7 +120,7 @@ function quarantineEntryFor(
 }
 
 /**
- * The dashboard link, or nothing (D-10).
+ * The dashboard link, or nothing.
  *
  * ABSENT, not null and not an empty string, whenever no dashboard base is configured — the
  * v52 default — or whenever the configured base cannot render an honest URL. The field is

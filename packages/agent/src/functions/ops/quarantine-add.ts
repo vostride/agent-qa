@@ -1,4 +1,4 @@
-// `quarantine.add` — manual entry, renewal and the owner claim, in one verb (Phase 390, D-13).
+// `quarantine.add` — manual entry, renewal and the owner claim, in one verb.
 //
 // The counterpart that makes D-05's narrow auto-gate livable. Automatic quarantine is reserved
 // for the A3-routed classes (flake, environment, timeout) precisely so a real regression is
@@ -14,17 +14,17 @@
 // into their own verbs would have forced every caller to read the ledger's current state before
 // it could choose a verb — a read whose answer can change between the two calls.
 //
-// A DIRECT WRITE, NOT A PROPOSE+APPLY PAIR (D-13): see `quarantine-release.ts`. 391 may wrap both
+// A DIRECT WRITE, NOT A PROPOSE+APPLY PAIR: see `quarantine-release.ts`. 391 may wrap both
 // verbs in the proposal engine; this plan mints the direct form the engine would wrap.
 //
-// ---- NO SCOPE (2026-10-01, 432-25, D-12) ------------------------------------------------------
+// ---- NO SCOPE ------------------------------------------------------
 //
 // Both quarantine writes once declared `knowledge-write` rather than a new scope member, on the
 // reasoning that quarantine writes differ from knowledge writes neither in kind nor in
 // recoverability. Every door can call every operation now, so neither verb declares a scope. What
 // keeps the power bounded is unchanged and was never the scope: both verbs append to committed,
 // human-reviewable text under the knowledge root, each REVERSES the other, suppression expires
-// (D-11) and is loud in reporter output (D-15), and the risk descriptor still says the verb writes.
+// is loud in reporter output, and the risk descriptor still says the verb writes.
 
 import {
   QuarantineAddInputSchema,
@@ -35,7 +35,7 @@ import type { QuarantineAddInput, QuarantineAddOutput } from '@vostride/agent-qa
 import { FunctionNotBoundError } from '../spec.js'
 import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 
-/** The literal appears here once; every surface names the constant (384 D-15). */
+/** The literal appears here once; every surface names the constant. */
 export const QUARANTINE_ADD_FUNCTION_ID = 'quarantine.add'
 
 export const quarantineAddSpec: FunctionSpec<QuarantineAddInput, QuarantineAddOutput> = {
@@ -47,7 +47,7 @@ export const quarantineAddSpec: FunctionSpec<QuarantineAddInput, QuarantineAddOu
   output: QuarantineAddOutputSchema,
   risk: { name: `fn:${QUARANTINE_ADD_FUNCTION_ID}`, recognized: true, readOnly: false },
   /**
-   * `renewed` IS IDEMPOTENCY, AND THE CONTRACT CALLS IT INFORMATION (399.1 D-01).
+   * `renewed` IS IDEMPOTENCY, AND THE CONTRACT CALLS IT INFORMATION.
    *
    * "Already quarantined is information an operator acts on, not an error" — so both arms are
    * `executed` and the outcome says which gesture the ledger recorded.

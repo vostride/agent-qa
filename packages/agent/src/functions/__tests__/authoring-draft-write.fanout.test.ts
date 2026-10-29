@@ -34,7 +34,7 @@ import type {
   ParsedDraftLike,
 } from '../../authoring/ports.js'
 
-// 2026-10-01 (432-17, D-06): the authoring proposal writer and its record type are deleted. The spy
+// the authoring proposal writer and its record type are deleted. The spy
 // stays as an excess dependency so "nothing was filed" remains a measurement rather than a type.
 interface AuthoringProposalWrite {
   readonly kind: string
@@ -147,7 +147,7 @@ function deps(options: {
       draft: candidate,
     }),
     verifyDraft: () => Promise.resolve(ACCEPTED),
-    // 432 D-06: the direct writer the loop's final write reaches. It starts no run.
+    // the direct writer the loop's final write reaches. It starts no run.
     publish: (request: { readonly draftPath: string; readonly targetPath: string }) => {
       options.published?.push(request)
       if (options.writeFails === true) {
@@ -187,7 +187,7 @@ function deps(options: {
         exemplars: [],
       }),
       suiteTextCorpus: () => Promise.resolve(options.suiteText ?? []),
-      // 394-33 WR-07: the `target` vocabulary the compile prompt serves. This bench's model is
+      // the `target` vocabulary the compile prompt serves. This bench's model is
       // scripted and reads none of it — the verb is here because the port requires it, and
       // because this deps object is cast, so nothing but a run would have told us.
       configuredTargetNames: () => Promise.resolve(['local-form']),
@@ -264,7 +264,7 @@ describe('the op carries the fan-out report it computed (the reporting half)', (
   })
 })
 
-// 2026-09-30, 432 D-06: re-spelled in place. These cells pinned the proposal 394-18 filed before
+// re-spelled in place. These cells pinned the proposal 394-18 filed before
 // the op answered. The drafted outcome is now written, not filed, so each keeps its subject — what
 // the op does with a drafted outcome before it answers — and measures the write.
 describe('the drafted outcome is WRITTEN before this op answers', () => {

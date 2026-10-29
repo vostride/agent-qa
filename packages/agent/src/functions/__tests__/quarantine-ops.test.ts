@@ -1,4 +1,4 @@
-// The three quarantine verbs at the function layer (Phase 390, D-12/D-13 / FLAK-03).
+// The three quarantine verbs at the function layer.
 //
 // `quarantine.list` is the machine-readable enumeration FLAK-03 asks for; `quarantine.release`
 // and `quarantine.add` are the manual halves of the exit path. All three bind through the new
@@ -47,7 +47,7 @@ import {
 } from '../ops/quarantine-release.js'
 import type { FunctionDeps } from '../spec.js'
 
-// 2026-10-01 (432-25, D-12): the retired `grantedScopes` and `safeMode` fields are dropped; nothing
+// the retired `grantedScopes` and `safeMode` fields are dropped; nothing
 // read them.
 const CALLER: FunctionCaller = {
   surface: 'test',
@@ -161,7 +161,7 @@ describe('the three quarantine verbs are registered under the locked taxonomy', 
 
 // ---- Risk classification -----------------------------------------------
 //
-// RE-SPELLED 2026-10-01 (432-25, D-12). This block was 'scope and risk classification (D-13)' and
+// RE-SPELLED 2026-10-01. This block was 'scope and risk classification' and
 // asserted `['read']` on list and `['knowledge-write']` on release and add. No verb declares a
 // scope now; the read/write split it pinned survives on the risk descriptor, asserted unchanged.
 
@@ -174,7 +174,7 @@ describe('risk classification', () => {
   })
 
   // Renamed from 'declares release and add as WRITES — the same scope family the shipped write op
-  // uses' (432-25): the write claim survives on `readOnly: false`; the scope family does not.
+  // uses': the write claim survives on `readOnly: false`; the scope family does not.
   it('declares release and add as WRITES, with no scope', () => {
     for (const spec of [quarantineReleaseSpec, quarantineAddSpec]) {
       expect(spec, spec.id).not.toHaveProperty('requiredScopes')
@@ -319,7 +319,7 @@ describe('with a port bound, each op forwards and adds nothing of its own', () =
   })
 })
 
-// ---- C432-ALL-OPS-AVAILABLE (432-25, D-12) ------------------------------
+// ---- C432-ALL-OPS-AVAILABLE ------------------------------
 //
 // The two writes once required `knowledge-write`. Retried from three callers that differ in surface
 // and origin, and that carry no scope at all, each write is served every time: the port is reached

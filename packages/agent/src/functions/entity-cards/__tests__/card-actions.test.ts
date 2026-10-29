@@ -1,4 +1,4 @@
-// `actions[]` are registry op refs, and both ops are one projection (Phase 387 plan 07, D-11).
+// `actions[]` are registry op refs, and both ops are one projection.
 //
 // Two claims, and neither is a shape check.
 //
@@ -56,16 +56,16 @@ function descriptorFor(kind: EntityKind): EntityDescriptor {
 
 const MEM_DESCRIPTOR = descriptorFor('MEM')
 
-// 2026-10-02 (432-36, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20), so every caller lists the whole default registry.
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither, so every caller lists the whole default registry.
 const FULL_CALLER: FunctionCaller = {
   surface: 'cli',
   origin: 'agent',
 }
 
-// 2026-10-02 (432-36, D-12): a deliberate smuggle. The retired `safeMode: true` rides past the type
+// a deliberate smuggle. The retired `safeMode: true` rides past the type
 // so the safe-mode cell below keeps proving the listing does not read it; the cast keeps this
-// witness compiling once the field is deleted (432-39).
+// witness compiling once the field is deleted.
 const SAFE_CALLER = { ...FULL_CALLER, safeMode: true } as FunctionCaller
 
 function deps(): FunctionDeps {
@@ -108,13 +108,13 @@ function deps(): FunctionDeps {
 function defaultRegistryIds(caller: FunctionCaller = FULL_CALLER): Set<string> {
   const registry = createFunctionRegistry({
     deps: deps(),
-    // 2026-10-02 (432-36, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
   return new Set(registry.list(caller).map((declaration) => declaration.id))
 }
 
-// ---- Test 1: every advertised action resolves in the default registry (D-11) --------------
+// ---- Test 1: every advertised action resolves in the default registry --------------
 
 describe('cards advertise only what the registry contains', () => {
   it('resolves every id every kind can advertise, against the DEFAULT spec list', () => {
@@ -169,7 +169,7 @@ describe('cards advertise only what the registry contains', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-20, D-12): the registry's safe-mode filter is deleted, so the listing
+  // RE-SPELLED 2026-10-01: the registry's safe-mode filter is deleted, so the listing
   // no longer hides `runs.start` from anyone. The claim that survives: the card decides nothing
   // about callers, and the listing it is checked against is the same for every caller.
   it('leaves the safe-mode decision to the LISTING, not to the card', () => {
@@ -182,7 +182,7 @@ describe('cards advertise only what the registry contains', () => {
   })
 })
 
-// ---- Test 3: the two ops are projections of ONE value (ENTY-02) ---------------------------
+// ---- Test 3: the two ops are projections of ONE value ---------------------------
 
 describe('entities.resolve and entities.get render through the ONE producer', () => {
   it('answers the same entity with deeply equal cards', async () => {

@@ -1,4 +1,4 @@
-// `knowledge.bundles.list` — the committed-bundle catalogue (Phase 384, D-06).
+// `knowledge.bundles.list` — the committed-bundle catalogue.
 //
 // The seed of the knowledge review surface: 387's five review verbs extend this listing
 // rather than replacing it. Every trust-shaped field on a row is DERIVED by the v51 trust
@@ -26,7 +26,7 @@ export const knowledgeBundlesListSpec: FunctionSpec<
   output: KnowledgeBundlesListOutputSchema,
   risk: { name: `fn:${KNOWLEDGE_BUNDLES_LIST_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * A listing that answered — the count, and nothing out of a bundle (399.1 D-01).
+   * A listing that answered — the count, and nothing out of a bundle.
    */
   classify(output): ClauseVerdict {
     return { status: 'executed', outcome: `${output.length} knowledge bundle(s)` }

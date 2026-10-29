@@ -1,4 +1,4 @@
-// The function registry (Phase 384, FUNC-01 / FUNC-03).
+// The function registry.
 //
 // The registry OWNS the specs and hands out declaration views only. Its internals —
 // the spec map and the injected deps — live in a module-private
@@ -66,7 +66,7 @@ export class DuplicateFunctionIdError extends Error {
 
 /**
  * Thrown at construction when a spec's output companion is tied to a schema other than the one
- * `invokeFunction` enforces with (431-03, D-03): the declaration would describe one contract while
+ * `invokeFunction` enforces with: the declaration would describe one contract while
  * the gate validated another.
  */
 export class OutputRepresentationMismatchError extends Error {
@@ -84,41 +84,41 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   runsListSpec as FunctionSpec,
   runsGetSpec as FunctionSpec,
   runsEventsSpec as FunctionSpec,
-  // 403 D-03: the ONE producer of live-view capability tokens. Bound through the OPTIONAL
+  // the ONE producer of live-view capability tokens. Bound through the OPTIONAL
   // `liveView` dep, so a host with no served origin lists it `unbound` BY NAME rather than
   // handing back a URL that resolves to nothing.
   runsLiveUrlSpec as FunctionSpec,
-  // 2026-09-25 (428 D-07): the editor subject's minter, through the same `liveView` dep; a host
+  // the editor subject's minter, through the same `liveView` dep; a host
   // that serves no live editor refuses it by name. Unprojected from MCP by ruling.
   editorLiveUrlSpec as FunctionSpec,
-  // Bound exactly in the compositions that supply a `runInvocation` port (D-16); listed
+  // Bound exactly in the compositions that supply a `runInvocation` port; listed
   // either way, so a host that cannot start a run reports a visible `unbound` rather than a
   // hole in the catalog, and `invokeFunction` refuses it by name. `composeLocalAgent()` in
   // `@vostride/agent-qa-agent-local` is the binding site.
   runsStartSpec as FunctionSpec,
-  // 388 D-14: THE chip-truth read. Registered here rather than beside a surface because it is
+  // THE chip-truth read. Registered here rather than beside a surface because it is
   // the single producer three surfaces share — the CLI's exit summary line, 392's chat and M5's
   // dashboard are all thin clients of this one op, and the 397 parity suite inherits it by
   // being in the catalogue. Bound through the OPTIONAL `postProcessing` dep, so a host with no
   // durable queue lists it `unbound` BY NAME instead of answering all-pending about a chain it
   // cannot see.
   runsPostProcessingSpec as FunctionSpec,
-  // 2026-08-27 (405 D-03): THE durable run-detail read — members, steps, sub-actions and the D-06
+  // THE durable run-detail read — members, steps, sub-actions and the D-06
   // token sum in ONE result. Registered here rather than beside the dashboard because it is the
   // fourth-door law applied to the page that used to read SQLite from inside a route handler: the
   // browser, the CLI, MCP and chat now ask one registry the same question. Bound through the
   // OPTIONAL `runDetail` dep, so a host that owns no dashboard projection database lists it
   // `unbound` BY NAME instead of answering an empty run about a projection it cannot see.
   runsDetailSpec as FunctionSpec,
-  // 423 D-04: parsed evidence uses the existing detail and blob readers together.
+  // parsed evidence uses the existing detail and blob readers together.
   runsEvidenceSpec as FunctionSpec,
-  // 419 GATE3-01: the sovereign mark write binds only where the host supplies feedback.
+  // the sovereign mark write binds only where the host supplies feedback.
   runsMarkSpec as FunctionSpec,
-  // 423 D-19: the mark history read binds through feedbackReads, never through the writer above.
+  // the mark history read binds through feedbackReads, never through the writer above.
   runsMarksHistorySpec as FunctionSpec,
-  // 423 D-16: the consequence preview reads runs.mark's shared plan through feedbackReads, never the writer.
+  // the consequence preview reads runs.mark's shared plan through feedbackReads, never the writer.
   runsMarkPreviewSpec as FunctionSpec,
-  // 2026-08-27 (405-05 D-12/D-13): THE ref-resolving read — one run's content-addressed evidence
+  // THE ref-resolving read — one run's content-addressed evidence
   // blob, by sha, with the content type sniffed from the bytes themselves. Registered beside
   // `runs.detail` because the two are the halves of one claim: the projection carries an
   // `artifactRef`, and this is how that ref becomes an image on a page. It is here rather than in
@@ -127,26 +127,26 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   // Bound through the OPTIONAL `evidenceBlobs` dep, so a host with no runtime root lists it
   // `unbound` BY NAME instead of reporting every artifact in the product as absent.
   runsArtifactSpec as FunctionSpec,
-  // 389 D-11: THE analysis read — resolved verdicts, rendered sentences, clusters, one
+  // THE analysis read — resolved verdicts, rendered sentences, clusters, one
   // producer for the CLI print, the run page and chat. Bound through the OPTIONAL `analysis`
   // dep (the artifact reader), so a host that cannot see run directories lists it `unbound`
   // BY NAME; the optional `recurrence` dep only enriches the sentence's recurrence clause
   // and never gates the binding.
   analysisGetSpec as FunctionSpec,
   knowledgeBundlesListSpec as FunctionSpec,
-  // 416 D-17: gate-and-promotion history, through the required knowledge port's
+  // gate-and-promotion history, through the required knowledge port's
   // optional member; missing bindings answer with a named refusal.
   knowledgeGatesListSpec as FunctionSpec,
-  // 387 KREV-01: the read half of the review-verb family. All three bind through the REQUIRED
+  // the read half of the review-verb family. All three bind through the REQUIRED
   // `knowledge` port, so — unlike the mutating half 387-08 registers through the optional
   // `knowledgeReview` dep — there is no composition that lists these and cannot run them.
   knowledgeRecordsInspectSpec as FunctionSpec,
   knowledgeRecordsDiffSpec as FunctionSpec,
   knowledgeRecordShowSpec as FunctionSpec,
-  // KREV-02: the honest verb. Read-tier like its four siblings, and bound everywhere for the
+  // the honest verb. Read-tier like its four siblings, and bound everywhere for the
   // same reason — its substrate is the RUNS port, which is required.
   knowledgeBriefWhySpec as FunctionSpec,
-  // 2026-08-29 (407 D-05/D-06): the Knowledge panel's ONE read — what a run USED (served brief
+  // the Knowledge panel's ONE read — what a run USED (served brief
   // channels, serve-time trace arms, procedure replay/hint, the recorded retrieval rung) and what
   // it LEARNED (curation counts, the record changes attributable to it, canary outcomes). Placed
   // directly after `knowledge.brief.why` because it is that verb widened from one step to a whole
@@ -154,36 +154,36 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   // required. The three optional deps it consults only enrich the Learned half, so binding
   // through any of them would leave a host with no queue database unable to see what its own runs
   // used. A pruned handoff answers `evidence-incomplete` — a result the page renders, never a
-  // refusal it has to catch (D-06).
+  // refusal it has to catch.
   runsKnowledgeSpec as FunctionSpec,
-  // 431 D-06: one completed run's address map, composed from the handoff, the run-detail rows and
+  // one completed run's address map, composed from the handoff, the run-detail rows and
   // the runs.knowledge projection. Bound through `runDetail`, so a host with no projection lists
   // it `unbound` BY NAME instead of mapping a run it cannot see.
   runsOverviewSpec as FunctionSpec,
-  // 387 KREV-01 D-17: the MUTATING half. Registered here and bound only where a composition
+  // the MUTATING half. Registered here and bound only where a composition
   // supplies `knowledgeReview`, so a read-only host lists all three as `unbound` BY NAME rather
   // than omitting them: a capability that is absent from a catalogue is indistinguishable from one
   // that never existed, and D-09 requires the two to look different.
-  // 2026-09-30, 432-12 (D-05): the three changes apply in the call; the `.propose` ids are gone
-  // with no alias. 2026-10-01, 432-17 (D-05/D-22): `knowledge.proposal.apply` is deleted with the
+  // the three changes apply in the call; the `.propose` ids are gone
+  // with no alias. 2026-10-01, 432-17: `knowledge.proposal.apply` is deleted with the
   // inbox; old proposal files are never read again.
   knowledgeAcceptSpec as FunctionSpec,
   knowledgeRejectSpec as FunctionSpec,
   knowledgeForgetSpec as FunctionSpec,
   configGetSpec as FunctionSpec,
-  // 395 D-01/D-03 · CFGM-01: the config editor's first action. Registered as a SIBLING of
+  // the config editor's first action. Registered as a SIBLING of
   // `config.get` rather than in a family of its own, because it is the write half of a story whose
-  // read half already ships here — and registering it is what makes it chat-reachable (392 D-07),
+  // read half already ships here — and registering it is what makes it chat-reachable,
   // projectable over MCP (396) and walkable by the parity suite (397) with no harness change.
   //
-  // 2026-09-30, 432-11 (D-05/D-07): the config ops write in the call through the direct writer.
-  // 2026-10-01, 432-17 (D-05/D-09): `config.proposal.apply` and `config.undo.propose` are deleted
+  // the config ops write in the call through the direct writer.
+  // `config.proposal.apply` and `config.undo.propose` are deleted
   // with the inbox; a written change is reverted with git.
   //
   // They bind through OPTIONAL deps, so a host with no config files lists them `unbound` BY NAME
   // rather than answering about a project it cannot read.
   configFieldSetSpec as FunctionSpec,
-  // 395-05 D-01: the rest of the closed action class, registered as SIBLINGS on exactly the footing
+  // the rest of the closed action class, registered as SIBLINGS on exactly the footing
   // above. One op per action is what makes the class legible in the registry itself — the planner
   // picks an action by tool name, 396 projects each one as its own MCP tool, and 397's parity walk
   // enumerates them — where a single union op carrying a mode string would have projected as one
@@ -192,12 +192,12 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   configHookAddSpec as FunctionSpec,
   configTargetCreateSpec as FunctionSpec,
   configTargetEditSpec as FunctionSpec,
-  // 395-08 D-13/D-15 · CFGM-05: the sixth config op, and the only one that configures a project
+  // the sixth config op, and the only one that configures a project
   // that has no configuration. Registered rather than folded into `config.target.create` because
   // the two refuse each other's case by name — a create is never an upsert, and a scaffold is
   // never an overwrite — and because the planner picks actions by tool name.
   configProjectScaffoldSpec as FunctionSpec,
-  // 390 D-12/D-13: a new `quarantine.` domain — a taxonomy extension exactly as `entities.`
+  // a new `quarantine.` domain — a taxonomy extension exactly as `entities.`
   // was, because quarantine state is neither a run, a memory nor an analysis. All three bind
   // through the OPTIONAL `quarantine` dep, so a host with no knowledge root lists them
   // `unbound` BY NAME rather than answering an empty list about a ledger it cannot read.
@@ -207,22 +207,22 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   quarantineReleaseSpec as FunctionSpec,
   quarantineAddSpec as FunctionSpec,
   // 391 PROP-03 / D-15 added a `proposals.` domain (list, show, reject, accept). 2026-10-01, 432-17
-  // (D-05/D-22): the domain is deleted with the inbox, with no alias and no hidden follow-up; old
+  // the domain is deleted with the inbox, with no alias and no hidden follow-up; old
   // proposal files are never read again.
   // 391 PROP-01 / D-03 added a `grants.` domain (list, revoke) over the committed standing-grant
-  // ledger. 2026-10-01, 432-18 (D-14/D-15/D-22): the domain is deleted with the ledger; an old
+  // ledger. 2026-10-01, 432-18: the domain is deleted with the ledger; an old
   // `grants.jsonl` is never read again.
-  // 391 PROP-04 / D-16: the per-run digest. Filed under `runs.` beside `runs.postprocessing`
+  // the per-run digest. Filed under `runs.` beside `runs.postprocessing`
   // because what it answers is a fact about a RUN. Read-tier, and it registers NO new dep: the
   // projection composes from capabilities this catalogue already had (since 432-09 its substrate
   // is the required runs port, and since 432-17 there is no proposals inbox to read).
   runsDigestSpec as FunctionSpec,
-  // 387 D-09: a new `entities.` domain, a taxonomy extension exactly as `knowledge.` was.
+  // a new `entities.` domain, a taxonomy extension exactly as `knowledge.` was.
   // Both read-tier, both bound in every composition — the directory is a REQUIRED dep, so
   // there is no host that lists these and cannot run them.
   entitiesResolveSpec as FunctionSpec,
   entitiesGetSpec as FunctionSpec,
-  // 392 D-24: a new `agent.` domain, and the taxonomy extension that matters most — the chat turn
+  // a new `agent.` domain, and the taxonomy extension that matters most — the chat turn
   // entry is itself a catalogued, gated capability rather than a power the REPL holds privately
   // (§3's L10 law). It binds through the OPTIONAL `chatTurn` dep, so a host with no engine lists
   // it `unbound` BY NAME rather than answering an empty turn about a request it understood.
@@ -231,7 +231,7 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   // until a consumer exists: a registered entry nothing drives would still oblige 397's parity
   // suite to stub it on every surface.
   agentAskSpec as FunctionSpec,
-  // 2026-08-17 (398 D-09 · XPLN-02): the SECOND member of the `agent.` domain, and the first op
+  // the SECOND member of the `agent.` domain, and the first op
   // this project has added since the 397 conformance suite closed. Registering it is the decision
   // rather than a filing choice: "what can you do" is a question every surface wants to answer, and
   // a surface that answered it privately would be a capability the catalogue does not list — the
@@ -244,7 +244,7 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   // NAME rather than answering from model memory, which is the exact failure XPLN-02 exists to
   // forbid: an explain that quietly lost its grounding data still SOUNDS like an explain.
   explainSpec as FunctionSpec,
-  // 2026-08-10 (393 D-01): a new `authoring.` domain, and the keep-filter's entry point. The four
+  // a new `authoring.` domain, and the keep-filter's entry point. The four
   // gates that decide whether a generated test is worth keeping are a CATALOGUED capability rather
   // than a private power of whatever writes tests — so 393's corpus proof drives the real gated
   // entry point (the produced-not-literal law), 396's MCP projection and 397's parity suite inherit
@@ -260,9 +260,9 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   // nothing.
   //
   // Registering it does NOT flip 392's `write_test` fail-closed scenario: that tool name stays
-  // absent from the catalogue until 394 (D-01), and nothing here mints it.
+  // absent from the catalogue until 394, and nothing here mints it.
   authoringVerifyDraftSpec as FunctionSpec,
-  // 2026-08-11 (394 D-01 · WTST-01): the authoring LOOP's one public entry, beside the evaluator
+  // the authoring LOOP's one public entry, beside the evaluator
   // it composes. All six stages — brief, dedup, compile, verify, route, compound — run INSIDE this
   // op, because the stage order is an invariant and registering a stage each would make it a hope
   // about the plan the chat planner happened to make rather than a property of the code. Everything
@@ -280,7 +280,7 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   // scenarios, because the tool name they were waiting on now exists in the catalogue the planner
   // binds 1:1. Plan 11 performs the flip and pins planned == executed.
   authoringDraftWriteSpec as FunctionSpec,
-  // 2026-08-11 (394-07 D-12/D-13 · WTST-05): the honesty funnel's ONE read, beside the loop it
+  // the honesty funnel's ONE read, beside the loop it
   // measures. It is registered rather than left a private computation for the same reason the two
   // entries above it are: the number that says whether the keep-filter is filtering must be the
   // SAME number in chat, in the CLI and in the per-run digest, and a projection reachable only
@@ -295,7 +295,7 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
   // reads as a loop that filtered everything, which is the one wrong answer that would make the
   // acceptance-failure flag unable to fire on the very hosts that most need it.
   authoringFunnelGetSpec as FunctionSpec,
-  // 2026-08-11 (394-09 D-21 · WTST-07): the user-facing edit, and the patch contract's SECOND real
+  // the user-facing edit, and the patch contract's SECOND real
   // consumer. Until this op existed, `applyPatchSetToTestDoc` and the RFC-6902 vocabulary had one
   // caller — the repair loop — and a contract with one consumer is a contract shaped like its one
   // caller. That is not a style objection: this project has twice paid for a one-sided contract
@@ -321,7 +321,7 @@ const BUILT_IN_FUNCTION_SPECS: readonly FunctionSpec[] = [
 export interface CreateFunctionRegistryOptions {
   /** Host-backed implementations the ops read through; built at the composition root. */
   deps: FunctionDeps
-  // 2026-10-02 (432-39, D-12): no `resolveExecutionContext` member. No op gate has decided in an
+  // no `resolveExecutionContext` member. No op gate has decided in an
   // execution context since 432-13, nothing here read the option, and the fixtures that passed it
   // stopped by 432-39. A host's live context still reaches a run's record and the knowledge review
   // through their own inputs, never through the registry.
@@ -331,9 +331,9 @@ export interface FunctionRegistry {
   /**
    * Declaration views of every registered op, sorted lexicographically by id.
    *
-   * 2026-10-01 (432-20, D-12): the same list for every caller. The safe-mode filter that hid ops
+   * the same list for every caller. The safe-mode filter that hid ops
    * whose scopes exceeded `read` is deleted with the scopes themselves, so the caller argument is
-   * not read. 2026-10-02 (432-39): the caller contract is narrowed to `surface`/`origin`.
+   * not read. 2026-10-02: the caller contract is narrowed to `surface`/`origin`.
    *
    * KEPT, DATED 2026-10-02 (432-42 census decision): the argument stays and stays unread. Removing
    * it changes no behaviour and touches every listing call site in the workspace (well over a
@@ -361,7 +361,7 @@ export function registryInternals(registry: FunctionRegistry): RegistryInternals
 }
 
 /**
- * Freeze the parts of a spec enforcement reads (CR-04).
+ * Freeze the parts of a spec enforcement reads.
  *
  * The specs are module-level singletons, so a write reached through ONE listing used to
  * change what every registry in the process enforced. Freezing is idempotent and happens
@@ -370,11 +370,11 @@ export function registryInternals(registry: FunctionRegistry): RegistryInternals
  * The live `input`/`output` zod objects are deliberately NOT frozen: freezing a schema's
  * internals would break zod's own lazy caching. That is safe now for a structural reason
  * rather than a hopeful one — a declaration carries an inert projection, so no surface is
- * ever handed the schema object in the first place (BL-01). The earlier rationale here,
+ * ever handed the schema object in the first place. The earlier rationale here,
  * that freezing the spec made those properties unwritable, was a category error: it sealed
  * the property SLOT while the object it pointed at stayed wide open.
  *
- * WR-03: registration FREEZES the spec objects it is given, permanently and in place. Pass
+ * registration FREEZES the spec objects it is given, permanently and in place. Pass
  * a fresh object if the caller needs a mutable one afterwards.
  */
 function freezeSpec(spec: FunctionSpec): FunctionSpec {
@@ -383,7 +383,7 @@ function freezeSpec(spec: FunctionSpec): FunctionSpec {
 }
 
 /**
- * Whether THIS composition can run the op (D-09/D-16) — the one place the answer is decided.
+ * Whether THIS composition can run the op — the one place the answer is decided.
  *
  * A spec with no `boundThrough` needs only the required deps, which the type system already
  * guarantees, so it is bound wherever it is registered. A spec that names an optional dep is
@@ -419,18 +419,18 @@ export function resolveBindingStatus(
  * copied, the two contracts become inert JSON-Schema projections, and the whole graph is
  * frozen. What a caller holds after this is data: there is no live validator on it to
  * replace, so a permitted listing is no longer a write handle onto the contract vocabulary
- * every firewalled surface shares (T-384-14).
+ * every firewalled surface shares.
  */
 function declarationView(spec: FunctionSpec, deps: FunctionDeps): FunctionDeclaration {
   return Object.freeze({
     id: spec.id,
     summary: spec.summary,
-    // 2026-10-01 (432-20, D-10/D-12): no `requiredScopes` and no `requiresHumanOrigin`. Both were
+    // no `requiredScopes` and no `requiresHumanOrigin`. Both were
     // projected here so a listing and the dispatch checks read one field; the checks are deleted,
     // and 432-39 deleted both members from the metadata type. The view is built field by field, so
     // an old key smuggled onto a spec object still cannot ride through by accident.
-    // 2026-10-02 (432-42, D-14): no `discloses` column; the per-op disclosure is deleted.
-    // 399.1 D-01/D-04: the two 399.1 folds, projected as conditional spreads so absent stays
+    // no `discloses` column; the per-op disclosure is deleted.
+    // the two 399.1 folds, projected as conditional spreads so absent stays
     // absent — the callables stay on the spec, and what crosses to a listing is the
     // boolean fact that this op folds its own result. The golden ledger reads both columns off
     // here, so "which ops classify their own refusals" is a census over produced facts rather than
@@ -451,7 +451,7 @@ function declarationView(spec: FunctionSpec, deps: FunctionDeps): FunctionDeclar
  * surface that could supply its own specs could mint capabilities the catalog never
  * declared.
  *
- * WR-03: every spec handed here is FROZEN in place, permanently. Pass a fresh object if
+ * every spec handed here is FROZEN in place, permanently. Pass a fresh object if
  * the caller needs a mutable one afterwards.
  */
 export function createRegistryFromSpecs(

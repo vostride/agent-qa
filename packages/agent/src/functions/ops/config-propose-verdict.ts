@@ -1,6 +1,6 @@
-// The clause verdicts for the config answers — one union, one fold each (399.1-03 · D-01/D-02).
+// The clause verdicts for the config answers — one union, one fold each.
 //
-// 2026-09-30, 432-11 D-05: the config ops answer `ConfigChangeOutput`, what they wrote in the call,
+// the config ops answer `ConfigChangeOutput`, what they wrote in the call,
 // and fold through `classifyConfigChangeOutput`. 2026-10-01, 432-17 D-05/D-09: `config.undo.propose`
 // and the `ConfigProposeOutput` union it alone still answered are deleted, and its fold with them.
 //
@@ -24,7 +24,7 @@ import type { ConfigChangeOutput } from '@vostride/agent-qa-schema'
 import type { ClauseVerdict } from '../spec.js'
 
 /**
- * Fold one `ConfigChangeOutput` into the verdict its own arm states (432-11 D-05/D-07).
+ * Fold one `ConfigChangeOutput` into the verdict its own arm states.
  *
  * `applied` and `no-change` are `executed`: the file holds the change. `blocked` and `refused` are
  * `refused`, with their own reason, and nothing was written. `interrupted` is `failed`: some files

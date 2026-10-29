@@ -34,7 +34,7 @@ export const knowledgeRecordShowSpec: FunctionSpec<
   output: KnowledgeRecordShowResultSchema,
   risk: { name: `fn:${KNOWLEDGE_RECORD_SHOW_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * "Absence is a RESULT rather than a refusal" — the contract's own words (399.1 D-01).
+   * "Absence is a RESULT rather than a refusal" — the contract's own words.
    */
   classify(output): ClauseVerdict {
     switch (output.kind) {

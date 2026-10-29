@@ -1,4 +1,4 @@
-// `authoring.funnel.get` — the honesty funnel as a catalogued capability (394-07, D-12 · WTST-05).
+// `authoring.funnel.get` — the honesty funnel as a catalogued capability.
 //
 // ONE READ OP, AND ITS CALLERS RENDER ITS ANSWER (388 D-14's one-read-op law). What consumes it
 // TODAY is a function caller — the chat/MCP tool surface, and the CLI's generic `fn` dispatch,
@@ -24,7 +24,7 @@
 // question WTST-05 asks. The divergence is recorded here and in the input schema's own doc block
 // so it reads as a decision on the record rather than as an erosion of the rule.
 //
-// IT EXPOSES PER-SESSION AUTHORING HISTORY TO ANY CALLER (T-394-26). How many drafts a user
+// IT EXPOSES PER-SESSION AUTHORING HISTORY TO ANY CALLER. How many drafts a user
 // produced and how many were kept is a fact about that person's work, and any caller can ask for
 // it. That is stated HERE, in the header, so a reviewer can object now rather than discover the
 // exposure later. The disposition is ACCEPT, and the argument is: the funnel reads a gitignored
@@ -45,7 +45,7 @@ import { FunctionNotBoundError } from '../spec.js'
 import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 
 /**
- * Lowercase dot taxonomy (384 D-15), three segments: the shipped `authoring` domain, `funnel` as
+ * Lowercase dot taxonomy, three segments: the shipped `authoring` domain, `funnel` as
  * the subject and `get` as the verb — the `authoring.draft.verify` / `authoring.draft.write`
  * precedent, which is itself the `knowledge.records.inspect` one.
  *
@@ -77,13 +77,13 @@ export const authoringFunnelGetSpec: FunctionSpec<
   // An unbound host answering an all-zero funnel would say "this session authored nothing" about
   // a store it has never been able to read — and worse, it would say the loop filtered
   // everything, which is the one reading of a zero funnel that flatters the loop. So it refuses
-  // by name instead (D-09).
+  // by name instead.
   boundThrough: 'authoringFunnel',
   input: AuthoringFunnelGetInputSchema,
   output: AuthoringFunnelGetOutputSchema,
   risk: { name: `fn:${AUTHORING_FUNNEL_GET_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * The funnel's OWN one line, not a second one composed here (399.1 D-01 · WTST-05).
+   * The funnel's OWN one line, not a second one composed here.
    *
    * `line` is the single rendered sentence every surface prints, and it is screened against the
    * forbidden phrasings before the contract will carry it. Composing a receipt line out of the

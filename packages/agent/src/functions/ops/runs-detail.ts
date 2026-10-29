@@ -1,6 +1,6 @@
-// `runs.detail` — one run's durable members, steps and sub-actions (Phase 405 plan 01, D-03).
+// `runs.detail` — one run's durable members, steps and sub-actions.
 //
-// THE FOURTH-DOOR LAW APPLIED TO RUN DETAIL (404 D-16). The dashboard's run-detail page used to
+// THE FOURTH-DOOR LAW APPLIED TO RUN DETAIL. The dashboard's run-detail page used to
 // read SQLite from inside `routes.ts`; a private store read is a capability the function layer
 // cannot see, cannot audit and cannot offer to the CLI, MCP or chat. So the page reads through
 // this op, the HTTP arm formats nothing, and every surface that wants "what did that run do"
@@ -11,7 +11,7 @@
 // buy a page that renders a whole run all at once nothing except a second way to be wrong about
 // where a step belongs. RESEARCH's alternatives table records the measurement.
 //
-// THE TOKEN SUM IS COMPUTED HERE (D-06) and is exported beside the spec as a pure function, in
+// THE TOKEN SUM IS COMPUTED HERE and is exported beside the spec as a pure function, in
 // the `runs-post-processing.ts` idiom: a total mapping with no capability, no port and nothing to
 // await, so the exhaustive table that pins it costs a test file and not a store. Computing it in
 // the port would put the sum in whichever composition happens to hold a database — which is one
@@ -47,7 +47,7 @@ import { IN_RUNS_DATABASE, RunNotFoundError } from './runs-get.js'
 export const RUNS_DETAIL_FUNCTION_ID = 'runs.detail'
 
 /**
- * THE run-level token sum (D-06). Pure, total, and the ONE producer of "M of K steps unmeasured".
+ * THE run-level token sum. Pure, total, and the ONE producer of "M of K steps unmeasured".
  *
  * A step counts as MEASURED exactly when it carries a `tokenUsage` — the additive-optional field
  * the runner appends only for a step whose model calls reported usage. A cache hit, a bypass or a
@@ -180,7 +180,7 @@ export const runsDetailSpec: FunctionSpec<RunsDetailInput, RunDetailProjection> 
       throw new RunNotFoundError(String(input.runId), IN_RUNS_DATABASE)
     }
 
-    // 419 D-11/D-15: the ledger is append-only; only its latest ordinal per member/step
+    // the ledger is append-only; only its latest ordinal per member/step
     // governs. No catch: a bound reader that throws is a broken host, not an absent ledger.
     let members = [...rows.members]
     if (deps.feedback !== undefined) {
@@ -215,7 +215,7 @@ export const runsDetailSpec: FunctionSpec<RunsDetailInput, RunDetailProjection> 
       recording: await projectMemberRecording(member.recording, deps.evidenceBlobs, input.runId),
     })))
 
-    // READ-TIME PRESENCE, OPPORTUNISTICALLY (406 D-17). The projection recorded which blobs a
+    // READ-TIME PRESENCE, OPPORTUNISTICALLY. The projection recorded which blobs a
     // sub-action produced; only a stat taken now can say whether they survived. `boundThrough`
     // stays `runDetail` because this is not a binding condition: a host with no runtime root
     // serves the whole projection and simply omits the key, which is presence UNKNOWN rather than

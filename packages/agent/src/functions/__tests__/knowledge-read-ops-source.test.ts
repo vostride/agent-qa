@@ -1,4 +1,4 @@
-// KREV-01's "no new memidex code" claim, as a check rather than as a sentence (Phase 387-06).
+// KREV-01's "no new memidex code" claim, as a check rather than as a sentence.
 //
 // The four read verbs are supposed to be WIRING over functions the read-only reader entry
 // already exports. That is a claim about what the op files DO, and nothing about a green

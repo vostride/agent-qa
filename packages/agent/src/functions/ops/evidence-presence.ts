@@ -1,4 +1,4 @@
-// Read-time presence for artifact refs — the ONE rule both durable reads call (Phase 406, D-17).
+// Read-time presence for artifact refs — the ONE rule both durable reads call.
 //
 // `runs.detail` and `analysis.get` each hand a page a list of artifact refs, and neither could say
 // whether the bytes behind them still exist. A ref recorded at write time survives a GC, a pruned
@@ -11,7 +11,7 @@
 // Here the question is narrower — are the bytes there — and the answer is no either way. A page
 // rendering "evidence incomplete" has the same thing to say about a pruned run and a pruned blob.
 //
-// UNKNOWN LEAVES THE KEY ABSENT, WHICH IS THE WHOLE POINT (D-17). Presence unknown is not an
+// UNKNOWN LEAVES THE KEY ABSENT, WHICH IS THE WHOLE POINT. Presence unknown is not an
 // absence, and reporting `present: false` for refs this host never looked at would render honest,
 // intact evidence as incomplete. The refs come back untouched — copies, so a caller cannot mutate
 // the port's rows — and the page's `present === false` predicate stays false.
@@ -29,7 +29,7 @@
 // failure view. The bundled local `existsSync` cannot throw, but the port is shaped for hosts that
 // do not hold blobs locally, i.e. hosts whose `has` is a network call.
 //
-// STATS ARE DEDUPED BY SHA WITHIN ONE CALL, AND ONE CALL IS ONE REF LIST — NOT ONE RUN (T-406-12).
+// STATS ARE DEDUPED BY SHA WITHIN ONE CALL, AND ONE CALL IS ONE REF LIST — NOT ONE RUN.
 // `new Set(refs.map(...))` collapses the duplicates in the list it was handed, which is the refs
 // ONE verdict cites or the refs ONE sub-action produced. Both callers invoke this inside a
 // `Promise.all` — `analysis-get` per verdict, `runs-detail` per sub-action — so a 40-failure run

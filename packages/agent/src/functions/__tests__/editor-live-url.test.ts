@@ -1,4 +1,4 @@
-// `editor.liveurl` (428 D-07), driven through its own registry exactly as live-url.test.ts drives
+// `editor.liveurl`, driven through its own registry exactly as live-url.test.ts drives
 // `runs.liveurl`. Every refusal is asserted by `error.name`, because that is what the doors map.
 
 import { EditorLiveUrlResultSchema } from '@vostride/agent-qa-schema'
@@ -20,8 +20,8 @@ const NOW = 1_700_000_000_000
 const ORIGIN = 'http://127.0.0.1:3470'
 const DECLARATION: LiveStreamDeclaration = { kind: 'cdp-screencast' }
 
-// 2026-10-02 (432-36, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20). The signed token's own scope claim is a live-link control and stays.
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither. The signed token's own scope claim is a live-link control and stays.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -67,8 +67,8 @@ function depsWith(liveView: LiveViewPort | undefined): FunctionDeps {
 function registryWith(liveView: LiveViewPort | undefined): ReturnType<typeof createRegistryFromSpecs> {
   return createRegistryFromSpecs([editorLiveUrlSpec as FunctionSpec], {
     deps: depsWith(liveView),
-    // 2026-10-02 (432-36, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
 }
 

@@ -1,4 +1,4 @@
-// The result folds, run at the ONE seam that can reach a spec (Phase 399.1, D-01 / D-03 / D-04).
+// The result folds, run at the ONE seam that can reach a spec.
 //
 // WHY THIS FILE IS HERE AND NOT IN `chat/`. The knowledge of which arm of an op's output union is a
 // refusal lives on that op's {@link FunctionSpec}, and a spec never leaves this directory (BL-01 /
@@ -7,7 +7,7 @@
 // is the composition root, which holds the registry and mints that closure; this module is what it
 // calls on the return path, so the fold runs in one place instead of once per composition.
 //
-// FAIL-CLOSED, AND ONLY FOR THE VERDICT (D-03). A classifier that throws, or answers something that
+// FAIL-CLOSED, AND ONLY FOR THE VERDICT. A classifier that throws, or answers something that
 // is not a verdict, yields `failed` with a named outcome and NEVER `executed`. The asymmetry is the
 // whole decision: an unreadable result might be a refusal, so success is the one claim a receipt
 // must not default to — which is exactly what RC-1b's throw-versus-return derivation got backwards.
@@ -16,7 +16,7 @@
 //
 // THE RENDER FOLD FAILS OPEN, AND THAT IS NOT AN INCONSISTENCY. A fold that throws costs the person
 // a sentence of extra legibility; the complete payload is rendered from `results[]` either way
-// (D-04), so nothing is withheld and there is nothing to fail closed ABOUT. Failing the turn over a
+// so nothing is withheld and there is nothing to fail closed ABOUT. Failing the turn over a
 // decorative line would be the disclosure destroying the record, which is the trade 392's receipt
 // charter already refused.
 
@@ -99,7 +99,7 @@ function verdictOf(
   // while `FunctionSpec.classify` was optional and an op with no fold was an ordinary, expected,
   // COUNTABLE thing. The member is required now, so an absent one no longer means "this op has not
   // got round to it" — it means a cast got past `tsc` AND past the conformance census, and the one
-  // claim a receipt must never default to is success (D-03).
+  // claim a receipt must never default to is success.
   //
   // THE PARAMETER STAYS OPTIONAL ON PURPOSE. Narrowing it to a required member would delete this
   // branch and make the guard unwritable, which is the type system certifying its own coverage:

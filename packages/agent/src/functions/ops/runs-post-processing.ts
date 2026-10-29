@@ -1,7 +1,7 @@
-// `runs.postprocessing` — one run's chip truth, read from durable job state (Phase 388, D-14).
+// `runs.postprocessing` — one run's chip truth, read from durable job state.
 //
-// 2026-08-26 (Phase 404, D-01): the chip set is exactly two — `{analysis, curation}`.
-// 2026-09-02 (Phase 412): the chain now derives exactly the two ids the chips read; the third
+// the chip set is exactly two — `{analysis, curation}`.
+// the chain now derives exactly the two ids the chips read; the third
 // derived id left with the Issue-slot cleanup.
 //
 // THE single producer of a post-processing chip status. The CLI's exit summary line (plan 04),
@@ -11,7 +11,7 @@
 // spellings of four words is not a duplication a reviewer catches, it is the state in which the
 // dashboard says one thing and the CLI another about the same row, with nothing wrong in either.
 //
-// Chip truth is DURABLE truth on purpose (ANLZ-05). The bus chips a drain emits are a push
+// Chip truth is DURABLE truth on purpose. The bus chips a drain emits are a push
 // convenience for a socket that happens to be open; this is the answer a user who closed their
 // laptop and came back gets, and it has to be the same answer.
 //
@@ -108,7 +108,7 @@ export function projectPostProcessingChips(
 }
 
 /**
- * THE skipped fold: the run's durable record → why its chain was never enqueued (425 D-08, 444 D-39).
+ * THE skipped fold: the run's durable record → why its chain was never enqueued.
  *
  * Read from the SAME two markers the post-verdict enqueue skip reads, in the same
  * short-circuit order, so the reason a surface renders is the reason the chain was actually
@@ -127,7 +127,7 @@ export function projectPostProcessingSkipped(
 const IN_FLIGHT_ROW_STATUSES: ReadonlySet<string> = new Set(['running', 'pending'])
 
 /**
- * 2026-10-18 (444-12, D-14): a run with no handoff reads `no-verdict` only when its own row is
+ * a run with no handoff reads `no-verdict` only when its own row is
  * finished and its log holds no `verdict` envelope. The bus logs before it delivers, so a row the
  * ingest finished from a verdict always has that verdict logged. A host without `readRecord`, an
  * absent row, an unreadable log or a failed read derives nothing: absence is not a status.

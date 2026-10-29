@@ -1,4 +1,4 @@
-// `runs.overview` — one completed run's compact address map (Phase 431, D-06).
+// `runs.overview` — one completed run's compact address map.
 //
 // THE COMPLETED HANDOFF IS THE GATE. A run with no completed handoff is refused before any
 // projection row is read, so an in-progress run can never answer with a partial dashboard tree.
@@ -314,7 +314,7 @@ function projectLearned(knowledge: ReadyKnowledge, document: CompletedRunHandoff
     curation: {
       status: curation.status,
       ...(curation.counts === undefined ? {} : { counts: { ...curation.counts } }),
-      // 2026-10-18 (444-26, D-61): the run's own handoff says why its chain was never enqueued, by
+      // the run's own handoff says why its chain was never enqueued, by
       // the fold runs.postprocessing serves; an ordinary run carries no key.
       ...(skipped === undefined ? {} : { skipped: { reason: skipped.reason } }),
     },

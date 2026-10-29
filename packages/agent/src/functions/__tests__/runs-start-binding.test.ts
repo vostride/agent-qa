@@ -1,4 +1,4 @@
-// The unbound→bound transition, proven where it is decided (Phase 385 plan 10 — D-16).
+// The unbound→bound transition, proven where it is decided.
 //
 // Three claims, and they are not the same claim:
 //
@@ -36,7 +36,7 @@ import { RUNS_START_FUNCTION_ID, RunNotRecordedError, runsStartSpec } from '../o
 import { createFunctionRegistry, createRegistryFromSpecs, resolveBindingStatus } from '../registry.js'
 import type { FunctionDeps, FunctionSpec, RunInvocationPort } from '../spec.js'
 
-/** Every context a capability call can be made in; none refuses a call since 432-13/19 (D-15). */
+/** Every context a capability call can be made in; none refuses a call since 432-13/19. */
 const EVERY_CONTEXT: readonly ExecutionContext[] = [
   'local-interactive',
   'local-headless',
@@ -47,9 +47,9 @@ const EVERY_CONTEXT: readonly ExecutionContext[] = [
 /**
  * The caller every case here dispatches as.
  *
- * 2026-10-01 (432-29, D-12): it once held every scope in the union, because `invokeFunction`
+ * it once held every scope in the union, because `invokeFunction`
  * checked scopes and then human origin before binding, and a missing scope or an agent origin
- * would have turned an unbound refusal into a different one. Both checks are deleted (432-20), so
+ * would have turned an unbound refusal into a different one. Both checks are deleted, so
  * the retired `grantedScopes` and `safeMode` fields are dropped; nothing read them. `origin`
  * stays `human` as attribution only.
  */
@@ -64,32 +64,32 @@ const RUN_CALLER: FunctionCaller = {
  * binding refusal.
  */
 const BINDING_PARITY_INPUTS: Readonly<Record<string, unknown>> = {
-  // 392 D-24: a PARSING input for the same reason every row here carries one — the contract
+  // a PARSING input for the same reason every row here carries one — the contract
   // requires a non-empty message, so the `{}` default would fail validation and turn an unbound
   // refusal into an input error, which the parity case below reads as `dispatched`.
   'agent.ask': { message: 'proposals' },
-  // 398 D-09: a PARSING input, on its neighbour's reasoning exactly — `query` is required and
+  // a PARSING input, on its neighbour's reasoning exactly — `query` is required and
   // non-empty, so the `{}` default would fail validation and this case would read the input error
   // as `dispatched`, certifying nothing about the binding it exists to measure.
   'agent.explain': { query: 'what can you do' },
-  // 389 D-11: a PARSING input, because validation precedes the binding check — the empty
+  // a PARSING input, because validation precedes the binding check — the empty
   // default fails the contract and reports an input error, certifying nothing about binding.
   'analysis.get': { runId: 'run-alpha' },
-  // 393 D-01: a PARSING input, and its extension is load-bearing beyond the reason its neighbours
+  // a PARSING input, and its extension is load-bearing beyond the reason its neighbours
   // carry one. The contract requires a non-empty `draftPath`, so `{}` would report an input error;
   // but the op ALSO refuses a path with no test-file extension before it consults the binding, so a
   // path-shaped string with the wrong suffix would report `DraftNotAYamlFileError` and this case
   // would read that as `dispatched` too. A parsing input is not enough here — it has to be one the
   // op's own pure refusals let through.
   'authoring.draft.verify': { draftPath: 'tests/nothing-in-this-fixture.yaml' },
-  // 394 D-01: a PARSING input, on its sibling's reasoning — `{}` fails the contract's non-empty
+  // a PARSING input, on its sibling's reasoning — `{}` fails the contract's non-empty
   // intent and its required scope, so the empty default would report an input error and this case
   // would read that as `dispatched`, certifying nothing about binding.
   'authoring.draft.write': {
     intent: 'nothing in this fixture can author this',
     scope: { tier: 'product', key: 'nothing-in-this-fixture' },
   },
-  // 394-09 D-21: a PARSING input, on its sibling's reasoning — `{}` fails both non-empty fields,
+  // a PARSING input, on its sibling's reasoning — `{}` fails both non-empty fields,
   // so the empty default would report an input error and this case would read that as
   // `dispatched`. The exact-address ref keeps the leg aimed at the BINDING check: free text would
   // reach the entity resolver first and refuse there instead.
@@ -97,38 +97,38 @@ const BINDING_PARITY_INPUTS: Readonly<Record<string, unknown>> = {
     testRef: 'tests/nothing-in-this-fixture.yaml::Nothing In This Fixture',
     intent: 'nothing in this fixture can edit this',
   },
-  // 394-07 D-12: a PARSING input, on its siblings' reasoning. Unlike `quarantine.list`, whose
+  // a PARSING input, on its siblings' reasoning. Unlike `quarantine.list`, whose
   // input is genuinely the empty query and which therefore needs no row here, this op REQUIRES a
   // window — the projection's denominator, which nothing can guess — so the `{}` default would
   // report an input error and this case would read that as `dispatched`.
   'authoring.funnel.get': { window: { scope: 'all-time' } },
   'runs.get': { runId: 'run-alpha' },
   'runs.events': { runId: 'run-alpha' },
-  // 403 D-03: a PARSING input on its `runs.` siblings' reasoning — `runId` is required, so the
+  // a PARSING input on its `runs.` siblings' reasoning — `runId` is required, so the
   // `{}` default would report an input error and this case would read that as `dispatched`,
   // certifying nothing about the `liveView` binding it exists to measure.
   'runs.liveurl': { runId: 'run-alpha' },
-  // 428 D-07: on runs.liveurl's reasoning — `sessionId` is required, so the `{}` default would
+  // on runs.liveurl's reasoning — `sessionId` is required, so the `{}` default would
   // report an input error and certify nothing about the `liveView` binding.
   'editor.liveurl': { sessionId: 's1' },
-  // 419 GATE3-01: valid input lets this census reach the actual binding check.
+  // valid input lets this census reach the actual binding check.
   'runs.mark': { runId: 'run-alpha', kind: 'false-fail' },
   'runs.mark.preview': { runId: 'run-alpha', kind: 'false-fail' },
   'runs.marks.history': { runId: 'run-alpha' },
   'runs.postprocessing': { runId: 'run-alpha' },
-  // 405 D-03: a PARSING input on its `runs.` siblings' reasoning — `runId` is required, so the
+  // a PARSING input on its `runs.` siblings' reasoning — `runId` is required, so the
   // `{}` default would report an input error and this case would read that as `dispatched`,
   // certifying nothing about the `runDetail` binding it exists to measure.
   'runs.detail': { runId: 'run-alpha' },
-  // 431 D-06: bound through `runDetail` like its sibling above, and `runId` is required.
+  // bound through `runDetail` like its sibling above, and `runId` is required.
   'runs.overview': { runId: 'run-alpha' },
   'runs.evidence': { runId: 'run-alpha', testIndex: 0, stepIndex: 0, kind: 'console' },
-  // 405-05 D-12/D-13: a PARSING input on the same reasoning, and the sha carries a second reason
+  // a PARSING input on the same reasoning, and the sha carries a second reason
   // of its own — it is REGEX-constrained to 64 lowercase hex, so any placeholder shorter than
   // that would fail the contract and this case would read the resulting input error as
   // `dispatched`, certifying nothing about the `evidenceBlobs` binding it exists to measure.
   'runs.artifact': { runId: 'run-alpha', sha: 'a'.repeat(64) },
-  // 391 D-16: a PARSING input for the same reason its `runs.` siblings carry one — the digest
+  // a PARSING input for the same reason its `runs.` siblings carry one — the digest
   // names a run, so the `{}` default fails its contract and turns an unbound refusal into an
   // input error, which the parity case below would read as `dispatched`.
   'runs.digest': { runId: 'run-alpha' },
@@ -136,7 +136,7 @@ const BINDING_PARITY_INPUTS: Readonly<Record<string, unknown>> = {
   'knowledge.reject': { target: { grain: 'record', recordId: 'rec-x' }, reason: 'no' },
   'knowledge.forget': { target: { grain: 'record', recordId: 'rec-x' } },
   'knowledge.proposal.apply': { proposalId: 'prop_0123456789ab' },
-  // 390 D-13: the two quarantine WRITE verbs take the three legs of stable test identity, so
+  // the two quarantine WRITE verbs take the three legs of stable test identity, so
   // the `{}` default would fail their contract and turn an unbound refusal into an input
   // error — which the parity case below reads as `dispatched`. `quarantine.list` genuinely
   // takes the empty query and needs no row here.
@@ -150,21 +150,21 @@ const BINDING_PARITY_INPUTS: Readonly<Record<string, unknown>> = {
     filePath: 'tests/checkout.test.yaml',
     testName: 'checkout completes',
   },
-  // 391 PROP-03: `show` and `reject` take a refined proposal id, so the `{}` default fails their
+  // `show` and `reject` take a refined proposal id, so the `{}` default fails their
   // contract and turns an unbound refusal into an input error. `proposals.list` genuinely takes
   // the empty query (both filters optional) and needs no row here.
   'proposals.show': { proposalId: 'prop_0123456789ab' },
   'proposals.reject': { proposalId: 'prop_0123456789ab' },
   'proposals.accept': { proposalId: 'prop_0123456789ab' },
-  // 391 PROP-01 / D-03's `grants.revoke` row left with the op (432-18).
-  // 395 D-03: a PARSING input on its siblings' reasoning — the contract requires a non-empty path
+  // 391 PROP-01 / D-03's `grants.revoke` row left with the op.
+  // a PARSING input on its siblings' reasoning — the contract requires a non-empty path
   // and a scalar value, so the `{}` default would fail validation and turn an unbound refusal into
   // an input error, which the parity case below reads as `dispatched`. The path names a real
   // config key so the row stays aimed at the BINDING check and nothing else.
   'config.auth.set': { target: 'shop', pluginPackage: '@acme/auth' },
   'config.field.set': { path: 'use.timeout', value: '45s' },
   'config.hook.add': { name: 'seed', runtime: 'node', file: 'scripts/seed.mjs' },
-  // 395-05 D-01: PARSING inputs for the rest of the closed action class, on the row above reasoning.
+  // PARSING inputs for the rest of the closed action class, on the row above reasoning.
   'config.target.create': { name: 'shop', platform: 'web', url: 'https://shop.example.com' },
   'config.target.edit': { name: 'shop', changes: { url: 'https://shop.example.com/basket' } },
   'config.undo.propose': {},
@@ -281,12 +281,12 @@ function deps(overrides: Partial<FunctionDeps> = {}): FunctionDeps {
   }
 }
 
-// 2026-10-15 (441-28, D-15): the registry takes no audit sink, so no cell captures audit rows.
+// the registry takes no audit sink, so no cell captures audit rows.
 
-// 432-13: no standing-approval control is needed. The claims in this file are about BINDING, and
+// no standing-approval control is needed. The claims in this file are about BINDING, and
 // with no op gate an ask-tier capability reaches the binding check directly.
 
-// 2026-10-01 (432-29, D-12): the registries here no longer pass the retired
+// the registries here no longer pass the retired
 // `resolveExecutionContext` option. Nothing in the registry or `invokeFunction` read it, so no
 // dispatch below ever depended on the context it named.
 function registryWith(runInvocation: RunInvocationPort | undefined) {

@@ -1,4 +1,4 @@
-// `authoring.draft.edit` — the user-facing test edit as a catalogued capability (394-09, D-21).
+// `authoring.draft.edit` — the user-facing test edit as a catalogued capability.
 //
 // WHY IT REGISTERS, AND WHY NOW. "Edit that test to also verify the coupon banner" is a thing a
 // person asks, and 392 D-07 binds every registered op into the chat planner's toolset 1:1 — so
@@ -16,7 +16,7 @@
 //      the registry; `authoring.draft.edit` matches and `authoring.draft_edit` does not.
 //   2. `chat/tool-names.ts` maps ids onto provider-safe tool names by `.` ↔ `_` and REFUSES an id
 //      already carrying `_`, because such a name has two pre-images under the inverse — so an
-//      underscore id would raise `ChatToolNameError` for the WHOLE projection (T-394-07).
+//      underscore id would raise `ChatToolNameError` for the WHOLE projection.
 //
 // IT IS NOT A LOOP STAGE, which is the argument `loop-ordering.test.ts` requires beside the name.
 // That pin exists to forbid promoting a stage of `authoring.draft.write` to its own registered op,
@@ -25,9 +25,9 @@
 // has no place in the six-stage order, and invoking it before, during or after a loop invocation
 // answers the same question. It widens the domain without widening the loop's entry surface.
 //
-// NO SCOPES (2026-10-01, 432-24, D-12). This op once declared `test-write` and `read`, and left
+// NO SCOPES. This op once declared `test-write` and `read`, and left
 // `run` out on purpose so a grant issued for "let it edit my tests" could not also buy child runs
-// (T-394-37). Grants and scopes are gone; every door can call every operation. What survives of
+// Grants and scopes are gone; every door can call every operation. What survives of
 // T-394-37 is the behaviour itself: this op edits a committed test and starts no run at all.
 //
 // IT DOES NOT RE-RUN THE GATES, and CONTEXT leaves that call to this plan, so it is made here and
@@ -67,7 +67,7 @@ import type { ClauseVerdict, FunctionSpec } from '../spec.js'
 export const AUTHORING_DRAFT_EDIT_FUNCTION_ID = 'authoring.draft.edit'
 
 /**
- * The `agent_context` this op carries into the ONE tiered prompt builder (389 D-04).
+ * The `agent_context` this op carries into the ONE tiered prompt builder.
  *
  * Pinned, and distinct from the loop's two, for the reason those are pinned: it lands in the stable
  * tier, which is the byte prefix a provider's prompt cache keys on.
@@ -110,7 +110,7 @@ export class EditPatchSetUnparsableError extends Error {
 }
 
 /**
- * A patch addressed a document root outside the editable region (T-394-36).
+ * A patch addressed a document root outside the editable region.
  *
  * THE SAME PREDICATE THE APPLIER USES, ASKED ON THIS SIDE OF THE PORT. `isEditablePointer` is
  * exported from `schema` precisely so the fence is expressible where the applier is not, and the
@@ -147,7 +147,7 @@ export class EditResultUnparsableError extends Error {
 /**
  * The WHOLE set is refused on the first offending path, never partially applied.
  *
- * The applier's own posture (394-03) and the repair fence's (394-06), for the same reason: a
+ * The applier's own posture and the repair fence's, for the same reason: a
  * per-op check would already have rewritten the legitimate target before it refused the retarget,
  * which leaves a half-edited document behind on the one path where correctness matters most.
  */
@@ -186,7 +186,7 @@ export const authoringDraftEditSpec: FunctionSpec<
     recognized: true,
   },
   /**
-   * An edit that returned STAGED a draft — there is no arm where it did not (399.1 D-01).
+   * An edit that returned STAGED a draft — there is no arm where it did not.
    *
    * Every refusal this op can make is a THROW (the never-guess binder, the region fence, the
    * parser), which already reaches the engine's own `failed` mapping. What returns is one shape,
@@ -213,7 +213,7 @@ export const authoringDraftEditSpec: FunctionSpec<
       throw new FunctionNotBoundError(AUTHORING_DRAFT_EDIT_FUNCTION_ID)
     }
 
-    // 1. WHICH TEST. Never guessed at (D-19): an exact address is parsed, and anything else goes to
+    // 1. WHICH TEST. Never guessed at: an exact address is parsed, and anything else goes to
     //    the house resolver, whose ambiguity and low-confidence arms are typed refusals that end
     //    this invocation with nothing edited.
     const [binding] = await bindEntityNames([input.testRef], { entities: deps.entities })
@@ -290,7 +290,7 @@ export const authoringDraftEditSpec: FunctionSpec<
     const staged = await shelf.applyPatches(resolution.draft, parsed.data)
     if (staged.kind === 'unparsable') throw new EditResultUnparsableError(staged.reason)
 
-    // 6. 2026-10-14 (441-03, D-10): the loop's literal-marker check, before anything is written.
+    // 6. 2026-10-14: the loop's literal-marker check, before anything is written.
     refuseLiteralSecretMarkers(staged.draft)
 
     const stagedRef = {
@@ -300,7 +300,7 @@ export const authoringDraftEditSpec: FunctionSpec<
       contentDigest: staged.draft.contentDigest,
     }
 
-    // 7. THE WRITE (432 D-06/D-07), over the file this op read, and only if it still holds exactly
+    // 7. THE WRITE, over the file this op read, and only if it still holds exactly
     //    the bytes it read. The parser, the patch schema, the region fence and the marker check
     //    above have all passed by now; the writer adds the workspace boundary and the digest guard.
     const written = await shelf.publish({

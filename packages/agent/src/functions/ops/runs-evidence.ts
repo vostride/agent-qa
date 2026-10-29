@@ -50,7 +50,7 @@ export const runsEvidenceSpec: FunctionSpec<RunsEvidenceInput, RunsEvidenceResul
   boundThrough: 'runDetail',
   input: RunsEvidenceInputSchema,
   output: RunsEvidenceResultSchema,
-  // 431-03 (D-03/D-07): the declared output is the canonical document; validation stays `output`.
+  // the declared output is the canonical document; validation stays `output`.
   outputRepresentation: RunsEvidenceOutputContract,
   risk: { name: `fn:${RUNS_EVIDENCE_FUNCTION_ID}`, recognized: true, readOnly: true },
   classify(output) {

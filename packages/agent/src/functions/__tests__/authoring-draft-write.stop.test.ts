@@ -2,7 +2,7 @@
 //
 // THE STOP BRANCH'S WHOLE HUMAN SURFACE IS THE OP RESULT. Nothing is minted for a correctly-failing
 // draft — it is already on the shelf with its receipt, and it IS the regression test for the defect
-// (411 D-10) — so what a caller learns about the application is the `stop` arm this file reads, and
+// so what a caller learns about the application is the `stop` arm this file reads, and
 // what a caller must NOT find is an envelope in the inbox.
 //
 // THE ZERO IS MEASURED ON THE STORE, NEVER INFERRED FROM THE LOOP'S RETURN. The recording proposals
@@ -19,7 +19,7 @@
 // this file's only type authority.
 //
 // The draft and receipt constants below are COPIES of the fanout suite's, which are module-private
-// there. Importing a sibling `.test.ts` would re-run its cells (388-06 D-2), so the fixtures are
+// there. Importing a sibling `.test.ts` would re-run its cells, so the fixtures are
 // spelled here and the app-broken deltas are made explicit against them.
 
 import {
@@ -42,7 +42,7 @@ import type {
   ParsedDraftLike,
 } from '../../authoring/ports.js'
 
-// 2026-10-01 (432-17, D-06): the authoring proposal writer and its record type are deleted. The spy
+// the authoring proposal writer and its record type are deleted. The spy
 // stays as an excess dependency so "nothing was filed" remains a measurement rather than a type.
 interface AuthoringProposalWrite {
   readonly kind: string
@@ -187,7 +187,7 @@ function deps(options: {
       draft: candidate,
     }),
     verifyDraft: () => Promise.resolve(options.drafted === true ? ACCEPTED : REJECTED_RECEIPT),
-    // 432 D-06: the direct writer. A stopped invocation must never reach it.
+    // the direct writer. A stopped invocation must never reach it.
     publish: (request: { readonly targetPath: string }) => {
       options.published?.push(request.targetPath)
       return Promise.resolve({
@@ -316,7 +316,7 @@ describe('the app-broken branch reports the verdict and stops', () => {
     const filed: AuthoringProposalWrite[] = []
     const output = await carried(deps({ filed }))
 
-    // D-11: a spelling behind a status chat's render contract and the 397 parity walk already read.
+    // a spelling behind a status chat's render contract and the 397 parity walk already read.
     const verdict = authoringDraftWriteSpec.classify?.(output)
     expect(verdict?.status).toBe('executed')
     expect(verdict?.outcome.startsWith(`stopped ${DRAFT_NAME}`)).toBe(true)

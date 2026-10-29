@@ -38,14 +38,14 @@ import type { OPTIONAL_FUNCTION_DEP_KEYS } from '../spec.js'
 // under a name nobody thought of is precisely the one it would miss. Exact equality fails on
 // ANY arrival, which is the drift this pin exists to catch — including a `commit`, an `apply`,
 // or a plausible-looking `promote`.
-// 407 D-08 (2026-08-29) extends the set BY NAME rather than relaxing the equality, which is the
+// 407 D-08 extends the set BY NAME rather than relaxing the equality, which is the
 // whole mechanism working again: `canaryAttributions` is a fifth READ member — it answers what
 // became of the canary lines a run served, out of the committed outcomes log — and `tsc` refused
 // the port widening until this line acknowledged it. It is optional on the interface so every
 // existing fake stays valid, and it is a read by construction: it takes tuples the caller already
 // holds and returns observation ids and outcomes, with no verb through which anything can change.
 expectTypeOf<keyof KnowledgeReaderPort>().toEqualTypeOf<
-  // 2026-09-07, 417 D-01: extend the 407/416 read set BY NAME; never loosen equality.
+  // extend the 407/416 read set BY NAME; never loosen equality.
   'listBundles' | 'inspectRecords' | 'diffSince' | 'showRecord' | 'showRecords' | 'canaryAttributions' | 'gateReceipts'
 >()
 
@@ -116,7 +116,7 @@ expectTypeOf<KnowledgeReaderPort>().not.toMatchTypeOf<KnowledgeReviewPort>()
 // draft, and this one disposes of the result. The pin fired on this one too, and once more only
 // under `tsc --noEmit` (vitest printed `Type Errors  no errors` for the same tree — the
 // dual-witness rule, hit for the eleventh consecutive plan).
-// 394-26 (WINDOWS 110) extends it a fourteenth time, by name again: `authoringScope` — which
+// 394-26 extends it a fourteenth time, by name again: `authoringScope` — which
 // product this project authors for when the caller named none. It is a SEPARATE key from
 // `authoringRead` rather than a third verb on it, and the split is the funnel's argument on a new
 // axis: the brief needs a knowledge index, the derivation needs the resolved config and the
@@ -135,7 +135,7 @@ expectTypeOf<KnowledgeReaderPort>().not.toMatchTypeOf<KnowledgeReviewPort>()
 // report the whole config story absent — which is exactly the state `unbound` exists to
 // distinguish from a capability that never existed.
 // 395-04 extended it a NINETEENTH time with the construction-time secret scan's key, bound to the
-// host's masking seed sources. 2026-10-14 (441-39, D-15): a config change is no longer scanned, and
+// host's masking seed sources. 2026-10-14: a config change is no longer scanned, and
 // that key leaves the union with the scan.
 // 395-06 D-07 extends it a TWENTIETH time, by name: `configUndoSource` — the repository's own
 // account of the last agent configuration commit. It is a key of its own rather than a verb on
@@ -177,13 +177,13 @@ expectTypeOf<KnowledgeReaderPort>().not.toMatchTypeOf<KnowledgeReviewPort>()
 // REQUIRED, so a blob verb on it would make every daemon, MCP and test implementer satisfy a
 // method most of them have no storage for — and a host that could list runs but hold no blobs
 // would have to answer that verb with something. Optional, it is instead an honest `unbound`.
-// 2026-09-08, 419 GATE3-01: feedback is the twenty-eighth member, pinned BY NAME.
-// 2026-09-15, 423 D-19: feedbackReads is the twenty-ninth, a read-only port beside the writer.
-// 2026-09-30, 432-07 D-05/D-07: configWrite is the thirtieth, the direct config writer.
-// 2026-10-01, 432-17 D-05/D-07/D-09: proposalsInbox, draftApply, authoringProposals, configApply,
+// feedback is the twenty-eighth member, pinned BY NAME.
+// feedbackReads is the twenty-ninth, a read-only port beside the writer.
+// configWrite is the thirtieth, the direct config writer.
+// proposalsInbox, draftApply, authoringProposals, configApply,
 // configProposals and configUndoSource leave with the inbox, the apply ops and the undo (24 members).
-// 2026-10-01, 432-18 D-03/D-15: standingGrants leaves with the grant ops and the ledger (23 members).
-// 2026-10-14, 441-16 D-06: secretMask joins (24 members); 441-39 D-15: the scan key leaves (23).
+// standingGrants leaves with the grant ops and the ledger (23 members).
+// secretMask joins (24 members); 441-39 D-15: the scan key leaves (23).
 expectTypeOf<OptionalFunctionDepKey>()
   .toEqualTypeOf<
     | 'liveView'
@@ -228,8 +228,8 @@ expectTypeOf<keyof QuarantineOperationsPort>().toEqualTypeOf<'list' | 'release' 
 // The review port's own surface, pinned for the same exact-set reason as the reader's: 387-08
 // implements against this and a third member arriving quietly would be a third power no host
 // declared.
-// 2026-09-30, 432-12 (D-05): `change` arrives BY NAME — the direct change every change op reaches.
-// 2026-10-01, 432-17 (D-05/D-22): `propose` and `apply` are deleted with the inbox; `change` is the
+// `change` arrives BY NAME — the direct change every change op reaches.
+// `propose` and `apply` are deleted with the inbox; `change` is the
 // port's only member.
 expectTypeOf<keyof KnowledgeReviewPort>().toEqualTypeOf<'change'>()
 expectTypeOf<KnowledgeChangeRequest['verb']>().toEqualTypeOf<'accept' | 'reject' | 'forget'>()
@@ -266,12 +266,12 @@ expectTypeOf<Parameters<typeof mapStepEvidenceToWhy>>().toEqualTypeOf<
 
 // ---- 5. C423-FEEDBACK-BINDINGS-EXACT: the feedback bindings, in counted blocks --------------
 //
-// 2026-09-15, 423-37: an independent oracle for plan 423-23's mutation. The union below is spelled
+// an independent oracle for plan 423-23's mutation. The union below is spelled
 // by hand again rather than shared with section 2, and every assertion sits inside a `test` block
 // so vitest counts it; the top-level pins above typecheck but report no tests.
-// 2026-10-01 (432-17): the six proposal, apply and undo deps leave the hand-spelled union too.
-// 2026-10-01 (432-18): standingGrants leaves it with the grant ops.
-// 2026-10-14 (441-39, D-15): the construction scan's key leaves it with the scan.
+// the six proposal, apply and undo deps leave the hand-spelled union too.
+// standingGrants leaves it with the grant ops.
+// the construction scan's key leaves it with the scan.
 type HandSpelledOptionalDepKey =
   | 'liveView' | 'runInvocation' | 'knowledgeReview' | 'postProcessing' | 'runDetail'
   | 'evidenceBlobs' | 'analysis' | 'recurrence' | 'quarantine'
@@ -305,7 +305,7 @@ describe('the feedback bindings', () => {
 
 // ---- 6. C432-GRANT-DEPS-ABSENT: the standing-grant port leaves the deps record ------------------
 //
-// 2026-10-01, 432-18 (D-03/D-15). The type half of the claim whose runtime half is the same-named
+// 2026-10-01, 432-18. The type half of the claim whose runtime half is the same-named
 // block in optional-dep-keys.test.ts. Each assertion sits in a `test` block so vitest counts it.
 describe('no standingGrants binding', () => {
   test('FunctionDeps declares no standingGrants member', () => {
@@ -317,8 +317,8 @@ describe('no standingGrants binding', () => {
     expectTypeOf<Extract<(typeof OPTIONAL_FUNCTION_DEP_KEYS)[number], 'standingGrants'>>().toEqualTypeOf<never>()
   })
 
-  // RE-SPELLED 2026-10-14 (441-16, D-06) from '… still counts 23 members …': secretMask joins.
-  // RE-SPELLED 2026-10-14 (441-39, D-15) from '… still counts 24 members …': the scan key leaves.
+  // RE-SPELLED 2026-10-14 from '… still counts 23 members …': secretMask joins.
+  // RE-SPELLED 2026-10-14 from '… still counts 24 members …': the scan key leaves.
   test('the roster still counts 23 members, so the absence is not vacuous', () => {
     expectTypeOf<(typeof OPTIONAL_FUNCTION_DEP_KEYS)['length']>().toEqualTypeOf<23>()
   })

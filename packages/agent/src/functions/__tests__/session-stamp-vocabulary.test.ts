@@ -4,7 +4,7 @@
 // WHY THIS FILE EXISTS. `stampSessionRef` guarded ONE function id by equality, and the claim that
 // the id was the only op carrying `sessionRef` was a comment. It was false the day
 // `authoring.draft.verify` gained the field: that op is `mutating-local`, planner-reachable like
-// every registered op (392 D-07), and spreads a caller-supplied `sessionRef` straight onto the
+// every registered op, and spreads a caller-supplied `sessionRef` straight onto the
 // receipt it persists. So a model could write another author's session id into a verify call and
 // have it land on a durable receipt — the exact attribution forgery the write op's stamp exists to
 // prevent, one function id over. The guard is now a SET, and this file makes "the set is complete"
@@ -38,7 +38,7 @@ import {
 import { createFunctionRegistry } from '../registry.js'
 import type { FunctionDeclaration, FunctionDeps } from '../spec.js'
 
-// 2026-10-01 (432-35, D-12): no `grantedScopes` or `safeMode` on the caller. Every caller lists the
+// no `grantedScopes` or `safeMode` on the caller. Every caller lists the
 // whole catalogue since 432-20, so the name's "granted" no longer narrows anything.
 /** Human origin — a listing must be the whole catalogue, not one caller's slice. */
 const FULLY_GRANTED: FunctionCaller = {
@@ -111,7 +111,7 @@ function idsCarryingTopLevelKey(key: string): ReadonlySet<string> {
  *
  * The walk `continue`s over such a declaration, so it contributes to NEITHER side of the
  * equalities below and an op carrying `sessionRef` behind a union, a `$ref` or a record shape
- * would leave every cell here green while going unstamped (394-22, WR-05). Naming those ids makes
+ * would leave every cell here green while going unstamped. Naming those ids makes
  * the skip a decision someone takes rather than one the walk takes silently.
  */
 function opaqueDeclarationIds(): string[] {
@@ -153,7 +153,7 @@ describe('the session facts the chat surface stamps are pinned to the ops that c
     // derivation that answers "every id" or by one whose projection read never finds anything —
     // and a comparison that cannot reject is the state the guard's own doc block was already in.
     expect(idsCarryingTopLevelKey('sessionReff').size).toBe(0)
-    // 2026-10-02 (432-42): re-pointed from `proposals.list`, deleted by 432-17, at a REGISTERED op
+    // re-pointed from `proposals.list`, deleted by 432-17, at a REGISTERED op
     // whose input carries no `sessionRef`, so the negative half discriminates over the live catalogue.
     expect(declarations().map((declaration) => declaration.id), 'the negative example is no longer registered').toContain('runs.list')
     expect(idsCarryingTopLevelKey('sessionRef').has('runs.list')).toBe(false)

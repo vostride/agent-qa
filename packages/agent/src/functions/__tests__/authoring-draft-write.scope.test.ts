@@ -1,4 +1,4 @@
-// Where an ABSENT `scope` is resolved, and where it is NOT (394-26, WINDOWS 110).
+// Where an ABSENT `scope` is resolved, and where it is NOT.
 //
 // 394-22 established the two-sided law for `sessionRef`: the registry contract optionalizes, the
 // host supplies, and the model-facing projection says so. `scope` is the same class one field
@@ -136,7 +136,7 @@ function harness(options: { readonly unboundDeriver?: true } = {}): {
         return Promise.resolve({ scope, facts: [], cautions: [], procedures: [], exemplars: [] })
       },
       suiteTextCorpus: () => Promise.resolve([]),
-      // 394-33 WR-07: the `target` vocabulary. This file's subject is the SCOPE derivation, and
+      // the `target` vocabulary. This file's subject is the SCOPE derivation, and
       // the two are deliberately different values — see the port's own doc.
       configuredTargetNames: () => Promise.resolve(['local-form']),
     },

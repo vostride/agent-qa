@@ -32,7 +32,7 @@ import { createFunctionRegistry, createRegistryFromSpecs, resolveBindingStatus }
 import type { FunctionDeps, FunctionSpec, KnowledgeReviewPort } from '../spec.js'
 import { knowledgeAcceptSpec } from '../ops/knowledge-accept-propose.js'
 
-// RE-SPELLED 2026-10-01 (432-17, D-05): this cell classified `knowledge.proposal.apply`'s policy
+// RE-SPELLED 2026-10-01: this cell classified `knowledge.proposal.apply`'s policy
 // refusal, and that op is deleted with the inbox. The same refusal reaches a caller through the
 // direct accept's `refused` arm, and is still a refusal rather than an execution.
 it('a policy materialization refusal is classified as refused rather than executed', () => {
@@ -43,7 +43,7 @@ it('a policy materialization refusal is classified as refused rather than execut
   expect(verdict.outcome).toContain('nothing was changed')
 })
 
-// 2026-10-01 (432-29, D-12): the retired `grantedScopes` and `safeMode` caller fields, the
+// the retired `grantedScopes` and `safeMode` caller fields, the
 // fixture spec's `requiredScopes` and the retired `resolveExecutionContext` registry option are
 // dropped; nothing read them.
 const CALLER: FunctionCaller = {
@@ -69,7 +69,7 @@ const reviewBoundSpec: FunctionSpec<Record<string, never>, string> = {
   input: z.object({}).strict(),
   output: z.string(),
   risk: { name: `fn:${FIXTURE_ID}`, recognized: true, readOnly: false },
-  // 399.1-04: `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
+  // `classify` is a REQUIRED member now. A synthetic op's fold is the smallest honest
   // one — the shape has a single arm, so there is nothing to discriminate.
   classify: () => ({ status: 'executed' as const, outcome: '' }),
   invoke(_input, deps) {
@@ -118,7 +118,7 @@ function deps(overrides: Partial<FunctionDeps> = {}): FunctionDeps {
 }
 
 function registryOver(functionDeps: FunctionDeps) {
-  // A FRESH spec object per registry: registration freezes what it is handed (WR-03), and two
+  // A FRESH spec object per registry: registration freezes what it is handed, and two
   // registries sharing one frozen singleton would still be the same object — which is fine, and
   // is exactly why the copy is worth stating. The point of this file is that ONE spec reports
   // two different statuses in two compositions, so the spec must genuinely be the same contract.
@@ -166,12 +166,12 @@ describe('the knowledgeReview optional dep', () => {
     expect(await invokeFunction(registry, FIXTURE_ID, {}, CALLER)).toBe('reached-the-port')
   })
 
-  // 432-12 (D-05): the three knowledge changes bind through the SAME optional dep, and reach its
+  // the three knowledge changes bind through the SAME optional dep, and reach its
   // direct member. A host with no write port lists them unbound by name and refuses them by name.
   it('the three changes are unbound without the port and reach its direct change with it', async () => {
     const reached: unknown[] = []
     const directPort = {
-      // 2026-10-01 (432-17): `propose` and `apply` are deleted from the port; kept here as excess
+      // `propose` and `apply` are deleted from the port; kept here as excess
       // members so "a direct change never reaches them" stays measured.
       propose: () => Promise.reject(new Error('a direct change never proposes')),
       apply: () => Promise.reject(new Error('a direct change never applies a proposal')),
@@ -180,7 +180,7 @@ describe('the knowledgeReview optional dep', () => {
         return Promise.resolve({
           outcome: 'applied', verb: request.verb,
           operationId: '1e2d3c4b-5a69-4786-9504-a3b2c1d0e9f8', recordIds: ['rec-1'],
-          // 2026-10-03 (quick 261003-cpv, IN-21): an applied forget carries its receipt by rule.
+          // an applied forget carries its receipt by rule.
           ...(request.verb === 'forget'
             ? {
               forgetReceipt: {

@@ -1,4 +1,4 @@
-// A source scanner for op-file claims (Phase 387 plan 06).
+// A source scanner for op-file claims.
 //
 // Not a test file (the suite collects `*.test.ts`) and not production code either: it is the
 // shared half of acceptance criteria that two test files state.
@@ -96,7 +96,7 @@ export function scanFile(path: string, forbidden: readonly string[]): SourceScan
 }
 
 /**
- * Every `classify(...)` method BODY in a source file, brace-matched (399.1-04).
+ * Every `classify(...)` method BODY in a source file, brace-matched.
  *
  * WHY BODIES AND NOT WHOLE FILES. The 399.1-03 scan named three files by hand, which was honest
  * while three ops declared a fold and became a door-enumeration rule the moment forty-two did — a

@@ -1,4 +1,4 @@
-// `runs.list` — the tracer capability (Phase 384, D-06), widened by 431 D-08.
+// `runs.list` — the tracer capability, widened by 431 D-08.
 //
 // A pure function of (validated input, injected deps): it filters ONE completed-run snapshot,
 // orders it newest-finished first under a total order (endedAt, then runId) so a fixed fixture
@@ -76,7 +76,7 @@ export const runsListSpec: FunctionSpec<RunsListInput, RunSummary[]> = {
     + 'tests; filter by verdict, test id or title, recorded target, or completion time.',
   resultKind: 'unary',
   input: RunsListInputSchema,
-  // 2026-08-16 (396-04, D-16): the NAMED array schema, not `z.array(RunSummarySchema)` composed
+  // the NAMED array schema, not `z.array(RunSummarySchema)` composed
   // here. The two are the same shape; only one of them is an object a surface can also name, and
   // D-16's whole claim is that the advertised schema and the validated schema are one object.
   output: RunsListOutputSchema,
@@ -85,10 +85,10 @@ export const runsListSpec: FunctionSpec<RunsListInput, RunSummary[]> = {
   outputRepresentation: RunsListOutputContract,
   // Read ops declare `readOnly` so the static classifier lands them on the read-only
   // tier — allow in every execution context. The verdict is still computed and audited
-  // (D-11): there is no read bypass, only a read classification.
+  // there is no read bypass, only a read classification.
   risk: { name: `fn:${RUNS_LIST_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * A listing that answered — the count, and nothing out of a run (399.1 D-01).
+   * A listing that answered — the count, and nothing out of a run.
    */
   classify(output): ClauseVerdict {
     return { status: 'executed', outcome: `${output.length} completed run(s)` }

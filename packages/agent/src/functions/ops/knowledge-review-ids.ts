@@ -1,4 +1,4 @@
-// The knowledge change ops' function ids (Phase 387, KREV-01; 432-12, D-05).
+// The knowledge change ops' function ids.
 //
 // In their own module for the same structural reason `entities-ids.ts` exists: the card action
 // table advertises `knowledge.forget` (D-11, the MEM row), and an op file that declared its own id
@@ -6,8 +6,8 @@
 // Declaring them here means each id is one value with one definition and every importer reaches it
 // in one direction.
 //
-// 2026-09-30, 432-12 (D-02/D-05): the three verbs apply in the call. The `.propose` ids are gone
-// with no alias. 2026-10-01, 432-17 (D-05/D-22): `knowledge.proposal.apply` is deleted with the
+// the three verbs apply in the call. The `.propose` ids are gone
+// with no alias. 2026-10-01, 432-17: `knowledge.proposal.apply` is deleted with the
 // inbox, and its id with it.
 
 export const KNOWLEDGE_ACCEPT_FUNCTION_ID = 'knowledge.accept'

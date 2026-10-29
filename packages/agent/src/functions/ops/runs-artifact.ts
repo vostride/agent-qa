@@ -1,6 +1,6 @@
-// `runs.artifact` — one content-addressed evidence blob, run-scoped (Phase 405 plan 05, D-12/D-13).
+// `runs.artifact` — one content-addressed evidence blob, run-scoped.
 //
-// THE FOURTH-DOOR LAW APPLIED TO BYTES (404 D-16, D-13). The alternative was a route in
+// THE FOURTH-DOOR LAW APPLIED TO BYTES. The alternative was a route in
 // `routes.ts` constructing the evidence store and streaming `getBlob` itself — a private store
 // read, which is a capability the function layer cannot see, cannot audit and cannot offer to the
 // CLI, MCP or 408's embed. Routing the bytes through an op is what makes "resolve this ref" one
@@ -11,12 +11,12 @@
 // implementer satisfy a method most of them have no storage for; an optional dep makes "this host
 // cannot serve artifacts" a visible `unbound` row rather than a call that fails somewhere far away.
 //
-// ABSENCE IS TWO ANSWERS, NOT ONE (D-15). `unknown_run` and `blob_absent` are different operator
+// ABSENCE IS TWO ANSWERS, NOT ONE. `unknown_run` and `blob_absent` are different operator
 // situations — a bad link versus a GC'd or never-written artifact — and the page renders the second
 // as a visible "screenshot unavailable" state rather than as an error. `getBlob` collapses both
 // into `undefined`, so the SPLIT is made in the port and the two arms are refused by two names.
 //
-// THE CONTENT TYPE IS SNIFFED FROM THE BYTES AND THE SNIFFER CANNOT ANSWER MARKUP (T-405-15). The
+// THE CONTENT TYPE IS SNIFFED FROM THE BYTES AND THE SNIFFER CANNOT ANSWER MARKUP. The
 // store keeps no metadata, so the only honest source for "what is this" is the head of the blob;
 // and a sniffer with an `image/svg+xml` or `text/html` arm would let whatever wrote the blob choose
 // a type the browser executes. There are three answers and two of them are raster images.
@@ -44,7 +44,7 @@ import { RunNotFoundError } from './runs-get.js'
 export const RUNS_ARTIFACT_FUNCTION_ID = 'runs.artifact'
 
 /**
- * The run exists and holds no blob under that sha (D-15).
+ * The run exists and holds no blob under that sha.
  *
  * A SEPARATE REFUSAL FROM `RunNotFoundError`, and separate because the two ask different things of
  * whoever reads them: an unknown run is a link that was never valid, while an absent blob is an
@@ -97,7 +97,7 @@ function startsWith(bytes: Uint8Array, signature: readonly number[], offset = 0)
 }
 
 /**
- * What these bytes ARE, decided by their own head and by nothing a caller said (D-12, T-405-15).
+ * What these bytes ARE, decided by their own head and by nothing a caller said.
  *
  * TOTAL, PURE AND DELIBERATELY NARROW. Two raster magics and one opaque default is the whole
  * vocabulary: the blobs this store holds are decision screenshots, and every type outside that set

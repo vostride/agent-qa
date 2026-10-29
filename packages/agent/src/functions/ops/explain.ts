@@ -1,7 +1,7 @@
 // `agent.explain` — what this product can do, answered from the catalog (Phase 398 plan 07 —
 // XPLN-02, D-09 / D-10 / D-11 / D-12).
 //
-// THE FIRST OP ADDED SINCE THE PARITY SUITE CLOSED, and registering it is the decision (D-09).
+// THE FIRST OP ADDED SINCE THE PARITY SUITE CLOSED, and registering it is the decision.
 // "What can you do" could have been a private power of whatever surface answered it — a REPL
 // branch, an MCP handler, a paragraph in a prompt. Every one of those is a capability the
 // catalogue does not list, which is the private-power pattern §3's L10 law abolishes and which the
@@ -10,7 +10,7 @@
 //
 // THE OP OWNS ORDER AND NOTHING ELSE. Everything load-bearing was proven in plan 04 and is called
 // here, not re-implemented: the renderer quotes every character a person reads out of a catalog row
-// (D-10), the scorer picks the abstention's closest capabilities deterministically (D-11), and the
+// the scorer picks the abstention's closest capabilities deterministically, and the
 // contract's two arms are the whole vocabulary. What this file adds is the SEQUENCE — load, cite,
 // resolve, and on the abstention arm record BEFORE rendering — plus the refusal by name when no
 // host bound the port.
@@ -25,7 +25,7 @@
 // is storageNeutral, so the catalog arrives as data and the coverage append happens behind the port
 // (see `explain/port.ts` for why each of the four methods is a port). And no slash form is spelled
 // here: `invocationForRow` in the renderer is the one place a row's reachable form is composed
-// (D-10), so a second spelling in an op could not drift out of step with it — there is none.
+// so a second spelling in an op could not drift out of step with it — there is none.
 
 import { ExplainInputSchema, ExplainOutputSchema } from '@vostride/agent-qa-schema'
 import type { CatalogRow, ExplainInput, ExplainOutput } from '@vostride/agent-qa-schema'
@@ -36,7 +36,7 @@ import { FunctionNotBoundError } from '../spec.js'
 import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 
 /**
- * Lowercase dot taxonomy (384 D-15): the `agent` domain, already a pinned member of the conformance
+ * Lowercase dot taxonomy: the `agent` domain, already a pinned member of the conformance
  * suite's `domain-list.ts` because `agent.ask` lives there. No taxonomy widening — an explain is a
  * thing the AGENT does about itself, which is exactly what that domain's charter covers.
  *
@@ -46,7 +46,7 @@ import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 export const EXPLAIN_FUNCTION_ID = 'agent.explain'
 
 /**
- * The abstention arm, with the coverage record appended first (D-11).
+ * The abstention arm, with the coverage record appended first.
  *
  * `closestCapabilities` is called HERE as well as inside the renderer, and the duplication is
  * deliberate rather than an oversight: the record must carry the same closest set the person is
@@ -86,14 +86,14 @@ function abstainAndRecord(
 export const explainSpec: FunctionSpec<ExplainInput, ExplainOutput> = {
   id: EXPLAIN_FUNCTION_ID,
   // One line, and it is the line the catalog RENDERS for this row — descriptions live on the spec
-  // so one source feeds chat, MCP and the catalogue (396 D-16 / 398 D-08).
+  // so one source feeds chat, MCP and the catalogue.
   summary:
     'Answer a question about what this product can do by citing the capability catalog, or say '
     + 'plainly that the catalog does not ground an answer.',
-  // 2026-10-01 (432-26, D-12): no scope. This op once declared `read` alone so that it stayed
+  // no scope. This op once declared `read` alone so that it stayed
   // listable in safe mode; safe mode and scopes are deleted, and every caller lists and calls it.
   resultKind: 'unary',
-  // D-09: the catalog reaches this op through a port bound at `composeLocalAgent()` (385 D-15). A
+  // the catalog reaches this op through a port bound at `composeLocalAgent()`. A
   // composition without one lists the capability `unbound` BY NAME rather than degrading to a
   // model-only answer — an explain that silently lost its catalog is precisely an explain that
   // answers from model memory, which is the one behaviour XPLN-02 exists to forbid.
@@ -104,7 +104,7 @@ export const explainSpec: FunctionSpec<ExplainInput, ExplainOutput> = {
   // byte it appends is a local coverage line about a question it was asked.
   risk: { name: `fn:${EXPLAIN_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * The answer lines this op composed, on their way to the turn's `answer` field (398-13 · D-21).
+   * The answer lines this op composed, on their way to the turn's `answer` field.
    *
    * MIGRATED FROM `turn-engine.ts` BY 399.1-03, ARGUMENT INTACT. It lived there as
    * `explainAnswerLines`, an explicit comparison of the running clause's `functionId` against this
@@ -120,7 +120,7 @@ export const explainSpec: FunctionSpec<ExplainInput, ExplainOutput> = {
    * PARSED, NEVER CAST, and a parse failure renders NOTHING extra: the fold fails OPEN by contract
    * (`foldFunctionResult`), so an unreadable result costs a person legibility and never the record.
    * Every character of `renderedLines` was quoted out of a committed catalog row by the renderer
-   * (D-10), so nothing a model wrote can ride this channel — which is why the parse is here and not
+   * so nothing a model wrote can ride this channel — which is why the parse is here and not
    * a cast: a doctored result must not become a door for prose.
    *
    * BOTH ARMS RENDER. An abstention's lines are the honest "the catalog does not ground an answer",
@@ -175,14 +175,14 @@ export const explainSpec: FunctionSpec<ExplainInput, ExplainOutput> = {
       return abstainAndRecord(port, input.query, rows)
     }
 
-    // D-10: the model's WHOLE output contract is `ExplainCitation`, which has no field a command
+    // the model's WHOLE output contract is `ExplainCitation`, which has no field a command
     // fits in, and the implementation is obliged to pass `rows` as the grounding data. Anything it
     // cites that no row answers to is a ghost, and the renderer answers ghosts by abstaining.
     const citation = await port.citeCapabilities(input.query, rows)
     const output = renderExplainOutput(citation, rows, { query: input.query })
 
     if (output.kind === 'answer') {
-      // D-14: a COUNTER and no payload. The query is the one free-text value in this feature and it
+      // a COUNTER and no payload. The query is the one free-text value in this feature and it
       // travels to the local coverage log or nowhere.
       port.recordAnswered()
       return output

@@ -1,4 +1,4 @@
-// `knowledge.brief.why` — why did the brief say this (Phase 387, KREV-02 / D-14 / D-15).
+// `knowledge.brief.why` — why did the brief say this.
 //
 // The verb answers about THEN. It reads the retrieval trace the serving path wrote down at the
 // moment it assembled the brief, and it does not re-run retrieval — not because re-running is
@@ -130,7 +130,7 @@ export const knowledgeBriefWhySpec: FunctionSpec<BriefWhyInput, BriefWhyResult> 
   output: BriefWhyResultSchema,
   risk: { name: `fn:${KNOWLEDGE_BRIEF_WHY_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * `no-trace` IS THE HONEST ABSENCE THIS VERB EXISTS FOR (399.1 D-01).
+   * `no-trace` IS THE HONEST ABSENCE THIS VERB EXISTS FOR.
    *
    * KREV-02's whole posture is that a brief whose trace is gone must be SAID to be gone rather than
    * re-derived; the op that answers it is given no serving capability at all. That is an answer the

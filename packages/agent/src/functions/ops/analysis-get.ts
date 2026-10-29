@@ -1,4 +1,4 @@
-// `analysis.get` — one run's full analysis, served once (Phase 389, D-10/D-11/D-14/D-15).
+// `analysis.get` — one run's full analysis, served once.
 //
 // THE single producer of resolved verdicts + rendered sentences + clusters. Plan 07's CLI
 // print, M5's run page and 392's chat all call this op; none of them re-derives a verdict,
@@ -6,7 +6,7 @@
 // cluster function are the same pure symbols this file calls, so every surface is
 // byte-identical by construction (SC3, the L10 thin-client law).
 //
-// Absence discipline (D-10/D-11): a composition with no analysis port refuses BY NAME; a
+// Absence discipline: a composition with no analysis port refuses BY NAME; a
 // bound port with no artifact on disk answers the handoff FLOOR — verdicts through the D-10
 // accessor, sentences from the honest template parts — because "the analysis never ran" is
 // a true state of a run, not an error. A run with no failures answers empty lists.
@@ -41,14 +41,14 @@ import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 import { RunNotFoundError } from './runs-get.js'
 
 /**
- * Lowercase dot taxonomy (D-15): the locked `analysis` domain, one noun. The exported
+ * Lowercase dot taxonomy: the locked `analysis` domain, one noun. The exported
  * constant is what plan 07's CLI and every later surface name; the literal appears here
  * once, and the parity-coverage suite picks the id up from the registry automatically.
  */
 export const ANALYSIS_GET_FUNCTION_ID = 'analysis.get'
 
 /**
- * Join one verdict to its authored parts, or mint the honest floor (D-06/D-07).
+ * Join one verdict to its authored parts, or mint the honest floor.
  *
  * Artifact present → the authored parts record joined by `perTest` (never array position).
  * Artifact absent — or an artifact member with no parts record, a shape the guard admits —
@@ -67,7 +67,7 @@ function partsFor(
 }
 
 /**
- * The window key one failure is counted under (390 D-07), or nothing.
+ * The window key one failure is counted under, or nothing.
  *
  * Every input rule is IMPORTED from schema and none is respelled here: which step the failure
  * is about (`failingStepOf`), which recorded bytes describe it (`errorTextOf`), which anchors
@@ -110,7 +110,7 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
   output: AnalysisGetOutputSchema,
   risk: { name: `fn:${ANALYSIS_GET_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * An analysis is an ANSWER, and its verdicts are what it answered (399.1 D-01).
+   * An analysis is an ANSWER, and its verdicts are what it answered.
    *
    * COUNTS AND THE RUN REF, never a sentence out of the artifact: the receipt is a map (392's
    * charter) and every verdict sentence is on `results[]`, which D-04 renders in full beside it.
@@ -135,7 +135,7 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
     }
 
     const artifact = analysis.getArtifact(runId)
-    // The ONE verdict read path (D-10): artifact verdicts when present, the handoff's
+    // The ONE verdict read path: artifact verdicts when present, the handoff's
     // deterministic floor when absent — never a per-consumer merge.
     const resolved = resolveRunVerdicts(artifact, document)
     // The projection's key law: stable test identity is (product, filePath, testName),
@@ -167,7 +167,7 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
 
     return {
       runId,
-      // The verdict's OWN evidence, projected (406 D-01) — cited steps and cited artifacts as the
+      // The verdict's OWN evidence, projected — cited steps and cited artifacts as the
       // resolved verdict already held them, so the failure view's links are this op's refs and not
       // a second join over `analysis.json`. Presence is consulted OPPORTUNISTICALLY through the
       // optional blob port: `boundThrough` stays `analysis`, because a host with no runtime root
@@ -196,8 +196,8 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
         }
       })),
       sentences,
-      // Render-time clustering through the ONE pure fold (D-14); the representative carries
-      // its already-composed sentence (D-15) — looked up, never re-rendered, so cluster and
+      // Render-time clustering through the ONE pure fold; the representative carries
+      // its already-composed sentence — looked up, never re-rendered, so cluster and
       // per-test presentation cannot drift.
       clusters: clusterVerdicts(resolved, document).map((cluster) => ({
         fingerprint: cluster.fingerprint,

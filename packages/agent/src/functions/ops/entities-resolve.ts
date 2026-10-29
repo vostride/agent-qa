@@ -1,4 +1,4 @@
-// `entities.resolve` — any reference in, a typed resolution out (Phase 387, ENTY-01 / D-09).
+// `entities.resolve` — any reference in, a typed resolution out.
 //
 // The reference may be a short-ID, an `agentqa://` URI, or free text a human typed; the
 // answer is one of exactly three arms — a hit, a small disambiguation set, or an honest miss.

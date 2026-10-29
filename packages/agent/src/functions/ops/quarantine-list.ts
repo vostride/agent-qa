@@ -1,4 +1,4 @@
-// `quarantine.list` — the machine-readable enumeration of quarantine state (Phase 390, D-12/D-13).
+// `quarantine.list` — the machine-readable enumeration of quarantine state.
 //
 // FLAK-03's "quarantine is enumerable" in one op: every entry carries the three legs of stable
 // test identity, the fingerprint that keyed the window, the resolved class, the owner, the
@@ -10,7 +10,7 @@
 // contract with two readers, not two paraphrases of one. `QuarantineEntrySchema`'s docstring is
 // the other copy; the re-entry history was added to that copy in 390-18 and to this one in
 // 390-20, and an enumeration contract that under-reports its own contents is precisely the
-// failure the contract exists to prevent (390 IN-01).
+// failure the contract exists to prevent.
 //
 // THE OP RE-SORTS NOTHING. D-12 requires unassigned-owner entries FIRST — they are the triage
 // queue — with the rest ordered deterministically after them. That ordering is the PORT
@@ -33,7 +33,7 @@ import { FunctionNotBoundError } from '../spec.js'
 import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 
 /**
- * Lowercase dot taxonomy (384 D-15): a new `quarantine` domain, one noun. Quarantine state is
+ * Lowercase dot taxonomy: a new `quarantine` domain, one noun. Quarantine state is
  * neither a run, a memory nor an analysis — filing these verbs under an existing domain would
  * have made the taxonomy decorative, which is the same call 387 made for `entities`.
  *
@@ -48,13 +48,13 @@ export const quarantineListSpec: FunctionSpec<QuarantineListInput, QuarantineLis
   // Bound exactly where a composition supplies the quarantine port. Listing quarantine state
   // is not something a host can approximate: an unbound host answering `[]` would say "nothing
   // is quarantined" about a ledger it has never been able to read, which is a wrong answer
-  // wearing a correct one's clothes. So it refuses by name instead (D-09).
+  // wearing a correct one's clothes. So it refuses by name instead.
   boundThrough: 'quarantine',
   input: QuarantineListInputSchema,
   output: QuarantineListOutputSchema,
   risk: { name: `fn:${QUARANTINE_LIST_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * A ledger listing that answered — the count, and no entry's identity legs (399.1 D-01).
+   * A ledger listing that answered — the count, and no entry's identity legs.
    */
   classify(output): ClauseVerdict {
     const count = output.entries.length

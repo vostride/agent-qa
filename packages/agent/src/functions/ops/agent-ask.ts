@@ -1,4 +1,4 @@
-// `agent.ask` — the chat turn entry, as a registered capability (Phase 392, D-24).
+// `agent.ask` — the chat turn entry, as a registered capability.
 //
 // THIS FILE IS THE L10 ANSWER. §3's "no private powers" law says a surface may not hold a
 // capability the function layer does not, and a chat REPL that owned its turn engine directly would
@@ -13,7 +13,7 @@
 // stage — so a clause the turn runs passes the same pipeline as the turn itself: input validation,
 // the binding check and output validation, each clause with its own receipt.
 //
-// NO SCOPE AND NO ORIGIN RULE (2026-10-01, 432-26, D-10/D-12). This op once declared
+// NO SCOPE AND NO ORIGIN RULE. This op once declared
 // `requiredScopes: ['read']` as the right to START a turn, with the per-clause scope checks and
 // `requiresHumanOrigin` deciding each clause's reach. All three are deleted: every door can call
 // every operation, so a turn and the clauses it plans are served to any caller alike.
@@ -29,7 +29,7 @@ import { FunctionNotBoundError } from '../spec.js'
 import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 
 /**
- * Lowercase dot taxonomy (384 D-15): the `agent.` domain's first verb.
+ * Lowercase dot taxonomy: the `agent.` domain's first verb.
  *
  * The literal appears exactly once, here. Every surface that names it — the `ask` command today,
  * the REPL and the MCP projection later — imports this constant, so the parity suite and the
@@ -67,7 +67,7 @@ export const agentAskSpec: FunctionSpec<AgentAskInput, AgentAskResult> = {
   // descriptor is a classification; no gate reads it to ask or deny.)
   risk: { name: `fn:${AGENT_ASK_FUNCTION_ID}`, recognized: true, readOnly: false },
   /**
-   * A TURN's own report of how it went (2026-08-20, Phase 399.1 D-01/D-02/D-12).
+   * A TURN's own report of how it went.
    *
    * A TURN IS A COMPOSITION, SO ITS VERDICT IS A FOLD OF ITS CLAUSES' VERDICTS. This used to fold
    * the turn STATUS alone, on the argument that the per-clause verdicts were already receipts and
@@ -83,7 +83,7 @@ export const agentAskSpec: FunctionSpec<AgentAskInput, AgentAskResult> = {
    * an operation that did not complete. Reporting it `refused` would tell a person a control
    * declined their request when what happened is that something went wrong.
    *
-   * AND THERE IS DELIBERATELY NO `failed` SCAN OVER THE RECEIPTS HERE (D-12). Post-399.1-09 the
+   * AND THERE IS DELIBERATELY NO `failed` SCAN OVER THE RECEIPTS HERE. Post-399.1-09 the
    * engine derives its aggregate from the same vocabulary, so it can no longer answer `completed`
    * over a `failed` receipt; a second mechanism second-guessing the first is the redundant-mechanism
    * failure mode this project has already paid for, and it would hide a regression in the engine

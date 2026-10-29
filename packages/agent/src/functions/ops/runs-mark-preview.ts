@@ -1,4 +1,4 @@
-// 2026-09-15, 423 D-16/D-17: what runs.mark would do for this exact input, through the read-only
+// what runs.mark would do for this exact input, through the read-only
 // feedbackReads port. The result is prospective: no intent, lease, model call, id mint or write.
 import { RunsMarkInputSchema, RunsMarkPreviewResultSchema, maskRecordContent } from '@vostride/agent-qa-schema'
 import type { MaskFn, RunsMarkInput, RunsMarkPreviewResult } from '@vostride/agent-qa-schema'

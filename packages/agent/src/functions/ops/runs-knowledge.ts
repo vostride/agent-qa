@@ -1,4 +1,4 @@
-// `runs.knowledge` — what ONE run used and learned (Phase 407, LERN-01 / LERN-02 · D-05 / D-06).
+// `runs.knowledge` — what ONE run used and learned.
 //
 // THE PANEL'S ONE READ. D-05's posture is that the Knowledge tab is a thin client over a single
 // registry verb, not a page composing N `knowledge.brief.why` calls: the browser, the CLI, MCP
@@ -6,7 +6,7 @@
 // to a surface that would otherwise have been assembled client-side out of per-step reads whose
 // answers could disagree with each other about one run.
 //
-// THE SUBSTRATE IS THE RUN'S HANDOFF, AND NOTHING ELSE (D-06). `deps.runs.get` resolves through
+// THE SUBSTRATE IS THE RUN'S HANDOFF, AND NOTHING ELSE. `deps.runs.get` resolves through
 // the same `enumerate()` / `loadCompletedRunHandoff` version guard `readStepEvidence` uses, so
 // this op and `knowledge.brief.why` can never disagree about what a run recorded. It is NOT the
 // dashboard `run_steps` projection — those rows carry no served brief at all.
@@ -16,7 +16,7 @@
 // whose trace was never captured answers `no-trace: pre-trace-run` — the honest absence — rather
 // than a plausible trace computed against today's index (KREV-02's founding argument).
 //
-// A PRUNED HANDOFF IS A RESULT, NOT A THROW (D-06). `runs.digest` next door raises
+// A PRUNED HANDOFF IS A RESULT, NOT A THROW. `runs.digest` next door raises
 // `RunNotFoundError` because a digest NAMES a run and a missing one is a bad question. Here the
 // caller is a PAGE, and a page whose evidence has been garbage-collected has a legible state to
 // render (406 D-17's `EvidenceIncomplete`); a refusal would make that state indistinguishable
@@ -25,10 +25,10 @@
 // THE SIBLING OPS ARE INVOKED, NOT REIMPLEMENTED (391's rule). The curation word is the same word
 // `runs.postprocessing` serves and the change list is the same list `knowledge.records.diff`
 // serves — by CALLING them with this call's deps rather than by a comment promising not to diverge.
-// 2026-09-30, 432-09 (D-25): no pending-proposal count is joined; the tab shows what changed. The
+// no pending-proposal count is joined; the tab shows what changed. The
 // specs are module-internal, so this is composition inside the layer and not a dispatch path
 // around `invokeFunction`: every external caller still arrives through the pipeline. 2026-10-01
-// (432-26, D-12): the op declares no `read` scope, and no step of that pipeline checks one.
+// the op declares no `read` scope, and no step of that pipeline checks one.
 
 import {
   maskRecordContent,
@@ -69,7 +69,7 @@ import {
 import { requireSecretMask } from './secret-mask.js'
 
 /**
- * Lowercase dot taxonomy (384 D-15): the `runs` domain, one noun.
+ * Lowercase dot taxonomy: the `runs` domain, one noun.
  *
  * `runs.knowledge` and not `knowledge.run`, for the reason `runs.postprocessing` is not
  * `postprocessing.get` — what this returns is a fact ABOUT A RUN. The literal appears here once;
@@ -132,7 +132,7 @@ function cautionLine(line: CautionLine): RunKnowledgeStep['served']['channel3'][
 }
 
 /**
- * The plan source, PICKED member by member for the same reason the channels are (CR-01).
+ * The plan source, PICKED member by member for the same reason the channels are.
  *
  * This was the one producer value the op spread verbatim, and the wire arm it spread onto is
  * `.strict()` — so the day `StepPlanSource` grew `flow`, every run that had really replayed a
@@ -190,7 +190,7 @@ function projectStep(
       channel3: evidence.servedBrief.channel3.map(cautionLine),
     },
     trace: traceArmOf(evidence),
-    // PICKED, not spread (CR-01) — see `planSourceOf`. Spread-away absence, never a `null` and
+    // PICKED, not spread — see `planSourceOf`. Spread-away absence, never a `null` and
     // never a zero-fill: a step that replayed no procedure carries NO `planSource` key, which is
     // a different byte from one that carries an empty source (the layer's own idiom).
     ...(evidence.planSource === undefined
@@ -201,7 +201,7 @@ function projectStep(
 }
 
 /**
- * `unbound` means THIS PROJECT HAS NO KNOWLEDGE STORE, derived from durable bytes (D-16).
+ * `unbound` means THIS PROJECT HAS NO KNOWLEDGE STORE, derived from durable bytes.
  *
  * The marker is the `truncation` sentence the runner writes when it serves a step with no reader
  * bound — the one durable fact that distinguishes "nothing was configured" from "retrieval ran
@@ -228,7 +228,7 @@ function stepsOf(document: CompletedRunHandoff): readonly StepEvidence[] {
 }
 
 /**
- * Is this the knowledge store saying "I could not read all of myself"? (407-14, CR-03)
+ * Is this the knowledge store saying "I could not read all of myself"?
  *
  * READ BY NAME, STRUCTURALLY, ON PURPOSE. `KnowledgeMaintenanceScanError` is declared in
  * `packages/knowledge-local`, and this layer is storage-neutral — it holds a PORT, not a store, so
@@ -252,7 +252,7 @@ type RecordJoin =
   | { contentAbsence: NonNullable<LearnedChange['contentAbsence']> }
 
 /**
- * Current record content, picked field by field and masked string by string (423 D-20/D-21).
+ * Current record content, picked field by field and masked string by string.
  *
  * Trust and status are copied from the maintenance view (`deriveBundleTrust`'s answer), never
  * recomputed, and are named `current*` so no reader mistakes them for what the row recorded.
@@ -267,7 +267,7 @@ function recordContentOf(
 }
 
 /**
- * ONE batch read over the union of every learned and used identity (423 D-20).
+ * ONE batch read over the union of every learned and used identity.
  *
  * There is deliberately no per-id fallback to `showRecord`: that read scans every bundle per id.
  * A host without the batch capability gets a named `not-bound` absence on every row instead, and
@@ -313,7 +313,7 @@ async function joinRecords(
 }
 
 /**
- * Is this attributed change one the fixed snapshot recorded? (423 D-15)
+ * Is this attributed change one the fixed snapshot recorded?
  *
  * Compared on the identity both readers retain — record, change, ordinal and replacement — and
  * on the evidence token only where both carry one: `diffSince` reports a record's appearance without
@@ -393,7 +393,7 @@ export const runsKnowledgeSpec: FunctionSpec<RunsKnowledgeInput, RunKnowledgePro
 
     const document = await deps.runs.get(input.runId)
     if (document === undefined) {
-      // D-06: a RESULT. The page renders the evidence-gone state; it does not catch anything.
+      // a RESULT. The page renders the evidence-gone state; it does not catch anything.
       return { kind: 'evidence-incomplete', runId }
     }
 
@@ -401,12 +401,12 @@ export const runsKnowledgeSpec: FunctionSpec<RunsKnowledgeInput, RunKnowledgePro
       test.steps.map((evidence) => projectStep(test.testId, test.testIndex, evidence)))
     const evidence = stepsOf(document)
 
-    // Run-constant by construction (D-13): the rung is resolved ONCE at composition and stamped
+    // Run-constant by construction: the rung is resolved ONCE at composition and stamped
     // on every step, so the first step carrying one carries the run's. Reading it per step as
     // well is what lets a future producer change stay visible rather than silently averaged.
     const runRung = evidence.map(recordedRungOf).find((rung) => rung !== undefined)
 
-    // TWO DIFFERENT QUESTIONS, ANSWERED TWO DIFFERENT WAYS (407-14, CR-03).
+    // TWO DIFFERENT QUESTIONS, ANSWERED TWO DIFFERENT WAYS.
     //
     // PRESENCE is still checked rather than caught: "this host has no queue database" is not the
     // same fact as "the queue read threw" (runs-digest's rule), and a blanket try/catch would
@@ -432,7 +432,7 @@ export const runsKnowledgeSpec: FunctionSpec<RunsKnowledgeInput, RunKnowledgePro
       ? undefined
       : await runsPostProcessingSpec.invoke({ runId: input.runId }, deps)
     const curationRow = status?.notification?.stages.curation
-    // BOTH counts or neither (D-09/D-12). The frozen notification row omits them when curation
+    // BOTH counts or neither. The frozen notification row omits them when curation
     // never committed a bundle, and a half-present pair rendered as `curated 3, deprecated 0`
     // would report a number nobody measured.
     const countsPresent = curationRow?.curated !== undefined
@@ -483,7 +483,7 @@ export const runsKnowledgeSpec: FunctionSpec<RunsKnowledgeInput, RunKnowledgePro
             outcome: row.outcome,
           }])
 
-    // ATTRIBUTION, NOT A WINDOW (D-10). The since-ordinal only bounds how much the sibling op
+    // ATTRIBUTION, NOT A WINDOW. The since-ordinal only bounds how much the sibling op
     // reads; what makes a row THIS run's is the explicit link — the bundle provenance run id
     // 407-04 stamps, or an observation id recomputed from this run's own served-canary tuples.
     // A row carrying neither is DROPPED rather than guessed at: "this run deprecated that fact"
@@ -573,7 +573,7 @@ export const runsKnowledgeSpec: FunctionSpec<RunsKnowledgeInput, RunKnowledgePro
               },
             }
           : {}),
-        // 2026-10-18 (444-26, D-61): the run's own handoff says why its chain was never enqueued,
+        // the run's own handoff says why its chain was never enqueued,
         // by the fold runs.postprocessing calls, so it holds on a host with no queue database too.
         ...(skipped === undefined ? {} : { skipped: { reason: skipped.reason } }),
       },

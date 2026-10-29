@@ -1,5 +1,5 @@
-// 2026-09-15, 423 D-19: every mark on a run in ordinal order, with read-time supersession. Pure
-// observation through the feedbackReads port. 2026-09-30, 432-09 (D-04/D-25): each applied knowledge
+// every mark on a run in ordinal order, with read-time supersession. Pure
+// observation through the feedbackReads port. 2026-09-30, 432-09: each applied knowledge
 // fix carries the records it changed, read now; nothing is read from a proposal store.
 import {
   RunsMarksHistoryInputSchema, RunsMarksHistoryResultSchema, markAddressKey, maskRecordContent,
@@ -81,7 +81,7 @@ export const runsMarksHistorySpec: FunctionSpec<RunsMarksHistoryInput, RunsMarks
     const misplaced = receipts.findIndex((receipt, index) => receipt.ordinal !== index + 1 || receipt.runId !== runId)
     if (misplaced !== -1) return { kind: 'ledger-corrupt', runId, line: misplaced + 1 }
 
-    // Latest-wins per address (419 D-11): a receipt is superseded by the next mark on its address.
+    // Latest-wins per address: a receipt is superseded by the next mark on its address.
     const supersededBy: (string | undefined)[] = []
     const nextOnAddress = new Map<string, string>()
     for (let index = receipts.length - 1; index >= 0; index -= 1) {

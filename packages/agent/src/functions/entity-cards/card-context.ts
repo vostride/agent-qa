@@ -1,6 +1,6 @@
-// Where the card's `url` comes from (Phase 387, ENTY-02 / D-10).
+// Where the card's `url` comes from.
 //
-// D-10: the URL is CONFIG-DERIVED and absent by default. The configuration a function-layer op
+// the URL is CONFIG-DERIVED and absent by default. The configuration a function-layer op
 // can see is `ConfigReaderPort.getMasked()` — a flat, dot-path, already-masked list — and that
 // is deliberately the only route. The alternative, a second port that read the raw resolved
 // config, would have made the T-384-07 masking optional at exactly the seam it exists to
@@ -51,7 +51,7 @@ function verbatim(masked: MaskedResolvedConfig, key: string): string | undefined
 }
 
 /**
- * The configured dashboard base, or `undefined` — the v52 default (D-10).
+ * The configured dashboard base, or `undefined` — the v52 default.
  *
  * BOTH halves are required. A base with no workspace cannot render `:workspace`, and a
  * workspace with no base has nowhere to point; either alone would have to be completed by a
@@ -70,7 +70,7 @@ export function readDashboardUrlBase(
 export interface EntityCardContext {
   readonly urlBase?: DashboardUrlBase
   /**
-   * The committed quarantine ledger's folded entries (390 D-12), when this render needs them.
+   * The committed quarantine ledger's folded entries, when this render needs them.
    *
    * Read at the OP boundary and handed to the producer as a value, exactly like `urlBase` — the
    * producer takes no ports, which is what makes ENTY-02's "two renders of unchanged state are

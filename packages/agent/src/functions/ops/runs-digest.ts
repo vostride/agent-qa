@@ -1,17 +1,17 @@
-// `runs.digest` — ONE run, one digest, composed live (Phase 391, D-16 / D-17 / D-18).
+// `runs.digest` — ONE run, one digest, composed live.
 //
 // PROP-04's complaint is a product complaint: an approval UX that fires forty times per nightly
 // run is worse than one that fires once. The answer is not a throttle, a debounce or a batching
-// window — every one of those is a timing knob with a wrong setting (386 D-15). The answer is a
+// window — every one of those is a timing knob with a wrong setting. The answer is a
 // PROJECTION KEYED BY `runId`. A projection keyed by a run cannot fire per event, so "exactly
 // one digest per run" is a property of the shape and not a rule anybody enforces.
 //
 // NOTHING IS PERSISTED HERE. The digest composes from four already-shipped read paths — the
-// analysis op (389 D-11), the chain-state op (388 D-14), the run's own mark ledger (432-09, which
-// replaced the proposals inbox of 391 plan 03) and the quarantine ledger (390 D-13) — every time
+// analysis op, the chain-state op, the run's own mark ledger (432-09, which
+// replaced the proposals inbox of 391 plan 03) and the quarantine ledger — every time
 // somebody asks. So there is nothing to drift,
 // nothing to migrate, no second copy of a run's truth to reconcile, and the frozen counts-only
-// notification row is left exactly as it was (D-16, T-391-18).
+// notification row is left exactly as it was.
 //
 // THE TWO SIBLING OPS ARE INVOKED, NOT REIMPLEMENTED. `analysisGetSpec.invoke` and
 // `runsPostProcessingSpec.invoke` are called with THIS call's deps, so the verdict sentences in
@@ -19,13 +19,13 @@
 // `runs.postprocessing` serves. That is 389 D-05/D-10 and 388 D-14 honoured by CALLING them
 // rather than by a comment promising not to diverge. The specs are module-internal — nothing
 // outside this package can reach them — so this is composition inside the layer, not a
-// dispatch path around `invokeFunction` (T-384-01): every EXTERNAL caller still arrives through
-// the pipeline, and this op declares its own read-only descriptor. 2026-10-01 (432-24, D-12): the
+// dispatch path around `invokeFunction`: every EXTERNAL caller still arrives through
+// the pipeline, and this op declares its own read-only descriptor. 2026-10-01: the
 // read scope it also declared is gone; no op declares one now.
 //
-// REFS AND COUNTS ONLY (D-18, T-391-17). No delta content, no forget-receipt tombstones, no
+// REFS AND COUNTS ONLY. No delta content, no forget-receipt tombstones, no
 // rationale prose, no masked bytes. A mark change is its mark id, its fix and the record ids or
-// workspace path it changed (432-09, D-04/D-25). Nothing awaits a decision: no proposal store is read.
+// workspace path it changed. Nothing awaits a decision: no proposal store is read.
 
 import {
   POST_PROCESSING_SKIP_REASON_WORDS,
@@ -51,7 +51,7 @@ import {
 } from './runs-post-processing.js'
 
 /**
- * Lowercase dot taxonomy (384 D-15): the `runs` domain, one noun.
+ * Lowercase dot taxonomy: the `runs` domain, one noun.
  *
  * `runs.` rather than a new `digest.` domain, because what this returns is a fact ABOUT A RUN —
  * the same reason `runs.postprocessing` is not `postprocessing.get`. The exported constant is
@@ -65,7 +65,7 @@ const DIGEST_SEPARATOR = ' · '
 
 /**
  * The fixes this run's marks applied, read from the run's own ledger through the read-only feedback
- * port (432-09). ABSENT where this host binds no feedback reads or the ledger cannot be read, so an
+ * port. ABSENT where this host binds no feedback reads or the ledger cannot be read, so an
  * empty list is only ever a measurement.
  */
 async function markChangesFor(deps: FunctionDeps, runId: RunsDigestInput['runId']): Promise<RunDigestMarkChange[] | undefined> {
@@ -85,7 +85,7 @@ function markChangeLine(row: RunDigestMarkChange): string {
   return `  ${row.markId}  ${row.fix}: ${what}`
 }
 
-/** The durable identity legs, joined — never `testId`, which is per-run (390 D-13). */
+/** The durable identity legs, joined — never `testId`, which is per-run. */
 function quarantineRef(entry: QuarantineEntryState): string {
   return `${entry.product}/${entry.filePath}::${entry.testName}`
 }
@@ -112,7 +112,7 @@ function renderDigestLines(digest: Omit<RunDigest, 'lines'>): string[] {
   })
   if (clusterBlock !== '') lines.push(clusterBlock)
 
-  // 425 D-08 / 444 D-39: a skipped run has no chain to report on, so the two chip words would read
+  // a skipped run has no chain to report on, so the two chip words would read
   // `pending` forever. The fact replaces them in the CLI exit line's words; the outcome clause
   // keeps its own behaviour.
   const skipped = digest.chain.skipped
@@ -156,7 +156,7 @@ export const runsDigestSpec: FunctionSpec<RunsDigestInput, RunDigest> = {
   output: RunDigestSchema,
   risk: { name: `fn:${RUNS_DIGEST_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * REFS AND COUNTS, which is this op's own law rather than a house style (399.1 D-01 · 391 D-18).
+   * REFS AND COUNTS, which is this op's own law rather than a house style.
    *
    * The digest's `lines` are its rendered territory and they travel on `results[]`, which D-04
    * prints in full. A receipt line reaching into them would put a run's story inside the map — the
@@ -210,7 +210,7 @@ export const runsDigestSpec: FunctionSpec<RunsDigestInput, RunDigest> = {
     const sections: Omit<RunDigest, 'lines'> = {
       runId,
       // VERBATIM — the same cluster views, carrying the same already-composed representative
-      // sentences the one renderer produced inside `analysis.get` (389 D-05/D-15).
+      // sentences the one renderer produced inside `analysis.get`.
       verdictClusters: analysis?.clusters ?? [],
       chain: {
         // `undefined` answers exactly as an empty chain does: nothing was enqueued for this
@@ -225,7 +225,7 @@ export const runsDigestSpec: FunctionSpec<RunsDigestInput, RunDigest> = {
       ...(markChanges === undefined ? {} : { markChanges }),
       candidates: {
         // Absent counts read as zero HERE and only here: the row omits them when curation never
-        // committed a bundle (388 D-11), and a digest section is a place a person reads a
+        // committed a bundle, and a digest section is a place a person reads a
         // number rather than a place a distinction between "none" and "not yet" survives — the
         // chain chips one line up already carry that distinction.
         curated: curation?.curated ?? 0,

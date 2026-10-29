@@ -1,6 +1,6 @@
-// `invokeFunction` — the single dispatch path every surface crosses (Phase 384, FUNC-01).
+// `invokeFunction` — the single dispatch path every surface crosses.
 //
-// 2026-09-30 (432-13, D-01/D-14/D-15): THERE IS NO OP GATE. The surface-capability `evaluate()`
+// THERE IS NO OP GATE. The surface-capability `evaluate()`
 // call that used to sit here — the ask ladder, its confirm port, the standing-approval reader and the
 // chat session's deny overlay — is gone, and so is its `EVALUATE_PIN` entry. An op a caller may
 // invoke runs once, in every execution context, and no execution-audit row is written for it.
@@ -8,7 +8,7 @@
 // What stays is everything that is not an approval: the unknown-id refusal, input validation, the
 // binding check, dispatch, and output validation for unary results.
 //
-// 2026-10-01 (432-20, D-10/D-12): THERE ARE NO PERMISSIONS EITHER. The scope subset check, the
+// THERE ARE NO PERMISSIONS EITHER. The scope subset check, the
 // human-origin check and their two refusal classes are deleted, and so is the registry's safe-mode
 // listing filter: every door can call every operation. The caller record is not read here at all.
 // Its `surface` and `origin` survive only for the receipts and presentation that already consume
@@ -32,7 +32,7 @@ export class UnknownFunctionError extends Error {
   }
 }
 
-/** The supplied input failed the op's declared input contract (D-14). */
+/** The supplied input failed the op's declared input contract. */
 export class FunctionInputError extends Error {
   constructor(
     readonly functionId: string,
@@ -43,10 +43,10 @@ export class FunctionInputError extends Error {
   }
 }
 
-// 2026-10-01 (432-20, D-12): `FunctionScopeError` and `FunctionOriginError` are deleted with the
+// `FunctionScopeError` and `FunctionOriginError` are deleted with the
 // scope and human-origin checks that raised them. Nothing refuses a caller for who it is.
 
-// 2026-10-01 (432-19, D-15): `FunctionDeniedError` is deleted. It was the execution gate's
+// `FunctionDeniedError` is deleted. It was the execution gate's
 // refusal, carrying the gate's reason and remedies; no gate raises it since 432-13, and the doors
 // that reconstructed or rendered it no longer look for it.
 
@@ -69,8 +69,8 @@ function issueSummary(issues: readonly { path: PropertyKey[]; message: string }[
  *   4. dispatch                — the only place a spec implementation ever runs
  *   5. validate the output     — unary results honour their declared contract
  *
- * Stream ops (D-08) run through the SAME steps. Nothing between the refusals and dispatch asks
- * anybody anything (432-13), and nothing reads who is calling (432-20): `caller` is accepted so
+ * Stream ops run through the SAME steps. Nothing between the refusals and dispatch asks
+ * anybody anything, and nothing reads who is calling: `caller` is accepted so
  * every door keeps one call shape, and the record it carries is presentation data only.
  */
 export async function invokeFunction(
@@ -93,7 +93,7 @@ export async function invokeFunction(
   // The DECLARATION is authoritative — an op this composition reports as `unbound` never
   // dispatches, whatever its implementation happens to do — and it is the SAME
   // `resolveBindingStatus` a listing renders, so what a caller was shown and what dispatch
-  // enforces cannot disagree (D-16).
+  // enforces cannot disagree.
   if (resolveBindingStatus(spec, internals.deps) === 'unbound') {
     throw new FunctionNotBoundError(functionId)
   }

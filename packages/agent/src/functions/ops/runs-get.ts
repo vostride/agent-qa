@@ -1,4 +1,4 @@
-// `runs.get` — one completed run, projected in full (Phase 384, D-06).
+// `runs.get` — one completed run, projected in full.
 //
 // A pure function of (validated input, injected deps). The port resolves the id against the
 // runs it already enumerates and reports absence as `undefined`; turning that absence into a
@@ -33,7 +33,7 @@ export class RunNotFoundError extends Error {
   }
 }
 
-// 2026-10-18 (444-13, D-17): the run exists but never reached a verdict. `recorded` says whether
+// the run exists but never reached a verdict. `recorded` says whether
 // its runs.db row exists (the dashboard holds its record) or only its event log does.
 export class RunEndedWithoutVerdictError extends Error {
   constructor(readonly runId: string, readonly recorded: boolean) {
@@ -53,7 +53,7 @@ export class RunNotFinishedError extends Error {
 
 const IN_FLIGHT_ROW_STATUSES: ReadonlySet<string> = new Set(['running', 'pending'])
 
-// 2026-10-18 (444-13, D-17): the refusal for a run with no handoff. A sentence is given only when
+// the refusal for a run with no handoff. A sentence is given only when
 // the row and the log were both read and the log holds no verdict; an unbound port or a failed
 // read falls back to not-found, because absence is not a status.
 export async function refuseMissingHandoff(runId: RunId, deps: FunctionDeps): Promise<never> {
@@ -94,7 +94,7 @@ function toRunTestDetail(
     outcome: test.outcome,
     // Step evidence stays in the handoff document; 389's evidence links address it by
     // runId + testIndex. Projecting it here would make the cheapest read the most expensive.
-    // The same law covers sentences (389 D-11): this projection carries class/producer/
+    // The same law covers sentences: this projection carries class/producer/
     // confidence from the resolved verdict and NEVER a rendered sentence — an unbound
     // analysis port answers as artifact-absent (the deterministic floor), so the cheapest
     // read stays cheap in every composition.
@@ -111,7 +111,7 @@ function toRunTestDetail(
 }
 
 /**
- * Project one handoff over its RESOLVED verdicts (389 D-10/D-11): the summary block sources
+ * Project one handoff over its RESOLVED verdicts: the summary block sources
  * class/producer/confidence from `resolveRunVerdicts` — artifact verdicts when the analysis
  * upgraded them, the handoff's deterministic floor when not — joined per member by `perTest`.
  * A member the accessor holds no verdict for (clean pass, skipped, cancelled) projects no
@@ -153,7 +153,7 @@ export const runsGetSpec: FunctionSpec<RunsGetInput, RunDetail> = {
   output: RunDetailSchema,
   risk: { name: `fn:${RUNS_GET_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * A run that came back is a run that was found (399.1 D-01).
+   * A run that came back is a run that was found.
    *
    * Absence is `RunNotFoundError`, a throw, which already reaches the engine's `failed` mapping.
    * The verdict a run ENDED with is not this clause's verdict: a failing run is a successful read.
@@ -169,7 +169,7 @@ export const runsGetSpec: FunctionSpec<RunsGetInput, RunDetail> = {
     if (document === undefined) {
       throw new RunNotFoundError(input.runId)
     }
-    // 389 D-11: the rootCause block reads through the ONE accessor. An unbound analysis
+    // the rootCause block reads through the ONE accessor. An unbound analysis
     // port is treated as artifact-absent — the floor — never as a refusal: this op stays
     // bound in every composition, and its answer off the floor is honest, not degraded.
     return toRunDetail(

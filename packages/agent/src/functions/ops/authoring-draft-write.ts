@@ -19,11 +19,11 @@
 //   2. `chat/tool-names.ts` maps ids to provider-safe tool names by `.` ↔ `_` and REFUSES an id
 //      that already carries `_`, because such a name has two pre-images under the inverse. Since
 //      the planner binds every op, an underscore id would raise `ChatToolNameError` for the WHOLE
-//      projection rather than merely looking unconventional (T-394-07).
+//      projection rather than merely looking unconventional.
 // `draft` is the subject and `write` is the verb, so the pair reads `authoring.draft.{write,
 // verify}` and 394's edit op joins as `authoring.draft.edit` (plan 09) with no renaming.
 //
-// NO SCOPES (2026-10-01, 432-23, D-12). This op once declared `test-write`, `run` and `read`, so a
+// NO SCOPES. This op once declared `test-write`, `run` and `read`, so a
 // caller holding only `run` + `read` could not reach a file write through a nested call (394-01
 // minted `test-write` for it). Every door can call every operation now, so there is nothing to
 // declare and nothing for a nested call to widen.
@@ -34,7 +34,7 @@
 //
 // INPUT REFUSAL IS THE FIRST HALF OF `invoke`, for the reason the evaluator states and one more:
 // `intent` is free text from an arbitrary caller that reaches an LLM and then becomes bytes on
-// disk (T-394-06). The schema refuses the shape; the shelf refuses what the model produced, by
+// disk. The schema refuses the shape; the shelf refuses what the model produced, by
 // parsing before it writes.
 
 import {
@@ -57,7 +57,7 @@ import type { ClauseVerdict, FunctionSpec } from '../spec.js'
 export const AUTHORING_DRAFT_WRITE_FUNCTION_ID = 'authoring.draft.write'
 
 /**
- * The `stopped` arm, projected onto the result's `stop` payload (411 D-05/D-06/D-08).
+ * The `stopped` arm, projected onto the result's `stop` payload.
  *
  * THE OP PROJECTS; IT NEVER RE-DERIVES EVIDENCE. Every field here is copied from the route the
  * router derived or from the receipt's own LAST gate run — the same run stage 5 routed on and the
@@ -96,7 +96,7 @@ export function projectStop(
             : { verdictSource: String(point.verdictSource) }),
         },
     evidenceRefs: outcome.route.evidenceRefs,
-    // ONE SPREAD, so the kind and the spend are present on exactly the same payloads (411 D-08).
+    // ONE SPREAD, so the kind and the spend are present on exactly the same payloads.
     ...(outcome.abandonment === undefined
       ? {}
       : {
@@ -126,11 +126,11 @@ export const authoringDraftWriteSpec: FunctionSpec<
     name: `fn:${AUTHORING_DRAFT_WRITE_FUNCTION_ID}`,
     recognized: true,
   },
-  // 2026-10-02 (432-42, D-14/D-15): the per-invocation `disclose` method is deleted. It rendered the
+  // the per-invocation `disclose` method is deleted. It rendered the
   // fan-out preview for the dispatch confirm, which 432-19 deleted, and nothing called it since; the
   // fan-out report on the verdict below is what a caller reads.
   /**
-   * This op's own outcome enum, folded into a clause verdict (2026-08-20, Phase 399.1 D-01/D-02),
+   * This op's own outcome enum, folded into a clause verdict,
    * carrying the invocation's FAN-OUT REPORT (394-14 · WTST-08 · D-18's one exception).
    *
    * `refused` IS THE MEASURED WITNESS. 399's live acceptance recorded this op returning its stage-2
@@ -148,7 +148,7 @@ export const authoringDraftWriteSpec: FunctionSpec<
    * and a receipt — a correctly-failing draft is a VERDICT about the application, not a failure of
    * this op — so each is `executed`, and the outcome names the test that was authored. A `stopped`
    * invocation therefore renders `stopped <testName> — <fan-out sentence>` under a status chat and
-   * the parity walk already read: a spelling, never a shape (411 D-11).
+   * the parity walk already read: a spelling, never a shape.
    *
    * ---- the fan-out, migrated here from `turn-engine.ts` by 399.1-03 -----------------------------
    *
@@ -203,7 +203,7 @@ export const authoringDraftWriteSpec: FunctionSpec<
     }
     const authored = output.draftRef?.testName
     const named = authored === undefined ? output.outcome : `${output.outcome} ${authored}`
-    // 432 D-06: the written file is part of the claim. A draft the writer refused or failed to
+    // the written file is part of the claim. A draft the writer refused or failed to
     // write is not reported as executed — the author asked for a test file and did not get one.
     const file = output.written?.file
     if (file?.kind === 'not-written' && file.reason !== 'rejected') {
@@ -228,7 +228,7 @@ export const authoringDraftWriteSpec: FunctionSpec<
     // against nothing this project knows, indistinguishable at the caller from one compiled
     // against everything it knows. That is the answer this check exists to make impossible.
     //
-    // THE FILE HALF RIDES THE SHELF (432 D-06). The writer is `draftShelf.publish`, so a host that
+    // THE FILE HALF RIDES THE SHELF. The writer is `draftShelf.publish`, so a host that
     // can author is a host that can write what it authored — checked here, before any run is spent,
     // by the shelf's presence. 394-18's separate proposals port is no longer consulted: nothing is
     // filed for anybody to accept.
@@ -236,7 +236,7 @@ export const authoringDraftWriteSpec: FunctionSpec<
       throw new FunctionNotBoundError(AUTHORING_DRAFT_WRITE_FUNCTION_ID)
     }
 
-    // SCOPE IS RESOLVED HERE, ABOVE THE LOOP, AND NOWHERE ELSE (394-26, WINDOWS 110).
+    // SCOPE IS RESOLVED HERE, ABOVE THE LOOP, AND NOWHERE ELSE.
     //
     // The registry contract makes `scope` optional on the `runs.start` law — absent resolves from
     // the host — because a model cannot know this project's product keys and refuses the whole
@@ -260,7 +260,7 @@ export const authoringDraftWriteSpec: FunctionSpec<
         intent: input.intent,
         scope,
         ...(input.draftMode === undefined ? {} : { draftMode: input.draftMode }),
-        // 394-17 / D-12: handed on exactly as supplied, and this op invents nothing. The session
+        // handed on exactly as supplied, and this op invents nothing. The session
         // is a fact about the SURFACE that dispatched the call — the chat engine stamps its own
         // id at the invoke boundary — so a default here would attribute a CLI draft to a session
         // that never asked for it.
@@ -280,7 +280,7 @@ export const authoringDraftWriteSpec: FunctionSpec<
     // surface told `refused` with no `refusal` could report that something matched but never say
     // what, and re-invoking is the only continuation this stateless design offers.
     //
-    // THE FAN-OUT REPORT RIDES OUT (394-14 · WTST-08). The report is the recorded exception to the
+    // THE FAN-OUT REPORT RIDES OUT. The report is the recorded exception to the
     // output schema's no-payload rule and the argument is written there: it is counts and run refs
     // about the run budget, and WTST-08's owner decision made the honest report the second half of
     // the only control this op has. It is carried on EVERY arm the loop answers with a routing,
@@ -291,7 +291,7 @@ export const authoringDraftWriteSpec: FunctionSpec<
     // THE FINAL DRAFT IS ALREADY WRITTEN BY THE TIME THIS OP ANSWERS (432 D-06, superseding
     // 394-18's proposal filing). The loop wrote it — or, for a rejected final receipt, did not — and
     // the written-test receipt rides out on the `drafted` and `repaired` arms. Nothing is filed for a
-    // person to accept, and the stopped and refused arms write nothing (411 D-10/D-12, D-04).
+    // person to accept, and the stopped and refused arms write nothing.
     return {
       outcome: outcome.kind,
       fanOut: result.fanOut,

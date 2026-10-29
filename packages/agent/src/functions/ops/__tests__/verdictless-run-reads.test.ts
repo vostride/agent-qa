@@ -1,4 +1,4 @@
-// 2026-10-18 (444-13, D-17): a per-run read that refuses a missing handoff says what happened to a
+// a per-run read that refuses a missing handoff says what happened to a
 // run that never reached a verdict, instead of claiming the run does not exist.
 
 import { asJobId, CURRENT_BUS_SCHEMA_VERSION, MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'

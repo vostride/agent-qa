@@ -1,4 +1,4 @@
-// 2026-09-15, 423 D-19: ordinal mark history over a read-only feedback port.
+// ordinal mark history over a read-only feedback port.
 import { describe, expect, it, vi } from 'vitest'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import {
@@ -30,14 +30,14 @@ function receipt(ordinal: number, address: Address, overrides: Partial<MarkRecei
     ...(address.testId === undefined ? {} : { testId: address.testId }),
     ...(address.stepIndex === undefined ? {} : { stepIndex: address.stepIndex }),
     kind: 'false-fail', origin: 'user', ordinal,
-    // Deliberately descending: ordinal, never markedAt, governs latest-wins (419 D-11).
+    // Deliberately descending: ordinal, never markedAt, governs latest-wins.
     markedAt: 10_000 - ordinal * 10,
     disposition: { kind: 'quarantined', class: 'flake' }, evidence: { confirmed: 0, overturned: 0 },
     ...overrides,
   })
 }
 
-// 2026-09-30, 432-09: applied receipts, with the records a knowledge fix changed joined by the host.
+// applied receipts, with the records a knowledge fix changed joined by the host.
 const CONTENT = {
   content: 'The saved banner appears after checkout.', summary: 'saved banner', kind: 'fact',
   applicability: { product: 'shop', scope: 'shop', anchors: [], openedAtOrdinal: 1 },

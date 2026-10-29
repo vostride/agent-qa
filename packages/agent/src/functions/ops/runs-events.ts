@@ -1,4 +1,4 @@
-// `runs.events` — the D-08 stream kind, wired against the recorded event log (FUNC-07).
+// `runs.events` — the D-08 stream kind, wired against the recorded event log.
 //
 // A pure function of (validated input, injected deps). The op owns the resume ARITHMETIC
 // and the refusal vocabulary; the bytes arrive through `FunctionDeps.runs.readEvents`,
@@ -61,7 +61,7 @@ export const runsEventsSpec: FunctionStreamSpec<RunsEventsInput, RunEventEnvelop
   output: RunEventEnvelopeSchema,
   risk: { name: `fn:${RUNS_EVENTS_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * A STREAM'S VERDICT IS ABOUT THE ACQUISITION, AND IT MUST NOT READ AN ELEMENT (399.1 D-01/D-03).
+   * A STREAM'S VERDICT IS ABOUT THE ACQUISITION, AND IT MUST NOT READ AN ELEMENT.
    *
    * WHAT THIS OP CAN HONESTLY SAY. Every refusal it makes is a THROW before the iterable exists —
    * `StreamReplayFloorError` when the requested resume point is below what the log can still serve,

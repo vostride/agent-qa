@@ -31,7 +31,7 @@ const CONTEXTS: readonly ExecutionContext[] = ['local-interactive', 'local-headl
 
 const RECORD = { grain: 'record', recordId: 'rec-direct-1' } as const
 
-// 2026-10-03 (quick 261003-cpv, IN-21): an applied forget carries its forget receipt by rule.
+// an applied forget carries its forget receipt by rule.
 const FORGET_RECEIPT = {
   schemaVersion: FORGET_RECEIPT_SCHEMA_VERSION,
   proposalId: 'prop_alpha-bravo',
@@ -107,7 +107,7 @@ function deps(knowledgeReview: KnowledgeReviewPort): FunctionDeps {
   }
 }
 
-// 2026-10-02 (432-39, D-12): the registry takes no context.
+// the registry takes no context.
 // 2026-10-03 (quick-261003-tsr, IN-06): the unread `_context` parameter is dropped; the cell that
 // varies the context sets it through the ambient resolver every reader of it uses.
 function registry(port: KnowledgeReviewPort) {

@@ -1,4 +1,4 @@
-// `runs.knowledge` — the Knowledge panel's one read (Phase 407 plan 01, LERN-01 / LERN-02).
+// `runs.knowledge` — the Knowledge panel's one read.
 //
 // WHAT THESE CELLS ARE SHAPED TO CATCH. This op is a PROJECTION over a run's handoff plus three
 // sibling-op compositions, and the failure mode of a projection test is a green suite that only
@@ -9,10 +9,10 @@
 // a coincidence.
 //
 // The three claims the phase rests on and that a shape comparison would not see:
-//   1. A pruned handoff is a RESULT (`evidence-incomplete`), never a throw (D-06).
+//   1. A pruned handoff is a RESULT (`evidence-incomplete`), never a throw.
 //   2. "No knowledge reader was bound" is derived from the DURABLE truncation marker, not from a
-//      handoff version (D-16).
-//   3. A learned change is kept only when it is ATTRIBUTABLE to this run (D-10) — attribution
+//      handoff version.
+//   3. A learned change is kept only when it is ATTRIBUTABLE to this run — attribution
 //      unknown means the row is dropped, never guessed at.
 
 import {
@@ -137,7 +137,7 @@ const REPLAY: StepPlanSource = {
     total: 3,
     miss: { procedureStepIndex: 2, reason: 'page-anchor-mismatch' },
   },
-  // 407-12 (CR-01). `recordProcedureReplaySource` writes `flow` on EVERY replay it records, so a
+  // 407-12. `recordProcedureReplaySource` writes `flow` on EVERY replay it records, so a
   // fixture without it could not see the seam at all: the arm was `.strict()` and never declared
   // the member, and the wire refused every real replay run while this file stayed green.
   flow: { cursor: 0, length: 3 },
@@ -260,7 +260,7 @@ function deps(options: DepsOptions = {}): FunctionDeps {
       : {}),
     ...(options.bindProposalsInbox === true
       ? {
-          // 2026-10-02 (432-42, D-05/D-22): no inbox port is handed in. The dep key was deleted by
+          // no inbox port is handed in. The dep key was deleted by
           // 432-17 and nothing can read it; C432-LEFTOVERS-UNREAD pins that no source names it.
         }
       : {}),
@@ -541,7 +541,7 @@ describe('current content and fixed historical sections', () => {
 })
 
 /**
- * The layer's no-null idiom, asserted STRUCTURALLY (407-19, IN-03).
+ * The layer's no-null idiom, asserted STRUCTURALLY.
  *
  * Serialising the DTO and searching those bytes for the four letters `n-u-l-l` — the form these
  * cells used before — reds on any record id, step text or CSS selector that merely CONTAINS them.
@@ -587,7 +587,7 @@ async function ready(options: DepsOptions = {}) {
 describe('the spec declares a read-tier, everywhere-bound contract', () => {
   it('names its id, scopes and risk the way its read siblings do', () => {
     expect(runsKnowledgeSpec.id).toBe('runs.knowledge')
-    // RE-SPELLED 2026-10-01 (432-26, D-12) from `requiredScopes` equal to ['read']: the op declares
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read']: the op declares
     // no scope. Its read tier is the read-only risk pinned below, the same as its read siblings'.
     expect(runsKnowledgeSpec).not.toHaveProperty('requiredScopes')
     expect(runsKnowledgeSpec.resultKind).toBe('unary')
@@ -604,7 +604,7 @@ describe('the spec declares a read-tier, everywhere-bound contract', () => {
     expect(runsKnowledgeSpec.boundThrough).toBeUndefined()
   })
 
-  // RE-SPELLED 2026-10-01 (432-23, D-12): the claim compared each sibling's `requiredScopes` with
+  // RE-SPELLED 2026-10-01: the claim compared each sibling's `requiredScopes` with
   // this op's, so a composed sibling could not need more scope than a `read` caller was granted.
   // Scopes are gone (`knowledge.records.diff` declares none now, and `runs.digest` none since
   // 432-24). What survives is the half a scope stood for: a sibling this read composes must itself
@@ -650,7 +650,7 @@ describe('the Used half projects every step of every member test', () => {
       { id: 'rec-b', detailLevel: 'summary', bodyDigest: 'body-1', contentAbsence: { reason: 'not-bound' } },
     ])
     // Anchors are deliberately NOT projected: the panel renders a caution's sentence only.
-    // 423-34: a host binding no batch record read names that absence instead of omitting it.
+    // a host binding no batch record read names that absence instead of omitting it.
     expect(result.steps[0]?.served.channel3).toEqual([
       { id: 'rec-c', summary: 'the checkout button moves on mobile', contentAbsence: { reason: 'not-bound' } },
     ])
@@ -760,7 +760,7 @@ describe('the store binding is derived from durable bytes', () => {
     const result = await ready({ document })
 
     expect(result.knowledgeStore).toBe('unbound')
-    // A project with no store did not degrade, so there is no rung to report (D-16).
+    // A project with no store did not degrade, so there is no rung to report.
     expect('retrievalRung' in result).toBe(false)
   })
 
@@ -1054,7 +1054,7 @@ describe('a partial attribution walk raises the flag by CONTRACT, and the op emi
   })
 })
 
-// RE-SPELLED 432-09 (D-25) from 'the proposals line rides only where an inbox is bound (D-11)': the tab
+// RE-SPELLED 432-09 from 'the proposals line rides only where an inbox is bound': the tab
 // shows what changed and never what awaits review, so no host joins a pending-proposal count.
 describe('no pending-proposal count rides the projection, inbox bound or not', () => {
   it('carries no pendingProposalCount key on a host with no inbox', async () => {
@@ -1082,7 +1082,7 @@ describe('the DTO never carries a null and always validates', () => {
   })
 
   it('the no-null walk names the member it found — the idiom is structural, not textual', () => {
-    // The control for the helper above (IN-03): a record id, a step text or a selector carrying
+    // The control for the helper above: a record id, a step text or a selector carrying
     // the four letters `null` must NOT red these cells, and a real null must red them by PATH.
     expect(() => assertNoNull({ a: [{ b: null }] })).toThrow(/a\[0\]\.b/)
     expect(() => assertNoNull({ recordId: 'rec-[data-null]', steps: ['nullable selector'] }))
@@ -1215,7 +1215,7 @@ describe('recorded rung causes on runs.knowledge', () => {
   })
 })
 
-// ---- C432-ALL-OPS-AVAILABLE (432-26, D-12) ------------------------------
+// ---- C432-ALL-OPS-AVAILABLE ------------------------------
 //
 // `runs.knowledge` and the chip read it composes, `runs.postprocessing`, once required `read`.
 // Retried from three callers that differ in surface and origin, and that carry no scope at all,

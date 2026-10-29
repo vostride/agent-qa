@@ -1,4 +1,4 @@
-// `analysis.get` — THE one producer of a run's analysis (Phase 389, D-10/D-11/D-14/D-15).
+// `analysis.get` — THE one producer of a run's analysis.
 //
 // Resolved verdicts, rendered sentences (live recurrence joins applied) and clusters, served
 // through one op that every surface calls — plan 07's CLI print, M5's run page, 392's chat.
@@ -49,7 +49,7 @@ import type {
 import { ANALYSIS_GET_FUNCTION_ID } from '../ops/analysis-get.js'
 import { RUNS_GET_FUNCTION_ID } from '../ops/runs-get.js'
 
-// 2026-10-01 (432-29, D-12): the retired `grantedScopes` and `safeMode` caller fields and the
+// the retired `grantedScopes` and `safeMode` caller fields and the
 // retired `resolveExecutionContext` registry option are dropped; nothing read them.
 const CALLER: FunctionCaller = {
   surface: 'test',
@@ -189,7 +189,7 @@ describe('analysis.get — the handoff floor', () => {
     const output = await analysisOf(registry, String(handoff.runId))
 
     expect(output.runId).toBe(String(handoff.runId))
-    // 406 D-01: `evidence` is on every verdict, floor included — the minted unknown cites nothing
+    // `evidence` is on every verdict, floor included — the minted unknown cites nothing
     // and says so, rather than omitting the key and leaving a reader to guess which it meant.
     expect(output.verdicts).toEqual([
       { perTest: 0, testId: 't_failed_0', class: 'unknown', producer: 'deterministic-classifier', confidence: 0, evidence: { citedSteps: [], citedArtifacts: [] } },
@@ -289,7 +289,7 @@ describe('analysis.get — the artifact leg and the one accessor', () => {
   })
 
   it('keys the fingerprint by the RESOLVED class — an upgraded verdict queries a different window', async () => {
-    // The recipe folds the class in (389 D-13), so the same anchor failing as `unknown` and as
+    // The recipe folds the class in, so the same anchor failing as `unknown` and as
     // `app_bug` are two windows. The caller must therefore key from the resolved verdict, not
     // from the handoff's floor — which is exactly what the projection's writer does.
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
@@ -370,7 +370,7 @@ describe('analysis.get — the artifact leg and the one accessor', () => {
   })
 })
 
-// The evidence projection (406-03, D-01/D-17, DETL-04/DETL-05).
+// The evidence projection.
 //
 // A verdict on the wire used to say WHAT it concluded and never WHAT it read. The failure view's
 // links are those refs, and re-deriving them in the page would be a second join over the same
@@ -560,7 +560,7 @@ describe('analysis.get — read-time presence on cited artifacts', () => {
     // WITHIN one verdict's cited list, which is the scope `annotatePresence` dedups over and the
     // scope this cell measures. The cross-verdict case — 40 members citing one screenshot — is NOT
     // collapsed, because both callers invoke the annotation per member; that residual is recorded
-    // on `evidence-presence.ts` rather than mitigated (T-406-12).
+    // on `evidence-presence.ts` rather than mitigated.
     const seen: string[] = []
     const other = 'b'.repeat(64)
     await citedArtifactUnder(blobsAnswering('found', seen), [
@@ -572,7 +572,7 @@ describe('analysis.get — read-time presence on cited artifacts', () => {
   })
 })
 
-// D-12 through the op, and the census that keeps it single (406-04, DETL-04).
+// D-12 through the op, and the census that keeps it single.
 //
 // Two claims, and the second is what makes the first durable. The op serves the CLEANED
 // sentence — the 399 seeded-red quote read as an escape stream on every surface — and its
@@ -657,7 +657,7 @@ describe('analysis.get — the quote leg, through the ONE renderer', () => {
       .toContain(`observed (step 1): "${SEEDED_RED_399_READABLE}"`)
     expect(output.sentences[0]!.sentence).not.toContain(ESC)
     expect(output.sentences[0]!.sentence).not.toContain('\n')
-    // The cluster LOOKS THE SENTENCE UP (D-15) rather than re-rendering it, so the cleaned
+    // The cluster LOOKS THE SENTENCE UP rather than re-rendering it, so the cleaned
     // form cannot drift between the per-test list and the cluster header.
     expect(output.clusters[0]!.representative.sentence).toBe(output.sentences[0]!.sentence)
   })

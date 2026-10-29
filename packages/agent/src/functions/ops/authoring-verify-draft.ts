@@ -23,14 +23,14 @@
 //
 // THE OP IS COMPOSITION, NOT MECHANISM. Every gate lives in `../../authoring/`; what is added here
 // is the entry point, its refusals, and the tier it is classified at. The four ports one
-// evaluation runs against are assembled at `composeLocalAgent()` (385 D-15) and arrive through the
+// evaluation runs against are assembled at `composeLocalAgent()` and arrive through the
 // OPTIONAL `draftEvaluation` dep, so a host that cannot parse a draft or start a run lists this
-// capability `unbound` BY NAME rather than as a hole in the catalogue (D-09).
+// capability `unbound` BY NAME rather than as a hole in the catalogue.
 //
 // INPUT REFUSAL IS THE POINT OF THE FIRST HALF OF `invoke`. 392 D-07 makes this op chat-reachable
 // the moment it registers, so `draftPath` is a string an arbitrary caller chose. Every way it can
 // be wrong answers with a NAMED error rather than with a run started against a path nobody
-// checked (T-393-01).
+// checked.
 
 import { AuthoringVerifyDraftInputSchema, DraftReceiptSchema } from '@vostride/agent-qa-schema'
 import type { AuthoringVerifyDraftInput, DraftReceipt } from '@vostride/agent-qa-schema'
@@ -80,7 +80,7 @@ export class DraftNotAFileError extends Error {
 }
 
 /**
- * The path names something outside the workspace this host serves (T-393-01).
+ * The path names something outside the workspace this host serves.
  *
  * The boundary is enforced by the BOUND capability, because the resolved workspace root is a fact
  * only a host knows and `packages/agent` is `storageNeutral` — it cannot resolve a path, let alone
@@ -124,7 +124,7 @@ function hasDraftExtension(draftPath: string): boolean {
 export const authoringVerifyDraftSpec: FunctionSpec<AuthoringVerifyDraftInput, DraftReceipt> = {
   id: AUTHORING_DRAFT_VERIFY_FUNCTION_ID,
   summary: 'Evaluate a draft test against the four keep-gates and return its receipt.',
-  // 2026-10-01 (432-23, D-12): no scopes. The evaluation STARTS runs and READS the completed
+  // no scopes. The evaluation STARTS runs and READS the completed
   // records back, and the composition invokes those sibling ops on a caller it mints (D-02,
   // op-calls-op). The `run` + `read` pair once declared here kept a nested call from widening a
   // grant; with no grants to widen, every door can call this op and its siblings alike.

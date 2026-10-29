@@ -1,14 +1,14 @@
-// `knowledge.accept` — promote a candidate the caller stands behind (Phase 387, KREV-01; 432-12, D-05).
+// `knowledge.accept` — promote a candidate the caller stands behind.
 //
-// 2026-09-30, 432-12 (D-04/D-05/D-09): the change APPLIES IN THE CALL. The op validates its input,
+// the change APPLIES IN THE CALL. The op validates its input,
 // hands the review port one direct change and answers what the explicit writer changed: the
 // records it read back, and the commit receipt when a promotion gate was crossed. Nothing is
 // proposed and nothing waits for a second call; the retired `knowledge.accept.propose` id has no
-// alias (D-02). This file keeps its name until the later rename audit, so its consumers move first.
+// alias. This file keeps its name until the later rename audit, so its consumers move first.
 //
 // `readOnly: false`, at the recognized-mutating floor: an explicit change to this machine's
-// knowledge runs in every execution context (D-01, D-08), and the writer behind the port keeps the
-// lease, delta validation, bundle egress and every promotion gate. 2026-10-01 (432-26, D-12): it
+// knowledge runs in every execution context, and the writer behind the port keeps the
+// lease, delta validation, bundle egress and every promotion gate. 2026-10-01: it
 // declares no `knowledge-write` scope any more; every door can call it. It binds through the
 // OPTIONAL `knowledgeReview` dep and never `deps.knowledge`: the reader port is physically
 // write-free, and a host that supplies no review port lists this verb `unbound` BY NAME.

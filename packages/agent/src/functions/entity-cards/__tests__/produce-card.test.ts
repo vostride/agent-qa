@@ -1,4 +1,4 @@
-// The ONE card producer, over all five kinds (Phase 387 plan 07, ENTY-02 / D-04 / D-10 / D-12).
+// The ONE card producer, over all five kinds.
 //
 // The gates here are shaped against the failure this phase keeps finding — a check whose LOGIC
 // is sound but whose INPUT DOMAIN never contains a case it could reject. Three of them are
@@ -51,7 +51,7 @@ import { ForgetReceiptKindError, produceEntityCard } from '../produce-card.js'
 
 // ---- fixtures ---------------------------------------------------------------------------
 
-/** A short-ID in each kind's own address FORM (D-03): four ordinal, `TGT` slug. */
+/** A short-ID in each kind's own address FORM: four ordinal, `TGT` slug. */
 const SHORT_IDS = {
   TST: 'TST-001',
   RUN: 'RUN-002',
@@ -292,7 +292,7 @@ describe('a minted address renders an honest card', () => {
   })
 
   it('never builds a rename link for an ordinal-addressed kind', () => {
-    // `MEM-checkout-v2` is not a wrong link, it is an unrepresentable address (D-03). The
+    // `MEM-checkout-v2` is not a wrong link, it is an unrepresentable address. The
     // resolver only sets the field for TGT; this guards the producer's own input domain.
     const card = produceEntityCard(
       descriptorFor('MEM', { successorMachineId: 'checkout-v2' }),

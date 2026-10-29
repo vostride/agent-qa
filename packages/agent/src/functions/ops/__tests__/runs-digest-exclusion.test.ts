@@ -2,7 +2,7 @@
 // the exclusion fact in 444 D-39). The value sits on `chain.skipped` and the line prints
 // `skipped (<word>)` from the schema's one word map.
 //
-// ONE FOLD, ONE PRODUCER (425-14). With a post-processing reader bound, the fact is the one
+// ONE FOLD, ONE PRODUCER. With a post-processing reader bound, the fact is the one
 // `runs.postprocessing` folded and the digest publishes it; only a host with no such reader falls
 // back to folding the handoff this op already loads for its own run-not-found refusal. Never read
 // off missing job rows, and never off `run.status`. A gate run's chain is never enqueued, so an op
@@ -33,8 +33,8 @@ import { RUNS_DIGEST_FUNCTION_ID } from '../runs-digest.js'
 
 const RUN_ID = 'run-425-07-digest'
 
-// 2026-10-01 (432-35, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -72,7 +72,7 @@ async function digestFor(document: CompletedRunHandoff): Promise<RunDigest> {
 }
 
 /**
- * The same scene with its two variables exposed (425-14 · WR-04): what each successive
+ * The same scene with its two variables exposed: what each successive
  * `runs.get` serves, and whether a post-processing reader is bound at all.
  */
 async function digestOver(scene: {
@@ -117,8 +117,8 @@ async function digestOver(scene: {
 
   const registry = createFunctionRegistry({
     deps,
-    // 2026-10-01 (432-35, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
   return await invokeFunction(
     registry,

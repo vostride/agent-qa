@@ -1,4 +1,4 @@
-// The clause verdict for a direct knowledge change — one fold for the three ops (261003-cpv, IN-04).
+// The clause verdict for a direct knowledge change — one fold for the three ops.
 //
 // `knowledge.accept`, `knowledge.reject` and `knowledge.forget` answer one union,
 // `KnowledgeChangeOutput`, and each carried a byte-identical copy of this switch. One fold, on the

@@ -1,12 +1,12 @@
-// `quarantine.release` — the human half of the exit path (Phase 390, D-13).
+// `quarantine.release` — the human half of the exit path.
 //
 // Quarantine already exits on its own two ways: M consecutive passing build ordinals
-// (`released-auto`) and the wall-clock expiry that makes suppression stop (D-10/D-11). This is
+// (`released-auto`) and the wall-clock expiry that makes suppression stop. This is
 // the third — a person deciding the test is fixed and saying so now — and it is what keeps the
 // automatic exits conservative: a rule that has to be the ONLY way out has to be tuned for the
 // impatient case, and this verb is why it does not.
 //
-// A DIRECT WRITE, NOT A PROPOSE+APPLY PAIR (D-13). The two-step KREV idiom exists for
+// A DIRECT WRITE, NOT A PROPOSE+APPLY PAIR. The two-step KREV idiom exists for
 // LEARNED-knowledge mutations, where the deltas a verb would commit are computed, reviewed and
 // then applied by id. This is operational state: the caller already knows exactly which test it
 // means, the change is one append to an event log, and the counterpart verb reverses it. 391
@@ -18,7 +18,7 @@
 // human to it, a second click — and a rejected promise would report it as a failure of the
 // system rather than as a fact about the ledger.
 //
-// 2026-10-01 (432-25, D-12): this verb no longer declares a write scope; `quarantine-add.ts` says
+// this verb no longer declares a write scope; `quarantine-add.ts` says
 // why both verbs once carried `knowledge-write` and what bounds them now.
 
 import {
@@ -30,7 +30,7 @@ import type { QuarantineReleaseInput, QuarantineReleaseOutput } from '@vostride/
 import { FunctionNotBoundError } from '../spec.js'
 import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 
-/** The literal appears here once; every surface names the constant (384 D-15). */
+/** The literal appears here once; every surface names the constant. */
 export const QUARANTINE_RELEASE_FUNCTION_ID = 'quarantine.release'
 
 export const quarantineReleaseSpec: FunctionSpec<
@@ -45,7 +45,7 @@ export const quarantineReleaseSpec: FunctionSpec<
   output: QuarantineReleaseOutputSchema,
   risk: { name: `fn:${QUARANTINE_RELEASE_FUNCTION_ID}`, recognized: true, readOnly: false },
   /**
-   * `no-entry` IS "an ordinary answer to an ordinary question" — the contract's words (399.1 D-01).
+   * `no-entry` IS "an ordinary answer to an ordinary question" — the contract's words.
    */
   classify(output): ClauseVerdict {
     switch (output.kind) {
@@ -71,7 +71,7 @@ export const quarantineReleaseSpec: FunctionSpec<
 
     // Forwarded verbatim: the identity legs are DATA the implementation matches entries on —
     // never joined onto a path. The ledger's location is a fixed constant at the knowledge
-    // root, so no caller string ever addresses a file (T-390-10).
+    // root, so no caller string ever addresses a file.
     return await quarantine.release(input)
   },
 }

@@ -1,11 +1,11 @@
-// `authoring.funnel.get` at the function layer (394-07, D-12/D-13 · WTST-05).
+// `authoring.funnel.get` at the function layer.
 //
 // WHAT THESE CASES PIN, AND WHY EACH ONE:
 //
 //  1. THE TIER IS STATED ON THE SPEC. `readOnly: true` is the claim a reviewer objects to if
-//     per-session authoring history read by any caller is the wrong call (T-394-26). A comment
+//     per-session authoring history read by any caller is the wrong call. A comment
 //     saying "this is read-only" is worth nothing; the descriptor is what the classifier reads.
-//     2026-10-01 (432-23, D-12): the `['read']` scope that stood beside it is gone with every
+//     the `['read']` scope that stood beside it is gone with every
 //     scope; no caller is checked for one.
 //  2. REFUSAL BY NAME, AT BOTH LAYERS. `invokeFunction` refuses on the DECLARATION, and the op
 //     body guards too, so a direct in-layer call cannot slip past. An unbound host answering an
@@ -34,7 +34,7 @@ import {
 import type { AuthoringFunnelPortLike } from '../../authoring/funnel.js'
 import type { FunctionDeps } from '../spec.js'
 
-// 2026-10-01 (432-23, D-12): attribution only. It once held every scope; there are none to hold.
+// attribution only. It once held every scope; there are none to hold.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -71,7 +71,7 @@ function receipt(digest: string, sessionRef?: string): DraftReceipt {
   })
 }
 
-/** 12 receipts — above the floor of 10. 2026-10-01 (432-17): no acceptance is recorded for any. */
+/** 12 receipts — above the floor of 10. 2026-10-01: no acceptance is recorded for any. */
 const RECEIPTS = Array.from({ length: 12 }, (_unused, index) => receipt(`d${index}`, 'sess-alpha'))
 
 function funnelPort(): AuthoringFunnelPortLike {
@@ -117,7 +117,7 @@ function registryWith(authoringFunnel?: AuthoringFunnelPortLike) {
 }
 
 describe(`${AUTHORING_FUNNEL_GET_FUNCTION_ID} — the honesty funnel's one read`, () => {
-  // RE-SPELLED 2026-10-01 (432-23, D-12) from 'declares `read` alone and a read-only risk
+  // RE-SPELLED 2026-10-01 from 'declares `read` alone and a read-only risk
   // descriptor': the op-spec owner removed the retired scope, so the spec now declares none.
   it('declares no scope and a read-only risk descriptor', () => {
     expect(authoringFunnelGetSpec.id).toBe('authoring.funnel.get')
@@ -163,7 +163,7 @@ describe(`${AUTHORING_FUNNEL_GET_FUNCTION_ID} — the honesty funnel's one read`
     expect(answered).toEqual(expected)
   })
 
-  // RE-SPELLED 2026-10-02 (quick 261002-ctr): was 'answers no acceptance and no ACCEPTANCE FAILURE
+  // RE-SPELLED 2026-10-02: was 'answers no acceptance and no ACCEPTANCE FAILURE
   // through the op, since nothing records one'. The terminal stage reads each receipt's stored
   // disposition, so twelve keep-eligible receipts are twelve write-eligible drafts, above the floor
   // and above the ceiling: the flag fires through the op again.

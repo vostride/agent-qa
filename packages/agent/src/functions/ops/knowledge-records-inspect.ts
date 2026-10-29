@@ -1,4 +1,4 @@
-// `knowledge.records.inspect` — the record-level maintenance view (Phase 387, KREV-01).
+// `knowledge.records.inspect` — the record-level maintenance view.
 //
 // WIRING over an existing reader export, which is KREV-01's own claim about this verb: the
 // whole of the query lives behind the port, in `inspectRecords`, and this file adds a filter
@@ -50,7 +50,7 @@ export const knowledgeRecordsInspectSpec: FunctionSpec<
   output: KnowledgeRecordsInspectOutputSchema,
   risk: { name: `fn:${KNOWLEDGE_RECORDS_INSPECT_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * An inspection that answered — the count, and no record content (399.1 D-01).
+   * An inspection that answered — the count, and no record content.
    */
   classify(output): ClauseVerdict {
     return { status: 'executed', outcome: `${output.records.length} record(s) inspected` }

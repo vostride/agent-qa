@@ -1,7 +1,6 @@
 // The card's quarantine context: where the ledger is read, and where it deliberately is NOT
-// (Phase 390, D-11/D-12).
 //
-// The producer stays pure and synchronous (387 ENTY-02), so the ledger read happens at the OP
+// The producer stays pure and synchronous, so the ledger read happens at the OP
 // boundary, exactly where the dashboard-URL read already happens. Two properties are pinned here
 // and neither is about rendering:
 //

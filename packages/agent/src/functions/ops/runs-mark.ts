@@ -1,4 +1,4 @@
-// 419 GATE3-01: every mark door invokes this spec through the function pipeline (`invokeFunction`;
+// every mark door invokes this spec through the function pipeline (`invokeFunction`;
 // its permission gate is deleted, 432-19).
 import { RunsMarkInputSchema, RunsMarkOutcomeSchema } from '@vostride/agent-qa-schema'
 import type { RunsMarkInput, RunsMarkOutcome } from '@vostride/agent-qa-schema'
@@ -23,7 +23,7 @@ export const runsMarkSpec: FunctionSpec<RunsMarkInput, RunsMarkOutcome> = {
     readOnly: false,
   },
   classify(output): ClauseVerdict {
-    // T-419-10: receipt text contains only governed kinds, never notes or producer strings.
+    // receipt text contains only governed kinds, never notes or producer strings.
     switch (output.kind) {
       case 'marked':
         return { status: 'executed', outcome: `marked ${output.receipt.kind} · ${output.receipt.disposition.kind}` }

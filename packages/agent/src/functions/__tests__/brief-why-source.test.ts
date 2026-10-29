@@ -1,4 +1,4 @@
-// The why-verb cannot re-run retrieval (Phase 387 plan 06, KREV-02 / D-15 / T-387-06-01).
+// The why-verb cannot re-run retrieval.
 //
 // D-15's prohibition is "never re-run retrieval to answer". A behaviour test can show that a
 // given invocation did not re-run one; it cannot show that no invocation could. This file

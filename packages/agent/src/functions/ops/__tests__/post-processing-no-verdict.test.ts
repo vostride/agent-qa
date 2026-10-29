@@ -1,4 +1,4 @@
-// 2026-10-18 (444-12, D-14): a run that ended with no verdict reads `skipped (no verdict)`, derived
+// a run that ended with no verdict reads `skipped (no verdict)`, derived
 // from the run's own record (its runs.db row and its event log), never from missing job rows.
 
 import {

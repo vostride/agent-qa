@@ -1,5 +1,5 @@
 // The cross-spelling pin between schema's closed protected set and the registry it protected (Phase
-// 391, PROP-05, plan 05), RE-SPELLED 2026-10-01 (432-18, D-15) as the set's absence.
+// 391, PROP-05, plan 05), RE-SPELLED 2026-10-01 as the set's absence.
 //
 // The set (`['fn:proposals.accept', 'fn:grants.revoke']`) named the action classes no standing grant
 // could cover. 432-17 deleted `proposals.accept` and 432-18 deletes `grants.revoke`, the grant
@@ -71,7 +71,7 @@ function declarations(): readonly FunctionDeclaration[] {
 }
 
 describe('the protected action classes name real registered ops', () => {
-  // RE-SPELLED 2026-10-01 (432-18) from 'is not vacuous: the catalogue and the protected set are both
+  // RE-SPELLED 2026-10-01 from 'is not vacuous: the catalogue and the protected set are both
   // non-empty': the catalogue still is, and the set is gone.
   it('the catalogue is non-empty and no protected-class set is published', () => {
     expect(declarations().length).toBeGreaterThan(0)
@@ -80,7 +80,7 @@ describe('the protected action classes name real registered ops', () => {
       .toEqual([])
   })
 
-  // RE-SPELLED 2026-10-01 (432-18) from 'each member is the risk.name of EXACTLY ONE registered op'
+  // RE-SPELLED 2026-10-01 from 'each member is the risk.name of EXACTLY ONE registered op'
   // and 'the BARE spelling of each member matches no registered op': both members' ops are deleted.
   it('neither former protected class names a registered op, prefixed or bare', () => {
     const names = declarations().flatMap((declaration) => [declaration.risk.name, declaration.id])

@@ -1,4 +1,4 @@
-// `config.get` — the masked resolved-configuration read (Phase 384, D-06).
+// `config.get` — the masked resolved-configuration read.
 //
 // The op is a pass-through by design. Masking happens where the configuration is RESOLVED,
 // inside the composition root, while each entry is constructed. If this op masked instead,
@@ -20,7 +20,7 @@ export const configGetSpec: FunctionSpec<ConfigGetInput, MaskedResolvedConfig> =
   output: MaskedResolvedConfigSchema,
   risk: { name: `fn:${CONFIG_GET_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * A read that answered — the count of what it resolved, and nothing out of it (399.1 D-01).
+   * A read that answered — the count of what it resolved, and nothing out of it.
    *
    * NOT ONE ENTRY'S VALUE, ever. This op's result carries a person's configuration, placeholder-
    * masked; the receipt is a map and the masked payload travels on `results[]` where the surface's

@@ -1,13 +1,13 @@
 // `config.target.edit` — the closed typed action class's third member (Phase 395-05, D-01/D-02/D-15
 // · CFGM-01).
 //
-// 2026-09-30, 432-11 D-05/D-07: THIS OP WRITES IN THE CALL. It is constructed, scanned and validated
+// THIS OP WRITES IN THE CALL. It is constructed, scanned and validated
 // as described below and then published through the direct writer; the answer names the files and
 // fields it changed, a blocked change is answered with its report and nothing is kept, and no git
 // runs. Where the paragraphs below say "proposal", read the change this call writes.
 //
 // `config-field-set.ts`'s header carries the arguments for the tier and the one-op-per-action
-// shape; they are not restated. 2026-10-01 (432-23, D-12): the op declares no scope, because no
+// shape; they are not restated. 2026-10-01: the op declares no scope, because no
 // caller is checked for one. What is different about this one is its refusal.
 //
 // AN ABSENT TARGET IS A NAMED REFUSAL THAT LISTS THE CONFIGURED NAMES, which is 387's disambiguation
@@ -46,9 +46,9 @@ export const configTargetEditSpec: FunctionSpec<ConfigTargetEditInput, ConfigCha
     readOnly: false,
   },
   /**
-   * This op's own union, folded into a clause verdict (2026-08-20, Phase 399.1 D-01/D-02).
+   * This op's own union, folded into a clause verdict.
    *
-   * THE FOLD IS SHARED BECAUSE THE UNION IS. Six ops answer with `ConfigChangeOutput` (432-11), and a
+   * THE FOLD IS SHARED BECAUSE THE UNION IS. Six ops answer with `ConfigChangeOutput`, and a
    * per-op copy of the mapping would be a guardrail refusal that reports `refused` on some doors
    * and `executed` on others the first time one copy is edited. See `config-propose-verdict.ts`
    * for why `blocked` and `refused` are the same status and different words.

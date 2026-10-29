@@ -1,4 +1,4 @@
-// `authoring.draft.edit` — the declared surface and the refusals (394-09, D-21 · WTST-07).
+// `authoring.draft.edit` — the declared surface and the refusals.
 //
 // This file owns what can be measured without a yaml CST: the scopes the verb declares, that it
 // starts zero runs, and that every way an edit can be wrong is a NAMED refusal that constructs no
@@ -101,7 +101,7 @@ function bench(options: BenchOptions = {}): Bench {
     verifyDraft: () => {
       throw new Error('authoring.draft.edit re-runs no gates — authoring.draft.verify exists for that')
     },
-    // 432 D-06: the direct writer. Records what it was asked to write; answers as the host does.
+    // the direct writer. Records what it was asked to write; answers as the host does.
     publish: (request) => {
       published.push(request)
       return options.publish?.(request) ?? Promise.resolve({
@@ -146,8 +146,8 @@ async function edit(
 }
 
 describe('the declared surface', () => {
-  // RE-SPELLED 2026-10-01 (432-24, D-12) from 'declares test-write and read, and NOT run'. The
-  // scopes were what a grant matched on (T-394-37); grants and scopes are gone, so the op declares
+  // RE-SPELLED 2026-10-01 from 'declares test-write and read, and NOT run'. The
+  // scopes were what a grant matched on; grants and scopes are gone, so the op declares
   // none. That it starts no run stays pinned below by 'starts zero runs on the happy path'.
   it('declares no scope, and keeps its identity', () => {
     expect(authoringDraftEditSpec).not.toHaveProperty('requiredScopes')
@@ -167,7 +167,7 @@ describe('the declared surface', () => {
     // NO `disclose`. 394-08 added that channel for an op whose per-invocation COST a person has to
     // consent to; this one previews nothing because it spends nothing, and a disclosure composed
     // for it would be a sentence about a fan-out that does not exist.
-    // 2026-10-02 (432-42, D-14): the spec member is deleted, so the absence is read off the object.
+    // the spec member is deleted, so the absence is read off the object.
     expect(authoringDraftEditSpec).not.toHaveProperty('disclose')
   })
 
@@ -179,7 +179,7 @@ describe('the declared surface', () => {
     // The run port throws, so reaching this line at all is the claim. The schema parse beside it
     // is what makes the answer a contract rather than an object shaped like one.
     expect(AuthoringDraftEditOutputSchema.safeParse(result).success).toBe(true)
-    // RE-SPELLED 2026-10-01 (432-17, D-06): the `runsPreviewed`/`runsConsumed` pair rode the deleted
+    // RE-SPELLED 2026-10-01: the `runsPreviewed`/`runsConsumed` pair rode the deleted
     // test-draft arm. The answer carries no run count now, and the run port above throws on a start,
     // so zero runs is measured by reaching this line; the pinned N is still a real bound.
     expect(result).not.toHaveProperty('proposal')
@@ -203,7 +203,7 @@ describe('the declared surface', () => {
       testName: TARGET.testName,
       boundBy: 'exact-ref',
     })
-    // RE-SPELLED 2026-10-01 (432-17, D-06): the `unverified` disposition rode the deleted test-draft
+    // RE-SPELLED 2026-10-01: the `unverified` disposition rode the deleted test-draft
     // arm. This op still runs no gates; what it answers is the file it wrote.
     expect(result.written.kind).toBe('written')
     expect(result.draftRef.contentDigest).toBe('digest-edited')
@@ -227,7 +227,7 @@ describe('every way an edit can be wrong is a named refusal that proposes nothin
     expect(refusal).toBeInstanceOf(EditRegionRefusedError)
     expect((refusal as EditRegionRefusedError).offendingPaths).toEqual(['/target'])
     // THE WHOLE SET, including the legitimate op ahead of the refused one. A per-op check would
-    // already have staged the first patch before it refused the second (T-394-36).
+    // already have staged the first patch before it refused the second.
     expect(benched.applied).toEqual([])
     expect(benched.published).toEqual([])
   })

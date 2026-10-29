@@ -1,4 +1,4 @@
-// 2026-10-12 (440-01, D-13/D-14): the historical substitution and its two faithful twins, through
+// the historical substitution and its two faithful twins, through
 // the public op with a scripted model and a fake shelf.
 
 import {
@@ -367,7 +367,7 @@ describe('authoring.draft.write on the historical substitution and its faithful 
   })
 })
 
-// 2026-10-12 (440-02, D-02/D-05/D-09): the compile check's behaviours through the public op.
+// the compile check's behaviours through the public op.
 const CASE_CHANGED_DOCUMENT = `name: Confirm the products page shows the Kitchen appliances heading
 test-id: t_amber-cotton-ledger-marble-quartz-signal-timber-violet-walnut-yellow
 target: automation-exercise
@@ -527,7 +527,7 @@ describe('the compile prompt', () => {
   })
 })
 
-// 2026-10-12 (440-07, D-02/D-05; CR-01): a numbered request through the public op.
+// a numbered request through the public op.
 const NUMBERED_REQUEST = '1. open the products page\n2. check it says "All Products"'
 const NUMBERED_INLINE_REQUEST = '1. open the products page 2. check it says "All Products"'
 const PARENTHESIZED_REQUEST = '(1) open the products page\n(2) check it says "All Products"'
@@ -595,7 +595,7 @@ describe('numbered and step-labelled requests', () => {
   })
 })
 
-// 2026-10-12 (440-10, D-05; WR-06, WR-07): a value round 1 stopped protecting is refused again through the public op.
+// a value round 1 stopped protecting is refused again through the public op.
 const DIGIT_QUOTED_REQUEST =
   `open the products page, check the '4K' badge and check it says "All Products"`
 const BRACKETED_TIME_REQUEST =
@@ -637,7 +637,7 @@ describe('values that start with digits and bracketed times', () => {
   })
 })
 
-// 2026-10-12 (440-11, D-05; WR-08, WR-05): a lone 1 and a mid-sentence step number are refused again through the public op.
+// a lone 1 and a mid-sentence step number are refused again through the public op.
 const COLON_ONE_REQUEST =
   'open the products page and check the badge shows: 1. Then check it says "All Products"'
 const MID_SENTENCE_STEP_REQUEST =
@@ -679,7 +679,7 @@ describe('step numbers stated after a colon or mid-sentence', () => {
   })
 })
 
-// 2026-10-12 (440-13, D-05; WR-09): a held step heading's numbers are refused again through the public op.
+// a held step heading's numbers are refused again through the public op.
 const HELD_STEP_HEADING_REQUEST =
   'open the products page, check the title shows: Step 1. Then click Next and check it shows Step 2. Then check it says "All Products"'
 
@@ -702,7 +702,7 @@ describe('step numbers in a held step heading', () => {
   })
 })
 
-// 2026-10-12 (440-15, D-05; WR-12): a month-name date beside a list run is refused again through the public op.
+// a month-name date beside a list run is refused again through the public op.
 const DATE_IN_LIST_REQUEST =
   '1. open the products page\n2. check the delivery date shows Oct 3. Then check it says "All Products"'
 const DATE_AFTER_HELD_START_REQUEST =

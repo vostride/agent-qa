@@ -1,4 +1,4 @@
-// The card's `actions[]` (Phase 387, ENTY-02 / D-11).
+// The card's `actions[]`.
 //
 // A card's actions are REGISTRY OP REFS. A card can therefore only advertise capabilities the
 // registry already contains, which is what makes an advertised action invokable identically
@@ -25,7 +25,7 @@
 // default spec list but binds only in a composition that supplies a `runInvocation` port, so a
 // read-only host lists it `unbound`. A TST card advertises it anyway, because D-11 says cards
 // advertise what the REGISTRY contains and `bindingStatus` exists precisely so an unbound
-// capability is VISIBLE rather than silent (D-09). Advertising is not granting: the ref still
+// capability is VISIBLE rather than silent. Advertising is not granting: the ref still
 // crosses `invokeFunction`, which refuses an unbound id by name and gates every scope. A card
 // that hid the capability would be making a claim about the host that the card producer — which
 // receives no caller and no composition — is in no position to make.
@@ -90,7 +90,7 @@ export const ENTITY_ACTION_TABLES = {
       inputSeed: { recordId: descriptor.machineId },
     },
     {
-      // D-11's table completion (387-08). 2026-09-30, 432-12 (D-05/D-09): forget is the explicit
+      // D-11's table completion. 2026-09-30, 432-12: forget is the explicit
       // removal and it applies in the call, so the action says what it does. The record is
       // tombstoned, never destroyed, and the card at this address then reads `tombstoned`. The
       // seed addresses the RECORD grain because a descriptor carries the machine id it was

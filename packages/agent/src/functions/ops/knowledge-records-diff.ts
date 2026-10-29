@@ -1,4 +1,4 @@
-// `knowledge.records.diff` — what changed since a build ordinal (Phase 387, KREV-01).
+// `knowledge.records.diff` — what changed since a build ordinal.
 //
 // WIRING over the reader entry's `diffSince`. The change vocabulary, the surviving-event fold
 // and the purge-receipt read all live behind the port; this file projects, echoes the baseline,
@@ -48,7 +48,7 @@ export const knowledgeRecordsDiffSpec: FunctionSpec<
   output: KnowledgeRecordsDiffOutputSchema,
   risk: { name: `fn:${KNOWLEDGE_RECORDS_DIFF_FUNCTION_ID}`, recognized: true, readOnly: true },
   /**
-   * A diff that answered, WITH ITS BASELINE (399.1 D-01).
+   * A diff that answered, WITH ITS BASELINE.
    *
    * The ordinal rides the outcome for the contract's own reason: "a change list with no baseline is
    * a list whose meaning depends on remembering the question", and a receipt line is exactly the

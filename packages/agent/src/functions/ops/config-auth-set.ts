@@ -1,20 +1,20 @@
-// `config.auth.set` — refs only, ratified as law (Phase 395-05, D-11 · CFGM-01/CFGM-02).
+// `config.auth.set` — refs only, ratified as law.
 //
-// 2026-09-30, 432-11 D-05/D-07: THIS OP WRITES IN THE CALL. It is constructed, scanned and validated
+// THIS OP WRITES IN THE CALL. It is constructed, scanned and validated
 // as described below and then published through the direct writer; the answer names the files and
 // fields it changed, a blocked change is answered with its report and nothing is kept, and no git
 // runs. Where the paragraphs below say "proposal", read the change this call writes.
 //
 // `config-field-set.ts`'s header carries the arguments for the tier and the one-op-per-action
 // shape; they are not restated. What is different about this one is the law it enforces and where
-// it enforces it. 2026-10-01 (432-27, D-12): this op once declared `config-write`, and that header
+// it enforces it. 2026-10-01: this op once declared `config-write`, and that header
 // once argued for the scope. It declares no scope now, because no caller is checked for one; the
 // reference law below, the scan and whole-config validation guard the write, and nothing about the
 // masking or the refusal of a literal credential changed with the scope.
 //
 // A LITERAL CREDENTIAL ARRIVING IN THE INPUT IS ITSELF THE FAILURE. D-11 ratified this action as
 // writing REFERENCES — the name of a plugin package, the name of an environment variable — and
-// never a value. 2026-10-02 (quick 261002-ctr): it also named an auth state, written to
+// never a value. 2026-10-02: it also named an auth state, written to
 // `use.authState`; the committed configuration has no such key, so that field is deleted (see
 // `setConfigAuth`). 395-02 enforced the first half in the SHAPE of
 // `ConfigAuthSetInputSchema`: there is no field a credential could be assigned to, which is a
@@ -61,9 +61,9 @@ export const configAuthSetSpec: FunctionSpec<ConfigAuthSetInput, ConfigChangeOut
     readOnly: false,
   },
   /**
-   * This op's own union, folded into a clause verdict (2026-08-20, Phase 399.1 D-01/D-02).
+   * This op's own union, folded into a clause verdict.
    *
-   * THE FOLD IS SHARED BECAUSE THE UNION IS. Six ops answer with `ConfigChangeOutput` (432-11), and a
+   * THE FOLD IS SHARED BECAUSE THE UNION IS. Six ops answer with `ConfigChangeOutput`, and a
    * per-op copy of the mapping would be a guardrail refusal that reports `refused` on some doors
    * and `executed` on others the first time one copy is edited. See `config-propose-verdict.ts`
    * for why `blocked` and `refused` are the same status and different words.
@@ -71,7 +71,7 @@ export const configAuthSetSpec: FunctionSpec<ConfigAuthSetInput, ConfigChangeOut
   classify: classifyConfigChangeOutput,
   async invoke(input, deps): Promise<ConfigChangeOutput> {
     // The same three-way guard its siblings carry: the files, the validator and the direct writer.
-    // The D-11 input check is the reference shape rule, which needs no port (441 D-15).
+    // The D-11 input check is the reference shape rule, which needs no port.
     const { configFiles, configValidate, configWrite } = deps
     if (
       configFiles === undefined

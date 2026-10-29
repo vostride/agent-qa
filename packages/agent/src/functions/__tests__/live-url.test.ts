@@ -57,8 +57,8 @@ function claims(overrides: Partial<LiveUrlClaims> = {}): LiveUrlClaims {
 
 const AT_RUN_ALPHA = { subject: { kind: 'run', id: 'run-alpha' }, now: NOW } as const
 
-// 2026-10-02 (432-36, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20). `LIVE_URL_SCOPE` is the signed token's own claim, a live-link control, and stays.
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither. `LIVE_URL_SCOPE` is the signed token's own claim, a live-link control, and stays.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -96,8 +96,8 @@ function registryWith(liveView: LiveViewPort | undefined): ReturnType<typeof cre
   } as FunctionDeps
   return createRegistryFromSpecs([runsLiveUrlSpec as FunctionSpec], {
     deps,
-    // 2026-10-02 (432-36, D-12): no `resolveExecutionContext` registry option; the registry reads
-    // no context (432-20).
+    // no `resolveExecutionContext` registry option; the registry reads
+    // no context.
   })
 }
 

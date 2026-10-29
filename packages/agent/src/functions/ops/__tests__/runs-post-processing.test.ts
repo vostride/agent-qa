@@ -1,4 +1,4 @@
-// `runs.postProcessing` — chip truth projected from durable job state (Phase 388, D-14/D-15).
+// `runs.postProcessing` — chip truth projected from durable job state.
 //
 // Two claims, and they are deliberately measured apart:
 //
@@ -52,7 +52,7 @@ import {
 
 const RUN_ID = 'run-388-chips'
 
-// 2026-10-01 (432-30, D-12): the retired `grantedScopes` and `safeMode` caller fields and the
+// the retired `grantedScopes` and `safeMode` caller fields and the
 // retired `resolveExecutionContext` registry option are dropped; nothing read them.
 const CALLER: FunctionCaller = {
   surface: 'test',
@@ -175,7 +175,7 @@ const CHIP_BY_STATUS: Record<
 }
 
 // ------------------------------------------------------------------------------------------
-// The CLOSED-UNION cells (Phase 404, D-04). Mutation-measured by
+// The CLOSED-UNION cells. Mutation-measured by
 // the phase's mutation driver (since removed), which re-added a third chip arm (M1) and a fifth
 // status (M2) and required each to red a cell named below.
 //

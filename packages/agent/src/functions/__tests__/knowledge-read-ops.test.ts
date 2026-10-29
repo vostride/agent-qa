@@ -1,4 +1,4 @@
-// The three new knowledge READ verbs (Phase 387 plan 06, KREV-01 / FUNC-04).
+// The three new knowledge READ verbs.
 //
 // `knowledge.records.inspect`, `knowledge.records.diff` and `knowledge.record.show` are WIRING
 // over functions the read-only reader entry already exports. That claim is what this file
@@ -124,8 +124,8 @@ describe('the three read verbs declare read-only unary contracts', () => {
       'knowledge.records.diff',
       'knowledge.record.show',
     ])
-    // RE-SPELLED 2026-10-01 (432-23, D-12): `knowledge.records.diff` declares no scope.
-    // RE-SPELLED 2026-10-01 (432-26, D-12) from `requiredScopes` equal to ['read'] on its two
+    // RE-SPELLED 2026-10-01: `knowledge.records.diff` declares no scope.
+    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read'] on its two
     // siblings: none of the three declares a scope now, so the absence is pinned in the loop. The
     // read tier the scope once named is the read-only risk pinned below.
     for (const spec of specs) {
@@ -374,7 +374,7 @@ describe('Test 4 — each op owns a deterministic TOTAL order', () => {
   })
 })
 
-// ---- C432-DECLARATION-KEYS (432-26, D-10/D-12) --------------------------
+// ---- C432-DECLARATION-KEYS --------------------------
 //
 // The ten op specs 432-26 migrates, pinned at the SPEC: declarations omit the retired keys whatever
 // a spec spells, so only the spec itself can show the key is gone. The other owners' blocks live in
@@ -438,7 +438,7 @@ describe('the post-processing, knowledge, ask, target-create, analysis and expla
   })
 })
 
-// ---- C432-ALL-OPS-AVAILABLE (432-26, D-12) ------------------------------
+// ---- C432-ALL-OPS-AVAILABLE ------------------------------
 //
 // `knowledge.accept` and `knowledge.reject` once required `knowledge-write`, and the two reads
 // `read`. Retried from three callers that differ in surface and origin, and that carry no scope at
