@@ -286,7 +286,6 @@ describe('C433-LAUNCH-FAILURE: the CLI door', () => {
     expect(outcome.status, text).toBe(2)
     expect(`${outcome.stdout}\n${outcome.stderr}`, 'the CLI prints the cause').toMatch(/browser support is not installed/u)
     expect(printedRunIds(`${outcome.stdout}\n${outcome.stderr}`), `the CLI names the run id it recorded\n${text}`).toEqual([runId])
-    console.info(`C433-LAUNCH-FAILURE cli: ${runId} exit ${String(outcome.status)}; ${first?.failureSummary ?? ''}\n${text}`)
   })
 
   it('C433-LAUNCH-FAILURE: the dashboard row agrees', () => {
@@ -342,7 +341,6 @@ describe('C433-LAUNCH-FAILURE: the dashboard door', () => {
     expect(facts, `the settled run\n${read.text}\n${dashboard.stderr()}`).toEqual({ row: 'failed', aggregate: 'failed' })
     expect(read.failureSummary ?? '', 'the row names the cause').toMatch(LAUNCH_CAUSE)
     expect(read.text, 'GET /api/runs/:id carries the cause').toMatch(LAUNCH_CAUSE)
-    console.info(`C433-LAUNCH-FAILURE dashboard: ${runId} ${String(read.status)}; ${read.failureSummary ?? ''}`)
   }, CELL_BUDGET_MS)
 
   it('C433-LAUNCH-FAILURE: an explicit cancel is still cancelled', async () => {

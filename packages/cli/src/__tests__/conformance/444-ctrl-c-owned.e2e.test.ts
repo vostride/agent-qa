@@ -161,12 +161,6 @@ function loggedEvents(project: PopulatedRunProject, runId: string): Array<{ type
   }
 }
 
-function report(value: SignalReport): void {
-  const line = JSON.stringify(value, (key, field: unknown) =>
-    key === 'output' && typeof field === 'string' ? field.slice(-1_500) : field)
-  console.info(`C444-CTRL-C-OWNED ${value.cell}: ${line}`)
-}
-
 async function signalHeldRun(
   cell: string,
   label: string,
@@ -179,42 +173,38 @@ async function signalHeldRun(
   const rig = await openRig(label)
   const runId = generateRunId()
   const facts: SignalReport = { cell, signal, runId }
-  try {
-    const run = spawnRun(rig, args, runId)
-    facts.reached = await untilHeld(rig.model, run.child)
-    if (facts.reached !== 'held') {
-      facts.output = run.output()
-      return facts
-    }
-    facts.chromiumAtSignal = chromiumDescendants(run.child.pid!)
-    const signalledAt = Date.now()
-    run.child.kill(signal)
-    if (repeat !== undefined) {
-      await new Promise((tick) => setTimeout(tick, repeat.afterMs))
-      const aliveAtSend = !exited(run.child)
-      const sentAfterMs = Date.now() - signalledAt
-      facts.secondSignal = { sentAfterMs, aliveAtSend, delivered: run.child.kill(signal) }
-    }
-    const kill = setTimeout(() => { run.child.kill('SIGKILL') }, KILL_AFTER_MS)
-    try {
-      facts.exit = await run.closed
-    } finally {
-      clearTimeout(kill)
-    }
-    facts.elapsedMs = Date.now() - signalledAt
-    facts.aliveAtExit = livePids(facts.chromiumAtSignal)
-    facts.walAfterExit = existsSync(`${resolveDashboardDbPath({ configDir: rig.project.root })}-wal`)
-    facts.aliveAfterExit = await livePidsAfter(facts.chromiumAtSignal, BROWSER_GONE_MS)
-    const events = loggedEvents(rig.project, runId)
-    facts.events = events.map((event) => event.type)
-    facts.verdict = events.find((event) => event.type === 'verdict')?.payload
-    facts.row = readRow(rig.project, runId)
-    facts.printed = printedRunIds(run.output()).includes(runId)
+  const run = spawnRun(rig, args, runId)
+  facts.reached = await untilHeld(rig.model, run.child)
+  if (facts.reached !== 'held') {
     facts.output = run.output()
     return facts
-  } finally {
-    report(facts)
   }
+  facts.chromiumAtSignal = chromiumDescendants(run.child.pid!)
+  const signalledAt = Date.now()
+  run.child.kill(signal)
+  if (repeat !== undefined) {
+    await new Promise((tick) => setTimeout(tick, repeat.afterMs))
+    const aliveAtSend = !exited(run.child)
+    const sentAfterMs = Date.now() - signalledAt
+    facts.secondSignal = { sentAfterMs, aliveAtSend, delivered: run.child.kill(signal) }
+  }
+  const kill = setTimeout(() => { run.child.kill('SIGKILL') }, KILL_AFTER_MS)
+  try {
+    facts.exit = await run.closed
+  } finally {
+    clearTimeout(kill)
+  }
+  facts.elapsedMs = Date.now() - signalledAt
+  facts.aliveAtExit = livePids(facts.chromiumAtSignal)
+  facts.walAfterExit = existsSync(`${resolveDashboardDbPath({ configDir: rig.project.root })}-wal`)
+  facts.aliveAfterExit = await livePidsAfter(facts.chromiumAtSignal, BROWSER_GONE_MS)
+  const events = loggedEvents(rig.project, runId)
+  facts.events = events.map((event) => event.type)
+  facts.verdict = events.find((event) => event.type === 'verdict')?.payload
+  facts.row = readRow(rig.project, runId)
+  facts.printed = printedRunIds(run.output()).includes(runId)
+  facts.output = run.output()
+  return facts
 }
 
 function expectOwnPath(facts: SignalReport): void {
@@ -325,7 +315,6 @@ async function driveDashboardHold(): Promise<DashboardReport> {
     else process.env.CI = savedCi
     if (savedBrowsers === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH
     else process.env.PLAYWRIGHT_BROWSERS_PATH = savedBrowsers
-    console.info(`C444-CTRL-C-OWNED dashboard: ${JSON.stringify(facts)}`)
   }
 }
 

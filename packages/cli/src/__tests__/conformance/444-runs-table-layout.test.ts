@@ -290,7 +290,6 @@ describe('C444-RUNS-TABLE', () => {
     } catch (error) {
       scene.error = message(error)
     }
-    console.info(`C444-RUNS-TABLE layout: ${facts()}`)
   }, FILE_BUDGET_MS)
 
   afterAll(async () => {

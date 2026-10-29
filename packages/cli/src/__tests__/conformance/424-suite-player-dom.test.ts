@@ -564,7 +564,6 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     await page.getByRole('button', { name: 'Play recording', exact: true }).click()
     const tail = await page.evaluate(() => (window as unknown as { tailSamples: Promise<TailSample[]> }).tailSamples)
     const ownTail = tail.filter(sample => sample.member0)
-    console.info(`SUITE-BROWSER-MEDIA tail: ${ownTail.length} member-0 samples of ${tail.length}`)
     const boundary = durations[0]! / durations.reduce((sum, value) => sum + value, 0) * 100
     // Fewer than 4 member-0 samples is only the tail running into member 1, never a stall on member 0.
     const endedOnNextMember = tail.length > ownTail.length

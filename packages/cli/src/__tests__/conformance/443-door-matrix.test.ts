@@ -752,7 +752,6 @@ describe('C443-DOOR-MATRIX', () => {
         record.error = message(error)
         if (record.runId !== undefined && record.finished === undefined) await waitForRunFinished(record)
       }
-      console.info(`C443-DOOR-MATRIX ${row.label}: ${record.runId ?? 'no id'} (${record.lastEventType ?? 'no events'})${record.error === undefined ? '' : ` ${record.error.slice(0, 300)}`}`)
     }
     try {
       await readEverything()

@@ -39,7 +39,6 @@ function expectOneId(project: RecordedDoorProject, outcome: CliRunOutcome): stri
   const printed = printedRunIds(`${outcome.stdout}\n${outcome.stderr}`)
   expect(printed.length, `the CLI prints the run id\n${transcript(outcome)}`).toBeGreaterThan(0)
   expect(printed, 'every run id the CLI prints is the store id').toEqual([runId])
-  console.info(`C433-RUN-ONE-ID one id: ${runId}`)
   return runId
 }
 

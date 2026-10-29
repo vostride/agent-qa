@@ -295,7 +295,6 @@ describe('C444-CANCEL-RANKING', () => {
     } catch (error) {
       run.error = message(error)
     }
-    console.info(`C444-CANCEL-RANKING run: ${JSON.stringify(run)}`)
   }, FILE_BUDGET_MS)
 
   afterAll(async () => {

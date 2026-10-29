@@ -314,10 +314,6 @@ function seen(facts: LegFacts): string {
   }, null, 2)
 }
 
-function report(facts: LegFacts): void {
-  console.info(`C444-REAL-CANCEL ${facts.leg}: ${seen(facts).replace(/\s*\n\s*/gu, ' ')}`)
-}
-
 // The per-leg set (D-12): the run was parked in its step with a live browser, nothing ran after the
 // cancel, the held request was aborted, the browser closed, the verdict and the handoff read
 // `cancelled`, and the row read `running` at every poll until the verdict envelope existed.
@@ -453,7 +449,6 @@ async function driveDashboardLeg(): Promise<DashboardFacts> {
     else process.env.CI = savedCi
     if (savedBrowsers === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH
     else process.env.PLAYWRIGHT_BROWSERS_PATH = savedBrowsers
-    report(facts)
   }
 }
 
@@ -521,7 +516,6 @@ async function driveCliLeg(
     return facts
   } finally {
     facts.output = output.slice(-1_500)
-    report(facts)
   }
 }
 

@@ -113,7 +113,6 @@ describe('recording and parent selection on the shipped bundle (424-29)', () => 
     expect(ranged!.range).toMatch(/^bytes \d+-\d+\/\d+$/u)
     expect(ranged!.contentType).toBe('video/webm')
     expect(ranged!.etag).toBe(`"${src.split('/').at(-1)}"`)
-    console.info('RECORDING-RANGE-206 ledger:', JSON.stringify(ranged))
   })
   it('PARENT-STEP-PARKS-PLAYHEAD', () => {
     expect(failure).toBeUndefined()

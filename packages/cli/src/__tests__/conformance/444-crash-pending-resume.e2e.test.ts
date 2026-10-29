@@ -893,7 +893,7 @@ function expectPendingAtExit(leg: PendingLeg | undefined, verdict: 'passed' | 'f
 }
 
 function seen(facts: unknown): string {
-  return JSON.stringify(facts, null, 2)
+  return `child context: ${CHILD_CONTEXT}\n${JSON.stringify(facts, null, 2)}`
 }
 
 function expectCrashDrove(): string {
@@ -927,7 +927,6 @@ describe('C444-CRASH', () => {
     } catch (error) {
       crash.error = message(error)
     }
-    console.info(`C444-CRASH (${CHILD_CONTEXT}): ${JSON.stringify(crash)}`)
   }, LEG_BUDGET_MS)
 
   it("a killed run's row stays running until a starting dashboard finalizes it failed", () => {
@@ -1017,7 +1016,6 @@ describe('C444-PENDING-AT-EXIT', () => {
     } catch (error) {
       pending.error = message(error)
     }
-    console.info(`C444-PENDING-AT-EXIT (${CHILD_CONTEXT}): ${JSON.stringify(pending)}`)
   }, PENDING_BUDGET_MS)
 
   it("a stalled drainer's run exits with its verdict's code and reports its stages as durable state does", () => {
@@ -1080,18 +1078,6 @@ describe('C444-RESUME', () => {
     } catch (error) {
       resume.error = message(error)
     }
-    const files = (snapshot?: RunSnapshot): unknown => snapshot === undefined
-      ? undefined
-      : { ...snapshot, files: snapshot.files.map((file) => `${file.path} ${String(file.bytes)} ${file.sha256}`) }
-    console.info(`C444-RESUME (${CHILD_CONTEXT}): ${JSON.stringify({
-      ...resume,
-      stalledAtExit: files(pending.stalled?.atExit),
-      stalledAfterResumeRun: files(resume.stalledAfterResumeRun),
-      stalledFinal: files(resume.stalledFinal),
-      detachedAtExit: files(pending.detached?.atExit),
-      detachedAfterDaemon: files(resume.detachedAfterDaemon),
-      detachedFinal: files(resume.detachedFinal),
-    })}`)
   }, RESUME_BUDGET_MS)
 
   afterAll(() => {
