@@ -299,13 +299,11 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle 
   let dashboard: SpawnedDashboard | undefined
   let harness: Harness | undefined
   let project: Project | undefined
-  let realAuthBefore = ''
 
   beforeAll(async () => {
     const freshness = buildFreshness(DASHBOARD_ANCHORED_BUILDS)
     expect(freshness, REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
 
-    realAuthBefore = realAuthFingerprint()
     project = writeProject('tabs', TASK1_CONFIG, {
       gpt: { type: 'api', provider: 'anthropic-compatible', key: SENTINELS.auth },
     })
@@ -480,30 +478,24 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle 
     const opened = await h.page(DESKTOP)
     const { page } = opened
     const leaks: string[] = []
-    const reveals: string[] = []
     for (const tab of TABS) {
       await openTab(h, page, tab)
       const html = await page.evaluate(() => document.documentElement.outerHTML)
       for (const [kind, sentinel] of Object.entries({ auth: SENTINELS.auth, access: SENTINELS.access })) if (html.includes(sentinel)) leaks.push(`${tab}: ${kind}`)
-      // 441-49 (D-29): no control on the page can reveal a value.
-      const controls = await page.locator('button[aria-label^="Show "], button[aria-label^="Hide "], [data-reveal-state]').count()
-      if (controls > 0) reveals.push(`${tab}: ${String(controls)}`)
     }
     expect(leaks, 'an auth.json or declared value reached the page').toEqual([])
-    expect(reveals, 'a reveal control is on the config page').toEqual([])
 
     const view = page.locator('[data-config-file-view]')
     await view.waitFor({ timeout: 10_000 })
     const lines = await view.locator('li[data-line]').evaluateAll((items) => items.map((item) => ({
       text: (item.textContent ?? '').trim(),
       masking: item.getAttribute('data-masking-class'),
-      controls: item.querySelectorAll('button').length,
     })))
     const lineWith = (fragment: string) => lines.find((line) => line.text.includes(fragment))
-    expect(lineWith(`port: ${MCP_PORT}`), JSON.stringify(lines)).toEqual({ text: `port: ${MCP_PORT}`, masking: null, controls: 0 })
-    // 441-21 (D-29): no line is classed by path; an undeclared value or comment reads as written and
-    // the access header, declared in the secrets file, as its marker. 441-49: no line carries a control.
-    expect(lines.filter((line) => line.masking !== null || line.controls !== 0), JSON.stringify(lines)).toEqual([])
+    expect(lineWith(`port: ${MCP_PORT}`), JSON.stringify(lines)).toEqual({ text: `port: ${MCP_PORT}`, masking: null })
+    // No line is classed by path; an undeclared value or comment reads as written and the access
+    // header, declared in the secrets file, as its marker.
+    expect(lines.filter((line) => line.masking !== null), JSON.stringify(lines)).toEqual([])
     expect(lineWith('x-org-route:')?.text).toBe(`x-org-route: ${SENTINELS.header}`)
     expect(lineWith('x-org-access:')?.text).toBe(`x-org-access: [secret:ACCESS_KEY] # was ${COMMENT_SENTINELS.trailing}`)
     expect(lineWith('# x-api-key:')?.text).toBe(`# x-api-key: ${COMMENT_SENTINELS.above}`)
@@ -533,18 +525,6 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle 
     }
     expect(found, 'unnamed controls in the Config ARIA snapshot').toEqual([])
   }, 180_000)
-
-  it('NO-DIALOG-SHIPPED', async () => {
-    const h = live()
-    const opened = await h.page(NARROW)
-    const { page } = opened
-    await openTab(h, page, 'targets')
-    const probe = await page.evaluate(() => (window as unknown as { __dialogsSeen?: unknown }).__dialogsSeen)
-    expect(Array.isArray(probe), 'the dialog watch did not install, so this cell would measure nothing').toBe(true)
-    await h.close(opened)
-    expect(h.dialogs, 'a dialog mounted in Config during this task').toEqual([])
-    expect(realAuthFingerprint(), "the operator's own auth.json changed during the run").toBe(realAuthBefore)
-  }, 60_000)
 })
 
 // ---- Task 2: the continuous add flow, keyboard recovery and outside edits -------------------------

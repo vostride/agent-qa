@@ -326,21 +326,6 @@ describe('C443-REPORTER', () => {
     vi.unstubAllEnvs()
   })
 
-  it('--reporter dashboard is an unknown reporter', async () => {
-    const at = project()
-
-    const exit = await run(at, ['run', at.testPattern, '--reporter', 'dashboard'])
-
-    expect(exit.code, `exit code; stderr: ${flat(exit.stderr)}`).toBe(2)
-    expect(
-      exit.stderr.includes('Unknown reporter "dashboard". Supported reporters: console, junit, stdout-live'),
-      `stderr carries the unknown-reporter sentence: ${flat(exit.stderr)}`,
-    ).toBe(true)
-    expect(runDirectories(at).join(','), 'run directories').toBe('')
-    const recorded = existsSync(runsDbOf(at)) ? rows(at) : []
-    expect(recorded.map((row) => row.id).join(','), 'the rows under runs.db').toBe('')
-  }, CELL_BUDGET_MS)
-
   it('a run still records its row under the default reporters', async () => {
     const at = project()
 

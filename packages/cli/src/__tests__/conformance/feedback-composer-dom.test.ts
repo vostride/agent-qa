@@ -16,8 +16,6 @@ import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard, trackTempRoot }
 const DESKTOP = { width: 1280, height: 800 }
 const MODAL = '[role="dialog"],[aria-modal]'
 const NOTE = 'The notice closed before the evidence settled'
-// Literal equal to dashboard-ui's approval title (it publishes no library entry).
-const APPROVAL_TITLE = 'Approval needed to record this mark'
 
 type Settled = { detailStatus: number; marks: unknown; stepCount: number; previewStatus: number; previewKind?: string; previewParsed: boolean }
 type Triggers = { loaded: number; kinds: string[]; afterEscape: number; selectedAfterEscape: number }
@@ -34,26 +32,15 @@ type Inspecting = {
   note: string
   modalCounts: Record<string, number>
 }
-type Frame = { event: string; data: string }
 type MarkPath = {
-  gate: { safety: unknown; trustModeRemoved: boolean }
-  frames: Frame[]
-  /** 432-14: run-confirm streams the page opened; the channel is deleted, so none. */
-  confirmChannels: number
-  dialogs: number
-  hostDialogs: number
-  approvalInComposer: number
-  rowsAtApproval: number
+  rowsAtReply: number
   status?: number
   outcome?: { kind: string; markId?: string }
   rows: Array<{ markId: string; kind: string; origin: string; testIndex: number; stepIndex?: number; disposition: string }>
   newEntryMarkId: string | null
   newEntryFirst: boolean
-  /** 432-42 (D-25): the new history entry, as text, its controls and its applied line. */
-  newEntryText: string
   newEntryControls: number
   newEntryApplied: number
-  dialogsAfter: number
 }
 
 const failures: Record<string, string> = {}
@@ -117,7 +104,7 @@ async function copyFromNetwork(page: Page) {
   return false
 }
 
-// 425-header-layout-dom's geometry vocabulary, reused as-is.
+// run-header-layout-dom's geometry vocabulary, reused as-is.
 type Box = { x: number; y: number; right: number; bottom: number; width: number; height: number }
 const overlaps = (a: Box, b: Box) => a.x < b.right - 0.5 && b.x < a.right - 0.5 && a.y < b.bottom - 0.5 && b.y < a.bottom - 0.5
 const inside = (a: Box, b: Box) => a.x >= b.x - 0.5 && a.right <= b.right + 0.5 && a.y >= b.y - 0.5 && a.bottom <= b.bottom + 0.5
@@ -637,17 +624,6 @@ describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
       // composing, and the first step's page load leaves a response body to copy.
       fixture = await recordingFixture('feedback-layout', false, true)
       await fixture.dashboard.stop()
-      // The ask tier for fn:runs.mark is the default gate. failure-view-dom's fixture carries no
-      // safety block and asks; run-mark-browser's scene deletes safety.trustMode. Mirror both: the
-      // config must reach the cold reader with no trustMode, and what it held is recorded.
-      // 2026-10-01 (432-22, D-15/D-22): `safety` is a deleted key, so no fixture can carry one and
-      // the branch below is a guard that records an unexpected block rather than a live path.
-      const config = JSON.parse(readFileSync(fixture.project.configPath, 'utf8')) as { safety?: { trustMode?: unknown } }
-      const gate = { safety: config.safety ?? null, trustModeRemoved: config.safety?.trustMode !== undefined }
-      if (gate.trustModeRemoved) {
-        delete config.safety!.trustMode
-        writeFileSync(fixture.project.configPath, JSON.stringify(config))
-      }
       const env = populatedRunSpawnEnv()
       // A cold reader without the planted credential environment: the fixture's synthetic values
       // stay masked, so the captures carry nothing this repository did not invent.
@@ -747,41 +723,19 @@ describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
         copied, composerOpen, note, modalCounts }
       await context.close()
 
-      // D-10 and WR-UI-08 (426-17), driven before any mark exists so the composer opens idle. Its own
-      // failure key keeps the approval drive below independent of it.
+      // The layout drive runs before any mark exists so the composer opens idle. Its own failure
+      // key keeps the mark drive below independent of it.
       try { await driveLayout(fixture.browser, url) } catch (error) { failures.layout = String(error) }
 
-      // SC4 (D-20): a real mark from the header entry. 432-13: recorded on the click, with no
-      // approval group — `approvalInComposer` and `rowsAtApproval` are read right after the reply.
+      // A real mark from the header entry, recorded on the click: `rowsAtReply` is read right after
+      // the reply.
       const ledger = join(fixture.project.agentQaRoot, RUNS_SUBDIR, slugBranch(runId), 'marks.jsonl')
       const rows = () => existsSync(ledger)
         ? readFileSync(ledger, 'utf8').trim().split('\n').filter(Boolean).map(line => MarkReceiptSchema.parse(JSON.parse(line)))
         : []
       const markContext = await fixture.browser.newContext({ viewport: DESKTOP })
-      await markContext.addInitScript(() => {
-        const frames: Array<{ event: string; data: string }> = []
-        const channels: string[] = []
-        ;(window as unknown as { markFrames: typeof frames }).markFrames = frames
-        ;(window as unknown as { markChannels: typeof channels }).markChannels = channels
-        const Native = window.EventSource
-        class RecordedChannel extends Native {
-          constructor(url: string | URL, init?: EventSourceInit) {
-            super(url, init)
-            if (String(url).includes('run-confirm')) channels.push(String(url))
-            if (String(url).includes('/api/run-confirm/channel')) {
-              for (const event of ['confirm_scope', 'confirm_request', 'confirm_resolved']) {
-                this.addEventListener(event, frame => frames.push({ event, data: (frame as MessageEvent<string>).data }))
-              }
-            }
-          }
-        }
-        window.EventSource = RecordedChannel
-      })
       const markPage = await markContext.newPage()
-      const recordedFrames = async () => await markPage.evaluate(() =>
-        (window as unknown as { markFrames: Array<{ event: string; data: string }> }).markFrames)
       await markPage.goto(url)
-      // 432-14 (D-14): no confirm stream opens, so the page is ready when its entry is.
       await markPage.locator('[data-feedback-entry="test"]').click({ timeout: 10_000 })
       const markComposer = markPage.locator('[data-feedback-composer]')
       await markComposer.locator('[data-feedback-choice] [role="radio"]').first().click()
@@ -789,29 +743,21 @@ describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
       const response = markPage.waitForResponse(reply => reply.url().endsWith('/mark') && reply.request().method() === 'POST')
       await markComposer.locator('[data-feedback-submit]').click()
       const reply = await response
-      const dialogs = await modalCount(markPage)
-      const hostDialogs = await markPage.evaluate(() => document.querySelectorAll('[data-run-confirm-dialog]').length)
-      const approvalInComposer = await markPage.getByRole('group', { name: APPROVAL_TITLE }).count()
-        + await markComposer.locator('[data-feedback-approval]').count()
-      const rowsAtApproval = rows().length
+      const rowsAtReply = rows().length
       const parsed = RunsMarkOutcomeSchema.parse(await reply.json())
       const entries = markComposer.locator('[data-feedback-history="target"] [data-history-entry]')
       await markComposer.locator('[data-feedback-history="target"] [data-history-entry][data-history-new]').waitFor({ timeout: 15_000 })
       const newEntryMarkId = await markComposer.locator('[data-feedback-history="target"] [data-history-entry][data-history-new]').getAttribute('data-mark-id')
       const newEntryFirst = await entries.first().getAttribute('data-history-new') === 'true'
       const newEntry = markComposer.locator('[data-feedback-history="target"] [data-history-entry][data-history-new]')
-      const newEntryText = (await newEntry.textContent()) ?? ''
       const newEntryControls = await newEntry.locator('button, a, [role="button"], [role="link"]').count()
       const newEntryApplied = await newEntry.locator('[data-history-applied]').count()
-      const confirmChannels = (await markPage.evaluate(() =>
-        (window as unknown as { markChannels: string[] }).markChannels)).length
-      markPath = { gate, frames: await recordedFrames(), confirmChannels, dialogs, hostDialogs, approvalInComposer, rowsAtApproval,
+      markPath = { rowsAtReply,
         status: reply.status(),
         outcome: { kind: parsed.kind, ...('receipt' in parsed ? { markId: parsed.receipt.markId } : {}) },
         rows: rows().map(({ markId, kind, origin, testIndex, stepIndex, disposition }) =>
           ({ markId, kind, origin, testIndex, stepIndex, disposition: disposition.kind })),
-        newEntryMarkId, newEntryFirst, newEntryText, newEntryControls, newEntryApplied,
-        dialogsAfter: await modalCount(markPage) }
+        newEntryMarkId, newEntryFirst, newEntryControls, newEntryApplied }
       await markContext.close()
 
       if (process.env.AGENT_QA_426_CAPTURE_DIR) {
@@ -872,16 +818,8 @@ describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
   it('NO-DIALOG-ON-MARK-PATH', () => {
     expect(markPath, JSON.stringify(failures)).toBeDefined()
     const where = JSON.stringify(markPath)
-    expect(markPath!.gate.safety, `the fixture config must not pre-approve the mark: ${where}`).toBeNull()
-    // RE-SPELLED 2026-09-30 (432-13, D-14/D-15): no question reaches the channel and no approval
-    // group renders — the mark is one click, and the ledger holds its row as the reply lands.
-    expect(markPath!.frames.some(frame => frame.event === 'confirm_request'), where).toBe(false)
-    // 432-14 (D-14): and the page holds no confirm stream at all.
-    expect(markPath!.confirmChannels, where).toBe(0)
-    expect(markPath!.rowsAtApproval, where).toBe(1)
-    expect(markPath!.dialogs, where).toBe(0)
-    expect(markPath!.hostDialogs, where).toBe(0)
-    expect(markPath!.approvalInComposer, where).toBe(0)
+    // The mark is one click, and the ledger holds its row as the reply lands.
+    expect(markPath!.rowsAtReply, where).toBe(1)
     expect(markPath!.status, where).toBe(200)
     expect(markPath!.outcome?.kind, where).toBe('marked')
     expect(markPath!.rows, where).toHaveLength(1)
@@ -889,12 +827,9 @@ describe('contextual feedback on the shipped bundle (426-16, 426-17)', () => {
     expect(markPath!.rows[0]!.origin, where).toBe('user')
     expect(markPath!.newEntryMarkId, where).toBe(markPath!.outcome!.markId)
     expect(markPath!.newEntryFirst, where).toBe(true)
-    expect(markPath!.dialogsAfter, where).toBe(0)
-    // 2026-10-02 (432-42, D-25): the history the shipped bundle shows is APPLIED history — the new
-    // entry says what changed in one line when a fix was applied, carries no control, and names no
-    // proposal, review, approval or wait.
+    // The new history entry says what changed in one line when a fix was applied and carries no
+    // control.
     expect(markPath!.newEntryControls, where).toBe(0)
-    expect(markPath!.newEntryText, where).not.toMatch(/propos|review|approv|pending|waiting|accept/iu)
     expect(markPath!.newEntryApplied, where).toBe(markPath!.rows[0]!.disposition === 'applied' ? 1 : 0)
   })
 

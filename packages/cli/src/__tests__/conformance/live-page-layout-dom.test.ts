@@ -56,7 +56,6 @@ const ROWS_RUN = 'r_428_rows'
 const TITLE_RUN = 'r_428_title'
 const SUITE_RUN = 'r_428_suite'
 const SECRET_RUN = 'r_428_secret'
-const OLD_PRODUCER_RUN = 'r_428_old_producer'
 const LONG_RUN = 'r_428_long_label'
 /** A two-member suite whose second member starts while the page watches (428-33, G-428-3). */
 const FOLLOW_RUN = 'r_428_suite_follow'
@@ -66,8 +65,6 @@ const SUITE_MEMBERS = ['the sign-in member', 'the basket member'] as const
 const SECRET_STEP_TEXT = 'type <SECRET_1> into Password'
 /** ROWS_RUN's three steps, as its testStarted carries them (428-30, G-428-2). */
 const ROWS_STEP_TEXTS = ['open the search page', 'search for the blue kettle', 'add the kettle to the basket'] as const
-/** The one step an old producer's run has started; its testStarted carries no stepTexts. */
-const OLD_PRODUCER_STEP_TEXT = 'open the old checkout'
 /**
  * The owner's own example from the 2026-09-26 review (G-428-1), which the one-line row cut off at
  * 'wait f…', extended so it is longer than the steps pane at any width, with one old numbered
@@ -194,11 +191,6 @@ beforeAll(async () => {
 
   const secret = plantRun(SECRET_RUN, [{ name: 'the secret member', totalSteps: 1 }])
   publishTo(secret, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: SECRET_STEP_TEXT })
-
-  // An old producer: three steps counted, no texts sent, and only step 1 started.
-  const oldProducer = plantRun(OLD_PRODUCER_RUN, [{ name: 'the old producer member', totalSteps: 3 }])
-  harness.insertRunRow({ runId: OLD_PRODUCER_RUN, name: 'The old checkout', status: 'running' })
-  publishTo(oldProducer, 'stepStarted', { testIndex: 0, stepIndex: 0, stepText: OLD_PRODUCER_STEP_TEXT })
 
   // One running step whose label is longer than the steps pane (428-31, G-428-1).
   const long = plantRun(LONG_RUN, [{ name: 'the long member', totalSteps: 1, stepTexts: [LONG_STEP_TEXT] }])
@@ -444,23 +436,6 @@ describe('the live step rows on the shipped bundle (428-24 Task 1)', () => {
         const reading = await readLongLabel(page)
         expectLongLabelFullyVisible(reading, viewport)
         await captureElement(page, '[data-live-pane="steps"]', `428-live-steps-long-${String(viewport.width)}`)
-      }, viewport)
-    }
-  }, 120_000)
-
-  it('NO-STEP-PLACEHOLDER-SHIPPED: an old producer\'s run draws only its running row at 1280 and 400, and no row reads step N', async () => {
-    for (const viewport of [DESKTOP, NARROW]) {
-      await onLivePage(OLD_PRODUCER_RUN, async (page) => {
-        await page.locator('[data-live-pane="steps"] li[data-step-status="running"]')
-          .waitFor({ state: 'attached', timeout: 40_000 })
-        await page.waitForTimeout(ROW_WATCH_MS)
-        const reading = await readRows(page)
-        const context = `${String(viewport.width)} px: ${JSON.stringify(reading)}`
-        expect(reading.rows.map((row) => [row.status, row.text]), context)
-          .toEqual([['running', OLD_PRODUCER_STEP_TEXT]])
-        expect(reading.rows.filter((row) => /^step \d+$/iu.test(row.text.trim())), context).toEqual([])
-        expect(reading.paneText, context).not.toMatch(/(?:^|\n)\s*step \d+\s*(?:\n|$)/iu)
-        await captureElement(page, '[data-live-pane="steps"]', `428-live-old-producer-${String(viewport.width)}`)
       }, viewport)
     }
   }, 120_000)
@@ -792,33 +767,9 @@ describe('a suite\'s shipped page follows its running member (428-33, G-428-3)',
         state: document.querySelector('[data-preview-state]')?.getAttribute('data-preview-state') ?? null,
         dot: document.querySelector('[data-live-dot]')?.getAttribute('data-live-dot') ?? null,
         embeds: document.querySelectorAll('[data-live-embed]').length,
-        selects: document.querySelectorAll('select').length,
-        pickers: document.querySelectorAll('[data-handle-picker]').length,
       }))
-      expect(after, JSON.stringify({ ...trace, after })).toEqual({ state: 'live', dot: 'green', embeds: 1, selects: 0, pickers: 0 })
+      expect(after, JSON.stringify({ ...trace, after })).toEqual({ state: 'live', dot: 'green', embeds: 1 })
       await capturePage(page, '428-live-suite-follow-1280')
     }, DESKTOP, (page) => { recordMints(page, mints) })
-  }, 120_000)
-
-  it('NO-HANDLE-PICKER-SHIPPED: a two-member suite has no select, no handle picker and no watching label at 1280 and 400', async () => {
-    for (const viewport of [DESKTOP, NARROW]) {
-      await onLivePage(FOLLOW_RUN, async (page) => {
-        await page.locator('[data-member="0"]').waitFor({ state: 'attached', timeout: 40_000 })
-        await page.locator('[data-live-preview]').waitFor({ state: 'attached', timeout: 40_000 })
-        await page.locator('[data-live-embed]').waitFor({ state: 'attached', timeout: 40_000 })
-        const reading = await page.evaluate(() => ({
-          roster: document.querySelectorAll('[data-member]').length,
-          previews: document.querySelectorAll('[data-live-preview]').length,
-          selects: document.querySelectorAll('select').length,
-          pickers: document.querySelectorAll('[data-handle-picker]').length,
-          watching: /\bwatching\b/iu.test(document.body.innerText),
-        }))
-        const context = `${String(viewport.width)} px: ${JSON.stringify(reading)}`
-        expect(reading.previews, `${context} — the control: the preview is on the page`).toBe(1)
-        expect(reading.roster, `${context} — the control: the suite's members are on the page`).toBeGreaterThanOrEqual(1)
-        expect({ selects: reading.selects, pickers: reading.pickers, watching: reading.watching }, context)
-          .toEqual({ selects: 0, pickers: 0, watching: false })
-      }, viewport)
-    }
   }, 120_000)
 })

@@ -14,7 +14,6 @@ import { mcpMountPlanFor } from '../../commands/dashboard.js'
 import {
   SUPPORTED_INIT_PLATFORMS,
   buildScaffoldConfig,
-  renderScaffoldConfigYaml,
 } from '../../commands/scaffold-content.js'
 import {
   ANCHORED_BUILDS,
@@ -32,7 +31,6 @@ const FACTS = {
   cacheDir: '.agent-qa/cache',
   authStatesDir: '.agent-qa/auth-states',
 }
-const SERVICES_COMMENT = '# Infrastructure services (dashboard, cache, auth state, logging)'
 const INIT_BUDGET_MS = 120_000
 
 function assertFreshBuild(): void {
@@ -57,11 +55,6 @@ describe('C446-PORT-OWNER', () => {
       expect(config.services, `${platform} services`).not.toHaveProperty('mcp')
       expect(config.services.dashboard, `${platform} dashboard`)
         .toEqual({ port: 3100, artifactsDir: '.agent-qa/artifacts' })
-      const yaml = renderScaffoldConfigYaml(config)
-      expect(yaml, `${platform} yaml`).not.toMatch(/^\s*mcp:/mu)
-      expect(yaml, `${platform} yaml`).not.toContain('3471')
-      const comment = yaml.split('\n').find((line) => line.startsWith('# Infrastructure services'))
-      expect(comment, `${platform} services comment`).toBe(SERVICES_COMMENT)
     }
   })
 

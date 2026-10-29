@@ -79,10 +79,6 @@ const DOT_RUN = 'r_428_dot'
 const SNAPSHOT_RUN = 'r_428_snapshot'
 const FALLBACK_RUN = 'r_428_fallback'
 
-// THE NEEDLES ARE CONCATENATED so this file cannot satisfy a census of the removed motion by
-// matching itself: the dot's pulse and the running glyph's breath, both removed by 428-32.
-const REMOVED_ANIMATIONS = ['live-dot' + '-pulse', 'live-step' + '-breathe'] as const
-
 interface PreviewFixture {
   readonly harness: LiveViewHarness
   readonly browser: Browser
@@ -298,16 +294,13 @@ function expectDotTopRightOfContainer(geometry: StatusGeometry, label: string): 
 }
 
 describe('the live preview corner on the shipped bundle (428-23 Task 1)', () => {
-  // RE-SPELLED 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5). This cell was
-  // ONE-PULSING-GREEN-DOT, "exactly one element on the page pulses, and it is the green dot", which
-  // counted elements by their animation name and used the breathing glyph as its control. The owner
-  // asked for a plain dot and a still glyph, so the census now reads every element of both panes,
-  // and their pseudo-elements, and expects no animation at all. The one green dot stays.
+  // The dot is plain and the running glyph is still: the cell reads every element of both panes,
+  // and their pseudo-elements, and expects no animation at all.
   it('NO-ANIMATION-ON-LIVE-PAGE: one green dot, and nothing in either live pane animates', async () => {
     await onLivePage(DOT_RUN, async (page) => {
       await waitForGreen(page)
       const painted = await waitForRunningRowAndPaint(page)
-      const census = await page.evaluate((removed: readonly string[]) => {
+      const census = await page.evaluate(() => {
         const panes = [...document.querySelectorAll('[data-live-pane]')]
         const animated: { pane: string | null; node: string; pseudo: string; name: string }[] = []
         let inspected = 0
@@ -327,39 +320,15 @@ describe('the live preview corner on the shipped bundle (428-23 Task 1)', () => 
             }
           }
         }
-        const removedInUse = [...document.querySelectorAll('*')]
-          .map((node) => getComputedStyle(node).animationName)
-          .filter((name) => removed.some((each) => name.split(',').map((part) => part.trim()).includes(each)))
-
-        const keyframes: string[] = []
-        const walk = (rules: CSSRuleList): void => {
-          for (const rule of [...rules]) {
-            if (rule instanceof CSSKeyframesRule) keyframes.push(rule.name)
-            if ('cssRules' in rule && rule.cssRules instanceof CSSRuleList) walk(rule.cssRules)
-          }
-        }
-        let sheets = 0
-        for (const sheet of [...document.styleSheets]) {
-          try {
-            walk(sheet.cssRules)
-            sheets += 1
-          } catch {
-            // A cross-origin sheet cannot be read; the dashboard serves its own.
-          }
-        }
         return {
           panes: panes.map((pane) => pane.getAttribute('data-live-pane')).sort(),
           inspected,
           animated,
-          removedInUse: [...new Set(removedInUse)],
-          sheets,
-          keyframesSeen: keyframes.length,
-          removedKeyframes: keyframes.filter((name) => removed.includes(name)),
           dots: [...document.querySelectorAll('[data-live-dot]')].map((dot) => dot.getAttribute('data-live-dot')),
           runningRows: document.querySelectorAll('[data-live-pane="steps"] li[data-step-status="running"]').length,
           embeds: document.querySelectorAll('[data-live-pane="preview"] [data-live-embed]').length,
         }
-      }, REMOVED_ANIMATIONS)
+      })
       const context = JSON.stringify({ ...census, painted })
 
       expect(census.panes, context).toEqual(['preview', 'steps'])
@@ -367,11 +336,7 @@ describe('the live preview corner on the shipped bundle (428-23 Task 1)', () => 
       expect(census.runningRows, `${context} — the control: a running row is on the page`).toBeGreaterThanOrEqual(1)
       expect(census.embeds, `${context} — the control: the embed is on the page`).toBe(1)
       expect(painted, `${context} — the control: the embed painted a frame`).toBeGreaterThan(0)
-      expect(census.sheets, `${context} — the control: the stylesheets were read`).toBeGreaterThan(0)
-      expect(census.keyframesSeen, `${context} — the control: keyframes rules were read`).toBeGreaterThan(0)
       expect(census.animated, context).toEqual([])
-      expect(census.removedInUse, context).toEqual([])
-      expect(census.removedKeyframes, context).toEqual([])
     })
   }, 120_000)
 

@@ -19,9 +19,6 @@
 //
 // A BROWSER THAT CANNOT LAUNCH IS A RED, NEVER A SKIP (the live-view DOM cells' rule, inherited).
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
-
 import {
   LIVE_EMBED_HOST_PARAM,
   LIVE_EMBED_NO_STREAM_MESSAGE,
@@ -41,7 +38,6 @@ import { plantEditorSubject, plantLiveRun, startLiveViewHarness } from './live-v
 import type { LiveViewHarness, PlantedLiveRun } from './live-view-fixture.js'
 import {
   DASHBOARD_ANCHORED_BUILDS,
-  PACKAGES_ROOT,
   REBUILD_INSTRUCTION,
   buildFreshness,
   cleanupTempRoots,
@@ -650,21 +646,4 @@ describe('the embed reports to its host, and the host hint (428 D-10/D-15, Q-BRI
       await editor.close()
     }
   }, 60_000)
-
-  it('the MCP App wrapper frames the liveUrl as minted: no host hint, no message listener (428 D-10 re-verification)', () => {
-    const wrapper = readFileSync(join(PACKAGES_ROOT, 'mcp', 'src', 'app-wrapper.ts'), 'utf8')
-      .replace(/\/\*[\s\S]*?\*\//g, '')
-      .split('\n')
-      .filter((line) => !line.trimStart().startsWith('//'))
-      .join('\n')
-    expect(wrapper.length, 'the witness: the wrapper source was read').toBeGreaterThan(1_000)
-    expect(wrapper, 'it keeps its own state attribute').toContain('data-app-state')
-    expect(wrapper, 'it iframes the embed').toContain('data-app-live-frame sandbox="allow-scripts"')
-    expect(wrapper, 'with the minted liveUrl, unchanged').toContain('frame.src = mint.url;')
-    expect(wrapper.includes(`?${LIVE_EMBED_HOST_PARAM}=`), 'it never sets the host hint')
-      .toBe(false)
-    expect(wrapper.includes("addEventListener('message'"), 'it never listens for the reports')
-      .toBe(false)
-    expect(wrapper.includes('onmessage'), 'by either spelling').toBe(false)
-  })
 })

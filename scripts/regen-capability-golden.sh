@@ -88,11 +88,11 @@ GOLDEN="$ROOT/$GOLDEN_REL"
 # the "every capability declares a classifier" leg and the both-ways census — measure the TREE and
 # are deliberately NOT listed, so a regen attempted while an op ships without a fold still refuses.
 #
-# THE FIFTH NAME (2026-09-15, 423-38) is admitted on the same rule and no other. Its subject is the
-# committed golden ledger and the committed capability catalog each agreeing with the live tree for
-# the six read contracts Phase 423 added or widened, so it is red exactly when a regeneration is
-# owed and never for a tree fault: the positive all-door parity and masking cells beside it in
-# `423-read-contracts.test.ts` measure the TREE and are deliberately NOT listed.
+# THE FIFTH NAME is admitted on the same rule and no other. Its subject is the committed golden
+# ledger and the committed capability catalog each agreeing with the live tree for the six read
+# contracts it covers, so it is red exactly when a regeneration is owed and never for a tree fault:
+# the positive all-door parity and masking cells beside it in `read-ops-door-parity.test.ts`
+# measure the TREE and are deliberately NOT listed.
 #
 # THE SIXTH NAME is admitted on the same rule and no other. A public tool rename moves the golden
 # AND the catalogue in one cutover, and LIVE-GUIDANCE-TOOLS, whose subject is the guidance naming a

@@ -38,10 +38,10 @@
 // unbound (C432-REGISTRY-GOLDEN pins these). The proposal and grant ops left in 432-17/18, and no
 // row's policy points refuse: `refuse` is `allow`.
 //
-// KEPT, DATED 2026-10-02 (432-42 census decision): the `policyPoints` column stays under its name.
-// It is test-only (no shipped byte spells it), every value in it is the direct claim (`allow`), and
-// cells outside this file read it, `423-read-contracts.test.ts` among them. Renaming it would rename
-// those claims without changing one; the registry golden pins that no point refuses.
+// The `policyPoints` column keeps its name. It is test-only (no shipped byte spells it), every
+// value in it is the direct claim (`allow`), and cells outside this file read it,
+// `read-ops-door-parity.test.ts` among them. Renaming it would rename those claims without changing
+// one; the registry golden pins that no point refuses.
 
 import {
   AgentAskInputSchema,
@@ -1254,10 +1254,10 @@ export const SCENARIO_TABLE = Object.freeze([
     renderExpect: { markers: ['entries', 'kind', 'runId'] },
     policyPoints: { grant: 'allow', refuse: 'allow' },
   }),
-  // 2026-09-29 (431-08, D-06): the overview, projected as agent_qa_get_run_overview, with read
-  // policy points. The fixture records no run under `FIXTURE_RUN_ID`, so every door refuses it as
-  // a missing run; the populated answer is measured in `431-discovery-parity.test.ts`. Markers
-  // are the projection's required fields.
+  // The overview, projected as agent_qa_get_run_overview, with read policy points. The fixture
+  // records no run under `FIXTURE_RUN_ID`, so every door refuses it as a missing run; the populated
+  // answer is measured in `discovery-reads-door-parity.test.ts`. Markers are the projection's
+  // required fields.
   scenario({
     opId: 'runs.overview',
     input: { runId: FIXTURE_RUN_ID },

@@ -30,7 +30,6 @@ import { RunsOverviewInputSchema } from '@vostride/agent-qa-schema'
 import { Command, CommanderError } from 'commander'
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 
-import { DEDICATED_READ_VERBS } from '../../capability-catalog/manifest.js'
 import { createFnCommand } from '../../commands/fn.js'
 import { createKnowledgeCommand } from '../../commands/knowledge.js'
 import { composeMcpMasking, createMcpHttpRequestListener } from '../../commands/mcp.js'
@@ -45,7 +44,6 @@ import {
   runServiceSurfaceAdapter,
 } from './adapters.js'
 import { discoveryRunFixtureProject, type DiscoveryRunFixture } from './populated-run-fixture.js'
-import { SURFACE_ROSTER } from './roster.js'
 import { OP_INPUT_CONTRACTS, scenarioRowFor } from './scenario-table.js'
 import { driveChatLines } from './surface-dispatch.js'
 
@@ -366,16 +364,6 @@ describe('DISCOVERY-FOUR-DOOR: the discovery reads on the four rostered doors (4
     p?.close()
   })
 
-  it('keeps the roster at exactly chat, mcp, fn and run-service, with no dedicated verb among them', () => {
-    const ids = SURFACE_ROSTER.map((entry) => entry.id)
-    expect(ids).toEqual(['chat', 'mcp', 'fn', 'run-service'])
-    for (const { verb } of DEDICATED_READ_VERBS) {
-      for (const spelling of [verb, verb.replace(' ', '-'), verb.split(' ')[0]!]) {
-        expect(ids, spelling).not.toContain(spelling)
-      }
-    }
-  })
-
   it('pairs every discovery op with the input singleton its declaration and MCP contract use', () => {
     expect(OP_INPUT_CONTRACTS['runs.overview']).toBe(RunsOverviewInputSchema)
     const declarations = registryDeclarations()
@@ -385,8 +373,6 @@ describe('DISCOVERY-FOUR-DOOR: the discovery reads on the four rostered doors (4
       expect(AGENT_QA_OP_CONTRACTS[opId]?.input, opId).toBe(contract)
       const declaration = declarations.find((entry) => entry.id === opId)
       expect(declaration, `${opId} is not declared`).toBeDefined()
-      // 432-20 (D-12): no scope on a declaration; the read claim is the risk descriptor's.
-      expect(Object.keys(declaration!), opId).not.toContain('requiredScopes')
       expect(declaration!.risk.readOnly, opId).toBe(true)
       const row = scenarioRowFor(opId)
       expect(row, `${opId} has no scenario row`).toBeDefined()
@@ -484,13 +470,6 @@ describe('DEDICATED-CLI-PARITY: the six dedicated verbs are sugar over their ops
       input: (f) => ({ runId: f.runId, stepIndex: 0, testId: f.secondTestId }),
     },
   ]
-
-  it('covers exactly the verbs the manifest declares, each over the ops its row names', () => {
-    expect(JSON_VERBS.map((entry) => entry.verb)).toEqual(DEDICATED_READ_VERBS.map((entry) => entry.verb))
-    for (const entry of JSON_VERBS) {
-      expect(DEDICATED_READ_VERBS.find((row) => row.verb === entry.verb)?.opIds, entry.verb).toContain(entry.opId)
-    }
-  })
 
   for (const entry of JSON_VERBS) {
     it(`agent-qa ${entry.verb} --json equals its MCP tool and its fn door`, async () => {

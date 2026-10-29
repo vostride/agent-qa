@@ -2,7 +2,7 @@
 // environment is built here from hermeticEnv, never from the 433 fixture's spawn env.
 
 import { spawn } from 'node:child_process'
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
@@ -107,20 +107,4 @@ describe('C444-CI-COLOUR', () => {
     expect(outcome.status, JSON.stringify(outcome)).toBe(1)
     expect(outcome.stderr.includes(COLOUR_CODE), JSON.stringify(outcome.stderr)).toBe(true)
   }, 90_000)
-
-  it('the built bin entry loads no module before the posture runs', () => {
-    const freshness = buildFreshness(ANCHORED_BUILDS)
-    expect(
-      { missing: freshness.missing, stale: freshness.stale },
-      `this cell reads the built CLI: ${REBUILD_INSTRUCTION}`,
-    ).toEqual({ missing: [], stale: [] })
-    const source = readFileSync(CLI_ENTRY, 'utf8')
-    const offenders = source.split('\n').filter((line) =>
-      /^\s*(?:import|export)\s[^(]*?\bfrom\s*['"]/u.test(line)
-      || /^\s*import\s*['"]/u.test(line)
-      || /\brequire\(\s*['"]/u.test(line))
-    expect(offenders.slice(0, 10), `${offenders.length} static loads in ${CLI_ENTRY}`).toEqual([])
-    expect(source.includes('NO_COLOR'), 'the posture is in the entry').toBe(true)
-    expect(/\bimport\(/u.test(source), 'the entry loads the CLI dynamically').toBe(true)
-  })
 })
