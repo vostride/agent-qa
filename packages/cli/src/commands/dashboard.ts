@@ -607,7 +607,7 @@ export async function createDashboardRunDoor(input: {
     resolveAppiumUrl: (runId: string): string | undefined => entries.get(runId)?.appiumUrl,
     resolveRunFlags: (runId: string): DashboardRunFlags | undefined => entries.get(runId)?.flags,
     onExecution: (execution: Promise<unknown>): void => { track(executions, execution) },
-    onPostRun: (_runId: string, settled: Promise<void>): void => { track(postRun, settled) },
+    onPostRun: (settled: Promise<void>): void => { track(postRun, settled) },
   }
 
   const backend = createInProcessExecutionBackend({

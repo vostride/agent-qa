@@ -361,6 +361,9 @@ function createComposedRunExecution(input: {
             ...(input.runBridge?.resolveRunFlags === undefined
               ? {}
               : { resolveRunFlags: input.runBridge.resolveRunFlags }),
+            ...(input.runBridge?.onPostRun === undefined
+              ? {}
+              : { onPostRun: input.runBridge.onPostRun }),
             // ═══ 2026-08-26 — Phase 404 D-06: THIS DOOR'S DRAIN LEG ═══
             //
             // `postRunTail` and not `afterVerdict`: the drive starts this AFTER `afterVerdict`
@@ -422,9 +425,6 @@ function createComposedRunExecution(input: {
         // A NON-ZERO EXIT CODE IS A REAL RUN, not an error — the same rule the child's exit code
         // carried. What decides whether a run happened is the durable evidence
         // `createLocalRunInvocation` reads back, which no code here can fake.
-        if (outcome.settled !== undefined) {
-          input.runBridge?.onPostRun?.(outcome.runId, outcome.settled)
-        }
         return { runId: outcome.runId as RunId }
       } catch (error) {
         // ONE NARROW CATCH, AND IT CONVERTS EXACTLY ONE THING (D-03).
@@ -564,9 +564,8 @@ export interface ComposeCliLocalAgentInput {
    * none of it passes nothing; the dashboard is the only door that wants any of it today.
    *
    * IT IS A PASS-THROUGH, NOT A DECISION. `record` is lent to the run's record, `chipRelay` goes to
-   * the post-run tail, `onExecution` is handed each run's execution as it starts, `onPostRun` is
-   * handed the run's post-run promise, and every other member is
-   * handed to `runInProcessCliRun` as the option of the same name. This
+   * the post-run tail, `onExecution` is handed each run's execution as it starts, and every other
+   * member is handed to `runInProcessCliRun` as the option of the same name. This
    * host adds nothing and defaults nothing — `onSession` in
    * particular is CHAINED onto the door's own local capture rather than replacing it, because that
    * capture is what the ack-law catch below reads to tell a started run from one that never began.
@@ -594,8 +593,11 @@ export interface ComposeCliLocalAgentInput {
      * its events exist. It settles after `onPostRun` has been handed that run's post-run work.
      */
     readonly onExecution?: (execution: Promise<unknown>) => void
-    /** The host's view of a run's detached post-run work, handed over once the run returns. */
-    readonly onPostRun?: (runId: string, settled: Promise<void>) => void
+    /**
+     * Each run's detached post-run work, handed over by the drive the moment it starts that work,
+     * whether the run then returns or re-raises a member's framework error.
+     */
+    readonly onPostRun?: InProcessCliRunExecutionOptions['onPostRun']
   }
   /** The `agent-qa.trigger` this host's runs record outside any `withRunDoor` scope (443-06, D-10). */
   runTrigger?: RunAttributeTrigger

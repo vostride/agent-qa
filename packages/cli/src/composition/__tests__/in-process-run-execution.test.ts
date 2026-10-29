@@ -948,3 +948,38 @@ describe('a suite run opens its record before preparing the suite', () => {
     }
   }, 120_000)
 })
+
+describe('a run that re-raises a framework error hands over its post-run work', () => {
+  it('the drive hands its detached post-run work to onPostRun before it throws', async () => {
+    const target = new CountingTarget()
+    await target.listen()
+    try {
+      const fixture = createInProcessFixture({ origin: target.origin, environment: 'local' })
+      const handedOver: Array<Promise<void>> = []
+      // An aborted signal stops the drive waiting on the analysis enqueue, so the enqueue is still
+      // the run's detached work when the member's framework error is re-raised.
+      const postVerdictSignal = AbortSignal.abort()
+      let thrown: unknown
+      try {
+        await runInProcessCliRun(
+          {
+            runRecord: testRunRecord(),
+            ...fixtureOptions(fixture),
+            executionContext: 'local-headless',
+            postVerdictSignal,
+            onPostRun: (settled) => { handedOver.push(settled) },
+          },
+          { patterns: [fixture.testPattern] },
+        )
+      } catch (error) {
+        thrown = error
+      }
+
+      expect(thrown, 'the member raised no framework error').toBeInstanceOf(Error)
+      expect(handedOver, 'the detached post-run work was not handed over').toHaveLength(1)
+      await expect(handedOver[0]).resolves.toBeUndefined()
+    } finally {
+      await target.close()
+    }
+  }, 120_000)
+})

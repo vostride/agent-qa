@@ -284,6 +284,12 @@ export interface InProcessCliRunExecutionOptions {
    * drive deciding that for everyone.
    */
   readonly postRunTail?: (context: CliRunVerdictContext) => Promise<void>
+  /**
+   * Handed the run's detached post-run work, the same promise as the outcome's `settled`, the
+   * moment the drive starts it. It is called on every path that starts such work, including a run
+   * that then re-raises a member's framework error and so returns no outcome.
+   */
+  readonly onPostRun?: (settled: Promise<void>) => void
   /** Where a quarantine-fold warning goes. The door owns its rendering. */
   readonly warn?: (message: string) => void
   /**
@@ -581,6 +587,11 @@ export async function runInProcessCliRun(
   let preparationSettled = false
   const retainUntilSettled = (completion: Promise<unknown>): Promise<void> =>
     completion.then(() => undefined, () => undefined).finally(closeOutRun)
+  const detach = (completion: Promise<unknown>): Promise<void> => {
+    detachedTail = retainUntilSettled(completion)
+    options.onPostRun?.(detachedTail)
+    return detachedTail
+  }
 
   return await runSafetyScope(
     { executionContext: options.executionContext },
@@ -631,13 +642,13 @@ export async function runInProcessCliRun(
         preparationDisclosureOwnedByDoor = options.afterVerdict !== undefined || options.postRunTail !== undefined
         if (options.postRunTail === undefined) {
           if (!preparationSettled && postVerdictHandoff?.completion !== undefined) {
-            detachedTail = retainUntilSettled(postVerdictHandoff.completion)
+            detach(postVerdictHandoff.completion)
           }
           return { runId, verdict, exitCode: finalExitCode,
             ...(detachedTail === undefined ? {} : { settled: detachedTail }) }
         }
         // 404 D-06 / RESEARCH Pitfall 2: START it and RETURN; the close-out travels with it.
-        detachedTail = retainUntilSettled(Promise.allSettled([
+        const settled = detach(Promise.allSettled([
           postVerdictHandoff?.completion,
           options.postRunTail(verdictContext)
           .catch((error: unknown) => {
@@ -652,7 +663,7 @@ export async function runInProcessCliRun(
             )
           }),
         ]))
-        return { runId, verdict, exitCode: finalExitCode, settled: detachedTail }
+        return { runId, verdict, exitCode: finalExitCode, settled }
       } finally {
         // 2026-10-17 (443-14, GAP-D2; 444-09, D-16): the record flushes on every path and closes its own
         // row when it saw no verdict or a failed write; a repeat flush is a no-op, and a failure here
@@ -671,7 +682,7 @@ export async function runInProcessCliRun(
         }
         // The close-out runs HERE unless the detached tail took ownership of it.
         if (detachedTail === undefined && !preparationSettled && postVerdictHandoff?.completion !== undefined) {
-          detachedTail = retainUntilSettled(postVerdictHandoff.completion)
+          detach(postVerdictHandoff.completion)
         }
         if (detachedTail === undefined) closeOutRun()
       }
