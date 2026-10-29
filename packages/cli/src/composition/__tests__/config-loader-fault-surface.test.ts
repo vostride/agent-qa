@@ -44,11 +44,9 @@
 //                                  395-10 copy read `.linePos` off the argument unguarded and
 //                                  TypeError'd on `null`.
 //  (E1) the ENOENT byte-pins     — `loadConfigFile` answers `{}` and `loadRequiredConfigFile` says
-//                                  `Config file not found: <path>` VERBATIM. That exact string is
-//                                  matched by the live lane's third-arm detection
-//                                  (`scripts/395-live-from-zero.sh:514`) and folded by
-//                                  `coveringGrantInForce`; a parse guard written as one broad catch
-//                                  around the whole loader would reword it and red here.
+//                                  `Config file not found: <path>` VERBATIM, because callers match
+//                                  that sentence. A parse guard written as one broad catch around
+//                                  the whole loader would reword it and red here.
 
 import { spawnSync } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -930,10 +928,9 @@ describe('the ENOENT arms are byte-identical (395-14 · T-395-41)', () => {
 
       expect(await loadConfigFile(missing)).toEqual({})
 
-      // BYTE-EQUAL, not `toContain`. `scripts/395-live-from-zero.sh:514` matches this sentence to
-      // decide whether SC-5's third arm has reopened, and `coveringGrantInForce`'s fold is
-      // documented against it. A parse guard written as one broad catch around the whole loader
-      // would reword it, and this is the cell that would say so.
+      // BYTE-EQUAL, not `toContain`, because callers match this sentence. A parse guard written as
+      // one broad catch around the whole loader would reword it, and this is the cell that would
+      // say so.
       const error = await loadRequiredConfigFile(missing).then(
         () => undefined,
         (err: unknown) => err as Error,

@@ -87,10 +87,10 @@ export class ConfigFileNotYamlError extends Error {
 /**
  * THE READ AND THE PARSE GET SEPARATE CATCHES, and that separation is load-bearing.
  *
- * `Config file not found: <path>` is matched verbatim by the live lane's third-arm detection
- * (`scripts/395-live-from-zero.sh:514`) and folded by `coveringGrantInForce`; a non-ENOENT read
- * fault (EISDIR, EACCES) is a fact about the filesystem and not about the file's content, and is
- * rethrown untouched. Only the PARSE throw is reworded — one guard, aimed at one channel.
+ * A missing file reads as `{}` here; `loadRequiredConfigFile` throws `ConfigFileNotFoundError`,
+ * whose message is `Config file not found: <path>`. A non-ENOENT read fault (EISDIR, EACCES) is a
+ * fact about the filesystem and not about the file's content, and is rethrown untouched. Only the
+ * PARSE throw is reworded — one guard, aimed at one channel.
  */
 export async function loadConfigFile(configPath: string): Promise<unknown> {
   let content: string
@@ -108,16 +108,15 @@ export async function loadConfigFile(configPath: string): Promise<unknown> {
 }
 
 /**
- * The absent-file case, RECOGNISABLE WITHOUT A SUBSTRING MATCH ON ITS OWN SENTENCE (395-27 · WR-02).
+ * The absent-file case, RECOGNISABLE WITHOUT A SUBSTRING MATCH ON ITS OWN SENTENCE.
  *
- * The message is BYTE-IDENTICAL to the bare `Error` this replaces, because that exact string is
- * matched by the live lane's third-arm detection (`scripts/395-live-from-zero.sh:514`), folded by
- * `coveringGrantInForce`, and pinned by `(E1)`. Nothing about what any surface PRINTS changes.
+ * `loadRequiredConfigFile` throws it with the message `Config file not found: <path>`, which
+ * callers match and `(E1)` pins byte for byte.
  *
- * What changes is that `showAction` can now ask WHICH fault this is by `instanceof` instead of by
- * `message.startsWith(...)` — the reasoning `ConfigFileNotYamlError` above already wrote down: a
- * caller that wants to recognise the case needs something better than a substring match on a
- * sentence, and a sentence-matching caller is one rewording away from silently taking the wrong arm.
+ * `showAction` asks WHICH fault this is by `instanceof` instead of by `message.startsWith(...)` —
+ * the reasoning `ConfigFileNotYamlError` above already wrote down: a caller that wants to recognise
+ * the case needs something better than a substring match on a sentence, and a sentence-matching
+ * caller is one rewording away from silently taking the wrong arm.
  */
 export class ConfigFileNotFoundError extends Error {
   readonly configPath: string
