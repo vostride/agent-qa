@@ -662,9 +662,8 @@ describe('the module publishes no bus liveness, and an absent export is the proo
     expect(source()).not.toMatch(/20_000|STALE_MS/u)
   })
 
-  it('the clock-as-parameter rule names only the fold: the source never mentions livenessOf', () => {
+  it('the reducer source never mentions livenessOf', () => {
     expect(source()).not.toContain('livenessOf')
-    expect(source()).toContain('EVERY CLOCK IS A PARAMETER')
   })
 })
 

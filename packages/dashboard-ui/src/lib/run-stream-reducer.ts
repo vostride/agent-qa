@@ -14,31 +14,7 @@ import type {
   VerifierVerdict,
 } from '@vostride/agent-qa-schema'
 
-/**
- * THE LIVE PAGE'S BRAIN: a pure fold over the run event bus (403 · HNST-01/HNST-02/HNST-03,
- * D-10/D-11/D-12).
- *
- * WHY THIS IS A MODULE AND NOT A HOOK. What the live surface may show is a claim about a data
- * structure, not about a rendering discipline. A hook can only be exercised through a renderer, so
- * "the page cannot display a half-finished thought" would be an assertion about JSX — one refactor
- * away from being false while every cell stayed green. Here the claim is structural: {@link LiveStepRow}
- * has no field a half-finished thought could occupy, and the reducer builds rows field by field
- * rather than by spreading a payload, so there is no path by which one arrives.
- *
- * THAT IS NOT ENOUGH ON ITS OWN, AND THE SUITE KNOWS IT. A TypeScript type that omits a field
- * proves nothing at runtime — `{ ...payload }` puts every one of them back and the type never
- * complains at the boundary where the object was built. The type is the intent; the sentinel cell
- * in `run-stream-reducer.test.ts` is the proof, feeding real payloads that carry the forbidden
- * fields and asserting the serialised state is free of them at every depth.
- *
- * EVERY CLOCK IS A PARAMETER. `reduceRunStream(state, envelope, now)` takes the reading rather than
- * take it. A wall clock inside the fold is a flake that fails one run in N and reads as a real
- * defect when it does (403-03 measured exactly that shape in a byte-comparing fixture).
- *
- * NO LIVENESS VERDICT (428 D-03). This module once also judged the bus channel `live`, `lost` or
- * `reconnecting` for a pill on the live page. The owner removed that pill: a dead bus now shows as
- * rows that stop moving, and the module publishes no judgement about the channel.
- */
+// Rows copy payload fields one by one, as a spread leaks planner fields; `now` is the only clock.
 
 /** The step vocabulary HNST-02 fixes, in lifecycle order. Compatible with `lib/status.ts`. */
 export const STEP_STATUSES = [
