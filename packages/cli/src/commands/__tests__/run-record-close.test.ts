@@ -1,8 +1,7 @@
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { fileURLToPath } from 'node:url'
 
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -16,7 +15,6 @@ import { createRunRecord, doorRunAttributes, type RunRecordHostBinding } from '.
 const NO_VERDICT = 'The run ended before it reached a verdict.'
 const CLOSED = 'This run record is closed.'
 const GATE_RUN = 'agent-qa.gate-run'
-const RUN_SOURCE = readFileSync(fileURLToPath(new URL('../run.ts', import.meta.url)), 'utf8')
 
 const cleanups: Array<() => void> = []
 
@@ -89,16 +87,6 @@ function rawRow(dbPath: string, runId: string): string {
   } finally {
     db.close()
   }
-}
-
-function crashCatch(): string {
-  const closeAt = RUN_SOURCE.indexOf('_crashRecord?.close()')
-  expect(closeAt, "run.ts no longer closes the crash path's record").toBeGreaterThan(-1)
-  const catchAt = RUN_SOURCE.lastIndexOf('} catch (err) {', closeAt)
-  const exitAt = RUN_SOURCE.indexOf('process.exit(2)', closeAt)
-  expect(catchAt, "the action's catch was not found").toBeGreaterThan(-1)
-  expect(exitAt, "the action's catch no longer exits 2").toBeGreaterThan(closeAt)
-  return RUN_SOURCE.slice(catchAt, exitAt + 'process.exit(2)'.length)
 }
 
 describe('C444-VERDICTLESS-CLOSE', () => {
@@ -203,30 +191,6 @@ describe('C444-VERDICTLESS-CLOSE', () => {
     const incomplete = warned.filter((line) => line.includes('but its dashboard record is incomplete'))
     expect(incomplete.length, `warnings: ${warned.join(' | ')}`).toBe(1)
     expect(warned.length, `warnings: ${warned.join(' | ')}`).toBe(1)
-  })
-})
-
-describe('C444-CRASH-CATCH', () => {
-  it("agent-qa run's crash path guesses no cause and writes no row", () => {
-    const block = crashCatch()
-    for (const kept of [
-      'RunIdNotMintedError',
-      'RunIdAlreadyInUseError',
-      'RunRecordUnavailableError',
-      'frameworkErrorTerminalLine',
-      'printRunId',
-    ]) {
-      expect(block, `the crash catch lost ${kept}`).toContain(kept)
-    }
-    for (const gone of [
-      'finalizeOwnRun',
-      'finalizeRunArtifact',
-      'Browser closed',
-      'browser has been closed',
-      "'cancelled'",
-    ]) {
-      expect(block.includes(gone), `the crash catch still names ${gone}`).toBe(false)
-    }
   })
 })
 

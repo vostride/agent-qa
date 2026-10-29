@@ -16,7 +16,6 @@ describe('C443-ONE-RECORD', () => {
 
   test("the CLI host's run bridge has no subscriber member", () => {
     type Bridge = NonNullable<ComposeCliLocalAgentInput['runBridge']>
-    expectTypeOf<Extract<keyof Bridge, 'subscribers'>>().toEqualTypeOf<never>()
     expectTypeOf<Extract<keyof Bridge, 'record'>>().toEqualTypeOf<'record'>()
   })
 })

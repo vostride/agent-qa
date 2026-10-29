@@ -3,7 +3,7 @@
 // D-07: agent-qa makes no git commits. A config change, an authored test and a mark's knowledge fix
 // are plain uncommitted edits: HEAD, the index and the history stay exactly where the person left
 // them, and `git status` shows what changed. The earlier cells prove each publication alone
-// (`proposal-author-attribution.test.ts`, `432-direct-config.test.ts`); this file drives all three
+// (`proposal-author-attribution.test.ts`, `config-direct-write.test.ts`); this file drives all three
 // through the shipped CLI composition IN ONE REPOSITORY, then again in a dirty tree and in a
 // directory with no repository, and once more with the mark interrupted before its receipt, so a
 // retried mark is seen to publish its fix once.

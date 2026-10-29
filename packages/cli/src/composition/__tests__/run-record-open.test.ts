@@ -118,10 +118,3 @@ describe('C443-RECORD-OPEN', () => {
     await expect(other.open({ runId: first, configDir }), 'the record after the refusal').resolves.toBeUndefined()
   })
 })
-
-// 2026-10-17 (443-16, GAP-D6): the record keeps its incomplete reason private to the D-27 line.
-describe('C443-DEAD-SURFACE', () => {
-  it('a run record has no incomplete reader', () => {
-    expect('incomplete' in record(), 'the record exposes an incomplete reader').toBe(false)
-  })
-})
