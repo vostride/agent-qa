@@ -669,7 +669,6 @@ describe('C436-DOWNLOAD-CAPTURE', () => {
     expect(result.success).toBe(true)
     expect(result.metadata?.['download']).toBeUndefined()
     expect(elapsed).toBeGreaterThanOrEqual(DOWNLOAD_START_GRACE_MS - 5)
-    console.info(`[C436-DOWNLOAD-CAPTURE] click with no download took ${elapsed.toFixed(0)} ms (grace ${String(DOWNLOAD_START_GRACE_MS)} ms)`)
   }, 60_000)
 
   it('a non-activation action does not wait for a download', async () => {
@@ -772,7 +771,6 @@ describe('C436-DOWNLOAD-DEADLINE', () => {
     const elapsed = performance.now() - started
     const handed = execute.mock.calls[0]?.[1]?.remainingStepMs
     const given = `the click was handed ${String(handed)} ms of the 2000 ms step (start grace ${String(DOWNLOAD_START_GRACE_MS)} ms)`
-    console.info(`[C436-DOWNLOAD-DEADLINE] ${given}`)
 
     expect(run.executed).toHaveLength(1)
     expect(run.result.evidence?.subActions[0]?.operationEvidence?.downloads, given).toEqual([UNFINISHED_SLOW])

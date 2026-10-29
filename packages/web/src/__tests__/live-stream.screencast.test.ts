@@ -58,8 +58,8 @@ const ANIMATED_MIN_FRAMES = 3
  * (2_000), so 6 s holds between 2 and 4 frames: fewer is a silent producer (the dot would go amber
  * on a healthy page), more is a producer emitting faster than the keepalive — i.e. polling. The gap
  * floor sits 200 ms under the keepalive period, so a 1 s poller fails it on every pair. The
- * measured counts are printed by the cell; do not widen the band without a dated note saying what
- * was measured and why.
+ * measured counts are in the cell's failure messages; do not widen the band without a note saying
+ * what was measured and why.
  */
 const STATIC_WINDOW_MS = 6_000
 const STATIC_MIN_FRAMES = 2
@@ -259,8 +259,6 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled (LIVE-01)',
       }
       expect(counts, 'both arms run k=5 — a shrunken loop is a weaker claim, silently')
         .toHaveLength(EXPECTED_ITERATIONS)
-      // eslint-disable-next-line no-console -- the A2 evidence the SUMMARY records
-      console.log(`[403-02 A2] animated-arm frame counts over 5 iterations: ${counts.join(', ')}`)
     } finally {
       await adapter.cleanup().catch(() => undefined)
     }
@@ -314,8 +312,6 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled (LIVE-01)',
       }
       expect(counts, 'both arms run k=5 — a shrunken loop is a weaker claim, silently')
         .toHaveLength(EXPECTED_ITERATIONS)
-      // eslint-disable-next-line no-console -- the D-15 evidence the SUMMARY records
-      console.log(`[428-06 D-15] static-page frame counts over 5 iterations: ${counts.join(', ')}`)
     } finally {
       await adapter.cleanup().catch(() => undefined)
     }
@@ -383,8 +379,6 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled (LIVE-01)',
         + `${String(unacked.length)}. If those are close, the ack is not the throttle and the `
         + 'backpressure the hub and the frame proxy are built on does not exist.',
       ).toBeGreaterThan(unacked.length * 5)
-      // eslint-disable-next-line no-console -- the backpressure evidence the SUMMARY records
-      console.log(`[403-02] ack backpressure: unacked=${String(unacked.length)} acked=${String(acked.length)} frames / 3 s`)
     } finally {
       await adapter.cleanup().catch(() => undefined)
     }
@@ -586,7 +580,6 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled (LIVE-01)',
       }
       if (unmeasured !== undefined) {
         const note = `NON-CHROMIUM-GATE ${name} unmeasured: ${unmeasured}`
-        console.log(note)
         await annotate(note)
         continue
       }
@@ -602,7 +595,6 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled (LIVE-01)',
         await adapter.cleanup().catch(() => undefined)
       }
       const note = `NON-CHROMIUM-GATE ${name} measured`
-      console.log(note)
       await annotate(note)
     }
   }, 180_000)

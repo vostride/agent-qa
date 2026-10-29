@@ -114,8 +114,6 @@ test('NETWORK-READBACK: real member terminal refers to one reopened masked SHA b
     expect(record.requestBody).toBe(record.body)
     expect(Buffer.byteLength(record.body!)).toBe(32768 - secret.length + '[secret:NET_423]'.length)
   }
-  console.info('NETWORK-READBACK-MEASUREMENTS', JSON.stringify({ records: 600, blobBytes: stored.length,
-    networkEntryBytes: Buffer.byteLength(JSON.stringify(entry)) }))
 })
 
 test('DEDUP: identical complete bytes do not rewrite an existing blob', () => {

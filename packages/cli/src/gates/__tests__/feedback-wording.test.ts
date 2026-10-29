@@ -48,7 +48,6 @@ describe('419 bounded feedback wording', () => {
     expect(await wordImprovementPlan({ ...input, config: undefined, mask })).toEqual(input.plan)
     const elapsed = performance.now() - started
     expect(elapsed).toBeLessThan(100)
-    console.info(`419 wording floor latency: ${elapsed.toFixed(3)} ms`)
     expect(model).not.toHaveBeenCalled()
     expect(llm.resolveModelAuth).not.toHaveBeenCalled()
     expect(mask).not.toHaveBeenCalled()

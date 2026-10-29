@@ -143,7 +143,6 @@ async function mint(handle = 0): Promise<{ liveUrl: string; stream: { kind: stri
     answers.push(result.stream.kind)
     if (result.stream.kind === 'cdp-screencast') {
       mintAnswerLog.push(answers)
-      console.log(`mint(${String(handle)}) answers before a declared stream: ${JSON.stringify(answers)}`)
       return result
     }
     if (Date.now() > deadline) {

@@ -210,11 +210,11 @@ describe.skipIf(!LIVE)('C437-IOS-LIVE', () => {
     expect(outer, 'the labelled Prefer Non-Blinking Cursor switch is observed').toBeDefined()
     expect(knob, 'its knob is observed as a child switch').toBeDefined()
     for (const control of [knob!, outer!]) {
-      expect(['0', '1']).toContain(control.value)
-      expect(typeof control.state.checked).toBe('boolean')
-      expect(control.state.checked).toBe(control.value === '1')
+      const reading = `value=${control.value} checked=${String(control.state.checked)}`
+      expect(['0', '1'], reading).toContain(control.value)
+      expect(typeof control.state.checked, reading).toBe('boolean')
+      expect(control.state.checked, reading).toBe(control.value === '1')
     }
-    console.log(`[C437-IOS-LIVE] outer value=${outer!.value} checked=${String(outer!.state.checked)}; knob value=${knob!.value} checked=${String(knob!.state.checked)}`)
   }, 300_000)
 
   it('a switch already in the requested state sends no input', async () => {
@@ -240,7 +240,6 @@ describe.skipIf(!LIVE)('C437-IOS-LIVE', () => {
     expect(run.executed).toHaveLength(subs.length - 1)
     const after = cursorKnob(await adapter!.observe())
     expect(after?.value, 'the knob value is unchanged').toBe(seen.value)
-    console.log(`[C437-IOS-LIVE] in state: knob value before=${seen.value} after=${after?.value}`)
   }, 300_000)
 
   it('a switch not in the requested state is tapped once', async () => {
@@ -263,7 +262,6 @@ describe.skipIf(!LIVE)('C437-IOS-LIVE', () => {
     const after = cursorKnob(await adapter!.observe())
     expect(after?.state.checked).toBe(!seen.original)
     expect(after?.value, 'the knob value flipped').toBe(seen.original ? '0' : '1')
-    console.log(`[C437-IOS-LIVE] out of state: knob value before=${seen.value} after=${after?.value}`)
   }, 300_000)
 
   it('an ordinary row is not a toggle and is tapped under desiredState unselected', async () => {
@@ -285,6 +283,5 @@ describe.skipIf(!LIVE)('C437-IOS-LIVE', () => {
     const sub = run.result.evidence!.subActions[0]
     expect(sub.result.success).toBe(true)
     expect(sub.result.metadata?.['idempotentNoop']).toBeUndefined()
-    console.log(`[C437-IOS-LIVE] ordinary row: role=${general!.role} selected=${String(general!.state.selected)} executes=${run.executed.length}`)
   }, 300_000)
 })

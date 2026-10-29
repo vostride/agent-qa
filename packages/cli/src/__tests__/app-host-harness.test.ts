@@ -577,7 +577,6 @@ beforeAll(async () => {
     }
     await new Promise((tick) => setTimeout(tick, 250))
   }
-  console.log(`408-06 harness: handle 0 capability answers before a declared stream: ${JSON.stringify(declared)}`)
 
   fixture = {
     origin: boundOrigin,
@@ -1026,7 +1025,6 @@ describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN (D-12, crit
       await page.waitForTimeout(CHANGING_WINDOW_MS)
       const afterChanging = await paintedFrames(embed)
       const changingDelta = afterChanging - beforeChanging
-      console.log(`408-06 change-driven: painted ${String(changingDelta)} frame(s) in ${String(CHANGING_WINDOW_MS)}ms while the page animated`)
       expect(
         changingDelta,
         `the watched page was animating for ${String(CHANGING_WINDOW_MS)}ms and the embed painted `
@@ -1044,7 +1042,6 @@ describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN (D-12, crit
       await page.waitForTimeout(STATIC_WINDOW_MS)
       const afterStatic = await paintedFrames(embed)
       const staticDelta = afterStatic - beforeStatic
-      console.log(`408-06 change-driven: painted ${String(staticDelta)} frame(s) in ${String(STATIC_WINDOW_MS)}ms while the page was static`)
       expect(
         staticDelta,
         `the watched page was static for ${String(STATIC_WINDOW_MS)}ms and the embed painted `

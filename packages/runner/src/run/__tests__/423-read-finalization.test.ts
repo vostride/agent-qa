@@ -118,10 +118,6 @@ test('VARIABLE-LARGE: 1000 variables retain full values without a production cap
   const snapshot = f.terminals()[0].variableSnapshot
   expect(snapshot).toEqual(Object.fromEntries(Object.entries(values).map(([name, value]) => [name, { value, source: 'inline' }])))
   expect(f.terminals()[0].evidence?.variables).toMatchObject({ state: 'present', counts: { count: 1000 } })
-  console.info('VARIABLE-MEASUREMENTS', JSON.stringify({ variables: 1000,
-    snapshotBytes: Buffer.byteLength(JSON.stringify(snapshot)),
-    terminalBytes: Buffer.byteLength(JSON.stringify(f.terminals()[0])),
-  }))
 })
 
 test('VARIABLE-PROTOTYPE: the actual snapshot producer preserves own prototype-named data', async () => {
@@ -410,14 +406,6 @@ test('NETWORK-BYTE-STRESS: 600 request plus response 32-KiB bodies retain masked
   const body = secret + 'é'.repeat(Math.floor((32768 - secret.length) / 2)) + 'a'.repeat((32768 - secret.length) % 2)
   expect(Buffer.byteLength(body)).toBe(32768)
   const records = Array.from({ length: 600 }, (_, i) => ({ ...networkRecord(i), body, requestBody: body }))
-  // Measure the unbatched policy on the same synthetic shape before assessing scheduling.
-  const baselineStart = performance.now()
-  let timerAt = 0
-  const timer = new Promise<void>(resolve => setTimeout(() => { timerAt = performance.now(); resolve() }, 0))
-  projectNetworkEvidence(records, text => redactor.redactString(text))
-  const synchronousMs = performance.now() - baselineStart
-  await timer
-  console.info('NETWORK-BASELINE', JSON.stringify({ records: records.length, synchronousMs, timerDelayMs: timerAt - baselineStart }))
   let firstYieldMs: number | undefined
   let drainStarted = 0
   f.adapter.drainNetworkLogs = () => {
@@ -426,27 +414,12 @@ test('NETWORK-BYTE-STRESS: 600 request plus response 32-KiB bodies retain masked
     return records
   }
   const persist = f.config.evidenceArtifacts!.persistEvidenceDocument!
-  let serializationMs = 0
-  let blobBytes = 0
-  let maskMs = 0
-  f.config.secretRedactor = { redactString: text => {
-    const started = performance.now()
-    const value = redactor.redactString(text)
-    maskMs += performance.now() - started
-    return value
-  } }
   f.config.evidenceArtifacts!.persistEvidenceDocument = value => {
     expect(firstYieldMs).toBeDefined()
-    const started = performance.now()
-    const serialized = JSON.stringify(value)
-    serializationMs = performance.now() - started
-    blobBytes = Buffer.byteLength(serialized)
-    expect(serialized).not.toContain(secret)
+    expect(JSON.stringify(value)).not.toContain(secret)
     return persist(value)
   }
-  const started = performance.now()
   await runMemberTest(f.member, f.config)
-  const elapsedMs = performance.now() - started
   expect(f.terminals()[0].evidence?.network).toMatchObject({ state: 'present', counts: { total: 600, failed: 0, errored: 0 } })
   const document = f.documents[0]
   if (document.kind !== 'network') throw new Error('Expected network')
@@ -457,8 +430,6 @@ test('NETWORK-BYTE-STRESS: 600 request plus response 32-KiB bodies retain masked
   }
   const rowEvidenceBytes = Buffer.byteLength(JSON.stringify(f.terminals()[0].evidence))
   expect(rowEvidenceBytes).toBeLessThan(1000)
-  console.info('NETWORK-MEASUREMENTS', JSON.stringify({ records: 600, elapsedMs, maskMs, serializationMs, firstYieldMs, blobBytes, rowEvidenceBytes,
-    terminalPayloadBytes: Buffer.byteLength(JSON.stringify(f.terminals()[0])) }))
 })
 
 test('NETWORK-CANCEL-DURING-BATCH: cancellation retains all drained content and one cancelled terminal', async () => {

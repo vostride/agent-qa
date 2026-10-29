@@ -34,8 +34,8 @@
 // register below is therefore every read of `process.argv` in the scanned tree, annotated with the
 // value flow detected on its line but NOT filtered by it: a flow filter is exactly the place a
 // member vanishes quietly, and a register that can drop members cannot make a boundary measured.
-// The register does not fail the suite. It is printed, asserted non-empty, asserted to contain the
-// three known non-`createRequire` sites, and adjudicated line by line in the plan's SUMMARY.
+// The register does not fail the suite. It is asserted non-empty, asserted to contain the three
+// known non-`createRequire` sites, and adjudicated line by line in the plan's SUMMARY.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -428,14 +428,7 @@ describe('createRequire anchor census', () => {
     }
   })
 
-  it('prints the process.argv register and finds it non-empty', () => {
-    const rendered = ARGV_REGISTER.map(
-      (entry) =>
-        `  ${entry.relPath}:${entry.read.line} [${
-          entry.read.flows.length === 0 ? 'unclassified' : entry.read.flows.join(',')
-        }] ${entry.read.text}`,
-    ).join('\n')
-    console.log(`process.argv register (${ARGV_REGISTER.length} reads):\n${rendered}`)
+  it('finds the process.argv register non-empty', () => {
     expect(
       ARGV_REGISTER.length,
       'the wider extraction matched nothing, so the scope boundary would be assumed rather than '

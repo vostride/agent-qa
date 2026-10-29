@@ -1,5 +1,3 @@
-import { performance } from 'node:perf_hooks'
-
 import { describe, expect, it } from 'vitest'
 
 import { DEFAULT_EMBEDDING_PROFILE } from '@vostride/agent-qa-schema'
@@ -50,13 +48,10 @@ describe.skipIf(process.env.AGENT_QA_NATIVE_IT !== '1')('native embedder integra
       expect(Math.abs(magnitude(document) - 1)).toBeLessThan(1e-3)
       expect(cosine(document, related)).toBeGreaterThan(cosine(document, unrelated))
 
-      const warmStartedAt = performance.now()
       const warmEmbedder = await createNativeEmbedder({
         profile: DEFAULT_EMBEDDING_PROFILE,
         allowDownload: true,
       })
-      const warmConstructionMs = performance.now() - warmStartedAt
-      console.info(`native embedder warm construction: ${warmConstructionMs.toFixed(2)} ms`)
 
       await expect(warmEmbedder.embedDocument('Warm pipeline check.')).resolves.toHaveLength(384)
     },
