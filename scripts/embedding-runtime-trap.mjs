@@ -26,7 +26,7 @@ import { homedir } from 'node:os'
 import { extname, join, resolve, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { deriveForbiddenRuntime, WORKSPACE_ROOT } from './431-discovery-import-lint.mjs'
+import { deriveForbiddenRuntime, WORKSPACE_ROOT } from './lint-discovery-imports.mjs'
 
 export const TRAP_REPORT_ENV = 'AGENT_QA_431_TRAP_REPORT'
 export const TRAP_SENTINEL = 'AGENT_QA_431_RUNTIME_LOAD_TRAPPED'

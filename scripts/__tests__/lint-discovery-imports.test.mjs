@@ -16,9 +16,9 @@ import {
   deriveForbiddenRuntime,
   lintDiscoveryImports,
   moduleEdges,
-} from '../431-discovery-import-lint.mjs'
+} from '../lint-discovery-imports.mjs'
 
-const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '..', '431-discovery-import-lint.mjs')
+const SCRIPT = join(dirname(fileURLToPath(import.meta.url)), '..', 'lint-discovery-imports.mjs')
 const FORBIDDEN = ['forbidden-runtime']
 const ACQUIRE = ['acquireEmbedder']
 

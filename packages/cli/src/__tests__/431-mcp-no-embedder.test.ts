@@ -2,7 +2,7 @@
 // and driven through every discovery read, loads no embedding runtime and reads no model asset.
 //
 // THE TRAP IS INSTALLED BEFORE THE HOST EXISTS. Each child is the built `dist/cli.js`, started as
-// `node --import scripts/431-runtime-load-trap.mjs`, with the same `--import` in NODE_OPTIONS for
+// `node --import scripts/embedding-runtime-trap.mjs`, with the same `--import` in NODE_OPTIONS for
 // any descendant. The trap's resolve hook sees ESM and CommonJS loads alike, `process.dlopen` and
 // the fs readers are wrapped, and the forbidden set is derived from the acquisition modules' own
 // imports (see the trap's header for the measured mechanism). A report with no `installed` line,
@@ -52,8 +52,8 @@ const HERE = dirname(fileURLToPath(import.meta.url))
 const CLI_ENTRY = resolve(HERE, '../../dist/cli.js')
 const WORKSPACE = resolve(HERE, '../../../..')
 const KNOWLEDGE_LOCAL = join(WORKSPACE, 'packages', 'knowledge-local')
-const TRAP_PATH = join(WORKSPACE, 'scripts', '431-runtime-load-trap.mjs')
-const LINT_PATH = join(WORKSPACE, 'scripts', '431-discovery-import-lint.mjs')
+const TRAP_PATH = join(WORKSPACE, 'scripts', 'embedding-runtime-trap.mjs')
+const LINT_PATH = join(WORKSPACE, 'scripts', 'lint-discovery-imports.mjs')
 
 interface TrapRecord { readonly event: string; readonly kind?: string; readonly identity?: string; readonly forbidden?: readonly string[] }
 interface TrapModule {
