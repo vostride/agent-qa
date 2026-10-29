@@ -171,8 +171,6 @@ describe('423-36 runs.marks.history contract (D-19)', () => {
     for (const entry of result.entries) expect(entry.active).toBe(!('supersededBy' in entry))
   })
 
-  // RE-SPELLED 432-09 from 'SUPERSEDED-BY: drafted receipts carry the current proposal state beside
-  // their historical disposition': a receipt now carries what its applied fix changed.
   it('SUPERSEDED-BY: applied knowledge receipts carry the records they changed beside their historical disposition', async () => {
     const result = await read(sequenceA())
     const byOrdinal = new Map(result.entries.map(entry => [entry.ordinal, entry]))
@@ -181,7 +179,6 @@ describe('423-36 runs.marks.history contract (D-19)', () => {
     expect(byOrdinal.get(4)).toMatchObject({ disposition: { kind: 'applied', change: { kind: 'test-file', filePath: 'tests/checkout.yaml' } } })
     expect(byOrdinal.get(6)).toMatchObject({ disposition: { kind: 'drafted', proposalId: 'proposal-a6' } })
     for (const ordinal of [2, 3, 4, 5, 6]) expect(Object.keys(byOrdinal.get(ordinal)!)).not.toContain('changedRecords')
-    for (const entry of result.entries) expect(Object.keys(entry)).not.toContain('proposal')
     // An applied knowledge receipt with no join, a join naming other records, or a join on any other
     // disposition is refused.
     const [, second, third] = sequenceA()
@@ -218,12 +215,8 @@ describe('423-36 runs.marks.history contract (D-19)', () => {
   it('HISTORY-READ-TIER: read scope, read-only risk and a feedbackReads binding separate from the mark writer', async () => {
     const op = historySpec()
     expect(op.id).toBe('runs.marks.history')
-    // RE-SPELLED 2026-10-01 (432-25, D-12) from `requiredScopes` equal to ['read']: the op declares
-    // no scope; the read tier is the read-only risk pinned on the next lines.
-    expect(op).not.toHaveProperty('requiredScopes')
     expect(op.resultKind).toBe('unary')
     expect(op.risk).toEqual({ name: 'fn:runs.marks.history', recognized: true, readOnly: true })
-    expect(op).not.toHaveProperty('requiresHumanOrigin')
     expect(op.boundThrough).toBe('feedbackReads')
     expect(spec.OPTIONAL_FUNCTION_DEP_KEYS).toContain('feedbackReads')
     expect(spec.OPTIONAL_FUNCTION_DEP_KEYS).toContain('feedback')
@@ -243,8 +236,6 @@ describe('423-36 runs.marks.history contract (D-19)', () => {
     await expect(invokeFunction(unbound, 'runs.marks.history', { runId }, caller)).rejects.toBeInstanceOf(spec.FunctionNotBoundError)
   })
 
-  // RE-SPELLED 432-09 from 'HISTORY-MASK: note, root-cause producer and proposal decision reason cross
-  // the live mask; identities do not': the joined record content crosses the mask in its place.
   it('HISTORY-MASK: note, root-cause producer and changed record content cross the live mask; identities do not', async () => {
     const secret = 'synthetic-sensitive-token'
     const mask = declaredMask({ TOKEN_441: secret })

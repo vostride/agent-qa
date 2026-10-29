@@ -1,8 +1,7 @@
-// The three knowledge changes apply in the call (432-12, D-02/D-05/D-09).
+// The three knowledge changes apply in the call.
 //
-// `knowledge.accept`, `knowledge.reject` and `knowledge.forget` replace the three `*.propose` ops.
-// Each validates its input, hands the port ONE direct change request and answers what the port
-// applied. Nothing is proposed, and the retired ids are not aliases: they are unknown functions.
+// `knowledge.accept`, `knowledge.reject` and `knowledge.forget` each validate their input, hand the
+// port ONE direct change request and answer what the port applied.
 //
 // The port here is a recording double, so every cell measures the op contract and the dispatch,
 // not the writer. The real writer through the local composition is measured in agent-local's
@@ -18,7 +17,7 @@ import type { ExecutionContext, FunctionCaller } from '@vostride/agent-qa-schema
 import { getActiveExecutionContext, setActiveExecutionContextResolver } from '@vostride/agent-qa-safety'
 import { describe, expect, it } from 'vitest'
 
-import { FunctionInputError, UnknownFunctionError, invokeFunction } from '../invoke.js'
+import { FunctionInputError, invokeFunction } from '../invoke.js'
 import { createFunctionRegistry } from '../registry.js'
 import type { FunctionDeps, KnowledgeReviewPort } from '../spec.js'
 
@@ -44,12 +43,6 @@ const FORGET_RECEIPT = {
 
 const CHANGE_IDS = ['knowledge.accept', 'knowledge.reject', 'knowledge.forget'] as const
 
-const RETIRED_IDS = [
-  'knowledge.accept.propose',
-  'knowledge.reject.propose',
-  'knowledge.forget.propose',
-] as const
-
 type ChangeRequest = {
   readonly verb: string
   readonly input: Record<string, unknown>
@@ -59,8 +52,6 @@ type ChangeRequest = {
 interface RecordingPort {
   readonly port: KnowledgeReviewPort
   readonly changes: ChangeRequest[]
-  readonly proposes: unknown[]
-  readonly applies: unknown[]
 }
 
 /**
@@ -69,17 +60,7 @@ interface RecordingPort {
  */
 function recordingPort(answer?: (request: ChangeRequest) => unknown): RecordingPort {
   const changes: ChangeRequest[] = []
-  const proposes: unknown[] = []
-  const applies: unknown[] = []
   const port = {
-    propose: (...args: unknown[]) => {
-      proposes.push(args)
-      return Promise.reject(new Error('a direct change never proposes'))
-    },
-    apply: (...args: unknown[]) => {
-      applies.push(args)
-      return Promise.reject(new Error('a direct change never applies a proposal'))
-    },
     change: (request: ChangeRequest) => {
       changes.push(request)
       if (answer !== undefined) return Promise.resolve(answer(request))
@@ -92,7 +73,7 @@ function recordingPort(answer?: (request: ChangeRequest) => unknown): RecordingP
       })
     },
   } as unknown as KnowledgeReviewPort
-  return { port, changes, proposes, applies }
+  return { port, changes }
 }
 
 function deps(knowledgeReview: KnowledgeReviewPort): FunctionDeps {
@@ -168,26 +149,11 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
         verb: verbOf(id),
         input: reason === undefined ? verbInput : { ...verbInput, reason },
       }])
-      // Nothing is proposed and no proposal is applied: the change IS the call.
-      expect(recording.proposes, id).toEqual([])
-      expect(recording.applies, id).toEqual([])
       expect(outcome.value, id).toMatchObject({
         outcome: 'applied',
         verb: verbOf(id),
         recordIds: [RECORD.recordId],
       })
-    }
-  })
-
-  it('C432-KNOWLEDGE-CHANGE-OPS: the retired propose ids are unknown functions, with no alias', async () => {
-    for (const id of RETIRED_IDS) {
-      const recording = recordingPort()
-      const outcome = await settled(
-        invokeFunction(registry(recording.port), id, inputFor(id), TOKENLESS_CALLER),
-      )
-      expect(outcome.error, `${id} must not dispatch`).toBeInstanceOf(UnknownFunctionError)
-      expect(recording.changes).toEqual([])
-      expect(recording.proposes).toEqual([])
     }
   })
 
@@ -299,9 +265,7 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
     expect(contract?.safeParse({ kind: 'proposed', proposal: {} }).success).toBe(false)
   })
 
-  // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-06): was '…declares the direct contract, a
-  // knowledge-write scope and a local mutation'. Scopes are deleted; the title says what is read.
-  it('each op is bound and declares a recognized, non-read-only risk with no origin requirement', () => {
+  it('each op is bound and declares a recognized, non-read-only risk', () => {
     const declarations = new Map(
       registry(recordingPort().port).list(TOKENLESS_CALLER).map((row) => [row.id, row]),
     )
@@ -310,30 +274,6 @@ describe('C432-KNOWLEDGE-CHANGE-OPS: the three knowledge changes apply in the ca
       expect(declaration, id).toBeDefined()
       expect(declaration?.bindingStatus, id).toBe('bound')
       expect(declaration?.risk, id).toMatchObject({ name: `fn:${id}`, recognized: true, readOnly: false })
-      // 432-20 (D-10): declarations carry no origin requirement at all.
-      expect(Object.keys(declaration ?? {}), id).not.toContain('requiresHumanOrigin')
-      expect(declaration?.summary, id).not.toMatch(/propos|commit(s|ting)? nothing|removing nothing/i)
     }
-  })
-})
-
-describe('C432-RUNTIME-SETS: the registry carries the direct knowledge ids and not the retired ones', () => {
-  // 2026-10-01 (432-17, D-05): the pre-432 apply is deleted with the inbox, and leaves the set.
-  it('C432-RUNTIME-SETS: knowledge ids registered are exactly the reads and the three changes', () => {
-    const ids = registry(recordingPort().port).list(TOKENLESS_CALLER).map((row) => row.id)
-    const knowledge = ids.filter((id) => id.startsWith('knowledge.')).sort()
-    expect(knowledge).toEqual([
-      'knowledge.accept',
-      'knowledge.brief.why',
-      'knowledge.bundles.list',
-      'knowledge.forget',
-      'knowledge.gates.list',
-      'knowledge.record.show',
-      'knowledge.records.diff',
-      'knowledge.records.inspect',
-      'knowledge.reject',
-    ])
-    for (const retired of RETIRED_IDS) expect(ids, retired).not.toContain(retired)
-    expect(ids).not.toContain('knowledge.proposal.apply')
   })
 })

@@ -7,7 +7,7 @@
 // throws rejects the handler — D-15's posture, no in-handler catch).
 //
 // Two red substrates on purpose. `buildSyntheticHandoff` is the phase-389 synthetic, cheap and
-// parameterizable; `fixtures/399-red-handoff.json` is the REAL 399 acceptance handoff with its
+// parameterizable; `fixtures/red-run-handoff.json` is a REAL recorded acceptance handoff with its
 // screen states trimmed out — same `unknown` floor member, same quotable
 // evidence — so the cells below answer for the document shape the 399 session actually
 // produced rather than only for the one this repo mints.
@@ -213,7 +213,7 @@ async function readThroughTheOp(
 // ------------------------------------------------------------------------------------------
 
 const FIXTURE_PATH = fileURLToPath(
-  new URL('./fixtures/399-red-handoff.json', import.meta.url),
+  new URL('./fixtures/red-run-handoff.json', import.meta.url),
 )
 
 function load399RedHandoff(): CompletedRunHandoff {

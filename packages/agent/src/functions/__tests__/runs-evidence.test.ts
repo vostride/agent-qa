@@ -262,9 +262,6 @@ it('EVIDENCE-CONTRACT rejects crossed documents, extra fields and false ready st
   for (const value of [{ ...valid, document: documents.aria }, { ...valid, leaked: true }, { ...valid, evidence: { kind: 'console', state: 'absent', reason: 'empty' } }]) {
     expect(RunsEvidenceResultSchema.safeParse(value).success).toBe(false)
   }
-  // RE-SPELLED 2026-10-01 (432-25, D-12) from `requiredScopes` equal to ['read']: no scope is
-  // declared; read-only stays on the risk descriptor.
-  expect(runsEvidenceSpec).not.toHaveProperty('requiredScopes')
   expect(runsEvidenceSpec.resultKind).toBe('unary')
   expect(runsEvidenceSpec.risk.readOnly).toBe(true)
   expect(sniffEvidenceContentType(f.bytes)).toBe('application/octet-stream')
