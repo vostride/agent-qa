@@ -1,0 +1,41 @@
+{
+  "id": "all",
+  "args": [
+    "--all"
+  ],
+  "exitCode": 2,
+  "stdout": "Limits: 30 actions, 30 planning turns per step\n\nRunning 1 test(s)...\n  Model: gpt-4o-mini (openai-compatible)\n\n\nSuite: the parity suite\n  FAIL the suite member <DUR>\n\n\nFailed tests:\n  x the suite member\nTests:  0 of 1 passed\nSteps:  0 total\nCache:  0 hits, 0 misses\nTime:   <DUR>\n\nLimits: 30 actions, 30 planning turns per step\n\nRunning 2 test(s)...\n  Model: gpt-4o-mini (openai-compatible)\n\nFAIL the standalone test <DUR>\n\nskipped the suite member (skipped)\n\n\nFailed tests:\n  x the standalone test\n    Browser support missing: run agent-qa install-browsers --chromium\nTests:  0 of 2 passed\nSteps:  0 total\nCache:  0 hits, 0 misses\nTime:   <DUR>\n\nRun ID: <ID>\n",
+  "stderr": "curation: run-outcome projection rebuilt at version 2 (folded 1, skipped 0 handoff, 0 artifact)\nKnowledge curation candidates for <ID>: procedure 0 projected.\ncuration: drained inline (<DUR>)\ncuration: added 0, confirmed 0, superseded 0, deprecated 0, proposed 0\npost-processing — analysis: pending · curation: pending · digest: agent-qa digest \"<ID>\"\nagent-qa browser support is not installed for Chromium.\n\nInstall the browser managed by agent-qa, then rerun the test:\n  agent-qa install-browsers --chromium\n\nThis can happen after upgrading agent-qa or Playwright because browser binaries live outside the package install.\n",
+  "eventTypes": [
+    "runStarted",
+    "testStarted",
+    "runWarning",
+    "testFinished",
+    "verdict",
+    "runFinished",
+    "analysisStarted",
+    "analysisFailed",
+    "runStarted",
+    "testStarted",
+    "testFinished",
+    "testStarted",
+    "testFinished",
+    "verdict",
+    "runFinished"
+  ],
+  "targetHits": [
+    "/parity-thing",
+    "/parity-thing"
+  ],
+  "runDirFiles": [
+    "artifact.json",
+    "artifact.json",
+    "curation-tail-receipt.json",
+    "events.jsonl",
+    "events.jsonl",
+    "handoff.json",
+    "handoff.json",
+    "run-config.json",
+    "run-config.json"
+  ]
+}

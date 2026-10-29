@@ -1,0 +1,25 @@
+{
+  "id": "single-test",
+  "args": [
+    "tests/direct.yaml"
+  ],
+  "exitCode": 2,
+  "stdout": "Limits: 30 actions, 30 planning turns per step\n\nRunning 1 test(s)...\n\nFAIL the standalone test <DUR>\n\n\nFailed tests:\n  x the standalone test\n    Browser support missing: run agent-qa install-browsers --chromium\nTests:  0 of 1 passed\nSteps:  0 total\nCache:  0 hits, 0 misses\nTime:   <DUR>\n\nRun ID: <ID>\n",
+  "stderr": "agent-qa browser support is not installed for Chromium.\n\nInstall the browser managed by agent-qa, then rerun the test:\n  agent-qa install-browsers --chromium\n\nThis can happen after upgrading agent-qa or Playwright because browser binaries live outside the package install.\n",
+  "eventTypes": [
+    "runStarted",
+    "testStarted",
+    "testFinished",
+    "verdict",
+    "runFinished"
+  ],
+  "targetHits": [
+    "/parity-thing"
+  ],
+  "runDirFiles": [
+    "artifact.json",
+    "events.jsonl",
+    "handoff.json",
+    "run-config.json"
+  ]
+}

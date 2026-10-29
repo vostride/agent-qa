@@ -83,6 +83,7 @@
     "dev": "tsup --watch",
     "prepack": "pnpm run copy:skills",
     "test": "vitest run",
+    "regen:run-parity": "vitest run src/commands/__tests__/run-parity.e2e.test.ts -u",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
   },

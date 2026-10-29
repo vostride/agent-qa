@@ -1,0 +1,29 @@
+{
+  "id": "suite",
+  "args": [
+    "suites/gate.suite.yaml"
+  ],
+  "exitCode": 1,
+  "stdout": "Limits: 30 actions, 30 planning turns per step\n\nRunning 1 test(s)...\n  Model: gpt-4o-mini (openai-compatible)\n\n\nSuite: the parity suite\n  FAIL the suite member <DUR>\n\n\nFailed tests:\n  x the suite member\nTests:  0 of 1 passed\nSteps:  0 total\nCache:  0 hits, 0 misses\nTime:   <DUR>\n\n",
+  "stderr": "curation: run-outcome projection rebuilt at version 2 (folded 1, skipped 0 handoff, 0 artifact)\nKnowledge curation candidates for <ID>: procedure 0 projected.\ncuration: drained inline (<DUR>)\ncuration: added 0, confirmed 0, superseded 0, deprecated 0, proposed 0\npost-processing — analysis: pending · curation: pending · digest: agent-qa digest \"<ID>\"\n",
+  "eventTypes": [
+    "runStarted",
+    "testStarted",
+    "runWarning",
+    "testFinished",
+    "verdict",
+    "runFinished",
+    "analysisStarted",
+    "analysisFailed"
+  ],
+  "targetHits": [
+    "/parity-thing"
+  ],
+  "runDirFiles": [
+    "artifact.json",
+    "curation-tail-receipt.json",
+    "events.jsonl",
+    "handoff.json",
+    "run-config.json"
+  ]
+}
