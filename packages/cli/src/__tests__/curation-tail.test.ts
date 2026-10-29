@@ -451,7 +451,7 @@ function handedOffDrainReport() {
   }
 }
 
-describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
+describe('runCurationTail post-verdict fold', () => {
   it('prints every promotion in report order', async () => {
     const info = vi.fn()
     const drainQueue = vi.fn(async (_options: object) => ({
@@ -1347,7 +1347,7 @@ describe('runCurationTail post-verdict fold (CUR-03/CUR-05)', () => {
   )
 })
 
-describe('run-outcome projection under the extended tail receipt (381-05, D-14)', () => {
+describe('run-outcome projection under the extended tail receipt', () => {
   it('isolates a run-outcome fold failure: counted, logged, and never blocking the drain', async () => {
     const warn = vi.fn()
     const writeCurationTailReceipt = vi.fn()
@@ -1610,7 +1610,7 @@ describe('run-outcome projection under the extended tail receipt (381-05, D-14)'
   })
 })
 
-describe('verdict-first CLI tail wiring (CUR-03)', () => {
+describe('verdict-first CLI tail wiring', () => {
   it('returns the fixed verdict exit code even when the defensive tail boundary catches a throw', async () => {
     const unexpected = new Error('tail contract was violated')
     const onUnexpectedError = vi.fn()
@@ -1681,7 +1681,7 @@ describe('verdict-first CLI tail wiring (CUR-03)', () => {
     expect(drainQueue).toHaveBeenCalledOnce()
   })
 
-  it('warns naming every drain noop while still completing the tail (G-381-1)', async () => {
+  it('warns naming every drain noop while still completing the tail', async () => {
     const warn = vi.fn()
     const writeCurationTailReceipt = vi.fn()
     const base = successfulOperations()
@@ -1716,7 +1716,7 @@ describe('verdict-first CLI tail wiring (CUR-03)', () => {
     expect(writeCurationTailReceipt).toHaveBeenCalledOnce()
   })
 
-  it('renders the empty-delta cause inside the noop parenthetical (F-381-45-1)', async () => {
+  it('renders the empty-delta cause inside the noop parenthetical', async () => {
     const warn = vi.fn()
     const base = successfulOperations()
     const operations = successfulOperations({
@@ -1749,7 +1749,7 @@ describe('verdict-first CLI tail wiring (CUR-03)', () => {
     expect(noopWarning).toContain('cand-b (evidence-token-consumed)')
   })
 
-  it('keeps the count-anchored warn prefix the ladder extractor parses (381-48 harness compatibility)', async () => {
+  it('keeps the count-anchored warn prefix the ladder extractor parses', async () => {
     const warn = vi.fn()
     const base = successfulOperations()
     const operations = successfulOperations({
@@ -1834,7 +1834,7 @@ describe('verdict-first CLI tail wiring (CUR-03)', () => {
   })
 })
 
-describe('per-run candidate summary line (381-50, F-381-48-1)', () => {
+describe('per-run candidate summary line', () => {
   const factIdA = '1a'.repeat(32)
   const factIdB = '2b'.repeat(32)
   const procedureId = '3c'.repeat(32)
@@ -1891,7 +1891,7 @@ describe('per-run candidate summary line (381-50, F-381-48-1)', () => {
     expect([...String(line).matchAll(/drain-noops=(\d+)/g)]).toHaveLength(0)
   })
 
-  it('always names the procedure kind, even at zero projected (PROC-01 empty probe)', async () => {
+  it('always names the procedure kind, even at zero projected', async () => {
     const warn = vi.fn()
     const info = vi.fn()
 
@@ -1902,7 +1902,7 @@ describe('per-run candidate summary line (381-50, F-381-48-1)', () => {
     )
   })
 
-  it('renders the F-381-48-1 silent class visibly and never gates on it', async () => {
+  it('renders the coalesced enqueue outcome visibly and never gates on it', async () => {
     // 381-49 adjudication: the round-11 candidate died queue-silently — 'coalesced'
     // is the one enqueue outcome no surface rendered. It must be named on the line
     // while the complete predicate stays byte-unchanged (receipt written, no warning).
@@ -1983,7 +1983,7 @@ describe('per-run candidate summary line (381-50, F-381-48-1)', () => {
     )
   })
 
-  it('pins the complete predicate expression byte-identical (381-40 visibility-never-gates law)', () => {
+  it('pins the complete predicate expression byte-identical (visibility never gates)', () => {
     const source = readFileSync(
       fileURLToPath(new URL('../curation/curation-tail.ts', import.meta.url)),
       'utf8',
@@ -2015,7 +2015,7 @@ describe('per-run candidate summary line (381-50, F-381-48-1)', () => {
   })
 })
 
-describe('the quarantine disposition line (390 D-08, Pitfall 4)', () => {
+describe('the quarantine disposition line', () => {
   const sighting = {
     product: 'shop-web',
     filePath: 'suite/checkout.test.ts',
@@ -2102,7 +2102,7 @@ describe('the quarantine disposition line (390 D-08, Pitfall 4)', () => {
     )
   })
 
-  it('is LOUD about an escalation the class gate withheld — it appends nothing (D-05)', async () => {
+  it('is LOUD about an escalation the class gate withheld — it appends nothing', async () => {
     const info = vi.fn()
     const warn = vi.fn()
 

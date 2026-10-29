@@ -752,7 +752,7 @@ describe('knowledge maintenance commands', () => {
     expect(commandHarness.drainQueueCalls).toBe(1)
   })
 
-  it('unlinks the drain-recovered generation\'s own socket (W-07)', async () => {
+  it('unlinks the drain-recovered generation\'s own socket', async () => {
     const workspace = fixtureWorkspace(roots)
     // The address the recorded instance is REQUIRED to bind. 386-38's nonce arm demands exactly
     // this, so a fixture that records some other in-root path measures the refusal, not the
@@ -794,7 +794,7 @@ describe('knowledge maintenance commands', () => {
     )
   }, 20_000)
 
-  it('leaves a recorded socket path the drain cannot prove it owns (W-07)', async () => {
+  it('leaves a recorded socket path the drain cannot prove it owns', async () => {
     const workspace = fixtureWorkspace(roots)
     // Drawn from OUTSIDE the ownership precondition: a real socket in its own directory, named
     // by registration bytes that are `z.string().min(1)` and therefore attacker-shaped. Obeying
@@ -822,7 +822,7 @@ describe('knowledge maintenance commands', () => {
     )
   }, 20_000)
 
-  it('refuses an in-container address that is not the recorded instance\'s own (W-07)', async () => {
+  it('refuses an in-container address that is not the recorded instance\'s own', async () => {
     const workspace = fixtureWorkspace(roots)
     // The input that separates the drain's gate from a weaker one: a real socket in the very
     // directory this project's addresses live in, which containment would happily delete and

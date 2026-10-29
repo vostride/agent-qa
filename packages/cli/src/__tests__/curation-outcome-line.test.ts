@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 
 import { curationOutcomeLine } from '../curation/curation-tail.js'
 
-describe('C444-CI-PROPOSE-WORDS', () => {
+describe('the curation outcome line in ci, cloud and local runs', () => {
   it('in ci the outcome line says the changes were recorded and never promoted', () => {
     expect(curationOutcomeLine({ executionContext: 'ci', committed: 1, downgraded: 0 }))
       .toBe('curation: 1 learned change(s) recorded, 0 kept proposed (ci runs never promote learned knowledge)')

@@ -131,7 +131,7 @@ interface LiveCell {
   readonly events: readonly ChatSessionEvent[]
 }
 
-describe('the live lane announces which lane actually ran (T-392-32)', () => {
+describe('the live lane announces which lane actually ran', () => {
   it('names the gate condition, so a skip can never be mistaken for a pass', () => {
     process.stderr.write(
       `\n[chat live lane] ${SKIP_REASON ?? `running against ${String(LIVE_CONFIG)}`}\n`,
@@ -259,7 +259,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
       return cell
     }
 
-    it('A5 AUTH SMOKE: the host resolves a model and it answers', { timeout: 120_000 }, async () => {
+    it('AUTH SMOKE: the host resolves a model and it answers', { timeout: 120_000 }, async () => {
       // FIRST, deliberately. Everything below composes a host around this model; if auth is broken
       // this is the one case that reds, and it reds saying so.
       expect(
@@ -342,7 +342,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
       },
     )
 
-    it('holds the mark_unhandled ceiling over the FROZEN live denominator (CHAT-03)', () => {
+    it('holds the mark_unhandled ceiling over the FROZEN live denominator', () => {
       const measured = LIVE_CORPUS.filter((entry) => entry.kind === 'should_execute')
       // Guarded first: a run where cells threw before recording would leave a smaller tally and a
       // vacuously green ceiling.
@@ -361,7 +361,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
   },
 )
 
-describe('the live lane builds no provider client of its own (CHAT-06, source assertion)', () => {
+describe('the live lane builds no provider client of its own, asserted on the source', () => {
   it('imports no vendor adapter — SPECIFIERS, never vocabulary', () => {
     const source = readFileSync(fileURLToPath(import.meta.url), 'utf8')
     // The header above discusses provider clients at length and must stay free to. What is pinned

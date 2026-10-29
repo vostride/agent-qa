@@ -153,7 +153,7 @@ async function invoke(workspace: Workspace, args: readonly string[]): Promise<In
   }
 }
 
-describe('432 cache purge executes declared intent', () => {
+describe('cache purge executes declared intent', () => {
   const roots: string[] = []
   let exitCode: typeof process.exitCode
   const ttys = new Map<NodeJS.ReadStream | NodeJS.WriteStream, boolean | undefined>()
@@ -174,8 +174,8 @@ describe('432 cache purge executes declared intent', () => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
   })
 
-  describe('C432-CACHE-NO-PROMPT', () => {
-    it('C432-CACHE-NO-PROMPT: purge --all removes exactly the selected cache from a non-TTY with stdin forbidden', async () => {
+  describe('cache purge asks no question', () => {
+    it('purge --all removes exactly the selected cache from a non-TTY with stdin forbidden', async () => {
       const workspace = workspaceFixture(roots)
       for (let i = 0; i < 3; i++) seedEntry(workspace.cacheDir, 'main', sha256hex16(`main-${i}`))
       for (let i = 0; i < 2; i++) seedEntry(workspace.cacheDir, 'feature-z', sha256hex16(`feature-${i}`))
@@ -199,7 +199,7 @@ describe('432 cache purge executes declared intent', () => {
       expect(result.stdinTouches).toEqual([])
     })
 
-    it('C432-CACHE-NO-PROMPT: an interactive terminal is not asked either', async () => {
+    it('an interactive terminal is not asked either', async () => {
       setTerminal(true)
       const workspace = workspaceFixture(roots)
       seedEntry(workspace.cacheDir, 'main', 'abcabcabcabcabca')

@@ -199,7 +199,7 @@ function eventSink(): MemberEventSink {
   }
 }
 
-describe('knowledge composition acceptance (D-14/SC1)', () => {
+describe('knowledge composition acceptance', () => {
   const roots: string[] = []
 
   afterEach(() => {

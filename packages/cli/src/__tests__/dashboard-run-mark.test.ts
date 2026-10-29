@@ -41,7 +41,7 @@ function fixture() {
 // deny an absent or unwatched scope, even under config trustMode. The composed host asks nobody now:
 // the mark dispatches and no confirm frame is ever raised. The absent fixture run is what answers,
 // which proves the op was reached.
-describe('dashboard runs.mark confirmation through the composed host (419 D-13)', () => {
+describe('dashboard runs.mark confirmation through the composed host', () => {
   it('binds the actual op id and dispatches with an absent or unwatched scope, raising no frame', async () => {
     const f = fixture()
     expect(f.agentHost.runsMarkFunctionId).toBe(RUNS_MARK_FUNCTION_ID)
@@ -60,8 +60,8 @@ describe('dashboard runs.mark confirmation through the composed host (419 D-13)'
   })
 })
 
-describe('C432-DASHBOARD-MARK-DIRECT', () => {
-  it('C432-DASHBOARD-MARK-DIRECT: one mark request is one runs.mark dispatch, with no scope member on the host', async () => {
+describe('a dashboard mark dispatches directly', () => {
+  it('one mark request is one runs.mark dispatch, with no scope member on the host', async () => {
     const f = fixture()
     const retired = ['confirms', 'enterRunTrigger' + 'Scope']
     for (const member of retired) {
@@ -71,7 +71,7 @@ describe('C432-DASHBOARD-MARK-DIRECT', () => {
     expect(f.calls).toEqual([RUNS_MARK_FUNCTION_ID])
   })
 
-  it('C432-DASHBOARD-MARK-DIRECT: a body naming a confirm scope is an unknown field, refused before any dispatch', async () => {
+  it('a body naming a confirm scope is an unknown field, refused before any dispatch', async () => {
     const f = fixture()
     const outcome = await f.invoke({ kind: 'false-fail', ['confirm' + 'Scope']: 'run-trigger:432-14' })
     expect(outcome).toEqual({ kind: 'refused', status: 400, body: { error: 'invalid_mark_input' } })

@@ -331,7 +331,7 @@ function visionDeps(vision: boolean): {
   }
 }
 
-describe('buildAnalysisTokenBudget (389-06, D-01/386 D-15)', () => {
+describe('buildAnalysisTokenBudget', () => {
   it('derives estimate and inputBudget from the SAME profile resolution as the model capability', () => {
     const { resolveCalls, deps } = visionDeps(false)
 
@@ -351,7 +351,7 @@ describe('buildAnalysisTokenBudget (389-06, D-01/386 D-15)', () => {
   })
 })
 
-describe('buildJobModelCapability vision (389-06, D-02/L9/v46)', () => {
+describe('buildJobModelCapability vision', () => {
   const IMAGE_A = new Uint8Array([1, 2, 3])
   const IMAGE_B = new Uint8Array([4, 5, 6])
 
@@ -360,7 +360,7 @@ describe('buildJobModelCapability vision (389-06, D-02/L9/v46)', () => {
     expect(buildJobModelCapability(JOB_PROFILE, NONE_AUTH, (text) => text, visionDeps(false).deps).vision).toBe(false)
   })
 
-  it('attaches image parts through the messages form when the gate allows (D-02)', async () => {
+  it('attaches image parts through the messages form when the gate allows', async () => {
     const { calls, deps } = visionDeps(true)
     const capability = buildJobModelCapability(JOB_PROFILE, NONE_AUTH, (text) => text, deps)
 
@@ -385,7 +385,7 @@ describe('buildJobModelCapability vision (389-06, D-02/L9/v46)', () => {
     expect(args).toMatchObject({ maxRetries: 0, temperature: 0, maxOutputTokens: 200 })
   })
 
-  it('strips images to the byte-identical text call against a text-only model (L9)', async () => {
+  it('strips images to the byte-identical text call against a text-only model', async () => {
     const { calls, deps } = visionDeps(false)
     const capability = buildJobModelCapability(JOB_PROFILE, NONE_AUTH, (text) => text, deps)
 
@@ -417,7 +417,7 @@ describe('buildJobModelCapability vision (389-06, D-02/L9/v46)', () => {
   })
 })
 
-describe('the daemon egress mechanism (388 CR-02, verified parity)', () => {
+describe('the daemon egress mechanism (verified parity)', () => {
   it("passes createModel's pinned-last masking seam with NO active scope — the daemon posture", async () => {
     // The daemon pumps outside any scope; the seam is the declared mask the job capability takes.
     const secret = 'sk-live-abcdef0123456789'
@@ -467,7 +467,7 @@ describe('the daemon egress mechanism (388 CR-02, verified parity)', () => {
     expect(text).not.toContain(secret)
   })
 
-  it('the daemon binding names 388 CR-02 and rides the same scoped builder (source pin)', () => {
+  it('the daemon binding carries its egress comment and rides the same scoped builder (source pin)', () => {
     const source = readFileSync(new URL('../commands/daemon.ts', import.meta.url), 'utf8')
     expect(source.split('388 CR-02').length - 1).toBeGreaterThanOrEqual(1)
     expect(source).toContain('resolveCliJobModel(configPath)')
@@ -483,7 +483,7 @@ describe('the daemon egress mechanism (388 CR-02, verified parity)', () => {
   })
 })
 
-describe('C441-EGRESS', () => {
+describe('model egress masking', () => {
   const roots: string[] = []
 
   afterAll(() => {

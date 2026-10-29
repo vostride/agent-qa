@@ -222,7 +222,7 @@ async function digestThroughTheOp(ws: Workspace, runId: string): Promise<RunDige
   }
 }
 
-describe('agent-qa digest (D-17, the on-demand channel)', () => {
+describe('agent-qa digest, the on-demand channel', () => {
   it('prints the op result\'s lines, byte for byte, and composes nothing of its own', async () => {
     const ws = workspace()
     await plantPre432Proposal(ws, NEWER_RUN, 'checkout button', 11)
@@ -368,7 +368,7 @@ describe('agent-qa digest under GitHub Actions', () => {
   })
 })
 
-describe('the surfaces own no capability of their own (L10)', () => {
+describe('the surfaces own no capability of their own', () => {
   it('dispatches through invokeFunction with the CLI caller mint, and holds no gate', async () => {
     const { readFileSync } = await import('node:fs')
     const { fileURLToPath } = await import('node:url')

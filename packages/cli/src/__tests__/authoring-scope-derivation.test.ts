@@ -97,7 +97,7 @@ function writeTest(fileName: string, target: string, index = 0): void {
   writeFileSync(join(root, 'tests', fileName), committedTest(target, index))
 }
 
-describe('deriveDefaultAuthoringScope: a singleton binds (WINDOWS 110)', () => {
+describe('deriveDefaultAuthoringScope: a singleton binds', () => {
   it('derives {tier:product} from the one product the committed tests exercise', async () => {
     writeConfig(ONE_TARGET)
     writeTest('form.yaml', 'local-form')
@@ -130,7 +130,7 @@ describe('deriveDefaultAuthoringScope: a singleton binds (WINDOWS 110)', () => {
   })
 })
 
-describe('deriveDefaultAuthoringScope: ambiguity REFUSES and names its evidence (D-19)', () => {
+describe('deriveDefaultAuthoringScope: ambiguity REFUSES and names its evidence', () => {
   it('throws naming BOTH products when the committed tests span two', async () => {
     writeConfig(TWO_TARGETS)
     writeTest('form.yaml', 'local-form', 0)

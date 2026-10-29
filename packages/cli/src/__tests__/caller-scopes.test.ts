@@ -127,7 +127,7 @@ describe('CLI_FUNCTION_CALLER', () => {
   })
 })
 
-describe('C432-ALL-OPS-AVAILABLE: a caller holding no grant (432-20, D-12)', () => {
+describe('a caller holding no grant', () => {
   it('reaches the same binding checks as the CLI and daemon records, for both test-write ops', async () => {
     const grantless = { surface: 'cli', origin: 'human' } as const
     for (const [functionId, input] of [
@@ -154,7 +154,7 @@ describe('DAEMON_FUNCTION_CALLER', () => {
   // RE-SPELLED 2026-09-30 (432-13, D-14/D-15) from 'is still refused for authoring.draft.write —
   // by the gate, for its tier'. There is no fail-closed arm: the daemon's `local-headless` call
   // passes the scope check and reaches the binding check exactly as the CLI's does.
-  it('C432-INVOKE-DIRECT: reaches the binding check for authoring.draft.write from local-headless', async () => {
+  it('reaches the binding check for authoring.draft.write from local-headless', async () => {
     const error = await refusalFrom('local-headless', DAEMON_FUNCTION_CALLER)
 
     expect(isScopeRefusal(error)).toBe(false)

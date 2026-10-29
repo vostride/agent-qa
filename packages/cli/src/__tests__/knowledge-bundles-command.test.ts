@@ -357,7 +357,7 @@ describe('agent-qa knowledge bundles (the exemplar thin client)', () => {
   })
 })
 
-describe('knowledge-read.ts source shape (what plan 06 will enforce)', () => {
+describe('knowledge-read.ts source shape', () => {
   const source = readFileSync(KNOWLEDGE_READ_SOURCE_PATH, 'utf8')
 
   it('extracts statement-scoped specifiers and ignores prose that looks like one', () => {
@@ -386,7 +386,7 @@ describe('knowledge-read.ts source shape (what plan 06 will enforce)', () => {
       .toEqual(['a', 'b'])
   })
 
-  it('no longer imports the safety package anywhere in the file (Pitfall 4, option a)', () => {
+  it('no longer imports the safety package anywhere in the file', () => {
     const specifiers = importSpecifiers(source)
 
     // The extractor is live against THIS file, not just the synthetic control.

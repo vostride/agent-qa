@@ -186,7 +186,7 @@ function canonicalReceipt(arm: Arm): ClauseReceipt | undefined {
   return arm.result.receipts.find((receipt) => receipt.clause === CANONICAL_CLAUSE)
 }
 
-describe('the binding differential announces which lane actually ran (T-392-32)', () => {
+describe('the binding differential announces which lane actually ran', () => {
   it('names the gate condition, so a skip can never be mistaken for a pass', () => {
     process.stderr.write(
       `\n[D-12 binding differential] ${SKIP_REASON ?? `running against ${String(LIVE_CONFIG)}`}\n`,
@@ -200,7 +200,7 @@ describe('the binding differential announces which lane actually ran (T-392-32)'
 })
 
 describe.skipIf(SKIP_REASON !== undefined)(
-  'D-12: the mapper binds the argument, and the model cannot re-address the clause',
+  'the mapper binds the argument, and the model cannot re-address the clause',
   () => {
     let root: string
     let agentQaRoot: string
@@ -299,7 +299,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
       }
     }, 600_000)
 
-    it('A5 AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
+    it('AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
       expect(
         capabilities,
         'the host could not resolve a chat model from the configured project — check the config '

@@ -235,7 +235,7 @@ function expectedCanaryEvidenceToken(
   })
 }
 
-describe('canary seam public integration (PROM-02/SC5 substrate)', () => {
+describe('canary seam public integration', () => {
   const roots: string[] = []
 
   afterEach(() => {

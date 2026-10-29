@@ -311,7 +311,7 @@ const BARREL_REEXPORT = [
   moduleStatement(KEYWORD_EXPORT, 'composeLocalAgent, createKnowledgeReview', './composition/x.js'),
 ].join('\n')
 
-describe('the classifier is shown to classify before it is trusted (387-09 D-4)', () => {
+describe('the classifier is shown to classify before it is trusted', () => {
   it('rejects a lease-holding composition that omits the authority', () => {
     const site = classify('fixtures/future-host.ts', PLANTED_VIOLATION)
     expect(site).toBeDefined()
@@ -350,7 +350,7 @@ describe('the classifier is shown to classify before it is trusted (387-09 D-4)'
   })
 })
 
-describe('every production composeLocalAgent call site (387-10 CR-01)', () => {
+describe('every production composeLocalAgent call site', () => {
   it('is exactly the two known compositions, classified as their posture says', () => {
     const discovered = discoverCallSites()
     // EXACT equality, never `contains`. A new composition — the very thing that could repeat the

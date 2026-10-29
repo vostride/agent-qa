@@ -91,7 +91,7 @@ async function writesFor(platform: string): Promise<Array<{ path: string; conten
   }))
 }
 
-describe('C445-SCAFFOLD-HOSTS', () => {
+describe('the URLs init writes', () => {
   beforeEach(() => {
     clearProviderRegistry()
     vi.spyOn(console, 'log').mockImplementation(() => {})

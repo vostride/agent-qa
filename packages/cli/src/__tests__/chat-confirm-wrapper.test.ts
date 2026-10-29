@@ -26,11 +26,11 @@ function code(...segments: string[]): string {
     .join('\n')
 }
 
-describe('the chat confirm renders 391 two forms and mints through nothing of its own', () => {
+describe('the chat confirm is gone from the CLI host and its composition', () => {
   // RE-SPELLED 2026-10-01 (432-16): was 'binds NOTHING without a terminal', 'offers exactly the two
   // forms', 'accepts once on y, minting nothing at all', 'accepts and mints on a' and 'accepts the
   // long forms of both'. There is no wrapper to offer, accept or mint.
-  it('C432-NO-CONFIRM-PORTS: the CLI host exports no chat confirm and the composition no bindings for one', () => {
+  it('the CLI host exports no chat confirm and the composition no bindings for one', () => {
     expect(Object.keys(cliHost)).not.toContain('createChatConfirmPort')
     expect(Object.keys(cliHost)).not.toContain('createTtyConfirmPort')
     const barrel = code('..', '..', 'agent-local', 'src', 'index.ts')
@@ -46,7 +46,7 @@ describe('the chat confirm renders 391 two forms and mints through nothing of it
   // 'keeps the one-time accept when the standing half is refused', '… when the mint THROWS' and
   // 'answers even when the decision sink throws'. Nothing asks, so nothing can refuse, and no grant
   // is minted from chat.
-  it('C432-NO-CONFIRM-PORTS: the composition hands chat no grant mint and no decision sink', () => {
+  it('the composition hands chat no grant mint and no decision sink', () => {
     const composition = code('..', '..', 'agent-local', 'src', 'composition', 'compose-local-agent.ts')
     expect(composition).not.toContain('ChatConfirmBindings')
     expect(composition).not.toContain('recordStandingApproval')
@@ -57,7 +57,7 @@ describe('the chat confirm renders 391 two forms and mints through nothing of it
   // and still answers'. The session isolation it measured — a decision never lands in another
   // conversation's log — now holds because no decision is written at all; the per-session log
   // attribution itself is still measured by the chat session isolation suites.
-  it('C432-NO-APPROVAL-WRITER: no CLI or composition source appends an approval_decision row', () => {
+  it('no CLI or composition source appends an approval_decision row', () => {
     for (const source of [
       code('composition', 'local-agent-host.ts'),
       code('commands', 'chat.ts'),
@@ -80,7 +80,7 @@ describe('the chat confirm renders 391 two forms and mints through nothing of it
 // 432-13 (D-14/D-15, C432-CHAT-DIRECT): no door builds a chat confirm. The chat command and the CLI
 // host are read as source, comments stripped, so their own history notes may still name what the
 // code must not call.
-describe('no chat door constructs the chat confirm since 432-13', () => {
+describe('no chat door constructs the chat confirm', () => {
   it('commands/chat.ts neither imports nor calls createChatConfirmPort', () => {
     const chat = code('commands', 'chat.ts')
     expect(chat).toContain('createChatCommand')

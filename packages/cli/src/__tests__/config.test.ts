@@ -412,7 +412,7 @@ async function runConfigCommand(
   }
 }
 
-describe('C441-CONFIG', () => {
+describe('config show and set with declared secrets', () => {
   it('config show prints an undeclared credential-named value as written and a declared value as its marker', async () => {
     const dir = join(TMP_DIR, 'show-441')
     await mkdir(dir, { recursive: true })
@@ -487,7 +487,7 @@ describe('C441-CONFIG', () => {
   })
 })
 
-describe('C441-GAP-CONFIG', () => {
+describe('config set with a declared value', () => {
   it('config set prints a declared value only as its marker and writes it as typed', async () => {
     const dir = join(TMP_DIR, 'set-gap-declared')
     await mkdir(dir, { recursive: true })
@@ -526,7 +526,7 @@ describe('C441-GAP-CONFIG', () => {
   })
 })
 
-describe('C441-GAP2-CONFIG', () => {
+describe('config set refuses a shown marker', () => {
   async function markerWorkspace(name: string): Promise<{ dir: string; before: string }> {
     const dir = join(TMP_DIR, name)
     await mkdir(dir, { recursive: true })
@@ -572,7 +572,7 @@ describe('C441-GAP2-CONFIG', () => {
 
 // A config with keys removed in v2 closes with the hard-cut steps; any other invalid config,
 // including one carrying a key removed later, names the key and the fix.
-describe('C445-CONFIG-HINT', () => {
+describe('invalid config messages name their fix', () => {
   const RE_INITIALIZE_URL = 'https://vostride.com/docs/agent-qa/migrate/v0-1-to-v0-2'
   const OLD_INIT_LINE = "Run 'agent-qa init' to generate a complete config file."
   const BASE_YAML = [

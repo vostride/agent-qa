@@ -1069,7 +1069,7 @@ describe('init command', () => {
     expect(content).not.toContain('browsers:')
   })
 
-  describe('knowledge root scaffold (KDIR-01)', () => {
+  describe('knowledge root scaffold', () => {
     const KNOWLEDGE_ROOT = '/tmp/test-project/agent-qa-knowledge'
     // The committed/derived split, verbatim from spec/v2/knowledge-store.md §4.
     const FUNCTIONAL_LINES = [
@@ -1641,7 +1641,7 @@ skills/.staging/
   // applies at once, and is corrected by new feedback or forget. The README no longer tells anyone
   // to edit a fact or its evidence and no longer cites a design-doc path a user does not have. The
   // init samples and the policy file are unchanged (M7 owns them, D-21).
-  it('C432-INIT-KNOWLEDGE-GUIDE: the scaffolded README and guide state the direct change rule, and the samples are unchanged', async () => {
+  it('the scaffolded README and guide state the direct change rule, and the samples are unchanged', async () => {
     vi.resetModules()
     vi.doUnmock('node:fs')
     vi.doUnmock('node:child_process')

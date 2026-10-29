@@ -137,7 +137,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
 
   // RE-SPELLED 2026-10-01 (432-16): was 'declares the record in exactly one place, and that place
   // is agent-local'. The one declaration went with the chat confirm that wrote it.
-  it('C432-NO-APPROVAL-WRITER: declares the record nowhere — no approval writer contract survives', () => {
+  it('declares the record nowhere — no approval writer contract survives', () => {
     const sites = scanned.flatMap((entry) =>
       declarationLines(entry.source).map((line) => `${entry.relPath}:${String(line)}`))
 
@@ -147,7 +147,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
     ).toEqual([])
   })
 
-  it('C432-NO-APPROVAL-WRITER: no product source builds an approval_decision event', () => {
+  it('no product source builds an approval_decision event', () => {
     expect(APPROVAL_EVENT_WRITE.test("await log.append({ kind: 'approval_decision', turnId })"))
       .toBe(true)
     // The schema declares the kind and its key set as a READER; neither is a construction.
@@ -159,7 +159,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
     expect(writers).toEqual([])
   })
 
-  it('C432-NO-APPROVAL-WRITER: a historical approval_decision row still parses through the shipped guard', () => {
+  it('a historical approval_decision row still parses through the shipped guard', () => {
     // D-22 / 430 D-08: sessions written before 432 carry these rows, and the guard throws on an
     // unknown kind, so the kind stays readable with no writer behind it.
     for (const row of [
@@ -178,7 +178,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
 
   // 432-16 task 2: the same rows, read back through the shipped JSONL session log rather than the
   // bare guard — a pre-432 conversation re-opens whole, with no line refused.
-  it('C432-NO-APPROVAL-WRITER: a pre-432 session holding approval_decision rows re-opens with no refused line', async () => {
+  it('an older session holding approval_decision rows re-opens with no refused line', async () => {
     const root = mkdtempSync(join(tmpdir(), 'approval-history-'))
     try {
       const log = createJsonlSessionLog({

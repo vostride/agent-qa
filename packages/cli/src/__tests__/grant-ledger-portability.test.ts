@@ -68,11 +68,11 @@ async function runRealInit(dir: string): Promise<void> {
   await parent.parseAsync(['node', 'test', 'init', '--dir', dir, '--platform', 'web'])
 }
 
-describe('init neither probes nor creates the old grant ledger (432-18, D-22)', () => {
+describe('init neither probes nor creates the old grant ledger', () => {
   // RE-SPELLED 2026-10-01 (432-18) from 'escapes every rule the tool actually writes into the
   // knowledge .gitignore': the emitted rules still do not name it, and init no longer creates or asks
   // about it.
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: a real init writes no ledger and no rule naming it', async () => {
+  it('a real init writes no ledger and no rule naming it', async () => {
     const root = tempRoot()
     await runRealInit(root)
     const knowledgeRoot = join(root, KNOWLEDGE_ROOT_DIR)
@@ -98,7 +98,7 @@ describe('init neither probes nor creates the old grant ledger (432-18, D-22)', 
 
   // RE-SPELLED 2026-10-01 (432-18) from 'is a `visible` probe in the shipped table, so init REFUSES a
   // rule that hides it': there is no probe, so a person's rule hiding the old file is accepted.
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: no probe names it, so a custom rule hiding it is accepted', () => {
+  it('no probe names it, so a custom rule hiding it is accepted', () => {
     expect(KNOWLEDGE_GITIGNORE_PROBES.filter((entry) => entry.path.includes('grant'))).toEqual([])
 
     const root = tempRoot()
@@ -144,7 +144,7 @@ describe('init neither probes nor creates the old grant ledger (432-18, D-22)', 
 
   // RE-SPELLED 2026-10-01 (432-18) from 'addresses the ledger relative to the knowledge root — the
   // same bytes on any checkout': nothing addresses it any more.
-  it('C432-GRANTS-UNREAD-WRITER-ABSENT: knowledge-local publishes no ledger path or file name', () => {
+  it('knowledge-local publishes no ledger path or file name', () => {
     const exported = Object.keys(knowledgeLocal)
     expect(exported).not.toContain('grantsLedgerPath')
     expect(exported).not.toContain('GRANT_LEDGER_FILENAME')

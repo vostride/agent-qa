@@ -107,7 +107,7 @@ describe('resolveEvalSession takes replay settings from flags', () => {
   })
 })
 
-describe('C441-EGRESS', () => {
+describe('eval session masking', () => {
   it('the eval session masks with its secrets file and nothing else', async () => {
     process.env.AGENT_QA_X_PASSWORD = 'env-password-not-declared-77'
     const { configPath } = await writeFixture({ secrets: 'PW_441=Hunter-42-zz\n' })
@@ -118,7 +118,7 @@ describe('C441-EGRESS', () => {
   })
 })
 
-describe('resolveEvalJudge — named-LLM chain + family preflight (D-03/D-10)', () => {
+describe('resolveEvalJudge — named-LLM chain + family preflight', () => {
   it('resolves a named judge to { profile, auth } through the named-LLM chain', async () => {
     const { configPath } = await writeFixture()
     const session = await resolveEvalSession({ configPath, flags: { judge: 'j' } })
@@ -229,7 +229,7 @@ describe('resolveReplayPlanner — use.llm named entry', () => {
   })
 })
 
-describe('resolveEvalSession — typed config errors (D-08)', () => {
+describe('resolveEvalSession — typed config errors', () => {
   it('throws a typed Error naming the path when the secrets file is missing', async () => {
     const { dir, configPath } = await writeFixture({ secrets: null })
     const expectedPath = resolve(dir, '.env.secrets.local')

@@ -213,7 +213,7 @@ async function runChat(
   }
 }
 
-describe('the chat composition root honours analytics.privacy (398-14, D-19)', () => {
+describe('the chat composition root honours analytics.privacy', () => {
   const roots: string[] = []
 
   afterEach(() => {
@@ -272,7 +272,7 @@ describe('the chat composition root honours analytics.privacy (398-14, D-19)', (
   // still opens on a document that cannot be validated. Reading one boolean out of a document is
   // not the same act as validating it, and only the second one was ever failing.
 
-  it('honours analytics.privacy: true even when the config FAILS validation (F-1)', async () => {
+  it('honours analytics.privacy: true even when the config FAILS validation', async () => {
     const { configPath } = invalidConfigDeclaringPrivacy(roots, { privacy: true })
     const recorder = recordingCompose()
 
@@ -291,7 +291,7 @@ describe('the chat composition root honours analytics.privacy (398-14, D-19)', (
     expect(result.exitCode === undefined || result.exitCode === 0).toBe(true)
   })
 
-  it('does NOT report the config reason when an INVALID config declares no privacy (F-1 control)', async () => {
+  it('does NOT report the config reason when an INVALID config declares no privacy', async () => {
     const { configPath } = invalidConfigDeclaringPrivacy(roots)
     const recorder = recordingCompose()
 
@@ -304,7 +304,7 @@ describe('the chat composition root honours analytics.privacy (398-14, D-19)', (
     expect(recorder.hosts[0]?.transportKind).toBe('posthog')
   })
 
-  it('fails CLOSED when a config file exists but cannot be parsed at all (F-1)', async () => {
+  it('fails CLOSED when a config file exists but cannot be parsed at all', async () => {
     const { configPath } = invalidConfigDeclaringPrivacy(roots, { unparseable: true })
     const recorder = recordingCompose()
 
@@ -344,7 +344,7 @@ async function runInit(
   }
 }
 
-describe('the init composition root honours analytics.privacy (398-14, D-19)', () => {
+describe('the init composition root honours analytics.privacy', () => {
   const roots: string[] = []
 
   afterEach(() => {
@@ -386,7 +386,7 @@ describe('the init composition root honours analytics.privacy (398-14, D-19)', (
   // not: it is frequently the FIRST command a user runs against a directory they have just hand-
   // edited, which is exactly when a config is most likely to be both privacy-declaring and
   // schema-invalid.
-  it('honours analytics.privacy: true even when the config FAILS validation (F-1)', async () => {
+  it('honours analytics.privacy: true even when the config FAILS validation', async () => {
     const { dir } = invalidConfigDeclaringPrivacy(roots, { privacy: true })
     const recorder = recordingCompose()
 
@@ -406,7 +406,7 @@ describe('the init composition root honours analytics.privacy (398-14, D-19)', (
     expect(result.exitCode === undefined || result.exitCode === 0).toBe(true)
   })
 
-  it('does NOT report the config reason when an INVALID config declares no privacy (F-1 control)', async () => {
+  it('does NOT report the config reason when an INVALID config declares no privacy', async () => {
     const { dir } = invalidConfigDeclaringPrivacy(roots)
     const recorder = recordingCompose()
 
@@ -489,7 +489,7 @@ async function runDaemon(configPath: string): Promise<CliAnalyticsHost | undefin
   }
 }
 
-describe('the daemon root — the control that shows the assertion discriminates (398-14)', () => {
+describe('the daemon root — the control that shows the assertion discriminates', () => {
   const roots: string[] = []
 
   afterEach(() => {
@@ -532,7 +532,7 @@ const CI_MARKERS = [
   'TEAMCITY_VERSION',
 ]
 
-describe('C447-IDENTITY-STORAGE-FAILURE', () => {
+describe('an identity location that cannot be written', () => {
   const roots: string[] = []
 
   afterEach(() => {
@@ -602,7 +602,7 @@ async function runMcp(
   }
 }
 
-describe('C447-MCP-PRIVACY', () => {
+describe('agent-qa mcp analytics privacy with an invalid config', () => {
   const roots: string[] = []
 
   afterEach(() => {

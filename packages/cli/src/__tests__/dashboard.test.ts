@@ -319,7 +319,7 @@ describe('createDashboardCommand', () => {
     expect(exitSpy).not.toHaveBeenCalled()
   })
 
-  it('shuts down cleanly on a signal with no telemetry step left in the path (398-10/398-11, D-18/D-20)', async () => {
+  it('shuts down cleanly on a signal with no telemetry step left in the path', async () => {
     // THE WITNESS RETIRED IN 398-11, DELIBERATELY. This cell used to mock core's `flushAnalytics`
     // and assert it was never called; that was measurable only while the export existed. D-20 has
     // now deleted `core/src/analytics` outright, so the mock would have been a `vi.fn()` standing in
@@ -449,7 +449,7 @@ describe('createServeCommand', () => {
 // test that did not reach the shutdown path. The mock-based counterpart retired in 398-11 with the
 // module it stood in for (see the note in the signal-shutdown cell above) — a `vi.fn()` mocking an
 // export that no longer exists asserts nothing.
-describe('the dashboard command names no analytics at all (398-10)', () => {
+describe('the dashboard command names no analytics at all', () => {
   const source = readFileSync(
     fileURLToPath(new URL('../commands/dashboard.ts', import.meta.url)),
     'utf8',
@@ -462,7 +462,7 @@ describe('the dashboard command names no analytics at all (398-10)', () => {
     expect(source).not.toMatch(/\bcomposeAnalytics/u)
   })
 
-  it('records WHY the three v33 dashboard events are gone, dated', () => {
+  it('records WHY the three removed dashboard events are gone, dated', () => {
     expect(source).toMatch(/2026-08-17.*Phase 398 plan 10/u)
     expect(source).toContain('dashboard.opened')
     expect(source).toContain('dashboard.live_mode.started')

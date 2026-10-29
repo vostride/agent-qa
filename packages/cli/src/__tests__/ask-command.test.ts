@@ -185,7 +185,7 @@ describe('agent-qa ask (the one-shot chat verb)', () => {
 
   // 432-13: the bare `proposals` alias left the resolver table with the inbox route (C432-CHAT-DIRECT).
   // 432-17 deleted `proposals.list` too; the generic `/fn` passthrough reaches `runs.list` instead.
-  it('D-24: routes a deterministic utterance through agent.ask and renders the receipt', async () => {
+  it('routes a deterministic utterance through agent.ask and renders the receipt', async () => {
     const configPath = fixtureWorkspace(roots)
     const result = await runAsk(configPath, ['/fn runs.list'])
 
@@ -219,7 +219,7 @@ describe('agent-qa ask (the one-shot chat verb)', () => {
     expect(result.stdout).toContain('0 completed run(s)')
   })
 
-  it('(A3) binds a presentation port on the SAME stream its confirm prompts on', async () => {
+  it('binds a presentation port on the SAME stream its confirm prompts on', async () => {
     // 432-13: no confirm prompts on this stream any more (the door builds none); the presentation
     // port is still bound to stdout, which is the half of this claim that survives.
     //
@@ -259,7 +259,7 @@ describe('agent-qa ask (the one-shot chat verb)', () => {
     expect(written.join('')).toBe('a summary line\nagent-qa.config.yaml\n--- /dev/null\n')
   })
 
-  it('D-08: a fail-closed turn reports the clause and exits non-zero', async () => {
+  it('a fail-closed turn reports the clause and exits non-zero', async () => {
     const configPath = fixtureWorkspace(roots)
     const result = await runAsk(configPath, ['write a test for two factor auth'])
 
@@ -303,7 +303,7 @@ describe('agent-qa ask (the one-shot chat verb)', () => {
     expect(result.stderr).toContain('agent.ask')
   })
 
-  it('a refused-only turn keeps the success exit (D-12, door parity with fn)', async () => {
+  it('a refused-only turn keeps the success exit, as fn does', async () => {
     // A D-12 POSTURE CONTROL, GREEN BEFORE AND AFTER THE FIX. D-11 stops on FAILURE and D-02 ruled
     // a refusal is not one: the op ran and answered a refusal, and the verifier measured
     // the `fn` door exiting 0 on this identical payload. E2E-02 clause 2 makes door DISAGREEMENT the
@@ -445,7 +445,7 @@ describe('agent-qa ask under GitHub Actions', () => {
 // freshness guard, the hermetic environment and the fixture recipe are that module's, and a second
 // answer to "what did the child inherit" is the one thing these cells cannot afford.
 
-describe('agent-qa ask on the shipped binary: one receipt word, one exit code (399.1-09)', () => {
+describe('agent-qa ask on the shipped binary: one receipt word, one exit code', () => {
   afterEach(() => {
     cleanupTempRoots()
   })
@@ -491,7 +491,7 @@ describe('agent-qa ask on the shipped binary: one receipt word, one exit code (3
     expect(outcome.code).toBe(1)
   }, 180_000)
 
-  it('keeps the success exit on a refused-only turn (D-12 posture)', async () => {
+  it('keeps the success exit on a refused-only turn', async () => {
     const outcome = await spawnAsk('refused', REFUSED_CLAUSE)
 
     // NON-VACUITY: the refusal fired on the shipped binary too.

@@ -25,7 +25,7 @@ async function loadColorPosture(): Promise<ApplyColorPosture> {
   }
 }
 
-describe('C444-CI-COLOUR', () => {
+describe('colour posture', () => {
   it('the posture turns colour off when stdout is not a terminal', async () => {
     const applyColorPosture = await loadColorPosture()
     const env: NodeJS.ProcessEnv = {}
@@ -117,7 +117,7 @@ async function tailPreparationLine(executionContext: Context): Promise<string> {
   return pending[0]!
 }
 
-describe('C444-CI-PENDING', () => {
+describe('the pending stage suffix in CI', () => {
   it('in CI a pending analysis stage says a later run or the daemon must pick it up in this workspace', () => {
     let checked = 0
     for (const context of CI_CONTEXTS) {

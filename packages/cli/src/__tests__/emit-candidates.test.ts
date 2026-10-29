@@ -222,7 +222,7 @@ function handoff(
   }
 }
 
-describe('projectCurationCandidates (CUR-04/SAFE-01)', () => {
+describe('projectCurationCandidates', () => {
   it('projects one PASS-verified resolved element into a selector fact and observation', () => {
     const [candidate] = projectCurationCandidates(handoff())
 
@@ -414,7 +414,7 @@ describe('projectCurationCandidates (CUR-04/SAFE-01)', () => {
 
 })
 
-describe('projectProcedureTargets (PROC-01 D-01..D-04)', () => {
+describe('projectProcedureTargets', () => {
   function flowStep(input: {
     stepIndex: number
     stepText: string
@@ -489,7 +489,7 @@ describe('projectProcedureTargets (PROC-01 D-01..D-04)', () => {
     ])
   })
 
-  it('never targets single-step, zero-step, or skipped trajectories (PROC-01 empty edge)', () => {
+  it('never targets single-step, zero-step, or skipped trajectories', () => {
     const candidates = projectCurationCandidates(
       handoff([
         testOutcome({ testId: 'edge::single', testIndex: 0 }, [
@@ -505,7 +505,7 @@ describe('projectProcedureTargets (PROC-01 D-01..D-04)', () => {
     expect(candidates.filter((row) => row.kind === 'procedure')).toEqual([])
   })
 
-  it('re-targets on every projection run with no repetition threshold (D-01)', () => {
+  it('re-targets on every projection run with no repetition threshold', () => {
     const input = handoff([testOutcome({ testId: 'auth::sign-in' }, signInSteps())])
     const first = projectCurationCandidates(input)
       .filter((row) => row.kind === 'procedure')
@@ -703,7 +703,7 @@ describe('projectProcedureTargets (PROC-01 D-01..D-04)', () => {
     return parseProcedureTrajectorySeed(target!.bodySeed)
   }
 
-  it('names the source binding of an interpolated value slot by exact match (G-381-3)', () => {
+  it('names the source binding of an interpolated value slot by exact match', () => {
     const seed = sourcedSeed({
       testId: 'auth::interpolated',
       fillText: 'probe-user-7',
@@ -733,7 +733,7 @@ describe('projectProcedureTargets (PROC-01 D-01..D-04)', () => {
     })
   })
 
-  it('leaves a containing-but-unequal observed value literal-source (D-03 wrong-value guard)', () => {
+  it('leaves a containing-but-unequal observed value literal-source (wrong-value guard)', () => {
     const seed = sourcedSeed({
       testId: 'auth::containment',
       fillText: 'prefix-probe-user-7-suffix',
@@ -779,7 +779,7 @@ describe('projectProcedureTargets (PROC-01 D-01..D-04)', () => {
     })
   })
 
-  it('rejects the whole action when a composite embeds a redacted secret marker (T-381-50)', () => {
+  it('rejects the whole action when a composite embeds a redacted secret marker', () => {
     const steps = signInSteps()
     steps[1]!.subActions[0]!.plannedAction = {
       type: 'fileUpload',
@@ -849,7 +849,7 @@ function queuedPayload(knowledgeRoot: string, candidateId: string): CurationCand
   )
 }
 
-describe('C441-CURATION', () => {
+describe('secret slots and placeholders in curation candidates', () => {
   function slotValue(fillText: string, interpolatedVariables: { name: string; value: string }[]) {
     const fill = subAction([element('login', 'Login')], 'login')
     fill.plannedAction = {
@@ -884,7 +884,7 @@ describe('C441-CURATION', () => {
   })
 })
 
-describe('emitCurationCandidates atomic queue drop (CUR-04)', () => {
+describe('emitCurationCandidates atomic queue drop', () => {
   const roots: string[] = []
 
   afterEach(() => {
@@ -1307,7 +1307,7 @@ describe('emitCurationCandidates atomic queue drop (CUR-04)', () => {
     )
   })
 
-  describe('per-kind outcome attribution (381-50, F-381-48-1 visibility)', () => {
+  describe('per-kind outcome attribution', () => {
     function mixedKindHandoff(artifactSha: string): CompletedRunHandoff {
       return handoff([
         testOutcome({ testId: 'checkout::flow' }, [
@@ -1372,7 +1372,7 @@ describe('emitCurationCandidates atomic queue drop (CUR-04)', () => {
         .toBe(report.details.length)
     })
 
-    it('yields no procedure detail for a single-step handoff — projected count derivably zero (PROC-01 empty probe)', () => {
+    it('yields no procedure detail for a single-step handoff — projected count derivably zero', () => {
       const fixture = emitFixture()
 
       const report = emitCurationCandidates(fixture)

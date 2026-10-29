@@ -282,13 +282,13 @@ describe('an edit changes only the lines its pointers address', () => {
   })
 })
 
-describe('C432-TEST-REFINE-WRITTEN: refine edits and verifies the written test itself', () => {
+describe('refine edits and verifies the written test itself', () => {
   const EMISSION = JSON.stringify({
     thoughts: 'the total is what the coupon changes',
     patches: [{ op: 'replace', path: '/steps/2', value: 'Verify the total is 0.00 and the banner is shown' }],
   })
 
-  it('C432-TEST-REFINE-WRITTEN: an edit lands in the written file, and verify resolves that same path', async () => {
+  it('an edit lands in the written file, and verify resolves that same path', async () => {
     const result = await runEdit(EMISSION, 'also mention the banner in the total assertion')
 
     const onDisk = readFileSync(join(root, TEST_PATH))
@@ -309,7 +309,7 @@ describe('C432-TEST-REFINE-WRITTEN: refine edits and verifies the written test i
     expect(resolved.draft.steps.at(-1)).toBe('Verify the total is 0.00 and the banner is shown')
   })
 
-  it('C432-TEST-REFINE-WRITTEN: refuses to overwrite a written test that changed after it was read', async () => {
+  it('refuses to overwrite a written test that changed after it was read', async () => {
     const theirs = COMMITTED.replace('Open the cart', 'Open the cart from the header')
     const result = await runEdit(EMISSION, 'also mention the banner in the total assertion', {
       // A person saves the file while the model is thinking.

@@ -616,7 +616,7 @@ if (FIXTURE_ROLE === 'contender') {
      * beat back through the lock, this reddens, which is exactly when the deleted retry branch
      * would have been needed and exactly when silently retrying would hide the regression.
      */
-    it('takes an ordinary beat against a wedged store, never a busy throw (I-02)', async () => {
+    it('takes an ordinary beat against a wedged store, never a busy throw', async () => {
       const root = mkdtempSync(join(tmpdir(), 'agent-qa-heartbeat-contention-'));
       roots.push(root);
       const acquired = acquireWriterLease(root);

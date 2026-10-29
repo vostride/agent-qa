@@ -81,7 +81,7 @@ describe('buildJobModelCapability', () => {
   })
 })
 
-describe('C444.1-TAIL-BOUND', () => {
+describe('the job model request signal', () => {
   it('the job model passes the request signal to the model call', async () => {
     const { generateTextImpl, injected } = deps()
     const capability = buildJobModelCapability(PROFILE, AUTH, (text) => text, injected)

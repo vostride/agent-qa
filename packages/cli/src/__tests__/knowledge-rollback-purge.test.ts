@@ -286,7 +286,7 @@ async function invoke(workspace: Workspace, args: readonly string[]): Promise<In
   }
 }
 
-describe('432 maintenance commands execute declared intent', () => {
+describe('maintenance commands execute declared intent', () => {
   const roots: string[] = []
   let exitCode: typeof process.exitCode
   const ttys = new Map<NodeJS.ReadStream | NodeJS.WriteStream, boolean | undefined>()
@@ -313,8 +313,8 @@ describe('432 maintenance commands execute declared intent', () => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
   })
 
-  describe('C432-MAINTENANCE-NO-PROMPTS', () => {
-    it('C432-MAINTENANCE-NO-PROMPTS: rollback applies from a non-TTY with stdin forbidden and no flag', async () => {
+  describe('rollback and purge ask no question', () => {
+    it('rollback applies from a non-TTY with stdin forbidden and no flag', async () => {
       const workspace = workspaceFixture(roots)
       const bundle = seedBundle(workspace, { createdAtOrdinal: BUILD_ORDINAL })
 
@@ -334,7 +334,7 @@ describe('432 maintenance commands execute declared intent', () => {
       expect(result.stdinTouches).toEqual([])
     })
 
-    it('C432-MAINTENANCE-NO-PROMPTS: knowledge purge removes the explicit record from a non-TTY with stdin forbidden', async () => {
+    it('knowledge purge removes the explicit record from a non-TTY with stdin forbidden', async () => {
       const workspace = workspaceFixture(roots)
       const bundle = seedBundle(workspace)
 
@@ -352,7 +352,7 @@ describe('432 maintenance commands execute declared intent', () => {
       expect(result.stdinTouches).toEqual([])
     })
 
-    it('C432-MAINTENANCE-NO-PROMPTS: an interactive terminal is not asked either', async () => {
+    it('an interactive terminal is not asked either', async () => {
       setTerminal(true)
       const rollbackWorkspace = workspaceFixture(roots)
       const rolledBack = seedBundle(rollbackWorkspace, { createdAtOrdinal: BUILD_ORDINAL })
@@ -374,7 +374,7 @@ describe('432 maintenance commands execute declared intent', () => {
       expect([...rollback.stdinTouches, ...purge.stdinTouches]).toEqual([])
     })
 
-    it('C432-MAINTENANCE-NO-PROMPTS: a campaign rollback applies across products with no flag', async () => {
+    it('a campaign rollback applies across products with no flag', async () => {
       const alpha = 'maintenance-direct-campaign-alpha'
       const beta = 'maintenance-direct-campaign-beta'
       const workspace = workspaceFixture(roots, { [alpha]: 7, [beta]: 11 })
@@ -458,8 +458,8 @@ describe('432 maintenance commands execute declared intent', () => {
     })
   })
 
-  describe('C432-PURGE-DRIFT', () => {
-    it('C432-PURGE-DRIFT: purge refuses a target that drifts after its preview, with no partial deletion', async () => {
+  describe('purge and rollback refuse drift', () => {
+    it('purge refuses a target that drifts after its preview, with no partial deletion', async () => {
       const workspace = workspaceFixture(roots)
       const primary = seedBundle(workspace)
       let drifted: { id: string; dir: string } | undefined
@@ -491,7 +491,7 @@ describe('432 maintenance commands execute declared intent', () => {
       expect(harness.readlineCalls).toEqual([])
     })
 
-    it('C432-PURGE-DRIFT: drift after the under-lease recheck is refused by the mutator before deletion', async () => {
+    it('drift after the under-lease recheck is refused by the mutator before deletion', async () => {
       const workspace = workspaceFixture(roots)
       const primary = seedBundle(workspace)
       let drifted: { id: string; dir: string } | undefined
@@ -513,7 +513,7 @@ describe('432 maintenance commands execute declared intent', () => {
       for (const path of purgeReceiptPaths(workspace, primary.id)) expect(existsSync(path)).toBe(false)
     })
 
-    it('C432-PURGE-DRIFT: a rerun after the refusal previews the new set and removes every copy', async () => {
+    it('a rerun after the refusal previews the new set and removes every copy', async () => {
       const workspace = workspaceFixture(roots, { [PRODUCT]: BUILD_ORDINAL, 'maintenance-direct-z-retry': 3 })
       const primary = seedBundle(workspace)
       let drifted: { id: string; dir: string } | undefined
@@ -534,7 +534,7 @@ describe('432 maintenance commands execute declared intent', () => {
       expect(harness.purgeRecordCalls).toBe(1)
     })
 
-    it('C432-PURGE-DRIFT: rollback refuses the same under-lease drift before any inverse event', async () => {
+    it('rollback refuses the same under-lease drift before any inverse event', async () => {
       const driftProduct = 'maintenance-direct-rollback-drift'
       const workspace = workspaceFixture(roots, { [PRODUCT]: BUILD_ORDINAL, [driftProduct]: 6 })
       const bundle = seedBundle(workspace)

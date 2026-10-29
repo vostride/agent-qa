@@ -231,7 +231,7 @@ afterEach(() => {
   }
 })
 
-describe('the daemon commits its own applies in process (CR-01, D-18)', () => {
+describe('the daemon commits its own applies in process', () => {
   it('applies a forget through the real daemon entry while holding the writer lease', async () => {
     const paths = makePaths('held')
     const recordId = await seedRecord(paths)
@@ -295,7 +295,7 @@ describe('the daemon commits its own applies in process (CR-01, D-18)', () => {
   // RE-SPELLED 2026-10-01 (432-17, D-05/D-22) from 'still commits a pre-432 proposal already on disk
   // through the daemon entry, in process': the apply op is deleted with the inbox, so the daemon
   // refuses it like any unknown function, the record it named is untouched and so is the file.
-  it('leaves a pre-432 proposal already on disk unapplied and unread through the daemon entry', async () => {
+  it('leaves an older proposal already on disk unapplied and unread through the daemon entry', async () => {
     const paths = makePaths('pre432')
     const recordId = await seedRecord(paths)
     grantApply(paths)

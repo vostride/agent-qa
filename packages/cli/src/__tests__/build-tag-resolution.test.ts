@@ -23,7 +23,7 @@ afterEach(async () => {
   await Promise.all(tempDirs.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 })
 
-describe('resolveBuildTagSetting (D-16)', () => {
+describe('resolveBuildTagSetting', () => {
   it('uses flag, then env, then use.buildTag precedence', () => {
     expect(resolveBuildTagSetting({ flag: ' A ', env: 'B', use: { buildTag: 'C' } })).toBe('A')
     expect(resolveBuildTagSetting({ env: ' B ', use: { buildTag: 'C' } })).toBe('B')
@@ -36,7 +36,7 @@ describe('resolveBuildTagSetting (D-16)', () => {
   })
 })
 
-describe('resolveRunBuildOrdinal build-tag recording (D-14/D-16)', () => {
+describe('resolveRunBuildOrdinal build-tag recording', () => {
   it('records the freshly advanced ordinal and preserves the first-seen mapping', async () => {
     const configDir = await createConfigDir()
 

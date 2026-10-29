@@ -511,7 +511,7 @@ async function openProviderSink(): Promise<{ readonly baseUrl: string; hits(): n
 
 // ---- gap 6: the cross-origin drive ---------------------------------------------------------
 
-describe('the fourth door refuses a cross-origin drive before anything happens (gap 6)', () => {
+describe('the fourth door refuses a cross-origin drive before anything happens', () => {
   it('6a — refuses the CORS simple request, before the mark reaches the host', async () => {
     const door = await openDoor()
     // THE VERIFIER'S EXACT PROBE, on the mark door. `text/plain;charset=UTF-8` with a JSON body
@@ -535,7 +535,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens (
 
   // The media-type leg alone: with no Origin the same-site check admits the drive, and the body
   // is refused because it does not say it is JSON.
-  it('6c — refuses a text/plain drive bearing no Origin at all with 415, before the host', async () => {
+  it('refuses a text/plain drive bearing no Origin at all with 415, before the host', async () => {
     const door = await openDoor()
     const answered = await driveMark(door.port, { 'content-type': 'text/plain;charset=UTF-8' })
     expectNoSideEffect('6c', door, answered, 415)
@@ -663,8 +663,8 @@ describe('the fourth door refuses a cross-origin drive before anything happens (
   })
 })
 
-describe('C432-RETAINED-CROSS-SITE', () => {
-  it('C432-RETAINED-CROSS-SITE: the dashboard mark control refuses another origin before dispatch and dispatches for its own page', async () => {
+describe('cross-site mark requests', () => {
+  it('the dashboard mark control refuses another origin before dispatch and dispatches for its own page', async () => {
     const door = await openDoor()
     for (const headers of [
       { 'content-type': 'text/plain;charset=UTF-8', origin: HOSTILE_ORIGIN },
@@ -683,7 +683,7 @@ describe('C432-RETAINED-CROSS-SITE', () => {
   })
 })
 
-describe('C441-CONFIG', () => {
+describe('the declared mask the dashboard command binds', () => {
   it('the dashboard command binds the declared mask', async () => {
     const door = await openDoor({ secrets: 'PW_441=Hunter-42-zz\n' })
     const config = JSON.parse(readFileSync(door.configPath, 'utf8')) as { use: Record<string, unknown> }
@@ -767,7 +767,7 @@ function unserializableAnswerOnce(message: string): (host: AgentHost) => AgentHo
   }
 }
 
-describe('the fourth door outlives every malformed request a socket can carry (gap 7)', () => {
+describe('the fourth door outlives every malformed request a socket can carry', () => {
   it('7c — answers an unparseable request line and serves the next request', async () => {
     const door = await openDoor()
     const watch = watchForEscapes()

@@ -246,7 +246,7 @@ afterEach(async () => {
   }
 })
 
-describe('resident daemon agent-job dispatcher (CR-05)', () => {
+describe('resident daemon agent-job dispatcher', () => {
   it('serves a post-start enqueue through the real composed store without a restart', async () => {
     const calls: string[] = []
     const host = await startHost(jobKinds(async (context) => {
@@ -386,7 +386,7 @@ describe('resident daemon agent-job dispatcher (CR-05)', () => {
     expect(host.scheduler.timeoutDelays()).toContain(DISPATCH_POLL_MS)
   })
 
-  it('carries the claimed payload runId onto job-claimed and job-completed (D-16)', async () => {
+  it('carries the claimed payload runId onto job-claimed and job-completed', async () => {
     let completed = 0
     const host = await startHost(jobKinds(async () => {
       completed += 1
@@ -422,7 +422,7 @@ describe('resident daemon agent-job dispatcher (CR-05)', () => {
     }))
   })
 
-  it('omits the runId key when the payload names none or names a non-string (D-16)', async () => {
+  it('omits the runId key when the payload names none or names a non-string', async () => {
     let completed = 0
     const host = await startHost(jobKinds(async () => {
       completed += 1

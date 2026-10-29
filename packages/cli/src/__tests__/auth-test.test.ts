@@ -847,7 +847,7 @@ describe('auth test', () => {
   })
 })
 
-describe('auth test exit code (429-08)', () => {
+describe('auth test exit code', () => {
   const CREDENTIAL = 'sk-fixture-credential-429-08'
 
   // Each rejection lands on exactly one class in the classifier's first-match order; the printed

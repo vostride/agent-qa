@@ -160,8 +160,8 @@ afterEach(async () => {
 // mints, and its subject and expiry are checked by the validator independently of who asked — no
 // bearer, no caller field. Two tokenless mints for two concurrently started runs each bind their own
 // subject: neither token opens the other run, and neither outlives its expiry.
-describe('C432-RETAINED-LIVE-LINK: a tokenless mint stays bound to its own subject and expiry', () => {
-  it('C432-RETAINED-LIVE-LINK: concurrent tokenless mints bind independent subjects, and expiry is enforced', async () => {
+describe('a tokenless mint stays bound to its own subject and expiry', () => {
+  it('concurrent tokenless mints bind independent subjects, and expiry is enforced', async () => {
     const fixture = await openFixture()
     const [runA, runB] = await Promise.all([startRunOverTheWire(fixture), startRunOverTheWire(fixture)])
     expect(runA).not.toBe(runB)

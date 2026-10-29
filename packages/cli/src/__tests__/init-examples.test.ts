@@ -183,7 +183,7 @@ function tearDownInitMocks(): void {
   vi.restoreAllMocks()
 }
 
-describe('C445-EXAMPLES', () => {
+describe('the init examples', () => {
   beforeEach(setUpInitMocks)
   afterEach(tearDownInitMocks)
 
@@ -274,7 +274,7 @@ describe('C445-EXAMPLES', () => {
     }
   })
 
-  it('init writes none of the retired samples', async () => {
+  it('the next steps name only example files init writes', async () => {
     const writes = await initWrites()
     const paths = writes.map(write => write.path)
     const output = consoleOutput()
@@ -429,7 +429,7 @@ describe('C445-EXAMPLES', () => {
   })
 })
 
-describe('C445-SECRETS-LINE', () => {
+describe('the example secrets line', () => {
   beforeEach(setUpInitMocks)
   afterEach(tearDownInitMocks)
 

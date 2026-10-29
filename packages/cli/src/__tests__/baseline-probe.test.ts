@@ -9,7 +9,7 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-describe('runBaselineProbe (373-07, D-04)', () => {
+describe('runBaselineProbe', () => {
   it('returns the raw status without following redirects', async () => {
     vi.stubGlobal('fetch', vi.fn(async () => ({ status: 503, body: undefined }) as unknown as Response))
 
@@ -35,7 +35,7 @@ describe('runBaselineProbe (373-07, D-04)', () => {
     expect(result.elapsedMs).toBeGreaterThanOrEqual(0)
   })
 
-  it('probes with redirect manual and an abort-budget signal (T-373-13/14)', async () => {
+  it('probes with redirect manual and an abort-budget signal', async () => {
     const fetchSpy = vi.fn(async () => ({ status: 200, body: undefined }) as unknown as Response)
     vi.stubGlobal('fetch', fetchSpy)
 

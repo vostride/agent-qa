@@ -249,7 +249,7 @@ describe('createKnowledgeChecks', () => {
     expect(embedder.message).not.toContain('probe exploded')
   })
 
-  it('fails the embedder row with the 399 wording when a live daemon lease has no worker registration', async () => {
+  it('fails the embedder row with the worker-not-registered wording when a live daemon lease has no worker registration', async () => {
     const project = makeProject()
     const { checks, embedder, rung } = await runChecks(project, baseProbes({
       readWriterLease: () => ({ kind: 'parsed', lease: {} as never }),
@@ -337,7 +337,7 @@ describe('createKnowledgeChecks', () => {
     expect(resolveEmbedderCapability).toHaveBeenCalledTimes(1)
   })
 
-  it('hard-codes allowDownload false on the capability probe (D-20: asking must not change the answer)', async () => {
+  it('hard-codes allowDownload false on the capability probe (asking must not change the answer)', async () => {
     const project = makeProject()
     const resolveEmbedderCapability = vi.fn(() => Promise.resolve(ready('native')))
     await runChecks(project, baseProbes({ resolveEmbedderCapability }))
@@ -424,7 +424,7 @@ describe('createKnowledgeChecks', () => {
   })
 })
 
-describe('C446-EMBEDDER-FIX', () => {
+describe('the Embedder row fix text', () => {
   const liveLease = { readWriterLease: () => ({ kind: 'parsed', lease: {} as never }) as const }
   const profileExit = {
     kind: 'embedder-worker-exit',

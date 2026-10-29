@@ -97,7 +97,7 @@ async function closeHost(fixture: HostFixture): Promise<void> {
   rmSync(fixture.configRoot, { recursive: true, force: true })
 }
 
-describe('the dashboard door host supplies the card url base it bound (D-16)', () => {
+describe('the dashboard door host supplies the card url base it bound', () => {
   let fixture: HostFixture
 
   beforeAll(async () => {
@@ -108,7 +108,7 @@ describe('the dashboard door host supplies the card url base it bound (D-16)', (
     await closeHost(fixture)
   })
 
-  it('overlays services.dashboard.baseUrl with the origin it actually bound (D-16)', async () => {
+  it('overlays services.dashboard.baseUrl with the origin it actually bound', async () => {
     // 387 D-10 made the entity card's `url` config-derived and absent by default, read through the
     // masker at `services.dashboard.baseUrl`. D-16 adds the SECOND SUPPLIER: a dashboard that
     // serves its own registry knows its own origin, so cards it produces carry working links with
@@ -138,7 +138,7 @@ describe('the dashboard door host supplies the card url base it bound (D-16)', (
     expect(entry?.source, 'no file, environment variable or flag carries this value').toBe('default')
   })
 
-  it('lets an operator\'s own configured base URL win over the bound origin (D-16)', async () => {
+  it('lets an operator\'s own configured base URL win over the bound origin', async () => {
     // THE OVERLAY FILLS AN ABSENCE AND NEVER REPLACES A PRESENCE. A configured base is somebody
     // pointing at something — a reverse proxy, a tunnel, a path prefix — and overwriting it with
     // `http://127.0.0.1:<port>` would silently redirect every card link away from the address they
@@ -177,7 +177,7 @@ describe('the dashboard door host supplies the card url base it bound (D-16)', (
 })
 
 describe('the door is composed once, and mounted where the server serves it', () => {
-  it('dispatches as a caller derived from the CLI chat door\'s own mint (D-08)', async () => {
+  it('dispatches as a caller derived from the CLI chat door\'s own mint', async () => {
     // Pitfall 9's check, in the only form that can catch it: the two mints are compared as SETS
     // rather than each spelled here. A literal list in this cell would be a third copy, agreeing
     // with both today and with neither the day a seventh scope lands.
@@ -330,7 +330,7 @@ function seedCardUrlBundle(project: { root: string; knowledgeRoot: string }): st
   return published.id
 }
 
-describe('a card the co-hosted door\'s registry produces carries a url (D-16)', () => {
+describe('a card the co-hosted door\'s registry produces carries a url', () => {
   let fixture: CardUrlFixture
 
   beforeAll(() => {

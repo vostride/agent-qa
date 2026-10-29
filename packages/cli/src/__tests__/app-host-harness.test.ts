@@ -813,7 +813,7 @@ const MCP_ARTIFACT = resolve(MCP_PACKAGE_DIR, 'dist/index.js')
 const REBUILD_INSTRUCTION = 'run `pnpm build` from the workspace root (a per-package rebuild is NOT '
   + 'enough for a cross-package harness — 408-03 measured that)'
 
-describe('this file measures a FRESH artifact (408-05 D-O)', () => {
+describe('this file measures a FRESH artifact', () => {
   it('(0) reads a build no older than the sources it measures', () => {
     const artifact = statSync(MCP_ARTIFACT).mtimeMs
     for (const source of ['src/app-resource.ts', 'src/app-wrapper.ts', 'src/catalog.ts', 'src/live-link.ts', 'src/projection.ts']) {
@@ -828,8 +828,8 @@ describe('this file measures a FRESH artifact (408-05 D-O)', () => {
 
 // ---- LEG 1: negotiate, list, call, read --------------------------------------------------------
 
-describe('leg 1 — a negotiating host reaches the App over the wire (D-05, D-09)', () => {
-  it('(1) the client really negotiated the MODERN era, which is what makes the App obtainable (D-G)', async () => {
+describe('leg 1 — a negotiating host reaches the App over the wire', () => {
+  it('(1) the client really negotiated the MODERN era, which is what makes the App obtainable', async () => {
     const client = await connectClient({ apps: true })
     try {
       // NOT DECORATION. `@modelcontextprotocol/client@2.0.0` DEFAULTS to the legacy 2025 handshake,
@@ -941,7 +941,7 @@ describe('leg 1 — a negotiating host reaches the App over the wire (D-05, D-09
 
 // ---- LEG 2: the render, in a real sandboxed iframe, with real frames (D-12) ---------------------
 
-describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN (D-12, criterion 1)', () => {
+describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN', () => {
   it('(5) the wrapper reaches `live` in a real sandboxed iframe under its own CSP', async () => {
     const served = await readServedApp()
     // THE PERMISSIVE HOST — see `PERMISSIVE_HOST_ALLOWANCE`: this cell needs the App's own inline
@@ -1077,7 +1077,7 @@ describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN (D-12, crit
 // the link was assigned by the very script this host refuses to run, and this cell would find an
 // empty `href`.
 
-describe("leg 2b — a host running none of the App's script still hands the person the way out (WR-10)", () => {
+describe("leg 2b — a host running none of the App's script still hands the person the way out", () => {
   it('(6-noscript) under `script-src \'none\'` the permanent link and a named sentence are still there', async () => {
     const served = await readServedApp()
 
@@ -1143,7 +1143,7 @@ describe("leg 2b — a host running none of the App's script still hands the per
 //
 // LAST, AND DESTRUCTIVE BY DESIGN: it finishes the run, which every cell above needs live.
 
-describe('leg 3 — a late attach to a finished run gets the honest terminal answer (D-07)', () => {
+describe('leg 3 — a late attach to a finished run gets the honest terminal answer', () => {
   it('(7) once the run has settled, the SAME address serves `run-ended` with the permanent link', async () => {
     held().finishRun()
     await held().session.done.catch(() => undefined)

@@ -184,7 +184,7 @@ const held = (): Browser => {
   return browser
 }
 
-describe('the wrapper in a real browser (D-11)', () => {
+describe('the wrapper in a real browser', () => {
   it('(3) a dead inner origin ends as `unreachable-origin`, with the sentence and a live link', async () => {
     const dead = await deadOrigin()
     const permanentLink = `${await serveStatic('<!doctype html>ok', 'text/html')}/runs/${RUN_ID}/live`

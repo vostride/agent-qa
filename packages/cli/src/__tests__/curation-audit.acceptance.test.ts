@@ -131,7 +131,7 @@ function completeAuditHandoff(): CompletedRunHandoff {
   }
 }
 
-describe('tail-scoped Curator egress audit coverage (CUR-05)', () => {
+describe('tail-scoped Curator egress audit coverage', () => {
   let root: string
   let agentQaRoot: string
   let knowledgeRoot: string

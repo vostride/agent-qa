@@ -173,7 +173,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('agent-qa agent-jobs list over a quarantined row (422 D-16)', () => {
+describe('agent-qa agent-jobs list over a quarantined row', () => {
   it('prints the original retired kind, the unreadable-kind conclusion and the spent attempt', async () => {
     const { harness } = await quarantinedHarness()
 
@@ -217,7 +217,7 @@ describe('agent-qa agent-jobs list over a quarantined row (422 D-16)', () => {
   })
 })
 
-describe('agent-qa agent-jobs requeue over a quarantined row (422 D-16)', () => {
+describe('agent-qa agent-jobs requeue over a quarantined row', () => {
   it('refuses through the existing refusal channel and leaves the history untouched', async () => {
     const { harness } = await quarantinedHarness()
     const before = await listAgentJobs(harness.deps)

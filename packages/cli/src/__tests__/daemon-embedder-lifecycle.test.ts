@@ -855,7 +855,7 @@ describe('daemon embedder-worker lifecycle', () => {
   })
 
   it.skipIf(process.platform === 'win32')(
-    'withholds every signal from a live reused pid whose incarnation does not match (CR-05)',
+    'withholds every signal from a live reused pid whose incarnation does not match',
     async () => {
       // The registration is schema-valid, names a live pid, and its socket is dead — the exact
       // evidence the daemon used to treat as licence to SIGTERM-then-SIGKILL. The pid now belongs
@@ -1010,7 +1010,7 @@ describe('daemon embedder-worker lifecycle', () => {
   )
 
   it.skipIf(process.platform === 'win32')(
-    'withholds every shutdown signal from an adopted worker it cannot attribute (V-03)',
+    'withholds every shutdown signal from an adopted worker it cannot attribute',
     async () => {
       // The other half of 386-32 prohibition #1. Replacement already refuses to signal a pid it
       // cannot attribute; shutdown did not, and its own module's docstring says neither verdict
@@ -1070,7 +1070,7 @@ describe('daemon embedder-worker lifecycle', () => {
   )
 
   it.skipIf(process.platform === 'win32')(
-    'still terminates an adopted worker whose shutdown incarnation matches (V-03 control)',
+    'still terminates an adopted worker whose shutdown incarnation matches',
     async () => {
       // The accepting direction, against the production signal path. A predicate that refused
       // everything would pass the leg above and fail here, and the exit record must say so.
@@ -1173,7 +1173,7 @@ describe('daemon embedder-worker lifecycle', () => {
     },
   )
 
-  it('keeps every adopted-shutdown signal below the verified-match gate (V-03)', () => {
+  it('keeps every adopted-shutdown signal below the verified-match gate', () => {
     // The behavioural legs prove the current predicate; this pins the SHAPE that makes it hold.
     // TERM-then-KILL escalation is two calls by construction, so "one call site" is not the
     // available property — "no call site is reachable without a match" is, and it is what a later

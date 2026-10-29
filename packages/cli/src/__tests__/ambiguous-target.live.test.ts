@@ -238,7 +238,7 @@ function requireLiveSetup(): void {
   expect(existsSync(CLI_DIST), 'packages/cli/dist/cli.js is missing: run pnpm build').toBe(true)
 }
 
-describe.skipIf(!LIVE)('C438-AUTO15-LIVE', () => {
+describe.skipIf(!LIVE)('an ambiguous click target in a live run', () => {
   it('"Click the okay button" ends refused with no click', async () => {
     requireLiveSetup()
     clicks.length = 0

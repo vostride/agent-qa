@@ -1172,7 +1172,7 @@ targets:
     expect(process.exitCode).toBe(1)
   })
 
-  it('names the folded 399 failure by its cause when a live daemon lease published no worker registration', async () => {
+  it('names the worker profile failure by its cause when a live daemon lease published no worker registration', async () => {
     knowledgeProbeStubs.readWriterLease.mockReturnValue({ kind: 'parsed', lease: {} } as never)
     knowledgeProbeStubs.readEmbedderWorkerRegistration.mockReturnValue({ kind: 'absent' })
     daemonRegistrationStubs.readDaemonRegistration.mockReturnValueOnce({
@@ -1372,7 +1372,7 @@ function wordyMessage(length: number): string {
   return 'lorem ipsum dolor sit amet '.repeat(20).slice(0, length).trimEnd()
 }
 
-describe('C445-NODE-FLOOR-DOCTOR', () => {
+describe('the Node version row', () => {
   const versionDescriptor = Object.getOwnPropertyDescriptor(process, 'version')!
 
   beforeEach(() => {
@@ -1423,7 +1423,7 @@ describe('C445-NODE-FLOOR-DOCTOR', () => {
 })
 
 // Doctor's Config validation row gives the same fix as the config loader.
-describe('C445-DOCTOR-CONFIG', () => {
+describe('the Config validation row', () => {
   const safeParse = vi.mocked(core.AgentQaConfigSchema.safeParse)
   const mockedParse = safeParse.getMockImplementation()
   const WORKSPACE = {
@@ -1515,7 +1515,7 @@ describe('C445-DOCTOR-CONFIG', () => {
   })
 })
 
-describe('C445-DOCTOR-AUTH', () => {
+describe('the LLM auth rows', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     mockExistsSync.mockReturnValue(false)
@@ -1639,7 +1639,7 @@ describe('C445-DOCTOR-AUTH', () => {
   })
 })
 
-describe('doctor row renderer (407-24 · G-407-3)', () => {
+describe('doctor row renderer', () => {
   const originalColumnsEnv = process.env.COLUMNS
 
   afterEach(() => {
@@ -1948,7 +1948,7 @@ const NEWLINE_MESSAGE = 'Authentication failed\nresponse: 401'
 const SPACED_MESSAGE =
   'index at agent-qa-knowledge/memory/index/knowledge.db  could not be opened:\tcorrupt'
 
-describe('doctor row renderer: the flattening law (407-29 · G-407-14)', () => {
+describe('doctor row renderer: the flattening law', () => {
   afterEach(() => {
     restoreTerminalWidth()
   })
@@ -2040,7 +2040,7 @@ describe('doctor row renderer: the flattening law (407-29 · G-407-14)', () => {
 // the type instead of discarding it.
 // ---------------------------------------------------------------------------
 
-describe('doctor status token (407-29 · G-407-18)', () => {
+describe('doctor status token', () => {
   it('paints every status word, and the table has no silent fallback left', async () => {
     // picocolors decides `isColorSupported` ONCE, at its own module load, and `STATUS_COLOURS`
     // captures the bound formatters. So the only way to see real paint is a fresh doctor module
@@ -2086,7 +2086,7 @@ describe('doctor status token (407-29 · G-407-18)', () => {
 // the case it exists for is the case it got wrong.
 // ---------------------------------------------------------------------------
 
-describe('doctor fix lines: nothing to instruct (407-29 · G-407-22)', () => {
+describe('doctor fix lines: nothing to instruct', () => {
   it('returns no line at all for an instruction with no content', () => {
     for (const instructions of ['', '   ', '\n', '\t \n']) {
       expect(formatFixLines(instructions, 80)).toEqual([])
@@ -2115,7 +2115,7 @@ describe('doctor fix lines: nothing to instruct (407-29 · G-407-22)', () => {
 // continuation as well, so a helper that simply stopped joining everything could not pass them.
 // ---------------------------------------------------------------------------
 
-describe('doctor row reader: one definition of a continuation (407-30 · G-407-17)', () => {
+describe('doctor row reader: one definition of a continuation', () => {
   const HEAD = '    Knowledge store  ..........  FAIL'
   const REAL_CONTINUATION = `      ${MEASURED_FAIL_MESSAGE}`
   const NEXT_ROW = '    Embedder  ..........  PASS'

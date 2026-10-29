@@ -380,7 +380,7 @@ describe('the tracer: one real CDP frame behind a function-layer-minted liveUrl'
     ).toBeLessThan(staticArm)
   })
 
-  it('(v) LIVE-03: frames flowed and the run bus published no bytes for them', async () => {
+  it('(v) frames flowed and the run bus published no bytes for them', async () => {
     const held = fixture as Fixture
     const result = await mint(0)
     const seen: RunEventEnvelope[] = []
@@ -473,7 +473,7 @@ async function watchEditor(origin: string, sessionId: string, token: string, unt
   return texts
 }
 
-describe('an editor token obeys every credential rule a run token does (428 D-07)', () => {
+describe('an editor token obeys every credential rule a run token does', () => {
   it('EDITOR-TOKEN-ABSENT-FROM-LOGS: no editor token in the server log, any non-mint body, or any URL but a fragment', async () => {
     const harness = await startLiveViewHarness({ label: '428-12-tracer' })
     const editor = plantEditorSubject(harness, { sessionId: 'ed-log', kind: 'cdp-screencast' })

@@ -75,7 +75,7 @@ afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-describe('C445-DAEMON-STOP', () => {
+describe('daemon stop in a v1 workspace', () => {
   it('a live daemon registered in a v1 workspace is sent SIGTERM without the config being validated', async () => {
     const root = mkdtempSync(join(tmpdir(), 'agent-qa-445-17-daemon-stop-'))
     roots.push(root)

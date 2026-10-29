@@ -159,7 +159,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('C445-INIT-LLM', () => {
+describe('init model connection flags', () => {
   it('--llm codex writes one codex entry on the Codex subscription and declares the plugin', async () => {
     await initOk(['--platform', 'web', '--llm', 'codex'])
 
@@ -297,7 +297,7 @@ function hasDefault(call: PromptCall): boolean {
   return call.config.default !== undefined && String(call.config.default).length > 0
 }
 
-describe('C445-INIT-PROMPTS', () => {
+describe('init prompts', () => {
   beforeEach(answerWithDefaults)
 
   it('in a terminal with no flags, init asks the platform and the model connection, each with its default', async () => {
@@ -390,7 +390,7 @@ describe('C445-INIT-PROMPTS', () => {
   })
 })
 
-describe('C445-MODEL-DEFAULTS', () => {
+describe('subscription model defaults', () => {
   it('--llm codex with no --model writes gpt-6.1-sol', async () => {
     await initOk(['--platform', 'web', '--llm', 'codex'])
 
@@ -431,7 +431,7 @@ function lineWith(output: string, text: string): string {
   return line!
 }
 
-describe('C445-NEXT-STEPS', () => {
+describe('init next steps', () => {
   it('the next steps follow the route order for a subscription workspace', async () => {
     await initOk(['--platform', 'web', '--llm', 'codex'])
 
@@ -470,7 +470,7 @@ describe('C445-NEXT-STEPS', () => {
     expect(output).not.toContain(SUBSCRIPTION_AUTH_PACKAGE)
   })
 
-  it('the next steps name no file init replaces and no dashboard sign-in', async () => {
+  it('the next steps of every workspace name validate', async () => {
     const workspaces = [
       ['--platform', 'web', '--llm', 'codex'],
       ['--platform', 'web'],

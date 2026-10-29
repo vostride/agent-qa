@@ -125,7 +125,7 @@ function idleHandoff(): PostVerdictHandoff {
   }
 }
 
-describe('C444-CI-EVERY-DOOR', () => {
+describe('every CI door states the resume limit', () => {
   it('in ci the runs.start door exit line states each pending stage\'s resume limit', async () => {
     const expected: Record<'ci' | 'local-headless', readonly string[]> = {
       ci: [`analysis: pending (${ANY_HOST})`, `curation: pending (${LOCAL_RUN})`],

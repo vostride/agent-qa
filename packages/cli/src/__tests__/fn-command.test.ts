@@ -838,7 +838,7 @@ describe('agent-qa fn (generic function invoker)', () => {
     expect(JSON.parse(result.stdout)).toEqual([])
   })
 
-  it('resolves config.get and never renders the raw secret (T-384-07)', async () => {
+  it('resolves config.get and never renders the raw secret', async () => {
     const workspace = fixtureWorkspace(roots)
 
     const result = await invoke(workspace, ['config.get', '--json'])
@@ -877,7 +877,7 @@ describe('agent-qa fn (generic function invoker)', () => {
     })
   })
 
-  it('shows undeclared credential-named and credential-shaped values as written (D-29)', async () => {
+  it('shows undeclared credential-named and credential-shaped values as written', async () => {
     const workspace = fixtureWorkspace(roots)
 
     const result = await invoke(workspace, ['config.get', '--json'])
@@ -923,7 +923,7 @@ describe('agent-qa fn (generic function invoker)', () => {
       .toEqual(['registry.llms.0.providerHeaders.x-acme-access'])
   })
 
-  it('shows which packages load in-process, for BOTH plugin kinds (M-01)', async () => {
+  it('shows which packages load in-process, for BOTH plugin kinds', async () => {
     const workspace = fixtureWorkspace(roots)
 
     const result = await invoke(workspace, ['config.get', '--json'])
@@ -954,7 +954,7 @@ describe('agent-qa fn (generic function invoker)', () => {
   })
 })
 
-describe('agent-qa fn runs.events (the D-08 stream kind)', () => {
+describe('agent-qa fn runs.events (the stream kind)', () => {
   const roots: string[] = []
   let originalExitCode: typeof process.exitCode
 
@@ -1075,7 +1075,7 @@ describe('agent-qa fn runs.events (the D-08 stream kind)', () => {
   })
 })
 
-describe('C441-DISPLAY', () => {
+describe('fn output masks declared secrets', () => {
   const roots: string[] = []
   let originalExitCode: typeof process.exitCode
 
@@ -1139,7 +1139,7 @@ describe('C441-DISPLAY', () => {
   })
 })
 
-describe('C441-GAP-DISPLAY', () => {
+describe('fn masks a declared value holding a quote and a backslash', () => {
   const roots: string[] = []
   let originalExitCode: typeof process.exitCode
 
@@ -1188,7 +1188,7 @@ describe('C441-GAP-DISPLAY', () => {
   })
 })
 
-describe('C441-GAP2-DISPLAY', () => {
+describe('fn runs.events --json masking', () => {
   const roots: string[] = []
   let originalExitCode: typeof process.exitCode
 

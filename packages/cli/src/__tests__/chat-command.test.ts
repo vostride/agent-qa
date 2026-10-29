@@ -300,7 +300,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     expect(result.stdout).toContain('/fn')
   })
 
-  it('opens with starter prompts RENDERED FROM the committed catalog (398-09, SC-1)', async () => {
+  it('opens with starter prompts RENDERED FROM the committed catalog', async () => {
     // THE CELL THAT WATCHES WHAT IS SENT (398-07's M6 lesson, applied here before it could bite).
     // `conformance/help-census.test.ts` proves the builders return catalog text; every one of those
     // cells would still be green if this command never called them, because they call the builders
@@ -428,7 +428,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     expect(sessionFiles(configPath)).toHaveLength(0)
   })
 
-  it('the interrupt handler writes an explicit aborted row (D-19 graceful arm)', async () => {
+  it('the interrupt handler writes an explicit aborted row', async () => {
     // DRIVEN DIRECTLY rather than by a real signal: what is being measured is that the handler
     // writes the event, and a test that raised SIGINT would be measuring the test runner's signal
     // disposition instead. The handler is exported for exactly this reason.

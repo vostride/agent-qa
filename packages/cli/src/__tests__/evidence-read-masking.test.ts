@@ -132,7 +132,7 @@ async function startDoors(f: ReturnType<typeof productionFixture>) {
   }
 }
 
-describe('423 production read posture', () => {
+describe('production read posture', () => {
   it('COLD-EVIDENCE-HOST reads multi-key network and variables evidence readable with the declared secret masked', async () => {
     const f = productionFixture()
     const before = fixtureBytes(f.root)
