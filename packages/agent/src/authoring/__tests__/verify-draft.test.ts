@@ -1,12 +1,4 @@
-// The tracer: one draft end to end, through every layer of the phase's new code (393-06, Task 1).
-//
-// The subject is the corpus's ACCEPT CONTROL — the member whose whole job is to be accepted — and
-// the assertion is the full four-boolean vector plus the disposition plus the persisted bytes. A
-// constant-false evaluator fails this file, which is the property that makes the rest of the
-// corpus proof mean anything (D-07, the precondition-guarded-rule law).
-//
-// The step texts are copied verbatim from `fixtures/corpus/accept-control.yaml`; the fixture is
-// the source of truth and the corpus is frozen.
+// The accept control end to end: all four gate booleans, the disposition and the persisted bytes.
 
 import {
   computeDraftDisposition,

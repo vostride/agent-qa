@@ -1,5 +1,4 @@
-// the stated-value check, model-free, with its false-refusal
-// controls. The subject is imported inside each cell so a missing module reds every row by name.
+// Model-free, with false-refusal controls; imported per cell so a missing module fails each row.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -248,7 +247,7 @@ describe('reworded and added draft text is kept', () => {
   })
 })
 
-// list markers are not stated values.
+// List markers are not stated values.
 describe('list and step numbers are not stated values', () => {
   it('a numbered list written inline states no list number', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -416,7 +415,7 @@ describe('stated values inside lists', () => {
   })
 })
 
-// inch marks, in-word apostrophes and addresses state nothing.
+// Inch marks, in-word apostrophes and addresses state nothing.
 describe('inch marks, apostrophes and addresses state nothing', () => {
   it('an inch mark opens no quoted value', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -515,7 +514,7 @@ describe('quoted values beside inch marks and address-shaped numbers', () => {
   })
 })
 
-// a digit-led quoted value and a bracketed time are stated values again.
+// A digit-led quoted value and a bracketed time are stated values.
 describe('digit-led quotes, decade elisions and bracketed times', () => {
   it('a single-quoted value that starts with digits glued to a letter is a stated value', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -586,7 +585,7 @@ describe('bracketed IPv6 hosts state nothing', () => {
   })
 })
 
-// a run that starts mid-line waits for its 2, and a step label counts only in label position.
+// A run that starts mid-line waits for its 2, and a step label counts only in label position.
 describe('numbers after a colon or a sentence end, and mid-sentence step numbers', () => {
   it('a number stated after a colon or a sentence end is a stated value when no list follows it', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -697,7 +696,7 @@ describe('lists after a colon or a sentence state no list number', () => {
   })
 })
 
-// held step headings, nested held starts and held paren runs.
+// Held step headings, nested held starts and held paren runs.
 describe('held list starts and step labels', () => {
   it('a held step label and its next label that each end a sentence are stated values until a third label follows, and a capitalized two-label step list is the known boundary', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -899,7 +898,7 @@ describe('a confirmed held list states no number', () => {
   })
 })
 
-// month-name dates beside list runs, the at-once reset in both passes and the step twin of a restarted list.
+// Month-name dates beside list runs, the at-once reset in both passes and a restarted list's twin.
 describe('month-name dates where a list marker would go', () => {
   it('a month-name date is a stated value even where the next list marker would go, and an item that ends in a month name before the next marker is the known boundary', async () => {
     const { extractStatedValues, missingStatedValues } = await load()
@@ -988,7 +987,7 @@ describe('month-name dates where a list marker would go', () => {
   })
 })
 
-// 2026-10-12 (440-16, D-03; the round-4 regression): a month-name day at a held start or the held next number clears the held run.
+// A month-name day at a held start or the held next number clears the held run.
 describe('a month-name day clears a held run', () => {
   it('a month-name day where a held run would start or take its next number clears the held run, so a later 2 never confirms a stale held 1, and a list after a colon whose first item states that day is the known boundary', async () => {
     const { extractStatedValues, missingStatedValues } = await load()

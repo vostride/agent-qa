@@ -1,7 +1,4 @@
-// a member whose failing step the verifier left unproven, with no
-// mechanics signal, routes to the stop arm as indefinitive-failure, never to repair. A not-met
-// block keeps today's clean-definitive route, an infeasible step keeps its termination's repair
-// route, a member timeout keeps its mechanics route, and a limit stop keeps rule 1b.
+// An unproven failing step with no mechanics signal stops as indefinitive-failure, never repair.
 
 import { guardCompletedRunHandoff } from '@vostride/agent-qa-schema'
 import type {

@@ -1,31 +1,4 @@
-// Stage 2 — the frozen dedup denominator.
-//
-// Twelve rows, each the SOLE CATCHER for one property, and each one's rationale in
-// `fixtures/dedup-corpus/expectations.json` says which. The table is frozen: a row that stops
-// catching what it claims is a finding about the lane, never a reason to move the row.
-//
-// THE INTENT IS PRODUCED, NOT WRITTEN HERE — AND IT IS THE PRODUCER PRODUCTION ACTUALLY USES.
-// `loop.ts:858` calls `dedupBeforeAuthor(input.intent, …)`: the intent is the PERSON'S ONE-LINE
-// UTTERANCE, and there is no test document anywhere at stage 2 — having none is the entire premise
-// of dedup-BEFORE-author. So every row's intent is read at test time out of the single `intent:`
-// key of a fixture under `fixtures/dedup-corpus/intents/`, and what comes back is byte-identical
-// to the string the op receives. The suite side is still a DOCUMENT, and that is not an
-// inconsistency: a corpus entry is a committed test, which has a name and steps.
-//
-// UNTIL 2026-08-13 THIS FILE CLAIMED THAT AND DID THE OPPOSITE. Every intent was a whole house
-// document projected `[name, ...steps].join(' ')` — a 21-token input no caller can emit — so the
-// table could not red on the distribution production sees, and stage 2 shipped un-refusable for
-// the whole phase (394-VERIFICATION round 4, gap SC-1 stage 2; WINDOWS 118). A corpus assembled
-// through the WRONG producer fails exactly the way a corpus assembled as a type literal does: the
-// mutation differential reds only impossible fixtures, and cannot tell a vacuous corpus from a
-// real closure. The rows were re-minted; the row ids and their sole-catcher rationales were not.
-//
-// THE SUBJECT IS IMPORTED LAZILY, INSIDE EACH CELL, and that is the RED-first mechanism rather
-// than a style choice. A top-level import of a module that does not exist yet fails the whole FILE
-// to load, and vitest reports that identically to a corpus that was never written at all
-// (`No test files found` and a load error are the same exit code). Imported per cell, the
-// pre-implementation RED is N NAMED ROWS each failing on module resolution, which is a recording
-// of the denominator rather than of the harness.
+// Each intent is a one-line utterance read from a fixture, the shape `dedupBeforeAuthor` receives.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -143,17 +116,7 @@ function inputsFor(row: CorpusRow): {
   return { intent: intentOf(row), corpus: (row.suite ?? []).map(suiteEntry) }
 }
 
-/**
- * The row's top NAME-AXIS score — `scoreIntentAgainst`'s name-only half, mirrored exactly.
- *
- * `dedup.ts` scores an intent on two comparable axes and keeps the larger. The name-only half is
- * `textOverlap({ testName: intent, steps: [] }, { filePath, testName, stepsText: [] })`, and that
- * construction is reproduced here CHARACTER FOR CHARACTER through the imported `textSimilarity`
- * rather than approximated: a second recipe for "how alike are these two texts" is what D-16
- * forbids, and a cell that invented one would measure its own arithmetic instead of the lane's.
- * Maximised over the row's OWN suite members, because that is the set `dedupBeforeAuthor` reduces
- * over when it produces the score this reading is compared against.
- */
+// Mirrors `scoreIntentAgainst`'s name-only half through the imported `textSimilarity`.
 function nameAxisTop(row: CorpusRow): number {
   const members = row.suite ?? []
   if (members.length === 0) throw new Error(`row ${row.id} has no suite to read an axis over`)
@@ -194,9 +157,7 @@ describe('the frozen dedup corpus is intact', () => {
   })
 
   it('kept every pre-existing row id and its sole-catcher claim through the re-mint', () => {
-    // The re-mint replaced INPUTS and VECTORS. If it had also replaced the properties, the table
-    // would be a new denominator wearing the old one's name -- the treadmill this phase is named
-    // for. These nine ids are the pre-re-mint table, verbatim.
+    // The re-mint replaced inputs and vectors, never the properties the row ids claim.
     const preserved = [
       'obvious-duplicate',
       'accept-control',
@@ -255,13 +216,7 @@ describe('the frozen dedup corpus is intact', () => {
     expect(refuse.expected).toBe('duplicate')
     expect(admit.expected).toBe('no-duplicate')
     for (const row of [refuse, admit]) {
-      // THE DECIDING AXIS, ASSERTED DIRECTLY. Until 2026-08-13 this cell compared the utterance's
-      // CHARACTER LENGTH against the longest suite name -- a proxy for an axis, and a proxy of the
-      // wrong kind: `textOverlap` is a token-set Jaccard, so a re-mint that shortened a suite name
-      // (or lengthened an utterance without moving its overlap) left this cell green with both
-      // rows back INSIDE the assumption it exists to place them outside of (394-VERIFICATION
-      // round 5, WR-06). What "outside the name-axis assumption" means arithmetically is that the
-      // name axis alone CANNOT reach the row's verdict -- so that is what is measured.
+      // The name axis alone cannot reach this row's verdict.
       expect(nameAxisTop(row), `${row.id} must be decided on the DOCUMENT axis: the name axis `
         + 'alone cannot reach its frozen score, which is what places it outside the assumption')
         .toBeLessThan(row.score ?? 0)
@@ -270,13 +225,7 @@ describe('the frozen dedup corpus is intact', () => {
 
   it('discrimination control: the SAME axis computation reads a name-decided row the other way',
     () => {
-      // THE MUTATION BAR FOR THE CELL ABOVE, in-suite and permanent rather than a session
-      // observation. `unfingerprinted-duplicate`'s frozen 0.8000000000 IS its name-axis reading
-      // (8 shared of 10+8, measured 2026-08-13 on the producible universe) -- it is a name-decided
-      // row. If `nameAxisTop` ever stops distinguishing a name-decided row from a document-decided
-      // one -- a mirrored construction that drifted from `scoreIntentAgainst`, a maximisation over
-      // the wrong members, an axis that collapsed onto the whole-document reading -- this control
-      // reds BEFORE the cell above goes silently vacuous by passing for everything.
+      // Control: a name-decided row, so `nameAxisTop` cannot pass vacuously for every row.
       const nameDecided = rowNamed('unfingerprinted-duplicate')
       expect(nameAxisTop(nameDecided), 'the name axis DECIDES this row, so it must reach the '
         + 'frozen score rather than fall short of it')
@@ -284,35 +233,11 @@ describe('the frozen dedup corpus is intact', () => {
     })
 })
 
-/**
- * The `test-id` rule the SCHEMA asserts, spelled locally.
- *
- * `TestDefinitionSchema` refines `test-id` on `isCanonicalTestId`, which is `t_` followed by
- * exactly `CANONICAL_ID_WORDS = 10` id-agent words. `packages/agent` may not import
- * `@vostride/agent-qa-ids` any more than it may import the parser, so the rule is spelled here --
- * but it is spelled AT ITS OWN STRENGTH. The predecessor of this constant was `/^t_[a-z0-9-]+$/u`,
- * which accepts any hyphenated lowercase string, and it waved through a SEVEN-word id for the life
- * of the corpus: `dedup-unfingerprinted.yaml` was a document `parseTestFile` refuses outright, and
- * therefore a document `suiteTextCorpus()` can never yield (`local-agent-host.ts` does
- * `if (parsed.errors.length > 0) continue`), sitting inside the row that pins "the comparison
- * universe is EVERY test in the suite". A stand-in weaker than the rule it stands in for is not a
- * check (394-VERIFICATION round 5, CR-01).
- *
- * This is the CHEAP half of the guard and it is deliberately not the only half: the real parser
- * walk lives in `packages/cli/src/authoring/__tests__/dedup-corpus-producibility.test.ts`, in the
- * one package permitted to import `@vostride/agent-qa-core`, because the only assertion that
- * cannot be weaker than the parser is the parser.
- */
+// Agent cannot import the ids package, so the schema's `test-id` rule is spelled here in full.
 const CANONICAL_TEST_ID = /^t_[a-z0-9]+(-[a-z0-9]+){9}$/u
 
 describe('every corpus fixture is what its side of the comparison actually receives', () => {
-  // The producer check, per side. The SUITE side is a house-style test document, because a corpus
-  // entry is a committed test. The INTENT side is a bare utterance, because that is what the op
-  // is handed. `parseTestFile` itself lives in `@vostride/agent-qa-core`, which the FUNC-02
-  // firewall forbids this package to import, so what is asserted here is that the suite documents
-  // parse as YAML and carry the four fields the house format requires -- with `test-id` held to
-  // the schema's own rule, and the shipped parser itself driven over these same six files by the
-  // cli-side producibility cell named on CANONICAL_TEST_ID above.
+  // Core is off limits here, so suite documents are checked as YAML; cli runs the parser on them.
   const suiteDocuments = [...new Set(
     Object.values(EXPECTATIONS.suiteMembers).map((member) => member.document),
   )]
@@ -352,8 +277,7 @@ describe('every corpus fixture is what its side of the comparison actually recei
   })
 
   it('copies the corpus suite VERBATIM, so the two denominators describe one world', () => {
-    // 393's corpus scores against these three documents. If a copy drifts, the claim that stage 2
-    // and gate 3 screen the same world is silently false, and no other cell would notice.
+    // Stage 2 and gate 3 must screen the same suite documents, and only this cell sees a drift.
     const localForm = suiteEntry('uat-381-local-form')
     expect(localForm.testName).toBe('Sign in on the local account form')
     expect(localForm.stepsText).toEqual([
@@ -416,12 +340,7 @@ describe('dedupBeforeAuthor against the frozen corpus', () => {
   )
 
   it('refuses EVERY suite member the member\'s own name handed back verbatim', async () => {
-    // WINDOWS 118, generalised, and driven through the REAL dedupBeforeAuthor rather than a
-    // re-implemented Jaccard -- a re-implementation would measure my arithmetic, not the lane's.
-    // A test's name handed back to the screen is the STRONGEST duplicate signal an intent can
-    // carry: there is no larger overlap available, because the intent IS the identity. A lane
-    // that admits this admits everything, which is exactly what round 4 measured across the ten
-    // committed tests of the shipping demo suite (ceiling 0.40 against a 0.45 pin).
+    // A test's own name as the intent is the strongest duplicate signal, so the lane refuses it.
     const { dedupBeforeAuthor } = await loadDedup()
     const members = Object.keys(EXPECTATIONS.suiteMembers)
     // ONE assertion over the WHOLE sweep, deliberately. A per-member assertion inside the loop
@@ -467,10 +386,7 @@ describe('dedupBeforeAuthor against the frozen corpus', () => {
     const screening = dedupBeforeAuthor(intent, corpus)
 
     if (screening.kind !== 'duplicate') throw new Error('the obvious duplicate must refuse')
-    // refuse-and-link carries the two named continuations. Two, not "at least one" -- a
-    // refusal offering only "extend that test" cannot be acted on by an author whose draft is a
-    // different assertion about the same flow. The vocabulary is the SCHEMA's, which is the
-    // assertion that no second spelling was minted in this package.
+    // Two continuations, so an author whose draft is a different assertion can still act.
     expect(AUTHORING_DEDUP_CONTINUATIONS).toHaveLength(2)
     expect(screening.continuations).toEqual([...AUTHORING_DEDUP_CONTINUATIONS])
     expect(AUTHORING_DEDUP_CONTINUATIONS.join(' ')).toContain('extend')
@@ -482,9 +398,7 @@ describe('dedupBeforeAuthor against the frozen corpus', () => {
     const row = rowNamed('obvious-duplicate')
     const { intent, corpus } = inputsFor(row)
 
-    // A throw would make the refusal an error surface, and the op would FAIL rather than answer
-    // `refused` with its link. D-04 makes it a result the caller reads and chat renders, which is
-    // only checkable by asserting the call returns at all.
+    // A refusal is a result the caller reads, not a throw that fails the op.
     expect(() => dedupBeforeAuthor(intent, corpus)).not.toThrow()
     const screening = dedupBeforeAuthor(intent, corpus)
     if (screening.kind !== 'duplicate') throw new Error('the obvious duplicate must refuse')
@@ -508,13 +422,7 @@ describe('dedupBeforeAuthor against the frozen corpus', () => {
 describe('one scorer, not two', () => {
   it('reports a score adds-value.ts produces for the same pair, not a copy of it', async () => {
     const { dedupBeforeAuthor } = await loadDedup()
-    // The shared vector: the obvious duplicate against the member it duplicates. If dedup.ts ever
-    // grows its own tokenizer or its own Jaccard, the two readings drift and this cell is what
-    // notices -- the key link is an import, and an import is what this asserts the behaviour of.
-    //
-    // The lane scores an intent on TWO comparable axes and keeps the larger, so the reproduction
-    // here is over both. Both are `textSimilarity` calls: the axes differ in what is compared, not
-    // in how, and a second recipe is what D-16 forbids.
+    // Shares `textSimilarity` with the lane, so a private tokenizer in `dedup.ts` would drift here.
     const entry = suiteEntry('uat-381-local-form')
     const intent = intentTextOf('intents/duplicate.yaml')
     const wholeDocument = textSimilarity({ testName: intent, steps: [] }, entry)

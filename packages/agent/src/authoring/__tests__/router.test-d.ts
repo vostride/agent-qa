@@ -1,24 +1,4 @@
-// The type-level half of SC-2.
-//
-// SC-2's claim is about what is NOT REACHABLE, and a behavioural corpus can only ever say what a
-// particular input produced. Three things are pinned here that no runtime cell can pin:
-//
-//   1. `StopRoute` and `RepairRoute` are MUTUALLY NON-ASSIGNABLE. Two records differing only by
-//      a `kind` literal are assignable in enough directions to make this cell decorative, so each
-//      arm carries a required field the other does not have and both directions are asserted.
-//   2. `PostVerifyRoute['kind']` is pinned by EQUALITY, not by a list of per-arm assertions.
-//      Per-arm assertions can only say what IS there; a third arm quietly added — or one of the
-//      two quietly dropped — passes every per-arm cell and fails only this line.
-//   3. NEITHER EXPORTED FUNCTION CAN BE HANDED MODEL OUTPUT. The parameter lists are pinned as
-//      EXACT TUPLES, so a model, a prompt, or any model-produced string threaded in as a third
-//      argument is a type error here. This is T-394-17's mitigation expressed as a type: the
-//      model writes nothing the stop arm carries and never chooses the branch, and the only way to
-//      make that structural rather than customary is to leave it no parameter to arrive through.
-//
-// This file IS typechecked. `packages/agent/vitest.config.ts` sets `typecheck.include` to
-// `src/**/*.test-d.ts`, which is exactly this pattern and NOT `*.test.ts` — the sibling
-// `router.test.ts` is not typechecked by vitest at all, and `tsc --noEmit` remains the only type
-// authority for it.
+// Type-level pins: the routes are mutually non-assignable and neither function takes model output.
 
 import { expectTypeOf } from 'vitest'
 
@@ -134,29 +114,14 @@ expectTypeOf<ReturnType<typeof classifyFailureEvidence>>().toEqualTypeOf<RouterS
 expectTypeOf<NonNullable<StopRoute['failurePoint']>['verdictSource']>()
   .toEqualTypeOf<VerdictSource | undefined>()
 
-// An evidence ref is a COORDINATE. Its key set is pinned by equality, so a payload smuggled onto
-// it — a screen state, an element tree, a rendered snapshot — fails here rather than showing up
-// on whatever surface a later plan reads the stop's evidence from.
+// Its key set is pinned by equality, so a payload smuggled onto an evidence ref fails here.
 expectTypeOf<keyof RunEvidenceRef>().toEqualTypeOf<
   'runId' | 'filePath' | 'testName' | 'stepIndex' | 'subActionIndex' | 'channel'
 >()
 
-// ---- 4. the stop branch cannot reach the repair entry point ---------
-//
-// SC-2's second half, and the one a behavioural cell cannot carry: `repairDraft` takes a
-// `RepairRoute`, so wiring the app-broken branch into it is a COMPILE error rather than a
-// behaviour a corpus has to catch after the fact. Section 1 above already pinned the two arms
-// mutually non-assignable; this cell pins that the repair entry point actually spends that
-// separation instead of widening its parameter to `PostVerifyRoute` and branching inside.
-//
-// `@ts-expect-error` IS ITSELF TWO-SIDED. It fails when the error DISAPPEARS — so the day someone
-// widens `repairDraft`'s parameter, or gives `StopRoute` the fields that make it assignable,
-// this line reds with "Unused '@ts-expect-error' directive". That is exactly the regression the
-// cell exists to catch, and it is why the pin is a directive rather than an assertion about types.
+// A stop route must not type as a `RepairRoute`: `@ts-expect-error` reds if the call compiles.
 
-// Declared rather than imported as a value: this file is compiled by `vitest --typecheck` and by
-// `tsc --noEmit` and is never executed, so a type-space reference to the export is the honest
-// spelling — and it still fails to resolve, by name, while the module does not exist.
+// Declared, not imported: this file is typechecked and never executed.
 declare const repairDraft: typeof import('../repair.js')['repairDraft']
 declare const repairDeps: RepairDeps
 

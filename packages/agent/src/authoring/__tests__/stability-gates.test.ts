@@ -1,13 +1,4 @@
-// Gates 1-2, the D-17 behavior table (393-06, Task 2).
-//
-// The table below is what 393-01 MEASURED, not what the outcome enum suggests. Its finding F1 is
-// the whole reason this file is longer than "check the outcome": a draft referencing controls the
-// target does not have comes back with member outcome `failed` — a definitive value — while its
-// step evidence records an infeasible termination, and 19 of 21 failed members in the demo run
-// store carry one. A gate 1 implemented over the enum alone passes the corpus's gate-1 rejector
-// and the corpus proves nothing. F3 is the mirror hazard in the other direction: the accept
-// control's definitive pass arrives as `healed`, so a gate 1 strict about the enum fails the one
-// draft the corpus exists to accept.
+// Gate 1 reads step evidence too: a draft naming missing controls fails with an infeasible step.
 
 import { DRAFT_STABILITY_RUNS_N } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
@@ -66,7 +57,7 @@ describe('runStabilityGates — the consecutive-run gates', () => {
     expect(result.runsCompleted).toBe(2)
     expect(result.earlyStopped).toBe(true)
     expect(result.distinctOutcomes).toEqual(['passed', 'failed'])
-    // Early-stop skips RUNS, never a GATE. Exactly two runs were taken.
+    // Early stop skips runs, never a gate.
     expect(startCount).toBe(2)
   })
 
@@ -101,8 +92,7 @@ describe('runStabilityGates — the consecutive-run gates', () => {
   })
 
   it('a clean failure with no termination block IS definitive', async () => {
-    // The other half of F1. If every `failed` read indefinitive, gate 1 would be a synonym for
-    // "the draft passed" and gate 2 would have nothing left to say.
+    // A clean failure must read definitive, or gate 1 would only mean the draft passed.
     const { result } = await gates([
       [member({ outcome: 'failed' })],
       [member({ outcome: 'failed' })],
@@ -123,12 +113,11 @@ describe('runStabilityGates — the consecutive-run gates', () => {
     expect(result.executesDefinitive).toBe(false)
     expect(result.gateRuns[0]?.definitive).toBe(false)
     expect(result.gateRuns[0]?.reason).toContain('planning')
-    // The lane flake 393-01 measured on page-loaded-only run 1 is this shape; the OTHER two runs
-    // stay definitive, so the receipt says which run was the problem.
+    // The other runs stay definitive, so the receipt says which run was the problem.
     expect(result.gateRuns[1]?.definitive).toBe(true)
   })
 
-  // Historical reader: only pre-436 handoffs carry a cycle block (436 Open Question 3).
+  // Reads the cycle block that older handoffs still carry.
   it('a flagged cycle is indefinitive', async () => {
     const { result } = await gates([[member({ outcome: 'failed', cycleSteps: [1] })]], 1)
 
@@ -186,9 +175,7 @@ describe('runStabilityGates — the consecutive-run gates', () => {
   })
 
   it('a heal beside a pass is not a verdict flip', async () => {
-    // 393-01's F2 measured heals arriving from seeded procedure replay on 5 of 8 corpus drafts.
-    // If `healed` and `passed` compared as different verdicts, that contamination would read as
-    // instability and deny good drafts for a reason that is about the knowledge store.
+    // `healed` and `passed` compare equal, so replay heals do not read as instability.
     const { result, startCount } = await gates([
       [member({ outcome: 'passed' })],
       [acceptControlMember('healed')],
@@ -259,8 +246,7 @@ describe('runStabilityGates — the consecutive-run gates', () => {
   })
 
   it('reports gate 2 FALSE when no run produced a verdict at all', async () => {
-    // Zero observed verdicts is not "nothing flipped, so it is stable". D-12's tune-toward-reject
-    // applies: a gate with no evidence behind it must not read as a pass.
+    // No observed verdict is not stability: a gate with no evidence must not pass.
     const { result } = await gates([undefined, undefined, undefined])
 
     expect(result.executesDefinitive).toBe(false)

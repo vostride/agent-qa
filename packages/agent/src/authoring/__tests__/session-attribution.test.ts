@@ -1,20 +1,4 @@
-// The sessionRef write path.
-//
-// WHY THIS FILE EXISTS. `DraftReceipt.sessionRef` has had a READER since 394-07 —
-// `scopeReceiptsToWindow`'s session arm compares it by exact string equality — and no writer at
-// all. `EvaluateDraftInput` carried no such field and the `.strict()` mint literal had no such
-// key, so no receipt any host could mint was able to carry one: the session window returned []
-// unconditionally and `built` was structurally 0, not merely `accepted` (394-VERIFICATION, SC-3).
-//
-// THE CORPUS IS PRODUCED, NEVER LITERAL. Every receipt asserted below comes out of `evaluateDraft`
-// — the ONE mint — against the fake-run harness. A hand-written `DraftReceiptSchema.parse({...,
-// sessionRef})` would satisfy every assertion here while production stayed unable to emit the
-// shape, which is the exact anti-pattern 394-VERIFICATION recorded against the funnel's own cells.
-//
-// BOTH DIRECTIONS, BECAUSE ABSENCE IS EXCLUSION. A supplied ref must reach the persisted bytes
-// verbatim AND an unsupplied one must leave the key ABSENT — not empty-string, not defaulted to
-// whichever session happens to be asking. A writer that stamped something for every caller would
-// pass the first cell and quietly attribute every CLI draft to some session.
+// A supplied `sessionRef` reaches the persisted receipt verbatim; an unsupplied one stays absent.
 
 import {
   AuthoringDraftWriteInputSchema,
@@ -275,9 +259,7 @@ describe('the sessionRef write path — through repair', () => {
   })
 
   it('carries the JOIN TARGET to the final stability gate too', async () => {
-    // The same thread, one field over. A repaired candidate is the SAME draft with patched steps,
-    // so it joins the same suite — a target that stopped at stage 4 would leave every repaired
-    // draft judged against its own one-test shelf file, which is the arm 394-19 exists to close.
+    // A repaired candidate joins the same suite as its draft, not its own one-test shelf file.
     const { outcome, verifyInputs } = await repairCarrying({
       sessionRef: 'sess-alpha',
       targetSuitePath: 'tests/confirm-the-local-account-form-page-heading.yaml',

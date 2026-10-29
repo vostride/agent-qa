@@ -1,16 +1,3 @@
-// Gate 3, the D-14/D-16 behavior table (393-06, Task 3).
-//
-// Two lanes, and the receipt must say which one answered for each compared test. The FINGERPRINT
-// lane is a set comparison with no threshold — D-14 is spec §6.3 verbatim, and conservatism lives
-// in the normalizer rather than in a constant. The TEXT lane exists only for suite tests the
-// derived index has no evidence for, over-flags toward "already covered" (the safe direction), and
-// is the one place in this gate where a pinned number decides anything.
-//
-// The corpus texts below are copied verbatim from `fixtures/corpus/*.yaml` and
-// `demo/init/tests/uat-381-local-form.yaml`. The near-duplicate draft was authored to mirror
-// uat-381's anchors with cosmetically different wording; the accept control was authored not to.
-// Those two are what the threshold has to separate, so they are what the tests measure it on.
-
 import { describe, expect, it } from 'vitest'
 
 import { ACCEPT_CONTROL_DRAFT, fakeFingerprintIndex } from './evidence-fixtures.js'
@@ -116,14 +103,12 @@ describe('addsValueGate — the fingerprint lane', () => {
     const byName = new Map(result.finding.comparedTests.map((row) => [row.testName, row.covered]))
     expect(byName.get('Touches only A')).toBe(false)
     expect(byName.get('Covers A and B')).toBe(true)
-    // The gate itself turns on the UNION, which holds both — the per-test rows explain, they do
-    // not decide.
+    // The verdict comes from the union; the per-test rows explain it and do not decide.
     expect(result.pass).toBe(false)
   })
 
   it('has no similarity threshold on the fingerprint lane — one novel element is enough', () => {
-    // 19 of 20 elements shared, and the draft still adds value. A gate that scored overlap would
-    // call this covered; D-14 says the answer is set membership, not proportion.
+    // Set membership decides, not proportion: one element outside the suite's set adds value.
     const shared = Array.from({ length: 19 }, (_, index) => `el-${index}`)
     const result = addsValueGate({
       draft: ACCEPT_CONTROL_TEXT,
@@ -215,11 +200,7 @@ describe('addsValueGate — the text fallback lane', () => {
 })
 
 describe('addsValueGate — lane precedence', () => {
-  /**
-   * An evidence-less sibling whose tokens are the draft's own, so `textSimilarity` returns 1.0 —
-   * the strongest possible text-lane "covered" claim. Its identity is NOT in the fingerprint
-   * index, so it stays on the degraded lane where D-16 put it.
-   */
+  // Tokens match the draft's but the identity is outside the fingerprint index, so it stays text.
   const TEXT_TWIN: SuiteTextCorpusEntryLike = {
     filePath: 'demo/init/tests/text-twin.yaml',
     testName: NEAR_DUPLICATE_DRAFT.testName,
@@ -227,10 +208,7 @@ describe('addsValueGate — lane precedence', () => {
   }
 
   it('the fingerprint lane DECIDES a pass over a text sibling that resembles the draft', () => {
-    // The veto direction, which no case covered before this one: the primary lane has evidence and
-    // says NOVEL, and a degraded-lane resemblance is recorded beside it. D-14 gives the verdict to
-    // the lane with evidence; the text lane is a fallback for identities the index cannot speak
-    // for, not a veto over the identities it can.
+    // The lane with evidence decides; a text-lane resemblance beside it does not veto.
     const result = addsValueGate({
       draft: NEAR_DUPLICATE_DRAFT,
       draftElements: ['el-username', 'el-novel'],
@@ -241,8 +219,7 @@ describe('addsValueGate — lane precedence', () => {
     expect(result.pass).toBe(true)
     expect(result.finding.novelElements).toEqual(['el-novel'])
 
-    // Recorded, not deciding: the sibling still carries its lane and its covered flag, because
-    // D-16's value is the per-test attribution on the receipt — only the arithmetic moved.
+    // The sibling keeps its lane and covered flag on the receipt, though it does not decide.
     const twinRow = result.finding.comparedTests.find((row) => row.filePath === TEXT_TWIN.filePath)
     expect(twinRow?.lane).toBe('text')
     expect(twinRow?.covered).toBe(true)

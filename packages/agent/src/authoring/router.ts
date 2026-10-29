@@ -1,75 +1,4 @@
-// Stage 5's deterministic repair-vs-stop derivation.
-//
-// ONE function decides whether a failing draft is the DRAFT's problem or the APPLICATION's, and
-// this file is the only place that decision is made. The table below is the contract, not an
-// implementation detail; it is evaluated in this order, over the draft's OWN member inside one
-// run's evidence.
-//
-//   0. The run evidence holds no member with the draft's identity — or there is no run evidence
-//      at all -> `no-run-evidence` -> REFUSED BY NAME. This is a broken precondition, not an
-//      ambiguous signal: the router was not given the input it exists to read.
-//   1. The member did not fail — a terminal outcome of passed, healed or skipped with no step
-//      verdict false -> `no-failure` -> REFUSED BY NAME. A healed pass is a pass (393-01 F3).
-//      Nothing here is a routing question, and either arm would be a wrong answer wearing a
-//      correct one's clothes.
-//   1b. SOME step carries a typed `limitStop` block -> `indefinitive-failure` -> STOP. The run ran
-//      out of an action or planning-turn limit rather than into an answer, so it says nothing
-//      about the application, and repairing it could iterate a dead control into a passing test
-//      Evaluated before rule 2, so a verdictSource on another step never makes it
-//      definitive; a limit is never a mechanics signal.
-//   1c. SOME step the verifier left unproven (`stepOutcomeUnproven`: a condition unverified or
-//      inconclusive, none not met) and carrying no mechanics signal -> `indefinitive-failure` ->
-//      STOP. Nothing says the application failed, and repairing it would rewrite an unproven claim
-//      into a passing one (439 D-07, after 436 D-14's limit stop). An infeasible step keeps its
-//      termination as its primary reason and routes by rule 3.
-//   2. SOME step is a CLEAN DEFINITIVE ASSERTION-FAIL — its verifier said no, a `verdictSource`
-//      records which path produced that verdict, and that step carries no mechanics signal of
-//      its own. Then:
-//        2a. no mechanics signal anywhere in the member
-//            -> `clean-definitive-assertion-fail` -> STOP, unconditionally.
-//        2b. a mechanics signal somewhere else in the member
-//            -> `mixed-evidence` -> STOP.
-//   3. A mechanics signal on any step, or a member outcome of timeout or cancelled
-//      -> `execution-mechanics` -> REPAIR.
-//   4. Anything else -> `indefinitive-failure` -> STOP.
-//
-// WHY RULE 2 IS EVALUATED BEFORE RULE 3, AND WHY AMBIGUITY LANDS IN THE STOP ARM. Repairing a
-// clean assertion-fail can only mean rewriting what the test CLAIMS to match what the application
-// actually showed, which is oracle capture by construction — the draft class gate 4's corpus
-// exists to reject, manufactured by the very loop that is supposed to filter it. So D-08 says a
-// clean definitive assertion-fail routes to a stop ALWAYS, which is only true if the clean-fail
-// test is asked first; a mechanics-first table would let one unrelated timed-out step pull a
-// perfectly clean fail into the repair arm. The same asymmetry decides every remaining case: a
-// mis-filed test-wrong costs one human look and is undone by that look, while a mis-routed
-// application bug gets iterated into passing and is then indistinguishable from a test that
-// always worked. Only the second is unrecoverable, so every class this file cannot place with
-// confidence points at the stop arm.
-//
-// THE MECHANICS SCAN COVERS THE WHOLE MEMBER, NOT THE FAILING STEP. Rule 2's split between 2a and
-// 2b is what makes mixed evidence land in a stop, and narrowing the scan to the failing step
-// collapses that split: a termination on step 0 and a termination on the failing step would
-// classify identically. The frozen corpus carries that exact pair, differing in one integer.
-//
-// THE MODEL NEVER MAKES THIS DECISION. Both exported functions take a draft IDENTITY and one run
-// document. Neither takes a model, a prompt, or any string a model produced — `router.test-d.ts`
-// pins both parameter lists as exact tuples, so there is no argument for model output to arrive
-// through, and the identity is a lookup key rather than a decision input: every value that
-// decides is a field of the run's own `PerTestOutcome` or `StepEvidence`. The model writes nothing
-// this arm carries: the stop's payload is projected downstream from the route and from typed facts,
-// once the branch is already chosen, and no prose field survives on it.
-//
-// THE STOP CARRIES REFS, NEVER PAYLOADS (391 D-18, map not territory). WTST-04 asks the stop arm
-// to name the exact trace and the a11y snapshot at the failure point; both already live on the
-// handoff, the snapshots as `SubActionEvidence.stateBefore` and `stateAfter`, so this arm carries
-// coordinates into the run's own durable records. That is also why the loop binds
-// `DraftRunPortLike.get` rather than reading `runs.get`'s projection: the per-step sub-action
-// evidence these coordinates address does not survive that projection.
-//
-// THIS FILE DOES NOT WIRE ITSELF IN. Plan 06 owns the stage-5 call site, together with the repair
-// arm's consumer, so the two land in one commit and the wiring is never half-connected. `loop.ts`
-// keeps its own `routeAfterVerify`, which answers a DIFFERENT question — which outcome a
-// disposition implies — and the derivation here is named for the question it answers so the two
-// can coexist until plan 06 makes one call the other.
+// A clean assertion-fail is checked before mechanics, so it always stops; ambiguity stops too.
 
 import { stepOutcomeUnproven } from '@vostride/agent-qa-schema'
 import type {
@@ -118,8 +47,6 @@ export type RouterStopSignalClass =
  * member-level and carried by the outcome rather than by any step, which is why a scan over
  * `StepEvidence` alone cannot see them.
  */
-// 'cycle' and 'stagnation' left with the progress subsystem; their
-// blocks survive only in pre-change handoffs and are no longer read as mechanics.
 export const ROUTER_MECHANICS_SIGNALS = [
   'termination',
   'planning-failure',
@@ -147,14 +74,7 @@ export interface RouterFailurePoint {
   readonly verdictSource?: VerdictSource
 }
 
-/**
- * The draft's mechanics need work; nothing here is a claim about the application.
- *
- * Carries `mechanics` and `failingStepIndex`, neither of which exists on {@link StopRoute}.
- * That is deliberate rather than incidental: two records differing only by a `kind` literal are
- * assignable in enough directions to make a type-level unreachability pin decorative, and SC-2's
- * claim is exactly an unreachability claim.
- */
+// Carries fields `StopRoute` lacks, so the two routes are not assignable to each other.
 export interface RepairRoute {
   readonly kind: 'repair'
   readonly signalClass: RouterRepairSignalClass
@@ -164,18 +84,7 @@ export interface RepairRoute {
   readonly failingStepIndex: number | null
 }
 
-/**
- * The application looks wrong, or the evidence does not say clearly enough to risk repairing — so
- * the loop STOPS here and reports what the run said.
- *
- * Carries `failurePoint` and `evidenceRefs`, neither of which exists on {@link RepairRoute}.
- * `failurePoint` is nullable because rule 4 admits a member that failed at the member level with
- * no step verdict to point at; `evidenceRefs` is not, because a stop a reader cannot trace is not
- * a report.
- *
- * the proposal arm for a correctly-failing draft left with the Issue-slot
- * cleanup.
- */
+// `failurePoint` may be null for a member-level failure; `evidenceRefs` always traces it.
 export interface StopRoute {
   readonly kind: 'stop'
   readonly signalClass: RouterStopSignalClass
@@ -203,13 +112,7 @@ export class AuthoringRouterUnroutableError extends Error {
   }
 }
 
-/**
- * Which arm each class produces. THE ONE MAPPING SITE.
- *
- * A table rather than a chain of returns so that the routing decision has a single line per class
- * that a differential can edit and a reader can audit. The phase's mutation driver (since removed)
- * mutated exactly the clean-fail line here and required the corpus to red on the signature row by name.
- */
+// One line per class, so the routing decision is a single auditable edit.
 const ROUTE_ARM_BY_SIGNAL_CLASS = {
   'execution-mechanics': 'repair',
   'clean-definitive-assertion-fail': 'stop',
@@ -337,19 +240,7 @@ function evidenceRefsFor(
   return refs
 }
 
-/**
- * THE stop arm's evidence, from ONE step of ONE member. One derivation, two callers.
- *
- * Both callers below build the same two fields from the same walk: `routeRepairOrStop`'s stop arm,
- * and {@link stopRouteForAbandonedRepair} for a repair that was abandoned. They are one function
- * rather than two similar blocks because the alternative was measured — the exhausted arm shipped
- * an empty literal (`failurePoint: null`, `evidenceRefs: []`) beside a routed handoff it never
- * read, and every cell over that arm passed (394-VERIFICATION, CR-02). A construction copied into
- * a second module drifts from this one the first time either side is edited.
- *
- * `undefined` in means the member has no step to point at, which is the ONLY case that yields a
- * null point and no refs — the nullability rule the stop arm has always documented.
- */
+// Shared by the routed stop and the abandoned-repair stop, so both point at the same step.
 function stopEvidenceFor(
   runId: string,
   member: PerTestOutcome,
@@ -368,25 +259,7 @@ function stopEvidenceFor(
   }
 }
 
-/**
- * The stop arm for a repair the loop ABANDONED, over the run the router already read.
- *
- * WHY IT LIVES HERE AND NOT AT THE CALL SITE. An exhausted or prefix-regressed repair produces the
- * same artifact class as a first-pass stop — `routeAfterVerify`'s own header says so — and that
- * class's evidence is derived in exactly one place. Building it in `loop.ts` would be a second
- * answer to "which step does this stop point at", assembled from the same fields, free to
- * disagree; building it from a literal is what shipped, and a durable stop with no failure point
- * and no refs is unauditable by construction.
- *
- * `signalClass` is `indefinitive-failure` and nothing else: the classification the run's own
- * evidence carried belonged to the REPAIR arm (`execution-mechanics`), and repair having failed is
- * a fact about the loop rather than a new reading of the run. A repair-prefixed class would be a
- * string outside {@link ROUTER_SIGNAL_CLASSES}, which is the WR-09 defect this file already closed.
- *
- * `failingStepIndex` is the repair route's own — the step the loop tried to fix — so the stop
- * points where the repair was aimed. `null` (a member-level signal) falls back to the first step
- * the verifier rejected, and a member with neither yields a null point rather than a fabricated one.
- */
+// An abandoned repair stops as `indefinitive-failure`, a class inside `ROUTER_SIGNAL_CLASSES`.
 export function stopRouteForAbandonedRepair(
   draftRef: DraftRef,
   handoff: CompletedRunHandoff,
@@ -414,16 +287,7 @@ export function stopRouteForAbandonedRepair(
   }
 }
 
-/**
- * The one deterministic repair-versus-stop derivation.
- *
- * Pure: it reads the run document and mutates nothing. Total over every classification the table
- * produces — the two non-routing classes refuse BY NAME rather than returning an arm, which is
- * the loop's own posture for a case a later plan owns.
- *
- * The caller supplies the handoff of the run whose evidence the receipt's gates judged; choosing
- * among an evaluation's several runs is the stage-5 wiring's job, and lands with plan 06.
- */
+// Pure; the two non-routing classes refuse by name instead of returning an arm.
 export function routeRepairOrStop(
   draftRef: DraftRef,
   handoff: CompletedRunHandoff | undefined,

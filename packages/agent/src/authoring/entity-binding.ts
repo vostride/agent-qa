@@ -1,34 +1,4 @@
-// Never-guess binding for an LLM-supplied entity name.
-//
-// A name a model chose decides WHICH of a person's tests an edit rewrites. D-19's rule is that such
-// a name binds only on a UNIQUE HIGH-CONFIDENCE hit; ambiguity, weakness and absence are each a
-// typed refusal, and none of them is ever a silent guess into a file this project keeps.
-//
-// THE HOUSE RESOLVER ALREADY IS THAT RULE, WHICH IS WHY THERE IS NO SECOND MATCHER HERE. The spec's
-// §8.1 sketch is a fuse.js threshold of about 0.4 applied at the authoring surface. This project
-// shipped the same decision as a three-tier resolver in 387 — an exact-address tier, a strong-hit
-// tier gated on BOTH an absolute score and a margin over the runner-up, and a disambiguation tier —
-// and its `applyStrongHitRule` answers `none` for a lone candidate that clears neither. So the
-// binding below REUSES that contract rather than restating it: adding a matcher and a threshold
-// here would be a second answer to "which entity did the model mean", free to disagree with the
-// first, and this codebase's arch lints exist because that class of drift is expensive. If the
-// resolver's tiers are ever measured wrong for authoring, that is a change to the resolver.
-//
-// THE ONE PLACE THIS FILE DECIDES ANYTHING is what to do with `none.closestSuggestion`. The resolver
-// attaches it when a single candidate ranked but did not clear the bar — which is EXACTLY the
-// low-confidence lone match D-19 names — and it is offered so a surface can say "did you mean". A
-// binder that promoted a suggestion to a binding would turn the resolver's refusal back into the
-// guess it refused, one field away, and would look entirely reasonable in review. It is refused
-// here by name, and the refusal carries the suggestion so a person can still be asked.
-//
-// WHY THIS REACHES THE PORT RATHER THAN THE REGISTERED OP. `entities.resolve` renders CARDS, and a
-// card deliberately carries no test identity — D-12's render-never-recompute boundary drops it, so
-// the op's answer cannot say which file a bound test lives in, and a binder reading one would have
-// to recover a path from a title, which is the plausible-but-wrong attribution that boundary exists
-// to prevent. `EntityDirectoryPort` is the SAME port that op invokes, on every op's `FunctionDeps`,
-// and it answers descriptors. Nothing is widened by reaching it: the resolution is a read, the op
-// that performs this binding declares `read`, and `entities.resolve` requires exactly `read` — so
-// every caller who can reach this binding could already have called that op directly.
+// Binds only on the resolver's unique strong hit; `none.closestSuggestion` is never promoted.
 
 import { suiteTestRef } from '@vostride/agent-qa-schema'
 import type { EntityDescriptor } from '@vostride/agent-qa-schema'
@@ -63,15 +33,7 @@ export interface EntityBinding {
   readonly identity?: BoundTestIdentity
 }
 
-/**
- * The name matched more than one entity.
- *
- * A SEPARATE CLASS from {@link UnresolvedEntityNameError} rather than one error with a kind, on the
- * `authoring-verify-draft.ts` precedent, and here the distinction is what a caller does next:
- * ambiguity has candidates to put in front of a person — 387's disambiguation card — while an
- * unresolved name has nothing to choose between and needs a different question. A caller reading a
- * string to tell those apart is a caller that will one day read it wrong.
- */
+// A separate class: ambiguity has candidates to offer, an unresolved name has none.
 export class AmbiguousEntityNameError extends Error {
   constructor(
     readonly entityName: string,
@@ -146,16 +108,7 @@ function identityOf(descriptor: EntityDescriptor): BoundTestIdentity | undefined
     : { filePath: identity.filePath, testName: identity.testName }
 }
 
-/**
- * Bind every supplied name, or refuse by name on the first one that cannot be bound.
- *
- * REFUSES ON THE FIRST FAILURE, and refuses the WHOLE set — the applier's own posture and
- * the repair fence's. Binding what it could and reporting the rest would hand a caller a
- * partially-bound edit, which is the shape in which somebody eventually applies the bound half.
- *
- * Order is preserved, so a caller that supplied `[testRef]` reads its answer at index 0 without
- * having to search for it.
- */
+// Refuses the whole set on the first failure, so no caller gets a partially bound edit.
 export async function bindEntityNames(
   names: readonly string[],
   deps: BindEntityNamesDeps,

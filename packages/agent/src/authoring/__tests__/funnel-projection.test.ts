@@ -1,14 +1,4 @@
-// The funnel projection's cells.
-//
-// THE CONTROL SHAPE IS TWO-SIDED ON EVERY DISCRIMINATOR. A window that admitted nothing and a
-// window that admitted everything would both pass a suite screened on one side only — 394-04's
-// finding, mechanized here: for the session scope there is a with-ref cell AND a without-ref
-// cell AND a wrong-ref cell; for the stability gather there is a flaky-neighbours cell AND a
-// stable cell AND a no-history cell.
-//
-// THE ZERO-RUNS CLAIM IS MEASURED AGAINST AN INSTRUMENT THAT WOULD RECORD ONE. The fake run port
-// below is handed to the composition and counts every `start`; a claim asserted against a port
-// nothing could call is a claim about the test, not about the code.
+// Two-sided controls on every discriminator, and runs counted by a port the composition can reach.
 
 import { beforeAll, describe, expect, it } from 'vitest'
 
@@ -36,18 +26,7 @@ import type { DraftRunPortLike } from '../ports.js'
 
 const TARGET = 'tests/local-form.yaml'
 
-// ---- the PRODUCED corpus ----------------------------------------------------------------------
-//
-// THE JOIN CELLS RUN OVER RECEIPTS PRODUCTION CAN ACTUALLY EMIT (394-17, gap round 1). Until the
-// sessionRef write path landed, the only code constructing a session window was this file and one
-// sibling, both building receipts as TYPE LITERALS — a corpus that pinned an input no host could
-// mint, so every session cell was green while `built` was structurally 0 on every real projection
-// (394-VERIFICATION, SC-3). A literal that diverges from the producer is exactly the shape that
-// cannot tell a vacuous closure from a real one.
-//
-// So every receipt the session arm is exercised over comes out of `evaluateDraft` — the ONE mint —
-// and `assertProduced` below is the mechanical self-check: identity against the producer's own
-// ledger, so a literal spliced into a join cell later reds by name rather than passing quietly.
+// Join cells run over receipts from `evaluateDraft`; `assertProduced` fails on a spliced literal.
 
 const producedReceipts: DraftReceipt[] = []
 
@@ -118,13 +97,7 @@ function receipt(digest: string, evaluatedAt = 1_700_000_000_000): DraftReceipt 
   })
 }
 
-/**
- * A run port the composition COULD reach, recording every start.
- *
- * The zero-runs claim is worth nothing against a port that cannot be called: 394-06 learned the
- * same lesson from the other end, where an unbounded loop took the worker down instead of reding
- * a cell. The instrument has to be able to record the thing being denied.
- */
+// A claim of zero runs needs a port the composition could actually call.
 function countingRunPort(): DraftRunPortLike & { starts: RunsStartInput[] } {
   const starts: RunsStartInput[] = []
   return {
@@ -173,8 +146,6 @@ describe('the window scope, over a PRODUCED population', () => {
     const scoped = scopeReceiptsToWindow(population, { scope: 'session', sessionRef: 'sess-alpha' })
 
     expect(scoped.map((row) => row.draftRef.contentDigest)).toEqual(['a', 'd'])
-    // NON-EMPTY, which is the whole property that was structurally unreachable before 394-17: the
-    // join's left side was undefined for every receipt any host could mint.
     expect(scoped.length).toBeGreaterThan(0)
   })
 
@@ -215,9 +186,7 @@ describe('the window scope, over a PRODUCED population', () => {
 
 describe('projectAuthoringFunnel', () => {
   it('scopes the DENOMINATOR to the session over PRODUCED receipts — `built` is not 0', async () => {
-    // The corpus is minted, not written: two of this session's drafts, one of another's, one
-    // unattributed. Before 394-17 no host could emit any of the three attributed shapes, so this
-    // stage was 0 for every real projection while a literal corpus reported otherwise.
+    // Drafts from this session, another session and none, all minted through the producer.
     const alpha = [
       await mintReceipt('p-alpha-1', 'sess-alpha', 10),
       await mintReceipt('p-alpha-2', 'sess-alpha', 11),
@@ -237,16 +206,12 @@ describe('projectAuthoringFunnel', () => {
     // Against the PRODUCER'S OWN TALLY, never a restated integer: if the mint stopped attributing,
     // `alpha.length` and `built` move apart rather than both matching a hard-coded 2.
     expect(funnel.stages.built).toBe(alpha.length)
-    // RE-SPELLED 2026-10-02: `writeEligible` replaces `accepted` (0 since
-    // 432-17), counted off the minted receipts' own stored dispositions — the producer's tally.
+    // Counted off the minted receipts' stored dispositions.
     expect(funnel.stages.writeEligible)
       .toBe(alpha.filter((row) => draftDispositionWritesTarget(row.disposition)).length)
     expect(funnel.stages.writeEligible).toBeGreaterThan(0)
   })
 
-  // RE-SPELLED 2026-10-02: was 'reads `accepted` off recorded acceptances, and
-  // none are recorded since 432-17' (0 whatever the receipts said). The terminal stage now reads
-  // the receipts' stored dispositions, so it counts what the loop writes.
   it('counts the write-eligible receipts the store holds', async () => {
     const funnel = await projectAuthoringFunnel(
       { scope: 'all-time' },
@@ -286,8 +251,7 @@ describe('projectAuthoringFunnel', () => {
 describe('gatherSuiteStability', () => {
   /** The partition the outcome projection is keyed on — `slugBranch` of the run's own scope. */
   const PRODUCT = 'local-form'
-  // The port's two verbs LEAD WITH `product` (394-17, step a): the projection they mirror is keyed
-  // (product, filePath, testName), and a shape without it could only be bound by guessing.
+  // Both verbs take `product` first: the projection is keyed by product, file path and test name.
   const outcomes = (rows: Readonly<Record<string, readonly string[]>>) => ({
     async testsIn(_product: string, filePath: string) {
       return Object.keys(rows).map((testName) => ({ filePath, testName }))

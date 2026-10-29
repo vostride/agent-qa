@@ -1,17 +1,4 @@
-// Never-guess entity binding, all four directions.
-//
-// THE MUTATION THIS FILE MUST GO RED ON: binding a lone candidate regardless of confidence — in the
-// shape it would actually arrive in, which is `none.closestSuggestion` promoted to a binding. That
-// edit is one field long, reads as helpfulness, and is exactly the silent guess into a test file
-// D-19 forbids. The low-confidence cell is the sole catcher for it, and it is the reason a
-// three-direction suite would have been worth nothing: `resolved` binds and `ambiguous` refuses on
-// every implementation anybody would write.
-//
-// THE FOUR DIRECTIONS ARE ALL HERE ON PURPOSE. 394-04 recorded what a one-sided screen costs — every
-// pre-existing e2e cell there screened against an EMPTY suite, so "the lane admits" was untested and
-// a screen that refused everything would have passed the whole file. A binder that refused
-// everything is the same defect pointed the other way, so the binding direction is pinned beside
-// the three refusals rather than assumed.
+// The low-confidence cell catches a lone candidate bound regardless of its confidence.
 
 import type { EntityDescriptor, EntityResolution } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
@@ -23,14 +10,7 @@ import type {
 } from '../entity-binding.js'
 import type { EntityDirectoryPort } from '../../functions/spec.js'
 
-/**
- * The subject, imported LAZILY inside every cell.
- *
- * A static import fails at module load, so vitest reports ONE file-level error and collects no
- * cells at all — `Tests  no tests`, which reads identically to a suite that was never written. The
- * lazy form is what makes a RED receipt a list of named rows (394-03's finding, re-applied), and
- * it is why this indirection exists rather than being cleaned up.
- */
+// Imported lazily so a missing module fails each named cell, not the whole file at load.
 async function subject() {
   return await import('../entity-binding.js')
 }
@@ -159,9 +139,7 @@ describe('a name that matches several entities refuses, and NAMES them', () => {
     expect(refusal).toBeInstanceOf(AmbiguousEntityNameError)
     const ambiguous = refusal as AmbiguousEntityNameErrorType
     expect(ambiguous.entityName).toBe('the checkout test')
-    // THE CANDIDATES AS DATA. A caller renders 387's disambiguation card off this, and a cell that
-    // asserted only "an error was thrown" would pass for an implementation that dropped them —
-    // leaving a person told their name was ambiguous and never told between what.
+    // A caller renders the disambiguation card off these candidates, so they must survive.
     expect(ambiguous.candidates).toEqual([
       { ref: 'agentqa://TST/TST-111', title: 'Checkout with a coupon', score: 0.62 },
       { ref: 'agentqa://TST/TST-222', title: 'Checkout with a saved card', score: 0.59 },

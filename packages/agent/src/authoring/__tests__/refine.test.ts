@@ -1,19 +1,4 @@
-// The one unconditional refinement round.
-//
-// THE MUTATION THIS FILE MUST GO RED ON: gating the round behind a condition — the obvious one
-// being "skip the round when the first retrieval already returned facts". That is the trigger
-// heuristic D-18 rules out, and a suite that only ever drives a draft whose first brief was EMPTY
-// would stay green under it while the round silently stopped running for every real invocation.
-// So the always-runs cell drives a draft whose first brief is DELIBERATELY populated, which is the
-// input the mutation is designed to skip. The mutation is named here and nowhere in `refine.ts`'s
-// own comments: a source comment describing the forbidden edit teaches the next reader how to make
-// it look intentional.
-//
-// THE SUBJECT IS IMPORTED LAZILY, INSIDE EACH CELL. A static import fails at module load, so vitest
-// reports ONE file-level error and collects no cells at all — which reads identically to a suite
-// that was never written. With the lazy form every row is named and every row fails against a
-// module that does not exist, which is what makes a RED receipt a denominator (394-03's finding,
-// re-applied).
+// The always-runs cell starts from a populated brief, the input a conditional round would skip.
 
 import { asRecordId } from '@vostride/agent-qa-schema'
 import type { AuthoringBrief, ScopeKey, TestEditPatchSet } from '@vostride/agent-qa-schema'
@@ -95,8 +80,7 @@ function harness(options: HarnessOptions): Harness {
   const wholeDocumentWrites: string[] = []
 
   const read: AuthoringReadPortLike = {
-    // the `target` vocabulary. The refinement round is the subject here and it
-    // carries no format block, so this is read by the compile call alone.
+    // The refinement round carries no format block, so only the compile call reads this.
     configuredTargetNames: (): Promise<readonly string[]> => Promise.resolve(['local-form']),
     getAuthoringBrief(query: string): Promise<AuthoringBrief> {
       briefQueries.push(query)
@@ -234,8 +218,7 @@ describe('the refinement is applied as patches, through the one applier', () => 
 
     const outcome = await runRound(bench)
 
-    // THE APPLIER, not a second whole-document write. A round that re-emitted the document would
-    // have gone through `write`, which is the path D-02 reserves for creation.
+    // The round goes through the patch applier, not a whole-document write.
     expect(bench.applied).toEqual([{ thoughts: 'the brief names a receipt id', patches }])
     expect(bench.wholeDocumentWrites).toEqual([])
     expect(outcome.kind).toBe('refined')

@@ -1,30 +1,4 @@
-// Stage 5 — the frozen repair-vs-stop denominator.
-//
-// Ten rows, each the SOLE CATCHER for one property, and each one's rationale in
-// `fixtures/router-corpus/expectations.json` says which. The table is frozen: a row that stops
-// catching what it claims is a defect in the router, never a reason to move the row.
-//
-// THE HANDOFF IS PRODUCED, NOT WRITTEN HERE. Every row is an eight-field MEMBER SPEC which this
-// file builds into a real `CompletedRunHandoff` through the shared builders in
-// `evidence-fixtures.ts`, and a preflight cell drives every built document through the SHIPPED
-// load-boundary guard `guardCompletedRunHandoff` — the same structural validation a stored run
-// document must survive to be read back at all. A corpus assembled as a type literal can pin an
-// input no producer is able to emit, and a mutation differential then reds only impossible
-// fixtures, which cannot tell a vacuous corpus apart from a real closure.
-//
-// THE SUBJECT IS IMPORTED LAZILY, INSIDE EACH CELL, and that is the RED-first mechanism rather
-// than a style choice. A top-level import of a module that does not exist yet fails the whole FILE
-// to load, and vitest reports that identically to a corpus that was never written at all (a load
-// error and `No test files found` share an exit code). Imported per cell, the pre-implementation
-// RED is N NAMED ROWS each failing on module resolution, which is a recording of the denominator
-// rather than of the harness.
-//
-// THE CONTROL SHAPE IS CHECKED MECHANICALLY. 394-04 discovered that every pre-existing e2e cell
-// screened against an empty suite, so the admitting direction was untested on the only input where
-// refusing was possible. The corpus answers that here by declaring, per row, which other row it is
-// a variant of and by which NAMED fields; `the frozen router corpus is intact` recomputes the
-// actual key-set difference and fails when a declaration and the data disagree. Every
-// discriminating signal therefore has a row on each side of it, differing in that signal alone.
+// Each row is built into a real `CompletedRunHandoff` and checked by `guardCompletedRunHandoff`.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
@@ -116,13 +90,7 @@ const DRAFT_REF: DraftRef = {
   contentDigest: ACCEPT_CONTROL_DRAFT.contentDigest,
 }
 
-/**
- * The two-step sub-action shape every row's member is built over.
- *
- * Step 1 records a `stateAfter` as well as a `stateBefore`, so the stop arm's evidence refs
- * exercise all three channels on the phase's signature cell rather than only the two a step with
- * no observed navigation would produce.
- */
+// Step 1 records `stateAfter` too, so the stop arm's refs exercise all three channels.
 const ROUTER_SUBACTIONS: readonly (readonly SubActionFixture[])[] = [
   [{ type: 'fill', ref: 'e1', role: 'textbox', name: 'username' }],
   [
@@ -182,7 +150,6 @@ describe('the frozen router corpus is intact', () => {
   })
 
   it('names five stop-direction rows, and they are the rows that route to stop', () => {
-    // Three since 394; the two historical rows joined on 2026-10-07.
     const stopRows = EXPECTATIONS.rows
       .filter((row) => row.expected.route === 'stop')
       .map((row) => row.id)
@@ -216,8 +183,7 @@ describe('the frozen router corpus is intact', () => {
   })
 
   it('puts a row on BOTH sides of every discriminating signal', () => {
-    // The 394-04 lesson applied. A corpus of only-should-repair rows passes under a router that
-    // answers `repair` for reasons unrelated to the evidence, and the reverse is equally true.
+    // Rows on both routes, so a router answering one route regardless of evidence fails.
     const byRoute = (route: string) =>
       EXPECTATIONS.rows.filter((row) => row.expected.route === route)
     expect(byRoute('repair').length).toBeGreaterThanOrEqual(3)
@@ -237,8 +203,7 @@ describe('the frozen router corpus is intact', () => {
       expect(rowNamed(EXPECTATIONS.baseRow).expected.route).toBe('stop')
     }
 
-    // the two removed signals pair against the signature cell by the same one
-    // field and now land on the SAME arm and class — the proof that they route nothing.
+    // Each differs from the signature cell by one field and lands on its arm: these route nothing.
     for (const [id, field] of [
       ['historical-cycle', 'cycleSteps'],
       ['historical-stagnation', 'stagnationSteps'],
@@ -358,10 +323,7 @@ describe('the router is total where it can be and refuses by name where it canno
   it('refuses when there is no run evidence at all', async () => {
     const { classifyFailureEvidence, routeRepairOrStop, AuthoringRouterUnroutableError }
       = await loadRouter()
-    // Deliberately NOT the ambiguity arm. `DraftRunPortLike.get` answers `undefined` for a run
-    // whose record cannot be read back, and that is a broken precondition rather than conflicting
-    // evidence about a real failure — reporting a stop with nothing in it would name an
-    // application bug the run never observed, which is the very error D-08 exists to prevent.
+    // An unreadable run is a broken precondition, not ambiguity, so it reports no app failure.
     expect(classifyFailureEvidence(DRAFT_REF, undefined)).toBe('no-run-evidence')
     expect(() => routeRepairOrStop(DRAFT_REF, undefined))
       .toThrow(AuthoringRouterUnroutableError)
@@ -427,7 +389,7 @@ describe('the router is total where it can be and refuses by name where it canno
   })
 })
 
-// ---- 436 D-14: a limit stop is indefinitive and stops; cycle and stagnation route nothing ----
+// ---- a limit stop is indefinitive and stops; cycle and stagnation route nothing ----
 
 const AGENT_QA_ROOT = join(import.meta.dirname, '..', '..', '..', '..', '..')
 const PRE_CHANGE_HANDOFF_PATH = join(AGENT_QA_ROOT, 'test-fixtures', 'legacy-handoff', 'handoff.json')

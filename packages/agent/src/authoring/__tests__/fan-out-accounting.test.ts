@@ -1,24 +1,4 @@
-// The fan-out preview against what the loop ACTUALLY spends.
-//
-// THE PROHIBITION THIS FILE MAKES MECHANICAL. A preview lower than the loop's own worst case is a
-// consent defect: a person approved a number and the loop took more. Asserting that the two numbers
-// exist would measure nothing. So the load-bearing cell here drives the loop to its GENUINE worst
-// case — the full initial stability gate, every one of K's repair iterations spent on a probe, and
-// the final stability gate on the repaired candidate — and asserts the runs it consumed against the
-// bound the dispatch confirm rendered. The phase's mutation driver (since removed) shaved a term
-// off that bound and required this cell to red by name.
-//
-// A WORST CASE HAS TO BE REACHED, NOT DESCRIBED. `runsConsumed <= runsPreviewed` is unfalsifiable
-// against a happy path that spends three runs of a nine-run bound: every wrong bound passes it. The
-// sequence below is scripted so that the third repair iteration is the one that succeeds, which is
-// the only path on which all three terms are spent.
-//
-// AND CHEAPER PATHS ARE PINNED BESIDE IT, because a loop that always spent nine would satisfy the
-// worst-case cell and nothing else. The happy path spends the initial gate alone, a fenced
-// iteration spends NO run at all, and a stage-2 refusal spends nothing and previews nothing.
-//
-// vitest does not typecheck `.test.ts` (`typecheck.include` is `*.test-d.ts`); `tsc --noEmit` is
-// this file's only type authority.
+// Drives the loop to its real worst case, so a preview below the runs spent fails here.
 
 import {
   CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION,
@@ -234,7 +214,7 @@ function bench(input: {
       if (receipt === undefined) throw new Error('the bench was asked for a receipt it has none of')
       return Promise.resolve(receipt)
     },
-    // the final write. It starts no run, so it cannot move a single figure below.
+    // The final write starts no run, so it moves no figure below.
     publish: (request: { readonly targetPath: string }) => {
       published.push(request.targetPath)
       return Promise.resolve({
@@ -254,8 +234,7 @@ function bench(input: {
     },
     deps: {
       read: {
-        // the `target` vocabulary the compile prompt serves. This bench never
-        // inspects it — its model is scripted — so one name is the whole answer.
+        // The model is scripted, so one `target` name is enough.
         configuredTargetNames: () => Promise.resolve(['local-form']),
         getAuthoringBrief: () => Promise.resolve({
           scope: { tier: 'product', key: 'local-form' },
@@ -375,9 +354,7 @@ describe('the loop cannot exceed the bound its own dispatch confirm rendered', (
     ])
   })
 
-  // re-spelled in place. The proposal arm these figures rode is gone — the
-  // repaired draft is written, not proposed — so the same two figures are read off the report the
-  // invocation answers with, and the iteration count off the repaired arm itself.
+  // The figures come off the invocation's report and the iteration count off the repaired arm.
   it('reports the two figures TOGETHER on the repaired arm a person reads', async () => {
     const harness = bench({
       emissions: [
@@ -401,9 +378,7 @@ describe('the loop cannot exceed the bound its own dispatch confirm rendered', (
     expect(iterations).toBe(REPAIR_ITERATION_CAP)
   })
 
-  // 432 D-06, the repaired arm: the FINAL receipt decides the write, exactly as a
-  // first-pass one does. A repair that reached a passing probe but whose final stability gate
-  // rejected the candidate is reported as repaired and NOT written — its bytes stay on the shelf.
+  // The final receipt decides the write: a repair its final gate rejected stays on the shelf.
   it('writes a repaired draft only when its final gate did not reject it', async () => {
     const rejectedFinal = receiptFor('rejected', ['r_final-0', 'r_final-1', 'r_final-2'], 'digest-0+1')
     const refused = bench({

@@ -1,17 +1,4 @@
-// D-08's DISPATCH SCOPE, AS THE LOOP KEPT IT — RE-SPELLED 2026-10-01 (432-19,
-// D-15; 432-18 deferred #2).
-//
-// This file measured the LIFETIME of the optional dispatch-grant scope: entered once, after every
-// model call and before the first gate run, left after the last one, left on a throw, never entered
-// by a dedup refusal, and inert when unbound. 432-18 deleted the overlay that bound it and 432-19
-// deletes the port (`DispatchGrantPortLike`, `AuthoringShelf.dispatchGrants`) and the loop's wrapper,
-// so the authoring loop runs its gate runs DIRECTLY. The claims that survive are the dispatch's own
-// ordering — every model call before the first run, every run inside the one dispatch, nothing
-// started by a refusal, a throw propagating — measured on the same interleaved trace, plus the
-// deletion's own claim: a host that still hands the loop a scope object does not have it entered.
-//
-// vitest does not typecheck `.test.ts` (`typecheck.include` is `*.test-d.ts`); `tsc --noEmit` is
-// this file's only type authority.
+// Dispatch ordering: every model call before the first run, and a host's scope is never entered.
 
 import {
   CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION,
@@ -149,7 +136,7 @@ function bench(input: {
       if (input.failVerify === true) throw new Error('the evaluator could not judge this draft')
       return keepEligibleReceipt(runIds)
     },
-    // the final write. It starts no run, so it sits outside what this file measures.
+    // The final write starts no run, so it sits outside what this file measures.
     publish: (request: { readonly targetPath: string }) => Promise.resolve({
       kind: 'written' as const,
       filePath: request.targetPath,
@@ -194,9 +181,7 @@ describe('the authoring dispatch runs directly, with no scope', () => {
     const harness = bench({ gateRuns: 3 })
     await runAuthoringLoop(LOOP_INPUT, harness.deps)
 
-    // Sequence equality over the whole invocation, on `loop-ordering.test.ts`'s own reasoning: a
-    // per-entry "did it happen" check is satisfied by every wrong order. TWO model calls (stage 3's
-    // compile and D-18's refinement round), then the three gate runs stage 4 takes, and nothing else.
+    // Sequence equality, because a per-entry check is satisfied by every wrong order.
     expect(harness.trace).toEqual([
       'model',
       'model',

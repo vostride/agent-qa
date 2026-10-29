@@ -1,25 +1,4 @@
-// The stage order and the single public entry, pinned structurally.
-//
-// THE MUTATION THIS FILE MUST GO RED ON: moving the dedup call site in `loop.ts` to after the
-// compile call. That is the reordering "dedup-before-author" forbids — it turns a screen that
-// stops the loop before a byte is authored into one that runs after an LLM has already been paid
-// and a file already written — and a pin that never reds on it has measured one traversal and
-// called it an order. The mutation is named HERE, in the test, and deliberately nowhere in
-// `loop.ts`'s own comments: a source comment describing the forbidden edit teaches the next reader
-// how to make it look intentional.
-//
-// SEQUENCE EQUALITY, NOT PER-STAGE CALL COUNTS. Every assertion below compares a WHOLE ordered
-// sequence. Per-call checks (`expect(getBrief).toHaveBeenCalled()`) can only say that a stage ran;
-// the claim this pin exists to support is that nothing ran out of order and nothing was skipped,
-// and only an ordered comparison carries it. This is the key-set-equality argument `ports.test-d.ts`
-// makes about SHAPE, applied to TIME.
-//
-// TWO INDEPENDENT WITNESSES, AND THE SECOND IS WHAT MAKES THE FIRST HONEST. The loop reports the
-// stages it entered on its own result, which a reordered loop would report reordered — but a trace
-// the loop writes about itself could in principle disagree with what it did. So the fakes keep
-// their OWN log: each injected dep pushes its stage name when it is actually reached, and the two
-// logs are asserted against each other. A self-report that claimed `compile` before `dedup` while
-// the deps fired the other way fails the second cell even if it satisfies the first.
+// Two witnesses: the loop's reported stages and the fakes' own log must match in order.
 
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -73,29 +52,13 @@ import type { FunctionDeps } from '../../functions/spec.js'
 const INTENT = 'Check that the local account form shows its heading'
 const SCOPE: ScopeKey = { tier: 'product', key: 'local-form' }
 
-/**
- * The `target` vocabulary this host declares.
- *
- * NEITHER NAME IS `SCOPE.key`, and that is deliberate. `deriveDefaultAuthoringScope` answers a
- * PRODUCT, so the scope key and a configured target name are different kinds of value that only
- * coincide by accident — a fixture whose names included the scope key would let a block that
- * rendered the scope satisfy the pin below.
- */
+// Neither name is the scope key, so a block that rendered the scope cannot satisfy the pin.
 const CONFIGURED_TARGET_NAMES: readonly string[] = ['local-form-web', 'storefront-web']
 
 /** The staged draft's shelf path, as `stageDraft` mints it — digest in, path out. */
 const STAGED_PATH = `tests/.agent-qa-drafts/${ACCEPT_CONTROL_DRAFT.contentDigest}.yaml`
 
-/**
- * The draft this host's shelf answers with — the accept control, ON A TARGET THIS HOST DECLARES.
- *
- * The retarget is not cosmetic. Until the compile stage compared the vocabulary it
- * serves against the draft it stages, this file's shelf could answer a draft named `local-form`
- * while its read port declared `local-form-web` and `storefront-web` — a host whose own fixture
- * staged a test it could not have run. Nothing could see the disagreement, because nothing looked;
- * the guard's first catch was this fixture. Read off `CONFIGURED_TARGET_NAMES` rather than spelled,
- * so the two cannot drift apart again.
- */
+// A target this host declares, read off `CONFIGURED_TARGET_NAMES` so the two cannot drift.
 const STAGED_DRAFT = {
   ...ACCEPT_CONTROL_DRAFT,
   filePath: STAGED_PATH,
@@ -135,10 +98,7 @@ function observedLoop() {
   const read: AuthoringReadPortLike = {
     getAuthoringBrief(query: string, scope: ScopeKey): Promise<AuthoringBrief> {
       expect(scope).toEqual(SCOPE)
-      // TWO READS, ONE STAGE. Stage 1 asks the INTENT; D-18's refinement round asks the DRAFT, and
-      // it does so from inside stage 3. Only the first is the `brief` stage — recording the second
-      // under that name would make this pin report a stage the vocabulary does not have and would
-      // break the sequence equality below for a loop that is running exactly as designed.
+      // The refinement round also reads the brief, but only the intent read is the `brief` stage.
       if (query === INTENT) {
         observed.push('brief')
       } else {
@@ -150,9 +110,7 @@ function observedLoop() {
       observed.push('dedup')
       return Promise.resolve(SUITE_TEXT)
     },
-    // the `target` vocabulary the compile prompt serves. TWO names, and neither is
-    // the scope key — so a block that rendered the scope, or rendered one name because there was
-    // only one, cannot satisfy the pins below.
+    // Two names, neither the scope key, so rendering the scope or a single name fails the pins.
     configuredTargetNames: (): Promise<readonly string[]> =>
       Promise.resolve(CONFIGURED_TARGET_NAMES),
   }
@@ -227,8 +185,7 @@ function observedLoop() {
         },
       )
     },
-    // the final write. Not a stage name of its own — it is the tail of `route`, so it can
-    // only happen once `verify` has been observed.
+    // The final write is the tail of `route`, so it happens only after `verify`.
     publish(request) {
       expect(observed.at(-1)).toBe('verify')
       published.push(request.targetPath)
@@ -355,17 +312,7 @@ describe('the six-stage order is structural, not a habit of the code', () => {
   })
 })
 
-// ---- the schema channel: which TIER carries the document format --------------------------------
-//
-// WINDOWS 111. On 5/5 live gate-allowed invocations the compile stage emitted a document missing
-// `test-id` and `target` and carrying an unrecognized `product` key. The prompt's blocks were Role,
-// Procedures, Intent, Scope, What this project knows and Exemplar tests, and the required document
-// schema was named in NONE of them — `exemplarBlockBody` answers "No exemplar tests were served for
-// this scope" when the brief carries none, which is every brief in a fresh project.
-//
-// THE TIER IS THE CLAIM, not the presence. A format rule served from the volatile tier is served
-// only when memory has something to say; the cells below read the STABLE tier — the shared byte
-// prefix — off a brief carrying ZERO exemplars, which is the bootstrap condition itself.
+// Format rules sit in the stable tier, so a brief with no exemplars still carries them.
 
 /** The block title a model reads, spelled as a model reads it: a literal, not an import. */
 const FORMAT_BLOCK_TITLE = 'Test document format'
@@ -503,34 +450,7 @@ function minimalDeps(): FunctionDeps {
   }
 }
 
-/**
- * The ids this phase intends the `authoring.` domain to hold, and no others.
- *
- * `authoring.draft.edit` lands in plan 09 and is deliberately absent until it does — a pin that
- * pre-authorised an id nothing registers would go green on the day it arrived and say nothing
- * about it.
- *
- * 394-07 ADDS `authoring.funnel.get`, and the addition is a DECISION rather than bookkeeping,
- * because this pin is not a census — it is the one-public-entry claim. What it forbids is
- * promoting a loop STAGE to its own registered op, which would hand the chat planner (binding
- * every registered op 1:1) a way to run dedup, compile or route on its own and reorder or skip
- * the rest.
- *
- * 394-09 ADDS `authoring.draft.edit`, and the same argument has to be made for it rather than
- * assumed from the family name. It is not a stage of the loop: it takes an EXISTING committed test
- * plus a change to make to it, where every loop stage takes an intent and a draft in flight. It has
- * no position in the six-stage order — there is nothing it could be moved before or after — and
- * invoking it before, during or after a loop invocation answers the same question. A planner
- * holding it therefore gains a user-facing entry point and no way to run the loop out of order,
- * which is the distinction this pin exists to make somebody state out loud.
- *
- * The funnel read is not a stage and cannot become one. It runs over records the loop has already
- * written, it takes no draft and no intent, it starts nothing, and there is no ordering it could
- * be moved within: invoking it before, during or after a loop invocation answers a question about
- * the receipts on disk either way. Registering it therefore widens the DOMAIN without widening the
- * loop's entry surface — which is the distinction this line exists to make somebody state out
- * loud, in the same change that makes it.
- */
+// One public entry: a loop stage registered as its own op would let a planner reorder the loop.
 const EXPECTED_AUTHORING_IDS: readonly string[] = [
   'authoring.draft.edit',
   'authoring.draft.verify',
@@ -559,11 +479,7 @@ describe('the loop has exactly one public entry', () => {
   })
 })
 
-// ---- 432 D-06: the final write, one disposition at a time -----------------------------
-//
-// Stage 5 is driven directly with a receipt per disposition, so each arm of the rule is measured
-// on its own: which final drafts reach the writer, what they ask it to write, and that the receipt
-// the loop answers with keeps the disposition and all four gate booleans exactly as evaluated.
+// Stage 5 runs per disposition: which drafts reach the writer, with the receipt unchanged.
 
 const ALL_PASS: DraftGateBooleans = {
   executesDefinitive: true,
@@ -655,8 +571,7 @@ describe('exactly the non-rejected final dispositions are written', () => {
   }[] = [
     { disposition: 'keep-eligible', gates: ALL_PASS, runs: { requested: 3, completed: 3 } },
     { disposition: 'proposal-only', gates: ALL_PASS, runs: { requested: 3, completed: 2 } },
-    // RE-SPELLED 2026-10-03: draft mode writes a draft whose gates 1, 3
-    // and 4 passed, and the receipt carries the booleans unchanged; a false one rejects it.
+    // Draft mode writes a draft whose gates 1, 3 and 4 passed; a false one rejects it.
     {
       disposition: 'unverified',
       gates: { ...ALL_PASS, stableVerdict: false },
@@ -730,10 +645,7 @@ describe('exactly the non-rejected final dispositions are written', () => {
   })
 })
 
-// 2026-10-03 (quick 261003-cpv, 432 review WR-09): a draft-mode evaluation whose gate 1, 3 or 4 said
-// no is rejected by the disposition table (D-06: "writes the test file unless a keep-gate rejected
-// it"), so stage 5 never hands it to the writer. The disposition is COMPUTED here rather than
-// scripted, so the cell reds on the table, not on a fixture.
+// The disposition is computed, so the cell fails on the table, not on a fixture.
 describe('a draft-mode draft a keep-gate rejected is not written', () => {
   const ONE_RUN = { requested: 1, completed: 1 } as const
 
@@ -793,8 +705,7 @@ describe('a draft-mode draft a keep-gate rejected is not written', () => {
     })
 })
 
-// the keep check is driven directly, since compile, refine and repair
-// already hold the values on the normal path. STAGED_DRAFT's steps carry `alice` and `Local Form`.
+// The keep check is driven directly; `STAGED_DRAFT`'s steps carry `alice` and `Local Form`.
 describe('stated values checked at keep', () => {
   const GATE_RUN_IDS = ['r_keep-gate-0', 'r_keep-gate-1', 'r_keep-gate-2'] as const
 

@@ -1,33 +1,4 @@
-// The one unconditional draft-as-query refinement round.
-//
-// After the whole-document compile, the loop re-retrieves keyed on the DRAFT'S OWN steps and
-// anchors and gives the model exactly one pass to improve what it just wrote — emitted as RFC-6902
-// patches through the shipped CST applier, never as a second whole document.
-//
-// WHY THE ROUND IS UNCONDITIONAL, which is the decision rather than the mechanism. The obvious
-// alternative is a trigger: refine only when the first retrieval came back thin, or when the draft
-// is long, or when some score is low. Every one of those is a RULE ABOUT WHEN KNOWLEDGE MATTERS,
-// and that rule rots faster than the knowledge does — the moment the brief's contents shift, a
-// threshold calibrated against last quarter's corpus starts skipping exactly the drafts that most
-// needed a second look, silently and with no failing test anywhere. Retrieval here is local and
-// cheap, so the argument for one round is not that a round is expensive; it is that the loop's
-// shape stays deterministic and its fan-out preview keeps describing what actually happens.
-//
-// WHY THE QUERY IS THE DRAFT AND NOT THE INTENT. The intent has already been retrieved against, at
-// stage 1, and re-asking it would return the brief the compile was given — a second call over the
-// same substrate, which can only confirm. The compiled steps name things the intent did not: a
-// concrete flow, a page, an element, a phrase that matches a caution nobody thought to ask for. So
-// this round asks the question the intent could not, which is what makes it a round rather than a
-// retry.
-// 2026-10-12 (440, D-06): the prompt carries the request too; only the retrieval query stays the draft's words.
-//
-// WHY A FAILED REFINEMENT DOES NOT FAIL THE INVOCATION. What arrives is a model emission, and the
-// three ways it can be unusable — not a patch set at all, a patch set the fence or the applier
-// refuses, a patched document that no longer parses — are all facts about the REFINEMENT and not
-// about the compiled draft, which was already parsed and staged before this ran. Ending the whole
-// invocation on any of them would let an optional improvement destroy a good draft. So the outcome
-// is a discriminated union: the draft always survives, and the arm says what happened to it, which
-// is the difference between a degraded round a reader can see and one that quietly does nothing.
+// One unconditional round keyed on the draft's own words; a failed round never loses the draft.
 
 import { TestEditPatchSetSchema } from '@vostride/agent-qa-schema'
 import type { ScopeKey, TestEditPatchSet } from '@vostride/agent-qa-schema'
@@ -45,37 +16,9 @@ import {
 } from './stated-values.js'
 import { buildTieredPrompt } from '../prompt/tiered-prompt-builder.js'
 
-/**
- * How many refinement rounds run per compiled draft. Exactly one, always.
- *
- * what a change to this number has to report, and what it may not be.
- *
- * It may NOT become a condition. Raising it to 2 is a retune; making the second round fire only
- * when some signal says the first one found something is not a retune, it is the trigger heuristic
- * D-18 rules out, and it is ruled out for a stated reason rather than a preference: a trigger is a
- * rule about when this project's own knowledge is worth consulting, and nothing in the codebase
- * fails when that rule goes stale.
- *
- * A retune must report, over the frozen draft corpus: how many drafts a second round CHANGES at
- * all (a round that emits no patches on every member is a round nobody needs), how many of those
- * changes survive the gates that the one-round draft did not, and the token cost of the extra call
- * priced per additional keep. Two of those three are cheap to get wrong in the flattering
- * direction — "the model emitted patches" is not "the draft got better" — so the middle number is
- * the one that decides, and it is the one a receipt can settle rather than an impression.
- *
- * Lowering it to 0 is also a retune, and it needs the same evidence pointed the other way: the
- * round's contribution measured, not assumed absent.
- */
 export const REFINEMENT_ROUNDS = 1
 
-/**
- * The `agent_context` the refinement call carries into the ONE tiered prompt builder.
- *
- * A pinned string, distinct from the compile call's, for the reason that one is pinned: it lands in
- * the stable tier, which is the byte prefix a provider's prompt cache keys on. Distinct because the
- * two calls ask genuinely different questions — write a document, versus change one that exists —
- * and a shared context line would tell the model neither.
- */
+// Distinct from the compile context because the call asks to change a document, not write one.
 export const AUTHORING_REFINE_AGENT_CONTEXT =
   'authoring.draft.write — refine a compiled draft against newly retrieved facts and procedures'
 
@@ -107,17 +50,7 @@ export interface RefineDraftDeps {
   readonly shelf: DraftShelfPortLike
 }
 
-/**
- * The draft, as the retrieval query for its own second round.
- *
- * The test's NAME and its STEP TEXT, in document order, and nothing else. Not the intent — see the
- * header. Not the file path or the digest either: those are addresses this host minted, they name
- * no fact about an application, and a retrieval keyed partly on a content digest would return a
- * different brief for two drafts that say the same thing.
- *
- * Exported because it is the claim worth pinning on its own: a cell can assert the query carries
- * the draft's words and not the intent's without having to reconstruct a prompt to find out.
- */
+// Name and step text only: a query keyed on host-minted addresses would vary for equal drafts.
 export function draftRetrievalQuery(draft: ParsedDraftLike): string {
   return [draft.testName, ...draft.steps].join('\n')
 }
@@ -194,11 +127,7 @@ export async function refineDraft(
   const parsed = parsePatchSet(emitted.text)
   if ('reason' in parsed) return { kind: 'not-applied', draft, reason: parsed.reason }
 
-  // AN EMPTY SET SHORT-CIRCUITS THE APPLIER, and that is not an optimisation. 394-03's corpus pins
-  // that an empty set renders byte-identical output, so routing one through would be a provably
-  // no-op re-stage — but it would still be a WRITE, and a round that touched the shelf on every
-  // invocation would make "this refinement changed nothing" indistinguishable, on disk, from one
-  // that did. The arm says it instead.
+  // An empty set skips the applier, so a round that changed nothing does not touch the shelf.
   if (parsed.patchSet.patches.length === 0) {
     return { kind: 'no-op', draft, thoughts: parsed.patchSet.thoughts }
   }
@@ -216,8 +145,7 @@ export async function refineDraft(
   }
   if (staged.kind === 'unparsable') return { kind: 'not-applied', draft, reason: staged.reason }
 
-  // a patch that loses a stated value is dropped; the compiled draft
-  // already passed the same check at compile.
+  // A patch that loses a stated value is dropped; the compiled draft passed the same check.
   const missing = missingStatedValues(extractStatedValues(input.intent), staged.draft.steps)
   if (missing.length > 0) {
     return { kind: 'not-applied', draft, reason: statedValuesMissingReason(missing) }

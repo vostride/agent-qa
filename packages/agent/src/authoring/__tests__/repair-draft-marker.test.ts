@@ -1,7 +1,4 @@
-// repair and `authoring.draft.edit` refuse a draft that would type a
-// literal [secret:NAME], as the loop does. Pitfall 5: the repair-evidence and fixture-reality cells
-// this file carried for the deleted credential screen stay here. The fake shelf remints `filePath`
-// on every apply, as the host does, which is what makes the candidate's path measurable.
+// Repair and `authoring.draft.edit` refuse a draft that would type a literal `[secret:NAME]`.
 
 import { TestEditPatchSetSchema, CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type {

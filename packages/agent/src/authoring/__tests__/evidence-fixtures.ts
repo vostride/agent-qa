@@ -1,13 +1,4 @@
-// Shared gate-run fixtures for the authoring suites.
-//
-// The evaluator reads execution EVIDENCE — a run document's member outcome, its per-step
-// sub-actions, and the elements those sub-actions resolved against on the pre-action screen — so
-// the fakes here build that evidence rather than the answers derived from it. The expected
-// fingerprint bytes are never spelled as literals in any test: they are computed by schema's own
-// `actionAnchorElement` from the same fixture the port serves, so a fixture cannot pin a string
-// the recipe would never mint (the produced-not-literal law).
-//
-// Not a `.test.ts` file, so vitest's `src/**/__tests__/**/*.test.ts` include never collects it.
+// Fixtures build evidence; expected fingerprints come from `actionAnchorElement`, never literals.
 
 import {
   actionAnchorElement,
@@ -31,18 +22,7 @@ import type {
 
 import type { DraftRunPortLike, ParsedDraftLike, SuiteFingerprintIndexLike } from '../ports.js'
 
-// ---- 394-05 widening -------------------------------------------------------------------------
-//
-// The router reads FAILURE evidence, and every builder below was written by 393 for the
-// gate evaluator, which only ever needed passing or mechanically-broken members. Four additive
-// optional members close that gap: a step whose verifier said NO (`failedSteps`), the path that
-// produced that verdict (`verdictSourceSteps`), the exhausted-ladder terminal block
-// (`stagnationSteps`), and an aggregate override for a document whose member did not pass.
-//
-// Additive and optional, so every 393 fixture builds byte-identically to before. They are added
-// HERE rather than mirrored in the router's own suite because a corpus assembled from a second
-// builder is a corpus of inputs the first builder cannot emit, which is the produced-not-literal
-// law applied to fixtures rather than to documents.
+// The router's suite builds failure evidence from these same builders, not from a second copy.
 
 export const LOCAL_FORM_URL = 'http://127.0.0.1:8931/form.html'
 
@@ -71,7 +51,7 @@ export interface MemberFixture {
   readonly cycleSteps?: readonly number[]
   /** Step indices carrying a recorded self-heal. */
   readonly selfHealSteps?: readonly number[]
-  /** Step indices whose verifier said NO — `verifierVerdict.pass === false`. */
+  // Step indices whose verifier said no: `verifierVerdict.pass === false`.
   readonly failedSteps?: readonly number[]
   /** Which path produced a step's verdict, per step. Absent ⇒ the step records none. */
   readonly verdictSourceSteps?: readonly VerdictSourceFixture[]
@@ -211,10 +191,7 @@ function stepEvidence(
       ? { termination: { kind: 'infeasible', reason: 'fixture: the control does not exist' } }
       : {}),
     ...(member.planningFailureSteps?.includes(stepIndex) === true
-      // The REAL `PlanningFailureEvidence` shape (`reason`/`message`/`exchanges`). It was
-      // `{turnIndex, exchanges}` until 394-05: nothing reads the fields — every consumer reads
-      // PRESENCE — so the cast hid it, and a fixture that models a shape the runner never writes
-      // is exactly the input a differential cannot distinguish from a real one.
+      // Matches the real `PlanningFailureEvidence` shape, though consumers read only its presence.
       ? {
           planningFailure: {
             reason: 'planning-turn-failed',
@@ -256,13 +233,7 @@ export function memberOutcome(fixture: MemberFixture): PerTestOutcome {
   } as unknown as PerTestOutcome
 }
 
-/**
- * The aggregate a run document carries, DERIVED from its members rather than pinned.
- *
- * A document whose member timed out while its `aggregateVerdict` read `passed` is not a document
- * the runner can produce, and the router's corpus must not be able to pin one. Skips are not
- * failures; a heal is a pass.
- */
+// Derived from members, so the corpus cannot pin an aggregate the runner never produces.
 function deriveAggregateVerdict(members: readonly MemberFixture[]): RunStatus {
   const outcomes = members.map((member) => member.outcome)
   for (const status of ['cancelled', 'timeout', 'failed', 'healed'] as const) {
@@ -373,7 +344,7 @@ export const ACCEPT_CONTROL_DRAFT: ParsedDraftLike = {
   testId: 't_hong-lat-plot-noise-memory-common-binary-tol-liv-argent',
   filePath: 'tests/accept-control.yaml',
   testName: 'Confirm the local account form page heading',
-  // Required since 394-37: the compile stage compares this against the served vocabulary.
+  // The compile stage compares this against the served `target` vocabulary.
   target: 'local-form',
   steps: [
     'Type "alice" into the Username field',
@@ -400,17 +371,7 @@ export function acceptControlMember(outcome: MemberTestOutcome = 'healed'): Memb
 
 // ---- the shelf path a patched draft moves to -----------------------------------
 
-/**
- * Where a re-staged draft LIVES: the same shelf directory, named by its NEW content digest.
- *
- * `stageDraft` addresses a draft by `<shelfDir>/<contentDigest>.yaml` and `applyPatches` goes
- * THROUGH it, so every applied patch set moves the draft's path — the pre-patch file is not
- * rewritten in place. A double that spread `...draft` and changed only the digest preserved a
- * `filePath` production had already abandoned, and every coordinate written from the pre-repair
- * path looked correct through it. That is CR-01, and this is the one recipe the authoring doubles
- * mint the moved path with (`repair-credential-screen.test.ts` already stood the drift in on its
- * own; this is that recipe named once and shared).
- */
+// Each applied patch set moves the draft to `<shelfDir>/<contentDigest>.yaml`; none is in place.
 export function shelfPathForDigest(shelfPath: string, contentDigest: string): string {
   const segments = shelfPath.split('/')
   return [...segments.slice(0, -1), `${contentDigest}.yaml`].join('/')

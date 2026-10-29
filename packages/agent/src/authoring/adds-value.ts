@@ -1,66 +1,10 @@
-// Gate 3 — adds-value.
-//
-// SET SEMANTICS, NO THRESHOLD, ON THE PRIMARY LANE (D-14, spec §6.3 verbatim). The draft adds
-// value when at least one of its fingerprint elements is absent from the union of the suite's.
-// There is no similarity score here and therefore no magic constant to defend: conservatism lives
-// in the normalizer, where "near-same elements are the same element" already has exactly one
-// definition. The receipt NAMES the uncovered elements rather than counting them, because a gate
-// that says "0.31" tells an author nothing they can act on.
-//
-// BOTH SIDES OF THE COMPARISON ARE MINTED BY ONE FUNCTION. The suite union is folded from
-// `testFingerprintElements`; so is the draft's own element list, from the draft's member outcome
-// inside its gate-run document. The elements arrive here already computed — see `verify-draft.ts`
-// — and this module never derives them, which is what stops a second recipe from appearing on the
-// draft side and turning a comparison of two tests into a comparison of two derivations.
-//
-// THE TEXT LANE IS DEGRADED, AND SAYS SO PER TEST. A suite test the derived index has no
-// evidence for cannot join the set comparison at all, and dropping it would let a draft look novel
-// purely because the thing it duplicates has never been run. So those tests join on text
-// similarity instead, over-flagging toward "already covered" — the safe direction, symmetric with
-// the ratified dedup posture — and every compared test carries the lane that answered for it, so a
-// fingerprint-lane fact and a text-lane guess can never be read as the same claim.
-//
-// DECIDER PRECEDENCE, AND IT IS NOT SYMMETRIC (D-14 over D-16 · CR-01). Wherever the fingerprint
-// lane CAN speak — a non-empty suite union — it is the whole verdict, and the text lane's
-// resemblances are recorded per compared test without deciding. Only when the union is empty, so
-// the primary lane has nothing to say, does the text lane decide. The shipped decider was
-// `novel > 0 && textCovered.length === 0`, which is the other arrangement: a 0.5 Jaccard guess
-// vetoing a fingerprint fact, and — because the derived index is gitignored and therefore empty on
-// every fresh checkout and every CI job — the SOLE decider in the common case, on a threshold D-14
-// says this gate does not have. Two concurrent deciders is the defect, not the ordering of them.
-// If a future change gives the text lane a say where a union exists, it is re-minting that defect.
+// A non-empty fingerprint union decides alone; the text lane decides only when the union is empty.
 
 import type { AddsValueFinding } from '@vostride/agent-qa-schema'
 
 import type { SuiteFingerprintIndexLike, SuiteTextCorpusEntryLike } from './ports.js'
 
-/**
- * Similarity at or above which an evidence-less suite test counts as already covering the draft.
- *
- * A PINNED CONSTANT, never config. It is the only number in this gate, and it exists
- * only on the degraded lane — the fingerprint lane has none by ratified design.
- *
- * RETUNE COMMENT — and this one comes with its measurement. The pair the constant has to separate
- * is the frozen corpus's own: `gate3-near-duplicate.yaml` was authored to mirror
- * `uat-381-local-form.yaml`'s anchors in different words, and `accept-control.yaml` was authored
- * not to. Against uat-381 those two score **0.5000** and **0.4074** respectively under
- * `textSimilarity` below (measured 2026-08-10), so this value sits exactly ON the duplicate and
- * 0.093 above the control — the whole usable band is under a tenth of a point, and the duplicate
- * has zero margin above the line. That is the honest reason D-16 calls this lane a fallback rather
- * than a comparison: two tests of the same small app share most of their tokens whatever they do,
- * so the signal lives in the tail. Two consequences follow, both deliberate. The comparison is
- * `>=`, so a tie reads as covered and the draft loses — over-flagging toward covered is the safe
- * failure, and it is what makes a value sitting exactly on the duplicate usable at all. And RAISING
- * this number immediately stops catching the duplicate, while LOWERING it has room down to 0.4074
- * before it starts refusing the accept control; the asymmetry is worth knowing before reaching for
- * the knob.
- *
- * Before moving it, re-measure BOTH corpus scores (the test
- * `separates the corpus near-duplicate from the corpus accept control` prints the pair by
- * failing), and re-run the frozen expectations table — a widening that catches one more duplicate
- * while failing the accept control has moved the gate's numerator in the direction that costs a
- * user a good test.
- */
+// Compared with `>=`, so a tie reads as covered: over-flagging is the safe failure on this lane.
 export const TEXT_FALLBACK_SIMILARITY_THRESHOLD = 0.5
 
 export interface DraftTextLike {
@@ -74,7 +18,7 @@ export interface AddsValueGateInput {
   /** The draft's own fingerprint elements, in exercised order. */
   readonly draftElements: readonly string[]
   readonly index: SuiteFingerprintIndexLike
-  /** D-16's evidence-less population: the authored suite MINUS `index.coveredTests()`. */
+  // Suite tests outside `index.coveredTests()`, which have no fingerprint evidence.
   readonly textCorpus: readonly SuiteTextCorpusEntryLike[]
 }
 
@@ -101,17 +45,7 @@ function tokens(texts: readonly string[]): Set<string> {
   return set
 }
 
-/**
- * What one text comparison produced: the Jaccard score AND the intersection size behind it.
- *
- * TWO READINGS OF ONE COMPARISON, not two comparisons. `textSimilarity` is the score alone and is
- * what this gate decides on; 394's stage-2 dedup refusal has to NAME the evidence that produced
- * its verdict, and a shared-token count recomputed on the other side of that seam would be
- * a second tokenizer — the one thing D-16 says must not exist, since two normalizers let a
- * pre-authoring screen and a post-run gate disagree about the same pair. So the count is reported
- * out of the same traversal over the same {@link tokens} normalizer, and there is still exactly
- * one definition of how alike two tests are.
- */
+// Shares one traversal with `textSimilarity`, so dedup's shared-token count uses the same tokens.
 export interface TextOverlap {
   /** Token-set Jaccard, symmetric and bounded. */
   readonly score: number
@@ -119,15 +53,7 @@ export interface TextOverlap {
   readonly sharedTokens: number
 }
 
-/**
- * Token-set Jaccard between a draft and a suite test's text (D-16's fallback comparison).
- *
- * Symmetric and bounded, and TWO EMPTY TEXTS SCORE 0 rather than 1: the degenerate `0/0` is not
- * an identity, and reading it as one would let a single empty text-corpus entry cover every draft
- * ever evaluated — an over-flag so complete it would turn the safe direction into a gate that
- * always says no. A zero score on an empty side reports zero shared tokens, which is the true
- * count rather than a sentinel.
- */
+// Two empty texts score 0, not 1, or one empty corpus entry would cover every draft.
 export function textOverlap(draft: DraftTextLike, entry: SuiteTextCorpusEntryLike): TextOverlap {
   const left = tokens([draft.testName, ...draft.steps])
   const right = tokens([entry.testName, ...entry.stepsText])
@@ -158,36 +84,17 @@ function novelElementsOf(
   return novel
 }
 
-/**
- * The stable identity as one comparable key.
- *
- * The separator is written as the ESCAPE `\u0000`, never as a raw control byte in this source.
- * 393-05 shipped a module carrying a literal NUL and `file(1)` classified the whole file `data`,
- * so `grep` reported it as empty — a false CLEAN verdict from the exact instrument this phase's
- * posture checks rely on. (This very function was written with a raw 0x1F first; `file(1)` said
- * `data` and the lesson landed a second time in one phase.) A separator is still needed, because
- * concatenation alone lets ("ab", "c") and ("a", "bc") collide.
- */
+// Separator written as the escape `\u0000`: a raw control byte makes tools read the file as binary.
 function identityKey(filePath: string, testName: string): string {
   return `${filePath}\u0000${testName}`
 }
 
-/**
- * Gate 3 over an already-minted draft element list.
- *
- * The gate is answered even when gate 1 failed and the draft produced little or no evidence —
- * D-04 forbids short-circuiting, and a gate that returned a default in that case would make the
- * corpus's independence claim unprovable. What it returns then is `false` with a reason naming the
- * absence, which is the honest reading: nothing was shown to be novel, which is not the same claim
- * as "this draft duplicates the suite" and the reason string keeps the two apart.
- */
+// Answered even after gate 1 fails: no evidence returns `false` with a reason naming the absence.
 export function addsValueGate(input: AddsValueGateInput): AddsValueGateResult {
   const union = input.index.elementUnion()
   const covered = input.index.coveredTests()
 
-  // a truly empty suite trivially passes — everything is uncovered. Stated as its own rule
-  // rather than left to fall out of the novel-element count, which answers `false` for a draft
-  // with no elements and would deny the first test a project ever writes.
+  // An empty suite passes, or the first test a project writes would be denied.
   if (union.size === 0 && input.textCorpus.length === 0) {
     return {
       pass: true,
@@ -234,9 +141,7 @@ export function addsValueGate(input: AddsValueGateInput): AddsValueGateResult {
     })
   }
 
-  // D-14 outranks D-16 wherever the primary lane has evidence: a non-empty union means the
-  // fingerprint lane spoke, and its answer is the verdict. The text lane decides only in the state
-  // it was ratified for — an index that can say nothing at all.
+  // A non-empty union means the fingerprint lane spoke, and its answer is the verdict.
   const pass = union.size > 0
     ? novelElements.length > 0
     : novelElements.length > 0 && textCovered.length === 0

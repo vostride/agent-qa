@@ -1,25 +1,4 @@
-// The STOPPED outcome an ABANDONED repair produces.
-//
-// WHAT WENT WRONG AND WHY IT IS THIS FILE'S SUBJECT. `routeAfterVerify`'s exhausted route built a
-// stop route carrying `signalClass: 'indefinitive-failure'` and then spread over the result of the
-// arm's carrier, overwriting two fields: `signalClass` became `repair-${abandonment.kind}` — a
-// string outside `ROUTER_SIGNAL_CLASSES`, so the one closed vocabulary a reader can rely on was
-// open on exactly one path — and a prose field became `abandonment.error.message`, which on the
-// exhausted arm ENDS IN THE MODEL'S OWN BYTES (`RepairExhaustedError` carries `lastRefusal`, and
-// two of its three assignment sites are model-emitted text). The law that spread broke survives
-// the Issue-slot cleanup: the arm is built from the ROUTE and from nothing a model wrote.
-//
-// THE MARKER LAW SURVIVES, WITH NOWHERE LEFT TO LAND. Nothing is minted for a stop now,
-// so what a person reads is the op's `stop` payload — projected by `projectStop` from the route and
-// the receipt's own last gate run, with no prose field on it at all. These cells therefore measure
-// the PAYLOAD a durable reader would see, and the marker-absence half asserts over both the payload
-// and the route it was projected from.
-//
-// THE MARKER IS PRODUCED, NEVER ASSERTED INTO PLACE. The bench plants a distinctive string in the
-// text the fake model emits, and the integrity cell below drives `repairDraft` directly to show
-// that string really does reach `abandonment.error.message`. Only then does the absence cell mean
-// anything: without it, "the marker is not on the payload" would pass just as happily against a
-// channel that never carried it.
+// A stop payload is projected from the route and the last gate run, never from model text.
 
 import {
   AuthoringStopSchema,
@@ -248,11 +227,7 @@ function bench(input: {
       },
     }),
     write: () => Promise.resolve({ kind: 'staged', draft: DRAFT } as DraftStageOutcome),
-    // THE PATCHED DRAFT MOVES, because production re-stages it: `applyPatches` renders the patched
-    // document and hands the bytes to `stageDraft`, which addresses them by their NEW digest. This
-    // double used to spread `...candidate` and change only the digest, keeping a `filePath`
-    // production had already left behind — which is why every cell over it read a pre-repair
-    // coordinate as correct.
+    // The patched draft moves: `stageDraft` addresses the patched bytes by their new digest.
     applyPatches(candidate: ParsedDraftLike, set: TestEditPatchSet): Promise<DraftStageOutcome> {
       const contentDigest = `${candidate.contentDigest}+${set.patches.length}`
       return Promise.resolve({
@@ -289,7 +264,7 @@ function bench(input: {
     startedPaths,
     deps: {
       read: {
-        // served for completeness; this bench's model is scripted and reads none.
+        // Served for completeness; this bench's model is scripted and reads none.
         configuredTargetNames: () => Promise.resolve(['local-form']),
         getAuthoringBrief: () => Promise.resolve({
           scope: { tier: 'product', key: 'local-form' },
@@ -453,18 +428,7 @@ describe('an abandoned repair produces a stopped outcome built from the route an
   })
 })
 
-// ---- CR-02: the arm is built from the routed run's own facts ------------------------------------
-//
-// THE CELL THIS FILE WAS MISSING. 394-VERIFICATION's CR-02: the exhausted arm was assembled from an
-// empty literal — `failurePoint: null`, `evidenceRefs: []` — while `handoff`, the route's
-// `failingStepIndex` and `repaired.probeRunIds` were all in scope three lines above it. Every cell
-// above this line passed against that literal, because each of them asked what the arm does NOT
-// carry (a signal class outside the vocabulary, model bytes) and none asked what it DOES.
-//
-// A stop with no evidence and no failure point is unauditable by construction, and the
-// module's own `AuthoringLoopUnroutableEvidenceError` doc calls reporting one "the cardinal error
-// pointed the other way". The evidence assertion sits at the HEAD of each cell so the RED a
-// pre-fix run reports is the missing evidence rather than a later field masking it.
+// Each cell checks the arm's evidence first, so a missing failure point fails before other fields.
 
 interface EvidenceRefRow {
   readonly runId: string
@@ -499,8 +463,7 @@ describe('an abandoned repair stops with evidence a person can trace', () => {
     expect(evidenceRefsOf(payload).length).toBeGreaterThan(0)
     const failurePoint = payload.failurePoint as Record<string, unknown> | null
     expect(failurePoint).not.toBeNull()
-    // The RUN rides the payload's top level, so a null failure point still names it —
-    // and the failure point itself carries no `runId` of its own.
+    // The run is on the payload's top level, so a null failure point still names it.
     expect(payload.runId).toBe(ROUTED_RUN_ID)
     expect(payload.memberOutcome).toBe('failed')
     expect('runId' in (failurePoint as Record<string, unknown>)).toBe(false)
@@ -552,17 +515,7 @@ describe('an abandoned repair stops with evidence a person can trace', () => {
   })
 })
 
-// ---- abandonment.error is READ, through its typed fields only -----------------------------------
-//
-// `repaired.abandonment.error` is the only statement of WHY repair stopped, and until this plan it
-// was written by `repair.ts` and read by nothing in production — a value the loop carried to the
-// arm and dropped. Two of its typed facts now travel: the iterations the spend cost, and (on the
-// regressed arm) the probe run and step that showed the regression, as an addressable coordinate.
-//
-// ITS PROSE DOES NOT TRAVEL AND MUST NOT. `RepairExhaustedError.lastRefusal` and therefore
-// `error.message` end in the model's own bytes — that is WR-09's closure, and the marker cells
-// above are what keep it. So the fields read here are `iterations`, `stepIndex` and `runId`, all
-// three minted by this package, and never a sentence.
+// Only typed facts travel from the abandonment: `iterations`, `stepIndex` and `runId`, never prose.
 
 describe('the abandonment\'s typed facts reach the reported stop', () => {
   it('EXHAUSTED: repairIterations equals the iterations the harness drove', async () => {
@@ -597,10 +550,7 @@ describe('the abandonment\'s typed facts reach the reported stop', () => {
     expect(evidenceRefsOf(payload).some((ref) => ref.runId === ROUTED_RUN_ID)).toBe(true)
     expect(payload.repairIterations).toBe(1)
 
-    // THE COORDINATE JOINS THE RUN IT NAMES. A `RunEvidenceRef` is read as the four-tuple
-    // (runId, filePath, testName, stepIndex), so naming the probe run while carrying the PRE-repair
-    // path addresses a member that run has none of. The expected path is the one the harness saw
-    // the loop start the probe on, not a path this cell recomputes.
+    // A `RunEvidenceRef` joins on run, path, test and step, so the path is the one the probe ran.
     const probedPath = harness.startedPaths[0] as string
     // The double expresses the drift at all: without this the join assertion below is vacuous,
     // because a stub that preserved `filePath` makes the wrong answer and the right one equal.

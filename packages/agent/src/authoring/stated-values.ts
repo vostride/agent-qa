@@ -1,5 +1,4 @@
-// the request's stated values and the draft steps that lose them. Pure,
-// linear and model-free, because the request is untrusted text from any caller.
+// Stated values and the steps that lose them; linear and model-free, as the request is untrusted.
 
 type QuoteKind = 'double' | 'curly' | 'single'
 type Span = { readonly start: number; readonly end: number }
@@ -54,8 +53,7 @@ function letterOrNumberAt(text: string, index: number): boolean {
   return LEADING_LETTER_OR_NUMBER.test(text.slice(index, index + 2))
 }
 
-// an inch mark (`15"`) and a leading elision (`'90s`) open no quote.
-// only a decade such as `'90s` is an elision, so `'4K'` is a value.
+// An inch mark (`15"`) and a decade elision such as `'90s` open no quote; `'4K'` is a value.
 function openerAt(text: string, index: number): QuoteKind | undefined {
   const char = text[index]
   if (char === '"') return letterOrNumberBefore(text, index) ? undefined : 'double'
@@ -78,13 +76,12 @@ function closerOf(text: string, kind: QuoteKind, from: number): number {
   return -1
 }
 
-// an IPv6 literal holds `::` or at least six colons, so a bracketed
-// time or ratio is a value.
+// An IPv6 literal holds `::` or at least six colons, so a bracketed time or ratio is a value.
 function holdsIpv6Groups(inside: string): boolean {
   return inside.includes('::') || inside.split(':').length > 6
 }
 
-// an IP or bracketed IPv6 host, with or without a port, states nothing.
+// An IP or bracketed IPv6 host, with or without a port, states nothing.
 function isAddress(chunk: string): boolean {
   const bare = chunk.startsWith('(') ? chunk.slice(1) : chunk
   return (
@@ -120,10 +117,7 @@ function endsSentence(text: string, tokenEnd: number): boolean {
   return isSpace(text[tokenEnd]) && LEADING_UPPERCASE.test(text.slice(tokenEnd + 1, tokenEnd + 3))
 }
 
-// a step label counts like a list marker, from a run start and by the
-// next number.
-// a held step label and its next label that each end a sentence wait for a third, as list markers do.
-// the open run and the held candidate are kept apart, so a held 1 inside an item never takes over its list.
+// A step label counts like a list marker; the open run and the held candidate stay apart.
 function blankStepLabels(text: string, chars: string[]): void {
   const open: Run = { next: 0, delimiter: '', pending: [], sentenceLike: false }
   const held: Run = { next: 0, delimiter: '', pending: [], sentenceLike: false }
@@ -170,14 +164,7 @@ function blankStepLabels(text: string, chars: string[]): void {
   }
 }
 
-// a list counts from 1 at a line, sentence or colon start, and each
-// next number with the same delimiter continues it.
-// a run starting after a colon or a sentence end waits for its 2, and
-// two numbers that each end a sentence wait for a 3.
-// the open run and the held candidate are kept apart, so a held 1 inside an item never takes over its list.
-// a held 1) or (1) gets the sentence guard too.
-// a number right after a month name is that date's day, never a list marker.
-// 2026-10-12 (440-16, round-4 regression): a skipped day at the held start or next clears it.
+// A list counts from 1 at a line, sentence or colon start; a month name's number is its day.
 function blankListMarkers(text: string, chars: string[]): void {
   const open: Run = { next: 0, delimiter: '', pending: [], sentenceLike: false }
   const held: Run = { next: 0, delimiter: '', pending: [], sentenceLike: false }
@@ -326,8 +313,7 @@ export function extractStatedValues(request: string): readonly string[] {
   }
   parts.push({ start: segmentStart, end: text.length })
 
-  // runs are read over the whole request with quoted values masked, so
-  // a list is confirmed across a quoted value and no marker is read inside one.
+  // Runs are read with quoted values masked, so no marker is read inside a quote.
   const masked = parts
     .map(({ start, end, quoted }) =>
       quoted === undefined ? text.slice(start, end) : QUOTE_MASK.repeat(end - start),

@@ -1,47 +1,6 @@
-// Bounded repair, fenced on both sides of the passing prefix.
-//
-// WHAT THIS FILE IS FOR. The router (`router.ts`) has already decided that a failing draft is the
-// DRAFT's problem rather than the application's. This file bounds what may be done about it: how
-// many attempts, what a patch is allowed to touch, and what has to still be true afterwards.
-// Nothing here re-asks the routing question, and nothing here derives a disposition — both are
-// answered in exactly one place each, and a second reading of either is the failure mode this
-// phase's whole arc is built to prevent.
-//
-// THE PASSING PREFIX IS PROTECTED TWICE, AND THE TWO HALVES CATCH DIFFERENT THINGS.
-//
-//   STATIC   `fencePatchAgainstPassingPrefix` reads every RFC-6902 path in the set and refuses the
-//            WHOLE set if any of them addresses a step position inside the prefix. It runs before
-//            anything executes, so a patch that names a protected step never costs a child process
-//            against the user's application. The refusal is a VALUE, and the caller counts it
-//            against K.
-//   DYNAMIC  After the probe run, the prefix steps are read back out of the run's own evidence. A
-//            patch may name only unprotected steps and still break a protected one — a fill that
-//            changes what a later page renders, a removed wait that makes an earlier assertion
-//            race — and no amount of path inspection can see that. Only the run can.
-//
-// A patch inspection alone proves the fence reads paths. It does not prove the prefix survives,
-// which is what D-09 is actually about, and a plan shipping only the static half would have
-// measured the smaller claim and reported the larger one.
-//
-// A FENCED PATCH IS NOT A FAILURE MODE. A legitimate early-step fix that gets refused simply exits
-// repair, and the draft goes on to be a proposal or a finding a human looks at. That is the safe,
-// recoverable direction: the alternative — letting a repair rewrite a step that already passed —
-// is how a loop quietly turns a test that was verifying something into a test that is verifying
-// whatever the application happens to do now.
-//
-// THIS FILE CANNOT REACH THE APPLICATION'S OWN BRANCH. `repairDraft` takes a `RepairRoute`, and
-// `RepairRoute` and `StopRoute` are mutually non-assignable by construction (each carries a
-// required field the other does not have). So wiring the app-broken branch into repair is a
-// COMPILE error rather than a behaviour a corpus has to notice afterwards — T-394-22's mitigation
+// Repair is fenced twice: paths are checked before a run, and the probe re-checks the prefix.
 // expressed as a type, pinned by the `@ts-expect-error` cell in `router.test-d.ts` and by the
-// second cell of the phase's mutation driver until that driver was removed.
-//
-// WHY THE PATCH APPLIER ARRIVES AS A PORT VERB RATHER THAN AS AN IMPORT. The RFC-6902 applier is
-// `applyPatchSetToTestDoc` in `core`, and this package's declared dependencies are `runner`,
-// `safety`, `schema`, `ai` and `zod` — an edge to `core` is a `validate:arch` violation with no
-// legal repair (the FUNC-02 firewall, and the same reason `stageDraft` lives at the host). So the
-// shelf carries `applyPatches`, the host binds it over that one applier, and the "one patch
-// contract, two consumers" property holds through the binding rather than through an import.
+// The patch applier lives in `core`, which this package cannot import, so the host binds it.
 
 import {
   RUN_EVIDENCE_CHANNELS,
@@ -64,44 +23,13 @@ import type { RepairRoute } from './router.js'
 import { missingStatedValues, statedValuesMissingReason } from './stated-values.js'
 import { buildTieredPrompt } from '../prompt/tiered-prompt-builder.js'
 
-/**
- * K: how many repair iterations one draft gets. PINNED, never config.
- *
- * RETUNE NOTE. Raising this multiplies the fan-out preview LINEARLY — the bound a user approves at
- * dispatch is initial N + K probes + final N, so K=5 turns a 7-run preview into a 9-run one for
- * every draft, whether or not the extra iterations ever help. That makes a retune a measurement
- * rather than a preference. Before moving it, report on the FROZEN corpus: (a) how many additional
- * drafts reach a passing probe at each K between here and the proposed value — if the second and
- * third iterations rescue nothing, a fourth will not either; (b) the wall-clock cost per
- * additional keep, priced at the local-form run time (~22s per probe) times the drafts that spend
- * the extra iterations WITHOUT being rescued, which is the population that pays for the ones that
- * are; and (c) the token cost per additional keep, since every iteration is one more model call
- * carrying a full trace. A retune that only argues from intuition — "three feels low" — is exactly
- * what this comment exists to prevent. Three is the same order as the spec's own 3-5 suggestion
- * and one more than the single in-attempt round-trip `AUTHOR_REPAIR_CAP` already ships with.
- */
 export const REPAIR_ITERATION_CAP = 3
 
-/**
- * The `agent_context` every repair call carries into the ONE tiered prompt builder.
- *
- * Pinned rather than computed, on `AUTHORING_COMPILE_AGENT_CONTEXT`'s reasoning: it lands in the
- * stable tier, which is the byte prefix a provider's prompt cache keys on, so a per-invocation
- * value would defeat the caching the tier law exists to enable. It names the SAME op as the
- * compile call because a repair is a stage of that op rather than an op of its own.
- */
+// Names the compile op, because a repair is a stage of that op, not an op of its own.
 export const REPAIR_AGENT_CONTEXT =
   'authoring.draft.write — repair a draft that failed for a test reason'
 
-/**
- * The steps that already worked, and the run that says so.
- *
- * PREFIX IDENTITY, SPELLED ONCE: step POSITIONS in the BEST PRIOR RUN. `length` is the
- * count of leading steps that passed, so the protected set is `[0, length)` — a contiguous prefix
- * and not the set of every step that is not currently failing. The difference is load-bearing: a
- * step AFTER the failure never ran, so nobody has seen it pass, and protecting it would fence off
- * exactly the region a repair legitimately needs to work in.
- */
+// Only the leading passed steps are protected: a step after the failure never ran.
 export interface PassingPrefix {
   /** The run this prefix was read out of — carried so a refusal can name its own evidence. */
   readonly runId: string
@@ -109,14 +37,7 @@ export interface PassingPrefix {
   readonly length: number
 }
 
-/**
- * A patch named a step the prefix protects. A VALUE, never thrown.
- *
- * Returning it rather than raising is what lets the caller count the refusal against K without a
- * `try` around the one call in the loop body that is supposed to be able to say no — and a fenced
- * patch MUST consume an iteration, or a model that emits nothing but fenced patches never
- * terminates.
- */
+// Returned, not thrown, so a fenced patch still spends an iteration and the loop terminates.
 export class PassingPrefixViolationError extends Error {
   constructor(
     readonly path: string,
@@ -132,20 +53,7 @@ export class PassingPrefixViolationError extends Error {
   }
 }
 
-/**
- * The probe showed a step that used to pass now failing. The dynamic half's refusal.
- *
- * Distinct from the static one by NAME rather than by a flag, because the two are evidence of
- * different things: a static violation says the model asked to touch a protected step, and this
- * says it broke one WITHOUT asking. The second is the more interesting signal and would be lost
- * inside a shared class.
- *
- * ITS FOUR FIELDS ARE ONE COORDINATE, AND THEY NAME THE PROBED MEMBER. A run record is
- * addressed by (runId, filePath, testName, stepIndex), so the run id alone is half an address —
- * and the half a reader would otherwise supply from the PRE-repair draft names a file this probe
- * never opened, because every applied patch set re-stages the candidate under its new digest. All
- * four are minted by this package from the candidate it probed; none is model text.
- */
+// The probe broke a protected step it did not name; the four fields address the probed member.
 export class PassingPrefixRegressedError extends Error {
   constructor(
     readonly stepIndex: number,
@@ -186,13 +94,7 @@ export type RepairAbandonment =
   | { readonly kind: 'exhausted'; readonly error: RepairExhaustedError }
   | { readonly kind: 'prefix-regressed'; readonly error: PassingPrefixRegressedError }
 
-/**
- * What one repair sequence produced.
- *
- * `iterations` is on BOTH arms because the fan-out actually consumed is what the receipt and the
- * D-03 preview are compared against; reporting it only on the failing arm would make a successful
- * repair the one case whose cost nobody can state.
- */
+// `iterations` is on both arms, so a successful repair's cost is reported too.
 export type RepairOutcome =
   | {
       readonly kind: 'repaired'
@@ -222,22 +124,11 @@ export interface RepairDeps {
   readonly handoff: CompletedRunHandoff
   readonly shelf: DraftShelfPortLike
   readonly runs: DraftRunPortLike
-  /**
-   * The session the invocation was entered with, carried to the final stability gate.
-   *
-   * Handed in rather than re-derived, and ABSENT when the invocation had none — the caller reads
-   * it off the receipt stage 4 already minted, so there is one source for the whole invocation.
-   */
+  // Read off the receipt stage 4 minted, and absent when the invocation had none.
   readonly sessionRef?: string
-  /**
-   * The suite the draft proposes to JOIN, carried to the final stability gate.
-   *
-   * Handed in rather than re-derived for `sessionRef`'s reason exactly: the repaired candidate is
-   * the SAME draft with patched steps, so it joins the same suite, and a second derivation here
-   * would be a second answer to a question the invocation already answered.
-   */
+  // Handed in: the repaired candidate joins the same suite as the draft.
   readonly targetSuitePath?: string
-  // the request's stated values, which no repair patch may lose.
+  // The request's stated values, which no repair patch may lose.
   readonly statedValues: readonly string[]
 }
 
@@ -295,20 +186,7 @@ function stepPositionAddressedBy(path: string): number | 'all' | null {
   return Number.isInteger(index) && index >= 0 ? index : 'all'
 }
 
-/**
- * The static half of D-09. Pure, total, and it refuses the WHOLE set on the first violation.
- *
- * A DISTINCT CONTROL FROM `EDITABLE_POINTER_ROOTS`, and neither substitutes for the other. That
- * fence bounds which PART OF THE DOCUMENT any patch may touch at all — it keeps a model-authored
- * pointer away from `target`, `use` and `meta`, so a patch cannot silently change which
- * application a test drives. This one bounds which STEPS a repair may touch, inside the region the
- * first one already allows. A document-region check cannot express "step 1 is off limits and step
- * 2 is not", and a prefix check cannot express "the credentials block is off limits to everyone".
- *
- * An `add` counts as addressing the position it names because it SHIFTS every later step: an
- * insert at index 0 renumbers the whole prefix, which is a change to those steps whether or not
- * any of their text moves.
- */
+// An `add` addresses its position because it shifts every later step, the prefix included.
 export function fencePatchAgainstPassingPrefix(
   patchSet: TestEditPatchSet,
   prefix: PassingPrefix,
@@ -327,12 +205,7 @@ export function fencePatchAgainstPassingPrefix(
   return null
 }
 
-/**
- * A repair patch tried to change what the test IS. A VALUE, never thrown.
- *
- * Returned rather than raised for {@link PassingPrefixViolationError}'s reason exactly: the caller
- * counts the refusal against K, so a model that emits nothing but renames still terminates.
- */
+// Returned, not thrown, so a model emitting only renames still terminates.
 export class RepairIdentityViolationError extends Error {
   constructor(readonly path: string) {
     super(
@@ -343,34 +216,7 @@ export class RepairIdentityViolationError extends Error {
   }
 }
 
-/**
- * THE IDENTITY FENCE: no repair patch may rename the test. Pure, total, refuses the WHOLE set.
- *
- * WHY REPAIR CANNOT RENAME. The loop derives the suite an accepted draft would JOIN exactly once,
- * from the PRE-repair draft (`loop.ts`'s `targetSuitePath`), and the finished proposal recomputes
- * that same target from the REPAIRED ref through `testDraftProposal`. Both readings go through
- * `authoredSuiteTargetPath(filePath, testName)`, whose answer is the suite DIRECTORY plus a slug of
- * the NAME: the shelf filename is the segment it drops, which is exactly why re-staging the patched
- * draft under a new digest — which every applied set does — moves the path without moving the
- * target. The NAME is the input the answer turns on, so a rename in between is the one thing that
- * makes the suite the stability gate consulted and the suite an accept would write disagree — the
- * disagreement the single derivation is documented to prevent. Repair's grant is fixing MECHANICS
- * under anchors that forbid changing what the test claims, and the name is the loudest of those
- * claims.
- *
- * A THIRD CONTROL, AND NONE OF THE THREE SUBSTITUTES FOR ANOTHER. `EDITABLE_POINTER_ROOTS` bounds
- * which part of the DOCUMENT any patch may touch, and it admits `name` deliberately — a user asking
- * `authoring.draft.edit` for a rename is asking for something legitimate, and narrowing that
- * shared control would take the power away from the caller that is entitled to it.
- * `fencePatchAgainstPassingPrefix` bounds which STEPS a repair may touch and cannot express a rule
- * about a root that addresses no step. This one bounds what the REPAIR LANE may do, which is why it
- * lives beside that fence's call site rather than inside it.
- *
- * IT READS THE POINTER THROUGH `parseJsonPointer`, never by string prefix: `/named` starts with
- * `/name` as text and addresses a different root, and `~1` / `~0` escapes mean the decoded first
- * token is the only thing that says what a pointer addresses. One decoder, shared with the position
- * check above and with the applier in `core`.
- */
+// No repair may rename: the suite target is a slug of the name, read before and after repair.
 export function fencePatchAgainstDraftIdentity(
   patchSet: TestEditPatchSet,
 ): RepairIdentityViolationError | null {
@@ -382,7 +228,7 @@ export function fencePatchAgainstDraftIdentity(
   return null
 }
 
-// returned rather than thrown, so the caller counts it against K.
+// Returned rather than thrown, so the caller counts it against K.
 export class RepairStatedValueViolationError extends Error {
   constructor(readonly missingValues: readonly string[]) {
     super(
@@ -401,20 +247,7 @@ export function fencePatchAgainstStatedValues(
   return missing.length > 0 ? new RepairStatedValueViolationError(missing) : null
 }
 
-/**
- * The dynamic half of D-09: a prefix step that used to pass and now does not.
- *
- * An ABSENT prefix step is not a regression. A probe that stopped before reaching it recorded no
- * verdict about it, and "we do not know" is not the same answer as "it broke" — counting missing
- * evidence as a regression would end repair for an infrastructure hiccup, which is the direction
- * that costs a user a good test. It also cannot hide anything: a probe missing a prefix step
- * cannot have passed either, so the iteration is spent regardless.
- *
- * THE COORDINATE IS BUILT HERE BECAUSE THIS IS WHERE THE PROBED MEMBER IS IN HAND. `draft` is the
- * STAGED candidate the probe was started on, and `draftMember` above joined the run's member to it
- * on the same pair — so naming the pair costs nothing and no later reader has to guess which of the
- * invocation's several drafts the run executed.
- */
+// An absent prefix step is no regression: a probe that stopped early recorded no verdict on it.
 function prefixRegression(
   draft: ParsedDraftLike,
   probe: CompletedRunHandoff | undefined,
@@ -435,7 +268,7 @@ function prefixRegression(
   return null
 }
 
-/** Member outcomes that are a pass. A heal is a pass (393-01 F3); a skip never ran. */
+// A heal is a pass; a skip never ran.
 const PROBE_PASSING_OUTCOMES: readonly string[] = ['passed', 'healed']
 
 function probePassed(draft: ParsedDraftLike, probe: CompletedRunHandoff | undefined): boolean {
@@ -532,36 +365,14 @@ function probeStartInput(draft: ParsedDraftLike): Parameters<DraftRunPortLike['s
 
 // ---- the loop -----------------------------------------------------------------------------------
 
-/**
- * Repair a draft the router sent here, at most {@link REPAIR_ITERATION_CAP} times.
- *
- * ONE PROBE PER ITERATION, STABILISE AT THE END. Each iteration verifies with a single run,
- * because a full pinned-N stability gate per iteration would multiply the fan-out by N for
- * candidates that mostly do not survive. The pinned-N gate then runs ONCE, on the final candidate,
- * before any disposition exists — which is what makes a repaired draft keep-eligible at all: a
- * single-run evaluation is `unverified` at best by rule 1 of the disposition table, so a loop
- * that stopped at the probe could never produce a draft anyone is allowed to keep.
- *
- * PROBES MINT NO RECEIPT. A probe goes through the run port directly; only the final
- * gate goes through `verifyDraft`, which is the registered op that persists one. The receipt is
- * per DRAFT, and a funnel counting `1 + K` receipts for one draft would report a filter rate over
- * a denominator of attempts rather than of drafts.
- *
- * NO DISPOSITION IS DERIVED HERE. The final receipt carries the one `computeDraftDisposition`
- * produced, and this function neither reads nor recomputes it — 393 D-18 put that rule in one
- * place expressly so 394 would be structurally unable to grow a second reading of it.
- */
+// One probe per iteration and one full stability gate at the end; probes mint no receipt.
 export async function repairDraft(route: RepairRoute, deps: RepairDeps): Promise<RepairOutcome> {
   const prefix = derivePassingPrefix(deps.draft, deps.handoff)
   const model = await deps.shelf.model()
 
   let candidate = deps.draft
   let lastRefusal = 'no iteration was taken'
-  // the probe runs this sequence actually started, so the caller can report what
-  // was CONSUMED rather than what was attempted. `iterations` cannot answer that question — a
-  // fenced or unparsable emission spends an iteration and starts nothing — and an actual-runs
-  // figure derived from the iteration count would over-report by exactly the refusals D-09 exists
-  // to produce. Every element is appended at the ONE place a probe is started.
+  // Probe runs actually started; `iterations` also counts fenced emissions that started nothing.
   const probeRunIds: string[] = []
 
   for (let iteration = 1; iteration <= REPAIR_ITERATION_CAP; iteration += 1) {
@@ -593,10 +404,7 @@ export async function repairDraft(route: RepairRoute, deps: RepairDeps): Promise
       continue
     }
 
-    // WR-01, the same consequence one line up: a rename is refused, the iteration is spent, and no
-    // child process runs. Beside the prefix fence rather than inside it — that function's contract
-    // is step positions and its own cells pin it — and the two are asked in either order, since a
-    // set violating both is refused whole by whichever answers first.
+    // A rename is refused, the try spent and nothing run; the prefix fence may answer first.
     const identityViolation = fencePatchAgainstDraftIdentity(parsed)
     if (identityViolation !== null) {
       lastRefusal = identityViolation.message
@@ -609,14 +417,14 @@ export async function repairDraft(route: RepairRoute, deps: RepairDeps): Promise
       continue
     }
 
-    // the try is spent, nothing runs and `candidate` stays put.
+    // The try is spent, nothing runs and `candidate` stays put.
     const valueViolation = fencePatchAgainstStatedValues(staged.draft, deps.statedValues)
     if (valueViolation !== null) {
       lastRefusal = valueViolation.message
       continue
     }
 
-    // a literal [secret:NAME] spends the try and starts no probe.
+    // A literal `[secret:NAME]` spends the try and starts no probe.
     try {
       refuseLiteralSecretMarkers(staged.draft)
     } catch (error) {
@@ -694,8 +502,3 @@ function parsePatchSet(text: string): TestEditPatchSet | string {
   return parsed.data
 }
 
-// `repairFanOutBound` used to live here, returning a bare number over its own `+`. It is
-// GONE, replaced by `authoringFanOutBound` in `loop.ts` over `computeFanOutBound` in `schema` —
-// which is the ONE arithmetic the dispatch confirm and the finished proposal both read. Two
-// additions of the same three terms is precisely how a preview begins promising a number the
-// report then contradicts, and a bare total could not have kept the two N terms apart.

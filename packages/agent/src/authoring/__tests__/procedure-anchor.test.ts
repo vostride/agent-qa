@@ -1,18 +1,4 @@
-// Procedure-by-reference, the authoring half.
-//
-// This file owns the half that is a property of what the compile prompt renders and of what ends
-// up on the shelf: a served procedure reaches the model as its own ANCHOR VOCABULARY and as
-// nothing else, so the record's ADDRESS is never in front of a model that is writing a file this
-// project will keep. The other half — that a step written in those words actually reaches the
-// procedure at run time — is a property of `matchProcedure`, which lives in `knowledge-local` and
-// cannot be imported here (`packages/agent` declares `runner`, `safety`, `schema`, `ai` and `zod`;
-// an edge to `knowledge-local` is a `validate:arch` violation with no legal repair). Its cells are
-// the sibling file of the same name in that package's serving suite.
-//
-// THE MUTATION THIS FILE MUST GO RED ON: rendering the served procedure's `id` into the prompt —
-// the one-token edit that turns a semantic reference into a citation the model can paste. Every
-// cell below is written so that edit reds something: the prompt cells by naming the id directly,
-// and the shelf cell by scanning the bytes that were actually written.
+// The compile prompt shows a served procedure's anchor words, never its `id`.
 
 import { asRecordId } from '@vostride/agent-qa-schema'
 import type {
@@ -77,9 +63,7 @@ describe('a served procedure reaches the model as vocabulary, never as an addres
   })
 
   it('asks for prose and forbids a citation, in words the model reads', () => {
-    // The syntactic half of D-17. A vocabulary rendered without this instruction would leave the
-    // model free to invent `procedure:` syntax around the words it was given, which is precisely
-    // the literal form D-17 diverges from.
+    // Without this instruction the model may wrap the given words in `procedure:` syntax.
     expect(PROCEDURE_BY_REFERENCE_INSTRUCTION).toContain('ordinary')
     expect(PROCEDURE_BY_REFERENCE_INSTRUCTION.toLowerCase()).toContain('do not cite a record')
     expect(PROCEDURE_BY_REFERENCE_INSTRUCTION.toLowerCase()).toContain('matches no listed flow')
@@ -92,8 +76,7 @@ async function driveCompile() {
   const written: string[] = []
 
   const read: AuthoringReadPortLike = {
-    // the `target` vocabulary. This file's claim is about PROCEDURE vocabulary,
-    // so the list is present and minimal.
+    // This file is about procedure vocabulary, so the `target` list is minimal.
     configuredTargetNames: () => Promise.resolve(['local-form']),
     getAuthoringBrief: () => Promise.resolve(BRIEF_WITH_PROCEDURE),
     suiteTextCorpus: (): Promise<readonly SuiteTextCorpusEntryLike[]> => Promise.resolve([]),

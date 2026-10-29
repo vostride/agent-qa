@@ -1,27 +1,4 @@
-// The gate evaluator.
-//
-// ONE call takes a parsed draft to a persisted, schema-valid receipt: four separately-named gate
-// booleans, the per-step classification table, the per-run records, the adds-value finding, and a
-// disposition that this module does not compute.
-//
-// ALL FOUR GATES, ALWAYS. There is no short-circuit anywhere below, and the omission is
-// the point rather than an oversight. The frozen corpus proves gate INDEPENDENCE — the
-// "page loaded"-only draft must report executes ✓ · stable ✓ · adds-value ✓ · falsifiable ✗ so
-// that gate 4 is demonstrably the only catcher — and a vector with three of its four entries
-// missing proves nothing at all. Early-stop inside gate 2 skips redundant RUNS; it never
-// skips a gate. The case that makes this concrete is a draft whose gate 1 fails: gates 2, 3 and 4
-// are still computed and still reported, and gate 3 in particular reports what the evidence
-// actually supports rather than a default.
-//
-// THE DISPOSITION IS NOT DERIVED HERE. `computeDraftDisposition` is imported and its
-// return is assigned. No `switch`, no `if` chain, no "keep-eligible when all four are true"
-// reading of the rule lives in this package — 394 consumes the disposition and must be
-// structurally unable to re-derive its own, which is only true if this side cannot either.
-//
-// MAP, NOT TERRITORY. The receipt is built strictly against `DraftReceiptSchema`:
-// run IDs as refs, pre-interpolation step text, findings. There is no field on it that could hold
-// a run payload or a resolved secret, and `.strict()` makes an attempt to add one a typed refusal
-// rather than a durable leak.
+// All four gates always run, and the disposition comes from `computeDraftDisposition` alone.
 
 import {
   computeDraftDisposition,
@@ -65,57 +42,23 @@ export class DraftEvaluationPortNotBoundError extends Error {
 
 export interface EvaluateDraftInput {
   readonly draft: ParsedDraftLike
-  /**
-   * Draft mode: take ONE stability run instead of the pinned N.
-   *
-   * Consequential rather than a speed knob — `computeDraftDisposition` answers a one-run
-   * evaluation `unverified` at best, so nothing evaluated this way is keep-eligible however its
-   * four booleans read (D-18, SC3); a false gate 1, 3 or 4 still rejects it.
-   */
+  // One run, so `computeDraftDisposition` answers `unverified` at best; a false gate still rejects.
   readonly draftMode?: boolean
-  /**
-   * The invoking session, spread onto the receipt when the caller supplied one.
-   *
-   * ABSENCE IS EXCLUSION AND THIS MODULE ADDS NO DEFAULT — the receipt schema's own rule, and the
-   * reason the spread below is conditional rather than an assignment. A surface that owns a
-   * session stamps it at the op boundary; every other caller mints an unattributed receipt, which
-   * a session window then leaves out rather than folding into whoever is asking.
-   */
+  // Absent means unattributed: this module adds no default, so a session window leaves it out.
   readonly sessionRef?: string
-  /**
-   * The suite file this draft proposes to JOIN — the stability read's target.
-   *
-   * CHOSEN BY THE CALLER, with the draft's own file as the fallback. The shelf path a loop-staged
-   * draft carries is a STAGING fact, not a membership fact: it names a digest-named file holding
-   * exactly one test, so a stability read pointed at it finds only the draft itself, which the
-   * neighbour exclusion then removes. D-14 asks about the suite the draft would join, and only the
-   * caller knows which that is.
-   */
+  // Chosen by the caller, because a shelf file holds only the draft and has no neighbours.
   readonly targetSuitePath?: string
 }
 
 export interface EvaluateDraftPorts {
   readonly runs: DraftRunPortLike
   readonly fingerprints: SuiteFingerprintIndexLike
-  /** D-16's evidence-less population. An empty array is a legitimate answer, not an absent port. */
+  // Suite tests with no fingerprint evidence; an empty array is an answer, not an absent port.
   readonly textCorpus: readonly SuiteTextCorpusEntryLike[]
   readonly receipts: DraftReceiptsStoreLike
   /** Injected so a receipt's `evaluatedAt` is pinnable in a test. Defaults to the wall clock. */
   readonly now?: () => number
-  /**
-   * D-14's read side, consulted ONLY when gate 2 flips.
-   *
-   * ONE BUNDLE OF TWO HALVES that are useless apart, on the `AuthoringFunnelPortLike` reasoning
-   * one level down. `port` is the funnel's read bundle — which carries NO run capability at all,
-   * so the zero-runs law is structural rather than remembered. `product` is the partition the
-   * projection is keyed on, and it is a THUNK because the answer is OBSERVED rather than derived:
-   * a composition learns it from the first gate-run acknowledgement, and D-04 forbids
-   * short-circuiting, so by the time gate 2 can flip at least one run has been acknowledged. It
-   * answers `undefined` when nothing was observed, and the consultation is then SKIPPED —
-   * deriving a product from configuration instead would be a second rule for a fact the write
-   * side already decides, and the first time the two disagreed this message would report another
-   * application's flakiness as this target's.
-   */
+  // `product` is a thunk observed from gate-run acknowledgements; undefined skips the consultation.
   readonly suiteStability?: {
     readonly port: AuthoringFunnelPortLike
     product(): string | undefined
@@ -149,12 +92,7 @@ function draftFingerprintElements(members: readonly PerTestOutcome[]): string[] 
   return []
 }
 
-/**
- * Evaluate one parsed draft through all four keep-gates and persist the receipt.
- *
- * Returns the receipt AND writes it, so a caller never has to re-read the store to learn
- * what was just decided.
- */
+// Returns the receipt and writes it, so a caller never re-reads the store.
 export async function evaluateDraft(
   input: EvaluateDraftInput,
   ports: EvaluateDraftPorts,
@@ -172,11 +110,7 @@ export async function evaluateDraft(
     runsRequested: stabilityRunsRequested,
   })
 
-  // D-14'S LIVE ARM, ON THE FLIP PATH AND NOWHERE ELSE. A mixed verdict rejects the draft, and
-  // the naive answer — discard it silently — is wrong often enough to matter: a target whose
-  // EXISTING tests already flip or sit in quarantine is a target where the APPLICATION is
-  // unstable, and an author can only act on that if somebody says it. The read is over records
-  // that already exist and starts nothing.
+  // Only on a flip: unstable existing tests mean the app is unstable, and the author is told so.
   const suiteStability = await consultSuiteStability(
     input.draft,
     input.targetSuitePath,
@@ -193,7 +127,7 @@ export async function evaluateDraft(
     textCorpus: ports.textCorpus,
   })
 
-  // Gate 4 — the deterministic static check, whose table lands verbatim on the receipt.
+  // Gate 4, whose table lands verbatim on the receipt.
   const falsifiable = assertionStrengthGate({ steps: input.draft.steps })
 
   const runRefs = stability.gateRuns.map((row) => row.runId)
@@ -267,18 +201,7 @@ function stabilityGateOneReason(pass: boolean, runCount: number): string {
     : `${runCount} gate-run(s) taken; at least one reached no final verdict — see gateRuns[].reason`
 }
 
-/**
- * Read the target's recorded stability, on a FLIP and only on a flip.
- *
- * THREE WAYS TO GET NOTHING, and all three are the honest answer rather than a degraded guess: the
- * verdict did not flip (there is nothing to explain), the composition bound no consultation, or no
- * product was observed. In the last case the posture is stated by NOTHING — the reason string
- * stays exactly what it has always been — because a fabricated product would read another
- * application's history and say so with names.
- *
- * The gather itself carries no run capability, so "zero extra runs" is a property of the port's
- * shape rather than a rule this call site has to keep.
- */
+// Nothing on no flip, no bound consultation or no observed product; a guessed one misattributes.
 async function consultSuiteStability(
   draft: ParsedDraftLike,
   targetSuitePath: string | undefined,

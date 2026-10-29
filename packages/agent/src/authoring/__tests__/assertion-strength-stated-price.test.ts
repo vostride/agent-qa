@@ -1,4 +1,4 @@
-// an unquoted money amount in an assertion is a concrete expected value
+// An unquoted money amount in an assertion is a concrete expected value.
 
 import { describe, expect, it } from 'vitest'
 

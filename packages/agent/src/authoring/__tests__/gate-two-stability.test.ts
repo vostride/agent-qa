@@ -1,25 +1,4 @@
-// D-14's LIVE arm: the gate-2 flip consults the suite's recorded stability.
-//
-// WHAT WAS DEAD. `gatherSuiteStability` shipped in 394-07 exported, barrel-listed and unit-tested,
-// with ZERO production callers and an unbound `outcomes` port — so the "your app is unstable here"
-// message could not be produced on any host, and a mixed verdict discarded the draft in silence
-// (394-VERIFICATION SC-3; WINDOWS 95/97). 394-09-SUMMARY recorded the four steps and declined
-// them; this file is step (d).
-//
-// THE MESSAGE REACHES THE RECEIPT, which is the only place a person later reads it: gate 2's
-// `reason` string, composed by the ONE composer (`stabilityGateTwoReason`). A consultation whose
-// answer went anywhere else would be a second surface for one gate's verdict.
-//
-// TWO-SIDED ON EVERY DISCRIMINATOR, because a consultation that fired on everything and one that
-// fired on nothing would both pass a one-sided file: there is a flip cell AND a clean-pass cell
-// that proves the port is never touched; a flaky cell AND a no-history cell; a product-observed
-// cell AND a product-absent cell that proves nothing is guessed.
-//
-// AND IT STARTS ZERO RUNS, measured against an instrument that counts them. D-14 is read-side
-// because WTST-08's fan-out preview promises a bound before dispatch; a stability check that took
-// its own runs would make that promise one nobody could honour. The assertion is a DIFFERENTIAL —
-// the same evaluation with and without the consultation starts the same runs — rather than a
-// restated integer, so it stays true if the gate's own run count ever moves.
+// Gate 2's reason carries the stability message, and consulting it starts no extra run.
 
 import { describe, expect, it } from 'vitest'
 
@@ -40,14 +19,7 @@ import type { ParsedDraftLike } from '../ports.js'
 const PRODUCT = 'local-form'
 const TARGET = ACCEPT_CONTROL_DRAFT.filePath
 
-/**
- * A LOOP-SHAPED draft: staged on the one-test-per-file shelf, not committed to a suite.
- *
- * This is the shape `authoring.draft.write` actually evaluates. Its `filePath` is a digest-named
- * file under `tests/.agent-qa-drafts/` holding exactly one test — so a stability read targeted at
- * it can only ever find the draft itself, which the neighbour exclusion then removes, and
- * `neighbours-flaky` was structurally unreachable from the loop for that reason alone.
- */
+// A shelf draft's file holds only itself, so a stability read on it finds no neighbours.
 const LOOP_SHELF_DRAFT: ParsedDraftLike = {
   ...ACCEPT_CONTROL_DRAFT,
   filePath: 'tests/.agent-qa-drafts/2b7f4c1e9a.yaml',
@@ -90,16 +62,7 @@ function recordingOutcomes(
   }
 }
 
-/**
- * A projection that answers ONLY for the file it actually has rows for.
- *
- * `recordingOutcomes` above echoes back whatever path it is asked about, which is right for cells
- * whose subject is the message and wrong for a cell whose subject is WHICH FILE was asked about:
- * an echoing double reports neighbours for the shelf path too, so a target that never moved would
- * look exactly like one that did. Keying on the path is also what the real projection does — the
- * shelf file is written by the staging step and never runs outside gate runs, which are
- * `excludedFromOutcomes`, so it genuinely has no rows.
- */
+// Answers only for its own file, so a stability read aimed at the wrong path finds no rows.
 function outcomesForFileOnly(
   targetPath: string,
   rows: Readonly<Record<string, readonly string[]>>,
@@ -152,11 +115,11 @@ const LOOP_FLIPPING_RUNS = [
 
 interface EvaluationFixture {
   readonly runs: readonly (readonly MemberFixture[])[]
-  /** Absent means the standalone posture: the draft's own file IS its target. */
+  // Absent means standalone: the draft's own file is its target.
   readonly draft?: ParsedDraftLike
   /** The suite the draft proposes to JOIN. Absent means the fallback is under test. */
   readonly targetSuitePath?: string
-  /** Absent means the consultation half is UNBOUND — the pre-394-17 posture. */
+  /** Absent means the consultation half is unbound. */
   readonly stability?: {
     readonly outcomes?: SuiteOutcomeHistoryPortLike
     /** Absent means nothing was observed — a standalone verify with no product in hand. */
@@ -284,19 +247,7 @@ describe('the gate-2 flip consults the suite\'s recorded stability', () => {
   })
 })
 
-// ---- the stability read's target is CHOSEN, not derived (394-19 · SC-3 residual B) -------------
-//
-// WHAT WAS STRUCTURALLY UNREACHABLE. `consultSuiteStability` passed `draft.filePath`, and on the
-// LOOP path that is a digest-named file under `tests/.agent-qa-drafts/` holding exactly one test —
-// the draft itself, which the neighbour exclusion then removes. So `neighbours-flaky` could not be
-// produced from `authoring.draft.write` for any application, however unstable: the read always ran
-// against a file with no neighbours and answered `no-history`.
-//
-// THE TARGET IS THEREFORE A CONTRACT, not a derivation. D-14 asks about the suite the draft would
-// JOIN, and only the caller knows which that is; the loop computes it through the SAME
-// `authoredSuiteTargetPath` its accept arm uses, so the stability target and the accept target
-// cannot disagree. The standalone posture is unchanged — a committed suite file IS its own target
-// — and that half is pinned below so the change is a widening rather than a move.
+// The caller names the suite the draft would join; the shelf file has no neighbours to read.
 
 describe('the stability read consults the suite the draft proposes to JOIN', () => {
   it('reaches neighbours-flaky from a LOOP-shaped draft and names the neighbours', async () => {
@@ -313,8 +264,7 @@ describe('the stability read consults the suite the draft proposes to JOIN', () 
 
     expect(receipt.gates.stableVerdict.pass).toBe(false)
     expect(receipt.gates.stableVerdict.reason).toContain('the verdict flipped across runs')
-    // D-14's message, produced from the loop path for the first time — on the CONCRETE name, and
-    // naming the TARGET file rather than the shelf artifact the draft is staged in.
+    // The message names the target suite file, not the shelf file the draft is staged in.
     expect(receipt.gates.stableVerdict.reason).toContain('Your app is unstable')
     expect(receipt.gates.stableVerdict.reason).toContain(`${JOIN_TARGET}::shows the banner`)
     expect(receipt.gates.stableVerdict.reason).not.toContain(LOOP_SHELF_DRAFT.filePath)

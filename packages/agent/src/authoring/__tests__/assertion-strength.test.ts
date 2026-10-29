@@ -1,16 +1,4 @@
-// Gate 4's unit contract.
-//
-// This suite is the module-local half of the proof. The other half lives in
-// `packages/cli/src/authoring/__tests__/corpus-static-gates.test.ts`, which drives the SAME
-// check through the real `parseTestFile` over the frozen corpus (the produced-not-literal
-// law). What is pinned HERE is the behaviour of each clause in isolation, plus the lexicon
-// discipline itself — membership never position, exact never substring — because the corpus
-// cases can be satisfied by a check that happens to be right for the wrong reason.
-//
-// The corpus step texts below are copied VERBATIM from the frozen drafts at commit 4180c78b.
-// They are literals on purpose: this package cannot import `parseTestFile` (agent never names
-// core), and the produced path is already covered by the cli suite. If a literal here ever
-// disagrees with the frozen draft, the cli suite is the authority.
+// Clause-level cases; cli's `corpus-static-gates.test.ts` runs the same check through the parser.
 
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -33,11 +21,7 @@ import {
   evaluateAssertionStrength,
 } from '../assertion-strength.js'
 
-/**
- * The frozen expectation table — the ONLY source of expected gate-4 verdicts for the corpus
- * walk below (D-08, the treadmill law). Read from disk rather than restated inline, because a
- * local literal is a second copy of the denominator and is free to drift from it silently.
- */
+// Expected verdicts are read from disk, so no local copy can drift from the frozen table.
 const CORPUS_DIR = join(dirname(fileURLToPath(import.meta.url)), 'fixtures/corpus')
 
 interface ExpectationsTable {
@@ -265,36 +249,7 @@ describe('classifyDraftSteps — mixed act-and-verify steps', () => {
 })
 
 describe('the concreteness relation — a page-whole SUBJECT is refused whatever else the sentence mentions', () => {
-  // WHY THESE CONTROLS REACH THE CONCRETENESS ARM, by construction rather than by hope.
-  //
-  // No unquoted step below carries a double-quoted span, so `concrete` cannot short-circuit on
-  // `literals.length > 0` and the element/state relation is genuinely consulted. `page is visible`
-  // is NOT a VACUOUS_ASSERTION_PHRASES member — the lexicon's own retune comment calls it the
-  // obvious candidate the set does not hold — and neither is any function-word padding of it
-  // (`page is not visible` equals no member of an EXACT-match lexicon), so the vacuity arm cannot
-  // decide either. No capture signature, no prior-action literal to restate, and no
-  // MIXED_STEP_SEPARATORS token is present, so those three arms are silent too. Every cell below is
-  // therefore a reading of the concreteness arm and nothing else, which the per-cell
-  // arm-attribution assertions re-check.
-  //
-  // The frozen corpus cannot observe this arm at all: every expected-true draft carries a quoted
-  // literal and every expected-false draft is refused by another arm, which is why THESE
-  // constructed controls are the pins and the corpus walk below is not.
-  //
-  // Every loop is a loop on purpose. Four prior attempts at this defect each moved one boundary
-  // and satisfied a handful of enumerated cells; a loop over a whole axis cannot be satisfied that
-  // way — any rule that consults letter case reds at least one casing cell, and any rule that
-  // decides concreteness by NON-membership in an exclusion list reds at least one padding cell.
-  //
-  // THE MEMBER-NOUN AXIS — the axis every prior round's controls missed. Rounds 2–5 each
-  // varied only the axis just fixed, and round 5's own "crossing" cells crossed PADDING with
-  // CASING: two axes that were already closed. The defect was sitting somewhere else entirely.
-  // These loops vary WHICH NOUN sits in the sentence (all 33 lexicon members, generated from the
-  // exported constant so the loop cannot drift when the lexicon changes), WHICH GRAMMATICAL ROLE
-  // it stands in (`tab`, `label` as verbs), and AT WHAT DISTANCE it sits from the state term (60
-  // spaces). The verifier measured 33 of 33 members carrying the vacuous claim through gate 4 in
-  // the frame below while a 101/101-green suite reddened on none of it. The accept-direction loop
-  // beside them is what stops the closure from becoming "refuse anything mentioning a page".
+  // No step here quotes a span or trips another arm, so each cell reads only the concreteness arm.
 
   const VACUOUS_PAGE_CASINGS = [
     'Verify the page is visible',
@@ -314,11 +269,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
     'Verify THE SUBMIT BUTTON IS DISABLED',
   ] as const
 
-  // THE PADDING AXIS. These eight are the verifier's own re-measurement of the round-4
-  // rule: every one of them PASSED gate 4 while `Verify the page is visible` was refused, because
-  // the inserted function word — a negation, a copula, a modal, an adverb — was a member of no
-  // exclusion list and therefore read as an element name. The claim each one makes is the same
-  // vacuous claim about the page as a whole.
+  // Function-word padding does not turn a claim about the whole page into an element claim.
   const VACUOUS_PAGE_PADDINGS = [
     'Verify the page is not visible',
     'Verify the page is still visible',
@@ -346,9 +297,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
     'Verify The Submit Button Is Not Visible',
   ] as const
 
-  // THE SECOND LEAK on the same D-09 clause (ii): an EMPTY quoted capture satisfied
-  // `literals.length > 0`, so the concreteness arm was short-circuited by a literal that asserts
-  // nothing at all. Bare `Verify ""` passed gate 4.
+  // An empty quoted capture asserts nothing, so it must not satisfy the concreteness arm.
   const EMPTY_LITERALS = [
     'Verify ""',
     'Verify the page shows ""',
@@ -378,25 +327,9 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
     'Verify The Submit Button Is Not Visible',
   ] as const
 
-  // THE SUBJECT-NOUN FORM AXIS — the axis the round-6 rule actually reads, and the SIXTH
-  // the same defect has occupied (letter case -> two-sided letter case -> exclusion-list membership
-  // -> member-noun position -> subject-noun FORM). The round-6 refuser was ENUMERATED: the leftward
-  // walk resolved FALSE only on one of seven exact, lowercase, singular page-whole spellings and
-  // walked THROUGH every other token, so a subject that set does not hold — an inflected form, an
-  // unlisted synonym, a hyphenated compound — handed the verdict to an element noun in ANOTHER
-  // clause with no state asserted of it. `Verify the banner appears and the whole site is visible`
-  // was refused while `…the whole sites are visible` passed: a ONE-CHARACTER verdict flip, the exact
-  // shape this module's own doc block condemns in its second recorded regression. The cells below
-  // vary the SUBJECT NOUN'S FORM and nothing else, which is the one thing every earlier round's
-  // controls held fixed.
-  //
-  // DETECTOR cells — measured RED against the module at `60a71ca9` before the fix landed: the
-  // plural loop, the unlisted-synonym loop, the hyphenated cell, and the two unknown-token stop
-  // cells. PRESERVATION pins — green on BOTH sides of the fix and labelled so they are never
-  // counted as detectors (the 393-13 lesson): the singular loop and the member-LEFT-of-anchor loop.
+  // These vary only the subject noun's form: plurals, synonyms and compounds of page-whole nouns.
 
-  // DETECTOR. Generated from the exported refuser lexicon, so a membership change moves the loop
-  // with it and every member is tested in the inflection that used to defeat it.
+  // Generated from the exported refuser lexicon, so a membership change moves the loop with it.
   const pluralPageWholeFrame = (noun: string) =>
     `Verify the banner appears and the ${noun}s are visible`
 
@@ -425,12 +358,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   const unlistedSynonymFrame = (noun: string) =>
     `Verify the banner loads and the ${noun} is visible`
 
-  // DETECTOR, and the two cells that pin the STOP itself — priced as ACCEPTED COST rather than as
-  // wins, because both are genuine-looking claims the total rule refuses. `currently` is an ordinary
-  // adverb outside the continue set; `badge` is an unknown subject head standing one clause NEARER
-  // the anchor than the member that used to rescue it. Refusing them is D-12's safe rot direction.
-  // Without these cells the stop could be narrowed back toward "unknown nouns only" and nothing
-  // in this file would red.
+  // Accepted cost: `currently` and an unknown subject nearer the anchor stop the walk and refuse.
   const UNKNOWN_TOKEN_STOPS = [
     'Verify the submit button is currently visible',
     'Verify the button badge is visible',
@@ -446,10 +374,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   const memberLeftOfAnchorFrame = (noun: string) =>
     `Verify the ${noun} loads and the page is visible`
 
-  // WR-01 (393-13, measured by the round-5 verifier): the empty-literal filter was applied to the
-  // PRIOR-ACTION accumulation as well as to the concreteness read, so an action that typed `""`
-  // contributed nothing to restate and both pairs below moved FAIL -> PASS on an arm the 393-13
-  // SUMMARY listed as byte-unchanged. An accept-direction move in a tune-toward-reject gate.
+  // Prior actions keep their empty captures, so quoting a typed `""` again is a restatement.
   const RESTATED_EMPTY_CAPTURES = [
     {
       action: 'Type "" into the Username field',
@@ -666,12 +591,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   })
 
   it.each(FUNCTION_WORDS)('PRESERVATION — every continue-set member really does bridge member to anchor: the banner %s visible', (word) => {
-    // The accept side of the total refuser, and the cell that prices a REMOVAL from the continue
-    // set. Each member is claimed to be a token the walk may cross; this is the claim, measured. If
-    // a member is ever dropped, its cell reds here rather than silently refusing a genuine draft in
-    // the field — which is exactly how an omission in this set fails toward REJECT and stays
-    // visible. Its counterpart is the stop loop above: together they pin both directions of the
-    // one boundary the round-7 rule introduces.
+    // Each continue-set member must bridge member to anchor; the stop loop above pins the rest.
     const step = `Verify the banner ${word} visible`
     const result = assertionStrengthGate({ steps: [step] })
 
@@ -691,10 +611,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   })
 
   it('restoring RAW captures does not over-reject: an assertion that quotes nothing is no tautology', () => {
-    // The control half of the WR-01 pair. The action typed `""`, so the RAW accumulation holds an
-    // empty span; the assertion quotes nothing at all, so there is nothing to restate and the
-    // relation carries it (`field` is the subject of `empty`). Without this cell, "treat any prior
-    // empty capture as poisoning every later assertion" would satisfy the two cells above.
+    // Control: an empty prior capture does not poison an assertion that quotes nothing.
     const steps = ['Type "" into the Username field', 'Verify the username field is empty']
     const row = onlyRow(steps)
 
@@ -709,9 +626,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   })
 
   it('a quoted literal decides in any casing, and the prose around it is never consulted', () => {
-    // Re-homed from the deleted 393-09 prose-case group: not subsumed by the casing loops above,
-    // because these two cells short-circuit on `literals.length > 0` and never reach the arm the
-    // loops measure. That is exactly what they pin.
+    // These short-circuit on a quoted literal, so they never reach the arm the casing loops read.
     expect(assertionStrengthGate({ steps: ['Verify the page says "Received!"'] }).pass).toBe(true)
     expect(assertionStrengthGate({ steps: ['Verify The Page Says "Received!"'] }).pass).toBe(true)
   })
@@ -726,8 +641,6 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   })
 
   it('an expected-state term with no element noun beside it is still refused', () => {
-    // Re-homed from the deleted 393-09 prose-case group. `content` names the page as a whole and
-    // `visible` says visible WHAT — the twin of the loop cells above, one noun over.
     expect(assertionStrengthGate({ steps: ['Verify the content is visible'] }).pass).toBe(false)
   })
 
@@ -752,22 +665,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   })
 
   it('pays the WIDENED accepted cost: unlisted nouns, PLURALS as a class, six common nouns, and attachment', () => {
-    // THE ACCEPTED COST, priced in the open rather than discovered later, in D-12's ratified
-    // direction. Every cell is a REAL draft this gate refuses.
-    //
-    // - UNLISTED element nouns (`widget`, `carousel`) and the page-whole `form`, carried forward
-    //   from the 393-13 inversion: under an exclusion rule an unlisted word was ACCEPTED, which is
-    //   how the same defect rotted open three times; under membership it is REFUSED.
-    // - PLURALS, as a whole CLASS. Membership is exact and there is no stemming, so `buttons` is
-    //   not `button`. This is the single largest category of loss and it is not a per-word omission
-    //   — the round-5 verifier measured it as an undisclosed class, which is why it is named here.
-    // - Six COMMON NOUNS an author reaches for constantly: message, text, title, item, cell, card.
-    // - The ATTACHMENT cost, new with the relation: a genuine element claim written with a
-    //   page-whole noun NEARER the state term is refused, because the walk meets `page` first.
-    //
-    // The AUTHOR's route out is a singular lexicon noun beside its state or a quoted literal, both
-    // pinned below. The MAINTAINER's is an ELEMENT_NOUNS change (toward ACCEPT) or a
-    // PAGE_WHOLE_NOUNS change (toward REJECT), each with a frozen-corpus re-run.
+    // Accepted cost: unlisted element nouns, plurals and a nearer page-whole noun are refused.
     for (const step of [
       'Verify the widget is visible',
       'Verify the carousel is visible',
@@ -872,12 +770,7 @@ describe('assertionStrengthGate — the two clauses composed', () => {
     expect(result.falsifiableAssertionCount).toBe(1)
   })
 
-  // the reason string is the ONLY place D-12's mixed act-and-verify signal reaches a
-  // receipt reader — `StepClassificationRowSchema` is strict and carries no `mixedHit`, and adding
-  // one was declined because a bare boolean names nothing the step text does not already show.
-  // That makes the reason load-bearing rather than decorative, and it was WRONG here: a mixed step
-  // carrying a quoted literal fell through to the "no quoted expected value" fallback, so the
-  // durable receipt explained the refusal with a statement contradicted by the step beside it.
+  // The reason string is the only place a receipt shows that a step mixed act and verify.
   it('says a mixed act-and-verify step was mixed, rather than that it quoted nothing', () => {
     const result = assertionStrengthGate({
       steps: ['Verify the page says "Saved" and click Continue'],
@@ -1061,21 +954,7 @@ describe('the frozen corpus classes, by literal step text (4180c78b)', () => {
       ))
   })
 
-  // WHAT THIS WALK PROVES, and what it cannot (relabelled 393-12 after the verifier measured it).
-  //
-  // It proves the FROZEN CORPUS is insensitive to prose casing: title-case every draft's prose and
-  // every verdict still equals that draft's own frozen `falsifiableAssertion` column, read from
-  // expectations.json rather than an inline boolean so no future edit can be absorbed beside it.
-  // That is a real property and worth pinning.
-  //
-  // It CANNOT observe the element/state relation at all. The verifier reverted the concreteness
-  // rule to its pre-393-09 one-liner and re-ran this group alone: 8/8 green with the rule gone.
-  // Every `expected: true` draft carries a quoted literal, so `concrete` short-circuits on
-  // `literals.length > 0` and the relation is never consulted; every `expected: false` draft is
-  // refused by the vacuity, capture-signature or tautology arm in any casing. Its former label
-  // ("the regression pin for the WR-06 narrowing … proves the rule cost the denominator nothing")
-  // presented it as evidence for a change it is blind to. The pins for the concreteness arm are the
-  // constructed loops above, which measurably red without the rule.
+  // Casing only: every true draft quotes a literal, so this walk never reaches the relation.
   it.each(CORPUS)('title-casing $draft — the frozen corpus is casing-insensitive (this walk cannot observe the concreteness relation)', ({ draft, steps }) => {
     const frozen = EXPECTATIONS.drafts[draft]?.expectedGates.falsifiableAssertion
 
@@ -1115,11 +994,7 @@ describe('the frozen corpus classes, by literal step text (4180c78b)', () => {
   })
 
   it('every row of every draft survives the receipt schema at RUNTIME, not just at compile time', () => {
-    // `StepClassificationRowSchema` is `.strict()`, and plan 06 persists these rows inside a
-    // `DraftReceipt`. A type annotation is erased; a stray key is not, and it would surface as
-    // a refused write one plan downstream rather than as a red here. This is also the assertion
-    // that keeps the frozen suite's `text`/`kind` spelling from leaking across the projection
-    // into the receipt shape, which the strict schema would refuse by name.
+    // The strict schema refuses a stray key at runtime, which a type annotation cannot catch.
     for (const entry of CORPUS) {
       for (const row of classifyDraftSteps(entry.steps)) {
         expect(StepClassificationRowSchema.safeParse(row).success).toBe(true)
@@ -1128,8 +1003,6 @@ describe('the frozen corpus classes, by literal step text (4180c78b)', () => {
   })
 
   it('the two oracle-capture drafts fail for DIFFERENT recorded reasons', () => {
-    // Same class, two mechanisms. A check that folded both into the boolean would report
-    // the same receipt for both and D-10 would be one heuristic, not two.
     const signature = CORPUS.find((entry) => entry.draft === 'oracle-capture-signature.yaml')
     const tautology = CORPUS.find((entry) => entry.draft === 'oracle-capture-tautology.yaml')
 
@@ -1238,21 +1111,7 @@ describe('the lexicons are closed pinned sets', () => {
       'was',
       'were',
     ])
-    // The page-whole nouns are absent from ELEMENT_NOUNS on purpose, and since 393-15 they are also
-    // a set in their own right — they stop the relation's leftward walk BY NAME — so the two facts
-    // are pinned side by side.
-    //
-    // THE OMISSION DIRECTION, corrected 393-17 and stated for all three lexicons the walk reads.
-    // This comment used to say that a membership rule's omissions fail toward REJECT and that
-    // PAGE_WHOLE_NOUNS was therefore the one lexicon whose non-members were load-bearing in the safe
-    // direction. That was measurably backwards for the very set it pins: under the enumerated
-    // refuser the walk CROSSED whatever this set failed to spell, so a plural or a synonym leaked
-    // toward ACCEPT — the direction D-12 forbids — while the paragraph asserted the opposite.
-    // After the total-refuser fix it is true of every lexicon here, and for one reason: an
-    // unrecognized token stops the walk. ELEMENT_NOUNS absence refuses (the member is never
-    // matched), PAGE_WHOLE_NOUNS omission refuses (the stop catches what the name misses), and
-    // FUNCTION_WORDS omission refuses (an uncrossed token ends the walk). The retunes that move the
-    // gate toward ACCEPT are ADDITIONS, and only to ELEMENT_NOUNS or FUNCTION_WORDS.
+    // An unrecognised token stops the walk, so an omission from any lexicon refuses, never accepts.
     for (const nonMember of PAGE_WHOLE_NOUNS) {
       expect({ nonMember, member: (ELEMENT_NOUNS as readonly string[]).includes(nonMember) })
         .toEqual({ nonMember, member: false })
@@ -1283,14 +1142,7 @@ describe('the lexicons are closed pinned sets', () => {
   })
 
   it('the relation\'s four input sets are pairwise disjoint, so the walk has one answer per token', () => {
-    // The guard's own inputs, pinned as COMPLETE sets rather than sampled. `namesElementInExpectedState`
-    // asks four questions of one token stream — is this an anchor, does it resolve TRUE, does it stop
-    // the walk by NAME, may the walk cross it — and a token belonging to two of the sets would answer
-    // two of them at once. Which branch won would then depend on the order the code happens to test
-    // them in, which is exactly the kind of undeclared precedence a lexical gate cannot afford. Since
-    // 393-17 the fourth set is the continue set, and it is the one whose overlap would be worst: a
-    // token in both FUNCTION_WORDS and ELEMENT_NOUNS would be simultaneously "cross me" and "I am the
-    // subject", which is the difference between accepting and refusing the sentence around it.
+    // A token in two lexicons would answer two of the walk's questions, so the sets stay disjoint.
     const overlaps = (left: readonly string[], right: readonly string[]) =>
       left.filter((token) => right.includes(token))
 
@@ -1303,26 +1155,7 @@ describe('the lexicons are closed pinned sets', () => {
   })
 
   it('no vacuity phrase survives as a falsifiable assertion, in any casing', () => {
-    // THE CROSS-LEXICON CLOSURE, and it is a guard rather than a restatement.
-    //
-    // The falsifiability conjunction refuses a vacuous remainder twice over: once because it
-    // matched the lexicon, and once because a phrase that names no element in a checkable
-    // state is not concrete to begin with. Today the second refusal alone is sufficient for
-    // every member — no member carries an EXPECTED_STATE_TERMS token at all, so the relation has
-    // no anchor to walk from and answers false for all of them — which is why deleting the vacuity
-    // conjunct changes no behaviour on the current lexicons (recorded as surviving mutant M4).
-    //
-    // 393-15 re-derived which widening triggers it for the RELATION. The casing arm below is not
-    // what decides — the relation is casing-blind, so recasing a member changes nothing — and
-    // "page is visible" is refused in every casing for a reason that depends on no exclusion list:
-    // the nearest set-noun to the left of `visible` is the page-whole noun `page`, which stops the
-    // walk. The member shape that WOULD hand the whole decision to the vacuity conjunct carries an
-    // EXPECTED_STATE_TERMS token whose nearest set-noun to the LEFT is an ELEMENT_NOUNS member —
-    // "banner is visible" remains exactly that shape, so the guard keeps a live trigger across the
-    // relation rather than becoming a promise. Verified by measurement, not by argument: adding
-    // that member and deleting the conjunct (393-12, snapshot + `diff` proof) reds this case and
-    // this case alone. The three casings are kept because a casing-blind rule is exactly the claim
-    // they now check.
+    // Recasing a member changes nothing: the relation is casing-blind and `page` stops the walk.
     const titleCase = (phrase: string) =>
       phrase.replace(/\b[a-z]/g, (letter) => letter.toUpperCase())
 

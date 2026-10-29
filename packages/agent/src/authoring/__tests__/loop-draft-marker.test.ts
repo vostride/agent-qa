@@ -1,5 +1,4 @@
-// the loop refuses a draft that would type a literal
-// [secret:NAME] and accepts every other draft text unchanged.
+// The loop refuses a draft that would type a literal `[secret:NAME]` and passes others unchanged.
 
 import type { AuthoringBrief, DraftReceipt, ScopeKey } from '@vostride/agent-qa-schema'
 import { CURRENT_DRAFT_RECEIPT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -109,7 +108,7 @@ function loopOver(steps: readonly string[], testName = TEST_NAME, context?: stri
   const published: string[] = []
 
   const read: AuthoringReadPortLike = {
-    // the `target` vocabulary, present because the port requires it.
+    // The `target` vocabulary, present because the port requires it.
     configuredTargetNames: () => Promise.resolve(['local-form']),
     getAuthoringBrief: () => Promise.resolve(EMPTY_BRIEF),
     suiteTextCorpus: () => Promise.resolve(SUITE_TEXT),
