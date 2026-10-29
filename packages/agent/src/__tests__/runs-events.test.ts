@@ -1,14 +1,4 @@
-// The stream result kind, exercised end-to-end against the injected event-log reader
-// (Phase 384, Plan 04 — FUNC-07 / D-08 / D-11).
-//
-// a stream op resolves a typed async iterable of seq-stamped envelopes, and each
-// envelope's own `seq` IS the resume token — a caller that observed seq N re-invokes with
-// `lastEventId: N` and receives N+1 onward. Connection-independent by construction, so
-// 386's live attach is contract-identical to this completed-run replay.
-//
-// the pipeline cases dispatch through the real `invokeFunction` with no op
-// gate (deleted by 432-19, D-15) and no permission check, so they prove the one dispatch
-// path a stream takes, not an audit row; none is written.
+// Each envelope's `seq` is the resume token: re-invoking with `lastEventId: N` yields N+1 onward.
 
 import { ReplayIncompleteError } from '@vostride/agent-qa-runner'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -35,7 +25,7 @@ function envelope(seq: number, type: RunEventType = 'heartbeat'): RunEventEnvelo
   return { seq, ts: 1_000 + seq, runId: RUN_ID, type, payload: {} }
 }
 
-/** A five-event completed-run log, gap-free at seq 1 exactly as the v49 bus writes it. */
+// A five-event completed-run log, gap-free from seq 1 as the event bus writes it.
 const FIVE_EVENTS: readonly RunEventEnvelope[] = [
   envelope(1, 'runStarted'),
   envelope(2, 'testStarted'),
@@ -80,10 +70,7 @@ function eventsDeps(options: {
         diffSince: () => Promise.resolve([]),
         showRecord: ({ recordId }) => Promise.resolve({ kind: 'not-found', schemaVersion: 2, recordId } as const),
       },
-      // 387: `entities` is a REQUIRED read port on FunctionDeps. Stated here so the record
-      // typechecks, and stated as an ANSWERING stub rather than a refusing one: these cases
-      // exercise other ops, and nothing in this file mints an address, so an honest miss and a
-      // reported absence are the truthful answers.
+      // A required read port, stubbed to answer: nothing in this file mints an address.
       entities: {
         resolve: () => Promise.resolve({ kind: 'none' as const, reason: 'no-match' as const }),
         get: () => Promise.resolve(undefined),
@@ -100,10 +87,7 @@ function eventsDeps(options: {
   }
 }
 
-// the registry takes no audit sink, so no cell captures audit rows.
-
-// a caller is attribution only, a surface and an origin. The name is
-// kept for the cells below; it reads nothing and is granted nothing.
+// A caller is attribution only, a surface and an origin; the name is kept for the cells below.
 const READ_CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -121,10 +105,9 @@ describe('runs.events declaration', () => {
   it('declares a read-only STREAM contract bound in this composition', () => {
     expect(runsEventsSpec.id).toBe(RUNS_EVENTS_FUNCTION_ID)
     expect(runsEventsSpec.id).toBe('runs.events')
-    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read'].
     expect(runsEventsSpec).not.toHaveProperty('requiredScopes')
     expect(runsEventsSpec.resultKind).toBe('stream')
-    // Bound in EVERY composition — it names no optional dep to be withheld.
+    // Bound in every composition, because it names no optional dep.
     expect(runsEventsSpec.boundThrough).toBeUndefined()
     expect(runsEventsSpec.risk).toEqual({
       name: 'fn:runs.events',
@@ -188,9 +171,6 @@ describe('runs.events replay', () => {
 })
 
 describe('runs.events through invokeFunction (one dispatch path)', () => {
-  // RE-SPELLED 2026-09-30 from 'audits the invocation BEFORE the first event is
-  // yielded'. There is no op gate, so a stream dispatch records no decision; what survives is that
-  // every event reaches the caller through the one dispatch path.
   it('a stream dispatch writes no audit row and yields every event', async () => {
     const spy = eventsDeps({ events: FIVE_EVENTS })
     const registry = createRegistryFromSpecs([runsEventsSpec], {

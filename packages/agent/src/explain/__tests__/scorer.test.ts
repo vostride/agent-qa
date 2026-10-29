@@ -1,11 +1,4 @@
-// The deterministic closest-capability proofs.
-//
-// DETERMINISM IS A TWO-SIDED CLAIM and both sides are cells here. One side is the easy one: the
-// right answer for a query. The other is the one that actually bites — that the SAME input cannot
-// produce a DIFFERENT answer on another run, another row order, or another machine's locale. So:
-// repeated invocation is deep-equal, a shuffled row array gives an identical answer (nothing here
-// depends on Map/Set iteration order), and the tie-break comparator is asserted against code-unit
-// order directly, because `localeCompare` is the machine-dependent comparison this must not be.
+// Ties break by code-unit order, never `localeCompare`, so no host locale changes the answer.
 
 import { CatalogRowSchema } from '@vostride/agent-qa-schema'
 import type { CatalogRow } from '@vostride/agent-qa-schema'

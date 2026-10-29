@@ -1,10 +1,4 @@
-// Render-time pure clustering over the ONE fingerprint vocabulary (Phase 389, D-13..D-16).
-//
-// The ANLZ-04 story at the unit level: 40 red tests sharing one anchor and one class are ONE
-// problem — exactly one cluster, count 40, forty member refs. Everything here is a total,
-// deterministic pure function of (resolved verdicts, handoff): nothing persisted, no ports,
-// no identity minted (D-16 — the fingerprint VALUE is the only key a cluster carries;
-// a cluster or verdict has no short-ID and no `agentqa://` address).
+// A total, deterministic pure function of verdicts and handoff; clusters mint no identity.
 
 import { canonicalJson, resolveRunVerdicts } from '@vostride/agent-qa-schema'
 import type { Verdict } from '@vostride/agent-qa-schema'

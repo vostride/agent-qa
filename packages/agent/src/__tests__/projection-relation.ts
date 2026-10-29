@@ -1,23 +1,4 @@
-// The relation between a declared contract and the projection published for it
-// (Phase 384, Plan 11 — WR-02 / M-03).
-//
-// Not a test file (the suite collects `*.test.ts`), and not production code either: it is
-// the shared half of an acceptance criterion that both agent test files state.
-//
-// WHY IT EXISTS. The gate it replaces asserted only the SHAPE of a projection — a plain
-// object, a nonzero key count, one of `type`/`properties`/`anyOf`/`items`, no `parse`. The
-// round-3 verifier replaced `toSchemaProjection`'s body with a frozen constant that
-// discards its `schema` argument and the entire agent suite passed, 78/78. A criterion that
-// a constant satisfies certifies nothing, and 396's MCP tool listing and 397's golden
-// snapshot are both admitted through this one.
-//
-// The remedy is not a stricter shape check — it is writing the criterion as a RELATION
-// between two artifacts. Every expected key set below is READ off the paired spec's own
-// live zod shape with `Object.keys`; no field name, no key list and no per-id expected
-// document appears anywhere in this file or in its callers. Two forms were falsified by the
-// verifier and are deliberately absent: comparing projections to each other for
-// distinctness (only 4 of 6 shipped projections are distinct, so a near-constant passes),
-// and enumerating expected values by id (a seventh capability re-opens the hole).
+// A relation, not a shape check: expected keys are read off each paired spec's live zod shape.
 
 import { expect } from 'vitest'
 import type { z } from 'zod'
@@ -73,77 +54,30 @@ export interface DeclaredContracts {
   readonly output: z.ZodType
 }
 
-/**
- * Every spec singleton, keyed by the id its declaration is listed under.
- *
- * This map is a GROWTH SEAM, and both callers assert exact set equality between its keys
- * and the ids the registry lists — so a seventh capability added in 386 or 387 reddens both
- * files until its spec is paired here, rather than silently arriving with an unchecked
- * projection. It reproduces the discipline `INVOCATION_SAMPLES` already applies to calling.
- */
+// A growth seam: both callers compare its keys with the registry's ids, so new ops need a pair.
 export const CONTRACTS_BY_ID: Readonly<Record<string, DeclaredContracts>> = {
-  // pair the new read's live contracts with its registry projection.
+  // Pairs this read's live contracts with its registry projection.
   'knowledge.gates.list': knowledgeGatesListSpec,
-  // 392 D-24. Paired the day it is registered (the growth seam working as designed). Its OUTPUT
-  // is the first in this map carrying an ARRAY of per-clause receipts beside an optional refusal
-  // object, which is exactly the shape a careless projection flattens — and flattening it would
-  // leave 396's MCP catalogue unable to say that a turn refused before anything ran, the one
-  // claim D-10's atomicity rests on.
-  // 393 D-01. Paired the day it is registered (the growth seam working as designed). Its OUTPUT is
-  // the draft receipt — four separately-named gate objects, a per-step classification table, a
-  // per-run record list and an adds-value finding — which is the deepest nesting in this map, and
-  // exactly the shape a careless projection flattens. Flattening it would leave 396's MCP catalogue
-  // unable to say that the four booleans are reported SEPARATELY, which is the literal text of
-  // WTST-02.
+  // Deeply nested outputs like this receipt are what a careless projection flattens.
   'authoring.draft.verify': authoringVerifyDraftSpec,
-  // 394 D-01. Paired the day it is registered (the growth seam working as designed). Its OUTPUT
-  // embeds the receipt above — so it inherits that nesting — beside two OPTIONAL members and a
-  // closed outcome enum, and the optionality is the part a careless projection loses. `draftRef`
-  // and `receipt` are absent exactly on the stage-2 refusal arm (plan 04), so a catalogue that
-  // published them as required would tell 396's consumers that every authoring call yields a
-  // receipt, which is the one claim the honesty funnel's side counters exist to contradict.
+  // `draftRef` and `receipt` are optional, absent on the stage-2 refusal arm.
   'authoring.draft.edit': authoringDraftEditSpec,
   'authoring.draft.write': authoringDraftWriteSpec,
-  // the funnel read's contracts, on its siblings' footing. The map is compared for
-  // exact key-set equality against the registry, so this row is what stops a capability joining
-  // the layer without its contracts being reachable for the projection relation.
+  // The map is compared by exact key set with the registry, so every op needs a row.
   'authoring.funnel.get': authoringFunnelGetSpec,
   'agent.ask': agentAskSpec,
-  // 398 D-09. Paired the day it is registered (the growth seam working as designed). Its OUTPUT is
-  // a DISCRIMINATED UNION over two strict arms, which is the shape this map had not carried before
-  // and exactly the one a careless projection collapses. Collapsing it would leave a catalogue
-  // unable to say that an answer and an abstention are different results — and "the abstention is
-  // a typed arm, not a flag on an answer" is the whole of XPLN-02's honesty claim.
+  // A discriminated union over two strict arms, which a careless projection collapses.
   'agent.explain': explainSpec,
-  // 389 D-11. Paired the day it is registered (the growth seam working as designed): its
-  // output is the first here carrying two parallel per-test arrays plus a nested cluster
-  // list, so an unchecked projection would be where a `sentences` member could quietly stop
-  // appearing in a published catalogue.
   'analysis.get': analysisGetSpec,
-  // 395 D-01/D-03 · CFGM-01/03. Paired the day they are registered (the growth seam working as
-  // designed). `config.field.set`'s OUTPUT is a three-arm discriminated union — proposed, invalid,
-  // no-change — and the arms are exactly what a careless projection flattens: a catalogue that
-  // published the union as one object would tell 396's consumers that every propose call yields a
-  // proposal id, which is the one claim CFGM-01's validate-before-surfacing law denies.
-  // `config.proposal.apply`'s OUTPUT is the two-arm apply outcome, and the `already-applied` arm
-  // flattened away would erase CFGM-03's idempotency answer from every projected surface.
   'config.field.set': configFieldSetSpec,
   'config.auth.set': configAuthSetSpec,
   'config.get': configGetSpec,
   'config.hook.add': configHookAddSpec,
-  // 395-05 D-01. Paired the day they are registered. Both project the SAME three-arm propose union
-  // as `config.field.set` plus the `refused` arm 395-05 adds, and that fourth arm is exactly what a
-  // careless projection flattens: a catalogue that published it as one object would tell 396's
-  // consumers that a create against an existing target answers with a proposal id.
   'config.target.create': configTargetCreateSpec,
   'config.target.edit': configTargetEditSpec,
-  // 395-06 D-07. The undo projects the SAME four-arm propose union as its six siblings, which is
-  // the point: a catalogue consumer needs no undo-shaped arm, because the undo is not a new kind
-  // of answer — it is the same proposal a person decides on, built from a different set of bytes.
   'config.project.scaffold': configProjectScaffoldSpec,
   'entities.get': entitiesGetSpec,
   'entities.resolve': entitiesResolveSpec,
-  // 391 PROP-01 / D-03 paired `grants.list` and `grants.revoke` here; 432-18 deletes both ops.
   'knowledge.accept': knowledgeAcceptSpec,
   'knowledge.bundles.list': knowledgeBundlesListSpec,
   'knowledge.brief.why': knowledgeBriefWhySpec,
@@ -152,67 +86,25 @@ export const CONTRACTS_BY_ID: Readonly<Record<string, DeclaredContracts>> = {
   'knowledge.records.diff': knowledgeRecordsDiffSpec,
   'knowledge.records.inspect': knowledgeRecordsInspectSpec,
   'knowledge.reject': knowledgeRejectSpec,
-  // 391 PROP-03. Paired the day they are registered. `show` and `reject` are the first
-  // contracts in this map whose output union carries a WHOLE nested DTO per arm — the inbox
-  // envelope, payload and all — so an unchecked projection is exactly where a published
-  // catalogue could lose `decision` or `evidenceRefs` and leave a surface unable to render the
-  // decision trail it exists to render.
-  // 391 PROP-01 / D-01. Paired the day it is registered. Its OUTPUT is the first in this map with
-  // TWO independent unions in one object — the apply half and the mint half — which is exactly the
-  // shape a careless projection flattens, and flattening it would leave a surface unable to say
-  // that an apply committed while its escalation was refused.
-  // 390 D-13. Paired the day they are registered, which is what the growth seam is for. The
-  // two write verbs are the first contracts in this map whose OUTPUT is a discriminated union,
-  // so an unchecked projection would be exactly where a published catalogue could lose an arm
-  // — and losing `no-entry` or `renewed` would leave a caller with no way to learn that its
-  // release matched nothing or that its add renewed rather than entered.
   'quarantine.add': quarantineAddSpec,
   'quarantine.list': quarantineListSpec,
   'quarantine.release': quarantineReleaseSpec,
-  // 405-01 D-03. Paired here the day it is registered, on the growth seam's own rule. Its output
-  // is the first in this map carrying THREE nested arrays of objects plus an object whose three
-  // numeric members are OPTIONAL BY DESIGN (`RunTokenTotals` — absent means unmeasured, never
-  // zero), so an unchecked projection is exactly where a published catalogue could start
-  // declaring those sums as required and turn "nobody measured" into "the value is 0".
-  // 405-05 D-12/D-13. Paired here the day it is registered, on the growth seam's own rule. Its
-  // input is the first in this map carrying a REGEX-constrained string, and that constraint is
-  // load-bearing rather than cosmetic: the 64-lowercase-hex shape is what makes a malformed sha a
-  // refusal before any path exists, so a projection that dropped it would publish a contract under
-  // which `../../etc/passwd` is a well-formed request.
+  // The 64-lowercase-hex `sha` constraint is what refuses a path like `../../etc/passwd`.
   'runs.artifact': runsArtifactSpec,
   'runs.detail': runsDetailSpec,
   'runs.evidence': runsEvidenceSpec,
-  // project the real mark validators through the same inert-declaration law.
+  // Projects the mark validators through the same inert-declaration law.
   'runs.mark': runsMarkSpec,
   'runs.mark.preview': runsMarkPreviewSpec,
   'runs.marks.history': runsMarksHistorySpec,
   'runs.overview': runsOverviewSpec,
   'runs.events': runsEventsSpec,
   'runs.get': runsGetSpec,
-  // 407-01 D-05. Paired here the day it is registered, on the growth seam's own rule. Its output
-  // is the first in this map carrying a TOP-LEVEL discriminated union whose two arms differ in
-  // nearly every field — `evidence-incomplete` holds only a run id where `ready` holds the whole
-  // panel — so an unchecked projection is exactly where a published catalogue could lose the
-  // absence arm and leave a caller with no declared way to learn that a run's evidence is gone.
   'runs.knowledge': runsKnowledgeSpec,
   'runs.list': runsListSpec,
-  // 403-01 D-03. Paired here the day it is registered, on the growth seam's own rule. Its output
-  // carries a DISCRIMINATED UNION (`stream`), which is the first in this map — an unchecked
-  // projection is exactly where a published catalogue could lose the `none` arm, leaving a caller
-  // with no declared way to learn that a target has no live preview at all.
   'runs.liveurl': runsLiveUrlSpec,
-  // the editor subject's minter, paired the day it is registered. Its output
-  // reuses runs.liveurl's `stream` union, so the `none` arm is checked here a second time.
   'editor.liveurl': editorLiveUrlSpec,
-  // 388 D-14. Paired here the day it is registered, which is exactly what the growth seam is
-  // for: its output contract is the first in this map with a nested optional object, so an
-  // unchecked projection would have been the first place a `notification` could quietly stop
-  // appearing in a published catalogue.
   'runs.postprocessing': runsPostProcessingSpec,
-  // the digest's output is the SECOND contract here with a nested optional
-  // object (`chain.outcome`) and the first with an imported nested array schema — the analysis
-  // cluster view, borrowed rather than restated — so an unchecked projection would be the first
-  // place a borrowed sub-contract could quietly stop appearing in a published catalogue.
   'runs.digest': runsDigestSpec,
   'runs.start': runsStartSpec,
 }
@@ -348,8 +240,6 @@ export function expectProjectionDerivedFrom(
     return
   }
 
-  // A scalar-rooted contract has no key set to relate. None of the twelve contracts this
-  // phase registers is one; if a later phase declares one, the relation above is what needs
-  // extending, and this clause is deliberately narrow so that is visible.
+  // A scalar-rooted contract has no key set to relate, so the relation would need extending.
   expect(Object.keys(document).length, label).toBeGreaterThan(0)
 }

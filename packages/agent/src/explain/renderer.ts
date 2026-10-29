@@ -1,37 +1,4 @@
-// Cite-and-resolve: the deterministic half of `explain` (Phase 398 plan 04 — XPLN-02, D-10 / D-11
-// / D-12; threats T-398-09, T-398-10).
-//
-// THE CANONICAL ROW-ID SCHEME, spelled once and here:
-//
-//     op:<registry op id>      e.g.  op:runs.start
-//     alias:<chat alias>       e.g.  alias:run
-//     skill:<skill name>       e.g.  skill:agent-qa-authoring
-//
-// Kind-prefixed because the three kinds share a namespace of words a person types: `run` is a chat
-// alias AND part of two op ids, and an unprefixed id would make "which row did you mean" a
-// question with two answers. The within-kind half is `catalogRowKey` from the schema package, so
-// this file adds the prefix and invents no second notion of a row's identity. Plan 07's catalog
-// feed cites rows by exactly these ids.
-//
-// WHY THIS FILE IS THE MECHANISM AND NOT A PRECAUTION. D-10's claim is that `explain` can never
-// answer from model memory. The way that claim usually fails is the 392 failure class: a
-// structural hole closed by rewriting a prompt. Here the model's whole output contract is
-// `ExplainCitation`, which has no field a command fits in, and this renderer builds every
-// character a person reads out of catalog rows. So the property is not "the model was told not to
-// invent" — it is that there is no path from model text to rendered command. Two total properties
-// carry it, and both are cells in `__tests__/renderer.test.ts`:
-//
-//   1. EVERY quoted form in an answer resolves to a cited row. Stated over the whole output, not
-//      as a scan for forbidden shapes — a guard that can only refuse what it can NAME is a guard
-//      you close by naming more things, forever.
-//   2. Model prose is INERT: the output is a total function of (resolved rows, cited order), so
-//      the guarantee is quantified over ARBITRARY prose rather than over the prose we thought of.
-//
-// ALL-OR-NOTHING, DELIBERATELY. One unresolvable id abstains the WHOLE output rather than
-// answering over the ids that did resolve. A partial answer is the shape that reads as grounded
-// while carrying an unexplained absence, and a person cannot tell which half they are holding —
-// the chat resolver table refuses partial matches for the same reason ("it is not a resolution
-// and it must not be a partial one").
+// All or nothing: one unresolvable id abstains the whole output rather than answering in part.
 
 import { catalogRowKey } from '@vostride/agent-qa-schema'
 import type {
@@ -43,15 +10,7 @@ import type {
 
 import { DEFAULT_CLOSEST_COUNT, closestCapabilities } from './scorer.js'
 
-/**
- * Every fixed string an abstention can show a person, frozen and in one place (prohibition P2).
- *
- * A CLOSED SET is what makes the no-blame requirement checkable at all. "Does the output shame the
- * user" is not decidable over strings composed ad hoc at three call sites; over a frozen set of
- * five it is a review of five sentences, and the P2 cell scans the complete set rather than a
- * sample of it. Nothing here blames the asker, hedges into false confidence, upsells, or offers a
- * partial answer to soften the refusal.
- */
+// Every fixed abstention string in one frozen set, so the no-blame cell can read all of them.
 export const EXPLAIN_ABSTENTION_TEMPLATES = Object.freeze({
   uncertain:
     'I am not certain: I could not ground an answer to that in the capability catalog, so I am not going to guess one.',
@@ -169,12 +128,7 @@ function abstain(
 
 /** What the renderer needs beyond the model's citation and the catalog itself. */
 export interface ExplainRenderContext {
-  /**
-   * The person's question — used ONLY to rank the abstention's closest capabilities.
-   *
-   * The renderer is pure: it does not log this, and `packages/agent` could not if it wanted to.
-   * The coverage-log append is `recordAbstained` on the host port.
-   */
+  // Used only to rank the abstention's closest capabilities; the renderer logs nothing.
   readonly query: string
   readonly closestCount?: number
   /**
@@ -211,9 +165,7 @@ export function renderExplainOutput(
 
   for (const citedRowId of citation.citedRowIds) {
     const row = byRowId.get(citedRowId)
-    // A ghost id is not a bad answer to repair — there is nothing to quote, so the whole output
-    // abstains. Returning here rather than collecting is what makes "no partial answer"
-    // a property of the control flow instead of a later filter someone can relax.
+    // Returning here, not collecting, keeps a partial answer out of the control flow.
     if (row === undefined) return abstain(context.query, rows, closestCount, docsGapLogged)
     if (seen.has(citedRowId)) continue
     seen.add(citedRowId)

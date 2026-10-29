@@ -17,25 +17,9 @@ export const AGENT_QA_AGENT_FORBIDDEN_RESPONSIBILITIES = [
   'local runtime persistence',
   'concrete platform-adapter, knowledge-store, tool-store, or agent-store implementations',
 ] as const
-// zod is the one external dependency — a pure validation library, legal under
-// providerNeutral/storageNeutral, and the source of the JSON-Schema projection the MCP
-// and catalog surfaces consume.
-//
-// `ai` joins it, and the class rules already say this is allowed —
-// `providerNeutral` permits the orchestration package by name and forbids only the
-// `@ai-sdk/*` vendor adapters. The distinction is exactly the one CHAT-06 is about: the
-// orchestration package can DESCRIBE a tool set and issue a call against a model it was
-// handed, and it cannot construct a provider client. The chat planner stage uses three of
-// its values — `generateText`, `tool`, `jsonSchema` — and receives its LanguageModel
-// already built by `createModel` at the host. The chat-model rollcall in `packages/arch`
-// pins that: a provider-SDK import anywhere under the chat subtree reds the build.
+// `ai` may describe tools and call a model it is handed; `@ai-sdk/*` provider adapters stay out.
 export const AGENT_QA_AGENT_EXTERNAL_DEPENDENCIES = ['ai', 'zod'] as const
-// `runner` arrives with the stream op — the layer consumes the runner-owned
-// event-log replay contract (`EventLogPort.read` / `ReplayIncompleteError`) rather than
-// restating it, so the resume-token semantics cannot fork between the two. Runner is
-// itself providerNeutral + storageNeutral, so the direction rule stays satisfied.
-// `@vostride/agent-qa-safety` is gone; its last import was the
-// registry's `AuditSink` option. Agent tests still read it, so it stays a devDependency.
+// `runner` supplies the event-log replay contract, so resume-token semantics cannot fork.
 export const AGENT_QA_AGENT_INTERNAL_DEPENDENCIES = [
   '@vostride/agent-qa-runner',
   '@vostride/agent-qa-schema',

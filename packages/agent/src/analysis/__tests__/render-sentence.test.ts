@@ -1,12 +1,4 @@
-// The ONE deterministic sentence renderer.
-//
-// Four claims, each an obligation the composed sentence carries: the verbatim grounding
-// quote with its step ref, the discriminator, the recurrence clause (a LIVE join through
-// the provider seam — never a stored number), and the recommended next action with its
-// `agentqa://` links. The renderer is producer-keyed by CONSTRUCTION: it composes typed
-// parts identically whoever authored them, which is what lets plan 04's LLM parts and the
-// deterministic template parts flow through one rule — and what makes SC3's
-// "no second code path" structural when plan 07's CLI print imports this same symbol.
+// The renderer composes typed parts identically whoever authored them, LLM or template.
 
 import type {
   QuarantineLadderState,
@@ -170,15 +162,7 @@ describe('the recurrence clause is a LIVE join', () => {
   })
 })
 
-// ---- 390 D-17: the ladder arms ------------------------------------------------------------
-//
-// The clause is TOTAL over `QuarantineLadderState | undefined` — four arms over a three-member
-// union, with absence as the fourth. Every case below pins the WHOLE composed sentence rather
-// than a substring, because a table-driven case that derives its expectation from the same
-// table the renderer reads stays green while the table is wrong (390-05's probe D). The one
-// table-shaped assertion here is the totality check, and it is a COMPILE-time one: the literal
-// is written `satisfies Record<QuarantineLadderState, string>`, so a fourth ladder state fails
-// to compile in this file too.
+// Whole sentences, not table-derived ones, which would pass while the table is wrong.
 
 /** The full sentence LLM_PARTS composes, with the recurrence clause spliced in. */
 function llmSentenceWith(clause: string): string {
@@ -260,8 +244,7 @@ describe('the flake ladder arms', () => {
   })
 
   it('shows a hand-edited unparseable deadline VERBATIM rather than inventing one', () => {
-    // The ledger is committed text a human may edit; the fold treats an unparseable
-    // deadline as lapsed, and the clause quotes what the file actually says.
+    // The ledger is human-editable: an unparseable deadline folds as lapsed, quoted as written.
     expect(renderWith({
       kth: 3,
       windowBuilds: 5,
@@ -369,18 +352,11 @@ describe('byte determinism', () => {
   })
 })
 
-// The D-12 quote leg: quoted producer text is cleaned in the ONE renderer (406, DETL-04).
-//
-// The 399 seeded-red sentence is the canonical "before". Pinning it HERE — through
-// `renderVerdictSentence`, not through the sanitizer alone — is what makes the single code
-// path structural: the CLI print, 392's chat and the run page all compose their sentence with
-// this function, so a surface cannot read a differently-cleaned quote without a second
-// renderer, which is the drift D-12 exists to forbid. ESC is spelled as an escape, never as a
-// literal byte, so the cell about invisible characters is itself readable.
+// Pinned through `renderVerdictSentence`, which every surface calls to compose its sentence.
 
 const ESC = '\u001b'
 
-/** Copied from `demo/acceptance/399/399-analysis-seeded-red.json` — Playwright's raw error. */
+// Playwright's raw error from a seeded-red run, written as a literal.
 const SEEDED_RED_399_QUOTE =
   'locator.click: Timeout 30000ms exceeded.\n'
   + 'Call log:\n'

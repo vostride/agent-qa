@@ -35,14 +35,7 @@ expectTypeOf<ReturnType<KnowledgePort['promote']>>().toEqualTypeOf<Promise<Promo
 expectTypeOf<Parameters<KnowledgePort['recordGateReceipt']>>().toEqualTypeOf<[receipt: GateReceipt]>()
 expectTypeOf<ReturnType<KnowledgePort['recordGateReceipt']>>().toEqualTypeOf<Promise<GateReceiptRecordOutcome>>()
 
-// 385 plan 02, narrowed by 391 plan 02. The exact key set, pinned by equality
-// rather than by a list of per-method assertions. Per-method assertions can only say what IS
-// there, and the claim this carve-up has to support is what is NOT: no conversation surface for
-// a later refactor to unify chat into, no generic job CRUD beside the queue's compound verbs,
-// and — since 391 derived its write side as an enumerable proposal store plus a folded grant
-// ledger rather than as a save/get over an id — no approval-shaped pair either. A method
-// resurrected under any of those roles fails this line, and so does one quietly dropped from
-// the two that survive: a deletion is not a way to make a pin pass.
+// Pinned by key-set equality, so an added or a dropped method fails this line.
 expectTypeOf<keyof PersistencePort>().toEqualTypeOf<'savePatch' | 'getPatch'>()
 
 expectTypeOf<Parameters<PersistencePort['savePatch']>>().toEqualTypeOf<[patch: Patch]>()

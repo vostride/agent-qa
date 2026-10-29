@@ -1,16 +1,4 @@
-// The cite-and-resolve proofs.
-//
-// WHAT THIS FILE HAS TO PROVE is not that the renderer refuses a list of bad shapes — a guard that
-// can only refuse what it can NAME cannot be driven to zero by naming more things. It is anchored
-// at the choke point instead, and the choke point is stated as two total properties:
-//
-//   1. EVERY quoted form in an answer resolves to a cited catalog row (the `answerQuotedForms`
-//      cell ranges the WHOLE output, not a sample of forbidden shapes).
-//   2. Model prose is INERT: the output is a total function of (resolved rows, cited order), so
-//      the property is quantified over arbitrary prose rather than over prose we thought to write.
-//
-// Together those say the thing D-10 says: there is no path by which a string the model wrote
-// becomes a command a person reads.
+// Every quoted form resolves to a cited row, and the output is a function of rows and order alone.
 
 import { ExplainOutputSchema } from '@vostride/agent-qa-schema'
 import type { CatalogRow, ExplainCitation, ExplainOutput } from '@vostride/agent-qa-schema'

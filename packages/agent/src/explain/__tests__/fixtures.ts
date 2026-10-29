@@ -1,11 +1,4 @@
-// Catalog-row fixtures for the explain unit proofs.
-//
-// EVERY FIXTURE GOES THROUGH `CatalogRowSchema.parse`. `packages/agent` is storageNeutral and
-// cannot read the committed artifact, so the produced-not-literal law cannot be honoured here in
-// its strong form (that is D-12's op-level proof, plan 07, which drives the real loader). Its
-// weakest useful form IS available and is what this file does: a fixture that the row contract
-// would refuse is not a row, and a corpus of unparseable shapes proves things about inputs the
-// producer can never emit.
+// Every fixture goes through `CatalogRowSchema.parse`, so none is a row the producer cannot emit.
 
 import { CatalogRowSchema } from '@vostride/agent-qa-schema'
 import type { CatalogRow } from '@vostride/agent-qa-schema'
@@ -27,10 +20,7 @@ export const OP_RUNS_START: CatalogRow = row({
   mcpTool: 'agent_qa_start_run',
   docPath: 'README.md',
   docAnchor: 'CLI',
-  // the column the producer derives from `params`. Spelled here to match what that
-  // derivation answers for the schema above — a required string becomes its own name in angle
-  // brackets — because this file's contract is that a fixture is something the producer could
-  // actually emit, and a row parsed without the column is a row nothing produces.
+  // The producer's derived column: a required string becomes its own name in angle brackets.
   exampleCall: { arguments: { target: '<TARGET>' } },
 })
 
@@ -43,8 +33,7 @@ export const OP_RUNS_LIST: CatalogRow = row({
   mcpTool: 'agent_qa_list_runs',
   docPath: null,
   docAbsentReason: 'D-07 (dated 2026-08-17): no canonical doc ships for this capability yet.',
-  // No required property, so the honest example is the empty call — which is a real call, not an
-  // absence. The null arm means the derivation REFUSED.
+  // No required property, so the example is the empty call; the null arm means a refusal.
   exampleCall: { arguments: {} },
 })
 

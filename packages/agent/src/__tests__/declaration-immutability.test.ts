@@ -1,31 +1,4 @@
-// The enforcement record AND the contract vocabulary are read-only in FACT, not just in
-// type (Phase 384, Plans 08 and 09 — CR-04 / BL-01 / D-14 / T-384-08).
-//
-// `registry.list()` hands a surface the record `invokeFunction` enforces against. Plan 08
-// closed the escalation half: a zero-scope caller could delete `config.get`'s scope
-// requirement in one line and then invoke it for real. Round 2 found the same mechanism
-// alive one field over — `input` and `output` were passed to the view BY REFERENCE, and the
-// object handed out was identity-equal to the schema package's own exported validator, so a
-// single write through a permitted listing dispatched unvalidated input for every consumer
-// in the process.
-//
-// Plan 09 closes that as a CLASS: the view carries an inert, deep-frozen JSON-Schema
-// PROJECTION, and the live validator stays on `FunctionSpec`, which never leaves the
-// functions directory. The sweeps below are written from the SHAPE of the view rather than
-// a list of field names, because a guard generated out of the implementation's own
-// vocabulary is exactly what left the previous round blind to its own open half.
-//
-// the escalation CR-04 closed — vacating `requiredScopes` through
-// a listing — has nothing left to reach. Declarations carry no permission metadata at all (the
-// registry omits `requiredScopes` and `requiresHumanOrigin` even while an old spec still spells
-// them), and `invokeFunction` reads none. The freezing claims survive on the risk descriptor and
-// the spec singleton, and C432-DECLARATION-KEYS pins the exact runtime key set beside its type.
-//
-// the two members are DELETED from `FunctionMetadata`, and with
-// them from every type that extends it. C432-DECLARATION-KEYS now pins the exact key set of
-// `FunctionMetadata`, `FunctionSpec` and `FunctionDeclaration` at compile time, beside the exact
-// runtime key set of every real declaration. Where a cell proves an old key is not passed on, the
-// key is smuggled onto a spec object with a cast — the only way an old spec could still carry it.
+// The view carries a deep-frozen JSON-Schema projection, so a write through a listing does nothing.
 
 import type {
   FunctionCaller,
@@ -53,10 +26,7 @@ import type {
 } from '../functions/spec.js'
 import { CONTRACTS_BY_ID, expectProjectionDerivedFrom } from './projection-relation.js'
 
-/**
- * Every port resolves, nothing reaches a host API. The record exists because `FunctionDeps` is
- * required and non-partial.
- */
+// Every port resolves and none reaches a host API, because `FunctionDeps` is non-partial.
 function fakeDeps(): FunctionDeps {
   return {
     secretMask: (text: string) => text,
@@ -72,10 +42,7 @@ function fakeDeps(): FunctionDeps {
       diffSince: () => Promise.resolve([]),
       showRecord: ({ recordId }) => Promise.resolve({ kind: 'not-found', schemaVersion: 2, recordId } as const),
     },
-    // 387: `entities` is a REQUIRED read port on FunctionDeps. Stated here so the record
-    // typechecks, and stated as an ANSWERING stub rather than a refusing one: these cases
-    // exercise other ops, and nothing in this file mints an address, so an honest miss and a
-    // reported absence are the truthful answers.
+    // A required read port, stubbed to answer: nothing in this file mints an address.
     entities: {
       resolve: () => Promise.resolve({ kind: 'none' as const, reason: 'no-match' as const }),
       get: () => Promise.resolve(undefined),
@@ -96,9 +63,7 @@ function buildRegistry() {
   })
 }
 
-// the scope set and safe-mode flag are deleted from the caller; the
-// two records keep them as smuggles (cast) so "zero scope" and "fully granted" stay different
-// records, and every cell below still shows neither is read.
+// Both records smuggle retired fields by cast, so the cells show neither is read.
 const ZERO_SCOPE_CALLER = {
   surface: 'test',
   grantedScopes: [],
@@ -123,15 +88,7 @@ function configGet(declarations: readonly FunctionDeclaration[]): FunctionDeclar
   return byId(declarations, 'config.get')
 }
 
-/**
- * Visit every node reachable through OWN enumerable properties, deriving the keys from the
- * value itself.
- *
- * This is the whole point of the two sweeps below: no field is ever named, so a seventh
- * `FunctionDeclaration` field added by a later phase is covered on the day it lands rather
- * than on the day someone remembers to extend a list. The `seen` set makes the walk safe
- * against a cyclic graph — which the LIVE zod objects this file used to be handed are.
- */
+// Keys come from each value itself, so a new declaration field is covered; `seen` stops cycles.
 function eachReachableNode(
   value: unknown,
   path: string,
@@ -177,20 +134,14 @@ describe('the listed view is inert', () => {
   it('de-aliases the shared contract vocabulary: a listing is not a schema-package export', () => {
     const declaration = byId(buildRegistry().list(FULLY_GRANTED), 'runs.get')
 
-    // The round-2 finding, inverted: this identity used to be `true`, which made a permitted
-    // listing a write handle onto the validators every firewalled surface imports.
+    // A listing's input projection is not the validator every firewalled surface imports.
     expect(declaration.input as unknown).not.toBe(RunsGetInputSchema as unknown)
     expect((declaration.input as Record<string, unknown>)['safeParse']).toBeUndefined()
     expect((declaration.output as Record<string, unknown>)['parse']).toBeUndefined()
   })
 
   it('projects each contract FROM the schema it was declared with, naming no field', () => {
-    // The shape-only version of this case was satisfied by a constant: the round-3 verifier
-    // replaced `toSchemaProjection`'s body with a frozen `{$schema, type:'object',
-    // properties:{}}` that discards its argument, and the whole agent suite stayed green.
-    // A criterion a wrong implementation satisfies certifies nothing, so this one is a
-    // RELATION between two artifacts — each projection and the live zod contract it came
-    // from — with every expected key set read off the schema rather than written out.
+    // A relation, not a shape: each projection's keys are read off the live zod contract.
     const declarations = buildRegistry().list(FULLY_GRANTED)
 
     expect(declarations.length).toBeGreaterThan(0)
@@ -252,12 +203,7 @@ describe('the listed view is inert', () => {
   })
 })
 
-// Phase 397 (D-05, research Pitfall 1): the golden registry snapshot pins a disclose flag per op,
-// and the suite that writes it lives in `packages/cli`, where neither `FunctionSpec` nor the
-// internals seam is reachable. The declaration therefore carries the ANSWER as data. These two
-// cells are the relation between the two artifacts — every op's declaration and the spec it was
-// projected from — so a hand-maintained flag, or a projection that drifts off the spec, reds here
-// rather than rotting into a golden nobody can falsify.
+// The disclose relation, pinned as an absence on both spec and declaration.
 describe('the disclose presence flag is projected from the spec', () => {
   function specsOf(registry: ReturnType<typeof buildRegistry>): ReadonlyMap<string, FunctionSpec> {
     const internals = registryInternals(registry)
@@ -265,10 +211,6 @@ describe('the disclose presence flag is projected from the spec', () => {
     return internals.specs
   }
 
-  // RE-SPELLED 2026-10-02 under the same title: the per-op `disclose` method and
-  // the declaration's `discloses` flag are deleted (the confirm prompt they fed is gone, 432-19), so
-  // the relation this cell pinned is now an absence on both sides: no registered spec defines the
-  // method, and no declaration lists the flag.
   it('lists discloses: true for exactly the ops whose spec defines disclose', () => {
     const registry = buildRegistry()
     const specs = specsOf(registry)
@@ -285,9 +227,7 @@ describe('the disclose presence flag is projected from the spec', () => {
     expect(flagged, 'a declaration lists the retired discloses flag').toEqual([])
   })
 
-  // RE-SPELLED 2026-10-02 under the same title: a legacy spec object that still
-  // carries a `disclose` method (smuggled past the deleted member with a cast) yields a declaration
-  // with no `discloses` key at all — the registry builds the view field by field.
+  // A spec smuggling a `disclose` method by cast still yields no `discloses` key.
   it('omits the key entirely for an op with no disclose — absent, never false or undefined', () => {
     const legacy = {
       id: 'synthetic.legacy-disclose',
@@ -309,8 +249,6 @@ describe('the disclose presence flag is projected from the spec', () => {
 })
 
 describe('declaration views are deeply frozen', () => {
-  // RE-SPELLED 2026-10-01 from 'freezes every listed declaration, its
-  // requiredScopes, and its risk descriptor'. Declarations carry no `requiredScopes`.
   it('freezes every listed declaration and its risk descriptor', () => {
     const declarations = buildRegistry().list(FULLY_GRANTED)
 
@@ -321,9 +259,6 @@ describe('declaration views are deeply frozen', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01 from 'kills the CR-04 escalation: the repro write throws
-  // and the caller is still refused'. There is no scope requirement on a listing to vacate and no
-  // refusal to survive it: the write throws because the view is frozen, and config.get is served.
   it('a write to the listed view throws and there is no requirement to vacate', async () => {
     const registry = buildRegistry()
     const declaration = configGet(registry.list(ZERO_SCOPE_CALLER))
@@ -347,8 +282,6 @@ describe('declaration views are deeply frozen', () => {
     expect(declaration.risk.name).toBe('fn:config.get')
   })
 
-  // RE-SPELLED 2026-10-01: the singleton's retired `requiredScopes` is no longer
-  // frozen or read; the spec object and its risk descriptor still are.
   it('freezes the REGISTERED singleton spec, not only the copied view', () => {
     buildRegistry()
 
@@ -359,8 +292,6 @@ describe('declaration views are deeply frozen', () => {
     }).toThrow(TypeError)
   })
 
-  // RE-SPELLED 2026-10-01 from 'contains the attempt to nothing: a second registry
-  // still lists the real requirement'. A second registry lists the same permission-free view.
   it('contains the attempt to nothing: a second registry lists the same permission-free view', async () => {
     const attacked = buildRegistry()
     const declaration = configGet(attacked.list(ZERO_SCOPE_CALLER))
@@ -377,20 +308,14 @@ describe('declaration views are deeply frozen', () => {
   })
 })
 
-// ---- C432-DECLARATION-KEYS --------------------------------------------------
+// Declaration key sets, pinned at compile time and at runtime.
 
 /** Compile-time half: the declaration TYPE cannot carry either retired key. Checked by typecheck. */
 type DeclarationCarries<Key extends string> = Key extends keyof FunctionDeclaration ? true : false
 const DECLARATION_TYPE_HAS_SCOPES: DeclarationCarries<'requiredScopes'> = false
 const DECLARATION_TYPE_HAS_HUMAN_ORIGIN: DeclarationCarries<'requiresHumanOrigin'> = false
 
-/**
- * the EXACT key sets of the three metadata types, compile-checked.
- *
- * `ExactKeys` is a mutual-assignability equality over `keyof`, so a key added to a type without
- * being added here — or listed here without the type carrying it — fails `pnpm typecheck`. The two
- * retired keys are therefore absent from all three types by construction, not only by a negative.
- */
+// `ExactKeys` is mutual assignability over `keyof`, so a key added or dropped fails typecheck.
 type ExactKeys<T, K extends PropertyKey> = [keyof T] extends [K]
   ? ([K] extends [keyof T] ? true : false)
   : false
@@ -420,15 +345,12 @@ const REQUIRED_DECLARATION_KEYS = [
   'risk',
   'summary',
 ] as const
-// `discloses` left the optional flags with the per-op disclosure.
 const OPTIONAL_DECLARATION_FLAGS = ['classifies', 'rendersResult'] as const
 
 describe('runtime declarations carry no permission metadata', () => {
   it('pins the exact key set of every real declaration, and no scope or origin key', () => {
     expect(DECLARATION_TYPE_HAS_SCOPES).toBe(false)
     expect(DECLARATION_TYPE_HAS_HUMAN_ORIGIN).toBe(false)
-    // the three metadata types' exact key sets (compile-checked above), and neither retired
-    // key in any of them.
     expect([METADATA_TYPE_IS_EXACT, SPEC_TYPE_IS_EXACT, DECLARATION_TYPE_IS_EXACT])
       .toEqual([true, true, true])
     for (const keys of [METADATA_KEYS, SPEC_KEYS, DECLARATION_TYPE_KEYS] as const) {
@@ -453,11 +375,7 @@ describe('runtime declarations carry no permission metadata', () => {
   })
 
   it('omits the retired keys even where the registered spec still spells them', () => {
-    // no registered spec spells either key — the last left by 432-27
-    // — and the metadata type no longer declares them, so the real registry half is an ordinary
-    // absence check. The synthetic spec below SMUGGLES both keys past the type with a cast, the only
-    // way an old spec object could still carry them, and is what keeps this cell meaningful: the
-    // registry builds the view field by field and passes neither on.
+    // The synthetic spec smuggles both keys by cast; the registry builds the view field by field.
     expect(Object.keys(configGet(buildRegistry().list(FULLY_GRANTED)))).not.toContain('requiredScopes')
 
     const legacy = {

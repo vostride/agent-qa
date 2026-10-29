@@ -1,49 +1,4 @@
-// The agent-side remainder of the retired 384 coverage stub.
-//
-// WHAT HAPPENED. `parity-coverage.test.ts` shipped in 384 as "conformance-suite LEG 1", a coverage
-// leg written against the registry rather than a hand list, and it grew with the layer for six
-// phases. 397 landed the full conformance & parity suite in `packages/cli/src/__tests__/
-// conformance/`, and that suite carries the SAME universe: one scenario row per capability, asserted
-// set-equal to the census in both directions. Two registers over one universe is precisely the
-// divergence D-10 exists to close — so the stub retires, and this file is what could not travel.
-//
-// WHY A RETIREMENT NEEDS A REGISTER. Deleting a guard file and writing a paragraph about where its
-// duty went is how assertions get silently dropped: the paragraph is unfalsifiable, and the file is
-// gone. So the retirement is audited instead. Every describe block, every `it` block and every
-// top-level constant and function of the pre-deletion file is enumerated below BY ITS VERBATIM NAME
-// with a ruled destination and a one-line reason, the row count is pinned by a cell in this file
-// against the census taken before the delete, and the ground truth for both is git history: the
-// stub's last revision is addressable at the commit immediately preceding this one.
-//
-// THE PRE-DELETION BLOCK CENSUS, MEASURED 2026-08-16 (not counted by hand):
-//
-//     grep -c '^describe(' parity-coverage.test.ts                    ->  1
-//     grep -c '^  it('     parity-coverage.test.ts                    ->  8
-//     grep -cE '^(const|function|async function) ' parity-coverage…   -> 15
-//                                                                    ----
-//                                                                       24
-//
-// and `RETIREMENT_REGISTER` below holds 24 rows, one per block, checked mechanically by
-// `pins the retirement register against the pre-deletion block census` further down. An equality
-// nothing can check is an assertion rather than a check (the 394 lesson), so the register is DATA.
-//
-// THE COVERAGE CONTINUITY WAS MEASURED, NOT ASSERTED. Before the delete, one mutation was applied to
-// the shipped registry — `runs.digest` renamed to `digest.runs`, i.e. a capability arriving in a
-// domain nothing pins — and both sides were run. The stub reddened 5 of its 8 cells; the conformance
-// suite reddened 16 of 80, including the domain census (`digest.runs`), the scenario census
-// (`digest.runs`) and the golden ledger; and `declaration-immutability.test.ts` reddened the
-// contract-projection cell with the identical message the stub's own copy produced. The destinations
-// red on what the stub red on, which is the only form of "its duty is carried" worth writing down.
-//
-// ONE DUTY IS CARRIED IN A DELIBERATELY WEAKER FORM, AND IT IS NAMED RATHER THAN IMPLIED.
-// `EXPECTED_BINDING_STATUS` pinned all 41 ids to a `bound`/`unbound` literal under THIS fixture's
-// ports. Its op-universe half is the scenario table's job now, and its binding-column half is the
-// golden ledger's `bindingStatusAtRoot` — but the ledger's column describes the CLI composition root
-// (which binds all 41), not this fixture. So the per-op statuses under a partially-supplied
-// composition are no longer pinned as a 41-row literal. What is kept here is the fact that literal
-// existed to state: which capabilities these ports BIND. It is kept as a derived subset
-// (`BOUND_OP_INPUTS`) rather than a census — a capability arriving unbound here needs no row, so
-// this file cannot become the second denominator D-10 just closed.
+// Each block of the retired coverage file is a register row with its destination and reason.
 
 import { readFileSync } from 'node:fs'
 
@@ -62,7 +17,7 @@ import { createFunctionRegistry } from '../functions/registry.js'
 import type { FunctionDeclaration, FunctionDeps } from '../functions/spec.js'
 import { CONTRACTS_BY_ID } from './projection-relation.js'
 
-// ---- The retirement register --------------------------------------------------
+// The retirement register.
 
 /** Where one block of the retired file went. A closed vocabulary: four rulings, no fifth. */
 type RetirementDestination =
@@ -311,38 +266,23 @@ const FIXTURE_ENTITY_DESCRIPTOR = {
   statusSource: 'active',
 }
 
-/**
- * A valid input for every capability THESE PORTS BIND — and deliberately for no other.
- *
- * NOT A CENSUS, AND THAT IS THE POINT. The retired file keyed a sample by every one of the 41
- * ids and asserted exact set equality against the registry, which made it a second denominator over
- * the op universe. This map is keyed by the ids this fixture can actually DISPATCH; the cell below
- * derives that set off the live listing and asserts the keys equal it, so the map cannot drift and
- * cannot silently become a register. A capability landing unbound here needs no row — its scenario
- * row in `conformance/scenario-table.ts` is the one place that obligation lives now.
- *
- * The inputs themselves are the stub's, unchanged: a well-formed document per op that names nothing
- * in any fixture, because `invokeFunction` validates input before it consults binding.
- */
+// Keyed by the ids these ports bind, derived from the live listing, so it is not a census.
 const BOUND_OP_INPUTS: Readonly<Record<string, unknown>> = {
   'config.get': {},
   'entities.get': { ref: FIXTURE_ENTITY_SHORT_ID },
   'entities.resolve': { ref: 'nothing in this fixture is called this' },
   'knowledge.brief.why': { runId: FIXTURE_RUN_ID, stepIndex: 0 },
   'knowledge.bundles.list': {},
-  // this fixture binds the optional reader and supplies its dispatch input.
+  // This fixture binds the optional reader and supplies its dispatch input.
   'knowledge.gates.list': { recordId: 'rec-not-in-this-fixture' },
   'knowledge.record.show': { recordId: 'rec-not-in-this-fixture' },
   'knowledge.records.diff': { sinceOrdinal: 0 },
   'knowledge.records.inspect': { filter: {} },
-  // bound under these ports because the digest no longer needs the proposals
-  // inbox; its substrate is the REQUIRED runs port, and the mark ledger it reads is optional.
+  // Bound here: its substrate is the required runs port, and the mark ledger it reads is optional.
   'runs.digest': { runId: FIXTURE_RUN_ID },
   'runs.events': { runId: FIXTURE_RUN_ID },
   'runs.get': { runId: FIXTURE_RUN_ID },
-  // bound under these ports because its substrate is the REQUIRED runs port — it
-  // declares no optional-dep binding key at all, so there is no composition that lists it and
-  // cannot run it.
+  // Bound here: its substrate is the required runs port, and it declares no optional binding.
   'runs.knowledge': { runId: FIXTURE_RUN_ID },
   'runs.list': {},
 }
@@ -407,13 +347,7 @@ function fakeDeps(): FunctionDeps {
   }
 }
 
-/**
- * A caller no refusal here can be about, so a refusal can never be a missing grant.
- *
- * Until 432-39 it held every scope, derived from the scope union rather than listed. The
- * union and the caller's scope set are deleted, so nothing is left to hold;
- * `origin` is `human` for the same reason on the second axis.
- */
+// A caller no refusal here can be about; `origin` is `human` for the same reason.
 const FULLY_GRANTED: FunctionCaller = {
   surface: 'conformance',
   origin: 'human',
@@ -442,10 +376,6 @@ async function drain(result: unknown): Promise<unknown> {
 
 describe('the coverage stub retires with a destination for every block', () => {
   it('pins the retirement register against the pre-deletion block census', () => {
-    // T-397-19, and the 394 lesson made mechanical: an equality nobody can re-derive is an
-    // assertion, not a check. The three numbers are the three greps quoted in this file's header,
-    // run against the stub at the commit immediately before its deletion — so this cell is
-    // falsifiable by anyone with the repository, which is the property a register needs.
     const byKind = { describe: 0, it: 0, constant: 0 }
     for (const row of RETIREMENT_REGISTER) byKind[row.kind] += 1
 
@@ -457,9 +387,7 @@ describe('the coverage stub retires with a destination for every block', () => {
       + PRE_RETIREMENT_BLOCK_CENSUS.constant,
     )
 
-    // No block is named twice — two rows for one block would let the count come out right while a
-    // block went unaccounted for, which is the exact shape of the arithmetic error 397-05 found in
-    // an inherited count sentence.
+    // Each block is named once, or two rows for one block could hide a missing one.
     const names = RETIREMENT_REGISTER.map((row) => row.block)
     expect([...new Set(names)].length, 'the register names a block twice').toBe(names.length)
 
@@ -508,15 +436,13 @@ describe('registry invariants that need in-package access', () => {
     for (const declaration of declarations()) {
       const label = declaration.id
       expect(declaration.summary.trim(), label).not.toEqual('')
-      // no scope column — a declaration carries no permission metadata.
       expect(Object.keys(declaration), label).not.toContain('requiredScopes')
       expect(Object.keys(declaration), label).not.toContain('requiresHumanOrigin')
       expect(['unary', 'stream'], label).toContain(declaration.resultKind)
       expect(['bound', 'unbound'], label).toContain(declaration.bindingStatus)
       expect(declaration.risk.name, label).toEqual(`fn:${declaration.id}`)
       expect(declaration.risk.recognized, label).toBe(true)
-      // The declared contracts arrive as INERT projections, never as live validators (BL-01 /
-      // D-14): a listing is a description of the contract, not a handle on it.
+      // Contracts arrive as inert projections: a listing describes a contract, not a handle on it.
       for (const side of ['input', 'output'] as const) {
         const projection = declaration[side]
         expect(typeof projection, `${label}.${side}`).toEqual('object')
@@ -550,8 +476,7 @@ describe('registry invariants that need in-package access', () => {
         + 'one, or say why the port set should stop binding it',
     ).toEqual(bound)
 
-    // …and the set is a SUBSET of the census rather than a copy of it: this file is not a second
-    // denominator over the op universe. A fixture binding everything would make it one.
+    // A subset of the census, not a copy, so this file is not a second register.
     expect(bound.length, 'this fixture binds the entire census, which would make it a second register')
       .toBeLessThan(declarations().length)
   })
@@ -592,10 +517,7 @@ describe('registry invariants that need in-package access', () => {
   })
 })
 
-// the proposal inbox's four verbs, the two apply ops and the
-// config undo op are deleted with the inbox. No alias, hidden inbox or accept/reject follow-up
-// survives: each retired id is simply not a capability, so every door refuses it as an unknown
-// function before any dependency is consulted.
+// Each retired id is refused as an unknown function before any dependency is consulted.
 const RETIRED_PROPOSAL_OP_IDS = [
   'proposals.list',
   'proposals.show',
@@ -631,9 +553,7 @@ describe('the proposal, apply and undo ops are not capabilities', () => {
   })
 })
 
-// `grants.list` and `grants.revoke` are deleted with the
-// standing-grant ledger they read and wrote. No grant domain survives, no other op takes over the
-// revoke, and every door refuses both ids as unknown functions before any dependency is consulted.
+// Both ids are refused as unknown functions before any dependency is consulted.
 const RETIRED_GRANT_OP_IDS = ['grants.list', 'grants.revoke'] as const
 
 describe('the standing-grant ops are not capabilities', () => {

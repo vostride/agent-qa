@@ -1,13 +1,4 @@
-// `runs.detail` — the op's refusal vocabulary and the D-06 token sum.
-//
-// The end-to-end path this op sits on is measured in `dashboard-server`'s tracer cell, over a real
-// database and a real socket. What CANNOT be measured there is what this file measures: the two
-// refusals by NAME, and the arithmetic of a sum whose whole contract is what it leaves out.
-//
-// THE SUM IS TESTED SEPARATELY FROM THE SPEC because it is separately exported, and it is
-// separately exported for the reason `projectPostProcessingChips` is: a total mapping with no
-// port and nothing to await can have an exhaustive table written over it for the cost of a test
-// file rather than a store.
+// Only this layer measures the two refusals by name and the token sum's arithmetic.
 
 import {
   CURRENT_HANDOFF_SCHEMA_VERSION,
@@ -178,8 +169,6 @@ describe('the declaration', () => {
   })
 
   it('is a read-tier, read-only unary op bound through the optional runDetail dep', () => {
-    // RE-SPELLED 2026-10-01 from `requiredScopes` equal to ['read']: the op
-    // declares no scope; the read-only risk below is what still states the tier.
     expect(runsDetailSpec).not.toHaveProperty('requiredScopes')
     expect(runsDetailSpec.resultKind).toBe('unary')
     expect(runsDetailSpec.boundThrough).toBe('runDetail')
@@ -199,12 +188,7 @@ describe('the declaration', () => {
   })
 })
 
-// Read-time presence on every projected artifact ref.
-//
-// The projection records which blobs a sub-action produced; it cannot record whether they are
-// still on disk, because a producer writes once and a page reads later. So the op asks — once per
-// distinct sha, through the optional port — and a host that cannot answer leaves the key absent
-// rather than reporting refs it never looked at as missing.
+// Presence is asked once per distinct sha; a host that cannot answer leaves the key absent.
 
 const SHA_A = 'a'.repeat(64)
 const SHA_B = 'b'.repeat(64)
@@ -343,12 +327,7 @@ describe('runs.detail — presence per artifact ref', () => {
   })
 })
 
-// ---- C432-ALL-OPS-AVAILABLE ------------------------------------------------------
-//
-// `runs.detail` and `runs.overview` once required `read`. Through a real registry and
-// `invokeFunction`, retried from three callers that differ in surface and origin and carry no
-// scope, each is served every time: every attempt reads the same ports the same number of times,
-// every caller gets the same projection, and no audit row is written.
+// Through a real registry, every caller gets the same projection from the same port reads.
 describe('the run detail and overview reads serve every caller', () => {
   it('a retried runs.detail and runs.overview are served alike to every caller', async () => {
     const document: CompletedRunHandoff = {
