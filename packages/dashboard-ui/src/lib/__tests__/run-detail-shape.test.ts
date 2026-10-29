@@ -1,33 +1,4 @@
-/**
- * THE REBUILT RUN-DETAIL SHAPE IS CLOSED.
- *
- * WHAT THIS PINS. 405-11 deleted the v1 UI step shape — the recording-path fields, the healing
- * screenshot list and the run-detail-only sub-action DTO — and rebuilt the page on the durable
- * projection. Each of those is a set that got SMALLER, and every existing cell on this page asks
- * whether a shape CONTAINS what it should, which a bigger shape satisfies too. So the deletions are
- * pinned by EQUALITY here, and leg U of the phase's mutation driver (since removed) proved the pin
- * reds by re-adding a recording-path field to `DisplayStep`.
- *
- * TWO WALLS, BOTH READ. `DisplayStep` and `RunDetailSubAction` are TypeScript, so a returning field
- * is a compile question first — the `satisfies` pins below make `pnpm --filter
- * @vostride/agent-qa-dashboard-ui typecheck` refuse a key set that drifted. But a type is erased
- * before anything runs, and this package's vitest does not typecheck, so a leg reading only the
- * compiler would go quiet the day somebody widens a shape with a cast. The runtime halves therefore
- * read the SOURCE TEXT of the interface and the SHIPPED zod shape.
- *
- * THE MARKUP CELL READS CODE, NOT PROSE. Three modules under `components/run-detail` carry comments
- * explaining that they inject no markup — that is the safety claim's audit trail, and a raw
- * substring search reports every one of them as an offender. A detector that cannot tell a call
- * from a sentence about a call reds on prose (which trains everyone to weaken it) and its natural
- * weakening — excluding the files that talk about the rule — stops covering exactly the files most
- * likely to break it. This is the argument `packages/analytics/src/__tests__/source-scan.ts` makes
- * verbatim for `.strip()`; the scanner is re-derived here rather than imported because the two
- * packages do not depend on each other.
- *
- * That is a DIFFERENT rule from the D-21 inventory in `dashboard-server`, which counts comments as
- * hits on purpose. There the forbidden thing IS the string (a retired token must not be spelled
- * anywhere); here the forbidden thing is an INJECTION SITE, and a sentence is not one.
- */
+// The markup cell reads code, not prose, so a comment about injection is not an injection site.
 
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'

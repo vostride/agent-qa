@@ -1,9 +1,4 @@
-// THE PRESENTATION-STATE SET, PINNED IN BOTH DIRECTIONS (425-01 · D-06/D-07, UI-SPEC S3).
-//
-// The runtime array and the union are two spellings of one closed set, and a never-bar is the only
-// assertion that catches the half of a drift a runtime cell cannot see: a seventh member added to
-// the union alone compiles everywhere and renders nothing, and a member dropped from the array
-// alone leaves a state no cell ever walks.
+// A never-bar catches a member added to the union alone, and the array cells catch one dropped.
 
 import { expectTypeOf, test } from 'vitest'
 import { STAGE_PRESENTATION_STATES, type StagePresentationState } from '../post-processing-view'

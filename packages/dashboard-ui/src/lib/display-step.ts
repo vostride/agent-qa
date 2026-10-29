@@ -12,9 +12,6 @@ import { runDetailStepKey } from './selection'
 import type { EditorStep, LiveSubAction } from '@/hooks/use-live-editor'
 import { normalizeStepStatus } from '@/lib/status'
 
-// The live editor's phase record — relocated from the retired `use-execution-events` hook by 405
-// The census measured that the editor executes in-process via core `executeStep` and
-// never used the retired spawn, so the editor stays; only this type moved to its consumer's home.
 export interface LivePhase {
   phase: 'observe' | 'plan' | 'execute' | 'verify' | 'heal'
   subActionIndex?: number
@@ -27,19 +24,7 @@ export interface LivePhase {
   timestamp: string
 }
 
-/**
- * What a step looks like to the run-detail tree and panels, and to the live editor.
- *
- * TWO PRODUCERS, TWO HALVES, AND NO OVERLAP. {@link fromRunDetailStep} builds this from
- * the durable projection — the rebuilt page's ONLY source — and {@link fromEditorStep} builds it
- * from a live editor step. The third producer, which read a v1 row served with the run, is gone
- * with the row; so is every capture-path field it was the only writer of.
- *
- * THE LIVE-ONLY FIELDS STAY OPTIONAL RATHER THAN NULL-FILLED. A durable step genuinely has no
- * variable snapshot and no accessibility violations, and filling those with `null` would spell
- * "the read happened and found nothing" where the truth is that no such read exists. The tabs that
- * show them render their not-captured state on the durable page, which is the honest answer.
- */
+// Live-only fields stay optional, never null-filled: a durable step has no such read at all.
 export interface DisplayStep {
   /** `<testIndex>:<stepIndex>` for a durable step (see `runDetailStepKey`); the row id for a v1 one. */
   id: string
@@ -62,7 +47,7 @@ export interface DisplayStep {
   cacheStatus?: RunDetailStep['cacheStatus']
   verifierVerdict?: VerifierVerdict
   selfHealOccurred?: boolean
-  /** ABSENT when the step reported no usage — never a zero. */
+  // Absent when the step reported no usage, never a zero.
   tokenUsage?: RunStepTokenUsage
   evidence?: StepEvidenceEntries
 
@@ -101,20 +86,7 @@ export interface DisplayStep {
 /** What a step with no recorded text is called, so the tree never renders a blank row. */
 export const UNNAMED_STEP_LABEL = 'Untitled step'
 
-/**
- * Build a display step out of the DURABLE projection.
- *
- * THE STATUS FALLS BACK TO THE VERDICT, NOT TO A GUESS. `status` is optional on the wire because a
- * producer may finalize a step without one; the verifier's own `pass` is the next most direct fact
- * about the same step, and it is a fact the projection actually carries. Nothing here invents a
- * `running` or a `skipped` the read did not report.
- *
- * A SELF-HEALED STEP KEEPS ITS OWN WORD. `selfHealOccurred` is carried through rather than folded
- * into `status`, so the tree can show the heal without the panels losing whether the step passed.
- *
- * `tokenUsage` IS FORWARDED AS-IS, absent and all. There is no `?? 0` on this path: a step
- * that reported nothing must not read as a step that spent nothing.
- */
+// Status falls back to the verifier's `pass`, and `tokenUsage` passes through with no `?? 0`.
 export function fromRunDetailStep(
   step: RunDetailStep,
   subActions: readonly RunDetailSubAction[],
@@ -140,14 +112,7 @@ export function fromRunDetailStep(
   }
 }
 
-/**
- * Flatten the member-grouped tree into the page's ONE numbered step list.
- *
- * The tree and the page must agree on both the ids and the "step N of M" counters, so there is one
- * producer of both and both surfaces call it. Two independent flattenings that happened to agree
- * today are two flattenings that can disagree tomorrow, and the disagreement would show up as a
- * deep link selecting a row the tree is not highlighting.
- */
+// One flattening feeds both the tree and the page, so ids and step counters cannot disagree.
 export function displayStepsForGroups(groups: readonly RunDetailGroup[]): DisplayStep[] {
   return withDisplayStepProgress(
     groups.flatMap((group) =>

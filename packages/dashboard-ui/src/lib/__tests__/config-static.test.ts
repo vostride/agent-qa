@@ -2,7 +2,7 @@ import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'
 
-// Source-level cells for the 429 Config deletions and house rules (D-01, D-03, D-04, D-24; UI-SPEC S1, S6 and "Removed copy").
+// Source-level cells for the Config page's deletions and house rules.
 const srcRoot = new URL('../../', import.meta.url)
 const CONFIG_MANAGER_DIR = 'components/config-manager/'
 const CONFIG_PAGE = 'pages/config.tsx'

@@ -1,16 +1,4 @@
-// THE PROJECTION, HELD TOTAL AND PURE.
-//
-// `projectPostProcessingView` is the whole distance between "what the route said" and "what a
-// person reads". It takes a `PostProcessingRead` and returns a view; it has no I/O, no clock and
-// no envelope type in its signature — which is the structural half of D-17. These cells fix the
-// PUBLISHED SENTENCES by their exported constants rather than by literal prose, so
-// a copy change moves one line here and one line in the module, and never silently diverges.
-//
-// THE CELL THAT MATTERS MOST is the `failed`-with-no-envelope one. D-21 as narrowed in 404-03 put
-// the masked reason on the in-process `*Failed` chip envelope and NOT on the durable notification
-// row, because the daemon's pump folds with no masking context. So a daemon-drained failure has no
-// reason anywhere, and the only honest renderings are "failed, reason not recorded — drained by the
-// daemon" and a lie. Blank is a lie by omission; `pending` is a lie outright.
+// A daemon-drained failure records no reason, so the card says so rather than going blank.
 
 import { describe, expect, it } from 'vitest'
 import { POST_PROCESSING_SKIP_REASONS, VERDICT_CLASSES, CURATION_SNAPSHOT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -206,9 +194,6 @@ describe('a terminal curation card says what it committed, in its wording of rec
     expect(view.curation.card?.outcome).toBe(`Curation complete — ${NO_MEMORY_CHANGES_TEXT}`)
   })
 
-  // RE-SPELLED 425-08. The claim is unchanged — curation's counts never reach the analysis card —
-  // but the analysis card is no longer absent on a verdict-bearing run, so the cell now
-  // measures what that card SAYS rather than that it does not exist.
   it('never invents a card for the analysis chip from curation counts', () => {
     const view = chips(projectPostProcessingView(read({
       status: status('complete', 'complete', notification({ status: 'complete' }, { total: 1, byClass: { app_bug: 1 } }), {
@@ -227,9 +212,7 @@ describe('a terminal curation card says what it committed, in its wording of rec
   })
 })
 
-// FIVE BUCKETS ARE NEVER SYNTHESIZED FROM TWO. A pre-423 row carries a pair and nothing
-// else; a withheld snapshot carries a reason and nothing else. Each renders what EXISTS, labelled,
-// rather than a breakdown the run never recorded.
+// A legacy pair or withheld snapshot renders what exists, labelled, never a synthesized breakdown.
 describe('the curation breakdown is one function, and legacy rows say what they are', () => {
   it('lists only the non-zero buckets, in the schema order, joined by a middle dot', () => {
     expect(curationBreakdownLine(breakdown({
@@ -278,8 +261,7 @@ describe('the curation breakdown is one function, and legacy rows say what they 
   })
 })
 
-// EVERY STATE HAS AN HONEST FIRST LINE. A card that could open blank is a hover that rewards
-// the reader with nothing — which is the failure the whole card exists to fix.
+// Every state has a first line, because a card that opens blank tells the reader nothing.
 describe('running, queued and failed stages each read their own sentence', () => {
   it('names a running stage in its own words', () => {
     const view = chips(projectPostProcessingView(read({ status: status('running', 'running') })))
@@ -382,10 +364,6 @@ describe('a failed chip says why, or says honestly that nobody recorded why', ()
   })
 })
 
-// RETIRED 425-06. The two cells that stood here pinned the legacy pair's folded sentence,
-// whose last reader — the Knowledge tab's Learned heading — now calls `curationBreakdownLine` and
-// `legacyCurationPairText` instead. Both of those are pinned in this file's breakdown cells, so
-// retiring the function retired its cells rather than leaving them asserting over nothing.
 describe('the count line is the wording of record, in one place', () => {
   it('publishes the curation door name as a thin call into the one accessible-name function', () => {
     const settled = { status: 'complete', state: 'complete', word: STAGE_INDICATOR_WORDS.curation.complete } as const
@@ -397,9 +375,7 @@ describe('the count line is the wording of record, in one place', () => {
   })
 })
 
-// THE PASSING RUN EXPLAINS ITSELF (425-01 · D-13, roadmap SC3). The sentence a person reads on the
-// one run shape that ships every day — analysis settled, nothing to report — is the phase's copy
-// cell, and it is a CONSTANT so the card, the accessible name and this cell cannot drift apart.
+// The passing run's sentence is a constant, so the card, accessible name and cell cannot drift.
 describe('a settled analysis with nothing to report says so in one sentence', () => {
   it('ANALYSIS-COMPLETE-COPY: publishes the sentence and projects it onto a no-verdict pass', () => {
     expect(ANALYSIS_COMPLETE_NO_ISSUES_TEXT).toBe('Analysis complete — no issues found')
@@ -417,9 +393,7 @@ describe('a settled analysis with nothing to report says so in one sentence', ()
   })
 })
 
-// THE VISIBLE WORD. A settled stage is quiet — the name alone. Every other state
-// says itself, because those are the states a person can act on. The set is six and the order is
-// the one the never-bar pins; a cell that only walked the reachable ones would not see a gap.
+// A settled stage shows its name alone; any other state says itself, as a person can act on it.
 describe('an indicator says the stage, and says the state when it needs attention', () => {
   it('STAGE-INDICATOR-WORDS: the stage name alone for complete, name plus state word otherwise', () => {
     expect(STAGE_PRESENTATION_STATES).toEqual([
@@ -531,13 +505,7 @@ describe('a run with no verdict skips analysis and curation', () => {
   })
 })
 
-// THE SKIPPED STATE COMES FROM THE READ'S OWN FIELD.
-//
-// The op folds `skipped` from the run's durable `gateRun` / `excludedFromOutcomes` markers — the
-// same markers the post-verdict enqueue skip reads — so the dashboard, the CLI exit line and the
-// digest say ONE thing (law 6). The projection therefore reads the FIELD and nothing else: not the
-// absence of job rows, not the run's own status, not a settled chip word. The negative arm below is
-// the half that matters, because a fold that guessed would still pass every positive assertion.
+// Skipped comes from the read's own field; the negative arm catches a fold that guesses from rows.
 describe('a skipped chain reads skipped because the read said so, never because rows are missing', () => {
   it('EXCLUDED-FROM-FIELD: paints BOTH indicators skipped while the chip words stay verbatim', () => {
     for (const reason of POST_PROCESSING_SKIP_REASONS) {
@@ -593,9 +561,7 @@ describe('a skipped chain reads skipped because the read said so, never because 
   })
 })
 
-// PURE AND TOTAL, MEASURED RATHER THAN ASSERTED. A re-read arriving while a card is
-// open repaints that card from the NEW read alone, which is only safe if projecting a read twice
-// says the same thing and leaves the read's own bytes where it found them.
+// A re-read repaints an open card, safe only if projecting twice agrees and mutates nothing.
 describe('the projection is pure and total', () => {
   it('PROJECTION-IDEMPOTENT: the same read projects deep-equal twice, and is never mutated', () => {
     const reads: PostProcessingRead[] = [
@@ -620,17 +586,7 @@ describe('the projection is pure and total', () => {
   })
 })
 
-// TIMING IS THE JOB ROW'S OWN, CLAUSE BY CLAUSE.
-//
-// THE MODULE HAS NO CLOCK AND MUST NOT GROW ONE. Every value below is a stored string the reader
-// stringified out of the job row — `created_at` / `started_at` / `updated_at`, written from the
-// injected clock as `new Date().toISOString()`, and the SQLite `CURRENT_TIMESTAMP` space form that
-// `normalizeTimestamp` exists for. Nothing here compares against "now", so nothing here can say a
-// stage is stuck; elapsed-time judgements are the state the read publishes, not one a card infers.
-//
-// THE CELLS ASSERT THROUGH THE SAME FORMATTER rather than against a literal wall-clock string: the
-// local zone varies between a laptop and CI, and a cell pinned to `10:41:02` would measure the
-// machine it ran on instead of the sentence the reader gets.
+// The module has no clock; cells assert through the same formatter because the local zone varies.
 describe('a card times the stage from the job row, and never from a clock of its own', () => {
   // The production SETTLED shape: created, started, updated — and no lease, because every terminal
   // transition releases the claim. `LEASE` is the same middle instant spelled as a claim, for the
@@ -738,12 +694,7 @@ describe('a card times the stage from the job row, and never from a clock of its
   })
 })
 
-// THE ROOT CAUSE COMES FROM A COUNTED FIELD, NEVER FROM A SENTENCE (425-08 · D-13, UI-SPEC S4).
-//
-// `notification.verdictSummary` is on the same read the header already holds: counted, durable and
-// conformance-pinned. The alternative — reading a verdict's prose and looking for a class in it —
-// is the rule 406 closed: a surface that parses another surface's sentence is coupled to wording
-// that is free to change, and reports a class nobody stored.
+// The root cause comes from the counted `verdictSummary`, never from parsing a verdict's prose.
 describe('a settled analysis with verdicts names its root cause from the summary', () => {
   const outcomeFor = (verdictSummary: unknown): string | undefined =>
     chips(projectPostProcessingView(read({

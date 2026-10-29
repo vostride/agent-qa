@@ -1,5 +1,4 @@
-// The dashboard says what is true (quick 261003-cpv: 432-UI-REVIEW priority fix 1 and pillar items,
-// 432 review IN-31). Each cell reds on the copy the review quoted.
+// The dashboard says what is true; each cell fails on copy that does not.
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'

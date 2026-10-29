@@ -1,8 +1,4 @@
-// run detail says what a mark changed, never what awaits review.
-//
-// The history line is projected from the applied receipt (the record content it changed, or the test
-// file it wrote); the preview speaks of what will change; a historical drafted receipt whose change
-// was never recorded reads as unavailable rather than as an invented change.
+// A drafted receipt with no recorded change reads as unavailable, never as an invented change.
 import { describe, expect, it } from 'vitest'
 import * as feedbackView from '@/lib/feedback-view'
 

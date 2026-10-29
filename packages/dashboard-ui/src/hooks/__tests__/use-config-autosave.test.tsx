@@ -148,8 +148,7 @@ beforeEach(() => {
   localStorage.clear()
   seenStatuses = []
   vi.mocked(fetchConfig).mockResolvedValue(answer(baseConfig) as never)
-  // One fake server: the revision route answers whatever the last write landed, and each write
-  // names the revision it merged onto, so every cell here stays on the trusted path.
+  // The revision route answers the last write's revision, so every cell stays on the trusted path.
   let serverRevision = "rev-1"
   vi.mocked(fetchConfigRevision).mockImplementation(async () => ({ revision: serverRevision }))
   vi.mocked(applyConfigChanges).mockImplementation(async () => {
@@ -385,8 +384,7 @@ describe("useConfigAutosave outside edits, explicit actions and Undo", () => {
     expect(hook!.valueOf(headless)).toBe(false)
   })
 
-  // the outside edit lands at rev-9 and the page writes before any poll tick; the
-  // write's answer names rev-9 as its base, which the page never read.
+  // The outside edit lands at rev-9 before any poll, so the write's answer names a base never read.
   async function interleavedOutsideEdit() {
     await mount()
     const merged = {
@@ -434,8 +432,6 @@ describe("useConfigAutosave outside edits, explicit actions and Undo", () => {
     expect(hook!.valueOf(previousStepCount)).toBe(77)
   })
 
-  // Deferred 429-28: an unset through a parent the config lacks leaves nothing to remove there,
-  // and the changes after it in the same set still show at once.
   it("MIRROR-CONTINUES-PAST-MISSING-PARENT: a landed set shows every change after an unset whose parent is absent", async () => {
     await mount()
     const workers: ConfigFieldRef = { segments: ["use", "workers"], tab: "execution" }
@@ -713,8 +709,7 @@ describe("useConfigAutosave landed-write mirror for set-if-absent, move and expe
     expect(fetchConfig).toHaveBeenCalledTimes(1)
   })
 
-  // completing use.browser.headless over a root use.headless keeps the owner's value, not
-  // the default, so the mirror cannot know what landed and must read it.
+  // Completion keeps the owner's root `use.headless` value, so the mirror cannot know what landed.
   it("MIRROR-LEGACY-HEADLESS-REREADS: set-if-absent of browser headless over a root use.headless re-reads the file", async () => {
     const legacy = { ...baseConfig, use: { timeout: baseConfig.use.timeout, headless: false } }
     const moved = { ...baseConfig, use: { timeout: baseConfig.use.timeout, browser: { headless: false } } }
@@ -914,8 +909,7 @@ describe("useConfigAutosave a Retry with nothing to send", () => {
   })
 })
 
-// the editor has no masks of its own. A field the server showed through the declared
-// mask is never sent unless the person edits it, and a landed write is mirrored as written.
+// A field shown through the declared mask is sent only when the person edits it.
 describe("useConfigAutosave and masked secret fields", () => {
   const MARKER = "[secret:PW_441]"
   const buildTag: ConfigFieldRef = { segments: ["use", "buildTag"], tab: "execution" }

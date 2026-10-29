@@ -1,11 +1,4 @@
-// ONE SIGN-IN FLOW (429-26 · D-15, D-17 · UI-SPEC S4, S5, E5 · PXH-CONF-03).
-//
-// The add row signs a draft name in, and a saved row's Sign in again signs its saved name in, through
-// this one flow: start the plugin sign-in, open the provider page in a new tab, then poll every 2 s
-// (browser-poll) or wait for the code the page shows (manual-code). There is no dialog and no pop-up
-// message; the caller renders the state. The poll interval and the 5-minute timeout live in refs and
-// are cleared on completion, failure, cancel and unmount. The manual code is never held here: the
-// caller passes it once to submitCode, which sends it to the exchange door.
+// Poll timers live in refs and clear on every exit; the manual code passes once to `submitCode`.
 
 import { useCallback, useEffect, useRef, useState } from "react"
 

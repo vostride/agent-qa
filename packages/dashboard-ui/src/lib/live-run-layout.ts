@@ -1,12 +1,4 @@
-/**
- * The live run page's two arrangements.
- *
- * Docked: the step list and the preview side by side. Stacked, below 768 px of the page's own
- * measured width: the preview on top at full width and the step list beneath it. The switch
- * changes the panels' ids and the Group's orientation, never the Group's key (426-11's idiom), so
- * react-resizable-panels keeps a remembered layout per arrangement and nothing inside the Group
- * is remounted by the Group itself.
- */
+// The switch changes panel ids and Group orientation, never its key, so each layout is remembered.
 
 export type LiveRunLayout = 'docked' | 'stacked'
 

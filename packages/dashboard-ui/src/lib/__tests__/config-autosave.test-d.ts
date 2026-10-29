@@ -1,7 +1,4 @@
-// THE AUTOSAVE MACHINE'S INPUT AND ANSWER, PINNED BY TYPE (429 D-19/D-20/D-24, v54 bar).
-//
-// The event union is the machine's only input, so its member names are a closed set; the status
-// answer's state is exactly SaveState, the set config-tabs.ts publishes.
+// The event union is the machine's only input, so its member names are a closed set.
 
 import { expectTypeOf, test } from 'vitest'
 

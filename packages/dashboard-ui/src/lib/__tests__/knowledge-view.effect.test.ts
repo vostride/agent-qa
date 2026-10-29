@@ -1,4 +1,4 @@
-// 427 · D-11, D-12, D-14 — the Effect section's view: measured effects only, problems first.
+// The Effect section's view: measured effects only, problems first.
 
 import { describe, expect, it } from 'vitest'
 import { RunKnowledgeProjectionSchema, type RunKnowledgeProjection } from '@vostride/agent-qa-schema'

@@ -1,19 +1,4 @@
-// THE KNOWLEDGE PROJECTION, HELD TOTAL AND PURE.
-//
-// `projectKnowledgeView` is the whole distance between what `runs.knowledge` said and what a
-// person reads in the Knowledge tab. It takes a `KnowledgeRead` — the client's own bytes — and
-// returns a view; it has no I/O, no clock and no React in its signature, so a state the panel
-// paints can never be one the op did not say.
-//
-// THE CELLS FIX THE PUBLISHED SENTENCES BY THEIR EXPORTED CONSTANTS, never by
-// literal prose. Copy moves in one place and the tests move with it; prose inlined in a component
-// is prose that drifts from prose inlined in a test, and both of them stay green while the two
-// disagree.
-//
-// THE CELLS THAT MATTER MOST are the absence ones. D-03's summary line omits a zero segment, so
-// "every segment zero" and "no steps at all" are two DIFFERENT sentences: the first says
-// retrieval ran and served nothing, the second says this run has no briefed step to describe.
-// Collapsing them would tell a reader the store is empty when in fact nothing asked it anything.
+// An all-zero summary and a run with no briefed step are different sentences and must stay apart.
 
 import { describe, expect, it } from 'vitest'
 import {
@@ -149,7 +134,6 @@ function ready(overrides: Partial<Extract<RunKnowledgeProjection, { kind: 'ready
   }
 }
 
-/** The `ready` arm's per-step ledger (427 D-19 moved it into Retrieval details), narrowed. */
 function usedOf(view: ReturnType<typeof projectKnowledgeView>) {
   if (view.state !== 'ready') throw new Error(`expected ready, got ${view.state}`)
   return view.ledger
@@ -401,10 +385,7 @@ describe('the reserved copy the expansion plans consume is published NOW', () =>
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// the Used half in full: the per-line why-trace, the cut ledger, the
-// canary outcome word, the replay/hint sentence and the channel page.
-// ─────────────────────────────────────────────────────────────────────────────
+// The Used half: why-trace, cut ledger, canary word, replay sentence and channel page.
 
 /** One answered trace, carrying whatever served/cut ledgers a cell hands it. */
 function answered(
@@ -551,17 +532,7 @@ describe('a canary line is never blank — it says pending, not-attributed, or t
     expect(canaryOutcomeWord('complete', undefined)).toBe('not-attributed')
   })
 
-  /**
-   * THE OWNER'S RULING, 2026-08-30 (UAT item 11 · G-407-11 · REVIEW CR-01).
-   *
-   * A ROW THE STORE SERVED IS AN ANSWER, AND A CHAIN THAT FELL OVER CANNOT UN-APPEND IT. The
-   * curation job's fate is reported by the chip beside this line; printing `not attributed` here
-   * as well is a SECOND, DIFFERENT claim — that the store was consulted and said no — made while
-   * the same projection holds the row that disproves it. From 407-06 (`a795316e`) to 407-21 the
-   * row arm was gated `curationStatus === 'done'`, and the domain being exactly
-   * {pending, running, done, failed} that conjunct's ONLY effect was to route this cell past the
-   * row it had already been handed.
-   */
+  // A row the store served is an answer, so a failed curation chain cannot print `not attributed`.
   it('lets a SERVED ROW beat a FAILED chain — a fold that fell over cannot un-commit an outcome it appended', () => {
     for (const outcome of ['confirmed', 'contradicted', 'helpful', 'harmful'] as const) {
       expect(canaryOutcomeWord('failed', attribution({ outcome }))).toBe(outcome)
@@ -573,14 +544,6 @@ describe('a canary line is never blank — it says pending, not-attributed, or t
     expect(canaryOutcomeWord('failed', undefined, false)).toBe('not-attributed')
   })
 
-  /**
-   * REVIEW WR-02 — `not attributed` IS A POSITIVE CLAIM, AND A PARTIAL READ CANNOT MAKE IT.
-   *
-   * When the store scan is incomplete the op ships `canaryAttributions: []`, so every served
-   * canary line read `not attributed` — the store was consulted and said no — while the very same
-   * projection was telling the Learned half that nobody could look. `unknown` is the absence of an
-   * answer, which is what a partial read actually produced.
-   */
   it('says UNKNOWN, not NOT-ATTRIBUTED, when the read that would have answered was partial', () => {
     expect(canaryOutcomeWord('complete', undefined, true)).toBe('unknown')
     // The default keeps every existing caller green, and says the same thing explicitly.
@@ -605,15 +568,7 @@ describe('a canary line is never blank — it says pending, not-attributed, or t
     }
   })
 
-  /**
-   * THE SUB-QUESTION THE RULING LEFT OPEN, ANSWERED THE SAME WAY WR-02 ANSWERED IT FOR `done`.
-   *
-   * The review's own fix sketch kept a `failed` arm ahead of the flag and so answered
-   * `not-attributed` here. We answer `unknown` instead: with the walk incomplete NOBODY
-   * established that nothing was attributed, so the positive claim is simply unavailable — and
-   * the chain's failure is evidence about the CHAIN, not about how much of the store could be
-   * read. That is 407-18/WR-02's argument verbatim, applied to the arm this ruling re-opened.
-   */
+  // A failed chain is evidence about the chain, not about how much of the store could be read.
   it('says UNKNOWN for a FAILED chain with no row over a PARTIAL read — nobody could finish looking', () => {
     expect(canaryOutcomeWord('failed', undefined, true)).toBe('unknown')
   })
@@ -623,14 +578,7 @@ describe('a canary line is never blank — it says pending, not-attributed, or t
     expect(ATTRIBUTION_UNKNOWN_TEXT).not.toBe(NOT_ATTRIBUTED_TEXT)
   })
 
-  /**
-   * `unknown` IS NOW REACHABLE FROM TWO COMBINATIONS, AND THE SWEEP SAYS SO RATHER THAN LOOSENING.
-   *
-   * 407-22 moved the second one in (`failed` + no row + partial read), so the assertion states the
-   * PREDICATE the word answers to — settled chain, no row, partial read — instead of naming one
-   * status. A cell per arm proves each arm answers; only the sweep proves no OTHER combination
-   * leaks into `unknown`, which is the way a widened vocabulary usually goes wrong.
-   */
+  // Only the sweep proves no other combination leaks into `unknown`.
   it('reaches `unknown` only where the chain SETTLED, no row was served and the read was partial — from either settled word', () => {
     const words = new Set<string>()
 
@@ -813,11 +761,7 @@ describe('the projection joins the trace, the ledger, the outcome and the plan s
     expect(detailOf(view, 1).channel1[0].canaryOutcome).toBe('not-attributed')
   })
 
-  /**
-   * REVIEW WR-02 THROUGH THE WHOLE FOLD. `stepRow`/`stepDetail` are never handed the wire flag,
-   * so the Used half denied outcomes the store was never asked for. One member reaches both
-   * halves, so both halves say the same thing about the same read.
-   */
+  // One member reaches both halves, so both say the same thing about the same read.
   it('says UNKNOWN on a served canary line whose store read was partial, not NOT-ATTRIBUTED', () => {
     const partial = {
       steps: [step({ served: { channel1: [briefLine(true, 'rec_a')], channel2: [], channel3: [] } })],
@@ -898,9 +842,7 @@ describe('the canary and attribution copy is published as constants, like every 
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
 // The Learned half
-// ─────────────────────────────────────────────────────────────────────────────
 
 /** One record change, with only the fields the Learned half reads varied. */
 function change(
@@ -911,13 +853,7 @@ function change(
   return { schemaVersion: RECORD_CHANGE_SCHEMA_VERSION, recordId, change: kind, atOrdinal: 7, ...overrides }
 }
 
-/**
- * A recorded snapshot carrying only the member the heading reads.
- *
- * `rows: []` beside a non-zero breakdown is a shape the op never serves. The count-line cells use it
- * because the heading reads `breakdown` alone; since 427 D-15 the ROWS come from `rows`, so a cell
- * about rows builds a schema-valid snapshot with {@link addedSnapshot} instead.
- */
+// `rows: []` beside a non-zero breakdown is never served; row cells use `addedSnapshot` instead.
 function snapshotOf(breakdown: Partial<CurationBreakdown> = {}) {
   return {
     schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION as typeof CURATION_SNAPSHOT_SCHEMA_VERSION,
@@ -926,7 +862,7 @@ function snapshotOf(breakdown: Partial<CurationBreakdown> = {}) {
   }
 }
 
-/** A schema-valid snapshot of `ids.length` added records, one row each (427 D-15: rows equal counts). */
+// A schema-valid snapshot of `ids.length` added records, one row each.
 function addedSnapshot(ids: readonly string[]) {
   return CurationSnapshotSchema.parse({
     schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION,
@@ -937,7 +873,7 @@ function addedSnapshot(ids: readonly string[]) {
   })
 }
 
-/** The Retrieval details entries for the same projection body (427 D-19 part 2). */
+// The Retrieval details entries for the same projection body.
 function ledgerFrom(
   overrides: Partial<Extract<RunKnowledgeProjection, { kind: 'ready' }>> = {},
 ) {
@@ -957,7 +893,6 @@ function learnedFrom(
 
 describe('the promotion projection copies receipt attribution', () => {
   it('preserves the path and complete digest, and keeps historical keys absent', () => {
-    // RE-SPELLED 427-08 (D-19 part 2): the receipt now reaches Retrieval details, never the row.
     const promotionReceiptDigest = '0123456789abcdef'.repeat(4)
     const input = {
       curation: { status: 'complete' as const },
@@ -974,7 +909,6 @@ describe('the promotion projection copies receipt attribution', () => {
   })
 })
 
-/** The ready view, or a named failure: 432-09 cells read that no proposals member survives. */
 function readyView(overrides: Partial<Extract<RunKnowledgeProjection, { kind: 'ready' }>> = {}) {
   const view = projectKnowledgeView(ready(overrides))
   if (view.state !== 'ready') throw new Error(`expected ready, got ${view.state}`)
@@ -1026,8 +960,7 @@ describe('the Learned half mirrors the curation word and NEVER renders blank', (
 
 describe('a settled curation says what it changed, in the chip\'s own words', () => {
   it('collapses a both-zero legacy pair to the pair itself, with the changed-nothing sentence', () => {
-    // RE-SPELLED 425-06. The pair is now rendered AS a pair rather than folded into a
-    // phrase, because folding it was the step that let two coarse counts read as a breakdown.
+    // The pair renders as a pair, because folding it lets two coarse counts read as a breakdown.
     const view = learnedFrom({ curation: { status: 'complete', counts: { curated: 0, deprecated: 0 } } })
     expect(view.state).toBe('complete')
     expect(view.countLine).toBe(legacyCurationPairText(0, 0))
@@ -1059,13 +992,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
     expect(view.countLine).toBe(curationBreakdownLine(snapshotOf({ added: 1 }).breakdown))
   })
 
-  /**
-   * LEARNED-BREAKDOWN-LINE (425-06 · D-16/D-17, roadmap SC4).
-   *
-   * ONE FUNCTION, TWO SURFACES — the 407 LERN-02 rule, now spanning the header and the tab. The
-   * curation card and this heading both call `curationBreakdownLine` on the SAME persisted
-   * snapshot, so the two cannot disagree about a run a person is reading twice.
-   */
+  // The curation card and this heading both call `curationBreakdownLine` on the same snapshot.
   it('LEARNED-BREAKDOWN-LINE: spells the five buckets in the curation card\'s own words', () => {
     const view = learnedFrom({
       curation: { status: 'complete', counts: { curated: 4, deprecated: 1 } },
@@ -1106,13 +1033,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
     expect(view.sentence).toBe(NO_MEMORY_CHANGES_SENTENCE)
   })
 
-  /**
-   * LEARNED-LEGACY-NOTE.
-   *
-   * FIVE BUCKETS ARE NEVER SYNTHESIZED FROM TWO. A pre-423 pair is a coarser measurement, not a
-   * breakdown with three buckets missing, so the heading prints the pair and says on its own line
-   * that no breakdown exists — the reader who sees two numbers where five usually live is told why.
-   */
+  // An older run's pair is a coarser measurement, so five buckets are never synthesized from two.
   it("LEARNED-LEGACY-NOTE: prints an older run's pair as a pair, with the not-recorded note beneath", () => {
     const view = learnedFrom({ curation: { status: 'complete', counts: { curated: 2, deprecated: 0 } } })
 
@@ -1176,22 +1097,9 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
   })
 })
 
-// ─────────────────────────────────────────────────────────────────────────────
-// The reconciliation line (425-06 · D-19, roadmap SC4)
-// ─────────────────────────────────────────────────────────────────────────────
+// The reconciliation line
 
-/**
- * A MISMATCH IS EXPLAINED BY ONE EXPLICIT LINE, AND ONLY WHEN THERE IS ONE.
- *
- * `counted` is the sum of the snapshot's five buckets; `shown` is the rows this half placed in the
- * CURATION section, because 423 D-15 gives since-then rows their own counted line and folding them
- * in here would hide a real gap behind a later promotion.
- *
- * RE-SPELLED 427-08. The curation rows ARE the snapshot's rows now, one per affected record,
- * so on a schema-valid snapshot `shown` equals `counted` by construction and the reconciliation
- * cannot appear. The gate itself is kept as the structural guard; what a partial read or a failed
- * chain costs is said by the notes beside the rows.
- */
+// Rows equal counts on a valid snapshot; the mismatch gate stays as a structural guard.
 describe('a count that disagrees with the rows says so, and says why', () => {
   it('RECONCILIATION-ONLY-ON-MISMATCH: a schema-valid snapshot shows one curation row per counted record', () => {
     const snapshot = addedSnapshot(['rec-a', 'rec-b', 'rec-c'])
@@ -1306,14 +1214,6 @@ describe('a count that disagrees with the rows says so, and says why', () => {
   })
 })
 
-// RE-PINNED 2026-08-30 (407-15 · R-407-15-01). The three cells below used to pin FOUR kinds:
-// 'keeps the four Learned kinds in the projection's own order', 'drops `added` and `purged` — a
-// birth and a deletion are not what this run LEARNED' and 'publishes the four kinds as one closed
-// table the component and the cells both name'. `added` moved INTO the set: 407-04 stamps
-// `sourceRunId` on the synthetic `added` change precisely so a run's new facts show here, and
-// under the four-kind literal the commonest curation outcome was served, attributed, then dropped
-// (REVIEW CR-04). `purged` is still out. The widening is a reconciliation of D-10 pending the
-// user's ruling — see R-407-15-01.
 describe('the record list is the five LEARNED kinds and nothing else', () => {
   const everyKind: readonly RecordChange['change'][] = [
     'added', 'confirmed', 'superseded', 'deprecated', 'promoted', 'purged',
@@ -1329,7 +1229,7 @@ describe('the record list is the five LEARNED kinds and nothing else', () => {
     }).rows
   }
 
-  // RE-SPELLED 427-08: the rows carry 425's bucket words, so a promotion reads Confirmed.
+  // The rows carry the curation bucket words, so a promotion reads Confirmed.
   it("maps the five Learned kinds onto the curation bucket words in the projection's own order", () => {
     expect(rowsOfEveryKind().map(row => row.bucket))
       .toEqual(['added', 'confirmed', 'superseded', 'deprecated', 'confirmed'])
@@ -1353,7 +1253,6 @@ describe('the record list is the five LEARNED kinds and nothing else', () => {
       .toEqual(['added', 'confirmed', 'superseded', 'deprecated', 'promoted'])
   })
 
-  // RE-TARGETED 427-08 (D-19 part 2): ids and references live in the Retrieval details ledger.
   it('carries the record id verbatim, however unlovely — in the ledger, never on the row', () => {
     const input = {
       curation: { status: 'complete' as const, counts: { curated: 1, deprecated: 0 } },
@@ -1378,8 +1277,7 @@ describe('the record list is the five LEARNED kinds and nothing else', () => {
       learned: { changes: [change('superseded', 'MEM-001')], canaryAttributions: [] },
     })
     expect(entries[0]?.ref).toBe(formatEntityUri('MEM', 'MEM-001'))
-    // `ENTITY_KIND_ROUTES.MEM` is `null` under the DASH-03 contract: this build can say WHAT the
-    // entry points at without being able to say where to click, and it says exactly that.
+    // `ENTITY_KIND_ROUTES.MEM` is `null`, so the entry says what it points at but offers no link.
     expect(entries[0]?.href).toBeUndefined()
   })
 })
@@ -1411,13 +1309,7 @@ describe('a curated NEW fact is what the run learned', () => {
     expect(view.sentence).toBeUndefined()
   })
 
-  /**
-   * ROWS BEAT SENTENCES, and the disagreement is SHOWN rather than hidden.
-   *
-   * A settled row saying both counts are zero, beside a change record the store really attributed
-   * to this run, is two producers disagreeing. The old arm order consulted the counts first and so
-   * suppressed the record; the person then read a both-zero pair with no way to learn otherwise.
-   */
+  // A settled both-zero count beside an attributed change is a disagreement, shown not hidden.
   it('paints rows even when the frozen counts say nothing moved — a served record is never denied', () => {
     const view = learnedFrom({
       curation: { status: 'complete', counts: { curated: 0, deprecated: 0 } },
@@ -1443,10 +1335,7 @@ describe('a curated NEW fact is what the run learned', () => {
   })
 
   it('lists NOTHING while the chain is UNSETTLED, however many rows the projection carries', () => {
-    // RE-SCOPED 407-26. This cell used to iterate `failed` too, under a title that
-    // contradicted its own subject: `failed` is a SETTLED chain, and the D-12 justification the
-    // title cites — "a chain that has not settled has not finished deciding what it changed" —
-    // does not describe it. The settled-and-failed case moved to the cell below.
+    // `failed` is a settled chain, so it has its own cell below.
     for (const status of ['pending', 'running'] as const) {
       const view = learnedFrom({
         curation: { status },
@@ -1458,16 +1347,7 @@ describe('a curated NEW fact is what the run learned', () => {
     }
   })
 
-  /**
-   * G-407-12 / REVIEW CR-01 — OWNER RULING 2026-08-31: A SERVED ROW WINS ON THE LEARNED HALF TOO.
-   *
-   * 407-22 ruled that "a chain that fell over cannot un-commit an outcome event it already
-   * appended" and applied it to the Used half's `canaryOutcomeWord`. The owner extended the same
-   * ruling to this half. `learned.changes` comes from the `diffSince` walk over the COMMITTED
-   * store, filtered by 407-04's run-link stamping; `curation.status` comes from a different
-   * sibling op. `{ status: 'failed', changes: [row] }` is therefore a producible shape, and the
-   * records in it were served and stamped with this run's own id before the chain fell over.
-   */
+  // Learned changes and curation status are separate ops, so a failed chain can hold served rows.
   it('PAINTS records a failed chain already committed — a chain that fell over cannot un-commit them', () => {
     const view = learnedFrom({
       curation: { status: 'failed' },
@@ -1480,7 +1360,7 @@ describe('a curated NEW fact is what the run learned', () => {
     // published contract is "absent exactly when rows is non-empty".
     expect(view.sentence).toBeUndefined()
     expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT)
-    // D-09 is untouched — counts still come only from the settled notification row.
+    // Counts come only from the settled notification row.
     expect(view.countLine).toBeUndefined()
   })
 
@@ -1510,14 +1390,7 @@ describe('a curated NEW fact is what the run learned', () => {
     expect(view.chainNote).toBe(CURATION_FAILED_PARTIAL_TEXT)
   })
 
-  /**
-   * WR-02 → 427-08 D-15 — ONE RECORD, ONE ROW, ONE INDEX KEY.
-   *
-   * `diffSince` emits one `RecordChange` per surviving outcome event, so a bundle confirmed at
-   * ordinal 12 and superseded at 13 crosses the run filter twice. Since 427 D-15 those changes are
-   * one row in the record's strongest bucket, and every raw event behind it is listed in Retrieval
-   * details. The key is the row's index and never names the record: no id reaches a row.
-   */
+  // A record's changes are one row in its strongest bucket, keyed by index so no id reaches it.
   it('keys a row by its ROW INDEX and never by the record it belongs to', () => {
     const view = learnedFrom({
       curation: { status: 'complete', counts: { curated: 1, deprecated: 0 } },
@@ -1565,13 +1438,7 @@ describe('a curated NEW fact is what the run learned', () => {
     ])
   })
 
-  /**
-   * REVIEW WR-01 — TWO `confirmed` EVENTS AT ONE ORDINAL, ONE RECORD.
-   *
-   * `survivingOutcomeEvents` dedupes on `evidenceToken:curationJobId`, NOT on type or ordinal, so
-   * one bundle can carry two confirmations at one `buildOrdinal` and `diffSince` emits both. They
-   * are one record, so one row; the ledger keeps both events and both tokens.
-   */
+  // Events dedupe on token and job, so one bundle can confirm twice at one ordinal: one row.
   it('gives two confirmations at ONE ordinal one row, and keeps both tokens in the ledger', () => {
     const input = {
       curation: { status: 'complete' as const, counts: { curated: 2, deprecated: 0 } },
@@ -1589,12 +1456,7 @@ describe('a curated NEW fact is what the run learned', () => {
     expect(ledgerFrom(input)[0]?.events.length).toBe(2)
   })
 
-  /**
-   * REVIEW WR-04 (round-2 WR-05) — THE CASE NO MEMBER-BUILT KEY COULD SEE.
-   *
-   * Two `RecordChange`s identical in all five members the 407 key spelled are reachable by
-   * construction. They are one record's history, so they are one row, and both events stay listed.
-   */
+  // Changes identical in every keyed member are one record's history: one row, every event listed.
   it('separates two changes identical in all five previously-keyed members', () => {
     const input = {
       curation: { status: 'complete' as const, counts: { curated: 2, deprecated: 0 } },
@@ -1636,15 +1498,7 @@ describe('a curated NEW fact is what the run learned', () => {
 })
 
 describe('an unreadable store is named, never called "not available yet"', () => {
-  /**
-   * TWO ABSENCES THAT MUST NOT WEAR ONE SENTENCE.
-   *
-   * `CHANGES_NOT_AVAILABLE_TEXT` means the store answered and no change carried this run's
-   * attribution. 407-14's `learned.scanIncomplete` means the store could not be READ — the op
-   * folded a `KnowledgeMaintenanceScanError` and published the fold rather than hiding it inside
-   * an emptiness. Saying "not available yet" about a store nobody could open tells a reader to
-   * wait for something that will never arrive on its own.
-   */
+  // No attributed change and an unreadable store are different absences with different sentences.
   it('says the change records could not be READ, keeps the counts, and lists nothing', () => {
     const view = learnedFrom({
       curation: { status: 'complete', counts: { curated: 3, deprecated: 1 } },
@@ -1676,15 +1530,7 @@ describe('an unreadable store is named, never called "not available yet"', () =>
 })
 
 describe('a partial read decorates the answer, it never replaces it', () => {
-  /**
-   * THE REVIEW'S REPRODUCTION, INVERTED (REVIEW CR-01).
-   *
-   * `runs.knowledge` folds its two Learned enrichments INDEPENDENTLY, so a failed attribution
-   * scan beside a readable diff publishes `{ scanIncomplete: true, changes: [<this run's row>] }`
-   * — a sanctioned, op-tested shape. The shipped arm put the flag ABOVE the row fold and returned
-   * `rows: []`, so the half asserted the store could not be read while holding the record that
-   * proves it could. The flag DECORATES the answer; it never replaces it.
-   */
+  // The Learned enrichments fold independently; the flag decorates the rows, never replaces them.
   it('paints the row it was handed and keeps the flag beside it — no unreadable-store sentence', () => {
     const view = learnedFrom({
       curation: { status: 'complete', counts: { curated: 1, deprecated: 0 } },
@@ -1704,12 +1550,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
     expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT)
   })
 
-  /**
-   * THE FLAG-ONLY WORLD IS UNTOUCHED (407-17's (c2) shape).
-   *
-   * Nothing to list AND nothing readable is the one arm whose sentence already names the store,
-   * so the note would be a second, quieter copy of the sentence beside it — a nag, not news.
-   */
+  // With nothing to list and nothing readable, the sentence already names the store, so no note.
   it('still names the unreadable store when the kind filter left nothing to paint, and adds NO note', () => {
     const view = learnedFrom({
       curation: { status: 'complete', counts: { curated: 3, deprecated: 1 } },
@@ -1723,13 +1564,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
     expect('readNote' in view).toBe(false)
   })
 
-  /**
-   * THE FLAG IS A FACT ABOUT THE READ, NOT ABOUT THE CHAIN.
-   *
-   * The unsettled arms returned before the flag was ever consulted, so a run waiting on a chain
-   * that will settle, over a store nobody can open, rendered `Deltas land when curation settles.`
-   * with no stamp at all — no cell and no operator grep could see the degradation.
-   */
+  // The flag is a fact about the read, so the unsettled arms carry it too.
   it('carries the flag and the note through the unsettled arms — pending and running', () => {
     for (const status of ['pending', 'running'] as const) {
       const view = learnedFrom({
@@ -1758,15 +1593,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
     expect(view.readNote).toBe(STORE_READ_INCOMPLETE_TEXT)
   })
 
-  /**
-   * TWO PRODUCERS, TWO NOTES, NEITHER SPEAKING FOR THE OTHER.
-   *
-   * The chain's fate and the store's readability are folded INDEPENDENTLY by 407-14's op, so a
-   * projection can carry both at once — the shipped conformance file's fifth world
-   * (`attributed-failed`) literally does. One slot could only report one of them, which is the
-   * coupling round-2 WR-03 named; `chainNote` and `readNote` are therefore siblings, not a
-   * single flag with two meanings.
-   */
+  // Chain fate and store readability fold apart, so `chainNote` and `readNote` are siblings.
   it('carries the chain note AND the read note at once — a failed chain over a partial read', () => {
     const view = learnedFrom({
       curation: { status: 'failed' },
@@ -1824,9 +1651,6 @@ describe('a partial read decorates the answer, it never replaces it', () => {
   })
 })
 
-// RE-SPELLED 432-09 from 'the proposals line is a COUNT and a door, never any proposal content
-// ': the tab shows what changed, so no ready view carries a proposals member, a count or a
-// review command, whatever the curation word — and a legacy count on the wire is not projected.
 describe('no ready view carries a pending-proposals line or a review command', () => {
   it.each([
     ['complete', { curation: { status: 'complete' as const, counts: { curated: 1, deprecated: 0 } } }],
@@ -1884,9 +1708,7 @@ describe('the Memory changes copy is published as constants, like every sentence
   })
 })
 
-// ---------------------------------------------------------------------------
 // The rung banner's copy of record
-// ---------------------------------------------------------------------------
 
 describe('the strip sentence exists only for warning classes, composed from closed tables', () => {
   it('renders the SENTENCE OF RECORD byte-for-byte for a floor host', () => {
@@ -1909,8 +1731,7 @@ describe('the strip sentence exists only for warning classes, composed from clos
   })
 
   it('says NOTHING for the top rung and for a run that recorded none', () => {
-    // `memidex` is not a degradation, and "not yet known" is the absence of a sentence — both
-    // render no banner at all rather than a reassuring one.
+    // `memidex` is no degradation and an unknown rung has no sentence, so neither shows a banner.
     expect(rungBannerText({ rung: 'memidex' })).toBeUndefined()
     expect(rungBannerText(undefined)).toBeUndefined()
   })
@@ -1946,9 +1767,7 @@ describe('the two label tables are TOTAL over the schema vocabularies', () => {
   })
 
   it('carries the doctor row wording verbatim for the three labels the CLI reconciled', () => {
-    // These three are NOT in UI-SPEC's five. `doctor-knowledge-checks.ts` chose them; 407-11 pins
-    // the two tables equal. This cell is the dashboard half of that pin, stated locally so the
-    // drift reds here first.
+    // These causes come from `doctor-knowledge-checks.ts`; this cell is the dashboard half.
     expect(RUNG_CAUSE_LABELS['model-not-downloaded']).toBe('embedding model not downloaded')
     expect(RUNG_CAUSE_LABELS['embedder-load-failed']).toBe('embedder failed to load')
     expect(RUNG_CAUSE_LABELS['profile-static-configured']).toBe('static profile configured')

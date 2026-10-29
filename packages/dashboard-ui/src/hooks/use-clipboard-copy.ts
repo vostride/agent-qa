@@ -1,8 +1,4 @@
-// One copy-status pattern for every copy control (quick 261003-cpv, 432-UI-REVIEW fix 3, pillar 5).
-//
-// `copied` is set only after the clipboard write resolved. A missing clipboard or a rejected write is
-// `failed`, which the control announces with the value spelled out so it can still be selected.
-// Extracted from `RecordIdCopy`, whose pattern `IdBadge` lacked.
+// `copied` waits for the clipboard write to resolve; no clipboard or a rejection is `failed`.
 
 import { useEffect, useRef, useState } from "react"
 

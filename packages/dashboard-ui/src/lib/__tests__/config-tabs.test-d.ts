@@ -1,7 +1,4 @@
-// THE CONFIG PAGE'S CLOSED SETS, PINNED BY TYPE (429 D-02/D-03, v54 bar).
-//
-// Each runtime array and its union are two spellings of one closed set; the runtime twins are the
-// C429-*-EXACT cells in config-tabs.test.ts.
+// Each runtime array and its union are two spellings of one closed set.
 
 import { expectTypeOf, test } from 'vitest'
 

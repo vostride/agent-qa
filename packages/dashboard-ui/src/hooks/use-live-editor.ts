@@ -4,20 +4,6 @@ import type { LivePhase } from '@/lib/display-step'
 import { logLiveDebug } from '@/lib/live-debug'
 import { LIVE_EDITOR_SESSION_GONE_CLOSE_CODE, LIVE_EDITOR_SUPERSEDED_CLOSE_CODE } from '@/lib/live-preview'
 
-/**
- * One sub-action of a LIVE editor step.
- *
- * IT LIVES HERE NOW, BESIDE ITS ONLY PRODUCER. This shape used to sit in the API module beside the
- * durable run-detail types and carried five fields the live editor never wrote — two capture paths,
- * an annotation and two screen-context strings — because run detail borrowed it for its v1
- * projection. Refs are the only artifact addressing now and the durable page reads the projection's
- * own sub-action, so what is left is exactly what the live editor produces: the phase texts, the
- * planned action, the recorded outcome and the per-phase durations.
- *
- * The socket sends this list under its own wire key; {@link liveSubActionsOf} is the ONE place that
- * key is read, so the wire spelling appears once in the UI and this is the shape everything else
- * holds.
- */
 export interface LiveSubAction {
   index: number
   observation: string
@@ -30,15 +16,7 @@ export interface LiveSubAction {
   phaseDurations?: { observe?: number; plan?: number; execute?: number; verify?: number }
 }
 
-/**
- * Read the live-editor socket's sub-action list off a step result.
- *
- * THE ONE PLACE THE WIRE KEY IS SPELLED. The dashboard-server's live-editor socket names this list
- * with the v1 run-detail spelling, and that name has a live producer on the other side of the
- * socket, so it is not this plan's to rename. Reading it in exactly one place keeps the wire
- * vocabulary from spreading back through the UI, and makes the boundary something a reader can
- * find rather than something they have to grep for.
- */
+// The live-editor socket names this list with the run-detail wire key; it is read only here.
 function liveSubActionsOf(
   result: { subActionsData?: LiveSubAction[] | null } | null | undefined,
 ): LiveSubAction[] | null {
@@ -1054,9 +1032,7 @@ export function useLiveEditor(
         return
       }
 
-      // The server detaches a dropped session for its idle window, so any other close
-      // is worth a reconnect to the same session; 4404 means the server no longer holds it, and
-      // 4409 that another socket took the session over, which a reconnect would only take back.
+      // Other closes reconnect; 4404 means the session is gone, 4409 that another socket took it.
       const gone = event.code === LIVE_EDITOR_SESSION_GONE_CLOSE_CODE
       const superseded = event.code === LIVE_EDITOR_SUPERSEDED_CLOSE_CODE
       const willReconnect = !gone && !superseded && allowReconnect && reconnectCountRef.current < 3
@@ -1083,9 +1059,7 @@ export function useLiveEditor(
       stepCompleteResolverRef.current = null
       cancelResolverRef.current?.()
       cancelResolverRef.current = null
-      // A test in flight is settled the same way, so "Run all tests" ends. The server
-      // cancels it on the drop; its outcome, if one follows, reaches the reconnected socket and
-      // only updates the row.
+      // A test in flight settles too, so Run all tests ends; a late outcome only updates the row.
       const runningTest = runningTestIndexRef.current
       if (runningTest !== null) {
         setTests(prev => prev.map((t, i) =>
@@ -1541,8 +1515,7 @@ export function useLiveEditor(
     }
   }, [isRunningAllTests, sendMessage])
 
-  // An explicit end must not depend on the control socket: the server only detaches on a dropped
-  // socket, and the page's unmount runs after this hook has closed it (RESEARCH P2).
+  // An explicit end also sends an HTTP delete, because a dropped socket only detaches the session.
   const terminateSession = useCallback(() => {
     runAllAbortedRef.current = true
     setIsRunningAll(false)

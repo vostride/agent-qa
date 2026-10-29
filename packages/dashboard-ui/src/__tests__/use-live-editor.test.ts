@@ -133,9 +133,7 @@ describe('syncExternalHooks', () => {
   })
 })
 
-// SC1 · D-07: the editor watches through the shared preview, so the hook no longer polls the
-// control socket for base64 screenshots. The needles are concatenated so this file cannot match
-// itself.
+// The needles are concatenated so this file cannot match itself.
 const RETIRED_REQUEST = 'get-' + 'screenshot'
 const RETIRED_MEMBERS = ['screen' + 'shot', 'request' + 'Screenshot']
 const POLLING_NAMES = ['start' + 'ScreenshotPolling', 'set' + 'Screenshot']
@@ -239,8 +237,7 @@ describe('HOOK-HAS-NO-SCREENSHOT-POLLING', () => {
   })
 })
 
-// D-09 · RESEARCH P2/P5: the server detaches on a dropped control socket, so an explicit end must
-// reach it without the socket, and a server that no longer holds the session must be named.
+// The server only detaches on a dropped socket, so an explicit end must reach it another way.
 class LifecycleProbeSocket {
   static instances: LifecycleProbeSocket[] = []
   static readonly CONNECTING = 0
@@ -346,8 +343,7 @@ describe('editor session lifecycle', () => {
     return null
   }
 
-  // The editor pages' shape: the hook's own effect is declared first, so on unmount it closes
-  // the socket before the page's unmount effect asks for the end (RESEARCH P2).
+  // The hook's effect runs first, so unmount closes the socket before the page asks for the end.
   function PageShapedHarness({ sessionId }: { sessionId: string }) {
     const editor = useLiveEditor(sessionId, { allowReconnect: false })
     const terminateRef = useRef(editor.terminateSession)

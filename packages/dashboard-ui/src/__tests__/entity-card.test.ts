@@ -1,10 +1,4 @@
-// The dashboard half of the entity-card contract.
-//
-// 430: this dashboard renders no entity card. The card render, its actions and
-// its payload detector left with the conversation surface, so what the dashboard still owns of the
-// contract is the route map alone: an href is minted from ENTITY_KIND_ROUTES over an entity's own
-// address, a kind this dashboard does not route gets none, and the absence cells below red if a
-// card module or a card export returns. The MCP half is conformance/entity-card-parity.test.ts.
+// The dashboard owns the route map; the MCP half is `conformance/entity-card-parity.test.ts`.
 
 import { existsSync, readFileSync } from 'node:fs'
 import { resolve as resolvePath } from 'node:path'
@@ -50,8 +44,7 @@ describe('the kind -> route map is total', () => {
   })
 
   it('refuses to mint a route for a routed kind whose address names no machine id', () => {
-    // `/test/:t_id` is keyed by machine id; guessing the short-ID into that slot would be a dead
-    // link minted with confidence, which D-10 forbids.
+    // `/test/:t_id` is keyed by machine id, so a short ID in that slot would be a dead link.
     expect(entityRouteFor({ kind: 'TST', shortId: 'TST-001' })).toBeUndefined()
     expect(entityRouteFor({ kind: 'TST', shortId: 'TST-001', machineId: 't-x' })).toBe('/test/t-x')
     expect(entityRouteFor({ kind: 'TGT', shortId: 'TGT-checkout' })).toBe('/config')

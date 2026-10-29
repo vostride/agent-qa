@@ -1,8 +1,4 @@
-// THE LIVE PREVIEW'S CLOSED SETS AND ITS INPUT, PINNED BY TYPE (428 D-14/D-15/D-16, v54 bar).
-//
-// Each runtime array and its union are two spellings of one closed set; the runtime twin is
-// CLOSED-SETS-428 in live-preview.test.ts. NO-BUS-INPUT is D-15 rule 4: no bus envelope, liveness
-// source or socket state can reach the machine, so health read off the bus is a type error.
+// Health read off the bus is a type error: no envelope or socket state can reach the machine.
 
 import { expectTypeOf, test } from 'vitest'
 import type {
@@ -90,11 +86,7 @@ test('the token verdicts plus the three the socket alone answers', () => {
   expectTypeOf<(typeof LIVE_EMBED_REFUSAL_REASONS)[number]>().toEqualTypeOf<Expected>()
 })
 
-/**
- * The transport state a bus liveness judgement read, restated here since 428 D-03 deleted the
- * reducer's `LivenessSource`: an `EventSource.readyState` and whether the source is retrying.
- * The machine must still admit neither.
- */
+// The transport state a bus liveness judgement would read; the machine must admit neither.
 interface BusTransportState {
   readyState: number
   erroredWhileConnecting: boolean

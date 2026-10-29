@@ -1,43 +1,4 @@
-// THE FAILURE VIEW'S PROJECTION — what a member's block shows, derived from the op's bytes alone.
-//
-// Phase 406-01 · DETL-04, D-03 / D-05 / D-10. Grown in 406-06 · D-08 / D-09 / D-10 / D-11 / D-19.
-//
-// THIS FILE COMPOSES NO SENTENCE, AND THAT IS THE POINT. `analysis.get` is THE single producer of
-// a run's verdict sentences, written by `packages/agent/src/analysis/render-sentence.ts`.
-// Every surface, the CLI print, CLI chat and this page, reads its output rather than re-deriving it.
-// A template here would be a second producer of one fact, which is the 405 D-01 anti-pattern
-// restated. What this module does is JOIN: the
-// op's `verdicts[]` to the op's `sentences[]` and to its `clusters[]`, keyed by the member handle,
-// into the map the page hands each `MemberGroup`.
-//
-// IT IS PURE AND TOTAL. No I/O, no clock, no React. The only inputs are the op's own bytes and the
-// analysis CHIP STATUS WORD — a pushed `watchPostProcessing` frame is a TRIGGER and never a paint
-// input (D-03, 404 D-17 applied a second time). An absent analysis and an empty `verdicts[]` (a
-// green run: `resolveRunVerdicts` filters `passed | skipped | cancelled`, so a run with nothing to
-// explain answers an empty list) both project to the same honest answer: no entry, therefore no
-// block.
-//
-// THE JOIN KEY IS `perTest`, WHICH IS `RunDetailMember.testIndex`. Never `testId` — that is a
-// per-run explicit id the projection does not key members by — and never array position, which
-// would pair the first verdict with the first sentence whatever member each is about.
-//
-// THE VERDICT IS WHAT KEYS AN ENTRY, NOT THE SENTENCE. A verdict the renderer has not
-// answered for yet is kept, with an empty sentence: it still carries the `producer`, the
-// `confidence` and — through the chip — the marker, which is exactly what a reader needs while the
-// sentence is still coming. A SENTENCE with no verdict is still dropped; there is no producer to
-// attribute it to and no outcome to grade it against. (406-01 dropped both; this widening is the
-// one behaviour 406-06 supersedes, and its cell says so.)
-//
-// THE LIFECYCLE'S ONLY INPUT IS THE CHIP WORD. `provisional` while the chain is
-// `pending` or `running`, `failed` when it permanently fell back, nothing when it is `done` or when
-// no read has landed. It is NEVER inferred from the sentence's text. The deterministic floor closes
-// its sentences with an undetermined-cause clause, and a projection that sniffed for that wording
-// would mark an LLM verdict that happened to contain it and would go quiet the day the floor's copy
-// changed — so the wording is not written in this file at all, and a grep for it is an acceptance
-// gate. The cells pin the rule with a PAIR: the same chip, two sentences, one marker.
-//
-// EVERY PUBLISHED SENTENCE IS AN EXPORTED CONSTANT (`post-processing-view.ts`'s law). The cells
-// assert against the constants, so copy moves in one place and the tests move with it.
+// Joins the op's verdicts to its sentences by `perTest`; it composes and inspects no sentence.
 
 import type {
   AnalysisGetOutput,
@@ -50,7 +11,6 @@ import type {
 } from '@vostride/agent-qa-schema'
 
 export type OnMark = (testIndex: number, stepIndex: number | undefined, kind: Mark, note?: string) => Promise<'refreshed' | 'retained' | 'stale'>
-/** a refused mark, as a plain reason. */
 export interface MarkDenial { reason: string }
 
 /** The provenance chip when the model authored this verdict. */
@@ -86,7 +46,7 @@ export interface MemberVerdictSibling {
 export interface MemberVerdictArtifact {
   readonly id: string
   readonly sha: string
-  /** `present === false` OR `evidenceIncomplete === true` — presence-UNKNOWN is neither. */
+  // `present === false` or `evidenceIncomplete === true`; unknown presence is neither.
   readonly incomplete: boolean
 }
 
@@ -127,13 +87,7 @@ export interface MemberVerdictView {
   readonly memoryOnPath?: MemberMemoryOnPathView
 }
 
-/**
- * The provenance chip's reading.
- *
- * A CONFIDENCE ONLY WHERE THERE IS ONE TO READ. `analyze-run` authors a number a reader can weigh;
- * the deterministic floor mints `confidence: 0` for every `unknown` it fills in, and printing
- * "deterministic fallback · 0.00" would offer that constant as though it were a measurement.
- */
+// The deterministic floor mints `confidence: 0`, so its chip prints no confidence.
 export function provenanceLabel(
   producer: AnalysisResolvedVerdict['producer'],
   confidence: number,
@@ -143,14 +97,7 @@ export function provenanceLabel(
     : DETERMINISTIC_FALLBACK_LABEL
 }
 
-/**
- * The chip word's marker — the WHOLE lifecycle rule, in one total switch.
- *
- * `complete` and "no read yet" both answer nothing, and they answer it for different reasons: a
- * terminal chain has nothing left to warn about, and a page that has not heard from the read route
- * has nothing to warn WITH. Neither is a marker, and inventing one for either would put a
- * permanent "still running" beside a finished verdict.
- */
+// A complete chain and an unread one get no marker, or a finished verdict would read running.
 export function markerFor(chip: AnalysisChipWord): MemberVerdictMarker | undefined {
   switch (chip) {
     case 'pending':
@@ -170,29 +117,15 @@ function markerTextFor(marker: MemberVerdictMarker | undefined): string | undefi
   return marker === 'provisional' ? ANALYSIS_PROVISIONAL_TEXT : ANALYSIS_FAILED_FALLBACK_TEXT
 }
 
-/**
- * The affordance on a step the verdict cited.
- *
- * THE ORDINAL IS THE PRODUCER'S, NOT THE TREE'S. The sentence directly above this row quotes the
- * same step as `observed (step N)`, and the step is addressed by `<testIndex>:<stepIndex>` in the
- * `?step=` deep link, so both the prose a reader just read and the URL they can copy count from
- * zero. The tree's own "step N of M" counter is a display ordinal and is deliberately not borrowed
- * here — a link labelled one number that jumps to another is the off-by-one nobody debugs.
- */
+// Counts from zero like the sentence and the `?step=` link, not like the tree's display ordinal.
 export function citedStepLabel(stepIndex: number): string {
   return `step ${String(stepIndex)}`
 }
 
-/**
- * The affordance on an artifact the verdict cited (D-02, second half).
- *
- * IT NAMES THE THING, NOT THE ACTION. The sha is on the element as `data-cited-artifact` and is
- * what the click carries; a label that spelled it would put 64 hex characters in a sentence and
- * still not tell a reader what opens. The word is the noun the drawer's own tab wears.
- */
+// The sha rides on `data-cited-artifact`; the label names the drawer tab the click opens.
 export const CITED_ARTIFACT_LABEL = 'screenshot'
 
-/** The cluster sibling line. Counts the SIBLINGS, so "other" is literally true. */
+// Counts siblings only, so `other` is literally true.
 export function siblingLine(count: number): string {
   return `same failure as ${String(count)} other ${count === 1 ? 'test' : 'tests'}`
 }
@@ -226,26 +159,13 @@ function readMemoryOnPath(
   }
 }
 
-/**
- * The member-level count beside a block whose evidence is partly gone.
- *
- * THE PLURAL KEYS ON THE TOTAL, not on the missing count, because the noun it agrees with is
- * "cited artifacts" — the set the member cited, not the subset that vanished.
- */
+// The plural keys on the total, because the noun is the cited set, not the missing subset.
 export function missingEvidenceLine(count: MemberVerdictMissingEvidence): string {
   const noun = count.total === 1 ? 'cited artifact' : 'cited artifacts'
   return `${String(count.missing)} of ${String(count.total)} ${noun} unavailable`
 }
 
-/**
- * The op's answer, keyed by member handle.
- *
- * TOTAL over every input the page can hold: `undefined` while the first read is in flight or after
- * a rejected one, an empty `verdicts[]` on a green run, a verdict the op listed with no matching
- * sentence, a cluster naming a member no verdict covers, and an evidence block the op did not send
- * at all. A member with no entry renders no block — which is the honest rendering of "there is
- * nothing to explain here".
- */
+// Total over every input the page holds; a member with no entry renders no block.
 export function projectAnalysisView(
   analysis: AnalysisGetOutput | undefined,
   chip: AnalysisChipWord,
@@ -281,9 +201,7 @@ export function projectAnalysisView(
     const citedArtifacts = (verdict.evidence?.citedArtifacts ?? []).map((ref) => ({
       id: ref.id,
       sha: ref.sha,
-      // PRESENCE-UNKNOWN IS NOT AN ABSENCE. A host that cannot cheaply stat its
-      // blobs omits `present` entirely, and `!ref.present` would render that omission as a claimed
-      // deletion. The predicate is `=== false`, and it is spelled that way on purpose.
+      // A host that cannot stat its blobs omits `present`, so only `=== false` claims a deletion.
       incomplete: ref.present === false || ref.evidenceIncomplete === true,
     }))
     const missing = citedArtifacts.filter((ref) => ref.incomplete).length

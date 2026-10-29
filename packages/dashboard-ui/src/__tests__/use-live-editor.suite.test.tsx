@@ -281,7 +281,6 @@ describe('useLiveEditor suite mode', () => {
     expect(ref(holder).isRunningAllTests).toBe(false)
   })
 
-  // D-07 fail-fast
   it('runAllTests stops at the first failed test (fail-fast)', async () => {
     const holder: HarnessRefHolder = { current: null }
     await render({
@@ -465,7 +464,6 @@ describe('useLiveEditor suite mode', () => {
     expect(ref(holder).runningTestIndex).toBeNull()
   })
 
-  // playground model
   it('test-list changes do NOT invalidate the in-flight session', async () => {
     const holder: HarnessRefHolder = { current: null }
     await render({

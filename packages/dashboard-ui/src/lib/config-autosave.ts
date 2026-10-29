@@ -1,9 +1,4 @@
-// THE CONFIG PAGE'S SAVE STATE.
-//
-// One pure, total machine owns what the page's one status may say. Every clock is a parameter,
-// the reduceLivePreview idiom: no timers, no storage and no network here, the hook owns effects.
-// The truthfulness rules live in the reducer: only write-succeeded reaches saved, and a failed
-// write keeps every value it carried.
+// One pure machine with every clock a parameter; only write-succeeded reaches saved.
 
 import { SAVED_VISIBLE_MS, undoLine } from './config-copy'
 import type { ExplicitActionKind, FieldState, SaveState } from './config-tabs'

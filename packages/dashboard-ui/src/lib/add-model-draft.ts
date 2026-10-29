@@ -1,6 +1,4 @@
-// THE ADD ROW'S DRAFT. The add row's non-secret fields survive a
-// reload for this viewer; the typed key, token, sign-in code and header values never reach
-// storage. Writes and reads both go through one allow-list, so a new field stays out until named.
+// The draft's reads and writes share one allow-list, so secrets and new fields stay out of storage.
 
 import { CONNECTION_CHOICES, type ConnectionChoice } from './config-tabs'
 
@@ -54,7 +52,7 @@ function pickDraft(value: unknown): AddModelDraft | undefined {
   return draft as AddModelDraft
 }
 
-/** The name the add row suggests for a model id (UI-SPEC S5, step 3). */
+/** The name the add row suggests for a model id. */
 export function suggestModelName(modelId: string): string {
   return modelId
     .toLowerCase()

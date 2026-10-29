@@ -1,9 +1,4 @@
-// THE LIVE PAGE'S TWO ARRANGEMENTS.
-//
-// Below 768 px of measured page width the page stacks with the preview on top; at 768 and above it
-// is docked, and an unmeasured page (width 0) is docked. The switch changes the panels' ids and the
-// Group's orientation, never the Group's key (426-11's idiom), so these cells pin the boundary and
-// the ids the page reads.
+// The switch changes panel ids and Group orientation, never the Group's key.
 
 import { describe, expect, expectTypeOf, it } from 'vitest'
 

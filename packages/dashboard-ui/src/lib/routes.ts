@@ -36,27 +36,11 @@ export const routes = {
     return link.kind === 'mapped' ? configTabPath(link.tab, link.section) : configTabPath('models')
   },
 
-  // hrefs are minted from this total map, never copied off a
-  // store-written URL. An artifact is addressed by the `{ id, sha }` ref the projection carries;
-  // the run id is encoded because it is opaque, and the sha is passed VERBATIM because the store
-  // validates its 64-hex shape and re-casing it would change the content address itself.
+  // The run id is encoded because it is opaque; the sha passes verbatim, as the store validates it.
   runArtifact: (runId: string, sha: string) => `/api/runs/${encodeURIComponent(runId)}/artifacts/${sha}`,
 } as const
 
-/**
- * THE ONE PIECE OF NAVIGATION STATE THIS APP CARRIES.
- *
- * The live page navigates to run detail the instant its reducer records the run's verdict. That
- * leaves run detail with a question it cannot answer from the run row alone: the row's status is
- * written by the dashboard subscriber's own `updateRun` at the SAME envelope the page navigated
- * on, and a `fetchRun` issued a millisecond later can legitimately still read `running`. A page
- * that bounced back to `/live` on that reading would ping-pong the viewer between two surfaces at
- * the exact moment their run ended — T-404-15, the failure D-07 exists to forbid.
- *
- * So the navigating page says so, in one field, and run detail reads it. This is deliberately NOT
- * a query parameter: a shareable URL that carries "I just watched this verdict land" would make a
- * pasted link claim something about the person who opened it that is simply untrue.
- */
+// Tells run detail not to bounce to `/live` on a stale row; kept out of the URL so links stay true.
 export interface RunDetailNavigationState {
   readonly arrivedOnVerdict: RunStatus
 }
@@ -81,17 +65,6 @@ export function arrivedOnVerdictFrom(state: unknown): RunStatus | undefined {
   return word as RunStatus
 }
 
-/**
- * The cadence and the ceiling of run detail's row catch-up, for an arrival that carries a verdict.
- *
- * WHY A CATCH-UP AND NOT A WAIT. The subscriber's `updateRun` at `verdict` and this page's own
- * `fetchRun` race BY DESIGN — D-13 navigates on the ENVELOPE, which is the earliest honest moment,
- * and the durable row follows within milliseconds. The page therefore renders the row it has and
- * re-asks, rather than blocking on a row that is already on its way.
- *
- * 8 × 250 ms = two seconds, after which the page simply shows what it has. A row that has not
- * caught up in two seconds is not a race any more; it is a producer or a database that has a
- * different problem, and spinning forever on it would be the same dishonesty as the bounce.
- */
+// The row trails the verdict envelope by milliseconds, so the page re-asks briefly, never blocks.
 export const VERDICT_ROW_CATCH_UP_MS = 250
 export const VERDICT_ROW_CATCH_UP_MAX = 8

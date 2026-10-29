@@ -290,12 +290,10 @@ test('CITED-SHA-FINDS-MARKER', () => {
 })
 
 test('the timeline axes', () => expect(TIMELINE_AXES).toEqual(['time', 'ordinal']))
-// 'no-input' joins the closed set.
 test('the marker results', () => expect(MARKER_RESULTS).toEqual(['passed', 'failed', 'healed', 'no-input']))
 test('the marker frames', () => expect(MARKER_FRAMES).toEqual(['available', 'absent']))
 test('the player sources', () => expect(PLAYER_SOURCES).toEqual(['frames', 'video']))
 
-// a skipped tap's marker is neither passed nor failed.
 test('a skipped tap\'s timeline marker result is no-input', () => {
   const input = group()
   input.steps[0]!.subActions[0]!.result = {

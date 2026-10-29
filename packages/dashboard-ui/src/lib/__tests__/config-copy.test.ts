@@ -1,8 +1,4 @@
-// THE CONFIG STRINGS OF RECORD (429 UI-SPEC Copywriting Contract).
-//
-// COPY-429: every exported sentence is non-empty, the owner-locked words are exact, no string
-// carries storage vocabulary, no button label is a bare generic word, and the connection-failure
-// sentences are the shared classifier's own function, never a second spelling.
+// Every exported Config sentence is non-empty, and connection failures use the shared classifier.
 
 import {
   CONFIG_WRITE_REFUSALS,
@@ -165,10 +161,7 @@ describe('the Config strings of record', () => {
     expect(source).not.toContain('Authentication failed.')
   })
 
-  // Each line is re-derived from the code that reads the path (429-20 SUMMARY records file:line
-  // evidence): the dashboard opens its database at startup, runs and agent calls resolve the
-  // knowledge folder per run or call while a standing daemon keeps its own, and the artifacts
-  // folder holds only each run's working-memory file, which nothing the dashboard shows reads.
+  // Each line is re-derived from the code that reads its path.
   it('CONSEQUENCE-LINES-PINNED: the three data paths, each with the one sentence the code bears out', () => {
     expect(copy.APPLY_CONSEQUENCES).toEqual({
       'knowledge.dir':

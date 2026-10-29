@@ -1,15 +1,4 @@
-// WHAT THIS CELL IS GUARDING.
-//
-// `src/lib/analytics.ts` used to beacon three v33 product events at the dashboard server's
-// `POST /api/analytics/events` bridge. D-18 drops those events and D-20 deletes the core module the
-// server captured them through, so both halves are gone and M5's rebuild decides what — if
-// anything — it wants to emit against the new `AnalyticsPort`.
-//
-// This is a CENSUS over the package's whole shipped source, not a mock assertion, because the
-// failure it is written against is a re-added emitter in a file nobody thought to check. It reads
-// comments too, on purpose: an exclusion list stops covering exactly the files most likely to break
-// the rule (398-03's `.strip()` lesson). That is why the vocabulary is not spelled out in this
-// comment beyond the identifiers below, which are the assertion itself.
+// A census over all shipped source, comments included, so a re-added emitter anywhere fails.
 
 import { readdir, readFile } from 'node:fs/promises'
 import { dirname, join, relative } from 'node:path'

@@ -1,11 +1,4 @@
-// THE CONFIG PAGE'S AUTOSAVE (429 D-19/D-20/D-21/D-22/D-24 · PXH-CONF-04/05).
-//
-// One hook the whole page shares, because Radix unmounts inactive tab panels: a draft kept in a
-// section component would vanish on a tab change. The pure machine in lib/config-autosave.ts
-// decides what the status may say; this hook owns the effects: settle timers, the one write in
-// flight, browser-storage drafts and the loaded config. A landed write is mirrored as written, and
-// only the fields a person changed are sent, so a value shown through the declared mask is never
-// written back.
+// One hook for the whole page, because Radix unmounts inactive tab panels and would drop a draft.
 
 import {
   createContext,
@@ -111,11 +104,7 @@ export interface ConfigAutosave {
     undoMeta?: ConfigUndoMeta,
     fields?: readonly ConfigFieldRef[],
   ) => Promise<boolean>
-  /**
-   * One explicit write computed from the freshest config the page holds. When the
-   * file changed under it (field_changed), the page re-reads and computes once more; a second
-   * refusal in a row reads Couldn't save, and Retry computes again from a fresh read.
-   */
+  // When the file changed under it (`field_changed`), the page re-reads and computes once more.
   runComputed: (compute: ConfigCompute, undoMeta?: ConfigUndoMeta) => Promise<boolean>
   /**
    * Offers Undo for an action the server already performed through its own door (a credential
@@ -357,7 +346,7 @@ function applyAt(next: Record<string, unknown>, change: PlainChange): boolean {
     } else if (change.op !== "unset" && typeof segment === "string" && isRecord(parent)) {
       parent = parent[segment] = {}
     } else {
-      // Nothing is there to remove; the rest of the set still applies (deferred 429-28).
+      // Nothing is there to remove; the rest of the set still applies.
       return change.op === "unset"
     }
   }
@@ -399,7 +388,7 @@ function patchConfig(
     }
     if (change.op === "set-if-absent") {
       if (lookup(next, change.path).found) continue
-      // completion over a root use.headless keeps the owner's value, so only a read shows it.
+      // Completion over a root `use.headless` keeps the owner's value, so only a read shows it.
       const legacy =
         change.path.length === BROWSER_HEADLESS_PATH.length &&
         change.path.every((segment, index) => segment === BROWSER_HEADLESS_PATH[index]) &&
@@ -557,8 +546,7 @@ function createEngine(host: EngineHost) {
         result = await send(changes)
       }
       if (!attached) return false
-      // a write that merged onto bytes this page never read absorbed an outside
-      // edit, so its revision is not the page's own read; drop trust and re-read once it settles.
+      // A write merged onto bytes never read here took in an outside edit; drop trust and re-read.
       const stale =
         typeof result.baseRevision === "string" && (revision === undefined || result.baseRevision !== revision)
       revision = stale ? undefined : result.revision

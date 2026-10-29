@@ -1,9 +1,3 @@
-// THE CONFIG PAGE'S CLOSED VOCABULARY.
-//
-// Five tabs, their sections in order, the total map from the live legacy `bucket:item` links,
-// the resolver the page, the palette and the tour share, and every UI closed set. The type
-// twins of the C429-*-EXACT cells are in config-tabs.test-d.ts.
-
 import { readFileSync } from 'node:fs'
 
 import { describe, expect, it } from 'vitest'

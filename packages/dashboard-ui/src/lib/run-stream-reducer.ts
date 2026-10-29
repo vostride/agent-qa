@@ -16,7 +16,7 @@ import type {
 
 // Rows copy payload fields one by one, as a spread leaks planner fields; `now` is the only clock.
 
-/** The step vocabulary HNST-02 fixes, in lifecycle order. Compatible with `lib/status.ts`. */
+// The step vocabulary in lifecycle order, compatible with `lib/status.ts`.
 export const STEP_STATUSES = [
   'pending',
   'running',
@@ -31,37 +31,12 @@ export type StepStatus = (typeof STEP_STATUSES)[number]
 
 const TERMINAL_STEP_STATUSES: readonly StepStatus[] = ['passed', 'failed', 'healed', 'skipped', 'cancelled']
 
-/**
- * One step of one member, as the live page is allowed to know it.
- *
- * THE FIELDS THAT ARE NOT HERE ARE THE POINT. There is no slot for a plan, an intended action, a
- * candidate target, an action result or a verifier's prose — the five payload fields the bus
- * carries and this surface refuses. This file does not NAME those fields anywhere, in code
- * or in prose: the reducer destructures only the two coordinates it keeps, so there is no
- * spelling of them here for a later edit to reach for. What a viewer gets from a running step is that it is
- * running, what it is called, how long it has been going and how many sub-actions it has recorded.
- * The step's reasoning belongs to the run record, which is durable, complete, and one click away.
- *
- * `ticks` is a COUNT, never a phase. The animation it drives is indeterminate on purpose: a label
- * derived from tick timing would be a guess about what the agent is doing between two events, and a
- * guess rendered as fact is the provisional content this phase exists to stop showing.
- */
-/**
- * One step row on the LIVE page, folded from the run stream.
- *
- * NAMED `LiveStepRow` SINCE 405-11, and the rename is the whole point of the name: the durable
- * page's v1 row carried the same short name in the API module, so the two shapes were one grep
- * apart from each other for anyone auditing which of them was retired. That one is gone; this one
- * has a live producer and keeps a name that says which page it belongs to.
- */
+// Rows have no slot for reasoning content, and `ticks` is a count, never a phase.
 export interface LiveStepRow {
   testIndex: number
   stepIndex: number
   status: StepStatus
-  /**
-   * The step's own text, verbatim from `stepStarted`. Before the step starts, the masked text
-   * `testStarted.stepTexts` carried. Empty when neither is known, and then the row is not drawn
-   */
+  // From `stepStarted`, else the masked `testStarted.stepTexts` entry, else empty and not drawn.
   text: string
   /** The `ts` of the `stepStarted` envelope — the page's elapsed-time origin. */
   startedAt?: number
@@ -90,11 +65,7 @@ export interface MemberRow {
   sawStepStarted: boolean
 }
 
-/**
- * What a member with no steps renders as. A thin handle stream can BEGIN with a terminal event —
- * 402's `?handle=1` observation — and blank rows under a green tick would read as "it passed
- * everything", which is a lie about a member that never started.
- */
+// A member stream can begin with a terminal event, so a member with no steps says it did not run.
 export const DID_NOT_RUN_NOTE = 'did not run'
 
 /** A `runWarning`/`runError` reduced to what a viewer can act on. The `context` map is dropped. */
@@ -127,22 +98,7 @@ export interface RunStreamState {
   terminal: boolean
   notices: readonly RunStreamNotice[]
   gap?: RunStreamGap
-  /**
-   * The retrieval rung this run was served on, as the FIRST `stepFinalized` frame carrying it
-   * said.
-   *
-   * RUN-CONSTANT, SO THE FIRST FRAME WINS. The rung describes the HOST'S ladder at the moment
-   * this run was served — not how any one step's brief was ranked — so every frame that carries
-   * it carries the same value. Folding "last write wins" would be indistinguishable today and
-   * would turn any future per-step variation into a header that flickers between two accounts of
-   * one machine, and then disagrees with the durable banner run detail paints from the same
-   * evidence.
-   *
-   * ABSENT, NEVER NULLED, BEFORE THE FIRST CARRYING FRAME. "Not yet known" is the missing key —
-   * which is what lets the page render no element at all rather than a banner claiming a rung
-   * nobody has stated. A pre-407 run and a run with no knowledge reader bound never leave
-   * this state.
-   */
+  // Run-constant, so the first carrying frame wins; absent, never nulled, until one arrives.
   retrievalRung?: RecordedRetrievalRung
 }
 
@@ -160,19 +116,7 @@ export function createInitialRunStreamState(): RunStreamState {
   }
 }
 
-/**
- * HNST-02's status resolution for one finalized step.
- *
- * THE ORDER IS LOAD-BEARING. A healed step's verdict passes, so reading the verdict before the heal
- * flag would make `healed` unreachable and render every self-heal as a plain pass — erasing exactly
- * the fact a person most needs to see. `status` wins over both because it is the producer's own
- * word, and the two below it are a reconstruction for producers that predate it.
- *
- * THE `status` WORD IS VALIDATED, NOT TRUSTED. The payload arrives as JSON from another process;
- * its declared type says what this build's producer emits, not what a build one version ahead — or
- * anything between — actually sends. An unknown word falls through to the reconstruction rather
- * than becoming an eighth status no renderer has a case for.
- */
+// `status` wins if known, then the heal flag before the verdict, as a healed step's verdict passes.
 export function stepStatusOf(payload: StepFinalizedPayload): StepStatus {
   const declared = payload.status
   if (declared !== undefined && (TERMINAL_STEP_STATUSES as readonly string[]).includes(declared)) {
@@ -187,17 +131,7 @@ export function stepStatusOf(payload: StepFinalizedPayload): StepStatus {
   return payload.verifierVerdict.pass ? 'passed' : 'failed'
 }
 
-/**
- * Record what a replay floor cost this viewer (D-13's visible gap marker).
- *
- * THE ARITHMETIC IS THE DOOR'S OWN, AND IT IS THE MOST LIKELY INTEGRATION ERROR THIS CONTRACT CAN
- * PRODUCE. A `410 replay_floor` advertises `earliestAvailableSeq`, so a client that saw
- * `lastSeen` re-attaches with `lastEventId = earliestAvailableSeq - 1` and the envelopes from
- * `lastSeen + 1` through `earliestAvailableSeq - 1` are gone for good.
- *
- * A gap is never cleared, because the gap happened; and a second floor never overwrites the first,
- * because the first is the one the viewer has not yet been told about.
- */
+// After a floor, re-attach at `earliestAvailableSeq - 1`; a gap is never cleared or overwritten.
 export function markGap(state: RunStreamState, lastSeen: number, earliestAvailableSeq: number): RunStreamState {
   if (state.gap !== undefined) return state
   const from = lastSeen + 1
@@ -239,15 +173,7 @@ function replaceRow(rows: readonly LiveStepRow[], index: number, row: LiveStepRo
 const rowIndexOf = (rows: readonly LiveStepRow[], testIndex: number, stepIndex: number): number =>
   rows.findIndex((row) => row.testIndex === testIndex && row.stepIndex === stepIndex)
 
-/**
- * Fold ONE envelope into the state. Pure: the input state is never mutated and `now` is supplied
- * by the caller.
- *
- * THE DEFAULT ARM IS DELIBERATE. Hook events, the post-processing chip group and any type a future
- * bus appends move `lastSeq` and `lastEnvelopeAt` and nothing else. The chips are Phase 404's
- * surface over durable state, not this page's; a live page that rendered them would be a second
- * place chip semantics are stated, free to disagree with the one that survives a closed socket.
- */
+// The default arm moves only `lastSeq` and `lastEnvelopeAt`; chips belong to the durable surface.
 export function reduceRunStream(state: RunStreamState, envelope: RunEventEnvelope, now: number): RunStreamState {
   // Every envelope is activity, whatever it says — that is what makes the bus `heartbeat` count.
   // `lastSeq` takes the HIGHEST seq seen rather than the latest: a resume point that walked
@@ -258,10 +184,7 @@ export function reduceRunStream(state: RunStreamState, envelope: RunEventEnvelop
     lastSeq: Math.max(state.lastSeq, envelope.seq),
   }
 
-  // D-12's freeze. After `runFinished` the run's log is complete; nothing that arrives later may
-  // reopen a row, change a status or revise the verdict. Activity bookkeeping continues, because a
-  // frozen page is not a deaf one — post-processing envelopes continue this run's seq, and a state
-  // that stopped counting them would hand a reattaching client a stale resume point.
+  // After `runFinished` nothing reopens a row, but seq keeps counting so a reattach resumes right.
   if (state.terminal) return base
 
   switch (envelope.type) {
@@ -281,8 +204,7 @@ export function reduceRunStream(state: RunStreamState, envelope: RunEventEnvelop
         name: payload.name,
         totalSteps: payload.totalSteps,
       }
-      // The texts crossed a trust boundary as JSON, so only an array's string entries are read, and
-      // the row count stays totalSteps's however long the list is.
+      // Untrusted JSON: only string entries are read, and rows stay capped at `totalSteps`.
       const stepTexts: unknown = payload.stepTexts
       const pendingText = (stepIndex: number): string => {
         if (!Array.isArray(stepTexts)) return ''
@@ -367,10 +289,7 @@ export function reduceRunStream(state: RunStreamState, envelope: RunEventEnvelop
     }
 
     case 'subActionRecorded': {
-      // ONLY THE COORDINATES ARE READ. The payload also carries the agent's intent, its candidate
-      // targets, the action result and the model's prose; none of it is destructured, so none of
-      // it can reach a row. This is where D-10 is enforced, and it is enforced by what the two
-      // lines below do NOT name.
+      // Only the coordinates are destructured, so nothing else in the payload can reach a row.
       const { testIndex, stepIndex } = envelope.payload as { testIndex: number; stepIndex: number }
       const at = rowIndexOf(base.steps, testIndex, stepIndex)
       if (at < 0) return base

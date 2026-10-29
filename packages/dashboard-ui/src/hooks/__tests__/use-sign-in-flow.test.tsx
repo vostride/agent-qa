@@ -1,11 +1,6 @@
 // @vitest-environment jsdom
 
-// ONE SIGN-IN FLOW (429-26 · D-15, D-17 · UI-SPEC S5, E5 · PXH-CONF-03).
-//
-// The add row and a saved row's Sign in again share this flow: start the plugin sign-in for a
-// name, then either poll every 2 s (browser-poll) or wait for the pasted code (manual-code). The
-// interval and the 5-minute timeout live in refs and are cleared on completion, failure, cancel
-// and unmount, so no poll outlives the flow.
+// The poll interval and timeout live in refs and clear on every exit, so no poll outlives the flow.
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'

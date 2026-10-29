@@ -137,11 +137,6 @@ describe('fromEditorStep', () => {
 })
 
 describe('withDisplayStepProgress', () => {
-  // THE DURABLE STEP IS THE ONLY ROW THIS NUMBERS NOW. The v1 builder these two fixtures
-  // used to call — and the row it read, with its capture paths and its per-step token counters —
-  // are deleted; refs are the only artifact addressing and the projection carries the spend. The
-  // property under test is unchanged: numbering is DISPLAY-ONLY and never edits the identity a
-  // deep link selects by.
   it('adds display-only progress without mutating the durable step identity', () => {
     const step = (stepIndex: number, stepText: string): RunDetailStep => ({
       testIndex: 0,

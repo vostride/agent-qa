@@ -1,4 +1,4 @@
-// 427 · D-02, D-04, D-05, D-07 — the section set, the grouped used rows and the step-reference text.
+// The section set, the grouped used rows and the step-reference text.
 
 import { describe, expect, it } from 'vitest'
 import { RunKnowledgeProjectionSchema, type RunKnowledgeProjection, RECORD_CHANGE_SCHEMA_VERSION } from '@vostride/agent-qa-schema'

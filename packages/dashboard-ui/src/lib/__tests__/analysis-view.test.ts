@@ -1,15 +1,4 @@
-// THE FAILURE VIEW'S PURE PROJECTION (406-01 · DETL-04, D-05 / D-10; 406-06 · D-08..D-11 / D-19).
-//
-// The page composes no sentence. Everything a member's block shows is a byte-identical copy of an
-// `analysis.get` `sentences[].sentence`, joined to the member by `perTest`, with a provenance label
-// this product owns. These cells pin exactly that: the join key, the totality of the map over an
-// absent or empty analysis, and the two provenance readings.
-//
-// AND THE LIFECYCLE IS KEYED OFF THE CHIP WORD, NEVER OFF THE TEXT. The
-// marker cells below include a PAIR — one sentence carrying the deterministic floor's own
-// "root cause undetermined" wording, one carrying none — and require the SAME marker for both. A
-// projection that sniffed the sentence for fallback words would pass every other cell in this file
-// and fail that pair, which is the whole reason it is written as a pair.
+// The page composes no sentence; the marker is keyed off the chip word, never the sentence text.
 
 import { describe, expect, it } from 'vitest'
 import type {
@@ -97,11 +86,7 @@ describe('projectAnalysisView joins verdicts to members by perTest', () => {
   })
 
   it('keys a verdict whose sentence never arrived, and drops a sentence with no verdict', () => {
-    // 406-06 SUPERSEDES 406-01 HERE, and the plan says so in as many words. The verdict is what
-    // carries `producer`, `confidence` and — through the chip — the marker; withholding the whole
-    // entry because the renderer had not answered yet would withhold the provenance chip and the
-    // "analysis running" marker too, which are exactly what a reader needs while it has not.
-    // A SENTENCE with no verdict stays dropped: there is no producer to attribute it to.
+    // A verdict without a rendered sentence still shows; a sentence with no verdict stays dropped.
     const view = projectAnalysisView(
       analysis({
         verdicts: [verdict(0)],
@@ -270,8 +255,7 @@ describe('cited evidence rides the verdict, and absence is counted', () => {
   })
 
   it('marks a ref incomplete from EITHER absence fact, and never from presence-unknown', () => {
-    // `present` ABSENT IS NOT `present: false`. A host that cannot stat its blobs omits
-    // the key, and rendering that as a claimed absence would invent a deletion nobody measured.
+    // An absent `present` is not `present: false`: a host that cannot stat its blobs omits the key.
     const view = projectAnalysisView(
       analysis({
         verdicts: [

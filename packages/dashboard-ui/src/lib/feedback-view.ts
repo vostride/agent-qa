@@ -1,8 +1,4 @@
-// THE FEEDBACK COMPOSER'S COPY AND RULES.
-//
-// Pure and total: no I/O, no clock, no React. Every sentence a person reads in the composer is an
-// exported constant or a pure function here, so cells assert against the constant and copy moves in
-// one place.
+// Every composer sentence is an exported constant or pure function here.
 
 import { MARK_PREVIEW_REFUSALS, markAddressKey } from '@vostride/agent-qa-schema'
 import type {
@@ -52,10 +48,7 @@ export function isDraftEmpty(draft: FeedbackDraft): boolean {
   return draft.kind === undefined && draft.note === ''
 }
 
-/**
- * A place the composer can name: a step by number, a test by name and handle. `member`
- * is given only in a suite; without it a test is "this test".
- */
+// `member` is given only in a suite; without it a test is `this test`.
 export interface FeedbackPlace {
   stepIndex?: number
   member?: Pick<RunDetailMember, 'testIndex' | 'name'>
@@ -210,7 +203,7 @@ export interface ComposerHeadingInput {
   suite: boolean
 }
 
-/** the exact step or test the composer is about; step numbers are stepIndex + 1. */
+// The exact step or test the composer is about; step numbers are `stepIndex + 1`.
 export function composerHeading({ member, step, stepCount, suite }: ComposerHeadingInput): FeedbackTextParts {
   if (step !== undefined) {
     return {
@@ -297,11 +290,7 @@ export interface HeaderFeedbackTargetInput {
   runStatus: string | undefined
 }
 
-/**
- * the test the header entry means. A suite resolves, in order, to the selected step's test, the
- * member filter's test, the first failed member, then the first member — "first" in handle order.
- * The page auto-selects the first visible step, so on load rung 1 wins (RESEARCH Pitfall 5).
- */
+// Resolves to the selected step's test, the filtered member, the first failed, then the first.
 export function resolveHeaderFeedbackTarget({
   detail,
   selectedStep,
@@ -324,10 +313,7 @@ export function resolveHeaderFeedbackTarget({
 export const TEST_SWITCHER_LABEL = 'Test'
 export const NO_UNIQUE_ADDRESS_TEXT = "This test has no unique address in this run, so feedback can't be recorded for it."
 
-/**
- * D-01, inherited from onMark's refusal: the wire addresses a suite member by testId, so a member
- * needs a truthy testId no other member holds. A single-test run needs none.
- */
+// The wire addresses a suite member by `testId`, so it needs a truthy one no other member holds.
 export function hasUniqueAddress(detail: Pick<RunDetailProjection, 'members'> | null | undefined, testIndex: number): boolean {
   const members = detail?.members ?? []
   const member = members.find((entry) => entry.testIndex === testIndex)
@@ -336,8 +322,6 @@ export function hasUniqueAddress(detail: Pick<RunDetailProjection, 'members'> | 
   return Boolean(member.testId) && members.filter((entry) => entry.testId === member.testId).length === 1
 }
 
-// the state a mark sat in while its approval was asked is deleted with
-// the approval. A submission is composing, in flight, recorded or retained, and nothing else.
 export type FeedbackComposerState =
   | 'composing'
   | 'submitting'
@@ -362,7 +346,7 @@ export const FEEDBACK_LAYOUTS = [
   'stacked',
 ] as const satisfies readonly FeedbackLayout[]
 
-/** 48rem, 425's first header step (the header moved to 64rem for #480): below it the open composer stacks under the evidence. */
+// 48rem: below it the open composer stacks under the evidence.
 export const FEEDBACK_STACK_BELOW_PX = 768
 
 /** An unmeasured page (width 0) and a closed composer are always docked, so the closed layout never moves. */
@@ -388,10 +372,7 @@ const FEEDBACK_STACKED_PANEL_IDS = {
   feedback: 'run-feedback-stacked',
 } as const satisfies FeedbackPanelIds
 
-/**
- * Each arrangement has its own panel ids (RESEARCH Pattern 3), so react-resizable-panels keeps a
- * remembered layout per orientation and the Group never needs a key change to reset.
- */
+// Each arrangement has its own panel ids, so each orientation keeps a remembered layout.
 export function feedbackPanelIds(layout: FeedbackLayout): FeedbackPanelIds {
   return layout === 'stacked' ? FEEDBACK_STACKED_PANEL_IDS : FEEDBACK_PANEL_IDS
 }
@@ -458,10 +439,7 @@ export interface SubmitBlockInput {
   noUniqueAddress?: boolean
 }
 
-/**
- * First match wins; '' means Send feedback is available (D-19, UI-SPEC S6). Only a current
- * consequences or quarantined read gets past the preview rows: there is no blind submit.
- */
+// First match wins and `''` means sendable; only a current consequences or quarantined read passes.
 export function submitBlockedReason(input: SubmitBlockInput): string {
   if (input.noUniqueAddress === true) return SUBMIT_REASON_NO_UNIQUE_ADDRESS
   if (input.kind === undefined) return SUBMIT_REASON_NO_CHOICE
@@ -518,13 +496,12 @@ export function stepTriggerTooltip(stepNumber: number, marked: boolean): string 
     : `Give feedback on step ${String(stepNumber)}`
 }
 
-/** a passive trace names the plain choice, never the internal word. */
+// A passive trace names the plain choice, never the internal word.
 export function markGlyphLabel(kind: Mark): string {
   return `Marked: ${CHOICE_LABELS[kind]}`
 }
 
-// a mark applies its fix in the call, so a receipt says what was
-// added or edited. `drafted` is a pre-432 receipt read back from an existing ledger.
+// A mark applies its fix in the call; `drafted` is an older receipt read back from a ledger.
 export const DISPOSITION_TEXT = {
   applied: {
     fact: 'Recorded — a knowledge fact was added',
@@ -532,11 +509,10 @@ export const DISPOSITION_TEXT = {
     'procedure-hint': 'Recorded — a procedure hint was added',
     'test-edit': 'Recorded — the test file was edited',
   } satisfies Record<MarkFixKind, string>,
-  // 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW pillar 1): a historical reader's wording.
   drafted: 'Recorded — a fix was drafted (older mark)',
   'no-draftable-fix': 'Recorded — no fix could be drafted',
   'confirmed-bug': 'Recorded — kept as a real product bug; nothing changed',
-  // the mark stands; its planned fix was refused, nothing changed.
+  // The mark stands; its planned fix is refused and nothing changes.
   'not-applied': {
     'target-not-found': 'Recorded — the fix was not applied: the knowledge it replaces is gone',
     'policy-materialize-refused': 'Recorded — the fix was not applied: its policy text was refused',
@@ -567,7 +543,7 @@ export function feedbackRecordedText(disposition: MarkDisposition): string {
   return `Feedback recorded — ${dispositionText(disposition).replace(/^Recorded — /, '')}.`
 }
 
-// 426 D-16..D-19: the consequence preview. Every line is one runs.mark.preview field in plain words.
+// The consequence preview: every line is one `runs.mark.preview` field in plain words.
 
 export type FeedbackPreviewState =
   | 'idle'
@@ -657,7 +633,7 @@ export const CONTENT_ABSENCE_TEXT = {
   'not-bound': "Record content isn't available on this host",
 } satisfies Record<RunKnowledgeContentAbsence['reason'], string>
 
-// the preview says what sending will change, in the future tense of an applied fix.
+// The preview says what sending will change, in the future tense of an applied fix.
 export const PREVIEW_FIX_TEXT = {
   knowledge: {
     fact: 'A knowledge fact will be added',
@@ -702,7 +678,7 @@ export function replacesLine(ordinal: number, time: string | undefined): string 
 
 export type MarkTargetReason = Extract<RunsMarkPreviewResult, { kind: 'consequences' }>['resolvedStep']['reason']
 
-/** keyed on the read's reason and the kind, never re-derived; a step mark needs no line. */
+// Keyed on the read's reason and the kind, never re-derived; a step mark needs no line.
 export function resolvedStepText(reason: MarkTargetReason, kind: Mark, stepNumber: number, total: number): string | undefined {
   const lead = `This marks step ${String(stepNumber)} of ${String(total)} — `
   switch (reason) {
@@ -721,8 +697,7 @@ export function showStepLabel(stepNumber: number): string {
   return `Show step ${String(stepNumber)}`
 }
 
-// the two arms that are not consequences. A quarantined mark still records; an identical repeat
-// does not, because a note alone never changes what a mark does (isIdenticalRepeat).
+// A quarantined mark still records; an identical repeat does not, as a note alone changes nothing.
 
 export const QUARANTINE_CAUSE_TEXT = {
   timeout: 'a timeout',
@@ -739,7 +714,7 @@ export function alreadyMarkedText(time?: string): string {
   return `You already said this${time === undefined ? '' : ` (${time})`}. A new note alone isn't recorded.`
 }
 
-// a refusal is runs.mark's own arm, read from its own fields; a failed read names why.
+// A refusal is `runs.mark`'s own arm, read from its fields; a failed read names why.
 
 export type PreviewRefusalKind = (typeof MARK_PREVIEW_REFUSALS)[number]
 export type PreviewRefusalArm<K extends PreviewRefusalKind = PreviewRefusalKind> = Extract<RunsMarkPreviewResult, { kind: K }>
@@ -806,7 +781,7 @@ export const RETRY_LABEL = 'Retry'
 /** Label-in-name: the accessible name starts with the visible word and says what it retries. */
 export const PREVIEW_RETRY_ACCESSIBLE_NAME = `${RETRY_LABEL} checking what this will do`
 
-// the one place the internal mark words and the ids appear as text.
+// The one place the internal mark words and the ids appear as text.
 
 export const TECHNICAL_DETAILS_LABEL = 'Technical details'
 
@@ -825,8 +800,7 @@ export function basisDetailText(basis: MarkPreviewBasis): string {
   return `ledger ordinal ${String(basis.ledgerOrdinal)}${prior}`
 }
 
-// the history. Each entry is one receipt; its disposition is what happened then. 432-09
-// an applied fix states in one line what it changed, and nothing is offered for review.
+// Each history entry is one receipt; its disposition is what happened then.
 
 export type FeedbackHistoryState =
   | 'loading'
@@ -883,7 +857,7 @@ export const REPLACEMENT_EXPLANATION = 'Only your latest mark on a test or step 
 export type AppliedChangeView =
   | { kind: 'knowledge'; records: { recordId: string; content?: string }[] }
   | { kind: 'test-file'; filePath: string }
-  /** A pre-432 drafted receipt: its change was never recorded, and none is invented. */
+  /** An older drafted receipt: its change is not recorded, and none is invented. */
   | { kind: 'unavailable' }
 
 export const APPLIED_KNOWLEDGE_PREFIX = 'Changed knowledge: '
@@ -902,9 +876,7 @@ export function appliedChangeView(
   if (disposition.kind === 'drafted') return { kind: 'unavailable' }
   if (disposition.kind !== 'applied') return undefined
   if (disposition.change.kind === 'test-file') return { kind: 'test-file', filePath: disposition.change.filePath }
-  // 2026-10-03 (quick 261003-cpv, 432 review IN-32): a knowledge receipt that read back no record
-  // (the records were tombstoned since, or none was read) names no content, so it says the content
-  // was not recorded rather than printing a bare prefix.
+  // A receipt that read back no record says its content is unrecorded, never a bare prefix.
   if (disposition.change.recordIds.length === 0) return { kind: 'unavailable' }
   const joined = new Map((entry.changedRecords ?? []).map((record) => [record.recordId, record.recordContent?.content]))
   return {
@@ -936,12 +908,7 @@ export function appliedChangeText(view: AppliedChangeView): string {
 export const APPLIED_CONTENT_NOT_RECORDED_TEXT = 'its content was not recorded.'
 export const DRAFTED_CHANGE_NOT_RECORDED_TEXT = 'what it changed was not recorded.'
 
-/**
- * The ONE history line for an entry (2026-10-03, quick 261003-cpv, 432-UI-REVIEW fix 2, D-25): what
- * the mark did, with what an applied fix changed after a colon. It replaces a disposition line plus
- * a second applied line, which said the same change twice and could contradict itself. The history
- * component renders exactly this text, with record content and paths as text nodes.
- */
+// One line per entry: what the mark did, then what an applied fix changed, so it cannot contradict.
 export function historyChangeText(entry: Pick<MarkHistoryEntry, 'disposition' | 'changedRecords'>): string {
   const lead = dispositionText(entry.disposition)
   const view = appliedChangeView(entry)
@@ -960,10 +927,7 @@ export function historyChangeText(entry: Pick<MarkHistoryEntry, 'disposition' | 
   }
 }
 
-/**
- * How an applied change is corrected, shown once above the history when an entry applied
- * a fix. Marking again replaces the mark, not the fix, so the pointer says so.
- */
+// Marking again replaces the mark, not the fix, so the pointer says how to correct a change.
 export const APPLIED_CORRECTION_TEXT
   = 'A fix stays when you mark again: correct knowledge with new feedback or by forgetting it, and revert a test edit with git.'
 

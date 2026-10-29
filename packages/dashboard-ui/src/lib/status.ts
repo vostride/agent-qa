@@ -110,7 +110,7 @@ export function getRunStatusDescriptor(status: string | null | undefined): RunSt
 
 export type RunStatusClass = 'pass' | 'fail' | 'cancelled' | 'live'
 
-// mirrors the server's runStatusClass; other words have no class.
+// Mirrors the server's `runStatusClass`; other words have no class.
 const RUN_STATUS_CLASS: Record<string, RunStatusClass> = {
   pending: 'live',
   running: 'live',
@@ -125,7 +125,7 @@ export function runStatusClass(status: string): RunStatusClass | undefined {
   return Object.hasOwn(RUN_STATUS_CLASS, status) ? RUN_STATUS_CLASS[status] : undefined
 }
 
-// a member with no outcome reads as its run only while the run is running.
+// A member with no outcome reads as its run only while the run is running.
 export function memberStatus(runStatus: string, outcome: string | null | undefined): string | null {
   return outcome ?? (runStatus === 'running' ? 'running' : null)
 }
@@ -219,20 +219,7 @@ export function getStatusTextClassName(tone: StatusTone): string {
   }
 }
 
-// ------------------------------ the one badge palette ------------------------------
-//
-// ONE DEFINITION FOR THE RUN'S VERDICT BADGE AND EVERY MEMBER'S.
-//
-// This switch was the navbar's private helper until 406 D-07 put an outcome badge on every member
-// header. Two copies of it would be two palettes: the aggregate saying `Cancelled` in muted grey
-// while a member said it in something else, on one screen, about one run. It is lifted here rather
-// than exported from the navbar because `lib/` is where this page's pure descriptors already live,
-// and because a component importing a component for a lookup table is a dependency neither of them
-// needs. NOTHING ABOUT WHAT IS PAINTED CHANGED — the arms are the navbar's own, verbatim.
-//
-// THE TYPE IS STRUCTURAL, not `ComponentProps<typeof Badge>`. This module is pure and imports no
-// React, which is what lets the projection cells run without a DOM; naming the component here to
-// borrow its prop type would drag the whole component graph in for two field names.
+// One palette for the run badge and every member badge; the type is structural so no React loads.
 
 /** The `Badge` variants this palette selects from — a subset, spelled to stay assignable. */
 export type StatusBadgeVariant = 'default' | 'secondary' | 'destructive' | 'outline'

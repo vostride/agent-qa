@@ -1,9 +1,4 @@
-// THE CONFIG PAGE'S CLOSED VOCABULARY.
-//
-// One pure module owns every tab id, section id and UI state word the Config page, the command
-// palette and the product tour share, plus the total map from the 21 live legacy `bucket:item`
-// links to the new structure. Each closed set is a union, then a prettier-ignore array pinned
-// with satisfies, so the mutation engine can match it line by line. Labels live in config-copy.ts.
+// One module owns every Config tab id, section id and state word the page, palette and tour share.
 
 import { CONFIG_SECTION_LABELS } from './config-copy'
 
@@ -145,7 +140,7 @@ export const LEGACY_CONFIG_PAIRS = [
   'analytics:pass-rate-scope',
 ] as const satisfies readonly LegacyConfigPair[]
 
-/** UI-SPEC S1: registry:llms and use:execution-defaults both land on the model list by design. */
+/** `registry:llms` and `use:execution-defaults` both land on the model list by design. */
 export const LEGACY_CONFIG_LINKS = {
   'registry:llms': { tab: 'models', section: 'models' },
   'use:execution-defaults': { tab: 'models', section: 'models' },

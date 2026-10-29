@@ -1,9 +1,4 @@
-// THE LIVE PREVIEW.
-//
-// One pure module owns what the preview corner may say for both entry points, a run and an editor
-// session. Health comes only from the frame facts the embed page reports; every clock is a
-// parameter. The words are exported constants so conformance files can read them by path, which
-// is why each is a single-quoted literal with no apostrophe.
+// Words are single-quoted literals with no apostrophe, so conformance files can read them by path.
 
 import type { LiveStreamDeclaration, LiveStreamKind } from '@vostride/agent-qa-schema'
 
@@ -297,11 +292,7 @@ function wait(state: LivePreviewMachine): LivePreviewMachine {
     : { ...carried(state), phase: 'waiting', waitingAttempts: attempts }
 }
 
-/**
- * The mint doors' definite refusals: this host serves no live view, or the request itself is one it
- * will never serve. Any other failure (a fetch that never arrived, a 5xx) is worth the quiet
- * reconnect, not a dead end.
- */
+// Definite refusals; any other failure, like a lost fetch or a 5xx, reconnects quietly.
 const MINT_REFUSED_FOR_GOOD: readonly string[] = ['live_view_unavailable', 'invalid_handle', 'cross_site_refused']
 
 function showing(state: LivePreviewMachine): boolean {
@@ -312,8 +303,7 @@ function reduceReport(state: LivePreviewMachine, report: EmbedReport, now: numbe
   switch (report.event) {
     case 'ready':
       if (!showing(state)) return state
-      // The greet read the capability after the mint did: a member that withdrew in between is
-      // greeted with `none`, and no frame or end will follow on this socket.
+      // The greet reads capability after the mint, so a member withdrawn in between gets `none`.
       if (report.kind === 'none') return { ...carried(state), phase: 'no-stream' }
       return { ...state, ready: report.kind }
     case 'frame': {

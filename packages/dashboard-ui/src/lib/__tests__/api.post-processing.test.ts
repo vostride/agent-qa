@@ -1,25 +1,6 @@
 // @vitest-environment jsdom
 
-// THE PAGE'S ONLY CHIP PRODUCER.
-//
-// WHAT THIS FILE BINDS. `fetchPostProcessing` is the one door the chips are ever painted from,
-// and `watchPostProcessing` is the thing that decides WHEN to ask it again. D-17 is the law both
-// exist to make structural: a pushed chip event is a TRIGGER and never a rendering, so the frame's
-// own bytes must not be reachable from `onRead` at all. The bogus-envelope cell below feeds a
-// fabricated `analysisCompleted` whose re-read still answers `running` and asserts the caller was
-// handed `running` — a client that painted the envelope would answer `done` there.
-//
-// THE STREAM LIFECYCLE IS THE OTHER HALF, and it is the part a count assertion gets wrong. The
-// dedicated stream only ever carries THIS process's own drain, so it is worth opening
-// exactly while this process may still turn out to be the drainer — `disposition: 'drained'`, or no
-// disposition yet, which in the D-13 flow is where the page ARRIVES (the viewer is moved on the
-// `verdict` envelope, before `runFinished` is durable). The open decision is therefore re-evaluated
-// on EVERY read, first or poll, and the source is constructed AT MOST ONCE for a watcher's life.
-// Each cell below asserts the CONSTRUCTOR COUNT rather than "a source exists", because "opened
-// again on the next poll" and "opened once" are indistinguishable from the second reading alone.
-//
-// EVERY CLOCK IS FAKE. The poll floor is 3 s; a cell that waited on a real one would be a sleep
-// whose failure mode reads as a product defect.
+// A pushed chip event only triggers a re-read; the stream opens at most once per watcher.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { PostProcessingStatus } from '@vostride/agent-qa-schema'

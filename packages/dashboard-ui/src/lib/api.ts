@@ -129,13 +129,6 @@ export interface RunArtifactRow {
   updatedAt: string
 }
 
-/**
- * What the artifact drawer reads.
- *
- * NO `children`. The key carried one entry per child run of a suite parent, and after 405-07 there
- * are no child runs to carry: a suite's members live under ONE run as handles. A key that could
- * only ever be empty is a shape that invites a reader to look for something that is not there.
- */
 export interface RunArtifactResponse {
   run: RunRow
   artifact: RunArtifactRow | null
@@ -209,16 +202,7 @@ function toAuthStateMetadata(value: unknown): AuthStateMetadata | null {
 
 const API_BASE = ''
 
-/**
- * Error thrown by api.ts helpers when the server returns a non-OK status with a JSON body.
- * Preserves server-sent structured fields (error, details, missingTests, message) so callers
- * can render rich UX. The `message` property inherits the server's top-level `error` field
- * when available, or falls back to `API error {status}: {statusText}`.
- *
- * Defensive parsing: non-JSON responses produce an ApiError with a null payload; malformed
- * JSON is swallowed. Structured fields are only copied when the payload is a non-null object
- * (primitives and arrays are rejected). See threat model T-181.04-02 / T-181.04-03.
- */
+// Structured fields are copied only from a non-null object payload; non-JSON gives a null payload.
 export class ApiError extends Error {
   readonly status: number
   readonly statusText: string
@@ -227,7 +211,7 @@ export class ApiError extends Error {
   readonly missingTests?: Array<{ index: number; test: string; id: string }>
 
   constructor(status: number, statusText: string, payload: Record<string, unknown> | null) {
-    // 441 GAP2-D5: a refused write-back carries the sentence the editors show.
+    // A refused write-back carries the sentence the editors show.
     const writeBackSentence =
       payload?.error === 'marker_written_back' && typeof payload.message === 'string'
         ? payload.message
@@ -352,31 +336,12 @@ export async function fetchRunAttributeValues(key: string, opts: { q?: string; l
   return request(`/api/runs/attributes/values${query}`)
 }
 
-/**
- * `GET /api/runs/:id` — the run ROW, and nothing else.
- *
- * The three legacy keys are GONE from the type, not merely optional. 405-07 stopped the server
- * serving them and left them optional so the page rebuild could remove their readers in one plan;
- * that plan is this one, and the readers are gone. The run's members, steps and sub-actions come
- * from `fetchRunDetail` through the durable projection — one read, one shape, one place a field
- * can go missing loudly.
- */
+// The run row only; members and steps come from `fetchRunDetail`.
 export async function fetchRun(id: string): Promise<{ run: RunRow }> {
   return request(`/api/runs/${encodeURIComponent(id)}`)
 }
 
-/**
- * The rebuilt run-detail page's ONE durable read.
- *
- * The result type is the op's own `RunDetailProjection`, imported from schema rather than
- * re-declared here: the UI MIRRORS the contract instead of keeping a twin of it, so a field the op
- * grows is readable without a second edit and a field it drops is a compile error rather than an
- * `undefined` in a text node.
- *
- * `/api/runs/:id/detail` is registered ABOVE the `/api/runs/:id` catch-all, which claims every
- * four-segment GET — so the id is encoded here exactly once, and an id carrying a slash addresses
- * the route it names rather than one nobody registered.
- */
+// The id is encoded once, because the `/api/runs/:id` catch-all claims every four-segment GET.
 export async function fetchRunDetail(id: string): Promise<RunDetailProjection> {
   return request(`/api/runs/${encodeURIComponent(id)}/detail`)
 }
@@ -400,15 +365,10 @@ export async function fetchRunEvidence(input: RunsEvidenceInput): Promise<RunEvi
   }
 }
 
-// no typed mark denial. The `mark_denied` 403 it classified came from the
-// execution gate, which 432-19 deleted; no server path answers it. A failed mark is an ordinary
-// request failure, and the page says so in its own words.
-
 export async function markRun(
   runId: string,
   body: Omit<RunsMarkInput, 'runId'>,
 ): Promise<RunsMarkOutcome> {
-  // the validated body, as written — one request, no scope, nothing to wait on.
   return await postJson(`/api/runs/${encodeURIComponent(runId)}/mark`, body)
 }
 
@@ -422,11 +382,7 @@ export type MarksHistoryRead =
   | { kind: 'read'; result: RunsMarksHistoryResult }
   | { kind: 'failed'; reason: FeedbackReadFailure }
 
-/**
- * The route answers an unclassified op throw as `500 { error: 'read_failed', reason: <error name> }`.
- * A corrupt ledger is the one name that says which store failed; any other 500 read is taken as the
- * ledger being unreadable (RESEARCH A3, a default). Every other refusal is the server saying no.
- */
+// A 500 naming `MarkLedgerCorruptError` is a corrupt ledger; any other 500 read is unreadable.
 function feedbackReadFailure(error: unknown): FeedbackReadFailure {
   if (!(error instanceof ApiError)) return 'network'
   if (error.payload?.error === 'read_failed' && error.payload.reason === 'MarkLedgerCorruptError') return 'ledger-corrupt'
@@ -434,12 +390,7 @@ function feedbackReadFailure(error: unknown): FeedbackReadFailure {
   return 'refused'
 }
 
-/**
- * `POST /api/runs/:id/mark-preview` — runs.mark's plan for this exact input.
- *
- * The route parses the body with the strict `RunsMarkInputSchema`, so the body carries `runId`:
- * this is a read, and markRun's body is deliberately not reused.
- */
+// The strict `RunsMarkInputSchema` wants `runId` in the body, so `markRun`'s body is not reused.
 export async function fetchMarkPreview(
   runId: string,
   input: Omit<RunsMarkInput, 'runId' | 'note'>,
@@ -453,11 +404,7 @@ export async function fetchMarkPreview(
   }
 }
 
-/**
- * `GET /api/runs/:id/marks` — this run's mark ledger, each entry with what its fix applied (432-09;
- * 423 D-19). `run-not-found`, `ledger-corrupt` and `ledger-unavailable` arrive as 200 arms and stay
- * reads; only a wire or shape failure is a failed read.
- */
+// `run-not-found`, `ledger-corrupt` and `ledger-unavailable` are 200 reads; wire failures fail.
 export async function fetchMarksHistory(runId: string): Promise<MarksHistoryRead> {
   try {
     const raw = await request<unknown>(`/api/runs/${encodeURIComponent(runId)}/marks`)
@@ -468,37 +415,12 @@ export async function fetchMarksHistory(runId: string): Promise<MarksHistoryRead
   }
 }
 
-/**
- * THE FAILURE VIEW'S ONE READ.
- *
- * The result type is the op's own `AnalysisGetOutput`, imported from schema rather than
- * re-declared here: the UI MIRRORS the contract instead of keeping a twin of it, so a field the op
- * grows (406-03's evidence refs) is readable without a second edit and a field it drops is a
- * compile error rather than an `undefined` in a text node.
- *
- * `/api/runs/:id/analysis` is registered ABOVE the `/api/runs/:id` catch-all, which claims every
- * four-segment GET — so the id is encoded here exactly once, and an id carrying a slash addresses
- * the route it names rather than one nobody registered.
- */
+// The id is encoded once, because the `/api/runs/:id` catch-all claims every four-segment GET.
 export async function fetchRunAnalysis(id: string): Promise<AnalysisGetOutput> {
   return request(`/api/runs/${encodeURIComponent(id)}/analysis`)
 }
 
-/**
- * THE KNOWLEDGE TAB'S ONE READ.
- *
- * The result type is the op's own `RunKnowledgeProjection`, imported from schema rather than
- * re-declared here: the UI MIRRORS the contract instead of keeping a twin of it, so a field the op
- * grows (407-03's rung, 407-04's attributions) is readable without a second edit and a field it
- * drops is a compile error rather than an `undefined` in a text node.
- *
- * `/api/runs/:id/knowledge` is registered ABOVE the `/api/runs/:id` catch-all, which claims every
- * four-segment GET — so the id is encoded here exactly once, and an id carrying a slash addresses
- * the route it names rather than one nobody registered.
- *
- * ONE READ FOR THE WHOLE TAB. The panel never composes from N `knowledge.brief.why` calls;
- * every count it prints is folded from the rows this single answer already carried.
- */
+// One read for the whole tab; the id is encoded once as the catch-all claims four-segment GETs.
 export async function fetchRunKnowledge(id: string): Promise<RunKnowledgeProjection> {
   return request(`/api/runs/${encodeURIComponent(id)}/knowledge`)
 }
@@ -685,18 +607,7 @@ export async function fetchActiveExecutions(): Promise<{ executions: ActiveExecu
   return request('/api/execution/active')
 }
 
-// the page-level confirm scope box that stood here is deleted with the
-// run-confirm channel that filled it. No run or mark names the browser that sent it.
-
-/**
- * The run could not be STARTED because this process is not in a state to start one.
- *
- * A DISTINCT CLASS FROM {@link ApiError}, deliberately. An `ApiError` says the server answered a
- * request badly; this says no request was made at all — the preflight refused before anything was
- * enqueued, so there is no run id, no queue entry and nothing to cancel. Pages render `message`
- * through the toast they already render trigger failures through, which is why this carries no UI
- * of its own.
- */
+// Not an `ApiError`: the preflight refused before any request, so there is nothing to cancel.
 export class RunNotReadyError extends Error {
   constructor(
     /** The one phrase that says WHY, in the reader's terms. Rendered inside `message`. */
@@ -709,23 +620,7 @@ export class RunNotReadyError extends Error {
   }
 }
 
-/**
- * READINESS AS THE TRIGGER SEES IT — which facts decide, and which one deliberately does not.
- *
- * `service` and `hostComposed` are the two the local trigger reads: is this process answering, and
- * did it compose a host to run anything with. `hostComposed` is measured off the SAME state the
- * invoke path's guard throws on, so a readiness that says yes and a start that says no cannot
- * disagree.
- *
- * the readiness answer has no `authConfigured` member. It reported
- * whether a run-service credential resolved, which no project can declare any more, and the gate
- * never read it.
- *
- * `contractVersion` is 2 since that change, and the gate does not
- * read it either. Version 2 removed a member and refusal codes this gate never read; the readiness
- * and trigger routes it calls are the same on both versions. So a version-1 server still passes,
- * and refusing one would stop a dashboard that can run tests.
- */
+// Only `service` and `hostComposed` decide; `contractVersion` is unread, so version 1 passes.
 function notReadyReason(readiness: RunServiceReadiness): string | undefined {
   if (readiness.service !== 'up') return 'the run service is not up'
   if (!readiness.hostComposed) return 'this dashboard composed no host to run tests with'
@@ -740,33 +635,10 @@ function isReadiness(value: unknown): value is RunServiceReadiness {
     && typeof candidate.hostComposed === 'boolean'
 }
 
-/**
- * `404` and `503` from the readiness route are the SAME fact, and it is not a verdict.
- *
- * `503` is the router's "this server was started without a readiness predicate" — a legacy
- * two-argument mount, the arm 402-05 named explicitly. `404` is a server old enough not to have
- * the route at all. NEITHER says the process cannot run tests, and both are demonstrably served by
- * dashboards that run tests perfectly well (`run-confirm-browser.e2e.test.ts` composes one and
- * drives a real run through it). Refusing on them would brick a working dashboard for a fact
- * nobody measured, which is a worse failure than the race the preflight removes.
- *
- * THE COST OF THIS CARVE-OUT IS NAMED RATHER THAN HIDDEN: against such a door the gate is a no-op.
- * `agent-qa dashboard` ALWAYS supplies the predicate, precisely so the browser gets an honest
- * answer — so in the shipped product
- * the gate is always live. What no cell in this plan pins is that the shipped command still
- * supplies it; if that threading were ever removed the gate would silently become a no-op.
- */
+// Both mean the server has no readiness door, not that it cannot run, so the gate is then a no-op.
 const NO_READINESS_DOOR = new Set([404, 503])
 
-/**
- * THE PREFLIGHT. It fails CLOSED on every answer it can read, and only on those.
- *
- * A door that cannot be reached, that refuses for a reason other than not having the route, or
- * that answers something this build cannot read, are all answers to "can you run something" that
- * are not YES. Treating any of them as "probably fine, post anyway" is exactly the race the
- * preflight exists to remove — the trigger would be started against a door whose state
- * nobody established.
- */
+// Fails closed on every answer it can read: unreachable, other refusals and unreadable bodies.
 async function assertRunReadiness(): Promise<void> {
   let response: Response
   try {
@@ -795,19 +667,7 @@ async function assertRunReadiness(): Promise<void> {
   if (reason !== undefined) throw new RunNotReadyError(reason, body)
 }
 
-/**
- * Start a run — THE ONE CHOKE POINT, and now the one preflight (402-08, criterion 2).
- *
- * NINE CALL SITES START A RUN and every one of them arrives here, which is the whole reason the
- * gate is here and not on a page: per-page gating would be nine places to forget, and forgetting
- * means a trigger racing a door whose readiness nobody asked about. The readiness route is the
- * LOCAL half of D-15's one-predicate-two-doors — the same function object the authed `/ok` serves
- * — so this is the dashboard consuming the service CONTRACT, not reading runner internals.
- *
- * THE REFUSAL COMES BEFORE THE POST, not around it. On a not-ready answer nothing is enqueued at
- * all, so there is no half-started run to reconcile, and the caller's `catch` renders the reason
- * through the toast it already renders trigger failures through.
- */
+// Every run start passes here, so a not-ready answer stops it before the POST enqueues anything.
 export async function triggerRun(opts: { file?: string; patterns?: string[]; noCache?: boolean }): Promise<{ runId: string; status: string }> {
   await assertRunReadiness()
   return postJson('/api/runs/trigger', opts)
@@ -824,16 +684,7 @@ export interface RunStreamOptions {
    * `if (opts.handle)` spelling would silently serve member 0 the firehose.
    */
   handle?: number
-  /**
-   * Resume AFTER this seq. The door resolves it to `subscribe(N + 1)`, so
-   * a client that observed seq 8 passes 8 and is served 9 onward.
-   *
-   * ZERO IS A RESUME POINT, not an absent one: it means "replay from the very beginning", which is
-   * a different request from sending no parameter at all on a door that treats the two alike today
-   * and might not tomorrow. Below the bus's replay window the door refuses with a typed
-   * `410 replay_floor` carrying a REACHABLE recovery point — see {@link classifyRunStreamClose},
-   * which is how a browser ever learns that happened.
-   */
+  // Zero is a resume point meaning replay from the start, not an absent parameter.
   lastEventId?: number
   /** Every surviving envelope, verbatim, in seq order. */
   onEvent?: (event: RunEventEnvelope) => void
@@ -868,18 +719,7 @@ function runStreamUrl(runId: string, opts: { handle?: number; lastEventId?: numb
   return `${API_BASE}/api/run-stream/${encodeURIComponent(runId)}${runStreamQuery(opts)}`
 }
 
-/**
- * Attach to a run's event stream on the LOCAL door, optionally addressing ONE member.
- *
- * THE EVENT NAMES ARE THE BUS'S OWN, ENUMERATED FROM THE SCHEMA. `RUN_EVENT_TYPES` is the total
- * list, and `EventSource` dispatches by name, so a hand-written list here would be a second
- * vocabulary that silently stopped delivering the first time an event type was appended. The
- * envelope reaches `onEvent` exactly as it arrived: `id` is its `seq`, the event name is its
- * `type`, and `data` is the envelope's own JSON — there is no projection layer to drift.
- *
- * NO `Authorization` HEADER, AND THERE MUST NEVER BE ONE. `EventSource` cannot set headers, which
- * is why the AUTHED door's clients are `fetch`/`curl`/CI and this helper's door is the local one.
- */
+// Listens to every `RUN_EVENT_TYPES` name: `EventSource` dispatches by name and sends no headers.
 export function openRunStream(runId: string, opts: RunStreamOptions = {}): EventSource {
   const source = new EventSource(runStreamUrl(runId, opts))
 
@@ -893,9 +733,7 @@ export function openRunStream(runId: string, opts: RunStreamOptions = {}): Event
       const envelope = JSON.parse((e as MessageEvent).data) as RunEventEnvelope
       opts.onEvent?.(envelope)
       if (type === 'runFinished') {
-        // THE STREAM ENDS HERE, on the server's own terms: the run's log is complete and the bus
-        // closed behind it, so an open socket would deliver nothing but heartbeats. What a
-        // reconnect after this means is 403's attach contract to decide.
+        // The run's log is complete, so an open socket would carry only heartbeats.
         opts.onFinished?.(envelope)
         source.close()
       }
@@ -905,65 +743,24 @@ export function openRunStream(runId: string, opts: RunStreamOptions = {}): Event
   return source
 }
 
-/**
- * Mint a live-view URL for one handle (403 D-03/D-08 · `runs.liveurl`).
- *
- * THE TOKEN RIDES IN THE RESULT'S FRAGMENT and this is the only place it exists outside the minting
- * process's memory. Nothing here formats, logs or widens the body: it is the op's own result
- * verbatim, because a second shaping in the client would be a second contract for what a `liveUrl`
- * is, free to disagree with the one the function layer published.
- *
- * The refusals are the door's own words — `unknown_run`, `live_view_unavailable`,
- * `live_url_mint_failed`, `invalid_handle` — and they arrive on `ApiError.message` because
- * `ApiError` already prefers a body's `error` field. A caller routes on the word, never on prose.
- */
+// The token rides in the result's fragment; the body passes verbatim, never logged or reshaped.
 export async function fetchLiveUrl(runId: string, handle = 0): Promise<RunsLiveUrlResult> {
   return request(`/api/runs/${encodeURIComponent(runId)}/live-url?handle=${encodeURIComponent(String(handle))}`)
 }
 
-/**
- * Mint a live-view URL for one editor session (428 D-07/D-14 · `editor.liveurl`).
- *
- * The same contract as {@link fetchLiveUrl}: the token rides in the result's fragment, and the body
- * is the op's own result verbatim. The refusals are the door's own words (`unknown_session`,
- * `live_view_unavailable`, `live_url_mint_failed`, `cross_site_refused`) and arrive on
- * `ApiError.message`.
- */
+// The token rides in the fragment; refusals arrive as the door's words on `ApiError.message`.
 export async function fetchEditorLiveUrl(sessionId: string): Promise<EditorLiveUrlResult> {
   return request(`/api/live-editor/sessions/${encodeURIComponent(sessionId)}/live-url`)
 }
 
-/**
- * Why a run stream closed, in the door's own vocabulary (403 D-13/D-15 · RESEARCH Pitfall 3).
- *
- * `reattach` means the door is still willing to serve this exact request; `replay_floor` means the
- * resume point fell out of the bus's replay window and `earliestAvailableSeq` is where the stream
- * can be picked up (re-attach at `earliestAvailableSeq - 1`); `unknown_run` means this process has
- * no such run and durable truth is the run record; `lost` means the question could not be asked or
- * could not be understood.
- */
+// On `replay_floor`, re-attach at `earliestAvailableSeq - 1`; `lost` means the door gave no answer.
 export type RunStreamCloseReason =
   | { kind: 'replay_floor'; earliestAvailableSeq: number }
   | { kind: 'unknown_run' }
   | { kind: 'reattach' }
   | { kind: 'lost' }
 
-/**
- * Ask the door why the stream closed, because `EventSource` will not say.
- *
- * THE PROBLEM THIS SOLVES. A `410 replay_floor` and a `404 unknown_run` are both written as JSON
- * BEFORE any stream head, and `EventSource` reports both as one wordless `error` with
- * `readyState === CLOSED` — indistinguishable from a dropped socket. A page branching on
- * `readyState` therefore has one word for three situations and shows "lost" for a run that merely
- * needs re-attaching, which is the silent-gap failure D-13 exists to refuse.
- *
- * SO IT ASKS THE SAME QUESTION, over `fetch` this time: the SAME URL with the SAME handle and the
- * SAME resume point, because a different question gets a different answer. `Accept:
- * application/json` is honest rather than load-bearing — the refusal arms answer JSON regardless —
- * and the abort signal keeps a probe that lands on a live stream from leaving its body open.
- *
- * IT NEVER THROWS. Its whole caller population is error handlers.
- */
+// `EventSource` reports every refusal as a bare `error`, so this asks the same URL over `fetch`.
 export async function classifyRunStreamClose(
   runId: string,
   opts: { handle?: number; lastEventId?: number } = {},
@@ -976,9 +773,7 @@ export async function classifyRunStreamClose(
     })
     if (res.status === 410) {
       const payload = await parseErrorPayload(res)
-      // A floor the door did not SEND is not a floor. Inventing one would hand the page a recovery
-      // point to subtract from, and the subtraction is the likeliest integration error this
-      // contract can produce.
+      // A floor the door did not send is no floor; inventing one hands the page a bad resume point.
       if (payload?.error === 'replay_floor' && typeof payload.earliestAvailableSeq === 'number') {
         return { kind: 'replay_floor', earliestAvailableSeq: payload.earliestAvailableSeq }
       }
@@ -1094,7 +889,7 @@ export async function fetchTestAnalytics(
   return request(`/api/analytics/tests/${encodeURIComponent(name)}${query}`)
 }
 
-// each list row's rate and last run, as its viewer reads them.
+// Each list row's rate and last run, as its viewer reads them.
 export interface PassRateCount {
   passRate: number | null
   passed: number
@@ -1623,7 +1418,7 @@ export async function createLiveEditorSession(
   return result
 }
 
-// keepalive lets the DELETE outlive the page on pagehide, which postJson cannot ask for.
+// `keepalive` lets the DELETE outlive the page on pagehide, which `postJson` cannot ask for.
 export async function deleteLiveEditorSession(
   sessionId: string,
   options: { keepalive?: boolean } = {},
@@ -1660,25 +1455,9 @@ export async function fetchCapturedVarNames(testId: string): Promise<{ names: st
   return request(`/api/variables/captured/${encodeURIComponent(testId)}`)
 }
 
-// the run and mark confirm door that stood here — the answer vocabulary,
-// the channel frames, `openRunConfirmChannel` and `answerRunConfirm` — is deleted with the server's
-// run-confirm pair. Runs and marks are one request each (`triggerRun`, `markRun`).
-
-// ---------------------------------------------------------------------------
 // Post-processing chips: one read, a poll floor, and a push channel that only triggers
-//
-// Phase 404-07 · LIFE-03 / LIFE-04, D-16 / D-17 / D-18 / D-22 / D-23.
-// ---------------------------------------------------------------------------
 
-/**
- * The poll floor while any chip is still moving.
- *
- * A FLOOR AND NOT AN OPTIMISATION. Three of the four postures a chain can be in emit no chip events
- * into this process at all — a daemon-drained run (`handedOff`), a run drained later by somebody
- * else (`detached`), and a CLI-launched run opened in a dashboard that was not the drainer. For all
- * three, this interval is the ONLY thing that ever moves a chip. The push channel below is what
- * makes the fourth posture feel immediate; it is not what makes any of them correct.
- */
+// Most chain postures emit no chip events here, so this poll is what moves their chips.
 export const POST_PROCESSING_POLL_MS = 3000
 
 /**
@@ -1693,14 +1472,7 @@ export const POST_PROCESSING_CHIP_EVENTS: readonly string[] = RUN_EVENT_TYPES.fi
   (type) => type.startsWith('analysis') || type.startsWith('curation'),
 )
 
-/**
- * The frames the watcher listens for: the six chip ticks plus the door's opening whole-state frame.
- *
- * `snapshot` is deliberately NOT a bus event type, and it is listened for here
- * on exactly the same terms as the others — as a TRIGGER. Its body is the read route's body and
- * would be perfectly paintable, which is precisely why this client does not paint it: two paths to
- * a chip is two spellings of the projection, free to disagree the first time one of them changes.
- */
+// `snapshot` is listened for only as a trigger; painting its body would be a second projection.
 const POST_PROCESSING_STREAM_EVENTS: readonly string[] = [...POST_PROCESSING_CHIP_EVENTS, 'snapshot']
 
 /** The last failure the run's record holds for one stage — the producer's masked, bounded text. */
@@ -1709,27 +1481,13 @@ export interface PostProcessingStageFailure {
   readonly willRetry?: boolean
 }
 
-/**
- * Per-stage failure text as the route folds it.
- *
- * PRESENT-AND-POSSIBLY-EMPTY means the record was read and holds no failure line; the whole key
- * ABSENT means the events read refused. Two different facts, two different shapes —
- * the projection reads the second as "nobody recorded a reason", which is true either way, but the
- * distinction survives to anything that later wants it.
- */
+// An empty key means no failure line; an absent key means the events read refused.
 export interface PostProcessingFailures {
   readonly analysis?: PostProcessingStageFailure
   readonly curation?: PostProcessingStageFailure
 }
 
-/**
- * What one read of the post-processing door produced.
- *
- * A CLOSED UNION WITH A REFUSAL ARM, because D-23 forbids the alternative. When chip truth cannot
- * be read — the op unbound on this host, a job-store schema mismatch, the route down — the honest
- * answer is the refusal's own name, not an all-pending body. A shape that could only say "here are
- * your chips" would have forced this client to invent four `pending`s out of a 503.
- */
+// When chip truth cannot be read, the refusal's own name is the answer, never an all-pending body.
 export type PostProcessingRead =
   | {
       readonly kind: 'read'
@@ -1770,18 +1528,7 @@ function readString(source: Record<string, unknown>, key: string): string | unde
   return typeof value === 'string' && value.length > 0 ? value : undefined
 }
 
-/**
- * Read the chain's durable state once. NEVER REJECTS.
- *
- * A THROWING READ WOULD BECOME A BLANK CHIP AREA at the first hiccup, because the only caller is a
- * poll whose whole job is to keep asking. Every failure mode — a named refusal from the door, an
- * unclassified 500, a body this build cannot read, a socket that never connected — resolves to the
- * `unavailable` arm carrying a name a person can act on, which is what D-23 asks for.
- *
- * THE BODY IS TAKEN STRUCTURALLY AND NOT RESHAPED. `status` is forwarded as the op minted it;
- * `disposition` and `failures` are copied only when present, so `failures: {}` and no `failures`
- * key stay two distinguishable answers on this side of the wire too.
- */
+// Never rejects, because its caller is a poll; every failure becomes the named `unavailable` arm.
 export async function fetchPostProcessing(runId: string): Promise<PostProcessingRead> {
   let res: Response
   try {
@@ -1837,33 +1584,7 @@ export interface WatchPostProcessingOptions {
   readonly onRead: (read: PostProcessingRead) => void
 }
 
-/**
- * Watch one run's post-processing chain: read it now, poll it while it moves, and let the push
- * channel say "read again" whenever this process is the one draining it.
- *
- * THE PUSH IS A TRIGGER, NEVER A PAINT. Every frame — chip tick or snapshot — calls
- * `fetchPostProcessing` and hands `onRead` THAT result. This is 388 D-14 applied structurally: a
- * chip can never show a state the store did not say, so "the chips render correctly from durable
- * state alone" is true by construction rather than by a reconciliation pass nobody runs.
- *
- * THE SOURCE IS CONSTRUCTED AT MOST ONCE, and `streamState` is why that is structural rather than a
- * flag somebody remembers to check: it moves `unopened → open → closed` and never backwards, so
- * there is no sequence of reads that can produce a second `EventSource`.
- *
- * THE OPEN DECISION IS RE-EVALUATED ON EVERY READ, and that is not belt-and-braces. The dedicated
- * stream only ever carries THIS process's own drain — the door itself answers 204 for
- * a run that reads `handedOff` or `detached`. So it is worth opening exactly while this process may
- * still turn out to be the drainer: `disposition: 'drained'`, or no disposition yet. And "no
- * disposition yet" is precisely where the D-13 flow ARRIVES: the live page moves the viewer on the
- * `verdict` envelope, which is emitted BEFORE `runFinished` is durable, so the first read of a
- * freshly-finished run routinely lands with the posture still unwritten. A client that decided once,
- * on the first read, would either never open for the ordinary case or open for chains it will never
- * hear a frame about. Once a read says `handedOff`/`detached` — or says the chain is over — the
- * source is closed for good and the poll is the channel.
- *
- * BOTH CHANNELS STOP AT TERMINAL, and a return visit to a finished run is exactly one read: no
- * interval, no socket, nothing to clean up but the disposer's own no-ops.
- */
+// A frame only triggers a re-read; the source opens at most once and is re-decided on every read.
 export function watchPostProcessing(runId: string, opts: WatchPostProcessingOptions): () => void {
   let disposed = false
   let streamState: 'unopened' | 'open' | 'closed' = 'unopened'
@@ -1920,8 +1641,7 @@ export function watchPostProcessing(runId: string, opts: WatchPostProcessingOpti
     if (disposed) return
 
     if (result.kind === 'unavailable') {
-      // Retry at the poll cadence and NEVER tighter, and open nothing: a door that
-      // cannot answer a read is not a door worth holding a socket against.
+      // Retry at the poll cadence, never tighter, and hold no socket to a door that cannot answer.
       startPolling()
     } else if (isPostProcessingTerminal(result.status)) {
       stopPolling()

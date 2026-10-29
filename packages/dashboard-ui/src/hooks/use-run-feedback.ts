@@ -55,16 +55,13 @@ interface UseRunFeedbackInput {
   beforeOpen?: () => void
 }
 
-/** 419-15's local announcement, kept per address so re-targeting shows each address its own. */
+// The local announcement, kept per address so re-targeting shows each address its own.
 interface AddressOutcome {
   state: FeedbackComposerState
   status: string
 }
 
 const COMPOSING: AddressOutcome = { state: 'composing', status: '' }
-
-// the pending mark approval this page held is deleted with
-// the confirm channel that raised it. A submission is one request; its answer is the only outcome.
 
 function targetOfAddress(address: string): FeedbackTarget {
   const [testIndex, stepIndex] = address.split(':')
@@ -79,12 +76,7 @@ interface LandedPreview {
   read: MarkPreviewRead
 }
 
-/**
- * The run-detail page's feedback state. It lives above the composer so drafts survive the
- * composer closing and a run change discards them; the page's own `onMark` is the only writer.
- * Nothing is fetched on mount: history is read when the composer opens, re-targets or records a
- * mark, and a preview once a choice is picked.
- */
+// Drafts live above the composer so they survive it closing; nothing is fetched on mount.
 export function useRunFeedback({
   runId,
   runStatus,
@@ -108,7 +100,7 @@ export function useRunFeedback({
   const requestedKey = useRef<string | undefined>(undefined)
   const [retrying, setRetrying] = useState(false)
   const [outcomes, setOutcomes] = useState<ReadonlyMap<string, AddressOutcome>>(() => new Map())
-  // each retained address keeps its own denial; the page holds only the latest one.
+  // Each retained address keeps its own denial.
   const [denials, setDenials] = useState<ReadonlyMap<string, MarkDenial>>(() => new Map())
   const [focusRequest, setFocusRequest] = useState(0)
   const headingRef = useRef<HTMLHeadingElement>(null)
@@ -152,8 +144,7 @@ export function useRunFeedback({
     }
   }, [runId])
 
-  // no live push; the last read stays on screen until a newer one lands, and a read for an
-  // earlier open or target is dropped (the page's reloadDetail idiom).
+  // No live push: a read for an earlier open or target is dropped when it lands.
   const readHistory = () => {
     const requestRunId = runRef.current
     if (requestRunId === undefined) return
@@ -190,9 +181,7 @@ export function useRunFeedback({
     inFlight: markPending || state === 'submitting',
   })
 
-  // Every scheduled fetch takes a new generation, so an answer for anything scheduled earlier —
-  // in flight or still debounced — is dropped when it lands. A landing only ever shows a read;
-  // nothing here submits.
+  // Every scheduled fetch takes a new generation, so an answer for anything earlier is dropped.
   const schedulePreview = (
     next: FeedbackTarget,
     kind: Mark,
@@ -203,7 +192,7 @@ export function useRunFeedback({
     const generation = ++previewGeneration.current
     const key = previewRequestKey({ kind, ...next })
     requestedKey.current = key
-    // a test onMark would refuse is never previewed either.
+    // A test `onMark` would refuse is never previewed either.
     if (!hasUniqueAddress(detailRef.current, next.testIndex)) return
     const fire = () => {
       if (previewGeneration.current !== generation) return
@@ -255,8 +244,7 @@ export function useRunFeedback({
     setFocusRequest((count) => count + 1)
   }
 
-  // D-03's switcher: the composer moves to another test's address and shows that address's draft.
-  // The page's member filter and selection are not touched.
+  // The composer moves to another test's address; the page's member filter and selection stay.
   const retarget = (next: FeedbackTarget) => {
     const nextAddress = feedbackAddress(next)
     if (state === 'submitting' || nextAddress === address) return
@@ -269,8 +257,7 @@ export function useRunFeedback({
     else schedulePreview(next, kind)
   }
 
-  // Closing keeps every draft; focus goes back to the opener, else the header entry, else the
-  // evidence strip's active tab.
+  // Closing keeps drafts; focus returns to the opener, else the header entry, else the active tab.
   const close = () => {
     setOpen(false)
     const back = opener.current?.isConnected
@@ -309,7 +296,6 @@ export function useRunFeedback({
       next.delete(address)
       return next
     })
-    // the validated body goes out once, directly; nothing waits on an approval.
     try {
       const result = await onMark(submitted.testIndex, submitted.stepIndex, draft.kind, draft.note || undefined)
       if (submission.current !== request) return
@@ -339,7 +325,7 @@ export function useRunFeedback({
       ?.marks?.find((entry) => entry.stepIndex === target.stepIndex)
   const statusText = state === 'recorded' ? (recordedMark === undefined ? '' : feedbackRecordedText(recordedMark.disposition)) : status
 
-  // an earlier mark's time is its history entry's own, and absent until history holds it.
+  // An earlier mark's time is its history entry's own, absent until history holds it.
   const historyEntries = history?.kind === 'read' && history.result.kind === 'history' ? history.result.entries : []
   const timeFor = (markId: string) => formatMarkTime(historyEntries.find((entry) => entry.markId === markId)?.markedAt)
 
@@ -356,8 +342,7 @@ export function useRunFeedback({
         onChange: (testIndex: number) => retarget({ testIndex }),
       }
 
-  // the target is set only by an explicit act; the selection it was opened from may move on.
-  // `selectedStep` is the step owning the selection, null for a hook or no selection.
+  // Only an explicit act sets the target; the selection it opened from may move on.
   const suite = (detail?.members.length ?? 0) > 1
   const placeMember = (testIndex: number) =>
     suite ? (members.find((entry) => entry.testIndex === testIndex) ?? { testIndex }) : undefined
@@ -385,7 +370,6 @@ export function useRunFeedback({
     member: other.stepIndex !== undefined && other.testIndex === target?.testIndex ? undefined : placeMember(other.testIndex),
   })
 
-  // every other address holding a non-empty draft is one link away.
   const unsentDrafts = [...drafts]
     .filter(([key, entry]) => key !== address && !isDraftEmpty(entry))
     .map(([key]) => {
@@ -440,8 +424,7 @@ export function useRunFeedback({
         onClose: close,
       }
 
-  // one test-level door per page, whatever the suite shape. Absent until the target member's
-  // marks have landed, never a disabled placeholder.
+  // One test-level door per page; absent until the target member's marks land, never disabled.
   const headerTarget = resolveHeaderFeedbackTarget({ detail, selectedStep, memberFilter, runStatus })
   const headerMember = headerTarget === undefined
     ? undefined
@@ -466,7 +449,7 @@ export function useRunFeedback({
   const openStepFeedback = (testIndex: number, stepIndex: number, openerElement: HTMLElement) =>
     openFeedback({ testIndex, stepIndex }, openerElement)
 
-  // the step door on the row owning the selection opens the composer on that row's own step.
+  // The step door on the row owning the selection opens the composer on that row's step.
   const tree: StepTreeFeedback = {
     composerId,
     expandedAddress: open && target?.stepIndex !== undefined ? address : undefined,

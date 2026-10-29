@@ -1,9 +1,4 @@
-// THE FEEDBACK COMPOSER'S CLOSED SETS, PINNED IN BOTH DIRECTIONS (426-02 · D-11, D-12, v54 bar).
-//
-// Each runtime array and its union are two spellings of one closed set. A runtime cell sees only the
-// array; a never-bar is the assertion that catches the other half of a drift — a third outcome class
-// or a sixth composer state added to the union alone compiles everywhere and is never painted, and a
-// choice order that drops or repeats a mark still type-checks as a string list without the shape pin.
+// A never-bar catches a member added to the union alone, which compiles but is never painted.
 
 import { expectTypeOf, test } from 'vitest'
 import type { Mark } from '@vostride/agent-qa-schema'
@@ -40,7 +35,6 @@ test('each outcome class orders all three marks', () => {
   expectTypeOf<Exclude<Mark, Order['passed'][number]>>().toEqualTypeOf<never>()
 })
 
-// the approval state is deleted; the exact set is the four that remain.
 test('composer states are an exact union', () => {
   type Expected = 'composing' | 'submitting' | 'recorded' | 'retained'
   expectTypeOf<FeedbackComposerState>().toEqualTypeOf<Expected>()

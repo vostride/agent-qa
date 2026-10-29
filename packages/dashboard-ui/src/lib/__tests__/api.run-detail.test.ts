@@ -1,20 +1,4 @@
-// THE PAGE'S DURABLE READ.
-//
-// `fetchRunDetail` is the ONE door the rebuilt run-detail page reads its projection from, and the
-// only thing this file has to say about it is that it asks the right URL and hands back what the
-// op returned. Both halves matter for a reason the type system cannot state:
-//
-// THE URL IS ENCODED ONCE, BY US. A run id is opaque and may legitimately carry a slash or a
-// space (the `r 1/x` fixture below is not hypothetical — suite-scoped ids have carried both), and
-// an unencoded id would silently address a DIFFERENT path with more segments than the route
-// registered. `/api/runs/:id/detail` is registered ABOVE the `/api/runs/:id` catch-all precisely
-// because that catch-all claims every four-segment GET (405-01, RESEARCH Pitfall 2), so an id
-// that smuggles a slash past `encodeURIComponent` would land somewhere nobody routed.
-//
-// THE RESULT IS THE OP'S OWN TYPE, NOT A UI TWIN. `RunDetailProjection` is imported from
-// `@vostride/agent-qa-schema`; the UI mirrors the op's output rather than re-declaring it, so a
-// field the op grows is a field the page can read without a second edit, and a field the op drops
-// is a compile error here rather than an `undefined` in a text node.
+// A run id may hold a slash or a space; unencoded, it would address a route nobody registered.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RunDetailProjection } from '@vostride/agent-qa-schema'

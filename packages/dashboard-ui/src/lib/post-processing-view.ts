@@ -1,23 +1,4 @@
-// THE CHIP PROJECTION — the whole distance between what the route said and what a person reads.
-//
-// Phase 404-07 · LIFE-03, D-17 / D-21 / D-22 / D-23.
-//
-// THIS FILE NEVER SEES AN ENVELOPE, AND THAT IS THE POINT. D-17 makes a pushed chip event a
-// TRIGGER and never a rendering: a frame's arrival means the durable answer moved, and the answer
-// itself is always a re-read of `runs.postprocessing`. The structural half of that law is here —
-// the only input this module can take is a `PostProcessingRead`, i.e. the read route's own bytes.
-// There is no overload, no second entry point, and no bus-envelope type is named anywhere in this
-// file (a grep for one is an acceptance criterion), so "a chip can never show a state the store did
-// not say" is a fact about the type signature rather than a discipline someone has to keep.
-//
-// IT IS PURE AND TOTAL. No I/O, no clock, no React. Every read maps to exactly one view, including
-// the reads nobody wants: a refusal, a failed stage with no recorded reason, a terminal chain that
-// committed no counts. A projection with a hole in it renders blank, and a blank chip beside a red
-// verdict badge is the exact dishonesty the folded 399 todo was filed about.
-//
-// EVERY PUBLISHED SENTENCE IS AN EXPORTED CONSTANT. The cells assert against the
-// constants, so copy moves in one place and the tests move with it; prose inlined in a component
-// is prose that drifts from prose inlined in a test, and both of them stay green.
+// Takes only the read route's bytes, so a chip can never show a state the store did not say.
 
 import { CURATION_BREAKDOWN_BUCKETS, VERDICT_CLASSES } from '@vostride/agent-qa-schema'
 import type {
@@ -33,21 +14,13 @@ import type {
 import type { PostProcessingRead } from './api'
 import { formatDuration, normalizeTimestamp } from './utils'
 
-/** The two stages the chain runs. Named rather than indexed — the set is closed. */
+// The stages the chain runs.
 export type PostProcessingStage = 'analysis' | 'curation'
 
 /** The read route's own bytes, narrowed to the arm that answered. */
 export type PostProcessingReadBody = Extract<PostProcessingRead, { kind: 'read' }>
 
-/**
- * HOW AN INDICATOR PRESENTS — which is NOT the four words the store says.
- *
- * The chip vocabulary stays exactly `pending · running · complete · failed` (444 D-13, and a fifth
- * word there would red the v54 census). Presentation needs two more states the store never spells:
- * a run that skipped the whole chain (`skipped`, 425 D-08, 444 D-39) and a store that could not be
- * read at all (`unavailable`, 404 D-23). Keeping them in a SEPARATE closed set is what lets the
- * header say both without widening what a producer can produce.
- */
+// Presentation states the store never spells live in a separate set, so producers cannot emit them.
 export type StagePresentationState =
   | 'complete'
   | 'running'
@@ -68,13 +41,7 @@ export const STAGE_PRESENTATION_STATES = [
 /** Every state a per-stage indicator can reach. The refusal is one root for both stages, not a stage. */
 export type StageIndicatorState = Exclude<StagePresentationState, 'unavailable'>
 
-/**
- * The VISIBLE word per stage and state: the stage name alone when there is nothing to act on,
- * the name plus the state word when there is.
- *
- * PROBLEMS LOUD, SETTLED THINGS QUIET. `analysis done` spent a word on the state a reader can do
- * nothing with, every single run; the four states a reader CAN act on now spend it instead.
- */
+// The stage name alone when nothing needs doing; the name plus the state word when something does.
 export const STAGE_INDICATOR_WORDS: Record<
   PostProcessingStage,
   Record<Exclude<StagePresentationState, 'unavailable'>, string>
@@ -95,10 +62,7 @@ export const STAGE_INDICATOR_WORDS: Record<
   },
 }
 
-/**
- * The refusal's own word. ONE root for both stages, because a store that could not be read
- * has nothing to say about either stage separately — two roots would imply it did.
- */
+// One root for both stages, because an unreadable store says nothing about either one.
 export const POST_PROCESSING_UNAVAILABLE_WORD = 'Post-processing unavailable'
 
 /**
@@ -109,23 +73,10 @@ export const POST_PROCESSING_UNAVAILABLE_WORD = 'Post-processing unavailable'
  */
 export const POST_PROCESSING_LOADING_LABEL = 'Post-processing status loading'
 
-/**
- * Line 1 of a settled analysis card when the run has nothing to report (D-13, roadmap SC3).
- *
- * THE SENTENCE A PASSING RUN SHOWS EVERY DAY. `analysis done` told a person the machine finished;
- * it never told them what the machine found. The em dash separates the state from its clause, which
- * is also how the accessible name splits it (`Analysis: complete, no issues found`).
- */
+// The em dash splits the state from its clause, as the accessible name does.
 export const ANALYSIS_COMPLETE_NO_ISSUES_TEXT = 'Analysis complete — no issues found'
 
-/**
- * What a run the chain never enqueued says, per reason and stage.
- *
- * NEUTRAL, NOT A FAILURE. A gate run or a run excluded from outcomes skipped the whole post-run
- * chain by design, and a run that ended with no verdict never reached it, so
- * its stages did not fail and are not queued. Total over the reasons, so a new reason fails to
- * compile here.
- */
+// Neutral, not a failure; total over the reasons, so a new reason fails to compile here.
 export const STAGE_SKIPPED_TEXT: Record<
   PostProcessingSkipReason,
   Record<PostProcessingStage, string>
@@ -151,28 +102,17 @@ export const CURATION_RUNNING_TEXT = 'Curation running'
 /** Whether the chain intends to try that stage again — its own line, never a parenthetical. */
 export const WILL_RETRY_TEXT = 'Will retry'
 
-/** The door lines. Plain muted text: the indicator the reader is already on IS the control. */
+// The door lines are plain muted text, because the indicator itself is the control.
 export const OPEN_KNOWLEDGE_TAB_TEXT = 'Open Knowledge tab'
 export const OPEN_VERDICT_TEXT = 'Open verdict'
 
-/**
- * A curation pass that touched nothing, replacing 407's folded both-zero phrase.
- *
- * Five zeros is arithmetically true and tells a reader nothing they can act on; naming the outcome
- * as "no memory changes" is the fact, in the vocabulary the rest of the line already uses.
- */
+// A curation pass that touched nothing, named as the outcome rather than as zeros.
 export const NO_MEMORY_CHANGES_TEXT = 'no memory changes'
 
-/**
- * What a pre-423 row says about the breakdown it never recorded.
- *
- * FIVE BUCKETS ARE NEVER SYNTHESIZED FROM TWO. A legacy `curated`/`deprecated` pair is not a
- * breakdown with three buckets missing — it is a different, coarser measurement, and mapping it
- * onto the five would invent three counts nobody took.
- */
+// A legacy pair is a coarser measurement, so five buckets are never synthesized from it.
 export const BREAKDOWN_NOT_RECORDED_TEXT = 'Breakdown not recorded for this run'
 
-/** Why a recorded snapshot was not served (423 D-15, Gap 2) — the category, never a guess at counts. */
+// Why a recorded snapshot is withheld: the category, never a guess at counts.
 export const BREAKDOWN_WITHHELD_TEXT: Record<CurationSnapshotWithheldReason, string> = {
   'masking-unavailable': 'Breakdown not available for this run — masking unavailable',
   'projection-refused': 'Breakdown not available for this run — projection refused',
@@ -250,11 +190,7 @@ export interface PostProcessingChipView {
   readonly state: StageIndicatorState
   /** The visible word, from {@link STAGE_INDICATOR_WORDS}. The component composes no sentence. */
   readonly word: string
-  /**
-   * The explanation card. EVERY fact that used to sit beside the chip lives here now:
-   * the drain posture, the committed counts, the masked failure reason and the retry intent. The
-   * absence of a card is the absence of anything to say — never a fact that was dropped.
-   */
+  // Every fact beside the chip lives in this card; no card means nothing to say.
   readonly card?: StageCardView
 }
 
@@ -263,45 +199,19 @@ export type PostProcessingView =
       readonly kind: 'chips'
       readonly analysis: PostProcessingChipView
       readonly curation: PostProcessingChipView
-      /**
-       * Present iff the READ carried `status.skipped`. A SIBLING of the chip words,
-       * never a fifth one: the raw words survive underneath, so a surface that does not know about
-       * the fact still renders exactly what the store said.
-       */
+      // Present only when the read carried `status.skipped`; a sibling of the chip words, not one.
       readonly skipped?: { readonly reason: PostProcessingSkipReason }
     }
   | { readonly kind: 'unavailable'; readonly error: string; readonly reason?: string }
 
-/**
- * What a `pending` chip says about who will move it.
- *
- * 388-04 D-3's split applied to the dashboard: the WORD is durable chip state and the parenthetical
- * is the run's own `runFinished.disposition`, read through the route. A `detached` chain's chips
- * would otherwise read `pending` forever with no hint that nothing in this process — or any process
- * currently running — is ever going to touch them.
- */
+// The word is chip state; the parenthetical is the disposition, so `detached` says who moves it.
 export const PENDING_POSTURE_TEXT: Record<PostProcessingDisposition, string> = {
   handedOff: 'daemon draining',
   drained: 'draining',
   detached: 'not queued for drain — the next CLI run or agent-qa daemon drains it',
 }
 
-/**
- * What a `failed` chip says when nobody recorded a reason (D-21 as narrowed in 404-03).
- *
- * THE DURABLE NOTIFICATION ROW CARRIES NO FAILURE TEXT, deliberately: it is stamped by whichever
- * process drains the chain, INCLUDING the daemon's pump, which folds with no run masking context at
- * all (388 D-06's no-masker posture), so a reason stored there could not be guaranteed masked at the
- * moment it was written — and this row is read by surfaces that render it directly. The masked,
- * bounded reason lives instead on the in-process `*Failed` chip envelope, which is durable in the
- * run's `events.jsonl` and reaches the page through the read route's `failures` fold.
- *
- * WHICH LEAVES A REAL GAP, and this constant is what fills it honestly. A chain drained by the
- * daemon (`handedOff`) or by some later process (`detached`) emits no chip envelopes at all, so a
- * failure there has no reason ANYWHERE. The three renderings available are the truth, a blank, and
- * `pending`. Blank is a lie by omission; `pending` is a lie outright. The posture is included
- * because "nobody wrote it down" is only actionable when you know who was holding the pen.
- */
+// A daemon or later drain records no failure reason, so the text names the posture instead.
 export const FAILED_REASON_ABSENT_TEXT: Record<PostProcessingDisposition | 'unknown', string> = {
   handedOff: 'reason not recorded — drained by the daemon',
   detached: 'reason not recorded — drained by a later process',
@@ -314,38 +224,15 @@ export const CHIPS_UNAVAILABLE_TEXT = 'post-processing status unavailable'
 
 type ReadBody = PostProcessingReadBody
 
-/**
- * RETIRED 425-06. The folded legacy sentence that stood here served one count line in two
- * wordings of the SAME coarse pair; its last reader, the Knowledge tab's Learned heading, now
- * takes {@link curationBreakdownLine} beside a recorded snapshot and {@link legacyCurationPairText}
- * beside a pre-423 one. One function per measurement, and a pair that reads as a pair.
- */
-
-/**
- * What a settled curation row says when it committed no counts.
- *
- * NEVER A ZERO. The notification row's counts are optional, and a stage that never got as far as
- * committing reports its status and nothing else. Rendering `0` there would claim somebody counted
- * and found none — which is what {@link NO_MEMORY_CHANGES_TEXT} says, about a genuinely
- * different row.
- */
+// Never a zero: a stage that never committed reports status only, which differs from no changes.
 export const COUNTS_NOT_RECORDED_TEXT = 'counts not recorded for this run'
 
-/**
- * The curation door's accessible name, kept as its own export (407 D-01's idiom) and now a thin
- * call into the one name function, so the header and the Knowledge tab cannot drift apart.
- */
+// A thin call into the one name function, so the header and the Knowledge tab cannot drift.
 export function curationChipAccessibleName(chip: PostProcessingChipView): string {
   return stageIndicatorAccessibleName('curation', chip.state, chip.card?.outcome, 'knowledge')
 }
 
-/**
- * THE BREAKDOWN LINE, IN THE WORDING OF RECORD — one function, two surfaces.
- *
- * The bucket ORDER is the schema's, shared with the CLI's chain-terminal line, so a person reading
- * the terminal and the header sees the same run described the same way. Zeros are omitted HERE and
- * kept THERE by decision: a log line is a record, a glance is a glance.
- */
+// Bucket order is the schema's, shared with the CLI; zeros are omitted here, kept in the log line.
 export function curationBreakdownLine(breakdown: CurationBreakdown): string {
   const parts = CURATION_BREAKDOWN_BUCKETS
     .filter(bucket => breakdown[bucket] > 0)
@@ -353,7 +240,7 @@ export function curationBreakdownLine(breakdown: CurationBreakdown): string {
   return parts.length === 0 ? NO_MEMORY_CHANGES_TEXT : parts.join(' · ')
 }
 
-/** A pre-423 row's pair, rendered as what it is: two coarse counts, not a breakdown. */
+// An older row's pair, rendered as two coarse counts, not a breakdown.
 export function legacyCurationPairText(curated: number, deprecated: number): string {
   return `${String(curated)} curated · ${String(deprecated)} deprecated`
 }
@@ -370,15 +257,7 @@ const CLOCK_FORMAT = new Intl.DateTimeFormat(undefined, {
   hourCycle: 'h23',
 })
 
-/**
- * A STORED string as an instant, or nothing at all (T-425-08-03, RESEARCH A6).
- *
- * Two shapes reach this module and both are the store's: the ISO-8601 instant the injected clock
- * writes, and SQLite's `CURRENT_TIMESTAMP` space form, which JS would otherwise read as
- * LOCAL time and silently shift by the reader's offset — `normalizeTimestamp` is what closes that.
- * Anything that still does not parse yields `undefined` here, so its clause is OMITTED upstream.
- * `NaN` rendered into a sentence is a number a reader would believe.
- */
+// SQLite's `CURRENT_TIMESTAMP` form parses as local time, so `normalizeTimestamp` fixes it first.
 function instantOf(stored: string | undefined): number | undefined {
   if (stored === undefined) return undefined
   const at = Date.parse(normalizeTimestamp(stored))
@@ -403,23 +282,7 @@ function spanText(from: number | undefined, to: number | undefined): string | un
   return formatDuration(to - from)
 }
 
-/**
- * THE JOB ROW'S OWN TIMING, CLAUSE BY CLAUSE.
- *
- * EVERY CLAUSE ONLY WHEN ITS FIELD EXISTS, and no line at all when the stage has no row. A stage
- * that was never enqueued has no queue moment; printing `Queued 00:00:00 · started after 0ms` would
- * be five facts nobody measured. Absent is not zero, one clause at a time.
- *
- * NO CLOCK. A running stage ends at `running` rather than at "running for 4m", because the elapsed
- * figure would be this page's arithmetic against the present moment rather than something the store
- * said — which is how a card starts claiming a chain is stuck (404 D-17's rule, applied to time).
- * This module reads no current time by any spelling, and a grep for one is an acceptance criterion.
- *
- * TIMED FROM THE START, NEVER FROM THE LEASE. Both durations read `startedAt`, the instant
- * the work first began. The claim lease is released by every terminal transition, so a card that
- * timed from `claimedAt` could never say how long a settled stage took — which was the whole of
- * the SC3 gap. A row carrying only a lease times nothing: a lease is not a measurement.
- */
+// Timed from `startedAt`, never the lease, with no clock; each clause needs its field to exist.
 export function stageTimingLine(
   detail: PostProcessingStageDetail | undefined,
   state: StageIndicatorState,
@@ -440,8 +303,7 @@ export function stageTimingLine(
     ...(queuedAt === undefined ? [] : [`Queued ${queuedAt}`]),
     ...(startedAfter === undefined ? [] : [`started after ${startedAfter}`]),
     ...(state === 'running' ? ['running'] : finishedIn === undefined ? [] : [`finished in ${finishedIn}`]),
-    // ONLY PAST ONE. `1 attempts` on every settled stage is a number that never varies,
-    // which is the definition of a fact a reader learns to skip.
+    // Attempts show only past one, because `1 attempts` on every stage is noise.
     ...(detail.attempts !== undefined && detail.attempts > 1
       ? [`${String(detail.attempts)} attempts`]
       : []),
@@ -470,14 +332,7 @@ export function analysisCompleteWithVerdictsText(cls: VerdictClass | undefined, 
     : `${complete} — root cause: ${verdictClassLabel(cls)} (${counted})`
 }
 
-/**
- * The class the run's verdicts most often landed on, from COUNTS rather than from prose.
- *
- * `byClass` is partial on purpose (422): a class that did not occur is ABSENT, not zero — so a
- * recorded zero is read the same way an absence is, and never named as this run's root cause. Ties
- * break by the schema's own declaration order, so the answer does not depend on the order a
- * producer happened to serialize its keys in.
- */
+// `byClass` omits absent classes, so a zero never names a root cause; ties use schema order.
 function dominantVerdictClass(byClass: Partial<Record<VerdictClass, number>>): VerdictClass | undefined {
   let dominant: VerdictClass | undefined
   let highest = 0
@@ -502,19 +357,7 @@ export function stageFailedText(stage: PostProcessingStage, reason: string): str
   return `${STAGE_INDICATOR_WORDS[stage].complete} failed — ${reason}`
 }
 
-/**
- * Curation's committed counts, as one sentence — or as the labelled absence of one.
- *
- * THE SNAPSHOT OUTRANKS THE PAIR. A run that recorded five buckets is described by
- * them; a run that recorded only the legacy pair is described by the pair AND told, on its own
- * line, that no breakdown exists — because a reader who sees two numbers where five usually live
- * would otherwise conclude three buckets were empty.
- *
- * BOTH COUNTS OR NEITHER. The notification contract says a stage that never got as far as
- * committing reports its status and no counts at all, because zeros would claim it curated nothing,
- * which is a different thing from never having tried. Half a pair is the same ambiguity one field
- * down, so a row carrying one count and not the other says nothing here rather than implying a zero.
- */
+// The snapshot outranks the legacy pair, and a row with only one of the pair says nothing.
 export function curationCompleteText(read: ReadBody): StageCardView | undefined {
   const complete = `${STAGE_INDICATOR_WORDS.curation.complete} complete`
   const { notification, curationSnapshot, curationSnapshotWithheld } = read.status
@@ -535,8 +378,7 @@ export function curationCompleteText(read: ReadBody): StageCardView | undefined 
     return { outcome: complete, note: BREAKDOWN_WITHHELD_TEXT[curationSnapshotWithheld.reason] }
   }
 
-  // A SETTLED ROW THAT COMMITTED NO COUNTS SAYS SO. There IS a terminal row here — the chain
-  // reached its end and froze one — so the absence is a recorded absence.
+  // A settled row that committed no counts says so, as a recorded absence.
   if (notification !== undefined) return { outcome: `${complete} — ${COUNTS_NOT_RECORDED_TEXT}` }
 
   // No terminal row at all: the chip word came from `chips.curation` with nothing behind it. The
@@ -545,12 +387,7 @@ export function curationCompleteText(read: ReadBody): StageCardView | undefined 
   return undefined
 }
 
-/**
- * The store's word, as the state an indicator presents.
- *
- * A closed switch with no default: the chip vocabulary is ratified at four, and a fifth word must
- * fail to compile here rather than fall through to a shape nobody chose.
- */
+// A closed switch with no default, so a new chip word fails to compile here.
 export function stagePresentationState(
   read: ReadBody,
   stage: PostProcessingStage,
@@ -572,14 +409,6 @@ const STAGE_RUNNING_TEXT: Record<PostProcessingStage, string> = {
   curation: CURATION_RUNNING_TEXT,
 }
 
-/**
- * The card's first line, per state — the whole distance between a word and a sentence.
- *
- * The `complete` arm covers the two settled shapes this plan owns: analysis with nothing to report,
- * and curation's counts. A settled analysis WITH verdicts gets its root-cause sentence in 425-08
- * alongside the timing lines, and `skipped` gets its neutral sentence there too; until then those
- * two reads keep their word and their glyph rather than a sentence this plan would have to invent.
- */
 function stageCard(
   stage: PostProcessingStage,
   state: StageIndicatorState,
@@ -606,9 +435,7 @@ function stageCard(
   if (state === 'complete' && stage === 'curation') return curationCompleteText(read)
 
   if (state === 'complete') {
-    // THE SUMMARY IS THE SOURCE, AND THE ONLY ONE (D-13, UI-SPEC S4 recommendation 4). It is on the
-    // read the header already holds — no second fetch from a presentational surface — and it is
-    // counted rather than written, so the sentence never parses another surface's prose (406).
+    // The counted `verdictSummary` is the only source, so no sentence parses another's prose.
     const summary = read.status.notification?.verdictSummary
     if (summary === undefined) return undefined
     return {
@@ -622,15 +449,7 @@ function stageCard(
   return undefined
 }
 
-/**
- * One indicator on a run the chain never enqueued.
- *
- * THE CHIP WORD IS STILL QUOTED VERBATIM. `status` carries whatever the store said — `pending` on
- * every skipped run — because skipped is a SIBLING fact and not a fifth word.
- *
- * NO TIMING, EVER. There is no job row to time; a stage that was never enqueued has no queue
- * moment, and rendering one would be the zero-for-an-absence this phase exists to remove.
- */
+// The chip word is still quoted verbatim, and a never-enqueued stage gets no timing.
 function skippedChipView(
   stage: PostProcessingStage,
   reason: PostProcessingSkipReason,
@@ -676,14 +495,7 @@ function chipView(stage: PostProcessingStage, read: ReadBody): PostProcessingChi
   }
 }
 
-/**
- * The read, as two chips — or as the refusal that stopped there being any.
- *
- * A REFUSAL IS ITS OWN STATE. The 399.1 render contract says `refused` is distinct from
- * `failed`, and neither of them is "not started yet" either. Collapsing an unreadable store into
- * `pending` would tell a person their chain is queued when in fact this build cannot read the queue
- * — which is the one reading that makes them wait instead of acting.
- */
+// A refusal is its own state: showing an unreadable store as `pending` would make a person wait.
 export function projectPostProcessingView(read: PostProcessingRead): PostProcessingView {
   if (read.kind === 'unavailable') {
     return {
@@ -692,11 +504,7 @@ export function projectPostProcessingView(read: PostProcessingRead): PostProcess
       ...(read.reason === undefined ? {} : { reason: read.reason }),
     }
   }
-  // THE SKIPPED GATE, AND ITS ONE INPUT. The op folds this field from the
-  // run's durable `gateRun` / `excludedFromOutcomes` markers — the same markers the post-verdict
-  // enqueue skip reads — so the CLI exit line, the digest and this header say ONE thing. Nothing
-  // else may reach this branch: not the absence of job rows (a chain polled before its first
-  // enqueue looks identical), not the run's status, not a pushed frame.
+  // Only the read's `skipped` field reaches here; missing job rows look the same before enqueue.
   const skipped = read.status.skipped
   if (skipped !== undefined) {
     return {

@@ -1,5 +1,4 @@
-// 427 · D-20..D-23 — how knowledge retrieval ran for THIS run, as a class, a tone and one sentence.
-// The class is a pure function of the recorded (rung, reason); nothing here probes the store.
+// The retrieval class is a pure function of the recorded rung and reason; nothing probes the store.
 
 import { describe, expect, it } from 'vitest'
 import { RETRIEVAL_RUNG_REASONS, type RetrievalRung, type RetrievalRungReason } from '@vostride/agent-qa-schema'
@@ -19,8 +18,7 @@ import {
 
 type LowerRung = Exclude<RetrievalRung, 'memidex'>
 
-// The rung the v2 fold pairs each reason with (knowledge-local/src/retrieval-rung.ts), and the
-// class D-21 assigns it. Spelled here, not read from the subject, so a re-mapped reason reds.
+// Spelled here rather than read from the subject, so a re-mapped reason fails.
 const EXPECTED: Record<RetrievalRungReason, readonly [LowerRung, string]> = {
   'index-not-built': ['bundle-scan', 'fresh-index'],
   'index-unavailable': ['bundle-scan', 'cause-not-recorded'],

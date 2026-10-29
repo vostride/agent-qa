@@ -1,25 +1,6 @@
 // @vitest-environment jsdom
 
-// THE CLIENT HALF OF THE ATTACH CONTRACT (403-04 · INVK-05, D-13/D-15, RESEARCH Pitfall 3).
-//
-// 403-03 built the door: `Last-Event-ID` (or `?lastEventId=`) resolves to `subscribe(N + 1)`, a
-// resume below the bus's replay window answers `410 { error: 'replay_floor', earliestAvailableSeq }`
-// as JSON BEFORE any stream head, and a runId this process never started answers
-// `404 { error: 'unknown_run' }`. Everything asserted here is that door's shipped wire shape read
-// back from the browser side — the spellings are copied from `run-service-routes.ts` and
-// `server/routes.ts`, not reconstructed from prose.
-//
-// WHY `classifyRunStreamClose` EXISTS AT ALL. `EventSource` flattens every one of those typed
-// refusals into a bare `error` event with `readyState === CLOSED`. A page that branched on
-// `readyState` would have exactly one word for "the run is over", "you resumed too far back" and
-// "the network dropped" — and would show `lost` forever for two of the three. So the classifier
-// ASKS THE DOOR with a plain `fetch`, and the four answers it can return are the four things a
-// person needs told apart.
-//
-// THE URL IS THE OBSERVABLE. `EventSource` is stubbed with a capturing class and the constructed
-// URL asserted as a whole string, not probed with `toContain`. `handle=0` and `lastEventId=0` are
-// each their own cell because every truthiness spelling silently drops both — handle 0 is a real
-// member and seq 0 is a real resume point ("replay from the very beginning").
+// `EventSource` turns every refusal into a bare `error`, so the classifier asks again with `fetch`.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -231,15 +212,13 @@ describe('fetchLiveUrl mints through the local door', () => {
     await expect(fetchLiveUrl('run_42')).rejects.toSatisfy((err: unknown) => {
       if (!(err instanceof ApiError)) return false
       if (err.status !== status) return false
-      // The WORD, not a paraphrase: the page routes on it and 408's embed parses it.
+      // The word, not a paraphrase: the page routes on it and the embed parses it.
       return err.message === word
     })
   })
 })
 
-// ---------------------------------------------------------------------------
-// classifyRunStreamClose — Pitfall 3
-// ---------------------------------------------------------------------------
+// classifyRunStreamClose
 
 describe('classifyRunStreamClose asks the door why the source closed', () => {
   it('reads a 410 replay_floor and carries the floor the door advertised', async () => {
@@ -330,9 +309,7 @@ describe('classifyRunStreamClose asks the door why the source closed', () => {
   })
 })
 
-// ---------------------------------------------------------------------------
-// The end-to-end shape a page in 403-05 composes
-// ---------------------------------------------------------------------------
+// The end-to-end shape a page composes
 
 describe('the recovery the refusal advertises is the one this client takes', () => {
   it('re-attaches at earliestAvailableSeq - 1, the subtraction most likely to go wrong', async () => {

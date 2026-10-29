@@ -1,8 +1,4 @@
-// THE CONFIG PAGE'S SAVE STATE, PROVEN WHERE TIME IS FREE (429 D-19/D-20/D-21/D-24 · SC3).
-//
-// Every clock is a parameter: `reduceConfigAutosave(state, event, now)` and
-// `deriveSaveStatus(state, now)`. The window cells sit on either side of a half-open boundary,
-// the shape a wall clock would turn into a flake.
+// Every clock is a parameter, so window cells sit on either side of the half-open boundary.
 
 import { describe, expect, it } from 'vitest'
 

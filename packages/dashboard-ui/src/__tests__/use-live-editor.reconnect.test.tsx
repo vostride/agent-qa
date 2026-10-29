@@ -1,9 +1,6 @@
 // @vitest-environment jsdom
 
-// 428 code review (428-REVIEW.md): the editor keeps reconnect on, so a dropped control
-// socket is an ordinary event during a suite run. CR-01: the drop settles a test in flight, so
-// "Run all tests" ends instead of waiting forever for an answer the old socket cannot carry.
-// a socket the server replaced (4409) does not reconnect and take the session back.
+// A drop settles the running test so Run all tests ends; a 4409 replacement never reconnects.
 
 import React, { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'

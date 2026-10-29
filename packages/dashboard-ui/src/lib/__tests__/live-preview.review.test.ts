@@ -1,5 +1,4 @@
-// 428 code review (428-REVIEW.md) on the preview machine. Each cell pins a report or refusal that
-// used to leave the corner saying something the facts did not support.
+// Each cell pins a preview report or refusal against a claim the facts do not support.
 
 import { describe, expect, it } from 'vitest'
 

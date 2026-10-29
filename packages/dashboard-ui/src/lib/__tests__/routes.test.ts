@@ -100,20 +100,7 @@ describe('config route helpers', () => {
   })
 })
 
-// THE ARTIFACT HREF HAS EXACTLY ONE MINTER.
-//
-// Every artifact the rebuilt page shows is addressed by a `{ id, sha }` ref that the projection
-// carries — never by a URL a store wrote into a row. The href is MINTED here, from the run id and
-// the sha, through the same total route map every other link comes from. The third cell below is
-// the structural half of that law: it walks the source tree and asserts no OTHER file builds an
-// artifact path, because a second minter is how a route rename becomes a 404 that only shows up in
-// production.
-//
-// THE RUN ID IS ENCODED AND THE SHA IS NOT, and the asymmetry is deliberate. A run id is opaque
-// and may carry a space or a slash. A sha is 64 hex characters that the STORE validates before any
-// path use (`FsEvidenceArtifactStore`, 367) — encoding it would be a no-op on a well-formed sha and
-// would corrupt a malformed one into something the server's refusal could no longer name, and
-// case-folding it would change the content address itself.
+// The run id is encoded and the sha is not: the store validates it, and encoding hides a bad one.
 
 describe('artifact route helper', () => {
   const SHA = 'a'.repeat(64)
@@ -131,8 +118,7 @@ describe('artifact route helper', () => {
   })
 
   it('is the only artifact-href minter in the UI source tree', () => {
-    // Concatenated so this assertion cannot satisfy the inventory by matching itself
-    // (the `v1-retry-machinery-deleted.test.ts` idiom, restated in 405-03).
+    // Concatenated so this assertion cannot satisfy the inventory by matching itself.
     const needle = '/artifacts' + '/'
     const srcRoot = resolvePath(fileURLToPath(new URL('../../', import.meta.url)))
 

@@ -1,10 +1,4 @@
-// THE CONFIG PAGE'S STRINGS OF RECORD (429 UI-SPEC Copywriting Contract · PXH-CONF-01..05).
-//
-// Every sentence the Config page renders is an exported constant or pure function here, so cells
-// import the constant instead of re-typing prose. Strings holding an apostrophe use double quotes.
-// No string carries storage vocabulary (bucket names, dotted config paths); those stay in
-// data-field-path attributes. Connection-failure sentences are never spelled here: they come from
-// the shared classifier in @vostride/agent-qa-schema, byte-identical with the CLI.
+// Config sentences are constants here; connection-failure text comes from the schema classifier.
 
 import type {
   ConfigSectionId,
@@ -230,7 +224,7 @@ export function fixedFactsLine(connectionLabel: string): string {
   return `Connects with ${connectionLabel}. The name and connection are fixed; to change them, add a new model.`
 }
 
-/** A saved model's settings in its open row (UI-SPEC S4 item 2); Model and Base URL share the add flow's labels. */
+/** A saved model's settings in its open row; Model and Base URL share the add flow's labels. */
 export const MODEL_SETTING_LABELS = {
   vision: 'Vision',
   contextWindow: 'Context window',
@@ -419,12 +413,7 @@ export function keepPathName(pathLabel: string): string {
 
 export type DataPathKey = 'knowledge.dir' | 'services.dashboard.dbPath' | 'services.dashboard.artifactsDir'
 
-/**
- * What applying a new data path changes, as the code does it (429-20, law 2): the dashboard opens
- * its database at startup, runs and agent calls resolve the knowledge folder per run or call while
- * a standing daemon keeps the one it started with, and the artifacts folder holds only each run's
- * working-memory file, which nothing the dashboard shows reads.
- */
+// What applying a new data path changes, as the code does it.
 export const APPLY_CONSEQUENCES = {
   'knowledge.dir':
     'New runs and agents use the new folder right away; a running agent-qa daemon switches when it restarts. Nothing in the current folder is moved or deleted.',
@@ -699,7 +688,6 @@ export const TARGET_ENVIRONMENT_LABELS = {
   production: 'Production',
 } as const satisfies Record<'local' | 'shared' | 'production', string>
 
-// 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW pillar 1): one name for no class, the add row's.
 export const TARGET_ENVIRONMENT_PLACEHOLDER = 'Undeclared'
 
 /** The add-target row's environment choices: undeclared first, then the declared classes. */

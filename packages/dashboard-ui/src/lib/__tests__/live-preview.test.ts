@@ -1,8 +1,4 @@
-// THE LIVE PREVIEW'S ONE MACHINE, PROVEN WHERE TIME IS FREE (428 D-14/D-15/D-16/D-17 · SC2, SC3).
-//
-// Every clock is a parameter: `reduceLivePreview(state, event, now)` and `deriveLivePreview(state,
-// now)`. The window cells below sit on either side of a half-open boundary, the shape a wall clock
-// would turn into a flake.
+// Every clock is a parameter, so window cells sit on either side of the half-open boundary.
 
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'

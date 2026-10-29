@@ -1,5 +1,4 @@
-// 427 · D-15, D-16, D-17, D-19 part 2 — Memory changes as one row per affected record in 425's
-// five words, and every technical fact of those changes gathered for Retrieval details.
+// Memory changes: one row per affected record, with technical facts in Retrieval details.
 
 import { describe, expect, it } from 'vitest'
 import {
@@ -203,8 +202,6 @@ describe('Memory changes are one row per affected record, in the curation bucket
     expect(RECORD_CONTENT_NOT_RECORDED_LEAD).toBe("A record whose content isn't part of this run's record")
   })
 
-  // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 1): was "PROPOSED-HELD-FOR-REVIEW: a
-  // proposed row is held for review". Nothing reviews it; it is recorded and not applied.
   it('PROPOSED-NOT-APPLIED: a proposed row is recorded and not applied, and an open question says so', () => {
     const snapshot = CurationSnapshotSchema.parse({
       schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION,
@@ -264,7 +261,6 @@ describe('every bucket word explains itself, and the section speaks of memory ch
       confirmed: 'Existing knowledge this run backed up, including knowledge promoted to trusted.',
       superseded: 'Replaced by a newer version; agents are given the new one.',
       deprecated: 'Retired; agents are no longer given it.',
-      // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 1).
       proposed: 'Recorded, but not applied: agents are not given it.',
     })
     expect(Object.keys(BUCKET_MEANINGS)).toEqual(Object.keys(BUCKET_LABELS))

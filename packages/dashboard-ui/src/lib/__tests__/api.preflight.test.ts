@@ -1,24 +1,6 @@
 // @vitest-environment jsdom
 
-// The dashboard as a THIN CLIENT of the run contract (Phase 402 plan 08, D-01/D-15 · INVK-03/04).
-//
-// TWO CLAIMS, AND ONLY ONE OF THEM IS ABOUT A HAPPY PATH.
-//
-// 1. THE PREFLIGHT IS AT THE CHOKE POINT AND IT BLOCKS. Nine call sites start a run and every one
-//    of them funnels through `triggerRun`; gating per page would be nine places to forget. What
-//    makes "it preflights" a measurement rather than a description is the NEGATIVE half: on a
-//    not-ready answer the trigger POST must never be issued at all. A cell that only asserted the
-//    readiness fetch happened would pass under an implementation that fetched readiness, ignored
-//    the answer and posted anyway — which is the implementation a racing trigger already is.
-//
-// 2. THE ATTACH HELPER ADDRESSES ONE MEMBER. The URL is the observable, so `EventSource` is stubbed
-//    with a capturing class and the constructed URL asserted — including `handle=0`, which every
-//    `if (opts.handle)` spelling silently drops.
-//
-// WHAT THE GATE READS. The facts that decide whether THIS process can run something are `service`
-// and `hostComposed`. 2026-10-01: the readiness answer no longer carries
-// `authConfigured` (no run-service credential can be declared); a cell below keeps an older server's
-// answer, which still carries it, from being read as unready.
+// Every run start goes through `triggerRun`, so a not-ready answer must stop the POST there.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
@@ -102,9 +84,6 @@ describe('triggerRun preflights readiness at the ONE choke point', () => {
     expect(triggerCalls()[0]?.method).toBe('POST')
   })
 
-  // RE-SPELLED 2026-10-01: was 'still threads the confirm scope on the ready path'.
-  // The page no longer holds a scope to thread; the claim that survives is the second half — the
-  // preflight changes nothing else, so the trigger carries the caller's body as given and no more.
   it('posts the caller body unchanged on the ready path — the preflight changes nothing else', async () => {
     stubFetch({ status: 200, body: READY })
 
@@ -143,9 +122,6 @@ describe('triggerRun preflights readiness at the ONE choke point', () => {
     expect(notReady.readiness).toMatchObject({ hostComposed: false })
   })
 
-  // re-spelled from 'PROCEEDS with authConfigured false — the shipped default'. The field is
-  // gone from the answer; the claim that survives is that the gate reads only service and
-  // hostComposed, so neither the shipped answer nor an older server's extra member stops a run.
   it('PROCEEDS on the shipped answer and on an older answer that still carries authConfigured', async () => {
     stubFetch({ status: 200, body: { ...READY, authConfigured: false } })
 
@@ -153,8 +129,7 @@ describe('triggerRun preflights readiness at the ONE choke point', () => {
     expect(triggerCalls()).toHaveLength(1)
   })
 
-  // the contract moved to version 2 for a readiness member and refusal
-  // codes the preflight never read, so the gate accepts either version rather than gating on it.
+  // Version 2 changed readiness fields the preflight never reads, so either version is accepted.
   it('proceeds on a version 2 answer and on a version 1 answer', async () => {
     expect(RUN_SERVICE_CONTRACT_VERSION).toBe(2)
     stubFetch({ status: 200, body: { service: 'up', hostComposed: true, contractVersion: 2 } })

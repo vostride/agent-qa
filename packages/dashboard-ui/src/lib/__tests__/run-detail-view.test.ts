@@ -1,15 +1,4 @@
-// THE RUN-DETAIL PROJECTION, AS THE PAGE READS IT (405-06 · DETL-01, D-06/D-10/D-15/D-16..D-18).
-//
-// Every cell here drives a PURE function over the op's own `RunDetailProjection`. There is no DOM,
-// no fetch and no clock, which is the whole reason this module exists separately from the page:
-// 405-08's tree and 405-11's overview assert their copy BY CONSTANT rather than by string, so a
-// sentence moves in one place and its cells move with it (the `post-processing-view.ts` idiom).
-//
-// THE TWO CELLS WITH TEETH are the token line and the screen-state label. Both are about the
-// difference between "we measured nothing" and "we measured zero" — D-06's absent-is-not-zero law
-// restated on the read side. A `?? 0` anywhere on that path would turn "nobody measured this" into
-// "this was free", and the projection deliberately omits its three sums to make that impossible to
-// say by accident; the cells below pin that the view layer does not put it back.
+// Absent is not zero: a `?? 0` on the token path would turn an unmeasured run into a free one.
 
 import { describe, expect, it } from 'vitest'
 import type {
@@ -108,7 +97,7 @@ describe('groupRunDetail', () => {
     expect(grouped[0]?.steps[0]?.subActions.map((s) => s.subActionIndex)).toEqual([0, 1])
     expect(grouped[1]?.steps[0]?.subActions.map((s) => s.subActionIndex)).toEqual([0])
 
-    // a member whose stream began with a terminal event is STILL a group.
+    // A member whose stream began with a terminal event is still a group.
     expect(grouped[2]?.member.name).toBe('thin')
     expect(grouped[2]?.steps).toEqual([])
   })
@@ -174,17 +163,7 @@ describe('member copy', () => {
   })
 })
 
-// THE HEADER SAYS IN AND OUT; THE CARD SAYS THE REST (425-05 · D-21..D-24, UI-SPEC S6).
-//
-// The header line lost its coverage clause and gained a labelled pair, because "how much of the
-// run was measured" is a caveat and the header is a glance. Every caveat moved into the
-// card BEHIND the line, and each card line is its own function gated on the fact it states — a
-// line that renders when its fact is absent is a claim nobody made.
-//
-// THE ABSENT-IS-NOT-ZERO CELLS SURVIVE THE RE-SPELLING, verbatim in claim if not in sentence.
-// They are what stop a `?? 0` from re-entering this file, and the pair is exactly as capable of
-// lying as the sum it replaces: "0 in · 0 out" for a run nobody measured would report a
-// measurement nobody took.
+// Every caveat lives in the card, each line gated on its fact; absent is never printed as zero.
 describe('the header token pair', () => {
   it('TOKEN-PAIR-LINE: labels the measured input and output, compactly', () => {
     expect(
@@ -276,8 +255,7 @@ describe('measurement coverage', () => {
     )
   })
 
-  // WR-02. The two cells above are the negative control: the complete run and the genuinely
-  // partial run keep exactly the answers they had. This one is the run nobody measured at all.
+  // The cells above are the negative control; this one is the run nobody measured at all.
   it('USAGE-COVERAGE-ABSENT-IS-NOT-ZERO: says nothing about coverage when no step was measured', () => {
     const failure =
       'a card that says tokens were not measured and then reports how much of the total was missed ' +
@@ -303,11 +281,7 @@ describe('measurement coverage', () => {
   })
 })
 
-// A CACHED CLAIM IS THE PROVIDER'S OR IT DOES NOT EXIST (425-05 · D-24, RESEARCH reconciliation 4).
-//
-// Execution `cacheStatus` is a fact about THIS product's step cache — a step whose result was
-// replayed without a model call at all. Printing it as "cached input" would attribute a discount
-// to the provider that the provider never reported, on a page a person reads as a bill.
+// Execution `cacheStatus` is this product's step cache, never a provider discount on cached input.
 describe('provider-reported cached input', () => {
   it('CACHED-ONLY-WHEN-REPORTED: no cachedInputTokens, no line — whatever else is present', () => {
     expect(

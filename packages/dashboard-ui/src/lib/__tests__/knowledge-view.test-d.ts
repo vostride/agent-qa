@@ -1,5 +1,4 @@
-// 427 · D-02, D-07 — the Knowledge tab's closed sets, pinned in both directions (v54 bar). A member
-// added to the union alone compiles everywhere and is never painted; this bar catches that half.
+// A member added to the union alone compiles everywhere and is never painted; this bar catches it.
 
 import { expectTypeOf, test } from 'vitest'
 import type {

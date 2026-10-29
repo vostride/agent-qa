@@ -1,10 +1,4 @@
-// THE FIELD HELPERS (429-17 Task 1 · research A1, Pitfall 1 · 424 note 27).
-//
-// Five schema blocks require every sibling (plus use.browser.viewport, whose width and height are
-// both required once it exists, and services.accessibility, whose enabled is). A leaf-only write
-// into one of them while it is absent would always fail validation, so the write carries the
-// required siblings at the defaults the fields show as placeholders, and nothing optional. Each
-// added sibling is set-if-absent: the server writes it only if the file lacks it.
+// A leaf write into an absent all-required block carries its siblings, set-if-absent.
 
 import type { ConfigChange } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'

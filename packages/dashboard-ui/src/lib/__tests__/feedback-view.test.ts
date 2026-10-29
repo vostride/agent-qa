@@ -1,11 +1,4 @@
-// THE THREE CHOICES, ORDERED BY THE TARGET'S OWN RECORDED RESULT.
-//
-// A failed target offers "This should have passed" first and a passed target offers "This should have
-// failed" first, because the likelier correction is the one that contradicts what was recorded. The
-// order is keyed to the TARGET — a step reads its own verifier verdict, a test its own outcome — never
-// to the run as a whole and never to a guess at the tester's answer. These cells pin that rule, the
-// meaning line under each choice, and the closed sets, by their exported constants; the only literal
-// prose here is the locked label copy (SC2) and the S4 meaning table the spec fixes verbatim.
+// The likelier correction contradicts the target's own recorded result, so it is offered first.
 
 import { describe, expect, it } from 'vitest'
 import type {
@@ -196,7 +189,6 @@ describe('choice order and meaning', () => {
 
   it('CLOSED-SETS-RUNTIME: the outcome classes and composer states are exactly the published sets', () => {
     expect(FEEDBACK_OUTCOME_CLASSES).toEqual(['passed', 'failed'])
-    // no state for a mark waiting on an approval.
     expect(FEEDBACK_COMPOSER_STATES).toEqual(['composing', 'submitting', 'recorded', 'retained'])
     expect(Object.keys(FEEDBACK_CHOICE_ORDER).sort()).toEqual([...FEEDBACK_OUTCOME_CLASSES].sort())
     for (const cls of FEEDBACK_OUTCOME_CLASSES) {
@@ -384,9 +376,7 @@ describe('the pinned target names both places', () => {
   })
 })
 
-// WHAT THE MARK WILL DO, IN THE READ'S OWN FACTS. Every sentence below is
-// computed from one runs.mark.preview field and nothing else: the resolved step is keyed on the read's
-// reason, never re-derived from the steps, and a zero-count clause is dropped rather than printed as 0.
+// Each sentence comes from one `runs.mark.preview` field; a zero-count clause is dropped.
 describe('the preview names what the mark will do', () => {
   it('RESOLVED-STEP-TEXT: the sentence is keyed on the read\'s reason and the kind, and a step mark has none', () => {
     expect(resolvedStepText('failing-step', 'false-fail', 3, 5)).toBe('This marks step 3 of 5 — the first step that failed.')
@@ -448,8 +438,6 @@ describe('the preview names what the mark will do', () => {
     })
   })
 
-  // RE-SPELLED 432-09 from 'PREVIEW-PROPOSAL-LINE: each draft kind reads its sentence, and the
-  // drafted wording is never offered': the fix is applied on send, so each line says what will change.
   it('PREVIEW-CHANGE-LINE: each fix kind reads what will change, and its wording is never offered', () => {
     const checked = { servedRecords: 0, procedureReads: 0, assertionDrift: false }
     const target = { grain: 'record' as const, recordId: 'rec-1' }
@@ -466,17 +454,13 @@ describe('the preview names what the mark will do', () => {
       ...Object.values(PREVIEW_FIX_TEXT.knowledge)]) expect(text).not.toMatch(/review|proposal|draft/i)
   })
 
-  // RE-SPELLED 432-09 from 'PREVIEW-REPLACES-LINE: the earlier mark by ordinal and time, the
-  // withdrawal clause, and no guessed time': nothing is withdrawn; the earlier change stays.
   it('PREVIEW-REPLACES-LINE: the earlier mark by ordinal and time, that its change stays, and no guessed time', () => {
     expect(replacesLine(2, '14:05')).toBe('Replaces your earlier mark (#2, 14:05); what it changed stays')
     expect(replacesLine(2, undefined)).toBe('Replaces your earlier mark (#2); what it changed stays')
   })
 })
 
-// EVERY OTHER PREVIEW OUTCOME IS ITS OWN PLAIN STATE, AND ONE RULE DECIDES SUBMIT.
-// A quarantined mark still records; an identical repeat, a refusal in runs.mark's own terms and a read
-// that failed never do. The sentences are UI-SPEC S5/S6's strings of record, so they are literal here.
+// A quarantined mark still records; a repeat, a refusal or a failed read never does.
 describe('the special arms and the failed read', () => {
   const RUN_ID = generateRunId()
 
@@ -615,8 +599,7 @@ describe('Technical details copy', () => {
   })
 })
 
-// the history reads as plain sentences; a time is always the browser's own format of
-// the entry's markedAt, so cells compute it through formatMarkTime and never spell a clock.
+// A time is the browser's own format of `markedAt`, so cells compute it with `formatMarkTime`.
 describe('the history copy', () => {
   const RUN_ID = generateRunId()
 
@@ -671,14 +654,11 @@ describe('the history copy', () => {
     expect(HISTORY_RETRY_ACCESSIBLE_NAME.startsWith(RETRY_LABEL)).toBe(true)
   })
 
-  // RE-SPELLED 432-09 from 'HISTORY-PROPOSAL-COPY: each proposal state reads its phrase after
-  // Proposal:, and an apply in flight reads being applied': history says what an applied fix changed.
   it('HISTORY-APPLIED-COPY: an applied fix says what it changed; a historical draft says its change was not recorded', () => {
     expect(APPLIED_KNOWLEDGE_PREFIX).toBe('Changed knowledge: ')
     expect(APPLIED_TEST_FILE_PREFIX).toBe('Edited the test file ')
     expect(APPLIED_UNAVAILABLE_TEXT).toBe('What this mark changed was not recorded.')
     expect(appliedRecordUnavailableText('mem_1')).toBe('mem_1 (content unavailable)')
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW pillar 1).
     expect(dispositionText({ kind: 'drafted', fix: 'fact', proposalId: 'prop_x', proposalKind: 'knowledge' }))
       .toBe('Recorded — a fix was drafted (older mark)')
     expect(DISPOSITION_TEXT.applied).toEqual({

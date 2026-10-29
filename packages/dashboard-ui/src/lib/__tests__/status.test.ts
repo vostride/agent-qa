@@ -70,15 +70,7 @@ describe('dashboard status normalization', () => {
     expect(routes.runDetailOrLive('run-running', 'running')).toBe('/runs/run-running/live')
   })
 
-  // THE FIFTH VERDICT WORD HAD NO LABEL.
-  //
-  // `timeout` is a member of the run-status vocabulary (`runStatusValues`, schema
-  // functions/runs.ts), so a timed-out run reached the header and fell through to the default arm,
-  // which paints the raw lowercase word. PXH-RUN-01 names "Timed out" as one of the five words the
-  // reader must see. The arm is added to the ONE palette — D-01 forbids a second one — and reuses
-  // the `destructive` variant `getRunStatusDescriptor` already assigns that status as its tone.
-  // The six shipped arms are pinned verbatim beside it so adding the fifth word cannot re-spell
-  // the other four.
+  // The shipped arms are pinned verbatim beside it, so adding `timeout` cannot re-spell them.
   it('BADGE-TIMEOUT-ARM: the one palette labels a timed-out run and leaves the six shipped arms byte-identical', () => {
     expect(statusBadgeLook('timeout')).toEqual({ label: 'Timed out', variant: 'destructive' })
 
