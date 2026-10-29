@@ -386,7 +386,6 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle'
 
   it('STATUS-NEVER-SCROLLS-AWAY', async () => {
     const h = live()
-    const reads: string[] = []
     for (const viewport of [NARROW, DESKTOP]) {
       const opened = await h.page(viewport)
       const { page } = opened
@@ -417,7 +416,6 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle'
       })
       await captureViewport(page, `status-undo-${labelOf(viewport)}`)
       const where = `${labelOf(viewport)}: ${JSON.stringify(read)}`
-      reads.push(where)
       expect(read.line, where).toBe(`Deleted target ${LONG_TARGET}`)
       expect(read.scrolled, `${where}: the page must actually have scrolled`).toBeGreaterThan(0)
       expect(read.status.left, where).toBeGreaterThanOrEqual(0)
@@ -438,12 +436,10 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle'
       expect(opened.errors).toEqual([])
       await h.close(opened)
     }
-    process.stderr.write(`429-33 STATUS-NEVER-SCROLLS-AWAY measured:\n${reads.join('\n')}\n`)
   }, 120_000)
 
   it('NO-SIDEWAYS-SCROLL', async () => {
     const h = live()
-    const measured: string[] = []
     for (const viewport of [DESKTOP, NARROW]) {
       const opened = await h.page(viewport)
       const { page } = opened
@@ -458,7 +454,6 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle'
             innerWidth,
           }
         })
-        measured.push(`${labelOf(viewport)} ${tab} ${JSON.stringify(read)}`)
         const where = `${labelOf(viewport)} ${tab}: ${JSON.stringify(read)}`
         expect(read.innerWidth, where).toBe(viewport.width)
         for (const box of [read.document, read.inset, read.main]) {
@@ -470,7 +465,6 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle'
       expect(opened.errors).toEqual([])
       await h.close(opened)
     }
-    process.stderr.write(`429-33 NO-SIDEWAYS-SCROLL measured:\n${measured.join('\n')}\n`)
   }, 240_000)
 
   it('FILE-VIEW-MASKING-SHIPPED', async () => {
@@ -560,16 +554,13 @@ interface Poll {
 /** Reads the config file every few milliseconds, keeping each distinct content and when it appeared. */
 function watchFile(path: string) {
   const seen: Poll[] = [{ at: Date.now(), bytes: readFileSync(path, 'utf8') }]
-  let reads = 1
   const timer = setInterval(() => {
     let bytes: string
     try { bytes = readFileSync(path, 'utf8') } catch { return }
-    reads += 1
     if (bytes !== seen[seen.length - 1]!.bytes) seen.push({ at: Date.now(), bytes })
   }, 4)
   return {
     seen,
-    reads: () => reads,
     stop: () => clearInterval(timer),
   }
 }
@@ -667,7 +658,6 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
 
   it('ADD-FLOW-NO-INTERMEDIATE-SAVE', async () => {
     const { h, project: target, stub: model } = live()
-    const reports: string[] = []
     for (const viewport of [DESKTOP, NARROW]) {
       resetProject(target)
       const name = viewport === DESKTOP ? 'stub-desktop' : 'stub-narrow'
@@ -704,7 +694,6 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
 
         const probes = model.requests.slice(probesBefore).filter((request) => request.kind === 'text')
         const changes = watch.seen.slice(1)
-        reports.push(`${label}: reads=${String(watch.reads())} connectAt=${String(connectAt)} probes=${JSON.stringify(probes.map((probe) => ({ at: probe.at, path: probe.path, status: probe.status })))} changes=${JSON.stringify(changes.map((change) => change.at))}`)
         expect(probes.length, `${label}: Connect never reached the stub model server`).toBe(1)
         expect(probes[0]!.status).toBe(200)
         expect(changes, `${label}: the config was written more than once`).toHaveLength(1)
@@ -722,7 +711,6 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
       expect(opened.errors).toEqual([])
       await h.close(opened)
     }
-    process.stderr.write(`429-33 ADD-FLOW-NO-INTERMEDIATE-SAVE:\n${reports.join('\n')}\n`)
     expect(h.dialogs, 'a dialog mounted during the add flow').toEqual([])
   }, 180_000)
 
@@ -860,9 +848,7 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
     const doc = parseDocument(readFileSync(target.configPath, 'utf8'))
     doc.setIn(['use', 'browser', 'headless'], true)
     writeFileSync(target.configPath, String(doc), 'utf8')
-    const wroteAt = Date.now()
     await expect.poll(async () => await headless.getAttribute('aria-checked'), { timeout: 5_000, interval: 100 }).toBe('true')
-    const shownAfterMs = Date.now() - wroteAt
     expect(await page.evaluate(() => (window as unknown as { __sameDocument?: string }).__sameDocument), 'the page reloaded').toBe('yes')
     await capture(page, `outside-edit-${labelOf(DESKTOP)}-2-picked-up`)
 
@@ -873,7 +859,6 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
     const config = parse(readFileSync(target.configPath, 'utf8')) as { use?: { browser?: { headless?: unknown }; timeout?: { step?: unknown } } }
     expect(config.use?.browser?.headless, 'the human autosave dropped the outside edit').toBe(true)
     expect(config.use?.timeout?.step).toBe('50s')
-    process.stderr.write(`429-33 OUTSIDE-EDIT-SHIPPED: the switch showed the outside edit ${String(shownAfterMs)}ms after the write\n`)
     expect(opened.errors).toEqual([])
     await h.close(opened)
     expect(h.dialogs, 'a dialog mounted during the outside edit').toEqual([])
@@ -890,7 +875,6 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
     const opened = await h.page(DESKTOP)
     const { page } = opened
     let served: string | undefined
-    let polls = 0
     const configReads: number[] = []
     let patchedAt: number | undefined
     page.on('request', (request) => {
@@ -898,7 +882,6 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
       if (request.method() === 'GET' && url.pathname === '/api/config') configReads.push(Date.now())
     })
     await page.route('**/api/config/revision', async (route) => {
-      polls += 1
       if (served === undefined) {
         await route.continue()
         return
@@ -953,7 +936,6 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
     await expect.poll(plannerOnDisk, { timeout: 10_000 }).toEqual({ maxActions: 50, maxPlanningTurns: 99, previousStepCount: 77 })
     const config = parse(readFileSync(target.configPath, 'utf8')) as { services?: { vision?: { screenshotSize?: unknown } } }
     expect(config.services?.vision?.screenshotSize).toBe('512k')
-    process.stderr.write(`429-37 OUTSIDE-EDIT-INTERLEAVED-SHIPPED: polls=${String(polls)} configReads=${String(configReads.length)} readsBeforePatch=${String(readsBeforePatch)} answer=${JSON.stringify(answer)}\n`)
     expect(opened.errors).toEqual([])
     await h.close(opened)
     expect(h.dialogs, 'a dialog mounted during the interleaved outside edit').toEqual([])
