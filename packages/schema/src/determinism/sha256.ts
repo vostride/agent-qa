@@ -20,7 +20,7 @@ function hexWord(value: number): string {
 }
 
 /**
- * sha256 of RAW BYTES, hex — the one place this package's digest is computed (395 D-17).
+ * sha256 of RAW BYTES, hex — the one place this package's digest is computed.
  *
  * Split out of {@link sha256hex} rather than copied beside it, and the split is the whole point.
  * 395's config apply digests a file as it stands on disk while the proposal digested the same file

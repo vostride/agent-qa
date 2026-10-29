@@ -1,10 +1,10 @@
-// Phase 384 plan 02, D-06/D-16: the seed function-layer DTOs plans 03/04 bind their ops to.
+// the seed function-layer DTOs plans 03/04 bind their ops to.
 //
 // Three properties are pinned here, one per plan behavior:
 //  1. every exported function DTO schema is `.strict()` — an unknown key is a rejection,
 //     never a silently-carried field crossing a surface boundary;
 //  2. RunsStartInputSchema surfaces the D-10 `gateRun` carrier as an optional literal;
-//  3. every exported function DTO schema projects to JSON Schema (D-14) — the guarantee
+//  3. every exported function DTO schema projects to JSON Schema — the guarantee
 //     396's MCP tool catalog and 397's golden snapshot are both derived from.
 //
 // Imports come through the package barrel chain (`../index`) rather than the package name:
@@ -128,7 +128,7 @@ describe('function DTO schemas are strict', () => {
     expect(RunDetailSchema.safeParse({ ...makeRunDetail(), gateRun: false }).success).toBe(false)
   })
 
-  // 441-40 (D-29): a masked entry's value is its declared marker; the config placeholder is deleted.
+  // a masked entry's value is its declared marker; the config placeholder is deleted.
   it('keeps every masked config entry declaring whether the declared mask changed its value', () => {
     const parsed = MaskedResolvedConfigSchema.parse(makeMaskedConfig())
     const secret = parsed.entries.find((entry) => entry.key === 'llm.apiKey')

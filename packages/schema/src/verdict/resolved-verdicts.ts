@@ -1,4 +1,4 @@
-// The one verdict read path (Phase 389, D-10).
+// The one verdict read path.
 //
 // Two producers now exist for one `(runId, testId)` verdict — the runner's deterministic
 // classifier persisted on the handoff, and analyze-run's authored artifact. THE resolved
@@ -15,7 +15,7 @@ import type { Verdict } from './verdict'
 
 /**
  * Members whose outcome is worth a root-cause verdict — the complement of the runner's own
- * presence rule (373-07): clean passes, skipped and cancelled members are not failures to
+ * presence rule: clean passes, skipped and cancelled members are not failures to
  * explain. Mirrors the agent handler's floor projection member-for-member.
  */
 function needsVerdict(test: PerTestOutcome): boolean {
@@ -45,7 +45,7 @@ function mintedUnknown(perTest: number): Verdict {
 }
 
 /**
- * THE only way any consumer obtains a run's verdicts (D-10).
+ * THE only way any consumer obtains a run's verdicts.
  *
  * Artifact present → the authored verdicts, whole. Artifact absent → the deterministic
  * floor: each member needing a verdict answers its persisted `rootCause`, and a failed

@@ -1,4 +1,4 @@
-// The exercised-anchors walk, promoted from the CLI's curation tail (Phase 389, D-13).
+// The exercised-anchors walk, promoted from the CLI's curation tail.
 //
 // Pure over schema types — StepEvidence in, Anchor[] out — and promoted HERE because three
 // consumers now need one spelling of it: the CLI's candidate/canary emission (which
@@ -65,7 +65,7 @@ export function actionRefs(subAction: SubActionEvidence): string[] {
 }
 
 function resolvedActionRefs(subAction: SubActionEvidence): string[] {
-  // 2026-10-19 (444.1-08, D-14): a heal's grounding refs index the dispatch tree, not stateBefore.
+  // a heal's grounding refs index the dispatch tree, not stateBefore.
   if (isRedispatchedHeal(subAction)) return actionRefs(subAction)
   const grounded = (subAction.grounding?.attempts ?? []).flatMap((attempt) =>
     attempt.outcome === 'resolved' && attempt.resolvedRef !== undefined

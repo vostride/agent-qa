@@ -40,7 +40,7 @@ type Noop = DeltaEnvelope & {
 export type Delta = Add | Confirm | Supersede | Deprecate | MintUnknown | Noop
 
 /**
- * The §7.3 delta kinds as a RUNTIME value (387 D-17).
+ * The §7.3 delta kinds as a RUNTIME value.
  *
  * `Delta` is a type-only union with no runtime declaration anywhere in the tree, because
  * until now nothing validated a delta at a boundary — deltas were constructed in-process and

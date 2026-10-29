@@ -1,4 +1,4 @@
-// The pinned entity route and its slug (Phase 387 plan 07, ENTY-02 / D-10).
+// The pinned entity route and its slug.
 //
 // Two claims live here that no consumer can make on its own: the route TEMPLATE is the value
 // M5 will build its router from, and the slug segment is produced by the repo's ONE

@@ -1,5 +1,5 @@
 // Pitfall 6: the ONE shared non-replayable action-class list. The runner's cache write guard,
-// the extraction disposition (381-03), and procedure replay (381-07) all consume THIS list —
+// the extraction disposition, and procedure replay all consume THIS list —
 // it must never fork. Mirrors the runner's current exclusion lists member-for-member
 // (loop/index.ts COORDINATE_KEYS / COORDINATE_ACTION_TYPES + the setVariable/assertAI/extractAI
 // cache no-op guards); consumers swap their local copies for these in later plans.

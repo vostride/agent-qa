@@ -1,7 +1,7 @@
-// The action-anchor fingerprint: gate 3's v1 coverage recipe (Phase 393, D-13).
+// The action-anchor fingerprint: gate 3's v1 coverage recipe.
 //
 // A SIBLING of `failure-fingerprint.ts`, never an extension of it. That file is FROZEN
-// (389 D-13) because 390's recurrence windows key off its bytes; this one answers a different
+// because 390's recurrence windows key off its bytes; this one answers a different
 // question — what surface does a test EXERCISE, rather than how did it FAIL — and the two must
 // be free to move independently. What they share is their building blocks: `normalizeAnchor`
 // and `canonicalJson`, imported here rather than re-derived, so "near-same anchors are the
@@ -18,7 +18,7 @@
 //      so `/Form.html/#thanks` and `/form.html` are one route here exactly as they are there.
 //   3. The element is `canonicalJson` of that object — keys sorted, so a caller building the
 //      input in a different order cannot mint a second key for the same fact. Readable rather
-//      than hashed, matching the frozen sibling: a receipt NAMES the uncovered element (D-14),
+//      than hashed, matching the frozen sibling: a receipt NAMES the uncovered element,
 //      and a reader owed an explanation should be able to see what the key says.
 //
 // SET SEMANTICS LIVE AT THE CONSUMER. Gate 3's value test is "at least one element absent from
@@ -71,7 +71,7 @@ function normalizedRoute(route: string): string {
 }
 
 /**
- * One fingerprint element (D-13). Pure, total, and byte-stable across processes: every step of
+ * One fingerprint element. Pure, total, and byte-stable across processes: every step of
  * the recipe is a pure function of its arguments.
  */
 export function actionAnchorElement(input: ActionAnchorElementInput): string {
@@ -86,7 +86,7 @@ export function actionAnchorElement(input: ActionAnchorElementInput): string {
 }
 
 /**
- * The ordered element sequence for one test (D-13).
+ * The ordered element sequence for one test.
  *
  * Order and repeats are preserved deliberately — see the SET SEMANTICS note above.
  */
@@ -97,7 +97,7 @@ export function actionAnchorSequence(
 }
 
 /**
- * Which action types contribute an ASSERT element rather than an ACTION element (D-13).
+ * Which action types contribute an ASSERT element rather than an ACTION element.
  *
  * `kind` is the recipe's vocabulary discriminator: asserting a value on a field and typing into
  * it are different coverage facts about the same anchor, so they must key apart. The members are
@@ -146,7 +146,7 @@ export interface FingerprintEvidenceLike {
 }
 
 /**
- * The ordered elements one test exercised, or `[]` when its evidence yields none (D-13).
+ * The ordered elements one test exercised, or `[]` when its evidence yields none.
  *
  * ONE FUNCTION, BOTH SIDES OF GATE 3. The suite union is folded from these bytes
  * (`knowledge-local`'s `suite_fingerprints`), and the draft's own elements are computed by this
@@ -159,7 +159,7 @@ export interface FingerprintEvidenceLike {
  * ONLY SUB-ACTIONS THAT DID NOT FAIL COUNT (`actionDidNotFail`). A failed sub-action did not run
  * to an accepted result, and a surface an action failed to reach is not surface the test covers.
  * A skipped tap did not fail: it found its target already in the desired state and sent no input
- * (437 D-05), so its anchor counts, as it did before 437 recorded the skip `success: false`.
+ * so its anchor counts, as it did before 437 recorded the skip `success: false`.
  * Retuning that rule is a measurement, not a preference, and it must move on both sides at once —
  * which is now structurally guaranteed rather than merely intended.
  *

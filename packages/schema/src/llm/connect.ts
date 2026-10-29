@@ -1,4 +1,4 @@
-// 2026-09-26, 429-04 D-15/D-01: the draft model flow's DTOs. A draft is tested with the typed
+// the draft model flow's DTOs. A draft is tested with the typed
 // credential inline and lands in the file only on a pass or an explicit skipTest, so nothing is
 // persisted before the person chooses to keep it.
 import { z } from 'zod'

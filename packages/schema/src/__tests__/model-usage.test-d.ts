@@ -23,7 +23,7 @@ test('MODEL-USAGE-OPTIONAL: bus and persisted step share the schema-owned option
   expectTypeOf<RunDetailStep['tokenUsage']>().toEqualTypeOf<ModelTokenUsage | undefined>()
 })
 
-// 2026-09-15, 423-25: the remaining introduced arms, spelled by hand. Cache creation stays out of
+// the remaining introduced arms, spelled by hand. Cache creation stays out of
 // the contract by explicit phase exclusion, so its absence is pinned too.
 test('call counters, attempt kinds and reported fields are exactly the recorded arms', () => {
   type Attempt = ModelUsageObservations['attempts'][number]

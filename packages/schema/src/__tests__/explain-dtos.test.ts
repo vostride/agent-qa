@@ -1,4 +1,4 @@
-// The explain contract's shape laws (Phase 398 plan 04 — XPLN-02, D-10/D-11).
+// The explain contract's shape laws.
 //
 // Every truth in the plan's behaviour list gets a cell here, because a contract law stated only in
 // a header comment is a law nothing enforces. The load-bearing one is the ABSENCE of a confidence

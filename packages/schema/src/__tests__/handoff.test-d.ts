@@ -43,7 +43,7 @@ const invalidVerifierVerdict: StepEvidence['verifierVerdict'] = verifierVerdictS
 expectTypeOf<SubActionEvidence['plannedAction']>().toEqualTypeOf<Action>()
 expectTypeOf<SubActionEvidence['result']>().toEqualTypeOf<RecordedActionResult>()
 
-// D-15: PerTestOutcome.outcome splits off RunStatus onto the member-level MemberTestOutcome
+// PerTestOutcome.outcome splits off RunStatus onto the member-level MemberTestOutcome
 // (RunStatus + 'skipped'). 'skipped' is a member-only concept — it can never be an aggregate.
 expectTypeOf<PerTestOutcome['outcome']>().toEqualTypeOf<MemberTestOutcome>()
 const skippedMember: PerTestOutcome['outcome'] = 'skipped'

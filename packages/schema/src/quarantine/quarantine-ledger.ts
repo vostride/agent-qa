@@ -1,4 +1,4 @@
-// The committed quarantine ledger's event contract and state vocabulary (Phase 390, D-01/D-03).
+// The committed quarantine ledger's event contract and state vocabulary.
 //
 // `quarantine.jsonl` is a COMMITTED append-only event log at the knowledge root — its own
 // top-level artifact beside memory/ and policies/ — so a fresh CI checkout inherits quarantine
@@ -8,13 +8,13 @@
 // THREE THINGS ARE DELIBERATE HERE:
 //
 //  1. The event list is append-only LIFECYCLE ACTIONS only. `'expired'` is NOT an event: it is a
-//     COMPUTED state derived from an entry's `expiresAt` against the caller's `now` (D-11). Wall
+//     COMPUTED state derived from an entry's `expiresAt` against the caller's `now`. Wall
 //     clock enters the fold as an argument and is stamped into events at write time — this module
 //     reads no clock at all, and neither does the fold that consumes it.
 //  2. Stable test identity is `(product, filePath, testName)`, never `testId` (a per-run explicit
 //     id, not a durable identity). Every event and every folded entry is keyed that way.
 //  3. The `filePath` leg is the WORKSPACE-RELATIVE source path — rooted at the config directory,
-//     forward-slashed, no leading `./` — which is the same bytes on every checkout (390-08 / D-01).
+//     forward-slashed, no leading `./` — which is the same bytes on every checkout.
 //     This is what makes the inheritance claim above TRUE rather than asserted: the match at
 //     `quarantineAppliesToTest` is an exact string compare, so an absolute path (the version-1
 //     shape) could only ever match on the one machine that wrote it. The absolute form is refused
@@ -22,8 +22,8 @@
 //     silently re-enter the committed file.
 //
 // Consumers: the knowledge-local ledger read/fold (`readQuarantineLedger`/
-// `foldQuarantineLedgerState`), the CLI run-start snapshot (D-16), the quarantine list/add/release
-// verbs, and the recurrence clause's ladder arms (D-17).
+// `foldQuarantineLedgerState`), the CLI run-start snapshot, the quarantine list/add/release
+// verbs, and the recurrence clause's ladder arms.
 
 import {
   createVersionGuard,
@@ -34,7 +34,7 @@ import { isVerdictClass } from '../verdict/verdict'
 import type { VerdictClass } from '../verdict/verdict'
 
 /**
- * Version 2 (390-08 / CR-02): the `filePath` identity leg is workspace-relative. Version 1 stamped
+ * Version 2: the `filePath` identity leg is workspace-relative. Version 1 stamped
  * a machine-local ABSOLUTE path, which no other checkout can interpret — the bump moves the
  * contract while it is still FREE (zero `quarantine.jsonl` files exist in the wild, verified
  * 2026-08-05) rather than after entries start circulating through PRs and CI checkouts.
@@ -64,7 +64,7 @@ export function isQuarantineEventKind(value: unknown): value is QuarantineEventK
 }
 
 /**
- * The typed literal every auto-entry carries until a human claims it (D-12): honest absence over
+ * The typed literal every auto-entry carries until a human claims it: honest absence over
  * invented attribution — no git-identity stamping, no CODEOWNERS guessing. The list verb surfaces
  * unassigned entries FIRST because they are the triage queue.
  */
@@ -103,7 +103,7 @@ interface QuarantineEventBase {
   product: string
   /**
    * The WORKSPACE-RELATIVE source path: rooted at the config directory, forward-slashed, no
-   * leading `./` — minted once by the CLI through `workspaceRelativeIdentityPath` (390-08). These
+   * leading `./` — minted once by the CLI through `workspaceRelativeIdentityPath`. These
    * are the same bytes on every checkout, which is the whole reason the committed ledger can hand
    * a disposition to a machine that never saw the run that wrote it. An absolute path is refused
    * by {@link hasQuarantineEventShape}; it is never used for file access, only for identity.
@@ -118,7 +118,7 @@ export interface QuarantineEnteredEvent extends QuarantineEventBase {
   fingerprint: string
   verdictClass: VerdictClass
   owner: QuarantineOwner
-  /** ISO-8601 deadline, stamped at write time. On lapse, suppression STOPS (D-11). */
+  /** ISO-8601 deadline, stamped at write time. On lapse, suppression STOPS. */
   expiresAt: string
 }
 
@@ -185,7 +185,7 @@ const ABSOLUTE_PATH_PREFIX = /^([/\\]|[A-Za-z]:[/\\])/
 const DRIVE_RELATIVE_PREFIX = /^[A-Za-z]:/
 
 /**
- * Is this `filePath` the identity the mint PRODUCES (390-08 / CR-02, 390-11 / WR-01)?
+ * Is this `filePath` the identity the mint PRODUCES?
  *
  * Positive domain, not merely "not absolute": `workspaceRelativeIdentityPath` emits a
  * configDir-rooted, forward-slashed, `./`-trimmed, `..`-free path, and that is exactly the set
@@ -222,11 +222,11 @@ function isWorkspaceRelativeIdentity(value: string): boolean {
  * — never a run abort (the T-390-04 posture is unchanged), and never healing to absence.
  *
  * This is also the predicate the WRITE side ranges: the knowledge-local ledger append pre-checks
- * every event with it, so no caller can commit bytes THIS guard will refuse (390-11 / WR-07). Note
+ * every event with it, so no caller can commit bytes THIS guard will refuse. Note
  * the scope — this is the STRUCTURAL leg only, and its version clause asks merely that
  * `schemaVersion` be a number. {@link guardQuarantineLedgerEvent} wraps it in a version identity
  * check, which the append ranges SEPARATELY against
- * {@link CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION} (390-14 / G-390-1) rather than through this
+ * {@link CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION} rather than through this
  * predicate.
  */
 export function hasQuarantineEventShape(value: unknown): boolean {
@@ -287,7 +287,7 @@ export type QuarantineEntryStateName = (typeof QUARANTINE_ENTRY_STATE_NAMES)[num
  * One folded entry: the durable identity, the entry's own facts, its accumulated history, and its
  * computed state.
  *
- * TWO INSTANTS, TWO QUESTIONS (390-18). `enteredAt` is when the CURRENT window opened — the fact
+ * TWO INSTANTS, TWO QUESTIONS. `enteredAt` is when the CURRENT window opened — the fact
  * `expiresAt` and `state` are relative to. `firstEnteredAt` is when this test's quarantine history
  * began, which is the fact a human triaging it is actually deciding about, and the key the triage
  * queue sorts on. For a first entry they coincide; for a test that has been here before they do
@@ -315,7 +315,7 @@ export interface QuarantineEntryState {
 }
 
 /**
- * The detection ladder's visible rungs (D-06/D-17). `'flagged'` is detection-layer visibility only
+ * The detection ladder's visible rungs. `'flagged'` is detection-layer visibility only
  * — one build of warning before action — and NEVER appears in the ledger; it exists in this union
  * because the recurrence answer renders all three arms from one vocabulary.
  */
@@ -344,7 +344,7 @@ export interface QuarantineSnapshotMatch {
 }
 
 /**
- * Does the run-start snapshot license this test's failure (390 D-14/D-16)?
+ * Does the run-start snapshot license this test's failure?
  *
  * ONE spelling of the match, consumed by everything that has to agree about it: the runner's
  * aggregate verdict rule (which decides the exit code) and both CLI reporters (which tell the human
@@ -353,7 +353,7 @@ export interface QuarantineSnapshotMatch {
  * that never happened — precisely the un-quarantine evidence FLAK-02 exists to keep flowing.
  *
  * `product` is deliberately NOT compared: the composition layer filters the snapshot to the run's
- * product before handing it over (D-16), so re-deriving product bytes downstream would be a second,
+ * product before handing it over, so re-deriving product bytes downstream would be a second,
  * drift-prone spelling of that rule.
  */
 export function quarantineAppliesToTest(

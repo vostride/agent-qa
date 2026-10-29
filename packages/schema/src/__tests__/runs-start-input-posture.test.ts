@@ -1,4 +1,4 @@
-// THE REQUEST HALF OF D-12 (402-03): concurrency is a CONFIG fact, and a caller cannot name it.
+// THE REQUEST HALF OF D-12: concurrency is a CONFIG fact, and a caller cannot name it.
 //
 // `use.parallel` / `use.workers` live in the config the run resolves against, so the owner of a
 // target tunes how much of their machine a run may take. `RunsStartInput` is the OTHER side of that

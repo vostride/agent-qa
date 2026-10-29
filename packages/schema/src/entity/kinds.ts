@@ -1,4 +1,4 @@
-// The entity kind vocabulary and the `KIND-NNN` short-ID codec (Phase 387, ENTY-01 / D-03).
+// The entity kind vocabulary and the `KIND-NNN` short-ID codec.
 //
 // Five kinds, closed, and the closure is load-bearing rather than tidy: a short-ID is a
 // PUBLISHED address that ends up in verdict sentences, receipts and CI logs, so the set of
@@ -11,7 +11,7 @@
 // Two address FORMS, not one. Four kinds are ordinal-addressed (`MEM-001`) because their
 // machine ids are opaque digests and word-ids no human would type. `TGT` is slug-addressed
 // (`TGT-checkout`) because a target's machine id ALREADY is the human name the config gave
-// it (D-03) — minting an ordinal for it would invent a second name for something that
+// it — minting an ordinal for it would invent a second name for something that
 // already had a good one, and every later surface would have to decide which one to print.
 
 /** The complete kind vocabulary (ENTY-01, spec §4.4). Order is the canonical listing order. */
@@ -42,7 +42,7 @@ const SEGMENT_TO_KIND = new Map<string, EntityKind>(
 )
 
 /**
- * The kinds whose address body is a config-given slug rather than a minted ordinal (D-03).
+ * The kinds whose address body is a config-given slug rather than a minted ordinal.
  *
  * A table rather than a `kind === 'TGT'` test at each site, because the question "is this
  * one of the irregular kinds" is asked by the codec, the ledger and the resolver, and three

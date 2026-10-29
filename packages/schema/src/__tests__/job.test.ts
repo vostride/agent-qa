@@ -28,7 +28,7 @@ describe('jobSchema', () => {
     expect(result.success).toBe(false)
   })
 
-  // 385 C6 (JOBQ-01). The three fields below are REQUIRED, and requiredness is the half of
+  // 385 C6. The three fields below are REQUIRED, and requiredness is the half of
   // the break a "does the valid shape still parse" test cannot see: declaring them
   // `.optional()` keeps every accepting case above green while leaving exactly the rows the
   // break exists to forbid — an attempt-less, timestamp-less job row — parseable. So each

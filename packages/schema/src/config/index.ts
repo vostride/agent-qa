@@ -5,7 +5,7 @@ export {
   platformBaseShape,
   timeoutConfigSchema,
 } from './base'
-// 2026-09-26, 429-01 D-19: the field-merge write DTO PATCH /api/config parses; 429-04 D-24 adds
+// the field-merge write DTO PATCH /api/config parses; 429-04 D-24 adds
 // the Undo DTOs beside it.
 export type {
   ConfigActionRefusal,
@@ -20,7 +20,7 @@ export type {
   ConfigWriteRequest,
   ConfigWriteResult,
 } from './config-write'
-// 2026-09-27, 429-44 WR-01: the page write door's denied roots and path policy.
+// the page write door's denied roots and path policy.
 export type { ConfigWriteDeniedRoot } from './config-write'
 export {
   CONFIG_ACTION_REFUSALS,
@@ -36,7 +36,7 @@ export {
   isPageWritableConfigPath,
   MARKER_WRITTEN_BACK_SENTENCE,
 } from './config-write'
-// The published config schema's leaf list; 441-40 (D-29) deleted the masking map it came from.
+// The published config schema's leaf list; 441-40 deleted the masking map it came from.
 export type { ConfigLeafPattern } from './leaves'
 export { CONFIG_SCHEMA_LEAVES, configLeafOwner, isConfigSchemaPath } from './leaves'
 export type { BrowserConfig } from './browser'

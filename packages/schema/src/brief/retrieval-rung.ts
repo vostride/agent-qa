@@ -1,4 +1,4 @@
-// The retrieval degradation rung, as a recorded fact about ONE run (Phase 407, TRST-01 · D-13/D-17).
+// The retrieval degradation rung, as a recorded fact about ONE run.
 //
 // WHY A VOCABULARY AND NOT A STRING. The rung is what a banner PRINTS and what `doctor` grades,
 // and an open string would let a producer invent a fifth rung no reader has a rendering for —

@@ -1,4 +1,4 @@
-// 2026-10-08 (437-03, D-05): the one reader of a skipped tap's no-input block, shared by the
+// the one reader of a skipped tap's no-input block, shared by the
 // runner and the dashboard.
 import { describe, expect, it } from 'vitest'
 

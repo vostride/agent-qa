@@ -3,7 +3,7 @@ import type { Ref } from '../primitives/ref'
 
 // EXECUTION shapes (adapter-facing). Defaults are modeled as required here because these
 // types represent post-parse output. Critically, `ref` is REQUIRED on these shapes:
-// adapters receive fully-grounded actions (D-08). The EMISSION projections at the bottom of
+// adapters receive fully-grounded actions. The EMISSION projections at the bottom of
 // this file widen `ref` to optional and add a `target` descriptor sibling — that is what the
 // planner may SAY. The Plan-04 grounding gate is the converting boundary between the two
 // worlds; adapter contracts must never be loosened to the emission shape (Pitfall 2).
@@ -66,12 +66,12 @@ export type SwipeByPath = SwipeBase & {
 
 // --- EMISSION projection (planner-facing) -----------------------------------------------
 // What the planner MAY emit for a ref-bearing tool: `ref` becomes optional and a `target`
-// sibling appears, the stated target sent beside the ref (438 D-01). These are NOT the shapes
+// sibling appears, the stated target sent beside the ref. These are NOT the shapes
 // adapters receive — the grounding gate resolves `target` → `ref` before execution.
 //
 // `EmittedTargetDescriptor` mirrors the tool surface's `targetSchema` (the runner zod const):
-// role, name and the row words of a repeated label (D-02); no `near`, no selector-like field
-// and no ordinal (D-12). Recorded evidence keeps reading the schema `TargetDescriptor`;
+// role, name and the row words of a repeated label; no `near`, no selector-like field
+// and no ordinal. Recorded evidence keeps reading the schema `TargetDescriptor`;
 // params-drift pins `z.infer<typeof targetSchema>` against this type so the two never drift.
 export type EmittedTargetDescriptor = {
   role: string

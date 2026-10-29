@@ -1,6 +1,6 @@
-// The closed action class, as input DTOs (Phase 395, D-01 / D-11 / D-13 · CFGM-01, CFGM-05).
+// The closed action class, as input DTOs.
 //
-// ONE DTO PER OP, NAMED FOR ITS OP ID, MINTED HERE (384 D-16). The registry op that carries each of
+// ONE DTO PER OP, NAMED FOR ITS OP ID, MINTED HERE. The registry op that carries each of
 // these lives in `packages/agent`, the MCP projection that will publish them lives in 396, and the
 // parity walk that enumerates them lives in 397 — three consumers, so the shapes live in `schema`
 // where none of them owns the vocabulary. A per-op sibling shape would be three spellings whose
@@ -30,18 +30,18 @@ import { CROSS_BOUNDARY_REASONS } from './constants'
  * and this package may not import a first-party package (its package-class boundary). The words are
  * identical to `core`'s `HookDefinitionSchema.runtime` on purpose: a reader comparing them is
  * comparing one vocabulary seen from two layers, and a proposal that offered a fifth runtime would
- * be refused by the whole-file validation this phase runs before anything surfaces (CFGM-01).
+ * be refused by the whole-file validation this phase runs before anything surfaces.
  */
 export const CONFIG_HOOK_RUNTIMES = ['node', 'bun', 'python', 'bash'] as const
 
 export type ConfigHookRuntime = (typeof CONFIG_HOOK_RUNTIMES)[number]
 
 /**
- * The classes a target may declare at creation (432 D-19).
+ * The classes a target may declare at creation.
  *
  * Spelled here for the reason {@link CONFIG_HOOK_RUNTIMES} is: the words match `core`'s
  * `TargetSchema.environment`, and whole-config validation refuses any drift before the change is
- * written. Absent means undeclared, which is non-production (D-18).
+ * written. Absent means undeclared, which is non-production.
  */
 export const CONFIG_TARGET_ENVIRONMENTS = ['local', 'shared', 'production'] as const
 
@@ -61,7 +61,7 @@ export const ConfigTargetCreateInputSchema = z.object({
   platform: z.literal('web'),
   /** The base URL, absolute. D-15's hostname gate runs before this op is reached. */
   url: z.string().min(1),
-  // 2026-10-02 (quick 261002-ctr): no `authStateName`. See `ConfigAuthSetInputSchema`.
+  // no `authStateName`. See `ConfigAuthSetInputSchema`.
   /** A label for the target's environment. Omitted means undeclared. */
   environment: z.enum(CONFIG_TARGET_ENVIRONMENTS).optional(),
 }).strict()
@@ -93,7 +93,7 @@ export type ConfigTargetEditInput = z.infer<typeof ConfigTargetEditInputSchema>
  * secret-free by construction, which is what makes masking-at-resolution sound — a masker can only
  * mask values it can see, and the reason it can see all of them is that they never enter this file.
  *
- * 2026-10-02 (quick 261002-ctr): NO `authStateName`, here or on `config.target.create` /
+ * NO `authStateName`, here or on `config.target.create` /
  * `config.target.edit`. The three ops wrote it to `use.authState`, and the committed configuration
  * has no such key: `core`'s `UseSchema` and `TargetSchema` are both `.strict()` without one, so
  * whole-config validation answered every such call `blocked / schema-fail`. An auth state is bound
@@ -132,12 +132,12 @@ export const ConfigHookAddInputSchema = z.object({
 export type ConfigHookAddInput = z.infer<typeof ConfigHookAddInputSchema>
 
 /**
- * `config.field.set` — set any schema-addressable path (D-03).
+ * `config.field.set` — set any schema-addressable path.
  *
  * ANY PATH, and the absence of a settable-field whitelist is the decision rather than an omission —
  * a whitelist is the door-enumeration failure this project has measured twice: a rule that can only
  * refuse what it can NAME cannot be driven to zero by naming more things. The guards here are
- * whole-input by construction instead: post-mutation validation of the ENTIRE config (CFGM-01) for
+ * whole-input by construction instead: post-mutation validation of the ENTIRE config for
  * correctness, and D-02's per-value classifier for safety.
  *
  * Relocated from `proposal.ts` by 395-02 so the seven action inputs are one file a reader can read
@@ -152,7 +152,7 @@ export const ConfigFieldSetInputSchema = z.object({
 export type ConfigFieldSetInput = z.infer<typeof ConfigFieldSetInputSchema>
 
 /**
- * `config.project.scaffold` — configure a project from zero (D-13, CFGM-05).
+ * `config.project.scaffold` — configure a project from zero.
  *
  * ONE FIELD, AND THE MODEL FILLS ONLY THAT ONE. D-13 is explicit: the LLM picks the DOMAIN token
  * from the utterance and deterministic host code derives everything else — the scheme, the target
@@ -166,9 +166,9 @@ export const ConfigProjectScaffoldInputSchema = z.object({
 
 export type ConfigProjectScaffoldInput = z.infer<typeof ConfigProjectScaffoldInputSchema>
 
-// 2026-10-01, 432-17 (D-05/D-07/D-09): `config.undo.propose` and `config.proposal.apply` are deleted
+// `config.undo.propose` and `config.proposal.apply` are deleted
 // with the proposal inbox, and so are their inputs and the git-commit apply receipts. A change is
-// written in its own call and reverted with git (D-07); there is no undo op (D-09).
+// written in its own call and reverted with git; there is no undo op.
 
 /** How one file of a config change is written: added, replaced, or removed. */
 export const CONFIG_FILE_CHANGE_KINDS = ['add', 'modify', 'delete'] as const
@@ -199,7 +199,7 @@ export type ConfigChangeFile = z.infer<typeof ConfigChangeFileSchema>
 /**
  * Why a change was blocked: the resulting configuration would not validate. The report names the
  * issues and never the value. Nothing is written or kept. A config change is not scanned for
- * secrets (441 D-15).
+ * secrets.
  */
 export const CONFIG_BLOCKED_REASONS = ['schema-fail'] as const
 
@@ -245,7 +245,7 @@ export const CONFIG_CHANGE_REFUSAL_REASONS = [
 export type ConfigChangeRefusalReason = (typeof CONFIG_CHANGE_REFUSAL_REASONS)[number]
 
 /**
- * What one config operation did, answered after it wrote (432-11 D-05/D-07).
+ * What one config operation did, answered after it wrote.
  *
  *   applied     — the change is on disk. `files` are the workspace-relative files written, in write
  *                 order; `fields` are the config fields the change set; `shownDiff` is the diff of

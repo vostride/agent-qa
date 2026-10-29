@@ -19,7 +19,7 @@ const full: ScreenStateMetadata = {
   imageHeight: 1080,
 }
 
-// @ts-expect-error textOnly captures carry no image dimensions (SC5 / D-01 / D-03).
+// @ts-expect-error textOnly captures carry no image dimensions.
 const bad: ScreenStateMetadata = { captureMode: 'textOnly', coordSpace: 'viewport', viewportWidth: 1, viewportHeight: 1, scroll: { offsetX: 0, offsetY: 0, contentWidth: 1, contentHeight: 1 }, imageWidth: 1920 }
 
 expectTypeOf<ModelCapabilities>().toEqualTypeOf<{
@@ -49,14 +49,14 @@ expectTypeOf<ElementInfo['ref']>().toEqualTypeOf<Ref>()
 expectTypeOf<ElementInfo['nameNormalized']>().toEqualTypeOf<string>()
 expectTypeOf<ElementInfo['role']>().toEqualTypeOf<string>()
 
-// D-08: the same-screen ordinal is derived from elements[] order at match
+// the same-screen ordinal is derived from elements[] order at match
 // time, never stored on ElementInfo and never a cross-run key. Phase 311 proves
-// that structurally; positive ordinal disambiguation lands in Phase 313 (IDN-01).
+// that structurally; positive ordinal disambiguation lands in Phase 313.
 expectTypeOf<ElementBounds['bounds']>().toEqualTypeOf<BoundingBox>()
 expectTypeOf<ElementBounds['center']>().toEqualTypeOf<{ x: number; y: number }>()
 expectTypeOf<ElementInfo['bounds']>().toEqualTypeOf<BoundingBox | undefined>()
 
-// CAP-01: vision false corresponds to the textOnly metadata arm, whose
+// vision false corresponds to the textOnly metadata arm, whose
 // discriminated union structurally carries no image dimensions; the bad literal
 // above proves the impossible textOnly + imageWidth state stays rejected.
 

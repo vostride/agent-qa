@@ -1,4 +1,4 @@
-// The vendored line differ (Phase 395, D-17).
+// The vendored line differ.
 //
 // VENDORED RATHER THAN DEPENDED ON, and the reason is a running test rather than a preference.
 // `__tests__/package-class.test.ts` allow-lists this package's runtime dependencies at exactly
@@ -25,7 +25,7 @@ export const DIFF_CONTEXT_LINES = 3
 /**
  * The largest LCS table this differ will build, in cells.
  *
- * RETUNE: raise it if a real config file set is being rendered as one whole-file replacement when a
+ * raise it if a real config file set is being rendered as one whole-file replacement when a
  * line-level diff would have been reviewable. It exists because the table is O(old × new) and the
  * inputs are caller-supplied bytes: 4,000,000 cells is roughly a 2,000-line change against a
  * 2,000-line file, which is far outside anything the pinned config SET can be, and beyond it a

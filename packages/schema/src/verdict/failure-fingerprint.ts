@@ -1,10 +1,10 @@
-// The failure fingerprint: one exported vocabulary (Phase 389, D-13).
+// The failure fingerprint: one exported vocabulary.
 //
 // 390's FLAK-01 windows recurrence over this key and the cluster function groups over it,
 // so it is exported ONCE, from here, and the recipe below is part of the contract — changing
 // it later re-keys every accumulated fingerprint history. Deliberately a readable
 // deterministic string rather than a hash: the cluster DTO carries the fingerprint value
-// (D-16), and a reader owed an explanation should be able to see what the key says.
+// and a reader owed an explanation should be able to see what the key says.
 //
 // THE RECIPE (contract, not implementation detail):
 //   1. Select one anchor deterministically — the FIRST element-kind anchor in `anchors`,
@@ -29,7 +29,7 @@ export interface FailureFingerprintInput {
 }
 
 /**
- * Deterministic, byte-stable fingerprint for one failure (D-13).
+ * Deterministic, byte-stable fingerprint for one failure.
  *
  * Total: every failure keys, including anchorless ones — an empty anchor list with no error
  * text still yields the normalized empty-message error key rather than a refusal. Two

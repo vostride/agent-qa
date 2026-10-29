@@ -31,7 +31,7 @@ expectTypeOf<JobEnqueueRequest['payload']>().toEqualTypeOf<unknown>()
 // @ts-expect-error every enqueue carries an idempotency key; there is no keyless shape.
 const keyless: JobEnqueueRequest = { kind: 'analyze-run', payload: null }
 
-// D-04: the stamp is the literal, not `number`. A widening here is how a build would start
+// the stamp is the literal, not `number`. A widening here is how a build would start
 // accepting a checkpoint file some other build wrote.
 expectTypeOf<JobCheckpointEnvelope['schemaVersion']>().toEqualTypeOf<
   typeof JOB_CHECKPOINT_SCHEMA_VERSION

@@ -1,8 +1,8 @@
-// The hoisted fingerprint-input derivation (Phase 390, FLAK-01 · plan 02).
+// The hoisted fingerprint-input derivation.
 //
 // `failingStepOf`/`errorTextOf` moved here from agent's private `cluster.ts` so knowledge-local
 // can compute fingerprint inputs without importing agent. The move must change ZERO observable
-// behavior: a drifted hoist silently re-keys every accumulated fingerprint window (T-390-05), so
+// behavior: a drifted hoist silently re-keys every accumulated fingerprint window, so
 // the identity is PROVEN here rather than assumed.
 //
 // Two independent oracles, because either alone is weak:
@@ -196,7 +196,7 @@ describe('errorTextOf (hoisted from cluster.ts)', () => {
 })
 
 // ---------------------------------------------------------------------------------------
-// Group 3 — composition with the FROZEN fingerprint recipe (389 D-13)
+// Group 3 — composition with the FROZEN fingerprint recipe
 // ---------------------------------------------------------------------------------------
 
 /** The cluster path, expressed over the hoisted export — the one live spelling. */

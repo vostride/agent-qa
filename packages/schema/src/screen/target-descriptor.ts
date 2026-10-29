@@ -1,7 +1,7 @@
 import type { Ref } from '../primitives/ref'
 
 /**
- * The schema-owned grounding vocabulary (GROUND-01, D-14). A `TargetDescriptor` is
+ * The schema-owned grounding vocabulary. A `TargetDescriptor` is
  * what the planner emits to name a target element instead of a raw ref: the matcher
  * resolves it against a fresh observation at grounding time. One descriptor world is
  * shared by the tool surface, the matcher, and the cache's `GroundedLocator`
@@ -16,27 +16,27 @@ export interface TargetDescriptor {
    */
   role?: string
   /**
-   * Accessible name of the target. Semantically REQUIRED by the matcher (D-13):
+   * Accessible name of the target. Semantically REQUIRED by the matcher:
    * although optional at the type level for structural convergence with the cache's
    * `GroundedLocator`, a descriptor that reaches the matcher without a `name` is
    * rejected with a structured grounding error.
    */
   name?: string
   /**
-   * RESERVED for bounds-proximity matching (D-06). Not exposed on the M1 tool
+   * RESERVED for bounds-proximity matching. Not exposed on the M1 tool
    * schemas and defensively rejected by the matcher until proximity matching ships —
    * present in the vocabulary only to reserve the field name.
    */
   near?: string
   /**
-   * The row words of a repeated label (438 D-02): text of the element's enclosing row, list
+   * The row words of a repeated label: text of the element's enclosing row, list
    * item or similar container. Identity for checking and replay, never a search hint.
    */
   row?: string
   /**
    * A position among elements sharing this role + name, recorded by runs before 438. Read
    * from old handoffs only: nothing new writes it, and no matcher, heal, cache or procedure
-   * path selects by it (438 D-12, D-13; 436 D-17).
+   * path selects by it.
    */
   ordinal?: number
 }
@@ -53,7 +53,7 @@ export interface GroundingAttempt {
 }
 
 /**
- * The §A8 grounding evidence block (GROUND-02): the descriptor the grounder was
+ * The §A8 grounding evidence block: the descriptor the grounder was
  * asked to resolve plus the ordered trail of ladder attempts. The descriptor is
  * recorded post-redaction (the loop's redact-before-record ordering, enforced in
  * Plan 07) so untrusted planner text never persists raw into evidence.
@@ -62,7 +62,7 @@ export interface GroundingEvidence {
   descriptor: TargetDescriptor
   attempts: GroundingAttempt[]
   /**
-   * The element the planner meant, from the first lane that stated one (438 D-01, D-02),
+   * The element the planner meant, from the first lane that stated one,
    * redacted like the descriptor. `row` is absent when the planner stated no row words.
    */
   stated?: { role?: string; name: string; row?: string }

@@ -141,7 +141,7 @@ describe('guardRunAnalysisArtifact: a declared memoryOnPath', () => {
 })
 
 // ---------------------------------------------------------------------------------------
-// G-389-3A: the read half of the two-sided run-identity contract. The write half derives
+// the read half of the two-sided run-identity contract. The write half derives
 // the artifact's path FROM artifact.runId (persistAnalysis); this helper is the ONE place
 // the recorded id is compared against the run being resolved, consumed at both byte
 // boundaries (compose-local-agent's reader, emit-canary's loader). A mismatch is a typed

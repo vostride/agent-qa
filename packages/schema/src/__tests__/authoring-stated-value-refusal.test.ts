@@ -1,4 +1,4 @@
-// 2026-10-12 (440-03, D-09): the stated-value refusal's key set, stage vocabulary and output rules,
+// the stated-value refusal's key set, stage vocabulary and output rules,
 // read through the barrel callers import. Every expected set is spelled by hand, never derived from
 // the module under test.
 import { describe, expect, expectTypeOf, it } from 'vitest'

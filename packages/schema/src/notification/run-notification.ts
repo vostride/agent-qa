@@ -1,4 +1,4 @@
-// The chain-terminal notification DTO (Phase 388, D-09 / D-11 / D-12).
+// The chain-terminal notification DTO.
 //
 // One record per run, written inside the transaction that lands the LAST job the post-run
 // chain enqueued. It is the thing 392's chat and M5's dashboard read, which is why it is
@@ -6,7 +6,7 @@
 // consumer would be re-derived by the second, and the two spellings would drift on the first
 // field either of them wanted.
 //
-// What it deliberately does NOT carry (D-11; 385 D-01): no record content, no rationale
+// What it deliberately does NOT carry: no record content, no rationale
 // prose, no artifact bytes, no `agentqa://` refs. Counts, verdict classes and identifiers
 // only. The curation stage carries fixed curation event identities, which may contain
 // unconstrained strings. Public reads mask that snapshot through the same strict projection
@@ -14,7 +14,7 @@
 //
 // `outcome` is a fact about the CHAIN, not about the run: a failed run whose analysis and
 // curation both succeeded notifies `done`. The run's own verdict is the exit code, frozen
-// long before anything here exists (JOBQ-06), and conflating the two would make this record
+// long before anything here exists, and conflating the two would make this record
 // a second, later, quieter answer to a question already answered.
 
 import type { Verdict } from '../verdict/verdict'
@@ -30,7 +30,7 @@ import type { CurationSnapshot } from './curation-snapshot'
  */
 export const CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION = 2
 
-/** Whether the chain as a whole finished clean. Every stage done ⇒ `done` (D-12). */
+/** Whether the chain as a whole finished clean. Every stage done ⇒ `done`. */
 export type RunNotificationOutcome = 'done' | 'failed'
 
 /** Declaration-order projection of `RunNotificationOutcome`. */
@@ -103,7 +103,7 @@ export interface RunNotification {
   stages: RunNotificationStages
 }
 
-// 2026-10-17 (444-10, D-36): agent-jobs.db keeps the stored words; every read serves this view.
+// agent-jobs.db keeps the stored words; every read serves this view.
 export type RunNotificationViewStatus = 'complete' | 'failed'
 
 export const RUN_NOTIFICATION_VIEW_STATUSES = [
@@ -174,7 +174,7 @@ function isCount(value: unknown): boolean {
 }
 
 /**
- * Membership against a declared closed list (2026-09-12, 422-22).
+ * Membership against a declared closed list.
  *
  * The guard asks the CONSTANT rather than re-spelling its members in an `||` chain, so a word this
  * build reads and a word it admits cannot drift apart. An inline pair was fine while the words

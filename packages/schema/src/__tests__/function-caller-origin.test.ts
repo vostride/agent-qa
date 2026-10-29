@@ -42,7 +42,7 @@ describe('the actor-origin axis', () => {
 describe('the caller record after the permission wave', () => {
   it('types a tokenless caller with surface and origin alone — every permission field is optional', () => {
     // Compile-checked: until 432-20 `grantedScopes` and `safeMode` were required, so this literal
-    // did not type. 2026-10-02 (432-39, D-02/D-10): the retired fields are deleted, so the record
+    // did not type. 2026-10-02: the retired fields are deleted, so the record
     // is exactly these two keys at the type level too (C432-NO-PERMISSION-TYPES below).
     const tokenless: FunctionCaller = { surface: 'mcp', origin: 'agent' }
     expect(Object.keys(tokenless).sort()).toEqual(['origin', 'surface'])
@@ -51,7 +51,7 @@ describe('the caller record after the permission wave', () => {
   })
 
   it('keeps origin as presentation data only, with no new label', () => {
-    // No approval- or provenance-shaped member joins the closed origin vocabulary (D-10).
+    // No approval- or provenance-shaped member joins the closed origin vocabulary.
     expect([...FUNCTION_CALLER_ORIGINS]).toEqual(['human', 'agent'])
     const human: FunctionCaller = { surface: 'cli', origin: 'human' }
     const agent: FunctionCaller = { surface: 'cli', origin: 'agent' }
@@ -59,9 +59,9 @@ describe('the caller record after the permission wave', () => {
   })
 })
 
-// 2026-10-02 (432-39, D-10/D-12): the capability-scope union is DELETED, with every field that
+// the capability-scope union is DELETED, with every field that
 // named it. The two cells that pinned its members and its parser keep their titles and are
-// re-spelled as its absence (C432-NO-PERMISSION-TYPES).
+// re-spelled as its absence.
 // 2026-10-03 (quick-261003-tsr, IN-22): the two distinctness cells asserted that a list they built
 // lacked a value they never put in it, so they could not fail. Each now ranges every list and enum
 // the barrel exports for the retired grant names it is about.
@@ -89,9 +89,9 @@ function listsNaming(grants: readonly string[]): string[] {
 }
 
 describe('the capability-scope union', () => {
-  // RE-SPELLED 2026-10-02 (432-39, D-10/D-12, C432-NO-PERMISSION-TYPES). The union and its six
+  // RE-SPELLED 2026-10-02. The union and its six
   // members are deleted, test-write with them; no barrel exports a scope schema.
-  // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'carries test-write as a sixth, distinct member (394 WTST-01)': the body asserts the absence, so the title does.
+  // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'carries test-write as a sixth, distinct member': the body asserts the absence, so the title does.
   it('exports no capability-scope schema or type from the root barrel', () => {
     expect(Object.keys(schema)).not.toContain('FunctionScopeSchema')
     expect(Object.keys(schema).filter((name) => /FunctionScope/.test(name))).toEqual([])
@@ -99,7 +99,7 @@ describe('the capability-scope union', () => {
     expect(Object.keys(schema)).toContain('FUNCTION_CALLER_ORIGINS')
   })
 
-  // RE-SPELLED 2026-10-02 (432-39, D-10/D-12, C432-NO-PERMISSION-TYPES). With no union there is no
+  // RE-SPELLED 2026-10-02. With no union there is no
   // parser for a scope name to pass or fail: no exported enum carries the old members.
   // RE-TITLED 2026-10-02 (432-42, 432-39 #5) from 'refuses anything off the union': the body asserts the absence, so the title does.
   it('exports no enum parser that carries the six retired scope names', () => {
@@ -131,7 +131,7 @@ describe('the capability-scope union', () => {
   })
 })
 
-// 2026-10-01 (432-19, D-14/D-22). The origin axis's surviving reader is the clause RECEIPT: every
+// 2026-10-01. The origin axis's surviving reader is the clause RECEIPT: every
 // receipt names the origin the composition minted, and that is the contract the axis keeps once the
 // execution gate (which decided by it) is deleted. No new origin label is introduced, and the one
 // approval record the axis ever attributed — `approval_decision` — stays a READABLE historical kind

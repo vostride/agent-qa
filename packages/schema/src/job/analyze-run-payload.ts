@@ -1,4 +1,4 @@
-// The `analyze-run` job payload, mirrored as a schema (Phase 393, D-20).
+// The `analyze-run` job payload, mirrored as a schema.
 //
 // TWO READERS, DELIBERATELY ASYMMETRIC. The hand-rolled reader in `agent/src/jobs/kinds.ts`
 // stays additive-tolerant: it reads a payload written by an earlier build off a durable queue,

@@ -1,4 +1,4 @@
-/** Why a bound element could not be acted on (438 D-09). */
+/** Why a bound element could not be acted on. */
 export type BindingOutcome =
   | 'stale-observation'
   | 'frame-detached'
@@ -6,9 +6,9 @@ export type BindingOutcome =
   | 'binding-changed'
 
 /**
- * A refused dispatch's block, keyed `binding` (438 D-07, D-09): the element observed under `ref` is
+ * A refused dispatch's block, keyed `binding`: the element observed under `ref` is
  * no longer the one on the page, so nothing was sent. `heal` records why a re-find found no single
- * replacement (438-07).
+ * replacement.
  */
 export interface BindingOutcomeMeta {
   outcome: BindingOutcome
@@ -27,7 +27,7 @@ const OUTCOMES: ReadonlySet<unknown> = new Set([
 ])
 const HEALS: ReadonlySet<unknown> = new Set(['absent', 'not-unique'])
 
-// Narrows field by field; a hand-edited or partial block reads as undefined (436 D-17).
+// Narrows field by field; a hand-edited or partial block reads as undefined.
 export function readBindingOutcomeMeta(
   result?: { metadata?: Record<string, unknown> },
 ): BindingOutcomeMeta | undefined {

@@ -1,4 +1,4 @@
-// The on-disk contract for one agent job checkpoint (Phase 385, D-01 / D-04 / JOBQ-05).
+// The on-disk contract for one agent job checkpoint.
 //
 // Under the hybrid split each checkpoint is its own committed artifact, and every committed
 // artifact in this repo carries a literal version stamp with no migration machinery behind

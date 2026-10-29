@@ -1,4 +1,4 @@
-// The pinned config file SET, enumerated once for every consumer (Phase 395, D-02/D-05 · CFGM-01).
+// The pinned config file SET, enumerated once for every consumer.
 //
 // A SET AND NOT A GLOB (394-39's population lesson). `*.yaml` would answer differently on the first
 // repository whose layout nobody anticipated — silently, and in the direction that matters, because
@@ -19,7 +19,7 @@
 // member, because "the file is absent" is a fact the reader reports, never a reason to stop
 // considering the path config-owned.
 //
-// RETUNE: add a member here when the config grows a new file it OWNS — not when a project happens
+// add a member here when the config grows a new file it OWNS — not when a project happens
 // to keep another yaml beside it. The test is authorship: this product writes these files. Owned by
 // whoever owns D-02/D-05.
 

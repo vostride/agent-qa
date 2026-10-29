@@ -151,7 +151,7 @@ describe('actionAnchorSequence', () => {
   })
 })
 
-// 2026-10-09 (437-18, D-05, WR-03): a skipped tap sent no input but did not fail, so its anchor
+// a skipped tap sent no input but did not fail, so its anchor
 // is covered surface on both sides of gate 3, as it was before 437 recorded it `success: false`.
 describe('a skipped tap in the test fingerprint', () => {
   const toggle = {

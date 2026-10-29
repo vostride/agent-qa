@@ -4,7 +4,7 @@ import type { RecordId } from '../ids/record-id'
 import type { SERVED_BRIEF_PROOF_SCHEMA_VERSION } from './guard-lossless-served-brief'
 
 /**
- * The `truncation` string the runner writes when NO knowledge reader is bound (Phase 407, D-16).
+ * The `truncation` string the runner writes when NO knowledge reader is bound.
  *
  * BYTE-IDENTICAL to the literal `makeEmptyServedBrief` has always written, lifted here so that
  * the producer and every reader import ONE constant instead of spelling the sentence twice. It

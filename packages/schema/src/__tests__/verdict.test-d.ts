@@ -3,7 +3,7 @@ import { asRecordId } from '../ids/record-id'
 import type { PerTestOutcome } from '../handoff/per-test-outcome'
 import type { Verdict, VerdictEvidence } from '../verdict/verdict'
 
-// RCC-01 / D-03: the closed eight-class union — unknown/timeout ratified (§A9).
+// the closed eight-class union — unknown/timeout ratified (§A9).
 type AllClasses =
   | 'app_bug'
   | 'test_bug'
@@ -29,7 +29,7 @@ const evidence: VerdictEvidence = {
 
 expectTypeOf<Verdict['class']>().toEqualTypeOf<AllClasses>()
 
-// D-03: producer is the minting-pipeline axis, closed to exactly two literals.
+// producer is the minting-pipeline axis, closed to exactly two literals.
 expectTypeOf<Verdict['producer']>().toEqualTypeOf<
   'deterministic-classifier' | 'analyze-run'
 >()
@@ -96,7 +96,7 @@ const timeoutVerdict: Verdict = {
   perTest: 2,
 }
 
-// @ts-expect-error producer is required on every Verdict arm (D-03).
+// @ts-expect-error producer is required on every Verdict arm.
 const missingProducer: Verdict = {
   class: 'app_bug',
   confidence: 1,
@@ -144,7 +144,7 @@ const bareStringEvidence: Verdict = {
   perTest: 0,
 }
 
-// D-01: PerTestOutcome carries the optional per-test rootCause classification…
+// PerTestOutcome carries the optional per-test rootCause classification…
 const classifiedOutcome: PerTestOutcome = {
   testId: 'test-one',
   testName: 'Test one',

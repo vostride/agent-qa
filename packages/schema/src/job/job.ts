@@ -19,7 +19,7 @@ export type JobStatus = 'queued' | 'done' | 'failed' | 'cancelled'
 // with its attempt spent, so the queue neither loops on it nor hides it.
 export type JobConclusionKind = 'unreadable_kind'
 
-// 385 C6 (JOBQ-01): `attempts` is incremented at CLAIM (D-18), so a job that kills its host
+// 385 C6: `attempts` is incremented at CLAIM, so a job that kills its host
 // every time still exhausts its bound instead of crash-looping. `createdAt`/`updatedAt` are
 // ISO strings minted by the injected ClockPort — never the ambient wall clock and never a
 // SQL-side default, or the D-03 logical dump can never be compared across an interrupted
@@ -63,7 +63,7 @@ export const jobConclusionKindValues = [
 ] as const satisfies readonly JobConclusionKind[]
 
 /**
- * Whether this build reads `value` as a job kind (422 D-16).
+ * Whether this build reads `value` as a job kind.
  *
  * A PREDICATE rather than the array, so a caller can ask the question without gaining a list it
  * could iterate into a second registry. The store asks it of raw column bytes before those bytes

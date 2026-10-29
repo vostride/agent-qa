@@ -1,4 +1,4 @@
-// The `explain` contract (Phase 398 plan 04 — XPLN-02, D-10 / D-11).
+// The `explain` contract.
 //
 // THE UNION IS BINARY AND THERE IS NO CONFIDENCE MEMBER, and the absence is load-bearing. This is
 // the chat resolver table's own law, restated for the surface where it matters second-most:
@@ -6,9 +6,9 @@
 // would be the first half of a threshold". Here the reasoning is the same with a different
 // consequence: `explain` answers a person asking what the tool can do, and a 0.6-confidence answer
 // is an answer they will act on. There is exactly one honest split — the catalog grounds this, or
-// it does not — so the union has two arms and no number to tune between them (D-10, D-11).
+// it does not — so the union has two arms and no number to tune between them.
 //
-// NO-INVENTION IS STRUCTURAL, NOT PROMPTED (D-10). `ExplainCitationSchema` is the LLM's whole
+// NO-INVENTION IS STRUCTURAL, NOT PROMPTED. `ExplainCitationSchema` is the LLM's whole
 // output contract, and it is `.strict()` with no field that can carry a command string: the model
 // selects catalog ROW IDS and nothing else. Every command a person reads is quoted out of a
 // catalog row by the deterministic renderer in `packages/agent/src/explain/renderer.ts`. A cited
@@ -16,7 +16,7 @@
 // abstention, because there is nothing for the renderer to quote.
 //
 // `query` IS THE ONE DELIBERATELY FREE-TEXT FIELD IN THIS FEATURE, and it never leaves the machine.
-// It flows to the local coverage log under `.agent-qa/` (D-11) and nowhere else; analytics may
+// It flows to the local coverage log under `.agent-qa/` and nowhere else; analytics may
 // carry at most a counter (D-14's no-free-text law). Nothing downstream of this file may put it in
 // an event payload.
 
@@ -41,7 +41,7 @@ export const ExplainProseSegmentSchema = z.discriminatedUnion('kind', [
 ])
 
 /**
- * THE LLM'S ENTIRE OUTPUT CONTRACT (D-10).
+ * THE LLM'S ENTIRE OUTPUT CONTRACT.
  *
  * `segments` is admitted so the model is not forced to answer in a shape it cannot hold, and the
  * renderer treats it as INERT: the rendered output is a total function of the resolved rows and
@@ -84,7 +84,7 @@ export const ExplainAnswerSchema = z.object({
 }).strict()
 
 /**
- * Not grounded — stated plainly, with the nearest thing the catalog does carry (D-11, XPLN-02).
+ * Not grounded — stated plainly, with the nearest thing the catalog does carry.
  *
  * `closestRowIds` may be empty, and that is the honest arm rather than a hole: a query with no
  * lexical overlap with any row has no closest capability, and naming one anyway would be the

@@ -1,4 +1,4 @@
-// Phase 384 plan 02, D-10: the `gateRun` carrier, minted on CompletedRunHandoff v4.
+// the `gateRun` carrier, minted on CompletedRunHandoff v4.
 //
 // Pins the load-boundary facts the carrier introduces: the current version, and the
 // present-implies-valid shape clause that admits only the literal marker. `gateRun` is a SECOND,

@@ -1,6 +1,6 @@
-// RED-first pins for the three quarantine verbs' wire contract (Phase 390, D-12/D-13).
+// RED-first pins for the three quarantine verbs' wire contract.
 //
-// The DTOs are minted in schema (384 D-16) so `agent`'s op specs and knowledge-local's port
+// The DTOs are minted in schema so `agent`'s op specs and knowledge-local's port
 // implementation consume ONE contract rather than two agreeing spellings. Two claims carry
 // most of the weight here:
 //
@@ -9,7 +9,7 @@
 //     out of the canonical verdict const — so a fourth ledger state could not arrive with the
 //     wire contract still admitting only three. The cases below assert that identity, not a
 //     hand-written copy of the members.
-//  2. RE-ADD AND MISSING-ENTRY ARE RESULT ARMS, NEVER THROWS (D-13). `release` on a test that
+//  2. RE-ADD AND MISSING-ENTRY ARE RESULT ARMS, NEVER THROWS. `release` on a test that
 //     is not quarantined answers `no-entry`; `add` on one that already is answers `renewed`.
 //     A caller learns which happened by reading the discriminant, which a rejected promise
 //     could not carry.

@@ -40,22 +40,22 @@ const staticBackend: EmbeddingProfile = { ...base, backend: 'static' }
 const badDtype: EmbeddingProfile = { ...base, dtype: 'fp32' }
 // @ts-expect-error pooling is locked to mean pooling.
 const badPooling: EmbeddingProfile = { ...base, pooling: 'cls' }
-// @ts-expect-error backend vocabulary is 'node' | 'static'; the v46 wasm backend was removed with no shim.
+// @ts-expect-error the backend is `node` or `static`; `wasm` is not a backend.
 const badBackendWasm: EmbeddingProfile = { ...base, backend: 'wasm' }
 // @ts-expect-error backend rejects non-member literals.
 const badBackendWebgpu: EmbeddingProfile = { ...base, backend: 'webgpu' }
 // @ts-expect-error normalize is locked so cosine ranking matches dot-product ranking.
 const badNormalize: EmbeddingProfile = { ...base, normalize: false }
 
-// @ts-expect-error tau_dense is required — Phase 377's admission floor reads it unconditionally.
+// @ts-expect-error tau_dense is required: the admission floor reads it unconditionally.
 const missingTauDense: EmbeddingProfile = (({ tau_dense, ...rest }) => rest)(base)
-// @ts-expect-error revision is required — Phase 376's embed cache and vec0 table identity key on it.
+// @ts-expect-error revision is required: the embed cache and vec0 table identity key on it.
 const missingRevision: EmbeddingProfile = (({ revision, ...rest }) => rest)(base)
 // @ts-expect-error session_options is required — the runtime hands it to ORT verbatim.
 const missingSessionOptions: EmbeddingProfile = (({ session_options, ...rest }) => rest)(base)
 
 // The no-shim pin: a v46-shaped profile (removed worker-count field, removed wasm backend) is not assignable.
-// @ts-expect-error the v46 threads worker-count field was removed with no compatibility shim.
+// @ts-expect-error a `threads` worker-count field is not part of the profile.
 const v46Shaped: EmbeddingProfile = { ...base, threads: 1 }
 
 expectTypeOf<EmbeddingProfile>().not.toHaveProperty('threads')

@@ -1,4 +1,4 @@
-// D-29/D-17: a handoff written by the unchanged producer at agent-qa
+// a handoff written by the unchanged producer at agent-qa
 // 5e3e932a2d586f89c805a385483da1800b941fff still reads, and its digests still recompute.
 import { createHash } from 'node:crypto'
 import { readFileSync } from 'node:fs'

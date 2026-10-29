@@ -1,4 +1,4 @@
-// 2026-09-26, 429-01 D-19/D-22: the field-merge write DTO behind PATCH /api/config. A change
+// the field-merge write DTO behind PATCH /api/config. A change
 // names one field by segments, never a dotted string, so a key holding a dot stays addressable
 // and an outside edit to a sibling field is never rewritten.
 import { z } from 'zod'
@@ -89,12 +89,12 @@ export const ConfigPathSegmentSchema = z.union([
 
 const ConfigPathSchema = z.array(ConfigPathSegmentSchema).min(1)
 
-// 2026-09-27, 429-44 WR-01: the page's write door writes exactly what the page renders a field
+// the page's write door writes exactly what the page renders a field
 // for, which is every schema leaf outside these roots.
 
 /**
  * Roots the page's write door never writes.
- * - `plugins`: names code the CLI loads, so it stays a file edit (D-06).
+ * - `plugins`: names code the CLI loads, so it stays a file edit.
  *
  * There is no `safety` root: a path under it is not a schema path, so the door refuses it like any
  * unknown path.
@@ -148,7 +148,7 @@ export type ConfigWriteResult = {
 /** The revision a config file that does not exist yet reports. */
 export const CONFIG_REVISION_ABSENT = 'absent'
 
-// 2026-09-26, 429-04 D-24: the server-side Undo.
+// the server-side Undo.
 
 export const ConfigUndoRequestSchema = z.object({
   token: z.string().min(1),

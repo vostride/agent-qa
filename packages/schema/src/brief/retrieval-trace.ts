@@ -1,4 +1,4 @@
-// The serve-time retrieval trace (Phase 387, KREV-02 · D-13/D-14).
+// The serve-time retrieval trace.
 //
 // What a brief SAID is already durable; what this contract makes durable is WHY it said it.
 // The serving path knows leg, rank, score and what the token budget cut at the moment it
@@ -10,11 +10,11 @@
 // TWO ledgers, not one. `servedLines` answers "why did it say this". `truncated` answers
 // "why didn't it mention X" — the question a QA engineer debugging a missed hint actually
 // asks, and the one that is unanswerable from the served brief alone because the cut
-// candidates leave no trace in it at all (D-14).
+// candidates leave no trace in it at all.
 //
 // This module deliberately does NOT touch the `ServedBrief` contract. That value feeds
 // `computeBriefDigest`, and every cassette and acceptance digest in the tree is keyed on its
-// exact bytes; a trace channel added there would have rewritten all of them (D-13).
+// exact bytes; a trace channel added there would have rewritten all of them.
 
 import { z } from 'zod'
 

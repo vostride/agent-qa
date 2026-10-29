@@ -1,4 +1,4 @@
-// The authored sentence parts a run analysis carries BESIDE its verdicts (Phase 389, D-05/D-07).
+// The authored sentence parts a run analysis carries BESIDE its verdicts.
 //
 // Parts live BESIDE `Verdict`, joined by `perTest`, and never inside it — the §A9 union is
 // frozen and the 387 beside-never-widening law applies here exactly as it did to the entity
@@ -25,9 +25,9 @@ export type VerdictGroundingQuote =
   | { source: 'test-outcome'; quote: string }
 
 /**
- * One verdict's authored sentence parts (D-05).
+ * One verdict's authored sentence parts.
  *
- * `perTest` is the join key to `Verdict.perTest` (D-07) — one parts record per authored
+ * `perTest` is the join key to `Verdict.perTest` — one parts record per authored
  * verdict, matched by number, never by array position. `links` carry `agentqa://` entity
  * URIs only, validated through the one URI codec rather than a bare string check.
  */

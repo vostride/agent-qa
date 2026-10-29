@@ -7,7 +7,7 @@ import type { ProcedureMatch } from './reader-types'
 import type { ServingRecordMetadata } from './serving-admission'
 
 /**
- * One exemplar test reference (D-16): refs + outcome metadata + a short budget-aware excerpt
+ * One exemplar test reference: refs + outcome metadata + a short budget-aware excerpt
  * (title + step outline) — NEVER full inline test text. The consumer reads the file on demand;
  * tests are its repo's files.
  */
@@ -29,7 +29,7 @@ export interface ExemplarTest {
 export type CoverageMap = Record<string, never>
 
 /**
- * The assembled authoring brief (ABRF-01). Locked tight-budget precedence when the budget
+ * The assembled authoring brief. Locked tight-budget precedence when the budget
  * cannot fit everything: caution > procedure > exemplar > fact — the 381-08 assembly and every
  * future consumer read the ordering from THIS contract, not a call site.
  */
@@ -38,7 +38,7 @@ export interface AuthoringBrief {
   procedures: ProcedureMatch[]
   facts: BriefLine[]
   cautions: CautionLine[]
-  /** NON-optional (D-13): typed-empty until M4 populates it. */
+  /** NON-optional: typed-empty until M4 populates it. */
   coverage: CoverageMap
   truncation: string
   /** Exact admission material for every served record, the ServingRecordMetadata way. */

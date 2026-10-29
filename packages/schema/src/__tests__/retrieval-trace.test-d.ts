@@ -1,4 +1,4 @@
-// Type-level proof for the serve-time retrieval trace (Phase 387 plan 02, D-13/D-14).
+// Type-level proof for the serve-time retrieval trace.
 //
 // The runtime suite in `retrieval-trace.test.ts` proves what the zod schema accepts and
 // refuses. It cannot prove the two claims below, and a mutation probe confirmed that:
@@ -7,7 +7,7 @@
 // covers only `*.test-d.ts`. These assertions are that missing control.
 //
 //   1. `StepEvidence` declares `retrievalTrace` as an OPTIONAL, TYPED beside-field.
-//   2. `ServedBrief` carries no trace member — the beside-never-widening law (D-13) stated
+//   2. `ServedBrief` carries no trace member — the beside-never-widening law stated
 //      as a compile-time fact about the contract rather than as an assertion that a
 //      particular commit did not edit a particular file.
 import { expectTypeOf } from 'vitest'

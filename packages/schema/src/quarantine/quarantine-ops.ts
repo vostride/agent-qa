@@ -1,7 +1,6 @@
 // The three quarantine verbs' wire contract, and the port the ops dispatch through
-// (Phase 390, D-12/D-13).
 //
-// MINTED IN SCHEMA, not in `agent` (384 D-16). Two packages consume this contract and neither
+// MINTED IN SCHEMA, not in `agent`. Two packages consume this contract and neither
 // may import the other: `agent` declares the op specs against these validators, and
 // knowledge-local implements {@link QuarantineOperationsPort} over the committed ledger. A
 // port type declared beside the ops would have made the implementing package depend on the
@@ -13,7 +12,7 @@
 //     of the ledger's own {@link QUARANTINE_ENTRY_STATE_NAMES}, and its class enum out of the
 //     canonical `VERDICT_CLASSES`. There is no second spelling of either union in this file,
 //     so a fourth ledger state cannot arrive with the wire contract still admitting three.
-//  2. ABSENCE AND RE-ENTRY ARE RESULT ARMS, NEVER THROWS (D-13). `release` on a test that is
+//  2. ABSENCE AND RE-ENTRY ARE RESULT ARMS, NEVER THROWS. `release` on a test that is
 //     not quarantined answers `no-entry`; `add` on one that already is answers `renewed`,
 //     having extended the expiry and claimed the owner when one was supplied. Both are
 //     ordinary states of the world an operator asks about, and a rejected promise would say
@@ -40,7 +39,7 @@ import type { QuarantineEntryState } from './quarantine-ledger'
  * type is the unassigned literal widened by whatever name a human claimed it under, so an
  * enum here would be a closed set the ledger deliberately does not have.
  *
- * `enteredCount` and `firstEnteredAt` (390-18) are the ledger's own DERIVATIONS, not stored
+ * `enteredCount` and `firstEnteredAt` are the ledger's own DERIVATIONS, not stored
  * bytes — the fold computes them over `entered` events already committed, so nothing about the
  * ledger's version or its migrations moves to carry them. They are on the wire because
  * "this test has re-entered quarantine 7 times, and its history began 214 days ago" is the fact
@@ -94,12 +93,12 @@ export type QuarantineListOutput = z.infer<typeof QuarantineListOutputSchema>
  * human half of the exit path exists to accept. One rule, one home — and the home is
  * `createQuarantineOperations`, at the boundary of both write verbs.
  *
- * `product` lands in the slugged partition every reader compares (WR-01 / 390-09):
+ * `product` lands in the slugged partition every reader compares:
  * `createQuarantineOperations` runs it through `slugBranch`, so a human typing `My Product` reaches
  * the `My-Product` partition `resolveRunQuarantineSnapshot` filters on.
  *
  * `filePath` lands as the durable workspace-relative IDENTITY every reader compares with `===`
- * (390-12 / D-01): the same boundary mints it through core's `workspaceRelativeIdentityPath`,
+ * the same boundary mints it through core's `workspaceRelativeIdentityPath`,
  * pre-bound by the host to its own config directory — which is why the rule cannot live here, in a
  * package that knows no checkout root. A path that cannot be canonicalized for this checkout is
  * refused typed by the implementation rather than stored. Before that mint existed, an absolute
@@ -139,7 +138,7 @@ export const QuarantineReleaseOutputSchema = z.discriminatedUnion('kind', [
 export type QuarantineReleaseOutput = z.infer<typeof QuarantineReleaseOutputSchema>
 
 /**
- * `quarantine.add` is manual ENTRY, renewal and the owner claim in one verb (D-13).
+ * `quarantine.add` is manual ENTRY, renewal and the owner claim in one verb.
  *
  * Not three verbs, because in an append-only event log they are one gesture with different
  * prior state: re-adding an already-quarantined identity is a `renewed` event that extends
@@ -149,7 +148,7 @@ export type QuarantineReleaseOutput = z.infer<typeof QuarantineReleaseOutputSche
  *
  * `owner` absent leaves an auto-entry's `unassigned` in place (D-12: honest absence over
  * invented attribution — nothing here stamps a git identity). `expiresAt` absent takes the
- * pinned default lifetime at the implementation (D-11).
+ * pinned default lifetime at the implementation.
  */
 export const QuarantineAddInputSchema = z.object({
   ...identityShape,

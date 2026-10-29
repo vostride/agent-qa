@@ -30,7 +30,7 @@ import {
 // Independent vocabularies, spelled by hand so no expected list is derived from production.
 // Plan 423-23 owns the mutation script; C423-FEEDBACK-RESULTS-EXACT is its required RED cell.
 const HISTORY_OUTCOMES = ['history', 'run-not-found', 'ledger-corrupt', 'ledger-unavailable'] as const
-// 2026-09-30, 432-09: an applied fix names a knowledge change or a written test file.
+// an applied fix names a knowledge change or a written test file.
 const APPLIED_CHANGE_KINDS = ['knowledge', 'test-file'] as const
 const REFUSALS = ['run-not-found', 'member-not-found', 'step-not-found', 'ambiguous-address'] as const
 const PREVIEW_OUTCOMES = ['consequences', 'quarantined', 'already-marked', ...REFUSALS] as const
@@ -41,10 +41,10 @@ const LATEST_KINDS = ['first', 'supersedes'] as const
 const DRAFT_KINDS = ['confirmed-bug', 'knowledge', 'test-edit', 'no-draftable-fix'] as const
 const EVIDENCE_DIRECTIONS = ['confirm', 'overturn'] as const
 const RECORD_EVIDENCE_KINDS = ['effects', 'unreadable'] as const
-// 2026-09-15, 423-25: the inherited 419 vocabularies the quarantined and already-marked arms carry.
+// the inherited 419 vocabularies the quarantined and already-marked arms carry.
 const QUARANTINE_CLASSES = ['flake', 'environment', 'timeout'] as const
-// 2026-09-30, 432-09: the writer's vocabulary is `applied`; `drafted` is a readable pre-432 receipt.
-// 2026-10-03 (quick 261003-mqc): `not-applied` closes a mark whose planned fix was refused.
+// the writer's vocabulary is `applied`; `drafted` is a readable pre-432 receipt.
+// `not-applied` closes a mark whose planned fix was refused.
 const DISPOSITIONS = ['quarantined', 'applied', 'no-draftable-fix', 'confirmed-bug', 'not-applied'] as const
 const HISTORICAL_DISPOSITIONS = ['drafted'] as const
 
@@ -146,7 +146,7 @@ describe('mark result vocabularies', () => {
     expect(RunsMarkPreviewResultSchema.safeParse({ ...base, resolvedStep: { stepIndex: 0, reason: 'last-step' } }).success).toBe(false)
     expect(RunsMarkPreviewResultSchema.safeParse({ ...base, latest: { kind: 'replaces', markId: 'mark_000000000001', ordinal: 1 } }).success).toBe(false)
     expect(MarkPreviewDraftSchema.safeParse({ kind: 'wording', text: 'x' }).success).toBe(false)
-    // 423-19 D-17: the reached-record evidence vocabularies.
+    // the reached-record evidence vocabularies.
     expect([...MARK_PREVIEW_EVIDENCE_DIRECTIONS]).toEqual([...EVIDENCE_DIRECTIONS])
     expect(armsOf(MarkPreviewEvidenceEffectSchema, 'direction')).toEqual([...EVIDENCE_DIRECTIONS])
     expect([...MARK_PREVIEW_RECORD_EVIDENCE_KINDS]).toEqual([...RECORD_EVIDENCE_KINDS])

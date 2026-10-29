@@ -1,4 +1,4 @@
-// The run-directory analysis artifact (Phase 389, D-09).
+// The run-directory analysis artifact.
 //
 // `analysis.json` is the analysis job's own receipt and the durable truth home for a run's
 // authored verdicts and sentence parts — the document M5's run page, 392's chat and eval will
@@ -26,12 +26,12 @@ export const CURRENT_ANALYSIS_SCHEMA_VERSION = 2
 export const ANALYSIS_FILE = 'analysis.json'
 
 /**
- * What one analysis run durably authored (D-09).
+ * What one analysis run durably authored.
  *
  * `verdicts` is the complete authored array — floor members and upgraded members alike —
- * and `parts` carries one sentence-parts record per verdict, joined by `perTest` (D-07).
+ * and `parts` carries one sentence-parts record per verdict, joined by `perTest`.
  * The `verdicts-authored` checkpoint value stays byte-shape `{runId, verdicts}` exactly as
- * 388 froze it (388 D-02); parts live HERE and nowhere else.
+ * 388 froze it; parts live HERE and nowhere else.
  */
 export interface RunAnalysisArtifact {
   schemaVersion: number
@@ -90,11 +90,11 @@ function hasVerdictShape(value: unknown): boolean {
 /**
  * The artifact's fail-closed shape: root fields, every verdict structurally complete, and
  * every parts record parsed through the ONE zod contract — which is what routes each
- * `links` member through `EntityUriSchema` (T-389-02) rather than a bare string check.
+ * `links` member through `EntityUriSchema` rather than a bare string check.
  *
- * `perTest` is the phase's one join key (D-07), and its uniqueness over BOTH arrays is a
+ * `perTest` is the phase's one join key, and its uniqueness over BOTH arrays is a
  * one-document structural property enforced HERE for every stored/foreign artifact — this
- * guard is the one gate those bytes cross (G-389-3B / WR-02). The author path needs no
+ * guard is the one gate those bytes cross. The author path needs no
  * second gate: `evaluateAttempt` is first-entry-wins per testIndex (measured in plan 04),
  * so the shipped author cannot produce duplicates; the threat is foreign/stored bytes only.
  */

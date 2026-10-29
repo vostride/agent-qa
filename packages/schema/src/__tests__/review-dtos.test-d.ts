@@ -1,4 +1,4 @@
-// Type-level proof for the knowledge review-verb DTO family (Phase 387 plan 02).
+// Type-level proof for the knowledge review-verb DTO family.
 //
 // Three claims live here because no runtime assertion can carry them:
 //
@@ -11,7 +11,7 @@
 //      remembered to update.
 //   3. A change's `deltas` are typed as `Delta`, so the boundary's envelope-depth runtime
 //      check has not silently widened the static type to `unknown`. (RE-SPELLED 2026-10-01,
-//      432-17: the proposal payload is deleted; the mark plan carries the deltas a change writes.)
+//      the proposal payload is deleted; the mark plan carries the deltas a change writes.)
 import { expectTypeOf } from 'vitest'
 
 import { DELTA_KINDS } from '../delta/delta'
@@ -64,7 +64,7 @@ expectTypeOf<Extract<KnowledgeChangeOutput, { outcome: 'target-not-found' }>['ta
   .toEqualTypeOf<KnowledgeTargetRef>()
 
 // The receipt's resulting status is the MEM card's vocabulary — the fact that makes
-// "designed once for both uses" (D-04 + D-19) true rather than aspirational.
+// "designed once for both uses" true rather than aspirational.
 expectTypeOf<ForgetReceiptV1['resultingBundleStatus']>()
   .toEqualTypeOf<'active' | 'tombstoned' | 'forgotten'>()
 

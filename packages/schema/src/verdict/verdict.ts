@@ -12,7 +12,7 @@ export interface VerdictEvidence {
 
 interface VerdictBase {
   /**
-   * Which pipeline minted this verdict (D-03). M2 mints only
+   * Which pipeline minted this verdict. M2 mints only
    * 'deterministic-classifier'; M4's analyze-run supersedes it via ordinary
    * supersession. Failure-side trust-keying switches on this field — it is a
    * different axis from VerdictSource (verb-evidence.ts), never reuse that union.

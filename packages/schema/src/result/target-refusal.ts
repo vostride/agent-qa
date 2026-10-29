@@ -1,4 +1,4 @@
-/** One identity in a target refusal: the element's role, exact name and row words (438 D-02). */
+/** One identity in a target refusal: the element's role, exact name and row words. */
 export interface TargetIdentity {
   /** Absent only on a stated target that named no role; the observed identity always has one. */
   role?: string
@@ -9,7 +9,7 @@ export interface TargetIdentity {
 export type TargetMismatchReason = 'role-kind' | 'name-no-shared-word' | 'name-number' | 'row'
 
 /**
- * A refused element action's block, keyed `targetRefusal` (438 D-05): the stated and observed
+ * A refused element action's block, keyed `targetRefusal`: the stated and observed
  * identities disagree, nothing was sent and nothing was substituted. Both identities are redacted
  * before record. A refusal is a planning decision, never an application failure.
  */
@@ -63,7 +63,7 @@ function readIdentity(raw: unknown): TargetIdentity | undefined {
   }
 }
 
-// Narrows field by field; a hand-edited or partial block reads as undefined (436 D-17).
+// Narrows field by field; a hand-edited or partial block reads as undefined.
 export function readTargetRefusalMeta(
   result?: { metadata?: Record<string, unknown> },
 ): TargetRefusalMeta | undefined {

@@ -1,19 +1,19 @@
-// The capability-catalog row DTOs (Phase 398 plan 01 — XPLN-01, D-05 / D-06 / D-07 / D-08).
+// The capability-catalog row DTOs.
 //
-// WHAT THE CATALOG IS FOR. The golden ledger (397 D-05) is change control: it records what a
+// WHAT THE CATALOG IS FOR. The golden ledger is change control: it records what a
 // capability IS so a widened scope is a one-line diff. This artifact answers a different question —
 // what a PERSON or an external agent can reach, in the words they would read — and it is the one
 // data source behind `init --agent`, the chat `/` type-ahead, the starter prompts and the `explain`
 // op. Two committed projections of one registry could drift, so they do not: a census cell asserts
-// the op rows here and the golden's rows are the same set in both directions (D-01).
+// the op rows here and the golden's rows are the same set in both directions.
 //
-// THREE ROW KINDS, ONE DISCRIMINATED UNION (D-05). A registry op, a chat alias that resolves to
+// THREE ROW KINDS, ONE DISCRIMINATED UNION. A registry op, a chat alias that resolves to
 // one, and a shipped skill are three different things a person can be told about, and a flat shape
 // that could describe any of them would be a shape every consumer has to defend against. `kind` is
 // the discriminant every consumer switches on. Capability count is the OP rows: adding an alias
 // does not add a capability.
 //
-// NOTHING HERE IS HAND-WRITTEN AT THE ARTIFACT (D-08). Descriptions come from the zod/FunctionSpec
+// NOTHING HERE IS HAND-WRITTEN AT THE ARTIFACT. Descriptions come from the zod/FunctionSpec
 // summaries that already feed chat and MCP; `params` is the declaration's own inert input
 // projection, carried VERBATIM through the one shipped lens and never converted a second time. A
 // poorly-reading description is fixed at its zod source, where it improves every surface at once.
@@ -27,7 +27,7 @@
 import { z } from 'zod'
 
 /**
- * The surface vocabulary IS the pinned roster (D-06), not a superset of it.
+ * The surface vocabulary IS the pinned roster, not a superset of it.
  *
  * `chat` and `mcp` are the two surfaces 397's parity suite measures; the CLI's handlers are
  * deliberately absent (397 D-03's two-surface claim). The catalog never claims a surface nothing
@@ -57,7 +57,7 @@ export type CatalogExampleCall = z.infer<typeof CatalogExampleCallSchema>
 /**
  * One registry op, as a person reads it.
  *
- * `mcpUnprojectedReasonKey` is the VISIBLE ABSENCE arm (D-06): an op with no MCP door carries the
+ * `mcpUnprojectedReasonKey` is the VISIBLE ABSENCE arm: an op with no MCP door carries the
  * class of the shipped `UNPROJECTED_OPS` reason rather than a blank column, so "deliberately not
  * projected" and "nobody has looked at it" are different values instead of the same hole.
  */
@@ -74,13 +74,13 @@ export const CatalogOpRowSchema = z.object({
   mcpTool: z.string().min(1).optional(),
   /** Present iff `surfaces` omits `mcp` — the visible-absence arm. */
   mcpUnprojectedReasonKey: z.string().min(1).optional(),
-  /** Repo-relative path into a shipped doc, or an explicit null. Never a guessed URL (D-07). */
+  /** Repo-relative path into a shipped doc, or an explicit null. Never a guessed URL. */
   docPath: z.string().min(1).nullable(),
   /** A heading within `docPath`, when the row deep-links rather than naming a whole file. */
   docAnchor: z.string().min(1).optional(),
   /** Present iff `docPath` is null — the dated reason there is no doc yet. */
   docAbsentReason: z.string().min(1).optional(),
-  // 2026-10-02 (432-39, D-12): no `requiredScopes` column. Declarations carry no scopes, the
+  // no `requiredScopes` column. Declarations carry no scopes, the
   // generator has written none since 432-20, and the strict row now refuses one.
   /**
    * A call an agent can copy, derived from `params` — or an explicit null (spec §3.3, D-08).
@@ -102,7 +102,7 @@ export const CatalogOpRowSchema = z.object({
  *
  * `targetOpId` is joined to the registry in BOTH directions by the census cell: an alias naming a
  * non-registry target is a named RED, and an op-alias in the shipped resolver table with no row
- * here is the same RED from the other side (D-05).
+ * here is the same RED from the other side.
  */
 export const CatalogAliasRowSchema = z.object({
   kind: z.literal('alias'),
@@ -148,7 +148,7 @@ export const CapabilityCatalogSchema = z.object({
   rows: z.array(CatalogRowSchema),
 }).strict()
 
-// ---- The `init --agent` manifest (398-08, D-16 · XPLN-01) ----------------------------------------
+// ---- The `init --agent` manifest ----------------------------------------
 //
 // WHAT THE MANIFEST IS. One local, non-interactive, idempotent read: the committed catalog's rows,
 // verbatim and UNFILTERED, plus this workspace's posture. It is the machine entry point spec §3.3
@@ -157,17 +157,17 @@ export const CapabilityCatalogSchema = z.object({
 // than a promise.
 //
 // IT IS UNFILTERED, AND THE SHAPE SAYS SO. The rows are every row, for every caller. 2026-10-02
-// (432-39, D-12): no door filters a listing per caller any more (432-20 deleted the MCP `tools/list`
+// no door filters a listing per caller any more (432-20 deleted the MCP `tools/list`
 // visibility law), so there is no permission for a manifest to report either.
 
-// 2026-10-02 (432-39, D-02/D-12): `AgentManifestTokenRefSchema` is deleted with the posture's
+// `AgentManifestTokenRefSchema` is deleted with the posture's
 // `tokenEnvRefs`, `defaultScopes` and `safeMode` members. No MCP credential is declared or read
-// (432-21/22), no scope is granted and no composition hides an op, so each member could only ever
+// no scope is granted and no composition hides an op, so each member could only ever
 // report the same constant. The strict posture now refuses all three.
 
 /**
  * Whether THIS workspace has a configuration, and whether it read — the local half of the
- * manifest (D-16).
+ * manifest.
  *
  * `configuration` has THREE arms and they are three different things to tell a person. `init --agent`
  * is the command an agent runs in a directory that may not be a project yet — that is what `init` is

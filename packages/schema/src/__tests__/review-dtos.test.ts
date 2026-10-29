@@ -1,4 +1,4 @@
-// The knowledge review-verb DTO family (Phase 387 plan 02, KREV-01 · D-15/D-17/D-19).
+// The knowledge review-verb DTO family.
 //
 // These contracts are minted BEFORE the verbs that use them (384 D-16: DTOs live in schema),
 // so the only thing that can hold them honest is a rejection corpus. Every closed vocabulary
@@ -138,7 +138,7 @@ describe('the review vocabulary and the change id', () => {
   })
 
   it('admits every change verb and refuses one outside the union', () => {
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv, IN-21): a forget carries its forget receipt by rule.
+    // RE-SPELLED 2026-10-03: a forget carries its forget receipt by rule.
     const forgetReceipt = {
       schemaVersion: FORGET_RECEIPT_SCHEMA_VERSION, proposalId: 'prop_alpha-bravo', tombstonedRecords: [], projectionsScrubbed: ['fts'],
       resultingBundleStatus: 'forgotten', forgottenAt: 1,
@@ -259,7 +259,7 @@ describe('ForgetReceiptV1', () => {
       ).toBe(status)
     }
     // `deprecated` is a real BUNDLE status — and it is not a status a MEM card can render,
-    // which is exactly what "designed once for both uses" has to mean (D-04 + D-19).
+    // which is exactly what "designed once for both uses" has to mean.
     expect(() =>
       ForgetReceiptV1Schema.parse(receipt({ resultingBundleStatus: 'deprecated' })),
     ).toThrow()
@@ -441,7 +441,7 @@ describe('review-verb input and output DTOs (wiring contracts)', () => {
   })
 
   it('forget addresses either grain', () => {
-    // RE-SPELLED 2026-10-01 (432-17): the proposal apply input is deleted; a change applies in the call.
+    // RE-SPELLED 2026-10-01: the proposal apply input is deleted; a change applies in the call.
     expect(
       KnowledgeForgetInputSchema.parse({ target: { grain: 'bundle', shortId: 'MEM-001' } })
         .target.grain,

@@ -1,4 +1,4 @@
-/** A source-version keyed sequence of one-version-at-a-time migrations (D-13). */
+/** A source-version keyed sequence of one-version-at-a-time migrations. */
 export type MigrationRegistry = Record<number, (doc: unknown) => unknown>
 
 export interface VersionGuardConfig<T> {
@@ -14,7 +14,7 @@ export interface VersionGuardConfig<T> {
   shape?: (migrated: unknown) => boolean
 }
 
-/** Typed rejection shared by every schema-versioned document guard (D-13). */
+/** Typed rejection shared by every schema-versioned document guard. */
 export class VersionGuardError extends Error {
   readonly documentName: string
   readonly foundVersion: number
@@ -32,7 +32,7 @@ export class VersionGuardError extends Error {
 }
 
 /**
- * Builds the ONE parse → reject-newer → migration-walk → cast version guard flow (D-13).
+ * Builds the ONE parse → reject-newer → migration-walk → cast version guard flow.
  */
 export function createVersionGuard<T>(config: VersionGuardConfig<T>): (value: unknown) => T {
   const versionError = (found: number): Error =>

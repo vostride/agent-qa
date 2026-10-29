@@ -1,7 +1,7 @@
-// Type-level payload-discipline proofs (D-11): the projection payload types structurally
+// Type-level payload-discipline proofs: the projection payload types structurally
 // cannot carry live handles / raw bytes / embedded evidence — a compile error, not a
 // runtime strip (the 356 `NonCacheableStepInput` `?: never` idiom). Plus the M1-lite
-// RunSession contract pins (D-13, SESSION-01). Copies the cache-key.test-d idiom.
+// RunSession contract pins. Copies the cache-key.test-d idiom.
 import { expectTypeOf } from 'vitest'
 import type {
   RunEvent,
@@ -32,7 +32,7 @@ expectTypeOf<RunEventType>().toEqualTypeOf<(typeof RUN_EVENT_TYPES)[number]>()
 
 // The discriminated union narrows payload on `type`.
 //
-// 2026-08-26 (404-01, D-09): the pin is the RATIFIED THREE-VALUE UNION, not the M1 literal it
+// the pin is the RATIFIED THREE-VALUE UNION, not the M1 literal it
 // replaced. Written as the union spelled out rather than as `PostProcessingDisposition` so a
 // fourth arm quietly added to that alias reds HERE — the union is a published bus-contract shape
 // that 408's embed and every thin client parse, and D-11's whole argument is that undecidable
@@ -40,7 +40,7 @@ expectTypeOf<RunEventType>().toEqualTypeOf<(typeof RUN_EVENT_TYPES)[number]>()
 expectTypeOf<Extract<RunEvent, { type: 'runFinished' }>['payload']['disposition']>()
   .toEqualTypeOf<'drained' | 'handedOff' | 'detached'>()
 
-// --- RunSession M1-lite contract pins (D-13, SESSION-01) ---------------------
+// --- RunSession M1-lite contract pins ---------------------
 
 expectTypeOf<RunSession['done']>().toEqualTypeOf<Promise<RunCompletion>>()
 expectTypeOf<RunSession['cancel']>().toEqualTypeOf<() => void>()
@@ -48,7 +48,7 @@ expectTypeOf<RunSession['subscribe']>().parameter(0).toEqualTypeOf<number>()
 expectTypeOf<RunSession['subscribe']>().returns.toEqualTypeOf<() => void>()
 expectTypeOf<RunCompletion['verdict']>().toMatchTypeOf<string>()
 
-// --- Structural payload-discipline rejection proofs (D-11) -------------------
+// --- Structural payload-discipline rejection proofs -------------------
 
 const validSubAction = {
   testIndex: 0,
@@ -60,7 +60,7 @@ const validSubAction = {
   screenStateHash: 'hash-before',
 }
 
-// states collapse to hash identity (D-10/D-11) — a raw ScreenState cannot ride as `stateBefore`.
+// states collapse to hash identity — a raw ScreenState cannot ride as `stateBefore`.
 const rejectsStateBefore: SubActionRecordedPayload = {
   ...validSubAction,
   // @ts-expect-error stateBefore is structurally excluded (?: never)
@@ -86,7 +86,7 @@ const rejectsServedBrief: StepFinalizedPayload = {
   servedBrief: {} as ServedBrief,
 }
 
-// 405 D-05: tokenUsage is additive-OPTIONAL — a payload without it typechecks, and the triple
+// tokenUsage is additive-OPTIONAL — a payload without it typechecks, and the triple
 // is the only shape admitted (a bare number is a compile error). Absent is not zero.
 const acceptsAbsentTokenUsage: StepFinalizedPayload = {
   testIndex: 0,
@@ -108,7 +108,7 @@ const rejectsScalarTokenUsage: StepFinalizedPayload = {
   tokenUsage: 15,
 }
 
-// testFinished never embeds the steps array (D-10).
+// testFinished never embeds the steps array.
 const rejectsSteps: TestFinishedPayload = {
   testId: 't1',
   testIndex: 0,

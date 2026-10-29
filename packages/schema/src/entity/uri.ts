@@ -1,4 +1,4 @@
-// The canonical `agentqa://<segment>/<short-id>` entity URI codec (Phase 387, ENTY-01).
+// The canonical `agentqa://<segment>/<short-id>` entity URI codec.
 //
 // The URI is the machine-facing half of an address: a card's `keyFacts[]` link entities with
 // it, 389 will put it in verdict sentences, and 396 projects it as an MCP resource link. So

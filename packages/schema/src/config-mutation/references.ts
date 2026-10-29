@@ -1,4 +1,4 @@
-// What a REFERENCE looks like, stated positively (Phase 395-05, D-11 · CFGM-02).
+// What a REFERENCE looks like, stated positively.
 //
 // D-11 RATIFIED `set_auth` AS REFS-ONLY AS LAW: the committed configuration names WHERE a value
 // lives — an auth state, a plugin package, an environment variable — and never holds one. 395-02
@@ -34,12 +34,12 @@
 /**
  * The reference kinds the config editor can be asked to write.
  *
- * RETUNE: a kind is added here when an op learns to write a new class of reference, together with
+ * a kind is added here when an op learns to write a new class of reference, together with
  * the shape the configuration schema already imposes on it. It is NOT a place to add a shape because
  * a value was refused: the question a new member answers is "what does this reference look like",
  * and if the answer is "anything", the field is not a reference and D-11 does not cover it.
  */
-// 2026-10-02 (quick 261002-ctr): no op writes an `auth-state-name` today — the three that did lost
+// no op writes an `auth-state-name` today — the three that did lost
 // the field, because the committed configuration has no key for it. The kind and its shape stay: a
 // member of a closed public set, matching `core`'s auth-state slug, for the op that next binds one.
 export const CONFIG_REFERENCE_KINDS = [

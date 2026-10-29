@@ -1,4 +1,4 @@
-// The config-mutation vocabulary's acceptance bar (Phase 395-02, D-02 / D-03 / D-10 / D-11).
+// The config-mutation vocabulary's acceptance bar.
 //
 // WHAT MAKES EACH CELL RED, stated per cell rather than claimed for the file:
 //
@@ -38,7 +38,7 @@ import {
   ConfigProjectScaffoldInputSchema,
   ConfigTargetCreateInputSchema,
   ConfigTargetEditInputSchema,
-  // 2026-09-30, 432-11: the blocked vocabulary moved beside the direct answer that also carries it.
+  // the blocked vocabulary moved beside the direct answer that also carries it.
   CONFIG_BLOCKED_REASONS,
 } from '../actions'
 import { base64Encode } from '../base64'
@@ -50,7 +50,7 @@ import {
 import { renderConfigDiff } from '../diff-digest'
 import { ConfigChangeFoldInputSchema, ConfigChangeFoldOutputSchema } from '../../functions/tool-folds'
 
-// RE-SPELLED 2026-10-01 (432-17, D-05/D-07/D-09). The config proposal payloads, the propose union,
+// RE-SPELLED 2026-10-01. The config proposal payloads, the propose union,
 // the apply and undo inputs and the git-commit apply receipts are deleted with the inbox. Each claim
 // below that survives moves onto the direct change answer (`ConfigChangeOutputSchema`) or the change
 // file (`ConfigChangeFileSchema`) under its old name; the apply/undo cells become absence cells.
@@ -153,7 +153,7 @@ describe('set_auth is refs-only by shape, not by discipline', () => {
     expect(namesAValueBearingField(['target', 'authStateSecret'])).toEqual(['authStateSecret'])
   })
 
-  // RE-SPELLED 2026-10-02 (quick 261002-ctr): was '… exactly the four references …'. `authStateName`
+  // RE-SPELLED 2026-10-02: was '… exactly the four references …'. `authStateName`
   // is gone: it wrote `use.authState`, a key the committed configuration refuses.
   it('the keyset is exactly the three references, in the order the shape declares them', () => {
     expect(keys).toEqual(['target', 'pluginPackage', 'envVarName'])
@@ -172,7 +172,7 @@ describe('set_auth is refs-only by shape, not by discipline', () => {
 })
 
 describe('the blocked arm cannot carry the payload it blocked', () => {
-  // RE-SPELLED 2026-10-14 (441-39, D-15): the fixture was a guardrail block carrying scan findings.
+  // RE-SPELLED 2026-10-14: the fixture was a guardrail block carrying scan findings.
   // A config change is no longer scanned, so the only blocked answer is a schema failure. The retired
   // names are spelled in parts so the phase's census grep for them finds no live spelling.
   const RETIRED_REASON = ['guardrail', 'hit'].join('-')
@@ -231,7 +231,7 @@ describe('the blocked arm cannot carry the payload it blocked', () => {
     ])
   })
 
-  // RE-SPELLED 2026-10-14 (441-39, D-15): was 'names one posture and two reasons (CFGM-01)'.
+  // RE-SPELLED 2026-10-14: was 'names one posture and two reasons'.
   it('names one posture and one reason, and the guardrail reason is gone', () => {
     expect([...CONFIG_BLOCKED_REASONS]).toEqual(['schema-fail'])
     expect(ConfigChangeOutputSchema.safeParse({ ...blocked, blockedReason: 'other' }).success)
@@ -314,7 +314,7 @@ describe('the proposed arm cannot carry an EMPTY rendered diff', () => {
     expect(ConfigChangeOutputSchema.safeParse({ ...proposed, shownDiff: '-' }).success).toBe(true)
   })
 
-  // RE-SPELLED 2026-10-01 (432-17): the relation to the stored payload's `.min(1)` left with the
+  // RE-SPELLED 2026-10-01: the relation to the stored payload's `.min(1)` left with the
   // stored payload; the applied arm's own bound above is the one surface that prints the diff.
 })
 
@@ -438,7 +438,7 @@ describe('the secret-adjacent field set is roots, and matching is by subtree', (
   })
 })
 
-// 2026-09-30, 432-12 (D-05/D-09): the config change tool folds the six direct actions only. The undo
+// the config change tool folds the six direct actions only. The undo
 // arm left with the proposal round, so the fold answers the one change contract and an undo call is
 // not an arm of it. 432-17 deleted the undo op and its input.
 describe('the config change fold has six arms and no undo arm', () => {
@@ -451,7 +451,6 @@ describe('the config change fold has six arms and no undo arm', () => {
     expect(ConfigChangeFoldInputSchema.safeParse({
       action: 'config.field.set', path: 'use.timeout.step', value: '45s', confirmed: true,
     }).success).toBe(false)
-    // 2026-10-01 (432-17): the undo input is deleted with its op.
     expect('ConfigUndoProposeInputSchema' in actions).toBe(false)
   })
 })

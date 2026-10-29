@@ -1,4 +1,4 @@
-// The ONE security-reviewed pure path-segment sanitizer (D-07 / T-360-03).
+// The ONE security-reviewed pure path-segment sanitizer.
 // It lives in schema so provider/storage-neutral eval core can derive safe cassette ids
 // without depending on runner-local or duplicating traversal-sensitive string handling.
 

@@ -1,4 +1,4 @@
-// The vendored differ's acceptance bar, and the raw-bytes digest law (Phase 395, D-17 / D-19).
+// The vendored differ's acceptance bar, and the raw-bytes digest law.
 //
 // WHAT MAKES EACH CELL RED, stated per cell rather than claimed for the file:
 //

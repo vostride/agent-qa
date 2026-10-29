@@ -1,4 +1,4 @@
-// The card ↔ dashboard-route contract (Phase 400 plan 08, DASH-03 · 387 ENTY-02 / D-10).
+// The card ↔ dashboard-route contract.
 //
 // WHY THIS IS IN `schema` AND NOT IN THE DASHBOARD. Verbatim `url.ts`'s reasoning for
 // `ENTITY_URL_ROUTE`: "the M5 route table imports this constant, so 'the dashboard's routes and the
@@ -13,7 +13,7 @@
 // of which already live here. A test-only table would have made the parity suite's idea of the
 // routes the subject and left the shipped ones unmeasured.
 //
-// THE `null` ARM IS THE HONEST ONE (D-10). A kind with no page here says so, and every reader is
+// THE `null` ARM IS THE HONEST ONE. A kind with no page here says so, and every reader is
 // obliged to render nothing rather than a link — not a disabled anchor, not a `#`, not the card's
 // own `url`, which addresses `ENTITY_URL_ROUTE`'s M5 shape that no build serves yet. "A card that
 // carried a link to a route nothing serves would be a dead link shown with confidence."

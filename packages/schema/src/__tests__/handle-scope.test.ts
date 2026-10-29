@@ -1,5 +1,4 @@
 // The handle scope classification, the handle filter predicate and the handle id spelling
-// (Phase 402 plan 04, D-10 / D-14 · INVK-04).
 //
 // THE TOTALITY CLAIM IS STRUCTURAL, NOT A GREP. Twice in this phase a source grep for a symbol
 // name was satisfied by the IMPORT LINE and passed a mutation that gutted the expression it was
@@ -46,7 +45,7 @@ describe('RUN_EVENT_SCOPE — a TOTAL, positive classification of the frozen eve
     }
     expect(unclassified).toEqual([])
     // Non-vacuity: the list this walked is the real one, not an empty array a refactor emptied.
-    // 20 since 404 D-02 (2026-08-26) removed the three never-emitted `issues*` names.
+    // 20 since 404 D-02 removed the three never-emitted `issues*` names.
     expect(RUN_EVENT_TYPES.length).toBeGreaterThanOrEqual(20)
   })
 
@@ -132,7 +131,7 @@ describe('passesHandleFilter — run-scoped ALWAYS passes, member-scoped only it
   it('passes a run-scoped envelope even when it happens to carry a foreign testIndex', () => {
     // The classification decides, not the payload's incidental fields — otherwise a run-scoped
     // event that grew a `testIndex` tomorrow would silently vanish from every other handle's
-    // stream, and a handle subscriber would stop learning that the run ended (D-14).
+    // stream, and a handle subscriber would stop learning that the run ended.
     expect(passesHandleFilter(envelopeOf('verdict', { verdict: 'passed', testIndex: 9 }), 3))
       .toBe(true)
   })
@@ -178,7 +177,7 @@ describe('passesHandleFilter — run-scoped ALWAYS passes, member-scoped only it
 
   it('FAILS CLOSED: a member-scoped envelope with no usable testIndex reaches no handle', () => {
     // A member-scoped event that lost its identity is a defect. Serving it to every handle would
-    // turn that defect into cross-handle disclosure (T-402-13), so it reaches none of them and
+    // turn that defect into cross-handle disclosure, so it reaches none of them and
     // the firehose (no handle) is where it stays visible.
     expect(passesHandleFilter(envelopeOf('stepStarted', {}), 0)).toBe(false)
     expect(passesHandleFilter(envelopeOf('stepStarted', {}), 7)).toBe(false)

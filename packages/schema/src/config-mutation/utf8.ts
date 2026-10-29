@@ -1,4 +1,4 @@
-// The vendored UTF-8 codec (Phase 395, D-17).
+// The vendored UTF-8 codec.
 //
 // THE SCHEMA PACKAGE HAS NO HOST APIs. The platform's own text encoder, `Buffer` and the global
 // object are all refused by `__tests__/module-discipline.test.ts` — which scans SOURCE TEXT, so
@@ -13,7 +13,7 @@
 // plain ASCII.
 //
 // THE DIGEST BASIS NEVER PASSES THROUGH HERE. Content digests are taken over the RAW bytes a file
-// holds (D-17); this codec exists for the diff renderer's text edge and for the bytes a mutation
+// holds; this codec exists for the diff renderer's text edge and for the bytes a mutation
 // produced as a string. Decoding a file in order to digest it would re-open CR-02 from the other
 // side.
 

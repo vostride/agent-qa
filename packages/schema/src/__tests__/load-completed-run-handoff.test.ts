@@ -122,7 +122,7 @@ describe('guardCompletedRunHandoff (§A8 version discipline)', () => {
   })
 })
 
-// --- 407-03 (TRST-01, D-13): the additive `StepEvidence.retrievalRung` -----------------------
+// --- 407-03: the additive `StepEvidence.retrievalRung` -----------------------
 //
 // The rung is recorded BESIDE the served brief, never inside it, so a v6 handoff stays
 // loadable and a v7 handoff that carries one is admitted only in the shape the schema
@@ -477,7 +477,7 @@ describe('the loader and the wire admit the same replay shapes — member for me
   })
 })
 
-// 436-09 (D-06): the run's planner limits are copied from this record onto the strict
+// the run's planner limits are copied from this record onto the strict
 // acknowledgement, so the loader admits exactly the records the wire accepts.
 describe('the loader and the acknowledgement agree on plannerLimits', () => {
   const entry = { testName: 'Bulk archive', filePath: 'tests/bulk.yaml', maxActions: 60, maxPlanningTurns: 30 }
@@ -519,7 +519,7 @@ describe('the loader and the acknowledgement agree on plannerLimits', () => {
   })
 })
 
-// 2026-10-19 (444.1-08, D-14): a healed sub-action's dispatch pair is checked where it is loaded.
+// a healed sub-action's dispatch pair is checked where it is loaded.
 describe('a healed sub-action dispatch pair at the load boundary', () => {
   const saveElement = {
     ref: 'e3',

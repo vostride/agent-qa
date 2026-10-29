@@ -66,7 +66,7 @@ export interface EmbeddingProfile {
 export const DEFAULT_EMBEDDING_PROFILE = {
   model_id: 'Xenova/bge-small-en-v1.5',
   /**
-   * Locked 2026-07-14 from the embedding benchmark (D-07).
+   * Locked 2026-07-14 from the embedding benchmark.
    * This pin changes vec-table identity; old revision-keyed tables are
    * disposable rebuildable projections and are rebuilt, never migrated.
    */
@@ -93,7 +93,7 @@ export const DEFAULT_EMBEDDING_PROFILE = {
 } as const satisfies EmbeddingProfile
 
 /**
- * Bundled pure-TypeScript degradation floor (D-12/D-13).
+ * Bundled pure-TypeScript degradation floor.
  *
  * A floor that must be fetched isn't a floor — the hosts that need it are
  * exactly the hosts that can't download it.

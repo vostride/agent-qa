@@ -1,4 +1,4 @@
-// RED-first pins for the Phase 390 quarantine ledger event contract (D-01/D-03/D-11/D-12/D-14/D-16).
+// RED-first pins for the Phase 390 quarantine ledger event contract.
 //
 // The ledger is COMMITTED truth at the knowledge root, so its read side follows the
 // analysis-artifact posture: a NEWER schemaVersion is a typed hard failure, and a structurally
@@ -7,7 +7,7 @@
 //
 // Boundary pinned around the CURRENT version: the current version admits by identity, one above
 // throws typed, and version 1 — whose identity leg was a machine-local absolute path — throws typed
-// too, because no honest migration to a checkout-independent identity exists (390-08 / CR-02).
+// too, because no honest migration to a checkout-independent identity exists.
 
 import { describe, expect, it } from 'vitest'
 
@@ -56,7 +56,7 @@ function enteredEvent(overrides: Record<string, unknown> = {}): Record<string, u
 
 describe('quarantine ledger event vocabulary', () => {
   it('pins the version at 2 with a DELIBERATELY empty migration seam', () => {
-    // 390-08 / CR-02: version 1 stamped a machine-local ABSOLUTE path as the filePath identity
+    // version 1 stamped a machine-local ABSOLUTE path as the filePath identity
     // leg, which no other checkout can interpret. There is no honest v1 -> v2 migration (the
     // function would have to guess a checkout root it was never told), so the seam stays empty and
     // a v1 line hard-fails through QuarantineLedgerVersionError. Refusal is the correct arm.
@@ -66,7 +66,7 @@ describe('quarantine ledger event vocabulary', () => {
   })
 
   it('closes the event-kind union over the four lifecycle actions', () => {
-    // 'expired' is a COMPUTED state, never an event (D-11) — the event list is
+    // 'expired' is a COMPUTED state, never an event — the event list is
     // append-only lifecycle ACTIONS only.
     expect([...QUARANTINE_EVENT_KINDS]).toEqual([
       'entered',
@@ -87,7 +87,7 @@ describe('quarantine ledger event vocabulary', () => {
     const released: QuarantineEntryState['state'] = 'released'
     expect([quarantined, expired, released]).toEqual(['quarantined', 'expired', 'released'])
 
-    // 'flagged' is detection-layer visibility only — it never appears in the ledger (D-06).
+    // 'flagged' is detection-layer visibility only — it never appears in the ledger.
     const ladder: QuarantineLadderState[] = ['flagged', 'quarantined', 'expired']
     expect(ladder).toHaveLength(3)
   })
@@ -241,7 +241,7 @@ describe('guardQuarantineLedgerEvent', () => {
   })
 })
 
-// ---- The identity leg is CHECKOUT-INDEPENDENT (390-08 / CR-02, D-01) -----
+// ---- The identity leg is CHECKOUT-INDEPENDENT -----
 
 describe('quarantine identity leg portability', () => {
   // The ledger is COMMITTED and travels between machines. An absolute filePath is bytes only one
@@ -326,7 +326,7 @@ describe('quarantine identity leg portability', () => {
   )
 })
 
-// ---- The handoff disposition contract (D-14 / D-16) ----------------------
+// ---- The handoff disposition contract ----------------------
 
 describe('handoff quarantine disposition', () => {
   function handoffFixture(tests: PerTestOutcome[], applied?: QuarantineAppliedEntry[]): unknown {

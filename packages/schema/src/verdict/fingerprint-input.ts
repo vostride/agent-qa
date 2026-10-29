@@ -1,6 +1,6 @@
-// What FEEDS the failure fingerprint: one exported derivation (Phase 390, FLAK-01).
+// What FEEDS the failure fingerprint: one exported derivation.
 //
-// The recipe itself lives next door in `failure-fingerprint.ts` and is FROZEN (389 D-13).
+// The recipe itself lives next door in `failure-fingerprint.ts` and is FROZEN.
 // This module is its INPUT stage — the rule that decides which step a failure is about, and
 // which recorded bytes describe it — and it changes nothing about the recipe.
 //

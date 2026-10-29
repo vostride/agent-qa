@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 /**
- * The schema-owned run-scoped working-memory vocabulary (Phase 358, WM-01, D-14).
+ * The schema-owned run-scoped working-memory vocabulary.
  * A `WorkingMemoryEntry` is one verbatim fact the planner captured mid-run via the
  * ratified `remember[]` plan-field (spec `tools-and-actions.md` §12.15, write channel
  * ratified 2026-07-05 — not a tool, no catalog change). The enums are CLOSED: the
@@ -12,7 +12,7 @@ import { z } from 'zod'
  * ownership contract (pure sync types + zod).
  */
 export interface WorkingMemoryEntry {
-  /** Exact-recall key. Latest-wins on re-capture (D-12); one key ⇒ one current value. */
+  /** Exact-recall key. Latest-wins on re-capture; one key ⇒ one current value. */
   key: string
   /** The verbatim captured value, kept masked in snapshots/flush (never unmasked). */
   value: string
@@ -21,7 +21,7 @@ export interface WorkingMemoryEntry {
   /** Closed provenance of how the planner obtained the value. */
   provenance: 'observation' | 'toolResult' | 'plannerInference'
   /**
-   * Optional capture-location context (D-11): the whole run set is served every turn,
+   * Optional capture-location context: the whole run set is served every turn,
    * so the planner weighs relevance itself — these carry where the entry was captured,
    * not a filter rule.
    */

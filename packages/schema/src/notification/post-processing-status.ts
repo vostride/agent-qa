@@ -6,15 +6,15 @@
 // catches — it is the state in which the dashboard says "queued" while the CLI says
 // "pending" about the same row, and nothing is wrong with either of them.
 //
-// 2026-08-26 (Phase 404, D-01): the chip set is exactly `{analysis, curation}` and the
+// the chip set is exactly `{analysis, curation}` and the
 // vocabulary is exactly `pending · running · done · failed`. The Issue engine left the spec on
 // 2026-08-25, so the structural member that used to answer for the unfilled triage slot has no
 // slot left to answer for, and a word no producer can produce is a word every consumer still
 // has to render. The chip side stopped reading and rendering the third id then.
-// 2026-09-02 (Phase 412): the job-kind layer followed — the reserved sixth job kind, the chain's
+// the job-kind layer followed — the reserved sixth job kind, the chain's
 // third derived id, the retired entity kind and the retired proposal arm left with the
 // Issue-slot cleanup.
-// 2026-10-17 (444-10, D-13): the vocabulary is `pending · running · complete · failed`; a done job row reads `complete`.
+// the vocabulary is `pending · running · complete · failed`; a done job row reads `complete`.
 
 import { z } from 'zod'
 
@@ -104,12 +104,12 @@ export const CurationSnapshotWithheldSchema = z.object({
 }).strict() satisfies z.ZodType<{ reason: CurationSnapshotWithheldReason }>
 
 /**
- * Why a run's post-run chain was never enqueued (425 D-08). A gate run and an
- * outcome-excluded run both skip the whole chain (404 D-08), so their chips would otherwise
+ * Why a run's post-run chain was never enqueued. A gate run and an
+ * outcome-excluded run both skip the whole chain, so their chips would otherwise
  * read `pending` forever. The fact is a SIBLING of the chip words, never a fifth word: the
  * four-word vocabulary above stays closed, and a surface renders it beside the chips.
- * 2026-10-17 (444-11, D-39): renamed from the exclusion fact; every surface prints `skipped (<word>)`.
- * 2026-10-18 (444-12, D-14): `no-verdict` is a finished row with no handoff and no logged verdict.
+ * renamed from the exclusion fact; every surface prints `skipped (<word>)`.
+ * `no-verdict` is a finished row with no handoff and no logged verdict.
  */
 export type PostProcessingSkipReason = 'gate-run' | 'outcome-excluded' | 'no-verdict'
 
@@ -147,7 +147,7 @@ export interface PostProcessingStatus {
    */
   skipped?: { reason: PostProcessingSkipReason }
   /**
-   * Present only once the chain reached its terminal and wrote its one row (D-09). Absent is
+   * Present only once the chain reached its terminal and wrote its one row. Absent is
    * the ordinary state of a chain still in flight — never rendered as a failure.
    */
   notification?: RunNotificationView

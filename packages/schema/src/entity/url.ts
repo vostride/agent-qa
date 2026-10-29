@@ -1,4 +1,4 @@
-// The card's `url` contract — the M5 route shape, pinned now (Phase 387, ENTY-02 / D-10).
+// The card's `url` contract — the M5 route shape, pinned now.
 //
 // D-10 says the field is CONFIG-DERIVED and ABSENT by default, and that the shape is pinned
 // in v52 so M5 builds routes to match the cards rather than the other way round. Pinning it
@@ -41,7 +41,7 @@ export const ENTITY_URL_SLUG_MAX_LENGTH = 60
  * The title → slug rendering.
  *
  * Delegates to `slugBranch`, which is the repo's ONE security-reviewed path-segment
- * sanitizer (D-07 / T-360-03). Writing a second one here would be a second answer to
+ * sanitizer. Writing a second one here would be a second answer to
  * "what characters may appear in a segment", and a URL segment is exactly the place a
  * traversal sequence would be worth smuggling. Its `default` fallback for an empty result is
  * kept verbatim for the same reason: one sanitizer, one fallback.

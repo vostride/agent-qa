@@ -245,7 +245,7 @@ const intentExtraSchema = z
 const refTargeted = (type: Action['type']) =>
   z.object({ type: z.literal(type), ref: refSchema }).passthrough()
 
-/** Exhaustive Action wire schemas keyed by `Action['type']` (D-15). */
+/** Exhaustive Action wire schemas keyed by `Action['type']`. */
 export const ACTION_WIRE_SCHEMAS_BY_TYPE = {
   navigate: navigateSchema,
   waitForUrl: z.object({ type: z.literal('waitForUrl'), pattern: z.string() }).passthrough(),
@@ -451,7 +451,7 @@ export const ACTION_WIRE_SCHEMAS_BY_TYPE = {
     .passthrough(),
 } satisfies { [K in Action['type']]: z.ZodTypeAny }
 
-/** Known-variant wire validator that dispatches by `Action['type']` (D-15/D-03). */
+/** Known-variant wire validator that dispatches by `Action['type']`. */
 export const actionWireSchema = z
   .object({ type: z.string().min(1) })
   .passthrough()

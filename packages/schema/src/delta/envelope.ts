@@ -18,7 +18,7 @@ export type OriginStage = 'run-curation'
 export type CurationAuthorshipPath = 'llm' | 'llm-repaired' | 'deterministic-fallback'
 
 /**
- * 381-47: WHY the author fell back, threaded from AuthorOutcome's fallback arm so a
+ * WHY the author fell back, threaded from AuthorOutcome's fallback arm so a
  * delta-noop drain report can name its cause (F-381-45-1 diagnosability).
  */
 export type CurationFallbackReason = 'malformed' | 'no-model' | 'token-budget' | 'model-error'
@@ -48,7 +48,7 @@ export interface CompareAndSet {
 }
 
 /**
- * The delta-origin vocabulary as a RUNTIME value (387 D-17), projected from the envelope
+ * The delta-origin vocabulary as a RUNTIME value, projected from the envelope
  * declaration below by the same discipline `DELTA_KINDS` carries: `satisfies` makes an entry
  * naming no origin a compile error, and the reverse direction is pinned in the type-level
  * proof beside the review-DTO suite.

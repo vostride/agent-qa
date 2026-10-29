@@ -1,10 +1,10 @@
-/** A skipped tap's block, keyed `idempotentNoop`. `inputSent: false` marks the 437 shape (D-05). */
+/** A skipped tap's block, keyed `idempotentNoop`. `inputSent: false` marks the 437 shape. */
 export interface IdempotentNoopMeta {
   currentState: string
   inputSent?: false
 }
 
-// Reads the pre-437 `{ currentState }` block too (436 D-17).
+// Reads the pre-437 `{ currentState }` block too.
 export function readIdempotentNoopMeta(
   result?: { metadata?: Record<string, unknown> },
 ): IdempotentNoopMeta | undefined {
@@ -18,7 +18,7 @@ export function readIdempotentNoopMeta(
   return undefined
 }
 
-// A skipped tap sent no input and did not fail (D-05), whichever shape recorded it.
+// A skipped tap sent no input and did not fail, whichever shape recorded it.
 export function actionDidNotFail(result?: {
   success?: boolean
   metadata?: Record<string, unknown>

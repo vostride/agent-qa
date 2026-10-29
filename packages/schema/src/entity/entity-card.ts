@@ -1,21 +1,21 @@
-// The ONE entity card shape (Phase 387, ENTY-02 / D-10 / D-11 / D-12).
+// The ONE entity card shape.
 //
 // `{ kind, id, uri, title, status, url?, keyFacts[], actions[] }`, verbatim per ENTY-02 — the
 // chat card, the MCP `structuredContent` and the M5 UI are all projections of this and never
 // of a per-surface variant. There is exactly one producer, and it lives in the function
 // layer; this file is the contract it renders INTO.
 //
-// `status` is a kind-DISCRIMINATED closed union (D-12). One flat status enum would have been
+// `status` is a kind-DISCRIMINATED closed union. One flat status enum would have been
 // smaller and would have accepted `{ kind: 'MEM', status: 'passed' }` — a memory record that
 // claims a run verdict — which is precisely the class of nonsense a card must not be able to
 // carry into a verdict sentence. The per-kind vocabularies live in one exported table so a
 // test can walk the complete five-kind set rather than the three arms someone remembered.
 //
-// `url` is ABSENT by default (D-10). v52 configures no dashboard base URL, and a card that
+// `url` is ABSENT by default. v52 configures no dashboard base URL, and a card that
 // carried a link to a route nothing serves would be a dead link shown with confidence. M5
 // turns it on by setting config — no schema change, no producer change.
 //
-// `actions[]` are registry op refs (D-11). A card can only advertise capabilities the
+// `actions[]` are registry op refs. A card can only advertise capabilities the
 // function registry already contains, so an advertised action is invokable identically over
 // chat, CLI and MCP, safe-mode listing filters apply to it automatically, and 397's parity
 // suite can assert every action a card offers actually resolves. A freeform action string
@@ -84,7 +84,7 @@ export const ENTITY_IDENTITY_FACT_LABELS = {
 
 /**
  * One deterministic fact about the entity, computed by the producer from store data — never
- * LLM-authored (D-12). `ref` is an `agentqa://` URI so a fact can LINK another entity, which
+ * LLM-authored. `ref` is an `agentqa://` URI so a fact can LINK another entity, which
  * is what lets a failing run's card point at the test it ran without inventing a second
  * cross-reference format.
  */
@@ -96,7 +96,7 @@ export const KeyFactSchema = z.object({
 
 export type KeyFact = z.infer<typeof KeyFactSchema>
 
-/** A registry op reference (D-11): what to invoke, what to call it, and a seed input. */
+/** A registry op reference: what to invoke, what to call it, and a seed input. */
 export const ActionRefSchema = z.object({
   functionId: z.string().min(1),
   label: z.string().min(1),

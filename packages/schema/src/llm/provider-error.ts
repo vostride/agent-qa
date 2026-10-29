@@ -1,4 +1,4 @@
-// 2026-09-26, 429-04 D-18: the one provider-error classifier the CLI and the dashboard share.
+// the one provider-error classifier the CLI and the dashboard share.
 // Moved from `agent-qa auth test`: its regexes, their order and its six sentences are the
 // contract `auth-test.test.ts` pins, so the CLI's printed lines stay byte-identical.
 

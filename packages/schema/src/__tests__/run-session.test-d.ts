@@ -8,10 +8,10 @@ import type {
 } from '../run/live-stream'
 import type { RunCompletion, RunSession } from '../run/run-session'
 
-// M1-lite contract (D-13, SESSION-01): identity + status, the subscribe/replay seam,
+// M1-lite contract: identity + status, the subscribe/replay seam,
 // run-level cancel, awaitable done.
 //
-// 2026-08-25 (403 D-05): plus the per-handle FRAME seam — `subscribeFrames` and
+// plus the per-handle FRAME seam — `subscribeFrames` and
 // `streamCapabilityOf`. `liveUrl` stays ABSENT and is not an oversight: it is minted by the
 // function-layer op `runs.liveurl` over a signer this type knows nothing about, which is what
 // keeps token power off the session. Arbiter/control stay absent (Mode A, post-v2.0).
@@ -25,7 +25,7 @@ expectTypeOf<RunSession['subscribe']>().returns.toEqualTypeOf<() => void>()
 expectTypeOf<RunSession['streamCapabilityOf']>().parameter(0).toEqualTypeOf<number>()
 expectTypeOf<RunSession['streamCapabilityOf']>().returns.toEqualTypeOf<LiveStreamDeclaration>()
 expectTypeOf<RunSession['subscribeFrames']>().parameter(0).toEqualTypeOf<number>()
-// 2026-09-25 (428 D-14): the end callback names its reason; a zero-argument callback still fits.
+// the end callback names its reason; a zero-argument callback still fits.
 expectTypeOf<RunSession['subscribeFrames']>().parameter(2)
   .toEqualTypeOf<((reason: LiveFrameEndReason) => void) | undefined>()
 expectTypeOf<() => void>().toMatchTypeOf<NonNullable<Parameters<RunSession['subscribeFrames']>[2]>>()

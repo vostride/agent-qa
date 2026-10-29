@@ -1,4 +1,4 @@
-// What a caller asks the agent job queue for (Phase 385, D-08 / D-17 / JOBQ-05).
+// What a caller asks the agent job queue for.
 //
 // This is the REQUEST vocabulary: the three facts a caller actually knows. It is deliberately
 // not the row the store inserts — the job's id is derived from the kind and the key by an
@@ -26,7 +26,7 @@ export interface JobEnqueueRequest {
 }
 
 /**
- * A successor a handler's deterministic tail asks for (D-17).
+ * A successor a handler's deterministic tail asks for.
  *
  * Structurally an enqueue request, and named separately because the ROLE differs: the
  * topology of what may chain to what is declared once on the kind, while the instances come

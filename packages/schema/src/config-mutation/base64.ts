@@ -1,4 +1,4 @@
-// The vendored base64 codec (Phase 395, D-17).
+// The vendored base64 codec.
 //
 // A CONFIG PROPOSAL PERSISTS BYTES, and a proposal record is JSON. The platform's own base64 pair
 // and `Buffer` are host APIs this package may not name, so the byte<->text transport is vendored

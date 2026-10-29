@@ -1,9 +1,9 @@
-// The two closed vocabularies D-02 and D-03 bound (Phase 395, CFGM-01 / CFGM-02).
+// The two closed vocabularies D-02 and D-03 bound.
 //
-// PINNED CONSTANTS, NEVER CONFIGURATION (386 D-15). Both values below are JUDGEMENTS about what a
+// PINNED CONSTANTS, NEVER CONFIGURATION. Both values below are JUDGEMENTS about what a
 // person must be asked about before a machine edits their repository, and a judgement a project can
 // switch off is not a guard — it is a default. They live in `schema` because the classifier that
-// reads them (395-04), the surfaces that render their consequences, and the grant machinery that
+// reads them, the surfaces that render their consequences, and the grant machinery that
 // refuses on them are three packages, and three spellings of one vocabulary is the sibling-input
 // failure this project keeps rediscovering.
 //
@@ -11,7 +11,7 @@
 // because a pinned value with no stated owner is a value the next person guesses at.
 
 /**
- * The named classes of "this crosses a boundary a standing approval may not cover" (D-02).
+ * The named classes of "this crosses a boundary a standing approval may not cover".
  *
  * CLOSED AT THE CLASSES D-02 BOUNDS, and closed is the point. Cross-boundary-ness is computed per
  * VALUE — a base URL edited to point at a new origin is cross-boundary, the same edit to the same
@@ -26,7 +26,7 @@
  *   hook-added            — a hook is code this project will EXECUTE; adding one is not a setting.
  *   out-of-set-path       — the change writes a file outside the enumerated config file set.
  *
- * RETUNE: adding a fifth member, or removing one, is a decision about what a person is asked to
+ * adding a fifth member, or removing one, is a decision about what a person is asked to
  * look at, made with the case that showed it. Do not widen this by pattern; the classifier's job is
  * to produce one of these words or nothing.
  */
@@ -76,7 +76,7 @@ export type CrossBoundaryReason = (typeof CROSS_BOUNDARY_REASONS)[number]
  * the reason it was wrong is recorded here so the next reader does not read a resolved-config path
  * as a committed one.
  *
- * RETUNE: this list is owned by whoever owns D-02/D-03 — a phase that finds a secret-bearing region
+ * this list is owned by whoever owns D-02/D-03 — a phase that finds a secret-bearing region
  * of the config schema these roots do not cover adds the ROOT, with the field that showed it, and a
  * root leaves when the config refuses its block. A value here being flagged is the whole reason the
  * standing-grant refusal has anything to refuse. It is deliberately not derived from the config

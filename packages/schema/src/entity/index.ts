@@ -1,7 +1,7 @@
-// The entity addressing vocabulary (Phase 387, ENTY-01 / ENTY-02).
+// The entity addressing vocabulary.
 //
 // Everything the agent can point at gets one address and one card shape, and both are minted
-// HERE rather than in the package that happens to store the entity (384 D-16). That is what
+// HERE rather than in the package that happens to store the entity. That is what
 // lets the resolver, the ops, the CLI and — later — chat and MCP share one contract instead
 // of four compatible ones.
 

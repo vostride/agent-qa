@@ -1,4 +1,4 @@
-// C446-REQUESTED-DIALOG-HANDOFF (446-11, D-25): a run whose step recorded an open dialog as the
+// a run whose step recorded an open dialog as the
 // state the step asked for still loads, and the loader still refuses an account it has no reading for.
 import { readFileSync } from 'node:fs'
 

@@ -9,9 +9,9 @@ import { DELTA_KINDS } from '../delta/delta'
  * cast satisfies the compiler, walks past that bar and REDs only here, by name. Both halves are
  * measured by hand-mutation: 409-MUTATION-LEDGER.md Rows 4 and 5.
  *
- * 2026-09-01 (Phase 409): the second delta vocabulary left with the Issue-slot cleanup.
+ * the second delta vocabulary left with the Issue-slot cleanup.
  *
- * 2026-09-03 (Phase 412): the three per-phase census cells merged into one.
+ * the three per-phase census cells merged into one.
  */
 
 const SIX_SHIPPED_KINDS = ['Add', 'Confirm', 'Supersede', 'Deprecate', 'MintUnknown', 'Noop']

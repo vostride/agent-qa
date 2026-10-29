@@ -1,4 +1,4 @@
-// Entity resolution results (Phase 387, ENTY-01 / ENTY-02 / D-09).
+// Entity resolution results.
 //
 // TWO unions, and the split is what makes ENTY-02's one-producer claim testable rather than
 // aspirational.
@@ -57,7 +57,7 @@ export type EntityNoMatchReason = (typeof ENTITY_NO_MATCH_REASONS)[number]
  *
  * `statusSource` is a plain string rather than the card's closed per-kind union, and that is
  * the render-never-recompute boundary in type form: the store reports what it observed, and
- * the producer is where an unrecognised status is REFUSED by the schema (D-12) instead of
+ * the producer is where an unrecognised status is REFUSED by the schema instead of
  * being silently mapped to something plausible.
  */
 export const EntityDescriptorSchema = z.object({
@@ -68,7 +68,7 @@ export const EntityDescriptorSchema = z.object({
   title: z.string(),
   statusSource: z.string().min(1),
   /**
-   * The machine id this entity was explicitly RENAMED to, when a rename was recorded (D-03).
+   * The machine id this entity was explicitly RENAMED to, when a rename was recorded.
    *
    * Present only for an address whose successor was written down — never inferred from two
    * similar names. The predecessor keeps its own permanent address and keeps resolving; this
@@ -77,7 +77,7 @@ export const EntityDescriptorSchema = z.object({
    */
   successorMachineId: z.string().min(1).optional(),
   /**
-   * The DURABLE test identity a `TST` entity's store keyed it on (Phase 390, D-12).
+   * The DURABLE test identity a `TST` entity's store keyed it on.
    *
    * `(product, filePath, testName)` — the same three legs the run-outcome projection and the
    * quarantine ledger are keyed by, and never `testId`, which is a per-run explicit id. It is

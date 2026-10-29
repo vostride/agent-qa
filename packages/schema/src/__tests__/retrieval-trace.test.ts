@@ -1,4 +1,4 @@
-// The serve-time retrieval trace (Phase 387 plan 02, KREV-02 · D-13/D-14/D-15).
+// The serve-time retrieval trace.
 //
 // Three claims are pinned here, and each one is pinned by a case the assertion could
 // actually REJECT rather than by a happy-path sample:
@@ -264,7 +264,7 @@ describe('CompletedRunHandoff v5 retrievalTrace beside-field', () => {
   })
 
   it('refuses a step whose PRESENT retrievalTrace is malformed (fail-closed)', () => {
-    // The why-verb (387-06) dereferences every line's recordId/leg/rank/score to answer
+    // The why-verb dereferences every line's recordId/leg/rank/score to answer
     // with, so the load boundary admits the block only in consumer-traversable form — the
     // same present-implies-valid discipline `planSource` and `interpolatedVariables` carry.
     const cases: unknown[] = [

@@ -1,8 +1,8 @@
-// The per-run digest — a READ-TIME projection, never a record (Phase 391, D-16 / D-18).
+// The per-run digest — a READ-TIME projection, never a record.
 //
 // Minted here, beside `run-notification.ts`, and deliberately NOT inside it. The notification
 // row is the chain's one DURABLE artifact: counts-only, exact-key-guarded, read by chat and by
-// the dashboard, and frozen (388 D-11). The digest is what a HUMAN is shown once per run — the
+// the dashboard, and frozen. The digest is what a HUMAN is shown once per run — the
 // sentences, the chain, the decisions waiting on them — composed live from four already-shipped
 // read paths every time somebody asks. Widening the row to carry any of that would have made
 // one payload answer two questions, and `guardRunNotification`'s sorted-key comparison would
@@ -16,10 +16,10 @@
 // complaint ("an approval UX that fires 40 times per nightly run is a worse product than one
 // that fires once") answered by a shape rather than by a throttle.
 //
-// REFS AND COUNTS ONLY (D-18, T-391-17). Nothing on this DTO carries evidence bytes, receipt
+// REFS AND COUNTS ONLY. Nothing on this DTO carries evidence bytes, receipt
 // bytes, rationale prose or masked content: a mark change is its mark id, its fix and the ids or
 // workspace path it changed; candidates and quarantine are counts plus identity refs. 2026-09-30,
-// 432-09 (D-05/D-22): the digest reads applied mark changes from this run's own ledger and never
+// the digest reads applied mark changes from this run's own ledger and never
 // reads a proposal store. That is a privacy boundary rather than a size budget — this
 // value is rendered directly by a terminal, a chat and a dashboard, and a payload that COULD
 // carry a secret would need a masking boundary at each of them.
@@ -44,11 +44,11 @@ export const RunsDigestInputSchema = z.object({
 export type RunsDigestInput = z.infer<typeof RunsDigestInputSchema>
 
 /**
- * One fix a mark on this run applied, read from the run's own mark ledger (432-09, D-04).
+ * One fix a mark on this run applied, read from the run's own mark ledger.
  *
  * The receipt's applied change VERBATIM: record ids for a knowledge fix, the written workspace path
  * and its byte digest for a test edit. In ledger order; a later mark on the same address does not
- * remove an earlier change, because the earlier fix was never retracted (D-11).
+ * remove an earlier change, because the earlier fix was never retracted.
  */
 export interface RunDigestMarkChange {
   markId: string
@@ -74,7 +74,7 @@ export interface RunDigestChainOutcomes {
   curation: PostProcessingChipStatus
   outcome?: RunNotificationViewStatus
   /**
-   * The `runs.postprocessing` skipped fact verbatim (425 D-08, 444 D-39), so a machine reader of the
+   * The `runs.postprocessing` skipped fact verbatim, so a machine reader of the
    * digest never re-derives from `pending` chips what the read op already knows. A sibling of
    * the two chip arms rather than a fifth word on either of them.
    */
@@ -82,14 +82,14 @@ export interface RunDigestChainOutcomes {
 }
 
 /**
- * Curator candidates staged this run, as COUNTS (D-13).
+ * Curator candidates staged this run, as COUNTS.
  *
  * The digest REPORTS; the KREV verbs review. Candidates stay candidate-status truth inside
  * bundles and are never listed as proposals, so nothing here addresses one for a decision.
  *
  * NO REFS, and the absence is measured rather than an omission: the only run-scoped, durable
  * record of what a run curated is the chain-terminal notification row, which is counts-only BY
- * CONSTRUCTION (388 D-11) and may not be widened (D-18, T-391-18). A ref list would therefore
+ * CONSTRUCTION and may not be widened. A ref list would therefore
  * have had to come from somewhere else — a new port over the run directory's curation receipt —
  * and inventing one so a field could be populated is a larger change than the field is worth.
  * Stated here so a later reader does not read the gap as a bug.

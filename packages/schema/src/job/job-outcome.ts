@@ -1,4 +1,4 @@
-// What a job handler reports when it returns (Phase 385, D-17 / D-18 / D-20).
+// What a job handler reports when it returns.
 //
 // Three arms, discriminated. Without the discriminant, "the work finished and chains
 // nothing" and "the work failed" are the same shape, and the engine would have to infer

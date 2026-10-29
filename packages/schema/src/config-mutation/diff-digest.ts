@@ -1,4 +1,4 @@
-// THE ONE diff/digest primitive both halves of a config proposal call (Phase 395, D-17 / D-19).
+// THE ONE diff/digest primitive both halves of a config proposal call.
 //
 // RAW BYTES IN, RENDERED BYTES OUT. Construction (in `agent`) renders the diff a person reads and
 // records the digests a later apply will re-check; the apply (in `cli`) recomputes both from the
