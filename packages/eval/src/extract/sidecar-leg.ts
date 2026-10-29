@@ -103,10 +103,7 @@ function equivalenceSet(
   return descriptors
 }
 
-/**
- * Projects matcher evidence without interpreting operation aliases or gates; Phase 369 owns
- * that policy and receives the recorded action verb verbatim as `opClass`.
- */
+// Projects matcher evidence verbatim; operation aliases and gates are the matcher's policy.
 export function projectSidecarLeg({
   subAction,
 }: ProjectSidecarLegInput): ProjectSidecarLegResult {

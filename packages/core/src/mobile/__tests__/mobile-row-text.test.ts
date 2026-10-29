@@ -1,7 +1,4 @@
-// C438-ROW-MOBILE (438 D-02, RESEARCH Open Question 3): the runner's one row definition over iOS
-// and Android page sources. On iOS an XCUIElementTypeCell is the row container; on Android layout
-// groups are filtered out of the observation, so a list row's text is unknown and a stated row
-// there never refuses. Page sources are inline strings.
+// On Android layout groups are filtered out, so a list row's text is unknown and never refuses.
 
 import { describe, expect, it } from 'vitest'
 import {

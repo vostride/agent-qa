@@ -3,7 +3,7 @@ import type { VerifierVerdict, Verdict } from '@vostride/agent-qa-schema'
 /** Quality vocabulary reserved for every current and later label source. */
 export type LabelTier = 'gold' | 'near-gold' | 'silver'
 
-/** reserved tiers, pinned independently by runtime and type oracles. */
+// Reserved tiers, pinned independently by runtime and type oracles.
 export const LABEL_TIERS = ['gold', 'near-gold', 'silver'] as const satisfies readonly LabelTier[]
 
 /** Channel that supplied the cassette label. */
@@ -13,7 +13,7 @@ export type LabelSourceChannel =
   | 'overturned-verdict'
   | 'self-heal-pair'
 
-/** existing channels only; sovereign gold producers retain their identities. */
+// Existing channels only; sovereign gold producers keep their identities.
 export const LABEL_SOURCE_CHANNELS = [
   'recorded-verdict',
   'user-mark',
@@ -54,6 +54,6 @@ export interface CassetteLabelLeg {
    * included. Absent when the member recorded no root cause.
    */
   rootCause?: Verdict
-  /** Reserved contrastive-pair slot populated by the later label factory. */
+  // Reserved contrastive-pair slot; nothing populates it.
   pairing?: ContrastivePairing
 }

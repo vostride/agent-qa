@@ -1,5 +1,4 @@
-// C436-WEBVIEW-SCROLLERS (436-23 · D-25, review WR-20): WebView scroller reads are parsed into
-// identified members and a swipe is judged by pairing before and after by id, never by position.
+// A swipe pairs before and after scrollers by id, never by position.
 
 import { describe, it, expect } from 'vitest'
 import { parseWebViewScrollers, webViewSwipeSignal } from '../webview-scrollers.js'

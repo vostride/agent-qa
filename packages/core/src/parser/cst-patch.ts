@@ -1,21 +1,4 @@
-// RFC-6902 patch application at the CST level (394, D-20 · WTST-07).
-//
-// The problem this file exists for: every JSON-Patch library on npm is correct and unusable here,
-// because all of them mutate plain JS values. Routing an edit through `doc.toJS()` and back throws
-// away the concrete syntax tree — the only thing carrying the bytes of the lines nobody asked to
-// change — so comments vanish, quoting is normalised and mapping keys come back in whatever order
-// the object literal had. WTST-07's promise is that an edit never reformats an untouched line, and
-// that promise is only keepable by mutating the CST in place and concatenating it back.
-//
-// A SIBLING, NOT A CHANGE TO `yaml-parser.ts`. `parseTestFile` calls `parseAllDocuments` and
-// discards the token array, so it structurally cannot serve the edit path. It is left alone and
-// re-used here for exactly one job: re-parsing the RENDERED bytes, which is how a mutation that
-// produced an unrunnable document becomes a refusal instead of a written file.
-//
-// THE FENCE AND THE PREFIX FENCE ARE DIFFERENT CONTROLS. `EDITABLE_POINTER_ROOTS` bounds WHICH
-// PART OF A DOCUMENT any patch may address at all; plan 06's passing-prefix fence
-// bounds WHICH STEP a repair may touch. Neither substitutes for the other, and a document whose
-// `target` is reachable is a document whose test can be silently pointed at a different app.
+// RFC 6902 patches applied to the CST in place; `doc.toJS()` would reformat untouched lines.
 
 import {
   Composer,
@@ -84,14 +67,7 @@ export class PatchPointerUnresolvableError extends Error {
   }
 }
 
-/**
- * The op cannot be applied to the node its pointer reached.
- *
- * `add` and `remove` operate on block-sequence items only. Adding or removing a top-level KEY
- * changes the document's shape rather than its content, and D-02 already routes a shape change
- * through whole-document emission with a full schema validation — so admitting it here would
- * publish a second, weaker path to the same outcome.
- */
+// `add` and `remove` act on block-sequence items only; a key change is a shape change.
 export class PatchOpUnsupportedTargetError extends Error {
   constructor(readonly pointer: string, readonly detail: string) {
     super(`cst-patch: the pointer ${pointer} cannot carry this op: ${detail}`)
@@ -337,12 +313,7 @@ function resyncSeqNode(doc: Document, parentSegments: string[]): void {
   seq.items = contents.items
 }
 
-/**
- * Build a block-sequence item at the sequence's own indent.
- *
- * `createScalarToken` supplies a trailing newline of its own; without it an appended item glues
- * itself onto the previous line, which is the concrete failure the 394 research probe hit.
- */
+// `createScalarToken` adds its own newline; without it an appended item joins the previous line.
 function newSeqItem(seqToken: CST.BlockSequence, value: string): CST.BlockSequence['items'][number] {
   return {
     start: [

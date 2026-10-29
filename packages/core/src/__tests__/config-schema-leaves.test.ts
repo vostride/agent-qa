@@ -1,6 +1,4 @@
-// the published config schema's leaves, walked structurally and pinned
-// against the schema's leaf list, so a new schema leaf reds here until it is listed. 2026-10-15
-// the list no longer carries masking classes.
+// Pinned against the schema's leaf list, so a new leaf fails here until it is listed.
 import { CONFIG_SCHEMA_LEAVES } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 

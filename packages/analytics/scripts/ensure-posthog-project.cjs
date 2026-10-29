@@ -1,8 +1,4 @@
-// Carried over from `packages/core/scripts/ensure-posthog-project.cjs` unchanged in contract
-// the key file is generated, never committed, and the
-// release pipeline overwrites it with the real project key. Only the TARGET PATH moves with the
-// package. Core keeps its own copy until plan 11 deletes `core/src/analytics` outright, and plan 11
-// is also what re-points the release scripts at this path.
+// The key file is generated and never committed; the release pipeline writes the real project key.
 const { existsSync, mkdirSync, writeFileSync } = require('node:fs')
 const { dirname, join } = require('node:path')
 

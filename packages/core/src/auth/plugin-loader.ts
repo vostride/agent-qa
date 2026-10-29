@@ -82,16 +82,9 @@ export async function loadLLMAuthPlugins(
     const key = declarationKey(declaration, baseDir)
     if (loadedDeclarations.has(key)) continue
 
-    // A DECLARED PLUGIN THE PROJECT DOES NOT HAVE IS ANSWERED, NOT STACK-DUMPED (395-21 · F-05).
-    // The product's own `init --platform web` declares the subscription-auth package before the
-    // person has installed it, so this is the first thing a fresh project meets on `agent-qa run`.
-    // It is still a failure — the plugin genuinely is not there — and it now names the package and
-    // the install step instead of Node's require stack.
+    // A declared plugin the project lacks gets the package name and install step, not a stack.
     const module = await importDeclaredPluginModule<AuthPluginModule>(declaration, baseDir, 'auth')
-    // THE MAP KEY IS NOT THE PERSON'S NAME FOR IT. `key` is `path:/abs/route/to.js`
-    // — absolute so two relative routes to one file collide in `loadedDeclarations`, prefixed so a
-    // package cannot collide with a file. Neither fact belongs in a sentence a person reads, and
-    // `resolvePluginBundle`'s "must export …" message is one.
+    // The map key is absolute and prefixed for collisions; the message uses the person's own label.
     const bundle = await resolvePluginBundle(module, declarationLabel(declaration, baseDir))
 
     registerLLMAuthProviderPlugins(bundle.providers)

@@ -1,8 +1,7 @@
 import { scrollerSetSwipeSignal } from '@vostride/agent-qa-runner'
 import type { Direction, DocumentScrollOffsets, SwipeSignal } from '@vostride/agent-qa-runner'
 
-// the WebView swipe is judged over identified, on-screen scrollers, and a
-// frame in view makes the read null (review WR-20, IN-32 · D-25).
+// Judged over identified on-screen scrollers; a frame in view makes the read null.
 
 /** One WebView scroller with a structural identity: `document`, or a flat-tree path plus tag, id and class. */
 export interface IdentifiedScrollOffsets extends DocumentScrollOffsets {

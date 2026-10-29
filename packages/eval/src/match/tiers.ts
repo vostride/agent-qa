@@ -11,12 +11,12 @@ import type { IdentityLadderLevel } from './config'
 import { classifyAnchorLadder } from './ladder'
 import { classifyOpClass, opClassEquivalent } from './op-class'
 
-/** Match-time operation-class verdict from the D-01 hard gate. */
+// Operation-class verdict from the hard gate.
 export type OpClassVerdict =
   | { kind: 'match'; opClass: string }
   | { kind: 'mismatch'; goldClass: string; candidateClass: string }
 
-/** Named D-11 element-identity evidence, including every counted degradation cause. */
+// Element-identity evidence, including every counted degradation cause.
 export type ElementIdentityVerdict =
   | { kind: 'scored'; level: IdentityLadderLevel; numeric: number; tier: 2 | 3 }
   | {
@@ -84,11 +84,7 @@ function pointInsideBounds(
   )
 }
 
-/**
- * Score tier 3 only inside the recorded observation's coordinate space (A1/OQ-3). A
- * coordinate-space disagreement is a counted verdict rather than a raw-number comparison.
- * Point annotations check their gold bounds before the screen-relative distance fallback.
- */
+// Tier 3 scores only inside the recorded coordinate space; a space mismatch is a counted verdict.
 function scoreTier3(
   annotation: ActionAnnotation,
   action: Action,
@@ -128,11 +124,7 @@ function scoreTier3(
   return scoredIdentity(level, 3)
 }
 
-/**
- * Run the D-01/D-11 tier router. The operation-class check is the first operation and returns
- * immediately on mismatch, so neither identity ladder nor geometry work can run after a hard
- * tier-1 miss. Matcher constants flow only from the frozen MATCHER_CONFIG import.
- */
+// An operation-class mismatch returns before any identity or geometry work runs.
 export function runMatchTiers(
   sidecar: CassetteSidecarLeg,
   candidate: MatchTierCandidate,

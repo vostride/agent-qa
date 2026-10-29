@@ -6,25 +6,13 @@ import type { ReplayDrift } from './drift'
 import type { DecisionIdentity } from './identity'
 import type { BriefSource, TurnMatch } from './brief-tiers'
 
-/**
- * A recorded exchange the replayed planner never consumed — a D-07 divergence signal.
- * Tool name plus canonically-serialized args; the args are opaque evidence data, never executed.
- */
+// A recorded exchange the replayed planner never consumed; its args are opaque, never executed.
 export interface UnconsumedExchange {
   tool: string
   args: Record<string, unknown>
 }
 
-/**
- * The four typed per-sample outcomes. Every outcome is reported; nothing is silent
- * and no single sample aborts the batch.
- *  - `decision`: a grounded wire-shape action plus its normalized DecisionIdentity.
- *  - `planner-failure`: a scoreable structured planner failure (reason produced via
- *    PlanningTurnError classification in the engine, plan 368-04 — never string-matched here).
- *  - `unservable-divergence`: the recorded turn requested a tool the null adapter cannot serve
- *    (tool name + canonical args) — a D-08 divergence, not an infra failure.
- *  - `harness-error`: infrastructure-only failure; never scored.
- */
+// Every sample outcome is reported, and no single sample aborts the batch.
 export type ReplaySampleOutcome =
   | { kind: 'decision'; action: Action; identity: DecisionIdentity }
   | { kind: 'planner-failure'; reason: string; message: string }
@@ -71,9 +59,9 @@ export interface DecisionReplayResult {
   turnMatch?: TurnMatch
   /** Recorded model identity from the receipt (declared/resolvedModelId); typed-absent, never fabricated. */
   recordedModel?: ModelIdentity
-  /** The model actually invoked this replay (D-03 id stamp). */
+  // The model this replay invoked.
   replayedModel: { provider: string; modelId: string }
-  /** D-07 divergence: recorded exchanges the replayed planner never consumed. */
+  // Divergence: recorded exchanges the replayed planner never consumed.
   unconsumedExchanges: UnconsumedExchange[]
   totalDurationMs: number
 }
@@ -83,15 +71,12 @@ export interface LeafReplayResult extends DecisionReplayResult {
   granularity: 'leaf'
 }
 
-/**
- * One procedure step's replay: a full decision result, or a typed skipped entry for the
- * cache-served / synthesized steps that carry no live planner decision.
- */
+// A full decision result, or a typed skip for cache-served and synthesized steps.
 export type ProcedureStepReplay =
   | { kind: 'decision'; stepIndex: number; decisionOrdinal: number; result: DecisionReplayResult }
   | { kind: 'skipped'; stepIndex: number; reason: 'cache-served' | 'synthesized'; decisionOrdinal?: number }
 
-/** A procedure-granularity replay result; the recorded endState is carried through untouched for 369. */
+// A procedure replay result; the recorded `endState` passes through untouched.
 export interface ProcedureReplayResult {
   granularity: 'procedure'
   cassetteId: string
@@ -103,10 +88,7 @@ export interface ProcedureReplayResult {
 /** A replayed cassette result — leaf or procedure. */
 export type ReplayResult = LeafReplayResult | ProcedureReplayResult
 
-/**
- * A typed integrity refusal: the cassette could not be replayed at all. Every refusal is
- * reported — a refusal never aborts the surrounding batch.
- */
+// A typed integrity refusal: the cassette cannot replay, and the batch continues.
 export interface ReplayRefusal {
   kind: 'integrity-refusal'
   cassetteId: string

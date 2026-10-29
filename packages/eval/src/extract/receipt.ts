@@ -20,10 +20,7 @@ export interface AssembleReceiptInput {
   handoff: CompletedRunHandoff
 }
 
-/**
- * Canonical input-leg serialization shared with replay. Phase 368 must import this function
- * when reproducing `promptInputHash`; object keys sort recursively and array order is retained.
- */
+// Shared with replay to reproduce `promptInputHash`: keys sort recursively, array order stays.
 export function canonicalizeInputLeg(leg: CassetteInputLeg): string {
   const serialized = JSON.stringify(canonicalValue(leg))
   if (serialized === undefined) {

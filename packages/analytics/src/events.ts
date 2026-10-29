@@ -1,28 +1,4 @@
-// THE CLOSED EVENT UNION.
-//
-// WHAT THIS FILE IS FOR. The process this package runs in holds customer credentials, and the only
-// thing standing between them and a third-party endpoint is what an event is ALLOWED to carry. The
-// v1 module answered that question with `.strip()` schemas whose string fields were
-// `z.string().min(1).optional()` — `model_name`, `provider_mode`, `app_state`,
-// `execution_destination`, `browser_name` and eight more. Every one of them was a field into which
-// any string in the process could be written and would be sent, and `.strip()` meant an unexpected
-// key was silently DROPPED rather than refused, so nobody ever found out.
-//
-// Both defects are abolished by construction here, not patched:
-//
-//   1. `.strictObject` everywhere. An unknown key REFUSES at parse. A caller who invents a field is
-//      told; a caller who smuggles one is stopped. There is no `.strip(` anywhere in this package
-//      and a cell asserts that over the source.
-//   2. NO UNCONSTRAINED STRING EXISTS. Every string-typed field in every member draws from a
-//      `z.enum`, a `z.literal`, or a known-id codec that is BOTH tagged and refined. The rule is
-//      mechanical: `assertNoUnconstrainedStrings` walks the union and throws naming the member and
-//      the field path, and a planted plain string reds it. A free-text field is unrepresentable,
-//      not discouraged.
-//
-// WHAT IS COUNTED RATHER THAN CARRIED. `explain` reports two counters and no query text. The
-// abstained query is free text by definition and it is exactly the thing a docs-gap signal wants,
-// which is why D-11 keeps that log LOCAL, under `.agent-qa/`, and lets analytics carry the count
-// only. If a later phase wants the text, the answer is not a field here.
+// Every member is a strict object and every string field an enum, literal or known-id codec.
 
 import { isCanonicalRunId, isCanonicalSuiteId, isCanonicalTestId } from '@vostride/agent-qa-ids'
 import { AGENT_QA_TOOL_PROJECTIONS } from '@vostride/agent-qa-mcp'
@@ -66,16 +42,7 @@ const AgentQaVersionSchema = z
   .regex(SEMVER_PATTERN, 'expected a semver version')
   .meta({ [ANALYTICS_VOCABULARY_META_KEY]: ANALYTICS_KNOWN_ID_MARKER, analyticsCodec: 'semver' })
 
-/**
- * The known-id fields' guards, as FUNCTIONS a host can call.
- *
- * Published beside the schemas because an emitter has to make the same decision the schema makes
- * and has to make it BEFORE capture: nothing parses an event on the way to the transport, so a
- * foreign string put on `run_id` is not refused, it is SENT — and `run_id` is a known-id codec
- * precisely so that cannot happen. A host filtering ids for itself would need `@vostride/agent-qa-ids`,
- * which the surface firewall does not admit; asking the package that owns the union is the route
- * that exists. Anything that is not a canonical id becomes an absence, which every field allows.
- */
+// Emitters call these before capture, because nothing parses an event on its way to the transport.
 export function analyticsRunId(value: unknown): string | undefined {
   return typeof value === 'string' && isCanonicalRunId(value) ? value : undefined
 }
@@ -99,18 +66,10 @@ const NonNegativeNumber = z.number().min(0)
 // The enumerated vocabularies
 // ---------------------------------------------------------------------------------------------
 
-/**
- * WHICH HOST EMITTED, and deliberately NOT the 397 D-04 surface roster.
- *
- * 2026-08-17. The roster answers "which invocation doors does the parity suite measure" and is
- * pinned closed at `chat` and `mcp`. This list answers a different question — which process sent
- * the event — and `cli` and `daemon` are real answers to it while being no kind of surface. Tying
- * the two would make a roster change an analytics schema change for no reason, and would make this
- * list wrong the moment a host emits that is not a door.
- */
+// Which process sent the event, apart from the surface roster, so `cli` and `daemon` appear.
 export const ANALYTICS_EMITTING_HOSTS = ['cli', 'chat', 'mcp', 'daemon'] as const
 
-// a coding agent is a user; its product rides as `agent_product`.
+// A coding agent is a user; its product rides as `agent_product`.
 export const ANALYTICS_RUNTIME_CONTEXTS = ['user', 'ci'] as const
 
 // Carried from the v1 module unchanged. Retune when a new coding agent shows up in the wild; the
@@ -215,10 +174,6 @@ function member<TName extends string, TShape extends z.ZodRawShape>(name: TName,
   })
 }
 
-// ---------------------------------------------------------------------------------------------
-// The members
-// ---------------------------------------------------------------------------------------------
-
 const RunCompletionShape = {
   trigger_source: z.enum(ANALYTICS_TRIGGER_SOURCES).optional(),
   runner: z.enum(ANALYTICS_RUNNERS).optional(),
@@ -227,10 +182,6 @@ const RunCompletionShape = {
   failure_category: z.enum(ANALYTICS_FAILURE_CATEGORIES).optional(),
   duration_ms: NonNegativeNumber.optional(),
   run_id: RunIdSchema.optional(),
-  // 2026-08-28. The parent-link property was deleted here. It was declared
-  // with no producer anywhere in this package — 402-09 put one run row per run and moved member
-  // identity onto handles, and 405-07 then deleted the column it named — so it could only ever
-  // have travelled as `undefined`. Same disposition and same reason as the healing counter below.
   step_count: NonNegativeInteger.optional(),
   passed_step_count: NonNegativeInteger.optional(),
   failed_step_count: NonNegativeInteger.optional(),
@@ -242,13 +193,6 @@ const RunCompletionShape = {
   is_flaky: z.boolean().optional(),
   memory_enabled: z.boolean().optional(),
 } as const
-
-// 2026-08-17. `model_name`, `provider`, `provider_mode`, `planner_model`, `verifier_model`,
-// `browser_name`, `mobile_transport`, `mobile_provider`, `app_state` and `execution_destination`
-// were all `z.string().min(1)` in v1 and are GONE rather than ported. Each named a real dimension,
-// and each was a hole: a provider id read from a config file lands in the same field as anything
-// else that config file happens to hold. Retune: when one of them is wanted back, it comes back as
-// an ENUM of the values this repo actually supports, which is a decision with a list attached.
 
 const TestRunCompleted = member('agent-qa.test_run.completed', {
   ...RunCompletionShape,
@@ -313,9 +257,7 @@ const InitCompleted = member('agent-qa.init.completed', {
   duration_ms: NonNegativeNumber.optional(),
 })
 
-// COUNTERS ONLY (D-11 / Pitfall 10). There is no query-text field on either explain member and
-// there must never be one: the coverage log under `.agent-qa/` is where the query lives, local to
-// the machine, and it is the only place the demand signal SURF-FUT-02 reads is allowed to exist.
+// Counters only: the query text stays in the local coverage log under `.agent-qa/`.
 const ExplainAnswered = member('agent-qa.explain.answered', {
   cited_row_count: NonNegativeInteger.optional(),
   duration_ms: NonNegativeNumber.optional(),
@@ -327,12 +269,6 @@ const ExplainAbstained = member('agent-qa.explain.abstained', {
   duration_ms: NonNegativeNumber.optional(),
 })
 
-/**
- * The membership, in the order D-18 states it.
- *
- * The names keep the `agent-qa.` prefix the v33 set used: the events land in a project shared with
- * nothing else today, but a prefix costs nothing and un-prefixing later is a rename of history.
- */
 export const ANALYTICS_EVENT_NAMES = [
   'agent-qa.test_run.completed',
   'agent-qa.suite_run.completed',
@@ -348,23 +284,7 @@ export const ANALYTICS_EVENT_NAMES = [
 
 export type AnalyticsEventName = (typeof ANALYTICS_EVENT_NAMES)[number]
 
-/**
- * The v33 names that are NOT members, listed rather than merely absent.
- *
- * 2026-08-17 (Phase 398 plan 03, D-18 · RESEARCH Open Question 2). Two different reasons:
- *
- *   `analytics.initialized` and `analytics.test_event` were TRANSPORT SELF-TESTS — an event whose
- *   only content is "the thing that sends events works" is a diagnostic, and shipping it as product
- *   signal means every dashboard has to remember to exclude it. Dropped outright; the zero-network
- *   differential in plan 06 is the same claim, proven rather than reported.
- *
- *   The three `dashboard.*` rows are dropped BECAUSE THE DASHBOARD IS BEING REBUILT. M5 re-adds
- *   what it needs against this port, which is the right moment to decide what a rebuilt dashboard
- *   is actually worth measuring — carrying the v1 answers forward would have pre-decided it.
- *
- * a name re-added here must be REMOVED from this list in the same change. The disjointness
- * cell fires if it appears in both, so the two lists cannot quietly disagree.
- */
+// Retired names; a name re-added to the union must leave this list, or the disjointness cell fails.
 export const RETIRED_V33_EVENT_NAMES = [
   'agent-qa.analytics.initialized',
   'agent-qa.analytics.test_event',

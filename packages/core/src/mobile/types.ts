@@ -10,13 +10,7 @@ export interface MobileNode {
   children: MobileNode[]
 }
 
-/**
- * Execute-time resolution record for a single builder-minted ref. Reconstructed by
- * `buildRefEntries` from the interim nodes + the builder's ref->node binding, this is
- * how the mobile adapters keep the v1 `lastRefs` locator pattern alive after the
- * shared builder took over ref minting. Every field here is one that
- * `element-resolver.ts`/`gestures.ts` actually read at execute time.
- */
+// Execute-time record for one builder-minted ref; each field is read by the element resolver.
 export interface RefEntry {
   role: string
   name?: string
@@ -31,8 +25,6 @@ export interface RefEntry {
 /** Execute-time ref -> resolution record map (adapter-private `lastRefs`). */
 export type MobileRefMap = Record<string, RefEntry>
 
-/** parseMobileSource result — a plain interim-node list; ref minting, tree rendering,
- * and the viewport-summary header all moved into the shared builder (Plan 352-01). */
 export interface ParsedMobileSource {
   nodes: InterimNode[]
 }

@@ -1,42 +1,4 @@
-// The resume path reaches no model package (Phase 385 plan 07, D-11 layer 3).
-//
-// D-11 states the JOBQ-03 proof in three layers, and this file is the third and narrowest of them.
-// Layer 1 is the class lint: the engine and the resume driver live in a providerNeutral package, so
-// a provider SDK is unimportable there. Layer 2 is structural: the model reaches a job only as the
-// argument of the author callback, and both context surfaces are pinned for exact equality so there
-// is nowhere to add a second door. Neither of them says anything about the LOCAL host's recovery
-// entry, which is a storageImplementation file — free, as far as every other rule is concerned, to
-// name whatever it likes.
-//
-// The sibling composition carve-out does not close that either, and says so in its own header: it
-// is a LOCATION rule. It answers "where may this package name the model package" with "inside the
-// composition subtree", and the recovery entry lives inside the composition subtree. Living in the
-// room where the permission applies is not the same as not needing the permission.
-//
-// So this rule is a PERMISSION rule about one file and everything that file can reach:
-//
-//   1. It walks the import closure, not the entry alone. A single-file check is defeated by a
-//      one-line helper module beside it, and that is the shape a well-meaning refactor takes. The
-//      walk has no silently skipped edge class: an in-package edge is either followed or reported,
-//      and a self-referencing specifier is an in-package edge however much it looks like a package
-//      boundary (`exports` resolves it to a sibling file). An edge class nobody walks is the same
-//      defeat as a helper nobody reads, arriving by a different import style.
-//   2. It fails in the other direction too. A pin whose path has moved matches nothing, reports
-//      nothing, and reads like proof — the failure mode plans 08 and 09 each had to close in their
-//      own rules. Here a pinned entry that is not in the scanned set is an offender, a closure that
-//      is the entry alone is an offender, and an in-package import the walk cannot follow is an
-//      offender. A rule that cannot fail is worse than no rule, because it converts "unproven" into
-//      "proven".
-//   3. Its message states WHY rather than only what, per the 384 convention that a pin doubles as
-//      documentation. A reader who trips this rule needs to know that recovery re-reads a recorded
-//      checkpoint and never reaches an author callback, and that the capability a legitimately
-//      re-authoring resume needs arrives already built from the host — otherwise the obvious repair
-//      is to add the import and the allowance.
-//
-// What this rule is NOT, and deliberately: a repo-wide pin on who may construct a model. D-11
-// rejected that by name, because the legitimate set churns with every later phase and a pin that is
-// edited every phase is a pin nobody reads. This is three package names, scoped to the closure of
-// one file, and the whole of it moves only when the resume path itself moves.
+// Walks the recovery entry's whole import closure, so a helper beside it cannot reach a model.
 
 import { relative } from 'node:path'
 
@@ -46,17 +8,7 @@ import type { SpecifierHit } from './extract-specifiers.js'
 /** The package the pinned entries live in, and therefore the package whose sources are walked. */
 export const RESUME_PATH_PACKAGE_DIR = 'packages/agent-local'
 
-/**
- * The walked package's OWN name, as its manifest declares it.
- *
- * A package that ships an `exports` map can import itself by name, and Node resolves it — so
- * `@vostride/agent-qa-agent-local/composition/x.js` from a file inside `packages/agent-local` is
- * an ordinary runtime edge wearing a package name. Classified naively it looks like a boundary
- * crossing for layer 1 to worry about, which is why the walk used to drop it; followed, it is a
- * sibling import and the walk owes it the same treatment it gives `./x.js`. A test pins this
- * literal against the manifest, because a rename that moved the name here without moving it there
- * would turn every self-reference back into a silently unwalked edge.
- */
+// A self-reference through `exports` is a sibling import; a test pins this name to the manifest.
 export const RESUME_PATH_SELF_PACKAGE_NAME = '@vostride/agent-qa-agent-local'
 
 /**
@@ -67,7 +19,7 @@ export const RESUME_PATH_SELF_PACKAGE_NAME = '@vostride/agent-qa-agent-local'
  * stop covering — whatever else moved into the same directory.
  */
 export const RESUME_PATH_ENTRY_FILES = [
-  // the model-free recovery entry every resuming host composes.
+  // The model-free recovery entry every resuming host composes.
   'packages/agent-local/src/composition/compose-job-recovery.ts',
 ] as const
 
@@ -278,8 +230,7 @@ export function findResumePathModelFreeOffenders(
     )
   }
 
-  // THE RULE ITSELF. Type-only imports count: the specifier extractor is deliberately type-blind
-  // and a package named as a type is still a declared dependency of this file.
+  // Type-only imports count: a package named as a type is still a dependency of this file.
   for (const file of closure.files) {
     for (const hit of byFile.get(file)!.specifiers) {
       const rationale = resumePathForbiddenRationale(hit.specifier)

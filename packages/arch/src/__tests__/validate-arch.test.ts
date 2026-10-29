@@ -103,13 +103,7 @@ function packageSourceHits(contract: OwnershipContract): SpecifierHit[] {
   return hitsFromFiles(sourceFilesFor(contract.packageDir, repoRoot))
 }
 
-/**
- * Source text for the startRun() pin (and, since 432-19, the gate-absence census), keyed by
- * repo-relative path.
- *
- * Routed through `sourceFilesFor` on purpose: it already drops `__tests__`, so a test file that
- * plants an acquisition as a fixture string is never read as a production acquisition.
- */
+// Through `sourceFilesFor`, which drops `__tests__`, so a fixture string is never a production hit.
 function pinSourcesFor(packageDir: string): StartRunPinSource[] {
   return sourceFilesFor(packageDir, repoRoot).map(file => ({
     file: relative(repoRoot, file).replaceAll('\\', '/'),
@@ -222,9 +216,7 @@ describe('arch lint class rules and dep contracts', () => {
       }
       offenders.push(...findCompositionCarveoutOffenders(contract, sourceHits))
       offenders.push(...findCompositionCarveoutUnusedAllowances(contract, sourceHits))
-      // D-11 layer 3. Handed whole MODULES rather than the flat hit list the rules above take,
-      // because it walks an import closure and a file with no imports at all still has to be
-      // resolvable — derived from hits alone, such a file would look like a hole in the graph.
+      // Takes whole modules: a file with no imports still has to resolve in the import closure.
       if (contract.packageDir === RESUME_PATH_PACKAGE_DIR) {
         offenders.push(
           ...findResumePathModelFreeOffenders(resumePathModules(contract.packageDir, repoRoot)),
@@ -239,8 +231,6 @@ describe('arch lint class rules and dep contracts', () => {
     offenders.push(...findKnowledgeWriterSingletonOffenders(readerScannedHits))
     offenders.push(...findSurfaceFirewallOffenders(surfaceScans, SURFACE_FIREWALL_LEDGER))
     offenders.push(...findSurfaceClassGoldenSetOffenders(contracts))
-    // the evaluate() pin is deleted with the gate it policed. The
-    // startRun() pin is the one run pin left, over the same `__tests__`-free sources.
     offenders.push(...findStartRunPinOffenders(pinSources))
     offenders.push(...findAgentBarrelOffenders(readRepoFile(AGENT_BARREL_FILE)))
     offenders.push(...findCycleOffenders(contracts))
@@ -252,15 +242,7 @@ describe('arch lint class rules and dep contracts', () => {
         contractBearingDirs(repoRoot),
       ),
     )
-    // 2026-08-17. The aggregate above ranges ARCH_MANIFEST, so a package whose
-    // contract exists but is NOT registered has its class rules, dep reconciliation and cycle
-    // position taken on trust — and the contract-less rule cannot see it, because that rule reads
-    // the FILESYSTEM and the file is right there. Found by mutation: deleting the analytics entry
-    // from the manifest left the arch lint green at 41/41.
-    //
-    // `manifest.test.ts` already asserts exactly this equality, so the rule is REUSED rather than
-    // restated — a second census of the same two sets is the drift the census idiom exists to
-    // prevent. What was missing was not a rule; it was this script CALLING it.
+    // An unregistered contract skips its class and dependency rules, so both sets must match.
     offenders.push(
       ...findSetMismatchOffenders(
         'manifest vs on-disk contracts',
@@ -270,9 +252,7 @@ describe('arch lint class rules and dep contracts', () => {
     )
 
     expect(offenders).toEqual([])
-    // Walks and scans every contract-bearing package in the workspace, so its cost tracks
-    // workspace size rather than anything this case controls. ~1.5s on a developer machine,
-    // over the 5s default on a 2-core CI runner (first automatic CI run, 2026-08-02).
+    // Walks every contract-bearing package, so its cost tracks workspace size.
   }, 30_000)
 })
 
@@ -288,11 +268,6 @@ describe('arch lint held-out fixtures', () => {
     ])
   })
 
-  // 2026-08-17. The mutation that motivated the CALL: deleting
-  // `AGENT_QA_ANALYTICS_OWNERSHIP_CONTRACT` from ARCH_MANIFEST left this file green at 41/41,
-  // because the contract-less check reads the filesystem and the file was still there. An unranged
-  // package is one whose dep set and class rules are taken on trust, so the omission has to red
-  // HERE.
   it('held-out registration equality fails in both drift directions', () => {
     expect(
       findSetMismatchOffenders(
@@ -755,14 +730,7 @@ describe('arch lint composition carve-out registration and scope', () => {
     expect(sourceFilesFor(COMPOSITION_CARVEOUT_PACKAGE_DIR, repoRoot).length).toBeGreaterThan(0)
   })
 
-  // A path-keyed pin whose path has moved matches nothing and reports nothing. Both reader files
-  // must exist, and the scanned-dirs list must actually contain the package each one lives in, or
-  // the reader carve-out is silently covering fewer files than it claims.
-  // D-14/SC5. The allow-list is a directory PREFIX, so the shipped value alone permits any number
-  // of importers under it; what makes "the single place" true is the singleton rule, and what makes
-  // the singleton rule reach the right subtree is that the prefix names a directory that exists
-  // inside a scanned package. Both halves are asserted, because either one alone is satisfiable by
-  // a wrong implementation.
+  // A path-keyed pin whose path moves matches nothing, so the prefix must name a real directory.
   it('the writer allowance is one entry, and it points inside a scanned package that exists', () => {
     expect([...KNOWLEDGE_WRITER_ALLOWLIST]).toEqual(['packages/agent-local/src/composition/'])
 
@@ -774,10 +742,7 @@ describe('arch lint composition carve-out registration and scope', () => {
     }
   })
 
-  // D-11 layer 3, and the same relocation hazard one rule over: the resume-path rule is keyed on
-  // an exact file path, so a pin left pointing at a moved file would match nothing, report nothing
-  // and still read like proof. The rule reports that case itself; this asserts the pin is right on
-  // the real tree, and that the package it names is one the aggregate actually walks.
+  // A pin left at a moved file matches nothing, so this checks the pin against the real tree.
   it('the resume-path pin points at files that exist inside a contract-bearing package', () => {
     expect([...RESUME_PATH_ENTRY_FILES]).toEqual([
       'packages/agent-local/src/composition/compose-job-recovery.ts',
@@ -808,17 +773,12 @@ describe('arch lint composition carve-out registration and scope', () => {
     }
   })
 
-  // D-13/D-15 widened the firewall allow-list by exactly one entry; 398-10 by exactly one
-  // more. Pinned by equality so a private power cannot join by looking like it belongs — every
-  // arrival is a line in this file with a phase attached to it.
+  // Pinned by equality, so a new entry is a visible edit to this list.
   it('the surface allow-list is exactly the function layer, the vocabulary, the composition root and analytics', () => {
     expect([...SURFACE_ALLOWED_INTERNAL_PACKAGES]).toEqual([
       '@vostride/agent-qa-agent',
       '@vostride/agent-qa-agent-local',
-      // telemetry is a HOST concern a host composes at its
-      // root and holds a port for. What this edge replaces is the ambient
-      // `captureAnalytics`/`flushAnalytics` pair reachable from any file in the process, so the
-      // widening narrows what can emit rather than widening it.
+      // Telemetry is a host concern: a host composes it at its root and holds a port.
       '@vostride/agent-qa-analytics',
       '@vostride/agent-qa-schema',
     ])
@@ -831,12 +791,6 @@ describe('arch lint composition carve-out registration and scope', () => {
   })
 })
 
-// the evaluate() pin's held-out fixtures are re-spelled. Its last two
-// acquisitions (safety's in-run gate hook and the safety barrel's re-export) left with the gate, so
-// the pin is deleted rather than kept at zero entries. What its fixtures measured survives in two
-// places: the ABSENCE of every gate acquisition (C432-NO-EVALUATE, an independent statement census
-// over the real tree) and the SHARED SCANNER's forms and stale-entry direction, now measured on the
-// one run pin that remains.
 const RETIRED_GATE_MODULES = [
   'packages/safety/src/policy/gate.ts',
   'packages/safety/src/policy/gate-hook.ts',
@@ -927,10 +881,6 @@ describe('arch lint run pins after the gate', () => {
     expect(barrelValues).toContain('createMaskingMiddleware')
   })
 
-  // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-38): was '…the census fires on every form a returning
-  // gate acquisition could take'. The census does not count a whole-module barrel import or a
-  // dynamic `import()` of a retired module; the barrel-values check and the retired modules'
-  // absence in the cell above are what catch those.
   it('the census fires on a named gate value from the barrel, aliased or multi-line, and on any static import or re-export of a retired gate module', () => {
     // Held-out fixtures, so the absence above is a measurement and not a scanner that sees nothing.
     expect(gateAcquisitions('import { evaluate } from "@vostride/agent-qa-safety"', 'packages/runner/src/x.ts'))
@@ -1040,8 +990,7 @@ describe('arch lint agent barrel export set held-out fixtures', () => {
     ]) {
       expect(EXPECTED_AGENT_BARREL_EXPORTS).not.toContain(forbidden)
     }
-    // No `*Spec` value of any name: a spec carries its own implementation, so exporting
-    // one hands a surface a dispatch path that never reaches the gate.
+    // A spec carries its own implementation, so exporting one opens a path around the gate.
     expect(EXPECTED_AGENT_BARREL_EXPORTS.filter(name => name.endsWith('Spec'))).toEqual([])
   })
 

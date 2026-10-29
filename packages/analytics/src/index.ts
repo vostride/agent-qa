@@ -1,16 +1,7 @@
 import type { AgentQaAnalyticsEvent } from './events.js'
 import type { AnalyticsPort } from './port.js'
 
-// The `@vostride/agent-qa-analytics` public surface.
-//
-// WHAT IS DELIBERATELY ABSENT. There is no `getAnalytics()`, no `captureAnalytics()`, no
-// `flushAnalytics()` — no way to reach telemetry without having been handed a port. The v1 module
-// published exactly those three, and the consequence was that any file in the process could emit,
-// carrying whatever privacy decision the first constructor happened to make. A host that wants to
-// emit here has to name this package at its composition root and hold the object.
-//
-// The ownership contract is NOT re-exported: `pnpm validate:publish` refuses a dist that ships it,
-// and `packages/arch` imports it by relative path, which is the sanctioned route.
+// No ambient getter or capture helper: a host reaches telemetry only through a port it holds.
 
 export { composeAnalytics } from './compose.js'
 export type {
@@ -33,10 +24,7 @@ export type {
   AnalyticsTransport,
 } from './port.js'
 
-// The closed union, its vocabularies, and the range guard. `assertNoUnconstrainedStrings` is
-// published rather than kept private for the same reason the two MCP predicates are: it is a pure
-// walk over schemas that grants a consumer no capability, and a later phase adding a member wants
-// to range its own union with the SAME checker rather than a second, kinder one.
+// `assertNoUnconstrainedStrings` is published so a consumer checks its own union the same way.
 export {
   AgentQaAnalyticsEventSchema,
   ANALYTICS_AGENT_PRODUCTS,
@@ -77,10 +65,7 @@ export type { AgentQaAnalyticsEvent, AnalyticsEventName } from './events.js'
 export { maskEventForSend } from './masking-seam.js'
 export type { AnalyticsMaskingContext } from './masking-seam.js'
 
-// The anonymous identity store, re-homed from `core`.
-// The store functions are published rather than hidden behind `resolveAnalyticsIdentity` because a
-// host that wants to REPORT the identity (a doctor command, a `--verbose` line) should read the
-// same record the resolver reads instead of re-deriving the path its own way.
+// Published so a host reporting the identity reads the same record the resolver reads.
 export {
   ANALYTICS_USER_ID_PREFIX,
   ANALYTICS_USER_ID_WORDS,
@@ -98,8 +83,7 @@ export type {
   ResolvedAnalyticsIdentity,
 } from './identity.js'
 
-// The run-completion bus subscriber. Its `{ handler, flush }` shape is the one plan 10 attaches at
-// the CLI root, unchanged from the module it replaces so the rewire is an import and nothing else.
+// The run-completion subscriber; its `{ handler, flush }` shape attaches at the CLI root.
 export { createAnalyticsRunSubscriber } from './run-subscriber.js'
 export type {
   AnalyticsRunner,

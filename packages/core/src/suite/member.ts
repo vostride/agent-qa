@@ -18,12 +18,7 @@ function deepMerge(base: unknown, override: unknown): unknown {
   return result
 }
 
-/**
- * Merge the suite's target/use into a member test and strip its own `url` (the suite owns
- * startup navigation). The per-member execution body (formerly `executeSuiteMember`) moved onto
- * runner soil (`runMemberTest`) in Phase 363; the CLI composition root patches each member with
- * this helper before running it.
- */
+// Merges the suite's target and use into a member and drops its `url`: the suite owns startup.
 export function patchTestForSuite(
   test: TestDefinition,
   suite: SuiteDefinition,

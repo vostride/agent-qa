@@ -296,21 +296,7 @@ describe('declared values in log output', () => {
   })
 })
 
-// ONE LOG MANAGER, N CONCURRENT MEMBERS.
-//
-// 402-02 made the DIRECT run path poolable and 402-03 made `workers > 1` reachable from config, so
-// `commands/run.ts` now calls `logger.setRunId(memberRunId)` from several members interleaved on
-// ONE `LogManager` — the instance is built once at run.ts:3656, outside the per-member closure.
-// Two distinct corruptions follow from a single mutable `runId` field, and they are pinned
-// separately because they fail for different reasons and a fix for one does not imply the other:
-//
-//   FORWARD  — after member B stamps, member A's SUBSEQUENT lines carry B's run id.
-//   BACKWARD — `setRunId` restamps every buffered entry, so B's stamp REWRITES lines A already
-//              wrote and had correctly attributed.
-//
-// The interleaving below is not a stress test and has no timing assertion: it is the exact
-// deterministic order the pool produces (each member mints its id inside its own closure), replayed
-// synchronously so the cells are reproducible.
+// One `LogManager` serves concurrent members, so a stamp must not leak forward or rewrite back.
 describe('LogManager — concurrent members share one instance', () => {
   let stderrSpy: any
 

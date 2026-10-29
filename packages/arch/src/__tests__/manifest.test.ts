@@ -39,9 +39,7 @@ const expectedPackageDirs = [
   'packages/android',
   'packages/ios',
   'packages/mcp',
-  // the bounded analytics home. Listed in the
-  // manifest ORDER rather than alphabetically, beside the other host-facing packages it composes
-  // with, which is what the rest of this list does.
+  // Listed in manifest order, beside the host-facing packages it composes with.
   'packages/analytics',
   'packages/cli',
   'packages/dashboard-server',

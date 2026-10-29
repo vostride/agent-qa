@@ -1,27 +1,4 @@
-// D-12/D-14 eligibility assessment + the pure async adjudication orchestrator.
-// ALL judgment law lives here, pure-side: per-tie dispatch on TieCause, the D-08 two
-// order-swapped port calls with the swap-agreement rule, the D-09 minimum-category
-// threshold, D-03 bounded pairwise no-consensus, and the typed stamping of every outcome.
-// The port answers one order-tagged call; this module decides. The orchestrator is async
-// only because the port is — no clock reads, no host IO, no randomness; awaits are
-// sequential and the call volume is bounded by construction.
-//
-// Never-self-judge is a pure, total, two-sided check: disjointness is assessed against
-// BOTH the replayed planner's family (the direct self-preference circuit) and the recorded
-// model's family when one is supplied (the gold-familiarity bias). D-12 posture: validated
-// ONCE at composition time by the caller, soft-but-loud — the refusal is data carried on
-// every tie's stamp, never a thrown error, and the batch always proceeds deterministically.
-// D-13 ratification note: the ratified "provider -> family" phrasing is implemented as
-// model-id token matching because a ModelProfile provider value is a transport id
-// ('openai-compatible' serves Llama, Qwen, and DeepSeek alike) and can never establish
-// family; unknown resolves undefined and is treated as same-family, therefore forbidden —
-// never a guess.
-// Owner override of D-10: an EXPLICIT allowSameFamily opt-in lifts ONLY the
-// known-equal-family refusal arms (judge===replayed; recorded===judge) and stamps the
-// eligible result — and thence the D-16 identity block — with familyOverride:
-// 'same-family-allowed' so the self-preference bias condition is disclosed on every scored
-// entry. The DEFAULT is unchanged (opt-in absent/false refuses exactly as ratified), and
-// the unknown-family arms are NEVER relaxed: unknown ⇒ forbidden, never a guess.
+// The port answers one order-tagged call and this module decides; an unknown family is forbidden.
 
 import type {
   Cassette,
@@ -78,11 +55,7 @@ import type {
   JudgeTieEvidence,
 } from './prompt'
 
-/**
- * Closed eligibility union. The no-eligible-judge variant carries every ATTEMPTED family
- * resolution as plain strings (undefined entries omitted, typed-absent) so the D-12 refusal
- * is loud enough to reconstruct exactly why the judge was refused.
- */
+// The refusal carries every attempted family resolution, so it shows why the judge is refused.
 export type JudgeEligibility =
   | {
       eligible: true
@@ -100,18 +73,7 @@ export type JudgeEligibility =
       families: JudgeFamilyDisclosure
     }
 
-/**
- * Assess judge eligibility once for a scoring run. Pure and total: never throws for any
- * input combination. Forbidden when the judge family is unknown, the replayed family is
- * unknown, the two are equal, or a supplied recorded model resolves unknown or equal to the
- * judge family. An absent recorded model skips that side entirely (D-14 "when resolvable").
- *
- * allowSameFamily (owner override of D-10, 2026-07-12): an EXPLICIT default-off opt-in that
- * bypasses ONLY the known-equal-family arms; when it lifts a refusal that would otherwise
- * have fired, the eligible result carries familyOverride: 'same-family-allowed' so the
- * disclosure rides the D-16 identity block. The unknown arms (judge, replayed, or a supplied
- * recorded model resolving undefined) remain forbidden regardless — never a guess.
- */
+// Pure and total; `allowSameFamily` lifts only known-equal arms, never an unknown family.
 export function assessJudgeEligibility(input: {
   judgeModelId?: string
   replayedModelId: string
@@ -167,7 +129,7 @@ export function assessJudgeEligibility(input: {
   }
 }
 
-/** The adjudicated score plus the D-16 identity block when the eligible path ran. */
+// The adjudicated score plus the identity block when the eligible path ran.
 export interface AdjudicationResult {
   score: CassetteScore
   judge?: JudgeIdentityBlock
@@ -284,11 +246,7 @@ async function callJudge(
   return result
 }
 
-/**
- * One pairwise judgment: two physically order-swapped independent calls, then the
- * pure classification — infra error, explicit unsure, swap disagreement, minimum-category
- * threshold on the LOWER of the two confidences, else the swap-surviving verdict.
- */
+// Two order-swapped calls, then classification on the lower of the two confidences.
 export async function judgePairwise(
   port: JudgePort,
   evidence: JudgeTieEvidence,
@@ -464,13 +422,7 @@ function resolvePairwise(
   }
 }
 
-/**
- * D-03 bounded pairwise no-consensus: distinct candidates grouped by the ONE decision
- * identity key, judged against gold in first-appearance order. The first swap-surviving
- * equivalent settles on that sample's own deterministic breakdown; all confidently
- * different is a judged miss; mixed outcomes abstain carrying the first non-different
- * pairwise cause; overflow abstains with zero port calls.
- */
+// Candidates judged against gold in first-appearance order; overflow abstains with no port call.
 async function adjudicateNoConsensus(
   tie: UnresolvedTie,
   context: TieContext,
@@ -541,8 +493,7 @@ async function adjudicateNoConsensus(
     pairwise => !(pairwise.kind === 'settled' && pairwise.resolution === 'different'),
   )
   if (firstNonDifferent === undefined) {
-    // Every distinct candidate is confidently different from gold: a judged miss minted
-    // on the first candidate's own deterministic breakdown.
+    // Every distinct candidate is confidently different from gold: a judged miss.
     const settledDifferent = nonSurviving.find(
       (pairwise): pairwise is Extract<PairwiseOutcome, { kind: 'settled' }> =>
         pairwise.kind === 'settled',
@@ -606,11 +557,7 @@ async function dispatchTie(
   return resolvePairwise(pairwise, tie, tie.partial, axis, port, usage)
 }
 
-/**
- * Adjudicate one tie with per-decision severity: an unexpected throw anywhere inside the
- * dispatch mints judge-error on this tie alone and the surrounding walk continues (D-11,
- * the 368 batch-survival law).
- */
+// An unexpected throw marks only this tie `judge-error`, and the walk continues.
 async function adjudicateTie(
   tie: UnresolvedTie,
   context: TieContext,
@@ -803,13 +750,7 @@ async function adjudicateProcedure(
   }
 }
 
-/**
- * The tier-4 adjudication orchestrator. Refusal and shape-mismatch scores pass through
- * unchanged. When no eligible judge or no port exists, every unresolved tie is stamped
- * not-invoked UNCONDITIONALLY so the report's dispositions are uniform.
- * On the eligible path, every tie exits with a typed disposition — settled, abstained, or
- * judge-error — never silent, and the D-16 identity block rides the result.
- */
+// Without an eligible judge or port, every unresolved tie is stamped not-invoked.
 export async function adjudicateCassetteScore(input: {
   cassette: Cassette
   outcome: ReplayCassetteOutcome
@@ -841,7 +782,7 @@ export async function adjudicateCassetteScore(input: {
       ...(eligibility.panelSize === undefined ? {} : { panelSize: eligibility.panelSize, members: eligibility.members }),
       judgeVersion: JUDGE_CONFIG.judgeVersion,
       confidenceThreshold: JUDGE_CONFIG.confidenceThreshold,
-      // Owner override of D-10: the disclosure rides every scored entry.
+      // The same-family override is disclosed on every scored entry.
       ...(eligibility.familyOverride === undefined
         ? {}
         : { familyOverride: eligibility.familyOverride }),

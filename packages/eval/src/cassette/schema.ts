@@ -276,8 +276,7 @@ const verdictAttributionSchema = z
   .passthrough()
 
 const verdictBaseShape = {
-  // D-03 lockstep with schema verdict.ts: the minting-pipeline discriminator,
-  // closed to exactly two literals (D-06 mirror discipline).
+  // Mirrors the schema `verdict.ts` producer discriminator; both change together.
   producer: z.enum(['deterministic-classifier', 'analyze-run']),
   confidence: z.number(),
   evidence: verdictEvidenceSchema,

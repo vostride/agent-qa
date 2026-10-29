@@ -35,10 +35,7 @@ export const PluginsSchema = z.object({
 const AgentQaConfigSchemaInner = z.object({
   workspace: WorkspaceSchema,
   services: ServicesSchema.prefault({}).optional(),
-  // slim replacement for the retired v1 memory config surface; prefaulted so parsed
-  // configs always materialize knowledge defaults (zod 4 .default() short-circuits without
-  // parsing — .prefault() runs the inner defaults) — matches the providers `.default([])`
-  // precedent in spirit.
+  // `.prefault` runs the inner defaults; zod 4's `.default()` short-circuits without parsing.
   knowledge: KnowledgeConfigSchema.prefault({}),
   registry: RegistrySchema.optional(),
   use: UseSchema.optional(),
@@ -74,10 +71,7 @@ const AgentQaConfigSchemaInner = z.object({
   }
 })
 
-// retired-key pipe pre-scan — the scan MUST run before the strict object because
-// zod (4.6.7 verified) skips refinements chained after a strict parse that rejects a value
-// (RESEARCH Pitfall 1). z.infer of the piped schema yields the stage-B output type,
-// so the exported AgentQaConfig type semantics are unchanged.
+// The scan runs before the strict object: zod skips refinements after a strict parse rejects.
 export const AgentQaConfigSchema = retiredKeyScan.pipe(AgentQaConfigSchemaInner)
 
 export { WorkspaceSchema } from './workspace-schema.js'

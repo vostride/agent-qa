@@ -16,10 +16,7 @@ export interface MissingCassetteEvidence {
 
 /** Structured facts explaining whether a cassette can replay and score completely. */
 export interface CassetteCompleteness {
-  /**
-   * Aggregate status. When blobs are missing and an anchor is unresolved,
-   * `evidence-incomplete` wins while both detail fields stay populated.
-   */
+  // With blobs missing and an anchor unresolved, `evidence-incomplete` wins; both details stay.
   status: CompletenessStatus
   /** Referenced content digests whose bytes were unavailable at extraction. */
   missingBlobShas?: readonly string[]

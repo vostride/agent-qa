@@ -7,11 +7,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 import type { Action, ActionsFor, PlatformAdapter } from '@vostride/agent-qa-runner'
 
-// the runner's action world IS the schema projection. The legacy runner union
-// (LegacyFoldedWebVerbs / RuntimeOnlyCommonVerbs / RuntimeOnlyMobileVerbs and the local shape
-// declarations) was demolished — runner `Action` = schema `Action`, and runner `ActionsFor<P>` =
-// schema `ActionsFor<P>`. This pin now proves that equality cross-package (core → runner → schema)
-// so a future re-introduction of a runner-side parallel union is a compile error here.
+// Runner `Action` equals schema `Action`, so a runner-side parallel union fails to compile.
 expectTypeOf<Action>().toEqualTypeOf<SchemaAction>()
 expectTypeOf<ActionsFor<'web'>>().toEqualTypeOf<SchemaActionsFor<'web'>>()
 expectTypeOf<ActionsFor<'android'>>().toEqualTypeOf<SchemaActionsFor<'android'>>()

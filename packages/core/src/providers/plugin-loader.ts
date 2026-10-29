@@ -135,14 +135,9 @@ export async function loadProviderPlugins(
     const key = declarationKey(declaration, baseDir)
     if (loadedDeclarations.has(key)) continue
 
-    // THE SIBLING OF THE AUTH ROAD, hardened in the same pass (395-21 · F-05). `plugins.providers`
-    // is not what the default scaffold declares, but it is the identical bare resolve-and-import
-    // one directory over, and a class fixed only on the member a verifier happened to drive is how
-    // this project has re-opened the same defect three rounds running.
+    // The provider road shares the auth road's resolve-and-import, so it shares the guard.
     const module = await importDeclaredPluginModule<ProviderPluginModule>(declaration, baseDir, 'provider')
-    // THE SIBLING OF THE AUTH ROAD'S WR-07 FIX, applied in the same pass for this file's own stated
-    // reason: `extractDescriptors` and `assertProviderDescriptor` both interpolate this string into
-    // person-facing sentences, and the map key's absolute `path:` form has no business in one.
+    // Descriptors interpolate this label into messages, which must not carry the absolute key.
     const descriptors = extractDescriptors(module, declarationLabel(declaration, baseDir))
 
     loadedDeclarations.add(key)

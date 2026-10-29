@@ -1,5 +1,3 @@
-// the per-step planner limits in the project config and in test
-// and suite `use` overrides, and the resolution order every door uses.
 import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 import { resolvePlannerLimits } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'

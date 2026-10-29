@@ -38,9 +38,6 @@ function fixtureContract(packageDir: string): OwnershipContract {
 
 describe('reader carve-out', () => {
   it('rejects the write-capable main entry outside the pinned writer allowlist', () => {
-    // one entry, and it is the composition subtree. The two
-    // CLI entries are gone because every writer power the curation surfaces used now arrives on
-    // the local host's capabilities.
     expect(KNOWLEDGE_WRITER_ALLOWLIST).toEqual(['packages/agent-local/src/composition/'])
     expect(findReaderCarveoutOffenders([
       fixtureHit(MAIN_ENTRY, 'packages/cli/src/curation/curation-tail.ts', 17),
@@ -50,10 +47,7 @@ describe('reader carve-out', () => {
   })
 
   it('rejects non-reader knowledge-local imports from either pinned reader file', () => {
-    // the first pinned reader file relocated with the run
-    // composition. The path is spelled through the shipped pin rather than repeated here, so the
-    // next relocation updates one place and this case cannot quietly start asserting about a file
-    // the rule no longer knows.
+    // The path is spelled through the shipped pin, so a relocation updates one place.
     expect(findReaderCarveoutOffenders([
       fixtureHit(MAIN_ENTRY, RELOCATED_READER_FILE, 1),
       fixtureHit(`${MAIN_ENTRY}/index-reader`, 'packages/cli/src/commands/knowledge-read.ts', 7),
@@ -72,12 +66,7 @@ describe('reader carve-out', () => {
   })
 })
 
-/**
- * SC5's "the single place". The allow-list entry is a directory PREFIX, so `findReaderCarveoutOffenders`
- * alone is satisfied by any number of importers inside the subtree — which is exactly the shape of
- * gate that passes while the claim it stands for has stopped being true. These cases are the ones
- * that can fail for that reason.
- */
+// The prefix alone admits any number of importers, so these cases fail on a second one.
 describe('the knowledge writer has exactly one importer', () => {
   it('accepts the one composition root, alongside any number of reader-entry imports', () => {
     expect(findKnowledgeWriterSingletonOffenders([

@@ -1,11 +1,4 @@
-// Preflight on the frozen byte-diff corpus (394, D-20 · WTST-07).
-//
-// This file deliberately does NOT import the CST applier. Its whole job is to prove the corpus is
-// made of real, parseable house-style test documents BEFORE anything applies a patch to them — a
-// corpus member that is secretly unparseable would make every downstream row fail for a reason
-// that has nothing to do with the edit contract, and the byte-diff suite could not tell the two
-// apart. Keeping it in a separate file is what lets it stay green while the byte-diff suite is
-// still red with no applier in existence.
+// Proves the corpus parses before any patch applies, without importing the CST applier.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'

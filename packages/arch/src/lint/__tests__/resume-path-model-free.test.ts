@@ -140,8 +140,7 @@ describe('resume-path-model-free — the POSITIVE control (it must be able to fa
     expect(offenders[0]).toContain(`${ENTRY}:27`)
     expect(offenders[0]).toContain(MODEL_PACKAGE)
     expect(offenders[0]).toContain(RESUME_PATH_FORBIDDEN_PACKAGES[MODEL_PACKAGE]!)
-    // The message has to say WHY, not only what. 384's convention: the pin doubles as the document
-    // a reader consults before deciding the import was fine after all.
+    // The message says why, not only what, for a reader deciding whether the import is fine.
     expect(offenders[0]).toContain('resume')
     expect(offenders[0]).toContain('STRUCTURALLY incapable of re-invoking the model')
     expect(offenders[0]).toContain('D-11 layer 3')
@@ -210,14 +209,7 @@ describe('resume-path-model-free — the ANTI-VACUITY controls (it must not pass
   })
 })
 
-// The edge class the walk used to drop (385 plan 12, closing the WR-08 gate hole).
-//
-// The three controls above all hand the walk a RELATIVE specifier, which is the interior of the
-// assumption its author was writing against. A package that declares an `exports` map can import
-// itself by name, so `@vostride/agent-qa-agent-local/…` inside `packages/agent-local` resolves at
-// runtime to a sibling file — an ordinary edge of the resume path, wearing a package name. Every
-// fixture below produced ZERO offenders while the walk followed only relative specifiers, which
-// is the "one-line helper module beside the entry" defeat this rule's own header claims to close.
+// A package with an `exports` map can import itself by name, which resolves to a sibling file.
 describe('resume-path-model-free — the SELF-PACKAGE edge class', () => {
   const SELF_HELPER = `${RESUME_PATH_SELF_PACKAGE_NAME}/composition/recovery-helper.js`
   const BARREL = 'packages/agent-local/src/index.ts'
@@ -232,8 +224,7 @@ describe('resume-path-model-free — the SELF-PACKAGE edge class', () => {
     expect(RESUME_PATH_SELF_PACKAGE_NAME).toBe(manifest.name)
   })
 
-  // THE HELD-OUT FIXTURE. The verifier's probe C, verbatim: a helper reachable from the entry ONLY
-  // through a self-package specifier, naming the model registry.
+  // A helper reached only through a self-package specifier, naming the model registry.
   it('rejects a model import in a helper reached only by a self-package specifier', () => {
     const modules = cleanModules()
     modules[0] = module_(ENTRY, [...modules[0]!.specifiers, hit(SELF_HELPER, ENTRY, 6)])
@@ -247,9 +238,7 @@ describe('resume-path-model-free — the SELF-PACKAGE edge class', () => {
     expect(resumePathClosureOf(modules).files).toContain(HELPER)
   })
 
-  // The route the verifier showed is CONSTRUCTIBLE in this repo today: the barrel re-exports the
-  // run composition, and the run composition legitimately names the model package under the
-  // carve-out. A bare self-reference is the shortest path from the resume entry to it.
+  // The barrel re-exports the run composition, which names the model package under the carve-out.
   it('follows a BARE self-package specifier into the barrel and onward', () => {
     const modules = cleanModules()
     modules[0] = module_(ENTRY, [

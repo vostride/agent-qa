@@ -11,12 +11,7 @@ import type {
 export interface ProjectLabelLegInput {
   step: StepEvidence
   subAction: SubActionEvidence
-  /**
-   * The MEMBER TEST's recorded root cause. Optional because it lives one level above
-   * the step — a caller that holds only a step genuinely has none to offer, and inventing one
-   * would be worse than omitting it. Copied verbatim when supplied, so a verdict's circularity
-   * evidence reaches the cassette unaltered.
-   */
+  // The member test's root cause, copied verbatim when supplied; a step-only caller has none.
   rootCause?: Verdict
 }
 

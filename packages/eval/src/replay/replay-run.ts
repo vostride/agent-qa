@@ -1,14 +1,4 @@
-// The pure replay engine. `replayCassette` is the single entry point behind the one
-// replay surface: it filters incomplete cassettes to a typed refusal, invokes the real
-// planner through the injected factory port once PER SAMPLE (RESEARCH Pitfall 6), classifies
-// every outcome faithful-or-loud, runs the k-sample escalation seam with agreement
-// aggregation, stamps drift + model ids + unconsumed exchanges, and
-// teacher-forces procedure cassettes per step.
-//
-// Purity: the ONLY time source is the injected `clock` port — no host time API, no host IO, no
-// randomness. Outcome classification is by `instanceof` on the typed error classes, NEVER by
-// matching an error message string. A cassette-shaped problem resolves to a typed
-// ReplayRefusal — replayCassette never throws for it; only a genuine engine bug may propagate.
+// The only time source is the injected `clock`; outcomes classify by `instanceof`, never message.
 
 import type { Action } from '@vostride/agent-qa-schema'
 import { PlanningTurnError } from '@vostride/agent-qa-runner'
@@ -51,12 +41,7 @@ import type {
   UnconsumedExchange,
 } from './result'
 
-/**
- * The replay engine input. `k` defaults to 1 (a single deterministic sample); the
- * `escalationPredicate` defaults to the built-in `neverEscalate` — the ONE seam Phases 369/370
- * bind their settle/escalation policy onto. `actionToolNames` is the platform action slice a
- * recorded exchange may never shadow.
- */
+// `k` defaults to 1 and the predicate to `neverEscalate`; an exchange never shadows an action.
 export interface ReplayCassetteInput {
   cassette: Cassette
   artifacts: ArtifactSource
@@ -109,9 +94,7 @@ function isReplayRefusal(value: DecisionReplayResult | ReplayRefusal): value is 
 export async function replayCassette(input: ReplayCassetteInput): Promise<ReplayCassetteOutcome> {
   const { cassette } = input
 
-  // Refusal filter (the 367 D-11 completeness vocabulary IS the filter). Guard/version failures
-  // were already mapped at load by 368-05; the engine trusts a guarded Cassette but re-checks
-  // completeness so an incomplete cassette is never replayed.
+  // Re-checks completeness, so an incomplete cassette is never replayed.
   if (cassette.completeness.status !== 'complete') {
     return {
       kind: 'integrity-refusal',
@@ -158,8 +141,7 @@ async function replayProcedure(
 
   for (const step of cassette.steps) {
     if (step.kind === 'decision') {
-      // Teacher-forced: each decision step replays independently against its OWN recorded
-      // stateBefore. No cross-step state is synthesized (CASS-03 forbids free-running).
+      // Each decision replays against its own recorded `stateBefore`; nothing crosses steps.
       const decision = await replayDecision({
         cassetteId: cassette.id,
         decisionOrdinal: step.decisionOrdinal,
@@ -194,7 +176,7 @@ async function replayProcedure(
   }
 
   const totalDurationMs = input.clock.now() - start
-  // The recorded endState is carried through UNTOUCHED for Phase 369 to score.
+  // The recorded `endState` passes through untouched for scoring.
   return {
     granularity: 'procedure',
     cassetteId: cassette.id,
@@ -358,7 +340,7 @@ async function classifyPlan(
         : {}),
     }
   } catch (error) {
-    // Classification by instanceof identity ONLY — never by message string.
+    // Classified by `instanceof` only, never by message string.
     if (error instanceof PlanningTurnError) {
       return {
         outcome: { kind: 'planner-failure', reason: error.reason, message: error.message },
@@ -381,11 +363,7 @@ async function classifyPlan(
   }
 }
 
-/**
- * Recorded model identity from the receipt. Prefer the declared identity; when the
- * provider resolved a more specific model id, stamp that as the modelId. Absent when the receipt
- * declares no model — typed-absent, never fabricated (a bare resolvedModelId has no provider).
- */
+// Prefers the declared identity, stamped with a finer resolved id; absent with no declared model.
 function deriveRecordedModel(
   receipt: CassetteReceipt,
 ): { provider: string; modelId: string } | undefined {
@@ -400,17 +378,7 @@ interface AggregationClass {
   identity?: DecisionIdentity
 }
 
-/**
- * k-sample agreement. Non-harness samples group by class key: `decision` samples by
- * decisionIdentityKey, `planner-failure` by reason (failures ARE candidate decisions, D-09),
- * `unservable-divergence` by tool. `harness-error` samples are EXCLUDED from grouping and tallied
- * in harnessErrorCount — they can never join a modal class, which visibly depresses agreement.
- *
- * agreementRate = modal class size / samples run (always stamped, RPLY-03 first-class). Modal is
- * the largest class. Deterministic no-consensus rule: true when the largest class has size 1 while
- * more than one sample ran, or when two or more classes tie for largest. A DecisionIdentity modal
- * is exposed only when the winning class is a decision class (never fabricated for failures).
- */
+// `harness-error` samples never join a class; a tie for largest is no consensus.
 function aggregateAgreement(samples: readonly ReplaySample[]): ReplayAgreement {
   const k = samples.length
   const classes = new Map<string, AggregationClass>()

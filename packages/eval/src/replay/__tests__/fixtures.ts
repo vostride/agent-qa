@@ -1,6 +1,4 @@
-// Engine test fixtures for the replay engine: leaf / procedure cassette
-// builders plus scripted ReplayPlannerFactory fakes and a fixed-increment fake clock.
-// Test-only module — exempt from the src module-discipline scan.
+// Test-only fixtures, outside the module-discipline scan.
 
 import { makeScreenState } from '@vostride/agent-qa-runner'
 import type { NonActionToolMap, PlanResult, StepContext } from '@vostride/agent-qa-runner'
@@ -79,7 +77,7 @@ export function makeReceipt(overrides: Partial<CassetteReceipt> = {}): CassetteR
   }
 }
 
-/** Real matcher gold with a ref action and stable semantic anchor (Phase 369 F1). */
+// Real matcher gold with a ref action and stable semantic anchor.
 export function makeSidecar(
   overrides: Partial<CassetteSidecarLeg> = {},
 ): CassetteSidecarLeg {
@@ -102,7 +100,7 @@ export function makeSidecar(
   }
 }
 
-/** Honest label provenance, with pair-aware defaults for synthetic D-15 fixtures. */
+// Honest label provenance, with pair-aware defaults for synthetic fixtures.
 export function makeLabel(overrides: Partial<CassetteLabelLeg> = {}): CassetteLabelLeg {
   const hasPairing = overrides.pairing !== undefined
   return {

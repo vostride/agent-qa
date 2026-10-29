@@ -31,16 +31,16 @@ import type {
 } from './tiers'
 import { tokenSetF1 } from './value'
 
-/** D-03 value-axis result; absence and hard-gate short-circuiting are never numeric. */
+// Value-axis result; absence and hard-gate short-circuits are never numeric.
 export type ValueAxisVerdict =
   | { kind: 'not-applicable' }
   | { kind: 'not-evaluated' }
   | { kind: 'scored'; f1: number; band: 'full' | 'mid' | 'low' }
 
-/** The complete and deliberately narrow D-09 deterministic tie vocabulary. */
+// The deliberately narrow deterministic tie vocabulary.
 export type TieCause = 'partial-identity' | 'value-mid-band' | 'no-consensus'
 
-/** D-09 categorical judge confidence; no numeric self-report exists in v50. */
+// Categorical judge confidence; there is no numeric self-report.
 export type JudgeConfidence = 'high' | 'medium' | 'low'
 
 /** Typed-absent judge token usage: token fields stay absent when the provider omits them. */
@@ -50,7 +50,7 @@ export interface JudgeTokenUsage {
   outputTokens?: number
 }
 
-/** D-10 calibrated-abstention causes; each is a counted honesty outcome, never a guess. */
+// Calibrated-abstention causes; each is a counted honesty outcome.
 export type JudgeAbstentionCause =
   | 'unsure-verdict'
   | 'below-threshold'
@@ -73,10 +73,10 @@ export const JUDGE_ABSTENTION_CAUSES = [
   'panel-disagreement',
 ] as const satisfies readonly JudgeAbstentionCause[]
 
-/** D-11 infra-failure reasons, structurally distinct from calibrated abstention. */
+// Infra-failure reasons, kept apart from calibrated abstention.
 export type JudgeErrorReason = 'provider-error' | 'unparseable-output'
 
-/** D-06/D-12 reasons a judge never ran: unconfigured, or family-eligibility refused it. */
+// Reasons a judge never ran: unconfigured, or family eligibility refused it.
 export type JudgeNotInvokedReason = 'no-judge-configured' | 'no-eligible-judge'
 
 /** One member's swap-surviving result; errors remain distinct from abstentions. */
@@ -103,12 +103,7 @@ export interface JudgeFamilyDisclosure {
   offendingPair?: readonly [string, string]
 }
 
-/**
- * D-02 provenance stamp: a judge-settled result stays a normal `scored` verdict and judge
- * involvement is never invisible — it is stamped on the exact axis it settled. There is no
- * fourth DecisionScore union member. `cause` is required so D-04 metrics can count settled
- * decisions per TieCause.
- */
+// A judge-settled result stays `scored`, with the stamp on the exact axis it settled.
 export interface JudgeSettled {
   axis: 'element-identity' | 'value'
   resolution: 'equivalent' | 'different'
@@ -120,11 +115,7 @@ export interface JudgeSettled {
   members?: readonly JudgeMemberOutcome[]
 }
 
-/**
- * D-10/D-11 closed outcome union stamped on an `unresolved-tie` when a judge leg exists.
- * `not-invoked` families are deliberately plain strings so match/ never imports from judge/
- * (the import direction stays judge -> match).
- */
+// `not-invoked` families are plain strings so match never imports from judge.
 export type JudgeOutcome =
   | {
       kind: 'abstained'
@@ -150,12 +141,7 @@ export type JudgeOutcome =
       families?: JudgeFamilyDisclosure
     }
 
-/**
- * D-16 score-side reproducibility receipt: the persisted score/report carries the full judge
- * identity that produced any stamp. eval-local serializes this block verbatim; the cassette's
- * reserved tier4JudgeId stays reserved until Phase 371's label territory — the scorer never
- * writes back into the measurement.
- */
+// The full judge identity behind any stamp; the scorer never writes back into the cassette.
 export interface JudgeIdentityBlock {
   judgeModelId: string
   judgeFamily: string
@@ -163,15 +149,11 @@ export interface JudgeIdentityBlock {
   confidenceThreshold: JudgeConfidence
   panelSize?: number
   members?: readonly JudgeMemberIdentity[]
-  /**
-   * Owner override of D-10: present ONLY when the explicit allowSameFamily
-   * opt-in lifted a known-same-family refusal — the persisted score and the committed report
-   * disclose the self-preference bias condition instead of silently claiming disjoint judging.
-   */
+  // Present only when `allowSameFamily` lifted a known same-family refusal.
   familyOverride?: 'same-family-allowed'
 }
 
-/** The three primary score axes. No combined numeric field exists. */
+// The primary score axes; no combined numeric field exists.
 export interface DecisionAxes {
   elementIdentity: ElementIdentityVerdict
   opClass: OpClassVerdict
@@ -185,15 +167,12 @@ export interface DecisionPartialBreakdown {
   tierReached: 1 | 2 | 3
 }
 
-/**
- * MATCH-04 decision verdict. Failures have no fabricated axes, and unresolved ties preserve the
- * computed partial breakdown when a real decision sample exists.
- */
+// Failures have no fabricated axes; unresolved ties keep the partial breakdown of a real sample.
 export type DecisionScore =
   | ({
       kind: 'scored'
       matcherVersion: number
-      /** D-02 optional provenance stamp; absent whenever no judge settled an axis. */
+      // Optional provenance stamp; absent whenever no judge settled an axis.
       judgeSettled?: JudgeSettled
     } & DecisionPartialBreakdown)
   | { kind: 'miss-by-failure'; reason: string; matcherVersion: number }
@@ -202,7 +181,7 @@ export type DecisionScore =
       cause: TieCause
       partial?: DecisionPartialBreakdown
       matcherVersion: number
-      /** D-10 optional typed judge outcome; the deterministic shape is invariant without it. */
+      // Optional typed judge outcome; the deterministic shape is the same without it.
       judgeOutcome?: JudgeOutcome
     }
 
@@ -213,7 +192,7 @@ export interface NeverScoredDecision {
   matcherVersion: number
 }
 
-/** Direct decision-scoring outcome, including the D-08 harness-only exclusion. */
+// Direct decision-scoring outcome, including the harness-only exclusion.
 export type ScoreDecisionOutcome = DecisionScore | NeverScoredDecision
 
 /** Context that binds a score to its recorded screen and procedure prefix. */
@@ -248,7 +227,7 @@ export type DecisionScoreEntry =
       reason: 'cache-served' | 'synthesized'
     }
 
-/** D-12 procedure context only; this is not a procedure-level pass/fail verdict. */
+// Procedure context only; not a procedure-level pass or fail verdict.
 export interface ProcedureScoreSummary {
   stepsMatchedFraction: number
   firstDivergentStepIndex?: number
@@ -357,10 +336,7 @@ function firstDecisionSample(result: DecisionReplayResult): ReplaySample | undef
   return result.samples.find(sample => sample.outcome.kind === 'decision')
 }
 
-/**
- * Score one replay sample through the same D-09 settled-versus-tie rules used by full replay
- * results. The escalation predicate consumes this helper so the tie vocabulary has one owner.
- */
+// The escalation predicate uses this, so the tie vocabulary has one owner.
 export function scoreReplaySample(
   sidecar: CassetteSidecarLeg,
   sample: ReplaySample,
@@ -402,10 +378,7 @@ export function scoreReplaySample(
   return scoreBreakdown(breakdown)
 }
 
-/**
- * Select the first real Action in the modal identity class (D-10/F2). Agreement identities do
- * not carry coordinate geometry or raw value payloads and are therefore never scored directly.
- */
+// Agreement identities carry no geometry or raw value, so a real modal Action is scored instead.
 export function representativeDecisionSample(
   result: DecisionReplayResult,
 ): ReplaySample | undefined {
@@ -419,7 +392,6 @@ export function representativeDecisionSample(
   )
 }
 
-/** Assemble one matcher-versioned D-08/D-09/D-10 decision outcome. */
 export function scoreDecision(
   sidecar: CassetteSidecarLeg,
   result: DecisionReplayResult,
@@ -490,15 +462,7 @@ function decisionEntry(
   }
 }
 
-/**
- * The ONE stamp-aware full-match rule (370-04 metrics and 370-05 adjudication both consume
- * this export — the rule is never forked). Base rule: op class matches, element identity is
- * scored full, value is not-applicable or scored full, loop not flagged.
- * Overlay: a `judgeSettled` stamp with resolution 'equivalent' upgrades exactly the stamped
- * axis for match purposes — any scored identity level or any scored value band passes on that
- * axis alone — while the deterministic axis verdict object is never rewritten (D-01
- * attribution stays exact). A 'different' resolution adds nothing.
- */
+// The one full-match rule; an `equivalent` judge stamp upgrades only the stamped axis.
 export function isDecisionFullMatch(score: DecisionScore): boolean {
   if (score.kind !== 'scored') return false
   const { axes, loop, judgeSettled } = score

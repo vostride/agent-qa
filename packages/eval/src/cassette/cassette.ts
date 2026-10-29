@@ -28,9 +28,7 @@ export interface DecisionRecord {
 export interface ProcedureDecisionStepRecord {
   /** Discriminator for a fully replayable decision entry. */
   kind: 'decision'
-  /** Recorded step position. */
   stepIndex: number
-  /** Recorded decision position within the step. */
   decisionOrdinal: number
   /** Fully self-contained four-leg decision record. */
   record: DecisionRecord
@@ -40,7 +38,6 @@ export interface ProcedureDecisionStepRecord {
 export interface ProcedureCacheServedStepRecord {
   /** Discriminator for a non-replayable cache-served entry. */
   kind: 'cache-served'
-  /** Recorded step position. */
   stepIndex: number
   /** Recorded cached-action position within the step. */
   decisionOrdinal: number
@@ -50,7 +47,6 @@ export interface ProcedureCacheServedStepRecord {
 export interface ProcedureSynthesizedStepRecord {
   /** Discriminator for a step with no recorded action decision. */
   kind: 'synthesized'
-  /** Recorded step position. */
   stepIndex: number
 }
 
@@ -62,7 +58,6 @@ export type ProcedureStepRecord =
 
 /** Purely recorded terminal state for one procedure cassette. */
 export interface ProcedureEndState {
-  /** Recorded member-test outcome. */
   outcome: MemberTestOutcome
   /** Final recorded verifier outcome, when one exists. */
   finalVerdict?: VerifierVerdict
@@ -77,9 +72,7 @@ interface CassetteEnvelopeBase {
   id: string
   /** Source run identity copied as a plain wire string. */
   runId: string
-  /** Source test identity. */
   testId: string
-  /** Recorded test position within the source run. */
   testIndex: number
   /** Complete ordered closure of required content digests. */
   blobs: readonly string[]
@@ -89,25 +82,17 @@ interface CassetteEnvelopeBase {
 
 /** Self-contained single-decision cassette. */
 export interface LeafCassette extends CassetteEnvelopeBase {
-  /** Leaf-granularity discriminator. */
   granularity: 'leaf'
-  /** Recorded step position for this decision. */
   stepIndex: number
-  /** Recorded decision position within the step. */
   decisionOrdinal: number
-  /** Reconstructable planner input leg. */
   input: CassetteInputLeg
-  /** Gold action and target sidecar leg. */
   sidecar: CassetteSidecarLeg
-  /** Recorded outcome label leg. */
   label: CassetteLabelLeg
-  /** Reproducibility receipt leg. */
   receipt: CassetteReceipt
 }
 
 /** Self-contained procedure cassette scored as independent recorded decisions. */
 export interface ProcedureCassette extends CassetteEnvelopeBase {
-  /** Procedure-granularity discriminator. */
   granularity: 'procedure'
   /** Ordered decision, cache-served, and synthesized entries. */
   steps: readonly ProcedureStepRecord[]

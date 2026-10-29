@@ -1,10 +1,4 @@
-// The keyed consume-once recorded-exchange server. It plugs into the
-// plan-368-01 runner planning-turn seam as a NonActionToolMap: each recorded non-action
-// exchange is served back to the model verbatim when a call's name + canonicalized args
-// match, exactly once, FIFO across duplicates. A miss is a typed hard error naming the
-// tool and its canonical args — never a silent live fallthrough. The server ONLY
-// key-matches and returns recorded results as opaque data; it never interprets, parses,
-// or runs recorded content (eval ownership-contract law, T-368-04).
+// Serves each recorded exchange once on a name and canonical-args match; a miss is a typed error.
 
 import type { Tool } from 'ai'
 import { tool } from 'ai'
@@ -14,12 +8,7 @@ import type { NonActionToolMap } from '@vostride/agent-qa-runner'
 import { canonicalJson, canonicalValue } from '../canonical-json'
 import type { UnconsumedExchange } from './result'
 
-/**
- * A recorded name that collides with the platform action slice — a construction-time
- * integrity refusal (RESEARCH Pitfall 5). Serving it as a non-action tool would let a
- * recorded exchange shadow a real action tool. The engine maps this to the
- * 'action-tool-collision' ReplayRefusal.
- */
+// A recorded name that collides with a platform action would let an exchange shadow a real tool.
 export class ActionToolCollisionError extends Error {
   readonly tool: string
   constructor(tool: string) {

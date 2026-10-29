@@ -15,9 +15,7 @@ function exchange(
   return { tool, args, result }
 }
 
-// The exact set of message substrings planner.ts's catch rewraps on, plus the duck-typed
-// provider fields it reads. A mid-replay divergence thrown through a real plan() call must
-// carry none of them so it survives to the final rethrow as the same class.
+// A divergence must carry none of these, so `plan()` rethrows it as the same class.
 const REWRAP_SUBSTRINGS = [
   'no such tool',
   'tool_not_found',

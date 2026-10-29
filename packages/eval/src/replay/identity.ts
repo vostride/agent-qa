@@ -1,14 +1,7 @@
 import type { Action, ElementInfo } from '@vostride/agent-qa-schema'
 import { canonicalJson } from '../canonical-json'
 
-/**
- * D-11 normalized decision identity — the ONE tier-2 equivalence vocabulary (op-class +
- * resolved same-screen target + normalized value). It is defined once here in eval core;
- * Phase 369's matcher MUST import this rather than mint a second equivalence. `target` is
- * legitimately absent for coordinate-only ops or an unresolvable ref; `value` is typed-absent
- * for non-value-bearing ops and is never fabricated. The `ref` is used only to resolve
- * role/nameNormalized/ordinal — the raw ref never enters the identity.
- */
+// Defined once here for the matcher too; the raw ref only resolves the target and never enters it.
 export interface DecisionIdentity {
   opClass: string
   target?: { role: string; nameNormalized: string; ordinal: number }
@@ -33,19 +26,12 @@ function resolveTarget(
   return { role: element.role, nameNormalized: element.nameNormalized, ordinal }
 }
 
-/**
- * The ONE D-03 value normalization shared by identity grouping and the matcher value axis:
- * trim, casefold, then collapse internal whitespace. Tokenization and F1 remain in
- * match/value.ts so this primitive owns vocabulary normalization only.
- */
+// Trim, casefold, collapse whitespace; tokenization and F1 stay in `match/value.ts`.
 export function normalizeValueText(raw: string): string {
   return raw.trim().toLowerCase().replace(/\s+/g, ' ')
 }
 
-/**
- * Normalize a value-bearing action's payload through the shared D-03 value vocabulary.
- * Returns undefined for non-value-bearing ops (typed-absent, never fabricated).
- */
+// Undefined for non-value-bearing ops; a value is never fabricated.
 export function normalizeIdentityValue(action: Action): string | undefined {
   const view = action as unknown as Record<string, unknown>
   const raw =
@@ -75,7 +61,7 @@ export function computeDecisionIdentity(
   }
 }
 
-/** Canonical, construction-order-independent key for grouping identities in a map (Task 1 reuse). */
+/** Canonical, construction-order-independent key for grouping identities in a map. */
 export function decisionIdentityKey(identity: DecisionIdentity): string {
   return canonicalJson(identity)
 }

@@ -286,7 +286,7 @@ describe('replayCassette — k-sample agreement', () => {
       escalationPredicate: alwaysEscalate,
     })) as DecisionReplayResult
 
-    // Phase 369 F5: identity normalization deliberately changes k-sample agreement classes.
+    // Identity normalization changes k-sample agreement classes.
     expect(outcome.agreement.noConsensus).toBe(false)
     expect(outcome.agreement.modal?.count).toBe(2)
     expect(outcome.agreement.modal?.identity.value).toBe('hello world')
@@ -362,7 +362,6 @@ describe('replayCassette — procedure teacher-forcing', () => {
     expect(step0.result.samples[0].outcome).toMatchObject({ kind: 'decision', action: { ref: 'e2' } })
     expect(step3.result.samples[0].outcome).toMatchObject({ kind: 'decision', action: { ref: 'e1' } })
 
-    // endState carried through untouched for Phase 369 to score.
     expect(outcome.endState).toEqual(PROCEDURE_END_STATE)
     expect(outcome.endState).toBe(cassette.endState)
   })

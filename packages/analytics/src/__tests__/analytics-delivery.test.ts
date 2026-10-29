@@ -1,5 +1,3 @@
-// C447 (447-07, D-13, D-20..D-22): nothing waits on the network while work runs; the exit waits at most 2 s
-
 import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
 import type { RunEventEnvelope, RunEventPayload, RunEventType } from '@vostride/agent-qa-schema'
 import { describe, expect, it, vi } from 'vitest'

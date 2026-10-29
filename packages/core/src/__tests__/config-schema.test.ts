@@ -533,7 +533,6 @@ describe('AgentQaConfigSchema — 4-bucket structure', () => {
     expect(result.success).toBe(false)
   })
 
-  // the slim knowledge block replaced the retired v1 memory services block.
   it('materializes knowledge defaults when the block is omitted', () => {
     const result = AgentQaConfigSchema.safeParse(withWorkspace({}))
     expect(result.success).toBe(true)
@@ -1160,11 +1159,7 @@ describe('TargetSchema — product key validation', () => {
   })
 })
 
-// the retired keys are deleted, not migrated. The four
-// `safety.trustMode` cells this block held (accept, non-boolean, strict subkeys, optional) asserted
-// a key that no longer exists; their surviving claim is that a config without it parses, kept below.
-// A file that still declares a retired key gets zod's ordinary unrecognized-key issue at the owning
-// object, naming exactly that key, with no retired-key message, migration or notice.
+// A retired key gets zod's ordinary unrecognized-key issue at its owning object, naming that key.
 describe('AgentQaConfigSchema — retired keys are strictly unknown', () => {
   const RETIRED: readonly [string, Record<string, unknown>, string, string][] = [
     ['safety.trustMode', { safety: { trustMode: true } }, '', 'safety'],
@@ -1235,8 +1230,7 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown', () => {
     expect(result.success).toBe(true)
   })
 
-  // the removal is exact. The retired spellings stay legal where a free-form record owns
-  // the key, and an unrelated strict object refuses them exactly as it always did.
+  // Retired spellings stay legal where a free-form record owns the key.
   it('strict removal rejects exactly the retired keys and nothing that merely shares a name', () => {
     const shared = AgentQaConfigSchema.safeParse(withWorkspace({
       analytics: { passRateScope: { attributes: { tokens: 'x', stdio: 'y', trustMode: 'z', runServiceTokens: 'w' } } },

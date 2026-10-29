@@ -1,22 +1,4 @@
-// The shared plugin resolver's own answers, at the one producer file (395-24 · WR-05/06/07/11).
-//
-// WHY THESE FOUR SIT TOGETHER. `plugin-loader-util.ts` is the file 395-21 created to give BOTH
-// plugin loaders one typed answer for "the plugin you declared is not here", and round 4's
-// verification filed four warnings against it in one pass. Three of them are the same shape from
-// three directions — a person-facing string composed out of something the loader was not entitled to
-// put there:
-//
-//   WR-11  a third party's `package.json` BYTES, republished by an unguarded `JSON.parse`
-//   WR-06  an unvalidated config string, composed into a COMMAND the CLI tells a person to run
-//   WR-07  an absolute filesystem path and an internal map-key prefix, in a "must export …" sentence
-//
-// and the fourth is the inverse — a person-facing string composed out of a fact that is FALSE:
-//
-//   WR-05  "is not installed", said about a package sitting in the person's `node_modules`
-//
-// EVERY FIXTURE IS BUILT ON DISK, not mocked. All four mechanisms turn on what `findPackageJson`
-// actually finds while walking up from `baseDir`, and a stubbed filesystem would be measuring this
-// file's idea of that walk.
+// Fixtures are built on disk: the messages turn on what `findPackageJson` finds walking up.
 
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -95,15 +77,7 @@ describe('an unreadable package manifest reports its POSITION, never its content
       PluginPackageManifestError,
     )
     const message = (thrown as Error).message
-    // THE POSITION: the person is told which manifest to open — BY THE ROUTE THEY RECOGNIZE, not by
-    // an absolute route through their own filesystem (395-28 · CR-03, secondary). Until 395-28 this
-    // cell asserted the ABSOLUTE path was PRESENT; measured pre-fix the sentence read
-    //
-    //   Plugin package manifest /var/folders/…/plugin-loader-util-XXXX/node_modules/
-    //   @fixture-395-24/broken-manifest-pkg/package.json could not be read as JSON.
-    //
-    // The inversion below is paired with a positive identification assertion, so it cannot be
-    // satisfied by a sentence that has stopped saying anything.
+    // The message names the manifest by its package route, never by an absolute path.
     expect(message, `the fault did not say which manifest:\n${message}`).toContain(
       join('node_modules', ...BROKEN_MANIFEST_PACKAGE.split('/'), 'package.json'),
     )
@@ -117,9 +91,7 @@ describe('an unreadable package manifest reports its POSITION, never its content
     expect((thrown as PluginPackageManifestError).packageJsonPath).toBe(
       join(root, 'node_modules', ...BROKEN_MANIFEST_PACKAGE.split('/'), 'package.json'),
     )
-    // THE CONTENT: zero bytes of it, on the message AND on the serialization a person actually
-    // sees. `.stack` and `util.inspect` are the channels this phase has already been burned by
-    // so the negative grep runs on all three rather than on `.message` alone.
+    // None of the content on `.message`, `.stack` or `util.inspect`, the channels a person sees.
     expect(
       occurrences(message, MANIFEST_SENTINEL),
       `the fault republished the manifest's own bytes:\n${message}`,
@@ -168,23 +140,7 @@ describe('an installed package that fails to load is not called missing', () => 
       .not.toContain('is not installed')
     expect(message, `the failure told them to install what they already have:\n${message}`)
       .not.toContain('npm install')
-    // AND NONE OF THE PERSON'S FILESYSTEM TRAVELS WITH IT.
-    //
-    // WHAT THIS ASSERTION REPLACED, AND WHY. Until 395-28 this cell asserted only the absence of a
-    // CJS-only require-stack marker. `importDeclaredPluginModule` uses `await import(...)` — the ESM
-    // road is the ONLY road it takes — and ESM never emits that marker, so the cell ran the ESM road,
-    // produced a message carrying an absolute path out of the person's filesystem, and passed. It was
-    // an assertion aimed at a channel the code cannot reach. Measured pre-fix on Node v24.10.0 the
-    // message read, in full:
-    //
-    //   Auth plugin package "@fixture-395-24/installed-but-broken-pkg" is installed but failed to
-    //   load: Cannot find module '/var/folders/…/plugin-loader-util-XXXX/node_modules/
-    //   @fixture-395-24/installed-but-broken-pkg/missing-entry.js' imported from
-    //   /private/var/folders/…/plugin-loader-util-XXXX/node_modules/@fixture-395-24/…. This is a
-    //   fault in the plugin or in its own dependencies, not a missing install.
-    //
-    // The zero-occurrence form below is the idiom (W7) already uses for `declarationLabel`, and it
-    // watches the channel the code actually writes to.
+    // ESM never emits the require-stack marker, so the check is on the absolute path itself.
     expect(
       occurrences(message, root),
       `the failure republished the person's filesystem:\n${message}`,
@@ -216,9 +172,7 @@ describe('an installed package that fails to load is not called missing', () => 
       thrown = err
     }
 
-    // THE PRECONDITION-GUARDED CONTROL (384 · round 4): without a case the new branch REJECTS, (W5)
-    // is drawn from inside its own assumption and would pass on an implementation that had simply
-    // deleted `PluginNotInstalledError`.
+    // Without a case the new branch rejects, deleting the error class would still pass.
     expect(thrown, 'an absent package must still be reported absent').toBeInstanceOf(
       PluginNotInstalledError,
     )
@@ -229,19 +183,7 @@ describe('an installed package that fails to load is not called missing', () => 
   })
 
   it('the stripping removes paths and leaves ordinary text alone', async () => {
-    // THE DISCRIMINATION CONTROL, and the reason CR-03's fix is not a one-line regex.
-    //
-    // A filter that deletes every run of characters containing a slash trades one defect for
-    // another: the person gets a message that no longer diagnoses anything. So this cell asserts
-    // BOTH directions over ONE produced message — the absolute path is gone, and two shapes that
-    // merely LOOK path-like survive verbatim:
-    //
-    //   `and/or`               — a slash INSIDE a word, no boundary before it
-    //   `plugins/local-auth.js` — a RELATIVE token the person themselves declared
-    //
-    // The message is produced through the real chain, not hand-composed: the fixture's own body
-    // throws an error carrying a resolution code, so `importDeclaredPluginModule` ->
-    // `resolutionFailureFor` -> the underlying-failure text is the producer under test.
+    // Both directions on one message: the absolute path goes, `and/or` and a relative path survive.
     const dir = installPackage(LEGIBILITY_PACKAGE, '{ "name": "legibility", "main": "./index.js" }')
     const absolute = join(root, 'node_modules', 'somewhere', 'deep', 'inner.js')
     const underlying =
@@ -265,8 +207,7 @@ describe('an installed package that fails to load is not called missing', () => 
 
     // DIRECTION ONE — the person's filesystem does not travel.
     expect(occurrences(message, root), `an absolute path survived:\n${message}`).toBe(0)
-    // DIRECTION TWO — ordinary text does. Both of these are reddened by an UNANCHORED path shape,
-    // which is what makes this control load-bearing rather than decorative (leg M-P2).
+    // An unanchored path shape breaks both of these, which is what this control catches.
     expect(message, `a slash inside a word was mauled:\n${message}`).toContain('and/or')
     expect(message, `the person's own declared token was mauled:\n${message}`)
       .toContain('plugins/local-auth.js')
@@ -298,10 +239,7 @@ describe('the install suggestion is a command only when the name is one', () => 
   })
 
   it('an ordinary scoped name keeps the runnable example', () => {
-    // WHAT MAKES (W6) NON-VACUOUS. The cheapest way to pass (W6) is to delete the example for
-    // everyone, and then `agent-qa run` in a freshly scaffolded project stops printing the one
-    // command that fixes it — the exact regression (Z4) in the cli package would catch, pinned here
-    // too because this is where the producer lives.
+    // An ordinary name keeps the runnable command; dropping it everywhere is the cheap wrong fix.
     const message = new PluginNotInstalledError(
       { package: '@vostride/agent-qa-subscription-auth' },
       'auth',

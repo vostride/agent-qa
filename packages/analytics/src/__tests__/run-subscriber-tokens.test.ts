@@ -1,20 +1,4 @@
-// Phase 405 plan 04. The analytics half of the token-accounting fold.
-//
-// WHAT THIS FILE IS GUARDING. `input_tokens`/`output_tokens`/`total_tokens` have been declared on
-// `RunCompletionShape` since v33 with NO PRODUCER ANYWHERE — the hole
-// `399-friction-token-accounting` filed. 405-04 gave them one: the runner now measures a step's
-// usage onto `stepFinalized`, and this subscriber sums it per member.
-//
-// The load-bearing claim is not "the sum is right". It is that AN UNMEASURED RUN CARRIES NONE OF
-// THE THREE KEYS. A zero here would travel to the analytics backend as a real measurement, and a
-// dashboard reading it would report a run that cost nothing rather than a run nobody measured —
-// which is precisely the fabricated cost figure phase 399 refused to publish. So the absence cell
-// asserts key absence (`'input_tokens' in properties === false`), never `toBeUndefined()`: the
-// event is serialized to a wire, and an explicit `undefined` and an absent key are the same object
-// in JS and different bytes on the wire.
-//
-// The capturing-port idiom is the one `identity.test.ts` established — a recording transport
-// behind the real `createAnalyticsPort`, so what is asserted is what the port would have shipped.
+// An unmeasured run carries none of the token keys: a zero would read as a real measurement.
 import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
 import type { RunEventEnvelope, RunEventPayload, RunEventType } from '@vostride/agent-qa-schema'
 import { beforeEach, describe, expect, it } from 'vitest'

@@ -3,18 +3,7 @@ import { readdirSync, readFileSync, type Dirent } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join, resolve } from 'node:path'
 
-// LOOP-02 deletion proof. The v1 blanket-retry / self-heal machinery
-// was deleted grep-provably across the phase: the memory-ablation re-run and the
-// circuit-breaker class, the healing attempt-limit counter in the v1 loop,
-// and the healing-config type surface. This test walks every workspace
-// source tree and fails if ANY of the five deleted v1 symbols reappears — turning
-// "grep-provable" into a permanent, self-enforcing CI gate (T-353-18 mitigation).
-//
-// Each forbidden needle is built by concatenating two halves so the whole token never
-// appears in THIS file's source: otherwise the test would match itself and the
-// phase-gate greps (e.g. a `grep -rn` for the class name over packages) would flag the
-// test as a hit. Comments count as occurrences by design — grep-provable means
-// grep-clean everywhere, including comments.
+// Each needle is built from two halves so this file never matches itself.
 const FORBIDDEN: { label: string; needle: string }[] = [
   { label: 'v1 circuit-breaker class', needle: 'Circuit' + 'Breaker' },
   { label: 'v1 memory-ablation predicate', needle: 'should' + 'Ablate' },

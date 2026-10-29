@@ -1,17 +1,4 @@
-// A REAL listening HTTP server, used as the wire surface for this package's network cells
-//
-// WHY A REAL SERVER AND NOT A STUB. Two of this package's claims are claims about BYTES:
-// "opted out dials nothing" and "a seeded secret does not appear on the wire". Both are only
-// meaningful when read off what a network peer receives — after the payload has been serialized,
-// gzipped and pushed through a socket — rather than off the object the transport was handed. This
-// repo has a filed precedent for the difference: a corpus that asserted on `error.message` while
-// the live channel was the error's serialization.
-//
-// It binds `127.0.0.1:0` and nothing else. A wall test that needs the internet to prove itself is a
-// wall test that fails in CI for reasons that have nothing to do with the wall.
-//
-// This module lives under `__tests__` on purpose: `tsup` bundles from `src/index.ts`,
-// `packages/arch`'s specifier scanner skips `__tests__`, and vitest only collects `*.test.ts`.
+// A real server on `127.0.0.1:0`: the claims are about the bytes a network peer receives.
 
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'

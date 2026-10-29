@@ -71,7 +71,7 @@ describe('run attributes', () => {
   })
 })
 
-// a verify run's row carries one internal mark.
+// A verify run's row carries one internal mark.
 describe('the gate-run mark', () => {
   it('the gate-run mark is an internal attribute a user cannot set', () => {
     expect(ATTR_GATE_RUN, 'the mark key').toBe('agent-qa.gate-run')
@@ -105,7 +105,6 @@ describe('the gate-run mark', () => {
   })
 })
 
-// 2026-10-17 (443-16, GAP-D6): the record's spread is the gate-run mark's one spelling.
 describe('the internal attribute builder', () => {
   it('the internal attribute builder takes no gate-run option', () => {
     const input = { trigger: 'cli' as const, runner: 'local' as const, gateRun: true as const }

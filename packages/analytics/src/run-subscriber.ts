@@ -1,29 +1,4 @@
-// The run-completion bus subscriber (Phase 398 plan 06 task 3, D-16 / D-17 · RUNX-03).
-//
-// RE-HOMED FROM `core/src/analytics/run-reporter.ts`, keeping the subscription shape byte-for-byte
-// where it faces the bus: `{ handler(envelope), flush() }`. That is deliberate and it is the whole
-// interface plan 10 has to rewire — the CLI root's attach site changes which module it imports and
-// nothing else. The accumulation logic is the part that was worth moving intact: the per-member
-// step tallies, the retry reset that keeps a re-run from double-counting, the outcome→status
-// mapping, and the suite aggregate derived from the members rather than from a second stream.
-//
-// THREE THINGS DID NOT COME ACROSS, and each absence is a defect the re-derivation closes:
-//
-//   1. The `disabled` flag. The v1 subscriber re-read the privacy posture and no-op'd inside its
-//      own handler, which made it the SECOND place in the process deciding whether telemetry
-//      happens. It is not a decision here at all: an opted-out host composes a port with no
-//      transport, so this module emits into a wall and never learns the difference. One decision
-//      site, in `compose.ts`, is what D-19 buys and what the ownership contract forbids re-opening.
-//   2. Run attributes. The trigger and runner are passed in by the caller that resolved the run's
-//      attributes; this module reads no environment for them.
-//   3. Raw id pass-through. v1 forwarded whatever string the bus carried into `run_id`/`test_id`.
-//      Those fields are known-id codecs in the closed union now, so a foreign string reaching one
-//      is exactly the free-text channel the union exists to close. Ids are filtered through the
-//      ids package's canonical predicates and DROPPED when they do not match, rather than sent and
-//      refused downstream where nobody would see it.
-//
-// Best-effort is unchanged and load-bearing: every handler body and the flush body swallow their
-// own errors, because a malformed envelope must never be able to fail the run it is describing.
+// Best-effort: a malformed envelope never fails the run, and non-canonical ids are dropped.
 
 import type {
   RunEventEnvelope,
@@ -90,13 +65,7 @@ interface MemberStepTally {
   passed_step_count: number
   failed_step_count: number
   skipped_step_count: number
-  /**
-   * the member's measured model-call usage, accumulated ONLY
-   * from steps whose `stepFinalized` carried a `tokenUsage`. Absent while no step has been
-   * measured — which is why it is optional rather than a zeroed triple: `captureTestRun` spreads
-   * the three analytics fields in only when this member exists, so a run nobody measured reports
-   * no cost at all instead of reporting a cost of zero.
-   */
+  // Usage from steps that reported `tokenUsage`; absent, never zeroed, while no step is measured.
   tokens?: { input: number; output: number; total: number }
 }
 
@@ -120,19 +89,7 @@ function readNumber(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isFinite(value) && value >= 0 ? value : undefined
 }
 
-/**
- * The member index, or nothing — and every handler below bails on nothing.
- *
- * 2026-08-17 (Phase 398 plan 06 task 3). This guard was NOT in the module that moved here, and its
- * absence was measured rather than reasoned about: the "never throws into the run" cell fed a
- * `testFinished` envelope whose payload was the number `7`, expected no emission, and got a fully
- * formed `test_run.completed` event with `status: 'unknown'` and a zeroed step tally. Reading a
- * property off a number is legal in JavaScript, so the surrounding try/catch — the thing that looks
- * like the boundary — never fired, and the malformed envelope was recorded as a member keyed on
- * `undefined`. A best-effort subscriber is allowed to drop what it cannot read; it is not allowed
- * to invent a test run that never happened, because that number is indistinguishable downstream
- * from a real one.
- */
+// Reading a property off a number does not throw, so a malformed payload is refused here.
 function readIndex(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined
 }
@@ -246,9 +203,7 @@ export function createAnalyticsRunSubscriber(
       default:
         break
     }
-    // the fields `analytics/src/events.ts` has declared since v33 with no producer get
-    // one here. A step with no `tokenUsage` is a step nobody measured (a cache hit, a bypass, a
-    // provider that reports none) and contributes NOTHING — not a zero.
+    // A step with no `tokenUsage` (a cache hit, a bypass) contributes nothing, not a zero.
     const usage = payload.tokenUsage
     if (usage !== undefined) {
       const tokens = tally.tokens ?? { input: 0, output: 0, total: 0 }
@@ -294,10 +249,7 @@ export function createAnalyticsRunSubscriber(
         ? status === 'passed' && record.retryCount > 0
         : undefined,
       ...steps,
-      // 405 D-07. Spread in only when the member measured at least one step. `definedProperties`
-      // would drop three `undefined`s anyway, but building them unconditionally would mean writing
-      // `input_tokens: tokens?.input ?? 0` somewhere — and that `?? 0` is exactly the fabricated
-      // measurement this whole path refuses to make.
+      // Spread in only when a step is measured; a `?? 0` here would fabricate a measurement.
       ...(record.steps.tokens === undefined
         ? {}
         : {

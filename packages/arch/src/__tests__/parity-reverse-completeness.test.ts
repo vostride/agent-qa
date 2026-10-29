@@ -1,20 +1,4 @@
-// Conformance-suite LEG 5 — reverse completeness (Phase 384, SC4).
-//
-// Leg 1 asks "is every registered capability covered?". This leg asks the reverse and
-// harder question: "does every SURFACE project only capabilities the registry declares?"
-// A surface that quietly published something the layer never declared would be a private
-// power wearing a catalog entry, which is the failure the firewall exists to make
-// impossible and this leg exists to make visible.
-//
-// It is keyed on `FIREWALLED_SURFACE_DIRS` rather than on a list of its own, so the leg
-// ACTIVATES on firewall growth with zero edits to its logic: admitting a surface to the
-// firewall without declaring what it projects fails here immediately. M5 admits the two
-// dashboards; 396 replaces the pre-layer MCP server with a real registry projection.
-//
-// Reaching agent's declarations from arch uses the same cross-package relative import the
-// manifest already uses for the ownership contracts — the arch package is source-only and
-// deliberately depends on nothing, so relative traversal is its house style for reading
-// another package's truth rather than a shortcut taken here.
+// Keyed on `FIREWALLED_SURFACE_DIRS`, so a surface admitted without declaring its projection fails.
 
 import { describe, expect, it } from 'vitest'
 
@@ -22,22 +6,7 @@ import { createFunctionRegistry } from '../../../agent/src/functions/registry.js
 import type { FunctionDeps } from '../../../agent/src/functions/spec.js'
 import { FIREWALLED_SURFACE_DIRS } from '../lint/surface-firewall.js'
 
-/**
- * How a firewalled surface decides which capabilities it publishes.
- *
- * `generic-invoker` — the surface projects the registry itself and holds no per-capability
- * knowledge, so there is nothing static to compare and nothing that can drift. The CLI's
- * `fn` verb is the shipped example: it renders whatever the registry lists and detects a
- * stream result structurally.
- *
- * `static-ids` — the surface enumerates the capabilities it publishes. That list must be a
- * SUBSET of the registry's ids; anything else is a capability the layer never declared.
- *
- * `not-yet-projected` — a firewalled surface that predates the function layer. Its imports
- * are already policed by the firewall ledger, but it projects nothing from the registry,
- * so there is no id set to compare yet. Every such entry names the phase that replaces it,
- * and the golden-set assertion below keeps a NEW surface from quietly taking this door.
- */
+// `static-ids` must list a registry subset; `not-yet-projected` predates the function layer.
 export type SurfaceProjectionSource =
   | { kind: 'generic-invoker'; note: string }
   | { kind: 'static-ids'; ids: readonly string[] }
@@ -70,8 +39,6 @@ const REGISTRY_IDS = createFunctionRegistry({
   // in order to enumerate itself.
   deps: {} as FunctionDeps,
 })
-  // the tokenless caller shape. The listing is the same for every caller, so the
-  // retired grant fields and the registry's retired context option are not supplied here.
   .list({
     surface: 'arch-conformance',
     origin: 'agent',

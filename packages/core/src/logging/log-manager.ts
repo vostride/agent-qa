@@ -5,12 +5,7 @@ import { formatLogEntry } from './cli-formatter.js'
 import { guardJsonText, printRunText, type RunTextEnv } from './run-text-output.js'
 import { redactSecretValue, type SecretRedactor } from '@vostride/agent-qa-runner'
 
-/**
- * One member's run-id binding, held in async context rather than on the manager.
- *
- * `pending` is that member's own not-yet-attributed entries — the lines it wrote before it minted
- * its run id. Only these are backfilled by its `setRunId`, so a sibling can never adopt them.
- */
+// `pending` holds only this member's unattributed lines, so a sibling's `setRunId` skips them.
 export interface MemberLogScope {
   runId: string
   readonly pending: LogEntry[]
@@ -78,17 +73,7 @@ export class LogManager {
     this.redactor = redactor
   }
 
-  /**
-   * Run `fn` with its own run-id binding, so concurrent members cannot overwrite each other.
-   *
-   * ONE `LogManager` SERVES EVERY MEMBER of a run — `commands/run.ts` builds it once, outside the
-   * per-member closure — and since 402-02/402-03 the direct path runs members concurrently. Without
-   * a scope, `setRunId` is a single mutable field plus a whole-buffer backfill, so the LAST member
-   * to mint an id claims every line in the buffer, its siblings' included (measured, not inferred).
-   *
-   * Outside a scope nothing changes: `setRunId` keeps its original whole-buffer behaviour, which is
-   * what the sequential path and the run-level `onRunCreated` stamp rely on.
-   */
+  // One manager serves every concurrent member; outside a scope `setRunId` backfills the buffer.
   runInMemberScope<T>(fn: () => T): T {
     if (!this.memberScope) throw new MemberLogScopeUnavailableError()
     return this.memberScope.run({ runId: this.runId, pending: [] }, fn)

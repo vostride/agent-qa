@@ -21,7 +21,7 @@ import type {
 } from './score'
 import type { LoopVerdict } from './loop'
 
-/** Replay attribution copied into every D-16 decision diff. */
+// Replay attribution copied into every decision diff.
 export interface DecisionDiffReplayContext {
   promptDrift: ReplayDrift
   agreement: ReplayAgreement
@@ -46,7 +46,7 @@ interface DecisionDiffBase {
   matcherVersion: number
 }
 
-/** Pure JSON D-16 per-decision diff; rendering belongs exclusively to Phase 372. */
+// Pure JSON per-decision diff; this module renders nothing.
 export type DecisionDiff =
   | (DecisionDiffBase & {
       kind: 'scored'
@@ -64,7 +64,7 @@ export type DecisionDiff =
       partial?: DecisionPartialBreakdown
     })
 
-/** Input to the pure D-16 projection. */
+// Input to the pure decision-diff projection.
 export interface BuildDecisionDiffInput {
   cassetteId: string
   stepIndex?: number

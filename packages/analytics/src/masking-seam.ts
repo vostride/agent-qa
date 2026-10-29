@@ -1,30 +1,4 @@
-// THE SEND SEAM.
-//
-// THERE IS ONE CHOKE POINT AND IT IS THE TRANSPORT'S `capture`. Not per-event-site masking, not a
-// helper each emitter is expected to remember: every outgoing payload passes through
-// `maskEventForSend` in `transports.ts`, and a cell counts the call sites in shipped source and
-// refuses any number but one. Masking that has to be REMEMBERED is masking that will be forgotten
-// exactly once, in the payload that mattered.
-//
-// STRUCTURE-AWARE, AND BEFORE SERIALIZATION. This is the 396 escape-blind lesson applied. A masker
-// that runs on the serialized JSON string searches for the raw secret value — but serialization has
-// already rewritten it: a secret containing a double quote and a newline is on the wire as
-// `\"` and `\n`, so the raw-value search finds nothing and reports success. Walking the payload
-// structure and replacing STRING LEAVES happens before any of that rewriting exists, so there is no
-// encoding for the value to hide inside. The cells prove the difference rather than assert it: the
-// control cell sends the same payload unmasked and pins that the ESCAPED form is what arrives.
-//
-// WHAT IS DELIBERATELY NOT MASKED, and why each is a decision rather than an oversight:
-//
-//   - THE EVENT NAME. It is drawn from a closed literal set (`ANALYTICS_EVENT_NAMES`), so it cannot
-//     carry a user's data — every possible value of it is already written in this repo's source.
-//     Rewriting it could therefore only corrupt attribution, never protect anything.
-//   - PROPERTY KEYS. Every member is a `.strictObject`, so an unknown key REFUSES at parse rather
-//     than riding along; the key space is closed for the same reason the name is. Masking keys
-//     would put `run_id` one collision away from being renamed to a placeholder.
-//
-// the host supplies the declared-secret mask; nothing here decides
-// what is a secret.
+// Masks string leaves before serialization, so JSON escaping cannot hide a secret from the mask.
 
 import type { AnalyticsCapturePayload } from './port.js'
 

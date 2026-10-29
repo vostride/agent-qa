@@ -1,9 +1,4 @@
-/**
- * C-CI-MATRIX: CI tests each package on its own leg, so coverage rests on
- * the matrix itself: a dropped leg or shard, or a `rest` exclusion with no leg of its own, would
- * leave tests unrun while CI stays green. This package runs in the ubuntu `rest` leg, so these cells
- * hold the matrix in CI. The check lives in scripts/check-ci-matrix.mjs.
- */
+// A dropped leg or shard leaves tests unrun while CI stays green; this package runs in `rest`.
 import { describe, expect, it } from 'vitest'
 
 type Leg = { group: string; filter: string; vitest?: string }

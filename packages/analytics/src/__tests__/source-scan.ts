@@ -1,17 +1,4 @@
-// A source scanner for the two source-anchored cells in this package.
-//
-// WHY COMMENTS ARE STRIPPED, and why finding out cost a red. The `.strip()` cell was first written
-// as a raw substring search and immediately reported `events.ts` and `ownership-contract.ts` as
-// offenders — for the comments that explain why `.strip()` was ABOLISHED. A detector that cannot
-// tell a call from a sentence about a call has two failure modes and both are bad: it reds on prose
-// (which trains everyone to weaken it), and the natural weakening — an exclusion list of the files
-// that talk about the rule — silently stops covering exactly the files most likely to break it.
-//
-// The same class of false positive is on record one package over: `packages/arch`'s specifier
-// extractor keys on `from '...'`, and prose containing that phrase has been parsed as an import.
-//
-// This module lives under `__tests__` on purpose. It is not shipped: `tsup` bundles from
-// `src/index.ts`, `packages/arch`'s scanner skips `__tests__`, and vitest only collects `*.test.ts`.
+// Comments are stripped so prose about a forbidden call is not read as the call.
 
 import { readdirSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'

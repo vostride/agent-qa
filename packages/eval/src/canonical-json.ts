@@ -1,2 +1,2 @@
-// eval keeps its public seam while schema owns the ONE implementation.
+// Eval keeps its public seam; schema owns the one implementation.
 export { canonicalJson, canonicalValue } from '@vostride/agent-qa-schema'

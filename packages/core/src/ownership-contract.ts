@@ -4,11 +4,6 @@ export const AGENT_QA_CORE_PACKAGE_NAME = '@vostride/agent-qa-core'
 export const AGENT_QA_CORE_PACKAGE_DIR = 'packages/core'
 export const AGENT_QA_CORE_PACKAGE_CLASSES = ['transitional'] as const
 export const AGENT_QA_CORE_ALLOWED_RESPONSIBILITIES = [
-  // Narrowed 363-12 after the run-path cut (Plans 10/11): the per-test run path,
-  // v1 Reporter, inline-DSL parsers, hook orchestration/sandbox, screenshot pipeline,
-  // and the suite run-path half all left core. What remains are the non-run-path
-  // subsystems, each with its own milestone home. Every top-level dir under core/src
-  // is accounted for below.
   'suite/test parsing + discovery: yaml/suite/test/config parsing, hooks-file parser + schema, and workspace file discovery — feeding the resolved RunConfig at the CLI composition root (parser, suite, schema, types, hooks, workspace, validation)',
   'analytics subsystem: PostHog identity + core-owned bus-subscriber run feed per D-16 (analytics)',
   'LLM provider auth + captured browser auth-state reuse: OAuth/PKCE plugin auth and auth-state redaction/resolution (auth, auth-state)',
@@ -37,15 +32,8 @@ export const AGENT_QA_CORE_INTERNAL_DEPENDENCIES = [
   '@vostride/agent-qa-schema',
 ] as const
 
-/**
- * Tracks npm-dependency-level provider-SDK and native-store debt only. Current
- * core source-level host/storage debt is recorded in the regenerable
- * @vostride/agent-qa-arch core-host-baseline.ts; both records shrink as M1/M2
- * delete the parser/suite/hooks/reporter and memory subsystems.
- */
+// npm-level provider-SDK and native-store debt only; source-level debt is in core-host-baseline.ts.
 export const AGENT_QA_CORE_MIGRATION_LEDGER = [
-  // 363-06 (D-08/Q10): the sharp entry was cleared here — the screenshot pipeline moved to
-  // runner-local (its host-adapter home) and sharp left core, so the ledger no longer carries it.
 ] as const
 
 export const AGENT_QA_CORE_OWNERSHIP_CONTRACT = {

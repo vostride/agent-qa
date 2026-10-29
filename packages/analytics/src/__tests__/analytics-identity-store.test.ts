@@ -1,5 +1,3 @@
-// C447 (447-02, D-01..D-05, D-11, D-12): one installation id, shared, race-safe; CI personless
-
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'

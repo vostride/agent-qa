@@ -50,11 +50,6 @@ describe('module discipline', () => {
     expect(offenders).toEqual([])
   })
 
-  // 422-01 tripped this scan on the phrase "no `Math.random`" inside a doc comment and read it as
-  // a bug. It is not: the scan is textual over whole-file source, so a comment is a hit by
-  // construction, and that is what makes it impossible to describe a banned API into the file
-  // without also declaring it. Pinned here so the next plan finds the rule instead of the
-  // surprise.
   it('counts a banned API named in a comment, by design', () => {
     for (const bannedPattern of bannedPatterns) {
       expect(bannedPattern.test('// nothing here'), String(bannedPattern)).toBe(false)

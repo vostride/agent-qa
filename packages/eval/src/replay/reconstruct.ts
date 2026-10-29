@@ -1,15 +1,4 @@
-// Pure reconstruction of the planner decision context from a cassette input leg
-// (RPLY-04, D-01/B1). Everything the returned ScreenState + StepContext carries is
-// strictly leg-derived — nothing else may enter a replay. The captured-modality branch is
-// strict: a text-only cassette gets NO screenshot bytes (the screenshot key is absent
-// entirely, so prompts.ts emits no image block); a full cassette gets EXACTLY the recorded
-// blob bytes resolved through the ArtifactSource port. Every unsupported input shape is a
-// loud typed refusal the engine maps to a distinct ReplayRefusal reason.
-//
-// Two fidelity caveats hold for ALL replays, consistently and by design:
-//   - custom agent rules were never recorded on the leg (surface retired in Phase 373), so replay passes none (RESEARCH A1).
-//   - the live vision-gate prompt note is not recorded and is NOT synthesized here
-//     (RESEARCH A2) — text-only replays carry no promptNote.
+// Strictly leg-derived: a text-only cassette gets no screenshot key, a full one the recorded bytes.
 
 import type { ArtifactRef, ScreenState } from '@vostride/agent-qa-schema'
 import type { StepContext } from '@vostride/agent-qa-runner'

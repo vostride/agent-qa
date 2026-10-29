@@ -1,28 +1,4 @@
-// THE ZERO-NETWORK WALL (Phase 398 plan 06 task 1, D-19 · ANLY-01).
-//
-// WHY THIS FILE IS A DIFFERENTIAL AND NOT AN ASSERTION. "Opted out sends nothing" is trivially
-// satisfiable by an implementation that sends nothing ever, and it is trivially satisfiable by a
-// test whose interception is not wired to the thing under test. Both failures LOOK like the proof.
-// So every wall here is measured on BOTH arms with the SAME instrument: opted out must observe
-// zero, opted in must observe more than zero, and the pair being equal is a FATAL that names the
-// torn wire rather than a green run.
-//
-// WHERE THE ASSERTIONS SIT. Not on a transport's own call count — a broken port that never calls
-// its transport satisfies that on both arms. Two network layers instead:
-//
-//   1. The undici global dispatcher. posthog-node 5.33.2 sends through global `fetch`
-//      (`dist/client.js:185` — `this.options.fetch ? this.options.fetch(...) : fetch(...)`), and
-//      Node's global fetch is undici-backed, so a `MockAgent` on the global dispatcher observes the
-//      SHIPPED send path. RESEARCH A2 is why `vitest.config.ts` pins `environment: 'node'`: under
-//      happy-dom that interception silently stops working, and a cell that observes zero because
-//      nothing was ever intercepted is indistinguishable from the wall holding.
-//   2. `net.Socket.prototype.connect`, against a REAL local HTTP server. The dispatcher cell only
-//      covers transports that go through fetch. The socket cell covers every transport there is,
-//      including one someone adds later, and it has no blind spot for a request aimed at a
-//      different origin than the one configured.
-//
-// The socket arm deliberately talks to `127.0.0.1` and nothing else: a wall test that needs the
-// internet to prove itself is a wall test that fails in CI for reasons unrelated to the wall.
+// Each wall is measured on both arms with one instrument, so a dead interceptor cannot pass.
 
 import net from 'node:net'
 import { generateRunId, generateTestId } from '@vostride/agent-qa-ids'
@@ -132,9 +108,7 @@ describe('zero-network under analytics.privacy', () => {
     vi.restoreAllMocks()
   })
 
-  // RESEARCH A2 pinned as a cell rather than as a comment on `vitest.config.ts`. If someone
-  // switches this package to a DOM-ish environment, the dispatcher cells below would start passing
-  // for the wrong reason; this fails first and says why.
+  // A DOM environment breaks MockAgent interception, so this fails first and says why.
   it('runs in the plain node environment — MockAgent interception depends on it (RESEARCH A2)', () => {
     expect(typeof (globalThis as { window?: unknown }).window).toBe('undefined')
     expect(typeof (globalThis as { document?: unknown }).document).toBe('undefined')

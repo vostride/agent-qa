@@ -1,30 +1,4 @@
-/**
- * THE VERIFIER-BINDING CENSUS.
- *
- * Every completion goes through the verifier. The loop keeps a branch that trusts the planner when
- * no verifier is bound, as a test seam for the runner's own suites; this census proves no
- * production door can reach it. It follows the 438 census: comments are blanked by the same lexer,
- * every needle is assembled from two halves at run time, C439-SELF-MATCH proves this file spells
- * none of them, and C439-UNIVERSE-FLOORS proves each scanned file and region was read. The census
- * reads agent-qa's own packages only.
- *
- * THE DOORS AND WHAT EACH BINDS (cell in brackets)
- *
- *   runner/src/run/member-runner.ts          the member loop's ports bind the step model scope's
- *                                            verifier or the member config's [C439-CENSUS 1]
- *   dashboard-server/src/live-editor/        the live editor's ports bind its LLMVerifier
- *     live-session.ts                        [C439-CENSUS 1]
- *   cli/src/commands/run.ts                  both member-run configs pass a verifier, and every
- *                                            step-model consumer factory builds one; the input
- *                                            type requires it [C439-CENSUS 2]
- *
- * THE VISION GATES [C439-VISION-GATE]
- *
- *   cli/src/commands/run.ts                  both gates read the configured vision, else the
- *                                            planner model's capability table
- *   dashboard-server/src/live-editor/        the live editor resolves its gate the same way and
- *     live-session.ts                        binds it on its ports
- */
+// Proves no production door reaches the loop's planner-trusting branch that runs with no verifier.
 
 import { existsSync, readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'

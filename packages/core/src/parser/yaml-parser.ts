@@ -11,11 +11,7 @@ export interface ParseResult {
   errors: ParseError[]
 }
 
-/**
- * One parsed test paired with the exact source that produced it. ABRF-02 stable identity is
- * `filePath + test.name`; the legacy flattened parse result cannot retain that association and
- * caused multi-file direct runs to stamp every member with the first discovered file.
- */
+// Identity is `filePath + test.name`; a flattened parse stamps every member with one file.
 export interface ParsedTestBinding {
   test: TestDefinition
   filePath: string

@@ -27,32 +27,7 @@ export const DashboardConfigSchema = z.object({
   port: z.number().optional(),
   dbPath: z.string().optional(),
   artifactsDir: z.string().optional(),
-  // where an entity card's `url` points. BOTH optional, so the v52 default
-  // is a card with no `url` at all rather than a link to a route nothing serves. The card
-  // producer reads these through the masked config reader and renders
-  // `ENTITY_URL_ROUTE` (@vostride/agent-qa-schema) against them.
-  //
-  // They live on the EXISTING `services.dashboard` block rather than on a new top-level
-  // `dashboard` key: this project already has one dashboard configuration home, and a second
-  // one would be two places an operator could reasonably write the same fact.
-  //
-  // REFINED TO AN ABSOLUTE http(s) URL, because
-  // this value stops being a display string in M5. It composes the tokenless live link
-  // (`live-link.ts`'s `liveRunLinkOf`, which only strips trailing slashes), and that link is
-  // assigned to an `href` INSIDE the served App document — which runs with `allow-scripts` at an
-  // opaque origin — as well as appended verbatim to every carrier tool result's model-readable
-  // text. A `javascript:` base therefore composed a script-executing anchor. The trust boundary is
-  // the operator, so this is not remote-triggerable; the finding is that a URL-shaped value reached
-  // an `href` with no scheme check at any hop, and the guard costs one refinement.
-  //
-  // AT THE PARSE BOUNDARY, so there is exactly one place that decides. The defensive drop at the
-  // anchor itself is the SECOND half of the same finding and lives in `app-wrapper.ts`.
-  //
-  // STILL `.optional()`: an absent base is a real and honest posture — a standalone `agent-qa mcp`
-  // with no dashboard — and the carrier result names that absence rather than fabricating a URL.
-  // An EMPTY STRING is now REFUSED, which is stricter than before: `""` is not an absence an
-  // operator wrote by leaving the key out, it is a value that composes a relative fragment reading
-  // as a link and resolving against nothing.
+  // Only an absolute http(s) URL: the base composes an `href` inside the served App document.
   baseUrl: z.string().refine(
     isAbsoluteHttpUrl,
     { message: 'services.dashboard.baseUrl must be an absolute http(s) URL' },

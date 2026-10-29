@@ -1,6 +1,6 @@
 import { OP_CLASS_MAP } from './op-class'
 
-/** D-02 named, discrete element-identity levels shared by every matcher consumer. */
+// Named, discrete element-identity levels shared by every matcher consumer.
 export type IdentityLadderLevel =
   | 'full'
   | 'ordinal-only-differs'
@@ -9,12 +9,7 @@ export type IdentityLadderLevel =
   | 'within-tolerance'
   | 'miss'
 
-/**
- * The D-04 measurement constitution. It is deliberately not caller-injectable and is stamped
- * on every score breakdown and metrics report. Every tuned constant lives here; changing any
- * material value requires a matcherVersion bump, enforced by the pinned-material guard test.
- * Phase 370 applies the same versioned-artifact discipline to its judge rubric.
- */
+// Not caller-injectable; a material change requires a `matcherVersion` bump, which a test enforces.
 export const MATCHER_CONFIG = Object.freeze({
   matcherVersion: 1,
   opClass: OP_CLASS_MAP,

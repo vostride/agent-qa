@@ -1,5 +1,4 @@
-// Eval-owned read ports. CRITICAL: provider-neutral and storage-neutral.
-// Implementations live in eval-local; this package only consumes in-memory values.
+// Read ports only; implementations live in eval-local.
 
 /**
  * Content-addressed artifact bytes. Absence is legitimate and is classified by

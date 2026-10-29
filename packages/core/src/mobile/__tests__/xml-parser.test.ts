@@ -604,7 +604,6 @@ describe('buildRefEntries (execute-time lastRefs reconstruction)', () => {
     const emailEntry = entries[emailEl.ref]
     expect(emailEntry.role).toBe('textbox')
     expect(emailEntry.name).toBe('Email')
-    // no position lives on a ref entry.
     expect(emailEntry).not.toHaveProperty('nth')
     expect(emailEntry).not.toHaveProperty('ordinal')
     expect(emailEntry.bounds).toEqual({ x: 100, y: 300, width: 880, height: 80 })
@@ -625,7 +624,7 @@ describe('buildRefEntries (execute-time lastRefs reconstruction)', () => {
     const entries = buildRefEntries(nodes, binding)
     const submitRefs = state.elements.filter(e => e.name === 'Submit').map(e => e.ref)
     expect(submitRefs).toHaveLength(2)
-    // duplicates differ by their node, never by a position.
+    // Duplicates differ by their node, never by a position.
     for (const ref of submitRefs) {
       expect(entries[ref]).toMatchObject({ role: 'button', name: 'Submit' })
       expect(entries[ref]).not.toHaveProperty('nth')
@@ -935,7 +934,7 @@ describe('normalizeRole', () => {
   })
 })
 
-// the keyboard path learns a field's kind from the observed node's raw input-type.
+// The keyboard path learns a field's kind from the node's raw input type.
 describe('the Android input type', () => {
   function entryFor(attr: string) {
     const xml = androidPage(

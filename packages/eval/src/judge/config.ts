@@ -1,10 +1,4 @@
-// D-15 judge constitution. This is a FROZEN CODE OBJECT: not caller-injectable, not a
-// loadable data file — an injectable or loadable judge config is exactly the injectable-
-// measurement hole 369 D-04 closed for the matcher. Every judge verdict stamps the
-// judgeVersion it was decided under; changing any material value (template wording, rubric,
-// threshold, family map, candidate bound) without bumping judgeVersion fails the pinned-hash
-// bump-guard test, and a shipped version's pinned entry is never replaced. Phase 371 commits
-// the artifact projection of this constitution into the gate-set root.
+// Frozen and not injectable; a material change without a `judgeVersion` bump fails the hash guard.
 
 import { JUDGE_FAMILY_MAP, JUDGE_LINEAGE_OVERRIDES } from './family'
 
@@ -25,9 +19,9 @@ Return a JSON object with exactly these fields:
 
 export const JUDGE_CONFIG = Object.freeze({
   judgeVersion: 2,
-  // D-09 conservative minimum category: only high-confidence swap-surviving verdicts score.
+  // Only high-confidence swap-surviving verdicts score.
   confidenceThreshold: 'high',
-  // D-03 bound (spec Appendix #3, k=3): more distinct candidates than this abstains.
+  // More distinct candidates than this abstains.
   maxDistinctCandidates: 3,
   // Three disjoint families, sequential swaps: at most six calls per comparison.
   maxPanelMembers: 3,
@@ -48,7 +42,7 @@ export const JUDGE_CONFIG = Object.freeze({
       'Do ITEM A and ITEM B denote the same UI control in the given step context?',
     questionValueEquivalence:
       'Are ITEM A and ITEM B semantically equivalent values for the given step?',
-    // Neutral labels — the prompt never reveals which item is gold (D-08 contrastive posture).
+    // Neutral labels: the prompt never reveals which item is gold.
     itemALabel: 'ITEM A',
     itemBLabel: 'ITEM B',
   } as const),

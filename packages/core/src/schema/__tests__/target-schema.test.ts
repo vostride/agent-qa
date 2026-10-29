@@ -1,10 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { TargetSchema } from '../registry-schema.js'
 
-// a target declares which environment it lives in, and an UNDECLARED target is
-// left visibly undeclared here so the run gate's descriptor builder — not this schema — is the one
-// place that decides undeclared means shared. A `.default('shared')` in this file would move that
-// decision into config loading and make an honest declaration indistinguishable from a silence.
+// No default: the run gate's descriptor builder alone decides that undeclared means shared.
 describe('TargetSchema.environment, the target class', () => {
   const webBase = { platform: 'web' as const, url: 'https://example.com' }
 
@@ -28,7 +25,7 @@ describe('TargetSchema.environment, the target class', () => {
   })
 
   it('refuses a value outside the enum', () => {
-    // 432 D-18 made `production` a declared class, so the outside sample is `staging`.
+    // `production` is a declared class, so the outside sample is `staging`.
     const result = TargetSchema.safeParse({ ...webBase, environment: 'staging' })
     expect(result.success).toBe(false)
     expect(result.success ? [] : result.error.issues.map((i) => i.path.join('.'))).toContain(

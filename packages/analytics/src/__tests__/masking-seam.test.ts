@@ -1,18 +1,4 @@
-// MASKING AT THE SEND SEAM (Phase 398 plan 06 task 2, D-17 / D-19 · ANLY-01 · T-398-06).
-//
-// WHERE THE ASSERTIONS SIT, AND WHY IT MATTERS THAT THEY SIT THERE. Every violation cell in this
-// file reads the GUNZIPPED BODY A REAL HTTP SERVER RECEIVED — not the object handed to
-// `maskEventForSend`, not the argument `client.capture` saw. Masking is a claim about what leaves
-// the process, and this repo has a filed precedent (395) for a corpus that asserted on a value's
-// `.message` while the channel a person actually saw was its serialization. The only honest place
-// to read "the secret did not leave" is where it would have arrived.
-//
-// THE ESCAPE-BLIND LESSON (396), made measurable rather than asserted. The planted secret carries a
-// double quote and a newline, so JSON serialization rewrites it: `sk-…"tok<LF>en"…` on the wire is
-// `sk-…\"tok\nen\"…`. An implementation that masks AFTER serialization by searching for the raw
-// value finds nothing and reports success. The control cell below sends the same payload with NO
-// masking context and asserts the ESCAPED form is what actually appears — so the violation cell's
-// "escaped form absent" is a discriminating assertion rather than a lucky one.
+// Assertions read the gunzipped body a real HTTP server received, where a leaked secret arrives.
 
 import { readFileSync } from 'node:fs'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
@@ -34,8 +20,7 @@ const PLANTED_SECRET = 'sk-live-"tok\nen"-9f3a-DEADBEEF'
 const ESCAPED_SECRET = JSON.stringify(PLANTED_SECRET).slice(1, -1)
 const MASK_TOKEN = '[secret:PLANTED_API_KEY]'
 
-// a literal stand-in for SecretRedactor's raw, exact replacement; this
-// package depends on nothing that exports it.
+// A literal stand-in for SecretRedactor's replacement; no dependency of this package exports it.
 function declaredContext(
   declared: Readonly<Record<string, string>> = { PLANTED_API_KEY: PLANTED_SECRET },
 ): AnalyticsMaskingContext {
@@ -76,14 +61,7 @@ async function sendThroughShippedPath(
   return sink.requests.at(-1)?.text ?? ''
 }
 
-/**
- * Drive the SHIPPED transport directly with a hand-built payload.
- *
- * The union's fields are enum-constrained by design, so the only way to exercise the seam's
- * STRUCTURE (nested objects, arrays, deep string leaves) is at the transport's own interface —
- * which is written against `AnalyticsEventEnvelope`, not the union. That is not a weaker surface:
- * it is the exact shape the seam must be safe for, including for members a later phase adds.
- */
+// Drives the shipped transport directly, the only way to reach nested string leaves past the enums.
 async function sendPayloadThroughTransport(
   sink: WireSink,
   payload: AnalyticsCapturePayload,
@@ -96,16 +74,7 @@ async function sendPayloadThroughTransport(
   })
   transport.capture(payload)
   await transport.flush()
-  // THE DRAIN, and why it is `shutdown` rather than another flush. Measured against
-  // posthog-node 5.33.2: `PostHog.capture()` is asynchronous — it registers
-  // `prepareEventMessage(...).then(captureStateless)` on the client's PENDING promise queue — and
-  // `flush()` sends only what is ALREADY enqueued, without joining that queue. `shutdown()` joins it
-  // (`await this.promiseQueue.join()`, then flushes until the queue is empty), which is why the
-  // pre-CR-01 transport, whose `flush()` called `client.shutdown()`, delivered a same-tick
-  // capture-then-flush. Nothing is lost in the product — a later boundary flush, the 10s flush timer
-  // or the exit shutdown carries it — but a cell that reads the wire in the same tick has to drain
-  // the way a host's exit does. The sibling helper above drains the same way, through the port's
-  // shutdown, because the port's flush starts the send without awaiting it.
+  // `shutdown` joins posthog-node's pending capture queue; `flush` sends only what is enqueued.
   await transport.shutdown()
   return sink.requests.at(-1)?.text ?? ''
 }

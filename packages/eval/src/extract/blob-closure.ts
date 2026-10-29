@@ -20,11 +20,7 @@ export interface BuildCompletenessInput {
   missingEvidence?: readonly MissingCassetteEvidence[]
 }
 
-/**
- * Classify required screenshot identity from Plan 12's authoritative persisted modality.
- * Only `stateBefore.metadata.captureMode === 'full'` proves image evidence was attached;
- * a usable dedicated ref satisfies identity even when its bytes are later unavailable.
- */
+// Only `captureMode === 'full'` proves an attached image; a usable ref satisfies identity.
 export function missingRequiredEvidence(input: CassetteInputLeg): MissingCassetteEvidence[] {
   if (input.stateBefore.metadata.captureMode !== 'full') return []
 
@@ -75,7 +71,7 @@ export function resolveBlobClosure(
   return { blobs, missingShas }
 }
 
-/** Fold independent missing-evidence facts into the single D-11 status vocabulary. */
+// Folds independent missing-evidence facts into the single status vocabulary.
 export function buildCompleteness(input: BuildCompletenessInput): CassetteCompleteness {
   const hasMissingBlobs = input.missingShas.length > 0
   const hasMissingEvidence = (input.missingEvidence?.length ?? 0) > 0

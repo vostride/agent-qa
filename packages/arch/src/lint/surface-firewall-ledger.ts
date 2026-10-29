@@ -1,17 +1,4 @@
-/**
- * FUNC-02 surface firewall ledger (D-01 / D-03, minted 2026-07-28, Phase 384).
- *
- * The transitional-core precedent applied to surfaces, at ONE granularity finer: an
- * entry waives an exact (file, specifier) PAIR, never a file and never a directory.
- * A ledgered file that acquires a second forbidden import still fails the build.
- *
- * Rules of this ledger:
- *   - It only ever SHRINKS. New surface code can never join it; a leak in a file
- *     written after 2026-07-28 is fixed, not waived.
- *   - Every entry names the phase that deletes it (`clearedBy`) and why it exists.
- *   - An entry whose leak has been cleared FAILS the build as stale, so the phase
- *     that clears a file is forced to delete its entries in the same commit.
- */
+// An entry waives one exact (file, specifier) pair, and a cleared entry fails as stale.
 export interface SurfaceLedgerEntry {
   /** Repo-relative path, forward slashes, exact — no directory prefixes. */
   file: string
@@ -197,8 +184,7 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'config and suite validation reads resolved config directly; joins the config action class',
   },
   {
-    // 2026-10-14 (Phase 441 plan 02, D-01/E3): the one host loader for workspace.secretsFile, shared
-    // with `agent-qa run`; it resolves the path as the run does and builds the run's SecretRedactor.
+    // The one host loader for `workspace.secretsFile`, shared with `agent-qa run`.
     file: 'packages/cli/src/composition/declared-secrets.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
@@ -211,20 +197,13 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'the declared-secrets loader builds the one masking function (SecretRedactor) the run uses; joins the typed config action class with local-agent-host.ts',
   },
   {
-    // four of this file's five entries are GONE, not moved.
-    // The reader, runner, runner-local and safety-local leaks left with the registry assembly that
-    // caused them, which now lives in composeLocalAgent(). What survives is config resolution — a
-    // different debt from the one 386 clears, so the clearing phase is restated as the typed config
-    // action class rather than left pointing at a phase that no longer touches this line.
     file: 'packages/cli/src/composition/local-agent-host.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
     reason: 'the CLI half of the local host resolves and masks configuration directly; joins the typed config action class',
   },
   {
-    // the direct config writer reaches the dashboard's
-    // config file transaction so the dashboard and a co-hosted writer take turns on one path. Lazily
-    // imported at write time; no second copy of the transaction exists in this package.
+    // Reaches the dashboard's config transaction so the dashboard and this writer share one path.
     file: 'packages/cli/src/composition/local-agent-host.ts',
     specifier: '@vostride/agent-qa-dashboard',
     clearedBy: 'M5',

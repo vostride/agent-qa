@@ -1,11 +1,6 @@
 import type { Action } from '@vostride/agent-qa-schema'
 
-/**
- * D-01 match-time operation classes over the sidecar's verbatim recorded verb. The exact
- * mapped type is a compile-time fall-through guard: adding an Action type breaks this table
- * until the new catalog verb receives an explicit class. MATCHER_CONFIG embeds this map so
- * every class change requires a matcher-version bump.
- */
+// The mapped type breaks this table until a new catalog verb gets an explicit class.
 export const OP_CLASS_MAP = Object.freeze({
   // Web catalog.
   navigate: 'navigate',
@@ -79,7 +74,7 @@ function isCatalogVerb(verb: string): verb is Action['type'] {
   return Object.hasOwn(OP_CLASS_MAP, verb)
 }
 
-/** Classify a catalog verb through D-01; every unknown string remains its own class. */
+// Every unknown string remains its own class.
 export function classifyOpClass(verb: string): string {
   if (!isCatalogVerb(verb)) return verb
   return OP_CLASS_MAP[verb]

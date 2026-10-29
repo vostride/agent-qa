@@ -1,6 +1,4 @@
-// The anonymous installation identity (re-homed from core in 398-06; race-safe since 447-02).
-// The record is `{distinctId, is_internal}` at the carried path and nothing else (prohibition P3).
-// Whether anything is sent is `compose.ts`'s call; this module only answers "who, anonymously".
+// The record is `{distinctId, is_internal}` and nothing else; `compose.ts` decides whether to send.
 
 import { randomUUID } from 'node:crypto'
 import { chmod, link, mkdir, readFile, rename, rm, writeFile } from 'node:fs/promises'
@@ -130,8 +128,7 @@ export function resolveAnalyticsAgentProduct(
   return undefined
 }
 
-// The one entry point a composition root calls. The host decides `ci`; a CI resolution is a
-// fresh in-memory id and touches no file.
+// The host decides `ci`; a CI resolution is a fresh in-memory id and touches no file.
 export async function resolveAnalyticsIdentity(
   options: ResolveAnalyticsIdentityOptions = {},
 ): Promise<ResolvedAnalyticsIdentity> {

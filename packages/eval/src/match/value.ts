@@ -1,9 +1,6 @@
 import { normalizeValueText } from '../replay/identity'
 
-/**
- * Tokenize through the ONE D-03 normalization vocabulary, then split on a fixed
- * non-alphanumeric character class. Recorded values are opaque data and never shape a pattern.
- */
+// Recorded values are opaque data and never shape a pattern.
 export function tokenizeValue(value: string): string[] {
   return normalizeValueText(value).split(/[^a-z0-9]+/).filter(Boolean)
 }
@@ -14,12 +11,7 @@ function tokenCounts(tokens: readonly string[]): Map<string, number> {
   return counts
 }
 
-/**
- * Deterministic, dumb-but-honest multiset F1 for D-03's value axis. Reordering, casing,
- * whitespace, and punctuation noise can settle locally; semantic equivalence belongs to the
- * Phase 370 tier-4 judge. Phase 369-06 applies this metric only when the sidecar carries
- * goldValue — valueless operations receive a typed not-applicable verdict, never a number.
- */
+// Applied only when the sidecar carries `goldValue`; semantic equivalence is the judge's.
 export function tokenSetF1(gold: string, candidate: string): number {
   const goldTokens = tokenizeValue(gold)
   const candidateTokens = tokenizeValue(candidate)

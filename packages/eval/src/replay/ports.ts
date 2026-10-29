@@ -1,7 +1,4 @@
-// D-04 replay ports. CRITICAL: eval core stays pure — runner symbols are imported as TYPES
-// ONLY, never as values, so no runner runtime crosses into this neutral package. The concrete
-// implementations (the production LLMPlanner wrapper, the monotonic clock) live in eval-local;
-// this module only declares the seams the replay engine consumes.
+// Runner symbols are imported as types only, so no runner runtime crosses into this package.
 
 import type { NonActionToolMap, PlanResult, StepContext } from '@vostride/agent-qa-runner'
 import type { ScreenState } from '@vostride/agent-qa-schema'
@@ -9,22 +6,14 @@ import type { CassetteReceipt } from '../cassette/receipt-leg'
 import type { CassetteSidecarLeg } from '../cassette/sidecar-leg'
 import type { ReplaySample } from './result'
 
-/**
- * A per-sample planner handle wrapping a production LLMPlanner constructed for one sample.
- * `model` is the underlying language-model handle (indexed off StepContext to avoid importing
- * the provider SDK here); `replayedModel` feeds the D-03 replayed-model id stamp on the result.
- */
+// `model` is indexed off `StepContext` so this package never imports the provider SDK.
 export interface ReplayPlannerHandle {
   plan(stepText: string, screenState: ScreenState, context: StepContext): Promise<PlanResult>
   model: StepContext['plannerModel']
   replayedModel: { provider: string; modelId: string }
 }
 
-/**
- * The planner-factory port. `create` is called once PER SAMPLE so consume-once exchange budgets
- * and token accounting stay per-sample (RESEARCH Pitfall 6). The eval-local composition helper
- * implements it.
- */
+// `create` runs once per sample so consume-once exchange budgets and token counts stay per sample.
 export interface ReplayPlannerFactory {
   create(input: {
     platform: ScreenState['platform']
@@ -32,25 +21,21 @@ export interface ReplayPlannerFactory {
   }): ReplayPlannerHandle
 }
 
-/** Per-decision recorded context supplied to the ONE escalation seam (369 F1 / D-10). */
+// Per-decision recorded context supplied to the escalation seam.
 export interface ReplayEscalationContext {
-  /** Cassette owning the replayed decision (369 F1). */
+  /** Cassette owning the replayed decision. */
   cassetteId: string
-  /** Live-decision position within the recorded step (369 F1). */
+  /** Live-decision position within the recorded step. */
   decisionOrdinal: number
-  /** Procedure-step position; structurally absent for leaf cassettes (369 F1). */
+  /** Procedure-step position; structurally absent for leaf cassettes. */
   stepIndex?: number
-  /** This decision's own gold sidecar — never another procedure step's leg (369 F1). */
+  /** This decision's own gold sidecar, never another procedure step's leg. */
   sidecar: CassetteSidecarLeg
-  /** This decision's reproducibility receipt (369 F1). */
+  /** This decision's reproducibility receipt. */
   receipt: CassetteReceipt
 }
 
-/**
- * The ONE escalation seam: score the first sample against its positional decision
- * context, then decide whether to run more samples. Phase 369 binds tiers-settle and Phase 370
- * binds judge escalation onto this same breaking-signature seam; the legacy signature is removed.
- */
+// Scores the first sample against its decision context, then decides whether to sample more.
 export type ReplayEscalationPredicate = (
   firstSample: ReplaySample,
   context: ReplayEscalationContext,

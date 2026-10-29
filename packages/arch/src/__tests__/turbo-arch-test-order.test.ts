@@ -1,13 +1,4 @@
-/**
- * C-HYG-ARCH-TEST-ORDER (quick 261002-hyg, 432-14 #6): the arch tests read other packages' source,
- * and that source resolves `@vostride/agent-qa-*` through each package's built `dist`; two cells
- * read `core/dist` and `cli/dist` directly. The arch package declares none of those packages, so
- * its own `^build` orders nothing. A forced `--concurrency=2` run once started the arch tests
- * while the schema build had cleared its `dist`. This pins the task graph that prevents it: the
- * arch test waits for every package build under `packages/`, named or reached through `^build`.
- * The arch typecheck compiles the same source, so a fresh clone (no `dist` yet) needs the same
- * order for it.
- */
+// The arch test reads other packages' built `dist`, so it waits for every package build.
 import { readdirSync, readFileSync, existsSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'

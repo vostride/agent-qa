@@ -22,11 +22,11 @@ export interface CassetteSamplingReceipt {
 export interface CassetteJudgeReceipt {
   /** Recorded verifier identity that produced the current label, when present. */
   recordedVerifier?: ModelIdentity
-  /** Reserved identifier for the later tier-4 judge contract. */
+  // Reserved judge identifier; nothing writes it.
   tier4JudgeId?: string
 }
 
-/** Eight-part reproducibility receipt for a cassette decision. */
+// Reproducibility receipt for a cassette decision.
 export interface CassetteReceipt {
   /** Full digest of the canonical serialized cassette input leg. */
   promptInputHash: string

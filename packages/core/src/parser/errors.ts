@@ -42,10 +42,7 @@ export function formatParseError(
   let output = ''
   output += `${severity}: ${error.message}\n`
   output += `  ${boldBlue('-->')} ${error.file}:${error.line}:${error.column}\n`
-  // THE SAME EMPTINESS GUARD `run.ts:605` ALREADY HAS. `formatYamlError` now returns an
-  // empty `source`, and an excerpt block with no excerpt in it is a blank line and a caret pointing
-  // at nothing. This is a rendering guard, not a second disclosure guard: the value is already empty
-  // at the producer.
+  // `formatYamlError` returns an empty `source`, so the excerpt block is skipped.
   if (error.source) {
     output += `  ${boldBlue(`${pad} |`)}\n`
     output += `  ${boldBlue(`${lineNum} |`)} ${error.source}\n`
@@ -65,33 +62,7 @@ function getSourceLine(content: string, line: number): string {
   return lines[line - 1] ?? ''
 }
 
-/**
- * WHERE, NEVER WHAT — the FOURTH MEMBER, and the one that speaks on TWO channels (395-18 · F-01).
- *
- * `validateFiles` branches on `isSuiteFile` (`validation/validate.ts:341-345`). 395-16 hardened the
- * `if` arm (`validateSuiteFile`) and left the `else` arm: every plain test yaml, reaching here
- * through `validateTestFile` -> `parseTestFile` (`prettyErrors: true`). This function used to return
- * the caught error's own `message` — `yaml` pretty-prints a parse fault with a VERBATIM EXCERPT of
- * the source around the point it gave up, measured on the shipped binary carrying a planted
- * credential out of `agent-qa validate`. A `.suite.yaml` extension is not a property of what a file
- * contains, and it was the only thing separating a hardened member from a leaking one.
- *
- * AND `source` IS THE SECOND CHANNEL. It is `content` split by line and indexed by the fault's own
- * position — the person's own line, verbatim. `formatParseError` renders it, `run.ts:599-613` prints
- * it, and `run.ts:2676` persists the rendering into the dashboard DB. A store is a surface with a
- * delay, so hardening `message` alone would have left the `run` road republishing the same bytes.
- * Both fields are composed here, at the ONE producer `parseTestFile` feeds, so no downstream
- * consumer can reopen either channel.
- *
- * `prettyErrors` STAYS ON at the parser: it is what populates `linePos`, and the two numbers this
- * arm reads are the whole of what the product publishes. The pretty message is DISCARDED here, not
- * suppressed there.
- *
- * `formatZodErrors` is untouched and still carries `source`: a schema issue is a fact about the
- * SHAPE the person wrote, reported at a position this product chose, and the excerpt is the help.
- * The yaml arm is different because the excerpt's extent is the LIBRARY's choice, made around bytes
- * nobody validated.
- */
+// Reports the fault's line and column only: yaml's pretty message quotes unvalidated source bytes.
 export function formatYamlError(
   err: { message: string; pos?: [number, number] },
   linePos: { line: number; col: number } | undefined,

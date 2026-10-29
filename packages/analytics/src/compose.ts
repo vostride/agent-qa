@@ -1,6 +1,4 @@
-// The one opt-out decision site. It is made once, before any transport exists, and its answer is
-// the transport: opted out or keyless builds none at all.
-// `analytics.privacy: true` is the only input.
+// The one opt-out decision site: opted out or keyless builds no transport at all.
 
 import { createAnalyticsPort } from './port.js'
 import { createPosthogTransport } from './transports.js'
@@ -29,10 +27,7 @@ export interface ComposeAnalyticsOptions {
   readonly identity?: AnalyticsIdentityResolver
   readonly projectKey?: string
   readonly projectHost?: string
-  /**
-   * The host's declared-secret mask, which the send seam applies. It reaches only
-   * the opted-IN arm: the deny arm has no transport, so there is no payload to mask.
-   */
+  // The host's declared-secret mask; only the opted-in arm has a transport to apply it.
   readonly maskingContext?: AnalyticsMaskingContext
   /** Replaces the transport on the OPTED-IN arm only. Never consulted once the answer is deny. */
   readonly transportOverride?: AnalyticsTransport

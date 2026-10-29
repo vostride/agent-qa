@@ -1,20 +1,4 @@
-// The re-homed identity store and run-completion subscriber (Phase 398 plan 06 task 3, D-17).
-//
-// WHAT THESE CELLS ARE GUARDING. Both modules were MOVED out of `packages/core/src/analytics/`
-// rather than re-invented, and a move has exactly two ways to go wrong that a green test suite
-// would otherwise hide:
-//
-//   1. The id scheme drifts. If the re-homed generator mints a different SHAPE of id, every
-//      existing install silently becomes a new person on the next run — the analytics equivalent
-//      of dropping the table. So the scheme is asserted on a PRODUCED id (parsed back through
-//      `id-agent`, the same parser the ids package uses) rather than restated as a literal, AND
-//      against a frozen literal of the carried constants. Plan 06 additionally cross-checked core's
-//      surviving copy of the scheme; 398-11 deleted that copy, so that cell is gone — see the note
-//      on the scheme cell below for why it was removed rather than left standing.
-//   2. The record widens. The stored record is two keys, and prohibition P3 says it stays two
-//      keys — no hostname, no username, no cwd, no repo, no path. The key-set pin below reads the
-//      record BACK OFF DISK and parses it, because the object handed to the writer is not the
-//      thing an attacker or an audit sees; the bytes are.
+// The stored record is read back off disk, because the bytes are what an audit sees.
 
 import { existsSync } from 'node:fs'
 import { mkdtemp, readFile, rm, stat, writeFile, mkdir } from 'node:fs/promises'
@@ -52,22 +36,7 @@ async function tempDataHome(): Promise<string> {
 
 describe('the re-homed distinct-id scheme', () => {
   it('mints the id shape the deleted core module minted — prefix and word count, frozen', () => {
-    // WHERE 'u' AND 10 COME FROM, AND WHY THEY ARE WRITTEN OUT HERE.
-    //
-    // Plan 06 anchored this claim TWICE: on a produced id, and on the literal
-    // `idAgent({ prefix: 'u', words: 10 })` still spelled in `packages/core/src/analytics/
-    // identity.ts` — the definition this module was carried from. Plan 11 deleted that file, and
-    // the second cell was guarded by `existsSync`, so it did not fail when its subject vanished:
-    // it RETURNED EARLY AND REPORTED A PASS. Measured before the deletion landed, the file reports
-    // `Tests 18 passed (18)` both with core's `identity.ts` present and with it absent — a cell
-    // asserting nothing, indistinguishable from a cell asserting something.
-    //
-    // So it was deleted rather than left standing, and the claim is re-anchored here on a FROZEN
-    // LITERAL: 'u' and 10 are the exact values core spelled at the moment of its deletion, copied
-    // into this file so that the scheme now has an origin written down instead of a second live
-    // definition to agree with. The pair of claims below still catches drift in either direction —
-    // a changed constant reds the frozen literal, a generator that stops reading the constants reds
-    // the produced id.
+    // `u` and 10 are written out, so a changed constant and a generator that ignores it both fail.
     const parsed = parse(generateAnalyticsUserId())
 
     expect(parsed?.prefix).toBe('u')
@@ -114,8 +83,7 @@ describe('the identity store round-trip', () => {
 
     const record = JSON.parse(await readFile(identityPath, 'utf8')) as Record<string, unknown>
 
-    // Prohibition P3 as an exact-set claim: anything a later change adds — a hostname, a username,
-    // a cwd, a repo slug, a path — lands here as an unexpected key and reds, which is the point.
+    // An exact key set: any added key, such as a hostname or a path, fails here.
     expect(Object.keys(record).sort()).toEqual(['distinctId', 'is_internal'])
     expect(typeof record.distinctId).toBe('string')
     expect(record.is_internal).toBe(false)

@@ -6,7 +6,7 @@ describe('resolveJudgeFamily', () => {
   it('resolves known families across real BYOM id shapes', () => {
     expect(resolveJudgeFamily('claude-sonnet-4-5')).toBe('claude')
     expect(resolveJudgeFamily('us.anthropic.claude-opus-4')).toBe('claude')
-    // gpt-* and the o-series are ONE openai family (Pitfall 6): near-siblings never self-judge.
+    // gpt-* and the o-series are one openai family, so near-siblings never self-judge.
     expect(resolveJudgeFamily('gpt-4o-mini')).toBe('openai')
     expect(resolveJudgeFamily('gpt-5')).toBe('openai')
     expect(resolveJudgeFamily('o3-mini')).toBe('openai')

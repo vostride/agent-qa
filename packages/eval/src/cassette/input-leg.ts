@@ -22,25 +22,17 @@ export interface CassetteInputLeg {
   stepText: string
   /** Persisted observation the planner received before choosing the action. */
   stateBefore: ScreenState
-  /** Exact three-channel knowledge brief served for this step (D-03/A11). */
+  // Exact three-channel knowledge brief served for this step.
   servedBrief: ServedBrief
-  /** Run-scoped planner memory served beside, never merged into, the brief (D-03/A11). */
+  // Run-scoped planner memory served beside, never merged into, the brief.
   workingMemory?: WorkingMemoryEntry[]
-  /**
-   * Run-constant retrieval rung recorded beside — never inside — the brief (413 D-07,
-   * 407 D-13), so `briefDigest` and §A11's exactly-three channels stay untouched. Absent on
-   * legacy cassettes and on runs with no knowledge reader bound; the census counts those as
-   * `legacy-no-rung` rather than hiding them.
-   */
+  // Recorded beside the brief so `briefDigest` is untouched; absent on legacy cassettes.
   retrievalRung?: RecordedRetrievalRung
-  /**
-   * Ordered non-action exchanges from the live turn. They are opaque
-   * evidence data; consumers must never execute their model-authored arguments or results.
-   */
+  // Ordered non-action exchanges: opaque evidence whose model-authored contents never execute.
   exchanges: ToolExchangeEvidence[]
   /** Declared model and sampling intent; unavailable values remain absent. */
   modelProfile?: DeclaredModelProfile
-  /** Typed planner-screenshot identity; absent until later phases mint it. */
+  // Typed planner-screenshot identity; absent when the decision recorded no screenshot.
   decisionScreenshotRef?: ArtifactRef
   /** Ordered non-screenshot evidence refs kept distinct from the screenshot role. */
   auxiliaryArtifactRefs?: readonly ArtifactRef[]

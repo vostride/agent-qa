@@ -9,10 +9,7 @@ import {
   resolveWorkspacePaths,
 } from '../workspace-paths.js'
 
-// RUNX-06 regression: the intermittent "0 of 0 tests" empty run was suspected to originate in a
-// cold-call `glob` returning empty on the first discovery. This locks the invariant that
-// `discoverWorkspaceFiles` is DETERMINISTIC and NON-EMPTY for an existing matching target — so a
-// future change to the glob options/cache can never silently reintroduce a spurious empty result.
+// `discoverWorkspaceFiles` is deterministic and non-empty for an existing matching target.
 
 const tempRoots: string[] = []
 

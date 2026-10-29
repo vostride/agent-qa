@@ -1,10 +1,4 @@
-// D-13 judge family identity map. This is an IDENTITY table, deliberately separate from
-// model's capability family-table (capability ≠ identity): the mechanics mirror that module
-// without importing it, because eval core must stay provider-neutral and an identity law
-// must not drift with capability tuning. Family resolves from model-id TOKENS ONLY — a
-// ModelProfile.provider value is a transport id ('openai-compatible' serves Llama, Qwen,
-// and DeepSeek alike) and can never establish family. Unknown resolves to undefined, which
-// downstream eligibility treats as same-family and therefore forbidden — never a guess.
+// Family resolves from model-id tokens only; a provider value is a transport id, not a family.
 
 /** Closed coarse family-name union — gpt and the o-series are ONE openai family. */
 export type JudgeFamily =
@@ -16,11 +10,7 @@ export type JudgeFamily =
   | 'deepseek'
   | 'mistral'
 
-/**
- * Conservative model-id-token seeds per family. Unsure tokens are omitted on purpose:
- * unknown ⇒ undefined ⇒ forbidden is the safe default. The map is embedded in
- * JUDGE_CONFIG so any edit here is covered by the pinned-hash bump guard.
- */
+// Unsure tokens are omitted, so they resolve unknown and forbidden; edits change the pinned hash.
 export const JUDGE_FAMILY_MAP: Readonly<Record<JudgeFamily, readonly string[]>> = Object.freeze({
   claude: Object.freeze(['claude']),
   openai: Object.freeze(['gpt', 'o1', 'o3', 'o4']),

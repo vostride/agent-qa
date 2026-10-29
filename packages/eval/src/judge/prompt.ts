@@ -1,17 +1,4 @@
-// D-07 minimality law: this module assembles the judge's ENTIRE evidentiary world — minimal
-// textual evidence only (step text, the gold-vs-candidate identities or the two values, and
-// optional recorded element names/roles). No screenshots, no full accessibility tree: what
-// buildJudgePrompt renders is everything the judge is ever shown.
-//
-// the A/B order swap is PHYSICAL — each order is its own independently assembled payload
-// with the item contents actually transposed, never both orders in one prompt. Swap agreement
-// is adjudicate's job; this module only guarantees the transposition is real.
-//
-// Every template/framing string comes from JUDGE_CONFIG.promptTemplate so the judgeVersion
-// bump-guard hash covers the injection defense; this module contributes assembly logic only.
-// All app-derived content (names, values, step text, element lists) renders strictly inside
-// frameBegin/frameEnd untrusted-data frames — labels, questions, and framing lines are the
-// only content outside frames (spec §B4(b) content-as-data posture).
+// All app-derived content renders inside untrusted-data frames; the judge sees nothing else.
 
 import { JUDGE_CONFIG } from './config'
 import type { JudgeOrder } from './port'
@@ -28,7 +15,7 @@ export type JudgeQuestion =
   | { kind: 'element-equivalence'; gold: JudgeElementEvidence; candidate: JudgeElementEvidence }
   | { kind: 'value-equivalence'; goldValue: string; candidateValue: string }
 
-/** The complete judge-visible evidence for one tie (D-07 — nothing else is ever shown). */
+// The complete judge-visible evidence for one tie; nothing else is shown.
 export interface JudgeTieEvidence {
   stepText: string
   question: JudgeQuestion
@@ -77,8 +64,7 @@ export function buildJudgePrompt(
     candidateContent = question.candidateValue
   }
 
-  // D-08 physical assignment: 'ab' puts the gold side under ITEM A; 'ba' transposes.
-  // The labels stay neutral — the prompt never reveals which side is which.
+  // `ab` puts gold under ITEM A and `ba` transposes; the labels stay neutral.
   const itemAContent = order === 'ab' ? goldContent : candidateContent
   const itemBContent = order === 'ab' ? candidateContent : goldContent
 

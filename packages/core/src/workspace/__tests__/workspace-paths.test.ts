@@ -41,7 +41,6 @@ export async function createSampleWorkspaceConfigFixture(): Promise<SampleWorksp
       dashboard: {
         port: 3470,
         artifactsDir: '.agent-qa/custom-artifacts',
-        // `runServiceTokens` is deleted, so the parsed shape no longer carries it.
       },
       cache: {
         dir: '.agent-qa/custom-cache',
@@ -178,10 +177,7 @@ describe('workspace path resolver', () => {
   })
 })
 
-// The ONE spelling of the durable identity recipe. The committed quarantine
-// ledger keys entries on this string, so "the same file under a different checkout root answers
-// the same bytes" is not a convenience — it is the property that lets a ledger written on one
-// machine suppress on another.
+// The committed quarantine ledger keys on this string, so one machine's ledger works on another.
 describe('workspaceRelativeIdentityPath', () => {
   const CHECKOUT_A = path.join(path.sep, 'Users', 'someone', 'repo')
   const CHECKOUT_B = path.join(path.sep, 'var', 'ci', 'workspace', '4711', 'repo')

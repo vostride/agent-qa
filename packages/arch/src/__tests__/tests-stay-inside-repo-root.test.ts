@@ -100,8 +100,7 @@ const pathCallName = (call: ts.CallExpression): string | undefined => {
   return undefined
 }
 
-// `expect(x).toBe('…')` and `expect(x).not.toContain('…')`: the operand is compared with what the
-// code produced, never resolved, so a path-shaped expectation is data (434-06 narrowing of R-DEMO).
+// A matcher operand is compared with the code's output, never resolved, so a path in it is data.
 const isMatcherCall = (call: ts.CallExpression) => {
   let callee: ts.Expression = call.expression
   if (!ts.isPropertyAccessExpression(callee)) return false

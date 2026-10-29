@@ -19,16 +19,12 @@ const CONTENT_ROLES = new Set([
   'progressbar',
 ])
 
-// Only interactive/content roles become interim nodes; structural containers
-// (group/window/application/scroll-area/...) are filtered — their children reparent to
-// the nearest surviving ancestor. This preserves the v1 element set exactly (the same
-// nodes that used to receive refs), now minted by the shared builder.
+// Only interactive and content roles become nodes; containers drop and their children reparent.
 function shouldEmit(role: string): boolean {
   return INTERACTIVE_ROLES.has(role) || CONTENT_ROLES.has(role)
 }
 
-// fast-xml-parser leaves attribute values as strings (parseAttributeValue is off), so a
-// real boolean signal is the literal "true" — coerce defensively per T-352-07.
+// fast-xml-parser leaves attributes as strings, so a real boolean is the literal `"true"`.
 function boolAttr(value: unknown): boolean {
   return value === true || value === 'true'
 }
@@ -76,28 +72,7 @@ function extractValue(attrs: Record<string, any>, platform: 'android' | 'ios'): 
   return String(value)
 }
 
-/**
- * D-08 attribute lift. Only signals the platform actually emitted populate `state` —
- * an absent attribute leaves the key typed-absent (the builder applies documented
- * defaults). No signal is ever fabricated.
- *
- * Attribute names verified against core/src/mobile/__tests__/xml-parser.test.ts
- * page-source fixtures (Assumption A1): Android UiAutomator2 uses hyphenated
- * `resource-id`/`content-desc` and literal `checkable`/`checked`/`selected`/`focused`/
- * `scrollable`/`enabled`/`displayed`; iOS XCUITest uses `value`/`selected`/`enabled`/
- * `visible`. `scrollable` is retained in the raw attribute bag (consumed by
- * deriveMobileScroll), not lifted onto state.
- *
- * iOS `editable`: XCUITest exposes no editability attribute (WDA writes `focused` only on
- * tvOS, and `traits` lists public UIKit traits only), so the XCUI text-entry type is the
- * platform's editability signal. It is a candidate: the adapter confirms it by keyboard
- * focus at execution, which is how a static UITextView is told apart.
- *
- * iOS `checked`: XCUITest reports a switch, toggle or checkbox's state only as its
- * `value`, so for a classifier toggle of role `switch` or `checkbox` the value '1' lifts to
- * checked true and '0' to checked false. Any other value, or none, leaves `checked` absent.
- * `selected` keeps no toggle meaning on either platform.
- */
+// Only emitted signals populate `state`; iOS reports a toggle's state only as its `value`.
 function liftState(
   tagName: string,
   role: string,
@@ -377,12 +352,7 @@ export function parseMobileSource(
   return { nodes: ctx.nodes }
 }
 
-/**
- * Reconstruct the execute-time `lastRefs` record from the interim nodes plus the shared
- * builder's ref->node binding. The mobile adapters store this privately so
- * planner-ref -> live-node resolution survives the builder taking over ref minting. No
- * position lives anywhere: not here, not on the binding, not on ElementInfo.
- */
+// Planner-ref to live-node resolution for the adapters; no position lives on the binding.
 export function buildRefEntries(
   nodes: InterimNode[],
   binding: Record<string, RefBinding>,
@@ -407,14 +377,7 @@ export function buildRefEntries(
   return entries
 }
 
-/**
- * Best-effort mobile scroll metadata. Unlike web — which reads the exact window
- * scroll offset and document content size — mobile page source exposes no true scroll
- * position, so this is a documented approximation, explicit and never silently precise:
- * contentWidth/contentHeight are the maximum element extent across all node bounds
- * (falling back to the viewport dimensions when no node carries bounds), and
- * offsetX/offsetY stay 0 (no reliable scroll-offset signal in the source).
- */
+// An approximation: page source has no scroll offset, so offsets are 0 and size is the node extent.
 export function deriveMobileScroll(
   nodes: InterimNode[],
   viewport: { width: number; height: number },

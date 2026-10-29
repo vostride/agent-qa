@@ -1,7 +1,4 @@
-// The RPLY-01 belt-and-braces clause: a hard-error adapter-shaped stub. plan() structurally
-// touches no adapter on the replay path, but anywhere an adapter-shaped object is demanded
-// this stub stands in and hard-errors from every method — replay never acts. execute() is
-// first among them; every action-capable method throws unconditionally.
+// Every action-capable method throws, so replay never acts even where an adapter is demanded.
 
 import type { PlatformAdapter } from '@vostride/agent-qa-runner'
 import type { ScreenState } from '@vostride/agent-qa-schema'

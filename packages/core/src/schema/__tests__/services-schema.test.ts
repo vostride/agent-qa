@@ -1,19 +1,7 @@
 import { describe, it, expect } from 'vitest'
 import { DashboardConfigSchema, ServicesSchema } from '../services-schema.js'
 
-// `services.dashboard.baseUrl` is refused at the PARSE boundary unless it is an absolute http(s)
-// URL.
-//
-// WHY THIS VALUE AND NOT EVERY STRING IN THE FILE. In M5 this one stops being a display string. It
-// composes the tokenless live link (`liveRunLinkOf` only strips trailing slashes), and that link is
-// assigned to an `href` inside the served App document — which runs with `allow-scripts` at an
-// opaque origin — AND appended verbatim to every carrier tool result's model-readable text. Before
-// the refinement, `baseUrl: 'javascript:alert(1)'` composed `javascript:alert(1)/runs/<id>/live`
-// and reached both hops. The trust boundary is the operator, so this is not remote-triggerable; the
-// finding is that a URL-shaped value reached an `href` with no scheme check at any hop.
-//
-// THE MESSAGE IS ASSERTED, not just the refusal. An operator who wrote a relative path needs to be
-// told what the value must BE.
+// `baseUrl` composes an `href` in the App document, so only an absolute http(s) URL parses.
 
 const MESSAGE = 'services.dashboard.baseUrl must be an absolute http(s) URL'
 

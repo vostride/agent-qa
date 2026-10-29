@@ -62,28 +62,11 @@ export const UseSchema = z.object({
   logCapture: LogCaptureConfigSchema.optional(),
   cache: z.boolean().optional(),
   llm: z.string().optional(),
-  /**
-   * Names the app-under-test build for the DCAY-01 buildTag-to-ordinal mapping.
-   * Precedence: CLI --build-tag > AGENT_QA_BUILD_TAG > this config key.
-   */
+  // Precedence: CLI `--build-tag`, then `AGENT_QA_BUILD_TAG`, then this key.
   buildTag: z.string().trim().min(1).optional(),
-  /**
-   * run the members of one run CONCURRENTLY. Absent or false is one member at a
-   * time — today's behaviour, byte for byte.
-   */
+  // Runs one run's members concurrently; absent or false runs one member at a time.
   parallel: z.boolean().optional(),
-  /**
-   * the ceiling on concurrent members when `parallel` is true. Absent resolves to
-   * `DEFAULT_PARALLEL_WORKERS` (3). Effective concurrency is `min(memberCount, workers)`, decided
-   * in exactly one place — `resolveEffectiveWorkers` in `@vostride/agent-qa-schema`.
-   *
-   * A POSITIVE INTEGER, refused otherwise: an unbounded or nonsensical count here is the only
-   * reachable input to a concurrency denial-of-service, and it is a config typo rather
-   * than a caller's field — `RunsStartInput` names neither of these two.
-   *
-   * NOT `.default(...)`: a defaulted key changes the PARSED config type and every hand-built
-   * config fixture would then need it. The default is the resolver's, not the schema's.
-   */
+  // Not defaulted, so the parsed type is unchanged; `resolveEffectiveWorkers` owns the default.
   workers: z.number().int().positive().optional(),
 }).strict()
 
@@ -117,7 +100,7 @@ export const UseOverrideSchema = z.object({
   mobile: MobileUseOverrideSchema.optional(),
   llm: z.string().optional(),
   parallel: z.boolean().optional(),
-  /** the override half of `use.workers`. Same shape as `UseSchema`'s. */
+  // The override half of `use.workers`, shaped like `UseSchema`'s.
   workers: z.number().int().positive().optional(),
   device: z.string().optional(),
 }).strict()

@@ -103,9 +103,7 @@ export function extractRunCassettes({
           label: projectLabelLeg({
             step,
             subAction: selection.subAction,
-            // the root cause is recorded on the MEMBER, not the step, so the extractor
-            // is the one caller that can supply it. Absent members stay absent — extraction
-            // never mints a verdict the run did not record.
+            // Root cause lives on the member; only the extractor supplies it.
             rootCause: handoffTest.rootCause,
           }),
           receipt: assembleReceipt({

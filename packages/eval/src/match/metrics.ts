@@ -55,11 +55,7 @@ interface PerDecisionCost {
   durationMs: number
 }
 
-/**
- * D-04 distinct judge cost component. Judge calls are never replay samples, so their usage is
- * aggregated from the outcome stamps alone (Pitfall 8) and stays typed-absent-honest: stamps
- * lacking usage are counted in `outcomesMissingUsage` instead of being fabricated.
- */
+// Judge usage comes from outcome stamps; stamps without usage count in `outcomesMissingUsage`.
 interface JudgeCost {
   calls: number
   inputTokens: number
@@ -67,11 +63,7 @@ interface JudgeCost {
   outcomesMissingUsage: number
 }
 
-/**
- * D-04/D-12 judge honesty counters: every judge disposition is a visible count per TieCause,
- * errors stay distinct from calibrated abstentions, and not-invoked is counted per
- * reason so the no-eligible-judge capability gap headlines loudly.
- */
+// Every judge disposition counts per `TieCause`; errors stay apart from calibrated abstentions.
 interface JudgeHonesty {
   invoked: Counts<TieCause>
   settled: Counts<TieCause>
@@ -92,10 +84,7 @@ export interface ScoredBatchEntry {
   label?: CassetteLabelLeg
 }
 
-/**
- * Pure D-14 report DTO. Accuracy exposes its denominator, flags remain named distributions,
- * and no field combines the independent matcher axes into a fitness-like scalar.
- */
+// Accuracy exposes its denominator, and no field folds the matcher axes into one scalar.
 export interface EvalBatchReport {
   matcherVersion: number
   batchKey: string
@@ -119,10 +108,7 @@ export interface EvalBatchReport {
   briefSourceCounts: Counts<BriefSource>
   /** Present only for a declared seed; false iff any sample of any decision listed seed. */
   seedHonored?: boolean
-  /**
-   * Sorted distinct provider-reported fingerprints across every sample of every decision.
-   * Absent when none were reported. Disclosure only; never keys a profile.
-   */
+  // Distinct provider fingerprints, sorted; disclosure only, never a profile key.
   providerFingerprints?: readonly string[]
   kEscalation: {
     decisionCount: number
@@ -150,25 +136,15 @@ export interface EvalBatchReport {
     recoveredPositiveCount: number
     eligiblePositiveCount: number
     recoveryAccuracy?: number
-    /**
-     * D-08 bucket: a full match on a contrastive-negative repeats the recorded mistake and is
-     * excluded from the headline accuracy numerator AND denominator; counted here so the
-     * channel is never invisible. Always present; label-free batches state zero.
-     */
+    // A full match on a contrastive negative repeats the mistake: counted here, not in accuracy.
     negativeDecisionCount: number
     /** Excluded negative decisions whose replay fully matched the recorded mistaken action. */
     negativeFullMatchCount: number
   }
   totalCost: TotalCost
-  /** D-16 report-level judge identity receipt; absent when no judge existed for the batch. */
+  // Report-level judge identity receipt; absent when no judge existed for the batch.
   judge?: JudgeIdentityBlock
-  /**
-   * 413-15 mixed-identity marker — the D-16 receipt's sibling for the case where one report's
-   * persisted score records carried canonically DIFFERING judge identity blocks. Present ONLY
-   * then; every non-mixed report carries neither this nor `mixedJudgeModelIds`, so already
-   * committed report bytes are unchanged. A mixed batch has no single identity to receipt, and
-   * one is never synthesized — so `judge` is absent whenever this is present.
-   */
+  // Present only when score records carry differing judge identities; then `judge` is absent.
   judgeIdentity?: 'mixed'
   /**
    * The distinct `judgeModelId`s actually seen across the batch's persisted score records,
@@ -349,14 +325,7 @@ export function computeBatchKey(cassetteIds: readonly string[]): string {
   return sha256hex(canonicalJson([...cassetteIds].sort()))
 }
 
-/**
- * Aggregate a scored replay batch without recomputing score, drift, or agreement signals.
- *
- * `identity` states that the batch mixed judge identities. A caller may not supply both
- * `judge` and `identity` — a mixed batch by definition has no single block — and if both arrive
- * the identity wins and `judge` is dropped, so the report can never claim one identity while
- * disclosing several.
- */
+// When both `judge` and `identity` arrive the identity wins, so no report claims a single judge.
 export function buildEvalReport(
   entries: readonly ScoredBatchEntry[],
   judge?: JudgeIdentityBlock,
