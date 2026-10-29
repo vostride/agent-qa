@@ -1,5 +1,5 @@
-// C445-EXAMPLES (445-02, 445-03, D-06, D-26, D-32, D-40): init writes the Komazon examples
-// C445-SECRETS-LINE (445-03, D-09, D-27): the example secret goes only into a created secrets file
+// init writes the Komazon examples
+// the example secret goes only into a created secrets file
 import { describe, it, expect, vi, beforeEach, afterEach, afterAll } from 'vitest'
 import { Command } from 'commander'
 import { parse as parseYaml } from 'yaml'

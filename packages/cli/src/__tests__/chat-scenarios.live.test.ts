@@ -1,4 +1,4 @@
-// THE LIVE LANE (Phase 392 plan 09, CHAT-02 / CHAT-03 / CHAT-06 / D-13).
+// THE LIVE LANE.
 //
 // A RELEASE GATE, NOT A PER-COMMIT ONE. `planner/` and `compound/` scenarios route through a real
 // model, so they cost tokens and take wall-clock, and D-13 puts them behind an env gate for exactly
@@ -12,7 +12,7 @@
 // `generateText` through the composed model, so an auth failure reds ONE named case instead of
 // shot-gunning nine scenario cells with nine different-looking errors that all mean "not logged in".
 //
-// THE MODEL COMES FROM THE HOST'S OWN RESOLUTION (CHAT-06). `resolveCliChatCapabilities` is the same
+// THE MODEL COMES FROM THE HOST'S OWN RESOLUTION. `resolveCliChatCapabilities` is the same
 // function `agent-qa chat` calls — `createModel` behind the masking middleware and the profile
 // resolution, never a provider client built here. A source assertion at the bottom pins the absence
 // of any `@ai-sdk/*` import, by SPECIFIER rather than by vocabulary: this header talks about
@@ -79,7 +79,7 @@ const HUMAN: FunctionCaller = {
 
 const LIVE_CORPUS = SCENARIO_CORPUS.filter((entry) => entry.lane === 'live')
 
-/** The ceiling's denominator: `should_execute` cells in the FROZEN manifest (D-15). */
+/** The ceiling's denominator: `should_execute` cells in the FROZEN manifest. */
 const LIVE_DENOMINATOR = LIVE_CORPUS.filter((entry) => entry.kind === 'should_execute').length
 
 function readScenario(entry: (typeof SCENARIO_CORPUS)[number]): ChatScenario {
@@ -174,7 +174,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
         agentQaRoot,
         configPath: String(LIVE_CONFIG),
         runExecution,
-        // 2026-10-01 (432-17): the proposal apply delegate is deleted; the live gate still opens no
+        // the proposal apply delegate is deleted; the live gate still opens no
         // socket to a daemon that may be running.
         knowledgeChangeDelegate: () => Promise.reject(new Error('no change delegation in the live gate')),
         ...(capabilities === undefined
@@ -237,7 +237,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
         const { result } = cell
         const reading = cellReading(scenario, result)
         const executed = result.receipts.filter((receipt) => receipt.status === 'executed')
-        // 399.1 D-02: `refused` is a fourth word for a clause that RAN AND RETURNED, so a roll-call
+        // `refused` is a fourth word for a clause that RAN AND RETURNED, so a roll-call
         // spelled over `executed` alone acquired a hole exactly its width the day the member
         // landed. See `clauseReachedCapability`'s own header for why `failed` is outside it.
         const reached = result.receipts.filter((receipt) => clauseReachedCapability(receipt.status))
@@ -266,7 +266,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
             ...result.receipts.map((receipt) => receipt.clause),
           ]
           expect(namings.some((text) => text.includes(named)), reading).toBe(true)
-          // THE SIDE-EFFECT ROWS (392-11). `executed == 0` stayed true through both defects the
+          // THE SIDE-EFFECT ROWS. `executed == 0` stayed true through both defects the
           // gap round closed — a directive never crosses the function layer, and an erased clause
           // leaves no receipt — so the arm reads the log a refused turn left instead.
           expect(

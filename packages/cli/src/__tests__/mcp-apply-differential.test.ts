@@ -9,7 +9,7 @@
 //
 //   the first apply refuses and commits nothing       -> section 2: the change tool writes on its
 //                                                        one call; the repository still has no
-//                                                        commit (D-07) and no proposal is filed
+//                                                        commit and no proposal is filed
 //   the confirmed apply commits exactly once          -> sections 1-2: exactly one change, read
 //                                                        back from disk; zero commits
 //   a replayed confirmation answers as data           -> section 3: a repeated operation identity
@@ -167,7 +167,7 @@ const MODERN_CAPABLE: Era = { wire: 'modern', elicitation: true }
 
 /**
  * Connect a REAL MCP client to a server built by the SHIPPED factory over the SHIPPED composition.
- * 432-21 (D-12): the caller is the one tokenless MCP caller; every change tool is listed for it.
+ * the caller is the one tokenless MCP caller; every change tool is listed for it.
  */
 async function connect(era: Era = LEGACY): Promise<Session> {
   const frames: Frame[] = []
@@ -246,7 +246,7 @@ beforeEach(() => {
   mkdirSync(agentQaRoot, { recursive: true })
   mkdirSync(knowledgeRoot, { recursive: true })
   writeFileSync(configPath, SEEDED_CONFIG)
-  // 2026-10-14 (441-07, D-06): the MCP masker reads this project's declared secrets.
+  // the MCP masker reads this project's declared secrets.
   writeFileSync(join(root, '.env.secrets.local'), '')
 
   git('init', '--quiet')
@@ -295,7 +295,7 @@ describe('1 · changing config writes in the call and commits nothing', () => {
       expect(structured.files).toEqual([CONFIG_FILE])
       expect(allFrames(session)).toContain('applied')
 
-      // D-07: a plain edit git shows as modified; no commit, and no proposal record.
+      // a plain edit git shows as modified; no commit, and no proposal record.
       expect(commitCount(), 'changing must not commit').toBe(before)
       expect(porcelain()).toBe(`M ${CONFIG_FILE}`)
       expect(readFileSync(configPath, 'utf8')).toContain('step: 45s')
@@ -331,7 +331,7 @@ describe('2 · knowledge changes apply on their one call', () => {
       // The prose a person reads is the same masked serialization as the machine channel.
       expect(JSON.parse(rendered(reject))).toEqual(reject.structuredContent)
 
-      // D-07: knowledge is gitignored here, so nothing the repository tracks moved, and no
+      // knowledge is gitignored here, so nothing the repository tracks moved, and no
       // commit was made; D-05: no proposal was filed.
       expect(commitCount()).toBe(before)
       expect(porcelain()).toBe('')

@@ -1,5 +1,4 @@
 // The daemon posture of `knowledge.proposal.apply`, exercised through the REAL daemon entry
-// (387-10, CR-01).
 //
 // `proposal-apply-delegate.test.ts` already proves the mechanism: hand a composition a
 // `resolveWriterAuthority` and its applies commit in process. What it cannot prove — and what the
@@ -19,7 +18,7 @@
 //   ApplyDelegateUnavailableError: The writer lease for this knowledge root is held by pid 79828
 //   (lease 2e4b932b-2786-4992-8282-ed10b437c73c, epoch 1) and this host has no delegate
 //   transport, so prop_95bbfbde-d027-4613-a71c-d4b2bb2c529d cannot be applied here.
-//   Lease-stealing is structurally refused (386 D-14).
+//   Lease-stealing is structurally refused.
 //
 // The daemon asked ITSELF for its own lease, was told `held` by itself, and had no delegate to
 // hand the work to — so on any project with a daemon running, no accept, reject or forget could
@@ -198,9 +197,9 @@ async function startDaemon(paths: Paths): Promise<LiveDaemon> {
 }
 
 /**
- * Plant the standing approval a pre-432 daemon needed for the apply (391 D-02/D-04).
+ * Plant the standing approval a pre-432 daemon needed for the apply.
  *
- * RE-SPELLED 2026-10-01 (432-18, D-22): the ledger and its append API are deleted, so the line is
+ * RE-SPELLED 2026-10-01: the ledger and its append API are deleted, so the line is
  * planted as the bytes a pre-432 build committed. Nothing reads it — no gate since 432-13, no reader
  * since 432-18 — and this case is about WRITER AUTHORITY: a workspace that still holds the old file
  * gets the same daemon answer as one that does not.
@@ -249,7 +248,7 @@ describe('the daemon commits its own applies in process', () => {
       if (leaseBefore.kind !== 'parsed') throw new Error(`no daemon lease: ${leaseBefore.kind}`)
       expect(leaseBefore.lease.pid).toBe(process.pid)
 
-      // 2026-09-30, 432-12 (D-05): the forget is the direct change op, applied in the call by the
+      // the forget is the direct change op, applied in the call by the
       // daemon with the lease it holds. Before 387-10 the daemon's own apply threw
       // ApplyDelegateUnavailableError (see the file header) — it asked itself for its own lease.
       const operationId = 'e1d2c3b4-a596-4877-8695-a4b3c2d1e0f9'
@@ -292,7 +291,7 @@ describe('the daemon commits its own applies in process', () => {
     }
   }, 60_000)
 
-  // RE-SPELLED 2026-10-01 (432-17, D-05/D-22) from 'still commits a pre-432 proposal already on disk
+  // RE-SPELLED 2026-10-01 from 'still commits a pre-432 proposal already on disk
   // through the daemon entry, in process': the apply op is deleted with the inbox, so the daemon
   // refuses it like any unknown function, the record it named is untouched and so is the file.
   it('leaves an older proposal already on disk unapplied and unread through the daemon entry', async () => {

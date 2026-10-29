@@ -1,4 +1,4 @@
-// The CLI door holds NO direct `startRun` — a complete-set census (Phase 401 plan 04, T-401-11).
+// The CLI door holds NO direct `startRun` — a complete-set census.
 //
 // WHAT THE CLAIM IS, AND WHY IT NEEDS A CENSUS RATHER THAN A READING. Plan 04's first truth is a
 // COMPLETE-SET claim: "both `startRun` call sites in `run.ts` are gone; the core's is the only one
@@ -59,7 +59,7 @@ const CORE_SOURCE_PATH = join(
  *
  * The `[^:]` guard keeps a protocol-relative URL from being mistaken for a line comment, which is
  * how this kind of stripper usually eats a file. (Same shape as the core's own hygiene census in
- * plan 03 — one stripper idiom for the phase, so a reader compares like with like.)
+ * one stripper idiom for the phase, so a reader compares like with like.)
  */
 function stripComments(source: string): string {
   return source

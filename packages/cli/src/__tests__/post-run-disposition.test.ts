@@ -1,4 +1,4 @@
-// LIFE-02's posture cells, measured on the SHIPPED BINARY (Phase 404 plan 01, D-09/D-12).
+// LIFE-02's posture cells, measured on the SHIPPED BINARY.
 //
 // WHY A SPAWNED RUN AND NOT A UNIT MAPPING. `runFinished.disposition` is decided inside the runner
 // shell, by a step composed at a CLI composition root, threaded through the invocation core, over a

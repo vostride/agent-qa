@@ -53,7 +53,7 @@ function fixtureWorkspace(): string {
     })}\n`,
     'utf8',
   )
-  // 2026-10-15 (441-20): config.get reads through the declared mask, which needs the file.
+  // config.get reads through the declared mask, which needs the file.
   writeFileSync(join(root, '.env.secrets.local'), '', 'utf8')
   return configPath
 }
@@ -159,7 +159,7 @@ describe('the dashboard door host supplies the card url base it bound', () => {
       },
       () => 'http://127.0.0.1:9999',
       // No workspace supplied: this cell is about the baseUrl half's precedence, and the second
-      // half (400-10) has its own control below. `undefined` overlays nothing for that key, which
+      // half has its own control below. `undefined` overlays nothing for that key, which
       // keeps the assertion below a statement about one supplier rather than two.
       undefined,
     )
@@ -182,7 +182,7 @@ describe('the door is composed once, and mounted where the server serves it', ()
     // rather than each spelled here. A literal list in this cell would be a third copy, agreeing
     // with both today and with neither the day a seventh scope lands.
     const { CLI_FUNCTION_CALLER } = await import('../composition/local-agent-host.js')
-    // 2026-10-02 (432-39, D-02/D-12): `grantedScopes` and `safeMode` are deleted from the caller, so
+    // `grantedScopes` and `safeMode` are deleted from the caller, so
     // the two mints are compared as KEY sets instead: they agree on every member but `surface`.
     expect(Object.keys(DASHBOARD_FUNCTION_CALLER).sort())
       .toEqual(Object.keys(CLI_FUNCTION_CALLER).sort())
@@ -193,7 +193,7 @@ describe('the door is composed once, and mounted where the server serves it', ()
     expect(DASHBOARD_FUNCTION_CALLER.surface).toBe('dashboard')
   })
 
-  // RE-SPELLED 2026-10-01 (432-14, D-14): was a pin that `routes.ts` mounted the run-confirm router
+  // RE-SPELLED 2026-10-01: was a pin that `routes.ts` mounted the run-confirm router
   // the security corpus stood up itself. That router is deleted and the corpus now drives the
   // shipped `startServer`, so the claim that survives is the "no second door" half: the shipped
   // router dispatches no run-confirm prefix and mounts no router of its own beside its routes, and
@@ -216,7 +216,7 @@ describe('the door is composed once, and mounted where the server serves it', ()
 })
 
 // ---------------------------------------------------------------------------------------------
-// Gap 1 (400-10, D-16 / WINDOWS #195): the card's OWN `url`, read off the door's registry.
+// Gap 1: the card's OWN `url`, read off the door's registry.
 //
 // The overlay cells above assert one entry in `config.get`'s masked listing, and the claim D-16
 // makes is about a CARD. The producer requires BOTH halves of the url base

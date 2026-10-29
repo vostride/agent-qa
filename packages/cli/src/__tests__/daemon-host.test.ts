@@ -339,7 +339,7 @@ async function abandonSocketFile(socketPath: string): Promise<void> {
   }
 }
 
-/** Record-level reading goes through the shipped torn-tail-tolerant reader (WR-02). */
+/** Record-level reading goes through the shipped torn-tail-tolerant reader. */
 function readEvents(agentQaRoot: string): Array<Record<string, unknown>> {
   const ledger = readDaemonEventLedger(agentQaRoot)
   expect(ledger.warnings).toEqual([])
@@ -739,7 +739,7 @@ describe('runDaemonHost — standing leaseholder tracer', () => {
  *
  * `local-interactive` was also the ONE context in which `requiresFailClosed` was false, which is
  * what made the statement's second clause — "never sits on an interactive ask" — expressible.
- * 2026-10-01 (432-19, D-15): the gate, its ask and `requiresFailClosed` are deleted, so the second
+ * the gate, its ask and `requiresFailClosed` are deleted, so the second
  * clause is now true by absence; the posture pin itself (the execution context) is retained.
  */
 describe('runDaemonHost — execution-posture pin', () => {
@@ -789,7 +789,7 @@ describe('runDaemonHost — execution-posture pin', () => {
     })
   })
 
-  // RE-SPELLED 2026-10-01 (432-19, D-15) from 'denies an ask-tier action by name under the pin
+  // RE-SPELLED 2026-10-01 from 'denies an ask-tier action by name under the pin
   // instead of prompting a TTY'. That cell drove the gate's `evaluate` under the ambient and the
   // pinned context to show the pin turned a prompt into a named fail-closed denial. The gate is
   // deleted: there is no ask to prompt and no denial to name, so the daemon can never sit on an
@@ -1526,7 +1526,7 @@ describe('daemon registration recovery at boot', () => {
   )
 
   /**
-   * The fourth and last member of the authority input set: `daemon.json` itself (386-47).
+   * The fourth and last member of the authority input set: `daemon.json` itself.
    *
    * The two legs above make `.epoch` and `.lease` unreadable. This one makes the REGISTRATION file
    * unreadable, which is the remaining same-class file this boot path reads, and it is the member
@@ -2071,7 +2071,7 @@ describe('daemon registration recovery at boot', () => {
     // is exactly the arbitrary-deletion input the guard now refuses.
     const recordedSocket = daemonSocketPath(paths.agentQaRoot, paths.root, HOST_INSTANCE_ID)
     const bystanderSocket = join(paths.root, 'b.sock')
-    // WR-06: a BINDABLE filename, so the ownership gate admits it and the lstat guard is the
+    // a BINDABLE filename, so the ownership gate admits it and the lstat guard is the
     // only thing left standing between this path and an unlink.
     const plainFile = join(paths.agentQaRoot, 'daemon.sock')
     mkdirSync(dirname(recordedSocket), { recursive: true })
@@ -3077,7 +3077,7 @@ describe('daemon shutdown and reclaim post-mortem', () => {
 })
 
 /**
- * WR-01: a receipt-required session may start empty, and work may arrive before the loop looks.
+ * a receipt-required session may start empty, and work may arrive before the loop looks.
  *
  * The barrier is scheduled through the inspection seam itself: the FIRST inspection returns the
  * empty root the session was started for and enqueues the candidate as it returns, so the arrival
@@ -3188,7 +3188,7 @@ describe('drain session authorship at every arrival time', () => {
 })
 
 /**
- * WR-02: the lifecycle ledger is D-04's fencing post-mortem and a `daemon status` source, so a
+ * the lifecycle ledger is D-04's fencing post-mortem and a `daemon status` source, so a
  * crash must not lose an acknowledged fact and a torn final append must not break its readers.
  */
 describe('daemon lifecycle event durability and torn-tail reading', () => {

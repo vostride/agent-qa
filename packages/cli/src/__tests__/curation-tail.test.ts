@@ -129,7 +129,7 @@ describe('canary receipt contract', () => {
   })
 })
 
-// 2026-10-18 (444-20, D-48): these fixtures' handoffs are `ci` runs, so an incomplete fold states
+// these fixtures' handoffs are `ci` runs, so an incomplete fold states
 // curation's resume limit instead of promising the next run.
 const CI_CURATION_RESUME = /resumes only if this workspace's \.agent-qa\/ is kept and a later local run picks it up\.$/u
 
@@ -410,7 +410,7 @@ function successfulOperations(
     reconcileRunOutcomesProjection: vi.fn(() => ({ kind: 'current' as const })),
     acquireWriterLease: vi.fn(() => ({ kind: 'acquired' as const, leaseId: 'sweep-lease', epoch: 7 })),
     releaseLease: vi.fn(() => ({ kind: 'released' as const })),
-    // 2026-10-16 (442-10, D-17): each sibling run's fixture context, as its own run-config record would give it.
+    // each sibling run's fixture context, as its own run-config record would give it.
     resolveRunCurationContext: vi.fn(async () => ({ mask, knowledgeRoot })),
     ...overrides,
   }
@@ -576,7 +576,7 @@ describe('runCurationTail post-verdict fold', () => {
         })
         expect(options).not.toHaveProperty('excluded')
         expect(options.extractAnchors).toBeTypeOf('function')
-        // 390 D-08: the tail reads the drain's wall clock ONCE and hands it down as data — the
+        // the tail reads the drain's wall clock ONCE and hands it down as data — the
         // fold and the ladder read no clock of their own.
         expect(options.quarantine?.now).toMatch(/^\d{4}-\d{2}-\d{2}T[\d:.]+Z$/)
         return { kind: 'applied', tests: 1, ...NO_DETECTION }
@@ -1818,12 +1818,12 @@ describe('verdict-first CLI tail wiring', () => {
     expect(source).toContain(
       ".option('--detach', 'skip the post-verdict knowledge curation tail')",
     )
-    // 388-02: the shared tail the two sites invoke is now `runPostRunTail` — the v51 curation
+    // the shared tail the two sites invoke is now `runPostRunTail` — the v51 curation
     // fold is reached THROUGH it (as `curate-memory`'s body and as the prior-run sweep), so
     // `run.ts` names it no more. The claim this case makes is unchanged: BOTH verdict sites go
     // through the one helper, and a site that grew its own tail again fails right here.
     //
-    // 404 D-06: the helper is `composeCliPostRunTail`, and `run.ts` no longer spells the tail's
+    // the helper is `composeCliPostRunTail`, and `run.ts` no longer spells the tail's
     // option literal at all. The composition moved because the `runs.start` door needs the SAME
     // one — three spellings of "how this project's tail is composed" is how a field added to the
     // tail reaches two of them.
@@ -1989,7 +1989,7 @@ describe('per-run candidate summary line', () => {
       'utf8',
     )
 
-    // 388-02: the expression is pinned byte-identically at its new home. Extracting the
+    // the expression is pinned byte-identically at its new home. Extracting the
     // per-run fold out of the sweep loop moved it two nesting levels out, so the CONTINUATION
     // indentation is the only thing that changed — the operand list and its order are the
     // thing this test exists to hold, and both are untouched.
@@ -2124,7 +2124,7 @@ describe('the quarantine disposition line', () => {
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('Quarantine withheld for'))
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('app_bug'))
 
-    // THE PRODUCER REACHES THE LINE (390-22 / WR-03). The field was carried onto the sighting so
+    // THE PRODUCER REACHES THE LINE. The field was carried onto the sighting so
     // an operator could tell an unauthorable class from an unauthored one, and it was never
     // printed — the claim was true of the SHAPE and false of the OPERATOR. Asserted on the emitted
     // text, not on the line's prefix: a rendering fix whose test matches only the prefix is the
@@ -2137,7 +2137,7 @@ describe('the quarantine disposition line', () => {
     // And the ACTIONABLE half: this producer means a verdict was already authored, so the operator
     // learns that re-running analysis will not change the answer.
     expect(withheld[0]).toMatch(/will not change the answer/)
-    // THE DIFFERENTIAL (390-23 / CR-01): each arm's sentence is its own, two-sided. The
+    // THE DIFFERENTIAL: each arm's sentence is its own, two-sided. The
     // next-applied-run remedy belongs to the UNAUTHORED arm alone — an authored verdict's class
     // refusal is settled, and a later fold re-reads the same authored answer.
     expect(withheld[0]).not.toMatch(/next applied run/)
@@ -2195,7 +2195,7 @@ describe('the quarantine disposition line', () => {
     // a capped identity IS admitted on a later evaluation, measured 2/2/2 across three consecutive
     // folds (round-4 verification).
     //
-    // THE REMEDY, PINNED BY POSITIVE CONTENT (390-23 / CR-01). This arm used to name
+    // THE REMEDY, PINNED BY POSITIVE CONTENT. This arm used to name
     // an `analyze-run` invocation under the binary's name: a job kind enqueued programmatically at
     // post-run-tail.ts:425, absent from the top-level `program.addCommand` registry in cli.ts under
     // any subcommand — so the string it printed was not typeable by anyone. The

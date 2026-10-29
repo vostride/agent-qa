@@ -1,4 +1,4 @@
-// `agent-qa agent-jobs` over a queue holding a quarantined row (422 D-16, ADV-03).
+// `agent-qa agent-jobs` over a queue holding a quarantined row.
 //
 // The store half of D-16 is proved in agent-local. What is under test here is the only part an
 // operator ever sees: the listing has to NAME the retired kind, the conclusion and the attempt the
@@ -28,7 +28,7 @@ import { createAgentJobsCommand } from '../commands/agent-jobs.js'
 import { listAgentJobs, pumpAgentJobs, requeueAgentJob } from '../composition/agent-jobs-ops.js'
 import type { AgentJobsOpsDeps } from '../composition/agent-jobs-ops.js'
 
-/** A kind no current vocabulary contains — the Phase 412 needle itself stays deleted (CLSR-01). */
+/** A kind no current vocabulary contains — the Phase 412 needle itself stays deleted. */
 const RETIRED_KIND = 'retired-kind-fixture'
 
 /**

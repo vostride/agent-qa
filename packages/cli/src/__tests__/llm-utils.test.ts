@@ -1,6 +1,6 @@
 import { afterAll, describe, it, expect, vi, beforeEach } from 'vitest'
 
-// 2026-10-14 (441-04): the declared-secret loader reads core's workspace paths and the real
+// the declared-secret loader reads core's workspace paths and the real
 // config merge, so both mocks keep the original module beside the stubbed functions.
 vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   ...(await importOriginal<object>()),

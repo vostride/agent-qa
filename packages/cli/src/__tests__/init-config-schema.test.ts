@@ -50,7 +50,7 @@ describe('init generated config schema compatibility', () => {
       expectCompressionDefaults(config)
       expect(parsed.services?.recording?.enabled).toBe(true)
       expect(parsed.services?.authState?.dir).toBe('.agent-qa/auth-states')
-      // D-16: the template writes no retired key; knowledge defaults materialize via prefault
+      // the template writes no retired key; knowledge defaults materialize via prefault
       expect(config.workspace).not.toHaveProperty('agentRules')
       expect(config.services).not.toHaveProperty('memory')
       expect(parsed.knowledge.dir).toBe('agent-qa-knowledge')

@@ -368,7 +368,7 @@ describe('safe init filesystem primitives', () => {
   /**
    * 2026-10-02 (quick 261002-lse follow-up): the writer-lease guard must sit under a rule every
    * scaffolded knowledge repository already has. Existing `.gitignore` files are the user's and are
-   * never rewritten (D-22), so a guard outside them would show up as an untracked file. The path is
+   * never rewritten, so a guard outside them would show up as an untracked file. The path is
    * caught from a REAL beat, mid-section, rather than spelled here, so a guard moved anywhere else
    * reddens this cell.
    */
@@ -728,7 +728,7 @@ function octal(mode: number): string {
 const UNAPPLIED_MODE_REASON = /requested mode \d{4} was not applied/
 
 // Fragments of the two disposition sentences the module appends after every refusal reason
-// (D-22). Fragments rather than whole sentences, so incidental punctuation does not churn
+// Fragments rather than whole sentences, so incidental punctuation does not churn
 // these tests — but chosen so that no single message can ever match both.
 const REMOVED_DISPOSITION_PATTERN = /it was unlinked[\s\S]*are not recoverable/
 const RETAINED_DISPOSITION_PATTERN = /the destination was not removed or rewritten/
@@ -1152,7 +1152,7 @@ describe('atomic-replacement publication confirmation', () => {
         // Fail-closed disposition: the rename already consumed the original bytes, so the
         // unconfirmed destination is removed rather than left at an unconfirmed mode. That
         // disposition is now STATED in the thrown message and documented on the exported
-        // entry point (D-22); it is unchanged, only made deliberate and legible.
+        // entry point; it is unchanged, only made deliberate and legible.
         expect(existsSync(plan.path)).toBe(false)
         expect(listInitTemporaries(root)).toEqual([])
       },
@@ -2223,7 +2223,7 @@ describe('the durable temporary is invisible to a commit', () => {
     )).toHaveLength(1)
   })
 
-  // 431-09: the managed-block writer's per-target lock. An interrupted writer can leave it
+  // the managed-block writer's per-target lock. An interrupted writer can leave it
   // behind for the operator to delete, so it sits in the same covered namespace.
   it('covers a managed-block lock left beside a target with the same managed rule', () => {
     const root = tempRoot()

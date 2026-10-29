@@ -1,7 +1,7 @@
-// 2026-10-17 (444-10, D-13/D-36): one stage vocabulary on every surface. A finished stage reads
+// one stage vocabulary on every surface. A finished stage reads
 // `complete`; `done` stays only as agent-jobs.db's own job and notification words.
-// 2026-10-17 (444-11, D-13/D-39): a run whose chain was never enqueued reads `skipped (<reason>)`.
-// 2026-10-18 (444-12, D-14): a run that ended with no verdict reads `skipped (no verdict)`.
+// a run whose chain was never enqueued reads `skipped (<reason>)`.
+// a run that ended with no verdict reads `skipped (no verdict)`.
 
 import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'

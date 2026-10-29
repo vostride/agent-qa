@@ -1,4 +1,4 @@
-// C446-CONTRACTS (446-02, D-13): the shipped contracts file is the config, test, suite and hook schemas
+// the shipped contracts file is the config, test, suite and hook schemas
 
 import { existsSync, readFileSync } from 'node:fs'
 import path from 'node:path'

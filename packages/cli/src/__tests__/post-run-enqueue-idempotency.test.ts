@@ -1,13 +1,13 @@
 // SC1: the REAL post-run hand-off + tail, run twice, produces ONE analyze-run job (388 plan 02).
 //
 // The claim is about the WHOLE post-run leg, not about `queue.enqueue` — calling that twice would
-// only re-prove the store's shipped unique index (385 D-08), which is the mechanism here and not
+// only re-prove the store's shipped unique index, which is the mechanism here and not
 // the subject. So this drives the shipped `enqueueAnalyzeRun` and then `runPostRunTail` end to end
 // against a real sqlite store, a real handoff on disk, the real composition root and the real
 // handler bodies, twice, and compares the store's LOGICAL DUMP — the 385 D-03 ratified comparator
 // — across the two runs.
 //
-// 2026-08-26 (404 D-05): the hand-off is the POST-VERDICT STEP's now, so the enqueue half of each
+// the hand-off is the POST-VERDICT STEP's now, so the enqueue half of each
 // pass goes through `enqueueThroughTheStep` — the shipped `enqueueAnalyzeRun` over this fixture's
 // own host. Nothing about the claim moved: the same two passes, the same real store, the same
 // comparator.
@@ -48,7 +48,7 @@ import {
 import { enqueueThroughTheStep } from './post-run-step-harness.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -73,7 +73,7 @@ const TEST_CONFIG: ConfigReaderPort = {
   }),
 }
 
-/** The verdict the runner already persisted (373-07); one member has it, one deliberately does not. */
+/** The verdict the runner already persisted; one member has it, one deliberately does not. */
 const PERSISTED_ROOT_CAUSE: Verdict = {
   class: 'timeout',
   producer: 'deterministic-classifier',
@@ -136,7 +136,7 @@ interface Fixture {
   warn: ReturnType<typeof vi.fn>
   runCurationTail: ReturnType<typeof vi.fn>
   options(overrides?: Partial<PostRunTailOperations>): RunPostRunTailOptions
-  /** The shipped step's hand-off, over this fixture's own host (404 D-05). */
+  /** The shipped step's hand-off, over this fixture's own host. */
   enqueue(): Promise<'enqueued' | 'deduped'>
 }
 
@@ -289,7 +289,7 @@ describe('the real post-run tail run twice', () => {
     const analyzeRows = afterSecond.rows.filter((row) => row.kind === 'analyze-run')
     expect(analyzeRows).toHaveLength(1)
     expect(analyzeRows[0]!.id).toBe(String(ids.analyzeRun))
-    // D-02: the chain addresses exactly the ids it enqueues kinds for — pinned by sorted literal
+    // the chain addresses exactly the ids it enqueues kinds for — pinned by sorted literal
     // on both, so an extra derived id reds the first line and an extra enqueued row reds the
     // second, each by name.
     expect(Object.keys(ids).sort()).toEqual(['analyzeRun', 'curateMemory'])

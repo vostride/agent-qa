@@ -27,7 +27,7 @@ import { startHeartbeatSupervisor } from '../daemon/heartbeat-supervisor.js';
 import { removeTempRoots } from './temp-roots.js';
 
 /**
- * 386-43: what the deleted renewal sidecar used to claim, re-proven against the mechanism that
+ * what the deleted renewal sidecar used to claim, re-proven against the mechanism that
  * replaced it.
  *
  * 386-42 deleted the sidecar, made freshness three-valued and took the mutation lock out of the

@@ -422,8 +422,8 @@ describe('DOCTOR-CURRENT-SEPARATE', () => {
   it('adds no current-health read op; current health stays on agent-qa doctor', () => {
     const registry = createFunctionRegistry({
       deps: {} as unknown as FunctionDeps,
-      // 2026-10-02 (432-37, D-12): no `resolveExecutionContext` registry option, and the listing
-      // caller carries no `grantedScopes`/`safeMode`; the registry reads neither (432-20).
+      // no `resolveExecutionContext` registry option, and the listing
+      // caller carries no `grantedScopes`/`safeMode`; the registry reads neither.
     })
     const ids = registry.list({
       surface: 'test',

@@ -1,4 +1,4 @@
-// C445-DAEMON-STOP (445-17, D-42): daemon stop reads .agent-qa/, never the config
+// daemon stop reads .agent-qa/, never the config
 
 import { randomUUID } from 'node:crypto'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'

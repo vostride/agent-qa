@@ -1,5 +1,5 @@
-// The run-end working-memory flush (Phase 358 · WM-02 · D-13): every value is masked with the
-// run's declared mask (441 D-06) and written as is (441 D-15), the store is disposed, and the
+// The run-end working-memory flush: every value is masked with the
+// run's declared mask and written as is, the store is disposed, and the
 // flush never throws (Pitfall 5: the run exit code is untouched).
 //   flushWorkingMemory(store, { artifactsDir, mask }) → Promise<{ path, entriesWritten }>
 import { describe, it, expect, beforeEach, afterEach } from 'vitest'

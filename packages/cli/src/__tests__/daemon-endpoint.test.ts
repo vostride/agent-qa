@@ -53,7 +53,7 @@ import { removeTempRoots } from './temp-roots.js'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -207,7 +207,7 @@ async function registryFixture(
       },
       config: TEST_CONFIG,
     },
-    // 2026-10-01 (432-32): no `resolveExecutionContext` registry option and no `requiredScopes`
+    // no `resolveExecutionContext` registry option and no `requiredScopes`
     // on the synthetic specs; the registry reads neither.
   })
   return { registry }
@@ -547,7 +547,7 @@ describe('daemon /invoke endpoint tracer', () => {
       functionId: 'config.get',
       input: {},
     })).resolves.toEqual(MASKED_CONFIG)
-    // 432-13: the op gate's row was this cell's witness that the route dispatched through
+    // the op gate's row was this cell's witness that the route dispatched through
     // `invokeFunction`; no row is written now, and the masked answer above is the dispatch's own.
     expect(existsSync(join(agentQaRoot, 'execution_audit.jsonl'))).toBe(false)
   })
@@ -892,9 +892,9 @@ describe('daemon /invoke endpoint semantic parity', () => {
       issues: expect.stringContaining('value'),
     })
 
-    // 432-20 (D-12): the scope refusal is deleted, so the op that declares a scope no caller holds
+    // the scope refusal is deleted, so the op that declares a scope no caller holds
     // answers over the wire like any other; there is no scope class left to rehydrate.
-    // 2026-10-01 (432-32): the fixture no longer spells the retired `requiredScopes`
+    // the fixture no longer spells the retired `requiredScopes`
     // ('fixture-scope'); the registry never read it, so the op answers by construction.
     await expect(semantic.invokeViaDaemon({
       agentQaRoot,
@@ -923,7 +923,7 @@ describe('daemon /invoke endpoint semantic parity', () => {
     })
   })
 
-  // RE-SPELLED 2026-09-30 (432-13, C432-INVOKE-DIRECT). Was 'surfaces the real fail-closed ask
+  // RE-SPELLED 2026-09-30. Was 'surfaces the real fail-closed ask
   // denial with exactly the gate audit row': the daemon's `local-headless` posture failed an
   // ask-tier op closed, identically in process and over the wire. No gate runs now, so the same
   // ask-tier op DISPATCHES identically on both sides and neither writes a row. The wire half of the

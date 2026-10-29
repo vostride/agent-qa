@@ -1,4 +1,4 @@
-// The draft shelf's two-sided admission property (Phase 394, WTST-01).
+// The draft shelf's two-sided admission property.
 //
 // BOTH DIRECTIONS OR NEITHER. A shelf that only satisfies (i) pollutes every suite run and gate
 // 3's corpus with unfinished drafts; a shelf that only satisfies (ii) is a place no run can ever

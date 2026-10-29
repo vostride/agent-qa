@@ -355,7 +355,7 @@ describePosix('knowledge drain recovery across unreachable daemon hosts', () => 
 })
 
 /**
- * WR-03: quarantined registration bytes are named on EVERY drain exit, not only the contended one.
+ * quarantined registration bytes are named on EVERY drain exit, not only the contended one.
  *
  * Bytes parked under `daemon.json.remove-<tag>-<uuid>` are a fact about the system: nothing reads
  * that name, so an operator who is not told about it never learns the file exists. Before this,

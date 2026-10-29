@@ -26,7 +26,7 @@ afterEach(async () => {
 })
 
 describe('purgeAll', () => {
-  // 2026-10-01 (432-15, D-14): re-spelled from "…with force=true"; purgeAll has no force flag.
+  // re-spelled from "…with force=true"; purgeAll has no force flag.
   it('deletes all cache-key entries across branch namespaces', async () => {
     const { purgeAll } = await import('../commands/cache.js')
     const cacheDir = join(TMP_DIR, 'cache')

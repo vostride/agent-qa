@@ -1,11 +1,11 @@
-// The shared post-run tail's postures (Phase 388 plan 02, D-03 / D-07).
+// The shared post-run tail's postures.
 //
 // Every operation is injected, so what is under test here is the tail's DECISION TABLE — who
 // drains, who hands off, when the pump stops, what a failure costs — rather than sqlite or a
 // lease file. The durable half (one row for two tail runs) is proven against the real store in
 // `post-run-enqueue-idempotency.test.ts`; splitting them keeps each proof about one thing.
 //
-// 2026-08-26 (404 D-05): THE ENQUEUE CELLS LEFT THIS FILE. The payload's shape, its idempotency
+// THE ENQUEUE CELLS LEFT THIS FILE. The payload's shape, its idempotency
 // key, `deduped`-is-a-success and the D-07 warning are now pinned in
 // `curation/__tests__/post-verdict-step.test.ts`, because that is where the enqueue is. What
 // replaced them here is the complementary claim — this tail enqueues NOTHING — plus the two legs
@@ -35,7 +35,7 @@ const runId = 'run-post-run-tail'
  * The ids THIS run's chain addresses, derived the way the tail derives them.
  *
  * The fakes below claim jobs by id now, because the tail scopes what it emits and what it counts
- * as its own by id (388-07). A stand-in id invented here would model a job no run could enqueue,
+ * as its own by id. A stand-in id invented here would model a job no run could enqueue,
  * and every own-chain assertion made against it would be measuring the fixture.
  */
 const OWN_CHAIN = chainJobIdsForRun(runId, DIGEST_JOB_ID_SOURCE)
@@ -103,7 +103,7 @@ function harness(overrides: {
       drainKind: 'drained' as const,
     })),
     runCurationTail,
-    // 2026-10-16 (442-10, D-17): another run's fixture context, as its own run-config record would give it.
+    // another run's fixture context, as its own run-config record would give it.
     resolveRunCurationContext: vi.fn(async () => ({ mask: (text: string) => text, knowledgeRoot })),
     now: () => clock.value,
   } as unknown as PostRunTailOperations
@@ -209,7 +209,7 @@ describe('the shared post-run tail', () => {
     expect(h.runCurationTail).toHaveBeenCalledTimes(1)
     const swept = h.runCurationTail.mock.calls[0]![0] as Record<string, unknown>
     expect(swept.authority).toEqual({ leaseId: 'lease-1', epoch: 7 })
-    // D-03: one budget. The sweep's stop point is the tail's own deadline, not a second knob.
+    // one budget. The sweep's stop point is the tail's own deadline, not a second knob.
     expect(swept.deadlineMs).toBe(1_000 + 60_000)
   })
 
@@ -232,7 +232,7 @@ describe('the shared post-run tail', () => {
     const tail = runPostRunTail(options(h))
     await tail.drain()
 
-    // 2026-10-19 (444.1-12, D-23): the store skips the retrying row until its not-before time, so
+    // the store skips the retrying row until its not-before time, so
     // the pump never sleeps on the backoff and claims whatever else is ready.
     expect(runNextJob).toHaveBeenCalledTimes(3)
     expect(tail.report()).toEqual({ enqueue: 'skipped', drain: 'retry-scheduled', jobsRun: 2 })
@@ -551,7 +551,7 @@ describe('the tail can never reach the exit code', () => {
     })
 
     expect(exitCode).toBe(0)
-    // 404 D-05: `drain()` is the leg that builds the table now, so it is the leg that must absorb
+    // `drain()` is the leg that builds the table now, so it is the leg that must absorb
     // a table that cannot be built. The claim is unchanged — a post-run concern may never reach
     // the process code — only the leg that carries it.
     expect(tail.report().drain).toBe('not-attempted')

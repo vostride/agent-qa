@@ -1,4 +1,4 @@
-// WTST-06 / 393 D-20 — the hermetic exclusion differential: three exclusions and one inclusion,
+// the hermetic exclusion differential: three exclusions and one inclusion,
 // off the SAME flagged handoff, each leg asserting BOTH cells.
 //
 // WHY TWINS AND NOT A SINGLE FIXTURE. "Zero rows for a flagged handoff" is satisfied just as well
@@ -17,7 +17,7 @@
 //                                   DIFFERENT MODULE, shipped by plan 393-03
 //   leg 3  run_fingerprint_windows  390's quarantine detection window
 //   leg 4  the curation queue       the POSITIVE half — candidates ARE emitted (C8)
-//   leg 5  the analyze-run queue     a flagged run is NEVER queued at all (404 D-08)
+//   leg 5  the analyze-run queue     a flagged run is NEVER queued at all
 //
 // Leg 2 is deliberately its own named assertion even though plan 393-03 enforced the exclusion
 // with ONE gated member list in `projectRunOutcomes` that BOTH projections are computed from —
@@ -30,7 +30,7 @@
 // only thing in the tree that would red. A leg that can only red together with its sibling today
 // but can red alone tomorrow is worth its own name; see the SUMMARY for the measurement.
 //
-// ISSUE CANDIDACY — STRUCTURAL NOTE, NOT AN ASSERTION (D-20). 2026-09-02 (Phase 412): the Issue
+// ISSUE CANDIDACY — STRUCTURAL NOTE, NOT AN ASSERTION. 2026-09-02: the Issue
 // engine this note once reserved a consumer contract for left with the Issue-slot cleanup.
 // Nothing reads `excludedFromOutcomes` at candidacy time because there
 // is no candidacy; the gate-run exclusion is complete in the legs above and no fifth leg is owed.
@@ -85,7 +85,7 @@ const PASSING_NAME = 'checkout completes the payment sheet'
 const FAILING_FILE = 'tests/login.yaml'
 const FAILING_NAME = 'login accepts a returning customer'
 
-/** The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here. */
+/** The composition's REQUIRED quarantine identity mint. Passthrough here. */
 const MINT_IDENTITY = (filePath: string): string => filePath
 
 const TEST_MODEL: JobModelCapability = {
@@ -205,7 +205,7 @@ function members(): PerTestOutcome[] {
       testName: FAILING_NAME,
       filePath: FAILING_FILE,
       testIndex: 1,
-      // A FAILED member is what puts a row in `run_fingerprint_windows` (390 D-07) — leg 3 is
+      // A FAILED member is what puts a row in `run_fingerprint_windows` — leg 3 is
       // unobservable without one, and a suite of passes would make that leg silently vacuous.
       outcome: 'failed',
       steps: [step(0, 'signin', 'Sign in', 'signin')],
@@ -366,7 +366,7 @@ function openTargetHost(target: Side): LocalAgentHost {
  * Run the SHIPPED post-verdict step over this side, with the markers the shell would have copied
  * off `RunConfig`, and report the posture it decided.
  *
- * The step and not the tail (404 D-05): the enqueue lives there now, and so does D-08's skip. The
+ * The step and not the tail: the enqueue lives there now, and so does D-08's skip. The
  * markers are passed on the STEP INPUT rather than read back out of the handoff, because that is
  * exactly how the shell supplies them — `shell.ts` spreads `config.gateRun`/`config.excludedFromOutcomes`
  * onto the step input, and a cell that fed them in some other way would be measuring its own wiring.

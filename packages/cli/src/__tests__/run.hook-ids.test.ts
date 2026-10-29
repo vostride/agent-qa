@@ -76,7 +76,7 @@ vi.mock('@vostride/agent-qa-model', async () => {
   }
 })
 
-// LLMPlanner/LLMVerifier moved to the runner package (Phase 353-07); run.ts now
+// LLMPlanner/LLMVerifier moved to the runner package; run.ts now
 // imports them from @vostride/agent-qa-runner, so intercept them there.
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-runner')>()
@@ -90,9 +90,9 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
   resolveBranch: mockResolveBranch,
   FsEventLog: mockFsEventLog,
   FsHandoffStore: mockFsHandoffStore,
-  // 363-06: buildRunPorts + buildScreenshotCompressor construct these; legs never exercised here.
+  // buildRunPorts + buildScreenshotCompressor construct these; legs never exercised here.
   FsRunArtifactStore: class { stage(): void {} finalize(): void {} },
-  // 367-13 CASS-02: buildRunPorts also constructs the run-scoped evidence artifact store.
+  // buildRunPorts also constructs the run-scoped evidence artifact store.
   FsEvidenceArtifactStore: class {
     persistDecisionScreenshot(): { id: string; sha: string } { return { id: 'decision-screenshot:mock', sha: 'mock' } }
     getBlob(): Uint8Array | undefined { return undefined }
@@ -106,7 +106,7 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
     }
   },
   nextBuildOrdinal: mockNextBuildOrdinal,
-  // 363-04: the run paths construct DockerHookExecutor here (D-06); runHooks is mocked so execute
+  // the run paths construct DockerHookExecutor here; runHooks is mocked so execute
   // is never actually invoked, but the constructor must exist.
   DockerHookExecutor: class { async execute() { return { success: true, variables: {}, output: '', stdout: '', stderr: '', duration: 0 } } },
   // The run composition's `runDirFor` roots the run's own directory via the shared run-dir slug —
@@ -115,14 +115,14 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
   slugBranch: (name: string) => String(name),
 }))
 
-// 390-08: `workspaceRelativeIdentityPath` is pulled from the REAL module rather than stubbed — it
+// `workspaceRelativeIdentityPath` is pulled from the REAL module rather than stubbed — it
 // decides the bytes the committed quarantine ledger keys on, and a stub would leave these pins
 // measuring the test's idea of identity instead of the shipped one.
-// 398-10: the run command composes its analytics at the root now, and the binding stamps
+// the run command composes its analytics at the root now, and the binding stamps
 // `agent_qa_version` on every event from the SHIPPED reader. Passed through from the real module for
 // the same reason `workspaceRelativeIdentityPath` is — a stub would be a second answer to a question
 // the product already answers, and here it would be a version the closed union's semver refuses.
-// 398-10 (D-17/D-20): the run-completion subscriber comes from the analytics package now; only that
+// the run-completion subscriber comes from the analytics package now; only that
 // factory is replaced, so this command's composition root still makes the real opt-out decision.
 vi.mock('@vostride/agent-qa-analytics', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-analytics')>()
@@ -141,7 +141,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   ATTR_TRIGGER: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).ATTR_TRIGGER,
   ATTR_RUNNER: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).ATTR_RUNNER,
   DEFAULT_AGENT_QA_ARTIFACTS_DIR: '.agent-qa/artifacts',
-  // 395-08: `commands/scaffold-content.ts` — D-04's one scaffold producer — reads this, and it is
+  // `commands/scaffold-content.ts` — D-04's one scaffold producer — reads this, and it is
   // now in this command's module graph through the composition root.
   DEFAULT_AGENT_QA_AUTH_STATES_DIR: '.agent-qa/auth-states',
   DEFAULT_AGENT_QA_CACHE_DIR: '.agent-qa/cache',
@@ -241,7 +241,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   },
   LogManager: vi.fn(function () {
     return {
-      // WINDOWS #233: faithful pass-through — the real one binds a per-member run id here.
+      // faithful pass-through — the real one binds a per-member run id here.
       runInMemberScope: vi.fn(async (fn: () => unknown) => await fn()),
       setRunId: vi.fn(),
       setCurrentStep: vi.fn(),
@@ -254,7 +254,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   MultiReporter: vi.fn(function () { return mockMultiReporterInstance }),
   resolveKnowledgeRoot: vi.fn((knowledge: { dir?: string } | undefined, configDir: string) =>
     path.resolve(configDir, knowledge?.dir ?? 'agent-qa-knowledge')),
-  // 401-20 (CR-04): a fresh id per CALL — a colliding caller-named run id is now refused, and this
+  // a fresh id per CALL — a colliding caller-named run id is now refused, and this
   // fixture writes a real run directory that survives the process, so a constant would collide on
   // the second execution of this file. No cell here compares two mints, so per-call is enough.
   generateRunId: vi.fn(((): (() => string) => {
@@ -355,7 +355,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   isPathInsideDir: vi.fn((candidatePath: string) => !candidatePath.includes('..')),
 }))
 
-// 2026-10-17 (443-08, D-03): every run opens its record; these cells read hooks, not runs.db rows.
+// every run opens its record; these cells read hooks, not runs.db rows.
 vi.mock('@vostride/agent-qa-dashboard', () => ({
   resolveDashboardDbPath: ({ configDir }: { configDir: string }) => `${configDir}/.agent-qa/runs.db`,
   DashboardDatabase: vi.fn(function () {
@@ -453,7 +453,7 @@ beforeEach(async () => {
     product: 'test-app',
     platform: 'web',
     url: 'https://example.com',
-    // 401-03 (D-06): declared, because the run gate classifies every run by this field and an
+    // declared, because the run gate classifies every run by this field and an
     // undeclared target fails closed in a non-interactive context. `local` is honest here —
     // nothing in this suite reaches a network. See run.test.ts for the full note.
     environment: 'local',

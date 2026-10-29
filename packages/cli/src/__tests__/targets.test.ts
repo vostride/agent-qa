@@ -138,7 +138,7 @@ describe('resolveTarget — environment declaration', () => {
   })
 })
 
-// 432-02 D-18: production joins the declared classes. The CLI resolver and eval's per-product
+// production joins the declared classes. The CLI resolver and eval's per-product
 // fold carry all four states, absence included, and never read a class off a hostname.
 describe('CLI target environment', () => {
   const STATES = ['local', 'shared', 'production', undefined] as const

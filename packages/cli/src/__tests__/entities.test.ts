@@ -1,4 +1,4 @@
-// `agent-qa entities` — the verb that replaced `ids` (Phase 387 plan 09, D-20).
+// `agent-qa entities` — the verb that replaced `ids`.
 //
 // This file replaces `ids.test.ts`, and the substitution is deliberate rather than
 // bookkeeping. What that suite actually covered was a CLI surface over id minting: parse a
@@ -220,7 +220,7 @@ describe('agent-qa entities (the addressing debug verb)', () => {
     // fabricated could satisfy the object above and still not be a card.
     if (resolution.kind !== 'resolved') throw new Error('expected the resolved arm')
     expect(EntityCardSchema.safeParse(resolution.card).success).toBe(true)
-    // D-10: no dashboard base URL is configured, so no link is offered.
+    // no dashboard base URL is configured, so no link is offered.
     expect(Object.hasOwn(resolution.card, 'url')).toBe(false)
   })
 

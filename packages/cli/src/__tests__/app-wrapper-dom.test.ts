@@ -1,5 +1,4 @@
 // The App wrapper IN A REAL BROWSER — the D-11 states a person actually lands in
-// (Phase 408 plan 02 · MCPA-01 · D-06/D-10/D-11 · T-408-08).
 //
 // WHAT IS PRODUCTION HERE AND WHAT IS SCRIPTED. Production: `renderAppWrapperPage` and every
 // sentence constant, driven through a real headless Chromium. Scripted: the two throwaway
@@ -18,7 +17,7 @@
 //
 // A MEASURED FACT THAT SHAPED THE WRAPPER, recorded here because it is the reason cell (3) is not
 // a one-liner: in Chromium an iframe pointing at a REFUSED connection still fires `load` (measured
-// 2026-08-31 — a page whose only signal was `load` would have shown Chromium's own error page
+// a page whose only signal was `load` would have shown Chromium's own error page
 // under a `live` label, which is exactly the blank inner frame D-11 forbids). So the wrapper
 // proves reachability with an explicit no-cors probe of the frame's ORIGIN and treats `load` as
 // necessary-but-not-sufficient. Both halves are cells below.
@@ -209,7 +208,7 @@ describe('the wrapper in a real browser', () => {
       expect(await link.textContent()).toBe(APP_WRAPPER_PERMANENT_LINK_LABEL)
       // A COUNT, not the locator. `expect(locator).toBeTruthy()` passed for any object a Playwright
       // API can return — including a locator matching nothing — so it could not go red no matter
-      // what the document held (WR-08). One anchor is the claim: present, and exactly once.
+      // what the document held. One anchor is the claim: present, and exactly once.
       expect(await link.count(), 'the permanent link slot is in the document').toBe(1)
     } finally {
       await page.close()
@@ -267,7 +266,7 @@ describe('the wrapper in a real browser', () => {
       // VISIBLE, which is what the display rule means — so the presence half has to be a count.
       // The `toBeTruthy()` this replaces was true of a locator matching zero nodes, which made
       // "hidden" and "absent" the same verdict and left D-11's blank-rectangle prohibition unmeasured
-      // on this arm (WR-08).
+      // on this arm.
       expect(
         await page.locator('[data-app-message]').count(),
         'the message paragraph exists and is HIDDEN in live, not absent',
@@ -396,7 +395,7 @@ describe('the wrapper in a real browser', () => {
     }
   }, 180_000)
 
-  // (8) ONE BAD MOMENT IS NOT A VERDICT ABOUT SOMEBODY ELSE'S ORIGIN (WR-06, T-408-23).
+  // (8) ONE BAD MOMENT IS NOT A VERDICT ABOUT SOMEBODY ELSE'S ORIGIN.
   //
   // The reachability memo used to cache the REJECTED probe, and every mint on a render shares one
   // origin, so a single refusal — a dashboard restarting, a refusal during the first paint —

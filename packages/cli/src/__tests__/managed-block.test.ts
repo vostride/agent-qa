@@ -1,4 +1,4 @@
-// 431-09 · D-19/D-20 · PXH-AGENT-02: one managed-block writer for every comment syntax.
+// one managed-block writer for every comment syntax.
 //
 // Everything outside a block's two marker lines is the user's, byte for byte: line endings,
 // Unicode, and whether the file ends in a newline. A block that already exists is rewritten
@@ -617,7 +617,7 @@ describe('MANAGED-CONCURRENCY', () => {
 })
 
 // ---------------------------------------------------------------------------------------------
-// 431-10 · D-18/D-20: the root pointer through the shared writer, and its write-free preflight.
+// the root pointer through the shared writer, and its write-free preflight.
 // ---------------------------------------------------------------------------------------------
 
 describe('MANAGED-POINTER', () => {

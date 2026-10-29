@@ -32,7 +32,7 @@ function assertCompletedSnapshot(oneShot: LegReport, daemon: LegReport, expected
     tables.find(table => table.table === 'records')!.rows.map(row => row.bundle_id).sort(),
   )
   expect(daemon.runReceipt).not.toHaveProperty('snapshot')
-  // WR-08: the inline drain records its counts beside the snapshot; the hand-off has none of its own.
+  // the inline drain records its counts beside the snapshot; the hand-off has none of its own.
   expect(SNAPSHOT_BOUND_RUN_RECEIPT_FIELDS).toEqual(['curated', 'deprecated'])
   expect(oneShot.runReceipt).toMatchObject({ curated: expectedCount, deprecated: 0 })
   for (const field of SNAPSHOT_BOUND_RUN_RECEIPT_FIELDS) expect(daemon.runReceipt).not.toHaveProperty(field)
@@ -93,7 +93,7 @@ if (childMode) {
 
     expect(oneShot.bundleTree).toBe(daemon.bundleTree)
     expect(oneShot.logicalDump).toBe(daemon.logicalDump)
-    // 418-12: the direct sweep leases reconciliation first, then the queue drain leases its
+    // the direct sweep leases reconciliation first, then the queue drain leases its
     // own write. The standing daemon reconciles and drains under one continuously held lease.
     expect(oneShot.epoch).toBe(2)
     expect(daemon.epoch).toBe(1)

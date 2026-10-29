@@ -12,9 +12,9 @@
 //
 //   1. COMMITTED — the catalog row carries the scope description, read through the ONE loader.
 //   2. SERVED — until 430 this leg read the dashboard's served catalog over a real socket.
-//      2026-09-28 (430 D-02): the dashboard serves no documentation surface of its own; its server
+//      the dashboard serves no documentation surface of its own; its server
 //      door was deleted, so the leg is an absence cell: the composed door's router answers 404 on
-//      the catalog path. 2026-10-01 (432-14): the router is the dashboard's shipped one, since the
+//      the catalog path. 2026-10-01: the router is the dashboard's shipped one, since the
 //      run-confirm router this leg used to mount is deleted too. The committed catalog, `init --agent` and MCP `tools/list` are the surfaces
 //      that carry the scope description.
 //   3. RENDER BUDGET — the structural fact the restatement leans on: the summary-rendering and

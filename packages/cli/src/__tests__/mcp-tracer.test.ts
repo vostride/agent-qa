@@ -71,7 +71,7 @@ function workspace(): { configPath: string; agentQaRoot: string } {
 }
 
 describe('the MCP tracer: one projected tool, end to end on the v2 SDK', () => {
-  // 2026-09-30, 432-12 (D-05): the tracer tool was `agent_qa_list_proposals`, which left the catalogue
+  // the tracer tool was `agent_qa_list_proposals`, which left the catalogue
   // with the proposal round. The same claims are carried over the knowledge inspect read, a 1:1
   // read tool with an object-rooted output contract.
   it('lists agent_qa_inspect_knowledge_records and answers a call with contract-valid structuredContent', async () => {
@@ -145,7 +145,7 @@ describe('the MCP tracer: one projected tool, end to end on the v2 SDK', () => {
       agentQaRoot: where.agentQaRoot,
       configPath: where.configPath,
     })
-    // 396-05: the handler takes a per-request deps RESOLVER, because the HTTP face varies by
+    // the handler takes a per-request deps RESOLVER, because the HTTP face varies by
     // caller. A host with one fixed caller passes the degenerate resolver.
     const nodeHandler = createAgentQaMcpNodeHandler(() => ({
       registry: host.registry,

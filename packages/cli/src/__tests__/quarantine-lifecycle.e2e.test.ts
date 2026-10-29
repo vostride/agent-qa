@@ -3,19 +3,19 @@
 //
 // Eight runs against ONE knowledge root, driving the REAL machinery at every hop:
 //
-//   - the run-start snapshot        `resolveRunQuarantineSnapshot` over the committed ledger (D-16)
+//   - the run-start snapshot        `resolveRunQuarantineSnapshot` over the committed ledger
 //   - the run itself                the real `startRun` member loop over production-shape
 //                                   descriptors, which is where the disposition decides whether
-//                                   OTHER tests run (390-10 / CR-01) — the aggregate and the exit
+//                                   OTHER tests run — the aggregate and the exit
 //                                   code are read off that session, never computed beside it
-//   - both reporters                the real JUnit document and the real console bytes (D-15)
+//   - both reporters                the real JUnit document and the real console bytes
 //   - the durable artifacts         the handoff `startRun` ITSELF produced, written to the run dir
 //                                   — plus, when the run had an analysis budget, the `analyze-run`
 //                                   job's `analysis.json` beside it, which is the only place an
-//                                   authored verdict can live (D-09/D-10)
+//                                   authored verdict can live
 //   - the post-run fold             `LOCAL_CURATION_CAPABILITIES.foldRunOutcomes` over that run
 //                                   DIRECTORY — real sqlite, real projection, real detection, real
-//                                   ledger append (D-08)
+//                                   ledger append
 //
 // Nothing here is stubbed except the browser: member outcomes are scripted, because the phenomenon
 // under test is what the SYSTEM does with a sequence of pass/fail results, not how a test fails.
@@ -29,7 +29,7 @@
 //     measurement and not a coincidence.
 //
 //  2. RUN A'S OWN FAILURE IS PINNED, NOT TOLERATED. Detection is one run behind BY DESIGN
-//     (D-08 + D-16): the crossing is computed in the post-run fold, and the disposition is read at
+//     the crossing is computed in the post-run fold, and the disposition is read at
 //     the NEXT run's start. So the run that crosses still fails honestly. That red is the timing
 //     law holding, and a change that "fixed" it would have quarantine relieving its own crossing —
 //     which is how a real regression gets silenced by the build that discovers it.
@@ -95,7 +95,7 @@ import { createConsoleReporter, QUARANTINE_TEST_ANNOTATION } from '../reporters/
 import { JUNIT_QUARANTINE_MARKER_BLOCK, createJunitReporter } from '../reporters/junit-reporter.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -244,7 +244,7 @@ function failingStep(buildOrdinal: number): StepEvidence {
 const ELEMENT_NOT_FOUND = `Error: element "${ANCHOR_NAME}" not found`
 
 /**
- * THE RUNNER'S OWN TEST-DEADLINE MESSAGE, from the single mint site that defines it (390-21).
+ * THE RUNNER'S OWN TEST-DEADLINE MESSAGE, from the single mint site that defines it.
  *
  * `deriveMemberOutcome` answers `'timeout'` for a failed member iff a failing step's error is
  * exactly this string, and `classifyRootCause` then mints `timeout` on the deterministic floor. It
@@ -257,7 +257,7 @@ const TEST_DEADLINE_ERROR = createTimeoutAbortReason('test', 30_000).message
  * THE `analyze-run` JOB'S DURABLE OUTPUT, IN ITS OWN FILE — which is where an authored verdict
  * actually lives (390 D-09/D-10, `resolveRunVerdicts`).
  *
- * WHAT THIS REPLACES AND WHY (390-21, CR-01). Until now this file put `producer: 'analyze-run'`
+ * WHAT THIS REPLACES AND WHY. Until now this file put `producer: 'analyze-run'`
  * directly onto a hand-built `CompletedRunHandoff`. That is a shape the pipeline cannot produce:
  * the runner assembles and persists `handoff.json` at run end, BEFORE any `analyze-run` job has
  * run, so every verdict a handoff carries is the deterministic floor's. An authored verdict reaches
@@ -310,7 +310,7 @@ interface RunScript {
 /**
  * The runner-level result a scripted member answers with.
  *
- * THE FAILING STEP CARRIES THE FIXTURE'S RICH `StepEvidence` (390-21). `assemblePerTestOutcome`
+ * THE FAILING STEP CARRIES THE FIXTURE'S RICH `StepEvidence`. `assemblePerTestOutcome`
  * passes a step's `evidence` THROUGH when present and synthesizes a thinner one only when absent,
  * so attaching it here is what keeps the anchors the fold extracts — and therefore the failure
  * fingerprint recurrence counts — real once the run's own handoff is the one being folded.
@@ -345,7 +345,7 @@ interface ShellLeg {
   /** Which members the executor was actually reached for, in order. */
   executed: readonly string[]
   /**
-   * THE handoff this run produced (390-21). Returned rather than discarded: what the harness
+   * THE handoff this run produced. Returned rather than discarded: what the harness
    * writes to the run directory and what detection folds are now the SAME OBJECT. Until this
    * round `runThroughShell` awaited it, read four scalars off it and threw it away while a
    * hand-built stand-in was written and folded beside it — which is how an impossible shape became
@@ -363,7 +363,7 @@ interface ShellLeg {
  * executes lives in the loop, and no hop crossed it. Now the aggregate, the exit code and the
  * per-member disposition all come off one real session, so a change to the loop is visible here.
  *
- * The run-start snapshot is passed as plain data exactly as `run.ts` passes it (D-16); the runner
+ * The run-start snapshot is passed as plain data exactly as `run.ts` passes it; the runner
  * gains no port for it.
  */
 async function runThroughShell(
@@ -481,14 +481,14 @@ type FoldReport = ReturnType<typeof LOCAL_CURATION_CAPABILITIES.foldRunOutcomes>
 interface DrivenRun {
   runId: string
   buildOrdinal: number
-  /** What the ledger licensed for THIS run, read once before any member could execute (D-16). */
+  /** What the ledger licensed for THIS run, read once before any member could execute. */
   snapshotAtStart: readonly QuarantineAppliedEntry[]
   memberQuarantined: boolean
   aggregate: RunStatus
   exitCode: number
-  /** Which members the run shell actually reached the executor for (390-10). */
+  /** Which members the run shell actually reached the executor for. */
   executed: readonly string[]
-  /** The handoff the run PRODUCED — the same object written to the run dir and folded (390-21). */
+  /** The handoff the run PRODUCED — the same object written to the run dir and folded. */
   handoff: CompletedRunHandoff
   /** What the post-run fold answered — the detection events and the loud refusals it reported. */
   fold: FoldReport
@@ -517,7 +517,7 @@ async function driveRun(env: Harness, script: RunScript, now = NOW): Promise<Dri
   })
   // (2) THE RUN — the real member loop over production-shape descriptors. The aggregate, the exit
   //     code and the tracked member's disposition are all read off this one session rather than
-  //     computed beside it, so the fail-fast poisoning decision is on every hop's path (390-10).
+  //     computed beside it, so the fail-fast poisoning decision is on every hop's path.
   //     The sibling passes here; the anti-silencing case gives it a failure of its own.
   const { aggregate, exitCode, memberQuarantined, executed, handoff } = await runThroughShell(
     script,
@@ -547,7 +547,7 @@ async function driveRun(env: Harness, script: RunScript, now = NOW): Promise<Dri
   }
   await junit.flush()
 
-  // (4) the durable handoff a later surface reads — THE ONE THE RUN PRODUCED (390-21). Nothing is
+  // (4) the durable handoff a later surface reads — THE ONE THE RUN PRODUCED. Nothing is
   //     rebuilt here: the bytes on disk and the object detection evaluates are the same value, so
   //     an assertion below cannot be true of a shape the runner would never emit.
   const runDir = join(env.agentQaRoot, RUNS_SUBDIR, slugBranch(script.runId))
@@ -606,7 +606,7 @@ describe('the quarantine lifecycle, end to end', () => {
     expect(pre1.exitCode).toBe(1)
 
     const pre2 = await driveRun(env, { runId: 'run-lifecycle-2', buildOrdinal: 2, outcome: 'failed' })
-    // D-06: two occurrences FLAG (visibility only) and write not one byte of ledger
+    // two occurrences FLAG (visibility only) and write not one byte of ledger
     expect(pre2.ledgerBefore).toEqual([])
     expect(pre2.ledgerAfter).toEqual([])
     expect(pre2.exitCode).toBe(1)
@@ -618,11 +618,11 @@ describe('the quarantine lifecycle, end to end', () => {
     expect(runA.ledgerBefore).toEqual([])
     expect(runA.snapshotAtStart).toEqual([])
     expect(runA.memberQuarantined).toBe(false)
-    // THE TIMING LAW: the run that discovers the flake fails honestly (D-08 + D-16)
+    // THE TIMING LAW: the run that discovers the flake fails honestly
     expect(runA.aggregate).toBe('failed')
     expect(runA.exitCode).toBe(1)
     // …and because nothing licenses it, the failure poisons its suite group and the sibling behind
-    // it never runs — pre-390 within-suite fail-fast (D-15), unchanged by the disposition guard
+    // it never runs — pre-390 within-suite fail-fast, unchanged by the disposition guard
     expect(runA.executed).toEqual(['checkout'])
     expect(runA.junitXml).toContain('<failure')
     expect(runA.junitXml).not.toContain(JUNIT_QUARANTINE_MARKER_BLOCK)
@@ -653,12 +653,12 @@ describe('the quarantine lifecycle, end to end', () => {
     // the member outcome is untouched; the AGGREGATE is what the disposition changed
     expect(runB.aggregate).toBe('passed')
     expect(runB.exitCode).toBe(0)
-    // THE OTHER HALF OF FLAK-02 (390-10 / CR-01): the licensed failure changes the aggregate rule
+    // THE OTHER HALF OF FLAK-02: the licensed failure changes the aggregate rule
     // and NOTHING ELSE. It does not poison its group, so the sibling behind it still runs. Compare
     // run A one hop above — identical members, identical group, opposite disposition, opposite
     // answer to "did the sibling execute".
     expect(runB.executed).toEqual(['checkout', 'login'])
-    // D-15: the correct amount of red on a green build
+    // the correct amount of red on a green build
     expect(runB.junitXml).toContain('<failure')
     expect(runB.junitXml).toContain(JUNIT_QUARANTINE_MARKER_BLOCK)
     expect(runB.junitXml).toContain('failures="1"')
@@ -895,7 +895,7 @@ describe('a failing member with no analysis budget can still be quarantined', ()
       .toBe('skipped')
     expect(crossing.fold.quarantine.escalatedNotQuarantined).toEqual([])
 
-    // (4) THE TIMING LAW still holds: the run that discovers it still fails honestly (D-08/D-16).
+    // (4) THE TIMING LAW still holds: the run that discovers it still fails honestly.
     expect(crossing.aggregate).toBe('failed')
     expect(crossing.exitCode).toBe(1)
   }, 120_000)
@@ -1016,7 +1016,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
       owner: QUARANTINE_UNASSIGNED_OWNER,
       expiresAt: EXPECTED_EXPIRY,
     })
-    // nothing was released: an expired entry is a visible state, never a deletion (D-11)
+    // nothing was released: an expired entry is a visible state, never a deletion
     expect(afterReentry.some((line) => line.kind.startsWith('released'))).toBe(false)
 
     // The differential closes on ONE surface: the SAME accessor over the SAME ledger file now reads
@@ -1123,7 +1123,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
       const lines = ledgerLines(env)
 
       // FACT 1 — four `entered` lines, and NOTHING was released. The exit path saw every one of
-      // these lapsed entries (390-17) and correctly declined: the test never recovered.
+      // these lapsed entries and correctly declined: the test never recovered.
       expect(lines.map((line) => line.kind)).toEqual(['entered', 'entered', 'entered', 'entered'])
       expect(lines.some((line) => line.kind.startsWith('released'))).toBe(false)
 

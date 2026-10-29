@@ -1,11 +1,11 @@
-// 2026-10-18 (444-26, D-61): a run whose post-run chain was never enqueued carries the skipped fact
+// a run whose post-run chain was never enqueued carries the skipped fact
 // beside its curation chip on the run's overview and knowledge reads, on the CLI and MCP alike, so a
 // gate run's never-run curation no longer reads as a bare `pending`. The fact is the same fold
 // `runs.postprocessing` serves, read from the run's own handoff.
 //
 // Built on run-read-verbs.test.ts's harness: completed handoffs written through
 // FsHandoffStore, the in-process `cli()` driver over createRunsCommand(), and the composed MCP
-// reader. The fixtures live in this file (437 D-19).
+// reader. The fixtures live in this file.
 
 import { createServer } from 'node:http'
 import { writeFileSync } from 'node:fs'

@@ -375,7 +375,7 @@ describe('every production composeLocalAgent call site', () => {
 
   it('never has a delegating site also claim to hold the lease', () => {
     const discovered = discoverCallSites()
-    // 2026-10-01 (432-17 D-05): the CLI host was the one site supplying `applyDelegate`, the
+    // the CLI host was the one site supplying `applyDelegate`, the
     // daemon-forwarded proposal apply. That apply is deleted with the inbox, so no production site
     // delegates any more; the both-at-once rule stays pinned by the synthetic `two-places` cell.
     expect(discovered.filter((site) => site.suppliesDelegate).map((site) => site.path))

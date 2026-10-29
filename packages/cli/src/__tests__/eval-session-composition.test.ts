@@ -71,7 +71,7 @@ beforeEach(async () => {
   savedXdgDataHome = process.env.XDG_DATA_HOME
   // Point the auth store at an empty temp location so the real named-LLM chain resolves
   // openai-compatible entries to `unauthenticated` deterministically (no host auth store reads).
-  // 2026-10-20 (445-16, D-41): only off the public provider API, hence compat.example.
+  // only off the public provider API, hence compat.example.
   process.env.XDG_DATA_HOME = join(tmpRoot, 'xdg-data')
 })
 

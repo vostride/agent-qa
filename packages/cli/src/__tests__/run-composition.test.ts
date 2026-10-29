@@ -74,7 +74,7 @@ describe('attachRunSubscribers (bus composition swap)', () => {
     expect(extraFlush).toHaveBeenCalledTimes(1)
   })
 
-  // 2026-10-02 (432-42, D-14): the live seam is deleted, so the second half of this title is now its
+  // the live seam is deleted, so the second half of this title is now its
   // absence — a legacy controller smuggled in is never bound (old title kept for the console half).
   it('skips the console subscriber and unbinds the live seam when console is false', async () => {
     const session = fakeSession()
@@ -191,7 +191,7 @@ describe('attachRunSubscribers threads the quarantine snapshot to both reporters
   })
 })
 
-// ---- 385-08 (D-13): the dissection's two load-bearing controls ------------------------------
+// ---- 385-08: the dissection's two load-bearing controls ------------------------------
 
 // Control 1 — the anti-shim pin. The dissection is only real if the moved symbols stopped being
 // reachable through this path. A module that re-published them would leave every call site
@@ -212,18 +212,18 @@ describe('the CLI run-session module exports presentation ONLY', () => {
 
     expect(declared).toEqual([
       'AttachRunSubscribersInput',
-      // 2026-10-17 (443-05, D-22): the replay floor the drive subscribes the run's record at.
+      // the replay floor the drive subscribes the run's record at.
       'REPLAY_FROM_START',
       'attachRunSubscribers',
-      // 2026-08-17 (398-10): the run-completion analytics subscriber factory. It belongs beside
+      // the run-completion analytics subscriber factory. It belongs beside
       // `attachRunSubscribers` for that helper's own reason — `run.ts` has two `startRun` sites
       // (Pitfall 8), and a subscriber constructed separately at each is one that can be configured
       // differently at each. It is presentation in the same sense the reporters are: something a
       // host attaches to the bus and flushes, which a headless drainer would substitute.
       'buildAnalyticsRunSubscriber',
-      // 2026-10-15 (441-30, D-12/D-15): the per-run hook registrar's assembly left.
-      // 2026-10-01 (432-19): 'buildUnmaskingConfirm' left with the confirm port it decorated.
-      // 2026-10-02 (432-42, D-14): 'createLivePauseController' left with the pause seam it built.
+      // the per-run hook registrar's assembly left.
+      // 'buildUnmaskingConfirm' left with the confirm port it decorated.
+      // 'createLivePauseController' left with the pause seam it built.
     ].sort())
   })
 
@@ -233,5 +233,5 @@ describe('the CLI run-session module exports presentation ONLY', () => {
   })
 })
 
-// 2026-10-15 (441-30, D-12/D-15): Control 2, the describe 'human decoration composes OUTSIDE the
-// pause timing (385-08 / D-10 / D-11)', is deleted with the per-run hook registrar it drove.
+// Control 2, the describe 'human decoration composes OUTSIDE the
+// pause timing', is deleted with the per-run hook registrar it drove.

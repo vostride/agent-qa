@@ -14,7 +14,7 @@ import { assembleCliRun } from '../composition/run-assembly.js'
 import { runInProcessCliRun } from '../composition/in-process-run-execution.js'
 import { closeTestRunRecords, testRunRecord } from '../composition/__tests__/in-process-run-fixture.js'
 
-// 2026-10-17 (443-08, D-22): every drive call carries a record; each cell closes the ones it opened.
+// every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 
 const boundary = vi.hoisted(() => ({
@@ -265,7 +265,7 @@ it('USAGE-ASSERTION-ROLE: actual AI assertion and late extraction share the sele
   expect(snapshot.attempts.map(attempt => attempt.role)).toEqual(['planner', 'verifier', 'verifier', 'verifier'])
   const requests = boundary.transport.mock.calls.map(([, init]) => JSON.parse(String(init.body)))
   expect(requests[1].response_format.json_schema.name).toBe('ai_judgment')
-  // The step verifier confirms a passing assertAI (quick 261004-0hc) before the late extraction.
+  // The step verifier confirms a passing assertAI before the late extraction.
   expect(requests[2].response_format.json_schema.name).toBe('verification_result')
   expect(requests[3].response_format.json_schema.name).toBe('extraction_result')
   expect(boundary.safety).toHaveBeenCalledTimes(4)

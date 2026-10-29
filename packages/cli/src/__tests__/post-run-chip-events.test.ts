@@ -1,4 +1,4 @@
-// The chip trail an in-process drain leaves behind (Phase 388 plan 04, D-13 / D-16).
+// The chip trail an in-process drain leaves behind.
 //
 // Driven through the REAL tail against a real sqlite store, a real handoff and the real handler
 // bodies, because the claim is about what a finished run's `events.jsonl` CONTAINS after the
@@ -45,7 +45,7 @@ import {
 import { enqueueThroughTheStep } from './post-run-step-harness.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -288,7 +288,7 @@ describe('the post-run chip emitter', () => {
     }
   })
 
-  // 404 D-01/D-02 (2026-08-26): the reserved job kind lost its `STAGE_CHIPS` row and the three
+  // the reserved job kind lost its `STAGE_CHIPS` row and the three
   // `issues*` event names left `RUN_EVENT_TYPES` entirely. The cell survives as the runtime
   // proof that the reserved kind emits NOTHING — the enum removal alone cannot say that,
   // because a row could still be re-added naming any surviving name.
@@ -429,7 +429,7 @@ describe('the post-run chip emitter', () => {
 })
 
 /**
- * The emitter's SECOND SINK — the dashboard relay (Phase 404 plan 05, D-16).
+ * The emitter's SECOND SINK — the dashboard relay.
  *
  * WHAT THE SINK MAY AND MAY NOT COST. The trail is the record: `events.jsonl` is what
  * `runs.postprocessing` is reconciled against and what a later reader replays. The relay is a
@@ -600,7 +600,7 @@ describe('the user-facing post-run lines', () => {
     expect(line).toBe(
       `post-processing — analysis: ${status.chips.analysis} (daemon will drain)`
       + ` · curation: ${status.chips.curation} (deferred to a later local run)`
-      // 389 D-12: this process did not complete analyze-run, so the line carries the one
+      // this process did not complete analyze-run, so the line carries the one
       // copy-paste that fetches the sentences once the daemon has drained.
       + ` · digest: ${digestFetchCommand(RUN_ID)}`,
     )
@@ -644,7 +644,7 @@ describe('the user-facing post-run lines', () => {
       })
       expect(f.info.mock.calls.map(([message]) => String(message))).toEqual([
         'post-processing — analysis: complete · curation: pending (deferred to a later local run)'
-        // 389 D-12: the SECOND tail completed nothing in-process (the first one authored the
+        // the SECOND tail completed nothing in-process (the first one authored the
         // analysis), so its exit line still points at the fetch command rather than printing
         // sentences it never drained.
         + ` · digest: ${digestFetchCommand(RUN_ID)}`,
@@ -707,7 +707,7 @@ describe('the user-facing post-run lines', () => {
       expect(analysisStage).toBe('analysis: pending (daemon will drain)')
     })
 
-  // EXIT-LINE-EXCLUDED (425 D-08, 444 D-39). A gate or benchmark run never enqueues a chain, so its
+  // EXIT-LINE-EXCLUDED. A gate or benchmark run never enqueues a chain, so its
   // chips read `pending` forever and the posture parenthetical promises a drain nobody will perform.
   // The skipped fact the op mints from the run's durable handoff replaces BOTH stage clauses
   // with the words the digest chain line and the dashboard print — and takes the promise with it.

@@ -1,6 +1,6 @@
-// THE SERVICE DOOR'S REJECTION CELLS (Phase 402 plan 06, D-05 / D-06 · INVK-03).
+// THE SERVICE DOOR'S REJECTION CELLS.
 //
-// 2026-10-01 (432-21, D-12/D-13): TOKENLESS. The run-service tokens, their resolver, the door's
+// TOKENLESS. The run-service tokens, their resolver, the door's
 // `verifyBearer` port and the trust scope a token carried are deleted. Every cell below that
 // measured a bearer refusal is RE-SPELLED in place to the request the door still refuses — a
 // cross-site one, refused by the dashboard's shared same-site guard above the route table — or to
@@ -58,14 +58,14 @@ import {
 const TOKEN = 'zz-402-06-planted-run-credential-4b91ce'
 const TOKEN_VAR = 'AGENT_QA_402_06_RUN_CRED'
 
-/** 432-21: what the door refuses before its route table — the shared same-site guard's rungs. */
+/** what the door refuses before its route table — the shared same-site guard's rungs. */
 const CROSS_SITE_CLASSES = [
   { id: 'foreign Origin', headers: { Origin: 'https://evil.example' } as Record<string, string> },
   { id: 'null Origin', headers: { Origin: 'null' } as Record<string, string> },
   { id: 'cross-site fetch metadata', headers: { 'Sec-Fetch-Site': 'cross-site' } as Record<string, string> },
 ] as const
 
-/** 432-21: legacy Authorization shapes a pre-432 client may send. None is read, none is refused. */
+/** legacy Authorization shapes a pre-432 client may send. None is read, none is refused. */
 const LEGACY_HEADER_CLASSES = [
   { id: 'absent header', headers: {} as Record<string, string> },
   { id: 'malformed scheme', headers: { Authorization: `Basic ${TOKEN}` } as Record<string, string> },
@@ -220,7 +220,7 @@ function probeTargetsFor(row: (typeof RUN_SERVICE_ROUTE_TABLE)[number]): readonl
   return [concrete, `${concrete}?handle=1`, `${concrete}?handle=not-a-number`]
 }
 
-// RE-SPELLED 2026-10-01 (432-21, D-12/D-13). The census's classes were the three ways to fail to
+// RE-SPELLED 2026-10-01. The census's classes were the three ways to fail to
 // present a declared credential, answered 401; they are now the three rungs of the same-site guard,
 // answered 403 `cross_site_refused`. The denominator, the shape law and the no-grant law are the
 // census's own and unchanged.
@@ -341,7 +341,7 @@ describe('a run started over the wire', () => {
     expect(runsThatProducedEvents(service.configDir).length).toBeGreaterThan(0)
   }, 180_000)
 
-  // 432-21 (D-12, EDGE-17): two concurrent tokenless starts are two runs, each under the id the core
+  // two concurrent tokenless starts are two runs, each under the id the core
   // minted for it — no request can choose an id, and no request shares another's.
   it('two concurrent tokenless starts get two distinct core-minted run ids', async () => {
     const service = await openRunService()
@@ -360,7 +360,7 @@ describe('a run started over the wire', () => {
 
 // ---- (3) THE COMPARE DISCIPLINE, SOURCE HALF --------------------------------------------------
 //
-// 2026-10-01 (432-21, D-12/D-13): the bearer compare module is deleted. The secret compare the run
+// the bearer compare module is deleted. The secret compare the run
 // service still depends on is the live-view link signature (`live-url-signer.ts`), which D-13
 // keeps; the source half is measured there, and a census pins that no other CLI module grew a
 // second constant-time compare of a credential.
@@ -493,7 +493,7 @@ function channelsOf(error: unknown): readonly string[] {
 }
 
 describe('the token value reaches no channel', () => {
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'the STARTUP refusal names the variable and never a
+  // RE-SPELLED 2026-10-01 from 'the STARTUP refusal names the variable and never a
   // value, and carries no cause' and 'an EMPTY or whitespace-only value refuses startup identically
   // to an unset one'. The composer reads no declaration and no environment, so there is no startup
   // refusal to leak through: it composes whatever the environment holds, and nothing it returns or
@@ -521,7 +521,7 @@ describe('the token value reaches no channel', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'a WRONG-token refusal leaks the declared value on no
+  // RE-SPELLED 2026-10-01 from 'a WRONG-token refusal leaks the declared value on no
   // channel a person can read'. A presented bearer is not read; this sweep presents one alongside
   // each cross-site rung and asserts the value reaches no body, header or log line.
   it('a WRONG-token refusal leaks the declared value on no channel a person can read', async () => {
@@ -567,7 +567,7 @@ describe('the token value reaches no channel', () => {
   }, 60_000)
 })
 
-// ---- (6) THE SECOND REFUSAL OF `runId` (WINDOWS #231) -----------------------------------------
+// ---- (6) THE SECOND REFUSAL OF `runId` -----------------------------------------
 
 describe('the door never forwards a caller’s run id, even with its own check bypassed', () => {
   it('the composition builds the request from patterns ALONE — an injected id is not honoured', async () => {

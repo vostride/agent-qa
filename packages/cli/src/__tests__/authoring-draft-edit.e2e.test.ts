@@ -1,4 +1,4 @@
-// `authoring.draft.edit` over the REAL applier (394-09, D-20/D-21 · WTST-07).
+// `authoring.draft.edit` over the REAL applier.
 //
 // WHY THIS FILE IS IN `packages/cli`. The byte-confinement claim — an edit never reformats a line
 // it did not address — is a property of `applyPatchSetToTestDoc`, which needs the yaml CST from
@@ -141,7 +141,7 @@ function changedLines(before: string, after: string): { removed: number[]; added
 function harness(emission: string, options: { readonly beforeAnswer?: () => void } = {}) {
   const authoring = createDraftAuthoringPort(configPath)
   let runStarts = 0
-  // 432 D-06: the host's direct writer, reached through the port by name so a baseline without it
+  // the host's direct writer, reached through the port by name so a baseline without it
   // is an assertion failure rather than a crash.
   const publishDraft = (authoring as unknown as Record<string, unknown>)['publishDraft'] as
     | ((request: unknown) => Promise<unknown>)
@@ -231,7 +231,7 @@ describe('an edit changes only the lines its pointers address', () => {
     expect(afterLines[6]).toBe(beforeLines[6])
     expect(afterLines[7]).toContain('and the banner is shown')
 
-    // 2026-09-30, 432 D-06: re-spelled in place. This used to assert the edited file UNTOUCHED
+    // re-spelled in place. This used to assert the edited file UNTOUCHED
     // because the edit only proposed. The edit now lands in the file it edited, so the same
     // byte-confinement claim holds for the file on disk, and the answer points at that file.
     expect(readFileSync(join(root, TEST_PATH), 'utf8')).toBe(after)
@@ -257,7 +257,7 @@ describe('an edit changes only the lines its pointers address', () => {
     expect(diff.removed).toEqual([])
     expect(diff.added).toEqual([9])
     expect(result.patches).toHaveLength(1)
-    // 2026-10-01 (432-17, D-06): the run count rode the deleted test-draft arm; the edit answers
+    // the run count rode the deleted test-draft arm; the edit answers
     // the file it wrote and carries no proposal.
     expect(result).not.toHaveProperty('proposal')
   })

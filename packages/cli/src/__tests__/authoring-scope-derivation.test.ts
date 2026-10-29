@@ -1,4 +1,4 @@
-// The ONE host-side authoring scope derivation (394-26, WINDOWS 110).
+// The ONE host-side authoring scope derivation.
 //
 // WHY THIS FILE IS IN `packages/cli`. The derivation reads the resolved config's targets and the
 // workspace's committed tests, which needs `resolveConfig` plus `resolveWorkspacePaths` /

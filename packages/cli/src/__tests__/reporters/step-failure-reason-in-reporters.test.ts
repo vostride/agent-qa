@@ -1,4 +1,4 @@
-// C439-UNPROVEN-REASON (439 D-09): an unproven step's reason is the step's error, and it reaches
+// an unproven step's reason is the step's error, and it reaches
 // the JUnit failure message and the console reporter's failed-step line verbatim.
 
 import { describe, expect, it } from 'vitest'

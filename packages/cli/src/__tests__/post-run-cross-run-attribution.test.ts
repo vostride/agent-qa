@@ -49,7 +49,7 @@ import {
 import { enqueueThroughTheStep } from './post-run-step-harness.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -333,7 +333,7 @@ async function readStatusThroughTheOp(
 async function driveTwoRuns(
   f: Fixture,
   /**
-   * 404-05 (D-16): the dashboard's second chip sink, attached to run B's tail only.
+   * the dashboard's second chip sink, attached to run B's tail only.
    *
    * Threaded through this shared driver rather than into a fourth copy of it, because the claim
    * the relay cell makes is exactly the claim this driver already sets up: run B's pump genuinely
@@ -433,7 +433,7 @@ describe('the chip trail is scoped to the run whose tail is draining', () => {
 })
 
 /**
- * The exact parenthetical a starved own-chain earns, stated once (WR-01).
+ * The exact parenthetical a starved own-chain earns, stated once.
  *
  * Pinned as a constant in the test rather than imported from the renderer: the claim is about
  * what a user READS, and a test that imported the string would agree with any wording the
@@ -442,7 +442,7 @@ describe('the chip trail is scoped to the run whose tail is draining', () => {
 const BACKLOG_PARENTHETICAL = ' (queued behind other runs; the daemon or a later run will drain)'
 
 /**
- * Curation's own, because a daemon may not claim `curate-memory` at all (388-10 / WR-09) — the
+ * Curation's own, because a daemon may not claim `curate-memory` at all — the
  * one stage whose backlog is drained by a later LOCAL run and by nothing else.
  */
 const CURATION_BACKLOG_PARENTHETICAL =
@@ -479,11 +479,11 @@ describe('a starved own-chain is reported as backlog-exhausted, never a bare pen
         curation: 'pending',
       })
       // Token for token, in the ONE chip vocabulary: the parenthetical is posture and the words
-      // around it are the op's, exactly as the handed-off line is built (D-08/D-14).
+      // around it are the op's, exactly as the handed-off line is built.
       expect(f.info.mock.calls.map(([message]) => String(message))).toEqual([
         `post-processing — analysis: pending${BACKLOG_PARENTHETICAL}`
         + ` · curation: pending${CURATION_BACKLOG_PARENTHETICAL}`
-        // 389 D-12: a starved chain completed no analyze-run, so the line carries the fetch
+        // a starved chain completed no analyze-run, so the line carries the fetch
         // command — the sentence stays one copy-paste away whoever drains the backlog.
         + ` · digest: ${digestFetchCommand(RUN_B)}`,
       ])

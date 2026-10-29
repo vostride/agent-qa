@@ -1,4 +1,4 @@
-// The DETACHED post-processing leg, on a real in-process run (Phase 404 plan 04, D-06).
+// The DETACHED post-processing leg, on a real in-process run.
 //
 // WHAT IS UNDER TEST IS AN ORDER, and orders are exactly what spot-checks cannot carry. Every cell
 // below drives the SHIPPED `runInProcessCliRun` over a real project — a real gate, a real assembly,
@@ -13,7 +13,7 @@
 //      `'run-settled'` — db finalize, Appium lease release, handle cleanup — when the `invokeRun`
 //      promise settles. A drain awaited inside `execute()` holds all three for up to
 //      `DRAIN_BUDGET_MS`. The cell awaits the outcome while the tail is still parked.
-//   2. DISPOSE-AFTER-DRAIN is gone (441-58, D-12): the verdict context carries a `mask`, with nothing
+//   2. DISPOSE-AFTER-DRAIN is gone: the verdict context carries a `mask`, with nothing
 //      to dispose.
 //   3. AFTER-VERDICT-FIRST. A door supplying both hooks gets them in sequence and never
 //      concurrently, so `--all`'s exit-code fold can never race a drain.
@@ -47,7 +47,7 @@ afterAll(() => {
   if (pinnedTmpdir !== undefined) removeTempRoots([pinnedTmpdir.root])
 })
 
-// 2026-10-17 (443-08, D-22): every drive call carries a record; each cell closes the ones it opened.
+// every drive call carries a record; each cell closes the ones it opened.
 afterEach(() => { closeTestRunRecords() })
 
 /** A promise the cell settles by hand — the deferred the whole ordering claim rests on. */

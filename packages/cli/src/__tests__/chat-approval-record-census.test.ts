@@ -5,10 +5,10 @@
 // SECOND SPELLING: until 401-01 this type was declared twice, once in the composition root and once
 // in the cli's confirm wrapper, and the two were free to drift. So the subject here is the SET.
 //
-// 2026-10-01, 432-16 (D-14/D-15, D-22): THE WRITER IS DELETED. The record was what the chat
+// THE WRITER IS DELETED. The record was what the chat
 // confirm's decision sink appended to a conversation's log as an `approval_decision` row. The chat
 // confirm, its bindings and the record are gone, so the census's expected set is now EMPTY
-// (C432-NO-APPROVAL-WRITER), no product source constructs an `approval_decision` event, and the
+// no product source constructs an `approval_decision` event, and the
 // row stays readable: a session written before 432 still parses through the shipped guard.
 //
 // THE DISCOVERY PREDICATE IS THE PART MOST LIKELY TO BE VACUOUS, so it is asserted rather than
@@ -135,7 +135,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
     ).toEqual(expect.arrayContaining(CROSSED_PACKAGES))
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): was 'declares the record in exactly one place, and that place
+  // RE-SPELLED 2026-10-01: was 'declares the record in exactly one place, and that place
   // is agent-local'. The one declaration went with the chat confirm that wrote it.
   it('declares the record nowhere — no approval writer contract survives', () => {
     const sites = scanned.flatMap((entry) =>
@@ -160,7 +160,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
   })
 
   it('a historical approval_decision row still parses through the shipped guard', () => {
-    // D-22 / 430 D-08: sessions written before 432 carry these rows, and the guard throws on an
+    // sessions written before 432 carry these rows, and the guard throws on an
     // unknown kind, so the kind stays readable with no writer behind it.
     for (const row of [
       {

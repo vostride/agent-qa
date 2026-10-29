@@ -1,4 +1,4 @@
-// `agent-qa ask "<message>"` — the one-shot chat verb, over the real composition (392 D-01/D-24).
+// `agent-qa ask "<message>"` — the one-shot chat verb, over the real composition.
 //
 // The claim under test is a STRUCTURAL one, and it is the reason D-24 exists: the CLI owns no turn
 // capability of its own. It resolves a root, composes the local host, and calls `invokeFunction`
@@ -146,7 +146,7 @@ const NOT_A_REFERENCE = 'sk-PROBE-0000000000000000000000000000'
 /**
  * One clause whose op reaches its capability and DECLINES: the refs-only arm, not a failure.
  *
- * 2026-10-14 (441 D-15): re-aimed from the deleted construction-scan block to the reference
+ * re-aimed from the deleted construction-scan block to the reference
  * field's shape refusal, which is decided on the input before anything is read past the set.
  */
 const REFUSED_CLAUSE = `/fn config.auth.set ${JSON.stringify({
@@ -183,7 +183,7 @@ describe('agent-qa ask (the one-shot chat verb)', () => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
   })
 
-  // 432-13: the bare `proposals` alias left the resolver table with the inbox route (C432-CHAT-DIRECT).
+  // the bare `proposals` alias left the resolver table with the inbox route.
   // 432-17 deleted `proposals.list` too; the generic `/fn` passthrough reaches `runs.list` instead.
   it('routes a deterministic utterance through agent.ask and renders the receipt', async () => {
     const configPath = fixtureWorkspace(roots)
@@ -205,11 +205,11 @@ describe('agent-qa ask (the one-shot chat verb)', () => {
     // `Runs consumed: N (previewed up to M)` rides `ClauseReceipt.outcome`; this pins that the
     // field reaches stdout at all, on the deterministic turn.
     //
-    // 2026-08-20 (399.1-04): THE LINE MOVED AND THE CLAIM DID NOT. `proposals.list` declares a
+    // THE LINE MOVED AND THE CLAIM DID NOT. `proposals.list` declares a
     // classifier now — `classify` is a REQUIRED member of `FunctionSpec` as of plan 04 — so the
     // engine's `${functionId} completed` fallback is not what this op reports any more. The op's
     // own one-line map is, and the string below is it for an EMPTY inbox, which is what this
-    // fixture workspace has. 2026-10-01 (432-17): `proposals.list` is deleted; `runs.list` is the
+    // fixture workspace has. 2026-10-01: `proposals.list` is deleted; `runs.list` is the
     // subject now, and the string is its own map for a workspace with no completed run. It is still a contiguous string the shipped line renders only by
     // printing `outcome`: the functionId and the clause are separate fields, and neither of them
     // is this sentence.
@@ -220,7 +220,7 @@ describe('agent-qa ask (the one-shot chat verb)', () => {
   })
 
   it('binds a presentation port on the SAME stream its confirm prompts on', async () => {
-    // 432-13: no confirm prompts on this stream any more (the door builds none); the presentation
+    // no confirm prompts on this stream any more (the door builds none); the presentation
     // port is still bound to stdout, which is the half of this claim that survives.
     //
     // 395-22 · CR-03 · CFGM-05. `composeCliLocalAgent` supplies `createTtyConfirmPort()` whenever

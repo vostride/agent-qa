@@ -1,14 +1,14 @@
-// 419 D-20: actual HTTP MCP listener, catalog and invokeFunction over durable mark fixtures.
-// No provider calls. The mark runs local-headless. 2026-10-01 (432-22, D-15/D-22): `safety.trustMode`
+// actual HTTP MCP listener, catalog and invokeFunction over durable mark fixtures.
+// No provider calls. The mark runs local-headless. 2026-10-01: `safety.trustMode`
 // is deleted from the config schema, so the former trustMode FALSE/TRUE variants are one case.
-// 2026-10-01 (432-20, D-12): the listing no longer hides the mark tool and the function layer reads
+// the listing no longer hides the mark tool and the function layer reads
 // no scope, so every caller lists every tool and reaches every op.
-// 2026-10-01 (432-21, D-12/D-13): RE-SPELLED to tokenless parity. The bearer rung, the declared
+// RE-SPELLED to tokenless parity. The bearer rung, the declared
 // MCP tokens, `credentialForBearer` and the mark handler's credential refusal are deleted, so a
 // caller with no `Authorization` header lists and lands a mark directly, and a legacy bearer header
 // changes nothing. What the listener still refuses — before any server is built and before any
-// body takes effect — is a Host that is not a localhost form (C432-RETAINED-HOST) and a present
-// Origin that is not a localhost form (C432-RETAINED-ORIGIN).
+// body takes effect — is a Host that is not a localhost form and a present
+// Origin that is not a localhost form.
 import { existsSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer, request as httpRequest, type Server } from 'node:http'
 import { join } from 'node:path'
@@ -48,7 +48,7 @@ async function harness() {
     use: { mobile: { appState: 'preserve' } },
   })
   writeFileSync(fixture.configPath, JSON.stringify(config))
-  // 2026-10-14 (441-07, D-06): the MCP masker reads this project's declared secrets.
+  // the MCP masker reads this project's declared secrets.
   writeFileSync(join(fixture.root, '.env.secrets.local'), '')
   const host = composeCliLocalAgent({
     agentQaRoot: fixture.agentQaRoot, configPath: fixture.configPath,
@@ -122,7 +122,7 @@ async function harness() {
 }
 
 describe('MCP sovereign mark bearer differential', () => {
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'anonymous/reader list the mark tool and its handler
+  // RE-SPELLED 2026-10-01 from 'anonymous/reader list the mark tool and its handler
   // refuses them when trustMode=%s'. The handler's credential refusal is deleted: a tokenless
   // caller lists the mark tool and lands the mark in the call. 432-22: the trustMode variants are
   // one case, because the key that varied them is deleted.
@@ -147,7 +147,7 @@ describe('MCP sovereign mark bearer differential', () => {
     expect(h.refusals).toEqual([])
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'declared writer marks headlessly without trustMode;
+  // RE-SPELLED 2026-10-01 from 'declared writer marks headlessly without trustMode;
   // authority never carries to later or concurrent anonymous requests'. There is no authority to
   // carry: a client sending a legacy bearer and a client sending none are the same caller, their
   // concurrent listings are identical, and two concurrent marks of one address land one receipt.
@@ -169,7 +169,7 @@ describe('MCP sovereign mark bearer differential', () => {
     expect(h.refusals).toEqual([])
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'a knowledge-write-only credential lists and reaches
+  // RE-SPELLED 2026-10-01 from 'a knowledge-write-only credential lists and reaches
   // every tool, scopes gating nothing'. No credential exists; the one tokenless caller lists and
   // reaches every tool, and the function layer reads no field of it.
   it('the tokenless caller lists and reaches every tool, nothing gating it', async () => {
@@ -195,7 +195,7 @@ describe('MCP sovereign mark bearer differential', () => {
   })
 })
 
-// 432-21 (D-13): the two guards the listener keeps, each measured alone with the other one passing,
+// the two guards the listener keeps, each measured alone with the other one passing,
 // and each before any body takes effect: a refused mark writes nothing to the ledger.
 describe('the MCP HTTP listener keeps its Host and Origin guards', () => {
   it('a non-localhost Host is refused before any server is built, with a localhost Origin', async () => {

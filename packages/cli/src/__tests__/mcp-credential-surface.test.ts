@@ -32,7 +32,7 @@
 //   git show $(git log --diff-filter=D --format=%H -1 -- <path>)^:<path>
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 //
-// FROM agent-qa-server-masking.test.ts (395-25):
+// FROM agent-qa-server-masking.test.ts:
 //
 // | v1 assertion                                          | here                                  |
 // |-------------------------------------------------------|---------------------------------------|
@@ -41,11 +41,11 @@
 // |                                                        | whole-config render exists on this    |
 // |                                                        | surface at all. The residual config-  |
 // |                                                        | bytes channel is the change diff,     |
-// |                                                        | masked by declaration (C441-MCP-DIFF).|
-// | (M1) a URL-userinfo credential never returned          | RETIRED 2026-10-14 (441 D-15): config |
+// |                                                        | masked by declaration.|
+// | (M1) a URL-userinfo credential never returned          | RETIRED 2026-10-14: config |
 // |                                                        | changes are not scanned; a declared   |
 // |                                                        | value in a diff is masked             |
-// |                                                        | (C441-MCP-DIFF).                      |
+// |                                                        |.                      |
 // | (M1) a `providerHeaders` credential never returned     | RE-DERIVED as C441-MCP-DIFF for a     |
 // |                                                        | declared value, and its BOUND         |
 // |                                                        | measured in F2 for an undeclared      |
@@ -58,7 +58,7 @@
 // | (M2) credential-free members of the same container     | RE-DERIVED as group G.                |
 // |      survive verbatim                                  |                                       |
 //
-// FROM credential-surface-parity.test.ts (395-26):
+// FROM credential-surface-parity.test.ts:
 //
 // | v1 assertion                                          | here                                  |
 // |-------------------------------------------------------|---------------------------------------|
@@ -93,7 +93,7 @@
 //
 // ─────────────────────────────────────────────────────────────────────────────────────────────
 // THE BOUND, STATED BECAUSE IT IS MEASURED (F2). The masker knows the values declared in the secrets
-// file and nothing else (441 D-01). A value that is not declared is not masked, and F2 drives exactly
+// file and nothing else. A value that is not declared is not masked, and F2 drives exactly
 // such a value all the way to the wire rather than describing it. A credential a person wants hidden
 // is declared in the secrets file (B, D, C441-MCP-DIFF).
 //
@@ -159,8 +159,8 @@ import { composeCliLocalAgent } from '../composition/local-agent-host.js'
 // Each one exercises a DIFFERENT arm, and the file says which. Two share no arm with each other,
 // which is what stops a single mechanism from carrying every cell.
 
-// 2026-10-14 (441-07, D-01): the masker reads only the secrets file, where the three plants below
-// are declared. 441-18 (D-15): the environment plants that fed the construction scan's seed arm,
+// the masker reads only the secrets file, where the three plants below
+// are declared. 441-18: the environment plants that fed the construction scan's seed arm,
 // and the credential-shaped config plant its pattern arm caught, are deleted with the scan.
 const ENV_PLANT = 'qeb4t7zmv1x8s3d0g5j2n9'
 
@@ -333,7 +333,7 @@ async function openWorkspace(configBody: string): Promise<void> {
   handler = createMcpHandler(() =>
     buildAgentQaMcpServer({
       registry: host!.registry,
-      // 432-21 (D-12): the one tokenless caller; no stdio grant exists to resolve.
+      // the one tokenless caller; no stdio grant exists to resolve.
       caller: MCP_FUNCTION_CALLER,
       maskText: masking!.mask,
     }),
@@ -401,7 +401,7 @@ describe('A · the plants are what the ledger says they are (the non-vacuity gat
       expect(masking!.mask(value), `${name} was not masked`).toBe(`[secret:${name}]`)
     }
 
-    // 2026-10-14 (441-07, D-01): a value only the environment holds, under a credential-named
+    // a value only the environment holds, under a credential-named
     // variable, is not a declared secret and is not hidden.
     process.env['AGENT_QA_441_07_ENV_ONLY_TOKEN'] = UNSEEDED_PLANT
     try {
@@ -441,7 +441,7 @@ describe('B · no declared credential reaches the wire through a read tool', () 
   it('the SUCCESS payload of a read tool that echoes the caller\'s own string is masked on '
     + 'BOTH channels — text and structuredContent', async () => {
     await headless(async () => {
-      // 432-12: `agent_qa_show_proposal` left with the proposal round. The record read's not-found
+      // `agent_qa_show_proposal` left with the proposal round. The record read's not-found
       // arm echoes the caller's own id on its success channel, which is the same claim.
       const answer = await call('agent_qa_show_knowledge_record', { recordId: ECHO_PLANT })
 
@@ -487,10 +487,10 @@ describe('C · the error channels', () => {
     await headless(async () => {
       // NAMED RATHER THAN ASSUMED. The SDK validates a call against the advertised `inputSchema`
       // and composes the refusal ITSELF, before any handler runs — so `maskText` is not on this
-      // path and could not be. Measured on 2.0.0 (2026-08-16): the message names the field and the
+      // path and could not be. Measured on 2.0.0: the message names the field and the
       // rule and never quotes the rejected value. This cell reds the day that changes, which is the
       // only way a channel outside our masker can be watched at all.
-      // 432-12: the proposal read is gone; a MEM short-ID refinement on the knowledge change tool is
+      // the proposal read is gone; a MEM short-ID refinement on the knowledge change tool is
       // the SDK-validated input that now refuses the plant, before any handler or writer runs.
       const answer = await call('agent_qa_change_knowledge', {
         action: 'knowledge.forget',
@@ -507,7 +507,7 @@ describe('C · the error channels', () => {
 })
 
 describe('D · the direct change answer renders the caller\'s target, and masks it', () => {
-  // 2026-09-30, 432-12 (D-05/D-13): the apply refusal payload is gone with the apply tools. The
+  // the apply refusal payload is gone with the apply tools. The
   // payload that now carries caller-supplied content back is the change tool's own answer: a typed
   // absence echoes the target it was asked about, through the one masked serialization.
   it('neither the prose nor the structured answer carries a window of a declared plant',
@@ -532,7 +532,7 @@ describe('D · the direct change answer renders the caller\'s target, and masks 
     })
 })
 
-// 2026-10-14 (441-18, D-15): group E (the config-write construction scan) is deleted with the scan.
+// group E (the config-write construction scan) is deleted with the scan.
 // A config change is not scanned; a declared value in its diff reaches the wire as its marker
 // (C441-MCP-DIFF below).
 
@@ -581,7 +581,7 @@ describe('F · the controls, and the bound they measure', () => {
         + 'update this cell and the ledger, and tell 397').toBeDefined()
 
       // AND WHAT BOUNDS THE BOUND: a value declared in the secrets file reaches the wire as its
-      // marker (C441-MCP-DIFF). This one is not declared, so it is not masked.
+      // marker. This one is not declared, so it is not masked.
       expect(masking!.mask(OPAQUE_HEADER_PLANT)).toBe(OPAQUE_HEADER_PLANT)
     })
   })
@@ -594,7 +594,7 @@ describe('config-change diffs over MCP', () => {
     await host?.close().catch(() => {})
     rmSync(root, { recursive: true, force: true })
     await openWorkspace(configWithOpaqueHeaderCredential())
-    // 2026-10-14 (441-07, D-24): the plant needs no YAML quoting; D-03 masks raw values only.
+    // the plant needs no YAML quoting; D-03 masks raw values only.
     appendFileSync(join(root, '.env.secrets.local'), `X_CLIENT_AUTH_441=${OPAQUE_HEADER_PLANT}\n`)
 
     await headless(async () => {

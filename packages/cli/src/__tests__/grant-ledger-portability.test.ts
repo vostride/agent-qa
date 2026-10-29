@@ -1,7 +1,7 @@
 // The one thing the committed grant ledger was committed FOR: an approval recorded on machine A is
-// visible in the pull request and inherited by checkout B (Phase 391, D-11 / PROP-01).
+// visible in the pull request and inherited by checkout B.
 //
-// RE-SPELLED 2026-10-01 (432-18, D-14/D-15/D-22). `init` probed `grants.jsonl` as a commit-visible
+// RE-SPELLED 2026-10-01. `init` probed `grants.jsonl` as a commit-visible
 // file and refused a knowledge `.gitignore` that hid it, because an ignored ledger would have gone on
 // authorizing on the machine that wrote it. The ledger, its reader, its path helper and its verbs are
 // deleted, and D-22 removes the probe with them: an old `grants.jsonl` is left exactly as it is and
@@ -69,7 +69,7 @@ async function runRealInit(dir: string): Promise<void> {
 }
 
 describe('init neither probes nor creates the old grant ledger', () => {
-  // RE-SPELLED 2026-10-01 (432-18) from 'escapes every rule the tool actually writes into the
+  // RE-SPELLED 2026-10-01 from 'escapes every rule the tool actually writes into the
   // knowledge .gitignore': the emitted rules still do not name it, and init no longer creates or asks
   // about it.
   it('a real init writes no ledger and no rule naming it', async () => {
@@ -96,7 +96,7 @@ describe('init neither probes nor creates the old grant ledger', () => {
     expect(gitIgnores(ignoringRoot, LEGACY_LEDGER)).toBe(true)
   }, 120_000)
 
-  // RE-SPELLED 2026-10-01 (432-18) from 'is a `visible` probe in the shipped table, so init REFUSES a
+  // RE-SPELLED 2026-10-01 from 'is a `visible` probe in the shipped table, so init REFUSES a
   // rule that hides it': there is no probe, so a person's rule hiding the old file is accepted.
   it('no probe names it, so a custom rule hiding it is accepted', () => {
     expect(KNOWLEDGE_GITIGNORE_PROBES.filter((entry) => entry.path.includes('grant'))).toEqual([])
@@ -142,7 +142,7 @@ describe('init neither probes nor creates the old grant ledger', () => {
     ).toThrow('must remain commit-visible')
   })
 
-  // RE-SPELLED 2026-10-01 (432-18) from 'addresses the ledger relative to the knowledge root — the
+  // RE-SPELLED 2026-10-01 from 'addresses the ledger relative to the knowledge root — the
   // same bytes on any checkout': nothing addresses it any more.
   it('knowledge-local publishes no ledger path or file name', () => {
     const exported = Object.keys(knowledgeLocal)

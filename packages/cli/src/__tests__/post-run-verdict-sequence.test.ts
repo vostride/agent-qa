@@ -1,4 +1,4 @@
-// LIFE-01 (a): exactly one `verdict`, in the right place, on real runs (Phase 404 plan 01, D-15).
+// LIFE-01 (a): exactly one `verdict`, in the right place, on real runs.
 //
 // THE CLAIM, IN ONE SENTENCE: `verdict` is the exactly-once terminal event determined by test
 // execution ALONE — after the last `testFinished`, before any post-processing envelope — and it is
@@ -289,7 +289,7 @@ describePosix('(a) leg 1: the shipped binary, with post-processing envelopes pre
       })
       expect(
         tail.report.drain,
-        // 2026-08-26: the spawned run acquires the lease only if a pump of its own asks for it, and
+        // the spawned run acquires the lease only if a pump of its own asks for it, and
         // this fixture dies above its tail — so it exits leaving the lease exactly as it found it.
         // Either way the claim this cell needs is the same one: no lease of that run's is still
         // held, so the in-process tail can pump and emit chips.

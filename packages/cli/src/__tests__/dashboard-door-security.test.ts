@@ -18,16 +18,16 @@
 // same-origin browser drive and an Origin-less local drive — are pinned SEPARATELY, so a fix that
 // closed either one reds a cell.
 //
-// 430 (2026-09-28): the cross-site corpus was driven on the run-confirm pair.
+// 430: the cross-site corpus was driven on the run-confirm pair.
 //
-// 432-14 (2026-10-01, D-13/D-14): the run-confirm pair is deleted, and with it the router whose
+// the run-confirm pair is deleted, and with it the router whose
 // method-level guards this corpus measured. The same-site refusal survives on every mutating route
 // that had one, so the corpus moves to them and is driven through the SHIPPED server
 // (`startServer` over the composed host): the mark door, which is the dashboard's own mark
 // control, and the credential and editor doors, which refuse before they touch anything. Each
 // cell below says which of its claims moved and which retired with the router.
 //
-// 430 D-02 (2026-09-28): 7a (the session-id route) and 7b-i (the turn's fold guard) are deleted
+// 7a (the session-id route) and 7b-i (the turn's fold guard) are deleted
 // with the routes they drove. The generic 404 those paths now answer is carried by
 // C430-DELETED-CHAT-ROUTES-SHARED-404 and process survival's s5.
 
@@ -562,7 +562,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expectDispatchedOnce('6e', door, answered)
   })
 
-  // RE-SPELLED 2026-10-01 (432-14): was 'refuses a cross-origin answer to somebody else's
+  // RE-SPELLED 2026-10-01: was 'refuses a cross-origin answer to somebody else's
   // outstanding run confirm'. There is no outstanding question to spend. The claim that survives is
   // that the refusal is about the ORIGIN and never about the body: the byte-identical request is
   // refused from another origin and accepted from the door's own.
@@ -581,7 +581,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expectDispatchedOnce('6f', door, accepted)
   })
 
-  // RE-SPELLED 2026-10-01 (432-14): was 'refuses EVERY mutating route the router's own table
+  // RE-SPELLED 2026-10-01: was 'refuses EVERY mutating route the router's own table
   // declares'. The table was the run-confirm router's and is deleted. The shipped router has no
   // table of its mutating arms, so the retained same-site arms are listed here by path; a new
   // same-site arm must be added to this list to be ranged.
@@ -789,8 +789,8 @@ describe('the fourth door outlives every malformed request a socket can carry', 
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-14): the synchronous arm was the run-confirm router's media-type
-  // refusal, deleted with it. RE-AIMED 2026-10-14 (441-15, D-07): the display unmask that carried
+  // RE-SPELLED 2026-10-01: the synchronous arm was the run-confirm router's media-type
+  // refusal, deleted with it. RE-AIMED 2026-10-14: the display unmask that carried
   // the claim next is deleted, so the evidence read's dispatch carries it — the arm calls the host
   // inside the router's own call stack, so only the server's one `try` can answer a throw there.
   it('7d — a throwing SYNCHRONOUS arm is caught by the dispatch boundary', async () => {
@@ -814,8 +814,8 @@ describe('the fourth door outlives every malformed request a socket can carry', 
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-14): was the run-confirm answer handler's rejection. RE-AIMED
-  // 2026-10-14 (441-15, D-07): the display unmask is deleted, so the fault is an answer the mark
+  // RE-SPELLED 2026-10-01: was the run-confirm answer handler's rejection. RE-AIMED
+  // the display unmask is deleted, so the fault is an answer the mark
   // door's responder cannot serialize. It throws AFTER the body read, so it is a rejection of that
   // handler's promise, and only the arm's own `.catch` can answer it.
   it('7b-ii — a throwing responder is caught by the handler\'s own backstop', async () => {

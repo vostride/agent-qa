@@ -1,4 +1,4 @@
-// C438-AUTO15-LIVE (438 D-16): AUTO-15 with the real planner and a real model. The built CLI runs
+// AUTO-15 with the real planner and a real model. The built CLI runs
 // one-step tests in a cold temporary workspace against an inline page with two identical 'Okay'
 // buttons, served by a loopback server that counts which button was clicked, so "no click" is
 // observed outside the browser.

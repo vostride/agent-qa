@@ -1,9 +1,9 @@
-// Who a config-apply commit says proposed it (Phase 400 plan 05, DASH-01).
+// Who a config-apply commit says proposed it.
 //
-// 2026-09-30, 432-11 D-05: no door mints a config proposal any more — the config operations write
+// no door mints a config proposal any more — the config operations write
 // in the call. The apply path still read the records already on disk until 432-16/17.
 //
-// 2026-10-01, 432-16 D-07: agent-qa MAKES NO GIT COMMITS, so there is no author to attribute. The
+// agent-qa MAKES NO GIT COMMITS, so there is no author to attribute. The
 // one-commit config apply, its human-first preserve commit, the `Agent-QA-Proposal:` trailer and
 // the per-surface author map are deleted, and the CLI host binds no config apply port. The cells
 // that read the author off `git log` are re-spelled as the claim that replaces them: a config
@@ -49,7 +49,7 @@ const PACKAGES_ROOT = join(HERE, '..', '..', '..')
 
 /**
  * A pre-432 config proposal's bytes, as the shipped propose path wrote them at commit `b87b4f48`
- * (plan 400-05). No `surface` is recorded in its origin.
+ * No `surface` is recorded in its origin.
  */
 const LEGACY_FIXTURE = join(HERE, 'fixtures', 'legacy-config-proposal.json')
 
@@ -169,7 +169,7 @@ const DOORS: readonly Door[] = [
   },
   {
     name: 'mcp',
-    // 432-21 (D-12): the one tokenless MCP caller. 2026-10-02 (432-39): the legacy full scope set it
+    // the one tokenless MCP caller. 2026-10-02: the legacy full scope set it
     // carried is deleted with the caller field; nothing read it.
     caller: MCP_FUNCTION_CALLER,
     compose: (workspace) => composeCliLocalAgent({
@@ -179,7 +179,7 @@ const DOORS: readonly Door[] = [
   },
   {
     name: 'co-hosted mcp',
-    // 432-21 (D-12): the one tokenless MCP caller. 2026-10-02 (432-39): the legacy full scope set it
+    // the one tokenless MCP caller. 2026-10-02: the legacy full scope set it
     // carried is deleted with the caller field; nothing read it.
     caller: MCP_FUNCTION_CALLER,
     compose: (workspace) => composeDashboardDoor({
@@ -414,7 +414,7 @@ describe('every publication leaves the history alone', () => {
 })
 
 describe('an older config record is never applied or committed', () => {
-  // RE-SPELLED 2026-10-01 (432-16): cells (1)-(4) accepted a stored record and read its author off
+  // RE-SPELLED 2026-10-01: cells (1)-(4) accepted a stored record and read its author off
   // `git log` — a dashboard-surfaced record (1), a chat-minted one (2), an unrecognised surface (4)
   // and a legacy record with none (3). The CLI host binds no config apply port now, so each of them
   // is refused by name before any file or ref moves. 432-17 deleted the accept verb itself, so the
@@ -478,14 +478,14 @@ describe('an older config record is never applied or committed', () => {
 
 describe('no door supplies a minting surface', () => {
   it('(5) no rostered door supplies a minting surface — the census, over the roster itself', () => {
-    // RE-SPELLED 2026-10-01 (432-17): `mintingSurface` stamped the proposal records the inbox held,
+    // RE-SPELLED 2026-10-01: `mintingSurface` stamped the proposal records the inbox held,
     // and is deleted with them. The census now proves no door module still supplies one.
     const MODULE_FOR_DOOR: Readonly<Record<string, string>> = {
       chat: 'chat.ts',
       mcp: 'mcp.ts',
       fn: 'fn.ts',
     }
-    // 432-21 (D-12): the run-service door's exemption was its least-privilege scope list, deleted
+    // the run-service door's exemption was its least-privilege scope list, deleted
     // with its tokens. It is exempt because it has no change route at all — it starts and reads runs.
     const CANNOT_MINT: Readonly<Record<string, string>> = {
       'run-service': 'no change route: the door starts runs and reads them',

@@ -64,7 +64,7 @@ const {
     onStepStart: vi.fn().mockResolvedValue(undefined),
     onStepEnd: vi.fn().mockResolvedValue(undefined),
   }
-  // 363-09: the bus-subscriber successors — analytics + dashboard ingest ride the run session bus.
+  // the bus-subscriber successors — analytics + dashboard ingest ride the run session bus.
   const analyticsRunSubscriber = {
     handler: vi.fn(),
     flush: vi.fn().mockResolvedValue(undefined),
@@ -74,7 +74,7 @@ const {
     stageSnapshots: vi.fn(),
     finalize: vi.fn().mockResolvedValue(undefined),
   }
-  // 2026-10-17 (443-08, D-03): every run opens its record, so the default handle answers its reads.
+  // every run opens its record, so the default handle answers its reads.
   const runsDbHandle = () => ({
     close: vi.fn(),
     getRun: vi.fn(() => undefined),
@@ -94,7 +94,7 @@ const {
   return {
     mockLogScope: logScope,
     mockAnalyticsRunSubscriberInstance: analyticsRunSubscriber,
-    // 398-10: the options argument is TYPED because two cells read it — the port-identity check
+    // the options argument is TYPED because two cells read it — the port-identity check
     // for `--all` needs `calls[n][0].port`, and an untyped `vi.fn()` records a zero-length tuple
     // that `tsc` refuses to index (vitest's own typecheck lane does not see this file's calls).
     mockCreateAnalyticsRunSubscriber: vi.fn(function (_options: { port: unknown }) {
@@ -159,7 +159,7 @@ vi.mock('@vostride/agent-qa-model', async () => {
   }
 })
 
-// LLMPlanner/LLMVerifier moved to the runner package (Phase 353-07); run.ts now
+// LLMPlanner/LLMVerifier moved to the runner package; run.ts now
 // imports them from @vostride/agent-qa-runner, so intercept them there.
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@vostride/agent-qa-runner')>()
@@ -173,10 +173,10 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
   resolveBranch: mockResolveBranch,
   FsEventLog: mockFsEventLog,
   FsHandoffStore: mockFsHandoffStore,
-  // 363-06: buildRunPorts constructs the run-artifact store; buildScreenshotCompressor constructs
+  // buildRunPorts constructs the run-artifact store; buildScreenshotCompressor constructs
   // the sharp compressor. Both are injected but their legs are never exercised in these unit runs.
   FsRunArtifactStore: class { stage(): void {} finalize(): void {} },
-  // 367-13 CASS-02: buildRunPorts also constructs the run-scoped evidence artifact store; its legs
+  // buildRunPorts also constructs the run-scoped evidence artifact store; its legs
   // are never exercised in these mocked unit runs, but the constructor must exist.
   FsEvidenceArtifactStore: class {
     persistDecisionScreenshot(): { id: string; sha: string } { return { id: 'decision-screenshot:mock', sha: 'mock' } }
@@ -191,14 +191,14 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
     }
   },
   nextBuildOrdinal: mockNextBuildOrdinal,
-  // 363-04: the run paths construct DockerHookExecutor here (D-06); runHooks is mocked so execute
+  // the run paths construct DockerHookExecutor here; runHooks is mocked so execute
   // is never actually invoked, but the constructor must exist.
   DockerHookExecutor: class { async execute() { return { success: true, variables: {}, output: '', stdout: '', stderr: '', duration: 0 } } },
   // The run composition's `runDirFor` roots the run's own directory via the shared run-dir slug, so
   // the mock exposes both.
   RUNS_SUBDIR: 'runs',
   slugBranch: (name: string) => String(name),
-  // 388-02: the post-run tail derives the handoff path and reads it before enqueueing
+  // the post-run tail derives the handoff path and reads it before enqueueing
   // analyze-run. These unit runs write no handoff, so the read refuses — which is exactly the
   // D-07 warn-only leg, and the exit-code assertions below are what prove it stays warn-only.
   HANDOFF_FILE: 'handoff.json',
@@ -207,7 +207,7 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
   },
 }))
 
-// 398-10 (D-17/D-20): the run-completion subscriber comes from `@vostride/agent-qa-analytics` now.
+// the run-completion subscriber comes from `@vostride/agent-qa-analytics` now.
 // ONLY that factory is replaced — `composeAnalytics`, the port, the transports and the closed union
 // are the REAL ones, so this command's composition root still makes the real opt-out decision and
 // still refuses an event the union does not declare. Mocking the package wholesale would have made
@@ -226,21 +226,21 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
     }
   }
 
-  // 390-08: `workspaceRelativeIdentityPath` comes from the REAL module, never a hand-spelled stub.
+  // `workspaceRelativeIdentityPath` comes from the REAL module, never a hand-spelled stub.
   // It is the rule that decides what bytes land in the committed quarantine ledger, so a mock of it
   // would leave these run-command pins measuring the mock's idea of identity instead of the
   // shipped one — and a drift between the two would be exactly the defect CR-02 found.
   const actual = await importOriginal<typeof import('@vostride/agent-qa-core')>()
 
   return {
-  // 395-08: the two default-directory constants, FROM THE REAL MODULE. `commands/scaffold-content.ts`
+  // the two default-directory constants, FROM THE REAL MODULE. `commands/scaffold-content.ts`
   // — D-04's one scaffold producer — reads them, and it is now in this command's module graph
   // through the composition root. Passed through rather than spelled, so a mock cannot become a
   // second answer about where the cache and the auth states live.
   DEFAULT_AGENT_QA_AUTH_STATES_DIR: actual.DEFAULT_AGENT_QA_AUTH_STATES_DIR,
   DEFAULT_AGENT_QA_RUNS_DB_PATH: actual.DEFAULT_AGENT_QA_RUNS_DB_PATH,
   workspaceRelativeIdentityPath: actual.workspaceRelativeIdentityPath,
-  // 398-10: the shipped version reader, FROM THE REAL MODULE for the same reason as the two above.
+  // the shipped version reader, FROM THE REAL MODULE for the same reason as the two above.
   // `composition/analytics-host.ts` stamps `agent_qa_version` on every event this command emits,
   // and the union constrains that field to a semver — a stubbed string here would let a cell pass
   // on a value the schema would refuse in production.
@@ -615,7 +615,7 @@ vi.mock('../targets.js', () => ({
   resolveTarget: mockResolveTarget,
 }))
 
-// 373-07: the run-start baseline probe (D-04) does a REAL global-fetch GET against the resolved
+// the run-start baseline probe does a REAL global-fetch GET against the resolved
 // web target at the composition root — stub it here so no unit test touches the network and the
 // run body starts immediately (the classifier consumes the value; probe behavior is pinned in
 // baseline-probe.test.ts).
@@ -692,7 +692,7 @@ const tempDirs: string[] = []
 let defaultConfigRoot = ''
 
 /**
- * A run id unique to this test, and to this process (401-20 · CR-04).
+ * A run id unique to this test, and to this process.
  *
  * A caller-named run id that already names a run is now REFUSED, and these fixtures write REAL run
  * directories into `packages/cli/.agent-qa/runs/` which survive the process. A constant id
@@ -702,7 +702,7 @@ let defaultConfigRoot = ''
  * stable value across a single run pin it themselves with `mockReturnValue(freshRunId(...))`; the
  * one cell that asserts the printed id reads it back off the mint rather than typing it in.
  */
-// 418-07: OS PIDs recur across sessions while these fixture directories persist.
+// OS PIDs recur across sessions while these fixture directories persist.
 // A per-suite nonce prevents historical run evidence from refusing a fresh fixture.
 const runIdSession = randomUUID().replaceAll('-', '')
 let runIdOrdinal = 0
@@ -749,7 +749,7 @@ beforeEach(() => {
   })
   mockRunSuite.mockReset()
   mockRunSuite.mockResolvedValue({ status: 'passed', duration: 100 })
-  // The suite path now runs through startRun; each member wraps executeSuiteMember (D-01). Default
+  // The suite path now runs through startRun; each member wraps executeSuiteMember. Default
   // to a passing member TestResult so the aggregate verdict is `passed` ⇒ exit 0.
   mockRunMemberTest.mockReset()
   mockRunMemberTest.mockResolvedValue({
@@ -797,7 +797,7 @@ beforeEach(() => {
     product: 'test-app',
     platform: 'web',
     url: 'https://example.com',
-    // 401-03 (D-06): these fixtures declare their class because the run gate now classifies
+    // these fixtures declare their class because the run gate now classifies
     // every run by it, and an UNDECLARED target fails closed in a non-interactive context —
     // which a vitest process is. `local` is the honest declaration here: nothing in this suite
     // touches a network (the baseline probe is mocked above and the member runner is a double),
@@ -1025,7 +1025,7 @@ describe('run command — secrets file preflight', () => {
     const runConfig = mockRunMemberTest.mock.calls[0][1]
     expect(runConfig.secretStore.require('LOGIN_PASSWORD')).toBe('super-secret')
     expect(runConfig.secretRedactor).toBeDefined()
-    // 363-11: secretsFileMetadata / the run artifact are no longer threaded through a v1 reporter
+    // secretsFileMetadata / the run artifact are no longer threaded through a v1 reporter
     // (runMemberTest owns execution); the secret store + redactor threading above is the meaningful
     // assertion — the run redactor is what keeps raw secrets out of any rendered/persisted output.
     void secretsPath
@@ -1510,7 +1510,7 @@ describe('run command — auth state consumption', () => {
         }),
       }),
     )
-    // 363-11: the member outcome is no longer surfaced via a v1 reporter; a passing run exits 0.
+    // the member outcome is no longer surfaced via a v1 reporter; a passing run exits 0.
     expect(exitSpy).toHaveBeenCalledWith(0)
   })
 
@@ -1534,7 +1534,7 @@ describe('run command — auth state consumption', () => {
     expect(mockWriteAuthStateFiles).not.toHaveBeenCalled()
     expect(mockWebStorageState).not.toHaveBeenCalled()
     expect(mockRunMemberTest).toHaveBeenCalledTimes(1)
-    // 363-11: a failing member surfaces via the run exit code (no v1 reporter).
+    // a failing member surfaces via the run exit code (no v1 reporter).
     expect(exitSpy).toHaveBeenCalledWith(1)
   })
 
@@ -1556,7 +1556,7 @@ describe('run command — auth state consumption', () => {
     await runCommand('tests/**/*.yaml')
 
     expect(mockRunMemberTest).toHaveBeenCalledTimes(1)
-    // 363-11: the auth-capture-write failure synthesizes a failed run → exit 1 (no v1 reporter);
+    // the auth-capture-write failure synthesizes a failed run → exit 1 (no v1 reporter);
     // the sensitive path must never leak to stderr.
     expect(exitSpy).toHaveBeenCalledWith(1)
     const allErrors = errorSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
@@ -1601,7 +1601,7 @@ describe('run command — auth state consumption', () => {
       product: 'mobile-app',
       platform: 'android',
       appPackage: 'com.example.app',
-      // 401-03 (D-06): declared local — see the note on the default fixture above.
+      // declared local — see the note on the default fixture above.
       environment: 'local',
     })
     mockResolveAuthStateForRun.mockRejectedValueOnce(
@@ -1784,7 +1784,7 @@ describe('run command — mobile app state and device resolution', () => {
       product: 'mobile-app',
       platform: 'android',
       appPackage: 'com.example.app',
-      // 401-03 (D-06): declared local — see the note on the default fixture above.
+      // declared local — see the note on the default fixture above.
       environment: 'local',
     })
   }
@@ -1999,7 +1999,7 @@ describe('run command — mobile app state and device resolution', () => {
       product: 'test-app',
       platform: 'web',
       url: 'https://example.com',
-      // 401-03 (D-06): declared local — see the note on the default fixture above.
+      // declared local — see the note on the default fixture above.
       environment: 'local',
     })
     mockParseSuiteFile.mockResolvedValue({
@@ -2051,7 +2051,7 @@ describe('run command — run attributes', () => {
 
     await runCommand('tests/**/*.yaml', '--run-attr', 'git.branch=phase223-main', 'user.email=CI')
 
-    // 363-11: the run artifact is no longer surfaced via a v1 reporter; the resolved run
+    // the run artifact is no longer surfaced via a v1 reporter; the resolved run
     // attributes remain observable in the printed run-attributes block.
     const allOutput = logSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
     expect(allOutput).toContain('Run attributes:')
@@ -2074,7 +2074,7 @@ describe('run command — run attributes', () => {
     await runCommand('tests/**/*.yaml', '--run-attr', 'git.branch=dev', '--run-attr', 'git.branch=phase223-main')
 
     expect(warnSpy).toHaveBeenCalledWith('Warning: duplicate --run-attr key "git.branch"; using last value')
-    // 363-11: the last-value-wins result is observable in the printed run-attributes block.
+    // the last-value-wins result is observable in the printed run-attributes block.
     const allOutput = logSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
     expect(allOutput).toContain('git.branch=phase223-main')
     warnSpy.mockRestore()
@@ -2100,7 +2100,7 @@ describe('run command — run attributes', () => {
 })
 
 describe('run command — exit codes', () => {
-  // WINDOWS #233 — the WIRE, not the mechanism.
+  // the WIRE, not the mechanism.
   //
   // The isolation mechanism (a member's run id bound to its async scope) is pinned in core's
   // `log-manager.test.ts` and survives a five-mutation sweep. What only THIS harness can measure is
@@ -2168,7 +2168,7 @@ describe('run command — exit codes', () => {
   })
 
   it('exits 2 on parse errors', async () => {
-    // 2026-10-17 (443-08, D-03): the failure row is written whatever the config holds, so the
+    // the failure row is written whatever the config holds, so the
     // malformed file the row snapshots exists on disk.
     const projectDir = mkdtempSync(join(tmpdir(), 'agent-qa-run-parse-error-'))
     tempDirs.push(projectDir)
@@ -2193,7 +2193,7 @@ describe('run command — exit codes', () => {
 
     expect(exitSpy).toHaveBeenCalledWith(2)
     const allOutput = logSpy.mock.calls.map((c: string[]) => c.join(' ')).join('\n')
-    // Read off the MINT rather than typed in — the id is salted per test now (401-20), and a
+    // Read off the MINT rather than typed in — the id is salted per test now, and a
     // literal here would pin one execution's value.
     expect(allOutput).toContain(`Run ID: ${mockGenerateRunId.mock.results[0]!.value as string}`)
     expect(db.insertRun).toHaveBeenCalledWith(expect.objectContaining({
@@ -2210,7 +2210,7 @@ describe('run command — exit codes', () => {
     expect(exitSpy).toHaveBeenCalledWith(2)
   })
 
-  // RUNX-06: discovery resolved a file but parsing produced ZERO runnable tests (no parse errors).
+  // discovery resolved a file but parsing produced ZERO runnable tests (no parse errors).
   // This previously exited 0 with a green "No tests match filters" — a silent zero-member non-run.
   // It must now fail LOUDLY (exit 2) and never render a benign "0 of 0" run summary.
   it('exits 2 (not silent green) when files resolve but zero runnable tests parse', async () => {
@@ -2357,7 +2357,7 @@ describe('run command — reporter integration', () => {
 
     await runCommand('tests/**/*.yaml')
 
-    // 398-10 (D-17/D-20): the subscriber is built from the PORT this command composed at its root
+    // the subscriber is built from the PORT this command composed at its root
     // and is handed the trigger/runner the command already resolved — no `config` reaches it, and
     // it reads no environment of its own. `surface` moved onto the standard properties, where it is
     // stamped once for every event of the invocation rather than per subscriber.
@@ -2388,7 +2388,7 @@ describe('run command — reporter integration', () => {
       }),
     }))
     const noticeOrder = lastInvocationOrder(mockPrintAgentQaUpdateNoticeIfNeeded)
-    // 363-11: the notice fires after member execution + the analytics bus subscriber flush
+    // the notice fires after member execution + the analytics bus subscriber flush
     // (the v1 reporter/analytics-reporter lifecycle is deleted).
     expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockRunMemberTest))
     expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockAnalyticsRunSubscriberInstance.flush))
@@ -2409,7 +2409,7 @@ describe('run command — reporter integration', () => {
 
     await runCommandWithGlobalArgs(['--config', configPath], suitePath)
 
-    // 363-09 (D-16) / 398-10: the suite path attaches the same subscriber at the run-level startRun
+    // the suite path attaches the same subscriber at the run-level startRun
     // site, built by the SAME factory over the SAME composed port as the direct path (Pitfall 8).
     expect(mockCreateAnalyticsRunSubscriber).toHaveBeenCalledWith(expect.objectContaining({
       port: expect.objectContaining({ capture: expect.any(Function) }),
@@ -2463,7 +2463,7 @@ describe('run command — reporter integration', () => {
     expect(mockShouldPrintAgentQaUpdateNotice).toHaveBeenCalledTimes(1)
     expect(mockPrintAgentQaUpdateNoticeIfNeeded).toHaveBeenCalledTimes(1)
     const noticeOrder = lastInvocationOrder(mockPrintAgentQaUpdateNoticeIfNeeded)
-    // 363-11: the notice fires after all members finish executing (no v1 reporter onRunEnd).
+    // the notice fires after all members finish executing (no v1 reporter onRunEnd).
     expect(noticeOrder).toBeGreaterThan(lastInvocationOrder(mockRunMemberTest))
     expect(exitSpy).toHaveBeenCalledWith(0)
   })
@@ -2557,7 +2557,7 @@ describe('run command — reporter integration', () => {
   })
 
   it('does not fail direct test execution when analytics flush rejects', async () => {
-    // 363-09: the attach helper flushes every subscriber with allSettled, so a best-effort analytics
+    // the attach helper flushes every subscriber with allSettled, so a best-effort analytics
     // flush rejection can never abort the run or its exit code (RUNX-03 / D-08 detach-on-error).
     mockAnalyticsRunSubscriberInstance.flush.mockRejectedValueOnce(new Error('posthog unavailable'))
     mockGlob.mockResolvedValue(['tests/a.yaml'])
@@ -2600,7 +2600,7 @@ describe('run command — reporter integration', () => {
       ...(platform === 'android'
         ? { appPackage: 'com.example.app' }
         : { bundleId: 'com.example.app' }),
-      // 401-03 (D-06): declared local — see the note on the default fixture above.
+      // declared local — see the note on the default fixture above.
       environment: 'local',
     })
     process.env.AGENT_QA_RUN_ID = freshRunId('dashboard')
@@ -2612,7 +2612,7 @@ describe('run command — reporter integration', () => {
 
     await runCommand('tests/**/*.yaml')
 
-    // 363-09 (D-16): a mobile setup failure occurs BEFORE the runner emits a testFinished envelope, so
+    // a mobile setup failure occurs BEFORE the runner emits a testFinished envelope, so
     // its telemetry is no longer captured (the v1 per-result analytics capture is gone; analytics now
     // rides the bus). The failure is still surfaced as a clean framework-error exit 2. The companion
     // "never constructed the v1 reporter" assertion retired in 398-11 with the module itself: there is
@@ -2640,7 +2640,7 @@ describe('run command — reporter integration', () => {
       ...(platform === 'android'
         ? { appPackage: 'com.example.app' }
         : { bundleId: 'com.example.app' }),
-      // 401-03 (D-06): declared local — see the note on the default fixture above.
+      // declared local — see the note on the default fixture above.
       environment: 'local',
     })
     mockGlob.mockResolvedValue(['tests/mobile.yaml'])
@@ -2651,7 +2651,7 @@ describe('run command — reporter integration', () => {
 
     await runCommand('tests/**/*.yaml')
 
-    // 363-09 (D-16): pre-runner mobile setup-failure telemetry is dropped with the v1 analytics reporter
+    // pre-runner mobile setup-failure telemetry is dropped with the v1 analytics reporter
     // (analytics rides the bus). The failure still surfaces as a clean framework-error exit 2.
     expect(exitSpy).toHaveBeenCalledWith(2)
   })
@@ -2669,7 +2669,7 @@ describe('run command — reporter integration', () => {
 
     await runCommand('tests/**/*.yaml')
 
-    // 363-11: the v1 core reporters (ConsoleReporter / JUnitReporter / StdoutLiveReporter /
+    // the v1 core reporters (ConsoleReporter / JUnitReporter / StdoutLiveReporter /
     // DashboardReporter) were deleted; there is nothing to construct. The run still reaches
     // execution via the bus subscribers and exits clean.
     expect(mockDashboardReporter).not.toHaveBeenCalled()
@@ -2686,7 +2686,7 @@ describe('run command — reporter integration', () => {
     await runCommand('tests/**/*.yaml', '--reporter', 'console,junit', '--junit-output', join(tmpdir(), 'agent-qa-selection-junit.xml'))
 
     // The selection is accepted (no pre-execution error) and the run reaches execution + exits 0.
-    // The v1 core reporters no longer exist to construct (363-11).
+    // The v1 core reporters no longer exist to construct.
     expect(mockRunMemberTest).toHaveBeenCalled()
     expect(exitSpy).toHaveBeenCalledWith(0)
   })
@@ -2760,7 +2760,7 @@ describe('run command — reporter integration', () => {
 
     const runConfig = mockRunMemberTest.mock.calls[0][1]
     expect(runConfig.accessibility).toEqual(accessibility)
-    // 363-11: accessibility execution is an injected handler built at the composition root (the CLI
+    // accessibility execution is an injected handler built at the composition root (the CLI
     // owns page acquisition + the dynamic web import); the config is threaded, the handler is present.
     expect(runConfig.accessibilityCheck).toEqual(expect.any(Function))
   })
@@ -2809,7 +2809,7 @@ describe('run command — reporter integration', () => {
 
     await runCommand('tests/**/*.yaml')
 
-    // 363-11: the v1 reporter lifecycle is deleted; the run reaching execution is observable via
+    // the v1 reporter lifecycle is deleted; the run reaching execution is observable via
     // the member executor receiving the discovered test.
     expect(mockRunMemberTest).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Test One' }),
@@ -2833,7 +2833,7 @@ describe('run command — reporter integration', () => {
 
     await runCommand('tests/**/*.yaml')
 
-    // 363-11: run aggregation/counts are carried by the bus, not a v1 reporter; a single passing
+    // run aggregation/counts are carried by the bus, not a v1 reporter; a single passing
     // member exits 0 after execution completes.
     expect(mockRunMemberTest).toHaveBeenCalledTimes(1)
     expect(exitSpy).toHaveBeenCalledWith(0)
@@ -2968,7 +2968,7 @@ describe('run command — reporter integration', () => {
 
     await runCommandWithGlobalArgs(['--config', configPath], testPath)
 
-    // 363-11: a per-test setup-hook failure short-circuits before the member executes and fails the
+    // a per-test setup-hook failure short-circuits before the member executes and fails the
     // run (exit 1) — no v1 reporter onTestEnd/onRunEnd to observe.
     expect(mockRunMemberTest).not.toHaveBeenCalled()
     expect(exitSpy).toHaveBeenCalledWith(1)
@@ -3084,7 +3084,7 @@ describe('run command — reporter integration', () => {
     expect(mockWebAdapterSetup.mock.calls[0][0].timeouts.navigation).toBe(5_000)
   })
 
-  // Phase 361 (D-01/SESSION-04): the single-test path is now ONE sequential RunSession per invocation.
+  // the single-test path is now ONE sequential RunSession per invocation.
   // `use.parallel: true` no longer starts web tests concurrently (the single-test analog of Plan 10's
   // suite-parent parallel drop) — members run one at a time in file order inside the single session.
   it('runs all web tests in one sequential RunSession even when global use.parallel is true (parallel is a no-op)', async () => {
@@ -3190,7 +3190,7 @@ describe('run command — reporter integration', () => {
     expect(exitSpy).toHaveBeenCalledWith(0)
   })
 
-  // Phase 361 (D-01/SESSION-04): the suite path is now ONE RunSession per invocation that iterates
+  // the suite path is now ONE RunSession per invocation that iterates
   // ALL suite members sequentially — parallel suite-parent execution (the old pendingSuiteParents
   // path) is intentionally dropped. `use.parallel` no longer starts suite parents concurrently;
   // members run in file order, one at a time, inside the single session.
@@ -3334,10 +3334,10 @@ describe('run command — DashboardReporter wiring', () => {
       dbPath: resolve(defaultConfigRoot, '.agent-qa/runs.db'),
       runOwnership: composeRunOwnership(),
     })
-    // 363-09: dashboard history is written by the Plan-08 bus ingest, not the deleted v1 DashboardReporter.
+    // dashboard history is written by the Plan-08 bus ingest, not the deleted v1 DashboardReporter.
     expect(mockCreateDashboardRunIngest).toHaveBeenCalled()
     expect(mockDashboardReporter).not.toHaveBeenCalled()
-    // 2026-10-17 (443-09, D-20): a dashboard block no longer turns screenshot capture on.
+    // a dashboard block no longer turns screenshot capture on.
     expect(mockRunMemberTest.mock.calls[0][1]).toEqual(expect.objectContaining({
       captureScreenshots: false,
     }))
@@ -3623,7 +3623,7 @@ describe('run command — runtime cache paths', () => {
 
   it('does not recompute/purge cache entries post-run — the loop owns per-key invalidation', async () => {
     // The v1 CLI post-run batch purge (recompute a step hash -> rm dir) is retired
-    // (D-03/D-13): the redesigned per-key ActionPlanCache invalidates the exact failed
+    // the redesigned per-key ActionPlanCache invalidates the exact failed
     // decision point inside the runner loop. The CLI never recomputes an opaque masked key,
     // so it must not touch the on-disk cache after a failed run.
     const configDir = mkdtempSync(join(tmpdir(), 'agent-qa-cache-invalidate-'))

@@ -1,5 +1,5 @@
 // The one thing the committed ledger is committed FOR: quarantine state written on machine A
-// suppresses on checkout B (Phase 390, CR-02 / D-01, FLAK-02).
+// suppresses on checkout B.
 //
 // WHY THIS FILE EXISTS. `quarantine.jsonl` lives at the knowledge root and travels in git so a
 // fresh CI checkout inherits the disposition. The match that decides whether it applies is an exact
@@ -417,10 +417,10 @@ describe('the committed quarantine ledger crosses checkout roots', () => {
   })
 })
 
-// ---- the WRITE-verb half of the same contract (390-12 / D-01) -----------------------------------
+// ---- the WRITE-verb half of the same contract -----------------------------------
 //
 // The block above pins the RUN writer. This one pins the two HUMAN write verbs — the documented
-// human half of the exit path (D-12/D-13), and the surface most likely to receive a path pasted out
+// human half of the exit path, and the surface most likely to receive a path pasted out
 // of a failure report. Round 1 hardened the read and the run path and left these two as an
 // unnormalized door into the same committed file: `quarantine.add` answered `entered` over a line
 // the reader refuses, `list` could not show it, `release` could not undo it, a retry duplicated it,

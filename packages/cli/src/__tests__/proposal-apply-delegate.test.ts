@@ -11,7 +11,7 @@
 // epoch are read before and after and the delegator's own acquisition is asserted to be refused
 // throughout.
 //
-// 2026-10-01, 432-16 (D-05/D-15): RE-SPELLED AS DIRECT CHANGES. The first describe used to hand a
+// RE-SPELLED AS DIRECT CHANGES. The first describe used to hand a
 // pre-432 forget PROPOSAL to `knowledge.proposal.apply`, record a standing approval first so the
 // ask-tier apply would pass the gate, and route the proposal id through `applyDelegate`. The gate
 // and the approval are gone and a change files no proposal, so each of its three claims is now
@@ -42,7 +42,7 @@ import {
 } from '../daemon/registration.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -165,7 +165,7 @@ async function serveHolder(where: Fixture, registry: LocalAgentHost['registry'])
 }
 
 describe('a knowledge change routes by lease state', () => {
-  // RE-SPELLED 2026-10-01 (432-16): was the pre-432 forget proposal applied through
+  // RE-SPELLED 2026-10-01: was the pre-432 forget proposal applied through
   // `knowledge.proposal.apply` after a recorded standing approval.
   it('commits in-process when no daemon holds the lease (one-shot posture)', async () => {
     const where = fixture('free')
@@ -186,7 +186,7 @@ describe('a knowledge change routes by lease state', () => {
     expect(rows.map((row) => row.status)).toEqual(['deprecated'])
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): the delegator used to be handed a proposal id through
+  // RE-SPELLED 2026-10-01: the delegator used to be handed a proposal id through
   // `applyDelegate`; it now binds the CLI host's shipped change delegate and hands the change op and
   // its identity over.
   it('delegates over the daemon socket to a live holder and never takes the lease', async () => {
@@ -269,7 +269,7 @@ describe('a knowledge change routes by lease state', () => {
     releaseLease({ knowledgeRoot: where.knowledgeRoot, leaseId: held.leaseId })
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): the unresponsive holder was an `applyDelegate` that never
+  // RE-SPELLED 2026-10-01: the unresponsive holder was an `applyDelegate` that never
   // answered a proposal id; it is now a change delegate that never answers.
   it('refuses at the bound rather than hanging on an unresponsive holder', async () => {
     const where = fixture('wedged')
@@ -305,7 +305,7 @@ describe('a knowledge change routes by lease state', () => {
   })
 })
 
-// 2026-09-30, 432-12 (D-05): a DIRECT knowledge change takes the same lease routing, with no
+// a DIRECT knowledge change takes the same lease routing, with no
 // proposal id to hand over. The live holder receives the change op and the change's own identity
 // over the same socket, applies with its authority, and nothing is filed or claimed anywhere.
 describe('a direct knowledge change routes by lease state', () => {
@@ -424,7 +424,7 @@ describe('a knowledge change under a holder that is not a live daemon', () => {
     }, CALLER).then(() => undefined, (error: unknown) => error as Error & { holderPid?: number })
 
     expect(refusal).toMatchObject({ name: 'KnowledgeWriterLeaseBusyError', holderPid: process.pid })
-    // 2026-10-03 (261003-lgd, IN-11): the fixture holds the lease in this very process, so the
+    // the fixture holds the lease in this very process, so the
     // refusal must say so instead of naming it "another" process.
     expect(refusal?.message).toContain(`This agent-qa process (pid ${process.pid}) is already writing`)
     expect(refusal?.message).not.toContain('Another agent-qa process')

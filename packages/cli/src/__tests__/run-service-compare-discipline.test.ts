@@ -1,6 +1,6 @@
-// THE COMPARE DISCIPLINE, MEASURED RATHER THAN GREPPED (Phase 402 plan 06, D-05 · T-402-20).
+// THE COMPARE DISCIPLINE, MEASURED RATHER THAN GREPPED.
 //
-// 2026-10-01 (432-21, D-12/D-13): RE-SPELLED. This file measured `matchServiceBearer`, the run
+// RE-SPELLED. This file measured `matchServiceBearer`, the run
 // service's bearer compare, and that module is deleted with the run-service tokens. The one secret
 // compare the run service still depends on is the live-view link's signature check — the signed,
 // short-lived, subject-bound token D-13 keeps — so the same discipline is measured there: the

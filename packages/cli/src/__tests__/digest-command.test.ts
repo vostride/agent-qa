@@ -1,4 +1,4 @@
-// The on-demand digest verb, driven as a person drives it (Phase 391 plan 06).
+// The on-demand digest verb, driven as a person drives it.
 //
 // `agent-qa digest` is a THIN WRAPPER: it resolves a project, builds the registry at the
 // composition root, calls `invokeFunction` with the CLI's own caller mint, and prints what comes
@@ -10,7 +10,7 @@
 // built from anything the command held in memory, the value compared here — read out of a cold
 // registry over the same directories — would be free to disagree with it.
 //
-// 2026-10-01 (432-17, D-05/D-22): `agent-qa proposals` — list, show, accept, reject and the
+// `agent-qa proposals` — list, show, accept, reject and the
 // `grants` subcommands it hosted — is deleted with the inbox, so the cells that drove it are
 // deleted too. Their claims transfer: the verb's absence is C432-NO-PROPOSAL-CLI
 // (conformance/help-census.test.ts), the ops' absence is C432-NO-PROPOSAL-OPS, and a pre-432
@@ -234,7 +234,7 @@ describe('agent-qa digest, the on-demand channel', () => {
     expect(invocation.exitCode).toBeUndefined()
     // The whole claim, as one comparison: the printed bytes ARE the op's lines.
     expect(invocation.stdout).toBe(digest.lines.join('\n'))
-    // Non-vacuity — the digest has real sections to have printed. 432-09 (D-05/D-25): the
+    // Non-vacuity — the digest has real sections to have printed. 432-09: the
     // proposal this fixture minted through the shipped seam is listed and counted nowhere; the
     // marks section reads this run's own (empty) ledger. 432-17: the fixture is now planted bytes,
     // since nothing can mint one, and it is still read nowhere.
@@ -379,12 +379,12 @@ describe('the surfaces own no capability of their own', () => {
       )
       // The ONE dispatch path, and the ONE caller. A hand-rolled caller literal here would be
       // a surface deciding its own origin, which is the fact the whole self-grant rule turns
-      // on (D-06) — so `origin:` must not appear in it at all.
+      // on — so `origin:` must not appear in it at all.
       expect(source).toContain('invokeFunction')
       expect(source).toContain('CLI_FUNCTION_CALLER')
       expect(source).not.toMatch(/origin:\s*'(human|agent)'/u)
       // No gate, no registry construction, no store: a surface that could reach any of these
-      // would have a path around the pipeline (T-384-01).
+      // would have a path around the pipeline.
       expect(source).not.toContain('evaluate')
       expect(source).not.toContain('createRegistryFromSpecs')
       expect(source).not.toContain('agent-qa-knowledge-local')

@@ -1225,7 +1225,7 @@ describe('init command', () => {
       expect(findWriteCallEndingWith('agent-qa-knowledge/README.md')).toBeUndefined()
       expect(findWriteCallEndingWith('policies/global.md')).toBeUndefined()
       expect(findWriteCallEndingWith('agent-qa-knowledge/.gitignore')).toBeUndefined()
-      // 431 D-17: the guide is agent-qa's generated file, so --force regenerates it.
+      // the guide is agent-qa's generated file, so --force regenerates it.
       expect(findWriteCallEndingWith('agent-qa-knowledge/AGENTS.md')).toBeDefined()
     })
 
@@ -1553,7 +1553,7 @@ skills/.staging/
     }
   }, 60_000)
 
-  // ---- 398-10 (D-16 / D-18): the init/scaffold member -----------------------------------------
+  // ---- 398-10: the init/scaffold member -----------------------------------------
   //
   // REAL FILESYSTEM, REAL COMMAND, REAL COMPOSED PORT — only the transport is substituted. The
   // three arms below are the three answers this member can give, and each is produced by actually
@@ -1634,7 +1634,7 @@ skills/.staging/
     }
   }, 60_000)
 
-  // ---- 432-40 (D-24 / D-21): the scaffolded knowledge README and guide say the direct rule ------
+  // ---- 432-40: the scaffolded knowledge README and guide say the direct rule ------
   //
   // A REAL init into a fresh temporary directory, read back from disk: the README and the generated
   // guide a person and a coding agent open first both say knowledge changes only through agent-qa,
@@ -1682,7 +1682,7 @@ skills/.staging/
       // People still write policies by hand, and the README still says where.
       expect(readme).toContain('policies/global.md')
 
-      // D-21: the samples and the policy template are still scaffolded (445-02 moved the samples).
+      // the samples and the policy template are still scaffolded (445-02 moved the samples).
       for (const sample of [
         'tests/examples/komazon-checkout.yaml',
         'tests/examples/komazon-cart-total-bug.yaml',

@@ -96,7 +96,7 @@ async function nextBriefIds(knowledgeRoot: string): Promise<string[]> {
 function project(): ReturnType<typeof markFixture> {
   const fixture = markFixture()
   roots.push(fixture.root)
-  // 2026-10-14 (441-07, D-06): the MCP masker reads this project's declared secrets.
+  // the MCP masker reads this project's declared secrets.
   writeFileSync(join(fixture.root, '.env.secrets.local'), '')
   return fixture
 }

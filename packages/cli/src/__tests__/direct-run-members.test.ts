@@ -16,7 +16,7 @@ import { buildDirectRunMembers } from '../commands/direct-run-members.js'
 
 // The parser hands bindings whose `filePath` is the ABSOLUTE resolved path (it reads the file), so
 // that is what the fixture supplies. What the descriptor must carry is the workspace-relative
-// IDENTITY — the bytes the committed ledger and the projection both key on (390-08 / CR-02).
+// IDENTITY — the bytes the committed ledger and the projection both key on.
 const CONFIG_DIR = '/workspace'
 const FILE_A = '/workspace/tests/account.yaml'
 const FILE_B = '/workspace/tests/checkout.yaml'

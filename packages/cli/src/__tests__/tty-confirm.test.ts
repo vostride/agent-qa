@@ -1,9 +1,9 @@
-// The terminal confirmation, and the two hosts that differed over it (Phase 391, PROP-01).
+// The terminal confirmation, and the two hosts that differed over it.
 //
 // 391 gave the v48 gate's ask ladder its first host binding: a `[y/N]` prompt the CLI bound when
 // both of its streams were a terminal, and that the daemon never bound.
 //
-// 2026-10-01, 432-16 (D-14/D-15): THE PROMPT IS DELETED. Since 432-13 no gate asked and no door
+// THE PROMPT IS DELETED. Since 432-13 no gate asked and no door
 // built it; now `createTtyConfirmPort`, its disclosure writer and the composition's `confirm` input
 // are gone too. The cells that drove the prompt over injected streams are re-spelled as absence:
 // no factory, no prompt text in the CLI or the composition, no input field that could carry one,
@@ -84,7 +84,7 @@ use:
 const PROMPT_TEXT = /needs your approval|\[y\/N\]|\[y\/a\/N\]|Proceed\?/u
 
 describe('the CLI binds a confirmation exactly where there is somebody to ask', () => {
-  // RE-SPELLED 2026-10-01 (432-16): was 'binds NOTHING without a terminal — the gate keeps its
+  // RE-SPELLED 2026-10-01: was 'binds NOTHING without a terminal — the gate keeps its
   // deny-by-default'. There is no factory left to bind anything, with a terminal or without one.
   it('the CLI host exports no terminal or chat confirm factory', () => {
     const exported = Object.keys(cliHost)
@@ -93,7 +93,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     expect(exported).toContain('composeCliLocalAgent')
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): was 'answers yes to an explicit yes', 'accepts the long form
+  // RE-SPELLED 2026-10-01: was 'answers yes to an explicit yes', 'accepts the long form
   // too' and 'refuses everything else'. Their subject, the prompt, is gone from both packages that
   // composed it.
   it('no prompt text survives in the CLI or the composition sources', () => {
@@ -181,7 +181,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-16): was 'is bound by THIS host and not by the daemon composition'.
+  // RE-SPELLED 2026-10-01: was 'is bound by THIS host and not by the daemon composition'.
   // Neither host binds one now.
   it('is bound by neither this host nor the daemon composition', () => {
     const daemonHost = code(join(__dirname, '..', 'daemon', 'host.ts'))
@@ -193,7 +193,7 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
     expect(cliComposition).not.toMatch(/\bconfirm:/)
   })
 
-  // 432-13 (D-01/D-14): `agent-qa run` no longer binds it.
+  // `agent-qa run` no longer binds it.
   it('is bound by no run door', () => {
     const run = code(join(__dirname, '..', 'commands', 'run.ts'))
     expect(run).toContain('createRunCommand')
@@ -201,9 +201,9 @@ describe('the CLI binds a confirmation exactly where there is somebody to ask', 
   })
 })
 
-// ---- THE CHANNEL A PERSON READ (401-15, WR-01 / T-401-G5) ---------------------------------------
+// ---- THE CHANNEL A PERSON READ ---------------------------------------
 //
-// RE-SPELLED 2026-10-01 (432-16): these two cells drove a disclosure carrying a forged approval
+// RE-SPELLED 2026-10-01: these two cells drove a disclosure carrying a forged approval
 // line through the prompt and counted the lines that reached the stream. The prompt and its
 // `writeDisclosure` are deleted, so no line of a declared target name can reach a person as an
 // approval question.

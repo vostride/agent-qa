@@ -18,7 +18,7 @@ const {
     configuredDbPath || '.agent-qa/runs.db',
   ),
   mockStartServer: vi.fn(),
-  // 401-07: the run door composes this through the same lazy import. A mock missing it does not
+  // the run door composes this through the same lazy import. A mock missing it does not
   // fail as a missing assertion — `createDashboardRunDoor` throws on the destructure, the command
   // exits 2, and every cell below then measures a command that never ran.
   mockCreateInProcessExecutionBackend: vi.fn((options: unknown) => ({
@@ -45,21 +45,21 @@ vi.mock('@vostride/agent-qa-dashboard', async () => {
   return {
     DashboardDatabase: mockDashboardDatabase,
     createInProcessExecutionBackend: mockCreateInProcessExecutionBackend,
-    // 404-05: THE REAL RELAY, on the reasoning above. The
+    // THE REAL RELAY, on the reasoning above. The
     // command destructures it from this same lazily imported package, so a mock without it leaves
     // `createPostProcessingRelay()` a call on `undefined` — which the command's own catch turns
     // into `process.exit`, and every cell in this file dies before it asserts. It is also not a
     // thing this file should be stubbing: it is an in-memory `Map` of listeners, with no server,
     // no socket and no database in it.
     createPostProcessingRelay: actual.createPostProcessingRelay,
-    // 405-01: THE REAL READER FACTORY, on the relay's own reasoning one line up. The command
+    // THE REAL READER FACTORY, on the relay's own reasoning one line up. The command
     // destructures it from this same lazily imported package, so a mock without it leaves
     // `createDashboardRunDetailReader(db)` a call on `undefined` — which the command's own catch
     // turns into `process.exit`, and every cell in this file dies before it asserts. It is also
     // not a thing this file should be stubbing: it is a one-method object over a database handle,
     // with no server and no socket in it.
     createDashboardRunDetailReader: actual.createDashboardRunDetailReader,
-    // 428-12 (D-07): THE REAL EDITOR-SUBJECT REGISTRY, on the same reasoning. The command
+    // THE REAL EDITOR-SUBJECT REGISTRY, on the same reasoning. The command
     // destructures it from this package and calls it beside the run registry; it is an in-memory
     // `Map` with no server, no socket and no browser in it.
     createLiveEditorSubjects: actual.createLiveEditorSubjects,
@@ -191,7 +191,7 @@ describe('createDashboardCommand', () => {
     expect(mockDashboardDatabase).toHaveBeenCalled()
     expect(mockStartServer).toHaveBeenCalled()
 
-    // RE-SPELLED 2026-10-01 (432-14, D-14): was '400-03: ONE registry, reaching BOTH halves'. The
+    // RE-SPELLED 2026-10-01: was '400-03: ONE registry, reaching BOTH halves'. The
     // command creates no confirm registry now, so the host it hands the server carries none.
     const started = mockStartServer.mock.calls[0]?.[0] as {
       agentHost?: Record<string, unknown>
@@ -200,7 +200,7 @@ describe('createDashboardCommand', () => {
     expect(started.agentHost).toBeDefined()
     expect(started.agentHost).not.toHaveProperty('con' + 'firms')
 
-    // 401-07 (INVK-01): the SAME shape, one line down, for the run door. The command composes the
+    // the SAME shape, one line down, for the run door. The command composes the
     // backend here — where the agent packages are nameable — and hands it over; a server started
     // without it answers 503 from the execution routes and runs nothing.
     expect(mockCreateInProcessExecutionBackend).toHaveBeenCalledTimes(1)
@@ -442,7 +442,7 @@ describe('createServeCommand', () => {
   })
 })
 
-// ---- 398-10 / 398-11 (D-18 / D-20): the drop, pinned at the source ---------------------------
+// ---- 398-10 / 398-11: the drop, pinned at the source ---------------------------
 //
 // These two cells are now the WHOLE behavioural claim for the drop, and they were always the
 // stronger half: a `flushAnalytics` re-added to this command would satisfy "never called" in any

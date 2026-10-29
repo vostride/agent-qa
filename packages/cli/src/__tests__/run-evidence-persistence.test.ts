@@ -197,9 +197,9 @@ for (const path of ['COMPOSED', 'DIRECT'] as const) {
         expect(rows?.steps[0]?.evidence).toEqual(terminal.evidence)
         const registry = createFunctionRegistry({
           deps: { runDetail: createDashboardRunDetailReader(coldDb) } as FunctionDeps,
-          // 2026-10-02 (432-36, D-12): no `resolveExecutionContext` registry option, and the caller
+          // no `resolveExecutionContext` registry option, and the caller
           // carries no `grantedScopes`/`safeMode` (or the cast that carried them); the registry
-          // reads neither (432-20).
+          // reads neither.
         })
         const detail = RunDetailProjectionSchema.parse(await invokeFunction(
           registry, RUNS_DETAIL_FUNCTION_ID, { runId: asRunId(runId) },
@@ -318,9 +318,9 @@ async function ariaReadback(mode: 'two' | 'empty' | 'missing' | 'mobile' | 'chil
         runDetail: createDashboardRunDetailReader(cold), runs: { get: forbidden },
         evidenceBlobs: { read: blobRead, has: async (_runId: unknown, sha: string) => reopened.hasBlob(sha) ? 'found' : 'blob_absent' },
       } as unknown as FunctionDeps,
-      // 2026-10-02 (432-36, D-12): no `resolveExecutionContext` registry option, and the caller
+      // no `resolveExecutionContext` registry option, and the caller
       // carries no `grantedScopes`/`safeMode` (or the cast that carried them); the registry reads
-      // neither (432-20).
+      // neither.
     })
     const detail = RunDetailProjectionSchema.parse(await invokeFunction(
       registry, RUNS_DETAIL_FUNCTION_ID, { runId: asRunId(runId) },

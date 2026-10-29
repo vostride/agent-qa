@@ -1,4 +1,4 @@
-// 2026-10-18 (444-18, D-55): a gate run and an outcome-excluded run print D-13's exit line, and
+// a gate run and an outcome-excluded run print D-13's exit line, and
 // their tail starts no drain: nothing was queued, and a gate run never drains other runs' jobs.
 
 import { mkdtempSync, rmSync } from 'node:fs'

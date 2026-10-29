@@ -436,8 +436,6 @@ describe('createRequire anchor census', () => {
     ).toBeGreaterThan(0)
   })
 
-  // 2026-08-23 (401-06, then 401-10): THIS WAS THREE, AND TWO RETIRED WITH THEIR SUBJECT.
-  //
   // `cli/src/daemon/host.ts`'s read was `input.cliEntry ?? process.argv[1] ?? ''` — the entry path
   // the daemon handed the piped `agent-qa run` child it spawned. `cli/src/composition/
   // local-agent-host.ts`'s was the same expression inside `createCliRunExecution`, the terminal

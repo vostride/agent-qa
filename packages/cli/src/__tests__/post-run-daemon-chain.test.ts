@@ -1,4 +1,4 @@
-// SC4's crash half: a real daemon SIGKILLed between the two chain stages (Phase 388 plan 06).
+// SC4's crash half: a real daemon SIGKILLed between the two chain stages.
 //
 // Everything load-bearing here is a real operating-system fact rather than a simulation of one.
 // A real daemon process holds the real writer lease and serves the real agent-job dispatcher; a

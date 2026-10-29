@@ -59,7 +59,7 @@ afterAll(() => {
   if (pinnedTmpdir !== undefined) removeTempRoots([pinnedTmpdir.root])
 })
 
-// Spelled here rather than imported, so the cells pin the words (D-22, 444-14).
+// Spelled here rather than imported, so the cells pin the words.
 const ANY_HOST = "resumes only if this workspace's .agent-qa/ is kept and a later run or the daemon picks it up"
 const LOCAL_RUN = "resumes only if this workspace's .agent-qa/ is kept and a later local run picks it up"
 const CI_CONTEXTS = ['ci', 'cloud'] as const

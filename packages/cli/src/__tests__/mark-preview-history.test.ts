@@ -1,4 +1,4 @@
-// 2026-09-15, 423 D-16: the consequence plan runs.mark consumes, previewed with no write.
+// the consequence plan runs.mark consumes, previewed with no write.
 import { createHash } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
 import { chmodSync, cpSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -195,8 +195,8 @@ describe('shared mark consequence plan', () => {
   })
 })
 
-// 2026-09-15, 423 D-19: marks history over the real ledger, observed with no write.
-// 2026-09-30, 432-09 (D-04/D-22/D-25): history projects each mark's applied change and never reads
+// marks history over the real ledger, observed with no write.
+// history projects each mark's applied change and never reads
 // the retired proposal inbox, readable or not.
 const SECRET = 'synthetic-423-18-history-token'
 const CHIP = '[secret:HISTORY_SYNTHETIC_TOKEN]'
@@ -419,7 +419,7 @@ describe('read-only marks history host', () => {
   })
 })
 
-// 2026-09-15, 423 D-19: runs.marks.history registered and bound on every existing local host composition.
+// runs.marks.history registered and bound on every existing local host composition.
 const HISTORY = 'runs.marks.history'
 
 describe('marks history registration and host binding', () => {
@@ -451,9 +451,9 @@ describe('marks history registration and host binding', () => {
     const [first, second, third] = template.receipts as [MarkReceipt, MarkReceipt, MarkReceipt]
     expect(entries.map(entry => [entry.markId, entry.ordinal, entry.active, entry.supersededBy ?? null, entry.disposition.kind]))
       .toEqual([[first.markId, 1, false, second.markId, 'applied'], [second.markId, 2, true, null, 'confirmed-bug'], [third.markId, 3, true, null, 'applied']])
-    // 2026-10-14 (441-16, D-06): a cold host masks the declared secret and leaves the rest as written.
+    // a cold host masks the declared secret and leaves the rest as written.
     expect(entries.map(entry => entry.note ?? null)).toEqual(['first run-level note', null, `step note ${CHIP}`])
-    // 432-09: the applied fix's records are joined by id, and their content crosses the same mask.
+    // the applied fix's records are joined by id, and their content crosses the same mask.
     expect(entries[0]!.changedRecords!.map(record => record.recordId)).toEqual(changedRecordIdsOf(first))
     expect(entries[0]!).not.toHaveProperty('proposal')
     expect(JSON.stringify(result)).not.toContain(SECRET)
@@ -518,7 +518,7 @@ describe('marks history registration and host binding', () => {
   })
 })
 
-// 2026-09-15, 423 D-16/D-17: runs.mark.preview through the read host, content-led and write-free.
+// runs.mark.preview through the read host, content-led and write-free.
 const CONTENT_SECRET = 'Held checkout marked'
 type PreviewFixture = ReturnType<typeof markFixture>
 type Consequences = Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
@@ -806,7 +806,7 @@ describe('content-led consequence preview over the read host', () => {
   }, 120_000)
 })
 
-// 2026-09-15, 423 D-16/D-18: runs.mark.preview registered and bound on every CLI host composition.
+// runs.mark.preview registered and bound on every CLI host composition.
 // Plan 423-21 projects it to MCP as agent_qa_preview_run_mark; fn reaches it now, with no model.
 const PREVIEW = 'runs.mark.preview'
 
@@ -834,7 +834,7 @@ describe('runs.mark.preview registration and composed invocation', () => {
   // The run-level address's latest mark is the confirmed-bug at ordinal 2, so a false-pass supersedes it.
   const input = (): RunsMarkInput => ({ runId: template.runId, kind: 'false-pass', note: `preview ${SECRET}` })
 
-  /** 2026-10-14 (441-16, D-06): a cold host masks with the project's declared secrets. */
+  /** a cold host masks with the project's declared secrets. */
   async function expectedColdPreview(s: ReturnType<typeof coldScene>) {
     const reads = createFeedbackReadsPortForHost({ agentQaRoot: s.agentQaRoot, configPath: s.configPath })
     expect(typeof reads.preview, 'gates/feedback-read-host must expose preview').toBe('function')
@@ -962,7 +962,7 @@ describe('runs.mark.preview registration and composed invocation', () => {
   }, 180_000)
 })
 
-// 2026-09-15, 423-21 D-18: both feedback reads over the shipped dashboard door's two HTTP boundaries,
+// both feedback reads over the shipped dashboard door's two HTTP boundaries,
 // against the same real ledger, proposals store and preview inputs the fn parity cells use.
 describe('feedback reads over both HTTP doors', () => {
   const roots: string[] = []
@@ -995,7 +995,7 @@ describe('feedback reads over both HTTP doors', () => {
       stores: [join(agentQaRoot, 'runs'), join(agentQaRoot, 'proposals'), join(agentQaRoot, 'eval'), join(root, 'agent-qa-knowledge')],
       doors: [
         { name: 'local-human', base: `http://127.0.0.1:${port(started.server)}/api/runs`, headers: {} as Record<string, string> },
-        // 432-21 (D-12): the run service is tokenless — the machine door sends no credential.
+        // the run service is tokenless — the machine door sends no credential.
         { name: 'remote-machine', base: `http://127.0.0.1:${port(remote)}/run`, headers: {} as Record<string, string> },
       ] }
   }
@@ -1047,7 +1047,7 @@ describe('feedback reads over both HTTP doors', () => {
     expect(storeMaps(s.stores)).toEqual(before)
   }, 180_000)
 
-  // RE-AIMED 2026-10-14 (441-16, D-06/D-12): both doors mask a cold read with the project's declared
+  // RE-AIMED 2026-10-14: both doors mask a cold read with the project's declared
   // secrets, so the declared span reads as its `[secret:<name>]` marker and the rest as written. The
   // cold read scope, its allowlist and the installed warm context are gone, and so is the warm half.
   it('HTTP-FEEDBACK-HUMAN-POSTURE: both doors show cold read-scope free text with declared-secret chips, and warm text as the read masked it', async () => {
@@ -1064,7 +1064,7 @@ describe('feedback reads over both HTTP doors', () => {
         content: [served, ...unserved.sort()] }
     }
     const redacted = CHIP
-    // 432-09 (D-04): the template's two false-fail marks applied their fixes, so the store now holds
+    // the template's two false-fail marks applied their fixes, so the store now holds
     // those records and this false-pass preview reaches them after the served one. Their content is
     // the floor-worded fix, and the user's note inside it crosses the same mask as the note itself.
     const appliedFix = (note: string) => 'false-fail / fact: Click Continue\n'
@@ -1085,7 +1085,7 @@ describe('feedback reads over both HTTP doors', () => {
   it('FEEDBACK-HTTP-WRITES-NOTHING: HTTP history and preview leave every store byte-identical and create nothing', async () => {
     const s = await httpScene()
     const runDir = join(s.agentQaRoot, 'runs', template.runSlug)
-    // 432-09 (D-22): a legacy proposal tree is left as it is; neither door opens or reaps it.
+    // a legacy proposal tree is left as it is; neither door opens or reaps it.
     mkdirSync(join(s.agentQaRoot, 'proposals'), { recursive: true })
     writeFileSync(join(s.agentQaRoot, 'proposals', 'prop_0123456789ab.json.claim-1'), '{"legacy":true}')
     const before = storeMaps(s.stores)
@@ -1104,7 +1104,7 @@ describe('feedback reads over both HTTP doors', () => {
   }, 180_000)
 })
 
-// 2026-09-15, 423-21 D-04/D-18: the three new read ops, adjudicated against the one registry by the
+// the three new read ops, adjudicated against the one registry by the
 // conformance tables every surface leg reads: input contract, scenario row, MCP ruling, doc
 // adjudication, authed remote route binding and read policy points.
 describe('read-op adjudication', () => {
@@ -1125,14 +1125,14 @@ describe('read-op adjudication', () => {
     for (const opId of ['runs.marks.history', 'runs.mark.preview'] as const) {
       expect(AGENT_QA_OP_CONTRACTS[opId]?.input, opId).toBe(contracts[opId])
     }
-    // 2026-09-28 (431-04 D-07): runs.evidence is projected through the evidence fold, so the MCP
+    // runs.evidence is projected through the evidence fold, so the MCP
     // contract table carries its own input singleton too.
     expect(AGENT_QA_OP_CONTRACTS['runs.evidence']?.input).toBe(contracts['runs.evidence'])
     const registryIds = registryDeclarations().map(entry => entry.id)
-    // 2026-09-25 (428 D-07): 52 — editor.liveurl registered, dashboard-only and MCP-unprojected.
-    // 2026-09-29 (431-08 D-06): 53 — runs.overview registered, with its own input singleton.
-    // 2026-10-01 (432-17 D-05): 46 — the seven proposal-inbox, apply and undo-propose ops deleted.
-    // 2026-10-01 (432-18 D-15): 44 — grants.list and grants.revoke deleted with the ledger.
+    // 52 — editor.liveurl registered, dashboard-only and MCP-unprojected.
+    // 53 — runs.overview registered, with its own input singleton.
+    // 46 — the seven proposal-inbox, apply and undo-propose ops deleted.
+    // 44 — grants.list and grants.revoke deleted with the ledger.
     expect(registryIds).toHaveLength(44)
     expect(censusDiff(registryIds, Object.keys(contracts))).toEqual({ missing: [], stray: [] })
   })
@@ -1164,7 +1164,7 @@ describe('read-op adjudication', () => {
       expect(RUN_SERVICE_ROUTE_BINDINGS.filter(binding => 'opId' in binding && binding.opId === opId).map(binding => binding.key), opId)
         .toEqual([routes[opId]])
     }
-    // 2026-09-28 (431-04 D-10): the 423 ruling moved to the projected side with a dated addendum.
+    // the 423 ruling moved to the projected side with a dated addendum.
     expect(UNPROJECTED_OPS.filter(entry => entry.opId === 'runs.evidence')).toEqual([])
     // The widened completed-run reads keep the same one-rule marker sets over the 51-op registry.
     for (const opId of ['runs.detail', 'runs.postprocessing', 'runs.knowledge'] as const) {
@@ -1176,7 +1176,7 @@ describe('read-op adjudication', () => {
 
   it('READ-POLICY-POINTS: the new reads carry read policy points and read-tier declarations; runs.mark stays a writer', () => {
     const readPoints = scenarioRowFor('runs.postprocessing')!.policyPoints
-    // 432-20 (D-12): the refuse point is `allow` — nothing is refused for its grants.
+    // the refuse point is `allow` — nothing is refused for its grants.
     expect(readPoints).toEqual({ grant: 'allow', refuse: 'allow' })
     for (const opId of NEW_READS) {
       expect(scenarioRowFor(opId)?.policyPoints, opId).toEqual(readPoints)

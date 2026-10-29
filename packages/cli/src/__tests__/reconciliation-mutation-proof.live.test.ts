@@ -1,4 +1,4 @@
-// THE D-16 MUTATION PROOF (Phase 392 plan 10, CHAT-02).
+// THE D-16 MUTATION PROOF.
 //
 // The phase's falsifiability capstone, and the shape of it is the whole claim: the REAL host is
 // assembled TWICE — deterministic override ON, deterministic override OFF — and the NAMED committed
@@ -8,7 +8,7 @@
 //
 // IT RUNS THROUGH THE COMPOSITION ROOT AND NOWHERE ELSE. Both arms go through
 // `composeCliLocalAgent`, which is a thin passthrough over `composeLocalAgent` — the ONE composition
-// root (385 D-15) — and the strategy reaches the engine through `ComposeLocalAgentInput.chatReconcile`,
+// root — and the strategy reaches the engine through `ComposeLocalAgentInput.chatReconcile`,
 // the composition-only seam D-16 names. This file assembles no turn engine, no resolver table and no
 // reconciler, and it does NOT import the shipped strategy module: a differential built out of parts
 // can pass while the composition wires those parts wrongly or not at all, which is the one failure
@@ -104,8 +104,8 @@ const SEEDED_RUN_ID = 'RUN-1'
 /** What the deterministic table binds for the scenario's first clause — the mapper's own verdict. */
 const MAPPER_BINDING: RunsStartInput = { patterns: ['test 42'] }
 
-// 2026-10-02 (432-37, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const HUMAN: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -241,7 +241,7 @@ describe("the mutation proof's subject and build", () => {
     // ran against a dist predating 392-09's correction, in which case the on-arm would be measuring
     // an utterance that could only ever fail closed and the proof would be red-versus-red.
     //
-    // MEASURED AGAINST THE SOURCE, not against a number written here (392-11). A literal pin made
+    // MEASURED AGAINST THE SOURCE, not against a number written here. A literal pin made
     // this guard fire on every later corpus edit — a red that says "the manifest moved" while
     // claiming to say "your dist is stale", which is the way a tripwire teaches people to edit it.
     // What the check is actually about is the DISTANCE between the built package and the source it
@@ -294,7 +294,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
       // A FAITHFUL executor, not a stub: the composition reads a run's own durable event log back
       // and refuses a host that reported a run without producing one. It also RECORDS the request,
       // which is the one seam in the composed path where a bound argument is observable —
-      // `ClauseReceipt` carries no arguments and must not (D-18).
+      // `ClauseReceipt` carries no arguments and must not.
       const runExecution: RunExecutionPort = {
         execute(request) {
           startedRuns.push(request)
@@ -312,7 +312,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
         agentQaRoot,
         configPath: String(LIVE_CONFIG),
         runExecution,
-        // 2026-10-01 (432-17): the proposal apply delegate is deleted; the live gate still opens no
+        // the proposal apply delegate is deleted; the live gate still opens no
         // socket to a daemon that may be running.
         knowledgeChangeDelegate: () => Promise.reject(new Error('no change delegation in the live gate')),
         ...(capabilities === undefined

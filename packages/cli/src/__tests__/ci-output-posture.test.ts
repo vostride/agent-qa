@@ -1,4 +1,4 @@
-// 2026-10-18 (444-14, D-42, D-22): the CLI's CI posture — no colour without a terminal, and what
+// the CLI's CI posture — no colour without a terminal, and what
 // resuming pending work needs.
 
 import { mkdtempSync, rmSync } from 'node:fs'

@@ -1,4 +1,4 @@
-// Phase 361 Plan 11 (D-09 / D-14 · T-361-08 · T-361-02): the CLI-side regression lock that BOTH run
+// Phase 361 Plan 11: the CLI-side regression lock that BOTH run
 // invocation shapes (the suite path AND the single-test path) exit through `mapVerdictToExitCode`
 // and construct the identity `MaskingContext` UNCONDITIONALLY (decoupled from cache enablement).
 //
@@ -17,14 +17,14 @@ const compositionSource = readFileSync(
   fileURLToPath(new URL('../run-session-composition.ts', import.meta.url)),
   'utf8',
 )
-// 401-04: the door's ONE `RunConfig` assembler, which both paths now hand their run MaskingContext
+// the door's ONE `RunConfig` assembler, which both paths now hand their run MaskingContext
 // to. It is a source anchor's third file for the same reason the second exists — the property being
 // pinned did not change, the line it lives on did.
 const assemblySource = readFileSync(
   fileURLToPath(new URL('../composition/run-assembly.ts', import.meta.url)),
   'utf8',
 )
-// 401-11: the door's ONE in-process drive, and a FOURTH anchor file for the same reason the third
+// the door's ONE in-process drive, and a FOURTH anchor file for the same reason the third
 // exists. Every seam this suite pins — the core composition, the safety scope, the run masking
 // context, the per-run safety-hook runner, the dispose-last ordering — used to be written twice in
 // `run.ts`, once per path, and this suite counted the two copies. They are written ONCE now, in the
@@ -42,7 +42,7 @@ function count(haystack: string, needle: string): number {
 }
 
 // (c) The D-14 table re-pinned at the CLI import — called directly for all five verdicts. This is
-// the CI-gate contract (T-361-08): the mapping the whole CLI now funnels through.
+// the CI-gate contract: the mapping the whole CLI now funnels through.
 describe('exit map re-pinned at the CLI boundary', () => {
   it('passed and healed map to 0 (healed is ratified as a pass — the annotation is not the exit code)', () => {
     expect(mapVerdictToExitCode('passed')).toBe(0)
@@ -64,7 +64,7 @@ describe('exit map re-pinned at the CLI boundary', () => {
 //
 // 401-03 RESTATED THIS ANCHOR RATHER THAN RELAXING IT. Until this phase, "reaches startRun" and
 // "contains a `startRun({` literal" were the same sentence, so counting literals in run.ts was a
-// faithful pin. The single-test path now composes the ONE policy-gated invocation core (D-02) and
+// faithful pin. The single-test path now composes the ONE policy-gated invocation core and
 // the core owns the `startRun` call — which is the point: a run may begin in exactly one place, and
 // that place is behind a gate. Counting literals here would now demand the very second call-site
 // this phase exists to remove. So the anchor says what it always meant, in two clauses:
@@ -109,10 +109,10 @@ describe('both CLI run paths exit through the verdict map', () => {
   })
 })
 
-// (b) 362-06 SEAM-01/03 — the suite (multi-member) path runs inside `runSafetyScope`. 441-58 (D-06):
+// (b) 362-06 SEAM-01/03 — the suite (multi-member) path runs inside `runSafetyScope`. 441-58:
 // the run masks with its producer's redactor, and no run masking context is seeded.
 describe('the suite path runs inside runSafetyScope and masks with its own redactor', () => {
-  // RE-SPELLED 2026-09-30 (432-13, D-14/D-15): was 'registers the --trust-session flag and reads
+  // RE-SPELLED 2026-09-30: was 'registers the --trust-session flag and reads
   // config.safety?.trustMode'. Nothing asks, so there is nothing for trust to satisfy.
   it('registers no --trust-session flag and reads no config.safety?.trustMode', () => {
     expect(runSource).not.toMatch(/\.option\(\s*'--trust-session'/)
@@ -120,30 +120,30 @@ describe('the suite path runs inside runSafetyScope and masks with its own redac
   })
 
   it('wraps one run body in runSafetyScope, and the run\'s mask is its own redactor', () => {
-    // 401-11: ONE run body, in the drive, and `run.ts` wraps none of its own.
+    // ONE run body, in the drive, and `run.ts` wraps none of its own.
     expect(count(driveSource, 'runSafetyScope(')).toBe(1)
     expect(count(runSource, 'runSafetyScope(')).toBe(0)
-    // 441-19 (D-12): the run seed helper is deleted; neither site reaches its primitives either.
-    // 441-33 (D-12): the primitives are deleted too, so their names are spelled in parts.
+    // the run seed helper is deleted; neither site reaches its primitives either.
+    // the primitives are deleted too, so their names are spelled in parts.
     for (const source of [driveSource, runSource]) {
       expect(count(source, ['create', 'MaskingContext('].join(''))).toBe(0)
       expect(count(source, ['seed', 'MaskingContext('].join(''))).toBe(0)
     }
-    // 441-58 (D-06): the producer's redactor reaches the ONE assembler, which puts it on RunConfig;
+    // the producer's redactor reaches the ONE assembler, which puts it on RunConfig;
     // no masking context is handed over or set.
     expect(runSource).toContain('secretRedactor')
     expect(count(assemblySource, 'secretRedactor: input.secretRedactor')).toBe(1)
     expect(count(assemblySource, 'masking:')).toBe(0)
   })
 
-  // 2026-10-15 (441-30, D-12/D-15): the cell that pinned the hook runner reaching the suite member
+  // the cell that pinned the hook runner reaching the suite member
   // executor is deleted with the producers' late-bound slot.
 
   it('closes the run out from a finally, after the producer finalises, exactly once',
     () => {
-      // 401-11 / 404 D-06: the close-out is `closeOutRun`, which the drive's `finally` runs when no
+      // the close-out is `closeOutRun`, which the drive's `finally` runs when no
       // detached post-run leg was started and the leg's own `finally` runs when one was. 441-58
-      // (D-12): there is no masking context to dispose; the close-out shape is what stays pinned.
+      // there is no masking context to dispose; the close-out shape is what stays pinned.
       const closeOutIdx = driveSource.indexOf('const closeOutRun = (): void => {')
       expect(closeOutIdx).toBeGreaterThan(0)
       expect(
@@ -168,7 +168,7 @@ describe('the suite path runs inside runSafetyScope and masks with its own redac
 // genuinely un-settleable run still exits 130 (live Ctrl+C can never hang) and a clean completion
 // never leaks the timer. Source-anchored per this file's convention.
 describe('both handleShutdown paths arm + clear a bounded force-exit backstop', () => {
-  // 2026-10-17 (444-08, D-30): the timer exits through forceExit, which closes this process's own
+  // the timer exits through forceExit, which closes this process's own
   // still-running row first.
   it('arms a bounded process.exit(130) grace timer in both handleShutdown sites', () => {
     expect(count(runSource, 'setTimeout(() => forceExit(130), cancelGraceMs())')).toBe(2)
@@ -189,7 +189,7 @@ describe('both handleShutdown paths arm + clear a bounded force-exit backstop', 
 
 // (f) 362-06 SEAM-01/03 — the single-test path (the 363 demo path) activates the SAME seams with the
 // SAME helpers (Pitfall 7): BOTH startRun sites are wrapped in runSafetyScope, no identity mint
-// remains anywhere in production composition, and no trust reaches a run (D-15).
+// remains anywhere in production composition, and no trust reaches a run.
 describe('the single-test path activates the seams with no identity mint remaining', () => {
   it('wraps BOTH run bodies in runSafetyScope', () => {
     // There is ONE run body now and both paths enter it, which is what "both are wrapped" meant.
@@ -203,11 +203,11 @@ describe('the single-test path activates the seams with no identity mint remaini
     expect(count(compositionSource, 'buildIdentityMasking')).toBe(0)
   })
 
-  // RE-TITLED 2026-10-15 (441-30, D-12/D-15): the old title said the hook runner was built once in
+  // RE-TITLED 2026-10-15: the old title said the hook runner was built once in
   // the drive. The drive builds no hook registrar either.
   it('builds no run MaskingContext and no hook registrar at either site', () => {
-    // 441-58 (D-06): no site builds a run masking context.
-    // 441-19 (D-12): the seed helper is deleted, so its primitives are what stays pinned absent.
+    // no site builds a run masking context.
+    // the seed helper is deleted, so its primitives are what stays pinned absent.
     const registrarCall = ['buildRunSafety', 'Hooks('].join('')
     for (const source of [driveSource, runSource]) {
       expect(count(source, ['create', 'MaskingContext('].join(''))).toBe(0)
@@ -215,12 +215,12 @@ describe('the single-test path activates the seams with no identity mint remaini
     }
   })
 
-  // 2026-10-15 (441-30, D-12/D-15): the cell 'threads the run context + hooks into the single-test
+  // the cell 'threads the run context + hooks into the single-test
   // runTest config' is deleted with the single-test producer's late-bound slot.
 
-  // RE-SPELLED 2026-09-30 (432-13): was 'routes trust to the gate only via --trust-session /
+  // RE-SPELLED 2026-09-30: was 'routes trust to the gate only via --trust-session /
   // config.safety.trustMode'. No trust reaches a run at all now; the env-var guards stay.
-  // 2026-10-01 (432-14, D-03): the hooks input no longer declares trust, so the drive passes none —
+  // the hooks input no longer declares trust, so the drive passes none —
   // not even the constant `false` it handed the unread field.
   it('routes no trust to a run: no flag, no config read, no env var', () => {
     expect(count(runSource, 'opts.trustSession')).toBe(0)
@@ -232,7 +232,7 @@ describe('the single-test path activates the seams with no identity mint remaini
   })
 })
 
-// (d) The config/setup exit-2 convention is untouched (D-14): exit 2 stays reserved for
+// (d) The config/setup exit-2 convention is untouched: exit 2 stays reserved for
 // config/setup errors and is NOT produced by the verdict map.
 describe('the config/setup exit-2 convention survives the cutover', () => {
   it('retains process.exit(2) config-error sites in run.ts', () => {

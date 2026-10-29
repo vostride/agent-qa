@@ -77,7 +77,7 @@
 //       one. A separate mutation would say less than that pair already does.
 //   G3  the App re-read BEFORE the run settles                 -> measured by cell (5) against cell
 //       (7): the same address, the same client, `live` while running and `run-ended` after.
-//   G5  408-11's MARKUP anchor reverted into the script         -> MEASURED 2026-09-01 (plan 408-14):
+//   G5  408-11's MARKUP anchor reverted into the script         -> MEASURED 2026-09-01:
 //       with the permanent link's href and label assigned by the wrapper's script instead of
 //       rendered into markup, cell (6-noscript) reds by name — `the href is in the MARKUP
 //       (408-11 task 1) — a host that runs no script still has it: expected null to be
@@ -149,7 +149,7 @@ const TOKEN_VALUE = 'harness-token-408-06-not-a-real-credential'
  * The static-page band, copied with its reasoning from the web adapter's STATIC-PAGE-KEEPALIVE cell
  * rather than re-derived.
  *
- * 2026-09-25 (428-06, D-15): the 403-02 D-7 ceiling of ONE frame in four seconds is retired. A
+ * the 403-02 D-7 ceiling of ONE frame in four seconds is retired. A
  * static page now gets a fresh keepalive capture every 2 s (`LIVE_KEEPALIVE_QUIET_MS`) so the
  * viewer's freshness dot stays green, and this harness measured 2 painted frames in 4 s once it
  * shipped. Over a six-second window that is 2 or 3 frames; fewer is a producer gone silent on a
@@ -531,7 +531,7 @@ beforeAll(async () => {
   // by-reference `runs.liveurl` mint on a `ui://` read is signed by the signer this process's frame
   // proxy validates against. That is D-03's invariant held by composition, and it is why
   // `registerAppResources`' third (bound) condition passes here at all.
-  // 432-21 (D-12): the co-hosted endpoint is tokenless; the client below still sends a legacy
+  // the co-hosted endpoint is tokenless; the client below still sends a legacy
   // bearer, which the listener ignores.
   const masking = composeMcpMasking({ configPath })
   const mcpServer = createServer(
@@ -687,7 +687,7 @@ async function readServedApp(): Promise<ServedApp> {
  *
  * `hostAllowances` IS REQUIRED AND HAS NO DEFAULT HERE, deliberately: every leg in this file must
  * say out loud which host it is emulating, because that choice is the difference between measuring
- * a host and measuring this file's beliefs about hosts (WR-10).
+ * a host and measuring this file's beliefs about hosts.
  */
 async function appsHost(served: ServedApp, hostAllowances: HostAllowances): Promise<string> {
   const csp = hostCspFor(served.csp, hostAllowances)
@@ -877,7 +877,7 @@ describe('leg 1 — a negotiating host reaches the App over the wire', () => {
       })
       expect(result.isError, JSON.stringify(result.content)).not.toBe(true)
 
-      // D-08/D-09: the line rides tool-result TEXT — the one channel SEP-1730 obliges every host to
+      // the line rides tool-result TEXT — the one channel SEP-1730 obliges every host to
       // render — and it targets the TOKENLESS permanent page, so it outlives both the five-minute
       // token and this process.
       const text = (result.content as readonly { type: string; text?: string }[])
@@ -939,7 +939,7 @@ describe('leg 1 — a negotiating host reaches the App over the wire', () => {
   }, 60_000)
 })
 
-// ---- LEG 2: the render, in a real sandboxed iframe, with real frames (D-12) ---------------------
+// ---- LEG 2: the render, in a real sandboxed iframe, with real frames ---------------------
 
 describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN', () => {
   it('(5) the wrapper reaches `live` in a real sandboxed iframe under its own CSP', async () => {
@@ -1034,7 +1034,7 @@ describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN', () => {
 
       // THE NEGATIVE ARM, and it is the half that distinguishes a change-driven producer from a
       // polling one: the SAME run's SAME browser is pointed at the static fixture page, and after it
-      // settles only the 2 s keepalive should arrive (428 D-15). A 1 s screenshot poller paints
+      // settles only the 2 s keepalive should arrive. A 1 s screenshot poller paints
       // more than the band allows.
       await held().navigateTarget(held().targetUrl)
       await page.waitForTimeout(STATIC_SETTLE_MS)
@@ -1139,7 +1139,7 @@ describe("leg 2b — a host running none of the App's script still hands the per
   }, 180_000)
 })
 
-// ---- LEG 3: end honesty (D-07, D-11) -----------------------------------------------------------
+// ---- LEG 3: end honesty -----------------------------------------------------------
 //
 // LAST, AND DESTRUCTIVE BY DESIGN: it finishes the run, which every cell above needs live.
 
@@ -1171,7 +1171,7 @@ describe('leg 3 — a late attach to a finished run gets the honest terminal ans
       expect(await wrapper.locator('[data-app-message]').textContent())
         .toBe(APP_WRAPPER_RUN_ENDED_MESSAGE)
 
-      // D-08: the way out survives the run. The permanent link is tokenless and outlives both the
+      // the way out survives the run. The permanent link is tokenless and outlives both the
       // credential and the process that minted it, which is the whole reason it is the fallback.
       const link = wrapper.locator('[data-app-permanent-link]')
       expect(await link.getAttribute('href')).toBe(liveRunLinkOf(held().origin, held().runId))

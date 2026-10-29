@@ -1,4 +1,4 @@
-// 2026-10-18 (444-20, D-57): in ci and cloud the curation outcome line says what CI does with what
+// in ci and cloud the curation outcome line says what CI does with what
 // it learns, a record kept as a candidate and never promoted, instead of "applied".
 
 import { describe, expect, it } from 'vitest'

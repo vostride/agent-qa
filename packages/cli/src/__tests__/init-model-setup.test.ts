@@ -1,7 +1,7 @@
-// C445-INIT-LLM (445-04, D-11, D-36): init's model connection flags and their defaults
-// C445-INIT-PROMPTS (445-04, D-11): a terminal init asks only defaulted questions whose flag is absent
-// C445-MODEL-DEFAULTS (445-05, D-31, D-36): current subscription defaults, same in CLI and registry
-// C445-NEXT-STEPS (445-05, D-14, D-17): init prints its next steps in the route order
+// init's model connection flags and their defaults
+// a terminal init asks only defaulted questions whose flag is absent
+// current subscription defaults, same in CLI and registry
+// init prints its next steps in the route order
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { Command } from 'commander'
 import { parse as parseYaml } from 'yaml'

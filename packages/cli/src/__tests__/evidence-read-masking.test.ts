@@ -1,5 +1,5 @@
 // 423 Gap 1: runs.evidence over the production composition. No test installs a masking resolver;
-// 2026-10-14 (441-16, D-06): every read below masks with the host's declared mask.
+// every read below masks with the host's declared mask.
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import { tmpdir } from 'node:os'
@@ -115,7 +115,7 @@ async function listen(server: ReturnType<typeof createServer>): Promise<string> 
 }
 
 // The local human door and the bearer machine door over the SAME composed host, as dashboard.ts
-// wires them. Neither restores anything a read masked (441 D-07).
+// wires them. Neither restores anything a read masked.
 async function startDoors(f: ReturnType<typeof productionFixture>) {
   const agentHost = composeDashboardAgentHost(f.host)
   const started = await startServer({ declaredSecretMask: (text) => text, db: f.db, port: 0, agentHost })
@@ -168,7 +168,7 @@ describe('production read posture', () => {
     expect(await f.read('network')).toEqual(network)
     expect(await f.read('variables')).toEqual(variables)
     expect(fixtureBytes(f.root)).toEqual(before)
-    // 432-13: no op gate writes this file any more; if anything else does, it still holds no secret.
+    // no op gate writes this file any more; if anything else does, it still holds no secret.
     const auditPath = join(f.agentQaRoot, 'execution_audit.jsonl')
     expect(existsSync(auditPath) ? readFileSync(auditPath, 'utf8') : '').not.toContain(SECRET)
   })
@@ -188,7 +188,7 @@ describe('production read posture', () => {
     ] } })
     expect(humanRaw).not.toContain(SECRET)
 
-    // 432-21 (D-12/D-13): the machine door is tokenless; what it refuses is a cross-site read.
+    // the machine door is tokenless; what it refuses is a cross-site read.
     expect((await fetch(doors.machine, { headers: { Origin: 'https://evil.example' } })).status).toBe(403)
     const machine = await fetch(doors.machine)
     expect(machine.status).toBe(200)

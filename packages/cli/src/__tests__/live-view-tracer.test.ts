@@ -106,7 +106,7 @@ let page: LiveStreamFixturePage | undefined
 
 /** How long the tracer will keep asking the mint route for a handle that has not registered yet. */
 const MINT_RETRY_BUDGET_MS = 60_000
-// 2026-10-02 (quick 261002-tmo): every embed state here is pushed to the page over its socket (no
+// every embed state here is pushed to the page over its socket (no
 // poll), so each wait is a condition with a hang ceiling. 10 s was outrun at load up to 132: (vi)'s
 // page had not yet shown `ended` after finishRun() (quick 261002-tmo forced gate 4).
 const EMBED_STATE_WAIT_MS = 60_000

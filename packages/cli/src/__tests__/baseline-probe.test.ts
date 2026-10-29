@@ -1,4 +1,4 @@
-// 373-07: pins the D-04 baseline-probe contract — failure-as-value (never a rejection, the
+// pins the D-04 baseline-probe contract — failure-as-value (never a rejection, the
 // prohibition in 373-07-PLAN), raw un-redirected status, fixed abort budget. fetch is stubbed;
 // no unit test touches the network.
 import { afterEach, describe, expect, it, vi } from 'vitest'

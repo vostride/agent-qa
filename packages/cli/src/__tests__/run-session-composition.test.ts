@@ -11,12 +11,11 @@ import {
   createSuiteLifecycle,
   resolveRunExecutionContext,
 } from '@vostride/agent-qa-agent-local'
-// 385-08 (D-13): every assertion below is unchanged. The only edit this dissection made to this
+// every assertion below is unchanged. The only edit this dissection made to this
 // suite is the path each symbol is named through — which is itself the evidence that the move was
 // a move, since the same expectations still hold over the relocated code.
 import { assembleCliRun } from '../composition/run-assembly.js'
 
-// 2026-10-03 (quick-261003-tsr, IN-16): every temporary root a cell makes is removed after it.
 const roots: string[] = []
 afterEach(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
@@ -28,7 +27,7 @@ function tempDir(prefix: string): string {
   return root
 }
 
-// D-20: computeRunConfigDigests is the ONE digest mint. Both the cache path (per-member) and
+// computeRunConfigDigests is the ONE digest mint. Both the cache path (per-member) and
 // the handoff header (run-level) draw from a single call, so run identity and handoff identity
 // cannot fork.
 describe('computeRunConfigDigests (one mint)', () => {
@@ -202,7 +201,7 @@ describe('createSuiteLifecycle (lazy per-suite setup/teardown)', () => {
     })
     const lc = createSuiteLifecycle()
 
-    // 402-02: `ensureReady` now returns a per-member LEASE and a suite is not torn down while any
+    // `ensureReady` now returns a per-member LEASE and a suite is not torn down while any
     // member of it is live. The sequence below is the same one this cell always pinned, with each
     // member's settle made explicit — which is what the boundary teardown now waits for.
     ;(await lc.ensureReady('A', hooksFor('A'))).release()
@@ -222,7 +221,7 @@ describe('createSuiteLifecycle (lazy per-suite setup/teardown)', () => {
   })
 })
 
-// ---- (7) masking seed pipeline: deleted 441-19 (D-12) with its unit cells -------------------
+// ---- (7) masking seed pipeline: deleted 441-19 with its unit cells -------------------
 
 describe('resolveRunExecutionContext (delegates to safety-local)', () => {
   it('resolves a valid execution context', () => {
@@ -236,11 +235,11 @@ describe('resolveRunExecutionContext (delegates to safety-local)', () => {
   })
 })
 
-// ---- (8) per-run stamped audit sink: deleted 441-43 (D-15) with its two cells ----------------
+// ---- (8) per-run stamped audit sink: deleted 441-43 with its two cells ----------------
 
-// ---- (9) per-run safety-hooks registrar: deleted 441-30 (D-12/D-15) with its three cells ------
+// ---- (9) per-run safety-hooks registrar: deleted 441-30 with its three cells ------
 
-// 403-13 (WR-06, LIVE-03): a SUBSCRIBER's fault has a NAMED destination on the shipped composition,
+// a SUBSCRIBER's fault has a NAMED destination on the shipped composition,
 // and the port is CARRIED across the RunPersistencePorts -> RunPorts hop at run-assembly.ts:175 —
 // read off the RunConfig the ASSEMBLER returns, not off buildRunPorts's own return value.
 describe('buildRunPorts — onSubscriberFault destination', () => {

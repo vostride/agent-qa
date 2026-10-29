@@ -265,7 +265,7 @@ describe('projectCurationCandidates', () => {
       handoff([testOutcome({}, [step({}, [evidence])])]),
     )
 
-    // 2026-10-15 (441-25, D-28): the projection no longer copies element values or interactions.
+    // the projection no longer copies element values or interactions.
     expect(JSON.stringify(candidate)).not.toContain('correct horse battery staple')
     expect(candidate?.artifactDescriptors).toEqual([
       {
@@ -402,7 +402,7 @@ describe('projectCurationCandidates', () => {
     expect(second).toEqual(first)
     expect(first).not.toHaveLength(0)
     expect(first.every((candidate) => candidate.executionContext === 'ci')).toBe(true)
-    // 2026-10-15 (441-50, D-26/D-27): a cache-bypassed step no longer marks the candidate.
+    // a cache-bypassed step no longer marks the candidate.
     expect(first.flatMap((candidate) => Object.keys(candidate))
       .filter((key) => key.endsWith('Flagged'))).toEqual([])
     for (const candidate of first) {

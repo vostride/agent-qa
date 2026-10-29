@@ -1,4 +1,4 @@
-// The CLI's half of D-15 — RE-SPELLED 2026-10-01 (432-19, D-14/D-15).
+// The CLI's half of D-15 — RE-SPELLED 2026-10-01.
 //
 // This file proved that the CLI rendered the remedies IT could take (the trust-session flag named
 // with the command it is declared on, the confirm answer) under a gate denial, and nothing when the

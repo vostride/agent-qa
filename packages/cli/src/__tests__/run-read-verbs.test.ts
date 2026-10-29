@@ -1,4 +1,4 @@
-// Phase 431 plan 07 (D-11/D-12/D-13): the dedicated CLI reads over their canonical ops.
+// the dedicated CLI reads over their canonical ops.
 //
 // In-process cells drive the Commander verbs against a populated project and compare `--json` with
 // the MCP `structuredContent` answered by the same composition. `runs.overview` and the document arm
@@ -264,7 +264,7 @@ type WireResult = {
 async function mcpReader(p: { configPath: string; agentQaRoot: string }) {
   const composed = host.composeCliLocalAgent({ configPath: p.configPath, agentQaRoot: p.agentQaRoot })
   cleanups.push(() => composed.close())
-  // 432-21 (D-12): tokenless. The client below still sends a legacy reader bearer, which is ignored.
+  // tokenless. The client below still sends a legacy reader bearer, which is ignored.
   const masking = composeMcpMasking({ configPath: p.configPath })
   const server = createServer(createMcpHttpRequestListener({
     registry: composed.registry, maskText: (text) => masking.mask(text),

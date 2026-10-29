@@ -1,4 +1,4 @@
-// Phase 432 plan 15 (D-01, D-14): `agent-qa cache purge --all` removes the selected cache the
+// `agent-qa cache purge --all` removes the selected cache the
 // moment it is asked to. There is no y/N and no `--force`; the retired option is unknown to the
 // parser. Cache selection, empty-cache success, the cache-root boundary and error reporting are
 // unchanged. Every fixture uses a throwaway temp directory, never a real `.agent-qa` cache.

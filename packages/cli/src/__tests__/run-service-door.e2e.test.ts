@@ -1,6 +1,6 @@
-// The run service, DRIVEN END TO END (Phase 402 plan 01, D-02/D-05/D-06/D-13 · INVK-03).
+// The run service, DRIVEN END TO END.
 //
-// 2026-10-01 (432-21, D-12/D-13): TOKENLESS. The cells that measured a bearer refusal (legs (a),
+// TOKENLESS. The cells that measured a bearer refusal (legs (a),
 // (b), the empty-entry door, the tokenless `/ok`) are RE-SPELLED in place: a request with no
 // credential is served, a legacy bearer is ignored, and what the door refuses before its route table
 // is a cross-site request (the dashboard's shared same-site guard). Delivery, framing, the refused
@@ -51,7 +51,7 @@ import {
 /** A bearer value a pre-432 client might still present. The door neither needs nor reads it. */
 const TOKEN = 'zz-402-01-e2e-run-credential-6d20af'
 
-/** 432-21: what the door refuses before its route table. */
+/** what the door refuses before its route table. */
 const CROSS_SITE = { Origin: 'https://evil.example' } as const
 
 /** The `dashboard-door-security.ts` fixture project's shape, plus one planted test. */
@@ -143,7 +143,7 @@ async function openRunService(): Promise<ServiceFixture> {
     agentHost,
     executionBackend: runDoor.backend,
     runService: runService.ports,
-    // 402-05 (D-15): the LOCAL readiness door, wired exactly as `agent-qa dashboard` wires it —
+    // the LOCAL readiness door, wired exactly as `agent-qa dashboard` wires it —
     // the composition's own predicate, which is the identical object `runService.ports.readiness`
     // holds. Assembling a second one here would be the lookalike assembly this fixture exists to
     // avoid, and would make the equality cell below measure the fixture instead of the product.
@@ -227,7 +227,7 @@ function parseFrame(frame: string): { id?: string; event?: string; data?: string
 
 const authed = { 'Content-Type': 'application/json' }
 
-// RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'leg (a) — POST /run with no Authorization header'
+// RE-SPELLED 2026-10-01 from 'leg (a) — POST /run with no Authorization header'
 // ('is refused 401 with the typed body, and starts nothing'; 'refuses an OPTIONS preflight too').
 // A missing header is the normal case now; the refusal the leg measures is a cross-site POST, and
 // it still starts nothing and grants nothing.
@@ -259,7 +259,7 @@ describe('leg (a) — POST /run with no Authorization header', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-21, D-12) from 'leg (b) — POST /run with a wrong token'. No token is
+// RE-SPELLED 2026-10-01 from 'leg (b) — POST /run with a wrong token'. No token is
 // compared: a wrong bearer, a malformed scheme and no header reach the same request-shape check,
 // and a cross-site request to an unknown path is refused identically to a known one.
 describe('leg (b) — POST /run with a wrong token', () => {
@@ -398,7 +398,7 @@ describe('legs (c) and (d) — the authed path, end to end', () => {
     expect(await response.json()).toEqual({ error: 'unknown_run' })
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'refuses the stream without a token, before it
+  // RE-SPELLED 2026-10-01 from 'refuses the stream without a token, before it
   // can learn whether the run exists': a cross-site stream request is refused before the lookup.
   it('refuses the stream cross-site, before it can learn whether the run exists', async () => {
     const service = await openRunService()
@@ -408,7 +408,7 @@ describe('legs (c) and (d) — the authed path, end to end', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-21, D-12) from 'a door with no declared credential is a door nobody
+// RE-SPELLED 2026-10-01 from 'a door with no declared credential is a door nobody
 // can open'. There are no declared credentials and the door opens for every local caller; the
 // claim that survives is that it is the same door whether or not the client sends a bearer.
 describe('a door with no declared credential is a door nobody can open', () => {
@@ -427,7 +427,7 @@ describe('a door with no declared credential is a door nobody can open', () => {
 // ---- Task 2: `/ok` driven through the production composition --------------------------------
 
 describe('GET /ok on the mounted door', () => {
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'is refused without a token and answers measured
+  // RE-SPELLED 2026-10-01 from 'is refused without a token and answers measured
   // facts with one': refused cross-site, and answers measured facts to a local caller with none.
   it('is refused cross-site and answers measured facts to a local caller', async () => {
     const service = await openRunService()
@@ -444,12 +444,12 @@ describe('GET /ok on the mounted door', () => {
       // MEASURED, not asserted from this cell's own knowledge: the composition bound a host above,
       // and this is the same box the run starter's guard reads.
       hostComposed: true,
-      // 432-22 (D-12): the readiness answer carries no credential fact.
+      // the readiness answer carries no credential fact.
       contractVersion: RUN_SERVICE_CONTRACT_VERSION,
     })
   })
 
-  // 432-22: re-spelled from 'reports authConfigured FALSE when no credential resolved'; the key is gone.
+  // re-spelled from 'reports authConfigured FALSE when no credential resolved'; the key is gone.
   it('reports no credential fact when no credential can be configured', async () => {
     // Measured through the ONE predicate: since 432-21 it takes no credential count at all.
     const readiness = createRunServiceReadiness({ resolveHost: () => undefined })
@@ -480,7 +480,7 @@ describe('one readiness predicate, two doors', () => {
     }
   })
 
-  // 432-21 (D-12): '… on /ok with one' — neither door takes a token now; the body is the same.
+  // '… on /ok with one' — neither door takes a token now; the body is the same.
   it('serves the same readiness body on the local door with NO token and on /ok with one', async () => {
     const fixture = await openRunService()
     const [local, authed] = await Promise.all([
@@ -495,11 +495,11 @@ describe('one readiness predicate, two doors', () => {
     // Both are the MEASURED facts, on the shipped composition — `hostComposed` is true here
     // because this fixture bound a host, which is the same box `POST /run`'s guard throws on.
     expect(localBody).toEqual({ service: 'up', hostComposed: true, contractVersion: RUN_SERVICE_CONTRACT_VERSION })
-    // 2026-10-02 (quick 261002-ctr): the shipped composition serves version 2 on both doors.
+    // the shipped composition serves version 2 on both doors.
     expect((localBody as { contractVersion: number }).contractVersion).toBe(2)
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12): neither door reads a token now; both serve a garbage one.
+  // RE-SPELLED 2026-10-01: neither door reads a token now; both serve a garbage one.
   it('refuses the LOCAL door no differently for a bad token — it never reads one', async () => {
     const fixture = await openRunService()
     const withGarbage = await fetch(`${fixture.origin}/api/run-readiness`, {

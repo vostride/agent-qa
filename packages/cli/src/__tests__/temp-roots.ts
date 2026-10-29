@@ -3,7 +3,7 @@ import { mkdtempSync, realpathSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 
-// 2026-10-19 (444.1-19, D-29): a project whose socket path is over budget gets a tmpdir fallback
+// a project whose socket path is over budget gets a tmpdir fallback
 // directory the product never removes. The daemon (`daemon/server.ts`) hashes `resolve(root)`, the
 // embedder worker hashes `realpathSync(root)`; both are removed with the root.
 function socketFallbackDirs(root: string): string[] {
@@ -25,7 +25,7 @@ export interface PinnedTmpdir {
   restore(): void
 }
 
-// 2026-10-19 (444.1-24, D-39): a failed browser launch leaves Playwright's dirs in this tmpdir.
+// a failed browser launch leaves Playwright's dirs in this tmpdir.
 export function pinProcessTmpdir(): PinnedTmpdir {
   const previous = process.env.TMPDIR
   const root = mkdtempSync('/tmp/aq24-')

@@ -1,6 +1,6 @@
-// C432-NO-GIT-COMMIT and C432-LEFTOVERS-UNREAD over ONE project (Phase 432 plan 42; D-04/D-06/D-07/D-22).
+// C432-NO-GIT-COMMIT and C432-LEFTOVERS-UNREAD over ONE project.
 //
-// D-07: agent-qa makes no git commits. A config change, an authored test and a mark's knowledge fix
+// agent-qa makes no git commits. A config change, an authored test and a mark's knowledge fix
 // are plain uncommitted edits: HEAD, the index and the history stay exactly where the person left
 // them, and `git status` shows what changed. The earlier cells prove each publication alone
 // (`proposal-author-attribution.test.ts`, `config-direct-write.test.ts`); this file drives all three
@@ -8,7 +8,7 @@
 // directory with no repository, and once more with the mark interrupted before its receipt, so a
 // retried mark is seen to publish its fix once.
 //
-// D-22 / EDGE-14: old `grants.jsonl`, `.agent-qa/proposals/*.json` and `execution_audit.jsonl`
+// old `grants.jsonl`, `.agent-qa/proposals/*.json` and `execution_audit.jsonl`
 // files are never read again. A fresh project neither creates nor needs any of them; a project that
 // still holds malformed ones — sealed so that any open, listing or stat under them fails — gets the
 // same answers as a clean one, and the legacy bytes and modes are left exactly as they were.

@@ -7,7 +7,7 @@ vi.mock('node:child_process', () => ({
   execFileSync: vi.fn(),
 }))
 
-// 407-08: spread the real module rather than replacing it wholesale. doctor's knowledge rows reach
+// spread the real module rather than replacing it wholesale. doctor's knowledge rows reach
 // the real `foldRetrievalRung` through knowledge-local, and a TOTAL node:fs replacement makes that
 // package unloadable (its durable-fs layer names `openSync`/`fsyncSync` this suite never mocked).
 // The five entries below are the only ones any doctor row actually calls.
@@ -32,7 +32,7 @@ vi.mock('@vostride/agent-qa-runner-local', () => ({
   checkDockerAvailable: vi.fn(() => Promise.resolve(true)),
 }))
 
-// 407 D-18: doctor's three knowledge rows reach their probes through the ONE composition edge
+// doctor's three knowledge rows reach their probes through the ONE composition edge
 // allowed to name knowledge-local (385 D-14/SC5), so that edge is what this suite replaces.
 //
 // `foldRetrievalRung` and `indexDbPath` are the REAL ones. Stubbing the fold here would let these
@@ -47,7 +47,7 @@ const knowledgeProbeStubs = vi.hoisted(() => ({
   readEmbedderWorkerRegistration: vi.fn(() => ({ kind: 'absent' as const })),
 }))
 
-// 446-16 (D-32): the Embedder fix reads daemon liveness from the registration, as daemon stop does;
+// the Embedder fix reads daemon liveness from the registration, as daemon stop does;
 // the real module reads agent-local daemon capabilities this suite does not bind.
 const daemonRegistrationStubs = vi.hoisted(() => ({
   readDaemonRegistration: vi.fn(() => ({ kind: 'absent' as const })),
@@ -230,9 +230,9 @@ const ESC = String.fromCharCode(27)
 const ANSI_PATTERN = new RegExp(`${ESC}\\[[0-9;]*m`, 'g')
 const stripAnsi = (text: string): string => text.replace(ANSI_PATTERN, '')
 
-/** 407-24: the emit loop's fix line, at SIX spaces — deeper than a row's four. */
+/** the emit loop's fix line, at SIX spaces — deeper than a row's four. */
 const FIX_LINE_PATTERN = /^ {6}Fix: /
-/** 407-24: a message line that moved beneath its row, at the same six-space indent. */
+/** a message line that moved beneath its row, at the same six-space indent. */
 const CONTINUATION_PATTERN = /^ {6}\S/
 
 /** The strings the 407 UAT measured on the built cli, transcribed so the cells can pin the widths. */
@@ -254,7 +254,7 @@ function preChangeRow(name: string, message: string, statusWord: string): string
 }
 
 /**
- * 407-24: wide enough that every row this suite renders still fits on ONE line, so the eighteen
+ * wide enough that every row this suite renders still fits on ONE line, so the eighteen
  * existing `rowFor` call sites keep measuring exactly the pre-change bytes. Pinned here rather
  * than inherited from the terminal, because a row's shape must be decided by the cell and not by
  * whatever width the host running the suite happens to have.
@@ -282,7 +282,7 @@ function restoreTerminalWidth(): void {
 }
 
 /**
- * A row as ONE string, however many lines it took (407-24).
+ * A row as ONE string, however many lines it took.
  *
  * The recognition rule is mechanical and in TWO parts, and the order matters. A continuation line
  * is `CONTINUATION_PATTERN` — SIX spaces followed by a non-space, the indent the emit loop writes
@@ -329,13 +329,13 @@ describe('doctor command', () => {
     mockLoadProviderPluginsForRawConfig.mockResolvedValue()
     mockResolveAppiumExecutable.mockReturnValue({ command: 'appium', source: 'path' })
     mockReadFileSync.mockReturnValue('')
-    // 407 D-18: a healthy knowledge substrate is the default posture; each knowledge cell below
+    // a healthy knowledge substrate is the default posture; each knowledge cell below
     // moves exactly the one axis it is about.
     knowledgeProbeStubs.classifyIndexFace.mockReturnValue({ source: 'index' })
     knowledgeProbeStubs.resolveEmbedderCapability.mockResolvedValue(NATIVE_READY)
     knowledgeProbeStubs.readWriterLease.mockReturnValue({ kind: 'absent' })
     knowledgeProbeStubs.readEmbedderWorkerRegistration.mockReturnValue({ kind: 'absent' })
-    // 407-24: pin the width every command-level cell renders at. Wide enough that every row
+    // pin the width every command-level cell renders at. Wide enough that every row
     // still fits on one line, so these cells keep measuring the pre-change bytes and the shape
     // of a row is decided by the cell rather than by this host's terminal.
     forceTerminalWidth(WIDE_TEST_WIDTH)
@@ -1049,7 +1049,7 @@ targets:
     const output = getOutput()
     expect(output).toContain('Install Node.js 24 or newer')
   })
-  // ---- 407 TRST-02: the three knowledge trust rows (D-18/D-19/D-20) ----------------------------
+  // ---- 407 TRST-02: the three knowledge trust rows ----------------------------
 
   async function runHealthyHost(): Promise<void> {
     Object.defineProperty(process, 'version', { value: 'v24.10.0', writable: true })
@@ -1202,7 +1202,7 @@ targets:
   })
 
   // -------------------------------------------------------------------------
-  // 407-24 (G-407-3): the command measured against the width it resolved.
+  // the command measured against the width it resolved.
   // -------------------------------------------------------------------------
 
   it('stops a row at the Fix line instead of absorbing a failing check into it', async () => {
@@ -1243,7 +1243,7 @@ targets:
     // Strip before measuring even though picocolors disables itself off a TTY: the census must
     // measure what a COLOURED terminal receives, not what this harness happened to capture.
     const overlong = lines.filter(line => line.length > 80)
-    // The ONE documented exception (T-407-24-01): a single word wider than the wrap budget takes
+    // The ONE documented exception: a single word wider than the wrap budget takes
     // its own line UNCUT. `Legacy v1 memory data` prints an ABSOLUTE path, so on a deep enough
     // checkout that token alone can exceed 80 — and a path a person cannot copy is a diagnostic
     // that failed. Every line that is not one unbroken token must fit.
@@ -1361,7 +1361,7 @@ use:
 
 
 // ---------------------------------------------------------------------------
-// 407-24 (G-407-3): the row renderer, measured directly rather than through the
+// the row renderer, measured directly rather than through the
 // command. Every cell below passes the width as a PARAMETER, so it measures the
 // renderer at a width it chose instead of at whatever width this host happens to
 // have — a width the code never named is the failure the UAT caught.
@@ -1792,7 +1792,7 @@ describe('doctor row renderer', () => {
             const row = formatCheckRow(name, message, status, width)
             for (const line of [row.plainLine, ...row.continuations]) {
               if (line.length <= width) continue
-              // EXCEPTION ONE (T-407-24-01): a word wider than the budget takes its own line
+              // EXCEPTION ONE: a word wider than the budget takes its own line
               // UNCUT. Such a line is a single unbroken token once its indent is stripped.
               if (!line.trim().includes(' ')) {
                 uncutTokenLines += 1

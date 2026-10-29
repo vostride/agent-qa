@@ -1,8 +1,8 @@
-// A final authored test is written straight to its target (432 D-06/D-07), over the CLI host's
+// A final authored test is written straight to its target, over the CLI host's
 // real writer, a real workspace and — where a repository exists — a real git repository.
 //
 // RE-SPELLED IN PLACE, 2026-09-30. This file used to prove that ACCEPTING a `test-draft` proposal
-// wrote it and made one commit of one file (394-10). Nothing waits for acceptance now and agent-qa
+// wrote it and made one commit of one file. Nothing waits for acceptance now and agent-qa
 // makes no commits, so every claim here keeps its subject — the bytes that land at the target — and
 // measures the direct write instead: the exact bytes, the workspace boundary and the source-digest
 // guard the old apply checked, no commit, no index change, success in a dirty tree and without git,

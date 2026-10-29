@@ -22,7 +22,7 @@
 // the intent both survived it, so every later mark on the run failed the same way. A record whose
 // target holds neither the bytes the edit read nor the bytes it wrote now completes the mark from
 // the record: the receipt names what the mark wrote, the person's later change is left as theirs,
-// and the model is not asked again and nothing is edited again (D-15). OBSERVED RED on agent-qa
+// and the model is not asked again and nothing is edited again. OBSERVED RED on agent-qa
 // 481f0a153: both legs rejected with "Mark fix was not applied (target-changed)".
 
 import { createHash } from 'node:crypto'

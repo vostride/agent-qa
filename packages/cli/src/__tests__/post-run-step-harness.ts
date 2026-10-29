@@ -1,4 +1,4 @@
-// The ONE test-side spelling of "this run's post-verdict enqueue happened" (Phase 404 plan 04).
+// The ONE test-side spelling of "this run's post-verdict enqueue happened".
 //
 // WHY THIS EXISTS. D-05 moved the durable `analyze-run` enqueue out of `runPostRunTail`'s
 // `enqueue()` leg and into the shell-awaited post-verdict step, so every suite that drove the tail

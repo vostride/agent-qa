@@ -1,4 +1,4 @@
-// `analytics.privacy: true`, honoured AT EVERY COMPOSITION ROOT (Phase 398 plan 14, D-19 · ANLY-01).
+// `analytics.privacy: true`, honoured AT EVERY COMPOSITION ROOT.
 //
 // WHY THIS FILE EXISTS BESIDE A GREEN ZERO-NETWORK DIFFERENTIAL. `packages/analytics` already
 // proves that `composeAnalytics` returns a walled transport when a config declares privacy. That
@@ -581,7 +581,7 @@ describe('an identity location that cannot be written', () => {
   })
 })
 
-// 2026-10-21 (447-06, D-09): `--http 0` is refused inside the serve `try`, so the action composes
+// `--http 0` is refused inside the serve `try`, so the action composes
 // its analytics and its host, then returns through its own `finally` and `catch` without serving.
 async function runMcp(
   configPath: string,

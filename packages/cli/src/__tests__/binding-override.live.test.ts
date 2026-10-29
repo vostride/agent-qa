@@ -1,4 +1,4 @@
-// THE D-12 BINDING-OVERRIDE DIFFERENTIAL (Phase 392 plan 10, CHAT-02).
+// THE D-12 BINDING-OVERRIDE DIFFERENTIAL.
 //
 // D-12 IS TWO CLAIMS AND THIS FILE ISOLATES THE SECOND. Where the deterministic table resolved a
 // clause, the mapper's verdict beats the model's on the ACTION SET and on the BOUND ARGUMENTS — and
@@ -103,8 +103,8 @@ const UTTERANCE = `digest ${SEEDED_RUN_ID} and also show me the digest for ${DEC
 /** The clause the table binds — the one whose executed binding flips between the two arms. */
 const CANONICAL_CLAUSE = `digest ${SEEDED_RUN_ID}`
 
-// 2026-10-02 (432-37, D-12): no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither (432-20).
+// no `grantedScopes` or `safeMode` on the caller; the registry reads
+// neither.
 const HUMAN: FunctionCaller = {
   surface: 'test',
   origin: 'human',
@@ -237,7 +237,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
         agentQaRoot,
         configPath: String(LIVE_CONFIG),
         runExecution,
-        // 2026-10-01 (432-17): the proposal apply delegate is deleted; the live gate still opens no
+        // the proposal apply delegate is deleted; the live gate still opens no
         // socket to a daemon that may be running.
         knowledgeChangeDelegate: () => Promise.reject(new Error('no change delegation in the live gate')),
         ...(capabilities === undefined

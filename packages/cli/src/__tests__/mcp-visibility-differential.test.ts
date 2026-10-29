@@ -1,14 +1,14 @@
-// MCPS-04: safe mode proven by ABSENCE, with two independent walls (Phase 396 plan 05, D-05/D-08).
+// safe mode proven by ABSENCE, with two independent walls.
 //
-// 2026-10-01 (432-20, D-12): BOTH WALLS ARE DELETED. `visibleToCaller` (wall one) and
+// BOTH WALLS ARE DELETED. `visibleToCaller` (wall one) and
 // `invokeFunction`'s scope refusal (wall two) are gone: every caller of this server lists the same
 // catalogue and reaches every op. Groups 1-5, 7 and the first cell of 8 are re-spelled in place to
 // pin that sameness — W1 and W2 below are now the shipped behaviour.
 //
-// 2026-10-01 (432-21, D-12/D-13): THE BEARER IS DELETED TOO. The listener reads no `Authorization`
+// THE BEARER IS DELETED TOO. The listener reads no `Authorization`
 // header, so the "tokens" below are legacy header values a pre-432 client might still send, and
 // every one of them — and none — is the same caller. Group 9's Host and Origin guards are unchanged;
-// its bearer cells are re-spelled to "never read, never echoed". 2026-10-14 (441-07, D-01): its
+// its bearer cells are re-spelled to "never read, never echoed". 2026-10-14: its
 // masking cells declare their plant in the project's secrets file, the only thing the masker reads.
 //
 // WHAT THIS SUITE IS AND WHY IT IS DRIVEN. Every cell below speaks to a REAL loopback socket, over
@@ -32,7 +32,7 @@
 //      two whole-input checks is weaker than the spec it implements; two legs is what tells the two
 //      walls apart. Measured results are recorded below and in the SUMMARY.
 //
-// OBSERVED RED (2026-08-16), from the phase's mutation driver (since removed):
+// OBSERVED RED, from the phase's mutation driver (since removed):
 //   W1  `visibleToCaller` severed to always-true       -> RED, 10 cells across groups 1, 2, 4, 5,
 //                                                         7 and 8 · the wall-2 group GREEN
 //   W2  `invokeFunction`'s scope refusal defeated      -> RED, 2 cells, BOTH in group 3
@@ -73,7 +73,7 @@ import { composeCliLocalAgent } from '../composition/local-agent-host.js'
 
 /**
  * A caller carrying a LEGACY scope set — the fields 432-20 made optional and unread. Built from the
- * one caller the MCP host mints, so the only difference is fields nothing reads. 2026-10-02 (432-39):
+ * one caller the MCP host mints, so the only difference is fields nothing reads. 2026-10-02:
  * the fields are deleted from the type, so they are smuggled past it with a cast.
  */
 function legacyCaller(scopes: readonly string[]): FunctionCaller {
@@ -99,7 +99,7 @@ const AUTHORING_SCOPES = ['test-write', 'run', 'read'] as const
 
 /**
  * The legacy bearer values a pre-432 client might present. None is read. `PLANTED_RO` is ALSO
- * declared in the project's secrets file (441-07), so the masking cells in group 9 measure the
+ * declared in the project's secrets file, so the masking cells in group 9 measure the
  * declared masking D-01 keeps.
  */
 const PLANTED_CFG = 'zz-396-05-cfg-credential-8c14ae'
@@ -270,7 +270,7 @@ function httpResponseComplete(bytes: Buffer): boolean | undefined {
  * The DNS-rebinding guard is a claim ABOUT the `Host` header, and undici silently overwrites it —
  * a cell built on `fetch` would have asserted the guard while never once presenting a bad host.
  *
- * 2026-10-02 (quick 261002-tmo): it resolves on the COMPLETE response rather than on the server
+ * it resolves on the COMPLETE response rather than on the server
  * closing the socket. A served (200) request answers in about 80 ms, chunked and terminated, but
  * with `connection: keep-alive` (the MCP SDK's streamable transport sets it, despite the request's
  * `Connection: close`), so Node held the socket until its keep-alive timeout: 6.05-6.09 s per
@@ -329,10 +329,10 @@ function lastPayload(frames: readonly Frame[]): unknown {
 }
 
 // ---------------------------------------------------------------------------------------------
-// CELL 1 — ABSENCE, both sides (MCPS-04, D-05)
+// CELL 1 — ABSENCE, both sides
 // ---------------------------------------------------------------------------------------------
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from '1 · the config tools are ABSENT from a caller without
+// RE-SPELLED 2026-10-01 from '1 · the config tools are ABSENT from a caller without
 // config-write'. The listing filter is deleted: every token lists the same catalogue.
 describe('1 · the config tools are PRESENT for every caller', () => {
   it('names the config tool in the shipped mapping, so the presence below is about something', () => {
@@ -360,7 +360,7 @@ describe('1 · the config tools are PRESENT for every caller', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from '2 · calling a hidden tool is indistinguishable from
+// RE-SPELLED 2026-10-01 from '2 · calling a hidden tool is indistinguishable from
 // calling a nonexistent one'. No tool is hidden: the config tool is answered IN BAND, and a ghost
 // name still answers the SDK's unknown-tool shape.
 describe('2 · no tool is hidden, so a formerly hidden tool answers unlike a nonexistent one', () => {
@@ -385,7 +385,7 @@ describe('2 · no tool is hidden, so a formerly hidden tool answers unlike a non
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from '3 · the function layer refuses independently of
+// RE-SPELLED 2026-10-01 from '3 · the function layer refuses independently of
 // anything a surface listed'. The second wall is deleted too: the function layer serves the op to
 // a caller holding no `config-write`, exactly as to one that holds it.
 describe('3 · the function layer reads no grant', () => {
@@ -426,7 +426,7 @@ describe('3 · the function layer reads no grant', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from '4 · a caller granted EXACTLY a tool's required set
+// RE-SPELLED 2026-10-01 from '4 · a caller granted EXACTLY a tool's required set
 // sees it; minus any one member, it does not'. There is no boundary: every grant set sees the tool.
 describe('4 · every grant set sees a three-scope tool, with no adjacency boundary', () => {
   it('names a three-scope tool, so the cells below have three sides to test', () => {
@@ -489,7 +489,7 @@ async function namesFromFactory(scopes: readonly string[]): Promise<string[]> {
   }
 }
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from '5 · a caller granted NOTHING is served an empty
+// RE-SPELLED 2026-10-01 from '5 · a caller granted NOTHING is served an empty
 // catalogue'. The floor of the deleted law is gone: a caller granted nothing is served everything.
 describe('5 · a caller granted NOTHING is served the full catalogue', () => {
   it('lists every tool a read caller lists', async () => {
@@ -527,7 +527,7 @@ describe('6 · tools/list order is stable and derived from the mapping', () => {
 // CELL 7 — concurrency (MCPS-02 concurrency row, SEP-2575)
 // ---------------------------------------------------------------------------------------------
 
-// RE-SPELLED 2026-10-01 (432-20, D-12) from '7 · interleaved requests bearing different tokens
+// RE-SPELLED 2026-10-01 from '7 · interleaved requests bearing different tokens
 // each get their own catalogue'. Every token now gets the same catalogue, concurrently too.
 describe('7 · interleaved requests bearing different tokens all get the same catalogue', () => {
   it('answers four simultaneous connections identically', async () => {
@@ -562,7 +562,7 @@ describe('8 · two callers\' listings never share a cacheable identity', () => {
       expect(roList.cacheScope).toBe('private')
       expect(cfgList.ttlMs).toBe(0)
       expect(roList.ttlMs).toBe(0)
-      // 432-20 (D-12): the two documents are now the same; the private stamp is kept by the SDK.
+      // the two documents are now the same; the private stamp is kept by the SDK.
       expect((cfgList.tools as unknown[]).length).toBe((roList.tools as unknown[]).length)
     } finally {
       await cfg.client.close().catch(() => {})
@@ -599,7 +599,7 @@ describe('8 · two callers\' listings never share a cacheable identity', () => {
 })
 
 // ---------------------------------------------------------------------------------------------
-// CELL 9 — the guards in front, and what they must never echo (T-396-13, T-396-17)
+// CELL 9 — the guards in front, and what they must never echo
 // ---------------------------------------------------------------------------------------------
 
 describe('9 · the walls in front of the handler refuse without becoming a channel', () => {
@@ -632,7 +632,7 @@ describe('9 · the walls in front of the handler refuse without becoming a chann
     expect(refused.text).toContain('forbidden_origin')
   })
 
-  // 432-21 (D-12): a legacy bearer is not a credential any more; the claim that no header a caller
+  // a legacy bearer is not a credential any more; the claim that no header a caller
   // adds rescues a rebound host is unchanged.
   it('checks Host BEFORE the credential — a valid token does not buy a rebound host', async () => {
     const refused = await rawRequest({
@@ -645,7 +645,7 @@ describe('9 · the walls in front of the handler refuse without becoming a chann
     expect(refused.text).not.toContain('invalid_token')
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'answers 401 for an undeclared credential and NEVER
+  // RE-SPELLED 2026-10-01 from 'answers 401 for an undeclared credential and NEVER
   // echoes it'. Nothing is refused for a bearer; the never-echoes half is the claim that survives
   // (leg K2's subject — the 401 body — is deleted with the bearer rung).
   it('serves an undeclared legacy bearer like none and NEVER echoes it', async () => {
@@ -661,7 +661,7 @@ describe('9 · the walls in front of the handler refuse without becoming a chann
     expect(served.text.toLowerCase()).not.toContain('bearer zz')
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'answers the SAME 401 body for a malformed header as
+  // RE-SPELLED 2026-10-01 from 'answers the SAME 401 body for a malformed header as
   // for a wrong credential': the SAME body still, because neither header is read.
   it('answers the SAME body for a malformed header as for a wrong credential', async () => {
     const wrong = await rawRequest({
@@ -697,12 +697,12 @@ describe('9 · the walls in front of the handler refuse without becoming a chann
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12/D-13) from 'masks a declared credential a caller smuggles back
+  // RE-SPELLED 2026-10-01 from 'masks a declared credential a caller smuggles back
   // through a tool argument': no credential is declared; the value is an environment secret the
   // production masker was seeded with (D-13 keeps environment secret masking).
   it('masks an environment secret a caller smuggles back through a tool argument', async () => {
     // Driven through the channel a caller reads — the 395-round-2 lesson applied. `runs.digest` was
-    // MEASURED (2026-08-16) to be an echoing path: its refusal for an unknown id is composed from
+    // MEASURED to be an echoing path: its refusal for an unknown id is composed from
     // the caller's own string, which is exactly the shape T-395-R5-10's credential rode out on.
     const { client, frames } = await connectAs(PLANTED_RO)
     try {
@@ -722,7 +722,7 @@ describe('9 · the walls in front of the handler refuse without becoming a chann
     }
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'the masker the COMMAND composes hides every declared
+  // RE-SPELLED 2026-10-01 from 'the masker the COMMAND composes hides every declared
   // credential': it hides the environment secret it was seeded with, and only that.
   it('the masker the COMMAND composes hides the environment secret it was seeded with', async () => {
     expect(harness.mask(`presented ${PLANTED_RO} here`)).not.toContain(PLANTED_RO)

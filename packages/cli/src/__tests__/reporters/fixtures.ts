@@ -5,7 +5,7 @@
 // exactly where the sink would put them: a step `error`, a `hookFinished` variable
 // value, and a `testFinished.failureSummary`. Every reporter prints them as they are
 // (441 D-07: nothing restores a value).
-// 2026-10-15 (441-33, D-12): the mask is the runner's declared `SecretRedactor`, not the deleted
+// the mask is the runner's declared `SecretRedactor`, not the deleted
 // masking context, so the markers read `[secret:<name>]`.
 
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
@@ -201,7 +201,7 @@ export function buildReporterFixture(): ReporterFixture {
 }
 
 /**
- * The run-start quarantine snapshot entry that licenses the fixture's FAILING member (390 D-16).
+ * The run-start quarantine snapshot entry that licenses the fixture's FAILING member.
  *
  * Its identity is `(filePath, testName)` taken verbatim from `test1Started` — the same two fields
  * the runner matches on, so a reporter that agrees with this entry agrees with the aggregate

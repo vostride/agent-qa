@@ -48,7 +48,7 @@ const MUTATION_HOLD_MS = LEASE_HEARTBEAT_TTL_MS + 10_000;
 const MUTATION_CONTENDER_DELAY_MS = LEASE_HEARTBEAT_TTL_MS + 2_000;
 const MUTATION_RECORD_FILE = 'mutation-record.log';
 /**
- * 2026-10-02 (quick 261002-tmo): the blocked/mutating daemon fixtures hold their main thread
+ * the blocked/mutating daemon fixtures hold their main thread
  * until the parent writes a release file, after its contender has reported, and never less
  * than their stated minimum. A fixed hold raced the contender's own process start: at load
  * 74-88 the contender attempted 41.6-42.2 s after the mutation began, past the 40 s hold,
@@ -56,7 +56,7 @@ const MUTATION_RECORD_FILE = 'mutation-record.log';
  * 432-03 #1). The cap only bounds a parent that never releases.
  */
 const RELEASE_CAP_MS = 120_000;
-/** 2026-10-02 (quick 261002-tmo): ceiling for one child vitest process to boot and report. */
+/** ceiling for one child vitest process to boot and report. */
 const CHILD_BOOT_CEILING_MS = 60_000;
 
 /** Synchronously occupy the calling thread for at least minHoldMs and until released. */
@@ -381,7 +381,7 @@ if (FIXTURE_ROLE === 'contender') {
         cwd: realpathSync(root),
         heartbeatCount: expect.any(Number),
       });
-      // 2026-10-02 (quick 261002-tmo): the cell boots a whole child vitest process; it waits on
+      // the cell boots a whole child vitest process; it waits on
       // that child's exit, so its budget is a hang ceiling. 2.1 s alone at load 23, 9.8-10.1 s at
       // load 74-88, and over the old 15 s under a forced gate (432-03 #1).
     }, 2 * CHILD_BOOT_CEILING_MS);
@@ -437,7 +437,7 @@ if (FIXTURE_ROLE === 'contender') {
       expect(releaseLease({ knowledgeRoot: root, leaseId: acquired.leaseId })).toEqual({
         kind: 'released',
       });
-      // 2026-10-02 (quick 261002-lse): strict again. 432-19 had the fixture re-release a lease
+      // strict again. 432-19 had the fixture re-release a lease
       // that the supervised 25 ms beat resurrected under the same id (432-19 #7). The beat and the
       // release now share the lease-file guard, so once the release returns no beat can rewrite
       // the lease, and the very next acquire must answer `acquired`.

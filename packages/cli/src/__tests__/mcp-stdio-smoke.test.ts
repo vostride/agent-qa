@@ -40,7 +40,7 @@ afterEach(() => {
 /**
  * A real project on disk — produced, not a literal path handed to the child.
  *
- * `legacyTokens` (432-21, D-12/D-22) writes the pre-432 MCP credential block: one declared token
+ * `legacyTokens` writes the pre-432 MCP credential block: one declared token
  * whose variable is set nowhere, and the stdio config-write switch off. Before 432-21 the unset
  * variable refused startup by name; now nothing reads the block, and since 432-22 both keys are
  * unknown to the strict schema.
@@ -76,7 +76,7 @@ function fixtureProject(legacyTokens = false): string {
     )}\n`,
     'utf8',
   )
-  // 2026-10-14 (441-07, D-06): the MCP masker reads this project's declared secrets.
+  // the MCP masker reads this project's declared secrets.
   writeFileSync(join(root, '.env.secrets.local'), '')
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   return root
@@ -133,10 +133,10 @@ describe('agent-qa mcp over spawned stdio', () => {
       const names = listed.tools.map((entry) => entry.name)
 
       // (a) The catalog reached a client that spawned the shipped binary.
-      // 432-12: `agent_qa_list_proposals` left with the proposal round; the run list stands in.
+      // `agent_qa_list_proposals` left with the proposal round; the run list stands in.
       expect(names).toContain('agent_qa_list_runs')
 
-      // (b) RE-SPELLED 2026-10-01 (432-21, D-12) from D-07's default grant (every scope except
+      // (b) RE-SPELLED 2026-10-01 from D-07's default grant (every scope except
       // `config-write`, with a stdio opt-in for the last one). Neither the grant nor the opt-in
       // exists: a stdio caller with no switch set lists the config-write tool like every other.
       expect(names).toContain('agent_qa_change_config')
@@ -154,7 +154,7 @@ describe('agent-qa mcp over spawned stdio', () => {
     }
   }, 30_000)
 
-  // 432-21 (D-12/D-22): the legacy credential block is left on disk and never read. Before 432-21 a
+  // the legacy credential block is left on disk and never read. Before 432-21 a
   // declared token whose variable was unset refused startup naming the variable; now the binary
   // starts and lists exactly what it lists for a project with no block at all. 432-22: the keys are
   // deleted, so the file fails strict validation; `agent-qa mcp`'s tolerant read serves anyway.

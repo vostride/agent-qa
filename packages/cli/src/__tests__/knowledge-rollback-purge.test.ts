@@ -1,4 +1,4 @@
-// Phase 432 plan 15 (D-01, D-09, D-14): running a maintenance command is the intent.
+// running a maintenance command is the intent.
 //
 // `knowledge rollback` and `knowledge purge <record-id>` execute from one invocation. There is no
 // y/N, no repeated record id, no `--yes` and no `--confirm`; the retired options are unknown to the

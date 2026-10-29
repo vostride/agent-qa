@@ -294,7 +294,7 @@ describe('the agent-qa-knowledge skill', () => {
   })
 })
 
-// 2026-10-12 (440-03, D-12): after a stated-value refusal the agent shows what was lost and stops.
+// after a stated-value refusal the agent shows what was lost and stops.
 describe('the authoring skill copies', () => {
   const sourceCopy = path.join(SOURCE_SKILLS_DIR, 'agent-qa-authoring', 'SKILL.md')
   const packagedCopy = path.resolve(
@@ -323,7 +323,7 @@ describe('the authoring skill copies', () => {
   })
 })
 
-// 2026-10-15 (441-46, D-25): only declared secrets are masked, and the skill says so.
+// only declared secrets are masked, and the skill says so.
 describe('the declared-secrets advice in the authoring skill', () => {
   const skillCopies = [
     path.join(SOURCE_SKILLS_DIR, 'agent-qa-authoring', 'SKILL.md'),
@@ -359,7 +359,6 @@ describe('the declared-secrets advice in the authoring skill', () => {
   })
 })
 
-// 2026-10-20 (446-06, D-15): the Codex metadata names the live server and no retired tool.
 describe('skill metadata', () => {
   const trees = [
     SOURCE_SKILLS_DIR,

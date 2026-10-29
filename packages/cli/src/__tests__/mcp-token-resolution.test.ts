@@ -1,6 +1,6 @@
-// The MCP credential mechanics (Phase 396 plan 05, D-06 / D-07 · MCPS-04), RETIRED 2026-10-01.
+// The MCP credential mechanics, RETIRED 2026-10-01.
 //
-// 2026-10-01 (432-21, D-12): RE-SPELLED from the resolver's own cells. `mcp-token-resolution.ts` —
+// RE-SPELLED from the resolver's own cells. `mcp-token-resolution.ts` —
 // `DEFAULT_MCP_SCOPES`, `resolveMcpTokens`, `matchBearer`, `credentialForBearer`,
 // `resolveStdioScopes`, `mcpTokenSecretStore` and `McpTokenEnvVarUnsetError` — is deleted with the
 // MCP bearer tokens. Each retired cell is replaced by the claim that now holds in its place:
@@ -13,9 +13,9 @@
 //     declared-but-unset variable refuses nothing (`mcp-stdio-smoke.test.ts` drives the binary);
 //   * the stdio grant opt-in -> no stdio grant exists;
 //   * the declared values seeded into the masker -> the masker is seeded from the environment, and
-//     a suffix-recognised secret is still masked (D-13).
+//     a suffix-recognised secret is still masked.
 //
-// 2026-10-01 (432-22, D-12/D-22): the refs-only config cells that followed are re-spelled too.
+// the refs-only config cells that followed are re-spelled too.
 // `services.mcp.tokens`, `services.mcp.stdio.grantConfigWrite` and the token entry DTO are deleted,
 // so a declared block is refused by the strict parser with the normal unrecognized-key error.
 
@@ -132,7 +132,7 @@ describe('the listener reads no Authorization header', () => {
     return (await client.listTools()).tools.map((tool) => tool.name).sort()
   }
 
-  // RE-SPELLED from 'matchBearer answers three ways and never degrades a wrong credential (D-07)':
+  // RE-SPELLED from 'matchBearer answers three ways and never degrades a wrong credential':
   // there is no verdict to degrade. Absent, malformed and unmatched headers are served identically.
   it('absent, malformed and unmatched bearers list the identical catalogue', async () => {
     const url = await listener()
@@ -147,7 +147,7 @@ describe('the listener reads no Authorization header', () => {
   })
 })
 
-// 432-22: re-spelled from 'the token entry vocabulary speaks names, never values (D-06 refs-only)'
+// re-spelled from 'the token entry vocabulary speaks names, never values (D-06 refs-only)'
 // and 'the config block lands on services.mcp and defaults safely'. The vocabulary is deleted; the
 // claim that survives is that a token VALUE never reaches anything, now because no token block parses.
 describe('services.mcp declares no token or stdio grant', () => {

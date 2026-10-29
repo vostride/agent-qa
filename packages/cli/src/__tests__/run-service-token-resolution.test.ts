@@ -1,7 +1,7 @@
-// The run service's credential mechanics (Phase 402 plan 01, D-05 / D-06 · INVK-03), RETIRED
+// The run service's credential mechanics, RETIRED
 // 2026-10-01.
 //
-// 2026-10-01 (432-21, D-12): RE-SPELLED from the resolver's own cells.
+// RE-SPELLED from the resolver's own cells.
 // `run-service-token-resolution.ts` — `resolveRunServiceTokens`, `matchServiceBearer`,
 // `runServiceTokenSecretStore` and `RunServiceTokenEnvVarUnsetError` — is deleted with the
 // run-service tokens, and the router's `verifyBearer` port with it. Each retired cell is replaced by
@@ -14,7 +14,7 @@
 //   * the masker seeded by declared name -> the composer binds no store at all;
 //   * `/ok`'s `authConfigured` from a resolved count -> always `false`, and since 432-22 absent.
 //
-// 2026-10-01 (432-22, D-12/D-22): the refs-only config cells that followed are re-spelled too.
+// the refs-only config cells that followed are re-spelled too.
 // `services.dashboard.runServiceTokens` is deleted, so a declared block is refused by the strict
 // parser with the normal unrecognized-key error.
 
@@ -59,7 +59,7 @@ describe('the run-service bearer resolver is deleted, not bypassed', () => {
 
   // RE-SPELLED from 'start-time resolution refuses an unset declaration by NAME' and 'the masker is
   // seeded by DECLARED name': nothing is declared to the composer, so nothing can refuse, and it
-  // holds no store. 441-48 (D-01): a door has no masking binder for it to call.
+  // holds no store. 441-48: a door has no masking binder for it to call.
   it('the composer takes no declarations, refuses nothing, binds no store', () => {
     const composition = composeRunServicePorts({ door: door() })
     try {
@@ -72,8 +72,8 @@ describe('the run-service bearer resolver is deleted, not bypassed', () => {
     }
   })
 
-  // RE-SPELLED from 'the verdict has TWO arms and no permissive third (D-06)': there is no verdict.
-  // Readiness carries no credential fact at all (432-22) — no credential can be configured.
+  // RE-SPELLED from 'the verdict has TWO arms and no permissive third': there is no verdict.
+  // Readiness carries no credential fact at all — no credential can be configured.
   it('readiness reports no credential configured, whatever the environment holds', () => {
     const previous = process.env[PLANTED_VAR]
     process.env[PLANTED_VAR] = PLANTED
@@ -89,7 +89,7 @@ describe('the run-service bearer resolver is deleted, not bypassed', () => {
   })
 })
 
-// 432-22: re-spelled from 'the config block accepts a declaration and refuses an inline value'. The
+// re-spelled from 'the config block accepts a declaration and refuses an inline value'. The
 // declaration and its default are gone; refusing a value is now refusing the whole key.
 describe('services.dashboard declares no run-service token', () => {
   const base = {

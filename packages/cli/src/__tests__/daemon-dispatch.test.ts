@@ -123,7 +123,7 @@ async function flushMicrotasks(turns = 24): Promise<void> {
   for (let turn = 0; turn < turns; turn += 1) await Promise.resolve()
 }
 
-// 2026-10-02 (quick 261002-tmo): every wait here is a positive condition (the daemon is ready, a
+// every wait here is a positive condition (the daemon is ready, a
 // job was dispatched); the ceiling only bounds a hang, and every not-yet claim runs on the manual
 // scheduler. The old 1 s ceiling was reached by real composition and SQLite work under load:
 // 4 cells failed at about 1.1 s each at load 40-45 (432-41 #10; also 432-01 #2).
@@ -166,7 +166,7 @@ async function startHost(kinds: JobKindRegistry): Promise<RunningHost> {
       throw new Error(`unexpected daemon hard exit ${code}`)
     },
     composeLocalAgent: (input) => {
-      // 2026-10-19 (444.1-12, D-23): the store stamps a retry's not-before time from this clock,
+      // the store stamps a retry's not-before time from this clock,
       // so it reads the same manual time the dispatcher waits on, as the wall clock does live.
       const host = composeLocalAgent({
         ...input,
@@ -230,7 +230,7 @@ async function startHost(kinds: JobKindRegistry): Promise<RunningHost> {
   return host
 }
 
-/** Record-level reading goes through the shipped torn-tail-tolerant reader (WR-02). */
+/** Record-level reading goes through the shipped torn-tail-tolerant reader. */
 function readEvents(agentQaRoot: string): readonly Record<string, unknown>[] {
   const ledger = readDaemonEventLedger(agentQaRoot)
   expect(ledger.warnings).toEqual([])

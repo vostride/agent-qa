@@ -1,4 +1,4 @@
-// The two CLI-host caller records' capability grants (394-13, WTST-01 · WINDOWS 101).
+// The two CLI-host caller records' capability grants.
 //
 // WHY THIS FILE EXISTS. `authoring.draft.write` and `authoring.draft.edit` are REGISTERED and
 // BOUND on this host, and both were still refused by name at `invoke.ts`'s scope check — because
@@ -7,12 +7,12 @@
 // constructs its own caller, so a composition that withholds a grant is invisible to all of them.
 // The refusal that reached a person named a scope and said nothing about authoring at all.
 //
-// 2026-10-01 (432-20, D-12): THERE IS NO SCOPE CHECK EITHER. The grants these records carry are
+// THERE IS NO SCOPE CHECK EITHER. The grants these records carry are
 // retired and unread (432-21 removes them from the mints), so no caller here can be refused for its
 // grants: every cell below reaches the same binding check, and C432-ALL-OPS-AVAILABLE adds a caller
 // holding nothing at all to prove it.
 //
-// 2026-09-30 (432-13, D-14/D-15): THERE IS NO OP GATE. Cells 2 and 4 are re-spelled: the scope
+// THERE IS NO OP GATE. Cells 2 and 4 are re-spelled: the scope
 // check still passes for both holders of `test-write`, and the invocation now reaches the BINDING
 // check (this registry binds nothing) instead of a confirm or a fail-closed refusal.
 //
@@ -105,18 +105,17 @@ async function refusalFrom(
 }
 
 describe('CLI_FUNCTION_CALLER', () => {
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'grants the whole scope vocabulary, member for member'.
+  // RE-SPELLED 2026-10-01 from 'grants the whole scope vocabulary, member for member'.
   // The full-local-grants rule that cell made mechanical is what D-12 made true of every caller, and
   // the field it pinned is gone from the mint: the CLI record carries attribution only. Whether every
   // op is reachable is C432-ALL-OPS-AVAILABLE's claim below, measured without any grant.
   it('grants the whole scope vocabulary, member for member', () => {
     expect(Object.keys(CLI_FUNCTION_CALLER).sort()).toEqual(['origin', 'surface'])
     expect(CLI_FUNCTION_CALLER).not.toHaveProperty('grantedScopes')
-    // 2026-10-02 (432-39, D-10/D-12): the retired vocabulary itself is deleted now, not only unused.
     expect(Object.keys(schema), 'the retired vocabulary is still exported').not.toContain('FunctionScopeSchema')
   })
 
-  // RE-SPELLED 2026-09-30 (432-13) from 'reaches the gate for authoring.draft.write — the refusal
+  // RE-SPELLED 2026-09-30 from 'reaches the gate for authoring.draft.write — the refusal
   // is the confirm, not the scope list'. The scope check still passes; with no gate the call
   // reaches the binding check, which this dependency-free registry refuses by name.
   it('reaches the binding check for authoring.draft.write — the scope list passes, nothing asks', async () => {
@@ -144,14 +143,14 @@ describe('a caller holding no grant', () => {
 })
 
 describe('DAEMON_FUNCTION_CALLER', () => {
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'holds test-write'. The daemon record carries no scope
+  // RE-SPELLED 2026-10-01 from 'holds test-write'. The daemon record carries no scope
   // set; the claim that survives — the daemon reaches the test-write ops — is the next cell's.
   it('holds test-write', () => {
     expect(Object.keys(DAEMON_FUNCTION_CALLER).sort()).toEqual(['origin', 'surface'])
     expect(DAEMON_FUNCTION_CALLER).not.toHaveProperty('grantedScopes')
   })
 
-  // RE-SPELLED 2026-09-30 (432-13, D-14/D-15) from 'is still refused for authoring.draft.write —
+  // RE-SPELLED 2026-09-30 from 'is still refused for authoring.draft.write —
   // by the gate, for its tier'. There is no fail-closed arm: the daemon's `local-headless` call
   // passes the scope check and reaches the binding check exactly as the CLI's does.
   it('reaches the binding check for authoring.draft.write from local-headless', async () => {

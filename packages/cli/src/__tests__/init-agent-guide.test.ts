@@ -80,7 +80,7 @@ function liveCommandPath(cli: string): string {
   const program = new Command()
     .addCommand(createRunsCommand())
     .addCommand(createKnowledgeCommand())
-    // 2026-10-01 (432-17, D-02/D-05): `agent-qa proposals` is deleted, so the guide can name no verb
+    // `agent-qa proposals` is deleted, so the guide can name no verb
     // under it and this tree no longer carries it.
     .addCommand(createSkillsCommand())
     .addCommand(createInitCommand())

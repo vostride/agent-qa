@@ -38,7 +38,7 @@ import {
 import { enqueueThroughTheStep } from '../post-run-step-harness.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -160,7 +160,7 @@ export interface TailOutcome {
  * the daemon's unix socket. Only the two things a production run would have resolved from a config
  * file are supplied directly: where knowledge lives, and a host composed over this root.
  *
- * 2026-08-26 (404 D-05): the hand-off is the post-verdict STEP's, so this drives
+ * the hand-off is the post-verdict STEP's, so this drives
  * `enqueueAnalyzeRun` and then the tail's two legs — the same two calls the shell and
  * `commands/run.ts` make between them, in the same order.
  */
@@ -283,7 +283,7 @@ export async function readJobRows(
   }
 }
 
-/** The durable notification read (388-01 D-5): the store implementation, never the engine port. */
+/** The durable notification read: the store implementation, never the engine port. */
 export async function readNotifications(
   agentQaRoot: string,
   knowledgeRoot: string,

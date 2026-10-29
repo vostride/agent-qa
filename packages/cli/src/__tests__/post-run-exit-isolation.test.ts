@@ -1,9 +1,9 @@
-// JOBQ-06's byte-proof: the post-run chain is invisible to the verdict (Phase 388 plan 05).
+// JOBQ-06's byte-proof: the post-run chain is invisible to the verdict.
 //
 // The requirement's own sentence is three claims — the verdict is reported and the exit code
 // determined BEFORE the enqueue, an enqueue failure is surfaced but never thrown, and
 // post-processing never gates the verdict or the navigation. The first two already have
-// executed regressions (388-02). The third is the one this file exists for, and it is the one
+// executed regressions. The third is the one this file exists for, and it is the one
 // spot-checks cannot carry: `expect(exitCode).toBe(1)` passes just as happily against a tail
 // that interleaved a warning through the reporter's summary block (RESEARCH Pitfall 10).
 //
@@ -80,7 +80,7 @@ import { createConsoleReporter } from '../reporters/console-reporter.js'
 import { buildReporterFixture } from './reporters/fixtures.js'
 
 /**
- * The composition's REQUIRED quarantine identity mint (390-12 / D-01). Passthrough here: this
+ * The composition's REQUIRED quarantine identity mint. Passthrough here: this
  * fixture already speaks canonical workspace-relative bytes, and the recipe itself stays pinned
  * in core's `workspace-paths.test.ts` — what these hosts exercise is everything BUT quarantine.
  */
@@ -179,7 +179,7 @@ interface Fixture {
   agentQaRoot: string
   /** The composition every scenario uses — wrapped, never replaced, by the failure legs. */
   composeTestHost(input: PostRunTailHostInput): LocalAgentHost
-  /** The SHELL's hand-off, run where the shell runs it: before any verdict output (404 D-05). */
+  /** The SHELL's hand-off, run where the shell runs it: before any verdict output. */
   stepEnqueue(): Promise<void>
   options(overrides?: Partial<PostRunTailOperations>): RunPostRunTailOptions
 }
@@ -294,7 +294,7 @@ interface Scenario {
   /** The same two, snapshotted the instant before the tail is entered. */
   verdictScopedStdout: string
   verdictScopedStderr: string
-  /** Anything the wrapper's defensive boundary had to catch — this must stay empty (D-07). */
+  /** Anything the wrapper's defensive boundary had to catch — this must stay empty. */
   unexpectedErrors: unknown[]
   /** Ordered landmarks, for the freeze-before-post-processing pin. */
   order: string[]
@@ -307,7 +307,7 @@ interface Scenario {
  *
  * The reporter, the navigation line and the exit-code freeze happen before the snapshot; the
  * tail is CONSTRUCTED after it, so the snapshot boundary is exactly where run.ts's boundary is
- * and anything the tail does — including anything its construction does (388-02 D-3) — falls on
+ * and anything the tail does — including anything its construction does — falls on
  * the far side of the comparison.
  */
 async function runScenario(
@@ -315,7 +315,7 @@ async function runScenario(
   input: {
     operations?: Partial<PostRunTailOperations>
     detach?: boolean
-    /** What the shell's post-verdict step reported (404 D-05). Default: an ordinary hand-off. */
+    /** What the shell's post-verdict step reported. Default: an ordinary hand-off. */
     enqueueOutcome?: RunPostRunTailOptions['enqueueOutcome']
   } = {},
 ): Promise<Scenario> {
@@ -413,7 +413,7 @@ function lines(text: string): string[] {
  * queue and the handlers stays the shipped thing, so what the clean run and this run differ by
  * is one rejected call and nothing else.
  *
- * 2026-08-26: this used to reject `queue.enqueue`. The tail does not enqueue any more (404 D-05),
+ * this used to reject `queue.enqueue`. The tail does not enqueue any more,
  * so the equivalent injection one layer along is the claim the pump makes — same host, same
  * wrapper idiom, same single rejected call.
  */
@@ -498,7 +498,7 @@ describe('an induced post-processing failure is invisible to the verdict', () =>
     expect(cleanLines[0]).toContain(`post-processing complete for ${RUN_ID}`)
     expect(cleanLines[1]).toBe(`digest — ${RUN_ID}`)
     expect(cleanLines[2]).toBe('analysis — 2 distinct problems:')
-    // The sections D-18 names, all present and all counts. 432-09 (D-25): nothing waits on a
+    // The sections D-18 names, all present and all counts. 432-09: nothing waits on a
     // human; this host reads no mark ledger, and the digest says so rather than omitting the line.
     expect(cleanSuffix).toContain('marks — ledger not read here')
     expect(cleanSuffix).not.toMatch(/pending overall|minted this run/)
@@ -507,7 +507,7 @@ describe('an induced post-processing failure is invisible to the verdict', () =>
     expect(cleanSuffix).not.toBe(failedSuffix)
 
     // 5. Nothing escaped the tail. The wrapper's defensive boundary was never needed — a tail
-    //    that rethrew would land here even though the exit code survived (D-07).
+    //    that rethrew would land here even though the exit code survived.
     expect(clean.unexpectedErrors).toEqual([])
     expect(failed.unexpectedErrors).toEqual([])
   })
@@ -598,7 +598,7 @@ describe('the structural halves', () => {
       const suffix = tailSuffix(scenario.stderr, scenario.verdictScopedStderr)
       expect(lines(suffix)).toEqual([
         'post-processing — analysis: pending · curation: pending'
-        // 389 D-12: nothing drained under --detach, so the line carries the fetch command.
+        // nothing drained under --detach, so the line carries the fetch command.
         + ` · digest: ${digestFetchCommand(RUN_ID)}`,
       ])
     })
@@ -610,25 +610,25 @@ describe('the structural halves', () => {
     )
     // Pitfall 1's regression pin: two sites, one helper, TWO legs each since 404 D-05.
     //
-    // 404 D-06: the helper is `composeCliPostRunTail`, and `runPostRunTail` is named at NEITHER
+    // the helper is `composeCliPostRunTail`, and `runPostRunTail` is named at NEITHER
     // site any more. The composition moved so the `runs.start` door could reach the same one —
     // three spellings of "how this project's tail is composed" is how a field added to the tail
     // reaches two of them.
     expect(source.match(/composeCliPostRunTail\(/gu) ?? []).toHaveLength(2)
     expect(source.match(/runPostRunTail\(/gu) ?? []).toHaveLength(0)
     expect(source.match(/runVerdictFirstCurationTail\(/gu) ?? []).toHaveLength(2)
-    // 404 D-05: neither site enqueues. A site that reacquired an enqueue leg would be a SECOND
+    // neither site enqueues. A site that reacquired an enqueue leg would be a SECOND
     // durable hand-off path — invisible behind the store's idempotency index, and the reason the
     // dashboard, MCP and daemon doors queued nothing at all before the relocation.
     expect(source.match(/postRunTail\.enqueue\(\)/gu) ?? []).toHaveLength(0)
     // …and both sites tell the shell's step what to do about post-processing.
     expect(source.match(/postProcessing:/gu) ?? []).toHaveLength(2)
-    // 404-01 (D-10): both drains now PUMP UNDER THE LEASE the shell's post-verdict step decided
+    // both drains now PUMP UNDER THE LEASE the shell's post-verdict step decided
     // on. The pin follows the call shape rather than loosening to `drain(`, because a site that
     // went back to a bare `drain()` would be a site consulting the writer lease a second time —
     // answered `held` by its own process, handing the chain off to nobody (Pitfall 3).
     //
-    // 2026-08-27 (CR-01): the shape is a THUNK. Taking the authority is what acquires it, so a
+    // the shape is a THUNK. Taking the authority is what acquires it, so a
     // site that evaluates the take as the ARGUMENT has minted the lease before `drain()` is
     // entered — outside the try whose `finally` releases, and past the take-once flag the step's
     // no-leak backstop reads. A composition failure inside `drain()` then held the project's

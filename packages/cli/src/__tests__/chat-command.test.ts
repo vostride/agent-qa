@@ -1,9 +1,9 @@
-// `agent-qa chat` — the REPL, over the real composition (Phase 392 plan 08, D-01/D-17/D-23/D-24).
+// `agent-qa chat` — the REPL, over the real composition.
 //
 // THE STRUCTURAL CLAIM IS THE SAME ONE `ask` MAKES, and it is why they are two commands and one
 // engine: the REPL owns no turn capability. Every line a person types becomes one
 // `invokeFunction(agent.ask)`, so a conversation can do exactly what the function layer lets it do
-// and 397's parity suite reads the verb off the registry without the CLI being consulted (D-24).
+// and 397's parity suite reads the verb off the registry without the CLI being consulted.
 // The last case in this file pins that as source text, because the behavioural cases would all
 // still pass if a second turn path grew beside the op.
 //
@@ -192,7 +192,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
   })
 
-  // ---- 398-10 (D-18): the chat aggregates, over the REAL loop ------------------------------
+  // ---- 398-10: the chat aggregates, over the REAL loop ------------------------------
   //
   // DRIVEN, NOT BUILT. The only substitution is the transport under the composed port — the
   // composition root, the opt-out decision, the identity gate and the closed union are all the
@@ -255,7 +255,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     // turn and a chatbot: the surface reports a capability invocation, not prose.
     expect(result.stdout).toContain('runs.list')
     expect(result.stdout).toContain('executed')
-    // ONE session, opened by default (D-17). The id is printed once so a person can `--session` it.
+    // ONE session, opened by default. The id is printed once so a person can `--session` it.
     expect(sessionFiles(configPath)).toHaveLength(1)
     expect(result.stdout).toContain('chat-')
   })
@@ -270,11 +270,11 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
     // outcome is the op's own one-line map, and the shipped line renders the functionId and the
     // clause as separate fields, so the contiguous string cannot appear unless `outcome` does.
     //
-    // 2026-08-20 (399.1-04): THE LINE MOVED AND THE CLAIM DID NOT. `proposals.list` declares a
+    // THE LINE MOVED AND THE CLAIM DID NOT. `proposals.list` declares a
     // classifier now — `classify` is a REQUIRED member of `FunctionSpec` as of plan 04 — so the
     // engine's `${functionId} completed` fallback is not what this op reports any more. The op's
     // own one-line map is, and the string below is it for an EMPTY inbox, which is what this
-    // fixture workspace has. 2026-10-01 (432-17): `proposals.list` is deleted; `runs.list` is the
+    // fixture workspace has. 2026-10-01: `proposals.list` is deleted; `runs.list` is the
     // subject now, and the string is its own map for a workspace with no completed run. It is still a contiguous string the shipped line renders only by
     // printing `outcome`: the functionId and the clause are separate fields, and neither of them
     // is this sentence.
@@ -478,7 +478,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
   it('drives turns ONLY through invokeFunction on agent.ask, and builds no model', () => {
     // A SOURCE PIN, because every behavioural case above would still pass if the REPL grew a
     // second turn path beside the op. `createTurnEngine` here would be the largest private power
-    // in the system: an orchestrator reachable through nothing the catalogue declares (D-24).
+    // in the system: an orchestrator reachable through nothing the catalogue declares.
     const source = readFileSync(join(__dirname, '..', 'commands', 'chat.ts'), 'utf8')
     expect(source).toContain('AGENT_ASK_FUNCTION_ID')
     expect(source).toContain('invokeFunction')
@@ -493,7 +493,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
       expect({ specifier, present: source.includes(`'${specifier}`) })
         .toEqual({ specifier, present: false })
     }
-    // 2026-10-14 (441-06, D-07): printed text crosses the declared mask and nothing restores it.
+    // printed text crosses the declared mask and nothing restores it.
     expect(source).toContain('declaredSecrets.mask')
     for (const restore of ['unmask', ['create', 'MaskingContext'].join('')]) {
       expect({ restore, present: source.includes(restore) }).toEqual({ restore, present: false })
@@ -546,7 +546,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
   })
 
   it('both surfaces render ONE payload block, from the one module, through their own masker', () => {
-    // THE SAME PIN FOR THE 399.1 RENDER (D-04). `result-render.ts` is the second module to be
+    // THE SAME PIN FOR THE 399.1 RENDER. `result-render.ts` is the second module to be
     // shared by these two surfaces, and it arrives with the pin rather than acquiring one later:
     // the whole reason `receipt-line.ts` exists is that the two surfaces held byte-identical
     // private copies and were free to drift.

@@ -1,4 +1,4 @@
-// SC4's closed-socket half, and the 386 D-16 two-receipt rule (Phase 388 plan 06).
+// SC4's closed-socket half, and the 386 D-16 two-receipt rule.
 //
 // Two claims, measured against the same real daemon generation:
 //
@@ -98,7 +98,7 @@ describePosix('post-processing status survives a closed socket', () => {
       expect(tail.info).toEqual([
         'post-processing — analysis: pending (daemon will drain) · curation: pending'
         + ' (deferred to a later local run)'
-        // 391 D-17: the handed-off tail completed no analyze-run in-process, so the exit line
+        // the handed-off tail completed no analyze-run in-process, so the exit line
         // carries the pending-proposal count and the exact fetch command for the digest the
         // daemon's chain will fill in. Nothing is waiting on a human in this fixture, and the
         // line says `0 pending` rather than omitting the clause — the count is READ, so its
@@ -151,7 +151,7 @@ describePosix('post-processing status survives a closed socket', () => {
       })
       // The attached record is the view of the SAME record the terminal transaction wrote,
       // compared whole: a projection that assembled a plausible notification of its own would
-      // fail here. The stored row keeps its own words (444 D-36).
+      // fail here. The stored row keeps its own words.
       const rows = await readNotifications(paths.agentQaRoot, paths.knowledgeRoot)
       expect(rows).toHaveLength(1)
       expect(afterExit.notification).toEqual(toRunNotificationView(rows[0]!.payload as RunNotification))

@@ -1,4 +1,4 @@
-// SC3: one heartbeat, N proposals, ONE digest, ONE notify row (Phase 391 plan 06, PROP-04).
+// SC3: one heartbeat, N proposals, ONE digest, ONE notify row.
 //
 // PROP-04's rationale is a product complaint — "an approval UX that fires 40 times per nightly
 // run is a worse product than one that fires once" — and this file is where the answer stops
@@ -12,7 +12,7 @@
 //   (a) the DIGEST render — one block, listing exactly the run-attributed proposals;
 //   (b) the durable NOTIFY ROW — still exactly one for the run, still passing
 //       `guardRunNotification`'s exact-key comparison, i.e. nobody widened the frozen DTO to
-//       carry any of what the digest now says (D-16, T-391-18).
+//       carry any of what the digest now says.
 //
 // A fixture asserting only (a) would pass while the row grew a `proposals` field; one asserting
 // only (b) would pass while the tail printed forty blocks. They are different claims about
@@ -24,7 +24,7 @@
 // and its absence from this run's digest is asserted BESIDE its presence in its own — an
 // absence claim is load-bearing only if the same input could have produced the presence.
 //
-// EVERY PROPOSAL IS A PRE-432 RECORD. 2026-09-30, 432-12 (D-05): the three knowledge changes apply
+// EVERY PROPOSAL IS A PRE-432 RECORD. 2026-09-30, 432-12: the three knowledge changes apply
 // in the call and file nothing, so no production path mints a proposal any more. Each mint below
 // writes the record the retired `knowledge.forget.propose` op wrote, through the same review port
 // member and with the same attribution (emitter and run), which is the shape a pre-432 project has
@@ -280,7 +280,7 @@ function composeCold(f: Fixture): LocalAgentHost {
 }
 
 /**
- * Queue this run's `analyze-run` row through the SHIPPED post-verdict step (404 D-05).
+ * Queue this run's `analyze-run` row through the SHIPPED post-verdict step.
  *
  * The hand-off left the tail, so a suite that drives the pump has to put its rows there the way
  * the product does — `enqueueAnalyzeRun` over a cold composition of the same project.
@@ -329,7 +329,7 @@ function publishRecord(f: Fixture, summary: string): string {
   return published.id
 }
 
-/** One real record, then one pre-432 proposal about it, attributed to the run (432-12). */
+/** One real record, then one pre-432 proposal about it, attributed to the run. */
 async function mint(f: Fixture, runId: string, summary: string): Promise<string> {
   const recordId = publishRecord(f, summary)
   return await filePre432KnowledgeProposal({
@@ -374,7 +374,7 @@ async function digestThroughTheOp(f: Fixture, runId: string): Promise<RunDigest>
 const DIGEST_BLOCK_PREFIX = 'digest — '
 
 describe('one heartbeat, N proposals, ONE digest, ONE notify row', () => {
-  // RE-SPELLED 432-09 (D-05/D-25) from 'renders exactly one digest for the run, listing exactly its
+  // RE-SPELLED 432-09 from 'renders exactly one digest for the run, listing exactly its
   // own proposals': the one render stands; the digest now lists and counts no proposal of any run.
   it('renders exactly one digest for the run, and lists no proposal of any run', async () => {
     const f = fixture()
@@ -469,13 +469,13 @@ describe('one heartbeat, N proposals, ONE digest, ONE notify row', () => {
       expect(digest.lines.some((line) => line === 'candidates — 2 curated · 1 deprecated'))
         .toBe(true)
 
-      // …and they are REPORTED, not offered for decision. 432-09 (D-25): no proposal section
+      // …and they are REPORTED, not offered for decision. 432-09: no proposal section
       // remains, so the one minted envelope is listed and counted nowhere.
       expect(digest).not.toHaveProperty('proposalsMintedThisRun')
       expect(digest).not.toHaveProperty('pendingProposalCount')
     })
 
-  // RE-SPELLED 432-09 (D-25) from 'renders the zero-proposal arm as zeros, and its exit line reads 0
+  // RE-SPELLED 432-09 from 'renders the zero-proposal arm as zeros, and its exit line reads 0
   // pending': the exit line carries no proposal count, and the run's own sections read zero.
   it('renders the zero arm as zeros, and its exit line carries no proposal count', async () => {
     const f = fixture()

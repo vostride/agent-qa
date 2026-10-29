@@ -1,4 +1,4 @@
-// C433-MCP-INSTRUCTIONS-PARITY (433-33, G-433-9 · F-433-36 · D-18/D-19, 431 D-20).
+// C433-MCP-INSTRUCTIONS-PARITY.
 //
 // The shipped `agent-qa mcp` binary answers the server's instructions over stdio, and they forbid
 // every path init's guide and pointer forbid. init itself still writes no CLAUDE.md.

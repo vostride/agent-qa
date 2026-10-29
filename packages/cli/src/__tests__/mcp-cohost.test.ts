@@ -10,7 +10,7 @@
 // whether a token served inside the App document passes THAT composition's own `validate`. That is
 // the invariant stated as a measurement rather than as an argument.
 //
-// 2026-10-01 (432-21, D-12/D-13): TOKENLESS. The co-hosted endpoint asks no caller for a bearer,
+// TOKENLESS. The co-hosted endpoint asks no caller for a bearer,
 // the mount decision no longer counts declared tokens, and `coHostedMcpCredentialsFor` and the token
 // resolver are deleted. The cells that measured those are RE-SPELLED in place (each says so); the
 // Host and Origin guards, the D-03 served-token claim, the counted-zero CORS law, the bind-collision
@@ -55,7 +55,7 @@
 //
 // 408-09's LEGS, all six APPLIED to their subject and their red observed on 2026-09-01, then the
 // subject restored. They exist because the four cells this file used to close with could not fail
-// (WR-09) — see the block comment above section 5:
+// see the block comment above section 5:
 //   D7  `mcpMountPlanFor` made to ignore `services.mcp.enabled`  -> MEASURED: reds the row `does
 //       NOT mount when services.mcp.enabled is the literal false` with `expected true to be false`
 //       (1 of 26). This is WR-01 / T-408-18 turned into a standing gate.
@@ -66,7 +66,7 @@
 //   D9  the scoped `try`/`catch` removed from `mountCoHostedMcp` -> MEASURED: the bind-collision
 //       cell reds with the raw `Error: listen EADDRINUSE: address already in use 127.0.0.1:<port>`
 //       escaping — which in production is the rejection that reached `process.exit(2)` and took a
-//       fully started dashboard down over an OPTIONAL listener (WR-02 / T-408-17).
+//       fully started dashboard down over an OPTIONAL listener.
 //   D10 the `registry:` property assignment removed from the co-host mount -> MEASURED: reds the
 //       registry SOURCE ASSERTION cell (1 of 26). The surviving source assertions can fail.
 //   D11 `mcpServer?.close()` removed from the shutdown closure   -> MEASURED: reds the shutdown
@@ -223,7 +223,7 @@ beforeAll(async () => {
     } as unknown as FunctionDeps,
   })
 
-  // 2026-10-14 (441-07, D-06): the masker is the declared loader over a project config, as the
+  // the masker is the declared loader over a project config, as the
   // dashboard composes it.
   const projectRoot = mkdtempSync(join(tmpdir(), 'agent-qa-441-07-cohost-'))
   const configPath = join(projectRoot, 'agent-qa.config.yaml')
@@ -401,7 +401,7 @@ describe('the mounted endpoint keeps the standalone face\'s guard order', () => 
     expect(answer.text).toContain('forbidden_origin')
   })
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'refuses an unmatched bearer with 401 invalid_token,
+  // RE-SPELLED 2026-10-01 from 'refuses an unmatched bearer with 401 invalid_token,
   // never degraded to the default grant'. There is no bearer wall and no default grant: an
   // unmatched bearer passes the two guards like no bearer, and is echoed nowhere.
   it('admits an unmatched legacy bearer past the guards like no bearer, echoing nothing', async () => {
@@ -485,7 +485,7 @@ describe('a served App token validates against THIS composition\'s validator', (
   })
 })
 
-// ---- 3. The carrier link, composed from the bound origin (D-08) --------------------------------
+// ---- 3. The carrier link, composed from the bound origin --------------------------------
 
 describe('a carrier result on this endpoint carries the link composed from the bound origin', () => {
   it('carries the link line and the concrete App address', async () => {
@@ -534,7 +534,7 @@ describe('a carrier result on this endpoint carries the link composed from the b
   })
 })
 
-// ---- 4. Zero CORS headers, on every answered request (T-408-13) --------------------------------
+// ---- 4. Zero CORS headers, on every answered request --------------------------------
 
 describe('the co-hosted endpoint emits no CORS header, ever (the counted-zero law)', () => {
   it('answered no request with an access-control-* header', () => {
@@ -545,7 +545,7 @@ describe('the co-hosted endpoint emits no CORS header, ever (the counted-zero la
     expect(offending).toEqual([])
   })
 
-  // 432-21 (D-12): the refusal driven here is the Origin wall's; the bearer refusal it used to drive
+  // the refusal driven here is the Origin wall's; the bearer refusal it used to drive
   // is deleted.
   it('answered no REFUSAL with one either', async () => {
     const answer = await rawRequest({
@@ -561,7 +561,7 @@ describe('the co-hosted endpoint emits no CORS header, ever (the counted-zero la
 
 // ---- 5. The mount DECISION, driven — and the two wiring facts that stay source assertions -------
 //
-// WHAT THIS BLOCK USED TO BE, AND WHY IT WAS REPLACED (408-09, WR-09). Until 408-09 the four cells
+// WHAT THIS BLOCK USED TO BE, AND WHY IT WAS REPLACED. Until 408-09 the four cells
 // here were `toContain` over `dashboard.ts` read as text, and the verifier's charge was exact: the
 // cell named "mounts it ONLY when services.mcp.tokens is declared" was satisfied by the PREVIOUS,
 // DEFECTIVE version of the mount — `resolveMcpTokens(servicesConfig.mcp?.tokens ?? [], ...)`, where
@@ -592,7 +592,7 @@ const DASHBOARD_SOURCE = readFileSync(
 
 /**
  * One legacy caller-credential declaration, in the refs-only shape `McpTokenEntrySchema` accepted.
- * 432-22 (D-22) deleted the key, so a config file holding it fails strict validation. The rows below
+ * 432-22 deleted the key, so a config file holding it fails strict validation. The rows below
  * that carry it are DELIBERATELY UNPARSED input: `mcpMountPlanFor` reads `unknown`, and these rows
  * pin that a leftover key cannot change the decision (2026-10-03, quick-261003-tsr IN-13).
  */
@@ -606,10 +606,10 @@ interface MountRow {
 }
 
 // Every row is a CONFIG RECORD in, a decision out. This is what makes the block able to detect the
-// two defects the old cells could not: `enabled: false` ignored (WR-01), and the mount keyed off
+// two defects the old cells could not: `enabled: false` ignored, and the mount keyed off
 // `services.dashboard.mcp` rather than `services.mcp` (the 408-03 defect's exact shape).
 //
-// 2026-10-01 (432-21, D-12): the second condition — "at least one token declared" — is replaced by
+// the second condition — "at least one token declared" — is replaced by
 // "a services.mcp block is declared". Rows that turned on the token count are RE-SPELLED and say so.
 const MOUNT_ROWS: readonly MountRow[] = [
   {
@@ -633,7 +633,7 @@ const MOUNT_ROWS: readonly MountRow[] = [
     mount: false,
   },
   {
-    // RE-SPELLED 2026-10-01 (432-21, D-12) from 'does NOT mount when enabled is true but no token is
+    // RE-SPELLED 2026-10-01 from 'does NOT mount when enabled is true but no token is
     // declared — an endpoint with nothing to match a bearer against is the D-07 default grant on
     // loopback'. There is no bearer to match and no default grant; `enabled: true` mounts.
     claim: 'mounts when enabled is true and no token is declared — there is no bearer to match',
@@ -685,7 +685,7 @@ describe('the co-host mount decision is a FUNCTION of the parsed config', () => 
     })
   }
 
-  // RE-SPELLED 2026-10-01 (432-21, D-12) from 'counts the DECLARED token entries, never the resolved
+  // RE-SPELLED 2026-10-01 from 'counts the DECLARED token entries, never the resolved
   // ones'. The plan counts no token entries at all: one declaration, two or an unset one decide the
   // same thing, and the plan carries no count. RE-TITLED 2026-10-03 (quick-261003-tsr, IN-13).
   it('counts no token entries — one, two or an unset declaration decide the same plan, and the plan'
@@ -702,7 +702,7 @@ describe('the co-host mount decision is a FUNCTION of the parsed config', () => 
   })
 })
 
-// ---- 6. An occupied MCP port costs a warning, not the dashboard (WR-02 · T-408-17) --------------
+// ---- 6. An occupied MCP port costs a warning, not the dashboard --------------
 //
 // DRIVEN OVER `mountCoHostedMcp`, THE EXTRACTED PIECE THE MOUNT SITE ITSELF CALLS — not a second
 // spelling of it, and not a mocked rejection. The full dashboard composition needs a database and a
@@ -780,14 +780,14 @@ describe('the shipped dashboard composition wires and closes the endpoint', () =
     // which proves the same two handles are safe to leave unset.
     const shutdown = DASHBOARD_SOURCE.slice(DASHBOARD_SOURCE.indexOf('const shutdown = async ()'))
     expect(shutdown).toContain('mcpServer?.close()')
-    // 2026-10-14 (441-07, D-06): the declared mask holds nothing to dispose, so the second call is
+    // the declared mask holds nothing to dispose, so the second call is
     // gone; what remains to pin is that the co-host composes that mask from the project's config.
     expect(shutdown).not.toContain('mcpMasking')
     expect(DASHBOARD_SOURCE).toContain('composeMcpMasking({ configPath: configFilePath })')
   })
 })
 
-// ---- 8. The co-host CREDENTIAL path — decide, then dereference (408-17, CR-01) ------------------
+// ---- 8. The co-host CREDENTIAL path — decide, then dereference ------------------
 //
 // WHAT THIS BLOCK EXISTS FOR. 408-09 recorded two claims about the co-host that no cell in this
 // file could reach:
@@ -821,11 +821,11 @@ const UNSET_ENTRY = {
 /** The config an operator with one legacy MCP declaration and no `enabled` key has written. */
 const UNSET_ENTRY_CONFIG = { services: { mcp: { tokens: [UNSET_ENTRY] } } }
 
-// RE-SPELLED 2026-10-01 (432-21, D-12). The three cells below measured `coHostedMcpCredentialsFor`,
-// the decide-then-dereference path 408-17 (CR-01) built so an unset `tokenEnvVar` could not take a
+// RE-SPELLED 2026-10-01. The three cells below measured `coHostedMcpCredentialsFor`,
+// the decide-then-dereference path 408-17 built so an unset `tokenEnvVar` could not take a
 // serving dashboard down. The function and the dereference are deleted with the tokens; each cell
 // now pins what replaced its claim. RE-TITLED 2026-10-03 (quick-261003-tsr, IN-13): the describe was
-// 'the co-host resolves credentials without betting the dashboard on them (CR-01)', and the first two
+// 'the co-host resolves credentials without betting the dashboard on them', and the first two
 // cells were 'a declared-but-unset tokenEnvVar costs a warning, not the dashboard' and 'a refused
 // resolution leaves nothing to mount — the endpoint is never served without a credential'.
 describe('the co-host resolves no credentials', () => {
@@ -841,8 +841,8 @@ describe('the co-host resolves no credentials', () => {
 
   it('the co-hosted endpoint is served without a credential, and the Host/Origin guards refuse'
     + ' another origin', async () => {
-    // The endpoint IS served without a credential now (D-12), and what bounds it is the loopback
-    // bind and the Host/Origin guards (D-13): a tokenless client lists the catalogue, and a page on
+    // The endpoint IS served without a credential now, and what bounds it is the loopback
+    // bind and the Host/Origin guards: a tokenless client lists the catalogue, and a page on
     // another origin is refused.
     const client = await connectAs(undefined)
     expect((await client.listTools()).tools.length).toBeGreaterThan(0)
@@ -870,11 +870,11 @@ const MCP_COMMAND_SOURCE = readFileSync(
   'utf8',
 )
 
-// RE-SPELLED 2026-10-01 (432-21, D-12) from 'the standalone agent-qa mcp face still refuses hard on
+// RE-SPELLED 2026-10-01 from 'the standalone agent-qa mcp face still refuses hard on
 // the same entry'. Neither face resolves a token now, so neither refuses on an unset one; the
 // standalone face reads no token declaration and is not routed through any co-host wrapper.
 // RE-TITLED 2026-10-03 (quick-261003-tsr, IN-13): the describe was 'one error class, two call sites,
-// two correct answers (CR-01)'.
+// two correct answers'.
 describe('neither MCP face resolves a token', () => {
   it('the standalone agent-qa mcp face reads no token declaration and resolves none', () => {
     expect(MCP_COMMAND_SOURCE).not.toContain('resolveMcpTokens(')

@@ -1,5 +1,5 @@
-// The dashboard mark door through the real composition (419 D-13).
-// 432-13: there was no asking frame left to preserve. 432-14 (D-14): the frame, its scope field and
+// The dashboard mark door through the real composition.
+// there was no asking frame left to preserve. 432-14: the frame, its scope field and
 // the host members that carried them are deleted, so the route is one request to one registered op.
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -37,7 +37,7 @@ function fixture() {
   return { ...door, calls, invoke }
 }
 
-// RE-SPELLED 2026-09-30 (432-13, D-14/D-15). The route used to park on the named run channel and
+// RE-SPELLED 2026-09-30. The route used to park on the named run channel and
 // deny an absent or unwatched scope, even under config trustMode. The composed host asks nobody now:
 // the mark dispatches and no confirm frame is ever raised. The absent fixture run is what answers,
 // which proves the op was reached.
@@ -49,7 +49,7 @@ describe('dashboard runs.mark confirmation through the composed host', () => {
     expect(f.calls).toEqual([RUNS_MARK_FUNCTION_ID])
   })
 
-  // RE-SPELLED 2026-10-01 (432-14): was 'dispatches on a WATCHED run channel too, and never parks
+  // RE-SPELLED 2026-10-01: was 'dispatches on a WATCHED run channel too, and never parks
   // on it'. There is no channel to watch; the claim that survives is that a second mark is a second
   // dispatch and nothing is held between them.
   it('dispatches on a WATCHED run channel too, and never parks on it', async () => {
