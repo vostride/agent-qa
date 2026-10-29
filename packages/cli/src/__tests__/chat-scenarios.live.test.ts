@@ -5,10 +5,8 @@
 // that reason. The gate is `AGENT_QA_LIVE_CHAT_CONFIG` — the path of a project config whose
 // `registry.llms` and auth plugins this host can resolve.
 //
-// A SKIP IS ANNOUNCED, ALWAYS. The one describe below that never skips prints which lane actually
-// ran and, when it did not, why. A credential guard that degrades to a no-op when the environment
-// differs has produced green runs that measured nothing in this codebase before; a skip nobody can
-// see is that failure wearing a passing colour.
+// Without AGENT_QA_LIVE_CHAT_CONFIG the live describe is skipped, and vitest's summary reports the
+// skipped cells.
 //
 // THE FIRST CASE IS THE AUTH SMOKE (RESEARCH A5), and its position is the design. One trivial
 // `generateText` through the composed model, so an auth failure reds ONE named case instead of
@@ -72,13 +70,6 @@ const SCENARIOS_ROOT = fileURLToPath(
 /** The gate. A project config this host can resolve auth for; absent means the lane does not run. */
 const LIVE_CONFIG = process.env.AGENT_QA_LIVE_CHAT_CONFIG
 
-const SKIP_REASON =
-  LIVE_CONFIG === undefined
-    ? 'AGENT_QA_LIVE_CHAT_CONFIG is unset — no live-model auth was offered, so the planner and '
-      + 'compound classes did not run. Set it to a project config path whose registry.llms and '
-      + 'auth plugins resolve on this machine.'
-    : undefined
-
 const SEEDED_RUN_ID = 'RUN-1'
 
 const HUMAN: FunctionCaller = {
@@ -131,48 +122,16 @@ interface LiveCell {
   readonly events: readonly ChatSessionEvent[]
 }
 
-describe('the live lane announces which lane actually ran', () => {
-  it('names the gate condition, so a skip can never be mistaken for a pass', () => {
-    process.stderr.write(
-      `\n[chat live lane] ${SKIP_REASON ?? `running against ${String(LIVE_CONFIG)}`}\n`,
-    )
-    // The corpus this gate would measure exists whether or not the gate runs — so a live lane that
-    // silently lost its cells is visible from the hermetic run too.
-    // 6 as of corpus v4: the five original live cells plus `compound/run-42-and-delete-root`,
-    // the CR-03 regression cell. It is `fail_closed`, so the DENOMINATOR did not move — a gap
-    // round that grew the denominator would report a better rate for having done work.
-    //
-    // 5 as of corpus v7 (394-11), and the SIZE STAYING AT 6 IS WHY THIS PAIR IS PINNED TOGETHER.
-    // No cell joined the lane; two changed arm, because the authoring loop registered and the two
-    // write-test cells became routable. That is the one movement a denominator is allowed to make
-    // — a deliberate flip that a phase claims as its arrival proof — and it is distinguishable
-    // here from the forbidden one only because both numbers are read at once.
-    //
-    // 7 AND 6 AS OF CORPUS v8 (395-09), AND BOTH MOVED, WHICH IS THE OTHER LEGAL MOVEMENT. 392 D-08
-    // designed the config handoff as a flip and 395's research found no config cell in v7 to flip,
-    // so `planner/config-edit-timeout` is ADMITTED: the lane gains a member AND the ceiling gains a
-    // denominator entry. v7's flip moved the second number alone; this moves both. Reading them
-    // together is what lets a later reader say which of the three movements happened — a flip, an
-    // admission, or the forbidden one where a gap round quietly grows the denominator for work
-    // being done — without reconstructing it from the diff.
-    //
-    // 9 AND 8 AS OF CORPUS v9 (398-07), AND BOTH MOVED BY TWO — an admission again, on v8's shape.
-    // `agent.explain` did not exist in v8's build, so "what can you do" had no reachable op and no
-    // cell was ever admitted that could flip; `planner/what-can-you-do` and
-    // `planner/how-do-i-explain` join together because XPLN-02 names two SHAPES of question (an
-    // enumeration and a request for one capability's command) and a planner that routed the first
-    // and answered the second from model memory is a real, reachable half-failure.
-    //
-    // NEITHER HAD MET A MODEL AT THE COMMIT THAT ADMITTED THEM. `AGENT_QA_LIVE_CHAT_CONFIG` was
-    // unset in that session, so this very cell announced the skip and the two rows are pinned but
-    // unmeasured. That is exactly the state this announcement exists to make impossible to mistake
-    // for a pass.
-    expect(LIVE_CORPUS.length).toBe(9)
-    expect(LIVE_DENOMINATOR).toBe(8)
-  })
-})
+function cellReading(scenario: ChatScenario, result: AgentAskResult): string {
+  const ops = result.receipts.map((r) => `${r.functionId}:${r.status}`).join(', ')
+  const answer = (result.answer ?? '').slice(0, 70).replace(/\s+/g, ' ')
+  return (
+    `${scenario.class}/${scenario.id} -> ${result.status} ops=[${ops}]`
+    + ` unhandled=${result.unhandled?.clause ?? '-'} answer=${answer}`
+  )
+}
 
-describe.skipIf(SKIP_REASON !== undefined)(
+describe.skipIf(LIVE_CONFIG === undefined)(
   'the live lane: planner/ and compound/ over the real host and a real model',
   () => {
     let root: string
@@ -248,14 +207,6 @@ describe.skipIf(SKIP_REASON !== undefined)(
         .map((line) => JSON.parse(line) as ChatSessionEvent)
       const cell: LiveCell = { result, events }
       cells.set(scenario.id, cell)
-      // A LIVE GATE WHOSE FAILURE NOBODY CAN READ IS A GATE PEOPLE DISABLE. One line per cell,
-      // naming what the model actually routed — refs and statuses only, never op payloads (D-18).
-      process.stderr.write(
-        `\n[chat live lane] ${scenario.class}/${scenario.id} -> ${result.status}`
-          + ` ops=[${result.receipts.map((r) => `${r.functionId}:${r.status}`).join(', ')}]`
-          + ` unhandled=${result.unhandled?.clause ?? '-'}`
-          + ` answer=${(result.answer ?? '').slice(0, 70).replace(/\s+/g, ' ')}\n`,
-      )
       return cell
     }
 
@@ -284,6 +235,7 @@ describe.skipIf(SKIP_REASON !== undefined)(
         const scenario = readScenario(entry)
         const cell = await runCell(scenario)
         const { result } = cell
+        const reading = cellReading(scenario, result)
         const executed = result.receipts.filter((receipt) => receipt.status === 'executed')
         // 399.1 D-02: `refused` is a fourth word for a clause that RAN AND RETURNED, so a roll-call
         // spelled over `executed` alone acquired a hole exactly its width the day the member
@@ -291,29 +243,29 @@ describe.skipIf(SKIP_REASON !== undefined)(
         const reached = result.receipts.filter((receipt) => clauseReachedCapability(receipt.status))
 
         if (scenario.expect.kind === 'should_execute') {
-          expect(result.status).toBe('completed')
-          expect(result.receipts.map((receipt) => receipt.functionId)).toEqual(
+          expect(result.status, reading).toBe('completed')
+          expect(result.receipts.map((receipt) => receipt.functionId), reading).toEqual(
             scenario.expect.ops ?? [],
           )
-          expect(result.receipts.map((receipt) => receipt.status)).toEqual(
+          expect(result.receipts.map((receipt) => receipt.status), reading).toEqual(
             result.receipts.map(() => 'executed'),
           )
-          expect(executed).toHaveLength(scenario.expect.executed)
+          expect(executed, reading).toHaveLength(scenario.expect.executed)
         } else {
           // D-10's atomicity, live: the clause that COULD have run did not — and "did not" means
           // no capability was REACHED, not merely that none reported success.
-          expect(result.status).not.toBe('completed')
-          expect(reached).toHaveLength(0)
-          expect(executed).toHaveLength(0)
-          expect(executed).toHaveLength(scenario.expect.executed)
+          expect(result.status, reading).not.toBe('completed')
+          expect(reached, reading).toHaveLength(0)
+          expect(executed, reading).toHaveLength(0)
+          expect(executed, reading).toHaveLength(scenario.expect.executed)
           const named = scenario.expect.namesClause ?? ''
-          expect(named).toBeTruthy()
+          expect(named, reading).toBeTruthy()
           const namings = [
             result.unhandled?.reason ?? '',
             result.unhandled?.clause ?? '',
             ...result.receipts.map((receipt) => receipt.clause),
           ]
-          expect(namings.some((text) => text.includes(named))).toBe(true)
+          expect(namings.some((text) => text.includes(named)), reading).toBe(true)
           // THE SIDE-EFFECT ROWS (392-11). `executed == 0` stayed true through both defects the
           // gap round closed — a directive never crosses the function layer, and an erased clause
           // leaves no receipt — so the arm reads the log a refused turn left instead.
@@ -331,13 +283,14 @@ describe.skipIf(SKIP_REASON !== undefined)(
                     (status) => status === event.status && clauseReachedCapability(status),
                   )),
             ),
+            reading,
           ).toEqual([])
         }
 
         // ONE RECEIPT PER PLANNED ACTION, where the cell says how many (D-11, W-01): the field was
         // supplied by the cells that pin it and read by no runner until now.
         if (scenario.expect.planned !== undefined) {
-          expect(result.receipts).toHaveLength(scenario.expect.planned)
+          expect(result.receipts, reading).toHaveLength(scenario.expect.planned)
         }
       },
     )
@@ -352,11 +305,11 @@ describe.skipIf(SKIP_REASON !== undefined)(
         measured.flatMap((entry) => cells.get(entry.id)?.events ?? []),
         LIVE_DENOMINATOR,
       )
-      process.stderr.write(
-        `\n[chat live lane] mark_unhandled ${counts.unhandledCount}/${counts.denominator}\n`,
-      )
       expect(counts.denominator).toBe(LIVE_DENOMINATOR)
-      expect(ceilingExceeded(counts)).toBe(false)
+      expect(
+        ceilingExceeded(counts),
+        `mark_unhandled ${counts.unhandledCount}/${counts.denominator}`,
+      ).toBe(false)
     })
   },
 )

@@ -43,11 +43,9 @@
 //     dangerous part — a turn that still reports `completed`, so the loss is silent. The scenario's
 //     own assertion fails on the op list and on the executed count.
 //
-// A RELEASE GATE, NOT A PER-COMMIT ONE, on plan 09's gate and for its reason (D-13): the off-arm
-// consults a real model, so it costs tokens and wall-clock. `AGENT_QA_LIVE_CHAT_CONFIG` is the
-// switch, a never-skipping describe announces which lane actually ran, and the default state is a
-// visible skip — a credential guard that degrades to a silent no-op has produced green runs that
-// measured nothing in this codebase before.
+// A release gate, not a per-commit one: the off-arm consults a real model, so it costs tokens and
+// wall-clock. `AGENT_QA_LIVE_CHAT_CONFIG` is the switch. Without it the live describe is skipped,
+// and vitest's summary reports the skipped cells.
 
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -99,13 +97,6 @@ const SCENARIOS_ROOT = fileURLToPath(
 const HOST_SOURCE = fileURLToPath(new URL('../composition/local-agent-host.ts', import.meta.url))
 
 const LIVE_CONFIG = process.env.AGENT_QA_LIVE_CHAT_CONFIG
-
-const SKIP_REASON =
-  LIVE_CONFIG === undefined
-    ? 'AGENT_QA_LIVE_CHAT_CONFIG is unset — no live-model auth was offered, so the D-16 mutation '
-      + 'proof did not run. Set it to a project config path whose registry.llms and auth plugins '
-      + 'resolve on this machine.'
-    : undefined
 
 /** The run the scenario's second clause names. Seeded so the cell measures routing, not a gap. */
 const SEEDED_RUN_ID = 'RUN-1'
@@ -203,6 +194,19 @@ interface Arm {
   readonly result: AgentAskResult
   /** What the injected run executor was actually called with — the bound-argument observable. */
   readonly startedRuns: readonly RunsStartInput[]
+  readonly reading: string
+}
+
+function armReading(
+  overrideOn: boolean,
+  result: AgentAskResult,
+  startedRuns: readonly RunsStartInput[],
+): string {
+  const ops = result.receipts.map((r) => `${r.functionId}:${r.status}:${r.origin}`).join(', ')
+  return (
+    `${overrideOn ? 'override on' : 'override off'} -> ${result.status} ops=[${ops}]`
+    + ` runs=${JSON.stringify(startedRuns)} unhandled=${result.unhandled?.clause ?? '-'}`
+  )
 }
 
 /**
@@ -212,21 +216,20 @@ interface Arm {
  * differently-written checks. Arm B asserts that this THROWS, which is what makes the suite pass
  * by MEASURING the red rather than by declaring it.
  */
-function assertScenario(scenario: ChatScenario, arm: Arm): void {
+function assertScenario(scenario: ChatScenario, arm: Arm, message: string): void {
   const executed = arm.result.receipts.filter((receipt) => receipt.status === 'executed')
-  expect(arm.result.status).toBe('completed')
-  expect(arm.result.receipts.map((receipt) => receipt.functionId)).toEqual(scenario.expect.ops ?? [])
-  expect(arm.result.receipts.map((receipt) => receipt.status)).toEqual(
+  expect(arm.result.status, message).toBe('completed')
+  expect(arm.result.receipts.map((receipt) => receipt.functionId), message).toEqual(
+    scenario.expect.ops ?? [],
+  )
+  expect(arm.result.receipts.map((receipt) => receipt.status), message).toEqual(
     arm.result.receipts.map(() => 'executed'),
   )
-  expect(executed).toHaveLength(scenario.expect.executed)
+  expect(executed, message).toHaveLength(scenario.expect.executed)
 }
 
-describe('the mutation proof announces which lane actually ran', () => {
-  it('names the gate condition, so a skip can never be mistaken for a pass', () => {
-    process.stderr.write(
-      `\n[D-16 mutation proof] ${SKIP_REASON ?? `running against ${String(LIVE_CONFIG)}`}\n`,
-    )
+describe("the mutation proof's subject and build", () => {
+  it('takes an admitted should_execute member of the live corpus as its subject', () => {
     // The subject must be an ADMITTED member of the frozen corpus, not a file this test found.
     expect(SUBJECT).toBeDefined()
     expect(SUBJECT?.kind).toBe('should_execute')
@@ -257,7 +260,7 @@ describe('the mutation proof announces which lane actually ran', () => {
   })
 })
 
-describe.skipIf(SKIP_REASON !== undefined)(
+describe.skipIf(LIVE_CONFIG === undefined)(
   'the deterministic override, proved by removing it',
   () => {
     let root: string
@@ -329,14 +332,11 @@ describe.skipIf(SKIP_REASON !== undefined)(
         { message: utterance },
         HUMAN,
       )) as AgentAskResult
-      process.stderr.write(
-        `\n[D-16 mutation proof] ${reconcile === undefined ? 'ARM A (override on) ' : 'ARM B (override off)'}`
-          + ` -> ${result.status}`
-          + ` ops=[${result.receipts.map((r) => `${r.functionId}:${r.status}:${r.origin}`).join(', ')}]`
-          + ` runs=${JSON.stringify(startedRuns)}`
-          + ` unhandled=${result.unhandled?.clause ?? '-'}\n`,
-      )
-      return { result, startedRuns }
+      return {
+        result,
+        startedRuns,
+        reading: armReading(reconcile === undefined, result, startedRuns),
+      }
     }
 
     it('AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
@@ -361,15 +361,16 @@ describe.skipIf(SKIP_REASON !== undefined)(
      * live execution reproduced it — so an attempt runs BOTH arms and is DECISIVE only if the
      * on-arm satisfied the scenario. The first decisive attempt is the one asserted on.
      *
-     * IT NEVER ROUNDS. If no attempt is decisive the suite FAILS with every attempt printed, which
-     * reports an unstable corpus cell rather than converting one into a passing proof. That is
-     * plan 09's own retune path applied where it belongs: raise k for the lane, never soften the
-     * assertion of the cell that flapped.
+     * IT NEVER ROUNDS. If no attempt is decisive the suite FAILS with every attempt in its failure
+     * message, which reports an unstable corpus cell rather than converting one into a passing
+     * proof. That is the live lane's own retune path applied where it belongs: raise k for the
+     * lane, never soften the assertion of the cell that flapped.
      */
     const MAX_ATTEMPTS = 3
     let decisiveOn: Arm | undefined
     let decisiveOff: Arm | undefined
     let attemptsTaken = 0
+    const attemptLines: string[] = []
 
     beforeAll(async () => {
       if (capabilities === undefined) return
@@ -380,13 +381,14 @@ describe.skipIf(SKIP_REASON !== undefined)(
         const off = await runArm(scenario.utterance, modelVerbatimStrategy)
         let decisive = true
         try {
-          assertScenario(scenario, on)
+          assertScenario(scenario, on, on.reading)
         } catch {
           decisive = false
         }
-        process.stderr.write(
-          `\n[D-16 mutation proof] attempt ${attempt}/${MAX_ATTEMPTS} `
-            + `${decisive ? 'DECISIVE' : 'inconclusive (the on-arm did not satisfy the scenario)'}\n`,
+        attemptLines.push(
+          `attempt ${attempt}/${MAX_ATTEMPTS} `
+            + `${decisive ? 'decisive' : 'inconclusive (the on-arm did not satisfy the scenario)'}`
+            + `\n  ${on.reading}\n  ${off.reading}`,
         )
         if (decisive) {
           decisiveOn = on
@@ -412,45 +414,52 @@ describe.skipIf(SKIP_REASON !== undefined)(
       expect(
         decisiveOn,
         `no decisive attempt in ${attemptsTaken}: the on-arm never satisfied the committed `
-          + 'scenario, so there is no green side for the mutation to take away. Read the per-arm '
-          + 'lines above — this is a report about the live cell, not about the override.',
+          + 'scenario, so there is no green side for the mutation to take away. This is a report '
+          + `about the live cell, not about the override.\n${attemptLines.join('\n')}`,
       ).toBeDefined()
       const scenario = readSubject()
-      assertScenario(scenario, decisiveOn!)
+      const on = decisiveOn!
+      assertScenario(scenario, on, on.reading)
       // The two claims the scenario cannot make about itself, because a receipt carries no
       // arguments and no stage: the MAPPER's binding is what reached the run executor, and the
       // clause the table bound executed as a person acting rather than as the model acting.
-      expect(decisiveOn!.startedRuns).toEqual([MAPPER_BINDING])
-      expect(decisiveOn!.result.receipts[0]?.origin).toBe('human')
-      expect(decisiveOn!.result.receipts[1]?.functionId).toBe(RUNS_DIGEST_FUNCTION_ID)
-      expect(decisiveOn!.result.receipts[1]?.origin).toBe('agent')
+      expect(on.startedRuns, on.reading).toEqual([MAPPER_BINDING])
+      expect(on.result.receipts[0]?.origin, on.reading).toBe('human')
+      expect(on.result.receipts[1]?.functionId, on.reading).toBe(RUNS_DIGEST_FUNCTION_ID)
+      expect(on.result.receipts[1]?.origin, on.reading).toBe('agent')
     })
 
     it('ARM B — the override removed: the SAME scenario goes RED, and the suite measures the red', () => {
-      expect(decisiveOff).toBeDefined()
+      expect(
+        decisiveOff,
+        `no decisive attempt in ${attemptsTaken}.\n${attemptLines.join('\n')}`,
+      ).toBeDefined()
       const scenario = readSubject()
       const arm = decisiveOff!
 
       // THE MUTATION PROOF, in one line: the scenario's own contract, applied to the same
       // utterance through the same composition with one option changed, THROWS.
       expect(() => {
-        assertScenario(scenario, arm)
-      }).toThrow()
+        assertScenario(scenario, arm, arm.reading)
+      }, arm.reading).toThrow()
 
       // The predicted SHAPE, asserted rather than left to the reader. Recording which shape was
       // measured is the plan's own requirement, and asserting it is what stops the red above from
       // being satisfied by an unrelated failure — a differential whose off-arm reds for a setup
       // reason proves nothing about the mechanism.
-      expect(arm.result.receipts.map((receipt) => receipt.functionId)).toEqual([
+      expect(arm.result.receipts.map((receipt) => receipt.functionId), arm.reading).toEqual([
         RUNS_DIGEST_FUNCTION_ID,
       ])
       // ZERO runs started: the half the person typed as a canonical command is simply gone. This
       // is the whole cost of the override, stated as a measurement.
-      expect(arm.startedRuns).toEqual([])
+      expect(arm.startedRuns, arm.reading).toEqual([])
       // And the loss is SILENT — the turn still reports success. A refusal would at least be
       // visible; this is the failure shape the deterministic override exists to make impossible.
-      expect(arm.result.status).toBe('completed')
-      expect(arm.result.receipts.every((receipt) => receipt.origin === 'agent')).toBe(true)
+      expect(arm.result.status, arm.reading).toBe('completed')
+      expect(
+        arm.result.receipts.every((receipt) => receipt.origin === 'agent'),
+        arm.reading,
+      ).toBe(true)
     })
   },
 )

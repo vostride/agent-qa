@@ -207,23 +207,21 @@ function requestedModels(stderr: string): string[] {
   return [...models]
 }
 
-function report(label: string, run: LiveRun, clicked: readonly string[]): void {
+function runReading(run: LiveRun, clicked: readonly string[]): string {
   const test = run.handoff?.tests?.[0]
   const step = test?.steps?.[0]
   const lastError = step?.subActions?.map((sub) => sub.result?.error).filter(Boolean).at(-1)
-  process.stderr.write(
-    `\n[C438-AUTO15-LIVE] ${label}: exit=${String(run.status)} configured=${LLM}`
-      + ` requested=[${requestedModels(run.stderr).join(',')}]`
-      + ` responding=[${run.respondingModelIds.join(',')}]`
-      + ` outcome=${String(test?.outcome)} stepPass=${String(step?.verifierVerdict?.pass)}`
-      + ` termination=${JSON.stringify(step?.termination ?? null)}`
-      + ` lastError=${JSON.stringify(lastError ?? null)}`
-      + ` clicks=${JSON.stringify(clicked)}\n`,
-  )
-  if (run.handoff === undefined) {
-    const tail = run.stderr.split('\n').filter((line) => !line.startsWith('[agent-qa:llm]')).slice(-20)
-    process.stderr.write(`[C438-AUTO15-LIVE] ${label}: no handoff; stderr tail:\n${tail.join('\n')}\n`)
-  }
+  const reading =
+    `exit=${String(run.status)} configured=${LLM}`
+    + ` requested=[${requestedModels(run.stderr).join(',')}]`
+    + ` responding=[${run.respondingModelIds.join(',')}]`
+    + ` outcome=${String(test?.outcome)} stepPass=${String(step?.verifierVerdict?.pass)}`
+    + ` termination=${JSON.stringify(step?.termination ?? null)}`
+    + ` lastError=${JSON.stringify(lastError ?? null)}`
+    + ` clicks=${JSON.stringify(clicked)}`
+  if (run.handoff !== undefined) return reading
+  const tail = run.stderr.split('\n').filter((line) => !line.startsWith('[agent-qa:llm]')).slice(-20)
+  return `${reading}\nno handoff; stderr tail:\n${tail.join('\n')}`
 }
 
 function requireLiveSetup(): void {
@@ -244,13 +242,13 @@ describe.skipIf(!LIVE)('an ambiguous click target in a live run', () => {
     clicks.length = 0
     const run = await runLive('Click the okay button')
     const clicked = [...clicks]
-    report('refusal', run, clicked)
+    const reading = runReading(run, clicked)
 
-    expect(run.handoff, 'the run left no handoff.json').toBeDefined()
+    expect(run.handoff, `the run left no handoff.json\n${reading}`).toBeDefined()
     const test = run.handoff!.tests?.[0]
-    expect(test?.steps?.[0]?.verifierVerdict?.pass).not.toBe(true)
-    expect(test?.outcome).not.toBe('passed')
-    expect(clicked).toEqual([])
+    expect(test?.steps?.[0]?.verifierVerdict?.pass, reading).not.toBe(true)
+    expect(test?.outcome, reading).not.toBe('passed')
+    expect(clicked, reading).toEqual([])
   }, CELL_TIMEOUT)
 
   it('"Click the second okay button" clicks the second', async () => {
@@ -258,12 +256,12 @@ describe.skipIf(!LIVE)('an ambiguous click target in a live run', () => {
     clicks.length = 0
     const run = await runLive('Click the second okay button')
     const clicked = [...clicks]
-    report('second', run, clicked)
+    const reading = runReading(run, clicked)
 
-    expect(run.handoff, 'the run left no handoff.json').toBeDefined()
+    expect(run.handoff, `the run left no handoff.json\n${reading}`).toBeDefined()
     const test = run.handoff!.tests?.[0]
-    expect(test?.steps?.[0]?.verifierVerdict?.pass).toBe(true)
-    expect(test?.outcome).toBe('passed')
-    expect(clicked).toEqual(['2'])
+    expect(test?.steps?.[0]?.verifierVerdict?.pass, reading).toBe(true)
+    expect(test?.outcome, reading).toBe('passed')
+    expect(clicked, reading).toEqual(['2'])
   }, CELL_TIMEOUT)
 })
