@@ -615,9 +615,6 @@ describe('the Knowledge tab on the shipped bundle at three geometries', () => {
       writeFileSync(join(process.env.AGENT_QA_427_CAPTURE_DIR, 'knowledge-observation.json'),
         JSON.stringify({ ...observation, projection: worlds.get('settled') }, null, 2))
     }
-    process.stderr.write(`427-13 knowledge drive: ${JSON.stringify({ failures, realRead, zoom, remount,
-      geometries: geometries.map(({ label, state, document, owner, root, horizontal, vertical, escaping }) =>
-        ({ label, state, document, owner, root, horizontal, vertical, escaping })) })}\n`)
   }, 480_000)
 
   afterAll(async () => { await zoomContext?.close(); await reader?.stop(); await fixture?.close(); cleanupTempRoots() })
@@ -645,18 +642,22 @@ describe('the Knowledge tab on the shipped bundle at three geometries', () => {
 
   it('LAYOUT-KNOWLEDGE-1280', () => {
     expectNoSidewaysScroll(DESKTOP_LABEL)
-    for (const geometry of geometries.filter(entry => entry.label === DESKTOP_LABEL)) expect(geometry.innerWidth).toBe(1280)
+    for (const geometry of geometries.filter(entry => entry.label === DESKTOP_LABEL)) {
+      expect(geometry.innerWidth, `${geometry.label} ${geometry.state}`).toBe(1280)
+    }
   })
 
   it('LAYOUT-KNOWLEDGE-400', () => {
     expectNoSidewaysScroll(NARROW_LABEL)
-    for (const geometry of geometries.filter(entry => entry.label === NARROW_LABEL)) expect(geometry.innerWidth).toBe(400)
+    for (const geometry of geometries.filter(entry => entry.label === NARROW_LABEL)) {
+      expect(geometry.innerWidth, `${geometry.label} ${geometry.state}`).toBe(400)
+    }
   })
 
   it('LAYOUT-KNOWLEDGE-ZOOM2', () => {
     expect(zoom?.factor, JSON.stringify(failures)).toBe(2)
-    expect(zoom!.afterWidth).toBe(zoom!.beforeWidth / 2)
-    expect(zoom!.afterDpr).toBe(zoom!.beforeDpr * 2)
+    expect(zoom!.afterWidth, JSON.stringify(zoom)).toBe(zoom!.beforeWidth / 2)
+    expect(zoom!.afterDpr, JSON.stringify(zoom)).toBe(zoom!.beforeDpr * 2)
     expectNoSidewaysScroll(ZOOM_LABEL)
   })
 

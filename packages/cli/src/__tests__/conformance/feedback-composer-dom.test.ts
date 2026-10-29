@@ -766,9 +766,6 @@ describe('contextual feedback on the shipped bundle', () => {
             layout: { zoom, headerGeometries, composerGeometries, stepRows, remount, contrast, aria } }, null, 2))
       }
     } catch (error) { failures.drive = String(error) }
-    process.stderr.write(`426-16 feedback drive: ${JSON.stringify({ failures, settled, triggers, pills, inspecting, markPath })}\n`)
-    process.stderr.write(`426-17 layout drive: ${JSON.stringify({ zoom, remount, aria, stepRows, contrast: contrast.map(({ samples, ...rest }) => rest),
-      composer: composerGeometries.map(({ items, ...rest }) => rest) })}\n`)
   }, 360_000)
 
   afterAll(async () => { await zoomContext?.close(); await reader?.stop(); await fixture?.close(); cleanupTempRoots() })
@@ -778,7 +775,7 @@ describe('contextual feedback on the shipped bundle', () => {
     expect(settled?.detailStatus, JSON.stringify(settled)).toBe(200)
     expect(Array.isArray(settled!.marks), `member 0 carries no marks array: ${JSON.stringify(settled)}`).toBe(true)
     expect(settled!.stepCount, 'member 0 needs a second step to select while composing').toBeGreaterThanOrEqual(2)
-    expect(settled!.previewStatus).toBe(200)
+    expect(settled!.previewStatus, JSON.stringify(settled)).toBe(200)
     expect(settled!.previewParsed, `mark-preview body failed RunsMarkPreviewResultSchema: ${JSON.stringify(settled)}`).toBe(true)
     expect(['consequences', 'quarantined'], JSON.stringify(settled)).toContain(settled!.previewKind)
   })
@@ -786,7 +783,7 @@ describe('contextual feedback on the shipped bundle', () => {
   it('TRIGGER-COUNT-ON-BINARY', () => {
     expect(triggers, JSON.stringify(failures)).toBeDefined()
     expect(triggers!.loaded, JSON.stringify(triggers)).toBe(2)
-    expect([...triggers!.kinds].sort()).toEqual(['step', 'test'])
+    expect([...triggers!.kinds].sort(), JSON.stringify(triggers)).toEqual(['step', 'test'])
     expect(triggers!.selectedAfterEscape, JSON.stringify(triggers)).toBe(0)
     expect(triggers!.afterEscape, JSON.stringify(triggers)).toBe(1)
   })
@@ -867,8 +864,8 @@ describe('contextual feedback on the shipped bundle', () => {
   it('COMPOSER-STACKS-NARROW', () => {
     expect(composerGeometries.map(geometry => geometry.label), JSON.stringify(failures)).toEqual(GEOMETRY_LABELS)
     expect(zoom?.factor, JSON.stringify(zoom)).toBe(2)
-    expect(zoom!.afterWidth).toBe(zoom!.beforeWidth / 2)
-    expect(zoom!.afterDpr).toBe(zoom!.beforeDpr * 2)
+    expect(zoom!.afterWidth, JSON.stringify(zoom)).toBe(zoom!.beforeWidth / 2)
+    expect(zoom!.afterDpr, JSON.stringify(zoom)).toBe(zoom!.beforeDpr * 2)
     for (const geometry of composerGeometries) {
       const where = `${geometry.label} innerWidth=${geometry.innerWidth} composer=${JSON.stringify(geometry.composer)} evidence=${JSON.stringify(geometry.evidence)} group=${JSON.stringify(geometry.group)}`
       expect(geometry.regions, where).toBe(1)
