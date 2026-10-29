@@ -1,4 +1,4 @@
-// The fan-out bound's three terms, pinned at the TYPE (394-08, D-10 · WTST-08).
+// The fan-out bound's three terms, pinned at the TYPE.
 //
 // A TERM CANNOT BE DROPPED SILENTLY. The bound is `initial N + K probes + final N`, and the two N
 // terms are structurally different quantities: the initial stability gate is early-stopped, the

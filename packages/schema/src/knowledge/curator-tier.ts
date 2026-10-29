@@ -9,7 +9,7 @@ export type CuratorTier = 'full' | 'degraded' | 'floor'
 
 /**
  * D-03 closed procedure-parameter type union. `secret` exists so the extraction
- * disposition can structurally reject unparameterized secrets (T-381-02).
+ * disposition can structurally reject unparameterized secrets.
  */
 export type ProcedureParamType = 'string' | 'number' | 'boolean' | 'secret'
 

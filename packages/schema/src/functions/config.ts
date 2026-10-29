@@ -18,7 +18,7 @@ export type ConfigValueSource =
 
 /**
  * One resolved configuration key/value pair, rendered and passed through the declared-secret
- * mask while it is constructed (Phase 384, D-06/D-16; 441-20 and 441-40, D-29).
+ * mask while it is constructed.
  *
  * The mask is applied at construction, so a surface holding a `MaskedResolvedConfig` never
  * holds a declared value to redact downstream: each one already reads as its
@@ -40,7 +40,7 @@ export interface MaskedConfigEntry {
 
 /**
  * The `config.get` result: the masked, provenance-annotated resolved configuration read
- * that seeds 395's config class (Phase 384, D-06/D-16).
+ * that seeds 395's config class.
  *
  * A flat entry list rather than a nested tree — provenance is per-leaf, and a flat list is
  * the shape both a table renderer and a JSON-Schema projection want.

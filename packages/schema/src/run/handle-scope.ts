@@ -1,6 +1,6 @@
-// Handle identity and the per-handle stream filter (Phase 402 plan 04, D-10 / D-14 · INVK-04).
+// Handle identity and the per-handle stream filter.
 //
-// A HANDLE IS DERIVED ADDRESSING, NOT A NEW IDENTIFIER (D-10). A parallel run presents ONE run id
+// A HANDLE IS DERIVED ADDRESSING, NOT A NEW IDENTIFIER. A parallel run presents ONE run id
 // and N attachable per-member handles, and the identity a handle is spelled from is one the
 // payloads already carry: `testIndex`, bound at `createMemberEventSink` construction. Nothing is
 // minted here and nothing is added to the frozen envelope `{ seq, ts, runId, type, payload }` —
@@ -12,7 +12,7 @@
 // member of it is an excess-property error. There is deliberately no default branch, no `??` and
 // no "everything else is run-scoped" arm: a fall-through would silently publish a future
 // member-scoped event to every handle, which is the exact cross-handle disclosure this filter
-// exists to prevent (T-402-13).
+// exists to prevent.
 //
 // WHY A THIRD SCOPE VALUE. The plan named two — member and run — and reading `HookStartedPayload`
 // at implementation time showed that hooks are neither. `testIndex` on that payload is OPTIONAL,
@@ -35,7 +35,7 @@ import { RUN_EVENT_TYPES, type RunEventEnvelope, type RunEventType } from './bus
 /**
  * What an envelope addresses.
  *
- * - `run` — the whole run. ALWAYS passes a handle filter (D-14): a handle subscriber still has to
+ * - `run` — the whole run. ALWAYS passes a handle filter: a handle subscriber still has to
  *   learn that the run ended, what the verdict was, and that the process is alive.
  * - `member` — exactly one member, named by a REQUIRED `payload.testIndex`.
  * - `member-when-addressed` — one member when the payload names it, the run when it does not.
@@ -58,7 +58,7 @@ export type RunEventScope = 'run' | 'member' | 'member-when-addressed'
  * - **Hooks** (`hookStarted`, `hookFinished`) — see the header note above.
  * - **The six post-run chip events** — run-scoped by nature: `ChipEventPayload` is
  *   `{ runId, error?, willRetry? }`. There is no member producer and no field that could name one.
- *   SIX since 404 D-02 (2026-08-26), not nine: the three never-emitted names for the third chain
+ *   SIX since 404 D-02, not nine: the three never-emitted names for the third chain
  *   member were removed from the frozen vocabulary, and this table lost the same three keys.
  */
 export const RUN_EVENT_SCOPE = {
@@ -115,7 +115,7 @@ export function memberIndexOf(envelope: RunEventEnvelope): number | undefined {
  * D-14's filter: does this envelope belong on the stream of handle `handleIndex`?
  *
  * The ONE spelling of run-scoped-ness in the product. The run service's SSE route imports this
- * rather than re-deriving it, so there is no second place the answer could drift (T-402-15).
+ * rather than re-deriving it, so there is no second place the answer could drift.
  *
  * Order matters: the CLASSIFICATION decides first. A run-scoped envelope passes even if its
  * payload happens to carry a `testIndex` — otherwise a run-scoped event that grew that field
@@ -180,7 +180,7 @@ const CANONICAL_HANDLE = /^(?:0|[1-9][0-9]*)$/
  *
  * DELIBERATELY NOT `Number(raw)`: that accepts `'  7 '`, `'0x7'`, `'1e1'`, `''` (→ 0) and `'-0'`,
  * so a caller could reach a member through several spellings and an empty parameter would silently
- * become handle 0. The canonical form is the only accepted form (T-402-14).
+ * become handle 0. The canonical form is the only accepted form.
  */
 export function parseHandleParam(raw: string | null | undefined): HandleParamParse {
   if (raw === null || raw === undefined) return { kind: 'absent' }

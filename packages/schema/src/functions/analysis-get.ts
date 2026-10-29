@@ -10,14 +10,14 @@ import type { Verdict } from '../verdict/verdict'
 // THE one producer of a run's full analysis: resolved verdicts (through the D-10 accessor),
 // rendered sentences (the one renderer, live recurrence joins applied), and render-time
 // clusters. The DTO carries clusters AND the full per-test sentences so a run page can
-// expand a cluster (D-15) — every verdict still carries its sentence (ANLZ-03), the
-// presentation dedupes (ANLZ-04).
+// expand a cluster — every verdict still carries its sentence, the
+// presentation dedupes.
 //
-// Clusters mint NO identity (D-16): fingerprint value, count, member refs and a representative —
+// Clusters mint NO identity: fingerprint value, count, member refs and a representative —
 // a cluster or verdict has no short-ID and no `agentqa://` address.
-// 2026-09-02 (Phase 410): the sixth entity kind left with the Issue-slot cleanup.
+// the sixth entity kind left with the Issue-slot cleanup.
 //
-// EVIDENCE ON THE WIRE (Phase 406, D-01). A verdict said what it CONCLUDED and never what it
+// EVIDENCE ON THE WIRE. A verdict said what it CONCLUDED and never what it
 // READ, so a page wanting "jump to the step this is about" or "open the screenshot it looked at"
 // had to open `analysis.json` itself and re-join — a second producer of the same refs, which is
 // the one thing this op exists to prevent. Each resolved verdict now carries the cited steps and
@@ -54,7 +54,7 @@ export type AnalysisGetInput = z.infer<typeof AnalysisGetInputSchema>
  * artifact/handoff documents rather than crossing every surface boundary by default.
  */
 /**
- * One artifact a verdict cited, as the analysis surface links it (D-01/D-17).
+ * One artifact a verdict cited, as the analysis surface links it.
  *
  * TWO ABSENCE FACTS, KEPT APART. `evidenceIncomplete` is the PRODUCER's — it knew at emit time
  * it could not attach these bytes — and `present` is the READER's, a stat taken when this DTO was
@@ -72,7 +72,7 @@ export interface AnalysisCitedArtifact {
   present?: boolean
 }
 
-/** What one verdict read, projected from its own `Verdict.evidence` — never re-derived (D-01). */
+/** What one verdict read, projected from its own `Verdict.evidence` — never re-derived. */
 export interface AnalysisVerdictEvidence {
   citedSteps: number[]
   citedArtifacts: AnalysisCitedArtifact[]
@@ -90,7 +90,7 @@ export interface AnalysisResolvedVerdict {
   class: Verdict['class']
   producer: 'deterministic-classifier' | 'analyze-run'
   confidence: number
-  /** OPTIONAL for readers compiled before 406; the op always emits it (D-01). */
+  /** OPTIONAL for readers compiled before 406; the op always emits it. */
   evidence?: AnalysisVerdictEvidence
   /**
    * The low-trust records this verdict declared on its failing path. Absent when the verdict
@@ -99,21 +99,21 @@ export interface AnalysisResolvedVerdict {
   memoryOnPath?: AnalysisMemoryOnPathEntry[]
 }
 
-/** One member test's composed sentence — the ONE renderer's output, verbatim (D-05). */
+/** One member test's composed sentence — the ONE renderer's output, verbatim. */
 export interface AnalysisSentence {
   perTest: number
   testId: string
   sentence: string
 }
 
-/** A cluster member ref: the join keys a surface needs to expand, nothing more (D-16). */
+/** A cluster member ref: the join keys a surface needs to expand, nothing more. */
 export interface AnalysisClusterMemberRef {
   testIndex: number
   testId: string
 }
 
 /**
- * One cluster as the op serves it (D-15/D-16): the fingerprint VALUE (never hashed, never
+ * One cluster as the op serves it: the fingerprint VALUE (never hashed, never
  * given an id), occurrence count, member refs ordered by testIndex, and the representative
  * member with its composed sentence.
  */
@@ -127,7 +127,7 @@ export interface AnalysisClusterView {
   }
 }
 
-/** The `analysis.get` result (D-11): verdicts + sentences + clusters, one producer. */
+/** The `analysis.get` result: verdicts + sentences + clusters, one producer. */
 export interface AnalysisGetOutput {
   runId: string
   verdicts: AnalysisResolvedVerdict[]

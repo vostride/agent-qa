@@ -96,7 +96,7 @@ function hasCompleteSubActionShape(value: unknown): boolean {
     }
   }
   if (!hasCompleteStateBeforeShape(value.stateBefore)) return false
-  // 2026-10-19 (444.1-08, D-14): curation dereferences the dispatch pair as it does the planner's.
+  // curation dereferences the dispatch pair as it does the planner's.
   if ('healedDispatch' in value) {
     const healed = value.healedDispatch
     if (!isNonArrayObject(healed) || !isNonArrayObject(healed.action)) return false
@@ -112,7 +112,7 @@ function hasCompleteSubActionShape(value: unknown): boolean {
 
 /**
  * Mirrors the six-kind Anchor union (discriminant `t` plus its payload) so every
- * guard-admitted `citedAnchors` member survives normalizeAnchor in the curator drain (WR-02).
+ * guard-admitted `citedAnchors` member survives normalizeAnchor in the curator drain.
  */
 function isAnchorShape(value: unknown): boolean {
   if (!isNonArrayObject(value)) return false
@@ -144,7 +144,7 @@ function isAnchorShape(value: unknown): boolean {
 
 /**
  * Requires string `id`/`sha` so artifact descriptor mapping is total (`ref.id.startsWith`
- * runs once the sha regex passes); hex-format enforcement stays the consumer's filter (WR-02).
+ * runs once the sha regex passes); hex-format enforcement stays the consumer's filter.
  */
 function isArtifactRefShape(value: unknown): boolean {
   return (
@@ -164,7 +164,7 @@ const PLAN_SOURCE_MISS_REASONS = new Set<string>([
 ])
 
 /**
- * The closed `StepPlanSource` procedure-hint demotion union (G-381-4 / D-12). Kept verbatim
+ * The closed `StepPlanSource` procedure-hint demotion union. Kept verbatim
  * beside the miss-reason set: a demotion outside it is a malformed document, never something
  * to loosen the predicate for.
  */
@@ -206,8 +206,8 @@ function hasProcedureStepIndexShape(value: unknown): boolean {
 
 /**
  * Validates a present `planSource` against the complete discriminated StepPlanSource
- * union (D-12): canary projection dereferences the replay guard's fold fields, so an
- * admitted procedure-replay source must carry them in full (CR-02).
+ * union: canary projection dereferences the replay guard's fold fields, so an
+ * admitted procedure-replay source must carry them in full.
  */
 function hasCompletePlanSourceShape(value: unknown): boolean {
   if (!isNonArrayObject(value)) return false
@@ -247,7 +247,7 @@ function hasCompletePlanSourceShape(value: unknown): boolean {
     return false
   }
   if ('flow' in value) {
-    // F-381-51-1 · D-09 / 407-12 / 407-20: the additive flow cursor is admitted only
+    // the additive flow cursor is admitted only
     // well-formed — present ⇒ {cursor, length} both NON-NEGATIVE INTEGERS, the domain the wire
     // declares (`RunKnowledgePlanSourceSchema.flow`). Fail-closed on any other shape (the
     // CR-02/381-36 strictness is never loosened for a new member).
@@ -261,7 +261,7 @@ function hasCompletePlanSourceShape(value: unknown): boolean {
 /**
  * Validates a present `rootCause` against the complete Verdict shape: candidate
  * emission traverses `evidence.citedSteps`/`citedAnchors`/`citedArtifacts`/`rationale`,
- * so an admitted verdict must carry them in consumer-traversable form (CR-02).
+ * so an admitted verdict must carry them in consumer-traversable form.
  */
 function hasCompleteRootCauseShape(value: unknown): boolean {
   if (!isNonArrayObject(value)) return false
@@ -323,7 +323,7 @@ function hasCompleteRootCauseShape(value: unknown): boolean {
 
 /**
  * Validates a present `interpolatedVariables` at the depth its one consumer dereferences
- * (381 G-381-3): the procedure-extraction emit fold applies exact string equality against
+ * the procedure-extraction emit fold applies exact string equality against
  * `value` to classify a trajectory value slot and copies `name` VERBATIM as the forced
  * parameter name — so every admitted member must be a non-array object carrying string
  * `name` AND string `value`, and nothing deeper exists to validate. Absence stays legal
@@ -343,7 +343,7 @@ function hasCompleteInterpolatedVariablesShape(value: unknown): boolean {
 }
 
 /**
- * Validates a present `retrievalTrace` (387 D-13/D-14) by DELEGATING to the one schema that
+ * Validates a present `retrievalTrace` by DELEGATING to the one schema that
  * declares it, rather than restating its fields here.
  *
  * Every other predicate in this file is hand-rolled because its subject is a TypeScript
@@ -362,7 +362,7 @@ function hasCompleteRetrievalTraceShape(value: unknown): boolean {
 }
 
 /**
- * Validates a present `retrievalRung` (407 D-13) by DELEGATING to the schema that declares it,
+ * Validates a present `retrievalRung` by DELEGATING to the schema that declares it,
  * for the same reason the trace predicate above delegates: the rung ships as a zod schema, and a
  * second hand-rolled spelling here would be a guard free to drift from the contract its producer
  * validates against.
@@ -407,7 +407,7 @@ function hasCompleteConditionRecordShape(value: unknown): boolean {
 }
 
 /**
- * Validates a present `conditionVerdicts` (439 D-07) by hand: the block is a TypeScript DTO with
+ * Validates a present `conditionVerdicts` by hand: the block is a TypeScript DTO with
  * no runtime schema, and every reader (the router, the root-cause classifier, analyze-run, the
  * evidence diet) walks its conditions, verdicts and dialogs through `stepOutcomeUnproven`.
  *
@@ -537,10 +537,10 @@ function hasCompleteTestShape(value: unknown, runId: string): boolean {
     Array.isArray(value.steps) &&
     value.steps.every(hasCompleteStepShape) &&
     (!('rootCause' in value) || hasCompleteRootCauseShape(value.rootCause)) &&
-    // 390 D-14: only the literal marker is legal. A truthy-but-not-true value would let a
+    // only the literal marker is legal. A truthy-but-not-true value would let a
     // hand-edited handoff read as quarantined at one consumer and not at another.
     (!('quarantined' in value) || value.quarantined === true) &&
-    // 2026-09-07, 418 D-09: persisted rerun fields are present-implies-valid.
+    // persisted rerun fields are present-implies-valid.
     (!('isRerun' in value) || value.isRerun === true) &&
     (!('rerunAttempt' in value) ||
       (typeof value.rerunAttempt === 'number' &&
@@ -551,7 +551,7 @@ function hasCompleteTestShape(value: unknown, runId: string): boolean {
 }
 
 /**
- * 390 D-16: one applied-entry record, at the depth consumers traverse — the three identity legs
+ * one applied-entry record, at the depth consumers traverse — the three identity legs
  * plus the expiry that says how long the disposition was licensed for. Every field is a required
  * non-empty string; an entry missing its identity could never be joined back to a test.
  */
@@ -574,7 +574,7 @@ function hasPlannerLimitsPerTestShape(value: unknown): boolean {
 }
 
 /**
- * 436 D-06: the loader's spelling of `PlannerLimitsRecordSchema` (`../functions/runs`). The
+ * the loader's spelling of `PlannerLimitsRecordSchema` (`../functions/runs`). The
  * acknowledgement copies an admitted record onto that strict wire, so the two must never disagree.
  */
 function hasPlannerLimitsRecordShape(value: unknown): boolean {
@@ -606,9 +606,9 @@ function hasQuarantineAppliedShape(value: unknown): boolean {
  * Guarantees every required root field plus the required fields on each per-test outcome
  * and traversed step before a handoff reaches direct consumers, including the complete
  * discriminated shapes of the two traversed optional blocks — `planSource` and `rootCause`
- * (CR-02), including a present `planSource.demotion` on the procedure-hint arm, which must
+ * including a present `planSource.demotion` on the procedure-hint arm, which must
  * sit inside the closed body-unreadable/body-unparseable/body-empty union while its absence
- * stays legal (G-381-4) — the string `name`/`value` of every present `interpolatedVariables` member, the
+ * stays legal — the string `name`/`value` of every present `interpolatedVariables` member, the
  * pair the emit fold value-matches and name-copies (G-381-3 capture half; absence and
  * emptiness both stay legal) — the element shapes of the consumer-traversed arrays — every `subActions` member
  * is dereferenceable through `plannedAction`, `grounding.attempts` (flatMapped by
@@ -619,7 +619,7 @@ function hasQuarantineAppliedShape(value: unknown): boolean {
  * (CR-01/WR-01 grounding-depth and value-level closure; round-9 CR-01 stateAfter-url
  * closure); every `servedBrief.channel1`
  * member is a non-array object — and the `rootCause.evidence` members: `citedAnchors`
- * satisfy the six-kind Anchor union and `citedArtifacts` carry string id/sha (WR-02).
+ * satisfy the six-kind Anchor union and `citedArtifacts` carry string id/sha.
  * Only genuinely untraversed deep evidence — verified untraversed at the consumers'
  * dereference sites (handoff-anchors.ts, emit-candidates.ts, emit-canary-outcomes.ts,
  * normalize-anchor.ts) — stays unvalidated at this load boundary: workingMemory,

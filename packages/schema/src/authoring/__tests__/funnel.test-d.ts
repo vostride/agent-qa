@@ -1,4 +1,4 @@
-// The frozen four-stage vocabulary, pinned at the TYPE (394-07, D-15 · WTST-05).
+// The frozen four-stage vocabulary, pinned at the TYPE.
 //
 // D-15 freezes the denominator: WTST-05's comparison against the reference distribution
 // (75 / 57 / 25 / 73), the per-run digest block and every chat render consume this exact shape.
@@ -37,7 +37,7 @@ expectTypeOf<keyof AuthoringFunnel['stages']>().toEqualTypeOf<AuthoringFunnelSta
 // compile error rather than something a reviewer has to notice. D-15's whole argument is that
 // working-as-intended refusals inflating the filter rate would break comparison against the
 // reference distribution. The equality is two-sided on purpose: it also refuses a SECOND key
-// beside the funnel, which is how a retired counter comes back under a new name (411 D-09).
+// beside the funnel, which is how a retired counter comes back under a new name.
 expectTypeOf<keyof FunnelSideCounters>().toEqualTypeOf<'dedupRefusals'>()
 expectTypeOf<AuthoringFunnelStage>().not.toMatchTypeOf<keyof FunnelSideCounters>()
 

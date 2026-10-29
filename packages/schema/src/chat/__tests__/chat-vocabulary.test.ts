@@ -76,7 +76,7 @@ describe('the chat session event vocabulary is closed and total', () => {
     // always was: this is a published vocabulary, every surface renders every member, and a member
     // arriving or leaving must be a visible edit HERE and not an arithmetic change somewhere.
     //
-    // `refused` is the addition (399.1 D-02) and the ORDER is part of the pin: it is appended, so
+    // `refused` is the addition and the ORDER is part of the pin: it is appended, so
     // nothing that indexed this tuple moved. A guardrail declining an op is neither `executed` — the
     // change did not happen — nor `failed`, which sends a reader hunting a defect that is not there.
     expect([...CLAUSE_RECEIPT_STATUSES]).toEqual(['executed', 'failed', 'not-run', 'refused'])
@@ -109,7 +109,7 @@ describe('the chat session event vocabulary is closed and total', () => {
   })
 
   it('no member of the vocabulary carries a fractional confidence', () => {
-    // Stage-1 resolution is BINARY by construction (D-09): an exact predicate hit or nothing. A
+    // Stage-1 resolution is BINARY by construction: an exact predicate hit or nothing. A
     // confidence field anywhere in this vocabulary would be the first half of a threshold, and a
     // threshold is how an overriding path acquires a false-positive rate.
     const spelled = JSON.stringify({
@@ -194,7 +194,7 @@ describe('guardChatSessionEvent refuses untrusted bytes by name', () => {
         at: AT,
         actionClass: 'fn:proposals.accept',
         decision: 'accept',
-        // 392 plan 08: `gate` is a person answering the inline confirm; `verb` is a person typing
+        // `gate` is a person answering the inline confirm; `verb` is a person typing
         // `/pin`. Both decide about one class, and collapsing them would leave a reviewer unable
         // to tell a refusal of one request from a standing rule set in advance.
         source: 'gate',
@@ -231,7 +231,7 @@ describe('guardChatSessionEvent refuses untrusted bytes by name', () => {
   })
 })
 
-// 432-13 (D-14/D-22): no turn writes an `approval_decision` any more — the chat confirm and the
+// no turn writes an `approval_decision` any more — the chat confirm and the
 // `/pin` verb that wrote them are gone from chat resolution. A session a person kept from before
 // still reopens: both historical sources parse, in order, beside the events a turn writes today.
 describe('historical approval rows still read', () => {
@@ -249,11 +249,11 @@ describe('historical approval rows still read', () => {
       guardChatSessionEvent(JSON.parse(JSON.stringify(event)), CURRENT_CHAT_SESSION_SCHEMA_VERSION),
     )
     expect(reread).toEqual(historical)
-    // The kind stays declared, so a reader that folds it keeps compiling (D-22).
+    // The kind stays declared, so a reader that folds it keeps compiling.
     expect(CHAT_SESSION_EVENT_KINDS).toContain('approval_decision')
   })
 
-  // 432-42 (D-22): the reader stays and the WRITER does not. Every production source of the packages
+  // the reader stays and the WRITER does not. Every production source of the packages
   // that compose or run a chat turn is read, and no code line builds an event of the kind; a line
   // that only mentions it in a comment is not a writer.
   it('no production source of a turn-writing package builds an approval event', () => {
@@ -280,7 +280,7 @@ describe('historical approval rows still read', () => {
   })
 })
 
-// RE-SPELLED 2026-10-01 (432-18, D-14): 'the pin overlay denies, and only denies (D-21)' pinned
+// RE-SPELLED 2026-10-01: 'the pin overlay denies, and only denies' pinned
 // `pinDenies` over `ChatPinOverlay`. Both are deleted with the session pin overlay; the absence is
 // checked here and by the agent's `chat/__tests__/pin-overlay.test.ts`. The historical `/pin` row
 // (`source: 'verb'`) still parses, above.

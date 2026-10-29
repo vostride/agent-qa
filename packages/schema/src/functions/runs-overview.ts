@@ -1,4 +1,4 @@
-// `runs.overview` — one completed run as a compact address map (Phase 431, D-06).
+// `runs.overview` — one completed run as a compact address map.
 //
 // A MAP, NOT A DOCUMENT. Every field is either identity, a verdict, a count the run stored or the
 // literal address another read op takes. Bodies, traces, evidence documents and bytes stay behind

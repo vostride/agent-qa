@@ -9,7 +9,7 @@ export type RunId = string & { readonly [runIdBrand]: 'RunId' }
 export const asRunId = (value: string): RunId => value as RunId
 
 /**
- * THE run-id codec (2026-08-23, Phase 401 plan 20 · CR-04). One declaration, four call sites.
+ * THE run-id codec. One declaration, four call sites.
  *
  * WHAT IT REFUSES, AND WHY SCHEMA IS ALLOWED TO. A run id BECOMES A DIRECTORY NAME:
  * `<configDir>/.agent-qa/runs/<slugBranch(runId)>/` is where a run's `events.jsonl`, its

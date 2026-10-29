@@ -13,7 +13,7 @@
  */
 
 /**
- * The §12.16(a) per-sub-action differential-observation oracle outcome (D-06/D-07):
+ * The §12.16(a) per-sub-action differential-observation oracle outcome:
  * which oracle row evaluated the action's local intended effect, and whether it was
  * achieved. A missing per-verb signal degrades the row to the `hash-fallback` oracle.
  */
@@ -27,7 +27,7 @@ export interface LocalEffectEvidence {
 }
 
 /**
- * The five identity-keyed stagnation ladder classes (CYCLE-02, D-02). Anything the
+ * The five identity-keyed stagnation ladder classes. Anything the
  * deterministic classifier cannot place increments the `unresponsive` track.
  */
 export type StagnationClass =
@@ -39,7 +39,7 @@ export type StagnationClass =
 
 /**
  * The per-element bounded stagnation tree state captured at a terminal `stepFailed`
- * (CYCLE-02, D-03). Keyed on the element anchor (`role + nameNormalized + ordinal`),
+ * Keyed on the element anchor (`role + nameNormalized + ordinal`),
  * never description text. Counts reset on any confirmed local effect for the anchor —
  * these are bounded, identity-keyed, reset-on-progress counters, NOT a blanket step
  * counter (LOOP-02 law).
@@ -54,7 +54,7 @@ export interface StagnationEvidence {
 }
 
 /**
- * The cycle-flag terminal block (CYCLE-03, D-08). Present only when a true cycle is
+ * The cycle-flag terminal block. Present only when a true cycle is
  * flagged — state revisitation AND no task progress across the W=5 window, never on
  * action repetition alone.
  */

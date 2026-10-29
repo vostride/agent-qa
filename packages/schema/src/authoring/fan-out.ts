@@ -1,4 +1,4 @@
-// The ONE fan-out arithmetic (Phase 394, D-03/D-10 · WTST-08).
+// The ONE fan-out arithmetic.
 //
 // WHAT THIS NUMBER IS FOR. WTST-08's owner decision is preview and honest reporting with NO
 // enforced pre-dispatch budget. That decision moves the whole mitigation for an unbounded fan-out
@@ -34,7 +34,7 @@
 // type pins the key set by equality, and the runtime cells that catch a collapse are the ones that
 // use draft mode, where the two terms differ.
 
-// THE SHAPES ARE ZOD SCHEMAS AND THE TYPES ARE DERIVED FROM THEM (394-14). Until this plan the
+// THE SHAPES ARE ZOD SCHEMAS AND THE TYPES ARE DERIVED FROM THEM. Until this plan the
 // shapes here were hand-written interfaces, which was correct while nothing crossed a wire: the
 // report was an in-process value the loop handed its own caller. `authoring.draft.write` now
 // CARRIES the report on its `.strict()` output contract, so the shape is validated at a boundary —
@@ -116,7 +116,7 @@ export function computeFanOutBound(input: FanOutBoundInput): FanOutBound {
  * The bound of an invocation in which no draft ever reached verification.
  *
  * PRODUCED through the function rather than written as a literal `{initialN: 0, …, total: 0}`, so
- * it cannot pin a shape the function would not answer. A dedup refusal (D-04) ends the invocation
+ * it cannot pin a shape the function would not answer. A dedup refusal ends the invocation
  * before a byte is authored, so all three terms really are zero — this is a true value, not a
  * placeholder standing in for a number nobody computed.
  */

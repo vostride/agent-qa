@@ -1,4 +1,4 @@
-// The draft-disposition contract, written BEFORE the vocabulary exists (Phase 393, D-08).
+// The draft-disposition contract, written BEFORE the vocabulary exists.
 //
 // D-18 in one sentence: `keep-eligible` requires all four gate booleans true AND the full
 // pinned N stability runs, and N=1 draft mode answers `unverified` unless a gate one run decides
@@ -226,7 +226,7 @@ describe('DraftReceiptSchema', () => {
   })
 
   it('refuses an unknown key nested inside a gate run record', () => {
-    // Map-not-territory (D-19 / 391 D-18): a gate run is a REF plus its judgment. Strictness
+    // Map-not-territory: a gate run is a REF plus its judgment. Strictness
     // here is what structurally prevents a run payload from being smuggled into the receipt.
     expect(() =>
       DraftReceiptSchema.parse({
@@ -258,7 +258,7 @@ describe('DraftReceiptSchema', () => {
   })
 })
 
-// 2026-09-30, 432 D-06 (EDGE-09): the never-auto-keep rule is superseded. The disposition stays as
+// the never-auto-keep rule is superseded. The disposition stays as
 // the verification report; what it now decides is whether the final draft is written to its target.
 type WritesTarget = (disposition: string) => boolean
 type ParseSchema = { safeParse(value: unknown): { success: boolean } }
@@ -315,7 +315,7 @@ describe('exactly keep-eligible, proposal-only and unverified final drafts are w
                   stabilityRunsRequested: requested,
                   stabilityRunsCompleted: completed,
                 })
-                // RE-SPELLED 2026-10-03 (261003-cpv, WR-09): draft mode writes only when gates
+                // RE-SPELLED 2026-10-03: draft mode writes only when gates
                 // 1, 3 and 4 passed; gate 2 is the one a single run cannot decide.
                 const singleRunPass = executesDefinitive && addsValue && falsifiableAssertion
                 expect(predicate(disposition)).toBe(allPass || (requested === 1 && singleRunPass))
@@ -335,7 +335,7 @@ describe('exactly keep-eligible, proposal-only and unverified final drafts are w
       expect(schema.safeParse({ file: WRITTEN_FILE, disposition, gates: ALL_TRUE }).success)
         .toBe(true)
     }
-    // RE-SPELLED 2026-10-03 (261003-cpv, WR-09): draft mode writes an unverified draft whose gate 2
+    // RE-SPELLED 2026-10-03: draft mode writes an unverified draft whose gate 2
     // could not be decided, and the receipt says so; a failing gate 1, 3 or 4 is a rejection.
     expect(schema.safeParse({
       file: WRITTEN_FILE,

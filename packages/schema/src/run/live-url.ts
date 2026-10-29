@@ -7,12 +7,11 @@
  * cannot grow a private token power of its own (LIVE-02's prohibition).
  */
 
-/** The only scope a `liveUrl` may carry today. Mode A control tokens are post-v2.0 (D-05). */
+/** The only scope a `liveUrl` may carry today. Mode A control tokens are post-v2.0. */
 export const LIVE_URL_SCOPE = 'view' as const
 
 /**
  * Who a live-view token lets you watch: a run token never opens an editor session and the reverse
- * (428 D-07).
  */
 export type LiveViewSubject =
   | { kind: 'run'; runId: string; handle: number }
@@ -32,7 +31,7 @@ export type LiveViewSubjectRef = { kind: LiveViewSubjectKind; id: string }
 /**
  * What a `liveUrl` token asserts. `subject` is who the token lets you watch: a run handle (the
  * per-member handle the viewer attaches to) or an editor session. A run token never opens an
- * editor session and the reverse (428 D-07). `iat`/`exp` are ms-epoch, so the whole claims body is
+ * editor session and the reverse. `iat`/`exp` are ms-epoch, so the whole claims body is
  * JSON-and-integer only — no date parsing on the refusal path, and no ambiguity about units at the
  * boundary.
  */
@@ -44,7 +43,7 @@ export interface LiveUrlClaims {
 }
 
 /**
- * Every way a token can be refused, BY NAME (D-02/D-04). A refusal that a viewer can read is the
+ * Every way a token can be refused, BY NAME. A refusal that a viewer can read is the
  * whole point: an expired link says so, a tampered one says so, and neither renders as a blank
  * frame that a person would read as "the run is broken".
  */
@@ -58,7 +57,7 @@ export type LiveUrlVerdict =
   | { kind: 'refused'; reason: LiveUrlRefusalReason }
 
 /**
- * The signing seam (D-01). The function layer holds the ALGORITHM-FREE contract; the CLI
+ * The signing seam. The function layer holds the ALGORITHM-FREE contract; the CLI
  * composition holds the per-process ephemeral key and the HMAC. `equals` is a member rather than a
  * `===` at the call site because a constant-time compare is a property of the implementation, and
  * a length-guarded one at that (Pitfall 9 — `timingSafeEqual` throws on unequal lengths).

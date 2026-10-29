@@ -1,4 +1,4 @@
-// The `agent.ask` op's input and output contracts (Phase 392, D-24).
+// The `agent.ask` op's input and output contracts.
 //
 // D-24 is why these are here at all: the turn entry is a REGISTERED function-layer op, and
 // the REPL, the one-shot `ask` verb, 396's MCP projection and 397's parity suite are all clients of
@@ -24,12 +24,12 @@ export const ClauseReceiptSchema = z.object({
 })
 
 /**
- * What ONE executed clause produced, on its way to a person (Phase 399.1, D-05).
+ * What ONE executed clause produced, on its way to a person.
  *
  * THE RECEIPT IS THE MAP AND THIS IS THE TERRITORY. `ClauseReceiptSchema` above is a five-string
- * one-line record by charter (D-18), and 392's `explainAnswerLines` comment defends that seat at
+ * one-line record by charter, and 392's `explainAnswerLines` comment defends that seat at
  * length — so the op's own result could not travel on it, and for forty ops it travelled nowhere at
- * all: chat executed them and printed `<op> completed` (G-399-2). This member is that missing
+ * all: chat executed them and printed `<op> completed`. This member is that missing
  * channel made structural rather than a second carrier bolted onto the receipt.
  *
  * `payload` IS `unknown` BY INTENTION. Forty-three ops declare forty-three output contracts, and a
@@ -97,7 +97,7 @@ export const AgentAskResultSchema = z.object({
    * property this whole engine preserves everywhere else.
    */
   results: z.array(ClauseResultSchema),
-  // 2026-10-01 (432-19, D-15): no `denials` channel. It carried what the execution gate refused,
+  // no `denials` channel. It carried what the execution gate refused,
   // with the gate's remedies; there is no gate, so nothing is refused that way.
   unhandled: z.object({ clause: z.string(), reason: z.string() }).optional(),
   /**

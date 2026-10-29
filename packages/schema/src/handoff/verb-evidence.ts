@@ -5,7 +5,7 @@
  * record these blocks at the machinery boundary, Phase 361 serializes them into the
  * `CompletedRunHandoff` without reinvention.
  *
- * Redaction-before-record law (T-360-01): every value-bearing field below carries app or
+ * Redaction-before-record law: every value-bearing field below carries app or
  * user data that MUST be masked at the recorder boundary BEFORE it reaches evidence — the
  * Plan 01 secret fixtures enforce it. The DTOs never see a raw secret.
  *
@@ -16,10 +16,10 @@
  * The `common_reportValue` answer block (D-01/D-03; spec §9.1/§12.10). A platform-less
  * verb minted at the dispatch chokepoint records its answer here so the verdict layer — and
  * in Phase 361 the handoff — carries the retrieved value first-class and machine-scoreable.
- * `reportValue` is non-terminal (D-02): recording the answer never completes the step.
+ * `reportValue` is non-terminal: recording the answer never completes the step.
  */
 export interface ReportedValueEvidence {
-  /** The reported answer, masked-before-record (T-360-01). */
+  /** The reported answer, masked-before-record. */
   value: string
 }
 
@@ -45,7 +45,7 @@ export interface AiJudgmentEvidence {
   verb: 'assertAI' | 'extractAI'
   /** The model verdict for an `assertAI` claim (present on assertions; absent on extractAI). */
   verdict?: boolean
-  /** The model rationale backing the verdict/extraction, masked-before-record (T-360-01). */
+  /** The model rationale backing the verdict/extraction, masked-before-record. */
   rationale?: string
   /**
    * Why the model could not judge or extract: the step's error, masked and bounded. Absent when
@@ -72,7 +72,7 @@ export type AssertValueOp =
  * reads the source, the pure runner comparator judges, and the outcome is recorded here — a
  * passing assertValue short-circuits the per-step verifier with a deterministic verdict (no
  * vision round-trip). Sorted keys match the Plan 01 pin `["actual","expected","op","passed","source"]`.
- * `expected`/`actual` are masked-before-record (T-360-01).
+ * `expected`/`actual` are masked-before-record.
  */
 export interface AssertValueEvidence {
   /** The value source the assertion read: url, storage or network, or expr when it evaluated an expression. */
@@ -92,6 +92,6 @@ export interface AssertValueEvidence {
  * an `assertValue` result gets a deterministic `'assert-value'` verdict (zero model call). Every
  * other final verdict, including steps concluded by assertAI or extractAI, comes from the step
  * verifier's own model call (`'verifier-model'`); the judge's verdict stays on `aiJudgment`.
- * `'assert-ai'` is no longer produced (quick 261004-lsa) and is kept so older records parse.
+ * `'assert-ai'` is no longer produced and is kept so older records parse.
  */
 export type VerdictSource = 'assert-value' | 'assert-ai' | 'verifier-model'

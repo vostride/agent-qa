@@ -1,8 +1,8 @@
-// The declared fold contracts (2026-08-16, Phase 396 plan 04 — D-01 / D-16 · MCPS-02).
+// The declared fold contracts.
 //
 // WHY THIS FILE IS IN `schema` AND NOT IN `packages/mcp`. A fold is an MCP-surface idea: several
 // sibling registry ops arrive through ONE tool with a discriminated-union input, because the
-// registry is finer-grained than the workflow a caller is actually in (D-01). The natural home for
+// registry is finer-grained than the workflow a caller is actually in. The natural home for
 // the composition is therefore the MCP package — and it cannot live there. That package's runtime
 // dependency allow-list is exactly the two protocol packages (D-20, enforced by `validate:arch`),
 // deliberately naming no validator library, and composing a discriminated union is a zod operation.
@@ -12,7 +12,7 @@
 // built that way would advertise a contract that refuses every call made against it.
 //
 // So the composition happens where zod lives, which is also where this repository mints its DTOs
-// (384 D-16). Nothing here is a new shape: every arm is an op's OWN input DTO with one literal
+// Nothing here is a new shape: every arm is an op's OWN input DTO with one literal
 // property added, and every fold output is composed from the arms' own output contracts. No field
 // is re-declared, so an arm that gains a field gains it here on the next build.
 //
@@ -169,12 +169,12 @@ export const ConfigChangeFoldInputSchema = z.discriminatedUnion(
 export type ConfigChangeFoldInput = z.infer<typeof ConfigChangeFoldInputSchema>
 
 /**
- * 2026-09-30, 432-11 D-05: the six config operations answer what they wrote. 432-12 removed the
+ * the six config operations answer what they wrote. 432-12 removed the
  * undo arm, so every arm answers the one change contract and the union collapses to it.
  */
 export const ConfigChangeFoldOutputSchema = foldOutput(configArms.map(() => ConfigChangeOutputSchema))
 
-// ---- `agent_qa_change_knowledge`: accept, reject, forget, applied in the call (432-12) ------------
+// ---- `agent_qa_change_knowledge`: accept, reject, forget, applied in the call ------------
 
 const knowledgeArms = [
   KnowledgeAcceptChangeInputSchema.extend({
@@ -202,7 +202,7 @@ export const KnowledgeChangeFoldOutputSchema = foldOutput(
 // ---- the run evidence read: a step's parsed evidence, or one of its blobs by sha ---------------
 
 /**
- * Compose a fold's output CONTRACT from its arms' canonical output contracts (431-03).
+ * Compose a fold's output CONTRACT from its arms' canonical output contracts.
  *
  * The runtime side is `foldOutput` over the arms' own runtime schemas, so validation is still each
  * arm's exact schema. The document is the arms' own documents under one `anyOf`, in arm order, each

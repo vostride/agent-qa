@@ -1,4 +1,4 @@
-// The mixed-verdict stability read's cells (394-07, D-14 · WTST-05).
+// The mixed-verdict stability read's cells.
 //
 // EACH CELL NAMES ITS EVIDENCE, not only a posture. A result that answered `neighbours-flaky`
 // without saying WHICH neighbours would leave an author unable to go and look, which is the whole

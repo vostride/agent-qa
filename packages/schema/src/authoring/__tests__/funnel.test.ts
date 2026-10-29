@@ -1,4 +1,4 @@
-// The honesty funnel's cells (394-07, D-13/D-15 · WTST-05).
+// The honesty funnel's cells.
 //
 // EACH CELL IS THE SOLE CATCHER FOR ONE PROPERTY. The four stage mappings, gate 4's exclusion,
 // both boundaries with a step either side, the zero-receipts posture, the rounding path, the
@@ -144,7 +144,7 @@ describe('the frozen four-stage funnel', () => {
     expect(funnel.stages.passedStably).toBe(1)
   })
 
-  // 2026-10-02 (quick 261002-ctr): replaces the two `accepted` cells (applied decisions counted;
+  // replaces the two `accepted` cells (applied decisions counted;
   // decisions outside the window not counted). No decision is recorded since 432 D-06.
   it('counts every disposition that writes a draft, and never `rejected`', async () => {
     const { computeAuthoringFunnel } = await loadFunnel()

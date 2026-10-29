@@ -1,4 +1,4 @@
-// The routing scenario contract (Phase 392, CHAT-02 / D-13 / D-15).
+// The routing scenario contract.
 //
 // Routing is a TESTED CONTRACT rather than reviewer discipline: each scenario is a file, the
 // corpus is versioned, and the `mark_unhandled` ceiling is computed over that frozen denominator.
@@ -12,7 +12,7 @@
 // one clause executed zero of them.
 //
 // NO FRACTIONAL CONFIDENCE MEMBER EXISTS ANYWHERE IN THIS VOCABULARY, and its absence is load-
-// bearing rather than an omission. Stage-1 resolution is binary by construction (D-09): an exact
+// bearing rather than an omission. Stage-1 resolution is binary by construction: an exact
 // predicate hit, or nothing. A confidence field would be the first half of a threshold, and a
 // threshold is precisely how an OVERRIDING path — one whose verdict beats a model's — acquires a
 // false-positive rate. Precision 1.0 is a property of the mechanism, and a number here would make
@@ -38,7 +38,7 @@ export const SCENARIO_CLASSES = ['deterministic', 'planner', 'compound'] as cons
 
 export type ScenarioClass = (typeof SCENARIO_CLASSES)[number]
 
-/** Where a scenario runs. `hermetic` is per-commit CI; `live` is the release gate (D-13). */
+/** Where a scenario runs. `hermetic` is per-commit CI; `live` is the release gate. */
 export const SCENARIO_LANES = ['hermetic', 'live'] as const
 
 export type ScenarioLane = (typeof SCENARIO_LANES)[number]

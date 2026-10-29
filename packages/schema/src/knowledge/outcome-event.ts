@@ -37,9 +37,9 @@ const observationVariant = <T extends 'confirmed' | 'contradicted' | 'helpful' |
 /**
  * The ONE canonical outcomes log carries attributed observations and explicit
  * lifecycle events. Helpful/harmful are minted now for Phase 380 attribution but
- * have no producer yet (D-10). Every line is real evidence or an explicit lifecycle
+ * have no producer yet. Every line is real evidence or an explicit lifecycle
  * transition: evidence-incomplete is a prior discount, never a synthetic event
- * (D-08). Lines are append-only and never rewritten after commit (D-09).
+ * Lines are append-only and never rewritten after commit.
  *
  * Event lines intentionally carry no schemaVersion; the containing bundle manifest
  * governs their format version.
@@ -83,7 +83,7 @@ export const BundleOutcomeEventSchema = z.discriminatedUnion('type', [
     closedAtOrdinal: z.number(),
   }).strict(),
   /**
-   * 2026-09-08, 419 D-09: a compensating line beside the evidence a user mark
+   * a compensating line beside the evidence a user mark
    * overturned — evidence only; no status moves here.
    */
   z.object({
@@ -105,7 +105,7 @@ export function eventDedupKey(event: BundleOutcomeEvent): string {
   return `${event.evidenceToken}:${event.curationJobId}`
 }
 
-/** First-wins, order-preserving defense against replayed outcome lines (BNDL-03). */
+/** First-wins, order-preserving defense against replayed outcome lines. */
 export function dedupeEvents(events: readonly BundleOutcomeEvent[]): BundleOutcomeEvent[] {
   const keys = new Set<string>()
   const deduped: BundleOutcomeEvent[] = []
@@ -150,7 +150,7 @@ export function survivingOutcomeEvents(
     (event) => {
       if (event.type === 'retracted' || event.type === 'overturned') return false
       if (retractedEventKeys.has(eventDedupKey(event))) return false
-      // 419 D-09: even a malformed citation cannot cancel a lifecycle transition.
+      // even a malformed citation cannot cancel a lifecycle transition.
       const isObservation = event.type === 'confirmed' || event.type === 'contradicted'
         || event.type === 'helpful' || event.type === 'harmful'
       return !isObservation || !overturnedEventKeys.has(eventDedupKey(event))

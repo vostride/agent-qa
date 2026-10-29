@@ -38,7 +38,7 @@ export type StepPlanSource =
       procedureId: RecordId
       guard: {
         /**
-         * PER-STEP fold (F-381-51-1 · 381 D-09/D-12): `checksPassed`/`total` range over the
+         * PER-STEP fold: `checksPassed`/`total` range over the
          * stored actions attempted within THIS test step. Under the one-body-step-per-test-step
          * law `total` is 1 for every flow-covered step, so `checksPassed === total` (with no
          * `miss`) keeps meaning "this step's replayed actions all passed guards, executed, and
@@ -54,7 +54,7 @@ export type StepPlanSource =
             | 'descriptor-missing'
             | 'page-anchor-mismatch'
             | 'gate-refused'
-            // A bind-time availability gap (D-08), distinct from an invalid action shape.
+            // A bind-time availability gap, distinct from an invalid action shape.
             | 'parameter-unbound'
             | 'non-replayable-action'
         }
@@ -107,7 +107,7 @@ export type StepPlanSource =
     }
 
 /**
- * Why a cache key hit did not replay (438 D-10, D-11): its stored target matched no current
+ * Why a cache key hit did not replay: its stored target matched no current
  * element strictly, matched several, or the stored value cannot replay at all.
  */
 export type CacheMissReason = 'strict-absent' | 'strict-not-unique' | 'non-replayable'
@@ -120,7 +120,7 @@ export interface Decision {
 
 /**
  * One `{{env:NAME}}` binding that interpolated into a step's text, recorded as the
- * NAME the test author bound alongside the value that replaced it (PROC-01, 381 D-03/D-08).
+ * NAME the test author bound alongside the value that replaced it.
  *
  * Interpolation happens BEFORE planning, so without this pair the binding name is
  * destroyed at the capture seam and only the resolved literal survives into the
@@ -150,7 +150,7 @@ export interface StepEvidence {
   */
   workingMemory?: WorkingMemoryEntry[]
   /**
-   * The serve-time retrieval trace for THIS step's brief (KREV-02 · 387 D-13/D-14):
+   * The serve-time retrieval trace for THIS step's brief:
    * per served line its record, matching leg, rank and score, plus the bounded ledger of
    * candidates the token budget cut.
    *
@@ -160,10 +160,10 @@ export interface StepEvidence {
    * inside it would change the digest of every brief ever served and invalidate the
    * cassettes and acceptance evidence keyed on those bytes.
    *
-   * Reader computes, runner persists (D-13): the serving path is the only place that knows
+   * Reader computes, runner persists: the serving path is the only place that knows
    * these facts, and this is the only place they survive. Optional because runs that
    * predate 387 have no trace and never will — the why-verb answers those with a typed
-   * no-trace result rather than by re-running retrieval against today's index (D-15).
+   * no-trace result rather than by re-running retrieval against today's index.
   */
   retrievalTrace?: ServedRetrievalTraceV1
   /**
@@ -187,7 +187,7 @@ export interface StepEvidence {
   retrievalRung?: RecordedRetrievalRung
   /**
    * The run's configured decision context, embedded per step including cache-hit steps
-   * (D-06). New runs populate it by construction; it remains optional only for structural
+   * New runs populate it by construction; it remains optional only for structural
    * absence in port-less harnesses under the D-04 version rule.
    */
   modelProfile?: DeclaredModelProfile
@@ -200,27 +200,27 @@ export interface StepEvidence {
   subActions: SubActionEvidence[]
   verifierVerdict: VerifierVerdict
   /**
-   * The verifier's declared identity recorded beside its verdict (D-07), without widening
+   * The verifier's declared identity recorded beside its verdict, without widening
    * the broadly constructed `VerifierVerdict` value.
    */
   verifierIdentity?: ModelIdentity
   /**
-   * The per-condition verdicts the runner computed the pass from (439 D-07), beside
+   * The per-condition verdicts the runner computed the pass from, beside
    * `verifierVerdict` and never inside it.
    */
   conditionVerdicts?: ConditionVerdictsEvidence
   /**
-   * The failed planning-turn block (D-03). Present only when planning failed structurally,
+   * The failed planning-turn block. Present only when planning failed structurally,
    * preserving that turn's exchanges instead of silently losing them.
    */
   planningFailure?: PlanningFailureEvidence
   /**
-   * The stagnation tree state at a terminal `stepFailed` (CYCLE-02, D-07). Present only
+   * The stagnation tree state at a terminal `stepFailed`. Present only
    * when the step failed after the bounded per-element ladder exhausted.
    */
   stagnation?: StagnationEvidence
   /**
-   * The cycle-flag terminal block (CYCLE-03, D-07/D-08). Present only when a true cycle
+   * The cycle-flag terminal block. Present only when a true cycle
    * was flagged (state revisitation AND no task progress across the window).
    */
   cycle?: CycleEvidence
@@ -229,21 +229,21 @@ export interface StepEvidence {
     recoveringDecision: Decision
   }
   /**
-   * The `common_reportValue` answer block (D-03). Present when the step reported a value;
+   * The `common_reportValue` answer block. Present when the step reported a value;
    * masked-before-record. Additive optional — every existing consumer keeps compiling (358-02
    * `workingMemory` idiom).
    */
   reportedValue?: ReportedValueEvidence
   /**
-   * The typed infeasible termination block (D-04). Present only when a turn declared the step
+   * The typed infeasible termination block. Present only when a turn declared the step
    * infeasible via `failureKind`/`failureReason` — distinct from a plain `stepFailed`.
    */
   termination?: TerminationEvidence
-  /** The typed limit stop (436 D-12); present only when a per-step limit refused a dispatch. */
+  /** The typed limit stop; present only when a per-step limit refused a dispatch. */
   limitStop?: LimitStopEvidence
-  /** The configured per-step limits and what this step used against them (436 D-11). */
+  /** The configured per-step limits and what this step used against them. */
   limitUsage?: StepLimitUsage
-  /** Whether this step's platform could capture downloads and clipboard writes at all (436 D-23). */
+  /** Whether this step's platform could capture downloads and clipboard writes at all. */
   operationCapture?: OperationCaptureAvailability
   /**
    * Present when the step ran assertAI or extractAI through the verifier's model lane: the
@@ -251,17 +251,17 @@ export interface StepEvidence {
    */
   aiJudgment?: AiJudgmentEvidence
   /**
-   * The structured `common_assertValue` outcome block (D-10/D-11). Present when the step ran a
+   * The structured `common_assertValue` outcome block. Present when the step ran a
    * deterministic assertValue comparison; masked-before-record.
    */
   assertOutcome?: AssertValueEvidence
   /**
-   * Which path produced this step's verification verdict (D-11): the deterministic assertValue
+   * Which path produced this step's verification verdict: the deterministic assertValue
    * comparator, the assertAI judge, or the verifier's own model call.
    */
   verdictSource?: VerdictSource
   /**
-   * The typed step plan source (D-12). Additive optional BESIDE the existing `cacheStatus`
+   * The typed step plan source. Additive optional BESIDE the existing `cacheStatus`
    * provenance — structurally distinct from the cached flag so eval/cassette consumers reading
    * cached semantics are never polluted (§A11 stays exactly the three memidex channels).
    * Present only when a procedure drove or hinted this step's planning; absent means the
@@ -269,7 +269,7 @@ export interface StepEvidence {
    */
   planSource?: StepPlanSource
   /**
-   * The `{{env:NAME}}` bindings that interpolated into `stepText` (PROC-01 · 381 D-03/D-08).
+   * The `{{env:NAME}}` bindings that interpolated into `stepText`.
    * Additive optional (the 358-02 `workingMemory` idiom): absent when the step's text
    * interpolated nothing, so pre-existing handoffs stay valid unchanged.
    *

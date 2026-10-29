@@ -1,10 +1,10 @@
-// The draft disposition: ONE derivation site (Phase 393, D-18).
+// The draft disposition: ONE derivation site.
 //
-// A draft receipt reports four independent gate booleans (WTST-02). The disposition is what
+// A draft receipt reports four independent gate booleans. The disposition is what
 // those booleans plus the stability-run counts MEAN, and it is computed here — once — so that no
 // consumer can re-derive its own answer.
 //
-// 2026-09-30, 432 D-06: the never-auto-keep rule is superseded. The disposition stays as the
+// the never-auto-keep rule is superseded. The disposition stays as the
 // verification report, and what it now decides is whether the final draft is WRITTEN to its test
 // path: `keep-eligible`, `proposal-only` and `unverified` are written, `rejected` is not. That
 // decision is `draftDispositionWritesTarget` below, beside the table it reads.
@@ -17,7 +17,7 @@
 // when a verdict was observed, so it can never report instability and never rejects in draft mode.
 // Before this, rule 1 answered 'unverified' unconditionally, so a draft-mode draft whose run
 // reached no verdict, or that added nothing or asserted nothing falsifiable, was written into the
-// suite. Stored receipts keep the disposition they were given (D-22).
+// suite. Stored receipts keep the disposition they were given.
 //
 // THE TABLE (contract, not implementation detail), evaluated in this order:
 //   1. `stabilityRunsRequested === 1` (draft mode): any of `executesDefinitive`, `addsValue` or
@@ -50,7 +50,7 @@ export type DraftDisposition = (typeof DRAFT_DISPOSITIONS)[number]
 /**
  * Stability runs a draft must complete before it can be keep-eligible. PINNED, never config.
  *
- * RETUNE: changing this number changes what the stability gate MEANS, so a retune is a
+ * changing this number changes what the stability gate MEANS, so a retune is a
  * measurement, not a preference. Before moving it, re-measure on the frozen corpus: (a) the
  * gate-2 rejector's flip rate at the new N — the corpus rejector alternates on a pinned
  * per-request schedule, so a wrong N can make a proven-unstable draft read stable; (b) the
@@ -63,7 +63,7 @@ export type DraftDisposition = (typeof DRAFT_DISPOSITIONS)[number]
 export const DRAFT_STABILITY_RUNS_N = 3
 
 /**
- * The four keep-gates, reported separately and never collapsed (WTST-02, D-04).
+ * The four keep-gates, reported separately and never collapsed.
  *
  * All four are always present: D-04 forbids short-circuiting, because the corpus proves gate
  * INDEPENDENCE — a draft whose only failing gate is 4 demonstrates that gate 4 is the sole
@@ -85,14 +85,14 @@ export interface DraftGateBooleans {
   readonly executesDefinitive: boolean
   /** Gate 2: the verdict did not flip across the stability runs. */
   readonly stableVerdict: boolean
-  /** Gate 3: the draft exercises at least one element absent from the suite union (D-14). */
+  /** Gate 3: the draft exercises at least one element absent from the suite union. */
   readonly addsValue: boolean
-  /** Gate 4: at least one assertion step references concrete, falsifiable content (D-09). */
+  /** Gate 4: at least one assertion step references concrete, falsifiable content. */
   readonly falsifiableAssertion: boolean
 }
 
 /**
- * The gates one stability run decides (261003-cpv, WR-09): every gate except `stableVerdict`.
+ * The gates one stability run decides: every gate except `stableVerdict`.
  * Draft mode rejects on these and only these.
  */
 export const SINGLE_RUN_DRAFT_GATES = [
@@ -115,13 +115,13 @@ export interface DraftDispositionInput {
   readonly stabilityRunsRequested: number
   /**
    * Stability runs that actually completed. Below the requested count either because the
-   * evaluation early-stopped on a verdict flip (D-17) or because a run could not be taken.
+   * evaluation early-stopped on a verdict flip or because a run could not be taken.
    */
   readonly stabilityRunsCompleted: number
 }
 
 /**
- * The ONE disposition derivation (D-18). Pure, total, and order-sensitive exactly as the
+ * The ONE disposition derivation. Pure, total, and order-sensitive exactly as the
  * table above states; every branch is pinned by `__tests__/disposition.test.ts`.
  */
 export function computeDraftDisposition(input: DraftDispositionInput): DraftDisposition {
@@ -138,7 +138,7 @@ export function computeDraftDisposition(input: DraftDispositionInput): DraftDisp
 }
 
 /**
- * The dispositions whose final draft is written to its target (432 D-06, EDGE-09).
+ * The dispositions whose final draft is written to its target.
  *
  * Every disposition except `rejected`: the gates either said yes (`keep-eligible`), said yes over
  * too few runs (`proposal-only`), or said yes on every gate one run decides while stability was

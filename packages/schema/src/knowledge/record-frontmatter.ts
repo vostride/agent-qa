@@ -114,7 +114,7 @@ function validateFrontmatter(value: unknown): RecordFrontmatter {
   return recordFrontmatterSchema.parse(guardRecordFrontmatterVersion(value))
 }
 
-/** Deterministic record.md rendering over immutable-at-creation fields only (BNDL-03). */
+/** Deterministic record.md rendering over immutable-at-creation fields only. */
 export function emitRecordMarkdown(
   frontmatter: RecordFrontmatter,
   body: { summary: string; body: string },

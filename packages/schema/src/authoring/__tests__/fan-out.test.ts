@@ -1,4 +1,4 @@
-// The fan-out bound's cells (394-08, D-03/D-10 · WTST-08).
+// The fan-out bound's cells.
 //
 // THE NUMBER THIS FILE PINS IS A DISCLOSURE, NOT A STATISTIC. WTST-08's owner decision is preview
 // and honest reporting with NO enforced pre-dispatch budget, so the mitigation for an unbounded
@@ -355,7 +355,7 @@ describe('the rendered preview, which is the thing a person actually consents on
   })
 })
 
-// ---- the wire mirror: the schemas accept what the functions PRODUCE (394-14) ------------------
+// ---- the wire mirror: the schemas accept what the functions PRODUCE ------------------
 //
 // `authoring.draft.write` now carries the report on its `.strict()` output contract, so these
 // shapes are validated at a trust boundary rather than merely described. Every cell here parses a

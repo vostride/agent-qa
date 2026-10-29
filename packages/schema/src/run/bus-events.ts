@@ -21,7 +21,7 @@ export const CURRENT_BUS_SCHEMA_VERSION = 2
  * (Ratified 2026-07-05). The enum is append-only; the chip group is DEFINED here but
  * emitted by no M1 producer.
  *
- * 2026-08-26, Phase 404 D-02: the three reserved `issues*` chip names (started/completed/
+ * the three reserved `issues*` chip names (started/completed/
  * failed) were REMOVED from this enum, from the payload aliases, from the {@link RunEvent}
  * union and from `handle-scope.ts`. They are spelled by pattern rather than verbatim here
  * on purpose: D-04's chip-side grep-clean bar treats a literal occurrence of any of the
@@ -111,7 +111,7 @@ export interface RunStartedPayload {
  * emitted onto the run bus and durable job state is the only truth — which is the 386 D-16
  * two-receipt rule: a second process never writes a finished run's log.
  *
- * `disposition` — SUPERSEDED 2026-08-26 (Phase 404, D-09). It read "stays the literal
+ * `disposition` — SUPERSEDED 2026-08-26. It read "stays the literal
  * `'detached'`, deliberately" while nothing decided it; it now carries the ratified three-value
  * {@link PostProcessingDisposition}, and the reason the old paragraph gave is exactly why the
  * three values mean what they do: this field is the POSTURE decided at the verdict, never a
@@ -121,11 +121,11 @@ export interface RunStartedPayload {
  *   - `drained`   — no holder; THIS process took the lease and will pump under it.
  *   - `detached`  — `--detach`, a gate-run skip, or an undecidable consult (a refused lease, no
  *                   queue composed on this host, a step that threw or overran its budget). Every
- *                   undecidable case is `detached` PLUS a named `runWarning` (D-11); the union is
+ *                   undecidable case is `detached` PLUS a named `runWarning`; the union is
  *                   never widened with a fourth arm.
  *
  * What actually BECAME of the chain is chip truth — `runs.postprocessing` over durable job state
- * (D-14) — and never this field. A `drained` run whose pump then failed still reads `drained`
+ * and never this field. A `drained` run whose pump then failed still reads `drained`
  * here, because the promise this field makes is about who owns the work, not about the outcome.
  * Pre-404 logs carry the literal `'detached'`, which remains true of them.
  */
@@ -187,7 +187,7 @@ export interface TestStartedPayload {
 
 /**
  * `testFinished`: the {@link PerTestOutcome} identity fields plus `outcome`; the embedded
- * `steps` array is structurally excluded — projections never carry it (D-10/D-11).
+ * `steps` array is structurally excluded — projections never carry it.
  */
 export interface TestFinishedPayload {
   testId: string
@@ -202,7 +202,7 @@ export interface TestFinishedPayload {
   failureSummary?: string
   retryCount?: number
   recording?: RecordingEntry
-  // 2026-10-19 (444.1-15, D-24): set only on a skipped member, which has no testStarted to name it.
+  // set only on a skipped member, which has no testStarted to name it.
   name?: string
   filePath?: string
   readonly steps?: never
@@ -237,7 +237,7 @@ export interface StepFinalizedPayload {
   durationMs?: number
   error?: string
   /**
-   * 2026-08-27 (Phase 405 plan 04, D-05): the step's measured model-call usage, on the same
+   * the step's measured model-call usage, on the same
    * 363 D-01 additive-optional footing as the three fields above — the frozen envelope and the
    * event NAME are untouched. Summed by the runner loop over the calls IT made for this step
    * (planner + verifier; heal turns ride the planner path), never re-derived downstream.
@@ -248,19 +248,19 @@ export interface StepFinalizedPayload {
    * analytics fields) reads absence as "unmeasured" rather than "free".
    */
   tokenUsage?: ModelTokenUsage
-  /** 423 D-09/D-10: selected profiles and authoritative provider observations, never backfilled. */
+  /** selected profiles and authoritative provider observations, never backfilled. */
   modelUsage?: ModelUsage
-  /** 423 D-01/D-05/D-07: capture facts only; record bodies stay in evidence blobs. */
+  /** capture facts only; record bodies stay in evidence blobs. */
   evidence?: StepEvidenceEntries
   variableSnapshot?: VariableSnapshot
   /**
-   * 2026-08-29 (Phase 407 plan 03, D-14): the host's retrieval rung at the moment this step's
+   * the host's retrieval rung at the moment this step's
    * brief was served, on the same 363 D-01 additive-optional footing as the fields above — the
    * frozen envelope and the event NAME are untouched.
    *
    * Unlike the 363 extras this fact is NOT sourced from the runner `StepResult`: it IS a
-   * `StepEvidence` field (407 D-13), so the projection reads it off the evidence. ABSENT when the
-   * evidence carries none — a pre-407 run, or a run that bound no knowledge reader (D-16). Both
+   * `StepEvidence` field, so the projection reads it off the evidence. ABSENT when the
+   * evidence carries none — a pre-407 run, or a run that bound no knowledge reader. Both
    * members are closed enum words, so `maskPayloadStrings` walks them unchanged in meaning.
    */
   retrievalRung?: RecordedRetrievalRung
@@ -271,9 +271,9 @@ export interface StepFinalizedPayload {
 
 /**
  * `subActionRecorded`: the {@link SubActionEvidence} projection with states collapsed to
- * `screenStateHash` identity (D-10). Raw `stateBefore`/`screenshot` are structural
+ * `screenStateHash` identity. Raw `stateBefore`/`screenshot` are structural
  * compile errors — the 356 `NonCacheableStepInput` `?: never` idiom enforces payload
- * discipline at the type level (D-11), not a runtime strip.
+ * discipline at the type level, not a runtime strip.
  */
 export interface SubActionRecordedPayload {
   testIndex: number
@@ -285,14 +285,14 @@ export interface SubActionRecordedPayload {
   result: RecordedActionResult
   /**
    * The `stateBefore` identity — the full {@link ScreenState} collapsed to a
-   * `screenStateHash` string (D-10). This is the sub-action's primary state hash;
+   * `screenStateHash` string. This is the sub-action's primary state hash;
    * `screenStateHashAfter` is present only when the action recorded a distinct
    * post-action state.
    */
   screenStateHash: string
   screenStateHashAfter?: string
   artifactRefs?: readonly ArtifactRef[]
-  /** 423 D-02: before-tree capture state; its present ref also rides artifactRefs. */
+  /** before-tree capture state; its present ref also rides artifactRefs. */
   ariaEvidence?: AriaEvidenceEntry
   recordingOffsetMs?: number
   readonly stateBefore?: never
@@ -319,7 +319,7 @@ export interface HookStartedPayload {
 /**
  * `hookFinished`: the identity fields plus the hook result (mirrors core `HookResultEvent`,
  * reporter/types.ts lines 47-52). `stdout`/`stderr`/`error` and each `variables` VALUE are
- * masked at projection (T-363-01); `variables` keys pass through. `kind` distinguishes a
+ * masked at projection; `variables` keys pass through. `kind` distinguishes a
  * plain hook from an appium-script / runjs inline body.
  */
 export interface HookFinishedPayload extends HookStartedPayload {
@@ -350,7 +350,7 @@ export interface TestRetryScheduledPayload {
 
 /**
  * The shared post-processing chip payload shape (spec §2.2: `{ runId, error, willRetry }`).
- * DEFINED in bus schema v1; the producer lands in Phase 388 (D-13) — appended to
+ * DEFINED in bus schema v1; the producer lands in Phase 388 — appended to
  * `events.jsonl` by the in-process post-run tail, continuing `runFinished.finalSeq`.
  *
  * The shape is UNCHANGED by 388 and that is a decision rather than an omission: `live-view.md`
@@ -420,7 +420,7 @@ interface RunEventOf<T extends RunEventType, P extends RunEventPayload> {
  * The discriminated bus-event union: each event `type` mapped to its payload. M5 replay
  * tooling and M1b eval consume this to narrow on `type`. The six chip events are members
  * of the union (defined-never-emitted in M1; the reserved `issues*` triple was removed
- * 2026-08-26 — see the {@link RUN_EVENT_TYPES} header).
+ * see the {@link RUN_EVENT_TYPES} header).
  */
 export type RunEvent =
   | RunEventOf<'runStarted', RunStartedPayload>

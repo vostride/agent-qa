@@ -18,34 +18,34 @@ export interface SubActionEvidence {
   artifactRefs?: ArtifactRef[]
   /**
    * The ordered non-action tool exchanges from the live planning turn that produced this
-   * decision (D-01). Present, possibly empty, for live-turn decisions and structurally
+   * decision. Present, possibly empty, for live-turn decisions and structurally
    * absent for cache-hit or replayed sub-actions; values arrive masked under D-02.
    */
   exchanges?: ToolExchangeEvidence[]
   /**
-   * Observed enrichment for the live call that produced this decision (D-05/D-08).
+   * Observed enrichment for the live call that produced this decision.
    * Absent when no live model call happened; unknown values are never fabricated.
    */
   callRecord?: ModelCallRecord
   /**
-   * The §A8 grounding evidence (GROUND-02). Present only when the grounder ran for
+   * The §A8 grounding evidence. Present only when the grounder ran for
    * this sub-action: it carries the descriptor the planner emitted plus one attempt
    * entry per ladder rung run — an unattempted visual rung records outcome 'skipped',
    * and `resolvedRef` is present only on a 'resolved' rung.
    */
   grounding?: GroundingEvidence
   /**
-   * The §A8 differential-observation oracle outcome (CYCLE-01, D-07). Present only when
+   * The §A8 differential-observation oracle outcome. Present only when
    * the per-verb intended-effect oracle ran for this sub-action: which oracle row keyed
    * on the verb class and whether the action's local intended effect was achieved.
    */
   localEffect?: LocalEffectEvidence
   /**
-   * What this action produced outside the page (436 D-22): the downloads it started, and the
+   * What this action produced outside the page: the downloads it started, and the
    * clipboard writes the app made. Absent when the action produced none; values arrive masked.
    */
   operationEvidence?: OperationEvidence
-  // 2026-10-19 (444.1-08, D-14): plannedAction/stateBefore stay the planner's own; a heal that
+  // plannedAction/stateBefore stay the planner's own; a heal that
   // re-dispatched records what it sent here (optional-additive).
   healedDispatch?: { action: Action; stateBefore: ScreenState }
 }

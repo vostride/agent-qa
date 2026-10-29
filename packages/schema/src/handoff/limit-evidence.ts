@@ -4,7 +4,7 @@
 import type { PlannerLimits } from '../config/planner-limits'
 
 /**
- * The typed limit stop (D-12). Present only when a limit refused the next dispatch of its kind.
+ * The typed limit stop. Present only when a limit refused the next dispatch of its kind.
  * It is never an application failure, a planning failure, a termination or a verdict.
  */
 export interface LimitStopEvidence {
@@ -24,14 +24,14 @@ export interface LimitStopEvidence {
   lastPlannerReasoning?: string
 }
 
-/** Inner inputs of one compound action, which count once against the action limit (D-07). */
+/** Inner inputs of one compound action, which count once against the action limit. */
 export interface CompoundInputCount {
   subActionIndex: number
   kind: 'scroll' | 'fill'
   count: number
 }
 
-/** What a step execution used against its limits (D-11). */
+/** What a step execution used against its limits. */
 export interface StepLimitUsage {
   limits: PlannerLimits
   actionsUsed: number

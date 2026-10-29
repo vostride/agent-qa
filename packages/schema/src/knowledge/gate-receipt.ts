@@ -28,7 +28,7 @@ const receiptCoreShape = {
 export const gate3ArmSchema = z.object({
   ...receiptCoreShape, gate: z.literal(3), runId: z.string().min(1).optional(),
   stepId: z.string().optional(), mark: z.enum(MARKS).optional(),
-  // 419 D-17: accepting a policy is not a run mark. Preserve its actual proposal identity.
+  // accepting a policy is not a run mark. Preserve its actual proposal identity.
   policyApproval: z.object({ proposalId: z.string().min(1), recordId: z.string().min(1) }).strict().optional(),
 }).strict().superRefine((value, ctx) => {
   if (value.policyApproval === undefined) {

@@ -1,5 +1,5 @@
 /**
- * WHO is acting, as opposed to WHERE from (391 D-06). Closed, and spelled once (388 C13).
+ * WHO is acting, as opposed to WHERE from. Closed, and spelled once (388 C13).
  *
  * `human` is a person taking an action directly; `agent` is a model-driven call, whether it
  * arrives over chat, MCP, or a background job the daemon started. The axis is deliberately NOT
@@ -17,12 +17,12 @@ export const FUNCTION_CALLER_ORIGINS = ['human', 'agent'] as const
 export type FunctionCallerOrigin = (typeof FUNCTION_CALLER_ORIGINS)[number]
 
 /**
- * The caller record every function invocation carries (Phase 384, FUNC-03).
+ * The caller record every function invocation carries.
  *
- * 2026-10-01 (432-20, D-10/D-12): NO FIELD HERE IS A PERMISSION INPUT. Every door can call every
+ * NO FIELD HERE IS A PERMISSION INPUT. Every door can call every
  * operation, so `invokeFunction` and the registry read nothing on this record. `surface` and
  * `origin` survive for the receipts and presentation that already consume them, and no new label
- * is written. 2026-10-02 (432-39, D-02/D-10/D-12): the retired `grantedScopes`, `safeMode`,
+ * is written. 2026-10-02: the retired `grantedScopes`, `safeMode`,
  * `credential` and `sessionId` members are deleted, with the scope and trust-credential types they
  * named. An old caller record that still carries one is not migrated and nothing reads it. A branch
  * on `surface` remains an anti-pattern — it re-creates the per-surface private powers the function
@@ -35,11 +35,11 @@ export interface FunctionCaller {
    */
   surface: string
   /**
-   * WHO this call is on behalf of, MINTED by the composition root (391 D-06). The CLI mints
+   * WHO this call is on behalf of, MINTED by the composition root. The CLI mints
    * `human` because a person typed the command, the daemon and MCP mint `agent` because nobody
    * did.
    *
-   * 2026-10-01 (432-20, D-10/D-12): presentation and receipts only. No dispatch check reads it
+   * presentation and receipts only. No dispatch check reads it
    * (the human-origin check is deleted), so it grants and withholds nothing. It stays required
    * because the existing receipt and planner consumers read it, and an optional field would need a
    * default nobody decides.

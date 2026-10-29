@@ -8,7 +8,7 @@
 // syntax, no parser change and no doc-model change: the whole reference is which WORDS the step
 // is written in.
 //
-// THE INPUT IS AN ANCHOR AND NOTHING ELSE, AND THAT IS THE MITIGATION (T-394-38). A served
+// THE INPUT IS AN ANCHOR AND NOTHING ELSE, AND THAT IS THE MITIGATION. A served
 // procedure arrives as a `ProcedureMatch`, which carries `id` — a learned-shelf record id whose
 // supersession, withholding and garbage collection this project performs on its own schedule. An
 // authored test lives on the SOVEREIGN shelf and outlives every one of those events, so an id

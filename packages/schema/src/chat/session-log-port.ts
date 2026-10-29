@@ -1,4 +1,4 @@
-// The session log PORT (Phase 392, CHAT-05 / D-17 / D-19).
+// The session log PORT.
 //
 // Port in schema, factory in the adapter, binding at the composition root — the 390/391 triple, and
 // for the same structural reason: `agent`'s turn engine appends through this type and
@@ -43,7 +43,7 @@ export interface OpenedChatSession {
 }
 
 /**
- * ONE OPEN SESSION, AND EVERY WRITE THAT BELONGS TO IT (Phase 392 plan 12, CR-01).
+ * ONE OPEN SESSION, AND EVERY WRITE THAT BELONGS TO IT.
  *
  * The write verbs live HERE rather than on the port, and that placement is the whole of the
  * concurrency contract. When `append` and `turnBoundary` sat on the adapter, the session they wrote
@@ -65,7 +65,7 @@ export interface ChatSessionHandle extends OpenedChatSession {
   /** Append one event to THIS session. Durability is NOT claimed until {@link turnBoundary} returns. */
   append(event: ChatSessionEvent): Promise<void>
   /**
-   * The fsync point for THIS session (D-19).
+   * The fsync point for THIS session.
    *
    * Per TURN rather than per event, which is what makes the loss bound exactly the in-flight turn —
    * the thing the next-turn repair already knows how to handle. Syncing per event would pay for a

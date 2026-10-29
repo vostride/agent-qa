@@ -21,7 +21,7 @@ export interface CompletedRunHandoff {
    */
   excludedFromOutcomes?: true
   /**
-   * D-10 carrier for verify-before-present gate runs (Phase 384, 2026-07-28). Marks a run
+   * D-10 carrier for verify-before-present gate runs. Marks a run
    * as an M4 verification gate run so 388 can propagate it onto the `analyze-run` job
    * payload and 393 can set it, with no second breaking handoff-schema change.
    *
@@ -43,7 +43,7 @@ export interface CompletedRunHandoff {
   endedAt: number
   tests: PerTestOutcome[]
   /**
-   * Phase 390 D-16: which committed ledger entries this run applied, resolved ONCE at run start.
+   * which committed ledger entries this run applied, resolved ONCE at run start.
    * The set is folded before the first member executes, so a mid-run ledger edit can never
    * retroactively change a running build — and the run's own record says exactly which
    * dispositions it was operating under, and until when.

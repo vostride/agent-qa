@@ -99,7 +99,7 @@ export const TestEditPatchSetSchema = z.object({
 export type TestEditPatchSet = z.infer<typeof TestEditPatchSetSchema>
 
 /**
- * The document roots a patch may address (T-394-10).
+ * The document roots a patch may address.
  *
  * `steps` is what a test DOES; `name` and `context` are what it says about itself. Everything
  * else a test document carries — `test-id`, `target`, `use`, `meta`, `setup`, `teardown` — is
@@ -107,7 +107,7 @@ export type TestEditPatchSet = z.infer<typeof TestEditPatchSetSchema>
  * app a test hits or which credentials it runs under. That is a different power from editing what
  * the test does, and the whole point of a whitelist is that the two are not the same grant.
  *
- * RETUNE: admitting a new root widens what a model-emitted pointer can retarget, so a move here is
+ * admitting a new root widens what a model-emitted pointer can retarget, so a move here is
  * a measurement, not a preference. Before adding one, produce (a) a NAMED authoring case that
  * cannot be expressed inside the current roots — an actual intent the loop failed to satisfy, not
  * a hypothetical; (b) a re-run of the frozen byte-diff corpus with a new refusal cell proving the

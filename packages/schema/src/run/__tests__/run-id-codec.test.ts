@@ -1,4 +1,4 @@
-// THE run-id codec, and the census that makes "one codec" a claim about the boundary (CR-04).
+// THE run-id codec, and the census that makes "one codec" a claim about the boundary.
 //
 // WHY A CENSUS AND NOT A CELL PER SITE. `packages/schema/src` is not one door onto a run's
 // identity; before this plan it declared FOUR bare `z.string().transform(asRunId)` codecs, and
@@ -249,7 +249,7 @@ const RUN_ID_FIELD_VERDICTS: Readonly<
   },
   'knowledge/review-verbs.ts': {
     hardened: 0,
-    // 2026-09-30 (432-12): 2 -> 1. The change ops' input carries no run attribution; what remains
+    // 2 -> 1. The change ops' input carries no run attribution; what remains
     // is `BriefWhyInput.runId`, the address of the run a why-question is about.
     plainString: 1,
     verdict: "reaches no path join — the run a brief-why question addresses, read through the runs port.",

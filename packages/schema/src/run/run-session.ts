@@ -11,8 +11,8 @@ import type { RunStatus, ExecutionContext } from './run-status'
 
 /**
  * The awaitable run completion resolved on {@link RunSession.done} the moment the
- * `verdict` event is emitted (D-13). The CLI awaits this and maps `verdict` → exit code;
- * `handoff` is the durable {@link CompletedRunHandoff} (SESSION-05).
+ * `verdict` event is emitted. The CLI awaits this and maps `verdict` → exit code;
+ * `handoff` is the durable {@link CompletedRunHandoff}.
  */
 export interface RunCompletion {
   verdict: RunStatus
@@ -20,11 +20,11 @@ export interface RunCompletion {
 }
 
 /**
- * The M1-lite run session (D-13, SESSION-01). A run becomes an addressable in-process
+ * The M1-lite run session. A run becomes an addressable in-process
  * handle: identity + status, an optional live `subscribe`/replay seam onto the event bus,
- * run-level `cancel`, an awaitable `done`, and (403 D-05) the per-handle live-frame seam.
+ * run-level `cancel`, an awaitable `done`, and the per-handle live-frame seam.
  *
- * 2026-08-25 (Phase 403, D-05): FRAMES ARE DATA. `subscribeFrames` surfaces a handle's live
+ * FRAMES ARE DATA. `subscribeFrames` surfaces a handle's live
  * frames as `bytes` + geometry + an ack, and `streamCapabilityOf` declares what that handle
  * can produce; both are closures over this process's per-run stream hub. `liveUrl` is
  * deliberately NOT a session member — it is minted by the function-layer op `runs.liveurl`
@@ -49,19 +49,19 @@ export interface RunSession {
   executionContext: ExecutionContext
   /**
    * Attach a subscriber from `fromSeq` (replay-then-live, seq-order delivery). Returns an
-   * unsubscribe handle. Bridges 1:1 onto SSE `Last-Event-ID` in M5 (D-08).
+   * unsubscribe handle. Bridges 1:1 onto SSE `Last-Event-ID` in M5.
    */
   subscribe(fromSeq: number, handler: (event: RunEventEnvelope) => void): () => void
   /**
-   * Attach to handle `handle`'s live frames (403 D-05). Returns `undefined` when that handle
+   * Attach to handle `handle`'s live frames. Returns `undefined` when that handle
    * declares no stream — an honest absence, never an error. The subscription's `ack` throttles
    * the producer; `unsubscribe` releases the hold (last release stops the stream after a grace).
    *
-   * 2026-08-25 (403 CR-03): `onEnd` is called once when this handle's stream ends under the
+   * `onEnd` is called once when this handle's stream ends under the
    * subscriber — the member finished, or its capability was replaced. OPTIONAL, so every caller
    * that only wants frames is unchanged. It is what lets a surface NAME the end of one member's
    * stream instead of holding a frozen last frame and going on calling it live.
-   * 2026-09-25 (428 D-14): `onEnd` names its reason — `withdrawn` (this member finished or was
+   * `onEnd` names its reason — `withdrawn` (this member finished or was
    * replaced, the subject goes on) or `closed` (the whole subject is over).
    */
   subscribeFrames(
@@ -69,10 +69,10 @@ export interface RunSession {
     onFrame: (frame: LiveFrame) => void,
     onEnd?: (reason: LiveFrameEndReason) => void,
   ): LiveFrameSubscription | undefined
-  /** What handle `handle` can stream right now (403 D-08). `{ kind: 'none' }` for an absent/finished handle. */
+  /** What handle `handle` can stream right now. `{ kind: 'none' }` for an absent/finished handle. */
   streamCapabilityOf(handle: number): LiveStreamDeclaration
-  /** Run-level cancel: abort the active member test, skip the rest, verdict `cancelled` (D-03). */
+  /** Run-level cancel: abort the active member test, skip the rest, verdict `cancelled`. */
   cancel(): void
-  /** Resolves on the `verdict` event with the terminal verdict + durable handoff (D-13). */
+  /** Resolves on the `verdict` event with the terminal verdict + durable handoff. */
   done: Promise<RunCompletion>
 }

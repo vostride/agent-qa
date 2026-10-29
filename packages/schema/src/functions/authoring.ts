@@ -1,10 +1,10 @@
 // The `authoring.draft.verify` op contract (393, D-01).
 //
 // D-01 sketches the verb as `authoring.verify_draft`; that spelling is unrepresentable — the
-// parity taxonomy regex forbids underscores and the chat tool-name mapping refuses one (393-07).
+// parity taxonomy regex forbids underscores and the chat tool-name mapping refuses one.
 // The schema symbols keep the sketch's camel-case spelling; the dispatchable id does not.
 //
-// The planner binds ALL registry ops 1:1 (392 D-07), so this op is chat-reachable the moment
+// The planner binds ALL registry ops 1:1, so this op is chat-reachable the moment
 // it registers — its input is crossing a trust boundary from an arbitrary caller, not being
 // handed over between two halves of the same program. `.strict()` plus a non-empty path is
 // therefore the refusal surface, not a formality. Path-boundary enforcement (is this draft
@@ -46,7 +46,7 @@ export const AuthoringVerifyDraftInputSchema = z.object({
    */
   sessionRef: z.string().min(1).optional(),
   /**
-   * The suite file this draft proposes to JOIN — the stability read's target (394-19, D-14).
+   * The suite file this draft proposes to JOIN — the stability read's target.
    *
    * ABSENT MEANS THE DRAFT'S OWN FILE, which is the right answer for a standalone verify: a
    * committed suite file IS its own target. It is a CHOSEN contract rather than a derivation
@@ -61,7 +61,7 @@ export const AuthoringVerifyDraftInputSchema = z.object({
 export type AuthoringVerifyDraftInput = z.infer<typeof AuthoringVerifyDraftInputSchema>
 
 /**
- * The op returns the receipt it persisted — the same bytes, not a summary of them (D-19), so a
+ * The op returns the receipt it persisted — the same bytes, not a summary of them, so a
  * caller never has to re-read the store to learn what was just decided.
  */
 export const AuthoringVerifyDraftOutputSchema = DraftReceiptSchema
@@ -84,7 +84,7 @@ const scopeKeySchema = z.object({
 }).strict()
 
 /**
- * How one loop invocation ended — the CLOSED vocabulary, declared whole in 394-02 (D-01).
+ * How one loop invocation ended — the CLOSED vocabulary, declared whole in 394-02.
  *
  * All four members exist from the tracer onward and only `drafted` is reachable in it. That is
  * deliberate rather than premature: the loop is a six-stage pipeline whose stages land across
@@ -94,13 +94,12 @@ const scopeKeySchema = z.object({
  * read. Declaring the whole set now costs one enum and buys three plans that add a case.
  *
  *   `drafted`  the draft was compiled, staged and verified; the receipt carries the verdict.
- *   `refused`  stage 2 found the intent already covered and ended the invocation (D-04, plan 04).
- *   `repaired` stage 5 routed to bounded repair and a later iteration passed (D-08/D-10, plan 05).
+ *   `refused`  stage 2 found the intent already covered and ended the invocation.
+ *   `repaired` stage 5 routed to bounded repair and a later iteration passed.
  *   `stopped`  stage 5 routed to the stop arm: the gate run's verdict rides this result's `stop`
  *              payload and the correctly-failing draft stays on the shelf with its receipt
- *              (411 D-01/D-05).
  *
- * 2026-09-02 (Phase 411): the proposal arm for a correctly-failing draft left with the Issue-slot
+ * the proposal arm for a correctly-failing draft left with the Issue-slot
  * cleanup.
  */
 export const AUTHORING_LOOP_OUTCOMES = [
@@ -113,7 +112,7 @@ export const AUTHORING_LOOP_OUTCOMES = [
 export type AuthoringLoopOutcomeKind = (typeof AUTHORING_LOOP_OUTCOMES)[number]
 
 /**
- * The two continuations a dedup refusal offers (394 D-04) — CLOSED, and minted here.
+ * The two continuations a dedup refusal offers — CLOSED, and minted here.
  *
  * It lives in `schema` rather than beside the lane that produces it because the op's output
  * validates it and chat renders it, and 384 D-16 puts a DTO's vocabulary where every surface
@@ -135,7 +134,7 @@ export const AUTHORING_DEDUP_CONTINUATIONS = [
 export type AuthoringDedupContinuation = (typeof AUTHORING_DEDUP_CONTINUATIONS)[number]
 
 /**
- * What a stage-2 refusal NAMES (394 D-04).
+ * What a stage-2 refusal NAMES.
  *
  * THE OUTPUT'S ONE PAYLOAD ARM, AND THE EXCEPTION IS PRINCIPLED. The output contract below states
  * that it carries no payload per outcome, because a draft's bytes are written to its test file and
@@ -180,7 +179,7 @@ export const AUTHORING_STATED_VALUE_STAGES = ['compile', 'keep'] as const
 
 export type AuthoringStatedValueStage = (typeof AUTHORING_STATED_VALUE_STAGES)[number]
 
-// 2026-10-12 (440-02, D-09): names the stage and the request's own missing values, never draft or
+// names the stage and the request's own missing values, never draft or
 // model text.
 export const AuthoringStatedValueRefusalSchema = z.object({
   stage: z.enum(AUTHORING_STATED_VALUE_STAGES),
@@ -190,7 +189,7 @@ export const AuthoringStatedValueRefusalSchema = z.object({
 export type AuthoringStatedValueRefusal = z.infer<typeof AuthoringStatedValueRefusalSchema>
 
 /**
- * The three classes the stop arm may carry — one definitive, two ambiguous (411 D-06).
+ * The three classes the stop arm may carry — one definitive, two ambiguous.
  *
  * The schema spelling of the router's own `RouterStopSignalClass`. Two files, one vocabulary:
  * `loop.test-d.ts` pins the two equal by type so neither can drift from the other.
@@ -203,7 +202,7 @@ export const AUTHORING_STOP_SIGNAL_CLASSES = [
 
 export type AuthoringStopSignalClass = (typeof AUTHORING_STOP_SIGNAL_CLASSES)[number]
 
-/** How a bounded repair gave up, in the repair lane's own two words (411 D-08). */
+/** How a bounded repair gave up, in the repair lane's own two words. */
 export const AUTHORING_REPAIR_ABANDONMENTS = ['exhausted', 'prefix-regressed'] as const
 
 export type AuthoringRepairAbandonment = (typeof AUTHORING_REPAIR_ABANDONMENTS)[number]
@@ -211,7 +210,7 @@ export type AuthoringRepairAbandonment = (typeof AUTHORING_REPAIR_ABANDONMENTS)[
 /**
  * Where the failure was observed, in the run's own words.
  *
- * No `runId` here: it rides at the payload's top level (411 D-06) so a NULL failure point still
+ * No `runId` here: it rides at the payload's top level so a NULL failure point still
  * names the run stage 5 routed on.
  */
 export const AuthoringStopFailurePointSchema = z.object({
@@ -232,14 +231,14 @@ export const AuthoringStopFailurePointSchema = z.object({
 export type AuthoringStopFailurePoint = z.infer<typeof AuthoringStopFailurePointSchema>
 
 /**
- * What a `stopped` invocation REPORTS — the gate run's verdict and the router's reading (411 D-05).
+ * What a `stopped` invocation REPORTS — the gate run's verdict and the router's reading.
  *
  * NOTHING A MODEL WROTE IS ON IT. The payload is projected from the route the router derived and
  * from the receipt's own last gate run, both typed facts; there is no prose field for model output
  * to arrive through, which is the whole of "the model never makes this decision" expressed as a
  * shape rather than as an ordering. `.strict()` is the refusal surface for anything else.
  *
- * `repairAbandonment` AND `repairIterations` ARE PRESENT EXACTLY TOGETHER (411 D-08, 394-21/WR-09).
+ * `repairAbandonment` AND `repairIterations` ARE PRESENT EXACTLY TOGETHER.
  * The loop carries the kind and the spend as ONE parameter and the op spreads both or neither, so
  * the two optionals here can never disagree — a kind with no spend, or a spend on a stop repair
  * never touched, are not states the loop can be in. They are two optionals rather than one nested
@@ -249,7 +248,7 @@ export type AuthoringStopFailurePoint = z.infer<typeof AuthoringStopFailurePoint
 export const AuthoringStopSchema = z.object({
   /** The LAST gate run on the receipt — the run stage 5 routed on. */
   runId: z.string().min(1),
-  /** The draft's OWN member outcome, as the receipt's `GateRunRecord` spells it (411 D-06/D-17). */
+  /** The draft's OWN member outcome, as the receipt's `GateRunRecord` spells it. */
   memberOutcome: z.string().min(1),
   /** The router's reading: which of the three stop classes this evidence was. */
   signalClass: z.enum(AUTHORING_STOP_SIGNAL_CLASSES),
@@ -273,7 +272,7 @@ export type AuthoringStop = z.infer<typeof AuthoringStopSchema>
  *
  * `.strict()` and a non-empty intent for the reason the verify input states above, and here the
  * argument is sharper: `intent` is free text from an arbitrary caller that reaches an LLM and then
- * becomes bytes on this workspace's disk (T-394-06). The refusal surface a schema can hold is the
+ * becomes bytes on this workspace's disk. The refusal surface a schema can hold is the
  * shape and the emptiness; what the model produces is validated again, by the parser, before a
  * single byte is written.
  */
@@ -286,18 +285,18 @@ export const AuthoringDraftWriteInputSchema = z.object({
    * OPTIONAL, and absent resolves from the host's configured targets and committed tests — the
    * `RunsStartInputSchema.scope` law one op over, applied here for the reason that op adopted it:
    * a model cannot know this project's product keys, and a required field it can only guess at is
-   * a field it refuses the whole call over (WINDOWS 110). A supplied scope always wins; the host
+   * a field it refuses the whole call over. A supplied scope always wins; the host
    * derives only on absence, and refuses by name rather than guessing when the answer is not
    * unique.
    *
    * THE `.describe()` BELOW IS THE HUMAN-FACING HALF, AND IT IS WHY IT IS A `.describe()` RATHER
-   * THAN THIS DOC BLOCK (400-04, D-19). A JSDoc comment documents this field for whoever opens
+   * THAN THIS DOC BLOCK. A JSDoc comment documents this field for whoever opens
    * this file; it reaches no reader of the product. The capability catalog is PRODUCED from the
    * declarations — `params` is the JSON-Schema projection of this very object — so a description
    * attached HERE is the single edit that documents `scope` on the surfaces that project `params`,
    * and a paragraph anywhere else is a paragraph the product never says.
    *
-   * WHICH SURFACES THOSE ARE WAS MEASURED, NOT ASSUMED (400-12, WINDOWS #189). An earlier version
+   * WHICH SURFACES THOSE ARE WAS MEASURED, NOT ASSUMED. An earlier version
    * of this block claimed `/help`, `explain` and the chat type-ahead were "all projections of that
    * ONE committed artifact". They are not, and the claim was measured FALSE: `/help` and the
    * type-ahead render `row.description` (the op summary) rather than `params`, and `explain`
@@ -305,12 +304,12 @@ export const AuthoringDraftWriteInputSchema = z.object({
    * design). They project a different FIELD of the same artifact. The surfaces this `.describe()`
    * actually reaches are the committed capability catalog row, `init --agent` and MCP
    * `tools/list`; a person finds the op itself through `agent-qa fn --list` or the committed
-   * catalog. 2026-09-28 (430 D-02): the dashboard's served catalog, the fourth surface in the D-19
+   * catalog. 2026-09-28: the dashboard's served catalog, the fourth surface in the D-19
    * letter RATIFIED on 2026-08-22, was deleted with its server door.
    * `packages/cli/src/__tests__/scope-doc-surfaces.test.ts` pins the committed leg and the served
    * leg's absence.
    * Projecting `params` into `/help` and the type-ahead stays open as a Rule-4 design question
-   * (WINDOWS #189); it needs resolver-table surgery, not a wider sentence here.
+   * it needs resolver-table surgery, not a wider sentence here.
    *
    * The 399 rehearsal measured what its absence costs: `/fn authoring.draft.write` ROUTES, meets
    * the confirm interactively, and then fails on `AuthoringScopeUnresolvableError` naming targets
@@ -364,12 +363,12 @@ export type AuthoringDraftWriteInput = z.infer<typeof AuthoringDraftWriteInputSc
  * is the answer to a different question: which draft this call produced, addressable without
  * knowing that a receipt is a thing that has a ref inside it.
  *
- * There is no payload arm per outcome. Since 432 (D-06) the final draft is written to its test file
+ * There is no payload arm per outcome. Since 432 the final draft is written to its test file
  * in the call, and `written` is that write's file record (which file, or why none), not its bytes;
- * a stop's verdict rides THIS result, because nothing is written for it (411 D-05) — see `stop`
+ * a stop's verdict rides THIS result, because nothing is written for it — see `stop`
  * below.
  *
- * `fanOut` IS THE ONE RECORDED EXCEPTION (394-14 · WTST-08): the preview-versus-spent disclosure.
+ * `fanOut` IS THE ONE RECORDED EXCEPTION: the preview-versus-spent disclosure.
  * WTST-08's owner decision was preview plus honest reporting with NO enforced budget, so the number
  * previewed and the number actually spent are both reported, and `exceedsPreview` says when the
  * second outran the first. It is counts, run REFERENCES and one boolean — no draft body, no receipt
@@ -378,7 +377,7 @@ export type AuthoringDraftWriteInput = z.infer<typeof AuthoringDraftWriteInputSc
  *
  * BOTH ARE OPTIONAL, AND `outcome` SAYS WHICH TO EXPECT. A `drafted`, `repaired` or `stopped`
  * invocation carries both; a `refused` one ends at
- * stage 2 with no draft compiled and therefore no receipt to mint (D-04, plan 04). Requiring them
+ * stage 2 with no draft compiled and therefore no receipt to mint. Requiring them
  * would have made plan 04's arrival a WIDENING of this op's output contract — the shape change the
  * whole-vocabulary-now discipline exists to avoid — and padding a refusal with an empty receipt
  * would be worse: a receipt is a durable record of gates that ran, and a synthetic one would be a
@@ -395,7 +394,7 @@ export const AuthoringDraftWriteOutputSchema = z.object({
   refusal: AuthoringDedupRefusalSchema.optional(),
   statedValueRefusal: AuthoringStatedValueRefusalSchema.optional(),
   /**
-   * Present exactly on a `stopped` invocation (411 D-05): the gate run's verdict, the router's
+   * Present exactly on a `stopped` invocation: the gate run's verdict, the router's
    * reading and the evidence coordinates — never a proposal of any class. Same rule as `refusal`:
    * `outcome` says which to expect.
    */
@@ -412,7 +411,7 @@ export const AuthoringDraftWriteOutputSchema = z.object({
    */
   fanOut: FanOutReportSchema,
   /**
-   * The final draft's written-test receipt (432 D-06): which file was written, or why none was,
+   * The final draft's written-test receipt: which file was written, or why none was,
    * with the disposition and the four gate booleans. Present exactly on `drafted` and `repaired`;
    * a `rejected` final draft is reported here as not written. Its disposition is the receipt's.
    */
@@ -481,7 +480,7 @@ export type AuthoringDraftWriteOutput = z.infer<typeof AuthoringDraftWriteOutput
  * actually known, never a schema default that would have to guess. A defaulted session ref is the
  * one shape that could quietly report a different session's drafts as this one's.
  *
- * CHAT IS THE SURFACE THAT CONSTRUCTS ONE (394-19). It stamps its own session onto the two
+ * CHAT IS THE SURFACE THAT CONSTRUCTS ONE. It stamps its own session onto the two
  * `sessionRef`-carrying authoring ops, so receipts are ATTRIBUTED; and at the same invoke it
  * supplies THIS window — the session arm by default when a planner step carries none, and the
  * session arm's REF overwritten when the model emitted one — which is D-12's surface default
@@ -516,7 +515,7 @@ export type AuthoringFunnelWindow = z.infer<typeof AuthoringFunnelWindowSchema>
  */
 export const AuthoringFunnelGetInputSchema = z.object({
   /**
-   * ITS `scope` IS A HOMONYM, AND THAT IS EXACTLY WHY IT IS DOCUMENTED HERE (400-04, D-19).
+   * ITS `scope` IS A HOMONYM, AND THAT IS EXACTLY WHY IT IS DOCUMENTED HERE.
    *
    * `authoring.draft.write.scope` names a PRODUCT to author for. This op's `window.scope` names a
    * SPAN OF HISTORY to count over — `session` / `all-time` / `last-n`. Two fields spelled the same
@@ -529,7 +528,7 @@ export const AuthoringFunnelGetInputSchema = z.object({
    * `WINDOW_STAMPED_FUNCTION_IDS` carries this op, so `modelFacingInput()` drops `window` from
    * `required` and the model is told it will be supplied. So this description is not planner
    * guidance at all; it exists for the human-facing surfaces D-19 says were undocumented — which,
-   * as MEASURED by 400-12 (WINDOWS #189) and narrowed by 430 D-02, are the committed capability
+   * as MEASURED by 400-12 and narrowed by 430 D-02, are the committed capability
    * catalog row, `init --agent` and MCP `tools/list`, with `agent-qa fn --list` and the committed
    * catalog as the way a person finds the op. NOT `/help`, `explain` or the type-ahead: those
    * render `row.description`, or withhold params by charter. See the `scope` field's doc block
@@ -559,7 +558,7 @@ export const AuthoringFunnelGetOutputSchema = AuthoringFunnelSchema
 
 export type AuthoringFunnelGetOutput = z.infer<typeof AuthoringFunnelGetOutputSchema>
 
-// ---- `authoring.draft.edit`: the patch contract's second consumer (394-09, D-21 · WTST-07) ------
+// ---- `authoring.draft.edit`: the patch contract's second consumer ------
 
 /**
  * What a caller hands the edit op.
@@ -567,7 +566,7 @@ export type AuthoringFunnelGetOutput = z.infer<typeof AuthoringFunnelGetOutputSc
  * TWO FIELDS, AND BOTH CROSS A TRUST BOUNDARY. `testRef` decides WHICH of a person's committed
  * tests is rewritten, and `intent` is free text that reaches a model and becomes a patch set. So
  * `.strict()` and non-empty are the shape refusal, and everything a schema cannot check is refused
- * downstream by a named error: the ref by the never-guess binder (D-19), the emitted patches by the
+ * downstream by a named error: the ref by the never-guess binder, the emitted patches by the
  * region fence, and the patched document by the parser before anything is proposed.
  *
  * `testRef` accepts the `<filePath>::<testName>` spelling this project already prints — the same
@@ -589,7 +588,7 @@ export type AuthoringDraftEditInput = z.infer<typeof AuthoringDraftEditInputSche
  * What one edit answers: the draft it points at, the diff that produced it, and what it wrote.
  *
  * THE DIFF RIDES THE OUTPUT. The patch set is a fact about THIS invocation, and this is the shape
- * that invocation's caller reads. 2026-10-01 (432-17, D-06): the `test-draft` proposal arm this output
+ * that invocation's caller reads. 2026-10-01: the `test-draft` proposal arm this output
  * used to carry is deleted with the inbox; `written` says which file the edit wrote.
  *
  * The ops are the diff in the contract's own vocabulary, and they are more precise than a line
@@ -608,7 +607,7 @@ export const AuthoringDraftEditOutputSchema = z.object({
   editedFrom: z.object({
     filePath: z.string().min(1),
     testName: z.string().min(1),
-    /** How the ref bound: an exact address, or a unique high-confidence resolver hit (D-19). */
+    /** How the ref bound: an exact address, or a unique high-confidence resolver hit. */
     boundBy: z.enum(['exact-ref', 'resolver']),
   }).strict(),
   /** The RFC-6902 ops that were applied — the diff. See the contract's doc block. */
@@ -616,7 +615,7 @@ export const AuthoringDraftEditOutputSchema = z.object({
   /** The model's own account of the change, stored as prose so nothing downstream parses it. */
   thoughts: z.string(),
   /**
-   * What the edit did to the file it edited (432 D-06): written over the exact bytes it read, or
+   * What the edit did to the file it edited: written over the exact bytes it read, or
    * not written because that file changed, left the workspace, or could not be written.
    */
   written: TestFileWriteSchema,

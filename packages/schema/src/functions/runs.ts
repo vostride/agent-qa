@@ -1,7 +1,7 @@
 import { z } from 'zod'
 
 import type { Action } from '../action/index'
-// 407 D-05: the `runs.knowledge` panel DTO composes three already-minted contracts — the rung
+// the `runs.knowledge` panel DTO composes three already-minted contracts — the rung
 // vocabulary, the serve-time trace and the record-change row — rather than respelling any of
 // them, so the panel and the verbs it sits beside can never disagree about one run.
 import { RecordedRetrievalRungSchema } from '../brief/retrieval-rung'
@@ -53,7 +53,7 @@ import { oneJoinArm, recordJoinShape } from './record-join'
 export const RUN_SUMMARY_SCHEMA_VERSION = 2
 
 /**
- * Surface-facing projection of one completed run (Phase 384, D-16).
+ * Surface-facing projection of one completed run.
  *
  * Minimal by construction: it carries the identity fields 387's run addressing
  * (`RUN-456`) resolves against, the build ordinal knowledge folds key on, and the
@@ -82,7 +82,7 @@ export interface RunSummaryTest {
 }
 
 /**
- * The target names a run recorded when it happened (431 D-08), never read from current
+ * The target names a run recorded when it happened, never read from current
  * configuration. `unknown` is its own arm so a run with no readable snapshot can never pass for a
  * run that recorded no targets.
  */
@@ -150,7 +150,7 @@ const listTextFilterSchema = z.string().refine((value) => value.trim().length > 
 const epochMillisecondsSchema = z.number().int().nonnegative()
 
 /**
- * `runs.list` filters (431 D-08). Every filter selects completed runs BEFORE the limit caps them.
+ * `runs.list` filters. Every filter selects completed runs BEFORE the limit caps them.
  * `test` matches a member's exact id or a case-insensitive substring of its title; `target`
  * matches a recorded target name exactly; `since` is inclusive epoch milliseconds on `endedAt`.
  */
@@ -165,7 +165,7 @@ export const RunsListInputSchema = z.object({
 export type RunsListInput = z.infer<typeof RunsListInputSchema>
 
 /**
- * `runs.list`'s OUTPUT contract, named (2026-08-16, Phase 396 plan 04 · D-16).
+ * `runs.list`'s OUTPUT contract, named.
  *
  * The array used to be composed inline in the op — `output: z.array(RunSummarySchema)` — which is
  * correct for the op and unusable for anything else, because the composed object existed only
@@ -182,7 +182,7 @@ export const RunsListOutputSchema = z.array(RunSummarySchema)
 export type RunsListOutput = z.infer<typeof RunsListOutputSchema>
 
 /**
- * `runs.list`'s advertised output (431-03, D-03/D-07): the named schema above as the validator,
+ * `runs.list`'s advertised output: the named schema above as the validator,
  * with a document in which each row's branded run id is the validated wire string it arrives as.
  */
 export const RunsListOutputContract = wireOutputContract(RunsListOutputSchema)
@@ -190,7 +190,7 @@ export const RunsListOutputContract = wireOutputContract(RunsListOutputSchema)
 export const RUN_DETAIL_SCHEMA_VERSION = 2
 
 /**
- * One member test as `runs.get` projects it (Phase 384, D-06/D-16).
+ * One member test as `runs.get` projects it.
  *
  * Carries the stable test identity (filePath + testName, ABRF-02) a review surface
  * addresses and renders, the member verdict, and the root-cause classification when the
@@ -221,7 +221,7 @@ export interface RunTestDetail {
 
 /**
  * The `runs.get` result: one completed run projected across the `CompletedRunHandoff`
- * surface a review UI needs (Phase 384, D-06/D-16).
+ * surface a review UI needs.
  *
  * A superset of {@link RunSummary} — every listing field, plus the config digests a
  * reproduction needs, both durable run markers, and the per-member outcome rows.
@@ -309,7 +309,7 @@ export const RunsGetInputSchema = z.object({
 export type RunsGetInput = z.infer<typeof RunsGetInputSchema>
 
 /**
- * `runs.postProcessing` addresses one run's post-run chain (Phase 388, D-14).
+ * `runs.postProcessing` addresses one run's post-run chain.
  *
  * The same one-field shape `runs.get` takes, and deliberately so: chip truth is a fact about a
  * RUN, derived from that run's id alone (RESEARCH Pattern 2). A filter, a job id or a stage
@@ -323,11 +323,11 @@ export const RunsPostProcessingInputSchema = z.object({
 export type RunsPostProcessingInput = z.infer<typeof RunsPostProcessingInputSchema>
 
 /**
- * The chain-terminal notification as a WIRE contract (Phase 388, D-09/D-11).
+ * The chain-terminal notification as a WIRE contract.
  *
  * `guardRunNotification` reads the BYTES another build may have written into a sqlite column;
  * this describes the shape a surface receives and the JSON-Schema projection a catalogue
- * publishes. 2026-10-17 (444-10, D-36): a surface receives `toRunNotificationView`'s words.
+ * publishes. 2026-10-17: a surface receives `toRunNotificationView`'s words.
  */
 export const RunNotificationViewSchema = z.object({
   schemaVersion: z.literal(CURRENT_RUN_NOTIFICATION_SCHEMA_VERSION),
@@ -335,7 +335,7 @@ export const RunNotificationViewSchema = z.object({
   outcome: z.enum(RUN_NOTIFICATION_VIEW_STATUSES),
   verdictSummary: z.object({
     total: z.number().int().nonnegative(),
-    // Partial on purpose (D-11): a class that did not occur is an ABSENT key, never a zero,
+    // Partial on purpose: a class that did not occur is an ABSENT key, never a zero,
     // so "this class did not happen" and "this build does not know that class" stay different
     // bytes.
     byClass: z.partialRecord(z.enum(verdictClassValues), z.number().int().nonnegative()),
@@ -369,15 +369,15 @@ export const PostProcessingStatusSchema = z.object({
   chips: PostProcessingChipsSchema,
   stageDetails: z.partialRecord(z.enum(POST_PROCESSING_DETAIL_STAGES), PostProcessingStageDetailSchema).optional(),
   curationSnapshot: CurationSnapshotSchema.optional(),
-  /** A recorded snapshot that could not be projected safely (423 D-15); never beside curationSnapshot. */
+  /** A recorded snapshot that could not be projected safely; never beside curationSnapshot. */
   curationSnapshotWithheld: CurationSnapshotWithheldSchema.optional(),
-  /** The run's chain was never enqueued (425 D-08, 444 D-39); folded from the durable handoff markers. */
+  /** The run's chain was never enqueued; folded from the durable handoff markers. */
   skipped: PostProcessingSkippedSchema.optional(),
   notification: RunNotificationViewSchema.optional(),
 }).strict() satisfies z.ZodType<PostProcessingStatus>
 
 /**
- * The `runs.start` input (D-09/D-10). The op registers with this full contract in 384 and
+ * The `runs.start` input. The op registers with this full contract in 384 and
  * binds to a named not-bound-in-this-composition error until 386 relocates the composition
  * root — so this schema is the contract, not a description of what runs today.
  *
@@ -389,7 +389,7 @@ export const RunsStartInputSchema = z.object({
   /** Test file paths or glob patterns to run; absent means the configured default set. */
   patterns: z.array(z.string()).optional(),
   /**
-   * The run id to start under; absent means the composition mints one (Phase 401, D-02).
+   * The run id to start under; absent means the composition mints one.
    *
    * ADDITIVE, and additive is what this object was built for: the strict shape refuses an
    * unrecognized key, so a field arrives as a contract change rather than as a silently ignored
@@ -421,7 +421,7 @@ export const RUN_START_ACKNOWLEDGEMENT_SCHEMA_VERSION = 2
 const plannerLimitSchema = z.number().int().positive().max(Number.MAX_SAFE_INTEGER)
 
 /**
- * 436 D-06: the effective planner limits a run recorded, as the acknowledgement carries them. The
+ * the effective planner limits a run recorded, as the acknowledgement carries them. The
  * handoff loader spells the same domain by hand (`hasPlannerLimitsRecordShape`); the two agree.
  */
 export const PlannerLimitsRecordSchema = z.object({
@@ -436,7 +436,7 @@ export const PlannerLimitsRecordSchema = z.object({
 }).strict() satisfies z.ZodType<PlannerLimitsRecord>
 
 /**
- * The `runs.start` result (Phase 384, D-09).
+ * The `runs.start` result.
  *
  * Starting a run is ASYNCHRONOUS, so the acknowledgment names the run a caller may now
  * address — `runs.events` for the stream while it happens, `runs.get` for the outcome once
@@ -454,7 +454,7 @@ export interface RunStartAcknowledgement {
   testCount: number
   gateRun?: true
   excludedFromOutcomes?: true
-  /** 436 D-06: the limits each step ran under, copied from the run's own record. */
+  /** the limits each step ran under, copied from the run's own record. */
   limits?: PlannerLimitsRecord
 }
 
@@ -471,7 +471,7 @@ export const RunStartAcknowledgementSchema = z.object({
 }).strict() satisfies z.ZodType<RunStartAcknowledgement>
 
 /**
- * The `runs.events` stream input (D-08). `lastEventId` is the v49 bus resume token — the
+ * The `runs.events` stream input. `lastEventId` is the v49 bus resume token — the
  * gap-free `seq` of the last envelope the caller observed, so the stream resumes at
  * `lastEventId + 1`. Absent means replay from the beginning of the log.
  */
@@ -483,7 +483,7 @@ export const RunsEventsInputSchema = z.object({
 export type RunsEventsInput = z.infer<typeof RunsEventsInputSchema>
 
 /**
- * The `runs.liveurl` input (403 D-03). `handle` selects WHICH member of a parallel run the viewer
+ * The `runs.liveurl` input. `handle` selects WHICH member of a parallel run the viewer
  * attaches to; absent means handle 0, the single-member case every non-suite run is.
  */
 export const RunsLiveUrlInputSchema = z.object({
@@ -494,7 +494,7 @@ export const RunsLiveUrlInputSchema = z.object({
 export type RunsLiveUrlInput = z.infer<typeof RunsLiveUrlInputSchema>
 
 /**
- * The `runs.liveurl` result (403 D-03/D-08). `liveUrl` carries the token in its FRAGMENT, so this
+ * The `runs.liveurl` result. `liveUrl` carries the token in its FRAGMENT, so this
  * value is the one place the token exists outside the minting process's memory — which is why the
  * op's `classify` never interpolates it and no door logs this result.
  *
@@ -510,7 +510,7 @@ export const RunsLiveUrlResultSchema = z.object({
 
 export type RunsLiveUrlResult = z.infer<typeof RunsLiveUrlResultSchema>
 
-/** The editor subject's mint input (428 D-07), reachable only through the dashboard door. */
+/** The editor subject's mint input, reachable only through the dashboard door. */
 export const EditorLiveUrlInputSchema = z.object({
   sessionId: z.string().min(1),
 }).strict()
@@ -518,7 +518,7 @@ export const EditorLiveUrlInputSchema = z.object({
 export type EditorLiveUrlInput = z.infer<typeof EditorLiveUrlInputSchema>
 
 /**
- * The editor subject's mint result (428 D-07). No `handle`: an editor session has exactly one
+ * The editor subject's mint result. No `handle`: an editor session has exactly one
  * stream. `.strict()` is load-bearing because the composition parses this result, so a grown field
  * throws instead of leaking.
  */
@@ -533,7 +533,7 @@ export type EditorLiveUrlResult = z.infer<typeof EditorLiveUrlResultSchema>
 export const RUN_EVENT_ENVELOPE_SCHEMA_VERSION = 2
 
 /**
- * The `runs.events` stream ELEMENT contract (Phase 384, D-08).
+ * The `runs.events` stream ELEMENT contract.
  *
  * A stream op's declared output describes ONE element of the async iterable, never the
  * iterable itself — so this is the frozen v49 bus envelope as the JSONL event log records
@@ -553,7 +553,7 @@ export const RunEventEnvelopeSchema = z.object({
   payload: z.record(z.string(), z.unknown()).transform((value) => value as RunEventPayload),
 }).strict() satisfies z.ZodType<RunEventEnvelope>
 
-// ---- `runs.detail` — the durable run-detail projection (Phase 405 plan 01, D-03) ---------------
+// ---- `runs.detail` — the durable run-detail projection ---------------
 //
 // THE WIRE MIRRORS THE BUS, FIELD FOR FIELD. Every name below is the name the producing payload
 // already uses (`testIndex`, `cacheStatus`, `verifierVerdict`, `selfHealOccurred`, `briefDigest`,
@@ -562,7 +562,7 @@ export const RunEventEnvelopeSchema = z.object({
 // would be a second vocabulary for one run, free to drift from the events the same run recorded.
 
 /**
- * One member test of a run, as the dashboard projection persisted it (D-01, D-18).
+ * One member test of a run, as the dashboard projection persisted it.
  *
  * `testIndex` IS THE HANDLE (RESEARCH D4): `handleId(runId, testIndex)` is how the product spells
  * run-scoped member identity, and minting a second id here would be a second spelling of it.
@@ -570,7 +570,7 @@ export const RunEventEnvelopeSchema = z.object({
  * EVERY DESCRIPTIVE FIELD IS OPTIONAL AND `attempts` IS NOT, which is the D-18 thin-member shape
  * stated as a type: a member whose stream begins with a terminal event has an outcome and nothing
  * else, and it must still be renderable. `attempts` is an ordinal that starts at 1 and rises on
- * `testRetryScheduled` (D-17), so it is always known.
+ * `testRetryScheduled`, so it is always known.
  */
 export interface RunDetailMember {
   testIndex: number
@@ -588,7 +588,7 @@ export interface RunDetailMember {
   attempts: number
   recording?: RecordingEntry
   /**
-   * 419 D-15: the LATEST mark per address on this member — the run-level entry
+   * the LATEST mark per address on this member — the run-level entry
    * (no stepIndex) first, then step entries ascending. Absent when the host binds
    * no feedback dep or nothing was marked; a projection of the mark ledger,
    * nothing new is fetched by the block.
@@ -597,7 +597,7 @@ export interface RunDetailMember {
 }
 
 /**
- * The per-step model spend (D-05), ABSENT when nothing was measured.
+ * The per-step model spend, ABSENT when nothing was measured.
  *
  * Three numbers rather than one, mirroring the additive-optional field 405-04 appends to
  * `stepFinalized`. A cache hit, a bypass or a provider that reports no usage carries NO
@@ -605,7 +605,7 @@ export interface RunDetailMember {
  */
 export interface RunStepTokenUsage extends ModelTokenUsage {}
 
-/** One finalized step, carrying the whole `StepFinalizedPayload` as persisted (D-01). */
+/** One finalized step, carrying the whole `StepFinalizedPayload` as persisted. */
 export interface RunDetailStep {
   testIndex: number
   stepIndex: number
@@ -626,7 +626,7 @@ export interface RunDetailStep {
   variableSnapshot?: VariableSnapshot
 }
 
-/** One recorded sub-action, carrying the whole `SubActionRecordedPayload` as persisted (D-01). */
+/** One recorded sub-action, carrying the whole `SubActionRecordedPayload` as persisted. */
 export interface RunDetailSubAction {
   testIndex: number
   stepIndex: number
@@ -644,7 +644,7 @@ export interface RunDetailSubAction {
 }
 
 /**
- * A projected artifact ref, annotated with read-time presence (Phase 406, D-17).
+ * A projected artifact ref, annotated with read-time presence.
  *
  * A DETAIL-SIDE EXTENSION RATHER THAN A WIDER `ArtifactRef`, because `ArtifactRef` is the shape
  * the RUNNER mints when it writes a blob, and a producer has nothing to say about whether the
@@ -661,7 +661,7 @@ export interface RunDetailArtifactRef extends ArtifactRef {
 }
 
 /**
- * The run-level token sum, computed at READ time from the step rows (D-06).
+ * The run-level token sum, computed at READ time from the step rows.
  *
  * THE THREE SUMS ARE ABSENT WHEN `measuredSteps === 0`, and that asymmetry is the whole point:
  * "no step reported usage" and "every step reported zero" are different facts about a run, and a
@@ -689,7 +689,7 @@ export const RunModelSummarySchema = z.object({
 export type RunModelSummary = z.infer<typeof RunModelSummarySchema>
 
 /**
- * What the run-detail READ PORT answers with — the rows and nothing derived (D-03).
+ * What the run-detail READ PORT answers with — the rows and nothing derived.
  *
  * The token sum is DELIBERATELY NOT HERE. It is computed in the op by the exported pure
  * `projectRunTokenTotals`, so the sum has one producer in the layer that owns the contract rather
@@ -845,7 +845,7 @@ export const RunDetailProjectionSchema = z.object({
 }).strict() satisfies z.ZodType<RunDetailProjection>
 
 /**
- * `runs.artifact` addresses ONE content-addressed evidence blob, run-scoped (405 D-12/D-13).
+ * `runs.artifact` addresses ONE content-addressed evidence blob, run-scoped.
  *
  * TWO FIELDS AND NO PATH, EVER. The sha is the whole of the artifact's address inside the run, and
  * the regex here is the CONTRACT rather than a route guard: a malformed sha is refused by this
@@ -855,7 +855,7 @@ export const RunDetailProjectionSchema = z.object({
  * `createHash('sha256').digest('hex')` and an uppercase spelling would name a file that does not
  * exist while looking like a legitimate miss.
  *
- * RUN-SCOPED BY CONSTRUCTION (D-12, T-405-16). There is no global `artifacts/:sha` shape here,
+ * RUN-SCOPED BY CONSTRUCTION. There is no global `artifacts/:sha` shape here,
  * because the store keeps no sha→run index and a route that pretended otherwise would be reading
  * one run's evidence under another run's authority.
  */
@@ -882,7 +882,7 @@ export type RunsArtifactInput = z.infer<typeof RunsArtifactInputSchema>
  * `contentType` IS DERIVED FROM THE BYTES, not from a name, an extension or anything the caller
  * said: the store keeps no metadata, and the only honest source for "what is this" is the head of
  * the blob itself. The op's sniffer answers PNG, JPEG or the opaque default and NOTHING a browser
- * renders as markup (T-405-15).
+ * renders as markup.
  *
  * `byteLength` IS THE DECODED SIZE, DECLARED RATHER THAN DERIVABLE. It is here so that neither the
  * op's own receipt fold nor the route's `Content-Length` has to reach into `bytesBase64` to learn
@@ -956,13 +956,13 @@ export const RunsEvidenceResultSchema = z.union([
 export type RunsEvidenceResult = z.infer<typeof RunsEvidenceResultSchema>
 
 /**
- * `runs.evidence`'s advertised output (431-03): every arm validates through the schema above, and
+ * `runs.evidence`'s advertised output: every arm validates through the schema above, and
  * a captured variable map is published as the string-keyed entry map it is — own `__proto__`
  * included — rather than re-described through a record parser that skips that key.
  */
 export const RunsEvidenceOutputContract = wireOutputContract(RunsEvidenceResultSchema)
 
-// ---- `runs.knowledge` — what one run USED and LEARNED (Phase 407, LERN-01/LERN-02 · D-05) -----
+// ---- `runs.knowledge` — what one run USED and LEARNED -----
 //
 // ONE READ, ONE DTO, EVERY SURFACE. D-05's whole posture is that the Knowledge panel is a thin
 // client over a single registry verb rather than a page composing N `knowledge.brief.why` calls,
@@ -970,7 +970,7 @@ export const RunsEvidenceOutputContract = wireOutputContract(RunsEvidenceResultS
 // serve-time trace arm, the procedure plan source and the recorded rung; per run the curation
 // word with its counts, the record changes attributable to this run, and the canary outcomes.
 //
-// THE SUBSTRATE IS THE RUN'S HANDOFF (D-06). Every field below is a projection of `StepEvidence`
+// THE SUBSTRATE IS THE RUN'S HANDOFF. Every field below is a projection of `StepEvidence`
 // or of a sibling op invoked with the same deps — nothing here is re-derived by querying today's
 // index, because a why-answer computed from the present would answer a different question than
 // the one asked (KREV-02's founding argument, applied to a whole run).
@@ -1027,7 +1027,7 @@ export const RunKnowledgeCautionLineSchema = z.object({
 }).strict().superRefine(oneJoinArm)
 
 /**
- * Why this step's brief said what it said — the trace, or a NAMED absence (D-04).
+ * Why this step's brief said what it said — the trace, or a NAMED absence.
  *
  * The two arms are the `knowledge.brief.why` vocabulary applied per step, and they reuse that
  * verb's own reason enum rather than a second spelling of it: one run answered through this op
@@ -1048,14 +1048,14 @@ export const RunKnowledgeTraceSchema = z.discriminatedUnion('kind', [
 export type RunKnowledgeTrace = z.infer<typeof RunKnowledgeTraceSchema>
 
 /**
- * The step's plan source, mirroring `StepPlanSource` MEMBER FOR MEMBER (D-07).
+ * The step's plan source, mirroring `StepPlanSource` MEMBER FOR MEMBER.
  *
  * A replay row and a hint row stay structurally distinct on the wire because G-381-4's whole
  * lesson is that a demoted replay recommendation and an ordinary served hint are byte-identical
  * unless something keeps them apart. The guard fold travels intact so the panel can say
  * "replayed 5/5" or "broke at step 3: verifier rejection" without a second read.
  *
- * MEMBER FOR MEMBER IS A LIST, NOT AN ADJECTIVE (407-12, CR-01). The replay arm names
+ * MEMBER FOR MEMBER IS A LIST, NOT AN ADJECTIVE. The replay arm names
  * `procedureId`, `guard` AND `flow`; the hint arm names `procedureId` and `demotion`. The claim
  * was made in prose here while `flow` was missing and the arm was `.strict()`, so every run that
  * really replayed a procedure — the only runs the "replayed 5/5" sentence exists for — failed
@@ -1088,7 +1088,7 @@ export const RunKnowledgePlanSourceSchema = z.discriminatedUnion('kind', [
       }).strict().optional(),
     }).strict(),
     /**
-     * The cross-flow position of this test step (407-12, CR-01), mirroring `StepPlanSource.flow`:
+     * The cross-flow position of this test step, mirroring `StepPlanSource.flow`:
      * `cursor` = the committed body-step index this test step attempted, `length` = the committed
      * body's step count. The runner writes it UNCONDITIONALLY on every replay plan source it
      * records (`recordProcedureReplaySource` returns early when there is no cursor, and otherwise
@@ -1138,7 +1138,7 @@ export const RunKnowledgeStepSchema = z.object({
 export type RunKnowledgeStep = z.infer<typeof RunKnowledgeStepSchema>
 
 /**
- * One served canary line that curation later attributed an outcome to (D-08).
+ * One served canary line that curation later attributed an outcome to.
  *
  * `recordId` is the served line's own id — which IS the curation candidate id, the pin
  * `emit-canary-outcomes.ts` already relies on — and `observationId` is the sha-derived id the
@@ -1157,7 +1157,7 @@ export const RunKnowledgeCanaryAttributionSchema = z.object({
 export type RunKnowledgeCanaryAttribution = z.infer<typeof RunKnowledgeCanaryAttributionSchema>
 
 /**
- * The whole panel projection — TWO ARMS, and the second one is the point (D-06).
+ * The whole panel projection — TWO ARMS, and the second one is the point.
  *
  * `evidence-incomplete` is a RESULT, not a throw. A run whose handoff has been pruned is the
  * ordinary "go looking" case 406 D-17 gave a component to, and a refusal would make a legible
@@ -1169,7 +1169,7 @@ export type RunKnowledgeCanaryAttribution = z.infer<typeof RunKnowledgeCanaryAtt
  *
  * NO `null` ANYWHERE. Absence is an absent key throughout (the layer's own idiom): `counts` is
  * missing when the frozen notification row did not record both numbers, and does not read as a
- * zero somebody measured. 2026-09-30, 432-09 (D-25): the ready arm carries no pending-proposal
+ * zero somebody measured. 2026-09-30, 432-09: the ready arm carries no pending-proposal
  * count; the tab shows what changed, never what awaits review.
  */
 export const RunKnowledgeProjectionSchema = z.discriminatedUnion('kind', [
@@ -1196,13 +1196,13 @@ export const RunKnowledgeProjectionSchema = z.discriminatedUnion('kind', [
       changes: z.array(RunKnowledgeLearnedChangeSchema),
       canaryAttributions: z.array(RunKnowledgeCanaryAttributionSchema),
       /**
-       * This run's curation as curation recorded it (423 D-15): the fixed checkpoint snapshot,
+       * This run's curation as curation recorded it: the fixed checkpoint snapshot,
        * served verbatim so its rows reconcile exactly with its breakdown. Absent when curation
        * completed no snapshot (a failed or pre-423 chain) — never five zeros.
        */
       curationSnapshot: CurationSnapshotSchema.optional(),
       /**
-       * The nested post-processing read withheld this run's snapshot (423 D-15): present beside an
+       * The nested post-processing read withheld this run's snapshot: present beside an
        * absent {@link curationSnapshot} and an absent {@link sinceThen}; the learned rows stay served.
        */
       curationSnapshotWithheld: CurationSnapshotWithheldSchema.optional(),
@@ -1217,7 +1217,7 @@ export const RunKnowledgeProjectionSchema = z.discriminatedUnion('kind', [
         message: 'sinceThen.count must equal its change rows', path: ['count'],
       }).optional(),
       /**
-       * THE LEARNED HALF DEGRADED, AND SAYS SO (407-14, CR-03).
+       * THE LEARNED HALF DEGRADED, AND SAYS SO.
        *
        * Present iff a knowledge-store scan error — one malformed, truncated or tampered bundle,
        * quite possibly in a bundle this run never touched — folded one or both store enrichments
@@ -1241,7 +1241,7 @@ export type RunKnowledgeProjection = z.infer<typeof RunKnowledgeProjectionSchema
 /**
  * What the evidence-blob READ PORT answers with — three arms, and absence is TWO of them.
  *
- * THE SPLIT IS THE WHOLE POINT (D-15). `FsEvidenceArtifactStore.getBlob` returns `undefined` for a
+ * THE SPLIT IS THE WHOLE POINT. `FsEvidenceArtifactStore.getBlob` returns `undefined` for a
  * run that never existed and for a run that exists and holds no such blob, and those are different
  * operator situations: the first is a bad link, the second is a GC'd or never-written artifact that
  * the page must render as a visible "screenshot unavailable" state. A port that answered one word
@@ -1256,12 +1256,12 @@ export type EvidenceBlobLookup =
   | { readonly status: 'unknown_run' }
 
 /**
- * The same three words, asked as a STAT rather than as a read (Phase 406, D-17).
+ * The same three words, asked as a STAT rather than as a read.
  *
  * DERIVED FROM {@link EvidenceBlobLookup} RATHER THAN RESPELLED, because presence and the read
  * are one question asked at two costs: a durable read annotating every artifact ref on a run page
  * must not load a screenshot to decide whether to draw a link. A second literal union here would
  * be a second answer to which absences exist, free to fall behind the one the port already
- * serves — and the whole value of the split (D-15) is that the two arms stay distinguishable.
+ * serves — and the whole value of the split is that the two arms stay distinguishable.
  */
 export type EvidenceBlobPresence = EvidenceBlobLookup['status']

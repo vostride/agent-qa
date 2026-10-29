@@ -1,6 +1,6 @@
-// Where an authored test is written, and the run-evidence coordinate vocabulary (394-06, D-05 · WTST-01).
+// Where an authored test is written, and the run-evidence coordinate vocabulary.
 //
-// 2026-10-01 (432-17, D-06): the `test-draft` envelope arm this module was named for is deleted with
+// the `test-draft` envelope arm this module was named for is deleted with
 // the proposal inbox. An authored test that a keep-gate did not reject is written to its test path in
 // the call that authored it, and the op answers which file it wrote (`TestFileWriteSchema`), so
 // nothing waits for a person to accept it. What survives here is what that write and the run
@@ -16,7 +16,7 @@ import { slugBranch } from '../ids/slug'
 /**
  * How long a slugged test name may be before it is cut.
  *
- * RETUNE: raise it if real authored names are being truncated into collisions — the apply refuses
+ * raise it if real authored names are being truncated into collisions — the apply refuses
  * a target that already exists, so a collision costs a refusal rather than an overwrite, which is
  * the direction to fail in but not a direction to sit in. It may not become unbounded: this value
  * becomes a filename, and some filesystems still cap a component at 255 bytes.
@@ -56,7 +56,7 @@ export function authoredSuiteTargetPath(draftShelfPath: string, testName: string
  * Which durable record an evidence coordinate addresses.
  *
  * THE ONE CHANNEL VOCABULARY. The router builds these coordinates and `authoring.draft.write`'s
- * `stop` arm carries them (411 D-07), and the two are the same thing seen from either side of the
+ * `stop` arm carries them, and the two are the same thing seen from either side of the
  * result — so the words are spelled here, in `schema`, and the router imports them. A second
  * spelling inside `agent` would be free to drift from the one a caller was answered with, which is
  * the drift a wire projection can never detect because both halves would parse.

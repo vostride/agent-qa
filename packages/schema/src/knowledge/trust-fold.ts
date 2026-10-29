@@ -99,7 +99,7 @@ export function foldBundleTrust(
   for (const event of survivingEvents) {
     switch (event.type) {
       case 'overturned':
-        // 419 D-09: overturnsEvidenceToken is interpreted by survivingOutcomeEvents;
+        // overturnsEvidenceToken is interpreted by survivingOutcomeEvents;
         // the compensating audit line supplies no positive or harmful count.
         break
       case 'confirmed':

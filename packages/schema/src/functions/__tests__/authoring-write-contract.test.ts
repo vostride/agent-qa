@@ -1,4 +1,4 @@
-// The registry contract for `authoring.draft.write`'s `scope` (394-26, WINDOWS 110).
+// The registry contract for `authoring.draft.write`'s `scope`.
 //
 // A live planner refused the op by name because `scope` was a REQUIRED `{tier, key}` and nothing
 // on the model's side enumerates the valid keys. The fix is `runs.start`'s own law applied one op

@@ -5,10 +5,10 @@
 // changed: the records, a typed absence, or a typed refusal. A mark changes knowledge through
 // `runs.mark` with the same review vocabulary. Nothing is filed for a second call to apply.
 //
-// MOVED HERE 2026-10-01 (432-17). These contracts lived beside the proposal they replaced
+// MOVED HERE 2026-10-01. These contracts lived beside the proposal they replaced
 // (`knowledge/proposal.ts`, `knowledge/review-verbs.ts`) while the proposal inbox still had readers.
 // The inbox, its envelope and the knowledge proposal payload are deleted, and old proposal files are
-// never parsed again (D-22), so this is the one module the direct change vocabulary lives in. The
+// never parsed again, so this is the one module the direct change vocabulary lives in. The
 // commit receipt moved with it from `functions/feedback.ts` (which re-exports it), because the change
 // output carries it and the feedback contracts import this module's primitives: one direction only.
 //
@@ -27,7 +27,7 @@ import { BundleProvenanceSchema } from './bundle-files'
 import { MARKS } from './gate-receipt'
 import { PROMOTION_PATHS } from './promotion-path'
 
-/** 2026-09-08, 419 D-01: mark is the fourth — a user mark's fix, applied through the same writer. */
+/** mark is the fourth — a user mark's fix, applied through the same writer. */
 export const KNOWLEDGE_REVIEW_VERBS = ['accept', 'reject', 'forget', 'mark'] as const
 
 export type KnowledgeReviewVerb = (typeof KNOWLEDGE_REVIEW_VERBS)[number]
@@ -53,7 +53,7 @@ export const KnowledgeChangeIdSchema = z
   .regex(/^prop_[a-z0-9]+(?:-[a-z0-9]+)*$/u, 'expected a prop_-prefixed lowercase change id')
 
 /**
- * 2026-09-30, 432-12 (D-05): the three knowledge changes a caller makes directly. A mark changes
+ * the three knowledge changes a caller makes directly. A mark changes
  * knowledge through `runs.mark`, so it is a review verb and not one of these.
  */
 export const KNOWLEDGE_CHANGE_VERBS = ['accept', 'reject', 'forget'] as const
@@ -61,7 +61,7 @@ export const KNOWLEDGE_CHANGE_VERBS = ['accept', 'reject', 'forget'] as const
 export type KnowledgeChangeVerb = (typeof KNOWLEDGE_CHANGE_VERBS)[number]
 
 /**
- * A caller's stable identity for one knowledge change (432-12). Repeating it repeats the change,
+ * A caller's stable identity for one knowledge change. Repeating it repeats the change,
  * which lands once. Letters, digits and single hyphens, so a UUID fits and the change id derived
  * from it keeps the receipt id shape.
  */
@@ -112,7 +112,7 @@ export type ForgetTargetRef = KnowledgeTargetRef
  * validated where they are applied; what this boundary owes is that an unrecognised kind or a delta
  * with no attributable origin never reaches that point looking well-formed.
  *
- * STRUCTURAL, not `z.custom` (387-08): a predicate is unprojectable, and the function layer projects
+ * STRUCTURAL, not `z.custom`: a predicate is unprojectable, and the function layer projects
  * every declared contract into an inert JSON Schema document for its listing.
  */
 export const DeltaSchema = z.looseObject({
@@ -122,7 +122,7 @@ export const DeltaSchema = z.looseObject({
   citedIds: z.array(z.string()),
 }) as unknown as z.ZodType<Delta>
 
-/** One record a forget tombstones, with the provenance that survives it (D-19). */
+/** One record a forget tombstones, with the provenance that survives it. */
 export const TombstonedRecordSchema = z.object({
   recordId: z.string().min(1),
   provenance: BundleProvenanceSchema,
@@ -141,7 +141,7 @@ export const FORGET_RECEIPT_SCHEMA_VERSION = 2
 
 /**
  * What a forget DID: the value the change returns, and the content the forgotten entity's address
- * resolves to afterwards (D-19 + D-04). Every tombstoned record is enumerated with its provenance,
+ * resolves to afterwards. Every tombstoned record is enumerated with its provenance,
  * because a receipt that listed only what it happened to find is a receipt nobody can act on.
  *
  * `proposalId` carries the change id; the field name is the persisted receipt's (see the header).
@@ -157,7 +157,7 @@ export const ForgetReceiptV1Schema = z.object({
 
 export type ForgetReceiptV1 = z.infer<typeof ForgetReceiptV1Schema>
 
-/** The stamp binding a mark's knowledge fix to the mark that made it (419 D-01). */
+/** The stamp binding a mark's knowledge fix to the mark that made it. */
 export const MarkChangeStampSchema = z.object({
   markId: z.string().regex(/^mark_[0-9a-f]{12}$/),
   runId: z.string().min(1),
@@ -174,7 +174,7 @@ export const COMMIT_RECEIPT_SCHEMA_VERSION = 2
 const ordinalSchema = z.number().int().nonnegative()
 
 /**
- * What a change that crossed a promotion gate, or wrote a policy record, committed (419 D-04/D-17).
+ * What a change that crossed a promotion gate, or wrote a policy record, committed.
  * `proposalId` carries the change id; the field name is the persisted receipt's (see the header).
  */
 export const CommitReceiptSchema = z.object({
@@ -213,7 +213,7 @@ export const KnowledgeRejectInputSchema = z.object({
 
 export type KnowledgeRejectInput = z.infer<typeof KnowledgeRejectInputSchema>
 
-/** Forget a record or a whole bundle (D-19). */
+/** Forget a record or a whole bundle. */
 export const KnowledgeForgetInputSchema = z.object({
   target: ForgetTargetRefSchema,
 }).strict()
@@ -221,7 +221,7 @@ export const KnowledgeForgetInputSchema = z.object({
 export type KnowledgeForgetInput = z.infer<typeof KnowledgeForgetInputSchema>
 
 /**
- * 432-12 (D-05/D-09): what a CHANGE op takes on top of the verb it applies — an optional operation
+ * what a CHANGE op takes on top of the verb it applies — an optional operation
  * identity. A caller that repeats the identity repeats the change, which lands once and answers the
  * same records; a caller that omits it gets a fresh identity back on the receipt.
  */
@@ -257,7 +257,7 @@ export const KNOWLEDGE_CHANGE_REFUSAL_REASONS = ['policy-materialize-refused'] a
 export type KnowledgeChangeRefusalReason = (typeof KNOWLEDGE_CHANGE_REFUSAL_REASONS)[number]
 
 /**
- * What a direct knowledge change DID (432-12, D-05): the records it changed, a typed absence, or a
+ * What a direct knowledge change DID: the records it changed, a typed absence, or a
  * typed refusal. Never a proposal: nothing waits for a second call.
  *
  * `recordIds` are read back after the write. A forget carries the tombstone receipt, and a change
@@ -270,7 +270,7 @@ export const KnowledgeChangeOutputSchema = z.discriminatedUnion('outcome', [
     verb: z.enum(KNOWLEDGE_CHANGE_VERBS),
     operationId: KnowledgeChangeOperationIdSchema,
     recordIds: z.array(z.string().min(1)),
-    /** Present exactly when the change was a forget (D-19). */
+    /** Present exactly when the change was a forget. */
     forgetReceipt: ForgetReceiptV1Schema.optional(),
     /** Present when the change passed a promotion gate or wrote a policy record. */
     commitReceipt: CommitReceiptSchema.optional(),

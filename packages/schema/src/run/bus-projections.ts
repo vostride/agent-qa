@@ -15,7 +15,7 @@ import type {
 } from './bus-events'
 
 /**
- * The masking seam (D-09). Every payload projection takes a `MaskFn` and routes every
+ * The masking seam. Every payload projection takes a `MaskFn` and routes every
  * string it produces through it. Pre-362 the CLI passes an identity function; 362's
  * masking-context seeding replaces it with the real redactor with ZERO further wiring —
  * the same discipline `StepEvidence.workingMemory` already follows.
@@ -83,7 +83,7 @@ function walkTree(value: unknown, mask: MaskFn): unknown {
 }
 
 /**
- * `StepEvidence` → `stepFinalized` payload (D-10). Carries `cacheStatus`, the
+ * `StepEvidence` → `stepFinalized` payload. Carries `cacheStatus`, the
  * `verifierVerdict`, a boolean `selfHealOccurred` FLAG (never the `selfHeal` body), and
  * the `briefDigest` — the `ServedBrief`'s own digest field travels, never its body.
  */
@@ -119,7 +119,7 @@ export function projectStepFinalized(
     ...(extra?.status !== undefined ? { status: extra.status } : {}),
     ...(extra?.durationMs !== undefined ? { durationMs: extra.durationMs } : {}),
     ...(extra?.error !== undefined ? { error: extra.error } : {}),
-    // 2026-08-27 (Phase 405 plan 04, D-05): same spread-when-defined rule, for the same
+    // same spread-when-defined rule, for the same
     // reason — an unmeasured step carries NO key rather than a zero triple. The three
     // members are numbers, so `maskPayloadStrings` walks past them untouched.
     ...usage,
@@ -130,9 +130,9 @@ export function projectStepFinalized(
           Object.entries(extra.variableSnapshot).map(([name, value]) => [mask(name), value]),
         ) }
       : {}),
-    // 2026-08-29 (Phase 407 plan 03, D-14): same spread-when-defined rule, read from the
+    // same spread-when-defined rule, read from the
     // EVIDENCE rather than from `extra` — unlike the 363 appends above, the rung IS a
-    // `StepEvidence` field (D-13). A step whose evidence recorded no rung carries no key, so
+    // `StepEvidence` field. A step whose evidence recorded no rung carries no key, so
     // absence on the wire keeps meaning "no ladder was named" and never "the top rung".
     ...(evidence.retrievalRung !== undefined ? { retrievalRung: evidence.retrievalRung } : {}),
   }
@@ -147,7 +147,7 @@ export function projectStepFinalized(
 }
 
 /**
- * `SubActionEvidence` → `subActionRecorded` payload (D-10). The raw `stateBefore`/
+ * `SubActionEvidence` → `subActionRecorded` payload. The raw `stateBefore`/
  * `stateAfter` are collapsed to `screenStateHash` identity strings and destructured away
  * (the `toRecordedActionResult` idiom — never `delete`); `result` is already a
  * `RecordedActionResult` by evidence construction so no live screenshot bytes ride the bus.
@@ -212,7 +212,7 @@ export function projectSubActionRecorded(
 }
 
 /**
- * `PerTestOutcome` → `testFinished` payload (D-10). Identity + `outcome` only; the
+ * `PerTestOutcome` → `testFinished` payload. Identity + `outcome` only; the
  * embedded `steps` array is destructured away and never rides the bus.
  */
 export function projectTestFinished(
@@ -252,7 +252,7 @@ export function projectTestFinished(
 // --- Hook lifecycle + retry projections (Phase 363 D-01 parity appends, spec §2.2) ----
 
 /**
- * Hook identity → `hookStarted` payload (D-01). Pure structural pass: absent optional
+ * Hook identity → `hookStarted` payload. Pure structural pass: absent optional
  * identity fields are omitted (no undefined holes), every string routes through the mask.
  */
 export function projectHookStarted(
@@ -272,7 +272,7 @@ export function projectHookStarted(
 }
 
 /**
- * Hook result → `hookFinished` payload (D-01, T-363-01). `stdout`/`stderr`/`error` and each
+ * Hook result → `hookFinished` payload. `stdout`/`stderr`/`error` and each
  * `variables` VALUE are routed through the mask by the terminal string walk — keys pass
  * through because {@link maskPayloadStrings} masks values only. Absent optionals are omitted.
  */

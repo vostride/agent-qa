@@ -41,7 +41,7 @@ export function renderEmbeddingInput(input: {
   ].join('\n')
 }
 
-/** D-02: one replay-consumable canonical JSON document per pre-action screen state. */
+/** one replay-consumable canonical JSON document per pre-action screen state. */
 export function screenStateSnapshotRelPath(stepIndex: number): string {
   if (!Number.isInteger(stepIndex) || stepIndex < 0) {
     throw new RangeError('screen-state stepIndex must be a non-negative integer')

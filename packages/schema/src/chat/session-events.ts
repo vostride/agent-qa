@@ -1,4 +1,4 @@
-// The chat session log's event grammar (Phase 392, CHAT-05 / D-14 / D-18).
+// The chat session log's event grammar.
 //
 // MINTED IN SCHEMA, on the `run-notification.ts` precedent and for its stated reason rather than
 // by analogy: several packages read these bytes and none may import another. `agent` emits them
@@ -12,7 +12,7 @@
 // "that kind did not occur" the same bytes for every reader written in between — which is exactly
 // the ambiguity a versioned, append-only log exists to avoid.
 //
-// MAP, NOT TERRITORY (D-18). An event carries REFS and one-line summaries, never payload bodies.
+// MAP, NOT TERRITORY. An event carries REFS and one-line summaries, never payload bodies.
 // The one exception is chat's own content: a user message IS the thing chat is a record of, so its
 // text is logged. A knowledge record, a config file's contents, a tool result — those live in
 // their own stores and appear here as an id and a sentence. The rule is not about size. It is that
@@ -44,7 +44,7 @@ export interface ChatSessionHeader {
   model: string
   toolsetHash: string
   /**
-   * WHICH DOOR OPENED THIS CONVERSATION (Phase 400, D-04) — optional, and on the HEADER.
+   * WHICH DOOR OPENED THIS CONVERSATION — optional, and on the HEADER.
    *
    * D-04 puts dashboard chat on this exact substrate "tagged with their surface". The obvious
    * spelling is a field on each event, and it is the one thing this grammar cannot have: the guard
@@ -203,21 +203,21 @@ export interface ChatClauseResultEvent extends ChatSessionEventBase<'clause_resu
   payload: unknown
 }
 
-/** The fsync boundary marker. Its presence is what makes the preceding turn non-dangling (D-19). */
+/** The fsync boundary marker. Its presence is what makes the preceding turn non-dangling. */
 export interface ChatTurnCompleteEvent extends ChatSessionEventBase<'turn_complete'> {
   status: ChatTurnStatus
 }
 
 /**
- * A person's answer at an ask-tier gate (D-03). HISTORICAL ONLY.
+ * A person's answer at an ask-tier gate. HISTORICAL ONLY.
  *
- * 2026-10-01 (432-19, D-14/D-22): nothing writes this event any more. The chat confirm, the
+ * nothing writes this event any more. The chat confirm, the
  * `/pin` verb and the execution gate are deleted, so no build mints an `approval_decision`. The kind
  * and its exact key set stay so a session file a pre-432 build wrote keeps parsing: the session
- * guard throws on an unknown kind, and persisted history stays readable (430 D-08).
+ * guard throws on an unknown kind, and persisted history stays readable.
  */
 export interface ChatApprovalDecisionEvent extends ChatSessionEventBase<'approval_decision'> {
-  /** The `fn:`-prefixed risk name the gate classified, not the bare op id (391-05). */
+  /** The `fn:`-prefixed risk name the gate classified, not the bare op id. */
   actionClass: string
   decision: 'accept' | 'accept-always' | 'deny'
   /**
@@ -237,7 +237,7 @@ export interface ChatApprovalDecisionEvent extends ChatSessionEventBase<'approva
 }
 
 /**
- * A clause nothing in this build handles (D-08 / D-15).
+ * A clause nothing in this build handles.
  *
  * Logged on EVERY occurrence, in live sessions as well as scenario runs, which is what makes
  * CHAT-03's field rate a projection over logs rather than a new metric store. The gated ceiling
@@ -270,7 +270,7 @@ export interface ChatModelChangeEvent extends ChatSessionEventBase<'model_change
  * so a reader folds these to reconstruct what was reachable at turn N. Logging the full set each
  * time would put a copy of the catalogue in the log on every drift.
  *
- * There is no `/tools` toggle producing these (D-04) — the always-send-all law forbids one. What
+ * There is no `/tools` toggle producing these — the always-send-all law forbids one. What
  * produces them is a build or configuration that genuinely changed what exists.
  */
 export interface ChatActiveToolsChangeEvent extends ChatSessionEventBase<'active_tools_change'> {
@@ -280,7 +280,7 @@ export interface ChatActiveToolsChangeEvent extends ChatSessionEventBase<'active
 }
 
 /**
- * ONE event for the whole degrade pass (CHAT-04).
+ * ONE event for the whole degrade pass.
  *
  * The stages of a degrade — hygiene, screenshot stripping, dedup, truncation — are FIELDS of one
  * pass and not sibling kinds, and that is a decision rather than a shorthand: they always run
@@ -344,7 +344,7 @@ export class ChatSessionEventSchemaError extends Error {
  *
  * Exact key sets rather than presence checks, for `run-notification.ts`'s stated reason: a
  * presence check admits a record carrying an EXTRA field, and an extra field on a line several
- * surfaces render is exactly how a payload body arrives in a log that promised refs (D-18).
+ * surfaces render is exactly how a payload body arrives in a log that promised refs.
  */
 const EVENT_KEYS: Record<ChatSessionEventKind, readonly string[]> = {
   user_message: ['at', 'kind', 'text', 'turnId'],

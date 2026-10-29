@@ -16,7 +16,7 @@
 //   4. `writeEligible` a receipt whose stored disposition is one 432 D-06 writes to its test path
 //                      (`draftDispositionWritesTarget`: every disposition but `rejected`).
 //
-// 2026-10-02 (quick 261002-ctr): stage 4 was `accepted`, an `applied` human decision on a
+// stage 4 was `accepted`, an `applied` human decision on a
 // test-draft proposal. 432 D-06 writes a final draft in the call that authored it and files no
 // proposal, and 432-17 deleted the inbox the decisions lived in, so `accepted` could only ever be
 // 0 and the flag below could never fire. The stage now counts what D-06 made the terminal step: a
@@ -45,7 +45,7 @@
 // the gates were built to demonstrate.
 //
 // THE DEDUP REFUSAL IS A NAMED SIDE COUNTER, BESIDE THE FUNNEL AND NEVER FOLDED INTO A STAGE
-// (D-15). A stage-2 dedup refusal is the loop WORKING — the intent was already covered and
+// A stage-2 dedup refusal is the loop WORKING — the intent was already covered and
 // nothing was authored — so folding refusals into `built` and then into the filtered-out
 // remainder would let working-as-intended refusals inflate the filter rate, and the resulting
 // number could not be compared against the reference distribution at all. A draft the loop
@@ -73,7 +73,7 @@ import { draftDispositionWritesTarget } from './disposition'
 import type { DraftReceipt } from './draft-receipt'
 
 /**
- * The CLOSED, ORDERED four-stage vocabulary (D-15).
+ * The CLOSED, ORDERED four-stage vocabulary.
  *
  * Ordered because the funnel is read top to bottom and the reference distribution is quoted in
  * this order. Closed because a fifth member is a new denominator, not a new column.
@@ -88,14 +88,14 @@ export const AUTHORING_FUNNEL_STAGES = [
 export type AuthoringFunnelStage = (typeof AUTHORING_FUNNEL_STAGES)[number]
 
 /**
- * The keep rate above which the loop is reported as failing to filter — 9/10 (D-13).
+ * The keep rate above which the loop is reported as failing to filter — 9/10.
  *
  * A RATIONAL PAIR AND NOT A DECIMAL, on the shipped `MARK_UNHANDLED_CEILING` precedent and for
  * its stated reason: it is published so no consumer re-derives the comparison as a rounded
  * percentage. `0.9` beside it would be a second spelling of one number, free to be the one a
  * caller reaches for.
  *
- * RETUNE: moving this changes what "the loop is not filtering" MEANS, so a retune is a
+ * moving this changes what "the loop is not filtering" MEANS, so a retune is a
  * measurement and not a preference. Before moving it, report: (a) the observed keep rate over at
  * least one full milestone of REAL sessions — not corpus runs, whose outcomes are scripted —
  * broken down by disposition, so a rate driven by `keep-eligible` drafts is distinguishable from
@@ -108,9 +108,9 @@ export type AuthoringFunnelStage = (typeof AUTHORING_FUNNEL_STAGES)[number]
 export const KEEP_RATE_CEILING = { num: 9, den: 10 } as const
 
 /**
- * The fewest drafts a window must carry before the flag may be raised — 10 (D-13).
+ * The fewest drafts a window must carry before the flag may be raised — 10.
  *
- * RETUNE: a retune must report the FALSE-FLAG RATE at the current floor over real sessions —
+ * a retune must report the FALSE-FLAG RATE at the current floor over real sessions —
  * how often a window of exactly 10..N drafts raised the acceptance-failure flag and a human
  * reading the drafts disagreed that the loop had stopped filtering. That number is what the
  * floor buys; a floor moved without it trades an unmeasured false-flag rate for an unmeasured
@@ -120,11 +120,11 @@ export const KEEP_RATE_CEILING = { num: 9, den: 10 } as const
 export const FUNNEL_MIN_DRAFTS_FLOOR = 10
 
 /**
- * The ONE counter that sits BESIDE the funnel (D-15). Never a stage; see the header.
+ * The ONE counter that sits BESIDE the funnel. Never a stage; see the header.
  *
  * `dedupRefusals` is OPTIONAL, and its absence is a true statement rather than a gap. A stage-2
  * refusal ends the invocation with nothing authored — no draft, no receipt, no gate-run and no
- * envelope (D-04) — so on a host where nothing durably records one, the honest answer is that it
+ * envelope — so on a host where nothing durably records one, the honest answer is that it
  * is not recorded. Reporting `0` would say "no author was ever refused" about something nothing
  * counts, which is the same wrong answer the absent keep rate exists to refuse.
  *
@@ -133,14 +133,14 @@ export const FUNNEL_MIN_DRAFTS_FLOOR = 10
  * its gates rejected it, so it never reached `writeEligible`. It is already a built-but-not-kept draft in
  * the stages, over the same denominator — a second counter for it would describe the same event
  * twice and answer no question the stages do not.
- * 2026-09-02 (Phase 411): the proposal arm for a correctly-failing draft left with the Issue-slot
+ * the proposal arm for a correctly-failing draft left with the Issue-slot
  * cleanup.
  */
 export interface FunnelSideCounters {
   readonly dedupRefusals?: number
 }
 
-// 2026-10-02 (quick 261002-ctr): `AuthoringAcceptance` and the `acceptances` input are deleted
+// `AuthoringAcceptance` and the `acceptances` input are deleted
 // with the `accepted` stage. `writeEligible` is read off each receipt's own stored disposition.
 
 export interface AuthoringFunnelInput {

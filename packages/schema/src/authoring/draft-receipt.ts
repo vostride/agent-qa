@@ -2,7 +2,7 @@
 //
 // Two shape rules govern everything below.
 //
-// MAP, NOT TERRITORY (D-19 / 391 D-18). The receipt carries REFS to the runs it judged plus
+// MAP, NOT TERRITORY. The receipt carries REFS to the runs it judged plus
 // the findings it derived — never run payloads, never resolved secrets, never post-interpolation
 // step text. Run bytes live in the run store, which is the only place that owns them. Every
 // object here is `.strict()`, so smuggling a payload in is a typed refusal rather than a field
@@ -10,7 +10,7 @@
 //
 // KEYED, NOT POSITIONAL. `DraftGateResultsSchema` names its gates, so a later gate can join
 // without re-minting this DTO or renumbering anything a 394 consumer already reads.
-// 2026-09-02 (Phase 412): the bug-repro anchoring gate that was to join here left with the
+// the bug-repro anchoring gate that was to join here left with the
 // Issue-slot cleanup.
 
 import { z } from 'zod'
@@ -44,7 +44,7 @@ export const DraftRefSchema = z.object({
 export type DraftRef = z.infer<typeof DraftRefSchema>
 
 /**
- * One parsed NL step, as gate 4's deterministic check classified it (D-11).
+ * One parsed NL step, as gate 4's deterministic check classified it.
  *
  * Lands VERBATIM in the receipt: D-12 tunes ambiguity toward reject, which is only defensible
  * if the rejected author can read exactly which step was called what and why.
@@ -57,7 +57,7 @@ export const StepClassificationRowSchema = z.object({
   falsifiable: z.boolean(),
   /** The vacuity-lexicon phrase this step matched, named so the author can see the term. */
   vacuityHit: z.string().optional(),
-  /** Capture-signature pattern names hit by this step's expected value (D-10). */
+  /** Capture-signature pattern names hit by this step's expected value. */
   captureSignatureHits: z.array(z.string()),
   /** D-10 tautology detection: the assertion restates a prior action's own content. */
   tautologyHit: z.boolean().optional(),
@@ -72,7 +72,7 @@ export type StepClassificationRow = z.infer<typeof StepClassificationRowSchema>
  * frozen corpus (393-01, F3): the definitive-pass arm arrives as `healed`, not `passed` — the
  * accept control itself heals. A gate 1 that does not count a healed pass as a pass fails the
  * one draft it exists to accept. Recording the heal separately lets gate 1 count it as a pass
- * while 394 still reads the heal as the weak-grounding signal it is (D-17).
+ * while 394 still reads the heal as the weak-grounding signal it is.
  *
  * `definitive` is a judgment, not a field copy. 393-01's F1 measured that
  * `termination.kind === 'infeasible'` does NOT separate gate 1 from gate 2 on this build — 19
@@ -82,7 +82,7 @@ export type StepClassificationRow = z.infer<typeof StepClassificationRowSchema>
 export const GateRunRecordSchema = z.object({
   /** A ref into the run store. Deliberately not the run's contents. */
   runId: z.string().min(1),
-  /** The draft's own MEMBER outcome, not the aggregate verdict (D-17). */
+  /** The draft's own MEMBER outcome, not the aggregate verdict. */
   memberOutcome: z.string().min(1),
   definitive: z.boolean(),
   healed: z.boolean(),
@@ -102,7 +102,7 @@ export type GateRunRecord = z.infer<typeof GateRunRecordSchema>
  */
 export const AddsValueFindingSchema = z.object({
   /**
-   * Fingerprint elements absent from the suite union — NAMED, not counted (D-14). No
+   * Fingerprint elements absent from the suite union — NAMED, not counted. No
    * similarity threshold exists to defend, so the receipt shows the elements themselves.
    */
   novelElements: z.array(z.string()),
@@ -125,7 +125,7 @@ export type AddsValueFinding = z.infer<typeof AddsValueFindingSchema>
  */
 export const DraftGateResultsSchema = z.object({
   /**
-   * Gate 1 (D-17): every run reached a DEFINITIVE verdict about the draft.
+   * Gate 1: every run reached a DEFINITIVE verdict about the draft.
    *
    * THE ENFORCED RULE, as `stability-gates.ts` classifies it (393-09, WR-04 doc arm). The member
    * outcome must be `passed`, `failed` or `healed` — a healed pass IS a pass (393-01 F3) — AND no
@@ -151,7 +151,7 @@ export const DraftGateResultsSchema = z.object({
     indefinitiveRunRefs: z.array(z.string()),
     reason: z.string().optional(),
   }).strict(),
-  /** Gate 2 (D-17): the member outcome did not flip across the completed runs. */
+  /** Gate 2: the member outcome did not flip across the completed runs. */
   stableVerdict: z.object({
     pass: z.boolean(),
     runRefs: z.array(z.string()),
@@ -161,14 +161,14 @@ export const DraftGateResultsSchema = z.object({
     earlyStopped: z.boolean(),
     reason: z.string().optional(),
   }).strict(),
-  /** Gate 3 (D-13/D-14/D-16): set semantics over anchor elements, no threshold. */
+  /** Gate 3: set semantics over anchor elements, no threshold. */
   addsValue: z.object({
     pass: z.boolean(),
     novelElementCount: z.number().int().nonnegative(),
     comparedTestCount: z.number().int().nonnegative(),
     reason: z.string().optional(),
   }).strict(),
-  /** Gate 4 (D-09/D-10/D-12): the deterministic two-clause lexical check. */
+  /** Gate 4: the deterministic two-clause lexical check. */
   falsifiableAssertion: z.object({
     pass: z.boolean(),
     /** Clause (i): steps that classified as assertions at all. */
@@ -192,7 +192,7 @@ export const DRAFT_GATE_NAMES = [
 export type DraftGateName = (typeof DRAFT_GATE_NAMES)[number]
 
 /**
- * The durable receipt (D-19). The op returns this AND persists it.
+ * The durable receipt. The op returns this AND persists it.
  *
  * `disposition` is the value `computeDraftDisposition` produced for this receipt's own gates
  * and counts. It is stored rather than recomputed at read time so the answer a consumer sees
@@ -212,7 +212,7 @@ export const DraftReceiptSchema = z.object({
   /** Epoch milliseconds. */
   evaluatedAt: z.number().int().nonnegative(),
   /**
-   * The invoking session, as an OPAQUE string the caller supplied (394 D-12 · WTST-05).
+   * The invoking session, as an OPAQUE string the caller supplied.
    *
    * OPTIONAL AT THE CURRENT VERSION, AND THE VERSION IS DELIBERATELY NOT BUMPED. `parseReceipt`
    * throws `DraftReceiptSchemaVersionError` on any mismatch, so a bump would make `list()` throw
@@ -230,7 +230,7 @@ export const DraftReceiptSchema = z.object({
 
 export type DraftReceipt = z.infer<typeof DraftReceiptSchema>
 
-// ---- the written test (432 D-06/D-07) ----------------------------------------------------------
+// ---- the written test ----------------------------------------------------------
 //
 // A final draft is written straight to its test path unless its gates rejected it. What the
 // author is told is which file was written — or why none was — beside how well the draft was
@@ -292,7 +292,7 @@ export type TestFileWrite = z.infer<typeof TestFileWriteSchema>
  * The written-test receipt: the file, the disposition and the four gate booleans.
  *
  * A `rejected` disposition and a `rejected` not-written reason come together or not at all, and a
- * written file never carries a rejected disposition (EDGE-09).
+ * written file never carries a rejected disposition.
  */
 export const WrittenTestReceiptSchema = z.object({
   file: TestFileWriteSchema,
@@ -306,7 +306,7 @@ export const WrittenTestReceiptSchema = z.object({
       message: `a ${receipt.disposition} draft is never written`,
     })
   }
-  // 2026-10-03 (quick 261003-cpv, WR-09): an unverified draft is a draft-mode draft whose gates 1,
+  // an unverified draft is a draft-mode draft whose gates 1,
   // 3 and 4 passed; one of them false is a rejection. Producer-parsed only: nothing persists this
   // receipt, so the refinement reads no stored record.
   if (receipt.disposition === 'unverified' && !singleRunGatesPass(receipt.gates)) {

@@ -8,7 +8,7 @@ import type { ExecutionContext } from '../run/run-status'
 import { createVersionGuard } from '../versioning/create-version-guard'
 import type { OriginClass } from './outcome-event'
 
-/** D-16: one version governs every committed JSON artifact in a bundle directory. */
+/** one version governs every committed JSON artifact in a bundle directory. */
 export const BUNDLE_SCHEMA_VERSION = 2
 
 const bundleKindSchema = z.enum(['fact', 'procedure', 'caution', 'unknown', 'policy'])
@@ -142,10 +142,10 @@ export const BundleProvenanceSchema = z.discriminatedUnion('mode', [
     curationJobId: z.string().optional(),
     sourceBuildOrdinal: z.number().optional(),
     authorship: curationAuthorshipSchema.optional(),
-    /** CUR-02: deterministic fallback output may request capable-model re-processing. */
+    /** deterministic fallback output may request capable-model re-processing. */
     needsEnrichment: z.boolean().optional(),
     /**
-     * SAFE-03: injection-flagged candidates stay out of brief serving and ordinary promotion
+     * injection-flagged candidates stay out of brief serving and ordinary promotion
      * until a local-interactive re-review supersedes them.
      */
     withheld: z.boolean().optional(),
@@ -271,7 +271,7 @@ export interface MutableStateHashInput {
    * mutable-state hash of bundles created before measurements.json exists.
    */
   measurements?: string | null
-  /** 416 D-03: omitted until the lazy gate part exists, preserving prior bundle hashes. */
+  /** omitted until the lazy gate part exists, preserving prior bundle hashes. */
   gates?: string | null
 }
 

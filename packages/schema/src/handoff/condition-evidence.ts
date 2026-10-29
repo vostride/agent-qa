@@ -1,4 +1,4 @@
-// The per-condition verdict block (439 D-02, D-07, D-10). Type-only DTOs plus their key sets and
+// The per-condition verdict block. Type-only DTOs plus their key sets and
 // one reader predicate; the runner computes the verdicts, readers keep reading whatever shipped.
 
 export const CONDITION_VERDICTS = ['met', 'not-met', 'unverified', 'inconclusive'] as const

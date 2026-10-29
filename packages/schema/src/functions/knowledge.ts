@@ -11,7 +11,6 @@ export const KNOWLEDGE_BUNDLE_SUMMARY_SCHEMA_VERSION = 2
 
 /**
  * One committed knowledge bundle as `knowledge.bundles.list` projects it
- * (Phase 384, D-06/D-16).
  *
  * Deliberately a LISTING row, not a record view: it carries bundle identity, product
  * qualification, the derived trust state a reviewer triages on, and the one-line summary —
@@ -110,7 +109,7 @@ export const KnowledgeBundleSummarySchema = z.object({
   evidenceIncomplete: z.boolean(),
 }).strict() satisfies z.ZodType<KnowledgeBundleSummary>
 
-// 431 D-04: the listing's whole result, named so the op and the MCP tool share one object.
+// the listing's whole result, named so the op and the MCP tool share one object.
 export const KnowledgeBundlesListOutputSchema = z.array(KnowledgeBundleSummarySchema)
 
 /**
@@ -122,7 +121,7 @@ export const KnowledgeBundlesListInputSchema = z.object({}).strict()
 
 export type KnowledgeBundlesListInput = z.infer<typeof KnowledgeBundlesListInputSchema>
 
-// 416 D-18: history, standing evidence and the live verdict are one schema-owned answer.
+// history, standing evidence and the live verdict are one schema-owned answer.
 export const KnowledgeGatesListInputSchema = z.object({ recordId: z.string().min(1) }).strict()
 export const PromotionGateVerdictSchema = z.discriminatedUnion('verdict', [
   z.object({

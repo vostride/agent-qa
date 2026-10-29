@@ -1,4 +1,4 @@
-// Per-clause turn receipts (Phase 392, CHAT-01 / D-11).
+// Per-clause turn receipts.
 //
 // A turn reports what happened to EACH clause, not a single verdict, because D-11's execution rule
 // is sequential-and-stop-on-failure: a compound turn can legitimately end with one clause executed,
@@ -16,7 +16,7 @@
  * the refusal name travels in `outcome`, so the fact is not lost, and a status a surface has to
  * special-case is a status every surface has to special-case.
  *
- * 2026-08-20 (Phase 399.1, D-02) — `refused` IS THAT FOURTH MEMBER, AND THE RULING ABOVE STANDS.
+ * `refused` IS THAT FOURTH MEMBER, AND THE RULING ABOVE STANDS.
  * The 388 C13 ruling is about a PERSON declining a confirm, and a person who says no has not been
  * refused by anything: the turn asked, the answer was no, and folding that to `failed` costs a
  * reader nothing they cannot recover from `outcome`. This member is about the OTHER subject — a
@@ -41,7 +41,7 @@ export type ClauseReceiptStatus = (typeof CLAUSE_RECEIPT_STATUSES)[number]
 /**
  * One clause's receipt.
  *
- * `outcome` is a ONE-LINE summary and never a payload body (D-18): for a failure it carries the
+ * `outcome` is a ONE-LINE summary and never a payload body: for a failure it carries the
  * function layer's own refusal NAME (`UnknownFunctionError`, `FunctionInputError`, …), which is
  * the vocabulary `invokeFunction` already publishes, so a surface reporting a refused clause names
  * the same thing the audit row does.
@@ -55,7 +55,7 @@ export interface ClauseReceipt {
 }
 
 /**
- * Whether this status means the clause REACHED ITS CAPABILITY and came back (399.1-03).
+ * Whether this status means the clause REACHED ITS CAPABILITY and came back.
  *
  * IT EXISTS BECAUSE THE FOURTH MEMBER PUT A HOLE IN EVERY ROLL-CALL SPELLED OVER `executed`. D-10's
  * atomicity claim — a fail-closed turn carried NOTHING out — was checked by both scenario runners as

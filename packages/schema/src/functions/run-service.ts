@@ -1,15 +1,15 @@
-// The remote run service's wire vocabulary (Phase 402 plan 01, D-06 / D-13 / D-15 · INVK-03).
+// The remote run service's wire vocabulary.
 //
 // WHAT LIVES HERE AND WHAT DELIBERATELY DOES NOT. This file holds the vocabulary the authed run
 // service speaks on the wire: the closed error-code set every refusal answers with, the readiness
-// DTO, the request shape, and the door's own contract version. 2026-10-01 (432-21, D-12): the
+// DTO, the request shape, and the door's own contract version. 2026-10-01: the
 // bearer header verdict and its three refusal reasons are deleted with the run-service tokens. It holds no
 // transport, no token, no route and no handler — the router that serves these words lives in
 // `packages/dashboard-server` and the composition that mints them lives in the CLI, because a
-// mountable module (D-02) can only be mountable if its vocabulary is reachable from a package
+// mountable module can only be mountable if its vocabulary is reachable from a package
 // neither of them owns.
 //
-// THE EVENT VOCABULARY IS NOT HERE EITHER, AND THAT ABSENCE IS THE POINT (D-13). The stream serves
+// THE EVENT VOCABULARY IS NOT HERE EITHER, AND THAT ABSENCE IS THE POINT. The stream serves
 // the frozen bus envelope verbatim — `RunEventEnvelopeSchema`, SSE `id` = `seq`, `event` = `type`.
 // A projection DTO in this file would be a second event vocabulary to drift against the first.
 
@@ -22,7 +22,7 @@ import { z } from 'zod'
  * describes the frozen event frame, and this describes what routes exist and what they answer. 403
  * adds the attach contract to this door and will bump THIS constant without touching an envelope.
  *
- * 2026-10-02 (quick 261002-ctr): 2. Version 1 answered readiness with `authConfigured` and refused a
+ * 2. Version 1 answered readiness with `authConfigured` and refused a
  * request with three bearer reasons; 432-21 deleted the bearer reasons (and added
  * `cross_site_refused`) and 432-22 deleted `authConfigured`. Both changed what these routes answer,
  * so the version moves once for the pair. The routes themselves, the start request and the stream
@@ -30,7 +30,7 @@ import { z } from 'zod'
  */
 export const RUN_SERVICE_CONTRACT_VERSION = 2
 
-// 2026-10-01 (432-21, D-12): `SERVICE_BEARER_REFUSAL_REASONS`, `ServiceBearerRefusalReason` and the
+// `SERVICE_BEARER_REFUSAL_REASONS`, `ServiceBearerRefusalReason` and the
 // two-arm `ServiceBearerVerdict` are deleted with `services.dashboard.runServiceTokens` and the door's
 // `verifyBearer` port. The door reads no `Authorization` header; what refuses a request before the
 // route table now is the dashboard's same-site guard (`cross_site_refused` below).
@@ -50,13 +50,13 @@ export const RUN_SERVICE_ERROR_CODES = [
   'unknown_route',
   'run_start_failed',
   'replay_unavailable',
-  // 402-04 (D-14, T-402-14): the `?handle=` parameter's two refusals, kept APART. `invalid_handle`
+  // the `?handle=` parameter's two refusals, kept APART. `invalid_handle`
   // says the parameter was not a canonical non-negative integer — a fact about the caller's own
   // input, which it already has. `unknown_handle` says the parse succeeded and no member of this
   // run answers to it. Both are answered before any stream header, and neither echoes the value.
   'invalid_handle',
   'unknown_handle',
-  // 403-03 (D-13, T-403-13 · INVK-05): the resume point's two refusals, kept APART on the
+  // the resume point's two refusals, kept APART on the
   // `invalid_handle`/`unknown_handle` reasoning one line up. `invalid_last_event_id` says the
   // `Last-Event-ID` header or the `?lastEventId=` parameter was not a canonical non-negative
   // integer — a fact about the caller's own input. `replay_floor` says the parse succeeded and the
@@ -148,11 +148,11 @@ export const RunServiceStartRequestSchema = z.object({
 export type RunServiceStartRequest = z.infer<typeof RunServiceStartRequestSchema>
 
 /**
- * What `/ok` reports (D-15): measured facts, and no prediction.
+ * What `/ok` reports: measured facts, and no prediction.
  *
  * SHALLOW BUT HONEST. Each field is something this process can observe about ITSELF right now —
  * the service answered, a host is composed, and which contract version these routes implement.
- * 2026-10-01 (432-22, D-12): `authConfigured` is deleted with `services.dashboard.runServiceTokens`.
+ * `authConfigured` is deleted with `services.dashboard.runServiceTokens`.
  * No credential can be configured, so it had read `false` on every answer since 432-21, and a
  * fact that cannot vary is not a measurement. There is no `ready: true`, because a run's success depends on a
  * browser, a model, a network and a target, none of which this route touched. Deep diagnostics

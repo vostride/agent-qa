@@ -110,7 +110,7 @@ export interface RunArtifactSuiteSourceSnapshot {
   error?: RunArtifactTerminalError
 }
 
-// 2026-10-17 (444-03, D-07): a run of several tests outside one suite; each member carries its own
+// a run of several tests outside one suite; each member carries its own
 // source and config, and the run holds none of its own.
 export interface RunArtifactTestsSourceSnapshot {
   kind: 'tests'

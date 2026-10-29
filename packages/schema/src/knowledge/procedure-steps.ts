@@ -10,7 +10,7 @@ import type { Anchor } from '../identity/anchor'
 import type { ProcedureParamType } from './curator-tier'
 
 /**
- * A descriptor-only element target (438 D-11). Replay re-finds it strictly: exactly one current
+ * A descriptor-only element target. Replay re-finds it strictly: exactly one current
  * element with the same role, the exact observed `name` and, when stored, the `row` words. A
  * target without `name` cannot be judged strictly and is a guard miss. `nameNormalized` stays
  * for the readers that show it; `ordinal` is kept only so committed bodies still parse — nothing
@@ -25,7 +25,7 @@ export interface ProcedureGuardTarget {
 }
 
 /**
- * The per-step replay guard (D-05): the target the step is about to act on, the page anchor
+ * The per-step replay guard: the target the step is about to act on, the page anchor
  * the step was authored against, and optional stable landmark texts for the guard fold.
  */
 export interface ProcedureGuardDescriptor {
@@ -155,7 +155,7 @@ const bodyPayloadSchema: z.ZodType<ProcedureBodyPayload> = z
   })
   .strict()
   .superRefine((payload, context) => {
-    // WR-02: this committed codec is the fail-closed uniqueness AUTHORITY. Proposal-side
+    // this committed codec is the fail-closed uniqueness AUTHORITY. Proposal-side
     // checks are advisory; rejecting duplicate names here makes an ambiguous body unservable
     // and unreplayable everywhere through parseProcedureBody's undefined-on-malformation law.
     if (!Array.isArray(payload.parameters)) return
@@ -187,7 +187,7 @@ export function serializeProcedureBody(payload: ProcedureBodyPayload): string {
 /**
  * Fail-closed parse of a record.md body: locate the fenced block, JSON-parse it, and validate
  * structurally. ANY malformation — no fence, bad JSON, a param type outside the closed union,
- * an unknown key — returns undefined; this function never throws (T-381-01).
+ * an unknown key — returns undefined; this function never throws.
  */
 export function parseProcedureBody(body: string): ProcedureBodyPayload | undefined {
   const fenceStart = body.indexOf(FENCE_OPEN)

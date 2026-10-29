@@ -13,7 +13,7 @@ export interface PlannerCapability {
 }
 
 /**
- * Provisional capability from the recovering planner's own recorded identity (420 D-03).
+ * Provisional capability from the recovering planner's own recorded identity.
  * The caller must establish that identity belongs to this decision. `deterministicPath`
  * means authentic recorded execution evidence; absence, a verifier or curator identity,
  * and a configured provider are never grounds to infer that flag. Family matching is

@@ -1,4 +1,4 @@
-// The loop outcome vocabulary, pinned by exact list (411 D-04).
+// The loop outcome vocabulary, pinned by exact list.
 //
 // A HAND-MAINTAINED CENSUS, and the reason it stays hand-maintained: every generic consumer of
 // `AUTHORING_LOOP_OUTCOMES` reads it generically. The op's output schema declares

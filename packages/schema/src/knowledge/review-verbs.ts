@@ -1,4 +1,4 @@
-// The five knowledge review verbs' input and output contracts (Phase 387, KREV-01/KREV-02).
+// The five knowledge review verbs' input and output contracts.
 //
 // Four of the five verbs are WIRING over functions the read-only reader entry already
 // exports (`inspectRecords`, `diffSince`, `listBundles`, the record read) — that is KREV-01's
@@ -8,7 +8,7 @@
 // first field to drift would have been the one nobody looked at.
 //
 // The fifth verb — "why did the brief say this" — is the one with a real contract of its
-// own, and it is a contract about HONESTY rather than shape (D-15).
+// own, and it is a contract about HONESTY rather than shape.
 
 import { z } from 'zod'
 
@@ -44,7 +44,7 @@ export type BriefWhyNoTraceReason = (typeof BRIEF_WHY_NO_TRACE_REASONS)[number]
  *
  * Exported so the closure can be asserted as an exact member set. "No test exercises a
  * re-run arm" is a claim about a test file; this is a claim about the contract — and the
- * absent arm is the whole design (D-15). Re-running retrieval would answer about the index
+ * absent arm is the whole design. Re-running retrieval would answer about the index
  * as it stands NOW, while the question asked is always about then.
  */
 export const BRIEF_WHY_RESULT_KINDS = ['answered', 'no-trace'] as const
@@ -59,10 +59,10 @@ export type BriefWhyResultKind = (typeof BRIEF_WHY_RESULT_KINDS)[number]
  * no-trace arm — has no proof. So the offering is checked against the closed channel set
  * §A11 fixes, which is the structure any consumer of this arm renders, and no deeper.
  *
- * STRUCTURAL, not `z.custom`. 2026-08-02 (387-06): the predicate form was correct and
+ * STRUCTURAL, not `z.custom`. 2026-08-02: the predicate form was correct and
  * unprojectable — `z.toJSONSchema` throws `Custom types cannot be represented in JSON Schema`
  * on it, and the function layer projects EVERY registered contract into an inert document at
- * registry-construction time (D-14). So the moment an op declared this union as its output,
+ * registry-construction time. So the moment an op declared this union as its output,
  * building a registry threw and every capability in the process stopped listing, not just this
  * one. A predicate that cannot be described is a contract no catalog can publish, and 396's
  * MCP tool listing consumes exactly that description.
@@ -83,7 +83,7 @@ const ServedBriefOfferingSchema = z.looseObject({
 
 /**
  * The why-verb's answer: the trace that was written down, or a named reason there is none —
- * and never a third thing (D-15).
+ * and never a third thing.
  *
  * The two arms are structurally incompatible on purpose. A trace on the absence arm is
  * exactly the shape a re-run would arrive in, so the schema refuses it rather than trusting
@@ -125,9 +125,9 @@ export const BriefWhyInputSchema = z.object({
 export type BriefWhyInput = z.infer<typeof BriefWhyInputSchema>
 
 /**
- * 419 D-01: the knowledge fix a recorded user mark applies. 2026-10-01 (432-17): the accept, reject
+ * the knowledge fix a recorded user mark applies. 2026-10-01: the accept, reject
  * and forget inputs and the direct change contracts live in `./change`; a mark is applied by
- * `runs.mark` in the same call (D-04).
+ * `runs.mark` in the same call.
  */
 export const KnowledgeMarkInputSchema = z.object({
   target: KnowledgeTargetRefSchema,
@@ -190,7 +190,7 @@ export const KnowledgeRecordShowOutputSchema = z.object({
 export type KnowledgeRecordShowOutput = z.infer<typeof KnowledgeRecordShowOutputSchema>
 
 /**
- * The show verb's answer: the record with its provenance, or a named absence (FUNC-04).
+ * The show verb's answer: the record with its provenance, or a named absence.
  *
  * A closed union rather than a throw, because asking about a record id that no bundle carries
  * is an ordinary thing for a reviewer to do — an id gets pasted out of a stale issue, or a

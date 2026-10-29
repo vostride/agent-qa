@@ -1,9 +1,9 @@
 import { z } from 'zod'
 
 /**
- * The live-view transport families a run handle can declare (403 D-05/D-08). `cdp-screencast` is
+ * The live-view transport families a run handle can declare. `cdp-screencast` is
  * the continuous stream; `snapshot` is the labelled 1s fallback frames arrive through when
- * continuous streaming is unavailable (PXH-LIVE-02, 428 D-11), delivered on the same hub, socket
+ * continuous streaming is unavailable, delivered on the same hub, socket
  * and embed page. `snapshot` supersedes 403 D-08's rejection of stills (the dated note lands in
  * 428 Plan 27). `mjpeg` (mobile, M6) and `webrtc` (headful phase 2) are named here so a consumer
  * switches on a DECLARED kind rather than on a browser name or an adapter class (LIVE-04's
@@ -37,7 +37,7 @@ export const LiveStreamDeclarationSchema = z.discriminatedUnion('kind', [
 /**
  * Per-frame geometry as the producer reported it (CDP `screencastFrame.metadata`), plus the frame's
  * time. `timestamp` is the frame's CAPTURE time in integer epoch milliseconds, stamped by the
- * producer at capture (428 D-15). It is the one definition of a frame's time on every layer: the
+ * producer at capture. It is the one definition of a frame's time on every layer: the
  * hub fills it from its own clock only when a producer left it out, and never overwrites it.
  */
 export interface LiveFrameMetadata {
@@ -49,9 +49,9 @@ export interface LiveFrameMetadata {
 }
 
 /**
- * ONE live frame as DATA (403 D-05): an id to ack with, the encoded bytes, and geometry. No
+ * ONE live frame as DATA: an id to ack with, the encoded bytes, and geometry. No
  * `Page`, no `CDPSession`, no handle of any kind crosses this type — which is what lets frames
- * travel a side channel while the run event bus stays silent about them (LIVE-03).
+ * travel a side channel while the run event bus stays silent about them.
  */
 export interface LiveFrame {
   id: number

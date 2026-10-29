@@ -21,7 +21,7 @@ const bundleStatusSchema = z.enum([
   'deprecated',
 ])
 
-/** Closed structural filter for deterministic maintenance inspection (D-06). */
+/** Closed structural filter for deterministic maintenance inspection. */
 export const InspectFilterSchema = z.object({
   product: z.string().optional(),
   scope: z.string().optional(),
@@ -81,14 +81,14 @@ export const RecordChangeSchema = z.object({
   evidenceToken: z.string().optional(),
   byRecordId: z.string().optional(),
   /**
-   * 419 D-19: present only when change === 'promoted' and the bundle's gate part
+   * present only when change === 'promoted' and the bundle's gate part
    * names a strongest path; numbers and digests are COPIED from the receipt line,
    * never derived at render.
    */
   promotionPath: z.enum(PROMOTION_PATHS).optional(),
   promotionReceiptDigest: z.string().regex(/^[0-9a-f]{64}$/).optional(),
   /**
-   * The run whose curation produced this change (Phase 407, LERN-02 · D-10).
+   * The run whose curation produced this change.
    *
    * ADDITIVE AND OPTIONAL, and `RECORD_CHANGE_SCHEMA_VERSION` deliberately does NOT move: every
    * change ever written stays valid, and a reader that ignores the field reads exactly what it
@@ -104,7 +104,7 @@ export const RecordChangeSchema = z.object({
    */
   sourceRunId: z.string().min(1).optional(),
   /**
-   * The attributed observation this change came from, when it came from one (Phase 407, D-10).
+   * The attributed observation this change came from, when it came from one.
    *
    * The second half of the run link, and a DIFFERENT axis from `sourceRunId` rather than a
    * fallback for it. Canary outcomes are attributed by an observation id recomputed from the

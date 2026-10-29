@@ -1,4 +1,4 @@
-// 2026-09-08, 419 D-06/D-07/D-08/D-12: the Gate-3 neutral contracts.
+// the Gate-3 neutral contracts.
 import { z } from 'zod'
 
 import { MARKS } from '../knowledge/gate-receipt'
@@ -119,7 +119,7 @@ export const MarkReceiptSchema = z.object({
   runSlug: z.string().min(1),
   kind: z.enum(MARKS),
   origin: z.literal('user'),
-  /** The 1-based append position governs latest-wins, never markedAt (419 D-11). */
+  /** The 1-based append position governs latest-wins, never markedAt. */
   ordinal: z.number().int().positive(),
   markedAt: indexSchema,
   note: z.string().max(2000).optional(),
@@ -192,7 +192,7 @@ export const ImprovementPlanSchema = z.discriminatedUnion('kind', [
 ])
 export type ImprovementPlan = z.infer<typeof ImprovementPlanSchema>
 
-// 2026-10-01, 432-17: the commit receipt is a direct change receipt and lives with the change
+// the commit receipt is a direct change receipt and lives with the change
 // contracts; it is re-exported here so every existing import keeps its path.
 export { COMMIT_RECEIPT_SCHEMA_VERSION, CommitReceiptSchema } from '../knowledge/change'
 export type { CommitReceipt } from '../knowledge/change'
@@ -211,8 +211,8 @@ export function deriveMarkStepId(testIndex: number, stepIndex: number): string {
   return `${testIndex}:${stepIndex}`
 }
 
-// 2026-10-02 (432-42, D-15): no mark refusal body. `MarkRefusalSchema` described the 403 the browser
-// door answered when the execution gate denied a mark; the gate is deleted (432-19), no route
+// no mark refusal body. `MarkRefusalSchema` described the 403 the browser
+// door answered when the execution gate denied a mark; the gate is deleted, no route
 // answers that body, and the dashboard's branch that read it is deleted with it.
 
 /** Shared by runs.mark and runs.detail's ledger projection. */
@@ -221,12 +221,12 @@ export interface FeedbackPort {
   marksFor(runId: RunId): Promise<readonly MarkReceipt[]>
 }
 
-/** The ledger's latest-wins address: member plus step, testId deliberately excluded (419 D-11). */
+/** The ledger's latest-wins address: member plus step, testId deliberately excluded. */
 export function markAddressKey(address: Pick<MarkAddress, 'testIndex' | 'stepIndex'>): string {
   return `${address.testIndex}:${address.stepIndex ?? 'run'}`
 }
 
-// 2026-09-15, 423 D-19: marks history. 2026-09-30, 432-09 (D-04/D-25): each applied knowledge fix
+// marks history. 2026-09-30, 432-09: each applied knowledge fix
 // joins the records it changed, read now; nothing is read from a proposal store.
 
 export const RunsMarksHistoryInputSchema = z.object({ runId: runIdSchema }).strict()
@@ -331,7 +331,7 @@ export const MarkPreviewEvidenceEffectSchema = z.discriminatedUnion('direction',
 export type MarkPreviewEvidenceEffect = z.infer<typeof MarkPreviewEvidenceEffectSchema>
 
 /**
- * 2026-09-15, 423 D-17: one record the mark reaches, led by its joined content (or the typed reason
+ * one record the mark reaches, led by its joined content (or the typed reason
  * there is none) and followed by its complete planned effects. A record the store cannot read keeps
  * its id and is `unreadable`, exactly as the writer skips it.
  */
@@ -481,8 +481,8 @@ export type MarkHistoryRead =
 export interface FeedbackReadsPort {
   history(runId: RunId): Promise<MarkHistoryRead>
   /**
-   * 423 D-16: runs.mark's deterministic plan for this exact input, stopping before any intent,
-   * lease, model call, id mint or write. Optional until a host implements it (423-19); a
+   * runs.mark's deterministic plan for this exact input, stopping before any intent,
+   * lease, model call, id mint or write. Optional until a host implements it; a
    * feedbackReads binding without it leaves runs.mark.preview unbound by name.
    */
   preview?(input: RunsMarkInput): Promise<RunsMarkPreviewResult>
