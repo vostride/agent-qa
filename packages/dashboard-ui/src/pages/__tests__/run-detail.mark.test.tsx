@@ -60,7 +60,7 @@ vi.mock("@/lib/api", async (importOriginal) => ({
   markRun: markRunMock,
   fetchRun: fetchRunMock,
   fetchRunDetail: fetchRunDetailMock,
-  // 2026-08-29 (406-01, D-04): the page's THIRD read — the failure view's. This whole-module
+  // the page's THIRD read — the failure view's. This whole-module
   // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
   // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
   fetchRunAnalysis: fetchRunAnalysisMock,
@@ -356,7 +356,7 @@ function deferred<T>() {
   return { promise, resolve, reject }
 }
 
-// 426-12: the pill forms' scopes, re-addressed to the one composer. A target is the composer address
+// the pill forms' scopes, re-addressed to the one composer. A target is the composer address
 // it opens and the explicit act that opens it there.
 interface ComposerTarget {
   address: string
@@ -487,7 +487,7 @@ describe('scoped draft lifecycle', () => {
       const base = failure === 'wrong-member'
         ? { ...initial, members: [...initial.members, member(8, { testId: generateTestId(), marks: [] })] }
         : initial
-      // 2026-10-02 (432-42, D-15): no typed denial is left; both legacy denial shapes are failed requests.
+      // no typed denial is left; both legacy denial shapes are failed requests.
       if (failure === 'denied' || failure === 'no-channel') markRunMock.mockRejectedValue(new Error(failure))
       else if (failure === 'transport') markRunMock.mockRejectedValue(new Error('offline'))
       else if (failure === 'run-not-found') markRunMock.mockResolvedValue({ kind: failure })
@@ -542,7 +542,7 @@ describe('scoped draft lifecycle', () => {
   it('keeps a second member draft and denial isolated across subsequent submissions', async () => {
     const secondId = generateTestId()
     fetchRunDetailMock.mockResolvedValue({ ...initial, members: [...initial.members, member(8, { testId: secondId, marks: [] })], steps: [...initial.steps, step(8, 2, 'Other cart')] })
-    // 2026-10-02 (432-42, D-15): no typed denial is left; each failed request is told apart by the
+    // no typed denial is left; each failed request is told apart by the
     // address its denial renders at, not by a server-supplied reason.
     markRunMock.mockRejectedValueOnce(new Error('First member denied'))
       .mockRejectedValueOnce(new Error('Second member denied'))
@@ -727,7 +727,7 @@ describe('page mark post/refetch', () => {
     expect(statusText()).toBe(DRAFT_KEPT_STATUS)
     expect(container!.textContent).not.toContain(feedbackRecordedText(marked.disposition))
   })
-  // RE-TITLED 2026-10-02 (432-42, D-15) from 'renders a typed denial as its reason only, without a
+  // RE-TITLED 2026-10-02 from 'renders a typed denial as its reason only, without a
   // refetch or invented mark': no typed denial is left, so a failed mark renders the page's sentence.
   it('renders a failed mark as the page\'s one sentence, without a refetch or invented mark', async () => {
     markRunMock.mockRejectedValue(new Error('The safety gate denied this mark.'))

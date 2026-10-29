@@ -5,7 +5,7 @@ import type { LiveStepRow, StepStatus } from '@/lib/run-stream-reducer'
 import { cn } from '@/lib/utils'
 
 /**
- * THE LIVE STEP ROW (428 D-19/D-20/D-21/D-22).
+ * THE LIVE STEP ROW.
  *
  * A row is one status glyph and the step label, nothing else. There is no clock, no bar and no
  * count on any row: durations live in run detail (D-19, the owner's choice). The row is inert and
@@ -16,7 +16,7 @@ import { cn } from '@/lib/utils'
  * moves: a status is told apart by its shape, its tone and its accessible name. A sub-action reaches
  * the row only as `data-step-ticks`.
  *
- * THE LABEL IS TEXT (441 D-28, D-20). A stored `[secret:<name>]`, or an old run's `<SECRET_n>`, is
+ * THE LABEL IS TEXT. A stored `[secret:<name>]`, or an old run's `<SECRET_n>`, is
  * shown as written in one React text node.
  *
  * THE WHOLE LABEL, WRAPPED (owner decision 2026-09-26 (1), G-428-1; supersedes 428-17's one-line

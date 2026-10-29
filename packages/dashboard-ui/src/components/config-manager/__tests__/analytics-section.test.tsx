@@ -210,7 +210,7 @@ describe('AnalyticsSection', () => {
     expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([
       [[{ op: 'set', path: [...ATTRIBUTES, 'build.env'], value: TYPED }]],
     ])
-    // 441-40 (D-29): the landed write is mirrored as written.
+    // the landed write is mirrored as written.
     expect(attributeRow('build.env')?.querySelector('[data-secret-field] code')?.textContent).toBe(TYPED)
     expect(inputLabelled(container, ATTRIBUTE_FIELD_LABELS.value)).toBeNull()
     expect(hook!.status.state).not.toBe('undo')

@@ -362,7 +362,7 @@ function configWithTargets(targets: Record<string, unknown>) {
   }
 }
 
-/** The add row's draft field (429-25): its label, input, help and error line. */
+/** The add row's draft field: its label, input, help and error line. */
 function addField(name: string) {
   return container?.querySelector(`[data-model-draft] [data-add-field="${name}"]`) as HTMLElement | null
 }
@@ -2029,7 +2029,7 @@ describe('ConfigPage task tabs shell', () => {
     expect(panel.querySelector('input[type="password"]')).toBeNull()
     expect(panel.textContent).not.toContain('Save Credential')
 
-    // A not-connected sign-in row offers Sign in again (429-26); the modal's login button is gone.
+    // A not-connected sign-in row offers Sign in again; the modal's login button is gone.
     expect(buttonIn(panel, SIGN_IN_AGAIN_LABEL)).not.toBeNull()
     expect(document.body.textContent).not.toContain('Login with OpenAI subscription')
     expect(document.body.textContent).not.toContain('Save Credential')

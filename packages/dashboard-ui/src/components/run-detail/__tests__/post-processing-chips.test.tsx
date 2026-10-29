@@ -114,7 +114,7 @@ async function cardOf(host: HTMLElement, stage: "analysis" | "curation"): Promis
 }
 
 /**
- * One card line, addressed through the component's OWN published selector (425-08).
+ * One card line, addressed through the component's OWN published selector.
  *
  * The cells and the bundle-level Playwright legs must reach the same elements; importing the
  * selector rather than re-spelling it is what stops a kind moving in the renderer and a hand-typed
@@ -139,7 +139,7 @@ describe("two chips, in the ratified order, each saying its own word", () => {
     expect(stages).toEqual(["analysis", "curation"])
     expect(chip(host, "analysis").getAttribute("data-chip-status")).toBe("running")
     // The raw word rides the attribute; the VISIBLE word is the indicator's own, and the state is
-    // said again in the accessible name (D-07).
+    // said again in the accessible name.
     expect(chip(host, "analysis").textContent).toContain(STAGE_INDICATOR_WORDS.analysis.running)
     expect(chip(host, "analysis").querySelector(".sr-only")?.textContent).toContain("running")
     expect(chip(host, "curation").getAttribute("data-chip-status")).toBe("pending")
@@ -153,7 +153,7 @@ describe("two chips, in the ratified order, each saying its own word", () => {
     ))
     for (const stage of ["analysis", "curation"] as const) {
       const el = chip(host, stage)
-      // The detail left header chrome entirely (D-09/D-12): the root is a glyph and a word.
+      // The detail left header chrome entirely: the root is a glyph and a word.
       expect(el.querySelectorAll("span").length).toBe(2)
       const card = await cardOf(host, stage)
       expect(lineOf(card, "note")).toBeUndefined()
@@ -239,7 +239,7 @@ describe("a terminal chip says what it committed", () => {
   })
 })
 
-// THE LEGACY COUNT SENTENCE LEAVES HEADER CHROME (D-16, PXH-RUN-04). RED under return: restore the
+// THE LEGACY COUNT SENTENCE LEAVES HEADER CHROME. RED under return: restore the
 // old `curated N facts, deprecated M` line anywhere in the chips DOM or in a card and this goes red.
 describe("`curated N facts, deprecated M` is gone from the header", () => {
   const LEGACY = /curated \d+ facts?, deprecated/
@@ -265,7 +265,7 @@ describe("`curated N facts, deprecated M` is gone from the header", () => {
   })
 })
 
-// THE CHIP AS A DOOR (D-01). The chip stays PRESENTATIONAL: it is handed a callback and calls it.
+// THE CHIP AS A DOOR. The chip stays PRESENTATIONAL: it is handed a callback and calls it.
 // It does not know a tab, a route or a run. Absent the callback it is exactly the shipped `<span>` —
 // a header rendered without a page behind it must not grow an affordance that goes nowhere.
 describe("the curation chip is a click-through into the Knowledge tab", () => {
@@ -406,7 +406,7 @@ describe("the analysis indicator is the door to the verdict when the page gave i
     expect(lineOf(card, "door")).toBe(OPEN_VERDICT_TEXT)
     expect([...card.querySelectorAll("[data-stage-card-line]")].at(-1)?.getAttribute("data-stage-card-line"))
       .toBe("door")
-    // Text only inside the card: the indicator the reader is already on IS the control (D-10).
+    // Text only inside the card: the indicator the reader is already on IS the control.
     expect(card.querySelector("a, button")).toBeNull()
 
     act(() => { root.click() })
@@ -492,7 +492,7 @@ describe("a failed chip is never blank", () => {
     const card = await cardOf(host, "analysis")
     expect(lineOf(card, "outcome")).toBe("Analysis failed — analysis stage blew up on step 3")
     expect(lineOf(card, "retry")).toBe("Will retry")
-    // The reason never sits beside the indicator again (D-09): the VISIBLE root is a glyph and a
+    // The reason never sits beside the indicator again: the VISIBLE root is a glyph and a
     // word. The accessible name still carries the outcome clause, which is where it belongs.
     expect(visibleTextOf(chip(host, "analysis"))).toBe(STAGE_INDICATOR_WORDS.analysis.failed)
   })
@@ -529,7 +529,7 @@ describe("a refusal is its own state, and it is not a chip", () => {
     expect(state[0]!.getAttribute("data-stage-state")).toBe("unavailable")
     expect(state[0]!.getAttribute("tabindex")).toBe("0")
     expect(state[0]!.getAttribute("title")).toBeNull()
-    // The detail LEAVES header chrome (D-09): the root names the refusal, the card carries why.
+    // The detail LEAVES header chrome: the root names the refusal, the card carries why.
     expect(state[0]!.textContent).not.toContain("job_store_schema_version")
     expect(host.querySelectorAll("[data-chip]")).toHaveLength(0)
   })
@@ -711,7 +711,7 @@ describe("a run the chain never enqueued reads skipped on both indicators", () =
     for (const stage of ["analysis", "curation"] as const) {
       const root = chip(host, stage)
       expect(root.getAttribute("data-stage-state")).toBe("skipped")
-      // The store said `pending` and the store is still quoted verbatim (404 D-01).
+      // The store said `pending` and the store is still quoted verbatim.
       expect(root.getAttribute("data-chip-status")).toBe("pending")
       expect(root.tagName).toBe("SPAN")
       expect(visibleTextOf(root)).toBe(STAGE_INDICATOR_WORDS[stage].skipped)

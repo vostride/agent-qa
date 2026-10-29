@@ -166,7 +166,7 @@ export default function SuiteEditorPage() {
     tests: liveTests,
     setupHooks: liveHookConfig.setup,
     teardownHooks: liveHookConfig.teardown,
-    // The server detaches a dropped session for its idle window, so a drop resumes it (428 D-09).
+    // The server detaches a dropped session for its idle window, so a drop resumes it.
     allowReconnect: true,
   })
   const terminateLiveSession = liveEditor.terminateSession
@@ -196,13 +196,13 @@ export default function SuiteEditorPage() {
     && displayFormState !== null
     && displayFormState.tests.length > 0
 
-  const runDisabled = isLaunchingLive || hasLiveSession // D-16
+  const runDisabled = isLaunchingLive || hasLiveSession
   const liveConnectDisabled = (
     isLaunchingLive
     || hasLiveSession
     || isRunning
     || runId !== null
-    || isCreateMode                                  // D-19
+    || isCreateMode
     || displayFormState === null                     // D-20 YAML invalid
     || !displayFormState?.target.trim()              // D-18 target required
     || isLoadingTargets
@@ -284,7 +284,7 @@ export default function SuiteEditorPage() {
     setContent((c) => updateSuiteField(c, ['suite-id'], generateSuiteId()))
   }, [isCreateMode])
 
-  // Edit mode: backfill suite-id if missing after initial content fetch (D-02)
+  // Edit mode: backfill suite-id if missing after initial content fetch
   useEffect(() => {
     if (isCreateMode || isLoading) return
     const state = suiteYamlToFormState(content)
@@ -540,7 +540,7 @@ export default function SuiteEditorPage() {
     closeLiveMode()
   }, [closeLiveMode])
 
-  // D-23: suite allows manual setup re-run during an active session (divergence
+  // suite allows manual setup re-run during an active session (divergence
   // from test-editor). Stale banner clears only on explicit Restart.
   const handleRunLiveHook = useCallback((phase: 'setup' | 'teardown', hookId: string) => {
     if (!hasLiveSession) {
@@ -573,7 +573,7 @@ export default function SuiteEditorPage() {
   }, [])
 
   // Terminal transition: reflect server-driven disconnect
-  // A session the server no longer holds stays on the pane, whose preview names it (428 D-09).
+  // A session the server no longer holds stays on the pane, whose preview names it.
   useEffect(() => {
     if (!liveSessionId) return
     if (liveConnectionState !== "disconnected") return
@@ -620,7 +620,7 @@ export default function SuiteEditorPage() {
     setLiveDevtoolsTab("reasoning")
   }, [liveEditor.runningTestIndex, liveEditor.tests, liveModeOpen])
 
-  // Auto-launch from ?live=1 (D-17)
+  // Auto-launch from ?live=1
   useEffect(() => {
     if (!shouldAutoLaunchLive || autoLaunchLiveRef.current) return
     if (isCreateMode || isLoading || notFound || isLaunchingLive || liveModeOpen || hasLiveSession) return

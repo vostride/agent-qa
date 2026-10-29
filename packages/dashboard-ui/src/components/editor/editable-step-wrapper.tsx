@@ -25,7 +25,7 @@ interface EditableStepWrapperProps {
   runningStepId: string | null
 }
 
-// THE LIVE EDITOR'S OWN SUB-ACTION ROW (405-08).
+// THE LIVE EDITOR'S OWN SUB-ACTION ROW.
 //
 // It used to borrow run detail's `SubActionTreeItem`. That item now takes the DURABLE
 // `RunDetailSubAction` — the projection's row, carrying the planner's own `plan` sentence, a

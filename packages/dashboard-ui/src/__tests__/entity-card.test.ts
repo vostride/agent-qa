@@ -1,6 +1,6 @@
-// The dashboard half of the entity-card contract (Phase 400 plan 08, DASH-03).
+// The dashboard half of the entity-card contract.
 //
-// 430 (2026-09-28, D-04): this dashboard renders no entity card. The card render, its actions and
+// 430: this dashboard renders no entity card. The card render, its actions and
 // its payload detector left with the conversation surface, so what the dashboard still owns of the
 // contract is the route map alone: an href is minted from ENTITY_KIND_ROUTES over an entity's own
 // address, a kind this dashboard does not route gets none, and the absence cells below red if a

@@ -1,6 +1,6 @@
 // THE USAGE CARD BEHIND THE HEADER'S TOKEN LINE (425-05 · PXH-RUN-05, D-21..D-24, UI-SPEC S6).
 //
-// PRESENTATIONAL, AND DELIBERATELY SO (400 D-13). It takes the projection's own `tokens` and
+// PRESENTATIONAL, AND DELIBERATELY SO. It takes the projection's own `tokens` and
 // `models` and paints them. It reads nothing, fetches nothing and knows no run id — the page owns
 // the read and the header hands it down.
 //
@@ -13,7 +13,7 @@
 // summary. Each of those functions answers `undefined` when its fact is absent and this file
 // renders nothing for it — the card never fills a gap with a zero, an "n/a" or a row of dashes.
 //
-// Model and provider ids are producer strings rendered as the stored text (T-425-05-01, D-28);
+// Model and provider ids are producer strings rendered as the stored text;
 // there is no `dangerouslySetInnerHTML` in this file.
 
 import { TooltipContent } from "@/components/ui/tooltip"

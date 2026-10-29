@@ -1,4 +1,4 @@
-// THE CONFIG PAGE'S SAVE STATE (429 D-19/D-20/D-21/D-24 · PXH-CONF-04).
+// THE CONFIG PAGE'S SAVE STATE.
 //
 // One pure, total machine owns what the page's one status may say. Every clock is a parameter,
 // the reduceLivePreview idiom: no timers, no storage and no network here, the hook owns effects.

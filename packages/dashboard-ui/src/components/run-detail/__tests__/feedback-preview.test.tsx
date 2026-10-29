@@ -59,7 +59,7 @@ function content(text: string) {
 
 const overturn = (token: string) => ({ direction: 'overturn', overturnsEvidenceToken: token, overturnsCurationJobId: 'job-curate-1' })
 
-/** A false-fail superseding mark #2: one served record confirmed and a knowledge fact to be added (432-09). */
+/** A false-fail superseding mark #2: one served record confirmed and a knowledge fact to be added. */
 function falseFail(over: Record<string, unknown> = {}): RunsMarkPreviewResult {
   return RunsMarkPreviewResultSchema.parse({
     kind: 'consequences',
@@ -224,7 +224,7 @@ describe('the What this will do section', () => {
     expect(unreadable!.textContent).toBe(CONTENT_ABSENCE_TEXT['scan-incomplete'] + UNREADABLE_RECORD_TEXT)
   })
 
-  // RE-SPELLED 432-09 (D-11) from 'PREVIEW-REPLACES-LINE: a superseding mark reads the replaced
+  // RE-SPELLED 432-09 from 'PREVIEW-REPLACES-LINE: a superseding mark reads the replaced
   // ordinal, the time when given, and the withdrawal': a later mark withdraws nothing it applied.
   it('PREVIEW-REPLACES-LINE: a superseding mark reads the replaced ordinal, the time when given, and that its change stays', () => {
     render({ state: 'consequences', current: true, read: falseFail(), replacesTime: '14:05' })

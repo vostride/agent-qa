@@ -1,4 +1,4 @@
-// THE PREVIEW'S CHROME ROW (428 D-02): it renders only when it has something to hold.
+// THE PREVIEW'S CHROME ROW: it renders only when it has something to hold.
 //
 // The preview's status leads it, at the container's top-left, before any host content such as the
 // editor's toolbar (owner decision 2026-09-26 (4), G-428-4). The row wraps rather than clips, so

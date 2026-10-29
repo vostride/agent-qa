@@ -14,7 +14,7 @@
 // IS painted cannot see either.
 //
 // THE TINT IS AMBER AND NEVER RED, and that is asserted as an ABSENCE of the red vocabulary rather
-// than as the presence of a class name. A degraded rung is a rung reached by design (D-19): the
+// than as the presence of a class name. A degraded rung is a rung reached by design: the
 // static floor is the no-budget escape hatch and `lexical-only` means the floor was switched off
 // on purpose. `fail` is a doctor-only state for a subsystem that ERRORED, and the banner never
 // sees one — a run that got served got a rung.

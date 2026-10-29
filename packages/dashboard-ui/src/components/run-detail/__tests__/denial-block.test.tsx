@@ -142,7 +142,7 @@ describe('DenialBlock renders its reason only', () => {
     expect(denials[0]?.textContent).toBe('')
   })
 
-  // 2026-10-02 (432-44): the current owner of the 430 mutation leg R14 (was DENIAL-REASON-ONLY,
+  // the current owner of the 430 mutation leg R14 (was DENIAL-REASON-ONLY,
   // which stays). The box is one line, the reason, whatever it says; any line rendered after it, a
   // suggested command or a remedy chip, is the returned remedy render.
   it('the denial box holds one line, the reason, and no remedy line follows it', () => {
@@ -150,7 +150,7 @@ describe('DenialBlock renders its reason only', () => {
       const dom = mount(<DenialBlock neutralReason={reason} />)
       const box = dom.querySelector('[data-entry="denial"]')
       expect(box).not.toBeNull()
-      // RE-SPELLED 2026-10-03 (quick 261003-cpv): the refusal icon is an aria-hidden child with no
+      // RE-SPELLED 2026-10-03: the refusal icon is an aria-hidden child with no
       // text; every other child is a line, and the reason must be the only one.
       const lines = Array.from(box?.children ?? [], (line) => line)
         .filter((line) => line.getAttribute('aria-hidden') !== 'true')
@@ -171,7 +171,7 @@ describe('DenialBlock renders its reason only', () => {
     const dom = mount(<DenialBlock neutralReason={stored} />)
     expect(dom.querySelector('[data-entry="denial"]')?.textContent).toBe(stored)
     expect(dom.textContent).toContain('<SECRET_0>')
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv): one line beside the aria-hidden refusal icon, and
+    // RE-SPELLED 2026-10-03: one line beside the aria-hidden refusal icon, and
     // the line holds the stored text alone.
     expect(dom.querySelectorAll('[data-entry="denial"] > :not([aria-hidden="true"])')).toHaveLength(1)
     expect(dom.querySelectorAll('[data-entry="denial"] > p *')).toHaveLength(0)

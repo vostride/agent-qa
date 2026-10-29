@@ -1,11 +1,11 @@
 import { RECORD_CHANGE_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // @vitest-environment jsdom
 
-// A GATE RUN'S KNOWLEDGE TAB READS ITS CURATION AS SKIPPED, NEVER PENDING (444 D-61, D-39, D-13).
+// A GATE RUN'S KNOWLEDGE TAB READS ITS CURATION AS SKIPPED, NEVER PENDING.
 //
 // Origin `444 D-61`. A gate run and an outcome-excluded run never enqueue curation, so the chip
 // beside them is a defaulted `pending` no job will ever move. `runs.knowledge` carries the skipped
-// fact beside it (444-26), and these cells hold the tab to it on the page's own path: every world
+// fact beside it, and these cells hold the tab to it on the page's own path: every world
 // is a schema-parsed projection, folded by `projectKnowledgeView`, mounted as `TabKnowledge`
 // through `createRoot` into `document.body`, as `main.tsx` does.
 
@@ -147,7 +147,7 @@ function changesSection(tab: HTMLElement): HTMLElement {
   return section
 }
 
-// 427 D-19: the per-step ledger renders only once the collapsed Retrieval details is opened.
+// the per-step ledger renders only once the collapsed Retrieval details is opened.
 function openRetrievalDetails(tab: HTMLElement): void {
   const trigger = tab.querySelector('[data-knowledge-section="retrieval-details"] [data-slot="collapsible-trigger"]')
   if (trigger === null) throw new Error("no Retrieval details trigger")
@@ -214,7 +214,7 @@ describe("the Knowledge tab when curation was skipped", () => {
     expect(skippedLine.getAttribute("data-canary-outcome")).toBe("skipped")
     expect(skippedLine.textContent).toContain(ATTRIBUTION_SKIPPED_TEXT)
 
-    // Rows win (407-22): a served attribution row is the line's answer on a skipped run too.
+    // Rows win: a served attribution row is the line's answer on a skipped run too.
     const servedLine = canaryLine(mountOpened(world({ reason: "gate-run", canaryAttributions: [attribution("confirmed")] })))
     expect(servedLine.getAttribute("data-canary-outcome")).toBe("confirmed")
   })

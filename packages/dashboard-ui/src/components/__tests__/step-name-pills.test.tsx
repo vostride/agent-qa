@@ -20,7 +20,7 @@ vi.mock('@/components/ui/tooltip', () => ({
 let container: HTMLDivElement | null = null
 let root: Root | null = null
 
-// REPOINTED TO THE DURABLE STEP (405-08). The pill parser reads `name`, `originalStepName` and
+// REPOINTED TO THE DURABLE STEP. The pill parser reads `name`, `originalStepName` and
 // `variableSnapshot`; the first is now the projection's `stepText` and the other two have no
 // producer on this page until 405-11 rebuilds the overview, so they are ABSENT rather than
 // null-filled. An absent optional a consumer already guards is an honest absence; a null-filled

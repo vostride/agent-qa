@@ -1,7 +1,7 @@
-// The live page's BRAIN, proven before the page exists (403-04 · HNST-01/HNST-02/HNST-03, D-10/D-11/D-12).
+// The live page's BRAIN, proven before the page exists.
 //
-// WHY A PURE REDUCER AND NOT A HOOK. The jsdom page cells (403-05) and the Playwright DOM cells
-// (403-06) must exercise the SAME state machine the browser runs. A hook can only be tested
+// WHY A PURE REDUCER AND NOT A HOOK. The jsdom page cells and the Playwright DOM cells
+// must exercise the SAME state machine the browser runs. A hook can only be tested
 // through a renderer, so a claim about what the page can and cannot know would be a claim about a
 // rendering discipline. Here it is a claim about a data structure.
 //
@@ -14,7 +14,7 @@
 //
 // EVERY CLOCK IS INJECTED. `reduceRunStream(state, envelope, now)` takes `now` as a parameter. A
 // wall clock in the fold is a flake that reads as a real defect (403-03 measured exactly that in a
-// byte-comparing fixture). The liveness window that once took a clock too is gone (428 D-03), and
+// byte-comparing fixture). The liveness window that once took a clock too is gone, and
 // the absence cells below say so.
 
 import { readFileSync } from 'node:fs'
@@ -110,7 +110,7 @@ const rowAt = (state: RunStreamState, testIndex: number, stepIndex: number) =>
 const runningRows = (state: RunStreamState) => state.steps.filter((row) => row.status === 'running')
 
 // ---------------------------------------------------------------------------
-// The status vocabulary (HNST-02)
+// The status vocabulary
 // ---------------------------------------------------------------------------
 
 describe('the step status vocabulary is exactly seven words, and stepStatusOf resolves it', () => {
@@ -221,7 +221,7 @@ describe('the step status vocabulary is exactly seven words, and stepStatusOf re
 })
 
 // ---------------------------------------------------------------------------
-// D-10: motion and a plain count, and NOTHING ELSE
+// motion and a plain count, and NOTHING ELSE
 // ---------------------------------------------------------------------------
 
 describe('each sub-action is one tick, and no reasoning content survives ingest', () => {
@@ -372,7 +372,7 @@ describe('order is the bus\'s seq, never arrival and never a timestamp tie', () 
 })
 
 // ---------------------------------------------------------------------------
-// Members, the thin stream, retries and terminality (D-12)
+// Members, the thin stream, retries and terminality
 // ---------------------------------------------------------------------------
 
 describe('members, the thin handle stream and the terminal freeze', () => {
@@ -531,13 +531,13 @@ describe('members, the thin handle stream and the terminal freeze', () => {
 })
 
 // ---------------------------------------------------------------------------
-// G-428-2 (428-30): a pending row carries the text testStarted sent
+// a pending row carries the text testStarted sent
 // ---------------------------------------------------------------------------
 
 describe('pending rows are seeded from testStarted.stepTexts', () => {
   // The producer masks each entry with the declared-secret mask, so an entry equals the stepText
   // its step later announces. The fold keeps the entry as it arrived, and the row shows it as
-  // written: a declared value is already its `[secret:<name>]` (D-28).
+  // written: a declared value is already its `[secret:<name>]`.
   const started = (extra: Record<string, unknown>) =>
     envelope('testStarted', { testId: 't', testIndex: 0, name: 'm', ...extra })
 
@@ -584,8 +584,8 @@ describe('pending rows are seeded from testStarted.stepTexts', () => {
 // ---------------------------------------------------------------------------
 
 describe('the module publishes no bus liveness, and an absent export is the proof', () => {
-  // RE-SPELLED 2026-09-26 (428-16). These ten cells pinned `livenessOf` and its 20 s window.
-  // The owner removed bus liveness from the live page (428 D-03), and the pure half went with it.
+  // RE-SPELLED 2026-09-26. These ten cells pinned `livenessOf` and its 20 s window.
+  // The owner removed bus liveness from the live page, and the pure half went with it.
   // Each cell now states one absence: an export, a type, a transport input or a window, read off
   // the module namespace or its source, so the liveness path cannot come back by one import.
   const exportNames = (): string[] => Object.keys(reducer).sort()

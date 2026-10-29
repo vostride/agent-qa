@@ -1,4 +1,4 @@
-// THE EXPANDED STEP ROW (407-06 · LERN-01, D-03 / D-04 / D-07 / D-08, T-407-14).
+// THE EXPANDED STEP ROW.
 //
 // IT FILLS THE SLOT 407-02 LEFT. `tab-knowledge.tsx` shipped `<div data-step-detail />` as a
 // structural anchor precisely so this plan would be an addition rather than a re-shaping of the
@@ -9,7 +9,7 @@
 // line — is an exported constant or a function of `lib/knowledge-view.ts`. Nothing here decides a
 // word.
 //
-// ONLY WHAT WAS SERVED (427 D-19). This block lives inside Retrieval details, so a channel the step
+// ONLY WHAT WAS SERVED. This block lives inside Retrieval details, so a channel the step
 // was not served is left out rather than named empty; a step served nothing keeps its row, which
 // says `no brief served`. Every id carries a copy button, and the plan source is plain text.
 //
@@ -38,7 +38,6 @@ import {
   type StepDetailView,
 } from "@/lib/knowledge-view"
 
-/** The eyebrow role: 12px uppercase, the UI-SPEC's one label size (the 10px eyebrow is retired). */
 const EYEBROW_CLASS = "text-xs uppercase tracking-wider font-medium text-muted-foreground"
 
 /** Children of a section indent by the chevron width — `artifact-config-tab.tsx`'s own offset. */
@@ -169,7 +168,7 @@ function Channel1({ lines }: { lines: readonly BriefLineView[] }) {
 }
 
 /**
- * The procedure row: which procedure the step's plan came from, and how that went (D-07).
+ * The procedure row: which procedure the step's plan came from, and how that went.
  *
  * Plain text since 427 D-19. The SENTENCE is the view's, and a replay that broke reads as a break
  * even at a full check count — that judgement is made once, in `planSourceView`. The tone rides

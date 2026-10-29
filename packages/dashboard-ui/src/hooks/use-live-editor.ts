@@ -5,7 +5,7 @@ import { logLiveDebug } from '@/lib/live-debug'
 import { LIVE_EDITOR_SESSION_GONE_CLOSE_CODE, LIVE_EDITOR_SUPERSEDED_CLOSE_CODE } from '@/lib/live-preview'
 
 /**
- * One sub-action of a LIVE editor step (405-11).
+ * One sub-action of a LIVE editor step.
  *
  * IT LIVES HERE NOW, BESIDE ITS ONLY PRODUCER. This shape used to sit in the API module beside the
  * durable run-detail types and carried five fields the live editor never wrote — two capture paths,
@@ -31,7 +31,7 @@ export interface LiveSubAction {
 }
 
 /**
- * Read the live-editor socket's sub-action list off a step result (405-11).
+ * Read the live-editor socket's sub-action list off a step result.
  *
  * THE ONE PLACE THE WIRE KEY IS SPELLED. The dashboard-server's live-editor socket names this list
  * with the v1 run-detail spelling, and that name has a live producer on the other side of the
@@ -1054,7 +1054,7 @@ export function useLiveEditor(
         return
       }
 
-      // The server detaches a dropped session for its idle window (428 D-09), so any other close
+      // The server detaches a dropped session for its idle window, so any other close
       // is worth a reconnect to the same session; 4404 means the server no longer holds it, and
       // 4409 that another socket took the session over, which a reconnect would only take back.
       const gone = event.code === LIVE_EDITOR_SESSION_GONE_CLOSE_CODE
@@ -1083,7 +1083,7 @@ export function useLiveEditor(
       stepCompleteResolverRef.current = null
       cancelResolverRef.current?.()
       cancelResolverRef.current = null
-      // A test in flight is settled the same way (428 CR-01), so "Run all tests" ends. The server
+      // A test in flight is settled the same way, so "Run all tests" ends. The server
       // cancels it on the drop; its outcome, if one follows, reaches the reconnected socket and
       // only updates the row.
       const runningTest = runningTestIndexRef.current
@@ -1542,7 +1542,7 @@ export function useLiveEditor(
   }, [isRunningAllTests, sendMessage])
 
   // An explicit end must not depend on the control socket: the server only detaches on a dropped
-  // socket (428 D-09), and the page's unmount runs after this hook has closed it (RESEARCH P2).
+  // socket, and the page's unmount runs after this hook has closed it (RESEARCH P2).
   const terminateSession = useCallback(() => {
     runAllAbortedRef.current = true
     setIsRunningAll(false)

@@ -2,7 +2,7 @@
 //
 // `copied` is set only after the clipboard write resolved. A missing clipboard or a rejected write is
 // `failed`, which the control announces with the value spelled out so it can still be selected.
-// Extracted from `RecordIdCopy` (427 D-19), whose pattern `IdBadge` lacked.
+// Extracted from `RecordIdCopy`, whose pattern `IdBadge` lacked.
 
 import { useEffect, useRef, useState } from "react"
 

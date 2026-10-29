@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// THE ARIA TAB'S CELLS, AFTER ITS PRODUCER WENT (405-11 · D-14 / DETL-06).
+// THE ARIA TAB'S CELLS, AFTER ITS PRODUCER WENT.
 //
 // WHAT THESE USED TO PIN. A before/after toggle over two accessibility snapshots, fetched by the
 // tab itself over a per-step reasoning trace, inside a contained scroll frame. That trace table and

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// THE ONE COMPONENT'S CELLS (406-05 · DETL-05, D-17 / D-18, T-406-15 / T-406-16).
+// THE ONE COMPONENT'S CELLS.
 //
 // THREE ABSENCES, THREE VOCABULARIES. A masked chip says "redacted on purpose", the read-unavailable
 // state says "the read failed", and this component says "the bytes are gone". The distinctness cells

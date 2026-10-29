@@ -36,7 +36,7 @@ export const routes = {
     return link.kind === 'mapped' ? configTabPath(link.tab, link.section) : configTabPath('models')
   },
 
-  // 405-06 · DETL-03 (D-14 / 400-08): hrefs are minted from this total map, never copied off a
+  // hrefs are minted from this total map, never copied off a
   // store-written URL. An artifact is addressed by the `{ id, sha }` ref the projection carries;
   // the run id is encoded because it is opaque, and the sha is passed VERBATIM because the store
   // validates its 64-hex shape and re-casing it would change the content address itself.
@@ -44,7 +44,7 @@ export const routes = {
 } as const
 
 /**
- * THE ONE PIECE OF NAVIGATION STATE THIS APP CARRIES (2026-08-26, Phase 404 · LIFE-01, D-13/D-07).
+ * THE ONE PIECE OF NAVIGATION STATE THIS APP CARRIES.
  *
  * The live page navigates to run detail the instant its reducer records the run's verdict. That
  * leaves run detail with a question it cannot answer from the run row alone: the row's status is

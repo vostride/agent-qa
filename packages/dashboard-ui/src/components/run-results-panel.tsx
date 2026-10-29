@@ -15,7 +15,7 @@ import {
 } from "@/lib/run-stream-reducer"
 import { getRunStatusDescriptor } from "@/lib/status"
 
-// THE ONE LIVE WIRE (405-03 · D-19). This panel was the last UI client of the legacy
+// THE ONE LIVE WIRE. This panel was the last UI client of the legacy
 // execution-event projection retired by 405; that feed has no client left. It now folds the
 // SAME frozen envelopes `pages/live-run.tsx` folds, through the SAME pure reducer, so the editor's
 // panel and the live page cannot drift into two accounts of one run.
@@ -25,7 +25,7 @@ import { getRunStatusDescriptor } from "@/lib/status"
 // reducer reaches the same terminal state either way — which is why there is no `fetchRunDetail`
 // fallback here for a finished run.
 //
-// THE ONE ROW (428 D-19/D-21/D-22). Every row renders through the live page's `LiveStepRowView`:
+// THE ONE ROW. Every row renders through the live page's `LiveStepRowView`:
 // a named glyph and the label. There is no clock anywhere in the panel, no duration on a row and
 // no elapsed badge; durations live in run detail. The label is a text node, shown as written.
 //

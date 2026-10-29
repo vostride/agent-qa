@@ -113,7 +113,7 @@ interface PlannerLimitInputProps {
   onCommit: (value: number | undefined) => void
 }
 
-// 436 D-02/D-03: a limit reaches the YAML only as a positive whole number, the value the CLI
+// a limit reaches the YAML only as a positive whole number, the value the CLI
 // accepts. Anything else stays in the box with an inline error and the YAML is left alone.
 function PlannerLimitInput({ label, value, placeholder, onCommit }: PlannerLimitInputProps) {
   const errorId = useId()

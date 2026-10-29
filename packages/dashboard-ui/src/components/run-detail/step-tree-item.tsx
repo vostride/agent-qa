@@ -46,8 +46,8 @@ export function StepTreeItem({ step, isSelected, isExpanded, selection, playhead
   const address = step.testIndex === undefined || step.stepIndex === undefined
     ? undefined
     : feedbackAddress({ testIndex: step.testIndex, stepIndex: step.stepIndex })
-  // D-04: the door sits on the row that owns the selection only; a marked row elsewhere keeps a
-  // passive trace instead, so one row never shows two bubbles (D-06).
+  // the door sits on the row that owns the selection only; a marked row elsewhere keeps a
+  // passive trace instead, so one row never shows two bubbles.
   const showTrigger = isSelected && onOpenFeedback !== undefined && marks !== undefined && address !== undefined
   const stepNumber = (step.stepIndex ?? 0) + 1
   // THE DURABLE SUB-ACTIONS, NOT THE v1 BLOB (405-08/405-11). The v1 sub-action array this row

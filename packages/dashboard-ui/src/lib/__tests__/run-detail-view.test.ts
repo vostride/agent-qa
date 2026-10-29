@@ -108,7 +108,7 @@ describe('groupRunDetail', () => {
     expect(grouped[0]?.steps[0]?.subActions.map((s) => s.subActionIndex)).toEqual([0, 1])
     expect(grouped[1]?.steps[0]?.subActions.map((s) => s.subActionIndex)).toEqual([0])
 
-    // D-18: a member whose stream began with a terminal event is STILL a group.
+    // a member whose stream began with a terminal event is STILL a group.
     expect(grouped[2]?.member.name).toBe('thin')
     expect(grouped[2]?.steps).toEqual([])
   })
@@ -162,7 +162,7 @@ describe('member copy', () => {
 
     expect(memberNote(thin!.member, thin!)).toBe(DID_NOT_RUN_LABEL)
     expect(memberNote(ran!.member, ran!)).toBeUndefined()
-    // The live surface and the durable surface must agree word for word (D-16).
+    // The live surface and the durable surface must agree word for word.
     expect(DID_NOT_RUN_LABEL).toBe(DID_NOT_RUN_NOTE)
   })
 
@@ -177,7 +177,7 @@ describe('member copy', () => {
 // THE HEADER SAYS IN AND OUT; THE CARD SAYS THE REST (425-05 · D-21..D-24, UI-SPEC S6).
 //
 // The header line lost its coverage clause and gained a labelled pair, because "how much of the
-// run was measured" is a caveat and the header is a glance (D-22). Every caveat moved into the
+// run was measured" is a caveat and the header is a glance. Every caveat moved into the
 // card BEHIND the line, and each card line is its own function gated on the fact it states — a
 // line that renders when its fact is absent is a claim nobody made.
 //
@@ -276,7 +276,7 @@ describe('measurement coverage', () => {
     )
   })
 
-  // WR-02 (425-14). The two cells above are the negative control: the complete run and the genuinely
+  // WR-02. The two cells above are the negative control: the complete run and the genuinely
   // partial run keep exactly the answers they had. This one is the run nobody measured at all.
   it('USAGE-COVERAGE-ABSENT-IS-NOT-ZERO: says nothing about coverage when no step was measured', () => {
     const failure =
@@ -460,7 +460,7 @@ describe('the copy inventory', () => {
     for (const [name, value] of labels) {
       expect(typeof value, name).toBe('string')
       expect((value as string).length, name).toBeGreaterThan(0)
-      // Text nodes only — nothing here is ever handed to a markup parser (T-405-21).
+      // Text nodes only — nothing here is ever handed to a markup parser.
       expect((value as string).includes('<'), name).toBe(false)
     }
   })

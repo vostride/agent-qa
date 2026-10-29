@@ -1,9 +1,9 @@
-// THE PROJECTION, HELD TOTAL AND PURE (404-07 · LIFE-03, D-21/D-22/D-23).
+// THE PROJECTION, HELD TOTAL AND PURE.
 //
 // `projectPostProcessingView` is the whole distance between "what the route said" and "what a
 // person reads". It takes a `PostProcessingRead` and returns a view; it has no I/O, no clock and
 // no envelope type in its signature — which is the structural half of D-17. These cells fix the
-// PUBLISHED SENTENCES by their exported constants rather than by literal prose (403-05 D-5), so
+// PUBLISHED SENTENCES by their exported constants rather than by literal prose, so
 // a copy change moves one line here and one line in the module, and never silently diverges.
 //
 // THE CELL THAT MATTERS MOST is the `failed`-with-no-envelope one. D-21 as narrowed in 404-03 put
@@ -207,7 +207,7 @@ describe('a terminal curation card says what it committed, in its wording of rec
   })
 
   // RE-SPELLED 425-08. The claim is unchanged — curation's counts never reach the analysis card —
-  // but the analysis card is no longer absent on a verdict-bearing run (D-13), so the cell now
+  // but the analysis card is no longer absent on a verdict-bearing run, so the cell now
   // measures what that card SAYS rather than that it does not exist.
   it('never invents a card for the analysis chip from curation counts', () => {
     const view = chips(projectPostProcessingView(read({
@@ -227,7 +227,7 @@ describe('a terminal curation card says what it committed, in its wording of rec
   })
 })
 
-// FIVE BUCKETS ARE NEVER SYNTHESIZED FROM TWO (D-18). A pre-423 row carries a pair and nothing
+// FIVE BUCKETS ARE NEVER SYNTHESIZED FROM TWO. A pre-423 row carries a pair and nothing
 // else; a withheld snapshot carries a reason and nothing else. Each renders what EXISTS, labelled,
 // rather than a breakdown the run never recorded.
 describe('the curation breakdown is one function, and legacy rows say what they are', () => {
@@ -278,7 +278,7 @@ describe('the curation breakdown is one function, and legacy rows say what they 
   })
 })
 
-// EVERY STATE HAS AN HONEST FIRST LINE (D-13). A card that could open blank is a hover that rewards
+// EVERY STATE HAS AN HONEST FIRST LINE. A card that could open blank is a hover that rewards
 // the reader with nothing — which is the failure the whole card exists to fix.
 describe('running, queued and failed stages each read their own sentence', () => {
   it('names a running stage in its own words', () => {
@@ -382,7 +382,7 @@ describe('a failed chip says why, or says honestly that nobody recorded why', ()
   })
 })
 
-// RETIRED 425-06 (D-16). The two cells that stood here pinned the legacy pair's folded sentence,
+// RETIRED 425-06. The two cells that stood here pinned the legacy pair's folded sentence,
 // whose last reader — the Knowledge tab's Learned heading — now calls `curationBreakdownLine` and
 // `legacyCurationPairText` instead. Both of those are pinned in this file's breakdown cells, so
 // retiring the function retired its cells rather than leaving them asserting over nothing.
@@ -417,7 +417,7 @@ describe('a settled analysis with nothing to report says so in one sentence', ()
   })
 })
 
-// THE VISIBLE WORD (425-01 · D-07). A settled stage is quiet — the name alone. Every other state
+// THE VISIBLE WORD. A settled stage is quiet — the name alone. Every other state
 // says itself, because those are the states a person can act on. The set is six and the order is
 // the one the never-bar pins; a cell that only walked the reachable ones would not see a gap.
 describe('an indicator says the stage, and says the state when it needs attention', () => {
@@ -531,7 +531,7 @@ describe('a run with no verdict skips analysis and curation', () => {
   })
 })
 
-// THE SKIPPED STATE COMES FROM THE READ'S OWN FIELD (425-08 · D-08, T-425-08-01; 444 D-39).
+// THE SKIPPED STATE COMES FROM THE READ'S OWN FIELD.
 //
 // The op folds `skipped` from the run's durable `gateRun` / `excludedFromOutcomes` markers — the
 // same markers the post-verdict enqueue skip reads — so the dashboard, the CLI exit line and the
@@ -593,7 +593,7 @@ describe('a skipped chain reads skipped because the read said so, never because 
   })
 })
 
-// PURE AND TOTAL, MEASURED RATHER THAN ASSERTED (PXH-RUN-03). A re-read arriving while a card is
+// PURE AND TOTAL, MEASURED RATHER THAN ASSERTED. A re-read arriving while a card is
 // open repaints that card from the NEW read alone, which is only safe if projecting a read twice
 // says the same thing and leaves the read's own bytes where it found them.
 describe('the projection is pure and total', () => {
@@ -620,7 +620,7 @@ describe('the projection is pure and total', () => {
   })
 })
 
-// TIMING IS THE JOB ROW'S OWN, CLAUSE BY CLAUSE (425-08 · D-12, T-425-08-03).
+// TIMING IS THE JOB ROW'S OWN, CLAUSE BY CLAUSE.
 //
 // THE MODULE HAS NO CLOCK AND MUST NOT GROW ONE. Every value below is a stored string the reader
 // stringified out of the job row — `created_at` / `started_at` / `updated_at`, written from the

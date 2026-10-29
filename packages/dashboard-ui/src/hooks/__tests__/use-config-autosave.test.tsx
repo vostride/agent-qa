@@ -149,7 +149,7 @@ beforeEach(() => {
   seenStatuses = []
   vi.mocked(fetchConfig).mockResolvedValue(answer(baseConfig) as never)
   // One fake server: the revision route answers whatever the last write landed, and each write
-  // names the revision it merged onto (429-37), so every cell here stays on the trusted path.
+  // names the revision it merged onto, so every cell here stays on the trusted path.
   let serverRevision = "rev-1"
   vi.mocked(fetchConfigRevision).mockImplementation(async () => ({ revision: serverRevision }))
   vi.mocked(applyConfigChanges).mockImplementation(async () => {
@@ -385,7 +385,7 @@ describe("useConfigAutosave outside edits, explicit actions and Undo", () => {
     expect(hook!.valueOf(headless)).toBe(false)
   })
 
-  // 429-37 CR-01: the outside edit lands at rev-9 and the page writes before any poll tick; the
+  // the outside edit lands at rev-9 and the page writes before any poll tick; the
   // write's answer names rev-9 as its base, which the page never read.
   async function interleavedOutsideEdit() {
     await mount()
@@ -713,7 +713,7 @@ describe("useConfigAutosave landed-write mirror for set-if-absent, move and expe
     expect(fetchConfig).toHaveBeenCalledTimes(1)
   })
 
-  // 429-42: completing use.browser.headless over a root use.headless keeps the owner's value, not
+  // completing use.browser.headless over a root use.headless keeps the owner's value, not
   // the default, so the mirror cannot know what landed and must read it.
   it("MIRROR-LEGACY-HEADLESS-REREADS: set-if-absent of browser headless over a root use.headless re-reads the file", async () => {
     const legacy = { ...baseConfig, use: { timeout: baseConfig.use.timeout, headless: false } }
@@ -914,7 +914,7 @@ describe("useConfigAutosave a Retry with nothing to send", () => {
   })
 })
 
-// 441-40 (D-29): the editor has no masks of its own. A field the server showed through the declared
+// the editor has no masks of its own. A field the server showed through the declared
 // mask is never sent unless the person edits it, and a landed write is mirrored as written.
 describe("useConfigAutosave and masked secret fields", () => {
   const MARKER = "[secret:PW_441]"

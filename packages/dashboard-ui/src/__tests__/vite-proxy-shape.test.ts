@@ -1,4 +1,4 @@
-// VITE-PROXY-SHAPE (428-11 · D-08). Vite expands a string proxy entry to `changeOrigin: true`,
+// VITE-PROXY-SHAPE. Vite expands a string proxy entry to `changeOrigin: true`,
 // which rewrites `Host` to the target. The live-editor doors and the run-detail mark POSTs run the
 // same-site guard, which compares `Origin` to `Host`, so a rewritten Host makes the dashboard's own
 // dev page look cross-site and every guarded door refuses it under `vite dev`. Object form without

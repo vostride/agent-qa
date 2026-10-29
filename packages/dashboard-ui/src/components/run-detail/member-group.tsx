@@ -1,16 +1,16 @@
-// ONE MEMBER OF A RUN, AND EVERYTHING RECORDED BENEATH IT (405-08 · D-16 / D-17 / D-18).
+// ONE MEMBER OF A RUN, AND EVERYTHING RECORDED BENEATH IT.
 //
 // PRESENTATIONAL, AND DELIBERATELY SO. This component takes a group the page already folded out of
 // `runs.detail` and paints it. It fetches nothing, holds no run id, and derives no fact — the
 // grouping, the filter and every sentence it renders come from `lib/run-detail-view.ts`, which is
 // pure and separately pinned.
 //
-// A MEMBER THAT NEVER RAN IS NOT AN EMPTY BOX (D-18). Its stream began with a terminal event, so
+// A MEMBER THAT NEVER RAN IS NOT AN EMPTY BOX. Its stream began with a terminal event, so
 // the projection wrote the member row and no steps. Rendering that as blank space under a header
 // reads as "it passed everything"; rendering it with the did-not-run note, its persisted outcome
 // and the producer's own `failureSummary` says what actually happened.
 //
-// THE OUTCOME BADGE IS ON EVERY MEMBER THAT HAS AN OUTCOME, PASSED ONES INCLUDED (406 D-07).
+// THE OUTCOME BADGE IS ON EVERY MEMBER THAT HAS AN OUTCOME, PASSED ONES INCLUDED.
 // 405-08 put it only on a member that did not run, because 405 D-16 was explicit that per-member
 // verdicts beside the aggregate were 406's DETL-04 and were not to be pre-claimed here. 406 D-07 is
 // that decision arriving, and it supersedes the paragraph this one replaces. The badge is painted
@@ -20,14 +20,14 @@
 // text carries the label, for the same reason the navbar's badge does.
 //
 // THREE SENTENCES, THREE SPEAKERS. The did-not-run note is this product's; `failureSummary` is the
-// runner's; the verdict block under a failed member is the ANALYSIS's (406 D-05), rendered in its
+// runner's; the verdict block under a failed member is the ANALYSIS's, rendered in its
 // own component below the header and above the steps. They are rendered side by side rather than
 // concatenated, because a reader is entitled to know which claim came from where (405-06's
 // `memberNote` decision, restated in markup, now with a third voice on the page). The analysis
 // never merges with the runner's line: two producers, two blocks.
 //
 // `failureSummary` is a PRODUCER string and is rendered as the stored text, so a declared value
-// shows as the `[secret:<name>]` the producer recorded (D-28). React escapes it into a text node.
+// shows as the `[secret:<name>]` the producer recorded. React escapes it into a text node.
 
 import { useState, type ReactNode } from "react"
 import { ChevronRight } from "lucide-react"
@@ -52,7 +52,7 @@ interface MemberGroupProps {
   /** Whether this run has more than one member — a single-member run gets no grouping chrome. */
   showChrome: boolean
   /**
-   * This member's verdict, when `analysis.get` had one for it (406-01 · DETL-04, D-05).
+   * This member's verdict, when `analysis.get` had one for it.
    *
    * ABSENT IS THE COMMON CASE AND IT RENDERS NOTHING. A passed member has no verdict at all —
    * `resolveRunVerdicts` filters `passed | skipped | cancelled` — and a run whose analysis has not
@@ -60,7 +60,7 @@ interface MemberGroupProps {
    */
   verdict?: MemberVerdictView
   /**
-   * What a cited step, a cluster sibling and a cited artifact DO (406-06 / 406-08 · D-02 / D-08).
+   * What a cited step, a cluster sibling and a cited artifact DO.
    *
    * OPTIONAL, AND THE DEFAULT IS A NO-OP, matching `verdict` above and `analysisView` on the tree.
    * A member group mounted without them — every cell in this file that is about grouping rather
@@ -106,17 +106,17 @@ export function MemberGroup({
   const { member } = group
   const isThin = group.steps.length === 0
   const rerun = reranLabel(member.attempts)
-  // ONE PALETTE FOR THE AGGREGATE AND EVERY MEMBER (D-07). `undefined` where the projection
+  // ONE PALETTE FOR THE AGGREGATE AND EVERY MEMBER. `undefined` where the projection
   // recorded no outcome at all — an absent word is not a word to paint, and defaulting it would put
   // a confident badge on a member nobody graded.
   const outcomeLook = member.outcome === undefined ? undefined : statusBadgeLook(member.outcome)
-  // 426 D-06: the whole-test trace. The header door carries it on a single-test run, which has no
+  // the whole-test trace. The header door carries it on a single-test run, which has no
   // member header.
   const testMark = member.marks?.find((entry) => entry.stepIndex === undefined)
 
   const body = isThin ? <ThinMemberBody group={group} /> : <ul role="group">{children}</ul>
 
-  // THE WHY, DIRECTLY UNDER THE HEADER AND ABOVE THE STEPS (D-05). The sentence sits beside the
+  // THE WHY, DIRECTLY UNDER THE HEADER AND ABOVE THE STEPS. The sentence sits beside the
   // steps it cites rather than in a panel of its own, so the member filter narrows both at once.
   const verdictBlock = verdict === undefined ? null : (
     <VerdictBlock

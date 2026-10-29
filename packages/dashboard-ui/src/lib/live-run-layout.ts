@@ -1,5 +1,5 @@
 /**
- * The live run page's two arrangements (428 D-06 · PXH-LIVE-04).
+ * The live run page's two arrangements.
  *
  * Docked: the step list and the preview side by side. Stacked, below 768 px of the page's own
  * measured width: the preview on top at full width and the step list beneath it. The switch

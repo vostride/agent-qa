@@ -36,7 +36,7 @@ const TERMINAL_STEP_STATUSES: readonly StepStatus[] = ['passed', 'failed', 'heal
  *
  * THE FIELDS THAT ARE NOT HERE ARE THE POINT. There is no slot for a plan, an intended action, a
  * candidate target, an action result or a verifier's prose — the five payload fields the bus
- * carries and this surface refuses (D-10). This file does not NAME those fields anywhere, in code
+ * carries and this surface refuses. This file does not NAME those fields anywhere, in code
  * or in prose: the reducer destructures only the two coordinates it keeps, so there is no
  * spelling of them here for a later edit to reach for. What a viewer gets from a running step is that it is
  * running, what it is called, how long it has been going and how many sub-actions it has recorded.
@@ -61,7 +61,6 @@ export interface LiveStepRow {
   /**
    * The step's own text, verbatim from `stepStarted`. Before the step starts, the masked text
    * `testStarted.stepTexts` carried. Empty when neither is known, and then the row is not drawn
-   * (428-30, G-428-2).
    */
   text: string
   /** The `ts` of the `stepStarted` envelope — the page's elapsed-time origin. */
@@ -130,7 +129,7 @@ export interface RunStreamState {
   gap?: RunStreamGap
   /**
    * The retrieval rung this run was served on, as the FIRST `stepFinalized` frame carrying it
-   * said (407-10 · D-14).
+   * said.
    *
    * RUN-CONSTANT, SO THE FIRST FRAME WINS. The rung describes the HOST'S ladder at the moment
    * this run was served — not how any one step's brief was ranked — so every frame that carries
@@ -141,7 +140,7 @@ export interface RunStreamState {
    *
    * ABSENT, NEVER NULLED, BEFORE THE FIRST CARRYING FRAME. "Not yet known" is the missing key —
    * which is what lets the page render no element at all rather than a banner claiming a rung
-   * nobody has stated. A pre-407 run and a run with no knowledge reader bound (D-16) never leave
+   * nobody has stated. A pre-407 run and a run with no knowledge reader bound never leave
    * this state.
    */
   retrievalRung?: RecordedRetrievalRung
@@ -192,7 +191,7 @@ export function stepStatusOf(payload: StepFinalizedPayload): StepStatus {
  * Record what a replay floor cost this viewer (D-13's visible gap marker).
  *
  * THE ARITHMETIC IS THE DOOR'S OWN, AND IT IS THE MOST LIKELY INTEGRATION ERROR THIS CONTRACT CAN
- * PRODUCE (403-03). A `410 replay_floor` advertises `earliestAvailableSeq`, so a client that saw
+ * PRODUCE. A `410 replay_floor` advertises `earliestAvailableSeq`, so a client that saw
  * `lastSeen` re-attaches with `lastEventId = earliestAvailableSeq - 1` and the envelopes from
  * `lastSeen + 1` through `earliestAvailableSeq - 1` are gone for good.
  *
@@ -283,7 +282,7 @@ export function reduceRunStream(state: RunStreamState, envelope: RunEventEnvelop
         totalSteps: payload.totalSteps,
       }
       // The texts crossed a trust boundary as JSON, so only an array's string entries are read, and
-      // the row count stays totalSteps's however long the list is (428-30, G-428-2).
+      // the row count stays totalSteps's however long the list is.
       const stepTexts: unknown = payload.stepTexts
       const pendingText = (stepIndex: number): string => {
         if (!Array.isArray(stepTexts)) return ''

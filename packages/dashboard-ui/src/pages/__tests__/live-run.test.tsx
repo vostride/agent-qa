@@ -12,12 +12,12 @@
 // feed and an assertion cannot drift apart.
 //
 // WHY EVERY CLOCK IS FAKE. The preview re-mints at half its TTL, and NO-CLOCK-ON-ANY-ROW advances
-// time to prove the rows show none (428 D-19). Each is a cell whose verdict would otherwise depend
+// time to prove the rows show none. Each is a cell whose verdict would otherwise depend
 // on real elapsed time — the flake shape 403-03 measured, which reads exactly like a real defect
 // when it fires.
 //
-// WHY THE NO-LIVENESS-PILL CELLS RUN k=5 (428 D-03). The page used to carry a bus liveness pill
-// (HNST-03); the owner removed it, and a dead bus now shows only as rows that stop moving. The
+// WHY THE NO-LIVENESS-PILL CELLS RUN k=5. The page used to carry a bus liveness pill
+// the owner removed it, and a dead bus now shows only as rows that stop moving. The
 // three traffic scenarios the pill was measured over are kept, each now asserting that nothing on
 // the page speaks about the channel. Fresh mount per iteration, so nothing carries across.
 //
@@ -104,7 +104,7 @@ vi.mock('react-router', async () => {
 })
 vi.mock('@/hooks/use-page-title', () => ({ usePageTitle: () => {} }))
 vi.mock('sonner', () => ({ toast: { success: vi.fn(), info: vi.fn(), error: vi.fn() } }))
-// The panel doubles render the props the layout cells read (428 D-06): the Group's orientation and
+// The panel doubles render the props the layout cells read: the Group's orientation and
 // each panel's id and default size.
 vi.mock('@/components/ui/resizable', () => ({
   ResizablePanelGroup: ({ children, orientation }: { children: ReactNode; orientation?: string }) => (
@@ -456,7 +456,7 @@ describe('the running row advances without inventing a phase', () => {
     expect(q('[data-live-pane="steps"] li')?.getAttribute('data-step-status')).toBe('healed')
   })
 
-  // RE-SPELLED 2026-09-26 (428 D-19/D-20). This cell asserted the row said `3 actions`. The owner
+  // RE-SPELLED 2026-09-26. This cell asserted the row said `3 actions`. The owner
   // removed the count: the breathing glyph's re-key is the one progress signal left, and it says
   // "something happened" without a number.
   // RE-SPELLED AGAIN 2026-09-26 (428-32, owner decision 2026-09-26 (5), G-428-5). Its title ended
@@ -605,7 +605,7 @@ describe('a member header only where there is more than one member', () => {
 })
 
 describe('NO-LIVENESS-PILL: the page makes no claim about the bus channel', () => {
-  // RE-SPELLED 2026-09-26 (428-16). These four cells were HNST-03's pill cells: `live` across
+  // RE-SPELLED 2026-09-26. These four cells were HNST-03's pill cells: `live` across
   // heartbeats, `lost` over an open and silent socket, `reconnecting` while dialling, and the
   // preview holding its state through each. D-03 removes the pill, so the same traffic now
   // asserts that no liveness element and no activity age appear. The positive half of each cell
@@ -904,7 +904,7 @@ describe('a stream that carried no step is never a blank pane', () => {
 })
 
 describe('the page ends where the run ends, and MOVES the viewer with it', () => {
-  // WHAT REPLACED WHAT (Phase 404 · LIFE-01, D-13). 403 D-12 ended this page on the verdict and
+  // WHAT REPLACED WHAT. 403 D-12 ended this page on the verdict and
   // deliberately went nowhere: run detail had not been rebuilt, and a redirect would have taken
   // the decision away from a person watching a failure land. 404 owns verdict-exactly-once and
   // run detail is rebuilt, so the page now moves with the run — on the ENVELOPE, not on
@@ -941,7 +941,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
     await emit(verdict('passed'))
     expect(navigateMock).toHaveBeenCalledTimes(1)
 
-    // The reducer takes the FIRST verdict and drops the rest (403-04 D-4); this asserts the EFFECT
+    // The reducer takes the FIRST verdict and drops the rest; this asserts the EFFECT
     // inherits that, because an effect keyed on a field that never changes cannot fire twice.
     await emit(verdict('failed'), runFinished())
     await advance(30_000)
@@ -951,7 +951,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
     expect(classifyRunStreamCloseMock).not.toHaveBeenCalled()
   })
 
-  // RE-PINNED 2026-08-26 (404-06, D-14). Before this phase this cell was "freezes with the
+  // RE-PINNED 2026-08-26. Before this phase this cell was "freezes with the
   // verdict, ends the preview, links run detail, and neither reconnects nor navigates" and it
   // published `verdict` + `runFinished` together. D-13 inverts that path: a verdict NAVIGATES. So
   // the cell keeps its subject — the honest terminal band — and moves to the path where the band
@@ -1016,7 +1016,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
 })
 
 describe('the preview is one embed or an honest sentence', () => {
-  // NO SENTENCE NAMES A POSITION FOR THE STEPS PANE (403-15, G-403-1). The live page renders the
+  // NO SENTENCE NAMES A POSITION FOR THE STEPS PANE. The live page renders the
   // step list BESIDE the preview and the served embed owns no step list at all, so a direction
   // word is false in every host; the pane names the steps pane by ROLE instead.
   const DIRECTION_WORDS = /\b(?:below|beneath|above|left|right)\b/u
@@ -1118,7 +1118,7 @@ describe('the preview is one embed or an honest sentence', () => {
     })
   })
 
-  // THE BOUND IS A BOUND (403-15, G-403-2). Three roads led back into `waiting` after the cap; each
+  // THE BOUND IS A BOUND. Three roads led back into `waiting` after the cap; each
   // is one cell, and each reads the same triple so a sentence cannot lag the state by a render.
   //
   // RE-SPELLED 2026-09-26 (428-33, owner decision 2026-09-26 (3), G-428-3). (A)..(D) used to start
@@ -1590,7 +1590,7 @@ describe('the live header says which rung served this run, from the evidence', (
   })
 
   it('LIVE-STRIP-INFO-ABSENT: a run recorded on a fresh index opens no strip and paints no banner', async () => {
-    // A fresh store's bootstrap is information the tab states (427 D-20); the container and the
+    // A fresh store's bootstrap is information the tab states; the container and the
     // banner share rungBannerText, so neither opens for an info class.
     await mount()
     await open()

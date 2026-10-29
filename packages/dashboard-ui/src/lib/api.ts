@@ -130,7 +130,7 @@ export interface RunArtifactRow {
 }
 
 /**
- * What the artifact drawer reads (405-11 · D-02/D-14).
+ * What the artifact drawer reads.
  *
  * NO `children`. The key carried one entry per child run of a suite parent, and after 405-07 there
  * are no child runs to carry: a suite's members live under ONE run as handles. A key that could
@@ -353,7 +353,7 @@ export async function fetchRunAttributeValues(key: string, opts: { q?: string; l
 }
 
 /**
- * `GET /api/runs/:id` — the run ROW, and nothing else (405-11 · D-02/D-03).
+ * `GET /api/runs/:id` — the run ROW, and nothing else.
  *
  * The three legacy keys are GONE from the type, not merely optional. 405-07 stopped the server
  * serving them and left them optional so the page rebuild could remove their readers in one plan;
@@ -366,7 +366,7 @@ export async function fetchRun(id: string): Promise<{ run: RunRow }> {
 }
 
 /**
- * The rebuilt run-detail page's ONE durable read (405-06 · DETL-01, D-03).
+ * The rebuilt run-detail page's ONE durable read.
  *
  * The result type is the op's own `RunDetailProjection`, imported from schema rather than
  * re-declared here: the UI MIRRORS the contract instead of keeping a twin of it, so a field the op
@@ -400,7 +400,7 @@ export async function fetchRunEvidence(input: RunsEvidenceInput): Promise<RunEvi
   }
 }
 
-// 2026-10-02 (432-42, D-15): no typed mark denial. The `mark_denied` 403 it classified came from the
+// no typed mark denial. The `mark_denied` 403 it classified came from the
 // execution gate, which 432-19 deleted; no server path answers it. A failed mark is an ordinary
 // request failure, and the page says so in its own words.
 
@@ -408,7 +408,7 @@ export async function markRun(
   runId: string,
   body: Omit<RunsMarkInput, 'runId'>,
 ): Promise<RunsMarkOutcome> {
-  // 432-14 (D-14): the validated body, as written — one request, no scope, nothing to wait on.
+  // the validated body, as written — one request, no scope, nothing to wait on.
   return await postJson(`/api/runs/${encodeURIComponent(runId)}/mark`, body)
 }
 
@@ -435,7 +435,7 @@ function feedbackReadFailure(error: unknown): FeedbackReadFailure {
 }
 
 /**
- * `POST /api/runs/:id/mark-preview` — runs.mark's plan for this exact input (426 D-16, 423 D-18).
+ * `POST /api/runs/:id/mark-preview` — runs.mark's plan for this exact input.
  *
  * The route parses the body with the strict `RunsMarkInputSchema`, so the body carries `runId`:
  * this is a read, and markRun's body is deliberately not reused.
@@ -469,7 +469,7 @@ export async function fetchMarksHistory(runId: string): Promise<MarksHistoryRead
 }
 
 /**
- * THE FAILURE VIEW'S ONE READ (406-01 · DETL-04, D-04).
+ * THE FAILURE VIEW'S ONE READ.
  *
  * The result type is the op's own `AnalysisGetOutput`, imported from schema rather than
  * re-declared here: the UI MIRRORS the contract instead of keeping a twin of it, so a field the op
@@ -485,7 +485,7 @@ export async function fetchRunAnalysis(id: string): Promise<AnalysisGetOutput> {
 }
 
 /**
- * THE KNOWLEDGE TAB'S ONE READ (407-02 · LERN-01, D-05).
+ * THE KNOWLEDGE TAB'S ONE READ.
  *
  * The result type is the op's own `RunKnowledgeProjection`, imported from schema rather than
  * re-declared here: the UI MIRRORS the contract instead of keeping a twin of it, so a field the op
@@ -496,7 +496,7 @@ export async function fetchRunAnalysis(id: string): Promise<AnalysisGetOutput> {
  * four-segment GET — so the id is encoded here exactly once, and an id carrying a slash addresses
  * the route it names rather than one nobody registered.
  *
- * ONE READ FOR THE WHOLE TAB (D-03). The panel never composes from N `knowledge.brief.why` calls;
+ * ONE READ FOR THE WHOLE TAB. The panel never composes from N `knowledge.brief.why` calls;
  * every count it prints is folded from the rows this single answer already carried.
  */
 export async function fetchRunKnowledge(id: string): Promise<RunKnowledgeProjection> {
@@ -685,11 +685,11 @@ export async function fetchActiveExecutions(): Promise<{ executions: ActiveExecu
   return request('/api/execution/active')
 }
 
-// 2026-10-01 (432-14, D-14): the page-level confirm scope box that stood here is deleted with the
+// the page-level confirm scope box that stood here is deleted with the
 // run-confirm channel that filled it. No run or mark names the browser that sent it.
 
 /**
- * The run could not be STARTED because this process is not in a state to start one (402-08).
+ * The run could not be STARTED because this process is not in a state to start one.
  *
  * A DISTINCT CLASS FROM {@link ApiError}, deliberately. An `ApiError` says the server answered a
  * request badly; this says no request was made at all — the preflight refused before anything was
@@ -717,11 +717,11 @@ export class RunNotReadyError extends Error {
  * invoke path's guard throws on, so a readiness that says yes and a start that says no cannot
  * disagree.
  *
- * 2026-10-01 (432-22, D-12): the readiness answer has no `authConfigured` member. It reported
+ * the readiness answer has no `authConfigured` member. It reported
  * whether a run-service credential resolved, which no project can declare any more, and the gate
  * never read it.
  *
- * 2026-10-02 (quick 261002-ctr): `contractVersion` is 2 since that change, and the gate does not
+ * `contractVersion` is 2 since that change, and the gate does not
  * read it either. Version 2 removed a member and refusal codes this gate never read; the readiness
  * and trigger routes it calls are the same on both versions. So a version-1 server still passes,
  * and refusing one would stop a dashboard that can run tests.
@@ -764,7 +764,7 @@ const NO_READINESS_DOOR = new Set([404, 503])
  * A door that cannot be reached, that refuses for a reason other than not having the route, or
  * that answers something this build cannot read, are all answers to "can you run something" that
  * are not YES. Treating any of them as "probably fine, post anyway" is exactly the race the
- * preflight exists to remove (T-402-28) — the trigger would be started against a door whose state
+ * preflight exists to remove — the trigger would be started against a door whose state
  * nobody established.
  */
 async function assertRunReadiness(): Promise<void> {
@@ -825,7 +825,7 @@ export interface RunStreamOptions {
    */
   handle?: number
   /**
-   * Resume AFTER this seq (403-03 · INVK-05, D-13). The door resolves it to `subscribe(N + 1)`, so
+   * Resume AFTER this seq. The door resolves it to `subscribe(N + 1)`, so
    * a client that observed seq 8 passes 8 and is served 9 onward.
    *
    * ZERO IS A RESUME POINT, not an absent one: it means "replay from the very beginning", which is
@@ -869,13 +869,13 @@ function runStreamUrl(runId: string, opts: { handle?: number; lastEventId?: numb
 }
 
 /**
- * Attach to a run's event stream on the LOCAL door, optionally addressing ONE member (402-08).
+ * Attach to a run's event stream on the LOCAL door, optionally addressing ONE member.
  *
  * THE EVENT NAMES ARE THE BUS'S OWN, ENUMERATED FROM THE SCHEMA. `RUN_EVENT_TYPES` is the total
  * list, and `EventSource` dispatches by name, so a hand-written list here would be a second
  * vocabulary that silently stopped delivering the first time an event type was appended. The
  * envelope reaches `onEvent` exactly as it arrived: `id` is its `seq`, the event name is its
- * `type`, and `data` is the envelope's own JSON (D-13) — there is no projection layer to drift.
+ * `type`, and `data` is the envelope's own JSON — there is no projection layer to drift.
  *
  * NO `Authorization` HEADER, AND THERE MUST NEVER BE ONE. `EventSource` cannot set headers, which
  * is why the AUTHED door's clients are `fetch`/`curl`/CI and this helper's door is the local one.
@@ -952,7 +952,7 @@ export type RunStreamCloseReason =
  * Ask the door why the stream closed, because `EventSource` will not say.
  *
  * THE PROBLEM THIS SOLVES. A `410 replay_floor` and a `404 unknown_run` are both written as JSON
- * BEFORE any stream head (403-03), and `EventSource` reports both as one wordless `error` with
+ * BEFORE any stream head, and `EventSource` reports both as one wordless `error` with
  * `readyState === CLOSED` — indistinguishable from a dropped socket. A page branching on
  * `readyState` therefore has one word for three situations and shows "lost" for a run that merely
  * needs re-attaching, which is the silent-gap failure D-13 exists to refuse.
@@ -978,7 +978,7 @@ export async function classifyRunStreamClose(
       const payload = await parseErrorPayload(res)
       // A floor the door did not SEND is not a floor. Inventing one would hand the page a recovery
       // point to subtract from, and the subtraction is the likeliest integration error this
-      // contract can produce (403-03).
+      // contract can produce.
       if (payload?.error === 'replay_floor' && typeof payload.earliestAvailableSeq === 'number') {
         return { kind: 'replay_floor', earliestAvailableSeq: payload.earliestAvailableSeq }
       }
@@ -1094,7 +1094,7 @@ export async function fetchTestAnalytics(
   return request(`/api/analytics/tests/${encodeURIComponent(name)}${query}`)
 }
 
-// 2026-10-18 (444-31, D-64): each list row's rate and last run, as its viewer reads them.
+// each list row's rate and last run, as its viewer reads them.
 export interface PassRateCount {
   passRate: number | null
   passed: number
@@ -1168,7 +1168,7 @@ export interface TokenEventStats {
   byModel: { date: string; model: string; promptTokens: number; completionTokens: number }[]
   bySource: Record<string, { promptTokens: number; completionTokens: number }>
   totals: { promptTokens: number; completionTokens: number }
-  /** Window run steps that recorded no token counts (433-30); absent from an older server. */
+  /** Window run steps that recorded no token counts; absent from an older server. */
   testRunUnmeasuredSteps?: number
 }
 
@@ -1185,14 +1185,14 @@ export type InsightsKnowledgeChanges =
       runsUnreadable: number
       runsCurationFailed: number
       runsCurationUnfinished: number
-      /** Runs still queued or running; runsInWindow counts only settled runs (433-42). */
+      /** Runs still queued or running; runsInWindow counts only settled runs. */
       runsInFlight: number
       truncated?: { read: number; total: number }
       byKind: Partial<Record<string, number>>
     }
   | { status: 'unavailable'; reason: string }
 
-/** What curation changed across the window's runs, read per run from each run's knowledge (433-30). */
+/** What curation changed across the window's runs, read per run from each run's knowledge. */
 export async function fetchInsightsKnowledgeChanges(
   opts?: { from?: string; to?: string },
 ): Promise<InsightsKnowledgeChanges> {
@@ -1247,7 +1247,7 @@ export interface ConfigFileLine {
   text: string
 }
 
-/** GET /api/config (429 D-22): the masked config, the file's revision and its lines. */
+/** GET /api/config: the masked config, the file's revision and its lines. */
 export interface ConfigReadAnswer extends ConfigResponse {
   provider: string | null
   revision: string
@@ -1289,7 +1289,7 @@ export async function fetchConfig(): Promise<ConfigReadAnswer> {
   return request('/api/config')
 }
 
-/** One field-merge write of leaf changes (429 D-19); undoable answers a single-use Undo token. */
+/** One field-merge write of leaf changes; undoable answers a single-use Undo token. */
 export async function applyConfigChanges(
   changes: ConfigChange[],
   options: { undoable?: boolean } = {},
@@ -1382,13 +1382,13 @@ export async function exchangePluginAuthCode(
   return postJson(`/api/auth/plugin/${encodeURIComponent(provider)}/exchange`, { sessionId, code })
 }
 
-/** A draft's own sign-in or key follows its name while the name is still editable (429-09). */
+/** A draft's own sign-in or key follows its name while the name is still editable. */
 export async function moveCredential(from: string, to: string, provider: string): Promise<{ moved: boolean }> {
   const body: LlmCredentialMoveRequest = { from, to, provider }
   return postJson('/api/auth/credential/move', body)
 }
 
-/** The server holds the removed credential for Undo; the answer carries only the token (429-11 D-24). */
+/** The server holds the removed credential for Undo; the answer carries only the token. */
 export async function deleteAuthCredential(
   configName: string,
 ): Promise<{ deleted: boolean; undo?: { token: string; expiresAt: number } }> {
@@ -1623,7 +1623,7 @@ export async function createLiveEditorSession(
   return result
 }
 
-// keepalive lets the DELETE outlive the page on pagehide (428 D-09), which postJson cannot ask for.
+// keepalive lets the DELETE outlive the page on pagehide, which postJson cannot ask for.
 export async function deleteLiveEditorSession(
   sessionId: string,
   options: { keepalive?: boolean } = {},
@@ -1660,7 +1660,7 @@ export async function fetchCapturedVarNames(testId: string): Promise<{ names: st
   return request(`/api/variables/captured/${encodeURIComponent(testId)}`)
 }
 
-// 2026-10-01 (432-14, D-14): the run and mark confirm door that stood here — the answer vocabulary,
+// the run and mark confirm door that stood here — the answer vocabulary,
 // the channel frames, `openRunConfirmChannel` and `answerRunConfirm` — is deleted with the server's
 // run-confirm pair. Runs and marks are one request each (`triggerRun`, `markRun`).
 
@@ -1671,7 +1671,7 @@ export async function fetchCapturedVarNames(testId: string): Promise<{ names: st
 // ---------------------------------------------------------------------------
 
 /**
- * The poll floor while any chip is still moving (D-18).
+ * The poll floor while any chip is still moving.
  *
  * A FLOOR AND NOT AN OPTIMISATION. Three of the four postures a chain can be in emit no chip events
  * into this process at all — a daemon-drained run (`handedOff`), a run drained later by somebody
@@ -1696,7 +1696,7 @@ export const POST_PROCESSING_CHIP_EVENTS: readonly string[] = RUN_EVENT_TYPES.fi
 /**
  * The frames the watcher listens for: the six chip ticks plus the door's opening whole-state frame.
  *
- * `snapshot` is deliberately NOT a bus event type (404-05, T-404-03), and it is listened for here
+ * `snapshot` is deliberately NOT a bus event type, and it is listened for here
  * on exactly the same terms as the others — as a TRIGGER. Its body is the read route's body and
  * would be perfectly paintable, which is precisely why this client does not paint it: two paths to
  * a chip is two spellings of the projection, free to disagree the first time one of them changes.
@@ -1713,7 +1713,7 @@ export interface PostProcessingStageFailure {
  * Per-stage failure text as the route folds it.
  *
  * PRESENT-AND-POSSIBLY-EMPTY means the record was read and holds no failure line; the whole key
- * ABSENT means the events read refused (404-05 D-1). Two different facts, two different shapes —
+ * ABSENT means the events read refused. Two different facts, two different shapes —
  * the projection reads the second as "nobody recorded a reason", which is true either way, but the
  * distinction survives to anything that later wants it.
  */
@@ -1841,7 +1841,7 @@ export interface WatchPostProcessingOptions {
  * Watch one run's post-processing chain: read it now, poll it while it moves, and let the push
  * channel say "read again" whenever this process is the one draining it.
  *
- * THE PUSH IS A TRIGGER, NEVER A PAINT (D-17). Every frame — chip tick or snapshot — calls
+ * THE PUSH IS A TRIGGER, NEVER A PAINT. Every frame — chip tick or snapshot — calls
  * `fetchPostProcessing` and hands `onRead` THAT result. This is 388 D-14 applied structurally: a
  * chip can never show a state the store did not say, so "the chips render correctly from durable
  * state alone" is true by construction rather than by a reconciliation pass nobody runs.
@@ -1851,7 +1851,7 @@ export interface WatchPostProcessingOptions {
  * there is no sequence of reads that can produce a second `EventSource`.
  *
  * THE OPEN DECISION IS RE-EVALUATED ON EVERY READ, and that is not belt-and-braces. The dedicated
- * stream only ever carries THIS process's own drain (404-05 D-16) — the door itself answers 204 for
+ * stream only ever carries THIS process's own drain — the door itself answers 204 for
  * a run that reads `handedOff` or `detached`. So it is worth opening exactly while this process may
  * still turn out to be the drainer: `disposition: 'drained'`, or no disposition yet. And "no
  * disposition yet" is precisely where the D-13 flow ARRIVES: the live page moves the viewer on the
@@ -1920,7 +1920,7 @@ export function watchPostProcessing(runId: string, opts: WatchPostProcessingOpti
     if (disposed) return
 
     if (result.kind === 'unavailable') {
-      // Retry at the poll cadence and NEVER tighter (T-404-04), and open nothing: a door that
+      // Retry at the poll cadence and NEVER tighter, and open nothing: a door that
       // cannot answer a read is not a door worth holding a socket against.
       startPolling()
     } else if (isPostProcessingTerminal(result.status)) {

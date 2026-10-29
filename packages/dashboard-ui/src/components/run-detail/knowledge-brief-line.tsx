@@ -1,4 +1,4 @@
-// ONE SERVED BRIEF LINE, WITH THE REASON IT WAS SERVED (407-06 · LERN-01, D-04 / D-08, T-407-14).
+// ONE SERVED BRIEF LINE, WITH THE REASON IT WAS SERVED.
 //
 // IT IS PRESENTATIONAL AND KNOWS NO RUN. It takes a line view and paints it. It computes no rank,
 // no score and no outcome word — every one of those is decided in `lib/knowledge-view.ts` from the
@@ -7,19 +7,19 @@
 // rather than about the moment the brief was assembled. That is the exact dishonesty KREV-02
 // exists to prevent, and the reason `why` arrives as data rather than as a query.
 //
-// EVERY ABSENCE IS A VISIBLE STATE (D-04). `data-trace-state` is one of four words and never
+// EVERY ABSENCE IS A VISIBLE STATE. `data-trace-state` is one of four words and never
 // missing: `answered` prints what the trace recorded; `artifact-missing` renders the SHIPPED
 // evidence-incomplete component rather than a fifth wording for "the bytes are gone";
 // `pre-trace-run` and `step-not-found` each print their own sentence. Nothing silently drops, and
 // nothing renders an expander that would open onto nothing.
 //
-// THE CANARY MARKER IS UNCONDITIONAL (D-08). A line served as a canary says so whatever curation
+// THE CANARY MARKER IS UNCONDITIONAL. A line served as a canary says so whatever curation
 // did or did not decide, and the attribution word beside it is one of seven — never blank. A blank
 // slot beside a canary marker reads as "this did not matter", which is a claim nobody made. The
 // seventh word, `unknown`, is the one a partial store read earns: `not attributed` asserts the
-// store was consulted and said no, and a scan that could not finish never made that claim (WR-02).
+// store was consulted and said no, and a scan that could not finish never made that claim.
 //
-// 427 D-19: this line lives inside Retrieval details, which is already a disclosure, so the trace
+// this line lives inside Retrieval details, which is already a disclosure, so the trace
 // reads inline, the marker and the store's word are plain 12px text, and the id carries a copy
 // button. The id stays the line's first `<p>`, which the shipped-binary harvest reads.
 //
@@ -55,7 +55,7 @@ const MONO_CLASS = "font-mono text-xs text-muted-foreground tabular-nums"
 const LEDGER_WORD_CLASS = "text-xs text-muted-foreground"
 
 /**
- * The eight outcome words, as plain text (427 D-19; 444 D-61).
+ * The eight outcome words, as plain text.
  *
  * NO `default` ARM. The switch is exhaustive over `CanaryOutcomeWord` and its return type is not
  * optional, so a ninth word is a COMPILE ERROR here rather than a slot that silently renders
@@ -119,7 +119,7 @@ export function KnowledgeBriefLine({ line }: { line: BriefLineView }) {
 
 /**
  * The why answer, or the named absence of one — inline, because Retrieval details is already the
- * disclosure a reader opened to see it (427 D-19).
+ * disclosure a reader opened to see it.
  */
 function LineWhyRow({ line }: { line: BriefLineView }) {
   if (line.why.kind === "answered") {
@@ -127,7 +127,7 @@ function LineWhyRow({ line }: { line: BriefLineView }) {
   }
 
   if (line.why.reason === "artifact-missing") {
-    // The one component and the one word for "the bytes are gone" (406 D-17) — not a fifth
+    // The one component and the one word for "the bytes are gone" — not a fifth
     // wording invented here for a row.
     return <EvidenceIncomplete variant="inline" />
   }

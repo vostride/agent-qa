@@ -40,7 +40,7 @@ test('each outcome class orders all three marks', () => {
   expectTypeOf<Exclude<Mark, Order['passed'][number]>>().toEqualTypeOf<never>()
 })
 
-// 432-14 (D-14): the approval state is deleted; the exact set is the four that remain.
+// the approval state is deleted; the exact set is the four that remain.
 test('composer states are an exact union', () => {
   type Expected = 'composing' | 'submitting' | 'recorded' | 'retained'
   expectTypeOf<FeedbackComposerState>().toEqualTypeOf<Expected>()

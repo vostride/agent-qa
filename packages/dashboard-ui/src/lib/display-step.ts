@@ -13,7 +13,7 @@ import type { EditorStep, LiveSubAction } from '@/hooks/use-live-editor'
 import { normalizeStepStatus } from '@/lib/status'
 
 // The live editor's phase record — relocated from the retired `use-execution-events` hook by 405
-// (D-19/D-20). The census measured that the editor executes in-process via core `executeStep` and
+// The census measured that the editor executes in-process via core `executeStep` and
 // never used the retired spawn, so the editor stays; only this type moved to its consumer's home.
 export interface LivePhase {
   phase: 'observe' | 'plan' | 'execute' | 'verify' | 'heal'
@@ -30,7 +30,7 @@ export interface LivePhase {
 /**
  * What a step looks like to the run-detail tree and panels, and to the live editor.
  *
- * TWO PRODUCERS, TWO HALVES, AND NO OVERLAP (405-11). {@link fromRunDetailStep} builds this from
+ * TWO PRODUCERS, TWO HALVES, AND NO OVERLAP. {@link fromRunDetailStep} builds this from
  * the durable projection — the rebuilt page's ONLY source — and {@link fromEditorStep} builds it
  * from a live editor step. The third producer, which read a v1 row served with the run, is gone
  * with the row; so is every capture-path field it was the only writer of.
@@ -52,7 +52,7 @@ export interface DisplayStep {
   displayStepOrder: number
   displayStepTotal: number | null
 
-  // ---- the durable projection's own fields (405-08) ----
+  // ---- the durable projection's own fields ----
   /** The member handle this step belongs to — present only on a durable step. */
   testIndex?: number
   /** The step's ordinal within its member — present only on a durable step. */
@@ -62,7 +62,7 @@ export interface DisplayStep {
   cacheStatus?: RunDetailStep['cacheStatus']
   verifierVerdict?: VerifierVerdict
   selfHealOccurred?: boolean
-  /** ABSENT when the step reported no usage — never a zero (D-05/D-06). */
+  /** ABSENT when the step reported no usage — never a zero. */
   tokenUsage?: RunStepTokenUsage
   evidence?: StepEvidenceEntries
 
@@ -102,7 +102,7 @@ export interface DisplayStep {
 export const UNNAMED_STEP_LABEL = 'Untitled step'
 
 /**
- * Build a display step out of the DURABLE projection (405-08 · D-16).
+ * Build a display step out of the DURABLE projection.
  *
  * THE STATUS FALLS BACK TO THE VERDICT, NOT TO A GUESS. `status` is optional on the wire because a
  * producer may finalize a step without one; the verifier's own `pass` is the next most direct fact
@@ -112,7 +112,7 @@ export const UNNAMED_STEP_LABEL = 'Untitled step'
  * A SELF-HEALED STEP KEEPS ITS OWN WORD. `selfHealOccurred` is carried through rather than folded
  * into `status`, so the tree can show the heal without the panels losing whether the step passed.
  *
- * `tokenUsage` IS FORWARDED AS-IS, absent and all (D-06). There is no `?? 0` on this path: a step
+ * `tokenUsage` IS FORWARDED AS-IS, absent and all. There is no `?? 0` on this path: a step
  * that reported nothing must not read as a step that spent nothing.
  */
 export function fromRunDetailStep(
@@ -141,7 +141,7 @@ export function fromRunDetailStep(
 }
 
 /**
- * Flatten the member-grouped tree into the page's ONE numbered step list (405-08).
+ * Flatten the member-grouped tree into the page's ONE numbered step list.
  *
  * The tree and the page must agree on both the ids and the "step N of M" counters, so there is one
  * producer of both and both surfaces call it. Two independent flattenings that happened to agree

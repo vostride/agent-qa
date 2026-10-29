@@ -1,6 +1,6 @@
 // THE TWO CHIPS IN THE RUN HEADER (404-07 · LIFE-03, D-20..D-23, T-404-01).
 //
-// PRESENTATIONAL, AND DELIBERATELY SO (400 D-13). This component takes a view and paints it. It
+// PRESENTATIONAL, AND DELIBERATELY SO. This component takes a view and paints it. It
 // opens no socket, holds no timer and does not know a run id — run detail owns the client and hands
 // the projection down. A header that fetched for itself would open one client per mount of a
 // component that remounts on every tab change, and would be a second answer to "what does this page
@@ -10,11 +10,11 @@
 // it paints `view.word` on the root and `view.card`'s lines in the card, so the words a person
 // reads live beside the reasoning for them and cannot drift from the cells that pin them.
 //
-// THE HEADER IS A GLYPH AND A WORD (425 D-06/D-09). Every detail that used to sit beside the chip —
+// THE HEADER IS A GLYPH AND A WORD. Every detail that used to sit beside the chip —
 // the drain posture, the committed counts, the failure reason, the refusal's error — now lives in
 // the card behind it, so the header stays scannable and nothing that left is lost.
 //
-// THE FAILURE TEXT IS A TEXT NODE AND NOTHING ELSE (T-404-01). It is the producer's masked, bounded
+// THE FAILURE TEXT IS A TEXT NODE AND NOTHING ELSE. It is the producer's masked, bounded
 // string, forwarded by the route and forwarded again by the projection; React escapes it on the way
 // into the DOM and there is no `dangerouslySetInnerHTML` anywhere in this file. A cell feeds it an
 // `<img onerror=...>` and asserts no element was created.
@@ -122,13 +122,13 @@ function stageCardLines(card: StageCardView | undefined, door?: StageIndicatorDo
 }
 
 /**
- * The card, hung off the root as a Radix tooltip that opens on hover AND on keyboard focus (D-10).
+ * The card, hung off the root as a Radix tooltip that opens on hover AND on keyboard focus.
  *
  * NO PROVIDER HERE. The page mounts the one tooltip provider (`run-detail.tsx`); a second one
  * inside the header would give this surface its own delay and its own open-state bookkeeping, which
  * is two answers to "is a card open right now" on one page.
  *
- * EVERY LINE IS A TEXT NODE (T-404-01); there is no `dangerouslySetInnerHTML` in this file.
+ * EVERY LINE IS A TEXT NODE; there is no `dangerouslySetInnerHTML` in this file.
  */
 function WithCard({
   stage,
@@ -167,10 +167,10 @@ function WithCard({
 }
 
 /**
- * One chip — a `<span>`, or a `<button>` when the page gave it somewhere to go (407-09 · D-01).
+ * One chip — a `<span>`, or a `<button>` when the page gave it somewhere to go.
  *
  * THE CHIP STAYS PRESENTATIONAL. It is handed a callback and calls it; it knows no tab, no route
- * and no run id (400 D-13). A chip that navigated for itself would be a second answer to "what does
+ * and no run id. A chip that navigated for itself would be a second answer to "what does
  * this header do", and would grow an affordance in every surface that renders the navbar without a
  * page behind it — which is exactly why the callback is optional and its absence is the shipped
  * `<span>` unchanged.
@@ -255,10 +255,10 @@ export function PostProcessingChips({
   onOpenVerdict,
 }: {
   view: PostProcessingView | undefined
-  /** What pressing the `curation` chip should do. Absent → the chip is not a control (D-01). */
+  /** What pressing the `curation` chip should do. Absent → the chip is not a control. */
   onCurationClick?: (() => void) | undefined
   /**
-   * What pressing the `analysis` chip should do (425-09 · D-11). Absent → not a control.
+   * What pressing the `analysis` chip should do. Absent → not a control.
    *
    * ASYMMETRIC WITH CURATION ON PURPOSE. The Knowledge tab always exists, so the page hands
    * `onCurationClick` down unconditionally; a verdict exists only on a run that produced one, and
@@ -304,7 +304,7 @@ export function PostProcessingChips({
     )
   }
 
-  // THE REASON RIDES THE CONTAINER AS ITS OWN ATTRIBUTE (425 D-08). The absence-spread rather than
+  // THE REASON RIDES THE CONTAINER AS ITS OWN ATTRIBUTE. The absence-spread rather than
   // a `?? ''` default: an attribute present and empty is a claim that a reason was recorded and was
   // blank, which is exactly the absent/zero conflation this phase is about. `data-chips-state`
   // stays `chips` — skipped is a fact ABOUT the chips, not a fourth area state.

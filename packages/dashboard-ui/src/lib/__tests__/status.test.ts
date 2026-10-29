@@ -70,7 +70,7 @@ describe('dashboard status normalization', () => {
     expect(routes.runDetailOrLive('run-running', 'running')).toBe('/runs/run-running/live')
   })
 
-  // THE FIFTH VERDICT WORD HAD NO LABEL (425-04 · D-02, PXH-RUN-01).
+  // THE FIFTH VERDICT WORD HAD NO LABEL.
   //
   // `timeout` is a member of the run-status vocabulary (`runStatusValues`, schema
   // functions/runs.ts), so a timed-out run reached the header and fell through to the default arm,

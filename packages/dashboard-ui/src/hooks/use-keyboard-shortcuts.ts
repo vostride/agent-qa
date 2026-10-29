@@ -32,7 +32,7 @@ export function useKeyboardShortcuts(shortcuts: ShortcutMap): void {
       }
 
       // A focused control owns its activation key. Runs and Tests bind a bare Enter, which used to
-      // swallow Enter on every button and link on those pages (G-433-7).
+      // swallow Enter on every button and link on those pages.
       if (
         (e.key === "Enter" || e.key === " ") &&
         !e.ctrlKey && !e.metaKey && !e.altKey &&

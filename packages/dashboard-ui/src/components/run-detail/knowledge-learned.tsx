@@ -5,7 +5,7 @@
 // one shape"), `lib/knowledge-view.ts` owns every sentence and every state word, and this file
 // owns only where they land in the DOM.
 //
-// FIVE STATES, AND FOUR OF THEM ARE ABSENCES — none of which renders blank (D-12). A half that
+// FIVE STATES, AND FOUR OF THEM ARE ABSENCES — none of which renders blank. A half that
 // showed an empty list under a `failed` chip would tell a reader "curation ran and changed
 // nothing", which is a different run from the one in front of them. So every arm below carries
 // either rows or a sentence, and the projection is total so this component needs no fallback.
@@ -31,7 +31,7 @@
 //
 // ROWS WIN OVER SENTENCES, and that ordering lives in `learnedView`, not here. This file paints
 // whatever the view carries: the projection never hands it both a populated list and a sentence,
-// because a sentence beside rows would be a second, quieter account of the same records (CR-04).
+// because a sentence beside rows would be a second, quieter account of the same records.
 // THAT RULE IS WHY THE EIGHTH RENDERING NEEDED A NEW SLOT rather than a reworded sentence — a
 // failed chain's fate travels in `chainNote`, beneath the rows, precisely so that the sentence
 // contract above stays intact instead of being bent to carry a second account of the same list.
@@ -41,12 +41,12 @@
 // A shimmer would promise an arrival nobody has scheduled.
 //
 // `data-learned-state`, `data-learned-count-line` and `data-record-change` (the bucket word, 427
-// D-15) ARE THE CELL CONTRACT, never the visible text. 432-09 (D-25): no pending-proposals line or
+// D-15) ARE THE CELL CONTRACT, never the visible text. 432-09: no pending-proposals line or
 // review command remains; the half shows what changed. The jsdom cells here
 // and the Playwright cells on the built bundle both address attributes, so a copy change moves
 // `lib/knowledge-view.ts` and nothing else.
 //
-// NO ID, REFERENCE OR RECEIPT IS PAINTED ON A ROW (427 D-19). A row says what happened to a record
+// NO ID, REFERENCE OR RECEIPT IS PAINTED ON A ROW. A row says what happened to a record
 // in 425's five words and leads with the record's content; every id, raw event and link lives in
 // Retrieval details (`retrieval-details.tsx`).
 //
@@ -118,7 +118,7 @@ export function KnowledgeLearned({ view }: { view: LearnedView }) {
       </div>
 
       {/*
-        WHAT THE COUNT LINE COULD NOT RECORD, LABELLED (425-06 · D-18). A pre-423 pair is a
+        WHAT THE COUNT LINE COULD NOT RECORD, LABELLED. A pre-423 pair is a
         coarser measurement, not a breakdown with three buckets missing, and a withheld snapshot
         is a refusal rather than a zero — so the absence gets its own paragraph beneath the
         heading row. It is a SECOND ELEMENT and not a second clause on the count line, so a reader
@@ -131,7 +131,7 @@ export function KnowledgeLearned({ view }: { view: LearnedView }) {
       )}
 
       {/*
-        THE GAP, AND THEN ITS CAUSE (425-06 · D-19). Two paragraphs rather than one sentence: the
+        THE GAP, AND THEN ITS CAUSE. Two paragraphs rather than one sentence: the
         first is arithmetic a reader can check against the rows below it, the second is an account
         of that arithmetic the read had to justify. The block sits directly under the counts it
         reconciles — a mismatch explained at the bottom of a long list is a mismatch a reader
@@ -169,8 +169,8 @@ export function KnowledgeLearned({ view }: { view: LearnedView }) {
       )}
 
       {/*
-        LATER CHANGES STAND APART, OPEN (427 D-17). They happened after this run's curation, so
-        they never enter the heading's breakdown (423 D-15) and read under their own heading.
+        LATER CHANGES STAND APART, OPEN. They happened after this run's curation, so
+        they never enter the heading's breakdown and read under their own heading.
       */}
       {laterRows.length === 0 ? null : (
         <div data-since-this-run={String(laterRows.length)} className="space-y-1 pt-2">
@@ -207,7 +207,7 @@ export function KnowledgeLearned({ view }: { view: LearnedView }) {
       {/*
         BENEATH the answer, never instead of it. `readNote` is present exactly where the view was
         degraded AND is not already printing the unreadable-store sentence, so this paragraph and
-        `[data-learned-sentence]` never both name the store (407-18).
+        `[data-learned-sentence]` never both name the store.
       */}
       {view.readNote === undefined ? null : (
         <p data-learned-read-note className="text-xs text-muted-foreground">
@@ -219,7 +219,7 @@ export function KnowledgeLearned({ view }: { view: LearnedView }) {
 }
 
 /**
- * One affected record (427 D-15): its bucket word, then what it says. A supersession leads with
+ * One affected record: its bucket word, then what it says. A supersession leads with
  * the new version and reads the old one on a Was: line; a Proposed row says it was recorded and not applied;
  * a later change says what happened later. Where it applies and the full record are the same
  * components a used row shows.

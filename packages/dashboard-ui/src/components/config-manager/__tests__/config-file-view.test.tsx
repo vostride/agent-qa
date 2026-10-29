@@ -3,7 +3,7 @@
 // THE READ-ONLY CONFIG FILE (429-28 Task 2 · D-05 · UI-SPEC S7 "Config file", E10).
 //
 // The whole file as the server sent it through the declared mask, one numbered line per item, with
-// its path and a copy button. Nothing in it is editable, and there is no reveal (441-49, D-29).
+// its path and a copy button. Nothing in it is editable, and there is no reveal.
 // An outside edit swaps the lines in place; a failed quiet re-read keeps the last good text.
 
 import { act } from 'react'

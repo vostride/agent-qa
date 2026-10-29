@@ -12,11 +12,11 @@ import type { MemberRow, LiveStepRow } from '@/lib/run-stream-reducer'
  * refuses to show a guess as a fact.
  *
  * THE PROPS ARE THE WHOLE STORY. {@link LiveStepRow} carries no field a half-finished thought could
- * occupy (403-04), and this component accepts nothing else — no envelope, no payload, no `unknown`
+ * occupy, and this component accepts nothing else — no envelope, no payload, no `unknown`
  * escape hatch. A future edit that wanted to render reasoning here would have to widen the props
  * first, which is a visible change to a published contract rather than one more line in the JSX.
  *
- * WHAT A ROW SAYS (428 D-19/D-20). Every row renders through {@link LiveStepRowView}: a status
+ * WHAT A ROW SAYS. Every row renders through {@link LiveStepRowView}: a status
  * glyph and the label, with no clock, no bar and no count. The running glyph is still (owner review
  * 2026-09-26, G-428-5). Durations live in run detail.
  *
@@ -24,7 +24,7 @@ import type { MemberRow, LiveStepRow } from '@/lib/run-stream-reducer'
  * text for is not drawn, and the empty state counts drawn rows, so an old producer's text-less
  * pending rows still leave the pane saying `waiting for the first step`.
  *
- * ONE TITLE, SAID ONCE (428 D-19). A single-member run renders no member header, because the page
+ * ONE TITLE, SAID ONCE. A single-member run renders no member header, because the page
  * title already names it; a single member's `did not run` note is the pane's sentence instead. A
  * multi-member suite keeps a compact header per member: the name, then the outcome or the note.
  */

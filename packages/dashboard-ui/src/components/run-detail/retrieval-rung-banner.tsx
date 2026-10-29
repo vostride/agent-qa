@@ -7,7 +7,7 @@
 // two different accounts of one machine, and the surest way to guarantee that is for there to be
 // only one place the sentence is built.
 //
-// IT IS PRESENTATIONAL AND IT NEVER PROBES (D-13). Nothing here asks the host anything. The value
+// IT IS PRESENTATIONAL AND IT NEVER PROBES. Nothing here asks the host anything. The value
 // arrives as a prop from evidence, so a run served on the static floor stays labelled that way
 // forever — fixing the machine tomorrow must not rewrite what yesterday's run says about itself.
 // That is why the banner points at `agent-qa doctor` instead of trying to be it: the banner is
@@ -21,11 +21,11 @@
 //
 // TWO ABSENCES RENDER NOTHING. `memidex` is the top rung, so there is nothing to warn about; an
 // undefined rung is "nobody has said yet" — the live header before its first evidence-carrying
-// frame, a pre-407 run, or a project with no reader bound (D-16). Rendering an empty strip for the
+// frame, a pre-407 run, or a project with no reader bound. Rendering an empty strip for the
 // first would put amber across every healthy run; rendering "unknown" for the second would claim a
 // fact the page does not have. The absence of the element IS the statement.
 //
-// ONLY WARNINGS REACH THE HEADER (427 D-20). A fresh index, an unrecorded cause and a configured
+// ONLY WARNINGS REACH THE HEADER. A fresh index, an unrecorded cause and a configured
 // level are information: the Knowledge tab states them and this strip stays silent. A locked or
 // corrupt index and unavailable semantic search paint it, with the class glyph and the doctor pointer.
 
@@ -58,7 +58,7 @@ export function RetrievalRungBanner({ rung, reason, variant = "navbar" }: Retrie
   }
   const sentence = rungBannerText(recorded)
   const retrievalClass = recorded === undefined ? undefined : retrievalClassFor(recorded)
-  // rungBannerText answers only for the two warning classes (427 D-20), so a fresh index, an
+  // rungBannerText answers only for the two warning classes, so a fresh index, an
   // unrecorded cause and a configured level paint nothing here and are stated in the tab instead.
   if (rung === undefined || sentence === undefined || retrievalClass === undefined) return null
 

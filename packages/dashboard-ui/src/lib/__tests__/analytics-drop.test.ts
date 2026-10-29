@@ -1,4 +1,4 @@
-// WHAT THIS CELL IS GUARDING (398-11, D-18).
+// WHAT THIS CELL IS GUARDING.
 //
 // `src/lib/analytics.ts` used to beacon three v33 product events at the dashboard server's
 // `POST /api/analytics/events` bridge. D-18 drops those events and D-20 deletes the core module the

@@ -18,7 +18,7 @@ export interface FeedbackTechnicalDetailsProps {
 }
 
 /**
- * 426 D-13: the only component that renders a raw mark word or an id as text. Collapsed, at the foot
+ * the only component that renders a raw mark word or an id as text. Collapsed, at the foot
  * of the composer; a row whose fact is absent is not rendered.
  */
 export function FeedbackTechnicalDetails({ kind, address, testId, recordIds = [], basis }: FeedbackTechnicalDetailsProps) {

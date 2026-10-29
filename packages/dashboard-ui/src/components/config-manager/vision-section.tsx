@@ -7,7 +7,7 @@ function visionField(leaf: VisionLeaf): ConfigFieldTarget {
   return { segments: ["services", "vision", leaf], tab: "models", pattern: `services.vision.${leaf}` }
 }
 
-/** The one screenshot-size budget every vision model shares (Phase 333). */
+/** The one screenshot-size budget every vision model shares. */
 export function VisionSection() {
   return (
     <>

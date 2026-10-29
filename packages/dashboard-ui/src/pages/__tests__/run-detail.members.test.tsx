@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// RUN DETAIL, READ AS ONE DURABLE PROJECTION (405-08 · DETL-01, D-16 / D-17 / D-18).
+// RUN DETAIL, READ AS ONE DURABLE PROJECTION.
 //
 // WHAT THIS FILE REPLACED. `run-detail.suite-mode.test.tsx` pinned the parent/child walk: a suite
 // parent whose `tests` array was walked with one `fetchRun` per child, a cumulative "step N of M"
@@ -45,7 +45,7 @@ const {
 vi.mock("@/lib/api", () => ({
   fetchRun: fetchRunMock,
   fetchRunDetail: fetchRunDetailMock,
-  // 2026-08-29 (406-01, D-04): the page's THIRD read — the failure view's. This whole-module
+  // the page's THIRD read — the failure view's. This whole-module
   // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
   // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
   fetchRunAnalysis: () => Promise.resolve({ runId: '', verdicts: [], sentences: [], clusters: [] }),

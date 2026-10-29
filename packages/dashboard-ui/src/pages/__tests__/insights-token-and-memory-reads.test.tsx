@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// C433-INSIGHTS-TRUTHFUL (433-30, G-433-6, F-433-26). Insights never shows missing data as zero:
+// C433-INSIGHTS-TRUTHFUL. Insights never shows missing data as zero:
 // Token Usage counts what the runs recorded and names steps that recorded nothing, and Memory
 // reflects the curation the runs' own knowledge reads report, or says it could not read them.
 

@@ -1,11 +1,11 @@
-// THE KNOWLEDGE PROJECTION, HELD TOTAL AND PURE (407-02 · LERN-01, D-01/D-03/D-04/D-06/D-16).
+// THE KNOWLEDGE PROJECTION, HELD TOTAL AND PURE.
 //
 // `projectKnowledgeView` is the whole distance between what `runs.knowledge` said and what a
 // person reads in the Knowledge tab. It takes a `KnowledgeRead` — the client's own bytes — and
 // returns a view; it has no I/O, no clock and no React in its signature, so a state the panel
 // paints can never be one the op did not say.
 //
-// THE CELLS FIX THE PUBLISHED SENTENCES BY THEIR EXPORTED CONSTANTS (403-05 D-5), never by
+// THE CELLS FIX THE PUBLISHED SENTENCES BY THEIR EXPORTED CONSTANTS, never by
 // literal prose. Copy moves in one place and the tests move with it; prose inlined in a component
 // is prose that drifts from prose inlined in a test, and both of them stay green while the two
 // disagree.
@@ -402,7 +402,7 @@ describe('the reserved copy the expansion plans consume is published NOW', () =>
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// 407-06 — the Used half in full: the per-line why-trace, the cut ledger, the
+// the Used half in full: the per-line why-trace, the cut ledger, the
 // canary outcome word, the replay/hint sentence and the channel page.
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -899,7 +899,7 @@ describe('the canary and attribution copy is published as constants, like every 
 })
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The Learned half (407-09 · LERN-02, D-09 / D-10 / D-11 / D-12)
+// The Learned half
 // ─────────────────────────────────────────────────────────────────────────────
 
 /** One record change, with only the fields the Learned half reads varied. */
@@ -912,7 +912,7 @@ function change(
 }
 
 /**
- * A recorded snapshot carrying only the member the heading reads (423 D-15).
+ * A recorded snapshot carrying only the member the heading reads.
  *
  * `rows: []` beside a non-zero breakdown is a shape the op never serves. The count-line cells use it
  * because the heading reads `breakdown` alone; since 427 D-15 the ROWS come from `rows`, so a cell
@@ -1026,7 +1026,7 @@ describe('the Learned half mirrors the curation word and NEVER renders blank', (
 
 describe('a settled curation says what it changed, in the chip\'s own words', () => {
   it('collapses a both-zero legacy pair to the pair itself, with the changed-nothing sentence', () => {
-    // RE-SPELLED 425-06 (D-16/D-18). The pair is now rendered AS a pair rather than folded into a
+    // RE-SPELLED 425-06. The pair is now rendered AS a pair rather than folded into a
     // phrase, because folding it was the step that let two coarse counts read as a breakdown.
     const view = learnedFrom({ curation: { status: 'complete', counts: { curated: 0, deprecated: 0 } } })
     expect(view.state).toBe('complete')
@@ -1064,7 +1064,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
    *
    * ONE FUNCTION, TWO SURFACES — the 407 LERN-02 rule, now spanning the header and the tab. The
    * curation card and this heading both call `curationBreakdownLine` on the SAME persisted
-   * snapshot (423 D-15), so the two cannot disagree about a run a person is reading twice.
+   * snapshot, so the two cannot disagree about a run a person is reading twice.
    */
   it('LEARNED-BREAKDOWN-LINE: spells the five buckets in the curation card\'s own words', () => {
     const view = learnedFrom({
@@ -1107,7 +1107,7 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
   })
 
   /**
-   * LEARNED-LEGACY-NOTE (425-06 · D-18).
+   * LEARNED-LEGACY-NOTE.
    *
    * FIVE BUCKETS ARE NEVER SYNTHESIZED FROM TWO. A pre-423 pair is a coarser measurement, not a
    * breakdown with three buckets missing, so the heading prints the pair and says on its own line
@@ -1181,13 +1181,13 @@ describe('a settled curation says what it changed, in the chip\'s own words', ()
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * A MISMATCH IS EXPLAINED BY ONE EXPLICIT LINE, AND ONLY WHEN THERE IS ONE (D-19).
+ * A MISMATCH IS EXPLAINED BY ONE EXPLICIT LINE, AND ONLY WHEN THERE IS ONE.
  *
  * `counted` is the sum of the snapshot's five buckets; `shown` is the rows this half placed in the
  * CURATION section, because 423 D-15 gives since-then rows their own counted line and folding them
  * in here would hide a real gap behind a later promotion.
  *
- * RE-SPELLED 427-08 (D-15). The curation rows ARE the snapshot's rows now, one per affected record,
+ * RE-SPELLED 427-08. The curation rows ARE the snapshot's rows now, one per affected record,
  * so on a schema-valid snapshot `shown` equals `counted` by construction and the reconciliation
  * cannot appear. The gate itself is kept as the structural guard; what a partial read or a failed
  * chain costs is said by the notes beside the rows.
@@ -1329,7 +1329,7 @@ describe('the record list is the five LEARNED kinds and nothing else', () => {
     }).rows
   }
 
-  // RE-SPELLED 427-08 (D-15): the rows carry 425's bucket words, so a promotion reads Confirmed.
+  // RE-SPELLED 427-08: the rows carry 425's bucket words, so a promotion reads Confirmed.
   it("maps the five Learned kinds onto the curation bucket words in the projection's own order", () => {
     expect(rowsOfEveryKind().map(row => row.bucket))
       .toEqual(['added', 'confirmed', 'superseded', 'deprecated', 'confirmed'])
@@ -1412,7 +1412,7 @@ describe('a curated NEW fact is what the run learned', () => {
   })
 
   /**
-   * ROWS BEAT SENTENCES, and the disagreement is SHOWN rather than hidden (D-12).
+   * ROWS BEAT SENTENCES, and the disagreement is SHOWN rather than hidden.
    *
    * A settled row saying both counts are zero, beside a change record the store really attributed
    * to this run, is two producers disagreeing. The old arm order consulted the counts first and so
@@ -1443,7 +1443,7 @@ describe('a curated NEW fact is what the run learned', () => {
   })
 
   it('lists NOTHING while the chain is UNSETTLED, however many rows the projection carries', () => {
-    // RE-SCOPED 407-26 (G-407-12). This cell used to iterate `failed` too, under a title that
+    // RE-SCOPED 407-26. This cell used to iterate `failed` too, under a title that
     // contradicted its own subject: `failed` is a SETTLED chain, and the D-12 justification the
     // title cites — "a chain that has not settled has not finished deciding what it changed" —
     // does not describe it. The settled-and-failed case moved to the cell below.
@@ -1724,7 +1724,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
   })
 
   /**
-   * WR-05 — THE FLAG IS A FACT ABOUT THE READ, NOT ABOUT THE CHAIN.
+   * THE FLAG IS A FACT ABOUT THE READ, NOT ABOUT THE CHAIN.
    *
    * The unsettled arms returned before the flag was ever consulted, so a run waiting on a chain
    * that will settle, over a store nobody can open, rendered `Deltas land when curation settles.`
@@ -1759,7 +1759,7 @@ describe('a partial read decorates the answer, it never replaces it', () => {
   })
 
   /**
-   * TWO PRODUCERS, TWO NOTES, NEITHER SPEAKING FOR THE OTHER (407-26 · G-407-12).
+   * TWO PRODUCERS, TWO NOTES, NEITHER SPEAKING FOR THE OTHER.
    *
    * The chain's fate and the store's readability are folded INDEPENDENTLY by 407-14's op, so a
    * projection can carry both at once — the shipped conformance file's fifth world
@@ -1824,8 +1824,8 @@ describe('a partial read decorates the answer, it never replaces it', () => {
   })
 })
 
-// RE-SPELLED 432-09 (D-25) from 'the proposals line is a COUNT and a door, never any proposal content
-// (D-11)': the tab shows what changed, so no ready view carries a proposals member, a count or a
+// RE-SPELLED 432-09 from 'the proposals line is a COUNT and a door, never any proposal content
+// ': the tab shows what changed, so no ready view carries a proposals member, a count or a
 // review command, whatever the curation word — and a legacy count on the wire is not projected.
 describe('no ready view carries a pending-proposals line or a review command', () => {
   it.each([
@@ -1885,7 +1885,7 @@ describe('the Memory changes copy is published as constants, like every sentence
 })
 
 // ---------------------------------------------------------------------------
-// The rung banner's copy of record (407-10 · TRST-01, D-13/D-14/D-15/D-16)
+// The rung banner's copy of record
 // ---------------------------------------------------------------------------
 
 describe('the strip sentence exists only for warning classes, composed from closed tables', () => {
@@ -1910,7 +1910,7 @@ describe('the strip sentence exists only for warning classes, composed from clos
 
   it('says NOTHING for the top rung and for a run that recorded none', () => {
     // `memidex` is not a degradation, and "not yet known" is the absence of a sentence — both
-    // render no banner at all rather than a reassuring one (D-14/D-16).
+    // render no banner at all rather than a reassuring one.
     expect(rungBannerText({ rung: 'memidex' })).toBeUndefined()
     expect(rungBannerText(undefined)).toBeUndefined()
   })

@@ -31,7 +31,7 @@ const EXPECTED_PROVIDER_MODES = [
 ] as const
 
 const completionSource = readFileSync(new URL('../yaml-completions.ts', import.meta.url), 'utf-8')
-// The model workspace (429-30 · D-10): the add row and the saved row replaced the model modal.
+// The model workspace: the add row and the saved row replaced the model modal.
 const MODEL_WORKSPACE_FILES = ['add-model-row.tsx', 'model-row.tsx'] as const
 const modelWorkspaceSources = MODEL_WORKSPACE_FILES.map((file) =>
   readFileSync(new URL(`../../components/config-manager/${file}`, import.meta.url), 'utf-8'),

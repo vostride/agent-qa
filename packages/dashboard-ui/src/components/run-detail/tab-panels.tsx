@@ -32,11 +32,11 @@ interface TabPanelsProps extends OverviewPlayerProps {
   platform?: string
   pipelineRef?: React.RefObject<ReasoningPipelineHandle | null>
   /**
-   * The Knowledge tab's whole input (407-02 · D-01). `undefined` is the read that has not landed
+   * The Knowledge tab's whole input. `undefined` is the read that has not landed
    * — the page owns the one `runs.knowledge` client, and this component paints what it is handed.
    */
   knowledge?: KnowledgeView | undefined
-  /** 427 D-03: the page's step-reference callback and resolver; the tab only calls back. */
+  /** the page's step-reference callback and resolver; the tab only calls back. */
   knowledgeStepRefs?: StepRefContext
   onSelectStep?: (stepId: string) => void
 }

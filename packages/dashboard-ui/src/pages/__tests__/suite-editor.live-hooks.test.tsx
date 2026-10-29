@@ -562,7 +562,7 @@ describe('SuiteEditorPage live hook safeguards (Wave 0)', () => {
     await click(getButtonByText(rootElement, 'Connect Live Session'))
     await click(getButtonByText(rootElement, 'Run Setup Hook'))
 
-    // D-23: the suite-editor must NOT surface the test-editor's rejection copy
+    // the suite-editor must NOT surface the test-editor's rejection copy
     const errorCalls = toastErrorMock.mock.calls.map((c) => String(c[0]))
     expect(
       errorCalls.some((msg) => msg.includes('Setup hooks only run when a live session starts')),

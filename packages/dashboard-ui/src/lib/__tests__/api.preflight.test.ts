@@ -16,7 +16,7 @@
 //    `if (opts.handle)` spelling silently drops.
 //
 // WHAT THE GATE READS. The facts that decide whether THIS process can run something are `service`
-// and `hostComposed`. 2026-10-01 (432-22, D-12): the readiness answer no longer carries
+// and `hostComposed`. 2026-10-01: the readiness answer no longer carries
 // `authConfigured` (no run-service credential can be declared); a cell below keeps an older server's
 // answer, which still carries it, from being read as unready.
 
@@ -102,7 +102,7 @@ describe('triggerRun preflights readiness at the ONE choke point', () => {
     expect(triggerCalls()[0]?.method).toBe('POST')
   })
 
-  // RE-SPELLED 2026-10-01 (432-14, D-14): was 'still threads the confirm scope on the ready path'.
+  // RE-SPELLED 2026-10-01: was 'still threads the confirm scope on the ready path'.
   // The page no longer holds a scope to thread; the claim that survives is the second half — the
   // preflight changes nothing else, so the trigger carries the caller's body as given and no more.
   it('posts the caller body unchanged on the ready path — the preflight changes nothing else', async () => {
@@ -143,7 +143,7 @@ describe('triggerRun preflights readiness at the ONE choke point', () => {
     expect(notReady.readiness).toMatchObject({ hostComposed: false })
   })
 
-  // 432-22: re-spelled from 'PROCEEDS with authConfigured false — the shipped default'. The field is
+  // re-spelled from 'PROCEEDS with authConfigured false — the shipped default'. The field is
   // gone from the answer; the claim that survives is that the gate reads only service and
   // hostComposed, so neither the shipped answer nor an older server's extra member stops a run.
   it('PROCEEDS on the shipped answer and on an older answer that still carries authConfigured', async () => {
@@ -153,7 +153,7 @@ describe('triggerRun preflights readiness at the ONE choke point', () => {
     expect(triggerCalls()).toHaveLength(1)
   })
 
-  // 2026-10-02 (quick 261002-ctr): the contract moved to version 2 for a readiness member and refusal
+  // the contract moved to version 2 for a readiness member and refusal
   // codes the preflight never read, so the gate accepts either version rather than gating on it.
   it('proceeds on a version 2 answer and on a version 1 answer', async () => {
     expect(RUN_SERVICE_CONTRACT_VERSION).toBe(2)

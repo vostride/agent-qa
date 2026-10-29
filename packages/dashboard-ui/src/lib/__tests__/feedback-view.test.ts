@@ -1,4 +1,4 @@
-// THE THREE CHOICES, ORDERED BY THE TARGET'S OWN RECORDED RESULT (426-02 · D-11, D-12, D-14).
+// THE THREE CHOICES, ORDERED BY THE TARGET'S OWN RECORDED RESULT.
 //
 // A failed target offers "This should have passed" first and a passed target offers "This should have
 // failed" first, because the likelier correction is the one that contradicts what was recorded. The
@@ -196,7 +196,7 @@ describe('choice order and meaning', () => {
 
   it('CLOSED-SETS-RUNTIME: the outcome classes and composer states are exactly the published sets', () => {
     expect(FEEDBACK_OUTCOME_CLASSES).toEqual(['passed', 'failed'])
-    // 432-14 (D-14): no state for a mark waiting on an approval.
+    // no state for a mark waiting on an approval.
     expect(FEEDBACK_COMPOSER_STATES).toEqual(['composing', 'submitting', 'recorded', 'retained'])
     expect(Object.keys(FEEDBACK_CHOICE_ORDER).sort()).toEqual([...FEEDBACK_OUTCOME_CLASSES].sort())
     for (const cls of FEEDBACK_OUTCOME_CLASSES) {
@@ -384,7 +384,7 @@ describe('the pinned target names both places', () => {
   })
 })
 
-// WHAT THE MARK WILL DO, IN THE READ'S OWN FACTS (426-06 · D-14, D-16, D-17). Every sentence below is
+// WHAT THE MARK WILL DO, IN THE READ'S OWN FACTS. Every sentence below is
 // computed from one runs.mark.preview field and nothing else: the resolved step is keyed on the read's
 // reason, never re-derived from the steps, and a zero-count clause is dropped rather than printed as 0.
 describe('the preview names what the mark will do', () => {
@@ -448,7 +448,7 @@ describe('the preview names what the mark will do', () => {
     })
   })
 
-  // RE-SPELLED 432-09 (D-04) from 'PREVIEW-PROPOSAL-LINE: each draft kind reads its sentence, and the
+  // RE-SPELLED 432-09 from 'PREVIEW-PROPOSAL-LINE: each draft kind reads its sentence, and the
   // drafted wording is never offered': the fix is applied on send, so each line says what will change.
   it('PREVIEW-CHANGE-LINE: each fix kind reads what will change, and its wording is never offered', () => {
     const checked = { servedRecords: 0, procedureReads: 0, assertionDrift: false }
@@ -466,7 +466,7 @@ describe('the preview names what the mark will do', () => {
       ...Object.values(PREVIEW_FIX_TEXT.knowledge)]) expect(text).not.toMatch(/review|proposal|draft/i)
   })
 
-  // RE-SPELLED 432-09 (D-11) from 'PREVIEW-REPLACES-LINE: the earlier mark by ordinal and time, the
+  // RE-SPELLED 432-09 from 'PREVIEW-REPLACES-LINE: the earlier mark by ordinal and time, the
   // withdrawal clause, and no guessed time': nothing is withdrawn; the earlier change stays.
   it('PREVIEW-REPLACES-LINE: the earlier mark by ordinal and time, that its change stays, and no guessed time', () => {
     expect(replacesLine(2, '14:05')).toBe('Replaces your earlier mark (#2, 14:05); what it changed stays')
@@ -474,7 +474,7 @@ describe('the preview names what the mark will do', () => {
   })
 })
 
-// EVERY OTHER PREVIEW OUTCOME IS ITS OWN PLAIN STATE, AND ONE RULE DECIDES SUBMIT (426-07 · D-18, D-19).
+// EVERY OTHER PREVIEW OUTCOME IS ITS OWN PLAIN STATE, AND ONE RULE DECIDES SUBMIT.
 // A quarantined mark still records; an identical repeat, a refusal in runs.mark's own terms and a read
 // that failed never do. The sentences are UI-SPEC S5/S6's strings of record, so they are literal here.
 describe('the special arms and the failed read', () => {
@@ -615,7 +615,7 @@ describe('Technical details copy', () => {
   })
 })
 
-// 426-09 · D-22: the history reads as plain sentences; a time is always the browser's own format of
+// the history reads as plain sentences; a time is always the browser's own format of
 // the entry's markedAt, so cells compute it through formatMarkTime and never spell a clock.
 describe('the history copy', () => {
   const RUN_ID = generateRunId()
@@ -671,7 +671,7 @@ describe('the history copy', () => {
     expect(HISTORY_RETRY_ACCESSIBLE_NAME.startsWith(RETRY_LABEL)).toBe(true)
   })
 
-  // RE-SPELLED 432-09 (D-25) from 'HISTORY-PROPOSAL-COPY: each proposal state reads its phrase after
+  // RE-SPELLED 432-09 from 'HISTORY-PROPOSAL-COPY: each proposal state reads its phrase after
   // Proposal:, and an apply in flight reads being applied': history says what an applied fix changed.
   it('HISTORY-APPLIED-COPY: an applied fix says what it changed; a historical draft says its change was not recorded', () => {
     expect(APPLIED_KNOWLEDGE_PREFIX).toBe('Changed knowledge: ')

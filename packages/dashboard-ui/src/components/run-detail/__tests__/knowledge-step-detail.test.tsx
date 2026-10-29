@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// THE EXPANDED STEP ROW A PERSON ACTUALLY SEES (407-06 · LERN-01, D-03/D-04/D-07/D-08, T-407-14).
+// THE EXPANDED STEP ROW A PERSON ACTUALLY SEES.
 //
 // WHAT THIS FILE IS FOR. `tab-knowledge.test.tsx` pins the COLLAPSED row and the five page states;
 // this file pins what is behind the chevron — the three channels, the per-line why-trace, the cut
@@ -18,7 +18,7 @@
 // A step that served a line the trace cannot explain must SAY which of the three absences applies;
 // three arms collapsed into one silent branch is the failure these cells exist to catch.
 //
-// THE COPY IS ASSERTED BY ITS EXPORTED CONSTANT (403-05 D-5), never by literal prose — except
+// THE COPY IS ASSERTED BY ITS EXPORTED CONSTANT, never by literal prose — except
 // where a cell is deliberately pinning the SENTENCE OF RECORD from the Copywriting Contract, in
 // which case the literal IS the claim.
 
@@ -89,7 +89,7 @@ function line(overrides: Partial<BriefLineView> = {}): BriefLineView {
 }
 
 /**
- * The retired per-line disclosure's trigger copy (427 D-19). Spelled here as a literal because the
+ * The retired per-line disclosure's trigger copy. Spelled here as a literal because the
  * constant is deleted once no surface paints it; the cells below prove no element carries it.
  */
 const RETIRED_WHY_TRIGGER = "Why this line?"
@@ -157,7 +157,7 @@ describe("the painted node is the one no other match contains", () => {
 })
 
 describe("a served line carries the trace that explains it, inline", () => {
-  // 427 D-19: Retrieval details is already a disclosure, so the trace reads on the line itself.
+  // Retrieval details is already a disclosure, so the trace reads on the line itself.
   it("LEDGER-TRACE-INLINE: marks the line answered and prints its leg, rank and score inline, behind no trigger", () => {
     const view = mount(<KnowledgeBriefLine line={line()} />)
 
@@ -208,7 +208,7 @@ describe("a served line carries the trace that explains it, inline", () => {
 })
 
 /**
- * AN UNBROKEN TOKEN HAS TO BE ABLE TO SHRINK ITS OWN BOX (407-23 · G-407-2, LERN-01).
+ * AN UNBROKEN TOKEN HAS TO BE ABLE TO SHRINK ITS OWN BOX.
  *
  * A brief summary is a producer string and is regularly ONE UNBROKEN TOKEN — a URL, a selector
  * literal, a content-derived record id. `break-words` (`overflow-wrap: break-word`) offers such a
@@ -241,7 +241,7 @@ describe("a content-derived brief line can shrink its own box, not merely overfl
 })
 
 /**
- * THE SAME LAW, EVERY CHANNEL OF THE EXPANDED ROW (407-28 · G-407-13, LERN-01).
+ * THE SAME LAW, EVERY CHANNEL OF THE EXPANDED ROW.
  *
  * The block above pins channel 1 by mounting `KnowledgeBriefLine` alone — which is structurally
  * incapable of reaching channels 2 and 3, and is exactly why the identical nodes there went
@@ -311,7 +311,7 @@ describe("a canary line is marked ALWAYS, and its outcome is never blank", () =>
     return painted as HTMLElement
   }
 
-  // 427 D-19: the marker reads "on trial (canary)" and the store's word reads as plain text.
+  // the marker reads "on trial (canary)" and the store's word reads as plain text.
   it("wears the on-trial marker and the attributed outcome once curation settled", () => {
     const view = mount(
       <KnowledgeBriefLine line={line({ servedAsCanary: true, canaryOutcome: "confirmed" })} />,
@@ -451,7 +451,7 @@ describe("the cut ledger answers why it did NOT say something", () => {
 })
 
 describe("a replay states its guard outcome and a hint states its demotion", () => {
-  /** The plan-source row, which states its procedure and its sentence in plain text (427 D-19). */
+  /** The plan-source row, which states its procedure and its sentence in plain text. */
   function planSourceRow(view: HTMLElement, procedureId: string): Element | null {
     const row = view.querySelector("[data-plan-source-outcome]")
     expect(row?.querySelector('[data-slot="badge"]')).toBeNull()

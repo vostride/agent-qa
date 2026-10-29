@@ -1,7 +1,7 @@
 import { RECORD_CHANGE_SCHEMA_VERSION, CURATION_SNAPSHOT_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 // @vitest-environment jsdom
 
-// THE KNOWLEDGE TAB A PERSON ACTUALLY SEES (407-02 · LERN-01, D-01/D-03/D-06/D-16, T-407-06).
+// THE KNOWLEDGE TAB A PERSON ACTUALLY SEES.
 //
 // WHY THESE CELLS RENDER INTO `document.body` THROUGH `createRoot`. That is the call `main.tsx`
 // makes. A component mounted into a detached node can satisfy every query in a file like this one
@@ -73,7 +73,7 @@ function mount(element: ReactElement): HTMLElement {
   container = document.createElement("div")
   document.body.append(container)
   root = createRoot(container)
-  // `tab-panels.tsx` wraps the tab in this provider; bucket labels are tooltip triggers (427 D-16).
+  // `tab-panels.tsx` wraps the tab in this provider; bucket labels are tooltip triggers.
   act(() => { root?.render(<TooltipProvider delayDuration={0}>{element}</TooltipProvider>) })
   return container
 }
@@ -114,7 +114,7 @@ function readyView(
   }
 }
 
-// 427 D-19: the per-step ledger renders only once the collapsed Retrieval details is opened.
+// the per-step ledger renders only once the collapsed Retrieval details is opened.
 function openRetrievalDetails(view: HTMLElement): void {
   const trigger = view.querySelector('[data-knowledge-section="retrieval-details"] [data-slot="collapsible-trigger"]')
   if (trigger === null) throw new Error("no Retrieval details trigger")
@@ -464,7 +464,7 @@ describe("the page path keeps failed-chain rows and states the snapshot sections
 
     expect(section?.getAttribute("data-learned-snapshot")).toBe("recorded")
     expect(section?.getAttribute("data-learned-since-then")).toBe("1")
-    // 427 D-15/D-17: the curation rows are the snapshot's five records, and the later promotion
+    // the curation rows are the snapshot's five records, and the later promotion
     // reads Confirmed in its own open "Since this run" subsection.
     expect(learnedRows(view).map(row => row.getAttribute("data-learned-section")))
       .toEqual([...recorded.rows.map(() => "curation"), "since-then"])

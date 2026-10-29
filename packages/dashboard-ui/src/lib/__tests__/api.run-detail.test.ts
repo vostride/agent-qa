@@ -1,4 +1,4 @@
-// THE PAGE'S DURABLE READ (405-06 · DETL-01, D-03).
+// THE PAGE'S DURABLE READ.
 //
 // `fetchRunDetail` is the ONE door the rebuilt run-detail page reads its projection from, and the
 // only thing this file has to say about it is that it asks the right URL and hands back what the
@@ -14,7 +14,7 @@
 // THE RESULT IS THE OP'S OWN TYPE, NOT A UI TWIN. `RunDetailProjection` is imported from
 // `@vostride/agent-qa-schema`; the UI mirrors the op's output rather than re-declaring it, so a
 // field the op grows is a field the page can read without a second edit, and a field the op drops
-// is a compile error here rather than an `undefined` in a text node (D-03).
+// is a compile error here rather than an `undefined` in a text node.
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RunDetailProjection } from '@vostride/agent-qa-schema'

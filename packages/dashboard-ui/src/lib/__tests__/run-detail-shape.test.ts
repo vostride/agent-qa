@@ -1,5 +1,5 @@
 /**
- * THE REBUILT RUN-DETAIL SHAPE IS CLOSED (405-13, D-21 / DETL-06).
+ * THE REBUILT RUN-DETAIL SHAPE IS CLOSED.
  *
  * WHAT THIS PINS. 405-11 deleted the v1 UI step shape — the recording-path fields, the healing
  * screenshot list and the run-detail-only sub-action DTO — and rebuilt the page on the durable

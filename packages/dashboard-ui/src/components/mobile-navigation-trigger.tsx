@@ -4,7 +4,7 @@ import { SidebarTrigger, useSidebar } from "@/components/ui/sidebar"
 import { useIsMobile } from "@/hooks/use-mobile"
 
 // Below the mobile breakpoint the sidebar is an off-canvas sheet whose own toggle lives inside it,
-// so this bar is the only way in (G-433-7, F-433-29).
+// so this bar is the only way in.
 export function MobileNavigationTrigger() {
   const isMobile = useIsMobile()
   const { openMobile, setOpenMobile } = useSidebar()

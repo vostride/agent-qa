@@ -13,7 +13,7 @@ test('timeline axes are an exact union', () => {
 })
 
 test('marker results are an exact union', () => {
-  // 2026-10-08 (437-03, D-05): 'no-input' joins the closed set for a tap that sent no input.
+  // 'no-input' joins the closed set for a tap that sent no input.
   type Expected = 'passed' | 'failed' | 'healed' | 'no-input'
   expectTypeOf<MarkerResult>().toEqualTypeOf<Expected>()
   expectTypeOf<(typeof MARKER_RESULTS)[number]>().toEqualTypeOf<Expected>()

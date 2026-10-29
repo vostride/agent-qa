@@ -298,7 +298,7 @@ describe('LiveSessionPane auth-state capture control', () => {
   })
 })
 
-// THE EDITOR'S LIVE HEADER, JUST THE ESSENTIALS (428 D-05). Owner: "what if we drop everything.
+// THE EDITOR'S LIVE HEADER, JUST THE ESSENTIALS. Owner: "what if we drop everything.
 // I am a fan of minimal things. Just a dot maybe." The header keeps the target name, the draft
 // badge, Run All / Stop All and End Live Session. The connection badge, the session number, the
 // running label, the URL line under the title and the "Restart required" badge are gone; the

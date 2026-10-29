@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// ONE MEMBER'S VERDICT BLOCK (406-06 · DETL-04, D-08 / D-09 / D-10 / D-11).
+// ONE MEMBER'S VERDICT BLOCK.
 //
 // THE BLOCK DERIVES NOTHING, so every cell here hands it a view and reads the DOM back. What is
 // pinned is the mapping from view to markup: which element exists, which attribute carries which
@@ -96,7 +96,7 @@ function render(over: Partial<MemberVerdictView> = {}, handlers: {
 const SHA_PRESENT = "a".repeat(64)
 const SHA_GONE = "b".repeat(64)
 
-// THE MEMBER'S PILLS ARE GONE (426-15 · D-05). Every cell below used to drive the block's own mark
+// THE MEMBER'S PILLS ARE GONE. Every cell below used to drive the block's own mark
 // form; the behaviour now lives in the composer and its history, and each title names the cell that
 // proves it there. What stays here is the negative: the block renders no mark control at all.
 describe('member mark control', () => {
@@ -371,7 +371,7 @@ describe("evidence that is GONE is a chip where the link was, and a count beside
   })
 
   it("does NOT re-grade the verdict because a screenshot is gone", () => {
-    // ONE MISSING SCREENSHOT IS NOT AN UNTRUSTWORTHY VERDICT (D-19). The whole-verdict badge was
+    // ONE MISSING SCREENSHOT IS NOT AN UNTRUSTWORTHY VERDICT. The whole-verdict badge was
     // rejected precisely because it conflates the two; these three readings are what a reader —
     // and 406-10's shipped-binary cells — use to tell a re-graded verdict from an intact one.
     const intact = render({ citedArtifacts: [{ id: "art_0", sha: SHA_PRESENT, incomplete: false }] })

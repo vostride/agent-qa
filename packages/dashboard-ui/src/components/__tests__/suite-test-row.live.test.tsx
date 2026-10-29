@@ -91,7 +91,6 @@ describe('SuiteTestRow live mode', () => {
     expect(remove).toBeTruthy()
   })
 
-  // D-05
   it('renders Run button with Play icon when liveMode && liveStatus=idle', () => {
     mount(<SuiteTestRow {...baseProps} liveMode liveStatus="idle" onRunTest={vi.fn()} />)
     const btn = container.querySelector('[aria-label="Run test Login flow"]')
@@ -323,7 +322,6 @@ describe('SuiteTestRow live mode', () => {
     expect(container.textContent).toContain('Element not found — see Reasoning tab for details')
   })
 
-  // D-10
   it('renders nested per-test setup hook rows indented', () => {
     const setupHook = makeHook({ id: 'h-setup', name: 'seed-db', phase: 'setup', status: 'passed' })
     mount(
@@ -341,7 +339,6 @@ describe('SuiteTestRow live mode', () => {
     expect(list).toBeTruthy()
   })
 
-  // D-10
   it('renders nested per-test teardown hook rows with "teardown: <name>" label', () => {
     const teardownHook = makeHook({ id: 'h-td', name: 'cleanup', phase: 'teardown', status: 'passed' })
     mount(

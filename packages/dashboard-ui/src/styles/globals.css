@@ -1870,7 +1870,7 @@ input[type="number"] {
   }
 }
 
-/* THE LIVE PREVIEW'S HEALTH DOT (428 D-02/D-16/D-17). A small, ringless dot (owner decision
+/* THE LIVE PREVIEW'S HEALTH DOT. A small, ringless dot (owner decision
    2026-09-26 (6)). The dot is still in every state (owner review 2026-09-26): its state is told
    apart by its colour and by its accessible name, never by motion. */
 .live-dot {

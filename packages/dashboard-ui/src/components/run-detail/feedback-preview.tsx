@@ -36,7 +36,7 @@ type Consequences = Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
 
 export interface FeedbackPreviewProps {
   state: FeedbackPreviewState
-  /** The displayed read was computed for the form's current request key (D-16). */
+  /** The displayed read was computed for the form's current request key. */
   current: boolean
   /** The read on screen, kept while a re-fetch is in flight so nothing blanks. */
   read?: RunsMarkPreviewResult
@@ -47,7 +47,7 @@ export interface FeedbackPreviewProps {
   alreadyMarkedTime?: string
   /** Looks an earlier mark's time up in the loaded history; the explicit times above win. */
   timeFor?: (markId: string) => string | undefined
-  /** Why the read on screen failed (D-19). */
+  /** Why the read on screen failed. */
   failure?: FeedbackReadFailure
   /** Re-issues the failed read; never submits. */
   onRetry?: () => void
@@ -56,7 +56,7 @@ export interface FeedbackPreviewProps {
 const SKELETON_WIDTHS = ['w-full', 'w-5/6', 'w-2/3', 'w-3/4'] as const
 
 /**
- * "What this will do" (426 D-16, D-17). Presentational: every word comes from the preview read the
+ * "What this will do". Presentational: every word comes from the preview read the
  * composer hands it, producer strings are text nodes, and ids stay out of view.
  * Not a live region; outcomes announce through the composer's footer status.
  */

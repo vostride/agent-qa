@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-// THE COMPOSER SAYS WHAT IT IS ABOUT AND OFFERS THE THREE CHOICES, PICKING NONE (426-02 · D-11, D-12, D-14).
+// THE COMPOSER SAYS WHAT IT IS ABOUT AND OFFERS THE THREE CHOICES, PICKING NONE.
 //
 // The order under a step follows the STEP's own verdict, so a passing step inside a failed test opens
 // with "This should have failed". All three rows render in every composer state, none disabled, each
@@ -302,7 +302,7 @@ describe('Technical details', () => {
 // THE MARK'S APPROVAL, INLINE (426-10 · D-20, SC4). The question the policy gate asked before a mark
 // was recorded sat in the composer's footer as a labelled group — never a dialog, never modal.
 //
-// RE-SPELLED 2026-10-01 (432-14, D-14): the question, the group and the state a mark waited in are
+// RE-SPELLED 2026-10-01: the question, the group and the state a mark waited in are
 // deleted. Each cell keeps its name and now pins the absence in the real composer, in every state it
 // can be in: no group, no answers, nothing that takes focus, and the submit row always present.
 const approvalSurface = () => container.querySelector('[data-feedback-approval], [data-confirm-answer], [data-confirm-outcome], [data-feedback-approval-waiting]')

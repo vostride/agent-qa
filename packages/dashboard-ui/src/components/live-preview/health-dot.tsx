@@ -1,4 +1,4 @@
-// THE PREVIEW'S ONE HEALTH DOT (428 D-02/D-16/D-17 · PXH-LIVE-03), on BucketLabel's accessible-trigger idiom (427-19).
+// THE PREVIEW'S ONE HEALTH DOT, on BucketLabel's accessible-trigger idiom.
 //
 // It floats at the container's top-right (owner decision 2026-09-26 (6)), so its tooltip opens
 // leftward from the dot's right edge, into the pane rather than out of it.

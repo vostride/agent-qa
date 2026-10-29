@@ -2,7 +2,7 @@
 //
 // The check shows only after a write resolved, and a missing clipboard or a rejected write is
 // announced as a failure that spells the id out, so it can still be selected by hand. Only the id
-// string the view holds is written. 2026-10-03 (quick 261003-cpv): the status logic is the shared
+// string the view holds is written. 2026-10-03: the status logic is the shared
 // `useClipboardCopy`, which `IdBadge` now uses too, and the check wears the success token.
 
 import { Check, Copy } from "lucide-react"

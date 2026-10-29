@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// THE EDITOR'S RUN PANEL ON THE RUN-STREAM WIRE (405-03 · D-19).
+// THE EDITOR'S RUN PANEL ON THE RUN-STREAM WIRE.
 //
 // This panel was the last UI client of the legacy execution-event projection. These cells
 // bind it to the SAME wire `pages/live-run.tsx` reads: `openRunStream` frames folded through
@@ -9,7 +9,7 @@
 // stream — one source per run id, closed on teardown — not the door's URL composition, which the
 // 403 `api.run-stream` suite already binds.
 //
-// THE ONE ROW (428 D-19/D-21/D-22). The panel renders its rows through the live page's
+// THE ONE ROW. The panel renders its rows through the live page's
 // `LiveStepRowView`: a named glyph and the label as written, no clock. The
 // duration a finalized row used to show lives in run detail now, so the finalize cell asserts it
 // is absent (re-spelled in place; the title is unchanged).
@@ -33,7 +33,7 @@ import type { RunEventEnvelope, RunEventPayload, RunEventType } from '@vostride/
 
 const RUN_ID = 'run-1'
 // THE NEEDLE IS CONCATENATED so this file cannot satisfy the phase's grep-clean deletion
-// inventory by matching itself — the `v1-retry-machinery-deleted` idiom (D-21).
+// inventory by matching itself — the `v1-retry-machinery-deleted` idiom.
 const LEGACY_FEED_PATH = '/api/execution' + '/events'
 
 const { optionsRef, closeMock, openRunStreamMock } = vi.hoisted(() => ({
@@ -166,7 +166,7 @@ describe('RunResultsPanel on the run stream', () => {
 
     feed(stepFinalized({ status: 'passed', durationMs: 1200 }))
     expect(view.querySelectorAll('[data-step-status="passed"]')).toHaveLength(1)
-    // 428 D-19: a row carries no duration; run detail has it.
+    // a row carries no duration; run detail has it.
     expect(view.textContent).not.toContain('1.2s')
   })
 
@@ -252,7 +252,7 @@ describe('RunResultsPanel renders the one live row', () => {
     expect(view.querySelector('[data-elapsed]')).toBeNull()
   })
 
-  // 2026-10-14 (441-37, D-20): an old run's numbered placeholder is the characters it holds.
+  // an old run's numbered placeholder is the characters it holds.
   it('PANEL-OLD-PLACEHOLDER-AS-TEXT: an old <SECRET_n> placeholder in step text renders as written, with no chip', async () => {
     const view = await renderPanel()
 

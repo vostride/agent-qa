@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// THE MEMBER-GROUPED STEP TREE (405-08 · DETL-01, D-16 / D-17 / D-18).
+// THE MEMBER-GROUPED STEP TREE.
 //
 // The tree these cells drive reads the DURABLE projection and nothing else. Every fixture below is
 // a real `RunDetailMember` / `RunDetailStep` / `RunDetailSubAction` — no casts through `unknown`,

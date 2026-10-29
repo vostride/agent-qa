@@ -18,7 +18,7 @@ const step = fromRunDetailStep({ testIndex: 7, stepIndex: 2, stepText: 'Check ca
   verifierVerdict: { pass: false, reasoning: 'Cart differs' }, selfHealOccurred: false, briefDigest: 'digest' }, [])
 afterEach(() => { act(() => root.unmount()); container.remove() })
 
-// THE STEP PILLS ARE GONE (426-15 · D-05). The row keeps the selected-row door and the passive
+// THE STEP PILLS ARE GONE. The row keeps the selected-row door and the passive
 // glyph; choosing, noting, submitting and reviewing all happen in the composer.
 const markAttributes = () => [...container.querySelectorAll('*')]
   .flatMap(element => element.getAttributeNames().filter(name => name.startsWith('data-mark')))

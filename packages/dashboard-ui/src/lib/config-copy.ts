@@ -4,7 +4,7 @@
 // import the constant instead of re-typing prose. Strings holding an apostrophe use double quotes.
 // No string carries storage vocabulary (bucket names, dotted config paths); those stay in
 // data-field-path attributes. Connection-failure sentences are never spelled here: they come from
-// the shared classifier in @vostride/agent-qa-schema, byte-identical with the CLI (D-18).
+// the shared classifier in @vostride/agent-qa-schema, byte-identical with the CLI.
 
 import type {
   ConfigSectionId,
@@ -92,7 +92,7 @@ export function configLoadFailedBody(reason: string): string {
 
 export const RELOAD_CONFIG_LABEL = 'Reload config'
 
-/** The file parses but fails whole-config validation (429-16): one notice above the tabs. */
+/** The file parses but fails whole-config validation: one notice above the tabs. */
 export const CONFIG_FILE_ISSUES_TITLE = 'The config file has a problem'
 
 export function configFileIssuesBody(reason: string): string {
@@ -109,7 +109,7 @@ export const SAVE_STATUS_WORDS = {
 export const RETRY_LABEL = 'Retry'
 export const NOT_SAVED_ACTION_NAME = 'Not saved. Go to the first unsaved field.'
 export const UNDO_LABEL = 'Undo'
-/** A computed write the file changed under twice in a row (429-46); the page has re-read it. */
+/** A computed write the file changed under twice in a row; the page has re-read it. */
 export const FIELD_CHANGED_TEXT = "This changed in the file. The page now shows the file's value."
 
 /** The past-tense line an explicit action leaves in the status; the status appends " · Undo". */

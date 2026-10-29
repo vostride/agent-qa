@@ -1,4 +1,4 @@
-// THE PHASE ACCORDION, STATIC ONLY (405-11 · D-14 / DETL-06).
+// THE PHASE ACCORDION, STATIC ONLY.
 //
 // IT NO LONGER FETCHES. This component used to have a second mode that read a per-step reasoning
 // trace over its own HTTP call and rendered the phases out of it, falling back to the step row when

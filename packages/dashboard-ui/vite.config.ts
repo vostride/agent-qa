@@ -10,7 +10,7 @@ export default defineConfig({
     setupFiles: ['./src/test/browser-observers.ts'],
     // The 5s vitest default is tuned for a fast dev machine. A 2-core CI runner is 3-6x slower,
     // and jsdom component tests that drive several state transitions cross it — `TestsPage >
-    // remembers cache changes…` did, on the fifth automatic CI run (2026-08-02). Matches the
+    // remembers cache changes…` did, on the fifth automatic CI run. Matches the
     // 30s default the other 19 package configs now carry.
     testTimeout: 30_000,
     typecheck: {

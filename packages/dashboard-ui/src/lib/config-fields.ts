@@ -3,7 +3,7 @@
 // These schema blocks have required keys once the block exists, so a leaf-only write into an
 // absent one would always fail validation. The write carries the other required siblings at the
 // defaults the fields show as placeholders; optional siblings are never materialized (424 note 27).
-// The snapshot only offers the defaults; the server writes each one only if the field is absent (429-42).
+// The snapshot only offers the defaults; the server writes each one only if the field is absent.
 
 import type { ConfigChange, ConfigPathSegment } from '@vostride/agent-qa-schema'
 

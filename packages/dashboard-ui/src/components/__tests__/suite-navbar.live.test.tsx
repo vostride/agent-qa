@@ -78,7 +78,6 @@ describe('SuiteNavbar live mode', () => {
     expect(container.textContent).not.toContain('Connecting')
   })
 
-  // D-15
   it('renders Connect Live Session button with PlayCircle icon when liveConnectionState=idle', () => {
     mount(
       <SuiteNavbar
@@ -97,7 +96,6 @@ describe('SuiteNavbar live mode', () => {
     expect(connectBtn!.querySelector('svg')).toBeTruthy()
   })
 
-  // D-15
   it('renders "Connecting..." with spinner when liveConnectionState=connecting', () => {
     mount(
       <SuiteNavbar
@@ -112,7 +110,6 @@ describe('SuiteNavbar live mode', () => {
     expect(spinner).toBeTruthy()
   })
 
-  // D-15
   it('renders End Live Session destructive button when hasLiveSession && liveConnectionState=connected', () => {
     mount(
       <SuiteNavbar
@@ -128,7 +125,6 @@ describe('SuiteNavbar live mode', () => {
     expect(endBtn).toBeTruthy()
   })
 
-  // D-15
   it('renders End Live Session when liveConnectionState=executing', () => {
     mount(
       <SuiteNavbar
@@ -160,7 +156,6 @@ describe('SuiteNavbar live mode', () => {
     expect((connectBtn as HTMLButtonElement).disabled).toBe(true)
   })
 
-  // D-31
   it('renders Session #3 badge when hasLiveSession && typeof liveSessionNumber === "number"', () => {
     mount(
       <SuiteNavbar
@@ -230,7 +225,6 @@ describe('SuiteNavbar live mode', () => {
     expect(foundTracking).toBe(true)
   })
 
-  // D-16
   it('Run Suite split button becomes disabled when hasLiveSession=true', () => {
     mount(
       <SuiteNavbar
@@ -245,7 +239,6 @@ describe('SuiteNavbar live mode', () => {
     expect(splitBtn!.getAttribute('data-disabled')).toBe('true')
   })
 
-  // D-16
   it('Run Suite tooltip reads "End the live session to queue a new suite run." when disabled due to live session', () => {
     mount(
       <SuiteNavbar

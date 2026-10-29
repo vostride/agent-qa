@@ -173,7 +173,7 @@ describe('TestSettingsPanel auth state controls', () => {
   })
 })
 
-// 436-19 (D-02, D-03, WR-11): the panel writes a limit only as a positive whole number.
+// the panel writes a limit only as a positive whole number.
 describe('the limit inputs', () => {
   function limitInput(label: string): HTMLInputElement {
     const owner = Array.from(document.querySelectorAll('label')).find((el) => el.textContent === label)

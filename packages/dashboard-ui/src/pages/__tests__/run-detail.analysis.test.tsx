@@ -1,26 +1,26 @@
 // @vitest-environment jsdom
 //
-// THE FAILURE VIEW ON THE PAGE (406-01 · DETL-04, D-03 / D-05 / D-10).
+// THE FAILURE VIEW ON THE PAGE.
 //
 // FOUR CLAIMS, ALL ABOUT WHAT A PERSON SEES AND WHEN:
 //
 //   1. the page reads `/analysis` once at mount and again on EVERY analysis-chip TRANSITION, and
-//      never on a frame whose word did not change (D-03);
+//      never on a frame whose word did not change;
 //   2. a failed member's group carries the op's sentence VERBATIM, with the provenance chip built
-//      from that verdict's own producer and confidence (D-05/D-10);
+//      from that verdict's own producer and confidence;
 //   3. a member with no verdict — a passed one — carries no block at all;
-//   4. a sentence containing markup renders as a TEXT NODE, never an element (T-406-02).
+//   4. a sentence containing markup renders as a TEXT NODE, never an element.
 //
 // AND FIVE MORE, ADDED IN 406-06, all about what the chip word and the op's evidence DO to the page:
 //
 //   5. the marker follows the chip through its whole lifecycle — provisional while the chain is
-//      running, gone when it is done, and the sentence is swapped IN PLACE (D-09);
+//      running, gone when it is done, and the sentence is swapped IN PLACE;
 //   6. a permanently failed chain marks every failed member's block while the verdict itself is not
-//      re-graded — the producer stays the deterministic classifier (D-11);
+//      re-graded — the producer stays the deterministic classifier;
 //   7. a cited step selects that step in the tree, through the page's existing `Selection` and the
-//      existing scroll effect — no new id spelling and no second scroller (D-02);
-//   8. a cluster sibling link narrows the member filter to that sibling's own group (D-08);
-//   9. EVERY member wears an outcome badge and only the failed one carries a block (D-07/D-05).
+//      existing scroll effect — no new id spelling and no second scroller;
+//   8. a cluster sibling link narrows the member filter to that sibling's own group;
+//   9. EVERY member wears an outcome badge and only the failed one carries a block.
 //
 // THE MOCK BLOCK IS `run-detail.members.test.tsx`'S, with one addition: `watchPostProcessing`
 // CAPTURES its `onRead` so a cell can push frames. The real watcher constructs an `EventSource`

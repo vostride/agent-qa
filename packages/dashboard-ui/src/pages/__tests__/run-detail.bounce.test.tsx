@@ -1,13 +1,13 @@
 // @vitest-environment jsdom
 
-// RUN DETAIL'S BOUNCE-TO-LIVE PREDICATE (404-06 · LIFE-01, D-07 / T-404-15).
+// RUN DETAIL'S BOUNCE-TO-LIVE PREDICATE.
 //
 // WHAT THIS FILE MEASURES, AND WHY IT IS ITS OWN FILE. Run detail owns exactly one navigation
 // decision: whether the run it was asked for belongs on the live surface instead. Until 404 that
 // decision read `/api/execution/active` — the dashboard's set of executions in flight — and D-07
 // retires that reading for a reason a unit cell can state precisely: an execution stays "active"
 // until its post-run tail is done, and the tail runs AFTER the verdict. A viewer whom the live
-// page had just moved here on the verdict (D-13) would be thrown straight back to `/live`, and the
+// page had just moved here on the verdict would be thrown straight back to `/live`, and the
 // live page would move them here again on the very next render. That is T-404-15, and it is a
 // ping-pong nobody can click their way out of.
 //
@@ -53,12 +53,12 @@ const {
 // import fail, which is a different fact wearing the same green.
 vi.mock("@/lib/api", () => ({
   fetchRun: fetchRunMock,
-  // 2026-08-28 (405-08): the page's second read. It is STUBBED TO RESOLVE, not left off the mock:
+  // the page's second read. It is STUBBED TO RESOLVE, not left off the mock:
   // an omitted export is `undefined` at the call site, the page catches that and renders its
   // could-not-load posture, and every cell below would then pass while the page was in an error
   // state nobody asked for. The bounce must be measured on a page that loaded.
   fetchRunDetail: fetchRunDetailMock,
-  // 2026-08-29 (406-01, D-04): the page's THIRD read — the failure view's. This whole-module
+  // the page's THIRD read — the failure view's. This whole-module
   // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
   // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
   fetchRunAnalysis: () => Promise.resolve({ runId: '', verdicts: [], sentences: [], clusters: [] }),
@@ -68,7 +68,7 @@ vi.mock("@/lib/api", () => ({
   fetchExecutionLogs: fetchExecutionLogsMock,
   fetchRunEvidence: () => Promise.resolve({ kind: 'failed', error: 'Evidence read not configured in this fixture' }),
   triggerRun: vi.fn(),
-  // 2026-08-27 (404-07): run detail now subscribes a post-processing chip client on mount. This
+  // run detail now subscribes a post-processing chip client on mount. This
   // whole-module mock REPLACES `@/lib/api`, so an omitted export is `undefined` at the call site
   // and every cell in this file dies before it asserts. It is a no-op DOUBLE rather than the real
   // function on purpose: the real one constructs an `EventSource` and a 3 s interval against a

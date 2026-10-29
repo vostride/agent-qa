@@ -4,7 +4,7 @@
 // a failed read shows every row Not connected: a status the page has not read is never claimed.
 // Add model sits in the section's heading row; with no models the empty state holds the only one.
 // A row being deleted is hidden at once, focus moves to the next row, else the previous one, else
-// Add model, and an Undo focuses the row it brought back (429-24 · D-24). The add row sits first
+// Add model, and an Undo focuses the row it brought back. The add row sits first
 // and there is at most one: Add model or ?add while it is open focuses it, ?add is removed once
 // applied, a stored add draft re-opens it after a reload, and a pass lands the saved row open
 // (429-25 · D-14, D-15 · UI-SPEC S5).

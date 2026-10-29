@@ -187,7 +187,7 @@ describe("every record id copies, and the result is announced", () => {
     expect(button.getAttribute("data-copy-status")).toBe("copied")
     expect(statusOf(button)?.textContent).toBe(RECORD_ID_COPIED_TEXT)
     expect(RECORD_ID_COPIED_TEXT).toBe("Record id copied to the clipboard")
-    // RE-SPELLED 2026-10-03 (quick 261003-cpv): both copy controls wear the success token.
+    // RE-SPELLED 2026-10-03: both copy controls wear the success token.
     expect(button.querySelector("svg")?.getAttribute("class")).toContain("text-success")
   })
 

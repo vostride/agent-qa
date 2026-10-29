@@ -48,13 +48,13 @@ export interface FeedbackComposerProps {
   outcomeClass: FeedbackOutcomeClass
   selected: Mark | undefined
   onChoose: (kind: Mark) => void
-  /** D-01: the target has no unique mark address; the choices stay, nothing can be sent. */
+  /** the target has no unique mark address; the choices stay, nothing can be sent. */
   noUniqueAddress?: boolean
-  /** D-03: a test-level target in a multi-member run can be moved to another test. */
+  /** a test-level target in a multi-member run can be moved to another test. */
   testSwitcher?: FeedbackTestSwitcher
-  /** D-08: the selection has moved to another place; the target stays until the person switches. */
+  /** the selection has moved to another place; the target stays until the person switches. */
   pinned?: FeedbackPinned
-  /** D-09: other addresses holding a non-empty draft. */
+  /** other addresses holding a non-empty draft. */
   unsentDrafts?: readonly FeedbackUnsentDraft[]
   note?: string
   onNoteChange?: (note: string) => void
@@ -67,25 +67,25 @@ export interface FeedbackComposerProps {
   previewAlreadyMarkedTime?: string
   /** An earlier mark's time from the loaded history; undefined until history holds that mark. */
   timeFor?: (markId: string) => string | undefined
-  /** D-22: the run's mark history, listed for this target and for the whole run. */
+  /** the run's mark history, listed for this target and for the whole run. */
   history?: Omit<FeedbackHistoryProps, 'scope' | 'address'>
-  /** Why the read on screen failed; its Retry re-reads and never submits (D-19). */
+  /** Why the read on screen failed; its Retry re-reads and never submits. */
   previewFailure?: FeedbackReadFailure
   onPreviewRetry?: () => void
   /** The target member's step count, for the resolved-step sentence. */
   stepCount?: number
-  /** D-13: the target member's testId, shown only under Technical details. */
+  /** the target member's testId, shown only under Technical details. */
   testId?: string
-  /** D-14: select the resolved step on the page without re-targeting the composer. */
+  /** select the resolved step on the page without re-targeting the composer. */
   onShowStep?: (stepIndex: number) => void
   submitReason: string
   onSubmit: () => void
   status: string
-  /** 419-15: the page's denial for this address, shown while its draft is retained. */
+  /** the page's denial for this address, shown while its draft is retained. */
   denial?: MarkDenial
   headingRef?: Ref<HTMLHeadingElement>
   onClose: () => void
-  /** D-10: beside the evidence, or under it on a page narrower than 768px. */
+  /** beside the evidence, or under it on a page narrower than 768px. */
   layout?: FeedbackLayout
 }
 
@@ -118,8 +118,8 @@ function TextParts({ parts }: { parts: FeedbackTextParts }) {
 }
 
 /**
- * The feedback composer (426 D-07), docked beside the evidence or stacked under it (D-10).
- * Presentational (400 D-13): the page owns the target, drafts, preview read and submission, and
+ * The feedback composer, docked beside the evidence or stacked under it.
+ * Presentational: the page owns the target, drafts, preview read and submission, and
  * this paints them. A named section, never a dialog — the tree, the evidence and every copy
  * affordance stay usable while it is open.
  */
@@ -168,7 +168,7 @@ export function FeedbackComposer({
   const bodyRef = useRef<HTMLDivElement>(null)
   const newMarkId = history?.newMarkId
   const historyRead = history?.read
-  // D-21: the recorded mark is brought into view where it lands in history; focus stays put.
+  // the recorded mark is brought into view where it lands in history; focus stays put.
   useEffect(() => {
     if (newMarkId === undefined) return
     const entry = bodyRef.current?.querySelector<HTMLElement>('[data-history-new]')
@@ -177,7 +177,7 @@ export function FeedbackComposer({
   }, [newMarkId, historyRead])
   const blocked = submitReason !== ''
   const choices = FEEDBACK_CHOICE_ORDER[outcomeClass]
-  // D-14: the step a test-level mark lands on is the read's own answer, shown only for the current
+  // the step a test-level mark lands on is the read's own answer, shown only for the current
   // read; already-marked and the refusals carry no resolved step (UI-SPEC U6).
   const resolvedPending = scope === 'test' && selected !== undefined && previewState !== 'idle' && !previewCurrent
   const resolved =

@@ -73,7 +73,7 @@ if (!Element.prototype.scrollIntoView) {
 
 const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
   page: { config: undefined as Record<string, unknown> | undefined },
-  // Every record and list holds at least one entry, so each list renders its rows (D-06).
+  // Every record and list holds at least one entry, so each list renders its rows.
   fullConfig: {
     workspace: {
       testMatch: ['tests/**/*.yaml'],
@@ -349,7 +349,7 @@ async function renderAt(url: string) {
   return container
 }
 
-// The model modal is gone (429-30 · D-10): its cells here drive the saved rows and the add row.
+// The model modal is gone: its cells here drive the saved rows and the add row.
 function modelRow(name: string) {
   return container?.querySelector(`[data-model-row][data-model-name="${name}"]`) as HTMLElement | null
 }
@@ -429,7 +429,7 @@ async function assertConfigSectionShells(destinations: string[]) {
 }
 
 // plugins.* is a file edit by decision; every other leaf of the published schema has a field on
-// the page (D-06). 429-44: the page's write door refuses the same roots, so both read one constant.
+// the page. 429-44: the page's write door refuses the same roots, so both read one constant.
 // safety.* is not in the schema or the denied roots.
 const DENIED_ROOTS: readonly string[] = CONFIG_WRITE_DENIED_ROOTS
 const PAGE_LEAVES = CONFIG_SCHEMA_LEAVES.filter(

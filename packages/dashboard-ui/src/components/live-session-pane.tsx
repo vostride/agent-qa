@@ -87,7 +87,7 @@ interface LiveSessionPaneProps {
   executionUnit?: "step" | "test"
   runAllLabel?: string
   stopAllLabel?: string
-  /** Kept for the page callers; the pane no longer renders it (428 D-05). */
+  /** Kept for the page callers; the pane no longer renders it. */
   liveSessionNumber?: number | null
   unitRowsSlot?: ReactNode
   authStateCapture?: LiveModeAuthStateCaptureConfig | null
@@ -592,7 +592,7 @@ export function LiveSessionPane({
     onNavigate(nextUrl)
   }
 
-  // THE EDITOR'S CONTROLS ARE THE PREVIEW'S CHROME ROW (428 D-02). A mobile session has none of
+  // THE EDITOR'S CONTROLS ARE THE PREVIEW'S CHROME ROW. A mobile session has none of
   // them, so it passes nothing and the preview renders no empty row.
   const previewChrome = platform === "web" ? (
     <div className="flex min-w-0 flex-1 items-center gap-2">
@@ -689,7 +689,7 @@ export function LiveSessionPane({
 
   return (
     <div className="flex h-full min-h-0 flex-col bg-card/30">
-      {/* THE LIVE HEADER (428 D-05): the target, the draft badge and the actions. Health is the
+      {/* THE LIVE HEADER: the target, the draft badge and the actions. Health is the
           preview dot's alone, so there is no connection badge, session number or running label. */}
       <div data-live-header className="border-b px-4 py-3">
         <div className="flex flex-wrap items-start justify-between gap-3">

@@ -1140,7 +1140,7 @@ describe('AddModelRow renames and discard after a sign-in', () => {
     expect(deleteAuthCredential).not.toHaveBeenCalled()
   })
 
-  // WR-03: Connect saved claude on the server, but the answer was lost to a reload, so the stored
+  // Connect saved claude on the server, but the answer was lost to a reload, so the stored
   // draft still says this draft created the sign-in under claude.
   const SAVED_CLAUDE = { name: 'claude', provider: 'anthropic-subscription', model: 'claude-sonnet-4.5' }
 
@@ -1196,7 +1196,7 @@ describe('AddModelRow renames and discard after a sign-in', () => {
   })
 })
 
-// THE MODEL MODAL'S CLAIMS ON THE ADD ROW (429-30 · D-10). The modal is gone. Each claim its suite
+// THE MODEL MODAL'S CLAIMS ON THE ADD ROW. The modal is gone. Each claim its suite
 // made about adding a model is asserted here on the add row, or pinned as gone where the phase
 // reversed it (asterisk markers, the whole-list write, a vision switch before saving, and saving
 // before a sign-in).

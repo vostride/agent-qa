@@ -1,10 +1,10 @@
-// The run's failure summary, as stored (405-14 · DETL-02; 441 D-28): a declared value reads as the
+// The run's failure summary, as stored: a declared value reads as the
 // `[secret:<name>]` the run wrote, as plain text.
 //
-// The clipboard carries what was rendered and nothing else (T-405-43): the preview while the banner
+// The clipboard carries what was rendered and nothing else: the preview while the banner
 // is collapsed, the whole summary once it has been expanded.
 //
-// Text nodes, never markup (T-405-42): there is no `dangerouslySetInnerHTML` here, and a jsdom cell
+// Text nodes, never markup: there is no `dangerouslySetInnerHTML` here, and a jsdom cell
 // feeds this component markup and asserts no element.
 
 import { useState } from "react"
@@ -19,7 +19,7 @@ import { cn } from "@/lib/utils"
  * TWENTY, WHICH IS THE SHIPPED NUMBER — the page-local helper's own budget, moved rather than
  * re-chosen.
  *
- * IT IS EXPORTED BECAUSE TWO THINGS READ IT, AND THE LIST IS NAMED SO IT STAYS TRUE (WINDOWS #292).
+ * IT IS EXPORTED BECAUSE TWO THINGS READ IT, AND THE LIST IS NAMED SO IT STAYS TRUE.
  * The justification that stood here — "the failing-run fixture's word arithmetic is written against
  * it" — described a PROSE reference and no import at all, so the budget could move here while every
  * fixture went on asserting the old number. Its consumers:

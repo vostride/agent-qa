@@ -359,7 +359,7 @@ describe('TargetsSection and DevicesSection', () => {
       [[{ op: 'set', path: ['registry', 'devices', 'iosLocal', 'match', 'bundleId'], value: 'device-secret' }]],
     ])
     expect(deviceRow('iosLocal')!.querySelectorAll('[data-secret-field]')).toHaveLength(2)
-    // 441-40 (D-29): the landed write is mirrored as written.
+    // the landed write is mirrored as written.
     expect(container!.textContent).toContain('device-secret')
   })
 

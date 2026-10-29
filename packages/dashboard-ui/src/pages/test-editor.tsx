@@ -86,7 +86,7 @@ function formatValidationErrors(errors: TestValidationResult["errors"]): string 
     .join("\n")
 }
 
-// The save routes answer 400 `invalid_test_file` with the validator's own errors (G-433-2).
+// The save routes answer 400 `invalid_test_file` with the validator's own errors.
 function readRefusedSaveErrors(error: unknown): TestValidationResult["errors"] | null {
   if (!(error instanceof ApiError) || error.payload?.error !== "invalid_test_file") return null
   const errors = error.payload.errors
@@ -321,7 +321,7 @@ export default function TestEditorPage() {
     steps: liveSteps,
     setupHooks: liveHookConfig.setup,
     teardownHooks: liveHookConfig.teardown,
-    // The server detaches a dropped session for its idle window, so a drop resumes it (428 D-09).
+    // The server detaches a dropped session for its idle window, so a drop resumes it.
     allowReconnect: true,
   })
   const terminateLiveSession = liveEditor.terminateSession
@@ -396,7 +396,7 @@ export default function TestEditorPage() {
     || isLoadingTargets
   )
 
-  // Save asks the same validator Validate does and shows its verdict the same way (G-433-2).
+  // Save asks the same validator Validate does and shows its verdict the same way.
   const refuseInvalidContent = useCallback(async (): Promise<boolean> => {
     const result = await validateTestContent(content, filePath || filename.trim())
     if (result.valid) return false
@@ -734,7 +734,7 @@ export default function TestEditorPage() {
     }
   }, [])
 
-  // A session the server no longer holds stays on the pane, whose preview names it (428 D-09).
+  // A session the server no longer holds stays on the pane, whose preview names it.
   useEffect(() => {
     if (!liveSessionId) return
     if (liveConnectionState !== "disconnected") return

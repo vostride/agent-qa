@@ -12,7 +12,7 @@ import SuitesPage from "@/pages/suites"
 import TestViewerPage from "@/pages/test-viewer"
 import TestsPage from "@/pages/tests"
 
-// 2026-10-18 (444-31, D-64): the Tests and Suites pages read every per-row figure from the
+// the Tests and Suites pages read every per-row figure from the
 // server's batch read. A 200-run page served beside it disagrees on purpose, so a page that
 // still folds it fails.
 

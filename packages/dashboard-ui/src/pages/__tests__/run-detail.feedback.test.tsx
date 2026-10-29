@@ -116,7 +116,7 @@ vi.mock('@/components/empty-state', () => ({
 // Module-level mount counters: a layout change that remounts the tree or the evidence resets what
 // the person was inspecting (426-11 NO-REMOUNT-ON-LAYOUT-CHANGE).
 const mounts = vi.hoisted(() => ({ tabPanels: 0, stepTree: 0 }))
-// The tab double renders the evidence strip's active tab, the composer's last focus fallback (D-07).
+// The tab double renders the evidence strip's active tab, the composer's last focus fallback.
 vi.mock('@/components/run-detail/tab-panels', async () => {
   const React = await vi.importActual<typeof import('react')>('react')
   return {
@@ -284,7 +284,7 @@ const initial = projection({
   members: [member(0, { testId: TEST_ID, outcome: 'failed', marks: [] })],
   steps: [step(0, 0, 'Open cart')],
 })
-// 432-09 (D-04): a mark's receipt names the knowledge it changed; history joins that record.
+// a mark's receipt names the knowledge it changed; history joins that record.
 const receipt: RunDetailMemberMark = {
   markId: 'mark_0123456789ab',
   kind: 'false-fail',
@@ -460,7 +460,7 @@ describe('contextual feedback tracer', () => {
     expect(previewBody).toBeDefined()
     expect(markBody).toBeDefined()
     expect(previewBody!.runId).toBe(RUN_ID)
-    // 432-14 (D-14): the page holds no confirm scope, so the mark body carries none to remove.
+    // the page holds no confirm scope, so the mark body carries none to remove.
     expect(markBody).not.toHaveProperty('confirm' + 'Scope')
     const { runId: _runId, ...previewRest } = previewBody!
     const { note: _note, ...markRest } = markBody!
@@ -632,7 +632,7 @@ describe('the composer names, switches and refuses its test', () => {
 
 // THE STEP DOOR AND THE PAGE'S DOOR COUNT (426-04 · SC1, D-04, D-06). The page auto-selects the first
 // step, so on load there is the header door and the selected row's door; clearing the selection or
-// selecting a hook leaves the header door alone. The pills are gone (426-15), so these are the only doors.
+// selecting a hook leaves the header door alone. The pills are gone, so these are the only doors.
 const SETUP_HOOK = {
   id: 'hook-setup-1', runId: RUN_ID, stepId: null, type: 'hook', name: 'Seed catalog', hookId: 'seed',
   phase: 'setup', status: 'passed', duration: 120, stdout: null, stderr: null, returnData: null,
@@ -732,7 +732,7 @@ describe('the passive trace on a member header', () => {
   })
 })
 
-// THE COMPOSER IS A DOCKED COMPANION (426-05 · D-08, D-09). The target is pinned to what the person
+// THE COMPOSER IS A DOCKED COMPANION. The target is pinned to what the person
 // opened it for; the selection moves freely, and only an explicit act re-addresses the draft. Every
 // address keeps its own draft for the page session, in page state only.
 const fourSteps = projection({
@@ -858,7 +858,7 @@ describe('the pinned target and per-address drafts', () => {
   })
 })
 
-// FOCUS, KEYS AND THE RETAINED DRAFT (426-05 · D-07, D-09, 419-15). The composer takes focus when it
+// FOCUS, KEYS AND THE RETAINED DRAFT. The composer takes focus when it
 // opens and gives it back when it closes; it never lets a key reach the page's shortcut map; and a
 // retained outcome keeps the draft with its status and denial on its own address only.
 const heading = () => {
@@ -1020,7 +1020,7 @@ describe('the retained draft, per address', () => {
     await click('[data-feedback-entry="test"]')
     await pickFirstChoiceAndLandPreview(Promise.resolve({ kind: 'read', result: CONSEQUENCES }))
     await typeNote('keep this note')
-    // 2026-10-02 (432-42, D-15): no typed denial exists; a refused mark is a failed request, and the
+    // no typed denial exists; a refused mark is a failed request, and the
     // page answers it in its own words (MARK_FAILED_TEXT), so `reason` is only the error's message.
     markRunMock.mockRejectedValue(new Error(reason))
     await click('[data-feedback-submit]')
@@ -1060,7 +1060,7 @@ describe('the retained draft, per address', () => {
   })
 })
 
-// WHERE A TEST-LEVEL MARK LANDS, AND WHICH PREVIEW MAY AUTHORISE IT (426-06 · D-14, D-16, D-19). The
+// WHERE A TEST-LEVEL MARK LANDS, AND WHICH PREVIEW MAY AUTHORISE IT. The
 // resolved step is the read's own answer — its reason keys the sentence and nothing on the page scans
 // the steps. The preview on screen is exact: a note never re-fetches, an older answer never overwrites
 // a newer one, and Send feedback waits for the read computed for the form as it is now, while the last
@@ -1251,7 +1251,7 @@ describe('the preview on screen is exact', () => {
   })
 })
 
-// NO BLIND SUBMIT (426-07 · D-18, D-19). A quarantined mark still records; an identical repeat, a
+// NO BLIND SUBMIT. A quarantined mark still records; an identical repeat, a
 // refusal and a failed read leave Send feedback aria-disabled with its reason on the page, so the
 // button stays reachable and says why. Recording happens only on an explicit Send feedback — never
 // when a preview lands, on Enter in the note, or on Retry.
@@ -1501,7 +1501,7 @@ describe('the note in the composer', () => {
   })
 })
 
-// AFTERWARDS (426-09 · D-21, D-22). History is read when the composer opens, on every re-target and
+// AFTERWARDS. History is read when the composer opens, on every re-target and
 // after a matched receipt — never on mount — and an older read landing late is dropped. After a
 // matched receipt the composer stays open with the new mark first in the target's history. The
 // preview's replaced and already-said times come from that history, and nothing but the review
@@ -1678,7 +1678,7 @@ describe('the preview names its times from history', () => {
   })
 })
 
-// RE-SPELLED 432-09 (D-25) from '426-09 only the review command reaches the clipboard': no review
+// RE-SPELLED 432-09 from '426-09 only the review command reaches the clipboard': no review
 // command remains, so nothing on the page writes the clipboard, and history names what changed.
 describe('no review command, and nothing reaches the clipboard', () => {
   it('history names the applied change with no review control; typing a note or opening details writes nothing', async () => {
@@ -1722,7 +1722,7 @@ function settleable() {
   return { promise, resolve, reject }
 }
 
-// RE-SPELLED 2026-10-01 (432-14, D-14): the mark's approval — the question in the composer, the
+// RE-SPELLED 2026-10-01: the mark's approval — the question in the composer, the
 // claim on the page's confirm channel, the waiting link and the awaiting-approval state — is
 // deleted. Each cell keeps its subject (what the page shows while one mark is in flight, across a
 // close, across addresses, after a refusal and across a run change) and pins the one-request path.

@@ -93,7 +93,7 @@ function mount(element: ReactElement): HTMLElement {
   // A `MemoryRouter` because a routed reference renders a `<Link>`, and a `Link` outside a router
   // throws. The unrouted arm renders a span and would pass without one — which is exactly why both
   // arms are mounted the same way here. The provider is the one `tab-panels.tsx` wraps the tab in,
-  // because every bucket label is a tooltip trigger (427 D-16).
+  // because every bucket label is a tooltip trigger.
   act(() => { root?.render(<MemoryRouter><TooltipProvider delayDuration={0}>{element}</TooltipProvider></MemoryRouter>) })
   return container
 }
@@ -141,7 +141,7 @@ function rowsOf(host: HTMLElement): HTMLElement[] {
   return [...host.querySelectorAll<HTMLElement>("li[data-record-change]")]
 }
 
-// 427 D-15: a row is a bucket and what it leads with; its key is the index the view assigns.
+// a row is a bucket and what it leads with; its key is the index the view assigns.
 function row(overrides: Partial<LearnedRowView> = {}): LearnedRowView {
   return {
     key: "0",
@@ -346,7 +346,7 @@ describe("a settled curation that changed nothing says that, and lists nothing",
 })
 
 /**
- * LEARNED-BREAKDOWN-LINE AND LEARNED-LEGACY-NOTE, AT THE MOUNT (425-06 · D-16/D-17/D-18).
+ * LEARNED-BREAKDOWN-LINE AND LEARNED-LEGACY-NOTE, AT THE MOUNT.
  *
  * The heading's line is now the curation card's own breakdown string, and the note beneath it is
  * what a pre-423 or withheld row says about the breakdown it never recorded. The note is a SECOND
@@ -387,7 +387,7 @@ describe("the heading spells one number one way, and labels a coarser one", () =
 })
 
 /**
- * THE RECONCILIATION BLOCK, AT THE MOUNT (425-06 · D-19).
+ * THE RECONCILIATION BLOCK, AT THE MOUNT.
  *
  * TWO LINES AND TWO ATTRIBUTES, because the gap and its cause are two different claims: the first
  * is arithmetic the reader can check, the second is an account of it the read had to justify. A
@@ -541,7 +541,7 @@ describe("the record list is one row per affected record, in the curation bucket
   })
 
   /**
-   * A CONTENT-DERIVED BUNDLE ID IS ONE UNBROKEN TOKEN (407-23 · G-407-2). In the ledger's grid the
+   * A CONTENT-DERIVED BUNDLE ID IS ONE UNBROKEN TOKEN. In the ledger's grid the
    * value column is `minmax(0,1fr)` and every value breaks anywhere, so a long id shrinks its own
    * box rather than widening the section.
    */
@@ -640,7 +640,7 @@ describe("a curated NEW fact is painted, not denied", () => {
   })
 
   // RE-SPELLED 427-09 from "paints the added record's row and no sentence at all": the rows are
-  // still the answer with no sentence over them, and every bucket word now explains itself (D-16).
+  // still the answer with no sentence over them, and every bucket word now explains itself.
   it("BUCKET-LABEL-MEANINGS: every bucket label is a button named by its word, whose tooltip and one description are its meaning", async () => {
     const buckets = ["added", "confirmed", "superseded", "deprecated", "proposed"] as const
     const host = render({
@@ -739,7 +739,7 @@ describe("an unreadable store is stamped on the root, never inferred from an emp
     const section = host.querySelector("[data-learned-state]")
     expect(section?.hasAttribute("data-learned-read")).toBe(false)
     expect(stateOf(host)).toBe("complete")
-    // AND NO NOTE AT ALL (407-18). An empty paragraph beneath a clean read would be a degradation
+    // AND NO NOTE AT ALL. An empty paragraph beneath a clean read would be a degradation
     // stamp nobody earned; the element is absent, not blank.
     expect(host.querySelector("[data-learned-read-note]")).toBeNull()
   })
@@ -815,7 +815,7 @@ describe("a partial read is painted beside the rows, and beneath an unsettled se
   })
 })
 
-// RE-SPELLED 432-09 (D-25) from 'the proposals line is a count and a door (D-11, T-407-22)': the half
+// RE-SPELLED 432-09 from 'the proposals line is a count and a door': the half
 // shows what changed; no pending-proposals line, review command or copy control is rendered, in any state.
 describe("no pending-proposals line or review command is rendered", () => {
   it.each([
@@ -973,7 +973,7 @@ describe("a failed chain keeps its learned rows beside the snapshot sections", (
     const host = render(view)
     const section = sectionOf(host)
 
-    // RE-SPELLED 427-08 (D-15). The rows are the snapshot's five affected records, not its six
+    // RE-SPELLED 427-08. The rows are the snapshot's five affected records, not its six
     // changes: the supersession is ONE row led by its replacement, so the counts and the rows agree
     // and the "5 changes counted · 6 shown" block this cell used to pin cannot appear.
     expect(view.curationSnapshot?.breakdown).toEqual(snapshot.breakdown)

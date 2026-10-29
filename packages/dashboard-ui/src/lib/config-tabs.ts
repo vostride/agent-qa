@@ -1,4 +1,4 @@
-// THE CONFIG PAGE'S CLOSED VOCABULARY (429 D-02/D-03/D-04 · PXH-CONF-01).
+// THE CONFIG PAGE'S CLOSED VOCABULARY.
 //
 // One pure module owns every tab id, section id and UI state word the Config page, the command
 // palette and the product tour share, plus the total map from the 21 live legacy `bucket:item`

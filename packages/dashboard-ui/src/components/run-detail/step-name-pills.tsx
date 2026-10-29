@@ -1,4 +1,4 @@
-// THE TREE'S PRIMARY LABEL IS A PRODUCER STRING, rendered as the stored text (D-28). A durable
+// THE TREE'S PRIMARY LABEL IS A PRODUCER STRING, rendered as the stored text. A durable
 // step has no `originalStepName`, so `parseRedactedSecretSegments(step.name)` turns each stored
 // `[secret:NAME]` into a variable pill whose visible text is that marker as written.
 

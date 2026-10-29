@@ -1,4 +1,4 @@
-// The dashboard renders a denial's plain reason only. 2026-10-01 (432-19, D-15): there is no remedy
+// The dashboard renders a denial's plain reason only. 2026-10-01: there is no remedy
 // vocabulary to project, so the block has one line and no way to grow a suggested command.
 //
 // 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW pillars 2-3): a refusal is a hard stop, so it wears the

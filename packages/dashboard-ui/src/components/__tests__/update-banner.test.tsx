@@ -337,7 +337,7 @@ describe('app shell update banner route gate', () => {
     expect(provider).not.toBeNull()
     expect(provider?.getAttribute('data-pathname')).toBe('/runs')
     expect(provider?.getAttribute('data-hide-header')).toBe('false')
-    // 430 (2026-09-28, D-04): the shell holds no conversation mount. Exact equality, so a mount
+    // 430: the shell holds no conversation mount. Exact equality, so a mount
     // that returns reds wherever it is inserted.
     expect(
       Array.from(provider?.children ?? []).map((element) =>

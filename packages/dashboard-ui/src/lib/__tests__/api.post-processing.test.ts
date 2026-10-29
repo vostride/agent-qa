@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// THE PAGE'S ONLY CHIP PRODUCER (404-07 · LIFE-03/LIFE-04, D-17/D-18/D-21/D-22/D-23).
+// THE PAGE'S ONLY CHIP PRODUCER.
 //
 // WHAT THIS FILE BINDS. `fetchPostProcessing` is the one door the chips are ever painted from,
 // and `watchPostProcessing` is the thing that decides WHEN to ask it again. D-17 is the law both
@@ -10,7 +10,7 @@
 // handed `running` — a client that painted the envelope would answer `done` there.
 //
 // THE STREAM LIFECYCLE IS THE OTHER HALF, and it is the part a count assertion gets wrong. The
-// dedicated stream only ever carries THIS process's own drain (404-05 D-16), so it is worth opening
+// dedicated stream only ever carries THIS process's own drain, so it is worth opening
 // exactly while this process may still turn out to be the drainer — `disposition: 'drained'`, or no
 // disposition yet, which in the D-13 flow is where the page ARRIVES (the viewer is moved on the
 // `verdict` envelope, before `runFinished` is durable). The open decision is therefore re-evaluated

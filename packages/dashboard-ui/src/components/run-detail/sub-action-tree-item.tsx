@@ -8,7 +8,7 @@ interface SubActionTreeItemProps {
   sub: RunDetailSubAction
   /** The owning step's key — see `runDetailStepKey`. */
   stepId: string
-  /** Whether the owning step was served from cache (D-16). */
+  /** Whether the owning step was served from cache. */
   cached: boolean
   isSelected: boolean
   isPlayheadRow?: boolean

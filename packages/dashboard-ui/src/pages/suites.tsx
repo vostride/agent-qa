@@ -61,7 +61,7 @@ interface SuiteListRow {
   suiteId: string | null
   name: string
   platform: string | null
-  // 2026-10-18 (444-31, D-64): false while the batch read has not named this file; its rate,
+  // false while the batch read has not named this file; its rate,
   // last-run and target cells stay empty and no status filter lists it.
   historyKnown: boolean
   lastRunStatus: string | null
@@ -163,7 +163,7 @@ export default function SuitesPage() {
     }
   }, [])
 
-  // 2026-10-18 (444-31, D-64): every per-row figure is the server's, over the suite's own history.
+  // every per-row figure is the server's, over the suite's own history.
   const data: SuiteListRow[] = useMemo(() => suiteFiles.map((sf) => {
     const summary = summaries?.get(normalizeSuitePath(sf.path))
     const lastRun = summary?.lastRun ?? null

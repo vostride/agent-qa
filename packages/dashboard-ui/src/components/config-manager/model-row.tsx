@@ -641,7 +641,7 @@ function ModelPanel({
   const [replacing, setReplacing] = useState(false)
   const replaceButton = useRef<HTMLButtonElement>(null)
   const focusReplaceNext = useRef(false)
-  // D-17: Sign in again is the add row's sign-in for the saved name; the test runs once it completes.
+  // Sign in again is the add row's sign-in for the saved name; the test runs once it completes.
   const signInFlow = useSignInFlow({
     onCompleted: () => {
       onCredentialSaved()

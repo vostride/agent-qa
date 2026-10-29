@@ -47,7 +47,7 @@ import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
  *    carry it — the reducer dropped those fields at ingest and the props never name them.
  *  - HNST-02: a status, never a phase word, because the page has no way to know what happens
  *    between two sub-actions and will not guess. Since 428 D-19/D-20 a row carries no count and no
- *    clock either, and since the owner's 2026-09-26 review (G-428-5) its running glyph is still;
+ *    clock either, and since the owner's 2026-09-26 review its running glyph is still;
  *    durations live in run detail.
  *  - HNST-03, AS 428 D-03 LEFT IT: the page makes no claim about the bus channel at all. There is
  *    no liveness pill and no pulsing icon; a dead bus shows as rows that stop advancing, and the
@@ -63,16 +63,16 @@ import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
  * answer exists; `runFinished` comes after the post-verdict step, which D-10 says never gates
  * anything a person sees. Navigating on the later one would tie a person's screen to a lease
  * consult and a durable enqueue. The reducer takes the FIRST verdict and drops any second
- * (403-04 D-4), so the effect below keyed on that field fires exactly once per run.
+ * so the effect below keyed on that field fires exactly once per run.
  *
  * AND IT REPLACES HISTORY. Back returns to wherever the person came from — never to a live page
  * whose socket the door has already closed, which is a screen that would immediately move them
  * forward again. The arrival carries ONE field of navigation state, `arrivedOnVerdict`, which is
  * the only thing run detail cannot work out for itself: the run row's status is written by the
  * dashboard subscriber at the SAME envelope, so a `fetchRun` a millisecond later may still read
- * `running` and would otherwise bounce the viewer straight back here (D-07, T-404-15).
+ * `running` and would otherwise bounce the viewer straight back here.
  *
- * THE TERMINAL BAND SURVIVES AS THE HONEST FALLBACK (D-14), rendered on exactly the paths where
+ * THE TERMINAL BAND SURVIVES AS THE HONEST FALLBACK, rendered on exactly the paths where
  * navigation CANNOT happen — a `runFinished` observed with no verdict at all (a malformed
  * producer), and a close the door classifies past the end of its retention window, where the
  * replay delivers no verdict to move on. A page that deleted the band would show a run that ended
@@ -121,7 +121,7 @@ export default function LiveRunPage() {
 
   // The resume point for the NEXT attach. Read from the reducer's `lastSeq` (the HIGHEST seq seen)
   // rather than tracked here off render order: a resume point that walked backward on an
-  // out-of-order delivery would re-open a gap this viewer had already been served (403-04).
+  // out-of-order delivery would re-open a gap this viewer had already been served.
   const resumeRef = useRef<number | undefined>(undefined)
   const stateRef = useRef(state)
   stateRef.current = state
@@ -129,7 +129,7 @@ export default function LiveRunPage() {
   // so D-15's refusal to hammer a settled door survives the not-yet probe below.
   const notYetAttemptsRef = useRef(0)
 
-  // 428 D-06: the page's own inline size decides docked or stacked. 0 until the observer reports,
+  // the page's own inline size decides docked or stacked. 0 until the observer reports,
   // and an unmeasured page is docked. The observer only sets a width; the layout is a pure function
   // of it, so it cannot feed back into the size it measures.
   const [pageRoot, setPageRoot] = useState<HTMLDivElement | null>(null)
@@ -199,7 +199,7 @@ export default function LiveRunPage() {
         if (errored.readyState !== SOURCE_CLOSED) return
 
         // A CLOSED source is one wordless event standing for three different situations, so the
-        // page asks the door which one it was rather than guessing from `readyState` (403-04).
+        // page asks the door which one it was rather than guessing from `readyState`.
         if (stateRef.current.terminal) return
 
         const lastSeq = stateRef.current.lastSeq
@@ -285,13 +285,13 @@ export default function LiveRunPage() {
     const toastOptions = { id: `cancel-${id}` }
     cancelRun(id)
       .then((result) => {
-        // 2026-10-17 (444-07, D-31): a stop request is not a cancel; the verdict sets the status.
+        // a stop request is not a cancel; the verdict sets the status.
         if (typeof result.message !== 'string') toast.error('Failed to cancel run', toastOptions)
         else if (result.outcome === 'cancelled') toast.success(result.message, toastOptions)
         else toast.info(result.message, toastOptions)
       })
       .catch((error: unknown) => {
-        // 442 D-09, 444 D-31: only the 409 refusals are worded for a person.
+        // only the 409 refusals are worded for a person.
         const refused = error instanceof ApiError && error.status === 409
         toast.error(refused ? error.message : 'Failed to cancel run', toastOptions)
       })
@@ -313,7 +313,7 @@ export default function LiveRunPage() {
   // no-verdict reasoning.
   const bandsTerminal = state.terminal && state.verdict === undefined
 
-  // The rung the FIRST evidence-carrying frame reported, if one has arrived (407-10 · D-14). Named
+  // The rung the FIRST evidence-carrying frame reported, if one has arrived. Named
   // here rather than read twice in the JSX below, so the strip's visibility condition and the
   // element inside it can never come apart.
   const rung = state.retrievalRung
@@ -370,10 +370,10 @@ export default function LiveRunPage() {
     <div ref={setPageRoot} className="flex h-full min-h-0 min-w-0 flex-col overflow-hidden">
       <div className="flex h-14 shrink-0 items-center justify-between gap-2 border-b px-3">
         {/*
-          THE HEADER IS FOUR THINGS (428 D-04): the title and the file path here, Cancel while the
+          THE HEADER IS FOUR THINGS: the title and the file path here, Cancel while the
           run is running and the link to run detail on the right. The product tour's live-run
           anchor sits on this title group, so the tour step points at the name of the run being
-          watched. Nothing here pulses or speaks about the bus channel (D-03).
+          watched. Nothing here pulses or speaks about the bus channel.
         */}
         <div data-tour-id="tour-live-run-status" className="flex min-w-0 items-center gap-2">
           <div className="min-w-0">
@@ -404,7 +404,7 @@ export default function LiveRunPage() {
       </div>
 
       {/*
-        THE HEADER'S SECOND LINE, AND THE RUNG JOINS IT RATHER THAN OPENING A PANE (407-10 · D-14).
+        THE HEADER'S SECOND LINE, AND THE RUNG JOINS IT RATHER THAN OPENING A PANE.
         403's two-pane rule is not negotiable here: the strip already exists, it already wraps, and
         a run whose retrieval was degraded has one more short sentence to say — not a third region.
         The rung is in the visibility condition on its own, because it can be the ONLY thing the

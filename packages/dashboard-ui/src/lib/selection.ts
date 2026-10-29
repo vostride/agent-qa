@@ -1,6 +1,6 @@
 // WHAT THE RUN-DETAIL PAGE HAS SELECTED.
 //
-// THE STEP KEY IS MEMBER-SCOPED (405-08 · D-16). A durable step has no id of its own — it is
+// THE STEP KEY IS MEMBER-SCOPED. A durable step has no id of its own — it is
 // addressed by the pair `(testIndex, stepIndex)`, the handle plus the ordinal — so the key this
 // union carries is that pair, spelled once, by {@link runDetailStepKey}. Until 405-08 the
 // disambiguator was the child run's id (`?run=<childRunId>`), which came from the parent/child
@@ -27,7 +27,7 @@ export type SubactionSelection = Extract<Selection, { type: 'subaction' }>
 const STEP_KEY_SEPARATOR = ':'
 
 /**
- * The key one durable step is selected and deep-linked by — `<testIndex>:<stepIndex>` (D-16).
+ * The key one durable step is selected and deep-linked by — `<testIndex>:<stepIndex>`.
  *
  * Both halves are non-negative integers the projection produced, so the key is total, stable
  * across reloads and orderable without parsing.
@@ -39,7 +39,7 @@ export function runDetailStepKey(testIndex: number, stepIndex: number): string {
 /**
  * Read a step key back into its pair, or answer `null`.
  *
- * IT NEVER THROWS AND IT NEVER GUESSES (T-405-25). `?step=` is attacker-adjacent and
+ * IT NEVER THROWS AND IT NEVER GUESSES. `?step=` is attacker-adjacent and
  * hand-editable; anything that is not two non-negative integers answers `null`, and the page falls
  * back to its first step. The failure mode of a wrong answer here is landing on the top of the
  * tree, never on a row belonging to someone else's member.

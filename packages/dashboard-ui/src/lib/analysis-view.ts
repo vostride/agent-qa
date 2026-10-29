@@ -3,7 +3,7 @@
 // Phase 406-01 · DETL-04, D-03 / D-05 / D-10. Grown in 406-06 · D-08 / D-09 / D-10 / D-11 / D-19.
 //
 // THIS FILE COMPOSES NO SENTENCE, AND THAT IS THE POINT. `analysis.get` is THE single producer of
-// a run's verdict sentences (389 D-11), written by `packages/agent/src/analysis/render-sentence.ts`.
+// a run's verdict sentences, written by `packages/agent/src/analysis/render-sentence.ts`.
 // Every surface, the CLI print, CLI chat and this page, reads its output rather than re-deriving it.
 // A template here would be a second producer of one fact, which is the 405 D-01 anti-pattern
 // restated. What this module does is JOIN: the
@@ -21,14 +21,14 @@
 // per-run explicit id the projection does not key members by — and never array position, which
 // would pair the first verdict with the first sentence whatever member each is about.
 //
-// THE VERDICT IS WHAT KEYS AN ENTRY, NOT THE SENTENCE (406-06). A verdict the renderer has not
+// THE VERDICT IS WHAT KEYS AN ENTRY, NOT THE SENTENCE. A verdict the renderer has not
 // answered for yet is kept, with an empty sentence: it still carries the `producer`, the
 // `confidence` and — through the chip — the marker, which is exactly what a reader needs while the
 // sentence is still coming. A SENTENCE with no verdict is still dropped; there is no producer to
 // attribute it to and no outcome to grade it against. (406-01 dropped both; this widening is the
 // one behaviour 406-06 supersedes, and its cell says so.)
 //
-// THE LIFECYCLE'S ONLY INPUT IS THE CHIP WORD (D-09 / D-11). `provisional` while the chain is
+// THE LIFECYCLE'S ONLY INPUT IS THE CHIP WORD. `provisional` while the chain is
 // `pending` or `running`, `failed` when it permanently fell back, nothing when it is `done` or when
 // no read has landed. It is NEVER inferred from the sentence's text. The deterministic floor closes
 // its sentences with an undetermined-cause clause, and a projection that sniffed for that wording
@@ -50,19 +50,19 @@ import type {
 } from '@vostride/agent-qa-schema'
 
 export type OnMark = (testIndex: number, stepIndex: number | undefined, kind: Mark, note?: string) => Promise<'refreshed' | 'retained' | 'stale'>
-/** 432-09 (D-15): a refused mark, as a plain reason. */
+/** a refused mark, as a plain reason. */
 export interface MarkDenial { reason: string }
 
-/** The provenance chip when the model authored this verdict (D-10). */
+/** The provenance chip when the model authored this verdict. */
 export const LLM_VERDICT_LABEL = 'LLM verdict'
 
-/** The provenance chip when nothing but the deterministic classifier spoke (D-10). */
+/** The provenance chip when nothing but the deterministic classifier spoke. */
 export const DETERMINISTIC_FALLBACK_LABEL = 'deterministic fallback'
 
-/** The marker beside a sentence the chain may still upgrade (D-09). */
+/** The marker beside a sentence the chain may still upgrade. */
 export const ANALYSIS_PROVISIONAL_TEXT = 'analysis running — this may upgrade'
 
-/** The marker beside a sentence the chain will never upgrade, because it failed (D-11). */
+/** The marker beside a sentence the chain will never upgrade, because it failed. */
 export const ANALYSIS_FAILED_FALLBACK_TEXT = 'analysis failed — showing deterministic fallback'
 
 /**
@@ -73,10 +73,10 @@ export const ANALYSIS_FAILED_FALLBACK_TEXT = 'analysis failed — showing determ
  */
 export type AnalysisChipWord = PostProcessingChipStatus | undefined
 
-/** What the block warns about, when there is anything to warn about (D-09 / D-11). */
+/** What the block warns about, when there is anything to warn about. */
 export type MemberVerdictMarker = 'provisional' | 'failed'
 
-/** One sibling of a member's cluster: the join keys a link needs, nothing more (389 D-16). */
+/** One sibling of a member's cluster: the join keys a link needs, nothing more. */
 export interface MemberVerdictSibling {
   readonly testIndex: number
   readonly testId: string
@@ -86,11 +86,11 @@ export interface MemberVerdictSibling {
 export interface MemberVerdictArtifact {
   readonly id: string
   readonly sha: string
-  /** `present === false` OR `evidenceIncomplete === true` — presence-UNKNOWN is neither (D-17). */
+  /** `present === false` OR `evidenceIncomplete === true` — presence-UNKNOWN is neither. */
   readonly incomplete: boolean
 }
 
-/** How many of a member's cited artifacts are gone, out of how many it cited (D-19). */
+/** How many of a member's cited artifacts are gone, out of how many it cited. */
 export interface MemberVerdictMissingEvidence {
   readonly missing: number
   readonly total: number
@@ -105,21 +105,21 @@ export interface MemberVerdictView {
   readonly sentence: string
   readonly producer: AnalysisResolvedVerdict['producer']
   readonly confidence: number
-  /** This product's own words about the two fields above (D-10). */
+  /** This product's own words about the two fields above. */
   readonly provenance: string
-  /** The chip word's marker, absent on a terminal chain and on an unread one (D-09 / D-11). */
+  /** The chip word's marker, absent on a terminal chain and on an unread one. */
   readonly marker?: MemberVerdictMarker
   /** The marker's exported sentence — present exactly when `marker` is. */
   readonly markerText?: string
-  /** The step ordinals this verdict read, in the producer's order (D-01 / D-02). */
+  /** The step ordinals this verdict read, in the producer's order. */
   readonly citedSteps: readonly number[]
-  /** The artifacts this verdict read, each with its rendered absence state (D-01 / D-19). */
+  /** The artifacts this verdict read, each with its rendered absence state. */
   readonly citedArtifacts: readonly MemberVerdictArtifact[]
-  /** The other members of this member's cluster, self excluded, producer order kept (D-08). */
+  /** The other members of this member's cluster, self excluded, producer order kept. */
   readonly siblings: readonly MemberVerdictSibling[]
   /** The sibling line — present exactly when `siblings` is non-empty. */
   readonly siblingText?: string
-  /** The member-level absence count — present only when something is actually gone (D-19). */
+  /** The member-level absence count — present only when something is actually gone. */
   readonly missingEvidence?: MemberVerdictMissingEvidence
   /** The count line — present exactly when `missingEvidence` is. */
   readonly missingEvidenceText?: string
@@ -128,7 +128,7 @@ export interface MemberVerdictView {
 }
 
 /**
- * The provenance chip's reading (D-10).
+ * The provenance chip's reading.
  *
  * A CONFIDENCE ONLY WHERE THERE IS ONE TO READ. `analyze-run` authors a number a reader can weigh;
  * the deterministic floor mints `confidence: 0` for every `unknown` it fills in, and printing
@@ -144,7 +144,7 @@ export function provenanceLabel(
 }
 
 /**
- * The chip word's marker — the WHOLE lifecycle rule, in one total switch (D-09 / D-11).
+ * The chip word's marker — the WHOLE lifecycle rule, in one total switch.
  *
  * `complete` and "no read yet" both answer nothing, and they answer it for different reasons: a
  * terminal chain has nothing left to warn about, and a page that has not heard from the read route
@@ -171,7 +171,7 @@ function markerTextFor(marker: MemberVerdictMarker | undefined): string | undefi
 }
 
 /**
- * The affordance on a step the verdict cited (D-02).
+ * The affordance on a step the verdict cited.
  *
  * THE ORDINAL IS THE PRODUCER'S, NOT THE TREE'S. The sentence directly above this row quotes the
  * same step as `observed (step N)`, and the step is addressed by `<testIndex>:<stepIndex>` in the
@@ -192,7 +192,7 @@ export function citedStepLabel(stepIndex: number): string {
  */
 export const CITED_ARTIFACT_LABEL = 'screenshot'
 
-/** The cluster sibling line (D-08). Counts the SIBLINGS, so "other" is literally true. */
+/** The cluster sibling line. Counts the SIBLINGS, so "other" is literally true. */
 export function siblingLine(count: number): string {
   return `same failure as ${String(count)} other ${count === 1 ? 'test' : 'tests'}`
 }
@@ -227,7 +227,7 @@ function readMemoryOnPath(
 }
 
 /**
- * The member-level count beside a block whose evidence is partly gone (D-19).
+ * The member-level count beside a block whose evidence is partly gone.
  *
  * THE PLURAL KEYS ON THE TOTAL, not on the missing count, because the noun it agrees with is
  * "cited artifacts" — the set the member cited, not the subset that vanished.
@@ -238,7 +238,7 @@ export function missingEvidenceLine(count: MemberVerdictMissingEvidence): string
 }
 
 /**
- * The op's answer, keyed by member handle (D-05).
+ * The op's answer, keyed by member handle.
  *
  * TOTAL over every input the page can hold: `undefined` while the first read is in flight or after
  * a rejected one, an empty `verdicts[]` on a green run, a verdict the op listed with no matching
@@ -281,7 +281,7 @@ export function projectAnalysisView(
     const citedArtifacts = (verdict.evidence?.citedArtifacts ?? []).map((ref) => ({
       id: ref.id,
       sha: ref.sha,
-      // PRESENCE-UNKNOWN IS NOT AN ABSENCE (406-03 / D-17). A host that cannot cheaply stat its
+      // PRESENCE-UNKNOWN IS NOT AN ABSENCE. A host that cannot cheaply stat its
       // blobs omits `present` entirely, and `!ref.present` would render that omission as a claimed
       // deletion. The predicate is `=== false`, and it is spelled that way on purpose.
       incomplete: ref.present === false || ref.evidenceIncomplete === true,

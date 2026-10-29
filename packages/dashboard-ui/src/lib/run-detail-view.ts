@@ -4,7 +4,7 @@
 // Phase 405-06 · DETL-01 / DETL-02 / DETL-03, D-06 / D-10 / D-15 / D-16 / D-17 / D-18, RESEARCH D2.
 //
 // EVERY PUBLISHED SENTENCE IS AN EXPORTED CONSTANT (403-05 D-5, the `post-processing-view.ts`
-// idiom). The tree (405-08) and the overview (405-11) assert their copy BY CONSTANT rather than by
+// idiom). The tree and the overview assert their copy BY CONSTANT rather than by
 // string, so a sentence moves in one place and its cells move with it; prose inlined in a component
 // is prose that drifts from prose inlined in a test, and both of them stay green while the page
 // says two different things.
@@ -14,7 +14,7 @@
 // the read did not report — the 399.1 render contract, restated for run detail.
 //
 // ABSENT IS NOT ZERO, AND IT IS THE LOAD-BEARING RULE OF THIS FILE. `RunTokenTotals` omits its three
-// sums entirely when nothing was measured (D-06), because "no step reported usage" and "every step
+// sums entirely when nothing was measured, because "no step reported usage" and "every step
 // reported zero" are different facts about a run. No sum below is ever defaulted to zero when it is
 // absent: a default would convert "nobody measured this" into "this was free" at the exact layer a
 // person reads, which is the one place that lie is unrecoverable. 425-05 greps this file for the
@@ -36,7 +36,7 @@ import { DID_NOT_RUN_NOTE } from './run-stream-reducer'
 // ---------------------------------- copy ----------------------------------
 
 /**
- * What a member with no steps renders as (D-16 / D-18).
+ * What a member with no steps renders as.
  *
  * The VALUE is the live reducer's {@link DID_NOT_RUN_NOTE}, not a second spelling of it: the live
  * page and the durable page describe the same member, and two constants that happen to agree today
@@ -44,14 +44,14 @@ import { DID_NOT_RUN_NOTE } from './run-stream-reducer'
  */
 export const DID_NOT_RUN_LABEL: string = DID_NOT_RUN_NOTE
 
-/** What the token line says when the run carries no measurement at all (D-06). */
+/** What the token line says when the run carries no measurement at all. */
 export const TOKENS_NOT_MEASURED_LABEL = 'tokens not measured'
 
-/** The usage card's heading over a run that spoke to more than one model identity (D-23). */
+/** The usage card's heading over a run that spoke to more than one model identity. */
 export const MODELS_HEADING = 'Models'
 
 /**
- * The accessible name of the header's token line, which is a TRIGGER and not a destination (D-21).
+ * The accessible name of the header's token line, which is a TRIGGER and not a destination.
  *
  * The line is a focusable `span`, never a button: a button promises somewhere to go and the card
  * behind this one is the whole of what there is to see. The name says what focusing it opens,
@@ -61,7 +61,7 @@ export const MODELS_HEADING = 'Models'
 export const TOKEN_USAGE_TRIGGER_LABEL = 'Token usage — details'
 
 /**
- * The honest state for a ref whose blob is gone or was never written (406-05 · D-17 / D-18).
+ * The honest state for a ref whose blob is gone or was never written.
  *
  * THE THIRD ABSENCE VOCABULARY, and the reason it has its own word. A masked chip says a value was
  * redacted ON PURPOSE and the page could have shown it under another config; the read-unavailable
@@ -86,7 +86,7 @@ export const EVIDENCE_INCOMPLETE_LABEL = 'evidence incomplete'
 export const SCREENSHOT_UNAVAILABLE_LABEL: string = EVIDENCE_INCOMPLETE_LABEL
 
 /**
- * What the tree says when the durable read itself FAILED (405-08 · D-03).
+ * What the tree says when the durable read itself FAILED.
  *
  * Distinct from an empty projection on purpose. A run that recorded no steps and a run whose
  * detail could not be read are different facts, and rendering both as an empty tree would make a
@@ -109,7 +109,7 @@ export interface RunDetailStepGroup {
   readonly subActions: readonly RunDetailSubAction[]
 }
 
-/** One member of the run and everything the projection recorded beneath it (D-16). */
+/** One member of the run and everything the projection recorded beneath it. */
 export interface RunDetailGroup {
   readonly member: RunDetailMember
   readonly steps: readonly RunDetailStepGroup[]
@@ -121,16 +121,16 @@ function stepKey(testIndex: number, stepIndex: number): string {
 }
 
 /**
- * Fold the three flat row arrays into the tree the page draws (D-16 / D-18).
+ * Fold the three flat row arrays into the tree the page draws.
  *
  * ONE GROUP PER MEMBER, always — including a member with no steps at all, whose stream began with a
- * terminal event (D-18). Omitting it would render a suite as though it had fewer tests than it ran,
+ * terminal event. Omitting it would render a suite as though it had fewer tests than it ran,
  * and blank rows under a green tick read as "it passed everything", which is a lie about a member
  * that never started.
  *
  * A step whose `testIndex` names no member row is not renderable under a member header and is not
  * given an invented one. That cannot occur on the shipped producer — the subscriber writes a member
- * row for every handle, including a thin one (405-01) — so this is a totality property of the fold
+ * row for every handle, including a thin one — so this is a totality property of the fold
  * rather than a case the page has to explain.
  */
 export function groupRunDetail(projection: RunDetailProjection): RunDetailGroup[] {
@@ -166,7 +166,7 @@ export function groupRunDetail(projection: RunDetailProjection): RunDetailGroup[
 
 // --------------------------------- filter ---------------------------------
 
-/** The default: every member, no narrowing (D-16). */
+/** The default: every member, no narrowing. */
 export const MEMBER_FILTER_ALL = 'all'
 
 /** What the member filter can be — the default word, or one member's handle. */
@@ -199,7 +199,7 @@ export function parseMemberFilter(raw: string | null | undefined): MemberFilter 
 // ------------------------------ member copy -------------------------------
 
 /**
- * The note that goes under a member header, or nothing (D-18).
+ * The note that goes under a member header, or nothing.
  *
  * Only ONE note exists: a member that produced no step did not run. The member's own
  * `failureSummary` ("skipped by fail-fast", "budget exhausted") is the PRODUCER's sentence and is
@@ -214,10 +214,10 @@ export function memberNote(
 }
 
 /**
- * What a member header calls the member (D-16).
+ * What a member header calls the member.
  *
  * A member row carries a `name` only when the producer knew one; a thin member whose stream began
- * with a terminal event may carry nothing but its handle (D-18). The fallback names the member by
+ * with a terminal event may carry nothing but its handle. The fallback names the member by
  * its ORDINAL POSITION rather than by an invented identity — "Test 2" is a statement about where
  * this member sits in the run, which is true, where a synthesised title would be a claim about
  * what the test was, which nobody recorded.
@@ -240,7 +240,7 @@ export function memberHandleLabel(testIndex: number): string {
 }
 
 /**
- * What the member header says about a re-run (D-17).
+ * What the member header says about a re-run.
  *
  * `attempts` is an ORDINAL that starts at 1; the phrase counts RE-RUNS, so it is one less. A member
  * on its first attempt says nothing at all — "re-ran after failure x0" would be a sentence about an
@@ -253,7 +253,7 @@ export function reranLabel(attempts: number): string | undefined {
 // -------------------------- token line and usage --------------------------
 
 /**
- * Full digits, grouped — the CARD's number format (425-05 · D-24).
+ * Full digits, grouped — the CARD's number format.
  *
  * The header stays compact (`103.1K`) because it is a glance and a glance wants a shape; the card
  * is where someone checks a number against an invoice, and `103.1K` cannot be checked against
@@ -263,13 +263,13 @@ export function reranLabel(attempts: number): string | undefined {
 const fullTokens = new Intl.NumberFormat('en-US')
 
 /**
- * What the header says a measured run spent, as a labelled pair (425-05 · D-21).
+ * What the header says a measured run spent, as a labelled pair.
  *
  * THE PAIR IS AS CAPABLE OF LYING AS THE SUM IT REPLACES, so it is guarded the same way: absent
  * sums select {@link TOKENS_NOT_MEASURED_LABEL}, and a genuinely measured zero reads `0 in · 0 out`
  * — a measurement, not an absence. No absent sum is defaulted to zero here, and none can be.
  *
- * COVERAGE IS NOT IN THIS SENTENCE (D-22). "2 of 3 steps" is a caveat about the number, and the
+ * COVERAGE IS NOT IN THIS SENTENCE. "2 of 3 steps" is a caveat about the number, and the
  * header is a glance; the caveat lives in the card, where a reader who wants it is already looking.
  */
 export function tokenPairLine(tokens: RunTokenTotals): string {
@@ -281,7 +281,7 @@ export function tokenPairLine(tokens: RunTokenTotals): string {
 }
 
 /**
- * The card's first line: the same spend, spelled out (425-05 · D-24).
+ * The card's first line: the same spend, spelled out.
  *
  * It states the total AND the pair rather than only the total, because the header's compact pair
  * is what a reader is checking when they open the card — a card that answered a different question
@@ -301,7 +301,7 @@ export function usageTotalsLine(tokens: RunTokenTotals): string {
 }
 
 /**
- * How much of the run the totals actually cover — only when that is less than all of it (D-22).
+ * How much of the run the totals actually cover — only when that is less than all of it.
  *
  * A fully measured run renders NOTHING: "3 of 3 steps" is a sentence that adds no fact and costs a
  * line in a card whose whole discipline is that every line is a fact someone reported. The owner
@@ -311,7 +311,7 @@ export function usageCoverageLine(tokens: RunTokenTotals): string | undefined {
   const { measuredSteps, unmeasuredSteps } = tokens
   // Nothing measured is not an undercount of a total: there is no total. The totals line has
   // already said nobody measured this run, and a second sentence claiming those totals exist and
-  // are low is the absent-vs-zero collapse this file's header rule refuses (425-14 · WR-02).
+  // are low is the absent-vs-zero collapse this file's header rule refuses.
   if (unmeasuredSteps === 0 || measuredSteps === 0) return undefined
   const allSteps = measuredSteps + unmeasuredSteps
   return `measured ${String(measuredSteps)} of ${String(allSteps)} steps — totals are an undercount`
@@ -357,7 +357,7 @@ function identityText(entry: { provider?: string; modelId: string }): string {
 }
 
 /**
- * Who answered this run, from the durable summary and from nowhere else (425-05 · D-23).
+ * Who answered this run, from the durable summary and from nowhere else.
  *
  * NO SUMMARY IS NO LINE. A pre-423 run recorded no model identity, and the run row's legacy
  * `modelName` / `llmProvider` are NOT a fallback: they name what the host was configured with at
@@ -439,7 +439,7 @@ export function screenStateChangeLabel(subAction: RunDetailSubAction): string {
 // ------------------------------- page chrome ------------------------------
 
 /**
- * Whether the page draws member grouping chrome at all (D-16).
+ * Whether the page draws member grouping chrome at all.
  *
  * A single-member run has nothing to group and nothing to filter; a header and a picker over one
  * item is chrome that asks the reader to make a choice they do not have.
@@ -451,7 +451,7 @@ export function showMemberChrome(projection: Pick<RunDetailProjection, 'members'
 // ------------------------- the decision screenshot -------------------------
 
 /**
- * The id prefix the evidence store mints a decision screenshot under (405-11 · D-14 / D-15).
+ * The id prefix the evidence store mints a decision screenshot under.
  *
  * A sub-action's `artifactRefs` is an open list — the producer is free to attach other evidence to
  * the same turn — so the overview SELECTS by this prefix rather than taking the first entry. Taking
@@ -469,7 +469,7 @@ export const DECISION_SCREENSHOT_REF_PREFIX = 'decision-screenshot:'
  * screen may have moved for reasons this action did not cause, and a caption claiming otherwise is
  * a lie a reader cannot check.
  *
- * It answers the DETAIL-side ref (406-05 · D-17), not the runner's narrower mint, because the read
+ * It answers the DETAIL-side ref, not the runner's narrower mint, because the read
  * annotated presence onto these rows and the pane's whole decision turns on that field. Returning
  * the producer's shape would hide `present` from the one caller that exists to read it.
  */
@@ -480,7 +480,7 @@ export function decisionScreenshotRef(
 }
 
 /**
- * One step's spend, in the shape {@link tokenPairLine} reads (D-06).
+ * One step's spend, in the shape {@link tokenPairLine} reads.
  *
  * ABSENT STAYS ABSENT. A step that reported no usage becomes one UNMEASURED step and carries no
  * sums at all, so the line says "tokens not measured" rather than `0 tokens across 0 of 1 steps`.

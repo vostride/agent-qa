@@ -48,7 +48,7 @@ const {
 vi.mock("@/lib/api", () => ({
   fetchRun: fetchRunMock,
   fetchRunDetail: fetchRunDetailMock,
-  // 2026-08-29 (406-01, D-04): the page's THIRD read — the failure view's. This whole-module
+  // the page's THIRD read — the failure view's. This whole-module
   // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
   // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
   fetchRunAnalysis: () => Promise.resolve({ runId: '', verdicts: [], sentences: [], clusters: [] }),
@@ -58,7 +58,7 @@ vi.mock("@/lib/api", () => ({
   fetchExecutionLogs: fetchExecutionLogsMock,
   fetchRunEvidence: () => Promise.resolve({ kind: 'failed', error: 'Evidence read not configured in this fixture' }),
   triggerRun: vi.fn(),
-  // 2026-08-27 (404-07): run detail now subscribes a post-processing chip client on mount. This
+  // run detail now subscribes a post-processing chip client on mount. This
   // whole-module mock REPLACES `@/lib/api`, so an omitted export is `undefined` at the call site
   // and every cell in this file dies before it asserts. It is a no-op DOUBLE rather than the real
   // function on purpose: the real one constructs an `EventSource` and a 3 s interval against a
@@ -94,7 +94,7 @@ vi.mock("@/components/run-detail/run-navbar", () => ({
 }))
 
 vi.mock("@/components/run-detail/step-tree", () => ({
-  // 405-08: the tree takes the member-grouped projection now, not a flat step list. The double
+  // the tree takes the member-grouped projection now, not a flat step list. The double
   // flattens it through the SAME helper the page uses, so the ids it renders are the ids the page
   // selects by — a second flattening here would let this file pass on keys nobody can click.
   StepTree: ({
@@ -350,7 +350,7 @@ afterEach(() => {
   vi.clearAllMocks()
 })
 
-// THE SCREENSHOT PANE, THROUGH THE PAGE (405-11 · D-14 / D-15).
+// THE SCREENSHOT PANE, THROUGH THE PAGE.
 //
 // WHAT THESE CELLS USED TO PIN, AND WHY THEY DO NOT ANY MORE. Until 405-07 there were four of them
 // asserting that `a` and `b` selected the After/Before side of a screenshot pair built from two

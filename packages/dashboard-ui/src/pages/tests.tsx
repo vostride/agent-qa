@@ -60,7 +60,7 @@ interface TestRow {
   testId: string | null
   targetName: string | null
   platform: string | null
-  // 2026-10-18 (444-31, D-64): false while the batch read has not named this file; its rate and
+  // false while the batch read has not named this file; its rate and
   // last-run cells stay empty and no status filter lists it.
   historyKnown: boolean
   lastRunStatus: string | null
@@ -322,7 +322,7 @@ export default function TestsPage() {
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const rowRefs = useRef<Array<HTMLTableRowElement | null>>([])
 
-  // 2026-10-18 (444-31, D-64): every per-row figure is the server's, over the row's viewer reference.
+  // every per-row figure is the server's, over the row's viewer reference.
   const data: TestRow[] = useMemo(() => files.map((file) => {
     const summary = summaries?.get(normalizeTestPath(file.path))
     const lastRun = summary?.lastRun ?? null

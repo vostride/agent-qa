@@ -85,7 +85,7 @@ import { cn } from "@/lib/utils"
 
 const NAME_RULE = /^[a-z0-9][a-z0-9.-]*$/
 
-/** D-13: the name rule, then a model already holding the name. */
+/** the name rule, then a model already holding the name. */
 export function validateModelName(name: string, existingNames: readonly string[]): string | undefined {
   if (!NAME_RULE.test(name)) return NAME_RULE_ERROR
   if (existingNames.includes(name)) return nameTakenError(name)
@@ -414,7 +414,7 @@ export function AddModelRow({
     return heldCredentials.find((credential) => credential.configName === candidate)
   }
 
-  /** D-16: the name already holds this choice's credential on this machine, so Connect only tests. */
+  /** the name already holds this choice's credential on this machine, so Connect only tests. */
   function holdsCredential(candidate: string): boolean {
     if (provider === undefined || candidate === "") return false
     if (signedIn?.name === candidate) return signedIn.provider === provider
@@ -599,7 +599,7 @@ export function AddModelRow({
     fieldRefs.current.get("name")?.focus()
   }
 
-  /** D-15/D-17: the sign-in finished for the draft name, so the test runs by itself, with no key. */
+  /** the sign-in finished for the draft name, so the test runs by itself, with no key. */
   function signInCompleted(completion: SignInCompletion) {
     const createdBefore = signedIn?.name === completion.name && signedIn.created
     setSignedIn({ name: completion.name, provider: completion.provider, created: completion.created || createdBefore })

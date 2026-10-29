@@ -1,4 +1,4 @@
-// THE RUN-DETAIL STEP TREE, GROUPED BY MEMBER (405-08 · D-16 / D-18).
+// THE RUN-DETAIL STEP TREE, GROUPED BY MEMBER.
 //
 // WHAT THIS REPLACED. Until 405-08 the tree took a flat `DisplayStep[]` plus a second prop holding
 // the suite's child RUN ROWS — fetched by walking the parent's child list and re-reading each child
@@ -31,7 +31,7 @@ import { hasStepId, type Selection } from "@/lib/selection"
 import { feedbackAddress } from "@/lib/feedback-view"
 import type { Playhead } from '@/lib/playhead'
 
-/** The step door's wiring (426 D-04): the page's composer, which address it is open on, and how to open it. */
+/** The step door's wiring: the page's composer, which address it is open on, and how to open it. */
 export interface StepTreeFeedback {
   composerId: string
   expandedAddress?: string
@@ -40,12 +40,12 @@ export interface StepTreeFeedback {
 
 interface StepTreeProps {
   feedback?: StepTreeFeedback
-  /** The member-grouped projection, already narrowed by the page's member filter (D-16). */
+  /** The member-grouped projection, already narrowed by the page's member filter. */
   groups: readonly RunDetailGroup[]
   /** Whether the RUN has more than one member — not whether the filter left more than one. */
   showMemberChrome?: boolean
   /**
-   * The failure view, keyed by member handle (406-01 · DETL-04, D-05).
+   * The failure view, keyed by member handle.
    *
    * PASSED THROUGH, NEVER READ HERE. This tree owns no analysis fact: the page projects the map
    * from `analysis.get`'s bytes and this component hands each member its own entry, exactly as it
@@ -55,7 +55,6 @@ interface StepTreeProps {
   analysisView?: ReadonlyMap<number, MemberVerdictView>
   /**
    * What a cited step, a cluster sibling and a cited artifact DO, handed straight down
-   * (406-06 / 406-08 · D-02 / D-08).
    *
    * PASSED THROUGH, NEVER CALLED HERE, and optional for the same reason `analysisView` is: this
    * tree owns no analysis fact and no page state. Resolving a step ordinal to a selected row and

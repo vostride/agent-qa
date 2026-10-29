@@ -98,7 +98,7 @@ it('SENTENCE-TARGET-ICON-FONT removes decorative private-use glyphs only in disp
   expect(recorded.grounding?.descriptor.name).toBe(name)
 })
 
-// 2026-10-08 (437-03, D-05): a tap that sent no input is never shown as succeeded or failed.
+// a tap that sent no input is never shown as succeeded or failed.
 describe('a skipped tap that sent no input', () => {
   function skippedTap(success: boolean, idempotentNoop: Record<string, unknown>): RunDetailSubAction {
     return { testIndex: 0, stepIndex: 0, subActionIndex: 0, plan: 'Planner reasoning',

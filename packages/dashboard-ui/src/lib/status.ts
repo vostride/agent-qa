@@ -110,7 +110,7 @@ export function getRunStatusDescriptor(status: string | null | undefined): RunSt
 
 export type RunStatusClass = 'pass' | 'fail' | 'cancelled' | 'live'
 
-// 2026-10-17 (444-15, D-03): mirrors the server's runStatusClass; other words have no class.
+// mirrors the server's runStatusClass; other words have no class.
 const RUN_STATUS_CLASS: Record<string, RunStatusClass> = {
   pending: 'live',
   running: 'live',
@@ -125,7 +125,7 @@ export function runStatusClass(status: string): RunStatusClass | undefined {
   return Object.hasOwn(RUN_STATUS_CLASS, status) ? RUN_STATUS_CLASS[status] : undefined
 }
 
-// 2026-10-17 (444-15, D-09): a member with no outcome reads as its run only while the run is running.
+// a member with no outcome reads as its run only while the run is running.
 export function memberStatus(runStatus: string, outcome: string | null | undefined): string | null {
   return outcome ?? (runStatus === 'running' ? 'running' : null)
 }
@@ -221,7 +221,7 @@ export function getStatusTextClassName(tone: StatusTone): string {
 
 // ------------------------------ the one badge palette ------------------------------
 //
-// ONE DEFINITION FOR THE RUN'S VERDICT BADGE AND EVERY MEMBER'S (406-06 · D-07).
+// ONE DEFINITION FOR THE RUN'S VERDICT BADGE AND EVERY MEMBER'S.
 //
 // This switch was the navbar's private helper until 406 D-07 put an outcome badge on every member
 // header. Two copies of it would be two palettes: the aggregate saying `Cancelled` in muted grey

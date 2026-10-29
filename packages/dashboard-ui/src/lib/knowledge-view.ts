@@ -10,11 +10,11 @@
 // in it renders blank, and a blank pane behind a tab someone pressed `7` to reach is the exact
 // dishonesty D-04 was written against.
 //
-// THE SUMMARY LINE IS A DERIVATION, NEVER A SECOND READ (D-03). Every count below is folded from
+// THE SUMMARY LINE IS A DERIVATION, NEVER A SECOND READ. Every count below is folded from
 // the step rows this same view already carries. Asking the op for an aggregate it could compute
 // from rows already on the wire would create a second number that can disagree with the first.
 //
-// EVERY PUBLISHED SENTENCE IS AN EXPORTED CONSTANT (403-05 D-5). The cells assert against the
+// EVERY PUBLISHED SENTENCE IS AN EXPORTED CONSTANT. The cells assert against the
 // constants and the components import them, so copy moves in one place; prose inlined in a
 // component is prose that drifts from prose inlined in a test, and both of them stay green while
 // the two disagree.
@@ -71,7 +71,7 @@ import type { KnowledgeRead } from './api'
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * What the tab says when this project has no knowledge store at all (D-16).
+ * What the tab says when this project has no knowledge store at all.
  *
  * NOT A RUNG, AND NOT AN EMPTY RESULT. A run executed with no reader bound never asked retrieval
  * anything, so "nothing was served" would describe a search that came back empty — a different
@@ -90,7 +90,7 @@ export const READ_FAILED_HEADING = 'Knowledge could not be read'
 /**
  * The read-failed body: the producer's own masked reason, then what to do about it.
  *
- * THE ERROR IS FORWARDED WITHOUT A SINGLE SLICE (T-407-07). It is the client's masked `request()`
+ * THE ERROR IS FORWARDED WITHOUT A SINGLE SLICE. It is the client's masked `request()`
  * message — a status name, never a stack and never a path — and truncating it here would leave a
  * reader with half a word to search for. The component renders it as a text node inside a
  * `break-words` paragraph, so a long one wraps rather than eating the doctor pointer.
@@ -137,10 +137,10 @@ export function canaryFact(count: number): string {
   return `${String(count)} canary`
 }
 
-/** The fact badge on a step whose plan came from a replayed procedure (D-07). */
+/** The fact badge on a step whose plan came from a replayed procedure. */
 export const REPLAY_FACT = 'replay'
 
-/** The fact badge on a step whose plan was hinted by a procedure (D-07). */
+/** The fact badge on a step whose plan was hinted by a procedure. */
 export const HINT_FACT = 'hint'
 
 /** One step row's title: the ONE-BASED ordinal a person counts by, then the step's own text. */
@@ -148,7 +148,7 @@ export function stepRowTitle(stepIndex: number, stepText: string): string {
   return `Step ${String(stepIndex + 1)} — ${stepText}`
 }
 
-/** The four derived counts the summary line is folded from (D-03). */
+/** The four derived counts the summary line is folded from. */
 export interface UsedCounts {
   readonly stepsBriefed: number
   readonly canaryLines: number
@@ -157,7 +157,7 @@ export interface UsedCounts {
 }
 
 /**
- * The run-level count line, DERIVED from the rows the panel already holds (D-03).
+ * The run-level count line, DERIVED from the rows the panel already holds.
  *
  * A ZERO SEGMENT IS OMITTED, not printed as a zero. `0 canary lines served` claims somebody
  * measured canary attribution on this run and found none; the absent segment says the subject
@@ -240,7 +240,7 @@ export interface StepAddress {
   readonly stepText: string
 }
 
-// 427 D-03: the page's side of a step reference. The tab only calls back; selection, playhead and
+// the page's side of a step reference. The tab only calls back; selection, playhead and
 // scroll stay page state.
 export interface StepRefContext {
   readonly onSelect: (address: StepAddress) => void
@@ -329,7 +329,7 @@ export interface UseView {
   readonly addresses: readonly StepAddress[]
 }
 
-// The schema's record-kind enum, derived rather than re-spelled (C427-RECORD-KINDS-EXACT).
+// The schema's record-kind enum, derived rather than re-spelled.
 export type RecordKind = InspectRecordView['kind']
 
 export const RECORD_KIND_LABELS = {
@@ -390,7 +390,7 @@ export function contentById(
 
 export type AnchorPhraseType = 'platform' | 'page' | 'flow' | 'el' | 'selector' | 'error' | 'unparsed'
 
-// The render order of anchor phrases (D-08): whatever order the anchors array holds, a line reads
+// The render order of anchor phrases: whatever order the anchors array holds, a line reads
 // platform, page, flow, element, selector, error, then anything that did not parse.
 // prettier-ignore
 export const ANCHOR_PHRASE_TYPES = [
@@ -477,7 +477,7 @@ export const ON_TRIAL_TAG = 'on trial'
 export const ON_TRIAL_TOOLTIP =
   "New knowledge that isn't proven yet is given to the agent on trial, so a run can show whether it holds up. This run's result counts for or against it."
 
-// The schema's status enum, derived rather than re-spelled (C427-STATUS-WORDS-SHAPE).
+// The schema's status enum, derived rather than re-spelled.
 export type BundleStatus = RunKnowledgeRecordContent['currentStatus']
 
 export const SINCE_STATUS_TAGS = {
@@ -633,7 +633,7 @@ export interface UsedSectionView {
   readonly records: readonly UsedRecordView[]
   readonly countLine?: string
   readonly absence?: string
-  /** How retrieval ran for this run, stated under the heading; absent at memidex or with no rung (D-20). */
+  /** How retrieval ran for this run, stated under the heading; absent at memidex or with no rung. */
   readonly retrieval?: RetrievalStatementView
 }
 
@@ -664,7 +664,7 @@ export const EFFECT_OUTCOMES = [
 
 export type EffectTone = 'problem' | 'positive' | 'pending' | 'unknown'
 
-// The order entries group in (D-11): problems first, unknowns last.
+// The order entries group in: problems first, unknowns last.
 // prettier-ignore
 export const EFFECT_TONES = [
   'problem',
@@ -691,7 +691,7 @@ export interface EffectSentenceParts {
 
 type TrialOutcome = Exclude<EffectOutcome, 'replay-stopped' | 'replay-complete'>
 
-// Every entry names its steps (D-11), so pending and unknown carry them too.
+// Every entry names its steps, so pending and unknown carry them too.
 export const EFFECT_SENTENCES = {
   contradicted: { lead: "Didn't hold up in", tail: ' — the run saw something different' },
   harmful: { lead: 'Misled the agent in', tail: '' },
@@ -836,7 +836,7 @@ export function effectSectionView(
       )
       const word = canaryOutcomeWord(status, attribution, scanIncomplete)
       // A skipped canary is no trial and is not uncounted either: the uncounted line says post-run
-      // processing finished, and a skipped run's never ran. It falls to the unmeasured records (444 D-61).
+      // processing finished, and a skipped run's never ran. It falls to the unmeasured records.
       if (word === 'skipped') continue
       if (word === 'not-attributed') {
         uncountedIds.add(line.id)
@@ -943,7 +943,7 @@ export function effectSectionView(
 // Reserved copy — published now, painted by 407-06 / 407-09 / 407-10
 // ─────────────────────────────────────────────────────────────────────────────
 
-/** The three served channels, as the eyebrow captions inside an expanded step row (407-06). */
+/** The three served channels, as the eyebrow captions inside an expanded step row. */
 export const CHANNEL_EYEBROWS = {
   1: 'CHANNEL 1 · BRIEF',
   2: 'CHANNEL 2 · READ TRACES',
@@ -951,7 +951,7 @@ export const CHANNEL_EYEBROWS = {
 } as const
 
 /**
- * One answered trace line: which leg ranked it, where, and how strongly (D-04, 407-06).
+ * One answered trace line: which leg ranked it, where, and how strongly.
  *
  * Three decimal places because that is the resolution at which two adjacent candidates stop
  * looking identical; rendered `tabular-nums` so a column of them does not jitter.
@@ -961,7 +961,7 @@ export function traceLineText(leg: string, rank: number, score: number): string 
 }
 
 /**
- * The truncated-ledger disclosure (D-04, 407-06).
+ * The truncated-ledger disclosure.
  *
  * THE CAP IS IMPORTED, NEVER TYPED. `TRACE_TRUNCATION_TOP_K` is the producer's own bound; a
  * literal `20` here would be a second copy of it that goes silently wrong the day the producer
@@ -971,27 +971,27 @@ export function cutCandidatesLabel(count: number): string {
   return `Cut candidates (${String(count)} of top ${String(TRACE_TRUNCATION_TOP_K)})`
 }
 
-/** The `pre-trace-run` no-trace arm, stated rather than dropped (D-04). */
+/** The `pre-trace-run` no-trace arm, stated rather than dropped. */
 export const PRE_TRACE_TEXT = 'no trace was captured for this run'
 
-/** The `step-not-found` no-trace arm, stated rather than dropped (D-04). */
+/** The `step-not-found` no-trace arm, stated rather than dropped. */
 export const STEP_NOT_FOUND_TEXT = 'no evidence recorded for this step'
 
-/** The serve-time canary marker, worn by every canary line whatever curation did with it (D-08). */
+/** The serve-time canary marker, worn by every canary line whatever curation did with it. */
 export const CANARY_BADGE_TEXT = 'canary'
 
-/** The canary marker as Retrieval details states it, beside the line's record id (427 D-19). */
+/** The canary marker as Retrieval details states it, beside the line's record id. */
 export const LEDGER_ON_TRIAL_TEXT = 'on trial (canary)'
 
 /** The four outcomes the store can attribute to a canary line, as opposed to the three non-answers. */
 export type AttributedOutcomeWord = Extract<CanaryOutcomeWord, 'confirmed' | 'contradicted' | 'helpful' | 'harmful'>
 
-/** The store's attribution word for a canary line, in plain text (427 D-19). */
+/** The store's attribution word for a canary line, in plain text. */
 export function attributionWordText(outcome: AttributedOutcomeWord): string {
   return `attribution: ${outcome}`
 }
 
-/** A served line's serve-time facts as one mono meta line (427 D-19). */
+/** A served line's serve-time facts as one mono meta line. */
 export function trustMetaLine(trust: number, tier: string, status: string): string {
   return `trust ${trust.toFixed(2)} · tier ${tier} · status ${status}`
 }
@@ -1010,7 +1010,7 @@ export function recordIdCopyFailedText(id: string): string {
 }
 
 /**
- * The retrieval level one step recorded, stated only below `memidex` (427 D-19). A step whose rung
+ * The retrieval level one step recorded, stated only below `memidex`. A step whose rung
  * differs from the run's therefore says so on its own ledger row.
  */
 export function ledgerRungLine(rung: Exclude<RetrievalRung, 'memidex'>, reason?: RetrievalRungReason): string {
@@ -1019,7 +1019,7 @@ export function ledgerRungLine(rung: Exclude<RetrievalRung, 'memidex'>, reason?:
 }
 
 /**
- * What a canary line says while curation is still `pending` or `running` (D-08).
+ * What a canary line says while curation is still `pending` or `running`.
  *
  * NOT BLANK, AND NOT AN OUTCOME. "Nobody has decided yet" is a different fact from "the fold ran
  * and attributed nothing", and a line that rendered neither would read as though the canary had
@@ -1028,7 +1028,7 @@ export function ledgerRungLine(rung: Exclude<RetrievalRung, 'memidex'>, reason?:
 export const ATTRIBUTION_PENDING_TEXT = 'attribution pending'
 
 /**
- * What a canary line says when curation was skipped and served no row for it (444 D-61).
+ * What a canary line says when curation was skipped and served no row for it.
  *
  * A WORD ABOUT THE LINE, NOT A REASON. Nobody will ever decide this line's attribution, which is a
  * different fact from `pending` (nobody has decided yet) and from `not attributed` (the fold ran
@@ -1038,7 +1038,7 @@ export const ATTRIBUTION_PENDING_TEXT = 'attribution pending'
 export const ATTRIBUTION_SKIPPED_TEXT = 'attribution skipped'
 
 /**
- * What a canary line says when the store was consulted and answered no (D-08 · 407-22).
+ * What a canary line says when the store was consulted and answered no.
  *
  * ONE WORLD ONLY, AND IT IS A MEASUREMENT: the curation chain SETTLED, the store walk COMPLETED,
  * and no surviving outcome carried this line's observation id. It no longer covers a failed chain
@@ -1050,7 +1050,7 @@ export const ATTRIBUTION_SKIPPED_TEXT = 'attribution skipped'
 export const NOT_ATTRIBUTED_TEXT = 'not attributed'
 
 /**
- * What a canary line says when the read that would have answered it was PARTIAL (407-18 · WR-02).
+ * What a canary line says when the read that would have answered it was PARTIAL.
  *
  * THE SIBLING ABOVE IS A POSITIVE CLAIM. `not attributed` says the store was consulted and no
  * outcome survived for this line — a fact somebody measured. This one says the opposite kind of
@@ -1067,11 +1067,11 @@ export const NOT_ATTRIBUTED_TEXT = 'not attributed'
  */
 export const ATTRIBUTION_UNKNOWN_TEXT = 'attribution unknown'
 
-/** The plan-source sentence for a step whose plan a procedure only HINTED at (D-07). */
+/** The plan-source sentence for a step whose plan a procedure only HINTED at. */
 export const PROCEDURE_HINT_TEXT = 'procedure hint'
 
 /**
- * The hint sentence for a hint that was a REPLAY RECOMMENDATION first (D-07, G-381-4).
+ * The hint sentence for a hint that was a REPLAY RECOMMENDATION first.
  *
  * The distinction is the whole reason `demotion` is on the wire: a demoted replay and an ordinary
  * served hint are byte-identical in what they served, and only the recorded demotion tells a
@@ -1079,7 +1079,7 @@ export const PROCEDURE_HINT_TEXT = 'procedure hint'
  */
 export const PROCEDURE_HINT_DEMOTED_TEXT = 'procedure hint (demoted from replay)'
 
-/** The replay sentence when the guard passed every check it had (D-07). */
+/** The replay sentence when the guard passed every check it had. */
 export function replayedText(checksPassed: number, total: number): string {
   return `replayed ${String(checksPassed)}/${String(total)}`
 }
@@ -1122,7 +1122,7 @@ export function showAllLinesLabel(total: number): string {
 export const MEMORY_CHANGES_HEADING = 'Memory changes'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The Learned half's copy (407-09 · LERN-02, D-09 / D-10 / D-11 / D-12)
+// The Learned half's copy
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -1137,7 +1137,7 @@ export const MEMORY_CHANGES_HEADING = 'Memory changes'
 export const CHANGES_PENDING_TEXT = 'Memory changes appear after post-run processing finishes.'
 
 /**
- * What the half says when curation failed (D-12).
+ * What the half says when curation failed.
  *
  * IT STATES THE CONSEQUENCE, not just the failure. An empty record list under a `failed` chip
  * reads as "curation ran and changed nothing" to anyone not staring at the chip — the exact
@@ -1146,7 +1146,7 @@ export const CHANGES_PENDING_TEXT = 'Memory changes appear after post-run proces
 export const CURATION_FAILED_TEXT = 'Curation failed — nothing was learned from this run.'
 
 /**
- * The note that rides BESIDE records a failed chain had already committed (407-26 · G-407-12).
+ * The note that rides BESIDE records a failed chain had already committed.
  *
  * A NOTE, NEVER A REPLACEMENT. It is published in {@link LearnedView.chainNote} rather than in
  * `sentence`, whose own contract is "absent exactly when rows is non-empty": a sentence printed
@@ -1164,13 +1164,13 @@ export const CURATION_FAILED_TEXT = 'Curation failed — nothing was learned fro
  * ITS WORDING IS NOT SETTLED. The string is the round-3 review's own proposed wording, verbatim,
  * so the owner rules on a sentence already in front of them — but it JOINS UAT item 10's open
  * copy decision rather than arriving approved, and the UI-SPEC row it belongs beside is still to
- * be written (407-27).
+ * be written.
  */
 export const CURATION_FAILED_PARTIAL_TEXT =
   'Curation failed — these records were committed before it stopped.'
 
 /**
- * The heading's sentence when a settled row committed no counts (D-12).
+ * The heading's sentence when a settled row committed no counts.
  *
  * The chip's {@link COUNTS_NOT_RECORDED_TEXT} says the same fact as a fragment beside a badge;
  * this is the sentence form, in the half that has room for one. Both are published, neither is
@@ -1180,7 +1180,7 @@ export const CURATION_FAILED_PARTIAL_TEXT =
 export const COUNTS_NOT_RECORDED_SENTENCE = 'Counts not recorded for this run.'
 
 /**
- * What the half says when the counts moved but no change record reached this run (D-10).
+ * What the half says when the counts moved but no change record reached this run.
  *
  * `yet` is load-bearing. The run link is stamped on the change record by the reader's own
  * `diffSince`, and a change whose attribution is not derivable carries no run id at all rather
@@ -1190,7 +1190,7 @@ export const COUNTS_NOT_RECORDED_SENTENCE = 'Counts not recorded for this run.'
 export const CHANGES_NOT_AVAILABLE_TEXT = 'Change records for this run are not available yet.'
 
 /**
- * What the half says when the knowledge store could not be READ at all (407-14 · 407-15).
+ * What the half says when the knowledge store could not be READ at all.
  *
  * A DIFFERENT ABSENCE FROM ITS SIBLING ABOVE, and the distinction is the whole reason it exists.
  * {@link CHANGES_NOT_AVAILABLE_TEXT} names an absence of ATTRIBUTION — the store answered and no
@@ -1203,7 +1203,7 @@ export const CHANGES_NOT_AVAILABLE_TEXT = 'Change records for this run are not a
 export const CHANGES_UNREADABLE_TEXT = 'Change records could not be read from the knowledge store. Run `agent-qa doctor`.'
 
 /**
- * The note that rides BESIDE an answer whose read was only partly successful (407-18 · CR-01).
+ * The note that rides BESIDE an answer whose read was only partly successful.
  *
  * A DIFFERENT CLAIM FROM ITS SIBLING ABOVE, and the difference is the whole point.
  * {@link CHANGES_UNREADABLE_TEXT} stands ALONE: there was nothing to list and nobody could look,
@@ -1220,7 +1220,7 @@ export const STORE_READ_INCOMPLETE_TEXT = 'The knowledge store could not be full
 export const NO_MEMORY_CHANGES_SENTENCE = 'Post-run processing finished and changed nothing in memory.'
 
 /**
- * The reconciliation's LAST cause, when the read justifies none of the others (425-06 · D-19).
+ * The reconciliation's LAST cause, when the read justifies none of the others.
  *
  * NEVER SILENT, NEVER A GUESS. A snapshot that counted more changes than the half can show is a
  * disagreement between two producers, and the one thing this module must not do is pick whichever
@@ -1233,7 +1233,7 @@ export const RECONCILIATION_UNATTRIBUTED_TEXT =
   "The difference could not be attributed to this run's rows."
 
 /**
- * `{counted} changes counted · {shown} shown` — the gap itself, before its cause (D-19).
+ * `{counted} changes counted · {shown} shown` — the gap itself, before its cause.
  *
  * THE NOUN AGREES WITH THE COUNT and the second number is bare, the same idiom the breakdown line
  * uses: `1 change counted · 0 shown` reads as a sentence, and `1 changes` reads as a bug.
@@ -1293,18 +1293,18 @@ export const BUCKET_LABELS = {
   proposed: 'Proposed',
 } as const satisfies Record<CurationBucket, string>
 
-// 427 D-16 — what each bucket word means, as its label's tooltip and sr-only text.
+// what each bucket word means, as its label's tooltip and sr-only text.
 export const BUCKET_MEANINGS = {
   added: 'New knowledge recorded from this run.',
   confirmed: 'Existing knowledge this run backed up, including knowledge promoted to trusted.',
   superseded: 'Replaced by a newer version; agents are given the new one.',
   deprecated: 'Retired; agents are no longer given it.',
   // 2026-10-03 (quick 261003-cpv, 432-UI-REVIEW fix 1): nothing reviews a proposed record. Learning
-  // stays proposed in CI (D-08) and where delta validation refused it; it is recorded, not applied.
+  // stays proposed in CI and where delta validation refused it; it is recorded, not applied.
   proposed: 'Recorded, but not applied: agents are not given it.',
 } as const satisfies Record<CurationBucket, string>
 
-// A change seen without a snapshot maps onto the same words; Proposed is never synthesized (425 D-18).
+// A change seen without a snapshot maps onto the same words; Proposed is never synthesized.
 const CHANGE_BUCKETS = {
   added: 'added',
   confirmed: 'confirmed',
@@ -1414,11 +1414,11 @@ export interface ChangeLedgerView {
 export type StepPlanSourceWord = 'none' | 'procedure-replay' | 'procedure-hint'
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The expanded step row — channels, why-traces, cut ledger, plan source (407-06)
+// The expanded step row — channels, why-traces, cut ledger, plan source
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
- * WHY this line was served — the trace's own answer, or the NAMED absence of one (D-04).
+ * WHY this line was served — the trace's own answer, or the NAMED absence of one.
  *
  * EXACTLY TWO KINDS. Either the serve-time trace recorded this record and the panel prints what it
  * recorded, or it did not and the panel prints which of the three absences applies. There is no
@@ -1440,8 +1440,8 @@ export type LineWhy =
  * The word a canary line wears — one of EIGHT, and never blank (D-08, widened by REVIEW WR-02).
  *
  * `unknown` is the seventh and it is not a shade of `not-attributed`: one says the fold answered
- * and found nothing, the other says the read behind the answer was partial (407-18). `skipped` is
- * the eighth: curation never ran for this run, so nobody will answer (444 D-61).
+ * and found nothing, the other says the read behind the answer was partial. `skipped` is
+ * the eighth: curation never ran for this run, so nobody will answer.
  */
 export type CanaryOutcomeWord =
   | 'confirmed'
@@ -1480,7 +1480,7 @@ export interface CautionView {
   readonly summary: string
 }
 
-/** The truncated ledger — the answer to "why did it NOT say X" (D-04). */
+/** The truncated ledger — the answer to "why did it NOT say X". */
 export interface CutCandidatesView {
   readonly label: string
   readonly lines: readonly TraceLine[]
@@ -1496,7 +1496,7 @@ export interface PlanSourceView {
   readonly missReason?: ReplayMissReason
 }
 
-/** A step's recorded retrieval level, present only when it was below `memidex` (427 D-19). */
+/** A step's recorded retrieval level, present only when it was below `memidex`. */
 export interface LedgerRungView {
   readonly rung: Exclude<RetrievalRung, 'memidex'>
   readonly reason?: RetrievalRungReason
@@ -1524,7 +1524,7 @@ export interface ChannelPage<T> {
 }
 
 /**
- * The channel-1 lines with their trace answers, matched by `recordId` (D-04, LERN-01).
+ * The channel-1 lines with their trace answers, matched by `recordId`.
  *
  * THE TRACE IS PASSED EXPLICITLY, beside the step it belongs to, so the join is visible at every
  * call site rather than buried one dereference deep.
@@ -1553,7 +1553,7 @@ function lineWhy(recordId: string, trace: RunKnowledgeTrace): LineWhy {
 }
 
 /**
- * The cut ledger, present ONLY where a trace answered (D-04).
+ * The cut ledger, present ONLY where a trace answered.
  *
  * An answered trace that truncated nothing still gets the disclosure, reading `(0 of top 20)`:
  * "the budget cut nothing" is a fact the trace recorded, and it is a different answer from "there
@@ -1589,7 +1589,7 @@ export function cutCandidates(trace: RunKnowledgeTrace): CutCandidatesView | und
  *      halves stopped disagreeing (REVIEW CR-01 · G-407-12).
  *
  *   3. THEN, WITH NO ROW, A SKIPPED CHAIN SAYS `skipped`. Curation never ran, so neither of the
- *      read's words below applies: nobody looked, and nobody will (444 D-61).
+ *      read's words below applies: nobody looked, and nobody will.
  *
  *   4. OTHERWISE, WITH NO ROW, THE READ DECIDES. `unknown` when the flag is set, because nobody
  *      could finish looking; `not attributed` when it is clear, because the walk completed and no
@@ -1610,7 +1610,7 @@ export function canaryOutcomeWord(
   attribution: RunKnowledgeCanaryAttribution | undefined,
   scanIncomplete = false,
 ): CanaryOutcomeWord {
-  // 2026-10-18 (444-29, D-61): the first parameter is the tab's curation word, so a gate run or an
+  // the first parameter is the tab's curation word, so a gate run or an
   // outcome-excluded run no longer reads `pending` from its defaulted chip. A served row still wins.
   if (curation === 'pending' || curation === 'running') return 'pending'
   if (attribution !== undefined) return attribution.outcome
@@ -1619,7 +1619,7 @@ export function canaryOutcomeWord(
 }
 
 /**
- * The replay or hint sentence a step's plan source states (D-07).
+ * The replay or hint sentence a step's plan source states.
  *
  * A GUARD MEMBER BEATS THE COUNT. `checksPassed === total` alongside a recorded `verifierRejection`
  * is a guard that got through its checks and was refused anyway; printing `replayed 5/5` there
@@ -1694,7 +1694,7 @@ export interface StepRowView {
   readonly title: string
   /** Lines this step was served across ALL THREE channels — the same fold "briefed" is judged by. */
   readonly briefLines: number
-  /** Channel-1 lines carrying the serve-time canary marker (D-08). */
+  /** Channel-1 lines carrying the serve-time canary marker. */
   readonly canaryLines: number
   readonly planSource: StepPlanSourceWord
   /** The outline badges, in render order. Empty exactly when {@link noBrief} is set. */
@@ -1702,7 +1702,7 @@ export interface StepRowView {
   /** Present only on a step that served nothing; the row renders {@link STEP_NO_BRIEF_TEXT}. */
   readonly noBrief?: true
   /**
-   * What the row shows when it is EXPANDED (407-06).
+   * What the row shows when it is EXPANDED.
    *
    * Required, not optional: a row whose detail could be absent is a row a component has to guard,
    * and the guard would render blank for the one case D-04 exists to prevent. A step that served
@@ -1712,14 +1712,14 @@ export interface StepRowView {
 }
 
 /**
- * The six words the Learned half's root can carry (D-12; 444 D-61).
+ * The six words the Learned half's root can carry.
  *
  * FOUR OF THEM MIRROR THE CURATION CHIP and two are words the chip cannot say. A reader
  * looking at the header and the panel at once must not see two different accounts of the same
  * chain; `counts-absent` is an extra state because "settled, and nobody wrote the numbers down"
  * is a fact about the frozen row rather than about the chain, and collapsing it into `complete` would
  * make an unrecorded run indistinguishable from one that changed nothing. `skipped` is the other:
- * the run's own record says curation never ran (444 D-39), and the chip beside it is a defaulted
+ * the run's own record says curation never ran, and the chip beside it is a defaulted
  * `pending` no job will move — see {@link curationWord}.
  */
 export type LearnedState = 'pending' | 'running' | 'complete' | 'failed' | 'counts-absent' | 'skipped'
@@ -1733,9 +1733,9 @@ export interface SupersededWasView {
 }
 
 /**
- * One record this run's curation affected, in its strongest bucket (427 D-15).
+ * One record this run's curation affected, in its strongest bucket.
  *
- * NO ID, REFERENCE OR RECEIPT RIDES ON A ROW (D-19). Those live in the matching
+ * NO ID, REFERENCE OR RECEIPT RIDES ON A ROW. Those live in the matching
  * {@link ChangeLedgerView}, which only Retrieval details renders. `key` is the row's position
  * across the whole list (curation rows, then since-then rows), rebuilt on every render.
  */
@@ -1743,7 +1743,7 @@ export interface LearnedRowView {
   readonly key: string
   readonly bucket: CurationBucket
   /**
-   * Which of the op's two sections this row is in (423 D-15). Present only beside a recorded
+   * Which of the op's two sections this row is in. Present only beside a recorded
    * snapshot: without one there is nothing to section against, and the half says so instead.
    */
   readonly section?: LearnedRowSection
@@ -1755,22 +1755,22 @@ export interface LearnedRowView {
   readonly applicability?: ApplicabilityView
   /** A supersession's old record; the row itself leads with the new version. */
   readonly was?: SupersededWasView
-  /** Proposed rows only (D-16). */
+  /** Proposed rows only. */
   readonly note?: string
-  /** Since-then rows only (D-17): what happened later. */
+  /** Since-then rows only: what happened later. */
   readonly sinceDetail?: string
 }
 
 export type LearnedRowSection = 'curation' | 'since-then'
 
-/** The fixed curation snapshot, as far as this half reads it (423 D-15). */
+/** The fixed curation snapshot, as far as this half reads it. */
 export interface LearnedSnapshotView {
   /** Copied verbatim from the checkpoint; never re-counted from rows. */
   readonly breakdown: CurationBreakdown
   /** `learned.sinceThen.count`, verbatim. Absent when the op served no since-then section. */
   readonly sinceThenCount?: number
   /**
-   * The snapshot's total against the curation rows this half can show (425-06 · D-19).
+   * The snapshot's total against the curation rows this half can show.
    *
    * PRESENT EXACTLY WHEN THEY DISAGREE. A heading that quietly printed five counted changes over
    * two painted rows would leave the reader to spot the arithmetic themselves — and to guess at
@@ -1782,7 +1782,7 @@ export interface LearnedSnapshotView {
 }
 
 /**
- * The Learned half, as the panel paints it (407-09).
+ * The Learned half, as the panel paints it.
  *
  * `rows` IS REQUIRED AND `sentence` IS NOT, which is the shape of the contract rather than a
  * convenience: every state has a list (empty for four of them) and exactly the states with nothing
@@ -1792,10 +1792,10 @@ export interface LearnedSnapshotView {
  */
 export interface LearnedView {
   readonly state: LearnedState
-  /** The chip's own count line, from the chip's own function — one number, one wording (D-09). */
+  /** The chip's own count line, from the chip's own function — one number, one wording. */
   readonly countLine?: string
   /**
-   * What the count line above could NOT record, labelled (425-06 · D-18).
+   * What the count line above could NOT record, labelled.
    *
    * A SECOND ELEMENT, NOT A SECOND CLAUSE. `2 curated · 0 deprecated` is a measurement; `Breakdown
    * not recorded for this run` is a fact about the measurement, and a reader scanning counts should
@@ -1807,7 +1807,7 @@ export interface LearnedView {
   readonly sentence?: string
   readonly rows: readonly LearnedRowView[]
   /**
-   * Present only when the op could not READ the knowledge store (407-14).
+   * Present only when the op could not READ the knowledge store.
    *
    * True or absent, never `false` — the same idiom the wire flag it mirrors is typed with
    * (`z.literal(true).optional()`). The component stamps `data-learned-read="incomplete"` from it,
@@ -1821,7 +1821,7 @@ export interface LearnedView {
    * printing {@link CHANGES_UNREADABLE_TEXT} — that sentence names the store itself, and a note
    * repeating the same door beneath it would be a nag rather than news. Absent otherwise, never
    * an empty string: `data-learned-read` is the cell-visible half of this fact, and the note is
-   * the person-visible half (D-04, D-12).
+   * the person-visible half.
    */
   readonly readNote?: string
   /**
@@ -1839,17 +1839,17 @@ export interface LearnedView {
    * including the no-rows `failed` and `skipped` arms, which keep their sentence in `sentence`. A
    * failed chain's note is {@link CURATION_FAILED_PARTIAL_TEXT}; a skipped chain's is the
    * post-processing card's own curation sentence for the reason, from `STAGE_SKIPPED_TEXT` (444
-   * D-61). It never carries a fact about the store read (407-26 · G-407-12).
+   * D-61). It never carries a fact about the store read.
    */
   readonly chainNote?: string
   /**
-   * Present exactly when the op served curation's fixed snapshot (423 D-15). Absent for a failed
+   * Present exactly when the op served curation's fixed snapshot. Absent for a failed
    * or pre-423 chain, and the component states that absence rather than painting zero counts.
    */
   readonly curationSnapshot?: LearnedSnapshotView
 }
 
-/** The rung that served THIS run, if the evidence recorded one (D-13). */
+/** The rung that served THIS run, if the evidence recorded one. */
 export interface RungView {
   readonly rung: RetrievalRung
   readonly reason?: RetrievalRungReason
@@ -1876,7 +1876,7 @@ export type KnowledgeView =
       readonly learned: LearnedView
     }
 
-/** The per-step ledger Retrieval details holds — the shipped summary line and step rows, moved (D-19). */
+/** The per-step ledger Retrieval details holds — the shipped summary line and step rows, moved. */
 export interface LedgerView {
   readonly summary: string
   readonly steps: readonly StepRowView[]
@@ -1978,7 +1978,7 @@ function stepDetail(
 }
 
 /**
- * The canonical entity URI for a changed record, or nothing (D-10).
+ * The canonical entity URI for a changed record, or nothing.
  *
  * BUILT BY THE SCHEMA'S CODEC, NEVER BY CONCATENATION. `formatEntityUri` is the one place the
  * scheme, the kind segment and the short-ID canonicalisation live; a template literal here would
@@ -2015,8 +2015,8 @@ function replacementOf(changes: readonly RecordChange[]): string | undefined {
   return [...changes].reverse().find(change => change.change === 'superseded' && change.byRecordId !== undefined)?.byRecordId
 }
 
-// D-15: with a snapshot the rows ARE its rows, so they equal the breakdown; later changes follow as
-// their own rows (D-17). Without one, changes group per record in first-appearance order, and a
+// with a snapshot the rows ARE its rows, so they equal the breakdown; later changes follow as
+// their own rows. Without one, changes group per record in first-appearance order, and a
 // replacement's Add folds into the supersession it completes.
 function changeDrafts(projection: Extract<RunKnowledgeProjection, { kind: 'ready' }>): readonly ChangeDraft[] {
   const { curationSnapshot, sinceThen, changes } = projection.learned
@@ -2128,12 +2128,12 @@ function ledgerEntry(draft: ChangeDraft, index: number, joins: ReadonlyMap<strin
   }
 }
 
-/** The tab's one word for curation: the chip's four, or `skipped` (444 D-61). */
+/** The tab's one word for curation: the chip's four, or `skipped`. */
 export type CurationWord = PostProcessingChipStatus | 'skipped'
 
-// 2026-10-18 (444-29, D-61): the one place the Knowledge tab reads the curation chip. A gate run
+// the one place the Knowledge tab reads the curation chip. A gate run
 // and an outcome-excluded run never enqueue curation, so their chip is a defaulted `pending` that no
-// job will ever move; `runs.knowledge` carries the skipped fact beside it (444-26), and that fact
+// job will ever move; `runs.knowledge` carries the skipped fact beside it, and that fact
 // outranks the chip. Every reader below takes this word, and the tab states the reason only through
 // `STAGE_SKIPPED_TEXT`, the post-processing card's own sentence map.
 export function curationWord(projection: Extract<RunKnowledgeProjection, { kind: 'ready' }>): CurationWord {
@@ -2142,8 +2142,8 @@ export function curationWord(projection: Extract<RunKnowledgeProjection, { kind:
 
 /**
  * Retrieval details' memory-changes part: one entry per Memory changes row, in the same order
- * (D-19 part 2). An unsettled chain lists no rows, so it has no entries either (D-12). A skipped
- * chain is not unsettled: it lists exactly the rows its Memory changes half paints (444 D-61).
+ * (D-19 part 2). An unsettled chain lists no rows, so it has no entries either. A skipped
+ * chain is not unsettled: it lists exactly the rows its Memory changes half paints.
  */
 export function changeLedgerViews(
   projection: Extract<RunKnowledgeProjection, { kind: 'ready' }>,
@@ -2155,7 +2155,7 @@ export function changeLedgerViews(
 }
 
 /**
- * The Learned half, as one of six states — and every one of them says something (D-12; 444 D-61).
+ * The Learned half, as one of six states — and every one of them says something.
  *
  * THE ORDER OF THE ARMS IS THE ORDER OF THE QUESTIONS. Is the chain still moving? Did it fail?
  * Could the store even be read? Did any of it reach this run? Did the frozen row record what it
@@ -2168,12 +2168,12 @@ export function changeLedgerViews(
  * the op had already served and attributed. A half that denies a record it was handed is worse
  * than one that shows a disagreement between two producers: the disagreement is the news.
  *
- * THE COUNTS COME ONLY FROM THE SETTLED ROW (D-09). An unsettled chain has no counts to show — not
+ * THE COUNTS COME ONLY FROM THE SETTLED ROW. An unsettled chain has no counts to show — not
  * zeros, not a stale pair from a previous read — so `countLine` is absent for `pending`, `running`
  * and `failed`, and the chip beside it is silent for exactly the same reason. TWO of those arms —
  * `pending` and `running` — also list NOTHING even when the projection carries rows: a chain that
  * has not settled has not finished deciding what it changed, so listing its interim rows would
- * date-stamp a claim it has not made (D-12).
+ * date-stamp a claim it has not made.
  *
  * A SETTLED-AND-FAILED CHAIN IS NOT ONE OF THEM, AND USED TO BE TREATED AS IF IT WERE (407-26 ·
  * REVIEW CR-01 · G-407-12, owner ruling 2026-08-31). `failed` HAS settled, so the justification
@@ -2200,7 +2200,7 @@ export function changeLedgerViews(
  * is a sanctioned, op-tested output. On it the half asserted the store could not be read while
  * holding the record that proves it could: the same denial 407-15's `rows win` law was written
  * against, committed by the commit that wrote the law. So the flag is now computed ONCE and spread
- * into every return, including the three unsettled arms it used to return past (WR-05), and the
+ * into every return, including the three unsettled arms it used to return past, and the
  * SENTENCE form is reached only where there is genuinely nothing to list. A view handed rows
  * paints them, whatever else it was told; the degradation rides beside them as the flag and
  * {@link STORE_READ_INCOMPLETE_TEXT}.
@@ -2211,7 +2211,7 @@ export function learnedView(
   const status = curationWord(projection)
   const { counts, skipped } = projection.curation
 
-  // COMPUTED ONCE, SPREAD EVERYWHERE (WR-05). Absent rather than `false` on a clean read — the
+  // COMPUTED ONCE, SPREAD EVERYWHERE. Absent rather than `false` on a clean read — the
   // same true-or-absent idiom the wire flag it mirrors is typed with.
   const degraded = projection.learned.scanIncomplete === true ? { scanIncomplete: true as const } : {}
   const readNote =
@@ -2226,9 +2226,9 @@ export function learnedView(
   // prevents the next arm from being written above it — leaving no code between the fold and the
   // returns does.
   //
-  // ONE ROW PER AFFECTED RECORD (427 D-15). With a snapshot the curation rows are its rows, in
+  // ONE ROW PER AFFECTED RECORD. With a snapshot the curation rows are its rows, in
   // its order, so they equal the breakdown; the op's since-then changes follow as their own
-  // section (423 D-15, 427 D-17). Content is joined by record id from the whole read.
+  // section. Content is joined by record id from the whole read.
   const { curationSnapshot, sinceThen } = projection.learned
   const joins = contentById(projection)
   const rows = changeDrafts(projection).map((draft, index) => learnedRow(draft, index, joins))
@@ -2240,10 +2240,10 @@ export function learnedView(
       }
   const snapshot = snapshotView === undefined ? {} : { curationSnapshot: snapshotView }
 
-  // THE TWO NUMBERS THE HEADING PUTS SIDE BY SIDE (425-06 · D-19).
+  // THE TWO NUMBERS THE HEADING PUTS SIDE BY SIDE.
   //
   // `counted` IS THE SNAPSHOT'S, NEVER RE-DERIVED. The breakdown is curation's own fixed record
-  // (423 D-15); re-counting it from rows would replace the producer's measurement with this
+  // re-counting it from rows would replace the producer's measurement with this
   // module's, and then there would be no disagreement left to report.
   //
   // `shown` IS THE CURATION SECTION ONLY. 423 D-15 gives since-then rows their own counted line,
@@ -2269,7 +2269,7 @@ export function learnedView(
           },
         }
 
-  // A SKIPPED CHAIN NEVER RAN, so it is neither waiting nor settled (444 D-61). Below the fold like
+  // A SKIPPED CHAIN NEVER RAN, so it is neither waiting nor settled. Below the fold like
   // every arm: rows it was handed are painted and the skip rides beside them in `chainNote`; with
   // none, the skip is the sentence. No count line — no row settled, the same absence `pending` states.
   // `skipped` is present exactly when `status` is the `skipped` word, so this is that arm.
@@ -2282,14 +2282,14 @@ export function learnedView(
 
   if (status === 'pending' || status === 'running') {
     // `rows: []` here is now a STATEMENT, not a consequence of ordering: the rows are in scope and
-    // this arm declines to list them, because an unsettled chain has not finished deciding (D-12).
+    // this arm declines to list them, because an unsettled chain has not finished deciding.
     return { state: status, sentence: CHANGES_PENDING_TEXT, rows: [], ...degraded, ...readNote, ...snapshot }
   }
 
   if (status === 'failed') {
     // A SETTLED chain that fell over cannot un-commit what it already wrote. With records to list,
     // the failure is a note BESIDE them; with none, the arm is the object that shipped before.
-    // THE CAUSE THE READ ALREADY PROVED (425-06 · D-19). A chain that stopped mid-commit is the
+    // THE CAUSE THE READ ALREADY PROVED. A chain that stopped mid-commit is the
     // plainest account there is of a snapshot that counted more than the half can list, and it is
     // the same fact `chainNote` already states beneath the rows — so the reconciliation borrows it
     // rather than falling to the sentence for a gap nobody could explain.
@@ -2307,15 +2307,15 @@ export function learnedView(
 
   const state: LearnedState = counts === undefined ? 'counts-absent' : 'complete'
 
-  // A SETTLED ARM'S CAUSE, IN THE ORDER THE READ JUSTIFIES THEM (425-06 · D-19). An incomplete
+  // A SETTLED ARM'S CAUSE, IN THE ORDER THE READ JUSTIFIES THEM. An incomplete
   // store scan is a proven reason rows are missing; with a clean read there is no proven reason at
   // all, and the half says exactly that rather than picking one.
   const settledCause = projection.learned.scanIncomplete === true
     ? CHANGES_UNREADABLE_TEXT
     : RECONCILIATION_UNATTRIBUTED_TEXT
 
-  // THE HEADING AND THE CURATION CARD SPELL ONE NUMBER ONE WAY (425-06 · D-16/D-17). The line is
-  // `curationBreakdownLine` over the SAME persisted snapshot the card reads (423 D-15), so the two
+  // THE HEADING AND THE CURATION CARD SPELL ONE NUMBER ONE WAY. The line is
+  // `curationBreakdownLine` over the SAME persisted snapshot the card reads, so the two
   // surfaces agree by construction rather than by two spellings that happen to match today.
   //
   // THE LADDER IS THE CARD'S LADDER, IN THE CARD'S ORDER (D-18, `curationCompleteText`). Snapshot
@@ -2347,7 +2347,7 @@ export function learnedView(
   }
 
   // NOTHING TO LIST AND NOBODY COULD LOOK — the one arm where the sentence IS the answer, so it
-  // carries no note: a second door beneath a sentence that already names one is a nag (407-14).
+  // carries no note: a second door beneath a sentence that already names one is a nag.
   if (projection.learned.scanIncomplete === true) {
     return {
       state,
@@ -2363,7 +2363,7 @@ export function learnedView(
   // Below here the read was CLEAN — the flag would have been answered above — so no spread is
   // needed on the three-sentence ladder, and adding one would only suggest it could be reached.
   //
-  // THE SENTENCE FOLLOWS THE SAME RECORD THE COUNT LINE DID (425-06). A snapshot-bearing run whose
+  // THE SENTENCE FOLLOWS THE SAME RECORD THE COUNT LINE DID. A snapshot-bearing run whose
   // buckets are all zero HAS a record saying curation changed nothing, whether or not the legacy
   // pair was also written — so it reads its own sentence rather than falling to the counts-absent
   // one, which describes a row that recorded no measurement at all.
@@ -2386,8 +2386,8 @@ export function learnedView(
  * The read, as the tab — or as the named state that stopped there being one.
  *
  * FOUR ARMS, AND THREE OF THEM ARE ABSENCES. That ratio is the point: `runs.knowledge` answers
- * `evidence-incomplete` as a RESULT (D-06), a project with no store answers `ready` with an
- * unbound reader (D-16), and a refused door answers through the client's `unavailable` arm. Each
+ * `evidence-incomplete` as a RESULT, a project with no store answers `ready` with an
+ * unbound reader, and a refused door answers through the client's `unavailable` arm. Each
  * sends a reader somewhere different, so each keeps its own sentence.
  */
 export function projectKnowledgeView(read: KnowledgeRead): KnowledgeView {
@@ -2433,7 +2433,7 @@ export function projectKnowledgeView(read: KnowledgeRead): KnowledgeView {
   }
   const effect = effectSectionView(projection)
 
-  // 432-09 (D-25): the tab shows what changed; no pending-proposals line or review command remains.
+  // the tab shows what changed; no pending-proposals line or review command remains.
   return {
     state: 'ready',
     used,
@@ -2459,7 +2459,7 @@ function rungView(recorded: RecordedRetrievalRung): RungView {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// The rung banner's copy of record (407-10 · TRST-01, D-13/D-14/D-15/D-16)
+// The rung banner's copy of record
 // ─────────────────────────────────────────────────────────────────────────────
 
 /**
@@ -2490,7 +2490,7 @@ export const RUNG_LABELS: Record<Exclude<RetrievalRung, 'memidex'>, string> = {
  * A new `RetrievalRungReason` becomes a compile error here instead of a blank cause printed
  * after an em dash.
  *
- * 423 D-22: a banner states what a run RECORDED. The three index causes are what post-423 runs
+ * a banner states what a run RECORDED. The three index causes are what post-423 runs
  * record; `index-unavailable` is only ever read off a pre-423 run and says so ("cause not
  * recorded") rather than guessing which of the three it was. Current health is `agent-qa doctor`.
  */
@@ -2510,9 +2510,9 @@ export const RUNG_CAUSE_LABELS: Record<RetrievalRungReason, string> = {
 /**
  * Where the banner sends a reader who wants to know more.
  *
- * ONE DOOR, AND IT IS THE ONE THAT GRADES THE SAME FOLD (D-18). The banner states a fact about a
+ * ONE DOOR, AND IT IS THE ONE THAT GRADES THE SAME FOLD. The banner states a fact about a
  * run that already happened; `doctor` reads the host as it is now. Sending the reader there is
- * what makes the banner actionable without letting it pretend to be a live probe (D-13).
+ * what makes the banner actionable without letting it pretend to be a live probe.
  */
 export const DOCTOR_HINT_TEXT = 'Run `agent-qa doctor`.'
 
@@ -2602,7 +2602,7 @@ function causeLabel(reason: RetrievalRungReason | undefined): string {
   return reason === undefined ? '' : RUNG_CAUSE_LABELS[reason]
 }
 
-/** The tab's retrieval statement; `pointer` is present on the two warning classes only (D-23). */
+/** The tab's retrieval statement; `pointer` is present on the two warning classes only. */
 export interface RetrievalStatementView {
   readonly retrievalClass: RetrievalClass
   readonly tone: RetrievalTone
@@ -2627,7 +2627,7 @@ export function retrievalStatementView(rung: RungView | undefined): RetrievalSta
 }
 
 /**
- * The header strip's sentence, or `undefined` when there is no strip to render (427 D-20).
+ * The header strip's sentence, or `undefined` when there is no strip to render.
  *
  * ONLY THE WARNING CLASSES PAINT A STRIP. A fresh store's bootstrap, a cause that was never
  * recorded and a level the project configured are information the tab states; putting them in an
@@ -2642,13 +2642,13 @@ export function rungBannerText(rung: RungView | undefined): string | undefined {
 }
 
 /**
- * The rung the run-detail header should paint, read off the DURABLE projection (D-13).
+ * The rung the run-detail header should paint, read off the DURABLE projection.
  *
  * THE JOIN LIVES HERE AND NOT IN THE PAGE, because three of its four silences are judgements
  * about the read rather than about the header. A refused door and a pruned handoff have said
  * nothing about retrieval; a project with no knowledge store bound never asked retrieval anything
  * at all, so it was not served on a rung and a "degraded" strip would send an operator hunting a
- * broken index instead of a missing config key (D-16). The tab states that case in its own words;
+ * broken index instead of a missing config key. The tab states that case in its own words;
  * the header stays silent.
  *
  * IT NEVER PROBES. The value is the one the evidence recorded at serve time, so a run served on

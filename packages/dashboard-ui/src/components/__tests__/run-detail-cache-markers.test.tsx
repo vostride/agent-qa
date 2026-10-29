@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// THE CACHE MARKERS ON THE DURABLE TREE (405-08).
+// THE CACHE MARKERS ON THE DURABLE TREE.
 //
 // The projection records `cacheStatus` on the step (`hit`, `miss`, `bypass` or `disabled`) and
 // nothing per sub-action. So the step's own status is what the marker reads, and a sub-action's

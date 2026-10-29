@@ -5,7 +5,7 @@
 // decides what the status may say; this hook owns the effects: settle timers, the one write in
 // flight, browser-storage drafts and the loaded config. A landed write is mirrored as written, and
 // only the fields a person changed are sent, so a value shown through the declared mask is never
-// written back (441-40, D-29).
+// written back.
 
 import {
   createContext,
@@ -112,7 +112,7 @@ export interface ConfigAutosave {
     fields?: readonly ConfigFieldRef[],
   ) => Promise<boolean>
   /**
-   * One explicit write computed from the freshest config the page holds (429-46 · CR-01). When the
+   * One explicit write computed from the freshest config the page holds. When the
    * file changed under it (field_changed), the page re-reads and computes once more; a second
    * refusal in a row reads Couldn't save, and Retry computes again from a fresh read.
    */
@@ -399,7 +399,7 @@ function patchConfig(
     }
     if (change.op === "set-if-absent") {
       if (lookup(next, change.path).found) continue
-      // 429-42: completion over a root use.headless keeps the owner's value, so only a read shows it.
+      // completion over a root use.headless keeps the owner's value, so only a read shows it.
       const legacy =
         change.path.length === BROWSER_HEADLESS_PATH.length &&
         change.path.every((segment, index) => segment === BROWSER_HEADLESS_PATH[index]) &&
@@ -542,7 +542,7 @@ function createEngine(host: EngineHost) {
         result = await send(changes)
       } catch (error) {
         if (compute === undefined || !attached || !isFieldChanged(error)) throw error
-        // The file moved under a computed write: read it and compute once more (429-46).
+        // The file moved under a computed write: read it and compute once more.
         if (reading) await reading
         await quietRead()
         if (!attached) return false
@@ -557,7 +557,7 @@ function createEngine(host: EngineHost) {
         result = await send(changes)
       }
       if (!attached) return false
-      // 429-37 CR-01: a write that merged onto bytes this page never read absorbed an outside
+      // a write that merged onto bytes this page never read absorbed an outside
       // edit, so its revision is not the page's own read; drop trust and re-read once it settles.
       const stale =
         typeof result.baseRevision === "string" && (revision === undefined || result.baseRevision !== revision)

@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// C444-RUN-DETAIL-CLASS (444-16, D-49): the run detail page reads a failed run through the one
+// the run detail page reads a failed run through the one
 // classifier, so a `timeout` run shows its failure summary, error details and verdict link as a
 // `failed` run does, and a `passed` run shows none of them.
 

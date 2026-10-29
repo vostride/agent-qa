@@ -1,4 +1,4 @@
-// THE LIVE PREVIEW (428 D-14/D-15/D-16).
+// THE LIVE PREVIEW.
 //
 // One pure module owns what the preview corner may say for both entry points, a run and an editor
 // session. Health comes only from the frame facts the embed page reports; every clock is a
@@ -104,13 +104,13 @@ export const LIVE_FRESHNESS_WINDOW_MS = 5_000
 /** One quiet automatic reconnect per entry; the attempt after the last is disconnected. */
 export const LIVE_RECONNECT_BACKOFF_MS = [1_000, 2_000, 4_000] as const
 
-/** How long the preview waits before asking the mint door again while the browser is not up yet (403-07). */
+/** How long the preview waits before asking the mint door again while the browser is not up yet. */
 export const NO_STREAM_RETRY_MS = 2_500
 
-/** Backstop only: 24 waiting mints at 2.5 s is about a minute (G-403-2). */
+/** Backstop only: 24 waiting mints at 2.5 s is about a minute. */
 export const WAITING_ATTEMPT_LIMIT = 24
 
-/** How soon a failed silent re-mint asks again while the token it would replace still has time left (428 WR-04). */
+/** How soon a failed silent re-mint asks again while the token it would replace still has time left. */
 export const RENEW_RETRY_MS = 5_000
 
 /** The embed's host hint; the server spells the parameter LIVE_EMBED_HOST_PARAM. */
@@ -210,7 +210,7 @@ export function parseEmbedReport(data: unknown): EmbedReport | undefined {
   }
 }
 
-/** The machine's only input. Nothing here can carry a bus envelope or a transport's state (D-15). */
+/** The machine's only input. Nothing here can carry a bus envelope or a transport's state. */
 export type LivePreviewEvent =
   | { type: 'mint-started' }
   | { type: 'minted'; stream: LiveStreamDeclaration; memberAnswered: boolean }
@@ -218,7 +218,7 @@ export type LivePreviewEvent =
   | { type: 'renew-failed' }
   | { type: 'embed'; report: EmbedReport }
   | { type: 'lost-scheduled' }
-  /** The not-yet poll's interval passed with its question still out: it counts toward the bound, so a door that never answers still ends the wait (403-15). */
+  /** The not-yet poll's interval passed with its question still out: it counts toward the bound, so a door that never answers still ends the wait. */
   | { type: 'wait-unanswered' }
   | { type: 'retry' }
   | { type: 'subject-over'; reason: 'run-ended' | 'session-ended' }
@@ -300,7 +300,7 @@ function wait(state: LivePreviewMachine): LivePreviewMachine {
 /**
  * The mint doors' definite refusals: this host serves no live view, or the request itself is one it
  * will never serve. Any other failure (a fetch that never arrived, a 5xx) is worth the quiet
- * reconnect, not a dead end (428 WR-05).
+ * reconnect, not a dead end.
  */
 const MINT_REFUSED_FOR_GOOD: readonly string[] = ['live_view_unavailable', 'invalid_handle', 'cross_site_refused']
 
@@ -313,7 +313,7 @@ function reduceReport(state: LivePreviewMachine, report: EmbedReport, now: numbe
     case 'ready':
       if (!showing(state)) return state
       // The greet read the capability after the mint did: a member that withdrew in between is
-      // greeted with `none`, and no frame or end will follow on this socket (428 WR-06).
+      // greeted with `none`, and no frame or end will follow on this socket.
       if (report.kind === 'none') return { ...carried(state), phase: 'no-stream' }
       return { ...state, ready: report.kind }
     case 'frame': {

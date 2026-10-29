@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// G-433-7 / F-433-29 (433-31). The shipped app shell is mounted with the real SidebarProvider,
+// G-433-7 / F-433-29. The shipped app shell is mounted with the real SidebarProvider,
 // SidebarInset and AppSidebar, so the control under test opens the same off-canvas sheet a phone
 // user gets. Pages, the product tour, the palette and toasts are stand-ins; they are not under test.
 

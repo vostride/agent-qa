@@ -1,7 +1,7 @@
 import type { LiveStepRow, StepStatus } from '@/lib/run-stream-reducer'
 
 /**
- * THE LIVE STEP ROW'S WORDS (428 D-19/D-20/D-22).
+ * THE LIVE STEP ROW'S WORDS.
  *
  * Each status has its own accessible name, so a glyph's colour is never the only thing that says
  * what state a step is in. The row reads these; it spells none of its own.
@@ -16,7 +16,7 @@ export const LIVE_STEP_STATUS_NAMES = {
   cancelled: 'cancelled',
 } as const satisfies Record<StepStatus, string>
 
-// 2026-10-14 (441-37, D-20, D-28): a live label is shown as written, an old `<SECRET_n>` included.
+// a live label is shown as written, an old `<SECRET_n>` included.
 export function liveLabelText(raw: string): string {
   return raw
 }

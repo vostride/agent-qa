@@ -96,7 +96,7 @@ const LLMS = [
 // The credential-status read carries no secret; SECRET is what a leak would look like.
 const SECRET = 'sk-live-never-in-the-page'
 const HEADER_SECRET = 'org-header-secret'
-// The server shows a declared header value as its marker (441-21, D-29).
+// The server shows a declared header value as its marker.
 const HEADER_MARKER = '[secret:PW_441]'
 
 const PROXY = {
@@ -624,7 +624,7 @@ describe('ModelRow key and settings', () => {
 
     await click(buttonNamed(row('claude-proxy'), SAVE_HEADER_LABEL))
     expect(writes()[5]).toEqual([[{ op: 'set', path: [...headers, 'X-Trace'], value: 'trace-secret' }]])
-    // 441-40 (D-29): the landed write is mirrored as written; the editor has no path-class mask.
+    // the landed write is mirrored as written; the editor has no path-class mask.
     const traceValue = row('claude-proxy')!.querySelector('[data-model-header="X-Trace"] [data-secret-field] code')
     expect(traceValue?.textContent).toBe('trace-secret')
     expect(JSON.stringify(localStorage)).not.toContain('trace-secret')
@@ -749,7 +749,7 @@ describe('ModelRow Sign in again', () => {
   })
 })
 
-// THE MODEL MODAL'S CLAIMS ON A SAVED ROW (429-30 · D-10). The modal is gone. Each claim its suite
+// THE MODEL MODAL'S CLAIMS ON A SAVED ROW. The modal is gone. Each claim its suite
 // made about a saved model is asserted here on the open row, or pinned as gone where the phase
 // reversed it (the Edit dialog, the Save Changes footer, and the milliseconds on a passed test).
 
@@ -864,7 +864,7 @@ describe("The model modal's claims on a saved row", () => {
   })
 })
 
-// 441-40 (D-29): a header shown as its declared marker is left out of the connection test, so the
+// a header shown as its declared marker is left out of the connection test, so the
 // server sends the saved value (routes.llm-test-saved-headers MASK-HEADER-NEVER-SENT).
 describe('the model row and masked header values', () => {
   it('the model row does not resend a header shown as a marker', async () => {

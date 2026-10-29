@@ -340,7 +340,7 @@ describe("AppSidebar", () => {
     const group = label?.parentElement
     expect(group, "the Navigation group was not found").toBeTruthy()
 
-    // 430 (2026-09-28, D-04): exact equality in DOM order, so an item that returns reds wherever
+    // 430: exact equality in DOM order, so an item that returns reds wherever
     // it is inserted.
     expect(
       Array.from(group?.querySelectorAll("a") ?? []).map((link) => [

@@ -157,7 +157,7 @@ describe("an unmeasured run still says what it knows", () => {
   it("USAGE-CARD-UNMEASURED: the totals line reads the label and the model line survives", async () => {
     const card = await openCard({ measuredSteps: 0, unmeasuredSteps: 3 }, ONE_MODEL)
 
-    // No coverage line (425-14 · WR-02): a run nobody measured has no total to be an undercount of.
+    // No coverage line: a run nobody measured has no total to be an undercount of.
     expect(lines(card)).toEqual([
       ["totals", TOKENS_NOT_MEASURED_LABEL],
       ["model", "Model gpt-5.6-terra (openai)"],
@@ -205,7 +205,7 @@ describe("who answered this run, for no, one or many models", () => {
   })
 })
 
-// T-425-05-01: a model id is a PRODUCER string, rendered as the stored text (D-28).
+// a model id is a PRODUCER string, rendered as the stored text.
 describe("producer ids render as the stored text", () => {
   it("USAGE-MODEL-LINES: a stored [secret:<name>] model id renders as text, with no chip", async () => {
     const card = await openCard(MEASURED, {

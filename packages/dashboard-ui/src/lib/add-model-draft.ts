@@ -1,4 +1,4 @@
-// THE ADD ROW'S DRAFT (429 D-14/D-21 · PXH-CONF-03). The add row's non-secret fields survive a
+// THE ADD ROW'S DRAFT. The add row's non-secret fields survive a
 // reload for this viewer; the typed key, token, sign-in code and header values never reach
 // storage. Writes and reads both go through one allow-list, so a new field stays out until named.
 

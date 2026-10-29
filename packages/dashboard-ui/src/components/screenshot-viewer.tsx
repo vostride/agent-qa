@@ -7,7 +7,7 @@ import { MediaAnnotationOverlay } from "./media-annotation-overlay"
 import { MediaViewport } from './media-viewport'
 import { cn } from "@/lib/utils"
 
-// THE VIEWER TAKES A MINTED URL, NOT A PATH (405-11 · D-14).
+// THE VIEWER TAKES A MINTED URL, NOT A PATH.
 //
 // It used to take a filesystem-ish path and build a serving URL out of it by splitting on slashes
 // and guessing which segment was the run. Refs are the only artifact addressing now, and the ONE
@@ -20,7 +20,7 @@ interface ScreenshotViewerProps {
   refLabel?: string
   className?: string
   /**
-   * Told when the image request FAILED (D-15).
+   * Told when the image request FAILED.
    *
    * A blob that was garbage-collected or never written answers 404, and the owner of the pane needs
    * to say "screenshot unavailable" in its own words rather than leave a broken image element on
@@ -50,7 +50,7 @@ export function ScreenshotViewer({
   const [fullscreen, setFullscreen] = useState(false)
   const [annotationsVisible, setAnnotationsVisible] = useState(true)
 
-  // A NEW `src` IS A NEW QUESTION (405-11). The load and error flags describe ONE request; carrying
+  // A NEW `src` IS A NEW QUESTION. The load and error flags describe ONE request; carrying
   // them across a swap would leave the previous image's failure painted over a blob that was never
   // asked for, which reads as "this evidence is gone" about the wrong sub-action.
   useEffect(() => {

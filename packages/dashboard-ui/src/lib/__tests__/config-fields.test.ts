@@ -4,7 +4,7 @@
 // both required once it exists, and services.accessibility, whose enabled is). A leaf-only write
 // into one of them while it is absent would always fail validation, so the write carries the
 // required siblings at the defaults the fields show as placeholders, and nothing optional. Each
-// added sibling is set-if-absent (429-45): the server writes it only if the file lacks it.
+// added sibling is set-if-absent: the server writes it only if the file lacks it.
 
 import type { ConfigChange } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'

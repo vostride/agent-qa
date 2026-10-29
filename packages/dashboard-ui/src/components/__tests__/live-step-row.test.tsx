@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// THE LIVE STEP ROW (428 D-19/D-20/D-22).
+// THE LIVE STEP ROW.
 //
 // A live step row is one status glyph and the step label, nothing else. Every status has its own
 // shape, tone and name, and nothing on the row moves: the running glyph is a still blue shape (owner
@@ -24,7 +24,7 @@ import { STEP_STATUSES, type LiveStepRow, type StepStatus } from '@/lib/run-stre
 const TICKS_LABEL_ATTR = 'data-step-ticks' + '-label'
 const CLOCK_PATTERN = /\d+:\d{2}/
 
-/** The owner's own example from the 2026-09-26 review (G-428-1), extended well past any pane. */
+/** The owner's own example from the 2026-09-26 review, extended well past any pane. */
 const LONG_LABEL =
   'Select "Show" from the navbar, scroll to the end and click more, wait for the list to finish loading, '
   + `then check that ${'every '.repeat(12)}card keeps its whole title and supercalifragilisticexpialidocious caption`
@@ -273,7 +273,7 @@ describe('THE LIVE STEP ROW', () => {
   })
 })
 
-// 2026-10-14 (441-37, D-20, D-28): a live label is shown as written. An old run's numbered
+// a live label is shown as written. An old run's numbered
 // placeholder is the characters it holds, and no chip is painted.
 describe('SECRET PLACEHOLDERS ON A LIVE ROW', () => {
   it('SECRET-PLACEHOLDER-AS-TEXT: an old <SECRET_n> placeholder is shown as written, with no chip', () => {

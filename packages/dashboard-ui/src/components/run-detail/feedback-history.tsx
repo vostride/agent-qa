@@ -41,7 +41,7 @@ export interface FeedbackHistoryProps {
   /** The last history read that landed; undefined until the first one settles. */
   read: MarksHistoryRead | undefined
   detail: Pick<RunDetailProjection, 'members' | 'steps'> | null | undefined
-  /** The receipt just recorded here, marked in the target list until the next edit (D-21). */
+  /** The receipt just recorded here, marked in the target list until the next edit. */
   newMarkId?: string
   onRetry?: () => void
 }
@@ -57,7 +57,7 @@ function TextParts({ parts }: { parts: FeedbackTextParts }) {
 }
 
 /**
- * What happened and what counts (426 D-22, D-23). The pinned target's marks newest first, the whole
+ * What happened and what counts. The pinned target's marks newest first, the whole
  * ledger one disclosure away, latest-mark-wins explained once, and every absence of the read named
  * as itself — never as an empty list. Presentational: the page owns the read.
  */
@@ -231,7 +231,7 @@ function HistoryEntry({
 
 /**
  * What an applied fix changed, as the tail of the entry's ONE line (432-09 · D-25; 2026-10-03, quick
- * 261003-cpv: one line, not a second one). The changed record content or the written test file;
+ * one line, not a second one). The changed record content or the written test file;
  * record content and paths are producer text and render as text nodes. The text equals
  * `historyChangeText`.
  */

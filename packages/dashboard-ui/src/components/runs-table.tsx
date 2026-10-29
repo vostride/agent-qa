@@ -78,7 +78,7 @@ const COLUMN_WIDTHS: Partial<Record<string, string>> = {
   createdAt: "128px",
 }
 
-// 2026-10-17 (444-16, D-05): Attributes hides when the table's scroll wrapper is under 1200px.
+// Attributes hides when the table's scroll wrapper is under 1200px.
 const HIDDEN_WHEN_NARROW = "@max-[1200px]/runs:hidden"
 
 const INTERNAL_ATTRIBUTE_ORDER = ["agent-qa.trigger", "agent-qa.runner"]

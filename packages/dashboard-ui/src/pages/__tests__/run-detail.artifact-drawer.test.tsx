@@ -45,15 +45,15 @@ const {
 
 vi.mock("@/lib/api", () => ({
   fetchRun: fetchRunMock,
-  // 405-08: the page reads its steps and sub-actions from `runs.detail`, not from the run row.
+  // the page reads its steps and sub-actions from `runs.detail`, not from the run row.
   // A whole-module mock that omitted this export would leave it `undefined` at the call site, and
   // the page would render its could-not-load posture — these cells would then pass while pinning
   // nothing about the drawer.
   fetchRunDetail: fetchRunDetailMock,
-  // 2026-08-29 (406-01, D-04): the page's THIRD read — the failure view's. This whole-module
+  // the page's THIRD read — the failure view's. This whole-module
   // mock replaces `@/lib/api`, so an omitted export is `undefined` at the call site and every
   // cell here dies before it asserts. Its own behaviour is measured in `run-detail.analysis.test.tsx`.
-  // 2026-08-29 (406-08): now a MOCK rather than a constant double, because one cell here drives a
+  // now a MOCK rather than a constant double, because one cell here drives a
   // cited artifact off a real verdict and through the page's `onCitedArtifact` wiring.
   fetchRunAnalysis: fetchRunAnalysisMock,
   fetchRunKnowledge: () => Promise.resolve({ kind: 'evidence-incomplete', runId: '' }),
@@ -62,7 +62,7 @@ vi.mock("@/lib/api", () => ({
   fetchExecutionLogs: fetchExecutionLogsMock,
   fetchRunEvidence: () => Promise.resolve({ kind: 'failed', error: 'Evidence read not configured in this fixture' }),
   triggerRun: vi.fn(),
-  // 2026-08-27 (404-07): run detail now subscribes a post-processing chip client on mount. This
+  // run detail now subscribes a post-processing chip client on mount. This
   // whole-module mock REPLACES `@/lib/api`, so an omitted export is `undefined` at the call site
   // and every cell in this file dies before it asserts. It is a no-op DOUBLE rather than the real
   // function on purpose: the real one constructs an `EventSource` and a 3 s interval against a
@@ -169,7 +169,7 @@ vi.mock("@/components/run-detail/artifact-drawer", () => ({
 }))
 
 vi.mock("@/components/run-detail/step-tree", () => ({
-  // 405-08: the tree takes the member-grouped projection now, not a flat step list. The double
+  // the tree takes the member-grouped projection now, not a flat step list. The double
   // flattens it through the SAME helper the page uses, so the ids it renders are the ids the page
   // selects by — a second flattening here would let this file pass on keys nobody can click.
   StepTree: ({
@@ -180,7 +180,7 @@ vi.mock("@/components/run-detail/step-tree", () => ({
   }: {
     groups: readonly RunDetailGroup[]
     selection: { type: string; stepId?: string; subIndex?: number } | null
-    // 406-08: the double renders the cited-artifact affordance the real tree renders through
+    // the double renders the cited-artifact affordance the real tree renders through
     // `MemberGroup` → `VerdictBlock`, because the claim under test here is the PAGE's wiring
     // (`onCitedArtifact` → the drawer on a sha-keyed screenshot tab). The block's own view→markup
     // mapping is pinned in `components/run-detail/__tests__/verdict-block.test.tsx`.
@@ -218,7 +218,7 @@ vi.mock("@/components/run-detail/step-tree", () => ({
 
 vi.mock("@/components/run-detail/tab-panels", () => ({
   // The double carries `activeTab` so a shortcut cell can read the tab the PAGE handed down,
-  // rather than inferring it from the URL the page also writes (407-02 · D-01/D-02).
+  // rather than inferring it from the URL the page also writes.
   TabPanels: ({ activeTab }: { activeTab: string }) => (
     <div data-testid="tab-panels" data-active-tab={activeTab} />
   ),
@@ -345,7 +345,7 @@ function makeArtifactResponse(id = "run-1") {
   }
 }
 
-/** A verdict citing ONE present artifact — the smallest shape the page's wiring needs (406-08). */
+/** A verdict citing ONE present artifact — the smallest shape the page's wiring needs. */
 const CITED_SHA = "d".repeat(64)
 
 function analysisCiting(sha: string) {
@@ -512,7 +512,7 @@ describe("RunDetailPage artifact drawer", () => {
     expect(searchParams(view).get("tab")).toBe("network")
   })
 
-  // M NO LONGER OPENS A DRAWER (407-02 · D-02). The v1 memory drawer tab it used to open is dead
+  // M NO LONGER OPENS A DRAWER. The v1 memory drawer tab it used to open is dead
   // debris 407-05 deletes grep-clean; the key is re-pointed at the Knowledge tab HERE so it is
   // never dead for the length of a plan. The cell asserts BOTH halves of that: the tab the page
   // hands down moved, and no drawer opened — a shortcut that quietly did both would be two

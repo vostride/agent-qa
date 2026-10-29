@@ -5,7 +5,7 @@
 // this product owns. These cells pin exactly that: the join key, the totality of the map over an
 // absent or empty analysis, and the two provenance readings.
 //
-// AND THE LIFECYCLE IS KEYED OFF THE CHIP WORD, NEVER OFF THE TEXT (406-06 · D-09/D-11). The
+// AND THE LIFECYCLE IS KEYED OFF THE CHIP WORD, NEVER OFF THE TEXT. The
 // marker cells below include a PAIR — one sentence carrying the deterministic floor's own
 // "root cause undetermined" wording, one carrying none — and require the SAME marker for both. A
 // projection that sniffed the sentence for fallback words would pass every other cell in this file
@@ -270,7 +270,7 @@ describe('cited evidence rides the verdict, and absence is counted', () => {
   })
 
   it('marks a ref incomplete from EITHER absence fact, and never from presence-unknown', () => {
-    // `present` ABSENT IS NOT `present: false` (406-03). A host that cannot stat its blobs omits
+    // `present` ABSENT IS NOT `present: false`. A host that cannot stat its blobs omits
     // the key, and rendering that as a claimed absence would invent a deletion nobody measured.
     const view = projectAnalysisView(
       analysis({

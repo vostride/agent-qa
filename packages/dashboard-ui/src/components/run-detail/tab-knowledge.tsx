@@ -1,4 +1,4 @@
-// THE KNOWLEDGE TAB SHELL (407-02 · LERN-01, D-01 / D-03 / D-06 / D-16, T-407-06).
+// THE KNOWLEDGE TAB SHELL.
 //
 // IT IS PRESENTATIONAL AND KNOWS NO RUN. It takes a view and paints it. It reads nothing, fetches
 // nothing and mints no route — the page owns the one `runs.knowledge` client (D-05's "one read,
@@ -15,7 +15,7 @@
 // the later plans' Playwright cells on the built bundle both address attributes, so a copy change
 // moves `lib/knowledge-view.ts` and nothing else.
 //
-// EVERY STRING IS IMPORTED (403-05 D-5). Not one sentence is typed in this file. The `data-*` raw
+// EVERY STRING IS IMPORTED. Not one sentence is typed in this file. The `data-*` raw
 // words (`none` / `procedure-replay` / `procedure-hint`) are not sentences — they are the
 // projection's own vocabulary, forwarded unchanged so a cell can read the fact rather than a
 // rendering of it.
@@ -66,7 +66,7 @@ export function TabKnowledge({ view, stepRefs }: { view: KnowledgeView | undefin
     )
   }
 
-  // The shipped component owns the words for "the bytes are gone" (406 D-17), and it supplies its
+  // The shipped component owns the words for "the bytes are gone", and it supplies its
   // own `py-12` — so this arm adds horizontal padding only (UI-SPEC Spacing: do not add more).
   if (view.state === "evidence-incomplete") {
     return (
@@ -85,7 +85,7 @@ export function TabKnowledge({ view, stepRefs }: { view: KnowledgeView | undefin
     )
   }
 
-  // 427 D-02 / D-19: four sections in KNOWLEDGE_SECTIONS order; the per-step ledger sits collapsed
+  // four sections in KNOWLEDGE_SECTIONS order; the per-step ledger sits collapsed
   // at the foot, and Memory changes renders on every ready run so each heading always states itself.
   return (
     <div data-knowledge-state="ready" className="px-3 py-4 space-y-6">

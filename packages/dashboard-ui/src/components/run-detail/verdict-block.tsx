@@ -9,27 +9,27 @@
 // PRESENCE BRANCHES: is there a marker, are there cited steps, are there siblings. Anything that
 // had to be decided was decided in the projection.
 //
-// THE SENTENCE IS A PRODUCER STRING, rendered as the stored text (D-28). It quotes the failing
+// THE SENTENCE IS A PRODUCER STRING, rendered as the stored text. It quotes the failing
 // step's recorded error verbatim — Playwright's own text — inside `observed (step N): "…"`, so a
 // declared value in it shows as the `[secret:<name>]` the producer recorded.
 //
-// NO COPY AFFORDANCE AND NO TITLE WRITE (T-406-05). WINDOWS #302/#303 name the clipboard and the
+// NO COPY AFFORDANCE AND NO TITLE WRITE. WINDOWS #302/#303 name the clipboard and the
 // document title as unenumerated egress sinks for RESTORED cleartext: the local door restores
 // declared secrets into this sentence for the person reading the page, and a copy button would
 // move that value into a bug report, while a title write would move it into a bfcache entry and
 // every window-title log. Neither is here; the sentence stays where the reader can see it.
 //
-// TEXT NODES AND ELEMENTS, NEVER MARKUP (T-406-02). Nothing in this file hands React raw HTML —
+// TEXT NODES AND ELEMENTS, NEVER MARKUP. Nothing in this file hands React raw HTML —
 // the acceptance gate greps this file for the escape hatch's name and requires zero occurrences,
 // which is why the name is not written anywhere in it. A jsdom cell feeds this component markup
 // and asserts no element was constructed.
 //
-// A CITED STEP IS A BUTTON AND A SIBLING IS A BUTTON, because both DO something (D-02, D-08): the
+// A CITED STEP IS A BUTTON AND A SIBLING IS A BUTTON, because both DO something: the
 // first selects that step in this member's tree through the page's existing `Selection`, the second
 // narrows the member filter to that sibling's group. Neither mints a route, an id spelling or a
 // scroller of its own — the page owns all three and this component hands it two handles.
 //
-// A CITED STEP THE VIEW DOES NOT NAME IS NOT RENDERED AS A DEAD CHIP (T-406-18). An index the
+// A CITED STEP THE VIEW DOES NOT NAME IS NOT RENDERED AS A DEAD CHIP. An index the
 // projection did not carry never becomes a button, and a button whose step the page cannot resolve
 // is a no-op there rather than a throw here.
 //
@@ -39,7 +39,7 @@
 // the picture here instead was rejected — it duplicates the overview's rendering and grows the page
 // once per red member on a 40-red run.
 //
-// AND AN ARTIFACT WHOSE BYTES ARE GONE IS STILL THERE, AS A CHIP (406-08 · D-19). The absent ref
+// AND AN ARTIFACT WHOSE BYTES ARE GONE IS STILL THERE, AS A CHIP. The absent ref
 // keeps its place in the row wearing `EvidenceIncomplete inline` — never dropped (a reader would
 // count the links and conclude the verdict cited fewer things than it did) and never a button (an
 // affordance that opens nothing is the worse lie the one component's own header names). Its
@@ -65,11 +65,11 @@ import { memberHandleLabel } from "@/lib/run-detail-view"
 
 interface VerdictBlockProps {
   view: MemberVerdictView
-  /** Select the cited step in this member's tree — `(memberHandle, stepOrdinal)` (D-02). */
+  /** Select the cited step in this member's tree — `(memberHandle, stepOrdinal)`. */
   onCitedStep: (testIndex: number, stepIndex: number) => void
-  /** Narrow the member filter to a cluster sibling's own group (D-08). */
+  /** Narrow the member filter to a cluster sibling's own group. */
   onSelectMember: (testIndex: number) => void
-  /** Open the cited artifact — the sha is the whole handle the page needs (D-02). */
+  /** Open the cited artifact — the sha is the whole handle the page needs. */
   onCitedArtifact: (sha: string) => void
 }
 

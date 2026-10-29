@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// NO ACCESS TOKENS ON THE CONFIG PAGE (432-22 · D-12/D-18/D-22), re-spelled from 429-27 Task 1.
+// NO ACCESS TOKENS ON THE CONFIG PAGE, re-spelled from 429-27 Task 1.
 //
 // This file pinned the MCP and run-service token lists: rows by name with the env-var name in clear,
 // the scope and trust-scope add rows, and the undoable delete. 432 deletes `services.mcp.tokens`,

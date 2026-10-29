@@ -120,7 +120,7 @@ const baseRun = {
   createdAt: "2026-04-18T00:00:00.000Z",
 }
 
-// THE HEADER BLOCK IS ADDRESSED BY POSITION, ON PURPOSE (425-04 · D-03).
+// THE HEADER BLOCK IS ADDRESSED BY POSITION, ON PURPOSE.
 //
 // What these two helpers pin is LAYOUT, and layout has no `data-*` of its own to hang off — the
 // header is "the component's root" and "the row container inside it", and a cell that invented an
@@ -135,7 +135,7 @@ function headerRow(): HTMLElement {
 }
 
 /**
- * The header's present items, in DOM order, labelled by what each one IS (425-04 · PXH-RUN-07).
+ * The header's present items, in DOM order, labelled by what each one IS.
  *
  * The order cell has to hold whichever optional items a run happens to carry, so it cannot be a
  * fixed list of selectors: it walks the header once and names what it meets. First matcher wins
@@ -243,7 +243,7 @@ describe("RunNavbar", () => {
 
     expect(container.textContent).toContain("Details: Attributes")
     expect(container.textContent).toContain("Artifacts: Config")
-    // 407-02 D-02: `M` no longer opens the dead v1 memory drawer tab — it opens the Knowledge
+    // `M` no longer opens the dead v1 memory drawer tab — it opens the Knowledge
     // tab, and the legend says so. The old row is asserted GONE for the same reason the two
     // screenshot rows below are: a row for a key that does something else is a row that misleads.
     expect(container.textContent).toContain("Knowledge tab")
@@ -291,7 +291,7 @@ describe("RunNavbar", () => {
     expect(line?.textContent).toContain(TOKENS_NOT_MEASURED_LABEL)
   })
 
-  // COVERAGE LEAVES THE HEADER, AND THE CARD PICKS IT UP (425-05 · D-21/D-22, PXH-RUN-05).
+  // COVERAGE LEAVES THE HEADER, AND THE CARD PICKS IT UP.
   //
   // "2 of 3 steps" is a CAVEAT about the number, and the header is a glance; the owner declined
   // the warning-toned header note outright. The caveat is not lost — it is one focus away, in the
@@ -358,11 +358,11 @@ describe("RunNavbar", () => {
     expect(container.querySelector('[data-usage-line="totals"]')?.textContent).toBe(
       usageTotalsLine(tokens),
     )
-    // A fully measured run states no coverage anywhere, card included (D-22).
+    // A fully measured run states no coverage anywhere, card included.
     expect(container.querySelector('[data-usage-line="coverage"]')).toBeNull()
   })
 
-  // THE MODEL SUMMARY REACHES THE CARD THROUGH THE PROP, AND ONLY THROUGH IT (425-05 · D-23).
+  // THE MODEL SUMMARY REACHES THE CARD THROUGH THE PROP, AND ONLY THROUGH IT.
   it("TOKEN-USAGE-MODELS: the summary the page hands down is what names the model", () => {
     const models = { declared: [{ provider: "openai", modelId: "gpt-5.6-terra", stepCount: 3 }] }
     mount(
@@ -386,7 +386,7 @@ describe("RunNavbar", () => {
     )
   })
 
-  // THE LEGACY MODEL ITEM IS GONE, AND THAT IS THE ASSERTION (425-05 · D-23, PXH-RUN-05).
+  // THE LEGACY MODEL ITEM IS GONE, AND THAT IS THE ASSERTION.
   //
   // `run.modelName` / `run.llmProvider` are row fields: they name what the host was configured
   // with, not what answered THIS run. Identity now comes from `runs.detail`'s `models` summary or
@@ -414,7 +414,7 @@ describe("RunNavbar", () => {
     expect(container.querySelector('[data-run-token-summary]')).toBeNull()
   })
 
-  // DOMINANCE IS SIZE AND FILL, NOT POSITION (425-04 · D-02, PXH-RUN-01).
+  // DOMINANCE IS SIZE AND FILL, NOT POSITION.
   //
   // The row order is unchanged — Runs › name ↗ verdict — so the only thing that can make the
   // verdict the header's dominant element is its own treatment. The cell reads the class list
@@ -453,7 +453,7 @@ describe("RunNavbar", () => {
     expect(badge?.textContent).toBe("Timed out")
   })
 
-  // ONE RULE COVERS ~400px AND 1280px AT 200% ZOOM (425-04 · D-03, PXH-RUN-07, WINDOWS #459).
+  // ONE RULE COVERS ~400px AND 1280px AT 200% ZOOM.
   //
   // The breakpoint is a CONTAINER query, not a viewport one: a 1280px viewport at 200% zoom is a
   // 640px container and a ~400px viewport is a ~400px container, so both take the stacked path
@@ -487,7 +487,7 @@ describe("RunNavbar", () => {
     expect(cluster?.querySelector('button[aria-label="Re-run"]')).not.toBeNull()
   })
 
-  // THE NAME YIELDS FIRST, AND NOTHING ELSE DOES (425-04 · D-04).
+  // THE NAME YIELDS FIRST, AND NOTHING ELSE DOES.
   //
   // The run name is the header's only flexible item, so a 200-character name spends its own width
   // and then truncates — the verdict stays in the DOM after it rather than being pushed out. The
@@ -528,7 +528,7 @@ describe("RunNavbar", () => {
     expect(duration?.textContent).toContain(formatDuration(baseRun.duration))
   })
 
-  // WHICHEVER ITEMS ARE PRESENT, THEY ARE IN THIS ORDER (425-04 · PXH-RUN-07).
+  // WHICHEVER ITEMS ARE PRESENT, THEY ARE IN THIS ORDER.
   //
   // Stacking is a reflow, and a reflow that re-orders is a different header. The cell reads the
   // order over two prop sets — everything optional present, then nothing optional present — so a
@@ -582,7 +582,7 @@ describe("RunNavbar", () => {
     ])
   })
 
-  // AN ABSENT FACT LEAVES NO GAP (425-04 · PXH-RUN-07).
+  // AN ABSENT FACT LEAVES NO GAP.
   //
   // A header that painted an empty span where the token line would have been would read as a
   // layout bug at ~400px, where every pixel of row 2 is spoken for. The cell asserts the strongest

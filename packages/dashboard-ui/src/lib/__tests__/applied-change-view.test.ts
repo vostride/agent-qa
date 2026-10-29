@@ -1,4 +1,4 @@
-// 2026-09-30, 432-09 (D-04/D-11/D-25): run detail says what a mark changed, never what awaits review.
+// run detail says what a mark changed, never what awaits review.
 //
 // The history line is projected from the applied receipt (the record content it changed, or the test
 // file it wrote); the preview speaks of what will change; a historical drafted receipt whose change

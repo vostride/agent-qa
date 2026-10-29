@@ -264,7 +264,7 @@ async function selectTab(view: HTMLElement, label: string): Promise<void> {
   await flushRender()
 }
 
-// 427 D-19: the per-step ledger sits behind the collapsed Retrieval details section.
+// the per-step ledger sits behind the collapsed Retrieval details section.
 async function openRetrievalDetails(view: HTMLElement): Promise<void> {
   const trigger = view.querySelector('[data-knowledge-section="retrieval-details"] [data-slot="collapsible-trigger"]')
   if (trigger === null) throw new Error("no Retrieval details trigger")
@@ -439,7 +439,7 @@ describe("a record given in three steps reads as one content-led row in a four-p
 })
 
 /**
- * THE ONE REAL `RecordChange` THIS FILE OWNS, hoisted to module scope (407-27).
+ * THE ONE REAL `RecordChange` THIS FILE OWNS, hoisted to module scope.
  *
  * Two describes now need a projection that actually carries a committed change — the partial-read
  * block below and the failed-chain block that closes G-407-12 — and a second hand-typed copy of
@@ -478,7 +478,7 @@ describe("a partial store read paints the rows it was handed AND says the read w
 
     const rows = view.querySelectorAll('li[data-record-change="confirmed"]')
     expect(rows.length).toBe(1)
-    // 427 D-15/D-19: the row carries its bucket, never its id; the id reads in Retrieval details.
+    // the row carries its bucket, never its id; the id reads in Retrieval details.
     expect(rows[0]?.hasAttribute("data-record-id")).toBe(false)
     await openRetrievalDetails(view)
     expect(view.querySelector('dl[data-ledger-changes] dd[data-ledger-row="record"]')?.textContent)

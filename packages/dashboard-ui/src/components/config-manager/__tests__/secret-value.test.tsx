@@ -3,7 +3,7 @@
 // ONE SECRET VALUE (429-19 Task 1 · D-17 · UI-SPEC S8, E11).
 //
 // A secret shows the server's text verbatim, already through the declared mask, offers no reveal
-// (441-49, D-29), and is edited only by replacing it: the shown text is never an input value, so a
+// and is edited only by replacing it: the shown text is never an input value, so a
 // mask can never be written back. These cells mount the real autosave hook over a mocked write route.
 
 import { act, type ReactNode } from 'react'
@@ -266,7 +266,7 @@ describe('SecretValue', () => {
     expect(hook!.status.state).toBe('saved')
   })
 
-  // 441-40 (D-29): the landed write is mirrored as written; the editor has no path-class mask.
+  // the landed write is mirrored as written; the editor has no path-class mask.
   it('SAVE-VALUE-EXPLICIT: typing writes nothing; Save value writes one set at the path and the page shows the value as written', async () => {
     await mount()
 

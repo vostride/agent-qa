@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// WHO OWNS THE CHIP CLIENT (404-07 · LIFE-03/LIFE-04, D-20, 400 D-13).
+// WHO OWNS THE CHIP CLIENT.
 //
 // THE NAVBAR IS PRESENTATIONAL. It takes a view and paints it; it opens no socket, holds no timer
 // and knows no run id. The page owns the client, and this file is where that ownership is measured
@@ -63,7 +63,7 @@ const {
     models: unknown
     onOpenVerdict: unknown
   }>,
-  // WHAT THE TREE BELOW THE HEADER WAS HANDED, render by render (425-09). The door must move
+  // WHAT THE TREE BELOW THE HEADER WAS HANDED, render by render. The door must move
   // scroll and focus and NOTHING else, and "nothing else" is only observable as props that did
   // not change — so the probes record rather than assert.
   stepTreeProps: [] as Array<{ playhead: unknown; selection: unknown }>,
@@ -71,7 +71,7 @@ const {
   /**
    * How many verdict blocks and collapsed member groups the mocked tree mounts this render, and
    * whether the two OTHER `aria-expanded` emitters of the real scroll container (the member-filter
-   * trigger and the Error Details disclosure) are mounted ahead of the groups (425-14 · WR-01).
+   * trigger and the Error Details disclosure) are mounted ahead of the groups.
    * `verdictGroup` is the one collapsed group whose toggle carries the verdict-bearing contract
    * attribute the real `MemberGroup` writes; unset, every group renders alike.
    */
@@ -83,13 +83,13 @@ vi.mock("@/lib/api", async () => {
   return {
     ...actual,
     fetchRun: fetchRunMock,
-    // 2026-08-28 (405-08): the page's second read, stubbed to RESOLVE. Left unstubbed it would hit
+    // the page's second read, stubbed to RESOLVE. Left unstubbed it would hit
     // the real one against a `fetch` these cells do not provide, and the page would sit in its
     // could-not-load posture while the chip client under test was measured on a broken screen.
     fetchRunDetail: fetchRunDetailMock,
-    // 2026-08-29 (406-01, D-04): the page's third read, stubbed to RESOLVE for the same reason —
+    // the page's third read, stubbed to RESOLVE for the same reason —
     // the real one would reach a `fetch` these cells do not provide.
-    // 2026-09-22 (425-09): held rather than inlined, because the verdict door is gated on the
+    // held rather than inlined, because the verdict door is gated on the
     // page's own `analysisView` being non-empty — a fixed empty answer could only ever prove the
     // closed half of that gate.
     fetchRunAnalysis: fetchRunAnalysisMock,
@@ -127,7 +127,7 @@ vi.mock("@/hooks/use-keyboard-shortcuts", () => ({ useKeyboardShortcuts: () => {
 vi.mock("sonner", () => ({ toast: { success: vi.fn(), error: vi.fn() } }))
 vi.mock("@/components/page-skeleton", () => ({ DetailSkeleton: () => <div data-loading /> }))
 vi.mock("@/components/empty-state", () => ({ EmptyState: ({ title }: { title: string }) => <div>{title}</div> }))
-// THE TREE IS A PROBE THAT CAN ALSO MOUNT A TARGET (425-09 · D-11). The real `StepTree` would
+// THE TREE IS A PROBE THAT CAN ALSO MOUNT A TARGET. The real `StepTree` would
 // drag the whole member/verdict projection into a file about the header's wiring; what the door
 // needs from it is a `[data-verdict-block]` at a known place inside `stepTreeScrollRef`, and what
 // idempotency needs from it is the props it was handed.
@@ -288,7 +288,7 @@ function lastNavbarView(): unknown {
   return last.postProcessing
 }
 
-/** The model summary the header was handed on its last render (425-05 · D-23). */
+/** The model summary the header was handed on its last render. */
 function lastNavbarModels(): unknown {
   const last = navbarProps.at(-1)
   if (last === undefined) throw new Error("the navbar never rendered")
@@ -393,7 +393,7 @@ describe("run detail owns the chip client, and hands the navbar its projection",
     })
   })
 
-  // The tracer's page leg (425-01 · D-13): the outcome sentence must reach the navbar off the read
+  // The tracer's page leg: the outcome sentence must reach the navbar off the read
   // the page already holds. A projection that only composed correctly in a unit test would pass its
   // own cells and still hand this header nothing.
   it("hands the navbar the passing run's analysis card, straight off the read", async () => {
@@ -415,7 +415,7 @@ describe("run detail owns the chip client, and hands the navbar its projection",
     })
   })
 
-  // THE SKIPPED FACT TRAVELS THE WHOLE WAY (425-08 · D-08; 444 D-39). Plan 02 put it on the read over all
+  // THE SKIPPED FACT TRAVELS THE WHOLE WAY. Plan 02 put it on the read over all
   // four doors; the observable here is that the page's own wiring carries it to the header without
   // the header having to know what a gate run is. A projection that only folded correctly in a unit
   // test would pass its own cells and still hand this navbar a chain that reads `pending` forever.
@@ -432,7 +432,7 @@ describe("run detail owns the chip client, and hands the navbar its projection",
     })
   })
 
-  // MODEL IDENTITY REACHES THE HEADER FROM THE DURABLE READ, AND FROM NOWHERE ELSE (425-05 · D-23).
+  // MODEL IDENTITY REACHES THE HEADER FROM THE DURABLE READ, AND FROM NOWHERE ELSE.
   //
   // The page holds the `runs.detail` projection; the header is presentational and can only paint
   // what it is handed. The observable is therefore the PROP, not a rendered string — a page that
@@ -623,7 +623,7 @@ describe("the failed run's analysis indicator is the door to its verdict", () =>
     expect(doorOf()).toBeUndefined()
   })
 
-  // T-425-09-02: focus must not be lost when the reader has collapsed the groups. The toggle is
+  // focus must not be lost when the reader has collapsed the groups. The toggle is
   // inside the same scroll container, so the verdict stays one keypress away instead of nowhere.
   it("PAGE-OPENS-VERDICT: falls back to the first member group's toggle when no block is mounted", async () => {
     const restore = pinReducedMotion(false)
@@ -646,7 +646,7 @@ describe("the failed run's analysis indicator is the door to its verdict", () =>
     }
   })
 
-  // WR-01 (425-14). The run the door is enabled for is a FAILED run, and a failed run with an error
+  // WR-01. The run the door is enabled for is a FAILED run, and a failed run with an error
   // log mounts the Error Details disclosure — and, on a suite, the member-filter trigger — above the
   // groups in this same container. Both emit `aria-expanded`, so a fallback that named that state
   // landed on whichever of them rendered first. The probes stand in for exactly those two controls.
@@ -722,7 +722,7 @@ describe("the failed run's analysis indicator is the door to its verdict", () =>
       expect(scrolled).toHaveLength(2)
       expect(scrolled[1]!.el).toBe(scrolled[0]!.el)
 
-      // THE ELEVATION CLAIM (T-425-09-01). A header control that changed a tab, the playhead or
+      // THE ELEVATION CLAIM. A header control that changed a tab, the playhead or
       // the selection would be mutating page state it does not own — and because the page re-renders
       // on any of those, "it changed nothing" is exactly "the tree and the tabs were not handed
       // anything new". The declined option (drive the playhead) is measured here, not asserted.

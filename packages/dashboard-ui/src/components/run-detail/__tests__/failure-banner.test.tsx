@@ -28,7 +28,7 @@ const PAST_MARKER = "[secret:OPERATOR_TOKEN]"
 /**
  * The two ordinals this file's summary plants its markers at, and the length of that summary.
  *
- * DERIVED FROM THE PUBLISHED BUDGET, NEVER RE-TYPED (WINDOWS #292). They straddle
+ * DERIVED FROM THE PUBLISHED BUDGET, NEVER RE-TYPED. They straddle
  * `FAILURE_BANNER_PREVIEW_WORDS` — one marker two words inside it, the other six words past it —
  * which is what makes the truncated and expanded states observably different: the first is in the
  * preview and the second is not. Spelled as `18`/`26`/`30` against a budget of `20`, a change to
@@ -172,7 +172,7 @@ describe("FailureBanner", () => {
 
   it("old marker text renders as written", () => {
     // An old run's stored text can still hold a numbered placeholder or a `␟`-fenced marker
-    // (441 D-20); the banner shows those characters and converts neither.
+    // the banner shows those characters and converts neither.
     const old = `Step 1/1 "probe" failed: token <SECRET_1> and ␟masked:secret␟ stay as stored`
     const view = mount(<FailureBanner summary={old} />)
 
@@ -283,7 +283,7 @@ describe("FailureBanner", () => {
     expect(announcementOf(view)).toContain("Could not copy")
   })
 
-  // The producer's text is a text node and nothing else (T-405-42). A cell that fed markup and
+  // The producer's text is a text node and nothing else. A cell that fed markup and
   // found no element is the only assertion that keeps it that way.
   it("renders a summary containing markup as text, never as an element", () => {
     const view = mount(<FailureBanner summary={'<img src=x onerror="alert(1)">'} />)

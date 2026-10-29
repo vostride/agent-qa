@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-// THE SHARED LIVE PREVIEW, IN A DOM (428-15 · PXH-LIVE-01, PXH-LIVE-03, D-02/D-13/D-14/D-16/D-17).
+// THE SHARED LIVE PREVIEW, IN A DOM.
 //
 // The embed is an opaque-origin document, so these cells stand in for it the only way a host can
 // observe it: a MessageEvent on window whose source is the rendered iframe's own contentWindow.
@@ -220,7 +220,7 @@ describe('renew in place, reconnect by remount', () => {
       `http://x/live/${RUN_ID}?host=dashboard#v2.a.b.${String(BASE_TIME + TTL_MS / 2)}`,
     )
 
-    // 428 WR-04: a failed renew with time left on the token keeps the picture and asks again.
+    // a failed renew with time left on the token keeps the picture and asks again.
     fetchLiveUrlMock.mockRejectedValue(new Error('live_url_mint_failed'))
     await advance(TTL_MS / 2)
     expect(fetchLiveUrlMock).toHaveBeenCalledTimes(3)
@@ -310,7 +310,7 @@ describe('the corner dot', () => {
     expect(q('[data-preview-dot-corner] [data-live-dot]')?.getAttribute('data-live-dot')).toBe('green')
   })
 
-  // The words are read inside the chrome since 2026-09-26 (428-34, G-428-4); the claim is unchanged.
+  // The words are read inside the chrome since 2026-09-26; the claim is unchanged.
   it('AMBER-WORDS: a frame then nothing for the freshness window turns the dot amber with its words', async () => {
     await mount(runSubject())
     await post(frame())
@@ -325,7 +325,7 @@ describe('the corner dot', () => {
     }).toEqual({ state: 'delayed', dot: 'amber', words: PREVIEW_DELAYED_TEXT })
   })
 
-  // The words and the action are read inside the chrome since 2026-09-26 (428-34, G-428-4).
+  // The words and the action are read inside the chrome since 2026-09-26.
   it('RED-ACTION: four lost reports through their backoffs turn red with a Reconnect that mints again', async () => {
     await mount(runSubject())
     await post(frame())

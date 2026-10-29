@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
-// WHAT HAPPENED AND WHAT COUNTS (426-09 · D-22, D-23).
+// WHAT HAPPENED AND WHAT COUNTS.
 //
 // The pinned target's marks come first, newest first; the whole ledger is one collapsed disclosure
 // away with each entry naming its target. Latest-mark-wins replacement is explained once, an applied
-// fix states in one line what it changed (432-09 · D-25), and every way the history read can fail
+// fix states in one line what it changed, and every way the history read can fail
 // renders as itself — never as "no feedback". Fixtures are schema-parsed.
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -232,7 +232,7 @@ describe('latest-mark-wins is explained once', () => {
 })
 
 // RE-SPELLED 432-09 from '426-09 a drafted proposal names its state and its review command': a mark
-// applies its fix in the call, so the entry says what changed and offers nothing to review (D-25).
+// applies its fix in the call, so the entry says what changed and offers nothing to review.
 describe('an applied fix says in one line what it changed', () => {
   it('the knowledge line carries the changed record content, the file line the written path, both as text', () => {
     const file = { kind: 'applied', fix: 'test-edit', change: { kind: 'test-file', filePath: 'tests/checkout.yaml', contentDigest: 'abc' } } as const

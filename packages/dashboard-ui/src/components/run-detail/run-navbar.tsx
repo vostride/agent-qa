@@ -23,7 +23,7 @@ import { cn, formatDuration } from "@/lib/utils"
 import type { RecordedRetrievalRung, RunModelSummary, RunTokenTotals } from "@vostride/agent-qa-schema"
 
 /**
- * THE HEADER'S VERDICT BADGE, ADDRESSABLE (2026-08-26, Phase 404 · LIFE-01, D-13/D-15).
+ * THE HEADER'S VERDICT BADGE, ADDRESSABLE.
  *
  * The badge's visible text is a LABEL — title-cased, and `Cancelled` for a row that says
  * `cancelled`. A DOM cell reading that text would be asserting on presentation, and a page that
@@ -36,7 +36,7 @@ import type { RecordedRetrievalRung, RunModelSummary, RunTokenTotals } from "@vo
  * arms meant seven places for it to drift out of. One render site is one place it can be wrong.
  * Nothing about what is painted changed.
  *
- * ENLARGED, NOT RE-PALETTED (2026-09-22, Phase 425 · D-02, PXH-RUN-01). Dominance comes from size
+ * ENLARGED, NOT RE-PALETTED. Dominance comes from size
  * and fill in an unchanged row order: the size classes go through `cn` so tailwind-merge drops the
  * `Badge` base `text-xs px-2 py-0.5`, while `statusBadgeLook` keeps deciding the colour. A second
  * palette would be two answers to one question about one run.
@@ -57,7 +57,7 @@ function StatusBadge({ status }: { status: string }) {
 interface RunNavbarProps {
   run: RunRow
   /**
-   * The run's model spend, as the read op summed it (405-11 · D-06).
+   * The run's model spend, as the read op summed it.
    *
    * OPTIONAL BECAUSE THE READ MAY NOT HAVE LANDED — `undefined` here means "nobody has answered
    * yet", which is a different fact from a projection that answered "nothing was measured". The
@@ -68,7 +68,7 @@ interface RunNavbarProps {
    */
   tokens?: RunTokenTotals
   /**
-   * Who answered this run, as `runs.detail` summarised it (425-05 · D-23).
+   * Who answered this run, as `runs.detail` summarised it.
    *
    * UNDEFINED IS TWO FACTS THIS HEADER CANNOT TELL APART, and both render no model line: the read
    * has not landed, or the run is a pre-423 one that recorded no model identity at all. Neither is
@@ -82,16 +82,16 @@ interface RunNavbarProps {
   onToggleShortcuts: () => void
   /**
    * The drawer tabs this header can ASK FOR. Narrowed to the two the artifact record feeds
-   * (407-05 · D-02): the v1 `memory` tab is deleted, and `m` reaches the Knowledge tab through
+   * the v1 `memory` tab is deleted, and `m` reaches the Knowledge tab through
    * the page's own shortcut map rather than through this prop.
    */
   onOpenArtifacts?: (tab: "test" | "config") => void
   /**
-   * The post-processing projection to paint beside the verdict badge (404-07, D-20).
+   * The post-processing projection to paint beside the verdict badge.
    *
    * TWO PROPS AND NOT ONE, because "no read has landed yet" and "this header was never wired for
    * chips" are different facts that a single optional prop would spell identically. The navbar is
-   * PRESENTATIONAL (400 D-13): it neither knows a run id nor asks anything, so it cannot tell those
+   * PRESENTATIONAL: it neither knows a run id nor asks anything, so it cannot tell those
    * two apart on its own, and a chip area that appeared out of a `undefined` would put a permanent
    * placeholder into every surface that renders this header without a client behind it.
    */
@@ -99,7 +99,7 @@ interface RunNavbarProps {
   /** Whether a chip client is wired at all. See {@link RunNavbarProps.postProcessing}. */
   hasPostProcessing?: boolean
   /**
-   * What pressing the `curation` chip should do (407-09 · LERN-02, D-01).
+   * What pressing the `curation` chip should do.
    *
    * FORWARDED, NOT DECIDED. The navbar is presentational and owns no tab state; the page passes
    * `() => setActiveTab('knowledge')`. Absent → the chip stays the shipped `<span>`, which is what
@@ -107,7 +107,7 @@ interface RunNavbarProps {
    */
   onCurationClick?: () => void
   /**
-   * What pressing the `analysis` chip should do (425-09 · PXH-RUN-03, D-11).
+   * What pressing the `analysis` chip should do.
    *
    * FORWARDED, NOT DECIDED — the same rule as {@link RunNavbarProps.onCurationClick} one door
    * along. Curation always has a half of the Knowledge tab to open, so the page passes its handler
@@ -118,7 +118,7 @@ interface RunNavbarProps {
    */
   onOpenVerdict?: () => void
   /**
-   * The rung that served THIS run, as the durable `runs.knowledge` read recorded it (407-10 · D-13).
+   * The rung that served THIS run, as the durable `runs.knowledge` read recorded it.
    *
    * UNDEFINED IS TWO FACTS THIS HEADER CANNOT TELL APART, and both render the same nothing: the
    * read has not landed, or the run recorded no rung (a pre-407 run, or a project with no
@@ -132,7 +132,7 @@ interface RunNavbarProps {
    */
   retrievalRung?: RecordedRetrievalRung
   /**
-   * The test-level feedback door beside the verdict (426 D-02). Absent means the element is absent,
+   * The test-level feedback door beside the verdict. Absent means the element is absent,
    * never disabled: the page passes it only when the target member can be marked at all.
    */
   feedbackEntry?: Omit<FeedbackEntryButtonProps, "scope">
@@ -171,7 +171,7 @@ export function RunNavbar({
   }
 
   return (
-    // A MIN-HEIGHT BLOCK, NOT A FIXED ONE (2026-09-22, Phase 425 · D-03, PXH-RUN-07, WINDOWS #459).
+    // A MIN-HEIGHT BLOCK, NOT A FIXED ONE.
     //
     // The banner is a second full-width row inside this wrapper rather than a sibling of the
     // page's panel group, so the header stays ONE block the layout can measure. What it measures
@@ -186,7 +186,7 @@ export function RunNavbar({
     // sends both down the stacked path, and any narrower shell this header is ever dropped into
     // inherits it without a second breakpoint being invented.
     //
-    // THE STEP IS 64rem, NOT 48rem (WINDOWS #480). One row needs about 890px once 426's entry sits
+    // THE STEP IS 64rem, NOT 48rem. One row needs about 890px once 426's entry sits
     // beside the verdict, so beside the 192px sidebar a ~1000px page stayed one row at 48rem and the
     // analysis chip painted over the badge and the entry. A 1280px page is a 1088px container and
     // keeps its single row.
@@ -204,10 +204,10 @@ export function RunNavbar({
         </button>
         <ChevronRight className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
         {/*
-          THE ONE FLEXIBLE ITEM (D-04). Everything else on this row is `shrink-0`, so a long name
+          THE ONE FLEXIBLE ITEM. Everything else on this row is `shrink-0`, so a long name
           spends its own width and then truncates rather than pushing the verdict out of view. The
           floor keeps it from truncating to nothing. The full name is still reachable — here in
-          `title`, and in the page title, which already carries it (423 D-24).
+          `title`, and in the page title, which already carries it.
         */}
         <span className="text-sm font-medium truncate min-w-[96px]" title={run.name}>
           {run.name}
@@ -233,10 +233,10 @@ export function RunNavbar({
       {/*
         ROW 2 WHEN STACKED, THE RIGHT CLUSTER WHEN NOT. The meta wraps before the actions do, and
         the actions sit in an `ml-auto` cluster that is always this row's last child — so at ~400px
-        nothing hides, nothing folds into an overflow menu and nothing overlaps (D-05).
+        nothing hides, nothing folds into an overflow menu and nothing overlaps.
       */}
       <div className="flex flex-wrap items-center gap-x-4 gap-y-2 shrink-0">
-        {/* D-20: the lifecycle story on one line — execution truth, then post-processing truth. */}
+        {/* the lifecycle story on one line — execution truth, then post-processing truth. */}
         {hasPostProcessing ? (
           <PostProcessingChips
             view={postProcessing}

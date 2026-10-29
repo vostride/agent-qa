@@ -1,7 +1,7 @@
 // ONE SECRET VALUE (429-19 · D-08, D-17 · UI-SPEC S8, E11).
 //
 // The server's text is shown verbatim, already through the declared mask; there is no reveal
-// (441-49, D-29). Editing is replace-only: the input starts empty and is never given the shown
+// Editing is replace-only: the input starts empty and is never given the shown
 // text, so a mask can never be written back. Secrets never autosave.
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"

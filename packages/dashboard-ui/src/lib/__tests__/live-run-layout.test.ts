@@ -1,4 +1,4 @@
-// THE LIVE PAGE'S TWO ARRANGEMENTS (428 D-06 · PXH-LIVE-04).
+// THE LIVE PAGE'S TWO ARRANGEMENTS.
 //
 // Below 768 px of measured page width the page stacks with the preview on top; at 768 and above it
 // is docked, and an unmeasured page (width 0) is docked. The switch changes the panels' ids and the

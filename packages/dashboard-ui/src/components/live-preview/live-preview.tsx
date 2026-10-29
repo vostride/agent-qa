@@ -1,4 +1,4 @@
-// THE SHARED LIVE PREVIEW (428 D-02/D-13/D-14/D-16/D-17 · PXH-LIVE-01): one mint, one sandboxed embed, one status light.
+// THE SHARED LIVE PREVIEW: one mint, one sandboxed embed, one status light.
 //
 // Both entry points render this component: a run (the active run page) and an editor session
 // (Test → Live and the suite editor, Plan 18). It mints for its subject, embeds the served embed
@@ -25,8 +25,8 @@
 // the fragment of the same iframe, which the embed hears as a hashchange on a live socket. A dead
 // socket never hears a hashchange, so a reconnect is a fresh mint and a new iframe element.
 //
-// NOT YET IS NOT NO (403-07). A member whose browser is not up yet answers `none`; the preview
-// keeps asking every NO_STREAM_RETRY_MS, and the machine bounds that wait (G-403-2).
+// NOT YET IS NOT NO. A member whose browser is not up yet answers `none`; the preview
+// keeps asking every NO_STREAM_RETRY_MS, and the machine bounds that wait.
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react'
 
@@ -56,7 +56,7 @@ export interface LivePreviewRunSubject {
   kind: 'run'
   runId: string
   /**
-   * The handle to watch, decided by the host (G-428-3). The preview follows the running member, which
+   * The handle to watch, decided by the host. The preview follows the running member, which
    * the host derives from the run stream; a new handle starts the preview over with a mint for it.
    */
   handle: number
@@ -214,7 +214,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
           if (purpose === 'renew') {
             // A renew that fails while the embed's token still has time left (a network blip, a
             // 500) keeps the picture and asks again; the link has expired only once it has run out
-            // (428 WR-04). The embed's own `refused: expired` says the same thing sooner.
+            // The embed's own `refused: expired` says the same thing sooner.
             const expiresAt = expiresAtRef.current
             if (expiresAt !== undefined && Date.now() < expiresAt) {
               setRenewRetry((count) => count + 1)
@@ -336,7 +336,7 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
     }
   }, [renewable, mintFor])
 
-  // Retry quietly (D-16): one fresh mint and a new iframe per backoff step.
+  // Retry quietly: one fresh mint and a new iframe per backoff step.
   useEffect(() => {
     if (reconnectIn === undefined) return
     dispatch({ type: 'lost-scheduled' })
@@ -405,8 +405,8 @@ export function LivePreview({ subject, chrome }: LivePreviewProps) {
       className="flex h-full min-h-0 flex-col"
     >
       {/*
-        One preview, which follows the running member (owner review 2026-09-26), never a grid (D-08).
-        The handle selector this row used to hold is gone (G-428-3); the host decides the handle.
+        One preview, which follows the running member (owner review 2026-09-26), never a grid.
+        The handle selector this row used to hold is gone; the host decides the handle.
         The status words lead the row at the container's top-left (owner decision 2026-09-26 (4)).
       */}
       <PreviewChrome status={status}>{chrome}</PreviewChrome>

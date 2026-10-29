@@ -180,7 +180,7 @@ describe("TabOverview screenshot states", () => {
   })
 })
 
-// 2026-10-08 (437-03, D-05): a tap that sent no input reads neither success nor failure.
+// a tap that sent no input reads neither success nor failure.
 describe("a skipped tap that sent no input", () => {
   function resultOutcome(view: HTMLElement) {
     const words = ["success", "failure", "no input sent"]

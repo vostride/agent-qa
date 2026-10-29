@@ -100,7 +100,7 @@ describe('config route helpers', () => {
   })
 })
 
-// THE ARTIFACT HREF HAS EXACTLY ONE MINTER (405-06 · DETL-03, D-14 / 400-08).
+// THE ARTIFACT HREF HAS EXACTLY ONE MINTER.
 //
 // Every artifact the rebuilt page shows is addressed by a `{ id, sha }` ref that the projection
 // carries — never by a URL a store wrote into a row. The href is MINTED here, from the run id and

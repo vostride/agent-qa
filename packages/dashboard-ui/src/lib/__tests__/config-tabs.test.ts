@@ -1,4 +1,4 @@
-// THE CONFIG PAGE'S CLOSED VOCABULARY (429 D-02/D-03/D-04 · PXH-CONF-01).
+// THE CONFIG PAGE'S CLOSED VOCABULARY.
 //
 // Five tabs, their sections in order, the total map from the live legacy `bucket:item` links,
 // the resolver the page, the palette and the tour share, and every UI closed set. The type

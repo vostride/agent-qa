@@ -2,7 +2,7 @@
 //
 // The whole file exactly as the server masked it, one numbered line per item; the page never
 // decides masking. Nothing here is editable: the file is edited in the owner's editor and arrives
-// as an outside edit. There is no reveal (441-49, D-29): a declared value reads as its marker.
+// as an outside edit. There is no reveal: a declared value reads as its marker.
 
 import { useEffect, useRef, useState } from "react"
 import { Check, Copy } from "lucide-react"
