@@ -291,7 +291,7 @@ function createComposedRunExecution(input: {
   readonly runTrigger?: RunAttributeTrigger
   readonly analytics?: CliAnalyticsHost
 }): RunExecutionPort {
-  return {
+  const composed = {
     // 432-13: the port's second argument (the retired run gate's standing-approval reader) is not
     // taken. Nothing asks, so there is no approval for a reader to satisfy.
     async execute(request: RunsStartInput): Promise<{ runId: RunId }> {
@@ -449,6 +449,15 @@ function createComposedRunExecution(input: {
       }
     },
   }
+  return {
+    // The bridge is handed the execution as it starts, so a host that waits for its runs knows
+    // about a run before the run can be seen to finish. `onPostRun` fires before this settles.
+    execute: (request: RunsStartInput): Promise<{ runId: RunId }> => {
+      const execution = composed.execute(request)
+      input.runBridge?.onExecution?.(execution)
+      return execution
+    },
+  }
 }
 
 export interface ComposeCliLocalAgentInput {
@@ -555,7 +564,8 @@ export interface ComposeCliLocalAgentInput {
    * none of it passes nothing; the dashboard is the only door that wants any of it today.
    *
    * IT IS A PASS-THROUGH, NOT A DECISION. `record` is lent to the run's record, `chipRelay` goes to
-   * the post-run tail, `onPostRun` is handed the run's post-run promise, and every other member is
+   * the post-run tail, `onExecution` is handed each run's execution as it starts, `onPostRun` is
+   * handed the run's post-run promise, and every other member is
    * handed to `runInProcessCliRun` as the option of the same name. This
    * host adds nothing and defaults nothing — `onSession` in
    * particular is CHAINED onto the door's own local capture rather than replacing it, because that
@@ -579,6 +589,11 @@ export interface ComposeCliLocalAgentInput {
      * nothing and the emitter writes only to `events.jsonl`, exactly as it does today.
      */
     readonly chipRelay?: (envelope: RunEventEnvelope) => void
+    /**
+     * Each run's execution, handed over synchronously as the run's execution starts, before any of
+     * its events exist. It settles after `onPostRun` has been handed that run's post-run work.
+     */
+    readonly onExecution?: (execution: Promise<unknown>) => void
     /** The host's view of a run's detached post-run work, handed over once the run returns. */
     readonly onPostRun?: (runId: string, settled: Promise<void>) => void
   }

@@ -473,9 +473,12 @@ export interface DashboardRunDoor {
    */
   observeSessions(observer: (session: RunSession) => void): () => void
   /**
-   * Resolves once every run's detached post-run work this door has seen has settled, including
-   * work that starts while it waits. `agent-qa dashboard`'s own shutdown does not call it, so work
-   * still running at shutdown is left for the job queue to resume.
+   * Resolves once every run this door's host has started has finished, and every piece of detached
+   * post-run work those runs started has settled, including runs and work that start while it
+   * waits. A run counts from the moment its execution starts, so a run that has logged
+   * `runFinished` but not yet started its post-run work is still waited for. `agent-qa dashboard`'s
+   * own shutdown does not call it, so work still running at shutdown is left for the job queue to
+   * resume.
    */
   postRunSettled(): Promise<void>
   // 441-48 (D-01): the door holds no secrets of its own for masking. Its masking binder and store
@@ -565,7 +568,15 @@ export async function createDashboardRunDoor(input: {
   const entries = new Map<string, DashboardRunEntry>()
   /** 402-01: everyone watching the ONE bridge this process's host publishes sessions through. */
   const sessionObservers = new Set<(session: RunSession) => void>()
+  const executions = new Set<Promise<unknown>>()
   const postRun = new Set<Promise<void>>()
+  // Each entry leaves its set once it settles, through `then(drop, drop)` so a rejection is
+  // never unhandled.
+  const track = <T>(set: Set<Promise<T>>, work: Promise<T>): void => {
+    set.add(work)
+    const drop = (): void => { set.delete(work) }
+    void work.then(drop, drop)
+  }
   let boundHost: LocalAgentHost | undefined
 
   const runBridge: NonNullable<ComposeCliLocalAgentInput['runBridge']> = {
@@ -595,11 +606,8 @@ export async function createDashboardRunDoor(input: {
     },
     resolveAppiumUrl: (runId: string): string | undefined => entries.get(runId)?.appiumUrl,
     resolveRunFlags: (runId: string): DashboardRunFlags | undefined => entries.get(runId)?.flags,
-    onPostRun: (_runId: string, settled: Promise<void>): void => {
-      postRun.add(settled)
-      const drop = (): void => { postRun.delete(settled) }
-      void settled.then(drop, drop)
-    },
+    onExecution: (execution: Promise<unknown>): void => { track(executions, execution) },
+    onPostRun: (_runId: string, settled: Promise<void>): void => { track(postRun, settled) },
   }
 
   const backend = createInProcessExecutionBackend({
@@ -656,8 +664,12 @@ export async function createDashboardRunDoor(input: {
       sessionObservers.add(observer)
       return () => { sessionObservers.delete(observer) }
     },
+    // A run's post-run work is handed over before its execution settles, so an execution leaving
+    // its set always leaves its work behind in the other one for the next pass to wait on.
     postRunSettled: async (): Promise<void> => {
-      while (postRun.size > 0) await Promise.allSettled([...postRun])
+      while (executions.size + postRun.size > 0) {
+        await Promise.allSettled([...executions, ...postRun])
+      }
     },
   }
 }

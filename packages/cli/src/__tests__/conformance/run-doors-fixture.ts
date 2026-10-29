@@ -209,13 +209,17 @@ export interface DashboardScene {
   close(): Promise<void>
 }
 
-/** How long `close()` waits for the scene's runs' post-run work before it tears down and throws. */
+/**
+ * How long `close()` waits for the scene's runs and their post-run work before it tears down and
+ * throws.
+ */
 const POST_RUN_BOUND_MS = 90_000
 
 /**
  * The dashboard in this process, composed the way `agent-qa dashboard` composes it, over the
- * project's own runs database so it reads what the CLI wrote. `close()` waits for every run's
- * post-run work first, because that work logs after the run settles.
+ * project's own runs database so it reads what the CLI wrote. `close()` first waits for every run
+ * the scene's host started to finish and for the post-run work those runs started, because that
+ * work logs after the run settles.
  */
 export async function openDashboardScene(
   project: PopulatedRunProject,
