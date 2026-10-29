@@ -3,22 +3,6 @@ import { WebPlatformAdapter } from '../adapter.js'
 import { buildScrollPrimitives, runWebScrollCompound } from '../compound-web.js'
 import type { RefMap } from '../types.js'
 
-// ---------------------------------------------------------------------------
-// Wave-0 RED scaffold — Phase 359 Plan 02, Task 1 (EXEC-01/02/03; D-05..D-09).
-//
-// These suites pin the WEB adapter fill/scroll/openApp COMPOUND behaviors before
-// any adapter edit lands. They fail on not-yet-implemented compound behavior (the
-// current `case 'fill'` neither re-reads via inputValue() nor understands the
-// schema `Fill` shape; `case 'scroll'` has no untilVisible native rung; `openApp`
-// is not a handled action). They MUST NOT fail on compile errors: execution-shaped
-// action literals are cast via `as unknown as Parameters<typeof adapter.execute>[0]`
-// so the cast is legal both before and after the Plan-04 Action-union flip.
-//
-// The pre-existing packages/web/src/__tests__/adapter.test.ts stays GREEN — this is
-// a standalone file; it does not touch the legacy `fill {value}` / `scroll {value}`
-// contracts that file pins.
-// ---------------------------------------------------------------------------
-
 // Ordered call log shared across the mock so ordering pins survive implementation
 // detail (which method, in what order, how many times).
 let calls: string[] = []
@@ -54,8 +38,7 @@ function makeLocator() {
 
 let locator: ReturnType<typeof makeLocator>
 
-// page.locator(':root') answers the ai snapshot (observe and the pre-dispatch binding
-// check); any other selector is the observed element's aria-ref locator.
+// `:root` serves the ai snapshot the binding check reads; any other selector is the element.
 const rootLocator = { ariaSnapshot: vi.fn().mockResolvedValue('- textbox "Email" [ref=e1]') }
 
 const mockPage = {
@@ -141,7 +124,6 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       const result = await adapter.execute({ type: 'fill', ref, text: 'hello', clearMode: 'replace', submit: true } as unknown as ExecAction)
 
       expect(result.success).toBe(true)
-      // Re-read from the SAME live handle after typing.
       expect(locator.inputValue).toHaveBeenCalled()
       // Enter is pressed only after the re-read.
       expect(locator.press).toHaveBeenCalledWith('Enter')
@@ -175,7 +157,6 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       const result = await adapter.execute({ type: 'fill', ref, text: 'XYZ', clearMode: 'append', submit: false } as unknown as ExecAction)
 
       expect(result.success).toBe(true)
-      // prior-capture BEFORE any typing
       expect(calls[0]).toBe('inputValue')
       expect(locator.pressSequentially).toHaveBeenCalledWith('XYZ')
       expect(locator.press).toHaveBeenCalledWith('End')
@@ -194,7 +175,6 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
         fillReread: { expected: 'intended', actual: 'wrong' },
         fillVerdict: { verb: 'fill', verdict: 'mismatch' },
       })
-      // single-shot typing — no silent re-attempt
       expect(locator.fill).toHaveBeenCalledTimes(1)
     })
 
@@ -218,7 +198,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
 
       const result = await adapter.execute({ type: 'fill', ref, text: 'hello', clearMode: 'replace', submit: false } as unknown as ExecAction)
 
-      // fallback read attempted rather than crashing (Pitfall 8)
+      // fallback read attempted rather than crashing
       expect(locator.evaluate).toHaveBeenCalled()
       // never fabricate a re-read pair when nothing is readable
       expect(result.success).toBe(true)

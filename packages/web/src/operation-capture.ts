@@ -1,43 +1,4 @@
-// Chromium download and app-clipboard capture, armed per action (436 D-19..D-21). A download is
-// awaited, streamed into sha-256 and deleted here; only its name, extension, size, digest and
-// state leave. `path()` and `saveAs()` are never called and no path is ever recorded.
-//
-// Clipboard: a page-world hook reports the text the app writes through the binding. Only while an
-// action other than agent-qa's own `copy` / `paste` is armed is a write kept, and only after a
-// kept write is the clipboard read back. The text leaves raw; the loop masks and bounds it
-// (CLIPBOARD_TEXT_LIMIT).
-// the read-back runs in an agent-qa-owned probe context at a reserved origin,
-// never on an app origin, and only the index of the claimed write equal to the clipboard leaves
-// the probe page. No app origin is ever granted `clipboard-read`.
-// the download wait of one action ends at the step's remaining time when the
-// loop hands one over, else at DOWNLOAD_COMPLETION_CAP_MS, and at once when the step is aborted
-// A download ended there is cancelled and deleted.
-// every download-starting web action is armed (fill only with submit, tab
-// only when it opens one), the start window stays open while a navigation the action started is
-// unanswered, and a download that starts outside the window is held for the next action, marked
-// late, or cancelled and deleted at dispose. The clipboard is disarmed when the start
-// window closes, before any completion wait.
-// a closed or crashed probe is reset (only the probe context closes) and
-// opened once more; held downloads survive it and only dispose() cancels them.
-// a headed or undetermined launch never reads the clipboard and opens no
-// probe (owner ruling on D-21); its app writes are recorded `unavailable`.
-// in a headless launch the probe page takes a pre-image of the run-local
-// clipboard before each clipboard-armed action, and only the final claim is compared after it:
-// `matched` needs the clipboard to have changed during the action and to equal that claim.
-// The pre-image stays in the probe page; only status words and numbers leave it. At most
-// CLIPBOARD_CLAIMS_PER_ACTION claims are kept per action in either mode, and a probe whose read
-// does not settle is skipped until it is replaced.
-// navigations that do not answer, from any frame or popup, keep the start
-// window open at most NAVIGATION_WINDOW_CAP_MS and never past half the action's time left, so a
-// started download keeps the other half to finish. They are bounded, not dropped: a download that
-// starts after the window is held and recorded late. The 120 s no-deadline wait is gone.
-// the acting page's own main-frame navigation waits up to half the action's
-// time left, so a slow export is recorded on its click; subframes and popups keep the cap.
-// With no step deadline the main frame waits up to half DOWNLOAD_COMPLETION_CAP_MS (60 s). A
-// capture armed without an acting page caps every navigation.
-// a completed download's bytes are also kept in memory, keyed by sha256, when
-// the file is at most DOWNLOAD_HOLD_FILE_CAP; the hold keeps at most DOWNLOAD_HOLD_TOTAL_CAP,
-// evicting the oldest first, and dispose() clears it. The file is still deleted.
+// Downloads are hashed in memory and deleted, and no app origin is granted `clipboard-read`.
 
 import { createHash } from 'node:crypto'
 import { extname } from 'node:path'

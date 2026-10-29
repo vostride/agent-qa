@@ -25,9 +25,7 @@ const LINE_PATTERN = /^(\s*-\s*)(\w+)(?:\s+"([^"]*)")?(.*)$/
 // colons or other characters that are ambiguous in its snapshot format.
 // e.g. - 'button "Spoken Language: Any"'
 const QUOTED_LINE_PATTERN = /^(\s*-\s*)'(\w+)(?:\s+"([^"]*)")?(.*)'\s*$/
-// Playwright's ai-mode snapshot annotates each element with a native reference,
-// e.g. `- button "Login" [ref=e5]`. These refs are adapter-PRIVATE handles for
-// aria-ref locators; they are NEVER copied into the node identity.
+// Native refs are adapter-private handles for aria-ref locators, never node identity.
 const REF_ANNOTATION = /\[ref=([A-Za-z0-9_-]+)\]/
 const BRACKET_ATTR = /\[(\w+)(?:=([^\]]*))?\]/g
 // The inline text after a line's bracket annotations: `- paragraph [ref=e7]: 7 Elm Street`.
@@ -53,22 +51,7 @@ function appendText(node: InterimNode, text: string | undefined): void {
   node.text = node.text === undefined ? tidy : `${node.text} ${tidy}`
 }
 
-/**
- * Parse a Playwright ARIA snapshot into platform-neutral runner interim nodes.
- *
- * Emits nodes in document order with role/name/attributes and a `parentIndex`
- * derived from indentation depth: the nearest kept entry among the line's true
- * ancestors; a dropped line still bounds its subtree (438 gap round, CR-02). A line
- * whose role is not kept never becomes a node: its quoted name and inline text fold
- * into the nearest kept entry among the line's true ancestors (438 D-02, the row
- * text), and a kept content line's own inline text becomes its `text`. Playwright
- * ai-mode `[ref=eN]` annotations are captured into an index-aligned `nativeRefs`
- * array (adapter-private native handles) and are never written into the node. Accepts both ai-mode (annotated) and default-mode
- * (unannotated) snapshot text.
- *
- * No ref minting and no tree rendering happen here — the shared runner builder
- * owns both.
- */
+// A dropped line still bounds its subtree; its name and text fold into the nearest kept ancestor.
 export function parseAriaSnapshot(ariaTree: string): {
   nodes: InterimNode[]
   nativeRefs: (string | undefined)[]
@@ -145,12 +128,7 @@ export function parseAriaSnapshot(ariaTree: string): {
   return { nodes, nativeRefs }
 }
 
-/**
- * Capture exact web scroll state (Pitfall #2 / D-10). Web scroll is precise:
- * real `window.scrollX/Y` offsets and `document.documentElement.scrollWidth/Height`
- * content size — never hardcoded zeros. Best-effort: on failure it degrades to the
- * Playwright viewport size and zero scroll rather than throwing.
- */
+// Best-effort: a failure degrades to the viewport size and zero scroll instead of throwing.
 export async function captureWebScroll(page: Page): Promise<{
   viewport: { width: number; height: number }
   scroll: { offsetX: number; offsetY: number; contentWidth: number; contentHeight: number }
@@ -192,18 +170,7 @@ export async function captureWebScroll(page: Page): Promise<{
   }
 }
 
-/**
- * Resolve exact per-element geometry, state, and labels through Playwright
- * `aria-ref=` locators (the engine's own ground truth) instead of the removed
- * in-page inferred-role heuristic. The ai-mode native refs stay adapter-private
- * handles; builder-minted refs remain the only public identity.
- *
- * Enrichment mutates the interim nodes in place and is best-effort: a node whose
- * ref fails to resolve (or has no ref) keeps `bounds` absent — the builder's
- * geometry rule turns that into no refMap entry, never zero-geometry fabrication
- * (D-08, Pitfall #3). Enrichment failure degrades to unenriched nodes; it never
- * throws out of observation.
- */
+// An unresolved node keeps no `bounds`, so the builder mints no ref for it.
 export async function enrichWebNodes(
   page: Page,
   nodes: InterimNode[],
@@ -271,9 +238,7 @@ export async function enrichWebNodes(
 
     if (!Array.isArray(raw)) return
 
-    // Coerce untrusted evaluate results to expected primitives before writing them
-    // into the interim nodes: numbers for geometry, strings for labels;
-    // malformed entries degrade to absent fields.
+    // Evaluate results are untrusted, so malformed entries become absent fields.
     for (let k = 0; k < targetIndices.length; k++) {
       const info = raw[k]
       if (!info || typeof info !== 'object') continue

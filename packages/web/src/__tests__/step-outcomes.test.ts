@@ -1,8 +1,3 @@
-// C436-OUTCOME-EVIDENCE (436 D-28, SC1): model-free acceptance through the real runner loop and a
-// real headless Chromium. A scripted planner and verifier drive executeStep over WebPlatformAdapter
-// against loopback fixture pages whose outcomes are known. Every cell also checks that the loop
-// dispatched exactly what the planner planned (no loop-initiated retry).
-
 import { createHash } from 'node:crypto'
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -53,8 +48,7 @@ interface DraftServer {
   close(): Promise<void>
 }
 
-// the background save is re-read after a reload, so its page is served
-// here and renders what the server kept; "Save draft" still changes nothing on the page.
+// The background save is re-read after a reload, so this server renders what it kept.
 async function draftServer(): Promise<DraftServer> {
   const saved: string[] = []
   const server = createServer((request, response) => {
@@ -281,8 +275,7 @@ describe('model-free step outcomes through the real loop', () => {
         plannerConfig: LIMITS,
       })
       expect(first.result.status).toBe('passed')
-      // the replay stands for a later run, whose clipboard does not already
-      // hold the copied text; rewriting identical text reads `unavailable` (owner ruling on D-21).
+      // A later run's clipboard lacks the copied text; rewriting the same text reads `unavailable`.
       await web.getPage()!.evaluate("navigator.clipboard.writeText('BEFORE-REPLAY')")
 
       const planner = scriptedPlanner([copyOrder])
@@ -434,8 +427,7 @@ describe('model-free step outcomes through the real loop', () => {
   it('the same button passes when it opens the dialog (the dead dialog\'s twin)', async () => {
     await open('/dialog')
     const planner = scriptedPlanner(inviteTurns)
-    // the open invite dialog is the requested outcome, so the verifier accounts it as
-    // unrelated (it shows nothing left undone); an unaccounted open dialog would block the pass.
+    // The open dialog is the requested outcome; left unaccounted it would block the pass.
     const scripted = scriptedVerifier(dialogCheck)
     const verifier: Verifier = {
       async verify(...args) {

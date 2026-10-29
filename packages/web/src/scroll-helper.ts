@@ -1,13 +1,4 @@
-// Container scroll for a ref (436-17 · D-25, review CR-03). The ref resolves through
-// ElementResolver, the aria-ref locator every other web action uses. A ref that does not resolve,
-// or names an element in a child frame (frames are deferred, 438 D-09), performs no gesture and
-// reports no offsets, so the swipe reads `unknown`. Offsets always belong
-// to the container that was actually scrolled: the element, its nearest scrolling ancestor over
-// the flat tree, or document.scrollingElement, which reports them only when it has scroll range on
-// the swiped axis.
-// the walk follows the flat tree (slot, parent, shadow host), never takes a
-// body whose overflow propagates to the viewport as a container, and the document fallback scrolls
-// and measures document.scrollingElement; with none, it reports no offsets (review CR-06).
+// A ref that does not resolve or is in a child frame scrolls nothing; the swipe reads `unknown`.
 
 import type { Page } from 'playwright-core'
 import type { Ref } from '@vostride/agent-qa-schema'

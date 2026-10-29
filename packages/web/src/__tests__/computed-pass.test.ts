@@ -1,8 +1,3 @@
-// C439-COMPUTED-PASS (439 D-07, D-10, SC1): in real headless Chromium through the real loop, a
-// completion claim passes only when the runner's own computation over the verifier's per-condition
-// output says every condition is met. The verifier here is written inline and returns the
-// per-condition shape directly; the page is an inline snippet.
-
 import { afterEach, describe, expect, it } from 'vitest'
 import type {
   ConditionJudgment,

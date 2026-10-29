@@ -1,24 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { WebPlatformAdapter } from '../adapter.js'
 
-// ---------------------------------------------------------------------------
-// Wave-0 RED catalog suite — Phase 360 Plan 02, Task 2.
-//
-// Pins the driver-call contract for every web verb gaining or changing execution this
-// phase (new cases: focus/route/unroute/networkState/storageState/handleDialog; fold
-// re-keys: navigate history/reload, tab new/switch, inspect console/network/cookies/
-// localStorage, keypress down/up, waitFor on-shapes) against a call-logging mocked
-// page/context, driven through WebPlatformAdapter's execute switch.
-//
-// RED convention: these fail on missing / legacy-keyed case behavior (uncalled mocks,
-// assertNever fall-through), NEVER on compile errors — execution-shaped action literals
-// are cast via `as unknown as ExecAction`, legal both before and after the Plan-04
-// Action-union flip. The mocks are injected directly onto the adapter (page/context/
-// lastRefs), bypassing setup so the pins run without a live browser.
-//
-// The pre-existing adapter.test.ts + compound.test.ts stay GREEN (standalone file).
-// ---------------------------------------------------------------------------
-
 type ExecAction = Parameters<WebPlatformAdapter['execute']>[0]
 type WebAdapter = WebPlatformAdapter
 
@@ -101,8 +83,7 @@ function makePage() {
     waitForSelector: vi.fn().mockImplementation(() => { calls.push('page.waitForSelector'); return Promise.resolve(null) }),
     waitForFunction: vi.fn().mockImplementation(() => { calls.push('page.waitForFunction'); return Promise.resolve(null) }),
     getByText: vi.fn().mockReturnValue({ waitFor: vi.fn().mockResolvedValue(undefined), first: vi.fn().mockReturnThis() }),
-    // ':root' answers the ai snapshot the pre-dispatch binding check reads; any other
-    // selector is the observed element's aria-ref locator.
+    // `:root` serves the ai snapshot the binding check reads; any other selector is the element.
     locator: vi.fn().mockImplementation((selector: string) => (selector === ':root'
       ? { ariaSnapshot: vi.fn().mockResolvedValue('- textbox "Email" [ref=e1]') }
       : locator)),

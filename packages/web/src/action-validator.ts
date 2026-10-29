@@ -17,8 +17,6 @@ export class ActionValidationError extends Error {
 const FILL_ROLES = new Set(['textbox', 'searchbox', 'spinbutton', 'combobox'])
 const SELECT_ROLES = new Set(['listbox', 'combobox'])
 
-// Actions that don't target elements — always valid (re-keyed to the schema/folded verbs; the
-// retired verb names — assert/keyDown/keyUp/refresh/navigateHistory/read* — are gone, D-19).
 const NO_REF_ACTIONS = new Set(['scroll', 'navigate', 'waitFor', 'delay', 'waitForUrl', 'tab', 'inspect', 'route', 'unroute', 'networkState', 'storageState', 'handleDialog', 'uniqueValue', 'assertValue', 'assertAI', 'extractAI', 'reportValue', 'setCookies', 'setLocalStorage', 'executeScript', 'setVariable'])
 
 // Actions valid for any role

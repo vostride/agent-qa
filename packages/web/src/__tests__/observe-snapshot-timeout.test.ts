@@ -1,8 +1,3 @@
-// C436-OBSERVE-BOUND (436-27 · D-29, review CR-09): observe's ai-mode snapshot keeps the short
-// bound for a child frame that never answers, and a main frame that outlasts it is taken once more
-// with the pre-436-24 bound instead of failing the observation. Real headless Chromium through
-// WebPlatformAdapter, fixtures served from a loopback node:http server.
-
 import { createServer } from 'node:http'
 import type { Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'

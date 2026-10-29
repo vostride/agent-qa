@@ -1,10 +1,4 @@
-// 428 code review WR-08 (428-REVIEW.md): one rejected keepalive capture must not drop a web run's
-// preview to 1 s snapshots for good.
-//
-// These cells drive the adapter's keepalive and recovery against a scripted CDP session, because the
-// failure under test (a capture that rejects for one moment while the session is fine) cannot be
-// produced on demand from a real Chromium. The real-browser withdrawal is pinned in
-// live-stream.screencast.test.ts, which this file does not change.
+// A scripted CDP session, because a capture that rejects once cannot be forced on Chromium.
 
 import { afterEach, describe, expect, it, vi } from 'vitest'
 

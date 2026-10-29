@@ -1,9 +1,3 @@
-// C439-SAVED-FILE (439 D-04, D-17, SC2): a later step checks the earlier step's download by exact
-// name and content, in real headless Chromium through the real loop. The capture holds the bytes
-// in memory, the loop hands the runner's comparator only this test's downloads, and the file's text
-// reaches no prompt: the verifier states the expected name and text, the runner compares, and only
-// the masked, windowed first difference is recorded. The file is served by a loopback server here.
-
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'

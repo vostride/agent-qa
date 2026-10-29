@@ -1,8 +1,3 @@
-// C436-WEBVIEW-SCRIPT (436-23 · D-25, review WR-20 and IN-32): the Android WebView scroller script
-// run in real headless Chromium, the engine an Android WebView uses. A 400×800 touch viewport, a
-// CDP touch scroll gesture, fixtures from a loopback node:http server (page base on localhost,
-// cross-origin frames on 127.0.0.1). The live Android WebView path is not exercised here.
-
 import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'

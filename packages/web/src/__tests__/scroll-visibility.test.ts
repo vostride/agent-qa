@@ -1,14 +1,3 @@
-// C436-SCROLL-VISIBILITY (436-17 · D-24/D-25, review CR-04 and WR-06): on the web lane untilVisible
-// decides target visibility by what is on screen. C436-SCROLL-REF (436-17 · D-25, review CR-03): a
-// container ref scrolls and measures only the container it names. C436-SCROLL-POINTER (436-18 ·
-// D-24/D-25, review CR-02): a no-ref wheel is judged by the scrollers under the pointer. Real
-// headless Chromium through WebPlatformAdapter, fixtures served from a loopback node:http server.
-// C436-SCROLL-REF adds the propagating body, quirks mode, body and html
-// scrollers, shadow roots and an iframe-only ref (review CR-06). C436-SCROLL-FRAMES: the probe
-// sees every frame and answers visible, hidden or unknown (review CR-07). C436-SCROLL-DECOYS:
-// hidden, transparent and covered copies never count, positioned targets are hit-tested.
-// C436-SCROLL-FRAMES adds iframes that never answer (review CR-08).
-
 import { createServer } from 'node:http'
 import type { Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -482,8 +471,7 @@ async function valueOf(tab: Page, expression: string): Promise<number> {
   return tab.evaluate<number>(expression)
 }
 
-// A ref near the top: `down` moves the page one viewport, and `toEnd up` from 1500 ends on the
-// page's own top, never on a container the gesture did not move (review CR-06).
+// A ref near the top: `down` moves the page a viewport; `toEnd up` ends on the page's own top.
 async function refScrollsThePage(path: string): Promise<void> {
   const { web, tab } = await open(path)
   const ref = await refFor(web, 'button', 'Item one')

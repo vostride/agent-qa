@@ -2,13 +2,6 @@ import { describe, it, expect } from 'vitest'
 import { buildScreenState, screenConformanceCases, type ConformanceInput } from '@vostride/agent-qa-runner'
 import { parseAriaSnapshot } from '../observer.js'
 
-// The shared adapter conformance suite run against the WEB walker: real
-// Playwright ARIA snapshot text is parsed by parseAriaSnapshot into the interim nodes
-// the builder consumes, then every case in screenConformanceCases asserts the pinned
-// builder-contract invariants over those nodes. Enrichment is simulated (a subset of
-// nodes given bounds) rather than run against a live browser — the cases assert
-// builder invariants over the walker's nodes, not live-DOM behavior.
-
 // An ai-mode snapshot fixture (reuses the observer.test.ts shapes): nested nav + a
 // form region, each row annotated with a native [ref=eN] handle.
 const WEB_SNAPSHOT = [

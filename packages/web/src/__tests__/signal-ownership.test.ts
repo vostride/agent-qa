@@ -1,8 +1,4 @@
-// a browser launched for a host that owns its
-// signals leaves SIGINT, SIGTERM and SIGHUP to that host and keeps only Playwright's `exit`
-// listener; every other launch keeps Playwright's listeners. Real headless
-// Chromium through WebPlatformAdapter; Playwright's listeners are the ones the launch adds to
-// `process.listeners(signal)`, compared by identity with a baseline taken just before it.
+// Playwright's listeners are those the launch adds to `process.listeners`, compared by identity.
 
 import { existsSync } from 'node:fs'
 import { chromium } from 'playwright-core'

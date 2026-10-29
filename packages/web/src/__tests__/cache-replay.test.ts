@@ -1,8 +1,4 @@
-// C438-STRICT-REPLAY (438 D-10, D-11, SC3): a cached target replays only onto the one current
-// element with its role and exact name. 'Invoice 947' and 'Invoice 946' share a cache key (both
-// normalize to 'invoice'), so the second run is a key hit; the stored name decides whether it
-// replays. Real headless Chromium through the real runner loop; pages are inline snippets.
-// a key hit that does not replay is a recorded miss with its typed reason.
+// `Invoice 947` and `Invoice 946` share a cache key, so the stored name decides the replay.
 
 import { afterEach, describe, expect, it } from 'vitest'
 import type { PlannerConfig } from '@vostride/agent-qa-runner'

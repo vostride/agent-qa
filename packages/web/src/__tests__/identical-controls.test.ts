@@ -1,9 +1,3 @@
-// C438-IDENTICAL-CONTROLS (438 D-12, D-14, SC4): AUTO-15 on two identical 'Okay' buttons. A step
-// that does not say which one clicks nothing and ends infeasible naming both; a step that names
-// the second clicks the second, and keeps clicking it after the two swap places. Real headless
-// Chromium through the real runner loop; the page is an inline snippet. The cache and heal legs
-// refuse too: a stored Okay never replays onto either, and a replaced Okay is not provably either.
-
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Action, ExecuteOptions, PlannerConfig } from '@vostride/agent-qa-runner'
 import { readBindingOutcomeMeta } from '@vostride/agent-qa-schema'

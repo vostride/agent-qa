@@ -1,9 +1,3 @@
-// C439-AUTO12 (439 D-16, D-18, SC2): the runner's own checks in real headless Chromium through the
-// real loop. A dialog left open, a control short of the limit the screen reports, a narrowed
-// re-check standing in for a failed one, and an app's own "Saved" claim each fail to prove their
-// condition, while each twin passes. The verifier is written inline and returns the per-condition
-// shape; pages are inline snippets, and the persistence pair is served by a loopback server here.
-
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterEach, describe, expect, it } from 'vitest'

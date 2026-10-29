@@ -1,6 +1,4 @@
-// Adapter-private native binding per observed ref: Playwright's aria-ref handle the
-// dispatch acts through, and the observed role, exact name and row text the pre-dispatch check
-// compares against the current page. No position is kept.
+// Adapter-private and holds no position, so a moved row is followed, not substituted.
 export type RefMap = Record<string, {
   nativeRef: string
   role: string

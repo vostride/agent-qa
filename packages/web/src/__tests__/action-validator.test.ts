@@ -195,7 +195,6 @@ describe('validateAction', () => {
     expect(result.valid).toBe(true)
   })
 
-  // New EXEC-06 web cases route/unroute/networkState/storageState/handleDialog (no ref → valid).
   it('route (no ref) -> valid', () => {
     const result = validateAction({ type: 'route', urlPattern: '**/api/**', body: '{}' }, undefined)
     expect(result.valid).toBe(true)

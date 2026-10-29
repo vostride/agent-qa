@@ -1,10 +1,3 @@
-// C439-JUDGED-CASES (439 D-16, D-18, D-20, SC2, SC3): paired cells for the model-judged cases in
-// real headless Chromium through the real loop. These cells prove the runner's computed pass and
-// its citation discipline, not the model's judgment of totals, positions or dead submits:
-// each scripted verifier reads only the screens and the record the loop hands it and states a
-// verdict; the runner decides whether that verdict is cited from what the step saw. Pages are
-// served by a loopback server defined here.
-
 import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'

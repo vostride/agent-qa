@@ -1,27 +1,4 @@
-// THE CHANGE-DRIVEN PROPERTY, ON A REAL HEADLESS CHROMIUM (403-02 Task 3 · LIVE-01 · D-05).
-//
-// THE DISCRIMINATOR THIS FILE EXISTS FOR. "Frames arrived" is satisfied by
-// `setInterval(() => page.screenshot())` just as well as by `Page.startScreencast`, and the two
-// are different products: a poller costs a browser a full rasterise several times a second on
-// every run forever, and it cannot tell a page that is changing from a page that is not. The
-// property that separates them has a NEGATIVE ARM — a page that is not moving must not produce
-// frames at a poller's cadence — so this file measures both arms, and the negative one is the one
-// with teeth. Since 428 D-15 a static page is not silent: it produces a fresh keepalive capture
-// every 2 s so the viewer's dot stays green, and STATIC-PAGE-KEEPALIVE bounds that cadence both
-// ways (a 1 s poller is too many frames, a silent screencast too few).
-//
-// K=5, ZERO TOLERATED FAILURES ON THE POSITIVE ARM. One green run is roughly 60% likely to hide a
-// 40% flake (WINDOWS: "live gate k=1 hides flakes"), and the claim here is about a timing-shaped
-// behaviour of a real compositor. Each iteration is a fresh `start`/`stop` on the same adapter and
-// reports its own index on failure, so a flaky arm names the iteration rather than the suite.
-//
-// A MISSING CHROMIUM IS A RED, NEVER A SKIP. `dashboard-dom.test.ts`'s rule: a cell that skips
-// itself when the browser is absent is a cell that is green on every machine that cannot run it.
-//
-// THIS FILE MUST NOT MOCK THE BROWSER DRIVER. `adapter.test.ts` mocks it at module scope, and a
-// module mock is process-wide within a file — which is why this is a SEPARATE file rather than a
-// describe block over there. There is nothing to measure about a screencast produced by a mock,
-// and the absence of that mock here is itself an acceptance criterion of this plan.
+// A module mock of the browser driver would cover this whole file and leave nothing to measure.
 
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'
@@ -50,31 +27,14 @@ const EXPECTED_ITERATIONS = 5
 /** The positive arm's window and floor. */
 const ANIMATED_WINDOW_MS = 3_000
 const ANIMATED_MIN_FRAMES = 3
-/**
- * STATIC-PAGE-KEEPALIVE's window, count band and cadence floor (428 D-15, re-spelled from 403-02's
- * one-frame ceiling, which the keepalive retires — RESEARCH P11).
- *
- * After the first frame, a static page gets a fresh capture every `LIVE_KEEPALIVE_QUIET_MS`
- * (2_000), so 6 s holds between 2 and 4 frames: fewer is a silent producer (the dot would go amber
- * on a healthy page), more is a producer emitting faster than the keepalive — i.e. polling. The gap
- * floor sits 200 ms under the keepalive period, so a 1 s poller fails it on every pair. The
- * measured counts are in the cell's failure messages; do not widen the band without a note saying
- * what was measured and why.
- */
+// Bands around the keepalive period: fewer frames is a silent producer, more is a poller.
 const STATIC_WINDOW_MS = 6_000
 const STATIC_MIN_FRAMES = 2
 const STATIC_MAX_FRAMES = 4
 const KEEPALIVE_MIN_GAP_MS = 1_800
 /** TIMESTAMP-EPOCH-MS: a capture time in epoch ms is within this of the receiver's clock. */
 const EPOCH_MS_TOLERANCE_MS = 5_000
-/**
- * The bound on each non-chromium launch in the getter-gates cell. Playwright's
- * default launch timeout (3 min in playwright-core 1.61.0) equals the cell's 180 s budget, so an
- * unbounded launch that hangs used up the cell before its own catch could run. Firefox 1532 never
- * launches on this macOS host (433-01: launch timeout x3 at 60 s; a 15 s probe on 2026-10-04 timed
- * out too), while WebKit 2311 launched in 703 ms and chromium in 254 ms. Two bounded probes plus
- * the adapter setups stay well under the 180_000 budget, which is unchanged.
- */
+// Playwright's default launch timeout equals the cell's budget, so a hung launch would eat it.
 const NON_CHROMIUM_LAUNCH_BOUND_MS = 30_000
 
 let page: LiveStreamFixturePage | undefined
@@ -84,7 +44,7 @@ let tall: LiveStreamFixturePage | undefined
  * TAB-FOLLOW's pages: a tall document with a fixed, animating box (so the compositor keeps
  * producing frames wherever the page is scrolled), scrolled on load to `?scroll=N`. Two pages with
  * different scroll offsets are two pages a frame's `scrollOffsetY` can tell apart. Local to this
- * file so the 403 fixture page stays a byte-for-byte twin of the cli one.
+ * file so the fixture page stays a byte-for-byte twin of the cli one.
  */
 async function startTallAnimatingPage(): Promise<LiveStreamFixturePage> {
   const server = createServer((req, res) => {
@@ -442,8 +402,6 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled', () => {
   }, 180_000)
 
   it('WITHDRAWN-FALLS-BACK: a screencast withdrawn under a live browser becomes labelled 1 s snapshots, and stop() ends them', async () => {
-    // RED while a withdrawn screencast simply goes silent: the viewer keeps the last frame and the
-    // dot ages to amber on a browser that is still up (428 D-12's second half).
     const adapter = await adapterOn(`${fixture().url}?animate=1`)
     try {
       const capability = adapter.liveStream as NonNullable<WebPlatformAdapter['liveStream']>

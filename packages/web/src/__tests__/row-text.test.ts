@@ -1,7 +1,3 @@
-// C438-ROW-PARSE (438 D-02, Pitfall 1): a real Chromium ai-mode snapshot parsed by
-// parseAriaSnapshot and built by buildScreenState carries each row's static text. The fold adds no
-// element: only `row` lines become new elements. Pages are inline snippets.
-
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { buildScreenState, judgeStatedTarget, rowTextOf } from '@vostride/agent-qa-runner'
 import type { ElementInfo, ScreenState } from '@vostride/agent-qa-schema'

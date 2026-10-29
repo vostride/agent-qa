@@ -1,9 +1,3 @@
-// C438-REORDERED-ROWS (438 D-09, SC2): what happens when the rows the planner looked at change
-// before its action reaches the page. Real headless Chromium through the real runner loop; pages
-// are inline snippets. 438-06 holds the navigated leg; 438-07 the replaced and recycled legs (the
-// strict heal, D-07, D-08); 438-08 the cached leg (strict replay through the row words, D-10,
-// D-11); 438-09 the cached miss leg (no row words, so the repeated label is a recorded miss).
-
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Action, ExecuteOptions, PlannerConfig } from '@vostride/agent-qa-runner'
 import { readBindingOutcomeMeta } from '@vostride/agent-qa-schema'

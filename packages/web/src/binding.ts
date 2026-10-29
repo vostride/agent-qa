@@ -1,11 +1,4 @@
-// The web native binding. Each observed ref keeps Playwright's native
-// aria-ref plus the observed role, exact name and row text; the observation keeps a main-frame
-// document handle as its epoch. Before a ref-bearing dispatch the adapter re-checks the bound
-// element through one fresh `:root` ai snapshot, which also refreshes Playwright's ref map for the
-// aria-ref locator that follows. Every snapshot goes through snapshotRoot: a default-mode or
-// sub-locator snapshot would replace that map and unbind every ref (RESEARCH Pitfall 2).
-// `(globalThis as any).document` is used because the Node tsconfig carries no DOM lib; those
-// functions run in the browser.
+// A default-mode or sub-locator snapshot replaces Playwright's ref map and unbinds every ref.
 
 import type { JSHandle, Page } from 'playwright-core'
 import type { ActionResult } from '@vostride/agent-qa-runner'

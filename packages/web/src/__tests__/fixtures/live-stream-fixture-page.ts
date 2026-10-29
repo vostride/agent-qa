@@ -1,16 +1,4 @@
-// A LOCAL PAGE WITH A COMPOSITOR SWITCH (403-01 Task 4 · 403-02 Task 3's change-driven cell).
-//
-// A BYTE-FOR-BYTE TWIN of `packages/cli/src/__tests__/fixtures/live-stream-fixture-page.ts`, and
-// the duplication is forced rather than lazy: `web` may not import from `cli` (the dependency runs
-// the other way), and this is the package where the adapter under test lives. The change-driven
-// property needs the SAME page in both places or the two measurements are not about one experiment.
-//
-// The `?animate=1` arm runs a CSS keyframe animation, so the compositor produces frames
-// continuously. WITHOUT it the page is static after load — which is the negative arm the
-// change-driven property needs: `Page.startScreencast` emits nothing while nothing changes, and a
-// screenshot-polling implementation would emit frames anyway. A remote URL could not be used for
-// this: a third-party page's animations, ads and lazy loads are exactly the variable the
-// experiment has to hold still.
+// A byte-for-byte twin of cli's `live-stream-fixture-page.ts`: web cannot import from cli.
 
 import { createServer } from 'node:http'
 import type { AddressInfo } from 'node:net'

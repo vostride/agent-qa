@@ -1,8 +1,3 @@
-// C439-WAITS-AND-READS (439 D-13, D-14, SC3): in real headless Chromium through the real loop, a
-// wait passes only when its condition held and an assertion passes only on a value it actually
-// read. A network assertion peeks at the log, so the step-end drain still sees what it read. The
-// pages are inline; the network cells use a loopback server defined here.
-
 import { createServer } from 'node:http'
 import type { Server, ServerResponse } from 'node:http'
 import type { AddressInfo } from 'node:net'

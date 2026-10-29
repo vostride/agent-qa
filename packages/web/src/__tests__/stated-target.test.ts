@@ -1,8 +1,3 @@
-// C438-STATED-TARGET (438 D-01, D-03, D-04, D-05, SC1): model-free acceptance of the stated-target
-// check through the real runner loop and a real headless Chromium. A scripted planner sends a ref
-// plus the element it means; the loop dispatches it when the two agree and refuses it, sending
-// nothing and substituting nothing, when they clearly contradict. Pages are inline snippets.
-
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Action, ExecuteOptions, PlannerConfig } from '@vostride/agent-qa-runner'
 import { WebPlatformAdapter } from '../adapter.js'

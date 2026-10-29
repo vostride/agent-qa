@@ -1,7 +1,4 @@
-// C438-ARIA-REF-CONFORMANCE (438 D-06; spec/v3 browser control §3.1): the playwright-core
-// behaviour web/src/binding.ts relies on. `aria-ref=` is undocumented, so a playwright-core bump
-// must re-run this file before anything else.
-// Raw Playwright on headless Chromium, no adapter; pages are inline snippets.
+// `aria-ref=` is undocumented; re-run this file first after a playwright-core bump.
 
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 import { chromium } from 'playwright-core'

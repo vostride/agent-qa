@@ -1,12 +1,3 @@
-// C438-NATIVE-BINDING (438 D-06, D-07, SC2, SC3): the web adapter keeps the element the planner
-// observed through Playwright's native aria-ref and re-checks it before dispatch. A row moved
-// between observation and dispatch is followed, never substituted by the row now at its old
-// position, and an exact name beside a near-twin resolves. Real headless Chromium through the real
-// loop; pages are inline snippets.
-// C438-BINDING-OUTCOMES names each way a target stops being
-// the observed element at the adapter, and pins the benign changes that keep a binding.
-// an enclosing article's prose is not part of a nested row's binding.
-
 import { afterEach, describe, expect, it } from 'vitest'
 import type { Action, ExecuteOptions, PlannerConfig } from '@vostride/agent-qa-runner'
 import { asRef } from '@vostride/agent-qa-runner'

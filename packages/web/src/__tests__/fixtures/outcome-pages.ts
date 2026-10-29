@@ -1,8 +1,4 @@
-// Loopback fixture pages for the SC1 acceptance cells. Each page is a known answer:
-// what an action does to the page, to the server's persisted state and to the browser's
-// download and clipboard is fixed here, so a cell's verdict can be judged against it. Pages are
-// served on 127.0.0.1 and opened as http://localhost:<port>/, a secure context, with
-// Cache-Control: no-store, like live-stream-fixture-page.ts.
+// Pages are opened as `http://localhost:<port>/`, which is a secure context.
 
 import { createServer } from 'node:http'
 import type { IncomingMessage, ServerResponse } from 'node:http'
