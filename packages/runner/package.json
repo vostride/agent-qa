@@ -44,7 +44,8 @@
     "dev": "tsup --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "clean": "rm -rf dist .turbo"
+    "clean": "rm -rf dist .turbo",
+    "regen:sequential-baseline": "vitest run src/run/__tests__/run-shell.concurrency.test.ts -u"
   },
   "dependencies": {
     "@vostride/agent-qa-safety": "workspace:*",

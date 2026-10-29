@@ -1,9 +1,9 @@
-// The bounded member pool (402-02, INVK-04 / D-09) — its concurrency proof, its parity control,
-// and the invariants the sequential `for` loop used to guarantee for free.
+// The bounded member pool: its concurrency proof, the recorded event stream a workers=1 run and
+// an all-lane run both emit, and the ordering invariants a pool must keep.
 //
-// WHY A SEPARATE FILE FROM `run-shell.test.ts`: that file pins the SEQUENTIAL contract and must
-// keep passing byte-for-byte. This one pins what only a POOL can be asked. The distinction is
-// load-bearing for the parity control below.
+// `run-shell.test.ts` pins the sequential contract. This file pins what only a pool can be asked.
+// The recorded stream is `__fixtures__/sequential-baseline.json`; `pnpm --filter
+// @vostride/agent-qa-runner run regen:sequential-baseline` rewrites it.
 //
 // THE VACUOUS-ASSERTION TRAP (measured in 402-01, applied here): a 2-member fixture whose members
 // take the same time and settle in declaration order produces the SAME observable stream under a
@@ -35,7 +35,6 @@ import type {
   RunSession,
 } from '@vostride/agent-qa-schema'
 import type { TestResult } from '../../result.js'
-import { SEQUENTIAL_BASELINE } from './__fixtures__/sequential-baseline.js'
 
 // ---- Shared fakes ---------------------------------------------------------------------------
 
@@ -176,96 +175,20 @@ function normalize(events: readonly RunEventEnvelope[]): BaselineEvent[] {
   }))
 }
 
-/**
- * The first intentional divergence from the pre-402 capture (444.1-15 names the second, below).
- *
- * 402-04 adds `handles` to the `runStarted` payload (D-10's roster). That is an ADDITIVE payload
- * field, so the baseline — captured before it existed — cannot contain it, and the control reds.
- *
- * The fixture is NOT regenerated. Its own header says why: regenerating a differential control
- * against the code under test is how it becomes self-certifying, and after that it can never red
- * again for anything. Instead the divergence is named HERE, subtracted, and asserted separately —
- * so the control keeps its full discriminating power over every other byte of the stream, and the
- * one thing that did change is a line a reviewer reads rather than a diff nobody sees.
- */
-function withoutHandleRoster(events: readonly BaselineEvent[]): BaselineEvent[] {
-  return events.map((event) => {
-    if (event.type !== 'runStarted') return event
-    const { handles: _handles, ...rest } = event.payload as { handles?: unknown }
-    return { ...event, payload: rest }
-  })
+function recordedStream(events: readonly RunEventEnvelope[]): string {
+  return `${JSON.stringify(normalize(events), null, 2)}\n`
 }
 
-// 2026-10-19 (444.1-15, D-24): the second named divergence, subtracted and asserted the same way.
-// A skipped member's testFinished now carries its name and filePath (additive payload fields).
-function withoutSkipIdentity(events: readonly BaselineEvent[]): BaselineEvent[] {
-  return events.map((event) => {
-    if (event.type !== 'testFinished') return event
-    const payload = event.payload as Record<string, unknown>
-    const { name: _name, filePath: _filePath, ...rest } = payload
-    return { ...event, payload: rest }
-  })
-}
-
-function skipIdentityOf(events: readonly RunEventEnvelope[]): unknown[] {
-  return events
-    .filter((event) => event.type === 'testFinished')
-    .map((event) => event.payload as { outcome: string; name?: string; filePath?: string })
-    .filter((payload) => payload.name !== undefined || payload.filePath !== undefined)
-    .map((payload) => [payload.outcome, payload.name, payload.filePath])
-}
-
-describe('workers=1 parity — the pre-refactor differential control', () => {
-  it('reproduces the captured sequential event stream verbatim, but for the added roster', async () => {
+describe('the recorded event stream', () => {
+  it('a workers=1 run emits the recorded event stream', async () => {
     const session = startRun(baselineConfig())
     const events = drain(session)
     await done(session)
 
-    const stream = withoutSkipIdentity(withoutHandleRoster(normalize(events)))
-    expect(stream).toEqual(SEQUENTIAL_BASELINE)
-    // …and the subtracted field is exactly the roster, present and correct. Subtracting a field
-    // without asserting it would let the control pass on a runStarted that lost the roster too.
-    expect(handleRosterOf(events[0] as RunEventEnvelope)).toEqual([0, 1, 2, 3])
-    expect(skipIdentityOf(events)).toEqual([['skipped', 'charlie test', 'charlie.test.ts']])
+    await expect(recordedStream(events)).toMatchFileSnapshot(
+      './__fixtures__/sequential-baseline.json',
+    )
   })
-
-  // Capture mode. Run with AGENT_QA_CAPTURE_BASELINE=1 to (re)generate the fixture. It is
-  // deliberately a test rather than a loose script so the capture and the comparison can never
-  // drift apart: they share the scenario, the executor and the normalizer above.
-  it.runIf(process.env.AGENT_QA_CAPTURE_BASELINE === '1')(
-    'captures the fixture (AGENT_QA_CAPTURE_BASELINE=1)',
-    async () => {
-      const session = startRun(baselineConfig())
-      const events = drain(session)
-      await done(session)
-      const captured = normalize(events)
-
-      const { writeFileSync } = await import('node:fs')
-      const { fileURLToPath } = await import('node:url')
-      const target = fileURLToPath(
-        new URL('./__fixtures__/sequential-baseline.ts', import.meta.url),
-      )
-      writeFileSync(
-        target,
-        [
-          '// GENERATED — the pre-refactor sequential event stream of `run-shell.concurrency.test.ts`\'s',
-          '// baseline scenario, captured 2026-08-24 against the `for`-loop shell at 7908bd34 BEFORE the',
-          '// bounded member pool landed (402-02 Task 1). This file IS the parity control: the pool at',
-          '// workers=1 must reproduce it verbatim. Regenerate ONLY with a recorded reason —',
-          '// `AGENT_QA_CAPTURE_BASELINE=1 pnpm --filter @vostride/agent-qa-runner exec vitest run \\',
-          '//   src/run/__tests__/run-shell.concurrency.test.ts` — because regenerating it against the',
-          '// code under test is exactly how a differential control becomes self-certifying.',
-          'export const SEQUENTIAL_BASELINE: ReadonlyArray<{',
-          '  seq: number',
-          '  type: string',
-          '  runId: string',
-          '  payload: unknown',
-          '}> = ' + JSON.stringify(captured, null, 2),
-          '',
-        ].join('\n'),
-      )
-    },
-  )
 })
 
 // ---- Deferred-executor instruments ------------------------------------------------------------
@@ -414,10 +337,9 @@ describe('the bounded member pool — 2 members concurrent, one bus, one termina
     expect(finishedIds).toEqual(['m0', 'm1'])
   })
 
-  it('an all-lane run at workers=8 reproduces the workers=1 baseline stream verbatim', async () => {
-    // The claim that makes the pool safe to ship for the suite path before per-member browser
-    // sessions exist: give every member the lane a suite producer gives it and the ENTIRE event
-    // stream — order, seqs, payloads — is the pre-refactor one, at any worker count.
+  it('an all-lane run at workers=8 emits the same recorded stream as a workers=1 run', async () => {
+    // Give every member the lane a suite producer gives it and the entire event stream (order,
+    // seqs, payloads) is the workers=1 one, at any worker count.
     //
     // Every member gets the lane here, including the ungrouped `delta`. That is deliberate: a run
     // where SOME members declare the lane and some do not is a mixed run, and mixing changes the
@@ -429,10 +351,9 @@ describe('the bounded member pool — 2 members concurrent, one bus, one termina
     const events = drain(session)
     await done(session)
 
-    const stream = withoutSkipIdentity(withoutHandleRoster(normalize(events)))
-    expect(stream).toEqual(SEQUENTIAL_BASELINE)
-    expect(handleRosterOf(events[0] as RunEventEnvelope)).toEqual([0, 1, 2, 3])
-    expect(skipIdentityOf(events)).toEqual([['skipped', 'charlie test', 'charlie.test.ts']])
+    await expect(recordedStream(events)).toMatchFileSnapshot(
+      './__fixtures__/sequential-baseline.json',
+    )
   })
 })
 

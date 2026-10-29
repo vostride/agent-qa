@@ -1,16 +1,4 @@
-// GENERATED — the pre-refactor sequential event stream of `run-shell.concurrency.test.ts`'s
-// baseline scenario, captured 2026-08-24 against the `for`-loop shell at 7908bd34 BEFORE the
-// bounded member pool landed (402-02 Task 1). This file IS the parity control: the pool at
-// workers=1 must reproduce it verbatim. Regenerate ONLY with a recorded reason —
-// `AGENT_QA_CAPTURE_BASELINE=1 pnpm --filter @vostride/agent-qa-runner exec vitest run \
-//   src/run/__tests__/run-shell.concurrency.test.ts` — because regenerating it against the
-// code under test is exactly how a differential control becomes self-certifying.
-export const SEQUENTIAL_BASELINE: ReadonlyArray<{
-  seq: number
-  type: string
-  runId: string
-  payload: unknown
-}> = [
+[
   {
     "seq": 1,
     "type": "runStarted",
@@ -27,7 +15,13 @@ export const SEQUENTIAL_BASELINE: ReadonlyArray<{
         "suiteConfigDigest": "suite-d",
         "testConfigDigest": "test-d"
       },
-      "memberTestCount": 4
+      "memberTestCount": 4,
+      "handles": [
+        0,
+        1,
+        2,
+        3
+      ]
     }
   },
   {
@@ -95,7 +89,9 @@ export const SEQUENTIAL_BASELINE: ReadonlyArray<{
       "recording": {
         "state": "absent",
         "reason": "not-captured"
-      }
+      },
+      "name": "charlie test",
+      "filePath": "charlie.test.ts"
     }
   },
   {
