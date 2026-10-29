@@ -33,7 +33,7 @@ import { describe, expect, it } from 'vitest'
 
 const PACKAGES_DIR = fileURLToPath(new URL('../../../', import.meta.url))
 const THIS_FILE = fileURLToPath(import.meta.url)
-const OWN = 'arch/src/__tests__/439-verifier-binding-census.test.ts'
+const OWN = 'arch/src/__tests__/production-doors-bind-verifier.test.ts'
 
 // ---------------------------------------------------------------------------------------------
 // The lexer (the 432, 436, 437 and 438 censuses'): comments out, everything else in
