@@ -1,8 +1,4 @@
-// `editor.liveurl` — the editor subject's view token.
-//
-// The second caller of the one minter: same signer, same TTL, same fragment carriage and
-// the same `onMinted` observation hook as `runs.liveurl`, over a different subject. It reads the
-// editor lookup and nothing else, so an editor session can never become a watchable run through it.
+// Reads the editor lookup only, so an editor session can never become a watchable run.
 
 import {
   EditorLiveUrlInputSchema,

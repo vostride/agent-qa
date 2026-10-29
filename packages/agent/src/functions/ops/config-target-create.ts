@@ -1,29 +1,4 @@
-// `config.target.create` — the closed typed action class's second member (Phase 395-05, D-01/D-02 ·
-// CFGM-01).
-//
-// THIS OP WRITES IN THE CALL. It is constructed, scanned and validated
-// as described below and then published through the direct writer; the answer names the files and
-// fields it changed, a blocked change is answered with its report and nothing is kept, and no git
-// runs. Where the paragraphs below say "proposal", read the change this call writes.
-//
-// EVERY PARAGRAPH `config-field-set.ts` OPENS WITH APPLIES HERE VERBATIM and is not restated: one
-// registered op per action. Read that file for the arguments; what follows is what is different
-// about this one. This op once declared `config-write` because the scope described what the
-// capability is about. It declares no scope now, because no caller is checked for one; the
-// construction, the scan and whole-config validation below guard the write.
-//
-// A CREATE IS NEVER AN UPSERT, AND THAT IS THIS OP'S WHOLE EDGE. The yaml `setIn` that backs every
-// mutation in this phase REPLACES whatever is at the path it is given, so the natural implementation
-// of "add a target" quietly deletes the `product`, `appPackage` and `environment` a target of that
-// name already carried, and renders it as a diff a person would have to read line by line to notice.
-// The pipeline refuses the collision by name and points at `config.target.edit`, which is the op
-// that exists for changing one.
-//
-// IT DOES NOT ADDRESS THE TARGET NAME AS A SETTABLE PATH, and that is not a whitelist. D-03's
-// no-whitelist law is about which config paths a person may set — `config.field.set` still answers
-// any of them. This op exists because "add a web target" is a shape the model can fill correctly
-// from an utterance and a raw dotted-path set is not: `platform` and `url` together are what makes a
-// target valid, and a shape that carries both is what stops half a target from being proposed.
+// A create is never an upsert: `setIn` replaces, so a name collision is refused by name.
 
 import { ConfigChangeOutputSchema, ConfigTargetCreateInputSchema } from '@vostride/agent-qa-schema'
 import type { ConfigChangeOutput, ConfigTargetCreateInput } from '@vostride/agent-qa-schema'
@@ -47,14 +22,7 @@ export const configTargetCreateSpec: FunctionSpec<ConfigTargetCreateInput, Confi
     recognized: true,
     readOnly: false,
   },
-  /**
-   * This op's own union, folded into a clause verdict.
-   *
-   * THE FOLD IS SHARED BECAUSE THE UNION IS. Six ops answer with `ConfigChangeOutput`, and a
-   * per-op copy of the mapping would be a guardrail refusal that reports `refused` on some doors
-   * and `executed` on others the first time one copy is edited. See `config-propose-verdict.ts`
-   * for why `blocked` and `refused` are the same status and different words.
-   */
+  // Shared, so every door reports a guardrail refusal alike; see `config-propose-verdict.ts`.
   classify: classifyConfigChangeOutput,
   async invoke(input, deps): Promise<ConfigChangeOutput> {
     // The same three-way guard its siblings carry: the files, the validator and the direct writer.

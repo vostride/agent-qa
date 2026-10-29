@@ -1,8 +1,4 @@
-// `runs.get` — one completed run, projected in full.
-//
-// A pure function of (validated input, injected deps). The port resolves the id against the
-// runs it already enumerates and reports absence as `undefined`; turning that absence into a
-// typed refusal is this module's job, so every surface sees the same error vocabulary.
+// The port reports absence as `undefined`; this op turns it into the typed refusal.
 
 import { RunDetailSchema, RunsGetInputSchema, resolveRunVerdicts } from '@vostride/agent-qa-schema'
 import type {
@@ -33,8 +29,7 @@ export class RunNotFoundError extends Error {
   }
 }
 
-// the run exists but never reached a verdict. `recorded` says whether
-// its runs.db row exists (the dashboard holds its record) or only its event log does.
+// The run exists but never reached a verdict; `recorded` says whether its runs.db row exists.
 export class RunEndedWithoutVerdictError extends Error {
   constructor(readonly runId: string, readonly recorded: boolean) {
     super(recorded
@@ -53,9 +48,7 @@ export class RunNotFinishedError extends Error {
 
 const IN_FLIGHT_ROW_STATUSES: ReadonlySet<string> = new Set(['running', 'pending'])
 
-// the refusal for a run with no handoff. A sentence is given only when
-// the row and the log were both read and the log holds no verdict; an unbound port or a failed
-// read falls back to not-found, because absence is not a status.
+// A sentence only when row and log were read and hold no verdict; otherwise not-found.
 export async function refuseMissingHandoff(runId: RunId, deps: FunctionDeps): Promise<never> {
   const id = String(runId)
   const reader = deps.runDetail
@@ -92,12 +85,7 @@ function toRunTestDetail(
     filePath: test.filePath,
     testIndex: test.testIndex,
     outcome: test.outcome,
-    // Step evidence stays in the handoff document; 389's evidence links address it by
-    // runId + testIndex. Projecting it here would make the cheapest read the most expensive.
-    // The same law covers sentences: this projection carries class/producer/
-    // confidence from the resolved verdict and NEVER a rendered sentence — an unbound
-    // analysis port answers as artifact-absent (the deterministic floor), so the cheapest
-    // read stays cheap in every composition.
+    // Step evidence and sentences stay out, so the cheapest read stays cheap in every composition.
     stepCount: test.steps.length,
     ...(resolved === undefined ? {} : {
       rootCause: {
@@ -110,13 +98,7 @@ function toRunTestDetail(
   }
 }
 
-/**
- * Project one handoff over its RESOLVED verdicts: the summary block sources
- * class/producer/confidence from `resolveRunVerdicts` — artifact verdicts when the analysis
- * upgraded them, the handoff's deterministic floor when not — joined per member by `perTest`.
- * A member the accessor holds no verdict for (clean pass, skipped, cancelled) projects no
- * `rootCause`, exactly as the handoff's own absence used to read.
- */
+// Verdict fields come from `resolveRunVerdicts`, joined per member by `perTest`.
 export function toRunDetail(
   document: CompletedRunHandoff,
   resolvedVerdicts: readonly Verdict[] = resolveRunVerdicts(undefined, document),
@@ -152,12 +134,7 @@ export const runsGetSpec: FunctionSpec<RunsGetInput, RunDetail> = {
   input: RunsGetInputSchema,
   output: RunDetailSchema,
   risk: { name: `fn:${RUNS_GET_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * A run that came back is a run that was found.
-   *
-   * Absence is `RunNotFoundError`, a throw, which already reaches the engine's `failed` mapping.
-   * The verdict a run ENDED with is not this clause's verdict: a failing run is a successful read.
-   */
+  // A failing run is a successful read; absence throws `RunNotFoundError`.
   classify(output): ClauseVerdict {
     return {
       status: 'executed',
@@ -169,9 +146,7 @@ export const runsGetSpec: FunctionSpec<RunsGetInput, RunDetail> = {
     if (document === undefined) {
       throw new RunNotFoundError(input.runId)
     }
-    // the rootCause block reads through the ONE accessor. An unbound analysis
-    // port is treated as artifact-absent — the floor — never as a refusal: this op stays
-    // bound in every composition, and its answer off the floor is honest, not degraded.
+    // An unbound analysis port reads as the floor, never a refusal, so this op is always bound.
     return toRunDetail(
       document,
       resolveRunVerdicts(deps.analysis?.getArtifact(String(input.runId)), document),

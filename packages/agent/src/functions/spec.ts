@@ -412,7 +412,7 @@ export interface EvidenceBlobReaderPort {
     { status: 'found'; byteLength: number } | { status: 'unknown_run' | 'blob_absent' }
   >
   readRange?(runId: RunId, sha: string, start: number, end: number): Promise<EvidenceBlobLookup>
-  // When missing, presence is omitted, never reported absent; answers match `read`'s three words.
+  // When missing, presence is omitted, never reported absent; answers match `read`'s words.
   has?(runId: RunId, sha: string): Promise<EvidenceBlobPresence>
 }
 
@@ -504,7 +504,7 @@ export interface FunctionDeps {
   readonly secretMask?: MaskFn
 }
 
-// Four arms, because each refusal tells a person something different.
+// One arm per refusal, because each tells a person something different.
 export type DraftResolution =
   | { readonly kind: 'parsed'; readonly draft: ParsedDraftLike }
   | { readonly kind: 'not-found' }

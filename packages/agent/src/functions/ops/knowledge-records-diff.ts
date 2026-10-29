@@ -1,8 +1,4 @@
-// `knowledge.records.diff` — what changed since a build ordinal.
-//
-// WIRING over the reader entry's `diffSince`. The change vocabulary, the surviving-event fold
-// and the purge-receipt read all live behind the port; this file projects, echoes the baseline,
-// and sorts. KREV-01's "four verbs need no new memidex code" is a claim about exactly this.
+// Projects, echoes the baseline and sorts; the change vocabulary lives behind the port.
 
 import { KnowledgeRecordsDiffInputSchema, KnowledgeRecordsDiffOutputSchema } from '@vostride/agent-qa-schema'
 import type {
@@ -19,16 +15,7 @@ function compareText(left: string, right: string): number {
   return left < right ? -1 : left > right ? 1 : 0
 }
 
-/**
- * The op's own total order, and it is total all the way down (the 384 convention).
- *
- * One record can change several times at one ordinal — a confirmation and a supersession land
- * in the same build — so the id and the ordinal do not order the list on their own. The trailing
- * legs are what turn "deterministic enough in practice" into deterministic: two rows equal on
- * every earlier key still have an order, and it is the same order twice running on any host.
- * A diff that reshuffled between two identical questions would make every pasted answer
- * unverifiable.
- */
+// Total down to the evidence token, so two identical questions never reshuffle the diff.
 function byChangeIdentity(left: RecordChange, right: RecordChange): number {
   return compareText(left.recordId, right.recordId)
     || left.atOrdinal - right.atOrdinal
@@ -47,13 +34,7 @@ export const knowledgeRecordsDiffSpec: FunctionSpec<
   input: KnowledgeRecordsDiffInputSchema,
   output: KnowledgeRecordsDiffOutputSchema,
   risk: { name: `fn:${KNOWLEDGE_RECORDS_DIFF_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * A diff that answered, WITH ITS BASELINE.
-   *
-   * The ordinal rides the outcome for the contract's own reason: "a change list with no baseline is
-   * a list whose meaning depends on remembering the question", and a receipt line is exactly the
-   * artifact that gets pasted somewhere the question is gone.
-   */
+  // The ordinal rides the outcome, because a change list without its baseline loses its meaning.
   classify(output): ClauseVerdict {
     return {
       status: 'executed',

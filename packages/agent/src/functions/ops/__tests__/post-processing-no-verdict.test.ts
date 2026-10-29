@@ -1,5 +1,4 @@
-// a run that ended with no verdict reads `skipped (no verdict)`, derived
-// from the run's own record (its runs.db row and its event log), never from missing job rows.
+// A run with no verdict reads `skipped (no verdict)` from its own record, never missing job rows.
 
 import {
   asJobId,

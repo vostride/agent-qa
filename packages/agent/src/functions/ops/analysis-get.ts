@@ -1,15 +1,4 @@
-// `analysis.get` — one run's full analysis, served once.
-//
-// THE single producer of resolved verdicts + rendered sentences + clusters. Plan 07's CLI
-// print, M5's run page and 392's chat all call this op; none of them re-derives a verdict,
-// composes a second sentence or folds its own clusters — the sentence renderer and the
-// cluster function are the same pure symbols this file calls, so every surface is
-// byte-identical by construction (SC3, the L10 thin-client law).
-//
-// Absence discipline: a composition with no analysis port refuses BY NAME; a
-// bound port with no artifact on disk answers the handoff FLOOR — verdicts through the D-10
-// accessor, sentences from the honest template parts — because "the analysis never ran" is
-// a true state of a run, not an error. A run with no failures answers empty lists.
+// The single producer of verdicts, sentences and clusters; an unbound port refuses by name.
 
 import {
   AnalysisGetInputSchema,
@@ -40,21 +29,10 @@ import { FunctionNotBoundError } from '../spec.js'
 import type { ClauseVerdict, FunctionDeps, FunctionSpec } from '../spec.js'
 import { RunNotFoundError } from './runs-get.js'
 
-/**
- * Lowercase dot taxonomy: the locked `analysis` domain, one noun. The exported
- * constant is what plan 07's CLI and every later surface name; the literal appears here
- * once, and the parity-coverage suite picks the id up from the registry automatically.
- */
+// The literal appears once; surfaces import this constant.
 export const ANALYSIS_GET_FUNCTION_ID = 'analysis.get'
 
-/**
- * Join one verdict to its authored parts, or mint the honest floor.
- *
- * Artifact present → the authored parts record joined by `perTest` (never array position).
- * Artifact absent — or an artifact member with no parts record, a shape the guard admits —
- * → the SAME producer-keyed template rule the author uses (`templateSentenceParts`,
- * imported, not respelled), so sentence existence never depends on what got persisted.
- */
+// Joined by `perTest`, never array position; absent parts use the author's template rule.
 function partsFor(
   verdict: Verdict,
   artifact: RunAnalysisArtifact | undefined,
@@ -66,24 +44,7 @@ function partsFor(
   )
 }
 
-/**
- * The window key one failure is counted under, or nothing.
- *
- * Every input rule is IMPORTED from schema and none is respelled here: which step the failure
- * is about (`failingStepOf`), which recorded bytes describe it (`errorTextOf`), which anchors
- * it touched (`exercisedAnchors`), and how those compose into the frozen recipe
- * (`failureFingerprint`). That matters because the projection's WRITER composes the window key
- * from the very same four symbols — a second spelling here would mean the clause counts a
- * window nothing ever wrote to.
- *
- * The class folded in is the RESOLVED one (389 D-13's `::class` suffix), so an artifact
- * upgrading a member `unknown → flake` queries a different window on purpose.
- *
- * `undefined` for a member with no failing step to key from — a zero-step failure, or a
- * verdict whose `perTest` names no member. The recipe would happily key those through its
- * error arm, but the value it would produce is a stand-in for evidence that was never
- * recorded, and the query travels perfectly well on identity alone.
- */
+// Every key input is imported from schema, matching the writer's window key exactly.
 function fingerprintFor(
   verdict: Verdict,
   test: PerTestOutcome | undefined,
@@ -101,20 +62,12 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
   id: ANALYSIS_GET_FUNCTION_ID,
   summary: "Read one run's resolved verdicts, rendered sentences and failure clusters.",
   resultKind: 'unary',
-  // Bound exactly where a composition supplies the artifact reader (D-16 idiom). The
-  // OPTIONAL `recurrence` dep is deliberately NOT the binding key: a host without history
-  // still serves sentences — the renderer answers the explicit no-history clause — so tying
-  // the binding to it would refuse a capability this host can honestly run.
+  // `recurrence` is not the binding key, because a host without history still serves sentences.
   boundThrough: 'analysis',
   input: AnalysisGetInputSchema,
   output: AnalysisGetOutputSchema,
   risk: { name: `fn:${ANALYSIS_GET_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * An analysis is an ANSWER, and its verdicts are what it answered.
-   *
-   * COUNTS AND THE RUN REF, never a sentence out of the artifact: the receipt is a map (392's
-   * charter) and every verdict sentence is on `results[]`, which D-04 renders in full beside it.
-   */
+  // Counts and the run ref only; verdict sentences ride on `results[]`.
   classify(output): ClauseVerdict {
     return {
       status: 'executed',
@@ -135,8 +88,7 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
     }
 
     const artifact = analysis.getArtifact(runId)
-    // The ONE verdict read path: artifact verdicts when present, the handoff's
-    // deterministic floor when absent — never a per-consumer merge.
+    // The one verdict read path: artifact when present, the handoff floor otherwise.
     const resolved = resolveRunVerdicts(artifact, document)
     // The projection's key law: stable test identity is (product, filePath, testName),
     // with product derived exactly as the outcome projection partitions it.
@@ -148,8 +100,7 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
       const sentence = renderVerdictSentence(
         verdict,
         partsFor(verdict, artifact, document),
-        // Recurrence is a LIVE join through the D-08 seam, per call — an absent dep renders
-        // the explicit no-history clause, never a dropped section.
+        // Recurrence is a live join per call; an absent dep renders the no-history clause.
         deps.recurrence,
         {
           product,
@@ -167,11 +118,7 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
 
     return {
       runId,
-      // The verdict's OWN evidence, projected — cited steps and cited artifacts as the
-      // resolved verdict already held them, so the failure view's links are this op's refs and not
-      // a second join over `analysis.json`. Presence is consulted OPPORTUNISTICALLY through the
-      // optional blob port: `boundThrough` stays `analysis`, because a host with no runtime root
-      // still serves a complete analysis — it simply cannot say whether the screenshots survive.
+      // Presence is optional enrichment, so a host with no runtime root still serves the analysis.
       verdicts: await Promise.all(resolved.map(async (verdict) => {
         const test = document.tests.find((candidate) => candidate.testIndex === verdict.perTest)
         const cited = verdict.evidence.citedArtifacts
@@ -196,9 +143,7 @@ export const analysisGetSpec: FunctionSpec<AnalysisGetInput, AnalysisGetOutput> 
         }
       })),
       sentences,
-      // Render-time clustering through the ONE pure fold; the representative carries
-      // its already-composed sentence — looked up, never re-rendered, so cluster and
-      // per-test presentation cannot drift.
+      // The representative's sentence is looked up, never re-rendered, so it cannot drift.
       clusters: clusterVerdicts(resolved, document).map((cluster) => ({
         fingerprint: cluster.fingerprint,
         count: cluster.count,

@@ -1,16 +1,4 @@
-// The card's quarantine context: where the ledger is read, and where it deliberately is NOT
-//
-// The producer stays pure and synchronous, so the ledger read happens at the OP
-// boundary, exactly where the dashboard-URL read already happens. Two properties are pinned here
-// and neither is about rendering:
-//
-//  1. THE READ IS SCOPED TO TST DESCRIPTORS. A `MEM` card must not depend on the quarantine
-//     ledger being readable — it has nothing to do with one. The context reader is handed the
-//     descriptors it is about to render and consults the port only when one of them is a test,
-//     which is what keeps a broken committed file from taking every entity card down with it.
-//  2. WHEN IT IS IN SCOPE, A REFUSAL PROPAGATES. A TST card whose status depends on a ledger
-//     this build cannot read must refuse, not answer `active` — answering would say "this test
-//     is not quarantined" about a file nobody could open.
+// The ledger is read only for TST descriptors, and a refusal there propagates instead of `active`.
 
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type {

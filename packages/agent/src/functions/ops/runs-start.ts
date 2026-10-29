@@ -81,9 +81,7 @@ export const runsStartSpec: FunctionSpec<RunsStartInput, RunStartAcknowledgement
     }
   },
   async invoke(input, deps) {
-    // `invokeFunction` already refused this composition on the same fact, so reaching here
-    // with no port means an in-layer caller holding the spec directly. The unbound state has
-    // no back door: the refusal is the same named error either way (384, D-09).
+    // Reached with no port only by an in-layer caller; the refusal is the same named error.
     const runInvocation = deps.runInvocation
     if (runInvocation === undefined) {
       throw new FunctionNotBoundError(RUNS_START_FUNCTION_ID)

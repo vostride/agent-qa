@@ -1,6 +1,4 @@
-// every mark on a run in ordinal order, with read-time supersession. Pure
-// observation through the feedbackReads port. 2026-09-30, 432-09: each applied knowledge
-// fix carries the records it changed, read now; nothing is read from a proposal store.
+// Read-time supersession over the read-only `feedbackReads` port.
 import {
   RunsMarksHistoryInputSchema, RunsMarksHistoryResultSchema, markAddressKey, maskRecordContent,
 } from '@vostride/agent-qa-schema'

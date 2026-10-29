@@ -1,11 +1,4 @@
-// `runs.list` — the tracer capability, widened by 431 D-08.
-//
-// A pure function of (validated input, injected deps): it filters ONE completed-run snapshot,
-// orders it newest-finished first under a total order (endedAt, then runId) so a fixed fixture
-// always renders byte-identically, and caps what it returns only after every filter has run.
-//
-// Test names are stored text, masked with the host's declared mask exactly as runs.overview masks
-// them, and the title filter only ever sees the masked name.
+// Ordered by (endedAt, runId), newest first, and capped only after every filter.
 
 import {
   RUNS_LIST_DEFAULT_LIMIT,
@@ -76,20 +69,12 @@ export const runsListSpec: FunctionSpec<RunsListInput, RunSummary[]> = {
     + 'tests; filter by verdict, test id or title, recorded target, or completion time.',
   resultKind: 'unary',
   input: RunsListInputSchema,
-  // the NAMED array schema, not `z.array(RunSummarySchema)` composed
-  // here. The two are the same shape; only one of them is an object a surface can also name, and
-  // D-16's whole claim is that the advertised schema and the validated schema are one object.
+  // The named array schema, so the advertised and validated schema are one object.
   output: RunsListOutputSchema,
-  // 431-03 (D-03, A1): the canonical companion, tied to `output` above. It changes only what a
-  // declaration publishes; `output` is still what `invokeFunction` validates with.
+  // The canonical companion changes only what a declaration publishes; `output` still validates.
   outputRepresentation: RunsListOutputContract,
-  // Read ops declare `readOnly` so the static classifier lands them on the read-only
-  // tier — allow in every execution context. The verdict is still computed and audited
-  // there is no read bypass, only a read classification.
   risk: { name: `fn:${RUNS_LIST_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * A listing that answered — the count, and nothing out of a run.
-   */
+  // The count only, nothing out of a run.
   classify(output): ClauseVerdict {
     return { status: 'executed', outcome: `${output.length} completed run(s)` }
   },

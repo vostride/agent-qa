@@ -1,32 +1,4 @@
-// `runs.artifact` — one content-addressed evidence blob, run-scoped.
-//
-// THE FOURTH-DOOR LAW APPLIED TO BYTES. The alternative was a route in
-// `routes.ts` constructing the evidence store and streaming `getBlob` itself — a private store
-// read, which is a capability the function layer cannot see, cannot audit and cannot offer to the
-// CLI, MCP or 408's embed. Routing the bytes through an op is what makes "resolve this ref" one
-// question with one answer, asked by every surface that holds a ref.
-//
-// THE PORT IS OPTIONAL AND THE OP REFUSES BY NAME (the `postProcessing` idiom). Widening the
-// REQUIRED `RunsReaderPort` with a blob verb would have made every daemon, MCP and test
-// implementer satisfy a method most of them have no storage for; an optional dep makes "this host
-// cannot serve artifacts" a visible `unbound` row rather than a call that fails somewhere far away.
-//
-// ABSENCE IS TWO ANSWERS, NOT ONE. `unknown_run` and `blob_absent` are different operator
-// situations — a bad link versus a GC'd or never-written artifact — and the page renders the second
-// as a visible "screenshot unavailable" state rather than as an error. `getBlob` collapses both
-// into `undefined`, so the SPLIT is made in the port and the two arms are refused by two names.
-//
-// THE CONTENT TYPE IS SNIFFED FROM THE BYTES AND THE SNIFFER CANNOT ANSWER MARKUP. The
-// store keeps no metadata, so the only honest source for "what is this" is the head of the blob;
-// and a sniffer with an `image/svg+xml` or `text/html` arm would let whatever wrote the blob choose
-// a type the browser executes. There are three answers and two of them are raster images.
-//
-// THE RESULT DECLARES ITS OWN SIZE. `byteLength` rides beside the base64 so neither the receipt
-// fold below nor the route's `Content-Length` has to read the payload to learn how big it is — a
-// fold that inspected its own payload is exactly what the ops-directory census refuses.
-//
-// NO `Buffer` AND NO HOST API. `packages/agent` is storageNeutral, so base64 is hand-rolled over
-// the `Uint8Array` exactly as `live-url.ts` hand-rolls base64url over an ASCII claims body.
+// The sniffer has no markup arm, so a blob can never pick a type the browser executes.
 
 import { RunsArtifactInputSchema, RunsArtifactResultSchema } from '@vostride/agent-qa-schema'
 import type { RunsArtifactInput, RunsArtifactResult } from '@vostride/agent-qa-schema'
@@ -43,19 +15,7 @@ import { RunNotFoundError } from './runs-get.js'
  */
 export const RUNS_ARTIFACT_FUNCTION_ID = 'runs.artifact'
 
-/**
- * The run exists and holds no blob under that sha.
- *
- * A SEPARATE REFUSAL FROM `RunNotFoundError`, and separate because the two ask different things of
- * whoever reads them: an unknown run is a link that was never valid, while an absent blob is an
- * artifact that was collected, never written, or declared incomplete by its own ref. The dashboard
- * renders the second as a visible unavailable state (406 upgrades that rendering); rendering it as
- * "no such run" would tell an operator to go look for a run that is right there.
- *
- * Carries both coordinates so a surface can say WHICH artifact of which run is missing. The route
- * adapter does not echo them — a refusal body that quoted the request's own sha would be a
- * reflection this door has no reason to offer — but a CLI or chat caller holding the error can.
- */
+// Separate from `RunNotFoundError`: the run exists, and the page shows the artifact unavailable.
 export class EvidenceBlobAbsentError extends Error {
   constructor(
     readonly runId: string,
@@ -96,18 +56,7 @@ function startsWith(bytes: Uint8Array, signature: readonly number[], offset = 0)
   return true
 }
 
-/**
- * What these bytes ARE, decided by their own head and by nothing a caller said.
- *
- * TOTAL, PURE AND DELIBERATELY NARROW. Two raster magics and one opaque default is the whole
- * vocabulary: the blobs this store holds are decision screenshots, and every type outside that set
- * is either something the runner does not write or something a browser would execute. An SVG or an
- * HTML document therefore serves as `application/octet-stream` — which, with the route's
- * `X-Content-Type-Options: nosniff`, is a download and not a script.
- *
- * Exported beside the spec in the `projectRunTokenTotals` idiom: a total mapping with no port and
- * nothing to await can have an exhaustive table written over it for the cost of a test file.
- */
+// SVG and HTML serve as `application/octet-stream`, which with `nosniff` is a download.
 export function sniffEvidenceContentType(bytes: Uint8Array): string {
   if (startsWith(bytes, PNG_SIGNATURE)) return 'image/png'
   if (startsWith(bytes, JPEG_SIGNATURE)) return 'image/jpeg'
@@ -158,19 +107,14 @@ export const runsArtifactSpec: FunctionSpec<RunsArtifactInput, RunsArtifactResul
    * people, in terminals.
    */
   classify(output): ClauseVerdict {
-    // TWO DECLARED FIELDS AND NOTHING FROM INSIDE THE PAYLOAD. `byteLength` is on the result
-    // precisely so this line does not have to measure `bytesBase64` to write a receipt — a fold
-    // that reached into its own payload would be the value matching 399.1 D-01 abolished, and a
-    // base64 body has no part of it a receipt may quote in any case.
+    // `byteLength` is declared, so the fold never reads its own payload.
     return {
       status: 'executed',
       outcome: `${output.contentType}, ${String(output.byteLength)} bytes for ${output.runId}`,
     }
   },
   async invoke(input, deps) {
-    // `invokeFunction` already refused this composition on the same fact; reaching here with no
-    // port means an in-layer caller holding the spec directly, and the refusal is the same named
-    // error either way (384, D-09).
+    // Reached with no port only by an in-layer caller; the refusal is the same named error.
     const port = deps.evidenceBlobs
     if (port === undefined) {
       throw new FunctionNotBoundError(RUNS_ARTIFACT_FUNCTION_ID)

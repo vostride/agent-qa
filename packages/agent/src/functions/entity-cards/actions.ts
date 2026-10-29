@@ -1,34 +1,4 @@
-// The card's `actions[]`.
-//
-// A card's actions are REGISTRY OP REFS. A card can therefore only advertise capabilities the
-// registry already contains, which is what makes an advertised action invokable identically
-// over chat, CLI and MCP, subjects it to safe-mode listing filters for free, and lets 397's
-// parity suite assert that every action any card offers actually resolves. A freeform action
-// string would have been a second capability vocabulary — the private-power drift L10 exists
-// to prevent — and there is deliberately no way to construct one here.
-//
-// EVERY id below is IMPORTED from the module that declares it, never written as a literal.
-// That is the drift proof: renaming an op's id is a compile error in this table rather than a
-// card that keeps advertising a capability nothing answers to. The one place a literal would
-// have been convenient — a table keyed by id string — is exactly where it would have been
-// wrong.
-//
-// `inputSeed` carries the entity's OWN references. A seed is a seed and may be partial (the
-// why-verb needs a step index no card knows), but every field it does set is a real field of
-// that op's input contract, filled with a value this entity actually is. What it must never be
-// is a value that ADDRESSES BY COINCIDENCE: `knowledge.record.show` is seeded with a MEM
-// entity's machine id because in this store a bundle directory's name IS the record id
-// (`listBundles` and `showRecord` both read `bundle.manifest.id`), not because the two strings
-// happen to look alike.
-//
-// One decision worth stating rather than leaving to be inferred. `runs.start` is in the
-// default spec list but binds only in a composition that supplies a `runInvocation` port, so a
-// read-only host lists it `unbound`. A TST card advertises it anyway, because D-11 says cards
-// advertise what the REGISTRY contains and `bindingStatus` exists precisely so an unbound
-// capability is VISIBLE rather than silent. Advertising is not granting: the ref still
-// crosses `invokeFunction`, which refuses an unbound id by name and gates every scope. A card
-// that hid the capability would be making a claim about the host that the card producer — which
-// receives no caller and no composition — is in no position to make.
+// Ids are imported, never literals, so renaming an op breaks this table at compile time.
 
 import type { ActionRef, EntityDescriptor, EntityKind } from '@vostride/agent-qa-schema'
 
@@ -90,12 +60,7 @@ export const ENTITY_ACTION_TABLES = {
       inputSeed: { recordId: descriptor.machineId },
     },
     {
-      // D-11's table completion. 2026-09-30, 432-12: forget is the explicit
-      // removal and it applies in the call, so the action says what it does. The record is
-      // tombstoned, never destroyed, and the card at this address then reads `tombstoned`. The
-      // seed addresses the RECORD grain because a descriptor carries the machine id it was
-      // sighted under, and the bundle grain takes a short-ID whose resolution is the writer's job
-      // rather than the card's.
+      // Forget tombstones the record in the call; the seed addresses the record grain.
       functionId: KNOWLEDGE_FORGET_FUNCTION_ID,
       label: 'Forget this record',
       inputSeed: { target: { grain: 'record', recordId: descriptor.machineId } },

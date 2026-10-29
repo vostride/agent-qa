@@ -1,17 +1,4 @@
-// `actions[]` are registry op refs, and both ops are one projection.
-//
-// Two claims, and neither is a shape check.
-//
-// D-11's claim is that a card can only advertise what the REGISTRY contains. So the assertion
-// resolves every advertised id against a registry built from the DEFAULT spec list — the same
-// list every composition registers — rather than against a list this file maintains. A test
-// that compared the action table to its own expected array would be true by construction and
-// would stay green through the exact drift D-11 exists to prevent.
-//
-// ENTY-02's claim is that `entities.resolve` and `entities.get` are projections of the SAME
-// value. So the assertion runs both real ops over one descriptor through one deps record and
-// compares the cards deeply. Comparing two hand-built cards, or comparing each op's card to an
-// expected literal, would pass for two independent renderers that happen to agree today.
+// Advertised ids resolve in the default registry, and both ops render one descriptor identically.
 
 import {
   ENTITY_KINDS,
@@ -56,16 +43,12 @@ function descriptorFor(kind: EntityKind): EntityDescriptor {
 
 const MEM_DESCRIPTOR = descriptorFor('MEM')
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither, so every caller lists the whole default registry.
 const FULL_CALLER: FunctionCaller = {
   surface: 'cli',
   origin: 'agent',
 }
 
-// a deliberate smuggle. The retired `safeMode: true` rides past the type
-// so the safe-mode cell below keeps proving the listing does not read it; the cast keeps this
-// witness compiling once the field is deleted.
+// The cast smuggles a retired `safeMode: true` to prove the listing does not read it.
 const SAFE_CALLER = { ...FULL_CALLER, safeMode: true } as FunctionCaller
 
 function deps(): FunctionDeps {
@@ -108,13 +91,9 @@ function deps(): FunctionDeps {
 function defaultRegistryIds(caller: FunctionCaller = FULL_CALLER): Set<string> {
   const registry = createFunctionRegistry({
     deps: deps(),
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
   })
   return new Set(registry.list(caller).map((declaration) => declaration.id))
 }
-
-// ---- Test 1: every advertised action resolves in the default registry --------------
 
 describe('cards advertise only what the registry contains', () => {
   it('resolves every id every kind can advertise, against the DEFAULT spec list', () => {
@@ -130,9 +109,7 @@ describe('cards advertise only what the registry contains', () => {
         asserted += 1
       }
     }
-    // The count is pinned so a table that quietly stopped advertising cannot pass by
-    // iterating nothing: 5 kinds, one `Open card` each, plus 1 TST, 2 RUN, 2 MEM
-    // (387-08 completes the MEM row with `knowledge.forget.propose` — D-11's table completion).
+    // Pinned so a table that stopped advertising cannot pass by iterating nothing.
     expect(asserted).toBe(10)
 
     // …and the declared id set is exactly what the tables can produce, so a new action whose
@@ -169,9 +146,6 @@ describe('cards advertise only what the registry contains', () => {
     }
   })
 
-  // RE-SPELLED 2026-10-01: the registry's safe-mode filter is deleted, so the listing
-  // no longer hides `runs.start` from anyone. The claim that survives: the card decides nothing
-  // about callers, and the listing it is checked against is the same for every caller.
   it('leaves the safe-mode decision to the LISTING, not to the card', () => {
     const safe = defaultRegistryIds(SAFE_CALLER)
     const full = defaultRegistryIds(FULL_CALLER)
@@ -181,8 +155,6 @@ describe('cards advertise only what the registry contains', () => {
       .toContain('runs.start')
   })
 })
-
-// ---- Test 3: the two ops are projections of ONE value ---------------------------
 
 describe('entities.resolve and entities.get render through the ONE producer', () => {
   it('answers the same entity with deeply equal cards', async () => {

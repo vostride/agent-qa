@@ -1,36 +1,4 @@
-// `authoring.draft.verify` — the keep-gate evaluator as a catalogued capability (393, D-01).
-//
-// The four keep-gates are not a private power of whatever writes tests. D-01 registers the
-// evaluator so the corpus proof drives the REAL gated entry point (the produced-not-literal law),
-// so 397's registry-walk conformance and 396's MCP projection inherit it with no harness change,
-// and so the standalone question — "is this existing test worth keeping?" — is answerable from
-// every surface rather than only from inside 394's loop.
-//
-// THE ID IS `authoring.draft.verify`, NOT `authoring.verify_draft` (2026-08-10, this plan).
-// D-01 sketches the shape as `authoring.verify_draft(ref) → receipt` and leaves the exact naming
-// to 384's conventions. Two shipped mechanisms make the underscore spelling impossible, and both
-// were measured before choosing:
-//   1. `parity-coverage.test.ts` requires every id to match `^[a-z]+(?:\.[a-z]+)+$` — the fixed
-//      dot taxonomy of D-15. An underscore fails it, which is also why the shipped catalogue reads
-//      `runs.postprocessing` rather than `runs.post_processing`.
-//   2. `chat/tool-names.ts` maps ids onto provider-safe tool names by `.` ↔ `_`, and REFUSES an id
-//      already carrying `_` because such a name has two pre-images under the inverse. Since 392
-//      D-07 binds every registry op into the planner's toolset, an underscore id would not merely
-//      look unconventional — it would raise `ChatToolNameError` for the whole projection.
-// Three segments rather than two, on the `knowledge.records.inspect` precedent (and the deleted
-// `knowledge.proposal.apply`'s, 432-17): `draft` is the subject and `verify` is the verb, which keeps the ratified word in the
-// id and leaves 394 room for `authoring.draft.write` beside it.
-//
-// THE OP IS COMPOSITION, NOT MECHANISM. Every gate lives in `../../authoring/`; what is added here
-// is the entry point, its refusals, and the tier it is classified at. The four ports one
-// evaluation runs against are assembled at `composeLocalAgent()` and arrive through the
-// OPTIONAL `draftEvaluation` dep, so a host that cannot parse a draft or start a run lists this
-// capability `unbound` BY NAME rather than as a hole in the catalogue.
-//
-// INPUT REFUSAL IS THE POINT OF THE FIRST HALF OF `invoke`. 392 D-07 makes this op chat-reachable
-// the moment it registers, so `draftPath` is a string an arbitrary caller chose. Every way it can
-// be wrong answers with a NAMED error rather than with a run started against a path nobody
-// checked.
+// Composition only: the gates live in `../../authoring/`, and `draftPath` refusals are named.
 
 import { AuthoringVerifyDraftInputSchema, DraftReceiptSchema } from '@vostride/agent-qa-schema'
 import type { AuthoringVerifyDraftInput, DraftReceipt } from '@vostride/agent-qa-schema'
@@ -79,14 +47,7 @@ export class DraftNotAFileError extends Error {
   }
 }
 
-/**
- * The path names something outside the workspace this host serves.
- *
- * The boundary is enforced by the BOUND capability, because the resolved workspace root is a fact
- * only a host knows and `packages/agent` is `storageNeutral` — it cannot resolve a path, let alone
- * stat one. What lives here is the caller-facing NAME for the refusal, so the boundary check and
- * the vocabulary a caller catches do not have to live in the same package.
- */
+// The host enforces the workspace boundary; this package only names the refusal.
 export class DraftOutsideWorkspaceError extends Error {
   constructor(readonly draftPath: string) {
     super(
@@ -124,10 +85,6 @@ function hasDraftExtension(draftPath: string): boolean {
 export const authoringVerifyDraftSpec: FunctionSpec<AuthoringVerifyDraftInput, DraftReceipt> = {
   id: AUTHORING_DRAFT_VERIFY_FUNCTION_ID,
   summary: 'Evaluate a draft test against the four keep-gates and return its receipt.',
-  // no scopes. The evaluation STARTS runs and READS the completed
-  // records back, and the composition invokes those sibling ops on a caller it mints (D-02,
-  // op-calls-op). The `run` + `read` pair once declared here kept a nested call from widening a
-  // grant; with no grants to widen, every door can call this op and its siblings alike.
   resultKind: 'unary',
   boundThrough: 'draftEvaluation',
   input: AuthoringVerifyDraftInputSchema,
@@ -139,13 +96,7 @@ export const authoringVerifyDraftSpec: FunctionSpec<AuthoringVerifyDraftInput, D
     name: `fn:${AUTHORING_DRAFT_VERIFY_FUNCTION_ID}`,
     recognized: true,
   },
-  /**
-   * A RECEIPT'S VERDICT ABOUT A DRAFT IS AN ANSWER, not a refusal (399.1 D-01, plan 03's razor).
-   *
-   * `rejected` here is the gate saying what it found about somebody's draft — the verification ran
-   * and produced its finding. `refused` is for a control declining an act it would otherwise have
-   * carried out, and nothing was declined: the act WAS carrying out the verification.
-   */
+  // A rejection is the verification's finding, an answer, never `refused`.
   classify(output): ClauseVerdict {
     return {
       status: 'executed',
@@ -154,9 +105,7 @@ export const authoringVerifyDraftSpec: FunctionSpec<AuthoringVerifyDraftInput, D
     }
   },
   async invoke(input, deps) {
-    // `invokeFunction` already refused this composition on the same fact, so reaching here with no
-    // port means an in-layer caller holding the spec directly. The unbound state has no back door:
-    // the refusal is the same named error either way (384, D-09).
+    // Reached with no port only by an in-layer caller; the refusal is the same named error.
     const draftEvaluation = deps.draftEvaluation
     if (draftEvaluation === undefined) {
       throw new FunctionNotBoundError(AUTHORING_DRAFT_VERIFY_FUNCTION_ID)

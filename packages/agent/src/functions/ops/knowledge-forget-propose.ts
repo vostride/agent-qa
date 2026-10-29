@@ -1,16 +1,4 @@
-// `knowledge.forget` — tombstone a record or an addressed bundle and scrub its projections.
-//
-// the change APPLIES IN THE CALL, and it is the explicit
-// removal D-09 names. The op validates its input, hands the review port one direct change and
-// answers the existing forget receipt: every record tombstoned, with its provenance, and the
-// projections scrubbed. Tombstoned, never destroyed, so the record stays enumerable. The retired
-// `knowledge.forget.propose` id has no alias. This file keeps its name until the later
-// rename audit, so its consumers move first.
-//
-// `readOnly: false`, at the recognized-mutating floor: an explicit change to this machine's
-// knowledge runs in every execution context. 2026-10-01: it declares
-// no `knowledge-write` scope any more; every door can call it. It binds through the OPTIONAL
-// `knowledgeReview` dep, so a host with no review port lists it `unbound` BY NAME.
+// Tombstoned, never destroyed; binds through optional `knowledgeReview`.
 
 import {
   KnowledgeForgetChangeInputSchema,
@@ -35,7 +23,7 @@ export const knowledgeForgetSpec: FunctionSpec<KnowledgeForgetChangeInput, Knowl
   output: KnowledgeChangeOutputSchema,
   boundThrough: 'knowledgeReview',
   risk: { name: `fn:${KNOWLEDGE_FORGET_FUNCTION_ID}`, recognized: true, readOnly: false },
-  // The fold the three knowledge changes share (2026-10-03, quick 261003-cpv, 432 review IN-04).
+  // The fold every knowledge change op shares.
   classify: classifyKnowledgeChangeOutput,
   invoke({ operationId, ...input }, deps) {
     // Non-null: `boundThrough` makes an absent review port an `unbound` listing and a refusal at

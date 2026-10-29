@@ -1,15 +1,4 @@
-// `runs.overview` — one completed run's compact address map.
-//
-// THE COMPLETED HANDOFF IS THE GATE. A run with no completed handoff is refused before any
-// projection row is read, so an in-progress run can never answer with a partial dashboard tree.
-// The handoff also owns the member list; the run-detail rows add what the projection recorded.
-//
-// COMPOSED, NOT RE-DERIVED. Served records, trace arms and the Learned half come from
-// `runs.knowledge` invoked with this call's deps; presence comes from `annotatePresence`, once per
-// overview; counts are the ones the run stored. Nothing is fetched to be counted.
-//
-// BUILT FIELD BY FIELD. Nothing below spreads a producer, knowledge or dashboard value into the
-// result, so a field added upstream cannot reach this contract without being named here.
+// A run with no completed handoff is refused before any projection row is read.
 
 import {
   RUN_OVERVIEW_TEXT_MAX_CODE_POINTS,
@@ -314,8 +303,7 @@ function projectLearned(knowledge: ReadyKnowledge, document: CompletedRunHandoff
     curation: {
       status: curation.status,
       ...(curation.counts === undefined ? {} : { counts: { ...curation.counts } }),
-      // the run's own handoff says why its chain was never enqueued, by
-      // the fold runs.postprocessing serves; an ordinary run carries no key.
+      // The handoff's own skip reason; an ordinary run carries no key.
       ...(skipped === undefined ? {} : { skipped: { reason: skipped.reason } }),
     },
     snapshot,

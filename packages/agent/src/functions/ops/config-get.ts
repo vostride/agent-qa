@@ -1,9 +1,4 @@
-// `config.get` — the masked resolved-configuration read.
-//
-// The op is a pass-through by design. Masking happens where the configuration is RESOLVED,
-// inside the composition root, while each entry is constructed. If this op masked instead,
-// an unmasked config would exist inside the layer and the security property would depend on
-// this function never being bypassed — exactly the guarantee the layer refuses to rest on.
+// A pass-through: masking happens at resolution, so no unmasked config exists in the layer.
 
 import { ConfigGetInputSchema, MaskedResolvedConfigSchema } from '@vostride/agent-qa-schema'
 import type { ConfigGetInput, MaskedResolvedConfig } from '@vostride/agent-qa-schema'
@@ -19,13 +14,7 @@ export const configGetSpec: FunctionSpec<ConfigGetInput, MaskedResolvedConfig> =
   input: ConfigGetInputSchema,
   output: MaskedResolvedConfigSchema,
   risk: { name: `fn:${CONFIG_GET_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * A read that answered — the count of what it resolved, and nothing out of it.
-   *
-   * NOT ONE ENTRY'S VALUE, ever. This op's result carries a person's configuration, placeholder-
-   * masked; the receipt is a map and the masked payload travels on `results[]` where the surface's
-   * own unmasker decides what a human may see (D-04's boundary, not this fold's).
-   */
+  // Counts only, never an entry's value; the masked payload travels on `results[]`.
   classify(output): ClauseVerdict {
     const count = output.entries.length
     return {

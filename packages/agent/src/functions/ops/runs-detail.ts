@@ -1,21 +1,4 @@
-// `runs.detail` — one run's durable members, steps and sub-actions.
-//
-// THE FOURTH-DOOR LAW APPLIED TO RUN DETAIL. The dashboard's run-detail page used to
-// read SQLite from inside `routes.ts`; a private store read is a capability the function layer
-// cannot see, cannot audit and cannot offer to the CLI, MCP or chat. So the page reads through
-// this op, the HTTP arm formats nothing, and every surface that wants "what did that run do"
-// asks the same question of the same registry.
-//
-// ONE RESULT, NOT PAGED. A run's projection is bounded by the run — members by the suite, steps
-// by the member's instruction count, sub-actions by the loop's own budget — and a cursor would
-// buy a page that renders a whole run all at once nothing except a second way to be wrong about
-// where a step belongs. RESEARCH's alternatives table records the measurement.
-//
-// THE TOKEN SUM IS COMPUTED HERE and is exported beside the spec as a pure function, in
-// the `runs-post-processing.ts` idiom: a total mapping with no capability, no port and nothing to
-// await, so the exhaustive table that pins it costs a test file and not a store. Computing it in
-// the port would put the sum in whichever composition happens to hold a database — which is one
-// producer per host of a number the page prints as though there were one.
+// The token sum is computed here once, not per host that holds a database.
 
 import {
   RunDetailProjectionSchema,
@@ -38,28 +21,10 @@ import type { ClauseVerdict, EvidenceBlobReaderPort, FunctionSpec } from '../spe
 import { annotatePresence } from './evidence-presence.js'
 import { IN_RUNS_DATABASE, RunNotFoundError } from './runs-get.js'
 
-/**
- * All lowercase and two segments, because D-15's id taxonomy is pinned as
- * `/^[a-z]+(?:\.[a-z]+)+$/` — a camelCased segment is not a spelling this catalogue admits. The
- * exported constant is what the dashboard composition hands its server as DATA;
- * `packages/dashboard-server` may not import this package, so the literal appears here once.
- */
+// The dashboard server may not import this package, so it receives this id as data.
 export const RUNS_DETAIL_FUNCTION_ID = 'runs.detail'
 
-/**
- * THE run-level token sum. Pure, total, and the ONE producer of "M of K steps unmeasured".
- *
- * A step counts as MEASURED exactly when it carries a `tokenUsage` — the additive-optional field
- * the runner appends only for a step whose model calls reported usage. A cache hit, a bypass or a
- * provider that reports nothing has no field, and that is a different fact from a step that spent
- * zero tokens.
- *
- * THE THREE SUMS ARE SPREAD IN ONLY WHEN SOMETHING WAS MEASURED, which is the whole of "absent ≠
- * zero". With no measured step the answer is `{ measuredSteps: 0, unmeasuredSteps: K }` and no
- * `totalTokens` key at all, so a page cannot render `0 tokens` for a run nobody measured. The v1
- * `prompt_tokens INTEGER DEFAULT 0` column is exactly the lie this shape refuses to be able to
- * tell.
- */
+// Sums appear only when a step was measured, so an unmeasured run never reads `0 tokens`.
 export function projectRunTokenTotals(steps: readonly RunDetailStep[]): RunTokenTotals {
   let measuredSteps = 0
   let promptTokens = 0
@@ -141,19 +106,12 @@ export const runsDetailSpec: FunctionSpec<RunsDetailInput, RunDetailProjection> 
   id: RUNS_DETAIL_FUNCTION_ID,
   summary: "Read one run's durable members, steps and sub-actions as the dashboard projected them.",
   resultKind: 'unary',
-  // Bound exactly where a composition owns the dashboard's projection database (the D-16 idiom). A
-  // host that holds no such database lists this by name as `unbound` rather than answering an
-  // empty run about a projection it has no way to observe.
+  // Bound where the composition owns the projection database; otherwise listed `unbound`.
   boundThrough: 'runDetail',
   input: RunsDetailInputSchema,
   output: RunDetailProjectionSchema,
   risk: { name: `fn:${RUNS_DETAIL_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * The three counts, which are what a receipt can honestly say about a read like this one.
-   *
-   * NOT THE TOKEN SUM: a receipt line quoting a number the caller is about to render would be a
-   * second place that number is stated, and D-06 exists because two producers of one total drift.
-   */
+  // Counts only, not the token sum, so the total has one producer.
   classify(output): ClauseVerdict {
     return {
       status: 'executed',
@@ -163,9 +121,7 @@ export const runsDetailSpec: FunctionSpec<RunsDetailInput, RunDetailProjection> 
     }
   },
   async invoke(input, deps) {
-    // `invokeFunction` already refused this composition on the same fact; reaching here with no
-    // port means an in-layer caller holding the spec directly, and the refusal is the same named
-    // error either way (384, D-09).
+    // Reached with no port only by an in-layer caller; the refusal is the same named error.
     const port = deps.runDetail
     if (port === undefined) {
       throw new FunctionNotBoundError(RUNS_DETAIL_FUNCTION_ID)
@@ -180,8 +136,7 @@ export const runsDetailSpec: FunctionSpec<RunsDetailInput, RunDetailProjection> 
       throw new RunNotFoundError(String(input.runId), IN_RUNS_DATABASE)
     }
 
-    // the ledger is append-only; only its latest ordinal per member/step
-    // governs. No catch: a bound reader that throws is a broken host, not an absent ledger.
+    // Append-only: the latest ordinal per member and step governs; a reader that throws is broken.
     let members = [...rows.members]
     if (deps.feedback !== undefined) {
       const latest = new Map<string, MarkReceipt>()
@@ -215,11 +170,7 @@ export const runsDetailSpec: FunctionSpec<RunsDetailInput, RunDetailProjection> 
       recording: await projectMemberRecording(member.recording, deps.evidenceBlobs, input.runId),
     })))
 
-    // READ-TIME PRESENCE, OPPORTUNISTICALLY. The projection recorded which blobs a
-    // sub-action produced; only a stat taken now can say whether they survived. `boundThrough`
-    // stays `runDetail` because this is not a binding condition: a host with no runtime root
-    // serves the whole projection and simply omits the key, which is presence UNKNOWN rather than
-    // a claimed absence.
+    // Presence is optional enrichment; without a runtime root the key is omitted, meaning unknown.
     const subActions = await Promise.all(rows.subActions.map(async (subAction) => {
       const ariaEvidence = subAction.ariaEvidence === undefined ? {
         kind: 'aria' as const, state: 'absent' as const, reason: 'unavailable' as const,

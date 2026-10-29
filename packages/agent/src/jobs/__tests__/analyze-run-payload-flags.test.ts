@@ -9,7 +9,7 @@ import type { JobHandlerContext } from '../kind-registry.js'
 
 const RUN_ID = 'run-393-05-payload-flags'
 
-/** Byte-for-byte the shape `post-run-tail.ts` enqueued before this plan. */
+/** Byte-for-byte the legacy shape `post-run-tail.ts` enqueued. */
 const LEGACY_PAYLOAD = {
   runId: RUN_ID,
   handoffDigest: 'sha256:2b7f0c',

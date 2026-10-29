@@ -1,22 +1,4 @@
-// `knowledge.brief.why` — why did the brief say this.
-//
-// The verb answers about THEN. It reads the retrieval trace the serving path wrote down at the
-// moment it assembled the brief, and it does not re-run retrieval — not because re-running is
-// discouraged, but because this op is handed nothing it could re-run retrieval WITH.
-//
-// The structure is the argument, so it is worth stating exactly what is structural and what is
-// not. `mapStepEvidenceToWhy` below is a pure function of (lookup, input): it takes no `deps`
-// at all, so the code that decides what the answer IS cannot read a live index by any route —
-// there is no handle in scope. `invoke` has the whole `FunctionDeps` record, as every op does,
-// and makes exactly one call with it: `deps.runs.readStepEvidence`. That the call is the only
-// one is a SOURCE claim, scanned and mutation-probed rather than enforced by a type. Both
-// halves are stated because they are different strengths of guarantee and it would be easy to
-// present the weaker one as the stronger.
-//
-// The substrate is on the RUNS port, not the knowledge port. A step's evidence is a record of
-// what happened during a run; the knowledge index is a record of what is true now. Answering
-// out of the second would answer a different question than the one asked — the exact
-// dishonesty KREV-02 exists to prevent — and no serving capability is reachable from here.
+// Answers from the trace written at serve time; nothing here can re-run retrieval.
 
 import { BriefWhyInputSchema, BriefWhyResultSchema, asRunId } from '@vostride/agent-qa-schema'
 import type {
@@ -94,9 +76,7 @@ export function mapStepEvidenceToWhy(
 ): BriefWhyResult {
   switch (lookup.kind) {
     case 'run-not-recorded':
-      // `artifact-missing` and not a `RunNotFoundError`: a why-question about a run whose
-      // handoff has been pruned is exactly the "go looking" case D-15 separated from the
-      // permanent one, and the surface's message differs.
+      // A pruned handoff is `artifact-missing`, not a missing run, so the message differs.
       return { kind: 'no-trace', reason: 'artifact-missing' }
     case 'step-not-found':
       return { kind: 'no-trace', reason: 'step-not-found' }
@@ -129,13 +109,7 @@ export const knowledgeBriefWhySpec: FunctionSpec<BriefWhyInput, BriefWhyResult> 
   input: BriefWhyInputSchema,
   output: BriefWhyResultSchema,
   risk: { name: `fn:${KNOWLEDGE_BRIEF_WHY_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * `no-trace` IS THE HONEST ABSENCE THIS VERB EXISTS FOR.
-   *
-   * KREV-02's whole posture is that a brief whose trace is gone must be SAID to be gone rather than
-   * re-derived; the op that answers it is given no serving capability at all. That is an answer the
-   * verb is proud of, not a control declining, so the arm is `executed` with the store's own reason.
-   */
+  // `no-trace` is the honest absence, so it folds to `executed` with the store's reason.
   classify(output): ClauseVerdict {
     switch (output.kind) {
       case 'answered':

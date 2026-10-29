@@ -1,5 +1,4 @@
-// a per-run read that refuses a missing handoff says what happened to a
-// run that never reached a verdict, instead of claiming the run does not exist.
+// A read refusing a missing handoff says the run never reached a verdict, not that it is absent.
 
 import { asJobId, CURRENT_BUS_SCHEMA_VERSION, MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import type { CompletedRunHandoff, FunctionCaller, RunEventEnvelope } from '@vostride/agent-qa-schema'

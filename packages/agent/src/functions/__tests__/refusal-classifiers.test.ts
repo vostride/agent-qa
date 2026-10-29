@@ -558,7 +558,7 @@ describe('no classifier pattern-matches a value', () => {
   })
 })
 
-// The three knowledge changes share one fold, so no door can report differently.
+// The knowledge change ops share one fold, so no door can report differently.
 describe('the three knowledge changes fold through one function', () => {
   it('the shared fold inspects no value content and switches on the outcome', () => {
     const path = new URL('../../../src/functions/ops/knowledge-change-verdict.ts', import.meta.url).pathname

@@ -1,14 +1,4 @@
-// `entities.resolve` — any reference in, a typed resolution out.
-//
-// The reference may be a short-ID, an `agentqa://` URI, or free text a human typed; the
-// answer is one of exactly three arms — a hit, a small disambiguation set, or an honest miss.
-// There is no fourth "best effort" arm, and that closed union is the never-guess contract in
-// type form: a surface cannot render a maybe, because it is never handed one.
-//
-// The op does no resolution of its own. The injected directory port decides WHAT the answer
-// is; this file's whole contribution is turning the store layer's descriptors into cards
-// through the one producer, which is what makes the ENTY-02 claim hold at every surface that
-// calls it (chat in 392, MCP in 396, the CLI here and now).
+// A closed union with no best-effort arm, so a surface is never handed a maybe.
 
 import {
   EntitiesResolveInputSchema,
@@ -85,14 +75,7 @@ export const entitiesResolveSpec: FunctionSpec<EntitiesResolveInput, EntityCardR
   input: EntitiesResolveInputSchema,
   output: EntityCardResolutionSchema,
   risk: { name: `fn:${ENTITIES_RESOLVE_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * THREE ARMS, ALL ANSWERS (399.1 D-01, plan 03's razor).
-   *
-   * `ambiguous` and `none` are the resolver refusing to GUESS, which is the never-guess contract
-   * doing exactly what it promises — a resolution it will not invent is the answer to the question
-   * asked, not a control declining an act. Reporting either as `refused` would send a person
-   * looking for a guardrail that never fired.
-   */
+  // `ambiguous` and `none` are answers, never `refused`; no guardrail fired.
   classify(output): ClauseVerdict {
     switch (output.kind) {
       case 'resolved':
@@ -109,15 +92,11 @@ export const entitiesResolveSpec: FunctionSpec<EntitiesResolveInput, EntityCardR
     }
   },
   async invoke(input, deps) {
-    // Read-tier despite D-01's lazy mint, and the distinction is deliberate: minting records
-    // an ADDRESS for something that already existed. It creates no entity, changes no
-    // knowledge, and is invisible in every projection except the one that hands out names.
+    // Read-tier: minting records an address for an existing entity and changes no knowledge.
     const resolution = await deps.entities.resolve(input.ref)
     return renderResolution(
       resolution,
-      // The descriptors this render is ABOUT to produce cards for — every arm of them, so an
-      // ambiguous set containing one test reads the ledger once and every candidate is rendered
-      // against the same fold (390). A `none` arm renders nothing and reads nothing.
+      // Every arm's descriptors, so an ambiguous set reads the ledger once and shares one fold.
       await readEntityCardContext(deps, descriptorsOf(resolution)),
     )
   },

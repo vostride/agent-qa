@@ -1,10 +1,4 @@
-// `runs.liveurl` — the ONE producer of live-view capability tokens.
-//
-// WHY THIS IS A FUNCTION-LAYER OP AND NOT A DASHBOARD ROUTE. The `liveUrl` is a credential of the
-// v48 family, and the milestone's constraint is that surfaces are thin clients over one typed
-// layer with no private powers. A dashboard that minted its own tokens would be a second auth
-// system with its own expiry rules, its own audit story and its own log discipline — which is
-// exactly the thing this op exists so that nobody has to write.
+// The one minter, so live links have one expiry rule and no surface runs its own auth.
 
 import {
   LIVE_URL_SCOPE,
@@ -51,17 +45,7 @@ export const runsLiveUrlSpec: FunctionSpec<RunsLiveUrlInput, RunsLiveUrlResult> 
   input: RunsLiveUrlInputSchema,
   output: RunsLiveUrlResultSchema,
   risk: { name: `fn:${RUNS_LIVE_URL_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * THE OUTCOME SENTENCE NEVER CONTAINS THE TOKEN OR THE URL.
-   *
-   * A clause verdict is a thing surfaces PRINT — into chat transcripts, receipts and the audit
-   * sink — so interpolating the result here would put a live credential into every durable record
-   * this op touches, from one line of "helpful" formatting. What a person needs to know is that a
-   * link was minted and for which handle; the link itself is already in the result they asked for.
-   *
-   * Declared explicitly rather than inherited: `registry.ts` registers this through a
-   * `FunctionSpec` cast, and the classifier census is what makes a missing fold red.
-   */
+  // The outcome never holds the token or URL, because surfaces print it into durable records.
   classify(result): ClauseVerdict {
     return { status: 'executed', outcome: `liveUrl minted for handle ${result.handle}` }
   },
@@ -85,8 +69,7 @@ export const runsLiveUrlSpec: FunctionSpec<RunsLiveUrlInput, RunsLiveUrlResult> 
       iat: now,
       exp,
     })
-    // The one observation point for minted tokens, complete because this op is the only minter.
-    // no shipped host binds it; it never gates producing the link.
+    // The one observation point for minted tokens; it never gates producing the link.
     liveView.onMinted?.(token)
 
     return { liveUrl: liveUrlOf(origin, input.runId, token), expiresAt: exp, handle, stream }

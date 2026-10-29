@@ -1,31 +1,4 @@
-// `runs.digest` — ONE run, one digest, composed live.
-//
-// PROP-04's complaint is a product complaint: an approval UX that fires forty times per nightly
-// run is worse than one that fires once. The answer is not a throttle, a debounce or a batching
-// window — every one of those is a timing knob with a wrong setting. The answer is a
-// PROJECTION KEYED BY `runId`. A projection keyed by a run cannot fire per event, so "exactly
-// one digest per run" is a property of the shape and not a rule anybody enforces.
-//
-// NOTHING IS PERSISTED HERE. The digest composes from four already-shipped read paths — the
-// analysis op, the chain-state op, the run's own mark ledger (432-09, which
-// replaced the proposals inbox of 391 plan 03) and the quarantine ledger — every time
-// somebody asks. So there is nothing to drift,
-// nothing to migrate, no second copy of a run's truth to reconcile, and the frozen counts-only
-// notification row is left exactly as it was.
-//
-// THE TWO SIBLING OPS ARE INVOKED, NOT REIMPLEMENTED. `analysisGetSpec.invoke` and
-// `runsPostProcessingSpec.invoke` are called with THIS call's deps, so the verdict sentences in
-// a digest are the same bytes `analysis.get` serves and the chips are the same five words
-// `runs.postprocessing` serves. That is 389 D-05/D-10 and 388 D-14 honoured by CALLING them
-// rather than by a comment promising not to diverge. The specs are module-internal — nothing
-// outside this package can reach them — so this is composition inside the layer, not a
-// dispatch path around `invokeFunction`: every EXTERNAL caller still arrives through
-// the pipeline, and this op declares its own read-only descriptor. 2026-10-01: the
-// read scope it also declared is gone; no op declares one now.
-//
-// REFS AND COUNTS ONLY. No delta content, no forget-receipt tombstones, no
-// rationale prose, no masked bytes. A mark change is its mark id, its fix and the record ids or
-// workspace path it changed. Nothing awaits a decision: no proposal store is read.
+// Composed live from the sibling ops each call, so nothing is persisted and nothing can drift.
 
 import {
   POST_PROCESSING_SKIP_REASON_WORDS,
@@ -50,24 +23,13 @@ import {
   runsPostProcessingSpec,
 } from './runs-post-processing.js'
 
-/**
- * Lowercase dot taxonomy: the `runs` domain, one noun.
- *
- * `runs.` rather than a new `digest.` domain, because what this returns is a fact ABOUT A RUN —
- * the same reason `runs.postprocessing` is not `postprocessing.get`. The exported constant is
- * what the CLI's `digest` verb, the tail's fetch pointer, 392's chat and M5 all name; the
- * literal appears here once, and the parity suite picks the id up from the registry.
- */
+// Under `runs.` because it returns a fact about a run.
 export const RUNS_DIGEST_FUNCTION_ID = 'runs.digest'
 
-/** The line separator 388 pinned for the exit summary, reused so one story reads as one. */
+/** The exit summary's line separator, reused so one story reads as one. */
 const DIGEST_SEPARATOR = ' · '
 
-/**
- * The fixes this run's marks applied, read from the run's own ledger through the read-only feedback
- * port. ABSENT where this host binds no feedback reads or the ledger cannot be read, so an
- * empty list is only ever a measurement.
- */
+// Absent where no feedback reads are bound, so an empty list is always a measurement.
 async function markChangesFor(deps: FunctionDeps, runId: RunsDigestInput['runId']): Promise<RunDigestMarkChange[] | undefined> {
   const read = await deps.feedbackReads?.history(runId)
   if (read === undefined || read.kind !== 'history') return undefined
@@ -85,20 +47,12 @@ function markChangeLine(row: RunDigestMarkChange): string {
   return `  ${row.markId}  ${row.fix}: ${what}`
 }
 
-/** The durable identity legs, joined — never `testId`, which is per-run. */
+// The durable identity legs, joined; never `testId`, which is per-run.
 function quarantineRef(entry: QuarantineEntryState): string {
   return `${entry.product}/${entry.filePath}::${entry.testName}`
 }
 
-/**
- * The rendered bytes every surface prints, composed ONCE here.
- *
- * A surface that laid these out for itself would be composing a second story about one run, and
- * the failure mode is not cosmetic: the tail's block, the CLI verb's output and 392's chat
- * would each be free to omit the section that happened to be empty on the day they were
- * written. Sections that have nothing to say still print their zero, because "no changes
- * applied" is a fact a person needs and an absent line is indistinguishable from a bug.
- */
+// Composed once here, and empty sections still print their zero rather than vanish.
 function renderDigestLines(digest: Omit<RunDigest, 'lines'>): string[] {
   const lines: string[] = [`digest — ${digest.runId}`]
 
@@ -112,9 +66,7 @@ function renderDigestLines(digest: Omit<RunDigest, 'lines'>): string[] {
   })
   if (clusterBlock !== '') lines.push(clusterBlock)
 
-  // a skipped run has no chain to report on, so the two chip words would read
-  // `pending` forever. The fact replaces them in the CLI exit line's words; the outcome clause
-  // keeps its own behaviour.
+  // A skipped run has no chain, so the fact replaces chip words that would read `pending` forever.
   const skipped = digest.chain.skipped
   const skippedWord = skipped === undefined
     ? undefined
@@ -155,13 +107,7 @@ export const runsDigestSpec: FunctionSpec<RunsDigestInput, RunDigest> = {
   input: RunsDigestInputSchema,
   output: RunDigestSchema,
   risk: { name: `fn:${RUNS_DIGEST_FUNCTION_ID}`, recognized: true, readOnly: true },
-  /**
-   * REFS AND COUNTS, which is this op's own law rather than a house style.
-   *
-   * The digest's `lines` are its rendered territory and they travel on `results[]`, which D-04
-   * prints in full. A receipt line reaching into them would put a run's story inside the map — the
-   * exact thing D-18 pinned this op's whole shape around.
-   */
+  // Refs and counts only; the digest's lines travel on `results[]`.
   classify(output): ClauseVerdict {
     return {
       status: 'executed',
@@ -209,12 +155,10 @@ export const runsDigestSpec: FunctionSpec<RunsDigestInput, RunDigest> = {
 
     const sections: Omit<RunDigest, 'lines'> = {
       runId,
-      // VERBATIM — the same cluster views, carrying the same already-composed representative
-      // sentences the one renderer produced inside `analysis.get`.
+      // Verbatim cluster views, with the representative sentences `analysis.get` composed.
       verdictClusters: analysis?.clusters ?? [],
       chain: {
-        // `undefined` answers exactly as an empty chain does: nothing was enqueued for this
-        // run, which is what a host with no queue database can honestly say (388's own note).
+        // `undefined` answers as an empty chain: nothing was enqueued for this run.
         ...projectPostProcessingChips(undefined),
         ...(status === undefined ? {} : status.chips),
         ...(status?.notification === undefined
@@ -224,19 +168,14 @@ export const runsDigestSpec: FunctionSpec<RunsDigestInput, RunDigest> = {
       },
       ...(markChanges === undefined ? {} : { markChanges }),
       candidates: {
-        // Absent counts read as zero HERE and only here: the row omits them when curation never
-        // committed a bundle, and a digest section is a place a person reads a
-        // number rather than a place a distinction between "none" and "not yet" survives — the
-        // chain chips one line up already carry that distinction.
+        // Absent counts read as zero only here; the chain chips carry none versus not yet.
         curated: curation?.curated ?? 0,
         deprecated: curation?.deprecated ?? 0,
       },
       quarantine: {
         quarantined: quarantine.filter((entry) => entry.state === 'quarantined').length,
         expired: quarantine.filter((entry) => entry.state === 'expired').length,
-        // `released` entries are deliberately absent from both the counts and the refs: a
-        // released test is one somebody already dealt with, and listing it every run would be
-        // the graveyard 390 legislated against, one surface later.
+        // Released entries stay out of counts and refs; somebody already dealt with them.
         refs: quarantine
           .filter((entry) => entry.state === 'quarantined')
           .map(quarantineRef),

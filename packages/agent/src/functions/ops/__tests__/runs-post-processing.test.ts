@@ -1,17 +1,4 @@
-// `runs.postProcessing` — chip truth projected from durable job state.
-//
-// Two claims, and they are deliberately measured apart:
-//
-//   1. The PROJECTION is a closed, total function of the durable chain state. Driven here
-//      with hand-built row values rather than a store, because what is under test is a
-//      mapping and a store would only make the same table slower to state.
-//   2. The OP is that projection wired to a port, and the port is asked for exactly the ids
-//      `chainJobIdsForRun` derives. A projection that addressed other rows would answer
-//      confidently about a chain that is not this run's, which no assertion on the returned
-//      shape could ever catch.
-//
-// The durable half — a real sqlite store, real rows, and the pin that a status read leaves no
-// database behind — lives in `agent-local`, because this package cannot reach a store at all.
+// The projection is a total function of chain state; the op must ask for the derived ids only.
 
 import {
   asJobId,
@@ -52,8 +39,6 @@ import {
 
 const RUN_ID = 'run-388-chips'
 
-// the retired `grantedScopes` and `safeMode` caller fields and the
-// retired `resolveExecutionContext` registry option are dropped; nothing read them.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -174,17 +159,7 @@ const CHIP_BY_STATUS: Record<
   cancelled: { unclaimed: 'failed', claimed: 'failed' },
 }
 
-// ------------------------------------------------------------------------------------------
-// The CLOSED-UNION cells. Mutation-measured by
-// the phase's mutation driver (since removed), which re-added a third chip arm (M1) and a fifth
-// status (M2) and required each to red a cell named below.
-//
-// SET-EQUALITY, NEVER MEMBERSHIP. A cell that asserts the chips CONTAIN `analysis` and
-// `curation`, or that the vocabulary CONTAINS four words, cannot fail on an ADDITION — and an
-// addition is the direction that matters here: the whole point of the teardown is that a
-// member which no producer can produce cannot quietly come back and make every consumer render
-// a word about a slot that will never fill.
-// ------------------------------------------------------------------------------------------
+// Set equality, never membership, so an added chip or status word fails a cell.
 
 describe('the chip set and its vocabulary are closed', () => {
   it('projects EXACTLY the two chips, by key set', () => {
@@ -337,12 +312,7 @@ describe('the runs.postProcessing op', () => {
   })
 })
 
-// ------------------------------------------------------------------------------------------
-// The SKIPPED fact (Phase 425, D-08; renamed 444 D-39). A gate run and an outcome-excluded run
-// skip the whole post-run chain, so their chip words stay `pending` and the op has to say WHY
-// from the run's durable record. The markers are the same two the enqueue skip reads — never
-// the absence of job rows, never the run's status.
-// ------------------------------------------------------------------------------------------
+// Gate and outcome-excluded runs skip the chain; the reason comes from the run's durable record.
 
 function handoff(overrides: Partial<CompletedRunHandoff> = {}): CompletedRunHandoff {
   return {

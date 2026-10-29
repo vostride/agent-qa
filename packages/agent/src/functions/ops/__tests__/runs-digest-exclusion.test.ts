@@ -1,17 +1,4 @@
-// `runs.digest` carries and prints the skipped fact (Phase 425 plan 07, D-08 · law 6; renamed from
-// the exclusion fact in 444 D-39). The value sits on `chain.skipped` and the line prints
-// `skipped (<word>)` from the schema's one word map.
-//
-// ONE FOLD, ONE PRODUCER. With a post-processing reader bound, the fact is the one
-// `runs.postprocessing` folded and the digest publishes it; only a host with no such reader falls
-// back to folding the handoff this op already loads for its own run-not-found refusal. Never read
-// off missing job rows, and never off `run.status`. A gate run's chain is never enqueued, so an op
-// that inferred skipped from an empty chain would also call every in-flight run skipped, one
-// poll too early.
-//
-// The negative half is as load-bearing as the positive one: an ordinary run's chain must carry
-// no `skipped` key at all and must render the two chip-word clauses byte-identically, or the
-// arm is a rewrite of the shipped line wearing a condition.
+// The skipped fact comes from one fold, never from missing job rows or `run.status`.
 
 import {
   CURRENT_HANDOFF_SCHEMA_VERSION,
@@ -33,8 +20,6 @@ import { RUNS_DIGEST_FUNCTION_ID } from '../runs-digest.js'
 
 const RUN_ID = 'run-425-07-digest'
 
-// no `grantedScopes` or `safeMode` on the caller; the registry reads
-// neither.
 const CALLER: FunctionCaller = {
   surface: 'test',
   origin: 'agent',
@@ -71,10 +56,7 @@ async function digestFor(document: CompletedRunHandoff): Promise<RunDigest> {
   return await digestOver({ get: () => document, list: [document], postProcessing: true })
 }
 
-/**
- * The same scene with its two variables exposed: what each successive
- * `runs.get` serves, and whether a post-processing reader is bound at all.
- */
+// The scene's two variables: what each `runs.get` serves and whether a reader is bound.
 async function digestOver(scene: {
   get: () => CompletedRunHandoff
   list: readonly CompletedRunHandoff[]
@@ -117,8 +99,6 @@ async function digestOver(scene: {
 
   const registry = createFunctionRegistry({
     deps,
-    // no `resolveExecutionContext` registry option; the registry reads
-    // no context.
   })
   return await invokeFunction(
     registry,
@@ -166,10 +146,7 @@ describe('DIGEST-CHAIN-EXCLUDED', () => {
     })
 })
 
-// ONE PRODUCER ON THE BOUND PATH (425-14 · WR-04, law 6). The digest loads the handoff first, for
-// its own not-found refusal; `runs.postprocessing` loads it second and folds the skipped fact.
-// Serving a plain handoff to the first load and a gate run to every later one makes the two
-// derivations disagree, so the chain arm shows which one was published.
+// The first load serves a plain handoff and later loads a gate run, exposing which fold published.
 describe('DIGEST-EXCLUSION-FROM-THE-STATUS', () => {
   it('publishes the skipped fact the post-processing read folded, not a second derivation', async () => {
     let loads = 0

@@ -1,23 +1,4 @@
-// `runs.postprocessing` — one run's chip truth, read from durable job state.
-//
-// the chip set is exactly two — `{analysis, curation}`.
-// the chain now derives exactly the two ids the chips read; the third
-// derived id left with the Issue-slot cleanup.
-//
-// THE single producer of a post-processing chip status. The CLI's exit summary line (plan 04),
-// any later status verb, 392's chat and M5's dashboard all call this op; none of them opens
-// `agent-jobs.db`, and none of them re-derives what a row status means. That is the L10
-// thin-client law applied to the one value in this phase that three surfaces render: three
-// spellings of four words is not a duplication a reviewer catches, it is the state in which the
-// dashboard says one thing and the CLI another about the same row, with nothing wrong in either.
-//
-// Chip truth is DURABLE truth on purpose. The bus chips a drain emits are a push
-// convenience for a socket that happens to be open; this is the answer a user who closed their
-// laptop and came back gets, and it has to be the same answer.
-//
-// The projection is exported as a pure function beside the spec, in the `runs-get.ts` idiom:
-// a total mapping with no capability, no port and nothing to await, so the exhaustive table
-// that pins it costs a test file and not a store.
+// The single producer of chip status, read from durable job state.
 
 import {
   CurationSnapshotSchema,
@@ -52,15 +33,7 @@ import type {
   PostProcessingJobRow,
 } from '../spec.js'
 
-/**
- * All lowercase, and that is a measurement rather than a taste.
- *
- * D-15's id taxonomy is pinned by `parity-coverage.test.ts` as `/^[a-z]+(?:\.[a-z]+)+$/`, so a
- * camelCased verb segment is not a spelling this catalogue admits. The shape follows
- * `runs.events` — a domain and a noun — because what this op returns is a STATE and not an
- * action. The exported constant is what plan 04 and every later surface name; the literal
- * appears here once.
- */
+// Lowercase, because the id taxonomy admits no camelCased segment.
 export const RUNS_POST_PROCESSING_FUNCTION_ID = 'runs.postprocessing'
 
 /**
@@ -90,14 +63,7 @@ function chipFor(
   return row.claimed ? 'running' : 'pending'
 }
 
-/**
- * THE projection: durable chain state → the two chips (D-14; narrowed Phase 404, D-01).
- *
- * Closed and total. `undefined` — this project holds no queue database — answers exactly as an
- * empty state does, because both are the same fact about THIS run: nothing was enqueued for it.
- * Distinguishing them here would report on the host rather than on the chain that was asked
- * about, and the caller asked about a chain.
- */
+// No queue database and an empty state both mean nothing was enqueued for this run.
 export function projectPostProcessingChips(
   state: PostProcessingChainState | undefined,
 ): PostProcessingChips {
@@ -107,15 +73,7 @@ export function projectPostProcessingChips(
   }
 }
 
-/**
- * THE skipped fold: the run's durable record → why its chain was never enqueued.
- *
- * Read from the SAME two markers the post-verdict enqueue skip reads, in the same
- * short-circuit order, so the reason a surface renders is the reason the chain was actually
- * skipped for. Never from the absence of job rows: a chain polled a second after its verdict
- * has no rows either, and calling that skipped would tell a user their run was dropped.
- * An absent document is an absent fact, never a refusal.
- */
+// Read from the enqueue skip's own markers, never from missing job rows.
 export function projectPostProcessingSkipped(
   document: CompletedRunHandoff | undefined,
 ): { reason: PostProcessingSkipReason } | undefined {
@@ -126,12 +84,7 @@ export function projectPostProcessingSkipped(
 
 const IN_FLIGHT_ROW_STATUSES: ReadonlySet<string> = new Set(['running', 'pending'])
 
-/**
- * a run with no handoff reads `no-verdict` only when its own row is
- * finished and its log holds no `verdict` envelope. The bus logs before it delivers, so a row the
- * ingest finished from a verdict always has that verdict logged. A host without `readRecord`, an
- * absent row, an unreadable log or a failed read derives nothing: absence is not a status.
- */
+// `no-verdict` needs a finished row and a log with no verdict; any read gap derives nothing.
 async function readNoVerdictSkipped(
   runId: RunId,
   deps: FunctionDeps,
@@ -216,11 +169,7 @@ type RecordedSnapshots =
   | { kind: 'served'; checkpoint?: CurationSnapshot; nested?: CurationSnapshot }
   | { kind: 'withheld'; reason: CurationSnapshotWithheldReason }
 
-/**
- * One verdict for both recorded copies (423 D-15, Gap 2). With no mask projection is not
- * attempted; with one, either copy refusing withholds both, so the checkpoint and the
- * notification can never disagree.
- */
+// With a mask, either copy refusing withholds both, so the two can never disagree.
 function projectRecordedSnapshots(
   state: PostProcessingChainState | undefined,
   mask: MaskFn | undefined,
@@ -268,9 +217,7 @@ export const runsPostProcessingSpec: FunctionSpec<RunsPostProcessingInput, PostP
   id: RUNS_POST_PROCESSING_FUNCTION_ID,
   summary: "Read one run's post-processing chip statuses from durable job state.",
   resultKind: 'unary',
-  // Bound exactly where a composition supplies durable queue storage (D-16 idiom). A host that
-  // cannot see the queue lists this by name as `unbound` rather than answering all-pending
-  // about a chain it has no way to observe.
+  // Bound where the composition supplies durable queue storage; otherwise listed `unbound`.
   boundThrough: 'postProcessing',
   input: RunsPostProcessingInputSchema,
   output: PostProcessingStatusSchema,
@@ -290,18 +237,14 @@ export const runsPostProcessingSpec: FunctionSpec<RunsPostProcessingInput, PostP
     }
   },
   async invoke(input, deps) {
-    // `invokeFunction` already refused this composition on the same fact; reaching here with no
-    // port means an in-layer caller holding the spec directly, and the refusal is the same
-    // named error either way (384, D-09).
+    // Reached with no port only by an in-layer caller; the refusal is the same named error.
     const postProcessing = deps.postProcessing
     if (postProcessing === undefined) {
       throw new FunctionNotBoundError(RUNS_POST_PROCESSING_FUNCTION_ID)
     }
 
     const runId = String(input.runId)
-    // The ONE derivation, imported rather than restated (RESEARCH Pattern 2). Derived HERE and
-    // handed down, so the rows read are the rows the enqueue addressed through this same host's
-    // id source — two copies of the hash input would be two chains that review identically.
+    // Derived here through this host's id source, so the rows read are the rows enqueued.
     const ids = chainJobIdsForRun(runId, postProcessing.idSource)
     const state = await postProcessing.readChain(ids, runId)
     // Through the REQUIRED runs port, and with no refusal on absence. The not-found throw
