@@ -1,4 +1,4 @@
-// C439-STEP-RECORD (439 D-03, D-10): the verifier judges from the whole step's record, every action
+// the verifier judges from the whole step's record, every action
 // with its outcome and evidence, every value read and the settled start and final screens, and
 // never from the planner's reasoning or the test author's context.
 import { beforeEach, describe, expect, it, vi } from 'vitest'

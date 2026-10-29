@@ -1,4 +1,4 @@
-// HARN-01 / D-15 / D-27: screen equality or change decides nothing in executeStep. Legitimate
+// screen equality or change decides nothing in executeStep. Legitimate
 // repetition on a screen whose screenIdentityHash never changes runs to completion, and the only
 // re-dispatch after an execution error is the planner's own next plan.
 import { describe, expect, it } from 'vitest'

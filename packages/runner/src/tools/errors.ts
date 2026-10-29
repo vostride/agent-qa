@@ -96,7 +96,7 @@ export const groundingError = {
     })
   },
 
-  // One code covering the three invalid-descriptor shapes (D-04 / D-13 / D-06).
+  // One code covering the three invalid-descriptor shapes.
   descriptorInvalid(toolName: string, problem: DescriptorProblem): GroundingError {
     const messages: Record<DescriptorProblem, string> = {
       'no-handle': 'an element action needs a ref (with its stated target) or, with no confident ref, a target',

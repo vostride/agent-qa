@@ -1,4 +1,4 @@
-// The saved-file comparator (439 D-17). Pure: the verifier states the expected name and text, the
+// The saved-file comparator. Pure: the verifier states the expected name and text, the
 // runner compares them with the held bytes. Every separator, space, tab, blank line and line break
 // is kept; CRLF and LF are one line break and one leading byte-order mark is ignored (RESEARCH A5).
 // Both texts are masked with the run's masker first, so a placeholder the verifier saw compares

@@ -1,6 +1,6 @@
-// C446-REQUESTED-DIALOG (446-11, D-25): an open dialog that is the state the step asked to open or
+// an open dialog that is the state the step asked to open or
 // see does not block the pass; a dialog that bears on a condition, or that goes unaccounted, still
-// does (439 D-16). The verifier's answers are scripted JSON; no model runs.
+// does. The verifier's answers are scripted JSON; no model runs.
 
 import { describe, expect, it } from 'vitest'
 import { asRef } from '@vostride/agent-qa-schema'

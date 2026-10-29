@@ -32,7 +32,7 @@ describe('buildScreenState — ref minting & binding', () => {
     )
 
     expect(state.elements.map(e => e.ref)).toEqual([asRef('e1'), asRef('e2'), asRef('e3')])
-    // 2026-10-09 (438-11): the binding carries no position (D-13).
+    // the binding carries no position.
     expect(binding[asRef('e1')]).toEqual({ index: 0 })
     expect(binding[asRef('e2')]).toEqual({ index: 1 })
     expect(binding[asRef('e3')]).toEqual({ index: 2 })
@@ -48,7 +48,7 @@ describe('buildScreenState — ref minting & binding', () => {
 
     expect(state.elements[0].nameNormalized).toBe('save')
     expect(state.elements[1].nameNormalized).toBe('save')
-    // 2026-10-09 (438-11): no position is minted anywhere, binding or ElementInfo (D-13).
+    // no position is minted anywhere, binding or ElementInfo.
     expect(binding[asRef('e1')]).toEqual({ index: 0 })
     expect(binding[asRef('e2')]).toEqual({ index: 1 })
     // ElementInfo carries no ordinal field

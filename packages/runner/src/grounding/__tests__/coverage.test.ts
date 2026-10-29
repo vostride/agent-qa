@@ -21,7 +21,7 @@ import {
 import type { GateResult, GroundingRung, RungRequest } from '../index.js'
 
 // A fake visual rung injected via options — proves the capability-negotiation seam
-// (GROUND-02) without any visual rung shipping in M1 (D-01).
+// without any visual rung shipping in M1.
 function fakeVisualRung(resolved: string): GroundingRung {
   return {
     stage: 'visual',
@@ -80,7 +80,7 @@ describe('GROUND roll-call — one green proof per acceptance criterion', () => 
   })
 
   it('the ladder is auditable ref → tree-search → visual:skipped and the visual rung is capability-gated', () => {
-    // Default assembly is [ref, tree-search] — no visual rung ships in M1 (D-01).
+    // Default assembly is [ref, tree-search] — no visual rung ships in M1.
     const defaultLadder = assembleLadder()
     expect(defaultLadder.map((rung) => rung.stage)).toEqual(['ref', 'tree-search'])
 

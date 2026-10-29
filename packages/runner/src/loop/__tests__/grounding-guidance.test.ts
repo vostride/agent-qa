@@ -1,4 +1,4 @@
-// 363-02 (D-14 · LOOP-05) — pins the planner GROUNDING GUIDANCE so the
+// pins the planner GROUNDING GUIDANCE so the
 // `ungroundable_action` bare-click regression (365-VALIDATION.md:136-146) cannot silently
 // return. During the 2026-07-08 live run the planner emitted a `click` carrying NEITHER a
 // `ref` NOR a `{role,name}` target; the gate correctly minted `descriptor_invalid`, the
@@ -21,7 +21,7 @@ import { buildSystemPrompt } from '../prompts.js'
 import { defaultRegistry } from '../../tools/index.js'
 import { groundingError } from '../../tools/errors.js'
 
-// The STATED TARGET paragraph (438 D-01) runs from its header to the next numbered rule.
+// The STATED TARGET paragraph runs from its header to the next numbered rule.
 function targetDescriptorGuidance(platform: 'web' | 'android' | 'ios'): string {
   const sp = buildSystemPrompt(platform)
   const start = sp.indexOf('STATED TARGET')
@@ -33,7 +33,7 @@ function targetDescriptorGuidance(platform: 'web' | 'android' | 'ios'): string {
 
 describe('planner grounding guidance', () => {
   // Test 1 (behavior block Test 1): the system guidance requires ref and target on every
-  // element action (438 D-01), forbids emitting NEITHER, sends a target alone only with no
+  // element action, forbids emitting NEITHER, sends a target alone only with no
   // confident ref, and says a clearly different ref is refused as target-mismatch.
   it.each(['web', 'android', 'ios'] as const)(
     'system prompt mandates exactly-one ref|target and forbids neither (%s)',

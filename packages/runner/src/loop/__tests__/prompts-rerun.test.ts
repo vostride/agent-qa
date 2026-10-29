@@ -4,7 +4,7 @@
 //
 // 355-02 redirect (Wave-0, RED pending Plan 03): the monolithic step-prompt builder is
 // retired. The re-run context block now rides in the per-turn content emitted by
-// `composeTurnMessages(...)` (D-04). Every content assertion is preserved byte-for-byte;
+// `composeTurnMessages(...)`. Every content assertion is preserved byte-for-byte;
 // only the producing call changes.
 import { describe, it, expect } from 'vitest'
 import type { ModelMessage } from 'ai'

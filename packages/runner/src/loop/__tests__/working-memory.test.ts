@@ -2,7 +2,7 @@
 // run-scoped WorkingMemoryStore + structured turn injection BEFORE Plan 05 lands it. Three
 // distinct redaction boundaries (Pitfall 7): VERBATIM in the store and in turn content;
 // redactSecretValue at CAPTURE (registered secrets only); mask() only at snapshot/flush
-// (tested elsewhere). Latest-wins key overwrite (D-12); whole-set recall (D-11).
+// (tested elsewhere). Latest-wins key overwrite; whole-set recall.
 //
 // RED BY DESIGN: `../working-memory/store` does not exist until Plan 05 — the unresolved
 // import IS the intended failure. Pinned API:

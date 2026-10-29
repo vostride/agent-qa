@@ -1,4 +1,4 @@
-// The shared fill and clear comparator for web, Android and iOS (437 D-06, D-07, D-16).
+// The shared fill and clear comparator for web, Android and iOS.
 //
 // Provider- and storage-neutral: no driver and no node:* imports. Four verdicts, kept apart:
 // - exact: the read-back equals the requested text;

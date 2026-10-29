@@ -139,7 +139,7 @@ interface ScriptedCall {
   failure?: string
   middlewareRetry?: true
 }
-// 2026-10-11 (439-01): the verifier's structured output is per-condition (D-07, D-10).
+// the verifier's structured output is per-condition.
 const MET_TEXT = JSON.stringify({
   conditions: [{
     quote: 'Click Log in', verdict: 'met', needs: 'none', controlRef: '',

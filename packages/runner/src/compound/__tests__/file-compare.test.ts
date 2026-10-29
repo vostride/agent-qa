@@ -1,4 +1,4 @@
-// C439-FILE-COMPARE (439 D-17): the saved-file comparator keeps every separator, space, tab, blank
+// the saved-file comparator keeps every separator, space, tab, blank
 // line and line break; CRLF equals LF and one byte-order mark is ignored; the name is exact; the
 // first difference is masked and each side windowed to FILE_DIFFERENCE_WINDOW characters.
 

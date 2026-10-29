@@ -1,9 +1,9 @@
-// Phase 363-03 Task 1 (D-01). The event sink is the single masking chokepoint every
+// Phase 363-03 Task 1. The event sink is the single masking chokepoint every
 // parity payload crosses. These tests pin the widened stepFinalized leg (StepResult-derived
 // status/durationMs/error) and the three NEW sink legs (hookStarted/hookFinished from the
 // Plan 04 hooks migration, testRetryScheduled from the Plan 10 member-runner retry loop) —
 // each routed through its Plan 01 projection + the sink mask so no value-bearing string
-// escapes redaction (T-363-05/T-363-06). RED before the sink widening exists.
+// escapes redaction. RED before the sink widening exists.
 //
 // Runner package convention: `.js`-suffixed relative import specifiers. Real in-memory bus,
 // synthetic mask — no fs, no timers.

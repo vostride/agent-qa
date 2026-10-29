@@ -220,7 +220,7 @@ describe('StepEvidence carries the serve-time trace beside servedBrief', () => {
     expect(ServedRetrievalTraceV1Schema.safeParse(folded).success).toBe(true)
   })
 
-  // WR-10 (387-13). The zero-injection case is the one the truncation ledger exists to answer,
+  // WR-10. The zero-injection case is the one the truncation ledger exists to answer,
   // and it had two distinct drop gates. Shape A's gate is in the loop (see trace-threading.test.ts);
   // Shape B's gate is HERE, in this recorder body — the loop DOES call `recordServedCautions` when
   // every served caution is refused, because `truncated N of M` renders as an observation, and the

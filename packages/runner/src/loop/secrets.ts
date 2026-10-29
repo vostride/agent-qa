@@ -1,4 +1,4 @@
-// Secret machinery for the runner-owned step-execution loop (Phase 353, D-02).
+// Secret machinery for the runner-owned step-execution loop.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
 // no model/core/adapter package imports. Moved byte-equivalently from
 // core/src/agent/secrets.ts — this is the cache-poisoning guard (Information-
@@ -47,7 +47,7 @@ function escapeRegExp(value: string): string {
 
 // Inlined from core variables.ts:parseEnvFile — pure string parsing, kept local so
 // the runner secret store has no cross-package import (storageNeutral).
-// 2026-10-14 (441-01, D-03): an ordered list, because an object would put integer-like names first.
+// an ordered list, because an object would put integer-like names first.
 function parseSecretEnvFile(content: string): Array<[string, string]> {
   const result = new Map<string, string>()
   for (const rawLine of content.split('\n')) {

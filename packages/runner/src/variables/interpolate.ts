@@ -1,4 +1,4 @@
-// Runner-owned step-text interpolation (Phase 363 D-07). Moved 1:1 from
+// Runner-owned step-text interpolation. Moved 1:1 from
 // core/src/agent/variables.ts — env-pattern-only replacement, per-pattern unresolved
 // messages, and bare-variable detection. Semantics preserved exactly; the
 // {{secret:...}} template is deliberately SKIPPED here (resolved separately through
@@ -19,7 +19,7 @@ export interface InterpolationWithProvenance {
 }
 
 /**
- * The single replacement implementation (PROC-01 · 381 D-03/D-08). Produces byte-identical
+ * The single replacement implementation. Produces byte-identical
  * text to the historical `interpolateVariables` while reporting WHICH binding names
  * produced it, so the name survives the pre-planning interpolation seam into StepEvidence.
  */

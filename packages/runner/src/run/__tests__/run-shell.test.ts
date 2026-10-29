@@ -169,7 +169,7 @@ function cancel(session: RunSession): void {
   ;(session as unknown as { cancel(): void }).cancel()
 }
 
-// ---- Synchronous session identity (SESSION-01, D-01/D-04) ----------------
+// ---- Synchronous session identity ----------------
 
 describe('startRun — synchronous session identity', () => {
   it('returns a session synchronously carrying id, running status, executionContext', () => {
@@ -254,7 +254,7 @@ describe('run lifecycle emission (spec §2.2)', () => {
     expect(verdictIdx).toBeLessThan(finishIdx)
     expect(finishIdx).toBe(events.length - 1)
     const finishPayload = finishes[0].payload as { disposition: string; finalSeq: number }
-    // 404 D-09/D-10: `detached` is no longer a hardcoded literal — it is what the shell decides
+    // `detached` is no longer a hardcoded literal — it is what the shell decides
     // when NO `ports.postVerdict` step was composed, which is this config. Nothing will be drained
     // from a host that composed no step, and the wire says exactly that (with no warning: nothing
     // was promised). The three decided values are pinned in the port cells below.
@@ -292,7 +292,7 @@ describe('run-level cancel', () => {
   })
 })
 
-// ---- Handoff (SESSION-05, D-13/D-17) -------------------------------------
+// ---- Handoff -------------------------------------
 
 describe('handoff — exactly one per run', () => {
   it('session.done resolves the same handoff that is persisted through the store port, exactly once', async () => {
@@ -404,7 +404,7 @@ describe('enriched testStarted / testFinished payloads', () => {
     await done(session)
 
     const started = events.find(e => e.type === 'testStarted')!
-    // filePath is REQUIRED since 381-01 (ABRF-02) — it always rides the payload now.
+    // filePath is REQUIRED since 381-01 — it always rides the payload now.
     expect(started.payload).toHaveProperty('filePath', 'a.test.ts')
     expect(started.payload).not.toHaveProperty('suiteId')
     expect(started.payload).not.toHaveProperty('stepTexts')
@@ -473,7 +473,7 @@ describe('enriched testStarted / testFinished payloads', () => {
   })
 })
 
-// ---- D-08 run-artifact store lifecycle (363-06) --------------------------
+// ---- D-08 run-artifact store lifecycle --------------------------
 
 interface FakeArtifactStore {
   stage(document: RunArtifactStageInput): void
@@ -716,7 +716,7 @@ describe('§A9 root-cause classification at the assembly seam', () => {
   })
 })
 
-// ---- The post-verdict step (404 D-10/D-11) -------------------------------
+// ---- The post-verdict step -------------------------------
 //
 // THE CONTRACT UNDER TEST IS "DEGRADE, NEVER GATE". The shell delays `runFinished` for exactly one
 // host-supplied step, and every way that step can fail to decide must end the same way: the wire

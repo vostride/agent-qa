@@ -81,7 +81,7 @@ export interface MemberStepSpec {
 }
 
 /**
- * The one derivation of the text a step is announced with at `stepStarted` (G-428-2). Every
+ * The one derivation of the text a step is announced with at `stepStarted`. Every
  * producer that states a step's text before it starts (the CLI's `stepTexts` on each member
  * descriptor) derives it here, so the pending text and the announced text cannot drift.
  */
@@ -153,7 +153,7 @@ export interface MemberRunConfig {
   }
   knowledgeAsOfBuild?: number
   /**
-   * 407 D-13 — the host's retrieval rung, resolved once at the composition root and threaded
+   * the host's retrieval rung, resolved once at the composition root and threaded
    * verbatim onto every step's LoopPorts. Typed off LoopPorts so there is ONE spelling of the
    * contract between the run shell and the loop.
    */
@@ -430,7 +430,7 @@ async function runMemberAttempt(
       }, testTimeout)
     : undefined
 
-  // D-03: the run shell owns SIGINT (no per-test process.on here — the runner never
+  // the run shell owns SIGINT (no per-test process.on here — the runner never
   // registers process-level handlers). The external abort chains into this test's abort.
   let cancelled = false
   let activeStepController: AbortController | undefined
@@ -476,14 +476,14 @@ async function runMemberAttempt(
     }
   }
 
-  // F-381-51-1 · D-09: the member-scoped procedure-flow carry cell. ONE shared mutable
+  // the member-scoped procedure-flow carry cell. ONE shared mutable
   // object threaded by reference into every per-step ports literal (the recordLedger
   // precedent): a replay-recommended flow consumed at one test step re-arms the cell so the
   // NEXT step resumes the committed body at the carried cursor — one body step per test
   // step. Loop-side state only: never serialized, never in evidence or the handoff; its
   // lifetime is this test member.
   const procedureFlow: { carry?: ProcedureFlowCarry } = {}
-  // 439 D-04: this member's downloads and latest clipboard write, carried to its later steps.
+  // this member's downloads and latest clipboard write, carried to its later steps.
   const carriedArtifacts: CarriedArtifacts = { downloads: [] }
 
   const startedRecording = await startAttemptRecording(config)
@@ -549,7 +549,7 @@ async function runMemberAttempt(
       result.variableSnapshot = snapshotVariables()
       const modelFacts = modelScope?.finish()
       // This replaces the old loop population, never adds it a second time. The neutral
-      // snapshot is also available to the later typed final-event binding (423-31).
+      // snapshot is also available to the later typed final-event binding.
       if (modelFacts && result.trace) {
         delete result.trace.tokenUsage
         if (modelFacts.inputTokens !== undefined && modelFacts.outputTokens !== undefined) {
@@ -567,7 +567,7 @@ async function runMemberAttempt(
       steps.push(result)
     }
 
-    // 1. INLINE HOOKS — execute BEFORE interpolation (D-04/D-07), merge vars, then strip.
+    // 1. INLINE HOOKS — execute BEFORE interpolation, merge vars, then strip.
     let inlineHookFailed = false
     let inlineHookAbortResult: StepResult | undefined
     if (config.hookExecutor && config.inlineHookDefs) {
@@ -671,7 +671,7 @@ async function runMemberAttempt(
 
     // 2. INTERPOLATION — {{env:VAR}} resolves against the store (hooks already merged).
     const originalStepName = instructionAfterHooks
-    // 381 D-03/D-08 (G-381-3): the provenance variant returns the SAME text plus the
+    // the provenance variant returns the SAME text plus the
     // binding names that produced it, so the name survives this pre-planning seam into
     // StepEvidence. Text semantics — and therefore hasTemplateVars — are unchanged.
     const interpolated = interpolateVariablesWithProvenance(instructionAfterHooks, variableStore)
@@ -1069,7 +1069,7 @@ async function runMemberAttempt(
   const adapterFlags = config.adapter as { isBrowserDisconnected?: boolean }
   const isDisconnected = adapterFlags.isBrowserDisconnected === true
 
-  // 444-17 (D-53): a closed browser is not a cancel. Only a cancel the run received makes the
+  // a closed browser is not a cancel. Only a cancel the run received makes the
   // member `cancelled`; a disconnect on its own fails it, and says so without guessing a cause.
   const failureSummary = isDisconnected && !cancelled
     ? BROWSER_CLOSED_SUMMARY
@@ -1092,7 +1092,7 @@ async function runMemberAttempt(
 }
 
 /**
- * Run a member test with the retry loop (D-13). The trigger stays `meta.retries`
+ * Run a member test with the retry loop. The trigger stays `meta.retries`
  * (user-config surface unchanged). Attempts run INSIDE the member; `testRetryScheduled`
  * fires between attempts (a per-test accumulation reset for subscribers); only the FINAL
  * attempt's TestResult leaves the member carrying `retryCount` (Pitfall 9 — the shell
@@ -1146,7 +1146,7 @@ export async function runMemberTest(
 
     if (firstFailedAttempt === undefined && result.status === 'failed' && attempt < maxRetries) {
       // Detach before another attempt can mutate adapter/step evidence. Only one attempt is
-      // retained; the snapshot cannot contain another retry snapshot (420 D-06).
+      // retained; the snapshot cannot contain another retry snapshot.
       const { firstFailedAttempt: _nested, ...original } = result
       firstFailedAttempt = { attempt, result: structuredClone(original) }
     }

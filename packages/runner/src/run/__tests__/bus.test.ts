@@ -87,7 +87,7 @@ describe('createRunEventBus — seq assignment (spec §2.2)', () => {
   })
 })
 
-// ---- Subscribe / replay-then-live / detach (D-08) ------------------------
+// ---- Subscribe / replay-then-live / detach ------------------------
 
 describe('subscribe — replay-then-live, per-subscriber order', () => {
   it('replays retained events in seq order, then delivers live', () => {
@@ -144,7 +144,7 @@ describe('subscribe — replay-then-live, per-subscriber order', () => {
   })
 })
 
-// ---- Event-log append + degrade-to-memory (D-06/D-07) --------------------
+// ---- Event-log append + degrade-to-memory --------------------
 
 describe('event-log append + degrade', () => {
   it('appends every publish to the injected EventLogPort', () => {

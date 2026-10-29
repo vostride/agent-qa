@@ -1,14 +1,14 @@
 // RED scaffold (Wave 0, Phase 359 · EXEC-04 · D-13/D-14/D-15/D-16 · Pattern 5 · spec §12.13).
 // Pins the toggle/picker idempotency contract BEFORE Plans 03/04/08 wire it:
-//   Block A — the pure comparator `desiredStateSatisfied(action, screenState)` (D-15): suppress
+//   Block A — the pure comparator `desiredStateSatisfied(action, screenState)`: suppress
 //     an action ONLY on positive persisted-state evidence (tap/click on a classifier toggle vs
 //     state.checked, 437 D-01/D-02; select/nativeSelect/pickerSelect vs the persisted value);
 //     undefined/missing state or a non-toggle ⇒ act.
-//   Block B — the dispatch-seam short-circuit (D-14): at the ONE chokepoint before adapter.execute,
+//   Block B — the dispatch-seam short-circuit: at the ONE chokepoint before adapter.execute,
 //     a satisfied desiredState mints a no-input ActionResult (success false, no error) with
 //     metadata.idempotentNoop { currentState, inputSent: false } WITHOUT calling the adapter
-//     (437 D-05); an unsatisfied desiredState falls through
-//     to a plain tap. The desiredState param must survive toolCallToActionPlan to the seam (D-13).
+//     an unsatisfied desiredState falls through
+//     to a plain tap. The desiredState param must survive toolCallToActionPlan to the seam.
 //
 // RED BY DESIGN:
 //   - Block A: `../../compound/idempotency.js` does not exist until the compound plan lands — the
@@ -151,7 +151,7 @@ describe('Block A — desiredStateSatisfied: pickers act on the persisted value'
 })
 
 // ---------------------------------------------------------------------------
-// Block B — dispatch-seam integration over the loop harness (D-13/D-14/D-16)
+// Block B — dispatch-seam integration over the loop harness
 // ---------------------------------------------------------------------------
 
 function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'planner'>): LoopPorts {
@@ -199,9 +199,9 @@ describe('Block B — the seam suppresses a satisfied desiredState', () => {
       makeStepContext(),
     )
 
-    // D-14: the check runs at the ONE chokepoint before adapter.execute ⇒ zero adapter calls.
+    // the check runs at the ONE chokepoint before adapter.execute ⇒ zero adapter calls.
     expect(calls.length).toBe(0)
-    // D-16: the minted no-op carries metadata.idempotentNoop.currentState ...
+    // the minted no-op carries metadata.idempotentNoop.currentState ...
     const sub = firstSub(result)
     const noop = sub?.result?.metadata?.['idempotentNoop'] as { currentState?: unknown } | undefined
     expect(noop).toEqual({ currentState: 'checked', inputSent: false })

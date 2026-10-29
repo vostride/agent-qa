@@ -1,4 +1,4 @@
-// Runner-owned port interfaces for the step-execution loop (D-03/D-04/D-05).
+// Runner-owned port interfaces for the step-execution loop.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
 // no core/model/adapter package imports. Follows the knowledge-hint-reader idiom:
 // type-only imports, exported interfaces, no implementation, no class. Every
@@ -68,7 +68,7 @@ export interface SecretResolver {
   require(name: string): string
   has(name: string): boolean
   /**
-   * OPTIONAL name enumeration (PROC-02 · 381 D-08). The loop assembles the procedure
+   * OPTIONAL name enumeration. The loop assembles the procedure
    * consult's binding-NAME set from the ports already in scope; secret template names are
    * part of that set so secret-parameterized procedures stay replay-eligible. Names only —
    * the callback receives the value because the concrete `SecretStore.forEachSecret`
@@ -84,7 +84,7 @@ export interface SecretRedactorPort {
 }
 
 /**
- * Structural run-scoped working-memory port (WM-01 · D-11/D-12). The concrete
+ * Structural run-scoped working-memory port. The concrete
  * `WorkingMemoryStore` (working-memory/store.ts) satisfies it by construction; declared
  * structurally here (the SecretResolver naming precedent) so the ports module never imports the
  * concrete class. `capture` writes verbatim entries (registered secrets redacted at capture);
@@ -109,10 +109,10 @@ export interface LoopLogger {
 }
 
 /**
- * Runner-local structural copy of model's DegradeOptions (D-05/D-07). Runner cannot
+ * Runner-local structural copy of model's DegradeOptions. Runner cannot
  * import the model package, so the shape is duplicated here; Plan 05's cli conformance
  * proof asserts model's `DegradeOptions` structurally matches this. Policy-free: the
- * caller (Phase 355) supplies the concrete budget + pin predicate.
+ * caller supplies the concrete budget + pin predicate.
  */
 export interface RunnerDegradeOptions {
   budget: number
@@ -120,7 +120,7 @@ export interface RunnerDegradeOptions {
 }
 
 /**
- * Runner-local structural copy of model's DegradeOutcome (D-09). `ok:true` carries the
+ * Runner-local structural copy of model's DegradeOutcome. `ok:true` carries the
  * fitted messages; `ok:false` is the structured cannot-fit outcome (system + final +
  * pinned content alone exceed the budget) — degrade never throws and never violates a pin.
  */
@@ -129,7 +129,7 @@ export type RunnerDegradeOutcome =
   | { ok: false; reason: 'pinned-content-exceeds-budget'; messages: ModelMessage[] }
 
 /**
- * Provider-neutral token-accounting port (D-05/D-07) — the 354↔355 seam. A types-only
+ * Provider-neutral token-accounting port — the 354↔355 seam. A types-only
  * structural duplicate of model's `TokenAccounting` (accounting/types.ts): runner cannot
  * import model, so the shape is mirrored here and message types are imported from `'ai'`
  * only (never `@ai-sdk/*`, PROVIDER_ORCHESTRATION_ALLOWED). Policy-free — prompt tokens
@@ -145,7 +145,7 @@ export interface TokenAccounting {
 /**
  * D-02 run-scoped event-emit seam. The loop emits `stepFinalized`/`subActionRecorded` at the
  * moment they occur (live semantics from day one) — the bus assigns `seq` centrally. Both legs
- * are fire-and-forget SYNCHRONOUS void: the loop must NEVER await telemetry (D-02/D-07). Follows
+ * are fire-and-forget SYNCHRONOUS void: the loop must NEVER await telemetry. Follows
  * the optional-port idiom (masking/workingMemory): structural, optional on {@link LoopPorts},
  * optional-chained at the emit site, never throw-on-absent (D-05 degrade-when-absent). The
  * concrete curry lands at the run shell (`MemberEventSink.loopEmitFor`); the port survives 363's
@@ -153,10 +153,10 @@ export interface TokenAccounting {
  */
 export interface LoopEventEmitPort {
   /**
-   * 363 D-01: the additive-optional `extra` carries the StepResult-derived
+   * the additive-optional `extra` carries the StepResult-derived
    * `{status, durationMs, error}` the reporters need (RESEARCH Q1 parity). Sourced from the
    * runner `StepResult` at the loop's single terminal `finish()` funnel — NOT fields on the §A8
-   * `StepEvidence` DTO (Pitfall 2). `error` is masked at the sink chokepoint (T-363-05). Absent
+   * `StepEvidence` DTO (Pitfall 2). `error` is masked at the sink chokepoint. Absent
    * ⇒ the base evidence-only payload, source-compatible with pre-363 callers.
    */
   stepFinalized(
@@ -166,7 +166,7 @@ export interface LoopEventEmitPort {
       durationMs?: number
       error?: string
       /**
-       * 405 D-05: the step's measured usage, from the loop's own planner + verifier tally.
+       * the step's measured usage, from the loop's own planner + verifier tally.
        * Absent when nothing was measured — the loop's `tokenUsage()` already answers
        * `undefined` in that case, so absence is produced, never fabricated here.
        */
@@ -186,7 +186,7 @@ export interface LoopEventEmitPort {
 }
 
 /**
- * Run-scoped content-addressed evidence artifact store (CASS-02). Storage-neutral: a
+ * Run-scoped content-addressed evidence artifact store. Storage-neutral: a
  * runner-local `FsEvidenceArtifactStore` owns the sha-keyed blob persistence; the runner
  * declares only the shape. `persistDecisionScreenshot` returns the identity for the exact
  * byte payload so a decision screenshot becomes addressable by `ArtifactRef.sha`; `getBlob`
@@ -211,7 +211,7 @@ export interface EvidenceArtifactStorePort {
 }
 
 /**
- * The member-scoped procedure-flow carry (F-381-51-1 · 381 D-09): the replay position a
+ * The member-scoped procedure-flow carry: the replay position a
  * completed test step hands to the NEXT test step so a committed multi-step flow replays
  * exactly one body step per test step. Transports ONLY the consult match, the parsed body
  * payload, and the cursor — never a pre-resolved ref, never a screen: every carried body
@@ -225,7 +225,7 @@ export interface ProcedureFlowCarry {
   nextIndex: number
 }
 
-/** 439 D-04: a completed download from an earlier step of this test, labelled by its producer. */
+/** a completed download from an earlier step of this test, labelled by its producer. */
 export interface CarriedDownload {
   stepNumber: number
   /** 1-based position of the producing action in its step. */
@@ -233,7 +233,7 @@ export interface CarriedDownload {
   evidence: DownloadEvidence
 }
 
-/** 439 D-04: the latest app clipboard write from an earlier step of this test. */
+/** the latest app clipboard write from an earlier step of this test. */
 export interface CarriedClipboard {
   stepNumber: number
   actionIndex: number
@@ -256,9 +256,9 @@ export interface LoopPorts {
   planner: Planner
   verifier?: Verifier
   /**
-   * Redesigned per-key cache port (D-11): get/set/invalidate over a branded CacheKey,
+   * Redesigned per-key cache port: get/set/invalidate over a branded CacheKey,
    * descriptor-only value. Plan 05's FsActionCache implements it; injected at the Plan 06
-   * CLI composition root. Absent ⇒ every step misses (no cache), never throws (D-05).
+   * CLI composition root. Absent ⇒ every step misses (no cache), never throws.
    */
   cache?: ActionPlanCache
   /**
@@ -281,7 +281,7 @@ export interface LoopPorts {
   /** D-05 optional read-only knowledge reader — the loop degrades gracefully when absent. */
   knowledgeReader?: KnowledgeHintReader
   /**
-   * 407 D-13/D-17 (2026-08-29) — the HOST's retrieval rung, resolved ONCE at the composition
+   * the HOST's retrieval rung, resolved ONCE at the composition
    * root by knowledge-local's single `resolveRetrievalRung`, never re-probed per step. It
    * crosses as the schema type because the runner never imports knowledge-local (validate:arch
    * enforces that); a promise because the resolver's embedder probe can cost a model load and
@@ -358,14 +358,14 @@ export interface LoopPorts {
   secretStore?: SecretResolver
   secretRedactor?: SecretRedactorPort
   /**
-   * WM-01 run-scoped working-memory seam (D-11/D-12). The concrete `WorkingMemoryStore` is
+   * WM-01 run-scoped working-memory seam. The concrete `WorkingMemoryStore` is
    * created at the CLI composition root and injected here; Phase 361 rebinds this exact seam onto
    * `RunSession` (the knowledgeReader idiom). Unbound ⇒ the loop runs memory-less: no capture, an
    * empty served set — it never throws (D-05 degrade-when-absent).
    */
   workingMemory?: WorkingMemoryPort
   /**
-   * D-14 storage-state persistence seam (Phase 360). The runner-local `FsStorageStateStore` is
+   * D-14 storage-state persistence seam. The runner-local `FsStorageStateStore` is
    * constructed run-scoped at the CLI/dashboard composition roots and injected here; the seam
    * strips the raw blob from the recorded result and records only `{ name, fingerprint }`. Unbound
    * ⇒ a `storageState` action degrades to a §7.1 persistence-unavailable error (never throws, D-05).
@@ -399,7 +399,7 @@ export interface LoopPorts {
   /**
    * CASS-02 run-scoped decision-screenshot byte store. The shell hands one store instance to
    * every member; the loop mints an `ArtifactRef` for captured screenshot bytes through it.
-   * Absent ⇒ a legal memory-only / test-harness state (no persistence), never throws (D-05).
+   * Absent ⇒ a legal memory-only / test-harness state (no persistence), never throws.
    */
   evidenceArtifacts?: EvidenceArtifactStorePort
 }

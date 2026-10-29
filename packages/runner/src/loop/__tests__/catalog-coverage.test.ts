@@ -106,7 +106,7 @@ function makeCountingCache(): ActionPlanCache & { setCalls: number } {
 }
 
 // -----------------------------------------------------------------------------
-// EXEC-05 — termination verbs: reportValue + infeasible route through typed
+// termination verbs: reportValue + infeasible route through typed
 // evidence and the verdict, never implicit screen state.
 // -----------------------------------------------------------------------------
 describe('reportValue and explicit infeasible/stepFailed termination are first-class typed verbs into step evidence and the verdict', () => {
@@ -170,7 +170,7 @@ describe('reportValue and explicit infeasible/stepFailed termination are first-c
 })
 
 // -----------------------------------------------------------------------------
-// EXEC-06 — full catalog↔adapter reconciliation: every registered tool executes
+// full catalog↔adapter reconciliation: every registered tool executes
 // on its legal platforms; legacy runtime-only verbs retired.
 // -----------------------------------------------------------------------------
 describe('every v45 registered tool executes on its legal platforms with the legacy runtime-only verbs retired', () => {
@@ -202,7 +202,7 @@ describe('every v45 registered tool executes on its legal platforms with the leg
 })
 
 // -----------------------------------------------------------------------------
-// EXEC-07 — AI assertions single-model + deterministic assertValue: assertAI is
+// AI assertions single-model + deterministic assertValue: assertAI is
 // cache-bypassed, assertValue judges without a vision round-trip.
 // -----------------------------------------------------------------------------
 describe('assertAI executes single-model cache-bypassed; assertValue is deterministic by construction and feeds the verifier without a vision round-trip', () => {
@@ -246,7 +246,7 @@ describe('assertAI executes single-model cache-bypassed; assertValue is determin
       makeStepContext(),
     )
 
-    // 439 D-12: the short-circuit is gone; the verifier judges the step with the read as evidence.
+    // the short-circuit is gone; the verifier judges the step with the read as evidence.
     expect(verifier.verifyCalls).toBe(1)
     expect(result.status).toBe('passed')
     expect((result.evidence as { verdictSource?: string }).verdictSource).toBe('verifier-model')

@@ -66,7 +66,7 @@ describe('replay re-ground mapping', () => {
   })
 
   it('stale ref + unique substring match ⇒ re-ground replay with the patched fresh ref (no replan)', async () => {
-    // 2026-10-09 (438-08): replay has no substring rung (D-10). The stored exact name replays
+    // replay has no substring rung. The stored exact name replays
     // onto the element that now carries it at a new ref; a drifted name does not replay.
     const cached = (): CachedPlanValue => ({
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
@@ -101,7 +101,7 @@ describe('replay re-ground mapping', () => {
     const fresh = screenWith([el('e1', 'button', 'Add'), el('e2', 'button', 'Add')])
     const ambiguous: CachedPlanValue = {
       plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
-      // Two survivors of role + exact name ⇒ not-unique ⇒ a miss on the cache path (D-10).
+      // Two survivors of role + exact name ⇒ not-unique ⇒ a miss on the cache path.
       groundedLocator: [{ role: 'button', name: 'Add' } satisfies GroundedLocator],
       completesStep: true,
     }

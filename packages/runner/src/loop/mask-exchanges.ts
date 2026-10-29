@@ -20,7 +20,7 @@ function maskStringLeaves(value: unknown, mask: (text: string) => string): unkno
 
 /**
  * Apply the run-scoped masking map to every string leaf in exchange arguments and
- * results before evidence recording (D-02). Tool names remain unchanged identifiers.
+ * results before evidence recording. Tool names remain unchanged identifiers.
  * Full fidelity is preserved: this helper performs no truncation, size cap, or artifact
  * spillover because upstream guardBlob already bounded what entered the conversation.
  */

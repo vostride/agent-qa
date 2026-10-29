@@ -1,9 +1,9 @@
-// The pre-execution grounding gate (Phase 357, GROUND-03 · D-04/D-08).
+// The pre-execution grounding gate.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
 // core/model/adapter package imports — imports only sibling grounding modules, the
 // runner's tool errors + cache descriptor projection, and schema types.
 //
-// The single chokepoint (D-08) that converts an emission-shape planned action (carrying
+// The single chokepoint that converts an emission-shape planned action (carrying
 // EITHER a committed `ref` OR a `target` descriptor) into a fully-grounded, execution-shape
 // action (a `ref`, never a descriptor). Adapters never see descriptors or unvalidated
 // refs/coords — grounding is NEVER duplicated into platform adapters. Every failure class
@@ -12,7 +12,7 @@
 //     (D-04, gate-side, never a zod refine). Optional container fields (scroll/swipe/pinch/
 //     multiTap) may carry neither. A field carrying BOTH a ref and a target is NOT rejected:
 //     the committed ref grounds the action (exact handle) and the target never grounds over
-//     a resolving ref; it is kept as the stated identity for the AUTO-14 check (D-01), which
+//     a resolving ref; it is kept as the stated identity for the AUTO-14 check, which
 //     the loop runs before dispatch. An invalid ref with a target present falls back to the
 //     target lane, whose resolved descriptor is kept the same way.
 //   - a target descriptor: name-less ⇒ descriptor_invalid; near-bearing ⇒ descriptor_invalid;
@@ -44,7 +44,7 @@ import type { ElementInfo, GroundingAttempt, Ref, ScreenState } from '@vostride/
 /**
  * A visual grounding rung supplied by the caller (GROUND-02, Q3 seam). It exposes a pure
  * `match()` over the fresh observation; the gate wraps it into a ladder rung and runs it
- * only under vision capability. No visual rung ships in M1 (D-01) — this is the negotiation
+ * only under vision capability. No visual rung ships in M1 — this is the negotiation
  * seam, injected in tests to prove capability gating.
  */
 export interface GateVisualRung {
@@ -86,7 +86,7 @@ export type GateResult =
       action: Record<string, unknown>
       attempts: GroundingAttempt[]
       descriptor?: GroundedLocator
-      /** The planner's stated target per element lane, kept for the pre-dispatch check (D-01). */
+      /** The planner's stated target per element lane, kept for the pre-dispatch check. */
       statedTargets?: StatedTargets
     }
   | { ok: false; error: GroundingError; attempts: GroundingAttempt[] }
@@ -208,7 +208,7 @@ function coordBoundsError(
   return undefined
 }
 
-// Only the matcher's fields are copied, so a stray position on the target is never read (D-12).
+// Only the matcher's fields are copied, so a stray position on the target is never read.
 function toDescriptorInput(value: unknown): DescriptorInput {
   if (typeof value !== 'object' || value === null) return {}
   const { role, name, nameNormalized, near } = value as Record<string, unknown>
@@ -260,7 +260,7 @@ export function groundActionPlan(input: GroundActionPlanInput): GateResult {
     }
 
     // (2) Committed-ref lane — the ref grounds the action whenever it resolves. A target sent
-    // beside it is the element the planner meant (D-01): it never grounds over the resolving
+    // beside it is the element the planner meant: it never grounds over the resolving
     // ref, it is kept as the stated identity the loop checks before dispatch, and it leaves
     // the execution action. The ref is validated against the fresh refMap; if it does NOT
     // resolve we fall back to the target descriptor when one was supplied, else raise

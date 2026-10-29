@@ -1,4 +1,4 @@
-// Runner-owned AI capture extractor (Phase 363 D-07). Moved 1:1 beside the asserter
+// Runner-owned AI capture extractor. Moved 1:1 beside the asserter
 // (loop/asserter.ts LLMAssertionEvaluator) — the injected verifier-lane LanguageModel
 // + direct `generateText` with `maxRetries: 0` and Output.object is the runner's ONLY
 // sanctioned AI-call idiom. No provider construction, no second provider path: egress

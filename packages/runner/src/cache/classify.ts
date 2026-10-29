@@ -1,4 +1,4 @@
-// Provenance-based step classifier (Phase 356, CACHE-02 / D-07).
+// Provenance-based step classifier.
 // CRITICAL: storage-neutral — no node:* imports. Classification is decided by
 // resolution provenance, NOT a bespoke step-text regex: a step that reads or sets a
 // live env/secret is non-cacheable (the loop bypasses it — no read, no write); a
@@ -24,7 +24,7 @@ export interface ClassifyStepInput {
 }
 
 /**
- * Classify a step by resolution provenance (D-07). Env/secret read-or-set steps
+ * Classify a step by resolution provenance. Env/secret read-or-set steps
  * return NonCacheableStepInput; a config-env-dependent step returns a
  * CacheableClassification carrying the value-free RedactedEnvVar shapes.
  */

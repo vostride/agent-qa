@@ -1,4 +1,4 @@
-// Re-derived loop type vocabulary for the runner-owned step-execution spine (D-02).
+// Re-derived loop type vocabulary for the runner-owned step-execution spine.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
 // no core/model/adapter package imports. Types only — from @vostride/agent-qa-schema,
 // the sibling runner modules, and the neutral orchestration SDK (`ai`, D-04).
@@ -41,7 +41,7 @@ export interface ActionPlan {
    * callback is injected or the gate recorded no attempts.
    */
   groundingAttempts?: GroundingAttempt[]
-  /** D-01: the element the planner meant per element lane, judged before dispatch. */
+  /** the element the planner meant per element lane, judged before dispatch. */
   statedTargets?: StatedTargets
   /**
    * WM-01 write channel (spec §12.15, ratified 2026-07-05). Verbatim facts the planner captured
@@ -72,7 +72,7 @@ export interface ActionPlan {
   failureReason?: string
 }
 
-/** 436 D-08: debits one planner model call before it is made; false refuses the call. */
+/** debits one planner model call before it is made; false refuses the call. */
 export interface PlanningCallGate {
   tryDebitPlanningCall(): boolean
 }
@@ -87,18 +87,18 @@ export interface PlanResult {
   plan: ActionPlan
   tokenUsage?: TokenUsage
   /**
-   * Ordered non-action exchanges from this live planning decision (D-01).
+   * Ordered non-action exchanges from this live planning decision.
    * Absent for cache-replay-produced results, which have no live planning turn.
    */
   exchanges?: ToolExchangeEvidence[]
   /**
-   * Observed final-response metadata for this live planning decision (D-05/D-08).
+   * Observed final-response metadata for this live planning decision.
    * Absent when the provider exposes no call record or no live model call occurred.
    */
   callRecord?: ModelCallRecord
 }
 
-/** One condition as the verifier judged it (439 D-02, D-10); the runner decides what it counts for. */
+/** One condition as the verifier judged it; the runner decides what it counts for. */
 export interface ConditionJudgment {
   quote: string
   verdict: ConditionVerdict
@@ -109,7 +109,7 @@ export interface ConditionJudgment {
   reasoning: string
 }
 
-/** An open dialog as the verifier accounted for it (439 D-16). */
+/** An open dialog as the verifier accounted for it. */
 export interface DialogAccount {
   name: string
   account: 'bears-on-condition' | 'requested' | 'unrelated'
@@ -118,7 +118,7 @@ export interface DialogAccount {
 
 /**
  * The verifier's per-condition output. There is no overall success: the runner computes the pass
- * (439 D-10). `verifierError` is set only by the fallback when the model call failed.
+ * `verifierError` is set only by the fallback when the model call failed.
  */
 export interface VerificationResult {
   conditions: ConditionJudgment[]
@@ -148,7 +148,7 @@ export interface StepContext {
   variables?: Record<string, string>
   /**
    * The `{{env:NAME}}` bindings that interpolated into `stepInstruction` before this step
-   * was planned (PROC-01 · 381 D-03/D-08). DESTINATION: stamped verbatim onto
+   * was planned. DESTINATION: stamped verbatim onto
    * `StepEvidence.interpolatedVariables` at finalize, where the procedure-extraction emit
    * fold reads it to classify a trajectory value slot back to its source binding NAME.
    *
@@ -188,7 +188,7 @@ export interface StepContext {
    * D-12/D-13 working-memory channel (structured turn content). The run-scoped
    * `WorkingMemoryStore` set, injected verbatim as its own turn message by `composeTurnMessages`
    * — the second v2 channel replacing the retired single memory-context string. Phase 358
-   * SANCTIONED BREAK (D-12/D-13): this was a plain `string` slot; it is now `WorkingMemoryEntry[]`
+   * SANCTIONED BREAK: this was a plain `string` slot; it is now `WorkingMemoryEntry[]`
    * (no shim, no string overload) so the planner receives the structured verbatim set. Empty
    * array/undefined ⇒ omitted from the turn entirely (empty-slot omission).
    */
@@ -202,20 +202,20 @@ export interface StepContext {
   failureContext?: string
   /**
    * Sub-actions already attempted in this step (multi-action mode), with each outcome and any
-   * returned data. Screen change is not recorded here: outcomes decide (HARN-01).
+   * returned data. Screen change is not recorded here: outcomes decide.
    */
   subActionHistory?: { action: string; reasoning?: string; result: 'success' | 'failure' | 'no-input'; error?: string; verifierRejection?: string; data?: string; evidence?: string }[]
   plannerConfig?: PlannerConfig
-  /** 436 D-08: the step's planning-call meter, bound by the loop before each plan() call. */
+  /** the step's planning-call meter, bound by the loop before each plan() call. */
   planningCallGate?: PlanningCallGate
   screenshot?: Buffer
   /**
-   * Vision-gate prompt note for this run (D-11). Non-empty only for text-only
+   * Vision-gate prompt note for this run. Non-empty only for text-only
    * models; injected into the planner prompt when present.
    */
   promptNote?: string
   /**
-   * D-13 re-run-after-failure context (LOOP-03). A re-run carries everything (full
+   * D-13 re-run-after-failure context. A re-run carries everything (full
    * memory/context, no ablation) plus an explicit run-level flag and the prior
    * attempt's failure summary, surfaced to the planner as prompt context.
    */
@@ -300,7 +300,7 @@ export interface Asserter {
   evaluate(assertion: AssertionInput, screenState: ScreenState): Promise<AssertionResult>
 }
 
-// Extraction vocabulary (Phase 363 D-07) — the runner owns the full capture surface:
+// Extraction vocabulary — the runner owns the full capture surface:
 // buildExtractionPrompt (prompts.ts), the ExplicitExtractor + createExtractor factory
 // (variables/extractor.ts), and the LLMVariableExtractor (loop/llm-variable-extractor.ts).
 export type ExtractionMethod = 'regex' | 'selector' | 'ai'

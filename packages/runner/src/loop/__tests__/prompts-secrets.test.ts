@@ -1,5 +1,5 @@
 // G-381-5 (Phase 381, Plan 44): the planner is taught the secret-fill contract. 2026-10-14
-// (441-01, D-10, D-16): the contract is one line; the mechanism half is pinned in secrets.test.ts
+// the contract is one line; the mechanism half is pinned in secrets.test.ts
 // and secret-placeholder-dispatch.test.ts.
 import { describe, it, expect } from 'vitest'
 import { buildSystemPrompt, buildVerifierStableTier } from '../prompts.js'
@@ -39,7 +39,7 @@ describe('secret placeholder prompt contract', () => {
         expect(prompt).toContain('whose value exists but is hidden from you')
       })
 
-      // T-381-106: the rule teaches the mechanism, never a value.
+      // the rule teaches the mechanism, never a value.
       it('does not disclose or request any concrete secret value', () => {
         expect(prompt).not.toMatch(/secret value is\s+\S/i)
         expect(prompt).not.toContain('ask the user for the secret')

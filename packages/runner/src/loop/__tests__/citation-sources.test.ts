@@ -1,4 +1,4 @@
-// C439-CITATION-EVIDENCE (439 D-10): a citation is found only in text the application or the runner
+// a citation is found only in text the application or the runner
 // observed. The planner's own words in the record (a failed read's expected value, a claim judged
 // false, an action's claim, query or typed value) stay in the verifier's prompt but are never
 // citable. Model-free: buildVerifierCitationSources feeds judgeConditions directly.

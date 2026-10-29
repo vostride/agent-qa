@@ -1,16 +1,16 @@
-// Bounded screen-settle gate (Phase 356, CACHE-05 / D-09 / D-16).
+// Bounded screen-settle gate.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
 // no core/model/adapter package imports. Polls screenIdentityHash and proceeds only
 // when two consecutive values match (the acting condition), bounded by maxPolls AND an
-// optional deadline so an animated/never-stable screen can never hang the loop (D-16):
+// optional deadline so an animated/never-stable screen can never hang the loop:
 // it proceeds on the LATEST observation's hash rather than spinning. The returned hash
 // is the single value downstream consumes — settle-stability and the 8th cache-key
-// component (D-09). 2026-10-08 (436-13): its third job, the Phase-358 progress/no-change
-// signal, was deleted with the progress subsystem (436 D-15); settle itself is kept (D-16).
+// component. 2026-10-08: its third job, the Phase-358 progress/no-change
+// signal, was deleted with the progress subsystem; settle itself is kept.
 //
-// SettleResult additionally exposes `settled` (Phase 358, CYCLE-02): true when the gate
+// SettleResult additionally exposes `settled`: true when the gate
 // exited on two consecutive matching hashes (the acting condition), false when the
-// maxPolls/deadline bound forced a proceed-on-latest. 2026-10-08 (436-13): its one reader,
+// maxPolls/deadline bound forced a proceed-on-latest. 2026-10-08: its one reader,
 // the Phase-358 transient-load stagnation classifier, was deleted by 436-03, so no production
 // code reads `settled` now; call sites read `state`/`hash`.
 
@@ -78,7 +78,7 @@ export async function settle(
       settled = true
       break
     }
-    // Bounded: proceed on the latest hash rather than hanging (D-16).
+    // Bounded: proceed on the latest hash rather than hanging.
     if (opts.deadline && performance.now() > opts.deadline) break
     prevHash = hash
     await abortAwareSleep(opts.intervalMs, opts.signal)

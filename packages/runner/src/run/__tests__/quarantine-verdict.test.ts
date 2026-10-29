@@ -1,7 +1,7 @@
-// RED-first pins for FLAK-02's whole promise (Phase 390 D-14/D-16): a quarantined test still RUNS,
+// RED-first pins for FLAK-02's whole promise: a quarantined test still RUNS,
 // its failure does not fail the run — and the disposition is LOUD, never a rewritten outcome.
 //
-// The quarantined set arrives on RunConfig as PLAIN DATA (D-16): the runner gains zero ports and
+// The quarantined set arrives on RunConfig as PLAIN DATA: the runner gains zero ports and
 // stays storageNeutral; the CLI folds the committed ledger once at run start.
 //
 // Both directions are pinned in one suite (the two-sided-contract law): a quarantined failing member
@@ -151,7 +151,7 @@ describe('quarantine-aware run', () => {
     expect(mapVerdictToExitCode(handoff.aggregateVerdict)).toBe(0)
 
     // The member outcome stays TRUTHFUL — the projection window and the M-passes exit keep
-    // seeing reality (D-14). 'failed' stays 'failed'.
+    // seeing reality. 'failed' stays 'failed'.
     const member = handoff.tests.find((test) => test.testId === 'flaky')
     expect(member?.outcome).toBe('failed')
     expect(member?.quarantined).toBe(true)
@@ -234,7 +234,7 @@ describe('quarantine-aware run', () => {
   })
 })
 
-// ---- The fail-fast gate, in the production descriptor shape (CR-01) -----------------------------
+// ---- The fail-fast gate, in the production descriptor shape -----------------------------
 //
 // FLAK-02's promise is that a quarantined test still RUNS. The aggregate rule above delivers half of
 // it; the other half lives in the shell's member loop, where a failing member POISONS its
@@ -326,7 +326,7 @@ describe('fail-fast poisoning is disposition-aware', () => {
     )
     const { verdict, handoff } = await done(session)
 
-    // pre-390 within-suite fail-fast (D-15) is preserved EXACTLY where no disposition applies —
+    // pre-390 within-suite fail-fast is preserved EXACTLY where no disposition applies —
     // this is the corpus case the guard must REJECT
     expect(probeShape(executed, verdict, handoff)).toEqual({
       executed: ['flaky'],

@@ -172,7 +172,7 @@ describe('handoff assembly instrumentation parity', () => {
     expect(JSON.parse(JSON.stringify(excluded))).toHaveProperty('excludedFromOutcomes', true)
   })
 
-  // 436-09 (D-06): the run's effective planner limits ride its own record to the acknowledgement.
+  // the run's effective planner limits ride its own record to the acknowledgement.
   it('assembleHandoff copies RunConfig.plannerLimits verbatim and leaves it absent when absent', () => {
     const ordinaryConfig = {
       runId: 'run-limits' as RunId,
@@ -369,11 +369,11 @@ describe('StepEvidence.planSource marker', () => {
   })
 })
 
-// WINDOWS #305 · DETL-04 — masked-at-rest narration on the REAL-evidence arm. The masker here is
+// masked-at-rest narration on the REAL-evidence arm. The masker here is
 // the product's OWN declared-secret `SecretRedactor`, over two declared values, so every assertion
 // is against the one `MaskFn` a run threads from `shell.ts` into both `assemblePerTestOutcome` and
 // `projectTestFinished` — never a stand-in that could answer "is this a secret" differently.
-// 2026-10-15 (441-33, D-01/D-12): was the deleted masking context, which also minted `<EMAIL_n>`
+// was the deleted masking context, which also minted `<EMAIL_n>`
 // for undeclared emails; the email is now a declared value, so each field is still masked.
 describe('real step evidence is masked at rest', () => {
   const CREDENTIAL = 'zz-405-populated-secret-7f3a91c2'

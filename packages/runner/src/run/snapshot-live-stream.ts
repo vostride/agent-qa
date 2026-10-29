@@ -1,4 +1,4 @@
-// THE SNAPSHOT PRODUCER (428 D-11/D-13). The labelled fallback preview: one still capture a
+// THE SNAPSHOT PRODUCER. The labelled fallback preview: one still capture a
 // second, behind the same `LiveStreamCapability` contract as the screencast, so the hub refcounts
 // it the same way — started by the first viewer, stopped after the last viewer's grace. An
 // unwatched run never captures anything.
@@ -18,7 +18,7 @@ import type { RunTimerPort } from './ports.js'
 /**
  * The three live-preview cadences, side by side: a snapshot every second (this producer), a
  * keepalive frame after two quiet seconds on a static page (the web adapter's screencast, 428-06),
- * and the viewer's ~5s freshness window (428-14) that both of them stay inside.
+ * and the viewer's ~5s freshness window that both of them stay inside.
  */
 export const LIVE_SNAPSHOT_INTERVAL_MS = 1_000
 export const LIVE_KEEPALIVE_QUIET_MS = 2_000
@@ -92,7 +92,7 @@ export type LiveStreamRegistration = {
 }
 
 /**
- * THE ONE SELECTION RULE (428 D-11/D-12), used by both run paths and the editor.
+ * THE ONE SELECTION RULE, used by both run paths and the editor.
  *
  * The adapter's own `liveStream` always wins. `screenshot()` is wrapped in the snapshot producer
  * only when the adapter's own capability is not already a snapshot: as the fallback behind a

@@ -1,7 +1,7 @@
 // Behavior tests for the bounded planning tool-loop (353-02 Task 2, D-06/D-07/D-08).
 // `ai.generateText` is mocked with a scripted response queue; `tool` stays real so
 // buildTools produces the true v45 slice and the fake non-action tools carry real
-// `ai` definitions. Zero non-action tools ship in production (D-07) — these fakes
+// `ai` definitions. Zero non-action tools ship in production — these fakes
 // prove the machinery:
 //   1. immediate action call → plan, zero exchanges (the v1-equivalent one-shot path)
 //   2. two non-action calls then an action → both executed in order, exchanges recorded

@@ -1,4 +1,4 @@
-// Hook .env variable file parsing/serialization (Phase 363 D-06). Moved
+// Hook .env variable file parsing/serialization. Moved
 // byte-equivalently from core/src/agent/variables.ts — the DockerHookExecutor
 // (runner-local) reads /tmp/agent-qa.env through `parseEnvFile`, so the pure
 // string codec now lives beside the hook contracts in the runner. core's

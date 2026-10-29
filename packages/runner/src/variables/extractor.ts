@@ -1,4 +1,4 @@
-// Runner-owned capture extractors (Phase 363 D-07). The pure ExplicitExtractor moves
+// Runner-owned capture extractors. The pure ExplicitExtractor moves
 // 1:1 from core/src/agent/variables.ts; the createExtractor factory routes 'ai' to the
 // LLMVariableExtractor (loop/llm-variable-extractor.ts — the injected-model idiom).
 import type { LanguageModel } from 'ai'

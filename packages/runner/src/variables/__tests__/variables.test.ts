@@ -275,7 +275,7 @@ describe('interpolateVariables', () => {
   })
 })
 
-// G-381-3 capture half (PROC-01, D-03/D-08): interpolation must report WHICH binding
+// G-381-3 capture half: interpolation must report WHICH binding
 // names produced the substituted text without changing the text it produces. The
 // delegation-equality table below is the byte-identity pin — expected strings are the
 // literal output of interpolateVariables at the time provenance was introduced, so a

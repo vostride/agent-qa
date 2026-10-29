@@ -1,4 +1,4 @@
-// Storage-neutral storage-state persistence port (Phase 360, D-14).
+// Storage-neutral storage-state persistence port.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
 // core/model/adapter package imports. Type-only, no implementation — a runner-local
 // storageImplementation (FsStorageStateStore) realizes it, mirroring the ActionPlanCache
@@ -11,16 +11,16 @@
 //   - durable across runs — per the spec's auth-reuse intent (not coupled to the action-cache
 //     schema version).
 // The raw blob lives under the gitignored `.agent-qa/storage-states/` runtime dir; a
-// traversal-safe name slug keeps a planner-supplied name from escaping that root (T-360-03).
+// traversal-safe name slug keeps a planner-supplied name from escaping that root.
 
 /**
  * The raw storage-state blob (adapter-produced; e.g. a Playwright storageState object). Opaque
- * to the runner — persisted and returned verbatim, never inspected or masked here (D-14).
+ * to the runner — persisted and returned verbatim, never inspected or masked here.
  */
 export type StorageStateBlob = unknown
 
 /**
- * The evidence-safe reference to a persisted storage state (D-14). This — and ONLY this — is
+ * The evidence-safe reference to a persisted storage state. This — and ONLY this — is
  * what may transit into `StepEvidence`/the handoff: the name plus a one-way fingerprint of the
  * stored blob. The blob itself never leaves the store.
  */
@@ -32,14 +32,14 @@ export interface StorageStateReference {
 }
 
 /**
- * The runner-facing storage-state persistence seam (D-14). A runner-local implementation owns
+ * The runner-facing storage-state persistence seam. A runner-local implementation owns
  * the `.agent-qa/storage-states/` filesystem writes; the loop injects it beside `cache` and
  * records only the returned reference.
  */
 export interface StorageStatePort {
   /**
    * Persist the raw storage-state blob under `name` and return the evidence-safe reference.
-   * The name is slugged traversal-safe before it becomes a filename (T-360-03).
+   * The name is slugged traversal-safe before it becomes a filename.
    */
   save(name: string, state: StorageStateBlob): Promise<StorageStateReference>
   /**

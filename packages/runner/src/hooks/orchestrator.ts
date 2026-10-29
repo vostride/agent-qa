@@ -1,4 +1,4 @@
-// Hook orchestration (Phase 363 D-06). Moved near-verbatim from
+// Hook orchestration. Moved near-verbatim from
 // core/src/hooks/orchestrator.ts — sequential execution, later hooks see earlier
 // hooks' variables as env, fail-fast with synthesized `Skipped:` failures for the
 // remaining hooks, reserved auth-state key stripping on merged outputs, and the
@@ -26,7 +26,7 @@ interface SecretEnvSource {
 
 /**
  * Resolve the already-materialized secret name→value map the container is injected with
- * (D-06). The runner-owned {@link SecretStore} satisfies the structural source; the port only
+ * The runner-owned {@link SecretStore} satisfies the structural source; the port only
  * ever sees the resolved map, never the store itself.
  */
 export function resolveSecretEnv(store?: SecretEnvSource): Record<string, string> {
@@ -39,7 +39,7 @@ export function resolveSecretEnv(store?: SecretEnvSource): Record<string, string
 }
 
 /**
- * The threaded hook-execution carrier (Phase 363 D-06) — successor to core's
+ * The threaded hook-execution carrier — successor to core's
  * `SandboxRunnerOptions`. Threaded through the run/suite config as `sandboxOptions` and
  * spread into {@link RunHooksOptions} at each hook site. Carries the injected
  * {@link HookExecutorPort} (constructed once at the composition root) plus the secret
@@ -68,7 +68,7 @@ export interface HookOrchestrationResult {
  * (`MemberEventSink.hookStarted`/`hookFinished`) satisfy it structurally. Both legs are
  * fire-and-forget; the orchestration NEVER awaits telemetry. Output detail is emitted
  * as-is (already sandbox-redacted by the impl); the sink applies the additive run-mask
- * (T-363-05) — the orchestration does not mask.
+ * the orchestration does not mask.
  */
 export interface HookEmitSeam {
   hookStarted(payload: HookStartedPayload): void
@@ -90,7 +90,7 @@ export interface RunHooksOptions {
   env?: Record<string, string>
   /** Carrier-compat alias for {@link env} (the old `SandboxRunnerOptions.envVars` field). */
   envVars?: Record<string, string>
-  /** Already-resolved secret name→value pairs for container injection (D-06). */
+  /** Already-resolved secret name→value pairs for container injection. */
   secretEnv?: Record<string, string>
   /** Runner-owned secret store; the orchestrator resolves {@link secretEnv} from it. */
   secretStore?: SecretEnvSource

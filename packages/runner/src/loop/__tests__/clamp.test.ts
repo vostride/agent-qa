@@ -11,13 +11,13 @@
 // Contract these tests pin (per CONTEXT D-01/D-02/D-10/D-14/D-17) for the Plan-04 clamp.ts:
 //   - computeSafety(contextWindow) → max(256, ceil(0.02 * contextWindow))  (percentage + floor, D-02)
 //   - computeMaxOutput({ contextWindow, inputTokens, defaultMaxOutput, safety?, floor? })
-//        → max(floor ?? 256, min(defaultMaxOutput, contextWindow − inputTokens − safety))   (D-01)
+//        → max(floor ?? 256, min(defaultMaxOutput, contextWindow − inputTokens − safety))
 //   - estimateInput(accounting, messages, toolSchemaJson?) → accounting.estimate(messages)
 //        + tool-schema tokens (the port's estimate() does NOT count tool schemas, §5.1)
 //   - executeClampedCall({ accounting, system, messages, toolSchema, pin, call, isOverflow? })
 //        → proactive pre-degrade when estimate > budget; forwards { budget, pin } to degrade;
 //          reactive isOverflow → re-degrade → retry ONCE (non-overflow rethrows); recordUsage
-//          once per successful response; surfaces the structured cannot-fit outcome (D-17).
+//          once per successful response; surfaces the structured cannot-fit outcome.
 import { describe, it, expect, vi } from 'vitest'
 import type { ModelMessage } from 'ai'
 import { makeFakeTokenAccounting } from './loop-harness.js'
@@ -169,7 +169,7 @@ describe('cannot-fit outcome, never a crash', () => {
     })
     const call = vi.fn().mockResolvedValue(OK_USAGE)
 
-    // Must resolve (best-effort) and surface the structured reason — never throw (D-17).
+    // Must resolve (best-effort) and surface the structured reason — never throw.
     const res = await executeClampedCall({
       accounting: acc,
       system: [],

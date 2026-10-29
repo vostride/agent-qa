@@ -5,10 +5,10 @@
 //
 // Contract pinned here (spec §12.17 / 357-RESEARCH Pattern 2):
 //   precedence: role+nameNormalized exact → nameNormalized exact → normalized-substring;
-//   no position selects (438 D-12): ≥2 survivors after the ladder and the hierarchy check
+//   no position selects: ≥2 survivors after the ladder and the hierarchy check
 //   ⇒ ambiguous, never a pick (the never-pick security property, T-357-01a);
 //   name-less ⇒ rejected
-//   'name-missing' (D-13); a `near`-bearing descriptor ⇒ rejected 'near-unsupported'
+//   'name-missing'; a `near`-bearing descriptor ⇒ rejected 'near-unsupported'
 //   (D-06 defensive backstop); raw `name` is normalized exactly once (Pitfall 6) while a
 //   pre-normalized `nameNormalized` is passed through untouched; prior-ElementInfo
 //   hierarchy disambiguation resolves an otherwise-ambiguous set by structural parent
@@ -87,7 +87,7 @@ describe('matchDescriptor — precedence ladder', () => {
 })
 
 describe('matchDescriptor — ordinal is a tiebreak only', () => {
-  // 2026-10-09 (438-11): no position selects (D-12); a stray ordinal is never read.
+  // no position selects; a stray ordinal is never read.
   it('ordinal selects within the surviving result set', () => {
     const elements = [
       element('e1', 'button', 'add'),

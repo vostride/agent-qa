@@ -1,10 +1,10 @@
-// The stated-target judge (Phase 438, AUTO-14 · D-01/D-03/D-05).
+// The stated-target judge.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
 // core/model/adapter package imports — imports only schema types.
 //
 // Every element action carries, beside its ref, the element the planner meant: its role, its
 // name and, when a label repeats, its row words. Before dispatch the loop judges that stated
-// target against the element the ref names. Only a CLEAR contradiction is refused (D-03):
+// target against the element the ref names. Only a CLEAR contradiction is refused:
 //   - role-kind: both roles are in ROLE_KIND and their kinds differ (a textbox where a button
 //     was stated). Roles outside the map never contradict on role — mobile often exposes a
 //     pressable control as `text` or `group`.
@@ -35,7 +35,7 @@
 import type { ElementInfo } from '@vostride/agent-qa-schema'
 import { listWordTokens, rowContains, rowTextOf, wordTokens } from './row-text.js'
 
-/** The element the planner meant beside its ref (D-01); `row` names a repeated label's row. */
+/** The element the planner meant beside its ref; `row` names a repeated label's row. */
 export interface StatedTarget {
   role?: string
   name: string
@@ -45,7 +45,7 @@ export interface StatedTarget {
 /** The element lanes an action can carry a stated target on. */
 export type StatedTargetLane = 'ref' | 'fromRef' | 'toRef'
 
-/** The stated target per element lane, kept by the gate for the pre-dispatch check (D-01, D-04). */
+/** The stated target per element lane, kept by the gate for the pre-dispatch check. */
 export type StatedTargets = Partial<Record<StatedTargetLane, StatedTarget>>
 
 export type RoleKind = 'press' | 'entry' | 'toggle' | 'choice' | 'range'
@@ -114,8 +114,8 @@ function sharesWord(statedName: string, element: ElementInfo): boolean {
 }
 
 /**
- * Judge a stated target against the element its ref names (D-03). `elements` is the observation
- * the element belongs to; the element's row is read from it (D-02).
+ * Judge a stated target against the element its ref names. `elements` is the observation
+ * the element belongs to; the element's row is read from it.
  */
 export function judgeStatedTarget(
   stated: StatedTarget,

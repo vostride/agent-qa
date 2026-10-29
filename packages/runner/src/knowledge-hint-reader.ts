@@ -16,7 +16,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 
 /**
- * The Channel-1 brief and the serve-time trace that explains it, as ONE value (KREV-02 · D-16).
+ * The Channel-1 brief and the serve-time trace that explains it, as ONE value.
  *
  * The pairing is the guarantee, not a convenience. A reader implementation cannot satisfy this
  * port while producing a brief and no trace, and a consumer cannot receive a brief without also

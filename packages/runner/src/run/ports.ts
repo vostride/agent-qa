@@ -1,4 +1,4 @@
-// Runner-owned port interfaces for the run layer (D-01/D-02/D-04/D-05).
+// Runner-owned port interfaces for the run layer.
 // CRITICAL: provider-neutral + storage-neutral. Type-only imports, exported
 // interfaces, no implementation, no class, and NO `node:*` — the run shell and
 // the in-memory bus are pure logic; every I/O leg (JSONL event log, handoff.json,
@@ -6,7 +6,7 @@
 // the FsActionCache / storage-state port precedent). Declared interface-first so
 // Plans 06–10 build against them without exploration.
 //
-// 2026-08-26 (Phase 404 D-10): `POST_VERDICT_STEP_BUDGET_MS` is the first VALUE this module
+// `POST_VERDICT_STEP_BUDGET_MS` is the first VALUE this module
 // exports, and it stays inside the rule the header states. The rule is about IMPLEMENTATION —
 // nothing here may open a file, name a provider or hold state. A bound is neither: it is part of
 // the port's contract (the shell races the step against it; the host may not choose its own), and
@@ -107,7 +107,7 @@ export interface StepModelScopeOptions {
 
 /**
  * The two 356 A5 config digests the run actually keyed on, computed once at the CLI
- * composition root and passed in the resolved {@link RunConfig} (D-20). Carried verbatim
+ * composition root and passed in the resolved {@link RunConfig}. Carried verbatim
  * into `runStarted`/the handoff so run identity and handoff identity cannot fork.
  */
 export interface ConfigDigests {
@@ -116,7 +116,7 @@ export interface ConfigDigests {
 }
 
 /**
- * The run-start baseline health-probe outcome (D-04, RCC-02): ONE GET against the web
+ * The run-start baseline health-probe outcome: ONE GET against the web
  * target's base URL, executed at the CLI composition root (the runner bans node:* — only
  * the RESULT crosses this seam). ALL probe failures arrive as values on `error`; a probe
  * never aborts the run. Consumed by the deterministic root-cause classifier's environment
@@ -129,10 +129,10 @@ export interface BaselineProbeResult {
 }
 
 /**
- * The JSONL event-log seam (D-05/D-06). BOTH legs are SYNC and fire-and-forget — the bus
+ * The JSONL event-log seam. BOTH legs are SYNC and fire-and-forget — the bus
  * NEVER awaits telemetry (a synchronous one-line append; D-06/D-07). `append` persists one
  * envelope per emitted event; a throw degrades the bus to memory-only with a single
- * `runWarning` (D-07). `read(fromSeq)` supplies older-than-window envelopes for deep replay.
+ * `runWarning`. `read(fromSeq)` supplies older-than-window envelopes for deep replay.
  * The runner-local `FsEventLog` (Plan 07) implements this against `events.jsonl`.
  */
 export interface EventLogPort {
@@ -142,7 +142,7 @@ export interface EventLogPort {
 
 /**
  * The per-hook execution options the orchestration threads into the {@link HookExecutorPort}
- * (D-06). `env` is the accumulated-variables + user-env map the orchestrator merges per hook;
+ * `env` is the accumulated-variables + user-env map the orchestrator merges per hook;
  * `secretEnv` is the ALREADY-RESOLVED secret name→value map for container injection — the CLI
  * composition root resolves the SecretStore and the runner never touches the store itself. The
  * secret VALUES double as the output-variable filter (a hook-emitted variable equal to a secret
@@ -171,20 +171,20 @@ export interface HookExecutorPort {
 }
 
 /**
- * The durable handoff seam (D-05/D-17). SYNC single-document persist of the one
+ * The durable handoff seam. SYNC single-document persist of the one
  * `CompletedRunHandoff` at run end; the runner-local `FsHandoffStore` (Plan 07) writes
  * `handoff.json` beside `events.jsonl`. Failure degrades with a `runWarning`, never gates
- * the verdict (D-07).
+ * the verdict.
  */
 export interface HandoffStorePort {
   save(handoff: CompletedRunHandoff): void
 }
 
 /**
- * What the post-verdict step is told about the run whose posture it is deciding (404 D-10).
+ * What the post-verdict step is told about the run whose posture it is deciding.
  *
  * The two markers are read off the ASSEMBLED `RunConfig` — the same values `startRun` was handed
- * — never off ambient state, so a gate-run skip (D-08) is decided from the run's own record.
+ * — never off ambient state, so a gate-run skip is decided from the run's own record.
  * Absent means absent: `?: true` carriers are conditionally spread, never written as `undefined`.
  */
 export interface PostVerdictStepInput {
@@ -197,7 +197,7 @@ export interface PostVerdictStepInput {
 /**
  * The step's answer: the posture, and — when the consult could not decide — the reason, by name.
  *
- * A warning rather than a fourth union arm (D-11). `detached` is the honest "nothing will be
+ * A warning rather than a fourth union arm. `detached` is the honest "nothing will be
  * drained from here", and the cause travels on the `runWarning` channel a surface already reads.
  */
 export interface PostVerdictOutcome {
@@ -206,7 +206,7 @@ export interface PostVerdictOutcome {
 }
 
 /**
- * The post-verdict step (404 D-10) — the `HandoffStorePort` idiom applied to the ONE decision the
+ * The post-verdict step — the `HandoffStorePort` idiom applied to the ONE decision the
  * shell delays `runFinished` for.
  *
  * WHAT IT MAY DO: the durable enqueue and ONE writer-lease consult. Milliseconds. The runner
@@ -215,7 +215,7 @@ export interface PostVerdictOutcome {
  *
  * WHAT IT MAY NOT DO: gate `done`. A throw, a resolution past
  * {@link POST_VERDICT_STEP_BUDGET_MS}, or an absent port all yield `detached` plus a named
- * `runWarning`, and `runFinished` still publishes last with `bus.close()` behind it (403-03 D-3).
+ * `runWarning`, and `runFinished` still publishes last with `bus.close()` behind it.
  * The step returns a VALUE and never touches the bus: the shell keeps sole ownership of the
  * terminal sequence.
  *
@@ -267,7 +267,7 @@ export interface RunTimerPort {
 }
 
 /**
- * One ordered member of the run (D-04). `failFastGroup` scopes today's suite fail-fast: a
+ * One ordered member of the run. `failFastGroup` scopes today's suite fail-fast: a
  * failed/timed-out member skips the remaining SAME-group members; ungrouped members never
  * fail-fast, preserving the single-test path's run-all behavior.
  *
@@ -283,12 +283,12 @@ export interface RunMemberDescriptor {
   failFastGroup?: string
   /**
    * The member test file's WORKSPACE-RELATIVE path — rooted at the config directory,
-   * forward-slashed, no leading `./`. REQUIRED since 381-01 (ABRF-02): stable test identity =
+   * forward-slashed, no leading `./`. REQUIRED since 381-01: stable test identity =
    * filePath + testName, copied verbatim onto `PerTestOutcome.filePath` by the handoff assembly —
    * the required field makes the compiler enforce that every descriptor construction site supplies
    * it.
    *
-   * 390-08 (CR-02 / D-01): this is IDENTITY, not a file handle. It is deliberately checkout-
+   * this is IDENTITY, not a file handle. It is deliberately checkout-
    * independent — the same bytes on every machine — because the committed `quarantine.jsonl` keys
    * entries on it and matches with `===`, so an absolute path here would produce a ledger that
    * could only ever apply on the machine that wrote it. Nothing in the run reads bytes off disk
@@ -311,13 +311,13 @@ export interface RunMemberDescriptor {
   suiteTotal?: number
   totalSteps?: number
   /**
-   * G-428-2 (2026-09-26): the raw authored text of each step, in order. It is the same string
+   * the raw authored text of each step, in order. It is the same string
    * member-runner announces at `stepStarted` (`memberStepText`). The shell masks it onto
    * `testStarted.stepTexts`; callers never pre-mask. Absent ⇒ omitted from the payload.
    */
   stepTexts?: readonly string[]
   /**
-   * THIS MEMBER'S OWN TARGET's run-start health baseline (D-04, 401-19 WR-04).
+   * THIS MEMBER'S OWN TARGET's run-start health baseline.
    *
    * PER MEMBER, NOT PER RUN, because a run's members may name different targets and a reading taken
    * against one of them says nothing about another. It lived on `RunConfig` and was handed to the
@@ -329,7 +329,7 @@ export interface RunMemberDescriptor {
    */
   baselineProbe?: BaselineProbeResult
   /**
-   * 402-02 (D-09): members declaring the SAME lane share a mutable execution resource and MUST NOT
+   * members declaring the SAME lane share a mutable execution resource and MUST NOT
    * run concurrently — the bounded member pool runs them strictly one at a time, in index order.
    * Absent means "this member owns everything it touches" and the pool may schedule it freely.
    *
@@ -344,7 +344,7 @@ export interface RunMemberDescriptor {
 }
 
 /**
- * The run-scoped event sink handed to the executor per member test (D-02). The shell binds
+ * The run-scoped event sink handed to the executor per member test. The shell binds
  * `runId`/`testIndex`/masking; core curries `stepIndex` via `loopEmitFor`. `stepStarted`
  * fires as a step opens; `loopEmitFor(stepIndex)` yields the {@link LoopEventEmitPort} the
  * loop emits `stepFinalized`/`subActionRecorded` through.
@@ -386,13 +386,13 @@ export interface MemberTestRunContext {
    */
   evidenceArtifacts?: EvidenceArtifactStorePort
   /**
-   * 403 D-05: declare (or withdraw) this member's live-stream producer. Optional on the SAME
+   * declare (or withdraw) this member's live-stream producer. Optional on the SAME
    * `setEvidenceContext` precedent above — the executor pushes a capability the shell knows
    * nothing about, and the shell owns the per-run hub that refcounts it. Passing `undefined`
    * withdraws the declaration (the handle then reads `{ kind: 'none' }`). Absent on the context
    * ⇒ a composition that predates live view; the executor's optional call is a no-op.
    * `fallback` is the labelled snapshot producer the hub switches to when the primary fails to
-   * start (428 D-12).
+   * start.
    */
   registerLiveStream?(
     capability: LiveStreamCapability | undefined,
@@ -401,7 +401,7 @@ export interface MemberTestRunContext {
 }
 
 /**
- * The injected per-test execution port (D-01). The CLI composition root wraps core's
+ * The injected per-test execution port. The CLI composition root wraps core's
  * `runTest` behind this seam (core depends on runner, so runner can never import core);
  * Phase 363 dissolves the core side of the port when it migrates hooks/variables/reporters.
  * A staged migration, not a workaround — this is the exact seam 363 needs.
@@ -412,7 +412,7 @@ export type MemberTestExecutor = (
 ) => Promise<TestResult>
 
 /**
- * The durable/telemetry/clock seams the run wires behind ports (D-04/D-05). All optional —
+ * The durable/telemetry/clock seams the run wires behind ports. All optional —
  * an absent leg degrades gracefully (no persistence, memory-only telemetry, default clock).
  * Grouped under `ports` so the resolved config keeps the run identity fields flat and the
  * injectable I/O seams together (the Wave-0 `run-shell.test.ts` pins this nesting).
@@ -439,9 +439,9 @@ export interface RunPorts {
    */
   evidenceArtifacts?: EvidenceArtifactStorePort
   /**
-   * Where a VIEWER's fault is reported (403 WR-06): a live-frame subscriber that throws during
+   * Where a VIEWER's fault is reported: a live-frame subscriber that throws during
    * delivery is detached by the hub and the fact lands here. NEVER the bus — the run's permanent
-   * transcript must not depend on who happened to be watching (LIVE-03). Same signature as the
+   * transcript must not depend on who happened to be watching. Same signature as the
    * hub's own option, so the shell forwards rather than adapts; absent ⇒ reported nowhere.
    */
   onSubscriberFault?: (code: string, message: string) => void
@@ -454,7 +454,7 @@ export interface RunPorts {
 }
 
 /**
- * The fully-resolved run configuration `startRun` receives (D-04). The CLI keeps pattern
+ * The fully-resolved run configuration `startRun` receives. The CLI keeps pattern
  * discovery, parsing, config merge, and target/device/model resolution; `startRun` never
  * touches fs or providers (validate:arch stays clean) — hence NO fs/provider/discovery-shaped
  * members here. A future cloud RPC surface reuses this same resolved-config contract.
@@ -473,7 +473,7 @@ export interface RunConfig {
    */
   excludedFromOutcomes?: true
   /**
-   * D-10 verify-before-present gate-run marker (Phase 384, 2026-07-28) copied into the
+   * D-10 verify-before-present gate-run marker copied into the
    * durable completed-run handoff. A DISTINCT axis from `excludedFromOutcomes` above:
    * C8-ratified, gate runs still feed curation. Only literal true marks a gate run;
    * absence denotes an ordinary run and remains absent in JSON. 384 threads the carrier
@@ -495,7 +495,7 @@ export interface RunConfig {
   members: readonly RunMemberDescriptor[]
   executor: MemberTestExecutor
   /**
-   * The run's redactor over the secrets its producer read at the run's start (441-12, D-06/D-11).
+   * The run's redactor over the secrets its producer read at the run's start.
    * Every bus event, and so `events.jsonl` and the dashboard rows, is masked with it and nothing
    * else. Absent ⇒ the run's events are published as written.
    */
@@ -509,7 +509,7 @@ export interface RunConfig {
    */
   runArtifact?: RunArtifactStageInput
   /**
-   * Phase 390 D-16: the quarantined-test set, resolved ONCE at run start by the composition layer
+   * the quarantined-test set, resolved ONCE at run start by the composition layer
    * (the CLI folds the committed ledger before the first member executes) and threaded in as PLAIN
    * DATA. This is deliberately NOT a port: the runner gains zero new I/O seams and stays
    * storageNeutral, and the disposition is deterministic for the whole run, so a mid-run ledger
@@ -523,12 +523,12 @@ export interface RunConfig {
    */
   quarantined?: readonly QuarantineAppliedEntry[]
   /**
-   * 436 D-06: the planner limits the producer resolved for this run and the members whose own
+   * the planner limits the producer resolved for this run and the members whose own
    * limits differ, as plain data. Copied verbatim onto the handoff; absent stays absent.
    */
   plannerLimits?: PlannerLimitsRecord
   /**
-   * 402-02 (D-09/D-12): how many members may execute CONCURRENTLY in this run's process. Defaults
+   * how many members may execute CONCURRENTLY in this run's process. Defaults
    * to 1 — one worker is a plain sequential loop, byte-identical to the pre-402 shell, so nothing
    * changes until a config resolves a higher value. Effective concurrency is
    * `min(members.length, workers)`; values below 1 and non-finite values resolve to 1.

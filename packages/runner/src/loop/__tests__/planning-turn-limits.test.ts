@@ -1,4 +1,4 @@
-// HARN-02 / 436 D-08, D-12: every planner model call is debited before it is made, and a refused
+// every planner model call is debited before it is made, and a refused
 // call ends the step at the planning-turn limit with its own typed stop. `ai.generateText` is
 // mocked (only the call is replaced) so the real LLMPlanner, clamp and planning turn run.
 import { beforeEach, describe, expect, it, vi } from 'vitest'

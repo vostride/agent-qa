@@ -1,4 +1,4 @@
-// PROC-02 loop-harness suite (381-07): step-start procedure consult, guarded per-action
+// PROC-02 loop-harness suite: step-start procedure consult, guarded per-action
 // replay riding the cache-replay discipline, one-shot miss semantics with hint demotion,
 // and the typed planSource evidence (D-09..D-12). Follows the brief-routing/failure-cautions
 // loop-harness idiom: fake adapter/planner/ports, no real model or storage.
@@ -823,7 +823,7 @@ describe('procedure guarded replay', () => {
       kind: 'procedure-replay',
       procedureId: PROCEDURE_ID,
       guard: {
-        // Per-step fold (F-381-51-1 · D-12): total = the one stored action THIS test step
+        // Per-step fold: total = the one stored action THIS test step
         // attempted, not the whole body length the old law recorded here.
         checksPassed: 0,
         total: 1,
@@ -1004,7 +1004,7 @@ describe('procedure guarded replay', () => {
     expect(learned).not.toContain('Fill the email field')
     expect(learned).not.toContain('Click the Log in button')
     const candidates = learned.slice(learned.indexOf('fresh same-role candidates:'))
-    // 438 D-12: both candidates are named by role and exact name, in screen order, with no
+    // both candidates are named by role and exact name, in screen order, with no
     // position for the planner to pick by.
     expect(candidates).toContain(
       'fresh same-role candidates:\n- role=button; name=Log in\n- role=button; name=Log in',
@@ -1438,7 +1438,7 @@ describe('procedure guarded replay', () => {
     // pinned the rejection of the second (fold 2/2, rejection at index 1, no in-step
     // re-entry). The new law rejects the FIRST body step at its own test step (per-step
     // fold 1/1, rejection at index 0) and strengthens the pin: the rejection kills the
-    // whole flow — the carry cell stays empty, so no later step can resume the body (D-11).
+    // whole flow — the carry cell stays empty, so no later step can resume the body.
     const flowCell: { carry?: ProcedureFlowCarry } = {}
     const spy = makeReader({ match: makeMatch(), payload: loginPayload() })
     const { adapter, executed } = capturingAdapter([makeScreenState()])
@@ -1642,7 +1642,7 @@ describe('procedure guarded replay', () => {
       return { availability: args[2], argsJson: call.args }
     }
 
-    // Seam agreement (PROC-01): the capability bit the matcher sees and the binder's verdict
+    // Seam agreement: the capability bit the matcher sees and the binder's verdict
     // are the same shared coercion evaluated on the same raw value.
     const incapable = await recordedAvailability('not-a-number')
     expect(incapable.availability).toEqual({
@@ -2003,7 +2003,7 @@ describe('procedure guarded replay', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Task 2: planSource evidence + hint rendering through the ledger (D-12 / T-381-20)
+// Task 2: planSource evidence + hint rendering through the ledger
 // ---------------------------------------------------------------------------
 
 function makeCacheSpy(hit: CachedPlanValue | null): { cache: ActionPlanCache; gets: () => number } {
@@ -2139,7 +2139,7 @@ describe('planSource evidence + ledger-metered hint rendering', () => {
    * G-381-4 second half: the fail-closed body read is CORRECT but was silent — a starved
    * replay stamped a planSource byte-identical to an ordinary hint, so run 16's three earned
    * replay recommendations were indistinguishable from ordinary hint exposure in the handoff.
-   * The demotion reason makes that observable without weakening the wall (D-12).
+   * The demotion reason makes that observable without weakening the wall.
    */
   async function planSourceOf(reader: ReaderSpy) {
     const { adapter } = capturingAdapter([makeScreenState()])

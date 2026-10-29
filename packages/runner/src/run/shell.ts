@@ -14,7 +14,7 @@
 // (which NEVER rejects, D-13/D-17), then publish `runFinished` LAST with the DECIDED disposition
 // and `finalSeq` equal to its own seq, and close the bus.
 //
-// 2026-08-26 (Phase 404 D-09/D-10) supersedes the sentence above that had `runFinished` publish
+// 2026-08-26 supersedes the sentence above that had `runFinished` publish
 // the hardcoded detached literal: the value is no longer a literal. Between `runArtifactStore.finalize`
 // and `runFinished` the shell awaits ONE host-supplied `ports.postVerdict` step — the durable
 // enqueue plus a single writer-lease consult — and publishes whatever posture it decided. That
@@ -24,7 +24,7 @@
 // untouched behind it — so `done` still resolves after `runFinished` and a closed bus.
 //
 // The six post-processing chip events have no producer HERE — the chain pump emits them, one per
-// job outcome it observes (404-05). What this file owns of post-processing is the awaited step
+// job outcome it observes. What this file owns of post-processing is the awaited step
 // above and the disposition it publishes; the chips are somebody else's line on the bus.
 
 import type {
@@ -62,7 +62,7 @@ export type {
 } from './ports.js'
 
 /**
- * The budget's own answer, as a VALUE rather than a rejection (404 D-10).
+ * The budget's own answer, as a VALUE rather than a rejection.
  *
  * A sentinel keeps the two outcomes in one type, so the shell's `catch` stays reserved for what a
  * throw actually means — the STEP failed — rather than absorbing the timeout as if the host's code
@@ -107,14 +107,14 @@ async function raceWithBudget(
 }
 
 /**
- * Does the run-start quarantine snapshot license this member's failure (390 D-14/D-16)?
+ * Does the run-start quarantine snapshot license this member's failure?
  *
  * The match is on STABLE TEST IDENTITY — the member's `filePath` plus its parsed `name`, which is
  * the `testName` leg the ledger keys on — never `testId`, a per-run explicit id that would not
  * survive to the next build. `product` is not compared: the composition layer already filtered the
- * snapshot to this run's product before handing it over (D-16).
+ * snapshot to this run's product before handing it over.
  *
- * The comparison itself is schema's `quarantineAppliesToTest` and not a local copy (390-07): the
+ * The comparison itself is schema's `quarantineAppliesToTest` and not a local copy: the
  * CLI reporters have to reach the SAME answer about the same member, and two spellings of one rule
  * can disagree without failing to compile.
  */
@@ -129,7 +129,7 @@ function isMemberQuarantined(
 }
 
 /**
- * A member's HANDLE index (402-04, D-10) — the identity every member-scoped payload is stamped
+ * A member's HANDLE index — the identity every member-scoped payload is stamped
  * with and the identity the `runStarted` roster announces.
  *
  * ONE expression, used at both sites. The roster and the stamps are two readings of the same
@@ -160,9 +160,9 @@ export function startRun(config: RunConfig): RunSession {
   // re-arm on every publish would otherwise clobber those bounds on a single shared fake timer).
   const bus = createRunEventBus({ runId: config.runId, eventLog: ports.eventLog })
 
-  // 403 D-05: ONE frame hub per run. Frames are DATA on a side channel — the hub publishes no bus
+  // ONE frame hub per run. Frames are DATA on a side channel — the hub publishes no bus
   // event of its own, and its only bus contact is the existing `runWarning` degrade channel, so
-  // the frozen `RUN_EVENT_TYPES` list gains nothing (LIVE-03).
+  // the frozen `RUN_EVENT_TYPES` list gains nothing.
   const liveStreams = createLiveStreamHub({
     ...(ports.timer === undefined ? {} : { timer: ports.timer }),
     onWarning: (code, message) => {
@@ -171,8 +171,8 @@ export function startRun(config: RunConfig): RunSession {
     // WR-06 (403): a SUBSCRIBER's fault is a fact about the subscriber, not about the run, so it is
     // never published on the bus — `runWarning` is durable, replayed to every later reader and
     // rendered on the live page, and a viewer closing a tab at the wrong instant must not write a
-    // row into the run's permanent transcript (LIVE-03). The hub still DETACHES the faulty
-    // subscriber. WHERE the fault goes is the host's decision (403-13): forwarded by reference under
+    // row into the run's permanent transcript. The hub still DETACHES the faulty
+    // subscriber. WHERE the fault goes is the host's decision: forwarded by reference under
     // the conditional-spread rule, so an absent port stays an absent field rather than an invented
     // non-destination.
     ...(ports.onSubscriberFault === undefined ? {} : { onSubscriberFault: ports.onSubscriberFault }),
@@ -196,9 +196,9 @@ export function startRun(config: RunConfig): RunSession {
     handles: config.members.map(memberHandleIndex),
   })
 
-  // D-08: stage the config + source artifact snapshot into the run dir once, right after
+  // stage the config + source artifact snapshot into the run dir once, right after
   // runStarted. Fire-and-forget (sync) — a store throw degrades with a runWarning and NEVER gates
-  // the run (D-07). Absent store ⇒ no-op; absent snapshot ⇒ an empty (schema-version-only) stage.
+  // the run. Absent store ⇒ no-op; absent snapshot ⇒ an empty (schema-version-only) stage.
   try {
     ports.runArtifactStore?.stage(config.runArtifact ?? {})
   } catch (error) {
@@ -214,11 +214,11 @@ export function startRun(config: RunConfig): RunSession {
 
   const done: Promise<RunCompletion> = (async (): Promise<RunCompletion> => {
     const memberCount = config.members.length
-    // 402-02 (D-09): INDEX-ADDRESSED outcome slots, pre-sized, assigned by member index — the
+    // INDEX-ADDRESSED outcome slots, pre-sized, assigned by member index — the
     // replacement for the pre-402 lockstep `push` trio. The aggregate rule reads these three
     // arrays POSITIONALLY, so under a concurrent pool "append in completion order" silently
     // re-attributes every member's outcome to whoever finished in its position. Appending is
-    // therefore not a style choice here; it is the tampering surface (T-402-07). A slot is written
+    // therefore not a style choice here; it is the tampering surface. A slot is written
     // exactly once, by exactly one `runMember(i)`, and the compaction below refuses to guess about
     // a hole.
     const outcomeSlots: (PerTestOutcome | undefined)[] = new Array<PerTestOutcome | undefined>(
@@ -253,7 +253,7 @@ export function startRun(config: RunConfig): RunSession {
       const quarantineMarker = quarantined ? (true as const) : undefined
 
       // Run cancelled — skip the rest without invoking the executor.
-      // 2026-10-17 (444-08, D-34): published like the fail-fast skip, so every surface lists it.
+      // published like the fail-fast skip, so every surface lists it.
       if (runController.signal.aborted) {
         const skip = skippedPerTestOutcome(member, testIndex, quarantineMarker)
         outcomeSlots[i] = skip
@@ -267,7 +267,7 @@ export function startRun(config: RunConfig): RunSession {
         return
       }
 
-      // Group fail-fast (D-15): a poisoned same-group predecessor skips this member — shell-owned
+      // Group fail-fast: a poisoned same-group predecessor skips this member — shell-owned
       // skip production absorbed from suite/runner.ts:530-554; the executor is never invoked.
       if (member.failFastGroup !== undefined && poisonedGroups.has(member.failFastGroup)) {
         const skip = skippedPerTestOutcome(member, testIndex, quarantineMarker)
@@ -282,12 +282,12 @@ export function startRun(config: RunConfig): RunSession {
         return
       }
 
-      // 363 D-01: enrich testStarted with the member descriptor's parity fields (filePath, suite
+      // enrich testStarted with the member descriptor's parity fields (filePath, suite
       // grouping, totalSteps). Suite grouping rides testStarted — the shell stays suite-agnostic
       // (no suite lifecycle events); reporters derive boundaries by watching the grouping change.
       // Absent optionals are omitted via conditional spread so no undefined-hole survives round-trip.
       // Every field but stepTexts is structural identity (not a captured stream) — not masked, matching
-      // testId/name. stepTexts (G-428-2) is authored step content, so it is masked here by `mask`, the
+      // testId/name. stepTexts is authored step content, so it is masked here by `mask`, the
       // same run redactor the member's event sink below masks stepStarted.stepText with.
       bus.publish('testStarted', {
         testId: member.testId,
@@ -311,7 +311,7 @@ export function startRun(config: RunConfig): RunSession {
       const events = createMemberEventSink({ bus, mask, testIndex })
       let evidenceContext: MemberEvidenceContext | undefined
 
-      // Race the executor against member-abort (SESSION-04). A member wedged on a genuinely-
+      // Race the executor against member-abort. A member wedged on a genuinely-
       // pending async op that never observes `ctx.abortSignal` (the planner's retry-without-image
       // window) would otherwise block `await config.executor(...)` forever, so `done` never settles,
       // the terminal sequence never runs, and `bus.close()` never clears the heartbeat — the live
@@ -326,7 +326,7 @@ export function startRun(config: RunConfig): RunSession {
       // The `.then(onResolve, onReject)` mapping attaches a rejection handler to the executor promise
       // synchronously, so a member that settles (or rejects) AFTER the run raced past it can never
       // surface as an unhandled rejection — the swallow is structural, no extra `.catch` needed.
-      // 444-17 (D-52): the member's own clock, so a result the shell builds below keeps the time
+      // the member's own clock, so a result the shell builds below keeps the time
       // the member ran. Only members dispatched here have one; an abort-skipped member keeps 0.
       const memberStartedAt = performance.now()
       const executorRaced: Promise<RaceOutcome> = config
@@ -368,7 +368,7 @@ export function startRun(config: RunConfig): RunSession {
       if (raced.kind === 'result') {
         result = raced.result
       } else if (raced.kind === 'error') {
-        // An executor throw is never silent and never crashes the run (T-361-10): a runWarning
+        // An executor throw is never silent and never crashes the run: a runWarning
         // plus a synthesized failed result keep termination on the verdict + runFinished path.
         bus.publish('runWarning', {
           code: 'member-executor-error',
@@ -396,7 +396,7 @@ export function startRun(config: RunConfig): RunSession {
         }
       }
 
-      // 403 D-05: the member's race has settled (result, executor error or abort) — its browser is
+      // the member's race has settled (result, executor error or abort) — its browser is
       // on its way down, so the handle withdraws its declaration here and reads `{ kind: 'none' }`
       // from now on. Placed at the ONE site every arm converges on, so no arm can forget it.
       liveStreams.register(testIndex, undefined)
@@ -419,11 +419,11 @@ export function startRun(config: RunConfig): RunSession {
         poisonedGroups.add(member.failFastGroup)
       }
 
-      // 373-07 §A9 root-cause classification (D-05, RCC-02) — this is the ONE seam where `result`
+      // 373-07 §A9 root-cause classification — this is the ONE seam where `result`
       // (the TestResult, carrying retryCount), `outcome`, and `testIndex` coexist (RESEARCH
       // Pitfall 3): classify HERE, never against the assembled PerTestOutcome. The shell carries
       // zero verdict logic — this call is the only addition; root-cause.ts owns every branch.
-      // 401-19 (WR-04): THE MEMBER'S OWN BASELINE. `member` is already in scope here, which is
+      // THE MEMBER'S OWN BASELINE. `member` is already in scope here, which is
       // what makes per-member attribution possible without a second lookup; a run-level value read
       // off `config` was applied to every member, so one target's health reading became another
       // target's diagnosis.
@@ -435,7 +435,7 @@ export function startRun(config: RunConfig): RunSession {
         mask,
       })
 
-      // 420 D-06: classify actual original evidence with this same member's baseline.
+      // classify actual original evidence with this same member's baseline.
       // The final retry keeps its own classification, outcome and canary markers.
       const firstFailure = result.firstFailedAttempt
       const originalOutcome = firstFailure === undefined
@@ -474,7 +474,7 @@ export function startRun(config: RunConfig): RunSession {
       outcomeSlots[i] = perTest
       memberOutcomeSlots[i] = outcome
       memberQuarantinedSlots[i] = quarantined
-      // 363 D-01: enrich testFinished with the TestResult the shell already holds at assembly —
+      // enrich testFinished with the TestResult the shell already holds at assembly —
       // durationMs, retryCount, and the masked failureSummary (masked by projectTestFinished's
       // terminal walk, T-363-05). Absent optionals are omitted (Pitfall 2 — sourced from the runner
       // result, never new fields on the §A8 PerTestOutcome DTO).
@@ -489,16 +489,16 @@ export function startRun(config: RunConfig): RunSession {
       )
     }
 
-    // ---- The bounded member pool (402-02, D-09) ----------------------------------------------
+    // ---- The bounded member pool ----------------------------------------------
     //
     // `workers` defaults to 1, and at 1 this is a plain sequential loop over `runMember(0..n-1)` —
     // the generalization is meant to be a superset of the shipped behavior, not a rewrite of it,
     // and the workers=1 parity control in `run-shell.concurrency.test.ts` compares the whole event
     // stream against a fixture captured BEFORE this code existed.
     //
-    // Effective concurrency is min(members, workers) and the request cannot raise it (D-12): the
+    // Effective concurrency is min(members, workers) and the request cannot raise it: the
     // value arrives on the resolved RunConfig from config, never from a caller's payload, so an
-    // unbounded-concurrency denial-of-service (T-402-08) has no reachable input.
+    // unbounded-concurrency denial-of-service has no reachable input.
     //
     // EXCLUSIVE LANES are the part that is NOT a scheduling nicety. Members that declare the same
     // `exclusiveLane` share a mutable execution resource and are run strictly one at a time, in
@@ -556,7 +556,7 @@ export function startRun(config: RunConfig): RunSession {
     //
     // Every path through `runMember` writes all three slots, so a hole is a programming error
     // rather than a run condition. It is still handled rather than asserted, because `done` never
-    // rejects (D-13/D-17): a hole degrades with a runWarning and the index is dropped from all
+    // rejects: a hole degrades with a runWarning and the index is dropped from all
     // THREE arrays together, which keeps the positional alignment the aggregate rule depends on.
     const outcomes: PerTestOutcome[] = []
     const memberOutcomes: MemberTestOutcome[] = []
@@ -583,14 +583,14 @@ export function startRun(config: RunConfig): RunSession {
       quarantined: memberQuarantined,
     })
 
-    // verdict EXACTLY once, BEFORE any post-processing event (SESSION-02).
+    // verdict EXACTLY once, BEFORE any post-processing event.
     bus.publish('verdict', { verdict })
     status = verdict
 
     const endedAt = timer?.now() ?? Date.now()
     const handoff = assembleHandoff(config, outcomes, verdict, { startedAt, endedAt })
 
-    // Persist the one handoff; a store failure degrades with a runWarning and NEVER gates done (D-07).
+    // Persist the one handoff; a store failure degrades with a runWarning and NEVER gates done.
     try {
       await ports.handoffStore?.save(handoff)
     } catch (error) {
@@ -600,8 +600,8 @@ export function startRun(config: RunConfig): RunSession {
       })
     }
 
-    // D-08: finalize the run artifact with the end timestamp before runFinished. Fire-and-forget
-    // (sync) — a store throw degrades with a runWarning and NEVER gates done (D-07). The keep/drop
+    // finalize the run artifact with the end timestamp before runFinished. Fire-and-forget
+    // (sync) — a store throw degrades with a runWarning and NEVER gates done. The keep/drop
     // table drops the top-level runtime section, so only errors + finalizedAt are merged here.
     try {
       ports.runArtifactStore?.finalize({ finalizedAt: new Date(endedAt).toISOString() })
@@ -612,13 +612,13 @@ export function startRun(config: RunConfig): RunSession {
       })
     }
 
-    // 404 D-10: the ONE awaited post-verdict step — enqueue + a single writer-lease consult,
+    // the ONE awaited post-verdict step — enqueue + a single writer-lease consult,
     // performed by a HOST-supplied port so the runner still names no queue and no lease
     // (validate:arch storageNeutral). It decides `runFinished.disposition` and nothing else: the
     // step returns a value and never touches the bus, so the terminal sequence keeps ONE owner
     // (Pitfall 7).
     //
-    // DEGRADE, NEVER GATE (D-11, 403-03 D-3). Four ways this can fail to decide, and all four end
+    // DEGRADE, NEVER GATE. Four ways this can fail to decide, and all four end
     // the same way — `detached` plus a named `runWarning`, with `runFinished` still published last
     // and `bus.close()` still behind it: an absent port (no warning: nothing was promised), a
     // throw, a resolution carrying its own warning, and a step that outlives
@@ -690,7 +690,7 @@ export function startRun(config: RunConfig): RunSession {
     subscribeFrames: (handle, onFrame, onEnd) => liveStreams.subscribe(handle, onFrame, onEnd),
     streamCapabilityOf: (handle) => liveStreams.capabilityOf(handle),
     cancel(): void {
-      // Run-level cancel (D-03): abort the active member, skip the rest, aggregate `cancelled`.
+      // Run-level cancel: abort the active member, skip the rest, aggregate `cancelled`.
       runCancelled = true
       runController.abort()
     },

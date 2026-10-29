@@ -37,7 +37,7 @@ function keyOf(overrides: Overrides = {}): string {
       envVars: overrides.envVars ?? envVars(),
       envSalt: overrides.envSalt ?? 'salt',
       screenIdentityHash: overrides.screenIdentityHash ?? 'screen-hash',
-      // Intentionally supplied but never a key component (D-14).
+      // Intentionally supplied but never a key component.
       branch: overrides.branch ?? 'main',
     }),
   )

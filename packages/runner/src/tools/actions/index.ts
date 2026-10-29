@@ -11,7 +11,7 @@ const ELEMENT_DESCRIPTION_SCHEMA = z.string().optional()
 export const refSchema = (description: string) =>
   z.string().transform((v): Ref => asRef(v)).describe(description)
 
-// 438 D-01, D-02, D-12: the element the planner means, sent beside the ref and checked against
+// the element the planner means, sent beside the ref and checked against
 // it before dispatch; `row` holds a repeated label's row words. No position field, no `near`
 // and no selector-like field: `.strict()` rejects them.
 export const targetSchema = z.object({
@@ -60,7 +60,7 @@ function action(verb: string, description: string, schema: z.ZodType, meta: Acti
   return actionWithSurface(verb, surface, description, schema, meta)
 }
 
-// Toggle/picker idempotency intent (D-13). Optional with NO default: absence means "no
+// Toggle/picker idempotency intent. Optional with NO default: absence means "no
 // idempotency claim" (a plain gesture). The executor compares it against the element's
 // persisted state at the dispatch seam and skips the gesture when already satisfied (Plan 08).
 const desiredStateSchema = z.enum(['checked', 'unchecked', 'selected', 'unselected']).optional()

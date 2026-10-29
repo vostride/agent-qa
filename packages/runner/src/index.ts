@@ -21,7 +21,7 @@ export type {
   ServedRunBrief,
 } from './knowledge-hint-reader.js'
 export { assertNever } from './platform.js'
-// D-15 (Phase 360): re-export the schema Ref brand helper so runner consumers (dashboard,
+// re-export the schema Ref brand helper so runner consumers (dashboard,
 // core, adapters) can construct branded refs for the schema-projected Action world without a
 // direct schema dependency.
 export { asRef } from '@vostride/agent-qa-schema'
@@ -45,7 +45,7 @@ export {
 } from './grounding/index.js'
 export type { StatedTarget, StatedTargets } from './grounding/index.js'
 
-// Pure, provider-neutral compound helpers the three adapters ride (Phase 359 · D-02).
+// Pure, provider-neutral compound helpers the three adapters ride.
 // Adapter packages import these via the runner barrel (352 buildScreenState precedent).
 export * from './compound/index.js'
 export { compareSavedFile, FILE_DIFFERENCE_WINDOW } from './compound/file-compare.js'
@@ -80,7 +80,7 @@ export type {
 
 // Step-execution loop spine (re-derived into runner, Phase 353).
 export { executeStep } from './loop/index.js'
-// Run-scoped working-memory store (Phase 358 · WM-01/WM-02). Exported so the CLI composition
+// Run-scoped working-memory store. Exported so the CLI composition
 // root constructs one per run and threads it into LoopPorts.workingMemory (the 361 rebind seam).
 export { WorkingMemoryStore } from './loop/working-memory/index.js'
 export type { WorkingMemoryProvenanceContext } from './loop/working-memory/index.js'
@@ -116,8 +116,8 @@ export type {
   VariableExtractor,
 } from './loop/types.js'
 // PlanningTurnError is exported as a class value (not type-only): the Phase 368 replay
-// engine (plan 368-04) must instanceof-classify structured planner failures by identity,
-// never string-match the message (D-09). NonActionToolHandler/NonActionToolMap are already
+// engine must instanceof-classify structured planner failures by identity,
+// never string-match the message. NonActionToolHandler/NonActionToolMap are already
 // re-exported from ./loop/planning-turn.js below (eval core's ports import them in 368-02).
 export { LLMPlanner, PlanningLimitReachedError, PlanningTurnError } from './loop/planner.js'
 export {
@@ -136,7 +136,7 @@ export type {
 } from './loop/planning-turn.js'
 export { LLMVerifier, VerificationResultSchema, AiJudgmentResultSchema } from './loop/verifier.js'
 export { AssertionEvaluator, LLMAssertionEvaluator, createAsserter } from './loop/asserter.js'
-// Phase 363 D-07 — runner-owned variables subsystem (store / interpolation / extractors).
+// runner-owned variables subsystem (store / interpolation / extractors).
 // LLMVariableExtractor rides the injected-model idiom in loop/; the sub-barrel re-exports it.
 export * from './variables/index.js'
 export {
@@ -188,7 +188,7 @@ export {
   projectLegacyTrace,
 } from './loop/evidence.js'
 export type { RecordSubActionInput } from './loop/evidence.js'
-// Phase 356 redesigned cache port (D-03): the new per-key ActionPlanCache is the
+// Phase 356 redesigned cache port: the new per-key ActionPlanCache is the
 // single public cache surface. The v1 StepKeyInput / v1 sub-action ActionPlanCache
 // are intentionally no longer exported here — they survive internally in
 // loop/ports.ts until Plan 04 rewires the loop and Plan 06 retires the v1 adapter.
@@ -224,7 +224,7 @@ export type {
   BuildCachedPlanValueInput,
 } from './cache/index.js'
 
-// Storage-state persistence port (Phase 360, D-14). Runner stays storage-neutral — the
+// Storage-state persistence port. Runner stays storage-neutral — the
 // runner-local FsStorageStateStore implements this; the loop records only the reference.
 export type {
   StorageStatePort,
@@ -238,7 +238,7 @@ export type {
 // LoopPorts (loop/ports.js) and is re-exported there.
 export { createRunEventBus, ReplayIncompleteError } from './run/bus.js'
 export type { RunEventBus, CreateRunEventBusOptions } from './run/bus.js'
-// 403 D-05/D-07: the per-run live-frame hub (lazy start, graced stop, bounded ack).
+// the per-run live-frame hub (lazy start, graced stop, bounded ack).
 export {
   createLiveStreamHub,
   defaultLiveStreamTimer,
@@ -246,7 +246,7 @@ export {
   LIVE_STREAM_STOP_GRACE_MS,
 } from './run/live-stream-hub.js'
 export type { LiveStreamHub, CreateLiveStreamHubOptions } from './run/live-stream-hub.js'
-// 428 D-11/D-13: the labelled 1s snapshot producer behind the same capability contract.
+// the labelled 1s snapshot producer behind the same capability contract.
 export {
   createSnapshotLiveStream,
   imageSizeOf,
@@ -271,7 +271,7 @@ export type {
   HookExecutorPort,
   HookExecuteOptions,
   RunArtifactStorePort,
-  // 404-01 (D-10): the post-verdict step the shell awaits between `verdict` and `runFinished`.
+  // the post-verdict step the shell awaits between `verdict` and `runFinished`.
   PostVerdictPort,
   PostVerdictStepInput,
   PostVerdictOutcome,
@@ -283,7 +283,7 @@ export type {
   StepModelRoleFacts, StepModelAttempt, StepModelSnapshot, StepModelConsumers,
   StepModelScope, StepModelScopeFactory, StepModelBinding, StepModelScopeOptions,
 } from './run/ports.js'
-// Phase 363 D-06 — runner-owned hook contracts + orchestration. The Docker impl
+// runner-owned hook contracts + orchestration. The Docker impl
 // (DockerHookExecutor) lives in runner-local behind the HookExecutorPort above.
 export * from './hooks/index.js'
 // SESSION-01/02/04/05 run shell (Plan 06) — the run lifecycle owner every later surface
@@ -291,7 +291,7 @@ export * from './hooks/index.js'
 // and §A8 handoff assembly are exported for CLI/core composition roots (Plans 09–11).
 export { startRun } from './run/shell.js'
 export { createMemberEventSink } from './run/event-sink.js'
-// Phase 363 D-05 — the runner-owned member-runner (dissolution target for core's
+// the runner-owned member-runner (dissolution target for core's
 // runTest/runTestWithRetry) + the pure inline-DSL parsing + the moved failure-summary.
 // Built + tested against fakes here; Plan 11 cuts the CLI over and deletes the core side.
 export { runMemberTest, memberStepText } from './run/member-runner.js'
@@ -327,13 +327,13 @@ export {
   mapVerdictToExitCode,
   isTestTimeoutMessage,
 } from './run/verdict.js'
-// 388 D-02: the analyze-run bridge fills a member the classifier declined to classify with
+// the analyze-run bridge fills a member the classifier declined to classify with
 // the SAME 'unknown' verdict the classifier itself would have minted. It resolves that value
 // from here rather than restating the six fields, because a second spelling of a verdict's
 // base is free to drift from the one 389 supersedes — and the drift would be silent, since
 // both spellings would still typecheck as a Verdict.
 export { deterministicVerdict, UNKNOWN_SIGNAL_RATIONALE } from './run/root-cause.js'
-// 390-21: the classifier itself, beside the verdict base it mints, for the same reason. A
+// the classifier itself, beside the verdict base it mints, for the same reason. A
 // downstream corpus that needs a floor verdict must be able to build it THE WAY THE SHELL DOES —
 // from a member's TestResult, its derived outcome and its index — instead of writing one out by
 // hand. A hand-written floor verdict is free to carry a (class, producer) pair `classifyRootCause`

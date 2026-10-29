@@ -1,4 +1,4 @@
-// The shared fill comparator (437 D-06, D-07, D-16): four verdicts, kept apart. Exact equality;
+// The shared fill comparator: four verdicts, kept apart. Exact equality;
 // normalized when the field only inserted separator characters around the typed text; mismatch for
 // anything else; unverified when nothing was read back. Secure fields are never exact.
 import { describe, it, expect } from 'vitest'

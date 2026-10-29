@@ -73,7 +73,7 @@ export interface LadderOptions {
 }
 
 /**
- * Assemble the ladder: default [refValidateRung, treeSearchRung] (D-01). A supplied
+ * Assemble the ladder: default [refValidateRung, treeSearchRung]. A supplied
  * visual rung is appended ONLY when options.vision is true — the capability-gated
  * assembly resolving research Q3. No visual rung is registered in M1.
  */
@@ -99,7 +99,7 @@ export interface RunLadderResult {
  * Run the rungs in order, recording one §A8 attempt per rung. Rejection short-circuits;
  * the first resolution stops the ladder; ambiguity is recorded as a no-match attempt and
  * surfaced on the result. When the ladder exhausts without a visual rung having run, a
- * {stage:'visual', outcome:'skipped'} attempt is appended (D-02).
+ * {stage:'visual', outcome:'skipped'} attempt is appended.
  */
 export function runLadder(rungs: readonly GroundingRung[], req: RungRequest): RunLadderResult {
   const attempts: GroundingAttempt[] = []

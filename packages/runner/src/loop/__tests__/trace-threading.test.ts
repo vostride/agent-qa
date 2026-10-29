@@ -1,6 +1,5 @@
 /**
  * D-16's LAST HOP: no consumer may drop the trace between the reader port and evidence
- * (Phase 387-04, KREV-02).
  *
  * The structural half of this is a signature — `recordServedBrief` and `recordServedCautions` take
  * the trace as a REQUIRED parameter, so a loop that obtained a composite and discarded its trace
@@ -88,7 +87,7 @@ describe('the loop threads the serve-time trace to the evidence seam', () => {
 })
 
 /**
- * WR-10 (Phase 387-13): the scan above proves the loop hands over the trace it was SERVED. It
+ * the scan above proves the loop hands over the trace it was SERVED. It
  * cannot see whether the loop hands it over AT ALL on a turn that injected nothing — that is a
  * control-flow fact, and the source text of a call site says nothing about the gate enclosing it.
  *
@@ -190,7 +189,7 @@ describe('a turn that injected ZERO cautions still lands the reader cut ledger',
   })
 
   it('Shape A leaves the ServedBrief bytes exactly where the no-caution baseline left them', async () => {
-    // D-13: the repair may not dent byte-stability. The comparison is against a real replan that
+    // the repair may not dent byte-stability. The comparison is against a real replan that
     // served no caution trace at all, not against a hand-built empty brief — the two runs differ
     // ONLY in what the reader's caution trace carried.
     const laden = await replanAfterFailure(servedCautions(
@@ -210,7 +209,7 @@ describe('a turn that injected ZERO cautions still lands the reader cut ledger',
 })
 
 /**
- * WR-10′ (Phase 387-15): every case above drives a step that reaches its NEXT planning turn, which
+ * WR-10′: every case above drives a step that reaches its NEXT planning turn, which
  * is where a staged caution composite is picked up. The staged value is consumed there and nowhere
  * else, and the loop has exits above that pickup — the step deadline and the per-step action
  * limit. A step that ends at one of those exits loses the whole staged ledger, and the terminal
@@ -334,7 +333,7 @@ const FOLD_CALL = 'recorder.finalize('
 
 /**
  * The ordering claim as ONE expression, so the assertion that it holds on the real source and the
- * assertions that it rejects are literally the same test of the same thing (WR-05, 387-19).
+ * assertions that it rejects are literally the same test of the same thing.
  *
  * `both present` is part of the predicate, not a separate precondition: a text missing either
  * needle has no ordering to be right about, and the control below relies on that arm.
@@ -355,12 +354,12 @@ function withDrainBelowTheFold(text: string): string {
 }
 
 /**
- * WR-06 (387-19). The backstop comment in `index.ts` discloses that the funnel covers terminal
+ * WR-06. The backstop comment in `index.ts` discloses that the funnel covers terminal
  * RETURNS and that throw-shaped exits leave `executeStep` without reaching `finish()`. Under the
  * round-3 rule a disclosure written in prose is a hypothesis; this is the mechanism that makes it
  * a fact a test can red.
  *
- * It pins the SHAPE of the accepted throw statements and never their COUNT (387-15 D-1). A count
+ * It pins the SHAPE of the accepted throw statements and never their COUNT. A count
  * is the hand-picked member set this whole arc exists to end: it would red on a legitimate further
  * site that conforms perfectly, and the only repair would be to bump the number. The control below
  * adds exactly such a site and asserts this scan stays silent about it.
@@ -449,7 +448,7 @@ describe('the terminal drain sits at the ONE funnel every exit routes through', 
     // rather than a re-derivation of it.
     expect(drainPrecedesFold(source)).toBe(true)
 
-    // POSITIVE CONTROL (WR-05, 387-19): what a positive control exists for is to show the scan can
+    // POSITIVE CONTROL: what a positive control exists for is to show the scan can
     // REJECT, and the construction this replaces could not. It appended the drain needle to the END
     // of the string it then searched, so the needle's index was necessarily the largest in it —
     // measured true over the real source, over a nonsense string, over a source with the drain

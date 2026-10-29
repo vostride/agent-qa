@@ -7,7 +7,7 @@
 // Also pins the two run-shape invariants: no chip-event type is ever emitted, and
 // `runFinished.disposition` is `'detached'`.
 //
-// WINDOWS #305 · DETL-04: BOTH arms of the handoff assembly mask. The first describe drives an
+// BOTH arms of the handoff assembly mask. The first describe drives an
 // evidence-LESS executor, so its handoff carries evidence the shell SYNTHESIZES; the second drives
 // an executor whose step CARRIES real §A8 evidence, which `assemblePerTestOutcome` used to copy
 // verbatim into the durable artifact. The narration a run records — the verifier's own words, a
@@ -247,7 +247,7 @@ describe('synthetic masking proof', () => {
   })
 })
 
-// WINDOWS #305 · DETL-04 — the REAL-evidence arm of the assembly. Every cell here drives a step
+// the REAL-evidence arm of the assembly. Every cell here drives a step
 // that CARRIES §A8 evidence, which is the arm `assemblePerTestOutcome` copied verbatim into the
 // durable artifact. There is no second detector anywhere in this block: the only masker is the
 // run's own `config.secretRedactor`, the same mask `projectTestFinished` routes `failureSummary`
@@ -353,7 +353,7 @@ describe('testStarted.stepTexts is masked like stepStarted.stepText', () => {
   })
 })
 
-// 441-12 (D-06, D-11): a run's bus events are masked by the run's own redactor and nothing else.
+// a run's bus events are masked by the run's own redactor and nothing else.
 // The email in the step text is not a declared value, so it is published as written.
 const DECLARED_STEP_TEXT = 'Sign in as qa@example.com with Hunter-42-zz'
 const RECORDS_REDACTOR = new SecretRedactor(new SecretStore({ PW_441: 'Hunter-42-zz' }))

@@ -47,7 +47,7 @@ describe('deterministicDescriptorMatcher.reground (one matcher, ambiguity never 
   })
 
   it('still selects by ordinal within the surviving set; an ordinal beyond the set is null', () => {
-    // 2026-10-09 (438-08): the locator has no ordinal (D-10). Two survivors are not-unique and
+    // the locator has no ordinal. Two survivors are not-unique and
     // neither is picked; only the stated row words single one out.
     const elements = [
       element('r1', 'listitem', '', undefined, 'Work 7 Elm Street'),
@@ -70,7 +70,7 @@ describe('deterministicDescriptorMatcher.reground (one matcher, ambiguity never 
   })
 
   it('rescues benign name drift through the substring rung where an exact-only matcher returned null', () => {
-    // 2026-10-09 (438-08): replay has no substring rung (D-10). A drifted name is absent, and so
+    // replay has no substring rung. A drifted name is absent, and so
     // is a different number under the same normalized name.
     const elements = [element('e1', 'button', 'Save changes'), element('e2', 'link', 'Invoice 946')]
 

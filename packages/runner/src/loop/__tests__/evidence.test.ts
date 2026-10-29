@@ -1,4 +1,4 @@
-// Behavior tests for the §A8 evidence module (353-03, SCREEN-02 / D-14). Evidence is
+// Behavior tests for the §A8 evidence module. Evidence is
 // produced by construction as schema DTOs; the legacy trace is projected from it.
 import { describe, it, expect } from 'vitest'
 import {
@@ -172,7 +172,7 @@ describe('makeEmptyServedBrief', () => {
     expect(brief.briefDigest).toBe(computeBriefDigest(brief))
   })
 
-  // 407-07 D-16: the "no reader bound" marker is ONE constant with two importers. The
+  // the "no reader bound" marker is ONE constant with two importers. The
   // schema owns the bytes because `recordedRungOf`/`runs.knowledge` reads the same marker
   // to tell "no knowledge store configured" apart from "a rung was never recorded"; a
   // second literal here could drift and silently break that distinction.
@@ -182,7 +182,7 @@ describe('makeEmptyServedBrief', () => {
   })
 })
 
-// 407-07 · D-13: the rung the HOST was on when this run was served, stamped beside
+// the rung the HOST was on when this run was served, stamped beside
 // `retrievalTrace` and never inside `servedBrief` (the digest-stability argument 407-03
 // records). The recorder does not resolve it — it is handed one, once per run.
 describe('EvidenceRecorder retrievalRung stamping', () => {
@@ -446,7 +446,7 @@ describe('projectLegacyTrace', () => {
   })
 })
 
-// 2026-10-09 (437-17, D-05): a skipped tap is its own sub-action outcome, never 'failure'.
+// a skipped tap is its own sub-action outcome, never 'failure'.
 describe('skipped taps in the legacy trace', () => {
   const skippedTap: PlatformActionResult = {
     success: false,

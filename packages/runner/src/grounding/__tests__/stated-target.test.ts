@@ -1,4 +1,4 @@
-// C438-JUDGE (438 D-03): the stated-target judge refuses only a clear contradiction — a different
+// the stated-target judge refuses only a clear contradiction — a different
 // role kind, a name sharing no word with the element's words, or different numbers in otherwise
 // matching names — and the refusal line names both identities on one line.
 import { describe, expect, it } from 'vitest'
@@ -191,7 +191,7 @@ describe('judgeStatedTarget', () => {
     expect(line).not.toContain('x'.repeat(81))
   })
 
-  // 2026-10-19 (444.1-09, D-17): a leaf's row carries every enclosing treeitem's own line.
+  // a leaf's row carries every enclosing treeitem's own line.
   it('leaves with one name under different grandparents are told apart', () => {
     const treeitem = (ref: string, name: string, parentRef?: string): ElementInfo => ({
       ...element('treeitem', name),
@@ -228,7 +228,7 @@ describe('judgeStatedTarget', () => {
     })
   })
 
-  // 2026-10-19 (444.1-10, D-16): a comma run agrees under its grouped or its list reading.
+  // a comma run agrees under its grouped or its list reading.
   it('a stated order inside a comma list of orders agrees', () => {
     expect(reasons({ role: 'link', name: 'Order 947' }, element('link', 'Orders 947,948'))).toEqual(
       [],

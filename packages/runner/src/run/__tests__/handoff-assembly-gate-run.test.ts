@@ -9,7 +9,7 @@ import type { RunConfig, RunMemberDescriptor } from '../ports.js'
 import type { TestResult } from '../../result.js'
 import { assembleHandoff } from '../handoff-assembly.js'
 
-// Phase 384 plan 02, D-10: `gateRun` threads run config -> assembled handoff exactly like
+// `gateRun` threads run config -> assembled handoff exactly like
 // the shipped `excludedFromOutcomes` marker — literal true is copied, absence stays absent
 // in the persisted JSON (the D-01 presence rule). The two markers are distinct axes
 // (RESEARCH Pitfall 5): a gate run is not an outcome-excluded run.

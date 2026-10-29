@@ -1,4 +1,4 @@
-// C444-NO-BROWSER-GUESS (444-17, D-53): a browser that closes is not a cancel. Only a cancel the run
+// a browser that closes is not a cancel. Only a cancel the run
 // received makes a member `cancelled`; a disconnect on its own fails the member and says so plainly.
 import { describe, expect, it } from 'vitest'
 import type { LanguageModel } from 'ai'

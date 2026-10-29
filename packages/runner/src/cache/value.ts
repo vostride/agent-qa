@@ -1,4 +1,4 @@
-// Descriptor-only value projection (Phase 356, CACHE-03 / D-12; 438 D-10/D-11).
+// Descriptor-only value projection.
 // CRITICAL: storage-neutral — no node:* imports. Projects a planned action + the
 // fresh elements into a role + exact name (+ stated row words) descriptor and assembles a
 // CachedPlanValue that provably omits raw refs/selectors/coordinates, positions and any step
@@ -66,7 +66,7 @@ function locatorForRef(
   return locator
 }
 
-// The sanitized, stored form statically excludes the AI-assertion verbs (D-08): a completing
+// The sanitized, stored form statically excludes the AI-assertion verbs: a completing
 // plan carrying assertAI/extractAI is bypassed at the write site (Plan 10 runtime guard), so
 // the stored value only ever holds cacheable verbs. The cast asserts that boundary at the type.
 function sanitizeAction(action: Action): CacheablePlannedAction {

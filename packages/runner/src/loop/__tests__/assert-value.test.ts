@@ -7,7 +7,7 @@
 //   Block B — orchestration: the adapter reads the source and the runner comparator mints (D-10
 //     division). Since 439 D-12 a passing assertValue on a completing step no longer short-circuits
 //     the verifier: the verifier judges it with the read as evidence. Every AI-judged conclusion (assertAI or extractAI) goes through the step
-//     verifier with the author's context (quick 261004-lsa), and verdictSource 'verifier-model'
+//     verifier with the author's context, and verdictSource 'verifier-model'
 //     is recorded only with the final verdict, so a rejection leaves it undefined. A false
 //     assertAI never calls verify; a failing assertValue and a platform-unavailable source are
 //     honest §7.1 failures the planner mediates; registered secrets arrive masked in evidence.
@@ -194,7 +194,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       makeStepContext(),
     )
 
-    // 439 D-12: the short-circuit is gone; the passing read is evidence the verifier judges.
+    // the short-circuit is gone; the passing read is evidence the verifier judges.
     expect(verifier.verifyCalls).toBe(1)
     expect(result.status).toBe('passed')
     expect((result.evidence as { verdictSource?: string }).verdictSource).toBe('verifier-model')
@@ -245,7 +245,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
     )
 
     expect(result.status).toBe('failed')
-    // The rejected completion, then the give-up's own judgment (439 D-08).
+    // The rejected completion, then the give-up's own judgment.
     expect(verifier.verifyArgs).toHaveLength(2)
     expect(verifyCall(verifier.verifyArgs[0]).action.type).toBe('assertAI')
     expect(verifyCall(verifier.verifyArgs[0]).authorContext).toEqual({ testContext: 'Only the final screen is graded.' })
@@ -300,7 +300,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
     )
 
     // The false assertAI's completion claim is never verified; the one call is the give-up's
-    // own judgment (439 D-08).
+    // own judgment.
     expect(verifier.verifyArgs).toHaveLength(1)
     expect(result.evidence?.conditionVerdicts?.ending).toBe('give-up')
     expect(result.status).toBe('failed')
@@ -348,7 +348,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
       makeStepContext(),
     )
 
-    // The rejected completion, then the give-up's own judgment (439 D-08).
+    // The rejected completion, then the give-up's own judgment.
     expect(verifier.verifyArgs).toHaveLength(2)
     expect(verifyCall(verifier.verifyArgs[0]).action.type).toBe('extractAI')
     expect(result.evidence?.conditionVerdicts?.ending).toBe('give-up')
@@ -377,7 +377,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
     expect(result.error).toBe(
       'Stopped: action limit reached — 4 of 4 actions used — Not met: "Verify the header is shown" (The header is not visible)',
     )
-    // One call per completion claim, plus the limit stop's own judgment (439 D-08).
+    // One call per completion claim, plus the limit stop's own judgment.
     expect(verifier.verifyArgs.length).toBeLessThanOrEqual(cfg.maxActions + 1)
     expect(verifier.judgeClaimCalls).toBeLessThanOrEqual(cfg.maxActions)
     expect((result.evidence as EvidenceView).verdictSource).toBeUndefined()

@@ -1,7 +1,7 @@
-// C436-PROMPT (D-26, HARN-01): the planner prompt judges outcomes, not screen changes. The
+// the planner prompt judges outcomes, not screen changes. The
 // stagnation and cycle-break blocks cannot render, the progress rules are gone, Rule 22 is the
 // outcome-evidence rule and Rule 13 allows requested repetition. Rules 10 and 17 were re-pinned
-// once by 438 (D-01, D-14), Rule 19 once by 439 (D-11) and Rule 23 once by 441 (D-10): the
+// once by 438, Rule 19 once by 439 and Rule 23 once by 441: the
 // 5e3e932a2 bytes stay below for the record.
 import { describe, it, expect } from 'vitest'
 import type { ModelMessage } from 'ai'

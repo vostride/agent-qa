@@ -521,7 +521,7 @@ describe('concurrency edge — cancelling the run while N members are in flight'
     expect(completion.handoff.tests.map((t) => t.testIndex)).toEqual([0, 1])
     // Every member reached the aggregate: no slot was read before its member had written it.
     //
-    // MEASURED LIMIT OF THIS CELL (2026-08-24). It cannot discriminate "the terminal sequence waits
+    // MEASURED LIMIT OF THIS CELL. It cannot discriminate "the terminal sequence waits
     // for the pool to settle" from "it runs when the first worker drains". Cancel finalizes an
     // in-flight member through the executor-vs-abort race, NOT through the executor, so every
     // member finalizes within microtasks of the abort whatever the pool does — delaying one
@@ -583,7 +583,7 @@ describe('fail-fast under the pool — poisoning stops STARTS, not work in fligh
   })
 })
 
-// ---- The handle roster on runStarted (402-04, D-10) -------------------------------------------
+// ---- The handle roster on runStarted -------------------------------------------
 
 describe('the runStarted handle roster — the run announcing which streams are attachable', () => {
   it('announces each member\'s DERIVED testIndex, in member order, on a 3-member run', async () => {
@@ -655,7 +655,7 @@ describe('the runStarted handle roster — the run announcing which streams are 
   })
 })
 
-// ---- Two-sided attribution, WRITE side (402-04, D-10 · INVK-04) --------------------------------
+// ---- Two-sided attribution, WRITE side --------------------------------
 
 /**
  * The three members of the attribution scene, at PLANTED non-contiguous indices.

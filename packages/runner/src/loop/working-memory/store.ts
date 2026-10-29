@@ -18,7 +18,7 @@ import type { SecretRedactorPort } from '../ports.js'
 import { redactSecretValue } from '../secrets.js'
 
 /**
- * Capture-location context stamped onto each entry (D-11): the whole run set is served every
+ * Capture-location context stamped onto each entry: the whole run set is served every
  * turn, so the planner weighs relevance itself — these mark where the entry was captured, they
  * are not a filter rule.
  */

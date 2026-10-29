@@ -1,7 +1,7 @@
 // Abort / step-timeout helpers for the runner-owned step-execution loop.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp,
 // no model/core/adapter package imports. Pure AbortSignal plumbing.
-// Moved verbatim from core/src/agent/loop.ts:15-64 (D-02); core orchestration
+// Moved verbatim from core/src/agent/loop.ts:15-64; core orchestration
 // (agent/runner.ts, suite/runner.ts) imports these from the runner barrel.
 
 export type AgentAbortScope = 'test' | 'step'

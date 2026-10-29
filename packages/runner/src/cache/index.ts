@@ -1,4 +1,4 @@
-// Barrel for the runner-owned pure cache core (Phase 356).
+// Barrel for the runner-owned pure cache core.
 // Storage-neutral: re-exports the port, the descriptor value, and the re-ground seam.
 
 export type { ActionPlanCache, CacheablePlannedAction, CachedPlanValue, GroundedLocator } from './port.js'

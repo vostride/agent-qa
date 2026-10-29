@@ -4,7 +4,7 @@
 // unique or nothing, no ordinal and no hierarchy tiebreak) → patch the ref → re-execute, WITH
 // NO new planning turn (planner.plan called exactly once). The heal is recorded in the
 // sub-action grounding trail only; StepEvidence.selfHeal stays reserved for replan heals
-// (D-11). Non-ref failures (a bare timeout) keep the replan-with-failure-context path (the
+// Non-ref failures (a bare timeout) keep the replan-with-failure-context path (the
 // conservative classifier), and only one heal is attempted per planned action.
 //
 // Under the shipped loop a ref failure just replans (planner called twice) and never
@@ -64,7 +64,7 @@ describe('re-ground-first self-heal', () => {
     } | undefined
     expect(healed?.grounding).toBeDefined()
     expect(healed?.grounding?.attempts.some((a) => a.stage === 'tree-search' && a.outcome === 'resolved')).toBe(true)
-    // 438 D-08: the strict heal names the exact observed identity and never a position.
+    // the strict heal names the exact observed identity and never a position.
     expect(healed?.grounding?.descriptor).toEqual({ role: 'button', name: 'Log in' })
   })
 

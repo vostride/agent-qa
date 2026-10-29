@@ -1,4 +1,4 @@
-// C439-CARRY (439 D-04): a completed download and the latest app clipboard write carry to later
+// a completed download and the latest app clipboard write carry to later
 // steps of the same test through the member-scoped cell, labelled with the step and action that
 // produced them, and are citable as source 'carried'. Screens, reads, unfinished downloads and
 // anything without a cell never carry. The verifier is the real LLMVerifier over a mocked model, so

@@ -5,11 +5,11 @@
 // loop/index import — a pure function so the Plan 10 dispatch seam composes it without cycles. The
 // D-10 division: the adapter reads the value source (url/storage/network/expr) and returns the raw
 // actual; this comparator applies exactly one closed op and produces the deterministic outcome. A
-// passing outcome is evidence the verifier may cite, never a pass by itself (439 D-12).
+// passing outcome is evidence the verifier may cite, never a pass by itself.
 //
 // The result shape mirrors the schema AssertValueEvidence: sorted keys for a comparison carrying an
 // expected value are exactly ["actual","expected","op","passed","source"] (the Plan 01 pin). No
-// masking here — value-bearing fields are masked at the recorder boundary by the seam (T-360-01).
+// masking here — value-bearing fields are masked at the recorder boundary by the seam.
 
 import type { AssertValueOp } from '@vostride/agent-qa-schema'
 
@@ -41,7 +41,7 @@ function toNumber(value: unknown): number {
 /**
  * Apply the closed assertValue op deterministically. Type-aware per the Block A pins: gt/lt coerce
  * numeric; equals/notEquals/contains compare as strings; isNull passes only on a null read. An
- * unread value fails every op (439 D-14). A network read passes only on a matching entry.
+ * unread value fails every op. A network read passes only on a matching entry.
  */
 export function compareAssertValue(input: AssertValueInput): AssertValueResult {
   const { op, expected, actual } = input

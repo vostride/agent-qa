@@ -1,4 +1,4 @@
-// Unit tests for the runner-owned LLMVerifier (353-03, D-02). The v1
+// Unit tests for the runner-owned LLMVerifier. The v1
 // core/src/agent/__tests__/verifier.test.ts was a loop-integration test (executeStep)
 // and belongs with the loop re-derivation (wave 4); these assert the verifier's own
 // contract with a mocked `ai` model: structured output → VerifyResult, never-crash
@@ -26,7 +26,7 @@ const before: ScreenState = makeScreenState()
 const after: ScreenState = makeScreenState({ url: 'https://example.test/after' })
 const action: Action = { type: 'click', ref: asRef('e2') }
 
-// 2026-10-11 (439-01): the model's structured output is per-condition (D-07, D-10).
+// the model's structured output is per-condition.
 function metOutput(reasoning: string) {
   return {
     conditions: [{
@@ -110,7 +110,7 @@ describe('LLMVerifier', () => {
     expect(result.verification.reasoning).toContain('Verification failed')
   })
 
-  // Phase 355-01 (CTXB-04 / D-10) — RED until Plan 06 injects the TokenAccounting port
+  // Phase 355-01 — RED until Plan 06 injects the TokenAccounting port
   // into LLMVerifier and feeds recordUsage(result.usage, messages) after each response.
   it('feeds the injected TokenAccounting recordUsage exactly once per response', async () => {
     const { generateText } = await import('ai')

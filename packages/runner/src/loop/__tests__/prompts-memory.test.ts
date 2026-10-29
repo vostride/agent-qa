@@ -1,7 +1,7 @@
-// Ported from core/src/agent/__tests__/prompts-memory.test.ts (353-03, D-02).
+// Ported from core/src/agent/__tests__/prompts-memory.test.ts.
 //
 // 355-02 rewrite (Wave-0, RED pending Plan 03): the v1 opaque single memory-context
-// string slot is retired and SPLIT into the two v2 channels (D-12/D-13):
+// string slot is retired and SPLIT into the two v2 channels:
 //   - the knowledge brief → the VOLATILE system tier (`buildVolatileTier`), framed as
 //     hypotheses (L3, not commands), above the cache breakpoint;
 //   - working memory → structured TURN content (`composeTurnMessages`), below the system
@@ -20,7 +20,7 @@ import {
 } from '../prompts.js'
 import { buildAgentScreenState } from './screen-fixtures.js'
 
-// The two v2 memory slots on StepContext (D-12/D-13): knowledgeBrief (volatile tier) and
+// The two v2 memory slots on StepContext: knowledgeBrief (volatile tier) and
 // workingMemory (structured turn content). Phase 358 broke workingMemory from the plain-string
 // slot to the structured `WorkingMemoryEntry[]` set (sanctioned, no shim) — the fixtures below
 // construct entry arrays and assert the value reaches the planner turn verbatim.

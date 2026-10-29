@@ -278,7 +278,7 @@ describe('screen identity in cache keys and replay', () => {
     )
     expect(result.status).toBe('failed')
     expect(result.evidence!.verifierVerdict.pass).toBe(false)
-    // The rejected completion, then the give-up's own judgment (439 D-08).
+    // The rejected completion, then the give-up's own judgment.
     expect(verifies).toBe(2)
     expect(result.evidence!.conditionVerdicts?.ending).toBe('give-up')
     expect(planner.calls).toBe(2)

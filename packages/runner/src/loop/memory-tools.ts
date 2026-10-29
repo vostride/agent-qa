@@ -42,7 +42,7 @@ const anchorSchema = z.discriminatedUnion('t', [
   z.object({ t: z.literal('error'), message: z.string() }).strict(),
 ])
 
-// D-12: a capability that does not exist cannot be injected into use. Audit controls and
+// a capability that does not exist cannot be injected into use. Audit controls and
 // run-fixed scope/build attribution are therefore absent from this strict model-facing schema.
 const memorySearchInputSchema = z
   .object({

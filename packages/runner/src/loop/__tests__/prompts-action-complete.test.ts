@@ -1,4 +1,4 @@
-// Ported from core/src/agent/__tests__/prompts-action-complete.test.ts (353-03, D-02).
+// Ported from core/src/agent/__tests__/prompts-action-complete.test.ts.
 import { describe, it, expect } from 'vitest'
 import { buildSystemPrompt } from '../prompts.js'
 
@@ -7,7 +7,7 @@ function getActionCompletionRule(systemPrompt: string): string {
   return match?.[0] ?? ''
 }
 
-// 2026-10-11 (439-03): Rule 19 asks for the requested outcome in evidence (D-01, D-11, D-18).
+// Rule 19 asks for the requested outcome in evidence.
 describe('completion needs its outcome in evidence', () => {
   const systemPrompt = buildSystemPrompt()
   const actionCompletionRule = getActionCompletionRule(systemPrompt)

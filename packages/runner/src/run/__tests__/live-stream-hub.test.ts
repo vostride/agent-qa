@@ -386,7 +386,7 @@ describe('the N-viewer invariant', () => {
       let nextFrameId = 1
       let peakConcurrent = 0
 
-      /** The grace elapsing with nobody attached ENDS the watched interval (D-07). */
+      /** The grace elapsing with nobody attached ENDS the watched interval. */
       const endInterval = (): void => {
         watched = false
         expectedStops += 1
@@ -788,7 +788,7 @@ describe('the N-viewer invariant', () => {
   })
 })
 
-// ---- 428-01: CAPTURE TIME AND KIND ON THE FRAME (D-15, PXH-LIVE-03) -----------------------------
+// ---- 428-01: CAPTURE TIME AND KIND ON THE FRAME -----------------------------
 //
 // A frame's time is its CAPTURE time in integer epoch milliseconds. The producer stamps it; the hub
 // fills it from its own clock only when the producer did not, and never overwrites one it was given.
@@ -901,7 +901,7 @@ describe('every end names its reason and close() evicts', () => {
   })
 })
 
-// ---- 428-04: A FAILED START HANDS OVER TO THE SNAPSHOT FALLBACK (D-12) ---------------------------
+// ---- 428-04: A FAILED START HANDS OVER TO THE SNAPSHOT FALLBACK ---------------------------
 //
 // Only the hub can both record the failure on the run's durable log AND switch producers, so the
 // fallback seat lives here. The failure is still written before the switch: a fallback that hid the

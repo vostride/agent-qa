@@ -1,4 +1,4 @@
-// F-381-51-1 collision proof (381-52 · D-09): whole-flow guarded replay must NOT consume a
+// F-381-51-1 collision proof: whole-flow guarded replay must NOT consume a
 // committed procedure's entire multi-step body inside the single test step whose consult
 // matched. The harness mirrors the committed ladder page's navigate-on-submit shape
 // (T-381-126 fidelity mitigation): a form screen with a username textbox + submit button,
@@ -357,7 +357,7 @@ describe('procedure step boundary', () => {
     )
 
     expect(result.status).toBe('passed')
-    // D-09: a replay-recommendation match drives THAT STEP's actions — the step consumes
+    // a replay-recommendation match drives THAT STEP's actions — the step consumes
     // exactly the one body step at the cursor. The shipped build dispatches BOTH stored
     // actions (fill + click) inside step 0.
     expect(executed).toHaveLength(1)
@@ -401,7 +401,7 @@ describe('procedure step boundary', () => {
     )
 
     expect(result.status).toBe('passed')
-    // Replay is naturally bounded by the step (D-09): body step 1's click belongs to test
+    // Replay is naturally bounded by the step: body step 1's click belongs to test
     // step 1. On the shipped build the click fires inside step 0 and the screen is the
     // form-less received page — which makes the scripted step 1 imperative unsatisfiable.
     expect(executed.filter((action) => action.type === 'click')).toHaveLength(0)
@@ -410,7 +410,7 @@ describe('procedure step boundary', () => {
 })
 
 // ---------------------------------------------------------------------------
-// GREEN rows: the option-(a) cross-step carry (F-381-51-1 · D-09/D-10/D-11/D-12).
+// GREEN rows: the option-(a) cross-step carry.
 // Body steps map 1:1 onto test steps; the member-scoped carry cell is the ONLY channel
 // the cursor crosses a test-step boundary on, and take-then-rearm makes carry loss the
 // default on every early exit.
@@ -519,7 +519,7 @@ describe('cross-step flow carry', () => {
       },
       flow: { cursor: 1, length: 2 },
     })
-    // One-shot (D-11): structural recovery evidence reaches planning and the flow is over —
+    // One-shot: structural recovery evidence reaches planning and the flow is over —
     // the take at step start emptied the cell and the miss never re-arms it.
     expect(planner.calls).toHaveLength(1)
     const learned = `${planner.calls[0].l1 ?? ''}\n${planner.calls[0].l2 ?? ''}`
@@ -600,7 +600,7 @@ describe('cross-step flow carry', () => {
       },
       flow: { cursor: 1, length: 2 },
     })
-    // Rejection aborts the FLOW, not just replay re-entry within the step (D-11).
+    // Rejection aborts the FLOW, not just replay re-entry within the step.
     expect(planner.calls).toHaveLength(1)
     const learned = `${planner.calls[0].l1 ?? ''}\n${planner.calls[0].l2 ?? ''}`
     expect(learned).toContain('Guarded replay verifier rejected procedure step 2')
@@ -646,7 +646,7 @@ describe('cross-step flow carry', () => {
 })
 
 // ---------------------------------------------------------------------------
-// C438-RECOVERY-NO-POSITION (438 D-12): the guard-miss recovery context names stored and fresh
+// the guard-miss recovery context names stored and fresh
 // candidates by role and name only. No stored or derived position reaches the planner.
 // ---------------------------------------------------------------------------
 

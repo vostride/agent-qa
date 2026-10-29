@@ -1,11 +1,11 @@
-// C438-HEAL-LANES (438 D-04, D-08; CR-01): a heal re-finds EVERY ref lane of the failed action in
+// a heal re-finds EVERY ref lane of the failed action in
 // the fresh observation by role, exact name and row words (strictMatch) and judges every stated
 // lane against its re-found element, or sends nothing. No pre-observe ref reaches the adapter
 // after a heal. Model-free: a scripted planner and a recording android adapter that shows the
 // prior page until the first dispatch and the fresh page on every observation after it (the
 // loop's settle needs two equal reads, so the page changes when the first action is attempted).
 //
-// C438-HEAL-EVIDENCE (438 D-05; WR-01): the heal's grounding block passes role, name and row
+// the heal's grounding block passes role, name and row
 // through the declared-secret mask, like the live block, and caps the prior row text at the
 // refusal block's observed-row cap.
 import { describe, expect, it } from 'vitest'
@@ -394,7 +394,7 @@ async function runSave(
   return { a, result }
 }
 
-// C438-HEAL-RECORD (438 D-08, D-11; CR-03; 444.1 D-14): a heal that re-dispatches sends refs taken
+// a heal that re-dispatches sends refs taken
 // from the heal's fresh observation, so its dispatch pair (healedDispatch) is recorded against that
 // observation (re-stamped with the planner call's capture stamp): every dispatched ref names, in the
 // dispatch stateBefore, the element the input was sent to. A heal that sends nothing records none.
@@ -516,13 +516,13 @@ describe('which observation a healed action is recorded against', () => {
     expect(calls).toHaveLength(1)
     const ref = (calls[0]!.action as { ref?: unknown }).ref
     expect(ref).toBe('e3')
-    // 439 D-03: the record names the element each action acted on, from that action's observation.
+    // the record names the element each action acted on, from that action's observation.
     expect(calls[0]!.record.actions.at(-1)?.element).toEqual({ role: 'button', name: 'Save' })
     expect(renderStepRecord(calls[0]!.record).actions).toContain('click on ref="e3" (button "Save")')
   })
 })
 
-// 2026-10-19 (444.1-08, D-14): plannedAction/stateBefore stay what the planner chose and saw.
+// plannedAction/stateBefore stay what the planner chose and saw.
 describe('a heal records the dispatch pair beside the planner pair', () => {
   it('a healed click keeps the planner pair and records the dispatch pair beside it', async () => {
     const { a, result } = await runSave(SAVE_FRESH, [BINDING_LOST_TO_REF, { success: true }])

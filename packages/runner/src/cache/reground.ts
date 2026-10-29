@@ -3,7 +3,7 @@
 // element of the fresh observation with its role, exact name and stated row words
 // (grounding/strict-match.ts). There is no role-ignored or substring rung, no position and no
 // hierarchy tiebreak on replay: none or several survivors is a typed outcome the loop turns into
-// a miss (invalidate → replan), so a stored target never drives a pick (T-438-15).
+// a miss (invalidate → replan), so a stored target never drives a pick.
 
 import type { ElementInfo } from '@vostride/agent-qa-schema'
 import { strictMatch } from '../grounding/strict-match.js'

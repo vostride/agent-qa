@@ -1,4 +1,4 @@
-// C439-GUARDS (439 D-16, D-18, D-19): the runner's own checks, called directly. Open dialogs per
+// the runner's own checks, called directly. Open dialogs per
 // platform, real limits from reported attributes, and the rule that a guard only ever lowers a
 // met verdict.
 

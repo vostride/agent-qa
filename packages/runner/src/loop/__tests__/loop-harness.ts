@@ -1,4 +1,4 @@
-// Shared fakes for the runner loop test suite (353-04). Framework-free helpers: the
+// Shared fakes for the runner loop test suite. Framework-free helpers: the
 // test files supply the it()/expect wrappers. Models a fake PlatformAdapter and a scripted
 // Planner/Verifier.
 import type { LanguageModel, LanguageModelUsage, ModelMessage } from 'ai'
@@ -101,7 +101,7 @@ export function makeVerifier(results?: ScriptedVerdict[]): Verifier {
 }
 
 // ---------------------------------------------------------------------------
-// Fake TokenAccounting port (Phase 355-01, CTXB-04). A structural implementation
+// Fake TokenAccounting port. A structural implementation
 // of the runner `TokenAccounting` port (ports.ts:118-123), typed against the
 // imported interface so any drift from the real port surface is a compile error.
 // Framework-free: recordUsage / degrade invocations are captured into plain arrays

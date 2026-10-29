@@ -1,4 +1,4 @@
-// C438-STATED-TARGET-LOOP (438 D-01, D-04, D-05): the planner's stated target reaches the loop's
+// the planner's stated target reaches the loop's
 // pre-dispatch check from a real planning turn (`ai.generateText` mocked, the real LLMPlanner and
 // gate run), on the descriptor lane and per drag lane, and a refusal sends nothing, is not debited
 // as an action, and records both identities only after the declared-secret mask.

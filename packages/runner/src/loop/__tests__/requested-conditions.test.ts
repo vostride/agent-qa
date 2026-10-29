@@ -1,7 +1,7 @@
-// C439-JUDGE (439 D-06, D-07, D-09, D-10): the runner's judge over the verifier's per-condition
+// the runner's judge over the verifier's per-condition
 // output, case by case. judgeConditions is called directly with hand-built citation sources; the
-// fallback cell drives a real LLMVerifier over a failing fake model. C439-COVERAGE (D-02) and
-// C439-PHRASES (D-11) pin the coverage and phrase checks.
+// fallback cell drives a real LLMVerifier over a failing fake model. C439-COVERAGE and
+// C439-PHRASES pin the coverage and phrase checks.
 
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { asRef, stepOutcomeUnproven } from '@vostride/agent-qa-schema'

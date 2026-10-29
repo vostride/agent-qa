@@ -1,4 +1,4 @@
-// C439-CHECKS-LOOP (439 D-02, D-11): through the real loop, a completion whose conditions leave
+// through the real loop, a completion whose conditions leave
 // part of the step uncovered, reword it, or whose reasoning admits the action did not happen is
 // not a pass, and the planner's next turn is told why.
 
@@ -143,7 +143,7 @@ describe('a step passes only when every requested condition is checked', () => {
     )
 
     expect(result.status).not.toBe('passed')
-    // The completion's refusal reaches the planner; the give-up's own judgment (439 D-08) reads
+    // The completion's refusal reaches the planner; the give-up's own judgment reads
     // no planner reasoning, so its block keeps the verifier's met verdict and the step still fails.
     expect(contexts[1]).toContain(
       'Not met: "Submit the contact form" (The reasoning says "has not yet been submitted")',

@@ -1,4 +1,4 @@
-// SCREEN-02 / D-15: the evidence boundary matrix. stateBefore is always the FULL
+// the evidence boundary matrix. stateBefore is always the FULL
 // ScreenState the sub-action was planned against; stateAfter lands ONLY at the three
 // spec-locked boundaries (assert, verifier, self-heal) by reuse of an observation the
 // loop already takes. Plus the redact-before-record security lock and the cache fold.
@@ -34,8 +34,8 @@ describe('loop evidence matrix', () => {
     expect(Object.keys(sub.stateBefore.refMap).length).toBeGreaterThan(0)
   })
 
-  // (2) REMOVED (Phase 360, D-19): this pinned the retired non-visual-`assert` afterState-reuse
-  // special-case (D-15a) — stateAfter === stateBefore. Both the verb and the reuse branch were
+  // (2) REMOVED: this pinned the retired non-visual-`assert` afterState-reuse
+  // special-case — stateAfter === stateBefore. Both the verb and the reuse branch were
   // deleted this plan; a no-verifier completion no longer reuses stateBefore. The deterministic
   // assertion-outcome behavior that replaces it is pinned in assert-value.test.ts (Plan 10), so
   // it is NOT duplicated here. The surviving stateAfter paths are covered by (3) and the
@@ -46,7 +46,7 @@ describe('loop evidence matrix', () => {
     const after = makeScreenState({ url: 'https://example.test/after' })
     // The settle gate consumes two consecutive observations (identical screenIdentityHash —
     // url is not part of screen identity) before proceeding, so `before` is fed twice; the
-    // verifier's own re-observation then yields `after` as stateAfter (D-15b).
+    // verifier's own re-observation then yields `after` as stateAfter.
     const result = await executeStep(
       'Click Log in',
       ports({ adapter: makeAdapter({ observeResults: [before, before, after] }), planner: makePlanner(), verifier: makeVerifier() }),
@@ -162,9 +162,9 @@ describe('loop evidence matrix', () => {
   })
 })
 
-// 407-07 · D-13/D-16: the loop is HANDED a rung (resolved once at the composition root) and
+// the loop is HANDED a rung (resolved once at the composition root) and
 // stamps it into every step's evidence. Three laws are pinned here because each one is a way
-// the banner could lie: a rung stamped on a run that served no brief (D-16), a rung lost
+// the banner could lie: a rung stamped on a run that served no brief, a rung lost
 // because a host probe was slow, and a step FAILED because asking about the host threw.
 describe('loop retrieval rung threading', () => {
   const rung: RecordedRetrievalRung = {

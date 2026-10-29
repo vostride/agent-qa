@@ -45,7 +45,7 @@ type WithSchemaInspectTab<T> = T extends { tab?: unknown }
 
 type ScrollParams = z.infer<typeof scrollSchema>
 type SwipeParams = z.infer<typeof swipeSchema>
-// The swipe direction branch now carries an emission `target` descriptor (D-05); the path
+// The swipe direction branch now carries an emission `target` descriptor; the path
 // branch (coordinate gesture) does not.
 type WithSwipeCompanions<T> = T extends unknown
   ? Omit<T, 'type'> & { elementDescription?: string | undefined } & (T extends { mode: 'direction' } ? { target?: EmittedTargetDescriptor } : unknown)
@@ -62,7 +62,7 @@ type RegistryWebInspectAction = WithActionType<'inspect', WithSchemaInspectTab<z
 type PlannedPinchAction = WithActionType<'pinch', WithEmittedRef<Extract<MobileAction, { type: 'pinch' }>>>
 type PlannedMultiTapAction = WithActionType<'multiTap', WithEmittedRef<Extract<MobileAction, { type: 'multiTap' }>>>
 
-// --- EMISSION world: tool inference now widens ref + adds target (D-05) ---
+// --- EMISSION world: tool inference now widens ref + adds target ---
 expectTypeOf<z.infer<typeof fillSchema>['ref']>().toEqualTypeOf<Ref | undefined>()
 expectTypeOf<z.infer<typeof fillSchema>['target']>().toEqualTypeOf<EmittedTargetDescriptor | undefined>()
 expectTypeOf<ScrollParams['ref']>().toEqualTypeOf<Ref | undefined>()

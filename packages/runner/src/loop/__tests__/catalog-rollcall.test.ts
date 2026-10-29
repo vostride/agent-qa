@@ -163,7 +163,7 @@ async function dispatchReachesAdapter(action: Action, platform: Platform): Promi
         adapter,
         planner: makePlanner([makeActionPlan({ action: action as ActionPlan['action'], stepComplete: false })]),
         // No verifier: the probe ends at its action limit, which a bound verifier would judge
-        // over a settled screen (439 D-08); dispatch is all this probe reads.
+        // over a settled screen; dispatch is all this probe reads.
         plannerConfig: { maxActions: 1, maxPlanningTurns: 1, previousStepCount: 0 },
         onSetVariable: () => { setVariableRouted = true },
       }),

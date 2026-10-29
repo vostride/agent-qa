@@ -165,7 +165,7 @@ function drain(session: RunSession): RunEventEnvelope[] {
 }
 
 // -----------------------------------------------------------------------------
-// SESSION-01 — startRun(config) → RunSession: synchronously addressable id/status/context
+// startRun(config) → RunSession: synchronously addressable id/status/context
 // -----------------------------------------------------------------------------
 describe('a run starts through startRun(config) → RunSession the CLI consumes', () => {
   it('returns a session SYNCHRONOUSLY carrying id, running status, and the live executionContext', () => {
@@ -190,7 +190,7 @@ describe('a run starts through startRun(config) → RunSession the CLI consumes'
 })
 
 // -----------------------------------------------------------------------------
-// SESSION-02 — the typed event bus: bus schema v1 envelope, gap-free seq, ordering, replay
+// the typed event bus: bus schema v1 envelope, gap-free seq, ordering, replay
 // -----------------------------------------------------------------------------
 describe('the typed event bus implements bus schema v1 over a gap-free seq stream', () => {
   it('seq is gap-free from 1; runStarted (seq 1) declares busSchemaVersion = CURRENT_BUS_SCHEMA_VERSION', async () => {
@@ -276,7 +276,7 @@ describe('the typed event bus implements bus schema v1 over a gap-free seq strea
 })
 
 // -----------------------------------------------------------------------------
-// SESSION-03 — event payloads are browser-safe projections: no live handles, states as hashes
+// event payloads are browser-safe projections: no live handles, states as hashes
 //              (the D-11 compile-time-exhaustive event-union payload-discipline walk)
 // -----------------------------------------------------------------------------
 
@@ -430,7 +430,7 @@ describe('event payloads are browser-safe JSON projections (no live handles, sta
 })
 
 // -----------------------------------------------------------------------------
-// SESSION-04 — `agent-qa run <pattern>` is ONE RunSession spanning N members; aggregate verdict
+// `agent-qa run <pattern>` is ONE RunSession spanning N members; aggregate verdict
 //              rule + exit code determined at the verdict event
 // -----------------------------------------------------------------------------
 
@@ -480,7 +480,7 @@ describe('one RunSession over N members: the ratified aggregate rule + exit code
     expect(agg(['passed', 'timeout'])).toBe('failed')
     expect(agg(['passed', 'healed'])).toBe('healed')
     expect(agg(['passed', 'passed'])).toBe('passed')
-    // D-15: skipped members are neutral; an all-skipped (and the empty) run is vacuously passed.
+    // skipped members are neutral; an all-skipped (and the empty) run is vacuously passed.
     expect(agg(['skipped', 'skipped'])).toBe('passed')
     expect(agg([])).toBe('passed')
     expect(agg(['passed'], { runCancelled: true })).toBe('cancelled')
@@ -499,7 +499,7 @@ describe('one RunSession over N members: the ratified aggregate rule + exit code
 })
 
 // -----------------------------------------------------------------------------
-// SESSION-05 — exactly one CompletedRunHandoff per run, carrying the §A8 header + per-test steps
+// exactly one CompletedRunHandoff per run, carrying the §A8 header + per-test steps
 // -----------------------------------------------------------------------------
 describe('exactly one CompletedRunHandoff per run, §A8 header fields copied from RunConfig', () => {
   it('the handoff persists exactly once and is the SAME object done resolves (pass path)', async () => {
@@ -559,7 +559,7 @@ describe('exactly one CompletedRunHandoff per run, §A8 header fields copied fro
     // The runId directory component is slugged traversal-safe (T-360-03 slugBranch idiom).
     expect(eventLog).toContain('slugBranch')
     const handoffStore = readFileSync(resolve(packagesRoot, 'runner-local', 'src', 'handoff-store.ts'), 'utf8')
-    // The read side delegates the reject-newer/migrate-older rule to the schema's ONE guard (D-19).
+    // The read side delegates the reject-newer/migrate-older rule to the schema's ONE guard.
     expect(handoffStore).toContain('guardCompletedRunHandoff')
   })
 })

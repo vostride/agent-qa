@@ -1,4 +1,4 @@
-// Ported from core/src/agent/__tests__/asserter.test.ts (353-03, D-02) — behavior
+// Ported from core/src/agent/__tests__/asserter.test.ts — behavior
 // unchanged, fixtures re-pointed to the runner test-local bridge.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'

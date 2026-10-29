@@ -73,7 +73,7 @@ function expectOptional(fieldSchema: z.ZodType): void {
 }
 
 // The `target` field must be an optional strict stated target: role, name and row words ONLY
-// (438 D-01, D-02) — never an ordinal (438 D-12), never `near` (D-06, omitted from the M1 LLM
+// never an ordinal, never `near` (D-06, omitted from the M1 LLM
 // surface) and never a selector-like field (the grounding-surface rule).
 function expectTargetDescriptorShape(fieldSchema: z.ZodType): void {
   expectOptional(fieldSchema)
@@ -129,7 +129,7 @@ describe('target descriptor coverage (uniform scanner rule)', () => {
     for (const id of ['web_click', 'mobile_tap', 'common_scroll'] as const) {
       for (const shape of refBearingShapes(schemaFor(registry, id))) {
         expectOmitWhenDescribe(shape.ref)
-        // 438 D-01: the target is sent alongside the ref, and alone only with no confident ref;
+        // the target is sent alongside the ref, and alone only with no confident ref;
         // the contract is stated in prose (invisible to JSON schema otherwise — Pitfall 4).
         expect(shape.target.description ?? '').toMatch(/alongside ref/i)
         expect(shape.target.description ?? '').toMatch(/no confident ref, send target alone/i)
@@ -148,6 +148,6 @@ describe('target descriptor coverage (uniform scanner rule)', () => {
     }
   })
 
-  // NOTE: elementDescription (D-07) is intentionally untouched — its surface is pinned
+  // NOTE: elementDescription is intentionally untouched — its surface is pinned
   // unchanged by element-description.test.ts, which must keep passing verbatim.
 })

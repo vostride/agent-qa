@@ -1,6 +1,6 @@
 // Ported v1 loop scenarios (core/src/agent/__tests__/{loop,trace,integration,capture-gate})
 // re-run against the runner-owned executeStep. Scenarios that exercised deleted machinery
-// (the consecutive-failure counter, memory ablation) are dropped (D-10). New locks: the
+// (the consecutive-failure counter, memory ablation) are dropped. New locks: the
 // cached-redacted-marker invalidation and trace===projectLegacyTrace.
 import { describe, it, expect, vi } from 'vitest'
 import type { ScreenState } from '@vostride/agent-qa-schema'
@@ -154,7 +154,7 @@ describe('executeStep — ported v1 scenarios', () => {
   })
 
   describe('completion calls the verifier', () => {
-    // D-19 (Phase 360): the retired non-visual-`assert` verifier-bypass short-circuit was
+    // the retired non-visual-`assert` verifier-bypass short-circuit was
     // deleted. Its deterministic-verdict replacement (an assertValue outcome short-circuiting
     // the per-step verifier, D-11) is pinned RED in assert-value.test.ts (Plan 10) — NOT
     // duplicated here. This suite now only holds the neutral completion invariant: a normal
@@ -199,7 +199,7 @@ describe('executeStep — trace projection', () => {
 
 describe('executeStep — cache (redesigned per-key port + hit ladder)', () => {
   const cachedLogin: CachedPlanValue = {
-    // Descriptor-only value (D-12): ref/coords stripped; the locator re-grounds to the
+    // Descriptor-only value: ref/coords stripped; the locator re-grounds to the
     // fresh `log in` button (e2) against the observation at replay time.
     plannedActions: [{ type: 'click' } as unknown as CacheablePlannedAction],
     groundedLocator: [{ role: 'button', name: 'Log in' }],

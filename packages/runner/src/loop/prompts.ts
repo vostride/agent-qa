@@ -4,7 +4,7 @@
 // shim-free. v1 semantics preserved: estimateTokens (chars/4) + its context-window
 // warning behavior, the token-composition logging (Pitfall 10), and the
 // sub-action-history "no visible change" warning (Pitfall 5). D-13 adds a re-run
-// context block surfaced to the planner (LOOP-03).
+// context block surfaced to the planner.
 import {
   asRef,
   sha256hex,
@@ -28,7 +28,7 @@ type PromptPlatform = 'web' | 'android' | 'ios'
 const CHARS_PER_TOKEN = 4
 
 /**
- * v1 token estimate (chars/4). No semantic change (D-04); the TokenAccounting port
+ * v1 token estimate (chars/4). No semantic change; the TokenAccounting port
  * lands in Phase 355. Exported here because the prompts module is the token estimate's
  * sole runner-side consumer.
  */
@@ -180,7 +180,7 @@ function completionRules(platform?: PromptPlatform): string {
 22. OUTCOME EVIDENCE: Judge an action by its requested outcome, not by whether the screen changed. No visible change is not failure, and a visible change is not success. After each action, check the requested effect in the current screen state and in the action's returned data (a field value, a toggle state, an opened dialog, a download, a copied value, a saved record). Repeat a state-changing action such as submit, save, pay or delete only when it returned an actual error or there is evidence that it did not happen; never reissue it just because the screen looks the same. Repetition is fine when the step asks for it (press a control five times, delete every row): perform each requested repetition once and count them in the sub-action history. If the requested outcome is still absent after the action and one reasonable alternative, set stepFailed and name the missing outcome in your reasoning.`
 }
 
-// 2026-10-14 (441-01, D-10): one line; Rule 23 keeps its number so the rules are not renumbered.
+// one line; Rule 23 keeps its number so the rules are not renumbered.
 function secretPlaceholderRules(): string {
   return '23. SECRETS: [secret:NAME] is a declared secret whose value exists but is hidden from you. To type it, use {{secret:NAME}} verbatim as the action value, never [secret:NAME].'
 }
@@ -221,7 +221,7 @@ function appendContextSection(parts: string[], context: StepContext): void {
   if (formatted !== undefined) parts.push(formatted)
 }
 
-// BRIF-01/D-05: L0 is authored/sovereign policy material, not learned memory. It alone may
+// L0 is authored/sovereign policy material, not learned memory. It alone may
 // enter the cached-prefix context tier. Empty/whitespace input emits no header or blank section.
 function appendKnowledgePolicyL0(parts: string[], context: StepContext): void {
   const policy = context.knowledgePolicyL0
@@ -231,7 +231,7 @@ function appendKnowledgePolicyL0(parts: string[], context: StepContext): void {
   parts.push(policy)
 }
 
-// D-13 re-run context (LOOP-03). Only emitted when the run-level re-run flag is set;
+// D-13 re-run context. Only emitted when the run-level re-run flag is set;
 // when isRerun is false/absent nothing is pushed, so non-rerun prompt output stays
 // byte-identical to v1. This is the explicit re-run signal the planner sees: the
 // re-run carries full memory/context (no ablation) plus the prior failure summary.
@@ -287,7 +287,7 @@ function appendBulkCompletionPredicate(parts: string[], context: StepContext): v
   parts.push('Re-evaluate this predicate against the current observation each turn, and cite the positive evidence that it holds before setting stepComplete.')
 }
 
-// 437 D-05: a skipped tap sent no input, so it is neither a tick nor a cross.
+// a skipped tap sent no input, so it is neither a tick nor a cross.
 const HISTORY_GLYPHS = { success: '✓', failure: '✗', 'no-input': '–' } as const
 
 function appendSubActionHistory(parts: string[], context: StepContext): void {
@@ -307,13 +307,13 @@ function appendSubActionHistory(parts: string[], context: StepContext): void {
     if (sub.evidence) subHistoryParts.push(`    Operation evidence: ${sub.evidence}`)
   }
 
-  // 2026-10-07 (436-03): no repetition warning here; requested repetition is legitimate (HARN-01).
+  // no repetition warning here; requested repetition is legitimate.
 
   parts.push('')
   parts.push(subHistoryParts.join('\n'))
 }
 
-// 2026-10-08 (436-16): a late download is marked as not started by the action it rides (WR-05).
+// a late download is marked as not started by the action it rides.
 const LATE_DOWNLOAD_NOTE = ", started after the previous action's capture ended; not attributed to this action"
 
 function renderDownload(download: DownloadEvidence): string {
@@ -330,7 +330,7 @@ function renderDownloadOutcome(download: DownloadEvidence): string {
 }
 
 /**
- * 436 D-22: one line per piece of operation evidence. Only a 'completed' download is evidence that
+ * one line per piece of operation evidence. Only a 'completed' download is evidence that
  * a download happened; the text is app-controlled, so callers wrap it as app-observed data.
  */
 export function renderOperationEvidence(evidence: OperationEvidence): string {
@@ -365,7 +365,7 @@ const SUBMIT_REASON_WORDS: Record<string, string> = {
 }
 
 /**
- * 437 D-05/D-06/D-17/D-18: only a notable input outcome renders; an exact or normalized fill whose
+ * only a notable input outcome renders; an exact or normalized fill whose
  * Enter was sent, or not requested, adds no line.
  */
 export function renderInputEvidence(entry: InputEvidence): string | undefined {
@@ -432,7 +432,7 @@ function appendFailureContext(parts: string[], context: StepContext): void {
 }
 
 function appendPromptNote(parts: string[], promptNote?: string): void {
-  // D-11: text-only runs carry a non-empty note (visual screenshot unavailable);
+  // text-only runs carry a non-empty note (visual screenshot unavailable);
   // full-capture runs pass an empty/absent note and nothing is injected.
   if (promptNote && promptNote.length > 0) {
     parts.push('')
@@ -445,7 +445,7 @@ function appendPromptNote(parts: string[], promptNote?: string): void {
 // ---------------------------------------------------------------------------
 
 // custom-rules injection removed with the workspace agent-rules config surface
-// (Phase 373, KDIR-03); policy serving returns via Reader L0 policies in Phase 380.
+// policy serving returns via Reader L0 policies in Phase 380.
 export function buildSystemPrompt(platform?: PromptPlatform): string {
   const rulesBlock = buildRules(platform)
 
@@ -460,19 +460,19 @@ Call the tool matching the action you want to execute. Include reasoning, confid
 }
 
 // ---------------------------------------------------------------------------
-// Cache-ordered planner tiers (CTXB-01 — D-04/D-05/D-06/D-07)
+// Cache-ordered planner tiers
 //
 // The planner `system` value is an ordered [stable, context, volatile] array of
 // role:'system' messages. `buildSystemPrompt` (above) is the STABLE tier verbatim
 // (identity + prose tool-docs + the 21 rules, D-06/D-16). The two builders below
 // produce the CONTEXT and VOLATILE tiers. Per-turn state never enters these tiers —
-// it rides `composeTurnMessages` output after the system region (D-04).
+// it rides `composeTurnMessages` output after the system region.
 // ---------------------------------------------------------------------------
 
 /**
- * CONTEXT tier (D-04): the app-under-test / suite / test framing. Byte-stable per run,
+ * CONTEXT tier: the app-under-test / suite / test framing. Byte-stable per run,
  * so it sits inside the cached prefix and carries the single Anthropic `cache_control`
- * ephemeral breakpoint (D-05) — everything at or above this message (stable + context)
+ * ephemeral breakpoint — everything at or above this message (stable + context)
  * is cached once per run at zero incremental cost. A non-Anthropic provider never parses
  * the `anthropic` namespace, so `providerOptions` is a transparent no-op there.
  */
@@ -518,9 +518,9 @@ function renderStructuredBriefAsHypotheses(context: StepContext): string {
 }
 
 /**
- * VOLATILE tier (D-04/D-07): the knowledge brief (empty until M2 binds a
+ * VOLATILE tier: the knowledge brief (empty until M2 binds a
  * KnowledgeHintReader impl, D-12) plus a DATE-GRANULARITY timestamp. Date precision only
- * — minute/second precision would bust the KV cache (D-07). Carries NO cache breakpoint;
+ * — minute/second precision would bust the KV cache. Carries NO cache breakpoint;
  * it sits after the breakpoint that lives on the context tier.
  */
 export function buildVolatileTier(context: StepContext): SystemModelMessage {
@@ -607,14 +607,14 @@ export function captureServedPromptTurn(
 }
 
 /**
- * Per-turn content composer (CTXB-01/CTXB-02 — D-08/D-09/D-12). Decomposes the
+ * Per-turn content composer. Decomposes the
  * per-turn state into a small ordered set of turn messages so 354's degrade() can pin
  * and proportionally truncate at message granularity rather than shredding one blob.
  * Order: re-run context → previous steps → sub-action history → failure context →
  * working memory → latest observation → current instruction (FINAL). Empty slots are
- * omitted entirely — no blank/degenerate message is pushed (D-12).
+ * omitted entirely — no blank/degenerate message is pushed.
  *
- * PIN CONTRACT (D-08): the last two messages are the pinned pair — the latest
+ * PIN CONTRACT: the last two messages are the pinned pair — the latest
  * OBSERVATION (second-to-last) and the CURRENT INSTRUCTION (last, verbatim). The caller
  * (Plan 05) protects exactly these two via degrade's `pin`; every earlier message is
  * trim-eligible. All per-turn state lives here and NEVER in the cached system tiers.
@@ -643,11 +643,11 @@ export function composeTurnMessages(
 
   // D-09 bulk-completion predicate — per-turn VOLATILE turn content (never the cached system
   // tiers, Pitfall 3). Trim-eligible; sits before the pinned observation/instruction pair.
-  // 2026-10-07 (436-03): the stagnation and cycle-break blocks went with the progress subsystem.
+  // the stagnation and cycle-break blocks went with the progress subsystem.
   pushText((parts) => appendBulkCompletionPredicate(parts, context))
 
   // Pinned pair — latest observation (with the screenshot when vision-capable), then
-  // the current instruction as the FINAL message (D-08).
+  // the current instruction as the FINAL message.
   const obsParts: string[] = []
   obsParts.push('Current screen state:')
   obsParts.push(truncateScreenState(screenState))
@@ -797,11 +797,11 @@ export function formatAction(action: Action): string {
 }
 
 /**
- * VERIFIER stable tier (CTXB-01 / D-11): the byte-stable verdict-identity block, the verifier's own
- * cached prefix, identical on every verification call. 439 (D-01, D-05, D-06, D-11, D-18) states
+ * VERIFIER stable tier: the byte-stable verdict-identity block, the verifier's own
+ * cached prefix, identical on every verification call. 439 states
  * the per-condition contract here: split the step into quoted conditions, judge each from cited
  * current evidence, and leave the pass to the runner. Arg-less: no per-call inputs; the
- * screenshot-analysis paragraph rides only a per-call turn that has an image (D-19).
+ * screenshot-analysis paragraph rides only a per-call turn that has an image.
  */
 export function buildVerifierStableTier(): string {
   return `You are verifying whether a test step was successfully completed.
@@ -827,7 +827,7 @@ Return a JSON object with:
 - reasoning (string): a short overall explanation of the judgment`
 }
 
-// 439 D-19: moved out of the stable tier so a text-only call is never told to analyze an image.
+// moved out of the stable tier so a text-only call is never told to analyze an image.
 const SCREENSHOT_ANALYSIS =
   'Analyze the attached screenshot for visual cues the ARIA tree cannot capture: colors, layout, images, visual indicators, error states. When the screenshot and ARIA tree conflict, visual evidence takes precedence. For quantity claims, only confirm what you can count in the screenshot.'
 
@@ -853,7 +853,7 @@ function verifierActionLine(action: Action, beforeState: ScreenState): string {
 }
 
 /**
- * 439 D-10: the parts of the verification request a citation can point at, rendered with the same
+ * the parts of the verification request a citation can point at, rendered with the same
  * helpers `buildVerificationPrompt` uses, so a quote copied from the request is found here. The
  * record's parts leave out what the planner wrote (claims, queries, typed and expected values).
  */
@@ -916,7 +916,7 @@ function appendWrappedSection(parts: string[], heading: string, text: string): v
   parts.push(wrapAppObservedData(text))
 }
 
-// 439 D-03: the whole step in place of the last action and the screens around it.
+// the whole step in place of the last action and the screens around it.
 function appendStepRecord(parts: string[], record: VerifierStepRecord, afterState: ScreenState): void {
   const rendered = renderStepRecord(record)
   parts.push('')
@@ -935,7 +935,7 @@ function appendStepRecord(parts: string[], record: VerifierStepRecord, afterStat
 }
 
 /**
- * VERIFIER per-call turn content (D-11). Only the per-verification-call bytes: the step
+ * VERIFIER per-call turn content. Only the per-verification-call bytes: the step
  * goal, the enriched action description, and the before/after screen states (+ the
  * optional screenshot note and prompt note). The byte-stable verdict-identity/approach
  * prose now lives in `buildVerifierStableTier()` (the verifier's own cached prefix), so
@@ -985,7 +985,7 @@ export function buildVerificationPrompt(
 
   appendPromptNote(parts, promptNote)
 
-  // 436 D-22: appended only when present, so the prompt bytes without evidence are unchanged.
+  // appended only when present, so the prompt bytes without evidence are unchanged.
   const evidence = operationEvidence ? renderOperationEvidence(operationEvidence) : ''
   if (evidence.length > 0) {
     parts.push('')

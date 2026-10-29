@@ -142,7 +142,7 @@ describe('LLMPlanner', () => {
     expect(diag?.meta?.hasTarget).toBe(true)
   })
 
-  // Phase 355-01 (CTXB-04 / D-10) — RED until Plan 05 injects the TokenAccounting port
+  // Phase 355-01 — RED until Plan 05 injects the TokenAccounting port
   // into LLMPlanner and feeds recordUsage(result.usage, messages) after each response.
   it('feeds the injected TokenAccounting recordUsage exactly once per response', async () => {
     const { generateText } = await import('ai')

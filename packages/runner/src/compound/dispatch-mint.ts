@@ -59,7 +59,7 @@ export function mintUniqueValue(
 }
 
 /**
- * Default suffix source (D-16): timestamp + entropy, base36-encoded, non-empty and distinct across
+ * Default suffix source: timestamp + entropy, base36-encoded, non-empty and distinct across
  * calls. Injectable so deterministic tests pass a fixed generator instead. Randomness/time IS the
  * semantic here (uniqueness), unlike the deterministic app-resolution ladder.
  */

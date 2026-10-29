@@ -1,4 +1,4 @@
-// The runner's own checks on top of the verifier's cited verdicts (439 D-16, D-18, D-19). Pure:
+// The runner's own checks on top of the verifier's cited verdicts. Pure:
 // each reads the final screen's elements or the step's record and only lowers a met verdict;
 // none turns a not-met, unverified or inconclusive condition into met.
 //
@@ -14,7 +14,7 @@
 // state-changing action and a citation from the final screen. Visual: a condition tagged visual,
 // or one citing an assertAI judgment made in 'visual' mode, is inconclusive when no image was
 // attached. File: a condition that needs a saved file is compared with the first download named
-// exactly as expected, this step's own before carried ones, most recent first (D-17).
+// exactly as expected, this step's own before carried ones, most recent first.
 
 import type {
   CitationSource,
@@ -327,7 +327,7 @@ function isReopen(action: Action): boolean {
 export const NO_REREAD_REASON =
   'no re-read after a reload or reopen following the last change; a "Saved" message is the app\'s claim'
 
-/** Whether the step reloaded or reopened after its last state-changing action (439 D-18). */
+/** Whether the step reloaded or reopened after its last state-changing action. */
 export function reopenedAfterLastChange(stepRecord: GuardRecord | undefined): boolean {
   const actions = stepRecord?.actions ?? []
   let lastChange = 0
@@ -343,7 +343,7 @@ export function reopenedAfterLastChange(stepRecord: GuardRecord | undefined): bo
 
 /**
  * A met persistence condition holds only when the step reloaded or reopened after its last
- * state-changing action and the condition cites the final screen (439 D-18).
+ * state-changing action and the condition cites the final screen.
  */
 export function applyPersistenceGuard(
   record: ConditionRecord,
@@ -371,7 +371,7 @@ export const VISUAL_TEXT_ONLY_REASON =
 
 /**
  * A met condition that only a picture can settle (tagged visual, or citing an assertAI judgment
- * made in 'visual' mode) is inconclusive when no image was attached (439 D-19).
+ * made in 'visual' mode) is inconclusive when no image was attached.
  */
 export function applyVisualGuard(
   record: ConditionRecord,
@@ -412,7 +412,7 @@ export const NO_SAVED_FILE_REASON =
  * A met condition that needs a saved file holds only when a download named exactly as expected
  * has the expected content ('none' checks the name only). Candidates are this step's downloads,
  * then carried ones, most recent first. The reason names only the line of the first difference;
- * `file.firstDifference` holds the masked, windowed lines (439 D-17).
+ * `file.firstDifference` holds the masked, windowed lines.
  */
 export function applyFileGuard(
   record: ConditionRecord,

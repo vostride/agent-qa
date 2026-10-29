@@ -3,8 +3,8 @@
 // scorer is deterministic (no fuse.js, D-11): normalize → exact > prefix > substring >
 // token-overlap > bounded edit distance, over the union of full ids, tokenized id segments,
 // and any labels. A fuzzy match launches ONLY when the top candidate clears the threshold AND
-// leads the runner-up by a margin (D-12) — otherwise ambiguous ⇒ candidates, never a coin-flip
-// launch (T-359-04). Thresholds/margins/bounds are internal constants, injectable for tests
+// leads the runner-up by a margin — otherwise ambiguous ⇒ candidates, never a coin-flip
+// launch. Thresholds/margins/bounds are internal constants, injectable for tests
 // (353 K=2), never user-facing config.
 //
 // RED BY DESIGN: `../app-resolution.js` does not exist until Plan 03 — the unresolved import IS

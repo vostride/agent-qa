@@ -11,8 +11,8 @@
 //   vs metadata.scroll.contentWidth/Height, screen unchecked) ⇒ coords_out_of_bounds; a
 //   resolvable target returns a fully-grounded action (ref set, target stripped) plus a
 //   per-rung attempts trail; ref+tree-search exhaustion appends {stage:'visual',
-//   outcome:'skipped'} (D-02); the visual rung runs only under vision:true capability
-//   negotiation (GROUND-02); the committed-ref happy path records a ref attempt.
+//   outcome:'skipped'}; the visual rung runs only under vision:true capability
+//   negotiation; the committed-ref happy path records a ref attempt.
 import { describe, expect, it } from 'vitest'
 
 import { asRef } from '@vostride/agent-qa-schema'
@@ -24,7 +24,7 @@ import { groundActionPlan } from '../gate.js'
 import type { GateResult, GroundActionPlanInput } from '../gate.js'
 
 // A fake visual rung injected via options — proves the capability-negotiation seam
-// (GROUND-02) without any visual rung shipping in M1 (D-01).
+// without any visual rung shipping in M1.
 function fakeVisualRung(resolved: string) {
   return {
     stage: 'visual' as const,

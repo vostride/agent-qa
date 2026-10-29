@@ -1,4 +1,4 @@
-// SESSION-04 verdict-derivation core (D-14/D-15/D-16). Pure, total, no imports
+// SESSION-04 verdict-derivation core. Pure, total, no imports
 // beyond types + the single-sourced isTestTimeoutMessage matcher. The shell (Plan 06)
 // and CLI (Plans 10/11) consume these so the orchestration layers carry zero verdict
 // logic. Every branch here is pinned by run/__tests__/verdict.test.ts.
@@ -12,7 +12,7 @@ import { isTestTimeoutMessage } from '../loop/abort.js'
 export { isTestTimeoutMessage }
 
 /**
- * Derive the member-level outcome for one completed test (D-16). Pure total function.
+ * Derive the member-level outcome for one completed test. Pure total function.
  *
  * - status `skipped` ⇒ `'skipped'` (member-neutral; passed through)
  * - status `cancelled` ⇒ `'cancelled'`
@@ -22,7 +22,7 @@ export { isTestTimeoutMessage }
  * - status `failed` ⇒ `'timeout'` when ANY failed step's `error` is the test-deadline
  *   message (isTestTimeoutMessage), else `'failed'`.
  *
- * Core's TestStatus and the executor port stay untouched by this derivation (D-16).
+ * Core's TestStatus and the executor port stay untouched by this derivation.
  */
 export function deriveMemberOutcome(result: TestResult): MemberTestOutcome {
   switch (result.status) {
@@ -86,7 +86,7 @@ export function deriveAggregateVerdict(input: {
 }
 
 /**
- * Map an aggregate verdict to a process exit code (D-14). Pure and pinned:
+ * Map an aggregate verdict to a process exit code. Pure and pinned:
  * passed/healed ⇒ 0 (healed is ratified as a pass — the annotation lives in output and
  * the handoff, never the exit code), failed/timeout ⇒ 1, cancelled ⇒ 130 (existing SIGINT
  * convention). Exit 2 stays reserved for config/setup errors and is NOT produced here.

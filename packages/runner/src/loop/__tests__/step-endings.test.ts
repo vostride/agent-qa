@@ -1,4 +1,4 @@
-// C439-ENDINGS (439 D-08, D-09): a give-up, an infeasible declaration and both limit stops are
+// a give-up, an infeasible declaration and both limit stops are
 // judged once per condition over a settled final screen, and the step error names what is
 // unproven after the original reason; the verdicts never turn an ending into a pass. Timeout and
 // abort make no verifier call and record the requested outcome as unverified.

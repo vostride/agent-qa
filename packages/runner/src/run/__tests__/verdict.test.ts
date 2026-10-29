@@ -56,7 +56,7 @@ function test(overrides: Partial<TestResult> = {}): TestResult {
 const TEST_TIMEOUT_MESSAGE = createTimeoutAbortReason('test', 30_000).message
 const STEP_TIMEOUT_MESSAGE = createTimeoutAbortReason('step', 5_000).message
 
-// ---- isTestTimeoutMessage (D-16) -----------------------------------------
+// ---- isTestTimeoutMessage -----------------------------------------
 
 describe('isTestTimeoutMessage', () => {
   it.each([
@@ -69,7 +69,7 @@ describe('isTestTimeoutMessage', () => {
   })
 })
 
-// ---- deriveMemberOutcome (D-15/D-16) -------------------------------------
+// ---- deriveMemberOutcome -------------------------------------
 
 describe('deriveMemberOutcome — pure total function', () => {
   it('passed + a step carrying selfHeal evidence ⇒ healed (keyed on evidence, not step status)', () => {
@@ -130,7 +130,7 @@ describe('deriveAggregateVerdict (spec §2.1 ratified rule + neutral-skipped)', 
   })
 })
 
-// ---- mapVerdictToExitCode (D-14) -----------------------------------------
+// ---- mapVerdictToExitCode -----------------------------------------
 
 describe('mapVerdictToExitCode', () => {
   it.each<[RunStatus, number]>([

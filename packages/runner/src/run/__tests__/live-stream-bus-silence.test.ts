@@ -1,4 +1,4 @@
-// LIVE-03: FRAMES FLOW WHILE THE BUS STAYS SILENT (403-02 Task 3 · D-05).
+// FRAMES FLOW WHILE THE BUS STAYS SILENT (403-02 Task 3 · D-05).
 //
 // THE CLAIM. A live view is a SIDE CHANNEL. Frames — bytes, geometry, an ack — cross the
 // `RunSession` through `subscribeFrames`, and the run event bus publishes nothing about them: no

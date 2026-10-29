@@ -6,8 +6,8 @@
 // result) and the target becoming visible. The interim tree is read only to test target
 // visibility: an unchanged tree never ends, reverses or retries a search, and a changed tree is
 // never movement.
-// 2026-10-07 (436-02): the interim-tree identity helper and the retrying direction helper are gone.
-// 2026-10-08 (436-22): the visibility probe answers visible, hidden or unknown; a search in which
+// the interim-tree identity helper and the retrying direction helper are gone.
+// the visibility probe answers visible, hidden or unknown; a search in which
 // any answer was unknown never ends not-found (D-24, review CR-07).
 
 import type { Ref } from '@vostride/agent-qa-schema'
@@ -82,7 +82,7 @@ export interface DocumentScrollOffsets {
 /**
  * The offset rule for a gesture that lands on whatever is under the pointer (web wheel, WebView
  * touch swipe), over every scroller the gesture may have acted on, as aligned before/after arrays
- * (436-18 · D-25). Any member that moved is movement. A boundary needs at least one member with
+ * Any member that moved is movement. A boundary needs at least one member with
  * range on the swiped axis and every member with range at its extent; a member short of its
  * extent, no member with range, or missing, empty or misaligned arrays prove nothing.
  */

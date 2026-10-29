@@ -1,5 +1,5 @@
 /**
- * Test fixtures for the 387-04 composite reader port (KREV-02 · D-16).
+ * Test fixtures for the 387-04 composite reader port.
  *
  * `KnowledgeHintReader.getRunBrief` and `.getCautions` now return `{ brief|block, trace }` as one
  * value, so a stub reader cannot hand back a bare block. These helpers keep every existing case's

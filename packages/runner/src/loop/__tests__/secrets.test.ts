@@ -105,7 +105,7 @@ describe('prompt/mechanism round trip of the secret-fill contract', () => {
   })
 
   it('negative — the bound value never appears in redacted model-bound text', () => {
-    // Value-pattern masking re-pinned on this fixture (T-381-106): teaching the
+    // Value-pattern masking re-pinned on this fixture: teaching the
     // mechanism must not widen disclosure.
     const leaked = `the field now contains ${BOUND_VALUE}`
     const redacted = redactor.redactString(leaked)

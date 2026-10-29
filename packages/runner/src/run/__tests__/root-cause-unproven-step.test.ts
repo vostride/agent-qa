@@ -1,4 +1,4 @@
-// C439-ROOT-CAUSE (439 D-07): the deterministic classifier reads a failed step the verifier left
+// the deterministic classifier reads a failed step the verifier left
 // unproven as 'unknown' with confidence 0 and the step's reason as rationale, never an
 // application or environment class. A not-met block falls through to today's classification,
 // and a limit stop keeps its own branch.

@@ -1,4 +1,4 @@
-// Ported inline-DSL parse/strip cases (Phase 363 D-05). Sources: core
+// Ported inline-DSL parse/strip cases. Sources: core
 // hook-inline.test.ts, runjs-inline.test.ts, plus appium-inline parse coverage. The
 // EXECUTION halves are NOT tested here — they ride injected handlers pinned in
 // member-runner.test.ts. Runner convention: `.js`-suffixed relative specifiers.

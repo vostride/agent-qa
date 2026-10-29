@@ -1,16 +1,16 @@
 // Runner-owned LLM planner (re-derived from core/src/agent/planner.ts, D-02/D-04).
 // Constructed with an injected `LanguageModel` handle — the runner orchestrates via
-// the neutral `ai` SDK and never resolves a provider (D-04). v1 semantics preserved
+// the neutral `ai` SDK and never resolves a provider. v1 semantics preserved
 // exactly: the generateText call shape (toolChoice: 'required' over the full v45 tool
 // slice), the screenshot-failure fallback (retry once without the image), defensive
 // tool-call arg extraction across SDK key variants, and token-usage accumulation.
 //
-// Phase 355 (CTXB-01/CTXB-02/CTXB-04) rewires the call site off v1's single crammed
+// Phase 355 rewires the call site off v1's single crammed
 // user-string onto: (a) the cache-ordered [stable, context, volatile] system tier array
 // carrying the single Anthropic ephemeral cache_control breakpoint (on the context tier),
 // (b) the decomposed pinnable turn messages from composeTurnMessages, and (c) the shared
 // clamp/degrade/retry-once wrapper (executeClampedCall) fed by an injected TokenAccounting
-// port. Zero non-action tools are bound (D-07), so executePlanningTurn behaves as v1's
+// port. Zero non-action tools are bound, so executePlanningTurn behaves as v1's
 // one-shot per turn; the screenshot fallback and maxRetries:0 semantics are preserved.
 import type { LanguageModel, LanguageModelUsage, ModelMessage, SystemModelMessage } from 'ai'
 import type {
@@ -45,7 +45,7 @@ const MAX_RESPONSE_BODY_CHARS = 500
 
 /**
  * Structured planning-turn failure used to preserve failed-turn evidence across
- * the planner's throw-based public contract (D-03).
+ * the planner's throw-based public contract.
  */
 export class PlanningTurnError extends Error {
   readonly reason: PlanningTurnFailureReason
@@ -67,7 +67,7 @@ export class PlanningTurnError extends Error {
 }
 
 /**
- * 436 D-08/D-12: the step's planning-turn limit refused a planner model call. Never a planning
+ * the step's planning-turn limit refused a planner model call. Never a planning
  * failure; the loop ends the step with its typed limit stop.
  */
 export class PlanningLimitReachedError extends Error {
@@ -137,7 +137,7 @@ function tierTextContent(tier: SystemModelMessage): string {
 // breakpoint on a retained context tier) byte-for-byte. Pure + exported so the regression
 // test drives it directly; LLMPlanner.buildSystemTiers delegates here unchanged in behavior
 // except for the drop.
-// Phase 373 (KDIR-03): the workspace agent-rules → "Custom rules:" injection path is deleted
+// the workspace agent-rules → "Custom rules:" injection path is deleted
 // end-to-end; policy serving returns via Reader L0 policies in Phase 380. `capabilityNotes`
 // is NOT user-authored config — it carries only composition-root-internal runtime capability
 // notes (e.g. the CLI's log-capture-disabled warnings), appended to the stable tier.
@@ -170,11 +170,11 @@ export class LLMPlanner implements Planner {
   // roots (CLI/dashboard) inject it in Plan 07. Positional order is preserved so existing
   // call sites keep model/platform/logger/capabilityNotes; `accounting` is the new final arg.
   //
-  // Phase 368 (D-01): `nonActionTools` is the ONE sanctioned runner seam — an optional
+  // `nonActionTools` is the ONE sanctioned runner seam — an optional
   // final positional param defaulting undefined so every existing call site stays byte-
   // compatible. When present it is threaded into executePlanningTurn (the existing but
   // previously-unreachable ExecutePlanningTurnOptions.nonActionTools option); the recorded-
-  // exchange server (plan 368-03) registers handlers here so the null adapter serves
+  // exchange server registers handlers here so the null adapter serves
   // recorded exchanges through production planner code paths. No production composition
   // root passes it (only the eval-local sanctioned helper, plan 368-06).
   constructor(
@@ -195,7 +195,7 @@ export class LLMPlanner implements Planner {
     this.nonActionTools = nonActionTools
   }
 
-  // Cache-ordered [stable, context, volatile] system tiers (D-04/D-05/D-07). The single
+  // Cache-ordered [stable, context, volatile] system tiers. The single
   // Anthropic ephemeral cache_control breakpoint rides the context tier (buildContextTier
   // sets it at message-level providerOptions); the stable tier sits above it and the
   // volatile tier (knowledge brief + date-granularity stamp) below it. Per-turn state never
@@ -223,7 +223,7 @@ export class LLMPlanner implements Planner {
     // D-09 groundability callback: close over the in-scope fresh observation and ground
     // the parsed action through the Plan-04 gate. The gate resolves an emission-shape
     // action (ref OR target descriptor) to a fully-grounded execution-shape action (a
-    // ref) before adapter execution (GROUND-01), returning the §A8 attempts trail. No
+    // ref) before adapter execution, returning the §A8 attempts trail. No
     // vision capability signal is in scope in M1, so the gate's default ladder
     // [refValidate, treeSearch] applies (no visual rung, D-01). A gate failure is adapted
     // to the turn's structured groundability verdict — the turn injects the §7.1 error
@@ -263,7 +263,7 @@ export class LLMPlanner implements Planner {
     // (Plan 04) computes the dynamic output cap, proactively degrades when the input estimate
     // exceeds the budget (pinning the observation + instruction so the live screen/goal are
     // never evicted, D-08), retries exactly once on a live context overflow, and feeds
-    // recordUsage once per successful response (CTXB-04, D-10/D-17). The pin set is a
+    // recordUsage once per successful response. The pin set is a
     // reference-identity Set over the last two composeTurnMessages entries — the latest
     // OBSERVATION (second-to-last) and the CURRENT INSTRUCTION (last) per the D-08 contract.
     const runTurn = (messages: ModelMessage[]): Promise<ClampedCallResult<PlanningTurnResult>> => {
@@ -308,10 +308,10 @@ export class LLMPlanner implements Planner {
       })
     }
 
-    // Zero non-action tools are bound (D-07): the turn is a one-shot, provably identical
+    // Zero non-action tools are bound: the turn is a one-shot, provably identical
     // to v1's single-call planner. The screenshot-failure fallback retries the whole turn
     // without the image (v1 parity), re-composing the turn messages with the text-only note;
-    // the retry rides the same clamp helper so it too is clamped/degraded (D-08).
+    // the retry rides the same clamp helper so it too is clamped/degraded.
     let clamped: ClampedCallResult<PlanningTurnResult>
     try {
       if (context.screenshot) {
@@ -348,7 +348,7 @@ export class LLMPlanner implements Planner {
         this.logger?.warn('LLM provided invalid tool input', { error: errorMsg })
         throw new Error(`LLM provided invalid tool input: ${errorMsg}`)
       }
-      // RUNX-04: a provider APICallError must not collapse to a bare "Bad Request". When the
+      // a provider APICallError must not collapse to a bare "Bad Request". When the
       // duck-typed statusCode/responseBody are present, surface them in the log meta and the
       // rethrown message so the provider's own words (e.g. codex's max_output_tokens 400) survive
       // the runner boundary — no temporary capture patch needed.
@@ -370,7 +370,7 @@ export class LLMPlanner implements Planner {
 
     // A cannot-fit degrade (system + tool schema + pinned observation/instruction alone
     // exceed the budget) never throws — the clamp helper proceeds with the pinned floor and
-    // surfaces the structured reason. Log it and continue (D-17); the turn still ran.
+    // surfaces the structured reason. Log it and continue; the turn still ran.
     if (clamped.degrade && clamped.degrade.ok === false) {
       this.logger?.warn('Planning turn degraded to the pinned floor (input exceeds budget)', {
         reason: clamped.degrade.reason,

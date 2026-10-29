@@ -2,7 +2,7 @@
 // CRITICAL: framework-free — imports NOTHING from any test framework (this module ships
 // in the runner barrel; adapter test files supply the it()/expect wrappers). Modeled on the
 // schema `makeState` fixture (schema/src/__tests__/screen-hash.test.ts) so the ~27
-// legacy-fixture test files migrate to one canonical factory (D-09).
+// legacy-fixture test files migrate to one canonical factory.
 
 import { asRef, type ScreenState } from '@vostride/agent-qa-schema'
 import type { BuildScreenStateInput, InterimNode } from '../screen-builder.js'

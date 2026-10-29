@@ -1,7 +1,7 @@
-// P6 (quick 261004-lsa): the verifier's stable tier states the expected-error rule and the
+// P6: the verifier's stable tier states the expected-error rule and the
 // unrelated-error policy, and says which block of the request comes from the test definition
-// (text C). The per-call header is text B with the step position. 439 (D-11) re-pinned the tier
-// once to the per-condition contract; 446-11 (D-25) added the requested dialog account.
+// (text C). The per-call header is text B with the step position. 439 re-pinned the tier
+// once to the per-condition contract; 446-11 added the requested dialog account.
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { generateText } from 'ai'
 import { asRef } from '@vostride/agent-qa-schema'

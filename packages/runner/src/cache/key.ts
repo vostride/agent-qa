@@ -22,7 +22,7 @@ import type {
 export const CACHE_ENV_DIGEST_SALT = 'agent-qa/cache/env-digest/v1'
 
 export interface BuildCacheableStepInputArgs {
-  /** The declared-secret mask (441 D-06); the identity when unbound. */
+  /** The declared-secret mask; the identity when unbound. */
   mask?: MaskFn
   platform: Platform
   suiteConfigDigest: string
@@ -35,7 +35,7 @@ export interface BuildCacheableStepInputArgs {
   /** Stable project salt; defaults to CACHE_ENV_DIGEST_SALT. Never per-run. */
   envSalt?: string
   screenIdentityHash: string
-  /** Accepted for caller ergonomics but intentionally never a key component (D-14). */
+  /** Accepted for caller ergonomics but intentionally never a key component. */
   branch?: string
 }
 
@@ -43,7 +43,7 @@ export interface BuildCacheableStepInputArgs {
  * Assemble the schema kernel's 8-field CacheableStepInput. `mask()` is applied to
  * stepText BEFORE it enters the tuple (the MASK-FUT-01 floor, D-05); the env digest
  * folds only the value-free redacted shapes under the stable salt. The caller passes
- * the result to computeCacheKey to obtain the 16-hex CacheKey / filename (D-06).
+ * the result to computeCacheKey to obtain the 16-hex CacheKey / filename.
  */
 export function buildCacheableStepInput(
   args: BuildCacheableStepInputArgs,

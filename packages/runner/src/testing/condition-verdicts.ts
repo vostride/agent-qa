@@ -1,4 +1,4 @@
-// Scripted per-condition verifier output for test doubles (439 D-07, D-10). Framework-free: it
+// Scripted per-condition verifier output for test doubles. Framework-free: it
 // ships in the runner barrel so every package's verifier doubles speak the same shape. A met
 // condition cites a line the runner will find in what the verifier was given.
 

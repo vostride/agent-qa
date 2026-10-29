@@ -1,12 +1,12 @@
 // The in-memory run event bus — the one no-analog component of the phase, hand-rolled
-// per spec §2.2 (D-05). Pure runner logic: gap-free `seq` from 1 (single sequencer),
+// per spec §2.2. Pure runner logic: gap-free `seq` from 1 (single sequencer),
 // a 10,000-event / 16 MB windowed replay, `subscribe(fromSeq)` replay-then-live,
 // per-subscriber detach-on-error, degrade-to-memory on event-log write failure, and a
 // ~10 s heartbeat after bus silence. ALL I/O crosses to runner-local behind the injected
 // `EventLogPort` / `RunTimerPort` seams — no `node:*`, storage-neutral (validate:arch).
 //
-// Verdict independence (D-07): telemetry/persistence failures degrade with a single
-// `runWarning` and NEVER gate the run or its verdict. Subscriber isolation (D-08): a
+// Verdict independence: telemetry/persistence failures degrade with a single
+// `runWarning` and NEVER gate the run or its verdict. Subscriber isolation: a
 // throwing handler is caught, detached, and announced; other subscribers are untouched.
 
 import type {
@@ -113,7 +113,7 @@ export function createRunEventBus(opts: CreateRunEventBusOptions): RunEventBus {
       eventLog.append(envelope)
     } catch {
       // First failure only: flip the degrade flag BEFORE the warning so its own publish
-      // never re-enters the append path, and never attempt append again (D-07).
+      // never re-enters the append path, and never attempt append again.
       logDegraded = true
       publish('runWarning', {
         code: 'event-log-write-failed',
@@ -178,7 +178,7 @@ export function createRunEventBus(opts: CreateRunEventBusOptions): RunEventBus {
       }
       if (older.length < expected) {
         // Neither the window (evicted) nor the log (absent/degraded/truncated) can supply
-        // the requested prefix — report incomplete rather than serve a gap (D-07).
+        // the requested prefix — report incomplete rather than serve a gap.
         throw new ReplayIncompleteError(from, earliest)
       }
       older.sort((a, b) => a.seq - b.seq)
@@ -193,7 +193,7 @@ export function createRunEventBus(opts: CreateRunEventBusOptions): RunEventBus {
 
   function subscribe(fromSeq: number | undefined, handler: RunEventHandler): () => void {
     const from = fromSeq ?? 1
-    const replay = collectReplay(from) // throws ReplayIncompleteError out of subscribe (D-07)
+    const replay = collectReplay(from) // throws ReplayIncompleteError out of subscribe
     let detached = false
     for (const envelope of replay) {
       try {

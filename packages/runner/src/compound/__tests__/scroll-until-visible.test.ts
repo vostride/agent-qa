@@ -2,7 +2,7 @@
 // swipe reports a scripted SwipeSignal and every interim-tree read returns a scripted tree, so the
 // cells can hold movement evidence and visible content apart: the tree decides target visibility
 // only, never movement, end, reversal or retry. All fakes resolve immediately; no timers.
-// 2026-10-08 (436-22): probe fakes answer visible, hidden or unknown (TargetVisibility).
+// probe fakes answer visible, hidden or unknown (TargetVisibility).
 import { describe, it, expect } from 'vitest'
 import type { InterimNode } from '@vostride/agent-qa-runner'
 import {

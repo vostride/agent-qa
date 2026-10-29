@@ -181,7 +181,7 @@ describe('input evidence in the verifier and planner prompts', () => {
     })
     expect(plannerTurn(contexts[1])).toContain('keyevent: unavailable (Appium does not allow mobile: shell)')
     // No failed keyevent is verified as a completion; the one call is the limit stop's own
-    // judgment (439 D-08).
+    // judgment.
     expect(captured).toHaveLength(1)
     expect(step.evidence?.conditionVerdicts?.ending).toBe('limit-stop')
   })
@@ -213,7 +213,7 @@ describe('input evidence in the verifier and planner prompts', () => {
     const without = await runVerified(FILL, bare)
     expect(withMeta.captured[0]).toHaveLength(11)
     expect(withMeta.captured[0][9]).toBeUndefined()
-    // 439 D-03: the verifier's record names every fill verdict, an ordinary one included.
+    // the verifier's record names every fill verdict, an ordinary one included.
     expect(verifierPrompt(withMeta.captured[0])).toContain(
       'action 1: fill on ref="e1": input sent, fill verdict exact, Enter sent',
     )

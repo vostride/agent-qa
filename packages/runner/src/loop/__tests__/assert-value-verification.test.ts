@@ -1,4 +1,4 @@
-// C439-ASSERT-EVIDENCE (439 D-12): a passing assertValue no longer ends a step by itself. Every
+// a passing assertValue no longer ends a step by itself. Every
 // completion claim goes through the verifier, the read is cited evidence for its own condition,
 // and a step that asks for two things cannot pass on one check. setVariable with stepComplete
 // stays call-free, because the runner sets the variable itself.

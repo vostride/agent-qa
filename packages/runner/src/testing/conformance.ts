@@ -1,4 +1,4 @@
-// Framework-free shared adapter conformance spec (D-09). CRITICAL: imports NOTHING
+// Framework-free shared adapter conformance spec. CRITICAL: imports NOTHING
 // from any test framework — each case throws a plain Error on violation. Adapter test
 // files (Plans 352-05/06/07) wrap the cases in their own it()/expect. This keeps the
 // runner barrel, which ships these symbols, free of any test-framework dependency.
@@ -170,7 +170,7 @@ export const screenConformanceCases: ScreenConformanceCase[] = [
     },
   },
   {
-    // Exact on web; documented best-effort on mobile (D-10). Either way the builder
+    // Exact on web; documented best-effort on mobile. Either way the builder
     // passes the supplied scroll through metadata unchanged.
     name: 'scroll passthrough: metadata.scroll equals buildInput.scroll',
     run(make) {

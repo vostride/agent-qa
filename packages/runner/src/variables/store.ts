@@ -1,4 +1,4 @@
-// Runner-owned run/test-scoped variable state (Phase 363 D-07). Moved 1:1 from
+// Runner-owned run/test-scoped variable state. Moved 1:1 from
 // core/src/agent/variables.ts — a flat Map keyed by name with seeding-order
 // last-write-wins precedence across env/inline/suite/cli/hook seeds + step/capture
 // writes; source-precedence semantics preserved exactly.

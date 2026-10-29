@@ -1,12 +1,12 @@
-// Pure openApp name→id resolution ladder + vendored scorer (Phase 359 · EXEC-03 · D-11/D-12).
+// Pure openApp name→id resolution ladder + vendored scorer.
 //
 // CRITICAL: provider-neutral + storage-neutral. No driver imports, no node:* imports, no
 // randomness, no Date — deterministic pure logic. Adapters supply the enumerated registry and
-// perform the launch; this module only decides. No fuse.js (D-11): a small ladder — normalize →
+// perform the launch; this module only decides. No fuse.js: a small ladder — normalize →
 // exact > prefix > substring > token-overlap > bounded edit distance — over the union of full
 // ids, tokenized id segments, and labels. A fuzzy winner requires clearing the threshold AND
-// leading the runner-up by a margin (D-12); near-ties resolve ambiguous with candidates, never
-// a coin-flip launch (T-359-04). All four constants are internal, injectable for tests only via
+// leading the runner-up by a margin; near-ties resolve ambiguous with candidates, never
+// a coin-flip launch. All four constants are internal, injectable for tests only via
 // ScorerOptions — never user-facing config (353 K=2 pattern).
 
 export interface AppRegistryEntry {

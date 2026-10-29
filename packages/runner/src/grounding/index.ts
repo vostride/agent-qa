@@ -1,4 +1,4 @@
-// Grounding barrel (Phase 357, GROUND-01/GROUND-02). The shared matcher + the
+// Grounding barrel. The shared matcher + the
 // rung-composed ladder. Consumed by the pre-execution gate (Plan 04) and, via the
 // absorbed cache/reground.ts seam, by the cache replay path.
 

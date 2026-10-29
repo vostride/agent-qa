@@ -1,4 +1,4 @@
-// C436-OPERATION-EVIDENCE (436 D-16, D-22, D-23): operation evidence an adapter attaches to an
+// operation evidence an adapter attaches to an
 // action reaches that sub-action, the planner's history and the verifier, masked; the adapter's
 // metadata key does not persist.
 import { describe, expect, it } from 'vitest'
@@ -306,7 +306,7 @@ describe('operation evidence in verifier input, and capture availability', () =>
   })
 })
 
-// 436-11 (D-21): the adapter hands over raw clipboard text; the loop masks it, then bounds it.
+// the adapter hands over raw clipboard text; the loop masks it, then bounds it.
 describe('clipboard capture recorded by the loop', () => {
   const LONG = 'secret ' + 'x'.repeat(2993)
   const STRADDLING = 'a'.repeat(CLIPBOARD_TEXT_LIMIT - 3) + 'secret' + 'b'.repeat(997)
@@ -425,7 +425,7 @@ describe('clipboard capture recorded by the loop', () => {
   })
 })
 
-// C436-DOWNLOAD-LATE (436-16, D-19 / D-22, WR-05): a download that started after the previous
+// a download that started after the previous
 // action's capture window closed rides the next action marked late, and is never credited to it.
 const LATE_NOTE = "started after the previous action's capture ended; not attributed to this action"
 

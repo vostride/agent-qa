@@ -1,4 +1,4 @@
-// The strict matcher (Phase 438, D-08 · D-10). The one matcher the heal, the cache and procedure
+// The strict matcher. The one matcher the heal, the cache and procedure
 // replay use to re-find an element they already saw.
 // CRITICAL: provider-neutral + storage-neutral. No node:* imports, no fs/sharp, no
 // core/model/adapter package imports — imports only schema types.

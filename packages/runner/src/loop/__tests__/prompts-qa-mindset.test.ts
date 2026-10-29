@@ -1,10 +1,10 @@
-// Ported from core/src/agent/__tests__/prompts-qa-mindset.test.ts (353-03, D-02).
+// Ported from core/src/agent/__tests__/prompts-qa-mindset.test.ts.
 // Adaptation: D-10 dropped healingConfig from StepContext — removed from fixtures.
 //
 // 355-02 reconciliation (Wave-0, RED pending Plans 03/06): buildSystemPrompt assertions
 // (rules 1-21) are untouched — the planner stable tier is byte-preserving. The retired
 // monolithic step-prompt builder's sub-action assertion is redirected to
-// `composeTurnMessages`. The verifier prompt splits (D-11): the byte-stable verdict-
+// `composeTurnMessages`. The verifier prompt splits: the byte-stable verdict-
 // identity preamble + fixed verification-approach/screenshot prose move to
 // `buildVerifierStableTier()` (the Plan-06 verifier stable tier); the per-call before/
 // after states + formatted action stay on `buildVerificationPrompt(...)`. Every asserted
@@ -45,7 +45,7 @@ function renderTurn(messages: ModelMessage[]): string {
 describe('QA mindset prompt rules', () => {
   const systemPrompt = buildSystemPrompt()
 
-  // AGENT-QA-01: always move forward for multi-action steps
+  // always move forward for multi-action steps
   describe('always move forward', () => {
     it('buildSystemPrompt contains forward progress rule', () => {
       expect(systemPrompt).toContain('ALWAYS MOVE FORWARD')
@@ -101,7 +101,7 @@ describe('QA mindset prompt rules', () => {
     })
   })
 
-  // ASSERT-FAIL-01: assertion failure handling — infeasible terminal + strict literal + report-truth
+  // assertion failure handling — infeasible terminal + strict literal + report-truth
   describe('assertion failure handling', () => {
     it('Rule 12 declares infeasible as a typed terminal outcome', () => {
       expect(systemPrompt).toContain('IMPOSSIBLE OBJECTIVE')
@@ -123,7 +123,7 @@ describe('QA mindset prompt rules', () => {
     })
   })
 
-  // AGENT-QA-02: trust ARIA tree, verify with screenshots
+  // trust ARIA tree, verify with screenshots
   describe('trust but verify', () => {
     it('buildSystemPrompt contains trust-but-verify rule', () => {
       expect(systemPrompt).toContain('TRUST THE ARIA TREE, VERIFY WITH SCREENSHOTS')
@@ -146,14 +146,14 @@ describe('QA mindset prompt rules', () => {
     })
   })
 
-  // AGENT-QA-03: QA mindset concept
+  // QA mindset concept
   describe('QA mindset', () => {
     it('buildSystemPrompt contains QA mindset concept', () => {
       expect(systemPrompt).toContain('QA MINDSET')
     })
 
     it('a verification turn with a screenshot requires visual evidence for quantity claims', () => {
-      // 2026-10-11 (439-03): the screenshot-analysis prose rides only a turn that has an image.
+      // the screenshot-analysis prose rides only a turn that has an image.
       const state = buildAgentScreenState({ tree: 'button "Go"', elements: [], url: '', timestamp: 0 })
       const action = { type: 'click' as const, ref: asRef('e1') }
       const turn = buildVerificationPrompt('Go', state, state, action, true)
@@ -185,7 +185,7 @@ describe('QA mindset prompt rules', () => {
     })
   })
 
-  // AGENT-QA-04: progressive escalation on verification failure
+  // progressive escalation on verification failure
   describe('progressive escalation', () => {
     it('buildSystemPrompt contains progressive escalation ladder', () => {
       expect(systemPrompt).toContain('1st rejection')
@@ -201,7 +201,7 @@ describe('QA mindset prompt rules', () => {
     })
   })
 
-  // STEP-CTX-01: cross-step context
+  // cross-step context
   describe('cross-step context', () => {
     it('buildSystemPrompt contains Rule 16 cross-step context', () => {
       expect(systemPrompt).toContain('CROSS-STEP CONTEXT')
@@ -212,7 +212,7 @@ describe('QA mindset prompt rules', () => {
     })
   })
 
-  // STEP-AMBIG-01: ambiguity detection
+  // ambiguity detection
   describe('ambiguity detection', () => {
     it('buildSystemPrompt contains Rule 17 ambiguity detection', () => {
       expect(systemPrompt).toContain('AMBIGUITY DETECTION')
@@ -235,7 +235,7 @@ describe('QA mindset prompt rules', () => {
     })
   })
 
-  // SCROLL-01: system prompt uses new scroll terminology
+  // system prompt uses new scroll terminology
   describe('scroll terminology', () => {
     it('buildSystemPrompt Rule 3 references intent-first scroll modes (untilVisible / direction+amount)', () => {
       expect(systemPrompt).toContain('untilVisible')
@@ -266,7 +266,7 @@ describe('QA mindset prompt rules', () => {
     })
   })
 
-  // AGENT-LOOP-01: step completion recognition via sub-action history
+  // step completion recognition via sub-action history
   describe('step completion recognition', () => {
     it('Rule 13 references sub-action history for step completion', () => {
       expect(systemPrompt).toContain('Review your previous actions')

@@ -285,7 +285,7 @@ describe('row text and row containment', () => {
     expect(rowTextOf(named(elements, 'Reply'), elements)).toBe('Bo: a reply Reply')
   })
 
-  // 2026-10-19 (444.1-09, D-15): only a parent of the row's own role joins its row.
+  // only a parent of the row's own role joins its row.
   it('an article never adds its prose to a nested row', () => {
     const elements = elementsOf([
       { role: 'article', text: 'Status: 2 invoices due this week' },
@@ -296,7 +296,7 @@ describe('row text and row containment', () => {
     expect(rowTextOf(named(elements, 'Pay'), elements)).toBe('Invoice 947 Pay')
   })
 
-  // 2026-10-19 (444.1-09, D-17): every enclosing row of the same role joins, nearest first.
+  // every enclosing row of the same role joins, nearest first.
   it('a leaf three levels deep carries every enclosing same-role row line', () => {
     const elements = elementsOf([
       { role: 'treeitem', name: 'Invoices' },
@@ -307,7 +307,6 @@ describe('row text and row containment', () => {
     expect(rowTextOf(named(elements, '2025'), elements)).toBe('2025 Q1 Invoices')
   })
 
-  // 2026-10-19 (444.1-10, D-16)
   it('wordTokens reads a well-formed lakh group as one number', () => {
     expect(wordTokens('1,00,000')).toEqual(['100000'])
     expect(wordTokens('12,34,567 1,23,45,678')).toEqual(['1234567', '12345678'])

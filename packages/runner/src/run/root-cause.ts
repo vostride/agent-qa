@@ -1,28 +1,28 @@
-// RCC-02 deterministic minimal root-cause classifier (373-06, D-02/D-05). Pure, total,
+// RCC-02 deterministic minimal root-cause classifier. Pure, total,
 // no IO, no LLM — imports limited to schema types, TestResult, and the single-sourced
 // isTestTimeoutMessage matcher re-exported by run/verdict.ts (never a second matcher).
 // The shell (Plan 07) invokes classifyRootCause at handoff assembly with the member's
 // TestResult — which carries retryCount; PerTestOutcome does NOT (RESEARCH Pitfall 3) —
-// plus the run-start baseline probe outcome (D-04).
+// plus the run-start baseline probe outcome.
 //
 // BRANCH ORDER (documented + pinned by run/__tests__/root-cause.test.ts):
-//   presence rule (D-01): skipped/cancelled ⇒ undefined; clean passes ⇒ undefined
+//   presence rule: skipped/cancelled ⇒ undefined; clean passes ⇒ undefined
 //   1. timeout      — member outcome 'timeout' (isTestTimeoutMessage-matched step error)
 //   2. environment  — probe connect error → probe status ≥500 → connect/DNS token in a
 //                     failing step error / failureSummary → device-session-create token
-//      limit stop   — between the probe and the token scans (436 D-12): a failing step whose
+//      limit stop   — between the probe and the token scans: a failing step whose
 //                     evidence carries limitStop is 'unknown', confidence 0, with the limit
 //                     reason as rationale. Never environment, timeout or app_bug, and no class
 //                     is added; analyze-run excludes these members from model authorship.
-//      unproven     — right after the limit stop (439 D-07): a failing step the verifier left
+//      unproven     — right after the limit stop: a failing step the verifier left
 //                     unverified or inconclusive (stepOutcomeUnproven) is 'unknown', confidence
 //                     0, with the step's reason, masked by the run's mask, as rationale.
 //                     Never an application class.
 //   3. flake        — final status 'passed' with retryCount > 0 (member-runner retry loop)
 //   4. unknown      — any other failure; confidence 0, the safe Noop default M4's
-//                     analyze-run later supersedes via producer keying (D-03)
+//                     analyze-run later supersedes via producer keying
 //
-// D-02: deterministicVerdict fills the LLM-shaped VerdictBase faithfully — no loosening:
+// deterministicVerdict fills the LLM-shaped VerdictBase faithfully — no loosening:
 // confidence 1 for signal-attributed classes (0 for unknown), rationale = a fixed template
 // naming the exact signal, citedSteps = failing step indices, citedAnchors/citedArtifacts
 // empty, memoryMisdirectionRuledOut true (a deterministic classifier never attributes to
@@ -33,16 +33,16 @@ import type { MemberTestOutcome, Verdict } from '@vostride/agent-qa-schema'
 import type { TestResult } from '../result.js'
 import { isTestTimeoutMessage } from './verdict.js'
 
-/** The four classes the deterministic classifier can mint (RCC-02). */
+/** The four classes the deterministic classifier can mint. */
 export type DeterministicRootCauseClass = 'timeout' | 'environment' | 'flake' | 'unknown'
 
-/** The fixed unknown-class rationale template (D-02). */
+/** The fixed unknown-class rationale template. */
 export const UNKNOWN_SIGNAL_RATIONALE = 'no deterministic signal matched'
 
 /**
  * Connect/DNS failure tokens matched over failing step errors (RESEARCH A2). Conservative
  * fixed list — misses fall to 'unknown', the safe Noop default; app-controlled error text
- * steering toward environment is bounded by exact OS/Chromium error-code tokens (T-373-11).
+ * steering toward environment is bounded by exact OS/Chromium error-code tokens.
  */
 export const CONNECT_ERROR_TOKENS: readonly string[] = [
   'ECONNREFUSED',
@@ -81,7 +81,7 @@ export interface RootCauseInput {
   /** Run-start baseline probe outcome (D-04, web targets; threaded by Plan 07). */
   baselineProbe?: { status?: number; elapsedMs: number; error?: string }
   /**
-   * The run's mask (439 D-08). An unproven step's reason carries the planner's own words, which
+   * The run's mask. An unproven step's reason carries the planner's own words, which
    * the step error holds unmasked, so its rationale passes through this before it is recorded.
    */
   mask?: (text: string) => string
@@ -113,7 +113,7 @@ export function deterministicVerdict(
   }
 }
 
-/** Indices of failing steps — Verdict.evidence.citedSteps (D-02). */
+/** Indices of failing steps — Verdict.evidence.citedSteps. */
 function failingStepIndices(result: TestResult): number[] {
   const indices: number[] = []
   result.steps.forEach((s, i) => {
@@ -135,7 +135,7 @@ function failureErrorTexts(result: TestResult): string[] {
   return texts
 }
 
-/** Failing steps a per-step limit stopped (436 D-12), with their recorded reasons. */
+/** Failing steps a per-step limit stopped, with their recorded reasons. */
 function limitStoppedSteps(result: TestResult): { index: number; reason: string }[] {
   const stopped: { index: number; reason: string }[] = []
   result.steps.forEach((s, i) => {
@@ -147,7 +147,7 @@ function limitStoppedSteps(result: TestResult): { index: number; reason: string 
   return stopped
 }
 
-/** Failing steps the verifier left unproven (439 D-07), with the step's reason, masked. */
+/** Failing steps the verifier left unproven, with the step's reason, masked. */
 function unprovenSteps(
   result: TestResult,
   mask: (text: string) => string,
@@ -190,7 +190,7 @@ function matchToken(texts: readonly string[], tokens: readonly string[]): { toke
 }
 
 /**
- * Classify one member's root cause from deterministic signals only (RCC-02). Returns
+ * Classify one member's root cause from deterministic signals only. Returns
  * undefined when the presence rule says no rootCause (skipped/cancelled/clean pass).
  * See the module header for the documented, pinned branch order.
  */

@@ -1,4 +1,4 @@
-// §A8 handoff assembly (D-04/D-07/D-17/D-20). Pure functions that fold per-member TestResults
+// §A8 handoff assembly. Pure functions that fold per-member TestResults
 // into PerTestOutcomes and the one CompletedRunHandoff a run persists. Three invariants live here:
 //
 //  1. Step re-indexing + evidence synthesis (RESEARCH Pitfall 4 / Open Q1). The loop hardcodes
@@ -6,10 +6,10 @@
 //     OVERRIDDEN here. A step that carries NO §A8 evidence is NOT dropped: §A8 consumers expect
 //     the step list to cover every executed step, so a minimal StepEvidence is synthesized,
 //     masked-before-record like every real evidence field.
-//  2. Identity is copied FROM RunConfig, never re-derived (D-04/D-20): runId/scope/buildOrdinal/
+//  2. Identity is copied FROM RunConfig, never re-derived: runId/scope/buildOrdinal/
 //     executionContext/configDigests on the handoff are the exact values the run keyed on, so run
 //     identity and handoff identity cannot fork by construction.
-//  3. REAL step evidence is masked AT REST here (WINDOWS #305 · DETL-04), through the run's own
+//  3. REAL step evidence is masked AT REST here, through the run's own
 //     MaskFn — the SAME object `projectTestFinished` routes `failureSummary` through, one frame
 //     away in shell.ts. A durable artifact that records a detected value in clear is a disclosure
 //     no display seam can undo: the file outlives the process that held the placeholder→value
@@ -24,8 +24,8 @@
 //     StepEvidence.interpolatedVariables.
 //
 // This module carries the EXECUTION verdict (RunStatus) and ATTACHES a caller-supplied root-cause
-// Verdict onto PerTestOutcome (373-07) — it never DERIVES one (§A9 boundary): all root-cause logic
-// lives in run/root-cause.ts behind the shell's classify call (D-05). No fs, no providers.
+// Verdict onto PerTestOutcome — it never DERIVES one (§A9 boundary): all root-cause logic
+// lives in run/root-cause.ts behind the shell's classify call. No fs, no providers.
 
 import type {
   CompletedRunHandoff,
@@ -81,7 +81,7 @@ export function synthesizeStepEvidence(step: StepResult, stepIndex: number, deps
 }
 
 /**
- * THE FIELDS OF A REAL {@link StepEvidence} THIS MODULE MASKS AT REST (WINDOWS #305 · DETL-04).
+ * THE FIELDS OF A REAL {@link StepEvidence} THIS MODULE MASKS AT REST.
  *
  * A POSITIVE SET, asserted on this value itself in `__tests__/handoff-assembly.test.ts` rather
  * than inferred from a case that happened to pass — so an edit that GROWS or SHRINKS it reds a
@@ -108,7 +108,7 @@ export function synthesizeStepEvidence(step: StepResult, stepIndex: number, deps
  *   - `canonicalJson(reportedValue)`  — `schema/handoff/step-evidence.ts`, "masked-before-record"
  *   - `canonicalJson(assertOutcome)`  — same file, same words, on the assertValue block
  *   - `canonicalJson(aiJudgment)`     — `schema/handoff/verb-evidence.ts`, rationale masked-
- *                                       before-record (T-360-01)
+ *                                       before-record
  *   - `canonicalJson(termination)`    — `runner/src/loop/index.ts`, whose `reason` goes through
  *                                       `redactSecretValue` before `recordTermination`
  *
@@ -211,7 +211,7 @@ function maskStepNarration(evidence: StepEvidence, mask: MaskFn): StepEvidence {
  * (with `stepIndex` OVERRIDDEN to its array position); an evidence-less step gets a synthesized
  * minimal StepEvidence. `testIndex` is the shell-owned array position.
  *
- * `rootCause` is the shell-classified §A9 verdict (373-07): attached ONLY when defined so clean
+ * `rootCause` is the shell-classified §A9 verdict: attached ONLY when defined so clean
  * passes/skipped/cancelled members stay rootCause-free in the persisted JSON (the D-01 presence
  * rule — the key is absent, never undefined-valued).
  *
@@ -296,7 +296,7 @@ export function assemblePerTestOutcome(
     ...(rerunOrigin !== undefined ? { rerunOrigin } : {}),
     ...(rootCause !== undefined ? { rootCause } : {}),
     ...(deps.quarantined === true ? { quarantined: true as const } : {}),
-    // 2026-09-07, 418 D-09: approved member grain, for passing AND failing retries.
+    // approved member grain, for passing AND failing retries.
     ...(result.retryCount !== undefined && result.retryCount > 0
       ? { isRerun: true as const, rerunAttempt: result.retryCount }
       : {}),
@@ -304,10 +304,10 @@ export function assemblePerTestOutcome(
 }
 
 /**
- * The shell-produced skip outcome (D-15): a member the shell never invoked (run aborted, or a
+ * The shell-produced skip outcome: a member the shell never invoked (run aborted, or a
  * poisoned same-group member). `outcome: 'skipped'`, no steps — neutral in the aggregate fold.
  *
- * `quarantined` is still stamped when the ledger licensed this member (390 D-14): the disposition
+ * `quarantined` is still stamped when the ledger licensed this member: the disposition
  * describes the TEST's standing, not the outcome it happened to reach, so a reader of the handoff
  * sees the same truth whether the member ran or was skipped past.
  */
@@ -328,11 +328,11 @@ export function skippedPerTestOutcome(
 }
 
 /**
- * Assemble the one {@link CompletedRunHandoff} a run persists (D-17). Every header field is copied
+ * Assemble the one {@link CompletedRunHandoff} a run persists. Every header field is copied
  * verbatim FROM the resolved {@link RunConfig} (D-04/D-20 — never re-derived); `aggregateVerdict`
  * is the execution verdict; `tests` are the assembled per-member outcomes in run order.
  *
- * 390 D-16: `quarantineApplied` records the ledger entries this run was operating under, copied
+ * `quarantineApplied` records the ledger entries this run was operating under, copied
  * from the same resolved config the disposition markers were matched against — so the run's own
  * receipt answers "which suppressions were licensed here, and until when" without re-reading a
  * ledger that may since have changed. An empty set stays ABSENT, keeping every unquarantined run's

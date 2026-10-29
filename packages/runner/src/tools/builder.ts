@@ -7,7 +7,7 @@ import { groundingError } from './errors.js'
 import type { ToolRegistry } from './registry.js'
 import type { ToolCategory } from './types.js'
 
-// WM-01 write channel (D-09): remember[] rides every action tool's envelope (spec §12.15,
+// WM-01 write channel: remember[] rides every action tool's envelope (spec §12.15,
 // ratified 2026-07-05 — NOT a tool, no ≤K interaction, catalog counts frozen). Validated with
 // the closed-enum workingMemoryEntrySchema so unknown kind/provenance are rejected at parse time.
 const rememberFieldSchema = z.array(workingMemoryEntrySchema).optional()
@@ -83,7 +83,7 @@ export function buildTools(
 }
 
 /**
- * Describe the complete model-visible bound surface for deterministic attribution (D-14).
+ * Describe the complete model-visible bound surface for deterministic attribution.
  * This shares `withPlanFields` with `buildTools`; it never serializes live `tool()` objects,
  * whose Zod internals are not the JSON Schema presented to the model.
  */
@@ -125,7 +125,7 @@ export function toolCallToActionPlan(
   // unknown kind/provenance, same fail-loud contract as a bad action.
   const rememberEntries = rememberFieldSchema.parse(remember)
 
-  // D-04: parse the infeasible envelope with the closed enum + required-when-set refine BEFORE the
+  // parse the infeasible envelope with the closed enum + required-when-set refine BEFORE the
   // strict action safeParse — both fields were destructured above (Pitfall 2), so an un-parsed
   // envelope field never leaks into the action schema. An unknown failureKind, or a failureKind
   // without a reason, throws here (fail-loud), same contract as a bad action.

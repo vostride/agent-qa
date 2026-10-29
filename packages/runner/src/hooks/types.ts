@@ -1,4 +1,4 @@
-// Hook execution vocabulary (Phase 363 D-06). Moved byte-equivalently from
+// Hook execution vocabulary. Moved byte-equivalently from
 // core/src/hooks/types.ts — the runner now owns the hook contracts so the D-06
 // port + orchestration can live here (impl in runner-local). Pure types + one
 // const map; provider-neutral + storage-neutral (no node:* imports).

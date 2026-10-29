@@ -1,11 +1,11 @@
-// The per-run LIVE STREAM HUB (403 D-05/D-07). One screencast per HANDLE, refcounted across every
+// The per-run LIVE STREAM HUB. One screencast per HANDLE, refcounted across every
 // viewer attached to that handle: the primary noun is the stream, and a viewer is a member of its
 // subscriber set — never the identity. Storage-neutral like the bus beside it: the only clock is
 // the injected `RunTimerPort`, and the hub holds the adapter's capability object and nothing else
 // (no `Page`, no `CDPSession`, no host API — validate:arch).
 //
 // Why lazy + graced rather than always-on: a screencast is real work in the browser, so it must not
-// run when nobody is watching (D-07), and a page reload / iframe re-attach must not tear the
+// run when nobody is watching, and a page reload / iframe re-attach must not tear the
 // producer down and start it again a beat later — hence the stop GRACE, cancelled by a re-subscribe
 // inside the window. The ack bound exists for the symmetric reason: CDP will not send frame N+1
 // until frame N is acked, so ONE wedged viewer would freeze the stream for everyone. After
@@ -20,14 +20,14 @@ import type {
 import type { LiveStreamCapability } from '../platform.js'
 import type { RunTimerPort } from './ports.js'
 
-/** How long a handle's stream keeps running after its LAST viewer detaches (403 D-07). */
+/** How long a handle's stream keeps running after its LAST viewer detaches. */
 export const LIVE_STREAM_STOP_GRACE_MS = 2_000
 /** How long the hub waits for every subscriber to ack a frame before acking on their behalf. */
 export const LIVE_STREAM_ACK_BOUND_MS = 250
 
 /**
  * Default timer: the `bus.ts` idiom — unref'd so a pending grace never holds the process open.
- * Exported so the snapshot producer shares it rather than copying it (428 D-11).
+ * Exported so the snapshot producer shares it rather than copying it.
  */
 export function defaultLiveStreamTimer(): RunTimerPort {
   return {
@@ -50,10 +50,10 @@ export interface CreateLiveStreamHubOptions {
    */
   onWarning?: (code: string, message: string) => void
   /**
-   * Where a SUBSCRIBER's fault is reported (403 WR-06). Deliberately a DIFFERENT sink than
+   * Where a SUBSCRIBER's fault is reported. Deliberately a DIFFERENT sink than
    * `onWarning`, and the difference is the whole fix: a viewer that throws — or whose socket died
    * between a `readyState` check and the write — is a fact about THAT VIEWER, and the run's
-   * permanent record must not depend on who happened to be watching (LIVE-03). Absent by default,
+   * permanent record must not depend on who happened to be watching. Absent by default,
    * so a host that does not care reports nothing anywhere.
    */
   onSubscriberFault?: (code: string, message: string) => void
@@ -67,7 +67,7 @@ export interface CreateLiveStreamHubOptions {
 export interface LiveStreamHub {
   /**
    * `fallback` is the labelled snapshot producer this handle switches to when `capability` fails
-   * to start (428 D-12). The failure is still recorded; `capabilityOf` keeps the declared kind.
+   * to start. The failure is still recorded; `capabilityOf` keeps the declared kind.
    */
   register(
     handle: number,
@@ -86,8 +86,8 @@ export interface LiveStreamHub {
 interface Subscriber {
   onFrame: (frame: LiveFrame) => void
   /**
-   * Called ONCE when this handle's stream ends under the subscriber (403 CR-03), naming why
-   * (428 D-14). `withdrawn`: the member finished or a re-register replaced its capability, and the
+   * Called ONCE when this handle's stream ends under the subscriber, naming why
+   * `withdrawn`: the member finished or a re-register replaced its capability, and the
    * subject goes on. `closed`: the whole subject is over (the hub closed), so a consumer should
    * defer to the subject's own end rather than report this member's. Optional, so a caller that
    * only wants frames is unchanged.
@@ -114,7 +114,7 @@ interface Subscriber {
 interface StreamState {
   /** The DECLARED producer. `capabilityOf` answers its kind whichever producer is running. */
   capability: LiveStreamCapability
-  /** Started in the primary's place when the primary's `start` rejects (428 D-12). */
+  /** Started in the primary's place when the primary's `start` rejects. */
   fallback?: LiveStreamCapability
   /**
    * The producer this watched interval is actually using: acks, stops and the frame kind stamp
@@ -134,7 +134,7 @@ interface StreamState {
   /** frameId → the subscribers that have not yet acked it, plus its bound-timer cancel. */
   awaiting: Map<number, { outstanding: Set<Subscriber>; cancel: () => void }>
   /**
-   * The state has been evicted from `streams` and its subscribers told (IN-04). A release held by
+   * The state has been evicted from `streams` and its subscribers told. A release held by
    * an old subscription must not arm a fresh grace on a state nobody can reach.
    */
   dead: boolean
@@ -159,7 +159,7 @@ export function createLiveStreamHub(opts: CreateLiveStreamHubOptions = {}): Live
     }
   }
 
-  /** THE SUBSCRIBER-FAULT SINK. Never `warn` — see `onSubscriberFault`'s note above (WR-06). */
+  /** THE SUBSCRIBER-FAULT SINK. Never `warn` — see `onSubscriberFault`'s note above. */
   const reportSubscriberFault = (code: string, message: string): void => {
     try {
       onSubscriberFault?.(code, message)
@@ -178,7 +178,7 @@ export function createLiveStreamHub(opts: CreateLiveStreamHubOptions = {}): Live
     state.awaiting.delete(frameId)
     entry.cancel()
     void state.active.ack(frameId).catch(() => {
-      // Acking a frame after the stream stopped is expected, not an error (D-07).
+      // Acking a frame after the stream stopped is expected, not an error.
     })
   }
 
@@ -201,7 +201,7 @@ export function createLiveStreamHub(opts: CreateLiveStreamHubOptions = {}): Live
             try {
               await state.capability.start(onFrame)
             } catch (error: unknown) {
-              // Recorded BEFORE any switch (D-12): a fallback must never hide the primary's failure.
+              // Recorded BEFORE any switch: a fallback must never hide the primary's failure.
               warn('live-stream-start-failed', `live stream failed to start: ${describe(error)}`)
               const fallback = state.fallback
               if (fallback === undefined) {
@@ -256,7 +256,7 @@ export function createLiveStreamHub(opts: CreateLiveStreamHubOptions = {}): Live
   }
 
   /**
-   * THE STREAM IS OVER FOR ITS SUBSCRIBERS (403 CR-03). Snapshot the set, clear it, then tell each
+   * THE STREAM IS OVER FOR ITS SUBSCRIBERS. Snapshot the set, clear it, then tell each
    * one. Clearing FIRST is what makes this a one-shot: a subscriber that re-enters through
    * `release()` from inside its own `onEnd` finds nothing to remove and arms nothing.
    *
@@ -287,7 +287,7 @@ export function createLiveStreamHub(opts: CreateLiveStreamHubOptions = {}): Live
   }
 
   function deliver(state: StreamState, produced: LiveFrame): void {
-    // 428 D-15: fan out ONE stamped copy. The producer's capture time and kind win when present;
+    // fan out ONE stamped copy. The producer's capture time and kind win when present;
     // the hub's clock and the capability's kind fill only what is absent. The id is unchanged,
     // because the ack ledger below keys on it, and the producer's object is never mutated.
     const frame: LiveFrame = {
@@ -331,7 +331,7 @@ export function createLiveStreamHub(opts: CreateLiveStreamHubOptions = {}): Live
       } catch {
         state.subscribers.delete(subscriber)
         detached = true
-        // WR-06: reported on the SUBSCRIBER sink, never on `warn`. The detach itself is unchanged
+        // reported on the SUBSCRIBER sink, never on `warn`. The detach itself is unchanged
         // — only where it is REPORTED. `warn` is wired to the run's durable event log, and a viewer
         // closing its tab at the wrong instant must not write a row into the run's transcript.
         reportSubscriberFault(

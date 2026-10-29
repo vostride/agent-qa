@@ -1,4 +1,4 @@
-// RCC-02 deterministic root-cause classifier pins (373-06, D-02/D-05). RED-first: this file
+// RCC-02 deterministic root-cause classifier pins. RED-first: this file
 // pins every branch of `classifyRootCause` + the D-02 field-fidelity contract of
 // `deterministicVerdict` BEFORE the module exists (right-reason RED on the unresolved import).
 //
@@ -254,7 +254,7 @@ describe('classifyRootCause — presence rule + unknown (branch 4)', () => {
   })
 })
 
-// ---- classifyRootCause: a limit stop (436 D-12) ------------------------------
+// ---- classifyRootCause: a limit stop ------------------------------
 
 function limitStoppedStep(limit: LimitStopEvidence['limit'], configured: number): StepResult {
   const reason = formatLimitStopReason(limit, configured, configured)

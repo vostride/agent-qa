@@ -1,4 +1,4 @@
-// The runner's judge over the verifier's per-condition output (439 D-02, D-07, D-09, D-10, D-11).
+// The runner's judge over the verifier's per-condition output.
 // Pure: the model judges each condition, the runner checks it and computes the pass. A quote
 // matches when it occurs in the clear record, or masked in the masked record (the model sees
 // placeholders). Masking is injected; nothing here reads a model or a platform.
@@ -14,7 +14,7 @@
 // is negated on that word, or holds "nothing happened", "nothing changed", "no effect" or
 // "did nothing" when the quote carries one of EFFECT_VERBS. A negation about another object with
 // the same verb ("the old value was not saved" on "Save the new value") is refused: the safe
-// direction. Nothing excuses an admission, whatever the citations show (439 CR-06): a proven
+// direction. Nothing excuses an admission, whatever the citations show: a proven
 // effect described as an unchanged page is refused, a visible false fail accepted by the owner.
 // An admission in another language is not caught.
 
@@ -55,7 +55,7 @@ export interface JudgeConditionsInput {
   ending: ConditionEnding
   /** The planner's completion reasoning, read only by the runner (never sent to the verifier). */
   plannerReasoning?: string
-  /** What the runner's own checks read (439 D-16, D-18, D-19). Absent: nothing to read. */
+  /** What the runner's own checks read. Absent: nothing to read. */
   guards?: ConditionGuardFacts
 }
 
@@ -64,7 +64,7 @@ export interface ConditionGuardFacts {
   platform: Platform
   record?: Pick<VerifierStepRecord, 'actions' | 'reads'>
   imageAttached: boolean
-  /** 439 D-17: this step's completed downloads, then carried ones, most recent first. */
+  /** this step's completed downloads, then carried ones, most recent first. */
   files?: readonly SavedFile[]
 }
 

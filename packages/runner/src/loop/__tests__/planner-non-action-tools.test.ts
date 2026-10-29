@@ -1,4 +1,4 @@
-// Seam proof for the ONE sanctioned Phase 368 runner change (368-01, D-01): the optional
+// Seam proof for the ONE sanctioned Phase 368 runner change: the optional
 // `nonActionTools?: NonActionToolMap` constructor param on LLMPlanner threaded to
 // executePlanningTurn. This is the injection point the recorded-exchange server (plan
 // 368-03) plugs into; RPLY-02's "unmodified planner" holds because omitting the param is
@@ -150,7 +150,7 @@ describe('LLMPlanner nonActionTools seam', () => {
   })
 
   it('Test 4: PlanningTurnError is the same class across the runner barrel (instanceof-classifiable)', async () => {
-    // The replay engine (plan 368-04) imports PlanningTurnError from the package entry and
+    // The replay engine imports PlanningTurnError from the package entry and
     // instanceof-classifies structured planner failures — this must be the SAME class the
     // loop internals throw, or the classification silently misses.
     const barrel = await import('../../index.js')

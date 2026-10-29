@@ -1,4 +1,4 @@
-// C436-DOWNLOAD-DEADLINE (436 D-19, WR-07): the loop hands each adapter dispatch the time left to
+// the loop hands each adapter dispatch the time left to
 // an armed step deadline and the step's abort signal, so an adapter-side wait (the web download
 // capture) ends at the deadline. With no deadline armed, no remaining time is handed over.
 import { describe, expect, it } from 'vitest'

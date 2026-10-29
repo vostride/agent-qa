@@ -1,4 +1,4 @@
-// C438-STRICT-MATCH (438 D-08, D-10): the one strict matcher the heal, the cache and procedure
+// the one strict matcher the heal, the cache and procedure
 // replay re-find an element with. Equal role, equal exact name after whitespace tidying, and the
 // stated row words in the element's own known row; one survivor resolves, none is absent, more is
 // not-unique with the count. It never picks.

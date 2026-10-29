@@ -36,7 +36,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
 }
 
 // -----------------------------------------------------------------------------
-// EXEC-01 — atomic Fill with a verified re-read (clear→type→re-read→(Enter))
+// atomic Fill with a verified re-read (clear→type→re-read→(Enter))
 // -----------------------------------------------------------------------------
 describe('Fill executes as one atomic compound producing a single ActionResult with a verified field re-read', () => {
   it('a genuine value-loss mismatch is an honest failure verdict with the byte-pinned fillReread shape and a §7.1 self-correcting error', () => {
@@ -70,7 +70,7 @@ describe('Fill executes as one atomic compound producing a single ActionResult w
 })
 
 // -----------------------------------------------------------------------------
-// EXEC-02 — scroll-until-visible: executor-owned loop over operation-specific signals (D-24/D-25)
+// scroll-until-visible: executor-owned loop over operation-specific signals
 // -----------------------------------------------------------------------------
 function scrollPrimitives(
   trees: () => InterimNode[],
@@ -149,7 +149,7 @@ describe('untilVisible re-observes between ≤maxSwipes swipes and terminates on
 })
 
 // -----------------------------------------------------------------------------
-// EXEC-03 — openApp name→bundle resolution: never a silent wrong-app launch
+// openApp name→bundle resolution: never a silent wrong-app launch
 // -----------------------------------------------------------------------------
 describe('resolveAppName climbs exact → fuzzy(+margin) → ambiguous/unknown, never a coin-flip launch', () => {
   const REGISTRY = [
@@ -185,7 +185,7 @@ describe('resolveAppName climbs exact → fuzzy(+margin) → ambiguous/unknown, 
 })
 
 // -----------------------------------------------------------------------------
-// EXEC-04 — toggle/picker idempotency at the dispatch seam
+// toggle/picker idempotency at the dispatch seam
 // -----------------------------------------------------------------------------
 function recordingAdapter(observation: ScreenState, calls: Action[]): PlatformAdapter {
   return {
@@ -224,9 +224,9 @@ describe('a satisfied desiredState no-ops at the dispatch seam without calling a
     )
 
     expect(result.status).toBe('passed')
-    // D-14: the check runs at the ONE chokepoint before adapter.execute ⇒ zero adapter calls.
+    // the check runs at the ONE chokepoint before adapter.execute ⇒ zero adapter calls.
     expect(calls.length).toBe(0)
-    // D-16: the minted no-op carries metadata.idempotentNoop.currentState ...
+    // the minted no-op carries metadata.idempotentNoop.currentState ...
     const sub = (result.evidence as { subActions?: LooseSub[] } | undefined)?.subActions?.[0]
     const noop = sub?.result?.metadata?.['idempotentNoop'] as { currentState?: unknown } | undefined
     expect(noop).toEqual({ currentState: 'checked', inputSent: false })
@@ -236,7 +236,7 @@ describe('a satisfied desiredState no-ops at the dispatch seam without calling a
 })
 
 // -----------------------------------------------------------------------------
-// 437 D-06: a fill counts as one compound input whether its read-back was readable or unverified
+// a fill counts as one compound input whether its read-back was readable or unverified
 // -----------------------------------------------------------------------------
 function scriptedAdapter(observation: ScreenState, result: ActionResult): PlatformAdapter {
   return {

@@ -5,7 +5,7 @@
 //
 // This is the single implementation of ref minting, name normalization,
 // elements/refMap/metadata assembly, and deterministic tree rendering
-// that all three platform adapters invoke (D-01, D-02, D-03). Identity byte-equality
+// that all three platform adapters invoke. Identity byte-equality
 // across platforms depends on there being exactly one producer.
 
 import {
@@ -72,7 +72,7 @@ export interface BuildScreenStateInput {
   nodes: InterimNode[]
   viewport: { width: number; height: number }
   /**
-   * EXACT on web; BEST-EFFORT on mobile (D-10) — mobile callers pass a best-effort
+   * EXACT on web; BEST-EFFORT on mobile — mobile callers pass a best-effort
    * scroll derived from scrollable-node bounds. The field is precise only on web.
    */
   scroll: { offsetX: number; offsetY: number; contentWidth: number; contentHeight: number }
@@ -84,7 +84,7 @@ export interface BuildScreenStateInput {
 
 /**
  * Execute-time resolution stays adapter-private: `index` is the live node's place in the
- * input nodes array. No same-screen position is minted for anything to pick by (438 D-13).
+ * input nodes array. No same-screen position is minted for anything to pick by.
  */
 export interface RefBinding {
   index: number
@@ -98,7 +98,7 @@ export interface BuildScreenStateResult {
 }
 
 /**
- * The capture stamp the loop applies after compression (D-11). `full` carries the
+ * The capture stamp the loop applies after compression. `full` carries the
  * real image dimensions; `textOnly` attaches no image.
  */
 export type CaptureStamp =
@@ -154,7 +154,7 @@ export function buildScreenState(input: BuildScreenStateInput): BuildScreenState
     const name = node.name ?? ''
     const nameNormalized = normalizeAccessibleName(name)
 
-    // 2026-10-09 (438-11): the per-screen position is no longer minted (D-13).
+    // the per-screen position is no longer minted.
     binding[ref] = { index: i }
 
     const bounds: BoundingBox | undefined = node.bounds
@@ -265,7 +265,7 @@ function depthOf(element: ElementInfo, byRef: Map<Ref, ElementInfo>): number {
 }
 
 /**
- * Deterministic LLM-facing tree text, derived from the structured elements (D-02) —
+ * Deterministic LLM-facing tree text, derived from the structured elements —
  * one grammar for all platforms. Exported so Phase 357's slim/rich dual-projection is
  * a renderer-only change with zero adapter edits.
  *
@@ -316,7 +316,7 @@ export function renderScreenTree(
 }
 
 /**
- * Pure re-stamp of the discriminated captureMode metadata member (D-11). Constructs a
+ * Pure re-stamp of the discriminated captureMode metadata member. Constructs a
  * fresh metadata object from the base fields and returns a NEW ScreenState — zero `as`
  * casts, zero mutation of the input.
  */

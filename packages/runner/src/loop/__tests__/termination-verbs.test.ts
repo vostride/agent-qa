@@ -1,14 +1,14 @@
 // RED scaffold (Wave 1, Phase 360 · EXEC-05 · D-01/D-02/D-03/D-04/D-16 · spec §9.1/§12.10).
 // Pins the runner-side termination-verb contracts BEFORE Plan 08 wires them:
-//   Block A — reportValue mint (D-01/D-02/D-03): a platform-less answer verb mints a success
+//   Block A — reportValue mint: a platform-less answer verb mints a success
 //     ActionResult at the ONE dispatch chokepoint (never adapter.execute), carrying a typed
 //     metadata.reportedValue block; the answer lands masked-before-record in
 //     StepEvidence.reportedValue; reportValue is NON-terminal (stepComplete stays the sole
 //     termination mechanism).
-//   Block B — uniqueValue mint (D-16): prefix + injectable generator (353 K=2), minted at the
+//   Block B — uniqueValue mint: prefix + injectable generator (353 K=2), minted at the
 //     chokepoint with a typed metadata.uniqueValue block and a run-scoped working-memory
 //     auto-write (kind extracted-value / provenance toolResult), zero adapter.execute.
-//   Block C — infeasible envelope (D-04): an additive `failureKind`/`failureReason` plan-field
+//   Block C — infeasible envelope: an additive `failureKind`/`failureReason` plan-field
 //     (the 358 remember[] precedent) survives toolCallToActionPlan and routes into a typed
 //     StepEvidence.termination block ({kind,reason}) machine-distinguishable from a plain
 //     stepFailed — which stays byte-unchanged (green control).
@@ -96,7 +96,7 @@ async function importDispatchMint(): Promise<Record<string, unknown>> {
 const cfg = { maxActions: 4, maxPlanningTurns: 4, previousStepCount: 0 }
 
 // ---------------------------------------------------------------------------
-// Block A — reportValue mint (D-01/D-02/D-03)
+// Block A — reportValue mint
 // ---------------------------------------------------------------------------
 describe('Block A — reportValue is a runner mint recorded as first-class evidence', () => {
   it('mints at the ONE chokepoint — zero adapter.execute — and metadata.reportedValue mirrors the emission value', async () => {
@@ -110,11 +110,11 @@ describe('Block A — reportValue is a runner mint recorded as first-class evide
       makeStepContext(),
     )
 
-    // D-01: a platform-less verb never reaches adapter.execute.
+    // a platform-less verb never reaches adapter.execute.
     expect(calls.length).toBe(0)
     const sub = subs(result)[0]
     expect(sub?.result?.success).toBe(true)
-    // D-03: typed metadata block via the 359 defensive-reader idiom.
+    // typed metadata block via the 359 defensive-reader idiom.
     const meta = readReportedValueMeta(sub?.result) as { value?: string } | undefined
     expect(meta).toBeDefined()
     expect(meta?.value).toBe('ORD-12345')
@@ -159,7 +159,7 @@ describe('Block A — reportValue is a runner mint recorded as first-class evide
 })
 
 // ---------------------------------------------------------------------------
-// Block B — uniqueValue mint + WM auto-write (D-16)
+// Block B — uniqueValue mint + WM auto-write
 // ---------------------------------------------------------------------------
 describe('Block B — uniqueValue mints a prefixed value from an injectable generator', () => {
   it('mintUniqueValue prefixes the value and takes an injectable generator', async () => {
@@ -209,7 +209,7 @@ describe('Block B — uniqueValue mints a prefixed value from an injectable gene
 })
 
 // ---------------------------------------------------------------------------
-// Block C — infeasible envelope (D-04)
+// Block C — infeasible envelope
 // ---------------------------------------------------------------------------
 describe('Block C — infeasible is a typed terminal outcome on the plan-field envelope', () => {
   it('toolCallToActionPlan surfaces failureKind + failureReason on the plan envelope', () => {
