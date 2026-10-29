@@ -244,7 +244,7 @@ describe('buildCompleteness missing-evidence folding precedence', () => {
   })
 })
 
-describe('D-11 blob closure and completeness', () => {
+describe('blob closure and completeness', () => {
   it('collects screenshot then auxiliary shas in recorded order and deduplicates them', () => {
     const leg = buildLeg({
       captureMode: 'full',

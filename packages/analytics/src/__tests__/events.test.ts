@@ -13,8 +13,8 @@ import {
 import type { AnalyticsEventName } from '../events.js'
 import { sourceModulesContaining, withoutComments } from './source-scan.js'
 
-describe('the closed event union — membership is the D-18 list, exactly (ANLY-01)', () => {
-  it('is the D-18 membership and nothing else, pinned by equality', () => {
+describe('the closed event union and its membership', () => {
+  it('is the declared membership and nothing else, pinned by equality', () => {
     expect([...ANALYTICS_EVENT_NAMES]).toEqual([
       'agent-qa.test_run.completed',
       'agent-qa.suite_run.completed',
@@ -75,7 +75,7 @@ describe('the closed event union — membership is the D-18 list, exactly (ANLY-
   })
 })
 
-describe('no free text is representable (D-18 / T-398-06)', () => {
+describe('no free text is representable', () => {
   // THE CLEAN SIDE. On its own this proves nothing — a checker that returns unconditionally passes
   // it too — which is why it is stated beside the planted legs rather than as the claim.
   it('the shipped union passes the range checker', () => {
@@ -299,7 +299,7 @@ const COMPLETION_KEYS = [
   'memory_enabled',
 ]
 
-describe('the run-completion shape is a closed set (405 D-21 / DETL-06)', () => {
+describe('the run-completion shape is a closed set', () => {
   it('declares EXACTLY the base keys, the completion keys and its own discriminating id', () => {
     expect(propertyKeysOf('agent-qa.test_run.completed')).toEqual([
       ...BASE_KEYS,
@@ -339,7 +339,7 @@ describe('the run-completion shape is a closed set (405 D-21 / DETL-06)', () => 
 
   // NON-VACUITY, from the other direction: the three fields 405-04 gave a real producer are still
   // declared, so the cells above cannot pass by the shape having lost its optional integers.
-  it('still declares the three token fields the D-05/D-07 producer fills', () => {
+  it('still declares the three token fields the run subscriber fills', () => {
     const keys = propertyKeysOf('agent-qa.test_run.completed')
     expect(keys).toContain('input_tokens')
     expect(keys).toContain('output_tokens')

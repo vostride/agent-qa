@@ -54,7 +54,7 @@ function spyingPosthogFactory(): { factory: PosthogTransportFactory; calls: Post
 
 const ENABLED_KEY = 'phc_test_key'
 
-describe('composeAnalytics — the one opt-out decision (D-19 / ANLY-01)', () => {
+describe('composeAnalytics — the one opt-out decision', () => {
   it.each([
     { label: 'privacy true', config: { analytics: { privacy: true } }, optedOut: true },
     { label: 'privacy false', config: { analytics: { privacy: false } }, optedOut: false },
@@ -129,7 +129,7 @@ describe('composeAnalytics — the one opt-out decision (D-19 / ANLY-01)', () =>
   })
 })
 
-describe('AnalyticsPort — best-effort boundary and the empty queue (T-398-08, edge ANLY-01/empty)', () => {
+describe('AnalyticsPort — best-effort boundary and the empty queue', () => {
   it('never throws into the host, whatever the transport does', async () => {
     const composed = composeAnalytics({
       projectKey: ENABLED_KEY,
@@ -229,7 +229,7 @@ describe('AnalyticsPort — best-effort boundary and the empty queue (T-398-08, 
   })
 })
 
-describe('C447-NO-DNT', () => {
+describe('DO_NOT_TRACK is not an opt-out', () => {
   it('the config privacy flag is the only opt-out', () => {
     const first = spyingPosthogFactory()
     const withVariable = composeAnalytics({
@@ -267,7 +267,7 @@ describe('C447-NO-DNT', () => {
   })
 })
 
-describe('C447-NO-TRANSPORT', () => {
+describe('an opted-out or keyless composition holds no transport', () => {
   it('an opted-out or keyless composition holds no transport object', async () => {
     const arms = [
       {

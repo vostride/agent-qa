@@ -28,7 +28,7 @@ async function readArtifact(root: string, runId: string): Promise<Record<string,
   return JSON.parse(await readFile(file, 'utf-8')) as Record<string, unknown>
 }
 
-describe('FsRunArtifactStore (D-08)', () => {
+describe('FsRunArtifactStore', () => {
   let root: string
 
   beforeEach(async () => {

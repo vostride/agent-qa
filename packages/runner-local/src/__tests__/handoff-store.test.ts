@@ -77,7 +77,7 @@ const PLAN_SOURCE_PERSISTENCE_CASES = [
   { name: 'explicit JSON null', shape: 'null', accepted: false },
 ] as const
 
-describe('FsHandoffStore + loadCompletedRunHandoff (D-17/D-19)', () => {
+describe('FsHandoffStore + loadCompletedRunHandoff', () => {
   let root: string
 
   beforeEach(async () => {

@@ -21,7 +21,7 @@ function recorder(): MockLanguageModelV3 {
   })
 }
 
-describe('C441-EGRESS', () => {
+describe('the middleware rewrites through the injected mask', () => {
   it('the middleware rewrites only through the injected function', async () => {
     const tools = [
       {
@@ -66,7 +66,7 @@ const stubMask = (text: string): string =>
     .replaceAll('{{secret:Z}}', '[secret:other]')
     .replaceAll('raw-stand-in', '[secret:X]')
 
-describe('C441-GAP-EGRESS', () => {
+describe('templates the mask leaves alone are sent verbatim', () => {
   it('a template the mask names or leaves alone is sent verbatim, and the text around it is masked', async () => {
     const params = {
       prompt: [
@@ -113,7 +113,7 @@ function alternationMask(declared: Record<string, string>): (text: string) => st
       `[secret:${name ?? nameByValue.get(match)}]`)
 }
 
-describe('C441-GAP2-EGRESS', () => {
+describe('a declared value near a template is never sent raw', () => {
   it('a declared value against a template or inside its name is never sent raw, and a clean template still is', async () => {
     const mask = alternationMask({ PW: 'ab{', TAIL: '}tail9', PIN: '42', KEY_42: 'v-key-0417' })
     const params = {
@@ -154,7 +154,7 @@ describe('C441-GAP2-EGRESS', () => {
   })
 })
 
-describe('C441-GAP3-EGRESS', () => {
+describe('a declared value inside a template\'s own text is never sent', () => {
   async function sentLeaf(mask: (text: string) => string, text: string): Promise<string> {
     const model = recorder()
     const wrapped = wrapLanguageModel({ model, middleware: createMaskingMiddleware(mask) })

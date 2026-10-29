@@ -120,7 +120,7 @@ function assertTwoSidedOrFatal(label: string, optedOut: number, optedIn: number)
     .toBeGreaterThan(0)
 }
 
-describe('zero-network under analytics.privacy (D-19, D-06)', () => {
+describe('zero-network under analytics.privacy', () => {
   let originalDispatcher: Dispatcher
 
   beforeEach(() => {

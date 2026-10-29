@@ -20,7 +20,7 @@ async function transform(prompt: LanguageModelV3Prompt, extra: Record<string, un
   return result as unknown as { prompt: LanguageModelV3Prompt } & Record<string, unknown>
 }
 
-describe('dropEmptyMessagesMiddleware — empty-content stripping (RUNX-01)', () => {
+describe('dropEmptyMessagesMiddleware — empty-content stripping', () => {
   it('drops a system message whose content is an empty string', async () => {
     const prompt: LanguageModelV3Prompt = [
       { role: 'system', content: '' },

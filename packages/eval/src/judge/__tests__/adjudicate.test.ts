@@ -102,13 +102,13 @@ describe('panel comparison accounting', () => {
 })
 
 describe('assessJudgeEligibility', () => {
-  it('refuses with no-judge-configured when no judge model id is supplied (D-06)', () => {
+  it('refuses with no-judge-configured when no judge model id is supplied', () => {
     expect(
       assessJudgeEligibility({ replayedModelId: 'gpt-5' }),
     ).toEqual({ eligible: false, reason: 'no-judge-configured' })
   })
 
-  it('treats an unknown judge family as same-family and forbids it (D-13)', () => {
+  it('treats an unknown judge family as same-family and forbids it', () => {
     const eligibility = assessJudgeEligibility({
       judgeModelId: 'stub-judge-model',
       replayedModelId: 'gpt-5',
@@ -123,7 +123,7 @@ describe('assessJudgeEligibility', () => {
     expect(eligibility.families.replayed).toBe('openai')
   })
 
-  it('severs the direct self-preference circuit for a judge in the replayed family (D-14 side 1)', () => {
+  it('severs the direct self-preference circuit for a judge in the replayed family', () => {
     expect(
       assessJudgeEligibility({
         judgeModelId: 'gpt-4o-mini',
@@ -136,7 +136,7 @@ describe('assessJudgeEligibility', () => {
     })
   })
 
-  it('forbids a judge sharing the recorded family, and skips the recorded side when absent (D-14 side 2)', () => {
+  it('forbids a judge sharing the recorded family, and skips the recorded side when absent', () => {
     expect(
       assessJudgeEligibility({
         judgeModelId: 'claude-sonnet-4-5',
@@ -201,7 +201,7 @@ describe('assessJudgeEligibility', () => {
   })
 })
 
-describe('assessJudgeEligibility — allowSameFamily opt-in (owner override of D-10, 2026-07-12)', () => {
+describe('assessJudgeEligibility — allowSameFamily opt-in', () => {
   it('lifts a KNOWN-same-family replayed refusal and stamps the override marker (Test A)', () => {
     expect(
       assessJudgeEligibility({
@@ -527,7 +527,7 @@ const callError: JudgeCallResult = {
 // --- adjudicateCassetteScore ------------------------------------------------
 
 describe('adjudicateCassetteScore', () => {
-  it('never consults the port for settled, miss, never-scored, and skipped entries (JUDGE-01)', async () => {
+  it('never consults the port for settled, miss, never-scored, and skipped entries', async () => {
     const settledCassette = leafCassette({ sidecar: buttonSidecar() })
     const settledOutcome = leafOutcome([decisionOutcome(buttonAction)])
     const settledScore = scoreCassetteReplay(settledCassette, settledOutcome)
@@ -593,7 +593,7 @@ describe('adjudicateCassetteScore', () => {
     expect(proc.score).toEqual(procScore)
   })
 
-  it('stamps every tie not-invoked with the eligibility reason and changes nothing else (D-06/D-12)', async () => {
+  it('stamps every tie not-invoked with the eligibility reason and changes nothing else', async () => {
     const fixture = valueTieFixture()
     const unconfigured = await adjudicateCassetteScore({
       cassette: fixture.cassette,
@@ -648,7 +648,7 @@ describe('adjudicateCassetteScore', () => {
     expect(portless.judge).toBeUndefined()
   })
 
-  it('settles an equivalent value tie on its own partial breakdown verbatim (D-01/D-02)', async () => {
+  it('settles an equivalent value tie on its own partial breakdown verbatim', async () => {
     const fixture = valueTieFixture()
     const { port } = scriptedPort([
       verdict('equivalent', 'high', { calls: 1, inputTokens: 10, outputTokens: 4 }),
@@ -723,7 +723,7 @@ describe('adjudicateCassetteScore', () => {
     expect(isDecisionFullMatch(identityScore)).toBe(true)
   })
 
-  it('issues exactly two physically order-swapped calls per pairwise judgment (D-08)', async () => {
+  it('issues exactly two physically order-swapped calls per pairwise judgment', async () => {
     const fixture = partialTieFixture()
     const { port, requests } = scriptedPort([
       verdict('equivalent'),
@@ -775,7 +775,7 @@ describe('adjudicateCassetteScore', () => {
     expect(stoodRest).toEqual(disagreeing.tie)
   })
 
-  it('abstains below the minimum confidence category and on any unsure order (D-09)', async () => {
+  it('abstains below the minimum confidence category and on any unsure order', async () => {
     const belowFixture = valueTieFixture()
     const below = await adjudicateCassetteScore({
       cassette: belowFixture.cassette,
@@ -831,7 +831,7 @@ describe('adjudicateCassetteScore', () => {
     })
   })
 
-  it('mints judge-error per decision without aborting sibling ties (D-11)', async () => {
+  it('mints judge-error per decision without aborting sibling ties', async () => {
     const errorFixture = valueTieFixture()
     const callErrored = await adjudicateCassetteScore({
       cassette: errorFixture.cassette,
@@ -930,7 +930,7 @@ describe('adjudicateCassetteScore', () => {
     })
   })
 
-  it('judges no-consensus candidates pairwise against gold, bounded and honest (D-03)', async () => {
+  it('judges no-consensus candidates pairwise against gold, bounded and honest', async () => {
     const candidateA: DecisionIdentity = {
       opClass: 'click',
       target: { ...buttonAnchor, ordinal: 2 },
@@ -1071,7 +1071,7 @@ describe('adjudicateCassetteScore', () => {
     })
   })
 
-  it('recomputes the procedure summary over adjudicated entries (D-01)', async () => {
+  it('recomputes the procedure summary over adjudicated entries', async () => {
     const procCassette = procedureCassette([
       {
         sidecar: fillSidecar('alpha beta gamma delta'),
@@ -1126,7 +1126,7 @@ describe('adjudicateCassetteScore', () => {
     expect(Object.hasOwn(result.score.summary, 'firstDivergentStepIndex')).toBe(false)
   })
 
-  it('returns the judge identity block exactly when the eligible path ran (D-16)', async () => {
+  it('returns the judge identity block exactly when the eligible path ran', async () => {
     const fixture = valueTieFixture()
     const eligible = await adjudicateCassetteScore({
       cassette: fixture.cassette,

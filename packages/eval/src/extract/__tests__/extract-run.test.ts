@@ -35,7 +35,7 @@ function proceduresOf(result: ReturnType<typeof extractRunCassettes>): Procedure
   )
 }
 
-describe('D-12 one-pass run extraction', () => {
+describe('one-pass run extraction', () => {
   it('emits one leaf per live decision and one procedure per recorded test', () => {
     const result = extractRunCassettes({ handoff: makeV2Handoff(), artifacts: mapSource() })
     const leaves = cassettesOf(result).filter((cassette) => cassette.granularity === 'leaf')
@@ -185,7 +185,7 @@ describe('D-12 one-pass run extraction', () => {
     }
   })
 
-  it('produces guard-valid cassettes and leaves Phase 371 pairing absent', () => {
+  it('produces guard-valid cassettes with no pairing label', () => {
     const result = extractRunCassettes({ handoff: makeV2Handoff(), artifacts: mapSource() })
 
     for (const cassette of cassettesOf(result)) {
@@ -249,7 +249,7 @@ function firstStepLeaf(result: ReturnType<typeof extractRunCassettes>): LeafCass
   )
 }
 
-describe('367-16 leaf typed evidence closure', () => {
+describe('leaf typed evidence closure', () => {
   it('marks a full-capture leaf with no screenshot ref evidence-incomplete at its coordinates', () => {
     const result = extractRunCassettes({ handoff: makeV2Handoff(), artifacts: mapSource() })
     const leaf = firstStepLeaf(result)
@@ -329,7 +329,7 @@ describe('367-16 leaf typed evidence closure', () => {
   })
 })
 
-describe('367-16 procedure missing-evidence aggregation', () => {
+describe('procedure missing-evidence aggregation', () => {
   it('aggregates every decision missing-evidence fact into full/no-ref procedures in order', () => {
     const [passing, failing] = proceduresOf(
       extractRunCassettes({ handoff: makeV2Handoff(), artifacts: mapSource() }),

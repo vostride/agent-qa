@@ -131,7 +131,7 @@ async function healedLeg() {
   return { subAction, leg }
 }
 
-describe('C444.1-EVAL-PLANNER-PAIR', () => {
+describe('a ref-healed click keeps the tree and ref the planner saw', () => {
   it('a ref-healed leg is extracted with the tree the planner saw and the action it chose', async () => {
     const { subAction, leg } = await healedLeg()
 

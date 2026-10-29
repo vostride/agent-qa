@@ -15,7 +15,7 @@ import {
   LOCAL_FIXTURE_BLOB_SHA,
 } from './fixtures/local-handoff-fixture.js'
 
-describe('artifact sources (D-02 / Open Q1a)', () => {
+describe('artifact sources', () => {
   let dir: string
 
   beforeEach(async () => {
@@ -46,7 +46,7 @@ describe('artifact sources (D-02 / Open Q1a)', () => {
   })
 })
 
-describe('FsRunArtifactSource over the production run store (CASS-02)', () => {
+describe('FsRunArtifactSource over the production run store', () => {
   let root: string
 
   beforeEach(async () => {

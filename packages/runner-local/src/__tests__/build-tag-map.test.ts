@@ -15,7 +15,7 @@ import {
 } from '../build-tag-map.js'
 import { BUILD_ORDINALS_FILE } from '../build-ordinal.js'
 
-describe('build tag map (D-17)', () => {
+describe('build tag map', () => {
   let root: string
 
   beforeEach(async () => {

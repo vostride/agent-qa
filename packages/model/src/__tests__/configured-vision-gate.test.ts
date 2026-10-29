@@ -12,7 +12,7 @@ function profile(model: string): ModelProfile {
   return { provider: 'openai-compatible', model, auth: { mode: 'none' } }
 }
 
-describe('C439-CONFIGURED-VISION', () => {
+describe('a configured vision flag and the vision gate', () => {
   beforeEach(() => {
     overrideStore.clear()
   })

@@ -180,7 +180,7 @@ describe('JudgeOutcome closed union', () => {
 })
 
 describe('unresolved-tie shape invariance', () => {
-  it('remains constructible exactly as 369 shaped it, with no judgeOutcome field', () => {
+  it('remains constructible with no judgeOutcome field', () => {
     const tie: DecisionScore = {
       kind: 'unresolved-tie',
       cause: 'value-mid-band',

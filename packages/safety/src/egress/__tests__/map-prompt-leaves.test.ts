@@ -129,7 +129,7 @@ describe('mapPromptLeaves', () => {
 const PW = 'pa"ss\\word'
 const maskPw = (text: string): string => text.split(PW).join('[secret:PW]')
 
-describe('C441-EGRESS', () => {
+describe('masking tool-call inputs, tool results and text parts', () => {
   it('a value with a quote inside a tool-call input is masked', () => {
     const params = asParams({
       prompt: [
@@ -358,7 +358,7 @@ function sentJsonValue(params: ProviderRequestParams): Record<string, unknown> {
   return part.output.value as Record<string, unknown>
 }
 
-describe('C441-GAP-EGRESS', () => {
+describe('masking object keys and JSON-shaped values', () => {
   it('object keys in a tool-call input and a JSON tool result are masked', () => {
     const input = sentToolCallInput(mapPromptLeaves(toolCallParams({ map: { [PW]: 1 } }), maskPw))
     expect(input).toEqual({ map: { '[secret:PW]': 1 } })

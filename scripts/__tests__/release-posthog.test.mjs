@@ -100,7 +100,7 @@ test('parses and dispatches node scripts/release/posthog.mjs --write', async () 
   }
 })
 
-test('C447-NO-TRANSPORT the release check accepts the no-transport composition and refuses one without it', async () => {
+test('the release check accepts the no-transport composition and refuses one without it', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-posthog-no-transport-'))
   try {
     createPosthogFixture(rootDir)

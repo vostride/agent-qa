@@ -72,7 +72,7 @@ describe('tiersSettlePredicate', () => {
     expect(tiersSettlePredicate(decisionSample(buttonAction), context(sidecar))).toBe(false)
   })
 
-  it('escalates every D-09 single-sample tie cause', () => {
+  it('escalates every single-sample tie cause', () => {
     const partialIdentity = decisionSample(buttonAction, {
       opClass: 'click',
       target: { ...buttonAnchor, ordinal: 2 },

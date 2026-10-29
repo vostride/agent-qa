@@ -116,7 +116,7 @@ describe('debugLoggingMiddleware — enabled', () => {
   })
 })
 
-describe('C441-DEBUG-LOG', () => {
+describe('the debug log leaks no credential', () => {
   const keyBody =
     '{"error":{"message":"Incorrect API key provided: sk-abc123def456","type":"invalid_request_error","code":"invalid_api_key"}}'
 

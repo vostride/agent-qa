@@ -44,7 +44,7 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-describe('FsCassetteStore (D-05/D-06/D-07)', () => {
+describe('FsCassetteStore', () => {
   let root: string
 
   beforeEach(async () => {

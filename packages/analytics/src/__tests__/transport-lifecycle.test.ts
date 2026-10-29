@@ -58,7 +58,7 @@ function composeOverCountingClient(): { client: CountingClient; port: ReturnType
   }
 }
 
-describe('the transport lifecycle on ONE composition (398-15, CR-01)', () => {
+describe('the transport lifecycle on ONE composition', () => {
   it('flushes the client at each boundary and shuts it down exactly once, at the end', async () => {
     const { client, port } = composeOverCountingClient()
 
@@ -91,7 +91,7 @@ describe('the transport lifecycle on ONE composition (398-15, CR-01)', () => {
     ).toEqual([0, 0])
   })
 
-  it('preserves EDGE ANLY-01/empty: a flush with nothing captured touches the client not at all', async () => {
+  it('a flush with nothing captured touches the client not at all', async () => {
     const { client, port } = composeOverCountingClient()
 
     await port.flush()
@@ -118,7 +118,7 @@ describe('the transport lifecycle on ONE composition (398-15, CR-01)', () => {
 // A client that never resolves is the acceptance bar rather than a slow one: a threshold cell
 // against a slow client measures the threshold, while a cell against a client that NEVER settles
 // can only pass if the bound genuinely releases the caller.
-describe('the port bounds its own shutdown (T-398-35 / WR-02)', () => {
+describe('the port bounds its own shutdown', () => {
   function hangingClient(): PosthogAnalyticsClient & { counts: { shutdown: number } } {
     const counts = { shutdown: 0 }
     return {

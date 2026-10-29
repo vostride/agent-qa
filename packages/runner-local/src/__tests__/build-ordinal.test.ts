@@ -65,7 +65,7 @@ function runOrdinalChild(input: {
   })
 }
 
-describe('nextBuildOrdinal (D-18)', () => {
+describe('nextBuildOrdinal', () => {
   let root: string
 
   beforeEach(async () => {

@@ -40,7 +40,7 @@ function usage(inputTokens: number | undefined): LanguageModelUsage {
 const TEXT = 'Log in with the demo account and confirm the dashboard renders.'
 const TEXT_TOKENS = Math.ceil(TEXT.length / 4)
 
-describe('createTokenAccounting — estimate two-signal (chars/4 + per-image, D-02/D-12)', () => {
+describe('createTokenAccounting — estimate two-signal (chars/4 + per-image)', () => {
   it('estimates chars/4 over text parts before any recordUsage', () => {
     const acc = createTokenAccounting({ getCapabilities: fixedCaps(KNOWN_CAPS) })
     expect(acc.estimate([userText(TEXT)])).toBe(TEXT_TOKENS)
@@ -69,7 +69,7 @@ describe('createTokenAccounting — estimate two-signal (chars/4 + per-image, D-
   })
 })
 
-describe('createTokenAccounting — recordUsage anchor (D-01/D-02)', () => {
+describe('createTokenAccounting — recordUsage anchor', () => {
   it('floors a subsequent matching-prefix estimate to the recorded inputTokens', () => {
     const acc = createTokenAccounting({ getCapabilities: fixedCaps(KNOWN_CAPS) })
     const messages: ModelMessage[] = [systemMessage(), userText(TEXT)]
@@ -107,7 +107,7 @@ describe('createTokenAccounting — recordUsage anchor (D-01/D-02)', () => {
   })
 })
 
-describe('createTokenAccounting — getCeilings reactive thunk (D-04)', () => {
+describe('createTokenAccounting — getCeilings reactive thunk', () => {
   const profile: ModelProfile = {
     provider: 'openai-compatible',
     model: 'totally-unknown-model-xyz',
@@ -140,7 +140,7 @@ describe('createTokenAccounting — getCeilings reactive thunk (D-04)', () => {
   })
 })
 
-describe('createTokenAccounting — degrade delegates policy-free (D-07)', () => {
+describe('createTokenAccounting — degrade delegates policy-free', () => {
   it('reduces messages via the instance estimate when over budget', () => {
     const acc = createTokenAccounting({ getCapabilities: fixedCaps(KNOWN_CAPS) })
     const big = 'x'.repeat(4000)

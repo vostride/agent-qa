@@ -555,7 +555,7 @@ describe('DockerHookExecutor.execute', () => {
   })
 })
 
-describe('C441-HOOK-OUTPUT', () => {
+describe('hook output masking', () => {
   const authState = {
     version: 1 as const,
     kind: 'web' as const,

@@ -118,7 +118,7 @@ function normalizeVolatile(body: string): string {
     .replace(/"sent_at":"[^"]*"/gu, '"sent_at":"<TS>"')
 }
 
-describe('masking at the send seam (D-19, T-398-06)', () => {
+describe('masking at the send seam', () => {
   let sink: WireSink
 
   beforeEach(async () => {
@@ -252,7 +252,7 @@ describe('masking at the send seam (D-19, T-398-06)', () => {
   })
 })
 
-describe('C441-ANALYTICS', () => {
+describe('the package masks nothing on its own', () => {
   it('the shipped source imports nothing from the safety package and defines no regex over credential shapes', () => {
     const internalImports = new Set<string>()
     const regexes: string[] = []

@@ -5,7 +5,7 @@ import {
   deriveRunSlug,
 } from '../ids'
 
-describe('D-07 deterministic cassette ids', () => {
+describe('deterministic cassette ids', () => {
   it('pins the human-readable leaf and procedure id formats', () => {
     expect(
       deriveLeafCassetteId({

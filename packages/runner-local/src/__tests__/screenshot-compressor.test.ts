@@ -82,7 +82,7 @@ describe('SharpScreenshotCompressor.compress', () => {
     expect(result.imageHeight).toBe(100)
   })
 
-  it('D-02: resizes portrait 1080x2400 to 706x1568 using fit:inside max-edge', async () => {
+  it('resizes portrait 1080x2400 to 706x1568 using fit:inside max-edge', async () => {
     const png = await createTestPng(1080, 2400)
     const result = await compressor.compress(png, { effectiveResolution: 1568, actionSpaceWidth: 1080 })
     const meta = await sharp(result.buffer).metadata()

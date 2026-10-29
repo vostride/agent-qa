@@ -38,7 +38,7 @@ describe('isContextLengthOverflow', () => {
   })
 })
 
-describe('retry non-transience (D-11)', () => {
+describe('retry non-transience', () => {
   it('an overflow error is classified non-transient so retry keeps skipping it', () => {
     expect(isTransientError(OPENAI_OVERFLOW)).toBe(false)
     expect(isTransientError(ANTHROPIC_OVERFLOW)).toBe(false)

@@ -144,7 +144,7 @@ function findReplayRecords(root: string): string[] {
     .map((entry) => join(entry.parentPath, entry.name))
 }
 
-describe('runCassetteReplay — sanctioned composition (RPLY-02, D-03/D-04/D-06)', () => {
+describe('runCassetteReplay — sanctioned composition', () => {
   const tempRoots: string[] = []
 
   async function tempRoot(prefix: string): Promise<string> {
@@ -289,7 +289,7 @@ describe('runCassetteReplay — sanctioned composition (RPLY-02, D-03/D-04/D-06)
     expect(report.seedHonored).toBe(false)
   })
 
-  it('stamps recorded and replayed model ids; a mismatch is data, not an error (D-03)', async () => {
+  it('stamps recorded and replayed model ids; a mismatch is data, not an error', async () => {
     const { cassette, artifacts } = extractLeaf(makeLocalV2Handoff())
     const stub = capturingStub(() => actionGenerateResult())
 
@@ -335,7 +335,7 @@ describe('runCassetteReplay — sanctioned composition (RPLY-02, D-03/D-04/D-06)
     expect(outcome.agreement.k).toBe(3)
   })
 
-  it('persists the outcome only when a record store is supplied (D-12)', async () => {
+  it('persists the outcome only when a record store is supplied', async () => {
     const { cassette, artifacts } = extractLeaf(makeLocalV2Handoff())
 
     const withStoreRoot = await tempRoot('replay-comp-store-')
@@ -384,7 +384,7 @@ function extractStoreLoad(
   return loadCassetteBundle(written.dir)
 }
 
-describe('runCassetteReplay — production round-trip spine (RPLY-02, D-05/D-12)', () => {
+describe('runCassetteReplay — production round-trip spine', () => {
   const tempRoots: string[] = []
 
   async function tempRoot(prefix: string): Promise<string> {
@@ -481,7 +481,7 @@ describe('runCassetteReplay — production round-trip spine (RPLY-02, D-05/D-12)
     expect(JSON.parse(readFileSync(records[0]!, 'utf8'))).toEqual(JSON.parse(JSON.stringify(outcome)))
   })
 
-  it('serves a recorded exchange through the real plan() tool-loop (368-01 seam + exchange server)', async () => {
+  it('serves a recorded exchange through the real plan() tool-loop and the exchange server', async () => {
     const bundleRoot = await tempRoot('replay-e2e-exchange-bundles-')
 
     // Extend the recorded live decision with a non-action exchange (opaque evidence data).
@@ -526,7 +526,7 @@ describe('runCassetteReplay — production round-trip spine (RPLY-02, D-05/D-12)
 
 // ─── Task 3 (369-08): optional score persistence through the sanctioned composition ───
 
-describe('runCassetteReplay — optional score persistence (369-08, D-13/OQ-2)', () => {
+describe('runCassetteReplay — optional score persistence', () => {
   const tempRoots: string[] = []
 
   async function tempRoot(prefix: string): Promise<string> {
@@ -679,7 +679,7 @@ function leafDecisionScore(record: ScoreRecord): DecisionScore {
   return entry.score
 }
 
-describe('runCassetteReplay — tier-4 judge leg (370-07, JUDGE-01/03/04)', () => {
+describe('runCassetteReplay — tier-4 judge leg', () => {
   const tempRoots: string[] = []
 
   async function tempRoot(prefix: string): Promise<string> {
@@ -730,7 +730,7 @@ describe('runCassetteReplay — tier-4 judge leg (370-07, JUDGE-01/03/04)', () =
     return { replayStub, scoreFiles, persisted }
   }
 
-  it('stamps ties not-invoked{no-judge-configured} on the no-judge path, 369 behavior otherwise unchanged (D-05/D-06)', async () => {
+  it('stamps ties not-invoked{no-judge-configured} on the no-judge path and changes nothing else', async () => {
     const { persisted, replayStub } = await runMidBandReplay()
 
     const score = leafDecisionScore(persisted)
@@ -749,7 +749,7 @@ describe('runCassetteReplay — tier-4 judge leg (370-07, JUDGE-01/03/04)', () =
     expect(replayStub.captured).toHaveLength(1)
   })
 
-  it('never binds an ineligible same-family judge: not-invoked{no-eligible-judge} carries the family resolutions (D-12)', async () => {
+  it('never binds an ineligible same-family judge: not-invoked{no-eligible-judge} carries the family resolutions', async () => {
     const judgeStub = keyedThrowingStub(SAME_FAMILY_JUDGE_MODEL_ID)
     const { persisted } = await runMidBandReplay({
       judge: {
@@ -771,7 +771,7 @@ describe('runCassetteReplay — tier-4 judge leg (370-07, JUDGE-01/03/04)', () =
     expect('judge' in persisted).toBe(false)
   })
 
-  it('threads allowSameFamily to the eligibility law: the opted-in same-family judge runs and the identity block discloses the override (owner override of D-10, 2026-07-12)', async () => {
+  it('threads allowSameFamily to the eligibility law: the opted-in same-family judge runs and the identity block discloses the override', async () => {
     const judgeStub = keyedCapturingStub(
       () => judgeGenerateResult('equivalent', 'high'),
       SAME_FAMILY_JUDGE_MODEL_ID,
@@ -800,7 +800,7 @@ describe('runCassetteReplay — tier-4 judge leg (370-07, JUDGE-01/03/04)', () =
     })
   })
 
-  it('settles the mid-band tie end-to-end: judgeSettled stamp and the D-16 identity block read from disk (JUDGE-04)', async () => {
+  it('settles the mid-band tie end-to-end: judgeSettled stamp and the judge identity block read from disk', async () => {
     const judgeStub = keyedCapturingStub(
       () => judgeGenerateResult('equivalent', 'high'),
       JUDGE_MODEL_ID,
@@ -838,7 +838,7 @@ describe('runCassetteReplay — tier-4 judge leg (370-07, JUDGE-01/03/04)', () =
     }
   })
 
-  it('persists exactly ONE adjudicated score.json with the replay record beside it (D-05, Pitfall 2)', async () => {
+  it('persists exactly ONE adjudicated score.json with the replay record beside it', async () => {
     const judgeStub = keyedCapturingStub(
       () => judgeGenerateResult('equivalent', 'high'),
       JUDGE_MODEL_ID,
@@ -859,7 +859,7 @@ describe('runCassetteReplay — tier-4 judge leg (370-07, JUDGE-01/03/04)', () =
     expect(existsSync(join(dirname(scoreFiles[0]!), REPLAY_RECORD_FILE))).toBe(true)
   })
 
-  it('survives judge infra failure: the tie stands with judge-error{provider-error}, score persisted once (368 batch-survival law)', async () => {
+  it('survives judge infra failure: the tie stands with judge-error{provider-error}, score persisted once', async () => {
     const judgeStub = keyedThrowingStub(JUDGE_MODEL_ID)
     const { persisted, scoreFiles } = await runMidBandReplay({
       judge: {
@@ -892,7 +892,7 @@ describe('runCassetteReplay — tier-4 judge leg (370-07, JUDGE-01/03/04)', () =
 // A declared fake secret embedded in the recorded step text.
 const FAKE_REPLAY_SECRET = 'raw-fake-replay-secret-9001'
 
-describe('runCassetteReplay — D-06 declared mask (372-01, G1/BASE-01)', () => {
+describe('runCassetteReplay — declared mask', () => {
   function secretHandoff(): CompletedRunHandoff {
     const handoff = makeLocalV2Handoff()
     handoff.tests[0]!.steps[0]!.stepText =
@@ -900,7 +900,7 @@ describe('runCassetteReplay — D-06 declared mask (372-01, G1/BASE-01)', () => 
     return handoff
   }
 
-  it('masks a declared secret to its named marker in the replay egress (D-06)', async () => {
+  it('masks a declared secret to its named marker in the replay egress', async () => {
     const { cassette, artifacts } = extractLeaf(secretHandoff())
     const stub = capturingStub(() => actionGenerateResult())
     const redactor = new SecretRedactor(SecretStore.fromEnvContent(`REPLAY_TOKEN=${FAKE_REPLAY_SECRET}`))
@@ -923,7 +923,7 @@ describe('runCassetteReplay — D-06 declared mask (372-01, G1/BASE-01)', () => 
   })
 })
 
-describe('C441-EGRESS', () => {
+describe('replay egress masks declared values', () => {
   const tempRoots: string[] = []
   const declared = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz'))
   const mask = (text: string) => declared.redactString(text)
@@ -1002,7 +1002,7 @@ describe('C441-EGRESS', () => {
   })
 })
 
-describe('C441-RUN-RECORDS', () => {
+describe('replay writes no guardrail audit file', () => {
   const tempRoots: string[] = []
 
   afterEach(async () => {

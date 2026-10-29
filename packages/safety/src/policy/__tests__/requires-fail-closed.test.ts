@@ -17,13 +17,13 @@ describe('requiresFailClosed', () => {
   })
 })
 
-describe('C432-EXECUTION-CONTEXT-RETAINED: all four execution contexts and their resolver stay', () => {
-  it.each(ALL_CONTEXTS)('C432-EXECUTION-CONTEXT-RETAINED: an explicit %s override resolves to itself', (context) => {
+describe('all four execution contexts and their resolver stay', () => {
+  it.each(ALL_CONTEXTS)('an explicit %s override resolves to itself', (context) => {
     expect(safety.resolveExecutionContext({ isTty: false, ciMarkers: false }, context)).toBe(context)
     expect(safety.resolveExecutionContext({ isTty: true, ciMarkers: true }, context)).toBe(context)
   })
 
-  it('C432-EXECUTION-CONTEXT-RETAINED: the signal table and the active resolver seam are unchanged', () => {
+  it('the signal table and the active resolver seam are unchanged', () => {
     expect(safety.resolveExecutionContext({ isTty: false, ciMarkers: true })).toBe('ci')
     expect(safety.resolveExecutionContext({ isTty: true, ciMarkers: false })).toBe('local-interactive')
     expect(safety.resolveExecutionContext({ isTty: false, ciMarkers: false })).toBe('local-headless')

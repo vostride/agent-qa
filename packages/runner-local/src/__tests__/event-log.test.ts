@@ -26,7 +26,7 @@ function envelope(seq: number): RunEventEnvelope {
   }
 }
 
-describe('FsEventLog (D-06)', () => {
+describe('FsEventLog', () => {
   let root: string
 
   beforeEach(async () => {

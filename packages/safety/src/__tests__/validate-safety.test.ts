@@ -157,7 +157,7 @@ const FIXTURE_FOREIGN_MASK = registryFixture([
 const MASKING_LAST =
   'fixture | masking-last | the last per-call element must be createMaskingMiddleware(mask), found'
 
-describe('SAFE-03 (a) structural seam pinning', () => {
+describe('createModel keeps the masking middleware last', () => {
   it('reports zero structural offenders against the real model registry source', () => {
     expect(findSeamStructuralOffenders(modelRegistrySource, 'packages/model/src/registry.ts')).toEqual(
       [],

@@ -21,7 +21,7 @@ function blobsDir(root: string, runId: string): string {
   return join(root, RUNS_SUBDIR, slugBranch(runId), RUN_EVIDENCE_BLOBS_SUBDIR)
 }
 
-describe('FsEvidenceArtifactStore (CASS-02)', () => {
+describe('FsEvidenceArtifactStore', () => {
   let root: string
 
   beforeEach(async () => {
@@ -105,7 +105,7 @@ describe('FsEvidenceArtifactStore (CASS-02)', () => {
 // `hasBlob` — presence as a STAT, never a read (406-03, D-17). The op layer asks "are the bytes
 // still there" for every artifact ref on a run-detail page; answering it through `getBlob` would
 // read every screenshot in the run to decide whether to draw a link.
-describe('FsEvidenceArtifactStore.hasBlob — presence without a read (D-17)', () => {
+describe('FsEvidenceArtifactStore.hasBlob — presence without a read', () => {
   let root: string
 
   beforeEach(async () => {

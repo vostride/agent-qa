@@ -70,7 +70,7 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-describe('FsScoreStore (D-13, Pitfall 5)', () => {
+describe('FsScoreStore', () => {
   let root: string
 
   beforeEach(async () => {
@@ -92,7 +92,7 @@ describe('FsScoreStore (D-13, Pitfall 5)', () => {
     expect(await exists(join(written.dir, SCORE_FILE))).toBe(true)
   })
 
-  it('survives the OQ-2 re-run sequence: record → score → record (dir wipe) → score', async () => {
+  it('survives the re-run sequence: record → score → record (dir wipe) → score', async () => {
     const recordStore = new FsReplayRecordStore({ root })
     const scoreStore = new FsScoreStore({ root })
 
@@ -147,7 +147,7 @@ describe('FsScoreStore (D-13, Pitfall 5)', () => {
     expect(await readdir(root)).toEqual(['eval'])
   })
 
-  it('round-trips the D-16 judge identity block verbatim under the judge key', async () => {
+  it('round-trips the judge identity block verbatim under the judge key', async () => {
     const judge: JudgeIdentityBlock = {
       judgeModelId: 'claude-judge-stub',
       judgeFamily: 'claude',
@@ -160,7 +160,7 @@ describe('FsScoreStore (D-13, Pitfall 5)', () => {
     expect(persisted.judge).toEqual(judge)
   })
 
-  it('persists no judge key when the record carries no judge block (369 byte-compatible)', async () => {
+  it('persists no judge key when the record carries no judge block', async () => {
     const written = new FsScoreStore({ root }).save(scoreRecord())
 
     const raw = await readFile(written.file, 'utf8')

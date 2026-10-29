@@ -64,7 +64,7 @@ function transportModel(provider: Transport, cache?: number, model?: string, mas
 
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
-describe.each(transports)('423 usage authority: %s', (provider) => {
+describe.each(transports)('call observation over the %s transport', (provider) => {
   it.each([
     ['USAGE-RAW-ABSENT', undefined], ['USAGE-RAW-ZERO', 0], ['USAGE-RAW-NONZERO', 30],
   ] as const)('%s', async (_cell, cache) => {

@@ -93,7 +93,7 @@ function step(
   }
 }
 
-describe('analytics token sums (405 D-07 — the declared fields get their first producer)', () => {
+describe('analytics token sums on a completed run', () => {
   it('sums every measured step of the member into input/output/total', async () => {
     const { transport, subscriber } = harness()
 

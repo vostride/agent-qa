@@ -88,7 +88,7 @@ function firstLeafWithRung(): LeafCassette {
   return found
 }
 
-describe('projectInputLeg served-brief proof and retrieval rung (413 D-07/ROOT-05)', () => {
+describe('projectInputLeg served-brief proof and retrieval rung', () => {
   it('carries ServedBrief.proof through projection as the verbatim served brief object', () => {
     const proof = makeProof()
     let servedBrief: StepEvidence['servedBrief'] | undefined

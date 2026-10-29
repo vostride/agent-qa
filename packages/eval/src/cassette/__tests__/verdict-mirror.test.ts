@@ -118,7 +118,7 @@ function wireRoundTrip(value: unknown): unknown {
   return JSON.parse(JSON.stringify(value)) as unknown
 }
 
-describe('cassette verdict mirror (D-06 lockstep with schema Verdict)', () => {
+describe('cassette verdict mirror stays in lockstep with the schema Verdict', () => {
   it('parses a rootCause-free schemaVersion 2 document (pre-phase cassettes unaffected)', () => {
     const cassette = guardCassette(wireRoundTrip(validLeafDocument()))
 
@@ -140,7 +140,7 @@ describe('cassette verdict mirror (D-06 lockstep with schema Verdict)', () => {
     expect(cassette.granularity).toBe('leaf')
   })
 
-  it('rejects a verdict missing producer (required discriminator, D-03)', () => {
+  it('rejects a verdict missing producer (required discriminator)', () => {
     const { producer: _omit, ...withoutProducer } = verdictFixture()
     void _omit
 

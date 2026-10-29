@@ -42,7 +42,7 @@ import {
 const EMAIL_SENTINEL = 'replay-sentinel-user@masked.example'
 const DECLARED_SENTINEL = 'replay-sentinel-declared-7q4z'
 
-describe('RPLY-02 captured provider-boundary proof (runCassetteReplay, D-05/D-06)', () => {
+describe('runCassetteReplay at the provider boundary', () => {
   const tempRoots: string[] = []
 
   async function tempRoot(prefix: string): Promise<string> {

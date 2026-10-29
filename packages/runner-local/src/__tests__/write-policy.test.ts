@@ -14,7 +14,7 @@ function policy(overrides: Partial<CachePolicy> = {}): CachePolicy {
   }
 }
 
-describe('shouldWrite (D-14 truth table)', () => {
+describe('shouldWrite truth table', () => {
   it('is false when disableCache is set, regardless of other flags', () => {
     expect(
       shouldWrite(policy({ disableCache: true, saveCache: true, isCI: true, currentBranch: 'x' })),

@@ -58,7 +58,7 @@ describe('compactLogs — grouping & counting', () => {
   })
 })
 
-describe('compactLogs — first-5 monotonic sampling (D-13)', () => {
+describe('compactLogs — first-5 monotonic sampling', () => {
   function burst(n: number): LogEntry[] {
     return Array.from({ length: n }, (_, i) => ({
       source: 'console',
@@ -97,7 +97,7 @@ describe('compactLogs — determinism', () => {
   })
 })
 
-describe('guardBlob (D-14)', () => {
+describe('guardBlob', () => {
   it('returns a short value verbatim (not token-normalized)', () => {
     const out = guardBlob({ id: '550e8400-e29b-41d4-a716-446655440000', n: 42 })
     expect(out).toBeDefined()

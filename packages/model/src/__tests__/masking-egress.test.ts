@@ -16,7 +16,7 @@ const baseModelProfile: ModelProfile = {
   auth: { mode: 'none' },
 }
 
-describe('C441-EGRESS', () => {
+describe('model egress applies the given mask and nothing else', () => {
   const declaredMask: MaskFn = (text) => text.replaceAll('q^7', '[secret:SHORT]')
 
   it('createModel masks a prompt with the mask it was given, after every other middleware', async () => {

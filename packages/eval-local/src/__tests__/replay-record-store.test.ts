@@ -54,7 +54,7 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-describe('FsReplayRecordStore (D-12)', () => {
+describe('FsReplayRecordStore', () => {
   let root: string
 
   beforeEach(async () => {

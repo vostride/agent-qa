@@ -35,7 +35,7 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-describe('standalone cassette pipeline (CASS-02)', () => {
+describe('standalone cassette pipeline', () => {
   const tempRoots: string[] = []
 
   async function tempRoot(prefix: string): Promise<string> {

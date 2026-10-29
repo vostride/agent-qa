@@ -169,7 +169,7 @@ describe('FsActionCache', () => {
     await expect(cache.invalidate(KEY)).resolves.toBeUndefined()
   })
 
-  it('every written filename is exactly <cacheKey>.json (no raw text on disk, D-06)', async () => {
+  it('every written filename is exactly <cacheKey>.json (no raw text on disk)', async () => {
     const cache = new FsActionCache({ root, policy: makePolicy({ currentBranch: 'main' }) })
     await cache.set(KEY, makeValue())
 

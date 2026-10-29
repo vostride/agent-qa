@@ -44,7 +44,7 @@ async function readStoredRecord(home: string): Promise<Record<string, unknown> |
   }
 }
 
-describe('C447-IDENTITY-RACE', () => {
+describe('concurrent first resolutions share one id', () => {
   it('five concurrent first resolutions on a fresh home all return the one stored id', async () => {
     const home = await tempDataHome()
     const env = { XDG_DATA_HOME: home }
@@ -62,7 +62,7 @@ describe('C447-IDENTITY-RACE', () => {
   })
 })
 
-describe('C447-IDENTITY-ADOPT', () => {
+describe('a stored valid identity is adopted', () => {
   it('a valid record without is_internal is adopted with its bytes unchanged', async () => {
     const home = await tempDataHome()
     const bytes = `{"distinctId":"${VALID_ID}"}`
@@ -76,7 +76,7 @@ describe('C447-IDENTITY-ADOPT', () => {
   })
 })
 
-describe('C447-IDENTITY-INVALID', () => {
+describe('a stored invalid identity is replaced', () => {
   it('a record that is not a valid id is replaced by a valid one that is read back', async () => {
     const fixtures = ['', '{', '{"distinctId":"u_not-the-scheme"}']
     let checked = 0
@@ -98,7 +98,7 @@ describe('C447-IDENTITY-INVALID', () => {
   })
 })
 
-describe('C447-IDENTITY-SHARED', () => {
+describe('one identity per data home', () => {
   it('every local caller under one home resolves the same id, and two homes resolve two', async () => {
     const home = await tempDataHome()
     const projectA = await tempDataHome()
@@ -127,7 +127,7 @@ describe('C447-IDENTITY-SHARED', () => {
   })
 })
 
-describe('C447-CI-PERSONLESS', () => {
+describe('a CI identity is never stored', () => {
   it('a CI resolution mints a ci_ id and leaves an existing record byte-identical and a fresh home empty', async () => {
     const home = await tempDataHome()
     const bytes = JSON.stringify({ distinctId: VALID_ID, is_internal: false }, null, 2)
@@ -153,7 +153,7 @@ describe('C447-CI-PERSONLESS', () => {
   })
 })
 
-describe('C447-RUNTIME-CONTEXT', () => {
+describe('runtime context and agent product', () => {
   it('a coding agent resolves as user with its product, an unrecognised AGENT as unknown, and the vocabulary is user and ci', async () => {
     expect([...ANALYTICS_RUNTIME_CONTEXTS]).toEqual(['user', 'ci'])
 

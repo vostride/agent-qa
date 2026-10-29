@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { makeV2Handoff } from '../../__tests__/fixtures/handoff-fixtures'
 import { classifySubAction, collectStepSelections } from '../select'
 
-describe('D-09 sub-action selection', () => {
+describe('sub-action selection', () => {
   it('classifies non-empty and empty exchange arrays as live decisions', () => {
     const handoff = makeV2Handoff()
     const nonEmpty = handoff.tests[0]!.steps[0]!.subActions[0]!

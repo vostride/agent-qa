@@ -176,7 +176,7 @@ async function captureTemperature(provider: ModelProviderId): Promise<Temperatur
 
 // C446-SUBSCRIPTION-TEMPERATURE (446-11, D-18): the Codex subscription backend answers HTTP 400
 // "Unsupported parameter: temperature", and agent-qa's job-model calls ask for temperature 0
-describe('C446-SUBSCRIPTION-TEMPERATURE', () => {
+describe('temperature on subscription transports', () => {
   beforeEach(() => {
     overrideStore.clear()
   })

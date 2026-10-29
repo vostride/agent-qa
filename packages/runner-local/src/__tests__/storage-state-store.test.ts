@@ -35,7 +35,7 @@ describe('FsStorageStateStore', () => {
     await rm(root, { recursive: true, force: true })
   })
 
-  it('round-trips a raw storage-state blob byte-identical (D-14 raw-but-local)', async () => {
+  it('round-trips a raw storage-state blob byte-identical', async () => {
     const store = new FsStorageStateStore({ root })
     const blob = makeBlob()
 
@@ -49,7 +49,7 @@ describe('FsStorageStateStore', () => {
     expect(Object.keys(ref)).toEqual(['name', 'fingerprint'])
   })
 
-  it('slugs a traversal-shaped name to a file that stays INSIDE storage-states/ (T-360-03)', async () => {
+  it('slugs a traversal-shaped name to a file that stays INSIDE storage-states/', async () => {
     const store = new FsStorageStateStore({ root })
     const evilName = '../../etc/passwd'
 
@@ -80,7 +80,7 @@ describe('FsStorageStateStore', () => {
     expect(a1.fingerprint).not.toBe(b.fingerprint)
   })
 
-  it('returns undefined for a missing name — never throws (D-14)', async () => {
+  it('returns undefined for a missing name — never throws', async () => {
     const store = new FsStorageStateStore({ root })
     await expect(store.load('never-saved')).resolves.toBeUndefined()
   })

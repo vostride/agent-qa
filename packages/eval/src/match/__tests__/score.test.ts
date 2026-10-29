@@ -331,7 +331,7 @@ describe('scoreDecision', () => {
 })
 
 describe('scoreCassetteReplay', () => {
-  it('pools procedure decisions, counts typed skips, and emits only the D-12 summary', () => {
+  it('pools procedure decisions, counts typed skips, and emits only the matched fraction, first divergence and end state', () => {
     const firstSidecar = buttonSidecar()
     const secondSidecar = buttonSidecar()
     const cassette = procedureCassette([

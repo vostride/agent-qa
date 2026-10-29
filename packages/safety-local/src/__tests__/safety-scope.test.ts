@@ -48,7 +48,7 @@ describe('runSafetyScope', () => {
     expect(asyncValue).toBe('done')
   })
 
-  it('keeps interleaved sibling scopes isolated — D-02 concurrent-run clobber fix (Test 6)', async () => {
+  it('keeps interleaved sibling scopes isolated across concurrent runs (Test 6)', async () => {
     await Promise.all([
       runSafetyScope({ executionContext: 'ci' }, async () => {
         expect(getActiveExecutionContext()).toBe('ci')

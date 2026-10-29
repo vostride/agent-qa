@@ -37,7 +37,7 @@ import {
   stubProfile,
 } from './fixtures/replay-fixtures.js'
 
-describe('RPLY-04 modality / offline / mobile proof (runCassetteReplay)', () => {
+describe('runCassetteReplay across modalities, offline and on mobile', () => {
   const tempRoots: string[] = []
 
   async function tempRoot(prefix: string): Promise<string> {

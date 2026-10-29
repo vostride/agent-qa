@@ -93,7 +93,7 @@ function feedFinishedPassedRun(handler: (envelope: RunEventEnvelope) => void): v
   handler(envelope('runFinished', { aggregateVerdict: 'passed' }))
 }
 
-describe('C447-FLUSH-NONBLOCKING', () => {
+describe('flush never waits on the transport', () => {
   it('a mid-command flush returns before a transport flush that never settles', async () => {
     const client = fakeClient({ flush: 'never' })
     const port = portOver(client)
@@ -107,7 +107,7 @@ describe('C447-FLUSH-NONBLOCKING', () => {
   })
 })
 
-describe('C447-VERDICT-UNCHANGED', () => {
+describe('a stalled or failing transport leaves the run unchanged', () => {
   it('a stalled transport and a failing sink leave the run subscriber flush settled and the reported verdict unchanged', async () => {
     const stalled = fakeClient({ flush: 'never' })
     const stalledSubscriber = createAnalyticsRunSubscriber({
@@ -140,7 +140,7 @@ describe('C447-VERDICT-UNCHANGED', () => {
   })
 })
 
-describe('C447-SHUTDOWN-BUDGET', () => {
+describe('shutdown is bounded by its budget', () => {
   it('shutdown with a never-settling transport returns when the 2 s budget fires and not before', async () => {
     vi.useFakeTimers()
     try {
@@ -173,7 +173,7 @@ interface BatchItem {
   properties: Record<string, unknown>
 }
 
-describe('C447-IS-INTERNAL', () => {
+describe('an internal identity is marked on each event', () => {
   it('an internal identity leaves is_internal true as an event property and no person-property stamp', async () => {
     async function sendOne(identity: { distinctId: string; isInternal?: boolean }) {
       const bodies: string[] = []

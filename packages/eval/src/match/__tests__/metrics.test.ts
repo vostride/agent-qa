@@ -644,7 +644,7 @@ describe('buildEvalReport', () => {
     expect(report.batchKey).toBe(first)
   })
 
-  describe('D-08 contrastive-negative headline exclusion', () => {
+  describe('contrastive-negative headline exclusion', () => {
     const negativeLabel = (pairedCassetteId: string): CassetteLabelLeg => ({
       sourceChannel: 'self-heal-pair',
       tier: 'near-gold',
