@@ -32,7 +32,7 @@ export const OP_RUNS_LIST: CatalogRow = row({
   surfaces: ['chat', 'mcp'],
   mcpTool: 'agent_qa_list_runs',
   docPath: null,
-  docAbsentReason: 'D-07 (dated 2026-08-17): no canonical doc ships for this capability yet.',
+  docAbsentReason: 'No canonical doc ships for this capability yet.',
   // No required property, so the example is the empty call; the null arm means a refusal.
   exampleCall: { arguments: {} },
 })

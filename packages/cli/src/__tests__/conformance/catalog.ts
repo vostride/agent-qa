@@ -74,16 +74,15 @@ function repoRelative(absolutePath: string): string {
  * having to find the phase directory.
  */
 export const CATALOG_NOTE: readonly string[] = Object.freeze([
-  'GENERATED — the capability catalog for Phase 398 (XPLN-01, D-01/D-03/D-05).',
+  'GENERATED — the capability catalog.',
   'One row per registry capability, per chat alias and per shipped skill. This artifact is the ONE',
   'data source behind `init --agent`, the chat `/` type-ahead, the starter prompts and `explain`.',
   `DO NOT EDIT BY HAND: regenerate with "bash ${CATALOG_REGEN_SCRIPT} --write" and commit the`,
   'result as a deliberate, reviewed change. The script refuses to run while any other leg of the',
   'conformance suite is red, so a regeneration cannot launder an unrelated failure, and no',
   'test-runner update flag reaches this file.',
-  'IT DESCRIBES, IT DOES NOT GATE. Nothing here allows or withholds a capability, and since',
-  '2026-10-01 (432 D-12) nothing anywhere does: no caller is shown or refused a capability',
-  'by who it is.',
+  'IT DESCRIBES, IT DOES NOT GATE. Nothing here allows or withholds a capability, and nothing',
+  'anywhere does: no caller is shown or refused a capability by who it is.',
   'Each op row\'s `exampleCall` is DERIVED from that row\'s own `params` — a null arm with a stated',
   'reason means the contract carries a construct a placeholder could not be shown to satisfy.',
 ])
@@ -92,11 +91,10 @@ export const CATALOG_NOTE: readonly string[] = Object.freeze([
 
 // A guessed doc URL passes the existence cell until a person clicks it, so absence is the default.
 export const CATALOG_DOC_ABSENT_REASON =
-  'D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is '
-  + 'the honest state — a guessed path would existence-check green and mislead a reader — and the '
-  + 'abstention coverage log is the demand signal for writing one.'
+  'No canonical doc ships for this capability yet. A guessed path would pass the existence check '
+  + 'and mislead a reader, and the abstention coverage log is the demand signal for writing one.'
 
-/** A row's doc: a real page, or a dated reason there is none. The third state does not exist. */
+/** A row's doc: a real page, or a reason there is none. The third state does not exist. */
 export type CatalogDocAdjudication =
   | { readonly path: string; readonly anchor?: string }
   | { readonly absentReason: string }
@@ -135,9 +133,9 @@ export const CATALOG_DOC_PATHS: readonly (readonly [string, CatalogDocAdjudicati
       'agent.explain',
       Object.freeze({
         absentReason:
-          'no shipped page documents this capability (dated 2026-08-17, 398 D-07). It is the op '
-          + 'whose abstention log IS the demand signal for writing docs, so a guessed link here '
-          + 'would be the invention the whole feature refuses.',
+          'No shipped page documents this capability. It is the op whose abstention log is the '
+          + 'demand signal for writing docs, so a guessed link here would be the invention the '
+          + 'feature refuses.',
       }),
     ] as const),
     Object.freeze(['authoring.draft.edit', Object.freeze({ absentReason: CATALOG_DOC_ABSENT_REASON })] as const),
@@ -155,8 +153,8 @@ export const CATALOG_DOC_PATHS: readonly (readonly [string, CatalogDocAdjudicati
       'editor.liveurl',
       Object.freeze({
         absentReason:
-          'no shipped page documents the editor mint (dated 2026-09-25, 428 D-07); a person meets '
-          + 'it through Test → Live on the dashboard, which is the only door that dispatches it.',
+          'No shipped page documents the editor mint; a person meets it through Test → Live on the '
+          + 'dashboard, which is the only door that dispatches it.',
       }),
     ] as const),
     Object.freeze(['entities.get', Object.freeze({ absentReason: CATALOG_DOC_ABSENT_REASON })] as const),
@@ -203,7 +201,7 @@ export function catalogDocFieldsOf(opId: string): {
   if (entry === undefined) {
     throw new Error(
       `${opId} has no entry in CATALOG_DOC_PATHS — every registry op adjudicates its doc presence, `
-      + 'either a repo-relative path or a dated reason there is none (D-07)',
+      + 'either a doc path or a reason there is none',
     )
   }
   const adjudication = entry[1]
@@ -462,17 +460,16 @@ export function catalogExampleCallOf(params: Record<string, unknown>, opId: stri
     return {
       exampleCall: null,
       exampleCallAbsentReason:
-        `D-08 (dated 2026-08-17): no example call is derivable for ${opId} — ${derived.why}. The `
-        + 'explicit absence is the honest state; an example an agent copies and is refused for is '
-        + 'worse than a column that says there is none.',
+        `No example call is derivable for ${opId}: ${derived.why}. An example an agent copies and `
+        + 'is refused for is worse than a column that says there is none.',
     }
   }
   if (typeof derived.value !== 'object' || derived.value === null || Array.isArray(derived.value)) {
     return {
       exampleCall: null,
       exampleCallAbsentReason:
-        `D-08 (dated 2026-08-17): no example call is derivable for ${opId} — its params do not `
-        + 'project an object, so there is no argument set to show.',
+        `No example call is derivable for ${opId}: its params do not project an object, so there `
+        + 'is no argument set to show.',
     }
   }
   return { exampleCall: { arguments: derived.value as Record<string, unknown> } }

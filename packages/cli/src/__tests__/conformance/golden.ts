@@ -87,7 +87,7 @@ export interface GoldenFile {
  * phase directory to learn what changing it means.
  */
 export const GOLDEN_NOTE: readonly string[] = Object.freeze([
-  'GENERATED — the capability ledger for Phase 397 (FUNC-05 leg 6, D-05/D-07).',
+  'GENERATED — the capability ledger.',
   'One row per registered capability. A dropped risk hint, a changed schema',
   'digest or a moved MCP partition lands here as a one-line reviewable diff.',
   `DO NOT EDIT BY HAND: regenerate with "bash ${GOLDEN_REGEN_SCRIPT} --write" and commit the result`,

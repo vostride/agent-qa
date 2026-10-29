@@ -1,15 +1,14 @@
 {
   "$note": [
-    "GENERATED — the capability catalog for Phase 398 (XPLN-01, D-01/D-03/D-05).",
+    "GENERATED — the capability catalog.",
     "One row per registry capability, per chat alias and per shipped skill. This artifact is the ONE",
     "data source behind `init --agent`, the chat `/` type-ahead, the starter prompts and `explain`.",
     "DO NOT EDIT BY HAND: regenerate with \"bash scripts/regen-capability-catalog.sh --write\" and commit the",
     "result as a deliberate, reviewed change. The script refuses to run while any other leg of the",
     "conformance suite is red, so a regeneration cannot launder an unrelated failure, and no",
     "test-runner update flag reaches this file.",
-    "IT DESCRIBES, IT DOES NOT GATE. Nothing here allows or withholds a capability, and since",
-    "2026-10-01 (432 D-12) nothing anywhere does: no caller is shown or refused a capability",
-    "by who it is.",
+    "IT DESCRIBES, IT DOES NOT GATE. Nothing here allows or withholds a capability, and nothing",
+    "anywhere does: no caller is shown or refused a capability by who it is.",
     "Each op row's `exampleCall` is DERIVED from that row's own `params` — a null arm with a stated",
     "reason means the contract carries a construct a placeholder could not be shown to satisfy."
   ],
@@ -32,7 +31,7 @@
     {
       "alias": "status",
       "description": "List completed runs, newest finished first (20 by default, at most 200), each naming its tests; filter by verdict, test id or title, recorded target, or completion time.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "kind": "alias",
       "targetOpId": "runs.list"
@@ -40,14 +39,14 @@
     {
       "alias": "test-ref",
       "description": "Resolve any entity reference to a card, a disambiguation set, or an honest miss.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "kind": "alias",
       "targetOpId": "entities.resolve"
     },
     {
       "description": "The chat entry point: begin ONE new conversational turn from outside a conversation. Surfaces (a REPL, the ask verb, an MCP client) call this to START a turn — it is not a way to carry out a request while a turn is already running. It routes the utterance, executes what it resolves to, and answers with per-clause receipts.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -79,7 +78,7 @@
     },
     {
       "description": "Answer a question about what this product can do by citing the capability catalog, or say plainly that the catalog does not ground an answer.",
-      "docAbsentReason": "no shipped page documents this capability (dated 2026-08-17, 398 D-07). It is the op whose abstention log IS the demand signal for writing docs, so a guessed link here would be the invention the whole feature refuses.",
+      "docAbsentReason": "No shipped page documents this capability. It is the op whose abstention log is the demand signal for writing docs, so a guessed link here would be the invention the feature refuses.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -137,7 +136,7 @@
     },
     {
       "description": "Apply a requested change to an existing test and write it, answering the diff it applied.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -174,7 +173,7 @@
     },
     {
       "description": "Evaluate a draft test against the four keep-gates and return its receipt.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -217,7 +216,7 @@
     },
     {
       "description": "Author a test for an intent, verify it against the keep-gates, and return its receipt.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -280,7 +279,7 @@
     },
     {
       "description": "Report the authoring funnel for a window — built, passed stably, added value, write-eligible — and flag a keep rate above the ceiling as the loop failing to filter.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -364,7 +363,7 @@
     },
     {
       "description": "Declare an auth plugin for a configured target by package NAME, written in this call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -403,7 +402,7 @@
     },
     {
       "description": "Set one configuration field, written in this call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -443,7 +442,7 @@
     },
     {
       "description": "Read the resolved project configuration with secret-bearing values masked.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {}
@@ -463,7 +462,7 @@
     },
     {
       "description": "Declare a hook in the hooks file, written in this call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -518,7 +517,7 @@
     },
     {
       "description": "Configure this project for a site from zero — config, hooks and gitignore, written in this call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -549,7 +548,7 @@
     },
     {
       "description": "Add a web target to the registry, written in this call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -600,7 +599,7 @@
     },
     {
       "description": "Change a configured target's URL, written in this call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -643,7 +642,7 @@
     },
     {
       "description": "Mint a short-lived, view-scoped live-view URL for one live editor session.",
-      "docAbsentReason": "no shipped page documents the editor mint (dated 2026-09-25, 428 D-07); a person meets it through Test → Live on the dashboard, which is the only door that dispatches it.",
+      "docAbsentReason": "No shipped page documents the editor mint; a person meets it through Test → Live on the dashboard, which is the only door that dispatches it.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -673,7 +672,7 @@
     },
     {
       "description": "Render the entity card for one exact short-ID or agentqa:// URI.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -704,7 +703,7 @@
     },
     {
       "description": "Resolve any entity reference to a card, a disambiguation set, or an honest miss.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -735,7 +734,7 @@
     },
     {
       "description": "Accept a knowledge candidate, applying the change in the call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -810,7 +809,7 @@
     },
     {
       "description": "Explain why a served brief said what it said, from the trace written at serve time.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -856,7 +855,7 @@
     },
     {
       "description": "List the committed knowledge bundles with their derived trust state.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {}
@@ -877,7 +876,7 @@
     },
     {
       "description": "Forget a knowledge record or bundle, tombstoning it in the call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -952,7 +951,7 @@
     },
     {
       "description": "Read a knowledge record’s mark and approval receipts, promotion lines and live promotion verdict.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -983,7 +982,7 @@
     },
     {
       "description": "Show one committed knowledge record with its provenance.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1014,7 +1013,7 @@
     },
     {
       "description": "List every committed knowledge record change since a build ordinal.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1046,7 +1045,7 @@
     },
     {
       "description": "Inspect committed knowledge records through a closed structural filter.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1118,7 +1117,7 @@
     },
     {
       "description": "Reject a knowledge candidate with a reason, applying the change in the call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1199,7 +1198,7 @@
     },
     {
       "description": "Quarantine one test by hand, renewing and claiming an existing entry.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1249,7 +1248,7 @@
     },
     {
       "description": "List every quarantined test with its owner, expiry and lifecycle state.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {}
@@ -1269,7 +1268,7 @@
     },
     {
       "description": "Release one test from quarantine — the manual half of the exit path.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1311,10 +1310,10 @@
     },
     {
       "description": "Read one run's content-addressed evidence blob by its sha, with a sniffed content type.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": null,
-      "exampleCallAbsentReason": "D-08 (dated 2026-08-17): no example call is derivable for runs.artifact — params.sha constrains its value with the regular expression /^[0-9a-f]{64}$/, and a placeholder cannot be SHOWN to satisfy an arbitrary pattern — an example the shipped contract would reject teaches a caller a shape this product does not have. The explicit absence is the honest state; an example an agent copies and is refused for is worse than a column that says there is none.",
+      "exampleCallAbsentReason": "No example call is derivable for runs.artifact: params.sha constrains its value with the regular expression /^[0-9a-f]{64}$/, and a placeholder cannot be SHOWN to satisfy an arbitrary pattern — an example the shipped contract would reject teaches a caller a shape this product does not have. An example an agent copies and is refused for is worse than a column that says there is none.",
       "id": "runs.artifact",
       "kind": "op",
       "mcpTool": "agent_qa_get_run_evidence",
@@ -1362,7 +1361,7 @@
     },
     {
       "description": "Read one run's durable members, steps and sub-actions as the dashboard projected them.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1420,7 +1419,7 @@
     },
     {
       "description": "Stream one run's recorded events in seq order, resuming after lastEventId.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1454,7 +1453,7 @@
     },
     {
       "description": "Read validated evidence recorded on one run step or ARIA sub-action.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1515,7 +1514,7 @@
     },
     {
       "description": "Read one completed run in full, including its member-test outcomes.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1544,7 +1543,7 @@
     },
     {
       "description": "Project one run's used brief channels, serve-time traces, procedure use, recorded retrieval rung and curator deltas from its handoff.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1574,7 +1573,7 @@
     },
     {
       "description": "List completed runs, newest finished first (20 by default, at most 200), each naming its tests; filter by verdict, test id or title, recorded target, or completion time.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {}
@@ -1622,7 +1621,7 @@
     },
     {
       "description": "Mint a short-lived, view-scoped live-view URL for one handle of a running run.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1656,7 +1655,7 @@
     },
     {
       "description": "Mark a run or step false-fail / false-pass / confirmed-bug: triage it and apply the fix (a knowledge change or a test edit) in the call.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1709,7 +1708,7 @@
     },
     {
       "description": "Preview what runs.mark would do for this exact input: its refusals, resolved step, the knowledge records it reaches with their content and evidence effects, and the fix it would apply, without writing.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1762,7 +1761,7 @@
     },
     {
       "description": "Read every mark on a run in ordinal order with supersession and what each applied fix changed.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1792,7 +1791,7 @@
     },
     {
       "description": "Map one completed run: its tests and steps with verdicts, and the address of everything recorded at each, without bodies, traces or bytes.",
-      "docAbsentReason": "D-07 (dated 2026-08-16): no canonical doc ships for this capability yet. The explicit absence is the honest state — a guessed path would existence-check green and mislead a reader — and the abstention coverage log is the demand signal for writing one.",
+      "docAbsentReason": "No canonical doc ships for this capability yet. A guessed path would pass the existence check and mislead a reader, and the abstention coverage log is the demand signal for writing one.",
       "docPath": null,
       "exampleCall": {
         "arguments": {
@@ -1918,5 +1917,5 @@
       "shortDescription": "Triage agent-qa run failures"
     }
   ],
-  "rowsDigest": "9f80a09cd900df37f5ef374373f423eaeaedfc6900eb703b507652487ec56fe6"
+  "rowsDigest": "969c837ed9da12e271ef0dec7dfaff6a0d9adbadf829be300a5c081a998cc97d"
 }

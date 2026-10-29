@@ -18,10 +18,9 @@ import { loadCapabilityCatalog } from './loader.js'
  * lines carry it for the manifest as a whole, including the posture.
  */
 export const AGENT_MANIFEST_NOTE: readonly string[] = Object.freeze([
-  'THIS MANIFEST IS UNFILTERED (2026-08-17, D-16; re-spelled 2026-10-02, 432-42). Every capability',
-  'is listed for every reader.',
-  'Since 2026-10-01 (432 D-12) there are no permissions: every caller on every door may see and',
-  'call every capability listed here, MCP included, with no token. The posture reports only',
+  'THIS MANIFEST IS UNFILTERED. Every capability is listed for every reader.',
+  'Every caller on every door may see and call every capability listed here, MCP included,',
+  'with no token, because there are no permissions. The posture reports only',
   'whether this workspace has a configuration that reads; it names no scope and no token.',
 ])
 

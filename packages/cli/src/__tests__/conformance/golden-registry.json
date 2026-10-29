@@ -1,6 +1,6 @@
 {
   "$note": [
-    "GENERATED — the capability ledger for Phase 397 (FUNC-05 leg 6, D-05/D-07).",
+    "GENERATED — the capability ledger.",
     "One row per registered capability. A dropped risk hint, a changed schema",
     "digest or a moved MCP partition lands here as a one-line reviewable diff.",
     "DO NOT EDIT BY HAND: regenerate with \"bash scripts/regen-capability-golden.sh --write\" and commit the result",
