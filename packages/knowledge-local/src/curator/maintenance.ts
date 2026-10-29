@@ -44,7 +44,7 @@ export type GcPassReport =
   | {
       kind: 'completed'
       summary: GcSummary
-      /** WR-01: projection rows removed by the same-tail scoped cleanup; absent on zero-trim. */
+      /** projection rows removed by the same-tail scoped cleanup; absent on zero-trim. */
       projectionRowsRemoved?: number
     }
   | { kind: 'failed'; message: string }

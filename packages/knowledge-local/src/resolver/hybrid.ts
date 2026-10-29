@@ -1,4 +1,4 @@
-// Tiers (b) and (c) of the entity resolver (Phase 387, D-05 / D-07 / ENTY-01).
+// Tiers (b) and (c) of the entity resolver.
 //
 //   (b) a STRONG HIT over the hybrid entity index — resolved, with a score.
 //   (c) anything weaker — the top three, as a disambiguation set, or an honest miss.
@@ -20,13 +20,13 @@
 // all, and an empty leg contributes nothing to the fusion. A floor host therefore runs the same
 // code and gets the lexical-only rung by omission — which is what makes the degradation
 // direction a property of the arithmetic rather than of a posture check somebody has to keep
-// in step (D-08).
+// in step.
 //
 // WHY THE INDEX IS NOT ASKED WHAT AN ENTITY IS
 //
 // The index ranks short-IDs; the caller turns a short-ID back into a descriptor. The projection
 // is disposable and may hold a stale row for an entity its owning store has since forgotten
-// (D-06), so letting it describe the answer would let a stale row put a stale title in front of
+// so letting it describe the answer would let a stale row put a stale title in front of
 // a user. The ledger and the stores stay the truth; this file only decides which address wins.
 
 import { ENTITY_RESOLUTION_MAX_CANDIDATES } from '@vostride/agent-qa-schema'
@@ -83,7 +83,7 @@ function admitLexical(candidate: LegCandidate): boolean {
 /**
  * Rank the entity corpus against free text, returning describable candidates best-first.
  *
- * Exported because this is the ranking a corpus report reads (387-05): a per-case score log is
+ * Exported because this is the ranking a corpus report reads: a per-case score log is
  * only comparable across postures if it comes from the same call the resolver made.
  */
 export async function rankEntityCandidates(
@@ -126,7 +126,7 @@ export async function rankEntityCandidates(
 /**
  * The two numbers the D-07 rule is decided against.
  *
- * Parameterised for ONE reason, and it is not configuration: the corpus (387-05) has to be able
+ * Parameterised for ONE reason, and it is not configuration: the corpus has to be able
  * to ask where the boundary IS, not merely whether today's value sits on the right side of it.
  * A degradation gate that no input can redden is not a gate, and the only way to show this one
  * can redden is to run the same corpus, through this same function, at a margin below the bound

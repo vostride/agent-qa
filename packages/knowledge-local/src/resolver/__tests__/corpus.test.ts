@@ -202,7 +202,7 @@ interface Posture {
 /**
  * Seed one posture: mint every address by sighting, project, and embed only for `full`.
  *
- * Sighting is what mints AND projects (D-01/D-06), so the corpus is built the way a running
+ * Sighting is what mints AND projects, so the corpus is built the way a running
  * system builds one — no direct writes to the ledger or the index anywhere in this file.
  */
 async function seedPosture(root: string, name: CorpusPosture): Promise<Posture> {

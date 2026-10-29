@@ -1,4 +1,4 @@
-// The per-run entity-resolution score report (Phase 387, D-08).
+// The per-run entity-resolution score report.
 //
 // D-08 asks for the corpus's resolution scores to be LOGGED, not merely asserted, and for the
 // log's shape to be asserted in turn. The reason is narrow and worth stating: the two D-07

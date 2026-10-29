@@ -1,18 +1,18 @@
-// RED-first pins for the three quarantine verbs' implementation (Phase 390, D-11/D-12/D-13).
+// RED-first pins for the three quarantine verbs' implementation.
 //
 // `createQuarantineOperations` is where FLAK-03's list/release/add stop being contracts and start
 // being behaviour over the committed ledger. Four properties carry the weight here:
 //
-//  1. THE TRIAGE ORDER IS THE VERB'S LAW (D-12). Unassigned entries first — they are the queue a
+//  1. THE TRIAGE ORDER IS THE VERB'S LAW. Unassigned entries first — they are the queue a
 //     human works — then `firstEnteredAt` ascending, ties broken on identity bytes. The corpus
 //     below is built so that a naive implementation differs at EVERY level: the fold's own
 //     iteration order is `C, A, E, D, B, F` and the answer is `B, A, D, E, F, C`. Dropping
 //     unassigned-first, or sorting on the CURRENT window's instant instead of the first one, or
 //     losing the identity tie-break each produce a different sequence.
-//  2. RE-ENTRY IS THE INTENDED RECORD, NOT DUPLICATION (390-05). An entry that was released and
+//  2. RE-ENTRY IS THE INTENDED RECORD, NOT DUPLICATION. An entry that was released and
 //     crossed again carries several `entered` events; the fold answers ONE row whose `enteredAt`
 //     is the latest one and whose `firstEnteredAt` is the earliest. The queue reads the EARLIEST
-//     (390-18), so a test on its seventh re-entry cannot present as the newest thing a human sees
+//     so a test on its seventh re-entry cannot present as the newest thing a human sees
 //     — which is what the sort did while it compared the current window's instant.
 //  3. WALL-CLOCK PURITY BY ARGUMENT (390-01, extended to serving by 390-03). `now` is REQUIRED and
 //     injected; this module reads no clock, asserted by a source scan, and each verb reads the
@@ -20,14 +20,14 @@
 //  4. COMMITTED-TRUTH READ POSTURE. An unreadable ledger PROPAGATES its typed error from every
 //     verb. Healing it to "nothing is quarantined" would silently un-quarantine every entry in the
 //     file, which is the one silent flip this phase exists to prevent.
-//  5. SERIALIZATION IS THIS MODULE'S, NOT ITS CALLER'S (390-09 / CR-03). The write verbs run their
+//  5. SERIALIZATION IS THIS MODULE'S, NOT ITS CALLER'S. The write verbs run their
 //     whole read-fold-decide-append cycle inside the MRSW writer lease they take themselves, or
 //     inside a handed-in `writerAuthority` when this process already holds it (the daemon). The
 //     pins below drive BOTH directions — a verb that acquires leaves the epoch bumped and no lease
 //     residue, and a verb meeting a lease somebody else holds refuses typed with the ledger BYTE
 //     for byte unchanged. The refusing direction is the load-bearing one: the same call appends a
 //     line two tests above, so zero bytes is a measurement rather than an absence. And "already
-//     holds it" is CHECKED rather than believed (390-15): a handed-in authority is re-validated
+//     holds it" is CHECKED rather than believed: a handed-in authority is re-validated
 //     against the epoch and the lease on disk, so a daemon whose lease was reclaimed under it is
 //     refused typed instead of writing beside the writer that reclaimed.
 
@@ -112,7 +112,7 @@ function released(who: ReturnType<typeof identity>, at: string): QuarantineLedge
   } as QuarantineLedgerEvent
 }
 
-// ---- the injected identity mint (390-12 / D-01) -------------------------------------------------
+// ---- the injected identity mint -------------------------------------------------
 //
 // These verbs cannot know the checkout root, and `knowledge-local` cannot import `@vostride/
 // agent-qa-core` (only the surface packages may), so the mint arrives pre-bound from the host. The
@@ -218,7 +218,7 @@ describe('createQuarantineOperations', () => {
       entered(A, '2026-01-01T00:00:00.000Z'),
       entered(E, '2026-02-01T00:00:00.000Z'),
       entered(D, '2026-02-01T00:00:00.000Z'),
-      // B: released, then crossed AGAIN. The intended record (390-05), not duplication — one
+      // B: released, then crossed AGAIN. The intended record, not duplication — one
       // folded row whose enteredAt is the LATEST entry and whose firstEnteredAt is the earliest.
       // B is the whole point of this corpus: the two instants disagree on it and nowhere else.
       entered(B, '2025-12-01T00:00:00.000Z'),
@@ -377,7 +377,7 @@ describe('createQuarantineOperations', () => {
         owner: QUARANTINE_UNASSIGNED_OWNER,
         enteredAt: NOW,
         expiresAt: DEFAULT_EXPIRY,
-        // A first entry: one crossing, and the history begins now (390-18).
+        // A first entry: one crossing, and the history begins now.
         enteredCount: 1,
         firstEnteredAt: NOW,
         state: 'quarantined',
@@ -486,7 +486,7 @@ describe('createQuarantineOperations', () => {
         owner: QUARANTINE_UNASSIGNED_OWNER,
         enteredAt: '2026-01-01T00:00:00.000Z',
         expiresAt: FAR_FUTURE,
-        // A closed window still reports the history it accumulated (390-18).
+        // A closed window still reports the history it accumulated.
         enteredCount: 1,
         firstEnteredAt: '2026-01-01T00:00:00.000Z',
         state: 'released',
@@ -532,7 +532,7 @@ describe('createQuarantineOperations', () => {
     expect(existsSync(join(knowledgeRoot, QUARANTINE_LEDGER_FILENAME))).toBe(false)
   })
 
-  // ---- the product partition (390-09 / WR-01) ---------------------------------------------
+  // ---- the product partition ---------------------------------------------
 
   /** A product spelling a human types and every reader re-partitions: `slugBranch` rewrites it. */
   const RAW_PRODUCT = 'My Product'
@@ -546,7 +546,7 @@ describe('createQuarantineOperations', () => {
   const ESCAPING_FILE = '../outside.yaml'
 
   /**
-   * The human write verbs' input shape, with the filePath leg RANGEABLE (390-12).
+   * The human write verbs' input shape, with the filePath leg RANGEABLE.
    *
    * It used to hardcode the already-canonical `tests/checkout.yaml`, which 390-VERIFICATION.md
    * names as the exact reason no fixture in the round could red on the filePath defect: the verb's
@@ -739,7 +739,7 @@ describe('createQuarantineOperations', () => {
     for (const line of ledgerLines()) expect(line.filePath).toBe(CANONICAL_FILE)
   })
 
-  // ---- writer-lease serialization (390-09 / CR-03 / D-04) ---------------------------------
+  // ---- writer-lease serialization ---------------------------------
 
   function leaseFile(): string {
     return join(knowledgeRoot, LEASE_FILE)
@@ -907,7 +907,7 @@ describe('createQuarantineOperations', () => {
     expect(Date.now() - startedAtMs).toBeLessThan(5_000)
   })
 
-  // ---- the handed-in authority is FENCED against disk (390-15 / G-390-2R) ------------------
+  // ---- the handed-in authority is FENCED against disk ------------------
   //
   // The daemon arm above rides an authority its process holds. The residual the two-OS-process
   // harness measured is what happens when it no longer does: a daemon whose heartbeat starved and

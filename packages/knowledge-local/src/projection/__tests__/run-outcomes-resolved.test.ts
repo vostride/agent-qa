@@ -8,7 +8,7 @@
 //     id-addressed, because a single-run fixture cannot see a supersession defect (the 388
 //     two-sided-contract law).
 //  2. Identity refusal is INHERITED, not re-derived: an artifact recording another run's id folds
-//     exactly as artifact-absent (G-389-3A). The file is PRESENT on the same path in both legs —
+//     exactly as artifact-absent. The file is PRESENT on the same path in both legs —
 //     only the recorded runId varies — which is what distinguishes refusal from absence.
 //  3. L12 rebuild parity by BYTES: a mixed incremental history (artifact present / foreign-runId /
 //     absent) and a full rebuild over the same run dirs produce identical table dumps. A rebuild

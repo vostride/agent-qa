@@ -1,4 +1,4 @@
-// The committed entity-resolution validation corpus (Phase 387, D-08 / ENTY-01).
+// The committed entity-resolution validation corpus.
 //
 // WHAT THIS FILE IS
 //
@@ -264,7 +264,7 @@ const PAIR_EVEN = 0.7071067811865476
 /**
  * The authored query cases.
  *
- * Five locked categories (D-08). Every `full`/`floor` pair below was derived from the fusion
+ * Five locked categories. Every `full`/`floor` pair below was derived from the fusion
  * arithmetic in this file's header before the corpus was executed.
  */
 export const CORPUS_CASES: readonly CorpusCase[] = [

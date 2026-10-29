@@ -143,7 +143,7 @@ describe('the lease guard never reaches through a link or out of the knowledge r
     const beat = attempt(() => heartbeatLease({ knowledgeRoot, leaseId }))
 
     expect({ released, beat }).toMatchObject({
-      // 2026-10-03 (261003-mqc): the shared knowledge-root containment error, named for every writer.
+      // the shared knowledge-root containment error, named for every writer.
       released: { kind: 'threw', name: 'KnowledgeRootContainmentError' },
       beat: { kind: 'threw', name: 'KnowledgeRootContainmentError' },
     })

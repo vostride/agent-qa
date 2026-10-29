@@ -1,5 +1,5 @@
 /**
- * 2026-10-03 (quick 261003-mqc): a resolve hook for code that loads `writer-lease.ts` from SOURCE
+ * a resolve hook for code that loads `writer-lease.ts` from SOURCE
  * in a worker thread or a child process (Node 24 type stripping), so no stale dist can decide a
  * cell. Source specifiers name the emitted `.js`; without a build step only the `.ts` exists, so a
  * relative `.js` that does not resolve is retried as `.ts`. Prepend it to the worker or `-e` code.

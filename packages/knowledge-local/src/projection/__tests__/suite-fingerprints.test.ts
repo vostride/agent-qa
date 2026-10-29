@@ -248,7 +248,7 @@ describe('the suite-fingerprint table (the gate comparison substrate)', () => {
     expect(rows.every((row) => row.product === SHOP_PRODUCT)).toBe(true)
     expect(rows.every((row) => row.run_id === 'run-fp-a' && row.build_ordinal === 4)).toBe(true)
 
-    // ORDER is part of the recipe (D-13): the sequence is what a later §4.1 enrichment builds on.
+    // ORDER is part of the recipe: the sequence is what a later §4.1 enrichment builds on.
     expect(elementsFor(db, 'suite/checkout.test.ts', 'checkout happy path')).toEqual([
       CHECKOUT_CLICK_ELEMENT,
       CHECKOUT_ASSERT_ELEMENT,
@@ -414,7 +414,7 @@ describe('the suite-fingerprint read port', () => {
         LOGIN_TEST,
         // A second test exercising the SAME click as CHECKOUT_TEST: three rows arrive, but the
         // union is a set, so the repeated element counts once. The set semantics live HERE, at
-        // the consumer, exactly as the recipe's own header says (D-14).
+        // the consumer, exactly as the recipe's own header says.
         {
           filePath: 'suite/checkout.test.ts',
           testName: 'checkout with a saved card',

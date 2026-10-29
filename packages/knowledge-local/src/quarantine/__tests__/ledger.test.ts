@@ -1,4 +1,4 @@
-// RED-first pins for the committed quarantine ledger's read + fold half (Phase 390, D-01/D-03/D-11).
+// RED-first pins for the committed quarantine ledger's read + fold half.
 //
 // The ledger is the FIRST committed top-level operational artifact beside memory/ and policies/.
 // Two postures are load-bearing and pinned here:
@@ -201,7 +201,7 @@ describe('quarantine ledger read/fold', () => {
   })
 })
 
-// ---- The full lifecycle fold (D-10/D-12/D-13) ----------------------------
+// ---- The full lifecycle fold ----------------------------
 
 const LATER_EXPIRY = '2026-10-04T10:00:00.000Z'
 const BETWEEN_EXPIRIES = '2026-09-20T10:00:00.000Z'
@@ -289,7 +289,7 @@ describe('quarantine ledger lifecycle fold', () => {
     expect(state[0].fingerprint).toBe('fp-2')
   })
 
-  // 390-11 / round-1 WR-04. The committed ledger is human-editable (D-12), so a `renewed` line
+  // 390-11 / round-1 WR-04. The committed ledger is human-editable, so a `renewed` line
   // authored after a release is reachable by hand. Honoring it would let a renewal SILENTLY re-open
   // a window an operator deliberately closed — the anti-silencing direction this phase exists to
   // hold. Re-entry has its own event; `entered` is what re-opens (and `operations.add` already
@@ -327,7 +327,7 @@ describe('quarantine ledger lifecycle fold', () => {
   })
 })
 
-// ---- The re-entry history the event log already held (390-18 / G-390-4) -
+// ---- The re-entry history the event log already held -
 
 // D-03 chose an append-only event log so that "this test has entered quarantine 3 times" is
 // answerable without a second artifact. The fold's `entered` arm discarded that answer with a
@@ -476,7 +476,7 @@ describe('quarantine ledger re-entry history', () => {
   })
 })
 
-// ---- appendQuarantineEvents: shape-checked committed writes (D-04) --
+// ---- appendQuarantineEvents: shape-checked committed writes --
 
 describe('appendQuarantineEvents', () => {
   let knowledgeRoot: string

@@ -1,4 +1,4 @@
-// The quarantine subsystem's identity LEAF (390-31).
+// The quarantine subsystem's identity LEAF.
 //
 // This module imports NOTHING — not the schema package, not the projection, not a sibling. That is
 // its whole job. Every module that has to decide "are these two lines the same test?" needs the
@@ -27,13 +27,13 @@ export interface QuarantineIdentity {
 }
 
 /**
- * The identity key, spelled ONCE for the whole subsystem (390-22 / WR-06).
+ * The identity key, spelled ONCE for the whole subsystem.
  *
  * `JSON.stringify` of the triple rather than a joined string: the parts are caller data and may
  * contain any character, and a separator that can appear inside a part is a collision waiting to
  * happen.
  *
- * ONCE IS TRUE OF THE CODE, NOT ONLY OF THE SENTENCE (390-28 / WR-01). Every keying site in the
+ * ONCE IS TRUE OF THE CODE, NOT ONLY OF THE SENTENCE. Every keying site in the
  * subsystem IMPORTS this function rather than carrying a byte-identical copy: the detection ladder
  * in `detection.ts`, `ledger.ts`'s `foldQuarantineLedgerState`, which keys per-entry state on it,
  * and `operations.ts`'s `triageOrder`, which keys the triage queue on it. Until 390-28 only the

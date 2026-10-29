@@ -1,4 +1,4 @@
-// THE FROZEN INVK-06 CONSUMER CENSUS (Phase 401 plan 08 — D-15).
+// THE FROZEN INVK-06 CONSUMER CENSUS.
 //
 // WHAT A CENSUS IS FOR. INVK-06's sentence is "a gate run never counts toward flake counters or
 // issue candidacy". That is a COMPLETE-SET claim, and a complete-set claim is only worth the
@@ -114,7 +114,7 @@ const MARKER_PATTERNS = [/gateRun/, /excludedFromOutcomes/] as const
 const NARROWED_MARKER_PATTERNS = [/\bgateRun\b/, /\bexcludedFromOutcomes\b/] as const
 
 /**
- * Every file naming a marker in code, classified (D-15).
+ * Every file naming a marker in code, classified.
  *
  * `role` is the census's answer for that file, and every discovered file MUST have one — the
  * "n in, n classified" self-check below is what stops a silent drop.
@@ -136,7 +136,7 @@ const MARKER_CENSUS: Readonly<Record<string, 'consumer' | 'carrier' | 'producer'
   'packages/schema/src/authoring/draft-receipt.ts': 'carrier',
   'packages/runner/src/run/ports.ts': 'carrier',
   'packages/runner/src/run/handoff-assembly.ts': 'carrier',
-  // 2026-08-26 (404-01, D-10): the shell JOINED this census with its subject. The post-verdict step
+  // the shell JOINED this census with its subject. The post-verdict step
   // the shell awaits between `finalize` and `runFinished` takes both markers on its input, so the
   // shell spreads them out of `RunConfig` onto that call. It decides NOTHING with them — it neither
   // reads a marker to gate a table nor mints one onto a run — it moves them from the run's config
@@ -151,7 +151,7 @@ const MARKER_CENSUS: Readonly<Record<string, 'consumer' | 'carrier' | 'producer'
   // and no enqueue; it moves the recorded fact onto the read DTO, which is what `carrier` names.
   'packages/agent/src/functions/ops/runs-post-processing.ts': 'carrier',
   'packages/agent/src/jobs/kinds.ts': 'carrier',
-  // 2026-08-26 (404-04, D-05/D-08): IT LANDED, AND IT IS A CONSUMER — declared here, exactly as
+  // IT LANDED, AND IT IS A CONSUMER — declared here, exactly as
   // the paragraph above said this census would demand.
   //
   // The post-verdict step READS both markers to decide something: a run carrying either one
@@ -162,16 +162,16 @@ const MARKER_CENSUS: Readonly<Record<string, 'consumer' | 'carrier' | 'producer'
   // carrier because its `enqueue()` leg copied the two markers off the loaded handoff onto the
   // `analyze-run` payload; D-05 moved that leg into the step and the tail names neither marker in
   // code any more. REMOVED rather than relaxed, for the same reason `local-agent-host.ts` was in
-  // 401-10: a census entry for a file that no longer names a marker is a claim nothing checks.
+  // a census entry for a file that no longer names a marker is a claim nothing checks.
   'packages/cli/src/curation/post-verdict-step.ts': 'consumer',
   // The durable continuation validates the loaded handoff before publishing or recovering an
   // intent. Either marker refuses lifecycle ownership; the step keeps its enqueue decision. This
   // is a consumer, not a carrier.
   'packages/cli/src/curation/post-verdict-continuation.ts': 'consumer',
   'packages/cli/src/commands/run.ts': 'carrier',
-  // 2026-08-23 (401-10): `packages/cli/src/composition/local-agent-host.ts` LEFT THIS CENSUS WITH
+  // `packages/cli/src/composition/local-agent-host.ts` LEFT THIS CENSUS WITH
   // ITS SUBJECT. It was a carrier because `MARKER_FLAGS` translated the two markers into the child
-  // flags `--gate-run` / `--excluded-from-outcomes` — the middle link 393 (WTST-06) had to add
+  // flags `--gate-run` / `--excluded-from-outcomes` — the middle link 393 had to add
   // before a gate run could reach a real CLI at all. D-01 deleted the child, so the table went with
   // it and the file names neither marker in code any more. REMOVED rather than relaxed: this census
   // is an equality between what the scan finds and what the register classifies, so a member the
@@ -179,7 +179,7 @@ const MARKER_CENSUS: Readonly<Record<string, 'consumer' | 'carrier' | 'producer'
   // unbroken — `run-invocation-core.ts` below carries the markers onto the run in process, and
   // `run-invocation-core.test.ts` / `run-invocation-evidence.test.ts` assert the carriage.
   'packages/agent-local/src/composition/run-invocation-core.ts': 'carrier',
-  // 2026-10-17 (443-07, D-09): the drive hands the request's flag to the run record; it decides
+  // the drive hands the request's flag to the run record; it decides
   // nothing about what feeds learning. `core/src/run-attributes.ts` left this census with the
   // builder's gate-run option (443-16, GAP-D6).
   'packages/cli/src/composition/in-process-run-execution.ts': 'carrier',
@@ -287,7 +287,7 @@ describe('the gate-run exclusion consumer census is frozen and self-checking', (
     //                            fingerprint table is computed from its output rather than from a
     //                            second read (which is what the carried-consumer cell below pins).
     //   `post-verdict-step.ts` — reads EITHER marker to decide whether the run's curation chain is
-    //                            durably ENQUEUED at all (404 D-08). It touches no outcome table,
+    //                            durably ENQUEUED at all. It touches no outcome table,
     //                            writes no fingerprint and reads no projection.
     //
     // AN UNDECLARED entry, or any of these growing a read of another's substrate, is what this cell

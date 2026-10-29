@@ -1,5 +1,5 @@
 // The detection ladder: the pure rule that turns fingerprint recurrence into quarantine lifecycle
-// events (Phase 390, D-05/D-06/D-07/D-10/D-11/D-12).
+// events.
 //
 // PURE BY CONSTRUCTION. Every input arrives as plain data — recurrence answers the projection
 // already computed, per-test ordinal windows, the folded ledger state, and `now`. This module reads
@@ -7,7 +7,7 @@
 // pinned one step either side with zero flake. `expiresAt` is DERIVED from the supplied `now`
 // (390-01's wall-clock-purity-by-argument pattern, extended from the fold to the rule that authors).
 //
-// THE LADDER (D-06). Flag early, act at N. A fingerprint at QUARANTINE_FLAG_FLOOR distinct
+// THE LADDER. Flag early, act at N. A fingerprint at QUARANTINE_FLAG_FLOOR distinct
 // occurrence ordinals is FLAGGED — visibility only, zero ledger bytes — and at
 // QUARANTINE_ESCALATE_THRESHOLD it ESCALATES. "Flags and then escalates" is temporally real: one
 // build of warning before anything changes.
@@ -23,12 +23,12 @@
 //    nothing.
 //  - FLOOR ELIGIBILITY answers the axis the class set alone cannot express: is the EVIDENCE behind
 //    the class about THIS TEST, or about the run? It is one of TWO conjuncts on the floor arm
-//    (390-19): the class answers whether the floor may decide this KIND of thing at all, and the
+//    the class answers whether the floor may decide this KIND of thing at all, and the
 //    crossing's `sameBuildPassAndFail` answers whether there is per-test evidence in THIS crossing.
 //    A crossing carrying an AUTHORED `analyze-run` verdict needs neither, because a model reading
 //    this test's evidence IS the per-test statement.
 //
-// AND THE FLOOR ARM IS BUDGETED PER RUN (390-19). Neither table contains mass auto-quarantine on
+// AND THE FLOOR ARM IS BUDGETED PER RUN. Neither table contains mass auto-quarantine on
 // the floor path and neither should be read as doing so — `classifyRootCause` returns `timeout`
 // before it ever reads its health probe, so a run-scoped hang arrives in the class the floor may
 // act on. QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP budgets that arm per run. It RATE-LIMITS a fan-out
@@ -50,7 +50,7 @@
 // WHY THE OTHER FIVE ARE ESCALATE-ONLY, individually:
 //
 //  - `app_bug` / `test_bug`: a real regression and a genuinely broken test. Humans quarantine
-//    known-broken tests deliberately through the `add` verb (D-12); nothing here does it for them.
+//    known-broken tests deliberately through the `add` verb; nothing here does it for them.
 //  - `unknown`: the LLM-judge abstention AND the deterministic floor's answer for any failure
 //    carrying no verdict at all. Auto-quarantining it would silence essentially every recurring
 //    failure on a project running without analysis, which is the anti-silencing defect wearing a
@@ -64,7 +64,7 @@
 // appends them through `appendQuarantineEvents`, inside the writer-lease scope, after the
 // projection transaction has committed.
 //
-// 2026-09-02 (Phase 412): the curation spec these notes once cited left with the Issue-slot cleanup;
+// the curation spec these notes once cited left with the Issue-slot cleanup;
 // the A3 routing lives in `eval-and-core-types.md` §A9 and the trigger in `memory.md` §9.5.
 
 import {
@@ -80,7 +80,7 @@ import type {
   VerdictClass,
 } from '@vostride/agent-qa-schema'
 
-// The identity key and its input type live in the subsystem's zero-import leaf (390-31), not here:
+// The identity key and its input type live in the subsystem's zero-import leaf, not here:
 // the ladder is only one of three keying sites, and hosting the key made every other site pay an
 // import edge into this module. `compareQuarantineIdentity` below still composes it.
 import { quarantineIdentityKey } from './identity.js'
@@ -110,7 +110,7 @@ export const QUARANTINE_DEFAULT_EXPIRY_DAYS = 30
 export type QuarantineDisposition = 'auto-quarantine' | 'escalate-only'
 
 /**
- * The class gate, as a TOTAL function over the closed verdict vocabulary (D-05).
+ * The class gate, as a TOTAL function over the closed verdict vocabulary.
  *
  * `satisfies Record<VerdictClass, QuarantineDisposition>` is the load-bearing part: adding a ninth
  * member to VERDICT_CLASSES makes this object a compile error until its quarantine disposition is
@@ -145,7 +145,7 @@ export const AUTO_QUARANTINE_CLASSES: readonly VerdictClass[] = VERDICT_CLASSES.
 export type QuarantineFloorEligibility = 'floor-eligible' | 'authored-required'
 
 /**
- * The SECOND total table over the same closed vocabulary (390-16, G-390-3).
+ * The SECOND total table over the same closed vocabulary.
  *
  * The disposition table above answers "may this class ever auto-quarantine". It cannot answer the
  * other question, because the answer is not a property of the class name: is the EVIDENCE behind
@@ -187,7 +187,7 @@ export type QuarantineFloorEligibility = 'floor-eligible' | 'authored-required'
  *  - THE FIVE ESCALATE-ONLY CLASSES → AUTHORED-REQUIRED. They never reach the auto-quarantine
  *    branch today, so this value is not observable — which is precisely why it is the strict one.
  *    It makes authored-required the DEFAULT for any future widening of the disposition table, so a
- *    later one-line class flip cannot silently also license the floor (T-390-16-04).
+ *    later one-line class flip cannot silently also license the floor.
  *
  * THE BRANCH-ORDER FACT THAT KILLS THE CLASS-BASED CONTAINMENT, measured at HEAD against
  * `classifyRootCause` (`runner/src/run/root-cause.ts`). Its arms run in this order: the presence
@@ -225,7 +225,7 @@ export const QUARANTINE_FLOOR_ELIGIBILITY = {
 } as const satisfies Record<VerdictClass, QuarantineFloorEligibility>
 
 /**
- * WHICH ARM of the gate admitted a crossing, or that none did (390-19). A boolean was exactly the
+ * WHICH ARM of the gate admitted a crossing, or that none did. A boolean was exactly the
  * information the per-run floor cap needs and cannot get: the cap counts FLOOR admissions and
  * exempts AUTHORED ones, so the ladder has to be able to tell them apart.
  */
@@ -259,7 +259,7 @@ function autoQuarantines(failure: QuarantineDetectionFailure): QuarantineAdmissi
 /**
  * One failed fingerprint this run contributed, with the recurrence the projection answered for it.
  * Test identity travels beside the fingerprint because a crossing has to name the test it
- * quarantines; the recurrence itself is keyed `(product, fingerprint)` (D-07).
+ * quarantines; the recurrence itself is keyed `(product, fingerprint)`.
  */
 export interface QuarantineDetectionFailure {
   product: string
@@ -268,7 +268,7 @@ export interface QuarantineDetectionFailure {
   fingerprint: string
   verdictClass: VerdictClass
   /**
-   * WHICH pipeline authored `verdictClass` on the CROSSING run (390-16). The floor-eligibility
+   * WHICH pipeline authored `verdictClass` on the CROSSING run. The floor-eligibility
    * gate reads this beside the class, because for some classes the class alone does not say
    * whether the evidence is about this test or about the whole run.
    *
@@ -281,7 +281,7 @@ export interface QuarantineDetectionFailure {
    */
   producer: Verdict['producer']
   /**
-   * THE PER-TEST FLAKE SIGNATURE for this crossing (390-19 / G-390-5): did this test both pass and
+   * THE PER-TEST FLAKE SIGNATURE for this crossing: did this test both pass and
    * not pass at some ONE build ordinal? Computed by `hasSameBuildPassAndFail` over the per-test
    * outcome window the projection already keeps (`run_test_outcomes`.`last_outcomes_json`), so it
    * is read off bytes this phase computes rather than invented for the gate.
@@ -294,7 +294,7 @@ export interface QuarantineDetectionFailure {
    *
    *  1. The window is CAPPED at LAST_OUTCOMES_LIMIT entries, so this is "a same-build pass∧fail
    *     within the recorded window", never "ever".
-   *  2. IT IS CONTEMPORANEOUS, and that bound is ENFORCED, not advisory (390-24, WR-05). The fold
+   *  2. IT IS CONTEMPORANEOUS, and that bound is ENFORCED, not advisory. The fold
    *     hands this predicate only the outcomes inside `[windowFloor(buildOrdinal), buildOrdinal]`
    *     — the crossing's OWN recurrence window, same floor `fingerprintRecurrence` counts over —
    *     so a same-build pass∧fail OLDER than that window answers false by construction. A
@@ -376,9 +376,9 @@ export interface QuarantineDetectionSighting {
 export interface QuarantineDetectionResult {
   /** Lifecycle events to append, entered-then-released, each group identity-sorted. */
   events: QuarantineLedgerEvent[]
-  /** At the flag floor: suspected flaky, no state change, no ledger write (D-06). */
+  /** At the flag floor: suspected flaky, no state change, no ledger write. */
   flagged: QuarantineDetectionSighting[]
-  /** Escalated but class-gated away from auto-quarantine — the build keeps failing (D-05). */
+  /** Escalated but class-gated away from auto-quarantine — the build keeps failing. */
   escalatedNotQuarantined: QuarantineDetectionSighting[]
 }
 
@@ -409,7 +409,7 @@ export function compareQuarantineIdentity(
 }
 
 /**
- * Code-unit comparison. MODULE-PRIVATE, and the visibility is the honest claim (390-28 / IN-01).
+ * Code-unit comparison. MODULE-PRIVATE, and the visibility is the honest claim.
  *
  * It was exported "so no ordering site in the subsystem has to re-spell it" and had no consumer at
  * all — not `operations.ts`, not `detection.test.ts`, not the package barrel, which never published
@@ -452,7 +452,7 @@ function expiryFrom(now: string): string {
 
 /**
  * D-07's counting law — "two runs in one build are ONE ordinal" — spelled ONCE, for every reader of
- * it (390-19).
+ * it.
  *
  * Both directions of that law now have a consumer: the EXIT path asks whether an ordinal passed,
  * and the ENTRY path asks whether an ordinal disagreed with itself. Answering per ordinal whether
@@ -464,7 +464,7 @@ function expiryFrom(now: string): string {
  * Shared IN CODE rather than pinned by a test on purpose. Two implementations that agree only
  * because a fixture compares them are free to drift the moment somebody edits one, and the entry
  * path and the exit path disagreeing about what a build ordinal IS would be a silent defect in
- * both directions at once (T-390-19-04).
+ * both directions at once.
  *
  * Groups are non-empty by construction — a group exists only because an entry created it — so
  * `anyPassed || anyFailed` holds for every returned element.
@@ -502,7 +502,7 @@ function distinctOrdinalOutcomes(
 }
 
 /**
- * THE PER-TEST FLAKE SIGNATURE (390-19 / G-390-5): at some ONE build ordinal this test both passed
+ * THE PER-TEST FLAKE SIGNATURE: at some ONE build ordinal this test both passed
  * and did not pass.
  *
  * This is the same shape `distinctOrdinalOutcomes` names above as "the §8.2 flake signature
@@ -520,7 +520,7 @@ function distinctOrdinalOutcomes(
  * Deliberately NOT "some pass and some fail anywhere in the window": that is a test that broke and
  * was fixed, which is the ordinary shape of software rather than flakiness.
  *
- * TWO SITES, ONE RULE — WHO OWNS THE SCOPE (390-24). This function stays TOTAL over whatever
+ * TWO SITES, ONE RULE — WHO OWNS THE SCOPE. This function stays TOTAL over whatever
  * window it is handed and deliberately holds no opinion about how far back that window reaches.
  * The FOLD owns the scope: `evaluateQuarantineForFold` in `projection/run-outcomes.ts` filters the
  * per-test outcomes to `[windowFloor(buildOrdinal), buildOrdinal]` before calling here, so the
@@ -545,7 +545,7 @@ function releasesOnPasses(window: QuarantineDetectionTestWindow): boolean {
 
 /**
  * WHOSE NAME an auto-authored `entered` event carries, stated over the prior entry's state
- * (390-18 / G-390-4). The rule is total across the three members of `QuarantineEntryStateName`:
+ * The rule is total across the three members of `QuarantineEntryStateName`:
  *
  *  - `'expired'` → CARRY the prior owner. A lapsed window is the SAME window continuing:
  *    suppression stopped, nobody closed it, and the person who claimed it still holds it.
@@ -595,10 +595,10 @@ function ownerForAutoEntry(prior: QuarantineEntryState | undefined): QuarantineO
  *
  * Both sorts below and `operations.ts`'s `triageOrder` share that one comparator; the fingerprint
  * tiebreak uses the same `compareBytes` primitive. There is one ordering rule in this subsystem and
- * it is spelled once (390-22 / WR-06).
+ * it is spelled once.
  *
  * Suppression is keyed on ledger STATE, not on the existence of an entry: only `'quarantined'`
- * suppresses a fresh `entered`. An `'expired'` entry has already stopped suppressing (D-11) and a
+ * suppresses a fresh `entered`. An `'expired'` entry has already stopped suppressing and a
  * `'released'` one closed its window, so a fresh crossing re-enters in both cases — D-10's stated
  * "re-entry needs no special rule". The repeated `entered` lines are the ledger's own record that
  * this test has been here before, which is exactly the history D-03 chose an event log to keep.
@@ -630,7 +630,7 @@ export function evaluateQuarantineDetection(
   let floorAdmissions = 0
 
   for (const failure of [...input.failures].sort(
-    // ONE ordering rule (390-22 / WR-06). Both legs compare CODE UNITS — the identity key through
+    // ONE ordering rule. Both legs compare CODE UNITS — the identity key through
     // the shared comparator, the fingerprint tiebreak through the same primitive — because a
     // comparison chain is only as deterministic as its least deterministic leg.
     (a, b) => compareQuarantineIdentity(a, b) || compareBytes(a.fingerprint, b.fingerprint),
@@ -679,7 +679,7 @@ export function evaluateQuarantineDetection(
     // exit path worked. It was wrong about the other half. A LAPSED entry is still listed, still
     // renewable, still in the triage queue and still the reason a human sees this test in
     // `quarantine.list` — a release genuinely closes it, so refusing to author one is what left a
-    // FIXED test listed forever (390-17 / G-390-4). One condition was covering two states whose
+    // FIXED test listed forever. One condition was covering two states whose
     // answers differ.
     //
     // TWO SITES, ONE RULE. `evaluateQuarantineForFold` (projection/run-outcomes.ts) builds the

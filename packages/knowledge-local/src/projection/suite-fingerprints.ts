@@ -1,4 +1,4 @@
-// The suite-fingerprint table: gate 3's comparison substrate (Phase 393, D-15 · WTST-06).
+// The suite-fingerprint table: gate 3's comparison substrate.
 //
 // A SIBLING of `run-outcomes.ts` inside the same derived-index discipline, not a new store. It
 // lives in the gitignored index, is computed at the SAME post-run fold from the SAME handoff
@@ -40,7 +40,7 @@ import { ensureRunOutcomeTables } from '../index-open.js'
 export const SUITE_FINGERPRINTS_TABLE = 'suite_fingerprints'
 
 /**
- * The element walk, re-exported from its home in `schema` (393-06).
+ * The element walk, re-exported from its home in `schema`.
  *
  * It lived here until gate 3's DRAFT side became its second reader. `agent` names neither this
  * package nor `core` and never will, so a walk that stayed here could only have been mirrored on
@@ -210,9 +210,9 @@ export function foldSuiteFingerprints(
 }
 
 /**
- * The read port gate 3 consumes through composition (D-15).
+ * The read port gate 3 consumes through composition.
  *
- * MINIMAL BY DESIGN. Conservatism lives in the normalizer (D-14), not here: this port answers
+ * MINIMAL BY DESIGN. Conservatism lives in the normalizer, not here: this port answers
  * what the table holds and nothing more, so a later retune of "near-same elements normalize
  * equal" moves in exactly one place. There is no similarity verb here because there is no
  * similarity threshold to defend — gate 3's value test is set membership, spec §6.3 verbatim.

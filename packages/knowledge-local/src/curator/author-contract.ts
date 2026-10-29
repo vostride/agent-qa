@@ -57,7 +57,7 @@ export type NeighborRecord = NeighborRecordBase &
   ({ kind: 'fact'; subtype: FactSubtype } | NonFactNeighborRecord)
 
 /**
- * One authored outcome may carry multiple deltas (D-02): a procedure-extraction job can yield
+ * One authored outcome may carry multiple deltas: a procedure-extraction job can yield
  * whole-flow AND sub-flow candidates from one trajectory. Fact/caution authoring produces a
  * one-element array. The array is never empty.
  */
@@ -84,7 +84,7 @@ export interface DispositionProfile {
 
 /**
  * Resolve automatic curation authority from the run's already-captured execution context.
- * Local work applies directly (432 D-08); CI and cloud stay proposed for the rolling-PR flow.
+ * Local work applies directly; CI and cloud stay proposed for the rolling-PR flow.
  */
 export function resolveDispositionProfile(
   executionContext: ExecutionContext,
@@ -284,7 +284,7 @@ const deltaSchema = z.discriminatedUnion('kind', [
 /**
  * The SHARED structural boundary for a checkpoint. Neighbor membership and CAS freshness are
  * deliberately disposition checks, so this schema validates structure without applying them.
- * D-02: the checkpoint carries the authored outcome's FULL delta array — one durable authoring
+ * the checkpoint carries the authored outcome's FULL delta array — one durable authoring
  * checkpoint per job, disposed delta-by-delta through the commit boundary.
  *
  * Deliberately origin-WIDE, and that is not an oversight — see
@@ -361,7 +361,7 @@ export const AUTHORED_CHECKPOINT_ORIGIN_ADMISSION = {
 /**
  * Structure PLUS drain origin admission. Applied per delta and at every array position: a check
  * written against `deltas[0]` would be the same one-member-of-a-set defect at the array axis,
- * and a widened checkpoint carries the job's full delta array (D-02).
+ * and a widened checkpoint carries the job's full delta array.
  */
 const drainAuthoredCheckpointSchema = authoredCheckpointSchema.superRefine((checkpoint, ctx) => {
   checkpoint.deltas.forEach((delta, index) => {
@@ -393,7 +393,7 @@ export function parseAuthoredCheckpoint(value: unknown): AuthoredCheckpoint {
 /**
  * The per-delta commit unit sliced from a widened checkpoint. `commitCurationDelta` remains
  * the ONE serialized mutation boundary and disposes exactly one delta per call; the drain
- * slices the checkpoint and disposes each delta independently (D-02).
+ * slices the checkpoint and disposes each delta independently.
  */
 export interface AuthoredDeltaCheckpoint {
   schemaVersion: typeof AUTHORED_CHECKPOINT_SCHEMA_VERSION

@@ -246,7 +246,7 @@ describe('drainQueue one-shot serialized engine', () => {
       expect(create).toHaveBeenCalledWith(expect.objectContaining({
         sourceJobId: entryId, sourceRunId: payload.runId, sourceBuildOrdinal: 43,
       }))
-      // 2026-09-30, 432-10 D-05/D-22: the canary store is handed no proposals root.
+      // the canary store is handed no proposals root.
       expect(create.mock.calls[0]![0]).not.toHaveProperty('agentQaRoot')
       expect(lifecycle).toHaveBeenCalledWith({ kind: 'job-completed', candidateId: entryId })
       expect(listQueuedCandidates(knowledgeRoot)).toEqual([])
@@ -325,7 +325,7 @@ describe('drainQueue one-shot serialized engine', () => {
       operations: noWriterPass(),
     })
 
-    // 2026-09-30, 432-10 D-05: the drain files no gate-inconsistency proposals, so the count left.
+    // the drain files no gate-inconsistency proposals, so the count left.
     expect(report).not.toHaveProperty('inconsistenciesFiled')
     expect(report).toMatchObject({
       kind: 'handed-off',

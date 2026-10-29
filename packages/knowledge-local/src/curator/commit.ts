@@ -107,7 +107,7 @@ export interface CommitCurationDependencies {
   profile: DispositionProfile
   drainState: DispositionDrainState
   /**
-   * Multi-delta disposal (D-02): when set, terminal paths skip queue completion so the
+   * Multi-delta disposal: when set, terminal paths skip queue completion so the
    * claimed candidate directory stays available for the checkpoint's remaining deltas.
    * The drain leaves it unset on the final delta, which completes the job as before.
    */
@@ -156,7 +156,7 @@ interface CommittedBundleResult {
 }
 
 /**
- * 381-47 (F-381-45-1): WHY a delta-noop disposition had nothing to apply. `authored-noop`
+ * WHY a delta-noop disposition had nothing to apply. `authored-noop`
  * = a capable-model author deliberately emitted a Noop delta; the `fallback-*` members
  * name WHICH author fallback defeated extraction (the §7.9 one-element procedure Noop).
  * Benign noop reasons (evidence-token dedup, disposition rejects) never carry a cause.
@@ -284,7 +284,7 @@ function discriminant(
       return {
         kind: 'procedure',
         flowName: flow?.name ?? canonicalJson(draft.anchors[0]),
-        // D-01: procedureStepKeys is the schema-owned identity authority. Observation
+        // procedureStepKeys is the schema-owned identity authority. Observation
         // naturalKeys are evidence prose and must never enter the content address.
         stepSignature: computeStepSequenceSignature(structuralProcedureStepKeys),
       }
@@ -724,7 +724,7 @@ function resolveExistingTarget(
 }
 
 /**
- * 381-47: derive the delta-noop cause from the checkpoint authorship commit already holds
+ * derive the delta-noop cause from the checkpoint authorship commit already holds
  * (disposition stays authorship-blind). Absent fallbackReason on a fallback-path checkpoint
  * predates the stamp and maps to 'fallback-malformed' — the historical dominant cause
  * (F-381-45-1: three rejected proposals).
@@ -849,7 +849,7 @@ export function commitCurationDelta(
       ...(measurementSeedValue(job) === undefined
         ? {}
         : { measurementValue: measurementSeedValue(job) }),
-      // 381-03: procedure deltas are validated against durable queue evidence, so the
+      // procedure deltas are validated against durable queue evidence, so the
       // extraction wall receives the payload's code-derived facts (never LLM text).
       ...(job.payload.kind === 'procedure'
         ? {
@@ -939,7 +939,7 @@ export function commitCurationDelta(
         )
           // D-02 propose-only keeps the replacement candidate distinct from its victim. The
           // downgraded Add is still the Supersede's new validity window, so it keeps the
-          // original evidence token in its discriminant (D-58): a same-anchor correction never
+          // original evidence token in its discriminant: a same-anchor correction never
           // lands on the victim's id, and a later acceptance converges on the id a local
           // Supersede of the same delta mints.
           ? disposed.original
@@ -1026,7 +1026,7 @@ export function commitCurationDelta(
         authority,
         () => {
           /**
-           * CR-09: the committing transition and the durable intent are the first writes of
+           * the committing transition and the durable intent are the first writes of
            * the held section, not the last writes before it. A superseded writer is refused
            * by the entry ladder above and therefore cannot publish either, so no intent can
            * exist that was not authored under live, exact authority. Both use the

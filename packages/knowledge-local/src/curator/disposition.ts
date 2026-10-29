@@ -42,7 +42,7 @@ import {
 /** Provisional §7.3.1 cap. Phase 379 may retune it only through an explicit constant edit. */
 export const BLAST_RADIUS_MAX_SUPERSEDES_PER_ANCHOR_PER_DRAIN = 1
 
-// 407-04 (D-08/D-10): `canaryOutcomeObservationId` MOVED to `../serving/canary-observation-id.js`
+// `canaryOutcomeObservationId` MOVED to `../serving/canary-observation-id.js`
 // and is re-exported here so every writer-side caller keeps its import path. The reader entry must
 // recompute the identity the writer stamped, and this file cannot be on that entry — it names the
 // bundle store and the curation queue payloads. One implementation, two
@@ -50,7 +50,7 @@ export const BLAST_RADIUS_MAX_SUPERSEDES_PER_ANCHOR_PER_DRAIN = 1
 export { canaryOutcomeObservationId } from '../serving/canary-observation-id.js'
 
 /**
- * 381-03 (PROC-01 D-02/D-03): the verified queue evidence the procedure-extraction wall
+ * the verified queue evidence the procedure-extraction wall
  * validates against. It is code-derived queue truth — distilled observations — never LLM text.
  */
 export interface ProcedureDispositionEvidence {
@@ -306,7 +306,7 @@ function pushUnknownResolution(
 }
 
 /**
- * D-07/D-08: the tripping Supersede remains the applied write. The unresolved
+ * the tripping Supersede remains the applied write. The unresolved
  * unknown is a second deterministic commit intent; it suppresses serving later,
  * never this writer path.
  */
@@ -861,7 +861,7 @@ function checkSupersessionKey(
  *
  * The retired comparison is DESCRIBED rather than quoted on purpose: a `grep -c` for its literal
  * text is a live guard against it coming back, and a quotation kept here for colour would disarm
- * that guard permanently (387-17 D-4).
+ * that guard permanently.
  *
  * WHY each member is what it is:
  *
@@ -1099,7 +1099,7 @@ function hasOrderedNonContiguousProcedureSpan(
 }
 
 /**
- * 381-03 (PROC-01): the deterministic procedure-extraction wall — D-02 candidacy (contiguous
+ * the deterministic procedure-extraction wall — D-02 candidacy (contiguous
  * verified-PASS span with resolved elements + coherent anchors) and Pitfall 6 replayability
  * (the ONE shared schema exclusion list, never a fork). Any failed check disposes the delta
  * as a structured Noop with a machine-readable reason; nothing here reads LLM prose for
@@ -1177,7 +1177,7 @@ const TEST_VARIABLE_VALUE_PATTERN = /\{\{\s*env:/
 
 /**
  * D-03 rule 2: a literal whose own content matches the masking contract fails closed.
- * 2026-10-15 (441-25, D-28): the field a value was typed into never makes it secret.
+ * the field a value was typed into never makes it secret.
  */
 function procedureSecretLiteralReject(
   covered: readonly CoveredProcedureStep[],

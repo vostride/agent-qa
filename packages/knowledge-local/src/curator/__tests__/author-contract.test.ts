@@ -133,7 +133,7 @@ describe('the drain authored-checkpoint boundary admits origins from a total tab
   /**
    * The array axis. A check written against `deltas[0]` would be this phase's named defect at a
    * different axis — a guard scoped to one member of a set whose hazard belongs to the whole set
-   * — and a widened checkpoint carries the job's FULL delta array (D-02).
+   * — and a widened checkpoint carries the job's FULL delta array.
    *
    * This control is potent: the first delta is agent-origin, so the fixture would parse under a
    * first-element-only check and the assertion could only pass if the walk really covers every

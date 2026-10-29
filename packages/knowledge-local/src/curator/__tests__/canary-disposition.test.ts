@@ -69,7 +69,7 @@ describe('canary outcome deterministic disposition', () => {
   })
 
   /**
-   * CR-01: the port bridge can no longer synthesize an identity, so a store handed to a test
+   * the port bridge can no longer synthesize an identity, so a store handed to a test
    * must hold the genuine published lease. drainQueue acquires its own, which is why beforeEach
    * still leaves the root unheld.
    */

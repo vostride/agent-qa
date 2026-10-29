@@ -91,7 +91,7 @@ export interface CreateLocalKnowledgeStoreConfig {
   /**
    * The caller's real writer-lease id, paired with `epoch`.
    *
-   * CR-02: every canonical append, promotion, and index projection this store performs carries
+   * every canonical append, promotion, and index projection this store performs carries
    * this identity into `withCurrentWriterAuthority`, so a store constructed by someone who is not
    * the published holder is refused at its first canonical mutation instead of laundering a
    * fabricated id. It is required precisely so no code path can omit it and fall back to one.
@@ -100,7 +100,7 @@ export interface CreateLocalKnowledgeStoreConfig {
   /** Port calls lack a run ordinal; callers with run context should supply it. */
   sourceBuildOrdinal?: number
   sourceRunId?: string
-  /** 2026-09-07, 418 D-07: queue entry identity stamped as producedBy.jobId. */
+  /** queue entry identity stamped as producedBy.jobId. */
   sourceJobId?: string
   screenStates?: readonly ScreenState[]
   onPromotionOutcome?: (report: PromotionOutcomeReport) => void
@@ -237,7 +237,7 @@ function draft(delta: Delta): BundleDraft | undefined {
 
 /**
  * @internal The evidence token the port bridge stamps on a delta's committed event. Exported
- * only so the review writer can recognise an explicit change that already landed (432-06).
+ * only so the review writer can recognise an explicit change that already landed.
  */
 export function syntheticEvidenceToken(delta: Delta): string {
   if (delta.kind === 'Confirm' || delta.kind === 'Supersede') return delta.evidenceToken
@@ -322,7 +322,7 @@ function currentAuthority(
  *
  * WHAT MAKES IT SAFE — the port path has no on-disk consumer of the claimed form, each half
  * verified by reading:
- *   - disposition reads no `job.candidateDir` (441-53), and procedure drafts are refused by
+ *   - disposition reads no `job.candidateDir`, and procedure drafts are refused by
  *     `commitWithProfile` BEFORE this function is called, pinned by knowledge-store.test.ts's
  *     "rejects before materializing any claimed candidate" case;
  *   - `addressFields` sets `artifactInventory: []`, so `commit.ts`'s `artifactInputs` maps over
@@ -422,7 +422,7 @@ function unreachableCanaryOutcome(outcome: never): never {
 /**
  * Who is asking for this write. `automatic` is the curator and the agent port, whose authority
  * follows the run's execution context (432 D-08: ci/cloud stay proposed). `explicit` is a
- * person's mark, accept, reject or forget, which is authority in every context (D-04/D-05).
+ * person's mark, accept, reject or forget, which is authority in every context.
  */
 type WriteAuthority = 'automatic' | 'explicit'
 
@@ -456,7 +456,7 @@ export function createLocalKnowledgeStore(
 }
 
 /**
- * @internal The narrow explicit-authority entry for the review writer (432-06). Not on the
+ * @internal The narrow explicit-authority entry for the review writer. Not on the
  * package barrel: only `applyReview` / `applyExplicitReview` construct it, under the caller's
  * writer lease. Canary and proposal-only doors are deliberately absent from its face.
  */
@@ -502,7 +502,7 @@ function buildLocalKnowledgeStore(
     profile: DispositionProfile = dispositionProfileFor(config, 'automatic'),
   ): PromotionOutcome {
     /**
-     * D-17: later callers add evidence first, then ask this same gate to judge it. The
+     * later callers add evidence first, then ask this same gate to judge it. The
      * execution posture is resolved at call time; canary evidence is always automatic, and
      * only `promote` passes the store's own authority.
      */
@@ -517,11 +517,11 @@ function buildLocalKnowledgeStore(
     const appendConfig = bundleStoreConfig(resolved.product)
     if (resolved.observedStatus === 'active') {
       /**
-       * CR-01: the active fast path is a gate re-validation, never a bypass. A crash
+       * the active fast path is a gate re-validation, never a bypass. A crash
        * between a rollback's confirmation retraction and its Plan-23 promotion cascade
        * leaves canonical active-with-zero-support until replay; attesting success over
        * that stale authority would launder a rolled-back promotion. The same pure gate
-       * (D-17) is re-evaluated over the promoted-set-aside status: the status the record
+       * is re-evaluated over the promoted-set-aside status: the status the record
        * would hold if its promoted authority were set aside.
        */
       const gateInput = assemblePromotionGateInput({
@@ -652,7 +652,7 @@ function buildLocalKnowledgeStore(
     }
     for (const delta of deltas) {
       /**
-       * WR-02 / D-02: this bridge intentionally has no durable procedure observations or
+       * this bridge intentionally has no durable procedure observations or
        * capture artifacts. Disposition would therefore return a guaranteed procedure Noop,
        * which completed() would otherwise launder into a resolved void. Reject before
        * bridgeDelta materializes a claimed queue envelope; evidence carriage remains M4 scope.

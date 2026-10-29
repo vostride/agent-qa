@@ -1,4 +1,4 @@
-// Two REAL OS processes writing one committed `quarantine.jsonl` (Phase 390, D-04).
+// Two REAL OS processes writing one committed `quarantine.jsonl`.
 //
 // This discharges the concurrent-writer-safety truth the phase carried as a human-verification
 // item through three rounds: "two independent OS processes appending to quarantine.jsonl cannot

@@ -133,13 +133,13 @@ export interface DrainFailure {
 /**
  * A commit that decided there was nothing to apply. Legitimate reasons exist (evidence-token
  * dedup), so a noop is never a failure — but dropping it on the floor made live procedure
- * extraction die silently for 13 UAT runs (G-381-1). Visibility, never a gate.
+ * extraction die silently for 13 UAT runs. Visibility, never a gate.
  */
 export interface DrainNoop {
   candidateId: string
   reason: string
   /**
-   * 381-47: present only on delta-noop entries — distinguishes a defeated extraction
+   * present only on delta-noop entries — distinguishes a defeated extraction
    * (`fallback-*`) from a deliberate authored Noop; benign dedup carries no cause.
    */
   emptyDeltaCause?: EmptyDeltaCause
@@ -163,16 +163,16 @@ interface DrainReportBase {
   snapshotFoldFailed?: true
   jobsProcessed: number
   committed: number
-  // 2026-10-19 (444.1-16, D-25): the canary evidence commits in `committed`; no bucket counts them.
+  // the canary evidence commits in `committed`; no bucket counts them.
   evidenceCommitted?: number
   /**
-   * Committed deltas whose kind was `Deprecate` (388-02).
+   * Committed deltas whose kind was `Deprecate`.
    *
    * OPTIONAL because the drain report is constructed by fault-injection fakes across four
    * packages and a required field would make every one of them a compile error over a number
    * they have no opinion about. The real drain always sets it, so a production report saying
    * `deprecated: 0` is a measurement rather than an absence — which is what the post-run
-   * chain's notification (D-11) needs in order to tell a drain that deprecated nothing apart
+   * chain's notification needs in order to tell a drain that deprecated nothing apart
    * from a drain that never ran at all.
    */
   deprecated?: number
@@ -943,7 +943,7 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
 
       if (drainOwnsLease) {
         // A beat that throws (the lease guard stayed busy for its whole wait, or was refused) is
-        // a heartbeat failure like a refusal, never a throw out of the loop (WR-11).
+        // a heartbeat failure like a refusal, never a throw out of the loop.
         let heartbeat: HeartbeatLeaseOutcome
         try {
           heartbeat = operations.heartbeatLease({
@@ -961,7 +961,7 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
       }
 
       if (claimed.kind === 'malformed') {
-        // D-22: the strict sibling payload branches before checkpoint lookup, retrieval, or
+        // the strict sibling payload branches before checkpoint lookup, retrieval, or
         // author construction. A canary job therefore has no control-flow path to an LLM and
         // consumes none of the search-before-create query budget.
         const canaryOutcome = readClaimedCanaryOutcome(claimed)
@@ -993,7 +993,7 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
             writerLeaseId: lease.leaseId,
             onPromotionOutcome: outcome => result.promotions.push(outcome),
             /**
-             * CR-02: the terminal transition joins the canary tail's own held section through
+             * the terminal transition joins the canary tail's own held section through
              * the within-held form. Calling the fenced writeJobState here would re-enter
              * withCurrentWriterAuthority against a BEGIN IMMEDIATE the tail already holds and
              * deadlock (the Plan 25/28 within-held idiom).
@@ -1104,7 +1104,7 @@ export async function drainQueue(options: DrainOptions): Promise<DrainReport> {
         }
       }
 
-      // D-02: dispose each authored delta independently through the one commit boundary.
+      // dispose each authored delta independently through the one commit boundary.
       // Only the final delta completes the queue job so earlier disposals keep the claimed
       // candidate directory (and its artifacts) available.
       const vectorless = embedCrashCount >= EMBED_CRASH_VECTORLESS_THRESHOLD

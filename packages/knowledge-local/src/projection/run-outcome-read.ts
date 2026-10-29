@@ -104,7 +104,7 @@ export function readTestOutcomeHistory(
 }
 
 /**
- * Every identity the projection has counted inside ONE file, in one product (394-17 · WTST-05).
+ * Every identity the projection has counted inside ONE file, in one product.
  *
  * The neighbours side of D-14's stability read: "which tests does this suite file already have run
  * evidence for". Keyed on the projection's own primary key, so `product` is REQUIRED for the same
@@ -157,7 +157,7 @@ export interface FailureRecurrence {
 }
 
 /**
- * Feeds "Kth failure in the last N builds", computed LIVE at render time (D-08) — counts
+ * Feeds "Kth failure in the last N builds", computed LIVE at render time — counts
  * derived from the window on every call, never stored prose. 390 rebinds the same seam to
  * its fingerprint-window computation; this derivation is 389's binding, not the seam's
  * final owner. An empty history answers {kth: 0, windowBuilds: 0}: the renderer (plan 05)

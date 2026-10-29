@@ -174,7 +174,7 @@ describe('procedure confirmation ladder', () => {
 
     const afterFirst = loaded(seeded.dir)
     expect(afterFirst.trust.counters.confirmed).toBe(bar)
-    // M2 posture: procedures never go active; Confirm evidence alone crosses the bar (D-05).
+    // M2 posture: procedures never go active; Confirm evidence alone crosses the bar.
     expect(afterFirst.trust.status).toBe('candidate')
     expect(getProcedure()?.replayRecommendation).toBe('hint')
 

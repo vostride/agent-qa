@@ -100,7 +100,7 @@ afterEach(() => {
  * `AuthoredDeltaCheckpoint` as a plain object and neither parses at the drain boundary. Routing
  * these fixtures through `parseAuthoredCheckpoint` would have modelled a path that does not
  * exist and made 16 rows of this file unconstructible the moment that boundary narrowed —
- * measured, not hypothesised (387-20 D-2).
+ * measured, not hypothesised.
  */
 function checkpoint(
   delta: Delta,
@@ -753,7 +753,7 @@ describe('automatic curation disposition by execution context', () => {
   }
 
   it.each(LOCAL_CONTEXTS)('%s automatic curation applies Supersede and Deprecate directly', (context) => {
-    // Both local contexts are the same arm; local-headless is the background worker (D-08).
+    // Both local contexts are the same arm; local-headless is the background worker.
     const { id: victimId } = publishActive([primary, page])
     const supersede = supersedeDelta(victimId, [primary, page], observed(victimId))
     expect(disposeIn(context, supersede, [victimId], [observed(victimId)]))
@@ -1245,7 +1245,7 @@ describe('cited-id integrity: the fallback is total over DeltaOrigin', () => {
 // read `input.delta.origin !== 'agent'`, a hand-picked single member of DELTA_ORIGINS):
 //
 //   FAIL  src/curator/__tests__/disposition.test.ts > the autonomy floor is total over
-//         DeltaOrigin (WR-03) > import-origin Deprecate of an ACTIVE record → downgraded
+//         DeltaOrigin > import-origin Deprecate of an ACTIVE record → downgraded
 //   AssertionError: a machine-authored Deprecate may not remove standing knowledge on its own
 //     authority: expected { kind: 'apply', delta: { …(7) } } to match object
 //     { kind: 'downgraded', …(2) }

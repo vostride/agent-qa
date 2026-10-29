@@ -1,4 +1,4 @@
-// RED-first pins for the detection ladder's PURE rule (Phase 390, D-05/D-06/D-07/D-10/D-11).
+// RED-first pins for the detection ladder's PURE rule.
 //
 // The load-bearing properties are NAMED here rather than counted, and each is pinned two-sided:
 //
@@ -8,7 +8,7 @@
 //  2. The gate is TWO TABLES PLUS A PER-CROSSING CONJUNCT. Both tables are TOTAL over the closed
 //     eight-class verdict vocabulary. DISPOSITION restricts auto-quarantine to the three §6.4 A3
 //     classes; the other FIVE escalate loudly and append nothing, so a real regression is never
-//     auto-silenced. FLOOR ELIGIBILITY (390-16) then asks whether the evidence behind the class is
+//     auto-silenced. FLOOR ELIGIBILITY then asks whether the evidence behind the class is
 //     about this test or about the run: `flake` and `timeout` are both `'floor-eligible'`, and
 //     every other class is `'authored-required'`. But NO class auto-quarantines on the
 //     deterministic floor's word alone — since 390-19 the floor arm additionally requires the
@@ -16,7 +16,7 @@
 //     decide this KIND of thing at all and the crossing answers whether there is per-test evidence
 //     in THIS one. Both tables are asserted key-for-key against VERDICT_CLASSES itself, so a ninth
 //     class cannot be silently un-decided on either axis.
-//  3. The per-run floor cap (390-19). Neither table can contain fan-out — every class the floor
+//  3. The per-run floor cap. Neither table can contain fan-out — every class the floor
 //     mints on a FAILING member is reachable from a run-scoped cause — so
 //     QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP bounds the floor-arm `entered` events one
 //     `evaluateQuarantineDetection` call may author, and one call is one run's fold. The overflow
@@ -27,7 +27,7 @@
 //     conjunct — is pinned directly, paired and directional: ONE ordinal carrying both answers
 //     HOLDS, one ordinal carrying one answer does not, and two builds (broke, then fixed) do not.
 //     That last leg is what a "some pass and some fail ANYWHERE in the window" relaxation reds.
-//  5. The committed ledger's ORDER is decided by BYTES, never by host collation (390-22 / WR-06).
+//  5. The committed ledger's ORDER is decided by BYTES, never by host collation.
 //     Every leg there fails against a collation ordering and passes against a code-unit one, so
 //     the determinism claim is a property of the strings rather than of the machine.
 //  6. Purity. `now` arrives as an argument and the module reads no clock, no fs and no database —
@@ -36,8 +36,8 @@
 //
 // The remaining clusters pin the constants and the lifecycle the ladder authors: the thresholds
 // themselves, the `entered` event an escalation writes, re-entry suppression while a window is
-// OPEN, the auto-entry's owner over a prior entry's state (390-18), and auto-exit at M passing
-// ordinals (D-10).
+// OPEN, the auto-entry's owner over a prior entry's state, and auto-exit at M passing
+// ordinals.
 
 import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
@@ -98,12 +98,12 @@ function failure(
     testName: TEST_NAME,
     fingerprint: FINGERPRINT,
     verdictClass: 'flake',
-    // AUTHORED by default (390-16), so every pre-existing leg keeps varying exactly ONE axis: the
+    // AUTHORED by default, so every pre-existing leg keeps varying exactly ONE axis: the
     // disposition table's. The floor-eligibility axis is varied EXPLICITLY, in its own suite, with
     // both producer values named on both sides. A shared default of 'deterministic-classifier'
     // would have silently folded the two tables' effects together in every legacy assertion.
     producer: 'analyze-run',
-    // No signature by default (390-19), for the same reason the producer defaults to AUTHORED:
+    // No signature by default, for the same reason the producer defaults to AUTHORED:
     // every pre-existing leg keeps its exact current meaning and no legacy assertion silently
     // changes direction. The signature axis is varied EXPLICITLY, on both sides, in its own suite.
     sameBuildPassAndFail: false,
@@ -259,7 +259,6 @@ describe('the floor arm: a floor-eligible class AND a per-test signature', () =>
     // `environment` is the ONE auto-quarantine class the floor still may not act on alone. The five
     // escalate-only classes keep the strict value deliberately: unobservable today, which is
     // exactly why a future one-line disposition flip must not silently license the floor too
-    // (T-390-16-04).
     expect([...AUTHORED_REQUIRED_AUTO_CLASSES]).toEqual(['environment'])
     expect([...FLOOR_ELIGIBLE_AUTO_CLASSES].sort()).toEqual(['flake', 'timeout'])
   })
@@ -317,7 +316,7 @@ describe('the floor arm: a floor-eligible class AND a per-test signature', () =>
   // after it, which is what makes this a control — it is NOT evidence about the blast radius of the
   // arm this round widens.
   //
-  // IT IS ALSO THE GATE THAT ANSWERED FOR THE HISTORICALLY MEASURED FAN-OUT (390-28). Those six
+  // IT IS ALSO THE GATE THAT ANSWERED FOR THE HISTORICALLY MEASURED FAN-OUT. Those six
   // members classed `environment`, so they are refused right here, one conjunct BEFORE the per-run
   // cap is ever consulted — which is why that event cannot be cited as evidence about the cap in
   // either direction, and why the cap's value is not calibrated against it.
@@ -437,7 +436,7 @@ describe('the floor arm: a floor-eligible class AND a per-test signature', () =>
 //
 // WHAT THE COUNT BUYS — TIME AND VISIBILITY, PER RUN. It RATE-LIMITS the floor arm and bounds
 // nothing eventual, which is the framing `detection.ts`'s module header and the constant's docstring
-// now state and which these titles are aligned to (390-28 / WR-02). Two readings the earlier text
+// now state and which these titles are aligned to. Two readings the earlier text
 // carried were withdrawn there and are not restated here:
 //
 //  1. The historically measured fan-out event never reaches this counter at all. Those six members
@@ -503,7 +502,7 @@ describe('the per-run floor cap RATE-LIMITS fan-out — a budget, not a ceiling'
 
   // THE FAN-OUT DIFFERENTIAL. Removing the cap check reds THIS leg.
   //
-  // The input arrives in REVERSE identity order (390-32) — member 5 first, member 0 last — while
+  // The input arrives in REVERSE identity order — member 5 first, member 0 last — while
   // the expected admissions below are unchanged from when the two orders agreed. That is what
   // gives the by-identity half of this leg a reddening domain: a ladder that counted the crossings
   // in the sequence it received them would admit members 5 and 4 and red on the first assertion.
@@ -779,7 +778,7 @@ describe('ladder boundaries, pinned one step either side', () => {
         testName: TEST_NAME,
         fingerprint: FINGERPRINT,
         verdictClass: 'flake',
-        // The sighting mirrors the failure whole — the producer travels with it (390-16).
+        // The sighting mirrors the failure whole — the producer travels with it.
         producer: 'analyze-run',
         occurrenceOrdinals: 2,
         windowOrdinals: QUARANTINE_WINDOW_ORDINALS,
@@ -857,7 +856,7 @@ describe('re-entry suppression while a window is OPEN', () => {
   })
 })
 
-// ---- The auto-entry's owner, stated over the prior entry's state (390-18 / G-390-4) --
+// ---- The auto-entry's owner, stated over the prior entry's state --
 
 // The auto-`entered` used to stamp the unassigned literal unconditionally, so a human who had
 // claimed an entry via `add --owner` lost that claim the next time the window lapsed and the
@@ -935,7 +934,7 @@ describe("the auto-entry's owner over the prior entry's state", () => {
   })
 })
 
-// ---- The per-test flake signature: a same-build pass∧fail (390-19 / G-390-5) ----
+// ---- The per-test flake signature: a same-build pass∧fail ----
 //
 // `distinctOrdinalOutcomes`' own docstring already names this shape "the §8.2 flake signature
 // itself", and the exit path reads it in the SAFE direction: a mixed ordinal collapses to

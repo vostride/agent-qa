@@ -378,7 +378,7 @@ describe('drainQueue daemon substrate', () => {
     })
     expect(author).toHaveBeenCalledOnce()
     expect(author.mock.calls[0]?.[0].executionContext).toBe('local-headless')
-    // 432 D-08: the local-headless fallback drains to active, so the promotion floor runs.
+    // the local-headless fallback drains to active, so the promotion floor runs.
     expect(statusesBySummary()).toEqual({ 'legacy-checkout selector': 'active' })
     expect(listQueuedCandidates(knowledgeRoot)).toEqual([])
     expect(readJobState(knowledgeRoot, candidateId).kind).toBe('absent')
@@ -1022,7 +1022,7 @@ describe('drainQueue daemon substrate', () => {
   })
 
   /**
-   * CR-02: canary evidence is trust/status currency, so every canary mutation must sit inside the
+   * canary evidence is trust/status currency, so every canary mutation must sit inside the
    * same exact-authority section as the terminal job-state write. Each barrier below names one
    * point at which a takeover either completes (and must find nothing landed) or is blocked (and
    * must observe the tail's holder), which is the only way "one held section" is executable.

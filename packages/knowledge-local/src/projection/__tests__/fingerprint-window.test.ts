@@ -1,4 +1,4 @@
-// The fingerprint-keyed recurrence window: detection's substrate (Phase 390, D-07/D-09).
+// The fingerprint-keyed recurrence window: detection's substrate.
 //
 // The window rows are what plan 05's rule reads, so two properties matter more than the counts:
 //
@@ -11,7 +11,7 @@
 //     flake and failing as an app bug are two facts.
 //
 // Recurrence is counted over DISTINCT build ordinals — the window slides over ordinals, not runs
-// (D-07), so two failing runs inside one build count once and an intermittent failure at ordinals
+// so two failing runs inside one build count once and an intermittent failure at ordinals
 // 5/7/9 still crosses at 9.
 import { DatabaseSync } from 'node:sqlite'
 

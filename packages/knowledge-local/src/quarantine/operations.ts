@@ -1,4 +1,4 @@
-// The three quarantine verbs, over the committed ledger (Phase 390, D-11/D-12/D-13).
+// The three quarantine verbs, over the committed ledger.
 //
 // `QuarantineOperationsPort` is declared in schema and bound at `composeLocalAgent`; this module is
 // its ONE implementation, and it owns exactly the three things the port contract deliberately does
@@ -20,16 +20,16 @@
 //
 // WRITES ARE ALL-OR-NOTHING. Every append goes through `appendQuarantineEvents`, whose shape and
 // version check runs before a byte reaches the file. The text is written as handed over; no
-// detector scans it (Phase 441, D-15).
+// detector scans it.
 //
 // SERIALIZATION IS THIS MODULE'S, and it is taken here rather than assumed about a caller. `release`
 // and `add` run their WHOLE read-fold-decide-append cycle inside the MRSW writer lease — acquired
 // here, released here, on every exit — or inside the authority a host that already holds the lease
 // hands in (`resolveWriterAuthority`; the daemon acquires at startup and would otherwise be told
-// `held` by itself). That handed-in authority is CHECKED, not believed (390-15): both write verbs
+// `held` by itself). That handed-in authority is CHECKED, not believed: both write verbs
 // re-read the monotonic epoch and the lease file before deciding anything, and a process whose
 // lease was reclaimed under it — the heartbeat-starved daemon — is refused with the lease module's
-// own `WriterAuthorityLostError`, ledger byte-unchanged. WITH ITS BOUNDARY (390-22 / WR-07): that
+// own `WriterAuthorityLostError`, ledger byte-unchanged. WITH ITS BOUNDARY: that
 // check runs inside NO lock, unlike the lease module's own `withCurrentWriterAuthority`, so it
 // proves the authority was current at the moment of the check rather than for the duration of the
 // decide that follows. The window is one synchronous `decide` instead of forever; it is not zero.
@@ -43,12 +43,12 @@
 // whatever drain is running.
 //
 // This replaces a claim that serialization was the caller's, "positionally". It was false, and
-// statically so (390-09 / CR-03): nothing on the path from `invokeFunction('quarantine.add')` to
+// statically so: nothing on the path from `invokeFunction('quarantine.add')` to
 // `appendQuarantineEvents` held a lease. The two-OS-process byte-interleaving consequence is a
 // separately filed human-verification item; what is enforced and pinned here is that a lease held
 // by another writer refuses this verb typed, with the ledger byte-unchanged.
 //
-// THE IDENTITY IS MINTED HERE, AT THE BOUNDARY, ON BOTH NORMALIZED LEGS (390-12 / D-01). The
+// THE IDENTITY IS MINTED HERE, AT THE BOUNDARY, ON BOTH NORMALIZED LEGS. The
 // ledger is keyed on `(product, filePath, testName)` and every reader compares those bytes with
 // `===`, so a verb that stores the spelling a human typed writes into a partition nothing reads.
 // `product` is slugged and `filePath` is minted through the host-supplied
@@ -109,7 +109,7 @@ export const QUARANTINE_MANUAL_ENTRY_CLASS: VerdictClass = 'unknown'
 /**
  * Another writer holds the MRSW lease, so the verb declined instead of writing beside it.
  *
- * The port's result unions carry no lease arm by design (390-04), so a refusal that is not one of
+ * The port's result unions carry no lease arm by design, so a refusal that is not one of
  * the named outcomes surfaces as a typed throw. The ledger is byte-unchanged when this is raised — the acquisition fails before the
  * read, so nothing was decided either.
  *
@@ -141,14 +141,14 @@ export class QuarantineLeaseHeldError extends Error {
 }
 
 /**
- * The `filePath` a caller sent cannot mint the durable identity the ledger is keyed on (390-12).
+ * The `filePath` a caller sent cannot mint the durable identity the ledger is keyed on.
  *
  * Same shape and same reason as the lease refusal above: the port's result unions carry no refusal
- * arm by design (390-04), so a refusal that is not one of the named outcomes surfaces as a typed
+ * arm by design, so a refusal that is not one of the named outcomes surfaces as a typed
  * throw. Raised BEFORE the knowledge root is resolved, before the lease is acquired and before a
  * byte is read, so a refused call costs the ledger nothing and the next writer nothing.
  *
- * WHAT THIS OWNS, AND WHAT THE LEDGER'S OWN WRITE GUARD OWNS (390-11). They are not two spellings
+ * WHAT THIS OWNS, AND WHAT THE LEDGER'S OWN WRITE GUARD OWNS. They are not two spellings
  * of one rule and neither subsumes the other:
  *
  *  - THIS decides what the identity IS. It is the only gate that knows the checkout root, so it is
@@ -180,7 +180,7 @@ export interface QuarantineOperationsOptions {
   /** The ONLY way wall clock enters these verbs. Required — see the module head. */
   now: () => string
   /**
-   * Mints the durable workspace-relative identity a `filePath` is stored under (390-12 / D-01).
+   * Mints the durable workspace-relative identity a `filePath` is stored under.
    *
    * Production supplies core's ONE recipe, `workspaceRelativeIdentityPath`, pre-bound to the host's
    * own config directory. INJECTED rather than imported for two independent reasons, and either
@@ -198,14 +198,14 @@ export interface QuarantineOperationsOptions {
    */
   mintIdentityPath: (filePath: string) => string
   /**
-   * The writer lease THIS process already holds, when it holds one (387-08 D-18 / D-5).
+   * The writer lease THIS process already holds, when it holds one.
    *
    * Supplied by the daemon host, which acquires at startup and holds for its whole lifetime: a
    * holder that calls `acquireWriterLease` is answered `held` by itself and, unlike the apply path,
    * has nobody to delegate to. Absent on the CLI in-process host, which holds nothing and therefore
    * takes the lease per call.
    *
-   * THE VALUE IS CONSULTED FOR FENCING (390-15 / G-390-2R), and this sentence used to say the
+   * THE VALUE IS CONSULTED FOR FENCING, and this sentence used to say the
    * opposite. It is re-validated against disk on every write verb, so the question it answers is
    * "is this process STILL the holder?" rather than "did this process already serialize itself?".
    * The two are the same question only while nothing reclaims: a daemon whose heartbeat starved
@@ -213,7 +213,7 @@ export interface QuarantineOperationsOptions {
    * harness measured what that costs — two `entered` lines for one identity, and the verb
    * returning an owner committed truth does not record. See {@link underWriterLease}.
    *
-   * AND WHAT THE RE-VALIDATION DOES NOT BUY (390-22 / WR-07): it is a read, not a lock. It answers
+   * AND WHAT THE RE-VALIDATION DOES NOT BUY: it is a read, not a lock. It answers
    * "still the holder?" as of the read, and the decide it licenses runs after it. A reclaim landing
    * between the two is still unfenced. `lease/under-writer-lease.ts` states the residual in full.
    */
@@ -229,7 +229,7 @@ export interface QuarantineOperationsOptions {
  * the answer a function of the ledger's CONTENT rather than of the order events happened to be
  * appended in: two entries stamped in the same second must not swap places between two reads.
  *
- * THE INSTANT COMPARED IS `firstEnteredAt`, NOT `enteredAt` (390-18 / G-390-4). A test's place in
+ * THE INSTANT COMPARED IS `firstEnteredAt`, NOT `enteredAt`. A test's place in
  * the queue is set by when its quarantine history BEGAN, so re-entering can never move it back
  * down the list. Comparing the current window's instant did the opposite: a test on its seventh
  * re-entry sorted as the newest thing in the queue, which put the longest-suffering test last —
@@ -243,7 +243,7 @@ function triageOrder(left: QuarantineEntryState, right: QuarantineEntryState): n
   if (left.firstEnteredAt !== right.firstEnteredAt) {
     return left.firstEnteredAt < right.firstEnteredAt ? -1 : 1
   }
-  // The subsystem's ONE identity ordering, imported rather than re-spelled (390-22 / WR-06). This
+  // The subsystem's ONE identity ordering, imported rather than re-spelled. This
   // module's byte comparison is where the shared comparator was lifted FROM — it was already
   // correct here, and the detection ladder's collated spelling was the one deciding committed
   // bytes. Two spellings of one rule is how they came to disagree.
@@ -251,13 +251,12 @@ function triageOrder(left: QuarantineEntryState, right: QuarantineEntryState): n
 }
 
 /**
- * The deadline an absent `expiresAt` takes (D-11), derived from the SUPPLIED instant.
+ * The deadline an absent `expiresAt` takes, derived from the SUPPLIED instant.
  *
  * `Date.parse` of a caller's argument is arithmetic, not a clock read. An unparseable `now` is a
  * caller bug, so it surfaces as a thrown RangeError from `toISOString` rather than silently minting
  * a forever entry — the same arm `detection.ts`'s `expiryFrom` documents for its own copy, stated
  * here too because a reader of this function should not have to find the sibling to learn it
- * (390-12 / IN-01).
  */
 function defaultExpiry(now: string): string {
   return new Date(Date.parse(now) + QUARANTINE_DEFAULT_EXPIRY_DAYS * MS_PER_DAY).toISOString()
@@ -276,7 +275,7 @@ function defaultExpiry(now: string): string {
  * residual in full.
  *
  * What stays HERE is the one thing that is genuinely this subsystem's: which refusal a held lease
- * raises. The port contract carries no lease arm (390-04), so it surfaces as a typed throw, and a
+ * raises. The port contract carries no lease arm, so it surfaces as a typed throw, and a
  * throw naming the wrong committed artifact would send an operator looking in the wrong file.
  *
  * The signature is UNCHANGED and the export is kept: the `@ts-expect-error` pin that proves the
@@ -341,7 +340,7 @@ export function createQuarantineOperations(
   }
 
   /**
-   * The mint's throw, re-raised typed (390-12). Only the mint's failure is caught here: a
+   * The mint's throw, re-raised typed. Only the mint's failure is caught here: a
    * `slugBranch` that threw would be a bug in this module, not a refusal about the caller's input.
    */
   function mintFilePath(filePath: string): string {
@@ -359,7 +358,7 @@ export function createQuarantineOperations(
    * the same for both: a leg the READER transforms gets a WRITER-side transform, so the ledger keeps
    * one vocabulary instead of two that agree only by convention.
    *
-   *  - `product` is SLUGGED (WR-01 / 390-09). Every reader compares the slugged partition —
+   *  - `product` is SLUGGED. Every reader compares the slugged partition —
    *    `resolveRunQuarantineSnapshot` filters on `entry.product === slugBranch(input.product)`, and
    *    the detection path authors from projection rows already partitioned that way. Storing the raw
    *    spelling wrote a real entry into a partition nothing reads.

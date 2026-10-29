@@ -105,7 +105,7 @@ function failingStep(): StepEvidence {
   } as unknown as StepEvidence
 }
 
-// ---- TWO VERDICT BUILDERS, FOR TWO PRODUCERS (390-21) -----------------------------------------
+// ---- TWO VERDICT BUILDERS, FOR TWO PRODUCERS -----------------------------------------
 //
 // They are not one shortcut around the other. A verdict has exactly two producers and they are
 // built in opposite directions, so this file models both:
@@ -229,7 +229,7 @@ function verdictFor(spec: FoldVerdictSpec, perTest = 0): Verdict {
  * differential — and needs a verdict the gate genuinely ADMITS to exercise it. A floor-produced
  * verdict cannot be that verdict HERE: the floor arm requires a per-crossing
  * `sameBuildPassAndFail`, the fold computes it from the crossing test's own outcome window
- * (390-21), and every plumbing fixture drives three distinct failing ordinals with no same-ordinal
+ * and every plumbing fixture drives three distinct failing ordinals with no same-ordinal
  * pass — so its window carries no signature and the floor arm refuses it on the facts. The legs
  * that ARE about the producer axis name their spec explicitly, and the legs about the signature
  * build the two-runs-at-one-ordinal window the floor arm needs.
@@ -647,7 +647,7 @@ describe('auto-exit through the real fold', () => {
   })
 })
 
-// The owner rule through the REAL fold (390-18 / G-390-4). The pure rule's table reads entries a
+// The owner rule through the REAL fold. The pure rule's table reads entries a
 // caller handed it; here the entries come from the committed ledger's own fold, so what is pinned
 // is that a claim a human wrote into the file survives the round trip through it — and that a
 // release they made deliberately ends the claim with the window.
@@ -771,7 +771,7 @@ describe('the anti-silencing differential in BOTH directions: flake and app_bug'
   })
 })
 
-// The floor-eligibility gate, driven to COMMITTED LEDGER BYTES (390-16, G-390-3).
+// The floor-eligibility gate, driven to COMMITTED LEDGER BYTES.
 //
 // The pure rule's table cannot show what this suite shows. Until now the fold had only ever driven
 // `flake` and `app_bug` — the two classes this whole item is about, `environment` and `timeout`,
@@ -791,7 +791,7 @@ describe('a floor-produced crossing cannot buy a committed entry', () => {
   // identical to 390-16's; the reason is not, and this file must not re-assert a reason that
   // stopped being true.
   //
-  // PRODUCED, NOT DECLARED (390-21). Each row names a SCRIPTED MEMBER, and the class beside it is
+  // PRODUCED, NOT DECLARED. Each row names a SCRIPTED MEMBER, and the class beside it is
   // what `classifyRootCause` ANSWERS for that member — asserted below, so a row that stopped being
   // producible reds here instead of silently pinning an input the runner cannot emit.
   const FLOOR_PRODUCED_CROSSINGS = [
@@ -859,7 +859,7 @@ describe('a floor-produced crossing cannot buy a committed entry', () => {
     },
   )
 
-  // WHY THERE IS NO "floor-produced flake" LEG HERE, demonstrated rather than asserted (390-21).
+  // WHY THERE IS NO "floor-produced flake" LEG HERE, demonstrated rather than asserted.
   //
   // 390-16 wrote a leg claiming a floor-produced `flake` commits an entered line, and 390-19
   // inverted it to a refusal for the one wave the fold's fill was a constant. Both were writing
@@ -1022,7 +1022,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
     })
   })
 
-  // WR-05 — THE STALENESS DIRECTION, RUN (390-24; closes the regression 390-19/390-21 shipped).
+  // THE STALENESS DIRECTION, RUN (390-24; closes the regression 390-19/390-21 shipped).
   //
   // WHY THIS SHAPE MATTERS, in the module's own vocabulary. A test flaked at ordinal 1 — two
   // applied runs at ONE ordinal, one of them passing — and was then FIXED. Several ordinals later
@@ -1069,7 +1069,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
     })
   })
 
-  // THE OTHER SIDE OF THE SAME BOUNDARY (390-24). A guard needs a case it REJECTS and its exact
+  // THE OTHER SIDE OF THE SAME BOUNDARY. A guard needs a case it REJECTS and its exact
   // edge, or the corpus is drawn from inside the rule's own assumption. Here the pass-and-fail
   // sits EXACTLY at the window floor, so the `>=` comparison is pinned at the one ordinal where an
   // off-by-one flips the answer — and the same ordinal is also the oldest occurrence carrying the
@@ -1112,7 +1112,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
     }])
   })
 
-  // THE OTHER END OF THE SAME WINDOW (390-29). 390-24 closed the floor; the ceiling stayed open,
+  // THE OTHER END OF THE SAME WINDOW. 390-24 closed the floor; the ceiling stayed open,
   // so the evidence filter implemented the half-open ray [windowFloor(b), infinity) while the
   // recurrence SQL it is supposed to share a window with counts over the CLOSED interval
   // [windowFloor(b), b]. A flake episode recorded ABOVE a crossing therefore licensed the floor
@@ -1293,7 +1293,7 @@ describe('one down dependency cannot blanket-quarantine a suite', () => {
   })
 })
 
-// THE CAP'S INPUT DOMAIN, PRODUCED IN-TREE (390-28 / WR-02).
+// THE CAP'S INPUT DOMAIN, PRODUCED IN-TREE.
 //
 // `QUARANTINE_FLOOR_AUTO_QUARANTINE_CAP` was pinned by VALUE in `detection.test.ts` and exercised
 // by a two-call drain leg there, but nothing in this tree had ever built its INPUT DOMAIN — more
@@ -1310,7 +1310,7 @@ describe('one down dependency cannot blanket-quarantine a suite', () => {
 //    floor arm; exactly CAP enter, chosen BY IDENTITY ORDER rather than by handoff order; the
 //    overflow member routes to `escalatedNotQuarantined` LOUDLY with the build still failing.
 //  - PROVED, and this is what makes the ORDER half of that sentence testable rather than asserted
-//    (390-32): the first leg hands the fold its members in the exact REVERSE of identity order, so
+//    the first leg hands the fold its members in the exact REVERSE of identity order, so
 //    the two orders can no longer agree by accident. Its expectation is unchanged from when they
 //    did agree, which is the whole point — the same admitted set, in the same order, out of the
 //    opposite arrival sequence. The second leg keeps the agreeing order, so the pair pins the
@@ -1342,7 +1342,7 @@ describe('the floor cap rate-limits a multi-member fan-out', () => {
    * signature of a shared cause — while each member still gets its OWN quarantine entry, because
    * recurrence is keyed on (product, fingerprint) and an entry is keyed on test identity.
    *
-   * ARRIVAL ORDER IS AN INPUT (390-32). `reversed` emits the same members back to front, which is
+   * ARRIVAL ORDER IS AN INPUT. `reversed` emits the same members back to front, which is
    * the exact opposite of the identity order the ladder admits in. Nothing else about the fixture
    * moves — each member keeps its own index, name, path and verdict — so the flag is purely a
    * statement about the SEQUENCE the fold is handed, and a leg that sets it is asserting that the

@@ -1,5 +1,5 @@
-// PROC-01 write-side validation suite (381-03): the procedure disposition wall.
-// "LLM proposes, code disposes" (D-02/D-03) — every reject is a deterministic
+// PROC-01 write-side validation suite: the procedure disposition wall.
+// "LLM proposes, code disposes" — every reject is a deterministic
 // structural verdict against verified queue evidence, never LLM text.
 
 import { createHash } from 'node:crypto'

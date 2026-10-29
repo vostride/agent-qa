@@ -35,7 +35,7 @@ import {
   type ArtifactFreeCandidateProjectionInput,
 } from '../../__tests__/fixtures/curation-candidate-fixture.js'
 
-// 2026-10-02 (quick 261002-tmo): the SIGKILL cells' 30 s bound is measured from the kill to the
+// the SIGKILL cells' 30 s bound is measured from the kill to the
 // recovered, consistent store, which is the recovery it states. It used to start before the child
 // was spawned, so it also timed a whole child vitest process booting to the boundary, and the
 // marker wait gave that boot 10 s: at load 120-180 the child was still printing vitest's banner

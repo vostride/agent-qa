@@ -241,7 +241,7 @@ describe('KnowledgePort promote deterministic gate', () => {
   beforeEach(() => {
     root = mkdtempSync(join(tmpdir(), 'knowledge-store-promote-'))
     knowledgeRoot = join(root, 'agent-qa-knowledge')
-    // CR-02: promote() now runs its whole gate-and-write body inside the exact-authority
+    // promote() now runs its whole gate-and-write body inside the exact-authority
     // fence, so this fixture has to hold the lease it mutates under rather than name one.
     const lease = acquireWriterLease(knowledgeRoot)
     if (lease.kind !== 'acquired') throw new Error('expected a fresh writer lease')
@@ -458,7 +458,7 @@ describe('KnowledgePort promote deterministic gate', () => {
   function crashWindowRetraction(): BundleOutcomeEvent {
     // Simulates the reachable production window: a crash between a rollback's
     // confirmation retraction and its Plan-23 promotion cascade leaves canonical
-    // active-with-zero-support until replay (CR-01).
+    // active-with-zero-support until replay.
     return BundleOutcomeEventSchema.parse({
       type: 'retracted',
       evidenceToken: 'crash-window-retraction',

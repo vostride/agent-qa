@@ -255,7 +255,7 @@ describe('constructFallbackDeltas restricted BYOM projection', () => {
     expect(deltas).toHaveLength(1)
     expect(deltas[0]?.kind).toBe('Noop')
     expect(deltas[0]?.authorship?.path).toBe('deterministic-fallback')
-    // 381-47: the stamp names WHICH fallback so the drain noop can carry its cause.
+    // the stamp names WHICH fallback so the drain noop can carry its cause.
     expect(deltas[0]?.authorship?.fallbackReason).toBe('malformed')
   })
 

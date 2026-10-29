@@ -13,7 +13,7 @@
 // everything else: the ladder, the ordering and the residual below are shared verbatim, which is
 // the whole point of the move.
 //
-// WHAT THE SCOPE PROVES, AND WHAT IT DOES NOT (390-22 / WR-07). A HANDED-IN authority is re-read
+// WHAT THE SCOPE PROVES, AND WHAT IT DOES NOT. A HANDED-IN authority is re-read
 // against disk before it licenses anything, and that check holds NO lock — unlike the lease
 // module's own `withCurrentWriterAuthority`, which runs inside `withMutationLock`. So what it
 // proves is bounded exactly: the authority was current AT THE MOMENT OF THE CHECK, not for the
@@ -61,7 +61,7 @@ export function releaseLeaseAfterWork(opts: LeaseOperationOptions): void {
 }
 
 /**
- * A `decide` that returns a promise, refused at COMPILE time (390-12 / WR-02).
+ * A `decide` that returns a promise, refused at COMPILE time.
  *
  * {@link underKnowledgeWriterLease} releases the lease in a `finally`, so an async `decide` would
  * hand back a PENDING promise, the `finally` would run immediately, and the lease would be given up
@@ -80,7 +80,7 @@ export function releaseLeaseAfterWork(opts: LeaseOperationOptions): void {
 export type SynchronousDecision<T> = T extends PromiseLike<unknown> ? never : unknown
 
 /**
- * The handed-in authority, re-read against disk before it licenses a write (390-15 / G-390-2R).
+ * The handed-in authority, re-read against disk before it licenses a write.
  *
  * WHY THE EPOCH IS THE FENCING TOKEN, and why no clock is involved. `acquireWriterLease` bumps the
  * monotonic epoch on EVERY acquisition including a reclaim, so "my epoch is no longer the disk
@@ -178,7 +178,7 @@ export async function underKnowledgeWriterLease<T>(
   } finally {
     // Given back on EVERY exit, including the typed ledger refusals the read raises: a verb that
     // failed must not leave the next drain locked out of the knowledge root. A release that throws
-    // never replaces the verb's own result or error (WR-11).
+    // never replaces the verb's own result or error.
     releaseLeaseAfterWork({ knowledgeRoot, leaseId: acquired.leaseId })
   }
 }

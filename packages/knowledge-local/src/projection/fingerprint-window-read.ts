@@ -1,5 +1,5 @@
 /**
- * Read side of the fingerprint-keyed recurrence window (Phase 390, D-07).
+ * Read side of the fingerprint-keyed recurrence window.
  *
  * `run_fingerprint_windows` is written by `applyRunOutcomes`; this module is the one place that
  * queries it. Strictly read-only: prepared SELECTs, no statement that mutates a row, ever — the
@@ -11,7 +11,7 @@
  * quarantines, but it is never part of the recurrence key: one fingerprint may be exercised by
  * several tests, and D-07's rule is about the FAILURE recurring, not the test.
  *
- * THE WINDOW SLIDES OVER ORDINALS, NOT RUNS (D-07). Recurrence is counted over the ordinal range
+ * THE WINDOW SLIDES OVER ORDINALS, NOT RUNS. Recurrence is counted over the ordinal range
  * `[current - QUARANTINE_WINDOW_ORDINALS + 1, current]`:
  *
  *  - two failing runs inside ONE build ordinal count once (the numerator counts DISTINCT ordinals),
@@ -37,7 +37,7 @@ import { LAST_OUTCOMES_LIMIT } from './run-outcome-constants.js'
 
 /**
  * §7.3's locked detection window, verbatim: the same fingerprint recurring within the last five
- * build ordinals. A pinned constant with no config key (386 D-15) — retune it from operational
+ * build ordinals. A pinned constant with no config key — retune it from operational
  * evidence, in the source, where the change is reviewable. Plan 05's rule reads the threshold
  * against this window; D-10's auto-exit is symmetric with it by design.
  */
@@ -70,7 +70,7 @@ export interface FingerprintRecurrence {
 /**
  * Inclusive lower bound of the ordinal window ending at `currentBuildOrdinal`.
  *
- * ONE SPELLING, TWO CONSUMERS (390-24). `fingerprintRecurrence` below bounds its SQL range with
+ * ONE SPELLING, TWO CONSUMERS. `fingerprintRecurrence` below bounds its SQL range with
  * it, and `run-outcomes.ts` bounds the per-crossing flake-signature read with it — the scope of
  * the evidence and the scope of the count are the same window BY CONSTRUCTION, not by two sites
  * agreeing. Exported for that second consumer; re-deriving
@@ -128,7 +128,7 @@ export function readFingerprintWindow(
 }
 
 /**
- * One fingerprint's recurrence over the sliding ordinal window (D-07) — computed LIVE on every
+ * One fingerprint's recurrence over the sliding ordinal window — computed LIVE on every
  * call, never stored. Both legs count DISTINCT ordinals, which is what makes two failing runs in
  * one build one occurrence.
  */

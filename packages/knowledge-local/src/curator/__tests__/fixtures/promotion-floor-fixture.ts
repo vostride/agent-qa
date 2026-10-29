@@ -1,4 +1,4 @@
-// 2026-09-06, 416 D-06: shared pristine v51 acceptance builders.
+// shared pristine v51 acceptance builders.
 import { DISTILLED_OBSERVATION_SCHEMA_VERSION, GATE_RECEIPT_SCHEMA_VERSION, stampReceiptDigest, type Gate3Receipt, type GateVerdict, type Anchor, type BundleDraft, type DistilledObservation, type ExecutionContext } from '@vostride/agent-qa-schema'
 import { expect, vi } from 'vitest'
 import { createLocalKnowledgeStore, drainQueue, enumerateBundleDirs, loadBundle, type BundleStoreConfig, type CuratorAuthor, type DrainOptions, type LoadedBundle } from '../../../index.js'

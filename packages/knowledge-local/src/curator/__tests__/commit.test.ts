@@ -683,7 +683,7 @@ describe('commitCurationDelta serialized mutation boundary', () => {
       checkoutAnchors[1]!,
       checkoutAnchors[2]!,
     ]
-    // 2026-10-15 (441-25): evidence goes incomplete when a staged artifact is gone at commit.
+    // evidence goes incomplete when a staged artifact is gone at commit.
     const prunedSha = sha256hex('promotion evidence pruned before commit')
     const incompleteJob = verifiedFactJob({
       anchors: incompleteAnchors,
@@ -750,7 +750,7 @@ describe('commitCurationDelta serialized mutation boundary', () => {
       promotionHoldReason: 'no-element-observation',
     })
 
-    // 381-03: the extraction wall requires a codec-shaped body plus verified-PASS
+    // the extraction wall requires a codec-shaped body plus verified-PASS
     // covered-step evidence before any procedure delta reaches the promotion gate.
     const procedureDraft = draft({
       kind: 'procedure',
@@ -1069,7 +1069,7 @@ describe('commitCurationDelta serialized mutation boundary', () => {
       checkpoint(addDelta()),
     )
     expect(staleBetween.kind).toBe('abandoned-stale-epoch')
-    // CR-09: the intent is published inside the held tail, so a writer superseded before
+    // the intent is published inside the held tail, so a writer superseded before
     // the entry leaves no orphan behind for a later reconciliation to replay.
     expect(listCommitIntents(knowledgeRoot)).toEqual([])
     expect(existsSync(join(knowledgeRoot, 'memory', 'storefront', 'bundles'))).toBe(false)

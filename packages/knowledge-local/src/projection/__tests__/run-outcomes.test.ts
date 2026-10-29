@@ -82,7 +82,7 @@ function stepEvidence(fixture: StepFixture): StepEvidence {
 
 /**
  * `testIndex` is the run's per-member index and `rootCause.perTest` is the join key that names it
- * (389 D-07). Both are derived from the member's position here rather than hardcoded: the 390 D-09
+ * Both are derived from the member's position here rather than hardcoded: the 390 D-09
  * resolved-class map is keyed by that index, so a fixture where every member claimed index 0 and
  * every rootCause claimed perTest 1 described a handoff no runner can produce, and the classes of
  * unrelated members collapsed onto each other.

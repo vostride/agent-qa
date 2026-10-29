@@ -1,4 +1,4 @@
-// The MEM sighting source's status derivation (Phase 387 plan 11, CR-04 / ENTY-02 / D-04).
+// The MEM sighting source's status derivation.
 //
 // CR-04's shape, stated so the cases below are readable as a fix for it rather than as
 // arbitrary assertions: the resolver's private status table named three strings, two of which

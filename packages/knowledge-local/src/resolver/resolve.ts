@@ -1,4 +1,4 @@
-// The entity resolver's tier ladder (Phase 387, ENTY-01 / D-01 / D-07 / D-09).
+// The entity resolver's tier ladder.
 //
 //   (a) EXACT — an anchored address parse plus a ledger hit, or an exact machine-id
 //       sighting. Deterministic, no ranking, no model, score 1.0. THIS FILE.
@@ -55,7 +55,7 @@ export interface EntitySighting {
   readonly title: string
   /**
    * The status as the OWNING store reports it. Validated against the kind's closed union at
-   * the card boundary (D-12), not here: this layer reports, the producer renders, and the
+   * the card boundary, not here: this layer reports, the producer renders, and the
    * schema refuses. Three responsibilities, three places.
    */
   readonly statusSource: string
@@ -85,7 +85,7 @@ function describe(
   // Read at describe time rather than carried on the sighting, because a rename is a fact the
   // LEDGER holds and the owning store does not: the config that named the target has already
   // forgotten the old slug by the time anybody resolves it, which is exactly why the rename
-  // had to be recorded (D-03).
+  // had to be recorded.
   const successor = deps.ledger.lookupTargetRename(sighting.machineId)
   return {
     kind,
@@ -101,7 +101,7 @@ function describe(
 }
 
 /**
- * Project a sighted entity into the index and hand the descriptor back (D-01 + D-06).
+ * Project a sighted entity into the index and hand the descriptor back.
  *
  * The four sighting sites D-01 names — a resolver hit, a card render, verdict authoring, a
  * list verb — all reach the ledger through THIS function, so routing the projection refresh
@@ -167,7 +167,7 @@ function resolveMintedAddress(
  * Every entity the ledger has ever addressed and a source can still describe.
  *
  * This is the set `rebuildEntityIndex` is rebuilt FROM and the set the daemon sweep re-renders
- * (D-06). It reads the LEDGER, never the index: a projection rebuilt from itself would
+ * It reads the LEDGER, never the index: a projection rebuilt from itself would
  * preserve exactly the state a rebuild is run to be rid of.
  *
  * An address whose source can no longer describe it is skipped rather than projected as a
@@ -184,7 +184,7 @@ export function describeAllEntities(deps: ResolveEntityRefDeps): EntityDescripto
 }
 
 /**
- * THE sighting leg (D-01): exact machine-id equality, mint, project, describe.
+ * THE sighting leg: exact machine-id equality, mint, project, describe.
  *
  * Extracted so the resolver's own leg and the LIST VERBS' sighting site are one mechanism
  * rather than two that mint the same way today. D-01 names four sighting sites — a resolver
@@ -205,7 +205,7 @@ export function sightEntity(
   for (const source of deps.sources) {
     const sighting = source.sight(machineId)
     if (sighting === undefined) continue
-    // First sighting mints (D-01). Idempotent in the ledger, so a re-sighting returns the
+    // First sighting mints. Idempotent in the ledger, so a re-sighting returns the
     // address that is already published rather than a second one.
     const address = deps.ledger.mint(source.kind, sighting.machineId)
     return {
@@ -218,7 +218,7 @@ export function sightEntity(
 }
 
 /**
- * Resolve a reference through the three tiers, minting on first sighting (D-01).
+ * Resolve a reference through the three tiers, minting on first sighting.
  *
  * Order matters and is fixed: URI, then short-ID, then exact machine id, then — for free text
  * only — the hybrid tiers. Addresses are tried before machine ids because an address is
@@ -247,7 +247,7 @@ export async function resolveEntityRef(
     if (canonical !== undefined) return resolveMintedAddress(canonical, shortId.kind, deps)
   }
 
-  // The sighting leg, which the list verbs also reach directly (387 D-01).
+  // The sighting leg, which the list verbs also reach directly.
   const sightedOutcome = sightEntity(trimmed, deps)
   if (sightedOutcome !== undefined) return sightedOutcome
 

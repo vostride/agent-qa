@@ -1,4 +1,4 @@
-// The projection-version reconcile differential (393 CR-02).
+// The projection-version reconcile differential.
 //
 // THE PRE-v4 STATE IS PRODUCED, NOT WRITTEN. Every historical run below is folded through the
 // REAL `foldRunOutcomes` path against a REAL index on disk, exactly as the shipping tail folds
@@ -379,7 +379,7 @@ interface PreV4Project {
  *
  * `artifacts` plants RAW `analysis.json` bytes beside a run's handoff, keyed by runId. Raw rather
  * than typed, because the poisoned cell's whole subject is a file that is NOT a valid artifact and
- * could not be expressed as one (WR-06). The pre-state folds pass no `runDir`, so a planted
+ * could not be expressed as one. The pre-state folds pass no `runDir`, so a planted
  * artifact contributes nothing until the REBUILD reads it — which is exactly the leg under test.
  */
 function producePreV4Project(options: {
@@ -668,7 +668,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill', (
 
     // A DIRECTORY where the document belongs: `readFileSync` throws EISDIR, an errno-coded
     // non-absence host fault. Root-proof where chmod is inert, on SECOND run 002-login
-    // (WR-04): the first run must not become a partial union while the fault persists.
+    // the first run must not become a partial union while the fault persists.
     const handoffPath = join(runsRoot, '002-login', 'handoff.json')
     rmSync(handoffPath)
     mkdirSync(handoffPath)

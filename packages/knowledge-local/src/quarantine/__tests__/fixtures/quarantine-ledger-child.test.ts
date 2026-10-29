@@ -1,4 +1,4 @@
-// The SECOND OS process in the D-04 concurrent-writer proof (Phase 390).
+// The SECOND OS process in the D-04 concurrent-writer proof.
 //
 // The idiom is 385-03's `job-store-child` fixture: a `.test.ts` that doubles as a child entry
 // point, gated by one environment variable, with every input arriving as a required env var and

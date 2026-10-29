@@ -1,5 +1,4 @@
 // The committed quarantine ledger: read, pure state fold, shape-checked append
-// (Phase 390, D-01/D-03/D-04/D-11).
 //
 // `quarantine.jsonl` sits DIRECTLY under the committed knowledge root as its OWN top-level
 // artifact beside memory/ and policies/. It is the FIRST committed top-level operational artifact
@@ -10,14 +9,14 @@
 //
 // READ POSTURE — refusal as data, never healing to absence. The derived run-outcome projection
 // heals malformed bytes to an empty window because it is a rebuildable derivation. This file is
-// COMMITTED TRUTH that humans may hand-edit (D-12), and healing a quarantine entry to absent
+// COMMITTED TRUTH that humans may hand-edit, and healing a quarantine entry to absent
 // silently UN-quarantines a test — the exact silent flip this phase exists to prevent. So a line
 // that fails to parse or fails the shape guard is REFUSED and surfaced in `refusedLines`, while
 // its neighbours still fold. A line declaring a NEWER schemaVersion propagates the typed
 // QuarantineLedgerVersionError: a build that cannot read the truth must not guess at it.
 //
 // WALL-CLOCK PURITY — the fold takes `now` as an argument and this module reads no clock. `at` and
-// `expiresAt` are stamped by callers at write time (D-11). That is what lets expiry boundaries be
+// `expiresAt` are stamped by callers at write time. That is what lets expiry boundaries be
 // pinned one second either side with no flake.
 //
 // WRITE POSTURE — fail-closed on ONE gate. Every append first pre-checks each event against BOTH
@@ -27,7 +26,7 @@
 // reach the file. The pre-check asks "can this ever be read back?" and THROWS: a write the reader
 // refuses is corruption of a committed artifact, not a refusal a caller can sensibly carry on from
 // (it is invisible to `list`, unreleasable, and duplicates on retry). The text itself is written as
-// handed over; no detector scans it (Phase 441, D-15). Quarantine events are CODE-authored — threshold crossings, auto-exits, the gated verbs — never model output, which is
+// handed over; no detector scans it. Quarantine events are CODE-authored — threshold crossings, auto-exits, the gated verbs — never model output, which is
 // why CTX-FUT-01's propose-only posture deliberately does not bind these writes (D-04; the dated
 // posture note lands in REQUIREMENTS.md).
 //
@@ -49,7 +48,7 @@
 //     unreadable line, because the append pre-checks every event against the read's structural
 //     predicate before writing; and it cannot stamp a version the read refuses either, because the
 //     same loop compares `schemaVersion` against CURRENT_QUARANTINE_LEDGER_SCHEMA_VERSION (390-14 /
-//     G-390-1 — the structural predicate alone admitted five such versions, since it asks only that
+//     the structural predicate alone admitted five such versions, since it asks only that
 //     the field be a number). That class needed closing here rather than at each caller precisely
 //     because the caller set can grow.
 //
@@ -70,11 +69,11 @@ import type {
   QuarantineLedgerEvent,
   QuarantineOwner,
 } from '@vostride/agent-qa-schema'
-// The identity key, imported rather than re-spelled (390-28 / WR-01). The fold below keys entries
+// The identity key, imported rather than re-spelled. The fold below keys entries
 // on exactly the bytes the detection ladder and `operations.ts`'s triage queue key on; a second
 // copy here is how two folds start disagreeing about which lines are the same test.
 //
-// THIS IMPORT sits on no cycle BY CONSTRUCTION (390-31): `identity.ts` is a leaf with zero import
+// THIS IMPORT sits on no cycle BY CONSTRUCTION: `identity.ts` is a leaf with zero import
 // statements, so there is no path out of it and therefore none back here. The claim is about this
 // edge and nothing more. It replaced a sentence asserting subsystem acyclicity off a check run one
 // hop deep, which was false — while the key lived in `detection.ts`, this import closed a four-edge
@@ -187,7 +186,7 @@ interface MutableEntry {
  * the sliding window self-heals) a window carrying owner/expiry/fingerprint/class; `renewed`
  * extends the expiry and claims the owner when one is supplied; either released kind closes it.
  *
- * TWO OF THE ANSWERED FIELDS ARE HISTORY, NOT WINDOW FACTS (390-18). `enteredCount` is how many
+ * TWO OF THE ANSWERED FIELDS ARE HISTORY, NOT WINDOW FACTS. `enteredCount` is how many
  * `entered` events this key has accumulated — a renewal extends a window rather than opening one,
  * so it never increments — and `firstEnteredAt` is the first of those events' instant. They are
  * DERIVED here from bytes the log already holds: no new event kind carries them, no migration
@@ -204,10 +203,10 @@ interface MutableEntry {
  * seventh re-entry cannot present as the newest thing in the queue).
  *
  * A renewal can extend an OPEN window — quarantined or lapsed — but NEVER re-opens a CLOSED one
- * (390-11 / WR-04). A release is the operator's decision, and re-entry has its own event:
+ * A release is the operator's decision, and re-entry has its own event:
  * `operations.add` already routes a released entry to the `entered` branch, so honoring a `renewed`
  * against a closed window would only ever resurrect a suppression a human deliberately ended. That
- * case is reachable solely through the committed file's documented human-editability (D-12) — no
+ * case is reachable solely through the committed file's documented human-editability — no
  * code path authors it — which is exactly why the fold, not the verb, is where it has to be
  * refused. The guard keys on the EVENT state, never the computed one: a lapsed entry still carries
  * `eventState: 'quarantined'` (expiry is applied after this loop), so D-11's renew-an-expired-entry
@@ -215,7 +214,7 @@ interface MutableEntry {
  *
  * `'expired'` is then COMPUTED, never read from an event: an open window whose `expiresAt` is at or
  * before `now` answers `'expired'`. Its suppression has stopped — the test fails builds again — and
- * the entry stays LISTED, renewable and releasable (D-11).
+ * the entry stays LISTED, renewable and releasable.
  *
  * SCOPE OF THAT GUARANTEE, stated because it is narrower than it reads: the lapse ends THIS
  * window, not the suppression. A fingerprint still crossing the threshold re-enters on the very
@@ -310,7 +309,7 @@ export function foldQuarantineLedgerState(
 export type QuarantineAppendOutcome = { kind: 'appended'; lines: number }
 
 /**
- * Append lifecycle events to the committed ledger, as ONE fail-closed unit (D-04).
+ * Append lifecycle events to the committed ledger, as ONE fail-closed unit.
  *
  * Order is the whole point: shape-check EVERY event → serialize → only then write. Because the
  * check covers the unit, a single refused event withholds its clean siblings too, and the existing
@@ -319,11 +318,11 @@ export type QuarantineAppendOutcome = { kind: 'appended'; lines: number }
  *
  * Throws a `TypeError` naming the offending index — and which leg refused — when an event would
  * not survive {@link readQuarantineLedger}'s own guard, on EITHER of that guard's legs: the version
- * identity (390-14 / G-390-1) or the structural predicate (390-11 / WR-07). This is deliberately a
+ * identity or the structural predicate. This is deliberately a
  * THROW rather than an outcome: authoring an unreadable line is a CALLER BUG that would otherwise
  * commit permanent, unlistable, unreleasable damage to a shared artifact.
  *
- * Callers stamp `at` and `expiresAt` themselves (D-11): this module reads no clock, which is what
+ * Callers stamp `at` and `expiresAt` themselves: this module reads no clock, which is what
  * keeps both the write path and the fold deterministic.
  */
 export function appendQuarantineEvents(
@@ -336,7 +335,7 @@ export function appendQuarantineEvents(
   // the STRUCTURAL predicate. One predicate was never enough on its own —
   // `hasQuarantineEventShape` asserts only that `schemaVersion` is a number, while the read
   // (`guardQuarantineLedgerEvent`) additionally requires it to BE the current version, so `3`, `1`,
-  // `2.5`, `NaN` and `Infinity` were all admitted here (390-14 / G-390-1).
+  // `2.5`, `NaN` and `Infinity` were all admitted here.
   //
   // AND THE READ REFUSES THEM IN TWO DIFFERENT WAYS — stated per member, because an argument for a
   // gate that misdescribes the failure it prevents will be trusted the next time it is quoted

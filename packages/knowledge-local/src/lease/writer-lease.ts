@@ -206,7 +206,7 @@ export type HeartbeatLeaseOutcome =
       reason:
         | 'lease-missing'
         | 'lease-malformed'
-        /** CR-01: the lease exists and could not be opened — never write over what you cannot read. */
+        /** the lease exists and could not be opened — never write over what you cannot read. */
         | 'lease-unreadable'
         | 'lease-id-mismatch'
         | 'stale-epoch'
@@ -334,7 +334,7 @@ export class WriterLeaseUnreclaimableError extends Error {
  * thrown-shaped `error` — three call sites rethrow or render it without knowing which arm they
  * hold (`drain.ts:842` among them). A refusal that carried only an errno string would have made
  * that contract a list of call sites to keep in step, which is the failure mode this module keeps
- * rediscovering. Deliberately not re-exported from the package index (IN-04): the refusal is fully
+ * rediscovering. Deliberately not re-exported from the package index: the refusal is fully
  * legible from `reason`, `code` and `error.message`.
  */
 export class UnreadableWriterLeaseStateError extends Error {
@@ -415,7 +415,7 @@ interface MutationLockOwner {
 /**
  * Opaque process-incarnation token for one pid, anchored OUTSIDE any value this module writes.
  *
- * CR-04: a durable row's pid is not an identity. Once the recorded process dies, the kernel is
+ * a durable row's pid is not an identity. Once the recorded process dies, the kernel is
  * free to hand that number to a stranger, and every later decision keyed on the number alone
  * (above all `SIGKILL`) targets whoever holds it now. The one fact that distinguishes them is
  * assigned by the OS and cannot be forged from inside the store: when the process at that pid
@@ -430,7 +430,7 @@ interface MutationLockOwner {
  * Returns `undefined` — never throws — whenever the pid cannot be attributed. `undefined` means
  * "do not signal", never "safe to signal".
  *
- * WR-04: `timeoutMs` bounds the POSIX arm's `ps` fork, which is the last wait beneath the
+ * `timeoutMs` bounds the POSIX arm's `ps` fork, which is the last wait beneath the
  * acquisition deadline that used to be able to outlive it — a wedged `ps` never returns, and this
  * resolution sits directly on the pre-signal path. A cap that expires resolves
  * through the SAME funnel every other failure uses (`undefined`), so a timed-out resolution is
@@ -749,7 +749,7 @@ function readMutationLockOwner(db: DatabaseSync): MutationLockOwner | undefined 
  * Read the committed lock owner as a TYPED ABSENCE, never as a throw.
  *
  * Contract: every reason the owner cannot be read answers `undefined` — absent store, table not
- * created yet, and (WR-05) a store too busy to answer. Both callers already read `undefined` as
+ * created yet, and a store too busy to answer. Both callers already read `undefined` as
  * "no attributable owner": the busy-catch in `withMutationLock` puts it on a
  * `MutationLockBusyError`, and the acquisition deadline puts it on the typed
  * `mutation-lock-unreclaimable` refusal. A raw `SqliteError` escaping here therefore reached
@@ -863,7 +863,7 @@ function waitForVerifiedProcessExit(
 type MutationLockOwnerIdentity = 'match' | 'mismatch' | 'unverifiable'
 
 /**
- * The `ps` fork's share of the caller's remaining budget (WR-04).
+ * The `ps` fork's share of the caller's remaining budget.
  *
  * The caller's remainder is the ceiling, which is what stops one fork from spending a deadline it
  * does not own. The FLOOR is the part that had to be argued for, because it is the one place this
@@ -893,7 +893,7 @@ function psIncarnationCapMs(escalation: MutationEscalationContext): number {
  *
  * An unattributed row (legacy bytes, or a claimant that could not resolve its own start time) and
  * an unresolvable pid both answer `unverifiable`, which is a refusal to signal — never a licence.
- * WR-04: a pid the process table will not report on INSIDE the caller's budget joins that second
+ * a pid the process table will not report on INSIDE the caller's budget joins that second
  * class rather than extending the deadline, because the resolution sits on the pre-signal path.
  */
 function verifyMutationLockOwnerIdentity(
@@ -913,7 +913,7 @@ function verifyMutationLockOwnerIdentity(
 }
 
 /**
- * CR-04: the generation token authenticates the ROW, not the process now occupying its pid.
+ * the generation token authenticates the ROW, not the process now occupying its pid.
  *
  * The pid's current incarnation is therefore re-resolved immediately before the signal, and the
  * three answers are genuinely different outcomes:
@@ -924,7 +924,7 @@ function verifyMutationLockOwnerIdentity(
  *                EVIDENCE OF DEATH, not a target: report success so the caller's generation
  *                re-read and CAS reclaim the row with no signal delivered at all.
  *   unverifiable fail closed. Refusing escalation can wedge a contender until the occupant really
- *                exits (T-386-31-02); signalling an unattributable pid is local arbitrary-process
+ *                exits; signalling an unattributable pid is local arbitrary-process
  *                termination. Only one of those is recoverable.
  */
 function terminateExactMutationLockOwner(
@@ -966,7 +966,7 @@ function terminateExactMutationLockOwner(
  * enters through `withCurrentWriterAuthority` (a fenced-out writer retrying its commit) claims the
  * mutation lock before it reads any lease, so `acquireWriterLease`'s pre-check never runs for it.
  * That path is what makes this gate reachable, and it is pinned by a corpus case that reddens when
- * the veto is removed (WINDOWS #46).
+ * the veto is removed.
  */
 function leasePermitsEscalation(knowledgeRoot: string, owner: MutationLockOwner): boolean {
   if (!processIsAlive(owner.pid)) return true
@@ -1295,7 +1295,7 @@ function readLeaseGuardOwner(path: string, name: string): LeaseGuardOwner | unde
 }
 
 /**
- * Observe the guard path without ever reaching through it (CR-01).
+ * Observe the guard path without ever reaching through it.
  *
  * A guard is only ever a real directory holding one regular `owner-<token>` file. Anything else at
  * the path, a symlink wherever it points or a plain file, is removed as an entry: `unlink` removes
@@ -1345,7 +1345,7 @@ function observeLeaseGuard(guard: string): ObservedLeaseGuard {
 }
 
 /**
- * Sweep staging directories a holder leaked by dying between staging and claiming (IN-24).
+ * Sweep staging directories a holder leaked by dying between staging and claiming.
  *
  * A staging directory is exactly one owner file in a real directory, and lives no longer than its
  * waiter, so one is swept only when its owner is residue under that longer bound (or its process
@@ -1448,9 +1448,9 @@ function releaseLeaseGuard(guard: string, ownerFile: string): void {
  * or an empty one sits. Governed mutations and acquisitions never take the guard, so a mutation of
  * any length cannot starve the beat (CR-03 stands) and a beat cannot block an acquisition. Waiting
  * is bounded by LEASE_GUARD_WAIT_MS, which outlasts the residue bound so that a guard left by a
- * terminated thread of this process is always reclaimed in time (WR-11); a guard held by an
+ * terminated thread of this process is always reclaimed in time; a guard held by an
  * enclosing section on this very thread can never be let go by waiting, so that claim fails at
- * once. Nothing here reaches through a link or out of the knowledge root (CR-01).
+ * once. Nothing here reaches through a link or out of the knowledge root.
  */
 function withLeaseGuard<T>(
   knowledgeRoot: string,
@@ -1458,7 +1458,7 @@ function withLeaseGuard<T>(
   hooks: LeaseGuardHooks = {},
 ): T {
   const guard = join(knowledgeRoot, LEASE_GUARD_DIR)
-  // CR-01: nothing is created, claimed or removed through a chain that leaves the root.
+  // nothing is created, claimed or removed through a chain that leaves the root.
   assertWithinKnowledgeRoot(knowledgeRoot, dirname(guard))
   const claimedAtNs = process.hrtime.bigint()
   const token = randomUUID()
@@ -1638,7 +1638,7 @@ export function isLeaseStale(lease: unknown, nowMs: number): boolean {
 /**
  * The one freshness answer, and it has three values rather than two.
  *
- * CR-01: the previous derivation returned a boolean, so every way of failing to READ the epoch
+ * the previous derivation returned a boolean, so every way of failing to READ the epoch
  * collapsed into the same value a genuinely expired lease produces. `readEpoch` raises
  * `CorruptEpochStateError(…, 'unreadable', …)` for EACCES, EIO, EMFILE and ENFILE, not only for
  * corrupt bytes, and fd exhaustion produces both that failure and the daemon identity-handshake
@@ -1658,7 +1658,7 @@ export function isLeaseStale(lease: unknown, nowMs: number): boolean {
  * epoch is recovery input no matter how fresh its bytes are: nobody can still be inside a
  * transaction for an epoch that has already been replaced.
  *
- * WR-04: a crash between the epoch rewrite and the lease rewrite leaves a lease naming the
+ * a crash between the epoch rewrite and the lease rewrite leaves a lease naming the
  * previous epoch. Reporting that lease as held manufactures a phantom holder no TTL sweep ever
  * reclaims, so an epoch-invalid lease is recovery input rather than an answer.
  *
@@ -1706,7 +1706,7 @@ export function acquireWriterLease(
     }
     if (verdict.kind === 'fresh') return { kind: 'held', holder: beforeLock.lease }
   } else if (beforeLock.kind === 'unreadable') {
-    // CR-01: a lease that exists and cannot be opened is not a licence to mint over it. Refusing
+    // a lease that exists and cannot be opened is not a licence to mint over it. Refusing
     // here is what keeps the loop below — and therefore the escalation surface underneath it —
     // out of reach for this input class entirely.
     return {
@@ -1905,7 +1905,7 @@ export function withCurrentWriterAuthority<T>(
         )
       }
       /**
-       * CR-01: the epoch alone is guessable, and release deliberately never advances it, so an
+       * the epoch alone is guessable, and release deliberately never advances it, so an
        * epoch-only guard admits both a fabricated identity and a holder that already released.
        * The lease is therefore read INSIDE the held transaction — the same serialization boundary
        * as the epoch and generation checks — and must match the supplied authority exactly. This
@@ -1918,7 +1918,7 @@ export function withCurrentWriterAuthority<T>(
       if (current.kind === 'malformed') {
         throw new WriterAuthorityLostError(fullAuthority, 'lease-malformed', observedEpoch)
       }
-      // CR-01: authority that cannot be re-read inside the transaction is authority that cannot be
+      // authority that cannot be re-read inside the transaction is authority that cannot be
       // proven, and this is the fence that keeps a fenced-out writer from committing.
       if (current.kind === 'unreadable') {
         throw new WriterAuthorityLostError(fullAuthority, 'lease-unreadable', observedEpoch)
@@ -2005,7 +2005,7 @@ export function heartbeatLease(
     const current = readWriterLease(opts.knowledgeRoot)
     if (current.kind === 'absent') return { kind: 'refused', reason: 'lease-missing' }
     if (current.kind === 'malformed') return { kind: 'refused', reason: 'lease-malformed' }
-    // CR-01: a beat that cannot read the lease cannot prove it owns it, so it may not rewrite it.
+    // a beat that cannot read the lease cannot prove it owns it, so it may not rewrite it.
     if (current.kind === 'unreadable') return { kind: 'refused', reason: 'lease-unreadable' }
     if (current.lease.leaseId !== opts.leaseId) {
       return { kind: 'refused', reason: 'lease-id-mismatch', holder: current.lease }
@@ -2091,7 +2091,7 @@ export function refreshWriterLeaseAuthority(
  *
  * The read and the deletion run under the lease-file guard, taken inside the mutation lock, so a
  * heartbeat in flight finishes before the lease is read and any later beat finds it gone
- * (261002-lse). The guard is always taken second, and the beat never takes the mutation lock, so
+ * The guard is always taken second, and the beat never takes the mutation lock, so
  * the two cannot wait on each other.
  */
 export function releaseLease(
@@ -2104,7 +2104,7 @@ export function releaseLease(
       const current = readWriterLease(opts.knowledgeRoot)
       if (current.kind === 'absent') return { kind: 'refused', reason: 'lease-missing' }
       if (current.kind === 'malformed') return { kind: 'refused', reason: 'lease-malformed' }
-      // CR-01: release is a deletion. An unreadable lease could belong to anybody, including a
+      // release is a deletion. An unreadable lease could belong to anybody, including a
       // successor that reclaimed while this caller was away, so it is never removed unseen.
       if (current.kind === 'unreadable') return { kind: 'refused', reason: 'lease-unreadable' }
       if (current.lease.leaseId !== opts.leaseId) {

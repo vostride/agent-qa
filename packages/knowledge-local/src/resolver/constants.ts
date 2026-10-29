@@ -1,4 +1,4 @@
-// The D-07 strong-hit rule's pinned constants (Phase 387, ENTY-01).
+// The D-07 strong-hit rule's pinned constants.
 //
 // The style is the `LEASE_HEARTBEAT_TTL_MS` idiom: named exports carrying the rationale a
 // retune needs, never configuration. A threshold that a project could set is a threshold that
@@ -20,7 +20,7 @@
 // range of the raw fused score, and it is why the reported score is NORMALISED (below) rather
 // than published as-is: "0.0328" is not a number any surface can render as confidence.
 //
-// THE CORPUS REPORT THESE VALUES WERE FINALISED AGAINST (387-05)
+// THE CORPUS REPORT THESE VALUES WERE FINALISED AGAINST
 //
 // `test-output/entity-resolution-report.json`, written by every run of the resolver corpus
 // suite: 106 entities across the five mintable kinds, 110 authored query cases, 220 rows —
@@ -47,7 +47,7 @@ import { C_RRF } from '../retrieval/constants.js'
 /**
  * The two leg weights, and they are EQUAL for a reason that is not aesthetic.
  *
- * The degradation invariant (D-08) says a floor host may only produce MORE disambiguation,
+ * The degradation invariant says a floor host may only produce MORE disambiguation,
  * never a different answer. Floor mode is full mode minus the dense leg, so each candidate's
  * floor score is its full score minus its own dense contribution. With equal weights the most
  * any candidate can gain from the dense leg is one rank-1 contribution, which is what bounds
@@ -115,7 +115,7 @@ export const RESOLVER_STRONG_HIT_MIN_SCORE = 0.5
  * Its everyday meaning is simpler: a strong hit is one the legs AGREE on more than they agree
  * on anything else. Two near-twins ranked 1 and 2 differ by 0.016 and always disambiguate —
  * including the equal-strength typo case, which differs by exactly zero and therefore cannot
- * be resolved by any positive margin at all (D-07).
+ * be resolved by any positive margin at all.
  *
  * WHERE THE BOUNDARY ACTUALLY IS, measured by the 387-05 corpus rather than argued.
  *

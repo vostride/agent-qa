@@ -28,7 +28,7 @@ import {
 import { RESOLVE_TS_SOURCE_HOOK } from './source-import-hook.js'
 
 /**
- * 2026-10-02 (quick 261002-lse): a heartbeat must never resurrect a released lease.
+ * a heartbeat must never resurrect a released lease.
  *
  * Phase 432 deferred items 432-19 #7 (with 432-13 #6, 432-14 #7, 432-17 #4): the beat read the
  * lease and then rewrote it without any exclusion against `releaseLease`, so a beat that read
