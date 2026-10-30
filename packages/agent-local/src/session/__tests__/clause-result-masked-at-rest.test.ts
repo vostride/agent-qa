@@ -21,7 +21,7 @@ const NOW = '2026-08-20T00:00:00.000Z'
 const QUARANTINE_LIST = 'quarantine.list'
 
 const PLANTED_CREDENTIAL = 'sk-live-399105-Wq7zR2mKpX4nT8vB'
-const MARKER = '[secret:PLANTED_399105]'
+const MARKER = '[secret:PLANTED_SECRET]'
 
 const HUMAN: FunctionCaller = { origin: 'human', surface: 'cli' } as unknown as FunctionCaller
 
@@ -39,7 +39,7 @@ describe('clause_result persists the MASKED payload, on the real file', () => {
   it('writes the PLACEHOLDER and never the credential — and the placeholder really stands for it',
     async () => {
       const mask: MaskFn = (text) => new SecretRedactor(
-        SecretStore.fromEnvContent(`PLANTED_399105=${PLANTED_CREDENTIAL}\n`),
+        SecretStore.fromEnvContent(`PLANTED_SECRET=${PLANTED_CREDENTIAL}\n`),
       ).redactString(text)
       const maskedPayload = maskPayloadStrings(
         { entries: [{ id: 'P-1', token: PLANTED_CREDENTIAL }] }, mask,

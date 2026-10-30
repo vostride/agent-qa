@@ -60,7 +60,7 @@ describe('LLMPlanner', () => {
     vi.clearAllMocks()
   })
 
-  it('projects a scripted tool call into a PlanResult with the v45 envelope intact', async () => {
+  it('projects a scripted tool call into a PlanResult with the plan envelope intact', async () => {
     const { generateText } = await import('ai')
     vi.mocked(generateText).mockResolvedValueOnce({
       toolCalls: [{ toolName: 'web_click', input: { ref: 'e1', ...CLICK_ENVELOPE } }],

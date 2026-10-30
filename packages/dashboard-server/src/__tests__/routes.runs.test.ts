@@ -1226,7 +1226,7 @@ describe("a persisted row's execution timeout is validated where it is consumed"
 
 // The local door's human reads serve stored text, masked at write, with or without an agent host.
 
-const STORED_MARKER = '[secret:PW_441]'
+const STORED_MARKER = '[secret:PW_KEY]'
 const OLD_PLACEHOLDER = '<SECRET_0>'
 const STORED_TEXT = `failed near ${STORED_MARKER} and ${OLD_PLACEHOLDER}`
 

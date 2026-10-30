@@ -413,7 +413,7 @@ describe('an announced-but-EMPTY roster is the SAME document as an unannounced o
         expect(
           liveUrlsIn(html).length,
           'an announced-but-empty roster minted nothing — `?? [0]` does not fire for `[]`, so the '
-          + 'mint loop ran zero times and the document withdrew a variant that IS available (WR-05)',
+          + 'mint loop ran zero times and the document withdrew a variant that IS available',
         ).toBe(1)
         expect(stateOf(html), 'a run this host holds a live session for was rendered as ended')
           .not.toBe('run-ended')

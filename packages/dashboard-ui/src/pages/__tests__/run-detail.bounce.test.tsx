@@ -253,7 +253,7 @@ describe("the bounce keys on the run row, and never on the active-execution set"
 
     expect(
       fetchActiveExecutionsMock.mock.calls.length,
-      "the active set says a run is in flight until its POST-RUN TAIL ends (D-07) — reading it "
+      "the active set says a run is in flight until its POST-RUN TAIL ends — reading it "
       + "here is what threw a viewer back to /live at the verdict",
     ).toBe(0)
   })

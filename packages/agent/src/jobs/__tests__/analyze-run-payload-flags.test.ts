@@ -85,7 +85,7 @@ describe('readAnalyzeRunPayload — flag propagation, read half', () => {
     expect(read?.excludedFromOutcomes).toBe(true)
   })
 
-  it('reads each flag independently — the two are DISTINCT axes (C8)', () => {
+  it('reads each flag independently — the two are DISTINCT axes', () => {
     // Gate runs still feed curation, so `gateRun` alone does not imply `excludedFromOutcomes`.
     const gateOnly = readAnalyzeRunPayload({ ...LEGACY_PAYLOAD, gateRun: true })
     expect(gateOnly?.gateRun).toBe(true)

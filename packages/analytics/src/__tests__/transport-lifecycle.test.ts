@@ -128,7 +128,7 @@ describe('the port bounds its own shutdown', () => {
     expect(
       elapsed,
       `port.shutdown() took ${elapsed}ms against a client that never settles — the caller is still `
-      + 'held, so a terminal exit still waits on the network (T-398-35 / WR-02)',
+      + 'held, so a terminal exit still waits on the network',
     ).toBeLessThan(3000)
     // It still ASKED the client to wind down — the bound releases the caller, it does not skip
     // the drain. Losing in-flight events to the bound is the trade; never attempting is not.

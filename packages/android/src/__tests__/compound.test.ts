@@ -98,7 +98,7 @@ import { WEBVIEW_SCROLLERS_SCRIPT } from '@vostride/agent-qa-core'
 
 type ExecAction = Parameters<AndroidPlatformAdapter['execute']>[0]
 
-describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
+describe('AndroidPlatformAdapter compound behaviors', () => {
   let adapter: AndroidPlatformAdapter
   let mockDriver: ReturnType<typeof createMockDriver>
 
@@ -148,7 +148,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       })
     })
 
-    it('append mode captures prior getText() BEFORE typing and uses addValue (A1)', async () => {
+    it('append mode captures prior getText() BEFORE typing and uses addValue', async () => {
       await adapter.setup({ platform: 'android' })
       const ref = await refFor('Username')
       focusedGetTextReturn = 'abc'
@@ -170,7 +170,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(result.metadata?.fillVerdict).toEqual({ verb: 'fill', verdict: 'exact', path: 'native' })
     })
 
-    it('submit=true presses KEYCODE_ENTER (mobile: pressKey keycode 66) AFTER the re-read (A4); submit=false does not', async () => {
+    it('submit=true presses KEYCODE_ENTER (mobile: pressKey keycode 66) AFTER the re-read; submit=false does not', async () => {
       await adapter.setup({ platform: 'android' })
       const ref = await refFor('Username')
       focusedGetTextReturn = 'hello'
@@ -212,7 +212,7 @@ describe('AndroidPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       })
     })
 
-    it('mismatch yields success:false + §7.1 error + fillReread meta, single-shot typing', async () => {
+    it('mismatch yields success:false + error + fillReread meta, single-shot typing', async () => {
       await adapter.setup({ platform: 'android' })
       const ref = await refFor('Username')
       focusedGetTextReturn = 'wrong'

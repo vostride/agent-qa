@@ -422,7 +422,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
   })
 
   // A later directive's refusal must leave no earlier directive's effect or row behind.
-  describe('E3 — the directive BATCH is refused whole: no earlier directive survives a later one', () => {
+  describe('the directive BATCH is refused whole: no earlier directive survives a later one', () => {
     it('applies NO earlier directive when a LATER directive in the same turn refuses', async () => {
       const run = harness({ directives: true, unresolvableModel: 'nonsense-model' })
       const result = await run.runTurn({

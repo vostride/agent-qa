@@ -329,7 +329,7 @@ describe('testStarted.stepTexts is masked like stepStarted.stepText', () => {
 
 // Only the run's own redactor masks bus events; an undeclared email is published as written.
 const DECLARED_STEP_TEXT = 'Sign in as qa@example.com with Hunter-42-zz'
-const RECORDS_REDACTOR = new SecretRedactor(new SecretStore({ PW_441: 'Hunter-42-zz' }))
+const RECORDS_REDACTOR = new SecretRedactor(new SecretStore({ PW_KEY: 'Hunter-42-zz' }))
 
 async function runRecords(config: Partial<RunConfig>): Promise<RunEventEnvelope[]> {
   const log = makeCapturingEventLog()
@@ -368,8 +368,8 @@ describe('run events mask declared values by name', () => {
     const envelopes = await runRecords({ secretRedactor: RECORDS_REDACTOR })
     const { started, announced } = publishedStepTexts(envelopes)
 
-    expect(started).toEqual(['Sign in as qa@example.com with [secret:PW_441]'])
-    expect(announced).toEqual(['Sign in as qa@example.com with [secret:PW_441]'])
+    expect(started).toEqual(['Sign in as qa@example.com with [secret:PW_KEY]'])
+    expect(announced).toEqual(['Sign in as qa@example.com with [secret:PW_KEY]'])
     for (const envelope of envelopes) {
       expect(JSON.stringify(envelope.payload)).not.toContain('Hunter-42-zz')
     }

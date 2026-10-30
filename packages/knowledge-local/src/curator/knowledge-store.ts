@@ -114,7 +114,7 @@ export interface PromotionOutcomeReport {
 export class KnowledgeStoreNotImplementedError extends Error {
   readonly operation: 'recordCanaryOutcome'
 
-  constructor(operation: 'recordCanaryOutcome', _retiredOwnerPhase?: 380) {
+  constructor(operation: 'recordCanaryOutcome') {
     super(`${operation} compatibility error is retired because the operation is implemented`)
     this.name = 'KnowledgeStoreNotImplementedError'
     this.operation = operation

@@ -17,12 +17,12 @@ export const SURFACE_PROJECTION_SOURCES: Readonly<
 > = {
   'packages/cli': {
     kind: 'generic-invoker',
-    note: 'The `fn` verb projects the registry directly — it lists what the registry lists and renders what the invocation returns. That is not the whole CLI, and this entry does not model the remainder: the knowledge command family holds one piece of capability-specific static knowledge, `KNOWLEDGE_BUNDLES_LIST_ID = \'knowledge.bundles.list\'` (declared at commands/knowledge-read.ts:73, invoked at :411), which can drift from the registry. 397 (FUNC-05) turns this entry into a real projection source so the subset comparison below has something to compare.',
+    note: 'The `fn` verb projects the registry directly — it lists what the registry lists and renders what the invocation returns. That is not the whole CLI, and this entry does not model the remainder: the knowledge command family holds one piece of capability-specific static knowledge, `KNOWLEDGE_BUNDLES_LIST_ID = \'knowledge.bundles.list\'` (declared at commands/knowledge-read.ts:73, invoked at :411), which can drift from the registry. Until this entry becomes a real projection source, the subset comparison below has nothing to compare.',
   },
   'packages/mcp': {
     kind: 'not-yet-projected',
-    projectedBy: '396',
-    note: 'The v1 37-tool server predates the layer and publishes a hand-written tool set from its own modules. 396 replaces it with a registry projection and turns this entry into a real id set, at which point the subset comparison below stops being vacuous.',
+    projectedBy: 'a registry projection of the MCP tool set',
+    note: 'The v1 37-tool server predates the layer and publishes a hand-written tool set from its own modules. A registry projection that replaces it turns this entry into a real id set, at which point the subset comparison below stops being vacuous.',
   },
 }
 
@@ -69,7 +69,7 @@ describe('parity leg 5 — surface reverse completeness', () => {
     }
   })
 
-  it('keeps the pre-layer escape hatch pinned and dated', () => {
+  it('keeps the pre-layer escape hatch pinned, naming what will project each surface', () => {
     const notYetProjected = Object.entries(SURFACE_PROJECTION_SOURCES)
       .filter(([, source]) => source.kind === 'not-yet-projected')
       .map(([dir]) => dir)

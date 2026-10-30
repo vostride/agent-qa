@@ -589,7 +589,7 @@ describe('curation queue atomic emit drop', () => {
     const STEP = 4
 
     function declaredMask(): (text: string) => string {
-      const redactor = new SecretRedactor(new SecretStore({ PW_441: DECLARED }))
+      const redactor = new SecretRedactor(new SecretStore({ PW_KEY: DECLARED }))
       return (text) => redactor.redactString(text)
     }
 
@@ -654,7 +654,7 @@ describe('curation queue atomic emit drop', () => {
       expect(queued.artifactInventory).toHaveLength(1)
       const [inventory] = queued.artifactInventory
       const staged = readFileSync(join(candidateDir, inventory!.relativePath), 'utf8')
-      expect(staged).toContain('[secret:PW_441]')
+      expect(staged).toContain('[secret:PW_KEY]')
       expect(staged).toContain(TOKEN)
       expect(staged).not.toContain(DECLARED)
       expect(staged).not.toContain('<REDACTED')
@@ -699,7 +699,7 @@ describe('curation queue atomic emit drop', () => {
         .filter((path) => !path.startsWith(queueRoot(knowledgeRoot)))
       expect(committedSnapshot).toHaveLength(1)
       const committedText = readFileSync(committedSnapshot[0]!, 'utf8')
-      expect(committedText).toContain('[secret:PW_441]')
+      expect(committedText).toContain('[secret:PW_KEY]')
       expect(committedText).toContain(TOKEN)
       expect(committedText).not.toContain(DECLARED)
       const committedScreenshot = filesNamed(knowledgeRoot, screenshot.descriptor.ref.sha)
@@ -713,7 +713,7 @@ describe('curation queue atomic emit drop', () => {
   describe('queue rows written with retired capture fields', () => {
     const RETIRED_RECEIPT_KEY = ['capture', 'Receipt'].join('')
 
-    function seedRowWrittenBefore44125(): string {
+    function seedRowWithRetiredReceipt(): string {
       const fields = {
         schemaVersion: CURATION_QUEUE_SCHEMA_VERSION,
         sourceRunId: 'run-before-441-25',
@@ -743,7 +743,7 @@ describe('curation queue atomic emit drop', () => {
     }
 
     it('a queue row with a capture receipt is skipped as malformed', async () => {
-      const oldId = seedRowWrittenBefore44125()
+      const oldId = seedRowWithRetiredReceipt()
       const fresh = enqueueArtifactFreeCandidateProjection({
         knowledgeRoot,
         projectionInput: projectionInput(),

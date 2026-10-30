@@ -276,7 +276,7 @@ describe('Integration: WebPlatformAdapter lifecycle', () => {
     expect(result.metadata?.scrollUntilVisible).toBeDefined()
   })
 
-  it('direction scroll with a container ref scrolls inside the resolver\'s role locator, not mouse.wheel', async () => {
+  it('direction scroll with a container ref scrolls inside the aria-ref locator\'s element, not mouse.wheel', async () => {
     await adapter.setup({ platform: 'web' })
     await adapter.observe()
 

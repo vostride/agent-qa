@@ -279,7 +279,7 @@ describe('the stream opens with a snapshot and relays until the chain is termina
     const frames = stream.frames!
 
     const first = await frames.next('the opening snapshot')
-    expect(nameOf(first), 'a distinctly named frame — NOT a bus event type (T-404-03)').toBe('snapshot')
+    expect(nameOf(first), 'a distinctly named frame — NOT a bus event type').toBe('snapshot')
     expect(dataOf(first), 'the snapshot IS the read route body').toEqual({
       status: running,
       disposition: 'drained',

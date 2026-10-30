@@ -15,7 +15,7 @@ async function run(failFast = false) {
     runId: 'synthetic-recording-shell' as RunConfig['runId'],
     scope: { tier: 'suite', key: 'synthetic' }, executionContext: 'local-headless',
     buildOrdinal: 1, configDigests: { suiteConfigDigest: 'suite', testConfigDigest: 'test' },
-    secretRedactor: new SecretRedactor(new SecretStore({ SYNTHETIC_424: 'synthetic-secret' })),
+    secretRedactor: new SecretRedactor(new SecretStore({ SYNTHETIC_KEY: 'synthetic-secret' })),
     members: ['first', 'second'].map(testId => ({ testId, name: testId, filePath: 'synthetic.yaml',
       ...(failFast ? { failFastGroup: 'group' } : {}) })),
     executor: async member => {
@@ -40,7 +40,7 @@ test('REC-SHELL-TESTFINISHED-CARRIES: recording survives the real bus mask walk 
   const { terminals } = await run()
   expect(terminals).toHaveLength(2)
   expect(terminals[0].recording).toEqual(recording)
-  expect(terminals[0].failureSummary).toBe('[secret:SYNTHETIC_424]')
+  expect(terminals[0].failureSummary).toBe('[secret:SYNTHETIC_KEY]')
   expect(terminals[1]).not.toHaveProperty('recording')
 })
 

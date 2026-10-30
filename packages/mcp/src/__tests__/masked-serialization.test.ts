@@ -52,11 +52,11 @@ function standInMask(declared: readonly (readonly [string, string])[]): (text: s
 /** The declared mask over every plant this file cares about except the control. */
 function seededMasker(): { mask: (text: string) => string; dispose: () => void } {
   const mask = standInMask([
-    ['CLEAN_441', CLEAN_PLANT],
-    ['QUOTE_441', QUOTE_PLANT],
-    ['BACKSLASH_441', BACKSLASH_PLANT],
-    ['CONTROL_441', CONTROL_PLANT],
-    ['BLOB_441', BLOB_PLANT],
+    ['CLEAN_KEY', CLEAN_PLANT],
+    ['QUOTE_KEY', QUOTE_PLANT],
+    ['BACKSLASH_KEY', BACKSLASH_PLANT],
+    ['CONTROL_KEY', CONTROL_PLANT],
+    ['BLOB_KEY', BLOB_PLANT],
   ])
   return { mask, dispose: () => undefined }
 }
@@ -80,7 +80,7 @@ function receipt(value: string): unknown {
 }
 
 describe('X · the escape classes reach neither channel', () => {
-  it('(X0) CONTROL: the masker holds every plant, and a plain value is masked on both channels',
+  it('CONTROL: the masker holds every plant, and a plain value is masked on both channels',
     () => {
       const masker = seededMasker()
       try {
@@ -102,7 +102,7 @@ describe('X · the escape classes reach neither channel', () => {
     })
 
   for (const [name, plant] of ESCAPE_PLANTS) {
-    it(`(X1) a credential containing ${name} reaches NEITHER channel`, () => {
+    it(`a credential containing ${name} reaches NEITHER channel`, () => {
       const masker = seededMasker()
       try {
         const result = maskedToolResult(receipt(plant), masker.mask)
@@ -124,7 +124,7 @@ describe('X · the escape classes reach neither channel', () => {
     })
   }
 
-  it('(X2) the two channels are the same data — the invariant this module exists for', () => {
+  it('the two channels are the same data — the invariant this module exists for', () => {
     const masker = seededMasker()
     try {
       const result = maskedToolResult(receipt(QUOTE_PLANT), masker.mask)
@@ -135,7 +135,7 @@ describe('X · the escape classes reach neither channel', () => {
     }
   })
 
-  it('(X3) an escape-class credential in an object KEY reaches neither channel either', () => {
+  it('an escape-class credential in an object KEY reaches neither channel either', () => {
     const masker = seededMasker()
     try {
       const result = maskedToolResult({ headers: { [QUOTE_PLANT]: 'x-client-auth' } }, masker.mask)
@@ -148,7 +148,7 @@ describe('X · the escape classes reach neither channel', () => {
     }
   })
 
-  it('(X4) the RESOURCE channel — the same shape at `resources.ts` — carries no escape class '
+  it('the RESOURCE channel — the same shape at `resources.ts` — carries no escape class '
     + 'either', async () => {
     const masker = seededMasker()
     try {
@@ -171,11 +171,11 @@ describe('X · the escape classes reach neither channel', () => {
     }
   })
 
-  it('(X5) FAIL-CLOSED: a value that cannot be masked in place is WITHHELD, not served', () => {
+  it('FAIL-CLOSED: a value that cannot be masked in place is WITHHELD, not served', () => {
     const masker = seededMasker()
     try {
       // A credential spelled as a number cannot be masked in place, so the module refuses.
-      const pinMask = standInMask([['PIN_441', '867530912345']])
+      const pinMask = standInMask([['PIN_KEY', '867530912345']])
       const result = maskedToolResult({ pin: 867_530_912_345 }, pinMask)
 
       expect(result.isError).toBe(true)
@@ -186,7 +186,7 @@ describe('X · the escape classes reach neither channel', () => {
     }
   })
 
-  it('(X9) an own `__proto__` variable in a masked evidence document survives as a key, masked', () => {
+  it('an own `__proto__` variable in a masked evidence document survives as a key, masked', () => {
     const masker = seededMasker()
     try {
       const records = JSON.parse(
@@ -212,7 +212,7 @@ describe('X · the escape classes reach neither channel', () => {
     }
   })
 
-  it('(X8) HOSTILE CONTROL: an UNREGISTERED value travels the same path verbatim, and the helper '
+  it('HOSTILE CONTROL: an UNREGISTERED value travels the same path verbatim, and the helper '
     + 'finds it', () => {
     const masker = seededMasker()
     try {

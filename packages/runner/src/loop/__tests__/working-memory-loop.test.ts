@@ -143,7 +143,7 @@ describe('working-memory loop lifecycle', () => {
 
 const PW = 'Hunter-42-zz'
 const EMAIL = 'qa@example.com'
-const MARKER = '[secret:PW_441]'
+const MARKER = '[secret:PW_KEY]'
 
 function pageWithDeclaredValue(): ScreenState {
   const screen = makeScreenState()
@@ -183,7 +183,7 @@ async function runDeclaredValueStep(extra: Partial<LoopPorts> = {}) {
       planner,
       verifier,
       workingMemory: wm,
-      secretRedactor: new SecretRedactor(new SecretStore({ PW_441: PW })),
+      secretRedactor: new SecretRedactor(new SecretStore({ PW_KEY: PW })),
       carriedArtifacts: {
         downloads: [{
           stepNumber: 1,

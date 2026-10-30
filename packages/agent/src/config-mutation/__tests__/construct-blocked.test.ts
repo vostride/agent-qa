@@ -149,7 +149,7 @@ async function propose(
 }
 
 describe('the blocked posture', () => {
-  it('(1) answers BLOCKED when the whole config no longer validates, and keeps nothing', async () => {
+  it('answers BLOCKED when the whole config no longer validates, and keeps nothing', async () => {
     const test = harness({
       config: CLEAN_CONFIG,
       validation: {
@@ -172,7 +172,7 @@ describe('the blocked posture', () => {
     expect(test.written).toHaveLength(0)
   })
 
-  it('(4) the blocked summary line names the subject and drops the value the applyable one would print',
+  it('the blocked summary line names the subject and drops the value the applyable one would print',
     async () => {
       const test = harness({
         config: CLEAN_CONFIG,
@@ -188,7 +188,7 @@ describe('the blocked posture', () => {
       expect(payload.summaryLine).toContain('parallel')
     })
 
-  it('(7) a clean change is written, and carries the classifier\'s per-value verdict', async () => {
+  it('a clean change is written, and carries the classifier\'s per-value verdict', async () => {
     const innocuous = harness({ config: CLEAN_CONFIG })
     const answer = await propose(innocuous, { path: 'use.timeout.step', value: '45s' })
     expect(answer.outcome).toBe('applied')
@@ -210,7 +210,7 @@ describe('the blocked posture', () => {
     expect(unflagged.crossBoundaryReasons).toEqual([])
   })
 
-  it('(8) no blocked record can be accepted: there is no apply funnel and no accept op', () => {
+  it('no blocked record can be accepted: there is no apply funnel and no accept op', () => {
     expect('applyablePayload' in construct).toBe(false)
     expect('BlockedConfigProposalError' in construct).toBe(false)
   })

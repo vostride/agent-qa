@@ -251,7 +251,7 @@ describe('GET /api/runs/:id/knowledge — the read', () => {
 })
 
 describe('serveRunKnowledgeRead', () => {
-  const STORED_STEP = 'Sign in with [secret:PW_441] or <SECRET_0>'
+  const STORED_STEP = 'Sign in with [secret:PW_KEY] or <SECRET_0>'
 
   it("serves a step's stored text unchanged", async () => {
     const registry = composeRegistry(recordedRun(STORED_STEP))

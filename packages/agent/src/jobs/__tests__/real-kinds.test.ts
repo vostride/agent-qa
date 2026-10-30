@@ -145,7 +145,7 @@ describe('the real post-run kinds', () => {
   it('returns exactly one curate-memory continuation from a permanently failed analysis', () => {
     const declaration = analyzeRunDeclaration()
     if (declaration.onPermanentFailure === 'halt-chain') {
-      throw new Error('analyze-run must not halt its chain (D-20)')
+      throw new Error('analyze-run must not halt its chain')
     }
 
     const continuations = declaration.onPermanentFailure({

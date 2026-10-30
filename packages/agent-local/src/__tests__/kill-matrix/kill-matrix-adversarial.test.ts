@@ -441,7 +441,7 @@ describe('SIGKILL inside the permanent-failure disposition', () => {
       crashed.checkpointBytes[checkpointPath(jobId, checkpointId)],
     )
     const authoredOnResume = authoredCheckpointIds(paths.invocations, authoredPreCrash.length)
-    expect(authoredOnResume, 'a recorded checkpoint must never be authored again (JOBQ-03)').not.toContain(
+    expect(authoredOnResume, 'a recorded checkpoint must never be authored again').not.toContain(
       checkpointId,
     )
     expect([...authoredOnResume].sort()).toEqual(

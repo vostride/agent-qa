@@ -91,7 +91,7 @@ test('NETWORK-READBACK: real member terminal refers to one reopened masked SHA b
     plannerModel: unusedModel, verifierModel: unusedModel, appiumScript: async () => ({ success: true }),
     sink: createMemberEventSink({ bus, mask: text => text.replaceAll(secret, '[secret]').replaceAll('§', '[secret]'), testIndex: 0 }), testIndex: 0,
     abortSignal: new AbortController().signal, evidenceArtifacts: store,
-    secretRedactor: new SecretRedactor(new SecretStore({ NET_423: secret })),
+    secretRedactor: new SecretRedactor(new SecretStore({ NET_KEY: secret })),
   })
   expect(terminal?.evidence?.network).toMatchObject({ state: 'present', counts: { total: 600, failed: 1, errored: 1 } })
   const entry = terminal!.evidence!.network
@@ -112,7 +112,7 @@ test('NETWORK-READBACK: real member terminal refers to one reopened masked SHA b
   for (const [index, record] of decoded.records.entries()) {
     if (index === 3) continue
     expect(record.requestBody).toBe(record.body)
-    expect(Buffer.byteLength(record.body!)).toBe(32768 - secret.length + '[secret:NET_423]'.length)
+    expect(Buffer.byteLength(record.body!)).toBe(32768 - secret.length + '[secret:NET_KEY]'.length)
   }
 })
 

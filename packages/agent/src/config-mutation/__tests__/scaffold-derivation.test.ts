@@ -215,7 +215,7 @@ async function scaffold(test: Harness, domain: string): Promise<ConfigChangeOutp
 }
 
 describe('the hostname gate is the never-guess boundary, as a parse', () => {
-  it('(G1) derives the same rule for every domain — one producer, five different answers', () => {
+  it('derives the same rule for every domain — one producer, five different answers', () => {
     // PRODUCED, NOT LITERAL: each row's expectation is a derivation of its OWN token, and no two
     // rows share one. A gate returning a constant fails four; a gate keyed on `booking.com` fails
     // three. This is what makes the rule "deterministic code derives the target" rather than "the
@@ -236,14 +236,14 @@ describe('the hostname gate is the never-guess boundary, as a parse', () => {
       .toBe(4)
   })
 
-  it('(G2) refuses every near miss — the corpus the rule\'s own precondition rejects', () => {
+  it('refuses every near miss — the corpus the rule\'s own precondition rejects', () => {
     for (const token of REJECTED) {
       expect(parseHostnameToken(token), `token ${JSON.stringify(token)}`)
         .toEqual({ kind: 'not-a-hostname' })
     }
   })
 
-  it('(G3) reads a URL\'s host through the parser, so userinfo cannot pose as the site', () => {
+  it('reads a URL\'s host through the parser, so userinfo cannot pose as the site', () => {
     // The one case where "everything between // and the first /" and "the authority's host" are
     // different strings. A regex extraction answers `example.com`; the site is `evil.example`.
     expect(parseHostnameToken('https://example.com@evil.example/rooms')).toEqual({
@@ -261,7 +261,7 @@ describe('the hostname gate is the never-guess boundary, as a parse', () => {
 })
 
 describe('config.project.scaffold refuses rather than guessing', () => {
-  it('(S1) answers a typed refusal naming both continuations, and echoes no origin', async () => {
+  it('answers a typed refusal naming both continuations, and echoes no origin', async () => {
     const test = harness({ readThrows: true })
     const answer = await scaffold(test, 'checkout flow')
 
@@ -279,7 +279,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
     expect(test.published).toHaveLength(0)
   })
 
-  it('(S2) refuses ABOVE the re-read — a guess costs the filesystem nothing', async () => {
+  it('refuses ABOVE the re-read — a guess costs the filesystem nothing', async () => {
     // The double throws on `read`, so a gate placed after the re-read fails by name.
     const test = harness({ readThrows: true })
     await expect(scaffold(test, 'not_a_domain.x')).resolves.toMatchObject({
@@ -288,7 +288,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
     expect(test.rendered).toHaveLength(0)
   })
 
-  it('(S3) refuses a project that DECLARES targets, and writes nothing', async () => {
+  it('refuses a project that DECLARES targets, and writes nothing', async () => {
     // A config file with a target registry the scaffold would replace.
     const test = harness({
       configBytes:
@@ -310,7 +310,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
     expect(test.published).toHaveLength(0)
   })
 
-  it('(S3b) MERGES a config file that declares no targets, carrying the person\'s own bytes',
+  it('MERGES a config file that declares no targets, carrying the person\'s own bytes',
     async () => {
       // A config file with no targets exists, and the scaffold merges into it instead of refusing.
       const configBytes = '# mine\nworkspace:\n  hooksFile: hooks.yaml\nregistry:\n  llms: []\n'
@@ -335,7 +335,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
       expect(config?.baseDigest).toMatch(/^[0-9a-f]{64}$/)
     })
 
-  it('(S9) answers UNRENDERABLE as data rather than letting it escape as a fault', async () => {
+  it('answers UNRENDERABLE as data rather than letting it escape as a fault', async () => {
     // `0x80` and `0xFF` both decode to U+FFFD, so their diff renders as zero hunks.
     const test = harness({
       gitignoreBytes: Uint8Array.from([0x80]),
@@ -349,7 +349,7 @@ describe('config.project.scaffold refuses rather than guessing', () => {
 })
 
 describe('the scaffold is one diff, published whole, over the whole set', () => {
-  it('(S4) hands the content port the GATE\'S derivation and nothing else', async () => {
+  it('hands the content port the GATE\'S derivation and nothing else', async () => {
     const test = harness()
     await scaffold(test, 'HTTPS://Booking.com/rooms')
 
@@ -357,14 +357,14 @@ describe('the scaffold is one diff, published whole, over the whole set', () => 
     expect(test.rendered).toEqual([{ targetName: 'booking-com', baseUrl: 'https://booking.com' }])
   })
 
-  it('(S4b) hands over the project\'s EXISTING gitignore bytes so the block is an upsert', async () => {
+  it('hands over the project\'s EXISTING gitignore bytes so the block is an upsert', async () => {
     const test = harness({ gitignoreBytes: utf8Encode('dist/\n') })
     await scaffold(test, 'booking.com')
 
     expect(test.rendered[0]?.existingGitignore).toBe('dist/\n')
   })
 
-  it('(S5/S6) publishes ONE change, applied, cross-boundary with computed reasons', async () => {
+  it('publishes ONE change, applied, cross-boundary with computed reasons', async () => {
     const test = harness()
     const answer = await scaffold(test, 'booking.com')
 

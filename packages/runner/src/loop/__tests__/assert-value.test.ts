@@ -126,7 +126,7 @@ interface EvidenceView {
 
 const cfg = { maxActions: 4, maxPlanningTurns: 4, previousStepCount: 0 }
 
-describe('Block A — compareAssertValue: one deterministic case per closed op', () => {
+describe('compareAssertValue: one deterministic case per closed op', () => {
   it('equals / notEquals', () => {
     expect(compareAssertValue({ source: 'url', op: 'equals', expected: 'https://x.test/home', actual: 'https://x.test/home' }).passed).toBe(true)
     expect(compareAssertValue({ source: 'url', op: 'notEquals', expected: 'https://x.test/home', actual: 'https://x.test/login' }).passed).toBe(true)
@@ -155,8 +155,8 @@ describe('Block A — compareAssertValue: one deterministic case per closed op',
   })
 })
 
-describe('Block B — assertValue orchestration and the deterministic verifier short-circuit', () => {
-  it('a passing assertValue on a completing step mints a deterministic verdict with ZERO verifier.verify calls and verdictSource assert-value (the adapter reads, the runner judges)', async () => {
+describe('assertValue orchestration: the step verifier judges every read', () => {
+  it('a passing assertValue on a completing step is evidence the verifier judges: one verify call, verdictSource verifier-model', async () => {
     const adapter = readingAdapter(makeScreenState(), { success: true, data: 'https://x.test/home' })
     const verifier = makeShortCircuitVerifier()
     const plan = makeActionPlan({ action: { type: 'assertValue', source: 'url', op: 'contains', expected: 'home' }, stepComplete: true })
@@ -443,7 +443,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
     expect((result.evidence as { verdictSource?: string }).verdictSource).toBe('verifier-model')
   })
 
-  it('a failing assertValue is an honest §7.1 failure the planner mediates', async () => {
+  it('a failing assertValue is an honest failure the planner mediates', async () => {
     const adapter = readingAdapter(makeScreenState(), { success: true, data: 'https://x.test/login' })
     const verifier = makeShortCircuitVerifier()
     const assertTurn = makeActionPlan({ action: { type: 'assertValue', source: 'url', op: 'contains', expected: 'home' }, stepComplete: true })
@@ -458,7 +458,7 @@ describe('Block B — assertValue orchestration and the deterministic verifier s
     expect(subs(result)[0]?.result?.success).toBe(false)
   })
 
-  it('a source unavailable on the platform surfaces a §7.1 error, never a crash', async () => {
+  it('a source unavailable on the platform surfaces a structured error, never a crash', async () => {
     const adapter = readingAdapter(makeScreenState(), { success: false, error: 'storage source unavailable on this platform' })
     const verifier = makeShortCircuitVerifier()
     const assertTurn = makeActionPlan({ action: { type: 'assertValue', source: 'storage', op: 'isDefined' }, stepComplete: true })
@@ -556,29 +556,29 @@ describe('assertValue judges raw reads and records declared values by name', () 
 
   it('an assertValue on a declared value records its marker in the outcome and the step result', async () => {
     const { result, outcome, meta } = await runAssert(
-      { PW_441: PW },
+      { PW_KEY: PW },
       { success: true, data: `${PW} for ${EMAIL}` },
-      { source: 'storage', op: 'contains', expected: '{{secret:PW_441}}' },
+      { source: 'storage', op: 'contains', expected: '{{secret:PW_KEY}}' },
     )
     expect(result.status).toBe('passed')
-    expect(outcome?.expected).toBe('[secret:PW_441]')
-    expect(outcome?.actual).toBe(`[secret:PW_441] for ${EMAIL}`)
-    expect(meta?.expected).toBe('[secret:PW_441]')
-    expect(meta?.actual).toBe(`[secret:PW_441] for ${EMAIL}`)
+    expect(outcome?.expected).toBe('[secret:PW_KEY]')
+    expect(outcome?.actual).toBe(`[secret:PW_KEY] for ${EMAIL}`)
+    expect(meta?.expected).toBe('[secret:PW_KEY]')
+    expect(meta?.actual).toBe(`[secret:PW_KEY] for ${EMAIL}`)
     for (const text of recorded(result)) expect(text).not.toContain(PW)
     expect(JSON.stringify(result.evidence)).toContain(EMAIL)
   })
 
   it('an assertValue is judged on the raw read', async () => {
     const { result, outcome, meta } = await runAssert(
-      { PW_441: PW },
+      { PW_KEY: PW },
       { success: true, data: PW },
       { source: 'storage', op: 'contains', expected: 'Hunter' },
     )
     expect(result.status).toBe('passed')
     expect(outcome?.expected).toBe('Hunter')
-    expect(outcome?.actual).toBe('[secret:PW_441]')
-    expect(meta?.actual).toBe('[secret:PW_441]')
+    expect(outcome?.actual).toBe('[secret:PW_KEY]')
+    expect(meta?.actual).toBe('[secret:PW_KEY]')
     for (const text of recorded(result)) expect(text).not.toContain(PW)
   })
 
@@ -588,12 +588,12 @@ describe('assertValue judges raw reads and records declared values by name', () 
       { url: 'https://example.test/api/login', method: 'POST', body: `password=${PW}&user=${EMAIL}` },
     ]
     const { result, outcome, meta } = await runAssert(
-      { PW_441: PW },
+      { PW_KEY: PW },
       { success: true, data: log },
-      { source: 'network', op: 'contains', expected: '{{secret:PW_441}}' },
+      { source: 'network', op: 'contains', expected: '{{secret:PW_KEY}}' },
     )
     expect(result.status).toBe('passed')
-    expect(outcome?.actual).toContain('[secret:PW_441]')
+    expect(outcome?.actual).toContain('[secret:PW_KEY]')
     expect(outcome?.actual).toContain(EMAIL)
     expect(meta?.actual).toBe(outcome?.actual)
     for (const text of recorded(result)) expect(text).not.toContain(PW)
@@ -604,11 +604,11 @@ describe('assertValue judges raw reads and records declared values by name', () 
     const escaped = JSON.stringify(value).slice(1, -1)
     const escapedTwice = JSON.stringify(escaped).slice(1, -1)
     const { result, outcome, meta, record } = await runAssert(
-      { PW_QUOTE_441: value },
+      { PW_QUOTE_KEY: value },
       { success: true, data: { token: value, user: EMAIL } },
       { source: 'storage', op: 'contains', expected: EMAIL },
     )
-    const expectedActual = '{"token":"[secret:PW_QUOTE_441]","user":"qa@example.com"}'
+    const expectedActual = '{"token":"[secret:PW_QUOTE_KEY]","user":"qa@example.com"}'
     expect(result.status).toBe('passed')
     expect(outcome?.actual).toBe(expectedActual)
     expect(meta?.actual).toBe(expectedActual)

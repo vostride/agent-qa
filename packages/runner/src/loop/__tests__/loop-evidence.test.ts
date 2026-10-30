@@ -23,14 +23,14 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
 }
 
 describe('loop evidence matrix', () => {
-  it('(1) every recorded sub-action carries stateBefore with non-empty elements and refMap', async () => {
+  it('every recorded sub-action carries stateBefore with non-empty elements and refMap', async () => {
     const result = await executeStep('Click Log in', ports({ adapter: makeAdapter(), planner: makePlanner() }), makeStepContext())
     const sub = result.evidence!.subActions[0]
     expect(sub.stateBefore.elements.length).toBeGreaterThan(0)
     expect(Object.keys(sub.stateBefore.refMap).length).toBeGreaterThan(0)
   })
 
-  it('(3) a verified sub-action gets the verifier re-observation as stateAfter', async () => {
+  it('a verified sub-action gets the verifier re-observation as stateAfter', async () => {
     const before = makeScreenState({ url: 'https://example.test/before' })
     const after = makeScreenState({ url: 'https://example.test/after' })
     // Settle needs two equal reads (url is not part of screen identity), so `before` is fed twice.
@@ -66,7 +66,7 @@ describe('loop evidence matrix', () => {
     expect(result.evidence!.selfHeal).toBeUndefined()
   })
 
-  it('(5) a sub-action at no boundary has no stateAfter', async () => {
+  it('a sub-action at no boundary has no stateAfter', async () => {
     const adapter = makeAdapter({
       observeResults: [makeScreenState(), makeScreenState()],
       executeResults: [{ success: true }, { success: true }],
@@ -80,7 +80,7 @@ describe('loop evidence matrix', () => {
     expect(result.evidence!.subActions[0].stateAfter).toBeUndefined()
   })
 
-  it('(6) a [secret:x]-bearing plan never reaches SubActionEvidence unredacted', async () => {
+  it('a [secret:x]-bearing plan never reaches SubActionEvidence unredacted', async () => {
     const store = new SecretStore({ PASSWORD: 'hunter2' })
     const redactor = new SecretRedactor(store)
     const planner = makePlanner([makeActionPlan({ action: { type: 'fill', ref: 'e1', value: '{{secret:PASSWORD}}' }, stepComplete: true })])
@@ -94,7 +94,7 @@ describe('loop evidence matrix', () => {
     expect(JSON.stringify(result.evidence)).not.toContain('hunter2')
   })
 
-  it('(7) a cache miss (the planner ran) folds to cacheStatus miss', async () => {
+  it('a cache miss (the planner ran) folds to cacheStatus miss', async () => {
     const cache: ActionPlanCache = {
       async get() { return null },
       async set() {},
@@ -110,7 +110,7 @@ describe('loop evidence matrix', () => {
     expect(result.evidence!.cacheStatus).toBe('miss')
   })
 
-  it('(7b) an exact-key hit re-grounds and replays — folds to cacheStatus hit, no planner', async () => {
+  it('an exact-key hit re-grounds and replays — folds to cacheStatus hit, no planner', async () => {
     const cachedLogin: CachedPlanValue = {
       // Descriptor-only value: ref/coords stripped; grounding rides on the locator, which
       // re-grounds to the fresh `log in` button (e2) in the observation.

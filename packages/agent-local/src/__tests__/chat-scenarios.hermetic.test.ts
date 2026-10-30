@@ -305,7 +305,7 @@ describe('the hermetic lane: the frozen deterministic corpus over the real compo
         expect(executed).toHaveLength(0)
         expect(executed).toHaveLength(scenario.expect.executed)
         const named = scenario.expect.namesClause
-        expect(named, 'a fail_closed scenario must name what it refused (D-08)').toBeTruthy()
+        expect(named, 'a fail_closed scenario must name what it refused').toBeTruthy()
         const namings = [
           result.unhandled?.reason ?? '',
           result.unhandled?.clause ?? '',

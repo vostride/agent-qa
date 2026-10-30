@@ -503,7 +503,7 @@ describe('no classifier pattern-matches a value', () => {
 
     expect(
       offenders,
-      'a fold that sniffs its payload\'s content is the chat-side value matching D-01 rejected, '
+      'a fold that sniffs its payload\'s content is chat-side value matching, '
         + 'moved one file over and wearing the declaration\'s clothes',
     ).toEqual([])
 

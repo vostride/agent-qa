@@ -711,7 +711,7 @@ describe('AndroidPlatformAdapter', () => {
       expect(mockDriver.getPageSource).toHaveBeenCalled()
     })
 
-    it('returns a §7.1 web-only error for on:selector (no selector waiting on native)', async () => {
+    it('returns a structured web-only error for on:selector (no selector waiting on native)', async () => {
       await adapter.setup({ platform: 'android' })
       const result = await adapter.execute({ type: 'waitFor', on: 'selector', selector: '#done', timeoutMs: 500 })
       expect(result.success).toBe(false)
@@ -763,7 +763,7 @@ describe('AndroidPlatformAdapter', () => {
   })
 
   describe('execute — keypress mode gating', () => {
-    it('returns a §7.1 press-only error for mode:down (web-only key hold/release)', async () => {
+    it('returns a structured press-only error for mode:down (web-only key hold/release)', async () => {
       await adapter.setup({ platform: 'android' })
       const down = await adapter.execute({ type: 'keypress', keys: ['Shift'], mode: 'down' })
       expect(down.success).toBe(false)

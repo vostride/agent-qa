@@ -312,32 +312,32 @@ const sourceAssociationPolarityRows: SourceAssociationPolarityRow[] = [
     parameters: [{ name: 'MISSING_SOURCE', type: 'string', required: true }],
     values: { text: { param: 'MISSING_SOURCE' } },
     expectedSlot: 'text <- parameter MISSING_SOURCE (string, required)',
-    variables: { OTHER_SOURCE: 'ABSENT_OTHER_RAW_38161' },
-    rawSentinels: ['ABSENT_OTHER_RAW_38161'],
+    variables: { OTHER_SOURCE: 'ABSENT_OTHER_RAW_PLANT' },
+    rawSentinels: ['ABSENT_OTHER_RAW_PLANT'],
   },
   {
     name: 'incapable number variable',
     parameters: [{ name: 'DELAY', type: 'number', required: true }],
     values: { clickDelay: { param: 'DELAY' } },
     expectedSlot: 'clickDelay <- parameter DELAY (number, required)',
-    variables: { DELAY: 'NUMBER_INCAPABLE_RAW_38161' },
-    rawSentinels: ['NUMBER_INCAPABLE_RAW_38161'],
+    variables: { DELAY: 'NUMBER_INCAPABLE_RAW_PLANT' },
+    rawSentinels: ['NUMBER_INCAPABLE_RAW_PLANT'],
   },
   {
     name: 'incapable boolean memory',
     parameters: [{ name: 'SUBMIT_NOW', type: 'boolean', required: true }],
     values: { submit: { param: 'SUBMIT_NOW' } },
     expectedSlot: 'submit <- parameter SUBMIT_NOW (boolean, required)',
-    memory: [{ key: 'SUBMIT_NOW', value: 'BOOLEAN_INCAPABLE_RAW_38161' }],
-    rawSentinels: ['BOOLEAN_INCAPABLE_RAW_38161'],
+    memory: [{ key: 'SUBMIT_NOW', value: 'BOOLEAN_INCAPABLE_RAW_PLANT' }],
+    rawSentinels: ['BOOLEAN_INCAPABLE_RAW_PLANT'],
   },
   {
     name: 'secret-only typed mismatch',
     parameters: [{ name: 'SECRET_DELAY', type: 'number', required: true }],
     values: { clickDelay: { param: 'SECRET_DELAY' } },
     expectedSlot: 'clickDelay <- parameter SECRET_DELAY (number, required)',
-    secrets: { SECRET_DELAY: 'SECRET_NUMBER_RAW_38161' },
-    rawSentinels: ['SECRET_NUMBER_RAW_38161'],
+    secrets: { SECRET_DELAY: 'SECRET_NUMBER_RAW_PLANT' },
+    rawSentinels: ['SECRET_NUMBER_RAW_PLANT'],
   },
   {
     name: 'variable before memory precedence',
@@ -345,11 +345,11 @@ const sourceAssociationPolarityRows: SourceAssociationPolarityRow[] = [
     values: { text: { param: 'CONTACT' } },
     expectedSlot: 'text <- parameter CONTACT (string, required)',
     expectedSource: { kind: 'variable', name: 'CONTACT', declaredType: 'string' },
-    variables: { CONTACT: 'VARIABLE_PRECEDENCE_RAW_38161' },
-    memory: [{ key: 'CONTACT', value: 'MEMORY_PRECEDENCE_RAW_38161' }],
+    variables: { CONTACT: 'VARIABLE_PRECEDENCE_RAW_PLANT' },
+    memory: [{ key: 'CONTACT', value: 'MEMORY_PRECEDENCE_RAW_PLANT' }],
     rawSentinels: [
-      'VARIABLE_PRECEDENCE_RAW_38161',
-      'MEMORY_PRECEDENCE_RAW_38161',
+      'VARIABLE_PRECEDENCE_RAW_PLANT',
+      'MEMORY_PRECEDENCE_RAW_PLANT',
     ],
   },
   {
@@ -358,9 +358,9 @@ const sourceAssociationPolarityRows: SourceAssociationPolarityRow[] = [
     values: { clickDelay: { param: 'MEMORY_DELAY' } },
     expectedSlot: 'clickDelay <- parameter MEMORY_DELAY (number, required)',
     expectedSource: { kind: 'memory', name: 'MEMORY_DELAY', declaredType: 'number' },
-    variables: { MEMORY_DELAY: 'MEMORY_DELAY_INCAPABLE_RAW_38161' },
-    memory: [{ key: 'MEMORY_DELAY', value: '38161042' }],
-    rawSentinels: ['MEMORY_DELAY_INCAPABLE_RAW_38161', '38161042'],
+    variables: { MEMORY_DELAY: 'MEMORY_DELAY_INCAPABLE_RAW_PLANT' },
+    memory: [{ key: 'MEMORY_DELAY', value: '52961042' }],
+    rawSentinels: ['MEMORY_DELAY_INCAPABLE_RAW_PLANT', '52961042'],
   },
   {
     name: 'string secret fallback',
@@ -368,8 +368,8 @@ const sourceAssociationPolarityRows: SourceAssociationPolarityRow[] = [
     values: { text: { param: 'SECRET_CONTACT' } },
     expectedSlot: 'text <- parameter SECRET_CONTACT (string, required)',
     expectedSource: { kind: 'secret', name: 'SECRET_CONTACT', declaredType: 'string' },
-    secrets: { SECRET_CONTACT: 'STRING_SECRET_RAW_38161' },
-    rawSentinels: ['STRING_SECRET_RAW_38161'],
+    secrets: { SECRET_CONTACT: 'STRING_SECRET_RAW_PLANT' },
+    rawSentinels: ['STRING_SECRET_RAW_PLANT'],
   },
   {
     name: 'secret parameter ignores the same-named variable',
@@ -377,11 +377,11 @@ const sourceAssociationPolarityRows: SourceAssociationPolarityRow[] = [
     values: { text: { param: 'LOGIN_SECRET' } },
     expectedSlot: 'text <- parameter LOGIN_SECRET (secret, required)',
     expectedSource: { kind: 'secret', name: 'LOGIN_SECRET', declaredType: 'secret' },
-    variables: { LOGIN_SECRET: 'VARIABLE_SECRET_MISMATCH_RAW_38161' },
-    secrets: { LOGIN_SECRET: 'SECRET_BINDING_RAW_38161' },
+    variables: { LOGIN_SECRET: 'VARIABLE_SECRET_MISMATCH_RAW_PLANT' },
+    secrets: { LOGIN_SECRET: 'SECRET_BINDING_RAW_PLANT' },
     rawSentinels: [
-      'VARIABLE_SECRET_MISMATCH_RAW_38161',
-      'SECRET_BINDING_RAW_38161',
+      'VARIABLE_SECRET_MISMATCH_RAW_PLANT',
+      'SECRET_BINDING_RAW_PLANT',
     ],
   },
   {
@@ -389,15 +389,15 @@ const sourceAssociationPolarityRows: SourceAssociationPolarityRow[] = [
     parameters: [],
     values: { text: { param: 'UNDECLARED_SOURCE' } },
     expectedSlot: 'text <- parameter UNDECLARED_SOURCE (undeclared)',
-    variables: { UNDECLARED_SOURCE: 'UNDECLARED_RAW_38161' },
-    rawSentinels: ['UNDECLARED_RAW_38161'],
+    variables: { UNDECLARED_SOURCE: 'UNDECLARED_RAW_PLANT' },
+    rawSentinels: ['UNDECLARED_RAW_PLANT'],
   },
   {
     name: 'literal-omitted slot',
     parameters: [],
-    values: { text: 'LITERAL_OMITTED_RAW_38161' },
+    values: { text: 'LITERAL_OMITTED_RAW_PLANT' },
     expectedSlot: 'text <- stored literal omitted',
-    rawSentinels: ['LITERAL_OMITTED_RAW_38161'],
+    rawSentinels: ['LITERAL_OMITTED_RAW_PLANT'],
   },
 ]
 
@@ -676,7 +676,7 @@ describe('procedure guarded replay', () => {
         type: 'fill',
         target: missingTarget,
         values: row.values,
-        instruction: 'AUTHORED_SOURCE_ASSOCIATION_PROSE_38161',
+        instruction: 'AUTHORED_SOURCE_ASSOCIATION_PROSE_PLANT',
       })
       const reader = makeReader({
         match: makeMatch({ parameterSchema: row.parameters }),
@@ -735,7 +735,7 @@ describe('procedure guarded replay', () => {
             + `declaredType=${row.expectedSource.declaredType}); not unresolved`,
         )
       }
-      expect(learned).not.toContain('AUTHORED_SOURCE_ASSOCIATION_PROSE_38161')
+      expect(learned).not.toContain('AUTHORED_SOURCE_ASSOCIATION_PROSE_PLANT')
       for (const sentinel of row.rawSentinels) {
         expect(learned).not.toContain(sentinel)
       }
@@ -1158,7 +1158,7 @@ describe('procedure guarded replay', () => {
         { name: 'SECRET_NAME', type: 'secret', required: true },
       ],
       steps: [{
-        instruction: 'AUTHORED_RECOVERY_PROSE_38155',
+        instruction: 'AUTHORED_RECOVERY_PROSE_SENTINEL',
         action: {
           type: 'fill',
           targets: { ref: { role: 'textbox', nameNormalized: 'mask-me-missing' } },
@@ -1166,34 +1166,34 @@ describe('procedure guarded replay', () => {
             text: { param: 'VAR_NAME' },
             clickDelay: { param: 'MEM_NAME' },
             secretField: { param: 'SECRET_NAME' },
-            literalField: 'LITERAL_RAW_38155',
-            jsonField: { json: { nested: 'JSON_RAW_38155' } },
+            literalField: 'LITERAL_RAW_SENTINEL',
+            jsonField: { json: { nested: 'JSON_RAW_SENTINEL' } },
           },
         },
         guard: {
           target: { role: 'textbox', nameNormalized: 'mask-me-missing' },
           pageAnchor: {
             t: 'page',
-            route: 'https://example.test/login?STORED_QUERY_RAW_38155',
+            route: 'https://example.test/login?STORED_QUERY_RAW_SENTINEL',
           },
         },
       }],
       successAssertion: 'The action completed',
     }
     const baseScreen = makeScreenState({
-      url: 'https://example.test/login?LIVE_QUERY_RAW_38155',
+      url: 'https://example.test/login?LIVE_QUERY_RAW_SENTINEL',
     })
     const screen: ScreenState = {
       ...baseScreen,
-      tree: `${baseScreen.tree}\nTREE_RAW_38155`,
+      tree: `${baseScreen.tree}\nTREE_RAW_SENTINEL`,
       elements: baseScreen.elements.map((element, index) =>
         index === 0
           ? {
               ...element,
-              ref: asRef('SCREEN_REF_RAW_38155'),
-              value: 'SCREEN_VALUE_RAW_38155',
-              labels: { ariaLabel: 'SCREEN_LABEL_RAW_38155' },
-              attributes: { sentinel: 'SCREEN_ATTRIBUTE_RAW_38155' },
+              ref: asRef('SCREEN_REF_RAW_SENTINEL'),
+              value: 'SCREEN_VALUE_RAW_SENTINEL',
+              labels: { ariaLabel: 'SCREEN_LABEL_RAW_SENTINEL' },
+              attributes: { sentinel: 'SCREEN_ATTRIBUTE_RAW_SENTINEL' },
             }
           : element
       ),
@@ -1212,20 +1212,20 @@ describe('procedure guarded replay', () => {
         planner: planner.planner,
         knowledgeReader: spy.reader,
         recordLedger: ledgerSpy.ledger,
-        workingMemory: makeWorkingMemory([{ key: 'MEM_NAME', value: 'MEMORY_RAW_38155' }]),
-        secretStore: new SecretStore({ SECRET_NAME: 'SECRET_RAW_38155' }),
-        secretRedactor: new SecretRedactor(new SecretStore({ DESCRIPTOR_38155: 'mask-me-missing' })),
+        workingMemory: makeWorkingMemory([{ key: 'MEM_NAME', value: 'MEMORY_RAW_SENTINEL' }]),
+        secretStore: new SecretStore({ SECRET_NAME: 'SECRET_RAW_SENTINEL' }),
+        secretRedactor: new SecretRedactor(new SecretStore({ DESCRIPTOR_SENTINEL: 'mask-me-missing' })),
       }),
       context({
-        variables: { VAR_NAME: 'VARIABLE_RAW_38155' },
-        interpolatedVariables: [{ name: 'VAR_NAME', value: 'VARIABLE_RAW_38155' }],
+        variables: { VAR_NAME: 'VARIABLE_RAW_SENTINEL' },
+        interpolatedVariables: [{ name: 'VAR_NAME', value: 'VARIABLE_RAW_SENTINEL' }],
       }),
     )
 
     expect(result.status).toBe('passed')
     expect(planner.calls).toHaveLength(1)
     const learned = `${planner.calls[0].l1 ?? ''}\n${planner.calls[0].l2 ?? ''}`
-    expect(learned).toContain('name=[secret:DESCRIPTOR_38155]')
+    expect(learned).toContain('name=[secret:DESCRIPTOR_SENTINEL]')
     expect(learned).not.toContain('mask-me-missing')
     expect(learned).toContain('text <- parameter VAR_NAME (string, required)')
     expect(learned).toContain('clickDelay <- parameter MEM_NAME (number, optional)')
@@ -1238,19 +1238,19 @@ describe('procedure guarded replay', () => {
     expect(learned).toContain('interpolatedInCurrentStep=true')
     expect(learned).not.toContain('its value is already present there')
     for (const forbidden of [
-      'VARIABLE_RAW_38155',
-      'MEMORY_RAW_38155',
-      'SECRET_RAW_38155',
-      'LITERAL_RAW_38155',
-      'JSON_RAW_38155',
-      'AUTHORED_RECOVERY_PROSE_38155',
-      'TREE_RAW_38155',
-      'SCREEN_REF_RAW_38155',
-      'SCREEN_VALUE_RAW_38155',
-      'SCREEN_LABEL_RAW_38155',
-      'SCREEN_ATTRIBUTE_RAW_38155',
-      'STORED_QUERY_RAW_38155',
-      'LIVE_QUERY_RAW_38155',
+      'VARIABLE_RAW_SENTINEL',
+      'MEMORY_RAW_SENTINEL',
+      'SECRET_RAW_SENTINEL',
+      'LITERAL_RAW_SENTINEL',
+      'JSON_RAW_SENTINEL',
+      'AUTHORED_RECOVERY_PROSE_SENTINEL',
+      'TREE_RAW_SENTINEL',
+      'SCREEN_REF_RAW_SENTINEL',
+      'SCREEN_VALUE_RAW_SENTINEL',
+      'SCREEN_LABEL_RAW_SENTINEL',
+      'SCREEN_ATTRIBUTE_RAW_SENTINEL',
+      'STORED_QUERY_RAW_SENTINEL',
+      'LIVE_QUERY_RAW_SENTINEL',
       '{{secret:SECRET_NAME}}',
       'ref=e1',
       'ref=e2',
@@ -1261,7 +1261,7 @@ describe('procedure guarded replay', () => {
 
   it('drops dynamic grounding errors and refs at the typed grounding-gate location', async () => {
     const baseScreen = makeScreenState()
-    const gateRef = asRef('GATE_ERROR_REF_RAW_38155')
+    const gateRef = asRef('GATE_ERROR_REF_RAW_SENTINEL')
     const screen: ScreenState = {
       ...baseScreen,
       elements: baseScreen.elements.map((element) =>
@@ -1282,7 +1282,7 @@ describe('procedure guarded replay', () => {
       type: 'click',
       target: { role: 'button', nameNormalized: 'gate target', name: 'Gate target' },
       values: {},
-      instruction: 'AUTHORED_GATE_PROSE_38155',
+      instruction: 'AUTHORED_GATE_PROSE_SENTINEL',
     })
     const spy = makeReader({ match: makeMatch({ parameterSchema: [] }), payload })
     const { adapter, executed } = capturingAdapter([screen])
@@ -1303,9 +1303,9 @@ describe('procedure guarded replay', () => {
     expect(learned).toContain('miss location: grounding-gate')
     expect(learned).toContain('role=button; name=Gate target')
     expect(learned).not.toContain('fresh same-role candidates:')
-    expect(learned).not.toContain('GATE_ERROR_REF_RAW_38155')
+    expect(learned).not.toContain('GATE_ERROR_REF_RAW_SENTINEL')
     expect(learned).not.toContain('ref_not_in_snapshot')
-    expect(learned).not.toContain('AUTHORED_GATE_PROSE_38155')
+    expect(learned).not.toContain('AUTHORED_GATE_PROSE_SENTINEL')
     expect(result.evidence?.planSource).toMatchObject({
       guard: { miss: { reason: 'gate-refused' } },
     })

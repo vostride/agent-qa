@@ -136,7 +136,7 @@ async function replanAfterFailure(cautions: ServedCautions): ReturnType<typeof e
 }
 
 describe('a turn that injected ZERO cautions still lands the reader cut ledger', () => {
-  it('Shape A: the reader ranked candidates and cut them all', async () => {
+  it('the reader ranked candidates and cut them all', async () => {
     const served = await replanAfterFailure(servedCautions(
       { cautions: [], budgetUsed: 0, admissions: [] },
       {
@@ -153,7 +153,7 @@ describe('a turn that injected ZERO cautions still lands the reader cut ledger',
     expect(persisted?.servedLines).toEqual([])
   })
 
-  it('Shape A leaves the ServedBrief bytes exactly where the no-caution baseline left them', async () => {
+  it('a ranked-and-cut brief leaves the ServedBrief bytes where the no-caution baseline left them', async () => {
     // Compared with a real replan that served no caution trace, so only the trace differs.
     const laden = await replanAfterFailure(servedCautions(
       { cautions: [], budgetUsed: 0, admissions: [] },

@@ -34,7 +34,7 @@ an empty policy. Add rules below this comment block to activate them.
 -->
 `
 
-const PHASE_383_ACTIVE_POLICY = `Never submit real payment or checkout forms on automationexercise.com.
+const ACTIVE_POLICY = `Never submit real payment or checkout forms on automationexercise.com.
 Dismiss cookie or consent dialogs before interacting with page content.
 `
 
@@ -81,13 +81,13 @@ describe('authored policy ladder', () => {
   it('preserves the two active authored policy lines byte-for-byte', () => {
     writePolicy(
       'policies/global.md',
-      `${INIT_GLOBAL_POLICY_SCAFFOLD}${PHASE_383_ACTIVE_POLICY}`,
+      `${INIT_GLOBAL_POLICY_SCAFFOLD}${ACTIVE_POLICY}`,
     )
 
     const result = readPolicyLadder(knowledgeRoot)
 
-    expect(result.text).toBe(`\n${PHASE_383_ACTIVE_POLICY}`)
-    expect(Buffer.from(result.text.slice(1))).toEqual(Buffer.from(PHASE_383_ACTIVE_POLICY))
+    expect(result.text).toBe(`\n${ACTIVE_POLICY}`)
+    expect(Buffer.from(result.text.slice(1))).toEqual(Buffer.from(ACTIVE_POLICY))
     expect(result.files).toEqual(['policies/global.md'])
   })
 

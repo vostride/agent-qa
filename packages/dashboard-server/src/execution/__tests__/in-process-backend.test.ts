@@ -518,7 +518,7 @@ describe('the spawn vocabulary is gone from this module', () => {
   })
 
   // Each needle is built from two halves, so the assertion is not itself a text-search hit.
-  it('NO PER-RUN EVENT BUFFER, NO COUNTER, NO SECOND EMISSION', () => {
+  it('keeps no per-run event buffer, no counter and no second emission', () => {
     expect(code).not.toContain('event' + 'Buffers')
     expect(code).not.toContain('event' + 'Counters')
     expect(code).not.toContain('push' + 'Event')

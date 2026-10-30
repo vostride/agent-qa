@@ -46,7 +46,7 @@ async function execute(options: {
   finalFailure?: boolean
   secondMember?: boolean
 } = {}) {
-  const secretRedactor = new SecretRedactor(new SecretStore({ ORIGIN_420: secret }))
+  const secretRedactor = new SecretRedactor(new SecretStore({ ORIGIN_KEY: secret }))
   const planner = { plan: vi.fn() }
   const adapterExecute = vi.fn(async () => ({ success: true }))
   const events: RunEventEnvelope[] = []

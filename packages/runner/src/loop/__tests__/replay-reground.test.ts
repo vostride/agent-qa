@@ -112,7 +112,7 @@ describe('replay re-ground mapping', () => {
     expect(plannerSpy).toHaveBeenCalledTimes(1) // ambiguity never first-picks — it replans
   })
 
-  it('a cached drag replays with BOTH fromRef and toRef re-resolved from per-field locators (Pitfall 5a)', async () => {
+  it('a cached drag replays with BOTH fromRef and toRef re-resolved from per-field locators', async () => {
     const fresh = screenWith([el('e5', 'listitem', 'Row one'), el('e6', 'listitem', 'Row two')])
     const cachedDrag: CachedPlanValue = {
       plannedActions: [{ type: 'drag', fromRef: 'stale-from', toRef: 'stale-to' } as unknown as CacheablePlannedAction],

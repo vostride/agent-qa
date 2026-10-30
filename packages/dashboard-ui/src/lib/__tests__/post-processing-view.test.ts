@@ -621,7 +621,7 @@ describe('a card times the stage from the job row, and never from a clock of its
         'complete',
       ),
       'the load-bearing half: every terminal transition releases the lease, so a card that timed '
-        + 'from it could never answer how long a settled stage took — the question D-12 was written for',
+        + 'from it could never answer how long a settled stage took',
     ).toBe(`Queued ${clock()}`)
   })
 

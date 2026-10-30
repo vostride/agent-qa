@@ -672,7 +672,7 @@ describe("useConfigAutosave landed-write mirror for set-if-absent, move and expe
               name: "proxy",
               provider: "openai-compatible",
               model: "gpt-4.1",
-              providerHeaders: { "X-Org": "[secret:PW_441]" },
+              providerHeaders: { "X-Org": "[secret:PW_KEY]" },
             },
           ],
         },
@@ -690,7 +690,7 @@ describe("useConfigAutosave landed-write mirror for set-if-absent, move and expe
     expect(
       await landExplicit([{ op: "move", from: [...headers, "X-Org"], path: [...headers, "X-Team"] }]),
     ).toBe(true)
-    expect(hook!.valueOf(proxyHeader("X-Team"))).toBe("[secret:PW_441]")
+    expect(hook!.valueOf(proxyHeader("X-Team"))).toBe("[secret:PW_KEY]")
     expect(hook!.valueOf(proxyHeader("X-Org"))).toBeUndefined()
     expect(JSON.stringify(loadedConfig())).not.toContain("X-Org")
 
@@ -911,7 +911,7 @@ describe("useConfigAutosave a Retry with nothing to send", () => {
 
 // A field shown through the declared mask is sent only when the person edits it.
 describe("useConfigAutosave and masked secret fields", () => {
-  const MARKER = "[secret:PW_441]"
+  const MARKER = "[secret:PW_KEY]"
   const buildTag: ConfigFieldRef = { segments: ["use", "buildTag"], tab: "execution" }
   const workers: ConfigFieldRef = { segments: ["use", "workers"], tab: "execution" }
 

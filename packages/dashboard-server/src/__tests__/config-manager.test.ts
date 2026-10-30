@@ -964,21 +964,21 @@ describe('declared secrets in the config editor', () => {
       '',
     ].join('\n'))
 
-    const read = await new ConfigManager(configPath, declaredMask('Hunter-42-zz', 'PW_441')).readMasked()
+    const read = await new ConfigManager(configPath, declaredMask('Hunter-42-zz', 'PW_KEY')).readMasked()
 
     expect(read.kind).toBe('ok')
     if (read.kind !== 'ok') return
     const config = read.config as { registry: { llms: Array<{ providerHeaders: Record<string, string> }> }; use: Record<string, unknown> }
     expect(config.registry.llms[0]!.providerHeaders['X-Api-Key']).toBe('plain-441-value')
-    expect(config.use.buildTag).toBe('[secret:PW_441]')
+    expect(config.use.buildTag).toBe('[secret:PW_KEY]')
     expect(read.lines).toContainEqual({ n: 8, text: '        X-Api-Key: plain-441-value' })
-    expect(read.lines).toContainEqual({ n: 10, text: '  buildTag: [secret:PW_441]' })
+    expect(read.lines).toContainEqual({ n: 10, text: '  buildTag: [secret:PW_KEY]' })
     expect(read.lines.every((line) => !('class' in line))).toBe(true)
     expect(JSON.stringify(read)).not.toContain('Hunter-42-zz')
   })
 
   it('a validation message shows a declared value as its marker', async () => {
-    const declared = new ConfigManager(configPath, declaredMask('Hunter-42-zz', 'PW_441'))
+    const declared = new ConfigManager(configPath, declaredMask('Hunter-42-zz', 'PW_KEY'))
     await writeFile(configPath, ORDERED_CONFIG.replace('  llm: planner', '  llm: Hunter-42-zz'))
 
     const read = await declared.readMasked()
@@ -987,7 +987,7 @@ describe('declared secrets in the config editor', () => {
     if (read.kind !== 'ok') return
     const readMessages = read.fileIssues.map((issue) => issue.message)
     expect(JSON.stringify(read.fileIssues)).not.toContain('Hunter-42-zz')
-    expect(readMessages.some((message) => message.includes('[secret:PW_441]')), JSON.stringify(readMessages)).toBe(true)
+    expect(readMessages.some((message) => message.includes('[secret:PW_KEY]')), JSON.stringify(readMessages)).toBe(true)
 
     await writeFile(configPath, ORDERED_CONFIG)
     const refused = await declared.applyChanges([{ op: 'set', path: ['use', 'llm'], value: 'Hunter-42-zz' }])
@@ -995,7 +995,7 @@ describe('declared secrets in the config editor', () => {
     if (refused.kind !== 'refused') return
     const writeMessages = (refused.issues ?? []).map((issue) => issue.message)
     expect(JSON.stringify(refused)).not.toContain('Hunter-42-zz')
-    expect(writeMessages.some((message) => message.includes('[secret:PW_441]')), JSON.stringify(writeMessages)).toBe(true)
+    expect(writeMessages.some((message) => message.includes('[secret:PW_KEY]')), JSON.stringify(writeMessages)).toBe(true)
 
     await writeFile(configPath, ORDERED_CONFIG.replace('  llm: planner', '  llm: q7'))
     const short = await declared.readMasked()
@@ -1004,10 +1004,10 @@ describe('declared secrets in the config editor', () => {
     expect(short.fileIssues.some((issue) => issue.message.includes('q7')), JSON.stringify(short.fileIssues)).toBe(true)
 
     await writeFile(configPath, 'a: b: compact\n')
-    const broken = await new ConfigManager(configPath, declaredMask('compact', 'PW_441')).readMasked()
+    const broken = await new ConfigManager(configPath, declaredMask('compact', 'PW_KEY')).readMasked()
     expect(broken.kind).toBe('file_invalid')
     if (broken.kind !== 'file_invalid') return
-    expect(broken.message).toContain('[secret:PW_441]')
+    expect(broken.message).toContain('[secret:PW_KEY]')
     expect(broken.message).not.toContain('compact')
     const unloadable = await new ConfigManager(configPath, () => { throw new Error('a: b: compact') }).readMasked()
     expect(unloadable).toMatchObject({ kind: 'file_invalid', message: 'The config file is not valid YAML.' })

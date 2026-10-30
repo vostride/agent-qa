@@ -309,7 +309,7 @@ describe('IMAGE-MASK-WITHHOLD', () => {
   it('(b) masking that altered the encoded bytes withholds the image and the altered result', async () => {
     const planted = PNG_BASE64.slice(20, 36)
     const result = await fetchArtifact(
-      await connect(registryOver(blobsOf({ [RUN]: [PNG] })), standInMask('IMAGE_441', planted)),
+      await connect(registryOver(blobsOf({ [RUN]: [PNG] })), standInMask('IMAGE_KEY', planted)),
       PNG,
     )
 
@@ -344,7 +344,7 @@ const ALPHA = `r_${ALPHA_SECRET}`
 const BETA = `r_${BETA_SECRET}`
 
 function maskerFor(secret: string): { readonly mask: (text: string) => string; readonly dispose: () => void } {
-  return { mask: standInMask('RUN_441', secret), dispose: () => undefined }
+  return { mask: standInMask('RUN_KEY', secret), dispose: () => undefined }
 }
 
 describe('EVIDENCE-ISOLATION', () => {

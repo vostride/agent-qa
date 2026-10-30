@@ -36,7 +36,7 @@ function fixture() {
     adapter, planner: makePlanner(), plannerModel: fakeModel, verifierModel: fakeModel,
     sink: createMemberEventSink({ bus, mask: (text) => text, testIndex: 3 }), testIndex: 3,
     abortSignal: abort.signal,
-    secretRedactor: new SecretRedactor(new SecretStore({ LIVE_423: secret })),
+    secretRedactor: new SecretRedactor(new SecretStore({ LIVE_KEY: secret })),
     evidenceArtifacts: {
       persistDecisionScreenshot: () => ({ id: `decision-screenshot:${'a'.repeat(64)}`, sha: 'a'.repeat(64) }),
       getBlob: () => undefined,
@@ -65,7 +65,7 @@ test('VARIABLE-FINAL: capture replaces the seed only before the single final sna
   } })
   await runMemberTest(f.member, f.config)
   expect(f.terminals()).toHaveLength(1)
-  expect(f.terminals()[0].variableSnapshot).toEqual({ captured: { value: '[secret:LIVE_423]', source: 'capture' } })
+  expect(f.terminals()[0].variableSnapshot).toEqual({ captured: { value: '[secret:LIVE_KEY]', source: 'capture' } })
   expect(f.terminals()[0].evidence?.variables).toEqual({ kind: 'variables', state: 'present', counts: { count: 1 } })
 })
 
@@ -174,7 +174,7 @@ test('EVID-A11Y-PRESENT: one live-masked document retains all violations and exa
   await runMemberTest(f.member, f.config)
   expect(f.config.accessibilityCheck).toHaveBeenCalledTimes(1)
   expect(f.documents).toEqual([{ schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'a11y',
-    records: JSON.parse(JSON.stringify(violations()).replaceAll(secret, '[secret:LIVE_423]')) }])
+    records: JSON.parse(JSON.stringify(violations()).replaceAll(secret, '[secret:LIVE_KEY]')) }])
   expect(f.terminals()).toHaveLength(1)
   expect(f.terminals()[0].evidence?.a11y).toEqual({ kind: 'a11y', state: 'present',
     ref: { id: `a11y-evidence:${'b'.repeat(64)}`, sha: 'b'.repeat(64) },
@@ -287,7 +287,7 @@ test.each(['abort', 'throw'] as const)('EVID-ABORT-BEFORE: extraction %s retains
   expect(f.terminals()).toHaveLength(1)
   expect(f.terminals()[0].status).toBe(kind === 'abort' ? 'cancelled' : 'failed')
   expect(f.terminals()[0].evidence?.a11y).toMatchObject({ state: 'present', counts: { critical: 2 } })
-  expect(result.steps[0].accessibilityViolations).toEqual(JSON.parse(JSON.stringify(violations()).replaceAll(secret, '[secret:LIVE_423]')))
+  expect(result.steps[0].accessibilityViolations).toEqual(JSON.parse(JSON.stringify(violations()).replaceAll(secret, '[secret:LIVE_KEY]')))
   expect(f.terminals()[0].variableSnapshot).toEqual({ prior: { value: 'retained', source: 'inline' } })
   expect(f.terminals()[0].evidence?.console).toMatchObject({ reason: 'not-captured' })
 })
@@ -349,13 +349,13 @@ test('EVID-WEB-PRESENT: live masked records/counts publish after a11y and variab
   const result = await runMemberTest(f.member, f.config)
   expect(terminalsAtA11y).toBe(0)
   expect(subActionsAtA11y).toBeGreaterThan(0)
-  expect(result.steps[0].variableSnapshot?.captured.value).toBe('[secret:LIVE_423]')
+  expect(result.steps[0].variableSnapshot?.captured.value).toBe('[secret:LIVE_KEY]')
   expect(f.terminals()).toHaveLength(1)
   expect(f.terminals()[0].evidence?.console).toEqual({ kind: 'console', state: 'present',
     ref: { id: `console-evidence:${'b'.repeat(64)}`, sha: 'b'.repeat(64) },
     counts: { total: 2, errors: 1, warnings: 1 } })
   expect(f.documents).toEqual([{ schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'console', records: [
-    { level: 'warn', text: '[secret:LIVE_423]', timestamp: 20, location: { url: 'https://example.test/[secret:LIVE_423]', lineNumber: 2, columnNumber: 1 } },
+    { level: 'warn', text: '[secret:LIVE_KEY]', timestamp: 20, location: { url: 'https://example.test/[secret:LIVE_KEY]', lineNumber: 2, columnNumber: 1 } },
     { level: 'error', text: 'second', timestamp: 10 },
   ] }])
   expect(JSON.stringify(f.documents)).not.toContain(secret)
@@ -399,7 +399,7 @@ test('NETWORK-MULTIPAGE: all drained page records survive in capture order witho
 
 test('NETWORK-BYTE-STRESS: 600 request plus response 32-KiB bodies retain masked bounds and small row facts', async () => {
   const f = fixture()
-  const declared: Record<string, string> = { LIVE_423: secret }
+  const declared: Record<string, string> = { LIVE_KEY: secret }
   for (let index = 0; index < 20; index++) declared[`UNUSED_${index}`] = `synthetic-unused-secret-${index}`
   const redactor = new SecretRedactor(new SecretStore(declared))
   f.config.secretRedactor = redactor
@@ -424,7 +424,7 @@ test('NETWORK-BYTE-STRESS: 600 request plus response 32-KiB bodies retain masked
   const document = f.documents[0]
   if (document.kind !== 'network') throw new Error('Expected network')
   for (const record of document.records) {
-    expect(record.body).toContain('[secret:LIVE_423]')
+    expect(record.body).toContain('[secret:LIVE_KEY]')
     expect(record.requestBody).toBe(record.body)
     expect(Buffer.byteLength(record.body!)).toBeLessThanOrEqual(32768)
   }
@@ -736,7 +736,7 @@ test.each(['missing-mask', 'missing-store', 'bad-ref', 'missing-drain'] as const
 
 describe('run records mask declared values in ARIA, console, accessibility and variable evidence', () => {
   const email = 'qa.user@example.com'
-  const marker = '[secret:LIVE_423]'
+  const marker = '[secret:LIVE_KEY]'
 
   function memberWithEveryDocument() {
     const f = fixture()

@@ -906,7 +906,7 @@ describe('LiveSession', () => {
   })
 
   // The session has no screenshot getter; the hub's lazy snapshot producer is the only capture.
-  it('getScreenshot delegates to adapter', async () => {
+  it('a live session exposes no getScreenshot and takes no screenshot', async () => {
     await session.initialize(webConfig)
     expect('getScreenshot' in session).toBe(false)
     expect(mockScreenshot).not.toHaveBeenCalled()

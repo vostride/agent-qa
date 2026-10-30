@@ -108,7 +108,7 @@ import { IOSPlatformAdapter } from '../adapter.js'
 
 type ExecAction = Parameters<IOSPlatformAdapter['execute']>[0]
 
-describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
+describe('IOSPlatformAdapter compound behaviors', () => {
   let adapter: IOSPlatformAdapter
   let mockDriver: ReturnType<typeof createMockDriver>
 
@@ -188,7 +188,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(JSON.stringify(result)).not.toContain('topSecretPw')
     })
 
-    it('mismatch yields success:false + §7.1 error + fillReread meta, single-shot typing', async () => {
+    it('mismatch yields success:false + error + fillReread meta, single-shot typing', async () => {
       await adapter.setup({ platform: 'ios' })
       const ref = await refFor('Email')
       fieldValueReturn = 'wrong'
@@ -221,7 +221,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
   })
 
   describe('scroll untilVisible escapes or refuses a hostile predicate target', () => {
-    it('tries native mobile: scroll with a CONTAINS predicateString FIRST (A5)', async () => {
+    it('tries native mobile: scroll with a CONTAINS predicateString FIRST', async () => {
       await adapter.setup({ platform: 'ios' })
       await adapter.observe()
 
@@ -349,7 +349,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(result.metadata?.openApp).toMatchObject({ resolvedId: 'com.apple.mobilecal' })
     })
 
-    it('simulator lane: listApps throwing ⇒ appName variant returns a structured §7.1 error recommending an exact bundleId, never a crash', async () => {
+    it('simulator lane: listApps throwing ⇒ appName variant returns a structured error recommending an exact bundleId, never a crash', async () => {
       listAppsThrows = true
       await adapter.setup({ platform: 'ios' })
 
@@ -359,7 +359,7 @@ describe('IOSPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(result.error).toMatch(/bundleId/i)
     })
 
-    it('explicit {bundleId} with registry unavailable: invalid bundle NEVER yields success true (A2 fallback)', async () => {
+    it('explicit {bundleId} with registry unavailable: invalid bundle NEVER yields success true', async () => {
       listAppsThrows = true
       isAppInstalledReturn = false
       await adapter.setup({ platform: 'ios' })

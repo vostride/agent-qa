@@ -104,7 +104,7 @@ function countingRunPort(): DraftRunPortLike & { starts: RunsStartInput[] } {
     starts,
     async start(input) {
       starts.push(input)
-      throw new Error('the funnel read started a run — D-14 is read-side')
+      throw new Error('the funnel read started a run — the funnel is read-side only')
     },
     async get() {
       return undefined

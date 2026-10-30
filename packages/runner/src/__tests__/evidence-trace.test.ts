@@ -212,7 +212,7 @@ describe('StepEvidence carries the serve-time trace beside servedBrief', () => {
     expect(ServedRetrievalTraceV1Schema.safeParse(folded).success).toBe(true)
   })
 
-  it('Shape B: records the cut ledger when the ledger refused every caution the reader served', () => {
+  it('records the cut ledger when the ledger refused every caution the reader served', () => {
     const recorder = new EvidenceRecorder()
     recorder.recordServedCautions(
       [],
@@ -232,7 +232,7 @@ describe('StepEvidence carries the serve-time trace beside servedBrief', () => {
     expect(ServedRetrievalTraceV1Schema.safeParse(evidence.retrievalTrace).success).toBe(true)
   })
 
-  it('Shape B leaves the ServedBrief digest untouched by a zero-injection recording', () => {
+  it('a refused-caution recording leaves the ServedBrief digest untouched', () => {
     // A zero-line channel append would churn the digest with no content, so the brief stays put.
     const recorder = new EvidenceRecorder()
     recorder.recordServedBrief({

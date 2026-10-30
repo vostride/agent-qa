@@ -129,25 +129,25 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
     allowed: true,
   },
   {
-    id: 'cli-session04-cancel-grace-default',
+    id: 'cli-cancel-grace-default',
     file: 'packages/cli/src/commands/run.ts',
     literal: '3000',
     contextIncludes: 'AGENT_QA_CANCEL_GRACE_MS',
     owner: 'CLI run shutdown',
-    scope: 'SESSION-04 force-exit backstop grace window',
+    scope: 'force-exit backstop grace window',
     lifecycleAffecting: true,
-    rationale: 'Default grace before the un-settleable-run force-exit backstop fires; overridable via AGENT_QA_CANCEL_GRACE_MS. Primary cancel guarantee is the shell settling done cleanly (Plan 361-13 Task 2); this is a hard safety net so a live Ctrl+C can never hang the CLI.',
+    rationale: 'Default grace before the un-settleable-run force-exit backstop fires; overridable via AGENT_QA_CANCEL_GRACE_MS. Primary cancel guarantee is the shell settling done cleanly; this is a hard safety net so a live Ctrl+C can never hang the CLI.',
     allowed: true,
   },
   {
-    id: 'cli-session04-cancel-force-exit-code',
+    id: 'cli-cancel-force-exit-code',
     file: 'packages/cli/src/commands/run.ts',
     literal: '130',
     contextIncludes: 'forceExit(130)',
     owner: 'CLI run shutdown',
-    scope: 'SESSION-04 force-exit backstop exit code',
+    scope: 'force-exit backstop exit code',
     lifecycleAffecting: true,
-    rationale: 'The SIGINT (130) exit code the bounded grace timer forces so a genuinely un-settleable run still exits; armed in both handleShutdown sites and cleared after session.done. Since 444-08 the timer exits through forceExit, which first closes this process\'s own still-running row.',
+    rationale: 'The SIGINT (130) exit code the bounded grace timer forces so a genuinely un-settleable run still exits; armed in both handleShutdown sites and cleared after session.done. The timer exits through forceExit, which first closes this process\'s own still-running row.',
     allowed: true,
   },
   {
@@ -158,7 +158,7 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
     owner: 'dashboard execution',
     scope: 'process watchdog',
     lifecycleAffecting: true,
-    rationale: 'Retired risk: hidden dashboard fallback killed local LLM runs before configured test timeouts. Re-homed onto the successor backend at 401-07 when test-runner.ts was deleted — the entry follows the seam, not the file name.',
+    rationale: 'Retired risk: hidden dashboard fallback killed local LLM runs before configured test timeouts. The entry follows the backend seam, not a file name.',
     allowed: false,
   },
   {
@@ -191,7 +191,7 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
     owner: 'dashboard routes',
     scope: 'persisted-row execution timeout positive guard',
     lifecycleAffecting: true,
-    rationale: 'G-401-18-CR01: `in-process-backend.ts` reads `opts.timeout ?? defaultTimeout` and '
+    rationale: '`in-process-backend.ts` reads `opts.timeout ?? defaultTimeout` and '
       + 'validates after, so a non-positive value DISARMS the default reclamation timer instead of '
       + 'falling back to it.',
     allowed: true,
@@ -204,7 +204,7 @@ const timeoutInventory: TimeoutInventoryEntry[] = [
     owner: 'dashboard routes',
     scope: 'persisted-row execution timeout ceiling',
     lifecycleAffecting: true,
-    rationale: 'G-401-18-CR01: a persisted `metadata.timeout` beyond a day is a reclamation timer '
+    rationale: 'a persisted `metadata.timeout` beyond a day is a reclamation timer '
       + 'that will never fire; over the ceiling the seam falls back to the backend default rather '
       + 'than arming it.',
     allowed: true,

@@ -297,11 +297,11 @@ describe('the core hygiene census, pinned to the core file', () => {
     const code = stripComments(readFileSync(CORE_SOURCE_PATH, 'utf8'))
 
     for (const resolver of AMBIENT_RESOLVERS) {
-      expect(code, `${resolver} is reachable from the core's CODE (D-07)`).not.toContain(resolver)
+      expect(code, `${resolver} is reachable from the core's CODE`).not.toContain(resolver)
     }
   })
 
-  it('NO evaluate() call-site lives in the core, and the pin no longer names it', () => {
+  it('no evaluate() call site lives in the core, and the evaluate pin names no core file', () => {
     const code = stripComments(readFileSync(CORE_SOURCE_PATH, 'utf8'))
     expect(code.match(/\bevaluate\s*\(/g) ?? []).toEqual([])
     expect(code).not.toContain('@vostride/agent-qa-safety\'\nimport { evaluate')

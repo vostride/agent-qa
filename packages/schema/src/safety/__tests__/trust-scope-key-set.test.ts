@@ -13,7 +13,7 @@ const SAFETY_DIR = join(dirname(fileURLToPath(import.meta.url)), '..')
 const SRC = join(SAFETY_DIR, '..')
 
 describe('the ONE scope key set', () => {
-  it('CONTROL B: the key set\'s module is deleted and no schema source declares the key set again', () => {
+  it('CONTROL: the key set\'s module is deleted and no schema source declares the key set again', () => {
     expect(existsSync(join(SAFETY_DIR, 'trust-credential.ts')), 'trust-credential.ts is back').toBe(false)
     const offenders: string[] = []
     const walk = (dir: string): void => {

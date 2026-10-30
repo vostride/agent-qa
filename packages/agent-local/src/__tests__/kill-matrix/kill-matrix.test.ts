@@ -340,7 +340,7 @@ describe('kill matrix: every registered kind x declared checkpoint x before/afte
         for (const checkpointId of recorded) {
           expect(
             authoredOnResume,
-            `a recorded checkpoint must never be authored again (JOBQ-03)`,
+            `a recorded checkpoint must never be authored again`,
           ).not.toContain(checkpointId)
         }
         if (pending.length === 0) {

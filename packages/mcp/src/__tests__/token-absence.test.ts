@@ -484,14 +484,14 @@ const PAST_THE_2027_TIME_BOMB = 2_000_000_000_000
 // ---- The law ------------------------------------------------------------------------------------
 
 describe('the minted liveUrl token reaches NO model-readable channel', () => {
-  it('(A0) CONTROL: the flow really minted, and the ONE legal channel really carries the tokens',
+  it('CONTROL: the flow really minted, and the ONE legal channel really carries the tokens',
     async () => {
       const flow = await driveFullFlow()
 
       // Non-vacuity, half one: a scan of a flow that minted nothing is green for the wrong reason.
       expect(flow.tokens.length, 'the flow minted no token at all — every absence below is vacuous')
         .toBeGreaterThan(0)
-      expect(flow.tokens.length, 'one mint per announced handle (D-06)').toBe(HANDLES.length)
+      expect(flow.tokens.length, 'one mint per announced handle').toBe(HANDLES.length)
 
       // Non-vacuity, half two: the excluded channel is excluded because it is the DESTINATION.
       // If the wrapper stopped carrying tokens, the exclusion would be protecting nothing and the
@@ -509,7 +509,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
         .toBeGreaterThanOrEqual(flow.tokens.length)
     })
 
-  it('(A1) ZERO occurrences across the WHOLE corpus', async () => {
+  it('ZERO occurrences across the WHOLE corpus', async () => {
     const flow = await driveFullFlow()
     const leaks = scanCorpus(flow.corpus, flow.tokens)
 
@@ -519,7 +519,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
     ).toEqual([])
   })
 
-  it('(A2) the corpus really covers the channels this law is about', async () => {
+  it('the corpus really covers the channels this law is about', async () => {
     const flow = await driveFullFlow()
     const channels = flow.corpus.map((entry) => entry.channel)
 
@@ -571,7 +571,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
     ).toBe('')
   })
 
-  it('(A3) every collected channel really ANSWERED — no absence over a dead channel', async () => {
+  it('every collected channel really ANSWERED — no absence over a dead channel', async () => {
     const flow = await driveFullFlow()
     const at = (channel: string): string =>
       flow.corpus.find((entry) => entry.channel === channel)?.text ?? ''
@@ -598,7 +598,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
     )
   })
 
-  it('(A9) MUTATION CONTROL: a real minted token threaded into a carrier result REDS the scan',
+  it('MUTATION CONTROL: a real minted token threaded into a carrier result REDS the scan',
     async () => {
       const flow = await driveFullFlow({ leak: true })
 
@@ -617,7 +617,7 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
       ).toContain('tools/call:agent_qa_get_run_digest:content[].text')
     })
 
-  it('(A10) the fixture clock and the renderer clock are ONE clock — a system time past 2027-01-15 still renders a document carrying a liveUrl',
+  it('the fixture clock and the renderer clock are ONE clock — a system time past `2027-01-15` still renders a document carrying a liveUrl',
     async () => {
       // THE STUB GOES IN FIRST, because the fixture reads `Date.now()` once when it is built — a
       // stub installed afterwards would measure nothing. A spy rather than fake timers,
@@ -631,15 +631,16 @@ describe('the minted liveUrl token reaches NO model-readable channel', () => {
         expect(
           flow.tokens.length,
           'the flow minted nothing under a system clock past 2027-01-15 — the fixture clock has '
-          + 'drifted away from the renderer clock again (WR-07)',
+          + 'drifted away from the renderer clock again',
         ).toBeGreaterThan(0)
 
         // The credential is in the document; an expired render would strip it and pass vacuously.
         const carried = flow.tokens.filter((token) => flow.wrapperHtml.includes(token))
         expect(
           carried.length,
-          'the served document carries no minted liveUrl under a future clock — (A1) would now be '
-          + 'green over an EMPTY render, which is the vacuity (A0) exists to prevent',
+          'the served document carries no minted liveUrl under a future clock — the zero-occurrence '
+          + 'cell would now be green over an EMPTY render, which is the vacuity the control exists to '
+          + 'prevent',
         ).toBeGreaterThan(0)
         expect(
           flow.wrapperHtml.includes(`${FIXTURE_ORIGIN}/live/${FIXTURE_RUN_ID}#`),

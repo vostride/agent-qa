@@ -9,14 +9,14 @@ const BEL = '\u0007'
 const NUL = '\u0000'
 
 // A literal, not read off a fixture, so input and expectation cannot go wrong together.
-const SEEDED_RED_399_QUOTE =
+const SEEDED_RED_QUOTE =
   'locator.click: Timeout 30000ms exceeded.\n'
   + 'Call log:\n'
   + `${ESC}[2m  - waiting for getByRole('button', { name: 'Close ad', exact: true }).first()`
   + `${ESC}[22m\n`
 
 // Every non-control word of the raw quote, in order, on one line.
-const SEEDED_RED_399_READABLE =
+const SEEDED_RED_READABLE =
   'locator.click: Timeout 30000ms exceeded. Call log: - waiting for '
   + "getByRole('button', { name: 'Close ad', exact: true }).first()"
 
@@ -26,9 +26,9 @@ describe('sanitizeQuoteText — control sequences out, whitespace collapsed', ()
   })
 
   it('renders the recorded seeded-red quote as the readable one-line form, verbatim', () => {
-    const sanitized = sanitizeQuoteText(SEEDED_RED_399_QUOTE)
+    const sanitized = sanitizeQuoteText(SEEDED_RED_QUOTE)
 
-    expect(sanitized).toBe(SEEDED_RED_399_READABLE)
+    expect(sanitized).toBe(SEEDED_RED_READABLE)
     // The meaning survives: nothing is truncated, so the reader still gets the locator.
     expect(sanitized).toContain('Close ad')
     expect(sanitized).not.toContain(ESC)
@@ -49,7 +49,7 @@ describe('sanitizeQuoteText — control sequences out, whitespace collapsed', ()
   })
 
   it('leaves a declared [secret:<name>] marker byte-identical — masking is never this function', () => {
-    const marker = '[secret:PW_441]'
+    const marker = '[secret:PW_KEY]'
     const sanitized = sanitizeQuoteText(`token ${marker} rejected${ESC}[0m`)
 
     expect(sanitized).toContain(marker)

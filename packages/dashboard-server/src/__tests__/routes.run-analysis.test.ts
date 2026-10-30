@@ -238,7 +238,7 @@ describe('GET /api/runs/:id/analysis', () => {
     expect(body.runId).toBe(RUN_ID)
     expect(body.verdicts, 'one failed member, one verdict').toHaveLength(1)
     expect(body.verdicts[0]?.perTest, 'the member HANDLE is the join key, never testId').toBe(0)
-    expect(body.verdicts[0]?.producer, 'the floor is the deterministic classifier until 406-02')
+    expect(body.verdicts[0]?.producer, 'the floor is the deterministic classifier')
       .toBe('deterministic-classifier')
     expect(body.verdicts[0]?.confidence).toBe(0)
     expect(body.verdicts[0]?.testId).toBe('t_checkout_0')

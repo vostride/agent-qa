@@ -123,8 +123,8 @@ async function expectOneInvokePerClause(
   return result
 }
 
-describe('C-HYG-CHAT-DISPATCH-CENSUS — every clause chat carries out crosses deps.invoke', () => {
-  it('C-HYG-CHAT-DISPATCH-CENSUS: the registry is the census denominator', () => {
+describe('every clause chat carries out crosses deps.invoke', () => {
+  it('the registry is the census denominator', () => {
     expect(REGISTRY_IDS.length).toBeGreaterThanOrEqual(40)
     expect(REGISTRY_IDS).toContain('quarantine.list')
     expect(REGISTRY_IDS).toContain('config.get')
@@ -151,7 +151,7 @@ describe('C-HYG-CHAT-DISPATCH-CENSUS — every clause chat carries out crosses d
     },
   )
 
-  it('C-HYG-CHAT-DISPATCH-CENSUS: a compound utterance dispatches each clause once, in order', async () => {
+  it('a compound utterance dispatches each clause once, in order', async () => {
     await expectOneInvokePerClause(
       census(),
       '/fn quarantine.list and status and /fn config.get',
@@ -159,7 +159,7 @@ describe('C-HYG-CHAT-DISPATCH-CENSUS — every clause chat carries out crosses d
     )
   })
 
-  it('C-HYG-CHAT-DISPATCH-CENSUS: a planner-bound clause dispatches once beside a table clause', async () => {
+  it('a planner-bound clause dispatches once beside a table clause', async () => {
     const target = census({
       planned: () => ({ toolCalls: [{ toolName: toToolName('quarantine.list'), input: {} }] }),
     })
@@ -170,7 +170,7 @@ describe('C-HYG-CHAT-DISPATCH-CENSUS — every clause chat carries out crosses d
     )
   })
 
-  it('C-HYG-CHAT-DISPATCH-CENSUS: the write_test route scaffolds and authors via deps.invoke', async () => {
+  it('the write_test route scaffolds and authors via deps.invoke', async () => {
     const target = census({
       targets: [],
       planned: (clauses) => ({

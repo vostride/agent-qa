@@ -237,7 +237,7 @@ describe('runs.marks.history contract', () => {
 
   it('HISTORY-MASK: note, root-cause producer and changed record content cross the live mask; identities do not', async () => {
     const secret = 'synthetic-sensitive-token'
-    const mask = declaredMask({ TOKEN_441: secret })
+    const mask = declaredMask({ TOKEN_KEY: secret })
     const entries: ReadEntry[] = [
       { receipt: receipt(1, { testIndex: 0, testId: 'member-a' }, { note: `note ${secret}`,
         rootCause: { class: 'app_bug', producer: `producer ${secret}` },
@@ -254,7 +254,7 @@ describe('runs.marks.history contract', () => {
     })
     expect(JSON.stringify(result)).not.toContain(secret)
 
-    expect(entry).toMatchObject({ note: 'note [secret:TOKEN_441]' })
+    expect(entry).toMatchObject({ note: 'note [secret:TOKEN_KEY]' })
     await expect(read(entries, null)).rejects.toThrow(/no declared-secret mask/)
     const unreadable = () => { throw new Error('synthetic unreadable secrets file') }
     await expect(read(entries, unreadable)).rejects.toThrow('synthetic unreadable secrets file')

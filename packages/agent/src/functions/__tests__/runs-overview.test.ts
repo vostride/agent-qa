@@ -760,12 +760,12 @@ describe('OVERVIEW-TRUNCATION: only labels and one-line summaries are cut', () =
   it('masks a declared multi-line secret before collapsing its line breaks', async () => {
     const secret = '-----BEGIN KEY-----\nT431-pem-sentinel\n-----END KEY-----'
     const scene = singleTestScene()
-    scene.secretMask = declaredMask({ PEM_441: secret })
+    scene.secretMask = declaredMask({ PEM_KEY: secret })
     scene.document = completed([member(0, 'test-checkout', `Sign with\n${secret}`, [
       handoffStep(0, `Paste ${secret} into the form`),
     ])])
     const result = JSON.stringify(await harness(scene).overview({ runId: RUN_ID }))
     expect(result).not.toContain('T431-pem-sentinel')
-    expect(result).toContain(JSON.stringify('Sign with [secret:PEM_441]').slice(1, -1))
+    expect(result).toContain(JSON.stringify('Sign with [secret:PEM_KEY]').slice(1, -1))
   })
 })

@@ -784,7 +784,7 @@ describe("projection text reaches the DOM as TEXT, never as markup", () => {
 })
 
 // Schema-valid projections drive the real `learnedView` into the component, the path a page takes.
-const RUN_423 = "run-423-24-learned"
+const RECORDED_RUN_ID = "run-423-24-learned"
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: "ready" }>
 type LearnedChange = ReadyProjection["learned"]["changes"][number]
 
@@ -801,7 +801,7 @@ function joinedContent(recordId: string): NonNullable<LearnedChange["recordConte
 
 function recorded(recordId: string, change: LearnedChange["change"], atOrdinal: number, extra: Partial<LearnedChange> = {}) {
   return {
-    schemaVersion: RECORD_CHANGE_SCHEMA_VERSION as typeof RECORD_CHANGE_SCHEMA_VERSION, recordId, change, atOrdinal, sourceRunId: RUN_423,
+    schemaVersion: RECORD_CHANGE_SCHEMA_VERSION as typeof RECORD_CHANGE_SCHEMA_VERSION, recordId, change, atOrdinal, sourceRunId: RECORDED_RUN_ID,
     evidenceToken: `receipt-${recordId}-${String(atOrdinal)}`, ...extra,
   }
 }
@@ -833,7 +833,7 @@ function readyProjection(
   counts?: { curated: number; deprecated: number },
 ): ReadyProjection {
   return RunKnowledgeProjectionSchema.parse({
-    kind: "ready", runId: RUN_423, buildOrdinal: 2, knowledgeStore: "bound", steps: [],
+    kind: "ready", runId: RECORDED_RUN_ID, buildOrdinal: 2, knowledgeStore: "bound", steps: [],
     curation: { status, ...(counts === undefined ? {} : { counts }) },
     learned: { changes: [], canaryAttributions: [], ...learned },
   }) as ReadyProjection

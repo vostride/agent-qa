@@ -253,7 +253,7 @@ describe.each(ADAPTERS)('web catalog RED — %s', (_label, factory) => {
       expect(mockContext.newCDPSession).toHaveBeenCalled()
       expect(calls).toContain('cdp:Network.emulateNetworkConditions')
     })
-    it('throttle on a non-Chromium context → structured §7.1 error naming the Chromium-only limitation, success false', async () => {
+    it('throttle on a non-Chromium context → structured error naming the Chromium-only limitation, success false', async () => {
       cdpSupported = false
       const r = await adapter.execute({ type: 'networkState', mode: 'throttle', latencyMs: 100, downloadKbps: 1000, uploadKbps: 500 } as unknown as ExecAction)
       expect(r.success).toBe(false)

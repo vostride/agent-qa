@@ -52,7 +52,7 @@ const MODULES = walk(SRC_ROOT).map((path) => ({
 }))
 
 describe('the dashboard run path', () => {
-  it('(i) THE SCANNER SEES WHAT IT FORBIDS — before any verdict about any module', () => {
+  it('the scanner sees what it forbids — before any verdict about any module', () => {
     // A planted source, run through the SAME comment filter, must still carry every token.
     const planted = codeOnly([
       '// a comment naming node:child_process, treeKill, SIGKILL and AGENT_QA_EVENT: proves nothing',
@@ -71,14 +71,14 @@ describe('the dashboard run path', () => {
     expect(MODULES.map((module) => module.path)).toContain('execution/in-process-backend.ts')
   })
 
-  it('(ii) THE COMPLETE SET — every module holding spawn vocabulary is one of the named survivors', () => {
+  it('every module holding spawn vocabulary is one of the named survivors', () => {
     const holders = MODULES
       .filter((module) => SPAWN_TOKENS.some((token) => module.code.includes(token)))
       .map((module) => module.path)
     expect([...holders].sort()).toEqual([...SPAWN_ALLOWED].sort())
   })
 
-  it('(iii) NOBODY SENDS A SIGNAL AT A CHILD ANY MORE — the two named survivors are a manifest and a receiver', () => {
+  it('nobody sends a signal at a child — the two named survivors are a manifest and a receiver', () => {
     // The allow-list above is exact, but "allowed" must not become "unexamined": these two are
     // allowed because of WHAT they do with the vocabulary, and that is the part a later edit could
     // silently change.
@@ -95,14 +95,14 @@ describe('the dashboard run path', () => {
     expect(server.code).toContain('executionBackend?.kill(runId)')
   })
 
-  it('(iv) THE SCRAPE PREFIX IS GONE FROM THE PACKAGE ENTIRELY — no survivors, named or otherwise', () => {
+  it('the scrape prefix is gone from the package — no survivors, named or otherwise', () => {
     const holders = MODULES
       .filter((module) => module.code.includes(SCRAPE_PREFIX))
       .map((module) => module.path)
     expect(holders).toEqual([])
   })
 
-  it('(v) THE RETIRED FILE IS GONE, and nothing production still names its class', () => {
+  it('the retired file is gone, and nothing production still names its class', () => {
     expect(MODULES.map((module) => module.path)).not.toContain('execution/test-runner.ts')
     const namers = MODULES
       .filter((module) => module.code.includes('TestRunner'))
@@ -115,7 +115,7 @@ describe('queue retries are retired', () => {
   const server = readFileSync(join(SRC_ROOT, 'server', 'server.ts'), 'utf8')
   const backendInterface = readFileSync(join(SRC_ROOT, 'execution', 'execution-backend.ts'), 'utf8')
 
-  it('NO RETRY CEILING REACHES THE BACKEND — the field is not on the options at all', () => {
+  it('no retry ceiling reaches the backend — the field is not on the options at all', () => {
     expect(codeOnly(backendInterface)).not.toContain('maxRetries')
     expect(codeOnly(backendInterface)).not.toContain('env?:')
     // The lease is data on the same options object, and it is optional.
@@ -127,7 +127,7 @@ describe('queue retries are retired', () => {
     expect(executeCall).not.toContain('maxRetries')
   })
 
-  it('THE APPIUM LEASE BLOCK IS UNTOUCHED — only the URL delivery moved', () => {
+  it('the Appium lease block is untouched — only the URL delivery moved', () => {
     // The acquisition, the per-run keying and the release paths are all still here; what is gone is
     // the child environment the URL used to ride in.
     expect(server).toContain('appiumManager.acquireLease({ runId: run.id, platform })')

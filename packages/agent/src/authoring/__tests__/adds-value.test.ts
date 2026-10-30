@@ -8,7 +8,7 @@ import {
 } from '../adds-value.js'
 import type { SuiteTextCorpusEntryLike } from '../ports.js'
 
-const UAT_381 = {
+const LOCAL_FORM_TEST = {
   filePath: 'demo/init/tests/local-form.yaml',
   testName: 'Sign in on the local account form',
   stepsText: [
@@ -42,7 +42,7 @@ describe('addsValueGate — the fingerprint lane', () => {
     const result = addsValueGate({
       draft: ACCEPT_CONTROL_TEXT,
       draftElements: ['el-username', 'el-heading'],
-      index: fakeFingerprintIndex([{ ...UAT_381, elements: ['el-username'] }]),
+      index: fakeFingerprintIndex([{ ...LOCAL_FORM_TEST, elements: ['el-username'] }]),
       textCorpus: [],
     })
 
@@ -55,7 +55,7 @@ describe('addsValueGate — the fingerprint lane', () => {
       draft: NEAR_DUPLICATE_DRAFT,
       draftElements: ['el-username', 'el-password', 'el-submit', 'el-received'],
       index: fakeFingerprintIndex([{
-        ...UAT_381,
+        ...LOCAL_FORM_TEST,
         elements: ['el-username', 'el-password', 'el-submit', 'el-received'],
       }]),
       textCorpus: [],
@@ -70,7 +70,7 @@ describe('addsValueGate — the fingerprint lane', () => {
       draft: ACCEPT_CONTROL_TEXT,
       draftElements: ['el-heading'],
       index: fakeFingerprintIndex([
-        { ...UAT_381, elements: ['el-username'] },
+        { ...LOCAL_FORM_TEST, elements: ['el-username'] },
         { filePath: 'demo/init/tests/ladder.yaml', testName: 'Ladder', elements: ['el-x'] },
       ]),
       textCorpus: [],
@@ -113,7 +113,7 @@ describe('addsValueGate — the fingerprint lane', () => {
     const result = addsValueGate({
       draft: ACCEPT_CONTROL_TEXT,
       draftElements: [...shared, 'el-novel'],
-      index: fakeFingerprintIndex([{ ...UAT_381, elements: shared }]),
+      index: fakeFingerprintIndex([{ ...LOCAL_FORM_TEST, elements: shared }]),
       textCorpus: [],
     })
 
@@ -129,11 +129,11 @@ describe('addsValueGate — the text fallback lane', () => {
       // A novel element on the fingerprint lane: the fingerprint lane alone would PASS this draft.
       draftElements: ['el-novel'],
       index: EMPTY_INDEX,
-      textCorpus: [UAT_381],
+      textCorpus: [LOCAL_FORM_TEST],
     })
 
     expect(result.pass).toBe(false)
-    const row = result.finding.comparedTests.find((entry) => entry.filePath === UAT_381.filePath)
+    const row = result.finding.comparedTests.find((entry) => entry.filePath === LOCAL_FORM_TEST.filePath)
     expect(row?.lane).toBe('text')
     expect(row?.covered).toBe(true)
   })
@@ -143,11 +143,11 @@ describe('addsValueGate — the text fallback lane', () => {
       draft: ACCEPT_CONTROL_TEXT,
       draftElements: ['el-heading'],
       index: EMPTY_INDEX,
-      textCorpus: [UAT_381],
+      textCorpus: [LOCAL_FORM_TEST],
     })
 
     expect(result.pass).toBe(true)
-    const row = result.finding.comparedTests.find((entry) => entry.filePath === UAT_381.filePath)
+    const row = result.finding.comparedTests.find((entry) => entry.filePath === LOCAL_FORM_TEST.filePath)
     expect(row?.lane).toBe('text')
     expect(row?.covered).toBe(false)
   })
@@ -155,8 +155,8 @@ describe('addsValueGate — the text fallback lane', () => {
   it('separates the corpus near-duplicate from the corpus accept control', () => {
     // The pair the pinned constant exists to separate. Recording both scores here means a retune
     // has to look at the margin it is spending, not just at the case it is trying to rescue.
-    const duplicateScore = textSimilarity(NEAR_DUPLICATE_DRAFT, UAT_381)
-    const controlScore = textSimilarity(ACCEPT_CONTROL_TEXT, UAT_381)
+    const duplicateScore = textSimilarity(NEAR_DUPLICATE_DRAFT, LOCAL_FORM_TEST)
+    const controlScore = textSimilarity(ACCEPT_CONTROL_TEXT, LOCAL_FORM_TEST)
 
     expect(duplicateScore).toBeGreaterThanOrEqual(TEXT_FALLBACK_SIMILARITY_THRESHOLD)
     expect(controlScore).toBeLessThan(TEXT_FALLBACK_SIMILARITY_THRESHOLD)
@@ -188,11 +188,11 @@ describe('addsValueGate — the text fallback lane', () => {
     const result = addsValueGate({
       draft: NEAR_DUPLICATE_DRAFT,
       draftElements: ['el-novel'],
-      index: fakeFingerprintIndex([{ ...UAT_381, elements: ['el-username'] }]),
-      textCorpus: [UAT_381],
+      index: fakeFingerprintIndex([{ ...LOCAL_FORM_TEST, elements: ['el-username'] }]),
+      textCorpus: [LOCAL_FORM_TEST],
     })
 
-    const rows = result.finding.comparedTests.filter((row) => row.filePath === UAT_381.filePath)
+    const rows = result.finding.comparedTests.filter((row) => row.filePath === LOCAL_FORM_TEST.filePath)
     expect(rows).toHaveLength(1)
     expect(rows[0]?.lane).toBe('fingerprint')
     expect(result.pass).toBe(true)
@@ -212,7 +212,7 @@ describe('addsValueGate — lane precedence', () => {
     const result = addsValueGate({
       draft: NEAR_DUPLICATE_DRAFT,
       draftElements: ['el-username', 'el-novel'],
-      index: fakeFingerprintIndex([{ ...UAT_381, elements: ['el-username'] }]),
+      index: fakeFingerprintIndex([{ ...LOCAL_FORM_TEST, elements: ['el-username'] }]),
       textCorpus: [TEXT_TWIN],
     })
 
@@ -241,7 +241,7 @@ describe('addsValueGate — lane precedence', () => {
     const result = addsValueGate({
       draft: NEAR_DUPLICATE_DRAFT,
       draftElements: covering,
-      index: fakeFingerprintIndex([{ ...UAT_381, elements: covering }]),
+      index: fakeFingerprintIndex([{ ...LOCAL_FORM_TEST, elements: covering }]),
       textCorpus: [TEXT_TWIN],
     })
 
@@ -294,7 +294,7 @@ describe('addsValueGate — the empty suite', () => {
     const result = addsValueGate({
       draft: ACCEPT_CONTROL_TEXT,
       draftElements: [],
-      index: fakeFingerprintIndex([{ ...UAT_381, elements: ['el-username'] }]),
+      index: fakeFingerprintIndex([{ ...LOCAL_FORM_TEST, elements: ['el-username'] }]),
       textCorpus: [],
     })
 
@@ -310,7 +310,7 @@ describe('addsValueGate — a draft with no observed evidence', () => {
     const result = addsValueGate({
       draft: ACCEPT_CONTROL_TEXT,
       draftElements: [],
-      index: fakeFingerprintIndex([{ ...UAT_381, elements: ['el-username'] }]),
+      index: fakeFingerprintIndex([{ ...LOCAL_FORM_TEST, elements: ['el-username'] }]),
       textCorpus: [],
     })
 

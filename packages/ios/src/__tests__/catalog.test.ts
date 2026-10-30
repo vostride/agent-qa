@@ -83,7 +83,7 @@ import { IOSPlatformAdapter } from '../adapter.js'
 
 type ExecAction = Parameters<IOSPlatformAdapter['execute']>[0]
 
-describe('IOSPlatformAdapter catalog (RED — Wave-0)', () => {
+describe('IOSPlatformAdapter catalog', () => {
   let adapter: IOSPlatformAdapter
   let mockDriver: ReturnType<typeof createMockDriver>
 
@@ -116,7 +116,7 @@ describe('IOSPlatformAdapter catalog (RED — Wave-0)', () => {
       expect(r.success).toBe(true)
       expect(mockDriver.execute).toHaveBeenCalledWith('mobile: pressButton', { name: 'home' })
     })
-    it('a volume button on a simulator-flagged session → §7.1 degradation error, success false, no throw', async () => {
+    it('a volume button on a simulator-flagged session → degradation error, success false, no throw', async () => {
       // Plan 07 owns the simulator check; the listApps-throws signal flags a simulator session here.
       listAppsThrows = true
       reset()
@@ -136,7 +136,7 @@ describe('IOSPlatformAdapter catalog (RED — Wave-0)', () => {
       expect(call).toBeDefined()
       expect(JSON.stringify(call?.[1])).toContain('March')
     })
-    it('index lane with an out-of-range order → a §7.1 range error, never a silent wrong selection', async () => {
+    it('index lane with an out-of-range order → a structured range error, never a silent wrong selection', async () => {
       const ref = await refFor('Month')
       reset()
       const r = await adapter.execute({ type: 'pickerSelect', ref, order: 99 } as unknown as ExecAction)
@@ -166,13 +166,13 @@ describe('IOSPlatformAdapter catalog (RED — Wave-0)', () => {
   })
 
   describe('fold re-keys (schema execution shapes replace legacy field reads)', () => {
-    it('waitFor {on:"selector"} returns a §7.1 web-only error (no selector waiting on native)', async () => {
+    it('waitFor {on:"selector"} returns a structured web-only error (no selector waiting on native)', async () => {
       reset()
       const r = await adapter.execute({ type: 'waitFor', on: 'selector', selector: '#done', timeoutMs: 500 } as unknown as ExecAction)
       expect(r.success).toBe(false)
       expect(r.error).toMatch(/web|selector/i)
     })
-    it('keypress mode:"press" works, mode:"down"/"up" return a §7.1 press-only error', async () => {
+    it('keypress mode:"press" works, mode:"down"/"up" return a structured press-only error', async () => {
       reset()
       const press = await adapter.execute({ type: 'keypress', keys: ['Return'], mode: 'press' } as unknown as ExecAction)
       expect(press.success).toBe(true)

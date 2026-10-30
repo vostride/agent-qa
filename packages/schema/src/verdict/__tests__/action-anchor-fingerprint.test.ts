@@ -210,10 +210,10 @@ describe('a skipped tap in the test fingerprint', () => {
         anchor: { t: 'el', role: 'switch', name: 'notifications', ordinal: 0 },
       }),
     ])
-    const pre437 = testFingerprintElements(
+    const withoutAnchorFields = testFingerprintElements(
       testWith({ success: true, metadata: { idempotentNoop: { currentState: 'checked' } } }),
     )
-    expect(pre437).toEqual(skipped)
+    expect(withoutAnchorFields).toEqual(skipped)
   })
 
   it('a really failed sub-action still adds no element', () => {

@@ -135,7 +135,7 @@ describe('SuiteEditorPage', () => {
     expect(container.textContent).not.toContain('Memory')
   })
 
-  it('renders SuiteNavbar without p-6 page padding ancestor (Gap 1: edge-to-edge chrome)', async () => {
+  it('renders SuiteNavbar without p-6 page padding ancestor (edge-to-edge chrome)', async () => {
     // The SuiteNavbar must be rendered at the root of the page flex container
     // (h-screen flex-col), not wrapped by any p-6 page-padding container.
     // In the full app, /suites routes set handle.hideHeader=true so AppLayout's
@@ -153,7 +153,7 @@ describe('SuiteEditorPage', () => {
     }
   })
 
-  it('shows rich missing-tests toast when save throws ApiError with missingTests (Gap 4)', async () => {
+  it('shows rich missing-tests toast when save throws ApiError with missingTests', async () => {
     const api = await import('@/lib/api')
     const { toast } = await import('sonner')
     // Force createSuiteFile to reject with a realistic ApiError payload from the server.

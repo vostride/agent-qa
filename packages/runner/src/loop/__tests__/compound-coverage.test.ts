@@ -29,7 +29,7 @@ function ports(overrides: Partial<LoopPorts> & Pick<LoopPorts, 'adapter' | 'plan
 }
 
 describe('Fill executes as one atomic compound producing a single ActionResult with a verified field re-read', () => {
-  it('a genuine value-loss mismatch is an honest failure verdict with the byte-pinned fillReread shape and a §7.1 self-correcting error', () => {
+  it('a genuine value-loss mismatch is an honest failure verdict with the byte-pinned fillReread shape and a structured self-correcting error', () => {
     const miss = compareFillReread({ expected: 'hello', actual: 'helo', secure: false })
     expect(miss.ok).toBe(false)
     expect(miss.verdict).toBe('mismatch')

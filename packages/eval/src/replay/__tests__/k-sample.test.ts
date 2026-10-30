@@ -106,7 +106,7 @@ describe('replay fixture builders', () => {
 })
 
 describe('replayCassette — k-sample agreement', () => {
-  it('Test 1: the default (neverEscalate) predicate runs exactly one sample even at k=3', async () => {
+  it('the default (neverEscalate) predicate runs exactly one sample even at k=3', async () => {
     const probe = actionsFactory([
       { type: 'click', ref: 'e2' },
       { type: 'click', ref: 'e1' },
@@ -216,7 +216,7 @@ describe('replayCassette — k-sample agreement', () => {
     expect(outcome.agreement.agreementRate).toBeCloseTo(1 / 3)
   })
 
-  it('Test 6: k=1 yields agreementRate 1 with modal = the single sample identity class', async () => {
+  it('k=1 yields agreementRate 1 with modal = the single sample identity class', async () => {
     const probe = actionsFactory([{ type: 'click', ref: 'e2' }])
     const outcome = (await replayCassette({
       cassette: leafCassette(),
@@ -252,7 +252,7 @@ describe('replayCassette — k-sample agreement', () => {
     expect('modalDecision' in outcome).toBe(false)
   })
 
-  it('F5: value casing and whitespace noise share one agreement class', async () => {
+  it('value casing and whitespace noise share one agreement class', async () => {
     const probe = actionsFactory([
       {
         type: 'fill',

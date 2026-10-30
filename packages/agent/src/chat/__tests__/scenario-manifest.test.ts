@@ -155,7 +155,7 @@ describe('file -> manifest: an unlisted file is a build error (the anti-treadmil
     expect(
       idsOnDisk(scenarioClass),
       `the ${scenarioClass}/ directory and the manifest disagree — a scenario enters the `
-        + 'ceiling denominator only through a deliberate manifest edit (D-15)',
+        + 'ceiling denominator only through a deliberate manifest edit',
     ).toEqual(manifestIds(scenarioClass))
   })
 

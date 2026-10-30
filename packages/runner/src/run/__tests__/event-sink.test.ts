@@ -17,7 +17,7 @@ import type {
   TestRetryScheduledPayload,
 } from '@vostride/agent-qa-schema'
 
-const SECRET = 'SECRET-42'
+const SECRET = 'SECRET-QZ'
 const SCOPE: ScopeKey = { tier: 'suite', key: 'checkout' }
 
 /** A synthetic run mask — scrubs the planted secret from every string. */

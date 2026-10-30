@@ -23,7 +23,7 @@ describe('a dispatch that throws on enqueue', () => {
   it('a dispatch that throws on enqueue is reported and enqueue still returns the queued run', () => {
     queue.start(60_000)
     const pending = vi.spyOn(db, 'getPendingRuns').mockImplementationOnce(() => {
-      throw new Error('enqueue dispatch probe 444-27')
+      throw new Error('enqueue dispatch probe')
     })
     const reported = vi.spyOn(console, 'error').mockImplementation(() => {})
 
@@ -40,6 +40,6 @@ describe('a dispatch that throws on enqueue', () => {
     expect(reported, 'one reported line').toHaveBeenCalledOnce()
     const line = String(reported.mock.calls[0]?.[0] ?? '')
     expect(line, 'the reported line names the trigger').toContain('an enqueue')
-    expect(line, 'the reported line names the error').toContain('enqueue dispatch probe 444-27')
+    expect(line, 'the reported line names the error').toContain('enqueue dispatch probe')
   })
 })

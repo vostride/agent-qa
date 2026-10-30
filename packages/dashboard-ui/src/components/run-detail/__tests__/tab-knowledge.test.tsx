@@ -350,13 +350,13 @@ describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order", () =>
 })
 
 // Fed what `run-detail.tsx` feeds it, so a fix that held only for hand-built views would fail here.
-const RUN_423 = "run-423-24-tab"
+const RECORDED_RUN_ID = "run-423-24-tab"
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: "ready" }>
 type LearnedChange = ReadyProjection["learned"]["changes"][number]
 
 function change(recordId: string, kind: LearnedChange["change"], atOrdinal: number, extra: Partial<LearnedChange> = {}) {
   return {
-    schemaVersion: RECORD_CHANGE_SCHEMA_VERSION as typeof RECORD_CHANGE_SCHEMA_VERSION, recordId, change: kind, atOrdinal, sourceRunId: RUN_423,
+    schemaVersion: RECORD_CHANGE_SCHEMA_VERSION as typeof RECORD_CHANGE_SCHEMA_VERSION, recordId, change: kind, atOrdinal, sourceRunId: RECORDED_RUN_ID,
     evidenceToken: `receipt-${recordId}-${String(atOrdinal)}`, ...extra,
   }
 }
@@ -392,7 +392,7 @@ function snapshot() {
 
 function pageView(status: ReadyProjection["curation"]["status"], learned: Partial<ReadyProjection["learned"]>): KnowledgeView {
   const projection = RunKnowledgeProjectionSchema.parse({
-    kind: "ready", runId: RUN_423, buildOrdinal: 2, knowledgeStore: "bound", steps: [],
+    kind: "ready", runId: RECORDED_RUN_ID, buildOrdinal: 2, knowledgeStore: "bound", steps: [],
     curation: { status, ...(status === "complete" ? { counts: { curated: 4, deprecated: 1 } } : {}) },
     learned: { changes: [], canaryAttributions: [], ...learned },
   })

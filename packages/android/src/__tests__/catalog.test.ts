@@ -72,7 +72,7 @@ import { AndroidPlatformAdapter } from '../adapter.js'
 
 type ExecAction = Parameters<AndroidPlatformAdapter['execute']>[0]
 
-describe('AndroidPlatformAdapter catalog (RED — Wave-0)', () => {
+describe('AndroidPlatformAdapter catalog', () => {
   let adapter: AndroidPlatformAdapter
   let mockDriver: ReturnType<typeof createMockDriver>
 
@@ -110,7 +110,7 @@ describe('AndroidPlatformAdapter catalog (RED — Wave-0)', () => {
       expect(r.success).toBe(true)
       expect(mockDriver.execute).toHaveBeenCalledWith('mobile: openNotifications')
     })
-    it('openQuickSettings → an args-array mobile: shell invocation (A1, no interpolation)', async () => {
+    it('openQuickSettings → an args-array mobile: shell invocation (no interpolation)', async () => {
       reset()
       const r = await adapter.execute({ type: 'openQuickSettings' } as unknown as ExecAction)
       expect(r.success).toBe(true)
@@ -181,13 +181,13 @@ describe('AndroidPlatformAdapter catalog (RED — Wave-0)', () => {
       expect(r.success).toBe(true)
       expect(mockDriver.getPageSource).toHaveBeenCalled()
     })
-    it('waitFor {on:"selector"} returns a §7.1 web-only error (no selector waiting on native)', async () => {
+    it('waitFor {on:"selector"} returns a structured web-only error (no selector waiting on native)', async () => {
       reset()
       const r = await adapter.execute({ type: 'waitFor', on: 'selector', selector: '#done', timeoutMs: 500 } as unknown as ExecAction)
       expect(r.success).toBe(false)
       expect(r.error).toMatch(/web|selector/i)
     })
-    it('keypress mode:"press" works, mode:"down"/"up" return a §7.1 press-only error', async () => {
+    it('keypress mode:"press" works, mode:"down"/"up" return a structured press-only error', async () => {
       reset()
       const press = await adapter.execute({ type: 'keypress', keys: ['Enter'], mode: 'press' } as unknown as ExecAction)
       expect(press.success).toBe(true)

@@ -33,11 +33,11 @@ const CHAT_ORCHESTRATION_DIR = 'packages/agent/src/chat'
 // A missing entry here is silent, because an unlisted file is simply not scanned.
 const CHAT_SURFACE_FILES: Readonly<Record<string, string>> = {
   'packages/cli/src/commands/ask.ts':
-    '2026-08-09 (392 plan 01, D-01/D-24): the one-shot chat verb. It composes a local agent and '
+    'the one-shot chat verb. It composes a local agent and '
     + 'drives the turn through invokeFunction; whatever model a turn uses is resolved by that '
     + 'composition, never here.',
   'packages/cli/src/commands/chat.ts':
-    '2026-08-09 (392 plan 08, D-01/D-24): the interactive REPL. Every line is one '
+    'the interactive REPL. Every line is one '
     + 'invokeFunction(agent.ask); the model in force for a session is decided by the composition '
     + 'and moved only by the /model directive the engine handles, so a constructor here would be '
     + 'a second place that decision lived.',
@@ -91,7 +91,7 @@ export function findChatModelOffenders(files: readonly ScannedFile[]): string[] 
           `chat-model-rollcall: ${entry.file}:${statement.line} ⇏ ${statement.specifier}`
             + ' (a provider SDK is a model constructor under a vendor name; a chat surface that'
             + ' built its own client would be a model egress with none of the masking, profile'
-            + ' resolution or auth that createModel applies — CHAT-06)',
+            + ' resolution or auth that createModel applies)',
         )
         continue
       }
@@ -117,7 +117,7 @@ export function findChatModelOffenders(files: readonly ScannedFile[]): string[] 
           + ' (the model must ARRIVE at chat as a composition argument. Importing the constructor'
           + ' here would make this a second composition root: the profile in force for a session'
           + ' would be decided in two places, and a /model override would apply to only one of'
-          + ' them — CHAT-06 / D-04)',
+          + ' them)',
       )
     }
   }

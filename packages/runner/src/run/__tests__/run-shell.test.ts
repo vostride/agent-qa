@@ -357,8 +357,8 @@ describe('handoff — exactly one per run', () => {
 // Descriptor parity fields ride testStarted; failureSummary on testFinished is masked at the sink.
 
 describe('enriched testStarted / testFinished payloads', () => {
-  const SECRET = 'SECRET-42'
-  const secretRedactor = new SecretRedactor(new SecretStore({ SECRET_42: SECRET }))
+  const SECRET = 'SECRET-QZ'
+  const secretRedactor = new SecretRedactor(new SecretStore({ SECRET_QZ: SECRET }))
 
   it('testStarted carries the member descriptor parity fields when present', async () => {
     const members: RunMemberDescriptor[] = [
@@ -422,7 +422,7 @@ describe('enriched testStarted / testFinished payloads', () => {
     const started = events.find(e => e.type === 'testStarted')!
     expect((started.payload as { stepTexts?: readonly string[] }).stepTexts).toEqual([
       'Open the login page',
-      'Type [secret:SECRET_42] into Password',
+      'Type [secret:SECRET_QZ] into Password',
       'Submit the form',
     ])
     expect(JSON.stringify(started.payload)).not.toContain(SECRET)
@@ -449,7 +449,7 @@ describe('enriched testStarted / testFinished payloads', () => {
     const payload = finished.payload as Record<string, unknown>
     expect(payload.durationMs).toBe(987)
     expect(payload.retryCount).toBe(2)
-    expect(payload.failureSummary).toBe('crashed on [secret:SECRET_42]')
+    expect(payload.failureSummary).toBe('crashed on [secret:SECRET_QZ]')
     expect(JSON.stringify(payload)).not.toContain(SECRET)
   })
 
@@ -935,7 +935,7 @@ describe('post-verdict step — the degrade-never-gate contract', () => {
     const input = port.run.mock.calls[0][0] as Record<string, unknown>
     expect(
       Object.keys(input).sort(),
-      'both INVK-06 markers ride the step input when the run carries them',
+      'both invocation markers ride the step input when the run carries them',
     ).toEqual(['excludedFromOutcomes', 'gateRun', 'runId', 'verdict'])
     expect(input.gateRun, 'only the literal true carries').toBe(true)
     expect(input.excludedFromOutcomes, 'only the literal true carries').toBe(true)

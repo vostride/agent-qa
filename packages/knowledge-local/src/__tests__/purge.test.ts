@@ -2768,7 +2768,7 @@ describe('purge over older quarantined payloads', () => {
     return outcome
   }
 
-  function plantPre441Payload(dir: string, candidateId: string, summarySeed: string): void {
+  function plantLegacyPayload(dir: string, candidateId: string, summarySeed: string): void {
     mkdirSync(dir, { recursive: true })
     writeFileSync(join(dir, 'payload.json'), `${JSON.stringify({
       schemaVersion: 2,
@@ -2788,7 +2788,7 @@ describe('purge over older quarantined payloads', () => {
     const target = publishTarget('quarantined-survivor')
     const candidateId = 'd'.repeat(64)
     const quarantined = quarantinedCandidateDir(knowledgeRoot, candidateId)
-    plantPre441Payload(quarantined, candidateId, 'An unrelated pre-441 summary')
+    plantLegacyPayload(quarantined, candidateId, 'An unrelated pre-441 summary')
 
     expect(purgeApi().purgeRecord({ knowledgeRoot, recordId: target.id, initiator: 'user' }).kind)
       .toBe('purged')
@@ -2802,7 +2802,7 @@ describe('purge over older quarantined payloads', () => {
     if (loaded.kind !== 'loaded') throw new Error('expected a loaded target bundle')
     const candidateId = 'f'.repeat(64)
     const queued = knowledgeLocal.queuedCandidateDir(knowledgeRoot, candidateId)
-    plantPre441Payload(queued, candidateId, loaded.bundle.summary)
+    plantLegacyPayload(queued, candidateId, loaded.bundle.summary)
 
     expect(purgeApi().purgeRecord({ knowledgeRoot, recordId: target.id, initiator: 'user' }).kind)
       .toBe('purged')

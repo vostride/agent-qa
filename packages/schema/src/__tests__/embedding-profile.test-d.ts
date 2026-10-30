@@ -55,7 +55,7 @@ const missingRevision: EmbeddingProfile = (({ revision, ...rest }) => rest)(base
 const missingSessionOptions: EmbeddingProfile = (({ session_options, ...rest }) => rest)(base)
 
 // @ts-expect-error a `threads` worker-count field is not part of the profile.
-const v46Shaped: EmbeddingProfile = { ...base, threads: 1 }
+const withThreads: EmbeddingProfile = { ...base, threads: 1 }
 
 expectTypeOf<EmbeddingProfile>().not.toHaveProperty('threads')
 expectTypeOf<EmbeddingProfile>().not.toHaveProperty('provider')
@@ -79,5 +79,5 @@ void badNormalize
 void missingTauDense
 void missingRevision
 void missingSessionOptions
-void v46Shaped
+void withThreads
 void crossed

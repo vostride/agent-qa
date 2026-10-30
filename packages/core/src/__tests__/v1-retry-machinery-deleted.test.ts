@@ -66,7 +66,7 @@ describe('v1 retry/self-heal machinery is deleted grep-provably', () => {
       }
       expect(
         hits,
-        `Deleted v1 symbol "${needle}" reappeared (D-10/LOOP-02):\n${hits.join('\n')}`,
+        `Deleted v1 symbol "${needle}" reappeared:\n${hits.join('\n')}`,
       ).toEqual([])
     })
   }

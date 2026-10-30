@@ -280,7 +280,7 @@ describe('checkpoint publish syscall ordering', () => {
     )
   })
 
-  it('keeps the allowlist exactly the five codes v51 debugged', () => {
+  it('keeps the swallowed directory-fsync codes exactly these five', () => {
     expect([...DIRECTORY_FSYNC_SWALLOWED_CODES]).toEqual([
       'ENOENT',
       'EINVAL',

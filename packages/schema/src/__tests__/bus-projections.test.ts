@@ -20,7 +20,7 @@ import type { StepEvidence } from '../handoff/step-evidence'
 import type { SubActionEvidence } from '../handoff/sub-action-evidence'
 import type { PerTestOutcome } from '../handoff/per-test-outcome'
 
-const SECRET = 'SECRET-42'
+const SECRET = 'SECRET-QZ'
 const mask: MaskFn = (value: string) => value.replaceAll(SECRET, '[masked]')
 
 const scope: ScopeKey = { tier: 'test', key: 'checkout::happy-path' }

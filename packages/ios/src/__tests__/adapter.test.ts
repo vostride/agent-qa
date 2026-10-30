@@ -362,7 +362,7 @@ describe('IOSPlatformAdapter', () => {
     })
   })
 
-  describe('observe — accessible labelled Others (P4)', () => {
+  describe('observe — accessible labelled Others', () => {
     it('observes the Bluesky sheet row as a button and taps its centre', async () => {
       mockDriver.getPageSource.mockResolvedValue(IOS_SHEET_XML)
       mockDriver.getWindowSize.mockResolvedValue({ width: 402, height: 874 })
@@ -978,7 +978,7 @@ describe('IOSPlatformAdapter', () => {
   })
 
   describe('execute — waitFor (schema on-modes replace legacy condition/timeout)', () => {
-    it('on:"selector" returns a §7.1 web-only error on native iOS', async () => {
+    it('on:"selector" returns a structured web-only error on native iOS', async () => {
       await adapter.setup({ platform: 'ios' })
       const result = await adapter.execute({ type: 'waitFor', on: 'selector', selector: '#done', timeoutMs: 500 })
       expect(result.success).toBe(false)
@@ -992,7 +992,7 @@ describe('IOSPlatformAdapter', () => {
       expect(result.success).toBe(true)
     })
 
-    it('on:"text" times out with a §7.1 error when the text never appears', async () => {
+    it('on:"text" times out with a structured error when the text never appears', async () => {
       await adapter.setup({ platform: 'ios' })
       mockDriver.getPageSource.mockResolvedValue('<XCUIElementTypeOther />')
       const result = await adapter.execute({ type: 'waitFor', on: 'text', text: 'Never', timeoutMs: 20 })
@@ -1045,7 +1045,7 @@ describe('IOSPlatformAdapter', () => {
   })
 
   describe('execute — keypress hold/release gate', () => {
-    it('mode:"down"/"up" (key hold/release) returns a §7.1 press-only error', async () => {
+    it('mode:"down"/"up" (key hold/release) returns a structured press-only error', async () => {
       await adapter.setup({ platform: 'ios' })
       const up = await adapter.execute({ type: 'keypress', keys: ['Shift'], mode: 'up' })
       expect(up.success).toBe(false)

@@ -162,7 +162,7 @@ describe('frames cross the session while the run bus publishes nothing about the
       typesOf(watched.envelopes),
       'a watched run must publish exactly the envelopes an unwatched one does — a frame that '
       + 'reached the bus would be persisted to the event log, replayed on every reconnect, and '
-      + 'served to any caller who asked for a step timeline (LIVE-03)',
+      + 'served to any caller who asked for a step timeline',
     ).toEqual(typesOf(control.envelopes))
     expect(watched.envelopes.length).toBe(control.envelopes.length)
   })
@@ -242,7 +242,7 @@ describe('frames cross the session while the run bus publishes nothing about the
     expect(
       runWarningCodesIn(faulty.envelopes),
       'a subscriber fault is a fact about the SUBSCRIBER. It is reported on the hub\'s own '
-      + 'subscriber-fault sink, which the shell wires to nothing that touches the bus (LIVE-03)',
+      + 'subscriber-fault sink, which the shell wires to nothing that touches the bus',
     ).toEqual([])
     expect(
       typesOf(faulty.envelopes),
@@ -268,7 +268,8 @@ describe('frames cross the session while the run bus publishes nothing about the
     ] as unknown as RunEventEnvelope[]
     expect(
       runWarningCodesIn(planted),
-      'the scanner sees the very row WR-06 is about — so its absence above is a measurement',
+      'the scanner sees the very row the detach warning is about — so its absence above is a '
+        + 'measurement',
     ).toEqual(['live-stream-subscriber-detached'])
   })
 

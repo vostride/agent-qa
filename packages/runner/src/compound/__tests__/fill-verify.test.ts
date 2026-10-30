@@ -59,7 +59,7 @@ describe('compareFillReread verdicts', () => {
       expect(compareFillReread({ expected: 'a b', actual: 'a  b', secure: false }).verdict).toBe('mismatch')
     })
 
-    it('the separator set is exactly the A6 set: no tab, newline or comma', () => {
+    it('the separator set is spaces, hyphen, brackets, dot and slash: no tab, newline, comma or colon', () => {
       expect([...FILL_SEPARATORS].sort()).toEqual(
         [' ', ' ', ' ', ' ', '-', '(', ')', '[', ']', '{', '}', '.', '/'].sort(),
       )

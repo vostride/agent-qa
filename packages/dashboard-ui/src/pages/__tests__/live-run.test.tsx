@@ -908,7 +908,7 @@ describe('the page ends where the run ends, and MOVES the viewer with it', () =>
     expect(sources()).toHaveLength(1)
     expect(
       navigateMock,
-      'D-14: with no verdict there is nothing to move the viewer TO the record about — the band '
+      'with no verdict there is nothing to move the viewer TO the record about — the band '
       + 'says so and the link offers it',
     ).not.toHaveBeenCalled()
     expect(observedPath).toBe(`/runs/${RUN_ID}/live`)

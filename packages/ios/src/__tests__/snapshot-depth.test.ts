@@ -53,7 +53,7 @@ vi.mock('webdriverio', () => ({
 import { IOSPlatformAdapter } from '../adapter.js'
 import { resolveIOSSnapshotDepth } from '../session.js'
 
-describe('iOS snapshot depth (P3)', () => {
+describe('iOS snapshot depth', () => {
   let adapter: IOSPlatformAdapter
   let driver: ReturnType<typeof createMockDriver>
   let warn: ReturnType<typeof vi.spyOn>

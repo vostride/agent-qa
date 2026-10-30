@@ -155,7 +155,7 @@ describe("every member wears its outcome, in the navbar's one palette", () => {
     const view = tree([group(member(0, { name: "Login", outcome: "passed" }), [step(0, 0)])], true)
 
     const badge = view.querySelector('[data-member-outcome="passed"]')
-    expect(badge, "a passed member says so — this is the D-07 reversal").not.toBeNull()
+    expect(badge, "a passed member says so").not.toBeNull()
     expect(badge?.textContent).toBe(statusBadgeLook("passed").label)
     for (const cls of (statusBadgeLook("passed").className ?? "").split(" ")) {
       expect(badge?.className, `the navbar's own ${cls}`).toContain(cls)

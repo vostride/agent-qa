@@ -18,7 +18,7 @@ import {
   MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
 } from '../index'
 
-const DECLARED_MARKER = '[secret:PW_441]'
+const DECLARED_MARKER = '[secret:PW_KEY]'
 
 /** The complete exported function-DTO schema set, by the name the barrel publishes. */
 const functionSchemas: Record<string, z.ZodType> = {

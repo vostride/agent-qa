@@ -291,8 +291,8 @@ describe('the run-completion shape is a closed set', () => {
   // Retired fields are named, because an unnamed absence looks like a forgotten field.
   it('carries neither retired producer-less field, on EITHER completion member', () => {
     const retired = [
-      { label: 'the healing-attempt counter (405-04)', key: 'healing_attempt' + '_count' },
-      { label: 'the parent-link property (405-13)', key: 'parent_run' + '_id' },
+      { label: 'the healing-attempt counter', key: 'healing_attempt' + '_count' },
+      { label: 'the parent-link property', key: 'parent_run' + '_id' },
     ]
     for (const member of ['agent-qa.test_run.completed', 'agent-qa.suite_run.completed'] as const) {
       const keys = propertyKeysOf(member)

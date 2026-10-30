@@ -476,7 +476,7 @@ describe('current content and fixed historical sections', () => {
 
   it('JOINED-STRINGS-MASKED: joined prose crosses the live mask while exact identities stay unmasked', async () => {
     const secret = 'synthetic-secret-9f2c'
-    const local = declaredMask({ SECRET_441: secret })
+    const local = declaredMask({ SECRET_KEY: secret })
     const secretRecord = (recordId: string) => KnowledgeRecordShowResultSchema.parse({
       kind: 'found', schemaVersion: 2, summary: `summary ${secret}`, body: `body ${secret}`,
       provenance: { schemaVersion: 1, mode: 'standalone', originClass: 'agent-observed', sourceDescription: 'synthetic inspection' },
@@ -493,7 +493,7 @@ describe('current content and fixed historical sections', () => {
       applicability: { product: local(`shop ${secret}`), anchors: [local(`el:${secret}`)] },
       currentTrust: { evidenceTokens: [local(`token ${secret}`)], trustNarrative: local(`narrative ${secret}`) } } })
     expect(masked.learned.changes[0]).toMatchObject({ recordId: 'rec-a', sourceRunId: RUN_ID })
-    expect(masked.steps[0]?.served.channel1[0]).toHaveProperty('recordContent.content', 'body [secret:SECRET_441]')
+    expect(masked.steps[0]?.served.channel1[0]).toHaveProperty('recordContent.content', 'body [secret:SECRET_KEY]')
     await expect(ready({ ...options, secretMask: null })).rejects.toThrow(/no declared-secret mask/)
     await expect(ready({ ...options, secretMask: () => { throw new Error('synthetic unreadable secrets file') } }))
       .rejects.toThrow('synthetic unreadable secrets file')

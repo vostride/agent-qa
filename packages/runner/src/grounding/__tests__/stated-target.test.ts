@@ -91,7 +91,7 @@ describe('judgeStatedTarget', () => {
     expect(reasons({ role: 'button', name: 'Cart' }, element('button', 'Cart (3)'))).toEqual([])
   })
 
-  it('"Invoice 947" vs "Invoice 947 due 2026-10-31" agrees (every stated number is observed)', () => {
+  it('"Invoice 947" vs "Invoice 947 due `2026-10-31`" agrees (every stated number is observed)', () => {
     const observed = element('link', 'Invoice 947 due 2026-10-31')
     expect(reasons({ role: 'link', name: 'Invoice 947' }, observed)).toEqual([])
   })

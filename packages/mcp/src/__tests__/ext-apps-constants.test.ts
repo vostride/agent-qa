@@ -80,7 +80,7 @@ const manifest = JSON.parse(
 
 // ---- 1. The two constants the must-have truth names ---------------------------------------------
 
-describe('our restated Apps vocabulary equals the official one, byte for byte (A5)', () => {
+describe('our restated Apps vocabulary equals the official one, byte for byte', () => {
   it('(1) MCP_APPS_EXTENSION_ID is ext-apps\' own EXTENSION_ID', () => {
     // Read at RUNTIME from the official module — not from a `.d.ts`, not from prose, and not from
     // a literal in this file. A reverse-DNS id that drifts by one character does not throw
@@ -117,7 +117,7 @@ describe('our restated Apps vocabulary equals the official one, byte for byte (A
 
 // ---- 2. Every spec string this repository restates ----
 
-describe('the other restated spec strings are in the official schema (A5)', () => {
+describe('the other restated spec strings are in the official schema', () => {
   // Strings spelled here by hand, each checked against the schema and its own source file.
   const RESTATED: readonly { readonly value: string; readonly spelledIn: string }[] = [
     { value: 'ui/initialize', spelledIn: 'app-wrapper.ts' },

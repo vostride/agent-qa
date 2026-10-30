@@ -206,7 +206,7 @@ describe('runs.mark.preview contract', () => {
     expect(parse(consequences({ markKind: 'confirmed-bug' }))).toBe(false)
 
     const secret = 'synthetic-sensitive-token'
-    const mask = declaredMask({ TOKEN_441: secret })
+    const mask = declaredMask({ TOKEN_KEY: secret })
     // Reached-record content and overturned evidence tokens cross the same mask; ids stay structural.
     const reached = { ...falsePass, knowledge: { servedRecordIds: ['record-a'], appendsEvidence: true, evidence: { confirmed: 1, overturned: 1 },
       records: [{ recordId: 'record-a', recordContent: { content: `body ${secret}`, summary: `summary ${secret}`, kind: 'fact',

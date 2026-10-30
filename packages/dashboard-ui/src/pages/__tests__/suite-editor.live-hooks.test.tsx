@@ -489,7 +489,7 @@ function getButtonByText(scope: ParentNode, text: string): HTMLButtonElement {
   return button
 }
 
-describe('SuiteEditorPage live hook safeguards (Wave 0)', () => {
+describe('SuiteEditorPage live hook safeguards', () => {
   it('connects a live session from the SuiteNavbar and passes entity={type:suite, id:suiteId}', async () => {
     const rootElement = await render(<SuiteEditorPage />)
 

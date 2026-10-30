@@ -643,7 +643,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       expect(verdict.clause.text).toBe('run test 42')
     })
 
-    it('(S1) requires prose in the schema the MODEL sees, in the same commit as the reader', () => {
+    it('requires prose in the schema the MODEL sees, in the same commit as the reader', () => {
       // The two-sided pin. A reader that required prose against a tool whose contract accepted
       // `""` would leave the model free to emit the one call that erases a clause, and the two
       // halves would be one edit apart forever.
@@ -651,7 +651,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       expect(ANSWER_ONLY_INPUT_SCHEMA.safeParse({ clause: 'x', text: 'y' }).success).toBe(true)
     })
 
-    it('(S1b) requires a NAMED clause in the schema too, the last one-sided field pinned', () => {
+    it('requires a NAMED clause in the schema too, the last one-sided field pinned', () => {
       expect(ANSWER_ONLY_INPUT_SCHEMA.safeParse({ clause: '', text: 'y' }).success).toBe(false)
     })
   })
@@ -684,7 +684,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
             answer: verdict.answer,
           }
 
-    describe('(AR-1) surplus from a MAPPED clause — the verifier\'s case, verbatim', () => {
+    describe('surplus from a MAPPED clause — the verifier\'s case, verbatim', () => {
       // The model made a call about "run test 42", which the TABLE had already resolved. That call
       // is never removed from `proposed` and the mapped clause never advances the cursor, so the
       // next clause needing a proposal pops it: "summarise the last failure" was executed as
@@ -722,7 +722,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       })
     })
 
-    describe('(AR-2) surplus with the MIDDLE clause mapped — two clauses mis-bound', () => {
+    describe('surplus with the MIDDLE clause mapped — two clauses mis-bound', () => {
       // A surplus call misbinds clauses before the mapped one too, not only after it.
       const zeroth = clause('run test 42', 0)
       const first = clause('show me the digest', 1)
@@ -753,7 +753,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       })
     })
 
-    it('(AR-3) refuses a surplus that arises beside an ANSWERED clause', () => {
+    it('refuses a surplus that arises beside an ANSWERED clause', () => {
       // Two action calls for one needy clause: nothing shows which clause the first was about.
       const first = clause('what is a flake', 0)
       const second = clause('summarise the last failure', 1)
@@ -778,7 +778,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       })
     })
 
-    it('(AR-4) refuses a DUPLICATE-call surplus aimed at one clause', () => {
+    it('refuses a DUPLICATE-call surplus aimed at one clause', () => {
       // Also unmeasured. Two calls, one clause: pre-fix the first was bound and the second silently
       // vanished, so a model that changed its mind mid-plan had its first attempt executed.
       const only = clause('summarise the last failure', 0)
@@ -799,7 +799,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       })
     })
 
-    it('(AR-5) discards a leftover WHOLE when no clause needs a proposal', () => {
+    it('discards a leftover WHOLE when no clause needs a proposal', () => {
       // THE ASYMMETRY'S MODEL-FACING HALF, and the reason the accounting is not simply
       // `proposed.length === 0 || refuse`. With zero needy clauses no call can be popped by
       // anybody, so a surplus mis-binds nothing and there is no subject to name a refusal about.
@@ -831,7 +831,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       })
     })
 
-    it('(AR-6) refuses a DEFICIT at the clause the supply exhausts at, sentence unchanged', () => {
+    it('refuses a DEFICIT at the clause the supply exhausts at, sentence unchanged', () => {
       // The mid-mapped deficit — also unmeasured, and here to pin what the accounting must NOT
       // change. The person's half of the asymmetry: a request may never be lost, so every deficit
       // keeps naming the same clause with the same words it has always used.
@@ -854,7 +854,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       )
     })
 
-    describe('(AR-7) equality beside a mapped clause BINDS', () => {
+    describe('equality beside a mapped clause BINDS', () => {
       const first = clause('run test 42', 0)
       const second = clause('summarise the last failure', 1)
       const digestCall = {

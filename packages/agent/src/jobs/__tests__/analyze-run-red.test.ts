@@ -194,13 +194,13 @@ const FIXTURE_PATH = fileURLToPath(
   new URL('./fixtures/red-run-handoff.json', import.meta.url),
 )
 
-function load399RedHandoff(): CompletedRunHandoff {
+function loadRedRunHandoff(): CompletedRunHandoff {
   return guardCompletedRunHandoff(JSON.parse(readFileSync(FIXTURE_PATH, 'utf8')))
 }
 
 describe('the trimmed red handoff fixture still loads through the shipped guard', () => {
   it('is a captured red handoff that loads, with one failed member whose floor is unknown', () => {
-    const handoff = load399RedHandoff()
+    const handoff = loadRedRunHandoff()
 
     expect(handoff.schemaVersion).toBe(CURRENT_HANDOFF_SCHEMA_VERSION)
     expect(handoff.aggregateVerdict).toBe('failed')
@@ -211,7 +211,7 @@ describe('the trimmed red handoff fixture still loads through the shipped guard'
   })
 
   it('kept the evidence the author quotes from and the refs the vision gate reads', () => {
-    const step = load399RedHandoff().tests[0]?.steps[1]
+    const step = loadRedRunHandoff().tests[0]?.steps[1]
 
     expect(step?.stepText).toBeTruthy()
     expect(step?.retrievalTrace).toBeDefined()
@@ -258,7 +258,7 @@ describe('(a) a red synthetic run whose model answers validly is authored in ONE
 
 describe('(b) the REAL recorded red handoff is authored the same way', () => {
   it('upgrades its unknown member when the quote is verbatim from the failing step', async () => {
-    const handoff = load399RedHandoff()
+    const handoff = loadRedRunHandoff()
     const failingStep = handoff.tests[0]?.steps[1]
     const lastError = [...(failingStep?.subActions ?? [])]
       .reverse()

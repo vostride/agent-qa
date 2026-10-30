@@ -542,7 +542,7 @@ describe('WebPlatformAdapter.liveStream is CHANGE-DRIVEN, not polled', () => {
         expect(
           adapter.liveStream,
           'Page.startScreencast is a CDP call; a non-chromium target declares no stream rather '
-          + 'than falling back to screenshots (D-08\'s honest absence)',
+          + 'than falling back to screenshots, an honest absence',
         ).toBeUndefined()
       } finally {
         await adapter.cleanup().catch(() => undefined)

@@ -158,7 +158,7 @@ describe('reportValue and explicit infeasible/stepFailed termination are first-c
   })
 })
 
-describe('every v45 registered tool executes on its legal platforms with the legacy runtime-only verbs retired', () => {
+describe('every registered tool executes on its legal platforms with the legacy runtime-only verbs retired', () => {
   it('freezes the registered catalog at 56 registered / web 33 / android 30 / ios 27', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)

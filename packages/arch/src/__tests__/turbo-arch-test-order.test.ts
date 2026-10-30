@@ -79,12 +79,12 @@ function expectCoversEveryBuild(task: string): void {
   expect(missing, `add each to ${task}.dependsOn in turbo.json`).toEqual([])
 }
 
-describe('C-HYG-ARCH-TEST-ORDER — the arch test runs after every build it reads', () => {
-  it('C-HYG-ARCH-TEST-ORDER: names the packages it reads and covers every package build', () => {
+describe('the arch test runs after every build it reads', () => {
+  it('names the packages it reads and covers every package build', () => {
     expectCoversEveryBuild(ARCH_TEST)
   })
 
-  it('C-HYG-ARCH-TEST-ORDER: the arch typecheck also runs after every build it reads, in a fresh clone', () => {
+  it('the arch typecheck also runs after every build it reads, in a fresh clone', () => {
     expectCoversEveryBuild(ARCH_TYPECHECK)
   })
 })

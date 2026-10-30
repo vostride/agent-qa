@@ -96,7 +96,7 @@ describe('the SEP citation gate', () => {
     expect(citedSeps('// grounded in SEP-2567\n').length).toBe(1)
   })
 
-  it('POSITIVE: every cited SEP is a member of the 2026-07-28 index', () => {
+  it('POSITIVE: every cited SEP is a member of the `2026-07-28` index', () => {
     const unknown = sweptFiles().flatMap((f) =>
       citedSeps(f.text)
         .filter((n) => !KNOWN_SEP_NUMBERS.has(n))

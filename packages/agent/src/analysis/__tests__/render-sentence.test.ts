@@ -357,15 +357,15 @@ describe('byte determinism', () => {
 const ESC = '\u001b'
 
 // Playwright's raw error from a seeded-red run, written as a literal.
-const SEEDED_RED_399_QUOTE =
+const SEEDED_RED_QUOTE =
   'locator.click: Timeout 30000ms exceeded.\n'
   + 'Call log:\n'
   + `${ESC}[2m  - waiting for getByRole('button', { name: 'Close ad', exact: true }).first()`
   + `${ESC}[22m\n`
 
-const SEEDED_RED_399_PARTS: VerdictSentenceParts = {
+const SEEDED_RED_PARTS: VerdictSentenceParts = {
   perTest: 0,
-  groundingQuote: { stepIndex: 1, quote: SEEDED_RED_399_QUOTE },
+  groundingQuote: { stepIndex: 1, quote: SEEDED_RED_QUOTE },
   discriminator: 'root cause undetermined',
   nextAction: 'inspect the run manually — no deterministic signal matched',
   links: [],
@@ -375,7 +375,7 @@ describe('quote sanitization — the recorded before/after through the ONE rende
   it('renders the seeded-red sentence as readable prose, pinned verbatim', () => {
     const sentence = renderVerdictSentence(
       verdictOf({ class: 'unknown', producer: 'deterministic-classifier', confidence: 0 }),
-      SEEDED_RED_399_PARTS,
+      SEEDED_RED_PARTS,
       undefined,
       QUERY,
     )

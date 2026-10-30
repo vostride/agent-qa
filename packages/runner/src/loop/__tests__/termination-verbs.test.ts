@@ -69,7 +69,7 @@ async function importDispatchMint(): Promise<Record<string, unknown>> {
 
 const cfg = { maxActions: 4, maxPlanningTurns: 4, previousStepCount: 0 }
 
-describe('Block A — reportValue is a runner mint recorded as first-class evidence', () => {
+describe('reportValue is a runner mint recorded as first-class evidence', () => {
   it('mints at the ONE chokepoint — zero adapter.execute — and metadata.reportedValue mirrors the emission value', async () => {
     const calls: Action[] = []
     const adapter = recordingAdapter(makeScreenState(), calls)
@@ -128,7 +128,7 @@ describe('Block A — reportValue is a runner mint recorded as first-class evide
   })
 })
 
-describe('Block B — uniqueValue mints a prefixed value from an injectable generator', () => {
+describe('uniqueValue mints a prefixed value from an injectable generator', () => {
   it('mintUniqueValue prefixes the value and takes an injectable generator', async () => {
     const mod = await importDispatchMint()
     const mintUniqueValue = mod.mintUniqueValue as (input: { prefix: string }, gen: () => string) => ActionResult
@@ -173,7 +173,7 @@ describe('Block B — uniqueValue mints a prefixed value from an injectable gene
   })
 })
 
-describe('Block C — infeasible is a typed terminal outcome on the plan-field envelope', () => {
+describe('infeasible is a typed terminal outcome on the plan-field envelope', () => {
   it('toolCallToActionPlan surfaces failureKind + failureReason on the plan envelope', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)

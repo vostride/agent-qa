@@ -915,7 +915,7 @@ describe('runCassetteReplay — declared mask', () => {
 
 describe('replay egress masks declared values', () => {
   const tempRoots: string[] = []
-  const declared = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz'))
+  const declared = new SecretRedactor(SecretStore.fromEnvContent('PW_KEY=Hunter-42-zz'))
   const mask = (text: string) => declared.redactString(text)
 
   async function tempRoot(prefix: string): Promise<string> {
@@ -956,7 +956,7 @@ describe('replay egress masks declared values', () => {
 
     expect(stub.captured).toHaveLength(1)
     const recorded = JSON.stringify(stub.captured[0]!)
-    expect(recorded).toContain('[secret:PW_441]')
+    expect(recorded).toContain('[secret:PW_KEY]')
     expect(recorded).toContain('qa@example.com')
     expect(recorded).not.toContain('Hunter-42-zz')
   })
@@ -986,7 +986,7 @@ describe('replay egress masks declared values', () => {
 
     expect(judgeStub.captured).toHaveLength(2)
     const recorded = JSON.stringify(judgeStub.captured)
-    expect(recorded).toContain('[secret:PW_441]')
+    expect(recorded).toContain('[secret:PW_KEY]')
     expect(recorded).toContain('qa@example.com')
     expect(recorded).not.toContain('Hunter-42-zz')
   })

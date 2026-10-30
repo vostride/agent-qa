@@ -427,7 +427,7 @@ describe('the write_test route is deterministic and narrow', () => {
 })
 
 describe('one turn: detect, scaffold, author', () => {
-  it('(R1) dispatches authoring untouched for an ordinary request in a configured project', async () => {
+  it('dispatches authoring untouched for an ordinary request in a configured project', async () => {
     const test = harness({ targets: ['shop'] })
     const result = await test.runTurn({ message: 'write a test for the login flow' })
 
@@ -437,14 +437,14 @@ describe('one turn: detect, scaffold, author', () => {
     expect(test.ordering).toEqual([AUTHORING_DRAFT_WRITE_FUNCTION_ID])
   })
 
-  it('(R2) does not scaffold a target the project already declares', async () => {
+  it('does not scaffold a target the project already declares', async () => {
     const test = harness({ targets: ['booking-com'] })
     await test.runTurn({ message: 'write a test for booking.com checkout' })
 
     expect(test.ordering).toEqual([AUTHORING_DRAFT_WRITE_FUNCTION_ID])
   })
 
-  it('(R3/R4) scaffolds through the REAL op, which writes in its own call, and authors AFTER it', async () => {
+  it('scaffolds through the REAL op, which writes in its own call, and authors AFTER it', async () => {
     // No configured targets, so the real scaffold op decides its own answer.
     const scaffoldOp = scaffoldOpFixture({ configText: ZERO_TARGET_CONFIG })
     const test = harness({ targets: [], realScaffold: scaffoldOp })
@@ -477,7 +477,7 @@ describe('one turn: detect, scaffold, author', () => {
     }
   })
 
-  it('(R5/R6) authors NOTHING when the scaffold\'s write stopped part way, and says where', async () => {
+  it('authors NOTHING when the scaffold\'s write stopped part way, and says where', async () => {
     // The chain stops after the scaffold only when the scaffold did not finish writing.
     const detail = 'wrote .gitignore, then stopped: agent-qa.config.yaml changed after this call read '
       + 'it, and hooks.yaml was not reached. Nothing was rolled back; the written files hold the new bytes.'
@@ -503,7 +503,7 @@ describe('one turn: detect, scaffold, author', () => {
     expect(test.presented).toEqual([])
   })
 
-  it('(R7) refuses an unconfigured project with no hostname, and invokes nothing at all', async () => {
+  it('refuses an unconfigured project with no hostname, and invokes nothing at all', async () => {
     const test = harness({ targets: [] })
     const result = await test.runTurn({ message: 'write a test for the checkout flow' })
 
@@ -517,7 +517,7 @@ describe('one turn: detect, scaffold, author', () => {
     expect(result.unhandled?.reason).not.toContain('checkout')
   })
 
-  it('(R8) reports the scaffold\'s own refusal and dispatches nothing', async () => {
+  it('reports the scaffold\'s own refusal and dispatches nothing', async () => {
     // `unrenderable-diff` is reachable from zero targets via a non-UTF-8 `.gitignore`.
     const test = harness({
       targets: [],
@@ -577,7 +577,7 @@ describe('one turn: detect, scaffold, author', () => {
     expect(WRITE_TEST_UNCONFIGURED_DETAIL).toContain('write a test for example.com')
   })
 
-  it('(R10) passes a hostname-shaped NON-SITE token through in a configured project',
+  it('passes a hostname-shaped NON-SITE token through in a configured project',
     async () => {
       // Without the from-zero precondition, `readme.md` would scaffold a target for `readme-md`.
       const scaffoldOp = scaffoldOpFixture({ configText: ZERO_TARGET_CONFIG })
@@ -597,7 +597,7 @@ describe('one turn: detect, scaffold, author', () => {
       expect(scaffoldOp.published).toHaveLength(0)
     })
 
-  it('(R11) ONE utterance, TWO project classes: zero targets scaffolds, one target passes through',
+  it('ONE utterance, TWO project classes: zero targets scaffolds, one target passes through',
     async () => {
       // The same words against both project classes, so the decision is a property of the project.
       const message = 'write a test for booking.com checkout'
@@ -620,7 +620,7 @@ describe('one turn: detect, scaffold, author', () => {
       expect(configuredOp.published).toHaveLength(0)
     })
 
-  it('(R12) renders THIS change — summary, files, true diff — AFTER the scaffold wrote it and BEFORE authoring',
+  it('renders THIS change — summary, files, true diff — AFTER the scaffold wrote it and BEFORE authoring',
     async () => {
       // The render is a receipt of a change on disk, shown once before authoring uses it.
       const scaffoldOp = scaffoldOpFixture({ configText: ZERO_TARGET_CONFIG })
@@ -672,7 +672,7 @@ describe('one turn: detect, scaffold, author', () => {
         .toBe([boundaryLine, answer.summaryLine, ...answer.files, answer.shownDiff].join('\n'))
     })
 
-  it('(R13′) an UNBOUND present does not stop the route: the change is written and authoring follows',
+  it('an UNBOUND present does not stop the route: the change is written and authoring follows',
     async () => {
       // A host with no surface logs the receipt and authors, as a host with one does.
       const scaffoldOp = scaffoldOpFixture({ configText: ZERO_TARGET_CONFIG })
@@ -730,13 +730,13 @@ describe('one turn: detect, scaffold, author', () => {
     return text
   }
 
-  it('(R16) a receipt with NO summary line renders the rest, and the turn authors', async () => {
+  it('a receipt with NO summary line renders the rest, and the turn authors', async () => {
     const { summaryLine: _summaryLine, ...withoutSummary } = DISPLAYABLE_ANSWER
     const text = await expectReceiptWithout(withoutSummary)
     expect(text).not.toContain(DISPLAYABLE_ANSWER.summaryLine)
   })
 
-  it('(R17) an answer with NO file list wrote nothing to author against, so the turn stops', async () => {
+  it('an answer with NO file list wrote nothing to author against, so the turn stops', async () => {
     const { files: _files, ...withoutFiles } = DISPLAYABLE_ANSWER
     const test = harness({ targets: [], scaffoldAnswer: withoutFiles })
     const result = await test.runTurn({ message: 'write a test for booking.com checkout' })
@@ -748,20 +748,20 @@ describe('one turn: detect, scaffold, author', () => {
     expect(result.unhandled?.reason).not.toBe(WRITE_TEST_UNCONFIGURED_DETAIL)
   })
 
-  it('(R18) a receipt with NO rendered diff renders the rest, and the turn authors', async () => {
+  it('a receipt with NO rendered diff renders the rest, and the turn authors', async () => {
     const { shownDiff: _shownDiff, ...withoutDiff } = DISPLAYABLE_ANSWER
     const text = await expectReceiptWithout(withoutDiff)
     expect(text).not.toContain('+++ b/')
   })
 
-  it('(R19) an EMPTY rendered diff adds no blank line to the receipt', async () => {
+  it('an EMPTY rendered diff adds no blank line to the receipt', async () => {
     const text = await expectReceiptWithout({ ...DISPLAYABLE_ANSWER, shownDiff: '' })
     expect(text).toContain(DISPLAYABLE_ANSWER.summaryLine)
     // The receipt ends with the last file: the empty diff contributed no line at all.
     expect(text.endsWith('hooks.yaml')).toBe(true)
   })
 
-  it('(R14) a present that THROWS does not decide the turn: the change is written and authoring follows',
+  it('a present that THROWS does not decide the turn: the change is written and authoring follows',
     async () => {
       // A broken render port does not refuse the turn: healthy and broken runs dispatch the same.
       const message = 'write a test for booking.com checkout'
@@ -794,7 +794,7 @@ describe('one turn: detect, scaffold, author', () => {
       expect(JSON.stringify(broken.events)).not.toContain(PRESENT_FAILURE_ERROR)
     })
 
-  it('(R15) a present that REJECTS does not decide it either — the port type\'s other arm',
+  it('a present that REJECTS does not decide it either — the port type\'s other arm',
     async () => {
       // The twin over `Promise<void>`: one await covers both arms of the port's type.
       const message = 'write a test for booking.com checkout'
@@ -824,7 +824,7 @@ describe('one turn: detect, scaffold, author', () => {
 
   // The receipt repeats the op's two fields saying whether the change crosses a trust boundary.
 
-  it('(R20) tells the person the change CROSSES A BOUNDARY, and why, above the rest of the receipt',
+  it('tells the person the change CROSSES A BOUNDARY, and why, above the rest of the receipt',
     async () => {
       // THE REAL OP ANSWERS IT (produced-not-literal). A scaffold writes a target that did not
       // exist, so the classifier's own verdict is `new-origin`.
@@ -865,7 +865,7 @@ describe('one turn: detect, scaffold, author', () => {
       expect(summaryAt).toBeGreaterThan(boundaryAt)
     })
 
-  it('(R21) adds NO boundary line to a change that crosses none — the common path stays quiet',
+  it('adds NO boundary line to a change that crosses none — the common path stays quiet',
     async () => {
       const test = harness({
         targets: [],
@@ -887,7 +887,7 @@ describe('one turn: detect, scaffold, author', () => {
       expect(text).toContain(DISPLAYABLE_ANSWER.shownDiff)
     })
 
-  it('(R9) does not run at all on a host that binds no vocabulary', async () => {
+  it('does not run at all on a host that binds no vocabulary', async () => {
     // With the dep absent, the from-zero case's only guard is the authoring loop's own backstop.
     const test = harness()
     const result = await test.runTurn({ message: 'write a test for booking.com checkout' })

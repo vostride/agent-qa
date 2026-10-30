@@ -790,11 +790,11 @@ describe('createQuarantineOperations', () => {
   })
 
   // Type-checked, never called: without the sync constraint its expect-error goes unused.
-  async function wr02AnAsyncDecideMustNotCompile(root: string): Promise<void> {
+  async function anAsyncDecideMustNotCompile(root: string): Promise<void> {
     // @ts-expect-error — a PromiseLike-returning `decide` cannot satisfy the synchronous signature
     await underWriterLease(root, undefined, async () => 'never runs')
   }
-  void wr02AnAsyncDecideMustNotCompile
+  void anAsyncDecideMustNotCompile
 
   it('runs a SYNCHRONOUS decide under the lease, so the compile pin is about the promise', async () => {
     // Non-vacuity for the compile pin above: the same call with a synchronous closure compiles AND

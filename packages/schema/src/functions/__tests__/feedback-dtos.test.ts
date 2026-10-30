@@ -37,7 +37,7 @@ const commitReceipt = {
   held: [{ candidateId: 'rec-2', reason: 'no receipt' }],
 }
 
-describe('Gate-3 neutral feedback contracts', () => {
+describe('neutral feedback contracts', () => {
   it('pins the quarantine, disposition and fix vocabularies in declaration order', () => {
     expect(MARK_QUARANTINE_CLASSES).toEqual(['flake', 'environment', 'timeout'])
     // `drafted` is read back only, via `MARK_HISTORICAL_DISPOSITIONS`, so this list omits it.

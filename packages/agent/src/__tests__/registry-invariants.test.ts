@@ -65,19 +65,19 @@ const RETIREMENT_REGISTER: readonly RetirementRow[] = Object.freeze([
       + 'any surface), and the conformance census asserts only the non-emptiness half',
   }),
   Object.freeze({
-    block: 'names every capability dot-namespaced over the fixed domain taxonomy (D-15)',
+    block: 'names every capability dot-namespaced over the fixed domain taxonomy',
     kind: 'it',
     destination: 're-derived → conformance leg',
     reason:
-      'D-18: the taxonomy is now `conformance/domain-list.ts`, censused ids→list and list→ids with '
-      + 'dated reserved markers; the grammar sweep travelled with it as `OP_ID_GRAMMAR`',
+      'the taxonomy is now `conformance/domain-list.ts`, censused ids→list and list→ids with '
+      + 'reserved markers; the grammar sweep travelled with it as `OP_ID_GRAMMAR`',
   }),
   Object.freeze({
     block: 'carries a complete declaration for every capability',
     kind: 'it',
     destination: 'retained here',
     reason:
-      'BL-01/T-384-20: the per-field completeness sweep and the inert-projection checks read live '
+      'the per-field completeness sweep and the inert-projection checks read live '
       + 'registry internals, so they cannot leave `packages/agent`',
   }),
   Object.freeze({
@@ -103,7 +103,7 @@ const RETIREMENT_REGISTER: readonly RetirementRow[] = Object.freeze([
     kind: 'it',
     destination: 'folded → scenario-table',
     reason:
-      'D-10: the scenario row IS the invocation sample, and the conformance suite asserts both the '
+      'the scenario row IS the invocation sample, and the conformance suite asserts both the '
       + 'set equality and that every row still parses against its op\'s own contract',
   }),
   Object.freeze({
@@ -129,8 +129,7 @@ const RETIREMENT_REGISTER: readonly RetirementRow[] = Object.freeze([
     kind: 'constant',
     destination: 're-derived → conformance leg',
     reason:
-      'D-18: became `CANONICAL_ID_DOMAINS` — 14 distinct domains with a charter apiece, the seven '
-      + 'dated widening notes folded into one, and the 392 note\'s miscount corrected',
+      'became `CANONICAL_ID_DOMAINS`: 14 distinct domains with a charter apiece',
   }),
   Object.freeze({
     block: 'EXPECTED_BINDING_STATUS',
@@ -165,7 +164,7 @@ const RETIREMENT_REGISTER: readonly RetirementRow[] = Object.freeze([
     kind: 'constant',
     destination: 'folded → scenario-table',
     reason:
-      'every sample, and the per-op reasoning for its shape, moved into `SCENARIO_TABLE` in 397-03; '
+      'every sample, and the per-op reasoning for its shape, lives in `SCENARIO_TABLE`; '
       + '`BOUND_OP_INPUTS` below re-states only the ones this fixture can actually dispatch',
   }),
   Object.freeze({
@@ -173,8 +172,8 @@ const RETIREMENT_REGISTER: readonly RetirementRow[] = Object.freeze([
     kind: 'constant',
     destination: 'retired → subject deleted',
     reason:
-      'the fixture\'s execution context, never the ambient one — retained here until 432-39, which '
-      + 'deleted the registry option it was handed to; no op decides in a context',
+      'the fixture\'s execution context, never the ambient one; the registry takes no such option '
+      + 'any more, and no op decides in a context',
   }),
   Object.freeze({
     block: 'handoff',
@@ -196,22 +195,22 @@ const RETIREMENT_REGISTER: readonly RetirementRow[] = Object.freeze([
     destination: 'retained here',
     reason:
       'a human-origin caller, so a refusal here can never be a missing grant wearing a binding '
-      + 'refusal\'s clothes; 432-39 deleted the scope set it once derived off the scope union',
+      + 'refusal\'s clothes; it derives no scope set off the scope union',
   }),
   Object.freeze({
     block: 'noOpSink',
     kind: 'constant',
     destination: 'retired → subject deleted',
     reason:
-      'retained here until 441-28, which deleted the registry\'s audit-sink requirement it existed '
-      + 'to satisfy (D-15); this file asserts on coverage, never on an audit trail',
+      'the registry no longer has the audit-sink requirement it existed '
+      + 'to satisfy; this file asserts on coverage, never on an audit trail',
   }),
   Object.freeze({
     block: 'EVERY_ASK_STANDING_APPROVED',
     kind: 'constant',
     destination: 'retired → subject deleted',
     reason:
-      'retained here until 432-13 (without it an ask-tier capability was refused at the GATE '
+      'retained while the op gate stood (without it an ask-tier capability was refused at the GATE '
       + 'before the binding check); the op gate is gone, so the dispatch leg reaches the binding '
       + 'check directly and the control has nothing left to control',
   }),

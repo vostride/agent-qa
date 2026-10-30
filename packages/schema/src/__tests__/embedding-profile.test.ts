@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { DEFAULT_EMBEDDING_PROFILE, STATIC_FLOOR_EMBEDDING_PROFILE } from '../index'
 
 describe('DEFAULT_EMBEDDING_PROFILE', () => {
-  it('pins the ratified v51 embedding default lock', () => {
+  it('pins the ratified embedding default lock', () => {
     expect(DEFAULT_EMBEDDING_PROFILE).toEqual({
       model_id: 'Xenova/bge-small-en-v1.5',
       revision: 'ea104dacec62c0de699686887e3f920caeb4f3e3',

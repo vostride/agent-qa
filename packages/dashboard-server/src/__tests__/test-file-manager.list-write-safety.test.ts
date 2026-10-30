@@ -695,12 +695,12 @@ describe('test and suite list reads and id writes', () => {
     for (const [label, listing] of [['first', firstTests], ['second', secondTests]] as const) {
       expect(
         listing.find((file) => file.path === 'tests/blank.yaml')?.testId,
-        `(a, IN-20) the ${label} listing names no id for tests/blank.yaml, which holds only whitespace`,
+        `the ${label} listing names no id for tests/blank.yaml, which holds only whitespace`,
       ).toBeNull()
     }
     expect(
       await readFile(join(a.dir, 'tests/blank.yaml'), 'utf-8'),
-      '(a, IN-20) the whitespace survives byte for byte, with no id line',
+      'the whitespace survives byte for byte, with no id line',
     ).toBe('  \n\t\n')
 
     // (b) the suite manager

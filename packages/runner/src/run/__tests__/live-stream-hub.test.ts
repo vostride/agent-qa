@@ -584,7 +584,7 @@ describe('the N-viewer invariant', () => {
     await flush()
     capability.emit(frame(1))
     expect(faults, 'the witness: the throw path really was taken').toContain('live-stream-subscriber-detached')
-    expect(warnings, 'off the run channel (WR-06)').toEqual([])
+    expect(warnings, 'off the run channel').toEqual([])
     expect(
       timer.pending(LIVE_STREAM_STOP_GRACE_MS),
       'the throw path emptied the subscriber set, so the stop must be scheduled like any other '
@@ -676,7 +676,7 @@ describe('the N-viewer invariant', () => {
     await flush()
     expect(first.calls, 'the replaced capability is stopped — a re-registered handle leaves no '
       + 'orphan screencast running in the browser').toContain('stop')
-    expect(ends, 'and the viewers of the REPLACED stream are told it ended (CR-03) — a re-register '
+    expect(ends, 'and the viewers of the REPLACED stream are told it ended — a re-register '
       + 'drops their subscription just as surely as a withdraw does').toEqual(['end'])
     expect(second.calls, 'and the replacement is not started until somebody watches it').toEqual([])
     expect(hub.capabilityOf(0)).toEqual({ kind: 'cdp-screencast' })

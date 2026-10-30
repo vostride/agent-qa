@@ -59,16 +59,16 @@ export interface DebrisSite {
 }
 
 const KEEP_RETAINED_UNION =
-  'RETAINED union member, now as UNREACHABLE BREADTH (405-07). The v2 DDL narrowed its CHECK to '
+  'RETAINED union member, now as UNREACHABLE BREADTH. The v2 DDL narrowed its CHECK to '
   + 'the two kinds anything mints, so the store refuses these values and no row can carry one. The '
   + 'TYPE keeps them because the UI renders the field verbatim as a badge, and narrowing a union a '
-  + 'render site switches on is 405-11\'s edit, not this plan\'s. Recorded here so the next reader '
+  + 'render site switches on belongs with that render site. Recorded here so the next reader '
   + 'finds a disposition rather than a survival.'
 
 // An older database is refused on open, so a read that renders a historical row has no input.
 const DELETE_HISTORICAL_READ =
-  'A historical-row read retained by 402-09 for operator databases written before the one-run '
-  + 'model. D-02 makes v2 a hard cut refused by name below its version, so no database this build '
+  'A historical-row read kept for operator databases written before the one-run '
+  + 'model. v2 is a hard cut refused by name below its version, so no database this build '
   + 'opens can hold the rows this read existed to serve.'
 
 export const DEBRIS_REGISTER: readonly DebrisSite[] = [
@@ -91,7 +91,7 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     after: 0,
     disposition: 'delete',
     why: 'The CLI-side parent-kind mint on the suite run artifact document. A kind claiming '
-      + 'parenthood over rows nothing creates is exactly the label D-11 forbids.',
+      + 'parenthood over rows nothing creates is exactly the label the one-run model forbids.',
   },
   {
     file: 'packages/cli/src/commands/run.ts',
@@ -157,7 +157,7 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     before: 1,
     after: 0,
     disposition: 'delete',
-    why: 'The child-run cancellation fan-out named in D-11.',
+    why: 'The child-run cancellation fan-out the one-run model removes.',
   },
   {
     file: 'packages/dashboard-server/src/queue/job-queue.ts',
@@ -209,7 +209,7 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     before: 1,
     after: 0,
     disposition: 'delete',
-    why: 'The parent-kind mint on POST /api/queue/enqueue named in D-11.',
+    why: 'The parent-kind mint on POST /api/queue/enqueue the one-run model removes.',
   },
   {
     file: 'packages/dashboard-server/src/server/routes.ts',
@@ -227,9 +227,9 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     before: 1,
     after: 0,
     disposition: 'delete',
-    why: 'RESPONSE_SAFE_RUN_READ_METHODS membership. The 401-23 allowlist asserts SET EQUALITY with '
-      + 'the database\'s run reads at construction, so the name leaves in the same commit as the '
-      + 'method — keeping either alone throws at router build.',
+    why: 'RESPONSE_SAFE_RUN_READ_METHODS membership. The response-safe allowlist asserts SET '
+      + 'EQUALITY with the database\'s run reads at construction, so the name leaves in the same '
+      + 'commit as the method — keeping either alone throws at router build.',
   },
   {
     file: 'packages/dashboard-server/src/server/routes.ts',
@@ -239,7 +239,7 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     after: 0,
     disposition: 'delete',
     why: 'The metadata-scrubbing override for the same read. It goes with the read it wrapped — a '
-      + 'scrub for a method nobody can call is not a door, it is dead policy (401-23).',
+      + 'scrub for a method nobody can call is not a door, it is dead policy.',
   },
   {
     file: 'packages/dashboard-server/src/server/routes.ts',
@@ -288,7 +288,7 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     disposition: 'delete',
     why: 'Run-close suite fold: derives the parent row\'s status from its children. With no child '
       + 'producer this can only ever read an empty list, so it is dead code reading as live policy '
-      + '— the same shape 401-07 retired for retry children at this exact site.',
+      + '— the same shape the retry children had at this exact site.',
   },
   {
     file: 'packages/dashboard-server/src/server/server.ts',
@@ -339,10 +339,10 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     before: 1,
     after: 0,
     disposition: 'delete',
-    why: '402-09 kept this CHECK because narrowing it would have needed a table-rebuild migration '
-      + 'on every operator database. D-02 removes that cost entirely: v2 is a hard cut, the table '
-      + 'is CREATEd at its final shape and an older database is refused rather than rebuilt. So the '
-      + 'store now admits only the two kinds anything mints (RESEARCH Open Q4).',
+    why: 'This CHECK was kept wide because narrowing it would have needed a table-rebuild '
+      + 'migration on every operator database. v2 removes that cost entirely: it is a hard cut, '
+      + 'the table is CREATEd at its final shape and an older database is refused rather than '
+      + 'rebuilt. So the store now admits only the two kinds anything mints.',
   },
   {
     file: 'packages/dashboard-server/src/db/schema.ts',
@@ -360,9 +360,9 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     before: 1,
     after: 0,
     disposition: 'delete',
-    why: `${KEEP_RETAINED_UNION} 405-07 recorded this as a KEEP because the drawer switches on the `
+    why: `${KEEP_RETAINED_UNION} The drawer switches on the `
       + 'value to paint a badge and narrowing a union a render site reads belongs with that render '
-      + 'site. 405-11 rebuilt that render site and narrowed it there, closing the deferral.',
+      + 'site, so the union was narrowed there.',
   },
   {
     file: 'packages/dashboard-ui/src/lib/api.ts',
@@ -371,7 +371,7 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     before: 1,
     after: 0,
     disposition: 'delete',
-    why: 'Same UI-side union (the suite-child arm), narrowed by 405-11.',
+    why: 'Same UI-side union (the suite-child arm), narrowed with its render site.',
   },
   {
     file: 'packages/schema/src/run/run-artifact.ts',
@@ -380,9 +380,10 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     before: 1,
     after: 0,
     disposition: 'delete',
-    why: `${KEEP_RETAINED_UNION} The canonical union; D-11 deleted the PRODUCERS of the value and `
-      + "405-07 deleted the STORE's admission of it, leaving both members unreachable breadth on "
-      + 'every reader. 405-11 narrowed it with the render site, so no reader can name the value.',
+    why: `${KEEP_RETAINED_UNION} The canonical union; the one-run model deleted the PRODUCERS of `
+      + "the value and the v2 DDL deleted the STORE's admission of it, leaving both members "
+      + "unreachable breadth on "
+      + 'every reader. It was narrowed with the render site, so no reader can name the value.',
   },
   {
     file: 'packages/schema/src/run/run-artifact.ts',
@@ -391,7 +392,7 @@ export const DEBRIS_REGISTER: readonly DebrisSite[] = [
     before: 1,
     after: 0,
     disposition: 'delete',
-    why: 'Same canonical union (the suite-child arm), narrowed by 405-11.',
+    why: 'Same canonical union (the suite-child arm), narrowed with its render site.',
   },
 ]
 
@@ -724,9 +725,9 @@ const S = (file: string, token: string, line: string): string => siteKey({ file,
 
 const DELETE_LINK_FILTER = 'A top-level-run filter over the parent link, spelled in raw SQL. '
   + 'Predicate A was structurally blind to these — they name no debris token — and predicate B '
-  + 'found all of them by differential. 402-09 kept them because a linked row admitted as a '
+  + 'found all of them by differential. They were kept because a linked row admitted as a '
   + 'top-level run would have double-counted every historical suite in the list, the counts and '
-  + 'the trend series. D-02 makes such a row unreachable, and a predicate over a column the table '
+  + 'the trend series. v2 makes such a row unreachable, and a predicate over a column the table '
   + 'does not have is an error rather than a filter, so each one is deleted with the column.'
 
 const ROUTES = 'packages/dashboard-server/src/server/routes.ts'
@@ -760,8 +761,8 @@ export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
     ],
     why: 'The store\'s admission of the two parent/child artifact kinds. Observable directly — the '
       + 'predicate-B cell writes each kind and reads the refusal — which is why it is a surface and '
-      + 'not an unobservable delete. 402-09 kept it because narrowing a CHECK meant a table rebuild '
-      + 'on every operator database; D-02 removes that cost (RESEARCH Open Q4).',
+      + 'not an unobservable delete. It was kept because narrowing a CHECK meant a table rebuild '
+      + 'on every operator database; v2\'s hard cut removes that cost.',
   },
   {
     id: 'db:getRunArtifactBundle',
@@ -776,7 +777,7 @@ export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
     kind: 'reader',
     disposition: 'delete',
     sites: [],
-    why: 'The recursive `run_tree` cascade. 402-09 kept it so a historical suite parent could still '
+    why: 'The recursive `run_tree` cascade. It was kept so a historical suite parent could still '
       + 'take its members with it; with no linked row reachable the walk returns the one row it was '
       + 'seeded with, and every table that references a run declares ON DELETE CASCADE. '
       + `${DELETE_LINK_FILTER}`,
@@ -862,7 +863,7 @@ export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
       S(QUEUE, 'cancelChildRuns', 'private cancelChildRuns(parentRunId: string, endedAt: string): void {'),
       S(QUEUE, 'getRunsByParent', 'for (const child of this.db.getRunsByParent(parentRunId)) {'),
     ],
-    why: 'The child-cancellation fan-out D-11 names. Deleted by 402-09; cancelling a run now reaches '
+    why: 'The child-cancellation fan-out the one-run model removes. Cancelling a run now reaches '
       + 'the run it names and nothing else.',
   },
   {
@@ -880,7 +881,7 @@ export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
       S(ROUTES, 'getRunsByParent', 'const attempts = db.getRunsByParent(id)'),
       S(ROUTES, 'getRunsByParent', 'const tests = db.getRunsByParent(id)'),
     ],
-    why: `${DELETE_HISTORICAL_READ} The arm answers only the run row (D-03).`,
+    why: `${DELETE_HISTORICAL_READ} The arm answers only the run row.`,
   },
   {
     id: 'route:GET /api/runs/:id/artifact',
@@ -915,7 +916,7 @@ export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
     kind: 'producer',
     disposition: 'delete',
     sites: [S(ROUTES, 'suite-parent', "kind: isSuiteFile ? 'suite-parent' : 'test',")],
-    why: 'The parent-kind mint D-11 names.',
+    why: 'The parent-kind mint the one-run model removes.',
   },
   {
     id: 'route:POST /api/runs/trigger (suite file)',
@@ -933,16 +934,16 @@ export const DEBRIS_SURFACES: readonly DebrisSurface[] = [
       S(SUBSCRIBER, 'suite-child', "insertArtifact(id, 'suite-child')"),
     ],
     why: 'The live producer of new parent/child run records: a parent row of kind suite-parent plus '
-      + 'one linked child row per member. A parallel suite is ONE run row with member handles (D-11).',
+      + 'one linked child row per member. A parallel suite is ONE run row with member handles.',
   },
   {
     id: 'ingest:createDashboardRunIngest retry correlation',
     kind: 'producer',
     disposition: 'delete',
     sites: [],
-    why: 'Already producer-less before 402-09 — 401-07 (D-12) retired the machinery that set '
+    why: 'Already producer-less: nothing sets '
       + 'the retired parent-run variable, so nothing could reach this mode. "Anything the '
-      + 'one-run model leaves producer-less goes too" (D-11).',
+      + 'one-run model leaves producer-less goes too".',
   },
 ]
 

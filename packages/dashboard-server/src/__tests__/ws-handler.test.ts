@@ -270,7 +270,7 @@ describe('ws-handler', () => {
   })
 
   // The control socket carries no screenshots: the session could capture, the handler never asks.
-  it('get-screenshot sends base64 screenshot', async () => {
+  it('get-screenshot sends no screenshot and never asks the session for one', async () => {
     const handler = createSessionHandler(session as unknown as LiveSession, onTerminate)
     handler(ws as any)
 

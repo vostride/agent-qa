@@ -114,7 +114,7 @@ const declaredCarriers = (): readonly ToolProjection[] =>
   AGENT_QA_TOOL_PROJECTIONS.filter((projection) => projection.ui !== undefined)
 
 describe('which tools carry the App is census-pinned DATA', () => {
-  it('(C1) the carrier set derived from the table equals the set the WIRE advertises', async () => {
+  it('the carrier set derived from the table equals the set the WIRE advertises', async () => {
     const fromTable = declaredCarriers()
       .map((projection) => projection.name)
       .sort()
@@ -141,7 +141,7 @@ describe('which tools carry the App is census-pinned DATA', () => {
     }
   })
 
-  it('(C2) every carrier\'s runIdFrom agrees with what its own OPS can answer', () => {
+  it('every carrier\'s runIdFrom agrees with what its own OPS can answer', () => {
     const declared: ReadonlyMap<string, FunctionDeclaration> = new Map(
       builtInRegistry()
         .list(callerWith(EVERY_SCOPE))
@@ -149,7 +149,7 @@ describe('which tools carry the App is census-pinned DATA', () => {
     )
 
     const carriers = declaredCarriers()
-    expect(carriers.length, 'nothing to check — see (C1)').toBeGreaterThan(0)
+    expect(carriers.length, 'nothing to check — see the carrier-set cell').toBeGreaterThan(0)
 
     for (const projection of carriers) {
       // A carrier is a 1:1 tool over one op today. Asserted rather than assumed, because the rule
@@ -313,7 +313,7 @@ async function callBothCarriers(client: Client): Promise<readonly ToolCallResult
 }
 
 describe('an App-LESS host gets the link and NOT the App, in one flow', () => {
-  it('(C3) link-out present AND App un-obtainable, on a host where the App really exists',
+  it('link-out present AND App un-obtainable, on a host where the App really exists',
     async () => {
       const url = await serveLiveHost({ base: DASHBOARD_BASE })
       const stranger = await connect(url, { apps: false })
@@ -354,7 +354,7 @@ describe('an App-LESS host gets the link and NOT the App, in one flow', () => {
         .toContain(FIXTURE_ORIGIN)
     })
 
-  it('(C4) with no base anywhere the line is LIVE_LINK_ABSENT_LINE verbatim — never a link to '
+  it('with no base anywhere the line is LIVE_LINK_ABSENT_LINE verbatim — never a link to '
     + 'nothing (RESEARCH Open Question 3)', async () => {
     const url = await serveLiveHost()
     const stranger = await connect(url, { apps: false })

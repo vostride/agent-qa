@@ -332,7 +332,7 @@ describe('procedure step boundary', () => {
     )).toBe(false)
   })
 
-  it('R1: test step 0 dispatches exactly ONE stored action — the fill', async () => {
+  it('test step 0 dispatches exactly ONE stored action — the fill', async () => {
     const { adapter, executed } = navigatingAdapter()
     const { reader } = makeFlowReader()
     const planner = capturingPlanner([makeActionPlan()])
@@ -350,7 +350,7 @@ describe('procedure step boundary', () => {
     expect(result.evidence?.subActions).toHaveLength(1)
   })
 
-  it('R2: step 0 records a per-step-complete guard fold, not the whole-body fold', async () => {
+  it('step 0 records a per-step-complete guard fold, not the whole-body fold', async () => {
     const { adapter } = navigatingAdapter()
     const { reader } = makeFlowReader()
     const planner = capturingPlanner([makeActionPlan()])
@@ -373,7 +373,7 @@ describe('procedure step boundary', () => {
     expect(planSource.guard.miss).toBeUndefined()
   })
 
-  it('R3: the stored click is NOT dispatched during test step 0 — the harness stays on the form screen', async () => {
+  it('the stored click is NOT dispatched during test step 0 — the harness stays on the form screen', async () => {
     const { adapter, executed, currentScreen } = navigatingAdapter()
     const { reader } = makeFlowReader()
     const planner = capturingPlanner([makeActionPlan()])

@@ -682,7 +682,7 @@ describe('arch lint surface firewall held-out fixtures', () => {
   })
 
   it('the shipped ledger stays exact, dated, and closed to the newer surface files', () => {
-    const newInPhase384 = [
+    const newerSurfaceFiles = [
       'packages/cli/src/commands/fn.ts',
       'packages/cli/src/composition/masked-config.ts',
     ]
@@ -693,7 +693,7 @@ describe('arch lint surface firewall held-out fixtures', () => {
       expect(entry.file.endsWith('/')).toBe(false)
       expect(entry.file).toMatch(/\.(ts|tsx|js|mjs|cjs|css)$/)
       expect(FIREWALLED_SURFACE_DIRS.some(dir => entry.file.startsWith(`${dir}/`))).toBe(true)
-      expect(newInPhase384).not.toContain(entry.file)
+      expect(newerSurfaceFiles).not.toContain(entry.file)
     }
 
     const keys = SURFACE_FIREWALL_LEDGER.map(entry => `${entry.file} :: ${entry.specifier}`)

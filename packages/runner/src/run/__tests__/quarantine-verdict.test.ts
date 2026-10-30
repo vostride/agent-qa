@@ -196,7 +196,7 @@ describe('quarantine-aware run', () => {
     expect(verdict).toBe('failed')
   })
 
-  it('suppresses a quarantined member that TIMES OUT, the same A3 phenomenon', async () => {
+  it('suppresses a quarantined member that TIMES OUT, the same phenomenon', async () => {
     const timeoutResult: TestResult = {
       name: 'flaky',
       filePath: 'flaky.test.ts',

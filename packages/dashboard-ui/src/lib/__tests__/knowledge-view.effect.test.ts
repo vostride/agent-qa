@@ -91,7 +91,7 @@ function steps(view: EffectSectionView, index: number): string[] {
   return (view.entries[index]?.addresses ?? []).map(address => `${String(address.testIndex)}:${String(address.stepIndex)}`)
 }
 
-describe('the effect closed sets are exactly the published members (v54 bar)', () => {
+describe('the effect closed sets are exactly the published members', () => {
   it('the effect outcomes, tones, tone map and stop causes', () => {
     expect(EFFECT_OUTCOMES).toEqual([
       'contradicted',

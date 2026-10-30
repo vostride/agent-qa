@@ -335,7 +335,7 @@ describe('one machine for both entry points', () => {
     expect(deriveLivePreview(snap, T + 1_000)).toMatchObject({ state: 'live', dot: 'green', snapshot: true })
 
     const fallback = reduceLivePreview(embedded(T, 'cdp-screencast'), frame(T, 'snapshot'), T)
-    expect(deriveLivePreview(fallback, T + 1_000).snapshot, 'the D-12 fallback under a screencast declaration').toBe(true)
+    expect(deriveLivePreview(fallback, T + 1_000).snapshot, 'the snapshot fallback under a screencast declaration').toBe(true)
     const back = reduceLivePreview(fallback, frame(T + 1_000, 'cdp-screencast'), T + 1_000)
     expect(deriveLivePreview(back, T + 1_500).snapshot).toBe(false)
 

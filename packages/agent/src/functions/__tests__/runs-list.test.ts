@@ -229,10 +229,10 @@ describe('LIST-ROWS: every row names all of its tests', () => {
     const secret = 'T431-list-sentinel-not-a-real-credential'
     const documents = [run({ runId: 'run-secret', endedAt: 1,
       tests: [member(0, 't-login', `Login as ${secret}`)] })]
-    const reader = harness(documents, undefined, declaredMask({ LIST_441: secret }))
+    const reader = harness(documents, undefined, declaredMask({ LIST_KEY: secret }))
 
     const [row] = await reader.list({})
-    expect(row!.tests[0]!.testName).toBe('Login as [secret:LIST_441]')
+    expect(row!.tests[0]!.testName).toBe('Login as [secret:LIST_KEY]')
     expect(JSON.stringify(row)).not.toContain(secret)
     expect(await reader.list({ test: secret.slice(0, 12) })).toEqual([])
     expect((await reader.list({ test: 'login as' })).map((listed) => listed.runId)).toEqual(['run-secret'])

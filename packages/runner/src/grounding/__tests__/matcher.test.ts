@@ -71,9 +71,9 @@ describe('matchDescriptor — precedence ladder', () => {
   })
 })
 
-describe('matchDescriptor — ordinal is a tiebreak only', () => {
+describe('matchDescriptor — an ordinal is never read', () => {
   // No position selects; a stray ordinal is never read.
-  it('ordinal selects within the surviving result set', () => {
+  it('an ordinal selects nothing: identical survivors stay ambiguous at every position', () => {
     const elements = [
       element('e1', 'button', 'add'),
       element('e2', 'button', 'add'),
@@ -88,7 +88,7 @@ describe('matchDescriptor — ordinal is a tiebreak only', () => {
       .toEqual<MatchResult>({ kind: 'ambiguous', candidates: all })
   })
 
-  it('an ordinal beyond the surviving set is a no-match, never a clamp to the last element', () => {
+  it('an ordinal beyond the surviving set leaves the survivors ambiguous, never clamped to the last', () => {
     const elements = [
       element('e1', 'button', 'add'),
       element('e2', 'button', 'add'),

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest'
 import { maskPayloadTree } from '../bus-projections'
 
 const VALUE = 'Hunter-42-zz'
-const MARKER = '[secret:PW_441]'
+const MARKER = '[secret:PW_KEY]'
 const mask = (text: string): string => text.split(VALUE).join(MARKER)
 
 describe('maskPayloadTree', () => {

@@ -93,7 +93,7 @@ const LLMS = [
 const SECRET = 'sk-live-never-in-the-page'
 const HEADER_SECRET = 'org-header-secret'
 // The server shows a declared header value as its marker.
-const HEADER_MARKER = '[secret:PW_441]'
+const HEADER_MARKER = '[secret:PW_KEY]'
 
 const PROXY = {
   name: 'claude-proxy',

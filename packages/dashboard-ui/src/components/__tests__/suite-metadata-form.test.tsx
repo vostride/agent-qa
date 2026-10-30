@@ -218,7 +218,7 @@ describe('SuiteMetadataForm', () => {
     expect(container).not.toBeNull()
   })
 
-  it('positions the regenerate button inside the suite-id input with absolute positioning (Gap 5)', () => {
+  it('positions the regenerate button inside the suite-id input with absolute positioning', () => {
     const onChange = vi.fn()
     mount(
       <SuiteMetadataForm

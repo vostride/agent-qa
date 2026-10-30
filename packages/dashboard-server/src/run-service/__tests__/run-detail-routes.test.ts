@@ -560,7 +560,7 @@ async function serveFeedbackReads(options: { withPreview?: boolean; unbound?: bo
   const portCalls: string[] = []
   const registry = composeRegistry(createDashboardRunDetailReader(db), undefined,
     options.unbound === true ? undefined : fileFeedbackReads(root, portCalls, options),
-    (text) => text.replaceAll(FEEDBACK_NOTE_SECRET, '[secret:FEEDBACK_441]'))
+    (text) => text.replaceAll(FEEDBACK_NOTE_SECRET, '[secret:FEEDBACK_KEY]'))
   const seen: string[] = []
   const baseHost = hostOver(registry)
   const host: AgentHost = { ...baseHost,
@@ -664,7 +664,7 @@ describe('feedback reads on both HTTP doors', () => {
     const history = RunsMarksHistoryResultSchema.parse(expected)
     if (history.kind !== 'history') throw new Error('expected a history result')
     const withNote = (note: string) => ({ ...history, entries: history.entries.map((entry, index) => index === 0 ? { ...entry, note } : entry) })
-    const stored = withNote('note [secret:PW_441] and <SECRET_1>')
+    const stored = withNote('note [secret:PW_KEY] and <SECRET_1>')
     const planted = await servePlantedHost(stored)
     const human = await fetch(`${planted.local}/marks`)
     expect(human.status).toBe(200)
@@ -742,7 +742,7 @@ describe('feedback reads on both HTTP doors', () => {
     // Both doors answer a stored marker and an old placeholder as they are.
     const consequences = feedbackPreview(RUN_ID) as Extract<RunsMarkPreviewResult, { kind: 'consequences' }>
     const stored = RunsMarkPreviewResultSchema.parse({ ...consequences, knowledge: { ...consequences.knowledge,
-      records: [servedRecord('near [secret:PW_441] and <SECRET_1>')] } })
+      records: [servedRecord('near [secret:PW_KEY] and <SECRET_1>')] } })
     const planted = await servePlantedHost(stored)
     const human = await postJson(`${planted.local}/mark-preview`, previewInput())
     expect(human.status).toBe(200)
@@ -833,7 +833,8 @@ describe('GET /api/runs/:runId/artifacts/:sha — the ref resolves', () => {
     // Each header is asserted, not sampled.
     expect(response.headers.get('etag'), 'the content address IS the validator').toBe(`"${served.sha}"`)
     expect(response.headers.get('cache-control')).toBe('public, max-age=31536000, immutable')
-    expect(response.headers.get('x-content-type-options'), 'T-405-15').toBe('nosniff')
+    expect(response.headers.get('x-content-type-options'), 'the response forbids MIME sniffing')
+      .toBe('nosniff')
     expect(response.headers.get('content-type')).toBe('image/png')
     expect(response.headers.get('content-length')).toBe(String(PNG_BYTES.length))
   })
@@ -1050,7 +1051,7 @@ async function serveBothDoors(body: unknown) {
 
 describe('stored markers on display', () => {
   it('the human door serves a stored marker unchanged', async () => {
-    const projection = storedProjection('[secret:PW_441]')
+    const projection = storedProjection('[secret:PW_KEY]')
     const doors = await serveBothDoors(projection)
 
     for (const url of [`${doors.local}/detail`, `${doors.remote}/detail`]) {
@@ -1061,7 +1062,7 @@ describe('stored markers on display', () => {
   })
 
   it('no dashboard route restores or rewrites stored text', async () => {
-    const body = storedProjection('<SECRET_0> beside [secret:PW_441]')
+    const body = storedProjection('<SECRET_0> beside [secret:PW_KEY]')
     const doors = await serveBothDoors(body)
 
     for (const url of [

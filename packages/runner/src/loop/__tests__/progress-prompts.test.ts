@@ -23,12 +23,12 @@ const PINNED_RULES_5E3E932A2: Record<number, string> = {
     "23. SECRET PLACEHOLDERS — the value EXISTS and is bound at dispatch: A step may reference a secret in one of two forms: the template form {{secret:NAME}}, or its redacted display form [secret:NAME] (what you see once model-bound text has been masked). Both mean the same thing: a concrete value for NAME EXISTS and is already bound in this run's secret store. It is hidden from you deliberately, for security — it is NOT missing, NOT unavailable, and NOT a gap you must fill in.\n   TO USE IT: emit the template form {{secret:NAME}} VERBATIM as the action value (e.g. as the value of a fill action). The harness substitutes the real value at dispatch — after you plan, before the action reaches the app. Passing the placeholder through IS the correct, complete action.\n   NEVER declare the step infeasible, skip it, guess, or invent a stand-in because the literal is not visible to you — a hidden secret is not an impossible objective. stepFailed with failureKind \"infeasible\" (Rule 12) stays reserved for genuinely impossible objectives.\n   NEVER attempt to read, print, echo, assert on, or otherwise reveal the concrete secret value. You never need to see it to use it.",
 }
 
-const RULE_23_441 =
+const RULE_23 =
   '23. SECRETS: [secret:NAME] is a declared secret whose value exists but is hidden from you. ' +
   'To type it, use {{secret:NAME}} verbatim as the action value, never [secret:NAME].'
 
 // Copied from buildSystemPrompt('web') for Rules 10 and 17.
-const PINNED_RULES_438: Record<number, string> = {
+const PINNED_RULES: Record<number, string> = {
   10:
     "10. NEVER hallucinate a ref. A ref is a typed current-screen element handle from the observation, never a CSS selector, XPath, label, or guessed description. If an element appears in the observation without [ref=eN] (e.g. `- menuitemradio \"Chinese\"` with no ref), do NOT guess a ref number. Either use tapCoordinate with coordinates and coordSpace from the observation, or interact with a nearby ref'd element. If a tool offers elementDescription, use it only as optional disambiguation; it never replaces the ref or coordinates. Common no-ref cases: dropdown options, shadow DOM content, canvas elements, dynamically inserted items.\n   STATED TARGET: Every element action (click, tap, fill, select, hover, …) carries both `ref` and `target`. `ref` is the element's handle from the latest observation. `target` states the element you mean: its `role` and `name` as the observation shows them, plus `row`, words from its row's ` text: \"…\"`, whenever the same label appears more than once on the screen. Example: three \"Edit label\" buttons, one per address; to edit the Elm Street address, state `{ role: \"button\", name: \"Edit label\", row: \"7 Elm Street\" }`. Before anything is sent, the system compares the two: a ref that is clearly a different element (another kind of control, an unrelated name, a different number, another row) is refused as target-mismatch and nothing happens, so re-observe and use the ref of the element you mean. With no confident ref, send `target` alone and the system grounds it against the current screen. NEVER send neither: an element action with no `ref` and no `target` cannot be grounded and is rejected. `target` never holds a position or index; to act on \"the second\" of identical controls, use that control's ref. Unlike elementDescription (pure logging), `target` is checked. After a grounding error or a target-mismatch, do NOT retry the identical call.",
   17:
@@ -175,7 +175,7 @@ describe('prompt rules without screen-change progress checks', () => {
   })
 
   it('Rule 23 is the one-line secrets rule', () => {
-    for (const platform of PLATFORMS) expect(rule(23, platform)).toBe(RULE_23_441)
+    for (const platform of PLATFORMS) expect(rule(23, platform)).toBe(RULE_23)
   })
 
   it('the bulk-completion predicate still renders only in the turn, never the system tiers', () => {
@@ -222,7 +222,7 @@ describe('Rule 19 completion wording', () => {
 describe('Rules 10 and 17 wording', () => {
   it('Rules 10 and 17 match their pinned text', () => {
     for (const n of [10, 17]) {
-      expect(rule(n, 'web')).toBe(PINNED_RULES_438[n])
+      expect(rule(n, 'web')).toBe(PINNED_RULES[n])
     }
   })
 

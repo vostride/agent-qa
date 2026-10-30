@@ -487,7 +487,7 @@ describe("every member wears its outcome, and only a graded one carries a block"
       .toBe("failed")
     expect(
       view.querySelector('[data-member="1"] [data-member-outcome]')?.getAttribute("data-member-outcome"),
-      "a passed member says PASSED — the D-07 reversal, on the page",
+      "a passed member says PASSED, on the page",
     ).toBe("passed")
 
     expect(view.querySelectorAll('[data-member="0"] [data-verdict-block]').length).toBe(1)

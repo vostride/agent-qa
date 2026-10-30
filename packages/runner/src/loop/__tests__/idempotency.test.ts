@@ -47,7 +47,7 @@ function ordinary(selected: boolean): ScreenState {
   )
 }
 
-describe('Block A — desiredStateSatisfied: real toggles read checked for all four states', () => {
+describe('desiredStateSatisfied: real toggles read checked for all four states', () => {
   for (const fx of TOGGLE_FIXTURES) {
     it(`${fx.label} with checked true satisfies checked and selected as 'checked', and neither of the others`, () => {
       const screen = checkable({ checked: true }, { role: fx.role, ...(fx.attributes ? { attributes: fx.attributes } : {}) })
@@ -81,7 +81,7 @@ describe('Block A — desiredStateSatisfied: real toggles read checked for all f
   }
 })
 
-describe('Block A — desiredStateSatisfied: an ordinary node exposing selected always acts', () => {
+describe('desiredStateSatisfied: an ordinary node exposing selected always acts', () => {
   it('an ordinary role-button with selected true satisfies none of the four', () => {
     for (const desiredState of ALL_DESIRED) {
       expect(desiredStateSatisfied({ type: 'tap', ref: 'e1', desiredState }, ordinary(true))).toBeUndefined()
@@ -106,7 +106,7 @@ describe('Block A — desiredStateSatisfied: an ordinary node exposing selected 
   })
 })
 
-describe('Block A — desiredStateSatisfied: pickers act on the persisted value', () => {
+describe('desiredStateSatisfied: pickers act on the persisted value', () => {
   it('select/nativeSelect/pickerSelect no-op when the persisted value already equals the requested value', () => {
     for (const type of ['select', 'nativeSelect', 'pickerSelect']) {
       // Already on Option A ⇒ suppress.
@@ -157,7 +157,7 @@ function firstSub(result: Awaited<ReturnType<typeof executeStep>>): LooseSub | u
   return ev?.subActions?.[0]
 }
 
-describe('Block B — the seam suppresses a satisfied desiredState', () => {
+describe('the seam suppresses a satisfied desiredState', () => {
   it('a checked toggle with desiredState=checked never calls adapter.execute and records idempotentNoop', async () => {
     const observation = buildAgentScreenState({
       url: 'https://x.test/settings',
@@ -204,7 +204,7 @@ describe('Block B — the seam suppresses a satisfied desiredState', () => {
   })
 })
 
-describe('Block B — desiredState survives toolCallToActionPlan to the seam', () => {
+describe('desiredState survives toolCallToActionPlan to the seam', () => {
   it('a click tool call carrying desiredState spreads it onto the produced action plan', () => {
     const registry = new ToolRegistry()
     registerAllActions(registry)

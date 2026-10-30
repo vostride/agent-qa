@@ -39,8 +39,8 @@ function indexDir(knowledgeRoot: string): string[] {
 
 const INSPECT = { inspectCheckpointedImmutably: true } as const
 
-describe('C-HYG-PROBE-NO-SIDECARS — the inspecting probe leaves a checkpointed index alone', () => {
-  it('C-HYG-PROBE-NO-SIDECARS: answers `index`, creates no -wal/-shm; the ordinary probe does', async () => {
+describe('the inspecting probe leaves a checkpointed index alone', () => {
+  it('answers `index`, creates no -wal/-shm; the ordinary probe does', async () => {
     const knowledgeRoot = await healthyRoot()
     const path = indexDbPath(knowledgeRoot)
     const before = indexDir(knowledgeRoot)
@@ -59,7 +59,7 @@ describe('C-HYG-PROBE-NO-SIDECARS — the inspecting probe leaves a checkpointed
     )
   })
 
-  it('C-HYG-PROBE-NO-SIDECARS: under a live connection (a -wal) it opens as before', async () => {
+  it('under a live connection (a -wal) it opens as before', async () => {
     const knowledgeRoot = await healthyRoot()
     const live = new DatabaseSync(indexDbPath(knowledgeRoot))
     try {
@@ -75,7 +75,7 @@ describe('C-HYG-PROBE-NO-SIDECARS — the inspecting probe leaves a checkpointed
     }
   })
 
-  it('C-HYG-PROBE-NO-SIDECARS: absent and corrupt indexes get the ordinary answers', () => {
+  it('absent and corrupt indexes get the ordinary answers', () => {
     const absent = scaffoldedRoot()
     expect(classifyIndexFace(absent, INSPECT)).toEqual(classifyIndexFace(absent))
 
@@ -88,7 +88,7 @@ describe('C-HYG-PROBE-NO-SIDECARS — the inspecting probe leaves a checkpointed
     expect(inspected).toEqual(classifyIndexFace(corrupt))
   })
 
-  it('C-HYG-PROBE-NO-SIDECARS: the serving facade never opens immutably, whatever it is handed', async () => {
+  it('the serving facade never opens immutably, whatever it is handed', async () => {
     const knowledgeRoot = await healthyRoot()
     const handed = INSPECT as Parameters<typeof openKnowledgeReader>[1]
     const reader = openKnowledgeReader(knowledgeRoot, handed)

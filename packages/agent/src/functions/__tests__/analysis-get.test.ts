@@ -549,25 +549,25 @@ describe('analysis.get — read-time presence on cited artifacts', () => {
 const ESC = '\u001b'
 
 /** Playwright's raw timeout error from a seeded-red run. */
-const SEEDED_RED_399_QUOTE =
+const SEEDED_RED_QUOTE =
   'locator.click: Timeout 30000ms exceeded.\n'
   + 'Call log:\n'
   + `${ESC}[2m  - waiting for getByRole('button', { name: 'Close ad', exact: true }).first()`
   + `${ESC}[22m\n`
 
 // Every non-control word of the raw quote, in order, on one line.
-const SEEDED_RED_399_READABLE =
+const SEEDED_RED_READABLE =
   'locator.click: Timeout 30000ms exceeded. '
   + "Call log: - waiting for getByRole('button', { name: 'Close ad', exact: true }).first()"
 
-function seededRed399Artifact(handoff: CompletedRunHandoff): RunAnalysisArtifact {
+function seededRedArtifact(handoff: CompletedRunHandoff): RunAnalysisArtifact {
   return {
     schemaVersion: CURRENT_ANALYSIS_SCHEMA_VERSION,
     runId: String(handoff.runId),
     verdicts: [upgradedAppBug(0)],
     parts: [{
       perTest: 0,
-      groundingQuote: { stepIndex: 1, quote: SEEDED_RED_399_QUOTE },
+      groundingQuote: { stepIndex: 1, quote: SEEDED_RED_QUOTE },
       discriminator: 'root cause undetermined',
       nextAction: 'inspect the run manually — no deterministic signal matched',
       links: [],
@@ -613,13 +613,13 @@ describe('analysis.get — the quote leg, through the ONE renderer', () => {
     const handoff = buildSyntheticHandoff({ failureCount: 1 })
     const registry = registryWith({
       handoff,
-      analysis: readerOf(seededRed399Artifact(handoff)),
+      analysis: readerOf(seededRedArtifact(handoff)),
     })
 
     const output = await analysisOf(registry, String(handoff.runId))
 
     expect(output.sentences[0]!.sentence)
-      .toContain(`observed (step 1): "${SEEDED_RED_399_READABLE}"`)
+      .toContain(`observed (step 1): "${SEEDED_RED_READABLE}"`)
     expect(output.sentences[0]!.sentence).not.toContain(ESC)
     expect(output.sentences[0]!.sentence).not.toContain('\n')
     expect(output.clusters[0]!.representative.sentence).toBe(output.sentences[0]!.sentence)

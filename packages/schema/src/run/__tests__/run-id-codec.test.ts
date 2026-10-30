@@ -74,30 +74,27 @@ const RUN_ID_FIELD_VERDICTS: Readonly<
     hardened: 12,
     plainString: 7,
     verdict:
-      '2026-09-14 (423-29 D-04) adds the TWELFTH: `RunsEvidenceInput.runId` scopes the recorded-row and blob reads through the same exact-path codec. '
-      + 'hardened here — `RunsStartInput.runId` is the caller-supplied id the run executes under and '
-      + 'becomes `runs/<slugBranch(runId)>/`. 2026-08-25 (403-01 D-03) adds the EIGHTH: '
-      + '`RunsLiveUrlInput.runId` is caller-supplied over HTTP, is looked up in the live-session '
-      + 'registry, and is INTERPOLATED INTO THE MINTED URL and into the signed claims — so an id '
-      + 'that could be rewritten on the way through would be an id a viewer could be pointed at. '
-      + '2026-08-27 (405-01 D-03) adds the NINTH: `RunsDetailInput.runId` arrives as an untrusted '
-      + 'path segment of `GET /api/runs/:id/detail` and is the id the dashboard projection is read '
+      'hardened here — `RunsStartInput.runId` is the caller-supplied id the run executes under and '
+      + 'becomes `runs/<slugBranch(runId)>/`. `RunsLiveUrlInput.runId` is caller-supplied over '
+      + 'HTTP, is looked up in the live-session registry, and is INTERPOLATED INTO THE MINTED URL '
+      + 'and into the signed claims — so an id that could be rewritten on the way through would be '
+      + 'an id a viewer could be pointed at. `RunsDetailInput.runId` arrives as an untrusted path '
+      + 'segment of `GET /api/runs/:id/detail` and is the id the dashboard projection is read '
       + 'under — the read resolves it against rows it enumerates rather than a path join, and the '
-      + 'codec is what makes an id the path layer would REWRITE a refusal instead (T-405-01). '
-      + '2026-08-27 (405-05 D-12/D-13) adds the TENTH: `RunsArtifactInput.runId` arrives as an '
-      + 'untrusted path segment of `GET /api/runs/:runId/artifacts/:sha` on both doors and is the '
-      + 'run the evidence store is scoped to — the codec refuses the ids `slugBranch` would '
-      + 'REWRITE, so a rewritten id can never address another run\'s blobs (T-405-14). Its `sha` '
-      + 'is NOT a run-identifying field and carries its own 64-lowercase-hex regex instead. '
-      + '2026-08-29 (407-01 D-05) adds the ELEVENTH: `RunsKnowledgeInput.runId` arrives as an '
+      + 'codec is what makes an id the path layer would REWRITE a refusal instead. '
+      + '`RunsArtifactInput.runId` arrives as an untrusted path segment of `GET '
+      + '/api/runs/:runId/artifacts/:sha` on both doors and is the run the evidence store is '
+      + 'scoped to — the codec refuses the ids `slugBranch` would REWRITE, so a rewritten id can '
+      + 'never address another run\'s blobs. Its `sha` is NOT a run-identifying field and carries '
+      + 'its own 64-lowercase-hex regex instead. `RunsKnowledgeInput.runId` arrives as an '
       + 'untrusted path segment of `GET /api/runs/:id/knowledge` and is the run whose handoff is '
       + 'read — the runs port resolves it against the runs it enumerates rather than a path join, '
       + 'and the codec is what makes an id the path layer would REWRITE a refusal before any '
-      + 'dispatch happens (T-407-01). '
-      + 'The seven plain fields are ACKNOWLEDGEMENT/EVENT/PROJECTION/RESULT '
-      + 'projections (`RunStartAcknowledgement`, the bus envelope, `PostProcessingStatus`, '
-      + '405-01\'s `RunDetailProjection.runId`, 405-05\'s `RunsArtifactResult.runId` and both '
-      + 'arms of 407-01\'s `RunKnowledgeProjection` — the `evidence-incomplete` arm echoes the id '
+      + 'dispatch happens. `RunsEvidenceInput.runId` scopes the recorded-row and blob reads '
+      + 'through the same exact-path codec. The seven plain fields are '
+      + 'ACKNOWLEDGEMENT/EVENT/PROJECTION/RESULT projections (`RunStartAcknowledgement`, the bus '
+      + 'envelope, `PostProcessingStatus`, `RunDetailProjection.runId`, `RunsArtifactResult.runId` '
+      + 'and both arms of `RunKnowledgeProjection` — the `evidence-incomplete` arm echoes the id '
       + 'for a run whose handoff is GONE, so hardening it would refuse to name the very run a '
       + 'reader is asking about) whose interfaces declare `string`: each echoes an id a run '
       + 'already recorded, and none is an input.',
@@ -115,7 +112,7 @@ const RUN_ID_FIELD_VERDICTS: Readonly<
     hardened: 1,
     plainString: 4,
     verdict:
-      'hardened here — 2026-09-28 (431 D-06) `RunsOverviewInput.runId` is caller-supplied and is '
+      'hardened here — `RunsOverviewInput.runId` is caller-supplied and is '
       + 'the run whose handoff and projection rows are read; the runs port resolves it against the '
       + 'runs it enumerates. The four plain fields are OUTPUT echoes of a completed run the read '
       + 'already resolved: `RunOverviewProjection.runId` and the `runId` of the artifact, evidence '
@@ -126,7 +123,7 @@ const RUN_ID_FIELD_VERDICTS: Readonly<
     hardened: 0,
     plainString: 1,
     verdict:
-      'reaches no path join — 2026-09-02 (411-01 D-06) lifts `AuthoringStop.runId` to the stop '
+      'reaches no path join — `AuthoringStop.runId` sits at the stop '
       + "payload's top level so a NULL failure point still names the run it read. It echoes the "
       + 'LAST gate run on a receipt the loop itself just executed: an OUTPUT arm of '
       + '`authoring.draft.write`, named by no caller and resolved against nothing on disk.',
@@ -159,8 +156,9 @@ const RUN_ID_FIELD_VERDICTS: Readonly<
     plainString: 3,
     verdict:
       'reaches no path join — a gate-run reference rendered on a receipt, plus TWO `runRefs` '
-      + 'arrays. THE ARRAYS ARE WHY P2 EXISTS: the symbol-shaped predicate and a `runId:`-only '
-      + 'grep both see one field in this file, and there are three. Nothing here is an input.',
+      + 'arrays. THE ARRAYS ARE WHY THE KEY-SHAPED PREDICATE EXISTS: the symbol-shaped predicate '
+      + 'and a `runId:`-only grep both see one field in this file, and there are three. Nothing '
+      + 'here is an input.',
   },
   'authoring/proposal-arms.ts': {
     hardened: 0,
@@ -207,13 +205,10 @@ const RUN_ID_FIELD_VERDICTS: Readonly<
     hardened: 0,
     plainString: 1,
     verdict:
-      '2026-09-08 (419-01): MarkProposalStamp.runId is persisted attribution on a '
-      + 'knowledge proposal, not an unchecked path segment or a run-execution input. '
-      + 'The mark input and plan address have already crossed the canonical codec; '
-      + 'the stamp preserves the originating run reference as evidence. '
-      + '2026-10-01 (432-17): the stamp moved to knowledge/change.ts as MarkChangeStamp with '
-      + 'the direct change contracts, and proposal/envelope.ts (optional run attribution on a '
-      + 'proposal envelope) is deleted with the inbox.',
+      'MarkChangeStamp.runId is persisted attribution on a knowledge change, not an unchecked '
+      + 'path segment or a run-execution input. The mark input and plan address have already '
+      + 'crossed the canonical codec; the stamp preserves the originating run reference as '
+      + 'evidence.',
   },
   'knowledge/review-verbs.ts': {
     hardened: 0,

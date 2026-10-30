@@ -20,9 +20,9 @@ import { composeLocalAgent } from '../compose-local-agent.js'
 it.each([true, false])('projects real mark chat with active masking=%s and preserves canonical bytes', async active => {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-chat-mark-masking-'))
   const canary = 'T41916-canary-note-not-a-real-credential'
-  const declared = new SecretRedactor(SecretStore.fromEnvContent(`CANARY_441=${canary}\n`))
+  const declared = new SecretRedactor(SecretStore.fromEnvContent(`CANARY_KEY=${canary}\n`))
   const mask: MaskFn = active ? (text) => declared.redactString(text) : (text) => text
-  const placeholder = '[secret:CANARY_441]'
+  const placeholder = '[secret:CANARY_KEY]'
   expect(declared.redactString(canary)).toBe(placeholder)
   const projectedNote = active ? placeholder : canary
   const input: RunsMarkInput = { runId: asRunId('audit-run'), kind: 'false-fail', note: canary }

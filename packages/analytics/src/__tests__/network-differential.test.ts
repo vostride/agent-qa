@@ -109,7 +109,7 @@ describe('zero-network under analytics.privacy', () => {
   })
 
   // A DOM environment breaks MockAgent interception, so this fails first and says why.
-  it('runs in the plain node environment — MockAgent interception depends on it (RESEARCH A2)', () => {
+  it('runs in the plain node environment — MockAgent interception depends on it', () => {
     expect(typeof (globalThis as { window?: unknown }).window).toBe('undefined')
     expect(typeof (globalThis as { document?: unknown }).document).toBe('undefined')
     expect(typeof process.versions.node).toBe('string')

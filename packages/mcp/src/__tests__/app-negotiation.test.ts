@@ -233,7 +233,7 @@ async function measureReadContext(options: {
   return captured
 }
 
-describe('the negotiation envelope, measured against the shipped SDK (Open Question 1 / A3)', () => {
+describe('the negotiation envelope, measured against the shipped SDK', () => {
   it('carries the client capabilities at the pinned envelope member on the modern era', async () => {
     const ctx = await measureReadContext({ apps: true })
 
@@ -458,8 +458,8 @@ describe('who may obtain a live-view credential', () => {
     // A declaring caller's read succeeds, and the minted token's bytes reach its document.
     expect(
       minted,
-      'road `demote` (2026-09-01): any caller reaching the mint is the recorded posture (no caller '
-      + 'holds a scope since 432-20) '
+      'road `demote`: any caller reaching the mint is the recorded posture (no caller holds a '
+      + 'scope) '
       + '— if this is now zero, the declaration has been silently re-read as an authorization '
       + 'control and the ruling in app-resource.ts has been reversed without being argued',
     ).toHaveLength(1)
@@ -501,7 +501,7 @@ describe('who may obtain a live-view credential', () => {
 const PAST_THE_2027_TIME_BOMB = 2_000_000_000_000
 
 describe('the fixture clock cannot expire its own fixtures', () => {
-  it('serves a document carrying a liveUrl under a system clock past 2027-01-15', async () => {
+  it('serves a document carrying a liveUrl under a system clock past `2027-01-15`', async () => {
     // The stub goes in BEFORE the fixture is built, because the fixture reads `Date.now()` once at
     // construction — a stub installed afterwards would measure nothing. A spy rather than fake
     // timers, deliberately: the read below is a real async round trip over a real socket, and fake
@@ -523,7 +523,7 @@ describe('the fixture clock cannot expire its own fixtures', () => {
       expect(
         liveUrls.length,
         'the served document carries no liveUrl under a future clock — the fixture clock and the '
-        + "renderer's clock have drifted apart again (WR-07)",
+        + "renderer's clock have drifted apart again",
       ).toBe(2)
     } finally {
       clock.mockRestore()

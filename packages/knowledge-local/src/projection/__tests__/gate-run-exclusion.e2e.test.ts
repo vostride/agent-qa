@@ -208,7 +208,7 @@ describe('the gate-run exclusion consumer census is frozen and self-checking', (
     expect(discovered.length).toBe(Object.keys(MARKER_CENSUS).length)
   })
 
-  it('EXACTLY ONE MARKER CONSUMER PER DECISION, and each names the decision it gates', () => {
+  it('exactly one marker consumer per decision, and each names the decision it gates', () => {
     const consumers = Object.entries(MARKER_CENSUS)
       .filter(([, role]) => role === 'consumer')
       .map(([file]) => file)

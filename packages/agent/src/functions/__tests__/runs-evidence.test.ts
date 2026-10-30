@@ -191,16 +191,16 @@ it('VARIABLES-INLINE preserves source and prototype names and rejects a missing 
   expect(f.readBlob).not.toHaveBeenCalled()
 })
 it('EVIDENCE-MASK masks free-text keys and values with the live context while preserving bytes', async () => {
-  const mask = declaredMask({ SYN_441: 'synthetic-sensitive' })
+  const mask = declaredMask({ SYN_KEY: 'synthetic-sensitive' })
   const f = fixture('console', { ...documents.console, records: [{ level: 'error', text: 'synthetic-sensitive operator@example.test', timestamp: 1 }] }, mask)
   const before = Array.from(f.bytes)
   const result = await f.read()
-  expect(result).toMatchObject({ outcome: 'ready', document: { records: [{ text: '[secret:SYN_441] operator@example.test' }] } })
+  expect(result).toMatchObject({ outcome: 'ready', document: { records: [{ text: '[secret:SYN_KEY] operator@example.test' }] } })
   expect(JSON.stringify(result)).not.toContain('synthetic-sensitive')
   expect(f.bytes).toEqual(new Uint8Array(before))
   const variables = fixture('variables', documents.variables, mask)
   variables.step.variableSnapshot = { 'synthetic-sensitive': { value: 'synthetic-sensitive', source: 'capture' } }
-  expect(await variables.read()).toMatchObject({ outcome: 'ready', document: { records: { '[secret:SYN_441]': { value: '[secret:SYN_441]', source: 'capture' } } } })
+  expect(await variables.read()).toMatchObject({ outcome: 'ready', document: { records: { '[secret:SYN_KEY]': { value: '[secret:SYN_KEY]', source: 'capture' } } } })
 })
 it('EVIDENCE-MASK-NO-CONTEXT refuses a valid document it cannot mask as masking-unavailable', async () => {
   const f = fixture('console', documents.console, null)
@@ -212,7 +212,7 @@ it('EVIDENCE-MASK-NO-CONTEXT refuses a valid document it cannot mask as masking-
   expect(f.readBlob).toHaveBeenCalledWith(runId, 'ref' in f.entry ? f.entry.ref.sha : '')
 })
 it('EVIDENCE-MULTI-KEY keeps distinct keys, empty maps and stored order, and refuses masked key collisions', async () => {
-  const mask = declaredMask({ BODY_441: 'recorded response' })
+  const mask = declaredMask({ BODY_KEY: 'recorded response' })
   const network: EvidenceDocument = { schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'network', records: [
     { url: 'https://example.test/api', method: 'POST', status: 200,
       requestHeaders: { 'content-type': 'application/json', 'x-request-id': 'req-1' },
@@ -233,7 +233,7 @@ it('EVIDENCE-MULTI-KEY keeps distinct keys, empty maps and stored order, and ref
   })
   expect(records[1]!.requestHeaders).toEqual({})
   expect(records[1]!.responseHeaders).toEqual({})
-  expect(records[0]!.body).toBe('[secret:BODY_441]')
+  expect(records[0]!.body).toBe('[secret:BODY_KEY]')
 
   const variables = fixture('variables', documents.variables, mask)
   variables.step.variableSnapshot = { second: { value: 'two', source: 'env' }, first: { value: 'one', source: 'inline' } }
@@ -275,11 +275,11 @@ describe('runs.evidence masks with the declared mask', () => {
     invokeFunction(createFunctionRegistry({ deps }), 'runs.evidence', address, caller)
 
   it('runs.evidence masks a stored document with the declared mask', async () => {
-    const f = fixture('aria', aria, declaredMask({ PW_441: 'Hunter-42-zz' }))
+    const f = fixture('aria', aria, declaredMask({ PW_KEY: 'Hunter-42-zz' }))
     const result = await readThroughRegistry(f.deps, f.address)
     expect(result).toMatchObject({ outcome: 'ready',
       document: { kind: 'aria',
-        tree: 'textbox "Password" value="[secret:PW_441]" for qa@example.com; cookie session=undeclared-cookie-441' } })
+        tree: 'textbox "Password" value="[secret:PW_KEY]" for qa@example.com; cookie session=undeclared-cookie-441' } })
     expect(JSON.stringify(result)).not.toContain('Hunter-42-zz')
   })
 

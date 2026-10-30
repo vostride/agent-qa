@@ -96,10 +96,10 @@ describe('network evidence masks declared values by name', () => {
     const recorded = project({
       requestHeaders: { 'X-Api': 'Hunter-42-zz', 'content-type': 'application/json' },
       requestBody: body, body,
-    }, declaredMask({ PW_441: 'Hunter-42-zz' }))
-    expect(recorded.requestHeaders['X-Api']).toBe('[secret:PW_441]')
-    expect(recorded.requestBody).toBe('{"password":"[secret:PW_441]"}')
-    expect(recorded.body).toBe('{"password":"[secret:PW_441]"}')
+    }, declaredMask({ PW_KEY: 'Hunter-42-zz' }))
+    expect(recorded.requestHeaders['X-Api']).toBe('[secret:PW_KEY]')
+    expect(recorded.requestBody).toBe('{"password":"[secret:PW_KEY]"}')
+    expect(recorded.body).toBe('{"password":"[secret:PW_KEY]"}')
     expect(JSON.stringify(recorded)).not.toContain('Hunter-42-zz')
   })
 })

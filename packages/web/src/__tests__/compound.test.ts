@@ -102,7 +102,7 @@ async function setupWithEmailField(adapter: WebPlatformAdapter): Promise<string>
   return el.ref
 }
 
-describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
+describe('WebPlatformAdapter compound behaviors', () => {
   let adapter: WebPlatformAdapter
 
   beforeEach(() => {
@@ -162,7 +162,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(result.metadata?.fillReread).toMatchObject({ expected: 'abcXYZ', actual: 'abcXYZ' })
     })
 
-    it('mismatch yields success:false + §7.1 error + fillReread meta, with NO internal retry', async () => {
+    it('mismatch yields success:false + error + fillReread meta, with NO internal retry', async () => {
       const ref = await setupWithEmailField(adapter)
       inputValueReturn = 'wrong'
 
@@ -190,7 +190,7 @@ describe('WebPlatformAdapter compound behaviors (RED — Wave-0)', () => {
       expect(JSON.stringify(result)).not.toContain('sup3rSecret')
     })
 
-    it('inputValue throwing on a non-input element attempts an evaluate fallback; unreadable value ⇒ success with NO fillReread key (signal-presence law)', async () => {
+    it('inputValue throwing on a non-input element attempts an evaluate fallback; unreadable value ⇒ success with NO fillReread key', async () => {
       const ref = await setupWithEmailField(adapter)
       inputValueThrows = true
       evaluateReturn = undefined // nothing readable via the fallback either

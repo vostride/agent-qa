@@ -102,7 +102,7 @@ function part(input: ReturnType<typeof renderBundleParts>, relPath: string) {
 }
 
 describe('renderBundleParts committed layout', () => {
-  it('declares exactly the seven mutable bundle targets, in declaration order', () => {
+  it('declares exactly the mutable bundle targets, in declaration order', () => {
     expect([...MUTABLE_BUNDLE_TARGETS]).toEqual([
       'record.md',
       'provenance.json',

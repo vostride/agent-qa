@@ -720,7 +720,7 @@ describe('the frame proxy through the production startServer frame', () => {
       'two ends, each by its own name, in the order they happened',
     ).toEqual(['handleFinished', 'runFinished'])
     expect(viewer.order.join('|')).toBe('text:ready|text:frame|binary|text:ended|text:ended')
-    expect(planted.cancels, 'and nothing about this touched the run (D-16)').toBe(0)
+    expect(planted.cancels, 'and nothing about this touched the run').toBe(0)
   })
 
   it('(27) READY-AFTER-SUBSCRIBE: the subscription exists before the viewer is told ready', () => {
@@ -873,7 +873,7 @@ describe('the frame proxy through the production startServer frame', () => {
     expect(
       viewer.texts.some((text) => text.type === 'refused'),
       'a renewed socket must not be refused on the deadline the renew replaced — that is the '
-      + 'silent-re-mint contract D-02 promises the viewer',
+      + 'silent-re-mint contract the renew promises the viewer',
     ).toBe(false)
     planted.emit(jpeg(7))
     await viewer.waitForBinaries(1)
@@ -1287,7 +1287,7 @@ describe('the frame proxy through the production startServer frame', () => {
     expect(
       source.includes('cancel'),
       'the frame proxy must not name `cancel` at all — the one call a viewer could make that ends '
-      + 'somebody else\'s run is a call this module should not be able to make (T-403-07)',
+      + 'somebody else\'s run is a call this module should not be able to make',
     ).toBe(false)
     expect(
       source,

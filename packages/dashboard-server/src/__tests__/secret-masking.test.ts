@@ -38,7 +38,7 @@ import { resolveWorkspacePaths, type ResolvedWorkspacePaths } from '@vostride/ag
 import { MARKER_WRITTEN_BACK_SENTENCE, type ConfigChange } from '@vostride/agent-qa-schema'
 
 const VALUE = 'Hunter-42-zz'
-const MARKER = '[secret:PW_441]'
+const MARKER = '[secret:PW_KEY]'
 const HOOK_ID = 'h_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 const ROUTER_DB_STUB = {
   getRuns: vi.fn(() => []),
