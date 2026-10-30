@@ -62,7 +62,7 @@ const runStartedEnvelope = (handles?: readonly number[]): RunEventEnvelope => ({
   type: 'runStarted',
   payload: {
     busSchemaVersion: CURRENT_BUS_SCHEMA_VERSION,
-    scope: { tier: 'test', key: 'TST-408-01' },
+    scope: { tier: 'test', key: 'TST-1' },
     executionContext: 'local-headless',
     buildOrdinal: 1,
     configDigests: { suiteConfigDigest: 'suite-d', testConfigDigest: 'test-d' },

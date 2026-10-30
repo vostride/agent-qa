@@ -80,7 +80,7 @@ afterEach(() => {
 
 /** Unparseable text degrades the author to its deterministic floor; the chain mechanics stand. */
 const CHAIN_MODEL: JobModelCapability = {
-  modelId: 'test:425-07-snapshot-branch',
+  modelId: 'test:snapshot-branch',
   generate: async () => ({ text: 'not an author payload' }),
 }
 

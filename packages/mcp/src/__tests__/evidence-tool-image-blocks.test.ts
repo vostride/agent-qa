@@ -52,7 +52,7 @@ const PNG_PREFIX_JUNK = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x0
 /** A real PNG cut before its IEND trailer. */
 const PNG_TRUNCATED = PNG.slice(0, 40)
 
-const RUN = 'r_431-05-image'
+const RUN = 'r_image-blocks'
 
 type Blobs = Map<string, Map<string, Uint8Array>>
 

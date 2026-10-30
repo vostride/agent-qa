@@ -139,7 +139,7 @@ function handoffCarryingTheFixtureStepText(): CompletedRunHandoff {
     endedAt: 2,
     tests: [
       {
-        testId: 'TST-406-07',
+        testId: 'TST-1',
         testName: 'the notice acknowledges',
         filePath: 'tests/notice.yaml',
         testIndex: 0,

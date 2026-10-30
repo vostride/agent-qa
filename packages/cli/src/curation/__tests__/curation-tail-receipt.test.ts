@@ -205,7 +205,7 @@ describe('curation tail snapshot', () => {
         mask: (text: string) => text,
         mintQuarantineIdentityPath: (filePath: string) => filePath,
         agentQaRoot: root, config: TEST_CONFIG, knowledgeRoot: () => knowledge,
-        model: () => ({ modelId: 'test:427-04-zero-effect', generate: async () => ({ text: 'not an author payload' }) }),
+        model: () => ({ modelId: 'test:zero-effect', generate: async () => ({ text: 'not an author payload' }) }),
         idSource: DIGEST_JOB_ID_SOURCE,
         postRun: { curateRun: input?.curateRun ?? (async () => { throw new Error('the enqueue host never folds') }),
           candidateProse: 'masker-active' },

@@ -40,8 +40,8 @@ import type {
   PostProcessingChainState,
 } from '../spec.js'
 
-const RUN_ID = 'RUN-407-01'
-const OTHER_RUN_ID = 'RUN-407-99'
+const RUN_ID = 'RUN-1'
+const OTHER_RUN_ID = 'RUN-2'
 const SCOPE: ScopeKey = { tier: 'product', key: 'shop' }
 
 const RUNG: RecordedRetrievalRung = {

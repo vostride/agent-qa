@@ -132,7 +132,7 @@ function joined(row: LearnedChange): LearnedChange {
 }
 
 function attribution(outcome: CanaryAttribution["outcome"]): CanaryAttribution {
-  return { testIndex: 0, stepIndex: 0, recordId: CANARY_ID, observationId: "canary-outcome:444-29", outcome }
+  return { testIndex: 0, stepIndex: 0, recordId: CANARY_ID, observationId: "canary-outcome:skipped-curation", outcome }
 }
 
 function changesSection(tab: HTMLElement): HTMLElement {
