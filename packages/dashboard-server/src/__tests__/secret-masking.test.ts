@@ -115,7 +115,7 @@ async function hookWorkspace(): Promise<{
   configPath: string
   workspacePaths: ResolvedWorkspacePaths
 }> {
-  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-441-gap-dashboard-'))
+  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-secret-dashboard-'))
   tempDirs.push(dir)
   const configPath = join(dir, 'config.yaml')
   await writeFile(configPath, [
@@ -156,7 +156,7 @@ async function hookWorkspace(): Promise<{
   }
 }
 
-const SAVED_HEADER = 'sk-header-saved-441'
+const SAVED_HEADER = 'sk-header-saved'
 const SAVED_BASE_URL = 'https://proxy.example/v1'
 const LLM_TEST_HEADERS: IncomingHttpHeaders = { 'content-type': 'application/json', host: '127.0.0.1:4317' }
 
@@ -192,7 +192,7 @@ async function configWorkspace(lines: readonly string[] = BASE_LINES): Promise<{
   configManager: ConfigManager
   configPath: string
 }> {
-  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-441-gap-config-'))
+  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-secret-config-'))
   tempDirs.push(dir)
   const configPath = join(dir, 'agent-qa.config.yaml')
   await writeFile(configPath, lines.join('\n'))

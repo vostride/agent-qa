@@ -93,7 +93,7 @@ function projection(
 ): ReadyProjection {
   const parsed = RunKnowledgeProjectionSchema.parse({
     kind: 'ready',
-    runId: 'run-427-01-used',
+    runId: 'run-used',
     buildOrdinal: 1,
     knowledgeStore: 'bound',
     steps,

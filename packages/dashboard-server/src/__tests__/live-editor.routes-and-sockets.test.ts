@@ -39,7 +39,7 @@ afterEach(() => {
 type EditorMint = (sessionId: string) => Promise<EditorLiveUrlResult>
 
 const signer: LiveUrlSigner = {
-  sign: (data) => createHmac('sha256', 'zz-428-11-editor-doors-signing-key').update(data).digest('base64url'),
+  sign: (data) => createHmac('sha256', 'zz-editor-doors-signing-key').update(data).digest('base64url'),
   equals: (a, b) => {
     const left = Buffer.from(a)
     const right = Buffer.from(b)

@@ -53,7 +53,7 @@ afterEach(async () => {
 })
 
 async function composeWorkspace() {
-  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-441-gap2-save-'))
+  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-marker-save-'))
   tempDirs.push(dir)
   const workspacePaths = resolveWorkspacePaths({
     config: {

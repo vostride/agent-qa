@@ -91,9 +91,9 @@ function scanCorpus(
 
 // ---- The fixture composition -------------------------------------------------------------------
 
-const FIXTURE_RUN_ID = 'run-408-04-token-absence'
+const FIXTURE_RUN_ID = 'run-token-absence'
 const FIXTURE_ORIGIN = 'http://127.0.0.1:7791'
-const SIGNING_KEY = 'zz-408-04-token-absence-signing-key'
+const SIGNING_KEY = 'zz-token-absence-signing-key'
 const DASHBOARD_BASE = 'http://localhost:4104'
 const ENTITY_URI = 'agentqa://memory/MEM-001'
 const HANDLES: readonly number[] = [0, 1]
@@ -245,7 +245,7 @@ async function serve(listener: (req: never, res: never) => void): Promise<string
 /** The shipped client, negotiating the Apps extension or deliberately not. */
 async function connect(url: string, options: { readonly apps: boolean }): Promise<Client> {
   const client = new Client(
-    { name: 'agent-qa-408-04-token-absence', version: '0.0.0' },
+    { name: 'agent-qa-token-absence', version: '0.0.0' },
     {
       capabilities: options.apps ? { extensions: { [MCP_APPS_EXTENSION_ID]: {} } } : {},
       versionNegotiation: { mode: 'auto' as const },

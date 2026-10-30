@@ -19,7 +19,7 @@ afterAll(async () => {
 })
 
 async function tempDataHome(): Promise<string> {
-  const root = await mkdtemp(join(tmpdir(), 'agent-qa-analytics-447-'))
+  const root = await mkdtemp(join(tmpdir(), 'agent-qa-analytics-'))
   roots.push(root)
   return root
 }

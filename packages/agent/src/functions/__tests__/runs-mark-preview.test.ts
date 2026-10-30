@@ -13,7 +13,7 @@ const previewSpec = () => runsMarkPreviewSpec as unknown as FunctionSpec
 const resultSchema = () => RunsMarkPreviewResultSchema
 const previewModule = { RUNS_MARK_PREVIEW_FUNCTION_ID }
 
-const runId = asRunId('run-423-mark-preview')
+const runId = asRunId('run-mark-preview')
 const member = { testIndex: 1, testId: 'checkout' }
 const input: RunsMarkInput = { runId, testId: 'checkout', kind: 'false-fail', note: 'should have passed' }
 

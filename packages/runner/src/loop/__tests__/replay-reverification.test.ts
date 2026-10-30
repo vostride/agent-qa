@@ -192,7 +192,7 @@ async function seededCache(): Promise<RecordingCache> {
 const FORM = 'http://127.0.0.1:8931/form.html'
 const RECEIVED = 'http://127.0.0.1:8931/received.html'
 const flowAnchor: Anchor = { t: 'flow', name: 'local-form' }
-const PROCEDURE_ID = asRecordId('procedure-flow-439-replay')
+const PROCEDURE_ID = asRecordId('procedure-flow-replay')
 const formScreen = screen(FORM, [el('e1', 'textbox', 'Username', 120), el('e2', 'button', 'Submit', 200)])
 const receivedScreen = screen(RECEIVED, [el('e1', 'heading', 'Received!', 80)])
 

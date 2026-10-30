@@ -370,7 +370,7 @@ describe('StepEvidence.planSource marker', () => {
 
 // The masker is the product's own declared-secret SecretRedactor, the one a run threads.
 describe('real step evidence is masked at rest', () => {
-  const CREDENTIAL = 'zz-405-populated-secret-7f3a91c2'
+  const CREDENTIAL = 'zz-populated-secret-7f3a91c2'
   const EMAIL = 'qa-person@example.com'
   const STEP_TEXT = `Acknowledge the notice using ${CREDENTIAL}.`
   const PLANNED_ACTION: Action = {

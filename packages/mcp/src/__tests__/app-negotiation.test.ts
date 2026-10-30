@@ -40,9 +40,9 @@ import { createAgentQaMcpNodeHandler } from '../http.js'
 
 // ---- The fixture composition -------------------------------------------------------------------
 
-const FIXTURE_RUN_ID = 'run-408-02-negotiation'
+const FIXTURE_RUN_ID = 'run-negotiation'
 const FIXTURE_ORIGIN = 'http://127.0.0.1:7788'
-const SIGNING_KEY = 'zz-408-02-app-negotiation-signing-key'
+const SIGNING_KEY = 'zz-app-negotiation-signing-key'
 const APP_URI = `ui://agent-qa/live-run/${FIXTURE_RUN_ID}`
 
 /**
@@ -155,7 +155,7 @@ async function connect(
   options: { readonly apps: boolean; readonly era?: 'modern' | 'legacy' } = { apps: true },
 ): Promise<Client> {
   const client = new Client(
-    { name: 'agent-qa-408-02-negotiation', version: '0.0.0' },
+    { name: 'agent-qa-negotiation', version: '0.0.0' },
     {
       capabilities: options.apps ? { extensions: { [MCP_APPS_EXTENSION_ID]: {} } } : {},
       ...(options.era === 'legacy' ? {} : { versionNegotiation: { mode: 'auto' as const } }),

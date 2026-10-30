@@ -87,7 +87,7 @@ function harness(handoff: CompletedRunHandoff, options: HarnessOptions = {}) {
 
   const context: JobHandlerContext = {
     job: {
-      id: 'job_analyze_389_e2e',
+      id: 'job_analyze_e2e',
       kind: 'analyze-run',
       status: 'queued',
       summary: 'fixture',

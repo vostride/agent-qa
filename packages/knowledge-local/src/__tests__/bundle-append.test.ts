@@ -582,7 +582,7 @@ describe('committed records with credential-shaped text', () => {
   let config: BundleStoreConfig
 
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), 'knowledge-c441-committed-'))
+    root = mkdtempSync(join(tmpdir(), 'knowledge-committed-'))
     knowledgeRoot = join(root, 'agent-qa-knowledge')
     config = { knowledgeRoot, productKey: 'Example Store / production' }
   })
@@ -606,8 +606,8 @@ describe('committed records with credential-shaped text', () => {
       relations: [],
       provenance: {
         mode: 'run-linked',
-        runId: 'c441-committed-run',
-        testId: 'c441-committed-test',
+        runId: 'committed-run',
+        testId: 'committed-test',
         stepIndex: 0,
         ...(needsEnrichment
           ? {
@@ -647,8 +647,8 @@ describe('committed records with credential-shaped text', () => {
 
     const deprecated = BundleOutcomeEventSchema.parse({
       type: 'deprecated',
-      evidenceToken: 'c441-committed-deprecated',
-      curationJobId: 'c441-committed-job',
+      evidenceToken: 'committed-deprecated',
+      curationJobId: 'committed-job',
       buildOrdinal: 43,
       reason: BODY,
     })
@@ -683,8 +683,8 @@ describe('committed records with credential-shaped text', () => {
     }
     const observation: CurationObservation = {
       schemaVersion: 2,
-      sourceRunId: 'c441-committed-run',
-      observationId: 'c441-committed-observation',
+      sourceRunId: 'committed-run',
+      observationId: 'committed-observation',
       originalDeltaKind: 'Supersede',
       appliedDeltaKind: 'Add',
       disposition: 'downgraded',

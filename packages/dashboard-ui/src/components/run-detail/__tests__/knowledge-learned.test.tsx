@@ -93,7 +93,7 @@ function ledgerChange(recordId: string, change: LedgerChange["change"], atOrdina
 // The ledger a page paints: a schema-valid read folded by the real `projectKnowledgeView`.
 function renderLedger(changes: LedgerChange[]): HTMLElement {
   const projection = RunKnowledgeProjectionSchema.parse({
-    kind: "ready", runId: "run-427-08-ledger", buildOrdinal: 2, knowledgeStore: "bound", steps: [],
+    kind: "ready", runId: "run-ledger", buildOrdinal: 2, knowledgeStore: "bound", steps: [],
     curation: { status: "complete", counts: { curated: changes.length, deprecated: 0 } },
     learned: { changes, canaryAttributions: [] },
   })
@@ -784,7 +784,7 @@ describe("projection text reaches the DOM as TEXT, never as markup", () => {
 })
 
 // Schema-valid projections drive the real `learnedView` into the component, the path a page takes.
-const RECORDED_RUN_ID = "run-423-24-learned"
+const RECORDED_RUN_ID = "run-learned"
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: "ready" }>
 type LearnedChange = ReadyProjection["learned"]["changes"][number]
 

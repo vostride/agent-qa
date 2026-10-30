@@ -10,7 +10,7 @@ import { createDashboardSqliteDatabase } from '../db/sqlite.js'
 import { createDashboardRunDetailReader } from '../run-service/run-detail-reader.js'
 
 it('a run stored without recordings reads each recording as absent, from its rows alone', async () => {
-  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-424-cold-'))
+  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-cold-'))
   const dbPath = join(dir, 'history.db')
   const runId = asRunId(generateRunId())
   // Files at v3 are refused, so the recording-less rows are seeded into v5.

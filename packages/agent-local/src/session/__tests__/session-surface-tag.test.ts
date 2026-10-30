@@ -33,7 +33,7 @@ const SESSION_EVENTS_SOURCE = resolve(
 const roots: string[] = []
 
 function freshRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-400-03-surface-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-surface-'))
   roots.push(root)
   return root
 }
@@ -49,7 +49,7 @@ function logOn(root: string, surface?: string) {
     root,
     now: () => new Date(Date.UTC(2026, 7, 21, 9, 0, tick++)).toISOString(),
     model: () => 'claude-sonnet-4-5',
-    toolsetHash: () => 'toolset-400-03',
+    toolsetHash: () => 'toolset-surface',
     random: () => 0.25,
     ...(surface === undefined ? {} : { surface }),
   })
@@ -107,7 +107,7 @@ describe('the session header stamp', () => {
         sessionId,
         createdAt: '2026-08-21T09:00:00.000Z',
         model: 'claude-sonnet-4-5',
-        toolsetHash: 'toolset-400-03',
+        toolsetHash: 'toolset-surface',
       })}\n`,
       'utf8',
     )
@@ -177,7 +177,7 @@ describe('the session EVENT grammar is untouched by the tag', () => {
           CURRENT_CHAT_SESSION_SCHEMA_VERSION,
         ),
         `a ${kind} line carrying a surface key was accepted — the tag has leaked onto the event `
-        + 'grammar and every pre-400 session file is now unreadable',
+        + 'grammar and every older session file is now unreadable',
       ).toThrow(/cannot be read/)
     }
   })

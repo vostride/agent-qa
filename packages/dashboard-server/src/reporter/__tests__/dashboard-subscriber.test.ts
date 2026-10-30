@@ -554,7 +554,7 @@ describe('the ingest claim', () => {
   const handles: DashboardDatabase[] = []
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'agent-qa-443-ingest-claim-'))
+    dir = mkdtempSync(join(tmpdir(), 'agent-qa-ingest-claim-'))
   })
 
   afterEach(() => {

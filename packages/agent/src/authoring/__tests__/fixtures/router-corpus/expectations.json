@@ -1,9 +1,9 @@
 {
   "$comment": [
-    "THE FROZEN ROUTING DENOMINATOR for phase 394's repair-vs-finding router (D-08 · WTST-04).",
-    "Gap-closure rounds MUST NOT mint new members or edit these expectations to re-classify:",
-    "the whole proof is that this exact table is observed RED with no router in existence and",
-    "green at the end of the phase, with nothing added in between (the treadmill law). A row",
+    "THE FROZEN ROUTING DENOMINATOR for the repair-vs-finding router.",
+    "A later change MUST NOT mint new members or edit these expectations to re-classify: the",
+    "proof is that this exact table scores the router, with nothing added to make it pass",
+    "(the treadmill law). A row",
     "that stops catching what its rationale claims is a finding about the router, never a",
     "reason to move the row.",
     "",
@@ -14,11 +14,10 @@
     "mutation differential then reds only impossible fixtures, which cannot tell a vacuous",
     "corpus apart from a real closure.",
     "",
-    "THE CONTROL SHAPE, which is the reason the table looks the way it does. 394-04 found that",
-    "every pre-existing end-to-end cell screened against an EMPTY suite, so 'the lane admits'",
-    "was untested on the only input where refusing was possible at all -- and a threshold that",
-    "refused everything would have passed the whole file. Its closing advice was to check",
-    "whether this plan's cells had the same shape. They did, and this is the fix: every row",
+    "THE CONTROL SHAPE, which is the reason the table looks the way it does. A cell that",
+    "screens against an EMPTY suite leaves 'the lane admits' untested on the only input where",
+    "refusing was possible at all -- and a threshold that refused everything would pass the",
+    "whole file. So every row",
     "except the signature cell declares itself a variant of another row by a NAMED set of",
     "fields, and the corpus-integrity cell verifies that declaration mechanically against the",
     "actual key-set difference. So every discriminating signal has a row on each side of it,",
@@ -27,8 +26,8 @@
     "THE PAIRS THIS BUYS, each crossing an arm boundary on one field:",
     "  clean-definitive-assertion-fail (FINDING)  vs  mechanics-termination        (REPAIR)",
     "  clean-definitive-assertion-fail (FINDING)  vs  mechanics-planning-failure   (REPAIR)",
-    "  clean-definitive-assertion-fail (FINDING)  vs  historical-cycle             (FINDING, since 436 D-14)",
-    "  clean-definitive-assertion-fail (FINDING)  vs  historical-stagnation        (FINDING, since 436 D-14)",
+    "  clean-definitive-assertion-fail (FINDING)  vs  historical-cycle             (FINDING)",
+    "  clean-definitive-assertion-fail (FINDING)  vs  historical-stagnation        (FINDING)",
     "  passing-run                     (REFUSE)   vs  mechanics-member-timeout     (REPAIR)",
     "  passing-run                     (REFUSE)   vs  mechanics-member-cancelled   (REPAIR)",
     "and the sharpest pair in the table, which differs in NO field at all except one integer:",
@@ -38,16 +37,15 @@
     "scan is narrowed to the failing step gives these two rows the same answer, and no other",
     "cell in this file would notice.",
     "",
-    "WHY THREE ROWS POINT AT FINDING AND ONLY TWO CLASSES ARE REPAIR-SHAPED. D-08's asymmetry:",
+    "WHY THREE ROWS POINT AT FINDING AND ONLY TWO CLASSES ARE REPAIR-SHAPED. The asymmetry:",
     "a mis-filed test-wrong costs one human look, a mis-routed application bug gets iterated",
     "into passing, and only the second is unrecoverable. Ambiguity therefore routes to finding.",
     "The three finding-direction cells are named below.",
     "",
-    "measured/ rationale on every row records what was actually observed on 2026-08-11 by",
+    "measured/ rationale on every row records what was actually observed by",
     "running the row through the shipped classifier, not what the table's author expected.",
     "",
-    "2026-09-02 (Phase 411): the second arm was renamed from its v52 spelling to `stop` with the Issue-slot cleanup; every row's classification is byte-identical.",
-    "2026-10-07 (Phase 436, D-14): an owner-decided contract change, not a gap-closure re-classification. `cycle` and `stagnation` left the router's mechanics signals with the progress subsystem; their blocks survive only in pre-change handoffs and are read as nothing. The two rows that pinned them as REPAIR are renamed historical-cycle and historical-stagnation and now pin the opposite: the same member spec routes exactly like the signature cell (stop, clean-definitive-assertion-fail). No member spec changed, so every variant declaration still holds. The limit-stop rule is pinned by the 436 cells in router.test.ts, outside this table."
+    "The second arm is `stop`. `cycle` and `stagnation` are not mechanics signals: their blocks survive only in older handoffs and are read as nothing, so historical-cycle and historical-stagnation route exactly like the signature cell (stop, clean-definitive-assertion-fail). The limit-stop rule is pinned by the limit-stop cells in router.test.ts, outside this table."
   ],
 
   "schemaVersion": 2,
@@ -95,7 +93,7 @@
         "verdictSource": "assert-value",
         "mechanics": []
       },
-      "rationale": "SOLE CATCHER for: a clean definitive assertion-fail NEVER reaches the repair arm. THE PHASE'S SIGNATURE CELL. Step 1's verifier said no, the deterministic assertValue comparator produced that verdict, and no step carries a mechanics signal -- so nothing about this failure is about how the test ACTS, and 'repairing' it could only mean rewriting what it CLAIMS to match what the application showed. That is oracle capture by construction (D-08), and this is the one row that says so.",
+      "rationale": "SOLE CATCHER for: a clean definitive assertion-fail NEVER reaches the repair arm. THE PHASE'S SIGNATURE CELL. Step 1's verifier said no, the deterministic assertValue comparator produced that verdict, and no step carries a mechanics signal -- so nothing about this failure is about how the test ACTS, and 'repairing' it could only mean rewriting what it CLAIMS to match what the application showed. That is oracle capture by construction, and this is the one row that says so.",
       "measured": "route stop, signalClass clean-definitive-assertion-fail, failurePoint step 1 with verdictSource assert-value; scanned 2 steps and found zero mechanics signals and no member-level one."
     },
     {
@@ -167,8 +165,8 @@
         "verdictSource": "assert-value",
         "mechanics": []
       },
-      "rationale": "SOLE CATCHER for: a historical cycle block is NOT a mechanics signal (436 D-14). Until 2026-10-07 this row was mechanics-cycle and routed to repair. The progress subsystem that wrote cycle blocks is deleted, so only pre-change handoffs carry one, and reading it as mechanics would send an old dead-control run to repair. The signature cell plus a cycle block must therefore route exactly like the signature cell; a router that still pushed 'cycle' would answer repair here.",
-      "measured": "2026-10-07: route stop, signalClass clean-definitive-assertion-fail, failurePoint step 1 with verdictSource assert-value; the cycle block on step 1 contributed no mechanics signal."
+      "rationale": "SOLE CATCHER for: a historical cycle block is NOT a mechanics signal. Nothing writes cycle blocks, so only older handoffs carry one, and reading it as mechanics would send an old dead-control run to repair. The signature cell plus a cycle block must therefore route exactly like the signature cell; a router that still pushed 'cycle' would answer repair here.",
+      "measured": "route stop, signalClass clean-definitive-assertion-fail, failurePoint step 1 with verdictSource assert-value; the cycle block on step 1 contributed no mechanics signal."
     },
     {
       "id": "historical-stagnation",
@@ -191,8 +189,8 @@
         "verdictSource": "assert-value",
         "mechanics": []
       },
-      "rationale": "SOLE CATCHER for: a historical stagnation block is NOT a mechanics signal (436 D-14). Until 2026-10-07 this row was mechanics-stagnation and routed to repair. A dead control now ends at a typed limit stop instead of an exhausted ladder, and the ladder's old blocks are read as nothing; a router that still pushed 'stagnation' would answer repair here.",
-      "measured": "2026-10-07: route stop, signalClass clean-definitive-assertion-fail, failurePoint step 1 with verdictSource assert-value; the stagnation block on step 1 contributed no mechanics signal."
+      "rationale": "SOLE CATCHER for: a historical stagnation block is NOT a mechanics signal. A dead control ends at a typed limit stop instead of an exhausted ladder, and the ladder's old blocks are read as nothing; a router that still pushed 'stagnation' would answer repair here.",
+      "measured": "route stop, signalClass clean-definitive-assertion-fail, failurePoint step 1 with verdictSource assert-value; the stagnation block on step 1 contributed no mechanics signal."
     },
     {
       "id": "mechanics-member-timeout",
@@ -311,7 +309,7 @@
         "verdictSource": null,
         "mechanics": []
       },
-      "rationale": "SOLE CATCHER for: the router REFUSES rather than inventing a route. There is no failure here to route -- a healed pass is a pass (393-01 F3) -- and both arms would be a wrong answer wearing a correct one's clothes. This is also the ADMIT-side control for the whole member-outcome axis: mechanics-member-timeout and mechanics-member-cancelled are this row with the outcome changed and nothing else, so a router that answered 'repair' for every member outcome it did not recognise would pass those two rows and fail here.",
+      "rationale": "SOLE CATCHER for: the router REFUSES rather than inventing a route. There is no failure here to route -- a healed pass is a pass -- and both arms would be a wrong answer wearing a correct one's clothes. This is also the ADMIT-side control for the whole member-outcome axis: mechanics-member-timeout and mechanics-member-cancelled are this row with the outcome changed and nothing else, so a router that answered 'repair' for every member outcome it did not recognise would pass those two rows and fail here.",
       "measured": "signalClass no-failure; routing throws AuthoringRouterUnroutableError naming no-failure. Outcome healed with no step verdict false."
     }
   ]

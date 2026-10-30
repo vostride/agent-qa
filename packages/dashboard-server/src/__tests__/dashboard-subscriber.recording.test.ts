@@ -34,7 +34,7 @@ const child: SubActionRecordedPayload = {
 }
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'agent-qa-424-recording-subscriber-'))
+  dir = mkdtempSync(join(tmpdir(), 'agent-qa-recording-subscriber-'))
   dbPath = join(dir, 'dashboard.db')
   db = new DashboardDatabase({ dbPath })
   runId = asRunId(generateRunId())

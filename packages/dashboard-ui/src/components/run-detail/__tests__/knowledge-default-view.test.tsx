@@ -44,7 +44,7 @@ function mount(element: ReactElement): HTMLElement {
 
 // ── The fixture: every kind of id a run can carry, in content-derived shape ──────────────────────
 
-const RUN = "run-427-10-default-view"
+const RUN = "run-default-view"
 const SERVED_CANARY = "fact-el-button-add-to-cart-0f9a1c2b3d4e5f60"
 const SERVED_PLAIN = "fact-page-https-shop-example-com-cart-1a2b3c4d5e6f7081"
 const OPENED = "fact-flow-checkout-login-2b3c4d5e6f708192"

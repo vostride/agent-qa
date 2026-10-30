@@ -48,8 +48,8 @@ steps:
 `
 
 const DIGESTS = new Map<string, string>([
-  [HISTORICAL_DOCUMENT, 'digest-440-historical'],
-  [FAITHFUL_FALSE_DOCUMENT, 'digest-440-faithful-false'],
+  [HISTORICAL_DOCUMENT, 'digest-historical'],
+  [FAITHFUL_FALSE_DOCUMENT, 'digest-faithful-false'],
 ])
 
 const GATE_RUN_IDS = ['r_440-gate-0', 'r_440-gate-1', 'r_440-gate-2'] as const
@@ -57,7 +57,7 @@ const ROUTING_RUN_ID = GATE_RUN_IDS[2]
 
 function stagedDraftOf(text: string): ParsedDraftLike {
   const lines = text.split('\n')
-  const digest = DIGESTS.get(text) ?? 'digest-440-other'
+  const digest = DIGESTS.get(text) ?? 'digest-other'
   const name = (lines.find((line) => line.startsWith('name: ')) ?? 'name: ').slice('name: '.length)
   const testId = (lines.find((line) => line.startsWith('test-id: ')) ?? 'test-id: ')
     .slice('test-id: '.length)

@@ -10,7 +10,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createFrameProxy } from '../live-view/frame-proxy.js'
 import { LIVE_VIEW_REFUSAL_CLOSE_CODE } from '../live-view/protocol.js'
 
-const SIGNING_KEY = 'zz-428-review-renew-scope-signing-key'
+const SIGNING_KEY = 'zz-review-renew-scope-signing-key'
 const BASE_TIME = 1_700_000_000_000
 
 const signer: LiveUrlSigner = {

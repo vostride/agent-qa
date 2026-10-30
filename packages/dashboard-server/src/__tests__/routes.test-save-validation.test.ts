@@ -13,7 +13,7 @@ import { TestFileManager } from '../tests/test-file-manager.js'
 
 // A duplicate `name` key: content the Save door must refuse with the validator's errors.
 const WALK_INVALID_CONTENT = [
-  'name: Invalid 433 probe',
+  'name: Invalid probe',
   'target: example-web',
   'name: Duplicate name',
   'steps: [Open the page]',
@@ -39,7 +39,7 @@ afterEach(async () => {
 })
 
 async function composeWorkspace() {
-  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-433-save-'))
+  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-save-'))
   tempDirs.push(dir)
   const workspacePaths = resolveWorkspacePaths({
     config: {

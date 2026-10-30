@@ -1341,7 +1341,7 @@ describe('API Routes', () => {
         body: JSON.stringify({
           name: 'Queued admitted',
           metadata: {},
-          attributes: { 'git.branch': 'gap-401-23' },
+          attributes: { 'git.branch': 'queued-branch' },
         }),
       })
 
@@ -1350,7 +1350,7 @@ describe('API Routes', () => {
       // writes; it must not have deleted what this route writes.
       expect(enqueue).toHaveBeenCalledWith(expect.objectContaining({
         metadata: { args: [] },
-        attributes: expect.objectContaining({ 'git.branch': 'gap-401-23' }),
+        attributes: expect.objectContaining({ 'git.branch': 'queued-branch' }),
       }))
     })
 

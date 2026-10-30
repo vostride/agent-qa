@@ -42,7 +42,7 @@ import { startServer } from '../server/server.js'
 
 // ---- The signer, and the tokens a viewer presents ----------------------------------------------
 
-const SIGNING_KEY = 'zz-403-02-frame-proxy-signing-key'
+const SIGNING_KEY = 'zz-frame-proxy-signing-key'
 
 /** The `cli/src/composition/live-url-signer.ts` shape, constructed here so no key is ever shared. */
 const signer: LiveUrlSigner = {
@@ -503,7 +503,7 @@ describe('the frame proxy through the production startServer frame', () => {
     expect(header?.width).toBe(640)
     expect(header?.height).toBe(360)
     // `ts` and `kind` are additive: a frame that carries neither sends the plain header.
-    expect(Object.keys(header ?? {}).sort(), 'an unstamped frame keeps the pre-428 header keys')
+    expect(Object.keys(header ?? {}).sort(), 'an unstamped frame keeps the older header keys')
       .toEqual(['height', 'id', 'type', 'width'])
     expect(header).not.toHaveProperty('ts')
     expect(header).not.toHaveProperty('kind')

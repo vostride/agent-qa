@@ -55,7 +55,7 @@ afterEach(async () => {
 
 async function connect(build: () => McpServer): Promise<Client> {
   const handler = createMcpHandler(build)
-  const client = new Client({ name: 'agent-qa-431-03-wire', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-wire', version: '0.0.0' })
   openClients.push(client)
   await client.connect(new StreamableHTTPClientTransport(new URL('http://wire.local/mcp'), {
     fetch: ((url: URL | string, init?: RequestInit) => handler.fetch(new Request(url, init))) as typeof fetch,
@@ -81,7 +81,7 @@ function rowsOf(structuredContent: unknown): unknown[] {
 
 // ---- the evidence fold, on a probe tool ---------------------------------------------------------
 
-const SECRET = 'sk-431-03-secret'
+const SECRET = 'sk-secret'
 const sha = 'b'.repeat(64)
 const runId = 'r_wire-evidence'
 

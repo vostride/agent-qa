@@ -16,7 +16,7 @@ import type { FunctionDeps, FunctionSpec } from '../spec.js'
 const historySpec = () => runsMarksHistorySpec
 const resultSchema = () => RunsMarksHistoryResultSchema
 
-const runId = asRunId('run-423-marks-history')
+const runId = asRunId('run-marks-history')
 type Address = { testIndex: number; stepIndex?: number; testId?: string }
 type ReadEntry = { receipt: MarkReceipt; changedRecords?: MarkHistoryChangedRecord[] }
 
@@ -24,7 +24,7 @@ const markIdOf = (ordinal: number) => `mark_${ordinal.toString(16).padStart(12, 
 
 function receipt(ordinal: number, address: Address, overrides: Partial<MarkReceipt> = {}): MarkReceipt {
   return MarkReceiptSchema.parse({
-    schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: markIdOf(ordinal), runId, runSlug: 'run-423-marks-history',
+    schemaVersion: MARK_RECEIPT_SCHEMA_VERSION, markId: markIdOf(ordinal), runId, runSlug: 'run-marks-history',
     testIndex: address.testIndex,
     ...(address.testId === undefined ? {} : { testId: address.testId }),
     ...(address.stepIndex === undefined ? {} : { stepIndex: address.stepIndex }),
@@ -149,7 +149,7 @@ describe('runs.marks.history contract', () => {
     const [first, second, third] = sequenceB()
     const swapped = await read([first!, third!, second!])
     expect(swapped).toEqual({ kind: 'ledger-corrupt', runId, line: 2 })
-    const foreign = { receipt: { ...second!.receipt, runId: asRunId('run-423-other') } }
+    const foreign = { receipt: { ...second!.receipt, runId: asRunId('run-other') } }
     expect(await read([first!, foreign])).toEqual({ kind: 'ledger-corrupt', runId, line: 2 })
   })
 

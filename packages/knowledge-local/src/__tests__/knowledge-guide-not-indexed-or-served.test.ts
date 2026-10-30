@@ -50,7 +50,7 @@ afterEach(() => {
 })
 
 function tempRoot(): { root: string; knowledgeRoot: string } {
-  const root = join(tmpdir(), `knowledge-431-guide-${randomUUID()}`)
+  const root = join(tmpdir(), `knowledge-guide-${randomUUID()}`)
   roots.push(root)
   const knowledgeRoot = join(root, 'agent-qa-knowledge')
   mkdirSync(join(knowledgeRoot, 'policies'), { recursive: true })

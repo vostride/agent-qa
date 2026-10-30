@@ -65,7 +65,7 @@ function recordContent(record: RecordShape) {
 function mountRecord(record: RecordShape | undefined): HTMLElement {
   const projection = RunKnowledgeProjectionSchema.parse({
     kind: "ready",
-    runId: "run-427-06-record",
+    runId: "run-record",
     buildOrdinal: 1,
     knowledgeStore: "bound",
     steps: [{

@@ -17,7 +17,7 @@ import {
 } from '../app-wrapper.js'
 import type { AppWrapperInput, AppWrapperMint, AppWrapperState } from '../app-wrapper.js'
 
-const RUN_ID = 'run-408-02-wrapper'
+const RUN_ID = 'run-wrapper'
 const ORIGIN = 'http://127.0.0.1:7799'
 const PERMANENT_LINK = `http://127.0.0.1:7799/runs/${RUN_ID}/live`
 const NOW = 1_800_000_000_000

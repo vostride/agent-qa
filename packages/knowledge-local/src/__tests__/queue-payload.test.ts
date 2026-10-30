@@ -385,7 +385,7 @@ describe('new queue payloads carry no retired fields', () => {
       const outcome = enqueueArtifactFreeCandidateProjection({
         knowledgeRoot,
         projectionInput: {
-          sourceRunId: 'run-441-25',
+          sourceRunId: 'run-queued',
           scope: { tier: 'product', key: 'storefront' },
           buildOrdinal: 42,
           executionContext: 'local-interactive',
@@ -395,8 +395,8 @@ describe('new queue payloads carry no retired fields', () => {
           summarySeed: 'Checkout button selector',
           bodySeed: 'The checkout button was resolved and verified.',
           distilledObservations: [],
-          evidenceToken: 'evidence-441-25',
-          attributingObservationId: 'run-441-25:test-0:step-0',
+          evidenceToken: 'evidence-queued',
+          attributingObservationId: 'run-queued:test-0:step-0',
           emittedAt: '2026-10-15T00:00:00.000Z',
         },
       })

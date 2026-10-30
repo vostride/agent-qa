@@ -48,7 +48,7 @@ const V2_SQL: string[] = [
 
 let dir: string
 const opened: DashboardSqliteDatabase[] = []
-beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'agent-qa-423-migration-')) })
+beforeEach(() => { dir = mkdtempSync(join(tmpdir(), 'agent-qa-migration-')) })
 afterEach(() => {
   vi.restoreAllMocks()
   vi.unstubAllGlobals()
@@ -98,7 +98,7 @@ async function usageRun(options: { retry?: boolean; omitCache?: boolean; unscope
       terminalCountAtExtraction = events.filter(event => event.type === 'stepFinalized').length
     }
     return new Response(JSON.stringify({
-      id: 'chat-synthetic-423-31', created: 1, model: 'synthetic-routed-model',
+      id: 'chat-synthetic', created: 1, model: 'synthetic-routed-model',
       choices: [{ index: 0, finish_reason: planning ? 'tool_calls' : 'stop', message: planning
         ? { role: 'assistant', content: null, tool_calls: [{ id: `call-${planningCalls}`, type: 'function', function: {
             name: planningCalls === 1 ? 'web_click' : 'common_assertAI',
@@ -200,7 +200,7 @@ it('TIMEOUT-DETAIL-ROUNDTRIP: a timeout failure summary lands on the member row 
   const testId = generateTestId()
   const dbPath = join(dir, `${runId}.db`)
   const db = new DashboardDatabase({ dbPath })
-  const redactor = new SecretRedactor(new SecretStore({ UNRELATED: 'synthetic-unrelated-secret-423-42' }))
+  const redactor = new SecretRedactor(new SecretStore({ UNRELATED: 'synthetic-unrelated-secret' }))
   const bus = createRunEventBus({ runId })
   const ingest = createDashboardRunIngest({ db, runId })
   bus.subscribe(1, event => ingest.handler(event))

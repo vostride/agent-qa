@@ -144,7 +144,7 @@ interface MockResponse {
 // A loopback caller that names its Host, the way curl, the CLI and the dashboard's own page do.
 const LLM_TEST_HOST = '127.0.0.1:4317'
 const LLM_TEST_HEADERS: IncomingHttpHeaders = { 'content-type': 'application/json', host: LLM_TEST_HOST }
-const LLM_TEST_CREDENTIAL = 'sk-fixture-credential-429-08'
+const LLM_TEST_CREDENTIAL = 'sk-fixture-credential'
 
 let router: ReturnType<typeof createRouter>
 let tempDirs: string[] = []

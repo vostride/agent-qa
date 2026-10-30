@@ -1098,7 +1098,7 @@ describe('shell.ts forwards a SUBSCRIBER fault to the host port, off the run bus
     const log: RunEventEnvelope[] = []
     const faults: [string, string][] = []
     const config: RunConfig = {
-      runId: 'run-403-13-subscriber-fault' as RunConfig['runId'],
+      runId: 'run-subscriber-fault' as RunConfig['runId'],
       scope: { tier: 'suite', key: 'live-view' },
       executionContext: 'local-headless',
       buildOrdinal: 1,

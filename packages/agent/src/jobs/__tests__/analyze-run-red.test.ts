@@ -55,7 +55,7 @@ function harness(handoff: CompletedRunHandoff, options: HarnessOptions = {}) {
   let generateCalls = 0
 
   const model = {
-    modelId: 'scripted-406-red',
+    modelId: 'scripted-red',
     ...(options.vision === undefined ? {} : { vision: options.vision }),
     generate: async (request: JobModelRequest): Promise<{ text: string }> => {
       requests.push(request)
@@ -80,7 +80,7 @@ function harness(handoff: CompletedRunHandoff, options: HarnessOptions = {}) {
 
   const context: JobHandlerContext = {
     job: {
-      id: 'job_analyze_406_red',
+      id: 'job_analyze_red',
       kind: 'analyze-run',
       status: 'queued',
       summary: 'fixture',

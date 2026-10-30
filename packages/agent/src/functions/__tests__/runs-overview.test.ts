@@ -50,7 +50,7 @@ import type {
 } from '../spec.js'
 
 const OVERVIEW = 'runs.overview'
-const RUN_ID = 'run-431-overview'
+const RUN_ID = 'run-overview'
 
 const READER: FunctionCaller = {
   surface: 'test',
@@ -758,14 +758,14 @@ describe('OVERVIEW-TRUNCATION: only labels and one-line summaries are cut', () =
   })
 
   it('masks a declared multi-line secret before collapsing its line breaks', async () => {
-    const secret = '-----BEGIN KEY-----\nT431-pem-sentinel\n-----END KEY-----'
+    const secret = '-----BEGIN KEY-----\nT-pem-sentinel\n-----END KEY-----'
     const scene = singleTestScene()
     scene.secretMask = declaredMask({ PEM_KEY: secret })
     scene.document = completed([member(0, 'test-checkout', `Sign with\n${secret}`, [
       handoffStep(0, `Paste ${secret} into the form`),
     ])])
     const result = JSON.stringify(await harness(scene).overview({ runId: RUN_ID }))
-    expect(result).not.toContain('T431-pem-sentinel')
+    expect(result).not.toContain('T-pem-sentinel')
     expect(result).toContain(JSON.stringify('Sign with [secret:PEM_KEY]').slice(1, -1))
   })
 })

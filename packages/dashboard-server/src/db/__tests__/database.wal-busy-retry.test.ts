@@ -42,7 +42,7 @@ let dir: string
 const opened: DashboardDatabase[] = []
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'agent-qa-443-wal-retry-'))
+  dir = mkdtempSync(join(tmpdir(), 'agent-qa-wal-retry-'))
   wal.codes = []
   wal.calls = 0
 })

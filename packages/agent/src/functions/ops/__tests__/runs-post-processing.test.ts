@@ -37,7 +37,7 @@ import {
   projectPostProcessingSkipped,
 } from '../runs-post-processing.js'
 
-const RUN_ID = 'run-388-chips'
+const RUN_ID = 'run-chips'
 
 const CALLER: FunctionCaller = {
   surface: 'test',

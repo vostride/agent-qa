@@ -52,7 +52,7 @@ const input: PublishBundleInput = {
 }
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-join-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-join-'))
   roots.push(root)
   const knowledgeRoot = join(root, 'knowledge')
   const saved = publishBundle({ knowledgeRoot, productKey: 'join-fixture' },

@@ -1086,7 +1086,7 @@ describe('finalizing orphaned runs', () => {
   let second: DashboardDatabase
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'agent-qa-442-orphan-'))
+    dir = mkdtempSync(join(tmpdir(), 'agent-qa-orphan-'))
     const dbPath = join(dir, 'runs.db')
     first = new DashboardDatabase({ dbPath, runOwnership: { self: STAMPED_OWNER, probe: inertProbe } })
     second = new DashboardDatabase({ dbPath, runOwnership: { self: OTHER_OWNER, probe: inertProbe } })
@@ -1192,7 +1192,7 @@ describe('a run stamped before its start time was read', () => {
   let dir: string
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'agent-qa-442-own-start-'))
+    dir = mkdtempSync(join(tmpdir(), 'agent-qa-own-start-'))
   })
 
   afterEach(() => {

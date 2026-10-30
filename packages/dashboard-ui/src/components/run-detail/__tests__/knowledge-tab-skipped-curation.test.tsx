@@ -50,7 +50,7 @@ function mount(element: ReactElement): HTMLElement {
   return container
 }
 
-const RUN = "run-444-29-tab"
+const RUN = "run-tab"
 const CANARY_ID = "rec_cart_url"
 
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: "ready" }>

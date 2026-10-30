@@ -40,7 +40,7 @@ let projectRoot: string
 let agentQaRoot: string
 
 beforeEach(() => {
-  projectRoot = mkdtempSync(join(tmpdir(), 'agent-qa-431-run-targets-'))
+  projectRoot = mkdtempSync(join(tmpdir(), 'agent-qa-run-targets-'))
   agentQaRoot = join(projectRoot, '.agent-qa')
   mkdirSync(agentQaRoot, { recursive: true })
 })

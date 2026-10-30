@@ -54,7 +54,7 @@ afterEach(() => {
 })
 
 function workspace(): Workspace {
-  const root = mkdtempSync(join(tmpdir(), 'knowledge-444-proposed-supersession-'))
+  const root = mkdtempSync(join(tmpdir(), 'knowledge-proposed-supersession-'))
   roots.push(root)
   const knowledgeRoot = join(root, 'agent-qa-knowledge')
   const lease = acquireWriterLease(knowledgeRoot)
@@ -81,7 +81,7 @@ function job(
 ): CommitCurationJob {
   const fields = candidateAddressFixture({
     schemaVersion: CURATION_QUEUE_SCHEMA_VERSION,
-    sourceRunId: 'run-444-proposed-supersession',
+    sourceRunId: 'run-proposed-supersession',
     scope: SCOPE,
     buildOrdinal: 42,
     executionContext: 'ci',

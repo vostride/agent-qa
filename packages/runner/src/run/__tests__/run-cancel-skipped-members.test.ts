@@ -36,7 +36,7 @@ async function cancelledDuringMemberOne() {
   }
   const store = handoffStore()
   const config: RunConfig = {
-    runId: 'run-444-abort-skipped' as RunConfig['runId'],
+    runId: 'run-abort-skipped' as RunConfig['runId'],
     scope: { tier: 'suite', key: 'checkout' },
     executionContext: 'local-headless',
     buildOrdinal: 1,

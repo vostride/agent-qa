@@ -25,7 +25,7 @@ import { EVIDENCE_INCOMPLETE_LABEL } from "@/lib/run-detail-view"
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-const RUN_ID = "run-406"
+const RUN_ID = "run-analysis"
 /** The op's sentence, spelled once. Every assertion below compares against THIS string. */
 const FLOOR_SENTENCE =
   'observed (step 0): "Error: element \\"Submit\\" not found" — root cause undetermined'
@@ -577,7 +577,7 @@ describe("evidence the durable read found MISSING is said so, and changes nothin
 
 // The route param changes without a remount, so a stale analysis must not paint the next run.
 
-const RUN_B = "run-406-b"
+const RUN_B = "run-b"
 
 /** Run B's own projection: the SAME member indexes, which is exactly why a stale join is silent. */
 const TWO_MEMBERS_B: RunDetailProjection = { ...TWO_MEMBERS, runId: RUN_B }

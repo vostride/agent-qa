@@ -12,7 +12,7 @@ import TestEditorPage from '@/pages/test-editor'
 
 // The walk's YAML, with a repeated `name` key on line 3.
 const WALK_INVALID_CONTENT = [
-  'name: Invalid 433 probe',
+  'name: Invalid probe',
   'target: example-web',
   'name: Duplicate name',
   'steps: [Open the page]',

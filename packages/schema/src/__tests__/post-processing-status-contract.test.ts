@@ -54,7 +54,7 @@ describe('STAGE-DETAIL-OPTIONAL', () => {
     { stageDetails: { analysis: { conclusionKind: 'invented' } } },
     { stageDetails: { analysis: { cancelRequestedAt: '2026-09-14T00:00:00Z' } } },
     { stageDetails: { analysis: { unexpected: true } } },
-  ])('rejects invalid or unowned detail facts: %j', (extra) => {
+  ])('rejects invalid or unowned detail facts: `%j`', (extra) => {
     expect(PostProcessingStatusSchema.safeParse({ ...legacy, ...extra }).success).toBe(false)
   })
 })

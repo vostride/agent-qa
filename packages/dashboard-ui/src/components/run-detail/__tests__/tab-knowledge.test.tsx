@@ -294,7 +294,7 @@ describe("producer text reaches the DOM as TEXT, never as markup", () => {
 describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order", () => {
   function allZeroView(): KnowledgeView {
     const projection = RunKnowledgeProjectionSchema.parse({
-      kind: "ready", runId: "run-427-01-absence", buildOrdinal: 2, knowledgeStore: "bound", steps: [],
+      kind: "ready", runId: "run-absence", buildOrdinal: 2, knowledgeStore: "bound", steps: [],
       curation: { status: "complete", counts: { curated: 0, deprecated: 0 } },
       learned: {
         changes: [], canaryAttributions: [],
@@ -350,7 +350,7 @@ describe("the ready arm paints four sections in KNOWLEDGE_SECTIONS order", () =>
 })
 
 // Fed what `run-detail.tsx` feeds it, so a fix that held only for hand-built views would fail here.
-const RECORDED_RUN_ID = "run-423-24-tab"
+const RECORDED_RUN_ID = "run-tab"
 type ReadyProjection = Extract<RunKnowledgeProjection, { kind: "ready" }>
 type LearnedChange = ReadyProjection["learned"]["changes"][number]
 

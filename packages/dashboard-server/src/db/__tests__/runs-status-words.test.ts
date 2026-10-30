@@ -14,7 +14,7 @@ const SEVEN_WORDS = ['pending', 'running', 'passed', 'healed', 'failed', 'timeou
 let root: string
 
 beforeAll(() => {
-  root = mkdtempSync(join(tmpdir(), 'agent-qa-444-schema-v6-'))
+  root = mkdtempSync(join(tmpdir(), 'agent-qa-schema-v6-'))
 })
 
 afterAll(() => {

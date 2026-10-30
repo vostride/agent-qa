@@ -21,7 +21,7 @@ function tree(path: string): unknown {
 }
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-port-join-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-port-join-'))
   roots.push(root)
   const knowledgeRoot = join(root, 'knowledge')
   const saved = publishBundleForTest({ knowledgeRoot, productKey: 'port-join' }, {

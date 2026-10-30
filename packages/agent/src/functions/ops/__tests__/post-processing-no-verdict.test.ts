@@ -19,7 +19,7 @@ import { createFunctionRegistry } from '../../registry.js'
 import type { FunctionDeps, ReplayedRunEvent, RunDetailReaderPort } from '../../spec.js'
 import { RUNS_POST_PROCESSING_FUNCTION_ID } from '../runs-post-processing.js'
 
-const RUN_ID = 'run-444-no-verdict'
+const RUN_ID = 'run-no-verdict'
 
 const CALLER: FunctionCaller = { surface: 'test', origin: 'agent' }
 

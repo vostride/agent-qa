@@ -23,7 +23,7 @@ import {
 
 function analysis(over: Partial<AnalysisGetOutput> = {}): AnalysisGetOutput {
   return {
-    runId: 'run-406',
+    runId: 'run-analysis',
     verdicts: [],
     sentences: [],
     clusters: [],
@@ -249,7 +249,7 @@ describe('cited evidence rides the verdict, and absence is counted', () => {
     )
 
     expect(view.get(0)?.citedSteps).toEqual([2, 3])
-    expect(view.get(1)?.citedSteps, 'a reader compiled before 406 sent nothing').toEqual([])
+    expect(view.get(1)?.citedSteps, 'an older reader sent nothing').toEqual([])
     expect(view.get(1)?.citedArtifacts).toEqual([])
     expect(view.get(1)?.missingEvidence).toBeUndefined()
   })

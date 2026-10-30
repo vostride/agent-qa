@@ -131,7 +131,7 @@ beforeAll(() => {
   requirePosix()
   requireFreshBuild(DASHBOARD_DIST, DASHBOARD_SRC)
   requireFreshBuild(CORE_DIST, CORE_SRC)
-  root = mkdtempSync(join(tmpdir(), 'agent-qa-443-fresh-open-'))
+  root = mkdtempSync(join(tmpdir(), 'agent-qa-fresh-open-'))
   childScript = join(root, 'fresh-open-child.mjs')
   writeFileSync(childScript, CHILD_SCRIPT)
 })

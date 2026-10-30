@@ -37,7 +37,7 @@ type LearnedChange = ReadyProjection['learned']['changes'][number]
 type Content = NonNullable<LearnedChange['recordContent']>
 type CurationStatus = ReadyProjection['curation']['status']
 
-const RUN = 'run-427-08-changes'
+const RUN = 'run-changes'
 const DIGEST = '0123456789abcdef'.repeat(4)
 
 function content(recordId: string, overrides: Partial<Content> = {}): Content {

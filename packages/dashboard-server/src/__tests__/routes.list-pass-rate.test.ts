@@ -28,7 +28,7 @@ let db: DashboardDatabase
 const started: Array<{ close: () => void }> = []
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'agent-qa-444-rate-window-'))
+  dir = mkdtempSync(join(tmpdir(), 'agent-qa-rate-window-'))
   dbPath = join(dir, 'runs.db')
   configPath = join(dir, 'agent-qa.config.yaml')
   writeFileSync(configPath, 'testDir: tests\n')

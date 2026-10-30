@@ -104,7 +104,7 @@ const mockResolveLLMAuth = vi.mocked(resolveLLMAuth)
 
 const SELF_HOST = '127.0.0.1:4317'
 const SAME_SITE: IncomingHttpHeaders = { 'content-type': 'application/json', host: SELF_HOST }
-const SECRET = 'sk-connect-secret-429-10'
+const SECRET = 'sk-connect-secret'
 const CONNECT = '/api/llm/connect'
 
 const WORKSPACE = [

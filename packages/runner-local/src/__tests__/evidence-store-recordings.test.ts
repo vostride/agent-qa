@@ -35,13 +35,13 @@ const readChunks = vi.mocked(readSync as (
 const bytes = Buffer.from('recording bytes: 0123456789')
 const sha = createHash('sha256').update(bytes).digest('hex')
 function fixture(payload = bytes) {
-  const root = mkdtempSync(join(tmpdir(), '424-recording-store-'))
+  const root = mkdtempSync(join(tmpdir(), 'recording-store-'))
   roots.push(root)
   const staging = join(root, 'recording.webm')
   writeFileSync(staging, payload)
-  const store = new FsEvidenceArtifactStore({ root, runId: 'run-424' }) as
+  const store = new FsEvidenceArtifactStore({ root, runId: 'run-recording' }) as
     FsEvidenceArtifactStore & Required<EvidenceArtifactStorePort>
-  return { root, staging, store, dir: join(root, 'runs', 'run-424', 'blobs') }
+  return { root, staging, store, dir: join(root, 'runs', 'run-recording', 'blobs') }
 }
 
 afterEach(() => {

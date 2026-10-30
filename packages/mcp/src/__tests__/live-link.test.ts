@@ -25,9 +25,9 @@ import {
 // ---- The fixture composition -------------------------------------------------------------------
 
 /** The run the STARTER produces — the id `agent_qa_start_run`'s reference can only come from. */
-const STARTED_RUN_ID = 'run-408-03-started'
+const STARTED_RUN_ID = 'run-started'
 /** A DIFFERENT run, asked about by id — the id `agent_qa_get_run_digest`'s reference comes from. */
-const ASKED_RUN_ID = 'run-408-03-asked'
+const ASKED_RUN_ID = 'run-asked'
 
 const FIXTURE_BASE = 'http://localhost:4100'
 
@@ -122,7 +122,7 @@ async function callTool(
         : { liveLink: { dashboardBaseUrl: () => link.base } }),
     }),
   )
-  const client = new Client({ name: 'agent-qa-408-03-live-link', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-live-link', version: '0.0.0' })
   openClients.push(client)
   await client.connect(
     new StreamableHTTPClientTransport(new URL('http://live-link.local/mcp'), {

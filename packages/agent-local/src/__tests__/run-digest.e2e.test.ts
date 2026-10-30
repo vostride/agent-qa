@@ -45,10 +45,10 @@ const FORGET_PROPOSE_ID = 'forget'
 const ACCEPT_PROPOSE_ID = 'accept'
 const REJECT_PROPOSE_ID = 'reject'
 
-const RUN_A = 'run-391-digest-a'
-const RUN_B = 'run-391-digest-b'
+const RUN_A = 'run-digest-a'
+const RUN_B = 'run-digest-b'
 // A third run with nothing attributed to it: the empty arm.
-const RUN_EMPTY = 'run-391-digest-empty'
+const RUN_EMPTY = 'run-digest-empty'
 
 const ANCHOR: Anchor = { t: 'el', role: 'Button', name: 'Checkout' }
 

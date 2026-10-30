@@ -108,7 +108,7 @@ let db: DashboardDatabase | undefined
 
 /** Bring up the SHIPPED dashboard host with the run service mounted over the planted session. */
 async function mountShippedHost(session: RunSession): Promise<number> {
-  tempDir = mkdtempSync(join(tmpdir(), 'agent-qa-402-06-wire-'))
+  tempDir = mkdtempSync(join(tmpdir(), 'agent-qa-wire-'))
   const configPath = join(tempDir, 'agent-qa.config.yaml')
   writeFileSync(join(tempDir, 'hooks.yaml'), 'hooks: []\n')
   writeFileSync(join(tempDir, '.env'), '')

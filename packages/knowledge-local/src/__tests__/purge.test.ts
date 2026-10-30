@@ -2775,7 +2775,7 @@ describe('purge over older quarantined payloads', () => {
       candidateId,
       kind: 'fact',
       summarySeed,
-      bodySeed: 'A pre-441 queue body.',
+      bodySeed: 'A legacy queue body.',
       anchors: [{ t: 'platform', platform: 'web' }],
       artifactInventory: [],
       secretFlagged: false,
@@ -2788,7 +2788,7 @@ describe('purge over older quarantined payloads', () => {
     const target = publishTarget('quarantined-survivor')
     const candidateId = 'd'.repeat(64)
     const quarantined = quarantinedCandidateDir(knowledgeRoot, candidateId)
-    plantLegacyPayload(quarantined, candidateId, 'An unrelated pre-441 summary')
+    plantLegacyPayload(quarantined, candidateId, 'An unrelated legacy summary')
 
     expect(purgeApi().purgeRecord({ knowledgeRoot, recordId: target.id, initiator: 'user' }).kind)
       .toBe('purged')

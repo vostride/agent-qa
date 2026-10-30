@@ -31,7 +31,7 @@ let seq = 0
 const cleanups: Array<() => void> = []
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'agent-qa-444-cancel-'))
+  dir = mkdtempSync(join(tmpdir(), 'agent-qa-cancel-'))
   dbPath = join(dir, 'runs.db')
   configPath = join(dir, 'agent-qa.config.yaml')
   writeFileSync(configPath, 'testDir: tests\n')

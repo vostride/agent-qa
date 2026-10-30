@@ -1,10 +1,9 @@
 {
   "$comment": [
-    "THE FROZEN SCORING DENOMINATOR for phase 394's edit contract (D-20, WTST-07). One entry",
-    "per edit case. Gap-closure rounds MUST NOT mint new members or edit these vectors to",
-    "re-score: the whole signature proof is that this exact table is observed RED with NO",
-    "applier in existence and green at the end of the phase, with nothing added in between",
-    "(the treadmill law).",
+    "THE FROZEN SCORING DENOMINATOR for the CST edit contract. One entry per edit case. A",
+    "later change MUST NOT mint new members or edit these vectors to re-score: the proof is",
+    "that this exact table scores the applier, with nothing added to make it pass (the",
+    "treadmill law).",
     "",
     "Each row is the sole catcher for one property, named in `rationale`. If two rows would",
     "red on the same defect, one of them is not earning its place.",
@@ -89,7 +88,7 @@
         "bytesIdenticalInputLines": [1, 2, 3, 4, 5, 6, 7, 8],
         "outputEndsWithExactlyOneNewline": true
       },
-      "rationale": "The sole catcher for the trailing-newline defect the 394 research probe actually hit: an appended item built without an end token produces a final line with no newline, or glues itself onto the previous line. It is also the only row where the appended item is the LAST thing in the file, so nothing after it can mask a missing terminator.",
+      "rationale": "The sole catcher for the trailing-newline defect a research probe actually hit: an appended item built without an end token produces a final line with no newline, or glues itself onto the previous line. It is also the only row where the appended item is the LAST thing in the file, so nothing after it can mask a missing terminator.",
       "measured": "Freeze time: 8 lines, parses with 0 errors, file ends with exactly one newline. `steps` is the last collection in the file.",
       "disclosure": null
     },
@@ -196,7 +195,7 @@
         "renderedBytes": 0,
         "documentUntouchedAfterRefusal": true
       },
-      "rationale": "The sole catcher for T-394-10, and it is deliberately a MIXED set: the first op is legitimate and would apply. The fence must refuse the whole set BEFORE any mutation, so an applier that checks each op as it reaches it would have already rewritten `/steps/0` by the time it sees `/target` — leaving a partially edited document behind a refusal. `renderedBytes: 0` is that assertion; the changed-line vectors cannot express it because nothing is rendered.",
+      "rationale": "The sole catcher for a partial edit behind a refusal, and it is deliberately a MIXED set: the first op is legitimate and would apply. The fence must refuse the whole set BEFORE any mutation, so an applier that checks each op as it reaches it would have already rewritten `/steps/0` by the time it sees `/target` — leaving a partially edited document behind a refusal. `renderedBytes: 0` is that assertion; the changed-line vectors cannot express it because nothing is rendered.",
       "measured": "Freeze time: 8 lines, parses with 0 errors. `target` is a top-level key at line 4 and is NOT a member of EDITABLE_POINTER_ROOTS; `/steps/0` is line 6 and is inside the fence.",
       "disclosure": null
     },
@@ -212,9 +211,9 @@
         "errorName": "PatchedDocumentInvalidError",
         "renderedBytes": 0
       },
-      "rationale": "The sole catcher for WTST-07's schema-validated-before-write half. The op is inside the fence, the pointer resolves, and the CST mutation succeeds — the resulting document is simply one this project cannot run, because `steps` requires at least one member. Every other row would pass an applier that skipped the post-render re-parse entirely. DISCLOSED below: the plan specified a `replace` for this case, and a `replace` cannot reach it.",
+      "rationale": "The sole catcher for the edit contract's schema-validated-before-write half. The op is inside the fence, the pointer resolves, and the CST mutation succeeds — the resulting document is simply one this project cannot run, because `steps` requires at least one member. Every other row would pass an applier that skipped the post-render re-parse entirely. DISCLOSED below: a `replace` cannot reach this case.",
       "measured": "Freeze time: 6 lines, parses with 0 errors, exactly one step at line 6. TestDefinitionSchema requires steps to be an array with min length 1.",
-      "disclosure": "The plan's text asks for `a replace whose value makes the document fail TestDefinitionSchema`. Measured: no such replace exists. Every editable root resolves to a string-typed leaf, and CST.setScalarValue always writes a well-formed scalar of the requested value — so a replace inside the fence cannot produce a document the schema rejects. `remove` can, by emptying a min(1) array. The property the case is the sole catcher for is unchanged; only the op that reaches it differs."
+      "disclosure": "No replace makes the document fail TestDefinitionSchema. Every editable root resolves to a string-typed leaf, and CST.setScalarValue always writes a well-formed scalar of the requested value — so a replace inside the fence cannot produce a document the schema rejects. `remove` can, by emptying a min(1) array. The property the case is the sole catcher for is unchanged; only the op that reaches it differs."
     }
   }
 }

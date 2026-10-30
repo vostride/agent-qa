@@ -9,7 +9,7 @@ vi.mock('@vostride/agent-qa-web', () => ({ runAccessibilityCheck: vi.fn(async ()
 function fixture() {
   const terminals: StepFinalizedPayload[] = []
   const documents: EvidenceDocument[] = []
-  const bus = createRunEventBus({ runId: 'synthetic-composition-423' })
+  const bus = createRunEventBus({ runId: 'synthetic-composition' })
   bus.subscribe(1, event => {
     if (event.type === 'stepFinalized') terminals.push(event.payload as StepFinalizedPayload)
   })
@@ -36,7 +36,7 @@ function fixture() {
       },
     },
   }
-  const member = { testId: 'synthetic-member-423', name: 'Synthetic capture', filePath: input.filePath,
+  const member = { testId: 'synthetic-member', name: 'Synthetic capture', filePath: input.filePath,
     steps: ['{{appium: mobile: hideKeyboard}}'] }
   return { input, member, terminals, documents, adapter }
 }

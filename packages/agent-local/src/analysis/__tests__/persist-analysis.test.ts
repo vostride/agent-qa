@@ -27,7 +27,7 @@ import { writeAnalysisArtifact } from '../persist-analysis.js'
 // Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-const RUN_ID = 'run-389-persist'
+const RUN_ID = 'run-persist'
 
 function artifactFor(runId: string, rationale: string): RunAnalysisArtifact {
   const verdict: Verdict = {

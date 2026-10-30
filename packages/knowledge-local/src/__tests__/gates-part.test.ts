@@ -13,7 +13,7 @@ describe('lazy journaled gate part', () => {
   let root: string
   let fixture: ReturnType<typeof createPromotionFloorFixture>
   beforeEach(() => {
-    root = mkdtempSync(join(tmpdir(), '416-gates-part-'))
+    root = mkdtempSync(join(tmpdir(), 'gates-part-'))
     fixture = createPromotionFloorFixture({ knowledgeRoot: join(root, 'agent-qa-knowledge') })
   })
   afterEach(() => rmSync(root, { recursive: true, force: true }))

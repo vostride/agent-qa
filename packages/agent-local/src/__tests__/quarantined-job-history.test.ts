@@ -37,7 +37,7 @@ const NEVER_AUTHORS: JobModelCapability = {
 let roots: string[] = []
 
 function makeRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-422-10-history-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-history-'))
   roots.push(root)
   return join(root, '.agent-qa')
 }

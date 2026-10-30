@@ -66,7 +66,7 @@ describe('FLOOR-LAZY-IMPORT', () => {
 
     const outcome = await acquireEmbedder({
       preferredProfile: STATIC_FLOOR_EMBEDDING_PROFILE, allowDownload: false,
-      agentQaRoot: '/nonexistent/431-06/.agent-qa', probes: noWorker,
+      agentQaRoot: '/nonexistent/lazy-load/.agent-qa', probes: noWorker,
     })
     if (outcome.kind !== 'ready') throw new Error(`expected a ready floor rung, received ${outcome.kind}`)
     expect(outcome.rung).toBe('floor')
@@ -119,7 +119,7 @@ describe('FLOOR-LAZY-IMPORT', () => {
 
     const outcome = await acquireEmbedder({
       preferredProfile: STATIC_FLOOR_EMBEDDING_PROFILE, allowDownload: false,
-      agentQaRoot: '/nonexistent/431-06-failed/.agent-qa', probes: noWorker,
+      agentQaRoot: '/nonexistent/lazy-load-failed/.agent-qa', probes: noWorker,
     })
     expect(outcome).toEqual({ kind: 'lexical-only' })
     expect(runtime.loads).toBe(1)

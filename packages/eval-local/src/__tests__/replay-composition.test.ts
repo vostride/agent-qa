@@ -962,7 +962,7 @@ describe('replay egress masks declared values', () => {
   })
 
   it('judge requests are masked with the same mask', async () => {
-    const storeRoot = await tempRoot('c441-egress-judge-store-')
+    const storeRoot = await tempRoot('egress-judge-store-')
     const { cassette, artifacts } = extractLeaf(
       midBandHandoff('Fill the note for qa@example.com with Hunter-42-zz'),
     )
@@ -1000,7 +1000,7 @@ describe('replay writes no guardrail audit file', () => {
   })
 
   it('an eval replay and its adjudication write no guardrail audit file', async () => {
-    const storeRoot = await mkdtemp(join(tmpdir(), 'c441-eval-audit-'))
+    const storeRoot = await mkdtemp(join(tmpdir(), 'eval-audit-'))
     tempRoots.push(storeRoot)
     const auditFile = ['guardrail', 'audit.jsonl'].join('_')
     const cwdAudit = join(process.cwd(), '.agent-qa', auditFile)

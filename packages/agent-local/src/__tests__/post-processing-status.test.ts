@@ -40,7 +40,7 @@ import { createJobCheckpointStore, readJobCheckpointEnvelope } from '../store/jo
 // Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-const RUN_ID = 'run-388-status'
+const RUN_ID = 'run-status'
 
 const CALLER: FunctionCaller = {
   surface: 'test',
@@ -50,7 +50,7 @@ const CALLER: FunctionCaller = {
 const TEST_MODEL: JobModelCapability = {
   modelId: 'test:post-processing-status',
   generate: async () => {
-    throw new Error('the post-run chain never authors in 388')
+    throw new Error('the post-run chain never authors')
   },
 }
 
@@ -436,8 +436,8 @@ describe('cold stage facts', () => {
 
   // Terminal transitions release the claim lease, so a finished stage is timed from its start.
   it('DURABLE-START-SURVIVES-THE-LEASE: a settled stage carries its start and no lease after cold reopen', async () => {
-    const FAILED_RUN = 'run-425-start-failed'
-    const QUEUED_RUN = 'run-425-start-queued'
+    const FAILED_RUN = 'run-start-failed'
+    const QUEUED_RUN = 'run-start-queued'
     const writer = createHarness()
     const jobs = await writer.host.jobs()
     const fence = await jobs.store.adoptEpoch(1)
@@ -681,7 +681,7 @@ describe('chip truth is read from durable rows', () => {
     const other = await invokeFunction(
       harness.host.registry,
       RUNS_POST_PROCESSING_FUNCTION_ID,
-      { runId: 'run-388-someone-else' },
+      { runId: 'run-someone-else' },
       CALLER,
     ) as PostProcessingStatus
 

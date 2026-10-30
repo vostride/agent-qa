@@ -33,12 +33,12 @@ import type { LocalAgentHost, LocalAgentJobs } from '../composition/compose-loca
 // Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-const RUN_ID = 'run-388-deferral'
+const RUN_ID = 'run-deferral'
 
 const TEST_MODEL: JobModelCapability = {
   modelId: 'test:curation-claim-deferral',
   generate: async () => {
-    throw new Error('the post-run chain never authors in 388')
+    throw new Error('the post-run chain never authors')
   },
 }
 

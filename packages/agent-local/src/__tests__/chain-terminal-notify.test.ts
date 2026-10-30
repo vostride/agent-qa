@@ -38,7 +38,7 @@ import type { LocalAgentHost, LocalAgentJobs } from '../composition/compose-loca
 // Passthrough: this fixture already speaks canonical workspace-relative bytes.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-const RUN_ID = 'run-388-alpha'
+const RUN_ID = 'run-alpha'
 
 const CALLER: FunctionCaller = {
   surface: 'test',

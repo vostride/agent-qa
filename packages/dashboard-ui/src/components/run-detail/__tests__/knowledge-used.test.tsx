@@ -89,7 +89,7 @@ function step(stepIndex: number, served: Served) {
 function readyView(steps: ReturnType<typeof step>[]): Extract<KnowledgeView, { state: "ready" }> {
   const projection = RunKnowledgeProjectionSchema.parse({
     kind: "ready",
-    runId: "run-427-05-used",
+    runId: "run-used",
     buildOrdinal: 1,
     knowledgeStore: "bound",
     steps,

@@ -226,7 +226,7 @@ describe('LIST-ROWS: every row names all of its tests', () => {
   })
 
   it('masks a declared secret in a test name and never matches the title filter on it', async () => {
-    const secret = 'T431-list-sentinel-not-a-real-credential'
+    const secret = 'T-list-sentinel-not-a-real-credential'
     const documents = [run({ runId: 'run-secret', endedAt: 1,
       tests: [member(0, 't-login', `Login as ${secret}`)] })]
     const reader = harness(documents, undefined, declaredMask({ LIST_KEY: secret }))

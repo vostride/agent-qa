@@ -33,7 +33,7 @@ afterEach(async () => {
 
 async function connect(): Promise<Client> {
   const handler = createMcpHandler(() => barrel.buildAgentQaMcpServer(deps()))
-  const client = new Client({ name: 'agent-qa-433-33', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-instructions', version: '0.0.0' })
   openClients.push(client)
   await client.connect(new StreamableHTTPClientTransport(new URL('http://instructions.local/mcp'), {
     fetch: ((url: URL | string, init?: RequestInit) => handler.fetch(new Request(url, init))) as typeof fetch,
@@ -46,7 +46,7 @@ async function connectLoopback(): Promise<Client> {
   openServers.push(server)
   await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve))
   const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/mcp`
-  const client = new Client({ name: 'agent-qa-433-33-http', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-instructions-http', version: '0.0.0' })
   openClients.push(client)
   await client.connect(new StreamableHTTPClientTransport(new URL(url)))
   return client

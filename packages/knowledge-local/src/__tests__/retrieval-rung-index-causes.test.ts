@@ -29,7 +29,7 @@ afterEach(() => {
 })
 
 function scaffoldedRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), 'retrieval-rung-423-'))
+  const root = mkdtempSync(join(tmpdir(), 'retrieval-rung-'))
   roots.push(root)
   const knowledgeRoot = join(root, 'agent-qa-knowledge')
   scaffoldKnowledgeRoot(knowledgeRoot)

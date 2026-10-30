@@ -525,7 +525,7 @@ describe('a missing credential names the auth command to run', () => {
   let authPath: string
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-445-auth-messages-'))
+    tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-auth-messages-'))
     authPath = join(tempDir, 'auth.json')
   })
 
@@ -604,7 +604,7 @@ describe('a compatible config on a public API host needs a key', () => {
   let authPath: string
 
   beforeEach(async () => {
-    tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-445-public-api-key-'))
+    tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-public-api-key-'))
     authPath = join(tempDir, 'auth.json')
   })
 

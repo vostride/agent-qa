@@ -74,7 +74,7 @@ async function advertise(
       maskText: (text: string) => text,
     }),
   )
-  const client = new Client({ name: 'agent-qa-396-04-fidelity', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-fidelity', version: '0.0.0' })
   openClients.push(client)
   await client.connect(
     new StreamableHTTPClientTransport(new URL('http://fidelity.local/mcp'), {

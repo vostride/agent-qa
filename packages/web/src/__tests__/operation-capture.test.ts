@@ -822,7 +822,7 @@ describe('recording witness', () => {
   }, 60_000)
 
   async function recorded(): Promise<{ web: WebPlatformAdapter; recording: RecordingCapability }> {
-    videoDir = await mkdtemp(join(tmpdir(), 'agent-qa-436-witness-'))
+    videoDir = await mkdtemp(join(tmpdir(), 'agent-qa-witness-'))
     const web = await open(undefined, videoDir)
     const recording = web.recording
     expect(recording, 'a recording-enabled Chromium adapter exposes recording').toBeDefined()

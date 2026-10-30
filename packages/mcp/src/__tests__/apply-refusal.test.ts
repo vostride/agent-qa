@@ -65,7 +65,7 @@ describe('a mark through the MCP catalogue needs no credential', () => {
 // The MCP caller carries no credential, scope set or safe-mode flag.
 const TOKENLESS: FunctionCaller = { surface: 'mcp', origin: 'agent' }
 
-const PLANTED = 'sk-live-432-planted-secret'
+const PLANTED = 'sk-live-planted-secret'
 
 interface DirectPort {
   readonly calls: unknown[]
@@ -125,7 +125,7 @@ async function wire(deps: FunctionDeps, modern = false): Promise<Wire> {
   }))
   const frames: string[] = []
   const elicited: unknown[] = []
-  const client = new Client({ name: 'agent-qa-432-12-direct', version: '0.0.0' }, {
+  const client = new Client({ name: 'agent-qa-direct', version: '0.0.0' }, {
     ...(modern ? { versionNegotiation: { mode: { pin: '2026-07-28' } }, capabilities: { elicitation: {} } } : {}),
   } as never)
   if (modern) {

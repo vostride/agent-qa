@@ -84,10 +84,10 @@ describe('network evidence masks declared values by name', () => {
 
   test('an undeclared credential header is recorded as captured', () => {
     const recorded = project({
-      requestHeaders: { Authorization: 'Bearer abc123def456ghi789', Cookie: 'sid=cookie-441', 'content-type': 'application/json' },
+      requestHeaders: { Authorization: 'Bearer abc123def456ghi789', Cookie: 'sid=cookie', 'content-type': 'application/json' },
     }, declaredMask({}))
     expect(recorded.requestHeaders).toEqual({
-      Authorization: 'Bearer abc123def456ghi789', Cookie: 'sid=cookie-441', 'content-type': 'application/json',
+      Authorization: 'Bearer abc123def456ghi789', Cookie: 'sid=cookie', 'content-type': 'application/json',
     })
   })
 

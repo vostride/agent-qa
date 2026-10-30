@@ -23,7 +23,7 @@ const FORBIDDEN = ['forbidden-runtime']
 const ACQUIRE = ['acquireEmbedder']
 
 function workspace(t, files) {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-431-06-lint-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-lint-'))
   t.after(() => rmSync(root, { recursive: true, force: true }))
   const packages = {
     'packages/app/package.json': { name: '@vostride/agent-qa-app', exports: { '.': { import: './dist/index.js' } } },

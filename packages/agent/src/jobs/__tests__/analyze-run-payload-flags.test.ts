@@ -7,7 +7,7 @@ import { createRealJobKindRegistry, readAnalyzeRunPayload } from '../kinds.js'
 import type { AnalyzeRunPayload, PostRunJobCapabilities } from '../kinds.js'
 import type { JobHandlerContext } from '../kind-registry.js'
 
-const RUN_ID = 'run-393-05-payload-flags'
+const RUN_ID = 'run-payload-flags'
 
 /** Byte-for-byte the legacy shape `post-run-tail.ts` enqueued. */
 const LEGACY_PAYLOAD = {

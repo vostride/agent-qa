@@ -22,7 +22,7 @@ function fixture(testIndex = 3, stepIndex = 2) {
     return model
   }
   const scope = createStepModelScope({
-    key: { runId: 'synthetic-run-423' as StepModelScopeKey['runId'], testIndex, stepIndex },
+    key: { runId: 'synthetic-run' as StepModelScopeKey['runId'], testIndex, stepIndex },
     models: { planner: { model: fakeModel as Exclude<LanguageModel, string>, bind },
       verifier: { model: fakeModel as Exclude<LanguageModel, string>, bind } },
     profiles: { planner: { provider: 'synthetic', modelId: 'requested-alias' },
@@ -115,7 +115,7 @@ test('USAGE-SCOPE-LIFETIME: member binds canonical indices before calls and disp
     testIndex: 4, abortSignal: new AbortController().signal,
     sink: { stepStarted: vi.fn(), loopEmitFor: () => ({ stepFinalized: terminal, subActionRecorded: vi.fn() }),
       hookStarted: vi.fn(), hookFinished: vi.fn(), testRetryScheduled: vi.fn() },
-    stepModelScope: { runId: 'synthetic-run-423' as StepModelScopeKey['runId'], create },
+    stepModelScope: { runId: 'synthetic-run' as StepModelScopeKey['runId'], create },
     executeStep: async (_instruction, ports, context) => {
       expect(ports.planner).toBe(f.scope.planner)
       expect(context.plannerModel).toBe(f.scope.plannerModel)
@@ -123,10 +123,10 @@ test('USAGE-SCOPE-LIFETIME: member binds canonical indices before calls and disp
       return { name: 'Scoped step', status: 'passed', duration: 1 }
     },
   }
-  const result = await runMemberTest({ testId: 'synthetic-test-423', name: 'Scoped step',
+  const result = await runMemberTest({ testId: 'synthetic-test', name: 'Scoped step',
     filePath: 'synthetic.yaml', steps: ['Scoped step'] }, config)
   expect(result.status).toBe('passed')
-  expect(create).toHaveBeenCalledWith({ runId: 'synthetic-run-423', testIndex: 4, stepIndex: 0 })
+  expect(create).toHaveBeenCalledWith({ runId: 'synthetic-run', testIndex: 4, stepIndex: 0 })
   expect(terminal).toHaveBeenCalledOnce()
   expect(dispose).toHaveBeenCalledOnce()
 })
@@ -181,7 +181,7 @@ function sdkFixture(rows: ScriptedCall[]) {
   const base = raw()
   const accounting = makeFakeTokenAccounting()
   const scope = createStepModelScope({
-    key: { runId: 'synthetic-run-423' as StepModelScopeKey['runId'], testIndex: 3, stepIndex: 0 },
+    key: { runId: 'synthetic-run' as StepModelScopeKey['runId'], testIndex: 3, stepIndex: 0 },
     models: { planner: { model: base, bind: raw }, verifier: { model: base, bind: raw } },
     profiles: { planner: { provider: 'synthetic', modelId: 'requested-alias' },
       verifier: { provider: 'synthetic', modelId: 'judge-alias' } }, mask: text => text,
@@ -248,7 +248,7 @@ test('USAGE-EXTRACTION: post-loop capture reaches final facts and replaces legac
       } }
     },
   }
-  const result = await runMemberTest({ testId: 'synthetic-test-423', name: 'Scoped step',
+  const result = await runMemberTest({ testId: 'synthetic-test', name: 'Scoped step',
     filePath: 'synthetic.yaml', steps: [{ step: 'Click Log in', capture: { variable: 'name', method: 'ai' } }] }, config)
   expect(result.status).toBe('passed')
   expect(result.steps[0].capturedVariables).toEqual({ name: 'captured' })
@@ -288,7 +288,7 @@ test('CACHE-HIT-NO-REPORT: execution cache and unobserved SDK usage cannot manuf
       screenStateBefore: '', tokenUsage: legacy,
     } }),
   }
-  const member = { testId: 'synthetic-test-423', name: 'Cached', filePath: 'synthetic.yaml', steps: ['Cached'] }
+  const member = { testId: 'synthetic-test', name: 'Cached', filePath: 'synthetic.yaml', steps: ['Cached'] }
   const scoped = await runMemberTest(member, config)
   expect(scoped.steps[0].trace).not.toHaveProperty('tokenUsage')
   expect(f.scope.snapshot().started).toBe(0)
@@ -357,7 +357,7 @@ test('USAGE-HEALING: actual planner and verifier retain failed-action replanning
     sink: { stepStarted: vi.fn(), loopEmitFor: () => ({ stepFinalized: vi.fn(), subActionRecorded: vi.fn() }),
       hookStarted: vi.fn(), hookFinished: vi.fn(), testRetryScheduled: vi.fn() },
   }
-  const result = await runMemberTest({ testId: 'synthetic-test-423', name: 'Healing',
+  const result = await runMemberTest({ testId: 'synthetic-test', name: 'Healing',
     filePath: 'synthetic.yaml', steps: ['Click Log in'] }, config)
   expect(result.status).toBe('passed')
   expect(result.steps[0].evidence?.subActions).toHaveLength(2)

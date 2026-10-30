@@ -63,7 +63,7 @@ function servedStep() {
 function view(recorded: Recorded | undefined, options: { withRows?: boolean; knowledgeStore?: "bound" | "unbound" } = {}): KnowledgeView {
   const projection = RunKnowledgeProjectionSchema.parse({
     kind: "ready",
-    runId: "run-427-11-retrieval",
+    runId: "run-retrieval",
     buildOrdinal: 1,
     knowledgeStore: options.knowledgeStore ?? "bound",
     steps: options.withRows === true ? [servedStep()] : [],

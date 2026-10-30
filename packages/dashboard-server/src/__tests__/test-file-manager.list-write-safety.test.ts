@@ -170,7 +170,7 @@ const started: Array<Awaited<ReturnType<typeof startServer>>> = []
 
 beforeEach(async () => {
   fileWrites.aborted = false
-  root = await mkdtemp(join(tmpdir(), 'agent-qa-444-list-write-safe-'))
+  root = await mkdtemp(join(tmpdir(), 'agent-qa-list-write-safe-'))
   vi.spyOn(console, 'log').mockImplementation(() => undefined)
 })
 

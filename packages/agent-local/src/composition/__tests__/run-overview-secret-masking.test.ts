@@ -25,8 +25,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { composeLocalAgent } from '../compose-local-agent.js'
 
-const RUN_ID = 'run-431-overview-cold'
-const SENTINEL = 'T431-overview-cold-sentinel-not-a-real-credential'
+const RUN_ID = 'run-overview-cold'
+const SENTINEL = 'T-overview-cold-sentinel-not-a-real-credential'
 const REDACTED = '[secret:OVERVIEW_PASSWORD]'
 const UNREADABLE = 'synthetic: workspace.secretsFile cannot be read'
 
@@ -38,7 +38,7 @@ const READER: FunctionCaller = {
 let root: string
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'agent-qa-431-overview-cold-'))
+  root = mkdtempSync(join(tmpdir(), 'agent-qa-overview-cold-'))
   const handoff: CompletedRunHandoff = {
     schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
     runId: RUN_ID as RunId,

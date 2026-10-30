@@ -25,7 +25,7 @@ import type { JobHandlerContext } from '../kind-registry.js'
 import { buildSyntheticHandoff } from './fixtures/synthetic-handoff.js'
 
 const EVIDENCE_TEXT = 'Error: element "Submit" not found'
-const ANALYZE_JOB_ID = 'job_analyze_389_tracer'
+const ANALYZE_JOB_ID = 'job_analyze_tracer'
 
 interface HarnessOptions {
   readonly recorded?: Map<string, unknown>

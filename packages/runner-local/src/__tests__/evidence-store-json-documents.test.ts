@@ -27,17 +27,17 @@ vi.mock('node:fs', async importOriginal => {
 
 const roots: string[] = []
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), '423-json-evidence-'))
+  const root = mkdtempSync(join(tmpdir(), 'json-evidence-'))
   roots.push(root)
-  return { root, dir: join(root, 'runs', 'run-423', 'blobs'),
-    store: new FsEvidenceArtifactStore({ root, runId: 'run-423' }) }
+  return { root, dir: join(root, 'runs', 'run-json-evidence', 'blobs'),
+    store: new FsEvidenceArtifactStore({ root, runId: 'run-json-evidence' }) }
 }
 afterEach(() => {
   io.beforeWrite = undefined
   vi.clearAllMocks()
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
-const syntheticSecret = 'synthetic-console-secret-423'
+const syntheticSecret = 'synthetic-console-secret'
 const masked = '[secret]'
 const document: Exclude<EvidenceDocument, { kind: 'variables' }> = {
   schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'console', records: [
@@ -66,7 +66,7 @@ test('NETWORK-READBACK: real member terminal refers to one reopened masked SHA b
     observe: async () => { throw new Error('No additional capture expected') },
     execute: async () => { throw new Error('Inline fixture uses appiumScript') },
   }
-  const secret = 'synthetic-network-secret-423'
+  const secret = 'synthetic-network-secret'
   const body = secret + 'a'.repeat(32768 - secret.length)
   const oversized = '§'.repeat(16385)
   adapter.drainNetworkLogs = () => Array.from({ length: 600 }, (_, index) => ({
@@ -76,7 +76,7 @@ test('NETWORK-READBACK: real member terminal refers to one reopened masked SHA b
     body: index === 3 ? oversized : body,
     requestBody: index === 3 ? oversized : body, startTime: 1000 - index, endTime: 2000 - index,
   }))
-  const bus = createRunEventBus({ runId: 'run-423' })
+  const bus = createRunEventBus({ runId: 'run-json-evidence' })
   let terminal: StepFinalizedPayload | undefined
   let visibleAtTerminal: Uint8Array | undefined
   bus.subscribe(1, event => {
@@ -96,7 +96,7 @@ test('NETWORK-READBACK: real member terminal refers to one reopened masked SHA b
   expect(terminal?.evidence?.network).toMatchObject({ state: 'present', counts: { total: 600, failed: 1, errored: 1 } })
   const entry = terminal!.evidence!.network
   if (entry.state !== 'present') throw new Error('Expected persisted network entry')
-  const reopened = new FsEvidenceArtifactStore({ root, runId: 'run-423' })
+  const reopened = new FsEvidenceArtifactStore({ root, runId: 'run-json-evidence' })
   const stored = Buffer.from(reopened.getBlob(entry.ref.sha)!)
   // Native byte equality avoids expanding a 39-MB typed array into millions of matcher keys.
   expect(Buffer.from(visibleAtTerminal!).equals(stored)).toBe(true)
@@ -127,7 +127,7 @@ test('DEDUP: identical complete bytes do not rewrite an existing blob', () => {
 
 test('CONCURRENT-BLOB: another store sees no partial target during publication', async () => {
   const { store, root, dir } = fixture()
-  const other = new FsEvidenceArtifactStore({ root, runId: 'run-423' })
+  const other = new FsEvidenceArtifactStore({ root, runId: 'run-json-evidence' })
   const fs = await vi.importActual<typeof import('node:fs')>('node:fs')
   let visibleDuringWrite: Uint8Array | undefined
   io.beforeWrite = path => {
@@ -203,7 +203,7 @@ test.each([1, 2, 5])('INTERRUPTED-BLOB: sync failure at stage %s never returns a
 
 test('DURABLE-PARENTS: a returned reference synchronizes the complete newly-created run family', () => {
   const { root } = fixture()
-  const store = new FsEvidenceArtifactStore({ root: join(root, 'new-root'), runId: 'run-423' })
+  const store = new FsEvidenceArtifactStore({ root: join(root, 'new-root'), runId: 'run-json-evidence' })
   store.persistEvidenceDocument(document)
   // File, blobs directory, run directory, runs directory, root, and root parent.
   expect(fsyncSync).toHaveBeenCalledTimes(6)

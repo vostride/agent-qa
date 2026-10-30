@@ -28,7 +28,7 @@ let db: DashboardDatabase
 const started: Array<{ close: () => void }> = []
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'agent-qa-444-unknown-outcome-'))
+  dir = mkdtempSync(join(tmpdir(), 'agent-qa-unknown-outcome-'))
   dbPath = join(dir, 'runs.db')
   configPath = join(dir, 'agent-qa.config.yaml')
   writeFileSync(configPath, 'testDir: tests\n')
@@ -46,7 +46,7 @@ function seedStrayHistory(): void {
   for (const [index, outcome] of OUTCOMES.entries()) {
     const startedAt = `2026-10-01T1${String(index)}:00:00.000Z`
     const runId = db.insertRun({
-      id: `run_444-stray-${String(index)}`,
+      id: `run_stray-${String(index)}`,
       name: STRAY.name,
       status: outcome === 'failed' ? 'failed' : 'passed',
       duration: 1000,

@@ -424,7 +424,7 @@ describe('the pending-to-running flip', () => {
   let other: DashboardDatabase
 
   beforeEach(() => {
-    dir = mkdtempSync(join(tmpdir(), 'agent-qa-443-queue-flip-'))
+    dir = mkdtempSync(join(tmpdir(), 'agent-qa-queue-flip-'))
     const dbPath = join(dir, 'runs.db')
     own = new DashboardDatabase({ dbPath, runOwnership: { self: SELF, probe: inertProbe } })
     other = new DashboardDatabase({ dbPath, runOwnership: { self: OTHER, probe: inertProbe } })

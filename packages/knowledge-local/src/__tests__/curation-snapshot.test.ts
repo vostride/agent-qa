@@ -31,7 +31,7 @@ import {
 
 const roots: string[] = []
 function temporaryRoot(): string {
-  const root = mkdtempSync(join(tmpdir(), '423-curation-snapshot-'))
+  const root = mkdtempSync(join(tmpdir(), 'curation-snapshot-'))
   roots.push(root)
   return root
 }

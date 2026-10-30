@@ -31,7 +31,7 @@ function countedUuidReader(...answers: Array<string | undefined>) {
 const inertProbe: RunOwnerProbe = { isAlive: () => true, incarnationOf: () => undefined }
 
 function seedThenClassifyAfterRename(first: () => string, second: () => string) {
-  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-442-host-'))
+  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-host-'))
   const dbPath = join(dir, 'runs.db')
   const seeding = new DashboardDatabase({
     dbPath,

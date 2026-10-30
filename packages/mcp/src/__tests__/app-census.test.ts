@@ -40,9 +40,9 @@ import type { ToolProjection } from '../mapping.js'
 
 // ---- Shared fixture vocabulary -----------------------------------------------------------------
 
-const FIXTURE_RUN_ID = 'run-408-04-census'
+const FIXTURE_RUN_ID = 'run-census'
 const FIXTURE_ORIGIN = 'http://127.0.0.1:7793'
-const SIGNING_KEY = 'zz-408-04-app-census-signing-key'
+const SIGNING_KEY = 'zz-app-census-signing-key'
 const DASHBOARD_BASE = 'http://localhost:4108'
 const HANDLES: readonly number[] = [0]
 
@@ -98,7 +98,7 @@ async function advertisedTools(): Promise<readonly AdvertisedTool[]> {
       maskText: identity,
     }),
   )
-  const client = new Client({ name: 'agent-qa-408-04-census', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-census', version: '0.0.0' })
   openClients.push(client)
   await client.connect(
     new StreamableHTTPClientTransport(new URL('http://census.local/mcp'), {
@@ -277,7 +277,7 @@ async function serveLiveHost(options: { readonly base?: string } = {}): Promise<
 /** The shipped client, declaring the Apps extension or deliberately declaring nothing. */
 async function connect(url: string, options: { readonly apps: boolean }): Promise<Client> {
   const client = new Client(
-    { name: 'agent-qa-408-04-app-less', version: '0.0.0' },
+    { name: 'agent-qa-app-less', version: '0.0.0' },
     {
       capabilities: options.apps ? { extensions: { [MCP_APPS_EXTENSION_ID]: {} } } : {},
       versionNegotiation: { mode: 'auto' as const },

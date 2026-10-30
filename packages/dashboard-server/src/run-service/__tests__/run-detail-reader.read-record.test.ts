@@ -18,7 +18,7 @@ afterEach(() => {
 })
 
 function database(): DashboardDatabase {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-444-run-record-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-run-record-'))
   roots.push(root)
   return new DashboardDatabase({ dbPath: join(root, 'runs.db') })
 }

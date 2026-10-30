@@ -1,17 +1,16 @@
 {
   "$comment": [
-    "THE FROZEN SCORING DENOMINATOR for phase 393 (D-08). One entry per corpus draft.",
-    "Gap-closure rounds MUST NOT mint new members or edit these vectors to re-score:",
-    "the whole signature proof is that this exact table is observed RED with no",
-    "evaluator in existence and green at the end of the phase, with nothing added in",
-    "between (the treadmill law).",
+    "THE FROZEN SCORING DENOMINATOR for the authoring gates. One entry per corpus draft.",
+    "A later change MUST NOT mint new members or edit these vectors to re-score: the",
+    "proof is that this exact table scores the evaluator, with nothing added to make",
+    "it pass (the treadmill law).",
     "",
     "expectedGates is what a CORRECT evaluator must report for the draft. `measured` is",
-    "what the live lane actually observed on 2026-08-10 (plan 393-01 Task 2), read from",
+    "what the live lane actually observed when the table was frozen, read from",
     "the durable run record .agent-qa/runs/<runId>/handoff.json — tests[].outcome and",
     "tests[].steps[].termination.kind — never from console text.",
     "",
-    "Per D-17: definitive = a final pass or fail; planning failure, infeasible",
+    "Definitive = a final pass or fail; planning failure, infeasible",
     "termination, cycle-flag, error, timeout and cancelled are gate-1 fails. A healed",
     "pass counts as pass, and the heal is recorded."
   ],
@@ -24,7 +23,7 @@
     "demo/init/tests/ladder.yaml",
     "demo/init/tests/ladder-current-target.yaml"
   ],
-  "coveredElementsInThatSuite": "Username field (type), Password field (type), Account name field (type), Submit button (click), \"Received!\" page text (assert). The only local-form surface NOT covered by it is the h1 \"Local Form\" heading and the \"Back to the form\" link on received.html — which is what the novel-element column below turns on (D-14).",
+  "coveredElementsInThatSuite": "Username field (type), Password field (type), Account name field (type), Submit button (click), \"Received!\" page text (assert). The only local-form surface NOT covered by it is the h1 \"Local Form\" heading and the \"Back to the form\" link on received.html — which is what the novel-element column below turns on.",
 
   "drafts": {
     "assertion-free.yaml": {
@@ -36,10 +35,10 @@
         "addsValue": true,
         "falsifiableAssertion": false
       },
-      "rationale": "Fails D-09 clause (i): no step classifies as an assertion at all. Gate 4 is the only catcher — the draft executes, is stable, and clicks the \"Back to the form\" link, which no seeded local-form test anchors.",
+      "rationale": "Fails clause (i) of the assertion rule: no step classifies as an assertion at all. Gate 4 is the only catcher — the draft executes, is stable, and clicks the \"Back to the form\" link, which no seeded local-form test anchors.",
       "measured": {
         "runs": [
-          { "runId": "r_hotel-nice-buddy-rio-nut-adjust-logger-endere-disk-ursal", "memberOutcome": "healed", "stepTerminations": [null, null, null, null], "note": "definitive pass per D-17; heals on steps 0-2 from seeded-procedure replay" }
+          { "runId": "r_hotel-nice-buddy-rio-nut-adjust-logger-endere-disk-ursal", "memberOutcome": "healed", "stepTerminations": [null, null, null, null], "note": "definitive pass; heals on steps 0-2 from seeded-procedure replay" }
         ],
         "executionColumnsFrom": "measured (1 run); stableVerdict is design intent, not yet measured at N=3"
       }
@@ -54,14 +53,14 @@
         "addsValue": true,
         "falsifiableAssertion": false
       },
-      "rationale": "D-04's INDEPENDENCE EXEMPLAR: executes, stable, adds value, but its single assertion is vacuous (D-09 clause (ii) vacuity lexicon). Gate 4 must be demonstrably the only catcher, which is why this draft carries the novel \"Back to the form\" anchor — without it gate 3 would fire too and the exemplar would prove nothing.",
+      "rationale": "THE INDEPENDENCE EXEMPLAR: executes, stable, adds value, but its single assertion is vacuous (clause (ii) of the assertion rule, the vacuity lexicon). Gate 4 must be demonstrably the only catcher, which is why this draft carries the novel \"Back to the form\" anchor — without it gate 3 would fire too and the exemplar would prove nothing.",
       "measured": {
         "runs": [
-          { "runId": "r_loa-junk-bib-mort-hop-think-initis-built-render-lope", "memberOutcome": "failed", "stepTerminations": [null], "note": "LANE FLAKE, not a draft property: 'LLM planning failed: Guardrail blocked outbound prompt leaf: creditCard' on step 0. A planning failure is a D-17 indefinitive class, so this run would read gate 1 false. Did not reproduce." },
+          { "runId": "r_loa-junk-bib-mort-hop-think-initis-built-render-lope", "memberOutcome": "failed", "stepTerminations": [null], "note": "LANE FLAKE, not a draft property: 'LLM planning failed: Guardrail blocked outbound prompt leaf: creditCard' on step 0. A planning failure is an indefinitive class, so this run would read gate 1 false. Did not reproduce." },
           { "runId": "r_bird-cream-ull-cot-qua-streng-bed-augh-cover-iban", "memberOutcome": "healed", "stepTerminations": [null, null, null, null, null] },
           { "runId": "r_freeze-ama-ending-paar-flo-torch-bert-haft-hip-volt", "memberOutcome": "healed", "stepTerminations": [null, null, null, null, null] }
         ],
-        "executionColumnsFrom": "measured (3 runs, 2/3 definitive pass). The expected vector records the draft's property; the 1/3 guardrail flake is disclosed so a later plan does not mistake it for a gate signal."
+        "executionColumnsFrom": "measured (3 runs, 2/3 definitive pass). The expected vector records the draft's property; the 1/3 guardrail flake is disclosed so a later reader does not mistake it for a gate signal."
       }
     },
 
@@ -74,7 +73,7 @@
         "addsValue": true,
         "falsifiableAssertion": false
       },
-      "rationale": "D-10 capture signature: the expected value is a 32-char lowercase hex literal, the shape of machine-generated content. executesDefinitive is false and INTRINSICALLY so — a value that only a capture could have produced is never present on a fresh run, so this draft can never reach a definitive verdict. Gates 1 and 4 both fire; gate 4 is the class it is the exemplar for.",
+      "rationale": "Capture signature: the expected value is a 32-char lowercase hex literal, the shape of machine-generated content. executesDefinitive is false and INTRINSICALLY so — a value that only a capture could have produced is never present on a fresh run, so this draft can never reach a definitive verdict. Gates 1 and 4 both fire; gate 4 is the class it is the exemplar for.",
       "measured": {
         "runs": [
           { "runId": "r_living-room-basket-list-mes-ric-sleep-pes-laugh-agama", "memberOutcome": "failed", "stepTerminations": [null, null, null, "infeasible"], "reason": "The required submission reference is absent from the complete received page." }
@@ -92,7 +91,7 @@
         "addsValue": true,
         "falsifiableAssertion": false
       },
-      "rationale": "D-10 tautology: the assertion restates the content of a prior action step rather than an independent outcome. The execution columns are FALSE BY MEASUREMENT, and the cause is an artifact rather than a semantic property — see measured.contamination. They are recorded as measured anyway, because writing the intuited vector here is exactly the Pitfall-6 failure this table exists to prevent.",
+      "rationale": "Tautology: the assertion restates the content of a prior action step rather than an independent outcome. The execution columns are FALSE BY MEASUREMENT, and the cause is an artifact rather than a semantic property — see measured.contamination. They are recorded as measured anyway, because writing the intuited vector here is exactly the failure this table exists to prevent.",
       "measured": {
         "runs": [
           { "runId": "r_nat-caret-catch-mah-page-alite-apse-repair-aged-dent", "draftShape": "4-step (pre-reshape)", "memberOutcome": "failed", "stepTerminations": [null, null, "infeasible"], "reason": "The Username field visibly contains \"probe-user\", not \"alice\"." },
@@ -100,7 +99,7 @@
           { "runId": "r_prob-rink-hammer-buck-pen-hex-beta-boni-meg-keet", "draftShape": "2-step (current)", "memberOutcome": "healed", "stepTerminations": [null, null] },
           { "runId": "r_amic-wash-cap-amba-titre-baby-ultimo-aged-fed-cation", "draftShape": "2-step (current)", "memberOutcome": "failed", "stepTerminations": [null, "infeasible"] }
         ],
-        "contamination": "The seeded local-form PROCEDURE in the demo knowledge store replays the local-form test's own values: the agent fills \"probe-user\" into the Username field, self-heals to the draft's literal, and whether the correction lands before the tautology assertion reads the field is a race. Measured 1/2 healed, 1/2 infeasible on the current 2-step shape. Dropping the Password step removed one replay trigger but not the race. A later plan that wants these execution columns to read true must neutralize procedure replay for gate-runs; --disable-cache is PROVEN INEFFECTIVE for it.",
+        "contamination": "The seeded local-form PROCEDURE in the demo knowledge store replays the local-form test's own values: the agent fills \"probe-user\" into the Username field, self-heals to the draft's literal, and whether the correction lands before the tautology assertion reads the field is a race. Measured 1/2 healed, 1/2 infeasible on the current 2-step shape. Dropping the Password step removed one replay trigger but not the race. A run that wants these execution columns to read true must neutralize procedure replay for gate-runs; --disable-cache is PROVEN INEFFECTIVE for it.",
         "executionColumnsFrom": "measured (4 runs across 2 draft shapes)"
       }
     },
@@ -123,7 +122,7 @@
         ],
         "measuredTerminalClass": "infeasible",
         "reproducibility": "3/3 consecutive runs",
-        "criticalFinding": "The D-17 indefinitive signal is NOT readable from the member-outcome enum. MemberTestOutcome is 'failed' — a DEFINITIVE value — while StepEvidence.termination.kind is 'infeasible', an indefinitive class. A gate 1 implemented over the member outcome alone PASSES this draft and the corpus proves nothing. Gate 1 must read step-level termination.",
+        "criticalFinding": "The indefinitive signal is NOT readable from the member-outcome enum. MemberTestOutcome is 'failed' — a DEFINITIVE value — while StepEvidence.termination.kind is 'infeasible', an indefinitive class. A gate 1 implemented over the member outcome alone PASSES this draft and the corpus proves nothing. Gate 1 must read step-level termination.",
         "executionColumnsFrom": "measured (3 runs)"
       }
     },
@@ -148,7 +147,7 @@
         ],
         "measuredVerdictSequence": ["passed", "failed", "passed"],
         "reproducibility": "3/3 runs matched the schedule's prediction, including the return to baseline on run 3 — a schedule, not a coincidence",
-        "conditionOnTheVector": "THIS VECTOR IS CONDITIONED ON THE PER-REQUEST SERVER. Under the baseline server this draft passes every run and stableVerdict reads TRUE. Any later plan must start the server with --mutate-per-request for this cell and with no flag for every other cell.",
+        "conditionOnTheVector": "THIS VECTOR IS CONDITIONED ON THE PER-REQUEST SERVER. Under the baseline server this draft passes every run and stableVerdict reads TRUE. Any run must start the server with --mutate-per-request for this cell and with no flag for every other cell.",
         "supersededAssumption": "Research A2 assumed one /form.html fetch per run. Measured: exactly two, ~300ms apart. At REQUESTS_PER_VARIANT=1 both variants landed inside a single run, the agent's second fetch decided every verdict, and two consecutive runs failed identically — no flip at all.",
         "executionColumnsFrom": "measured (3 runs post-retune, plus 2 pre-retune runs that established the retune)"
       }
@@ -166,7 +165,7 @@
       "rationale": "Uses exactly the local-form test's four anchors (Username field, Password field, Submit button, \"Received!\" text) with cosmetically different wording and different literal values, so after normalization it contributes ZERO novel fingerprint elements. Gate 3 is the only catcher.",
       "measured": {
         "runs": [
-          { "runId": "r_around-ilium-far-ilk-thane-jur-mat-orgia-going-sib", "memberOutcome": "healed", "stepTerminations": [null, null, null, null], "note": "definitive pass per D-17; heals from seeded-procedure replay on steps 0-2" }
+          { "runId": "r_around-ilium-far-ilk-thane-jur-mat-orgia-going-sib", "memberOutcome": "healed", "stepTerminations": [null, null, null, null], "note": "definitive pass; heals from seeded-procedure replay on steps 0-2" }
         ],
         "executionColumnsFrom": "measured (1 run); stableVerdict is design intent, not yet measured at N=3"
       }
@@ -181,7 +180,7 @@
         "addsValue": true,
         "falsifiableAssertion": true
       },
-      "rationale": "THE FALSIFIER OF THE WHOLE PROOF (D-07): a constant-false evaluator fails this entry. Anchors the h1 \"Local Form\" heading, which no seeded local-form test anchors, so at least one novel element exists per D-14; the assertion quotes a concrete literal.",
+      "rationale": "THE FALSIFIER OF THE WHOLE PROOF: a constant-false evaluator fails this entry. Anchors the h1 \"Local Form\" heading, which no seeded local-form test anchors, so at least one novel element exists; the assertion quotes a concrete literal.",
       "measured": {
         "runs": [
           { "runId": "r_ponent-fram-south-origin-flat-cass-stract-rais-really-ales", "memberOutcome": "healed", "stepTerminations": [null, null], "note": "PITFALL 7, LIVE: the accept control's definitive pass arrives as 'healed', not 'passed'. Gate 1 must count a healed pass as a pass and record the heal, or the corpus's own accept control fails the gates it is meant to pass." }
@@ -205,7 +204,7 @@
     {
       "id": "F3",
       "title": "The definitive-pass arm arrives as 'healed', not 'passed'",
-      "detail": "Measured on the accept control itself. D-17 already rules that a healed pass counts as a pass with the heal recorded (Pitfall 7); this table is the live confirmation that the rule is load-bearing rather than theoretical."
+      "detail": "Measured on the accept control itself. A healed pass counts as a pass with the heal recorded; this table is the live confirmation that the rule is load-bearing rather than theoretical."
     }
   ]
 }

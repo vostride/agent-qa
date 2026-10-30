@@ -16,7 +16,7 @@ import { RunNotFoundError } from '../ops/runs-get.js'
 import { createFunctionRegistry } from '../registry.js'
 import { invokeFunction } from '../invoke.js'
 
-const runId = asRunId('run-423-evidence-read')
+const runId = asRunId('run-evidence-read')
 const kinds = ['console', 'network', 'a11y', 'aria', 'variables'] as const
 const documents: Record<EvidenceKind, EvidenceDocument> = {
   console: { schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'console', records: [{ level: 'error', text: 'recorded console', timestamp: 2 }] },
@@ -270,7 +270,7 @@ it('EVIDENCE-CONTRACT rejects crossed documents, extra fields and false ready st
 describe('runs.evidence masks with the declared mask', () => {
   const caller = { surface: 'test', origin: 'agent' } as FunctionCaller
   const aria: EvidenceDocument = { schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'aria',
-    tree: 'textbox "Password" value="Hunter-42-zz" for qa@example.com; cookie session=undeclared-cookie-441' }
+    tree: 'textbox "Password" value="Hunter-42-zz" for qa@example.com; cookie session=undeclared-cookie' }
   const readThroughRegistry = (deps: FunctionDeps, address: RunsEvidenceInput) =>
     invokeFunction(createFunctionRegistry({ deps }), 'runs.evidence', address, caller)
 
@@ -279,7 +279,7 @@ describe('runs.evidence masks with the declared mask', () => {
     const result = await readThroughRegistry(f.deps, f.address)
     expect(result).toMatchObject({ outcome: 'ready',
       document: { kind: 'aria',
-        tree: 'textbox "Password" value="[secret:PW_KEY]" for qa@example.com; cookie session=undeclared-cookie-441' } })
+        tree: 'textbox "Password" value="[secret:PW_KEY]" for qa@example.com; cookie session=undeclared-cookie' } })
     expect(JSON.stringify(result)).not.toContain('Hunter-42-zz')
   })
 

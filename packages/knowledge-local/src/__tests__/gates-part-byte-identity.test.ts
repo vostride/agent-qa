@@ -13,7 +13,7 @@ import { canaryOutcomeObservationId } from '../serving/canary-observation-id.js'
 
 describe('persisted gates part byte identity', () => {
   it('preserves trust and attributed canary rows with exactly the optional manifest difference', () => {
-    const root = mkdtempSync(join(tmpdir(), '416-gates-byte-identity-'))
+    const root = mkdtempSync(join(tmpdir(), 'gates-byte-identity-'))
     try {
       const knowledgeRoot = join(root, 'source')
       const fixture = createPromotionFloorFixture({ knowledgeRoot })

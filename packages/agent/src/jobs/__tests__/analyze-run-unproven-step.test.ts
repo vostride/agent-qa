@@ -56,7 +56,7 @@ function floorVerdict(step: StepEvidence, testIndex: number): Verdict {
 
 /** Two stepped failures; member 0's failing step carries the block, member 1 is plain. */
 function judgedHandoff(verdict: ConditionVerdict, failureCount = 2): CompletedRunHandoff {
-  const base = buildSyntheticHandoff({ runId: 'run-439-unproven', failureCount })
+  const base = buildSyntheticHandoff({ runId: 'run-unproven', failureCount })
   const tests = base.tests.map((test) => {
     if (test.testIndex !== 0) return test
     const steps = test.steps.map((step) =>
@@ -94,7 +94,7 @@ function savedFileBlock(): ConditionVerdictsEvidence {
 /** Member 0's failing step and its neighbour both carry a saved-file difference. */
 function savedFileHandoff(): CompletedRunHandoff {
   const base = buildSyntheticHandoff({
-    runId: 'run-439-saved-file',
+    runId: 'run-saved-file',
     failureCount: 2,
     passingStepsAfter: 1,
   })
@@ -155,7 +155,7 @@ function harness(handoff: CompletedRunHandoff, outputs: readonly string[]) {
   }
 
   const job = {
-    id: 'job_analyze_439_unproven',
+    id: 'job_analyze_unproven',
     kind: 'analyze-run',
     status: 'queued',
     summary: 'fixture',

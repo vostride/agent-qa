@@ -28,19 +28,19 @@ let root: string
  * unfixed tree for the wrong reason — measuring the excerpt's width instead of the guard. Measured
  * pre-fix, this exact pair produced
  *
- *     Unexpected token 'S', ..."{ "main": SEKRET395 "... is not valid JSON
+ *     Unexpected token 'S', ..."{ "main": SEKRETXYZ "... is not valid JSON
  *
  * with the sentinel WHOLE inside it. Keep them together: shortening the body or lengthening the
  * sentinel silently re-vacuums the cell.
  */
-const MANIFEST_SENTINEL = 'SEKRET395'
+const MANIFEST_SENTINEL = 'SEKRETXYZ'
 const MALFORMED_MANIFEST = `{ "main": ${MANIFEST_SENTINEL} }`
 
 /** Fixture-owned package names, unique enough that no real `node_modules` above tmp can supply one. */
-const BROKEN_MANIFEST_PACKAGE = '@fixture-395-24/broken-manifest-pkg'
-const INSTALLED_BUT_BROKEN_PACKAGE = '@fixture-395-24/installed-but-broken-pkg'
-const GENUINELY_ABSENT_PACKAGE = '@fixture-395-24/never-installed-pkg'
-const LEGIBILITY_PACKAGE = '@fixture-395-28/legibility-pkg'
+const BROKEN_MANIFEST_PACKAGE = '@fixture/broken-manifest-pkg'
+const INSTALLED_BUT_BROKEN_PACKAGE = '@fixture/installed-but-broken-pkg'
+const GENUINELY_ABSENT_PACKAGE = '@fixture/never-installed-pkg'
+const LEGIBILITY_PACKAGE = '@fixture/legibility-pkg'
 
 function installPackage(name: string, manifestText: string): string {
   const dir = join(root, 'node_modules', ...name.split('/'))

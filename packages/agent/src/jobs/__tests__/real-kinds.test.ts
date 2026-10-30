@@ -32,7 +32,7 @@ import {
 import type { PostRunJobCapabilities } from '../kinds.js'
 import type { JobHandlerContext } from '../kind-registry.js'
 
-const RUN_ID = 'run-388-real-kinds'
+const RUN_ID = 'run-real-kinds'
 const ANALYZE_JOB_ID = 'job_analyze_fixture'
 
 const HANDOFF: CompletedRunHandoff = {
@@ -299,7 +299,7 @@ describe('a curation run handed back to its own project', () => {
   // A hand-back is the existing retryable outcome carrying its reason.
   it('a curate-memory fold that hands its run back is retryable with its reason', async () => {
     const reason =
-      'Run run-388-real-kinds keeps its knowledge in /tmp/other-root; it is left for a run of its own project.'
+      'Run run-real-kinds keeps its knowledge in /tmp/other-root; it is left for a run of its own project.'
     const handedBack = { curated: 0, deprecated: 0, complete: false, reason }
     const { context, published } = contextFor({ runId: RUN_ID, executionContext: 'local-headless' })
     const outcome = await createRealJobKindRegistry({

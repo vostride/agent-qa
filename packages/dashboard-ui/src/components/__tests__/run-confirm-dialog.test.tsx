@@ -32,7 +32,7 @@ vi.mock("@/pages/tests", async () => {
         <button
           type="button"
           data-mark-button
-          onClick={() => { void markRun("run_432_14", { kind: "false-fail", note: "one submit" }) }}
+          onClick={() => { void markRun("run_confirm", { kind: "false-fail", note: "one submit" }) }}
         >
           Send feedback
         </button>
@@ -79,9 +79,9 @@ beforeEach(() => {
     const body = url.includes("/api/run-readiness")
       ? READY
       : url.includes("/api/runs/trigger")
-        ? { runId: "run_432_14", status: "queued" }
+        ? { runId: "run_confirm", status: "queued" }
         : url.endsWith("/mark")
-          ? { kind: "run-not-found", runId: "run_432_14" }
+          ? { kind: "run-not-found", runId: "run_confirm" }
           : {}
     return { ok: true, status: 200, statusText: "OK", json: async () => body } as unknown as Response
   }) as unknown as typeof fetch
@@ -165,7 +165,7 @@ describe("the Run button starts a run in one request, with no dialog", () => {
 
     const marks = harness.requests.filter((request) => request.url.endsWith("/mark"))
     expect(marks).toHaveLength(1)
-    expect(marks[0]!.url).toContain("/api/runs/run_432_14/mark")
+    expect(marks[0]!.url).toContain("/api/runs/run_confirm/mark")
     expect(marks[0]!.body).toEqual({ kind: "false-fail", note: "one submit" })
     expect(approvalSurfaces()).toEqual([])
   })

@@ -134,7 +134,7 @@ async function runStep(
   }
   const context: StepContext = {
     stepInstruction: instruction,
-    testName: '437 iOS live',
+    testName: 'iOS live',
     previousSteps: [],
     plannerModel: {} as StepContext['plannerModel'],
     verifierModel: {} as StepContext['verifierModel'],

@@ -958,7 +958,7 @@ describe('declared secrets in the config editor', () => {
       '      model: claude',
       '      baseURL: https://example.test/v1',
       '      providerHeaders:',
-      '        X-Api-Key: plain-441-value',
+      '        X-Api-Key: plain-value',
       'use:',
       '  buildTag: Hunter-42-zz',
       '',
@@ -969,9 +969,9 @@ describe('declared secrets in the config editor', () => {
     expect(read.kind).toBe('ok')
     if (read.kind !== 'ok') return
     const config = read.config as { registry: { llms: Array<{ providerHeaders: Record<string, string> }> }; use: Record<string, unknown> }
-    expect(config.registry.llms[0]!.providerHeaders['X-Api-Key']).toBe('plain-441-value')
+    expect(config.registry.llms[0]!.providerHeaders['X-Api-Key']).toBe('plain-value')
     expect(config.use.buildTag).toBe('[secret:PW_KEY]')
-    expect(read.lines).toContainEqual({ n: 8, text: '        X-Api-Key: plain-441-value' })
+    expect(read.lines).toContainEqual({ n: 8, text: '        X-Api-Key: plain-value' })
     expect(read.lines).toContainEqual({ n: 10, text: '  buildTag: [secret:PW_KEY]' })
     expect(read.lines.every((line) => !('class' in line))).toBe(true)
     expect(JSON.stringify(read)).not.toContain('Hunter-42-zz')

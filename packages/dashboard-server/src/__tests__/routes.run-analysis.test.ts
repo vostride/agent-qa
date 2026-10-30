@@ -50,14 +50,14 @@ function failedMember(): PerTestOutcome {
       stepText: 'click the Submit button',
       cacheStatus: 'miss',
       servedBrief: {
-        scope: { tier: 'product', key: 'tracer-406' },
+        scope: { tier: 'product', key: 'tracer' },
         asOfBuild: 1,
         budget: 0,
         truncation: 'none',
         channel1: [],
         channel2: [],
         channel3: [],
-        briefDigest: 'tracer-406-brief-digest',
+        briefDigest: 'tracer-brief-digest',
       },
       subActions: [{
         plan: 'click Submit',
@@ -101,7 +101,7 @@ function handoff(): CompletedRunHandoff {
   return {
     schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
     runId: RUN_ID,
-    scope: { tier: 'product', key: 'tracer-406' },
+    scope: { tier: 'product', key: 'tracer' },
     buildOrdinal: 1,
     executionContext: 'local-headless',
     aggregateVerdict: 'failed',

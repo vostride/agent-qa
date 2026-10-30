@@ -60,7 +60,7 @@ function limitFloorVerdict(step: StepEvidence, testIndex: number): Verdict {
  * handler's minted unknown — the exclusion must hold either way.
  */
 function limitHandoff(persistFloor: boolean, failureCount = 2): CompletedRunHandoff {
-  const base = buildSyntheticHandoff({ runId: 'run-436-limit', failureCount })
+  const base = buildSyntheticHandoff({ runId: 'run-limit', failureCount })
   const tests = base.tests.map((test) => {
     if (test.testIndex !== 0) return test
     const steps = test.steps.map((step) =>
@@ -123,7 +123,7 @@ function harness(handoff: CompletedRunHandoff, outputs: readonly string[]) {
   }
 
   const job = {
-    id: 'job_analyze_436_limit',
+    id: 'job_analyze_limit',
     kind: 'analyze-run',
     status: 'queued',
     summary: 'fixture',

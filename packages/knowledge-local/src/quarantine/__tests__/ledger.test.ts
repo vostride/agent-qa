@@ -694,7 +694,7 @@ describe('quarantine rows with credential-shaped text', () => {
   let knowledgeRoot: string
 
   beforeEach(async () => {
-    knowledgeRoot = await mkdtemp(join(tmpdir(), 'quarantine-c441-committed-'))
+    knowledgeRoot = await mkdtemp(join(tmpdir(), 'quarantine-committed-'))
   })
 
   afterEach(async () => {

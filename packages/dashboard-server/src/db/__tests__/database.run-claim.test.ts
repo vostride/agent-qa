@@ -13,7 +13,7 @@ let dbPath: string
 const opened: DashboardDatabase[] = []
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'agent-qa-443-claim-'))
+  dir = mkdtempSync(join(tmpdir(), 'agent-qa-claim-'))
   dbPath = join(dir, 'runs.db')
 })
 

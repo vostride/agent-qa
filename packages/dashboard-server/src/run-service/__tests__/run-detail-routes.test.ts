@@ -61,12 +61,12 @@ const DECISION_SHA = 'a'.repeat(63) + '7'
 const TOKENLESS_HEADERS: Record<string, string> = {}
 const CROSS_SITE_HEADERS: Record<string, string> = { Origin: 'https://evil.example' }
 const RUN_ID = 'r_tracer-alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india'
-const BRIEF_DIGEST = 'brief-digest-405-tracer'
+const BRIEF_DIGEST = 'brief-digest-tracer'
 
 let seq = 0
 function ev(type: RunEventType, payload: Record<string, unknown> = {}): RunEventEnvelope {
   seq += 1
-  return { seq, ts: seq, runId: 'run-bus-405', type, payload } as RunEventEnvelope
+  return { seq, ts: seq, runId: 'run-bus', type, payload } as RunEventEnvelope
 }
 
 function makeScreenState(url: string): ScreenState {
@@ -386,7 +386,7 @@ const JPEG_BYTES = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10, 0x4a, 0x4
 const declaredMask: NonNullable<FunctionDeps['secretMask']> = (text) => text
 
 async function serveEvidence() {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-http-evidence-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-http-evidence-'))
   roots.push(root)
   const document = {
     schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION as typeof RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION,
@@ -489,7 +489,7 @@ describe('typed evidence HTTP doors', () => {
 })
 // The routes format nothing, so HTTP bodies are compared with a direct invocation of the registry.
 
-const FEEDBACK_NOTE_SECRET = 'synthetic-423-21-note-token'
+const FEEDBACK_NOTE_SECRET = 'synthetic-note-token'
 const FIRST_MARK = 'mark_0123456789ab'
 const SECOND_MARK = 'mark_0123456789ac'
 
@@ -498,13 +498,13 @@ function feedbackReceipts(): MarkReceipt[] {
     origin: 'user' as const, evidence: { confirmed: 0, overturned: 0 } }
   return [
     { ...base, markId: FIRST_MARK, kind: 'false-fail', ordinal: 1, markedAt: 1, note: `note ${FEEDBACK_NOTE_SECRET}`,
-      disposition: { kind: 'applied', fix: 'fact', change: { kind: 'knowledge', changeId: 'prop_0123456789ab', recordIds: ['mem_423_21'] } } },
+      disposition: { kind: 'applied', fix: 'fact', change: { kind: 'knowledge', changeId: 'prop_0123456789ab', recordIds: ['mem_feedback'] } } },
     { ...base, markId: SECOND_MARK, kind: 'confirmed-bug', ordinal: 2, markedAt: 2, supersedes: FIRST_MARK,
       disposition: { kind: 'confirmed-bug', confirmedRecords: 0 } },
   ]
 }
 
-const servedRecord = (content: string) => ({ recordId: 'mem_423_21', served: true,
+const servedRecord = (content: string) => ({ recordId: 'mem_feedback', served: true,
   recordContent: { content, summary: 'checkout timing', kind: 'fact' as const,
     applicability: { product: 'shop', scope: 'shop', anchors: [], openedAtOrdinal: 1 }, currentStatus: 'active' as const,
     currentTrust: { confirmations: 1, contradictions: 0, evidenceTokens: [], lastEventOrdinal: 1 } },
@@ -515,7 +515,7 @@ function feedbackPreview(runId: string): RunsMarkPreviewResult {
     kind: 'consequences', runId, prospective: true, markKind: 'false-fail', member: { testIndex: 0 },
     resolvedStep: { stepIndex: 0, reason: 'failing-step' }, latest: { kind: 'supersedes', markId: SECOND_MARK, ordinal: 2 },
     basis: { ledgerOrdinal: 2, priorMarkOrdinal: 2 },
-    knowledge: { servedRecordIds: ['mem_423_21'], appendsEvidence: true,
+    knowledge: { servedRecordIds: ['mem_feedback'], appendsEvidence: true,
       records: [servedRecord(`timed out near ${FEEDBACK_NOTE_SECRET}`)], evidence: { confirmed: 1, overturned: 0 } },
     draft: { kind: 'no-draftable-fix', checked: { servedRecords: 0, procedureReads: 0, assertionDrift: false } },
   })
@@ -530,7 +530,7 @@ function fileFeedbackReads(root: string, calls: string[], options: { withPreview
       if (!existsSync(runDir(runId))) return { kind: 'run-not-found' }
       const receipts = JSON.parse(readFileSync(join(runDir(runId), 'marks.json'), 'utf8')) as MarkReceipt[]
       return { kind: 'history', entries: receipts.map(receipt => receipt.disposition.kind === 'applied'
-        ? { receipt, changedRecords: [{ recordId: 'mem_423_21', contentAbsence: { reason: 'not-bound' as const } }] } : { receipt }) }
+        ? { receipt, changedRecords: [{ recordId: 'mem_feedback', contentAbsence: { reason: 'not-bound' as const } }] } : { receipt }) }
     },
     ...(options.withPreview === false ? {} : {
       preview: async (input: RunsMarkInput) => {
@@ -550,7 +550,7 @@ function pathMap(root: string): [string, string][] {
 }
 
 async function serveFeedbackReads(options: { withPreview?: boolean; unbound?: boolean } = {}) {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-21-feedback-http-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-feedback-http-'))
   roots.push(root)
   mkdirSync(join(root, 'runs', slugBranch(RUN_ID)), { recursive: true })
   writeFileSync(join(root, 'runs', slugBranch(RUN_ID), 'marks.json'), JSON.stringify(feedbackReceipts()))
@@ -611,7 +611,7 @@ describe('feedback reads on both HTTP doors', () => {
     expect(JSON.stringify(expected)).not.toContain(FEEDBACK_NOTE_SECRET)
     expect(RunsMarksHistoryResultSchema.parse(expected)).toMatchObject({ kind: 'history', entries: [
       { markId: FIRST_MARK, active: false, supersededBy: SECOND_MARK,
-        changedRecords: [{ recordId: 'mem_423_21', contentAbsence: { reason: 'not-bound' } }] },
+        changedRecords: [{ recordId: 'mem_feedback', contentAbsence: { reason: 'not-bound' } }] },
       { markId: SECOND_MARK, active: true, supersedes: FIRST_MARK },
     ] })
     f.seen.length = 0
@@ -796,7 +796,7 @@ interface ServedArtifact {
 async function serveOneArtifact(
   options: { readonly bytes: Uint8Array; readonly withHost?: boolean },
 ): Promise<ServedArtifact> {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-405-05-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-artifact-routes-'))
   roots.push(root)
   const ref = new FsEvidenceArtifactStore({ root, runId: RUN_ID })
     .persistDecisionScreenshot(options.bytes)

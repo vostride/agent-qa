@@ -45,7 +45,7 @@ const JPEG = decode(JPEG_BASE64)
 /** A WebM EBML header: a recording, which is never relayed to the model. */
 const WEBM = Uint8Array.from([0x1a, 0x45, 0xdf, 0xa3, 0x9f, 0x42, 0x86, 0x81, 0x01, 0x42, 0xf7, 0x81])
 /** An evidence document stored as a blob. Its text would bypass masking inside base64. */
-const DOCUMENT_SECRET = 'sk-431-05-document-secret'
+const DOCUMENT_SECRET = 'sk-document-secret'
 const DOCUMENT = new TextEncoder().encode(JSON.stringify({ kind: 'console', records: [DOCUMENT_SECRET] }))
 /** The PNG magic and then noise: the op sniffs image/png, and the bytes are no image. */
 const PNG_PREFIX_JUNK = Uint8Array.from([0x89, 0x50, 0x4e, 0x47, 0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07])
@@ -97,7 +97,7 @@ afterEach(async () => {
 
 async function connect(registry: FunctionRegistry, maskText: (text: string) => string = identity): Promise<Client> {
   const handler = createMcpHandler(() => buildAgentQaMcpServer({ registry, caller: reader, maskText }))
-  const client = new Client({ name: 'agent-qa-431-05-image', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-image', version: '0.0.0' })
   openClients.push(client)
   await client.connect(new StreamableHTTPClientTransport(new URL('http://image.local/mcp'), {
     fetch: ((url: URL | string, init?: RequestInit) => handler.fetch(new Request(url, init))) as typeof fetch,

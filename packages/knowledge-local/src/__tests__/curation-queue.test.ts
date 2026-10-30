@@ -585,7 +585,7 @@ describe('curation queue atomic emit drop', () => {
 
   describe('artifacts captured on a password field', () => {
     const DECLARED = 'Hunter-42-zz'
-    const TOKEN = 'tok-441'
+    const TOKEN = 'tok-declared'
     const STEP = 4
 
     function declaredMask(): (text: string) => string {
@@ -716,7 +716,7 @@ describe('curation queue atomic emit drop', () => {
     function seedRowWithRetiredReceipt(): string {
       const fields = {
         schemaVersion: CURATION_QUEUE_SCHEMA_VERSION,
-        sourceRunId: 'run-before-441-25',
+        sourceRunId: 'run-before-receipt',
         scope: { tier: 'product', key: 'storefront' },
         buildOrdinal: 42,
         executionContext: 'local-interactive',
@@ -726,8 +726,8 @@ describe('curation queue atomic emit drop', () => {
         summarySeed: 'Old checkout button selector',
         bodySeed: 'The old checkout button was resolved and verified.',
         distilledObservations: [],
-        evidenceToken: 'evidence-before-441-25',
-        attributingObservationId: 'run-before-441-25:test-0:step-0',
+        evidenceToken: 'evidence-before-receipt',
+        attributingObservationId: 'run-before-receipt:test-0:step-0',
         artifactInventory: [],
         [RETIRED_RECEIPT_KEY]: { regions: [], interactions: [], omissions: [], redactions: [] },
       }
@@ -765,7 +765,7 @@ describe('curation queue atomic emit drop', () => {
     it('a queue row with the retired flags is skipped as malformed', async () => {
       const fields = {
         schemaVersion: CURATION_QUEUE_SCHEMA_VERSION,
-        sourceRunId: 'run-before-441-50',
+        sourceRunId: 'run-before-flags',
         scope: { tier: 'product', key: 'storefront' },
         buildOrdinal: 42,
         executionContext: 'local-interactive',
@@ -777,8 +777,8 @@ describe('curation queue atomic emit drop', () => {
         summarySeed: 'Old checkout button selector',
         bodySeed: 'The old checkout button was resolved and verified.',
         distilledObservations: [],
-        evidenceToken: 'evidence-before-441-50',
-        attributingObservationId: 'run-before-441-50:test-0:step-0',
+        evidenceToken: 'evidence-before-flags',
+        attributingObservationId: 'run-before-flags:test-0:step-0',
         artifactInventory: [],
       }
       const oldId = sha(Buffer.from(canonicalJson(fields)))

@@ -31,7 +31,7 @@ vi.mock("@/components/ui/scroll-area", () => ({
   ScrollArea: ({ children }: { children: ReactNode }) => <div>{children}</div>,
 }))
 
-const RUN_ID = "run-406-08"
+const RUN_ID = "run-screenshot"
 const SHA = "c".repeat(64)
 
 const RUN = {

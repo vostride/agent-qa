@@ -17,7 +17,7 @@ import { describe, expect, it } from 'vitest'
 import { runsPostProcessingSpec } from '../ops/runs-post-processing.js'
 import type { FunctionDeps, PostProcessingChainState } from '../spec.js'
 
-const RUN_ID = asRunId('run-423-stage-details')
+const RUN_ID = asRunId('run-stage-details')
 
 function declaredMask(secrets: Record<string, string>): MaskFn {
   const redactor = new SecretRedactor(new SecretStore(secrets))

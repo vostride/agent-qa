@@ -68,7 +68,7 @@ interface Learned {
 function projection(steps: ReturnType<typeof step>[], learned: Learned = {}): ReadyProjection {
   const parsed = RunKnowledgeProjectionSchema.parse({
     kind: 'ready',
-    runId: 'run-427-07-effect',
+    runId: 'run-effect',
     buildOrdinal: 1,
     knowledgeStore: 'bound',
     steps,

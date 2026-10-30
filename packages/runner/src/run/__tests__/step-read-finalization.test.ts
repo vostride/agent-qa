@@ -15,7 +15,7 @@ import { VariableStore } from '../../variables/store.js'
 import { createStepReadFinalizer } from '../step-read-finalization.js'
 import { deriveMemberOutcome } from '../verdict.js'
 
-const secret = 'synthetic-live-secret-423'
+const secret = 'synthetic-live-secret'
 const hookId = 'h_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 const networkRecord = (index: number, status = 200): NetworkLogEntry => ({
   url: `https://example.test/${index}/${secret}`, method: 'POST', status,
@@ -27,7 +27,7 @@ function fixture() {
   const events: RunEventEnvelope[] = []
   const documents: EvidenceDocument[] = []
   const ariaDocuments: EvidenceDocument[] = []
-  const bus = createRunEventBus({ runId: 'synthetic-run-423' })
+  const bus = createRunEventBus({ runId: 'synthetic-run' })
   bus.subscribe(1, event => events.push(event))
   const abort = new AbortController()
   const adapter = makeAdapter()
@@ -47,7 +47,7 @@ function fixture() {
       },
     },
   }
-  const member: MemberTest = { testId: 'synthetic-test-423', name: 'Console capture',
+  const member: MemberTest = { testId: 'synthetic-test', name: 'Console capture',
     filePath: 'synthetic.yaml', steps: ['Click Log in'] }
   const terminals = () => events.filter(event => event.type === 'stepFinalized').map(
     event => event.payload as StepFinalizedPayload,

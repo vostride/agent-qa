@@ -221,7 +221,7 @@ export async function runScriptedStep(options: {
   }
   const context: StepContext = {
     stepInstruction: options.instruction,
-    testName: '436 outcome evidence',
+    testName: 'outcome evidence',
     previousSteps: [],
     ...(options.stepNumber !== undefined ? { stepNumber: options.stepNumber } : {}),
     plannerModel: {} as StepContext['plannerModel'],

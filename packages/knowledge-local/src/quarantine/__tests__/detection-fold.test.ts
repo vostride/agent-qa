@@ -822,7 +822,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
   }
 
   it('AUTO-QUARANTINES a floor-produced timeout whose window carries a same-build pass', () => {
-    const env = harness('agent-qa-390-21-signature-set')
+    const env = harness('agent-qa-signature-set')
 
     // Ordinal 1 is driven TWICE — two separate applied runs, one failing and one passing, at ONE
     // build ordinal. That pair IS the signature; the ordinal-2 and ordinal-3 failures only carry
@@ -851,7 +851,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
   })
 
   it('REFUSES the same crossing when every ordinal carries one answer — signature clear', () => {
-    const env = harness('agent-qa-390-21-signature-clear')
+    const env = harness('agent-qa-signature-clear')
 
     // The ONLY delta from the leg above: no second run at ordinal 1. Three failing ordinals still
     // cross, so the refusal is the signature's doing and not a sub-threshold window.
@@ -872,7 +872,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
   })
 
   it('REFUSES a crossing for a test this run is the FIRST to count — one entry, no signature', () => {
-    const env = harness('agent-qa-390-21-first-sighting')
+    const env = harness('agent-qa-first-sighting')
 
     // Recurrence is keyed (product, fingerprint); a quarantine ENTRY is keyed on test identity.
     // So a test the projection has never counted can cross on its very first appearance, carried
@@ -907,7 +907,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
 
   // The crossing at 8 has window [4, 8]; nothing crosses earlier, and the ordinal-1 pair is below.
   it('REFUSES a crossing whose only pass-and-fail is OLDER than its own recurrence window', () => {
-    const env = harness('agent-qa-390-24-stale-signature')
+    const env = harness('agent-qa-stale-signature')
 
     const CROSSING_ORDINAL = 8
     const WINDOW_FLOOR = CROSSING_ORDINAL - QUARANTINE_WINDOW_ORDINALS + 1
@@ -939,7 +939,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
 
   // The pair sits exactly at the window floor, pinning the inclusive `>=` bound.
   it('ADMITS a pass-and-fail exactly AT the window floor — the boundary is inclusive', () => {
-    const env = harness('agent-qa-390-24-floor-boundary')
+    const env = harness('agent-qa-floor-boundary')
 
     const CROSSING_ORDINAL = 8
     const WINDOW_FLOOR = CROSSING_ORDINAL - QUARANTINE_WINDOW_ORDINALS + 1
@@ -972,7 +972,7 @@ describe('a CROSSING test carries its own same-build pass∧fail into the gate',
 
   // The pair at ordinal 12 sits above the crossing's window [4, 8]; folds may arrive out of order.
   it('REFUSES a crossing whose only pass-and-fail is ABOVE the crossing ordinal — the window is closed on both ends', () => {
-    const env = harness('agent-qa-390-29-future-signature')
+    const env = harness('agent-qa-future-signature')
 
     const CROSSING_ORDINAL = 8
     const WINDOW_FLOOR = CROSSING_ORDINAL - QUARANTINE_WINDOW_ORDINALS + 1
@@ -1190,7 +1190,7 @@ describe('the floor cap rate-limits a multi-member fan-out', () => {
   }
 
   it('admits exactly CAP of three floor-admissible crossings in ONE evaluation, by identity order — handed to the fold BACK TO FRONT', () => {
-    const env = harness('agent-qa-390-28-cap-domain')
+    const env = harness('agent-qa-cap-domain')
 
     const report = driveToCrossing(env, { reversed: true })
 
@@ -1227,7 +1227,7 @@ describe('the floor cap rate-limits a multi-member fan-out', () => {
   })
 
   it('drains the refused member on the NEXT applied run — the cap rate-limits, it does not contain', () => {
-    const env = harness('agent-qa-390-28-cap-drain')
+    const env = harness('agent-qa-cap-drain')
 
     driveToCrossing(env)
     const report = foldCapSuite(env, { runId: 'run-cap-4', buildOrdinal: 4 })

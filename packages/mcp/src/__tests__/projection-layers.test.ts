@@ -69,7 +69,7 @@ async function withClient<Answer>(
   const server = buildAgentQaMcpServer({ registry: realRegistry(), caller, maskText: (text) => text })
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair()
   await server.connect(serverTransport)
-  const client = new Client({ name: 'c432-tokenless', version: '0.0.0' })
+  const client = new Client({ name: 'tokenless', version: '0.0.0' })
   await client.connect(clientTransport)
   try {
     return await body(client)

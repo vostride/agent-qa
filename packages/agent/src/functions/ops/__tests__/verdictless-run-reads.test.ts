@@ -10,7 +10,7 @@ import type { FunctionDeps, ReplayedRunEvent, RunDetailReaderPort } from '../../
 import { RUNS_DIGEST_FUNCTION_ID } from '../runs-digest.js'
 import { RUNS_OVERVIEW_FUNCTION_ID } from '../runs-overview.js'
 
-const RUN_ID = 'run-444-verdictless'
+const RUN_ID = 'run-verdictless'
 
 const CALLER: FunctionCaller = { surface: 'test', origin: 'agent' }
 

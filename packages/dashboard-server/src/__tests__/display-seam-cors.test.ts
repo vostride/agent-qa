@@ -10,7 +10,7 @@ import type { AgentHost } from '../chat/host.js'
 import { DashboardDatabase } from '../db/database.js'
 import { createRouter } from '../server/routes.js'
 
-const RUN_ID = 'run-405-cr01'
+const RUN_ID = 'run-cr01'
 
 /**
  * THE GUARDED RUN-TEXT ARMS. Named here as PATHS rather than as a source list, because what a

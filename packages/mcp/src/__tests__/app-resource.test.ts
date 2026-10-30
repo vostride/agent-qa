@@ -35,9 +35,9 @@ import { APP_WRAPPER_STATES } from '../app-wrapper.js'
 
 // ---- The fixture composition -------------------------------------------------------------------
 
-const FIXTURE_RUN_ID = 'run-408-01-tracer'
+const FIXTURE_RUN_ID = 'run-tracer'
 const FIXTURE_ORIGIN = 'http://127.0.0.1:7777'
-const SIGNING_KEY = 'zz-408-01-app-resource-signing-key'
+const SIGNING_KEY = 'zz-app-resource-signing-key'
 
 /** The `cli/src/composition/live-url-signer.ts` shape, keyed here so no key is ever shared. */
 const signer: LiveUrlSigner = {

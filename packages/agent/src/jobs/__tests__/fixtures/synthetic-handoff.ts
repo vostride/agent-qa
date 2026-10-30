@@ -154,7 +154,7 @@ export function buildSyntheticHandoff(
   options: SyntheticHandoffOptions = {},
 ): CompletedRunHandoff {
   const {
-    runId = 'run-389-synthetic',
+    runId = 'run-synthetic',
     failureCount = 1,
     steplessFailureCount = 0,
     passedCount = 0,
@@ -229,7 +229,7 @@ export function buildSyntheticHandoff(
   return {
     schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
     runId: asRunId(runId),
-    scope: { tier: 'product', key: 'synthetic-389' },
+    scope: { tier: 'product', key: 'synthetic' },
     buildOrdinal,
     executionContext: 'local-headless',
     aggregateVerdict: failureCount + steplessFailureCount > 0 ? 'failed' : 'passed',

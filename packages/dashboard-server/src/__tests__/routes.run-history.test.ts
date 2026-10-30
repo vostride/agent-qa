@@ -28,7 +28,7 @@ let db: DashboardDatabase
 const started: Array<{ close: () => void }> = []
 
 beforeEach(() => {
-  dir = mkdtempSync(join(tmpdir(), 'agent-qa-444-run-reads-'))
+  dir = mkdtempSync(join(tmpdir(), 'agent-qa-run-reads-'))
   dbPath = join(dir, 'runs.db')
   configPath = join(dir, 'agent-qa.config.yaml')
   writeFileSync(configPath, 'testDir: tests\n')
@@ -64,7 +64,7 @@ function seedSevenWords(): Record<(typeof SEVEN)[number], string> {
   const ids = {} as Record<(typeof SEVEN)[number], string>
   for (const [index, status] of SEVEN.entries()) {
     const id = seedRun(status, {
-      id: `run_444-${status}`,
+      id: `run_${status}`,
       name: 'Seven words',
       startedAt: `2026-10-01T10:0${String(index)}:00.000Z`,
       suiteId: 's_seven',
@@ -252,7 +252,7 @@ describe('the runs status filter', () => {
 
 describe('members on run history rows', () => {
   it('each run row lists its members with their test ids, paths, suites and outcomes', async () => {
-    const id = seedRun('failed', { id: 'run_444-three', name: 'A · B +1 more' })
+    const id = seedRun('failed', { id: 'run_three', name: 'A · B +1 more' })
     db.upsertRunMember({ runId: id, testIndex: 2, testId: 't_c', name: 'C', filePath: 'tests/c.yaml', outcome: 'healed' })
     db.upsertRunMember({ runId: id, testIndex: 0, testId: 't_a', name: 'A', filePath: 'tests/a.yaml', suiteId: 's_one', outcome: 'passed' })
     db.upsertRunMember({ runId: id, testIndex: 1, testId: 't_b', name: 'B', filePath: 'tests/b.yaml', suiteId: 's_one', outcome: 'failed' })
@@ -268,7 +268,7 @@ describe('members on run history rows', () => {
   })
 
   it('a running member with no outcome reads null', async () => {
-    const id = seedRun('running', { id: 'run_444-live', name: 'A · B' })
+    const id = seedRun('running', { id: 'run_live', name: 'A · B' })
     db.upsertRunMember({ runId: id, testIndex: 0, testId: 't_a', name: 'A', filePath: 'tests/a.yaml', outcome: 'passed' })
     db.upsertRunMember({ runId: id, testIndex: 1, testId: 't_b', name: 'B', filePath: 'tests/b.yaml' })
 
@@ -284,7 +284,7 @@ describe('members on run history rows', () => {
     const count = 450
     for (let index = 0; index < count; index++) {
       const id = seedRun('passed', {
-        id: `run_444-page-${String(index).padStart(3, '0')}`,
+        id: `run_page-${String(index).padStart(3, '0')}`,
         startedAt: new Date(Date.UTC(2026, 9, 1, 0, 0, index)).toISOString(),
       })
       db.upsertRunMember({ runId: id, testIndex: 0, testId: `t_${String(index)}`, name: `T${String(index)}`, outcome: 'passed' })
@@ -309,12 +309,12 @@ describe('members on run history rows', () => {
 
 describe('suite history', () => {
   it("a run spanning two suites is listed under each suite's history", async () => {
-    const spanning = seedRun('failed', { id: 'run_444-two-suites', name: 'One · Two', startedAt: '2026-10-01T11:00:00.000Z' })
+    const spanning = seedRun('failed', { id: 'run_two-suites', name: 'One · Two', startedAt: '2026-10-01T11:00:00.000Z' })
     db.upsertRunMember({ runId: spanning, testIndex: 0, testId: 't_a', name: 'A', suiteId: 's_one', suiteName: 'One', outcome: 'passed' })
     db.upsertRunMember({ runId: spanning, testIndex: 1, testId: 't_a', name: 'A', suiteId: 's_two', suiteName: 'Two', outcome: 'failed' })
-    const single = seedRun('passed', { id: 'run_444-one-suite', name: 'One', suiteId: 's_one', startedAt: '2026-10-01T10:00:00.000Z' })
+    const single = seedRun('passed', { id: 'run_one-suite', name: 'One', suiteId: 's_one', startedAt: '2026-10-01T10:00:00.000Z' })
     db.upsertRunMember({ runId: single, testIndex: 0, testId: 't_a', name: 'A', suiteId: 's_one', suiteName: 'One', outcome: 'passed' })
-    seedRun('passed', { id: 'run_444-no-suite', name: 'A', testId: 't_a' })
+    seedRun('passed', { id: 'run_no-suite', name: 'A', testId: 't_a' })
 
     expect(db.getRunsBySuiteId('s_one').map((run) => run.id)).toEqual([spanning, single])
     expect(db.getRunsBySuiteIdCount('s_one')).toBe(2)
@@ -369,13 +369,13 @@ const C = { testId: 't_c', name: 'C', filePath: 'tests/c.yaml' }
 
 describe('the test viewer', () => {
   it('the test viewer lists every run that ran the test, with that member\'s outcome', async () => {
-    const multi = seedMemberRun('run_444-abc', 'failed', '2026-10-01T10:00:00.000Z', [
+    const multi = seedMemberRun('run_abc', 'failed', '2026-10-01T10:00:00.000Z', [
       { ...A, outcome: 'passed' },
       { ...B, outcome: 'failed' },
       { ...C, outcome: 'passed' },
     ])
-    const single = seedMemberRun('run_444-b', 'passed', '2026-10-01T11:00:00.000Z', [{ ...B, outcome: 'passed' }])
-    seedMemberRun('run_444-a', 'passed', '2026-10-01T12:00:00.000Z', [{ ...A, outcome: 'passed' }])
+    const single = seedMemberRun('run_b', 'passed', '2026-10-01T11:00:00.000Z', [{ ...B, outcome: 'passed' }])
+    seedMemberRun('run_a', 'passed', '2026-10-01T12:00:00.000Z', [{ ...A, outcome: 'passed' }])
 
     const origin = await startDashboard()
     const { status, body } = await getJson(`${origin}/api/analytics/tests/B?testId=t_b`)
@@ -387,11 +387,11 @@ describe('the test viewer', () => {
   })
 
   it('pass rate and trends count member outcomes', async () => {
-    seedMemberRun('run_444-ab', 'cancelled', '2026-10-01T10:00:00.000Z', [
+    seedMemberRun('run_ab', 'cancelled', '2026-10-01T10:00:00.000Z', [
       { ...A, outcome: 'passed' },
       { ...B, outcome: 'timeout' },
     ])
-    seedMemberRun('run_444-b', 'passed', '2026-10-01T11:00:00.000Z', [{ ...B, outcome: 'passed' }])
+    seedMemberRun('run_b', 'passed', '2026-10-01T11:00:00.000Z', [{ ...B, outcome: 'passed' }])
 
     const trends = db.getTestTrends({ testId: 't_b' })
     expect(trends).toMatchObject({ totalRuns: 2, passRate: 0.5 })
@@ -406,12 +406,12 @@ describe('the test viewer', () => {
   })
 
   it('a test is found by its path when no id is given', async () => {
-    const multi = seedMemberRun('run_444-ab', 'failed', '2026-10-01T10:00:00.000Z', [
+    const multi = seedMemberRun('run_ab', 'failed', '2026-10-01T10:00:00.000Z', [
       { ...A, outcome: 'passed' },
       { testId: null, name: 'B', filePath: 'tests/b.yaml', outcome: 'failed' },
     ])
-    const single = seedMemberRun('run_444-b', 'passed', '2026-10-01T11:00:00.000Z', [{ ...B, outcome: 'passed' }])
-    seedMemberRun('run_444-other', 'passed', '2026-10-01T12:00:00.000Z', [
+    const single = seedMemberRun('run_b', 'passed', '2026-10-01T11:00:00.000Z', [{ ...B, outcome: 'passed' }])
+    seedMemberRun('run_other', 'passed', '2026-10-01T12:00:00.000Z', [
       { testId: 't_b2', name: 'B', filePath: 'tests/other/b.yaml', outcome: 'passed' },
     ])
 
@@ -426,7 +426,7 @@ describe('the test viewer', () => {
   })
 
   it('a request naming neither a test id nor a path is refused with 400', async () => {
-    seedMemberRun('run_444-b', 'passed', '2026-10-01T11:00:00.000Z', [{ ...B, outcome: 'passed' }])
+    seedMemberRun('run_b', 'passed', '2026-10-01T11:00:00.000Z', [{ ...B, outcome: 'passed' }])
 
     const origin = await startDashboard()
     const { status, body } = await getJson(`${origin}/api/analytics/tests/B`)
@@ -437,13 +437,13 @@ describe('the test viewer', () => {
   it('flaky tests are grouped by member file path and count healed as a pass', async () => {
     const outcomes = ['passed', 'failed', 'healed', 'failed'] as const
     for (const [index, outcome] of outcomes.entries()) {
-      seedMemberRun(`run_444-flaky-${String(index)}`, outcome, `2026-10-0${String(index + 1)}T10:00:00.000Z`, [
+      seedMemberRun(`run_flaky-${String(index)}`, outcome, `2026-10-0${String(index + 1)}T10:00:00.000Z`, [
         { ...A, outcome: 'passed' },
         { ...B, name: index === outcomes.length - 1 ? 'B' : 'B (old name)', outcome },
       ])
     }
-    seedMemberRun('run_444-flaky-cancelled', 'cancelled', '2026-10-09T10:00:00.000Z', [{ ...B, outcome: 'cancelled' }])
-    seedMemberRun('run_444-flaky-skipped', 'passed', '2026-10-09T11:00:00.000Z', [{ ...B, outcome: 'skipped' }])
+    seedMemberRun('run_flaky-cancelled', 'cancelled', '2026-10-09T10:00:00.000Z', [{ ...B, outcome: 'cancelled' }])
+    seedMemberRun('run_flaky-skipped', 'passed', '2026-10-09T11:00:00.000Z', [{ ...B, outcome: 'skipped' }])
 
     const origin = await startDashboard()
     const { status, body } = await getJson(`${origin}/api/analytics/tests?minRuns=3`)
@@ -481,7 +481,7 @@ describe('pass rate', () => {
       ['running', undefined],
     ]
     for (const [index, [status, outcome]] of outcomes.entries()) {
-      seedMemberRun(`run_444-rate-${String(index)}`, status, `2026-10-01T1${String(index)}:00:00.000Z`, [
+      seedMemberRun(`run_rate-${String(index)}`, status, `2026-10-01T1${String(index)}:00:00.000Z`, [
         { ...RATED, ...(outcome === undefined ? {} : { outcome }) },
       ])
     }
@@ -505,7 +505,7 @@ describe('pass rate', () => {
       ['running', undefined],
     ]
     for (const [index, [status, outcome]] of outcomes.entries()) {
-      seedMemberRun(`run_444-unrated-${String(index)}`, status, `2026-10-01T1${String(index)}:00:00.000Z`, [
+      seedMemberRun(`run_unrated-${String(index)}`, status, `2026-10-01T1${String(index)}:00:00.000Z`, [
         { ...RATED, ...(outcome === undefined ? {} : { outcome }) },
       ])
     }
@@ -524,7 +524,7 @@ describe('pass rate', () => {
   it("a suite's rate leaves cancelled and live runs out", () => {
     for (const [index, status] of ['passed', 'failed', 'cancelled', 'running'].entries()) {
       const id = seedRun(status, {
-        id: `run_444-suite-rate-${status}`,
+        id: `run_suite-rate-${status}`,
         name: 'Rated suite',
         startedAt: `2026-10-01T1${String(index)}:00:00.000Z`,
         suiteId: 's_rate',
@@ -547,10 +547,10 @@ describe('pass rate', () => {
 
   it('the insights breakdown rates a group over its passed and failed runs only', async () => {
     for (const [index, status] of ['passed', 'failed', 'cancelled', 'running'].entries()) {
-      seedRun(status, { id: `run_444-rated-${status}`, name: 'Rated', startedAt: `2026-10-01T1${String(index)}:00:00.000Z` })
+      seedRun(status, { id: `run_rated-${status}`, name: 'Rated', startedAt: `2026-10-01T1${String(index)}:00:00.000Z` })
     }
     for (const [index, status] of ['cancelled', 'pending'].entries()) {
-      seedRun(status, { id: `run_444-unrated-${status}`, name: 'Unrated', startedAt: `2026-10-02T1${String(index)}:00:00.000Z` })
+      seedRun(status, { id: `run_unrated-${status}`, name: 'Unrated', startedAt: `2026-10-02T1${String(index)}:00:00.000Z` })
     }
 
     const rows = db.getInsightsBreakdown('test')

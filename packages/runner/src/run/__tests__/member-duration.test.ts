@@ -57,7 +57,7 @@ describe('member duration after a hold, an abort or a throw', () => {
       arrived()
       return new Promise<TestResult>(() => {})
     }
-    const session = startRun(config(executor, 'run-444-member-duration-abort')) as unknown as Session
+    const session = startRun(config(executor, 'run-member-duration-abort')) as unknown as Session
     const events: RunEventEnvelope[] = []
     session.subscribe(1, (event) => { events.push(event) })
     await held
@@ -82,7 +82,7 @@ describe('member duration after a hold, an abort or a throw', () => {
       holds.set(member.testId, performance.now() - calledAt)
       throw new Error('executor broke')
     }
-    const session = startRun(config(executor, 'run-444-member-duration-error')) as unknown as Session
+    const session = startRun(config(executor, 'run-member-duration-error')) as unknown as Session
     const events: RunEventEnvelope[] = []
     session.subscribe(1, (event) => { events.push(event) })
     await session.done

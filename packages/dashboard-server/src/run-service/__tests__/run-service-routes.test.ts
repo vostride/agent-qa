@@ -885,7 +885,7 @@ describe('each refusal code is driven out of the shipped door', () => {
 // The door's part of a mint: the guard, the handle reader, refusals by error name, verbatim result.
 
 const MINTED: RunsLiveUrlResult = Object.freeze({
-  liveUrl: 'http://localhost:1234/live/r_planted#v2.zz-403-03-planted-token',
+  liveUrl: 'http://localhost:1234/live/r_planted#v2.zz-planted-token',
   expiresAt: 1_700_000_000_000,
   handle: 0,
   stream: { kind: 'none' as const },

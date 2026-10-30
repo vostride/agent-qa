@@ -18,7 +18,7 @@ import { createFunctionRegistry } from '../../registry.js'
 import type { FunctionDeps } from '../../spec.js'
 import { RUNS_DIGEST_FUNCTION_ID } from '../runs-digest.js'
 
-const RUN_ID = 'run-425-07-digest'
+const RUN_ID = 'run-digest'
 
 const CALLER: FunctionCaller = {
   surface: 'test',

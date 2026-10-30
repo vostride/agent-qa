@@ -12,7 +12,7 @@ import { makeScreenState } from '../../testing/screen-fixtures.js'
 import type { TestResult, StepResult } from '../../result.js'
 
 const scope = { tier: 'test', key: 'origin fixture' } as const
-const secret = 'fixture-sensitive-value-420'
+const secret = 'fixture-sensitive-value'
 const runId = asRunId('origin shell fixture')
 
 function evidence(pass: boolean): StepEvidence {

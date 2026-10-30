@@ -78,7 +78,7 @@ async function workspaceWith(
   router: ReturnType<typeof createRouter>
   createSession: ReturnType<typeof vi.fn>
 }> {
-  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-436-live-limits-'))
+  const dir = await mkdtemp(join(tmpdir(), 'agent-qa-live-limits-'))
   tempDirs.push(dir)
   const configPath = join(dir, 'agent-qa.config.yaml')
   await writeFile(
