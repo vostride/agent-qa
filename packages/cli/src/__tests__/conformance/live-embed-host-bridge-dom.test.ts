@@ -41,6 +41,9 @@ const HOST_HINT = 'dashboard'
 const FRAME_WIDTH = 640
 const FRAME_HEIGHT = 400
 
+/** Where a paused page clock stands: an hour past its start, so pausing only moves it forward. */
+const PAGE_CLOCK_PAUSED_AT = 3_600_000
+
 interface BridgeFixture {
   readonly harness: LiveViewHarness
   readonly browser: Browser
@@ -235,8 +238,16 @@ interface HostWindow {
  */
 async function hostPage(
   frames: readonly { readonly name: string; readonly src: string }[],
+  options: {
+    /** Pause the host's and every embed's clock at `PAGE_CLOCK_PAUSED_AT` before any document. */
+    readonly pausedClock?: boolean
+  } = {},
 ): Promise<Page> {
   const page = await held().browser.newPage()
+  if (options.pausedClock === true) {
+    await page.clock.install({ time: 0 })
+    await page.clock.pauseAt(PAGE_CLOCK_PAUSED_AT)
+  }
   const attribute = (value: string): string =>
     value.replaceAll('&', '&amp;').replaceAll('"', '&quot;')
   const size = `width="${String(FRAME_WIDTH)}" height="${String(FRAME_HEIGHT)}"`
@@ -453,29 +464,39 @@ describe('the embed reports to its host, and the host hint', () => {
       frameBytes: held().jpeg,
     })
     const liveUrl = await mintRunLiveUrl('r-bridge-throttle')
-    const page = await hostPage([{ name: 'dashboard', src: hinted(liveUrl) }])
+    const page = await hostPage([{ name: 'dashboard', src: hinted(liveUrl) }], {
+      pausedClock: true,
+    })
     try {
       await waitForReports(page, 'dashboard', 'ready', seenEvent('ready'))
       const startedBy = Date.now() + 10_000
       while (!stream.started() && Date.now() < startedBy) await sleep(25)
       expect(stream.started(), 'the hub started the producer for the watching embed').toBe(true)
 
-      // 40 frames on a fixed schedule, 50 ms apart: 20 per second for 2 s, with no drift.
-      const origin = Date.now()
+      const frame = await embedFrame(page, 'dashboard')
+      expect(await frame.evaluate(() => Date.now()), 'the embed runs on the paused page clock')
+        .toBe(PAGE_CLOCK_PAUSED_AT)
+
+      // 40 frames, 50 ms apart on the page clock. Each is painted while the clock stands still, so
+      // the embed sees 20 per second for 2 s however long a frame takes to arrive.
       for (let index = 0; index < 40; index += 1) {
-        const due = origin + index * 50
-        if (due > Date.now()) await sleep(due - Date.now())
         stream.emit()
+        await embedUntil(frame, `frame ${String(index + 1)} painted`, (reading) =>
+          reading.frames >= index + 1)
+        await page.clock.runFor(50)
       }
       const emitted = stream.emitted()
       expect(emitted.length).toBe(40)
 
-      const frame = await embedFrame(page, 'dashboard')
-      await embedUntil(frame, 'all 40 frames painted', (reading) => reading.frames >= 40)
       // Past one full interval, so a trailing report has flushed.
-      await sleep(LIVE_EMBED_REPORT_INTERVAL_MS * 3)
+      await page.clock.runFor(LIVE_EMBED_REPORT_INTERVAL_MS * 3)
+      // Messages from one window arrive in order, so this one lands after every report so far.
+      await frame.evaluate(() => {
+        window.parent.postMessage({ event: 'barrier' }, '*')
+      })
+      const reports = await waitForReports(page, 'dashboard', 'the barrier', seenEvent('barrier'))
 
-      const frameReports = eventsNamed(await reportsOf(page, 'dashboard'), 'frame')
+      const frameReports = eventsNamed(reports, 'frame')
       const reading = await readEmbed(frame)
       expect(reading.frames, 'every frame painted, so the last emitted is the newest painted')
         .toBe(emitted.length)
