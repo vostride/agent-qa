@@ -126,6 +126,16 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./packages/cli/node_modules/playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.os == 'macOS' && '~/Library/Caches/ms-playwright' || '~/.cache/ms-playwright' }}
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
+
       - name: Install Playwright Chromium
         run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
 
@@ -138,28 +148,37 @@ jobs:
   checks:
     name: Typecheck and validators (ubuntu)
     runs-on: ubuntu-latest
+    needs: build
     timeout-minutes: 40
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
+          cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Download the build
+        uses: actions/download-artifact@v8
+        with:
+          name: build.tgz
+          path: ${{ runner.temp }}
+
+      # Extraction time keeps dist newer than the checked-out sources.
+      - name: Unpack the build
+        run: tar -xzmf "$RUNNER_TEMP/build.tgz"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
-
       - name: Typecheck
-        run: pnpm typecheck
+        run: pnpm exec turbo typecheck --only
 
       - name: Validate skills
         run: pnpm run validate:skills
@@ -173,33 +192,41 @@ jobs:
       - name: Test the root scripts
         run: pnpm run test:scripts
 
-      # packages/arch's C-CI-MATRIX cells run the same check in the rest leg; running it here too
-      # keeps it in force even if a matrix edit stops the rest leg from reaching packages/arch.
+      # Holds even if a matrix edit stops the rest leg from reaching packages/arch.
       - name: Check CI matrix coverage
         run: node scripts/check-ci-matrix.mjs
 
   knip:
     name: Unused code report (knip)
     runs-on: ubuntu-latest
+    needs: build
     timeout-minutes: 20
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
+          cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Download the build
+        uses: actions/download-artifact@v8
+        with:
+          name: build.tgz
+          path: ${{ runner.temp }}
+
+      # Extraction time keeps dist newer than the checked-out sources.
+      - name: Unpack the build
+        run: tar -xzmf "$RUNNER_TEMP/build.tgz"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
-
-      - name: Build
-        run: pnpm build
 
       # The report never fails the job.
       - name: Report unused code
@@ -209,8 +236,9 @@ jobs:
   mcp-conformance:
     name: MCP conformance (ubuntu)
     runs-on: ubuntu-latest
+    needs: build
 
-    # Generous: a short suite plus an npm fetch and a build, on a runner that may be cold.
+    # Generous: a short suite plus an npm fetch, on a runner that may be cold.
     timeout-minutes: 25
 
     # Its own job, so a conformance regression names itself; the tool's exit code gates, no score.
@@ -218,36 +246,35 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
+          cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Download the build
+        uses: actions/download-artifact@v8
+        with:
+          name: build.tgz
+          path: ${{ runner.temp }}
+
+      # Extraction time keeps dist newer than the checked-out sources.
+      - name: Unpack the build
+        run: tar -xzmf "$RUNNER_TEMP/build.tgz"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The script builds too (its subject is `packages/cli/dist/cli.js`, and a
-      # conformance run against a stale dist measures the previous implementation).
-      # Building here as well costs a turbo cache hit and keeps a compile break
-      # visible as its own step, matching this file's other jobs.
-      - name: Build
-        run: pnpm build
-
-      # RUN FIRST, ON THIS PLATFORM, BEFORE THE GATE IT GUARDS. The four proofs
-      # take ~10s and each one requires a deliberate failure: a dead port, a
-      # truncated one-scenario run, the ratchet boundary in both directions, and a
-      # baseline entry that matches no check. They run HERE rather than only on a
-      # developer's machine because this project has already shipped a guard that
-      # held on macOS and was defeatable on Linux; a vacuity gate that only fires
-      # on the author's laptop protects nothing in CI.
+      # Proves on this platform, before the gate runs, that each of its guards can fail.
       - name: Conformance runner self-test
-        run: bash scripts/mcp-conformance.sh --selftest
+        run: bash scripts/mcp-conformance.sh --selftest --no-build
 
+      # Measures the downloaded build of packages/cli/dist/cli.js.
       - name: MCP conformance
-        run: bash scripts/mcp-conformance.sh
+        run: bash scripts/mcp-conformance.sh --no-build
 
   ps-hosts:
     name: ps-host legs (macos, ${{ matrix.group }})
@@ -297,6 +324,16 @@ jobs:
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
+
+      - name: Read the Playwright version
+        id: playwright
+        run: echo "version=$(node -p "require('./packages/cli/node_modules/playwright-core/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ${{ runner.os == 'macOS' && '~/Library/Caches/ms-playwright' || '~/.cache/ms-playwright' }}
+          key: playwright-${{ runner.os }}-${{ runner.arch }}-${{ steps.playwright.outputs.version }}
 
       - name: Install Playwright Chromium
         run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
