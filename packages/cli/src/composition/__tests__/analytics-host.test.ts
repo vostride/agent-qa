@@ -170,7 +170,7 @@ describe('composeAnalyticsHost', () => {
     expect(host.properties.agent_product).toBeUndefined()
   })
 
-  it('mints NO identity file on a blank-key checkout either — the v1 `disabled` set included it', async () => {
+  it('mints NO identity file on a blank-key checkout either, because nothing sends', async () => {
     // Not an opt-out (`optedOut` stays false), but nothing sends, so nothing needs an identity.
     const resolveIdentity = vi.fn(async () => ({
       distinctId: 'u_should-never-be-resolved',

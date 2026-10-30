@@ -628,7 +628,7 @@ describe('appendQuarantineEvents', () => {
     })
   }
 
-  it('the two modes are NOT interchangeable — the old disjunction was satisfied by both', () => {
+  it('the two read modes are NOT interchangeable, and the write side refuses both', () => {
     // Each mode is asserted in its own direction, so moving a member reds exactly one group.
     handWrite([canonicalJson(entered({ schemaVersion: 3 }))])
     expect(() => readQuarantineLedger(knowledgeRoot)).toThrow(QuarantineLedgerVersionError)
