@@ -165,6 +165,23 @@ async function armTailRecorder(page: Page, sha: string) {
     })
   }, sha)
 }
+type CueSample = { time: number; cue: string | null }
+// Read every frame from before the click until the first frame after the cue has shown and gone.
+async function armCueRecorder(page: Page) {
+  await page.evaluate(() => {
+    const recorder = window as unknown as { cueSamples?: Promise<CueSample[]> }
+    recorder.cueSamples = new Promise<CueSample[]>(resolve => {
+      const samples: CueSample[] = []
+      const frame = () => {
+        const cue = document.querySelector('[data-video-action-cue]')?.textContent ?? null
+        samples.push({ time: document.querySelector('video')!.currentTime, cue })
+        if ((cue === null && samples.some(sample => sample.cue !== null)) || samples.length >= 1_200) return resolve(samples)
+        requestAnimationFrame(frame)
+      }
+      requestAnimationFrame(frame)
+    })
+  })
+}
 async function settledSeek(page: Page) {
   return page.evaluate(bound => {
     const recorder = window as unknown as { settledSeek: Promise<number>; settledSeekSource: string }
@@ -578,19 +595,17 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     const last = detail.subActions.filter(sub => sub.testIndex === 0).at(-1)!
     expect(last.result.annotation?.recording).toBeDefined()
     await clickMarker(page, detail.subActions.indexOf(last) + 1)
+    // The cue lasts 350 ms of media time, so it is read per frame rather than found and then sampled.
+    await armCueRecorder(page)
     await page.getByRole('button', { name: 'Play recording', exact: true }).click()
-    await page.locator('[data-video-action-cue]').waitFor()
-    const cueTimes = await page.evaluate(async () => {
-      const times = []
-      for (let index = 0; index < 4; index++) {
-        times.push({ time: document.querySelector('video')!.currentTime, cue: document.querySelector('[data-video-action-cue]')?.textContent })
-        await new Promise(resolve => setTimeout(resolve, 40))
-      }
-      return times
-    })
-    expect(cueTimes.every(sample => sample.cue === 'Last recorded action')).toBe(true)
-    expect(cueTimes.at(-1)!.time - cueTimes[0]!.time).toBeGreaterThan(0.1)
+    const cueSamples = await page.evaluate(() => (window as unknown as { cueSamples: Promise<CueSample[]> }).cueSamples)
+    const shown = cueSamples.slice(cueSamples.findIndex(sample => sample.cue !== null)).filter(sample => sample.cue !== null)
+    expect(shown.length, `the cue shows while the recording plays: ${JSON.stringify(cueSamples)}`).toBeGreaterThan(0)
+    expect(shown.every(sample => sample.cue === 'Last recorded action'), JSON.stringify(cueSamples)).toBe(true)
+    expect(shown.at(-1)!.time - shown[0]!.time, `the cue stays up as playback continues: ${JSON.stringify(cueSamples)}`).toBeGreaterThan(0.1)
     await page.getByRole('button', { name: 'Pause recording', exact: true }).click()
+    await seek(page, (shown[0]!.time + shown.at(-1)!.time) / 2)
+    await page.locator('[data-video-action-cue]').waitFor()
     await capture(page, 'new-recording-labelled-review-cue')
     await page.getByRole('slider').press('Home')
     await mediaReady(page)
@@ -687,7 +702,7 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
       }))).toEqual({ left: 50, circle: null, transparent: false })
       await capture(page, `free-playhead-${width}`)
     }
-    observations.media = { durations, stored, tail, target, local, rates, samples, cueTimes, continuation: true }
+    observations.media = { durations, stored, tail, target, local, rates, samples, cue: shown, continuation: true }
   } finally { await page.close() }
 }, 120_000)
 
