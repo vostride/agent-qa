@@ -599,7 +599,7 @@ describe('buildRefEntries (execute-time lastRefs reconstruction)', () => {
     // One entry per minted ref, keys aligned with the builder-minted refs.
     expect(Object.keys(entries).sort()).toEqual(Object.keys(binding).sort())
 
-    // Resolve the Email textbox through its minted ref and check the v1 lastRefs shape.
+    // Resolve the Email textbox through its minted ref and check the `lastRefs` entry shape.
     const emailEl = state.elements.find(e => e.name === 'Email')!
     const emailEntry = entries[emailEl.ref]
     expect(emailEntry.role).toBe('textbox')

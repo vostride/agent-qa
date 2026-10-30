@@ -703,7 +703,7 @@ export async function executeStep(
     return failure(withUnproven(reason, judged))
   }
 
-  // Abort/timeout check — the three v1 timeout/cancel variants (getTimeoutAbortReason).
+  // Abort/timeout check: getTimeoutAbortReason tells the timeout variants from a cancel.
   const checkAbort = (): StepResult | undefined => {
     if (!ports.abortSignal?.aborted) return undefined
     const timeout = getTimeoutAbortReason(ports.abortSignal)

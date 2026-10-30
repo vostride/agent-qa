@@ -2,7 +2,7 @@
 
 import type { Action } from '../platform.js'
 
-// ---- inline hook directives (from hook-inline.ts) --------------------------
+// ---- inline hook directives -----------------------------------------------
 
 const RUNHOOK_RE = /\{\{runHook:"([^"]+)"\}\}/g
 // Runner-local canonical hook-id shape: `h_` + 10 hyphen-joined lowercase words.
@@ -32,7 +32,7 @@ export function stripHookInline(text: string): string {
   return text.replace(RUNHOOK_RE, '').replace(/\s{2,}/g, ' ').trim()
 }
 
-// ---- inline runJS directives (from runjs-inline.ts) ------------------------
+// ---- inline runJS directives ----------------------------------------------
 
 const RUNJS_DBL_RE = /\{\{runJS:"((?:[^"\\]|\\.)*)"\}\}/g
 const RUNJS_SGL_RE = /\{\{runJS:'((?:[^'\\]|\\.)*)'\}\}/g
@@ -66,7 +66,7 @@ export function coerceRunJSResult(value: unknown): string {
   return String(value)
 }
 
-// ---- inline appium directives (from appium-inline.ts) ----------------------
+// ---- inline appium directives ---------------------------------------------
 
 const APPIUM_INLINE_RE = /\{\{appium:\s*(.+?)\}\}/
 

@@ -4,7 +4,7 @@ import { z } from 'zod'
 
 import { CROSS_BOUNDARY_REASONS } from './constants'
 
-// Copied from `core`'s `HookDefinitionSchema.runtime`, which this package may not import.
+// Restates `core`'s `HookDefinitionSchema.runtime`, which this package may not import.
 export const CONFIG_HOOK_RUNTIMES = ['node', 'bun', 'python', 'bash'] as const
 
 export type ConfigHookRuntime = (typeof CONFIG_HOOK_RUNTIMES)[number]

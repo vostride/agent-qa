@@ -133,12 +133,8 @@ function readTrustNarrative(dir: string, bundle: LoadedBundle): string | undefin
 /**
  * Project ONE loaded bundle and its already-derived trust into the maintenance view.
  *
- * Extracted from the fold below so `showRecord` renders the SAME view rather than a second
- * one built to the same description. The two would have agreed on the day they were written;
- * the first field to disagree afterwards would have been one nobody compares, and a reviewer
- * reading a record's detail page beside a record's row would have had no way to tell which of
- * the two was lying. `bundle.events` is taken as given, so an as-of caller passes the bundle
- * with its visible events already narrowed and this function has no opinion about time.
+ * The fold below and `showRecord` both render through this, so a record's row and detail agree.
+ * `bundle.events` is taken as given: an as-of caller narrows the visible events first.
  */
 export function toInspectRecordView(
   entry: EnumeratedBundleDir,

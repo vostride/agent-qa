@@ -31,7 +31,7 @@ import type { UniqueValueGenerator } from '../compound/dispatch-mint.js'
 import type { Planner, Verifier, PlannerConfig } from './types.js'
 import type { RecordLedger } from './record-ledger.js'
 
-/** Compression output, shaped like v1's CompressResult. */
+/** Compression output, shaped like runner-local's `CompressResult`. */
 export interface CompressedScreenshot {
   buffer: Buffer
   imageWidth: number

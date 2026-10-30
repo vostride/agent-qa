@@ -139,8 +139,7 @@ describe('cards advertise only what the registry contains', () => {
   })
 
   it('advertises at least one action for every kind, so a table that advertises nothing cannot pass', () => {
-    // The surviving positive control from the deleted reserved-family cell: no filter, so a
-    // table that answered with an empty array for ANY kind reds here by name.
+    // No filter, so a table that answered with an empty array for ANY kind reds here by name.
     for (const kind of ENTITY_KINDS) {
       expect(actionsForKind(descriptorFor(kind)).length, kind).toBeGreaterThan(0)
     }

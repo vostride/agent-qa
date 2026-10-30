@@ -2887,9 +2887,7 @@ describe('daemon shutdown and reclaim post-mortem', () => {
 
     // The initial beat plus the two taken while the transaction was held.
     expect(heartbeatsUnderWedge).toBe(3)
-    // The on-disk lease is the only place freshness lives, so the record must match the file that
-    // a contender would read — a beat recorded without advancing those bytes is the divergence
-    // the deleted channel produced.
+    // Freshness lives only in the on-disk lease, so each recorded beat must match the file's bytes.
     const beatsUnderWedge = readEvents(paths.agentQaRoot)
       .filter((event) => event.kind === 'lease-heartbeated')
     expect(beatsUnderWedge[beatsUnderWedge.length - 1]).toMatchObject({

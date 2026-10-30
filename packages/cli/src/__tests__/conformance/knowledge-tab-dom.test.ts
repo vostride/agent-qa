@@ -244,15 +244,7 @@ const SEED_ORDINAL = 1
 /** The summary the seeded record carries — long enough to be unmistakable in a page's text. */
 const SEED_SUMMARY = 'The Acknowledge button dismisses the notice banner on the fixture page.'
 
-/**
- * The bundle seeded at the run's own product scope.
- *
- * COPIED FROM `knowledge-composition.acceptance.test.ts`'s `committedFixtureInput` and adjusted on
- * exactly two axes: the SCOPE key is this fixture's product (`resolveTarget` answers
- * `target.product ?? targetName`, and the populated fixture declares no `product`, so the run's
- * scope key is the target NAME) and the ordinals are the first-run ordinals above. Everything else
- * is the recipe that is already known to publish and to be served.
- */
+/** The acceptance test's `committedFixtureInput`, at target NAME scope and first-run ordinals. */
 function seededBundleInput(): PublishBundleInput {
   const draft: BundleDraft = {
     kind: 'fact',

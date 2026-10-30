@@ -20,7 +20,7 @@ describe('guardActionData (pre-prompt blob-guard fallback)', () => {
     const out = guardActionData(huge)
     expect(out).toBeDefined()
     expect(out!.endsWith(MARKER)).toBe(true)
-    // Bounded to a generous ceiling well above the v1 2000-char slice.
+    // Bounded to a generous ceiling well above 2000 chars.
     expect(out!.length).toBeGreaterThan(2000)
     expect(out!.length).toBeLessThan(12000)
   })

@@ -196,9 +196,7 @@ describe('every member REFUSES an unknown key (.strict, never .strip)', () => {
     ).toBe(true)
   })
 
-  // Prose about `.strip()` is not a call to it — four comments in this package explain why the v1
-  // schemas used it and this one does not, and a raw substring search reported every one of them.
-  // The scanner reads code.
+  // The scanner reads code, so a comment that names `.strip()` is not a call to it.
   it('no module in this package calls .strip()', () => {
     expect(sourceModulesContaining('.strip(')).toEqual([])
   })

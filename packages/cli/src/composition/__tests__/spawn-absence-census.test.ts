@@ -454,8 +454,7 @@ describe('every allowed survivor has its shape pinned', () => {
   })
 
   it('the emptied host launches nothing — no `child_process`, no git, no entry script, no argv', () => {
-    // The tightest pin in this census, because this is the file `createCliRunExecution` lived in
-    // and therefore the likeliest place for a re-mint to land.
+    // The tightest pin in this census: the host file is the likeliest place for a re-mint to land.
     const source = read('cli/src/composition/local-agent-host.ts')
     expect(source).not.toContain('node:child_process')
     expect(source).not.toMatch(/\bspawn(?:Sync)?\s*\(/)

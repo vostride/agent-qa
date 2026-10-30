@@ -407,7 +407,7 @@ function exemplarRecordId(exemplar: ExemplarTest): string {
 interface ServableItem {
   metadata: ServingRecordMetadata
   serve: () => void
-  // Carried from the scoring that produced this candidate's position.
+  // The retrieval leg whose scoring placed this candidate.
   leg: RetrievalTraceLeg
   score: number
 }

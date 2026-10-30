@@ -74,7 +74,7 @@ export interface ToolCallSpec {
 
 /**
  * A single tool exchange: one assistant message holding N `ToolCallPart`s + one `role:'tool'`
- * message holding the matching N `ToolResultPart`s (mirrors planning-turn.ts:266-269). A
+ * message holding the matching N `ToolResultPart`s, the exchange `planning-turn.ts` builds. A
  * one-element `specs` is a plain exchange; a multi-element `specs` is the fan-out shape.
  */
 export function toolExchange(specs: ToolCallSpec[]): [ModelMessage, ModelMessage] {

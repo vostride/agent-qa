@@ -183,7 +183,7 @@ export function collapseAnnotation(
     return { ...base, kind: 'pinch', pinch: { center, scale: a.scale } }
   }
 
-  // scroll with a container bounding box → region (clamped into the viewport, v1 rule).
+  // scroll with a container bounding box → region, clamped into the viewport.
   if (action.type === 'scroll' && execResult.boundingBox) {
     return { ...base, kind: 'region', region: { boundingBox: clampToViewport(execResult.boundingBox, viewport) } }
   }
@@ -210,8 +210,7 @@ function clampToViewport(box: BoundingBox, viewport: Viewport): BoundingBox {
 }
 
 // ---------------------------------------------------------------------------
-// EvidenceRecorder — the accumulator the loop drives. Its recording types ARE the
-// schema §A8 DTOs; there is no intermediate v1 shape.
+// EvidenceRecorder — the accumulator the loop drives. Its recording types ARE the schema DTOs.
 // ---------------------------------------------------------------------------
 
 export interface RecordSubActionInput {
@@ -223,7 +222,7 @@ export interface RecordSubActionInput {
   stateAfter?: ScreenState
   // Screenshot bytes may be present here; `toRecordedActionResult` strips them before storage.
   result: SchemaActionResult
-  /** v1 per-sub-action cache flag; folded per step by foldCacheStatus at finalize. */
+  /** Per-sub-action cache flag; folded per step by foldCacheStatus at finalize. */
   cached?: boolean
   // The loop redacts the descriptor before passing it here, so no raw descriptor reaches evidence.
   grounding?: SubActionEvidence['grounding']

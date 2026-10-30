@@ -171,10 +171,7 @@ describe('composeAnalyticsHost', () => {
   })
 
   it('mints NO identity file on a blank-key checkout either — the v1 `disabled` set included it', async () => {
-    // Not an opt-out (`optedOut` is false and must stay false: a developer who never configured
-    // PostHog did not decline tracking). But nothing sends, so nothing needs an identity, and the
-    // v1 module wrote none in this state. A rewire gated on `optedOut` alone would start writing
-    // `~/.agent-qa/analytics.json` on every checkout that runs a test.
+    // Not an opt-out (`optedOut` stays false), but nothing sends, so nothing needs an identity.
     const resolveIdentity = vi.fn(async () => ({
       distinctId: 'u_should-never-be-resolved',
       runtimeContext: 'user' as const,

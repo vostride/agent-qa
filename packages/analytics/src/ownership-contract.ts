@@ -18,10 +18,7 @@ export const AGENT_QA_ANALYTICS_ALLOWED_RESPONSIBILITIES = [
   'the run-completion bus subscriber: accumulating a run\'s member outcomes, step tallies and '
     + 'suite aggregate from the envelope stream and emitting the completion members once',
 ] as const
-// The forbidden lines are the three v1 defects and the one boundary that keeps this package a host
-// concern. `no function-layer imports` is the load-bearing one: analytics is something a HOST does
-// with the result of a call, never something the agent's function layer can reach, or every op
-// would acquire a telemetry side effect the gate never sees.
+// The function-layer line is the load-bearing one: analytics stays something a HOST does.
 export const AGENT_QA_ANALYTICS_FORBIDDEN_RESPONSIBILITIES = [
   'reaching the agent function layer or any op: this is a host concern, bound at a composition '
     + 'root, and an op that could emit telemetry would be a side effect the gate never sees',

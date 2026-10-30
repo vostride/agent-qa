@@ -17,7 +17,7 @@ import type { AgentJobsCommandDeps } from '../agent-jobs.js'
 import type { AgentJobsOpsDeps } from '../../composition/agent-jobs-ops.js'
 
 /**
- * The three-queue vocabulary relation, copied from `queue-help.test.ts` rather than imported.
+ * The three-queue vocabulary relation, restated rather than imported from `queue-help.test.ts`.
  *
  * Copied deliberately: that file's helpers are private to it, and the relation is the CONTRACT —
  * a surface that borrowed a helper could be exempted by an edit to the helper. Two independent

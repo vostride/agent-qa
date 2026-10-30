@@ -7,7 +7,7 @@ import type {
 } from '@vostride/agent-qa-schema'
 import type { EventLogPort, RunTimerPort } from './ports.js'
 
-/** ~10 s after bus silence (the v1 heartbeat cadence, spec §2.2). */
+/** ~10 s after bus silence (spec §2.2). */
 const DEFAULT_HEARTBEAT_MS = 10_000
 /** In-memory replay window retention caps (spec §2.2). */
 const DEFAULT_WINDOW_MAX_EVENTS = 10_000

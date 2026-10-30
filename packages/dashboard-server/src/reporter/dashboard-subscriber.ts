@@ -414,8 +414,7 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
   }
 
   function handleHookFinished(payload: HookFinishedPayload): void {
-    // `skipped` hooks carry no output and the execution_logs CHECK only admits
-    // passed|failed — the deleted DashboardReporter had the same contract.
+    // `skipped` hooks carry no output, and the execution_logs CHECK admits only passed|failed.
     if (payload.status !== 'passed' && payload.status !== 'failed') return
     const id = targetForTest(payload) ?? runId
     if (!id) return

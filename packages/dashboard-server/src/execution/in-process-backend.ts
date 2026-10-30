@@ -28,9 +28,6 @@ type TerminalProcessStatus = 'completed' | 'failed' | 'cancelled'
  * onto the run-status ground truth the dashboard's db reconciliation reads. `passed`/`healed` →
  * completed, `cancelled` → cancelled, `failed`/`timeout` → failed. Anything else returns
  * undefined, so the caller leaves the status alone.
- *
- * CARRIED VERBATIM FROM `test-runner.ts`. It is a bus-vocabulary reading and always was; the scrape
- * was only how the envelope reached it.
  */
 function mapOutcomeToRunStatus(outcome: unknown): TerminalProcessStatus | undefined {
   switch (outcome) {

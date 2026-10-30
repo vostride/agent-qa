@@ -243,7 +243,7 @@ const RETIREMENT_REGISTER: readonly RetirementRow[] = Object.freeze([
  */
 const PRE_RETIREMENT_BLOCK_CENSUS = Object.freeze({ describe: 1, it: 8, constant: 15 })
 
-// ---- The retained fixture (verbatim from the stub, imports adjusted) ---------------------------
+// ---- The retained fixture ----------------------------------------------------------------------
 
 const FIXTURE_RUN_ID = 'run-alpha'
 

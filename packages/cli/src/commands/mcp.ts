@@ -32,7 +32,7 @@ export const MCP_STDIO_STARTUP_MESSAGE =
 /** The only interface the HTTP face is ever bound to. */
 export const MCP_HTTP_BIND_HOST = '127.0.0.1'
 
-/** The default port for `--http` with no argument. The v1 endpoint used the same one. */
+/** The default port for `--http` with no argument. */
 export const MCP_HTTP_DEFAULT_PORT = 3471
 
 // `origin: 'agent'` because nobody typed an MCP request; the receipts record it.
@@ -201,9 +201,7 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
         } finally {
           emitLifecycle('stopped')
           await host.close().catch(() => {})
-          // The PORT's shutdown, not an ambient `flushAnalytics({ config })`. The v1 call drained a
-          // process-global service this command never captured through; this one drains the object
-          // this command composed, and releases the transport's timers so the process can exit.
+          // Drains the port this command composed and releases its timers, so the process can exit.
           await analytics.shutdown()
         }
       } catch (err) {

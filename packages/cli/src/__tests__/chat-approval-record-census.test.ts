@@ -17,13 +17,7 @@ const TESTS_DIR = dirname(fileURLToPath(import.meta.url))
 /** `packages`. */
 const PACKAGES_ROOT = resolve(TESTS_DIR, '..', '..', '..')
 
-/**
- * The floor on the walker's own yield.
- *
- * Read off the tree independently of this scan (`find packages/*​/src -name '*.ts' | wc -l` was well
- * past four figures at the time of writing), never off this scan's output — a floor taken from the
- * thing it guards certifies itself.
- */
+/** Set apart from this scan's output: a floor read off the thing it guards certifies itself. */
 const MINIMUM_SOURCES_SCANNED = 500
 
 const CROSSED_PACKAGES = ['agent-local', 'cli']

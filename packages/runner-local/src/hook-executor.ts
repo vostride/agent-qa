@@ -134,10 +134,7 @@ export class DockerHookExecutor implements HookExecutorPort {
   }
 }
 
-/**
- * Docker availability probe (re-homed from core/src/hooks/sandbox-runner.ts). The CLI
- * `doctor` command consumes this to report whether the hook sandbox can run.
- */
+/** Docker availability probe; `doctor` reports from it whether the hook sandbox can run. */
 export async function checkDockerAvailable(dockerBin = DEFAULT_DOCKER_BIN): Promise<boolean> {
   return new Promise((resolve) => {
     execFile(dockerBin, ['info', '--format', '{{.ID}}'], { timeout: 5000 }, (err) => {

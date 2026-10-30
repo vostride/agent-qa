@@ -94,13 +94,7 @@ function readIndex(value: unknown): number | undefined {
   return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : undefined
 }
 
-/**
- * Normalisers written against the union's OWN vocabulary arrays.
- *
- * A hand-written `value === 'cli' || value === 'dashboard'` list is how the v1 subscriber came to
- * emit trigger sources the schema had stopped accepting: two lists, one of them stale, no signal.
- * Membership is asked of the array the union is built from, so the two cannot disagree.
- */
+/** Membership is asked of the array the union is built from, so the two cannot disagree. */
 function normalizeTriggerSource(value: unknown): AnalyticsTriggerSource {
   return ANALYTICS_TRIGGER_SOURCES.find((candidate) => candidate === value) ?? 'unknown'
 }
@@ -109,14 +103,7 @@ function normalizeRunner(value: unknown): AnalyticsRunner {
   return ANALYTICS_RUNNERS.find((candidate) => candidate === value) ?? 'unknown'
 }
 
-/**
- * Map a member/aggregate outcome to the analytics status vocabulary.
- *
- * Carried from the v1 mapping unchanged so a dashboard reading these numbers across the cutover
- * sees one series rather than two: `healed` counts as `passed` (the heal marker lives on the step),
- * and `timeout` collapses to `failed`. The union does carry a `timeout` arm — splitting it out is a
- * retune with a migration attached, not a side effect of moving a file.
- */
+/** `healed` counts as `passed` (the heal marker lives on the step) and `timeout` as `failed`. */
 function outcomeToAnalyticsStatus(outcome: unknown): AnalyticsRunStatus {
   switch (outcome) {
     case 'passed':

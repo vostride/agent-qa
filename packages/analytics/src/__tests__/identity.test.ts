@@ -132,7 +132,7 @@ describe('the identity store round-trip', () => {
 })
 
 // -----------------------------------------------------------------------------------------------
-// The re-homed run subscriber
+// The run subscriber
 // -----------------------------------------------------------------------------------------------
 
 interface RecordingTransport extends AnalyticsTransport {

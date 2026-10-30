@@ -72,8 +72,7 @@ export const ANALYTICS_EMITTING_HOSTS = ['cli', 'chat', 'mcp', 'daemon'] as cons
 // A coding agent is a user; its product rides as `agent_product`.
 export const ANALYTICS_RUNTIME_CONTEXTS = ['user', 'ci'] as const
 
-// Carried from the v1 module unchanged. Retune when a new coding agent shows up in the wild; the
-// `unknown` arm is what keeps an unrecognised one from needing a schema change to be reported.
+// The `unknown` arm reports an unrecognised coding agent without a schema change.
 export const ANALYTICS_AGENT_PRODUCTS = [
   'claude_code',
   'cursor',
@@ -100,8 +99,7 @@ export const ANALYTICS_RUN_STATUSES = [
 ] as const
 export const ANALYTICS_SUITE_EXECUTION_MODES = ['sequential', 'parallel', 'unknown'] as const
 
-// Carried from the v1 module. These are CATEGORIES, never messages: a failure category is a bucket
-// this repo defines, while the failure's text is the thing that would carry a credential.
+// CATEGORIES, never messages: the failure's text is the thing that would carry a credential.
 export const ANALYTICS_FAILURE_CATEGORIES = [
   'assertion',
   'timeout',

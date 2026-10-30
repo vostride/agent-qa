@@ -244,9 +244,7 @@ describe('an old grants.jsonl is never read, written, renamed or cleaned up', ()
     expect(digest(ledger)).toBe(before)
   })
 
-  // Carried from the deleted grant verbs' "refuses typed when another writer holds the lease, leaving
-  // the ledger byte-unchanged": the direct writers refuse a held lease by name, and the legacy file is
-  // untouched either way.
+  // The direct writers refuse a held lease by name, and `grants.jsonl` is untouched either way.
   it('a held writer lease refuses the direct writers by name and leaves it untouched', async () => {
     const before = digest(ledger)
     const recordId = publish('held')

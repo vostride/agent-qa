@@ -36,8 +36,7 @@ describe('the direct change contracts live in knowledge/change.ts', () => {
   })
 
   it('refuses a proposal id that could address a path', () => {
-    // Carried from proposal-envelope.test.ts: the change id keeps the receipt id shape, and the
-    // shape still refuses separators, whitespace and an empty body.
+    // The change id keeps the receipt id shape: no separator, no whitespace, no empty body.
     const ids = schema.KnowledgeChangeIdSchema
     expect(ids, 'the change id schema is exported as KnowledgeChangeIdSchema').toBeDefined()
     expect(ids.safeParse(`prop_${OPERATION}`).success).toBe(true)

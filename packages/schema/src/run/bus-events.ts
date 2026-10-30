@@ -91,7 +91,7 @@ export interface RunWarningPayload {
 
 export type RunErrorPayload = RunWarningPayload
 
-/** `heartbeat`: empty payload, emitted after ~10 s of bus silence (the v1 cadence). */
+/** `heartbeat`: empty payload, emitted after ~10 s of bus silence. */
 export type HeartbeatPayload = Record<string, never>
 
 // --- Member-test lifecycle payloads -----------------------------------------
@@ -181,11 +181,7 @@ export interface SubActionRecordedPayload {
   readonly screenshot?: never
 }
 
-/**
- * `hookStarted`: the hook identity fields (mirrors core `HookEvent`, reporter/types.ts
- * lines 25-32). `phase` distinguishes suite/test setup·teardown from `inline` hooks;
- * `scope`/`testIndex`/`stepIndex` locate the hook in the run tree when present.
- */
+/** `hookStarted`: the hook identity; `scope`/`testIndex`/`stepIndex` place it when present. */
 export interface HookStartedPayload {
   hookName: string
   phase: 'setup' | 'teardown' | 'inline'

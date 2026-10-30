@@ -323,12 +323,7 @@ function createAbortedStepResult(
   }
 }
 
-/**
- * Run ONE member test (one attempt of the retry loop). Mirrors core's runTest per-test
- * flow verbatim, with every host concern injected. Emits stepStarted + the loop's
- * stepFinalized/subActionRecorded through the sink; NEVER emits testStarted/testFinished
- * (the shell owns those).
- */
+/** One attempt of ONE member test; the shell, not this, emits testStarted and testFinished. */
 async function runMemberAttempt(
   member: MemberTest,
   config: MemberRunConfig,

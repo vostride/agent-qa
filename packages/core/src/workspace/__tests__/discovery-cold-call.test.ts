@@ -33,7 +33,7 @@ async function makeFixture(): Promise<{ config: AgentQaConfig; configPath: strin
     },
   } as AgentQaConfig
 
-  // Exactly one matching test file (mirrors the demo's `run tests/example-pass.yaml` target).
+  // Exactly one matching test file, the `tests/example-pass.yaml` that `init` scaffolds.
   await writeFile_(root, 'tests/example-pass.yaml', 'name: Example\nsteps: []\n')
   await writeFile_(root, 'hooks.yaml', '')
   await writeFile_(root, '.env', '')

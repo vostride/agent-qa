@@ -115,7 +115,7 @@ function appliedSampling(sampling: SamplingParams | undefined): SamplingParams |
   }
 }
 
-/** Defensive tool-call arg extraction across SDK key variants (v1 planner.ts:104-110). */
+/** Defensive tool-call arg extraction across SDK key variants. */
 function extractArgs(tc: unknown): Record<string, unknown> {
   const t = tc as Record<string, unknown>
   const raw = t.args ?? t.input ?? t.arguments ?? t.toolInput

@@ -1,7 +1,7 @@
 import { describe, it, expect, vi } from 'vitest'
 import type { PlatformAdapter } from '@vostride/agent-qa-runner'
 import type { ScreenStateMetadata } from '@vostride/agent-qa-schema'
-// `CompressedScreenshot` matches the v1 `CompressResult` shape; core already depends on runner.
+// `CompressedScreenshot` matches runner-local's `CompressResult`; core already depends on runner.
 import type { CompressedScreenshot as CompressResult } from '@vostride/agent-qa-runner'
 import { warnIfOutOfBounds } from '../validation/coord-bounds.js'
 
