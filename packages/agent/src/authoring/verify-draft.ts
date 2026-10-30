@@ -197,7 +197,7 @@ export async function evaluateDraft(
 
 function stabilityGateOneReason(pass: boolean, runCount: number): string {
   return pass
-    ? `all ${runCount} gate-run(s) reached a final verdict about the draft (D-17)`
+    ? `all ${runCount} gate-run(s) reached a final verdict about the draft`
     : `${runCount} gate-run(s) taken; at least one reached no final verdict — see gateRuns[].reason`
 }
 
@@ -246,6 +246,6 @@ function stabilityGateTwoReason(
     return `one verdict across the completed runs: ${distinctOutcomes[0] ?? 'none observed'}`
   }
   return `the verdict flipped across runs (${distinctOutcomes.join(' -> ')})`
-    + (earlyStopped ? ' — remaining runs skipped, the flip is already proven (D-17)' : '')
+    + (earlyStopped ? ' — remaining runs skipped, the flip is already proven' : '')
     + (suiteStability === undefined ? '' : ` — ${suiteStability.message}`)
 }

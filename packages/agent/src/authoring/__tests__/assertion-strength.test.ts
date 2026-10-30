@@ -805,7 +805,7 @@ describe('assertionStrengthGate — the two clauses composed', () => {
 
     expect(result.pass).toBe(false)
     expect(result.reason).toBe(
-      '1 assertion step(s), none falsifiable: no quoted expected value, and no element noun this gate knows stands before an expected-state term with only function words between them (D-09 clause (ii))',
+      '1 assertion step(s), none falsifiable: no quoted expected value, and no element noun this gate knows stands before an expected-state term with only function words between them',
     )
   })
 

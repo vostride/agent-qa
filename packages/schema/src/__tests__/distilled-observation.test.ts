@@ -33,7 +33,7 @@ describe('distilled observation disk contract', () => {
     expect(result.success).toBe(false)
     if (!result.success) {
       expect(result.error.issues.map((issue) => issue.message).join(' '))
-        .toMatch(/D-09.*Pitfall 8/)
+        .toContain('element or locator requires platform')
     }
   })
 

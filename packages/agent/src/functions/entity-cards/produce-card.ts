@@ -22,7 +22,7 @@ export interface EntityCardRenderInput extends EntityCardContext {
 export class ForgetReceiptKindError extends TypeError {
   constructor(readonly kind: string) {
     super(
-      `a forget receipt describes a MEM knowledge bundle (D-19); it cannot render a ${kind} card`,
+      `a forget receipt describes a MEM knowledge bundle; it cannot render a ${kind} card`,
     )
     this.name = 'ForgetReceiptKindError'
   }

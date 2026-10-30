@@ -31,7 +31,7 @@ export const AGENT_QA_ANALYTICS_FORBIDDEN_RESPONSIBILITIES = [
   'ambient singletons or module-level service state: the v1 module cached one service whose '
     + 'privacy decision belonged to whichever caller constructed it first',
   'a second opt-out decision site: any environment read outside `compose.ts`, or any transport '
-    + 'constructed before the decision, re-opens the bypass D-19 closes structurally',
+    + 'constructed before the decision, re-opens the bypass that single decision site closes',
 ] as const
 // `id-agent` stays on the version `packages/ids` resolves: installs are keyed on its id scheme.
 export const AGENT_QA_ANALYTICS_EXTERNAL_DEPENDENCIES = [

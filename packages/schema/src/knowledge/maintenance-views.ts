@@ -93,7 +93,7 @@ export const RecordChangeSchema = z.object({
     if (value[field] !== undefined) {
       ctx.addIssue({
         code: 'custom', path: [field],
-        message: 'only a promoted change carries promotion receipt attribution (419 D-19)',
+        message: 'only a promoted change carries promotion receipt attribution',
       })
     }
   }

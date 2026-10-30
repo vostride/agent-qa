@@ -30,7 +30,7 @@ export class GateRunNotFlaggedError extends Error {
         `(gateRun=${String(acknowledged.gateRun)}, ` +
         `excludedFromOutcomes=${String(acknowledged.excludedFromOutcomes)}): ` +
         'an unflagged gate-run pollutes the outcome projection and the suite fingerprint union ' +
-        'the draft is later compared against (WTST-06).',
+        'the draft is later compared against.',
     )
     this.name = 'GateRunNotFlaggedError'
   }
@@ -105,7 +105,7 @@ function classifyGateRun(member: PerTestOutcome): { definitive: boolean; reason:
   if (!DEFINITIVE_MEMBER_OUTCOMES.has(member.outcome)) {
     return {
       definitive: false,
-      reason: `member outcome '${member.outcome}' is not a final pass or fail (D-17)`,
+      reason: `member outcome '${member.outcome}' is not a final pass or fail`,
     }
   }
 
@@ -114,7 +114,7 @@ function classifyGateRun(member: PerTestOutcome): { definitive: boolean; reason:
       return {
         definitive: false,
         reason: `planning failed structurally on step ${step.stepIndex}: the draft was never `
-          + 'executed to a verdict, so the enum below describes the attempt, not the app (D-17)',
+          + 'executed to a verdict, so the enum below describes the attempt, not the app',
       }
     }
     if (step.limitStop !== undefined) {
@@ -122,7 +122,7 @@ function classifyGateRun(member: PerTestOutcome): { definitive: boolean; reason:
       return {
         definitive: false,
         reason: `step ${step.stepIndex} stopped at its ${limit} limit (${used} of ${configured} `
-          + 'used): the run ran out of limit, not into an answer (D-12)',
+          + 'used): the run ran out of limit, not into an answer',
       }
     }
     // Reads the cycle block that older handoffs still carry.
@@ -130,7 +130,7 @@ function classifyGateRun(member: PerTestOutcome): { definitive: boolean; reason:
       return {
         definitive: false,
         reason: `a cycle was flagged on step ${step.stepIndex} (${step.cycle.reason}): the run `
-          + 'stopped revisiting state rather than reaching an answer (D-17)',
+          + 'stopped revisiting state rather than reaching an answer',
       }
     }
     if (step.termination !== undefined) {
@@ -138,7 +138,7 @@ function classifyGateRun(member: PerTestOutcome): { definitive: boolean; reason:
         definitive: false,
         reason: `step ${step.stepIndex} terminated '${step.termination.kind}' `
           + `(${step.termination.reason}) — indefinitive despite member outcome `
-          + `'${member.outcome}', which reads definitive on its own (393-01 F1)`,
+          + `'${member.outcome}', which reads definitive on its own`,
       }
     }
   }
@@ -147,7 +147,7 @@ function classifyGateRun(member: PerTestOutcome): { definitive: boolean; reason:
     definitive: true,
     reason: `member outcome '${member.outcome}' with no planning failure, limit stop, cycle flag `
       + 'or termination on any step — a final answer about the draft'
-      + (member.outcome === 'healed' ? '; a healed pass IS a pass (393-01 F3)' : ''),
+      + (member.outcome === 'healed' ? '; a healed pass is a pass' : ''),
   }
 }
 

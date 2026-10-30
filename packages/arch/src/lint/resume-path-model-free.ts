@@ -243,7 +243,7 @@ export function findResumePathModelFreeOffenders(
           ' checkpoint and control never reaches the author callback, and the capability a' +
           ' legitimately re-authoring resume needs arrives already built from the host as an' +
           ' ordinary argument. An import here would put a construction path back on the resume' +
-          ' side, which is the one thing D-11 layer 3 exists to make unrepresentable (JOBQ-03)',
+          ' side, which is the one thing this rule exists to make unrepresentable',
       )
     }
   }

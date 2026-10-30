@@ -323,7 +323,7 @@ function gateReason(rows: readonly StepClassificationRow[]): string {
   const assertions = rows.filter((row) => row.role === 'assertion')
 
   if (assertions.length === 0) {
-    return 'no step classifies as an assertion: the draft records what it did, never what should be true (D-09 clause (i))'
+    return 'no step classifies as an assertion: the draft records what it did, never what should be true'
   }
   if (assertions.some((row) => row.falsifiable)) {
     return `${assertions.filter((row) => row.falsifiable).length} of ${assertions.length} assertion steps reference concrete expected content`
@@ -346,7 +346,7 @@ function gateReason(rows: readonly StepClassificationRow[]): string {
     )
   }
 
-  return `${assertions.length} assertion step(s), none falsifiable: ${[...causes].sort().join('; ')} (D-09 clause (ii))`
+  return `${assertions.length} assertion step(s), none falsifiable: ${[...causes].sort().join('; ')}`
 }
 
 // Both clauses must hold on one row, or a vacuous assertion plus a concrete action would pass.

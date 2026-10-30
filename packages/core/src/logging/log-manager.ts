@@ -32,7 +32,7 @@ export class MemberLogScopeUnavailableError extends Error {
     super(
       'LogManager.runInMemberScope requires a memberScope store. Construct the manager with ' +
         '`memberScope: new AsyncLocalStorage()` — without it, concurrent members would silently ' +
-        'share one run id (WINDOWS #233).',
+        'share one run id.',
     )
     this.name = 'MemberLogScopeUnavailableError'
   }

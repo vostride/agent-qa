@@ -31,7 +31,7 @@ const PLAN_FIELDS = {
   doesActionAdvanceUsTowardsGoal: z.boolean().describe('True if this action moves the test toward its goal; a cheap hallucination-gate (§9.7).'),
   remember: rememberFieldSchema.describe('Record verbatim facts you will need later in the run — codes, filenames, extracted values, progress markers — BEFORE navigating away from the screen that shows them. Each item is { key, value, kind, provenance }. Omit when the current screen holds nothing you will need later.'),
   bulkCompletionPredicate: z.string().optional().describe('On entering a bulk "do X to all" step, declare the positive completion predicate (e.g. "no rows with a delete button remain") and re-state it each turn while the bulk loop runs. Omit for non-bulk steps.'),
-  failureKind: failureKindFieldSchema.describe('Declare the step terminally infeasible in this build — set to "infeasible" when the requested capability/screen does not exist so the outcome is machine-distinguishable from an ordinary failure (D-04). Requires failureReason. Omit unless declaring infeasibility.'),
+  failureKind: failureKindFieldSchema.describe('Declare the step terminally infeasible in this build — set to "infeasible" when the requested capability/screen does not exist so the outcome is machine-distinguishable from an ordinary failure. Requires failureReason. Omit unless declaring infeasibility.'),
   failureReason: failureReasonFieldSchema.describe('Why the step is infeasible — required when failureKind is set (e.g. "Settings > Privacy is not present in this build"). Omit otherwise.'),
 }
 

@@ -84,14 +84,14 @@ const bundleIdentityCoreSchema: z.ZodType<BundleIdentityCore> = z.object({
     ctx.addIssue({
       code: 'custom',
       path: ['subtype'],
-      message: 'fact bundle identity requires a fact subtype (D-06)',
+      message: 'fact bundle identity requires a fact subtype',
     })
   }
   if (identity.kind !== 'fact' && identity.subtype !== null) {
     ctx.addIssue({
       code: 'custom',
       path: ['subtype'],
-      message: 'only fact bundle identity may carry a subtype (D-06)',
+      message: 'only fact bundle identity may carry a subtype',
     })
   }
 })

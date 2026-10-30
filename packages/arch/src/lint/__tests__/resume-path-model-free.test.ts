@@ -143,7 +143,6 @@ describe('resume-path-model-free — the POSITIVE control (it must be able to fa
     // The message says why, not only what, for a reader deciding whether the import is fine.
     expect(offenders[0]).toContain('resume')
     expect(offenders[0]).toContain('STRUCTURALLY incapable of re-invoking the model')
-    expect(offenders[0]).toContain('D-11 layer 3')
   })
 
   // THE REASON THE CLOSURE IS WALKED. A one-line helper beside the entry is what a well-meaning

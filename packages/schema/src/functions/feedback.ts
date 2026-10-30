@@ -173,7 +173,7 @@ export const ImprovementPlanKnowledgeSchema = z.object({
 }).strict().superRefine((value, ctx) => {
   value.deltas.forEach((delta, index) => {
     if (delta.kind === 'MintUnknown') {
-      ctx.addIssue({ code: 'custom', path: ['deltas', index, 'kind'], message: 'a mark never mints unknown knowledge (419 D-12)' })
+      ctx.addIssue({ code: 'custom', path: ['deltas', index, 'kind'], message: 'a mark never mints unknown knowledge' })
     }
   })
 })

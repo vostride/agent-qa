@@ -5,7 +5,7 @@ export const AGENT_QA_CORE_PACKAGE_DIR = 'packages/core'
 export const AGENT_QA_CORE_PACKAGE_CLASSES = ['transitional'] as const
 export const AGENT_QA_CORE_ALLOWED_RESPONSIBILITIES = [
   'suite/test parsing + discovery: yaml/suite/test/config parsing, hooks-file parser + schema, and workspace file discovery — feeding the resolved RunConfig at the CLI composition root (parser, suite, schema, types, hooks, workspace, validation)',
-  'analytics subsystem: PostHog identity + core-owned bus-subscriber run feed per D-16 (analytics)',
+  'analytics subsystem: PostHog identity + core-owned bus-subscriber run feed (analytics)',
   'LLM provider auth + captured browser auth-state reuse: OAuth/PKCE plugin auth and auth-state redaction/resolution (auth, auth-state)',
   'mobile support: appium launch/element/gesture resolution (mobile)',
   'provider + plugin loading (providers, plugin-loader-util)',

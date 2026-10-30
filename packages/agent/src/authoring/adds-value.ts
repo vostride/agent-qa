@@ -100,7 +100,7 @@ export function addsValueGate(input: AddsValueGateInput): AddsValueGateResult {
       pass: true,
       finding: { novelElements: [...new Set(input.draftElements)], comparedTests: [] },
       reason: 'the suite is empty — no fingerprint coverage and no comparable text, so every '
-        + 'element is uncovered (D-16)',
+        + 'element is uncovered',
     }
   }
 
@@ -167,27 +167,27 @@ function gateReason(input: {
   // fingerprint fact or a degraded-lane guess produced it.
   if (input.pass && input.unionSize > 0) {
     const decided = `${input.novelElements.length} element(s) absent from the suite union of `
-      + `${input.unionSize} — the fingerprint lane decided (D-14)`
+      + `${input.unionSize} — the fingerprint lane decided`
     if (input.textCovered.length === 0) {
-      return `${decided}, and no evidence-less suite test resembles the draft (D-16)`
+      return `${decided}, and no evidence-less suite test resembles the draft`
     }
     return `${decided}; ${input.textCovered.length} evidence-less suite test(s) resemble the draft `
-      + 'on the degraded text lane and are recorded per compared test without deciding (D-16)'
+      + 'on the degraded text lane and are recorded per compared test without deciding'
   }
   if (input.pass) {
     return 'the suite fingerprint index is empty, so the degraded text lane decided: no '
-      + 'evidence-less suite test resembles the draft (D-16)'
+      + 'evidence-less suite test resembles the draft'
   }
   if (input.unionSize === 0 && input.textCovered.length > 0) {
     return 'the text fallback lane matched '
       + input.textCovered.map((entry) => `${entry.filePath}::${entry.testName}`).join(', ')
       + ` at or above ${TEXT_FALLBACK_SIMILARITY_THRESHOLD} similarity — an evidence-less suite `
-      + 'test this draft resembles, flagged toward already-covered (D-16)'
+      + 'test this draft resembles, flagged toward already-covered'
   }
   if (input.draftElementCount === 0) {
     return 'the draft produced no fingerprint elements, so nothing could be shown to be novel — '
       + 'not a finding that it duplicates the suite (check gate 1 first)'
   }
   return `every element the draft exercised (${input.draftElementCount}) is already in the suite `
-    + `union of ${input.unionSize} (D-14)`
+    + `union of ${input.unionSize}`
 }

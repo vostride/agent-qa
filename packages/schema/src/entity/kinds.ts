@@ -53,7 +53,7 @@ export function formatEntityOrdinal(ordinal: number): string {
 /** `MEM-001`. Refuses a slug-addressed kind rather than inventing an ordinal for it. */
 export function formatOrdinalShortId(kind: EntityKind, ordinal: number): string {
   if (isSlugAddressedKind(kind)) {
-    throw new TypeError(`${kind} is slug-addressed (D-03); it has no ordinal short-ID`)
+    throw new TypeError(`${kind} is slug-addressed; it has no ordinal short-ID`)
   }
   if (!Number.isSafeInteger(ordinal) || ordinal < ENTITY_FIRST_ORDINAL) {
     throw new TypeError(`entity ordinals start at ${String(ENTITY_FIRST_ORDINAL)}`)
@@ -64,7 +64,7 @@ export function formatOrdinalShortId(kind: EntityKind, ordinal: number): string 
 /** `TGT-checkout`. Refuses an ordinal-addressed kind for the same reason. */
 export function formatSlugShortId(kind: EntityKind, slug: string): string {
   if (!isSlugAddressedKind(kind)) {
-    throw new TypeError(`${kind} is ordinal-addressed (D-03); it has no slug short-ID`)
+    throw new TypeError(`${kind} is ordinal-addressed; it has no slug short-ID`)
   }
   if (!ENTITY_SLUG_RE.test(slug)) {
     throw new TypeError(`not a well-formed entity slug: ${slug}`)

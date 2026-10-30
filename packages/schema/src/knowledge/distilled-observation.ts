@@ -50,7 +50,7 @@ export const distilledObservationSchema = z.object({
     ctx.addIssue({
       code: 'custom',
       path: ['platform'],
-      message: 'element or locator requires platform (377 D-09; Pitfall 8)',
+      message: 'element or locator requires platform',
     })
   }
 
@@ -58,7 +58,7 @@ export const distilledObservationSchema = z.object({
     ctx.addIssue({
       code: 'custom',
       path: ['element'],
-      message: 'locator requires element (377 D-09)',
+      message: 'locator requires element',
     })
   }
 
@@ -73,7 +73,7 @@ export const distilledObservationSchema = z.object({
     ctx.addIssue({
       code: 'custom',
       path: ['surface', 'kind'],
-      message: 'surface kind must agree with platform (377 D-09)',
+      message: 'surface kind must agree with platform',
     })
   }
 })

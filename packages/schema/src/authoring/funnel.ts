@@ -93,7 +93,7 @@ export class FunnelSuccessFramingError extends Error {
   constructor(readonly violations: readonly string[]) {
     super(
       'A funnel render may never present the keep rate as an achievement, a score or a '
-      + `percentage-complete (WTST-05). Refusing a line carrying: ${violations.join(', ')}`,
+      + `percentage-complete. Refusing a line carrying: ${violations.join(', ')}`,
     )
     this.name = 'FunnelSuccessFramingError'
   }

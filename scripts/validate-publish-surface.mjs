@@ -114,7 +114,7 @@ function validateWorkspaceRanges(record, errors) {
     if (!block || typeof block !== 'object') continue
     for (const [name, version] of Object.entries(block)) {
       if (name.startsWith(scopedPrefix)) {
-        assert(version === 'workspace:*', `${label(record)} ${blockName}.${name} must remain workspace:* in Phase 256`, errors)
+        assert(version === 'workspace:*', `${label(record)} ${blockName}.${name} must remain workspace:*`, errors)
       }
     }
   }

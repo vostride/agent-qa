@@ -30,7 +30,7 @@ export class AddressingLedgerSchemaVersionError extends Error {
     super(
       `The addressing ledger at ${path} is stamped schema version ${String(found)}, but this `
       + `build reads version ${String(expected)}. The ledger is never migrated and never `
-      + 'rebuilt (D-02/D-04); move the file aside if it is a development artifact.',
+      + 'rebuilt; move the file aside if it is a development artifact.',
     )
     this.name = 'AddressingLedgerSchemaVersionError'
   }
@@ -95,12 +95,12 @@ const SCHEMA_STATEMENTS = [
   `CREATE TRIGGER IF NOT EXISTS addresses_are_append_only
      BEFORE DELETE ON addresses
      BEGIN
-       SELECT RAISE(ABORT, 'the addressing ledger never deletes an address (387 D-04)');
+       SELECT RAISE(ABORT, 'the addressing ledger never deletes an address');
      END`,
   `CREATE TRIGGER IF NOT EXISTS addresses_are_immutable
      BEFORE UPDATE ON addresses
      BEGIN
-       SELECT RAISE(ABORT, 'a minted address never changes (387 D-04)');
+       SELECT RAISE(ABORT, 'a minted address never changes');
      END`,
   // Renames get their own table: writing one onto an immutable address row would need an update.
   `CREATE TABLE IF NOT EXISTS target_renames (

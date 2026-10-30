@@ -429,10 +429,7 @@ export function ensureRunOutcomeTables(db: DatabaseSync): void {
       UNIQUE (product, file_path, test_name, fingerprint, build_ordinal, run_id)
     );
 
-    -- 393 D-15: gate 3's comparison substrate, folded by the same pass and cleared by the same
-    -- rebuild as the tables above. One row per fingerprint element, ordered by seq, keyed by the
-    -- stable test identity; run_id and build_ordinal are the provenance the fold's
-    -- newest-evidence-wins replacement rule compares on (see projection/suite-fingerprints.ts).
+    -- run_id and build_ordinal are what the fold's newest-evidence-wins replacement compares on.
     CREATE TABLE IF NOT EXISTS suite_fingerprints (
       product TEXT NOT NULL,
       file_path TEXT NOT NULL,
@@ -444,11 +441,7 @@ export function ensureRunOutcomeTables(db: DatabaseSync): void {
       PRIMARY KEY (product, file_path, test_name, seq)
     );
 
-    -- 393 CR-02: the stored fold-semantics stamp for the five tables above. Singleton by
-    -- construction (the CHECK admits exactly one row) because "which semantics produced this
-    -- family" is one fact about one derived index, and a second row could only ever be a second
-    -- answer to it. Absent is a legal state and means MISMATCH: a pre-stamp index and an index
-    -- whose file was deleted both read as absent, and both want the same rebuild.
+    -- One fold-semantics stamp for the tables above; an absent row reads as a mismatch.
     CREATE TABLE IF NOT EXISTS run_outcome_projection_version (
       id INTEGER PRIMARY KEY CHECK (id = 1),
       version INTEGER NOT NULL

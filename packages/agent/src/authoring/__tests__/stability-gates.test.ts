@@ -143,7 +143,7 @@ describe('runStabilityGates — the consecutive-run gates', () => {
       expect(result.gateRuns.every((row) => !row.definitive)).toBe(true)
       expect(result.gateRuns[0]?.reason).toBe(
         'step 1 stopped at its actions limit (30 of 30 used): the run ran out of limit, '
-          + 'not into an answer (D-12)',
+          + 'not into an answer',
       )
       expect(result.gateRuns[1]?.reason).toContain('step 0 stopped at its planning-turns limit')
       expect(result.gateRuns[1]?.reason).toContain('12 of 12 used')

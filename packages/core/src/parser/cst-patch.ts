@@ -87,7 +87,7 @@ export class PatchedDocumentInvalidError extends Error {
   constructor(readonly phase: 'source' | 'rendered', readonly detail: string) {
     super(
       `cst-patch: the ${phase} document is not a valid test: ${detail}; `
-        + 'a patched document is schema-validated before any caller may write it (WTST-07)',
+        + 'a patched document is schema-validated before any caller may write it',
     )
     this.name = 'PatchedDocumentInvalidError'
   }
@@ -228,7 +228,7 @@ function resolveSeqSlot(
     throw new PatchOpUnsupportedTargetError(
       pointer,
       `${op} operates on a sequence item, and that path names a top-level key; `
-        + 'adding or removing a key is a document rewrite (D-02), not a patch',
+        + 'adding or removing a key is a document rewrite, not a patch',
     )
   }
 

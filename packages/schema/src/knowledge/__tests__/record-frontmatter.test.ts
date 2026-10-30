@@ -92,7 +92,7 @@ describe('record.md deterministic frontmatter', () => {
         `${key}: {}`,
       )
 
-      expect(() => parseRecordMarkdown(smuggled)).toThrow('BNDL-03')
+      expect(() => parseRecordMarkdown(smuggled)).toThrow('may not carry the derived key')
       expect(() => parseRecordMarkdown(smuggled)).toThrow(key)
     },
   )

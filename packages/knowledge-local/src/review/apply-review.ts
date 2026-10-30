@@ -67,7 +67,7 @@ export class ApplyDelegateUnavailableError extends Error {
     super(
       `The writer lease for this knowledge root is held by pid ${holder.pid} (lease ` +
         `${holder.leaseId}, epoch ${holder.epoch}) and this host has no delegate transport, so ` +
-        `${changeId} cannot be applied here. Lease-stealing is structurally refused (386 D-14).`,
+        `${changeId} cannot be applied here. Lease-stealing is structurally refused.`,
     )
     this.name = 'ApplyDelegateUnavailableError'
   }
