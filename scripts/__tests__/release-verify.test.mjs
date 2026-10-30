@@ -181,3 +181,138 @@ test('preflight verification checks bump, git tag, npm registry, and POSTHOG_PRO
     await rm(rootDir, { recursive: true, force: true })
   }
 })
+
+test('parses the resume stage with a target version and no bump', () => {
+  assert.deepEqual(parseVerifyArgs(['--stage', 'resume', '--target-version', '0.2.0']), {
+    stage: 'resume',
+    targetVersion: '0.2.0',
+  })
+  assert.throws(() => parseVerifyArgs(['--stage', 'resume']), /missing --target-version/)
+  assert.throws(
+    () => parseVerifyArgs(['--stage', 'resume', '--target-version', '0.2.0', '--staged-dir', 'x']),
+    /invalid args/,
+  )
+  assert.throws(
+    () => parseVerifyArgs(['--bump', 'patch', '--stage', 'resume', '--target-version', '0.2.0']),
+    /invalid args/,
+  )
+})
+
+async function withResumeFixture(packageVersion, run) {
+  const rootDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-verify-resume-'))
+  try {
+    for (const name of publicPackageNames) {
+      createPackage(join(rootDir, 'packages'), name, packageVersion)
+    }
+    const githubOutput = join(rootDir, 'github-output')
+    writeFileSync(githubOutput, '')
+    await run({ rootDir, githubOutput })
+  } finally {
+    await rm(rootDir, { recursive: true, force: true })
+  }
+}
+
+function resumeOptions(rootDir, githubOutput, overrides = {}) {
+  return {
+    stage: 'resume',
+    targetVersion: '0.2.0',
+    rootDir,
+    env: { GITHUB_OUTPUT: githubOutput },
+    readTagCommit: () => 'abc123',
+    readHeadCommit: () => 'abc123',
+    ...overrides,
+  }
+}
+
+test('resume refuses a version that is not 0.x semver before it reaches git', async () => {
+  await withResumeFixture('0.2.0', async ({ rootDir, githubOutput }) => {
+    for (const version of ['1.0.0', 'bad', 'v0.2.0']) {
+      const tagReads = []
+      await assert.rejects(
+        runReleaseVerification(
+          resumeOptions(rootDir, githubOutput, {
+            targetVersion: version,
+            readTagCommit: tagVersion => tagReads.push(tagVersion),
+          }),
+        ),
+        new RegExp(`invalid resume version: ${version}`),
+      )
+      assert.deepEqual(tagReads, [])
+    }
+    assert.equal(readFileSync(githubOutput, 'utf8'), '')
+  })
+})
+
+test('resume refuses when the release tag is missing', async () => {
+  await withResumeFixture('0.2.0', async ({ rootDir, githubOutput }) => {
+    await assert.rejects(
+      runReleaseVerification(
+        resumeOptions(rootDir, githubOutput, {
+          execFileSync: () => {
+            const error = new Error('git rev-parse failed')
+            error.status = 1
+            throw error
+          },
+          readTagCommit: undefined,
+        }),
+      ),
+      /git tag is missing: v0\.2\.0/,
+    )
+    assert.equal(readFileSync(githubOutput, 'utf8'), '')
+  })
+})
+
+test('resume reads the tag commit and HEAD with git rev-parse in the release root', async () => {
+  await withResumeFixture('0.2.0', async ({ rootDir, githubOutput }) => {
+    const calls = []
+    await runReleaseVerification(
+      resumeOptions(rootDir, githubOutput, {
+        execFileSync: (cmd, args, options) => {
+          calls.push([cmd, args, options.cwd])
+          return 'abc123\n'
+        },
+        readTagCommit: undefined,
+        readHeadCommit: undefined,
+      }),
+    )
+    assert.deepEqual(calls, [
+      ['git', ['rev-parse', '--verify', '--quiet', 'refs/tags/v0.2.0^{commit}'], rootDir],
+      ['git', ['rev-parse', 'HEAD'], rootDir],
+    ])
+  })
+})
+
+test('resume refuses when HEAD is not the release tag commit', async () => {
+  await withResumeFixture('0.2.0', async ({ rootDir, githubOutput }) => {
+    await assert.rejects(
+      runReleaseVerification(
+        resumeOptions(rootDir, githubOutput, { readHeadCommit: () => 'def456' }),
+      ),
+      /HEAD is not the commit of v0\.2\.0/,
+    )
+    assert.equal(readFileSync(githubOutput, 'utf8'), '')
+  })
+})
+
+test('resume refuses when the public package versions differ from the target', async () => {
+  await withResumeFixture('0.2.1', async ({ rootDir, githubOutput }) => {
+    await assert.rejects(
+      runReleaseVerification(resumeOptions(rootDir, githubOutput)),
+      /public package version 0\.2\.1 does not match 0\.2\.0/,
+    )
+    assert.equal(readFileSync(githubOutput, 'utf8'), '')
+  })
+})
+
+test('resume passes at the release tag and writes the version to GITHUB_OUTPUT', async () => {
+  await withResumeFixture('0.2.0', async ({ rootDir, githubOutput }) => {
+    const result = await runVerifyCli(['--stage', 'resume', '--target-version', '0.2.0'], {
+      rootDir,
+      env: { GITHUB_OUTPUT: githubOutput },
+      readTagCommit: () => 'abc123',
+      readHeadCommit: () => 'abc123',
+    })
+    assert.deepEqual(result, { targetVersion: '0.2.0' })
+    assert.equal(readFileSync(githubOutput, 'utf8'), 'version=0.2.0\n')
+  })
+})

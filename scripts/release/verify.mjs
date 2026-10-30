@@ -1,7 +1,8 @@
 import { execFileSync as defaultExecFileSync } from 'node:child_process'
-import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
+import { appendFileSync, existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
+import semver from 'semver'
 import { checkGitTagAbsent as defaultCheckGitTagAbsent } from './git.mjs'
 import { getPublicPackages } from './packages.mjs'
 import { assertTrustedPublishEnvironment as defaultAssertTrustedPublishEnvironment } from './publish.mjs'
@@ -105,11 +106,57 @@ function readNpmVersion(execFileSync) {
   return execFileSync('npm', ['--version'], { encoding: 'utf8', stdio: 'pipe' }).trim()
 }
 
+function defaultReadTagCommit(version, options = {}) {
+  const execFileSync = options.execFileSync ?? defaultExecFileSync
+  const tag = `v${version}`
+  try {
+    return execFileSync('git', ['rev-parse', '--verify', '--quiet', `refs/tags/${tag}^{commit}`], {
+      cwd: options.rootDir ?? process.cwd(),
+      encoding: 'utf8',
+      stdio: 'pipe',
+    }).trim()
+  } catch (error) {
+    if (error.status === 1) throw new Error(`git tag is missing: ${tag}`)
+    throw new Error(`could not read git tag: ${tag}`)
+  }
+}
+
+function defaultReadHeadCommit(options = {}) {
+  const execFileSync = options.execFileSync ?? defaultExecFileSync
+  return execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: options.rootDir ?? process.cwd(),
+    encoding: 'utf8',
+    stdio: 'pipe',
+  }).trim()
+}
+
+async function runResumeVerification(options, rootDir, env) {
+  const targetVersion = options.targetVersion
+  if (!targetVersion) throw new Error('missing resume --target-version')
+  if (semver.valid(targetVersion) !== targetVersion || !targetVersion.startsWith('0.')) {
+    throw new Error(`invalid resume version: ${targetVersion} (expected 0.x semver)`)
+  }
+  const tag = `v${targetVersion}`
+  const readerOptions = { ...options, rootDir }
+  const readTagCommit = options.readTagCommit ?? defaultReadTagCommit
+  const readHeadCommit = options.readHeadCommit ?? defaultReadHeadCommit
+  const tagCommit = await readTagCommit(targetVersion, readerOptions)
+  const headCommit = await readHeadCommit(readerOptions)
+  if (!tagCommit || tagCommit !== headCommit) throw new Error(`HEAD is not the commit of ${tag}`)
+  const packageVersion = assertSharedPublicVersion(getPublicPackages({ rootDir }))
+  if (packageVersion !== targetVersion) {
+    throw new Error(`public package version ${packageVersion} does not match ${targetVersion}`)
+  }
+  if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `version=${targetVersion}\n`, 'utf8')
+  return { targetVersion }
+}
+
 export async function runReleaseVerification(options = {}) {
   const stage = options.stage
   const bump = options.bump
   const rootDir = options.rootDir ?? process.cwd()
   const env = options.env ?? process.env
+  if (stage === 'resume') return runResumeVerification(options, rootDir, env)
   assertAllowedBump(bump)
 
   if (stage === 'preflight') {
@@ -186,6 +233,11 @@ export function parseReleaseArgs(argv = []) {
     } else {
       throw new Error(`invalid args: ${argv.join(' ')}`)
     }
+  }
+  if (stage === 'resume') {
+    if (bump || stagedDir) throw new Error('invalid args: resume accepts only --target-version')
+    if (!targetVersion) throw new Error('missing --target-version')
+    return { stage, targetVersion }
   }
   if (!bump) throw new Error('missing --bump')
   assertAllowedBump(bump)
