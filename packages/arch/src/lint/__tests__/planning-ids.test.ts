@@ -117,6 +117,11 @@ describe('planningIdsIn', () => {
     for (const text of data) expect(found(text)).toEqual([])
   })
 
+  it('leaves time zone offsets alone in text and file names', () => {
+    for (const text of ['UTC-05', 'at GMT-08']) expect(found(text)).toEqual([])
+    expect(pathPlanningIds('fixtures/UTC-05.json')).toEqual([])
+  })
+
   it('reports a span matched by two shapes once', () => {
     expect(planningIdsIn(`per ${dash('WR', '05')}`)).toHaveLength(1)
   })
