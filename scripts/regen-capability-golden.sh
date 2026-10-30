@@ -173,7 +173,7 @@ run_gate() {
     printf '  - %s\n' "$unexpected" >&2
     echo "REFUSING to regenerate. A regeneration against a red tree records whatever that tree" >&2
     echo "declares, and the reviewer sees a ledger diff with no failing test beside it. Fix the" >&2
-    echo "failures above first (D-07)." >&2
+    echo "failures above first." >&2
     exit 1
   fi
 

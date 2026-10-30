@@ -268,7 +268,7 @@ publish_score() {
       echo "| baseline entries | $declared, all matched |"
       echo "| ratchet exit code | $exit_code |"
       echo ""
-      echo "The score is published, never gated (D-18). This job reds only on a failure that is NOT"
+      echo "The score is published, never gated. This job reds only on a failure that is NOT"
       echo "in \`$BASELINE_REL\`, or on a baselined entry that has started passing."
     } >> "$GITHUB_STEP_SUMMARY"
   fi
