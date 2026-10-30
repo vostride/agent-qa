@@ -338,8 +338,11 @@ jobs:
           KILL_TRACE_EOF
           cat > "$RUNNER_TEMP/tree-rss.mjs" <<'TREE_RSS_EOF'
           // node tree-rss.mjs <root-pid> <out-file> [interval-ms=2000]
-          // Appends { at, rssKb, processes, top } for the root's descendants (itself excluded) until the
-          // root is gone, then { peakRssKb }.
+          // Appends { at, rssKb, processes, top, groups, stopped, orphans } for the root's descendants (itself
+          // excluded) until the root is gone, then { peakRssKb, peakAt }. groups maps each process group in
+          // the tree to its member count and job-control count (JOBC: members whose parent is in another
+          // group of the same session; 0 means the group is orphaned). stopped lists stopped members, and
+          // orphans lists processes in a tree group whose parent is no longer in the tree.
 
           import { execFileSync } from 'node:child_process'
           import { appendFileSync } from 'node:fs'
@@ -357,14 +360,28 @@ jobs:
           let peakAt = null
 
           function table() {
-            const text = execFileSync('ps', ['-A', '-o', 'pid=,ppid=,rss=,comm='], { encoding: 'utf8' })
+            const text = execFileSync('ps', ['-A', '-o', 'pid=,ppid=,pgid=,jobc=,rss=,stat=,comm='], {
+              encoding: 'utf8',
+            })
             const rows = []
             for (const line of text.split('\n')) {
-              const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/u.exec(line)
-              if (match) rows.push({ pid: Number(match[1]), ppid: Number(match[2]), rssKb: Number(match[3]), comm: match[4] })
+              const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\d+)\s+(\S+)\s+(.*)$/u.exec(line)
+              if (match) {
+                rows.push({
+                  pid: Number(match[1]),
+                  ppid: Number(match[2]),
+                  pgid: Number(match[3]),
+                  jobc: Number(match[4]),
+                  rssKb: Number(match[5]),
+                  stat: match[6],
+                  comm: match[7],
+                })
+              }
             }
             return rows
           }
+
+          const brief = (row) => ({ pid: row.pid, ppid: row.ppid, pgid: row.pgid, stat: row.stat, comm: basename(row.comm) })
 
           function sample() {
             const rows = table()
@@ -380,6 +397,27 @@ jobs:
               }
             }
             walk(root)
+            const inTree = new Set(tree.map((row) => row.pid))
+            const byPid = new Map(rows.map((row) => [row.pid, row]))
+            const ancestors = new Set()
+            for (let at = byPid.get(root); at !== undefined && !ancestors.has(at.pid); at = byPid.get(at.ppid)) {
+              ancestors.add(at.pid)
+            }
+            const treeGroups = new Set(tree.map((row) => row.pgid))
+            const orphans = rows.filter(
+              (row) =>
+                treeGroups.has(row.pgid)
+                && !inTree.has(row.pid)
+                && !ancestors.has(row.pid)
+                && row.pid !== process.pid
+                && row.ppid !== process.pid,
+            )
+            const groups = {}
+            for (const row of [...tree, ...orphans]) {
+              const group = (groups[row.pgid] ??= { members: 0, jobc: row.jobc })
+              group.members++
+              group.jobc = Math.min(group.jobc, row.jobc)
+            }
             const rssKb = tree.reduce((sum, row) => sum + row.rssKb, 0)
             const at = new Date().toISOString()
             if (rssKb > peakRssKb) {
@@ -390,7 +428,11 @@ jobs:
               .sort((a, b) => b.rssKb - a.rssKb)
               .slice(0, 3)
               .map((row) => ({ pid: row.pid, rssKb: row.rssKb, comm: basename(row.comm) }))
-            appendFileSync(out, `${JSON.stringify({ at, rssKb, processes: tree.length, top })}\n`)
+            const stopped = [...tree, ...orphans].filter((row) => row.stat.includes('T')).map(brief)
+            appendFileSync(
+              out,
+              `${JSON.stringify({ at, rssKb, processes: tree.length, top, groups, stopped, orphans: orphans.map(brief) })}\n`,
+            )
             return true
           }
 
@@ -417,7 +459,7 @@ jobs:
           KILL_TRACE_GUARD: '1'
         run: |
           export KILL_TRACE_ROOT=$$
-          node "$RUNNER_TEMP/tree-rss.mjs" $$ "$RUNNER_TEMP/rss.jsonl" > /dev/null 2>&1 &
+          node "$RUNNER_TEMP/tree-rss.mjs" $$ "$RUNNER_TEMP/rss.jsonl" 500 > /dev/null 2>&1 &
           pnpm exec turbo test ${{ matrix.filter }} --only --continue ${{ matrix.vitest }}
 
       - name: Kill and memory evidence
