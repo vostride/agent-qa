@@ -101,6 +101,27 @@ export function createDockerLabels(options = {}) {
   return labels
 }
 
+export function dockerfileManifestDrift(text, packageDirs) {
+  const known = new Set(packageDirs)
+  const copied = new Set()
+  const extra = new Set()
+  for (const line of String(text).split('\n')) {
+    const trimmed = line.trim()
+    if (!trimmed.startsWith('COPY packages/')) continue
+    const manifest = /^COPY packages\/([^/\s]+)\/package\.json packages\/\1\/$/.exec(trimmed)
+    if (manifest) {
+      copied.add(manifest[1])
+      if (!known.has(manifest[1])) extra.add(manifest[1])
+    } else {
+      extra.add(trimmed.slice('COPY packages/'.length).split(/[/\s]/)[0])
+    }
+  }
+  return {
+    missing: [...known].filter(dir => !copied.has(dir)).sort(),
+    extra: [...extra].sort(),
+  }
+}
+
 function resolveVersion(rootDir, version) {
   if (version) return normalizeDockerVersion(version)
   const records = getPublicPackages({ rootDir })

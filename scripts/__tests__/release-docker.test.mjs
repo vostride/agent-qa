@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -10,6 +10,7 @@ import {
   checkDockerTagsAbsent,
   createDockerLabels,
   createDockerTags,
+  dockerfileManifestDrift,
   getDockerImageMatrix,
   normalizeDockerNamespace,
   normalizeDockerVersion,
@@ -207,4 +208,53 @@ test('Dockerfiles include license metadata and avoid secret build args', () => {
     assert.match(text, /org\.opencontainers\.image\.vendor="Vostride"/)
     assert.doesNotMatch(text, /ARG .*TOKEN|ARG .*SECRET|build-arg|DOCKERHUB_TOKEN/)
   }
+})
+
+const workspaceDockerfiles = ['docker/Dockerfile.web', 'docker/Dockerfile.android']
+
+function packageDirs() {
+  return readdirSync(join(rootDir, 'packages'), { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .filter(entry => existsSync(join(rootDir, 'packages', entry.name, 'package.json')))
+    .map(entry => entry.name)
+}
+
+function readDockerfile(dockerfile) {
+  return readFileSync(join(rootDir, dockerfile), 'utf8')
+}
+
+test('workspace Dockerfiles copy the manifest of every package and nothing else under packages', () => {
+  const dirs = packageDirs()
+  for (const dockerfile of workspaceDockerfiles) {
+    const drift = dockerfileManifestDrift(readDockerfile(dockerfile), dirs)
+    assert.deepEqual(
+      drift,
+      { missing: [], extra: [] },
+      `${dockerfile} manifest COPY lines drift from packages/: ${JSON.stringify(drift)}`,
+    )
+  }
+})
+
+test('manifest drift names a package whose manifest line is removed', () => {
+  const text = readDockerfile('docker/Dockerfile.web')
+    .split('\n')
+    .filter(line => line.trim() !== 'COPY packages/web/package.json packages/web/')
+    .join('\n')
+  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()).missing, ['web'])
+})
+
+test('manifest drift names an unknown package whose manifest is copied', () => {
+  const text = readDockerfile('docker/Dockerfile.web').replace(
+    'COPY packages/web/package.json packages/web/',
+    'COPY packages/web/package.json packages/web/\nCOPY packages/ghost/package.json packages/ghost/',
+  )
+  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()), { missing: [], extra: ['ghost'] })
+})
+
+test('manifest drift names any other copy from packages by its directory', () => {
+  const text = readDockerfile('docker/Dockerfile.web').replace(
+    'COPY packages/web/package.json packages/web/',
+    'COPY packages/web/package.json packages/web/\nCOPY packages/core/src packages/core/src',
+  )
+  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()), { missing: [], extra: ['core'] })
 })
