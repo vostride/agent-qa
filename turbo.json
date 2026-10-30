@@ -1,5 +1,11 @@
 {
   "$schema": "https://turborepo.dev/schema.json",
+  "globalPassThroughEnv": [
+    "NODE_OPTIONS",
+    "KILL_TRACE_FILE",
+    "KILL_TRACE_ROOT",
+    "KILL_TRACE_GUARD"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

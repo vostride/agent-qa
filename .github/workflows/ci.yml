@@ -248,12 +248,193 @@ jobs:
       - name: Install Playwright Chromium
         run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
 
+      # Temporary: records every signal and the tree's memory to explain the cli-1 kill.
+      - name: Write the kill trace
+        run: |
+          cat > "$RUNNER_TEMP/kill-trace.mjs" <<'KILL_TRACE_EOF'
+          // NODE_OPTIONS=--import=<abs path to this file> preload. Records every non-zero process.kill to
+          // KILL_TRACE_FILE as JSON lines. KILL_TRACE_ROOT is the pid whose tree the run owns; with
+          // KILL_TRACE_GUARD=1 a signal to a live process outside that tree is recorded and not sent.
+          // It never writes to stdout or stderr.
+
+          import { execFileSync } from 'node:child_process'
+          import { appendFileSync } from 'node:fs'
+
+          const file = process.env.KILL_TRACE_FILE
+
+          if (file) {
+            const root = Number(process.env.KILL_TRACE_ROOT)
+            const guard = process.env.KILL_TRACE_GUARD === '1'
+            const originalKill = process.kill.bind(process)
+
+            const record = (entry) => {
+              try {
+                appendFileSync(file, `${JSON.stringify(entry)}\n`)
+              } catch {
+                /* the trace must never change the traced process */
+              }
+            }
+
+            const ps = (args) =>
+              execFileSync('ps', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] })
+
+            // null: ps could not run; 'gone': ps ran and the pid has no process.
+            const readTarget = (pid) => {
+              try {
+                const out = ps(['-o', 'pid=,ppid=,pgid=,command=', '-p', String(pid)]).trim()
+                const match = /^(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/u.exec(out)
+                if (match === null) return 'gone'
+                return { pid: Number(match[1]), ppid: Number(match[2]), pgid: Number(match[3]), command: match[4] }
+              } catch (error) {
+                return error && typeof error.status === 'number' ? 'gone' : null
+              }
+            }
+
+            const parentOf = (pid) => {
+              try {
+                const out = ps(['-o', 'ppid=', '-p', String(pid)]).trim()
+                return out === '' ? null : Number(out)
+              } catch {
+                return null
+              }
+            }
+
+            const isInTree = (pid) => {
+              if (!Number.isInteger(root) || root <= 0) return false
+              let at = pid
+              for (let hops = 0; hops < 64 && at !== null && at > 1; hops++) {
+                if (at === root) return true
+                at = parentOf(at)
+              }
+              return false
+            }
+
+            record({ event: 'loaded', at: new Date().toISOString(), pid: process.pid, argv: process.argv })
+
+            process.kill = function tracedKill(pid, signal) {
+              if (signal === 0 || signal === '0') return originalKill(pid, signal)
+              const numeric = Number(pid)
+              const target = numeric === 0 ? 'own-group' : readTarget(Math.abs(numeric))
+              const gone = target === 'gone'
+              const inTree = numeric === 0 || (target !== null && !gone && isInTree(Math.abs(numeric)))
+              const blocked = guard && !inTree && !gone
+              record({
+                event: 'kill',
+                at: new Date().toISOString(),
+                callerPid: process.pid,
+                callerArgv: process.argv,
+                pid: numeric,
+                signal: signal ?? 'SIGTERM',
+                target: gone ? null : target,
+                targetGone: gone,
+                inTree,
+                blocked,
+                stack: (new Error().stack ?? '').split('\n').slice(2, 18).map((frame) => frame.trim()),
+              })
+              if (blocked) return true
+              return originalKill(pid, signal)
+            }
+          }
+          KILL_TRACE_EOF
+          cat > "$RUNNER_TEMP/tree-rss.mjs" <<'TREE_RSS_EOF'
+          // node tree-rss.mjs <root-pid> <out-file> [interval-ms=2000]
+          // Appends { at, rssKb, processes, top } for the root's descendants (itself excluded) until the
+          // root is gone, then { peakRssKb }.
+
+          import { execFileSync } from 'node:child_process'
+          import { appendFileSync } from 'node:fs'
+          import { basename } from 'node:path'
+
+          const [rootArg, out, intervalArg] = process.argv.slice(2)
+          const root = Number(rootArg)
+          const interval = Number(intervalArg ?? 2000)
+          if (!Number.isInteger(root) || root <= 0 || !out) {
+            console.error('usage: node tree-rss.mjs <root-pid> <out-file> [interval-ms]')
+            process.exit(2)
+          }
+
+          let peakRssKb = 0
+          let peakAt = null
+
+          function table() {
+            const text = execFileSync('ps', ['-A', '-o', 'pid=,ppid=,rss=,comm='], { encoding: 'utf8' })
+            const rows = []
+            for (const line of text.split('\n')) {
+              const match = /^\s*(\d+)\s+(\d+)\s+(\d+)\s+(.*)$/u.exec(line)
+              if (match) rows.push({ pid: Number(match[1]), ppid: Number(match[2]), rssKb: Number(match[3]), comm: match[4] })
+            }
+            return rows
+          }
+
+          function sample() {
+            const rows = table()
+            if (!rows.some((row) => row.pid === root)) return false
+            const children = new Map()
+            for (const row of rows) children.set(row.ppid, [...(children.get(row.ppid) ?? []), row])
+            const tree = []
+            const walk = (pid) => {
+              for (const child of children.get(pid) ?? []) {
+                if (child.pid === process.pid) continue
+                tree.push(child)
+                walk(child.pid)
+              }
+            }
+            walk(root)
+            const rssKb = tree.reduce((sum, row) => sum + row.rssKb, 0)
+            const at = new Date().toISOString()
+            if (rssKb > peakRssKb) {
+              peakRssKb = rssKb
+              peakAt = at
+            }
+            const top = [...tree]
+              .sort((a, b) => b.rssKb - a.rssKb)
+              .slice(0, 3)
+              .map((row) => ({ pid: row.pid, rssKb: row.rssKb, comm: basename(row.comm) }))
+            appendFileSync(out, `${JSON.stringify({ at, rssKb, processes: tree.length, top })}\n`)
+            return true
+          }
+
+          const timer = setInterval(() => {
+            let alive = false
+            try {
+              alive = sample()
+            } catch {
+              alive = true
+            }
+            if (!alive) {
+              clearInterval(timer)
+              appendFileSync(out, `${JSON.stringify({ peakRssKb, peakAt })}\n`)
+            }
+          }, interval)
+          TREE_RSS_EOF
       # `--only` skips the `build` tasks `test` depends on, so this relies on the Build step above;
       # each leg runs one package at a time, so its vitest pool owns the runner.
       - name: Test daemon and lease packages
         env:
           TURBO_CONCURRENCY: '1'
-        run: pnpm exec turbo test ${{ matrix.filter }} --only --continue ${{ matrix.vitest }}
+          NODE_OPTIONS: --import=${{ runner.temp }}/kill-trace.mjs
+          KILL_TRACE_FILE: ${{ runner.temp }}/kill-trace.jsonl
+          KILL_TRACE_GUARD: '1'
+        run: |
+          export KILL_TRACE_ROOT=$$
+          node "$RUNNER_TEMP/tree-rss.mjs" $$ "$RUNNER_TEMP/rss.jsonl" > /dev/null 2>&1 &
+          pnpm exec turbo test ${{ matrix.filter }} --only --continue ${{ matrix.vitest }}
+
+      - name: Kill and memory evidence
+        if: always()
+        run: |
+          trace="$RUNNER_TEMP/kill-trace.jsonl"
+          rss="$RUNNER_TEMP/rss.jsonl"
+          echo "loaded lines: $(grep -c '"event":"loaded"' "$trace" 2>/dev/null || true)"
+          echo "kill lines:"
+          grep '"event":"kill"' "$trace" 2>/dev/null || true
+          echo "peak:"
+          grep peakRssKb "$rss" 2>/dev/null || true
+          echo "last 20 samples:"
+          tail -20 "$rss" 2>/dev/null || true
+          vm_stat
+          sysctl vm.swapusage
+          log show --last 45m --style compact --predicate 'eventMessage CONTAINS[c] "memorystatus" OR eventMessage CONTAINS[c] "low swap" OR eventMessage CONTAINS[c] "killed"' | tail -200
 
       - name: Typecheck daemon and lease packages
         if: matrix.group == 'knowledge-local'
