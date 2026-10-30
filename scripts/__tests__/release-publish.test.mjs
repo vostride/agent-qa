@@ -28,19 +28,19 @@ function npmError(stderr) {
 
 function fakeNpm(present) {
   const publishedDirs = []
-  const execFileSync = (cmd, args, options) => {
+  const execFileSync = (cmd, args) => {
     if (args[0] === 'view') {
       const spec = args[1]
       if (present.has(spec.slice(0, spec.lastIndexOf('@')))) return '"0.1.1"'
       throw npmError('npm error code E404\nnpm error 404 No match found for version 0.1.1')
     }
-    if (args[0] === 'publish') {
-      publishedDirs.push(options.cwd)
-      return null
-    }
     throw new Error(`unexpected npm call: ${args.join(' ')}`)
   }
-  return { execFileSync, publishedDirs }
+  const spawnSync = (cmd, args, options) => {
+    publishedDirs.push(options.cwd)
+    return { status: 0, signal: null, stdout: null, stderr: '' }
+  }
+  return { execFileSync, spawnSync, publishedDirs }
 }
 
 async function withStagedPackages(run) {
@@ -65,6 +65,7 @@ test('a partial publish resumes from the first package npm does not have, in pub
       env: trustedEnv,
       npmVersion: '11.6.1',
       execFileSync: npm.execFileSync,
+      spawnSync: npm.spawnSync,
       log: line => lines.push(line),
     })
 
@@ -84,6 +85,7 @@ test('a version npm already has in full publishes nothing and succeeds', async (
       env: trustedEnv,
       npmVersion: '11.6.1',
       execFileSync: npm.execFileSync,
+      spawnSync: npm.spawnSync,
       log: () => {},
     })
 
@@ -102,6 +104,7 @@ test('a version npm does not have yet publishes every package in publish order',
       env: trustedEnv,
       npmVersion: '11.6.1',
       execFileSync: npm.execFileSync,
+      spawnSync: npm.spawnSync,
       log: () => {},
     })
 
@@ -155,9 +158,13 @@ test('publishes from explicit .release/staged-packages and never source package 
       stagedDir,
       env: { GITHUB_ACTIONS: 'true', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'token', NPM_CONFIG_PROVENANCE: 'false' },
       npmVersion: '11.6.1',
-      execFileSync: (cmd, args, options) => {
+      execFileSync: (cmd, args) => {
         if (args[0] === 'view') throw npmError('npm error code E404')
+        throw new Error(`unexpected npm call: ${args.join(' ')}`)
+      },
+      spawnSync: (cmd, args, options) => {
         calls.push([cmd, args, options.cwd, options.env])
+        return { status: 0, signal: null, stdout: null, stderr: '' }
       },
       log: () => {},
     })
@@ -186,9 +193,13 @@ test('parses and dispatches node scripts/release/publish.mjs --staged-dir .relea
       rootDir,
       env: { GITHUB_ACTIONS: 'true', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'token' },
       npmVersion: '11.6.1',
-      execFileSync: (cmd, args, options) => {
+      execFileSync: (cmd, args) => {
         if (args[0] === 'view') throw npmError('npm error code E404')
+        throw new Error(`unexpected npm call: ${args.join(' ')}`)
+      },
+      spawnSync: (cmd, args, options) => {
         calls.push([cmd, args, options.cwd])
+        return { status: 0, signal: null, stdout: null, stderr: '' }
       },
       log: line => lines.push(line),
     })
@@ -202,6 +213,9 @@ test('parses and dispatches node scripts/release/publish.mjs --staged-dir .relea
         env: { GITHUB_ACTIONS: 'true', ACTIONS_ID_TOKEN_REQUEST_TOKEN: 'token', NPM_TOKEN: 'token' },
         npmVersion: '11.6.1',
         execFileSync: () => {},
+        spawnSync: () => {
+          throw new Error('npm publish must not run')
+        },
       }),
       /NPM_TOKEN/,
     )
@@ -213,23 +227,31 @@ test('parses and dispatches node scripts/release/publish.mjs --staged-dir .relea
 function scriptedNpm({ present = new Set(), viewErrors = new Map(), publishErrors = new Map() }) {
   const publishedDirs = []
   const stderr = []
-  const execFileSync = (cmd, args, options) => {
-    if (args[0] === 'view') {
-      const name = args[1].slice(0, args[1].lastIndexOf('@'))
-      if (viewErrors.has(name)) throw npmError(viewErrors.get(name))
-      if (present.has(name)) return '"0.1.1"'
-      throw npmError('npm error code E404')
-    }
+  const execFileSync = (cmd, args) => {
+    if (args[0] !== 'view') throw new Error(`unexpected npm call: ${args.join(' ')}`)
+    const name = args[1].slice(0, args[1].lastIndexOf('@'))
+    if (viewErrors.has(name)) throw npmError(viewErrors.get(name))
+    if (present.has(name)) return '"0.1.1"'
+    throw npmError('npm error code E404')
+  }
+  const spawnSync = (cmd, args, options) => {
     const name = JSON.parse(readFileSync(join(options.cwd, 'package.json'), 'utf8')).name
     const failure = publishErrors.get(name)
     if (failure) {
       if (failure.landed) present.add(name)
-      throw npmError(failure.stderr)
+      const signal = failure.signal ?? null
+      return { status: signal ? null : 1, signal, stdout: null, stderr: failure.stderr ?? '' }
     }
     publishedDirs.push(options.cwd)
-    return null
+    return { status: 0, signal: null, stdout: null, stderr: '' }
   }
-  return { execFileSync, publishedDirs, stderr: { write: chunk => stderr.push(String(chunk)) }, written: stderr }
+  return {
+    execFileSync,
+    spawnSync,
+    publishedDirs,
+    stderr: { write: chunk => stderr.push(String(chunk)) },
+    written: stderr,
+  }
 }
 
 const publishOverExisting =
@@ -246,6 +268,7 @@ test('an E403 over a version npm then reports present counts as already publishe
       env: trustedEnv,
       npmVersion: '11.6.1',
       execFileSync: npm.execFileSync,
+      spawnSync: npm.spawnSync,
       stderr: npm.stderr,
       log: line => lines.push(line),
     })
@@ -269,10 +292,11 @@ test('an E403 over a version npm still does not report stops the publish before 
         env: trustedEnv,
         npmVersion: '11.6.1',
         execFileSync: npm.execFileSync,
+        spawnSync: npm.spawnSync,
         stderr: npm.stderr,
         log: () => {},
       }),
-      error => error.stderr === publishOverExisting,
+      new RegExp(`npm publish failed for ${name}@0\\.1\\.1: exit 1`),
     )
     assert.deepEqual(npm.publishedDirs, records.slice(0, 3).map(record => record.dir))
     assert.match(npm.written.join(''), /cannot publish over the previously published versions/)
@@ -291,10 +315,11 @@ test('an E404 from npm publish stops the publish before any later package', asyn
         env: trustedEnv,
         npmVersion: '11.6.1',
         execFileSync: npm.execFileSync,
+        spawnSync: npm.spawnSync,
         stderr: npm.stderr,
         log: () => {},
       }),
-      error => error.stderr === notFound,
+      new RegExp(`npm publish failed for ${name}@0\\.1\\.1: exit 1`),
     )
     assert.deepEqual(npm.publishedDirs, records.slice(0, 1).map(record => record.dir))
     assert.match(npm.written.join(''), /E404/)
@@ -312,10 +337,60 @@ test('an npm view that fails for another reason stops the publish before that pa
         env: trustedEnv,
         npmVersion: '11.6.1',
         execFileSync: npm.execFileSync,
+        spawnSync: npm.spawnSync,
         stderr: npm.stderr,
         log: () => {},
       }),
       new RegExp(`could not verify npm version for ${name}@0\\.1\\.1`),
+    )
+    assert.deepEqual(npm.publishedDirs, records.slice(0, 2).map(record => record.dir))
+  })
+})
+
+const publishNotices = [
+  'npm notice Publishing to https://registry.npmjs.org/ with tag latest and public access',
+  'npm notice publish Signed provenance statement with source and build information from GitHub Actions',
+  'npm notice publish Provenance statement published to transparency log: https://search.sigstore.dev/?logIndex=1',
+].join('\n')
+
+test("a successful publish writes npm's notices to the release log", async () => {
+  await withStagedPackages(async ({ rootDir, stagedDir }) => {
+    const written = []
+    const result = await publishPackages({
+      rootDir,
+      stagedDir,
+      env: trustedEnv,
+      npmVersion: '11.6.1',
+      execFileSync: (cmd, args) => {
+        if (args[0] === 'view') throw npmError('npm error code E404')
+        throw new Error(`unexpected npm call: ${args.join(' ')}`)
+      },
+      spawnSync: () => ({ status: 0, signal: null, stdout: null, stderr: `${publishNotices}\n` }),
+      stderr: { write: chunk => written.push(String(chunk)) },
+      log: () => {},
+    })
+
+    assert.deepEqual(result.published, publicPackageNames)
+    assert.deepEqual(written, publicPackageNames.map(() => `${publishNotices}\n`))
+  })
+})
+
+test('a publish killed by a signal stops the publish before any later package', async () => {
+  await withStagedPackages(async ({ rootDir, stagedDir, records }) => {
+    const name = publicPackageNames[2]
+    const npm = scriptedNpm({ publishErrors: new Map([[name, { signal: 'SIGKILL', landed: true }]]) })
+    await assert.rejects(
+      publishPackages({
+        rootDir,
+        stagedDir,
+        env: trustedEnv,
+        npmVersion: '11.6.1',
+        execFileSync: npm.execFileSync,
+        spawnSync: npm.spawnSync,
+        stderr: npm.stderr,
+        log: () => {},
+      }),
+      new RegExp(`npm publish failed for ${name}@0\\.1\\.1: killed by SIGKILL`),
     )
     assert.deepEqual(npm.publishedDirs, records.slice(0, 2).map(record => record.dir))
   })

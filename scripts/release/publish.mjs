@@ -1,4 +1,7 @@
-import { execFileSync as defaultExecFileSync } from 'node:child_process'
+import {
+  execFileSync as defaultExecFileSync,
+  spawnSync as defaultSpawnSync,
+} from 'node:child_process'
 import { join, resolve } from 'node:path'
 import semver from 'semver'
 import { derivePublishOrder } from './packages.mjs'
@@ -37,6 +40,12 @@ function isPublishOverExisting(text) {
   return /E403/.test(text) && /cannot publish over (the )?previously published version/i.test(text)
 }
 
+function publishFailure(result) {
+  if (result.error) return result.error.message
+  if (result.signal) return `killed by ${result.signal}`
+  return `exit ${result.status}`
+}
+
 function npmVersion(execFileSync) {
   return execFileSync('npm', ['--version'], { encoding: 'utf8', stdio: 'pipe' }).trim()
 }
@@ -45,6 +54,7 @@ export async function publishPackages(options = {}) {
   const rootDir = options.rootDir ?? process.cwd()
   const stagedDir = resolve(rootDir, options.stagedDir ?? '.release/staged-packages')
   const execFileSync = options.execFileSync ?? defaultExecFileSync
+  const spawnSync = options.spawnSync ?? defaultSpawnSync
   const env = options.env ?? process.env
   const resolvedNpmVersion = options.npmVersion ?? npmVersion(execFileSync)
   assertTrustedPublishEnvironment({ env, npmVersion: resolvedNpmVersion })
@@ -71,19 +81,21 @@ export async function publishPackages(options = {}) {
       log(`already on npm: ${name}@${version}`)
       continue
     }
-    try {
-      execFileSync(command.command, command.args, {
-        cwd: command.cwd,
-        env: publishEnv,
-        stdio: options.stdio ?? ['ignore', 'inherit', 'pipe'],
-      })
-    } catch (error) {
-      const text = String(error?.stderr ?? '')
-      stderr.write(text)
-      if (!isPublishOverExisting(text) || !isNpmVersionPresent(name, version)) throw error
-      skipped.push(name)
-      log(`already on npm: ${name}@${version}`)
-      continue
+    const result = spawnSync(command.command, command.args, {
+      cwd: command.cwd,
+      env: publishEnv,
+      encoding: 'utf8',
+      stdio: options.stdio ?? ['ignore', 'inherit', 'pipe'],
+    })
+    const text = String(result.stderr ?? '')
+    if (text) stderr.write(text)
+    if (result.error || result.signal || result.status !== 0) {
+      if (isPublishOverExisting(text) && isNpmVersionPresent(name, version)) {
+        skipped.push(name)
+        log(`already on npm: ${name}@${version}`)
+        continue
+      }
+      throw new Error(`npm publish failed for ${name}@${version}: ${publishFailure(result)}`)
     }
     published.push(name)
   }
