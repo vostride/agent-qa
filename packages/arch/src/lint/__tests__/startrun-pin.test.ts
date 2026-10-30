@@ -43,8 +43,7 @@ describe('the permitted set', () => {
   })
 
   it('the core entry records the MEASURED chain, not the draft-shelf link', () => {
-    // F-1 measured `draftShelf.runs.start` reached zero times during a dispatch. A pin whose
-    // rationale had transcribed that chain would be documenting the wrong link while green.
+    // A dispatch never reaches `draftShelf.runs.start`, so the rationale must not name that link.
     const rationale = STARTRUN_PIN[PIN_CORE]!
     expect(rationale).toContain('createDraftEvaluation.startGateRun')
     expect(rationale).not.toContain('draftShelf.runs.start')
