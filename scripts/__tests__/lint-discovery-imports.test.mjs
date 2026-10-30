@@ -160,5 +160,5 @@ test('the live discovery graph reaches the acquisition modules and carries no ru
 test('the lint script exits clean on the live tree', () => {
   const run = spawnSync(process.execPath, [SCRIPT], { cwd: WORKSPACE_ROOT, encoding: 'utf8' })
   assert.equal(run.status, 0, run.stderr)
-  assert.match(run.stdout, /431-discovery-imports OK/u)
+  assert.match(run.stdout, /discovery-imports OK/u)
 })

@@ -20,7 +20,7 @@ beforeAll(async () => {
   detail = await fetch(`${fixture.dashboard.origin}/api/runs/${encodeURIComponent(fixture.drive.runId)}/detail`).then(r => r.json()) as RunDetailProjection
 }, 360_000)
 afterAll(async () => {
-  if (process.env.AGENT_QA_424_CAPTURE_DIR) writeFileSync(join(process.env.AGENT_QA_424_CAPTURE_DIR, 'review-layout-observations.json'), JSON.stringify(observations, null, 2))
+  if (process.env.AGENT_QA_CAPTURE_DIR) writeFileSync(join(process.env.AGENT_QA_CAPTURE_DIR, 'review-layout-observations.json'), JSON.stringify(observations, null, 2))
   await fixture?.close()
   cleanupTempRoots()
 })

@@ -39,7 +39,7 @@ function fixtureProject(legacyTokens = false): string {
           ? {
               services: {
                 mcp: {
-                  tokens: [{ name: 'legacy', tokenEnvVar: 'AGENT_QA_432_21_NEVER_SET_MCP_CRED', scopes: ['read'] }],
+                  tokens: [{ name: 'legacy', tokenEnvVar: 'AGENT_QA_NEVER_SET_TOKEN', scopes: ['read'] }],
                   stdio: { grantConfigWrite: false },
                 },
               },
@@ -133,7 +133,7 @@ describe('agent-qa mcp over spawned stdio', () => {
     const legacy = await listOverStdio(fixtureProject(true))
     expect(legacy.names).toEqual(plain.names)
     expect(legacy.names).toContain('agent_qa_change_config')
-    expect(legacy.stderr()).not.toContain('AGENT_QA_432_21_NEVER_SET_MCP_CRED')
+    expect(legacy.stderr()).not.toContain('AGENT_QA_NEVER_SET_TOKEN')
     expect(legacy.stderr()).not.toContain('Failed to start MCP server')
   }, 60_000)
 })

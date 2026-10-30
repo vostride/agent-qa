@@ -36,18 +36,18 @@ const AUTHORING_TOOL = 'agent_qa_write_test'
 const AUTHORING_SCOPES = ['test-write', 'run', 'read'] as const
 
 // Legacy bearer values, none read; `PLANTED_RO` is also declared, so group 9 measures masking.
-const PLANTED_CFG = 'zz-396-05-cfg-credential-8c14ae'
-const PLANTED_RO = 'zz-396-05-ro-credential-3b90fd'
-const PLANTED_AUTHORING = 'zz-396-05-authoring-credential-71ca'
-const PLANTED_WRONG = 'zz-396-05-never-declared-credential-ff02'
+const PLANTED_CFG = 'zz-cfg-credential-8c14ae'
+const PLANTED_RO = 'zz-ro-credential-3b90fd'
+const PLANTED_AUTHORING = 'zz-authoring-credential-71ca'
+const PLANTED_WRONG = 'zz-never-declared-credential-ff02'
 
 const TOKEN_ENV = {
-  AGENT_QA_396_CFG: PLANTED_CFG,
-  AGENT_QA_396_RO: PLANTED_RO,
-  AGENT_QA_396_AUTHORING: PLANTED_AUTHORING,
-  AGENT_QA_396_AUTHORING_MINUS_TEST_WRITE: 'zz-396-05-minus-test-write-a1',
-  AGENT_QA_396_AUTHORING_MINUS_RUN: 'zz-396-05-minus-run-b2',
-  AGENT_QA_396_AUTHORING_MINUS_READ: 'zz-396-05-minus-read-c3',
+  AGENT_QA_PLANTED_CFG: PLANTED_CFG,
+  AGENT_QA_PLANTED_RO: PLANTED_RO,
+  AGENT_QA_PLANTED_AUTHORING: PLANTED_AUTHORING,
+  AGENT_QA_PLANTED_AUTHORING_MINUS_TEST_WRITE: 'zz-minus-test-write-a1',
+  AGENT_QA_PLANTED_AUTHORING_MINUS_RUN: 'zz-minus-run-b2',
+  AGENT_QA_PLANTED_AUTHORING_MINUS_READ: 'zz-minus-read-c3',
 }
 
 interface Harness {
@@ -62,7 +62,7 @@ interface Harness {
 let harness: Harness
 
 function workspace(): { root: string; configPath: string; agentQaRoot: string } {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-396-05-visibility-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-visibility-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,
@@ -83,7 +83,7 @@ function workspace(): { root: string; configPath: string; agentQaRoot: string } 
     )}\n`,
     'utf8',
   )
-  writeFileSync(join(root, '.env.secrets.local'), `AGENT_QA_396_RO_TOKEN=${PLANTED_RO}\n`, 'utf8')
+  writeFileSync(join(root, '.env.secrets.local'), `AGENT_QA_PLANTED_RO_TOKEN=${PLANTED_RO}\n`, 'utf8')
   const agentQaRoot = join(root, '.agent-qa')
   mkdirSync(agentQaRoot, { recursive: true })
   return { root, configPath, agentQaRoot }
@@ -348,16 +348,16 @@ describe('4 · every grant set sees a three-scope tool, with no adjacency bounda
   })
 
   it('the exact set minus test-write sees it too', async () => {
-    expect(await toolNamesFor(TOKEN_ENV.AGENT_QA_396_AUTHORING_MINUS_TEST_WRITE))
+    expect(await toolNamesFor(TOKEN_ENV.AGENT_QA_PLANTED_AUTHORING_MINUS_TEST_WRITE))
       .toContain(AUTHORING_TOOL)
   })
 
   it('the exact set minus run sees it too', async () => {
-    expect(await toolNamesFor(TOKEN_ENV.AGENT_QA_396_AUTHORING_MINUS_RUN)).toContain(AUTHORING_TOOL)
+    expect(await toolNamesFor(TOKEN_ENV.AGENT_QA_PLANTED_AUTHORING_MINUS_RUN)).toContain(AUTHORING_TOOL)
   })
 
   it('the exact set minus read sees it too', async () => {
-    expect(await toolNamesFor(TOKEN_ENV.AGENT_QA_396_AUTHORING_MINUS_READ)).toContain(AUTHORING_TOOL)
+    expect(await toolNamesFor(TOKEN_ENV.AGENT_QA_PLANTED_AUTHORING_MINUS_READ)).toContain(AUTHORING_TOOL)
   })
 
   it('a config-write-only grant and a read-only grant list the same tools', async () => {

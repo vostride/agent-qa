@@ -49,7 +49,7 @@ import {
 
 const RUN_ID = 'run-408-03-cohost'
 const APP_URI = `ui://agent-qa/live-run/${RUN_ID}`
-const TOKEN_ENV_VAR = 'AGENT_QA_408_03_COHOST_TOKEN'
+const TOKEN_ENV_VAR = 'AGENT_QA_COHOST_TOKEN'
 const TOKEN_VALUE = 'cohost-token-408-03-not-a-real-credential'
 
 function handoff(): CompletedRunHandoff {
@@ -549,7 +549,7 @@ describe('the co-host mount decision is a FUNCTION of the parsed config', () => 
       services: { mcp: { tokens: [DECLARED_TOKEN, { ...DECLARED_TOKEN, name: 'second' }] } },
     })
     const unset = mcpMountPlanFor({
-      services: { mcp: { tokens: [{ name: 'ghost', tokenEnvVar: 'AGENT_QA_408_09_UNSET', scopes: ['read'] }] } },
+      services: { mcp: { tokens: [{ name: 'ghost', tokenEnvVar: 'AGENT_QA_NEVER_SET_TOKEN', scopes: ['read'] }] } },
     })
     expect(two).toEqual({ mount: true, port: MCP_HTTP_DEFAULT_PORT })
     expect(unset).toEqual(two)
@@ -637,7 +637,7 @@ describe('the shipped dashboard composition wires and closes the endpoint', () =
 // A legacy declaration whose variable is set nowhere.
 const UNSET_ENTRY = {
   name: 'ghost',
-  tokenEnvVar: 'AGENT_QA_408_17_UNSET_TOKEN',
+  tokenEnvVar: 'AGENT_QA_NEVER_SET_TOKEN',
   scopes: ['read'],
 } as const
 

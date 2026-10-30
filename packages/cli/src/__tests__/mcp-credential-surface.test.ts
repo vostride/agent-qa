@@ -261,12 +261,12 @@ describe('A · the plants are what the ledger says they are (the non-vacuity gat
     }
 
     // A value only the environment holds is not a declared secret, so it is not hidden.
-    process.env['AGENT_QA_441_07_ENV_ONLY_TOKEN'] = UNSEEDED_PLANT
+    process.env['AGENT_QA_ENV_ONLY_TOKEN'] = UNSEEDED_PLANT
     try {
       expect(masking!.mask(UNSEEDED_PLANT), 'an environment-only value was masked')
         .toBe(UNSEEDED_PLANT)
     } finally {
-      delete process.env['AGENT_QA_441_07_ENV_ONLY_TOKEN']
+      delete process.env['AGENT_QA_ENV_ONLY_TOKEN']
     }
 
     // The discrimination that makes F1 a control rather than a coincidence: this value is NOT

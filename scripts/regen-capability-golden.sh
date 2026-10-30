@@ -21,9 +21,9 @@ FROZEN_MIN_TESTS=554
 # The ledger's row floor, so a truncated or empty mint cannot be written; it follows the registry.
 FROZEN_MIN_ROWS=44
 
-EMIT_FLAG="AGENT_QA_397_GOLDEN_EMIT"
-EMIT_BEGIN="<<<397-06-GOLDEN-BEGIN>>>"
-EMIT_END="<<<397-06-GOLDEN-END>>>"
+EMIT_FLAG="AGENT_QA_GOLDEN_EMIT"
+EMIT_BEGIN="<<<GOLDEN-BEGIN>>>"
+EMIT_END="<<<GOLDEN-END>>>"
 SELFTEST_PROBE="$CLI_DIR/src/__tests__/conformance/regen-capability-golden-selftest-probe.test.ts"
 
 MODE="run"
@@ -43,7 +43,7 @@ note() { echo "[regen-capability-golden] $*" >&2; }
 
 # PORTABLE FORM, DELIBERATELY. `mktemp -d -t <prefix>` is a BSD idiom: on macOS it appends random
 # characters to the prefix, on GNU coreutils the same call FAILS with "too few X's in template".
-SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/397regen.XXXXXXXX")"
+SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/golden-regen.XXXXXXXX")"
 
 cleanup() {
   # The probe is removed unconditionally and first: a selftest interrupted half way through must

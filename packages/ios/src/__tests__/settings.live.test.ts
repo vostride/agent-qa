@@ -16,8 +16,8 @@ import { isToggleElement } from '@vostride/agent-qa-schema'
 import type { Ref, ScreenState } from '@vostride/agent-qa-schema'
 import { IOSPlatformAdapter } from '../adapter.js'
 
-const LIVE = process.env.AGENT_QA_437_IOS_LIVE === '1'
-const UDID = process.env.AGENT_QA_437_IOS_UDID
+const LIVE = process.env.AGENT_QA_IOS_LIVE === '1'
+const UDID = process.env.AGENT_QA_IOS_UDID
 const SETTINGS = 'com.apple.Preferences'
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 const ACCESSIBILITY = 'Accessibility'

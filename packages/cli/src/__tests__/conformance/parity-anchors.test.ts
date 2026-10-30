@@ -473,7 +473,7 @@ describe('the built-binary anchors', () => {
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
 
       const sentinel = 'sk-398-08-anchor-sentinel-6f21ba9c04d7e358'
-      const tokenEnvVar = 'AGENT_QA_398_08_ANCHOR_TOKEN'
+      const tokenEnvVar = 'AGENT_QA_ANCHOR_TOKEN'
       const fixture = fixtureProject('398-08-refs-only', [
         { name: 'ci', tokenEnvVar, scopes: ['read'] },
       ])

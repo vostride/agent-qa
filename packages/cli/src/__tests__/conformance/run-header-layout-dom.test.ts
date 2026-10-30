@@ -58,9 +58,8 @@ async function headerClip(page: Page) {
   })
 }
 
-// This file's own capture directory, so it never overwrites another file's captures.
 async function captureHeader(page: Page, name: string) {
-  const directory = process.env.AGENT_QA_425_CAPTURE_DIR
+  const directory = process.env.AGENT_QA_CAPTURE_DIR
   if (!directory) return
   mkdirSync(directory, { recursive: true })
   await page.screenshot({ path: join(directory, `${name}.png`), clip: await headerClip(page), animations: 'disabled' })
@@ -212,8 +211,8 @@ describe('run header layout on the shipped bundle', () => {
       await zoomContext.close()
       zoomContext = undefined
 
-      if (process.env.AGENT_QA_425_CAPTURE_DIR) {
-        writeFileSync(join(process.env.AGENT_QA_425_CAPTURE_DIR, 'header-observation.json'),
+      if (process.env.AGENT_QA_CAPTURE_DIR) {
+        writeFileSync(join(process.env.AGENT_QA_CAPTURE_DIR, 'header-observation.json'),
           JSON.stringify({ runId: fixture.drive.runId, settled, zoom, geometries }, null, 2))
       }
     } catch (error) { failures.drive = String(error) }

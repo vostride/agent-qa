@@ -73,8 +73,8 @@ describe('recording and parent selection on the shipped bundle', () => {
         }
       })
       await capture(page, 'parent-step-parks-playhead')
-      if (process.env.AGENT_QA_424_CAPTURE_DIR) writeFileSync(
-        join(process.env.AGENT_QA_424_CAPTURE_DIR, 'recording-observation.json'),
+      if (process.env.AGENT_QA_CAPTURE_DIR) writeFileSync(
+        join(process.env.AGENT_QA_CAPTURE_DIR, 'recording-observation.json'),
         JSON.stringify({ src, seek, parent, ledger: ledger.filter(response => response.url.includes('/artifacts/')) }, null, 2),
       )
       await context.close()

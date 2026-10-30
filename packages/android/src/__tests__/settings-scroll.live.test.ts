@@ -15,7 +15,7 @@ import type {
 import type { OperationEvidence, Ref, ScreenState } from '@vostride/agent-qa-schema'
 import { AndroidPlatformAdapter } from '../adapter.js'
 
-const LIVE = process.env.AGENT_QA_436_ANDROID_LIVE === '1'
+const LIVE = process.env.AGENT_QA_ANDROID_LIVE === '1'
 const SETTINGS = 'com.android.settings'
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 

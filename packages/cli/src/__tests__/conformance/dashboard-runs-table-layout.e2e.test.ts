@@ -173,7 +173,7 @@ function seedRuns(root: string): Seeded[] {
   return seeded
 }
 
-async function observe(width: number, uatDir: string | undefined): Promise<ViewportView> {
+async function observe(width: number, captureDir: string | undefined): Promise<ViewportView> {
   const page = await browser!.newPage({ viewport: { width, height: 900 } })
   try {
     await page.goto(`${dashboard!.origin}/runs`)
@@ -239,8 +239,8 @@ async function observe(width: number, uatDir: string | undefined): Promise<Viewp
         ...(badge === undefined ? {} : { badge }),
       }
     }, { badgeRowId: verifyRunId, fitted: [...ALWAYS_SHOWN] })
-    if (uatDir !== undefined && (NARROW as readonly number[]).includes(width)) {
-      const path = join(uatDir, `444-runs-table-${String(width)}.png`)
+    if (captureDir !== undefined && (NARROW as readonly number[]).includes(width)) {
+      const path = join(captureDir, `runs-table-${String(width)}.png`)
       await page.screenshot({ path, fullPage: true })
       scene.screenshots.push(path)
     }
@@ -264,9 +264,9 @@ async function drive(): Promise<void> {
     throw new Error(`the spawned dashboard never said it was listening: ${dashboard.stderr()}`)
   }
   browser = await chromium.launch({ headless: true })
-  const uatDir = process.env.AGENT_QA_444_UAT_DIR?.trim() || undefined
-  if (uatDir !== undefined) mkdirSync(uatDir, { recursive: true })
-  for (const width of VIEWPORTS) scene.views.set(width, await observe(width, uatDir))
+  const captureDir = process.env.AGENT_QA_CAPTURE_DIR?.trim() || undefined
+  if (captureDir !== undefined) mkdirSync(captureDir, { recursive: true })
+  for (const width of VIEWPORTS) scene.views.set(width, await observe(width, captureDir))
 }
 
 function facts(): string {

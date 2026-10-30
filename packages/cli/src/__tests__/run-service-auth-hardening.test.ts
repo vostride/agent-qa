@@ -21,8 +21,8 @@ import {
 } from '../commands/dashboard.js'
 
 // A bearer an older client might present, named without a credential suffix.
-const TOKEN = 'zz-402-06-planted-run-credential-4b91ce'
-const TOKEN_VAR = 'AGENT_QA_402_06_RUN_CRED'
+const TOKEN = 'zz-planted-run-credential-4b91ce'
+const TOKEN_VAR = 'AGENT_QA_PLANTED_RUN_CRED'
 
 // What the door refuses before its route table: the shared same-site guard's rungs.
 const CROSS_SITE_CLASSES = [

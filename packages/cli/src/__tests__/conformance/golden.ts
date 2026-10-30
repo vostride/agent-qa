@@ -411,9 +411,9 @@ export function goldenFieldsThatMoved(
  * opens the golden for writing (`parity.test.ts` asserts that as source), so there is no value of
  * any environment variable, and no runner flag, that causes a test run to bless the ledger.
  */
-export const GOLDEN_EMIT_FLAG = 'AGENT_QA_397_GOLDEN_EMIT'
-export const GOLDEN_EMIT_BEGIN = '<<<397-06-GOLDEN-BEGIN>>>'
-export const GOLDEN_EMIT_END = '<<<397-06-GOLDEN-END>>>'
+export const GOLDEN_EMIT_FLAG = 'AGENT_QA_GOLDEN_EMIT'
+export const GOLDEN_EMIT_BEGIN = '<<<GOLDEN-BEGIN>>>'
+export const GOLDEN_EMIT_END = '<<<GOLDEN-END>>>'
 
 /** True when the regen script asked for the text. Nothing else in the product reads this flag. */
 export function goldenEmitRequested(env: NodeJS.ProcessEnv = process.env): boolean {

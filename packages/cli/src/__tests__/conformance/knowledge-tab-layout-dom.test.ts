@@ -20,7 +20,7 @@ import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard, trackTempRoot }
 // dashboard's. ONE read is substituted: `/api/runs/{id}/knowledge` answers a rich projection built
 // here, parsed through RunKnowledgeProjectionSchema and addressed to the run's real steps, because a
 // fixture run cannot reach every outcome the layout must hold. The real read path is proven by
-// knowledge-tab-dom's (a8), (a9) and (b7). Captures go only where AGENT_QA_427_CAPTURE_DIR points.
+// knowledge-tab-dom's (a8), (a9) and (b7). Captures go only where AGENT_QA_CAPTURE_DIR points.
 const DESKTOP = { width: 1280, height: 800 }
 const NARROW = { width: 400, height: 800 }
 const DESKTOP_LABEL = '1280x800'
@@ -233,7 +233,7 @@ const effects: EffectRead[] = []
 let walk: Walk | undefined
 
 async function captureElement(page: Page, selector: string, name: string) {
-  const directory = process.env.AGENT_QA_427_CAPTURE_DIR
+  const directory = process.env.AGENT_QA_CAPTURE_DIR
   if (!directory) return
   mkdirSync(directory, { recursive: true })
   await page.locator(selector).first().screenshot({ path: join(directory, `${name}.png`), animations: 'disabled' })
@@ -379,7 +379,7 @@ async function frames(page: Page) {
 }
 
 async function captureTo(page: Page, name: string, zoomed = false) {
-  const directory = process.env.AGENT_QA_427_CAPTURE_DIR
+  const directory = process.env.AGENT_QA_CAPTURE_DIR
   if (!directory) return
   mkdirSync(directory, { recursive: true })
   // Under browser zoom a clip is in surface pixels, so the viewport is scaled by devicePixelRatio.
@@ -485,7 +485,7 @@ async function readMachinery(page: Page, state: 'collapsed' | 'open') {
 
 /** The whole collapsed pane in one picture: the viewport made as tall as the pane's content. */
 async function captureFullPane(page: Page, name: string) {
-  if (!process.env.AGENT_QA_427_CAPTURE_DIR) return
+  if (!process.env.AGENT_QA_CAPTURE_DIR) return
   const size = page.viewportSize()!
   const extra = await page.evaluate(() => {
     const owner = document.querySelector('[data-knowledge-state]')!.closest('[data-slot="scroll-area"]')!
@@ -609,9 +609,9 @@ describe('the Knowledge tab on the shipped bundle at three geometries', () => {
     } catch (error) { failures.drive = String(error) }
     const observation = { realRead, realSteps, zoom, remount, geometries, failures, effects, walk,
       machinery: machinery.map(({ sections, ...rest }) => ({ ...rest, sections: Object.fromEntries(Object.entries(sections).map(([name, { text }]) => [name, text])) })) }
-    if (process.env.AGENT_QA_427_CAPTURE_DIR) {
-      mkdirSync(process.env.AGENT_QA_427_CAPTURE_DIR, { recursive: true })
-      writeFileSync(join(process.env.AGENT_QA_427_CAPTURE_DIR, 'knowledge-observation.json'),
+    if (process.env.AGENT_QA_CAPTURE_DIR) {
+      mkdirSync(process.env.AGENT_QA_CAPTURE_DIR, { recursive: true })
+      writeFileSync(join(process.env.AGENT_QA_CAPTURE_DIR, 'knowledge-observation.json'),
         JSON.stringify({ ...observation, projection: worlds.get('settled') }, null, 2))
     }
   }, 480_000)

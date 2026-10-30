@@ -928,9 +928,9 @@ export function catalogFindings(
  * and only under `--write`. So there is no value of any environment variable, and no runner flag,
  * that causes a test run to bless this artifact.
  */
-export const CATALOG_EMIT_FLAG = 'AGENT_QA_398_CATALOG_EMIT'
-export const CATALOG_EMIT_BEGIN = '<<<398-01-CATALOG-BEGIN>>>'
-export const CATALOG_EMIT_END = '<<<398-01-CATALOG-END>>>'
+export const CATALOG_EMIT_FLAG = 'AGENT_QA_CATALOG_EMIT'
+export const CATALOG_EMIT_BEGIN = '<<<CATALOG-BEGIN>>>'
+export const CATALOG_EMIT_END = '<<<CATALOG-END>>>'
 
 /** True when the regen script asked for the text. Nothing else in the product reads this flag. */
 export function catalogEmitRequested(env: NodeJS.ProcessEnv = process.env): boolean {

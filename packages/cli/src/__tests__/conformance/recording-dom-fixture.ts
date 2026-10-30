@@ -152,7 +152,7 @@ export async function recordingFixture(label: string, recordingOff = false, layo
 }
 
 export async function capture(page: Page, name: string) {
-  const directory = process.env.AGENT_QA_424_CAPTURE_DIR
+  const directory = process.env.AGENT_QA_CAPTURE_DIR
   if (!directory) return
   mkdirSync(directory, { recursive: true })
   await page.screenshot({ path: join(directory, `${name}.png`), fullPage: true, animations: 'disabled' })

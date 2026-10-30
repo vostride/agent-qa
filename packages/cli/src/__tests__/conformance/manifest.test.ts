@@ -332,7 +332,7 @@ describe('the agent manifest', () => {
     // thought to look at, so what is asserted is the ABSENCE OF THE BYTES from the whole
     // serialized document — the surface a person actually reads.
     const sentinel = 'sk-398-08-sentinel-2b41c9d7e5f60a83'
-    const tokenEnvVar = 'AGENT_QA_398_08_SENTINEL_TOKEN'
+    const tokenEnvVar = 'AGENT_QA_SENTINEL_TOKEN'
     const configPath = join(fixtureProject('refs-only', tokenEnvVar), 'agent-qa.config.yaml')
 
     const previous = process.env[tokenEnvVar]

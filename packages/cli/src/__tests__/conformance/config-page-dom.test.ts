@@ -254,7 +254,7 @@ async function openTab(harness: Harness, page: Page, tab: string) {
 }
 
 function captureDir(): string | undefined {
-  const directory = process.env.AGENT_QA_429_CAPTURE_DIR
+  const directory = process.env.AGENT_QA_CAPTURE_DIR
   if (!directory) return undefined
   mkdirSync(directory, { recursive: true })
   return directory

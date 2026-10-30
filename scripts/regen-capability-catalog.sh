@@ -21,9 +21,9 @@ FROZEN_MIN_TESTS=129
 # The artifact's row floor, so a truncated or empty mint cannot be written; it follows the mint.
 FROZEN_MIN_ROWS=52
 
-EMIT_FLAG="AGENT_QA_398_CATALOG_EMIT"
-EMIT_BEGIN="<<<398-01-CATALOG-BEGIN>>>"
-EMIT_END="<<<398-01-CATALOG-END>>>"
+EMIT_FLAG="AGENT_QA_CATALOG_EMIT"
+EMIT_BEGIN="<<<CATALOG-BEGIN>>>"
+EMIT_END="<<<CATALOG-END>>>"
 SELFTEST_PROBE="$CLI_DIR/src/__tests__/conformance/regen-capability-catalog-selftest-probe.test.ts"
 
 MODE="run"
@@ -43,7 +43,7 @@ note() { echo "[regen-capability-catalog] $*" >&2; }
 
 # PORTABLE FORM, DELIBERATELY. `mktemp -d -t <prefix>` is a BSD idiom: on macOS it appends random
 # characters to the prefix, on GNU coreutils the same call FAILS with "too few X's in template".
-SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/398regen.XXXXXXXX")"
+SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/catalog-regen.XXXXXXXX")"
 
 cleanup() {
   # The probe is removed unconditionally and first: a selftest interrupted half way through must

@@ -16,8 +16,8 @@ import { isToggleElement } from '@vostride/agent-qa-schema'
 import type { Ref, ScreenState } from '@vostride/agent-qa-schema'
 import { AndroidPlatformAdapter } from '../adapter.js'
 
-const LIVE = process.env.AGENT_QA_437_ANDROID_LIVE === '1'
-const SECURE_APPIUM_URL = process.env.AGENT_QA_437_SECURE_APPIUM_URL
+const LIVE = process.env.AGENT_QA_ANDROID_LIVE === '1'
+const SECURE_APPIUM_URL = process.env.AGENT_QA_SECURE_APPIUM_URL
 const SETTINGS = 'com.android.settings'
 const LIMITS: PlannerConfig = { maxActions: 30, maxPlanningTurns: 30, previousStepCount: 0 }
 const ROW = 'Network & internet'

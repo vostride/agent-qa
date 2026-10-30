@@ -27,7 +27,7 @@ const BROWSER_INSTALL_INSTRUCTION =
   + '`pnpm exec playwright install chromium` and re-run. They must not be skipped when the browser '
   + 'is absent.'
 
-const CAPTURE_DIR_ENV = 'AGENT_QA_428_CAPTURE_DIR'
+const CAPTURE_DIR_ENV = 'AGENT_QA_CAPTURE_DIR'
 const DESKTOP = { width: 1280, height: 800 }
 const NARROW = { width: 400, height: 800 }
 
@@ -414,7 +414,7 @@ describe('the live step rows on the shipped bundle', () => {
       await onLivePage(LONG_RUN, async (page) => {
         const reading = await readLongLabel(page)
         expectLongLabelFullyVisible(reading, viewport)
-        await captureElement(page, '[data-live-pane="steps"]', `428-live-steps-long-${String(viewport.width)}`)
+        await captureElement(page, '[data-live-pane="steps"]', `live-steps-long-${String(viewport.width)}`)
       }, viewport)
     }
   }, 120_000)
@@ -439,13 +439,13 @@ describe('the live step rows on the shipped bundle', () => {
       expect(reading.rows.map((row) => row.text), context).toEqual([...ROWS_STEP_TEXTS])
       expect(reading.paneText, `${context} — the pane`).not.toMatch(/\d+:\d{2}|action/iu)
       expect(reading.progressbars, context).toBe(0)
-      await captureElement(page, '[data-live-pane="steps"]', '428-live-steps-1280')
+      await captureElement(page, '[data-live-pane="steps"]', 'live-steps-1280')
     })
     await onLivePage(ROWS_RUN, async (page) => {
       await waitForRowsInAllStates(page)
       const reading = await readRows(page)
       expect(reading.rows.every((row) => row.elementChildren === 2), JSON.stringify(reading)).toBe(true)
-      await captureElement(page, '[data-live-pane="steps"]', '428-live-steps-400')
+      await captureElement(page, '[data-live-pane="steps"]', 'live-steps-400')
     }, NARROW)
   }, 120_000)
 
@@ -527,7 +527,7 @@ describe('the live page layout on the shipped bundle', () => {
         expect(dotBox.y + dotBox.height, `${context} — in the pane's top quarter`)
           .toBeLessThanOrEqual(preview.y + preview.height / 4)
       }
-      await capturePage(page, '428-live-page-400')
+      await capturePage(page, 'live-page-400')
     }, NARROW)
   }, 120_000)
 
@@ -548,7 +548,7 @@ describe('the live page layout on the shipped bundle', () => {
       expect(layout.dotInCorner, context).toBe(true)
       expect(layout.chromeRow, context).toBe(false)
       expect(layout.dotOverlapsFrame, context).toBe(false)
-      await capturePage(page, '428-live-page-1280')
+      await capturePage(page, 'live-page-1280')
     })
   }, 120_000)
 
@@ -731,7 +731,7 @@ describe('a suite\'s shipped page follows its running member', () => {
         embeds: document.querySelectorAll('[data-live-embed]').length,
       }))
       expect(after, JSON.stringify({ ...trace, after })).toEqual({ state: 'live', dot: 'green', embeds: 1 })
-      await capturePage(page, '428-live-suite-follow-1280')
+      await capturePage(page, 'live-suite-follow-1280')
     }, DESKTOP, (page) => { recordMints(page, mints) })
   }, 120_000)
 })

@@ -51,7 +51,7 @@ let inspecting: Inspecting | undefined
 let markPath: MarkPath | undefined
 
 async function captureTo(page: Page, name: string, zoomed = false) {
-  const directory = process.env.AGENT_QA_426_CAPTURE_DIR
+  const directory = process.env.AGENT_QA_CAPTURE_DIR
   if (!directory) return
   mkdirSync(directory, { recursive: true })
   // Under browser zoom a clip is in surface pixels, so the viewport is scaled by devicePixelRatio.
@@ -748,8 +748,8 @@ describe('contextual feedback on the shipped bundle', () => {
         newEntryMarkId, newEntryFirst, newEntryControls, newEntryApplied }
       await markContext.close()
 
-      if (process.env.AGENT_QA_426_CAPTURE_DIR) {
-        writeFileSync(join(process.env.AGENT_QA_426_CAPTURE_DIR, 'feedback-observation.json'),
+      if (process.env.AGENT_QA_CAPTURE_DIR) {
+        writeFileSync(join(process.env.AGENT_QA_CAPTURE_DIR, 'feedback-observation.json'),
           JSON.stringify({ runId, settled, triggers, pills, inspecting, markPath,
             layout: { zoom, headerGeometries, composerGeometries, stepRows, remount, contrast, aria } }, null, 2))
       }

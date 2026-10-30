@@ -17,7 +17,7 @@ import {
   buildKnowledgeAgentGuide,
 } from '../commands/knowledge-guide.js'
 
-const CLI_ENTRY = process.env['AGENT_QA_433_PARITY_CLI']
+const CLI_ENTRY = process.env['AGENT_QA_PARITY_CLI']
   ?? resolve(dirname(fileURLToPath(import.meta.url)), '../../dist/cli.js')
 
 const roots: string[] = []

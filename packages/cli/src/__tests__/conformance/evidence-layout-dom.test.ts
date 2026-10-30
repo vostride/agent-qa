@@ -217,7 +217,7 @@ describe('evidence layout backstops on the shipped bundle', () => {
         await page.getByRole('button', { name: 'Close screenshot', exact: true }).click()
         await page.locator('[data-player-lightbox]').waitFor({ state: 'hidden' })
       }
-      if (process.env.AGENT_QA_424_CAPTURE_DIR) writeFileSync(join(process.env.AGENT_QA_424_CAPTURE_DIR, 'layout-observation.json'), JSON.stringify({ timeline, tabs, zoom, notice, lightboxes, inputTexts }, null, 2))
+      if (process.env.AGENT_QA_CAPTURE_DIR) writeFileSync(join(process.env.AGENT_QA_CAPTURE_DIR, 'layout-observation.json'), JSON.stringify({ timeline, tabs, zoom, notice, lightboxes, inputTexts }, null, 2))
       await context.close()
     } catch (error) { failures.drive = String(error) }
   }, 360_000)

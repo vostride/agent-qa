@@ -17,8 +17,8 @@ import * as mcpCommand from '../commands/mcp.js'
 import { composeMcpMasking, createMcpHttpRequestListener, MCP_FUNCTION_CALLER } from '../commands/mcp.js'
 
 /** The value that must never appear in any message, header or body this suite can reach. */
-const PLANTED = 'zz-396-05-planted-credential-4f1c9a'
-const PLANTED_VAR = 'AGENT_QA_396_MCP_CRED'
+const PLANTED = 'zz-planted-credential-4f1c9a'
+const PLANTED_VAR = 'AGENT_QA_PLANTED_MCP_CRED'
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
 

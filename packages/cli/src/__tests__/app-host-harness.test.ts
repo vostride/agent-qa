@@ -55,7 +55,7 @@ const BROWSER_INSTALL_INSTRUCTION =
   + 'without a browser proves nothing: run `pnpm exec playwright install chromium` and re-run. '
   + 'THIS MUST NOT BE SKIPPED WHEN THE BROWSER IS ABSENT (a skipped browser suite is a failed gate).'
 
-const TOKEN_ENV_VAR = 'AGENT_QA_408_06_HARNESS_TOKEN'
+const TOKEN_ENV_VAR = 'AGENT_QA_HARNESS_TOKEN'
 const TOKEN_VALUE = 'harness-token-408-06-not-a-real-credential'
 
 // A static page gets a keepalive every 2 s; above the band means a poller, below a silent producer.

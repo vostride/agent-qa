@@ -12,9 +12,9 @@ import { fileURLToPath } from 'node:url'
 import { generateTestId } from '@vostride/agent-qa-ids'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 
-const LIVE = process.env.AGENT_QA_438_LIVE_MODEL === '1'
-const AUTH_PLUGIN = process.env.AGENT_QA_438_LIVE_AUTH_PLUGIN
-const LLM = process.env.AGENT_QA_438_LIVE_LLM ?? 'gpt-6.1-sol'
+const LIVE = process.env.AGENT_QA_LIVE_MODEL === '1'
+const AUTH_PLUGIN = process.env.AGENT_QA_LIVE_AUTH_PLUGIN
+const LLM = process.env.AGENT_QA_LIVE_LLM ?? 'gpt-6.1-sol'
 const PROVIDER = 'openai-subscription'
 
 /** packages/cli/src/__tests__ -> packages/cli/dist/cli.js */
@@ -216,11 +216,11 @@ function runReading(run: LiveRun, clicked: readonly string[]): string {
 function requireLiveSetup(): void {
   expect(
     AUTH_PLUGIN,
-    'AGENT_QA_438_LIVE_AUTH_PLUGIN is unset: name the built agent-qa-subscription-auth dist/index.js',
+    'AGENT_QA_LIVE_AUTH_PLUGIN is unset: name the built agent-qa-subscription-auth dist/index.js',
   ).toBeDefined()
   expect(
     existsSync(AUTH_PLUGIN!),
-    `AGENT_QA_438_LIVE_AUTH_PLUGIN names no file: ${String(AUTH_PLUGIN)}`,
+    `AGENT_QA_LIVE_AUTH_PLUGIN names no file: ${String(AUTH_PLUGIN)}`,
   ).toBe(true)
   expect(existsSync(CLI_DIST), 'packages/cli/dist/cli.js is missing: run pnpm build').toBe(true)
 }

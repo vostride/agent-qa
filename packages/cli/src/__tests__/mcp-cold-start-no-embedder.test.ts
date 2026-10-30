@@ -49,7 +49,7 @@ interface LintModule {
 const trap = await import(pathToFileURL(TRAP_PATH).href) as TrapModule
 const lint = await import(pathToFileURL(LINT_PATH).href) as LintModule
 
-const READER = 'zz-431-06-reader-credential-71d0c4'
+const READER = 'zz-reader-credential-71d0c4'
 const PNG_BASE64 =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=='
 const PNG = Uint8Array.from(atob(PNG_BASE64), (char) => char.charCodeAt(0))
@@ -277,7 +277,7 @@ describe('COLD-MCP-NO-RUNTIME', () => {
     const report = join(scratch('stdio'), 'trap.jsonl')
     const transport = new StdioClientTransport({
       command: process.execPath, args: ['--import', trap.TRAP_URL, CLI_ENTRY, 'mcp'], cwd: p.root,
-      env: trapEnv(report, scratch('models'), { AGENT_QA_431_06_READER: READER }), stderr: 'pipe',
+      env: trapEnv(report, scratch('models'), { AGENT_QA_READER: READER }), stderr: 'pipe',
     })
     let stderr = ''
     transport.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString('utf8') })
@@ -301,7 +301,7 @@ describe('COLD-MCP-NO-RUNTIME', () => {
     const report = join(scratch('cohost'), 'trap.jsonl')
     const child: ChildProcess = spawn(process.execPath, [
       '--import', trap.TRAP_URL, CLI_ENTRY, 'dashboard', '--port', String(dashboardPort), '--db', p.dbPath,
-    ], { cwd: p.root, env: trapEnv(report, scratch('models'), { AGENT_QA_431_06_READER: READER }),
+    ], { cwd: p.root, env: trapEnv(report, scratch('models'), { AGENT_QA_READER: READER }),
       stdio: ['ignore', 'pipe', 'pipe'] })
     let stdout = ''
     let stderr = ''

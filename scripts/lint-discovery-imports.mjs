@@ -376,15 +376,15 @@ function main() {
   for (const violation of result.violations) {
     failures.push(`${violation.rule}: ${violation.file}:${violation.line} ${violation.specifier}`)
   }
-  console.log(`431-discovery-imports: ${result.graph.length} modules from ${DISCOVERY_ENTRIES.length} entries; `
+  console.log(`discovery-imports: ${result.graph.length} modules from ${DISCOVERY_ENTRIES.length} entries; `
     + `acquisition roots ${derived.roots.join(', ')}; forbidden ${names.length}; `
     + `acquisition calls ${result.acquisitionCalls.join(', ')}`)
   if (failures.length > 0) {
-    for (const failure of failures) console.error(`431-discovery-imports FAIL ${failure}`)
+    for (const failure of failures) console.error(`discovery-imports FAIL ${failure}`)
     process.exitCode = 1
     return
   }
-  console.log('431-discovery-imports OK: no embedding runtime on the discovery request path')
+  console.log('discovery-imports OK: no embedding runtime on the discovery request path')
 }
 
 if (process.argv[1] !== undefined && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) main()

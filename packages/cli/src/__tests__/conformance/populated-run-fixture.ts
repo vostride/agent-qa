@@ -27,14 +27,14 @@ import type { SpawnedDashboard } from './spawned-chat.js'
  * opens nothing, and exists only inside a temp project's child environment. It is deliberately
  * distinctive so a scan of `events.jsonl` or the SQLite bytes for it cannot match by accident.
  */
-export const POPULATED_SECRET_VALUE = 'zz-405-populated-secret-7f3a91c2'
+export const POPULATED_SECRET_VALUE = 'zz-populated-secret-7f3a91c2'
 
 /**
  * The environment variable name the spawned dashboard carries it under. The `_SECRET` suffix makes
  * it credential-shaped by name; only a value declared in the fixture's secrets file is masked, so
  * the suffix alone masks nothing.
  */
-export const POPULATED_SECRET_ENV_VAR = 'AGENT_QA_405_09_POPULATED_SECRET'
+export const POPULATED_SECRET_ENV_VAR = 'AGENT_QA_POPULATED_SECRET'
 
 /** The name the project's secrets file declares — the handle the step text addresses. */
 export const POPULATED_SECRET_NAME = 'POPULATED_STEP_SECRET'
@@ -46,7 +46,7 @@ export const POPULATED_SECRET_NAME = 'POPULATED_STEP_SECRET'
  * `[secret:<name>]` before it is recorded, so sharing one value between the two channels would
  * erase the contrast between a declared value and an undeclared one.
  */
-export const POPULATED_DECLARED_SECRET_VALUE = 'zz-405-declared-secret-3c8e1f60'
+export const POPULATED_DECLARED_SECRET_VALUE = 'zz-declared-secret-3c8e1f60'
 
 /** The address planted in the page and in the planner's reasoning; masked to `<EMAIL_n>`. */
 export const POPULATED_EMAIL = 'qa-person@example.com'

@@ -27,7 +27,7 @@ const BROWSER_INSTALL_INSTRUCTION =
   + '`pnpm exec playwright install chromium` and re-run. They must not be skipped when the browser '
   + 'is absent.'
 
-const CAPTURE_DIR_ENV = 'AGENT_QA_428_CAPTURE_DIR'
+const CAPTURE_DIR_ENV = 'AGENT_QA_CAPTURE_DIR'
 const DESKTOP = { width: 1280, height: 800 }
 const NARROW = { width: 400, height: 800 }
 
@@ -357,13 +357,13 @@ describe('the live preview corner on the shipped bundle', () => {
       await waitForGreen(page)
       const geometry = await statusGeometry(page)
       expectDotTopRightOfContainer(geometry, '1280')
-      await capture(page, '428-corner-healthy-1280')
+      await capture(page, 'live-preview-corner-healthy-1280')
     })
     await onLivePage(DOT_RUN, async (page) => {
       await waitForGreen(page)
       const geometry = await statusGeometry(page)
       expectDotTopRightOfContainer(geometry, '400')
-      await capture(page, '428-corner-healthy-400')
+      await capture(page, 'live-preview-corner-healthy-400')
     }, NARROW)
   }, 120_000)
 
@@ -398,7 +398,7 @@ describe('the live preview corner on the shipped bundle', () => {
       expect(await page.getByRole('button', { name: AMBER_NAME }).count(), context).toBe(1)
       expect(beatsDuring, `${context} — the bus kept heartbeating through the stall`).toBeGreaterThan(0)
       expect(framesDuring, `${context} — no frame was produced while stalled`).toBe(0)
-      await capture(page, '428-corner-delayed-1280')
+      await capture(page, 'live-preview-corner-delayed-1280')
 
       const resumedAt = Date.now()
       run.resume()
@@ -422,14 +422,14 @@ describe('the live preview corner on the shipped bundle', () => {
       const label = page.locator('[data-preview-corner] [data-snapshot-label]')
       await label.waitFor({ state: 'attached', timeout: 10_000 })
       expect(await label.textContent()).toBe(SNAPSHOT_PREVIEW_LABEL)
-      await capture(page, '428-corner-snapshot-1280')
+      await capture(page, 'live-preview-corner-snapshot-1280')
     })
     await onLivePage(SNAPSHOT_RUN, async (page) => {
       await waitForGreen(page)
       const label = page.locator('[data-preview-corner] [data-snapshot-label]')
       await label.waitFor({ state: 'attached', timeout: 10_000 })
       expect(await label.textContent()).toBe(SNAPSHOT_PREVIEW_LABEL)
-      await capture(page, '428-corner-snapshot-400')
+      await capture(page, 'live-preview-corner-snapshot-400')
     }, NARROW)
   }, 120_000)
 

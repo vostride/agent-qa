@@ -8,8 +8,8 @@ import { fileURLToPath } from 'node:url'
 
 import { deriveForbiddenRuntime, WORKSPACE_ROOT } from './lint-discovery-imports.mjs'
 
-export const TRAP_REPORT_ENV = 'AGENT_QA_431_TRAP_REPORT'
-export const TRAP_SENTINEL = 'AGENT_QA_431_RUNTIME_LOAD_TRAPPED'
+export const TRAP_REPORT_ENV = 'AGENT_QA_TRAP_REPORT'
+export const TRAP_SENTINEL = 'AGENT_QA_RUNTIME_LOAD_TRAPPED'
 export const TRAP_URL = import.meta.url
 export const MODEL_ASSET_EXTENSIONS = Object.freeze(['.i8bin', '.onnx', '.onnx_data'])
 export const FLOOR_ASSET_DIR = join(WORKSPACE_ROOT, 'packages', 'knowledge-local', 'assets')

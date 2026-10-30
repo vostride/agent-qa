@@ -33,7 +33,7 @@ note() { echo "[mcp-conformance] $*" >&2; }
 # characters to the prefix, and on GNU coreutils the same call FAILS with "too few X's in template".
 # This script runs on the operator's mac AND on the ubuntu CI runner, and a guard that only works on
 # one platform is the exact shape of a defect this project has already shipped once.
-SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/396conformance.XXXXXXXX")"
+SANDBOX="$(mktemp -d "${TMPDIR:-/tmp}/mcp-conformance.XXXXXXXX")"
 SERVER_PID=""
 
 cleanup() {

@@ -10,8 +10,8 @@ import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
 import { composeRunServicePorts, createRunServiceReadiness } from '../commands/dashboard.js'
 
 /** The value that must never appear in any message this suite can reach. */
-const PLANTED = 'zz-402-01-planted-run-credential-8b3e17'
-const PLANTED_VAR = 'AGENT_QA_402_RUN_CRED'
+const PLANTED = 'zz-planted-run-credential-8b3e17'
+const PLANTED_VAR = 'AGENT_QA_PLANTED_RUN_CRED'
 
 const SRC = join(dirname(fileURLToPath(import.meta.url)), '..')
 
