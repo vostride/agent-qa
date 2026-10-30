@@ -4276,7 +4276,6 @@ export function createRunCommand(): Command {
         const runDigests = { runLevel: produced.configDigests }
         let singleQuarantined: readonly QuarantineAppliedEntry[] = []
 
-        // The verdict map stays a door concern until task 3 hands the whole drive over.
         const { mapVerdictToExitCode } = await import('@vostride/agent-qa-runner')
 
         const singleExecutionContext = resolveRunExecutionContext()

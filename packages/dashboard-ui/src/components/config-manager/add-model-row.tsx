@@ -604,7 +604,7 @@ export function AddModelRow({
     void flow.start(provider, name)
   }
 
-  /** Research A3: a sign-in this draft created follows the name; one that existed before never moves. */
+  /** A sign-in this draft created follows the name; one that existed before never moves. */
   async function settleName() {
     const error = validate("name")
     showError("name", error)

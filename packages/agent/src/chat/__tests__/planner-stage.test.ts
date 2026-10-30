@@ -142,10 +142,6 @@ describe('readBackPlan: the shaping, in isolation', () => {
   })
 
   it('carries answer_only through as a call, projecting NOTHING off it', () => {
-    // The projection this replaced lifted the first call's `text` onto the outcome as a
-    // convenience. Once the tool contract asked for one call per answered clause that convenience
-    // carried strictly less than the calls it came from, and reconciliation trusted it — so the
-    // shaping now hands the calls over whole and the reader that needs prose reads the claim.
     const outcome = readBackPlan([{ toolName: ANSWER_ONLY_TOOL_NAME, input: { text: 'three' } }])
     expect(outcome.toolCalls).toEqual([{ toolName: ANSWER_ONLY_TOOL_NAME, input: { text: 'three' } }])
     expect('answer' in outcome).toBe(false)

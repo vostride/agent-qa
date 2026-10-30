@@ -390,7 +390,7 @@ export function connectedSavedText(name: string): string {
 }
 
 export const BECAME_DEFAULT_TEXT = "It's now the default model."
-/** A sign-in choice whose auth plugin is not registered (research A8); the CLI names the same package. */
+/** A sign-in choice whose auth plugin is not registered; the CLI names the same package. */
 export function signInPluginMissingText(choiceLabel: string): string {
   return `${choiceLabel} needs the @vostride/agent-qa-subscription-auth plugin. Install it and list it under plugins.auth in agent-qa.config.yaml.`
 }

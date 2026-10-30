@@ -1626,12 +1626,7 @@ function markerBearingRoot(component: string): string {
   return root
 }
 
-// The walk's fixture factory. Round 7's walk drew every path from the two root helpers, so no
-// cell it could build was able to carry the disposition marker — the same defect class as a
-// matrix generated from the vocabulary the implementation already satisfies, one layer up, and
-// the reason fifteen green cells reported a universal that a caller-supplied path falsified in
-// all three of its clauses. Crossing these roots with the entries below is what lets the walk
-// GENERATE the inputs that break its own invariant instead of merely sampling around them.
+// Crossed with the walk's entries so the walk builds paths that carry the disposition marker.
 const REFUSAL_WALK_ROOTS = [
   {
     name: 'ordinary root',
@@ -1784,7 +1779,6 @@ const REFUSAL_PATH_WALK = [
     },
   },
   {
-    // Round-6 gap 3: this is the path the verifier reproduced escaping with NO disposition.
     name: 'durable temporary: replacement-path PRE-RENAME mode revert',
     disposition: 'retained',
     run: (root: string) => {
@@ -2270,11 +2264,7 @@ describe('the durable temporary is invisible to a commit', () => {
     expect(records.every(record => record.targetCovered)).toBe(true)
     expect(records.length).toBeGreaterThan(1)
 
-    // KNOWLEDGE ROOT. Round 9 measured coverage against the target root's git only and
-    // recorded the .gitignore's own temporary as the only uncovered one in the whole run.
-    // That holds per ROOT, not per run: a nested repository does not inherit the parent's
-    // rules (the control below measures it), so the knowledge tree needs the same
-    // first-write property, and the assertion is that PROPERTY rather than any index.
+    // A nested repository ignores the parent's rules, so the knowledge tree needs it too.
     const firstKnowledgeWrite = records.findIndex(
       record => record.path.startsWith(`${knowledgeRoot}${sep}`),
     )

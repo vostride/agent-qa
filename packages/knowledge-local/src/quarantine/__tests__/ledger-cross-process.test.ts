@@ -367,10 +367,7 @@ describe('quarantine ledger under real cross-process contention', () => {
       publishMarker(markers.go)
       await waitFor('the child to fold pre-release state', () => existsSync(markers.folded), handle)
 
-      // FINDING 1, and it is structural rather than lucky: a fold that sees pre-release state sees
-      // an OPEN window, and `operations.add` routes an open window to `renewed`. The `entered`
-      // branch the truth worries about is only reachable from an absent or already-released fold —
-      // which is to say, never from pre-release state.
+      // A pre-release fold sees an open window, which `operations.add` routes to `renewed`.
       expect(JSON.parse(readFileSync(markers.folded, 'utf8'))).toEqual({
         decision: 'renewed',
         observedState: 'quarantined',
@@ -387,7 +384,7 @@ describe('quarantine ledger under real cross-process contention', () => {
       expect(read.events.map((event) => event.kind))
         .toEqual(['entered', 'released-manual', 'renewed'])
 
-      // FINDING 2: the release STANDS, on the read side, independently of any lock.
+      // The release stands on the read side, independently of any lock.
       const entries = foldQuarantineLedgerState(read.events, READ_NOW)
       expect(entries).toHaveLength(1)
       expect(entries[0].state).toBe('released')

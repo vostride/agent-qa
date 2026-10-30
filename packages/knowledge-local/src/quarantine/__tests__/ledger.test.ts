@@ -629,11 +629,7 @@ describe('appendQuarantineEvents', () => {
   }
 
   it('the two modes are NOT interchangeable — the old disjunction was satisfied by both', () => {
-    // The control this replaced read: `refusedLines.length > 0 && events.length === 0`, OR a
-    // `catch` setting the same flag. A whole-file member satisfies it through the catch; a
-    // line-level member satisfies it through the refusedLines half — so a member could move
-    // between the groups and the corpus would not notice. This leg asserts the two directions the
-    // disjunction merged, so moving a member reds exactly one group.
+    // Each mode is asserted in its own direction, so moving a member reds exactly one group.
     handWrite([canonicalJson(entered({ schemaVersion: 3 }))])
     expect(() => readQuarantineLedger(knowledgeRoot)).toThrow(QuarantineLedgerVersionError)
 

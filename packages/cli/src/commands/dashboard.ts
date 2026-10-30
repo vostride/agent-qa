@@ -140,9 +140,7 @@ export function overlayDashboardBaseUrl(
         })
       }
 
-      // An empty segment is left ABSENT rather than overlaid as `''`: `formatEntityUrl` refuses an
-      // empty workspace, so an empty entry would be a base that reads as present and renders
-      // nothing — the same inert state gap 1 was, one layer down.
+      // An empty segment stays absent, because `formatEntityUrl` refuses an empty workspace.
       if (
         workspaceSegment !== undefined
         && workspaceSegment.trim() !== ''

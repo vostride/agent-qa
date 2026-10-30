@@ -150,23 +150,7 @@ export interface QuarantineDetectionResult {
 
 const MS_PER_DAY = 86_400_000
 
-/**
- * The subsystem's ONE ordering rule: a TOTAL order over the identity key, by CODE UNIT.
- *
- * `<` on two strings compares UTF-16 code units. That is a total order over distinct strings — it
- * answers 0 only for equal keys — and it is a property of the STRINGS, not of the machine. Both
- * halves matter, and `String.prototype.localeCompare` (which this replaced) has neither:
- *
- *  - it resolves against the host's default locale and ICU build, so two checkouts of one commit
- *    could order the same ledger differently;
- *  - it answers 0 for canonically-equivalent-but-distinct names (an NFC/NFD pair), and
- *    `Array.prototype.sort` is stable, so a 0 hands the ordering decision back to the caller's
- *    iteration order — which is exactly the dependency `evaluateQuarantineDetection` denies.
- *
- * Every ordering site in the subsystem routes through here: both sorts in the detection ladder and
- * the identity tiebreak in `operations.ts`'s `triageOrder`, which already compared bytes and is
- * where this spelling was lifted from.
- */
+/** The subsystem's one ordering rule: code-unit order, total and the same under every locale. */
 export function compareQuarantineIdentity(
   left: QuarantineIdentity,
   right: QuarantineIdentity,

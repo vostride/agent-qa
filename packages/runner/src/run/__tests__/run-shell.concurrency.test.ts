@@ -384,8 +384,7 @@ describe('ordering edge — outcome slots are index-addressed, not completion-or
   it('attributes every outcome to its OWN member under fully inverted completion', async () => {
     const calls: string[] = []
     const finished: string[] = []
-    // m2 finishes first, then m1, then m0 — the exact inverse of declaration order, which is the
-    // one thing the `for` loop this replaced could never produce.
+    // m2 finishes first, then m1, then m0: the exact inverse of declaration order.
     const releaseM1 = deferred()
     const releaseM0 = deferred()
     const m2Done = deferred()

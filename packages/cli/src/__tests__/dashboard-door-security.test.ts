@@ -22,7 +22,7 @@ const MARKED_RUN = 'run-door-security'
 const MARK_PATH = `/api/runs/${MARKED_RUN}/mark`
 const MARK_BODY = JSON.stringify({ kind: 'false-fail', note: 'door security' })
 
-/** A run row the dashboard's own run read serves, so gap 7's synchronous read arm has a subject. */
+/** A run row the dashboard's own run read serves, for the synchronous read arm's cells. */
 const READ_RUN = 'run-read'
 
 // ---- the fixture project -------------------------------------------------------------------
@@ -67,13 +67,7 @@ interface DoorFixture {
 
 const openDoors: DoorFixture[] = []
 
-/**
- * The door as `agent-qa dashboard` composes it, served by the shipped `startServer`.
- *
- * `wrapHost` exists for gap 7's backstop cells and nothing else: it composes the SHIPPED host and
- * then replaces exactly one of its members with a throwing one, which is how a fault is injected
- * at a seam the product really has rather than by standing up a lookalike door.
- */
+/** The door `agent-qa dashboard` composes; `wrapHost` swaps one host member for a throwing one. */
 async function openDoor(options: {
   readonly wrapHost?: (host: AgentHost) => AgentHost
   readonly secrets?: string
@@ -462,7 +456,7 @@ async function openProviderSink(): Promise<{ readonly baseUrl: string; hits(): n
   }
 }
 
-// ---- gap 6: the cross-origin drive ---------------------------------------------------------
+// ---- the cross-origin drive ----------------------------------------------------------------
 
 describe('the fourth door refuses a cross-origin drive before anything happens', () => {
   it('refuses the CORS simple request, before the mark reaches the host', async () => {
@@ -645,7 +639,7 @@ describe('the declared mask the dashboard command binds', () => {
   })
 })
 
-// ---- gap 7: the malformed request path -----------------------------------------------------
+// ---- the malformed request path ------------------------------------------------------------
 
 /** Everything that escaped the server while a cell ran — the second half of every survival claim. */
 function watchForEscapes(): { readonly escaped: unknown[]; readonly stop: () => void } {

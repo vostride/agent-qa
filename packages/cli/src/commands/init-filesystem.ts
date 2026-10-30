@@ -1143,16 +1143,7 @@ function checkIgnoreStatus(cwd: string, path: string): number {
   )
 }
 
-/**
- * What the run has ALREADY written at the moment a verification refuses.
- *
- * The closing clause of a refusal is a statement of fact about the operator's tree, so it
- * cannot be a constant. Round 9 made `upsertManagedGitignoreBlock` the FIRST write of the
- * run, executed immediately before the target-root verification — from which point the
- * unconditional "no files were changed" was false at that call site, and false of the whole
- * scaffold at the post-loop knowledge-root one. The information is kept and conditioned
- * rather than dropped: an operator deciding whether to re-run needs to know what is on disk.
- */
+/** What the run has already written when a verification refuses, which the refusal states. */
 export type InitWritesSoFar = 'nothing' | 'managed-gitignore' | 'managed-gitignore-and-scaffold'
 
 const UNCHANGED_CLAUSE: Record<InitWritesSoFar, string> = {

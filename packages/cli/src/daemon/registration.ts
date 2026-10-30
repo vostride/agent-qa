@@ -288,20 +288,7 @@ export async function classifyDaemonRegistration(
     lease,
     identityFailure,
   }
-  /**
-   * All four read kinds by name, with no bare non-parsed short-circuit above the verdict.
-   *
-   * The line this replaced was `if (lease.kind !== 'parsed') return staleOutcome`, and it made the
-   * carefully-argued `unknown` arm below unreachable for the one input class the argument was
-   * about: a `.lease` that exists and could not be opened. Round 5 reproduced the consequence —
-   * `runDaemonHost` executes `unreachable-lease-stale` as `removeClassifiedRegistration` plus
-   * socket unlink, so a live daemon lost its registration and its address while it kept running
-   * and kept holding the lease. `absent` and `malformed` keep answering stale because a missing
-   * file, and bytes that were read and are not a lease, are both genuine recovery input.
-   *
-   * No `default`, and the function has no trailing return: a fifth read kind cannot inherit the
-   * takeover direction without someone choosing it.
-   */
+  /** Only `absent` and `malformed` answer stale: an unreadable `.lease` may have a live holder. */
   switch (lease.kind) {
     case 'absent':
     case 'malformed':

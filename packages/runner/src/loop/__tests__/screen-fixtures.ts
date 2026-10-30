@@ -1,11 +1,4 @@
-// Test-only bridge from the legacy hand-built agent fixtures to the canonical v2
-// factory. Delegates to `makeScreenState` (runner/src/testing/screen-fixtures.ts),
-// filling the required v2 fields (platform, nameNormalized, state, labels, scroll,
-// captureMode, refMap) so the ported prompt/asserter test files migrate without
-// churning every call site. Accepts loosely-shaped legacy overrides (plain-string
-// refs, elements missing state/labels, legacy top-level refMap) and normalizes them.
-// Mirrors core/src/agent/__tests__/screen-fixtures.ts so the ported v1 tests read
-// identically against the runner-owned modules.
+// Builds a valid `ScreenState` from loosely-shaped element overrides via `makeScreenState`.
 import { asRef, normalizeAccessibleName } from '@vostride/agent-qa-schema'
 import type { ScreenState, ElementInfo, ElementBounds } from '@vostride/agent-qa-schema'
 import { makeScreenState as makeBaseScreenState } from '../../testing/screen-fixtures.js'

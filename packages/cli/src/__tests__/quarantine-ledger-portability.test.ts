@@ -441,9 +441,7 @@ describe('the human write verbs mint the identity the reader joins on', () => {
   })
 
   it('Class 2 — a `./`-prefixed path is stored as the SAME bytes and joins on root B', async () => {
-    // Round 1 measured this class as the QUIET one: it folded and listed as `quarantined` while
-    // never matching `quarantineAppliesToTest`'s `===`. The operator saw a green row and the test
-    // kept failing every build.
+    // Unjoined, this class lists as `quarantined` while the test keeps failing every build.
     const machineA = checkout('agent-qa-verbmint-dot-A-')
     const ciCheckoutB = checkout('agent-qa-verbmint-dot-B-')
 
@@ -493,7 +491,7 @@ describe('the human write verbs mint the identity the reader joins on', () => {
         name: 'QuarantineIdentityRefusedError',
         filePath: escaping,
       })
-      // Retried, exactly as an operator would. Round 1 measured `line count after retry -> 2`.
+      // Retried, exactly as an operator would.
       await expect(
         verbs.add({ product: PRODUCT, filePath: escaping, testName: TEST_NAME }),
       ).rejects.toBeInstanceOf(QuarantineIdentityRefusedError)

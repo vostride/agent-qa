@@ -1764,8 +1764,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
         if (outputPlan.kind === 'exception') {
           takeException(outputPlan.key)
           if (outputPlan.key === 'degraded-output-contract') {
-            // PITFALL 9: the ABSENCE is asserted, never skipped — a skip asserts nothing, and the
-            // one thing a degraded tool must never do is quietly start advertising a stand-in.
+            // Asserted, not skipped: a degraded tool must never advertise a stand-in schema.
             const entry = DEGRADED_OUTPUT_CONTRACTS.find((row) => row.tool === projection.name)!
             expect(
               tool!.outputSchema,

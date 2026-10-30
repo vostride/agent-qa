@@ -357,10 +357,7 @@ describe('a card the co-hosted door\'s registry produces carries a url', () => {
     })
 
   it('overlays BOTH producer halves, read back verbatim from the shipped overlay', async () => {
-    // The producer's rule is an AND over two keys read through `verbatim()`, so an overlay that
-    // supplies one of them contributes exactly nothing — which is the whole of gap 1. Read BOTH
-    // keys back off one `getMasked()`, with the flags, because `masked: true` on either half is
-    // the silent-inert failure this assertion exists to stop somebody re-introducing.
+    // Both halves are read back with their flags: one missing or masked half is inert.
     const overlaid = overlayDashboardBaseUrl(
       {
         getMasked: async () => Promise.resolve({

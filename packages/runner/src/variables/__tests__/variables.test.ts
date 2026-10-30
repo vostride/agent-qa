@@ -30,9 +30,7 @@ interface LooseElement {
   attributes?: Record<string, string>
 }
 
-// Local loose-fixture bridge: build a valid v2 ScreenState from the legacy
-// hand-shaped elements these variables tests use, filling the required v2 fields
-// via the shared runner factory (mirrors the core/agent screen-fixtures bridge).
+// Builds a valid `ScreenState` from the loosely-shaped elements these tests use.
 function makeScreenState(overrides: { tree?: string; url?: string; elements?: LooseElement[] } = {}): ScreenState {
   const base = makeBaseScreenState()
   const elements: LooseElement[] = overrides.elements ?? [

@@ -108,7 +108,7 @@ function startChild(
         [DUAL_HOST_ENV.report]: paths.report,
         [DUAL_HOST_ENV.marker]: paths.marker,
         [DUAL_HOST_ENV.variant]: variant,
-        // Pattern 5 pin: a fresh, empty model cache makes both child hosts resolve cold-artifact.
+        // A fresh, empty model cache makes both child hosts resolve cold-artifact.
         AGENT_QA_MODEL_CACHE_DIR: join(paths.root, 'empty-model-cache'),
       },
       stdio: ['ignore', 'pipe', 'pipe'],

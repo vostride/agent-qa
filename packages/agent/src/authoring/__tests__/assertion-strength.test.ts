@@ -410,9 +410,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
     expect(result.falsifiableAssertionCount).toBe(0)
     expect(row?.role).toBe('assertion')
     expect(row?.falsifiable).toBe(false)
-    // Arm attribution: the CONCRETENESS arm refused this. An exact-match vacuity lexicon holds no
-    // padded remainder, so without these two lines a vacuity-lexicon widening could carry the cell
-    // while the arm under test stayed exactly as leaky as the verifier measured it.
+    // Arm attribution: the concreteness arm refused this, not the vacuity lexicon.
     expect(row?.vacuityHit).toBeUndefined()
     expect(row?.captureSignatureHits).toEqual([])
   })
@@ -542,9 +540,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   })
 
   it('DETECTOR — refuses the HYPHENATED page-whole subject, which normalizes to one unknown token', () => {
-    // `normalizeToken` strips non-letters, so `Web-Page` folds to a single token that is a member of
-    // nothing. Under the enumerated refuser that made it invisible and the walk sailed past it; the
-    // title casing is carried through because the leaked form the verifier measured was title-cased.
+    // `normalizeToken` folds `Web-Page` to one token that is a member of nothing.
     const step = 'Verify The Banner Loads And The Web-Page Is Visible'
     const result = assertionStrengthGate({ steps: [step] })
     const row = result.table[0]

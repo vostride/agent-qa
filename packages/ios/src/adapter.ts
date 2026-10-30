@@ -236,7 +236,7 @@ function escapeIOSPredicateText(value: string): string {
   return value.replace(/\\/g, '\\\\').replace(/"/g, '\\"')
 }
 
-/** NSPredicate matching the target across the accessible label/name/value fields (A5, Pattern 3 iOS). */
+/** NSPredicate matching the target across the accessible label, name and value fields. */
 function buildIOSPredicate(target: string): string {
   const escaped = escapeIOSPredicateText(target)
   return `label CONTAINS "${escaped}" OR name CONTAINS "${escaped}" OR value CONTAINS "${escaped}"`

@@ -15,10 +15,7 @@ const SRC_DIR = join(HERE, '..', '..')
 // RunDetailSubAction — exactly the bus payload's fields
 // ---------------------------------------------------------------------------------------------
 
-/**
- * The `subActionRecorded` payload's field set, verbatim and in the producer's order. The v1 DTO
- * this replaced (`SubActionData`) carried five more, all of them run-detail-only recording paths.
- */
+/** The `subActionRecorded` payload's field set, verbatim and in the producer's order. */
 const SUB_ACTION_KEYS = [
   'testIndex',
   'stepIndex',
