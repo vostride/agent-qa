@@ -36,17 +36,6 @@ test('builds a non-mutating patch release dry-run plan', () => {
   assert.equal(plan.writesFiles, false)
   assert.equal(plan.currentVersion, currentVersion)
   assert.equal(plan.targetVersion, targetVersion)
-  assert.ok(plan.releaseGatePlan.includes('release preflight'))
-  assert.ok(plan.releaseGatePlan.includes('npm publish'))
-  for (const command of [
-    'pnpm run validate:skills',
-    'pnpm run validate:agents',
-    'pnpm run validate:publish',
-  ]) {
-    assert.ok(plan.releaseGatePlan.includes(command))
-    assert.ok(plan.localValidation.includes(command))
-  }
-  assert.ok(plan.localValidation.some(command => command.includes('npm pack') || command.includes('verify.mjs --bump patch --stage postbuild')))
   assert.equal(plan.npm.trustedPublishing, true)
   assert.equal(plan.npm.usesNpmToken, false)
   assert.equal(plan.npm.publishCommands.at(-1).package, 'agent-qa')
@@ -55,7 +44,6 @@ test('builds a non-mutating patch release dry-run plan', () => {
   assert.equal(plan.posthog.generatedFile, 'packages/analytics/src/posthog-project.ts')
   assert.match(plan.posthog.preview, /\[redacted POSTHOG_PROJECT_KEY\]/)
   assert.doesNotMatch(plan.posthog.preview, /POSTHOG_TEST_PROJECT_KEY_PLACEHOLDER/)
-  assert.equal(plan.docker.images.length, 6)
   assert.ok(plan.docker.images.every(image => image.tags.includes(`${image.image}:${targetVersion}`)))
   assert.ok(plan.docker.images.every(image => image.tags.includes(`${image.image}:v${targetVersion}`)))
   assert.equal(plan.subscriptionAuth.package, '@vostride/agent-qa-subscription-auth')

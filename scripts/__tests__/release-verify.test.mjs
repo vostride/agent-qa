@@ -6,7 +6,6 @@ import { tmpdir } from 'node:os'
 import test from 'node:test'
 import { publicPackageNames } from '../release/packages.mjs'
 import {
-  buildReleaseGatePlan,
   parseReleaseArgs as parseVerifyArgs,
   runCli as runVerifyCli,
   runReleaseVerification,
@@ -34,33 +33,6 @@ function createStagedFixture(rootDir, version = '0.1.1') {
   for (const name of publicPackageNames) dirs.set(name, createPackage(stagedDir, name, version))
   return { stagedDir, dirs }
 }
-
-test('builds the fail-closed release gate plan in exact order through GitHub Release publish', () => {
-  assert.deepEqual(buildReleaseGatePlan('patch'), [
-    'pnpm install --frozen-lockfile',
-    'release preflight',
-    'write shared version',
-    'pnpm typecheck',
-    'pnpm test',
-    'write posthog project key',
-    'pnpm build',
-    'pnpm run validate:skills',
-    'pnpm run validate:agents',
-    'pnpm run validate:publish',
-    'stage packages',
-    'release postbuild verification',
-    'create release commit and tag',
-    'git push',
-    'npm publish',
-    'subscription auth publish',
-    'github release publish',
-    'docker publish',
-  ])
-  assert.deepEqual(buildReleaseGatePlan('patch').slice(-2), [
-    'github release publish',
-    'docker publish',
-  ])
-})
 
 test('parses preflight and postbuild verify CLI args', () => {
   assert.deepEqual(parseVerifyArgs(['--bump', 'patch', '--stage', 'preflight']), { bump: 'patch', stage: 'preflight' })

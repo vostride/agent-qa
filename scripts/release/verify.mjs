@@ -13,30 +13,6 @@ import { validatePosthogReleaseArtifacts as defaultValidatePosthogReleaseArtifac
 
 export const subscriptionAuthPackageName = '@vostride/agent-qa-subscription-auth'
 
-export function buildReleaseGatePlan(bump) {
-  assertAllowedBump(bump)
-  return [
-    'pnpm install --frozen-lockfile',
-    'release preflight',
-    'write shared version',
-    'pnpm typecheck',
-    'pnpm test',
-    'write posthog project key',
-    'pnpm build',
-    'pnpm run validate:skills',
-    'pnpm run validate:agents',
-    'pnpm run validate:publish',
-    'stage packages',
-    'release postbuild verification',
-    'create release commit and tag',
-    'git push',
-    'npm publish',
-    'subscription auth publish',
-    'github release publish',
-    'docker publish',
-  ]
-}
-
 function parsePackOutput(output, packageName) {
   const parsed = JSON.parse(output)
   const files = parsed[0]?.files?.map(file => file.path) ?? []
