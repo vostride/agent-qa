@@ -52,9 +52,7 @@ export const MIGRATIONS: DashboardMigration[] = [
         variables TEXT,
         created_at TEXT DEFAULT CURRENT_TIMESTAMP,
         hook_id TEXT,
-        -- 405 D-01: where in the run tree this hook ran. Sourced from HookFinishedPayload's own
-        -- optional testIndex/stepIndex; NULL means a run-scoped hook, which is a real state and
-        -- not a missing value.
+        -- Where in the run tree this hook ran; NULL means a run-scoped hook, not a missing value.
         test_index INTEGER,
         step_index INTEGER
       )`,
@@ -68,10 +66,7 @@ export const MIGRATIONS: DashboardMigration[] = [
       )`,
       `CREATE TABLE IF NOT EXISTS run_artifacts (
         run_id TEXT PRIMARY KEY REFERENCES runs(id) ON DELETE CASCADE,
-        -- 2026-08-27 (405-07, RESEARCH Open Q4): TWO KINDS, because two is all anything mints.
-        -- The set used to admit two more, named for the parent/child run tree 402-09 retired; no
-        -- writer has produced either since, so admitting them was the schema agreeing to store a
-        -- distinction the product no longer makes.
+        -- Two kinds, because no writer mints any other.
         kind TEXT NOT NULL CHECK(kind IN ('test', 'unknown')),
         schema_version INTEGER NOT NULL,
         payload TEXT NOT NULL DEFAULT '{}',
@@ -94,7 +89,7 @@ export const MIGRATIONS: DashboardMigration[] = [
         duration_ms INTEGER,
         failure_summary TEXT,
         retry_count INTEGER,
-        -- D-17 ordinal. Starts at 1 and rises on testRetryScheduled; never reset by an upsert.
+        -- Starts at 1 and rises on testRetryScheduled; never reset by an upsert.
         attempts INTEGER NOT NULL DEFAULT 1,
         recording_json TEXT,
         PRIMARY KEY (run_id, test_index)

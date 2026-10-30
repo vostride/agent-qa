@@ -108,17 +108,11 @@ const SCHEMA_STATEMENTS = [
      -- Nullable because most rows never fail; written only by recordFailure.
      last_failure_kind   TEXT,
      last_failure_reason TEXT,
-     -- When somebody asked this job to stop (D-19). A column rather than a status, for the
-     -- same reason the claim is one: the job status vocabulary describes lifecycle stages,
-     -- and "still queued, but asked to stop" is a fact about a request, not a stage.
-     -- Appended LAST deliberately - a column inserted in the middle would move every
-     -- positional read of this table for no gain.
+     -- A stop request, not a lifecycle stage. New columns go last, or positional reads would move.
      cancel_requested_at TEXT,
-     -- The instant this row was FIRST claimed, kept after the lease is released (425). The
-     -- claim column answers who holds the row now; no column answered how long the work took.
-     -- Written once by the claim, cleared only by the operator requeue. Appended last, as above.
+     -- When the row was first claimed; survives lease release, cleared only by operator requeue.
      started_at TEXT,
-     -- 444.1 D-23: a retrying row is not claimable before this instant. Appended last, as above.
+     -- A retrying row is not claimable before this instant.
      not_before TEXT
    )`,
   // The dedupe is this unique index, so no caller in any process can enqueue the same work twice.

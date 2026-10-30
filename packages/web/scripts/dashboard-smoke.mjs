@@ -5,16 +5,16 @@ import { chromium } from 'playwright-core'
 
 const TEST_ID = 't_off-rang-gold-flu-sweet-common-plan-lung-folder-kent'
 const SUITE_ID = 's_studio-quire-rough-trust-egger-may-grow-verify-menu-tong'
-const TEST_FILE = 'phase-188-smoke.yaml'
-const SUITE_FILE = 'phase-188-smoke.suite.yaml'
+const TEST_FILE = 'dashboard-smoke.yaml'
+const SUITE_FILE = 'dashboard-smoke.suite.yaml'
 const TEST_CONTENT = `test-id: ${TEST_ID}
-name: Phase 188 Smoke Test
+name: Dashboard Smoke Test
 target: my-app
 steps:
   - Navigate to the login page
 `
 const SUITE_CONTENT = `suite-id: ${SUITE_ID}
-name: Phase 188 Smoke Suite
+name: Dashboard Smoke Suite
 target: my-app
 tests:
   - test: ${TEST_FILE}

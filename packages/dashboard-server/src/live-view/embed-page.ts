@@ -182,8 +182,7 @@ export function renderLiveEmbedPage(input: { runId: string; nonce: string }): st
       if (pending === null) return;
       var header = pending;
       pending = null;
-      // NO MIME TYPE: the decoder sniffs the bytes, so a JPEG screencast frame and a PNG snapshot
-      // both paint in every host, not only in Chromium (428 RESEARCH A2).
+      // No MIME type: the decoder sniffs, so JPEG and PNG frames paint in every host.
       var blob = new Blob([event.data]);
       createImageBitmap(blob).then(function (bitmap) {
         if (canvas.width !== header.width || canvas.height !== header.height) {
@@ -207,8 +206,7 @@ export function renderLiveEmbedPage(input: { runId: string; nonce: string }): st
     try { msg = JSON.parse(event.data); } catch (e) { return; }
 
     if (msg.type === 'ready') {
-      // THE PAINTER IS CHOSEN BY THE DECLARED KIND — never by a browser name, an adapter class or
-      // a transport guess (LIVE-04's prohibition). A snapshot paints on the same canvas (428 D-11).
+      // The declared kind picks the painter, never a browser name, adapter or transport guess.
       var kind = msg.stream ? msg.stream.kind : undefined;
       if (kind === 'cdp-screencast' || kind === 'snapshot') {
         setState('connecting', 'waiting for the first frame…');
@@ -255,8 +253,7 @@ export function renderLiveEmbedPage(input: { runId: string; nonce: string }): st
     report({ event: 'lost' });
   });
 
-  // A HOST THAT RE-MINTS replaces the fragment; the socket renews in place rather than reloading,
-  // so a renewal never costs the viewer the stream it is watching (D-02).
+  // A re-minting host replaces the fragment; the socket renews in place and the stream continues.
   window.addEventListener('hashchange', function () {
     var next = location.hash.slice(1);
     if (next === '' || socket.readyState !== 1) return;

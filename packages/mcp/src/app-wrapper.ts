@@ -228,9 +228,7 @@ ${live && !expired ? '<iframe data-app-live-frame sandbox="allow-scripts" referr
   var message = document.querySelector('[data-app-message]');
   var hint = document.querySelector('[data-app-hint]');
 
-  // WHICH RUN, as an attribute rather than as prose. Identity is not run STATE (D-11 forbids the
-  // second, not the first), and it enters through setAttribute from an escaped literal, so a run
-  // id can never become markup no matter what it spells.
+  // The run id enters through setAttribute from an escaped literal, so it never becomes markup.
   root.setAttribute('data-app-run-id', runId);
 
   // The state machine is an ATTRIBUTE plus two textContent writes, exactly as the embed page's is:
@@ -244,25 +242,7 @@ ${live && !expired ? '<iframe data-app-live-frame sandbox="allow-scripts" referr
 
   // ---- The minimal ui/initialize handshake (ext-apps spec shape) -------------------------------
   //
-  // HAND-ROLLED AND DELIBERATELY ISOLATED IN THIS ONE BLOCK. The ext-apps package
-  // declares a peer on the v1 monolith SDK, so importing its app-bridge into production would drag
-  // a second SDK generation in (Pitfall 3) — and this page has no bundler anyway. RESEARCH
-  // assumption A5 rated the method-name and field spellings MEDIUM (single spec fetch), and plan
-  // 02's coverage entry D9 deferred the adjudication to plan 06.
-  //
-  // PLAN 06 MEASURED IT, AND IT HAD DRIFTED. Against the installed
-  // @modelcontextprotocol/ext-apps@1.7.5's own generated schema, McpUiInitializeRequest.params
-  // requires THREE members: protocolVersion, appInfo and appCapabilities. This block sent only the
-  // first, so a host validating the request against the published schema would have rejected the
-  // handshake outright, and the failure would have looked like a host that simply does not support
-  // Apps. The two missing members are now sent, and ext-apps-constants.test.ts cell (4d) derives
-  // the required list FROM the shipped schema rather than restating it, so the next spec change
-  // reds here instead of on a user's machine.
-  //
-  // IT STILL ASKS FOR NOTHING. appCapabilities is deliberately empty: this document exposes no
-  // tools, requests no display mode and declares no experimental feature (the schema requires no
-  // member of it). No permissions, no re-mint (D-10) — it announces that this document is ready,
-  // which is all a wrapper that renders no run state of its own has to say.
+  // Hand-rolled: ext-apps' app-bridge peers on the v1 SDK, and this page has no bundler.
   try {
     if (window.parent !== window) {
       window.parent.postMessage({
@@ -279,20 +259,13 @@ ${live && !expired ? '<iframe data-app-live-frame sandbox="allow-scripts" referr
   } catch (e) { /* a host that refuses the message changes nothing about what this page shows */ }
 
   if (mints.length === 0) {
-    // Either D-07's honest terminal/unknown state or D-10's expired one — both were decided by the
-    // RENDERER and are already in the markup. No src was ever assigned, so there is no blank frame
-    // to mistake for a stalled one, and nothing below this line can move the document off them.
+    // The renderer already wrote the terminal or expired state, and no src was ever assigned.
     return;
   }
 
-  // ---- Reachability, once per ORIGIN (see the header's measured note) ---------------------------
+  // ---- Reachability, once per ORIGIN ------------------------------------------------------------
   //
-  // Memoised deliberately, and ONLY ON SUCCESS. The picker swaps among panes that share one
-  // origin, so after the first ANSWERING pane every swap is served from this map and issues NO
-  // network request at all (D-06/D-10's zero re-mints, zero calls, which the DOM cell counts) — a
-  // property that rides entirely on caching the true. The catch arm therefore FORGETS the entry
-  // before answering false: a refusal is a fact about one moment, not about the origin, and every
-  // mint on a render shares one origin, so a cached false was total and permanent. See the header.
+  // Only success is cached: every pane shares one origin, so a cached refusal would be permanent.
   var reach = {};
   function reachable(url) {
     var origin;
@@ -308,13 +281,7 @@ ${live && !expired ? '<iframe data-app-live-frame sandbox="allow-scripts" referr
   var attachId = 0;
 
   function attach(mint) {
-    // THE EXPIRED STATE IS TERMINAL, AND THIS IS THE ONE PLACE IT COULD BE LEFT (D-10). The
-    // picker's change handler — and nothing else — can reach this function after the one-shot
-    // expiry timer has fired; without this line the next statements would set the connecting state
-    // and assign an aged token over a document that had already told the truth, and no timer would
-    // ever correct it. The identical predicate inside settle() stays where it is: it closes the
-    // OTHER door, a probe or a frame load that was already in flight when the timer fired, so
-    // neither guard makes the other dead.
+    // Expired is terminal; a picker change after the one-shot expiry timer must not leave it.
     if (root.getAttribute('data-app-state') === 'expired') return;
     var mine = (attachId += 1);
     var loaded = false;
@@ -333,7 +300,7 @@ ${live && !expired ? '<iframe data-app-live-frame sandbox="allow-scripts" referr
 
     frame.addEventListener('error', function () { settle('unreachable-origin'); }, { once: true });
     frame.addEventListener('load', function () {
-      // NECESSARY, NOT SUFFICIENT: Chromium fires this for a refused connection too (header note),
+      // NECESSARY, NOT SUFFICIENT: Chromium fires this for a refused connection too,
       // so the probe is what decides — a frame that loaded on an origin nothing answered for is an
       // error page, and calling that 'live' is the failure this arm exists to prevent.
       loaded = true;
@@ -345,14 +312,11 @@ ${live && !expired ? '<iframe data-app-live-frame sandbox="allow-scripts" referr
       else if (loaded) settle('live');
     });
 
-    // D-11's REQUIRED arm for the origin that never answers at all: a black-holed host fires no
-    // error and never loads, so silence past this bound is itself the signal, named rather than
-    // left as a spinner.
+    // A black-holed origin fires no error and never loads; silence past this bound is the signal.
     setTimeout(function () { settle('unreachable-origin'); }, loadTimeoutMs);
   }
 
-  // D-10: the deadline was computed at RENDER time and arrives as a delta, so the host's own clock
-  // never enters the comparison. When it fires the document says so and stops — nothing here mints.
+  // The deadline arrives as a delta from render time, so the host's own clock never enters it.
   if (expiresInMs > 0) {
     setTimeout(function () {
       attachId += 1;
@@ -368,8 +332,7 @@ ${live && !expired ? '<iframe data-app-live-frame sandbox="allow-scripts" referr
     }, expiresInMs);
   }
 
-  // D-06/D-10: the picker swaps among tokens ALREADY minted for this render. It never mints, and
-  // there is no bridge here that could ask anyone to — a fresh watch call is what re-mints.
+  // The picker swaps among tokens minted for this render; only a fresh watch call re-mints.
   for (var i = 0; i < mints.length; i += 1) {
     var option = document.createElement('option');
     option.value = String(i);

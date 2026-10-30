@@ -319,8 +319,7 @@ return (function() {
     return node ? (node.textContent || '').trim() : '';
   }
 
-  // 437 D-11 (CR-02): a field is named by its label, never by its value, so typed text never
-  // becomes a name. A wrapping label's text drops the field's own text (a select's options).
+  // A field is named by its label, not its value; a wrapping label drops the field's own text.
   function labelText(el, label) {
     var text = label.textContent || '';
     var own = el.textContent || '';
@@ -344,8 +343,7 @@ return (function() {
     return '';
   }
 
-  // parentIndex is the nearest INCLUDED ancestor (structural/skipped nodes collapse
-  // away, matching the mobile/web walkers' Pitfall #7 handling).
+  // The nearest included ancestor: structural and skipped nodes collapse, as on mobile and web.
   function nearestAncestorIndex(el) {
     var p = el.parentElement;
     while (p) {
@@ -365,8 +363,7 @@ return (function() {
     if (style.display === 'none' || style.visibility === 'hidden') continue;
 
     var tag = el.tagName;
-    // 2026-10-19 (444.1-05, D-09): only the outermost content-editable element is an editor;
-    // its descendants are ordinary nodes.
+    // Only the outermost content-editable element is an editor; its descendants are ordinary nodes.
     var host = el.isContentEditable === true
       && !(el.parentElement && el.parentElement.isContentEditable === true);
     var ariaRole = el.getAttribute('role');
@@ -404,7 +401,7 @@ return (function() {
       height: Math.round(rect.height)
     };
 
-    // Real DOM state signals only — the builder derives every default (D-08).
+    // Real DOM state signals only; the builder derives every default.
     var state = {};
     var disabled = el.disabled === true
       || el.hasAttribute('disabled')
@@ -430,7 +427,7 @@ return (function() {
 
     var parentIndex = nearestAncestorIndex(el);
 
-    // 2026-10-19 (444.1-05 D-08, 444.1-22 D-33): what a field or an editor holds is its value, never its name; a password's never.
+    // What a field or an editor holds is its value, never its name; a password has no value here.
     var observedValue = undefined;
     var textEntry = tag === 'TEXTAREA' || (tag === 'INPUT' && !VALUELESS_TYPES[String(el.type).toLowerCase()]);
     if (textEntry && el.value) {
@@ -794,7 +791,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         const { width } = await this.driver.getWindowSize()
         if (dims && Math.abs(dims.width - width) > 1) {
           // eslint-disable-next-line no-console
-          console.warn(`[android-adapter] screenshot width ${dims.width} != window width ${width} (coord-space divergence, handled by scaleFactor per D-19/D-20)`)
+          console.warn(`[android-adapter] screenshot width ${dims.width} != window width ${width} (coord-space divergence, handled by scaleFactor)`)
         }
       } catch { /* best-effort assertion */ }
     }

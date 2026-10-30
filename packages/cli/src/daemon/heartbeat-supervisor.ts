@@ -114,8 +114,7 @@ function heartbeat() {
       schedule(intervalMs)
       return
     }
-    // CR-03: the beat never enters the mutation lock, so a governed mutation of any length cannot
-    // starve it. Only a typed refusal is authority loss.
+    // The beat skips the mutation lock so nothing starves it; a typed refusal is authority loss.
     loopHalted = true
     parentPort.postMessage({
       kind: 'refused',
@@ -124,12 +123,7 @@ function heartbeat() {
       observedEpoch: outcome.observedEpoch,
     })
   } catch (error) {
-    // I-02: there is still no retry branch here. Since 261002-lse the beat does take the short
-    // lease-file guard it shares with release, and its wait outlasts the guard's residue bound
-    // (261003-lgd, WR-11), so a guard left by a terminated thread is reclaimed inside the beat.
-    // What can still arrive here is a guard held by live sections for that whole wait, or a guard
-    // chain refused for leaving the knowledge root (CR-01). Both are genuine failures: the loop
-    // halts and the main thread is told, as for any other throw.
+    // No retry: a guard held for the whole wait or outside the knowledge root is a real failure.
     loopHalted = true
     parentPort.postMessage({
       kind: 'error',

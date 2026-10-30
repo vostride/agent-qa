@@ -149,8 +149,7 @@ const CLIPBOARD_HOOK = `(() => {
     if (typeof send !== 'function' || typeof text !== 'string' || text.length === 0) return;
     try { Promise.resolve(send({ via, text })).catch(() => {}); } catch {}
   };
-  // 2026-10-08 (436-14): a write is reported only once the browser accepted it; the app still
-  // gets the original promise, rejections included.
+  // A write is reported only once the browser accepted it; the app gets the original promise.
   const proto = typeof Clipboard === 'function' ? Clipboard.prototype : undefined;
   if (proto && typeof proto.writeText === 'function') {
     const writeText = proto.writeText;
