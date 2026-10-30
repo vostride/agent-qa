@@ -38,7 +38,8 @@ test('every job that needs the build downloads it after checkout and unpacks it 
   assert.match(String(upload.with?.path ?? ''), /\/build\.tgz$/)
   assert.equal(upload.with?.archive, false, 'the tarball is uploaded as is, so file modes survive')
 
-  const consumers = jobs.filter(([, job]) => needsBuild(job))
+  // ci-result needs every job only to read its result.
+  const consumers = jobs.filter(([id, job]) => id !== 'ci-result' && needsBuild(job))
   assert.ok(consumers.length > 0, 'some job needs the build')
   for (const [id, job] of consumers) {
     const steps = stepsOf(job)

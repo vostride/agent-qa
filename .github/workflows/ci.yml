@@ -351,3 +351,22 @@ jobs:
           --filter=@vostride/agent-qa-knowledge-local
           --filter=agent-qa
           --only
+
+  # main's branch protection requires this check by name.
+  ci-result:
+    name: CI result
+    if: always()
+    needs: [build, workspace, checks, knip, mcp-conformance, ps-hosts]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: Every job succeeded
+        env:
+          RESULTS: ${{ toJSON(needs) }}
+        run: |
+          node -e '
+            const needs = Object.entries(JSON.parse(process.env.RESULTS))
+            for (const [job, need] of needs) console.log(`${job}: ${need.result}`)
+            if (needs.length === 0 || needs.some(([, need]) => need.result !== "success")) process.exit(1)
+          '

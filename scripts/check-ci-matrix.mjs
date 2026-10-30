@@ -1,5 +1,6 @@
 // CI's legs test every package once on ubuntu and the daemon and lease packages on macOS, with
-// whole shard sets, and each leg downloads the build job's output before its --only Test step.
+// whole shard sets, each leg downloads the build job's output before its --only Test step, and the
+// ci-result job always runs and needs every other job.
 
 import { execFile } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -14,6 +15,7 @@ const MATRIX_JOBS = [
   { id: 'workspace', test: 'Test', expected: 'workspace' },
   { id: 'ps-hosts', test: 'Test daemon and lease packages', expected: PS_HOST_PACKAGES },
 ]
+const AGGREGATE_JOB = 'ci-result'
 
 export function loadWorkflow(name, repo = REPO_ROOT) {
   // The workspace root declares no YAML parser; the CLI package's own dependency is used.
@@ -146,6 +148,22 @@ export function ciMatrixFailures(ci, packages) {
         failures.push(`${id}: --only skips the build tasks, so a download of the build artifact must come before ${test}`)
       }
     }
+  }
+  failures.push(...aggregateFailures(ci))
+  return failures
+}
+
+// A skipped required check counts as passing.
+function aggregateFailures(ci) {
+  const aggregate = ci.jobs?.[AGGREGATE_JOB]
+  if (aggregate === undefined) return [`ci.yml has no job ${AGGREGATE_JOB}`]
+  const failures = []
+  if (!/\balways\(\)/u.test(String(aggregate.if ?? ''))) {
+    failures.push(`${AGGREGATE_JOB}: must run with if: always(), so a failed or skipped job cannot leave it skipped`)
+  }
+  const needs = [aggregate.needs ?? []].flat()
+  for (const id of Object.keys(ci.jobs)) {
+    if (id !== AGGREGATE_JOB && !needs.includes(id)) failures.push(`${AGGREGATE_JOB}: does not need ${id}`)
   }
   return failures
 }

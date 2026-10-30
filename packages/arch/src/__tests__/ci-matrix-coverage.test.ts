@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 type Leg = { group: string; filter: string; vitest?: string }
 type Job = {
+  if?: string
   needs?: string | string[]
   strategy: { matrix: { include: Leg[] } }
   steps: Array<{ name?: string; run?: string; uses?: string; env?: Record<string, string> }>
@@ -48,7 +49,7 @@ describe('C-CI-MATRIX', () => {
     ).toEqual(Object.fromEntries(filters.map((filter, index) => [filter, selected[index]])))
   })
 
-  it('a dropped leg, shard or exclusion, an unknown package name or an unwired shard fails the check', async () => {
+  it('a dropped leg, shard or exclusion, an unknown package name, an unwired shard or an aggregate that can be skipped or misses a job fails the check', async () => {
     const all = await packages
     const failures = (edit: (ci: Workflow) => void) => check.ciMatrixFailures(mutated(edit), all)
     const cases: Array<[string, (ci: Workflow) => void, string]> = [
@@ -105,6 +106,21 @@ describe('C-CI-MATRIX', () => {
           steps.splice(at, 1)
         },
         'workspace: --only skips the build tasks',
+      ],
+      [
+        'the aggregate stops needing knip',
+        (ci) => {
+          const aggregate = ci.jobs['ci-result']!
+          aggregate.needs = [aggregate.needs ?? []].flat().filter((id) => id !== 'knip')
+        },
+        'ci-result: does not need knip',
+      ],
+      [
+        'the aggregate loses always()',
+        (ci) => {
+          delete ci.jobs['ci-result']!.if
+        },
+        'ci-result: must run with if: always()',
       ],
     ]
     for (const [what, edit, expected] of cases) {
