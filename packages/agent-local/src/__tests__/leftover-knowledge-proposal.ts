@@ -6,13 +6,13 @@ import { join } from 'node:path'
 
 import type { KnowledgeTargetRef } from '@vostride/agent-qa-schema'
 
-export type Pre432KnowledgeVerb = 'accept' | 'reject' | 'forget'
+export type LeftoverKnowledgeVerb = 'accept' | 'reject' | 'forget'
 
-export interface FilePre432KnowledgeProposalInput {
+export interface FileLeftoverKnowledgeProposalInput {
   readonly agentQaRoot: string
   /** Kept for the callers' shape; a planted file reads nothing from the knowledge root. */
   readonly knowledgeRoot?: string
-  readonly verb: Pre432KnowledgeVerb
+  readonly verb: LeftoverKnowledgeVerb
   readonly target: KnowledgeTargetRef
   /** Recorded on a reject, as the retired op's input contract required it. */
   readonly reason?: string
@@ -20,7 +20,7 @@ export interface FilePre432KnowledgeProposalInput {
 }
 
 /** Plant one legacy knowledge proposal file and answer its id. */
-export async function filePre432KnowledgeProposal(input: FilePre432KnowledgeProposalInput): Promise<string> {
+export async function fileLeftoverKnowledgeProposal(input: FileLeftoverKnowledgeProposalInput): Promise<string> {
   const proposalId = `prop_${randomUUID()}`
   const proposedAt = 1_700_000_000_000
   const record = {

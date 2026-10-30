@@ -32,7 +32,7 @@ import {
   createConfigWritePort,
   createScaffoldContentPort,
 } from '../local-agent-host.js'
-import { filePre432ConfigProposal } from './pre-432-config-proposal.js'
+import { fileLeftoverConfigProposal } from './leftover-config-proposal.js'
 import * as host from '../local-agent-host.js'
 import { buildScaffoldFileSet } from '../../commands/scaffold-content.js'
 
@@ -492,7 +492,7 @@ async function composedScaffoldId(): Promise<string> {
     baseUrl: 'https://booking.com',
     existingGitignore: Uint8Array.from(readFileSync(join(root, '.gitignore'))),
   })
-  return (await filePre432ConfigProposal({
+  return (await fileLeftoverConfigProposal({
     configPath,
     agentQaRoot,
     action: 'config.project.scaffold',

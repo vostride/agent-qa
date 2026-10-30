@@ -25,7 +25,7 @@ import {
   createConfigWritePort,
 } from '../local-agent-host.js'
 import * as hostModule from '../local-agent-host.js'
-import { filePre432ConfigProposal } from './pre-432-config-proposal.js'
+import { fileLeftoverConfigProposal } from './leftover-config-proposal.js'
 
 const HUMAN: FunctionCaller = {
   surface: 'test',
@@ -172,7 +172,7 @@ async function call(
 
 // A legacy `config.field.set` proposal record, planted on disk as an old workspace holds it.
 async function proposeField(input: { path: string; value: string | number | boolean }): Promise<string> {
-  return (await filePre432ConfigProposal({ configPath, agentQaRoot, edits: [input] })).proposalId
+  return (await fileLeftoverConfigProposal({ configPath, agentQaRoot, edits: [input] })).proposalId
 }
 
 async function accept(registry: Registry, proposalId: string): Promise<unknown> {

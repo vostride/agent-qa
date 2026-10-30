@@ -20,9 +20,9 @@
   "frozenAt": "2026-08-10",
   "target": "local-form (demo/init/agent-qa.config.yaml -> http://127.0.0.1:8931/form.html)",
   "suiteUnderComparison": [
-    "demo/init/tests/uat-381-local-form.yaml",
-    "demo/init/tests/uat-381-ladder.yaml",
-    "demo/init/tests/uat-381-ladder-current-target.yaml"
+    "demo/init/tests/local-form.yaml",
+    "demo/init/tests/ladder.yaml",
+    "demo/init/tests/ladder-current-target.yaml"
   ],
   "coveredElementsInThatSuite": "Username field (type), Password field (type), Account name field (type), Submit button (click), \"Received!\" page text (assert). The only local-form surface NOT covered by it is the h1 \"Local Form\" heading and the \"Back to the form\" link on received.html — which is what the novel-element column below turns on (D-14).",
 
@@ -100,7 +100,7 @@
           { "runId": "r_prob-rink-hammer-buck-pen-hex-beta-boni-meg-keet", "draftShape": "2-step (current)", "memberOutcome": "healed", "stepTerminations": [null, null] },
           { "runId": "r_amic-wash-cap-amba-titre-baby-ultimo-aged-fed-cation", "draftShape": "2-step (current)", "memberOutcome": "failed", "stepTerminations": [null, "infeasible"] }
         ],
-        "contamination": "The seeded local-form PROCEDURE in the demo knowledge store replays uat-381's own values: the agent fills \"probe-user\" into the Username field, self-heals to the draft's literal, and whether the correction lands before the tautology assertion reads the field is a race. Measured 1/2 healed, 1/2 infeasible on the current 2-step shape. Dropping the Password step removed one replay trigger but not the race. A later plan that wants these execution columns to read true must neutralize procedure replay for gate-runs; --disable-cache is PROVEN INEFFECTIVE for it.",
+        "contamination": "The seeded local-form PROCEDURE in the demo knowledge store replays the local-form test's own values: the agent fills \"probe-user\" into the Username field, self-heals to the draft's literal, and whether the correction lands before the tautology assertion reads the field is a race. Measured 1/2 healed, 1/2 infeasible on the current 2-step shape. Dropping the Password step removed one replay trigger but not the race. A later plan that wants these execution columns to read true must neutralize procedure replay for gate-runs; --disable-cache is PROVEN INEFFECTIVE for it.",
         "executionColumnsFrom": "measured (4 runs across 2 draft shapes)"
       }
     },
@@ -163,7 +163,7 @@
         "addsValue": false,
         "falsifiableAssertion": true
       },
-      "rationale": "Uses exactly uat-381's four anchors (Username field, Password field, Submit button, \"Received!\" text) with cosmetically different wording and different literal values, so after normalization it contributes ZERO novel fingerprint elements. Gate 3 is the only catcher.",
+      "rationale": "Uses exactly the local-form test's four anchors (Username field, Password field, Submit button, \"Received!\" text) with cosmetically different wording and different literal values, so after normalization it contributes ZERO novel fingerprint elements. Gate 3 is the only catcher.",
       "measured": {
         "runs": [
           { "runId": "r_around-ilium-far-ilk-thane-jur-mat-orgia-going-sib", "memberOutcome": "healed", "stepTerminations": [null, null, null, null], "note": "definitive pass per D-17; heals from seeded-procedure replay on steps 0-2" }
@@ -200,7 +200,7 @@
     {
       "id": "F2",
       "title": "Seeded procedure replay contaminates draft execution on this target",
-      "detail": "Because the corpus drafts are near-identical flows to the seeded uat-381 test, the agent replays that procedure and fills uat-381's own values ('probe-user') into the Username field, then self-heals to the draft's literal. Every multi-step draft measured shows heals from this. It is why 5 of 8 drafts return 'healed' rather than 'passed', and it is fatal to oracle-capture-tautology's execution columns. --disable-cache is proven ineffective."
+      "detail": "Because the corpus drafts are near-identical flows to the seeded local-form test, the agent replays that procedure and fills the local-form test's own values ('probe-user') into the Username field, then self-heals to the draft's literal. Every multi-step draft measured shows heals from this. It is why 5 of 8 drafts return 'healed' rather than 'passed', and it is fatal to oracle-capture-tautology's execution columns. --disable-cache is proven ineffective."
     },
     {
       "id": "F3",

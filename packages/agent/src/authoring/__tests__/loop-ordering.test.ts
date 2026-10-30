@@ -174,7 +174,7 @@ function observedLoop() {
           }),
           fingerprints: fakeFingerprintIndex([
             {
-              filePath: 'demo/init/tests/uat-381-local-form.yaml',
+              filePath: 'demo/init/tests/local-form.yaml',
               testName: 'Sign in on the local account form',
               elements: [expectedElement(ACCEPT_CONTROL_SUBACTIONS[0]![0]!)],
             },

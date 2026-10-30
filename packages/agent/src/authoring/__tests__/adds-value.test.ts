@@ -9,7 +9,7 @@ import {
 import type { SuiteTextCorpusEntryLike } from '../ports.js'
 
 const UAT_381 = {
-  filePath: 'demo/init/tests/uat-381-local-form.yaml',
+  filePath: 'demo/init/tests/local-form.yaml',
   testName: 'Sign in on the local account form',
   stepsText: [
     'Type "{{env:PROBE_USER}}" into the Username field',
@@ -71,7 +71,7 @@ describe('addsValueGate — the fingerprint lane', () => {
       draftElements: ['el-heading'],
       index: fakeFingerprintIndex([
         { ...UAT_381, elements: ['el-username'] },
-        { filePath: 'demo/init/tests/uat-381-ladder.yaml', testName: 'Ladder', elements: ['el-x'] },
+        { filePath: 'demo/init/tests/ladder.yaml', testName: 'Ladder', elements: ['el-x'] },
       ]),
       textCorpus: [],
     })

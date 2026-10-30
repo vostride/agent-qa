@@ -1,85 +1,50 @@
 {
   "$comment": [
-    "THE FROZEN SCORING DENOMINATOR for phase 394's stage-2 dedup lane (D-04/D-16).",
-    "Gap-closure rounds MUST NOT mint new members or edit these vectors to re-score:",
-    "the whole proof is that this exact table is observed RED with no dedup lane in",
-    "existence and green at the end of the phase, with nothing added in between (the",
-    "treadmill law). A row that stops catching what its rationale claims is a finding",
-    "about the lane, never a reason to move the row.",
+    "THE FROZEN SCORING DENOMINATOR for the stage-2 dedup lane.",
+    "Later changes MUST NOT mint new members or edit these vectors to re-score: a row",
+    "that stops catching what its rationale claims is a finding about the lane, never a",
+    "reason to move the row.",
     "",
-    "THE ONE ADJUDICATED SUSPENSION OF THAT LAW, 2026-08-13 (round 5). The freeze above",
-    "protects a table that measures the RIGHT INPUT. It did not. 394-VERIFICATION round",
-    "4, gap SC-1 stage 2, found that every row's 'intent' was a whole test DOCUMENT,",
-    "projected [name, ...steps].join(' '), while production hands dedupBeforeAuthor",
-    "input.intent -- a person's one-line utterance, with no steps at all (loop.ts:858).",
-    "There IS no document at stage 2; having none is the entire premise of",
-    "dedup-BEFORE-author. So the table pinned an input shape no caller can emit, and no",
-    "mutation of the lane could red on the distribution production actually sees: the",
-    "obvious-duplicate row reached 0.5 only because its 'intent' carried 21 tokens. The",
-    "verifier measured the consequence over the whole shipping suite -- an intent that is",
-    "a committed test's name VERBATIM scored 0.1818 / 0.2000 / 0.3077 / 0.1579 / 0.1500 /",
-    "0.2000 / 0.3810 / 0.4000 / 0.2917 / 0.3000, ten of ten ADMIT, ceiling 0.40 against a",
-    "0.45 pin (WINDOWS 118).",
+    "Each row's intent is a one-line utterance read out of intents/<file>'s single",
+    "`intent:` key, the shape production hands dedupBeforeAuthor: input.intent, a",
+    "person's one-line utterance with no steps (loop.ts). There is no document at stage",
+    "2; having none is the premise of dedup-BEFORE-author. Every score/sharedTokens",
+    "vector is measured on that input shape, and every row keeps its `id` and its SOLE",
+    "CATCHER rationale.",
     "",
-    "WHAT THE RE-MINT CHANGED AND WHAT IT DID NOT. Changed: every row's intent side is",
-    "now a one-line utterance read out of intents/<file>'s single `intent:` key, and every",
-    "score/sharedTokens vector was re-measured on that real input shape. NOT changed: every",
-    "pre-existing row keeps its `id` and its SOLE CATCHER rationale, so the property each",
-    "row was minted to be the only catcher of is still the property it catches. Three rows",
-    "were added, and only the three the verification's own `missing:` list names --",
-    "exact-name-utterance (WINDOWS 118 itself, the live reading as a cell) and the two",
-    "outside-the-name-axis-assumption rows step-detailed-refuse / step-detailed-admit. No",
-    "further denominator was minted.",
+    "WHY THE SUITE IS COPIED. suite/ladder.yaml, suite/ladder-current-target.yaml and",
+    "suite/local-form.yaml are VERBATIM copies of the demo suite the authoring corpus in",
+    "../corpus scores against, so the two denominators describe the same world. The copy",
+    "exists because the demo tree lives in the super-repository, outside this",
+    "package's repository, so no test in packages/agent can read it. The suite side is",
+    "a document, and that is not an inconsistency: a corpus ENTRY is a committed test,",
+    "which has a name and steps.",
     "",
-    "WHY THE SUITE IS COPIED. suite/uat-381-*.yaml are VERBATIM copies of",
-    "demo/init/tests/uat-381-*.yaml, which is the suite 393's frozen corpus scores",
-    "against, so the two denominators describe the same world. The copy exists because",
-    "the demo tree lives in the super-repository, outside this package's repository, so",
-    "no test in packages/agent can read it. 393's corpus solved the same problem by",
-    "copying the TEXTS into TypeScript; copying the documents is strictly stronger,",
-    "because what is copied is still in the producer's own format. The suite side is",
-    "STILL a document, and that is not an inconsistency: a corpus ENTRY is a committed",
-    "test, which has a name and steps.",
-    "",
-    "THE SUITE SIDE WAS WRONG TOO, AND THIS NOTE SAID OTHERWISE UNTIL 2026-08-13 (round 5,",
-    "CR-01). Where the clause above once read 'and only the INTENT side was ever wrong',",
-    "what CR-01 measured is this: suite/dedup-unfingerprinted.yaml carried a SEVEN-word",
-    "test-id, TestDefinitionSchema refines test-id on isCanonicalTestId (exactly ten",
-    "id-agent words), and the shipped parseTestFile answered 0 tests with the error",
-    "'test-id: Test ID must be t_ followed by 10 id-agent words'. The production producer",
-    "createDraftAuthoringPort.suiteTextCorpus does 'if (parsed.errors.length > 0) continue',",
-    "so that member contributed NO entry to any real comparison universe: the",
-    "unfingerprinted-duplicate row -- the SOLE CATCHER for 'the comparison universe is",
-    "EVERY test in the suite' -- was scored against a four-member world the product builds",
-    "as three. The member was re-minted to a canonical id (name and steps byte-untouched,",
-    "so the text projection the row scores is unchanged) and its vector RE-MEASURED on the",
-    "now-producible universe. Two instruments stand where that false clause stood: the",
-    "shipped-parser walk of all six suite documents in",
+    "EVERY SUITE DOCUMENT MUST PARSE. TestDefinitionSchema refines test-id on",
+    "isCanonicalTestId (exactly ten id-agent words), and the production producer",
+    "createDraftAuthoringPort.suiteTextCorpus does 'if (parsed.errors.length > 0)",
+    "continue', so a document the shipped parseTestFile refuses contributes no entry to",
+    "any real comparison universe. Two instruments hold that: the shipped-parser walk of",
+    "all six suite documents in",
     "packages/cli/src/authoring/__tests__/dedup-corpus-producibility.test.ts (the one",
-    "package the FUNC-02 firewall permits to import @vostride/agent-qa-core), and",
-    "dedup.test.ts's CANONICAL_TEST_ID, which spells the schema's own rule rather than the",
-    "strictly-weaker /^t_[a-z0-9-]+$/u that waved the seven-word id through. A document",
-    "parseTestFile refuses is a document suiteTextCorpus() can never yield.",
+    "package allowed to import @vostride/agent-qa-core), and dedup.test.ts's",
+    "CANONICAL_TEST_ID, which spells the schema's own rule.",
     "",
     "SYNTHETIC SUITE IDENTITIES. dedup-tie-alpha, dedup-tie-beta and",
     "dedup-unfingerprinted carry demo-style workspace-relative identity paths for",
     "members the demo suite does not contain. They exist because two properties have no",
-    "home in the real suite: no intent can tie uat-381-ladder against",
-    "uat-381-ladder-current-target (their token sets differ by exactly one member, and",
-    "the Jaccard denominators differ by one, so equal scores force a shared count of",
-    "zero), and the real suite has no member standing for a test the derived",
-    "fingerprint index has no rows for.",
+    "home in the real suite: no intent can tie ladder against ladder-current-target",
+    "(their token sets differ by exactly one member, and the Jaccard denominators differ",
+    "by one, so equal scores force a shared count of zero), and the real suite has no",
+    "member standing for a test the derived fingerprint index has no rows for.",
     "",
-    "score/sharedTokens/comparedTests are what the SHIPPED textOverlap ACTUALLY produced",
-    "over these files, driven through the real dedupBeforeAuthor, RE-MEASURED 2026-08-13",
-    "against the fixed recipe -- the larger of the whole-document axis and the name axis.",
-    "The pre-fix vectors are not lost: 394-31's Task-1 commit carries the whole table as",
-    "measured against the recipe shipping before the fix, and every row's `measured` field",
-    "names its pre-fix reading beside its post-fix one, so the differential is legible from",
-    "this file alone. The expected VERDICT column was frozen BEFORE the fix existed and was",
-    "not re-measured -- it is what D-04 says the lane must answer, and the RED was observed",
-    "against it. score is written to ten decimal places because the boundary triple is",
-    "decided in the fourth."
+    "score/sharedTokens/comparedTests are what the SHIPPED textOverlap ACTUALLY produces",
+    "over these files, driven through the real dedupBeforeAuthor with the current",
+    "recipe -- the larger of the whole-document axis and the name axis. Where the earlier",
+    "whole-document-only recipe read a row differently, the row's `measured` field names",
+    "that reading beside the current one. The expected VERDICT column was frozen before",
+    "the two-axis recipe existed and was not re-measured. score is written to ten decimal",
+    "places because the boundary triple is decided in the fourth."
   ],
   "schemaVersion": 2,
   "frozenAt": "2026-08-11",
@@ -88,17 +53,17 @@
   "threshold": 0.45,
   "thresholdComparison": ">=",
   "suiteMembers": {
-    "uat-381-local-form": {
-      "identityPath": "demo/init/tests/uat-381-local-form.yaml",
-      "document": "suite/uat-381-local-form.yaml"
+    "local-form": {
+      "identityPath": "demo/init/tests/local-form.yaml",
+      "document": "suite/local-form.yaml"
     },
-    "uat-381-ladder": {
-      "identityPath": "demo/init/tests/uat-381-ladder.yaml",
-      "document": "suite/uat-381-ladder.yaml"
+    "ladder": {
+      "identityPath": "demo/init/tests/ladder.yaml",
+      "document": "suite/ladder.yaml"
     },
-    "uat-381-ladder-current-target": {
-      "identityPath": "demo/init/tests/uat-381-ladder-current-target.yaml",
-      "document": "suite/uat-381-ladder-current-target.yaml"
+    "ladder-current-target": {
+      "identityPath": "demo/init/tests/ladder-current-target.yaml",
+      "document": "suite/ladder-current-target.yaml"
     },
     "dedup-tie-alpha": {
       "identityPath": "demo/init/tests/dedup-tie-alpha.yaml",
@@ -113,35 +78,35 @@
       "document": "suite/dedup-unfingerprinted.yaml"
     }
   },
-  "the393Suite": [
-    "uat-381-local-form",
-    "uat-381-ladder",
-    "uat-381-ladder-current-target"
+  "frozenSuite": [
+    "local-form",
+    "ladder",
+    "ladder-current-target"
   ],
   "rows": [
     {
       "id": "obvious-duplicate",
       "intent": "intents/duplicate.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target"
+        "local-form",
+        "ladder",
+        "ladder-current-target"
       ],
       "expected": "duplicate",
-      "matched": "uat-381-local-form",
+      "matched": "local-form",
       "score": 0.6363636364,
       "sharedTokens": 7,
       "comparedTests": 3,
-      "rationale": "SOLE CATCHER for: a near-duplicate intent is refused at all. The utterance says what uat-381-local-form's name says and adds one detail the test already covers. If this row admits, the lane does not screen.",
-      "measured": "POST-FIX, re-measured 2026-08-13 through the shipped max-of-two-axes recipe: 0.6363636364 against uat-381-local-form, and the NAME axis is the axis that decides it (7 shared of 11+7; the whole-document axis reads the same pair at 0.2962962963, 8 shared of 11+24). The two ladder members trail at 0.2666666667 each. Pre-fix this row scored 0.2962962963 and ADMITTED -- an utterance that says what a committed test's name says, waved through."
+      "rationale": "SOLE CATCHER for: a near-duplicate intent is refused at all. The utterance says what local-form's name says and adds one detail the test already covers. If this row admits, the lane does not screen.",
+      "measured": "Measured through the shipped max-of-two-axes recipe: 0.6363636364 against local-form, and the NAME axis is the axis that decides it (7 shared of 11+7; the whole-document axis reads the same pair at 0.2962962963, 8 shared of 11+24). The two ladder members trail at 0.2666666667 each. The whole-document-only recipe scored this row 0.2962962963 and ADMITTED it -- an utterance that says what a committed test's name says, waved through."
     },
     {
       "id": "accept-control",
       "intent": "intents/accept-control.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target"
+        "local-form",
+        "ladder",
+        "ladder-current-target"
       ],
       "expected": "no-duplicate",
       "matched": null,
@@ -149,31 +114,31 @@
       "sharedTokens": 5,
       "comparedTests": 3,
       "rationale": "SOLE CATCHER for: the lane still ADMITS. A threshold that refuses everything passes a refuse-only corpus, so the exclusion leg needs a control leg beside it or 'it refused' is a reading from an instrument that cannot read. The utterance is a genuinely new intent in the class the live lane's leg C authored -- a heading assertion no member of this suite makes.",
-      "measured": "POST-FIX, re-measured 2026-08-13: top score 0.4166666667 against uat-381-local-form on the name axis (5 shared of 10+7; the document axis reads 0.1724137931), then 0.2000000000 against both ladder members. 0.0333 of headroom below the pin and the narrowest margin in the table -- the same headroom the pre-re-mint table claimed, now measured on an utterance a person can actually type. NOTE the reading MOVES with the comparison universe (393 measured a comparable text at 0.4074 against ONE file) and with the AXIS: this control is decided on the name axis, so this is the margin that binds."
+      "measured": "Top score 0.4166666667 against local-form on the name axis (5 shared of 10+7; the document axis reads 0.1724137931), then 0.2000000000 against both ladder members. 0.0333 of headroom below the pin and the narrowest margin in the table, measured on an utterance a person can actually type. NOTE the reading MOVES with the comparison universe (a comparable text reads 0.4074 against ONE file) and with the AXIS: this control is decided on the name axis, so this is the margin that binds."
     },
     {
       "id": "at-threshold",
       "intent": "intents/at-threshold.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target"
+        "local-form",
+        "ladder",
+        "ladder-current-target"
       ],
       "expected": "duplicate",
-      "matched": "uat-381-ladder",
+      "matched": "ladder",
       "score": 0.45,
       "sharedTokens": 9,
       "comparedTests": 3,
-      "rationale": "SOLE CATCHER for: the >= direction. Its score equals the pin to the digit, so a lane written with > admits it and this row is the only one that says so. The utterance carries exactly nine distinct tokens and every one of them is a uat-381-ladder token, which is what lands the Jaccard on 9/20.",
-      "measured": "POST-FIX, re-measured 2026-08-13: 0.4500000000 against uat-381-ladder on the WHOLE-DOCUMENT axis (9 shared of 9+20; all nine utterance tokens are ladder tokens), with the name axis reading the same pair at 0.4166666667 and losing. 9/20 and the literal 0.45 are the same IEEE-754 double, so the equality is exact rather than approximate. 0.2222222222 against uat-381-local-form; uat-381-ladder-current-target reaches only 0.4166666667, which matters because it carries the ladder's NAME byte-for-byte at a lexicographically SMALLER path -- a recipe that scored the two equally would hand this row's refusal to current-target and the `matched` column would red before the verdict did. This is also the one row whose vector the fix did not move: max is monotone, and this row was already decided on the axis the fix did not touch."
+      "rationale": "SOLE CATCHER for: the >= direction. Its score equals the pin to the digit, so a lane written with > admits it and this row is the only one that says so. The utterance carries exactly nine distinct tokens and every one of them is a ladder token, which is what lands the Jaccard on 9/20.",
+      "measured": "0.4500000000 against ladder on the WHOLE-DOCUMENT axis (9 shared of 9+20; all nine utterance tokens are ladder tokens), with the name axis reading the same pair at 0.4166666667 and losing. 9/20 and the literal 0.45 are the same IEEE-754 double, so the equality is exact rather than approximate. 0.2222222222 against local-form; ladder-current-target reaches only 0.4166666667, which matters because it carries the ladder's NAME byte-for-byte at a lexicographically SMALLER path -- a recipe that scored the two equally would hand this row's refusal to current-target and the `matched` column would red before the verdict did. This is also the one row whose vector the two-axis recipe did not move: max is monotone, and this row is decided on the whole-document axis."
     },
     {
       "id": "below-threshold",
       "intent": "intents/below-threshold.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target"
+        "local-form",
+        "ladder",
+        "ladder-current-target"
       ],
       "expected": "no-duplicate",
       "matched": null,
@@ -181,38 +146,38 @@
       "sharedTokens": 4,
       "comparedTests": 3,
       "rationale": "SOLE CATCHER for: the step immediately BELOW the pin admits. Pairs with at-threshold and above-threshold as the boundary triple; a lane that rounded, clamped or compared at reduced precision would fail here first.",
-      "measured": "POST-FIX, re-measured 2026-08-13: 0.4444444444 against uat-381-local-form on the name axis (4 shared of 6+7; the document axis reads 0.1538461538), then 0.1666666667 against both ladder members. 0.0056 under the pin, and 4/9 is the largest value below 0.45 the name axis can produce from an utterance this short -- which is what makes it the step immediately below rather than merely a value below."
+      "measured": "0.4444444444 against local-form on the name axis (4 shared of 6+7; the document axis reads 0.1538461538), then 0.1666666667 against both ladder members. 0.0056 under the pin, and 4/9 is the largest value below 0.45 the name axis can produce from an utterance this short -- which is what makes it the step immediately below rather than merely a value below."
     },
     {
       "id": "above-threshold",
       "intent": "intents/above-threshold.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target"
+        "local-form",
+        "ladder",
+        "ladder-current-target"
       ],
       "expected": "duplicate",
-      "matched": "uat-381-local-form",
+      "matched": "local-form",
       "score": 0.4545454545,
       "sharedTokens": 5,
       "comparedTests": 3,
       "rationale": "SOLE CATCHER for: the step immediately ABOVE the pin refuses. The other half of the boundary triple. Below and above straddle the pin within a hundredth on each side, so the triple pins a point rather than a region.",
-      "measured": "POST-FIX, re-measured 2026-08-13: 0.4545454545 against uat-381-local-form on the name axis (5 shared of 9+7; the document axis reads 0.2222222222 with 6 shared), then 0.0740740741 and 0.1111111111. 0.0045 over the pin, and 5/11 is the smallest value above 0.45 the name axis admits at this utterance length. With below-threshold it straddles the pin inside a hundredth on each side. Pre-fix this row scored 0.2222222222 and admitted."
+      "measured": "0.4545454545 against local-form on the name axis (5 shared of 9+7; the document axis reads 0.2222222222 with 6 shared), then 0.0740740741 and 0.1111111111. 0.0045 over the pin, and 5/11 is the smallest value above 0.45 the name axis admits at this utterance length. With below-threshold it straddles the pin inside a hundredth on each side. The whole-document-only recipe scored this row 0.2222222222 and admitted it."
     },
     {
       "id": "exact-name-utterance",
       "intent": null,
-      "intentFromMemberName": "uat-381-local-form",
+      "intentFromMemberName": "local-form",
       "suite": [
-        "uat-381-local-form"
+        "local-form"
       ],
       "expected": "duplicate",
-      "matched": "uat-381-local-form",
+      "matched": "local-form",
       "score": 1.0,
       "sharedTokens": 7,
       "comparedTests": 1,
-      "rationale": "SOLE CATCHER for: WINDOWS 118, the strongest duplicate signal that can exist. The intent is not written anywhere -- it is READ OUT of the matched member's own name, so the row cannot drift from the suite it screens against. If a lane cannot refuse a test's name handed back to it verbatim, its refusal arm is unreachable for every real input, which is exactly what the live leg D of 394-30 measured and what the round-4 verification then generalised to ten of ten committed tests.",
-      "measured": "POST-FIX, re-measured 2026-08-13: 1.0000000000 against uat-381-local-form (7 shared of 7+7). An intent identical to a test's identity is a TOTAL match on the axis the two share, which is the arithmetic statement of why this cell is the strongest signal that can exist. PRE-FIX it scored 0.2916666667 (7 shared of 7+24) -- the verifier's 0.2917 reproduced to ten places through the shipped recipe -- and ADMITTED: total containment, and still below the pin, because the denominator carried the 17 step tokens the intent structurally cannot match. This row is the centre of the recorded RED and the centre of its closure."
+      "rationale": "SOLE CATCHER for: a test's own name handed back as the intent, the strongest duplicate signal that can exist. The intent is not written anywhere -- it is READ OUT of the matched member's own name, so the row cannot drift from the suite it screens against. If a lane cannot refuse a test's name handed back to it verbatim, its refusal arm is unreachable for every real input; the whole-document-only recipe admitted the names of ten of ten committed tests.",
+      "measured": "1.0000000000 against local-form (7 shared of 7+7). An intent identical to a test's identity is a TOTAL match on the axis the two share, which is the arithmetic statement of why this cell is the strongest signal that can exist. The whole-document-only recipe scored it 0.2916666667 (7 shared of 7+24) and ADMITTED it: total containment, and still below the pin, because the denominator carried the 17 step tokens the intent structurally cannot match."
     },
     {
       "id": "empty-suite",
@@ -224,7 +189,7 @@
       "sharedTokens": null,
       "comparedTests": 0,
       "rationale": "SOLE CATCHER for: an empty suite admits every intent and reports NO closest match. Deliberately driven by the obvious-duplicate intent, the strongest refusal candidate in the table, so the row says the empty corpus admits it rather than that some weak intent slipped through. The first test a project ever writes must not be refused for resembling nothing.",
-      "measured": "comparedTests 0, no closest reported, no-duplicate arm. There is no score to record because nothing was compared. Unaffected by the round-5 re-mint and by the recipe change in every respect except which utterance drives it."
+      "measured": "comparedTests 0, no closest reported, no-duplicate arm. There is no score to record because nothing was compared. The recipe does not touch this row; only the utterance that drives it does."
     },
     {
       "id": "empty-texts",
@@ -243,9 +208,9 @@
       "id": "tie",
       "intent": "intents/tie.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target",
+        "local-form",
+        "ladder",
+        "ladder-current-target",
         "dedup-tie-beta",
         "dedup-tie-alpha"
       ],
@@ -255,15 +220,15 @@
       "sharedTokens": 7,
       "comparedTests": 5,
       "rationale": "SOLE CATCHER for: tie-break stability. Two suite members score identically, and the refusal must name the lexicographically smallest workspace-relative identity path so two invocations against the same suite report the same duplicate. beta is fed BEFORE alpha on purpose -- a lane that kept natural iteration order, or that used a strict > on the running best, names beta and this row is the only one that notices.",
-      "measured": "POST-FIX, re-measured 2026-08-13: alpha and beta both 0.7000000000 on the name axis (7 shared of 9+8), bit-identical because their documents carry identical text at different paths, so the tie-break decides and the smaller path wins. The three real members trail at 0.2307692308 / 0.2142857143 / 0.2500000000. Pre-fix both tied at 0.4210526316 -- BELOW the pin, so the row admitted and its tie-break was never reached: a determinism property that could not be exercised because nothing was refused."
+      "measured": "alpha and beta both 0.7000000000 on the name axis (7 shared of 9+8), bit-identical because their documents carry identical text at different paths, so the tie-break decides and the smaller path wins. The three real members trail at 0.2307692308 / 0.2142857143 / 0.2500000000. The whole-document-only recipe tied both at 0.4210526316 -- BELOW the pin, so the row admitted and its tie-break was never reached: a determinism property that could not be exercised because nothing was refused."
     },
     {
       "id": "unfingerprinted-duplicate",
       "intent": "intents/unfingerprinted-duplicate.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target",
+        "local-form",
+        "ladder",
+        "ladder-current-target",
         "dedup-unfingerprinted"
       ],
       "expected": "duplicate",
@@ -272,31 +237,31 @@
       "sharedTokens": 8,
       "comparedTests": 4,
       "rationale": "SOLE CATCHER for: the comparison universe is EVERY test in the suite. dedup-unfingerprinted stands for a member the derived fingerprint index has no rows for -- exactly the population gate 3's text lane keeps and gate 3's fingerprint lane drops, and exactly the population a corpus narrowed to the fingerprint-covered subset would lose. The row also pins comparedTests at the full suite size, so a lane that filtered its input reds here on the count before it reds on the match.",
-      "measured": "RE-MEASURED 2026-08-13 ON A PRODUCIBLE UNIVERSE (394-38, CR-01), and every number below was READ OUT OF THAT RUN through the driven dedupBeforeAuthor rather than carried over: kind duplicate, comparedTests 4, matchedRef demo/init/tests/dedup-unfingerprinted.yaml::Check the local form heading and the back link, score 0.8000000000, sharedTokens 8, threshold 0.45. Per member, doc axis / name axis: uat-381-local-form 0.0967741935 / 0.2142857143, uat-381-ladder 0.1111111111 / 0.2000000000, uat-381-ladder-current-target 0.1071428571 / 0.2000000000, dedup-unfingerprinted 0.5882352941 / 0.8000000000 -- the name axis decides, 8 shared of 10+8. The vector is IDENTICAL to the round-5 reading, and that is the predicted result rather than a lucky one: the re-mint moved only test-id, which is not in the text projection either axis reads. What changed is the world it was measured on. UNTIL THIS RE-MEASURE the fourth member was unproducible -- 7-word test-id, 0 tests from the shipped parseTestFile, skipped by suiteTextCorpus's error-continue -- so this row's own universe claim was certified against a suite production builds as three. The 0.8 is also this row's second job now: it IS the name-axis reading, which makes this the name-axis-decided row the WR-06 discrimination control in dedup.test.ts screens against. POST-FIX (round 5, recipe) note preserved: an intent has no execution fingerprint, so the anchor-sequence recipe cannot fire pre-run -- this is why the pre-run screen must read the suite rather than the index. This row refused pre-recipe-fix too, on the document axis, at a lower score."
+      "measured": "Every number below is READ OUT OF A RUN through the driven dedupBeforeAuthor on a producible universe: kind duplicate, comparedTests 4, matchedRef demo/init/tests/dedup-unfingerprinted.yaml::Check the local form heading and the back link, score 0.8000000000, sharedTokens 8, threshold 0.45. Per member, doc axis / name axis: local-form 0.0967741935 / 0.2142857143, ladder 0.1111111111 / 0.2000000000, ladder-current-target 0.1071428571 / 0.2000000000, dedup-unfingerprinted 0.5882352941 / 0.8000000000 -- the name axis decides, 8 shared of 10+8. test-id is not in the text projection either axis reads, so a canonical test-id moves no score; it is what makes the fourth member producible at all. The 0.8 is also this row's second job: it IS the name-axis reading, which makes this the name-axis-decided row the discrimination control in dedup.test.ts screens against. An intent has no execution fingerprint, so the anchor-sequence recipe cannot fire pre-run -- this is why the pre-run screen must read the suite rather than the index. This row also refuses under the whole-document-only recipe, at a lower score."
     },
     {
       "id": "step-detailed-refuse",
       "intent": "intents/step-detailed-refuse.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target"
+        "local-form",
+        "ladder",
+        "ladder-current-target"
       ],
       "expected": "duplicate",
-      "matched": "uat-381-local-form",
+      "matched": "local-form",
       "score": 0.5555555556,
       "sharedTokens": 15,
       "comparedTests": 3,
-      "rationale": "SOLE CATCHER for: a refusal reached from OUTSIDE the name-axis assumption. The utterance is long and step-detailed rather than name-shaped -- it names no test, it recites a procedure -- and it near-duplicates uat-381-local-form's whole document. A guard whose corpus cases are all drawn from inside its own assumption is tested only where it already believes; this row is the refuse-direction case drawn from outside it.",
-      "measured": "POST-FIX, re-measured 2026-08-13: 0.5555555556 against uat-381-local-form on the WHOLE-DOCUMENT axis (15 shared of 18+24; the name axis reads only 0.2500000000, because the utterance names no test), then 0.4615384615 and 0.4444444444 against the ladder pair. IDENTICAL to its pre-fix vector, and that is this row's second job: it is the witness that the recipe change is monotone upward and took no refusal away. It is also the case the name axis alone would MISS -- a procedure recited without naming anything."
+      "rationale": "SOLE CATCHER for: a refusal reached from OUTSIDE the name-axis assumption. The utterance is long and step-detailed rather than name-shaped -- it names no test, it recites a procedure -- and it near-duplicates local-form's whole document. A guard whose corpus cases are all drawn from inside its own assumption is tested only where it already believes; this row is the refuse-direction case drawn from outside it.",
+      "measured": "0.5555555556 against local-form on the WHOLE-DOCUMENT axis (15 shared of 18+24; the name axis reads only 0.2500000000, because the utterance names no test), then 0.4615384615 and 0.4444444444 against the ladder pair. IDENTICAL under the whole-document-only recipe, and that is this row's second job: it is the witness that the two-axis recipe is monotone upward and took no refusal away. It is also the case the name axis alone would MISS -- a procedure recited without naming anything."
     },
     {
       "id": "step-detailed-admit",
       "intent": "intents/step-detailed-admit.yaml",
       "suite": [
-        "uat-381-local-form",
-        "uat-381-ladder",
-        "uat-381-ladder-current-target"
+        "local-form",
+        "ladder",
+        "ladder-current-target"
       ],
       "expected": "no-duplicate",
       "matched": null,
@@ -304,7 +269,7 @@
       "sharedTokens": 8,
       "comparedTests": 3,
       "rationale": "SOLE CATCHER for: an admit reached from OUTSIDE the name-axis assumption. A long, step-detailed utterance that recites a procedure no member of the suite performs -- a heading and a field LABEL, neither asserted anywhere in this suite. Without it, 'the lane still admits' is only ever demonstrated on short name-shaped utterances, and a recipe that refused every long sentence would pass the corpus.",
-      "measured": "POST-FIX, re-measured 2026-08-13: top score 0.2666666667 against uat-381-local-form on the whole-document axis (8 shared of 14+24; name axis 0.2352941176), then 0.2592592593 and 0.2500000000. IDENTICAL to its pre-fix vector. Long, heavily overlapping in vocabulary with all three members, and still admitting by 0.18 -- length alone must not refuse, and the strengthened recipe did not make it so."
+      "measured": "Top score 0.2666666667 against local-form on the whole-document axis (8 shared of 14+24; name axis 0.2352941176), then 0.2592592593 and 0.2500000000. IDENTICAL under the whole-document-only recipe. Long, heavily overlapping in vocabulary with all three members, and still admitting by 0.18 -- length alone must not refuse, and the two-axis recipe did not make it so."
     }
   ]
 }

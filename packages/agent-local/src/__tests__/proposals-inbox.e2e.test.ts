@@ -21,7 +21,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { composeLocalAgent } from '../composition/compose-local-agent.js'
 import type { LocalAgentHost } from '../composition/compose-local-agent.js'
-import { filePre432KnowledgeProposal } from './pre-432-knowledge-proposal.js'
+import { fileLeftoverKnowledgeProposal } from './leftover-knowledge-proposal.js'
 
 const RETIRED_IDS = [
   'proposals.list',
@@ -132,7 +132,7 @@ describe('the composed host leaves legacy proposal files alone', () => {
 
   async function propose(summary: string, ordinal: number): Promise<{ recordId: string; proposalId: string }> {
     const recordId = publish(summary, ordinal)
-    const proposalId = await filePre432KnowledgeProposal({
+    const proposalId = await fileLeftoverKnowledgeProposal({
       agentQaRoot, knowledgeRoot, verb: 'forget', target: { grain: 'record', recordId },
     })
     return { recordId, proposalId }

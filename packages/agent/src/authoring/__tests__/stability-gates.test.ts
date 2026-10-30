@@ -201,7 +201,7 @@ describe('runStabilityGates — the consecutive-run gates', () => {
     // A gate that read the run's aggregate, or simply the first member, would report the sibling's
     // verdict. The sibling here fails; the draft passes.
     const sibling: MemberFixture = {
-      filePath: 'demo/init/tests/uat-381-local-form.yaml',
+      filePath: 'demo/init/tests/local-form.yaml',
       testName: 'Sign in on the local account form',
       outcome: 'failed',
       steps: ACCEPT_CONTROL_SUBACTIONS,

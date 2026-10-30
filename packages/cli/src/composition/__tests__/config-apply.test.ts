@@ -25,7 +25,7 @@ import {
   createConfigWritePort,
 } from '../local-agent-host.js'
 import * as hostModule from '../local-agent-host.js'
-import { filePre432ConfigProposal } from './pre-432-config-proposal.js'
+import { fileLeftoverConfigProposal } from './leftover-config-proposal.js'
 
 const HUMAN: FunctionCaller = {
   surface: 'test',
@@ -99,7 +99,7 @@ function pendingProposalPath(proposalId: string): string {
 }
 
 // Read back off disk as plain JSON, never the object handed to the store.
-interface StoredPre432Record {
+interface StoredLeftoverRecord {
   readonly kind: string
   readonly payload: {
     readonly payloadKind: string
@@ -107,8 +107,8 @@ interface StoredPre432Record {
   }
 }
 
-function storedRecord(proposalId: string): StoredPre432Record {
-  return JSON.parse(readFileSync(pendingProposalPath(proposalId), 'utf8')) as StoredPre432Record
+function storedRecord(proposalId: string): StoredLeftoverRecord {
+  return JSON.parse(readFileSync(pendingProposalPath(proposalId), 'utf8')) as StoredLeftoverRecord
 }
 
 function storedConfigPayload(proposalId: string) {
@@ -166,8 +166,8 @@ async function change(
 }
 
 /** A legacy proposal record for the tracer edit, as an old workspace holds it. */
-async function pre432Proposal(): Promise<string> {
-  return (await filePre432ConfigProposal({
+async function leftoverProposal(): Promise<string> {
+  return (await fileLeftoverConfigProposal({
     configPath,
     agentQaRoot,
     edits: [{ path: 'use.timeout.step', value: '45s' }],
@@ -242,7 +242,7 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
 
   it('(b) accepting an old proposal record is refused unbound: no commit, and the file keeps its bytes', async () => {
     const registry = registryFor()
-    const id = await pre432Proposal()
+    const id = await leftoverProposal()
     // The record is still on disk and still names the promised bytes; nothing applies them.
     expect(base64Decode(storedConfigPayload(id).files[0]!.newContentBase64).length).toBeGreaterThan(0)
 
@@ -314,7 +314,7 @@ describe('the config tracer: propose, accept, ONE byte-matched commit', () => {
   })
 
   it('(g) an unbound apply refuses BY NAME and leaves the repository untouched', async () => {
-    const id = await pre432Proposal()
+    const id = await leftoverProposal()
 
     await expect(invokeFunction(registryFor(), 'config.proposal.apply', { proposalId: id }, HUMAN))
       .rejects.toBeInstanceOf(UnknownFunctionError)

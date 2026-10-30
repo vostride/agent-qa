@@ -50,7 +50,7 @@ interface Expectations {
   readonly threshold: number
   readonly thresholdComparison: string
   readonly suiteMembers: Readonly<Record<string, SuiteMemberSpec>>
-  readonly the393Suite: readonly string[]
+  readonly frozenSuite: readonly string[]
   readonly rows: readonly CorpusRow[]
 }
 
@@ -144,9 +144,6 @@ describe('the frozen dedup corpus is intact', () => {
   it('carries the treadmill warning and twelve sole-catcher rows', () => {
     const comment = EXPECTATIONS.$comment.join(' ')
     expect(comment).toContain('MUST NOT mint new members')
-    // The one suspension of that law is CITED rather than asserted, so a reader can check the
-    // adjudication that authorised it instead of taking this file's word for it.
-    expect(comment).toContain('394-VERIFICATION round')
     expect(EXPECTATIONS.rows).toHaveLength(12)
     for (const row of EXPECTATIONS.rows) {
       expect(row.rationale, `${row.id} states the property it is the sole catcher for`)
@@ -278,7 +275,7 @@ describe('every corpus fixture is what its side of the comparison actually recei
 
   it('copies the corpus suite VERBATIM, so the two denominators describe one world', () => {
     // Stage 2 and gate 3 must screen the same suite documents, and only this cell sees a drift.
-    const localForm = suiteEntry('uat-381-local-form')
+    const localForm = suiteEntry('local-form')
     expect(localForm.testName).toBe('Sign in on the local account form')
     expect(localForm.stepsText).toEqual([
       'Type "{{env:PROBE_USER}}" into the Username field',
@@ -286,10 +283,10 @@ describe('every corpus fixture is what its side of the comparison actually recei
       'Click the Submit button',
       'Verify the page says "Received!"',
     ])
-    expect(EXPECTATIONS.the393Suite).toEqual([
-      'uat-381-local-form',
-      'uat-381-ladder',
-      'uat-381-ladder-current-target',
+    expect(EXPECTATIONS.frozenSuite).toEqual([
+      'local-form',
+      'ladder',
+      'ladder-current-target',
     ])
   })
 })
@@ -372,8 +369,8 @@ describe('dedupBeforeAuthor against the frozen corpus', () => {
       // carry byte-identical names, and the tie-break between them is `tie`'s property, not this
       // row's.
       const { dedupBeforeAuthor } = await loadDedup()
-      const corpus = EXPECTATIONS.the393Suite.map(suiteEntry)
-      for (const key of EXPECTATIONS.the393Suite) {
+      const corpus = EXPECTATIONS.frozenSuite.map(suiteEntry)
+      for (const key of EXPECTATIONS.frozenSuite) {
         const screening = dedupBeforeAuthor(suiteEntry(key).testName, corpus)
         expect(screening.kind, `${key}'s own name against the whole suite`).toBe('duplicate')
       }
@@ -403,7 +400,7 @@ describe('dedupBeforeAuthor against the frozen corpus', () => {
     const screening = dedupBeforeAuthor(intent, corpus)
     if (screening.kind !== 'duplicate') throw new Error('the obvious duplicate must refuse')
     expect(screening.evidence.matchedRef)
-      .toBe('demo/init/tests/uat-381-local-form.yaml::Sign in on the local account form')
+      .toBe('demo/init/tests/local-form.yaml::Sign in on the local account form')
   })
 
   it('is deterministic: two screenings of one suite report one duplicate', async () => {
@@ -423,7 +420,7 @@ describe('one scorer, not two', () => {
   it('reports a score adds-value.ts produces for the same pair, not a copy of it', async () => {
     const { dedupBeforeAuthor } = await loadDedup()
     // Shares `textSimilarity` with the lane, so a private tokenizer in `dedup.ts` would drift here.
-    const entry = suiteEntry('uat-381-local-form')
+    const entry = suiteEntry('local-form')
     const intent = intentTextOf('intents/duplicate.yaml')
     const wholeDocument = textSimilarity({ testName: intent, steps: [] }, entry)
     const nameOnly = textSimilarity(

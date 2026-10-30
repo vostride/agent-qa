@@ -18,7 +18,7 @@ import type {
 import { createConfigFilesPort } from '../local-agent-host.js'
 
 /** The legacy applyable payload's shape, spelled here because no schema holds it. */
-export interface Pre432ConfigPayload {
+export interface LeftoverConfigPayload {
   readonly schemaVersion: 1
   readonly payloadKind: 'applyable'
   readonly action: string
@@ -30,9 +30,9 @@ export interface Pre432ConfigPayload {
   readonly crossBoundaryReasons: readonly CrossBoundaryReason[]
 }
 
-export interface Pre432ConfigProposal {
+export interface LeftoverConfigProposal {
   readonly proposalId: string
-  readonly payload: Pre432ConfigPayload
+  readonly payload: LeftoverConfigPayload
   readonly shownDiff: string
 }
 
@@ -41,7 +41,7 @@ function sameBytes(left: Uint8Array, right: Uint8Array): boolean {
 }
 
 // Files a legacy `config.field.set`-style proposal over the config as it stands.
-export async function filePre432ConfigProposal(input: {
+export async function fileLeftoverConfigProposal(input: {
   readonly configPath: string
   readonly agentQaRoot: string
   readonly action?: string
@@ -51,7 +51,7 @@ export async function filePre432ConfigProposal(input: {
   readonly crossBoundaryReasons?: readonly CrossBoundaryReason[]
   readonly surface?: string
   readonly now?: () => number
-}): Promise<Pre432ConfigProposal> {
+}): Promise<LeftoverConfigProposal> {
   const port = createConfigFilesPort(input.configPath)
   const set = await port.read()
   const config = set.files.find((file) => file.path === set.configFile)
@@ -78,13 +78,13 @@ export async function filePre432ConfigProposal(input: {
     diffInput.push({ path, ...(before === undefined ? {} : { oldBytes: before }), newBytes: next })
   }
   const rendered = renderConfigDiff(diffInput)
-  if (rendered.outcome !== 'changed') throw new Error('the pre-432 proposal fixture changes nothing')
+  if (rendered.outcome !== 'changed') throw new Error('the leftover proposal fixture changes nothing')
 
   const digests = new Map(rendered.perFileDigests.map((digest) => [digest.path, digest]))
   const action = input.action ?? 'config.field.set'
   const firstEdit = input.edits?.[0]
   const reasons = [...(input.crossBoundaryReasons ?? [])]
-  const payload: Pre432ConfigPayload = {
+  const payload: LeftoverConfigPayload = {
     schemaVersion: 1,
     payloadKind: 'applyable',
     action,

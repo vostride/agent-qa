@@ -35,7 +35,7 @@ import {
   type PostRunTailOperations,
   type RunPostRunTailOptions,
 } from '../curation/post-run-tail.js'
-import { filePre432KnowledgeProposal } from '../composition/__tests__/pre-432-knowledge-proposal.js'
+import { fileLeftoverKnowledgeProposal } from '../composition/__tests__/leftover-knowledge-proposal.js'
 import { enqueueThroughTheStep } from './post-run-step-harness.js'
 
 const MINT_IDENTITY = (filePath: string): string => filePath
@@ -295,7 +295,7 @@ function publishRecord(f: Fixture, summary: string): string {
 // One real record, then one older proposal about it, attributed to the run.
 async function mint(f: Fixture, runId: string, summary: string): Promise<string> {
   const recordId = publishRecord(f, summary)
-  return await filePre432KnowledgeProposal({
+  return await fileLeftoverKnowledgeProposal({
     agentQaRoot: f.agentQaRoot,
     knowledgeRoot: f.knowledgeRoot,
     verb: 'forget',

@@ -24,14 +24,14 @@ const USERNAME_ELEMENT = expectedElement(ACCEPT_CONTROL_SUBACTIONS[0]![0]!)
 const HEADING_ELEMENT = expectedElement(ACCEPT_CONTROL_SUBACTIONS[1]![0]!)
 
 /**
- * The suite as the accept control meets it: uat-381 covers the Username field, and NOTHING covers
- * the page heading. That single missing element is what `expectations.json` says gate 3 turns on
- * for this draft, so the union is built to be missing exactly it and nothing else.
+ * The suite as the accept control meets it: local-form covers the Username field, and NOTHING
+ * covers the page heading. That single missing element is what `expectations.json` says gate 3
+ * turns on for this draft, so the union is built to be missing exactly it and nothing else.
  */
 function suiteIndexMissingTheHeading() {
   return fakeFingerprintIndex([
     {
-      filePath: 'demo/init/tests/uat-381-local-form.yaml',
+      filePath: 'demo/init/tests/local-form.yaml',
       testName: 'Sign in on the local account form',
       elements: [USERNAME_ELEMENT],
     },
@@ -144,7 +144,7 @@ describe('evaluateDraft — the tracer path', () => {
         }),
         fingerprints: fakeFingerprintIndex([
           {
-            filePath: 'demo/init/tests/uat-381-local-form.yaml',
+            filePath: 'demo/init/tests/local-form.yaml',
             testName: 'Sign in on the local account form',
             elements: [USERNAME_ELEMENT, HEADING_ELEMENT],
           },
@@ -158,7 +158,7 @@ describe('evaluateDraft — the tracer path', () => {
     expect(receipt.addsValueFinding.novelElements).toEqual([])
     // The one suite test subsumes every element the draft exercised, and the row says so.
     expect(receipt.addsValueFinding.comparedTests).toEqual([{
-      filePath: 'demo/init/tests/uat-381-local-form.yaml',
+      filePath: 'demo/init/tests/local-form.yaml',
       testName: 'Sign in on the local account form',
       lane: 'fingerprint',
       covered: true,

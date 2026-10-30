@@ -15,7 +15,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { createDigestCommand } from '../commands/digest.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'
-import { filePre432KnowledgeProposal } from '../composition/__tests__/pre-432-knowledge-proposal.js'
+import { fileLeftoverKnowledgeProposal } from '../composition/__tests__/leftover-knowledge-proposal.js'
 
 const OLDER_RUN = 'run-391-06-cmd-older'
 const NEWER_RUN = 'run-391-06-cmd-newer'
@@ -124,7 +124,7 @@ function storeConfig(ws: Workspace): BundleStoreConfig {
 }
 
 /** A real record, then an older proposal file about it planted beside it, attributed to a run. */
-async function plantPre432Proposal(ws: Workspace, runId: string, summary: string, ordinal: number): Promise<string> {
+async function plantLeftoverProposal(ws: Workspace, runId: string, summary: string, ordinal: number): Promise<string> {
   const published = publishBundleForTest(storeConfig(ws), {
     draft: {
       kind: 'fact',
@@ -150,7 +150,7 @@ async function plantPre432Proposal(ws: Workspace, runId: string, summary: string
     artifacts: [],
   })
   if (published.kind !== 'published') throw new Error(`fixture publish failed: ${published.kind}`)
-  return await filePre432KnowledgeProposal({
+  return await fileLeftoverKnowledgeProposal({
     agentQaRoot: ws.agentQaRoot,
     verb: 'forget',
     target: { grain: 'record', recordId: asRecordId(published.id) },
@@ -207,7 +207,7 @@ async function digestThroughTheOp(ws: Workspace, runId: string): Promise<RunDige
 describe('agent-qa digest, the on-demand channel', () => {
   it('prints the op result\'s lines, byte for byte, and composes nothing of its own', async () => {
     const ws = workspace()
-    await plantPre432Proposal(ws, NEWER_RUN, 'checkout button', 11)
+    await plantLeftoverProposal(ws, NEWER_RUN, 'checkout button', 11)
 
     const invocation = await run(ws, ['digest', NEWER_RUN])
     const digest = await digestThroughTheOp(ws, NEWER_RUN)

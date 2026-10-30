@@ -10,7 +10,7 @@ import type { KnowledgeChangeOutput } from '@vostride/agent-qa-schema'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { filePre432KnowledgeProposal } from '../composition/__tests__/pre-432-knowledge-proposal.js'
+import { fileLeftoverKnowledgeProposal } from '../composition/__tests__/leftover-knowledge-proposal.js'
 import { invokeViaDaemon } from '../daemon/client.js'
 import {
   runDaemonHost,
@@ -250,10 +250,10 @@ describe('the daemon commits its own applies in process', () => {
   }, 60_000)
 
   it('leaves an older proposal already on disk unapplied and unread through the daemon entry', async () => {
-    const paths = makePaths('pre432')
+    const paths = makePaths('leftover')
     const recordId = await seedRecord(paths)
     grantApply(paths)
-    const proposalId = await filePre432KnowledgeProposal({
+    const proposalId = await fileLeftoverKnowledgeProposal({
       agentQaRoot: paths.agentQaRoot,
       knowledgeRoot: paths.knowledgeRoot,
       verb: 'forget',

@@ -92,14 +92,14 @@ const FULL_RECEIPT: DraftReceipt = {
     novelElements: ['{"anchor":{"name":"back to the form","role":"link","t":"el"}}'],
     comparedTests: [
       {
-        filePath: 'tests/uat-381-local-form.yaml',
-        testName: 'uat-381-local-form',
+        filePath: 'tests/local-form.yaml',
+        testName: 'local-form',
         lane: 'fingerprint',
         covered: false,
       },
       {
-        filePath: 'tests/uat-381-ladder.yaml',
-        testName: 'uat-381-ladder',
+        filePath: 'tests/ladder.yaml',
+        testName: 'ladder',
         lane: 'text',
         covered: true,
       },

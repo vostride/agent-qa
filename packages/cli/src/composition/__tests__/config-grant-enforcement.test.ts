@@ -19,7 +19,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import * as cliHost from '../local-agent-host.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../local-agent-host.js'
-import { filePre432ConfigProposal } from './pre-432-config-proposal.js'
+import { fileLeftoverConfigProposal } from './leftover-config-proposal.js'
 
 // The action class a legacy grant covered.
 const CONFIG_APPLY_CLASS = 'fn:config.proposal.apply'
@@ -136,8 +136,8 @@ const FLAGGED = { path: 'workspace.envFile', value: '.env.staging' } as const
 const IN_SCOPE = { path: 'use.timeout.step', value: '45s' } as const
 
 /** A legacy record for this change, carrying the reasons the old classifier recorded. */
-async function pre432Record(input: typeof FLAGGED | typeof IN_SCOPE): Promise<string> {
-  return (await filePre432ConfigProposal({
+async function leftoverRecord(input: typeof FLAGGED | typeof IN_SCOPE): Promise<string> {
+  return (await fileLeftoverConfigProposal({
     configPath,
     agentQaRoot,
     edits: [input],
@@ -304,7 +304,7 @@ describe('an old proposal record is refused unbound, grant or no grant', () => {
     _label, input, grant, doctor,
   ) => {
     if (grant) await mintGrant(CONFIG_APPLY_CLASS)
-    const proposalId = await pre432Record(input)
+    const proposalId = await leftoverRecord(input)
     if (doctor) {
       const record = JSON.parse(readFileSync(pendingProposalPath(proposalId), 'utf8')) as PlantedConfigRecord
       if (record.kind !== 'config' || record.payload.payloadKind !== 'applyable') {

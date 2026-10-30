@@ -35,7 +35,7 @@ import {
   createKnowledgeReview,
   createRunsReader,
 } from '../compose-local-agent.js'
-import { filePre432KnowledgeProposal } from '../../__tests__/pre-432-knowledge-proposal.js'
+import { fileLeftoverKnowledgeProposal } from '../../__tests__/leftover-knowledge-proposal.js'
 
 
 // Written out so an id that stopped registering is visible.
@@ -224,7 +224,7 @@ describe('the mutating review verbs bind, refuse and commit by name', () => {
 
     // A legacy forget on disk stays as found, because its apply op is an unknown function.
     const pending = publish('Payment')
-    const proposalId = await filePre432KnowledgeProposal({
+    const proposalId = await fileLeftoverKnowledgeProposal({
       agentQaRoot, knowledgeRoot, verb: 'forget', target: { grain: 'record', recordId: pending },
     })
     const planted = join(agentQaRoot, 'proposals', `${proposalId}.json`)

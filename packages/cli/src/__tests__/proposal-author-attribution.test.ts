@@ -16,7 +16,7 @@ import { composeDashboardDoor } from '../commands/dashboard.js'
 import { MCP_FUNCTION_CALLER } from '../commands/mcp.js'
 import * as cliHost from '../composition/local-agent-host.js'
 import { composeCliLocalAgent, CLI_FUNCTION_CALLER } from '../composition/local-agent-host.js'
-import { filePre432ConfigProposal } from '../composition/__tests__/pre-432-config-proposal.js'
+import { fileLeftoverConfigProposal } from '../composition/__tests__/leftover-config-proposal.js'
 import { markFixture } from '../gates/__tests__/feedback-fixture.js'
 import { SURFACE_ROSTER } from './conformance/roster.js'
 
@@ -172,7 +172,7 @@ async function changeStep(door: Door, workspace: Workspace): Promise<{ outcome: 
 }
 
 /** The legacy accept, from the host where a person accepted proposals. */
-async function acceptPre432(workspace: Workspace, proposalId: string): Promise<unknown> {
+async function acceptLeftover(workspace: Workspace, proposalId: string): Promise<unknown> {
   const host = composeCliLocalAgent({
     agentQaRoot: workspace.agentQaRoot,
     configPath: workspace.configPath,
@@ -414,7 +414,7 @@ describe('an older config record is never applied or committed', () => {
 
       vi.useFakeTimers({ toFake: ['Date'], now: Number(LEGACY_RECORD.origin.at) + 1 })
       try {
-        await expect(acceptPre432(workspace, id)).rejects.toMatchObject({ name: 'UnknownFunctionError' })
+        await expect(acceptLeftover(workspace, id)).rejects.toMatchObject({ name: 'UnknownFunctionError' })
       } finally {
         vi.useRealTimers()
       }
@@ -426,7 +426,7 @@ describe('an older config record is never applied or committed', () => {
 
   it('(2) a chat-minted record is refused as unknown, and the file and history stay put', async () => {
     const workspace = seedWorkspace()
-    const { proposalId } = await filePre432ConfigProposal({
+    const { proposalId } = await fileLeftoverConfigProposal({
       configPath: workspace.configPath,
       agentQaRoot: workspace.agentQaRoot,
       edits: [{ path: 'use.timeout.step', value: '45s' }],
@@ -434,7 +434,7 @@ describe('an older config record is never applied or committed', () => {
     })
     const before = repositoryState(workspace)
 
-    await expect(acceptPre432(workspace, proposalId)).rejects.toMatchObject({ name: 'UnknownFunctionError' })
+    await expect(acceptLeftover(workspace, proposalId)).rejects.toMatchObject({ name: 'UnknownFunctionError' })
 
     expect(readFileSync(workspace.configPath, 'utf8')).toBe(SEEDED_CONFIG)
     expect(repositoryState(workspace)).toEqual(before)

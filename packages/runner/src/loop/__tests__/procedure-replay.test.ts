@@ -404,10 +404,10 @@ const sourceAssociationPolarityRows: SourceAssociationPolarityRow[] = [
 describe('procedure guarded replay', () => {
   it('authored prose cannot override structured parameter provenance', async () => {
     const handoffBytes = readFileSync(
-      new URL('./fixtures/f-381-54-1/handoff.json', import.meta.url),
+      new URL('./fixtures/recorded-procedure/handoff.json', import.meta.url),
     )
     const recordBytes = readFileSync(
-      new URL('./fixtures/f-381-54-1/procedure-record.md', import.meta.url),
+      new URL('./fixtures/recorded-procedure/procedure-record.md', import.meta.url),
     )
     expect(createHash('sha256').update(handoffBytes).digest('hex')).toBe(
       '3a157aa7bfc864af87771c5747fde2ab4bd096ea7cb2e4f473aea43b7f5e4288',
@@ -546,17 +546,17 @@ describe('procedure guarded replay', () => {
       !l2.includes(authoredInstruction) &&
       l2.includes('text <- parameter PROBE_USER') &&
       l2.includes('interpolatedInCurrentStep=true')
-    expect(desiredContract, 'F-381-54-1_EXPECTED_RED_CONTRACT').toBe(true)
+    expect(desiredContract, 'RECORDED_PROCEDURE_EXPECTED_RED_CONTRACT').toBe(true)
   })
 
   it('projects the real renamed screen as one advisory textbox candidate', async () => {
     // The candidate comes from the preserved stateBefore; no Username/Account-name equivalence.
     const handoff = JSON.parse(readFileSync(
-      new URL('./fixtures/f-381-54-1/handoff.json', import.meta.url),
+      new URL('./fixtures/recorded-procedure/handoff.json', import.meta.url),
       'utf8',
     )) as CompletedRunHandoff
     const record = readFileSync(
-      new URL('./fixtures/f-381-54-1/procedure-record.md', import.meta.url),
+      new URL('./fixtures/recorded-procedure/procedure-record.md', import.meta.url),
       'utf8',
     )
     const payload = parseProcedureBody(record)
@@ -608,11 +608,11 @@ describe('procedure guarded replay', () => {
 
   it('source-bound email recovery marks the PROBE_USER slot as supplied without exposing its value', async () => {
     const handoff = JSON.parse(readFileSync(
-      new URL('./fixtures/f-381-54-1/handoff.json', import.meta.url),
+      new URL('./fixtures/recorded-procedure/handoff.json', import.meta.url),
       'utf8',
     )) as CompletedRunHandoff
     const record = readFileSync(
-      new URL('./fixtures/f-381-54-1/procedure-record.md', import.meta.url),
+      new URL('./fixtures/recorded-procedure/procedure-record.md', import.meta.url),
       'utf8',
     )
     const payload = parseProcedureBody(record)

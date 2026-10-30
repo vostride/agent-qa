@@ -36,7 +36,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { composeLocalAgent } from '../composition/compose-local-agent.js'
 import type { LocalAgentHost } from '../composition/compose-local-agent.js'
-import { filePre432KnowledgeProposal } from './pre-432-knowledge-proposal.js'
+import { fileLeftoverKnowledgeProposal } from './leftover-knowledge-proposal.js'
 
 const MINT_IDENTITY = (filePath: string): string => filePath
 
@@ -251,7 +251,7 @@ describe('the per-run digest, over the composed host', () => {
   ): Promise<{ proposalId: string; recordId: string }> {
     const recordId = publish(summary)
     // A legacy proposal on disk, attributed to the run as the retired propose ops attributed it.
-    const proposalId = await filePre432KnowledgeProposal({
+    const proposalId = await fileLeftoverKnowledgeProposal({
       agentQaRoot, knowledgeRoot, verb: proposeId, target: { grain: 'record', recordId },
       ...(extraInput.reason === undefined ? {} : { reason: extraInput.reason }),
       ...(runId === undefined ? {} : { runId }),

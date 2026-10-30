@@ -46,7 +46,7 @@ const TAIL_TIMEOUT_MS = 180_000
 const fixtureDir = join(
   dirname(fileURLToPath(import.meta.url)),
   'fixtures',
-  'f-381-48-1-run',
+  'live-curation-run',
 )
 
 // The recorded `<EMAIL_0>` is literal and `PROBE_USER` undeclared, so this mask declares nothing.
@@ -68,7 +68,7 @@ afterAll(() => { removeTempRoots(stagedConfigDirs.splice(0)) })
 
 /** One fixture run dir inside a fresh temp runs-root, plus a fresh cold knowledge root. */
 function stageRoots(): StagedRoots {
-  const configDir = mkdtempSync(join(tmpdir(), 'f-381-48-1-'))
+  const configDir = mkdtempSync(join(tmpdir(), 'live-curation-run-'))
   stagedConfigDirs.push(configDir)
   const agentQaRoot = join(configDir, '.agent-qa')
   const runDir = join(agentQaRoot, RUNS_SUBDIR, RUN_ID)

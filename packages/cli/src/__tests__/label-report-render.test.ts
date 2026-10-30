@@ -7,7 +7,7 @@ import { renderReportLabelMetricLines } from '../eval-report-render.js'
 import * as verbs from '../eval-session-composition.js'
 
 afterEach(() => { process.exitCode = 0; vi.restoreAllMocks() })
-const oldReport = () => JSON.parse(readFileSync(new URL('./fixtures/pre-420-report/report.json', import.meta.url), 'utf8')) as EvalBatchReport
+const oldReport = () => JSON.parse(readFileSync(new URL('./fixtures/older-report/report.json', import.meta.url), 'utf8')) as EvalBatchReport
 
 function measured() {
   const report = buildEvalReport([])

@@ -907,7 +907,7 @@ describe('verdict-gated positive procedure canaries', () => {
   const fixturePath = join(
     dirname(fileURLToPath(import.meta.url)),
     'fixtures',
-    'f-381-51-1-run',
+    'canary-outcome-run',
     HANDOFF_FILE,
   )
 
