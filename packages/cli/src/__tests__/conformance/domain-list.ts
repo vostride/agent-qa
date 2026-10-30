@@ -7,7 +7,7 @@ export interface CanonicalDomain {
   /** What this domain owns, in one line — the reviewer's whole basis for accepting a new id here. */
   readonly charter: string
   /**
-   * Why no shipped capability carries this domain yet, dated.
+   * Why no shipped capability carries this domain yet.
    *
    * PRESENT ONLY ON A MEMBERLESS MEMBER, and asserted as such: the census below reds on a member
    * with no matching op and no marker (a domain nobody noticed had emptied) AND on a member that
@@ -23,7 +23,7 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
     domain: 'agent',
     charter:
       'the conversational orchestrator itself — the turn engine that plans over every other '
-      + 'domain, registered here rather than held privately by a REPL (392 D-24)',
+      + 'domain, registered here rather than held privately by a REPL',
   }),
   Object.freeze({
     domain: 'analysis',
@@ -33,7 +33,7 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
     domain: 'authoring',
     charter:
       'writing and judging TEST SOURCE — draft, edit, verify, and the funnel over those drafts; '
-      + 'never the execution of what it wrote (393 D-01)',
+      + 'never the execution of what it wrote',
   }),
   Object.freeze({
     domain: 'config',
@@ -45,13 +45,13 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
     domain: 'editor',
     charter:
       'the dashboard\'s live test editor session — a draft execution a person drives, as '
-      + 'distinct from `runs`, which is a queued run\'s record (428 D-07)',
+      + 'distinct from `runs`, which is a queued run\'s record',
   }),
   Object.freeze({
     domain: 'entities',
     charter:
       'the ADDRESSING surface — turning a reference (exact or free text) into a descriptor of a '
-      + 'thing some other domain owns (387 D-09)',
+      + 'thing some other domain owns',
   }),
   Object.freeze({
     domain: 'eval',
@@ -59,7 +59,7 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
       'scoring an agent or a suite against a benchmark corpus — the measurement of quality, as '
       + 'distinct from `analysis` reading one run',
     reserved:
-      '2026-08-16: held from D-15, unshipped. The eval substrate (M1b) lives in its own packages '
+      'Held, unshipped. The eval substrate lives in its own packages '
       + 'and reaches no registry verb yet; when it does, its ops land here rather than under '
       + '`analysis.`, which reads ONE run.',
   }),
@@ -69,15 +69,14 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
       'the policy gate as a subject a caller can ask ABOUT — enumerating verdicts, classes and '
       + 'standing posture, as opposed to being gated by it',
     reserved:
-      '2026-08-16: held from D-15, unshipped. The gate is reached today only as ENFORCEMENT '
-      + '(`invokeFunction` steps 4-5); nothing enumerates it as data (`grants.` retired in 432-18). A '
+      'Held, unshipped. The gate is reached today only as ENFORCEMENT '
+      + '(`invokeFunction` steps 4-5); nothing enumerates it as data (there are no `grants.` ops). A '
       + 'future catalogue verb over policy belongs here.',
   }),
   Object.freeze({
     domain: 'knowledge',
     charter:
-      'the learned record: bundles, records, diffs, the why-brief, and every write to them '
-      + '(386 D-06, 387 KREV-01; direct since 432)',
+      'the learned record: bundles, records, diffs, the why-brief, and every write to them',
   }),
   Object.freeze({
     domain: 'memory',
@@ -85,7 +84,7 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
       'the run-time recall surface an executing agent reads and writes DURING a run, as opposed '
       + 'to `knowledge`, which is the durable record a person reviews',
     reserved:
-      '2026-08-16: held from D-15, unshipped AS A CAPABILITY. The name is already spoken for '
+      'Held, unshipped AS A CAPABILITY. The name is already spoken for '
       + 'in-process: `packages/runner`\'s loop exposes `memory.search`/`memory.read` to the model '
       + 'inside a run. Those are RUN-LOOP tools, not registry ops, and a future registry verb '
       + 'here must be named knowing the collision exists.',
@@ -93,8 +92,7 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
   Object.freeze({
     domain: 'quarantine',
     charter:
-      'the quarantine lifecycle over a named test: entry, exit and enumeration of the ledger '
-      + '(390 D-13)',
+      'the quarantine lifecycle over a named test: entry, exit and enumeration of the ledger',
   }),
   Object.freeze({
     domain: 'runs',
@@ -108,7 +106,7 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
       'EXECUTING authored tests — selecting and running a suite, as distinct from `authoring` '
       + '(which writes them) and `runs` (which is one execution\'s record)',
     reserved:
-      '2026-08-16: held from D-15, unshipped. `runs.start` occupies the execution seam today and '
+      'Held, unshipped. `runs.start` occupies the execution seam today and '
       + 'is addressed as a RUN. A selection/execution verb phrased about the tests themselves '
       + 'would land here; nothing ships one.',
   }),
@@ -129,7 +127,7 @@ export function domainOf(opId: string): string {
 export interface DomainCensusDiff {
   /** Op ids whose domain is not a member of the list — the mandatory direction. */
   readonly uncatalogued: readonly string[]
-  /** Members matching no op and carrying no dated `reserved` marker. */
+  /** Members matching no op and carrying no `reserved` marker. */
   readonly memberless: readonly string[]
   /** Members carrying a `reserved` marker that ops now match — a reservation nobody retired. */
   readonly staleReservations: readonly string[]

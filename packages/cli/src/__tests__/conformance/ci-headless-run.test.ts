@@ -319,7 +319,7 @@ describe('headless CI runs', () => {
         const printed = stages[stage]
         expect(printed, `${key}'s ${stage} stage\n${seen()}`).toBeDefined()
         const word = stageWordOf(stage, printed!)
-        expect(word, `${key}'s ${stage} reads D-13's word\n${seen()}`).toMatch(STAGE_WORD)
+        expect(word, `${key}'s ${stage} reads the stage word\n${seen()}`).toMatch(STAGE_WORD)
         if (word === 'pending') {
           expect(printed, `${key}'s pending ${stage} states the resume limit\n${seen()}`)
             .toBe(`pending${CI_PENDING_SUFFIX[stage]}`)
@@ -367,7 +367,7 @@ describe('curation in CI only proposes', () => {
 
     expect(bucketsOf(first), `the first CI run's close-out\n${seen()}`)
       .toEqual([{ added: 1, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 }])
-    expect(first.curationLines, `D-57's outcome line\n${seen()}`).toContain(
+    expect(first.curationLines, `the CI outcome line\n${seen()}`).toContain(
       'curation: 1 learned change(s) recorded, 0 kept proposed (ci runs never promote learned knowledge)',
     )
     const added = first.knowledgeAfter ?? []
@@ -379,7 +379,7 @@ describe('curation in CI only proposes', () => {
     expect(second.requestKinds, `the curator arm authored the Supersede\n${seen()}`).toContain('curator')
     expect(bucketsOf(second), `the second CI run's close-out\n${seen()}`)
       .toEqual([{ added: 0, confirmed: 0, superseded: 0, deprecated: 0, proposed: 1 }])
-    expect(second.curationLines, `D-57's outcome line for the proposed correction\n${seen()}`).toContain(
+    expect(second.curationLines, `the CI outcome line for the proposed correction\n${seen()}`).toContain(
       'curation: 0 learned change(s) recorded, 1 kept proposed (ci runs never promote learned knowledge)',
     )
     const after = second.knowledgeAfter ?? []

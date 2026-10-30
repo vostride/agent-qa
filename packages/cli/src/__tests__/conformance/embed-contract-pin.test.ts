@@ -68,14 +68,13 @@ describe('the embed contract is frozen, and the freeze is measured', () => {
     expect(
       Buffer.byteLength(html, 'utf8'),
       'the embed page changed SIZE. If that was deliberate, re-mint EMBED_PAGE_BYTES and '
-        + 'EMBED_PAGE_SHA256 together, in the dated commit that changed the page',
+        + 'EMBED_PAGE_SHA256 together, in the commit that changed the page',
     ).toBe(EMBED_PAGE_BYTES)
     expect(
       measured,
-      'the 403 embed page\'s bytes moved. Phase 408 criterion 3 freezes this surface: the MCP App '
-        + 'embeds the liveUrl 403 mints and changes nothing about how 403 serves it. A phase with a '
-        + 'reason to change it re-mints EMBED_PAGE_SHA256 in its own dated commit — see this '
-        + 'file\'s header',
+      'the embed page\'s bytes moved. This surface is frozen: the MCP App embeds the liveUrl the '
+        + 'run service mints and changes nothing about how it is served. A change with a reason '
+        + 're-mints EMBED_PAGE_SHA256 in its own commit — see this file\'s header',
     ).toBe(EMBED_PAGE_SHA256)
   })
 
@@ -104,7 +103,7 @@ describe('the embed contract is frozen, and the freeze is measured', () => {
     expect(
       wrapper.includes('data-embed-state'),
       'the App wrapper carries the EMBED page\'s state attribute — that is a second serving of the '
-        + '403 embed contract, free to disagree with the first (D-04)',
+        + 'embed contract, free to disagree with the first',
     ).toBe(false)
 
     // …and it must not reach into the package that owns that document at all. The wrapper is

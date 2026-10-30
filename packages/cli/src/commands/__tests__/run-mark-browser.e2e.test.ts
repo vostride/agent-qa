@@ -402,7 +402,7 @@ describe('real browser mark confirmation', () => {
       chromium: browser.version(), executable: chromium.executablePath(),
       freshness: buildFreshness(DASHBOARD_ANCHORED_BUILDS), measurements,
       pageErrors: s.pageErrors, outsideLoopback: s.outsideLoopback,
-      keyboard: 'Tab and Enter reached both doors and the submit control (no approval controls since 432-13)',
+      keyboard: 'Tab and Enter reached both doors and the submit control (there are no approval controls)',
       finalMarks: s.rows().map(({ kind, ordinal, stepIndex }) => ({ kind, ordinal, stepIndex })),
       ownerPersonallyTested: false, assistiveTechnology: 'unverified',
     }, null, 2))

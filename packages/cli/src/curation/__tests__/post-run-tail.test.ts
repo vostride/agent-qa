@@ -1112,7 +1112,7 @@ describe('an acquired writer lease is released on EVERY path out of drain()', ()
       // ask is told the truth rather than being told to wait 30s on a pump that is not running.
       expect(
         fence.holder(),
-        'a fence held by a process that stopped pumping is the defect CR-01 named',
+        'a fence held by a process that stopped pumping is the defect this cell guards',
       ).toBeUndefined()
       // …and it is free because it was RELEASED, once, by the leg that took it — not because it
       // was never acquired. Both halves matter: the take is what the wire's `drained` promised.

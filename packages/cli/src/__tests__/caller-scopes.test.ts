@@ -75,13 +75,13 @@ async function refusalFrom(
 }
 
 describe('CLI_FUNCTION_CALLER', () => {
-  it('grants the whole scope vocabulary, member for member', () => {
+  it('carries only a surface and an origin, and no scope vocabulary is exported', () => {
     expect(Object.keys(CLI_FUNCTION_CALLER).sort()).toEqual(['origin', 'surface'])
     expect(CLI_FUNCTION_CALLER).not.toHaveProperty('grantedScopes')
     expect(Object.keys(schema), 'the retired vocabulary is still exported').not.toContain('FunctionScopeSchema')
   })
 
-  it('reaches the binding check for authoring.draft.write — the scope list passes, nothing asks', async () => {
+  it('reaches the binding check for authoring.draft.write with no scope refusal', async () => {
     const error = await refusalFrom('local-interactive', CLI_FUNCTION_CALLER)
 
     expect(isScopeRefusal(error)).toBe(false)
@@ -106,7 +106,7 @@ describe('a caller holding no grant', () => {
 })
 
 describe('DAEMON_FUNCTION_CALLER', () => {
-  it('holds test-write', () => {
+  it('carries only a surface and an origin', () => {
     expect(Object.keys(DAEMON_FUNCTION_CALLER).sort()).toEqual(['origin', 'surface'])
     expect(DAEMON_FUNCTION_CALLER).not.toHaveProperty('grantedScopes')
   })
@@ -118,7 +118,7 @@ describe('DAEMON_FUNCTION_CALLER', () => {
     expect(error).toBeInstanceOf(FunctionNotBoundError)
   })
 
-  it('is ALLOWED past both control points for authoring.draft.edit — the second holder of test-write', async () => {
+  it('reaches the binding check for authoring.draft.edit with no scope refusal', async () => {
     // The binding refusal is asserted by class, so an unrelated crash cannot pass for passage.
     const error = await errorFrom(
       'local-headless',

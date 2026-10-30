@@ -538,7 +538,7 @@ describe('the structural halves', () => {
     expect(source.match(/postRunTail\.drain\(\)/gu) ?? []).toHaveLength(0)
     expect(
       source.match(/drain\(\{\s*lease:/gu) ?? [],
-      'CR-01: a pre-evaluated authority is acquired outside the pump\'s own release',
+      'a pre-evaluated authority is acquired outside the pump\'s own release',
     ).toHaveLength(0)
     expect(source.match(/postRunTail\.finish\(/gu) ?? []).toHaveLength(2)
     // Neither site names the per-site curation tail.

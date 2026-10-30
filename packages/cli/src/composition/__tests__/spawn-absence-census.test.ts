@@ -288,21 +288,21 @@ const SCRAPE_EMITTERS = [
 
 // ══════════════════════════════════════════════════════════════════════════════════════════════
 
-describe('(0) BOTH PREDICATES SEE WHAT THEY FORBID — before any verdict about any module', () => {
-  it('PREDICATE 1 matches every vocabulary form, and a comment satisfies none of them', () => {
+describe('both predicates see what they forbid, before any verdict about any module', () => {
+  it('the vocabulary predicate matches every vocabulary form, and a comment satisfies none of them', () => {
     expect(holdsSpawnVocabulary("import { spawn } from 'node:child_process'")).toBe(true)
     expect(holdsSpawnVocabulary("const cp = require('child_process')")).toBe(true)
     expect(holdsSpawnVocabulary("import treeKill from 'tree-kill'")).toBe(true)
     expect(holdsSpawnVocabulary("await import('node:child_process')")).toBe(true)
     // …and prose naming the retirement is not a wire.
     expect(holdsSpawnVocabulary('// the daemon used to import node:child_process here')).toBe(false)
-    expect(holdsSpawnVocabulary('/**\n * retired: tree-kill on the run path (D-01)\n */')).toBe(false)
+    expect(holdsSpawnVocabulary('/**\n * retired: tree-kill on the run path\n */')).toBe(false)
     // …and the stripper does not eat a protocol-relative URL, the trap that hollows this out.
     expect(stripComments("const u = 'https://example.test/x'").trim())
       .toBe("const u = 'https://example.test/x'")
   })
 
-  it('PREDICATE 2 reads a launch call ARGUMENT SPAN, and tells a run child from a tool child', () => {
+  it('the argument predicate reads a launch call\'s argument span, and tells a run child from a tool child', () => {
     const runChild = launchSpans(
       "const child = spawn(process.execPath, [entry, 'run', '--', ...patterns], { env })",
     )
@@ -328,17 +328,17 @@ describe('(0) BOTH PREDICATES SEE WHAT THEY FORBID — before any verdict about 
     expect(nested[0]).toContain('process.execPath')
   })
 
-  it('THE SCRAPE PREDICATES separate an emitter, a reader and an ARMER', () => {
+  it('the scrape predicates separate an emitter, a reader and an armer', () => {
     expect(holdsScrapePrefix("const PREFIX = 'AGENT_QA_EVENT:'")).toBe(true)
     expect(holdsScrapePrefix("if (line.startsWith('AGENT_QA_EVENT:')) parse(line.slice(15))")).toBe(true)
-    expect(holdsScrapePrefix('// AGENT_QA_EVENT: retired with the child (D-04)')).toBe(false)
+    expect(holdsScrapePrefix('// AGENT_QA_EVENT: retired with the child')).toBe(false)
     // Arming is an assignment; reading is not. The distinction is the whole claim.
     expect(armsScrapeChannel("env: { ...process.env, AGENT_QA_LIVE_EVENTS: 'true' }")).toBe(true)
     expect(armsScrapeChannel("childEnv.AGENT_QA_LIVE_EVENTS = 'true'")).toBe(true)
     expect(armsScrapeChannel("process.env.AGENT_QA_LIVE_EVENTS === 'true'")).toBe(false)
   })
 
-  it('BOTH POPULATIONS ARE REAL — a walk that returned nothing cannot sweep clean', () => {
+  it('both populations are real — a walk that returned nothing cannot sweep clean', () => {
     expect(PINNED_SET.length).toBeGreaterThan(25)
     expect(PINNED_SET.map(rel)).toContain('cli/src/composition/in-process-run-execution.ts')
     expect(PINNED_SET.map(rel)).toContain('dashboard-server/src/execution/in-process-backend.ts')
@@ -363,8 +363,8 @@ describe('(0) BOTH PREDICATES SEE WHAT THEY FORBID — before any verdict about 
   })
 })
 
-describe('(1) PREDICATE 1 — the pinned run-path set holds no unaccounted child', () => {
-  it('THE COMPLETE SET — vocabulary holders equal the named survivors, exactly', () => {
+describe('the pinned run-path set holds no unaccounted child', () => {
+  it('vocabulary holders equal the named survivors, exactly', () => {
     const holders = PINNED_SET
       .filter((path) => holdsSpawnVocabulary(readFileSync(path, 'utf8')))
       .map(rel)
@@ -373,8 +373,8 @@ describe('(1) PREDICATE 1 — the pinned run-path set holds no unaccounted child
   })
 })
 
-describe('(2) PREDICATE 2 — nothing a run can reach launches THIS PRODUCT as a child', () => {
-  it('THE COMPLETE SET — one launch call names the node binary, and it is not a run', () => {
+describe('nothing a run can reach launches this product as a child', () => {
+  it('one launch call names the node binary, and it is not a run', () => {
     const offenders = CLOSURE.modules
       .filter((path) => launchSpans(readFileSync(path, 'utf8')).some(launchesThisProduct))
       .map(rel)
@@ -382,7 +382,7 @@ describe('(2) PREDICATE 2 — nothing a run can reach launches THIS PRODUCT as a
     expect(offenders).toEqual(SELF_LAUNCH_SURVIVORS)
   })
 
-  it('THROUGH AN INDIRECTION TOO — a launcher that names the node binary anywhere', () => {
+  it('through an indirection too — a launcher that names the node binary anywhere', () => {
     // The wider reading, because an argument vector built two statements above the call is exactly
     // how the surviving embedder child is written — and exactly how a re-mint would be.
     const launchers = CLOSURE.modules
@@ -392,7 +392,7 @@ describe('(2) PREDICATE 2 — nothing a run can reach launches THIS PRODUCT as a
     expect(launchers).toEqual(INDIRECT_SELF_LAUNCHERS)
   })
 
-  it('AND NOT ONE LAUNCH CALL ANYWHERE ASKS A CHILD FOR A RUN — the verb rule', () => {
+  it('no launch call anywhere asks a child for a run', () => {
     // The survivor above passes the first test and must still fail this one. Stated separately so
     // a future third-party-CLI launch does not need this rule relaxed to be added.
     const asking = CLOSURE.modules.flatMap((path) =>
@@ -404,8 +404,8 @@ describe('(2) PREDICATE 2 — nothing a run can reach launches THIS PRODUCT as a
   })
 })
 
-describe('(3) THE RECONCILIATION — what each predicate is blind to, the other reports', () => {
-  it('EVERY PINNED MODULE IS REACHABLE — or the pin names something off the run path', () => {
+describe('what each predicate is blind to, the other reports', () => {
+  it('every pinned module is reachable, or the pin names something off the run path', () => {
     const reachable = new Set(CLOSURE.modules)
     const stranded = PINNED_SET.filter((path) => !reachable.has(path)).map(rel)
     expect(
@@ -415,7 +415,7 @@ describe('(3) THE RECONCILIATION — what each predicate is blind to, the other 
     ).toEqual([])
   })
 
-  it('EVERY REACHED HOLDER THE PIN DOES NOT SCAN IS NAMED', () => {
+  it('every reached holder the pin does not scan is named', () => {
     // THIS is the assertion the self-check pattern cannot make about itself. If `PINNED_SET`'s
     // directories were narrowed tomorrow, cell (1) would stay green — its holders would still
     // equal its allow-list — and this one would red with the dropped module's name.
@@ -429,17 +429,17 @@ describe('(3) THE RECONCILIATION — what each predicate is blind to, the other 
   })
 })
 
-describe('(4) ALLOWED IS NOT UNEXAMINED — a shape pin per survivor', () => {
+describe('every allowed survivor has its shape pinned', () => {
   const read = (path: string): string => stripComments(readFileSync(join(PACKAGES, path), 'utf8'))
 
-  it('THE APPIUM CHILD is the Appium server binary, and nothing else', () => {
+  it('the Appium child is the Appium server binary, and nothing else', () => {
     const source = read('dashboard-server/src/execution/appium-manager.ts')
     expect(source).toContain('spawn(appium.command,')
     expect(source).not.toContain('process.execPath')
     expect(source).not.toContain(SCRAPE_PREFIX)
   })
 
-  it('THE EMBEDDER CHILD is the daemon\u2019s worker — the node binary pointed at the WORKER entry', () => {
+  it('the embedder child is the daemon\u2019s worker — the node binary pointed at the worker entry', () => {
     const source = read('cli/src/daemon/host.ts')
     expect(source).toContain('spawnEmbedderWorker: (options) => spawn(')
     // Every `spawn(` in this host is that one. The daemon's piped RUN child was the other, and it
@@ -455,7 +455,7 @@ describe('(4) ALLOWED IS NOT UNEXAMINED — a shape pin per survivor', () => {
     expect(source).not.toContain('process.argv')
   })
 
-  it('THE EMPTIED HOST launches nothing — no `child_process`, no git, no entry script, no argv', () => {
+  it('the emptied host launches nothing — no `child_process`, no git, no entry script, no argv', () => {
     // The tightest pin in this census, because this is the file `createCliRunExecution` lived in
     // and therefore the likeliest place for a re-mint to land.
     const source = read('cli/src/composition/local-agent-host.ts')
@@ -466,14 +466,14 @@ describe('(4) ALLOWED IS NOT UNEXAMINED — a shape pin per survivor', () => {
     expect(launchSpans(source)).toEqual([])
   })
 
-  it('THE DASHBOARD COMMAND opens a URL in the operator\u2019s browser', () => {
+  it('the dashboard command opens a URL in the operator\u2019s browser', () => {
     const source = read('cli/src/commands/dashboard.ts')
     expect(source).toContain("await import('node:child_process')")
     expect(source).toMatch(/exec\(`\$\{openCmd\} http:\/\/localhost/)
     expect(source).not.toContain('process.execPath')
   })
 
-  it('THE NODE-BINARY SURVIVOR launches PLAYWRIGHT\u2019s CLI, to install browsers', () => {
+  it('the node-binary survivor launches Playwright\u2019s CLI, to install browsers', () => {
     const source = read('cli/src/commands/install-browsers.ts')
     const spans = launchSpans(source).filter(launchesThisProduct)
     expect(spans).toHaveLength(1)
@@ -484,8 +484,8 @@ describe('(4) ALLOWED IS NOT UNEXAMINED — a shape pin per survivor', () => {
   })
 })
 
-describe('(5) THE SCRAPE CHANNEL — two emitters, no reader, and nothing arms it', () => {
-  it('THE COMPLETE SET OF PREFIX HOLDERS — the two emitters, and nothing else on the run path', () => {
+describe('the scrape channel — two emitters, no reader, and nothing arms it', () => {
+  it('the prefix holders on the run path are the two emitters, and nothing else', () => {
     const holders = CLOSURE.modules
       .filter((path) => holdsScrapePrefix(readFileSync(path, 'utf8')))
       .map(rel)
@@ -493,7 +493,7 @@ describe('(5) THE SCRAPE CHANNEL — two emitters, no reader, and nothing arms i
     expect(holders).toEqual(SCRAPE_EMITTERS)
   })
 
-  it('NEITHER EMITTER READS THE WIRE BACK — a scrape needs a parser, and there is none', () => {
+  it('neither emitter reads the wire back — a scrape needs a parser, and there is none', () => {
     for (const emitter of SCRAPE_EMITTERS) {
       const source = stripComments(readFileSync(join(PACKAGES, emitter), 'utf8'))
       expect(source, `${emitter} parses the wire prefix`).not.toMatch(
@@ -503,7 +503,7 @@ describe('(5) THE SCRAPE CHANNEL — two emitters, no reader, and nothing arms i
     }
   })
 
-  it('NOTHING ON THE RUN PATH ARMS THE CHANNEL — the thing that used to is deleted', () => {
+  it('nothing on the run path arms the channel', () => {
     // No production module sets `AGENT_QA_LIVE_EVENTS`, so the emitters stay dormant.
     const armers = CLOSURE.modules
       .filter((path) => armsScrapeChannel(readFileSync(path, 'utf8')))

@@ -325,7 +325,7 @@ function expectCancelledInPlace(facts: LegFacts): void {
   expect(facts.subActionsRecorded, `the held step recorded no action\n${at}`).toBe(0)
   const finished = (facts.testsFinished ?? []) as Array<Record<string, unknown>>
   expect(finished.map((test) => [test.testIndex, test.outcome]), at).toEqual([[0, 'cancelled']])
-  expect(Number(finished[0]?.durationMs ?? 0), `the held member keeps the time it ran (D-52)\n${at}`)
+  expect(Number(finished[0]?.durationMs ?? 0), `the held member keeps the time it ran\n${at}`)
     .toBeGreaterThan(0)
   expect(facts.heldCount, at).toBe(1)
   expect(facts.heldAborted, `the held planning request was aborted\n${at}`).toBe(1)
@@ -345,7 +345,7 @@ function expectCancelledInPlace(facts: LegFacts): void {
   expect(samples[firstCancelled]!.verdict, `cancelled only once the verdict existed\n${at}`).toBe(true)
   expect(facts.row?.status, at).toBe('cancelled')
   expect(facts.row?.endedAt, at).toEqual(expect.any(String))
-  expect(facts.row?.duration ?? 0, `the cancelled row keeps the run's duration (D-52)\n${at}`).toBeGreaterThan(0)
+  expect(facts.row?.duration ?? 0, `the cancelled row keeps the run's duration\n${at}`).toBeGreaterThan(0)
   expect(Date.parse(facts.row!.endedAt!), `ended_at is not before the verdict\n${at}`)
     .toBeGreaterThanOrEqual(facts.verdictTs ?? Infinity)
 }

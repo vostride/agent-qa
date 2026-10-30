@@ -70,7 +70,7 @@ const AUTH_STATE = JSON.stringify({
   cookies: [{ name: 'session', value: AUTH_TOKEN, domain: 'app.test', path: '/' }],
   origins: [],
 })
-const ALLOWED = 'Restored 423-38 display label'
+const ALLOWED = 'Restored display label'
 
 /** Every path and byte under a root, directories included, so a created directory is visible. */
 function tree(root: string): [string, string][] {
@@ -170,7 +170,7 @@ const RECORD_LEARNED = 'record-423-38-learned'
 function currentRecord(recordId: string) {
   return KnowledgeRecordShowResultSchema.parse({
     kind: 'found', schemaVersion: 2, summary: `Current summary ${recordId}`, body: `Current body ${recordId}`,
-    provenance: { schemaVersion: 1, mode: 'standalone', originClass: 'agent-observed', sourceDescription: 'synthetic 423-38' },
+    provenance: { schemaVersion: 1, mode: 'standalone', originClass: 'agent-observed', sourceDescription: 'synthetic' },
     record: { schemaVersion: INSPECT_RECORD_VIEW_SCHEMA_VERSION, recordId, product: 'shop', scope: 'checkout', kind: 'fact', status: 'superseded',
       confirmations: 3, contradictions: 1, evidenceTokens: ['evidence-423-38'], openedAtOrdinal: 4, closedAtOrdinal: 40,
       lastEventOrdinal: 40, anchors: ['page:/checkout'], trustNarrative: 'Current synthetic evidence' },

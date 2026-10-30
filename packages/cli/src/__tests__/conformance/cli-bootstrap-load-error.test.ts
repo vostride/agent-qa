@@ -64,19 +64,19 @@ describe('a CLI that fails while loading', () => {
   it('a CLI that throws while loading prints the framework line, then its stack, and exits 2',
     async () => {
       const outcome = await runBootstrapBeside(
-        "throw new Error('bootstrap stack probe 444-27')\n",
+        "throw new Error('bootstrap stack probe')\n",
       )
       const lines = outcome.stderr.split('\n')
-      expect(lines[0], JSON.stringify(outcome)).toBe('Framework error: bootstrap stack probe 444-27')
+      expect(lines[0], JSON.stringify(outcome)).toBe('Framework error: bootstrap stack probe')
       expect(lines.slice(1).join('\n'), JSON.stringify(outcome)).toMatch(/^\s+at .*cli-main\.js/m)
       expect(outcome.status, JSON.stringify(outcome)).toBe(2)
       expect(outcome.stdout, JSON.stringify(outcome)).toBe('')
     }, 60_000)
 
   it('a thrown non-error prints the framework line alone', async () => {
-    const outcome = await runBootstrapBeside("throw 'bootstrap plain probe 444-27'\n")
+    const outcome = await runBootstrapBeside("throw 'bootstrap plain probe'\n")
     expect(outcome.stderr, JSON.stringify(outcome)).toBe(
-      'Framework error: bootstrap plain probe 444-27\n',
+      'Framework error: bootstrap plain probe\n',
     )
     expect(outcome.status, JSON.stringify(outcome)).toBe(2)
     expect(outcome.stdout, JSON.stringify(outcome)).toBe('')

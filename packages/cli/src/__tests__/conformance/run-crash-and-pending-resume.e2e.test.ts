@@ -815,9 +815,9 @@ function d37View(snapshot: RunSnapshot | undefined): unknown {
   }
 }
 
-function expectD37Precondition(snapshot: RunSnapshot | undefined, at: string): void {
+function expectPendingFileGone(snapshot: RunSnapshot | undefined, at: string): void {
   expect(snapshot?.runDir, at).toBeDefined()
-  expect(snapshot?.pendingPreparation, `${PENDING_FILE} absent at exit (D-37)\n${at}`).toBe(false)
+  expect(snapshot?.pendingPreparation, `${PENDING_FILE} absent at exit\n${at}`).toBe(false)
   const paths = snapshot?.files.map((file) => file.path) ?? []
   expect(paths, at).toContain('handoff.json')
   expect(paths, at).toContain('artifact.json')
@@ -933,8 +933,8 @@ describe('a run whose process is killed', () => {
 
     const closed = rowOf(crash.rowAfterCleanup, at)
     expect(closed.status, at).toBe('failed')
-    expect(closed.failureSummary, `442 D-04's orphan sentence\n${at}`).toBe(orphanSummary(crash.pid!))
-    expect(closed.failureSummary, `no browser-closed guess (D-53)\n${at}`).not.toBe(BROWSER_CLOSED_SENTENCE)
+    expect(closed.failureSummary, `the orphan sentence\n${at}`).toBe(orphanSummary(crash.pid!))
+    expect(closed.failureSummary, `no browser-closed guess\n${at}`).not.toBe(BROWSER_CLOSED_SENTENCE)
     expect(Date.parse(closed.endedAt ?? ''), `the cleanup wrote its own end time\n${at}`)
       .toBeGreaterThan(Date.parse(afterKill.endedAt ?? ''))
     expect(crash.artifactErrors, at).toEqual([
@@ -1126,7 +1126,7 @@ describe('resuming pending post-processing', () => {
     const at = seen({ pending, resume })
     expect(resume.error, at).toBeUndefined()
     const atExit = pending.stalled?.atExit
-    expectD37Precondition(atExit, at)
+    expectPendingFileGone(atExit, at)
     expect(d37View(resume.stalledAfterResumeRun), `after the resume run\n${at}`).toEqual(d37View(atExit))
     expect(d37View(resume.stalledFinal), `after every later leg\n${at}`).toEqual(d37View(atExit))
     chipsAre(resume.stalledFinalRead, 'complete', 'complete', at)
@@ -1136,7 +1136,7 @@ describe('resuming pending post-processing', () => {
     const at = seen({ pending, resume })
     expect(resume.error, at).toBeUndefined()
     const atExit = pending.detached?.atExit
-    expectD37Precondition(atExit, at)
+    expectPendingFileGone(atExit, at)
     expect(d37View(resume.detachedAfterDaemon), `after the daemon\n${at}`).toEqual(d37View(atExit))
     expect(d37View(resume.detachedFinal), `after the local curation run\n${at}`).toEqual(d37View(atExit))
     chipsAre(resume.detachedFinalRead, 'complete', 'complete', at)

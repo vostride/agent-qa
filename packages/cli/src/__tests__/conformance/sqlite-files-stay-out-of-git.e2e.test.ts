@@ -27,7 +27,7 @@ import {
 import { CLI_ENTRY, cleanupTempRoots, hermeticEnv, trackTempRoot } from './spawned-chat.js'
 
 const SQLITE_FILE = /\.sqlite(?:-wal|-shm|-journal)?$/u
-const PRE_445_KNOWLEDGE_RULES = [
+const LEGACY_KNOWLEDGE_RULES = [
   'memory/index/',
   'memory/queue/',
   '.lease',
@@ -202,12 +202,12 @@ async function driveRefusal(): Promise<void> {
   const knowledgeGitignore = join(root, 'agent-qa-knowledge', '.gitignore')
   const configPath = join(root, 'agent-qa.config.yaml')
   refusal.init = await cli(root, ['init', '--platform', 'web', '--dir', root])
-  writeFileSync(knowledgeGitignore, [...PRE_445_KNOWLEDGE_RULES, ''].join('\n'), 'utf8')
+  writeFileSync(knowledgeGitignore, [...LEGACY_KNOWLEDGE_RULES, ''].join('\n'), 'utf8')
   const config = readFileSync(configPath, 'utf8')
   refusal.missing = await cli(root, ['init', '--force', '--platform', 'web', '--dir', root])
   refusal.configKeptAfterMissing = readFileSync(configPath, 'utf8') === config
   const negated = [
-    ...PRE_445_KNOWLEDGE_RULES,
+    ...LEGACY_KNOWLEDGE_RULES,
     '.writer-authority.sqlite*',
     '!.writer-authority.sqlite',
   ]

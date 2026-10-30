@@ -426,13 +426,13 @@ describe('config show and set with declared secrets', () => {
     })
     ;(config.use as Record<string, unknown>).buildTag = 'Hunter-42-zz'
     await writeFile(join(dir, 'agent-qa.config.yaml'), JSON.stringify(config))
-    await writeFile(join(dir, '.env.secrets.local'), 'PW_441=Hunter-42-zz\n')
+    await writeFile(join(dir, '.env.secrets.local'), 'ACCOUNT_PASSWORD=Hunter-42-zz\n')
 
     const { output, exitCode } = await runConfigCommand(dir, ['show'])
 
     expect(output).toContain('registry.llms[0].providerHeaders.X-Api-Key')
     expect(output).toContain('plain-441-value')
-    expect(output).toContain('[secret:PW_441]')
+    expect(output).toContain('[secret:ACCOUNT_PASSWORD]')
     expect(output).not.toContain('Hunter-42-zz')
     expect(output).not.toContain('<redacted>')
     expect(exitCode).toBe(0)
@@ -465,7 +465,7 @@ describe('config show and set with declared secrets', () => {
   })
 
   it("the --debug table masks with the run's declared secrets", () => {
-    const redactor = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz\n'))
+    const redactor = new SecretRedactor(SecretStore.fromEnvContent('ACCOUNT_PASSWORD=Hunter-42-zz\n'))
     process.env.AGENT_QA_CACHE_DIR = 'sk-env-only-441-cache'
     const globalConfig = mergeConfigs(makeValidConfig(), loadEnvOverrides(), {})
 
@@ -476,7 +476,7 @@ describe('config show and set with declared secrets', () => {
       (text) => redactor.redactString(text),
     )
 
-    expect(table).toContain('[secret:PW_441]')
+    expect(table).toContain('[secret:ACCOUNT_PASSWORD]')
     expect(table).not.toContain('Hunter-42-zz')
     expect(table).toContain('services.cache.dir')
     expect(table).toContain('sk-env-only-441-cache')
@@ -489,7 +489,7 @@ describe('config set with a declared value', () => {
     const dir = join(TMP_DIR, 'set-gap-declared')
     await mkdir(dir, { recursive: true })
     await writeFile(join(dir, 'agent-qa.config.yaml'), JSON.stringify(makeValidConfig()))
-    await writeFile(join(dir, '.env.secrets.local'), 'PW_441=Hunter-42-zz\n')
+    await writeFile(join(dir, '.env.secrets.local'), 'ACCOUNT_PASSWORD=Hunter-42-zz\n')
 
     const { output, exitCode } = await runConfigCommand(dir, [
       'set',
@@ -499,7 +499,7 @@ describe('config set with a declared value', () => {
 
     const written = await readFile(join(dir, 'agent-qa.config.yaml'), 'utf-8')
     expect(written).toContain('Hunter-42-zz')
-    expect(output).toContain('use.buildTag = [secret:PW_441] saved to')
+    expect(output).toContain('use.buildTag = [secret:ACCOUNT_PASSWORD] saved to')
     expect(output).not.toContain('Hunter-42-zz')
     expect(exitCode).toBe(0)
   })
@@ -530,7 +530,7 @@ describe('config set refuses a shown marker', () => {
     const config = makeValidConfig()
     ;(config.use as Record<string, unknown>).buildTag = 'real-tag'
     await writeFile(join(dir, 'agent-qa.config.yaml'), JSON.stringify(config))
-    await writeFile(join(dir, '.env.secrets.local'), 'PW_441=Hunter-42-zz\n')
+    await writeFile(join(dir, '.env.secrets.local'), 'ACCOUNT_PASSWORD=Hunter-42-zz\n')
     return { dir, before: await readFile(join(dir, 'agent-qa.config.yaml'), 'utf-8') }
   }
 
@@ -540,7 +540,7 @@ describe('config set refuses a shown marker', () => {
     const { stdout, stderr, exitCode } = await runConfigCommand(dir, [
       'set',
       'use.buildTag',
-      '[secret:PW_441]',
+      '[secret:ACCOUNT_PASSWORD]',
     ])
 
     expect(exitCode).toBe(1)

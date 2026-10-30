@@ -626,7 +626,7 @@ async function openWrapper(page: Page, url: string): Promise<{
 const MCP_PACKAGE_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '../../../mcp')
 const MCP_ARTIFACT = resolve(MCP_PACKAGE_DIR, 'dist/index.js')
 const REBUILD_INSTRUCTION = 'run `pnpm build` from the workspace root (a per-package rebuild is NOT '
-  + 'enough for a cross-package harness — 408-03 measured that)'
+  + 'enough for a cross-package harness)'
 
 describe('this file measures a FRESH artifact', () => {
   it('(0) reads a build no older than the sources it measures', () => {
@@ -845,13 +845,13 @@ describe('leg 2 — the App renders and the frames are CHANGE-DRIVEN', () => {
         staticDelta,
         `the watched page was static for ${String(STATIC_WINDOW_MS)}ms and the embed painted `
         + `${String(staticDelta)} frame(s) — below ${String(STATIC_MIN_FRAMES)} the keepalive went `
-        + 'silent on a healthy page (428 D-15)',
+        + 'silent on a healthy page',
       ).toBeGreaterThanOrEqual(STATIC_MIN_FRAMES)
       expect(
         staticDelta,
         `the watched page was static for ${String(STATIC_WINDOW_MS)}ms and the embed painted `
         + `${String(staticDelta)} frame(s) — above ${String(STATIC_MAX_FRAMES)} the producer is `
-        + 'emitting faster than the 2 s keepalive, i.e. polling (403-02 D-7, 428 D-15)',
+        + 'emitting faster than the 2 s keepalive, i.e. polling',
       ).toBeLessThanOrEqual(STATIC_MAX_FRAMES)
     } finally {
       await page.close()
@@ -895,7 +895,7 @@ describe("leg 2b — a host running none of the App's script still hands the per
         .toBe(1)
       expect(
         await links.getAttribute('href'),
-        'the href is in the MARKUP (408-11 task 1) — a host that runs no script still has it',
+        'the href is in the MARKUP — a host that runs no script still has it',
       ).toBe(liveRunLinkOf(held().origin, held().runId))
       expect(await links.textContent()).toBe(APP_WRAPPER_PERMANENT_LINK_LABEL)
 

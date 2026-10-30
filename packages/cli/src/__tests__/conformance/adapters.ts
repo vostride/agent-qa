@@ -889,7 +889,7 @@ export const runServiceSurfaceAdapter: SurfaceAdapter = Object.freeze({
     }),
     Object.freeze({
       capability: 'run cancellation',
-      why: 'deferred by 402-01 and recorded in the run-service module header — there is no route, '
+      why: 'deferred, as the run-service module header records — there is no route, '
         + 'so a cancel is unreachable rather than unimplemented',
     }),
   ]),

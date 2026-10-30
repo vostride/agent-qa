@@ -732,7 +732,7 @@ describe('content-led consequence preview over the read host', () => {
     expect(tree(f.root)).toEqual(before)
 
     // Joined content crosses the declared mask; without one the read refuses.
-    const mask = declaredMask({ CONTENT_441: CONTENT_SECRET })
+    const mask = declaredMask({ CONTENT_KEY: CONTENT_SECRET })
     const masked = consequencesOf(await opPreview(reads, { runId, kind: 'false-fail' }, mask))
     expect(masked.knowledge.records[0]!.recordContent).toMatchObject({ content: mask(shown.body), summary: mask(shown.summary) })
     expect(JSON.stringify(masked)).not.toContain(CONTENT_SECRET)

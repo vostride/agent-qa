@@ -362,7 +362,7 @@ describe('a knowledge change under a holder that is not a live daemon', () => {
     return lines.join('\n')
   }
 
-  it('C-HYG-KNOWLEDGE-HOLDER-BUSY: refuses by name with the holder pid, changes nothing, and a retry after release applies', async () => {
+  it('refuses by name with the holder pid, changes nothing, and a retry after release applies', async () => {
     const where = fixture('busy')
     const recordId = await seedRecord(where)
     const { acquireWriterLease, releaseLease, readWriterLease } =
@@ -401,7 +401,7 @@ describe('a knowledge change under a holder that is not a live daemon', () => {
     expect(applied).toMatchObject({ outcome: 'applied', verb: 'forget', operationId, recordIds: [recordId] })
   })
 
-  it('C-HYG-KNOWLEDGE-HOLDER-GONE: a holder that released before the delegate looked refuses with no pid', async () => {
+  it('a holder that released before the delegate looked refuses with no pid', async () => {
     const where = fixture('gone')
     const delegate = delegateKnowledgeChangeViaDaemon({
       agentQaRoot: where.agentQaRoot,
@@ -415,7 +415,7 @@ describe('a knowledge change under a holder that is not a live daemon', () => {
     expect(refusal?.message).toContain('has just finished; nothing was changed. Retry the change.')
   })
 
-  it('C-HYG-KNOWLEDGE-DAEMON-UNREACHABLE: a lease naming a registered daemon nobody answers for keeps DaemonNotRunningError', async () => {
+  it('a lease naming a registered daemon nobody answers for keeps DaemonNotRunningError', async () => {
     const where = fixture('unreachable')
     const recordId = await seedRecord(where)
     const { acquireWriterLease, releaseLease } = await import('@vostride/agent-qa-knowledge-local')

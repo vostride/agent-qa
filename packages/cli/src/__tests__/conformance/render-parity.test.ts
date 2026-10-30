@@ -286,7 +286,7 @@ describe('the rendered-output matrix: leg 8', () => {
         alreadyThere,
         `${row.opId}: these markers are already present in the line this phase REPLACED `
           + `(${JSON.stringify(droppedRender(row.opId))}), so this cell would read green on the `
-          + 'build G-399-2 was measured on',
+          + 'build the defect was measured on',
       ).toEqual([])
 
       // THE CLAIM.

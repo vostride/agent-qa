@@ -175,7 +175,7 @@ function pinAmbient(value: 'ci' | 'local-interactive' | 'local-headless', ciMark
 }
 
 describe('a dashboard-triggered run is one more caller of runs.start', () => {
-  it('THE ALLOW ARM — the run happens IN PROCESS, and NEITHER gate leaves a row', async () => {
+  it('an allowed run happens in process, and neither gate leaves a row', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {

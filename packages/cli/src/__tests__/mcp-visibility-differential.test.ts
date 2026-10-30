@@ -445,7 +445,7 @@ describe('7 · interleaved requests bearing different tokens all get the same ca
 // Cell 8: cache identity (SEP-2549).
 
 describe('8 · two callers\' listings never share a cacheable identity', () => {
-  it('stamps cacheScope private and ttlMs 0 on BOTH callers\' lists, on the 2026-07-28 era', async () => {
+  it('stamps cacheScope private and ttlMs 0 on BOTH callers\' lists, on the `2026-07-28` era', async () => {
     // The measured value, asserted rather than described in a comment. `private` is what makes a
     // per-caller listing safe to cache at all: a shared cache may not hold it, so one caller's
     // absent config tools can never be served to another.

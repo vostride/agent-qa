@@ -64,9 +64,9 @@ function fingerprintOutsideTheCodebase(value: string): string {
 const CONFIG_FILE = 'agent-qa.config.yaml'
 const SECRETS_FILE = '.env.secrets.local'
 const DECLARED_PLANTS: Readonly<Record<string, string>> = {
-  PLANT_ENV_396: ENV_PLANT,
-  PLANT_TOKEN_396: TOKEN_PLANT,
-  PLANT_ECHO_396: ECHO_PLANT,
+  PLANT_ENV: ENV_PLANT,
+  PLANT_TOKEN: TOKEN_PLANT,
+  PLANT_ECHO: ECHO_PLANT,
 }
 
 function seededConfig(extraLlmLines = ''): string {
@@ -175,7 +175,7 @@ async function openWorkspace(configBody: string): Promise<void> {
   )
 
   git('init', '--quiet')
-  git('config', 'user.name', 'agent-qa 396-06 credential surface')
+  git('config', 'user.name', 'agent-qa credential surface')
   git('config', 'user.email', 'credential-surface@example.invalid')
   git('config', 'commit.gpgsign', 'false')
   writeFileSync(join(root, '.gitignore'), '.agent-qa/\nagent-qa-knowledge/\n')
@@ -435,7 +435,7 @@ describe('config-change diffs over MCP', () => {
     rmSync(root, { recursive: true, force: true })
     await openWorkspace(configWithOpaqueHeaderCredential())
     // The plant needs no YAML quoting; masking applies to raw values only.
-    appendFileSync(join(root, '.env.secrets.local'), `X_CLIENT_AUTH_441=${OPAQUE_HEADER_PLANT}\n`)
+    appendFileSync(join(root, '.env.secrets.local'), `X_CLIENT_AUTH=${OPAQUE_HEADER_PLANT}\n`)
 
     await headless(async () => {
       const answer = await call('agent_qa_change_config', {
@@ -445,7 +445,7 @@ describe('config-change diffs over MCP', () => {
       })
       const outcome = answer.structuredContent as { outcome?: string; shownDiff?: string }
       expect(outcome.outcome, rendered(answer)).toBe('applied')
-      expect(outcome.shownDiff).toContain('[secret:X_CLIENT_AUTH_441]')
+      expect(outcome.shownDiff).toContain('[secret:X_CLIENT_AUTH]')
       const diff = outcome.shownDiff ?? ''
       expect(leakedWindow(diff, OPAQUE_HEADER_PLANT), 'the diff carried the plant').toBeUndefined()
       expect(leakedWindow(wire(), OPAQUE_HEADER_PLANT), 'a recorded frame carried the plant')

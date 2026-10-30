@@ -533,7 +533,7 @@ describe('leg-5-analyze-run-queue — a flagged run is never queued at all', () 
     ).toBe('detached')
     expect(
       await analyzeRunRows(flagged),
-      'a gate-run reaches curation through the FOLD, never through the chain (D-08)',
+      'a gate-run reaches curation through the FOLD, never through the chain',
     ).toHaveLength(0)
 
     expect(

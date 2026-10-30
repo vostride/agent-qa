@@ -169,7 +169,7 @@ function receiptLines(f: Fixture): number {
 }
 
 describe('a mark under a lease-holding daemon is delegated whole', () => {
-  it('C-MRK-DELEGATED-ONCE: a CLI mark under a live daemon lands once through the daemon, and the CLI never takes the lease', async () => {
+  it('a CLI mark under a live daemon lands once through the daemon, and the CLI never takes the lease', async () => {
     const f = fixture()
     const daemon = await startDaemon(f)
     let exit: unknown
@@ -200,7 +200,7 @@ describe('a mark under a lease-holding daemon is delegated whole', () => {
     expect(exit, 'the daemon did not exit cleanly').toBe(0)
   }, 90_000)
 
-  it('C-MRK-DELEGATED-RETRY: an interrupted delegated mark, retried, resumes its intent and lands every effect once', async () => {
+  it('an interrupted delegated mark, retried, resumes its intent and lands every effect once', async () => {
     const f = fixture()
     const daemon = await startDaemon(f)
     let exit: unknown
@@ -242,7 +242,7 @@ describe('a mark under a lease-holding daemon is delegated whole', () => {
     expect(exit, 'the daemon did not exit cleanly').toBe(0)
   }, 120_000)
 
-  it('C-MRK-NO-HOLDER-LOCAL: with no live holder the delegate answers nothing and the CLI mark runs locally', async () => {
+  it('with no live holder the delegate answers nothing and the CLI mark runs locally', async () => {
     const f = fixture()
     const delegate = delegateMarkViaDaemon({ agentQaRoot: f.agentQaRoot, resolveKnowledgeRoot: () => f.knowledgeRoot })
     expect(await delegate({ runId: f.handoff.runId, kind: 'false-fail' }), 'no holder: run locally').toBeUndefined()
@@ -258,7 +258,7 @@ describe('a mark under a lease-holding daemon is delegated whole', () => {
   }, 60_000)
 
   // A non-daemon holder is waited out for a bounded time; only one that outlasts it is refused.
-  it('C-MRK-HOLDER-RELEASES: a non-daemon holder that releases within the budget lets the mark land locally, once', async () => {
+  it('a non-daemon holder that releases within the budget lets the mark land locally, once', async () => {
     const f = fixture()
     const holder = holdLease(f)
     const timer = setTimeout(holder.release, 150)
@@ -276,7 +276,7 @@ describe('a mark under a lease-holding daemon is delegated whole', () => {
     }
   }, 60_000)
 
-  it('C-MRK-HOLDER-KEEPS: a non-daemon holder that outlasts the budget refuses by name, writes nothing, and a retry resumes', async () => {
+  it('a non-daemon holder that outlasts the budget refuses by name, writes nothing, and a retry resumes', async () => {
     const f = fixture()
     const holder = holdLease(f)
     try {
@@ -302,7 +302,7 @@ describe('a mark under a lease-holding daemon is delegated whole', () => {
     }
   }, 60_000)
 
-  it('C-MRK-DAEMON-UNREACHABLE: a lease that names a registered daemon nobody answers for refuses with DaemonNotRunningError at once', async () => {
+  it('a lease that names a registered daemon nobody answers for refuses with DaemonNotRunningError at once', async () => {
     const f = fixture()
     const holder = holdLease(f)
     const socketRoot = mkdtempSync('/tmp/aq-mrk-')

@@ -43,7 +43,7 @@ async function loadAssertionStrengthCheck(): Promise<AssertionStrengthCheck> {
     throw new Error(
       '@vostride/agent-qa-agent does not export evaluateAssertionStrength — '
       + 'the gate-4 assertion-strength check does not exist yet. This is the '
-      + 'expected RED-first state (D-08); implement the check, do not weaken '
+      + 'expected RED-first state; implement the check, do not weaken '
       + 'this suite.',
     )
   }

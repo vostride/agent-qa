@@ -359,7 +359,7 @@ describe('run-detail review pointers', () => {
     await fixture?.close()
   })
 
-  it('NO-CHAT-TARGET: no run-detail target is routes.chat, and the three former review places show applied changes with no review command', async () => {
+  it('NO-CHAT-TARGET: no run-detail target is routes.chat, and the places that show applied changes offer no review command', async () => {
     const chatPath = '/chat'
     const pathOf = (target: string) => new URL(target, fixture.origin).pathname
     const detailPath = pathOf(page.url())

@@ -384,10 +384,10 @@ interface SentEvent {
   readonly properties: Record<string, unknown>
 }
 
-const c441Roots: string[] = []
+const projectRoots: string[] = []
 
 afterAll(() => {
-  for (const root of c441Roots) rmSync(root, { recursive: true, force: true })
+  for (const root of projectRoots) rmSync(root, { recursive: true, force: true })
 })
 
 afterEach(() => {
@@ -396,7 +396,7 @@ afterEach(() => {
 
 function declaringProject(secrets: string): string {
   const root = mkdtempSync(join(tmpdir(), 'agent-qa-441-analytics-'))
-  c441Roots.push(root)
+  projectRoots.push(root)
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,
@@ -632,10 +632,10 @@ function clearCiMarkers(): void {
   for (const name of CI_MARKERS) vi.stubEnv(name, '')
 }
 
-const c447Roots: string[] = []
+const homeRoots: string[] = []
 
 afterAll(() => {
-  for (const root of c447Roots) rmSync(root, { recursive: true, force: true })
+  for (const root of homeRoots) rmSync(root, { recursive: true, force: true })
 })
 
 describe('CI classification through the execution-context detector', () => {
@@ -681,7 +681,7 @@ describe('distinct CI identities per composition', () => {
   it('two CI compositions carry two different ci_ ids, each one stable across its own events', async () => {
     vi.stubEnv('CI', '1')
     const home = mkdtempSync(join(tmpdir(), 'agent-qa-447-ci-home-'))
-    c447Roots.push(home)
+    homeRoots.push(home)
 
     const ids: string[] = []
     for (let composition = 0; composition < 2; composition += 1) {

@@ -102,7 +102,7 @@ function scanProductSources(packagesRoot: string = PACKAGES_ROOT): ScannedSource
 /** An `approval_decision` event built by product code: the writer this phase deletes. */
 const APPROVAL_EVENT_WRITE = /kind:\s*['"]approval_decision['"]/u
 
-describe('ChatApprovalDecisionRecord has exactly one declaration, in the composition root', () => {
+describe('no product source declares ChatApprovalDecisionRecord or writes its event', () => {
   const scanned = scanProductSources()
 
   it('scanned a tree that is actually there', () => {
@@ -191,7 +191,7 @@ describe('ChatApprovalDecisionRecord has exactly one declaration, in the composi
   })
 
   // RETAINED: the matcher must still see a declaration, or the empty set above certifies nothing.
-  it('SEES a second declaration, and stays quiet about an import of the first', () => {
+  it('sees a declaration, and stays quiet about an import of one', () => {
     // THE MUTATION BAR. Without this cell the census could be a matcher that never matches, which
     // is indistinguishable from a clean tree by its verdict alone. The bar is the implementation
     // the census must red on, not the suite it passes.

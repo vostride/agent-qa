@@ -2577,7 +2577,7 @@ describe('run command — reporter integration', () => {
     expect(exitSpy).toHaveBeenCalledWith(2)
   })
 
-  it('never constructs v1 core reporters for a default direct run (bus subscribers replace them)', async () => {
+  it('constructs no dashboard reporter for a default direct run', async () => {
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({ tests: [makeTest()], errors: [] })
     mockRunMemberTest.mockResolvedValue({
@@ -2590,7 +2590,7 @@ describe('run command — reporter integration', () => {
     expect(exitSpy).toHaveBeenCalledWith(0)
   })
 
-  it('honors console/junit reporter selection without constructing v1 reporters', async () => {
+  it('honors console/junit reporter selection and reaches execution', async () => {
     mockGlob.mockResolvedValue(['tests/a.yaml'])
     mockParseAllTests.mockResolvedValue({ tests: [makeTest()], errors: [] })
     mockRunMemberTest.mockResolvedValue({

@@ -247,7 +247,7 @@ describe('the shipped binary produces a populated, masked run', () => {
       withRefs.length,
       'no `subActionRecorded` envelope carried `artifactRefs`. A live planning turn with an '
       + 'attached screenshot is what mints one, so either no live turn happened (a cache replay, '
-      + 'or a run that never opened a page) or the 405-01 fold stopped folding. '
+      + 'or a run that never opened a page) or the artifact-ref fold stopped folding. '
       + `${BROWSER_INSTALL_INSTRUCTION}${context()}`,
     ).toBeGreaterThan(0)
 
@@ -275,7 +275,7 @@ describe('the shipped binary produces a populated, masked run', () => {
       measured.length,
       'no `stepFinalized` envelope carried a positive `tokenUsage.totalTokens`. The stub reports '
       + 'non-zero `usage` on every arm, so an absent triple means the runner summed no model call '
-      + `for the step — or the 405-04 append stopped appending.${context()}`,
+      + `for the step — or the token-usage append stopped appending.${context()}`,
     ).toBeGreaterThan(0)
   })
 
@@ -290,7 +290,7 @@ describe('the shipped binary produces a populated, masked run', () => {
       expect(
         plans.some((plan) => plan.includes(value)),
         `no sub-action \`plan\` carried ${what}. The planner's reasoning carries all three; the run `
-        + `masks the declared value by name and records the others as written (D-06, D-23). `
+        + `masks the declared value by name and records the others as written. `
         + `plans: ${JSON.stringify(plans)}${context()}`,
       ).toBe(true)
     }
@@ -309,8 +309,8 @@ describe('the shipped binary produces a populated, masked run', () => {
 
     expect(
       (eventsLog ?? '').includes(POPULATED_DECLARED_SECRET_VALUE),
-      'the declared step secret appears IN CLEAR in this run\'s events.jsonl — the masked side of '
-      + `D-11 is broken for the artifact a person installs.${context()}`,
+      'the declared step secret appears IN CLEAR in this run\'s events.jsonl — masking is broken '
+      + `for the artifact a person installs.${context()}`,
     ).toBe(false)
     for (const [what, value] of [
       ['the env credential', POPULATED_SECRET_VALUE],
@@ -318,7 +318,7 @@ describe('the shipped binary produces a populated, masked run', () => {
     ] as const) {
       expect(
         (eventsLog ?? '').includes(value),
-        `${what} is not in this run's events.jsonl as written (D-01, D-12, D-23).${context()}`,
+        `${what} is not in this run's events.jsonl as written.${context()}`,
       ).toBe(true)
     }
 

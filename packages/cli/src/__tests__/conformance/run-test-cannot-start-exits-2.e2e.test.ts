@@ -205,7 +205,7 @@ describe('a test that cannot start', () => {
     expect(second?.failureSummary ?? '', `the member after it says it was not run\n${seen()}`)
       .toContain(COULD_NOT_START)
     for (const test of scene.finished ?? []) {
-      expect(test.failureSummary ?? '', `D-53's disconnect sentence is not a launch failure\n${seen()}`)
+      expect(test.failureSummary ?? '', `the disconnect sentence is not a launch failure\n${seen()}`)
         .not.toContain(BROWSER_CLOSED)
     }
   })

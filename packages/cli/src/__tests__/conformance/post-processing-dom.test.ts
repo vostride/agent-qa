@@ -1067,7 +1067,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
         arm.navigatedAt !== undefined && arm.browserVerdictAt !== undefined
         && arm.navigatedAt >= arm.browserVerdictAt && arm.navigatedAt - arm.browserVerdictAt < 2_000,
         `arm ${String(index)} (${arm.runId}) reached run detail `
-        + `${String((arm.navigatedAt ?? 0) - (arm.browserVerdictAt ?? 0))}ms after its browser received the run-stream \`verdict\` frame. D-13 `
+        + `${String((arm.navigatedAt ?? 0) - (arm.browserVerdictAt ?? 0))}ms after its browser received the run-stream \`verdict\` frame. The page `
         + 'moves the viewer ON that envelope; an arrival seconds later is a different posture',
       ).toBe(true)
       expect(
@@ -1108,7 +1108,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
         arm.streamStatus,
         `arm ${String(index)} (${arm.runId}): the shipped dashboard answered ${String(arm.streamStatus)} on its own `
         + 'post-processing stream. 503 here means the command composed a relay for one half of the '
-        + 'threading and not the other, which is the shape of WINDOWS #264 one seam over',
+        + 'threading and not the other, which is the missing-relay 503 one seam over',
       ).toBe(200)
       const chipFrames = arm.frames.filter((frame) => frame.type !== 'snapshot' && frame.type !== 'heartbeat')
       expect(
@@ -1217,7 +1217,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
       handed!.analysisOutcome,
       'a failed stage with no recorded reason renders the absence, qualified by the posture that '
       + 'explains it — and nothing else on the line, because there is no reason to show and a '
-      + 'producer\'s text appended here would be the lie by omission D-21 exists to refuse. '
+      + 'producer\'s text appended here would be the lie by omission this rule refuses. '
       + `painted: ${handed!.html.slice(0, 400)}`,
     ).toBe(`${ANALYSIS_FAILED_PREFIX}${REASON_ABSENT_HANDED_OFF}`)
     expect(
@@ -1269,7 +1269,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
     expect(
       visit!.requests.filter(isRead).length,
       'a return visit to a finished run is ONE read: no interval, no reconnect, nothing to clean up '
-      + `but the disposer's own no-ops (D-18). requests: ${JSON.stringify(visit!.requests.map((r) => r.url.split('/').slice(-2).join('/')))}`,
+      + `but the disposer's own no-ops. requests: ${JSON.stringify(visit!.requests.map((r) => r.url.split('/').slice(-2).join('/')))}`,
     ).toBe(1)
     expect(
       visit!.requests.filter(isStream).length,
@@ -1307,7 +1307,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
     expect(redReason.length, 'the painted reason is not empty').toBeGreaterThan(0)
     expect(
       redReason.length,
-      `T-404-01: the text a browser is handed is the producer's bounded string, ${String(redReason.length)} `
+      `the text a browser is handed is the producer's bounded string, ${String(redReason.length)} `
       + 'chars here, and this page slices none of it',
     ).toBeLessThanOrEqual(500)
     expect(

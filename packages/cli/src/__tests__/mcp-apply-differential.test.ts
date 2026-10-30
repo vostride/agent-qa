@@ -220,7 +220,7 @@ beforeEach(() => {
   writeFileSync(join(root, '.env.secrets.local'), '')
 
   git('init', '--quiet')
-  git('config', 'user.name', 'agent-qa 432-12 change differential')
+  git('config', 'user.name', 'agent-qa change differential')
   git('config', 'user.email', 'change-differential@example.invalid')
   git('config', 'commit.gpgsign', 'false')
   writeFileSync(join(root, '.gitignore'), '.agent-qa/\nagent-qa-knowledge/\n.env.secrets.local\n')

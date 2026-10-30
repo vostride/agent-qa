@@ -37,7 +37,7 @@ type Fixture = ReturnType<typeof createInProcessFixture>
 
 const TERMINAL = ['passed', 'failed', 'cancelled', 'skipped']
 const RUN_BUDGET_MS = 180_000
-const CANARY = 'C447-CANARY-STEP'
+const CANARY = 'CANARY-STEP'
 const SINK_IDENTITY = 'u_alpha-bravo-charlie-delta-echo-foxtrot-golf-hotel-india-juliet'
 
 const target = new CountingTarget()

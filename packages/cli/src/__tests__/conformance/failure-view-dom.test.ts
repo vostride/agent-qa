@@ -64,8 +64,8 @@ const REBUILD_INSTRUCTION =
 const BROWSER_INSTALL_INSTRUCTION =
   'these cells drive the BUILT dashboard UI in a real Chromium, against runs the shipped binary '
   + 'really executed: run `pnpm exec playwright install chromium` and re-run. THEY MUST NOT BE '
-  + 'SKIPPED WHEN THE BROWSER IS ABSENT — they are the acceptance of phase 406\'s four ROADMAP '
-  + 'criteria, and a criterion nobody measured is a criterion nobody met.'
+  + 'SKIPPED WHEN THE BROWSER IS ABSENT — they are the failure view\'s acceptance, and a '
+  + 'criterion nobody measured is a criterion nobody met.'
 
 /** How long the page has to mount and paint the failure view. */
 const PAGE_BUDGET_MS = 60_000
@@ -921,8 +921,8 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
     const row = analyze[0] as JobRow
     expect(
       row.status,
-      'the `analyze-run` job did not complete. THIS IS THE ANLZ-01 DEFECT\'S OWN SIGNATURE: the 399 '
-      + 'runs left this row `failed` with `handler-threw: Guardrail blocked outbound prompt leaf: '
+      'the `analyze-run` job did not complete. THIS IS THE GUARDRAIL DEFECT\'S OWN SIGNATURE: it '
+      + 'left this row `failed` with `handler-threw: Guardrail blocked outbound prompt leaf: '
       + 'creditCard`, because the egress guardrail read a memory-relevance score as a card. Read '
       + `\`last_failure_reason\` in the block below before concluding anything else.${context()}`,
     ).toBe('done')
@@ -933,7 +933,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
     expect(
       row.attempts,
       'the `analyze-run` job needed more than one attempt. A retry means the handler threw at least '
-      + `once, which is the shape ANLZ-01 wore.${context()}`,
+      + `once, which is the shape the guardrail defect wore.${context()}`,
     ).toBe(1)
 
     expect(
@@ -1001,7 +1001,7 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
       + 'received value below says which: an EMPTY list means no member chrome was painted (a '
       + 'one-member run paints none — this fixture declares two on purpose) or the verdict joined a '
       + 'different member handle than the one that failed; `deterministic-classifier` means the '
-      + `author degraded to the floor and ANLZ-01's symptom is back on the page.${context()}`,
+      + `author degraded to the floor and the guardrail defect's symptom is back on the page.${context()}`,
     ).toEqual(['analyze-run'])
     expect(
       page.verdictProducers,

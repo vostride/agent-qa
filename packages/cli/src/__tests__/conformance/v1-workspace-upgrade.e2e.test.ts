@@ -67,7 +67,7 @@ const NEW_EXAMPLES = [
 ]
 const POLICY_RULE = '- Dismiss the cookie banner before checking a price.'
 const AGENT_RULE = '- Prefer the search box over the category menu.'
-const PRE_445_KNOWLEDGE_RULES = [
+const LEGACY_KNOWLEDGE_RULES = [
   'memory/index/',
   'memory/queue/',
   '.lease',
@@ -276,7 +276,7 @@ function buildV1Workspace(): string {
   write(root, 'agent-qa-memory/memories.jsonl', '{"text":"The cart badge counts items."}\n')
   writeRunsDatabase(join(root, '.agent-qa', 'dashboard.sqlite'))
   write(root, '.agent-qa/cache/5f0c2a.json', '{"step":"Click Add to cart","action":"click"}\n')
-  write(root, 'agent-qa-knowledge/.gitignore', [...PRE_445_KNOWLEDGE_RULES, ''].join('\n'))
+  write(root, 'agent-qa-knowledge/.gitignore', [...LEGACY_KNOWLEDGE_RULES, ''].join('\n'))
   write(root, `${POLICIES}/global.md`, `# Global policy\n\n${POLICY_RULE}\n`)
   write(root, 'tests/example-pass.yaml', v1Test('Example passing test', 'example-web', [
     'Verify the page says "Example Domain"',

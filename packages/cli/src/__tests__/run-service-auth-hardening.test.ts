@@ -461,7 +461,7 @@ describe('the token value reaches no channel', () => {
     }
   })
 
-  it('a WRONG-token refusal leaks the declared value on no channel a person can read', async () => {
+  it('a cross-site refusal carrying a bearer leaks its value on no channel a person can read', async () => {
     const service = await openRunService()
     const out: string[] = []
     const stdout = vi.spyOn(process.stdout, 'write').mockImplementation(((chunk: unknown) => {

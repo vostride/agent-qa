@@ -598,7 +598,7 @@ describe('the daemon has no capture-file writer and no piped-child consumer', ()
       .toBe(false)
     expect(consumesPipedLauncher('// the daemon used to call createPipedLaunchChild here'))
       .toBe(false)
-    expect(writesCaptureFile('// run-child.stdout.log retired with the child (D-04)')).toBe(false)
+    expect(writesCaptureFile('// run-child.stdout.log retired with the child')).toBe(false)
     // The stripper must not eat code it should keep (the protocol-relative-URL trap).
     expect(stripComments("const u = 'https://example.test/x'").trim())
       .toBe("const u = 'https://example.test/x'")

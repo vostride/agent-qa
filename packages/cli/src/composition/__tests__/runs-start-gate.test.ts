@@ -256,7 +256,7 @@ describe('the fn/MCP door starts a run and asks nothing', () => {
 })
 
 describe('the empty-input and suite edges of a bare runs.start', () => {
-  it('AN ARGUMENT-LESS runs.start RESOLVES THE CONFIGURED DEFAULT SET — both members of it ran', async () => {
+  it('an argument-less runs.start resolves the configured default set, and both members ran', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -570,7 +570,7 @@ describe('the door census — every way a caller can name a run id', () => {
       reaches: true,
       verdict:
         "names the enqueued row's id on a `RunsStartInput` and goes through `invokeFunction` — "
-        + 'deliberately, per D-10, so it cannot skip the op gate. Same parse, same core.',
+        + 'deliberately, so it cannot skip the op gate. Same parse, same core.',
     },
     'cli/src/daemon/host.ts': {
       role: 'door: the daemon RPC',
@@ -633,7 +633,7 @@ describe('the door census — every way a caller can name a run id', () => {
     expect(stripComments("const u = 'https://example.com' // t")).toContain('https://example.com')
   })
 
-  it('E1 — every production site naming a runId on a run request carries a role', () => {
+  it('every production site naming a runId on a run request carries a role', () => {
     // Self-check first: the predicate can see the forms the doors actually use.
     expect(REQUEST_RUN_ID_RE.test('        runId: asRunId(runId),')).toBe(true)
     expect(REQUEST_RUN_ID_RE.test("  runId: opts.runId as RunsStartInput['runId'],")).toBe(true)
@@ -651,7 +651,7 @@ describe('the door census — every way a caller can name a run id', () => {
     }
   })
 
-  it('E2 — the environment door has exactly one production origin, and it is a listed site', () => {
+  it('the environment door has exactly one production origin, and it is a listed site', () => {
     const found = shippedSourceFiles()
       .filter((path) => ENV_RUN_ID_RE.test(stripComments(readFileSync(path, 'utf8'))))
       .map((path) => relative(PACKAGES_ROOT, path).replaceAll(sep, '/'))
@@ -666,7 +666,7 @@ describe('the door census — every way a caller can name a run id', () => {
     expect(source).not.toContain('RunsStartInputSchema')
   })
 
-  it('E1 — the evidence-read hook stays scanned and is classified as unable to start a run', () => {
+  it('the evidence-read hook stays scanned and is classified as unable to start a run', () => {
     const file = 'dashboard-ui/src/hooks/use-evidence-records.ts'
     const source = stripComments(readFileSync(join(PACKAGES_ROOT, file), 'utf8'))
     expect(shippedSourceFiles()).toContain(join(PACKAGES_ROOT, file))

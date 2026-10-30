@@ -139,7 +139,7 @@ const SYNTHETIC_STRAY_ALIAS_TARGET: ResolverOpTarget = Object.freeze({
 const SYNTHETIC_UNCARRIED_OP_ID = 'control.uncarried.397.03'
 const SYNTHETIC_STRAY_ROW_OP_ID = 'control.stray.row.397.03'
 const SYNTHETIC_ABSENT_OP_ID = 'control.absent.397.03'
-const SYNTHETIC_UNCLASSIFIABLE_REASON = 'control 397-03: prose in no declared class'
+const SYNTHETIC_UNCLASSIFIABLE_REASON = 'control: prose in no declared class'
 
 // Synthetic fixtures for the driver-absence control.
 const SYNTHETIC_DRIVER_ABSENT_OP_ID = 'control.absent.397.04'
@@ -457,7 +457,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
 
   it('accounts for every declared capability as MCP-reachable or declared-unprojected', () => {
     // The registry is the iteration driver here, and the partition it closes is consumed from the
-    // mapping rather than restated: an op reachable over MCP, or an op with a dated reason for not
+    // mapping rather than restated: an op reachable over MCP, or an op with a reason for not
     // being. An op in neither has landed with nobody having decided anything about it.
     const mcpReach = enumerationOf('mcp').opIds
     const unprojected = new Set(UNPROJECTED_OPS.map((entry) => entry.opId))
@@ -533,7 +533,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     ).toBe(true)
   })
 
-  it('pins an EMPTY listing delta between the every-scope and the default MCP grant', async () => {
+  it('lists the same MCP ops for every caller, whatever grant it carries', async () => {
     const everyScope = enumerationOf('mcp')
     const defaultGrant = await enumerateMcpOpIds(smuggledMcpCaller(LEGACY_DEFAULT_GRANT))
     const nothing = await enumerateMcpOpIds(smuggledMcpCaller([]))
@@ -606,7 +606,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     // duty the retired 384 stub's `ALLOWED_ID_DOMAINS` sweep carried, re-derived off the census.
     //
     // THE REVERSE DIRECTION IS ASSERTED TOO, because a taxonomy is exactly the kind of table that
-    // quietly accumulates members nothing uses. A member matching no op must carry a dated
+    // quietly accumulates members nothing uses. A member matching no op must carry a
     // `reserved` sentence saying who holds the name and against what; a member carrying one while
     // ops exist is a reservation somebody forgot to retire. Both are named, neither is counted.
     const census = domainCensus(registryOpIds())
@@ -614,17 +614,17 @@ describe('the parity suite ranges the registry census over every rostered surfac
     expect(
       census.uncatalogued,
       'capabilities whose id domain is on no row of domain-list.ts — add the domain there with a '
-        + 'one-line charter (D-18: ids are the locked contract, the taxonomy serves them, and a '
+        + 'one-line charter (ids are the locked contract, the taxonomy serves them, and a '
         + 'widening is a reviewed one-line diff rather than a silent Set.add)',
     ).toEqual([])
     expect(
       census.memberless,
-      'domains pinned in domain-list.ts that no shipped capability uses and that carry no dated '
+      'domains pinned in domain-list.ts that no shipped capability uses and that carry no '
         + 'reserved marker — either an op was deleted, or the row is decoration',
     ).toEqual([])
     expect(
       census.staleReservations,
-      'domains carrying a dated `reserved` marker that shipped capabilities now use — the marker '
+      'domains carrying a `reserved` marker that shipped capabilities now use — the marker '
         + 'says the name is merely held, and it is not',
     ).toEqual([])
 
@@ -682,7 +682,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     // (b) a row no id matches, carrying no reserved marker.
     const withAMemberlessRow: readonly CanonicalDomain[] = [
       ...CANONICAL_ID_DOMAINS,
-      { domain: SYNTHETIC_MEMBERLESS_DOMAIN, charter: 'control 397-08: a row nothing uses' },
+      { domain: SYNTHETIC_MEMBERLESS_DOMAIN, charter: 'control: a row nothing uses' },
     ]
     expect(
       domainCensus(live, withAMemberlessRow).memberless,
@@ -694,11 +694,11 @@ describe('the parity suite ranges the registry census over every rostered surfac
         ...CANONICAL_ID_DOMAINS,
         {
           domain: SYNTHETIC_MEMBERLESS_DOMAIN,
-          charter: 'control 397-08: a row nothing uses',
-          reserved: 'control 397-08: held deliberately',
+          charter: 'control: a row nothing uses',
+          reserved: 'control: held deliberately',
         },
       ]).memberless,
-      'a dated reserved marker must silence the memberless side for that row and no other',
+      'a reserved marker must silence the memberless side for that row and no other',
     ).toEqual([])
 
     // (c) a reservation the ids have overtaken.
@@ -707,8 +707,8 @@ describe('the parity suite ranges the registry census over every rostered surfac
         ...CANONICAL_ID_DOMAINS,
         {
           domain: SYNTHETIC_RESERVED_DOMAIN,
-          charter: 'control 397-08: a held name',
-          reserved: 'control 397-08: held, but an op arrived',
+          charter: 'control: a held name',
+          reserved: 'control: held, but an op arrived',
         },
       ]).staleReservations,
       'a reserved row that shipped ids now use must be named on the stale side',
@@ -1014,7 +1014,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
 
       const answered = await client.callTool({
         name: present!,
-        arguments: { agent_qa_control_397_03: true },
+        arguments: { agent_qa_control_probe: true },
       })
       expect(
         JSON.stringify(answered),
@@ -1166,7 +1166,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
     expect(
       divergent,
       'capabilities whose verdict depends on WHICH SURFACE minted an otherwise identical caller — '
-        + 'caller-as-data is broken and a surface has a private policy (FUNC-03)',
+        + 'caller-as-data is broken and a surface has a private policy',
     ).toEqual([])
   }, 120_000)
 
@@ -1299,7 +1299,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
       .filter((body) => surfaceProducers.some((name) => body.includes(name)))
     expect(
       merged.length,
-      'a cell produces BOTH a gate answer and a surface answer, so the two walls D-11 requires to '
+      'a cell produces BOTH a gate answer and a surface answer, so the two walls required to '
         + 'be independent can be averaged into one expect',
     ).toBe(0)
     // Non-vacuity: both kinds of cell exist to be kept apart.

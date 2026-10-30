@@ -133,7 +133,7 @@ describe('one human ask, N gated runs, every one of them gated', () => {
     expect((auditRows(fixture) as GateAuditRow[]).map((row) => row.trustSource).filter(Boolean)).toEqual([])
   }
 
-  it('THE ORDERING EDGE — two shared runs start back to back, with no decision row', async () => {
+  it('two shared runs start back to back, with no decision row', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {

@@ -178,7 +178,7 @@ function terminalSequence(root: string): {
   ).toBeLessThan(finished.seq)
   expect(
     chipLines(events.slice(0, events.indexOf(finished))),
-    'no post-processing envelope may precede runFinished (LIFE-01)',
+    'no post-processing envelope may precede runFinished',
   ).toEqual([])
   return { disposition: finished.payload.disposition, events }
 }
@@ -250,7 +250,7 @@ describePosix('runFinished.disposition on the shipped binary', () => {
       ).toBe('handedOff')
       expect(
         chipLines(events),
-        'a handed-off run emits no chips of its own: the holder drains, and the daemon is silent (388 D-13)',
+        'a handed-off run emits no chips of its own: the holder drains, and the daemon is silent',
       ).toEqual([])
 
       // The row is here for the daemon to find, which is the point of enqueueing before consulting.

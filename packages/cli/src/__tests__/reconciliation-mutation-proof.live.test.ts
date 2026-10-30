@@ -103,7 +103,7 @@ const modelVerbatimStrategy: ReconcileStrategy = (input: ReconcileInput): Reconc
 }
 
 function readSubject(): ChatScenario {
-  if (SUBJECT === undefined) throw new Error('the frozen manifest no longer lists the D-16 subject')
+  if (SUBJECT === undefined) throw new Error('the frozen manifest no longer lists the reconciliation subject')
   const path = join(SCENARIOS_ROOT, scenarioRelativePath(SUBJECT))
   return parseScenario(parseYamlDocument(readFileSync(path, 'utf8')), SUBJECT)
 }

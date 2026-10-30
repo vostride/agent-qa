@@ -1005,7 +1005,7 @@ describe('current guidance describes changes that apply in the call', () => {
       || (subject.name.includes(`/${KNOWLEDGE_SKILL_NAME}/`) && subject.name.endsWith('.md')))
     // guide + README + (SKILL.md + knowledge-reads.md) in both the source and the packaged tree.
     expect(ruleBearing.map((subject) => subject.name).length).toBe(6)
-    expect(ruleBearing.flatMap(knowledgeRuleFindings), 'a knowledge text omits part of the D-24 rule')
+    expect(ruleBearing.flatMap(knowledgeRuleFindings), 'a knowledge text omits part of the knowledge rule')
       .toEqual([])
     for (const subject of ruleBearing.filter((candidate) => candidate.name !== 'knowledge README')) {
       expect(toolTokensIn(subject.body), `${subject.name}: the change tool`).toContain('agent_qa_change_knowledge')

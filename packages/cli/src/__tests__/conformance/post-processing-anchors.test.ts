@@ -282,7 +282,7 @@ describePosix('a run the DASHBOARD started is drained BY the dashboard', () => {
     expect(answer.status, `${answer.raw}. ${childContext(f.dashboard)}`).toBe(200)
     expect(
       Object.keys(answer.body!.status.chips).sort(),
-      'exactly two chips — the 404 D-01 narrowing, on the wire the browser actually reads',
+      'exactly two chips — the narrowed set, on the wire the browser actually reads',
     ).toEqual(['analysis', 'curation'])
     expect(answer.body!.status.runId).toBe(f.runId)
     expect(
@@ -323,7 +323,7 @@ describePosix('a run the DASHBOARD started is drained BY the dashboard', () => {
     expect(
       answer.body!.failures,
       'PRESENT and EMPTY: the record was read (a refusal would have removed the key entirely) and '
-      + 'it holds no failure line, so the route composes none (D-21 as narrowed in 404-03)',
+      + 'it holds no failure line, so the route composes none',
     ).toEqual({})
     expect(answer.body!.status.notification, 'no chain-terminal row, because no chain ran')
       .toBeUndefined()

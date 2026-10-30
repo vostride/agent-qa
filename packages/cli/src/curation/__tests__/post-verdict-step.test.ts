@@ -129,7 +129,7 @@ describe('probeWriterLease — the decision read, total over the four read kinds
     expect(probeWriterLease({ knowledgeRoot: KNOWLEDGE_ROOT, operations })).toEqual({ kind: 'held' })
     expect(
       operations.deriveWriterLeaseFreshness,
-      'the freshness verdict decides, never the lease bytes alone (CR-01/CR-08)',
+      'the freshness verdict decides, never the lease bytes alone',
     ).toHaveBeenCalledWith(KNOWLEDGE_ROOT, PARSED_LEASE.kind === 'parsed' ? PARSED_LEASE.lease : undefined, NOW_MS)
   })
 
@@ -257,7 +257,7 @@ describe('dispositionOf — total over the lease probe domain', () => {
         writerAuthority: { leaseId: 'daemon-lease', epoch: 11 },
         leaseSkipped: false,
       }),
-      'the host holds the lease and said so — its own pump is what drains this chain (D-09)',
+      'the host holds the lease and said so — its own pump is what drains this chain',
     ).toEqual({ disposition: 'drained' })
   })
 
@@ -681,7 +681,7 @@ describe('createPostVerdictStep — the gate-run, exclusion and detach arms, in 
     const { step: composed } = step({ writerAuthority: authority }, operations)
 
     const outcome = await composed.port.run({ runId: RUN_ID as never, verdict: 'passed' as never })
-    expect(outcome, 'the daemon-launched run IS drained — by the daemon\'s own pump (D-09)').toEqual({
+    expect(outcome, 'the daemon-launched run IS drained — by the daemon\'s own pump').toEqual({
       disposition: 'drained',
     })
     expect(lastEnqueue, 'the daemon door queued nothing at all before this change').toHaveBeenCalledTimes(1)

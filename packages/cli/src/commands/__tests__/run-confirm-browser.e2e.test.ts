@@ -390,7 +390,7 @@ describe('the run trigger confirm loop, closed through a real browser', () => {
     }
   }, 300_000)
 
-  it('OVERLAPPING CONFIRMS — two clicks start two runs, and no question is raised, queued or reaped', async () => {
+  it('two overlapping clicks start two runs, and no question is raised, queued or reaped', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {

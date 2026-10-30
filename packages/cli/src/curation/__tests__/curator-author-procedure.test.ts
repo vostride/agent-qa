@@ -1645,7 +1645,7 @@ describe('declared secrets in curated candidates', () => {
   const PAGE = 'https://shop.example/account'
 
   function declaredMask(): (text: string) => string {
-    const redactor = new SecretRedactor(new SecretStore({ PW_441: DECLARED }))
+    const redactor = new SecretRedactor(new SecretStore({ ACCOUNT_PASSWORD: DECLARED }))
     return (text) => redactor.redactString(text)
   }
 
@@ -1754,13 +1754,13 @@ describe('declared secrets in curated candidates', () => {
       const procedure = queuedPayloads(knowledgeRoot, reports).find((row) => row.kind === 'procedure')
       if (procedure === undefined) throw new Error('expected a queued procedure candidate')
       const seed = parseProcedureTrajectorySeed(procedure.bodySeed)
-      const maskedText = `Sign in as ${EMAIL} with [secret:PW_441]`
+      const maskedText = `Sign in as ${EMAIL} with [secret:ACCOUNT_PASSWORD]`
       expect(seed?.steps[0]?.instruction).toBe(maskedText)
       expect(procedure.distilledObservations[0]?.step.naturalKey).toBe(maskedText)
       expect(procedure.distilledObservations[1]?.flow?.precedes).toBe(maskedText)
       expect(procedure.summarySeed).toContain(maskedText)
       expect(seed?.steps[0]?.action?.targets['ref']?.name)
-        .toBe(`Account ${EMAIL} [secret:PW_441]`)
+        .toBe(`Account ${EMAIL} [secret:ACCOUNT_PASSWORD]`)
     } finally {
       rmSync(root, { recursive: true, force: true })
     }
@@ -1795,9 +1795,9 @@ describe('declared secrets in curated candidates', () => {
         row.anchors.some((anchor) => anchor.t === 'flow' && anchor.name === 'measurement:assert-value:storage'))
       if (measurement === undefined) throw new Error('expected an assert-value:storage measurement')
       expect(measurement.summarySeed)
-        .toBe(`assert-value:storage measured as [secret:PW_441] for ${EMAIL}`)
+        .toBe(`assert-value:storage measured as [secret:ACCOUNT_PASSWORD] for ${EMAIL}`)
       expect(measurement.bodySeed)
-        .toBe(`Verified assert-value:storage value: [secret:PW_441] for ${EMAIL}.`)
+        .toBe(`Verified assert-value:storage value: [secret:ACCOUNT_PASSWORD] for ${EMAIL}.`)
       expect(payloads.length).toBeGreaterThan(1)
       expect(JSON.stringify(payloads)).not.toContain(DECLARED)
     } finally {

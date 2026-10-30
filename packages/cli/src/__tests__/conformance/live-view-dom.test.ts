@@ -297,7 +297,7 @@ describe('the built live surface, in a real browser', () => {
       await page.locator('[data-live-pane="steps"]').waitFor({ state: 'attached', timeout: 20_000 })
       expect(
         await page.locator('[data-live-pane]').count(),
-        'D-09: two panes and nothing else — a third pane is a surface this phase deleted coming back',
+        'two panes and nothing else — a third pane would be a removed surface coming back',
       ).toBe(2)
       expect(await page.locator('[data-live-pane="steps"]').isVisible()).toBe(true)
       expect(await page.locator('[data-live-pane="preview"]').isVisible()).toBe(true)
@@ -423,7 +423,7 @@ describe('the built live surface, in a real browser', () => {
       await page.waitForTimeout(NO_STREAM_SETTLE_MS)
       expect(
         await previewWord(page),
-        'the D-08 sentence is terminal for the rest of the run — never a flicker',
+        'the no-stream sentence is terminal for the rest of the run — never a flicker',
       ).toBe('no-stream')
     })
   }, 120_000)
@@ -574,7 +574,7 @@ describe('the built live surface, in a real browser', () => {
       // No liveness element at the end either.
       expect(
         await page.locator('[data-liveness]').count(),
-        'no liveness element on the live page (428 D-03)',
+        'no liveness element on the live page',
       ).toBe(0)
       // The embed comes down with the run: a token minted now would outlive the thing it addresses.
       // (The plan text expected `data-embed-state="ended"` INSIDE a surviving iframe; the shipped
@@ -583,7 +583,7 @@ describe('the built live surface, in a real browser', () => {
       expect(await page.locator('[data-run-detail-link]').count()).toBe(1)
       expect(
         page.url().endsWith('/live'),
-        'D-14: with no verdict there is no answer to move the viewer to — the band says the run '
+        'with no verdict there is no answer to move the viewer to — the band says the run '
         + 'ended and the link offers the durable record, which is a person\'s decision to take',
       ).toBe(true)
 
@@ -593,7 +593,7 @@ describe('the built live surface, in a real browser', () => {
       await page.waitForTimeout(5_000)
       expect(attaches.length, `attaches: ${JSON.stringify(attaches)}`).toBe(settled)
     })
-    expect(f.dom.cancelCalls(), 'D-16: no viewer ever cancelled this run').toBe(0)
+    expect(f.dom.cancelCalls(), 'no viewer ever cancelled this run').toBe(0)
   }, 150_000)
 
   // The `did not run` rows are asserted before the verdict, which moves the page away.
@@ -771,7 +771,7 @@ describe('the built live surface, in a real browser', () => {
       await page.waitForTimeout(2_000)
       expect(
         page.url().endsWith('/runs/r_nav'),
-        `D-07: the viewer was bounced back to a live surface while the durable row caught up — `
+        `the viewer was bounced back to a live surface while the durable row caught up — `
         + `url ${page.url()}, navigations ${JSON.stringify(navigations)}`,
       ).toBe(true)
 
@@ -797,6 +797,6 @@ describe('the built live surface, in a real browser', () => {
     } finally {
       await page.close()
     }
-    expect(run.cancelCalls(), 'INVK-05: navigating away is not owning the run').toBe(0)
+    expect(run.cancelCalls(), 'navigating away is not owning the run').toBe(0)
   }, 150_000)
 })

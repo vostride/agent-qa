@@ -1844,7 +1844,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       observed.bannerRung,
       'the run-detail header painted a `[data-rung-banner]` for a fresh store\'s bootstrap, which '
-      + `is information and never a header warning (427 D-20).${context('scan', scan)}`,
+      + `is information and never a header warning.${context('scan', scan)}`,
     ).toBeUndefined()
     expect(
       observed.statementClass,
@@ -1855,7 +1855,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       .toBe('info')
     expect(
       observed.doctorPointerCount,
-      `an info-class statement carries a doctor pointer (427 D-23).${context('scan', scan)}`,
+      `an info-class statement carries a doctor pointer.${context('scan', scan)}`,
     ).toBe(0)
   })
 
@@ -1898,7 +1898,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       observed.usedAbsence,
       'the Knowledge used section\'s `[data-section-absence]` is not the published sentence for '
-      + `this run (427 D-02).${context('scan', scan)}`,
+      + `this run.${context('scan', scan)}`,
     ).toBe(expected)
   })
 
@@ -1924,7 +1924,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toBeGreaterThan(0)
     expect(
       observed.drawerTabLabels.map((label) => label.toLowerCase()),
-      'the artifact drawer still offers a memory tab. 407-05 deleted the v1 drawer tab; a run\'s '
+      'the artifact drawer still offers a memory tab. The drawer has no memory tab; a run\'s '
       + `memory story lives in the Knowledge tab now.${context('scan', scan)}`,
     ).not.toContain('memory')
   })
@@ -1933,7 +1933,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     const observed = visitOf('scan', scan)
     expect(
       observed.curationChipTag,
-      'the `curation` chip is not a `button`. D-01 makes it the one click-through into the '
+      'the `curation` chip is not a `button`. It is the one click-through into the '
       + `Knowledge tab, and a span is not a control.${context('scan', scan)}`,
     ).toBe('button')
     expect(
@@ -1948,7 +1948,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       observed.sectionOrder,
       'the ready Knowledge tab did not paint its `[data-knowledge-section]` elements in the order '
-      + `KNOWLEDGE_SECTIONS publishes (427 D-02).${context('scan', scan)}`,
+      + `KNOWLEDGE_SECTIONS publishes.${context('scan', scan)}`,
     ).toEqual(publishedStringArray('KNOWLEDGE_SECTIONS'))
   })
 
@@ -1969,7 +1969,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       allZeroSnapshot(ready),
       `the ${label} world's curation served no all-zero snapshot, so its learned-nothing state is `
-      + `not the recorded fact D-24 publishes (427-04).${seen}`,
+      + `not the recorded fact curation publishes.${seen}`,
     ).toBe(true)
     expect(
       ready.steps.reduce((total, step) => total + servedLineCount(step), 0),
@@ -2137,7 +2137,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       expect(
         observed.bannerRung,
         `the header painted a rung strip for the ${retrievalClass} class, which is information `
-        + `the tab states, not a warning (427 D-20).${context('served', served)}`,
+        + `the tab states, not a warning.${context('served', served)}`,
       ).toBeUndefined()
       return
     }
@@ -2228,7 +2228,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       added,
       'the op served no `added` change for the record published against this run AFTER it '
       + 'finished. Either the change walk never synthesised the birth (the since-ordinal window) '
-      + "or the op's attribution filter dropped it (407-04's `sourceRunId` stamp)."
+      + "or the op's attribution filter dropped it (the `sourceRunId` stamp)."
       + context('served', served),
     ).toBeDefined()
     expect(
@@ -2246,13 +2246,13 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       painted.learnedRows.some((row) => row.bucket === 'added' && row.id === publishedId),
       'the Memory changes section painted no `li[data-record-change="added"]` whose Retrieval '
-      + 'details ledger entry names the record the op served as this run\'s own addition '
-      + `(427 D-15/D-19).${context('served', served)}`,
+      + 'details ledger entry names the record the op served as this run\'s own addition'
+      + `.${context('served', served)}`,
     ).toBe(true)
     expect(
       painted.learnedSentence,
       'the Learned half printed a state sentence beside rows it had been handed. Rows are consulted '
-      + `BEFORE the sentence ladder (407-15) — a served record is never denied.${context('served', served)}`,
+      + `BEFORE the sentence ladder — a served record is never denied.${context('served', served)}`,
     ).toBeUndefined()
     expect(
       ['complete', 'counts-absent'].includes(painted.learnedState ?? ''),
@@ -2353,7 +2353,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       expect(
         parsed.success ? '' : JSON.stringify(parsed.error.issues),
         `the ${read.label} projection does not satisfy \`RunKnowledgeProjectionSchema\` — a `
-        + `projection failing its OWN contract, which is the CR-01 class this round closed at the `
+        + `projection failing its OWN contract, which the schema check refuses at the `
         + `wire. The refusing issues are the value above.${context(where, read.recorded)}`,
       ).toBe('')
     }
@@ -2440,13 +2440,13 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         ? 'unsettled'
         : chainWord === 'failed' ? 'settled-and-failed' : 'settled-and-complete'
       const armNote = arm === 'unsettled'
-        ? ' (UNSETTLED chain — it has not finished deciding, so it lists NOTHING: D-12)'
+        ? ' (UNSETTLED chain — it has not finished deciding, so it lists NOTHING)'
         : arm === 'settled-and-failed'
           ? ' (SETTLED-AND-FAILED chain — IT LISTS EXACTLY WHAT A SETTLED-AND-COMPLETE ONE WOULD. A '
             + 'chain that fell over cannot un-commit records it had already written, so the rows '
             + 'stand and the failure is reported BESIDE them — by the Learned root\'s state word '
             + 'and by `[data-learned-chain-note]`, never by the absence of rows. Authority: owner '
-            + 'ruling 2026-08-31, REVIEW CR-01, G-407-12.)'
+            + 'ruling.)'
           : ' (SETTLED-AND-COMPLETE chain — the other arm that lists rows)'
       expect(
         painted.learnedRows,
@@ -2454,7 +2454,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         + `(bucket from the row, id from Retrieval details) are not the door's answer projected `
         + `as \`changeDrafts\` does — the snapshot's rows then since-then changes, or \`learned.changes\` `
         + `narrowed to ${JSON.stringify(LEARNED_CHANGE_KINDS)} and grouped per record`
-        + `${armNote}. This is the CR-01 class: `
+        + `${armNote}. This is the defect this cell refuses: `
         + `a half that paints a different set from the one it was served.${seen}`,
       ).toEqual(arm === 'unsettled' ? [] : learnedRowsOf(ready))
 
@@ -2463,7 +2463,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
         painted.learnedRead,
         `AGREEMENT 2 BROKE in the ${entry.world} world: \`data-learned-read\` and `
         + `\`learned.scanIncomplete\` disagree. The stamp is a fact about the READ and must survive `
-        + `every arm (REVIEW WR-05).${seen}`,
+        + `every arm.${seen}`,
       ).toBe(ready.learned.scanIncomplete === true ? 'incomplete' : undefined)
 
       // Expanded row by `servedLineCount`, as the harvest picks it; by index, so a gap reds.
@@ -2512,7 +2512,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
           + `curation \`${ready.curation.status}\`, attribution `
           + `${attribution === undefined ? '(none)' : attribution.outcome}, scanIncomplete `
           + `${String(ready.learned.scanIncomplete === true)} — implies otherwise. A canary word is `
-          + `never blank and never a positive claim nobody was able to make (REVIEW WR-02).${seen}`,
+          + `never blank and never a positive claim nobody was able to make.${seen}`,
         ).toBe(
           doorLine.servedAsCanary
             ? expectedCanaryWord(
@@ -2585,7 +2585,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       `the failed-with-changes world's PAGE painted no \`li[data-record-change]\` at all, over a `
       + `door that served `
       + `${String(failedWithChangesReady?.learned.changes.length ?? 0)} change record(s). This is `
-      + `G-407-12 itself, measured on the shipped bundle: the failed arm denying rows the same `
+      + `the defect itself, measured on the shipped bundle: the failed arm denying rows the same `
       + `projection holds.${seenFWC}`,
     ).toBeGreaterThanOrEqual(1)
 
@@ -2671,7 +2671,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       attributedFailedReady?.learned.canaryAttributions.length ?? 0,
       `the attributed-failed world served NO \`canaryAttributions\` row, so (c5)'s agreement would `
-      + `pass over an empty intersection (REVIEW WR-04). The attribution plant reported `
+      + `pass over an empty intersection. The attribution plant reported `
       + `\`${served.attributedFailed?.appendOutcome ?? '(none)'}\` for observation id `
       + `\`${served.attributedFailed?.plantedObservationId || '(none)'}\` — anything other than `
       + `\`appended\` is the plant, not the read.${seenAF}`,
@@ -2754,7 +2754,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       joined,
       `no painted canary line JOINED a \`canaryAttributions\` row, so the loop above asserted `
-      + `nothing at all — the vacuity WR-04 named.${seen}`,
+      + `nothing at all — a vacuous pass.${seen}`,
     ).toBeGreaterThanOrEqual(1)
 
     // ── HALF TWO: the chain's fate is still reported, beside the row rather than instead of it.
@@ -2819,7 +2819,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       held.rowScrollWidth,
       `WITH \`${WRAP_UTILITY_CLASS}\` the served line still overruns its own box: scrollWidth `
       + `${String(held.rowScrollWidth)} vs clientWidth ${String(held.rowClientWidth)}. The UAT `
-      + `measured 895 vs 639 before the fix (G-407-2).${seen}`,
+      + `measured 895 vs 639 before the fix.${seen}`,
     ).toBeLessThanOrEqual(held.rowClientWidth)
 
     // ── HALF TWO: without it, the overrun comes back. This is the half that pins the cause.
@@ -2828,7 +2828,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       `WITHOUT \`${WRAP_UTILITY_CLASS}\` the served line does NOT overrun (scrollWidth `
       + `${String(bare.rowScrollWidth)} vs clientWidth ${String(bare.rowClientWidth)}), so the `
       + `first reading proved nothing about the class — this viewport is simply wide enough for a `
-      + `120-character token, and the differential G-407-2 needs is not being measured.${seen}`,
+      + `120-character token, and the differential this cell needs is not being measured.${seen}`,
     ).toBeGreaterThan(bare.rowClientWidth)
   })
 
@@ -2872,7 +2872,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     ).toBeGreaterThanOrEqual(1)
     expect(
       componentSource.includes('[overflow-wrap:anywhere]'),
-      `the named \`.wrap-anywhere\` selector is absent from the dist CSS, so 407-23's contingency `
+      `the named \`.wrap-anywhere\` selector is absent from the dist CSS, so the contingency `
       + `applies — but \`knowledge-brief-line.tsx\` does not ship the arbitrary-value spelling `
       + `either, so the escaped rule found above belongs to some OTHER component and proves nothing `
       + `about this line.`,
@@ -2908,7 +2908,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
     expect(
       () => publishedStringArray('FAKE_KINDS', respelled),
       'a member respelled in double quotes was accepted: it dropped silently out of the recovered '
-      + 'list while an apostrophe-only census still balanced. This is IN-01\'s own named failure '
+      + 'list while an apostrophe-only census still balanced. This is the named failure '
       + 'mode, and the three-delimiter quote census exists to reject it.',
     ).toThrow(/quote character/u)
 

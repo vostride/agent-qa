@@ -58,7 +58,7 @@ const EXCLUDED = {
     { offset: 0, bytes: '504b0304' },
   ],
   blobDirectory: /(^|\/)runs\/[^/]+\/blobs\//u,
-  D18_PATHS: ['stepText', 'plannedAction', 'interpolatedVariables', 'stateBefore', 'stateAfter'],
+  WRITTEN_STEP_PATHS: ['stepText', 'plannedAction', 'interpolatedVariables', 'stateBefore', 'stateAfter'],
 } as const
 
 function isMedia(bytes: Buffer): boolean {
@@ -115,12 +115,12 @@ function sqliteText(path: string): string {
   }
 }
 
-function blankD18(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(blankD18)
+function blankWrittenStepPaths(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(blankWrittenStepPaths)
   if (value === null || typeof value !== 'object') return value
   return Object.fromEntries(Object.entries(value).map(([key, member]) => [
     key,
-    (EXCLUDED.D18_PATHS as readonly string[]).includes(key) ? null : blankD18(member),
+    (EXCLUDED.WRITTEN_STEP_PATHS as readonly string[]).includes(key) ? null : blankWrittenStepPaths(member),
   ]))
 }
 
@@ -150,7 +150,7 @@ function scanRoot(root: string, raw: readonly string[], exclusions: ScanExclusio
       }
       kind = 'text'
       if (basename(path) === 'handoff.json') {
-        text = JSON.stringify(blankD18(JSON.parse(text)))
+        text = JSON.stringify(blankWrittenStepPaths(JSON.parse(text)))
         kind = 'handoff'
       }
     }
@@ -670,7 +670,7 @@ describe('ask, chat and run mask declared values', () => {
         passed: true,
       })
 
-      expect(EXCLUDED.D18_PATHS).toEqual([
+      expect(EXCLUDED.WRITTEN_STEP_PATHS).toEqual([
         'stepText', 'plannedAction', 'interpolatedVariables', 'stateBefore', 'stateAfter',
       ])
       const testFile = join(project.root, project.testPath)

@@ -115,7 +115,7 @@ function editHost(configPath: string, options: { crashAfterWrite: boolean }) {
 }
 
 describe('a mark retried after a crash inside its authoring edit', () => {
-  it('C-MRK-EDIT-ONCE: answers the recorded write without a second model call or a second edit', async () => {
+  it('answers the recorded write without a second model call or a second edit', async () => {
     const f = testEditFixture()
     const target = join(f.root, TEST_PATH)
     const host = editHost(f.configPath, { crashAfterWrite: true })
@@ -145,7 +145,7 @@ describe('a mark retried after a crash inside its authoring edit', () => {
   it.each([
     ['edited by hand', (path: string) => writeFileSync(path, `${readFileSync(path, 'utf8')}  - A step a person added by hand\n`)],
     ['deleted', (path: string) => rmSync(path)],
-  ])('C-MRK-EDIT-CHANGED: completes from its record, editing nothing again, when the file was %s after the crash', async (_label, change) => {
+  ])('completes from its record, editing nothing again, when the file was %s after the crash', async (_label, change) => {
     const f = testEditFixture()
     const target = join(f.root, TEST_PATH)
     const host = editHost(f.configPath, { crashAfterWrite: true })
@@ -170,7 +170,7 @@ describe('a mark retried after a crash inside its authoring edit', () => {
       .toMatchObject({ kind: 'already-marked' })
   })
 
-  it('C-MRK-EDIT-UNSCOPED: an edit outside a mark records nothing', async () => {
+  it('an edit outside a mark records nothing', async () => {
     const f = testEditFixture()
     const host = editHost(f.configPath, { crashAfterWrite: false })
     const answer = await host.invokeAuthoringDraftEdit({ testRef: `${TEST_PATH}::${TEST_NAME}`, intent: 'add a banner check' })

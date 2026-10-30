@@ -117,10 +117,10 @@ describe('agent-qa knowledge gates', () => {
     const rawSecret = 'AKIAIOSFODNN7EXAMPLE'
     const rawEmail = 'receipt-auditor@example.invalid'
     // The producer masks both values as declared secrets.
-    const redactor = new SecretRedactor(new SecretStore({ AWS_441: rawSecret, EMAIL_441: rawEmail }))
+    const redactor = new SecretRedactor(new SecretStore({ AWS_KEY: rawSecret, REVIEWER_EMAIL: rawEmail }))
     const mask = (text: string): string => redactor.redactString(text)
     const maskedProducer = mask(`review ${rawSecret} by ${rawEmail}`)
-    expect(maskedProducer).toBe('review [secret:AWS_441] by [secret:EMAIL_441]')
+    expect(maskedProducer).toBe('review [secret:AWS_KEY] by [secret:REVIEWER_EMAIL]')
     const promotion = stampReceiptDigest({
       schemaVersion: GATE_RECEIPT_SCHEMA_VERSION, kind: 'promotion', candidateId: id,
       promotionPath: 'deterministic-verdict-floor', citedReceiptDigests: [],
@@ -138,8 +138,8 @@ describe('agent-qa knowledge gates', () => {
     const output = await invoke(configPath, [id, '--json'])
     const dto = KnowledgeGatesListResultSchema.parse(JSON.parse(output))
     expect(dto).toMatchObject({ kind: 'found', lines: [promotion, gate], standing: [gate] })
-    expect(output).toContain('[secret:AWS_441]')
-    expect(output).toContain('[secret:EMAIL_441]')
+    expect(output).toContain('[secret:AWS_KEY]')
+    expect(output).toContain('[secret:REVIEWER_EMAIL]')
     for (const raw of [rawSecret, rawEmail]) {
       expect(output).not.toContain(raw)
       expect(readFileSync(join(dir, 'evidence/gates.jsonl'), 'utf8')).not.toContain(raw)

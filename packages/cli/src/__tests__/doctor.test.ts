@@ -1761,7 +1761,7 @@ describe('doctor row renderer', () => {
     expect(
       headFloorLines,
       'exception two (the head line at name.length + 14, produced by the MIN_DOTS floor) never'
-      + ' fired in this sweep, so the corpus is still not reaching the case IN-03 reported',
+      + ' fired in this sweep, so the corpus is still not reaching the reported case',
     ).toBeGreaterThan(0)
   })
 

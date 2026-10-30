@@ -28,13 +28,13 @@ import {
 } from '../emit-candidates.js'
 
 const DECLARED = 'qa-admin-42'
-const MARKER = '[secret:USER_441]'
+const MARKER = '[secret:DECLARED_USER]'
 const SCOPE_KEY = 'storefront'
 const PAGE = `https://shop.example/account?user=${DECLARED}`
 const TAIL_TIMEOUT_MS = 180_000
 
 function declaredMask(): (text: string) => string {
-  const redactor = new SecretRedactor(new SecretStore({ USER_441: DECLARED }))
+  const redactor = new SecretRedactor(new SecretStore({ DECLARED_USER: DECLARED }))
   return (text) => redactor.redactString(text)
 }
 
@@ -272,7 +272,7 @@ describe('curation candidates queue declared values only masked', () => {
       expect(seed.steps[1]?.action?.values['text']).toEqual({
         observed: MARKER,
         source: 'masked-secret',
-        sourceName: 'USER_441',
+        sourceName: 'DECLARED_USER',
       })
       expect(JSON.stringify(procedure)).not.toContain(DECLARED)
       expect(JSON.stringify(payloads)).not.toContain(DECLARED)

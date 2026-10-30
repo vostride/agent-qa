@@ -242,7 +242,7 @@ describe('the editor subject on the shipped composition', () => {
       expect(open.upgradeStatus(), 'the frame socket accepts the upgrade').toBe(101)
       const ready = open.messages().find((message) => message.type === 'ready')
       expect(ready, `the socket says ready: ${JSON.stringify(open.messages())}`).toBeDefined()
-      expect(ready?.runId, 'the path id, reused for the editor subject (D-10)').toBe('ed-1')
+      expect(ready?.runId, 'the path id, reused for the editor subject').toBe('ed-1')
       expect(ready?.handle, 'an editor session has one stream, handle 0').toBe(0)
       expect(ready?.stream, 'ready names the declared stream').toEqual({ kind: 'cdp-screencast' })
 

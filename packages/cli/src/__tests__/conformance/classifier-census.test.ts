@@ -39,7 +39,7 @@ describe('the classifier census: no capability ships without a fold', () => {
     expect(
       undeclared,
       'capabilities the registry declares that fold no result — every op reports what its own '
-        + 'result MEANT (399.1 D-01); an op with no `classify` reports the legacy `executed` for '
+        + 'result MEANT; an op with no `classify` reports the legacy `executed` for '
         + 'every arm it can return, including the ones where a guardrail declined',
     ).toEqual([])
   })

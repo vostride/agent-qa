@@ -710,7 +710,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
     ).toBe(expected)
     expect(
       observed.runTokenSummary ?? '',
-      'and the coverage caveat stays OUT of the header sentence (D-22). "of N steps" is a caveat '
+      'and the coverage caveat stays OUT of the header sentence. "of N steps" is a caveat '
       + 'about the number rather than the number, and the header is a glance; it belongs in the '
       + `usage card, where a reader who wants it is already looking.${context()}`,
     ).not.toMatch(/of \d+ steps/u)
@@ -761,7 +761,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
       expect(
         lines.filter((line) => line.kind === 'coverage'),
         'the card said nobody measured this run and then followed it with a coverage caveat about '
-        + 'totals that do not exist (WR-02): an undercount of nothing is the absent-vs-zero collapse. '
+        + 'totals that do not exist: an undercount of nothing is the absent-vs-zero collapse. '
         + `lines: ${JSON.stringify(lines)}${context()}`,
       ).toEqual([])
     }
@@ -785,8 +785,8 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
     expect(
       observed.bodyText.includes(POPULATED_SECRET_VALUE),
       'the `_SECRET`-named environment credential is NOT visible on run detail. It is not a '
-      + 'declared secret, so the run records it as written and the page shows it as written '
-      + `(D-07, D-23).${context()}`,
+      + 'declared secret, so the run records it as written and the page shows it as written'
+      + `.${context()}`,
     ).toBe(true)
 
     // THE TWO VALUES SHARE ONE SENTENCE, and this is where that is held: without it, (2a) and (2e)
@@ -853,7 +853,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
     const observed = firstVisit()
     expect(
       observed.bodyText.includes(POPULATED_EMAIL),
-      `the planted address is not shown as written on the page (D-23).${context()}`,
+      `the planted address is not shown as written on the page.${context()}`,
     ).toBe(true)
     expect(
       observed.maskedCategories,
@@ -875,7 +875,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
     expect(
       (observed as PageObservation).bodyText.includes(POPULATED_SECRET_VALUE),
       'the env credential is not shown as written by a dashboard that never saw this run execute; '
-      + `the run recorded it as written, so the page reads it from the record (D-07).${context()}`,
+      + `the run recorded it as written, so the page reads it from the record.${context()}`,
     ).toBe(true)
   })
 
@@ -907,7 +907,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
       expect(
         observed.stepRowText,
         'the step row does not show the declared value\'s stored `[secret:<name>]` as text. The '
-        + `step text references the value declared in the fixture's secrets file (D-28).${context()}`,
+        + `step text references the value declared in the fixture's secrets file.${context()}`,
       ).toContain(DECLARED_SECRET_MARKER)
       expect(
         observed.textNodes.some((text) => text.includes(DECLARED_SECRET_MARKER)),
@@ -915,7 +915,7 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
       ).toBe(true)
       expect(
         observed.maskedCategories,
-        `the page painted a masked-value chip; a stored marker is shown as text (D-28).${context()}`,
+        `the page painted a masked-value chip; a stored marker is shown as text.${context()}`,
       ).toEqual([])
       expect(observed.bodyText, context()).not.toMatch(/masked (?:secret|email)/u)
     })

@@ -296,7 +296,7 @@ describe('the run button never asks: a click starts the run', () => {
     }
   }, 300_000)
 
-  it('CHANNEL VANISH — closing the tab denies nothing: the run it triggered still starts', async () => {
+  it('closing the tab denies nothing: the run it triggered still starts', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -381,7 +381,7 @@ function runMetadataBearingReads(runId: string): readonly string[] {
 }
 
 describe('the confirm scope leaves on no door and can be planted on no run', () => {
-  it('READ HALF — a run driven through JobQueue.enqueue hands its scope back on none of the metadata-bearing GETs', async () => {
+  it('a run driven through JobQueue.enqueue hands its scope back on none of the metadata-bearing GETs', async () => {
     const target = new CountingTarget()
     await target.listen()
     try {
@@ -598,7 +598,7 @@ describe('the door publishes no per-scope posture', () => {
   })
 })
 
-describe('there is one parking lot, and the run trigger uses it', () => {
+describe('no first-party source parks a run trigger behind a question', () => {
   const FIRST_PARTY = ['packages/cli/src', 'packages/dashboard-server/src']
 
   function sourceFiles(): string[] {
@@ -619,7 +619,7 @@ describe('there is one parking lot, and the run trigger uses it', () => {
     return found
   }
 
-  it('PREDICATE 1 (the factory) — no call site builds a confirm registry', () => {
+  it('no call site builds a confirm registry', () => {
     const files = sourceFiles()
     // A floor, not a pin: a walker that found nothing would make every claim below vacuous.
     expect(files.length).toBeGreaterThan(100)
@@ -635,10 +635,10 @@ describe('there is one parking lot, and the run trigger uses it', () => {
     ).toEqual([])
   })
 
-  it('PREDICATE 2 (the substrate) — no module can turn silence into a denial', () => {
-    // SHARES NO VOCABULARY WITH PREDICATE 1. It asks which modules hold a timer AND can answer
+  it('no module can turn silence into a denial', () => {
+    // Shares no vocabulary with the cell above. It asks which modules hold a timer and can answer
     // `deny` — the mechanical shape of a reaper — so a parking lot written by hand, with no factory
-    // to name, is found here even though predicate 1 cannot see it.
+    // to name, is found here even though the cell above cannot see it.
     const reapers = sourceFiles().filter((file) => {
       const text = readFileSync(file, 'utf8')
       return text.includes('setTimeout') && text.includes("'deny'")

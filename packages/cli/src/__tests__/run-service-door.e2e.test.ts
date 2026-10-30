@@ -190,7 +190,7 @@ function parseFrame(frame: string): { id?: string; event?: string; data?: string
 
 const authed = { 'Content-Type': 'application/json' }
 
-describe('leg (a) — POST /run with no Authorization header', () => {
+describe('a cross-site POST /run', () => {
   it('is refused 403 cross-site with the typed body, and starts nothing', async () => {
     const service = await openRunService()
     const response = await fetch(`${service.origin}/run`, {
@@ -218,7 +218,7 @@ describe('leg (a) — POST /run with no Authorization header', () => {
   })
 })
 
-describe('leg (b) — POST /run with a wrong token', () => {
+describe('POST /run with a bearer token', () => {
   it('a wrong legacy bearer is not read — the request reaches the body check', async () => {
     const service = await openRunService()
     const wrong = await fetch(`${service.origin}/run`, {
@@ -355,7 +355,7 @@ describe('legs (c) and (d) — the authed path, end to end', () => {
   })
 })
 
-describe('a door with no declared credential is a door nobody can open', () => {
+describe('a door with no declared credential opens for a local caller', () => {
   it('the door opens for a local caller with no credential, and a legacy bearer opens nothing more', async () => {
     const service = await openRunService()
     const [plain, legacy] = await Promise.all([
@@ -439,7 +439,7 @@ describe('one readiness predicate, two doors', () => {
     expect((localBody as { contractVersion: number }).contractVersion).toBe(2)
   })
 
-  it('refuses the LOCAL door no differently for a bad token — it never reads one', async () => {
+  it('answers the local door the same for a bad token — it never reads one', async () => {
     const fixture = await openRunService()
     const withGarbage = await fetch(`${fixture.origin}/api/run-readiness`, {
       headers: { authorization: 'Bearer not-the-token' },

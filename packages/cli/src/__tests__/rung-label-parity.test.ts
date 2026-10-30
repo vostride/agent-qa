@@ -265,7 +265,7 @@ describe('the retrieval-rung cause labels are one wording on two doors', () => {
           if (fold.rung !== 'memidex' && rungRow?.status !== 'warn') {
             rungRowDrift.push(
               `${where} → a degraded rung must never be a \`${rungRow?.status ?? '(no row)'}\`; `
-              + 'D-19 reserves `fail` for an ERRORED subsystem, and a rung reached by design would '
+              + 'the rung table reserves `fail` for an ERRORED subsystem, and a rung reached by design would '
               + 'red the CI gate of every deliberately-degraded install.',
             )
           }

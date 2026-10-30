@@ -55,7 +55,7 @@ const BROWSER_INSTALL_INSTRUCTION =
   + 'really executed and really FAILED: run `pnpm exec playwright install chromium` and re-run. '
   + 'THEY MUST NOT BE SKIPPED WHEN THE BROWSER IS ABSENT — they are the only cells in this '
   + 'repository that measure the failure banner at all, and the banner is the render site '
-  + 'WINDOWS #287 was opened about.'
+  + 'where a reported defect lived.'
 
 /** How long the page has to mount and paint the banner. */
 const PAGE_BUDGET_MS = 60_000
@@ -728,7 +728,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
     ).toContain(`[secret:${POPULATED_SECRET_NAME}]`)
     expect(
       summary,
-      `the failure summary on the wire does not carry the planted email as written (D-23).${context()}`,
+      `the failure summary on the wire does not carry the planted email as written.${context()}`,
     ).toContain(POPULATED_EMAIL)
     expect(
       (summary as string).includes(POPULATED_DECLARED_SECRET_VALUE),
@@ -771,11 +771,11 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
       observed.truncated.bodyText.includes(POPULATED_EMAIL),
       'the planted address is not shown as written in the truncated banner. The fixture plants the '
       + 'email inside the preview budget deliberately; if the sentence drifted past the budget, fix '
-      + `the FIXTURE, never the budget (D-23).${context()}`,
+      + `the FIXTURE, never the budget.${context()}`,
     ).toBe(true)
     expect(
       observed.truncated.maskedCategories,
-      `the truncated banner painted a masked-value chip; stored text is shown as written (D-28).${context()}`,
+      `the truncated banner painted a masked-value chip; stored text is shown as written.${context()}`,
     ).toEqual([])
   })
 
@@ -795,11 +795,11 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
     ).toBe('full')
     expect(
       observed.full.maskedCategories,
-      `the expanded banner painted a masked-value chip; stored text is shown as written (D-28).${context()}`,
+      `the expanded banner painted a masked-value chip; stored text is shown as written.${context()}`,
     ).toEqual([])
     expect(
       observed.full.bodyText.includes(POPULATED_EMAIL),
-      `the planted address is not shown as written once the banner is expanded (D-23).${context()}`,
+      `the planted address is not shown as written once the banner is expanded.${context()}`,
     ).toBe(true)
   })
 
@@ -809,7 +809,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
       observed.full.bannerText.includes(POPULATED_SECRET_VALUE),
       'the `_SECRET`-named environment credential is NOT in the expanded banner. It is not a '
       + 'declared secret, so the run records it as written in `run.failureSummary` and the banner '
-      + `shows it as written (D-07, D-23).${context()}`,
+      + `shows it as written.${context()}`,
     ).toBe(true)
     // AND IT IS OUTSIDE THE PREVIEW, which is what makes (3c) and (3e) two claims. The fixture puts
     // the credential past the word budget on purpose; if it drifted into the preview, the truncated
@@ -901,7 +901,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
     expect(
       clipboard.includes(POPULATED_EMAIL),
       'the planted address is not on the clipboard as written. The collapsed banner renders it at '
-      + `word 16, so the clipboard carries it as the page showed it (D-23).${context()}`,
+      + `word 16, so the clipboard carries it as the page showed it.${context()}`,
     ).toBe(true)
 
     // AND IT IS THE RENDERED SENTENCE, WORD FOR WORD — the containment above cannot see a copy that
@@ -920,7 +920,7 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
       expect(
         observed.truncated.renderedText,
         'the collapsed banner does not show the declared value\'s stored `[secret:<name>]` as text. '
-        + `The failing step references the value declared in the fixture's secrets file (D-28).${context()}`,
+        + `The failing step references the value declared in the fixture's secrets file.${context()}`,
       ).toContain(DECLARED_SECRET_MARKER)
       expect(
         observed.truncated.textNodes.some((text) => text.includes(DECLARED_SECRET_MARKER)),
@@ -933,12 +933,12 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
       expect(
         observed.drawer.rawYaml,
         'the artifact drawer\'s member YAML does not show the stored marker as written. The run '
-        + `captures its test source through its own mask (D-28).${context()}`,
+        + `captures its test source through its own mask.${context()}`,
       ).toContain(DECLARED_SECRET_MARKER)
       expect(observed.drawer.text, context()).toContain(DECLARED_SECRET_MARKER)
       expect(
         observed.drawer.maskedElements,
-        `the page painted a masked-value chip with the drawer open (D-28).${context()}`,
+        `the page painted a masked-value chip with the drawer open.${context()}`,
       ).toBe(0)
       expect(observed.drawer.text, context()).not.toMatch(/masked (?:secret|email)/u)
       expect(observed.truncated.bodyText, context()).not.toMatch(/masked (?:secret|email)/u)

@@ -465,7 +465,7 @@ async function openProviderSink(): Promise<{ readonly baseUrl: string; hits(): n
 // ---- gap 6: the cross-origin drive ---------------------------------------------------------
 
 describe('the fourth door refuses a cross-origin drive before anything happens', () => {
-  it('6a — refuses the CORS simple request, before the mark reaches the host', async () => {
+  it('refuses the CORS simple request, before the mark reaches the host', async () => {
     const door = await openDoor()
     // THE VERIFIER'S EXACT PROBE, on the mark door. `text/plain;charset=UTF-8` with a JSON body
     // is a CORS SIMPLE request: no preflight is sent, and an unguarded route would record a mark
@@ -477,7 +477,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expectNoSideEffect('6a', door, answered, 403)
   })
 
-  it('6b — refuses a cross-origin drive that declares application/json (the Origin leg alone)', async () => {
+  it('refuses a cross-origin drive that declares application/json (the Origin leg alone)', async () => {
     const door = await openDoor()
     const answered = await driveMark(door.port, {
       'content-type': 'application/json',
@@ -495,7 +495,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expect(JSON.parse(answered.body)).toEqual({ error: 'unsupported_media_type' })
   })
 
-  it('6d — ACCEPTS the same-origin browser drive, which dispatches the mark once', async () => {
+  it('ACCEPTS the same-origin browser drive, which dispatches the mark once', async () => {
     const door = await openDoor()
     // The dashboard's own page, marking on its own door: `Origin` equals the request's `Host`
     // origin, which is what a browser sends on a same-origin POST.
@@ -506,7 +506,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expectDispatchedOnce('6d', door, answered)
   })
 
-  it('6e — ACCEPTS the Origin-less local drive (curl and local tooling, the recorded policy)', async () => {
+  it('ACCEPTS the Origin-less local drive (curl and local tooling, the recorded policy)', async () => {
     const door = await openDoor()
     // A SEPARATE AXIS from 6d and not a repetition of it: 6d varies the Origin's VALUE, this one
     // varies its PRESENCE. A guard that required an Origin would pass 6d and fail here, and it
@@ -515,7 +515,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expectDispatchedOnce('6e', door, answered)
   })
 
-  it('6f — refuses a cross-origin mark, and the identical request from the page itself dispatches', async () => {
+  it('refuses a cross-origin mark, and the identical request from the page itself dispatches', async () => {
     const door = await openDoor()
     const refused = await driveMark(door.port, {
       'content-type': 'application/json',
@@ -531,7 +531,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
   })
 
   // The shipped router has no table of mutating arms, so a new same-site arm must be added here.
-  it('6g — refuses EVERY retained same-site mutating arm before its own side effect, and each arm acts for its own page', async () => {
+  it('refuses every retained same-site mutating arm before its own side effect, and each arm acts for its own page', async () => {
     const door = await openDoor()
     const savedDataHome = process.env.XDG_DATA_HOME
     const dataHome = mkdtempSync(join(tmpdir(), 'agent-qa-432-14-auth-'))
@@ -581,7 +581,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     }
   }, 60_000)
 
-  it('6i — refuses the literal `null` Origin, which is not the same fact as no Origin at all', async () => {
+  it('refuses the literal `null` Origin, which is not the same fact as no Origin at all', async () => {
     const door = await openDoor()
     // A SEPARATE RUNG FROM 6e AND THE ONE MOST EASILY LOST. `Origin: null` is what a sandboxed
     // iframe, a `data:` document and a cross-origin redirect send — an origin that declined to
@@ -593,7 +593,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
     expectNoSideEffect('6i', door, answered, 403)
   })
 
-  it('6h — refuses a same-origin-looking drive whose Sec-Fetch-Site says cross-site', async () => {
+  it('refuses a same-origin-looking drive whose Sec-Fetch-Site says cross-site', async () => {
     const door = await openDoor()
     // The third axis, varied alone: the Origin here is exactly the one 6d ACCEPTS, so nothing but
     // the fetch-metadata header can decide this request.
@@ -614,7 +614,7 @@ describe('cross-site mark requests', () => {
       { 'content-type': 'application/json', origin: HOSTILE_ORIGIN },
     ]) {
       const refused = await driveMark(door.port, headers)
-      expectNoSideEffect(`C432-RETAINED-CROSS-SITE ${headers['content-type']}`, door, refused, 403)
+      expectNoSideEffect(`RETAINED-CROSS-SITE ${headers['content-type']}`, door, refused, 403)
       expect(JSON.parse(refused.body)).toEqual({ error: 'cross_site_refused' })
       expect(refused.headers['access-control-allow-origin']).toBeUndefined()
     }
@@ -622,7 +622,7 @@ describe('cross-site mark requests', () => {
       'content-type': 'application/json',
       origin: sameOrigin(door),
     })
-    expectDispatchedOnce('C432-RETAINED-CROSS-SITE', door, accepted)
+    expectDispatchedOnce('RETAINED-CROSS-SITE', door, accepted)
   })
 })
 
@@ -711,7 +711,7 @@ function unserializableAnswerOnce(message: string): (host: AgentHost) => AgentHo
 }
 
 describe('the fourth door outlives every malformed request a socket can carry', () => {
-  it('7c — answers an unparseable request line and serves the next request', async () => {
+  it('answers an unparseable request line and serves the next request', async () => {
     const door = await openDoor()
     const watch = watchForEscapes()
     try {
@@ -733,8 +733,8 @@ describe('the fourth door outlives every malformed request a socket can carry', 
   })
 
   // The arm calls the host inside the router's stack, so only the server's `try` answers a throw.
-  it('7d — a throwing SYNCHRONOUS arm is caught by the dispatch boundary', async () => {
-    const door = await openDoor({ wrapHost: throwingInvokeOnce('432-14 dispatch fault') })
+  it('a throwing synchronous arm is caught by the dispatch boundary', async () => {
+    const door = await openDoor({ wrapHost: throwingInvokeOnce('dispatch fault') })
     const watch = watchForEscapes()
     try {
       const answered = await rawRequest(door.port, {
@@ -755,8 +755,8 @@ describe('the fourth door outlives every malformed request a socket can carry', 
   })
 
   // The responder throws after the body read, so only the arm's own `.catch` can answer it.
-  it('7b-ii — a throwing responder is caught by the handler\'s own backstop', async () => {
-    const door = await openDoor({ wrapHost: unserializableAnswerOnce('400-14 responder fault') })
+  it('a throwing responder is caught by the handler\'s own backstop', async () => {
+    const door = await openDoor({ wrapHost: unserializableAnswerOnce('responder fault') })
     const watch = watchForEscapes()
     try {
       const answered = await driveMark(door.port, { 'content-type': 'application/json' })

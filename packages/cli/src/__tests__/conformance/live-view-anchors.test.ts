@@ -227,7 +227,7 @@ describe('the shipped zero-token dashboard serves a live view', () => {
     expect(
       reading.status,
       'a zero-token dashboard used to answer 503 "This server was started without a run service '
-      + `to stream from" for a run it was executing (WINDOWS #264). ${childContext(f.dashboard)}`,
+      + `to stream from" for a run it was executing. ${childContext(f.dashboard)}`,
     ).toBe(200)
     expect(reading.contentType).toContain('text/event-stream')
     expect(reading.body, 'the bounded reader must observe the run reach its end')
@@ -500,7 +500,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
 
     expect(a.endedByServer(), 'the door closed A on its own terms at runFinished').toBe(true)
     expect(b2.endedByServer(), 'and closed the resumed reader the same way').toBe(true)
-    expect(run.cancelCalls(), 'T-403-07: no reader, arriving or leaving, ever ended the run').toBe(0)
+    expect(run.cancelCalls(), 'no reader, arriving or leaving, ever ended the run').toBe(0)
 
     // AND THE PRECEDENCE, ON THE SAME RETAINED RUN. A client can name a resume point twice — the
     // `Last-Event-ID` header a browser sends for free, and the `?lastEventId=` a page composes on
@@ -676,7 +676,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
       ).toBe(true)
       expect(
         navigations.slice(firstDetail + 1).filter((url) => url.includes('/live')),
-        'D-07: nothing after the arrival may be a live URL — not at the verdict race, where the '
+        'nothing after the arrival may be a live URL — not at the verdict race, where the '
         + `subscriber's row write and this page's fetchRun collide for real, and not during the `
         + `tail window. navigations ${JSON.stringify(navigations)}. ${childContext(f.dashboard)}`,
       ).toEqual([])
@@ -689,7 +689,7 @@ describe('on real sockets: two surfaces, a mid-run resume, and a detach that own
         .map((event) => event.type)
       expect(
         afterFinished,
-        'WINDOWS #281 no longer holds: this run\'s log carries post-`runFinished` envelopes, so the '
+        'The tail-window premise no longer holds: this run\'s log carries post-`runFinished` envelopes, so the '
         + 'detached tail DID run. Re-pin the 5 s hold above as a real tail-window measurement — it '
         + 'has been a vacuous window until now and this cell said so.',
       ).toEqual([])
