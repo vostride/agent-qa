@@ -338,8 +338,8 @@ describe('IMAGE-MASK-WITHHOLD', () => {
 
 // ---- Evidence isolation: one registry, two callers, a server and masker per request ----
 
-const ALPHA_SECRET = 'alphasecret43105'
-const BETA_SECRET = 'betasecret43105'
+const ALPHA_SECRET = 'alphasecret90217'
+const BETA_SECRET = 'betasecret90217'
 const ALPHA = `r_${ALPHA_SECRET}`
 const BETA = `r_${BETA_SECRET}`
 
