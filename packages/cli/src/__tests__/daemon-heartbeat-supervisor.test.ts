@@ -11,7 +11,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
 
 import {
   LEASE_HEARTBEAT_TTL_MS,
@@ -146,6 +146,8 @@ function startFixture(
     ],
     {
       cwd: values.cwd ?? PACKAGE_ROOT,
+      // Its own group, so a hangup aimed at the runner's group never meets a stopped fixture.
+      detached: process.platform !== 'win32',
       env: {
         ...process.env,
         AGENT_QA_HEARTBEAT_FIXTURE_ROLE: role,
@@ -174,6 +176,11 @@ function startFixture(
       child.once('exit', (code, signal) => resolve({ code, signal, output }));
     }),
   };
+}
+
+function processGroupOf(pid: number): number {
+  const pgid = execFileSync('ps', ['-o', 'pgid=', '-p', String(pid)], { encoding: 'utf8' });
+  return Number(pgid.trim());
 }
 
 async function stopFixture(child: FixtureChild, wasStopped = false): Promise<void> {
@@ -701,6 +708,25 @@ if (FIXTURE_ROLE === 'contender') {
         }
       },
       LEASE_HEARTBEAT_TTL_MS + BLOCK_MARGIN_MS + RELEASE_CAP_MS + 45_000,
+    );
+
+    it.runIf(process.platform !== 'win32')(
+      'starts each fixture as the leader of a process group the test runner is not in',
+      async () => {
+        const root = mkdtempSync(join(tmpdir(), 'agent-qa-heartbeat-group-'));
+        roots.push(root);
+        const fixture = startFixture('contender', { root, report: join(root, 'contender.json') });
+        try {
+          const pid = fixture.process.pid;
+          if (pid === undefined) {
+            throw new Error(`Fixture did not start:\n${(await fixture.exit).output}`);
+          }
+          expect(processGroupOf(pid)).toBe(pid);
+          expect(processGroupOf(process.pid)).not.toBe(pid);
+        } finally {
+          await stopFixture(fixture);
+        }
+      },
     );
 
     it.runIf(process.platform !== 'win32')(

@@ -8,7 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { DatabaseSync } from 'node:sqlite';
 import { fileURLToPath } from 'node:url';
-import { spawn, type ChildProcess } from 'node:child_process';
+import { execFileSync, spawn, type ChildProcess } from 'node:child_process';
 
 import {
   EPOCH_FILE,
@@ -106,6 +106,8 @@ function startFixture(
     ],
     {
       cwd: PACKAGE_ROOT,
+      // Its own group, so a hangup aimed at the runner's group never meets a stopped fixture.
+      detached: process.platform !== 'win32',
       env: {
         ...process.env,
         AGENT_QA_INDEPENDENCE_FIXTURE_ROLE: role,
@@ -132,6 +134,11 @@ function startFixture(
       child.once('exit', (code, signal) => resolve({ code, signal, output }));
     }),
   };
+}
+
+function processGroupOf(pid: number): number {
+  const pgid = execFileSync('ps', ['-o', 'pgid=', '-p', String(pid)], { encoding: 'utf8' });
+  return Number(pgid.trim());
 }
 
 async function stopFixture(child: FixtureChild, wasStopped = false): Promise<void> {
@@ -451,6 +458,32 @@ if (FIXTURE_ROLE === 'beating-holder') {
         }
       },
       LEASE_HEARTBEAT_TTL_MS + 150_000,
+    );
+
+    it.runIf(process.platform !== 'win32')(
+      'starts the holder as the leader of a process group the test runner is not in',
+      async () => {
+        const root = mkdtempSync(join(tmpdir(), 'agent-qa-independence-group-'));
+        roots.push(root);
+        const holder = startFixture('beating-holder', {
+          root,
+          marker: join(root, 'mutation-open.json'),
+          released: join(root, 'mutation-released.json'),
+          permit: join(root, 'release.permit'),
+          exitPermit: join(root, 'exit.permit'),
+          report: join(root, 'holder-report.json'),
+        });
+        try {
+          const pid = holder.process.pid;
+          if (pid === undefined) {
+            throw new Error(`Holder did not start:\n${(await holder.exit).output}`);
+          }
+          expect(processGroupOf(pid)).toBe(pid);
+          expect(processGroupOf(process.pid)).not.toBe(pid);
+        } finally {
+          await stopFixture(holder);
+        }
+      },
     );
 
     // A live beating holder is never auto-reclaimed; the accepting control keeps this non-vacuous.
