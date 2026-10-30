@@ -164,6 +164,17 @@ describe('proseHits and stringHits', () => {
     ])
   })
 
+  it('find an ID wrapped across two comment lines, on the line where it starts', () => {
+    const ledger = `${'WINDOWS'}`
+    expect(proseHits({ line: 4, text: `// fixed before ${ledger}\n// #305 landed` })).toEqual([
+      { line: 4, text: `${ledger}\n// #305` },
+    ])
+    expect(proseHits({ line: 1, text: `/**\n * see phase\n * ${'461'} for why\n */` })).toEqual([
+      { line: 2, text: `phase\n * ${'461'}` },
+    ])
+    expect(proseHits({ line: 1, text: '# the second phase\n# 12 steps' })).toEqual([])
+  })
+
   it('read no dates in strings', () => {
     expect(stringHits({ line: 3, text: `messages-${DATE} ${dash('D', '14')}` })).toEqual([
       { line: 3, text: dash('D', '14') },

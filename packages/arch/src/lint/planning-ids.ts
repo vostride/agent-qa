@@ -111,13 +111,23 @@ export function datesOutsideCode(paragraph: string): TextHit[] {
 const linesBefore = (text: string, index: number) =>
   text.slice(0, index).split('\n').length - 1
 
+// Line-leading comment markers are blanked to their own width, so an ID wrapped across two comment
+// lines still matches and offsets stay right.
+const blankMarkers = (paragraph: string): string =>
+  paragraph.replace(
+    /(^|\n)([ \t]*)(\/\/+|\*(?!\/)|#)/g,
+    (_match, newline: string, indent: string, marker: string) =>
+      newline + indent + ' '.repeat(marker.length),
+  )
+
 // Planning IDs and dates outside code spans in one comment paragraph or test title.
 export function proseHits(paragraph: CommentParagraph): LineHit[] {
-  return [...planningIdsIn(paragraph.text), ...datesOutsideCode(paragraph.text)]
+  const text = blankMarkers(paragraph.text)
+  return [...planningIdsIn(text), ...datesOutsideCode(text)]
     .sort((a, b) => a.index - b.index)
     .map((hit) => ({
       line: paragraph.line + linesBefore(paragraph.text, hit.index),
-      text: hit.text,
+      text: paragraph.text.slice(hit.index, hit.end),
     }))
 }
 
