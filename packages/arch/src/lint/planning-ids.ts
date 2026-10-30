@@ -33,10 +33,14 @@ export interface PathHit {
 }
 
 const EXCLUDED = '(?!(?:UTF|SHA|ISO|E2E|TST|RUN|MEM|POL|TGT)-)'
+const PLANNING_DOCS =
+  '(?:UI-|AI-|EVAL-)?(?:PLAN|SUMMARY|CONTEXT|RESEARCH|REVIEW|VERIFICATION|VALIDATION|UAT|SECURITY|SPEC|PATTERNS|DISCUSSION-LOG)'
 
 export const PLANNING_ID_PATTERNS: readonly RegExp[] = [
-  /(?<![\w.:/-])\d{3}(?:\.\d+)?-\d{1,2}(?:\/\d{1,2})*(?![\w-])/g,
-  /\b[Pp]hase\s+\d{3}(?:\.\d+)?\b/g,
+  /(?<![\w.:/]|\b[A-Z]-)\d{3}(?:\.\d+)?[-\u2013]\d{1,2}(?:\/\d{1,2})*(?=-[A-Z]|(?![\w-]))/g,
+  new RegExp(`\\b\\d{3}(?:\\.\\d+)?(?:-\\d{1,2})?-${PLANNING_DOCS}\\b`, 'g'),
+  /\b[Pp]hases?[\s-]+\d{3}(?:\.\d+)?\b/g,
+  /\.planning\//g,
   /\bD-\d{1,3}(?!\d)/g,
   /\b(?:WR|CR|IN|BL|HR|MR|LR|IR)-\d{2,3}(?!\d)/g,
   /\b[TGF]-\d{3}(?:\.\d+)?-[A-Z0-9]/g,

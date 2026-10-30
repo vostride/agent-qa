@@ -25,9 +25,39 @@ describe('planningIdsIn', () => {
     expect(found(`after ${dash('407', '26')}/27`)).toEqual([`${dash('407', '26')}/27`])
   })
 
+  it('finds a plan number written with an en dash', () => {
+    expect(found(`the ${['432', '03'].join('\u2013')} plan`)).toEqual([
+      ['432', '03'].join('\u2013'),
+    ])
+  })
+
+  it('finds a plan number inside a hyphenated word', () => {
+    expect(found(`see ${dash('plan', '432', '03')}`)).toEqual([dash('432', '03')])
+  })
+
+  it('finds a planning document named by its plan or phase number', () => {
+    expect(found(`see ${dash('432', '03', 'PLAN')}.md`)).toEqual([
+      dash('432', '03'),
+      dash('432', '03', 'PLAN'),
+    ])
+    expect(found(`per ${dash('461', '26', 'SUMMARY')}.md`)).toContain(dash('461', '26', 'SUMMARY'))
+    expect(found(`in ${dash('461', 'REVIEW')}.md`)).toEqual([dash('461', 'REVIEW')])
+    expect(found(`in ${dash('461', 'UI', 'REVIEW')}.md`)).toEqual([dash('461', 'UI', 'REVIEW')])
+  })
+
   it('finds a phase named by its three-digit number', () => {
     expect(found(`since ${'Phase'} 433`)).toEqual([`${'Phase'} 433`])
     expect(found(`in ${'phase'} 137 plan 2`)).toEqual([`${'phase'} 137`])
+  })
+
+  it('finds plural and hyphenated phase references', () => {
+    expect(found(`${'Phases'} 432 and 433`)).toEqual([`${'Phases'} 432`])
+    expect(found(`${dash('phase', '461')} work`)).toEqual([dash('phase', '461')])
+  })
+
+  it('finds a path into the planning directory', () => {
+    const dir = `.${'planning'}/`
+    expect(found(`read ${dir}${'phases'}/x/notes.md`)).toEqual([dir])
   })
 
   it('finds decision and review labels', () => {
