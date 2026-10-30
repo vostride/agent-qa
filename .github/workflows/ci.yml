@@ -429,12 +429,12 @@ jobs:
           echo "kill lines:"
           grep '"event":"kill"' "$trace" 2>/dev/null || true
           echo "peak:"
-          grep peakRssKb "$rss" 2>/dev/null || true
+          node -e 'const s=require("fs").readFileSync(process.argv[1],"utf8").trim().split("\n").map((l)=>JSON.parse(l)).filter((r)=>r.rssKb!==undefined);const p=s.reduce((a,b)=>(b.rssKb>a.rssKb?b:a));console.log(JSON.stringify({samples:s.length,peakRssKb:p.rssKb,at:p.at,processes:p.processes,top:p.top}))' "$rss" || true
           echo "last 20 samples:"
           tail -20 "$rss" 2>/dev/null || true
           vm_stat
           sysctl vm.swapusage
-          log show --last 45m --style compact --predicate 'eventMessage CONTAINS[c] "memorystatus" OR eventMessage CONTAINS[c] "low swap" OR eventMessage CONTAINS[c] "killed"' | tail -200
+          log show --last 45m --style compact --predicate 'eventMessage CONTAINS[c] "memorystatus" OR eventMessage CONTAINS[c] "low swap" OR eventMessage CONTAINS[c] "killed"' | grep -viE 'Denying dirty-tracking|memorystatus_control error' | tail -200
 
       - name: Typecheck daemon and lease packages
         if: matrix.group == 'knowledge-local'
