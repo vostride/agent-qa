@@ -1,7 +1,8 @@
-FROM node:24-slim
+ARG NODE_VERSION
+FROM node:${NODE_VERSION}-slim
 
 LABEL org.opencontainers.image.title="agent-qa Hook Runner Node" \
-      org.opencontainers.image.description="Node 24 hook sandbox runtime for agent-qa" \
+      org.opencontainers.image.description="Node hook sandbox runtime for agent-qa" \
       org.opencontainers.image.licenses="FSL-1.1-ALv2" \
       org.opencontainers.image.vendor="Vostride"
 

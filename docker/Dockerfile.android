@@ -1,20 +1,20 @@
 # =============================================================================
 # agent-qa Android Testing Image
-# Node 24 + agent-qa CLI + browsers + Android SDK/API 36 + Appium.
+# Node + agent-qa CLI + browsers + Android SDK/API 36 + Appium.
 # Multi-stage build: builder (compile) -> runtime (browsers + Android SDK)
 # =============================================================================
 
 # ---------------------------------------------------------------------------
 # Stage 1: builder — install deps, build, prune
 # ---------------------------------------------------------------------------
-FROM node:24-slim AS builder
-
-RUN corepack enable && corepack prepare pnpm@10.6.1 --activate
+ARG NODE_VERSION
+FROM node:${NODE_VERSION}-slim AS builder
 
 WORKDIR /build
 
 # Copy dependency manifests first for layer caching
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json NOTICE.md ./
+RUN npm install -g "pnpm@$(node -p "require('./package.json').packageManager.replace(/^pnpm@/, '').split('+')[0]")"
 COPY packages/agent/package.json packages/agent/
 COPY packages/agent-local/package.json packages/agent-local/
 COPY packages/analytics/package.json packages/analytics/
@@ -52,7 +52,7 @@ RUN pnpm prune --prod
 # ---------------------------------------------------------------------------
 # Stage 2: runtime — browsers + Android SDK + Appium
 # ---------------------------------------------------------------------------
-FROM node:24-slim
+FROM node:${NODE_VERSION}-slim
 
 # Browser system packages are installed by `agent-qa install-browsers --with-deps`.
 # The remaining packages support Android SDK tools, emulator startup, and TLS.

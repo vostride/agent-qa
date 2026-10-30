@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict'
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import semver from 'semver'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -15,6 +16,7 @@ import {
   normalizeDockerNamespace,
   normalizeDockerVersion,
   parseDockerArgs,
+  readNodeVersion,
   runCli as runDockerCli,
   validateDockerReleasePlan,
   writeGithubOutputs,
@@ -114,6 +116,62 @@ test('fails local validation when release files are missing', async () => {
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }
+})
+
+test('a release root without .nvmrc reports it among the missing files', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-docker-nvmrc-'))
+  try {
+    writeFileSync(join(tempDir, 'LICENSE.md'), 'license\n')
+    mkdirSync(join(tempDir, 'docker'), { recursive: true })
+    for (const dockerfile of dockerfiles) writeFileSync(join(tempDir, dockerfile), 'FROM scratch\n')
+    assert.throws(
+      () => validateDockerReleasePlan({ rootDir: tempDir, version: '0.1.1' }),
+      { message: 'Docker release files missing: .nvmrc' },
+    )
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
+})
+
+test('.nvmrc holds an exact Node version and readNodeVersion returns it', () => {
+  const text = readFileSync(join(rootDir, '.nvmrc'), 'utf8').trim()
+  assert.equal(semver.valid(text), text)
+  assert.equal(readNodeVersion(rootDir), text)
+})
+
+test('readNodeVersion refuses an .nvmrc that is not an exact version', async () => {
+  const tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-docker-nvmrc-'))
+  try {
+    for (const value of ['24', 'lts/*', '>=24.1.0', 'v24.22.2']) {
+      writeFileSync(join(tempDir, '.nvmrc'), `${value}\n`)
+      assert.throws(() => readNodeVersion(tempDir), {
+        message: `.nvmrc must hold an exact Node version, got: ${value}`,
+      })
+    }
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
+})
+
+test('the Node images build with the .nvmrc version and the other images take no build argument', () => {
+  const nodeVersion = readNodeVersion(rootDir)
+  const plan = validateDockerReleasePlan({ rootDir, version: '0.1.1', namespace: 'vostride' })
+  const buildArgs = Object.fromEntries(plan.images.map(image => [image.id, image.buildArgs]))
+  assert.deepEqual(buildArgs, {
+    web: `NODE_VERSION=${nodeVersion}`,
+    android: `NODE_VERSION=${nodeVersion}`,
+    'hooks-node': `NODE_VERSION=${nodeVersion}`,
+    'hooks-bun': '',
+    'hooks-python': '',
+    'hooks-bash': '',
+  })
+})
+
+test('the Node hook runner description names no Node version', () => {
+  const image = getDockerImageMatrix().find(entry => entry.id === 'hooks-node')
+  assert.equal(image.description, 'Node hook sandbox runtime for agent-qa')
+  const dockerfile = readFileSync(join(rootDir, image.dockerfile), 'utf8')
+  assert.match(dockerfile, /org\.opencontainers\.image\.description="Node hook sandbox runtime for agent-qa"/)
 })
 
 test('requires Docker Hub environment for publishing', () => {
@@ -236,6 +294,11 @@ test('writes GitHub Actions outputs for matrix handoff', async () => {
   }
 })
 
+test('the release outputs carry the .nvmrc Node version', async () => {
+  const outputs = await runWithGithubOutput(['--version', '0.1.1', '--namespace', 'vostride'])
+  assert.equal(outputs.node_version, readNodeVersion(rootDir))
+})
+
 test('a release over half-pushed images builds only the absent ones and retags the partial one', async () => {
   const outputs = await runWithGithubOutput(
     ['--version', '0.1.1', '--namespace', 'vostride', '--check-tags'],
@@ -339,3 +402,34 @@ test('manifest drift names any other copy from packages by its directory', () =>
   )
   assert.deepEqual(dockerfileManifestDrift(text, packageDirs()), { missing: [], extra: ['core'] })
 })
+
+const nodeDockerfiles = ['docker/Dockerfile.web', 'docker/Dockerfile.android', 'docker/Dockerfile.hooks-node']
+
+test('the Node Dockerfiles take Node from a NODE_VERSION argument with no default', () => {
+  for (const dockerfile of nodeDockerfiles) {
+    const lines = readDockerfile(dockerfile).split('\n').map(line => line.trim())
+    const firstFrom = lines.findIndex(line => line.startsWith('FROM '))
+    const arg = lines.findIndex(line => line.startsWith('ARG NODE_VERSION'))
+    assert.ok(arg !== -1 && arg < firstFrom, `${dockerfile} declares ARG NODE_VERSION before its first FROM`)
+    assert.equal(lines[arg], 'ARG NODE_VERSION', `${dockerfile} gives NODE_VERSION no default`)
+    for (const from of lines.filter(line => line.startsWith('FROM '))) {
+      assert.match(from, /^FROM node:\$\{NODE_VERSION\}-slim( AS builder)?$/, `${dockerfile}: ${from}`)
+    }
+  }
+})
+
+test('the workspace Dockerfiles install pnpm at the packageManager version with npm', () => {
+  for (const dockerfile of workspaceDockerfiles) {
+    const text = readDockerfile(dockerfile)
+    assert.doesNotMatch(text, /corepack/)
+    assertInstallsPnpmAfterRootManifests(text, dockerfile)
+  }
+})
+
+function assertInstallsPnpmAfterRootManifests(text, dockerfile) {
+  const install = `RUN npm install -g "pnpm@$(node -p "require('./package.json').packageManager.replace(/^pnpm@/, '').split('+')[0]")"`
+  const lines = text.split('\n').map(line => line.trim())
+  const rootCopy = lines.indexOf('COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json NOTICE.md ./')
+  assert.notEqual(rootCopy, -1, `${dockerfile} copies the root manifests`)
+  assert.equal(lines[rootCopy + 1], install, `${dockerfile} installs pnpm right after the root manifests`)
+}

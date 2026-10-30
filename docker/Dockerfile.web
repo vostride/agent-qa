@@ -6,14 +6,14 @@
 # ---------------------------------------------------------------------------
 # Stage 1: builder — install deps, build, prune
 # ---------------------------------------------------------------------------
-FROM node:24-slim AS builder
-
-RUN corepack enable && corepack prepare pnpm@10.6.1 --activate
+ARG NODE_VERSION
+FROM node:${NODE_VERSION}-slim AS builder
 
 WORKDIR /build
 
 # Copy dependency manifests first for layer caching
 COPY package.json pnpm-workspace.yaml pnpm-lock.yaml turbo.json NOTICE.md ./
+RUN npm install -g "pnpm@$(node -p "require('./package.json').packageManager.replace(/^pnpm@/, '').split('+')[0]")"
 COPY packages/agent/package.json packages/agent/
 COPY packages/agent-local/package.json packages/agent-local/
 COPY packages/analytics/package.json packages/analytics/
@@ -51,7 +51,7 @@ RUN pnpm prune --prod
 # ---------------------------------------------------------------------------
 # Stage 2: runtime — browsers + agent-qa CLI
 # ---------------------------------------------------------------------------
-FROM node:24-slim
+FROM node:${NODE_VERSION}-slim
 
 # Keep base utilities small; browser system packages are installed through
 # the agent-qa browser installer below.

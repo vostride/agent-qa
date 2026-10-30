@@ -195,7 +195,6 @@ test('docker release workflow is manual and reusable with Docker Hub preflight',
   assert.match(workflow, /contents:\s*read/)
   assert.match(workflow, /id-token:\s*write/)
   assert.match(workflow, /attestations:\s*write/)
-  assert.match(workflow, /node-version:\s*'24'/)
   assert.match(workflow, /pnpm install --frozen-lockfile/)
   assert.match(workflow, /scripts\/release\/docker\.mjs --check-tags --require-env --github-output/)
   assert.match(workflow, /DOCKERHUB_USERNAME:\s*\$\{\{ vars\.DOCKERHUB_USERNAME \}\}/)
@@ -224,7 +223,19 @@ test('docker release workflow uses official Docker actions with metadata and att
   assert.match(workflow, /org\.opencontainers\.image\.licenses=FSL-1\.1-ALv2/)
   assert.match(workflow, /provenance:\s*mode=max/)
   assert.match(workflow, /sbom:\s*true/)
-  assert.doesNotMatch(workflow, /build-args:|secret-envs:|secret-files:/)
+  assert.match(workflow, /build-args:\s*\$\{\{ matrix\.image\.buildArgs \}\}/)
+  assert.doesNotMatch(workflow, /secret-envs:|secret-files:/)
+})
+
+test('docker release preflight takes Node from .nvmrc and pnpm from a commit-pinned pnpm/action-setup', () => {
+  const workflow = readWorkflow('docker-release.yml')
+  const preflight = workflow.slice(workflow.indexOf('\n  preflight:\n'), workflow.indexOf('\n  docker:\n'))
+
+  assert.match(preflight, /uses: pnpm\/action-setup@[0-9a-f]{40} # v\d+\.\d+\.\d+\n/)
+  assert.doesNotMatch(preflight, /pnpm\/action-setup@[^\n]*\n\s+with:/)
+  assertBefore(preflight, 'uses: pnpm/action-setup@', 'uses: actions/setup-node@')
+  assert.match(preflight, /uses: actions\/setup-node@v6\n\s+with:\n\s+node-version-file: \.nvmrc\n/)
+  assert.doesNotMatch(workflow, /corepack|node-version:/)
 })
 
 test('docker release workflow builds only the images Docker Hub lacks', () => {

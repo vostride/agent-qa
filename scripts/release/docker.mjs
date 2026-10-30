@@ -1,4 +1,4 @@
-import { appendFileSync, existsSync } from 'node:fs'
+import { appendFileSync, existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import semver from 'semver'
 import { getPublicPackages } from './packages.mjs'
@@ -10,6 +10,7 @@ export const dockerImages = [
     repo: 'agent-qa-web',
     dockerfile: 'docker/Dockerfile.web',
     platforms: 'linux/amd64',
+    nodeBuildArg: true,
     title: 'agent-qa Web',
     description: 'Self-improving Agentic QA harness with Memory for browser testing',
   },
@@ -18,6 +19,7 @@ export const dockerImages = [
     repo: 'agent-qa-android',
     dockerfile: 'docker/Dockerfile.android',
     platforms: 'linux/amd64',
+    nodeBuildArg: true,
     title: 'agent-qa Android',
     description: 'Self-improving Agentic QA harness with Memory for browser and mobile testing',
   },
@@ -26,8 +28,9 @@ export const dockerImages = [
     repo: 'agent-qa-hook-runner-node',
     dockerfile: 'docker/Dockerfile.hooks-node',
     platforms: 'linux/amd64,linux/arm64',
+    nodeBuildArg: true,
     title: 'agent-qa Hook Runner Node',
-    description: 'Node 24 hook sandbox runtime for agent-qa',
+    description: 'Node hook sandbox runtime for agent-qa',
   },
   {
     id: 'hooks-bun',
@@ -72,7 +75,7 @@ export function normalizeDockerVersion(version) {
 
 export function getDockerImageMatrix(options = {}) {
   const namespace = normalizeDockerNamespace(options.namespace ?? 'vostride')
-  return dockerImages.map(image => ({
+  return dockerImages.map(({ nodeBuildArg, ...image }) => ({
     ...image,
     namespace,
     image: `${namespace}/${image.repo}`,
@@ -122,6 +125,14 @@ export function dockerfileManifestDrift(text, packageDirs) {
   }
 }
 
+export function readNodeVersion(rootDir = process.cwd()) {
+  const value = readFileSync(join(rootDir, '.nvmrc'), 'utf8').trim()
+  if (semver.valid(value) !== value) {
+    throw new Error(`.nvmrc must hold an exact Node version, got: ${value || 'empty'}`)
+  }
+  return value
+}
+
 function resolveVersion(rootDir, version) {
   if (version) return normalizeDockerVersion(version)
   const records = getPublicPackages({ rootDir })
@@ -135,16 +146,21 @@ export function validateDockerReleasePlan(options = {}) {
   const missing = []
 
   if (!existsSync(join(rootDir, 'LICENSE.md'))) missing.push('LICENSE.md')
+  if (!existsSync(join(rootDir, '.nvmrc'))) missing.push('.nvmrc')
   for (const image of matrix) {
     if (!existsSync(join(rootDir, image.dockerfile))) missing.push(image.dockerfile)
   }
   if (missing.length > 0) throw new Error(`Docker release files missing: ${missing.join(', ')}`)
+  const nodeVersion = readNodeVersion(rootDir)
+  const takesNode = new Set(dockerImages.filter(image => image.nodeBuildArg).map(image => image.id))
 
   return {
     version,
+    nodeVersion,
     namespace: matrix[0]?.namespace ?? normalizeDockerNamespace(options.namespace),
     images: matrix.map(image => ({
       ...image,
+      buildArgs: takesNode.has(image.id) ? `NODE_VERSION=${nodeVersion}` : '',
       tags: createDockerTags(image.image, version, { latest: options.latest }),
       labels: createDockerLabels({ ...image, version }),
     })),
@@ -215,6 +231,7 @@ export function writeGithubOutputs(options = {}) {
   appendFileSync(outputPath, `images<<EOF\n${images}\nEOF\n`, 'utf8')
   appendFileSync(outputPath, `build<<EOF\n${build}\nEOF\n`, 'utf8')
   appendFileSync(outputPath, `retag<<EOF\n${retag}\nEOF\n`, 'utf8')
+  if (options.nodeVersion) appendFileSync(outputPath, `node_version=${options.nodeVersion}\n`, 'utf8')
 }
 
 export function parseDockerArgs(argv = []) {
@@ -277,6 +294,7 @@ export async function runCli(argv = process.argv.slice(2), options = {}) {
       matrix,
       build: work.build,
       retag: work.retag,
+      nodeVersion: plan.nodeVersion,
     })
   }
 
