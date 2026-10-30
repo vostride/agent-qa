@@ -180,9 +180,22 @@ describe('pathPlanningIds', () => {
     ])
   })
 
-  it('flags a phase directory and a ledger number in any case', () => {
+  it('flags a file name that starts with a plan number', () => {
+    expect(pathPlanningIds(`src/${dash('432', '03', 'x')}.ts`).map((hit) => hit.text)).toEqual([
+      dash('432', '03'),
+      `${'432'}-`,
+    ])
+  })
+
+  it('flags a phase directory in any case', () => {
     expect(pathPlanningIds(`docs/${'phase'}-433/a.md`)).not.toEqual([])
-    expect(pathPlanningIds(`docs/${'windows'}-12.txt`)).not.toEqual([])
+    expect(pathPlanningIds(`docs/${'PHASE'}_433/a.md`)).not.toEqual([])
+  })
+
+  it('flags an upper-case ledger number and label', () => {
+    expect(pathPlanningIds(`docs/${'WINDOWS'}-12.txt`)).not.toEqual([])
+    expect(pathPlanningIds(`docs/${dash('WR', '05')}.md`)).not.toEqual([])
+    expect(pathPlanningIds(`docs/${dash('HONEST', '15')}.md`)).not.toEqual([])
   })
 
   it('leaves kebab-case names that carry numbers as data', () => {
@@ -192,6 +205,24 @@ describe('pathPlanningIds', () => {
       'packages/web/src/viewport-1280x800.png',
       'packages/web/src/route-range-206.test.ts',
       'packages/web/src/v24.ts',
+    ]) {
+      expect(pathPlanningIds(path)).toEqual([])
+    }
+  })
+
+  it('leaves status pages, icons, migrations and numbered or versioned names alone', () => {
+    for (const path of [
+      'packages/dashboard-ui/public/404.html',
+      'icons/512.png',
+      'packages/x/migrations/001_init.sql',
+      'packages/web/fixtures/step-01.png',
+      'docs/screen-10.png',
+      '__fixtures__/page-02.html',
+      'scripts/node-24.sh',
+      'packages/x/ubuntu-22.04.txt',
+      'ci/windows-2022.yml',
+      'fade-in-200.css',
+      'zoom-in-150.ts',
     ]) {
       expect(pathPlanningIds(path)).toEqual([])
     }

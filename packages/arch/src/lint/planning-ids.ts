@@ -56,18 +56,21 @@ export const ISO_DATE = /(?<![\w-])\d{4}-\d{2}-\d{2}(?!\d)/g
 const B = '(?:^|[-_.])'
 const E = '(?=[-_.]|$)'
 
+// Only the shapes that were written lower-case in file names match in any case; label shapes
+// stay upper-case, and a leading number counts only in the planning phase range, so names like
+// step-01.png, 404.html and 001_init.sql are data.
 export const PATH_PATTERNS: readonly RegExp[] = [
-  new RegExp(`${B}\\d{3}(?:\\.\\d+)?-\\d{1,2}${E}`, 'i'),
+  new RegExp(`${B}\\d{3}(?:\\.\\d+)?-\\d{1,2}${E}`),
   /phase[-_]?\d{3}/i,
-  new RegExp(`${B}d-\\d{1,3}${E}`, 'i'),
-  new RegExp(`${B}(?:wr|cr|in|bl|hr|mr|lr|ir)-\\d{2,3}${E}`, 'i'),
+  new RegExp(`${B}D-\\d{1,3}${E}`),
+  new RegExp(`${B}(?:WR|CR|IN|BL|HR|MR|LR|IR)-\\d{2,3}${E}`),
   new RegExp(`${B}[tgf]-\\d{3}(?:\\.\\d+)?-[a-z0-9]`, 'i'),
-  new RegExp(`${B}c\\d{3}(?:\\.\\d+)?-[a-z]`, 'i'),
-  /windows[-_]?#?\d+/i,
+  new RegExp(`${B}C\\d{3}(?:\\.\\d+)?-[A-Z]`),
+  /WINDOWS[-_]?#?\d+/,
   new RegExp(`${B}\\d{6}-[a-z0-9]{3}${E}`, 'i'),
-  new RegExp(`${B}(?!(?:utf|sha|iso|e2e|tst|run|mem|pol|tgt)-)[a-z][a-z0-9]+-\\d{2}${E}`, 'i'),
+  new RegExp(`${B}${EXCLUDED}[A-Z][A-Z0-9]+-\\d{2}${E}`),
   /retune/i,
-  /^\d{3}(?:\.\d+)?[-_.]/,
+  /^[34]\d{2}(?:\.\d+)?[-_]/,
 ]
 
 function matchesOf(re: RegExp, text: string): TextHit[] {
@@ -126,8 +129,8 @@ export function stringHits(literal: CommentParagraph): LineHit[] {
   }))
 }
 
-// Every path segment and its parent directories, checked case-insensitively against the
-// separator-aware shapes and the phase-number prefix.
+// Every path segment and its parent directories, checked against the separator-aware shapes and
+// the phase-number prefix.
 export function pathPlanningIds(path: string): PathHit[] {
   const parts = path.split('/')
   const out: PathHit[] = []
