@@ -235,10 +235,7 @@ export type {
   SessionRepair,
   SessionReplay,
 } from './chat/session-repair.js'
-// `ChatResolution` joins the three plan-01 shapes because it is what the published
-// `resolveClause` now RETURNS — a two-variant union with no confidence member, and pinning it on
-// the barrel is what makes a third variant (or a number) a visible edit rather than an incidental
-// one. `ChatDirectiveName` rides along because the entry union names it.
+// Pinning the two-variant `ChatResolution` on the barrel makes a third variant a visible edit.
 export type {
   ChatDirectiveName,
   ChatHelpEntry,

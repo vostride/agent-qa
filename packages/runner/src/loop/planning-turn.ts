@@ -301,8 +301,7 @@ export async function executePlanningTurn(
       const name = binding?.logicalName ?? tc.toolName
       const args = extractArgs(tc)
 
-      // Action tool → terminate. The provider alias binding is the classifier; an unknown name
-      // preserves the old fail-loud action path and reaches toolCallToActionPlan unchanged.
+      // The alias binding classifies; an unknown name is an action for `toolCallToActionPlan`.
       if (binding?.kind !== 'non-action') {
         actionCall = { name, args, tc, index: i }
         discardedAfterAction = toolCalls.length - i - 1

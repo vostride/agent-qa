@@ -9,7 +9,7 @@ import { RETRIEVAL_CLASS_GLYPHS, doctorSentenceNodes } from "./retrieval-stateme
 export interface RetrievalRungBannerProps {
   /** The recorded rung word. Absent means "not known yet" — see the header note. */
   rung?: RetrievalRung
-  /** The recorded cause. Absent on `memidex`, and (historically) reachable absent on a lower rung. */
+  // The recorded cause; absent on `memidex` and optional on a lower rung.
   reason?: RetrievalRungReason
   /**
    * Which header is asking.

@@ -2224,7 +2224,7 @@ export async function produceSuiteRunMembers(
     results: TestResult[]
     perMemberDigests: ConfigDigests[]
     bootstrapFailure: string | undefined
-    // Teardown-time composition side effects (the old runSuite `.finally`).
+    // Teardown-time composition side effects.
     suiteWorkingMemory: WorkingMemoryStore
     suiteAttributes: RunAttributes
     knowledgeSeed: {
@@ -2742,10 +2742,7 @@ export async function produceSuiteRunMembers(
     }
   }
 
-  // Suite-level TEARDOWN the shell runs when crossing a suite boundary / at finalize: auth-state
-  // capture (when every member ran and passed), suite teardown hooks, adapter.cleanup + memory
-  // destroy, the aggregated onRunEnd/onSuiteEnd reporter calls, and the old runSuite `.finally`
-  // composition side effects (working-memory flush, dashboard-db close, analytics flush).
+  // Runs at a suite boundary or at finalize; auth-state capture needs every member to have passed.
   const suiteTeardown = async (prepared: PreparedSuite): Promise<void> => {
     const { suite, suiteConfig, suiteRunId, results } = prepared
     const totalMembers = prepared.testEntries.length

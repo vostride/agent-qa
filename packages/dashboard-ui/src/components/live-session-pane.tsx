@@ -52,7 +52,7 @@ interface LiveSessionPaneProps {
   platform: "web" | "android" | "ios"
   /** The live editor session the preview mints its view for; null before one exists. */
   liveSessionId: string | null
-  /** The session is gone on the server (Plan 20 feeds this from the hook). */
+  // The server has dropped this session.
   sessionGone?: boolean
   currentUrl: string | null
   pendingNavigation: PendingNavigationState | null

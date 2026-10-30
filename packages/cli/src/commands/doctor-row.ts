@@ -170,18 +170,7 @@ export function formatCheckRow(
   }
 }
 
-/**
- * The `Fix:` line, wrapped with a hanging indent.
- *
- * The UAT measured this line at 156 columns — the widest the command emits. Its first element
- * still begins with the same six-space `Fix: ` prefix the command has always written, so a
- * substring assertion on a short instruction is unaffected; continuations hang under it so they
- * read as belonging to the row above rather than as rows of their own.
- *
- * Flattened at the door for the same reason the check row is: an instruction carrying a break
- * would otherwise smuggle one past the hanging indent, and a continuation that is not indented
- * reads as a row of its own.
- */
+// Flattened, then hung under the `Fix: ` prefix, so a wrapped instruction reads as one row.
 export function formatFixLines(instructions: string, width: number): string[] {
   const flat = flatten(instructions)
   const wrapped = wrapWords(flat, Math.max(1, width - FIX_PREFIX.length))

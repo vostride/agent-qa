@@ -186,8 +186,7 @@ export function createJobDispatcher(input: CreateJobDispatcherInput): JobDispatc
       if (outcome.disposition === 'retry-scheduled') {
         doNotRunBeforeMs = input.scheduler.now() + outcome.retryDelayMs
       } else if (isSafetyProbe) {
-        // The old recovery loop stopped at the bound. A single non-empty probe proves work remains,
-        // records that fact, and yields before another batch so successor chains cannot hot-spin.
+        // A non-empty probe proves work remains, then waits one poll so chains cannot hot-spin.
         consecutiveRuns = 0
         doNotRunBeforeMs = input.scheduler.now() + AGENT_JOB_DISPATCH_POLL_MS
       }

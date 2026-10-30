@@ -626,11 +626,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
     server.once('error', onError)
     server.listen(port, host, () => {
       server.off('error', onError)
-      // A LOOPBACK BIND PRINTS THE LINE IT ALWAYS PRINTED, BYTE FOR BYTE. That is not cosmetic
-      // conservatism: this line is the readiness signal three shipped conformance harnesses parse
-      // a port out of. The non-loopback arm is unreachable since the bind guard above lost its
-      // credential exemption (402 verification); it is kept so the line never names a `localhost`
-      // that is not where the server is.
+      // Harnesses parse the port from this line; only a loopback bind names `localhost`.
       console.log(
         isLoopbackHost(host)
           ? `Dashboard running at http://localhost:${port}`

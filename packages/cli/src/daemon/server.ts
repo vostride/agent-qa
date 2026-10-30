@@ -308,15 +308,7 @@ export class DaemonSocketAddressError extends Error {
   }
 }
 
-/**
- * Unlink one recovered generation's own socket file, and nothing else.
- *
- * V-01: removing a registration byte-exactly proves what its bytes SAID, not that the address they
- * record is this project's to delete — so the ownership proof is this function's own precondition
- * rather than a habit its callers are trusted to keep. A path that fails it selects no deletion at
- * all and is reported as such; on top of that, only a real socket is ever touched, so a recorded
- * path naming a regular file, a directory, or nothing is refused rather than obeyed.
- */
+// A recorded path can name anything, so only an owned generation's real socket is unlinked.
 export function unlinkDaemonSocket(
   socketPath: string,
   ownership: DaemonSocketOwnership,

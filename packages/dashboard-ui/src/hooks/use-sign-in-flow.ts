@@ -25,7 +25,7 @@ export interface SignInFlow {
   reason?: string
   /** The server's refusal code, when the start or the exchange was refused. */
   code?: string
-  /** Whether the sign-in created the credential under its name (Plan 09's answer). */
+  // Whether the sign-in created the credential under its name.
   created?: boolean
   exchanging: boolean
   start: (provider: string, name: string) => Promise<void>

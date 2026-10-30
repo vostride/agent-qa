@@ -2139,8 +2139,7 @@ export function composeLocalAgent(input: ComposeLocalAgentInput): LocalAgentHost
       const pending = opening
       const current = opened
       opened = undefined
-      // Preserve the existing synchronous-close property for a fully opened composition. Callers
-      // that historically did not await close still release the handle before returning.
+      // Closing synchronously releases the handle even for callers that do not await `close`.
       current?.store.close()
       closing = (async () => {
         if (pending !== undefined) {

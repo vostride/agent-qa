@@ -250,13 +250,7 @@ export const CHAT_HELP_ENTRIES: readonly ChatHelpEntry[] = Object.freeze([
 /** The column the summaries start in — a reading convenience, pinned once. */
 const HELP_SYNTAX_COLUMN = 20
 
-/**
- * What `/help` prints, RENDERED from the entries rather than spelled a second time.
- *
- * The string is still the export `composeLocalAgent`'s directive handler returns, because a person
- * types `/help` and reads sentences. What is gone is the possibility of the sentences and the join
- * keys disagreeing: there is one list, and this is a projection of it.
- */
+// Rendered from the entries, so the printed sentences and the join keys cannot disagree.
 export const CHAT_HELP_TEXT = [
   'What I understand deterministically:',
   ...CHAT_HELP_ENTRIES.map(

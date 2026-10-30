@@ -47,11 +47,7 @@ export interface ScreenshotCompressor {
   dimensions(screenshot: Buffer): Promise<{ width: number; height: number }>
 }
 
-/**
- * Structural secret-lookup port. The concrete `SecretStore` (moved into runner in
- * this plan, task 2) satisfies it by construction; `resolveSecretTemplatesInValue`
- * consumes it. Named distinctly from the concrete class to avoid a barrel collision.
- */
+// The concrete `SecretStore` satisfies this structurally; named apart to avoid a barrel collision.
 export interface SecretResolver {
   get(name: string): string | undefined
   require(name: string): string

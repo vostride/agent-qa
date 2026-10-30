@@ -27,20 +27,7 @@ export type {
   RunMemberDescriptor,
 } from '@vostride/agent-qa-runner'
 
-/**
- * The request named a run id this system would not have minted.
- *
- * A decision, not a fault: the caller asked for something this seam declines, and it says so by
- * name before anything happens.
- *
- * WHY IT IS ASKED HERE AND NOT IN THE SCHEMA. `packages/schema` owns PATH-SAFETY on the id — the
- * id becomes a directory name and that is judgeable with no dependencies — but it may not name
- * `@vostride/agent-qa-ids` and must not re-spell the canonical id shape. So "is this an id this
- * system would have minted" is asked here, through a predicate supplied beside `mintRunId` and for
- * `mintRunId`'s stated reason: a locally invented answer would be a second spelling of a run's
- * identity. Measured pre-fix: `runId: 'not-a-minted-id'` was acknowledged, and `runId: ''` ran a
- * whole run into a shared `runs/default/` directory before the op reported `RunNotRecordedError`.
- */
+// Schema cannot import the ids package, so the minted-id predicate is passed in beside `mintRunId`.
 export class RunIdNotMintedError extends Error {
   constructor(readonly runId: string) {
     super(

@@ -746,7 +746,6 @@ async function runMemberAttempt(
       contextWindow: config.contextWindow,
     }
 
-    // Assemble the LoopPorts bundle (onPhase retired — the loop never called it).
     const ports: LoopPorts = {
       adapter: config.adapter,
       ...(startedRecording.state === 'started' && startedRecording.zeroMs !== undefined

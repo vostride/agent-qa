@@ -863,8 +863,6 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       }
 
       case 'navigate': {
-        // Fold re-key: the schema `to` discriminant drives url/history/reload on the proven
-        // legacy bodies (goto / goBack|goForward / reload).
         try {
           switch (action.to) {
             case 'url':

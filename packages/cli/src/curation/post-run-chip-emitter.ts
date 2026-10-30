@@ -108,15 +108,7 @@ export interface PostRunChipEmitter {
 export interface CreatePostRunChipEmitterOptions {
   readonly agentQaRoot: string
   readonly runId: string
-  /**
-   * The two ids THIS run's chain addresses; anything else is another run's work.
-   *
-   * Arrives as DATA rather than as a derivation performed here, and that is the whole shape of
-   * the fix: the tail derives it once through `chainJobIdsForRun` — the same function the read
-   * op derives from — and hands it down. Two copies of the hash input would be two chains that
-   * review identically and address different rows, which is the failure the shared derivation
-   * exists to make impossible.
-   */
+  // One `chainJobIdsForRun` derivation, shared with the read op, so two chains cannot split rows.
   readonly chainJobIds: readonly string[]
   /**
    * The tail's declared mask, the same one the fold is threaded with.

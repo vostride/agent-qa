@@ -287,17 +287,7 @@ export interface DashboardRunFlags {
   readonly disableCache?: boolean
 }
 
-/**
- * Split the queue's argv operands into request patterns and this door's own flags.
- *
- * THE QUEUE STILL SPEAKS ARGV because that is what its rows contain — `metadata.args` is persisted,
- * and rows enqueued before this change are still in the database. `RunsStartInput` has `patterns`
- * and nothing else, so the operands have to be read rather than forwarded.
- *
- * AN UNRECOGNISED FLAG IS REFUSED BY NAME, never passed through as a pattern. A `--something` that
- * silently became a glob would match no files and either disappear or fail as "no test files found"
- * — a person who asked for a behaviour would get a different run and no indication of it.
- */
+// Persisted queue rows hold argv, so operands are parsed, and an unknown flag is refused by name.
 export function partitionDashboardRunArgs(args: readonly string[]): {
   readonly patterns: string[]
   readonly flags: DashboardRunFlags

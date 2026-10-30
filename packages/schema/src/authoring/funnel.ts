@@ -29,14 +29,7 @@ export interface AuthoringFunnelInput {
   /** The receipts in the window. This IS the denominator. */
   readonly receipts: readonly DraftReceipt[]
   readonly sideCounters: FunnelSideCounters
-  /**
-   * Loop invocations the window covers, where the caller can count them.
-   *
-   * Receipts are addressed by content digest, so two byte-identical drafts collapse to ONE
-   * receipt and one `built`. That is accepted rather than re-keyed — `receiptPath`'s recipe is
-   * what `demo/init/scripts/drain-393-gates.sh` reads by — and it is DISCLOSED: when this number
-   * exceeds the receipt count, the render carries the caveat rather than quietly under-reporting.
-   */
+  // Identical drafts share one digest-keyed receipt; a count above the receipt count adds a caveat.
   readonly invocationCount?: number
 }
 

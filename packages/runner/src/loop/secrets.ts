@@ -172,10 +172,7 @@ export function redactSecretValue<T>(value: T, redactor?: SecretRedactorPort): T
   return value
 }
 
-/**
- * The cached-plan invalidation predicate (loop cache-poisoning guard): returns true
- * when a value contains a redacted `[secret:*]` marker. Moved from core loop.ts.
- */
+// A redacted `[secret:*]` marker invalidates a cached plan, so a redaction cannot poison it.
 export function containsRedactedSecretMarker(value: unknown): boolean {
   if (typeof value === 'string') return REDACTED_SECRET_MARKER_RE.test(value)
   if (Array.isArray(value)) return value.some((item) => containsRedactedSecretMarker(item))

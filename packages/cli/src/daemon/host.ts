@@ -694,17 +694,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
   }
 
   const recordRegistrationRecovered = (classified: RecoverableRegistration): void => {
-    // V-01: the removal above proved this registration's BYTES — not that the address those bytes
-    // record is one this host may delete. `socketPath` is `z.string().min(1)`, so a forged or
-    // corrupted daemon.json can name any path on the machine, and obeying it would be a local
-    // arbitrary-socket-deletion primitive driven by a file in the runtime root. So the address
-    // must also pass `unlinkDaemonSocket`'s ownership proof: the exact generation address the
-    // record names.
-    //
-    // A refusal is recorded as `socketRemoved: false`, never thrown: the registration file is
-    // already gone, so failing here would strand a recovery that has otherwise succeeded. The
-    // sibling embedder check (`registration names a non-owned socket path`, below) throws instead
-    // because it runs BEFORE its own cleanup and has a fresh worker to fall back on.
+    // `daemon.json` can name any path, so only an owned socket is unlinked; a refusal is recorded.
     const socketPath = classified.registration.socketPath
     const ownership = daemonSocketOwnershipFor(input.agentQaRoot, classified.registration)
     let socketRemoved = false

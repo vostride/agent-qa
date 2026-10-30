@@ -1849,8 +1849,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         }
         const { width, height } = await driver.getWindowSize()
 
-        // Schema shapes: SwipeByPath drives explicit from/to points; SwipeByDirection computes a
-        // page-sized gesture from the (optional ref) center (legacy startX..endY reads retired).
+        // `path` drives explicit points; a direction swipes a page from the ref or screen center.
         let pts: { startX: number; startY: number; endX: number; endY: number }
         if (action.mode === 'path') {
           pts = {
@@ -1963,8 +1962,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
       }
 
       case 'waitFor': {
-        // Schema on-modes replace the legacy {condition,timeout} blind pause. text/gone poll the
-        // native accessibility tree; selector-mode is a web-only capability (§7.1, catalog pin).
+        // `text` and `gone` poll the native accessibility tree; `selector` is a web-only mode.
         if (action.on === 'selector') {
           return {
             success: false,

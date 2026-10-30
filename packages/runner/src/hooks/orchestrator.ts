@@ -63,7 +63,7 @@ export interface RunHooksOptions {
   executor: HookExecutorPort
   /** User env + CLI/suite variables the first hook starts from. */
   env?: Record<string, string>
-  /** Carrier-compat alias for {@link env} (the old `SandboxRunnerOptions.envVars` field). */
+  // Alias for `env`, under the field name some carriers pass.
   envVars?: Record<string, string>
   /** Already-resolved secret name→value pairs for container injection. */
   secretEnv?: Record<string, string>

@@ -37,10 +37,7 @@ function maskJsonLeaves(value: unknown, maskText: (text: string) => string): unk
   if (typeof value === 'object') {
     const masked: Record<string, unknown> = {}
     for (const [key, entry] of Object.entries(value as Record<string, unknown>)) {
-      // KEYS TOO. A map keyed by a credential — a header table, an env echo — carries the value in
-      // the name rather than in the leaf, and the old whole-document mask happened to cover that
-      // case. Two keys masking to one name would silently DROP a member, which is a different
-      // answer wearing the same shape, so it is refused rather than resolved.
+      // A credential can sit in a key, and two keys masking to one name are refused, not merged.
       const maskedKey = maskText(key)
       if (Object.hasOwn(masked, maskedKey)) {
         throw new UnmaskableValueError('two keys of one object mask to the same name')
@@ -56,10 +53,7 @@ function maskJsonLeaves(value: unknown, maskText: (text: string) => string): unk
     return masked
   }
 
-  // JSON's remaining leaves: number and boolean. They hold no string for the masker to replace, so
-  // a registered credential whose SPELLING is one of them (`{"pin":867530912345}`) cannot be hidden
-  // here without turning a number into a string. Refused, which is what the previous implementation
-  // did by accident when a placeholder substituted into a bare number broke the document's JSON.
+  // A number or boolean spelling a registered value cannot be masked in place, so it is refused.
   const spelling = JSON.stringify(value) ?? 'null'
   if (maskText(spelling) !== spelling) {
     throw new UnmaskableValueError('a non-string leaf spells a registered value')

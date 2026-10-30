@@ -69,7 +69,7 @@ export const CONFIG_SECTIONS = {
   advanced: ['mcp', 'config-file'],
 } as const satisfies Record<ConfigTab, readonly ConfigSectionId[]>
 
-/** Palette words beside each section label, re-homed from the retired bucket map: no bucket names, no dotted paths. */
+// Palette words beside each section label: no bucket names, no dotted paths.
 export const CONFIG_SECTION_ALIASES = {
   models: ['model', 'llm', 'llms', 'default model', 'default llm', 'providers', 'api key', 'sign in'],
   'screenshot-size': ['vision', 'screenshot', 'resolution'],

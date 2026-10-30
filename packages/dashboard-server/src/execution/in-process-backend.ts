@@ -76,14 +76,7 @@ export interface InProcessRunStartInput {
   readonly onSession: (session: RunSession) => void
 }
 
-/**
- * Start one run and resolve when it is over.
- *
- * REJECTION IS NOT "the run failed" — a failing run resolves. A rejection is a denial, a refused
- * request field, an input error or a crash, and its message is what the dashboard shows as the
- * failure summary. That is the whole user-visible win of the retirement: on the retiring wire a
- * policy denial and a run that never started were the same nothing.
- */
+// A failing run resolves; a rejection is a refusal or a crash, and its message is the failure text.
 export type InProcessRunStarter = (input: InProcessRunStartInput) => Promise<void>
 
 export interface InProcessExecutionBackendOptions {
@@ -109,14 +102,6 @@ interface RunHandle {
   timeoutTimer?: ReturnType<typeof setTimeout>
 }
 
-/**
- * The dashboard's in-process `ExecutionBackend`.
- *
- * A CLASS, matching the shape the interface already declared (`extends EventEmitter`), with a
- * factory beside it so a composing host names a function rather than a constructor — nothing here
- * is meant to be subclassed, and nothing needs the `resolveCliBin`-style static the retiring class
- * carried for its binary.
- */
 export class InProcessExecutionBackend extends EventEmitter implements ExecutionBackend {
   private readonly options: InProcessExecutionBackendOptions
   private readonly handles = new Map<string, RunHandle>()
