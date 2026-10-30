@@ -59,7 +59,7 @@ function quotedTokensOf(output: ExplainOutput): readonly string[] {
 const workspaces: string[] = []
 
 function workspace(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-398-07-explain-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-explain-'))
   workspaces.push(root)
   return root
 }
@@ -454,7 +454,7 @@ describe('the grounding obligation, driven through the SHIPPED model path', () =
 // The hook cells pass on a host that never binds the port, so this composes the shipped CLI host.
 describe('the composition root binds the counter hooks to the analytics port', () => {
   it('turns an abstention into exactly one counter event carrying no query text', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-398-10-explain-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-explain-hooks-'))
     const configPath = join(root, 'agent-qa.config.yaml')
     writeFileSync(
       configPath,
@@ -529,7 +529,7 @@ describe('the composition root binds the counter hooks to the analytics port', (
 
 // These drive the turn, not the op: an answer dropped at the surface still reads fine on the op.
 describe('the grounded explain answer rides the turn a person reads', () => {
-  const PLANTED_MODEL_PROSE = 'PLANTED-398-13-MODEL-PROSE-4f0c2a9d'
+  const PLANTED_MODEL_PROSE = 'PLANTED-MODEL-PROSE-4f0c2a9d'
 
   /**
    * The model reply both cells use: a real committed row id, plus prose in the ONE field the

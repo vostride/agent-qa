@@ -48,7 +48,7 @@ const STDIN_METHODS = [
 ] as const
 
 function workspaceFixture(roots: string[]): Workspace {
-  const root = mkdtempSync(join(tmpdir(), `agent-qa-432-cache-${randomUUID()}-`))
+  const root = mkdtempSync(join(tmpdir(), `agent-qa-cache-${randomUUID()}-`))
   roots.push(root)
   const cacheDir = join(root, '.agent-qa', 'cache')
   const configPath = join(root, 'agent-qa.config.yaml')

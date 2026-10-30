@@ -65,7 +65,7 @@ import { scenarioRowFor, unprojectedReasonKeyOf } from './scenario-table.js'
 
 // ---- Synthetic secrets and the one live mask ------------------------------------------------------
 
-const AUTH_TOKEN = 'synthetic-423-38-cookie-token'
+const AUTH_TOKEN = 'synthetic-cookie-token'
 const AUTH_STATE = JSON.stringify({
   cookies: [{ name: 'session', value: AUTH_TOKEN, domain: 'app.test', path: '/' }],
   origins: [],
@@ -130,7 +130,7 @@ async function openDoors(input: {
   const withClient = async <T>(body: (client: Client) => Promise<T>): Promise<T> => {
     const handler = createMcpHandler(() => buildAgentQaMcpServer({
       registry: input.registry, caller: MCP_FUNCTION_CALLER, maskText: input.maskText }))
-    const client = new Client({ name: 'agent-qa-423-38-read-contracts', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-read-contracts', version: '0.0.0' })
     try {
       await client.connect(new StreamableHTTPClientTransport(new URL('http://read-contracts.local/mcp'), {
         fetch: ((url: URL | string, init?: RequestInit) => handler.fetch(new Request(url, init))) as typeof fetch }))
@@ -164,15 +164,15 @@ async function openDoors(input: {
 
 // ---- Scene A: the durable run-detail family -------------------------------------------------------
 
-const RECORD_USED = 'record-423-38-used'
-const RECORD_LEARNED = 'record-423-38-learned'
+const RECORD_USED = 'record-used'
+const RECORD_LEARNED = 'record-learned'
 
 function currentRecord(recordId: string) {
   return KnowledgeRecordShowResultSchema.parse({
     kind: 'found', schemaVersion: 2, summary: `Current summary ${recordId}`, body: `Current body ${recordId}`,
     provenance: { schemaVersion: 1, mode: 'standalone', originClass: 'agent-observed', sourceDescription: 'synthetic' },
     record: { schemaVersion: INSPECT_RECORD_VIEW_SCHEMA_VERSION, recordId, product: 'shop', scope: 'checkout', kind: 'fact', status: 'superseded',
-      confirmations: 3, contradictions: 1, evidenceTokens: ['evidence-423-38'], openedAtOrdinal: 4, closedAtOrdinal: 40,
+      confirmations: 3, contradictions: 1, evidenceTokens: ['evidence'], openedAtOrdinal: 4, closedAtOrdinal: 40,
       lastEventOrdinal: 40, anchors: ['page:/checkout'], trustNarrative: 'Current synthetic evidence' },
   })
 }
@@ -183,12 +183,12 @@ function curationSnapshot(runId: string) {
     evidenceToken: `receipt-${recordId}`, observationId: `observation-${recordId}` })
   return CurationSnapshotSchema.parse({ schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION, rows: [
     { recordId: RECORD_LEARNED, bucket: 'added', changes: [{ bucket: 'added', change: classified(RECORD_LEARNED, 'added', 20) }] },
-    { recordId: 'confirmed-423-38', bucket: 'confirmed', changes: [{ bucket: 'confirmed', change: classified('confirmed-423-38', 'confirmed', 21) }] },
-    { recordId: 'victim-423-38', bucket: 'superseded', byRecordId: 'replacement-423-38', changes: [
-      { bucket: 'superseded', change: { ...classified('victim-423-38', 'superseded', 22), byRecordId: 'replacement-423-38' } },
-      { bucket: 'added', change: classified('replacement-423-38', 'added', 22) }] },
-    { recordId: 'deprecated-423-38', bucket: 'deprecated', changes: [{ bucket: 'deprecated', change: classified('deprecated-423-38', 'deprecated', 23) }] },
-    { recordId: 'proposed-423-38', bucket: 'proposed', changes: [{ bucket: 'proposed', change: classified('proposed-423-38', 'added', 24) }] },
+    { recordId: 'confirmed', bucket: 'confirmed', changes: [{ bucket: 'confirmed', change: classified('confirmed', 'confirmed', 21) }] },
+    { recordId: 'victim', bucket: 'superseded', byRecordId: 'replacement', changes: [
+      { bucket: 'superseded', change: { ...classified('victim', 'superseded', 22), byRecordId: 'replacement' } },
+      { bucket: 'added', change: classified('replacement', 'added', 22) }] },
+    { recordId: 'deprecated', bucket: 'deprecated', changes: [{ bucket: 'deprecated', change: classified('deprecated', 'deprecated', 23) }] },
+    { recordId: 'proposed', bucket: 'proposed', changes: [{ bucket: 'proposed', change: classified('proposed', 'added', 24) }] },
   ], breakdown: { added: 1, confirmed: 1, superseded: 1, deprecated: 1, proposed: 1 } })
 }
 
@@ -197,12 +197,12 @@ const CURRENT_RUNG = { schemaVersion: 2, rung: 'bundle-scan', reason: 'index-loc
 
 function knowledgeHandoff(runId: RunId, allowedPlaceholder: string): CompletedRunHandoff {
   const brief = (channel1: unknown[] = []) => ({ scope: { tier: 'product', key: 'shop' }, asOfBuild: 12, budget: 400,
-    truncation: '', channel1, channel2: [], channel3: [], briefDigest: 'digest-423-38' })
+    truncation: '', channel1, channel2: [], channel3: [], briefDigest: 'digest' })
   const step = (stepIndex: number, extra: Record<string, unknown>) => ({ stepIndex, stepText: allowedPlaceholder,
     cacheStatus: 'miss', servedBrief: brief(), subActions: [], verifierVerdict: { pass: true, reasoning: 'ok' }, ...extra })
   return {
     schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION, runId, scope: { tier: 'product', key: 'shop' }, buildOrdinal: 12, executionContext: 'local',
-    aggregateVerdict: 'passed', configDigests: { suiteConfigDigest: 'suite-423-38', testConfigDigest: 'test-423-38' },
+    aggregateVerdict: 'passed', configDigests: { suiteConfigDigest: 'suite', testConfigDigest: 'test' },
     startedAt: 1, endedAt: 2,
     tests: [{ testId: 't_423_38', testName: 'read contracts', filePath: 'tests/read-contracts.yaml', testIndex: 0, outcome: 'passed',
       steps: [
@@ -214,7 +214,7 @@ function knowledgeHandoff(runId: RunId, allowedPlaceholder: string): CompletedRu
 }
 
 async function openDurableScene() {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-38-durable-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-durable-'))
   const db = new DashboardDatabase({ dbPath: join(root, 'dashboard.db') })
   // Records hold the declared marker the run wrote; reads mask with the same store.
   const redactor = new SecretRedactor(new SecretStore({ AUTH_STATE, ALLOWED }))
@@ -239,7 +239,7 @@ async function openDurableScene() {
   const ariaRef = blobs.persistEvidenceDocument({ schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'aria', tree: `- button "${allowedPlaceholder}"` })
 
   db.upsertRunMember({ runId, testIndex: 0, name: 'Read contract member', totalSteps: 2, outcome: 'failed' })
-  const planner = (modelId: string, respondingModelIds: string[]) => ({ declared: { provider: 'provider-423-38', modelId }, respondingModelIds })
+  const planner = (modelId: string, respondingModelIds: string[]) => ({ declared: { provider: 'provider', modelId }, respondingModelIds })
   db.insertRunStep({ runId, testIndex: 0, stepIndex: 0, stepText: allowedPlaceholder, cacheStatus: 'miss',
     verifierVerdict: null, selfHealOccurred: false, briefDigest: '', status: 'failed', error: authPlaceholder,
     tokenUsage: { promptTokens: 100, completionTokens: 7, totalTokens: 107, cachedInputTokens: 60 },
@@ -257,7 +257,7 @@ async function openDurableScene() {
     verifierVerdict: null, selfHealOccurred: false, briefDigest: '',
     tokenUsage: { promptTokens: 900, completionTokens: 13, totalTokens: 913 } })
   db.insertRunSubAction({ runId, testIndex: 0, stepIndex: 0, subActionIndex: 0, plan: 'click buy',
-    plannedAction: { kind: 'click' }, result: { ok: true }, screenStateHash: 'hash-423-38',
+    plannedAction: { kind: 'click' }, result: { ok: true }, screenStateHash: 'hash',
     artifactRefs: [ariaRef], ariaEvidence: { kind: 'aria', state: 'present', ref: ariaRef as never } })
 
   const handoff = knowledgeHandoff(asRunId(runId), allowedPlaceholder)
@@ -310,7 +310,7 @@ async function openFeedbackScene() {
   const runId = f.handoff.runId
   const marked = await createFeedbackPortForHost(f.deps).mark({ runId, kind: 'false-fail', note: 'first run-level note' })
   if (marked.kind !== 'marked') throw new Error(`fixture mark refused: ${marked.kind}`)
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-38-feedback-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-feedback-'))
   cpSync(f.root, root, { recursive: true })
   rmSync(f.root, { recursive: true, force: true })
   const agentQaRoot = join(root, '.agent-qa')
@@ -406,8 +406,8 @@ const READ_SCENARIOS: readonly ReadScenario[] = [
       const parsed = RunDetailProjectionSchema.parse(result)
       expect(parsed.tokens).toMatchObject({ measuredSteps: 2, promptTokens: 1000, completionTokens: 20, totalTokens: 1020,
         cachedInputTokens: 60, cachedMeasuredSteps: 1, cachedInputMeasuredTokens: 100 })
-      expect(parsed.models).toEqual({ declared: [{ provider: 'provider-423-38', modelId: 'planner-a', stepCount: 1 }],
-        responding: [{ provider: 'provider-423-38', modelId: 'planner-a-response', stepCount: 1 }] })
+      expect(parsed.models).toEqual({ declared: [{ provider: 'provider', modelId: 'planner-a', stepCount: 1 }],
+        responding: [{ provider: 'provider', modelId: 'planner-a-response', stepCount: 1 }] })
       expect(parsed.steps[0]?.evidence).toMatchObject({ console: { state: 'present' }, network: { state: 'present' },
         a11y: { state: 'present' }, variables: { state: 'present' } })
       expect(parsed.steps[1]?.evidence).toMatchObject({ console: { state: 'absent', reason: 'unavailable' } })

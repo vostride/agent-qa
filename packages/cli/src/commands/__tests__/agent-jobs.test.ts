@@ -65,7 +65,7 @@ function harnessDeps(): {
   deps: AgentJobsOpsDeps
   seed: (payload: unknown, runId?: string) => Promise<void>
 } {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-413-10-cmd-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-cmd-'))
   roots.push(root)
   const agentQaRoot = join(root, '.agent-qa')
   const knowledgeRoot = join(root, 'knowledge')

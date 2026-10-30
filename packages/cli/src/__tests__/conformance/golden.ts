@@ -266,7 +266,7 @@ export function goldenFileText(file: GoldenFile): string {
 
 // `AgentQaConfigSchema` requires `use.mobile.appState`, and one target gives the ordinary posture.
 function goldenRootWorkspace(): { readonly configPath: string; readonly projectRoot: string } {
-  const projectRoot = mkdtempSync(join(tmpdir(), 'agent-qa-397-06-root-'))
+  const projectRoot = mkdtempSync(join(tmpdir(), 'agent-qa-root-'))
   const configPath = join(projectRoot, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,

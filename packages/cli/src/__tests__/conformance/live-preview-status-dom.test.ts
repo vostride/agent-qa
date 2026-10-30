@@ -75,7 +75,7 @@ let fixture: PreviewFixture | undefined
 const plantedRuns: PlantedLiveRun[] = []
 
 function held(): PreviewFixture {
-  if (fixture === undefined) throw new Error('the 428 live preview fixture never came up')
+  if (fixture === undefined) throw new Error('the live preview fixture never came up')
   return fixture
 }
 
@@ -112,7 +112,7 @@ beforeAll(async () => {
   const png = new Uint8Array(await shotPage.screenshot({ type: 'png' }))
   await shotPage.close()
 
-  const harness = await startLiveViewHarness({ label: '428-23-preview', uiDir: dashboardUiDist() })
+  const harness = await startLiveViewHarness({ label: 'preview', uiDir: dashboardUiDist() })
   fixture = { harness, browser, jpeg, png }
 
   plantStreamingRun({

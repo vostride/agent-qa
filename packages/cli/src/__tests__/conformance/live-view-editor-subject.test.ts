@@ -29,7 +29,7 @@ function portOf(h: LiveViewHarness): number {
 }
 
 beforeAll(async () => {
-  harness = await startLiveViewHarness({ label: '428-12-editor' })
+  harness = await startLiveViewHarness({ label: 'editor' })
   run = plantLiveRun({ runId: RUN_ID, heartbeatMs: 10_000, capability: { kind: 'cdp-screencast' } })
   harness.plant(run)
 }, 120_000)

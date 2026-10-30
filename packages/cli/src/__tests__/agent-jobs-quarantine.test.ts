@@ -48,7 +48,7 @@ interface Harness {
 }
 
 function makeHarness(): Harness {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-422-10-cli-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-cli-'))
   roots.push(root)
   const agentQaRoot = join(root, '.agent-qa')
   const knowledgeRoot = join(root, 'knowledge')

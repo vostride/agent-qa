@@ -38,7 +38,7 @@ const CONFIG_FILE = 'agent-qa.config.yaml'
  * the whole point of the cells below is that this string must not appear in any message, so it has
  * to be searchable, distinctive, and impossible to confuse with a live credential.
  */
-const PLANTED_CREDENTIAL = 'sk-ant-api03-395fourteenFIXTUREONLYnotarealkey'
+const PLANTED_CREDENTIAL = 'sk-ant-api03-PLANTEDFIXTUREONLYnotarealkey'
 
 // Drives the built `dist/cli.js`, so a stale dist measures the previous build.
 const CLI_DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'dist', 'cli.js')
@@ -134,14 +134,14 @@ function seedSecretsFile(): void {
 }
 
 // One distinct value per member, so a whole-output failure says which member leaked.
-const PLANTED_HOOKS_CREDENTIAL = 'sk-ant-api03-395sixteenHOOKSFIXTUREONLYnotarealkey'
-const PLANTED_SUITE_CREDENTIAL = 'sk-ant-api03-395sixteenSUITEFIXTUREONLYnotarealkey'
+const PLANTED_HOOKS_CREDENTIAL = 'sk-ant-api03-HOOKSFIXTUREONLYnotarealkey'
+const PLANTED_SUITE_CREDENTIAL = 'sk-ant-api03-SUITEFIXTUREONLYnotarealkey'
 
 // A plain test yaml, the other arm of `isSuiteFile`; its own value says which member leaked.
-const PLANTED_TEST_CREDENTIAL = 'sk-ant-api03-395eighteenTESTFIXTUREONLYnotarealkey'
+const PLANTED_TEST_CREDENTIAL = 'sk-ant-api03-TESTFIXTUREONLYnotarealkey'
 
 // The fifth member: `agent-qa.local.yaml`, read by `loadLocalBindings`.
-const PLANTED_LOCAL_CREDENTIAL = 'sk-ant-api03-395eighteenLOCALFIXTUREONLYnotarealkey'
+const PLANTED_LOCAL_CREDENTIAL = 'sk-ant-api03-LOCALFIXTUREONLYnotarealkey'
 
 /** The same adjacency mechanism as the config fixture, one file class over. */
 const FAULTY_HOOKS = `hooks:
@@ -874,7 +874,7 @@ describe("a healthy config's values are shown and written as they are", () => {
 
 /** A key only the staging config carries — the row that says WHICH file `config show` read. */
 const STAGING_ONLY_KEY = 'stagingOnlyMarker'
-const STAGING_ONLY_VALUE = 'staging-sentinel-value-395-24'
+const STAGING_ONLY_VALUE = 'staging-sentinel-value'
 
 describe('the config verbs read and write the file --config names', () => {
   it('`--config staging.yaml config set` writes STAGING and leaves the default byte-identical', () => {
@@ -1033,8 +1033,8 @@ describe('the config verbs report their faults instead of crashing', () => {
 // An array subtree renders one row per member, each value as written.
 
 /** The container fixture's own values — fresh, fixture-owned, never the verifier's own strings. */
-const PLANTED_ARRAY_URLINFO = 'sk-ant-api03-395twentythreeURLUSERINFOFIXTUREONLYnotarealkey'
-const PLANTED_ARRAY_HEADER = 'sk-ant-api03-395twentythreeHEADERAUTHFIXTUREONLYnotarealkey'
+const PLANTED_ARRAY_URLINFO = 'sk-ant-api03-URLUSERINFOFIXTUREONLYnotarealkey'
+const PLANTED_ARRAY_HEADER = 'sk-ant-api03-HEADERAUTHFIXTUREONLYnotarealkey'
 
 /** Non-credential members: a name and a credential-free URL-shaped field. */
 const CONTAINER_LLM_NAME = 'primary-container-fixture'
@@ -1082,7 +1082,7 @@ describe('credentials nested in an array subtree', () => {
 const CIRCULAR_MARKER = '<circular>'
 
 /** An ordinary leaf sharing the cyclic container — the bound on how much the guard may swallow. */
-const CYCLE_SIBLING_VALUE = 'cycle-sibling-fixtureonly-395-27'
+const CYCLE_SIBLING_VALUE = 'cycle-sibling-fixtureonly'
 
 /**
  * A REAL object cycle after parsing: the anchor is aliased from INSIDE itself.
@@ -1097,7 +1097,7 @@ cycleHolder: &loop
 `
 
 /** The label both copies of the repeated (NON-cyclic) alias must render verbatim. */
-const REPEATED_ALIAS_LABEL = 'repeated-alias-fixtureonly-395-27'
+const REPEATED_ALIAS_LABEL = 'repeated-alias-fixtureonly'
 
 /**
  * One anchor, referenced twice as SIBLINGS. Shared object identity, no cycle — the ordinary thing a

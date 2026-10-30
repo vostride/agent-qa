@@ -63,7 +63,7 @@ const CONSOLE: Extract<EvidenceDocument, { kind: 'console' }> = {
 const ARIA: Extract<EvidenceDocument, { kind: 'aria' }> = {
   schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'aria', tree: '- button "Payer ✓"',
 }
-const READER_TOKEN = 'zz-431-07-reader-credential-5c21aa'
+const READER_TOKEN = 'zz-reader-credential-5c21aa'
 
 const cleanups: (() => void | Promise<void>)[] = []
 let originalExitCode: typeof process.exitCode
@@ -270,7 +270,7 @@ async function mcpReader(p: { configPath: string; agentQaRoot: string }) {
   cleanups.push(() => new Promise<void>((closed) => server.close(() => closed())))
   const address = server.address()
   if (address === null || typeof address === 'string') throw new Error('MCP did not bind')
-  const client = new Client({ name: 'agent-qa-431-07', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa', version: '0.0.0' })
   cleanups.push(() => client.close())
   await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${String(address.port)}/mcp`), {
     requestInit: { headers: { authorization: `Bearer ${READER_TOKEN}` } },
@@ -298,7 +298,7 @@ function unwrapped(structured: unknown): unknown {
 
 describe('CLI-RUN-READ-PARITY: runs list, overview and knowledge', () => {
   it('runs list --json equals the MCP list for zero, one and many rows', async () => {
-    const empty = fixtureProject('431-07-empty')
+    const empty = fixtureProject('empty')
     const emptyRoot = join(empty.root, '.agent-qa')
     const emptyMcp = await mcpReader({ configPath: empty.configPath, agentQaRoot: emptyRoot })
     expect(json(await cli(empty.configPath, ['runs', 'list', '--json']))).toEqual([])
@@ -313,7 +313,7 @@ describe('CLI-RUN-READ-PARITY: runs list, overview and knowledge', () => {
     expect(one).toEqual(unwrapped(await mcp.structured('agent_qa_list_runs', {})))
     expect(one).toMatchObject([{ runId: p.runId, tests: [{ testName: UNICODE_NAME }, { testName: 'Second member' }] }])
 
-    const many = fixtureProject('431-07-many')
+    const many = fixtureProject('many')
     const manyRoot = join(many.root, '.agent-qa')
     const written = [1, 2, 3].map((index) => completedRun(manyRoot, 1_700_000_000_000 + index * 1_000,
       [{ id: `t-${String(index)}`, name: `Checkout ${String(index)}` }], index === 2 ? 'failed' : 'passed'))
@@ -324,7 +324,7 @@ describe('CLI-RUN-READ-PARITY: runs list, overview and knowledge', () => {
   })
 
   it('normalizes every list flag into the canonical filter the MCP tool takes', async () => {
-    const many = fixtureProject('431-07-flags')
+    const many = fixtureProject('flags')
     writeFileSync(join(many.root, '.env.secrets.local'), '')
     const root = join(many.root, '.agent-qa')
     const old = completedRun(root, Date.UTC(2026, 0, 1, 12), [{ id: 't-cart', name: 'Cart totals' }], 'failed')
@@ -352,8 +352,8 @@ describe('CLI-RUN-READ-PARITY: runs list, overview and knowledge', () => {
   })
 
   it('runs list masks a declared secret in a test name and --test is no oracle for it', async () => {
-    const secret = 'zz-431-list-sentinel-not-a-real-credential'
-    const project = fixtureProject('431-07-list-secret')
+    const secret = 'zz-list-sentinel-not-a-real-credential'
+    const project = fixtureProject('list-secret')
     writeFileSync(join(project.root, '.env.secrets.local'), `LIST_PASSWORD=${secret}\n`)
     const root = join(project.root, '.agent-qa')
     const runId = completedRun(root, 1_700_000_000_000, [{ id: 't-login', name: `Login as ${secret}` }])
@@ -397,8 +397,8 @@ describe('CLI-RUN-READ-PARITY: runs list, overview and knowledge', () => {
     ['--limit', '1.5'],
     ['--verdict', 'flaky'],
     ['--test', '   '],
-  ])('refuses %s %s with an actionable nonzero exit', async (flag, value) => {
-    const project = fixtureProject('431-07-refuse')
+  ])('refuses `%s %s` with an actionable nonzero exit', async (flag, value) => {
+    const project = fixtureProject('refuse')
     const refused = await cli(project.configPath, ['runs', 'list', flag, value, '--json'])
     expect(refused.exitCode).not.toBe(0)
     expect(refused.stdout).toBe('')
@@ -601,7 +601,7 @@ function sha256(bytes: Uint8Array): string {
 }
 
 function outDir(): string {
-  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-431-07-out-'))
+  const dir = mkdtempSync(join(tmpdir(), 'agent-qa-out-'))
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }))
   return dir
 }
@@ -908,7 +908,7 @@ describe('RUN-DETAIL-BINDING: the CLI host over the project runs database', () =
 })
 
 function fixtureProjectPaths(): { configPath: string; agentQaRoot: string } {
-  const project = fixtureProject('431-07-registry')
+  const project = fixtureProject('registry')
   return { configPath: project.configPath, agentQaRoot: join(project.root, '.agent-qa') }
 }
 
@@ -1021,7 +1021,7 @@ describe('RUN-DETAIL-LATE-DATABASE: one stdio agent-qa mcp session reads a runs 
     })
     let stderr = ''
     transport.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString('utf8') })
-    const client = new Client({ name: 'agent-qa-431-15-late-db', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-late-db', version: '0.0.0' })
     cleanups.push(async () => {
       await client.close().catch(() => {})
       await transport.close().catch(() => {})

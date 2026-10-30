@@ -78,7 +78,7 @@ interface Project {
 }
 
 function makeProject(): Project {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-432-local-learning-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-local-learning-'))
   roots.push(root)
   const agentQaRoot = join(root, '.agent-qa')
   mkdirSync(agentQaRoot, { recursive: true })
@@ -90,7 +90,7 @@ function seedActive(project: Project, anchors: Anchor[], seed: string): RecordId
   const published = publishBundle({
     knowledgeRoot: project.knowledgeRoot,
     productKey: PRODUCT,
-    writerLeaseId: `432-seed-${seed}`,
+    writerLeaseId: `seed-${seed}`,
   }, {
     draft: {
       kind: 'fact',
@@ -122,7 +122,7 @@ function seedActive(project: Project, anchors: Anchor[], seed: string): RecordId
       }),
     ],
     relations: [],
-    provenance: { mode: 'standalone', sourceDescription: '432 local learning tracer seed' },
+    provenance: { mode: 'standalone', sourceDescription: 'local learning tracer seed' },
     artifacts: [],
   })
   if (published.kind !== 'published') throw new Error(`expected seed publish, got ${published.kind}`)
@@ -133,7 +133,7 @@ function enqueueRunCandidate(project: Project, executionContext: ExecutionContex
   const outcome = enqueueCurationCandidateProjection({
     knowledgeRoot: project.knowledgeRoot,
     projection: {
-      sourceRunId: `run-432-${executionContext}`,
+      sourceRunId: `run-${executionContext}`,
       scope: SCOPE,
       buildOrdinal: RUN_ORDINAL,
       executionContext,      kind: 'fact',
@@ -148,8 +148,8 @@ function enqueueRunCandidate(project: Project, executionContext: ExecutionContex
         element: { naturalKey: 'button:place-order:0' },
         observedAtOrdinal: RUN_ORDINAL,
       }],
-      evidenceToken: `evidence-432-${executionContext}`,
-      attributingObservationId: `observation-432-${executionContext}`,
+      evidenceToken: `evidence-${executionContext}`,
+      attributingObservationId: `observation-${executionContext}`,
       artifactDescriptors: [],
       emittedAt: '2026-09-29T00:00:00.000Z',
     },
@@ -166,7 +166,7 @@ function supersedingAuthor(victimId: RecordId): CuratorAuthor {
     if (victim === undefined) throw new Error('the seeded victim was not retrieved as a neighbor')
     const authorship: CurationAuthorship = {
       path: 'llm',
-      model: { id: '432-local-learning-fixture' },
+      model: { id: 'local-learning-fixture' },
       executionContext: job.executionContext,
     }
     const delta: Delta = {

@@ -784,7 +784,7 @@ describe('LIVE-GUIDANCE: the guide, pointer and every source and packaged skill 
   })
 
   it('LIVE-GUIDANCE-INPUTS names a missing or empty packaged reference instead of skipping it', () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-431-12-census-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-census-'))
     try {
       const sourceRoot = join(root, 'source')
       const packagedRoot = join(root, 'packaged')
@@ -1101,7 +1101,7 @@ describe('the packaged skills are the source skills, byte for byte', () => {
   })
 
   it('a one-byte drift, a missing copy and a stray copy are each named', () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-432-40-mirror-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-mirror-'))
     try {
       const sourceRoot = join(root, 'source')
       const packagedRoot = join(root, 'packaged')

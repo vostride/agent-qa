@@ -17,8 +17,8 @@ import { createDigestCommand } from '../commands/digest.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'
 import { fileLeftoverKnowledgeProposal } from '../composition/__tests__/leftover-knowledge-proposal.js'
 
-const OLDER_RUN = 'run-391-06-cmd-older'
-const NEWER_RUN = 'run-391-06-cmd-newer'
+const OLDER_RUN = 'run-cmd-older'
+const NEWER_RUN = 'run-cmd-newer'
 
 const ANCHOR: Anchor = { t: 'el', role: 'Button', name: 'Checkout' }
 
@@ -84,7 +84,7 @@ interface Workspace {
 }
 
 function workspace(): Workspace {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-391-06-cmd-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-cmd-'))
   roots.push(root)
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(

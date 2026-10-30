@@ -12,7 +12,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { runPostRunTail, type PostRunTailOperations } from '../curation/post-run-tail.js'
 import type { PostVerdictHandoff } from '../curation/post-verdict-step.js'
 
-const RUN_ID = 'run_444_18_skipped_exit_line'
+const RUN_ID = 'run_skipped_exit_line'
 const CONTEXTS = ['local-headless', 'ci'] as const
 
 const DRAIN_OPERATIONS = [
@@ -47,7 +47,7 @@ async function runSkippedTail(
   executionContext: (typeof CONTEXTS)[number],
   detached: boolean,
 ): Promise<SkippedTailRun> {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-444-18-skipped-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-skipped-'))
   roots.push(root)
   const lines: string[] = []
   const warnings: string[] = []

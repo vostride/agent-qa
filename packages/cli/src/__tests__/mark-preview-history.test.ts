@@ -154,7 +154,7 @@ describe('shared mark consequence plan', () => {
     expect(repeated).not.toHaveProperty('withdraws')
     expect(await preview(f.previewDeps, { runId, stepIndex: 2, kind: 'confirmed-bug' })).toMatchObject({ kind: 'step-not-found' })
 
-    const scratch = mkdtempSync(join(tmpdir(), '423-35-withdrawal-')); roots.push(scratch)
+    const scratch = mkdtempSync(join(tmpdir(), 'withdrawal-')); roots.push(scratch)
     cpSync(f.root, scratch, { recursive: true })
     const copy = { configPath: join(scratch, 'agent-qa.config.yaml'), agentQaRoot: join(scratch, '.agent-qa') }
     const quarantinedHandoff = { ...f.handoff, tests: [{ ...f.handoff.tests[0]!, rootCause: { class: 'timeout' as const, producer: 'deterministic-classifier', confidence: 1, evidence: { citedSteps: [0], citedAnchors: [], citedArtifacts: [], rationale: 'Recorded classification' }, memoryMisdirectionRuledOut: true, perTest: 0 } }] }
@@ -196,7 +196,7 @@ describe('shared mark consequence plan', () => {
 })
 
 // Marks history over the real ledger: each mark's applied change, with no write.
-const SECRET = 'synthetic-423-18-history-token'
+const SECRET = 'synthetic-history-token'
 const CHIP = '[secret:HISTORY_SYNTHETIC_TOKEN]'
 type Mask = (text: string) => string
 function declaredMask(secrets: Record<string, string>): Mask {
@@ -261,7 +261,7 @@ describe('read-only marks history host', () => {
   afterAll(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
   function scene() {
-    const root = mkdtempSync(join(tmpdir(), '423-18-history-')); roots.push(root)
+    const root = mkdtempSync(join(tmpdir(), 'history-')); roots.push(root)
     cpSync(template.root, root, { recursive: true })
     const agentQaRoot = join(root, '.agent-qa')
     const runDir = join(agentQaRoot, 'runs', template.runSlug)
@@ -297,7 +297,7 @@ describe('read-only marks history host', () => {
     const unknown = asRunId(generateRunId())
     expect(await historyOf(reads, unknown)).toEqual({ kind: 'run-not-found', runId: unknown })
     expect(tree(s.root)).toEqual(before)
-    const fresh = mkdtempSync(join(tmpdir(), '423-18-fresh-')); roots.push(fresh)
+    const fresh = mkdtempSync(join(tmpdir(), 'fresh-')); roots.push(fresh)
     const absentRoot = join(fresh, 'never-created', '.agent-qa')
     expect(await historyOf(readsFor({ agentQaRoot: absentRoot }), template.runId)).toEqual({ kind: 'run-not-found', runId: template.runId })
     expect(tree(fresh)).toEqual([[fresh, 'dir']])
@@ -429,7 +429,7 @@ describe('marks history registration and host binding', () => {
   afterAll(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
   function coldScene() {
-    const root = mkdtempSync(join(tmpdir(), '423-18-binding-')); roots.push(root)
+    const root = mkdtempSync(join(tmpdir(), 'mark-binding-')); roots.push(root)
     cpSync(template.root, root, { recursive: true })
     // The note's synthetic token is a declared secret, so a cold host's live mask must hide it.
     writeFileSync(join(root, '.env.secrets.local'), `HISTORY_SYNTHETIC_TOKEN=${SECRET}\n`)
@@ -577,7 +577,7 @@ describe('content-led consequence preview over the read host', () => {
     return f
   }
   function copyOf(f: PreviewFixture) {
-    const root = mkdtempSync(join(tmpdir(), '423-19-scene-')); roots.push(root)
+    const root = mkdtempSync(join(tmpdir(), 'scene-')); roots.push(root)
     cpSync(f.root, root, { recursive: true })
     const rebase = (path: string) => join(root, path.slice(f.root.length))
     return { ...f, root, agentQaRoot: rebase(f.agentQaRoot), configPath: rebase(f.configPath), knowledgeRoot: rebase(f.knowledgeRoot),
@@ -816,7 +816,7 @@ describe('runs.mark.preview registration and composed invocation', () => {
   afterAll(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
   function coldScene() {
-    const root = mkdtempSync(join(tmpdir(), '423-19-binding-')); roots.push(root)
+    const root = mkdtempSync(join(tmpdir(), 'cold-scene-binding-')); roots.push(root)
     cpSync(template.root, root, { recursive: true })
     writeFileSync(join(root, '.env.secrets.local'), `HISTORY_SYNTHETIC_TOKEN=${SECRET}\n`)
     const agentQaRoot = join(root, '.agent-qa')
@@ -968,7 +968,7 @@ describe('feedback reads over both HTTP doors', () => {
   afterAll(() => { for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 
   async function httpScene() {
-    const root = mkdtempSync(join(tmpdir(), '423-21-http-')); roots.push(root)
+    const root = mkdtempSync(join(tmpdir(), 'http-')); roots.push(root)
     cpSync(template.root, root, { recursive: true })
     writeFileSync(join(root, '.env.secrets.local'), `HISTORY_SYNTHETIC_TOKEN=${SECRET}\n`)
     const agentQaRoot = join(root, '.agent-qa')

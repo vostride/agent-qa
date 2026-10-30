@@ -105,7 +105,7 @@ function workspaceFixture(
   roots: string[],
   ordinals: Readonly<Record<string, number>> = { [PRODUCT]: BUILD_ORDINAL },
 ): Workspace {
-  const root = mkdtempSync(join(tmpdir(), `agent-qa-432-maintenance-${randomUUID()}-`))
+  const root = mkdtempSync(join(tmpdir(), `agent-qa-maintenance-${randomUUID()}-`))
   roots.push(root)
   const configPath = join(root, 'agent-qa.config.yaml')
   const runtimeRoot = join(root, '.agent-qa')

@@ -395,7 +395,7 @@ afterEach(() => {
 })
 
 function declaringProject(secrets: string): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-441-analytics-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-analytics-'))
   projectRoots.push(root)
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
@@ -435,7 +435,7 @@ async function shippedSendPath(
     projectKey: 'phc_test_key',
     posthogTransportFactory: (options) =>
       createPosthogTransport({ ...options, client: fakeClient(sent) }),
-    resolveIdentity: async () => ({ distinctId: 'u_c441', runtimeContext: 'user' as const }),
+    resolveIdentity: async () => ({ distinctId: 'u_analytics-host', runtimeContext: 'user' as const }),
   })
   return { host, sent }
 }
@@ -450,7 +450,7 @@ function eventCarrying(host: CliAnalyticsHost, text: string): AgentQaAnalyticsEv
 
 describe('declared secrets in analytics payloads', () => {
   it('a declared value in an analytics property leaves as its named marker', async () => {
-    const configPath = declaringProject('SHORT_441=q^7\n')
+    const configPath = declaringProject('SHORT_KEY=q^7\n')
     const { host, sent } = await shippedSendPath({ mask: createDeclaredSecretMask(configPath).mask })
     const event = eventCarrying(host, 'q^7')
 
@@ -460,20 +460,20 @@ describe('declared secrets in analytics payloads', () => {
     expect(sent).toHaveLength(1)
     expect(sent[0]?.event).toBe('agent-qa.explain.answered')
     expect(Object.keys(sent[0]!.properties).sort()).toEqual(Object.keys(event.properties).sort())
-    expect(sent[0]?.properties.planted_text).toBe('before [secret:SHORT_441] after')
+    expect(sent[0]?.properties.planted_text).toBe('before [secret:SHORT_KEY] after')
     expect(JSON.stringify(sent)).not.toContain('q^7')
   })
 
   it('an environment-only value is not masked in an analytics payload', async () => {
-    vi.stubEnv('AGENT_QA_X_PASSWORD', 'env-only-value-441')
-    const configPath = declaringProject('SHORT_441=q^7\n')
+    vi.stubEnv('AGENT_QA_X_PASSWORD', 'env-only-value')
+    const configPath = declaringProject('SHORT_KEY=q^7\n')
     const { host, sent } = await shippedSendPath({ mask: createDeclaredSecretMask(configPath).mask })
 
     host.port.capture(eventCarrying(host, process.env.AGENT_QA_X_PASSWORD!))
     await host.flush()
 
     expect(sent).toHaveLength(1)
-    expect(sent[0]?.properties.planted_text).toBe('before env-only-value-441 after')
+    expect(sent[0]?.properties.planted_text).toBe('before env-only-value after')
   })
 
   it('a mask that throws drops the event', async () => {
@@ -496,7 +496,7 @@ describe('declared secrets in analytics payloads', () => {
       client: fakeClient(direct),
     })
     expect(() =>
-      transport.capture({ distinctId: 'u_c441', event: eventCarrying(host, 'anything') }),
+      transport.capture({ distinctId: 'u_analytics-host', event: eventCarrying(host, 'anything') }),
     ).not.toThrow()
     expect(direct).toEqual([])
   })
@@ -680,7 +680,7 @@ describe('CI classification through the execution-context detector', () => {
 describe('distinct CI identities per composition', () => {
   it('two CI compositions carry two different ci_ ids, each one stable across its own events', async () => {
     vi.stubEnv('CI', '1')
-    const home = mkdtempSync(join(tmpdir(), 'agent-qa-447-ci-home-'))
+    const home = mkdtempSync(join(tmpdir(), 'agent-qa-ci-home-'))
     homeRoots.push(home)
 
     const ids: string[] = []

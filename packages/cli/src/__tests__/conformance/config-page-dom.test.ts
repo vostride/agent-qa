@@ -59,15 +59,15 @@ const LEGACY_LINKS = [
 
 // Invented sentinels only: nothing here exists outside this file.
 const SENTINELS = {
-  header: 'zz-429-33-HEADER-SENTINEL-4c1e',
-  access: 'zz-429-33-ACCESS-HEADER-9b27',
-  udid: 'zz-429-33-UDID-SENTINEL-0d61',
-  auth: 'zz-429-33-AUTH-JSON-SENTINEL-73fa',
+  header: 'zz-HEADER-SENTINEL-4c1e',
+  access: 'zz-ACCESS-HEADER-9b27',
+  udid: 'zz-UDID-SENTINEL-0d61',
+  auth: 'zz-AUTH-JSON-SENTINEL-73fa',
 } as const
 // Undeclared values written inside comments, which the file view shows as written.
 const COMMENT_SENTINELS = {
-  above: 'zz-429-41-COMMENTED-HEADER-SENTINEL-5e0a',
-  trailing: 'zz-429-41-TRAILING-COMMENT-SENTINEL-a3d8',
+  above: 'zz-COMMENTED-HEADER-SENTINEL-5e0a',
+  trailing: 'zz-TRAILING-COMMENT-SENTINEL-a3d8',
 } as const
 // A plain MCP leaf, which the file view must show in clear and untagged.
 const MCP_PORT = '3471'
@@ -134,7 +134,7 @@ interface Project {
 
 /** A project the shipped dashboard opens, with its HOME (and so its auth.json) inside the temp root. */
 function writeProject(label: string, config: string, auth?: Record<string, unknown>): Project {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-429-33-${label}-`)))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-${label}-`)))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(configPath, config, 'utf8')
   writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n', 'utf8')
@@ -516,7 +516,7 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle'
 
 // ---- The continuous add flow, keyboard recovery and outside edits ----
 
-const TYPED_KEY = 'zz-429-33-typed-key-not-a-credential-5e0a'
+const TYPED_KEY = 'zz-typed-key-not-a-credential-5e0a'
 const CONNECTED_SAVED = (name: string) => `Connected. Saved as ${name}.`
 const BECAME_DEFAULT = "It's now the default model."
 

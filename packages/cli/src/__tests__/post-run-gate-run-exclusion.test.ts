@@ -41,7 +41,7 @@ import { exercisedAnchors } from '../curation/handoff-anchors.js'
 import { createPostVerdictStep } from '../curation/post-verdict-step.js'
 import { defaultCurationTailOperations } from '../curation/curation-tail.js'
 
-const RUN_ID = 'run-393-05-gate-exclusion'
+const RUN_ID = 'run-gate-exclusion'
 const BUILD_ORDINAL = 7
 const PASSING_FILE = 'tests/checkout.yaml'
 const PASSING_NAME = 'checkout completes the payment sheet'
@@ -234,7 +234,7 @@ interface Side {
  */
 function side(label: string, markers: { gateRun?: true; excludedFromOutcomes?: true }): Side {
   // Turbo can omit TMPDIR, yielding macOS's /tmp symlink. Canonicalize only our owned fixture.
-  const agentQaRoot = realpathSync(mkdtempSync(join(tmpdir(), `agent-qa-393-05-${label}-`)))
+  const agentQaRoot = realpathSync(mkdtempSync(join(tmpdir(), `agent-qa-${label}-`)))
   roots.push(agentQaRoot)
   writeFileSync(join(agentQaRoot, 'agent-qa.config.yaml'), 'workspace:\n  testMatch: [tests/**/*.yaml]\n  suiteMatch: [suites/**/*.suite.yaml]\n  hooksFile: hooks.yaml\n  envFile: .env\n  secretsFile: .env.secrets.local\nuse:\n  mobile:\n    appState: preserve\n')
   const knowledgeRoot = join(agentQaRoot, 'knowledge')

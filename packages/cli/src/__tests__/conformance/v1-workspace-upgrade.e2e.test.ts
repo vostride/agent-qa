@@ -269,7 +269,7 @@ function writeRunsDatabase(path: string): void {
 }
 
 function buildV1Workspace(): string {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-445-11-hard-cut-')))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-hard-cut-')))
   git(root, ['init', '--quiet'])
   write(root, 'agent-qa.config.yaml', v1Config())
   write(root, V1_RULES_FILE, `# agent-qa Rules\n\n${AGENT_RULE}\n`)
@@ -340,7 +340,7 @@ function buildV1Workspace(): string {
     private: true,
     devDependencies: { '@vostride/agent-qa-subscription-auth': '*' },
   }, null, 2)}\n`)
-  write(root, '.env', 'C445_OWN_ENV=kept-value\n')
+  write(root, '.env', 'OWN_ENV=kept-value\n')
   write(root, '.env.secrets.local', '', 0o600)
   for (const path of USER_TESTS) {
     write(root, path, v1Test(`Own test ${path}`, 'komazon', [

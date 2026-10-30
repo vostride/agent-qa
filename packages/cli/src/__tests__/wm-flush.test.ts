@@ -47,7 +47,7 @@ describe('flushWorkingMemory — happy path', () => {
 
 describe('working-memory flush masking', () => {
   it('the working-memory flush masks a declared value and keeps the rest', async () => {
-    const redactor = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz'))
+    const redactor = new SecretRedactor(SecretStore.fromEnvContent('PW_KEY=Hunter-42-zz'))
     const store = fakeStore([
       { key: 'password', value: 'Hunter-42-zz', kind: 'extracted-value', provenance: 'observation' },
       { key: 'card', value: '4242 4242 4242 4242', kind: 'extracted-value', provenance: 'observation' },
@@ -59,7 +59,7 @@ describe('working-memory flush masking', () => {
 
     const raw = await readFile(result.path, 'utf8')
     const written = JSON.parse(raw) as { entries: Entry[] }
-    expect(written.entries.find((e) => e.key === 'password')?.value).toBe('[secret:PW_441]')
+    expect(written.entries.find((e) => e.key === 'password')?.value).toBe('[secret:PW_KEY]')
     expect(written.entries.find((e) => e.key === 'card')?.value).toBe('4242 4242 4242 4242')
     expect(raw).not.toContain('Hunter-42-zz')
     expect('blocked' in result).toBe(false)

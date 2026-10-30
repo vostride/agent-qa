@@ -411,7 +411,7 @@ async function runConfigCommand(
 
 describe('config show and set with declared secrets', () => {
   it('config show prints an undeclared credential-named value as written and a declared value as its marker', async () => {
-    const dir = join(TMP_DIR, 'show-441')
+    const dir = join(TMP_DIR, 'show')
     await mkdir(dir, { recursive: true })
     const config = makeValidConfig({
       registry: {
@@ -420,7 +420,7 @@ describe('config show and set with declared secrets', () => {
           provider: 'openai-compatible',
           model: 'gpt-4o',
           baseURL: 'https://api.openai.com/v1',
-          providerHeaders: { 'X-Api-Key': 'plain-441-value' },
+          providerHeaders: { 'X-Api-Key': 'plain-value' },
         }],
       },
     })
@@ -431,7 +431,7 @@ describe('config show and set with declared secrets', () => {
     const { output, exitCode } = await runConfigCommand(dir, ['show'])
 
     expect(output).toContain('registry.llms[0].providerHeaders.X-Api-Key')
-    expect(output).toContain('plain-441-value')
+    expect(output).toContain('plain-value')
     expect(output).toContain('[secret:ACCOUNT_PASSWORD]')
     expect(output).not.toContain('Hunter-42-zz')
     expect(output).not.toContain('<redacted>')
@@ -439,7 +439,7 @@ describe('config show and set with declared secrets', () => {
   })
 
   it('config show refuses at start when the secrets file cannot be read', async () => {
-    const dir = join(TMP_DIR, 'show-refuse-441')
+    const dir = join(TMP_DIR, 'show-refuse')
     await mkdir(dir, { recursive: true })
     await writeFile(join(dir, 'agent-qa.config.yaml'), JSON.stringify(makeValidConfig()))
 
@@ -451,22 +451,22 @@ describe('config show and set with declared secrets', () => {
   })
 
   it('config set writes a credential-named key and a credential-shaped value', async () => {
-    const dir = join(TMP_DIR, 'set-441')
+    const dir = join(TMP_DIR, 'set')
     await mkdir(dir, { recursive: true })
 
-    const named = await runConfigCommand(dir, ['set', 'apiToken', 'sk-test-441'])
+    const named = await runConfigCommand(dir, ['set', 'apiToken', 'sk-test'])
     const shaped = await runConfigCommand(dir, ['set', 'use.buildTag', 'AKIAIOSFODNN7EXAMPLE'])
 
     expect(named.exitCode).toBe(0)
     expect(shaped.exitCode).toBe(0)
     const written = await readFile(join(dir, 'agent-qa.config.yaml'), 'utf-8')
-    expect(written).toContain('apiToken: sk-test-441')
+    expect(written).toContain('apiToken: sk-test')
     expect(written).toContain('buildTag: AKIAIOSFODNN7EXAMPLE')
   })
 
   it("the --debug table masks with the run's declared secrets", () => {
     const redactor = new SecretRedactor(SecretStore.fromEnvContent('ACCOUNT_PASSWORD=Hunter-42-zz\n'))
-    process.env.AGENT_QA_CACHE_DIR = 'sk-env-only-441-cache'
+    process.env.AGENT_QA_CACHE_DIR = 'sk-env-only-cache'
     const globalConfig = mergeConfigs(makeValidConfig(), loadEnvOverrides(), {})
 
     const table = formatConfigDebug(
@@ -479,7 +479,7 @@ describe('config show and set with declared secrets', () => {
     expect(table).toContain('[secret:ACCOUNT_PASSWORD]')
     expect(table).not.toContain('Hunter-42-zz')
     expect(table).toContain('services.cache.dir')
-    expect(table).toContain('sk-env-only-441-cache')
+    expect(table).toContain('sk-env-only-cache')
     expect(table).not.toContain('<redacted>')
   })
 })

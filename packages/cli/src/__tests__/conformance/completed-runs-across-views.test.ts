@@ -201,7 +201,7 @@ async function readMcpList(project: PopulatedRunProject): Promise<Scene['mcp']> 
     stderr: 'pipe',
     env,
   })
-  const client = new Client({ name: 'agent-qa-444-18-completed-views', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-completed-views', version: '0.0.0' })
   try {
     await client.connect(transport)
     const result = await client.callTool(
@@ -283,7 +283,7 @@ async function drive(): Promise<void> {
     failOnlyStepText: POPULATED_FAILURE_STEP_MARKER,
     holdOnlyStepText: HOLD_MARKER,
   })
-  const project = populatedRunFixtureProject('444-completed-views', {
+  const project = populatedRunFixtureProject('completed-views', {
     modelBaseUrl: model.baseUrl,
     targetUrl: target.url,
   })

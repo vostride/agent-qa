@@ -39,7 +39,7 @@ import { enqueueThroughTheStep } from './post-run-step-harness.js'
 // Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-const RUN_ID = 'run-388-04-chips'
+const RUN_ID = 'run-chips'
 const EVENTS_FILE = 'events.jsonl'
 
 // Unparseable text, not a throw: a throwing model aborts the chain; this degrades to the floor.
@@ -145,7 +145,7 @@ function fixture(behaviour: {
   /** The tail's mask, threaded to the fold and to the chip's error field. */
   mask?: (text: string) => string
 } = {}): Fixture {
-  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-388-04-'))
+  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   roots.push(agentQaRoot)
   const knowledgeRoot = join(agentQaRoot, 'knowledge')
   mkdirSync(knowledgeRoot, { recursive: true })
@@ -337,7 +337,7 @@ describe('the post-run chip emitter', () => {
 
   it('masks the failure chip\'s error through the run\'s own masker and bounds it',
     async () => {
-      const SECRET = 'sk-live-388-07-do-not-log-me'
+      const SECRET = 'sk-live-do-not-log-me'
       const REDACTION = '«redacted:provider-key»'
       const f = fixture({
         // The token sits EARLY in the message and the padding after it, so the mask has to have

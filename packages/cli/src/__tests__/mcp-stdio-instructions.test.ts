@@ -31,7 +31,7 @@ function childEnv(): Record<string, string> {
 }
 
 function tempDir(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-433-33-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   roots.push(root)
   return root
 }
@@ -48,7 +48,7 @@ async function stdioInstructions(cwd: string): Promise<string | undefined> {
   const transport = new StdioClientTransport({
     command: process.execPath, args: [CLI_ENTRY, 'mcp'], cwd, stderr: 'pipe', env: childEnv(),
   })
-  const client = new Client({ name: 'agent-qa-433-33-stdio', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-stdio', version: '0.0.0' })
   try {
     await client.connect(transport)
     return client.getInstructions()

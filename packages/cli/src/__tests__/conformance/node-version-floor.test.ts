@@ -50,7 +50,7 @@ interface FloorRun {
 let counter = 0
 
 function makeRoot(): string {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-445-node-floor-')))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-node-floor-')))
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   writeFileSync(join(root, 'hooks.mjs'), HOOKS, 'utf8')
   writeFileSync(join(root, 'register.mjs'), REGISTER, 'utf8')

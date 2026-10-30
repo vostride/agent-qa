@@ -16,7 +16,7 @@ const UI_DIR = join(PACKAGES_ROOT, 'dashboard-ui', 'dist')
 const { scratchHome } = await vi.hoisted(async () => {
   const fs = await import('node:fs')
   const os = await import('node:os')
-  return { scratchHome: fs.mkdtempSync(`${os.tmpdir()}/419-mark-ui-auth-`) }
+  return { scratchHome: fs.mkdtempSync(`${os.tmpdir()}/mark-ui-auth-`) }
 })
 vi.mock('node:os', async original => ({ ...await original<typeof import('node:os')>(), homedir: () => scratchHome }))
 const RECHECK_DIR = process.env.AGENT_QA_MARK_UI_RECHECK_DIR

@@ -36,7 +36,7 @@ import { chromium, type Browser, type Page } from 'playwright-core'
 import { composeDashboardAgentHost } from '../../commands/dashboard.js'
 import { PACKAGES_ROOT } from './spawned-chat.js'
 
-const AUTH_TOKEN = 'synthetic-423-cookie-token'
+const AUTH_TOKEN = 'synthetic-cookie-token'
 const AUTH_STATE = JSON.stringify({
   cookies: [{ name: 'session', value: AUTH_TOKEN, domain: 'app.test', path: '/' }],
   origins: [],
@@ -47,7 +47,7 @@ async function startFixture(
   display?: { name: string; attributes: Record<string, string> },
   extraDeps?: (runId: string) => Partial<FunctionDeps>,
 ) {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-sinks-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-sinks-'))
   const db = new DashboardDatabase({ dbPath: join(root, 'dashboard.db') })
   const runId = generateRunId()
   // Records hold the declared marker the run wrote; reads mask with the same store.
@@ -285,8 +285,8 @@ describe('rendered run-detail sinks', () => {
 })
 
 // Driven by keyboard on the built bundle, scoped to the routed page's own `<main>`.
-const MEMBER_RECORD = 'mem_member-423-24'
-const STEP_RECORD = 'mem_step-423-24'
+const MEMBER_RECORD = 'mem_member'
+const STEP_RECORD = 'mem_step'
 
 function appliedReceipt(runId: string, ordinal: number, recordId: string, stepIndex?: number): MarkReceipt {
   return MarkReceiptSchema.parse({

@@ -1708,7 +1708,7 @@ describe('declared secrets in curated candidates', () => {
   }
 
   it('the curation tail masks candidate prose with the mask it is handed', async () => {
-    const handoff = maskRun('r-c441-curation-tail', [
+    const handoff = maskRun('r-curation-tail', [
       maskStep({
         stepIndex: 0,
         stepText: `Sign in as ${EMAIL} with ${DECLARED}`,
@@ -1717,7 +1717,7 @@ describe('declared secrets in curated candidates', () => {
       }),
       maskStep({ stepIndex: 1, stepText: 'Open the orders page', ref: 'orders', name: 'Orders' }),
     ])
-    const root = mkdtempSync(join(tmpdir(), 'c441-curation-'))
+    const root = mkdtempSync(join(tmpdir(), 'curation-'))
     try {
       const agentQaRoot = join(root, '.agent-qa')
       const knowledgeRoot = join(root, 'agent-qa-knowledge')
@@ -1731,7 +1731,7 @@ describe('declared secrets in curated candidates', () => {
         configDir: root,
         mask: declaredMask(),
         log: { warn: () => undefined },
-        authority: { leaseId: 'c441-lease', epoch: 1 },
+        authority: { leaseId: 'lease', epoch: 1 },
         operations: {
           loadCompletedRunHandoff: () => handoff,
           resolveKnowledgeRoot: () => knowledgeRoot,
@@ -1767,7 +1767,7 @@ describe('declared secrets in curated candidates', () => {
   })
 
   it("a passed assertValue's measurement seed carries the declared marker", () => {
-    const handoff = maskRun('r-c441-measurement', [
+    const handoff = maskRun('r-measurement', [
       maskStep({
         stepIndex: 0,
         stepText: 'Check the stored session note',
@@ -1782,10 +1782,10 @@ describe('declared secrets in curated candidates', () => {
         },
       }),
     ])
-    const root = mkdtempSync(join(tmpdir(), 'c441-measurement-'))
+    const root = mkdtempSync(join(tmpdir(), 'measurement-'))
     try {
       const knowledgeRoot = join(root, 'agent-qa-knowledge')
-      const runDir = join(root, 'runs', 'r-c441-measurement')
+      const runDir = join(root, 'runs', 'r-measurement')
       mkdirSync(runDir, { recursive: true })
       const report = emitCurationCandidates({
         handoff, runDir, knowledgeRoot, mask: declaredMask(),
@@ -1811,7 +1811,7 @@ describe('a typed value that contains a declared value', () => {
     const redactor = new SecretRedactor(new SecretStore({ PW: 'hunter2' }))
     const handoff: CompletedRunHandoff = {
       schemaVersion: CURRENT_HANDOFF_SCHEMA_VERSION,
-      runId: asRunId('r-c441-gap2-author'),
+      runId: asRunId('r-gap2-author'),
       scope: { tier: 'product', key: 'storefront' },
       buildOrdinal: 42,
       executionContext: 'local-interactive',

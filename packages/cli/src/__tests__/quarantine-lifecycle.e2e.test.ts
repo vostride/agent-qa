@@ -486,7 +486,7 @@ async function driveRun(env: Harness, script: RunScript, now = NOW): Promise<Dri
 
 describe('the quarantine lifecycle, end to end', () => {
   it('runs A..H: in at the crossing, suppressed-but-visible, auto-out after 5, honest again', async () => {
-    const env = harness('agent-qa-390-lifecycle-')
+    const env = harness('agent-qa-lifecycle-')
 
     // --- ordinals 1 and 2: the failure recurs, below the escalate threshold ---------------------
     const pre1 = await driveRun(env, { runId: 'run-lifecycle-1', buildOrdinal: 1, outcome: 'failed' })
@@ -608,7 +608,7 @@ describe('the quarantine lifecycle, end to end', () => {
 
 describe('a quarantined failure never silences an un-quarantined one', () => {
   it('the failing sibling runs AND fails the build at exit 1, behind a licensed failure', async () => {
-    const env = harness('agent-qa-390-antisilencing-')
+    const env = harness('agent-qa-antisilencing-')
 
     // three failing ordinals — the same crossing runs A..H drive, through the same fold
     for (const buildOrdinal of [1, 2, 3]) {
@@ -684,7 +684,7 @@ describe('a failing member with no analysis budget can still be quarantined', ()
   }
 
   it('authors an entered line NAMING the member, on the floor, with no analyst in the run', async () => {
-    const env = harness('agent-qa-390-nobudget-')
+    const env = harness('agent-qa-nobudget-')
 
     const crossing = await driveCrossing(env, { sameOrdinalPass: true })
 
@@ -739,7 +739,7 @@ describe('a failing member with no analysis budget can still be quarantined', ()
   }, 120_000)
 
   it('authors NOTHING for the same crossing without the same-ordinal pass', async () => {
-    const env = harness('agent-qa-390-nobudget-nosig-')
+    const env = harness('agent-qa-nobudget-nosig-')
 
     // The ONLY delta from the leg above: no second applied run at ordinal 1. Same class, same
     // producer, same three occurrence ordinals, same absent analyst — so the refusal is the
@@ -770,7 +770,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
   const LAPSED_EXPIRY = '2026-07-01T12:00:00.000Z'
 
   it('a lapsed deadline fails the run again AND reads as expired in the sentence', async () => {
-    const env = harness('agent-qa-390-expiry-')
+    const env = harness('agent-qa-expiry-')
 
     // Failing ordinals at the past instant give an entry whose deadline has passed.
     for (const buildOrdinal of [1, 2, 3]) {
@@ -871,7 +871,7 @@ describe('the expiry lapse: what one lapsed deadline buys', () => {
     const CYCLE_4_DEADLINE = '2026-05-08T12:00:00.000Z'
 
     it('re-enters on every lapse with a fresh deadline, releases nothing, and never attenuates', async () => {
-      const env = harness('agent-qa-390-cycles-')
+      const env = harness('agent-qa-cycles-')
 
       // CYCLE 1 — the crossing. Three failing ordinals mint the first entry.
       for (const buildOrdinal of [1, 2, 3]) {

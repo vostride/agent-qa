@@ -352,7 +352,7 @@ describe('a failed write still closes the row with the verdict status', () => {
   }, RUN_BUDGET_MS)
 
   it("a two-member run whose second member's write fails ends at the run's verdict status", async () => {
-    const configDir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-443-record-close-')))
+    const configDir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-record-close-')))
     opened.push(() => rmSync(configDir, { recursive: true, force: true }))
     mkdirSync(join(configDir, '.agent-qa'), { recursive: true })
     const real = new DashboardDatabase({

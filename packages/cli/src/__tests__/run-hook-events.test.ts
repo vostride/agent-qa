@@ -378,7 +378,7 @@ import { createRunCommand } from '../commands/run.js'
 const SETUP_HOOK_ID = 'h_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
 const TEARDOWN_HOOK_ID = 'h_kettle-lemon-maple-nectar-orchid-pepper-quartz-river-saddle-timber'
 const TEST_ID = 't_amber-birch-coral-delta-ember-falcon-garden-harbor-island-jungle'
-const SECRET = 'SECRET-433'
+const SECRET = 'SECRET-hook-value'
 
 function defaultConfig() {
   return {
@@ -490,7 +490,7 @@ beforeEach(async () => {
   errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
 
   originalCwd = process.cwd()
-  tempDir = await mkdtemp(path.join(tmpdir(), 'agent-qa-433-hooked-run-'))
+  tempDir = await mkdtemp(path.join(tmpdir(), 'agent-qa-hooked-run-'))
   await writeFile(path.join(tempDir, 'hooks.yaml'), 'hooks: []\n', 'utf-8')
   await writeFile(path.join(tempDir, 'agent-rules.md'), '', 'utf-8')
   await writeFile(path.join(tempDir, '.env'), '', 'utf-8')

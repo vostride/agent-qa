@@ -108,7 +108,7 @@ export function genericFnClause(opId: string, input: unknown): string {
  * the gate is what answers.
  */
 function fixtureWorkspace(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-397-04-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,

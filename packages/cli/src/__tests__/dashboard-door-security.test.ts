@@ -18,18 +18,18 @@ import { composeDashboardDoor } from '../commands/dashboard.js'
 const HOSTILE_ORIGIN = 'https://evil.example'
 
 /** The run the mark door is driven against. Not recorded, so the op answers `run-not-found`. */
-const MARKED_RUN = 'run-432-14-door-security'
+const MARKED_RUN = 'run-door-security'
 const MARK_PATH = `/api/runs/${MARKED_RUN}/mark`
 const MARK_BODY = JSON.stringify({ kind: 'false-fail', note: 'door security' })
 
 /** A run row the dashboard's own run read serves, so gap 7's synchronous read arm has a subject. */
-const READ_RUN = 'run-432-14-read'
+const READ_RUN = 'run-read'
 
 // ---- the fixture project -------------------------------------------------------------------
 
 /** The `surface-dispatch.ts` fixture project, verbatim in shape (see the door cell's own note). */
 function fixtureWorkspace(secrets = ''): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-400-14-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(join(root, '.env.secrets.local'), secrets, 'utf8')
   writeFileSync(
@@ -534,7 +534,7 @@ describe('the fourth door refuses a cross-origin drive before anything happens',
   it('refuses every retained same-site mutating arm before its own side effect, and each arm acts for its own page', async () => {
     const door = await openDoor()
     const savedDataHome = process.env.XDG_DATA_HOME
-    const dataHome = mkdtempSync(join(tmpdir(), 'agent-qa-432-14-auth-'))
+    const dataHome = mkdtempSync(join(tmpdir(), 'agent-qa-auth-'))
     process.env.XDG_DATA_HOME = dataHome
     const sink = await openProviderSink()
     const scene: ArmScene = {
@@ -628,10 +628,10 @@ describe('cross-site mark requests', () => {
 
 describe('the declared mask the dashboard command binds', () => {
   it('the dashboard command binds the declared mask', async () => {
-    const door = await openDoor({ secrets: 'PW_441=Hunter-42-zz\n' })
+    const door = await openDoor({ secrets: 'PW_KEY=Hunter-42-zz\n' })
     const config = JSON.parse(readFileSync(door.configPath, 'utf8')) as { use: Record<string, unknown> }
     config.use.buildTag = 'Hunter-42-zz'
-    config.use.releaseNote = 'plain-441-value'
+    config.use.releaseNote = 'plain-value'
     writeFileSync(door.configPath, `${JSON.stringify(config)}\n`, 'utf8')
 
     const read = await rawRequest(door.port, { method: 'GET', path: '/api/config' })
@@ -639,9 +639,9 @@ describe('the declared mask the dashboard command binds', () => {
     expect(read.status, read.body).toBe(200)
     expect(read.body).not.toContain('Hunter-42-zz')
     const body = JSON.parse(read.body) as { config: { use: Record<string, unknown> }; file: { lines: { text: string }[] } }
-    expect(body.config.use.buildTag).toBe('[secret:PW_441]')
-    expect(body.config.use.releaseNote).toBe('plain-441-value')
-    expect(body.file.lines.some((line) => line.text.includes('[secret:PW_441]'))).toBe(true)
+    expect(body.config.use.buildTag).toBe('[secret:PW_KEY]')
+    expect(body.config.use.releaseNote).toBe('plain-value')
+    expect(body.file.lines.some((line) => line.text.includes('[secret:PW_KEY]'))).toBe(true)
   })
 })
 

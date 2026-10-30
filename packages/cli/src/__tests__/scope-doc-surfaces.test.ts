@@ -90,7 +90,7 @@ describe('the dashboard serves no documentation surface of its own (served surfa
   let configRoot: string
 
   beforeAll(async () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-400-12-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-'))
     const configPath = join(root, 'agent-qa.config.yaml')
     writeFileSync(
       configPath,

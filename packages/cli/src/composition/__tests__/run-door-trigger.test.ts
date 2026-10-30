@@ -102,7 +102,7 @@ async function listen(handler: Parameters<typeof createServer>[1]): Promise<stri
 }
 
 async function startOverMcp(url: string, pattern: string): Promise<string> {
-  const client = new Client({ name: 'agent-qa-443-06-door-trigger', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-door-trigger', version: '0.0.0' })
   try {
     await client.connect(new StreamableHTTPClientTransport(new URL(url)))
     const result = await client.callTool(

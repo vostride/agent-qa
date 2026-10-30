@@ -23,7 +23,7 @@ afterEach(() => {
 })
 
 function tempRoot(): string {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-443-record-open-')))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-record-open-')))
   roots.push(root)
   return root
 }

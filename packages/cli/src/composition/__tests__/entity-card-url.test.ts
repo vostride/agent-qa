@@ -16,7 +16,7 @@ import { afterAll, describe, expect, it } from 'vitest'
 import { createConfigReader } from '../local-agent-host.js'
 
 const DECLARED_VALUE = 'Hunter-42-zz'
-const declaredRedactor = new SecretRedactor(SecretStore.fromEnvContent(`PW_441=${DECLARED_VALUE}\n`))
+const declaredRedactor = new SecretRedactor(SecretStore.fromEnvContent(`PW_KEY=${DECLARED_VALUE}\n`))
 
 const CALLER: FunctionCaller = {
   surface: 'cli',

@@ -321,7 +321,7 @@ export interface LiveViewHarness {
  * `requireExistingFiles: true` refuses a project without.
  */
 function harnessWorkspace(label: string): string {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-403-06-${label}-`)))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-${label}-`)))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,

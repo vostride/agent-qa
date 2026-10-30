@@ -34,7 +34,7 @@ async function runBootstrapBeside(cliMainSource: string): Promise<BootstrapOutco
     { missing: freshness.missing, stale: freshness.stale },
     `these cells copy the built CLI entry: ${REBUILD_INSTRUCTION}`,
   ).toEqual({ missing: [], stale: [] })
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-444-bootstrap-stack-')))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-bootstrap-stack-')))
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   writeFileSync(join(root, 'package.json'), JSON.stringify({ type: 'module' }), 'utf8')
   copyFileSync(CLI_ENTRY, join(root, 'cli.js'))

@@ -661,7 +661,7 @@ describe('a dashboard-launched run leaves no masking-digests sidecar', () => {
     const target = new CountingTarget()
     await target.listen()
     try {
-      const plantedSecret = 'zq7-planted-masking-secret-405-02'
+      const plantedSecret = 'zq7-planted-masking-secret-a'
       const fixture = createInProcessFixture({
         origin: target.origin,
         environment: 'local',
@@ -695,7 +695,7 @@ describe('a dashboard-launched run leaves no masking-digests sidecar', () => {
       const fixture = createInProcessFixture({
         origin: target.origin,
         environment: 'local',
-        plantedSecret: 'zq7-planted-masking-secret-441-48',
+        plantedSecret: 'zq7-planted-masking-secret-b',
       })
 
       try {
@@ -740,7 +740,7 @@ describe('declared secrets in in-process run records', () => {
     const target = new CountingTarget()
     await target.listen()
     try {
-      const plantedSecret = 'zq7-planted-run-records-441'
+      const plantedSecret = 'zq7-planted-run-records'
       const fixture = createInProcessFixture({
         origin: target.origin,
         environment: 'local',
@@ -773,7 +773,7 @@ describe('declared secrets in in-process run records', () => {
         stepText: 'Sign in with Hunter-42-zz, then with Later-99-qq',
       })
       const secretsPath = join(fixture.project, '.env.secrets.local')
-      writeFileSync(secretsPath, 'PW_441=Hunter-42-zz\n')
+      writeFileSync(secretsPath, 'PW_KEY=Hunter-42-zz\n')
       let rewritten = false
       try {
         await runInProcessCliRun(
@@ -785,7 +785,7 @@ describe('declared secrets in in-process run records', () => {
               session.subscribe(1, () => {
                 if (rewritten) return
                 rewritten = true
-                writeFileSync(secretsPath, 'PW_441=Later-99-qq\n')
+                writeFileSync(secretsPath, 'PW_KEY=Later-99-qq\n')
               })
             },
           },
@@ -795,7 +795,7 @@ describe('declared secrets in in-process run records', () => {
 
       expect(rewritten).toBe(true)
       const lines = eventLines(fixture)
-      expect(onlyStepText(lines)).toBe('Sign in with [secret:PW_441], then with Later-99-qq')
+      expect(onlyStepText(lines)).toBe('Sign in with [secret:PW_KEY], then with Later-99-qq')
       expect(lines.filter((line) => line.includes('Hunter-42-zz'))).toEqual([])
     } finally {
       await target.close()
@@ -806,11 +806,11 @@ describe('declared secrets in in-process run records', () => {
     const target = new CountingTarget()
     await target.listen()
     try {
-      const stepText = 'Use alpha-441-x and bravo-441-y'
+      const stepText = 'Use alpha-x and bravo-y'
       const alpha = createInProcessFixture({ origin: target.origin, environment: 'local', stepText })
       const bravo = createInProcessFixture({ origin: target.origin, environment: 'local', stepText })
-      writeFileSync(join(alpha.project, '.env.secrets.local'), 'A_441=alpha-441-x\n')
-      writeFileSync(join(bravo.project, '.env.secrets.local'), 'B_441=bravo-441-y\n')
+      writeFileSync(join(alpha.project, '.env.secrets.local'), 'A_KEY=alpha-x\n')
+      writeFileSync(join(bravo.project, '.env.secrets.local'), 'B_KEY=bravo-y\n')
       const run = async (fixture: typeof alpha): Promise<void> => {
         try {
           await runInProcessCliRun(
@@ -823,10 +823,10 @@ describe('declared secrets in in-process run records', () => {
 
       const alphaLines = eventLines(alpha)
       const bravoLines = eventLines(bravo)
-      expect(onlyStepText(alphaLines)).toBe('Use [secret:A_441] and bravo-441-y')
-      expect(onlyStepText(bravoLines)).toBe('Use alpha-441-x and [secret:B_441]')
-      expect(alphaLines.filter((line) => line.includes('alpha-441-x'))).toEqual([])
-      expect(bravoLines.filter((line) => line.includes('bravo-441-y'))).toEqual([])
+      expect(onlyStepText(alphaLines)).toBe('Use [secret:A_KEY] and bravo-y')
+      expect(onlyStepText(bravoLines)).toBe('Use alpha-x and [secret:B_KEY]')
+      expect(alphaLines.filter((line) => line.includes('alpha-x'))).toEqual([])
+      expect(bravoLines.filter((line) => line.includes('bravo-y'))).toEqual([])
     } finally {
       await target.close()
     }

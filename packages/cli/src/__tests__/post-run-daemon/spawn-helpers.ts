@@ -52,7 +52,7 @@ export interface PostRunDaemonPaths {
 const temporaryRoots: string[] = []
 
 export function makePostRunDaemonRoot(label: string): PostRunDaemonPaths {
-  const root = mkdtempSync(join(tmpdir(), `agent-qa-388-06-${label}-`))
+  const root = mkdtempSync(join(tmpdir(), `agent-qa-${label}-`))
   temporaryRoots.push(root)
   const paths: PostRunDaemonPaths = {
     root,

@@ -366,7 +366,7 @@ describe('agent-qa ask on the shipped binary: one receipt word, one exit code', 
   /** Spawn the built entry for one `ask`, asserting the build is the one this source describes. */
   async function spawnAsk(label: string, message: string): Promise<SpawnOutcome> {
     expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
-    const fixture = fixtureProject(`399-1-09-exit-${label}`)
+    const fixture = fixtureProject(`exit-${label}`)
     return await spawnCollecting(
       fixture.root,
       [CLI_ENTRY, '--config', fixture.configPath, 'ask', message],

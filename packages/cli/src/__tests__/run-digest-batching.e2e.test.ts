@@ -42,11 +42,11 @@ const MINT_IDENTITY = (filePath: string): string => filePath
 
 
 /** The heartbeat run whose chain drains in-process — the digest's subject. */
-const RUN_ID = 'run-391-06-batching'
+const RUN_ID = 'run-batching'
 /** The cross-instance attribution control: a DIFFERENT run, minting into the same store. */
-const OTHER_RUN = 'run-391-06-batching-other'
+const OTHER_RUN = 'run-batching-other'
 /** A third run nothing is attributed to — the zero-proposal arm. */
-const EMPTY_RUN = 'run-391-06-batching-empty'
+const EMPTY_RUN = 'run-batching-empty'
 
 const ANCHOR: Anchor = { t: 'el', role: 'Button', name: 'Checkout' }
 
@@ -133,7 +133,7 @@ interface Fixture {
 }
 
 function fixture(): Fixture {
-  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-391-06-batching-'))
+  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-batching-'))
   roots.push(agentQaRoot)
   const knowledgeRoot = join(agentQaRoot, 'knowledge')
   mkdirSync(knowledgeRoot, { recursive: true })

@@ -84,7 +84,7 @@ let fixture: LayoutFixture | undefined
 const plantedRuns: PlantedLiveRun[] = []
 
 function held(): LayoutFixture {
-  if (fixture === undefined) throw new Error('the 428 live layout fixture never came up')
+  if (fixture === undefined) throw new Error('the live layout fixture never came up')
   return fixture
 }
 
@@ -152,7 +152,7 @@ beforeAll(async () => {
   const jpeg = new Uint8Array(await shotPage.screenshot({ type: 'jpeg', quality: 40 }))
   await shotPage.close()
 
-  const harness = await startLiveViewHarness({ label: '428-24-layout', uiDir: dashboardUiDist() })
+  const harness = await startLiveViewHarness({ label: 'layout', uiDir: dashboardUiDist() })
   fixture = { harness, browser, jpeg }
 
   // Finished, running and pending rows; the pending row draws because testStarted names it.

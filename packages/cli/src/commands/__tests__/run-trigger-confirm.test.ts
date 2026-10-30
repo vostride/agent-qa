@@ -248,7 +248,7 @@ describe('the run button never asks: a click starts the run', () => {
       const historical = `run-trigger:${randomUUID()}`
       const testPath = join(fixture.project, 'tests', 'direct.yaml')
       const runId = scene.db.insertPendingRun({
-        name: 'written-before-432-14',
+        name: 'written-before',
         filePath: testPath,
         metadata: { args: [testPath], ['confirm' + 'Scope']: historical },
       })
@@ -390,13 +390,13 @@ describe('the confirm scope leaves on no door and can be planted on no run', () 
       const historical = `run-trigger:${randomUUID()}`
       const testPath = join(fixture.project, 'tests', 'direct.yaml')
       const metadata = { args: [testPath], ['confirm' + 'Scope']: historical }
-      const runId = scene.db.insertPendingRun({ name: 'written-before-432-14', filePath: testPath, metadata })
+      const runId = scene.db.insertPendingRun({ name: 'written-before', filePath: testPath, metadata })
       scene.db.insertRunArtifact({
         runId,
         kind: 'test',
         payload: {
           runtime: { platform: 'web', queued: true },
-          source: { name: 'written-before-432-14', filePath: testPath, loadStatus: 'queued' },
+          source: { name: 'written-before', filePath: testPath, loadStatus: 'queued' },
           metadata: { ...metadata, attributes: {} },
         },
       })

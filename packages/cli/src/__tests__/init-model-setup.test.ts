@@ -81,7 +81,7 @@ import password from '@inquirer/password'
 import { getProvider } from '@vostride/agent-qa-model'
 import { DEFAULT_ANTHROPIC_MODEL, DEFAULT_OPENAI_MODEL } from '../model-defaults.js'
 
-const DIR = '/tmp/c445-init-llm'
+const DIR = '/tmp/init-llm'
 const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
 const mockWriteFileSync = vi.mocked(writeFileSync)
 const prompts = [select, input, checkbox, confirm, password].map(fn => vi.mocked(fn))

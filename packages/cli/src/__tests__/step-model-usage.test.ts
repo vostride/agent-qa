@@ -81,7 +81,7 @@ vi.mock('@vostride/agent-qa-web', () => ({
 
 let root: string
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'agent-qa-423-scope-'))
+  root = mkdtempSync(join(tmpdir(), 'agent-qa-scope-'))
   boundary.configs.length = 0
   boundary.scopes.length = 0
   boundary.observations.length = 0
@@ -104,9 +104,9 @@ beforeEach(() => {
     const extracting = request.response_format?.json_schema?.name === 'extraction_result'
     const judging = request.response_format?.json_schema?.name === 'ai_judgment'
     return new Response(JSON.stringify({
-      id: 'chat-synthetic-423', created: 1, model: planning ? 'reported-planner' : 'reported-verifier',
+      id: 'chat-synthetic', created: 1, model: planning ? 'reported-planner' : 'reported-verifier',
       choices: [{ index: 0, finish_reason: planning ? 'tool_calls' : 'stop', message: planning
-        ? { role: 'assistant', content: null, tool_calls: [{ id: 'call-synthetic-423', type: 'function', function: {
+        ? { role: 'assistant', content: null, tool_calls: [{ id: 'call-synthetic', type: 'function', function: {
             name: boundary.assertion ? 'common_assertAI' : 'web_click',
             arguments: JSON.stringify({ ...(boundary.assertion ? { claim: 'The Log in button is visible' } : { ref: 'e2' }),
               reasoning: 'Click the button', confidence: 1,

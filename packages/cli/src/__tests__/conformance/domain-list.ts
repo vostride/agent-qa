@@ -39,7 +39,7 @@ export const CANONICAL_ID_DOMAINS: readonly CanonicalDomain[] = Object.freeze([
     domain: 'config',
     charter:
       'the project configuration document: reading the masked resolution, and every write to it, '
-      + 'including scaffolding (395; direct since 432)',
+      + 'including scaffolding',
   }),
   Object.freeze({
     domain: 'editor',

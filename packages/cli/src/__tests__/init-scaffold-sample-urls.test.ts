@@ -83,7 +83,7 @@ async function runInit(args: string[]): Promise<void> {
 
 async function writesFor(platform: string): Promise<Array<{ path: string; content: string }>> {
   mockWriteFileSync.mockClear()
-  await runInit(['--dir', '/tmp/c445-hosts', '--platform', platform])
+  await runInit(['--dir', '/tmp/hosts', '--platform', platform])
   return mockWriteFileSync.mock.calls.map(call => ({
     path: String(call[0]),
     content: String(call[1]),

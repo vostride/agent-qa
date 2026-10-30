@@ -164,7 +164,7 @@ function rendered(result: ToolResult): string {
 
 /** Build the fixture project, the shipped composition, and a connected client over it. */
 async function openWorkspace(configBody: string): Promise<void> {
-  root = mkdtempSync(join(tmpdir(), 'agent-qa-396-06-cred-'))
+  root = mkdtempSync(join(tmpdir(), 'agent-qa-cred-'))
   configPath = join(root, CONFIG_FILE)
   agentQaRoot = join(root, '.agent-qa')
   mkdirSync(agentQaRoot, { recursive: true })
@@ -203,7 +203,7 @@ async function openWorkspace(configBody: string): Promise<void> {
     return res
   }) as typeof fetch
 
-  client = new Client({ name: 'agent-qa-396-06-credential', version: '0.0.0' })
+  client = new Client({ name: 'agent-qa-credential', version: '0.0.0' })
   await client.connect(
     new StreamableHTTPClientTransport(new URL('http://cred.local/mcp'), { fetch: recordingFetch }),
   )
@@ -419,7 +419,7 @@ describe('F · the controls, and the bound they measure', () => {
       // The change is written, and its diff carries an undeclared neighbouring header value as is.
       expect(outcome.outcome, rendered(answer)).toBe('applied')
       expect(leakedWindow(outcome.shownDiff ?? '', OPAQUE_HEADER_PLANT), 'the bound closed — '
-        + 'update this cell and the ledger, and tell 397').toBeDefined()
+        + 'update this cell and the ledger').toBeDefined()
 
       // A declared value reaches the wire as its marker; this one is undeclared.
       expect(masking!.mask(OPAQUE_HEADER_PLANT)).toBe(OPAQUE_HEADER_PLANT)

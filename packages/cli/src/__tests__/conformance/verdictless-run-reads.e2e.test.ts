@@ -97,7 +97,7 @@ async function callTool(name: string, args: Record<string, unknown>): Promise<{ 
 describe('reads of a run with no verdict', () => {
   beforeAll(async () => {
     if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
-    project = await recordedDoorProject('444-verdictless-reads')
+    project = await recordedDoorProject('verdictless-reads')
     passed = await spawnCliRun(project, ['run', project.testPath])
     const stored = runStoreIds(project)
     if (stored.length !== 1) throw new Error(`the baseline run left ${String(stored.length)} run directories\n${transcript(passed)}`)
@@ -110,7 +110,7 @@ describe('reads of a run with no verdict', () => {
       stderr: 'pipe',
       env: stdioEnv(),
     })
-    const connecting = new Client({ name: 'agent-qa-444-13-stdio', version: '0.0.0' })
+    const connecting = new Client({ name: 'agent-qa-stdio', version: '0.0.0' })
     await connecting.connect(transport)
     client = connecting
   }, BUDGET_MS)

@@ -154,7 +154,7 @@ async function connectAs(
   }) as typeof fetch
 
   const client = new Client(
-    { name: 'agent-qa-396-05-differential', version: '0.0.0' },
+    { name: 'agent-qa-differential', version: '0.0.0' },
     era === 'modern' ? { versionNegotiation: { mode: { pin: '2026-07-28' } } } : undefined,
   )
   await client.connect(
@@ -382,7 +382,7 @@ async function namesFromFactory(scopes: readonly string[]): Promise<string[]> {
       maskText: (text: string) => text,
     }),
   )
-  const client = new Client({ name: 'agent-qa-396-05-factory', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-factory', version: '0.0.0' })
   try {
     await client.connect(
       new StreamableHTTPClientTransport(new URL('http://factory.local/mcp'), {

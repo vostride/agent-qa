@@ -84,7 +84,7 @@ it('REC-STAGING-NOT-LEGACY-DIR: staging sits beside runs regardless of workspace
 
 let root: string
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'agent-qa-424-default-'))
+  root = mkdtempSync(join(tmpdir(), 'agent-qa-default-'))
   vi.clearAllMocks()
   for (const key of ['AGENT_QA_LLM_MODEL', 'AGENT_QA_LLM_PROVIDER']) vi.stubEnv(key, '')
   vi.stubEnv('AGENT_QA_RUN_ID', undefined)

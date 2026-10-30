@@ -11,8 +11,8 @@ import { describe, expect, it } from 'vitest'
 import { buildMaskedResolvedConfig } from '../masked-config.js'
 
 const DECLARED_VALUE = 'Hunter-42-zz'
-const DECLARED_MARKER = '[secret:PW_441]'
-const declaredRedactor = new SecretRedactor(SecretStore.fromEnvContent(`PW_441=${DECLARED_VALUE}\n`))
+const DECLARED_MARKER = '[secret:PW_KEY]'
+const declaredRedactor = new SecretRedactor(SecretStore.fromEnvContent(`PW_KEY=${DECLARED_VALUE}\n`))
 const declaredMask: MaskFn = (text) => declaredRedactor.redactString(text)
 const identity: MaskFn = (text) => text
 
@@ -257,8 +257,8 @@ describe('declared values in the config.get view', () => {
   })
 
   it('an undeclared credential-shaped value and a URL with userinfo are shown as written and not flagged', () => {
-    const credentialShaped = 'sk-live-UNDECLARED-441-4242'
-    const userinfoUrl = 'https://ops:hunter2-undeclared-441@llm.acme.test/v1?ticket=t-441#frag'
+    const credentialShaped = 'sk-live-UNDECLARED-4242'
+    const userinfoUrl = 'https://ops:hunter2-undeclared@llm.acme.test/v1?ticket=t-undeclared#frag'
     const resolved = {
       registry: {
         llms: [{

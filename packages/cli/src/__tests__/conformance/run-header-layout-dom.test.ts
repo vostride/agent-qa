@@ -187,7 +187,7 @@ describe('run header layout on the shipped bundle', () => {
       // in an isolated test profile and uses Chrome's own setZoom/getZoom APIs.
       // https://playwright.dev/docs/chrome-extensions
       // https://developer.chrome.com/docs/extensions/reference/api/tabs#method-setZoom
-      const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-425-zoom-')))
+      const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-zoom-')))
       const extension = join(zoomRoot, 'extension')
       mkdirSync(extension)
       writeFileSync(join(extension, 'manifest.json'), JSON.stringify({ manifest_version: 3,

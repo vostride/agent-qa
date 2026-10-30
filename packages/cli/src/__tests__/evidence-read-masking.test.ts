@@ -18,7 +18,7 @@ import type { EvidenceDocument } from '@vostride/agent-qa-schema'
 import { composeDashboardAgentHost } from '../commands/dashboard.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../composition/local-agent-host.js'
 
-const SECRET = 'synthetic-production-secret-423'
+const SECRET = 'synthetic-production-secret'
 const MARKER = '[secret:SESSION]'
 
 const cleanups: (() => Promise<void> | void)[] = []
@@ -40,7 +40,7 @@ const networkDocument: Extract<EvidenceDocument, { kind: 'network' }> = {
   schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION, kind: 'network', records: [
     {
       url: 'https://app.test/api/orders', method: 'POST', status: 200,
-      requestHeaders: { 'content-type': 'application/json', 'x-request-id': 'req-423' },
+      requestHeaders: { 'content-type': 'application/json', 'x-request-id': 'req' },
       responseHeaders: { 'content-type': 'application/json', 'x-trace': SECRET },
       body: 'recorded body', startTime: 1, endTime: 2,
     },
@@ -52,7 +52,7 @@ const networkDocument: Extract<EvidenceDocument, { kind: 'network' }> = {
 }
 
 function productionFixture() {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-production-read-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-production-read-'))
   cleanups.push(() => rmSync(root, { recursive: true, force: true }))
   const configPath = join(root, 'agent-qa.config.yaml')
   const agentQaRoot = join(root, '.agent-qa')
@@ -143,7 +143,7 @@ describe('production read posture', () => {
     expect({ outcome: network.outcome, code: network.code }).toEqual({ outcome: 'ready', code: undefined })
     const records = network.document.records
     expect(records.map(record => record.url)).toEqual(networkDocument.records.map(record => record.url))
-    expect(records[0]!.requestHeaders).toEqual({ 'content-type': 'application/json', 'x-request-id': 'req-423' })
+    expect(records[0]!.requestHeaders).toEqual({ 'content-type': 'application/json', 'x-request-id': 'req' })
     expect(Object.keys(records[0]!.requestHeaders)).toEqual(['content-type', 'x-request-id'])
     expect(Object.keys(records[0]!.responseHeaders)).toEqual(['content-type', 'x-trace'])
     expect(records[0]!.responseHeaders['content-type']).toBe('application/json')
@@ -180,7 +180,7 @@ describe('production read posture', () => {
     const humanRaw = await human.text()
     const humanBody = JSON.parse(humanRaw)
     expect(humanBody).toMatchObject({ outcome: 'ready', document: { records: [
-      { requestHeaders: { 'content-type': 'application/json', 'x-request-id': 'req-423' },
+      { requestHeaders: { 'content-type': 'application/json', 'x-request-id': 'req' },
         responseHeaders: { 'content-type': 'application/json', 'x-trace': MARKER } },
       { requestHeaders: {}, responseHeaders: {} },
     ] } })
@@ -192,7 +192,7 @@ describe('production read posture', () => {
     expect(machine.status).toBe(200)
     const machineRaw = await machine.text()
     expect(JSON.parse(machineRaw)).toMatchObject({ outcome: 'ready', document: { records: [
-      { requestHeaders: { 'x-request-id': 'req-423' }, responseHeaders: { 'x-trace': MARKER } },
+      { requestHeaders: { 'x-request-id': 'req' }, responseHeaders: { 'x-trace': MARKER } },
       { requestHeaders: {}, responseHeaders: {} },
     ] } })
     expect(machineRaw).not.toContain(SECRET)

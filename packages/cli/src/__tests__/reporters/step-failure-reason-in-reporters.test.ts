@@ -22,7 +22,7 @@ const UNPROVEN_ERROR =
 function envelopes(): RunEventEnvelope[] {
   let seq = 0
   const env = <P>(type: RunEventType, payload: P): RunEventEnvelope =>
-    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-439-reason', type, payload }) as RunEventEnvelope
+    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-reason', type, payload }) as RunEventEnvelope
   const started: TestStartedPayload = {
     testId: 't0',
     testIndex: 0,

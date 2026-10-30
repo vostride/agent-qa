@@ -126,7 +126,7 @@ describe('the catalog\'s example calls', () => {
     const derive = (properties: Record<string, unknown>, required: readonly string[]): unknown =>
       catalogExampleCallOf(
         { type: 'object', additionalProperties: false, properties, required: [...required] },
-        'control.398.08',
+        'control.example.probe',
       )
 
     expect(derive({ name: { type: 'string' } }, ['name']))
@@ -196,7 +196,7 @@ describe('the catalog\'s example calls', () => {
       exampleCallAbsentReason?: string
     } => catalogExampleCallOf(
       { type: 'object', additionalProperties: false, properties, required: [...required] },
-      'control.398.08',
+      'control.example.probe',
     )
 
     const refusal = (properties: Record<string, unknown>, required: readonly string[]): string => {
@@ -260,7 +260,7 @@ describe('the agent manifest', () => {
    * assertion: without an entry there is no name to find and no value to fail to find.
    */
   const fixtureProject = (label: string, tokenEnvVar?: string): string => {
-    const root = mkdtempSync(join(tmpdir(), `agent-qa-398-08-${label}-`))
+    const root = mkdtempSync(join(tmpdir(), `agent-qa-${label}-`))
     roots.push(root)
     writeFileSync(
       join(root, 'agent-qa.config.yaml'),
@@ -331,7 +331,7 @@ describe('the agent manifest', () => {
     // posture would pass against a manifest that also carried the value in some field nobody
     // thought to look at, so what is asserted is the ABSENCE OF THE BYTES from the whole
     // serialized document — the surface a person actually reads.
-    const sentinel = 'sk-398-08-sentinel-2b41c9d7e5f60a83'
+    const sentinel = 'sk-sentinel-2b41c9d7e5f60a83'
     const tokenEnvVar = 'AGENT_QA_SENTINEL_TOKEN'
     const configPath = join(fixtureProject('refs-only', tokenEnvVar), 'agent-qa.config.yaml')
 
@@ -410,7 +410,7 @@ describe('the agent manifest', () => {
     // read. The two are told apart by whether the FILE IS THERE, so the classification never comes
     // from an exception's message: the message quotes the file, and the file is where credentials
     // are declared.
-    const bare = mkdtempSync(join(tmpdir(), 'agent-qa-398-08-bare-'))
+    const bare = mkdtempSync(join(tmpdir(), 'agent-qa-bare-'))
     roots.push(bare)
     const absent = await buildAgentManifest({ configPath: join(bare, 'agent-qa.config.yaml') })
     expect(absent.posture.configuration, 'a directory with no config did not report `absent`')
@@ -422,7 +422,7 @@ describe('the agent manifest', () => {
 
     // …and a config that IS there and does not validate is the OTHER answer. `init` is the wrong
     // advice for this one, which is why it must not share an arm with the case above.
-    const broken = mkdtempSync(join(tmpdir(), 'agent-qa-398-08-broken-'))
+    const broken = mkdtempSync(join(tmpdir(), 'agent-qa-broken-'))
     roots.push(broken)
     const brokenPath = join(broken, 'agent-qa.config.yaml')
     writeFileSync(brokenPath, '{ "workspace": { "testMatch": 17 } }\n', 'utf8')

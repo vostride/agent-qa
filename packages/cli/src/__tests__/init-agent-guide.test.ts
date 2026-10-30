@@ -49,7 +49,7 @@ const roots: string[] = []
 let log: MockInstance<typeof console.log>
 
 function tempProject(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-431-guide-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-guide-'))
   roots.push(root)
   return root
 }

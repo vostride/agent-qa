@@ -864,7 +864,7 @@ describe('secret slots and placeholders in curation candidates', () => {
       step({ stepIndex: 1, stepText: 'Enter the sign-in value', interpolatedVariables }, [fill]),
     ]
     const [target] = projectCurationCandidates(
-      handoff([testOutcome({ testId: 'auth::c441-slot' }, steps)]),
+      handoff([testOutcome({ testId: 'auth::slot' }, steps)]),
     ).filter((row) => row.kind === 'procedure')
     return parseProcedureTrajectorySeed(target!.bodySeed)?.steps[1]?.action?.values['text']
   }

@@ -76,7 +76,7 @@ function message(error: unknown): string {
 }
 
 function workspace(label: string): string {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-445-06-${label}-`)))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-${label}-`)))
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   git(root, ['init', '--quiet'])
   git(root, ['config', 'user.email', 'qa@example.com'])

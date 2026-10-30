@@ -1641,7 +1641,7 @@ skills/.staging/
     const actualGuide =
       await vi.importActual<typeof import('../commands/knowledge-guide.js')>('../commands/knowledge-guide.js')
 
-    const dir = actualFs.mkdtempSync(join(tmpdir(), 'agent-qa-432-40-init-'))
+    const dir = actualFs.mkdtempSync(join(tmpdir(), 'agent-qa-init-'))
     try {
       const parent = new Command()
       parent.addCommand(actualInit.createInitCommand())

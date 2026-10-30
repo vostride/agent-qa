@@ -252,8 +252,8 @@ function deliverLedger(from: Checkout, to: Checkout): void {
 
 describe('the committed quarantine ledger crosses checkout roots', () => {
   it('suppresses on a checkout that never saw the machine that wrote the entry', () => {
-    const machineA = checkout('agent-qa-390-portability-A-')
-    const ciCheckoutB = checkout('agent-qa-390-portability-B-')
+    const machineA = checkout('agent-qa-portability-A-')
+    const ciCheckoutB = checkout('agent-qa-portability-B-')
 
     // --- writer half, entirely under root A ---
     const identityUnderA = driveCrossingUnder(machineA)
@@ -301,8 +301,8 @@ describe('the committed quarantine ledger crosses checkout roots', () => {
   })
 
   it('leaks no checkout root into the committed bytes', () => {
-    const machineA = checkout('agent-qa-390-portability-bytes-A-')
-    const ciCheckoutB = checkout('agent-qa-390-portability-bytes-B-')
+    const machineA = checkout('agent-qa-portability-bytes-A-')
+    const ciCheckoutB = checkout('agent-qa-portability-bytes-B-')
     driveCrossingUnder(machineA)
     deliverLedger(machineA, ciCheckoutB)
 
@@ -320,8 +320,8 @@ describe('the committed quarantine ledger crosses checkout roots', () => {
   })
 
   it('refuses a hand-edited absolute-path line while its healthy neighbours still apply', () => {
-    const machineA = checkout('agent-qa-390-portability-refuse-A-')
-    const ciCheckoutB = checkout('agent-qa-390-portability-refuse-B-')
+    const machineA = checkout('agent-qa-portability-refuse-A-')
+    const ciCheckoutB = checkout('agent-qa-portability-refuse-B-')
     driveCrossingUnder(machineA)
     deliverLedger(machineA, ciCheckoutB)
 
@@ -413,8 +413,8 @@ describe('the human write verbs mint the identity the reader joins on', () => {
   it('Class 1 — an ABSOLUTE path INSIDE the workspace is stored canonical and joins on root B', async () => {
     // The operator copy-pastes the path out of a failure report on the writing machine. Before the
     // mint this produced a permanently refused, unlistable, unreleasable line in a committed file.
-    const machineA = checkout('agent-qa-390-verbmint-abs-A-')
-    const ciCheckoutB = checkout('agent-qa-390-verbmint-abs-B-')
+    const machineA = checkout('agent-qa-verbmint-abs-A-')
+    const ciCheckoutB = checkout('agent-qa-verbmint-abs-B-')
 
     const answer = await verbsUnder(machineA).add({
       product: PRODUCT,
@@ -444,8 +444,8 @@ describe('the human write verbs mint the identity the reader joins on', () => {
     // Round 1 measured this class as the QUIET one: it folded and listed as `quarantined` while
     // never matching `quarantineAppliesToTest`'s `===`. The operator saw a green row and the test
     // kept failing every build.
-    const machineA = checkout('agent-qa-390-verbmint-dot-A-')
-    const ciCheckoutB = checkout('agent-qa-390-verbmint-dot-B-')
+    const machineA = checkout('agent-qa-verbmint-dot-A-')
+    const ciCheckoutB = checkout('agent-qa-verbmint-dot-B-')
 
     const answer = await verbsUnder(machineA).add({
       product: PRODUCT,
@@ -465,7 +465,7 @@ describe('the human write verbs mint the identity the reader joins on', () => {
 
   it('Class 3 — a BACKSLASH path is refused by the ledger contract, byte-unchanged', async () => {
     // On POSIX `tests\checkout.yaml` is one filename, so the write guard refuses it.
-    const machineA = checkout('agent-qa-390-verbmint-slash-A-')
+    const machineA = checkout('agent-qa-verbmint-slash-A-')
 
     const refused = verbsUnder(machineA).add({
       product: PRODUCT,
@@ -479,7 +479,7 @@ describe('the human write verbs mint the identity the reader joins on', () => {
   })
 
   it('Class 4 — an ESCAPING path refuses TYPED, byte-unchanged, and a RETRY adds nothing', async () => {
-    const machineA = checkout('agent-qa-390-verbmint-escape-A-')
+    const machineA = checkout('agent-qa-verbmint-escape-A-')
     const verbs = verbsUnder(machineA)
 
     for (const escaping of [
@@ -506,8 +506,8 @@ describe('the human write verbs mint the identity the reader joins on', () => {
   it('the EXIT PATH crosses spellings — a `./` release closes the window an ABSOLUTE add opened', async () => {
     // The two verbs are one contract: if only `add` minted, this release would answer `no-entry`
     // and the operator would have no way out of a window they themselves opened.
-    const machineA = checkout('agent-qa-390-verbmint-exit-A-')
-    const ciCheckoutB = checkout('agent-qa-390-verbmint-exit-B-')
+    const machineA = checkout('agent-qa-verbmint-exit-A-')
+    const ciCheckoutB = checkout('agent-qa-verbmint-exit-B-')
     const verbs = verbsUnder(machineA)
 
     await verbs.add({

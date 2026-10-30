@@ -127,7 +127,7 @@ async function driveChange(label: string, opId: string, utterance: string): Prom
     `the built CLI entry is missing at ${relative(PACKAGES_ROOT, CLI_ENTRY)}; ${REBUILD_INSTRUCTION}`,
   ).toBe(true)
 
-  const fixture = fixtureProject(`399-1-render-${label}`)
+  const fixture = fixtureProject(`render-${label}`)
   const outcome = await driveChatSpawned(fixture.root, fixture.configPath, utterance)
 
   expect(
@@ -227,7 +227,7 @@ describe('the chat render anchors', () => {
   it('renders a SECOND op\'s payload too, on the read door chat advertises itself', async () => {
     // A second op on the same render path, so the mechanism is not one op special-cased.
     expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
-    const fixture = fixtureProject('399-1-render-inbox')
+    const fixture = fixtureProject('render-inbox')
     const readClause = '/fn config.get {}'
     const outcome = await driveChatSpawned(
       fixture.root,
@@ -303,7 +303,7 @@ describe('the chat render anchors', () => {
     async () => {
       // Wrapped in `/fn agent.ask`, the outer receipt must still carry the inner refusal's word.
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
-      const fixture = fixtureProject('399-1-09-nested')
+      const fixture = fixtureProject('nested')
       // The inner refusal is the refs-only one.
       const inner = REFS_ONLY_DRIVE.utterance
       const outer = `/fn ${AGENT_ASK_FUNCTION_ID} ${JSON.stringify({ message: inner })}`
@@ -472,7 +472,7 @@ describe('the per-surface render anchors: in-process ≡ shipped', () => {
     async () => {
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
       const row = anchorRow()
-      const fixture = fixtureProject('399-1-anchor-chat')
+      const fixture = fixtureProject('anchor-chat')
       const utterance = `/fn ${row.opId} ${JSON.stringify(row.input)}`
       const outcome = await driveChatSpawned(fixture.root, fixture.configPath, utterance)
 
@@ -526,7 +526,7 @@ describe('the per-surface render anchors: in-process ≡ shipped', () => {
     async () => {
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
       const row = anchorRow()
-      const fixture = fixtureProject('399-1-anchor-fn')
+      const fixture = fixtureProject('anchor-fn')
       const base = [CLI_ENTRY, '--config', fixture.configPath, 'fn', row.opId, '--input',
         JSON.stringify(row.input)]
 
@@ -574,7 +574,7 @@ describe('the per-surface render anchors: in-process ≡ shipped', () => {
       const mcp = row.perSurface.mcp
       expect('reachable' in mcp, 'the derived anchor row has no MCP door').toBe(true)
       if (!('reachable' in mcp)) return
-      const fixture = fixtureProject('399-1-anchor-mcp')
+      const fixture = fixtureProject('anchor-mcp')
 
       const transport = new StdioClientTransport({
         command: process.execPath,
@@ -587,7 +587,7 @@ describe('the per-surface render anchors: in-process ≡ shipped', () => {
       transport.stderr?.on('data', (chunk: Buffer | string) => {
         captured += typeof chunk === 'string' ? chunk : chunk.toString('utf8')
       })
-      const client = new Client({ name: 'agent-qa-399-1-render-anchor', version: '0.0.0' })
+      const client = new Client({ name: 'agent-qa-render-anchor', version: '0.0.0' })
       try {
         await client.connect(transport)
         const result = await client.callTool({

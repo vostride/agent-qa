@@ -101,7 +101,7 @@ function readRows(project: PopulatedRunProject, runId: string): Pick<Scene, 'row
 async function drive(): Promise<void> {
   target = await startTargetPageServer()
   model = await startStubModelServer()
-  const project = populatedRunFixtureProject('444-exit-two', { modelBaseUrl: model.baseUrl, targetUrl: target.url })
+  const project = populatedRunFixtureProject('exit-two', { modelBaseUrl: model.baseUrl, targetUrl: target.url })
   writeTest(project, 'tests/exit-two/a-first.test.yaml', FIRST_NAME)
   writeTest(project, 'tests/exit-two/b-second.test.yaml', SECOND_NAME)
   const noBrowsers = join(project.root, 'no-browsers')

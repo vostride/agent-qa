@@ -848,7 +848,7 @@ describe('auth test', () => {
 })
 
 describe('auth test exit code', () => {
-  const CREDENTIAL = 'sk-fixture-credential-429-08'
+  const CREDENTIAL = 'sk-fixture-credential'
 
   // Each rejection lands on exactly one class in the classifier's first-match order; the printed
   // sentence is spelled out here, not derived, so the lines stay pinned byte for byte.

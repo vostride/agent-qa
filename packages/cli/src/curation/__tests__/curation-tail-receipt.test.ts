@@ -28,7 +28,7 @@ import {
 } from '../../composition/__tests__/in-process-run-fixture.js'
 
 const roots: string[] = []
-const RUN_ID = asRunId('synthetic-423-run')
+const RUN_ID = asRunId('synthetic-run')
 const snapshot = CurationSnapshotSchema.parse({ schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION,
   rows: ['added', 'confirmed', 'superseded', 'deprecated', 'proposed'].map((bucket, i) => ({
     recordId: `record-${i}`, bucket, ...(bucket === 'superseded' ? { byRecordId: 'replacement' } : {}),
@@ -40,7 +40,7 @@ const snapshot = CurationSnapshotSchema.parse({ schemaVersion: CURATION_SNAPSHOT
 const ZERO_SNAPSHOT = { schemaVersion: CURATION_SNAPSHOT_SCHEMA_VERSION, rows: [],
   breakdown: { added: 0, confirmed: 0, superseded: 0, deprecated: 0, proposed: 0 } }
 const malformedSnapshot = { ...snapshot, breakdown: { ...snapshot.breakdown, added: 20 } }
-function tempRoot() { const root = mkdtempSync(join(tmpdir(), '423-curation-tail-')); roots.push(root); return root }
+function tempRoot() { const root = mkdtempSync(join(tmpdir(), 'curation-tail-')); roots.push(root); return root }
 afterEach(() => { vi.restoreAllMocks(); for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true }) })
 afterAll(() => { removeInProcessFixtures() })
 
@@ -190,7 +190,7 @@ describe('curation tail snapshot', () => {
 
   it('CURATE-CAPABILITY-ZERO-EFFECT terminal checkpoints and serves the all-zero snapshot through the real tail adapter', async () => {
     const root = tempRoot()
-    const zeroRun = 'run-427-04-zero-effect'
+    const zeroRun = 'run-zero-effect'
     const knowledge = join(root, 'knowledge')
     mkdirSync(knowledge, { recursive: true })
     mkdirSync(tailModule.completedRunDir(root, zeroRun), { recursive: true })

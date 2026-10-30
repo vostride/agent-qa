@@ -109,7 +109,7 @@ describe('attachRunSubscribers threads the quarantine snapshot to both reporters
   it('renders the disposition on the console AND in the JUnit document from one input', async () => {
     const fixture = buildReporterFixture()
     const capture = createCapture()
-    const junitPath = join(track(mkdtempSync(join(tmpdir(), 'agent-qa-390-07-'))), 'junit.xml')
+    const junitPath = join(track(mkdtempSync(join(tmpdir(), 'agent-qa-'))), 'junit.xml')
     const handlers: ((envelope: RunEventEnvelope) => void)[] = []
     const session = {
       subscribe: vi.fn((_from: number | undefined, handler: (e: RunEventEnvelope) => void) => {

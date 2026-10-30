@@ -167,13 +167,13 @@ function committedFilesUnder(dir: string): string[] {
 
 describe('curation candidates queue declared values only masked', () => {
   it("a fact candidate's seeds, anchors and natural keys are queued only masked", () => {
-    const root = mkdtempSync(join(tmpdir(), 'c441-gap-fact-'))
+    const root = mkdtempSync(join(tmpdir(), 'gap-fact-'))
     try {
       const knowledgeRoot = join(root, 'agent-qa-knowledge')
-      const runDir = join(root, 'runs', 'r-c441-gap-fact')
+      const runDir = join(root, 'runs', 'r-gap-fact')
       mkdirSync(runDir, { recursive: true })
       const report = emitCurationCandidates({
-        handoff: factRun('r-c441-gap-fact'),
+        handoff: factRun('r-gap-fact'),
         runDir,
         knowledgeRoot,
         mask: declaredMask(),
@@ -199,9 +199,9 @@ describe('curation candidates queue declared values only masked', () => {
   it(
     'the fallback commits a fact through the real drain with no declared value under the knowledge root',
     async () => {
-      const root = mkdtempSync(join(tmpdir(), 'c441-gap-drain-'))
+      const root = mkdtempSync(join(tmpdir(), 'gap-drain-'))
       try {
-        const handoff = factRun('r-c441-gap-drain')
+        const handoff = factRun('r-gap-drain')
         const agentQaRoot = join(root, '.agent-qa')
         const knowledgeRoot = join(root, 'agent-qa-knowledge')
         mkdirSync(knowledgeRoot, { recursive: true })
@@ -232,13 +232,13 @@ describe('curation candidates queue declared values only masked', () => {
   )
 
   it('a procedure seed masks target names, page routes and a typed declared value', () => {
-    const root = mkdtempSync(join(tmpdir(), 'c441-gap-procedure-'))
+    const root = mkdtempSync(join(tmpdir(), 'gap-procedure-'))
     try {
       const knowledgeRoot = join(root, 'agent-qa-knowledge')
-      const runDir = join(root, 'runs', 'r-c441-gap-procedure')
+      const runDir = join(root, 'runs', 'r-gap-procedure')
       mkdirSync(runDir, { recursive: true })
       const upper = DECLARED.toUpperCase()
-      const handoff = run('r-c441-gap-procedure', [
+      const handoff = run('r-gap-procedure', [
         step({
           stepIndex: 0,
           stepText: 'Open the admin account',
@@ -295,7 +295,7 @@ function typedSlot(input: {
   fillText: string
   interpolatedVariables?: { name: string; value: string }[]
 }): { slot: unknown; payloads: CurationCandidatePayload[] } {
-  const root = mkdtempSync(join(tmpdir(), 'c441-gap2-curation-'))
+  const root = mkdtempSync(join(tmpdir(), 'gap2-curation-'))
   try {
     const knowledgeRoot = join(root, 'agent-qa-knowledge')
     const runDir = join(root, 'runs', input.runId)
@@ -337,7 +337,7 @@ function typedSlot(input: {
 describe('a typed value that contains a declared value', () => {
   it('a typed value that only contains a declared value is queued as a masked literal', () => {
     const { slot, payloads } = typedSlot({
-      runId: 'r-c441-gap2-extra',
+      runId: 'r-gap2-extra',
       declared: { PW: 'hunter2' },
       fillText: 'hunter2-extra',
     })
@@ -348,7 +348,7 @@ describe('a typed value that contains a declared value', () => {
 
   it('a test variable whose value contains a declared value keeps its own binding', () => {
     const { slot } = typedSlot({
-      runId: 'r-c441-gap2-email',
+      runId: 'r-gap2-email',
       declared: { USER: 'qa-admin-42' },
       fillText: 'qa-admin-42@example.com',
       interpolatedVariables: [{ name: 'EMAIL', value: 'qa-admin-42@example.com' }],
@@ -365,17 +365,17 @@ describe('a typed value that contains a declared value', () => {
     const declared = { PW: 'hunter2' }
 
     expect(typedSlot({
-      runId: 'r-c441-gap2-template',
+      runId: 'r-gap2-template',
       declared,
       fillText: '{{secret:PW}}-extra',
     }).slot).toEqual({ observed: '[secret:PW]-extra', source: 'literal' })
     expect(typedSlot({
-      runId: 'r-c441-gap2-marker',
+      runId: 'r-gap2-marker',
       declared,
       fillText: '[secret:PW]-extra',
     }).slot).toEqual({ observed: '[secret:PW]-extra', source: 'literal' })
     expect(typedSlot({
-      runId: 'r-c441-gap2-whole',
+      runId: 'r-gap2-whole',
       declared,
       fillText: 'hunter2',
     }).slot).toEqual({ observed: '[secret:PW]', source: 'masked-secret', sourceName: 'PW' })

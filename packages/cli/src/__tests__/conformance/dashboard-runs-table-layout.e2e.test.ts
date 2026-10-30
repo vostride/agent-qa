@@ -256,7 +256,7 @@ async function drive(): Promise<void> {
   if (freshness.missing.length > 0 || freshness.stale.length > 0) {
     throw new Error(`${REBUILD_INSTRUCTION}\n${JSON.stringify(freshness, null, 2)}`)
   }
-  const project = dashboardFixtureProject('444-runs-table')
+  const project = dashboardFixtureProject('runs-table')
   scene.seeded = seedRuns(project.root)
   const port = await reserveEphemeralPort()
   dashboard = await spawnDashboard(project.root, project.configPath, port)

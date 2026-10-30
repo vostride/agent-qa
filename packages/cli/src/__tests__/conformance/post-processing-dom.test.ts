@@ -40,7 +40,7 @@ const describePosix = process.platform === 'win32' ? describe.skip : describe
 
 const REBUILD_INSTRUCTION =
   'these cells drive the BUILT dashboard UI served by the BUILT `agent-qa dashboard`: run '
-  + '`pnpm turbo run build --force` from the agent-qa root first. `--force` is required — the 404 '
+  + '`pnpm turbo run build --force` from the agent-qa root first. `--force` is required — the '
   + 'mutation scripts restore their subjects byte-identically, which turbo treats as a cache hit, '
   + 'so a plain build reports FULL TURBO and refreshes no dist mtime.'
 
@@ -1324,7 +1324,7 @@ describePosix('the post-processing chain on the built bundle behind the shipped 
     ).toBe(recorded.redRunWillRetry === true ? WILL_RETRY_TEXT : undefined)
     expect(
       red!.painted.analysis,
-      'never `pending` once the stage is terminal — the folded 399 todo\'s whole complaint',
+      'never `pending` once the stage is terminal — the folded todo\'s whole complaint',
     ).not.toBe('pending')
   }, 60_000)
 

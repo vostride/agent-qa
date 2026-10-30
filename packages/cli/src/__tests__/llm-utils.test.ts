@@ -417,7 +417,7 @@ describe('the daemon egress mechanism (verified parity)', () => {
   it("passes createModel's pinned-last masking seam with NO active scope — the daemon posture", async () => {
     // The daemon pumps outside any scope; the seam is the declared mask the job capability takes.
     const secret = 'sk-live-abcdef0123456789'
-    const redactor = new SecretRedactor(SecretStore.fromEnvContent(`DAEMON_KEY_441=${secret}`))
+    const redactor = new SecretRedactor(SecretStore.fromEnvContent(`DAEMON_API_KEY=${secret}`))
     let captured: { prompt?: { role: string; content: { type: string; text?: string }[] }[] } | undefined
 
     const capturingCreateModel: typeof createModel = (profile, auth, mask) =>
@@ -459,7 +459,7 @@ describe('the daemon egress mechanism (verified parity)', () => {
     const text = captured?.prompt
       ?.find((message) => message.role === 'user')
       ?.content.find((part) => part.type === 'text')?.text
-    expect(text).toContain('[secret:DAEMON_KEY_441]')
+    expect(text).toContain('[secret:DAEMON_API_KEY]')
     expect(text).not.toContain(secret)
   })
 
@@ -486,7 +486,7 @@ describe('model egress masking', () => {
   })
 
   function declaredProject(): string {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-441-egress-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-egress-'))
     roots.push(root)
     const llm = {
       name: 'planner',

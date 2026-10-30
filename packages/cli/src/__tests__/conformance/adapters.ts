@@ -441,7 +441,7 @@ export const chatSurfaceAdapter: SurfaceAdapter = Object.freeze({
  * of those would be furniture this enumeration never touches.
  */
 function fnListingFixture(): { root: string; configPath: string } {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-399-1-06-fn-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-fn-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,

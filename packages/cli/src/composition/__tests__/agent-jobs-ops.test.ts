@@ -70,7 +70,7 @@ interface Harness {
 let roots: string[] = []
 
 function makeHarness(): Harness {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-413-10-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   roots.push(root)
   const agentQaRoot = join(root, '.agent-qa')
   const knowledgeRoot = join(root, 'knowledge')
@@ -284,7 +284,7 @@ describe('pumpAgentJobs — the kind-filtered, lease-holding drain', () => {
 
 // The member carries a persisted `rootCause`, so the floor has no unknown member and no model runs.
 
-const PUMPED_RUN_ID = 'run-413-10-pumped'
+const PUMPED_RUN_ID = 'run-pumped'
 
 /** A config a project could actually have: enough for `resolveConfig` to name a knowledge root. */
 const PUMP_CONFIG = `workspace:
@@ -361,7 +361,7 @@ interface ComposedFixture {
 
 /** A project on disk: a config, a runtime root, and one completed run's handoff. */
 function composedFixture(): ComposedFixture {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-413-10-composed-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-composed-'))
   roots.push(root)
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(configPath, PUMP_CONFIG, 'utf8')

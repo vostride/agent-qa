@@ -1524,7 +1524,7 @@ describe('the LLM auth rows', () => {
     const real = await vi.importActual<Core>('@vostride/agent-qa-core')
     const { mkdtemp, rm } = await vi.importActual<FsPromises>('node:fs/promises')
     const { tmpdir } = await import('node:os')
-    const tempDir = await mkdtemp(resolve(tmpdir(), 'agent-qa-445-16-doctor-'))
+    const tempDir = await mkdtemp(resolve(tmpdir(), 'agent-qa-doctor-'))
     const authPath = resolve(tempDir, 'auth.json')
     const configYaml = [
       'registry:',

@@ -32,7 +32,7 @@ import { enqueueThroughTheStep } from './post-run-step-harness.js'
 // Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-const RUN_ID = 'run-388-02-idempotency'
+const RUN_ID = 'run-idempotency'
 
 // Unparseable text, not a throw: a throwing model aborts the chain; this degrades to the floor.
 const TEST_MODEL: JobModelCapability = {
@@ -116,7 +116,7 @@ interface Fixture {
 }
 
 function fixture(): Fixture {
-  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-388-02-'))
+  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   roots.push(agentQaRoot)
   const knowledgeRoot = join(agentQaRoot, 'knowledge')
   mkdirSync(knowledgeRoot, { recursive: true })

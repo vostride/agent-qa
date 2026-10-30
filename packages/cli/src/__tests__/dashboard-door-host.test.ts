@@ -27,7 +27,7 @@ import {
  * posture rather than the empty one that refuses before the gate.
  */
 function fixtureWorkspace(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-430-03-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-door-host-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,
@@ -220,7 +220,7 @@ interface CardUrlFixture {
  * can name. The knowledge root is declared so the bundle below has somewhere to land.
  */
 function cardUrlProject(): { parent: string; root: string; knowledgeRoot: string; configPath: string } {
-  const parent = mkdtempSync(join(tmpdir(), 'agent-qa-400-10-'))
+  const parent = mkdtempSync(join(tmpdir(), 'agent-qa-card-url-'))
   const root = join(parent, CARD_URL_WORKSPACE_NAME)
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   const knowledgeRoot = join(root, 'agent-qa-knowledge')

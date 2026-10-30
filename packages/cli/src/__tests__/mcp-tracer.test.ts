@@ -23,7 +23,7 @@ afterEach(() => {
 
 /** A real project on disk, of the shape `agent-qa init` produces. */
 function workspace(): { configPath: string; agentQaRoot: string } {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-396-01-tracer-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-tracer-'))
   roots.push(root)
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
@@ -73,7 +73,7 @@ describe('the MCP tracer: one projected tool, end to end on the v2 SDK', () => {
       fetch: ((url: URL | string, init?: RequestInit) =>
         handler.fetch(new Request(url, init))) as typeof fetch,
     })
-    const client = new Client({ name: 'agent-qa-396-tracer', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-tracer', version: '0.0.0' })
 
     try {
       await client.connect(transport)
@@ -129,7 +129,7 @@ describe('the MCP tracer: one projected tool, end to end on the v2 SDK', () => {
     const address = server.address()
     const port = typeof address === 'object' && address !== null ? address.port : 0
 
-    const client = new Client({ name: 'agent-qa-396-tracer-http', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-tracer-http', version: '0.0.0' })
     const transport = new StreamableHTTPClientTransport(
       new URL(`http://127.0.0.1:${port}/mcp`),
     )

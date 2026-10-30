@@ -70,7 +70,7 @@ afterEach(async () => {
 })
 
 function scratch(label: string): string {
-  const dir = mkdtempSync(join(tmpdir(), `agent-qa-431-06-${label}-`))
+  const dir = mkdtempSync(join(tmpdir(), `agent-qa-${label}-`))
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }))
   return dir
 }
@@ -281,7 +281,7 @@ describe('COLD-MCP-NO-RUNTIME', () => {
     })
     let stderr = ''
     transport.stderr?.on('data', (chunk: Buffer) => { stderr += chunk.toString('utf8') })
-    const client = new Client({ name: 'agent-qa-431-06-stdio', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-stdio', version: '0.0.0' })
     cleanups.push(async () => {
       await client.close().catch(() => {})
       await transport.close().catch(() => {})
@@ -312,7 +312,7 @@ describe('COLD-MCP-NO-RUNTIME', () => {
       child.once('exit', () => exited())
       child.kill('SIGTERM')
     }))
-    const client = new Client({ name: 'agent-qa-431-06-cohost', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-cohost', version: '0.0.0' })
     cleanups.push(() => client.close().catch(() => {}))
     await underTrap(report, () => stderr, async () => {
       const deadline = Date.now() + 45_000
@@ -357,7 +357,7 @@ describe('TRAP-CONTROLS', () => {
   it('watches the model cache knowledge-local resolves, under every precedence', () => {
     const saved = { cache: process.env.AGENT_QA_MODEL_CACHE_DIR, xdg: process.env.XDG_CACHE_HOME }
     try {
-      for (const [cache, xdg] of [['/tmp/431-06-cache', '/tmp/431-06-xdg'], [undefined, '/tmp/431-06-xdg'], [undefined, undefined]]) {
+      for (const [cache, xdg] of [['/tmp/agent-qa-cold-start-cache', '/tmp/agent-qa-cold-start-xdg'], [undefined, '/tmp/agent-qa-cold-start-xdg'], [undefined, undefined]]) {
         if (cache === undefined) delete process.env.AGENT_QA_MODEL_CACHE_DIR
         else process.env.AGENT_QA_MODEL_CACHE_DIR = cache
         if (xdg === undefined) delete process.env.XDG_CACHE_HOME
@@ -402,7 +402,7 @@ describe('TRAP-CONTROLS', () => {
   it('refuses a real acquisition through the shipped ladder, and the ladder degrades rather than loads', () => {
     const run = runTrapped([
       "const { acquireEmbedder } = await import('./dist/index.js')",
-      `const outcome = await acquireEmbedder({ allowDownload: false, agentQaRoot: ${JSON.stringify(join(tmpdir(), 'agent-qa-431-06-none', '.agent-qa'))} })`,
+      `const outcome = await acquireEmbedder({ allowDownload: false, agentQaRoot: ${JSON.stringify(join(tmpdir(), 'agent-qa-none', '.agent-qa'))} })`,
       'console.log(JSON.stringify(outcome))',
     ].join('\n'))
     expect(run.report.problems).toEqual([])

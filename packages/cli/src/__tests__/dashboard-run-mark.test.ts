@@ -13,7 +13,7 @@ const closers: Array<() => Promise<void>> = []
 afterEach(async () => { for (const close of closers.splice(0)) await close() })
 
 function fixture() {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-419-mark-door-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-mark-door-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(configPath, JSON.stringify({
     workspace: { testMatch: ['tests/**/*.test.yaml'], suiteMatch: ['suites/**/*.suite.yaml'], hooksFile: 'hooks.yaml', envFile: '.env', secretsFile: '.env.secrets.local' },
@@ -66,7 +66,7 @@ describe('a dashboard mark dispatches directly', () => {
 
   it('a body naming a confirm scope is an unknown field, refused before any dispatch', async () => {
     const f = fixture()
-    const outcome = await f.invoke({ kind: 'false-fail', ['confirm' + 'Scope']: 'run-trigger:432-14' })
+    const outcome = await f.invoke({ kind: 'false-fail', ['confirm' + 'Scope']: 'run-trigger:legacy' })
     expect(outcome).toEqual({ kind: 'refused', status: 400, body: { error: 'invalid_mark_input' } })
     expect(f.calls).toEqual([])
   })

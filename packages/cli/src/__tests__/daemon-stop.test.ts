@@ -77,7 +77,7 @@ afterEach(() => {
 
 describe('daemon stop in a v1 workspace', () => {
   it('a live daemon registered in a v1 workspace is sent SIGTERM without the config being validated', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-445-17-daemon-stop-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-daemon-stop-'))
     roots.push(root)
     const configPath = join(root, 'agent-qa.config.yaml')
     writeFileSync(configPath, v1Config(), 'utf8')

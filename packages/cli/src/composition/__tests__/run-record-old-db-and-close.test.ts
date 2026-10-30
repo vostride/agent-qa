@@ -20,7 +20,7 @@ afterEach(() => {
 })
 
 function configDir(): string {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-444-record-v6-')))
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-record-v6-')))
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }))
   mkdirSync(join(dir, '.agent-qa'), { recursive: true })
   return dir

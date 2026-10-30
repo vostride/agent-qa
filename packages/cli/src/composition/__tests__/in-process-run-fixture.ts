@@ -125,7 +125,7 @@ export interface InProcessFixtureInput {
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
-export const UNINSTALLED_AUTH_PLUGIN_PACKAGE = '@acme/auth-plugin-401-10-NOT-INSTALLED'
+export const UNINSTALLED_AUTH_PLUGIN_PACKAGE = '@acme/auth-plugin-NOT-INSTALLED'
 
 // Exported so cells read the name the config writer interpolates rather than retyping it.
 export const IN_PROCESS_TARGET_NAME = 'in-process-thing'

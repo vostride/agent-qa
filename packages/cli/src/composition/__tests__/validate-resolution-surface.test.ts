@@ -17,9 +17,9 @@ const CLI_DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..',
 const SUCCESS_SENTENCE = 'All files valid'
 
 // One planted value per file class, so a whole-output failure says which file leaked.
-const PLANTED_CONFIG_CREDENTIAL = 'sk-ant-api03-395twentyoneCONFIGFIXTUREONLYnotarealkey'
-const PLANTED_TEST_CREDENTIAL = 'sk-ant-api03-395twentyoneTESTFIXTUREONLYnotarealkey'
-const PLANTED_HOOKS_CREDENTIAL = 'sk-ant-api03-395twentyoneHOOKSFIXTUREONLYnotarealkey'
+const PLANTED_CONFIG_CREDENTIAL = 'sk-ant-api03-CONFIGFIXTUREONLYnotarealkey'
+const PLANTED_TEST_CREDENTIAL = 'sk-ant-api03-TESTFIXTUREONLYnotarealkey'
+const PLANTED_HOOKS_CREDENTIAL = 'sk-ant-api03-HOOKSFIXTUREONLYnotarealkey'
 
 /** The package the default scaffold declares and a fresh project has not installed. */
 const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'

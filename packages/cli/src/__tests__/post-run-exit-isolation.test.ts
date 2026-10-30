@@ -40,7 +40,7 @@ import { buildReporterFixture } from './reporters/fixtures.js'
 // Passthrough: the fixture speaks canonical workspace-relative bytes, and core pins the recipe.
 const MINT_IDENTITY = (filePath: string): string => filePath
 
-const RUN_ID = 'run-388-05-isolation'
+const RUN_ID = 'run-isolation'
 const EVENTS_FILE = 'events.jsonl'
 
 // Unparseable text, not a throw: a throwing model aborts the chain; this degrades to the floor.
@@ -136,7 +136,7 @@ interface Fixture {
 }
 
 function fixture(): Fixture {
-  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-388-05-'))
+  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   roots.push(agentQaRoot)
   const knowledgeRoot = join(agentQaRoot, 'knowledge')
   mkdirSync(knowledgeRoot, { recursive: true })

@@ -75,7 +75,7 @@ function expectFresh(): void {
 }
 
 function workspace(label: string, llm: string, llms: string, targetUrl: string): string {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-445-08-${label}-`)))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-${label}-`)))
   mkdirSync(join(root, '.agent-qa'), { recursive: true })
   mkdirSync(join(root, 'agent-qa-knowledge'), { recursive: true })
   mkdirSync(join(root, 'tests'), { recursive: true })
@@ -151,7 +151,7 @@ async function spawnCli(
 
 async function driveBrowser(): Promise<void> {
   if (model === undefined || target === undefined) throw new Error('servers not started')
-  const project = populatedRunFixtureProject('445-08-browser', {
+  const project = populatedRunFixtureProject('browser', {
     modelBaseUrl: model.baseUrl,
     targetUrl: target.url,
   })

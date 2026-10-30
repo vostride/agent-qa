@@ -21,12 +21,12 @@ const FILE_BUDGET_MS = 600_000
 
 const TESTS = [
   {
-    file: 'tests/444-03/a-login.test.yaml',
+    file: 'tests/members/a-login.test.yaml',
     name: 'Artifact members login',
     step: `Click the ${POPULATED_BUTTON_LABEL} button on the login notice and confirm the notice state changed.`,
   },
   {
-    file: 'tests/444-03/b-checkout.test.yaml',
+    file: 'tests/members/b-checkout.test.yaml',
     name: 'Artifact members checkout',
     step: `Click the ${POPULATED_BUTTON_LABEL} button on the checkout notice and confirm the notice state changed.`,
   },
@@ -45,7 +45,7 @@ const drive: Drive = { testIds: [] }
 
 beforeAll(async () => {
   refuseWithoutRecordingTools()
-  const project = await recordedDoorProject('444-03-artifact-members')
+  const project = await recordedDoorProject('artifact-members')
   drive.project = project
   for (const spec of TESTS) {
     const testId = generateTestId()

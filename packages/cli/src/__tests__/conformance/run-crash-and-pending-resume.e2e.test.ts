@@ -56,14 +56,14 @@ const RESUME_BUDGET_MS = 600_000
 const DAEMON_BOUND_MS = 120_000
 const DAEMON_STOP_BOUND_MS = 30_000
 // The hermetic TMPDIR is too deep for the daemon's socket path, so it gets a short root under /tmp.
-const DAEMON_TMP_PREFIX = '/tmp/aq444-'
+const DAEMON_TMP_PREFIX = '/tmp/aq-crash-'
 
 // The child's execution context is resolved from the environment this file builds for it (stdio
 // is piped, so never a TTY): `CI` is forwarded from this process and nothing else is.
 const FORWARDED_CI = process.env.CI
 const CHILD_CONTEXT = isTruthy(FORWARDED_CI) ? 'ci' : 'local-headless'
 
-const CRASH_TEST_PATH = 'tests/444-crash.test.yaml'
+const CRASH_TEST_PATH = 'tests/crash.test.yaml'
 const CRASH_HOLD_MARKER = 'once the operator lifts the crash hold'
 const BROWSER_CLOSED_SENTENCE = 'The browser closed before this test finished.'
 const PENDING_FILE = 'post-verdict-pending.json'
@@ -280,7 +280,7 @@ async function sharedProject(): Promise<Shared> {
     // The author's requests are told apart by its own marker, whichever arm answered them.
     fullBodies: true,
   })
-  const project = populatedRunFixtureProject('444-crash-pending-resume', {
+  const project = populatedRunFixtureProject('crash-pending-resume', {
     modelBaseUrl: model.baseUrl,
     targetUrl: target.url,
   }, { stepText: POPULATED_FAILURE_STEP_TEXT, secondStepText: POPULATED_PASSING_STEP_TEXT })

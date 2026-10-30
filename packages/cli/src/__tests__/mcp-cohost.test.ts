@@ -47,10 +47,10 @@ import {
 
 // ---- The fixture composition — the dashboard's own, minus the database ------------------------
 
-const RUN_ID = 'run-408-03-cohost'
+const RUN_ID = 'run-cohost'
 const APP_URI = `ui://agent-qa/live-run/${RUN_ID}`
 const TOKEN_ENV_VAR = 'AGENT_QA_COHOST_TOKEN'
-const TOKEN_VALUE = 'cohost-token-408-03-not-a-real-credential'
+const TOKEN_VALUE = 'cohost-token-not-a-real-credential'
 
 function handoff(): CompletedRunHandoff {
   return {
@@ -147,7 +147,7 @@ beforeAll(async () => {
   })
 
   // The masker is the declared loader over a project config, as the dashboard composes it.
-  const projectRoot = mkdtempSync(join(tmpdir(), 'agent-qa-441-07-cohost-'))
+  const projectRoot = mkdtempSync(join(tmpdir(), 'agent-qa-cohost-'))
   const configPath = join(projectRoot, 'agent-qa.config.yaml')
   writeFileSync(configPath, JSON.stringify({
     workspace: {
@@ -210,7 +210,7 @@ async function connectAs(
   }) as typeof fetch
 
   const client = new Client(
-    { name: 'agent-qa-408-03-cohost', version: '0.0.0' },
+    { name: 'agent-qa-cohost', version: '0.0.0' },
     {
       // Plan 02 D-G: the per-request capabilities envelope exists only on the modern era.
       versionNegotiation: { mode: 'auto' as const },

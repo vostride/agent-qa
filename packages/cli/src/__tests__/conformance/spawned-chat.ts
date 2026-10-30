@@ -160,7 +160,7 @@ export function fixtureProject(
   // A legacy `services.mcp.tokens` block, which fails strict validation; values stay in env.
   tokens: readonly { name: string; tokenEnvVar: string; scopes: readonly string[] }[] = [],
 ): { root: string; configPath: string } {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-397-07-${label}-`)))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-chat-${label}-`)))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,
@@ -320,7 +320,7 @@ export function dashboardFixtureProject(label: string): {
   configPath: string
   knowledgeRoot: string
 } {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-400-09-${label}-`)))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-knowledge-chat-${label}-`)))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,
@@ -482,7 +482,7 @@ export function runServiceFixtureProject(label: string): {
   root: string
   configPath: string
 } {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-402-07-${label}-`)))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-run-service-${label}-`)))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,

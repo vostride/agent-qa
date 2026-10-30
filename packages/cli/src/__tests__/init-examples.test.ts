@@ -92,7 +92,7 @@ const tempRoots: string[] = []
 const mockWriteFileSync = vi.mocked(writeFileSync)
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../../..')
 
-const DIR = '/tmp/c445-examples'
+const DIR = '/tmp/examples'
 const CHECKOUT = 'tests/examples/komazon-checkout.yaml'
 const CART_TOTAL_BUG = 'tests/examples/komazon-cart-total-bug.yaml'
 const SUITE = 'suites/examples.suite.yaml'
@@ -411,7 +411,7 @@ describe('the init examples', () => {
     const script = writtenText(await initWrites(), HOOK_SCRIPT)
     expect(script).toContain(HOOK_ENV_FILE)
 
-    const root = realFs.mkdtempSync(join(tmpdir(), 'c445-hook-'))
+    const root = realFs.mkdtempSync(join(tmpdir(), 'hook-'))
     tempRoots.push(root)
     const output = join(root, 'agent-qa.env')
     const scriptPath = join(root, 'make-shipping-address.mjs')
@@ -441,7 +441,7 @@ describe('the example secrets line', () => {
     vi.mocked(existsSync).mockImplementation(path => existing.has(String(path)))
     vi.mocked(readFileSync).mockImplementation(path => {
       if (String(path).endsWith('package.json')) return '{"version":"0.1.1"}'
-      return String(path) === SECRETS_PATH ? 'C445_OWN_SECRET=owner-value-zz\n' : ''
+      return String(path) === SECRETS_PATH ? 'OWN_SECRET=owner-value-zz\n' : ''
     })
     mockWriteFileSync.mockClear()
     await runInit(['--dir', DIR, '--platform', 'web', ...args])

@@ -17,9 +17,9 @@ import {
 } from '../post-verdict-step.js'
 import type { CurationWriterAuthority } from '../curation-tail.js'
 
-const KNOWLEDGE_ROOT = '/tmp/agent-qa-404-fake-knowledge'
-const AGENT_QA_ROOT = '/tmp/agent-qa-404-fake/.agent-qa'
-const CONFIG_PATH = '/tmp/agent-qa-404-fake/agent-qa.config.yaml'
+const KNOWLEDGE_ROOT = '/tmp/agent-qa-fake-knowledge'
+const AGENT_QA_ROOT = '/tmp/agent-qa-fake/.agent-qa'
+const CONFIG_PATH = '/tmp/agent-qa-fake/agent-qa.config.yaml'
 const RUN_ID = 'r_fake-post-verdict-step-run'
 const NOW_MS = 1_700_000_000_000
 

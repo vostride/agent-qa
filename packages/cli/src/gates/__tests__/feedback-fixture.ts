@@ -12,7 +12,7 @@ export const { loadBundle } = await import(new URL('../../../../knowledge-local/
 const { enumerateBundleDirs } = await import(new URL('../../../../knowledge-local/src/bundle-scan.js', import.meta.url).href)
 
 export function markFixture() {
-  const root = mkdtempSync(join(tmpdir(), '419-mark-host-'))
+  const root = mkdtempSync(join(tmpdir(), 'mark-host-'))
   const agentQaRoot = join(root, '.agent-qa')
   const knowledgeRoot = join(root, 'agent-qa-knowledge')
   const configPath = join(root, 'agent-qa.config.yaml')

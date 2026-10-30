@@ -993,7 +993,7 @@ describe('fn output masks declared secrets', () => {
 
   it('fn prints a declared value in an op result as its named marker', async () => {
     const workspace = fixtureWorkspace(roots)
-    writeFileSync(join(workspace.root, '.env.secrets.local'), 'PW_441=Hunter-42-zz\n', 'utf8')
+    writeFileSync(join(workspace.root, '.env.secrets.local'), 'PW_KEY=Hunter-42-zz\n', 'utf8')
     seedRuns(workspace, [
       handoff({
         runId: 'run-secret',
@@ -1016,12 +1016,12 @@ describe('fn output masks declared secrets', () => {
 
     for (const result of [human, json]) {
       expect(result.exitCode).toBeUndefined()
-      expect(result.stdout).toContain('log in with [secret:PW_441]')
+      expect(result.stdout).toContain('log in with [secret:PW_KEY]')
       expect(`${result.stdout}\n${result.stderr}`).not.toContain('Hunter-42-zz')
     }
     expect(JSON.parse(json.stdout)).toMatchObject({
       runId: 'run-secret',
-      tests: [{ testName: 'log in with [secret:PW_441]' }],
+      tests: [{ testName: 'log in with [secret:PW_KEY]' }],
     })
   })
 
@@ -1057,7 +1057,7 @@ describe('fn masks a declared value holding a quote and a backslash', () => {
 
   it('fn prints a declared value holding a quote and a backslash only as its marker', async () => {
     const workspace = fixtureWorkspace(roots)
-    writeFileSync(join(workspace.root, '.env.secrets.local'), 'PW_441=pa"ss\\x\n', 'utf8')
+    writeFileSync(join(workspace.root, '.env.secrets.local'), 'PW_KEY=pa"ss\\x\n', 'utf8')
     seedRuns(workspace, [
       handoff({
         runId: 'run-escaped',
@@ -1081,7 +1081,7 @@ describe('fn masks a declared value holding a quote and a backslash', () => {
     for (const result of [human, json]) {
       const printed = `${result.stdout}\n${result.stderr}`
       expect(result.exitCode).toBeUndefined()
-      expect(result.stdout).toContain('log in with [secret:PW_441]')
+      expect(result.stdout).toContain('log in with [secret:PW_KEY]')
       expect(printed).not.toContain('pa"ss')
       expect(printed).not.toContain('pa\\"ss')
       expect(printed).not.toContain('ss\\\\x')
@@ -1106,7 +1106,7 @@ describe('fn runs.events --json masking', () => {
 
   it('fn runs.events --json keeps each line\'s seq and type and masks its payload', async () => {
     const workspace = fixtureWorkspace(roots)
-    writeFileSync(join(workspace.root, '.env.secrets.local'), 'E_441=e\nPW_441=Hunter-42-zz\n', 'utf8')
+    writeFileSync(join(workspace.root, '.env.secrets.local'), 'E_KEY=e\nPW_KEY=Hunter-42-zz\n', 'utf8')
     seedEvents(workspace, 'run-alpha', fiveEvents().map((event) => ({
       ...event, payload: { note: 'log in with Hunter-42-zz' } as never,
     })))
@@ -1128,7 +1128,7 @@ describe('fn runs.events --json masking', () => {
     ])
     expect(lines.map((line) => line.ts)).toEqual(fiveEvents().map((event) => event.ts))
     expect(lines.map((line) => line.runId)).toEqual(Array(5).fill('run-alpha'))
-    expect(JSON.stringify(lines)).toContain('[secret:PW_441]')
+    expect(JSON.stringify(lines)).toContain('[secret:PW_KEY]')
     expect(result.stdout).not.toContain('Hunter-42-zz')
   })
 })

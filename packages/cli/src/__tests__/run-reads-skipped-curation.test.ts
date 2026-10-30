@@ -61,7 +61,7 @@ function completedRun(agentQaRoot: string, endedAt: number, marker: Marker,
 
 /** One project holding a gate run, an outcome-excluded run and an ordinary run, read by every cell. */
 function skippedRuns() {
-  const project = fixtureProject('444-26-skipped')
+  const project = fixtureProject('skipped')
   writeFileSync(join(project.root, 'hooks.yaml'), 'hooks: []\n')
   writeFileSync(join(project.root, '.env'), '')
   writeFileSync(join(project.root, '.env.secrets.local'), '')
@@ -146,7 +146,7 @@ async function mcpReader(p: { configPath: string; agentQaRoot: string }) {
   cleanups.push(() => new Promise<void>((closed) => server.close(() => closed())))
   const address = server.address()
   if (address === null || typeof address === 'string') throw new Error('MCP did not bind')
-  const client = new Client({ name: 'agent-qa-444-26', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa', version: '0.0.0' })
   cleanups.push(() => client.close())
   await client.connect(new StreamableHTTPClientTransport(
     new URL(`http://127.0.0.1:${String(address.port)}/mcp`)))

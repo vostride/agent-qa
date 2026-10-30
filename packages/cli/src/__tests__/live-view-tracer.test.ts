@@ -38,7 +38,7 @@ const BROWSER_INSTALL_INSTRUCTION =
   'a real Chromium is required for the tracer: run `pnpm exec playwright install chromium`.'
 
 function fixtureWorkspace(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-403-01-tracer-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-tracer-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,
@@ -447,7 +447,7 @@ async function watchEditor(origin: string, sessionId: string, token: string, unt
 
 describe('an editor token obeys every credential rule a run token does', () => {
   it('EDITOR-TOKEN-ABSENT-FROM-LOGS: no editor token in the server log, any non-mint body, or any URL but a fragment', async () => {
-    const harness = await startLiveViewHarness({ label: '428-12-tracer' })
+    const harness = await startLiveViewHarness({ label: 'tracer' })
     const editor = plantEditorSubject(harness, { sessionId: 'ed-log', kind: 'cdp-screencast' })
     try {
       const { result, log } = await captureProcessLog(async () => {

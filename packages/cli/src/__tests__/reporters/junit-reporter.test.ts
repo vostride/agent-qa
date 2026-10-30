@@ -86,7 +86,7 @@ describe('createJunitReporter', () => {
 function abortSkippedStream(): RunEventEnvelope[] {
   let seq = 0
   const env = (type: RunEventType, payload: object): RunEventEnvelope =>
-    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-444.1-15', type, payload }) as RunEventEnvelope
+    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-junit', type, payload }) as RunEventEnvelope
   return [
     env('testStarted', { testId: 't0', testIndex: 0, name: 'Login flow', filePath: 'tests/login.yaml' }),
     env('testFinished', { testId: 't0', testIndex: 0, outcome: 'cancelled', durationMs: 500 }),

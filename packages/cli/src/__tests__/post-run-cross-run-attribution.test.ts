@@ -157,7 +157,7 @@ function fixture(behaviour: {
   /** Burn the whole drain budget the moment the FIRST pumped job lands, whoever's it was. */
   stopAfterFirstJob?: boolean
 } = {}): Fixture {
-  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-388-07-'))
+  const agentQaRoot = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   roots.push(agentQaRoot)
   const knowledgeRoot = join(agentQaRoot, 'knowledge')
   mkdirSync(knowledgeRoot, { recursive: true })

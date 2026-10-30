@@ -230,7 +230,7 @@ describe('a visible navigation control below 768 CSS px on the shipped bundle', 
       }
 
       // Real browser zoom: an MV3 extension calls `tabs.setZoom` on a 1280x800 tab, so 640 CSS px.
-      const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-433-nav-zoom-')))
+      const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-nav-zoom-')))
       const extension = join(zoomRoot, 'extension')
       mkdirSync(extension)
       writeFileSync(join(extension, 'manifest.json'), JSON.stringify({ manifest_version: 3,

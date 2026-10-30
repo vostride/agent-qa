@@ -57,7 +57,7 @@ function packEnv(cache: string): NodeJS.ProcessEnv {
 }
 
 function packedFiles(packageDir: string): ReadonlyMap<string, number> {
-  const cache = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-446-npm-cache-')))
+  const cache = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-npm-cache-')))
   const output = execFileSync('npm', ['pack', '--dry-run', '--json', '--ignore-scripts'], {
     cwd: packageDir,
     encoding: 'utf8',
@@ -124,7 +124,7 @@ beforeAll(async () => {
   const rootDir = agentQaRoot()
   const stageUrl = pathToFileURL(join(rootDir, 'scripts', 'release', 'stage-packages.mjs')).href
   const { stagePublishPackages } = (await import(stageUrl)) as StageModule
-  const outputDir = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-446-stage-')))
+  const outputDir = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-stage-')))
   await stagePublishPackages({ rootDir, targetVersion: '0.2.0', outputDir })
   const stagedCli = join(outputDir, 'cli')
   const files = packedFiles(stagedCli)
@@ -151,7 +151,7 @@ describe('skill assets in the packed CLI', () => {
   it('a missing or empty reference in the staged package is named', () => {
     const { stagedCli } = scene
     if (stagedCli === undefined) throw new Error('the staged CLI package was not listed')
-    const planted = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-446-planted-')))
+    const planted = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-planted-')))
     writeFileSync(
       join(planted, 'package.json'),
       `${JSON.stringify({ name: 'planted', version: '0.0.0', files: ['skills'] }, null, 2)}\n`,

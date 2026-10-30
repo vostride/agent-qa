@@ -247,7 +247,7 @@ async function driveDashboardHold(): Promise<DashboardReport> {
   refuseWithoutRecordingTools()
   refuseWithoutPosixRunLifecycle()
   const facts: DashboardReport = {}
-  const rig = await openRig('444-ctrl-c-dashboard')
+  const rig = await openRig('ctrl-c-dashboard')
   const savedCi = process.env.CI
   const savedBrowsers = process.env.PLAYWRIGHT_BROWSERS_PATH
   process.env.CI = 'true'
@@ -384,7 +384,7 @@ describe('Ctrl-C and hangup end agent-qa run through its own path', () => {
   it("one SIGINT ends a held direct run through agent-qa run's own path", async () => {
     expectOwnPath(await signalHeldRun(
       'direct SIGINT',
-      '444-ctrl-c-direct-sigint',
+      'ctrl-c-direct-sigint',
       ['run', 'tests/populated.test.yaml'],
       'SIGINT',
     ))
@@ -393,7 +393,7 @@ describe('Ctrl-C and hangup end agent-qa run through its own path', () => {
   it("one SIGINT ends a held suite run through agent-qa run's own path", async () => {
     expectOwnPath(await signalHeldRun(
       'suite SIGINT',
-      '444-ctrl-c-suite-sigint',
+      'ctrl-c-suite-sigint',
       ['run', '--suite', 'suites/populated.suite.yaml'],
       'SIGINT',
     ))
@@ -402,7 +402,7 @@ describe('Ctrl-C and hangup end agent-qa run through its own path', () => {
   it("one SIGTERM ends a held direct run through agent-qa run's own path", async () => {
     expectOwnPath(await signalHeldRun(
       'direct SIGTERM',
-      '444-ctrl-c-direct-sigterm',
+      'ctrl-c-direct-sigterm',
       ['run', 'tests/populated.test.yaml'],
       'SIGTERM',
     ))
@@ -411,7 +411,7 @@ describe('Ctrl-C and hangup end agent-qa run through its own path', () => {
   it("one SIGHUP ends a held direct run through agent-qa run's own path", async () => {
     expectOwnPath(await signalHeldRun(
       'direct SIGHUP',
-      '444-ctrl-c-direct-sighup',
+      'ctrl-c-direct-sighup',
       ['run', 'tests/populated.test.yaml'],
       'SIGHUP',
     ))
@@ -420,7 +420,7 @@ describe('Ctrl-C and hangup end agent-qa run through its own path', () => {
   it("two SIGHUPs 1 ms apart end a held direct run through agent-qa run's own path", async () => {
     const facts = await signalHeldRun(
       'direct SIGHUP twice',
-      '444-ctrl-c-direct-sighup-twice',
+      'ctrl-c-direct-sighup-twice',
       ['run', 'tests/populated.test.yaml'],
       'SIGHUP',
       { afterMs: 1 },

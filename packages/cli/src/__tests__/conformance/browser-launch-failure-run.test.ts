@@ -76,7 +76,7 @@ afterAll(() => {
 })
 
 function launchProject(label: string, origin: string, modelBaseUrl: string): LaunchProject {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), `agent-qa-433-35-${label}-`)))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), `agent-qa-${label}-`)))
   roots.push(root)
   mkdirSync(join(root, 'tests'), { recursive: true })
   mkdirSync(join(root, 'suites'), { recursive: true })

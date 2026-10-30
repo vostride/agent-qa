@@ -543,7 +543,7 @@ function chatCompletion(
   usage: { prompt: number; completion: number },
 ): Record<string, unknown> {
   return {
-    id: 'chatcmpl-405-09-populated',
+    id: 'chatcmpl-populated',
     object: 'chat.completion',
     created: Math.floor(Date.now() / 1000),
     model,
@@ -711,7 +711,7 @@ export async function startStubModelServer(
               role: 'assistant',
               content: null,
               tool_calls: [{
-                id: 'call_405_09_click',
+                id: 'call_click',
                 type: 'function',
                 function: { name: toolName, arguments: JSON.stringify(args) },
               }],
@@ -930,7 +930,7 @@ export function populatedRunFixtureProject(
     `Click the ${POPULATED_BUTTON_LABEL} button on the notice page. The operator credential `
     + `for this environment is {{secret:${POPULATED_SECRET_NAME}}}.`
   )
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-405-09-${label}-`)))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-${label}-`)))
   const configPath = join(root, 'agent-qa.config.yaml')
 
   writeFileSync(

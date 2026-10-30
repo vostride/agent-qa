@@ -71,7 +71,7 @@ const handoff = {
 
 // A real run directory, queue and handler bodies, the seams the mocked harness above stubs out.
 
-const CHAIN_RUN_ID = 'run-425-07-snapshot-branch'
+const CHAIN_RUN_ID = 'run-snapshot-branch'
 const chainRoots: string[] = []
 
 afterEach(() => {
@@ -87,7 +87,7 @@ const CHAIN_MODEL: JobModelCapability = {
 const CHAIN_CONFIG: ConfigReaderPort = {
   getMasked: () => Promise.resolve({
     schemaVersion: MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
-    configPath: '/tmp/425-07.config.yaml',
+    configPath: '/tmp/snapshot-branch.config.yaml',
     entries: [],
   }),
 }
@@ -634,7 +634,7 @@ describe('the extended exit line — everything else gets count + command', () =
 
 describe('declared values in post-run tail warnings', () => {
   it('a post-run tail warning shows a declared value only as its marker', async () => {
-    const redactor = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz\n'))
+    const redactor = new SecretRedactor(SecretStore.fromEnvContent('PW_KEY=Hunter-42-zz\n'))
     const h = harness({
       runNextJob: pump([ANALYZE_COMPLETED]),
       status: completeStatus(),
@@ -651,7 +651,7 @@ describe('declared values in post-run tail warnings', () => {
 
     const warnings = h.warn.mock.calls.map(([message]) => String(message))
     expect(warnings).toHaveLength(1)
-    expect(warnings[0]).toContain('[secret:PW_441]')
+    expect(warnings[0]).toContain('[secret:PW_KEY]')
     expect(warnings.join('\n')).not.toContain('Hunter-42-zz')
   })
 })
@@ -799,7 +799,7 @@ const COMMITTED_SNAPSHOT = CurationSnapshotSchema.parse({
 
 describe('the chain-terminal line a real snapshot-bearing run prints', () => {
   it('CHAIN-LINE-SNAPSHOT-BRANCH lists the five buckets in order, zeros included', async () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-425-07-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-snapshot-branch-'))
     chainRoots.push(root)
     const knowledge = join(root, 'knowledge')
     mkdirSync(knowledge, { recursive: true })
@@ -885,8 +885,8 @@ describe('the chain-terminal line a real snapshot-bearing run prints', () => {
 
   // A fold that committed nothing prints zero buckets, never the legacy pair.
   it('CHAIN-LINE-ZERO-EFFECT prints five zero buckets for a run whose curation changed nothing', async () => {
-    const zeroRun = 'run-427-04-chain-zero-effect'
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-427-04-'))
+    const zeroRun = 'run-chain-zero-effect'
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-zero-effect-'))
     chainRoots.push(root)
     const knowledge = join(root, 'knowledge')
     mkdirSync(knowledge, { recursive: true })

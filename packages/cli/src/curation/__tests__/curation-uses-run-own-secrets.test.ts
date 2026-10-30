@@ -48,9 +48,9 @@ const VALUE_B = 'bravo-tenant-4410'
 const MARKER_A = '[secret:A_SECRET]'
 const VALUE_LATE = 'late-tenant-9902'
 const MARKER_LATE = '[secret:A_LATE]'
-const RUN_A = 'r-c442-run-a'
-const RUN_B = 'r-c442-run-b'
-const RUN_A_LATER = 'r-c442-later-a'
+const RUN_A = 'r-run-a'
+const RUN_B = 'r-run-b'
+const RUN_A_LATER = 'r-later-a'
 const SCOPE_A = 'tenant-a'
 const SCOPE_B = 'tenant-b'
 const TAIL_TIMEOUT_MS = 180_000
@@ -102,7 +102,7 @@ use:
 }
 
 function project(options: { sharedKnowledge: boolean }): Project {
-  const root = mkdtempSync(join(tmpdir(), 'c442-run-config-'))
+  const root = mkdtempSync(join(tmpdir(), 'run-config-'))
   roots.push(root)
   const knowledgeDirA = 'knowledge-a'
   const knowledgeDirB = options.sharedKnowledge ? knowledgeDirA : 'knowledge-b'

@@ -79,7 +79,7 @@ beforeAll(async () => {
   const png = new Uint8Array(await shotPage.screenshot({ type: 'png' }))
   await shotPage.close()
 
-  const harness = await startLiveViewHarness({ label: '428-13-bridge' })
+  const harness = await startLiveViewHarness({ label: 'bridge' })
   fixture = { harness, browser, jpeg, png }
 }, 180_000)
 

@@ -101,7 +101,7 @@ describe('the capability catalog', () => {
 
 describe('the capability catalog loader', () => {
   it('fails loud on a missing artifact, naming the regen script', () => {
-    const absent = join(tmpdir(), 'agent-qa-398-no-such-catalog', 'capability-catalog.json')
+    const absent = join(tmpdir(), 'agent-qa-no-such-catalog', 'capability-catalog.json')
     let thrown: unknown
     try {
       loadCapabilityCatalog(absent)
@@ -118,7 +118,7 @@ describe('the capability catalog loader', () => {
   })
 
   it('fails loud on an unparseable artifact rather than reading past the damage', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'agent-qa-398-torn-'))
+    const dir = mkdtempSync(join(tmpdir(), 'agent-qa-torn-'))
     try {
       const path = join(dir, 'capability-catalog.json')
       writeFileSync(path, '{ "rows": [', 'utf8')
@@ -162,7 +162,7 @@ describe('the capability catalog loader', () => {
     // committed artifact does and comes back through the same parser, so it is a document the
     // producer could actually emit. A hand-typed `{"rows":[]}` would prove only that the parser
     // accepts something nobody can generate.
-    const dir = mkdtempSync(join(tmpdir(), 'agent-qa-398-empty-'))
+    const dir = mkdtempSync(join(tmpdir(), 'agent-qa-empty-'))
     try {
       const path = join(dir, 'capability-catalog.json')
       const empty: CapabilityCatalog = {

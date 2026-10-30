@@ -23,14 +23,14 @@ import {
 } from '../commands/dashboard.js'
 
 /** A bearer value an older client might still present. The door neither needs nor reads it. */
-const TOKEN = 'zz-402-01-e2e-run-credential-6d20af'
+const TOKEN = 'zz-e2e-run-credential-6d20af'
 
 // What the door refuses before its route table.
 const CROSS_SITE = { Origin: 'https://evil.example' } as const
 
 /** The `dashboard-door-security.ts` fixture project's shape, plus one planted test. */
 function fixtureWorkspace(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-402-01-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,

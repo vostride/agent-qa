@@ -60,7 +60,7 @@ describe('the MCP port is left to mcp --http', () => {
 
   it('a real init writes a config whose dashboard mount plan binds no MCP port', () => {
     assertFreshBuild()
-    const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-446-port-owner-')))
+    const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-port-owner-')))
     const dir = join(root, 'workspace')
     const result = spawnSync(process.execPath, [CLI_ENTRY, 'init', '--platform', 'web', '--dir', dir], {
       cwd: root,

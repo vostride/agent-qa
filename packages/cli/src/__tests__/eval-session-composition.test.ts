@@ -106,11 +106,11 @@ describe('resolveEvalSession takes replay settings from flags', () => {
 describe('eval session masking', () => {
   it('the eval session masks with its secrets file and nothing else', async () => {
     process.env.AGENT_QA_X_PASSWORD = 'env-password-not-declared-77'
-    const { configPath } = await writeFixture({ secrets: 'PW_441=Hunter-42-zz\n' })
+    const { configPath } = await writeFixture({ secrets: 'PW_KEY=Hunter-42-zz\n' })
     const session = await resolveEvalSession({ configPath })
 
     expect(session.mask('pw Hunter-42-zz env env-password-not-declared-77'))
-      .toBe('pw [secret:PW_441] env env-password-not-declared-77')
+      .toBe('pw [secret:PW_KEY] env env-password-not-declared-77')
   })
 })
 

@@ -31,9 +31,9 @@ import { cleanupTempRoots, driveChatSpawned, type SpawnOutcome } from './spawned
 const CELL_BUDGET_MS = 300_000
 
 const SHORT = 'q^7'
-const LONG = 'Lx~9^aZ4-proof441-long-declared-value-0123456789'
-const SHORT_MARKER = '[secret:SHORT_441]'
-const LONG_MARKER = '[secret:LONG_441]'
+const LONG = 'Lx~9^aZ4-proofq7k-long-declared-value-0123456789'
+const SHORT_MARKER = '[secret:SHORT_KEY]'
+const LONG_MARKER = '[secret:LONG_KEY]'
 const RAW = [SHORT, LONG] as const
 const MARKERS = [SHORT_MARKER, LONG_MARKER] as const
 const SECRETS_FILE = '.env.secrets.local'
@@ -191,7 +191,7 @@ function transcript(outcome: CliRunOutcome | SpawnOutcome): string {
 
 function declare(root: string): string {
   const path = join(root, SECRETS_FILE)
-  writeFileSync(path, `SHORT_441=${SHORT}\nLONG_441=${LONG}\n`, 'utf8')
+  writeFileSync(path, `SHORT_KEY=${SHORT}\nLONG_KEY=${LONG}\n`, 'utf8')
   return path
 }
 
@@ -217,10 +217,10 @@ async function startChatModelStub(): Promise<ChatModelStub> {
       }
       res.writeHead(200, { 'Content-Type': 'application/json' })
       res.end(JSON.stringify({
-        id: 'chatcmpl-441',
+        id: 'chatcmpl',
         object: 'chat.completion',
         created: 0,
-        model: 'stub-441',
+        model: 'stub',
         choices: [{
           index: 0,
           message: { role: 'assistant', content: 'Noted.' },
@@ -285,7 +285,7 @@ const FILL_KEY = 'into the Access code field'
 const ASSERT_KEY = 'Confirm the Access code field'
 const RUN_LEG_STEPS = [
   `Click the ${POPULATED_BUTTON_LABEL} button. The codes on file are ${SHORT} and ${LONG}.`,
-  `Type {{secret:SHORT_441}} ${FILL_KEY}`,
+  `Type {{secret:SHORT_KEY}} ${FILL_KEY}`,
   `${ASSERT_KEY} holds the short code`,
 ] as const
 const ACCESS_CODE_EXPR = "document.getElementById('access-code').value"
@@ -410,7 +410,7 @@ async function startRunLegProxy(upstreamOrigin: string): Promise<RunLegProxy> {
           ...rest,
           target: { role: 'textbox', name: 'Access code' },
           elementDescription: 'Access code',
-          text: '{{secret:SHORT_441}}',
+          text: '{{secret:SHORT_KEY}}',
           stepComplete: true,
         }
       } else {
@@ -422,7 +422,7 @@ async function startRunLegProxy(upstreamOrigin: string): Promise<RunLegProxy> {
         args = {
           expr: ACCESS_CODE_EXPR,
           op: 'equals',
-          expected: '{{secret:SHORT_441}}',
+          expected: '{{secret:SHORT_KEY}}',
           reasoning: stub.reasoning,
           confidence: stub.confidence,
           doesActionAdvanceUsTowardsGoal: true,
@@ -490,7 +490,7 @@ function findAssertOutcome(value: unknown): Record<string, unknown> | undefined 
 
 describe('ask, chat and run mask declared values', () => {
   it('ask masks both declared values in what it writes and prints', async () => {
-    const project = await recordedDoorProject('441-ask', { fullBodies: true })
+    const project = await recordedDoorProject('ask', { fullBodies: true })
     try {
       const secretsPath = declare(project.root)
       const freeForm = await spawnCliRun(project, ['ask', FREE_FORM_UTTERANCE])
@@ -528,7 +528,7 @@ describe('ask, chat and run mask declared values', () => {
   }, CELL_BUDGET_MS)
 
   it('ask refuses at start when the secrets file cannot be read', async () => {
-    const project = await recordedDoorProject('441-ask-refusal', { fullBodies: true })
+    const project = await recordedDoorProject('ask-refusal', { fullBodies: true })
     try {
       const secretsPath = join(project.root, SECRETS_FILE)
       rmSync(secretsPath)
@@ -546,7 +546,7 @@ describe('ask, chat and run mask declared values', () => {
 
   it('chat masks both declared values in every model request, the transcript and the terminal',
     async () => {
-    const project = await recordedDoorProject('441-chat', { fullBodies: true })
+    const project = await recordedDoorProject('chat', { fullBodies: true })
     const stub = await startChatModelStub()
     try {
       const secretsPath = declare(project.root)
@@ -587,7 +587,7 @@ describe('ask, chat and run mask declared values', () => {
   }, CELL_BUDGET_MS)
 
   it('chat refuses at start when the secrets file cannot be read', async () => {
-    const project = await recordedDoorProject('441-chat-refusal', { fullBodies: true })
+    const project = await recordedDoorProject('chat-refusal', { fullBodies: true })
     const stub = await startChatModelStub()
     try {
       pointChatModelAt(project, stub.baseUrl)
@@ -609,12 +609,12 @@ describe('ask, chat and run mask declared values', () => {
 
   it('run masks both declared values in every model request, record and terminal line',
     async () => {
-    const project = await recordedDoorProject('441-run', { fullBodies: true })
+    const project = await recordedDoorProject('run', { fullBodies: true })
     const page = await startRunLegPage()
     const proxy = await startRunLegProxy(project.model.url)
     // Linux Chromium writes binary fontconfig caches under XDG_CACHE_HOME, so they stay out of the
     // scanned root; agent-qa's own model cache is pinned back inside it.
-    const fontCache = mkdtempSync(join(tmpdir(), '441-xdg-cache-'))
+    const fontCache = mkdtempSync(join(tmpdir(), 'xdg-cache-'))
     try {
       const secretsPath = declare(project.root)
       pointRunLegAt(project, page.origin, `${proxy.origin}/v1`)
@@ -641,7 +641,7 @@ describe('ask, chat and run mask declared values', () => {
         }
       }
       const sentText = bodies.join('\n')
-      expect(sentText.includes('{{secret:SHORT_441}}'), 'the step template reached the model')
+      expect(sentText.includes('{{secret:SHORT_KEY}}'), 'the step template reached the model')
         .toBe(true)
       expect(sentText.includes('use {{secret:NAME}} verbatim'), 'Rule 23 reached the model')
         .toBe(true)
@@ -703,22 +703,22 @@ describe('ask, chat and run mask declared values', () => {
 // Only declared values are masked, and nothing is blocked.
 const TWIN_VALUES = [
   'qa@example.com',
-  'cookie-441-value',
-  'pw-env-441',
-  'envfile-441',
+  'cookie-value',
+  'pw-env',
+  'envfile',
   '4242 4242 4242 4242',
   'AKIAIOSFODNN7EXAMPLE',
   'Bearer abc123def456ghi789',
 ] as const
 const TWIN_TEXT = TWIN_VALUES.join(' | ')
-const TWIN_ENV = { AGENT_QA_X_PASSWORD: 'pw-env-441' }
-const TWIN_AUTH_STATE = 'twin-441'
+const TWIN_ENV = { AGENT_QA_X_PASSWORD: 'pw-env' }
+const TWIN_AUTH_STATE = 'twin-auth-state'
 const RUN_TWIN_VALUES = [
   'qa@example.com',
-  'cookie-441-value',
-  'ls-441-value',
-  'pw-env-441',
-  'envfile-441',
+  'cookie-value',
+  'ls-value',
+  'pw-env',
+  'envfile',
   '4242 4242 4242 4242',
   'AKIAIOSFODNN7EXAMPLE',
   'Bearer abc123def456ghi789',
@@ -732,7 +732,7 @@ function sessionKinds(agentQaRoot: string, kind: string): string {
 
 function twinProject(project: RecordedDoorProject, secrets: string): void {
   writeFileSync(join(project.root, SECRETS_FILE), secrets, 'utf8')
-  writeFileSync(join(project.root, '.env'), 'ENV_ONLY_441=envfile-441\n', 'utf8')
+  writeFileSync(join(project.root, '.env'), 'ENV_ONLY_KEY=envfile\n', 'utf8')
   const paths = resolveAuthStatePaths({
     configDir: dirname(project.configPath),
     targetName: POPULATED_TARGET_NAME,
@@ -742,12 +742,12 @@ function twinProject(project: RecordedDoorProject, secrets: string): void {
   mkdirSync(paths.targetDir, { recursive: true })
   writeFileSync(paths.payloadPath, `${JSON.stringify({
     cookies: [{
-      name: 'session', value: 'cookie-441-value', domain: '127.0.0.1', path: '/',
+      name: 'session', value: 'cookie-value', domain: '127.0.0.1', path: '/',
       expires: -1, httpOnly: false, secure: false, sameSite: 'Lax',
     }],
     origins: [{
       origin: project.target.url,
-      localStorage: [{ name: 'twin', value: 'ls-441-value' }],
+      localStorage: [{ name: 'twin', value: 'ls-value' }],
     }],
   })}\n`, 'utf8')
   writeFileSync(paths.metadataPath, `${JSON.stringify({
@@ -758,10 +758,10 @@ function twinProject(project: RecordedDoorProject, secrets: string): void {
 
 describe('undeclared values pass unchanged', () => {
   it('ask and chat leave every undeclared value unchanged and block nothing', async () => {
-    const project = await recordedDoorProject('441-twin', { fullBodies: true })
+    const project = await recordedDoorProject('twin', { fullBodies: true })
     const stub = await startChatModelStub()
     try {
-      twinProject(project, `SHORT_441=${SHORT}\n`)
+      twinProject(project, `SHORT_KEY=${SHORT}\n`)
       pointChatModelAt(project, stub.baseUrl)
 
       const chat = await driveChatSpawned(project.root, project.configPath, TWIN_TEXT, TWIN_ENV)
@@ -799,7 +799,7 @@ describe('undeclared values pass unchanged', () => {
 
   it('an empty secrets file changes nothing, and encoded or case-changed forms of a declared value '
     + 'are not masked', async () => {
-    const project = await recordedDoorProject('441-twin-forms', { fullBodies: true })
+    const project = await recordedDoorProject('twin-forms', { fullBodies: true })
     const stub = await startChatModelStub()
     try {
       twinProject(project, '')
@@ -816,7 +816,7 @@ describe('undeclared values pass unchanged', () => {
         expect(session, value).toContain(value)
       }
 
-      writeFileSync(join(project.root, SECRETS_FILE), `SHORT_441=${SHORT}\n`, 'utf8')
+      writeFileSync(join(project.root, SECRETS_FILE), `SHORT_KEY=${SHORT}\n`, 'utf8')
       rmSync(join(project.agentQaRoot, 'sessions'), { recursive: true, force: true })
       const before = stub.requests.length
       const forms = `Q^7 q%5E7 ${SHORT}`
@@ -849,9 +849,9 @@ describe('undeclared values pass unchanged', () => {
   }, CELL_BUDGET_MS)
 
   it('a run leaves every undeclared value unchanged and blocks nothing', async () => {
-    const project = await recordedDoorProject('441-run-twin', { fullBodies: true })
+    const project = await recordedDoorProject('run-twin', { fullBodies: true })
     try {
-      twinProject(project, `SHORT_441=${SHORT}\n`)
+      twinProject(project, `SHORT_KEY=${SHORT}\n`)
       const testFile = join(project.root, project.testPath)
       const test = parseYaml(readFileSync(testFile, 'utf8')) as Record<string, unknown>
       test.use = { authState: TWIN_AUTH_STATE }

@@ -124,7 +124,7 @@ describe('evidence layout backstops on the shipped bundle', () => {
       await densePage.goto(url)
       await measureTabs(densePage, 'tab-strip-desktop-2x-density')
       await dense.close()
-      const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-424-zoom-')))
+      const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-zoom-')))
       const extension = join(zoomRoot, 'extension')
       mkdirSync(extension)
       writeFileSync(join(extension, 'manifest.json'), JSON.stringify({ manifest_version: 3,

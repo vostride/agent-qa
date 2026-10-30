@@ -74,7 +74,7 @@ function receiptOf(value: unknown): MarkReceipt {
 
 async function mcpDoor(scene: Scratch) {
   // The MCP door is tokenless; one client presents a legacy bearer to show it changes nothing.
-  const token = 'agent-qa-parity-fixture-writer-419'
+  const token = 'agent-qa-parity-fixture-writer'
   writeFileSync(scene.configPath, JSON.stringify(scene.config))
   const composed = host.composeCliLocalAgent({ configPath: scene.configPath, agentQaRoot: scene.agentQaRoot,
     resolveExecutionContext: () => 'local-headless' })

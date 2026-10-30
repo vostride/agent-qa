@@ -158,11 +158,11 @@ describe('the console reporter prints masked payloads', () => {
     for (const envelope of fixture.envelopes) {
       const payload = envelope.payload as StepStartedPayload
       const masked = envelope.type === 'stepStarted' && payload.stepIndex === 0
-        ? { ...envelope, payload: { ...payload, stepText: 'Log in with [secret:PW_441]' } }
+        ? { ...envelope, payload: { ...payload, stepText: 'Log in with [secret:PW_KEY]' } }
         : envelope
       reporter.handler(masked)
     }
-    expect(capture.output()).toContain('Log in with [secret:PW_441]')
+    expect(capture.output()).toContain('Log in with [secret:PW_KEY]')
   })
 
   it('the console reporter prints a numbered placeholder unchanged and restores nothing', () => {
@@ -179,7 +179,7 @@ describe('the console reporter prints masked payloads', () => {
 function abortSkippedStream(): RunEventEnvelope[] {
   let seq = 0
   const env = (type: RunEventType, payload: object): RunEventEnvelope =>
-    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-444.1-15', type, payload }) as RunEventEnvelope
+    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-console', type, payload }) as RunEventEnvelope
   return [
     env('runStarted', {
       busSchemaVersion: CURRENT_BUS_SCHEMA_VERSION,
@@ -323,7 +323,7 @@ function cacheStream(statusesByTest: readonly (readonly string[])[]): RunEventEn
 function cancelledStream(): RunEventEnvelope[] {
   let seq = 0
   const env = (type: RunEventType, payload: object): RunEventEnvelope =>
-    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-444.1-15', type, payload }) as RunEventEnvelope
+    ({ seq: seq++, ts: 1_000 + seq, runId: 'run-console', type, payload }) as RunEventEnvelope
   const step = (testIndex: number, status: string, durationMs: number): object => ({
     testIndex,
     stepIndex: 0,

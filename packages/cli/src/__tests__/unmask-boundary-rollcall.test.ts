@@ -996,7 +996,7 @@ describe('reads refuse an unreadable secrets file', () => {
   it.each(REFUSING_COMMANDS)(
     '%s refuses at start when the secrets file cannot be read',
     async (_name, args, composes) => {
-      const root = mkdtempSync(join(tmpdir(), 'c441-display-refusal-'))
+      const root = mkdtempSync(join(tmpdir(), 'display-refusal-'))
       roots.push(root)
       const configPath = join(root, 'agent-qa.config.yaml')
       writeFileSync(configPath, `${JSON.stringify({

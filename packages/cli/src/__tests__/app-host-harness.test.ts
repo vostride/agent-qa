@@ -56,7 +56,7 @@ const BROWSER_INSTALL_INSTRUCTION =
   + 'THIS MUST NOT BE SKIPPED WHEN THE BROWSER IS ABSENT (a skipped browser suite is a failed gate).'
 
 const TOKEN_ENV_VAR = 'AGENT_QA_HARNESS_TOKEN'
-const TOKEN_VALUE = 'harness-token-408-06-not-a-real-credential'
+const TOKEN_VALUE = 'harness-token-not-a-real-credential'
 
 // A static page gets a keepalive every 2 s; above the band means a poller, below a silent producer.
 const CHANGING_WINDOW_MS = 3_000
@@ -180,7 +180,7 @@ function hostCspFor(
 // ---- The workspace, copied in shape from the tracer's ------------------------------------------
 
 function fixtureWorkspace(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-408-06-harness-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-harness-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,
@@ -468,7 +468,7 @@ async function connectClient(options: { readonly apps: boolean }): Promise<Clien
   }) as typeof fetch
 
   const client = new Client(
-    { name: 'agent-qa-408-06-app-host-harness', version: '0.0.0' },
+    { name: 'agent-qa-app-host-harness', version: '0.0.0' },
     {
       // Plan 02 D-G: the per-request capabilities envelope exists ONLY on the modern era.
       versionNegotiation: { mode: 'auto' as const },

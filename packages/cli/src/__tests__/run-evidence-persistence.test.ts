@@ -57,7 +57,7 @@ vi.mock('@vostride/agent-qa-web', () => ({
 
 let root: string
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'agent-qa-423-paths-'))
+  root = mkdtempSync(join(tmpdir(), 'agent-qa-paths-'))
   vi.clearAllMocks()
   vi.stubEnv('AGENT_QA_LLM_MODEL', '')
   vi.stubEnv('AGENT_QA_LLM_PROVIDER', '')

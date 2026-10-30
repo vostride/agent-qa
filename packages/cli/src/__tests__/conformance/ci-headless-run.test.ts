@@ -216,7 +216,7 @@ async function drive(): Promise<void> {
     failOnlyStepText: POPULATED_FAILURE_STEP_MARKER,
     curatorOutcome: 'supersede-first',
   })
-  const project = populatedRunFixtureProject('444-ci-headless', {
+  const project = populatedRunFixtureProject('ci-headless', {
     modelBaseUrl: model.baseUrl,
     targetUrl: target.url,
   }, {

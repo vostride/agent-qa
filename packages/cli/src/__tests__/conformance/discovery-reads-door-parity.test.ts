@@ -48,7 +48,7 @@ const DISCOVERY_OPS = [
   'runs.overview',
 ] as const
 
-const READER_TOKEN = 'zz-431-08-discovery-reader-7d02c4'
+const READER_TOKEN = 'zz-discovery-reader-7d02c4'
 
 function toolFor(opId: string) {
   return AGENT_QA_TOOL_PROJECTIONS.find((projection) => projection.ops.includes(opId))
@@ -145,7 +145,7 @@ async function openMcpDoor(p: DiscoveryRunFixture): Promise<McpDoor> {
     registry: composed.registry, maskText: (text) => masking.mask(text),
   }))
   const port = await listen(server)
-  const client = new Client({ name: 'agent-qa-431-08', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa', version: '0.0.0' })
   await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${String(port)}/mcp`), {
     requestInit: { headers: { authorization: `Bearer ${READER_TOKEN}` } },
   }))
@@ -462,7 +462,7 @@ describe('DEDICATED-CLI-PARITY: the six dedicated verbs are sugar over their ops
   }
 
   it('agent-qa runs evidence --screenshot writes the bytes fn and MCP answer for runs.artifact', async () => {
-    const out = mkdtempSync(join(tmpdir(), 'agent-qa-431-08-export-'))
+    const out = mkdtempSync(join(tmpdir(), 'agent-qa-export-'))
     try {
       const target = join(out, 'shot.png')
       const exported = await cli(p.configPath, ['runs', 'evidence', p.runId, '--screenshot', p.screenshotSha, '--out', target])

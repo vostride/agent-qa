@@ -155,7 +155,7 @@ async function connect(era: Era = LEGACY): Promise<Session> {
     return res
   }) as typeof fetch
 
-  const client = new Client({ name: 'agent-qa-432-12-change', version: '0.0.0' }, {
+  const client = new Client({ name: 'agent-qa-change', version: '0.0.0' }, {
     ...(era.wire === 'modern' ? { versionNegotiation: { mode: { pin: '2026-07-28' } } } : {}),
     ...(era.elicitation ? { capabilities: { elicitation: {} } } : {}),
   } as never)
@@ -209,7 +209,7 @@ async function statuses(session: Session): Promise<string[]> {
 }
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'agent-qa-432-12-change-'))
+  root = mkdtempSync(join(tmpdir(), 'agent-qa-change-'))
   configPath = join(root, CONFIG_FILE)
   agentQaRoot = join(root, '.agent-qa')
   knowledgeRoot = join(root, 'agent-qa-knowledge')

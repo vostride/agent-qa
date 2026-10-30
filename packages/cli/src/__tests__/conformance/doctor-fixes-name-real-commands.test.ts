@@ -82,7 +82,7 @@ function assertFreshBuild(): void {
 
 beforeAll(() => {
   if (process.platform === 'win32') throw new Error('POSIX run lifecycle required; never skip')
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-446-doctor-fixes-')))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-doctor-fixes-')))
   helpOf = createHelpReader(root)
 })
 

@@ -23,7 +23,7 @@ afterEach(async () => {
 })
 
 function project() {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-423-cold-read-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-cold-read-'))
   roots.push(root)
   const configPath = join(root, 'agent-qa.config.yaml')
   const agentQaRoot = join(root, '.agent-qa')

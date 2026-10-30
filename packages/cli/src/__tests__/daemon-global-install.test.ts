@@ -165,7 +165,7 @@ function shortestTempBase(): string {
 const TEMP_BASE = shortestTempBase()
 
 function temporaryRoot(label: string): string {
-  const root = mkdtempSync(join(TEMP_BASE, `aq399-${label}-`))
+  const root = mkdtempSync(join(TEMP_BASE, `aq-${label}-`))
   roots.push(root)
   return root
 }

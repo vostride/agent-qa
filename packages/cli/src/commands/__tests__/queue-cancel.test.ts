@@ -11,7 +11,7 @@ vi.mock('../../config.js', () => ({
 
 import { createQueueCommand } from '../queue.js'
 
-const RUN_ID = 'run-442-05'
+const RUN_ID = 'run-queue-cancel'
 const REFUSAL = 'This run belongs to another agent-qa process (pid 4242). Stop it there with Ctrl+C.'
 const ORPHAN = 'The process running this run (pid 4242) ended before it finished.'
 const STOP_REQUESTED = 'Stop requested. The run will end with its own verdict.'

@@ -20,7 +20,7 @@ import { createRunServiceSessionRegistry } from '../composition/run-service-sess
 const openRoots: string[] = []
 
 function fixtureWorkspace(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-403-01-masking-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-masking-'))
   openRoots.push(root)
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(

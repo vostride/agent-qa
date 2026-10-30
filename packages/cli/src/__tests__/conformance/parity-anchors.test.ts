@@ -227,7 +227,7 @@ describe('the built-binary anchors', () => {
       captured += typeof chunk === 'string' ? chunk : chunk.toString('utf8')
     })
 
-    const client = new Client({ name: 'agent-qa-397-07-mcp-anchor', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-mcp-anchor', version: '0.0.0' })
     try {
       await client.connect(transport)
       const listed = await client.listTools()
@@ -345,7 +345,7 @@ describe('the built-binary anchors', () => {
         `the built CLI entry is missing at ${relative(PACKAGES_ROOT, CLI_ENTRY)}; ${REBUILD_INSTRUCTION}`,
       ).toBe(true)
 
-      const fixture = fixtureProject('398-13-explain-answer')
+      const fixture = fixtureProject('explain-answer')
       const outcome = await driveChatSpawned(
         fixture.root,
         fixture.configPath,
@@ -416,7 +416,7 @@ describe('the built-binary anchors', () => {
         `the built CLI entry is missing at ${relative(PACKAGES_ROOT, CLI_ENTRY)}; ${REBUILD_INSTRUCTION}`,
       ).toBe(true)
 
-      const fixture = fixtureProject('398-08-manifest')
+      const fixture = fixtureProject('manifest')
       const outcome = await spawnAgentManifest(fixture.root, [])
 
       // THE SHAPE OF THE ANSWER BEFORE ANY COMPARISON OF IT. A command that refused to start, or
@@ -472,9 +472,9 @@ describe('the built-binary anchors', () => {
       // environment of a child this cell kills.
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
 
-      const sentinel = 'sk-398-08-anchor-sentinel-6f21ba9c04d7e358'
+      const sentinel = 'sk-anchor-sentinel-6f21ba9c04d7e358'
       const tokenEnvVar = 'AGENT_QA_ANCHOR_TOKEN'
-      const fixture = fixtureProject('398-08-refs-only', [
+      const fixture = fixtureProject('refs-only', [
         { name: 'ci', tokenEnvVar, scopes: ['read'] },
       ])
 
@@ -521,12 +521,12 @@ describe('the built-binary anchors', () => {
   it('the anchor comparator names a divergence in both directions', () => {
     // Drives the comparator's disagreeing branches with synthetic sets, so it is seen to fire.
     const shared = new Set(['runs.list', 'quarantine.list'])
-    const binaryOnly = new Set([...shared, 'control.stray.397.07'])
-    const inProcessOnly = new Set([...shared, 'control.absent.397.07'])
+    const binaryOnly = new Set([...shared, 'control.stray.anchor'])
+    const inProcessOnly = new Set([...shared, 'control.absent.anchor'])
 
     expect(anchorDifference(binaryOnly, inProcessOnly)).toEqual({
-      onlyInBinary: ['control.stray.397.07'],
-      onlyInProcess: ['control.absent.397.07'],
+      onlyInBinary: ['control.stray.anchor'],
+      onlyInProcess: ['control.absent.anchor'],
     })
     expect(anchorDifference(shared, shared)).toEqual({ onlyInBinary: [], onlyInProcess: [] })
   })
@@ -540,16 +540,16 @@ describe('the built-binary anchors', () => {
     // that branch WOULD catch is a shipped binary composed against a different build of the
     // function layer, which is exactly what an installed artifact is. It is driven here with two
     // planted headers instead.
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-397-07-stamp-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-stamp-'))
     trackTempRoot(root)
     const plant = (label: string, toolsetHash: string): string => {
       const project = join(root, label)
       mkdirSync(join(project, '.agent-qa', 'sessions'), { recursive: true })
       writeFileSync(
-        join(project, '.agent-qa', 'sessions', `chat-control-397-07-${label}.jsonl`),
+        join(project, '.agent-qa', 'sessions', `chat-control-${label}.jsonl`),
         `${JSON.stringify({
           schemaVersion: 1,
-          sessionId: `chat-control-397-07-${label}`,
+          sessionId: `chat-control-${label}`,
           createdAt: '2026-08-16T00:00:00.000Z',
           model: 'unbound',
           toolsetHash,
@@ -579,35 +579,35 @@ describe('the built-binary anchors', () => {
   it('the freshness guard refuses a missing build and a stale one, by name', () => {
     // BOTH REFUSING BRANCHES, DRIVEN. A synthetic package tree stands in for a real one so the
     // reading is produced by the same function the anchors call rather than described here.
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-397-07-freshness-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-freshness-'))
     trackTempRoot(root)
 
     // (a) No dist at all — the `clean` reading, and the one the plan's must-have names.
-    mkdirSync(join(root, 'control-397-07', 'src'), { recursive: true })
-    const source = join(root, 'control-397-07', 'src', 'thing.ts')
+    mkdirSync(join(root, 'control', 'src'), { recursive: true })
+    const source = join(root, 'control', 'src', 'thing.ts')
     writeFileSync(source, 'export const a = 1\n', 'utf8')
     // FIXED STAMPS, never the wall clock: `utimes` rounds toward the second on this platform, and a
     // control whose two timestamps can land in the same second is a control that reports the
     // rounding rather than the rule.
     const at = (seconds: number): Date => new Date(seconds * 1000)
     utimesSync(source, at(2_000_000), at(2_000_000))
-    const builds = [{ pkg: 'control-397-07', artifact: join('dist', 'index.js') }]
+    const builds = [{ pkg: 'control', artifact: join('dist', 'index.js') }]
     expect(buildFreshness(builds, root)).toEqual({
-      missing: [join('control-397-07', 'dist', 'index.js')],
+      missing: [join('control', 'dist', 'index.js')],
       stale: [],
     })
 
     // (b) A dist that exists and is OLDER than the source it was built from — the trap this guard
     // exists for, and the one a missing-file check cannot see.
-    mkdirSync(join(root, 'control-397-07', 'dist'), { recursive: true })
-    const artifact = join(root, 'control-397-07', 'dist', 'index.js')
+    mkdirSync(join(root, 'control', 'dist'), { recursive: true })
+    const artifact = join(root, 'control', 'dist', 'index.js')
     writeFileSync(artifact, 'export const a = 1\n', 'utf8')
     utimesSync(artifact, at(1_000_000), at(1_000_000))
     expect(buildFreshness(builds, root)).toEqual({
       missing: [],
       stale: [
-        `${join('control-397-07', 'src', 'thing.ts')} is newer than `
-        + `${join('control-397-07', 'dist', 'index.js')}`,
+        `${join('control', 'src', 'thing.ts')} is newer than `
+        + `${join('control', 'dist', 'index.js')}`,
       ],
     })
 
@@ -617,8 +617,8 @@ describe('the built-binary anchors', () => {
 
     // (d) A test source is NOT a product source. Touching one after a build must not read as an
     // unbuilt change, or the guard becomes an alarm people learn to silence.
-    mkdirSync(join(root, 'control-397-07', 'src', '__tests__'), { recursive: true })
-    const testSource = join(root, 'control-397-07', 'src', '__tests__', 'thing.test.ts')
+    mkdirSync(join(root, 'control', 'src', '__tests__'), { recursive: true })
+    const testSource = join(root, 'control', 'src', '__tests__', 'thing.test.ts')
     writeFileSync(testSource, 'export const b = 2\n', 'utf8')
     utimesSync(testSource, at(9_000_000), at(9_000_000))
     expect(buildFreshness(builds, root)).toEqual({ missing: [], stale: [] })

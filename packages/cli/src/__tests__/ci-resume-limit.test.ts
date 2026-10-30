@@ -218,7 +218,7 @@ describe('every CI door states the resume limit', () => {
     for (const context of ['local-headless', ...CI_CONTEXTS] as const) {
       const warnings: string[] = []
       const tail = runPostRunTail({
-        runId: 'run_444_20_drain',
+        runId: 'run_drain',
         agentQaRoot: '/workspace/.agent-qa',
         configPath: '/workspace/agent-qa.config.yaml',
         configDir: '/workspace',
@@ -229,7 +229,7 @@ describe('every CI door states the resume limit', () => {
       })
       await tail.drain({ takeLease: () => undefined })
       expect(warnings, context).toEqual([
-        `Post-run processing stopped early for run_444_20_drain (fixture root failure); ${expected[context]}`,
+        `Post-run processing stopped early for run_drain (fixture root failure); ${expected[context]}`,
       ])
     }
   })
@@ -289,18 +289,18 @@ describe('every CI door states the resume limit', () => {
     for (const context of ['local-headless', ...CI_CONTEXTS] as const) {
       const warnings: string[] = []
       await runCurationTail({
-        runId: 'run_444_20_fold',
+        runId: 'run_fold',
         agentQaRoot: '/workspace/.agent-qa',
         knowledgeConfig: { dir: 'knowledge' },
         configDir: '/workspace',
         log: { warn: (message: string) => { warnings.push(message) }, info: () => undefined },
         operations: {
-          loadCompletedRunHandoff: (() => ({ runId: 'run_444_20_fold', executionContext: context })) as never,
+          loadCompletedRunHandoff: (() => ({ runId: 'run_fold', executionContext: context })) as never,
           resolveKnowledgeRoot: () => { throw new Error('fixture root failure') },
         },
       })
       expect(warnings, context).toEqual([
-        `Post-verdict knowledge curation incomplete for run_444_20_fold; ${expected[context]}`,
+        `Post-verdict knowledge curation incomplete for run_fold; ${expected[context]}`,
       ])
     }
   })

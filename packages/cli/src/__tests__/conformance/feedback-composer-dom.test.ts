@@ -570,7 +570,7 @@ async function driveLayout(browser: Browser, url: string) {
 
   // Real browser zoom, not device density: an isolated MV3 extension calls `setZoom` on the tab.
   // https://developer.chrome.com/docs/extensions/reference/api/tabs#method-setZoom
-  const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-426-zoom-')))
+  const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-zoom-')))
   const extension = join(zoomRoot, 'extension')
   mkdirSync(extension)
   writeFileSync(join(extension, 'manifest.json'), JSON.stringify({ manifest_version: 3,

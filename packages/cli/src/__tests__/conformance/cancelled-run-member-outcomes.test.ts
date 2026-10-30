@@ -161,7 +161,7 @@ async function readMcp(project: PopulatedRunProject, runId: string): Promise<Rea
     stderr: 'pipe',
     env,
   })
-  const client = new Client({ name: 'agent-qa-444-17-ranking', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-ranking', version: '0.0.0' })
   try {
     await client.connect(transport)
     const result = await client.callTool(
@@ -206,7 +206,7 @@ async function driveRanking(): Promise<void> {
     failOnlyStepText: POPULATED_FAILURE_STEP_MARKER,
     holdOnlyStepText: HOLD_MARKER,
   })
-  const project = populatedRunFixtureProject('444-cancel-ranking', {
+  const project = populatedRunFixtureProject('cancel-ranking', {
     modelBaseUrl: model.baseUrl,
     targetUrl: target.url,
   })

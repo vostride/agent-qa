@@ -22,7 +22,7 @@ import { createDeclaredSecretMask } from '../declared-secrets.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../local-agent-host.js'
 
 const DECLARED = 'Hunter-42-zz'
-const MARKER = '[secret:PW_441]'
+const MARKER = '[secret:PW_KEY]'
 const UNDECLARED = 'sk-PROBE-123456'
 const TYPED = `use ${DECLARED} with ${UNDECLARED}`
 const MESSAGE = `/fn knowledge.record.show ${JSON.stringify({ recordId: TYPED })}`
@@ -64,12 +64,12 @@ let configPath: string
 let agentQaRoot: string
 
 beforeEach(() => {
-  root = mkdtempSync(join(tmpdir(), 'c441-chat-'))
+  root = mkdtempSync(join(tmpdir(), 'chat-'))
   configPath = join(root, 'agent-qa.config.yaml')
   agentQaRoot = join(root, '.agent-qa')
   mkdirSync(agentQaRoot, { recursive: true })
   writeFileSync(configPath, CONFIG)
-  writeFileSync(join(root, '.env.secrets.local'), `PW_441=${DECLARED}\n`)
+  writeFileSync(join(root, '.env.secrets.local'), `PW_KEY=${DECLARED}\n`)
 })
 
 afterEach(() => {
@@ -104,7 +104,7 @@ function sessionEvents(kind: string): SessionEvent[] {
 }
 
 const DAEMON_MODEL: JobModelCapability = {
-  modelId: 'test:c441-chat-daemon',
+  modelId: 'test:chat-daemon',
   generate: () => Promise.reject(new Error('the daemon cells never author')),
 }
 
@@ -281,7 +281,7 @@ describe('a declared value used as a payload key', () => {
 
 describe('chat sessions with a one-character declared value', () => {
   beforeEach(() => {
-    writeFileSync(join(root, '.env.secrets.local'), `T_441=t\nPW_441=${DECLARED}\n`)
+    writeFileSync(join(root, '.env.secrets.local'), `T_KEY=t\nPW_KEY=${DECLARED}\n`)
   })
 
   function sessionFileLines(): string[] {

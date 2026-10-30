@@ -25,7 +25,7 @@ const BROWSER_INSTALL_INSTRUCTION =
   + 'SKIPPED WHEN THE BROWSER IS ABSENT: every other cell in this phase asserts bytes, and these '
   + 'are the only ones that assert behaviour.'
 
-const RUN_ID = 'run-408-02-dom'
+const RUN_ID = 'run-dom'
 
 let browser: Browser | undefined
 const openServers: Server[] = []

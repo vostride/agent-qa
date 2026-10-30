@@ -40,7 +40,7 @@ export function runFixtureProject(label: string, memberCount = 1, into?: string)
   // `into` writes the project into a root somebody else owns — the daemon fixture's, so a real
   // `agent-qa daemon` and a real `agent-qa run` address ONE `.agent-qa` and ONE knowledge root.
   // Its cleanup is that owner's; only a minted root is tracked here.
-  const root = into ?? trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-404-${label}-`)))
+  const root = into ?? trackTempRoot(mkdtempSync(join(tmpdir(), `agent-qa-${label}-`)))
   mkdirSync(root, { recursive: true })
   writeFileSync(
     join(root, 'agent-qa.config.yaml'),

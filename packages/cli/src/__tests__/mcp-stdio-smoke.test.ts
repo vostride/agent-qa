@@ -21,7 +21,7 @@ afterEach(() => {
 
 // `legacyTokens` writes an old MCP credential block that nothing reads and the schema rejects.
 function fixtureProject(legacyTokens = false): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-396-01-stdio-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-stdio-'))
   roots.push(root)
   writeFileSync(
     join(root, 'agent-qa.config.yaml'),
@@ -69,7 +69,7 @@ async function listOverStdio(cwd: string): Promise<{ names: string[]; stderr: ()
   transport.stderr?.on('data', (chunk: Buffer | string) => {
     captured += typeof chunk === 'string' ? chunk : chunk.toString('utf8')
   })
-  const client = new Client({ name: 'agent-qa-432-21-stdio-legacy', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-stdio-legacy', version: '0.0.0' })
   try {
     await client.connect(transport)
     const names = (await client.listTools()).tools.map((entry) => entry.name).sort()
@@ -101,7 +101,7 @@ describe('agent-qa mcp over spawned stdio', () => {
       captured += typeof chunk === 'string' ? chunk : chunk.toString('utf8')
     })
 
-    const client = new Client({ name: 'agent-qa-396-stdio-smoke', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-stdio-smoke', version: '0.0.0' })
     try {
       await client.connect(transport)
       const listed = await client.listTools()

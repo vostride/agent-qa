@@ -368,7 +368,7 @@ const DRIVERS: Readonly<Record<string, Driver>> = {
   'agent-qa mcp over stdio': async (row, record) => {
     const transport = stdioTransport(stdoutTeeEnv())
     transport.onerror = (error) => { stdioErrors.push(`transport: ${message(error)}`) }
-    const client = new Client({ name: 'agent-qa-443-01-stdio', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-stdio', version: '0.0.0' })
     client.onerror = (error) => { stdioErrors.push(`client: ${message(error)}`) }
     try {
       await client.connect(transport)
@@ -390,7 +390,7 @@ const DRIVERS: Readonly<Record<string, Driver>> = {
   'agent-qa mcp over HTTP': async (row, record) => {
     const server = await spawnHttpMcp(await reserveEphemeralPort())
     record.ownerPid = server.pid
-    const client = new Client({ name: 'agent-qa-443-01-http', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-http', version: '0.0.0' })
     try {
       const port = /listening on http:\/\/[^:]+:(\d+)/u.exec(server.stderr())?.[1]
       await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${String(port)}/mcp`)))
@@ -448,7 +448,7 @@ const DRIVERS: Readonly<Record<string, Driver>> = {
       offSignal: (signal, listener) => { if (listeners.get(signal) === listener) listeners.delete(signal) },
       hardExit: (code) => { throw new Error(`unexpected daemon hard exit ${code}`) },
     }
-    const jobModel: JobModelCapability = { modelId: 'test:443-01-doors', generate: () => Promise.resolve({ text: 'unused' }) }
+    const jobModel: JobModelCapability = { modelId: 'test:doors', generate: () => Promise.resolve({ text: 'unused' }) }
     const config: ConfigReaderPort = {
       getMasked: () => Promise.resolve({ schemaVersion: MASKED_RESOLVED_CONFIG_SCHEMA_VERSION, configPath: project.configPath, entries: [] }),
     }
@@ -511,7 +511,7 @@ const DRIVERS: Readonly<Record<string, Driver>> = {
     })
     const server: Server | undefined = mount.server
     if (server === undefined) throw new Error(`the co-hosted MCP endpoint did not mount: ${warnings.join('\n')}`)
-    const client = new Client({ name: 'agent-qa-443-01-cohost', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-cohost', version: '0.0.0' })
     try {
       await inProcess(async () => {
         await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${String(mount.boundPort)}/mcp`)))
@@ -597,7 +597,7 @@ async function readApi<T>(path: string): Promise<Read<T>> {
 
 async function readEverything(): Promise<void> {
   const transport = stdioTransport()
-  const client = new Client({ name: 'agent-qa-443-01-reader', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-reader', version: '0.0.0' })
   let mcpFailure: string | undefined
   try {
     await client.connect(transport)
@@ -707,7 +707,7 @@ describe('a run through every door', () => {
     refuseWithoutRecordingTools()
     target = await startTargetPageServer()
     model = await startStubModelServer({ plannerOutcome: 'stepFailed', failOnlyStepText: POPULATED_FAILURE_STEP_MARKER })
-    project = populatedRunFixtureProject('443-door-matrix', {
+    project = populatedRunFixtureProject('door-matrix', {
       modelBaseUrl: model.baseUrl,
       targetUrl: target.url,
     }, { secondStepText: POPULATED_FAILURE_STEP_TEXT })

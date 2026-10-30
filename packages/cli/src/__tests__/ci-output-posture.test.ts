@@ -55,7 +55,7 @@ describe('colour posture', () => {
   })
 })
 
-const RUN_ID = 'run_444_14_ci_pending'
+const RUN_ID = 'run_ci_pending'
 const WORKSPACE_KEPT = "resumes only if this workspace's .agent-qa/ is kept"
 const ANALYSIS_LIMIT =
   `analysis: pending (${WORKSPACE_KEPT} and a later run or the daemon picks it up)`
@@ -91,7 +91,7 @@ function stagesOf(
 }
 
 async function tailPreparationLine(executionContext: Context): Promise<string> {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-444-14-pending-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-pending-'))
   roots.push(root)
   const lines: string[] = []
   const postVerdict: PostVerdictHandoff = {

@@ -84,9 +84,9 @@ describe('the inherited adjudications, discharged at their artifacts', () => {
     // RE-SPELLED from 'would name an op that minted a scope outside the union'.
     it('would name a declaration that carried a scope again', () => {
       const findings = permissionBearingFindings([
-        { id: 'control.scope.432.20', requiredScopes: ['read'] } as KeyBearing,
+        { id: 'control.scope.probe', requiredScopes: ['read'] } as KeyBearing,
       ])
-      expect(findings).toEqual(['control.scope.432.20 carries requiredScopes'])
+      expect(findings).toEqual(['control.scope.probe carries requiredScopes'])
     })
   })
 

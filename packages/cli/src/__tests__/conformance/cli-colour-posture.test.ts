@@ -31,7 +31,7 @@ afterEach(() => {
 })
 
 function missingTestProject(): { root: string; configPath: string } {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-444-ci-colour-')))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-ci-colour-')))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,

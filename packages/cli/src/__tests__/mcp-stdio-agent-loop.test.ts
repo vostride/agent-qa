@@ -55,7 +55,7 @@ async function openStdio(cwd: string): Promise<StdioSession> {
   transport.stderr?.on('data', (chunk: Buffer | string) => {
     captured += typeof chunk === 'string' ? chunk : chunk.toString('utf8')
   })
-  const client = new Client({ name: 'agent-qa-432-42-stdio', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-stdio', version: '0.0.0' })
   await client.connect(transport)
   return {
     client,

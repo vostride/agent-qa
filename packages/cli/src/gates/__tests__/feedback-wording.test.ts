@@ -15,7 +15,7 @@ import { markFixture } from './feedback-fixture.js'
 
 vi.mock('ai', async original => ({ ...await original<typeof import('ai')>(), generateText: vi.fn() }))
 
-const declared = new SecretRedactor(SecretStore.fromEnvContent('PW_441=Hunter-42-zz'))
+const declared = new SecretRedactor(SecretStore.fromEnvContent('PW_KEY=Hunter-42-zz'))
 const declaredMask = (text: string) => declared.redactString(text)
 
 describe('bounded feedback wording', () => {
@@ -55,7 +55,7 @@ describe('bounded feedback wording', () => {
 
   it('valid text uses one model inside the safety scope with fixed token/retry/timeout bounds', async () => {
     vi.mocked(generateText).mockImplementation(async options => {
-      expect(model.mock.calls[0]![2]('pw Hunter-42-zz')).toBe('pw [secret:PW_441]')
+      expect(model.mock.calls[0]![2]('pw Hunter-42-zz')).toBe('pw [secret:PW_KEY]')
       expect(options).toMatchObject({ maxOutputTokens: WORDING_MAX_OUTPUT_TOKENS, maxRetries: 0, temperature: 0 })
       expect(options.abortSignal).toBeInstanceOf(AbortSignal)
       return { text: JSON.stringify({ summary: 'Clarified record', body: 'Clarified evidence only.' }) } as Awaited<ReturnType<typeof generateText>>
@@ -144,7 +144,7 @@ describe('a declared value in feedback wording', () => {
       '  hooksFile: hooks.yaml', '  envFile: .env', '  secretsFile: .env.secrets.local', 'registry:', '  llms:',
       '    - name: fixture', '      provider: openai-compatible', '      model: fixture-model', '      vision: false',
       '      baseURL: http://127.0.0.1:1/v1', 'use:', '  llm: fixture', '  mobile:', '    appState: preserve', ''].join('\n'))
-    writeFileSync(join(f.root, '.env.secrets.local'), 'PW_441=Hunter-42-zz\n')
+    writeFileSync(join(f.root, '.env.secrets.local'), 'PW_KEY=Hunter-42-zz\n')
     vi.spyOn(llm, 'resolveModelAuth').mockResolvedValue({ kind: 'unauthenticated', credentialKey: 'fixture', provider: 'openai-compatible', optional: true, message: 'controlled fixture' })
     const sent: string[] = []
     let modelMask: ((text: string) => string) | undefined
@@ -166,7 +166,7 @@ describe('a declared value in feedback wording', () => {
     expect(result).toMatchObject({ kind: 'marked' })
     expect(recorder).toHaveBeenCalledOnce()
     expect(sent).toHaveLength(1)
-    expect(sent[0]).toContain('[secret:PW_441]')
+    expect(sent[0]).toContain('[secret:PW_KEY]')
     expect(sent[0]).not.toContain('Hunter-42-zz')
   })
 })

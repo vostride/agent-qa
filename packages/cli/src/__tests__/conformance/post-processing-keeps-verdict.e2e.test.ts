@@ -357,7 +357,7 @@ async function withMcp<T>(project: PopulatedRunProject, use: (client: Client) =>
     stderr: 'pipe',
     env,
   })
-  const client = new Client({ name: 'agent-qa-444-18-verdict-independence', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-verdict-independence', version: '0.0.0' })
   try {
     await client.connect(transport)
     return await use(client)
@@ -394,7 +394,7 @@ async function drive(): Promise<void> {
 
   // The analysis leg has its own project: its drains claim queued work, and the pending legs
   // must keep theirs.
-  const analysisProject = populatedRunFixtureProject('444-vi-analysis', servers, {
+  const analysisProject = populatedRunFixtureProject('vi-analysis', servers, {
     stepText: POPULATED_FAILURE_STEP_TEXT,
   })
   const analysis = leg('failed-analysis', 'failed', analysisProject.testPath, [])
@@ -409,7 +409,7 @@ async function drive(): Promise<void> {
   for (const attempt of [2, 3]) analysis.drains.push(await drainOnce(analysisProject, analysis.runId, attempt))
   await readAll(analysisProject, [analysis])
 
-  const markersProject = populatedRunFixtureProject('444-vi-markers', servers, {
+  const markersProject = populatedRunFixtureProject('vi-markers', servers, {
     stepText: POPULATED_PASSING_STEP_TEXT,
     secondStepText: POPULATED_FAILURE_STEP_TEXT,
   })

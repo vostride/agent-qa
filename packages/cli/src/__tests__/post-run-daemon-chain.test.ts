@@ -37,7 +37,7 @@ import {
 } from './post-run-daemon/spawn-helpers.js'
 
 const describePosix = process.platform === 'win32' ? describe.skip : describe
-const RUN_ID = 'run-388-06-crash'
+const RUN_ID = 'run-crash'
 
 const hosts: LocalAgentHost[] = []
 

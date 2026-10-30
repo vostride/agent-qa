@@ -128,30 +128,30 @@ import {
 } from './scenario-table.js'
 
 // Named constants, so a control cell's own stray is told apart from a planted stray by name.
-const SYNTHETIC_UNCATALOGUED_TOOL = 'agent_qa_control_uncatalogued_397_01'
+const SYNTHETIC_UNCATALOGUED_TOOL = 'agent_qa_control_uncatalogued'
 
 const SYNTHETIC_STRAY_ALIAS_TARGET: ResolverOpTarget = Object.freeze({
-  alias: 'control-stray-397-01',
-  functionId: 'control.stray.397.01',
+  alias: 'control-stray',
+  functionId: 'control.stray.alias',
 })
 
 // Fixture names are unique per control group, so one control's stray never reads as another's.
-const SYNTHETIC_UNCARRIED_OP_ID = 'control.uncarried.397.03'
-const SYNTHETIC_STRAY_ROW_OP_ID = 'control.stray.row.397.03'
-const SYNTHETIC_ABSENT_OP_ID = 'control.absent.397.03'
+const SYNTHETIC_UNCARRIED_OP_ID = 'control.uncarried.probe'
+const SYNTHETIC_STRAY_ROW_OP_ID = 'control.stray.row'
+const SYNTHETIC_ABSENT_OP_ID = 'control.absent.probe'
 const SYNTHETIC_UNCLASSIFIABLE_REASON = 'control: prose in no declared class'
 
 // Synthetic fixtures for the driver-absence control.
-const SYNTHETIC_DRIVER_ABSENT_OP_ID = 'control.absent.397.04'
+const SYNTHETIC_DRIVER_ABSENT_OP_ID = 'control.absent.driver'
 
 // Domain spellings are not English words, so a control never reads as a domain meant to add.
-const SYNTHETIC_UNCATALOGUED_DOMAIN_OP_ID = 'controluncatalogued39708.probe'
-const SYNTHETIC_MEMBERLESS_DOMAIN = 'controlmemberless39708'
-const SYNTHETIC_RESERVED_DOMAIN = 'controlreserved39708'
+const SYNTHETIC_UNCATALOGUED_DOMAIN_OP_ID = 'controluncatalogued.probe'
+const SYNTHETIC_MEMBERLESS_DOMAIN = 'controlmemberless'
+const SYNTHETIC_RESERVED_DOMAIN = 'controlreserved'
 
-const SYNTHETIC_GOLDEN_STRAY_OP_ID = 'control.golden.stray.397.06'
-const SYNTHETIC_GOLDEN_UNCATALOGUED_OP_ID = 'control.golden.uncatalogued.397.06'
-const SYNTHETIC_GOLDEN_STRAY_FIELD = 'controlGoldenField39706'
+const SYNTHETIC_GOLDEN_STRAY_OP_ID = 'control.golden.stray'
+const SYNTHETIC_GOLDEN_UNCATALOGUED_OP_ID = 'control.golden.uncatalogued'
+const SYNTHETIC_GOLDEN_STRAY_FIELD = 'controlGoldenField'
 
 const enumerations = new Map<string, SurfaceEnumeration>()
 let censusIds: readonly string[] = []
@@ -1561,10 +1561,10 @@ describe('the parity suite ranges the registry census over every rostered surfac
 
   it('control: the partition join answers all three states, including the uncatalogued one', () => {
     // The third state is reachable only through a synthetic mapping, so it is driven here.
-    const projectingTool = new Map([[SYNTHETIC_GOLDEN_STRAY_OP_ID, 'agent_qa_control_397_06']])
+    const projectingTool = new Map([[SYNTHETIC_GOLDEN_STRAY_OP_ID, 'agent_qa_control_golden_stray']])
     expect(goldenPartitionOf(SYNTHETIC_GOLDEN_STRAY_OP_ID, projectingTool, [])).toEqual({
       kind: 'projected',
-      tool: 'agent_qa_control_397_06',
+      tool: 'agent_qa_control_golden_stray',
     })
     expect(
       goldenPartitionOf(SYNTHETIC_GOLDEN_UNCATALOGUED_OP_ID, new Map(), [
@@ -1926,7 +1926,7 @@ interface ParityProject {
 
 /** One project with one local target. */
 function parityProject(): ParityProject {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-432-40-parity-')))
+  const root = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-parity-')))
   writeFileSync(join(root, 'agent-qa.config.yaml'), [
     'workspace:',
     '  testMatch:',
@@ -1981,7 +1981,7 @@ async function callOnProjectMcp(
     caller: MCP_FUNCTION_CALLER,
     maskText: (text: string) => masking.mask(text),
   }))
-  const client = new Client({ name: 'agent-qa-432-40-parity', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa-parity', version: '0.0.0' })
   try {
     return await runSafetyScope({ executionContext: 'local-headless' }, async () => {
       await client.connect(new StreamableHTTPClientTransport(new URL('http://parity.local/mcp'), {

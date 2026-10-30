@@ -40,7 +40,7 @@ const LEGACY_HEADER_CLASSES = [
 
 /** The fixture project: one local web target, and no token block. */
 function fixtureWorkspace(): string {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-402-06-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-'))
   const configPath = join(root, 'agent-qa.config.yaml')
   writeFileSync(
     configPath,

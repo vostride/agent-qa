@@ -135,7 +135,7 @@ function startLoggedRun(
   executor: MemberTestExecutor,
   extra: Partial<RunConfig> = {},
 ): { session: RunSession; eventsPath: string } {
-  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-404-seq-')))
+  const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-seq-')))
   const runId = 'r_verdict-sequence-fixture-run'
   const config = {
     runId,

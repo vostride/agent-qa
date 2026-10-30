@@ -35,7 +35,7 @@ function closeAtForcedExit(record: RunRecord): void {
 }
 
 function configDir(): string {
-  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-444-signal-asks-')))
+  const dir = realpathSync(mkdtempSync(join(tmpdir(), 'agent-qa-signal-asks-')))
   cleanups.push(() => rmSync(dir, { recursive: true, force: true }))
   mkdirSync(join(dir, '.agent-qa'), { recursive: true })
   return dir

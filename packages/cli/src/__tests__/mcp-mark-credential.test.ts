@@ -18,7 +18,7 @@ import { composeCliLocalAgent } from '../composition/local-agent-host.js'
 import { markFixture } from '../gates/__tests__/feedback-fixture.js'
 
 /** A bearer value an older client might still send. The listener neither needs nor reads it. */
-const LEGACY_BEARER = 'zz-419-legacy-bearer-value-64bea7'
+const LEGACY_BEARER = 'zz-legacy-bearer-value-64bea7'
 const MARK_TOOL = 'agent_qa_mark_run'
 const GATES_TOOL = 'agent_qa_list_knowledge_gates'
 const cleanups: (() => Promise<void>)[] = []
@@ -62,7 +62,7 @@ async function harness() {
   const url = new URL(`http://127.0.0.1:${port}/mcp`)
   const frames: string[] = []
   async function connect(extraHeaders: Record<string, string> = {}) {
-    const client = new Client({ name: 'agent-qa-419-mark', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-mark', version: '0.0.0' })
     cleanups.push(() => client.close())
     await client.connect(new StreamableHTTPClientTransport(url, {
       fetch: (async (input: URL | string, init?: RequestInit) => {

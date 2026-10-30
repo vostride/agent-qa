@@ -142,7 +142,7 @@ const roots: string[] = []
 
 /** A project whose config names a knowledge dir that is really on disk. */
 function probedProject(): { config: Record<string, unknown>; configPath: string } {
-  const root = mkdtempSync(join(tmpdir(), 'agent-qa-407-11-rung-parity-'))
+  const root = mkdtempSync(join(tmpdir(), 'agent-qa-rung-parity-'))
   roots.push(root)
   mkdirSync(join(root, 'agent-qa-knowledge'), { recursive: true })
   return {

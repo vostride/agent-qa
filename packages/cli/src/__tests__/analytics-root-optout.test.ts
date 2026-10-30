@@ -505,7 +505,7 @@ describe('an identity location that cannot be written', () => {
   it('an identity location that cannot be written composes a host that sends nothing and init still exits 0', async () => {
     for (const name of CI_MARKERS) vi.stubEnv(name, '')
     const { dir } = fixtureProject(roots, { withConfig: false })
-    const home = mkdtempSync(join(tmpdir(), 'agent-qa-447-xdg-'))
+    const home = mkdtempSync(join(tmpdir(), 'agent-qa-xdg-'))
     roots.push(home)
     // A regular file where the data directory should be: mkdir under it fails for every user.
     const xdgFile = join(home, 'xdg-file')

@@ -78,7 +78,7 @@ describe('the listener reads no Authorization header', () => {
     const registry = createFunctionRegistry({
       deps: {} as unknown as FunctionDeps,
     })
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-441-07-tokenless-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-tokenless-'))
     cleanups.push(async () => rmSync(root, { recursive: true, force: true }))
     const configPath = join(root, 'agent-qa.config.yaml')
     writeFileSync(configPath, JSON.stringify(AgentQaConfigSchema.parse({
@@ -99,7 +99,7 @@ describe('the listener reads no Authorization header', () => {
   }
 
   async function namesWith(url: URL, authorization: string | undefined, frames: string[]): Promise<string[]> {
-    const client = new Client({ name: 'agent-qa-432-21-tokenless', version: '0.0.0' })
+    const client = new Client({ name: 'agent-qa-tokenless', version: '0.0.0' })
     cleanups.push(() => client.close())
     await client.connect(new StreamableHTTPClientTransport(url, {
       fetch: (async (input: URL | string, init?: RequestInit) => {

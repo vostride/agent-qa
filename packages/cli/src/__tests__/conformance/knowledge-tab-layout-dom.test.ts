@@ -515,7 +515,7 @@ async function driveGeometry(page: Page, label: string, capture: string, zoomed 
 async function driveZoom(url: string, runId: string) {
   // Real browser zoom: an isolated MV3 extension calls Chrome's own `tabs.setZoom` and `getZoom`.
   // https://developer.chrome.com/docs/extensions/reference/api/tabs#method-setZoom
-  const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-427-zoom-')))
+  const zoomRoot = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-zoom-')))
   const extension = join(zoomRoot, 'extension')
   mkdirSync(extension)
   writeFileSync(join(extension, 'manifest.json'), JSON.stringify({ manifest_version: 3,

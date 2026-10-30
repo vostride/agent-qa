@@ -37,7 +37,7 @@ import { afterEach, describe, expect, it } from 'vitest'
 import { composeCliLocalAgent } from '../composition/local-agent-host.js'
 import { renderChainTerminalLine, renderPostProcessingSummaryLine } from '../curation/post-run-tail.js'
 
-const RUN_ID = 'run-444-stage-words'
+const RUN_ID = 'run-stage-words'
 
 const CALLER: FunctionCaller = { surface: 'test', origin: 'agent' }
 
@@ -118,7 +118,7 @@ async function mcpClient(deps: FunctionDeps): Promise<Client> {
   const registry = createFunctionRegistry({ deps })
   const caller: FunctionCaller = { surface: 'mcp', origin: 'agent' }
   const handler = createMcpHandler(() => buildAgentQaMcpServer({ registry, caller, maskText: (text: string) => text }))
-  const client = new Client({ name: 'agent-qa-444-10', version: '0.0.0' })
+  const client = new Client({ name: 'agent-qa', version: '0.0.0' })
   openClients.push(client)
   await client.connect(new StreamableHTTPClientTransport(new URL('http://stage-words.local/mcp'), {
     fetch: ((url: URL | string, init?: RequestInit) => handler.fetch(new Request(url, init))) as typeof fetch,
@@ -309,7 +309,7 @@ describe('a run that ended with no verdict', () => {
   })
 
   it("the CLI host's reader answers a finished row and opens nothing before runs.db exists", async () => {
-    const root = mkdtempSync(join(tmpdir(), 'agent-qa-444-no-verdict-'))
+    const root = mkdtempSync(join(tmpdir(), 'agent-qa-no-verdict-'))
     const agentQaRoot = join(root, '.agent-qa')
     mkdirSync(agentQaRoot, { recursive: true })
     const configPath = join(root, 'agent-qa.config.yaml')

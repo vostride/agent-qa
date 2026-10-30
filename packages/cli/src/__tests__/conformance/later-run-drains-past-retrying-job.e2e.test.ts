@@ -135,7 +135,7 @@ async function drive(): Promise<void> {
     analysisOutcome: 'error',
   })
   const project = populatedRunFixtureProject(
-    '444-1-retry-backoff',
+    'retry-backoff',
     { modelBaseUrl: model.baseUrl, targetUrl: target.url },
     { stepText: POPULATED_FAILURE_STEP_TEXT, secondStepText: POPULATED_PASSING_STEP_TEXT },
   )

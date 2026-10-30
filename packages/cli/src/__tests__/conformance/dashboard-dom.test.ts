@@ -291,7 +291,7 @@ describe('the instrument this file runs on, asserted rather than assumed', () =>
     // a real `dist`. `parity-anchors.test.ts` drives the same two branches for the chat list; this
     // drives them for the two entries this plan added, so the extension is measured rather than
     // asserted about.
-    const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-400-09-guard-')))
+    const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-guard-')))
     const builds = [{ pkg: 'dashboard-ui', artifact: join('dist', 'index.html') }]
     mkdirSync(join(root, 'dashboard-ui', 'src'), { recursive: true })
     writeFileSync(join(root, 'dashboard-ui', 'src', 'app.css'), 'body{}', 'utf8')

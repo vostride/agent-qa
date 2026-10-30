@@ -66,7 +66,7 @@ describe('init neither probes nor creates the old grant ledger', () => {
 
     // Git's own answer about an old file a person still has: the emitted rules leave it as it is.
     initializeGit(knowledgeRoot)
-    writeFileSync(join(knowledgeRoot, LEGACY_LEDGER), 'left by a pre-432 build\n', 'utf8')
+    writeFileSync(join(knowledgeRoot, LEGACY_LEDGER), 'left by an older build\n', 'utf8')
     expect(gitIgnores(knowledgeRoot, LEGACY_LEDGER)).toBe(false)
 
     // THE CONTROL: a rule that really does match the file comes back true through the same call.
@@ -101,7 +101,7 @@ describe('init neither probes nor creates the old grant ledger', () => {
       mkdirSync(dirname(absolute), { recursive: true })
       writeFileSync(absolute, 'fixture\n')
     }
-    writeFileSync(join(root, LEGACY_LEDGER), 'left by a pre-432 build\n', 'utf8')
+    writeFileSync(join(root, LEGACY_LEDGER), 'left by an older build\n', 'utf8')
 
     expect(
       verifyEffectiveGitignore({

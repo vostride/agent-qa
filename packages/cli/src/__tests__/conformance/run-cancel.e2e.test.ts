@@ -380,7 +380,7 @@ async function driveDashboardLeg(): Promise<DashboardFacts> {
   const savedCi = process.env.CI
   const savedBrowsers = process.env.PLAYWRIGHT_BROWSERS_PATH
   try {
-    const rig = await openRig('444-real-cancel-dashboard')
+    const rig = await openRig('real-cancel-dashboard')
     process.env.CI = 'true'
     const browsers = populatedRunSpawnEnv().PLAYWRIGHT_BROWSERS_PATH
     if (browsers !== undefined) process.env.PLAYWRIGHT_BROWSERS_PATH = browsers
@@ -558,7 +558,7 @@ describe('cancelling a real run', () => {
   it('SIGINT stops a parked direct run', async () => {
     expectCliCancelled(await driveCliLeg(
       'SIGINT direct',
-      '444-real-cancel-direct-sigint',
+      'real-cancel-direct-sigint',
       ['run', 'tests/populated.test.yaml'],
       'SIGINT',
     ))
@@ -567,7 +567,7 @@ describe('cancelling a real run', () => {
   it('SIGTERM stops a parked direct run', async () => {
     expectCliCancelled(await driveCliLeg(
       'SIGTERM direct',
-      '444-real-cancel-direct-sigterm',
+      'real-cancel-direct-sigterm',
       ['run', 'tests/populated.test.yaml'],
       'SIGTERM',
     ))
@@ -576,7 +576,7 @@ describe('cancelling a real run', () => {
   it('SIGINT stops a parked suite run', async () => {
     expectCliCancelled(await driveCliLeg(
       'SIGINT suite',
-      '444-real-cancel-suite-sigint',
+      'real-cancel-suite-sigint',
       ['run', '--suite', 'suites/populated.suite.yaml'],
       'SIGINT',
     ))
@@ -585,7 +585,7 @@ describe('cancelling a real run', () => {
   it('SIGTERM stops a parked suite run', async () => {
     expectCliCancelled(await driveCliLeg(
       'SIGTERM suite',
-      '444-real-cancel-suite-sigterm',
+      'real-cancel-suite-sigterm',
       ['run', '--suite', 'suites/populated.suite.yaml'],
       'SIGTERM',
     ))

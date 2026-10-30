@@ -108,17 +108,17 @@ function authoredEntry(answer: string): AuthoredEntry {
 
 /** A project root with one run directory holding one decision-screenshot blob. */
 function rootWithBlob(sha: string): string {
-  const root = mkdtempSync(join(tmpdir(), 'aq-406-07-'))
+  const root = mkdtempSync(join(tmpdir(), 'aq-'))
   roots.push(root)
   const agentQaRoot = join(root, '.agent-qa')
-  mkdirSync(join(agentQaRoot, 'runs', 'r-406-07', 'blobs'), { recursive: true })
-  writeFileSync(join(agentQaRoot, 'runs', 'r-406-07', 'blobs', sha), 'png-bytes', 'utf8')
+  mkdirSync(join(agentQaRoot, 'runs', 'r-analysis-arm', 'blobs'), { recursive: true })
+  writeFileSync(join(agentQaRoot, 'runs', 'r-analysis-arm', 'blobs', sha), 'png-bytes', 'utf8')
   const handoff = handoffCarryingTheFixtureStepText()
   const subAction = handoff.tests[0]?.steps[0]?.subActions[0]
   if (subAction !== undefined) {
     subAction.decisionScreenshotRef = { id: `decision-screenshot:${sha}`, sha }
   }
-  writeFileSync(join(agentQaRoot, 'runs', 'r-406-07', 'handoff.json'), JSON.stringify(handoff))
+  writeFileSync(join(agentQaRoot, 'runs', 'r-analysis-arm', 'handoff.json'), JSON.stringify(handoff))
   return agentQaRoot
 }
 
@@ -283,7 +283,7 @@ describe('citeEvidenceFrom lifts the run its own decision-screenshot sha', () =>
   it('excludes network JSON and unreferenced blobs', async () => {
     const sha = 'b'.repeat(64)
     const root = rootWithBlob(sha)
-    const blobs = join(root, 'runs', 'r-406-07', 'blobs')
+    const blobs = join(root, 'runs', 'r-analysis-arm', 'blobs')
     writeFileSync(join(blobs, 'a'.repeat(64)), JSON.stringify({
       schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION,
       kind: 'network',
@@ -301,7 +301,7 @@ describe('citeEvidenceFrom lifts the run its own decision-screenshot sha', () =>
   it('does not substitute another blob for a missing screenshot', async () => {
     const sha = 'b'.repeat(64)
     const root = rootWithBlob(sha)
-    const blobs = join(root, 'runs', 'r-406-07', 'blobs')
+    const blobs = join(root, 'runs', 'r-analysis-arm', 'blobs')
     rmSync(join(blobs, sha))
     writeFileSync(join(blobs, 'a'.repeat(64)), JSON.stringify({
       schemaVersion: RUN_EVIDENCE_DOCUMENT_SCHEMA_VERSION,
@@ -319,7 +319,7 @@ describe('citeEvidenceFrom lifts the run its own decision-screenshot sha', () =>
     expect(authoredEntry(await ask(unregistered)).citedArtifacts).toEqual([])
 
     const empty = await stub({ analysisOutcome: 'authored' })
-    const root = mkdtempSync(join(tmpdir(), 'aq-406-07-empty-'))
+    const root = mkdtempSync(join(tmpdir(), 'aq-empty-'))
     roots.push(root)
     empty.citeEvidenceFrom(join(root, '.agent-qa'))
 
