@@ -205,7 +205,7 @@ export function computeAuthoringFunnel(input: AuthoringFunnelInput): AuthoringFu
         ? {}
         : { dedupRefusals: input.sideCounters.dedupRefusals }),
     },
-    // ABSENT rather than 0 when nothing was built — see the header.
+    // Absent rather than 0 when nothing was built, so the line says no drafts instead of 0%.
     ...(built === 0 ? {} : { keepRate: writeEligible / built }),
     acceptanceFailure,
     smallSample,

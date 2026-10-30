@@ -119,8 +119,9 @@ function httpPermanentLink(value: string | undefined): string | undefined {
 
 // The whole document every time; a stale App is answered by a fresh read that mints again.
 export function renderAppWrapperPage(input: AppWrapperInput): string {
-  // The embed page's escape, copied verbatim (embed-page.ts:72) rather than re-derived: the value
-  // lands inside a script as a STRING LITERAL and the `<` guard closes the one hole that leaves.
+  // The `scriptLiteral` escape of `renderLiveEmbedPage`, copied verbatim rather than
+  // re-derived: the value lands inside a script as a STRING LITERAL and the `<` guard closes the
+  // one hole that leaves.
   // ONE helper for every value that enters the script, so the guard cannot be forgotten for a new
   // one — including the handle numbers, which enter as literals like everything else so that
   // "every value crosses the helper" is a property a reader can check by grepping for the calls.
@@ -128,9 +129,9 @@ export function renderAppWrapperPage(input: AppWrapperInput): string {
 
   // THE SECOND HELPER, AND THE ONLY ONE FOR HTML ATTRIBUTE CONTEXT. It exists for exactly one
   // value — the permanent link's `href` and its label — which is the one thing this document renders
-  // into MARKUP rather than assigning from the script (see the header's dated amendment: the link
-  // is the primary representation and must survive a host that runs no script). `&` goes first or
-  // the later replacements would be re-escaped.
+  // into MARKUP rather than assigning from the script, because the link is the primary
+  // representation and must survive a host that runs no script. `&` goes first or the later
+  // replacements would be re-escaped.
   //
   // THE TWO HELPERS MUST NEVER BE USED IN EACH OTHER'S CONTEXT. `scriptLiteral` remains the one
   // helper for EVERY value entering the script and produces a quoted JS literal, which is not an
@@ -158,8 +159,8 @@ export function renderAppWrapperPage(input: AppWrapperInput): string {
     Number.POSITIVE_INFINITY,
   )
   const expired = live && lowestExpiry <= now
-  // The DELTA, not the deadline — see the header. Clamped at zero because a negative timeout is a
-  // fact about this render, and this render already turned it into the `expired` initial state.
+  // A delta, not a deadline, so the host's clock never enters it; clamped at zero because this
+  // render already turned a negative one into the `expired` initial state.
   const expiresInMs = expired || !live ? 0 : Math.max(0, lowestExpiry - now)
 
   const initialState: AppWrapperState = !live ? 'run-ended' : expired ? 'expired' : 'connecting'
