@@ -4,8 +4,8 @@
  *
  * The universe is what git lists as tracked or new and not ignored, so local run output never
  * reaches it. TS and JS comments come from the parser's leaf-token walk; titles are the first
- * argument of describe, it, test and suite, through their modifiers, factories and per-file
- * aliases; strings are read only in non-test files under packages/ and scripts/. Shell, YAML,
+ * argument of describe, it, test and suite, through their modifiers, factories, `extend` and
+ * per-file aliases; strings are read only in non-test files under packages/ and scripts/. Shell, YAML,
  * Dockerfile and ignore files are read for `#` comments and CSS for block comments. JSON and
  * Markdown are data and docs, and are not read.
  *
@@ -127,7 +127,12 @@ const unwrap = (node: ts.Expression): ts.Expression => {
   return n
 }
 
-// An identifier, or a chain whose every property is a modifier or factory, rooted at a base.
+const isFactoryOf = (node: ts.Expression, extend: boolean): node is ts.PropertyAccessExpression =>
+  ts.isPropertyAccessExpression(node) &&
+  (FACTORIES.has(node.name.text) || (extend && node.name.text === 'extend'))
+
+// An identifier, or a chain whose every property is a modifier, factory or `extend`, rooted at a
+// base.
 function rootedAtBase(node: ts.Expression, bases: ReadonlySet<string>): boolean {
   let n = unwrap(node)
   for (;;) {
@@ -136,8 +141,11 @@ function rootedAtBase(node: ts.Expression, bases: ReadonlySet<string>): boolean 
       n = unwrap(n.expression)
     } else if (ts.isCallExpression(n)) {
       const inner = unwrap(n.expression)
-      if (!ts.isPropertyAccessExpression(inner) || !FACTORIES.has(inner.name.text)) return false
+      if (!isFactoryOf(inner, true)) return false
       n = unwrap(inner.expression)
+    } else if (ts.isTaggedTemplateExpression(n)) {
+      if (!isFactoryOf(n.tag, false)) return false
+      n = unwrap(n.tag.expression)
     } else break
   }
   return ts.isIdentifier(n) && bases.has(n.text)
@@ -186,8 +194,11 @@ function isTitleCall(call: ts.CallExpression, bases: ReadonlySet<string>): boole
   for (;;) {
     if (ts.isCallExpression(callee)) {
       const inner = callee.expression
-      if (!ts.isPropertyAccessExpression(inner) || !FACTORIES.has(inner.name.text)) return false
+      if (!isFactoryOf(inner, false)) return false
       callee = inner.expression
+    } else if (ts.isTaggedTemplateExpression(callee)) {
+      if (!isFactoryOf(callee.tag, false)) return false
+      callee = callee.tag.expression
     } else if (ts.isPropertyAccessExpression(callee)) {
       const name = callee.name.text
       if (!MODIFIERS.has(name) && !FACTORIES.has(name)) return false
@@ -216,16 +227,28 @@ function readTitle(arg: ts.Expression): string | null {
   return null
 }
 
-function titles(source: ts.SourceFile): { title: CommentParagraph; node: ts.Node }[] {
+// The literal pieces readTitle reads, so the string pass skips exactly those.
+function titleParts(node: ts.Expression): ts.Node[] {
+  if (ts.isTemplateExpression(node)) {
+    return [node.head, ...node.templateSpans.map((span) => span.literal)]
+  }
+  if (ts.isParenthesizedExpression(node)) return titleParts(node.expression)
+  if (ts.isBinaryExpression(node) && node.operatorToken.kind === ts.SyntaxKind.PlusToken) {
+    return [...titleParts(node.left), ...titleParts(node.right)]
+  }
+  return [node]
+}
+
+function titles(source: ts.SourceFile): { title: CommentParagraph; parts: ts.Node[] }[] {
   const bases = titleBases(source)
-  const out: { title: CommentParagraph; node: ts.Node }[] = []
+  const out: { title: CommentParagraph; parts: ts.Node[] }[] = []
   const visit = (node: ts.Node): void => {
     if (ts.isCallExpression(node) && node.arguments.length > 0 && isTitleCall(node, bases)) {
       const arg = node.arguments[0]!
       const text = readTitle(arg)
       if (text !== null) {
         const line = source.getLineAndCharacterOfPosition(arg.getStart(source)).line + 1
-        out.push({ title: { line, text }, node: arg })
+        out.push({ title: { line, text }, parts: titleParts(arg) })
       }
     }
     ts.forEachChild(node, visit)
@@ -269,7 +292,7 @@ function scanFile(file: string, text: string): PlanningIdHit[] {
       ...found.flatMap(({ title }) => proseHits(title)).map(tag('title')),
     ]
     if (readsStrings(file)) {
-      const skip = new Set(found.map(({ node }) => node))
+      const skip = new Set(found.flatMap(({ parts }) => parts))
       hits.push(...stringLiterals(source, skip).flatMap(stringHits).map(tag('string')))
     }
     return hits.sort((a, b) => a.line - b.line)
@@ -325,6 +348,12 @@ describe('no planning IDs in comments, titles, strings or file names', () => {
     expect(kindsOf(scanFile(test, `const a = 'per ${id}'\n`))).toEqual([])
     const aliased = `const itLive = live ? it : it.skip\nitLive('on ${date}', () => {})\n`
     expect(kindsOf(scanFile(test, aliased))).toEqual(['title'])
+    const extended = `const myTest = test.extend({})\nmyTest('on ${date}', () => {})\n`
+    expect(kindsOf(scanFile(test, extended))).toEqual(['title'])
+    const tagged = 'it.each`a\n${1}`(' + `'per ${id}', () => {})\n`
+    expect(kindsOf(scanFile(test, tagged))).toEqual(['title'])
+    const templated = 'describe(`per ' + id + ' ${x}`, () => {})\n'
+    expect(kindsOf(scanFile(src, templated))).toEqual(['title'])
     const shell = `#!/bin/sh\n# per ${id}\necho '# ${id}'\n`
     expect(kindsOf(scanFile('scripts/planted.sh', shell))).toEqual(['comment'])
     expect(kindsOf(scanFile('packages/planted/a.css', `/* per ${id} */\na {}\n`))).toEqual([
