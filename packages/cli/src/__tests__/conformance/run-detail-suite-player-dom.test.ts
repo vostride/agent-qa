@@ -52,9 +52,14 @@ function clockLabel(seconds: number) {
   const whole = Math.floor(seconds)
   return `${Math.floor(whole / 60)}:${String(whole % 60).padStart(2, '0')}`
 }
+// Summed in whole microseconds, durations that make a whole second total exactly that second;
+// added as floats they can fall just short of it and read the second before.
+function suiteSeconds(durations: readonly number[]) {
+  return durations.reduce((sum, value) => sum + Math.round(value * 1_000_000), 0) / 1_000_000
+}
 async function assertSuiteClock(page: Page, durations: number[], member: number) {
-  const prefix = durations.slice(0, member).reduce((sum, value) => sum + value, 0)
-  const total = durations.reduce((sum, value) => sum + value, 0)
+  const prefix = suiteSeconds(durations.slice(0, member))
+  const total = suiteSeconds(durations)
   await expect.poll(() => page.locator('[data-player-time]').evaluate((element, prefix) =>
     Math.abs(Number((element as HTMLElement).dataset.playerElapsedMs) / 1000 - prefix - document.querySelector('video')!.currentTime), prefix)).toBeLessThan(0.001)
   const row = await page.locator('[data-player-time]').evaluate(element => ({ elapsedMs: Number((element as HTMLElement).dataset.playerElapsedMs), totalMs: Number((element as HTMLElement).dataset.playerTotalMs), text: element.textContent }))
@@ -686,7 +691,7 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
   } finally { await page.close() }
 }, 120_000)
 
-describe('the suite player\'s seek and span helpers', () => {
+describe('the suite player\'s seek, span and clock helpers', () => {
   it("a settled-seek wait that sees no seek on the member's source fails with a message within its bound", async () => {
     const page = await fixture.browser.newPage()
     try {
@@ -708,5 +713,12 @@ describe('the suite player\'s seek and span helpers', () => {
 
   it('a point no member spans fails with a message', () => {
     expect(() => freeMemberAt([{ member: 0, start: 0, width: 0.4 }], 0.5)).toThrow(/no timeline member spans 0.5/)
+  })
+
+  it('decoded durations that make exactly 16 s total 16 s and read 0:16, though their float sum is 15.999… s', () => {
+    const durations = [10.12, 2.96, 2.92]
+    expect(durations.reduce((sum, value) => sum + value, 0)).toBeLessThan(16)
+    expect(suiteSeconds(durations)).toBe(16)
+    expect(clockLabel(suiteSeconds(durations))).toBe('0:16')
   })
 })
