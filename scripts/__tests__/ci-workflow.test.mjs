@@ -88,3 +88,31 @@ test('the workspace and ps-hosts legs cache Playwright browsers under the instal
     assert.ok(chromium > cache, `${id} installs Chromium after restoring the cache`)
   }
 })
+
+test("CI runs on pushes to main, pull requests into main and release's call", () => {
+  assert.deepEqual(Object.keys(ci.on).sort(), ['pull_request', 'push', 'workflow_call'])
+  assert.deepEqual(ci.on.push.branches, ['main'])
+  assert.deepEqual(ci.on.pull_request.branches, ['main'])
+})
+
+test('only pull request runs cancel an in-flight run, and push and release runs are grouped by their own run id', () => {
+  assert.equal(ci.concurrency['cancel-in-progress'], "${{ github.event_name == 'pull_request' }}")
+  assert.match(ci.concurrency.group, /github\.event_name/)
+  assert.match(ci.concurrency.group, /github\.run_id/)
+})
+
+test('the audit job reports production advisories without failing, and CI result needs it', () => {
+  const steps = stepsOf(ci.jobs.audit)
+  const report = steps.findIndex((step) => /\bpnpm audit --prod --audit-level high\b/.test(runOf(step)))
+  assert.ok(report >= 0, 'a step audits production dependencies at high')
+  assert.equal(steps[report]['continue-on-error'], true, 'the audit step never fails the job')
+  const summary = steps.findIndex((step) => runOf(step).includes('$GITHUB_STEP_SUMMARY'))
+  assert.ok(summary > report, 'a later step writes the report to the step summary')
+  assert.equal(steps[summary].if, 'always()', 'the summary is written whatever the audit found')
+  assert.ok([ci.jobs['ci-result'].needs].flat().includes('audit'), 'CI result needs the audit job')
+})
+
+test('CI never grants an OIDC token: it reads contents only and no job widens that', () => {
+  assert.deepEqual(ci.permissions, { contents: 'read' })
+  for (const [id, job] of jobs) assert.equal(job.permissions, undefined, `${id} sets its own permissions`)
+})

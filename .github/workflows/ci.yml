@@ -1,21 +1,21 @@
 name: CI
 
-# Continuous verification on every push and PR.
+# Verifies pushes to main, pull requests into main and each release before it publishes.
 
 on:
   push:
-    branches: [main, version-0.2]
+    branches: [main]
   pull_request:
-    branches: [main, version-0.2]
+    branches: [main]
+  workflow_call:
 
 permissions:
   contents: read
 
-# A newer push to the same ref supersedes an in-flight run. Release workflows are
-# deliberately NOT in this group — they use their own non-cancelling concurrency.
+# Only a newer pull request push supersedes a run; push and release runs each get their own group.
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   build:
@@ -352,11 +352,40 @@ jobs:
           --filter=agent-qa
           --only
 
+  audit:
+    name: Dependency audit report
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      # The report never fails the job; release keeps the failing gate.
+      - name: Report production advisories
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          pnpm audit --prod --audit-level high 2>&1 | tee "$RUNNER_TEMP/audit.txt"
+
+      - name: Write the report to the step summary
+        if: always()
+        run: |
+          { echo '```'; cat "$RUNNER_TEMP/audit.txt"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
   # main's branch protection requires this check by name.
   ci-result:
     name: CI result
     if: always()
-    needs: [build, workspace, checks, knip, mcp-conformance, ps-hosts]
+    needs: [build, workspace, checks, knip, audit, mcp-conformance, ps-hosts]
     runs-on: ubuntu-latest
     timeout-minutes: 5
 
