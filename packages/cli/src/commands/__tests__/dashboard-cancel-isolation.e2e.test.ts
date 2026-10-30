@@ -188,8 +188,7 @@ describe('cancelling one of two concurrently executing dashboard runs', () => {
       const survivorMidFlight = buffered(survivor).map((event) => event.type)
       expect(survivorMidFlight).not.toContain('runFinished')
       expect(survivorMidFlight).not.toContain('testFinished')
-      // Nothing has settled for the survivor either — the terminal fact now lives only on the
-      // settle event, where the synthetic completion frame used to duplicate it.
+      // Nothing settled for the survivor either: the terminal fact is only on the settle event.
       expect(settled.map((entry) => entry.runId)).not.toContain(survivor)
 
       // ---- (5) RELEASE THE SURVIVOR — IT REACHES ITS OWN VERDICT ------------------------------

@@ -439,8 +439,7 @@ describe('masked placeholders in a repair patch', () => {
 
 describe('every repair iteration is shown the trace and the a11y coordinates', () => {
   it('iteration-2-evidence carries the trace and the a11y coordinates at the failure point', async () => {
-    // Iteration 1 probes and fails, so iteration 2 exists. The candidate has by then moved to a
-    // digest-minted path, which is precisely when the handoff join used to return `undefined`.
+    // Iteration 1 probes and fails, so iteration 2 runs with the candidate at a digest-minted path.
     const bench = harness([emit(CLEAN_PATCH)], ['still-failing', 'still-failing', 'still-failing'])
 
     await repairDraft(repairRoute(), bench.deps)

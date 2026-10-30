@@ -165,8 +165,7 @@ describe('withDisplayStepProgress', () => {
     expect(display[1].id).toBe(rawB.id)
   })
 
-  // The A11y tab's field used to arrive on the v1 row; a durable step carries none, and the tab
-  // renders its not-captured state rather than an empty violation list that would read as "clean".
+  // A durable step carries no A11y field, so the tab shows not-captured rather than an empty list.
   it('leaves accessibility violations ABSENT on a durable step, not empty', () => {
     const durable = fromRunDetailStep(
       {

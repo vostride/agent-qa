@@ -135,20 +135,7 @@ function hashTree(root: string): string {
   return digest.digest('hex')
 }
 
-/**
- * The digest's own input domain, spelled out — asserted BEFORE the digest so a change is NAMED.
- *
- * `hashTree` answers "did anything change" with one opaque hex string; a corpus whose only
- * statement is that string reports a leak as `expected 'a1b2…' to be 'c3d4…'`, which tells the
- * next reader nothing about WHERE. This listing carries exactly what the digest carries — every
- * directory by path, every file by path and content hash — so asserting it first makes the
- * failure output print the offending entry itself.
- *
- * DIRECTORIES ARE ENTRIES HERE, and that is not decoration: the first draft of this helper listed
- * files only, and it went green against a bridge that no longer wrote `payload.json` but whose
- * caller still materialized an EMPTY `memory/queue/claimed/` on the way past. A files-only
- * listing would have reported the residue as "nothing to see" while the digest disagreed with it.
- */
+// Directories are entries too, so a leftover empty directory shows here, not only in the digest.
 function treeEntries(root: string): string[] {
   const found: string[] = []
   const walk = (dir: string): void => {
@@ -328,9 +315,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
       expect(strongestPromotionPath(lines)).toBe('user-sovereign')
       expect(rowsFor(id)[0]?.status).toBe('active')
       expect(result.commitReceipt?.promoted).toEqual([{ candidateId: id, promotionPath: 'user-sovereign' }])
-      // The same-identity retry (formerly `already-applied`) lands nothing and answers the same
-      // receipt. Measured over the canonical files: taking the writer lease bumps `.epoch` and the
-      // authority row, and the derived index is re-projected; neither is an effect of the change.
+      // Same-identity retry: nothing lands, same receipt; lease and index churn are excluded.
       const canonical = () => treeEntries(knowledgeRoot).filter(entry =>
         !/^F:(\.epoch|\.writer-authority\.sqlite|memory\/index\/)/u.test(entry))
       const before = canonical()

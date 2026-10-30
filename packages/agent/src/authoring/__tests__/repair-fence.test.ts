@@ -454,10 +454,7 @@ describe('identity-fence: repair cannot change what the test IS', () => {
 
   it('identity-fence makes the single-derivation claim TRUE: the repaired SUITE TARGET equals the draft\'s', async () => {
     const { repairDraft } = await loadRepair()
-    // Iteration 1 renames — refused, spent, nothing runs. Iteration 2 fixes a step beyond the
-    // prefix and the probe passes. WITHOUT the fence the rename lands on the candidate, the probe's
-    // member no longer joins on (filePath, testName) at all, and repair cannot even recognise its
-    // own success — which is what the pre-fix RED shows.
+    // Unfenced, the rename lands and the probe's member cannot join on `(filePath, testName)`.
     const bench = harness(
       [emit(NON_STEP), emit(OUTSIDE_PREFIX)],
       { probes: [passingProbe(), passingProbe()] },

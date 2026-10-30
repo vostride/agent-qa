@@ -201,10 +201,7 @@ describe("FailureBanner", () => {
     expect(written).toBe(textOf(view))
   })
 
-  // THE TWO ARMS THE GREEN TICK USED TO SWALLOW. `writeText` was called unguarded, unawaited and
-  // uncaught, and `copied` was set unconditionally on the line after it — so a denied permission
-  // produced an unhandled rejection AND a check mark, and a non-secure context threw a `TypeError`
-  // out of the click handler. Neither arm had a cell, which is why the defect shipped.
+  // A rejected write and a non-secure context neither show a check mark nor throw from the click.
 
   it("does not claim success when the clipboard write rejects", async () => {
     const writeText = vi.fn<(text: string) => Promise<void>>()

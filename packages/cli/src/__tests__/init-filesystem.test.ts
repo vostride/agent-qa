@@ -1473,10 +1473,7 @@ describe('refusal disposition distinctness', () => {
     },
   )
 
-  // Parameterised over the throw VALUE, not only over the arm. Every fixture in this loop used
-  // to throw an `Error`, which is exactly why the primitive arm went unexercised for two
-  // rounds while `markPassthrough` dropped non-objects on the floor and the retained wrap then
-  // stamped a factual claim about the destination onto the consumer's own throw.
+  // Parameterised over the throw value, not only the arm, so a primitive throw is exercised too.
   const PASSTHROUGH_THROW_VALUES = [
     {
       label: 'an Error instance',

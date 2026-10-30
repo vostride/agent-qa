@@ -19,7 +19,7 @@ const identity: MaskFn = (text) => text
 /** A scoped package name: an '@'-carrying value. */
 const SCOPED_PACKAGE_NAME = '@acme/auth-plugin-SHOW-ME-9111'
 
-/** Ordinary values whose characters a value-inspecting rule used to mistake for URL parts. */
+// Ordinary values whose characters look like URL parts to a value-inspecting rule.
 const GLOB_WILDCARD_VALUE = 'tests/**/case-?.yaml'
 const IGNORE_GLOB_VALUE = 'tests/legacy#old/**'
 const CSS_SELECTOR_VALUE = '#cookie-banner'

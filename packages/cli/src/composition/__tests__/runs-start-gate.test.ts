@@ -493,13 +493,7 @@ describe('the typed door refuses a malformed or colliding run id', () => {
 describe('the door census — every way a caller can name a run id', () => {
   const PACKAGES_ROOT = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', '..')
 
-  /**
-   * ONE PASS, so neither comment form can begin inside the other.
-   *
-   * The residual limitation, stated rather than left to be discovered: a comment opener inside a
-   * STRING literal is still mistaken for one. What changes is the blast radius — a `/*` in a
-   * string no longer swallows every byte up to the next `*` + `/`, it loses that one line.
-   */
+  // One pass, so neither comment form begins inside the other; an opener in a string still counts.
   function stripComments(source: string): string {
     return source.replace(
       /\/\*[\s\S]*?\*\/|(^|[^:])\/\/.*$/gm,

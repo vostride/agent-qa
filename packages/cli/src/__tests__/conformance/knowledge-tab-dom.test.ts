@@ -1284,7 +1284,7 @@ async function observeKnowledge(
       .catch(() => undefined)
     const stateAfterChip = await attributeOf(page, '[data-knowledge-state]', 'data-knowledge-state')
 
-    // ── The artifact drawer, and what it no longer offers. Last, for the reason above.
+    // ── The artifact drawer and the tabs it offers. Last, for the reason above.
     await page.keyboard.press('i')
     await page.locator('[data-slot="sheet-content"]').first()
       .waitFor({ state: 'attached', timeout: PAGE_BUDGET_MS })

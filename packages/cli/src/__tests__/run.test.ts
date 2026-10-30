@@ -909,8 +909,7 @@ function suiteDefinition(name: string, testFile: string, use?: Record<string, un
   }
 }
 
-// Resolves to a per-member TestResult (the suite path now runs through executeSuiteMember, not
-// runSuite). Used to control sequential member timing inside the ONE RunSession.
+// Resolves to a per-member `TestResult`, to control member timing inside one `RunSession`.
 function deferredSuiteResult(name: string) {
   let resolveResult!: () => void
   const promise = new Promise<Record<string, unknown>>((resolvePromise) => {

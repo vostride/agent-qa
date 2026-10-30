@@ -128,8 +128,6 @@ describe('queue retries are retired', () => {
   })
 
   it('the Appium lease block is untouched — only the URL delivery moved', () => {
-    // The acquisition, the per-run keying and the release paths are all still here; what is gone is
-    // the child environment the URL used to ride in.
     expect(server).toContain('appiumManager.acquireLease({ runId: run.id, platform })')
     expect(server).toContain('appiumManager.releaseLease(runId, reason)')
     expect(server).toContain('appiumUrl: appiumManager.getUrl()')

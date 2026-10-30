@@ -26,7 +26,6 @@ const PACKAGES_ROOT = resolve(TESTS_DIR, '..', '..', '..')
  */
 const MINIMUM_SOURCES_SCANNED = 500
 
-/** The two packages the record used to cross: the composition root and the cli that imported it. */
 const CROSSED_PACKAGES = ['agent-local', 'cli']
 
 /**

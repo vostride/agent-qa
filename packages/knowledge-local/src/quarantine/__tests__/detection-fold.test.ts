@@ -163,15 +163,7 @@ function authoredVerdict(verdictClass: VerdictClass, perTest = 0): Verdict {
   } as Verdict
 }
 
-/**
- * WHICH PRODUCER a fixture's verdict comes from — and the compile-time guard of this whole file.
- *
- * The two arms are mutually exclusive by TYPE (`?: undefined` on the opposite key), so
- * `{ produced: timedOutResult(), authored: 'flake' }` — scripting a failing member and forcing the
- * class the floor mints only on a PASS — does not compile. There is no longer any way in this file
- * to hand-write a `deterministic-classifier` verdict at all: the floor arm's class is whatever the
- * classifier answers for the scripted result, and nothing else.
- */
+// The arms exclude each other by type, so no fixture can force a class minted only on a pass.
 type FoldVerdictSpec =
   | { readonly authored: VerdictClass; readonly produced?: undefined }
   | { readonly produced: TestResult; readonly authored?: undefined }

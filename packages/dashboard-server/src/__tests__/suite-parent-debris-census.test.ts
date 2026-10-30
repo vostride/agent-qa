@@ -1074,8 +1074,7 @@ describe('predicate B — the structural surface walk (no source text is read)',
       const listBody = JSON.parse(list.body) as { runs: Array<Record<string, unknown>> }
       const row = listBody.runs.find((r) => r.id === PARENT_ID)
       expect(row, 'the suite run vanished from the run list').toBeTruthy()
-      // The list used to attach a `tests` array walked off the link. It attaches nothing now, and
-      // an absent key is the honest answer where a structurally empty array was a misleading one.
+      // An absent `tests` key is the honest answer, where a structurally empty array would mislead.
       expect(row).not.toHaveProperty('tests')
 
       const detail = await probeRoute(router, `/api/runs/${PARENT_ID}`)

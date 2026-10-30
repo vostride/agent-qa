@@ -28,7 +28,6 @@ it('serving entries cannot yield a brief without a trace', () => {
   expectTypeOf<ReturnType<typeof selectCautions>['trace']>()
     .toEqualTypeOf<ServedRetrievalTraceV1>()
 
-  // The old bare-value signatures no longer exist at any of the three entries.
   // @ts-expect-error a BriefBlock alone is not what assembleRunBrief returns
   const _runBrief: ReturnType<typeof assembleRunBrief> = brief
   // @ts-expect-error an AuthoringBrief alone is not what assembleAuthoringBrief returns

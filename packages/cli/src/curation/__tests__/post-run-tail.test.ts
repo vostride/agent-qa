@@ -1223,8 +1223,7 @@ describe('the fallback consult, and the one door that declines it', () => {
         h.operations.composeHost as unknown as ReturnType<typeof vi.fn>,
         'and it opens no store for a chain it is not going to pump',
       ).not.toHaveBeenCalled()
-      // `not-attempted` is what `finish({ detached: true })` reads to name the posture, which is
-      // exactly what the caller-side `if` around this call used to produce.
+      // `finish({ detached: true })` reads `not-attempted` to name the posture.
       expect(tail.report().drain).toBe('not-attempted')
       expect(fence.holder()).toBeUndefined()
     })

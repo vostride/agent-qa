@@ -175,10 +175,7 @@ describe('the MEM sighting source reports the status the store actually derived'
 
     expect(derivedStatus(recordId)).toBe('superseded')
 
-    // OBSERVED GREEN BEFORE THE FIX, and kept deliberately. `superseded` was the ONE member of
-    // the old table's three that `BundleStatus` actually contains, so this case passing against
-    // the broken table is what proves the harness itself works — the sibling case above reds
-    // because of the table, not because the fixture never reached the sighting source.
+    // The control: it shows the fixture reaches the sighting source for a `superseded` record.
     expect(sight(recordId)).toBe('tombstoned')
   })
 

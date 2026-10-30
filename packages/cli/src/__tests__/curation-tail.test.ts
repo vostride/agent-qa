@@ -1585,8 +1585,7 @@ describe('run-outcome projection under the extended tail receipt', () => {
         'if it stopped before that, the family and its previous stamp are untouched',
       ),
     )
-    // The CLI arm no longer DISCARDS the cause the daemon arm has always printed. The injected
-    // message is deliberately absent from the static text above, so this cannot pass vacuously.
+    // The injected message is absent from the static text above, so this cannot pass vacuously.
     expect(warn).toHaveBeenCalledWith(expect.stringContaining('reconcile failed'))
     expect(foldRunOutcomes).toHaveBeenCalledOnce()
     expect(drainQueue).toHaveBeenCalledOnce()

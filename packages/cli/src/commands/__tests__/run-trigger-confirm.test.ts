@@ -213,8 +213,6 @@ function startedContext(scene: Scene, runId: string): unknown {
   return started?.payload?.executionContext
 }
 
-// Every cell in this describe drives a scene the run button used to ask about, and pins that the
-// click starts the run without a question, whatever environment its target declares.
 describe('the run button never asks: a click starts the run', () => {
   it('DENY ON SILENCE — nothing is asked, so nothing is reaped: the run starts with the channel open', async () => {
     const target = new CountingTarget()
@@ -317,8 +315,7 @@ describe('the run button never asks: a click starts the run', () => {
   }, 240_000)
 
   it('NO LIVE CHANNEL — the trigger is headless, nobody is asked, and the run starts', async () => {
-    // The honest-claim rule's other arm survives: with nobody holding a channel the trigger does
-    // not claim interactivity. It no longer decides whether the run may start.
+    // With no channel held the trigger claims no interactivity, and that does not gate the start.
     const target = new CountingTarget()
     await target.listen()
     try {

@@ -80,21 +80,7 @@ function linesOf(view: HTMLElement, channel: "1" | "2" | "3"): HTMLElement[] {
   return Array.from(view.querySelectorAll(`li[data-served-channel="${channel}"]`))
 }
 
-/**
- * The element whose text content is exactly `text` and which CONTAINS NO OTHER SUCH ELEMENT — the
- * box that actually paints it.
- *
- * Addressing the painted node by its CONTENT rather than by position keeps a styling cell honest
- * if the row is later rearranged: a positional query would happily go on measuring whatever moved
- * into the slot.
- *
- * THE RULE IS CONTAINMENT, NOT POSITION. This helper used to take the LAST match in document
- * order. That is right only while the subtree holds ONE match chain: document order puts an
- * ancestor before its descendant, so "last" and "deepest" coincide along a single chain. A LATER
- * SIBLING subtree painting the same exact string is also "last", and the helper would measure that
- * unrelated box instead. The expanded step row now mounts several same-shaped nodes in sibling
- * subtrees at once, so the coincidence can no longer be relied on.
- */
+// Containment, not document order: sibling subtrees can paint the same string after the match.
 function deepestWithText(view: HTMLElement, text: string): HTMLElement | null {
   const matches = Array.from(view.querySelectorAll<HTMLElement>("*")).filter(
     (el) => el.textContent === text,

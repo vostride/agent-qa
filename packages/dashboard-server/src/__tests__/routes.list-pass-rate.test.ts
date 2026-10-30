@@ -269,7 +269,7 @@ async function windowAt(window: RateWindow, total: 200 | 210): Promise<PageRun[]
 const PASS = new Set(['passed', 'healed'])
 const FAIL = new Set(['failed', 'timeout'])
 
-// For comparison only: the fold the list pages used to make over the 200-run page.
+// For comparison only: the per-page fold over the 200-run page.
 function pageFoldOfTest(runs: PageRun[], test: Seeded): { passed: number; decided: number } {
   let passed = 0
   let decided = 0

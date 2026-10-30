@@ -662,9 +662,7 @@ describe('createQuarantineOperations', () => {
   })
 
   it('RENEWS across two filePath SPELLINGS — the lookup joins through the mint, not only the write', async () => {
-    // Harness ranging: the standing product/renewal pin, re-driven over the filePath domain the
-    // `human()` helper could not previously express. Reds when only the WRITE half mints: `entryFor`
-    // would look for `./tests/checkout.yaml`, miss the row it just wrote, and open a second window.
+    // Over the `filePath` domain: reds when only the write half mints, opening a second window.
     const verbs = operations(NOW, undefined, trimmingMint)
     await verbs.add(human({ product: RAW_PRODUCT, filePath: NON_CANONICAL_FILE }))
 

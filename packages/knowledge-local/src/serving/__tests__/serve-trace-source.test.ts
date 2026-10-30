@@ -80,7 +80,6 @@ describe('both trace-returning siblings carry a trace in their signature', () =>
 
     expect(occurrences(cautions, 'trace: ServedRetrievalTraceV1')).toBeGreaterThan(0)
     expect(occurrences(authoring, 'trace: ServedRetrievalTraceV1')).toBeGreaterThan(0)
-    // The compile-time half of this claim — that the OLD bare signatures no longer exist — is in
-    // `serve-trace.test-d.ts` beside this file, because a runtime case cannot see a type at all.
+    // The compile-time half is in `serve-trace.test-d.ts`: a runtime case cannot see a type.
   })
 })

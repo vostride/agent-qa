@@ -3166,8 +3166,7 @@ describe('the lock-free beat astride a reclaim: containment by the epoch fence',
     expect(successor.epoch).toBe(2)
     expect(successor.reclaimed).toEqual(wedged)
 
-    // THE CLOBBER. The successor's freshly published lease is gone, overwritten by a holder that
-    // believed it was renewing its own — the loss the lock used to prevent.
+    // The successor's lease is overwritten by a holder that believed it was renewing its own.
     const clobbered = leaseOnDisk()
     expect(clobbered.leaseId).toBe(incumbent.leaseId)
     expect(clobbered.leaseId).not.toBe(successor.leaseId)

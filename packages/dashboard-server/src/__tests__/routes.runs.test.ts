@@ -1115,8 +1115,7 @@ describe('the read-path census cannot rot', () => {
     expect((thrown as Error).message).toContain('getRunsByAttribute')
     expect((thrown as Error).message).toContain('RESPONSE_SAFE_RUN_READ_METHODS')
 
-    // AND IT FINDS ONE REACHED THROUGH THE PROTOTYPE, not merely one hung on the instance — the
-    // exact shape `Object.create(db, {…})` used to forward silently.
+    // It finds one reached through the prototype too, the shape `Object.create(db, {…})` produces.
     const inherited = Object.create({ getRunSecretsRaw: () => null }) as Record<string, unknown>
     Object.assign(inherited, createMockDatabase())
     expect(() => createRouter(inherited as never)).toThrow(/getRunSecretsRaw/)

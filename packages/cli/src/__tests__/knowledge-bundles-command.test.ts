@@ -390,9 +390,7 @@ describe('knowledge-read.ts source shape', () => {
     expect(specifiers.filter(isDataPackage).filter((specifier) => specifier !== CORE_OUTPUT))
       .toEqual([])
 
-    // Non-vacuous by CONTROL rather than by the file happening to violate the rule: plant the
-    // exact import `inspect` used to carry and require the check to catch it. Without this,
-    // an empty result is indistinguishable from an extractor that stopped extracting.
+    // Planting a forbidden import proves the check catches one, so an empty result is not vacuous.
     const planted = [
       "import { inspectRecords } from '@vostride/agent-qa-knowledge-local/reader'",
       "import { printRunText } from '@vostride/agent-qa-core'",

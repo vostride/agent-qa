@@ -457,11 +457,7 @@ describe('registry invariants that need in-package access', () => {
   })
 
   it('binds, under these ports, exactly the capabilities that hold a dispatch input here', () => {
-    // The half of `EXPECTED_BINDING_STATUS` that had nowhere else to go, kept DERIVED. The bound set
-    // is read off the live listing; the input map's keys must equal it. Two failures, both useful: a
-    // capability that starts binding under these ports without a stated input (the growth seam the
-    // stub's sample map held for the whole universe, narrowed to the ops that can actually run), and
-    // an input left behind for an op that no longer binds.
+    // The bound set is read off the live listing, and the input map's keys must equal it.
     const bound = declarations()
       .filter(declaration => declaration.bindingStatus === 'bound')
       .map(declaration => declaration.id)

@@ -205,8 +205,7 @@ describe('a dashboard-triggered run is one more caller of runs.start', () => {
       expect(envelopes.every((event) => event.runId === runId)).toBe(true)
       expect(envelopes.map((event) => event.seq)).toEqual(envelopes.map((_, index) => index + 1))
 
-      // (d) the enqueued ROW was adopted rather than duplicated — the correlation that used to be
-      // `AGENT_QA_RUN_ID` in a child's environment is construction data now
+      // (d) The enqueued row is adopted, not duplicated: the run id arrives as construction data.
       expect(driven.db.getRuns({}).map((row) => row.id)).toEqual([runId])
       expect(driven.db.getRun(runId)?.status).not.toBe('pending')
       expect(settled.runId).toBe(runId)

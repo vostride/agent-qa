@@ -884,8 +884,7 @@ describe('an unrelated malformed bundle degrades the Learned enrichments, never 
       knowledge: { diffSince: () => Promise.reject(scanError(MALFORMED)) },
     })
 
-    // The whole Used half is intact — every step, and the rung the run recorded. One malformed
-    // bundle this run never touched used to make ALL of this a `read_failed` page.
+    // One malformed bundle the run never touched must not turn this into a `read_failed` page.
     expect(result.steps).toHaveLength(4)
     expect(result.retrievalRung).toEqual(RUNG)
     expect(result.learned.changes).toEqual([])

@@ -364,13 +364,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
     'Verify the button badge is visible',
   ] as const
 
-  // PRESERVATION, and WHICH FRAME PINS WHICH RULE — stated rather than implied. The existing
-  // right-of-anchor frame (`Verify the page is visible near the ${noun}`) is a regression pin
-  // against the RETIRED whole-residue scan: the walk runs LEFTWARD and never looks where that
-  // member stands, so under the shipped rule all 33 of its cells are decided by the same two tokens.
-  // This LEFT frame puts the member on the side the shipped walk actually reads, with a page-whole
-  // noun standing nearer the anchor, so it pins the rule the module HAS rather than the rule it used
-  // to have. Green on both sides of the fix; the two frames are kept side by side on purpose.
+  // The member sits left of the anchor, the side the walk reads, with a page-whole noun nearer.
   const memberLeftOfAnchorFrame = (noun: string) =>
     `Verify the ${noun} loads and the page is visible`
 

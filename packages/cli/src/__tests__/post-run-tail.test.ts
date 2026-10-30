@@ -168,8 +168,7 @@ describe('the shared post-run tail', () => {
     expect(h.adoptEpoch).toHaveBeenCalledWith(7)
     expect(h.recoverAbandonedClaims).toHaveBeenCalledWith({ fence: { epoch: 7 } })
     expect(h.runNextJob).toHaveBeenCalledTimes(3)
-    // `enqueue: 'skipped'` is the honest reading for a tail no step ran in front of: this file's
-    // harness drives `drain()` directly, and the tail no longer performs a hand-off of its own.
+    // `enqueue: 'skipped'`: this harness drives `drain()` directly and the tail hands off nothing.
     expect(tail.report()).toEqual({ enqueue: 'skipped', drain: 'drained', jobsRun: 2 })
     expect(h.nudgeDaemon).not.toHaveBeenCalled()
     expect(h.releaseLease).toHaveBeenCalledWith({ knowledgeRoot, leaseId: 'lease-1' })

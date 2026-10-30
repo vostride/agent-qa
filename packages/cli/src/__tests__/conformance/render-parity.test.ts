@@ -449,13 +449,7 @@ describe('the turn shape a person reads, at its empty and ordering edges', () =>
         + 'was measured in',
     ).toBeGreaterThan(observed.results.length)
 
-    // THE DISCRIMINATING ASSERTIONS, on the module's own output so the comparand cannot drift from
-    // the shipped render. Soft, so one run records BOTH values the fix changes.
-    //
-    // Note vitest does not typecheck: at the pre-fix HEAD the second argument is silently ignored
-    // and `rendered` is a single unlabelled payload line. That is exactly why the assertions are on
-    // the rendered LINES — a containment-only assertion would be green before the fix and certify
-    // nothing.
+    // Soft, on the rendered lines, so one run records both values and none passes vacuously.
     const rendered = renderClauseResults(observed.results, observed.receipts.length)
     expect
       .soft(

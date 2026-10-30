@@ -16,9 +16,7 @@ function caller(): FunctionCaller {
   return { surface: 'test', origin: 'human' }
 }
 
-/**
- * A synthetic formerly-ask-tier op whose disclosure is BUILT FROM ITS INPUT, with a counter on it.
- */
+// A synthetic op whose disclosure is built from its input, with a counter on it.
 function echoDiscloseSpec(disclosed: string[]): FunctionSpec<{ label: string }, { ok: true }> {
   // `disclose` is not a spec member; the method is cast past the type.
   return {

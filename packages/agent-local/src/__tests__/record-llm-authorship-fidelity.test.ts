@@ -172,9 +172,7 @@ describe('recordLlmAuthorship resume fidelity over the real store', () => {
     return { returned, authorCalls }
   }
 
-  // THE CASE. Authored `undefined` is the one value canonical JSON cannot carry as a member, and
-  // therefore the one value that told the old structural sniff the engine's own envelope was not
-  // an envelope. Before the fix this returned `{attempt, checkpointId, jobId, recordedAt}`.
+  // Authored `undefined` is the one value canonical JSON cannot carry as a member.
   it('hands back the SAME value on resume as on the first pass when a handler authors undefined', async () => {
     const { returned, authorCalls } = await authorAcrossTwoHosts({
       author: async () => undefined,
@@ -184,9 +182,7 @@ describe('recordLlmAuthorship resume fidelity over the real store', () => {
     expect(authorCalls).toBe(1)
     expect(returned).toHaveLength(2)
     expect(returned[0]).toBeUndefined()
-    // Stated first because its failure PRINTS what came back instead: before the fix this read
-    // `{attempt: 1, checkpointId: 'analysis', jobId: 'job_…', recordedAt: '…'}`, the engine's
-    // own envelope.
+    // Stated first because its failure prints what came back instead.
     expect(returned[1]).toBeUndefined()
     // Identity, not equality: an envelope is neither `undefined` nor deep-equal to it, and this
     // is the assertion that refuses "two functions wearing one name".

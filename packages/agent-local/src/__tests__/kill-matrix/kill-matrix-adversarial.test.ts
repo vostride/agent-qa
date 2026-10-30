@@ -884,9 +884,7 @@ describe('a retired-kind row at the head of the FIFO', () => {
     ])
     for (const id of ['job_retired_a', 'job_retired_b'] as const) {
       const row = rows.find((candidate) => String(candidate.id) === id)!
-      // THE ATTEMPT COMMITTED. This is the whole mechanism: the claim spent the attempt and the
-      // quarantine landed the row in the SAME transaction, so a thrown parser can no longer roll
-      // the spent attempt back and re-offer the row forever.
+      // Claim and quarantine commit in one transaction, so a thrown parser cannot unspend it.
       expect(Number(row.attempts), `${id} must have spent its claim`).toBe(1)
       expect(String(row.status)).toBe('failed')
       expect(row.claimed_at).toBeNull()

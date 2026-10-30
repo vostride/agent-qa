@@ -855,9 +855,7 @@ describe('daemon embedder-worker lifecycle', () => {
   it.skipIf(process.platform === 'win32')(
     'withholds every signal from a live reused pid whose incarnation does not match',
     async () => {
-      // The registration is schema-valid, names a live pid, and its socket is dead — the exact
-      // evidence the daemon used to treat as licence to SIGTERM-then-SIGKILL. The pid now belongs
-      // to an unrelated process, and the ONLY thing that says so is the OS-assigned start time.
+      // Valid registration, live pid, dead socket: only the OS start time shows a reused pid.
       const surrogate = spawnSurrogate()
       // The reader's own start-time format with a value no process has (another is unverifiable).
       const startTimeFormat = String(resolveProcessIncarnation(process.pid)).split(':')[0]

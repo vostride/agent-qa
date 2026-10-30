@@ -111,14 +111,7 @@ const PENDING_POSTURE_HANDED_OFF =
   publishedRecordSentence('lib/post-processing-view.ts', 'PENDING_POSTURE_TEXT', 'handedOff')
 const WILL_RETRY_TEXT = publishedConstant('lib/post-processing-view.ts', 'WILL_RETRY_TEXT')
 
-/**
- * EVERY sentence the view can paint when nobody recorded a reason.
- *
- * The producer's reason and the absence that stands in for it used to be two different elements, so
- * reading one proved it was not the other. They now share the card's outcome line, and the RED-run
- * cell's claim — "the page shows the PRODUCER's text" — is only kept by telling them apart, which
- * needs the whole record rather than the one key `(3b)` asserts on.
- */
+// A reason and its absence share the card's outcome line, so the cell reads the whole record.
 const REASON_ABSENT_SENTENCES = ['handedOff', 'detached', 'drained', 'unknown'].map((key) =>
   publishedRecordSentence('lib/post-processing-view.ts', 'FAILED_REASON_ABSENT_TEXT', key),
 )

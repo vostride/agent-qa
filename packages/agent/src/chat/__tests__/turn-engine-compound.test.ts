@@ -406,9 +406,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
     })
 
     it('refuses an UNBOUND directive by name before the planner is ever consulted', async () => {
-      // The hoisted half. The binding check reads `deps.directives` and mutates nothing, so it can
-      // stay where the execution loop used to be: a build that recognises `/model` and binds no
-      // handler still says so early, and stage 2 is never reached on that arm.
+      // The binding check mutates nothing, so an unbound `/model` is reported before stage 2.
       const run = harness({ planned: { toolCalls: [] } })
       const result = await run.runTurn({
         message: '/model claude-fixture and write a test for 2FA',

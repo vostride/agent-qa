@@ -104,9 +104,7 @@ function bench(input: {
     ...(input.bindStaleScope === true
       ? {
           dispatchGrants: {
-            // THE BENCH RUNS THE CONTINUATION, so if the loop still entered a bound scope the trace
-            // would show `enter`/`exit` around the runs and the result would be unchanged — the
-            // absence cell below can only pass because the loop no longer reads this member.
+            // The bench runs the continuation, so entering a bound scope would show `enter`/`exit`.
             async within<T>(fn: () => Promise<T>): Promise<T> {
               trace.push('enter')
               try {

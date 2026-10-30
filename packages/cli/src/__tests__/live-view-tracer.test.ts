@@ -98,7 +98,6 @@ const MINT_RETRY_BUDGET_MS = 60_000
 const EMBED_STATE_WAIT_MS = 60_000
 const MINT_RETRY_INTERVAL_MS = 250
 
-/** Every mint answer this file has observed, per call — the record of the race it no longer hides. */
 const mintAnswerLog: string[][] = []
 
 async function mintOnce(handle: number): Promise<{ liveUrl: string; stream: { kind: string }; expiresAt: number }> {

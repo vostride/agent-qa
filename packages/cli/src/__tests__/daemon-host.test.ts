@@ -1056,10 +1056,7 @@ describe('daemon registration instance ownership and readiness', () => {
   })
 
   it('rejects a non-matching candidate without a single filesystem mutation', () => {
-    // The two injected seams ARE the measurement: the quarantine rename
-    // and the directory fsync are the only writes this routine can perform, so neither firing is
-    // exactly "nothing was mutated". The old code renamed first and compared afterwards, so it
-    // mutated on the way to every rejection it ever made.
+    // The quarantine rename and the fsync are the only writes; neither firing means no mutation.
     const nonce = makePaths('registration-mismatch-no-mutation')
     const nonceFile = join(nonce.agentQaRoot, DAEMON_REGISTRATION_FILE)
     writeDaemonRegistration(nonce.agentQaRoot, {
@@ -1128,11 +1125,7 @@ describe('daemon registration instance ownership and readiness', () => {
   )
 
   it('preserves the quarantined predecessor and names both paths when restore is refused', () => {
-    // The schedule the old algorithm lost data in: a successor publishes between the compare and
-    // the rename (so the quarantine holds bytes that are NOT ours), and a third publishes into the
-    // vacated path before the restore. The old code link-restored, hit EEXIST, swallowed it, and
-    // then unlinked the quarantine — destroying the successor's registration outright and
-    // returning a bare `false` that named nothing.
+    // One publish lands between compare and rename, another in the vacated path before restore.
     const paths = makePaths('registration-restore-refused')
     const file = join(paths.agentQaRoot, DAEMON_REGISTRATION_FILE)
     writeDaemonRegistration(paths.agentQaRoot, {
@@ -2226,9 +2219,7 @@ describe('daemon registration recovery at boot', () => {
     expect(server.isOwnedDaemonSocketPath(daemonRegistrationSocketPath(agentQaRoot), nonce))
       .toBe(false)
 
-    // The named-pipe arm's equivalent, reachable from any platform because `isNamedPipe` keys off
-    // the prefix. The embedder's pipe was already outside the project prefix; the pipe this arm
-    // used to admit unconditionally is anything sharing that prefix.
+    // The named-pipe arm, reachable from any platform because `isNamedPipe` keys off the prefix.
     const projectPipeHash = createHash('sha256').update(resolve(projectRoot)).digest('hex')
       .slice(0, 12)
     const instancePipeHash = createHash('sha256').update(HOST_INSTANCE_ID).digest('hex').slice(0, 12)
@@ -2869,15 +2860,7 @@ describe('daemon shutdown and reclaim post-mortem', () => {
     ).toHaveLength(1)
   })
 
-  /**
-   * Beats keep landing while a governed mutation owns the authority transaction.
-   *
-   * The daemon used to record a distinct renewal-deferral fact here, derived from a channel that
-   * the verifier proved reported healthy daemons as wedged. There is nothing to discriminate any
-   * more: the beat does not queue behind hosted work, so a held mutation produces the ordinary
-   * heartbeat record and the ledger has one fewer way to be wrong. The real `heartbeatLease` runs
-   * (fireHeartbeat with no argument), so this is the production beat under real contention.
-   */
+  // The beat does not queue behind hosted work, so a held mutation yields an ordinary heartbeat.
   it('keeps recording heartbeats while a governed mutation holds the authority store', async () => {
     const paths = makePaths('beat-under-held-mutation')
     const harness = hostHarness()

@@ -241,7 +241,6 @@ describe('SuiteMetadataForm', () => {
     const parent = input!.parentElement
     expect(parent).not.toBeNull()
     expect(parent!.className).toContain('relative')
-    // Parent no longer uses the old flex-gap sibling layout
     expect(parent!.className).not.toMatch(/\bflex\s+items-center\s+gap-2\b/)
     // Regenerate button is absolutely positioned at the right edge, vertically centered
     const btn = container.querySelector(

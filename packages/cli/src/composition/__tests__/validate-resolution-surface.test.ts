@@ -213,8 +213,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
         .toContain(SUBSCRIPTION_AUTH_PACKAGE)
       expect(combined, `the failure did not name the remedy (${verb.join(' ')}):\n${combined}`)
         .toMatch(/npm install @vostride\/agent-qa-subscription-auth/)
-      // THE TWO CLAUSES THAT WERE RED. Node's loader boilerplate is what the person used to get,
-      // and a message that still carried it would mean the typed error had not replaced anything.
+      // A message still carrying Node's loader boilerplate means the typed error replaced nothing.
       expect(combined, `the failure still speaks Node's loader dialect (${verb.join(' ')}):\n${combined}`)
         .not.toContain('Require stack')
       expect(combined, `the failure still speaks Node's loader dialect (${verb.join(' ')}):\n${combined}`)
