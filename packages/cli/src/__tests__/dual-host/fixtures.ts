@@ -148,7 +148,7 @@ export function buildFixture(variant: FixtureVariant): DualHostFixture {
   while (ci.candidateId.localeCompare(localInteractive.candidateId) <= 0) {
     ci = candidate('ci', 102, 'ci', ++salt)
   }
-  // Claim order is now deliberately local-interactive Add, then posture-sensitive CI Supersede.
+  // Claim order is local-interactive Add, then posture-sensitive CI Supersede.
   const candidates = [localInteractive, ci]
   return {
     schemaVersion: 1,

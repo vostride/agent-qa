@@ -7,7 +7,7 @@ import type { StepClassificationRow } from '@vostride/agent-qa-schema'
  *
  * Declared HERE rather than imported because the dependency points the other way — this
  * package never names `core`, where `parseTestFile` lives, and acquiring that import would
- * be a `validate:arch` violation with no legal repair (the `TestOutcomeHistoryLike`
+ * be an arch lint violation with no legal repair (the `TestOutcomeHistoryLike`
  * precedent in `jobs/kinds.ts`). The HOST parses and flattens: `parseTestFile` yields steps
  * as `string | { step: string }`, and the caller narrows to text before handing them down
  * (the parse-at-host precedent in `cli/src/curation/authoring-test-discovery.ts`).

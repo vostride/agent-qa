@@ -207,7 +207,7 @@ const threeFingerTap: Action = { type: 'multiTap', fingers: 3, x: 10, y: 20, coo
 
 const coordTap: Action = { type: 'tapCoordinate', x: 10, y: 20, coordSpace: 'viewport' }
 
-// @ts-expect-error tapCoordinate no longer accepts the legacy { point } execution shape.
+// @ts-expect-error tapCoordinate does not accept the legacy { point } execution shape.
 const legacyCoordTap: Action = { type: 'tapCoordinate', point: { x: 10, y: 20 } }
 
 const checkedClick: Action = { type: 'click', ref: asRef('e4'), desiredState: 'checked' }

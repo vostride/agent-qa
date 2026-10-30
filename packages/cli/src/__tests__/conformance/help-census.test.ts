@@ -267,9 +267,7 @@ describe('no second list of what chat understands', () => {
       forms.filter((form) => namesDirectiveForm(planted, form)).length,
       'the sweep no longer recognises a planted directive listing',
     ).toBeGreaterThanOrEqual(2)
-    // …and it must NOT fire on the two path shapes that made the first version of this cell red on
-    // an innocent file. A boundary rule that forgot one of its boundaries is a sweep nobody can
-    // leave switched on.
+    // …and it must NOT fire on these two path shapes, which an innocent file holds.
     const paths = "import { X } from '../model-defaults.js'\nconst u = 'https://iana.org/help/x'"
     expect(
       forms.filter((form) => namesDirectiveForm(paths, form)),

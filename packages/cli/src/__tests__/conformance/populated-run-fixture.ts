@@ -130,14 +130,7 @@ export const POPULATED_RUN_ANCHORED_BUILDS: readonly {
 /**
  * Where the browser binaries this machine actually has are rooted.
  *
- * WHY THIS IS NEEDED AT ALL, MEASURED RATHER THAN GUESSED. `hermeticEnv` points the child's `HOME`
- * INTO the fixture project so nothing it writes escapes the directory the cleanup deletes — which
- * is exactly right, and it also relocates the default Playwright browser cache (`$HOME/Library/
- * Caches/ms-playwright` on macOS, `$HOME/.cache/ms-playwright` on Linux) to an empty directory
- * inside the temp root. The first draft of this fixture therefore reached a verdict in 233ms with
- * `member-executor-error: agent-qa browser support is not installed for Chromium` on a machine
- * where Chromium is plainly installed. The child inherits the ROOT this process resolves so its
- * `HOME` can stay hermetic without lying to it about the browsers.
+ * `hermeticEnv` moves `HOME` and Playwright's cache, so the child inherits this process's root.
  *
  * DERIVED FROM THE RESOLVER RATHER THAN REBUILT. `chromium.executablePath()` is Playwright's own
  * answer, and the browsers root is the parent of the revision directory inside it; walking up to

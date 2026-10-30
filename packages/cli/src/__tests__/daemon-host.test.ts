@@ -1022,10 +1022,7 @@ describe('daemon registration instance ownership and readiness', () => {
   })
 
   it('removes exactly the classified generation when a third publishes into the vacated path', () => {
-    // Compare-first moved this schedule: the mismatch is now caught before the rename, so the
-    // only way to reach the third-occupant branch is for the QUARANTINE to hold this host's own
-    // bytes. It does, so the removal completes and the newest publisher keeps the path — and the
-    // quarantine is still consumed, never left behind.
+    // The third-occupant branch is reached only when the quarantine holds this host's own bytes.
     const paths = makePaths('registration-mismatch-restore')
     writeDaemonRegistration(paths.agentQaRoot, {
       schemaVersion: DAEMON_REGISTRATION_SCHEMA_VERSION,

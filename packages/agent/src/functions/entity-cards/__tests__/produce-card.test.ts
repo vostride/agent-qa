@@ -179,12 +179,7 @@ describe('every kind renders through the one producer', () => {
   })
 
   it('is bounded BY CONSTRUCTION across the whole projection table', () => {
-    // A mutation probe measured the first version of this case vacuous: it asserted the bound
-    // against a 400-record receipt, and the projection emits five facts for any receipt, so a
-    // removed truncation left it green. The bound is not carried by a truncation — it is
-    // carried by the receipt rendering as ONE fact per QUANTITY rather than one per record,
-    // and that is what the corpus below has to be able to reject. Every kind, every declared
-    // status, with and without a receipt of 400 records.
+    // One fact per quantity, not per record, bounds it: every kind and status, at 400 records too.
     const many = receipt({
       tombstonedRecords: Array.from({ length: 400 }, (_unused, index) => ({
         recordId: `rec-${String(index).padStart(4, '0')}`,
@@ -387,7 +382,7 @@ describe('rendering is pure (idempotency and empty edges)', () => {
     expect(forbiddenModelImports(planted)).toEqual(['@vostride/agent-qa-model'])
 
     // INVERSE CONTROL: the module header names every one of those words in prose, and prose
-    // must not be flagged — the `validate:arch` extractor's own known failure mode.
+    // must not be flagged as an import.
     expect(forbiddenModelImports('// this file must never import a model or an llm provider\n'))
       .toEqual([])
   })

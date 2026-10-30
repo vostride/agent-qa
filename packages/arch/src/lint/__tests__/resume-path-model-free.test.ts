@@ -23,10 +23,7 @@ const repoRoot = join(testDir, '..', '..', '..', '..', '..')
 const ENTRY = RESUME_PATH_ENTRY_FILES[0]
 const STORE = 'packages/agent-local/src/store/sqlite-job-store.ts'
 const HELPER = 'packages/agent-local/src/composition/recovery-helper.ts'
-// Assembled from parts rather than spelled. A rule about model imports whose own test file names
-// the model package would be read by the workspace scan that walks this package's sources — plan
-// 05's "the scan found itself" lesson, one level up, and the reason `validate:arch` stays honest
-// about `packages/arch`'s own dependency set.
+// Assembled from parts, or the arch lint's scan of this package would read the model package.
 const MODEL_PACKAGE = ['@vostride/agent', 'qa', 'model'].join('-')
 
 function hit(specifier: string, file: string, line = 1): SpecifierHit {

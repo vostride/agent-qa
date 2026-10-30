@@ -136,11 +136,7 @@ afterEach(() => {
  * non-interactive and the fail-closed arm reachable. That is the same shape a CI job, a cron entry
  * or a redirected shell gives the process.
  *
- * ASYNCHRONOUS, AND THAT IS LOAD-BEARING RATHER THAN STYLE. The first version of this helper used
- * `spawnSync`, which blocks this process's event loop until the child exits — including the
- * loopback server above. The child's baseline probe then connected, waited for a response nobody
- * could send, and aborted on its own 4s timeout, so the counter read empty on EVERY leg. The deny
- * cells passed on a measurement that could not have failed; the allow control is what caught it.
+ * Asynchronous: a blocking spawn stalls the loopback server above, and every leg reads empty.
  */
 async function runCli(...args: string[]): Promise<{ status: number | null; stdout: string; stderr: string }> {
   return await runCliWithEnv({}, ...args)

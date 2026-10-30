@@ -622,7 +622,7 @@ function createRunArtifactSnapshotChannel(): RunArtifactSnapshotChannel {
     try {
       listener(snapshot)
     } catch {
-      // A listener's failure is never the run's (the dashboard ingest is best-effort).
+      // A listener's failure is never the run's (dashboard snapshot staging is best-effort).
     }
   }
   return {

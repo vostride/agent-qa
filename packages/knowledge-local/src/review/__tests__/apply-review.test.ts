@@ -543,11 +543,7 @@ describe('apply — one commit path, receipts at the boundary, race-safe consump
 
     // …and every projection the receipt NAMES is verified individually rather than trusted.
     //
-    // A TOTAL lookup with no fallback, deliberately. The first draft of this loop ended in a
-    // `: after.graph` else-branch, which silently mapped a claimed `exemplar` onto the graph
-    // count — so a receipt claiming a projection nobody scrubs would have PASSED. That is the
-    // exact failure mode this case exists to catch, and an unverifiable claim is now a failure
-    // rather than a coincidence.
+    // A total lookup with no fallback, so a claimed projection this case cannot read fails.
     const after = recallRows(recordId)
     const verifiable: Readonly<Record<string, number>> = {
       fts: after.fts,

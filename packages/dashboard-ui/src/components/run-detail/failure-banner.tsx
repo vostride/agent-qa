@@ -49,14 +49,7 @@ export function FailureBanner({ summary }: { summary: string }) {
   // exactly what the page renders and a change to one site that the other does not mirror shows in
   // review.
   //
-  // THE CHECK MARK MEANS THE WRITE RESOLVED, AND NOTHING ELSE. `writeText` returns a promise that
-  // rejects with `NotAllowedError` whenever the document is not focused or the permission was
-  // denied — a routine condition, not an exotic one — and the previous spelling neither awaited nor
-  // caught it: an unhandled rejection, plus a green tick telling a reader the failure summary was
-  // on their clipboard when it was not. `navigator.clipboard` is also `undefined` outside a secure
-  // context, which the repo's Docker release reaches over any non-loopback hostname, and the bare
-  // property access threw a `TypeError` inside the click handler. Optional-chained, awaited and
-  // caught — `artifact-drawer.tsx`'s `copyText` idiom, with the outcome kept rather than dropped.
+  // The tick means the write resolved; `writeText` may reject, or be absent in an insecure context.
   const handleCopy = () => {
     const written = navigator.clipboard?.writeText(open ? summary : preview.text)
     if (written === undefined) {

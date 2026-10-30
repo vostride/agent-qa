@@ -106,13 +106,7 @@ describe('renderExplainOutput — invention is impossible by construction', () =
     if (output.kind !== 'abstention') throw new Error('unreachable')
     expect(output).not.toHaveProperty('citations')
 
-    // The stronger statement, and the one that is actually true: the abstention arm is
-    // INDEPENDENT of what the model cited. The first draft of this cell asserted that
-    // `/fn runs.start` appears nowhere in the output, and it failed — because the deterministic
-    // scorer, ranking the QUERY against the rows, suggests that very row. That is not the resolved
-    // citation leaking through; it is the abstention's own suggestion, and asserting its absence
-    // would have pinned a law the design does not hold. So: the closest set must be the scorer's
-    // answer to (query, rows) and nothing else, unchanged when the citation is replaced wholesale.
+    // The abstention's closest set is the scorer's answer to (query, rows), whatever was cited.
     const citationFree = render({ citedRowIds: ['op:entirely.different.ghost'] })
     if (citationFree.kind !== 'abstention') throw new Error('unreachable')
     expect(output.closestRowIds).toEqual(citationFree.closestRowIds)

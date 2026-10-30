@@ -78,11 +78,7 @@ const secretExecutor: MemberTestExecutor = async (member, ctx) => {
   }
 }
 
-// An executor whose step CARRIES real §A8 evidence, with the secret planted in the three NARRATION
-// places a durable handoff records: the verifier's own words, a planning turn's stated intent, and
-// a captured failure message. `assemblePerTestOutcome` copied this arm VERBATIM before WINDOWS
-// #305, so the secret reached handoff.json in clear while the same run's failureSummary — routed
-// through the SAME MaskFn one frame away — did not.
+// The step carries real evidence, with the secret in each narration place a handoff records.
 const realEvidenceExecutor: MemberTestExecutor = async (member, ctx) => {
   const evidence: StepEvidence = {
     stepIndex: 0,

@@ -531,7 +531,7 @@ describe('the spawn vocabulary is gone from this module', () => {
 
   it('THE REFUSAL FACT IS READ STRUCTURALLY — no class name, no regex over the message', () => {
     // The two things a repair here could reach for and must not. Naming the class would be an
-    // import `validate:arch` forbids; a regex over the message would be a second parser over prose
+    // import the arch lint forbids; a regex over the message would be a second parser over prose
     // another package composes — the defect this repair exists to close, one layer down.
     const REFUSAL_CLASS_CHECK = /instanceof\s+\w*(?:Denied|Refused)\w*Error/
     const REGEX_OVER_MESSAGE = /(?:message|reason)\s*\.(?:match|search)\(|\.test\(\s*(?:message|reason)\s*\)/

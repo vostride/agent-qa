@@ -231,12 +231,7 @@ export function openAddressingLedger(options: OpenAddressingLedgerOptions): Addr
       // written, and a second writer allowed in between would compute the same number. The
       // write lock is taken at BEGIN, so it cannot be.
       //
-      // ONE mechanism decides the outcome, deliberately. An earlier draft also short-circuited
-      // on an in-transaction pre-read of the existing row, and mutation probes found the pair
-      // MUTUALLY MASKING: removing either one alone left every case green, so neither was
-      // pinned by anything and a later edit could have deleted the one that mattered without a
-      // single test noticing. What is left is the insert itself — a conflict on
-      // `(kind, machine_id)` writes nothing — followed by an unconditional read-back.
+      // One mechanism decides: a conflict makes the insert write nothing; the read-back answers.
       const next = toNumber(selectNextOrdinal.get(kind)?.next)
       insertAddress.run(kind, machineId, next, formatOrdinalShortId(kind, next), now())
       // Read back rather than returning what was computed. On the losing side of a race — and

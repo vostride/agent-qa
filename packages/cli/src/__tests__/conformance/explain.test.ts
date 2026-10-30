@@ -235,9 +235,7 @@ describe('the local coverage log', () => {
     const log = readExplainCoverageLog(logPath)
     expect(log.records.map((record) => record.query)).toEqual([
       'an earlier gap',
-      // The torn line is SKIPPED, and — the part this cell was written to catch — the record
-      // appended AFTER it survives intact. A first draft of the appender concatenated onto the
-      // unterminated tail and silently lost this line entirely.
+      // The torn line is skipped, and the record appended after it survives intact.
       'the question after the crash',
     ])
     // Skipped, and SAID SO. A reader that swallowed it silently would report a coverage number

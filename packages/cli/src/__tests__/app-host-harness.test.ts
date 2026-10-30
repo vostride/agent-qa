@@ -547,9 +547,7 @@ async function appsHost(served: ServedApp, hostAllowances: HostAllowances): Prom
 /**
  * The wrapper's own frame inside the host page.
  *
- * POLLED, because a sub-frame's url is `''` until it has actually navigated and `goto` resolves on
- * the HOST document. The first attempt at this file read the frame list once and found a nameless
- * empty frame — the harness racing the browser, not a defect in the App.
+ * Polled: a sub-frame's url is `''` until it navigates, and `goto` resolves on the host document.
  */
 async function wrapperFrame(page: Page, budgetMs = 30_000): Promise<Frame> {
   const deadline = Date.now() + budgetMs

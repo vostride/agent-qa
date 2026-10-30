@@ -940,11 +940,7 @@ describe('init command', () => {
         expect(written).not.toContain(envPath)
         expect(written).not.toContain(secretsPath)
 
-        // Looked up by name, not by index. The managed .gitignore is now written before the
-        // scaffold loop so no credential temporary can exist under a name no rule covers,
-        // which moves every scaffold entry one position; the property being pinned here is
-        // the credential files' outcome and their relative scaffold order, never their
-        // absolute position in the list.
+        // Looked up by name: the pin is the credential files' outcome and order, not position.
         const paths = outcomes.map(outcome => outcome.path)
         expect(paths.indexOf(envPath)).toBeGreaterThanOrEqual(0)
         expect(paths.indexOf(envPath)).toBeLessThan(paths.indexOf(secretsPath))

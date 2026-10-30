@@ -23,7 +23,7 @@ import { startServer } from '../server/server.js'
  * The ids the composition supplies, INVENTED HERE rather than copied from the agent package.
  *
  * Two reasons and both are load-bearing. `packages/dashboard-server` may not import
- * `@vostride/agent-qa-agent` (validate:arch), so the real constants are unreachable from this
+ * `@vostride/agent-qa-agent` (the arch lint), so the real constants are unreachable from this
  * file — and more importantly, an id nobody could have guessed is what makes "the route dispatches
  * the id it was HANDED" measurable. A route carrying its own literal would dispatch
  * the real op id, the fixture would answer no such id, and the cells below would red.

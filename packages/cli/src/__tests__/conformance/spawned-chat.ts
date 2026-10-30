@@ -515,13 +515,7 @@ export function runServiceFixtureProject(label: string): {
   // The three files `requireExistingFiles: true` refuses a project without — `dashboardFixtureProject`
   // states the reasoning; both frames take that path, the spawned one through the shipped command
   // and the in-process one through the same workspace resolution.
-  // `hooks: []` AND NOT `hooks: {}`, and the difference is measured rather than copied.
-  // `dashboardFixtureProject` above writes the mapping form and is correct for what it does — its
-  // cells list capabilities and never start a run. A run VALIDATES the hooks document, and the
-  // mapping form fails that validation with `CliRunInputError: Hooks configuration errors:`, which
-  // this door then flattens into a `500 run_start_failed` carrying no diagnosis at all (correctly —
-  // a crash message is composed from the host's own state and the caller is remote). A first draft
-  // of this fixture copied the mapping form and every route probe read as "the door did not answer".
+  // `hooks: []`, not `hooks: {}`: a run validates the hooks document, which the mapping form fails.
   writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n', 'utf8')
   writeFileSync(join(root, '.env'), '', 'utf8')
   writeFileSync(join(root, '.env.secrets.local'), '', 'utf8')
