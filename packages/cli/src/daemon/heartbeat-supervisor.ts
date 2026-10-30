@@ -21,11 +21,6 @@ type HeartbeatSupervisorRefusalReason = Extract<
   { kind: 'refused' }
 >['reason']
 
-/**
- * Exactly three payload kinds cross the thread boundary: a beat landed, a beat was refused by
- * name, or the beat threw. There is no contention kind, because the beat no longer takes the
- * mutation lock and so cannot be contended by hosted work.
- */
 export type HeartbeatSupervisorMessage =
   | { readonly kind: 'heartbeated'; readonly holder: HeartbeatSupervisorHolder }
   | {

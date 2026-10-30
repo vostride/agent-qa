@@ -1363,11 +1363,7 @@ export async function resolveRunInvocationInputs(
       secretRedactor: runtimeSecrets.secretRedactor,
     }
   } catch (err: any) {
-    // THE RE-THROW IS LOAD-BEARING, not defensive. The hooks-error branch above used to be a
-    // `process.exit(1)`, which never returns and therefore never reached this catch. Now that it is
-    // a throw, an unguarded catch would swallow the specific "Hooks configuration errors:" report
-    // and replace it with the generic "could not be read" one — a silent downgrade of a diagnostic,
-    // introduced by the conversion itself.
+    // Re-throw the try's own `CliRunInputError`, or the read error replaces the hooks report.
     if (err instanceof CliRunInputError) throw err
     throw new CliRunInputError(
       [

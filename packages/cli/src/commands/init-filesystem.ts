@@ -472,21 +472,7 @@ function cleanUpTemporaryWithoutMasking(
 interface DurableTemporary {
   temporary: string
   confirmed?: { dev: number, ino: number }
-  /**
-   * The temporary's descriptor, held open until publication has been confirmed, and closed by
-   * the publisher's `finally`.
-   *
-   * `confirmed` proves publication linked the inode whose mode was confirmed, by comparing
-   * `{ dev, ino }`. That comparison is only sound while the confirmed inode CANNOT be handed to
-   * anyone else: ext4 reuses an inode number immediately on unlink-then-create in the same
-   * directory, so a substituted temporary carrying exactly the requested mode used to satisfy
-   * every arm of the check and publish attacker bytes as a confirmed credential file. POSIX will
-   * not free an inode while an open descriptor references it, so pinning it here denies that
-   * reuse and forces any substitute to a different inode, which the check then catches.
-   *
-   * Only held when `confirmed` is set (POSIX with a requested mode). Windows never sets it —
-   * `MODE_ENFORCEMENT_SUPPORTED` is false there — so no open handle can block its `rename`/`link`.
-   */
+  // Held open so a substitute temporary cannot reuse this inode and pass the `{ dev, ino }` check.
   pin?: number
 }
 

@@ -228,15 +228,7 @@ export class CorruptEpochStateError extends Error {
   }
 }
 
-/**
- * Fail-closed acquisition refusal after the deadline; carries why the wait could not end well.
- *
- * A contender that gives up is reporting a fact about the SYSTEM, not about itself, so the
- * diagnostics travel with the error: the owner it kept losing to, whether that owner was even
- * attributable (an unattributed row can never be escalated against, which is usually the whole
- * story), and the lease it kept reading. `agent-qa daemon` prints this and exits non-zero where it
- * previously hung with no output at all.
- */
+// Fail-closed refusal after the deadline; carries the owner it kept losing to and the lease read.
 export class WriterLeaseUnreclaimableError extends Error {
   override readonly name = 'WriterLeaseUnreclaimableError'
   readonly reason = 'mutation-lock-unreclaimable' as const
@@ -597,11 +589,7 @@ function readCommittedMutationLockOwner(
     }
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === 'ENOENT') return undefined
-    // A store file whose `mutation_lock` table does not exist yet reads exactly like an absent
-    // store: nobody has committed a claim. This is reachable — `openWriterAuthorityDb` creates
-    // the store file before `CREATE TABLE`, so a contender that loses the write lock in that
-    // window arrives here and used to crash the daemon with a raw SQL logic error instead of
-    // reporting contention.
+    // The store file exists before its `CREATE TABLE`, so a missing table means no committed claim.
     if (isMissingMutationLockTable(error)) return undefined
     // A store whose write lock is held by someone else answers nothing about who committed a
     // claim. `timeout: 0` is deliberate — this read is diagnostics on a path that has already

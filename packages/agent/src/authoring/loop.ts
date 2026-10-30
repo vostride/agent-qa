@@ -402,7 +402,7 @@ async function routingHandoff(
   return lastRun === undefined ? undefined : await runs.get(lastRun.runId)
 }
 
-// All four fields come from the error: the probe ran the re-staged candidate, not the old path.
+// All four fields come from the error, because the probe ran the re-staged candidate.
 function withRegressedProbeEvidence(
   route: StopRoute,
   abandonment: RepairAbandonment,

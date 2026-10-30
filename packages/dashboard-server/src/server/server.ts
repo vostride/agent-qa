@@ -336,10 +336,6 @@ export async function startServer(opts: StartServerOptions): Promise<{
       attributes: run.attributes,
       // The backend takes `opts.timeout ?? defaultTimeout`, so an unusable value falls back here.
       timeout: sanitizeQueuedExecutionTimeout(meta.timeout),
-      // THE LEASE ABOVE IS UNCHANGED; ONLY ITS DELIVERY IS. `acquireLease` still runs where it ran,
-      // still keys on this run id and still owns the bundled Appium's lifecycle (design-of-record).
-      // What used to ride `AGENT_QA_APPIUM_URL` in a child's environment now travels as an
-      // argument, because there is no child to carry an environment.
       ...(isMobile ? { appiumUrl: appiumManager.getUrl() } : {}),
     })
   })

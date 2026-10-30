@@ -388,8 +388,7 @@ export function runPostRunTail(opts: RunPostRunTailOptions): PostRunTailHandle {
           // Nothing acquired or composed: `drainOutcome` stays `not-attempted` for `finish()`.
           return
         }
-        // Composed AFTER the take, so a composition that throws lands in the catch below with a
-        // release already armed above it — the exact path that used to drop the lease.
+        // Composed after the take, so a throw here reaches the catch with the lease release armed.
         openedHost = openHost()
         // A handed authority skips this consult; the `held` and `refused` arms cannot apply to it.
         if (handed === undefined) {
