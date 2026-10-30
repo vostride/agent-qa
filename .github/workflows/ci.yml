@@ -18,9 +18,55 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  build:
+    name: Build (ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Cache turbo
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-build-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-build-${{ runner.os }}-
+
+      - name: Build
+        run: pnpm build
+
+      # A turbo cache hit skips prebuild, so the keyless stub is written here.
+      - name: Pack the build
+        run: |
+          node packages/analytics/scripts/ensure-posthog-project.cjs
+          tar -czf "$RUNNER_TEMP/build.tgz" packages/*/dist packages/analytics/src/posthog-project.ts
+
+      - name: Upload the build
+        uses: actions/upload-artifact@v7
+        with:
+          path: ${{ runner.temp }}/build.tgz
+          archive: false
+          retention-days: 3
+          if-no-files-found: error
+
   workspace:
     name: Full workspace (ubuntu, ${{ matrix.group }})
     runs-on: ubuntu-latest
+    needs: build
     timeout-minutes: 40
     strategy:
       fail-fast: false
@@ -58,34 +104,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
+          cache: pnpm
 
-      # pnpm version comes from package.json `packageManager` (pnpm@10.6.1).
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Download the build
+        uses: actions/download-artifact@v8
+        with:
+          name: build.tgz
+          path: ${{ runner.temp }}
+
+      # Extraction time keeps dist newer than the checked-out sources.
+      - name: Unpack the build
+        run: tar -xzmf "$RUNNER_TEMP/build.tgz"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      # The Test step runs with `--only`, which skips the `build` tasks `test` depends on, so it
-      # relies on this step having built every package.
-      - name: Build
-        run: pnpm build
-
-      # `432-external-callers.test.ts` drives the 394 pty drivers through `expect`, which a stock
-      # ubuntu runner lacks. This job checks out agent-qa alone, so that file's cells over callers in
-      # the super-repository (`demo/`) and the owner's miniwob checkout skip with a reason it prints;
-      # its cells over agent-qa's own scripts and the built CLI run.
-      - name: Install expect
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends expect
-
       - name: Install Playwright Chromium
         run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
 
-      # Each leg runs one package at a time, so that package's vitest pool owns the runner.
+      # Tests the downloaded build, one package at a time so its vitest pool owns the runner.
       - name: Test
         env:
           TURBO_CONCURRENCY: '1'
@@ -208,6 +252,7 @@ jobs:
   ps-hosts:
     name: ps-host legs (macos, ${{ matrix.group }})
     runs-on: macos-latest
+    needs: build
     timeout-minutes: 40
 
     # macOS legs for suites that skip on Linux, where `resolveProcessIncarnation` reads /proc.
@@ -231,25 +276,32 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
+          cache: pnpm
 
-      - name: Enable Corepack
-        run: corepack enable
+      - name: Download the build
+        uses: actions/download-artifact@v8
+        with:
+          name: build.tgz
+          path: ${{ runner.temp }}
+
+      # Extraction time keeps dist newer than the checked-out sources.
+      - name: Unpack the build
+        run: tar -xzmf "$RUNNER_TEMP/build.tgz"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build
-        run: pnpm build
-
       - name: Install Playwright Chromium
         run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
 
-      # `--only` skips the `build` tasks `test` depends on, so this relies on the Build step above;
-      # each leg runs one package at a time, so its vitest pool owns the runner.
+      # Tests the downloaded build, one package at a time so its vitest pool owns the runner.
       - name: Test daemon and lease packages
         env:
           TURBO_CONCURRENCY: '1'
@@ -261,3 +313,4 @@ jobs:
           pnpm exec turbo typecheck
           --filter=@vostride/agent-qa-knowledge-local
           --filter=agent-qa
+          --only

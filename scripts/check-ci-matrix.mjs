@@ -1,7 +1,5 @@
-// The CI test matrix covers every workspace package exactly once on ubuntu, every sharded package
-// with a complete 1..N shard set, and on macOS the daemon and lease packages (knowledge-local and
-// the whole of agent-qa). packages/arch's C-CI-MATRIX cells run this in CI; run it directly with
-// `node scripts/check-ci-matrix.mjs`.
+// CI's legs test every package once on ubuntu and the daemon and lease packages on macOS, with
+// whole shard sets, and each leg downloads the build job's output before its --only Test step.
 
 import { execFile } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -17,10 +15,14 @@ const MATRIX_JOBS = [
   { id: 'ps-hosts', test: 'Test daemon and lease packages', expected: PS_HOST_PACKAGES },
 ]
 
-export function loadCiWorkflow(repo = REPO_ROOT) {
+export function loadWorkflow(name, repo = REPO_ROOT) {
   // The workspace root declares no YAML parser; the CLI package's own dependency is used.
   const { parse } = createRequire(join(repo, 'packages', 'cli', 'package.json'))('yaml')
-  return parse(readFileSync(join(repo, '.github', 'workflows', 'ci.yml'), 'utf8'))
+  return parse(readFileSync(join(repo, '.github', 'workflows', name), 'utf8'))
+}
+
+export function loadCiWorkflow(repo = REPO_ROOT) {
+  return loadWorkflow('ci.yml', repo)
 }
 
 const turbo = (repo, args) =>
@@ -137,8 +139,12 @@ export function ciMatrixFailures(ci, packages) {
     if (!words(run).includes('--continue')) failures.push(`${id}/${test}: run lacks --continue`)
     if (steps[at].env?.TURBO_CONCURRENCY !== '1') failures.push(`${id}/${test}: env.TURBO_CONCURRENCY must be '1'`)
     if (words(run).includes('--only')) {
-      const build = steps.findIndex((step) => String(step.run ?? '').trim() === 'pnpm build')
-      if (build < 0 || build > at) failures.push(`${id}: --only skips the build tasks, so a pnpm build step must come before ${test}`)
+      const needs = [job.needs ?? []].flat()
+      if (!needs.includes('build')) failures.push(`${id}: must need the build job`)
+      const download = steps.findIndex((step) => String(step.uses ?? '').startsWith('actions/download-artifact@'))
+      if (download < 0 || download > at) {
+        failures.push(`${id}: --only skips the build tasks, so a download of the build artifact must come before ${test}`)
+      }
     }
   }
   return failures

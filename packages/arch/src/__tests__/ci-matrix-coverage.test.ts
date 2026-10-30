@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vitest'
 
 type Leg = { group: string; filter: string; vitest?: string }
 type Job = {
+  needs?: string | string[]
   strategy: { matrix: { include: Leg[] } }
-  steps: Array<{ name?: string; run?: string; env?: Record<string, string> }>
+  steps: Array<{ name?: string; run?: string; uses?: string; env?: Record<string, string> }>
 }
 type Workflow = { jobs: Record<string, Job> }
 type Check = {
@@ -94,6 +95,16 @@ describe('C-CI-MATRIX', () => {
         'macOS drops knowledge-local',
         (ci) => drop(ci, 'ps-hosts', 'knowledge-local'),
         'ps-hosts: no leg tests @vostride/agent-qa-knowledge-local',
+      ],
+      [
+        'the workspace legs stop downloading the build',
+        (ci) => {
+          const steps = ci.jobs.workspace!.steps
+          const at = steps.findIndex((step) => step.uses?.startsWith('actions/download-artifact@'))
+          if (at < 0) throw new Error('workspace has no download step')
+          steps.splice(at, 1)
+        },
+        'workspace: --only skips the build tasks',
       ],
     ]
     for (const [what, edit, expected] of cases) {
