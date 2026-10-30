@@ -179,7 +179,7 @@ describe('every kind renders through the one producer', () => {
   })
 
   it('is bounded BY CONSTRUCTION across the whole projection table', () => {
-    // One fact per quantity, not per record, bounds it: every kind and status, at 400 records too.
+    // One fact per quantity, not per record, keeps every kind and status bounded.
     const many = receipt({
       tombstonedRecords: Array.from({ length: 400 }, (_unused, index) => ({
         recordId: `rec-${String(index).padStart(4, '0')}`,
