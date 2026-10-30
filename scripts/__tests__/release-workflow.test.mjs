@@ -207,7 +207,6 @@ test('docker release workflow is manual and reusable with Docker Hub preflight',
 test('docker release workflow uses official Docker actions with metadata and attestations', () => {
   const workflow = readWorkflow('docker-release.yml')
 
-  assert.match(workflow, /fromJson\(needs\.preflight\.outputs\.images\)/)
   assert.match(workflow, /docker\/login-action@v4/)
   assert.match(workflow, /docker\/setup-qemu-action@v4/)
   assert.match(workflow, /docker\/setup-buildx-action@v4/)
@@ -228,11 +227,36 @@ test('docker release workflow uses official Docker actions with metadata and att
   assert.doesNotMatch(workflow, /build-args:|secret-envs:|secret-files:/)
 })
 
-test('docker release workflow moves latest only after immutable image matrix succeeds', () => {
+test('docker release workflow builds only the images Docker Hub lacks', () => {
   const workflow = readWorkflow('docker-release.yml')
 
-  assert.match(workflow, /latest:/)
-  assert.match(workflow, /if:\s*\$\{\{ inputs\.move_latest \}\}/)
-  assert.match(workflow, /needs:\s*\[preflight, docker\]/)
-  assert.match(workflow, /docker buildx imagetools create -t "\$\{\{ matrix\.image\.image \}\}:latest" "\$\{\{ matrix\.image\.image \}\}:\$\{\{ needs\.preflight\.outputs\.version \}\}"/)
+  assert.match(workflow, /build:\s*\$\{\{ steps\.docker\.outputs\.build \}\}/)
+  assert.match(workflow, /retag:\s*\$\{\{ steps\.docker\.outputs\.retag \}\}/)
+  assert.match(
+    workflow,
+    /\n  docker:\n[\s\S]*?needs: preflight\n\s+if: \$\{\{ needs\.preflight\.outputs\.build != '\[\]' \}\}\n[\s\S]*?image: \$\{\{ fromJson\(needs\.preflight\.outputs\.build\) \}\}\n/,
+  )
+})
+
+test('docker release workflow adds a half-pushed image\'s missing version tag from its present one', () => {
+  const workflow = readWorkflow('docker-release.yml')
+
+  assert.match(
+    workflow,
+    /\n  retag:\n\s+name: Add missing version tag for \$\{\{ matrix\.retag\.image \}\}\n[\s\S]*?needs: preflight\n\s+if: \$\{\{ needs\.preflight\.outputs\.retag != '\[\]' \}\}\n[\s\S]*?retag: \$\{\{ fromJson\(needs\.preflight\.outputs\.retag\) \}\}\n/,
+  )
+  assert.match(workflow, /docker buildx imagetools create -t "\$\{\{ matrix\.retag\.image \}\}:\$\{\{ matrix\.retag\.missing \}\}" "\$\{\{ matrix\.retag\.image \}\}:\$\{\{ matrix\.retag\.present \}\}"/)
+})
+
+test('docker release workflow moves latest for all six images once the builds and retags succeeded or were skipped', () => {
+  const workflow = readWorkflow('docker-release.yml')
+  const latest = workflow.slice(workflow.indexOf('\n  latest:\n'))
+
+  assert.match(latest, /needs:\s*\[preflight, docker, retag\]/)
+  assert.ok(
+    latest.includes(`if: \${{ !cancelled() && inputs.move_latest && needs.preflight.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.docker.result) && contains(fromJSON('["success","skipped"]'), needs.retag.result) }}`),
+    'latest must wait for preflight success and for the docker and retag jobs to succeed or be skipped',
+  )
+  assert.match(latest, /image: \$\{\{ fromJson\(needs\.preflight\.outputs\.images\) \}\}/)
+  assert.match(latest, /docker buildx imagetools create -t "\$\{\{ matrix\.image\.image \}\}:latest" "\$\{\{ matrix\.image\.image \}\}:\$\{\{ needs\.preflight\.outputs\.version \}\}"/)
 })

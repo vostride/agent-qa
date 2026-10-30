@@ -7,7 +7,7 @@ import test from 'node:test'
 import { fileURLToPath } from 'node:url'
 import {
   assertDockerReleaseEnvironment,
-  checkDockerTagsAbsent,
+  classifyDockerImages,
   createDockerLabels,
   createDockerTags,
   dockerfileManifestDrift,
@@ -99,7 +99,6 @@ test('validates real Docker release files in the repository', () => {
   const plan = validateDockerReleasePlan({ rootDir, version: '0.1.1', namespace: 'vostride' })
   assert.equal(plan.version, '0.1.1')
   assert.equal(plan.namespace, 'vostride')
-  assert.equal(plan.images.length, 6)
   assert.ok(plan.images.every(image => image.tags.includes(`${image.image}:0.1.1`)))
   assert.ok(plan.images.every(image => image.labels.some(label => label === 'org.opencontainers.image.version=0.1.1')))
 })
@@ -131,24 +130,39 @@ test('requires Docker Hub environment for publishing', () => {
   assert.throws(() => assertDockerReleaseEnvironment({ env: { ...goodEnv, DOCKERHUB_NAMESPACE: 'agent-qa' } }), /vostride/)
 })
 
-test('checks immutable Docker Hub tags and fails closed on collisions or ambiguity', async () => {
-  const [image] = getDockerImageMatrix()
-  const urls = []
-  await checkDockerTagsAbsent([image], '0.1.1', {
-    fetchImpl: async url => {
-      urls.push(url)
-      return { status: 404 }
-    },
+function hubStatus(statuses) {
+  return async url => {
+    const match = /\/repositories\/vostride\/([^/]+)\/tags\/([^/]+)$/.exec(url)
+    assert.ok(match, `unexpected Docker Hub URL: ${url}`)
+    return { status: statuses[`${match[1]}:${match[2]}`] ?? 200 }
+  }
+}
+
+test('classifies each image as absent, complete or partial from its two version tags', async () => {
+  const [web, android, node] = getDockerImageMatrix()
+  const result = await classifyDockerImages([web, android, node], '0.1.1', {
+    fetchImpl: hubStatus({
+      'agent-qa-web:0.1.1': 404,
+      'agent-qa-web:v0.1.1': 404,
+      'agent-qa-hook-runner-node:v0.1.1': 404,
+    }),
   })
-  assert.equal(urls.length, 2)
-  assert.ok(urls.every(url => url.includes('hub.docker.com/v2/repositories/vostride/agent-qa-web/tags/')))
+  assert.deepEqual(result, [
+    { id: 'web', image: 'vostride/agent-qa-web', state: 'absent', present: [], missing: ['0.1.1', 'v0.1.1'] },
+    { id: 'android', image: 'vostride/agent-qa-android', state: 'complete', present: ['0.1.1', 'v0.1.1'], missing: [] },
+    { id: 'hooks-node', image: 'vostride/agent-qa-hook-runner-node', state: 'partial', present: ['0.1.1'], missing: ['v0.1.1'] },
+  ])
+})
+
+test('fails closed when Docker Hub answers a tag lookup with anything but 200 or 404', async () => {
+  const [image] = getDockerImageMatrix()
   await assert.rejects(
-    checkDockerTagsAbsent([image], '0.1.1', { fetchImpl: async () => ({ status: 200 }) }),
-    /docker tag already exists/,
+    classifyDockerImages([image], '0.1.1', { fetchImpl: async () => ({ status: 500 }) }),
+    /could not verify Docker tag for vostride\/agent-qa-web:0\.1\.1/,
   )
   await assert.rejects(
-    checkDockerTagsAbsent([image], '0.1.1', { fetchImpl: async () => ({ status: 500 }) }),
-    /could not verify Docker tag absence/,
+    classifyDockerImages([image], '0.1.1', { fetchImpl: hubStatus({ 'agent-qa-web:v0.1.1': 429 }) }),
+    /could not verify Docker tag for vostride\/agent-qa-web:v0\.1\.1/,
   )
 })
 
@@ -172,20 +186,89 @@ test('parses Docker release CLI args', () => {
   assert.throws(() => parseDockerArgs(['--version']), /missing --version/)
 })
 
+function readGithubOutputs(text) {
+  const outputs = {}
+  const lines = text.split('\n')
+  for (let index = 0; index < lines.length; index += 1) {
+    const heredoc = /^([\w-]+)<<(\w+)$/.exec(lines[index])
+    if (heredoc) {
+      const end = lines.indexOf(heredoc[2], index + 1)
+      outputs[heredoc[1]] = lines.slice(index + 1, end).join('\n')
+      index = end
+    } else if (lines[index].includes('=')) {
+      const at = lines[index].indexOf('=')
+      outputs[lines[index].slice(0, at)] = lines[index].slice(at + 1)
+    }
+  }
+  return outputs
+}
+
+async function runWithGithubOutput(argv, fetchImpl) {
+  const tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-docker-output-'))
+  try {
+    const outputPath = join(tempDir, 'github-output')
+    await runDockerCli([...argv, '--github-output'], {
+      rootDir,
+      env: { GITHUB_OUTPUT: outputPath },
+      fetchImpl,
+      output: { write: () => {} },
+    })
+    return readGithubOutputs(readFileSync(outputPath, 'utf8'))
+  } finally {
+    await rm(tempDir, { recursive: true, force: true })
+  }
+}
+
 test('writes GitHub Actions outputs for matrix handoff', async () => {
   const tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-docker-output-'))
   try {
     const outputPath = join(tempDir, 'github-output')
     const matrix = getDockerImageMatrix()
     writeGithubOutputs({ outputPath, version: '0.1.1', namespace: 'vostride', matrix })
-    const text = readFileSync(outputPath, 'utf8')
-    assert.match(text, /^version=0\.1\.1/m)
-    assert.match(text, /^namespace=vostride/m)
-    assert.match(text, /images<<EOF/)
-    assert.match(text, /"image":"vostride\/agent-qa-web"/)
+    const outputs = readGithubOutputs(readFileSync(outputPath, 'utf8'))
+    assert.equal(outputs.version, '0.1.1')
+    assert.equal(outputs.namespace, 'vostride')
+    assert.deepEqual(JSON.parse(outputs.images), matrix)
+    assert.deepEqual(JSON.parse(outputs.build), matrix)
+    assert.deepEqual(JSON.parse(outputs.retag), [])
   } finally {
     await rm(tempDir, { recursive: true, force: true })
   }
+})
+
+test('a release over half-pushed images builds only the absent ones and retags the partial one', async () => {
+  const outputs = await runWithGithubOutput(
+    ['--version', '0.1.1', '--namespace', 'vostride', '--check-tags'],
+    hubStatus({
+      'agent-qa-web:0.1.1': 404,
+      'agent-qa-web:v0.1.1': 404,
+      'agent-qa-android:v0.1.1': 404,
+    }),
+  )
+  assert.deepEqual(JSON.parse(outputs.build).map(image => image.image), ['vostride/agent-qa-web'])
+  assert.equal(JSON.parse(outputs.build)[0].dockerfile, 'docker/Dockerfile.web')
+  assert.deepEqual(JSON.parse(outputs.retag), [
+    { image: 'vostride/agent-qa-android', present: '0.1.1', missing: 'v0.1.1' },
+  ])
+  assert.deepEqual(JSON.parse(outputs.images).map(image => image.image), imageNames)
+})
+
+test('a release with every version tag already pushed builds and retags nothing', async () => {
+  const outputs = await runWithGithubOutput(
+    ['--version', '0.1.1', '--namespace', 'vostride', '--check-tags'],
+    hubStatus({}),
+  )
+  assert.deepEqual(JSON.parse(outputs.build), [])
+  assert.deepEqual(JSON.parse(outputs.retag), [])
+  assert.deepEqual(JSON.parse(outputs.images).map(image => image.image), imageNames)
+})
+
+test('without a tag check every image is built and none is retagged', async () => {
+  const outputs = await runWithGithubOutput(['--version', '0.1.1', '--namespace', 'vostride'], async () => {
+    throw new Error('Docker Hub must not be queried without --check-tags')
+  })
+  assert.deepEqual(JSON.parse(outputs.build).map(image => image.image), imageNames)
+  assert.deepEqual(JSON.parse(outputs.retag), [])
 })
 
 test('CLI prints a local Docker release plan', async () => {

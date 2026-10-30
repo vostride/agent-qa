@@ -168,21 +168,37 @@ function immutableTags(version) {
   return [normalized, `v${normalized}`]
 }
 
-export async function checkDockerTagsAbsent(matrix, version, options = {}) {
+export async function classifyDockerImages(matrix, version, options = {}) {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch
   if (typeof fetchImpl !== 'function') throw new Error('fetch is required for Docker Hub tag checks')
 
+  const result = []
   for (const image of matrix) {
     const namespace = normalizeDockerNamespace(image.namespace ?? image.image?.split('/')[0])
     const repo = image.repo ?? image.image?.split('/')[1]
     if (!repo) throw new Error('Docker image record missing repo')
+    const present = []
+    const missing = []
     for (const tag of immutableTags(version)) {
       const url = `https://hub.docker.com/v2/repositories/${encodeURIComponent(namespace)}/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}`
       const response = await fetchImpl(url)
-      if (response.status === 404) continue
-      if (response.status === 200) throw new Error(`docker tag already exists: ${namespace}/${repo}:${tag}`)
-      throw new Error(`could not verify Docker tag absence for ${namespace}/${repo}:${tag}`)
+      if (response.status === 200) present.push(tag)
+      else if (response.status === 404) missing.push(tag)
+      else throw new Error(`could not verify Docker tag for ${namespace}/${repo}:${tag}`)
     }
+    const state = present.length === 0 ? 'absent' : missing.length === 0 ? 'complete' : 'partial'
+    result.push({ id: image.id, image: `${namespace}/${repo}`, state, present, missing })
+  }
+  return result
+}
+
+function dockerReleaseWork(matrix, classification) {
+  const stateOf = new Map(classification.map(entry => [entry.image, entry]))
+  return {
+    build: matrix.filter(image => stateOf.get(image.image)?.state === 'absent'),
+    retag: classification
+      .filter(entry => entry.state === 'partial')
+      .map(entry => ({ image: entry.image, present: entry.present[0], missing: entry.missing[0] })),
   }
 }
 
@@ -192,9 +208,13 @@ export function writeGithubOutputs(options = {}) {
   const version = normalizeDockerVersion(options.version)
   const namespace = normalizeDockerNamespace(options.namespace)
   const images = JSON.stringify(options.matrix)
+  const build = JSON.stringify(options.build ?? options.matrix)
+  const retag = JSON.stringify(options.retag ?? [])
   appendFileSync(outputPath, `version=${version}\n`, 'utf8')
   appendFileSync(outputPath, `namespace=${namespace}\n`, 'utf8')
   appendFileSync(outputPath, `images<<EOF\n${images}\nEOF\n`, 'utf8')
+  appendFileSync(outputPath, `build<<EOF\n${build}\nEOF\n`, 'utf8')
+  appendFileSync(outputPath, `retag<<EOF\n${retag}\nEOF\n`, 'utf8')
 }
 
 export function parseDockerArgs(argv = []) {
@@ -242,13 +262,21 @@ export async function runCli(argv = process.argv.slice(2), options = {}) {
   })
 
   if (parsed.requireEnv) assertDockerReleaseEnvironment({ env, namespace })
-  if (parsed.checkTags) await checkDockerTagsAbsent(plan.images, plan.version, { fetchImpl: options.fetchImpl })
+  const matrix = plan.images.map(({ tags, labels, ...image }) => image)
+  const work = parsed.checkTags
+    ? dockerReleaseWork(
+        matrix,
+        await classifyDockerImages(matrix, plan.version, { fetchImpl: options.fetchImpl }),
+      )
+    : { build: matrix, retag: [] }
   if (parsed.githubOutput) {
     writeGithubOutputs({
       outputPath: env.GITHUB_OUTPUT,
       version: plan.version,
       namespace,
-      matrix: plan.images.map(({ tags, labels, ...image }) => image),
+      matrix,
+      build: work.build,
+      retag: work.retag,
     })
   }
 

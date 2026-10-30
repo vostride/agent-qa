@@ -41,6 +41,8 @@ jobs:
       version: ${{ steps.docker.outputs.version }}
       namespace: ${{ steps.docker.outputs.namespace }}
       images: ${{ steps.docker.outputs.images }}
+      build: ${{ steps.docker.outputs.build }}
+      retag: ${{ steps.docker.outputs.retag }}
 
     steps:
       - name: Checkout
@@ -71,10 +73,11 @@ jobs:
     name: Build and push ${{ matrix.image.id }}
     runs-on: ubuntu-latest
     needs: preflight
+    if: ${{ needs.preflight.outputs.build != '[]' }}
     strategy:
       fail-fast: true
       matrix:
-        image: ${{ fromJson(needs.preflight.outputs.images) }}
+        image: ${{ fromJson(needs.preflight.outputs.build) }}
 
     steps:
       - name: Checkout
@@ -122,11 +125,34 @@ jobs:
           provenance: mode=max
           sbom: true
 
+  retag:
+    name: Add missing version tag for ${{ matrix.retag.image }}
+    runs-on: ubuntu-latest
+    needs: preflight
+    if: ${{ needs.preflight.outputs.retag != '[]' }}
+    strategy:
+      fail-fast: true
+      matrix:
+        retag: ${{ fromJson(needs.preflight.outputs.retag) }}
+
+    steps:
+      - name: Login to Docker Hub
+        uses: docker/login-action@v4
+        with:
+          username: ${{ vars.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Add missing version tag
+        run: docker buildx imagetools create -t "${{ matrix.retag.image }}:${{ matrix.retag.missing }}" "${{ matrix.retag.image }}:${{ matrix.retag.present }}"
+
   latest:
     name: Move latest tag for ${{ matrix.image.id }}
-    if: ${{ inputs.move_latest }}
+    if: ${{ !cancelled() && inputs.move_latest && needs.preflight.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.docker.result) && contains(fromJSON('["success","skipped"]'), needs.retag.result) }}
     runs-on: ubuntu-latest
-    needs: [preflight, docker]
+    needs: [preflight, docker, retag]
     strategy:
       fail-fast: true
       matrix:
