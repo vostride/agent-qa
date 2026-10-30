@@ -74,7 +74,7 @@ export function buildReleaseDryRunPlan(options = {}) {
     docker: {
       namespace: docker.namespace,
       version: docker.version,
-      validationCommand: `pnpm exec node scripts/release/docker.mjs --check-local --version ${targetVersion} --namespace ${docker.namespace}`,
+      validationCommand: `pnpm exec node scripts/release/docker.mjs --version ${targetVersion} --namespace ${docker.namespace}`,
       images: docker.images.map(image => ({
         id: image.id,
         image: image.image,

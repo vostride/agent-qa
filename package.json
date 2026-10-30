@@ -26,7 +26,6 @@
     "validate:agents": "node scripts/validate-agent-instructions.mjs",
     "validate:publish": "node scripts/validate-publish-surface.mjs",
     "release:docker": "node scripts/release/docker.mjs",
-    "release:docker:check": "node scripts/release/docker.mjs --check-local",
     "release:dry-run": "node scripts/release/dry-run.mjs",
     "release:verify": "node scripts/release/verify.mjs",
     "release:publish": "node scripts/release/publish.mjs",

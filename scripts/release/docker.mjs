@@ -200,7 +200,6 @@ export function writeGithubOutputs(options = {}) {
 export function parseDockerArgs(argv = []) {
   const parsed = {
     latest: false,
-    checkLocal: false,
     checkTags: false,
     requireEnv: false,
     githubOutput: false,
@@ -218,8 +217,6 @@ export function parseDockerArgs(argv = []) {
       index += 1
     } else if (arg === '--latest') {
       parsed.latest = true
-    } else if (arg === '--check-local') {
-      parsed.checkLocal = true
     } else if (arg === '--check-tags') {
       parsed.checkTags = true
     } else if (arg === '--require-env') {

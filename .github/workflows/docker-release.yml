@@ -65,7 +65,7 @@ jobs:
           DOCKERHUB_USERNAME: ${{ vars.DOCKERHUB_USERNAME }}
           DOCKERHUB_NAMESPACE: ${{ vars.DOCKERHUB_NAMESPACE }}
           DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-        run: pnpm exec node scripts/release/docker.mjs --check-local --check-tags --require-env --github-output
+        run: pnpm exec node scripts/release/docker.mjs --check-tags --require-env --github-output
 
   docker:
     name: Build and push ${{ matrix.image.id }}

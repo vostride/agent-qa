@@ -197,7 +197,7 @@ test('docker release workflow is manual and reusable with Docker Hub preflight',
   assert.match(workflow, /attestations:\s*write/)
   assert.match(workflow, /node-version:\s*'24'/)
   assert.match(workflow, /pnpm install --frozen-lockfile/)
-  assert.match(workflow, /scripts\/release\/docker\.mjs --check-local --check-tags --require-env --github-output/)
+  assert.match(workflow, /scripts\/release\/docker\.mjs --check-tags --require-env --github-output/)
   assert.match(workflow, /DOCKERHUB_USERNAME:\s*\$\{\{ vars\.DOCKERHUB_USERNAME \}\}/)
   assert.match(workflow, /DOCKERHUB_NAMESPACE:\s*\$\{\{ vars\.DOCKERHUB_NAMESPACE \}\}/)
   assert.match(workflow, /DOCKERHUB_TOKEN:\s*\$\{\{ secrets\.DOCKERHUB_TOKEN \}\}/)

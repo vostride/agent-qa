@@ -157,7 +157,6 @@ test('parses Docker release CLI args', () => {
     '--version', '0.1.1',
     '--namespace', 'vostride',
     '--latest',
-    '--check-local',
     '--check-tags',
     '--require-env',
     '--github-output',
@@ -165,7 +164,6 @@ test('parses Docker release CLI args', () => {
     version: '0.1.1',
     namespace: 'vostride',
     latest: true,
-    checkLocal: true,
     checkTags: true,
     requireEnv: true,
     githubOutput: true,
@@ -192,7 +190,7 @@ test('writes GitHub Actions outputs for matrix handoff', async () => {
 
 test('CLI prints a local Docker release plan', async () => {
   let output = ''
-  await runDockerCli(['--check-local', '--version', '0.1.1', '--namespace', 'vostride'], {
+  await runDockerCli(['--version', '0.1.1', '--namespace', 'vostride'], {
     rootDir,
     output: { write: chunk => { output += chunk } },
   })
