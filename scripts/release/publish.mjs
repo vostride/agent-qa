@@ -2,6 +2,7 @@ import { execFileSync as defaultExecFileSync } from 'node:child_process'
 import { join, resolve } from 'node:path'
 import semver from 'semver'
 import { derivePublishOrder } from './packages.mjs'
+import { npmVersionPresent } from './registry.mjs'
 import { discoverStagedRecords } from './stage-packages.mjs'
 
 export function assertTrustedPublishEnvironment(options = {}) {
@@ -44,23 +45,36 @@ export async function publishPackages(options = {}) {
   const resolvedNpmVersion = options.npmVersion ?? npmVersion(execFileSync)
   assertTrustedPublishEnvironment({ env, npmVersion: resolvedNpmVersion })
 
+  const log = options.log ?? console.log
+  const isNpmVersionPresent =
+    options.isNpmVersionPresent ??
+    ((name, version) => npmVersionPresent(name, version, { execFileSync }))
+
   const stagedRecords = discoverStagedRecords(stagedDir)
-  const commands = createPublishCommands({
-    stagedRecords,
-    version: stagedRecords[0]?.pkg.version,
-  })
+  const version = stagedRecords[0]?.pkg.version
+  const commands = createPublishCommands({ stagedRecords, version })
+  const orderedRecords = derivePublishOrder(stagedRecords)
   const publishEnv = { ...env }
   delete publishEnv.NPM_CONFIG_PROVENANCE
 
-  for (const command of commands) {
+  const published = []
+  const skipped = []
+  for (const [index, command] of commands.entries()) {
+    const name = orderedRecords[index].pkg.name
+    if (isNpmVersionPresent(name, version)) {
+      skipped.push(name)
+      log(`already on npm: ${name}@${version}`)
+      continue
+    }
     execFileSync(command.command, command.args, {
       cwd: command.cwd,
       env: publishEnv,
       stdio: options.stdio ?? 'inherit',
     })
+    published.push(name)
   }
 
-  return commands
+  return { published, skipped, commands }
 }
 
 export function parseReleaseArgs(argv = []) {
@@ -73,7 +87,11 @@ export function parseReleaseArgs(argv = []) {
 
 export async function runCli(argv = process.argv.slice(2), options = {}) {
   const parsed = parseReleaseArgs(argv)
-  return publishPackages({ ...options, stagedDir: parsed.stagedDir })
+  const log = options.log ?? console.log
+  const result = await publishPackages({ ...options, log, stagedDir: parsed.stagedDir })
+  log(`published: ${result.published.join(', ') || 'none'}`)
+  log(`skipped: ${result.skipped.join(', ') || 'none'}`)
+  return result
 }
 
 if (process.argv[1] && import.meta.url === new URL(process.argv[1], 'file:').href) {
