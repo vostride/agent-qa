@@ -14,3 +14,7 @@ agent-qa.local.yaml
 *.tgz
 test-fixtures
 .release
+**/node_modules
+**/dist
+**/.turbo
+packages/analytics/src/posthog-project.ts
