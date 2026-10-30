@@ -614,7 +614,6 @@ function defaultConfig() {
       envFile: defaultEnvFilePath ?? '.env',
       secretsFile: defaultSecretsFilePath ?? '.env.secrets.local',
     },
-    // Flat aliases removed — run command now reads from workspace.* (4-bucket config)
     services: {
       cache: { dir: '.agent-qa/cache' },
       logging: { level: 'warn' },

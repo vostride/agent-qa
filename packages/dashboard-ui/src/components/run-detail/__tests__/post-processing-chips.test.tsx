@@ -407,9 +407,7 @@ describe("the analysis indicator is the door to the verdict when the page gave i
     )
     expect(lineOf(await cardOf(host, "analysis"), "door")).toBeUndefined()
 
-    // THE FALSIFICATION, IN THE SAME SCENE. "Still a span" was true before this plan existed and
-    // on its own proves nothing about the rule; the same component WITH a door must read
-    // differently, or the absence above is not what makes this root a span.
+    // The same component with a door must read differently, or the absence above proves nothing.
     const aside = mountAside(chipsWithDoor(vi.fn()))
     try {
       expect(chip(aside.host, "analysis").tagName).toBe("BUTTON")

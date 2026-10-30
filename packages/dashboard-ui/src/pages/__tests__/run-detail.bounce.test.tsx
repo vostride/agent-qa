@@ -232,9 +232,7 @@ describe("the bounce keys on the run row, and never on the active-execution set"
     expect(navigateMock).toHaveBeenCalledWith(routes.runLive(RUN_ID), { replace: true })
   })
 
-  // ONE CELL PER TERMINAL WORD, not a loop over an array. A run that ended is the ordinary case
-  // for this page, and `cancelled` in particular is the word the retired active-set predicate got
-  // wrong most often: a cancelled run leaves the row terminal while its tail is still winding down.
+  // One cell per terminal word; a cancelled run leaves the row terminal while its tail winds down.
   for (const word of ["passed", "failed", "cancelled"] as const) {
     it(`a \`${word}\` row does not navigate, and the page renders it`, async () => {
       fetchRunMock.mockResolvedValue(answers(word))

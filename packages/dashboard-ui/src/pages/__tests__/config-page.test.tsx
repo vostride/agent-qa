@@ -1908,7 +1908,7 @@ describe('ConfigPage task tabs shell', () => {
     expect(baseUrlField?.textContent).toContain(BASE_URL_HELP)
     expect((baseUrlField?.querySelector('input') as HTMLInputElement | null)?.value).toBe('https://openrouter.ai/api/v1')
     expect(contextWindowInput?.value).toBe('256k')
-    // The help is an inline line now; the modal's tooltip trigger is gone.
+    // The help is an inline line, with no tooltip trigger.
     expect(document.body.querySelector('button[aria-label="Compatible endpoint help"]')).toBeNull()
     expect(document.body.querySelector('[role="dialog"]')).toBeNull()
 

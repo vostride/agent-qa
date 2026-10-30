@@ -9,9 +9,7 @@ const PACKAGES_DIR = fileURLToPath(new URL('../../../', import.meta.url))
 const THIS_FILE = fileURLToPath(import.meta.url)
 const OWN = 'arch/src/__tests__/production-doors-bind-verifier.test.ts'
 
-// ---------------------------------------------------------------------------------------------
-// The lexer (the 432, 436, 437 and 438 censuses'): comments out, everything else in
-// ---------------------------------------------------------------------------------------------
+// The lexer: comments out, everything else in.
 
 function regexAllowed(out: string): boolean {
   let k = out.length - 1

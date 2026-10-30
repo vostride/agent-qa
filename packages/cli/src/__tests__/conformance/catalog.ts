@@ -68,11 +68,7 @@ function repoRelative(absolutePath: string): string {
 
 // ---- The note the committed file carries ---------------------------------------------------------
 
-/**
- * PRODUCED from this constant rather than typed into the JSON, so a hand-edit to the note reds like
- * any other row. Somebody who opens a generated file should learn what changing it means without
- * having to find the phase directory.
- */
+// Produced from this constant, so a hand-edit to the note reds like any other row.
 export const CATALOG_NOTE: readonly string[] = Object.freeze([
   'GENERATED — the capability catalog.',
   'One row per registry capability, per chat alias and per shipped skill. This artifact is the ONE',

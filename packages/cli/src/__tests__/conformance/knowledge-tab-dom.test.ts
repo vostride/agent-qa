@@ -1415,7 +1415,7 @@ interface WrapProbe {
 // The break utility on the brief-line summary span.
 const WRAP_UTILITY_CLASS = 'wrap-anywhere'
 
-/** The pathological input the UAT measured: 120 identical characters, no break opportunity. */
+// A pathological input with no break opportunity.
 const UNBROKEN_TOKEN = 'x'.repeat(120)
 
 // Measured with the break utility and without it: only the pair shows the class causes the fit.
@@ -2912,8 +2912,7 @@ describePosix('the shipped dashboard renders the Knowledge tab and the rung bann
       + 'mode, and the three-delimiter quote census exists to reject it.',
     ).toThrow(/quote character/u)
 
-    // AND THE REAL VOCABULARY STILL READS, so the hardening did not simply make the function
-    // throw. NO SIZE IS ASSERTED — four kinds versus five is UAT item 9 and still the owner's.
+    // The real vocabulary still reads, so the hardening does not just throw; no size is asserted.
     expect(
       LEARNED_CHANGE_KINDS.length,
       'the published Learned vocabulary recovered no members at all from `knowledge-view.ts`.',

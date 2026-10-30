@@ -61,11 +61,7 @@ describe('the bundle-status → MEM card-status mapping is total over the comple
   })
 
   it('THROWS, naming the status, for an input outside the union', () => {
-    // The cast is required and is the point of the design note in `memory-status.ts`: the
-    // parameter stays `BundleStatus` so both production call sites keep compile-time totality,
-    // which makes this arm unreachable from TypeScript and reachable only the way it is
-    // actually reachable in production — a string that arrived through a cast at a
-    // deserialization boundary. `withdrawn` is one of the two dead members the old table named.
+    // The cast reaches this arm as production can: a string cast at a deserialization boundary.
     expect(() => memoryStatusForBundle('withdrawn' as BundleStatus))
       .toThrow(UnknownBundleStatusError)
     expect(() => memoryStatusForBundle('withdrawn' as BundleStatus))

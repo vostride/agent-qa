@@ -66,55 +66,11 @@ export interface InProcessFixtureInput {
   readonly declareUninstalledAuthPlugin?: boolean
   // Both targets share one explicit `product:`, or `requireSingleInvocationProduct` refuses first.
   readonly secondTarget?: boolean
-  /**
-   * Declare `use.browser` explicitly as a HEADED chromium (401 UAT item 14).
-   *
-   * WHY A KNOB AND NOT A CONSTANT. The cancel-isolation cell needs a member it can HOLD OPEN, and
-   * the only production frame a browser-less machine can be parked in is `adapter.setup`'s
-   * `chromium.launch(...)` — parked there by planting a stand-in executable under a temp
-   * `PLAYWRIGHT_BROWSERS_PATH`. Playwright resolves a DIFFERENT binary for each mode
-   * (`chromium_headless_shell-<rev>/…` headless, `chromium-<rev>/…` headed) and publishes exactly
-   * one of them through its own API, `chromium.executablePath()` — the headed one. Declaring the
-   * mode here is what lets the cell name the planted path from playwright's own answer instead of
-   * hand-spelling a revision-and-platform path that would rot on the next bump.
-   *
-   * `name:` rides along because `use.browser` is validated as a whole and refuses a nameless block.
-   * Absent leaves the config's bytes exactly as they were, which is every other cell's posture:
-   * `buildPlatformConfig` defaults to `chromium` + `headless: true` with no `use.browser` at all.
-   */
+  // Headed, because `chromium.executablePath()` names only the headed binary the cell plants.
   readonly headedBrowser?: boolean
-  /**
-   * List a SECOND member in the suite (401 UAT item 14).
-   *
-   * WHY IT EXISTS. A one-member suite cannot show a TRUNCATED event log: whether the member is
-   * aborted mid-flight or fails on its own, the run publishes one member's events and stops, so the
-   * cancelled run and the un-cancelled one carry the same member count. With two members the
-   * difference is the run's own remaining work — the shell's cancel branch skips member 1 SILENTLY
-   * (`skippedPerTestOutcome`, no publish), while a run that was allowed to reach its member-0
-   * failure poisons the fail-fast group and publishes member 1's `testFinished`. That one envelope
-   * is the difference between "the abort stopped the run" and "the run finished on its own", which
-   * is the whole claim.
-   *
-   * The second member names the SAME target and has the same shape as the first, so it changes the
-   * member COUNT and nothing else.
-   */
+  // A second member, so a cancel that skips it differs from a run that finishes and publishes it.
   readonly secondSuiteMember?: boolean
-  /**
-   * Declare `use.parallel: true` in the CONFIG (401 UAT item 15).
-   *
-   * WHY IT EXISTS, AND WHY IT IS THE CONFIG'S OWN KNOB. The dashboard's `JobQueue` gives a
-   * NON-parallel web run exclusive access to every slot (`findNextEligible`: "Sequential web:
-   * needs ALL slots free"), so two ask-tier runs triggered from a browser reach their gates one
-   * after the other and their confirms never overlap — measured, before this knob existed. The
-   * overlapping-confirm arm of UAT item 15 therefore has nothing to observe unless the runs are
-   * eligible to be active at once, and `use.parallel` is the shipped, documented way a project
-   * says so (`readConfigUseParallel` → `effectiveParallel` → the queued row).
-   *
-   * IT IS WRITTEN IN THE CONFIG RATHER THAN IN A TEST FILE because the trigger route reads BOTH
-   * (`fileParallel ?? configParallel ?? false`) and the config is the one place that covers every
-   * test the fixture writes, so a cell that triggers two DIFFERENT files gets the same posture as
-   * one that triggers the same file twice.
-   */
+  // `use.parallel` in the config, so two triggered runs overlap and so do their confirms.
   readonly parallelRuns?: boolean
   // The explicit-count arm; `parallelRuns` alone is the default-ceiling arm.
   readonly workerCount?: number

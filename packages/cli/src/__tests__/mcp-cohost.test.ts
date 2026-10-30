@@ -212,7 +212,7 @@ async function connectAs(
   const client = new Client(
     { name: 'agent-qa-cohost', version: '0.0.0' },
     {
-      // Plan 02 D-G: the per-request capabilities envelope exists only on the modern era.
+      // The per-request capabilities envelope exists only on the modern era.
       versionNegotiation: { mode: 'auto' as const },
       ...(options.apps === false
         ? {}

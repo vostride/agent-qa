@@ -470,7 +470,7 @@ async function connectClient(options: { readonly apps: boolean }): Promise<Clien
   const client = new Client(
     { name: 'agent-qa-app-host-harness', version: '0.0.0' },
     {
-      // Plan 02 D-G: the per-request capabilities envelope exists ONLY on the modern era.
+      // The per-request capabilities envelope exists only on the modern era.
       versionNegotiation: { mode: 'auto' as const },
       ...(options.apps ? { capabilities: { extensions: { [MCP_APPS_EXTENSION_ID]: {} } } } : {}),
     },
@@ -647,10 +647,7 @@ describe('leg 1 — a negotiating host reaches the App over the wire', () => {
   it('(1) the client really negotiated the MODERN era, which is what makes the App obtainable', async () => {
     const client = await connectClient({ apps: true })
     try {
-      // NOT DECORATION. `@modelcontextprotocol/client@2.0.0` DEFAULTS to the legacy 2025 handshake,
-      // and on that era it sends no per-request client capabilities at all — so the App's
-      // negotiation gate correctly refuses, and a harness that never checked would report the
-      // phase's central feature as broken. Asserting the era here is what stops that.
+      // `@modelcontextprotocol/client@2.0.0` defaults to an era with no per-request capabilities.
       expect(client.getProtocolEra()).toBe('modern')
       expect(client.getNegotiatedProtocolVersion()).toBeDefined()
     } finally {

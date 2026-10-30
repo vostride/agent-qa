@@ -15,8 +15,7 @@ import { STEP_STATUSES, type LiveStepRow, type StepStatus } from '@/lib/run-stre
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-// THE NEEDLE IS CONCATENATED so this file cannot satisfy the phase's deletion census by matching
-// itself.
+// Concatenated so this file cannot satisfy the deletion census by matching itself.
 const TICKS_LABEL_ATTR = 'data-step-ticks' + '-label'
 const CLOCK_PATTERN = /\d+:\d{2}/
 

@@ -62,8 +62,7 @@ describe('the direct change contracts live in knowledge/change.ts', () => {
   })
 
   it('projects every envelope schema without throwing', () => {
-    // Carried from proposal-envelope.test.ts under its name: the envelope is gone, and every direct
-    // contract that replaced it projects for the catalogue the same way.
+    // Every direct contract projects for the catalogue the same way.
     const schemas: Record<string, z.ZodType> = {
       KnowledgeChangeOutputSchema: schema.KnowledgeChangeOutputSchema,
       KnowledgeAcceptChangeInputSchema: schema.KnowledgeAcceptChangeInputSchema,

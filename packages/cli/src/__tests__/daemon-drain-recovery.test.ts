@@ -62,7 +62,7 @@ vi.mock('../daemon/registration.js', async (importOriginal) => {
 
 const describePosix = process.platform === 'win32' ? describe.skip : describe
 
-/** The stopped leg pays a real TTL plus a two-minute pre-fix daemon wait; budget for both. */
+// Room for a real TTL plus a two-minute daemon wait, so a slow recovery fails by assertion.
 const RECOVERY_LEG_TIMEOUT_MS = 300_000
 
 function isAlive(pid: number): boolean {

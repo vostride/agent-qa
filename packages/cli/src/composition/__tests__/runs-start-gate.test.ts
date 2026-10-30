@@ -297,9 +297,7 @@ describe('the empty-input and suite edges of a bare runs.start', () => {
       expect(ack).toBeDefined()
       const events = eventTypes(fixture)
       expect(events).toContain('runStarted')
-      // THE MEMBER RAN. Without this, a dispatcher that took the test path and assembled zero
-      // members would pass on `runStarted` alone — which is the shape the retiring wire could
-      // produce, because it forwarded patterns with no mode flag and let the child decide.
+      // The member ran; `runStarted` alone would pass a dispatcher that assembled zero members.
       expect(events).toContain('testStarted')
       expect(ack!.testCount).toBe(1)
       expect(target.hits).toEqual(['/in-process-thing'])
@@ -365,8 +363,7 @@ describe('the typed door refuses a malformed or colliding run id', () => {
 
       expect(ack).toBeUndefined()
       expect(error).toBeDefined()
-      // Pre-fix this exact request was ACKNOWLEDGED, naming `../../escape`, with the run's own
-      // artifacts written into `.agent-qa/runs/escape/`.
+      // A traversal id is refused before the run writes any artifact.
       expect(runDirs(fixture)).toEqual([])
       expect(existsSync(join(fixture.project, '.agent-qa', 'runs', 'escape'))).toBe(false)
       expect(target.hits).toEqual([])
@@ -433,8 +430,6 @@ describe('the typed door refuses a malformed or colliding run id', () => {
       expect(ack).toBeUndefined()
       expect(error).toBeInstanceOf(RunIdAlreadyInUseError)
       expect((error as Error).message).toContain(victimId)
-      // THE WHOLE CLAIM, at bytes. Measured pre-fix through this very door: `events.jsonl` grew
-      // 2111 → 4221 bytes (7 → 14 envelopes) and `handoff.json` was overwritten in place.
       expect(digestsUnder(victimDir)).toEqual(before)
       // No SECOND run directory either — the refusal did not divert the run elsewhere.
       expect(runDirs(fixture).map((dir) => dir.split('/').pop())).toEqual([victimId])

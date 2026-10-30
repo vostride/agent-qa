@@ -19,20 +19,7 @@ import {
 
 let root: string
 
-/**
- * A sentinel planted INSIDE the malformed manifest, owned by this fixture.
- *
- * A NEGATIVE ASSERTION IS ONLY WORTH ITS RED. This value and the fixture body below were CALIBRATED
- * against the pre-fix code: V8's `SyntaxError` quotes roughly a ten-character window around the
- * parse position, so a long sentinel is truncated in the excerpt and the negative grep passes on the
- * unfixed tree for the wrong reason — measuring the excerpt's width instead of the guard. Measured
- * pre-fix, this exact pair produced
- *
- *     Unexpected token 'S', ..."{ "main": SEKRETXYZ "... is not valid JSON
- *
- * with the sentinel WHOLE inside it. Keep them together: shortening the body or lengthening the
- * sentinel silently re-vacuums the cell.
- */
+// Short on purpose: V8 quotes about ten characters around the parse error, so a long one is cut.
 const MANIFEST_SENTINEL = 'SEKRETXYZ'
 const MALFORMED_MANIFEST = `{ "main": ${MANIFEST_SENTINEL} }`
 

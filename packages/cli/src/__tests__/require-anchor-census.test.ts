@@ -1,41 +1,4 @@
-// THE COMPLETE SET OF MODULE-RESOLVER ANCHORS IN THIS REPOSITORY, AND ONE PROPERTY OF EVERY MEMBER.
-//
-// WHY A CENSUS AND NOT TWO ASSERTIONS. The defect this file exists for was reported at one site: a
-// global install's `agent-qa daemon` died with `Cannot find module '@vostride/agent-qa-agent-local'`
-// / `Require stack: - /usr/local/bin/agent-qa`, because a `createRequire` base was taken from the
-// process argument vector and `argv[1]` on a global install is the bin SYMLINK, a path with no
-// `node_modules` on any ancestor. Two assertions pinned to the reported line would have closed the
-// report and left the class open — and the class had a second member on the same boot path, which is
-// how a one-sided fix turns into the next rehearsal's delta. So the subject here is the SET: every
-// `createRequire` call site under `packages/*/src`, enumerated mechanically, each asked the same
-// question.
-//
-// THE DISCOVERY PREDICATE IS THE PART MOST LIKELY TO BE VACUOUS, so it is asserted rather than
-// trusted. A scan that silently walked zero directories, or matched zero call sites, would report
-// zero offenders and read as a clean bill of health forever. Both counts are therefore assertions
-// with floors derived from an independent reading of the tree (ten call sites at the time of
-// writing), and there is no branch anywhere in this file that can turn an unreadable file or an
-// empty directory into a skip.
-//
-// THE PROPERTY NAMES THE DEFECT, NOT AN APPROVED LIST OF SHAPES. The resolved anchor expression must
-// not read the process argument vector. That leaves `import.meta.url`, `__filename`, a package entry
-// this same code just resolved (`install-browsers.ts`) and a deliberate project-directory root
-// (`plugin-loader-util.ts`) all legitimate without enumerating them, and an allow-list of blessed
-// shapes would rot the first time somebody wrote a correct fifth one.
-//
-// THE EXTRACTOR IS PROVEN ABLE TO SEE AN OFFENDER (and able to stay quiet about a correct anchor) by
-// running the SAME exported functions over synthetic sources. Without those two cells the census
-// could be an extractor that never matches anything, which is indistinguishable from a clean tree.
-//
-// THE `process.argv` REGISTER IS DELIBERATELY WIDER THAN THE ASSERTING PROPERTY. The property above
-// is scoped to `createRequire(` call sites, so it is structurally blind to a `process.argv`-derived
-// path used for anything else — and this plan's scope boundary routes "anything the census surfaces"
-// to a deferred-items record, which is worth nothing over a set the census cannot surface. The
-// register below is therefore every read of `process.argv` in the scanned tree, annotated with the
-// value flow detected on its line but NOT filtered by it: a flow filter is exactly the place a
-// member vanishes quietly, and a register that can drop members cannot make a boundary measured.
-// The register does not fail the suite. It is asserted non-empty, asserted to contain the three
-// known non-`createRequire` sites, and adjudicated line by line in the plan's SUMMARY.
+// Every `createRequire` anchor under `packages/*/src` must not read the process argument vector.
 
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { dirname, join, relative, resolve } from 'node:path'
@@ -451,11 +414,7 @@ describe('createRequire anchor census', () => {
   })
 
   it('reads the whole conditional at both repaired sites — a truncating reader cannot fake a clean verdict', () => {
-    // WHY THIS CELL EXISTS. Both repaired anchors are written as a three-line conditional whose
-    // FIRST line is `typeof __filename === 'string'`. A reader that stopped at the first newline
-    // would report that fragment, which reads clean of the process argument vector both before AND
-    // after the fix — a green that never measured anything. Pinning the resolved text to the whole
-    // expression makes the clean verdict below evidence rather than an artefact of truncation.
+    // The resolved text is the whole three-line conditional, not its `typeof __filename` line.
     for (const relPath of [
       join('cli', 'src', 'daemon', 'heartbeat-supervisor.ts'),
       join('agent-local', 'src', 'composition', 'compose-local-agent.ts'),

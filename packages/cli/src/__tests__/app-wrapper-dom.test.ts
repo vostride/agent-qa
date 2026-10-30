@@ -342,7 +342,6 @@ describe('the wrapper in a real browser', () => {
 
       await page.locator('[data-app-handle-picker]').selectOption('1')
 
-      // THE PATH BACK, which did not exist before this plan.
       await page.locator('[data-app-state="live"]').waitFor({ state: 'attached', timeout: 30_000 })
       expect(await page.locator('[data-app-live-frame]').getAttribute('src')).toBe(mints[1]!.liveUrl)
       expect(

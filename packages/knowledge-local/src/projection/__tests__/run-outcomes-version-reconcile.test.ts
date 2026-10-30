@@ -255,7 +255,7 @@ function unknownFailureHandoff(runId: string, buildOrdinal: number): CompletedRu
   } as unknown as CompletedRunHandoff
 }
 
-/** The 389 supersession: the author upgraded the floor's `unknown` to `flake`. */
+// A supersession: the author upgraded the floor's `unknown` to `flake`.
 function flakeArtifact(runId: string): RunAnalysisArtifact {
   const verdict: Verdict = {
     class: 'flake',
@@ -518,8 +518,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill', (
       ).all(SHOP_PRODUCT) as { run_id: string }[]).map((row) => row.run_id)
       expect(appliedRunIds).toEqual(['001-checkout', '003-gate'])
 
-      // The runs AFTER the poisoned one in sort order still fold — the pre-fix module truncated
-      // the family at the bad file and left everything past it missing.
+      // The runs after the poisoned one in sort order still fold, so a bad file truncates nothing.
       const union = createSuiteFingerprintIndex(db, { product: SHOP_PRODUCT }).elementUnion()
       expect(union.has(CHECKOUT_ELEMENT)).toBe(true)
       expect(
@@ -577,10 +576,7 @@ describe('reconcileRunOutcomesProjection — the projection-version backfill', (
   it('refuses to stamp when the WRITE itself fails: a trigger on run_outcome_applied_runs aborts applyRunOutcomes (frozen item 6c)', () => {
     const { knowledgeRoot, runsRoot } = producePreV4Project()
 
-    // Driven from OUTSIDE the module's own seams. A trigger is a persisted schema object, so the
-    // reconcile's OWN connection hits it when `applyRunOutcomes` reaches its marker INSERT, inside
-    // that function's own `BEGIN IMMEDIATE`. A pure-path throw therefore cannot satisfy this cell —
-    // which is the property the projection cell above was measured NOT to have (393 frozen item 6c).
+    // A trigger fires inside the reconcile's own `BEGIN IMMEDIATE`, so a pure-path throw fails.
     withIndex(knowledgeRoot, (db) => {
       db.exec(
         `CREATE TRIGGER refuse_applied_runs_insert BEFORE INSERT ON run_outcome_applied_runs

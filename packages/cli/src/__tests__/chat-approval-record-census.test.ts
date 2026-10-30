@@ -98,7 +98,7 @@ function scanProductSources(packagesRoot: string = PACKAGES_ROOT): ScannedSource
   return found
 }
 
-/** An `approval_decision` event built by product code: the writer this phase deletes. */
+// An `approval_decision` event built by product code, which the census refuses.
 const APPROVAL_EVENT_WRITE = /kind:\s*['"]approval_decision['"]/u
 
 describe('no product source declares ChatApprovalDecisionRecord or writes its event', () => {

@@ -163,20 +163,7 @@ export async function driveChatDispatch(
   }
 }
 
-/**
- * Type ARBITRARY lines at the same shipped REPL, and report the same observation.
- *
- * THE SAME BODY, NOT A SECOND DRIVER (`spawned-chat.ts`'s no-second-copy law, applied in-process).
- * `driveChatDispatch` is this function plus one composition of clause text and one receipt lookup;
- * a separate helper for "a turn that is not one `/fn` invocation" would be a second answer to what
- * the surface was driven WITH — the workspace, the execution-context injection, the headless
- * posture and the collected interrupt handler — which is the one property every cell depends on.
- *
- * WHAT NEEDS IT. 399.1's turn-shape cells ask two questions no `opId`-keyed drive can express: what
- * a turn that executes NOTHING renders (E2E-02/empty), and what order a COMPOUND turn's payloads
- * print in (E2E-02/ordering). Neither has a single op to key on — the first has none by design and
- * the second has two — so the shape that carried the parity legs cannot carry them.
- */
+// One body with `driveChatDispatch`, so both drive the REPL with the same workspace and posture.
 export async function driveChatLines(
   typedLines: readonly string[],
   executionContext?: ExecutionContext,

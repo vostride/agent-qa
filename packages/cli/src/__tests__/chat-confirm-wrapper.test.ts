@@ -1,4 +1,4 @@
-// The chat confirm is gone; older `approval_decision` rows stay readable and nothing writes them.
+// Older `approval_decision` rows stay readable, and nothing writes them.
 
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'

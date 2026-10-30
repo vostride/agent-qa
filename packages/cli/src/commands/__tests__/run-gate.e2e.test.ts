@@ -288,8 +288,7 @@ describe('the environment door cannot name a malformed or colliding run id', () 
     )
 
     expect(result.stderr).toContain('run id')
-    // Pre-fix this exact invocation ran a whole run and left `.agent-qa/runs/escape/` behind —
-    // `slugBranch` neutered the traversal, and nothing refused the id.
+    // A traversal id is refused outright, so no run directory is made.
     expect(runDirs()).toEqual([])
     expect(existsSync(join(project, '.agent-qa', 'runs', 'escape'))).toBe(false)
     expect(probeHits).toEqual([])
@@ -323,8 +322,6 @@ describe('the environment door cannot name a malformed or colliding run id', () 
     expect(second.stderr).toContain(victimId)
     expect(second.stderr).toContain('already names a run')
     expect(second.status).not.toBe(0)
-    // THE WHOLE CLAIM, at bytes. Pre-fix this appended seven envelopes to `events.jsonl`
-    // (2111 → 4221 bytes) and overwrote `handoff.json`.
     expect(digestsUnder(victimDir)).toEqual(before)
     // …and the refusal cost the target nothing, so it landed above assembly here too.
     expect(probeHits).toEqual(hitsAfterFirst)

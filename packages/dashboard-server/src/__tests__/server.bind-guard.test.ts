@@ -184,8 +184,7 @@ describe('the dashboard bind contract', () => {
   })
 
   it('offers no remedy that would publish the anonymous surface', async () => {
-    // The old message told the operator to declare a credential. Following that instruction is
-    // exactly what opened the hole, so the remedy must not appear in the refusal any more.
+    // Declaring a credential is what opens the hole, so the refusal must not suggest it.
     const error = await start({ host: NON_LOOPBACK_HOST }).catch((e: unknown) => e)
     const message = (error as Error).message
     expect(message).not.toContain('runServiceTokens')

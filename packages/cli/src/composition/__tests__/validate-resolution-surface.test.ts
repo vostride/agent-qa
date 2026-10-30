@@ -13,7 +13,7 @@ const CONFIG_FILE = 'agent-qa.config.yaml'
 // Drives the built `dist/cli.js`, so a stale dist measures the previous build.
 const CLI_DIST = join(dirname(fileURLToPath(import.meta.url)), '..', '..', '..', 'dist', 'cli.js')
 
-/** The sentence F-05 is about: printed over an EMPTY set, it is a false attestation. */
+// Printed over an empty set, this sentence is a false attestation.
 const SUCCESS_SENTENCE = 'All files valid'
 
 // One planted value per file class, so a whole-output failure says which file leaked.
@@ -152,9 +152,7 @@ describe('a project the product scaffolds is validated, not attested over an emp
 
     const { status, combined } = runShippedCli('validate')
 
-    // THE COUNT IS THE ASSERTION, not the absence of an error message. On pre-fix HEAD this
-    // command printed `✔ All files valid (0 file(s) checked)` and exited 0 — a cell that only
-    // asserted "no failure" would have passed on the defect itself.
+    // The count is the assertion: `All files valid` over zero files with exit 0 is a false pass.
     const reported = /All files valid \((\d+) file\(s\) checked\)/.exec(combined)
     expect(reported, `bare validate did not report a clean check:\n${combined}`).not.toBeNull()
     const checked = Number(reported?.[1])
@@ -301,11 +299,7 @@ apiToken: ${PLANTED_HOOKS_CREDENTIAL}
   }, 180_000)
 
   it('a failure names the file the person ASKED ABOUT, never one they did not', () => {
-    // THE NAMING CONTROL. Pre-fix this printed
-    //   Cannot read config file: ENOENT: … open 'agent-qa.config.yaml'
-    //   Config resolution failed: Config file not found: agent-qa.config.yaml
-    // in a project where the person had typed `--config missing.yaml` — a report about a file that
-    // was never part of the question.
+    // The naming control: a missing `--config` file is reported by its own name, not the default.
     writeFileSync(join(root, 'README.md'), 'a project that was never initialized\n')
 
     const { status, combined } = runShippedCli('--config', 'missing.yaml', 'validate')

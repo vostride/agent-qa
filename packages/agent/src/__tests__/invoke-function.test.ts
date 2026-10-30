@@ -213,10 +213,6 @@ describe('invokeFunction pipeline', () => {
   })
 })
 
-/**
- * A synthetic mutating op shaped like `runs.mark`, the kind of op a person was once asked about
- * before it ran.
- */
 function markLikeSpec(invocations: { count: number }): FunctionSpec<{ runId: string }, { ok: true }> {
   // A retired scope declaration smuggled past the type; nothing reads it.
   return {

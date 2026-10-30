@@ -32,8 +32,7 @@ const TABS = ['models', 'targets', 'execution', 'project', 'advanced'] as const
 const TAB_LABELS = ['Models', 'Targets', 'Execution', 'Project', 'Advanced']
 const INNER_MAIN = 'main main'
 
-// The 21 live legacy links, written out rather than imported, each with the tab it lands on and the
-// section heading that must hold focus there.
+// Old-scheme links the config page honours, each with its tab and the heading that holds focus.
 const LEGACY_LINKS = [
   ['workspace', 'discovery', 'project', 'test-discovery', 'Test discovery'],
   ['workspace', 'files', 'project', 'files', 'Hooks, env and secrets files'],

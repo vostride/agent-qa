@@ -296,9 +296,7 @@ describe('an unverified fill still counts as one compound input', () => {
   })
 })
 
-// -----------------------------------------------------------------------------
-// Frozen catalog — the phase's desiredState is a PARAM on an existing tool (counts unchanged)
-// -----------------------------------------------------------------------------
+// Frozen catalog: `desiredState` is a param on an existing tool, so the counts hold.
 describe('frozen tool catalog — EXEC compounds register no tools', () => {
   it('keeps 56 registered / web 33 / android 30 / ios 27', () => {
     const registry = new ToolRegistry()

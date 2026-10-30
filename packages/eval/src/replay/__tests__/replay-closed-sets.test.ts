@@ -1,5 +1,4 @@
 // Declaration-order runtime walls complement result.test-d.ts's type coverage bars.
-// Relative imports read source directly for the Plan 12 mutation measurement.
 import { describe, expect, it } from 'vitest'
 import { BRIEF_SOURCES, TURN_MATCHES } from '../brief-tiers'
 import { REPLAY_REFUSAL_REASONS } from '../result'

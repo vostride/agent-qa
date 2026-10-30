@@ -573,7 +573,7 @@ describe('openKnowledgeReader synchronous serving port', () => {
     await rebuildIndex({ knowledgeRoot })
     const reader = openKnowledgeReader({ knowledgeRoot, product: PRODUCT })
 
-    // The UAT's direct probe, verbatim: a fact body on the SAME store reads fine.
+    // A fact body on the same store reads fine.
     expect(reader.read(seeded.activeFact)?.body).toContain('Checkout active-fact body.')
 
     const body = reader.read(committed.bundleId)

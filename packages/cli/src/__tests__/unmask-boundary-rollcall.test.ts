@@ -839,9 +839,7 @@ const MASKED_SURFACES: MaskedSurface[] = [
     },
   },
   {
-    // 399.1 (criterion 3): THE SAME RENDER, WITHOUT THE SURFACE'S EMIT. `renderClauseResults` is
-    // a render, not an emit: it hands its caller the marker form the session log and the
-    // `agent.ask` clients carry.
+    // `renderClauseResults` renders without emitting: the caller gets the log's marker form.
     name: 'machine:chat-clause-results',
     render: () => renderClauseResults(FIXTURE.clauseResults, FIXTURE.clauseResults.length).join('\n'),
   },

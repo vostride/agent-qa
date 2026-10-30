@@ -140,9 +140,7 @@ describe('buildRunPorts — run-scoped evidence artifact store', () => {
   })
 })
 
-// buildMemberRunConfig maps the resolved host impls into a MemberRunConfig; the run-scoped evidence
-// store must cross into member execution by strict identity (no wrapping) so Plan 12's loop producer
-// sees the exact run store.
+// The run-scoped evidence store crosses into member execution by strict identity, unwrapped.
 describe('buildMemberRunConfig — evidence store identity', () => {
   it('copies the exact supplied evidenceArtifacts store into MemberRunConfig', () => {
     const configDir = tempDir('run-evidence-mc-')

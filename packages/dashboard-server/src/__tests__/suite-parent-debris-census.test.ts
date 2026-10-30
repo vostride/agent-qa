@@ -24,19 +24,7 @@ const PACKAGES_DIR = join(REPO_ROOT, 'packages')
 // PREDICATE A — the lexical census
 // ---------------------------------------------------------------------------------------------
 
-/**
- * The debris vocabulary. `getRunsByParent` / `cancelChildRuns` are the two named members of the
- * suite-parent DB modeling; `suite-parent` / `suite-child` are the two `RunArtifactKind` values
- * only that modeling ever minted.
- *
- * `parentRunId` / `parent_run_id` are deliberately NOT tokens here. The COLUMN is retained
- * wholesale: every `parent_run_id IS NULL` filter in the db module is a
- * top-level-run predicate that keeps working unchanged when nothing writes the column, and the
- * legacy `/api/execution/events` projection (`dashboard-ui/src/lib/live-timeline.ts`) carries
- * ~30 more references that 405 rebuilds. Scanning for it would produce a large all-keep set with no
- * discriminating power. Its SEMANTICS — who reads the link, who writes it — is exactly what
- * predicate B measures behaviourally, which is the sharper instrument for a column.
- */
+// Names only the suite-parent modeling uses; `parent_run_id` stays, so it is not a token.
 export const DEBRIS_TOKENS = [
   'getRunsByParent',
   'cancelChildRuns',
@@ -505,11 +493,7 @@ function runColumnNames(db: DashboardDatabase): string[] {
   return rows.map((row) => row.name)
 }
 
-/**
- * ONE database seeded the way the retired fixture seeded its `linked` half — a suite run and two
- * members — MINUS the link, because the link cannot be written. It is what an operator's database
- * now looks like for a suite: one row per run, members on `run_members`.
- */
+// Seeds a suite run and two members on `run_members`, with no parent link.
 function seedSuiteShapedDatabase(): DashboardDatabase {
   const db = new DashboardDatabase({ dbPath: ':memory:' })
   db.insertRun({

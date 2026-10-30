@@ -314,14 +314,7 @@ const TOKEN_MODULE = fileURLToPath(
   new URL('../composition/live-url-signer.ts', import.meta.url),
 )
 
-/**
- * The module's CODE, with comments and string/template literals removed.
- *
- * WHY THE STRIPPING IS THE POINT. Every source pin this phase has written and then watched survive
- * a mutation failed for one of two reasons: an import line counted as a use, or a JSDoc mention
- * counted as a use. Both live in text this function deletes. What is left is a stream in which
- * `name(` is an actual call expression, and a count over it means what it says.
- */
+// The code without comments or literals, so `name(` counts only call expressions.
 function codeOf(source: string): string {
   let out = ''
   let i = 0

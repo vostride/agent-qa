@@ -287,10 +287,7 @@ describe('the instrument this file runs on, asserted rather than assumed', () =>
   })
 
   it('REFUSES a missing dashboard dist and a stale one, by name (the guard, driven)', () => {
-    // The guard's refusing branches, reached with a synthetic package tree rather than by deleting
-    // a real `dist`. `parity-anchors.test.ts` drives the same two branches for the chat list; this
-    // drives them for the two entries this plan added, so the extension is measured rather than
-    // asserted about.
+    // The guard's refusing branches, reached with a synthetic package tree, not a deleted `dist`.
     const root = trackTempRoot(mkdtempSync(join(tmpdir(), 'agent-qa-guard-')))
     const builds = [{ pkg: 'dashboard-ui', artifact: join('dist', 'index.html') }]
     mkdirSync(join(root, 'dashboard-ui', 'src'), { recursive: true })

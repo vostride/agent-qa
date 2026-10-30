@@ -189,9 +189,7 @@ describe('createQuarantineOperations', () => {
     const entries = await operations().list()
 
     expect(shape(entries)).toEqual([
-      // b FIRST among the unassigned, carrying the LATEST enteredAt of any of them: its history
-      // began in December and that is what the queue is about. Under the old sort this row was
-      // last of the four — the longest-suffering test presented as the newest.
+      // b first among the unassigned, with the latest `enteredAt`: its history began in December.
       `tests/b.yaml:${QUARANTINE_UNASSIGNED_OWNER}:2026-04-01T00:00:00.000Z`,
       // Unassigned first — the triage queue. F is the earliest-STARTED entry of all and still
       // sorts after them, which is what makes the owner partition load-bearing.
@@ -212,7 +210,7 @@ describe('createQuarantineOperations', () => {
       `tests/b.yaml:${QUARANTINE_UNASSIGNED_OWNER}:2026-04-01T00:00:00.000Z`,
       'tests/f.yaml:bob:2025-12-01T00:00:00.000Z',
     ])
-    // And it is not the OLD answer either — the one that read the current window's instant.
+    // Nor the answer that reads the current window's instant.
     expect(shape(entries)).not.toEqual([
       `tests/a.yaml:${QUARANTINE_UNASSIGNED_OWNER}:2026-01-01T00:00:00.000Z`,
       `tests/d.yaml:${QUARANTINE_UNASSIGNED_OWNER}:2026-02-01T00:00:00.000Z`,

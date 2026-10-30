@@ -78,7 +78,7 @@ describe('attachRunSubscribers (bus composition swap)', () => {
 
     // only the wire subscriber attaches (console skipped, no junit, no extras).
     expect(session.subscribe).toHaveBeenCalledTimes(1)
-    // nothing binds a live seam any more, so a smuggled legacy controller is never touched.
+    // Nothing binds a live seam, so a smuggled controller is never touched.
     expect(bind).not.toHaveBeenCalled()
   })
 

@@ -503,8 +503,7 @@ describe('agent-qa chat (the REPL over one turn engine)', () => {
         .toEqual({ file, imports: true })
       expect({ file, private: /function\s+renderClauseResults\s*\(/u.test(source) })
         .toEqual({ file, private: false })
-      // …and each surface actually CALLS it. The two assertions above hold over a surface that
-      // imported the module and never rendered a payload, which is the state this phase repairs.
+      // …and each surface calls it: a surface that only imports the module fails here.
       expect({ file, renders: source.includes('renderClauseResults(result.results, result.receipts.length)') })
         .toEqual({ file, renders: true })
     }

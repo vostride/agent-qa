@@ -142,12 +142,7 @@ export function registryDeclarations(): readonly FunctionDeclaration[] {
   return conformanceRegistry().list(CONFORMANCE_CENSUS_CALLER)
 }
 
-/**
- * The census, as ids — this phase's reading of the `registry.ids()` the success criteria name.
- *
- * There is no such method: the public enumeration is `list(caller)`, which is why the caller above
- * is exported beside this and used by everything that asks the census a question.
- */
+// The census as ids; the public enumeration is `list(caller)`, so that caller is exported too.
 export function registryOpIds(): readonly string[] {
   return registryDeclarations().map((declaration) => declaration.id)
 }

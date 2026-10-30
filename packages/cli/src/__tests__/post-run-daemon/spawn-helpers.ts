@@ -181,13 +181,7 @@ export async function waitUntil(
   }
 }
 
-/**
- * The kill, proven rather than assumed (the 385 `sendRealSigkill` contract, verbatim in intent).
- *
- * Liveness is asserted BEFORE the signal, and the exit is required to be a signal death rather
- * than any non-zero status — a daemon that shut down gracefully would otherwise satisfy a crash
- * proof by having politely released its lease and finished its chain.
- */
+// Liveness is asserted before the signal and a signal death is required, so a clean exit fails.
 export async function sendRealSigkill(child: ChildProcess): Promise<void> {
   expect(child.exitCode, 'the daemon must still be running when the signal is sent').toBeNull()
   expect(child.signalCode).toBeNull()

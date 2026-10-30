@@ -406,8 +406,7 @@ describe('a configuration with ZERO declared targets is MERGED, never replaced',
       expect(String(parseDocument(ZERO_TARGET_CONFIG))).toBe(ZERO_TARGET_CONFIG)
 
       const before = commitCount()
-      // RED PRE-FIX: `refused` / `already-configured`, because the predicate was keyed on the config
-      // FILE existing. This project declares no target at all — there is nothing to overwrite.
+      // The config file exists, but the project declares no target, so nothing is overwritten.
       const answer = applied(await scaffold(registryFor({ confirm: true }), 'booking.com'))
 
       // The config was MODIFIED, not created: its old side is in the diff.

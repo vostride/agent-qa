@@ -199,14 +199,7 @@ async function invoke(
 // Import-statement extraction over file bytes.
 // ---------------------------------------------------------------------------------------
 
-/**
- * Remove block and line comments so prose can neither add nor hide a dependency.
- *
- * This is the whole reason the extractor is written here rather than reused: the repo-wide
- * arch extractor matches a quoted word after the `from` keyword ANYWHERE in a file, which
- * has read a doc comment as an import three times in this phase alone. A firewall gate a
- * comment can flip is not a gate.
- */
+// Strips comments, because the arch extractor reads a quoted word after `from` even in prose.
 function stripComments(source: string): string {
   return source
     .replace(/\/\*[\s\S]*?\*\//gu, '')

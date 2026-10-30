@@ -224,7 +224,7 @@ const FIX_LINE_PATTERN = /^ {6}Fix: /
 // A message line moved beneath its row, at the same six-space indent.
 const CONTINUATION_PATTERN = /^ {6}\S/
 
-/** The strings the 407 UAT measured on the built cli, transcribed so the cells can pin the widths. */
+// Strings measured on the built cli, transcribed so the cells can pin the widths.
 const MEASURED_INDEX_PATH = 'agent-qa-knowledge/memory/index/knowledge.db'
 const MEASURED_FAIL_MESSAGE = `index at ${MEASURED_INDEX_PATH} could not be opened: corrupt`
 const MEASURED_FIX_INSTRUCTIONS =
@@ -1652,7 +1652,7 @@ describe('doctor row renderer', () => {
   })
 
   it('keeps FAIL on the name line and wraps the measured 113-column row under 80', () => {
-    // The width the UAT measured on the built cli, reproduced here from the same two strings.
+    // The width measured on the built cli, reproduced from the same two strings.
     expect(preChangeRow('Knowledge store', MEASURED_FAIL_MESSAGE, 'FAIL')).toHaveLength(113)
 
     const row = formatCheckRow('Knowledge store', MEASURED_FAIL_MESSAGE, 'fail', 80)

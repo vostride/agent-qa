@@ -681,7 +681,7 @@ describe('ConfigPage schema coverage', () => {
     expect(keyType?.textContent).toContain(KEY_TYPE_LABELS['bearer-token'])
     await press(keyType?.querySelector('[role="radio"][value="bearer-token"]'))
     expect(addRow()?.querySelector('[data-add-field="key"] label')?.textContent).toBe(ADD_FLOW_FIELD_LABELS.token)
-    // The key goes with Connect; the modal's separate Save Credential button is gone.
+    // The key goes with Connect; there is no separate Save Credential button.
     expect(document.body.textContent).not.toContain('Save Credential')
 
     await chooseConnection('openai-compatible-key')

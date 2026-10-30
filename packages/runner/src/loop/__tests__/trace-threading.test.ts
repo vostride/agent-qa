@@ -358,8 +358,7 @@ describe('the terminal drain sits at the ONE funnel every exit routes through', 
     expect(occurrences(misplaced, FOLD_CALL)).toBe(1)
     expect(drainPrecedesFold(misplaced)).toBe(false)
 
-    // The input the old control passed on. A predicate that answers "the drain is in the right
-    // place" about a text with no drain in it is not measuring placement.
+    // A predicate that says the drain is in place for a text with no drain measures nothing.
     expect(drainPrecedesFold('')).toBe(false)
   })
 

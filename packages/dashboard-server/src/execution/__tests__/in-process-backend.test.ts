@@ -208,9 +208,7 @@ describe('the bus subscription answers the active list', () => {
     const active = backend.getActiveExecutions()
     expect(active).toHaveLength(1)
     expect(active[0]!.runId).toBe(PARITY_RUN_ID)
-    // The Rule-1 fix carried forward: the retiring class looked for a `test-start` event the frozen
-    // §2.2 vocabulary never emits, so this field was `undefined` for every run. The envelope type
-    // is `testStarted` and the name is its payload's.
+    // The envelope type is `testStarted`, and the test name is its payload's.
     expect(active[0]!.testName).toBe('the parity test')
     release()
   })

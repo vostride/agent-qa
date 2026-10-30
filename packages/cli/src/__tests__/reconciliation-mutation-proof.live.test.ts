@@ -274,10 +274,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
     }
 
     it('AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
-      // FIRST, deliberately: everything below composes a host around this model, so a credential
-      // failure reds ONE named case instead of two arms failing in two different-looking ways that
-      // both mean "not logged in" — and a differential whose arms both fail for an unrelated
-      // reason is exactly the vacuous proof this plan exists to avoid.
+      // First: a credential failure reds one named case, not two arms failing differently.
       expect(
         capabilities,
         'the host could not resolve a chat model from the configured project — check the config '
@@ -319,10 +316,7 @@ describe.skipIf(LIVE_CONFIG === undefined)(
     }, 600_000)
 
     it('AUTH SMOKE: the host resolved a chat model', { timeout: 120_000 }, () => {
-      // FIRST, deliberately: everything below composes a host around this model, so a credential
-      // failure reds ONE named case instead of two arms failing in two different-looking ways that
-      // both mean "not logged in" — and a differential whose arms both fail for an unrelated
-      // reason is exactly the vacuous proof this plan exists to avoid.
+      // First: a credential failure reds one named case, not two arms failing differently.
       expect(
         capabilities,
         'the host could not resolve a chat model from the configured project — check the config '

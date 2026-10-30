@@ -235,7 +235,6 @@ describe('SuiteMetadataForm', () => {
     expect(input).not.toBeNull()
     // Input has pr-9 to reserve space for the inside-right button so text doesn't overlap
     expect(input!.className).toContain('pr-9')
-    // Legacy flex-1 class is gone now that the parent is a relative-positioned container
     expect(input!.className).not.toContain('flex-1')
     // Parent is a relative-positioned container (positioning anchor for the absolute button)
     const parent = input!.parentElement

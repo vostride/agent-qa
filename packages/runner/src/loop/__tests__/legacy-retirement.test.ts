@@ -14,7 +14,7 @@ const SCAN_GLOBS = [
   'ios/src/**/*.ts',
 ]
 
-// The ten LegacyFoldedWebVerbs + the retired common/mobile verbs, as QUOTED type/case literals.
+// The folded web verbs and the dropped common and mobile verbs, as quoted type or case literals.
 const RETIRED_LITERALS = [
   "'keyDown'", "'keyUp'", "'refresh'", "'navigateHistory'",
   "'readConsoleLogs'", "'readNetworkLogs'", "'readCookies'", "'readLocalStorage'",

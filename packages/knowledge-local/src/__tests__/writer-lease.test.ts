@@ -1094,13 +1094,7 @@ describe('three-valued freshness and the lock-free heartbeat', () => {
     })
   })
 
-  /**
-   * The beat is independent of hosted work BY CONSTRUCTION, and the evidence is file bytes.
-   *
-   * The old renewal path answered a third outcome here and published freshness somewhere else, so
-   * a contender reading `.lease` saw a holder ageing out while the module reported it healthy.
-   * Asserting the on-disk heartbeat rules that divergence out: there is one place freshness lives.
-   */
+  // Freshness lives only in the on-disk heartbeat, so a contender and the module cannot disagree.
   it('heartbeats a held-transaction root without entering the mutation lock', () => {
     const acquired = acquireWriterLease(knowledgeRoot)
     if (acquired.kind !== 'acquired') throw new Error('expected an acquired writer lease')

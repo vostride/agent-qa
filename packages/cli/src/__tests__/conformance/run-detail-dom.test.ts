@@ -35,9 +35,7 @@ import {
 } from './spawned-chat.js'
 import type { SpawnedDashboard } from './spawned-chat.js'
 
-// NO PLATFORM SKIP, on `populated-run.test.ts`'s law applied to itself: a conditional `describe`
-// that exits 0 having measured nothing is indistinguishable from one that measured everything, and
-// this file is the phase's acceptance. Windows is a recorded drive failure naming the reason.
+// No platform skip: on Windows the drive fails with a recorded reason, never a silent exit 0.
 const WINDOWS_REFUSAL =
   'the spawned-binary cells in this directory are POSIX-only: the dashboard child is stopped with '
   + 'SIGTERM and the run writes a POSIX runtime root. This file reds rather than skipping on '

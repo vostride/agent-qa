@@ -301,8 +301,7 @@ describe('the built live surface, in a real browser', () => {
       ).toBe(2)
       expect(await page.locator('[data-live-pane="steps"]').isVisible()).toBe(true)
       expect(await page.locator('[data-live-pane="preview"]').isVisible()).toBe(true)
-      // NO STILLS ANYWHERE. The retired preview polled per-step screenshots and painted them as
-      // though they were the browser; an `img` in either pane is that approach returning.
+      // No stills: an `img` in either pane would be a screenshot painted as the browser.
       expect(await page.locator('[data-live-pane] img').count()).toBe(0)
     })
   }, 60_000)

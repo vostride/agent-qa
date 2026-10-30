@@ -58,7 +58,7 @@ function stubOperations(
   overrides: Partial<PostVerdictStepOperations> = {},
 ): Partial<PostVerdictStepOperations> {
   return {
-    // This legacy queue/lease harness substitutes IO; real ownership is exercised in post-verdict-continuation.test.ts.
+    // A queue/lease harness that substitutes IO; post-verdict-continuation tests real ownership.
     ownContinuation: async ({ enqueue }) => await enqueue(),
     acquireWriterLease: vi.fn(() => ACQUIRED) as unknown as PostVerdictStepOperations['acquireWriterLease'],
     releaseLease: vi.fn(() => ({ kind: 'released' })) as unknown as PostVerdictStepOperations['releaseLease'],

@@ -97,7 +97,6 @@ function namesTheRunVerb(span: string): boolean {
   return /(?:^|[^\w-])['"`]run['"`]/.test(span)
 }
 
-/** The scrape's own wire prefix — the only name the retired channel ever had. */
 const SCRAPE_PREFIX = 'AGENT_QA_EVENT'
 /** …and the environment variable that arms the two surviving emitters. */
 const SCRAPE_ARMING_VAR = 'AGENT_QA_LIVE_EVENTS'
@@ -442,8 +441,7 @@ describe('every allowed survivor has its shape pinned', () => {
   it('the embedder child is the daemon\u2019s worker — the node binary pointed at the worker entry', () => {
     const source = read('cli/src/daemon/host.ts')
     expect(source).toContain('spawnEmbedderWorker: (options) => spawn(')
-    // Every `spawn(` in this host is that one. The daemon's piped RUN child was the other, and it
-    // is gone; this is what makes "gone" a property of the file rather than of a memory.
+    // Every `spawn(` in this host is that one.
     expect([...source.matchAll(/\bspawn\s*\(/g)]).toHaveLength(1)
     // It DOES launch the node binary — that is what a JS worker child is — so the discriminating
     // fact is the script it is pointed at. `resolveEmbedderWorkerEntryPath()` is the worker entry

@@ -252,7 +252,7 @@ async function openDurableScene() {
     },
     variableSnapshot: { CART_LABEL: { value: allowedPlaceholder, source: 'inline' } },
   })
-  // Recorded before 423: no evidence column, no model identity, no provider cache measurement.
+  // A step with no evidence column, no model identity and no provider cache measurement.
   db.insertRunStep({ runId, testIndex: 0, stepIndex: 1, stepText: 'Historical step', cacheStatus: 'hit',
     verifierVerdict: null, selfHealOccurred: false, briefDigest: '',
     tokenUsage: { promptTokens: 900, completionTokens: 13, totalTokens: 913 } })
@@ -497,7 +497,6 @@ const READ_SCENARIOS: readonly ReadScenario[] = [
   },
 ]
 
-/** The addressed read ops: the three new ones and the three whose results 423 widened. */
 const ADDRESSED_OPS = ['runs.detail', 'runs.evidence', 'runs.knowledge', 'runs.mark.preview', 'runs.marks.history', 'runs.postprocessing']
 
 function toolFor(opId: string): string | undefined {

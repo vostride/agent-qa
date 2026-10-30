@@ -586,9 +586,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
     })
 
     it('(c) carries EVERY consumed claim\'s prose, in utterance order', () => {
-      // Path (4). The prompt and the tool description were moved to "ONE CALL PER CLAUSE you are
-      // answering" while the reader kept the first call's text and threw the rest away: both
-      // clauses were accounted for as answered, and the person received one answer.
+      // Path (4): keeping only the first call's text answers two clauses with one.
       const first = clause('what is a flake', 0)
       const second = clause('what is a run', 1)
       const verdict = deterministicOverrideStrategy(
@@ -662,14 +660,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
       calls: readonly { readonly toolName: string; readonly input: unknown }[],
     ): PlannerStageOutcome => readBackPlan(calls)
 
-    /**
-     * The verdict as one comparable shape.
-     *
-     * Asserted this way rather than as `verdict.kind` alone so a failure SHOWS the mis-binding —
-     * which clause was bound to which call, carrying whose arguments — instead of reporting that
-     * one string is not another. The pre-fix RED of these cases is the evidence this round is
-     * scoped from, so the diff has to be the evidence.
-     */
+    // One shape, so a failure shows which clause bound to which call, carrying whose arguments.
     const shapeOf = (verdict: ReconcileVerdict): unknown =>
       verdict.kind === 'unhandled'
         ? { kind: 'unhandled', clause: verdict.clause.text }
@@ -779,8 +770,7 @@ describe('deterministicOverrideStrategy: the table wins, and an unroutable claus
     })
 
     it('refuses a DUPLICATE-call surplus aimed at one clause', () => {
-      // Also unmeasured. Two calls, one clause: pre-fix the first was bound and the second silently
-      // vanished, so a model that changed its mind mid-plan had its first attempt executed.
+      // Two calls, one clause: binding the first and dropping the second runs a discarded attempt.
       const only = clause('summarise the last failure', 0)
       const verdict = deterministicOverrideStrategy(
         inputOf(

@@ -371,10 +371,7 @@ describe('an abandoned repair produces a stopped outcome built from the route an
     })
     const { payload, route } = await stoppedThrough(harness)
 
-    // THE CHANNEL, CLOSED, and asserted FIRST so this is the failure a pre-fix run reports rather
-    // than a missing field masking it. The WHOLE serialized payload AND the whole route it was
-    // projected from, because a reader's question is "can model-emitted text reach this record",
-    // not "can it reach the field it reached last time".
+    // First, over the whole payload and its route, so model text reaching any field fails here.
     expect(JSON.stringify(payload)).not.toContain(REFUSAL_MARKER)
     expect(JSON.stringify(route)).not.toContain(REFUSAL_MARKER)
     expect(payload.repairAbandonment).toBe('exhausted')
@@ -459,7 +456,6 @@ describe('an abandoned repair stops with evidence a person can trace', () => {
     })
     const { payload } = await stoppedThrough(harness)
 
-    // FIRST, so the pre-fix RED is this one: `expected 0 to be greater than 0`.
     expect(evidenceRefsOf(payload).length).toBeGreaterThan(0)
     const failurePoint = payload.failurePoint as Record<string, unknown> | null
     expect(failurePoint).not.toBeNull()

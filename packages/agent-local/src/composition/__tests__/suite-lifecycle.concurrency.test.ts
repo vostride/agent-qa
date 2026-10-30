@@ -106,8 +106,7 @@ describe('createSuiteLifecycle — teardown after the LAST member settles', () =
     const m0 = await lifecycle.ensureReady('A', a)
     const m1 = await lifecycle.ensureReady('A', a)
 
-    // The first member is done; the second is not. Suite A must NOT be torn down here — that is
-    // the mid-flight teardown the old boundary-triggered design would have performed.
+    // The first member is done and the second is not, so suite A is not torn down here.
     m0.release()
     log.push('m0-settled')
     await expect(lifecycle.ensureReady('B', b)).rejects.toBeInstanceOf(SuiteBoundaryWhileLiveError)

@@ -149,10 +149,7 @@ afterEach(() => {
 describe('agent-qa ask, at a terminal, over a project with nothing to test against', () => {
   it('with NO presentation port bound the scaffold still writes and the turn authors — nothing asks',
     async () => {
-      // THE SHIPPED PRE-FIX SHAPE, EXACTLY. `ask.ts` bound no `chatPresent` and passed no confirm,
-      // so `composeCliLocalAgent` supplied `createTtyConfirmPort()` — a real prompt a person can
-      // answer. Here the confirm is a SPY standing in for that prompt and nothing else is
-      // substituted: the same registry, the same route, the same op, the same durable store.
+      // Only the confirm is a spy; the registry, route, op and durable store are the shipped ones.
       const planner = scriptedWriteTestPlanner()
       const ask = vi.fn((_action: unknown) => true)
       const confirm: ConfirmPort = { surface: 'tty-prompt', ask }

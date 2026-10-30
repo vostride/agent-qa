@@ -1174,10 +1174,7 @@ describe('daemon registration instance ownership and readiness', () => {
   })
 
   it('binds no unconditional daemon-registration removal anywhere on the host surface', async () => {
-    // The behavioural corpus above proves what the compare-delete does; this pins that the
-    // unconditional delete is not merely uncalled but INEXPRESSIBLE — the shape Plan 22
-    // prohibited, which survived as an injectable operation with zero production call sites and
-    // could therefore be reached again by one line of a future edit.
+    // Pins that the unconditional delete cannot be expressed, so no future line can call it.
     const registrationModule = await import('../daemon/registration.js')
     expect(Object.keys(registrationModule)).not.toContain('removeDaemonRegistration')
     // The compare-delete is still exported, so an empty/renamed module cannot satisfy this.
@@ -1997,10 +1994,7 @@ describe('daemon registration recovery at boot', () => {
     const nowMs = Date.now()
     mkdirSync(paths.knowledgeRoot, { recursive: true })
     mkdirSync(paths.agentQaRoot, { recursive: true })
-    // Real, abandoned socket inodes: an unlink target must be a socket. The recorded path is this
-    // generation's OWN address, because after V-01 a recorded path the daemon cannot prove it owns
-    // selects no deletion — the previous fixture recorded a bare path under the project root, which
-    // is exactly the arbitrary-deletion input the guard now refuses.
+    // Real, abandoned socket inodes at this generation's own address; an unowned path is kept.
     const recordedSocket = daemonSocketPath(paths.agentQaRoot, paths.root, HOST_INSTANCE_ID)
     const bystanderSocket = join(paths.root, 'b.sock')
     // A bindable filename: the ownership gate admits it and only the lstat guard stops the unlink.
@@ -2054,8 +2048,7 @@ describe('daemon registration recovery at boot', () => {
       socketRemoved: true,
     }))
 
-    // A recorded path that is not a socket selects no deletion at all — proven on OWNED paths, so
-    // the lstat guard is what is being measured rather than V-01's ownership refusal.
+    // Proven on owned paths, so the lstat guard is measured rather than the ownership refusal.
     const ownedScope = { agentQaRoot: paths.agentQaRoot, projectRoot: paths.root }
     expect(unlinkDaemonSocket(plainFile, ownedScope)).toBe(false)
     expect(existsSync(plainFile)).toBe(true)

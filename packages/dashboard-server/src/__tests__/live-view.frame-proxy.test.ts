@@ -748,9 +748,7 @@ describe('the frame proxy through the production startServer frame', () => {
   })
 
   it('(28) UNKNOWN-HANDLE-EMITTED: a declared stream whose subscription comes back empty is refused by name', async () => {
-    // #274 (a+b). The handle settled between `streamCapabilityOf` and `subscribeFrames`: the first
-    // read declared a stream, the second found nothing. Before 428 the viewer got `ready` and then
-    // waited forever for a first frame; the declared reason was never sent.
+    // The handle settles between `streamCapabilityOf` and `subscribeFrames`; the viewer is refused.
     const planted = plantSession({ runId: 'r28', subscribeAnswers: 'nothing' })
     const frame = await productionFrame({ r28: planted.session })
     const viewer = await openViewer(frame, '?runId=r28')
@@ -1239,9 +1237,7 @@ describe('the frame proxy through the production startServer frame', () => {
     const here = fileURLToPath(import.meta.url)
     const whole = readFileSync(here, 'utf8')
 
-    // THE DETECTOR MUST NOT BE ITS OWN SUBJECT. This cell's body names every token it hunts for, so
-    // a whole-file scan is satisfied by the scan itself — the failure shape 393 named. The sentinels
-    // below fence this cell out, and the fence is asserted to have actually cut something.
+    // The cell names every token it hunts for, so sentinels fence it out and the fence must cut.
     const OPEN = '/* self-scan:begin *' + '/'
     const CLOSE = '/* self-scan:end *' + '/'
     const from = whole.indexOf(OPEN)

@@ -68,13 +68,7 @@ const FIXTURE_DEVICE_MATCH_CREDENTIALS: Record<string, string> = {
   platformVersion: 'sk-live-PLATFORMVERSION-DO-NOT-LEAK-0007',
 }
 
-/**
- * Two plugin package names, which are the opposite claim (Plan 10 / M-01).
- *
- * Both name packages that load in-process with full Node access, so both belong in the
- * output of the one capability whose purpose is configuration triage. Round 2 hid the first
- * and showed the second, purely because the word `auth` appeared in one path.
- */
+// Two plugin package names: both load in-process with full Node access, so both are shown.
 const FIXTURE_AUTH_PLUGIN_PACKAGE = '@acme/auth-plugin-SHOW-ME-1234'
 const FIXTURE_PROVIDER_PLUGIN_PACKAGE = '@acme/provider-plugin-SHOW-ME-5678'
 

@@ -254,9 +254,7 @@ describe('assertAI executes single-model cache-bypassed; assertValue is determin
   })
 })
 
-// -----------------------------------------------------------------------------
-// Frozen catalog — the phase added typed verbs/params but registers no new tools.
-// -----------------------------------------------------------------------------
+// Frozen catalog: typed verbs and params register no new tools.
 describe('frozen tool catalog', () => {
   it('keeps 56 registered / web 33 / android 30 / ios 27', () => {
     const registry = new ToolRegistry()

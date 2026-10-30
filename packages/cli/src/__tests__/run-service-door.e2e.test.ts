@@ -203,7 +203,6 @@ describe('a cross-site POST /run', () => {
     expect(body).toEqual({ error: 'cross_site_refused' })
     // The refusal carries NOTHING else: no run id.
     expect(Object.keys(body)).toEqual(['error'])
-    // No cross-origin grant — the chat door's adjudication, not the legacy run stream's wildcard.
     expect(response.headers.get('access-control-allow-origin')).toBeNull()
   })
 

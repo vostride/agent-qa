@@ -330,9 +330,7 @@ describe('every refusal is NAMED — never an all-pending body', () => {
 
 describe('the arm sits ABOVE the /api/runs/:id catch-all', () => {
   it('is not answered by the four-segment run reader below it', async () => {
-    // Measured rather than assumed: the live-url arm's own header records that its first tracer run
-    // answered 404 from precisely that catch-all. `/api/runs/<id>/post-processing` is four segments
-    // too, so the catch-all would try `db.getRun('<id>')` and answer `Run not found`.
+    // Four segments, so without its own route the catch-all would answer `Run not found`.
     const { port } = await serveWith({ status: chips('complete', 'complete'), events: [] })
 
     const answer = await get(port, `/api/runs/${RUN_ID}/post-processing`)

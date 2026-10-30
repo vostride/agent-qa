@@ -110,11 +110,7 @@ const REGISTRY_CALLER: FunctionCaller = {
   origin: 'human',
 }
 
-/**
- * The four REQUIRED ports, minimal by construction. None of them is reached by `runs.detail` —
- * they exist because `FunctionDeps` is non-partial on the read ports, which is itself the
- * contract 387 states: a composition that omits one fails to typecheck.
- */
+// Required because `FunctionDeps` is non-partial on read ports; omitting one fails typecheck.
 function depsWith(
   runDetail: FunctionDeps['runDetail'],
   evidenceBlobs?: FunctionDeps['evidenceBlobs'],

@@ -611,7 +611,7 @@ describePosix('SIGSTOP writer-epoch fencing', () => {
         expect(processStateChar(drainer.child.pid!)).toMatch(/^T/)
         expect(immediateWriterAttempt(paths.knowledgeRoot)).toBe('busy')
 
-        // The state I-03 named: intent durable, transaction held, nothing published, index empty.
+        // Intent durable, transaction held, nothing published, index empty.
         expect(liveIntentNames(paths.knowledgeRoot)).toEqual([`${candidateId}.intent.json`])
         const inheritedIntent = JSON.parse(
           journalBytes(paths.knowledgeRoot, `${candidateId}.intent.json`),
@@ -675,19 +675,7 @@ describePosix('SIGSTOP writer-epoch fencing', () => {
       }
     }, LEG_TIMEOUT_MS)
 
-    /**
-     * I-03, direction two and three: replay and quarantine, discriminated across processes.
-     *
-     * The pause is after the publish rename and before the index projection — the intent is
-     * durable, its bundle is on disk, and no row exists for it. That is the one state in which the
-     * journal's central promise is REPLAY rather than recovery, and the successor keeps it.
-     *
-     * The quarantine direction then re-plants the SAME writer-authored bytes after the successor's
-     * pass has advanced the watermark past them. Identical input, opposite verdict, decided by one
-     * fact: whether the authoring generation precedes a completed reconciliation. Nothing here is
-     * hand-authored — the stale intent is the real intent, byte for byte, which is the only way the
-     * leg is a statement about the guard rather than about the fixture that fed it.
-     */
+    // Paused after the publish rename and before the index row, so the successor replays it.
     test('replays an inherited intent across processes and quarantines it below the watermark', async () => {
       const paths = makeRoot('durable-intent-replay-quarantine')
       const fixture = singleCandidateFixture()

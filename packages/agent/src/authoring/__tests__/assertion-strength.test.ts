@@ -333,9 +333,7 @@ describe('the concreteness relation — a page-whole SUBJECT is refused whatever
   const pluralPageWholeFrame = (noun: string) =>
     `Verify the banner appears and the ${noun}s are visible`
 
-  // PRESERVATION. The singular of the same frame, refused on BOTH sides of the fix: the enumerated
-  // refuser stopped these by name, and the total rule still stops them by name one branch ahead of
-  // the unknown-token stop. Its job is to red if the named refusal class is ever dropped.
+  // The singular of the same frame is refused by name, one branch ahead of the unknown-token stop.
   const singularPageWholeFrame = (noun: string) =>
     `Verify the banner appears and the ${noun} is visible`
 
@@ -788,13 +786,7 @@ describe('assertionStrengthGate — the two clauses composed', () => {
   })
 
   it('states the relation the walk decides, VERBATIM, on a step the stop refused', () => {
-    // THE SECOND FALSE TAIL, pinned so a third cannot land quietly. The tail this replaced said no
-    // element noun stood NEAREST the anchor among the walk's set-nouns — which is a durable false
-    // statement about exactly this step, because `button` is an element noun and is the nearest such
-    // noun before `visible`. The gate refuses this step because `currently` stands between them, not
-    // because the sentence named nothing. The retired wording is described here rather than quoted,
-    // so no greppable copy of it survives its own pin. The live tail is asserted VERBATIM rather
-    // than by fragment: a fragment match is what let the previous tail drift out from under it.
+    // `currently` stands between `button` and `visible`; the tail is asserted whole.
     const result = assertionStrengthGate({ steps: ['Verify the submit button is currently visible'] })
 
     expect(result.pass).toBe(false)
@@ -804,11 +796,7 @@ describe('assertionStrengthGate — the two clauses composed', () => {
   })
 
   it('never tells an author who NAMED an element that they named none', () => {
-    // The receipt the plural author gets. `Verify the Submit buttons are disabled` loses gate 4 for
-    // a real and disclosed reason — membership is exact, so `buttons` is not `button` — but the
-    // durable explanation may not deny that the step named an element, because it did. The old tail
-    // said exactly that; a tune-toward-reject gate cannot afford a false explanation, which is the
-    // rule this file's mixed-step case above already enforces for the other fallback path.
+    // `buttons` is not `button`, but the step names an element, so the reason must not deny it.
     const result = assertionStrengthGate({ steps: ['Verify the Submit buttons are disabled'] })
 
     expect(result.pass).toBe(false)

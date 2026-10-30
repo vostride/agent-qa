@@ -172,8 +172,7 @@ describe('the lease guard never reaches through a link or out of the knowledge r
   })
 
   it('(d) never reads an owner entry that is not a regular file: a guard holding one is moved aside whole', () => {
-    // A FIFO blocks any reader forever. The child is bounded so the pre-fix hang is a measured
-    // failure, not a stuck suite.
+    // A FIFO blocks any reader forever, so the child is bounded and a hang is a measured failure.
     const fifo = join(outside, 'pipe')
     const made = spawnSync('mkfifo', [fifo])
     if (made.status !== 0) throw new Error(`mkfifo failed: ${String(made.stderr)}`)
@@ -258,7 +257,7 @@ describe('a residue left by a thread of this very process is reclaimed in a wait
     plantOwner(join(knowledgeRoot, LEASE_GUARD_DIR), {
       pid: process.pid,
       threadId: threadId + 1_000,
-      // Left 3 s before the bound would let the pre-fix 2 s window reach it.
+      // Three seconds inside the stale bound.
       claimedAtNs: process.hrtime.bigint() - BigInt(LEASE_GUARD_STALE_MS - 3_000) * 1_000_000n,
     })
 

@@ -240,10 +240,7 @@ async function dispatchThroughDaemon(input: {
   // AFTER startup, so the startup pin is the thing being defeated rather than the thing relied on.
   if (input.varyAmbient !== undefined) varyAmbientExecutionContext(input.varyAmbient)
 
-  // CARRIED FORWARD from the retired child cell: a daemon serving a dispatch writes nothing to this
-  // process's stdout. It mattered when the run was a piped child whose streams could leak; it
-  // matters MORE now that the run happens in this process and a reporter attached by mistake would
-  // print the run's console output into the daemon's own terminal.
+  // The run happens in-process, so a stray reporter would print into the daemon's own stdout.
   const stdoutWrite = vi.spyOn(process.stdout, 'write').mockImplementation(() => true)
 
   let acknowledged: unknown

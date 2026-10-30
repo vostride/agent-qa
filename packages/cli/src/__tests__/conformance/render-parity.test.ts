@@ -136,14 +136,7 @@ function mintedLeaves(document: string): readonly string[] {
 
 // ---- The doors -----------------------------------------------------------------------------
 
-/**
- * What this phase repaired, kept here as the thing every cell must RED on.
- *
- * THE LITERAL PRE-399.1 BEHAVIOUR. `summariseOutcome` answered `<op> completed` and the turn had no
- * member that could carry a payload, so this string WAS the render for forty of forty-two
- * capabilities. Keeping it is what makes each cell's expectation discriminating rather than merely
- * satisfied: a marker this line already contains is a marker the blind build would have passed.
- */
+// The bare `<op> completed` line: a marker it already holds does not discriminate.
 function droppedRender(opId: string): string {
   return `${opId} completed`
 }
@@ -157,14 +150,7 @@ interface RenderDoor {
   render(opId: string, payload: unknown): string
 }
 
-/**
- * The three rostered doors, in `SURFACE_ROSTER`'s own order.
- *
- * THE RENDERS ARE IMPORTED, NEVER RE-SPELLED. Each entry below calls the exact function the shipped
- * surface calls: a second `JSON.stringify(payload, null, 2)` written here would be a second render
- * of a door, free to disagree with the one a person meets, with the measured one green — which is
- * the RC-2 shape (a re-derived spelling of a rule that already existed) this phase repaired.
- */
+// The rostered doors in `SURFACE_ROSTER` order, each calling the shipped surface's own render.
 const RENDER_DOORS: readonly RenderDoor[] = Object.freeze([
   Object.freeze({
     id: 'chat',
@@ -317,15 +303,7 @@ describe('the rendered-output matrix: leg 8', () => {
   }
 })
 
-// ---- The turn's own shape: what a turn with NO op prints, and what order two of them print in ----
-//
-// THESE TWO ARE NOT MATRIX CELLS AND COULD NOT BE. The matrix ranges one op at a time, which is the
-// right shape for "does this capability's result reach a person" and the wrong one for two questions
-// about the TURN: a turn with no op has no row to key on, and a turn with two has two. Both are
-// spec-less probe edges on E2E-02 (empty, ordering) and both are driven through the shipped REPL
-// rather than asserted about `renderClauseResults` in isolation — `renderClauseResults([])` answering
-// `[]` is this phase's own unit-level claim, and a cell asserting it would be asking the render
-// whether it agrees with itself.
+// The turn's own shape, driven through the shipped REPL: a turn with no op, and two in order.
 
 describe('the turn shape a person reads, at its empty and ordering edges', () => {
   it('prints no payload block, and no `undefined`, for a turn that executed nothing', async () => {

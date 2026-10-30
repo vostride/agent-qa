@@ -100,7 +100,7 @@ function unknownFailureHandoff(input: {
   } as unknown as CompletedRunHandoff
 }
 
-/** The 389 supersession: the author upgraded the floor's `unknown` to `flake`. */
+// A supersession: the author upgraded the floor's `unknown` to `flake`.
 function flakeArtifact(runId: string): RunAnalysisArtifact {
   const verdict: Verdict = {
     class: 'flake',

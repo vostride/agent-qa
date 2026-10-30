@@ -2330,10 +2330,7 @@ describe('the durable temporary is invisible to a commit', () => {
   it.skipIf(!canWedgeDirectory)(
     'reports a failed post-link removal rather than stamping a created destination retained',
     () => {
-      // `linkSync` has already succeeded when the wedge lands, so the destination EXISTS
-      // with the published content. Measured before this fix, the removal's EACCES escaped
-      // unmarked and the backstop appended "the destination was not removed or rewritten —
-      // if it still exists it retains its original contents at an unconfirmed mode" to it.
+      // `linkSync` has succeeded when the wedge lands, so the destination holds the content.
       const wedgeAfterLink = (directory: string): InitFilesystemHooks => ({
         afterExclusiveLink: () => { chmodSync(directory, 0o500) },
       })
@@ -2394,11 +2391,7 @@ describe('the durable temporary is invisible to a commit', () => {
       }
       expect(errorMessage(modeRefusal)).toContain(modePath)
 
-      // ARM 3 — the bounding control this fix is scoped by: on a path where the publication
-      // has NOT succeeded, the refusal is still a refusal. The abort's own message survives
-      // the same failing cleanup that ARM 1 now degrades to a warning, so the conversion did
-      // not leak past the one site. (A hook's error is passthrough by design and carries no
-      // disposition — that is the module's contract, not a gap; ARM 4 covers the floor.)
+      // Arm 3: where publication has not succeeded, the abort's own message survives the cleanup.
       const abortedRoot = tempRoot()
       const { error } = publishWithFailingCleanup(abortedRoot, 'exclusive')
       expect(error.message).toContain('injected publication abort')

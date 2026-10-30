@@ -1019,7 +1019,7 @@ function stepOperations(
   overrides: Record<string, unknown> = {},
 ): Partial<PostVerdictStepOperations> {
   return {
-    // This legacy queue/lease harness substitutes IO; real ownership is exercised in post-verdict-continuation.test.ts.
+    // A queue/lease harness that substitutes IO; post-verdict-continuation tests real ownership.
     ownContinuation: async ({ enqueue }: Parameters<PostVerdictStepOperations['ownContinuation']>[0]) => await enqueue(),
     acquireWriterLease: fence.acquireWriterLease,
     releaseLease: fence.releaseLease,

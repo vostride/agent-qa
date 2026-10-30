@@ -593,16 +593,7 @@ if (FIXTURE_ROLE === 'contender') {
       }
     }, 30_000);
 
-    /**
-     * I-02: the supervisor carried a `MutationLockBusyError` retry branch that could not run.
-     *
-     * The premise still has to stay checked, and it is now stronger than it was: the beat takes no
-     * mutation lock at all, so a store whose write transaction is held by someone else is not a
-     * contended beat but an ordinary one. This leg drives a real wedged store and asserts the beat
-     * lands — never an error message, and never a third outcome. If a future change routes the
-     * beat back through the lock, this reddens, which is exactly when the deleted retry branch
-     * would have been needed and exactly when silently retrying would hide the regression.
-     */
+    // A held write transaction leaves the beat ordinary, because the beat takes no mutation lock.
     it('takes an ordinary beat against a wedged store, never a busy throw', async () => {
       const root = mkdtempSync(join(tmpdir(), 'agent-qa-heartbeat-contention-'));
       roots.push(root);

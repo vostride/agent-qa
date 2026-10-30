@@ -235,10 +235,7 @@ describe('the real post-run kinds', () => {
   })
 
   it('keeps the scripted stand-ins when no capabilities are bound', async () => {
-    // NEGATIVE CONTROL for the two cases above: the assertions there would be satisfied just
-    // as well by a build that had replaced the stand-ins outright, which would break every
-    // registry-driven suite that scripts these kinds by payload. This is the case that must
-    // still behave the OLD way.
+    // Control for the cases above: unbound kinds keep the stand-ins that suites script by payload.
     const { context } = contextFor({ chain: true })
     const outcome = await createRealJobKindRegistry().require('analyze-run').handler(context)
 

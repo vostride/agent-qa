@@ -117,7 +117,7 @@ describe('IOSPlatformAdapter catalog', () => {
       expect(mockDriver.execute).toHaveBeenCalledWith('mobile: pressButton', { name: 'home' })
     })
     it('a volume button on a simulator-flagged session → degradation error, success false, no throw', async () => {
-      // Plan 07 owns the simulator check; the listApps-throws signal flags a simulator session here.
+      // The listApps-throws signal flags a simulator session here.
       listAppsThrows = true
       reset()
       const r = await adapter.execute({ type: 'pressButton', button: 'volumeUp' } as unknown as ExecAction)

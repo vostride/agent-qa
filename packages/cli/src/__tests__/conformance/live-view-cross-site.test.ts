@@ -574,8 +574,7 @@ describe('the live-url mint door refuses a cross-site browser request', () => {
       failures: { url: string; errorText: string | null }[]
     }
 
-    // k=5, this phase's house rule for a real-Chromium cell. A single browser arm cannot tell a
-    // guard from a race, and the losing side of a coin flip here reads exactly like the fix.
+    // Five arms: one browser arm cannot tell a guard from a race.
     const arms: (PageReading & { arm: number })[] = []
     for (let k = 0; k < 5; k += 1) {
       const page = await browser.newPage()

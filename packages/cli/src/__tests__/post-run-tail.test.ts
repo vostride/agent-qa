@@ -296,10 +296,7 @@ describe('the shared post-run tail', () => {
 
   it('keeps `drained` at the pump bound when the pump was on this run\'s own chain (a CONTROL)',
     async () => {
-      // CONTROL, differential twin of the case above — same static clock, same dispositions,
-      // same bound; the one input that differs is the claimed id, this run's OWN. Passed before
-      // AND after the change: it pins that observing the own chain suppresses the starvation
-      // posture, whatever the exit.
+      // Control: only the claimed id differs, this run's own; observing it suppresses starvation.
       const h = harness({
         runNextJob: vi.fn(async () => ({
           ran: true,

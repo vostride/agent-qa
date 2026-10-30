@@ -600,15 +600,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
   // ---- The taxonomy census: ONE canonical domain list, both directions ----------
 
   it('names every capability over the ONE canonical domain list, in both directions', () => {
-    // THE MANDATORY DIRECTION IS ids → list. A capability whose domain is absent from
-    // `domain-list.ts` is a named RED here, by op id and by domain — which is what makes the pinned
-    // list a thing the product is checked against rather than a comment nobody reads. This is the
-    // duty the retired 384 stub's `ALLOWED_ID_DOMAINS` sweep carried, re-derived off the census.
-    //
-    // THE REVERSE DIRECTION IS ASSERTED TOO, because a taxonomy is exactly the kind of table that
-    // quietly accumulates members nothing uses. A member matching no op must carry a
-    // `reserved` sentence saying who holds the name and against what; a member carrying one while
-    // ops exist is a reservation somebody forgot to retire. Both are named, neither is counted.
+    // Both directions: each op's domain is listed, and a member no op matches is `reserved`.
     const census = domainCensus(registryOpIds())
 
     expect(
@@ -634,8 +626,6 @@ describe('the parity suite ranges the registry census over every rostered surfac
     expect(new Set(registryOpIds().map(domainOf)).size, 'the census produced no domains at all')
       .toBeGreaterThan(0)
 
-    // The list is a SET of domains, not a bag: two rows for one domain is how the retired stub's
-    // literal came to hold fifteen entries for fourteen distinct domains (see the fold note).
     const domains = CANONICAL_ID_DOMAINS.map((entry) => entry.domain)
     expect(sorted(new Set(domains)), 'domain-list.ts repeats a domain').toEqual(domains)
 
@@ -648,10 +638,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
   })
 
   it('spells every capability id in the grammar both surfaces can carry', () => {
-    // Carried across from the retired 384 stub, and it is not cosmetic: `chat/tool-names.ts` maps
-    // `.` ↔ `_` as a bijection and refuses an id carrying the separator it maps onto, so an id with
-    // an underscore is an id the chat surface cannot reach. `authoring.draft.verify` is spelled
-    // that way — rather than `authoring.verify_draft` — for exactly this reason.
+    // `chat/tool-names.ts` maps `.` to `_` as a bijection, so an id with `_` is unreachable.
     const ids = registryOpIds()
     expect(ids.length, 'the census read back empty').toBeGreaterThan(0)
     for (const opId of ids) {
@@ -664,10 +651,7 @@ describe('the parity suite ranges the registry census over every rostered surfac
   })
 
   it('control: the domain census fires on an uncatalogued domain, a memberless row and a stale reservation', () => {
-    // Driven over the PURE core with synthetic taxonomies, so every branch is exercised without
-    // mutating a shipped table and without a skip — and a CLEAN input is fed in the same cell,
-    // because a self-check that fires on everything certifies as little as one that fires on
-    // nothing (the 394 Edge-Coverage-Register lesson, made mechanical).
+    // Pure core with synthetic taxonomies plus a clean input, so the check fires only when due.
     const live = registryOpIds()
 
     expect(domainCensus(live), 'the shipped taxonomy must diff to nothing against the live ids')

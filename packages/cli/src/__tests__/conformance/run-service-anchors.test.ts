@@ -30,15 +30,7 @@ const SCHEMA_SRC = join(HERE, '..', '..', '..', '..', 'schema', 'src')
 /** Every wait in this file is bounded; a hung door must fail as a timeout, never as a hang. */
 const WIRE_BUDGET_MS = 90_000
 
-// ---- The RPC-shape sweep -----------------------------------------------------------------------
-//
-// WHAT "RPC-SHAPED" IS BEING TESTED AGAINST, AND WHAT A WEAKER READING WOULD HAVE BOUGHT. The
-// tempting sweep is "walk the parsed body and assert no value is a function". That assertion is a
-// TAUTOLOGY: `JSON.parse` cannot produce a function, so it passes on every input that parses,
-// including a body that leaked a handle and had it silently dropped by `JSON.stringify`. Writing it
-// and calling it a measurement is the shape 393 named — a cell green under the very implementation
-// the claim forbids. It is included below anyway, as the cheap outer ring, and labelled as what it
-// is; the discriminating rings are the three underneath it.
+// RPC-shape sweep: a no-function check after `JSON.parse` is tautological; the inner rings decide.
 
 /**
  * The `RunSession` members that may NEVER appear on the wire, and the ones that legitimately do.
@@ -509,13 +501,12 @@ describe('the run-service wire anchors', () => {
         .toContain(encodeURIComponent(ack.runId))
       expect(liveUrl.stream.kind, 'a browserless spawned run declares the HONEST none capability')
         .toBe('none')
-      // And said plainly, because it is the phase's own prohibition rather than a generic ring:
       expect(rpcShapeOf(liveUrlBytes as string).handleKeys, 'no RunSession handle member, at any depth')
         .toEqual([])
       expect(rpcShapeOf(liveUrlBytes as string).functionTyped).toEqual([])
       expect(rpcShapeOf(liveUrlBytes as string).byteUnstable).toBe(false)
 
-      // (2) READINESS, from the same child — the contract version a 403 may bump.
+      // (2) Readiness, from the same child.
       const ok = await fetch(`${origin()}/ok`, { headers: bearer })
       expect(ok.status).toBe(200)
       const okBytes = await ok.text()

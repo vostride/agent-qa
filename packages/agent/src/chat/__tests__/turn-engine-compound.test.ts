@@ -350,9 +350,7 @@ describe('turn engine stage 3/4: atomicity, ordered execution, receipts, per-sta
         message: '/pin fn:runs.start and write a test for 2FA',
       })
 
-      // ONE assertion over three facts, deliberately: the STATUS was already right before this fix
-      // and the effects were already wrong, so a suite that asserted them in sequence would report
-      // the defect one line at a time and hide how the facts read together.
+      // One assertion over three facts, so a failure shows how status and effects read together.
       expect({
         status: result.status,
         invoked: run.invocations.length,

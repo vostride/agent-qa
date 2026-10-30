@@ -27,7 +27,7 @@ function canonicalReferenceFor(kind: EntityKind): string {
   return formatEntityUri(kind, shortIdFor(kind))
 }
 
-/** The line that WAS the whole of what a person saw, before 399.1 — the mutation bar. */
+// The bare `<op> completed` line: the mutation bar.
 function droppedRender(opId: string): string {
   return `${opId} completed`
 }

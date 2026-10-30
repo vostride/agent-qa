@@ -590,8 +590,7 @@ describe("the Learned half paints what a failed chain committed, and states its 
     expect(view.querySelector("[data-learned-chain-note]")?.textContent)
       .toBe(CURATION_FAILED_PARTIAL_TEXT)
 
-    // THE FALSIFIABLE CLAIM IS GONE FROM THE PAGE, not merely moved: the sentence slot is empty
-    // and the words `nothing was learned from this run` appear nowhere above a painted record.
+    // The sentence slot is empty, and its words appear nowhere above a painted record.
     expect(view.querySelector("[data-learned-sentence]")).toBeNull()
     expect(view.textContent).not.toContain(CURATION_FAILED_TEXT)
 

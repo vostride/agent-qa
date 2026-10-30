@@ -457,19 +457,7 @@ describe('the built-binary anchors', () => {
 
   it('the shipped init --agent prints a declared credential\'s NAME and never its value',
     async () => {
-      // THE REFS-ONLY LAW, ON THE SURFACE A PERSON ACTUALLY SEES. `manifest.test.ts` proves the
-      // value is absent from the OBJECT this process builds; this proves it is absent from the
-      // BYTES a shipped process writes — both streams, including any diagnostic nobody
-      // anticipated. Those are different claims, and a suite that only made the first one has
-      // shipped a leak through the second before (395: the assertion read `error.message` while
-      // the live channel was the error's serialization).
-      //
-      // ON PLANTING A VALUE AT ALL. This file's other fixtures deliberately plant NOTHING, on the
-      // reasoning that a value which does not exist cannot be printed. That reasoning is right for
-      // an enumeration anchor and is exactly backwards for this one: refs-only is the claim that a
-      // value which DOES exist is not printed, and it is unmeasurable without one. The sentinel
-      // below is minted here, authenticates nothing anywhere, and travels only in the constructed
-      // environment of a child this cell kills.
+      // Refs-only on a shipped process's bytes, both streams, with a sentinel that unlocks nothing.
       expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
 
       const sentinel = 'sk-anchor-sentinel-6f21ba9c04d7e358'

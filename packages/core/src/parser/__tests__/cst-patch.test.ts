@@ -315,11 +315,7 @@ describe('the applier exports the refusal vocabulary the corpus scores against',
     }
   })
 
-  // Also not a corpus member, and also a hole a differential named: every frozen input ends with a
-  // newline (the preflight asserts it), so none of the nine exercises appending after an item that
-  // has no line terminator. The 394 research probe hit exactly that and produced `- two  - three`
-  // on one line. The source here is the corpus fixture with its final newline stripped, so the
-  // input is still something the real parser accepts rather than a hand-built shape.
+  // Every frozen input ends with a newline, so this strips it to append after an unterminated item.
   it('appends after an unterminated last item without gluing the two onto one line', async () => {
     const { applyPatchSetToTestDoc, parseTestFileWithTokens, renderPatchedTestDoc } =
       await applier()

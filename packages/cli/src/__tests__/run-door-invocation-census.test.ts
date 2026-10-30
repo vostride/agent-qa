@@ -23,13 +23,7 @@ const CORE_SOURCE_PATH = join(
   '..', '..', 'agent-local', 'src', 'composition', 'run-invocation-core.ts',
 )
 
-/**
- * Drop block and line comments so a name that appears only in prose is never read as code.
- *
- * The `[^:]` guard keeps a protocol-relative URL from being mistaken for a line comment, which is
- * how this kind of stripper usually eats a file. (Same shape as the core's own hygiene census in
- * one stripper idiom for the phase, so a reader compares like with like.)
- */
+// Drops comments so prose is never read as code; `[^:]` spares a protocol-relative URL.
 function stripComments(source: string): string {
   return source
     .replace(/\/\*[\s\S]*?\*\//g, '')

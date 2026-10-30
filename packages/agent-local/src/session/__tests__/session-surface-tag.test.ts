@@ -87,9 +87,7 @@ describe('the surface tag rides the session HEADER', () => {
     await opened.close()
 
     const header = headerLineOf(root, sessionId)
-    // ABSENT, and absent rather than `null` or `''`: the documented meaning of an absent tag is
-    // "a host that did not name its surface", which is every file written before this change and
-    // every CLI chat session written after it. A key carrying an empty value would be a third state.
+    // Absent, not `null` or `''`: an absent tag means a host that did not name its surface.
     expect(Object.keys(header)).not.toContain('surface')
     expect(opened.header.surface).toBeUndefined()
   })

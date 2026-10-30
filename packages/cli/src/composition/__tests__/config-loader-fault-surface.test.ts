@@ -167,21 +167,7 @@ tests:
   - tests/b.yaml
 `
 
-/**
- * A plain test yaml — the same adjacency mechanism, on the member `parseTestFile` owns.
- *
- * It matches `WELL_FORMED_CONFIG`'s `testMatch` glob (`tests/**` + `*.yaml`) and NOT its
- * `suiteMatch` glob, so `validateFiles` takes the `else` arm and the file reaches
- * `validateTestFile` -> `parseTestFile` -> `formatYamlError`.
- *
- * THE DUPLICATED KEY IS THE CREDENTIAL'S OWN LINE, and that is deliberate rather than incidental.
- * `formatYamlError` speaks on two channels: the pretty `message` (which prints the excerpt AROUND
- * the flagged line) and `source` (which is a copy of the flagged line ITSELF, `content.split('\n')`
- * indexed by `linePos.line`). A fixture whose duplicate key sits on a structural line below the
- * credential reds the message channel and leaves `source` carrying `steps:` — a person's own line,
- * but not a recognisable one. Duplicating the `apiToken` key puts the planted value on BOTH
- * channels, so each channel's pre-fix RED names the value it published.
- */
+// A plain test yaml whose duplicated key is the credential's own line, so both channels carry it.
 const FAULTY_TEST = `name: log in to the app
 target: my-app
 steps:
@@ -309,12 +295,10 @@ describe('a committed config the parser cannot read names WHERE, never WHAT', ()
       payload: { path: 'use.timeout.step', value: '45s' },
     })
 
-    // THE OP STILL FAULTS. Converting the throw into a typed refusal arm is F-03's fix and is out
-    // of this round's scope — only the message's CONTENT changes.
+    // The op still faults; only the message's content is checked here.
     expect(error, 'an unreadable committed config must still fault the op').toBeDefined()
     const message = error?.message ?? ''
-    // THE DISCLOSURE ASSERTION FIRST, because it is the one F-01 is about: on pre-fix HEAD this
-    // line failed with the planted credential quoted back out of the person's own file.
+    // The disclosure assertion first: the planted credential must not be quoted back.
     expectPositionOnly(message)
     expect(message).toContain(CONFIG_FILE)
   })
@@ -994,8 +978,7 @@ describe('the config verbs report their faults instead of crashing', () => {
     expect(status, `a config the person named and does not have is a failure:\n${combined}`).toBe(1)
     expect(combined, `the report did not name the file the person asked about:\n${combined}`)
       .toContain(ABSENT_CONFIG_PATH)
-    // THE LIE CLAUSE, AND IT IS THE ONE THAT REDS PRE-FIX. Describing an empty configuration is a
-    // read the person will believe they performed.
+    // Describing an empty configuration is a read the person will believe they performed.
     expect(
       occurrences(combined, '(no config values)'),
       `config show described an empty config for a file that is not there:\n${combined}`,
@@ -1134,7 +1117,7 @@ describe('a cyclic config is bounded output and a repeated one is not', () => {
     seedSecretsFile()
     const cyclic = runShippedCli('config', 'show')
 
-    // THE CRASH IS GONE, ASSERTED AT THE SURFACE A PERSON READS.
+    // No crash, asserted at the surface a person reads.
     expect(
       occurrences(cyclic.combined, 'RangeError'),
       `config show still crashes on an alias cycle:\n${cyclic.combined}`,
@@ -1158,8 +1141,7 @@ describe('a cyclic config is bounded output and a repeated one is not', () => {
     // container is not part of the cycle and still renders.
     expect(cyclic.combined, `the guard blanked a non-cyclic sibling:\n${cyclic.combined}`)
       .toContain(CYCLE_SIBLING_VALUE)
-    // BOUNDED OUTPUT, MEASURED. The pre-fix reading was a ~10,000-frame stack; a guard that
-    // recursed "a bit less" rather than stopping would pass every assertion above.
+    // Bounded output: a guard that recursed less instead of stopping would pass the cells above.
     expect(
       cyclic.combined.length,
       `config show produced unbounded output (${cyclic.combined.length} bytes)`,

@@ -34,7 +34,7 @@ const SENTINEL_ACTION = 'SENTINEL-ACTION-9c1e'
 const RUN_ID = 'r1'
 const STOP_REQUESTED = 'Stop requested. The run will end with its own verdict.'
 const NOT_STOPPABLE = "This run can't be stopped from the dashboard. Stop it where it was started."
-// Concatenated so this file cannot satisfy the phase's deletion census by matching itself.
+// Concatenated so this file cannot satisfy the deletion census by matching itself.
 const TICKS_LABEL_ATTR = 'data-step-ticks' + '-label'
 const BASE_TIME = 1_700_000_000_000
 const TTL_MS = 300_000

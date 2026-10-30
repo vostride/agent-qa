@@ -199,13 +199,7 @@ describe('the shipped binary produces a populated, masked run', () => {
       if (existsSync(blobDir)) recorded.blobNames = readdirSync(blobDir)
     }
 
-    // EVERY database this run's host wrote, AND their write-ahead sidecars. Two widenings, each
-    // for a measured reason. The sidecars, because a scan of a main file alone can read clean while
-    // the bytes it was looking for sit unmerged in a `-wal`. Every database rather than the
-    // projection one, because the projection database is not the only thing the dashboard writes —
-    // the job queue lives beside it, carries a run's own metadata, and a masked-side claim that
-    // stopped at the file this plan happened to be thinking about would be a claim about one file
-    // rather than about the host.
+    // Every database the host wrote, with its `-wal` sidecar, so unmerged bytes are scanned too.
     const chunks: Buffer[] = []
     for (const entry of existsSync(project.agentQaRoot) ? readdirSync(project.agentQaRoot) : []) {
       if (!/\.db(?:-[a-z]+)?$/u.test(entry)) continue

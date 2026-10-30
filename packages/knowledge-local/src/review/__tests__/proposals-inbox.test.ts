@@ -116,12 +116,12 @@ const RETIRED_MODULES = ['proposals-store.ts', 'proposals-inbox.ts', 'proposals-
  * produce them any more, which is why they are literals.
  */
 const LEGACY_FILES: Readonly<Record<string, string>> = {
-  // a 387-era bare knowledge proposal, pending
+  // A bare knowledge proposal, pending
   'prop_0123456789ab.json': `${JSON.stringify({
     schemaVersion: 1, proposalId: 'prop_0123456789ab', verb: 'forget',
     targetRef: { grain: 'record', recordId: 'rec-legacy' }, deltas: [], proposedAt: 1, status: 'pending',
   }, undefined, 2)}\n`,
-  // a 391-era wrapped record, pending
+  // A wrapped config record, pending
   'prop_abcdef012345.json': `${JSON.stringify({
     schemaVersion: 1, id: 'prop_abcdef012345', kind: 'config',
     origin: { emittedBy: 'agent', surface: 'mcp' }, payload: { schemaVersion: 1 },

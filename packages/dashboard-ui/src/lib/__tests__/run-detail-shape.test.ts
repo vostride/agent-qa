@@ -65,9 +65,7 @@ describe('RunDetailSubAction is exactly the sub-action payload', () => {
     expectTypeOf<keyof RunDetailSubAction>().toEqualTypeOf<(typeof SUB_ACTION_KEYS)[number]>()
   })
 
-  // NON-VACUITY on the negative claim. The five v1 recording-path fields are named rather than
-  // merely absent — needles built from two halves so this file does not answer the phase's own
-  // grep inventory with itself.
+  // The five v1 recording-path fields are named, built from two halves so a grep misses this file.
   it('carries none of the five v1 recording-path fields', () => {
     const retired = [
       'screenshot' + 'Path',
@@ -144,8 +142,7 @@ describe('DisplayStep carries no path-named member', () => {
   })
 
   it('finds a planted path-named member — the known-positive control', () => {
-    // The planted member is assembled from two halves like every other needle in this phase, so
-    // this file cannot be the hit a repo-wide grep for the retired field reports.
+    // Built from two halves, so this file is never the hit a grep for the field reports.
     const plantedMember = 'screenshot' + 'Path'
     const planted = [
       'export interface Planted {',
