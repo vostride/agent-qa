@@ -48,7 +48,7 @@ export function getPublicPackages(options = {}) {
       const pkg = readJson(manifestPath)
       return { name: pkg.name, dir, manifestPath, packageDirName: basename(dir), pkg }
     })
-    .filter(record => record.pkg.private === false)
+    .filter(record => record.pkg.private !== true)
 
   return derivePublishOrder(records)
 }
