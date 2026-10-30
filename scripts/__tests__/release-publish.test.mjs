@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -208,4 +208,115 @@ test('parses and dispatches node scripts/release/publish.mjs --staged-dir .relea
   } finally {
     await rm(rootDir, { recursive: true, force: true })
   }
+})
+
+function scriptedNpm({ present = new Set(), viewErrors = new Map(), publishErrors = new Map() }) {
+  const publishedDirs = []
+  const stderr = []
+  const execFileSync = (cmd, args, options) => {
+    if (args[0] === 'view') {
+      const name = args[1].slice(0, args[1].lastIndexOf('@'))
+      if (viewErrors.has(name)) throw npmError(viewErrors.get(name))
+      if (present.has(name)) return '"0.1.1"'
+      throw npmError('npm error code E404')
+    }
+    const name = JSON.parse(readFileSync(join(options.cwd, 'package.json'), 'utf8')).name
+    const failure = publishErrors.get(name)
+    if (failure) {
+      if (failure.landed) present.add(name)
+      throw npmError(failure.stderr)
+    }
+    publishedDirs.push(options.cwd)
+    return null
+  }
+  return { execFileSync, publishedDirs, stderr: { write: chunk => stderr.push(String(chunk)) }, written: stderr }
+}
+
+const publishOverExisting =
+  'npm error code E403\nnpm error 403 403 Forbidden - PUT https://registry.npmjs.org/@vostride%2fagent-qa-runner - You cannot publish over the previously published versions: 0.1.1.'
+
+test('an E403 over a version npm then reports present counts as already published and the publish continues', async () => {
+  await withStagedPackages(async ({ rootDir, stagedDir, records }) => {
+    const name = publicPackageNames[3]
+    const npm = scriptedNpm({ publishErrors: new Map([[name, { stderr: publishOverExisting, landed: true }]]) })
+    const lines = []
+    const result = await publishPackages({
+      rootDir,
+      stagedDir,
+      env: trustedEnv,
+      npmVersion: '11.6.1',
+      execFileSync: npm.execFileSync,
+      stderr: npm.stderr,
+      log: line => lines.push(line),
+    })
+
+    assert.deepEqual(result.skipped, [name])
+    assert.deepEqual(result.published, publicPackageNames.filter(other => other !== name))
+    assert.deepEqual(npm.publishedDirs, records.filter((_, index) => index !== 3).map(record => record.dir))
+    assert.ok(lines.includes(`already on npm: ${name}@0.1.1`))
+    assert.match(npm.written.join(''), /E403/)
+  })
+})
+
+test('an E403 over a version npm still does not report stops the publish before any later package', async () => {
+  await withStagedPackages(async ({ rootDir, stagedDir, records }) => {
+    const name = publicPackageNames[3]
+    const npm = scriptedNpm({ publishErrors: new Map([[name, { stderr: publishOverExisting, landed: false }]]) })
+    await assert.rejects(
+      publishPackages({
+        rootDir,
+        stagedDir,
+        env: trustedEnv,
+        npmVersion: '11.6.1',
+        execFileSync: npm.execFileSync,
+        stderr: npm.stderr,
+        log: () => {},
+      }),
+      error => error.stderr === publishOverExisting,
+    )
+    assert.deepEqual(npm.publishedDirs, records.slice(0, 3).map(record => record.dir))
+    assert.match(npm.written.join(''), /cannot publish over the previously published versions/)
+  })
+})
+
+test('an E404 from npm publish stops the publish before any later package', async () => {
+  await withStagedPackages(async ({ rootDir, stagedDir, records }) => {
+    const name = publicPackageNames[1]
+    const notFound = `npm error code E404\nnpm error 404 Not Found - PUT https://registry.npmjs.org/${name} - Not found`
+    const npm = scriptedNpm({ publishErrors: new Map([[name, { stderr: notFound, landed: true }]]) })
+    await assert.rejects(
+      publishPackages({
+        rootDir,
+        stagedDir,
+        env: trustedEnv,
+        npmVersion: '11.6.1',
+        execFileSync: npm.execFileSync,
+        stderr: npm.stderr,
+        log: () => {},
+      }),
+      error => error.stderr === notFound,
+    )
+    assert.deepEqual(npm.publishedDirs, records.slice(0, 1).map(record => record.dir))
+    assert.match(npm.written.join(''), /E404/)
+  })
+})
+
+test('an npm view that fails for another reason stops the publish before that package', async () => {
+  await withStagedPackages(async ({ rootDir, stagedDir, records }) => {
+    const name = publicPackageNames[2]
+    const npm = scriptedNpm({ viewErrors: new Map([[name, 'npm error code ECONNRESET']]) })
+    await assert.rejects(
+      publishPackages({
+        rootDir,
+        stagedDir,
+        env: trustedEnv,
+        npmVersion: '11.6.1',
+        execFileSync: npm.execFileSync,
+        stderr: npm.stderr,
+        log: () => {},
+      }),
+      new RegExp(`could not verify npm version for ${name}@0\\.1\\.1`),
+    )
+    assert.deepEqual(npm.publishedDirs, records.slice(0, 2).map(record => record.dir))
+  })
 })

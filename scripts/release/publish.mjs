@@ -33,6 +33,10 @@ export function createPublishCommands(options = {}) {
   })
 }
 
+function isPublishOverExisting(text) {
+  return /E403/.test(text) && /cannot publish over (the )?previously published version/i.test(text)
+}
+
 function npmVersion(execFileSync) {
   return execFileSync('npm', ['--version'], { encoding: 'utf8', stdio: 'pipe' }).trim()
 }
@@ -46,6 +50,7 @@ export async function publishPackages(options = {}) {
   assertTrustedPublishEnvironment({ env, npmVersion: resolvedNpmVersion })
 
   const log = options.log ?? console.log
+  const stderr = options.stderr ?? process.stderr
   const isNpmVersionPresent =
     options.isNpmVersionPresent ??
     ((name, version) => npmVersionPresent(name, version, { execFileSync }))
@@ -66,11 +71,20 @@ export async function publishPackages(options = {}) {
       log(`already on npm: ${name}@${version}`)
       continue
     }
-    execFileSync(command.command, command.args, {
-      cwd: command.cwd,
-      env: publishEnv,
-      stdio: options.stdio ?? 'inherit',
-    })
+    try {
+      execFileSync(command.command, command.args, {
+        cwd: command.cwd,
+        env: publishEnv,
+        stdio: options.stdio ?? ['ignore', 'inherit', 'pipe'],
+      })
+    } catch (error) {
+      const text = String(error?.stderr ?? '')
+      stderr.write(text)
+      if (!isPublishOverExisting(text) || !isNpmVersionPresent(name, version)) throw error
+      skipped.push(name)
+      log(`already on npm: ${name}@${version}`)
+      continue
+    }
     published.push(name)
   }
 

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { checkNpmVersionsAbsent } from '../release/registry.mjs'
+import { checkNpmVersionsAbsent, npmVersionPresent } from '../release/registry.mjs'
 
 function npmError(message, stderr = message) {
   const error = new Error(message)
@@ -37,5 +37,44 @@ test('fails closed for ambiguous npm registry errors', async () => {
       },
     }),
     /could not verify npm version absence for agent-qa@0\.1\.1/,
+  )
+})
+
+test('npmVersionPresent is true when npm view prints the version', () => {
+  const calls = []
+  const present = npmVersionPresent('agent-qa', '0.1.1', {
+    execFileSync: (cmd, args) => {
+      calls.push([cmd, args])
+      return '"0.1.1"\n'
+    },
+  })
+  assert.equal(present, true)
+  assert.deepEqual(calls, [['npm', ['view', 'agent-qa@0.1.1', 'version', '--json']]])
+})
+
+test('npmVersionPresent is false when npm answers E404', () => {
+  const present = npmVersionPresent('agent-qa', '0.1.1', {
+    execFileSync: () => {
+      throw npmError('Command failed', 'npm error code E404\nnpm error 404 No match found for version 0.1.1')
+    },
+  })
+  assert.equal(present, false)
+})
+
+test('npmVersionPresent throws for an ambiguous npm error', () => {
+  assert.throws(
+    () => npmVersionPresent('agent-qa', '0.1.1', {
+      execFileSync: () => {
+        throw npmError('network failed', 'ECONNRESET')
+      },
+    }),
+    /could not verify npm version for agent-qa@0\.1\.1/,
+  )
+})
+
+test('npmVersionPresent throws when npm view exits 0 without printing a version', () => {
+  assert.throws(
+    () => npmVersionPresent('agent-qa', '0.1.1', { execFileSync: () => '' }),
+    /could not verify npm version for agent-qa@0\.1\.1/,
   )
 })
