@@ -1,4 +1,4 @@
-import { expectTypeOf } from 'vitest'
+import { expectTypeOf, test } from 'vitest'
 import type { Delta } from '../delta/delta'
 import type {
   BundleDraft,
@@ -44,49 +44,57 @@ const bundle: BundleDraft = {
   originStage: 'run-curation',
 }
 
-// @ts-expect-error proposal bundles omit trust; deterministic code disposes trust later.
-bundle.trust = 0.5
+test('a proposal bundle carries no trust', () => {
+  // @ts-expect-error proposal bundles omit trust; deterministic code disposes trust later.
+  bundle.trust = 0.5
+})
 
-const addDelta: Delta = {
-  ...envelope,
-  kind: 'Add',
-  bundle,
-}
+test('proposal deltas carry no status, and there is no FileIssue delta', () => {
+  const addDelta: Delta = {
+    ...envelope,
+    kind: 'Add',
+    bundle,
+  }
 
-const confirmDelta: Delta = {
-  ...envelope,
-  kind: 'Confirm',
-  targetId: recordId,
-  evidenceToken,
-}
+  const confirmDelta: Delta = {
+    ...envelope,
+    kind: 'Confirm',
+    targetId: recordId,
+    evidenceToken,
+  }
 
-const supersedeDelta: Delta = {
-  ...envelope,
-  kind: 'Supersede',
-  victimId: victimRecordId,
-  newBundle: bundle,
-  evidenceToken,
-}
+  const supersedeDelta: Delta = {
+    ...envelope,
+    kind: 'Supersede',
+    victimId: victimRecordId,
+    newBundle: bundle,
+    evidenceToken,
+  }
 
-const delta: Delta = confirmDelta
+  const delta: Delta = confirmDelta
 
-// @ts-expect-error proposal deltas omit status; deterministic code disposes status later.
-delta.status = 'confirmed'
+  // @ts-expect-error proposal deltas omit status; deterministic code disposes status later.
+  delta.status = 'confirmed'
 
-expectTypeOf<Extract<Delta, { kind: 'FileIssue' }>>().toEqualTypeOf<never>()
+  expectTypeOf<Extract<Delta, { kind: 'FileIssue' }>>().toEqualTypeOf<never>()
 
-const acceptBundleKind = (_: BundleKind) => {}
+  void addDelta
+  void confirmDelta
+  void supersedeDelta
+})
 
-acceptBundleKind('procedure')
+test('the bundle kind is closed', () => {
+  const acceptBundleKind = (_: BundleKind) => {}
 
-// @ts-expect-error BundleKind is closed; arbitrary strings cannot enter bundle identity.
-acceptBundleKind('observed-flow')
+  acceptBundleKind('procedure')
 
-expectTypeOf<BundleDraft['subtype']>().toEqualTypeOf<FactSubtype | undefined>()
+  // @ts-expect-error BundleKind is closed; arbitrary strings cannot enter bundle identity.
+  acceptBundleKind('observed-flow')
+})
 
-type ProposalKeys = keyof BundleDraft | keyof Delta
-expectTypeOf<Extract<ProposalKeys, 'trust' | 'status'>>().toEqualTypeOf<never>()
+test('a bundle draft has an optional fact subtype and no proposal carries trust or status', () => {
+  expectTypeOf<BundleDraft['subtype']>().toEqualTypeOf<FactSubtype | undefined>()
 
-void addDelta
-void confirmDelta
-void supersedeDelta
+  type ProposalKeys = keyof BundleDraft | keyof Delta
+  expectTypeOf<Extract<ProposalKeys, 'trust' | 'status'>>().toEqualTypeOf<never>()
+})

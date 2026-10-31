@@ -1,4 +1,4 @@
-import { expectTypeOf } from 'vitest'
+import { expectTypeOf, test } from 'vitest'
 import { CURRENT_HANDOFF_SCHEMA_VERSION } from '../handoff/completed-run-handoff'
 import type { Action } from '../action/index'
 import type { ServedBrief } from '../brief/served-brief'
@@ -12,45 +12,57 @@ import type { MemberTestOutcome } from '../run/member-outcome'
 import type { RunStatus } from '../run/run-status'
 import type { ScreenState } from '../screen/screen-state'
 
-expectTypeOf<CompletedRunHandoff['aggregateVerdict']>().toEqualTypeOf<RunStatus>()
+test('the aggregate verdict is a run status, not a root-cause verdict', () => {
+  expectTypeOf<CompletedRunHandoff['aggregateVerdict']>().toEqualTypeOf<RunStatus>()
 
-const verdictShaped = { class: 'app_bug' as const }
+  const verdictShaped = { class: 'app_bug' as const }
 
-// @ts-expect-error aggregateVerdict is a RunStatus execution verdict, not a root-cause Verdict.
-const invalidAggregateVerdict: CompletedRunHandoff['aggregateVerdict'] = verdictShaped
+  // @ts-expect-error aggregateVerdict is a RunStatus execution verdict, not a root-cause Verdict.
+  const invalidAggregateVerdict: CompletedRunHandoff['aggregateVerdict'] = verdictShaped
 
-expectTypeOf<SubActionEvidence['stateBefore']>().toEqualTypeOf<ScreenState>()
-expectTypeOf<SubActionEvidence['stateAfter']>().toEqualTypeOf<ScreenState | undefined>()
-expectTypeOf<SubActionEvidence['artifactRefs']>().toEqualTypeOf<ArtifactRef[] | undefined>()
-expectTypeOf<SubActionEvidence['decisionScreenshotRef']>().toEqualTypeOf<ArtifactRef | undefined>()
+  void invalidAggregateVerdict
+})
 
-expectTypeOf<CompletedRunHandoff['tests']>().toEqualTypeOf<PerTestOutcome[]>()
-expectTypeOf<PerTestOutcome['steps']>().toEqualTypeOf<StepEvidence[]>()
-expectTypeOf<StepEvidence['subActions']>().toEqualTypeOf<SubActionEvidence[]>()
-expectTypeOf<StepEvidence['servedBrief']>().toEqualTypeOf<ServedBrief>()
+test('the handoff nests per-test, step and sub-action evidence with fixed types', () => {
+  expectTypeOf<SubActionEvidence['stateBefore']>().toEqualTypeOf<ScreenState>()
+  expectTypeOf<SubActionEvidence['stateAfter']>().toEqualTypeOf<ScreenState | undefined>()
+  expectTypeOf<SubActionEvidence['artifactRefs']>().toEqualTypeOf<ArtifactRef[] | undefined>()
+  expectTypeOf<SubActionEvidence['decisionScreenshotRef']>().toEqualTypeOf<ArtifactRef | undefined>()
 
-expectTypeOf<CompletedRunHandoff['schemaVersion']>().toEqualTypeOf<number>()
-expectTypeOf(CURRENT_HANDOFF_SCHEMA_VERSION).toMatchTypeOf<number>()
+  expectTypeOf<CompletedRunHandoff['tests']>().toEqualTypeOf<PerTestOutcome[]>()
+  expectTypeOf<PerTestOutcome['steps']>().toEqualTypeOf<StepEvidence[]>()
+  expectTypeOf<StepEvidence['subActions']>().toEqualTypeOf<SubActionEvidence[]>()
+  expectTypeOf<StepEvidence['servedBrief']>().toEqualTypeOf<ServedBrief>()
 
-expectTypeOf<StepEvidence['verifierVerdict']>().toEqualTypeOf<VerifierVerdict>()
-expectTypeOf<VerifierVerdict>().toEqualTypeOf<{ pass: boolean; reasoning: string }>()
+  expectTypeOf<CompletedRunHandoff['schemaVersion']>().toEqualTypeOf<number>()
+  expectTypeOf(CURRENT_HANDOFF_SCHEMA_VERSION).toMatchTypeOf<number>()
+})
 
-const verifierVerdictShaped = { class: 'app_bug' as const }
+test('the verifier verdict is a pass and reasoning shape, not a root-cause verdict', () => {
+  expectTypeOf<StepEvidence['verifierVerdict']>().toEqualTypeOf<VerifierVerdict>()
+  expectTypeOf<VerifierVerdict>().toEqualTypeOf<{ pass: boolean; reasoning: string }>()
 
-// @ts-expect-error verifierVerdict is a verifier pass/reasoning shape, not a root-cause Verdict.
-const invalidVerifierVerdict: StepEvidence['verifierVerdict'] = verifierVerdictShaped
+  const verifierVerdictShaped = { class: 'app_bug' as const }
 
-expectTypeOf<SubActionEvidence['plannedAction']>().toEqualTypeOf<Action>()
-expectTypeOf<SubActionEvidence['result']>().toEqualTypeOf<RecordedActionResult>()
+  // @ts-expect-error verifierVerdict is a verifier pass/reasoning shape, not a root-cause Verdict.
+  const invalidVerifierVerdict: StepEvidence['verifierVerdict'] = verifierVerdictShaped
 
-// `skipped` is a member-only outcome and never an aggregate `RunStatus`.
-expectTypeOf<PerTestOutcome['outcome']>().toEqualTypeOf<MemberTestOutcome>()
-const skippedMember: PerTestOutcome['outcome'] = 'skipped'
+  void invalidVerifierVerdict
+})
 
-// @ts-expect-error 'skipped' is member-level only — never assignable to the aggregate verdict.
-const invalidSkippedAggregate: CompletedRunHandoff['aggregateVerdict'] = 'skipped'
+test('a sub-action records its planned action and recorded result', () => {
+  expectTypeOf<SubActionEvidence['plannedAction']>().toEqualTypeOf<Action>()
+  expectTypeOf<SubActionEvidence['result']>().toEqualTypeOf<RecordedActionResult>()
+})
 
-void invalidAggregateVerdict
-void invalidVerifierVerdict
-void skippedMember
-void invalidSkippedAggregate
+test('skipped is a member outcome and never an aggregate verdict', () => {
+  // `skipped` is a member-only outcome and never an aggregate `RunStatus`.
+  expectTypeOf<PerTestOutcome['outcome']>().toEqualTypeOf<MemberTestOutcome>()
+  const skippedMember: PerTestOutcome['outcome'] = 'skipped'
+
+  // @ts-expect-error 'skipped' is member-level only — never assignable to the aggregate verdict.
+  const invalidSkippedAggregate: CompletedRunHandoff['aggregateVerdict'] = 'skipped'
+
+  void skippedMember
+  void invalidSkippedAggregate
+})
