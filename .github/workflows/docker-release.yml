@@ -44,7 +44,6 @@ jobs:
       build: ${{ steps.docker.outputs.build }}
       retag: ${{ steps.docker.outputs.retag }}
       may_move_latest: ${{ steps.docker.outputs.may_move_latest }}
-      node_version: ${{ steps.docker.outputs.node_version }}
 
     steps:
       - name: Checkout

@@ -264,7 +264,6 @@ export function writeGithubOutputs(options = {}) {
   appendFileSync(outputPath, `build<<EOF\n${build}\nEOF\n`, 'utf8')
   appendFileSync(outputPath, `retag<<EOF\n${retag}\nEOF\n`, 'utf8')
   appendFileSync(outputPath, `may_move_latest=${options.mayMoveLatest === true}\n`, 'utf8')
-  if (options.nodeVersion) appendFileSync(outputPath, `node_version=${options.nodeVersion}\n`, 'utf8')
 }
 
 export function parseDockerArgs(argv = []) {
@@ -338,7 +337,6 @@ export async function runCli(argv = process.argv.slice(2), options = {}) {
       build: work.build,
       retag: work.retag,
       mayMoveLatest,
-      nodeVersion: plan.nodeVersion,
     })
   }
 

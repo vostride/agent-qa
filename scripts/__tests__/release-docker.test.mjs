@@ -299,11 +299,6 @@ test('writes GitHub Actions outputs for matrix handoff', async () => {
   }
 })
 
-test('the release outputs carry the .nvmrc Node version', async () => {
-  const outputs = await runWithGithubOutput(['--version', '0.1.1', '--namespace', 'vostride'])
-  assert.equal(outputs.node_version, readNodeVersion(rootDir))
-})
-
 test('a release over half-pushed images builds only the absent ones and retags the partial one', async () => {
   const outputs = await runWithGithubOutput(
     ['--version', '0.1.1', '--namespace', 'vostride', '--check-tags'],
