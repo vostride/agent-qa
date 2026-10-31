@@ -160,8 +160,11 @@ export function Timeline({ model, playhead, source, memberLabel, seekFraction, o
             <PopoverTrigger asChild><button type='button' data-timeline-marker-group data-timeline-active={active || undefined} aria-current={active ? 'step' : undefined} style={style} className={classes}
               aria-label={`Choose from ${cluster.length} nearby actions`} onPointerDown={event => beginDrag(event, undefined, marker.ordinal)}
               onClick={event => { if (event.detail > 0) event.preventDefault() }}><span data-timeline-circle className={circle}><Layers aria-hidden='true' className='h-3 w-3' /></span></button></PopoverTrigger>
+            {/* Radix hands focus back to the trigger a tick after the list unmounts. By then another
+                group's list can hold focus, and taking it away would dismiss that list. */}
             <PopoverContent className='max-h-64 w-80 overflow-y-auto p-1' aria-label='Nearby actions'
-              onPointerDown={event => event.stopPropagation()}>
+              onPointerDown={event => event.stopPropagation()}
+              onCloseAutoFocus={event => { if (document.activeElement !== document.body) event.preventDefault() }}>
               {cluster.map(entry => <button key={entry.ordinal} type='button' data-timeline-marker={entry.ordinal} className='block w-full rounded p-2 text-left hover:bg-muted'
                 onClick={() => activate(entry)}><span className='text-xs'>{context(entry)}</span><ActionSentence sub={entry.subAction} /></button>)}
             </PopoverContent>

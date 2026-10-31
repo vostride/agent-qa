@@ -188,3 +188,25 @@ test('TIMELINE-MARKER-DETAILS and coincident groups preserve masked reachable ac
   act(() => options[2]!.click())
   expect(change).toHaveBeenLastCalledWith(address(2))
 })
+
+test('a group list closed with Escape hands focus back to its trigger, but not away from a group list opened before the hand-back', async () => {
+  render({ model: { ...model, markers: model.markers.map((entry, index) => ({ ...entry, position: index < 2 ? 0.25 : 0.75 })) } })
+  const [first, second] = [...host.querySelectorAll<HTMLButtonElement>('[data-timeline-marker-group]')]
+  const focusedEntry = () => document.activeElement?.closest('[data-slot="popover-content"]') ? document.activeElement.getAttribute('data-timeline-marker') : null
+  const escape = () => act(() => document.activeElement!.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true, cancelable: true })))
+  const handBack = () => act(() => new Promise(resolve => setTimeout(resolve, 0)))
+  act(() => first!.click())
+  expect(focusedEntry()).toBe('1')
+  escape()
+  await handBack()
+  expect(document.activeElement).toBe(first)
+  act(() => first!.click())
+  escape()
+  // jsdom runs no exit animation, so the first list is gone at once and its hand-back is still to come.
+  expect(document.querySelector('[data-slot="popover-content"]')).toBeNull()
+  act(() => second!.click())
+  expect(focusedEntry()).toBe('3')
+  await handBack()
+  expect([...document.querySelectorAll('[data-slot="popover-content"] [data-timeline-marker]')].map(entry => entry.getAttribute('data-timeline-marker'))).toEqual(['3', '4'])
+  expect(focusedEntry()).toBe('3')
+})
