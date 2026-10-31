@@ -51,7 +51,7 @@ const KNOWLEDGE_LOCAL_UNRESOLVABLE = /Cannot find module '@vostride\/agent-qa-kn
  * The built artifacts these cells actually execute.
  *
  * `cli` is bundled from its own source; `agent-local` and `knowledge-local` arrive as their own
- * dists because tsup leaves workspace dependencies external, and both are on the resolution path
+ * dists because tsdown leaves workspace dependencies external, and both are on the resolution path
  * this file is about. A guard watching only the entry point would be green while the module whose
  * anchor is the subject was a revision behind.
  */
