@@ -14,7 +14,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { STATIC_FLOOR_EMBEDDING_PROFILE } from '@vostride/agent-qa-schema'
-import { build } from 'tsup'
+import { build } from 'tsdown'
 import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import {
@@ -157,6 +157,7 @@ function rawWorkerRequest(socketPath: string, body: unknown): Promise<unknown> {
 beforeAll(async () => {
   workerBuildRoot = mkdtempSync(join(packageRoot, '.embedder-worker-test-build-'))
   await build({
+    config: false,
     entry: {
       'embedder-worker/worker-entry': join(
         packageRoot,
@@ -170,8 +171,9 @@ beforeAll(async () => {
     sourcemap: false,
     target: 'node24',
     platform: 'node',
-    splitting: false,
-    silent: true,
+    fixedExtension: false,
+    outputOptions: { codeSplitting: false },
+    logLevel: 'silent',
   })
   workerEntryPath = join(workerBuildRoot, 'embedder-worker', 'worker-entry.js')
 })
