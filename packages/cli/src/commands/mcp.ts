@@ -124,6 +124,10 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
     )
     .action(async (options: { http?: string | boolean }, command: Command) => {
       try {
+        // A refused port composes nothing: no config read, mask, analytics or agent host.
+        const port = options.http === undefined || options.http === false
+          ? undefined
+          : httpPort(options.http)
         const program = command.parent
         const globalOpts = program?.opts<{ config?: string }>() ?? {}
         // Tolerant and plugin-free; read only for analytics and the dashboard base.
@@ -167,12 +171,12 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
           // No `knowledgeChangeDelegate`: the default hands lease-needing changes to the daemon.
         })
 
-        const overHttp = options.http !== undefined && options.http !== false
-        const mcpTransport = overHttp ? 'http' as const : 'stdio' as const
+        const mcpTransport = port === undefined ? 'stdio' as const : 'http' as const
         // The lifecycle pair is emitted from ONE place for each half, and `onServing` is what makes
         // the `started` half a fact rather than an intention: it fires where each serving entry
-        // writes its own startup line — after the socket is bound / the stdio entry is live — so an
-        // `agent-qa mcp` that failed to bind reports nothing rather than a server that never was.
+        // writes its own startup line — after the socket is bound / the stdio entry is live — and
+        // `stopped` follows only a `started`, so an `agent-qa mcp` that failed to bind reports
+        // nothing rather than a server that never was.
         const emitLifecycle = (state: 'started' | 'stopped'): void => {
           analytics.port.capture(analyticsEvent(analytics, 'agent-qa.mcp.server.lifecycle', {
             mcp_server_state: state,
@@ -180,26 +184,20 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
             // `mcp_tool_count` is absent: HTTP builds a server per request, so no one count exists.
           }))
         }
+        let serving = false
+        const onServing = (): void => {
+          serving = true
+          emitLifecycle('started')
+        }
 
         try {
-          if (overHttp) {
-            await serveOverHttp({
-              port: httpPort(options.http as string | boolean),
-              registry: host.registry,
-              maskText,
-              liveLink,
-              onServing: () => emitLifecycle('started'),
-            })
+          if (port === undefined) {
+            await serveOverStdio({ registry: host.registry, maskText, liveLink, onServing })
           } else {
-            await serveOverStdio({
-              registry: host.registry,
-              maskText,
-              liveLink,
-              onServing: () => emitLifecycle('started'),
-            })
+            await serveOverHttp({ port, registry: host.registry, maskText, liveLink, onServing })
           }
         } finally {
-          emitLifecycle('stopped')
+          if (serving) emitLifecycle('stopped')
           await host.close().catch(() => {})
           // Drains the port this command composed and releases its timers, so the process can exit.
           await analytics.shutdown()

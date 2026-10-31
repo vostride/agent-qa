@@ -1,6 +1,7 @@
 // The project key ships blank, so `transportKind` is `none` anyway; cells assert `optOutReasons`.
 
 import { existsSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { PassThrough } from 'node:stream'
@@ -12,7 +13,7 @@ import { createChatCommand } from '../commands/chat.js'
 import { createDaemonCommand } from '../commands/daemon.js'
 import type { DaemonCommandDeps } from '../commands/daemon.js'
 import { createInitCommand } from '../commands/init.js'
-import { createMcpCommand } from '../commands/mcp.js'
+import { MCP_HTTP_BIND_HOST, createMcpCommand } from '../commands/mcp.js'
 import { composeAnalyticsHost } from '../composition/analytics-host.js'
 import type {
   CliAnalyticsHost,
@@ -543,23 +544,30 @@ describe('an identity location that cannot be written', () => {
   })
 })
 
-// `--http 65536` is refused inside the serve `try`, so analytics compose and nothing is served.
+// A port already held on loopback fails the bind after analytics compose, so nothing is served.
 async function runMcp(
   configPath: string,
   deps: { composeAnalytics: typeof composeAnalyticsHost },
 ): Promise<void> {
+  const held = createServer()
+  await new Promise<void>((listening) => held.listen(0, MCP_HTTP_BIND_HOST, () => listening()))
+  const address = held.address()
+  const port = typeof address === 'object' && address !== null ? address.port : 0
   const error = vi.spyOn(console, 'error').mockImplementation(() => {})
   const previousExitCode = process.exitCode
   process.exitCode = undefined
   try {
     const program = new Command()
       .option('--config <path>', 'config file path')
-      .addCommand((createMcpCommand as (deps: unknown) => Command)(deps))
+      .addCommand(createMcpCommand(deps))
     program.exitOverride()
-    await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'mcp', '--http', '65536'])
+    await program.parseAsync([
+      'node', 'agent-qa', '--config', configPath, 'mcp', '--http', String(port),
+    ])
   } finally {
     process.exitCode = previousExitCode
     error.mockRestore()
+    await new Promise<void>((closed) => held.close(() => closed()))
   }
 }
 
