@@ -198,11 +198,11 @@ importers:
         specifier: ~2.11.10
         version: 2.11.10
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/agent:
     dependencies:
@@ -220,8 +220,8 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
@@ -233,13 +233,13 @@ importers:
         version: link:../safety
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
       yaml:
         specifier: 2.8.4
         version: 2.8.4
@@ -278,20 +278,20 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
       yaml:
         specifier: 2.8.4
         version: 2.8.4
@@ -318,23 +318,23 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       undici:
         specifier: 7.30.1
         version: 7.30.1
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/android:
     dependencies:
@@ -355,47 +355,47 @@ importers:
         version: 9.24.0(supports-color@7.2.0)(yauzl@2.10.0)
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/arch:
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/cli:
     dependencies:
       '@inquirer/checkbox':
         specifier: 5.1.4
-        version: 5.1.4(@types/node@24.12.2)
+        version: 5.1.4(@types/node@24.19.2)
       '@inquirer/input':
         specifier: 5.0.12
-        version: 5.0.12(@types/node@24.12.2)
+        version: 5.0.12(@types/node@24.19.2)
       '@inquirer/password':
         specifier: 5.0.12
-        version: 5.0.12(@types/node@24.12.2)
+        version: 5.0.12(@types/node@24.19.2)
       '@inquirer/select':
         specifier: 5.1.4
-        version: 5.1.4(@types/node@24.12.2)
+        version: 5.1.4(@types/node@24.19.2)
       '@modelcontextprotocol/server':
         specifier: 2.3.1
         version: 2.3.1
@@ -477,13 +477,13 @@ importers:
     devDependencies:
       '@inquirer/confirm':
         specifier: 6.0.12
-        version: 6.0.12(@types/node@24.12.2)
+        version: 6.0.12(@types/node@24.19.2)
       '@modelcontextprotocol/client':
         specifier: 2.3.1
         version: 2.3.1
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
@@ -498,13 +498,13 @@ importers:
         version: 2.6.1
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4))
 
   packages/core:
     dependencies:
@@ -552,20 +552,20 @@ importers:
         specifier: ~2.1.0
         version: 2.1.0
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
 
   packages/dashboard-server:
     dependencies:
@@ -616,8 +616,8 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@types/ws':
         specifier: ~8.18.1
         version: 8.18.1
@@ -632,10 +632,10 @@ importers:
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
 
   packages/dashboard-ui:
     dependencies:
@@ -720,10 +720,10 @@ importers:
     devDependencies:
       '@tailwindcss/vite':
         specifier: 4.2.4
-        version: 4.2.4(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
+        version: 4.2.4(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@types/react':
         specifier: ~19.2.14
         version: 19.2.14
@@ -732,7 +732,7 @@ importers:
         version: 19.2.3(@types/react@19.2.14)
       '@vitejs/plugin-react':
         specifier: ~6.0.1
-        version: 6.0.1(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
+        version: 6.0.1(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
@@ -740,14 +740,14 @@ importers:
         specifier: ~29.1.1
         version: 29.1.1
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vite:
         specifier: ~8.0.10
-        version: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
+        version: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
 
   packages/eval:
     dependencies:
@@ -765,20 +765,20 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/eval-local:
     dependencies:
@@ -805,20 +805,20 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/ids:
     dependencies:
@@ -827,20 +827,20 @@ importers:
         version: 1.0.3
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/ios:
     dependencies:
@@ -861,20 +861,20 @@ importers:
         version: 9.24.0(supports-color@7.2.0)(yauzl@2.10.0)
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/knowledge-local:
     dependencies:
@@ -883,7 +883,7 @@ importers:
         version: 0.2.0
       '@huggingface/transformers':
         specifier: 4.3.2
-        version: 4.3.2(@types/node@24.12.2)
+        version: 4.3.2(@types/node@24.19.2)
       '@vostride/agent-qa-agent':
         specifier: workspace:*
         version: link:../agent
@@ -904,20 +904,20 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/mcp:
     dependencies:
@@ -941,20 +941,20 @@ importers:
         specifier: 1.7.5
         version: 1.7.5(@modelcontextprotocol/sdk@1.30.0(supports-color@7.2.0)(zod@4.6.7))(react-dom@19.2.5(react@19.2.5))(react@19.2.5)(zod@4.6.7)
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/model:
     dependencies:
@@ -981,20 +981,20 @@ importers:
         version: 6.0.174(zod@4.6.7)
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/runner:
     dependencies:
@@ -1012,20 +1012,20 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/runner-local:
     dependencies:
@@ -1037,23 +1037,23 @@ importers:
         version: link:../schema
       sharp:
         specifier: 0.35.5
-        version: 0.35.5(@types/node@24.12.2)
+        version: 0.35.5(@types/node@24.19.2)
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/safety:
     dependencies:
@@ -1065,20 +1065,20 @@ importers:
         version: 6.0.174(zod@4.6.7)
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/safety-local:
     dependencies:
@@ -1090,20 +1090,20 @@ importers:
         version: link:../schema
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/schema:
     dependencies:
@@ -1112,20 +1112,20 @@ importers:
         version: 4.6.7
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
   packages/web:
     dependencies:
@@ -1143,8 +1143,8 @@ importers:
         version: 1.61.0
     devDependencies:
       '@types/node':
-        specifier: ~24.12.2
-        version: 24.12.2
+        specifier: ~24.19.2
+        version: 24.19.2
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
@@ -1153,13 +1153,13 @@ importers:
         version: link:../core
       tsdown:
         specifier: ~0.23.4
-        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3)
+        version: 0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2)
       typescript:
-        specifier: ~6.0.3
-        version: 6.0.3
+        specifier: ~7.0.2
+        version: 7.0.2
       vitest:
         specifier: ~5.0.5
-        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+        version: 5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
 
 packages:
 
@@ -3178,8 +3178,8 @@ packages:
   '@types/node@20.19.35':
     resolution: {integrity: sha512-Uarfe6J91b9HAUXxjvSOdiO2UPOKLm07Q1oh0JHxoZ1y8HoqxDAu3gVrsrOHeiio0kSsoVBt4wFrKOm0dKxVPQ==}
 
-  '@types/node@24.12.2':
-    resolution: {integrity: sha512-A1sre26ke7HDIuY/M23nd9gfB+nrmhtYyMINbjI1zHJxYteKR6qSMX56FsmjMcDb3SMcjJg5BiRRgOCC/yBD0g==}
+  '@types/node@24.19.2':
+    resolution: {integrity: sha512-93d49wCWJkCyN87MxLpNN6KXPCwFw7bVUg79mGUV1OS40JGWwVCr8n61DXCSqz7CV6/VfPkb7xec7uP2M+QHWQ==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -3203,6 +3203,126 @@ packages:
 
   '@types/ws@8.18.1':
     resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
+  '@typescript/typescript-aix-ppc64@7.0.2':
+    resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [ppc64]
+    os: [aix]
+
+  '@typescript/typescript-darwin-arm64@7.0.2':
+    resolution: {integrity: sha512-gowzar9MwS/aRWp6f3a4KUqzRjAZjOsmGNCM6LcTgXum+dBfgsBVMN+AgvOCCbguXyick6LJhpBszxMebJ8syA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@typescript/typescript-darwin-x64@7.0.2':
+    resolution: {integrity: sha512-SZ9xZInqApNlNGc9s0W1VSsktYSOe9cFqNOIqmN1Gs8SmkjKZYFt017G4VwPxASInODuAdbTW7sXiFUf893RgA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [darwin]
+
+  '@typescript/typescript-freebsd-arm64@7.0.2':
+    resolution: {integrity: sha512-W5NH4y/J0plIIS5b2xvTEkU7JFxyqdMAOgf+Ilhl0vHQXKO5dZoxd+C/jEtq56c4F3wk71RB4BMRQ2XdI+bwYQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [freebsd]
+
+  '@typescript/typescript-freebsd-x64@7.0.2':
+    resolution: {integrity: sha512-UMGDx5sTpzNw3WiPebH7l90IWfJggEd+egHt/q6p7/Cm3zqoV7VxkGXt+3DxPIw8CcmvAB0j3sVVfbhX+M4Tpw==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [freebsd]
+
+  '@typescript/typescript-linux-arm64@7.0.2':
+    resolution: {integrity: sha512-Qh4eU4/y3yDjnfjjyPYihMj5/ODIlmt+Bzu17OI+fiSRDW57QmU5SiN63exPRNJPKUzcc1INa1NXdrJ+MqHjUQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [linux]
+
+  '@typescript/typescript-linux-arm@7.0.2':
+    resolution: {integrity: sha512-gffT3xPz9sR7j/YJExkyPntrI0P2EP9XbOyWzth2/Gs0RstK+90RBcO0ncXoXy/beYll1SXw846Nf2zdnEz0QQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm]
+    os: [linux]
+
+  '@typescript/typescript-linux-loong64@7.0.2':
+    resolution: {integrity: sha512-uEHck9i8hoAzXPiYRib1O7miOnz23SxIeVl6F4LXox+qov1K35jHcEW6VHKvZI+pyvl7fZEP4MCU5LYvIq1GuQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [loong64]
+    os: [linux]
+
+  '@typescript/typescript-linux-mips64el@7.0.2':
+    resolution: {integrity: sha512-R4KvAMnE43W5Qeqb0Ly56O3mWMWIAgsMyz36DCaycd5nbg/9kzm0liw3JocfRqyJY0KPmzFjbswozXyW0DnIYA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [mips64el]
+    os: [linux]
+
+  '@typescript/typescript-linux-ppc64@7.0.2':
+    resolution: {integrity: sha512-DORx5b3sd/4S7eayxm4FQv+A7CrkUIGRaHiwI8oiHTAI1fAPWhF4J0vAlkC8biAlHSVVwxMQ3tjZ2/DVbnQiiA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [ppc64]
+    os: [linux]
+
+  '@typescript/typescript-linux-riscv64@7.0.2':
+    resolution: {integrity: sha512-wf0jqEDOjrPRnKwYRyyJDRo11KMbvMFrU+q4zqKyChODBzvlkbhNQfKvLxQCcwTpdDaXSHZTVuh0JoCrKCUMHQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [riscv64]
+    os: [linux]
+
+  '@typescript/typescript-linux-s390x@7.0.2':
+    resolution: {integrity: sha512-IkwJc3L7yhytWd/ewjyxNDfOmswCm9GWMJT/ue/dU4aZNbwZeYAetq42VyLmsmSjvoX7z74X6ZaYCtzAr0EuGw==}
+    engines: {node: '>=16.20.0'}
+    cpu: [s390x]
+    os: [linux]
+
+  '@typescript/typescript-linux-x64@7.0.2':
+    resolution: {integrity: sha512-EYdf2cNg7rgCWJnxCdJ+F3V39O8ihb37eHAu1LK8oAFizgTQbPOK7zHHXbPt8rX24COqODXeI3sIf0fCXG7H/A==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [linux]
+
+  '@typescript/typescript-netbsd-arm64@7.0.2':
+    resolution: {integrity: sha512-+polYF4MF04aPpO5FTkHran9yUQDSXqy5GiSDKpsll5jy3l3+g9QLhpf39T+ePtefhXLOGrLl0QIjkQP6VnelA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [netbsd]
+
+  '@typescript/typescript-netbsd-x64@7.0.2':
+    resolution: {integrity: sha512-8YIT0EHM/3dq10ZOVF/A7pc/YSMtbcecct4rWtexrnSCHOPcpC2KTLXfTCR6vDpnSiY12heNb1GiN/wu+T/FyA==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [netbsd]
+
+  '@typescript/typescript-openbsd-arm64@7.0.2':
+    resolution: {integrity: sha512-APT8+ClYnuYm1u9+kgGXoMj2VzWzcymwh2gNSQVySHfkRDGOTVkoWLjCmOQSaO+PoqQ57B0flRp9SA+7GnnkzQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [openbsd]
+
+  '@typescript/typescript-openbsd-x64@7.0.2':
+    resolution: {integrity: sha512-yX7s+Q0Dln0Dt9tEzZsAjXXR/+ytBM7AlglaqyeMPxQszJ1JhlJdZ6jLA+IzldHtflX81em7lDao1xXu+aRRkg==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [openbsd]
+
+  '@typescript/typescript-sunos-x64@7.0.2':
+    resolution: {integrity: sha512-dLJDGaLZ1D4HPQn62u1n8mBDkJREwMsAkCdkwd4Ieqw+x3TUyTsqY0YiBCtE6H6OzzgGk3iuZ3vFWRS+E8/d1g==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [sunos]
+
+  '@typescript/typescript-win32-arm64@7.0.2':
+    resolution: {integrity: sha512-Gyl1Vy6OsWesLzmq+EP0Fb7b4Nid5232AvcA2SFcdYreldpNtYFFofPjnt62y9hQy7VTaZp65ICJjuAQRaVcIQ==}
+    engines: {node: '>=16.20.0'}
+    cpu: [arm64]
+    os: [win32]
+
+  '@typescript/typescript-win32-x64@7.0.2':
+    resolution: {integrity: sha512-0BQ3HkAHHlKLSp1qRvf3SUhGpGsDuhB/jgFw75guyqbxJqEaS0Cw/VFO8i2nHglJUzQCRtMMR/IBAKE3ETMC4g==}
+    engines: {node: '>=16.20.0'}
+    cpu: [x64]
+    os: [win32]
 
   '@vercel/oidc@3.2.0':
     resolution: {integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==}
@@ -5096,9 +5216,9 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@6.0.3:
-    resolution: {integrity: sha512-y2TvuxSZPDyQakkFRPZHKFm+KKVqIisdg9/CZwm9ftvKXLP8NRWj38/ODjNbr43SsoXqNuAisEf1GdCxqWcdBw==}
-    engines: {node: '>=14.17'}
+  typescript@7.0.2:
+    resolution: {integrity: sha512-8FYau96o3NKOhbjKi/qNvG/W5jhzxkbdm5sj9AbZ/5T5sWqn3hJgLfGx27sRKZWTvyzCP8dLRBTf5tBTSRVUNA==}
+    engines: {node: '>=16.20.0'}
     hasBin: true
 
   unbash@5.1.0:
@@ -5111,8 +5231,8 @@ packages:
   undici-types@6.21.0:
     resolution: {integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==}
 
-  undici-types@7.16.0:
-    resolution: {integrity: sha512-Zz+aZWSj8LE6zoxD+xrjh4VfkIG8Ya6LvYkZqtUQGJPZjYl53ypCaUwWqo7eI0x66KBGeRo+mlBEkMSeSZ38Nw==}
+  undici-types@7.24.6:
+    resolution: {integrity: sha512-WRNW+sJgj5OBN4/0JpHFqtqzhpbnV0GuB+OozA9gCL7a993SmU+1JBZCzLNxYsbMfIeDL+lTsphD5jN5N+n0zg==}
 
   undici@6.29.1:
     resolution: {integrity: sha512-EvRlUt/QqAEvXdQeRMYUfwOQsfzpDztykrG2owGEE/rBOBoYv9uF39ZzsNDh4lTFHhTr2XOZjKkYgueD12ZmGA==}
@@ -5690,13 +5810,13 @@ snapshots:
 
   '@huggingface/tokenizers@0.2.0': {}
 
-  '@huggingface/transformers@4.3.2(@types/node@24.12.2)':
+  '@huggingface/transformers@4.3.2(@types/node@24.19.2)':
     dependencies:
       '@huggingface/jinja': 0.5.11
       '@huggingface/tokenizers': 0.2.0
       onnxruntime-node: 1.30.0
       onnxruntime-web: 1.31.0-dev.20260914-8d85527a0
-      sharp: 0.35.5(@types/node@24.12.2)
+      sharp: 0.35.5(@types/node@24.19.2)
     transitivePeerDependencies:
       - '@types/node'
 
@@ -5808,63 +5928,63 @@ snapshots:
 
   '@inquirer/ansi@2.0.5': {}
 
-  '@inquirer/checkbox@5.1.4(@types/node@24.12.2)':
+  '@inquirer/checkbox@5.1.4(@types/node@24.19.2)':
     dependencies:
       '@inquirer/ansi': 2.0.5
-      '@inquirer/core': 11.1.9(@types/node@24.12.2)
+      '@inquirer/core': 11.1.9(@types/node@24.19.2)
       '@inquirer/figures': 2.0.5
-      '@inquirer/type': 4.0.5(@types/node@24.12.2)
+      '@inquirer/type': 4.0.5(@types/node@24.19.2)
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
 
-  '@inquirer/confirm@6.0.12(@types/node@24.12.2)':
+  '@inquirer/confirm@6.0.12(@types/node@24.19.2)':
     dependencies:
-      '@inquirer/core': 11.1.9(@types/node@24.12.2)
-      '@inquirer/type': 4.0.5(@types/node@24.12.2)
+      '@inquirer/core': 11.1.9(@types/node@24.19.2)
+      '@inquirer/type': 4.0.5(@types/node@24.19.2)
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
 
-  '@inquirer/core@11.1.9(@types/node@24.12.2)':
+  '@inquirer/core@11.1.9(@types/node@24.19.2)':
     dependencies:
       '@inquirer/ansi': 2.0.5
       '@inquirer/figures': 2.0.5
-      '@inquirer/type': 4.0.5(@types/node@24.12.2)
+      '@inquirer/type': 4.0.5(@types/node@24.19.2)
       cli-width: 4.1.0
       fast-wrap-ansi: 0.2.0
       mute-stream: 3.0.0
       signal-exit: 4.1.0
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
 
   '@inquirer/figures@2.0.5': {}
 
-  '@inquirer/input@5.0.12(@types/node@24.12.2)':
+  '@inquirer/input@5.0.12(@types/node@24.19.2)':
     dependencies:
-      '@inquirer/core': 11.1.9(@types/node@24.12.2)
-      '@inquirer/type': 4.0.5(@types/node@24.12.2)
+      '@inquirer/core': 11.1.9(@types/node@24.19.2)
+      '@inquirer/type': 4.0.5(@types/node@24.19.2)
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
 
-  '@inquirer/password@5.0.12(@types/node@24.12.2)':
+  '@inquirer/password@5.0.12(@types/node@24.19.2)':
     dependencies:
       '@inquirer/ansi': 2.0.5
-      '@inquirer/core': 11.1.9(@types/node@24.12.2)
-      '@inquirer/type': 4.0.5(@types/node@24.12.2)
+      '@inquirer/core': 11.1.9(@types/node@24.19.2)
+      '@inquirer/type': 4.0.5(@types/node@24.19.2)
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
 
-  '@inquirer/select@5.1.4(@types/node@24.12.2)':
+  '@inquirer/select@5.1.4(@types/node@24.19.2)':
     dependencies:
       '@inquirer/ansi': 2.0.5
-      '@inquirer/core': 11.1.9(@types/node@24.12.2)
+      '@inquirer/core': 11.1.9(@types/node@24.19.2)
       '@inquirer/figures': 2.0.5
-      '@inquirer/type': 4.0.5(@types/node@24.12.2)
+      '@inquirer/type': 4.0.5(@types/node@24.19.2)
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
 
-  '@inquirer/type@4.0.5(@types/node@24.12.2)':
+  '@inquirer/type@4.0.5(@types/node@24.19.2)':
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
 
   '@isaacs/cliui@8.0.2':
     dependencies:
@@ -7070,12 +7190,12 @@ snapshots:
       '@tailwindcss/oxide-win32-arm64-msvc': 4.2.4
       '@tailwindcss/oxide-win32-x64-msvc': 4.2.4
 
-  '@tailwindcss/vite@4.2.4(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))':
+  '@tailwindcss/vite@4.2.4(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))':
     dependencies:
       '@tailwindcss/node': 4.2.4
       '@tailwindcss/oxide': 4.2.4
       tailwindcss: 4.2.4
-      vite: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
+      vite: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
 
   '@tanstack/react-table@8.21.3(react-dom@19.2.5(react@19.2.5))(react@19.2.5)':
     dependencies:
@@ -7154,9 +7274,9 @@ snapshots:
     dependencies:
       undici-types: 6.21.0
 
-  '@types/node@24.12.2':
+  '@types/node@24.19.2':
     dependencies:
-      undici-types: 7.16.0
+      undici-types: 7.24.6
 
   '@types/react-dom@19.2.3(@types/react@19.2.14)':
     dependencies:
@@ -7177,41 +7297,101 @@ snapshots:
 
   '@types/ws@8.18.1':
     dependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
+
+  '@typescript/typescript-aix-ppc64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-darwin-arm64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-darwin-x64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-freebsd-arm64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-freebsd-x64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-arm64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-arm@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-loong64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-mips64el@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-ppc64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-riscv64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-s390x@7.0.2':
+    optional: true
+
+  '@typescript/typescript-linux-x64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-netbsd-arm64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-netbsd-x64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-openbsd-arm64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-openbsd-x64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-sunos-x64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-win32-arm64@7.0.2':
+    optional: true
+
+  '@typescript/typescript-win32-x64@7.0.2':
+    optional: true
 
   '@vercel/oidc@3.2.0': {}
 
-  '@vitejs/plugin-react@6.0.1(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))':
+  '@vitejs/plugin-react@6.0.1(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))':
     dependencies:
       '@rolldown/pluginutils': 1.0.0-rc.7
-      vite: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
+      vite: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
 
-  '@vitest/mocker@5.0.5(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4))':
+  '@vitest/mocker@5.0.5(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.5
       estree-walker: 3.0.3
       magic-string: 1.4.5
     optionalDependencies:
-      vite: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4)
+      vite: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4)
 
-  '@vitest/mocker@5.0.5(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))':
+  '@vitest/mocker@5.0.5(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.5
       estree-walker: 3.0.3
       magic-string: 1.4.5
     optionalDependencies:
-      vite: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
+      vite: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
 
-  '@vitest/mocker@5.0.5(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))':
+  '@vitest/mocker@5.0.5(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.0.5
       estree-walker: 3.0.3
       magic-string: 1.4.5
     optionalDependencies:
-      vite: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1)
 
   '@vitest/spy@5.0.5': {}
 
@@ -8547,7 +8727,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.2
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
       long: 5.3.2
 
   proxy-addr@2.0.7:
@@ -8769,7 +8949,7 @@ snapshots:
 
   rgb2hex@0.2.5: {}
 
-  rolldown-plugin-dts@0.28.8(oxc-resolver@11.24.2)(rolldown@1.2.16)(typescript@6.0.3):
+  rolldown-plugin-dts@0.28.8(oxc-resolver@11.24.2)(rolldown@1.2.16)(typescript@7.0.2):
     dependencies:
       dts-resolver: 3.0.0(oxc-resolver@11.24.2)
       get-tsconfig: 5.0.0-beta.6
@@ -8779,7 +8959,7 @@ snapshots:
       yuku-codegen: 0.19.0
       yuku-parser: 0.19.0
     optionalDependencies:
-      typescript: 6.0.3
+      typescript: 7.0.2
     transitivePeerDependencies:
       - oxc-resolver
 
@@ -8902,7 +9082,7 @@ snapshots:
 
   setprototypeof@1.2.0: {}
 
-  sharp@0.35.5(@types/node@24.12.2):
+  sharp@0.35.5(@types/node@24.19.2):
     dependencies:
       '@img/colour': 1.1.0
       detect-libc: 2.1.2
@@ -8933,7 +9113,7 @@ snapshots:
       '@img/sharp-win32-arm64': 0.35.5
       '@img/sharp-win32-ia32': 0.35.5
       '@img/sharp-win32-x64': 0.35.5
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
 
   shebang-command@2.0.0:
     dependencies:
@@ -9135,7 +9315,7 @@ snapshots:
 
   tree-kill@1.2.2: {}
 
-  tsdown@0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@6.0.3):
+  tsdown@0.23.4(@arethetypeswrong/core@0.18.5)(oxc-resolver@11.24.2)(publint@0.3.25)(typescript@7.0.2):
     dependencies:
       cac: 7.1.0
       defu: 6.1.7
@@ -9145,7 +9325,7 @@ snapshots:
       obug: 3.0.0
       picomatch: 4.0.7
       rolldown: 1.2.16
-      rolldown-plugin-dts: 0.28.8(oxc-resolver@11.24.2)(rolldown@1.2.16)(typescript@6.0.3)
+      rolldown-plugin-dts: 0.28.8(oxc-resolver@11.24.2)(rolldown@1.2.16)(typescript@7.0.2)
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
       tinyps: 0.5.1
@@ -9154,7 +9334,7 @@ snapshots:
     optionalDependencies:
       '@arethetypeswrong/core': 0.18.5
       publint: 0.3.25
-      typescript: 6.0.3
+      typescript: 7.0.2
     transitivePeerDependencies:
       - '@typescript/native-preview'
       - '@volar/typescript'
@@ -9189,7 +9369,28 @@ snapshots:
 
   typescript@5.6.1-rc: {}
 
-  typescript@6.0.3: {}
+  typescript@7.0.2:
+    optionalDependencies:
+      '@typescript/typescript-aix-ppc64': 7.0.2
+      '@typescript/typescript-darwin-arm64': 7.0.2
+      '@typescript/typescript-darwin-x64': 7.0.2
+      '@typescript/typescript-freebsd-arm64': 7.0.2
+      '@typescript/typescript-freebsd-x64': 7.0.2
+      '@typescript/typescript-linux-arm': 7.0.2
+      '@typescript/typescript-linux-arm64': 7.0.2
+      '@typescript/typescript-linux-loong64': 7.0.2
+      '@typescript/typescript-linux-mips64el': 7.0.2
+      '@typescript/typescript-linux-ppc64': 7.0.2
+      '@typescript/typescript-linux-riscv64': 7.0.2
+      '@typescript/typescript-linux-s390x': 7.0.2
+      '@typescript/typescript-linux-x64': 7.0.2
+      '@typescript/typescript-netbsd-arm64': 7.0.2
+      '@typescript/typescript-netbsd-x64': 7.0.2
+      '@typescript/typescript-openbsd-arm64': 7.0.2
+      '@typescript/typescript-openbsd-x64': 7.0.2
+      '@typescript/typescript-sunos-x64': 7.0.2
+      '@typescript/typescript-win32-arm64': 7.0.2
+      '@typescript/typescript-win32-x64': 7.0.2
 
   unbash@5.1.0: {}
 
@@ -9200,7 +9401,7 @@ snapshots:
 
   undici-types@6.21.0: {}
 
-  undici-types@7.16.0: {}
+  undici-types@7.24.6: {}
 
   undici@6.29.1: {}
 
@@ -9256,7 +9457,7 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4):
+  vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4):
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
@@ -9264,13 +9465,13 @@ snapshots:
       rolldown: 1.0.0-rc.17
       tinyglobby: 0.2.16
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
       esbuild: 0.27.3
       fsevents: 2.3.3
       jiti: 2.6.1
       yaml: 2.8.4
 
-  vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4):
+  vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4):
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
@@ -9278,13 +9479,13 @@ snapshots:
       rolldown: 1.0.0-rc.17
       tinyglobby: 0.2.16
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
       esbuild: 0.27.3
       fsevents: 2.3.3
       jiti: 2.7.0
       yaml: 2.8.4
 
-  vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1):
+  vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1):
     dependencies:
       lightningcss: 1.32.0
       picomatch: 4.0.4
@@ -9292,16 +9493,16 @@ snapshots:
       rolldown: 1.0.0-rc.17
       tinyglobby: 0.2.16
     optionalDependencies:
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
       esbuild: 0.27.3
       fsevents: 2.3.3
       jiti: 2.7.0
       yaml: 2.9.1
 
-  vitest@5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4)):
+  vitest@5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.5(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4))
+      '@vitest/mocker': 5.0.5(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -9312,19 +9513,19 @@ snapshots:
       tinybench: 6.2.2
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4)
+      vite: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.6.1)(yaml@2.8.4)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
       jsdom: 29.1.1
     transitivePeerDependencies:
       - msw
 
-  vitest@5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)):
+  vitest@5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.5(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
+      '@vitest/mocker': 5.0.5(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -9335,19 +9536,19 @@ snapshots:
       tinybench: 6.2.2
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
+      vite: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.8.4)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
       jsdom: 29.1.1
     transitivePeerDependencies:
       - msw
 
-  vitest@5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.12.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1)):
+  vitest@5.0.5(@opentelemetry/api@1.9.0)(@types/node@24.19.2)(jsdom@29.1.1)(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.0.5(vite@8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
+      '@vitest/mocker': 5.0.5(vite@8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -9358,11 +9559,11 @@ snapshots:
       tinybench: 6.2.2
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.0.10(@types/node@24.12.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1)
+      vite: 8.0.10(@types/node@24.19.2)(esbuild@0.27.3)(jiti@2.7.0)(yaml@2.9.1)
       why-is-node-running: 3.2.1
     optionalDependencies:
       '@opentelemetry/api': 1.9.0
-      '@types/node': 24.12.2
+      '@types/node': 24.19.2
       jsdom: 29.1.1
     transitivePeerDependencies:
       - msw

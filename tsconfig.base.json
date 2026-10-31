@@ -13,7 +13,6 @@
     "sourceMap": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": true,
-    "types": ["node"],
-    "ignoreDeprecations": "6.0"
+    "types": ["node"]
   }
 }

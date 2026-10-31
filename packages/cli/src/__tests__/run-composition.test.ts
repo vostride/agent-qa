@@ -2,7 +2,9 @@ import { mkdtempSync, readFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
+import { createVirtualFileSystem } from 'typescript/unstable/fs'
+import { API } from 'typescript/unstable/sync'
 import { afterAll, describe, it, expect, vi } from 'vitest'
 import type { RiskActionDescriptor } from '@vostride/agent-qa-schema'
 import type { RunEventEnvelope } from '@vostride/agent-qa-schema'
@@ -137,13 +139,18 @@ describe('attachRunSubscribers threads the quarantine snapshot to both reporters
       fileURLToPath(new URL('../commands/run.ts', import.meta.url)),
       'utf8',
     )
-    const sourceFile = ts.createSourceFile(
-      'run.ts',
-      runSource,
-      ts.ScriptTarget.Latest,
-      true,
-      ts.ScriptKind.TS,
-    )
+    const api = new API({ cwd: '/', fs: createVirtualFileSystem({ '/run.ts': runSource }) })
+    let parsed: ts.SourceFile | undefined
+    try {
+      parsed = api
+        .updateSnapshot({ openFiles: ['/run.ts'] })
+        .getDefaultProjectForFile('/run.ts')
+        ?.program.getSourceFile('/run.ts')
+    } finally {
+      api.close()
+    }
+    if (parsed === undefined) throw new Error('TypeScript could not parse run.ts')
+    const sourceFile = parsed
     const calls: ts.CallExpression[] = []
     const visit = (node: ts.Node): void => {
       if (
@@ -153,7 +160,7 @@ describe('attachRunSubscribers threads the quarantine snapshot to both reporters
       ) {
         calls.push(node)
       }
-      ts.forEachChild(node, visit)
+      node.forEachChild(visit)
     }
     visit(sourceFile)
     expect(calls).toHaveLength(2)

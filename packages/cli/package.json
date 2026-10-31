@@ -127,13 +127,13 @@
   "devDependencies": {
     "@inquirer/confirm": "6.0.12",
     "@modelcontextprotocol/client": "2.3.1",
-    "@types/node": "~24.12.2",
+    "@types/node": "~24.19.2",
     "@vostride/agent-qa-arch": "workspace:*",
     "@vostride/agent-qa-safety": "workspace:*",
     "glob": "13.0.6",
     "jiti": "2.6.1",
     "tsdown": "~0.23.4",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "vitest": "~5.0.5"
   }
 }

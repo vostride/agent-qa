@@ -70,12 +70,12 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@types/node": "~24.12.2",
+    "@types/node": "~24.19.2",
     "@types/ws": "~8.18.1",
     "@vostride/agent-qa-agent": "workspace:*",
     "@vostride/agent-qa-agent-local": "workspace:*",
     "@vostride/agent-qa-arch": "workspace:*",
     "tsdown": "~0.23.4",
-    "typescript": "~6.0.3"
+    "typescript": "~7.0.2"
   }
 }

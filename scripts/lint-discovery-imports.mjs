@@ -3,10 +3,12 @@
 
 import { existsSync, readFileSync, readdirSync, realpathSync, statSync } from 'node:fs'
 import { isBuiltin } from 'node:module'
-import { dirname, join, relative, resolve } from 'node:path'
+import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import ts from 'typescript'
+import * as ts from 'typescript/unstable/ast'
+import { createVirtualFileSystem } from 'typescript/unstable/fs'
+import { API } from 'typescript/unstable/sync'
 
 export const WORKSPACE_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -73,15 +75,61 @@ export const PINNED_FORBIDDEN_RUNTIME = Object.freeze([
 // The acquisition module that must be inside the eager graph for a clean verdict to mean anything.
 export const REQUIRED_GRAPH_MEMBER = 'packages/knowledge-local/src/embedder-floor.ts'
 
-function scriptKindOf(fileName) {
-  if (/\.[cm]?jsx?$/u.test(fileName)) return ts.ScriptKind.JS
-  if (fileName.endsWith('.tsx')) return ts.ScriptKind.TSX
-  return ts.ScriptKind.TS
+// TypeScript 7 parses in its own tsgo process, which keeps the event loop alive until closed.
+function openParser() {
+  const files = createVirtualFileSystem({})
+  const api = new API({ cwd: '/', fs: files })
+  let count = 0
+  let last
+  return {
+    parse(sourceText, fileName) {
+      // The virtual path keeps the file's extension, which sets the script kind.
+      const path = `/parse/${count++}/${basename(fileName)}`
+      files.writeFile(path, sourceText)
+      const closeFiles = last === undefined ? [] : [last]
+      const snapshot = api.updateSnapshot({ openFiles: [path], closeFiles })
+      last = path
+      const source = snapshot.getDefaultProjectForFile(path)?.program.getSourceFile(path)
+      if (source === undefined) throw new Error(`TypeScript could not parse ${fileName}`)
+      return source
+    },
+    close: () => api.close(),
+  }
 }
 
+let session
+
 function parse(sourceText, fileName) {
-  return ts.createSourceFile(fileName, sourceText, ts.ScriptTarget.Latest, true, scriptKindOf(fileName))
+  if (session !== undefined) return session.parse(sourceText, fileName)
+  const parser = openParser()
+  try {
+    return parser.parse(sourceText, fileName)
+  } finally {
+    parser.close()
+  }
 }
+
+function withSession(run) {
+  if (session !== undefined) return run()
+  session = openParser()
+  try {
+    return run()
+  } finally {
+    session.close()
+    session = undefined
+  }
+}
+
+const SIGNATURE_KINDS = new Set([
+  ts.SyntaxKind.MethodSignature,
+  ts.SyntaxKind.CallSignature,
+  ts.SyntaxKind.ConstructSignature,
+  ts.SyntaxKind.IndexSignature,
+  ts.SyntaxKind.FunctionType,
+  ts.SyntaxKind.ConstructorType,
+])
+
+const isFunctionLike = node => ts.isFunctionLikeDeclaration(node) || SIGNATURE_KINDS.has(node.kind)
 
 function literalText(node) {
   return node !== undefined && (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node))
@@ -98,7 +146,7 @@ export function moduleEdges(sourceText, fileName) {
   const visit = (node, inFunction) => {
     if (ts.isImportDeclaration(node)) {
       const specifier = literalText(node.moduleSpecifier)
-      if (specifier !== undefined && node.importClause?.isTypeOnly !== true) {
+      if (specifier !== undefined && node.importClause?.phaseModifier !== ts.SyntaxKind.TypeKeyword) {
         add(specifier, node.importClause === undefined ? 'side-effect' : 'import', true, node)
       }
     } else if (ts.isExportDeclaration(node)) {
@@ -117,8 +165,8 @@ export function moduleEdges(sourceText, fileName) {
         add(specifier, 'require', !inFunction, node)
       }
     }
-    const nested = inFunction || ts.isFunctionLike(node)
-    ts.forEachChild(node, child => visit(child, nested))
+    const nested = inFunction || isFunctionLike(node)
+    node.forEachChild(child => visit(child, nested))
   }
   visit(source, false)
   return edges
@@ -137,7 +185,7 @@ export function calledNames(sourceText, fileName, names) {
         calls.push({ name, line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1 })
       }
     }
-    ts.forEachChild(node, visit)
+    node.forEachChild(visit)
   }
   visit(source)
   return calls
@@ -146,8 +194,7 @@ export function calledNames(sourceText, fileName, names) {
 export function exportedFunctionNames(sourceText, fileName) {
   const names = []
   for (const statement of parse(sourceText, fileName).statements) {
-    const exported = ts.canHaveModifiers(statement)
-      && ts.getModifiers(statement)?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword)
+    const exported = statement.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.ExportKeyword)
     if (exported && ts.isFunctionDeclaration(statement) && statement.name !== undefined) {
       names.push(statement.name.text)
     }
@@ -216,6 +263,10 @@ function installedClosure(starts, skip) {
  * executable package imports, minus the closure every other workspace dependency reaches.
  */
 export function deriveForbiddenRuntime(root = WORKSPACE_ROOT) {
+  return withSession(() => derive(root))
+}
+
+function derive(root) {
   const workspace = workspacePackages(root)
   const owner = join(root, 'packages', 'knowledge-local')
   const roots = new Set()
@@ -253,8 +304,8 @@ export function deriveForbiddenRuntime(root = WORKSPACE_ROOT) {
 }
 
 export function acquisitionCallNames(root = WORKSPACE_ROOT) {
-  return [...new Set(ACQUISITION_SOURCES.flatMap(file =>
-    exportedFunctionNames(readFileSync(join(root, file), 'utf8'), file)))].sort()
+  return withSession(() => [...new Set(ACQUISITION_SOURCES.flatMap(file =>
+    exportedFunctionNames(readFileSync(join(root, file), 'utf8'), file)))].sort())
 }
 
 function sourceFor(base) {
@@ -296,6 +347,10 @@ const PARSEABLE = /\.(?:[cm]?[jt]sx?)$/u
  * `acquisitionCalls` default to the live derivation; tests hand planted subjects their own.
  */
 export function lintDiscoveryImports(options = {}) {
+  return withSession(() => lint(options))
+}
+
+function lint(options) {
   const root = options.root ?? WORKSPACE_ROOT
   const entries = options.entries ?? DISCOVERY_ENTRIES
   const forbidden = new Set(options.forbidden ?? deriveForbiddenRuntime(root).names)
@@ -359,6 +414,10 @@ export function lintDiscoveryImports(options = {}) {
 }
 
 function main() {
+  withSession(report)
+}
+
+function report() {
   const derived = deriveForbiddenRuntime(WORKSPACE_ROOT)
   const names = derived.names
   const failures = []

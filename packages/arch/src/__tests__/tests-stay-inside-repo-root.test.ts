@@ -21,8 +21,10 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
-import ts from 'typescript'
-import { describe, expect, it } from 'vitest'
+import * as ts from 'typescript/unstable/ast'
+import { createVirtualFileSystem } from 'typescript/unstable/fs'
+import { API, type Snapshot } from 'typescript/unstable/sync'
+import { afterAll, describe, expect, it } from 'vitest'
 
 const HERE = dirname(fileURLToPath(import.meta.url))
 /** packages/arch/src/__tests__ -> packages. */
@@ -108,13 +110,46 @@ const isMatcherCall = (call: ts.CallExpression) => {
   return ts.isCallExpression(callee) && ts.isIdentifier(callee.expression) && callee.expression.text === 'expect'
 }
 
-const scriptKind = (file: string) =>
-  file.endsWith('.tsx') ? ts.ScriptKind.TSX : /\.m?js$/.test(file) ? ts.ScriptKind.JS : ts.ScriptKind.TS
+// TypeScript 7 parses in its own tsgo process; the virtual path keeps each file's extension,
+// which sets its script kind.
+const parserFiles = createVirtualFileSystem({})
+const parser = new API({ cwd: '/', fs: parserFiles })
+afterAll(() => parser.close())
 
-function scanSource(file: string, text: string): Hit[] {
+const sourceAt = (snapshot: Snapshot, path: string) => {
+  const source = snapshot.getDefaultProjectForFile(path)?.program.getSourceFile(path)
+  if (source === undefined) throw new Error(`TypeScript could not parse ${path}`)
+  return source
+}
+
+let planted = 0
+let lastPlanted: string | undefined
+
+function parseOne(file: string, text: string): ts.SourceFile {
+  const path = `/planted/${String(planted++)}/${file}`
+  parserFiles.writeFile?.(path, text)
+  const closeFiles = lastPlanted === undefined ? [] : [lastPlanted]
+  lastPlanted = path
+  return sourceAt(parser.updateSnapshot({ openFiles: [path], closeFiles }), path)
+}
+
+// One snapshot over the whole universe: a snapshot per file is many times slower.
+function parseAll(texts: ReadonlyMap<string, string>): Map<string, ts.SourceFile> {
+  const paths = [...texts].map(([file, text]) => {
+    const path = `/tree/${file}`
+    parserFiles.writeFile?.(path, text)
+    return [file, path] as const
+  })
+  const snapshot = parser.updateSnapshot({ openFiles: paths.map(([, path]) => path) })
+  const sources = new Map(paths.map(([file, path]) => [file, sourceAt(snapshot, path)]))
+  parser.updateSnapshot({ closeFiles: paths.map(([, path]) => path) })
+  return sources
+}
+
+function scanSource(file: string, text: string, parsed?: ts.SourceFile): Hit[] {
   const abs = join(REPO_ROOT, file)
   const dir = dirname(abs)
-  const source = ts.createSourceFile(abs, text, ts.ScriptTarget.Latest, true, scriptKind(file))
+  const source = parsed ?? parseOne(file, text)
   const hits: Hit[] = []
   const hit = (node: ts.Node, rule: Rule) =>
     hits.push({ file, line: source.getLineAndCharacterOfPosition(node.getStart(source)).line + 1, rule })
@@ -166,12 +201,12 @@ function scanSource(file: string, text: string): Hit[] {
         rootUpRule(node)
       }
       demoRule(node)
-    } else if ((ts.isVariableDeclaration(node) || ts.isParameter(node) || ts.isFunctionDeclaration(node)
+    } else if ((ts.isVariableDeclaration(node) || ts.isParameterDeclaration(node) || ts.isFunctionDeclaration(node)
       || ts.isPropertyDeclaration(node) || ts.isBindingElement(node))
       && node.name !== undefined && ts.isIdentifier(node.name) && PARENT_ROOT_NAMING.test(node.name.text)) {
       hit(node.name, 'R-SUPER')
     }
-    ts.forEachChild(node, visit)
+    node.forEachChild(visit)
   }
   visit(source)
   return hits
@@ -180,7 +215,9 @@ function scanSource(file: string, text: string): Hit[] {
 const describeHit = (hit: Hit) => `${hit.file}:${hit.line} ${hit.rule}`
 
 const UNIVERSE = universe()
-const REAL_HITS = UNIVERSE.flatMap(file => scanSource(file, readFileSync(join(REPO_ROOT, file), 'utf8')))
+const TEXTS = new Map(UNIVERSE.map(file => [file, readFileSync(join(REPO_ROOT, file), 'utf8')]))
+const SOURCES = parseAll(TEXTS)
+const REAL_HITS = [...TEXTS].flatMap(([file, text]) => scanSource(file, text, SOURCES.get(file)))
 
 const PLANTED = 'packages/planted/src/__tests__/planted.test.ts'
 const UP = '../'
