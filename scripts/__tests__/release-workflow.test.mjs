@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
+import { loadWorkflow } from '../check-ci-matrix.mjs'
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
@@ -38,7 +39,6 @@ test('release workflow uses trusted publishing prerequisites without npm tokens'
   const workflow = readWorkflow()
 
   assert.match(workflow, /runs-on:\s*ubuntu-latest/)
-  assert.match(workflow, /node-version:\s*'24'/)
   assert.match(workflow, /permissions:/)
   assert.match(workflow, /contents:\s*write/)
   assert.match(workflow, /id-token:\s*write/)
@@ -52,9 +52,8 @@ test('release workflow uses trusted publishing prerequisites without npm tokens'
   assert.match(workflow, /::error::Set RELEASE_PUSH_TOKEN in the vostride\/agent-qa repository Actions secrets\./)
   assert.match(
     workflow,
-    /- name:\s*Push release commit and tag\s*\n\s+env:\s*\n\s+RELEASE_PUSH_TOKEN:\s*\$\{\{ secrets\.RELEASE_PUSH_TOKEN \}\}\s*\n\s+run:/,
+    /- name:\s*Push release commit and tag\s*\n\s+env:\s*\n\s+RELEASE_PUSH_TOKEN:\s*\$\{\{ secrets\.RELEASE_PUSH_TOKEN \}\}\s*\n(?:\s+[A-Z_]+:.*\n)*\s+run:/,
   )
-  assert.equal(workflow.split('secrets.RELEASE_PUSH_TOKEN').length - 1, 2)
   assert.doesNotMatch(workflow, /push origin/)
   assert.doesNotMatch(workflow, /NPM_TOKEN/)
   assert.doesNotMatch(workflow, /docker\/build-push-action|DOCKERHUB_TOKEN/)
@@ -63,15 +62,16 @@ test('release workflow uses trusted publishing prerequisites without npm tokens'
 test('release workflow gates build, staging, commit, tag, push, and publish in order', () => {
   const workflow = readWorkflow()
   const orderedCommands = [
+    'uses: ./.github/workflows/ci.yml',
+    'name: Publish npm packages',
     'persist-credentials: false',
     'if [ -z "$RELEASE_PUSH_TOKEN" ]; then',
+    'name: Install pnpm',
     'uses: actions/setup-node@v6',
     'pnpm install --frozen-lockfile',
+    'pnpm audit --prod --audit-level high',
     'pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage preflight',
     'pnpm exec node scripts/release/version.mjs --bump "${{ inputs.bump }}" --write',
-    'pnpm typecheck',
-    'sudo apt-get update && sudo apt-get install -y --no-install-recommends expect',
-    'pnpm test',
     'pnpm exec node scripts/release/posthog.mjs --write',
     'pnpm exec turbo build --force',
     'pnpm run validate:skills',
@@ -80,7 +80,7 @@ test('release workflow gates build, staging, commit, tag, push, and publish in o
     'pnpm exec node scripts/release/stage-packages.mjs --target-version "${{ steps.version.outputs.version }}" --out .release/staged-packages',
     'pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "${{ steps.version.outputs.version }}" --staged-dir .release/staged-packages',
     'pnpm exec node scripts/release/git.mjs --commit-tag',
-    'git -c credential.helper= -c \'credential.helper=!f() { echo username=x-access-token; echo "password=$RELEASE_PUSH_TOKEN"; }; f\' push https://github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }} --follow-tags',
+    'git -c credential.helper= -c \'credential.helper=!f() { echo username=x-access-token; echo "password=$RELEASE_PUSH_TOKEN"; }; f\' push --atomic https://github.com/${{ github.repository }}.git HEAD:refs/heads/${{ github.ref_name }} "refs/tags/v$RELEASE_VERSION"',
     'pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages',
   ]
 
@@ -90,13 +90,15 @@ test('release workflow gates build, staging, commit, tag, push, and publish in o
   }
 })
 
-test('release workflow writes the PostHog key after the tests and before a forced build, and validates staged packages before publish', () => {
+test('release workflow writes the PostHog key after CI passed and before a forced build, and validates staged packages before publish', () => {
   const workflow = readWorkflow()
+  const npm = loadWorkflow('release.yml').jobs.npm
 
   assert.match(workflow, /POSTHOG_PROJECT_KEY:\s*\$\{\{ secrets\.POSTHOG_PROJECT_KEY \}\}/)
-  assertBefore(workflow, 'pnpm test', 'pnpm exec node scripts/release/posthog.mjs --write')
+  assert.ok([npm.needs].flat().includes('ci'))
+  assert.match(npm.if, /needs\.ci\.result == 'success'/)
+  assert.ok(npm.steps.some((step) => step.run === 'pnpm exec node scripts/release/posthog.mjs --write'))
   assertBefore(workflow, 'pnpm exec node scripts/release/posthog.mjs --write', 'pnpm exec turbo build --force')
-  assert.equal(workflow.split('scripts/release/posthog.mjs --write').length - 1, 1)
   assertBefore(
     workflow,
     'pnpm exec node scripts/release/stage-packages.mjs --target-version "${{ steps.version.outputs.version }}" --out .release/staged-packages',
@@ -113,7 +115,7 @@ test('release workflow publishes Docker from the release tag after npm publish',
   const workflow = readWorkflow()
 
   assert.match(workflow, /outputs:\s*\n\s+version:\s*\$\{\{ steps\.version\.outputs\.version \}\}/)
-  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
+  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+needs:\s*ci\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.ci\.result == 'success' \}\}/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
   assert.match(workflow, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
@@ -161,7 +163,7 @@ test('release workflow publishes the GitHub Release after package and subscripti
   assert.match(job, /contents:\s*write/)
   assert.match(job, /uses:\s*actions\/checkout@v6/)
   assert.match(job, /ref:\s*v\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
-  assert.match(job, /node-version:\s*'24'/)
+  assert.match(job, /node-version-file:\s*\.nvmrc/)
   assert.match(job, /pnpm install --frozen-lockfile/)
   assert.match(job, /GH_TOKEN:\s*\$\{\{ github\.token \}\}/)
   assert.match(job, /GITHUB_RELEASE_TARGET_VERSION:\s*\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
@@ -173,13 +175,63 @@ test('release workflow can repair a missing GitHub Release for an existing versi
   const workflow = readWorkflow()
 
   assert.match(workflow, /github_release_target_version:\s*\n\s+description:\s*Existing agent-qa version to publish only the GitHub Release/)
-  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
+  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+needs:\s*ci\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' &&/)
   assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth\s*\n\s+needs:\s*npm\s*\n\s+if:\s*\$\{\{ always\(\) && inputs\.github_release_target_version == ''/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
   assert.match(workflow, /github-release:\s*\n\s+name:\s*Publish GitHub release\s*\n\s+if:\s*\$\{\{ always\(\) && \(inputs\.github_release_target_version != ''/)
   assert.match(workflow, /github-release:\s*\n\s+name:\s*Publish GitHub release[\s\S]*?needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.match(workflow, /ref:\s*v\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
   assert.match(workflow, /GITHUB_RELEASE_TARGET_VERSION:\s*\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
+})
+
+test('release npm and GitHub release jobs take Node from .nvmrc and pnpm from a commit-pinned pnpm/action-setup, with no cache', () => {
+  const workflow = readWorkflow()
+  const { jobs } = loadWorkflow('release.yml')
+
+  for (const id of ['npm', 'github-release']) {
+    const steps = jobs[id].steps
+    const pnpmIndex = steps.findIndex((step) => String(step.uses ?? '').startsWith('pnpm/action-setup@'))
+    const nodeIndex = steps.findIndex((step) => String(step.uses ?? '').startsWith('actions/setup-node@'))
+    assert.ok(pnpmIndex !== -1 && nodeIndex !== -1 && pnpmIndex < nodeIndex, `${id} installs pnpm before Node`)
+    assert.match(steps[pnpmIndex].uses, /^pnpm\/action-setup@[0-9a-f]{40}$/)
+    assert.equal(steps[pnpmIndex].with, undefined)
+    assert.equal(steps[nodeIndex].with['node-version-file'], '.nvmrc')
+    assert.equal(steps[nodeIndex].with['node-version'], undefined)
+    assert.equal(steps[nodeIndex].with.cache, undefined)
+    assert.ok(steps.every((step) => !String(step.uses ?? '').startsWith('actions/cache')), `${id} restores no cache`)
+  }
+  for (const line of workflow.split('\n').filter((text) => text.includes('pnpm/action-setup@'))) {
+    assert.match(line, /pnpm\/action-setup@[0-9a-f]{40} # v\d+\.\d+\.\d+$/)
+  }
+  assert.doesNotMatch(workflow, /corepack/i)
+})
+
+test('a release calls CI with read-only contents and no secrets, and publishes npm only after CI succeeded', () => {
+  const release = loadWorkflow('release.yml')
+  const ci = loadWorkflow('ci.yml')
+
+  assert.equal(release.jobs.ci.uses, './.github/workflows/ci.yml')
+  assert.deepEqual(release.jobs.ci.permissions, { contents: 'read' })
+  assert.equal(release.jobs.ci.secrets, undefined)
+  assert.ok('workflow_call' in ci.on)
+  assert.deepEqual(ci.permissions, { contents: 'read' })
+  for (const [id, job] of Object.entries(ci.jobs)) {
+    assert.ok(!job.permissions || !('id-token' in job.permissions), `ci.yml job ${id} asks for no id-token`)
+  }
+  assert.ok([release.jobs.npm.needs].flat().includes('ci'))
+  assert.match(release.jobs.npm.if, /needs\.ci\.result == 'success'/)
+})
+
+test('no release job runs a test, a typecheck or a browser install, and none downloads a build artifact', () => {
+  const release = loadWorkflow('release.yml')
+  const forbidden = /\b(pnpm|turbo)\b[^\n]*\b(test|typecheck)\b|playwright(-core)? install|apt-get install/
+
+  for (const [id, job] of Object.entries(release.jobs)) {
+    for (const step of job.steps ?? []) {
+      assert.doesNotMatch(String(step.run ?? ''), forbidden, `${id}: ${step.name}`)
+      assert.ok(!String(step.uses ?? '').startsWith('actions/download-artifact'), `${id}: ${step.name}`)
+    }
+  }
 })
 
 test('docker release workflow is manual and reusable with Docker Hub preflight', () => {

@@ -29,9 +29,17 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  ci:
+    name: CI
+    if: ${{ inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' }}
+    permissions:
+      contents: read
+    uses: ./.github/workflows/ci.yml
+
   npm:
     name: Publish npm packages
-    if: ${{ inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' }}
+    needs: ci
+    if: ${{ !cancelled() && inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' && needs.ci.result == 'success' }}
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version }}
@@ -52,14 +60,14 @@ jobs:
             exit 1
           fi
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
+          node-version-file: .nvmrc
           registry-url: 'https://registry.npmjs.org'
-
-      - name: Enable Corepack
-        run: corepack enable
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -75,20 +83,6 @@ jobs:
       - name: Write release version
         id: version
         run: pnpm exec node scripts/release/version.mjs --bump "${{ inputs.bump }}" --write
-
-      - name: Typecheck
-        run: pnpm typecheck
-
-      - name: Install expect
-        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends expect
-
-      - name: Install Playwright Chromium
-        run: pnpm --filter agent-qa exec playwright-core install --with-deps chromium
-
-      - name: Test
-        env:
-          TURBO_CONCURRENCY: '1'
-        run: pnpm test
 
       - name: Write PostHog project key
         env:
@@ -119,11 +113,13 @@ jobs:
       - name: Create release commit and tag
         run: pnpm exec node scripts/release/git.mjs --commit-tag
 
+      # The commit and tag land together or not at all.
       - name: Push release commit and tag
         env:
           RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version }}
         run: |
-          git -c credential.helper= -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$RELEASE_PUSH_TOKEN"; }; f' push https://github.com/${{ github.repository }}.git HEAD:${{ github.ref_name }} --follow-tags
+          git -c credential.helper= -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$RELEASE_PUSH_TOKEN"; }; f' push --atomic https://github.com/${{ github.repository }}.git HEAD:refs/heads/${{ github.ref_name }} "refs/tags/v$RELEASE_VERSION"
 
       - name: Publish packages
         run: pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages
@@ -212,13 +208,13 @@ jobs:
         with:
           ref: v${{ inputs.github_release_target_version || needs.npm.outputs.version }}
 
+      - name: Install pnpm
+        uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
       - name: Setup Node
         uses: actions/setup-node@v6
         with:
-          node-version: '24'
-
-      - name: Enable Corepack
-        run: corepack enable
+          node-version-file: .nvmrc
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
