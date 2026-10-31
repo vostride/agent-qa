@@ -509,8 +509,20 @@ describe('composeLocalAgent', () => {
     + ' at the repository root first; a stale bundle certifies the previous revision'
 
   function newestBundleInput(): { path: string; mtimeMs: number } {
-    const config = join(PACKAGE_ROOT, 'tsdown.config.ts')
-    let newest = { path: relative(PACKAGE_ROOT, config), mtimeMs: statSync(config).mtimeMs }
+    const repoRoot = join(PACKAGE_ROOT, '..', '..')
+    // The lockfile pins the bundler itself, and the manifest decides what stays external.
+    const inputs = [
+      join(PACKAGE_ROOT, 'tsdown.config.ts'),
+      join(PACKAGE_ROOT, 'package.json'),
+      join(PACKAGE_ROOT, 'tsconfig.json'),
+      join(repoRoot, 'tsconfig.base.json'),
+      join(repoRoot, 'pnpm-lock.yaml'),
+    ]
+    let newest = { path: '', mtimeMs: 0 }
+    for (const file of inputs) {
+      const { mtimeMs } = statSync(file)
+      if (mtimeMs > newest.mtimeMs) newest = { path: relative(PACKAGE_ROOT, file), mtimeMs }
+    }
     const walk = (dir: string): void => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
         if (entry.name === '__tests__') continue
