@@ -53,21 +53,56 @@ test('every job that needs the build downloads it after checkout and unpacks it 
   }
 })
 
-test('every job that installs packages takes pnpm from packageManager before setup-node reads .nvmrc and caches the pnpm store', () => {
+test('every job that installs packages takes pnpm from packageManager, then sets up Node from .nvmrc or from the floor engines.node names, caching the pnpm store', () => {
   const installers = jobs.filter(([, job]) => stepsOf(job).some((step) => /\bpnpm install\b/.test(runOf(step))))
   assert.ok(installers.length > 0, 'some job installs packages')
   for (const [id, job] of installers) {
     const steps = stepsOf(job)
     const pnpm = indexOfUse(steps, 'pnpm/action-setup@')
-    const node = indexOfUse(steps, 'actions/setup-node@')
     const install = steps.findIndex((step) => /\bpnpm install\b/.test(runOf(step)))
+    const nodes = steps.flatMap((step, index) => (usesOf(step).startsWith('actions/setup-node@') ? [index] : []))
     assert.ok(pnpm >= 0, `${id} installs pnpm with pnpm/action-setup`)
     assert.equal(steps[pnpm].with?.version, undefined, `${id}: pnpm's version comes from packageManager`)
-    assert.ok(node > pnpm, `${id} sets up Node after pnpm, so the pnpm cache can resolve the store`)
-    assert.equal(steps[node].with?.['node-version-file'], '.nvmrc', `${id} reads Node from .nvmrc`)
-    assert.equal(steps[node].with?.['node-version'], undefined, `${id} names no Node version by hand`)
-    assert.equal(steps[node].with?.cache, 'pnpm', `${id} caches the pnpm store`)
-    assert.ok(install > node, `${id} installs after Node is set up`)
+    assert.ok(nodes.length > 0, `${id} sets up Node`)
+    for (const at of nodes) {
+      const node = steps[at]
+      assert.ok(at > pnpm, `${id} sets up Node after pnpm, so the pnpm cache can resolve the store`)
+      assert.ok(install > at, `${id} installs after Node is set up`)
+      assert.equal(node.with?.cache, 'pnpm', `${id} caches the pnpm store`)
+      if (node.if === "matrix.node == 'floor'") {
+        assert.equal(node.with?.['node-version-file'], undefined, `${id}: the floor does not read .nvmrc`)
+        assert.equal(node.with?.['node-version'], '${{ steps.floor.outputs.major }}', `${id}: the floor version comes from the floor step`)
+        assert.equal(node.with?.['check-latest'], true, `${id}: the floor takes the newest release of its major`)
+        const floor = steps.findIndex((step) => step.id === 'floor')
+        assert.ok(floor >= 0 && floor < at, `${id} reads the floor before setting it up`)
+        assert.equal(steps[floor].if, "matrix.node == 'floor'", `${id}: the floor step runs only on the floor line`)
+        const read = runOf(steps[floor])
+        assert.match(read, /\.engines\.node'? package\.json/, `${id}: the floor is read from engines.node in package.json`)
+        assert.match(read, /\| sed -nE 's\/\^>=\(\[0-9\]\+\)\$\/\\1\/p'/, `${id}: the floor keeps only the major of >=<major>`)
+        assert.match(read, /major=.*\$GITHUB_OUTPUT/, `${id}: the floor step outputs major`)
+        assert.match(read, /::error::[\s\S]*exit 1/, `${id}: the floor step fails when engines.node has another shape`)
+      } else {
+        assert.equal(node.with?.['node-version-file'], '.nvmrc', `${id} reads Node from .nvmrc`)
+        assert.equal(node.with?.['node-version'], undefined, `${id} names no Node version by hand`)
+      }
+    }
+    const guards = nodes.map((at) => steps[at].if)
+    if (job.strategy?.matrix?.node === undefined) {
+      assert.deepEqual(guards, [undefined], `${id} has no node axis, so it sets up Node once from .nvmrc`)
+    } else {
+      assert.deepEqual(
+        [...guards].sort(),
+        ["matrix.node == 'floor'", "matrix.node == 'toolchain'"],
+        `${id} sets up Node once per line`,
+      )
+    }
+  }
+})
+
+test('the workspace legs run on the toolchain and the floor, and the other jobs run on .nvmrc only', () => {
+  assert.deepEqual(ci.jobs.workspace.strategy?.matrix?.node, ['toolchain', 'floor'])
+  for (const id of ['ps-hosts', 'checks', 'knip', 'audit', 'build']) {
+    assert.equal(ci.jobs[id].strategy?.matrix?.node, undefined, `${id} has a node axis`)
   }
 })
 
