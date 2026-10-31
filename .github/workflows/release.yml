@@ -10,6 +10,10 @@ on:
         options:
           - patch
           - minor
+      npm_target_version:
+        description: Existing agent-qa version to finish publishing to npm from its tag; leave blank for a full release. Subscription auth runs only if it is not yet on npm; for later steps use docker-release.yml or github_release_target_version.
+        required: false
+        type: string
       subscription_auth_target_version:
         description: Existing agent-qa version to publish only subscription-auth for; leave blank for a full release
         required: false
@@ -31,7 +35,7 @@ concurrency:
 jobs:
   ci:
     name: CI
-    if: ${{ inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' }}
+    if: ${{ inputs.npm_target_version == '' && inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' }}
     permissions:
       contents: read
     uses: ./.github/workflows/ci.yml
@@ -39,19 +43,21 @@ jobs:
   npm:
     name: Publish npm packages
     needs: ci
-    if: ${{ !cancelled() && inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' && needs.ci.result == 'success' }}
+    if: ${{ !cancelled() && inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' && (needs.ci.result == 'success' || (inputs.npm_target_version != '' && needs.ci.result == 'skipped')) }}
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.version.outputs.version || steps.resume.outputs.version }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v6
         with:
+          ref: ${{ inputs.npm_target_version != '' && format('v{0}', inputs.npm_target_version) || '' }}
           fetch-depth: 0
           persist-credentials: false
 
       - name: Validate release push token
+        if: ${{ inputs.npm_target_version == '' }}
         env:
           RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN }}
         run: |
@@ -72,16 +78,26 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Resume preflight
+        id: resume
+        if: ${{ inputs.npm_target_version != '' }}
+        env:
+          NPM_TARGET_VERSION: ${{ inputs.npm_target_version }}
+        run: pnpm exec node scripts/release/verify.mjs --stage resume --target-version "$NPM_TARGET_VERSION"
+
       - name: Audit dependencies (fail on high)
+        if: ${{ inputs.npm_target_version == '' }}
         run: pnpm audit --prod --audit-level high
 
       - name: Release preflight
+        if: ${{ inputs.npm_target_version == '' }}
         env:
           POSTHOG_PROJECT_KEY: ${{ secrets.POSTHOG_PROJECT_KEY }}
         run: pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage preflight
 
       - name: Write release version
         id: version
+        if: ${{ inputs.npm_target_version == '' }}
         run: pnpm exec node scripts/release/version.mjs --bump "${{ inputs.bump }}" --write
 
       - name: Write PostHog project key
@@ -103,21 +119,26 @@ jobs:
         run: pnpm run validate:publish
 
       - name: Stage packages
-        run: pnpm exec node scripts/release/stage-packages.mjs --target-version "${{ steps.version.outputs.version }}" --out .release/staged-packages
+        env:
+          RELEASE_VERSION: ${{ steps.version.outputs.version || steps.resume.outputs.version }}
+        run: pnpm exec node scripts/release/stage-packages.mjs --target-version "$RELEASE_VERSION" --out .release/staged-packages
 
       - name: Release postbuild verification
         env:
           POSTHOG_PROJECT_KEY: ${{ secrets.POSTHOG_PROJECT_KEY }}
-        run: pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "${{ steps.version.outputs.version }}" --staged-dir .release/staged-packages
+          RELEASE_VERSION: ${{ steps.version.outputs.version || steps.resume.outputs.version }}
+        run: pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "$RELEASE_VERSION" --staged-dir .release/staged-packages
 
       - name: Create release commit and tag
+        if: ${{ inputs.npm_target_version == '' }}
         run: pnpm exec node scripts/release/git.mjs --commit-tag
 
       # The commit and tag land together or not at all.
       - name: Push release commit and tag
+        if: ${{ inputs.npm_target_version == '' }}
         env:
           RELEASE_PUSH_TOKEN: ${{ secrets.RELEASE_PUSH_TOKEN }}
-          RELEASE_VERSION: ${{ steps.version.outputs.version }}
+          RELEASE_VERSION: ${{ steps.version.outputs.version || steps.resume.outputs.version }}
         run: |
           git -c credential.helper= -c 'credential.helper=!f() { echo username=x-access-token; echo "password=$RELEASE_PUSH_TOKEN"; }; f' push --atomic https://github.com/${{ github.repository }}.git HEAD:refs/heads/${{ github.ref_name }} "refs/tags/v$RELEASE_VERSION"
 
@@ -182,7 +203,7 @@ jobs:
 
   docker:
     name: Publish Docker images
-    if: ${{ inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' }}
+    if: ${{ !cancelled() && inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' && needs.npm.result == 'success' && needs.subscription-auth.result == 'success' }}
     needs:
       - npm
       - subscription-auth

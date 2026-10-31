@@ -30,6 +30,7 @@ test('release workflow is manual-only with patch/minor bump choices', () => {
   assert.match(workflow, /type:\s*choice/)
   assert.match(workflow, /options:\s*\n(?:\s+-\s+\w+\s*\n)*\s+-\s+patch/)
   assert.match(workflow, /options:\s*\n(?:\s+-\s+\w+\s*\n)*\s+-\s+minor/)
+  assert.match(workflow, /npm_target_version:/)
   assert.match(workflow, /subscription_auth_target_version:/)
   assert.match(workflow, /github_release_target_version:/)
   assert.doesNotMatch(workflow, /-\s+major\b/)
@@ -47,12 +48,12 @@ test('release workflow uses trusted publishing prerequisites without npm tokens'
   assert.match(workflow, /SUBSCRIPTION_AUTH_RELEASE_TOKEN/)
   assert.match(
     workflow,
-    /npm:\s*\n\s+name:\s*Publish npm packages[\s\S]*?- name:\s*Checkout\s*\n\s+uses:\s*actions\/checkout@v6\s*\n\s+with:\s*\n\s+fetch-depth:\s*0\s*\n\s+persist-credentials:\s*false\s*\n\s+- name:\s*Validate release push token\s*\n\s+env:\s*\n\s+RELEASE_PUSH_TOKEN:\s*\$\{\{ secrets\.RELEASE_PUSH_TOKEN \}\}/,
+    /npm:\s*\n\s+name:\s*Publish npm packages[\s\S]*?- name:\s*Checkout\s*\n\s+uses:\s*actions\/checkout@v6\s*\n\s+with:\s*\n(?:\s+ref:.*\n)?\s+fetch-depth:\s*0\s*\n\s+persist-credentials:\s*false\s*\n\s+- name:\s*Validate release push token\s*\n(?:\s+if:.*\n)?\s+env:\s*\n\s+RELEASE_PUSH_TOKEN:\s*\$\{\{ secrets\.RELEASE_PUSH_TOKEN \}\}/,
   )
   assert.match(workflow, /::error::Set RELEASE_PUSH_TOKEN in the vostride\/agent-qa repository Actions secrets\./)
   assert.match(
     workflow,
-    /- name:\s*Push release commit and tag\s*\n\s+env:\s*\n\s+RELEASE_PUSH_TOKEN:\s*\$\{\{ secrets\.RELEASE_PUSH_TOKEN \}\}\s*\n(?:\s+[A-Z_]+:.*\n)*\s+run:/,
+    /- name:\s*Push release commit and tag\s*\n(?:\s+if:.*\n)?\s+env:\s*\n\s+RELEASE_PUSH_TOKEN:\s*\$\{\{ secrets\.RELEASE_PUSH_TOKEN \}\}\s*\n(?:\s+[A-Z_]+:.*\n)*\s+run:/,
   )
   assert.doesNotMatch(workflow, /push origin/)
   assert.doesNotMatch(workflow, /NPM_TOKEN/)
@@ -77,8 +78,8 @@ test('release workflow gates build, staging, commit, tag, push, and publish in o
     'pnpm run validate:skills',
     'pnpm run validate:agents',
     'pnpm run validate:publish',
-    'pnpm exec node scripts/release/stage-packages.mjs --target-version "${{ steps.version.outputs.version }}" --out .release/staged-packages',
-    'pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "${{ steps.version.outputs.version }}" --staged-dir .release/staged-packages',
+    'pnpm exec node scripts/release/stage-packages.mjs --target-version "$RELEASE_VERSION" --out .release/staged-packages',
+    'pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "$RELEASE_VERSION" --staged-dir .release/staged-packages',
     'pnpm exec node scripts/release/git.mjs --commit-tag',
     'git -c credential.helper= -c \'credential.helper=!f() { echo username=x-access-token; echo "password=$RELEASE_PUSH_TOKEN"; }; f\' push --atomic https://github.com/${{ github.repository }}.git HEAD:refs/heads/${{ github.ref_name }} "refs/tags/v$RELEASE_VERSION"',
     'pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages',
@@ -101,12 +102,12 @@ test('release workflow writes the PostHog key after CI passed and before a force
   assertBefore(workflow, 'pnpm exec node scripts/release/posthog.mjs --write', 'pnpm exec turbo build --force')
   assertBefore(
     workflow,
-    'pnpm exec node scripts/release/stage-packages.mjs --target-version "${{ steps.version.outputs.version }}" --out .release/staged-packages',
-    'pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "${{ steps.version.outputs.version }}" --staged-dir .release/staged-packages',
+    'pnpm exec node scripts/release/stage-packages.mjs --target-version "$RELEASE_VERSION" --out .release/staged-packages',
+    'pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "$RELEASE_VERSION" --staged-dir .release/staged-packages',
   )
   assertBefore(
     workflow,
-    'pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "${{ steps.version.outputs.version }}" --staged-dir .release/staged-packages',
+    'pnpm exec node scripts/release/verify.mjs --bump "${{ inputs.bump }}" --stage postbuild --target-version "$RELEASE_VERSION" --staged-dir .release/staged-packages',
     'pnpm exec node scripts/release/publish.mjs --staged-dir .release/staged-packages',
   )
 })
@@ -114,10 +115,10 @@ test('release workflow writes the PostHog key after CI passed and before a force
 test('release workflow publishes Docker from the release tag after npm publish', () => {
   const workflow = readWorkflow()
 
-  assert.match(workflow, /outputs:\s*\n\s+version:\s*\$\{\{ steps\.version\.outputs\.version \}\}/)
-  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+needs:\s*ci\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.ci\.result == 'success' \}\}/)
+  assert.match(workflow, /outputs:\s*\n\s+version:\s*\$\{\{ steps\.version\.outputs\.version \|\| steps\.resume\.outputs\.version \}\}/)
+  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+needs:\s*ci\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && \(needs\.ci\.result == 'success' \|\| \(inputs\.npm_target_version != '' && needs\.ci\.result == 'skipped'\)\) \}\}/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && needs\.subscription-auth\.result == 'success' \}\}/)
   assert.match(workflow, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.match(workflow, /uses:\s*\.\/\.github\/workflows\/docker-release\.yml/)
   assert.match(workflow, /ref:\s*v\$\{\{ needs\.npm\.outputs\.version \}\}/)
@@ -143,7 +144,7 @@ test('release workflow publishes subscription auth from the main release version
   assert.match(workflow, /GH_TOKEN:\s*\$\{\{ secrets\.SUBSCRIPTION_AUTH_RELEASE_TOKEN \}\}/)
   assert.match(workflow, /Actions: read and write/)
   assert.doesNotMatch(workflow, /working-directory:\s*agent-qa-subscription-auth/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && needs\.subscription-auth\.result == 'success' \}\}\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   for (const command of orderedCommands) assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   for (let index = 0; index < orderedCommands.length - 1; index += 1) {
     assertBefore(workflow, orderedCommands[index], orderedCommands[index + 1])
@@ -175,9 +176,9 @@ test('release workflow can repair a missing GitHub Release for an existing versi
   const workflow = readWorkflow()
 
   assert.match(workflow, /github_release_target_version:\s*\n\s+description:\s*Existing agent-qa version to publish only the GitHub Release/)
-  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+needs:\s*ci\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' &&/)
+  assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+needs:\s*ci\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && \(needs\.ci\.result == 'success' \|\| \(inputs\.npm_target_version != '' && needs\.ci\.result == 'skipped'\)\) \}\}/)
   assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth\s*\n\s+needs:\s*npm\s*\n\s+if:\s*\$\{\{ always\(\) && inputs\.github_release_target_version == ''/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' \}\}/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && needs\.subscription-auth\.result == 'success' \}\}/)
   assert.match(workflow, /github-release:\s*\n\s+name:\s*Publish GitHub release\s*\n\s+if:\s*\$\{\{ always\(\) && \(inputs\.github_release_target_version != ''/)
   assert.match(workflow, /github-release:\s*\n\s+name:\s*Publish GitHub release[\s\S]*?needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.match(workflow, /ref:\s*v\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
@@ -230,6 +231,50 @@ test('no release job runs a test, a typecheck or a browser install, and none dow
     for (const step of job.steps ?? []) {
       assert.doesNotMatch(String(step.run ?? ''), forbidden, `${id}: ${step.name}`)
       assert.ok(!String(step.uses ?? '').startsWith('actions/download-artifact'), `${id}: ${step.name}`)
+    }
+  }
+})
+
+test('a blank npm_target_version runs the full release and a version resumes it from its tag', () => {
+  const release = loadWorkflow('release.yml')
+  const steps = release.jobs.npm.steps
+  const fullOnly = "${{ inputs.npm_target_version == '' }}"
+  const step = (name) => {
+    const found = steps.find((candidate) => candidate.name === name)
+    assert.ok(found, `expected step ${name}`)
+    return found
+  }
+
+  assert.ok('npm_target_version' in release.on.workflow_dispatch.inputs)
+  assert.match(release.jobs.ci.if, /inputs\.npm_target_version == ''/)
+  assert.match(
+    release.jobs.npm.if,
+    /needs\.ci\.result == 'success' \|\| \(inputs\.npm_target_version != '' && needs\.ci\.result == 'skipped'\)/,
+  )
+  assert.equal(
+    step('Checkout').with.ref,
+    "${{ inputs.npm_target_version != '' && format('v{0}', inputs.npm_target_version) || '' }}",
+  )
+  for (const name of [
+    'Validate release push token',
+    'Audit dependencies (fail on high)',
+    'Release preflight',
+    'Write release version',
+    'Create release commit and tag',
+    'Push release commit and tag',
+  ]) {
+    assert.equal(step(name).if, fullOnly, name)
+  }
+  const resume = step('Resume preflight')
+  assert.equal(resume.id, 'resume')
+  assert.equal(resume.if, "${{ inputs.npm_target_version != '' }}")
+  assert.equal(resume.env.NPM_TARGET_VERSION, '${{ inputs.npm_target_version }}')
+  assert.match(resume.run, /verify\.mjs --stage resume --target-version "\$NPM_TARGET_VERSION"$/)
+  assert.ok(steps.indexOf(step('Install dependencies')) < steps.indexOf(resume))
+  assert.equal(step('Publish packages').if, undefined)
+  for (const [id, job] of Object.entries(release.jobs)) {
+    for (const candidate of job.steps ?? []) {
+      assert.ok(!String(candidate.run ?? '').includes('inputs.npm_target_version'), `${id}: ${candidate.name}`)
     }
   }
 })
