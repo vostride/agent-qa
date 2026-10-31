@@ -36,8 +36,7 @@ export async function writePosthogProjectFile(options = {}) {
 function validateRuntimeArtifact(path, projectKey) {
   if (!existsSync(path)) throw new Error(`PostHog dist key artifact is missing: ${path}`)
   const distText = readFileSync(path, 'utf8')
-  if (!distText.includes('AGENT_QA_POSTHOG_KEY')) throw new Error(`PostHog dist key export is missing: ${path}`)
-  if (/AGENT_QA_POSTHOG_KEY\s*=\s*["']{2}/.test(distText)) throw new Error(`PostHog dist key is empty: ${path}`)
+  // The bundler inlines the key constant, so only the key value itself proves what shipped.
   if (!distText.includes(projectKey)) throw new Error(`PostHog dist key does not match POSTHOG_PROJECT_KEY: ${path}`)
 }
 
