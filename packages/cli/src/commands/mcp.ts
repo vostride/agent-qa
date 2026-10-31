@@ -217,13 +217,15 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
 }
 
 /** No value is the default port, `--http 4000` is that port and `--http 0` is any free one. */
-function httpPort(value: string | boolean): number {
+export function httpPort(value: string | boolean): number {
   if (value === true) return MCP_HTTP_DEFAULT_PORT
-  const parsed = Number.parseInt(String(value), 10)
-  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
-    throw new Error(`--http expects a port between 0 and 65535, received ${String(value)}`)
+  const text = String(value)
+  // Decimal digits only, so a typo such as `0x1f90` or `-0` is refused rather than bound as port 0.
+  const port = /^\d{1,5}$/u.test(text) ? Number(text) : Number.NaN
+  if (!(port >= 0 && port <= 65535)) {
+    throw new Error(`--http expects a decimal port between 0 and 65535, received ${text}`)
   }
-  return parsed
+  return port
 }
 
 async function serveOverStdio(input: {
