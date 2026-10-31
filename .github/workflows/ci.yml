@@ -64,14 +64,15 @@ jobs:
           if-no-files-found: error
 
   workspace:
-    name: Full workspace (ubuntu, ${{ matrix.group }})
+    name: Full workspace (ubuntu, ${{ matrix.node }}, ${{ matrix.leg.group }})
     runs-on: ubuntu-latest
     needs: build
     timeout-minutes: 40
     strategy:
       fail-fast: false
       matrix:
-        include:
+        node: [toolchain, floor]
+        leg:
           - group: cli-1
             filter: --filter=agent-qa
             vitest: -- --shard=1/3
@@ -107,10 +108,28 @@ jobs:
       - name: Install pnpm
         uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
 
+      # The floor is the major of engines.node, never a version written here.
+      - name: Read the Node floor
+        id: floor
+        if: matrix.node == 'floor'
+        run: |
+          major="$(jq -r '.engines.node' package.json | sed -nE 's/^>=([0-9]+)$/\1/p')"
+          test -n "$major" || { echo "::error::engines.node must read >=<major>"; exit 1; }
+          echo "major=$major" >> "$GITHUB_OUTPUT"
+
       - name: Setup Node
+        if: matrix.node == 'toolchain'
         uses: actions/setup-node@v6
         with:
           node-version-file: .nvmrc
+          cache: pnpm
+
+      - name: Setup Node at the floor
+        if: matrix.node == 'floor'
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ steps.floor.outputs.major }}
+          check-latest: true
           cache: pnpm
 
       - name: Download the build
@@ -143,7 +162,7 @@ jobs:
       - name: Test
         env:
           TURBO_CONCURRENCY: '1'
-        run: pnpm exec turbo test ${{ matrix.filter }} --only --continue ${{ matrix.vitest }}
+        run: pnpm exec turbo test ${{ matrix.leg.filter }} --only --continue ${{ matrix.leg.vitest }}
 
   checks:
     name: Typecheck and validators (ubuntu)
@@ -277,7 +296,7 @@ jobs:
         run: bash scripts/mcp-conformance.sh --no-build
 
   ps-hosts:
-    name: ps-host legs (macos, ${{ matrix.group }})
+    name: ps-host legs (macos, ${{ matrix.leg.group }})
     runs-on: macos-latest
     needs: build
     timeout-minutes: 40
@@ -286,7 +305,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
+        leg:
           - group: knowledge-local
             filter: --filter=@vostride/agent-qa-knowledge-local
           - group: cli-1
@@ -342,10 +361,10 @@ jobs:
       - name: Test daemon and lease packages
         env:
           TURBO_CONCURRENCY: '1'
-        run: pnpm exec turbo test ${{ matrix.filter }} --only --continue ${{ matrix.vitest }}
+        run: pnpm exec turbo test ${{ matrix.leg.filter }} --only --continue ${{ matrix.leg.vitest }}
 
       - name: Typecheck daemon and lease packages
-        if: matrix.group == 'knowledge-local'
+        if: matrix.leg.group == 'knowledge-local'
         run: >-
           pnpm exec turbo typecheck
           --filter=@vostride/agent-qa-knowledge-local

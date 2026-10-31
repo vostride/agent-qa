@@ -1,6 +1,7 @@
 // CI's legs test every package once on ubuntu and the daemon and lease packages on macOS, with
 // whole shard sets, each leg downloads the build job's output before its --only Test step, and the
 // ci-result job always runs and needs every other job.
+// Every ubuntu leg also runs on the Node floor; the macOS legs run on .nvmrc only.
 
 import { execFile } from 'node:child_process'
 import { readFileSync } from 'node:fs'
@@ -12,7 +13,7 @@ import { promisify } from 'node:util'
 export const REPO_ROOT = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 export const PS_HOST_PACKAGES = ['@vostride/agent-qa-knowledge-local', 'agent-qa']
 const MATRIX_JOBS = [
-  { id: 'workspace', test: 'Test', expected: 'workspace' },
+  { id: 'workspace', test: 'Test', expected: 'workspace', nodeLines: ['toolchain', 'floor'] },
   { id: 'ps-hosts', test: 'Test daemon and lease packages', expected: PS_HOST_PACKAGES },
 ]
 const AGGREGATE_JOB = 'ci-result'
@@ -48,7 +49,7 @@ export function turboSelects(filter, repo = REPO_ROOT) {
 
 export const filterTokens = (filter) => String(filter ?? '').trim().split(/\s+/).filter(Boolean)
 export const matrixFilters = (ci) =>
-  [...new Set(MATRIX_JOBS.flatMap(({ id }) => (ci.jobs?.[id]?.strategy?.matrix?.include ?? []).map((entry) => filterTokens(entry.filter).join(' '))))]
+  [...new Set(MATRIX_JOBS.flatMap(({ id }) => (ci.jobs?.[id]?.strategy?.matrix?.leg ?? []).map((entry) => filterTokens(entry.filter).join(' '))))]
 
 /**
  * pnpm/turbo selection for exact package names: the union of the included names (every package
@@ -74,25 +75,31 @@ const words = (run) => String(run ?? '').trim().split(/\s+/)
 /** Every way the matrix fails its coverage contract; an empty list means it holds. */
 export function ciMatrixFailures(ci, packages) {
   const failures = []
-  for (const { id, test, expected } of MATRIX_JOBS) {
+  for (const { id, test, expected, nodeLines } of MATRIX_JOBS) {
     const job = ci.jobs?.[id]
     if (job === undefined) {
       failures.push(`ci.yml has no job ${id}`)
       continue
     }
     if (job.strategy?.['fail-fast'] !== false) failures.push(`${id}: strategy.fail-fast must be false, so one red leg cannot cancel the others`)
-    const include = job.strategy?.matrix?.include
-    if (!Array.isArray(include) || include.length === 0) {
-      failures.push(`${id}: matrix.include must be a non-empty list`)
+    const node = job.strategy?.matrix?.node
+    if (nodeLines === undefined) {
+      if (node !== undefined) failures.push(`${id}: runs on .nvmrc only and must not have a node axis`)
+    } else if (JSON.stringify(node) !== JSON.stringify(nodeLines)) {
+      failures.push(`${id}: matrix.node must be [${nodeLines.join(', ')}], so every leg also runs on the Node floor`)
+    }
+    const legs = job.strategy?.matrix?.leg
+    if (!Array.isArray(legs) || legs.length === 0) {
+      failures.push(`${id}: matrix.leg must be a non-empty list`)
       continue
     }
-    const groups = include.map((entry) => entry.group)
+    const groups = legs.map((entry) => entry.group)
     if (groups.some((group) => typeof group !== 'string' || group === '') || new Set(groups).size !== groups.length) {
       failures.push(`${id}: every leg needs a unique group name`)
     }
 
     const byFilter = new Map()
-    for (const entry of include) {
+    for (const entry of legs) {
       const key = filterTokens(entry.filter).join(' ')
       if (key === '') failures.push(`${id}/${entry.group}: missing filter`)
       else byFilter.set(key, [...(byFilter.get(key) ?? []), entry])
@@ -135,8 +142,8 @@ export function ciMatrixFailures(ci, packages) {
       continue
     }
     const run = String(steps[at].run ?? '')
-    if (!run.includes('${{ matrix.filter }}') || !run.includes('${{ matrix.vitest }}')) {
-      failures.push(`${id}/${test}: run must pass \${{ matrix.filter }} and \${{ matrix.vitest }}`)
+    if (!run.includes('${{ matrix.leg.filter }}') || !run.includes('${{ matrix.leg.vitest }}')) {
+      failures.push(`${id}/${test}: run must pass \${{ matrix.leg.filter }} and \${{ matrix.leg.vitest }}`)
     }
     if (!words(run).includes('--continue')) failures.push(`${id}/${test}: run lacks --continue`)
     if (steps[at].env?.TURBO_CONCURRENCY !== '1') failures.push(`${id}/${test}: env.TURBO_CONCURRENCY must be '1'`)
