@@ -5,13 +5,14 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  realpathSync,
   rmSync,
   statSync,
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const packagesRoot = join(root, 'packages')
@@ -536,7 +537,14 @@ function runValidation() {
   console.log(`publish surface validation passed (${quick ? 'quick' : 'full'})`)
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+// Realpaths on both sides: Node resolves symlinks in `import.meta.url` but not in `argv[1]`.
+function invokedDirectly() {
+  const entry = process.argv[1]
+  if (entry === undefined || !existsSync(entry)) return false
+  return realpathSync(entry) === realpathSync(fileURLToPath(import.meta.url))
+}
+
+if (invokedDirectly()) {
   if (fixtures) {
     runFixtures()
   } else {
