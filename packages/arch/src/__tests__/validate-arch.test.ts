@@ -422,7 +422,7 @@ describe('arch lint held-out fixtures', () => {
     })
     const configHits = [
       fixtureHit('node:fs', { file: 'packages/arch/vitest.config.ts' }),
-      fixtureHit('tsup', { file: 'packages/arch/tsup.config.ts', line: 2 }),
+      fixtureHit('tsdown', { file: 'packages/arch/tsdown.config.ts', line: 2 }),
       fixtureHit('vitest/config', { file: 'packages/arch/vitest.config.ts', line: 3 }),
     ]
 

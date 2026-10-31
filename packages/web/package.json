@@ -46,8 +46,8 @@
     "NOTICE.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "smoke:dashboard": "node ./scripts/dashboard-smoke.mjs",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
@@ -63,7 +63,7 @@
     "@types/node": "~24.12.2",
     "@vostride/agent-qa-arch": "workspace:*",
     "@vostride/agent-qa-core": "workspace:*",
-    "tsup": "~8.5.1",
+    "tsdown": "~0.23.4",
     "typescript": "~6.0.3",
     "vitest": "~5.0.5"
   }
