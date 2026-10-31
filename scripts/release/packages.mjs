@@ -64,8 +64,11 @@ export function derivePublishOrder(records = getPublicPackages()) {
       extras.push(name)
       continue
     }
-    if (record.pkg?.private !== false) {
+    if (record.pkg?.private === true) {
       throw new Error(`private public package: ${name}`)
+    }
+    if (record.pkg?.private !== false) {
+      throw new Error(`public package must declare "private": false: ${name}`)
     }
     if (byName.has(name)) {
       throw new Error(`duplicate public package: ${name}`)

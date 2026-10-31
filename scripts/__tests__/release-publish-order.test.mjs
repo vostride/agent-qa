@@ -57,6 +57,17 @@ test('rejects missing, duplicate, private, or extra public package records', () 
   )
 })
 
+test('a listed package that does not declare "private": false is told to declare it', () => {
+  for (const value of [undefined, 'false', 0]) {
+    const records = publicPackageNames.map(name => ({
+      pkg: name === 'agent-qa' ? { name, private: value } : { name, private: false },
+    }))
+    assert.throws(() => derivePublishOrder(records), {
+      message: 'public package must declare "private": false: agent-qa',
+    })
+  }
+})
+
 test('a manifest with no private field counts as publishable and must be in the publish order', async () => {
   const rootDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-publish-order-'))
   try {
