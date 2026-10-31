@@ -191,7 +191,7 @@ afterAll(() => {
   if (workerBuildRoot !== '') rmSync(workerBuildRoot, { force: true, recursive: true })
 })
 
-describe.sequential('embedder worker discovery', () => {
+describe('embedder worker discovery', () => {
   it('pins every worker wait deadline in code rather than configuration', () => {
     expect({
       request: EMBEDDER_WORKER_REQUEST_TIMEOUT_MS,
