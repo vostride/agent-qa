@@ -174,24 +174,27 @@ function validatePublicPackage(record, allVersions, errors, options = { checkFil
   validateWorkspaceRanges(record, errors)
 
   if (record.pkg.name !== entryPackageName && record.pkg.name !== '@vostride/agent-qa-dashboard-ui') {
-    assert(record.pkg.exports?.['.']?.types === './dist/index.d.ts', `${name} must export dist types`, errors)
-    assert(record.pkg.exports?.['.']?.import === './dist/index.js', `${name} must export dist ESM`, errors)
-    assert(record.pkg.exports?.['.']?.require === './dist/index.cjs', `${name} must export dist CJS`, errors)
+    assert(record.pkg.exports?.['.']?.import?.types === './dist/index.d.ts', `${name} must export dist ESM types`, errors)
+    assert(record.pkg.exports?.['.']?.import?.default === './dist/index.js', `${name} must export dist ESM`, errors)
+    assert(record.pkg.exports?.['.']?.require?.types === './dist/index.d.cts', `${name} must export dist CJS types`, errors)
+    assert(record.pkg.exports?.['.']?.require?.default === './dist/index.cjs', `${name} must export dist CJS`, errors)
   }
 
   // The packages that publish a `./reader` subpath beside their main entry.
   const READER_SUBPATH_PACKAGES = ['@vostride/agent-qa-knowledge-local']
   if (READER_SUBPATH_PACKAGES.includes(record.pkg.name)) {
-    assert(record.pkg.exports?.['./reader']?.types === './dist/reader.d.ts', `${name} reader must export dist types`, errors)
-    assert(record.pkg.exports?.['./reader']?.import === './dist/reader.js', `${name} reader must export dist ESM`, errors)
-    assert(record.pkg.exports?.['./reader']?.require === './dist/reader.cjs', `${name} reader must export dist CJS`, errors)
+    assert(record.pkg.exports?.['./reader']?.import?.types === './dist/reader.d.ts', `${name} reader must export dist ESM types`, errors)
+    assert(record.pkg.exports?.['./reader']?.import?.default === './dist/reader.js', `${name} reader must export dist ESM`, errors)
+    assert(record.pkg.exports?.['./reader']?.require?.types === './dist/reader.d.cts', `${name} reader must export dist CJS types`, errors)
+    assert(record.pkg.exports?.['./reader']?.require?.default === './dist/reader.cjs', `${name} reader must export dist CJS`, errors)
   }
 
   // Core publishes its run-text output helper as a subpath the firewalled surfaces may import.
   if (record.pkg.name === '@vostride/agent-qa-core') {
-    assert(record.pkg.exports?.['./run-text-output']?.types === './dist/run-text-output.d.ts', `${name} run-text-output must export dist types`, errors)
-    assert(record.pkg.exports?.['./run-text-output']?.import === './dist/run-text-output.js', `${name} run-text-output must export dist ESM`, errors)
-    assert(record.pkg.exports?.['./run-text-output']?.require === './dist/run-text-output.cjs', `${name} run-text-output must export dist CJS`, errors)
+    assert(record.pkg.exports?.['./run-text-output']?.import?.types === './dist/run-text-output.d.ts', `${name} run-text-output must export dist ESM types`, errors)
+    assert(record.pkg.exports?.['./run-text-output']?.import?.default === './dist/run-text-output.js', `${name} run-text-output must export dist ESM`, errors)
+    assert(record.pkg.exports?.['./run-text-output']?.require?.types === './dist/run-text-output.d.cts', `${name} run-text-output must export dist CJS types`, errors)
+    assert(record.pkg.exports?.['./run-text-output']?.require?.default === './dist/run-text-output.cjs', `${name} run-text-output must export dist CJS`, errors)
   }
 
   if (record.pkg.name === '@vostride/agent-qa-dashboard-ui') {
@@ -220,7 +223,7 @@ function validateManifestSurface(errors, options = { checkFiles: true }) {
 
 function validateNoArchSymbolInDist(errors, records = publicPackageRecords()) {
   for (const record of records) {
-    for (const file of ['dist/index.d.ts', 'dist/index.js', 'dist/index.cjs']) {
+    for (const file of ['dist/index.d.ts', 'dist/index.d.cts', 'dist/index.js', 'dist/index.cjs']) {
       const path = join(record.dir, file)
       if (!existsSync(path)) continue
 
