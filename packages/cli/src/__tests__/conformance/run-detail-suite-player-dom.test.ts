@@ -589,6 +589,18 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     expect(samples.at(-1)!.time - samples[0]!.time).toBeGreaterThan(0.2)
     expect(await page.locator('video').getAttribute('data-seek-count')).toBe('0')
     await page.getByRole('button', { name: 'Pause recording', exact: true }).click()
+    // At rate 0 the recording plays without moving towards its end, so no member's end can pause it
+    // or hand playback to another element while fullscreen is entered and read.
+    await page.locator('video').evaluate(video => {
+      (video as HTMLVideoElement).playbackRate = 0
+      video.setAttribute('data-fullscreen-live', 'same')
+    })
+    await page.getByRole('button', { name: 'Play recording', exact: true }).click()
+    await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).click()
+    expect(await page.locator('video[data-fullscreen-live="same"]').evaluate(video => !(video as HTMLVideoElement).paused)).toBe(true)
+    await page.keyboard.press('Escape')
+    await page.getByRole('button', { name: 'Pause recording', exact: true }).click()
+    await page.locator('video').evaluate(video => { (video as HTMLVideoElement).playbackRate = 1 })
     await seek(page, stored[0]! + 0.1)
     // Sampled per frame from before the click, so a slow click or timer cannot carry the tail past
     // member 0 unseen: it stops at 4 member-0 samples or at the first frame on another source.
@@ -603,10 +615,6 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     expect(ownTail.every((sample, index) => index === 0 || parseFloat(sample.left) > parseFloat(ownTail[index - 1]!.left)), `the playhead moves forward: ${JSON.stringify(tail)}`).toBe(true)
     expect(ownTail.every(sample => parseFloat(sample.left) < boundary), JSON.stringify(tail)).toBe(true)
     expect(ownTail.every((sample, index) => sample.time > stored[0]! && (index === 0 || sample.time > ownTail[index - 1]!.time)), JSON.stringify(tail)).toBe(true)
-    await page.locator('video').evaluate(video => video.setAttribute('data-fullscreen-live', 'same'))
-    await page.getByRole('button', { name: 'Enter fullscreen', exact: true }).click()
-    expect(await page.locator('video[data-fullscreen-live="same"]').evaluate(video => !(video as HTMLVideoElement).paused)).toBe(true)
-    await page.keyboard.press('Escape')
     await page.getByRole('button', { name: 'Pause recording', exact: true }).click()
     const last = detail.subActions.filter(sub => sub.testIndex === 0).at(-1)!
     expect(last.result.annotation?.recording).toBeDefined()
