@@ -12,7 +12,8 @@ import {
   validatePosthogReleaseArtifacts,
 } from '../release/posthog.mjs'
 
-// Builds the key artifacts at the analytics package's paths; `compose.ts` stands in for the source.
+// Builds the key artifacts at the analytics package's paths, in the shape the build emits once it
+// inlines the key constant; `compose.ts` stands in for the source.
 function createPosthogFixture(rootDir, distKey = 'phc_test_key', packagePath = 'packages/analytics') {
   const sourceDir = join(rootDir, packagePath, 'src')
   const distDir = join(rootDir, packagePath, 'dist')
@@ -23,7 +24,7 @@ function createPosthogFixture(rootDir, distKey = 'phc_test_key', packagePath = '
     "export type AnalyticsTransportKind = 'none' | 'posthog'\n"
       + 'export const marker = "the deny arm stays local"\n',
   )
-  const runtimeText = `var AGENT_QA_POSTHOG_KEY = "${distKey}"\nvar AGENT_QA_POSTHOG_HOST = "https://us.i.posthog.com"\n`
+  const runtimeText = `const projectKey = (options.projectKey ?? "${distKey}").trim()\n`
   writeFileSync(join(distDir, 'index.js'), runtimeText)
   writeFileSync(join(distDir, 'index.cjs'), runtimeText)
 }
@@ -50,7 +51,7 @@ test('validates built PostHog release artifacts and raw secret leakage', async (
     assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, projectKey: 'phc_test_key', logText: 'unsafe phc_test_key' }), /raw POSTHOG_PROJECT_KEY leaked/)
 
     createPosthogFixture(rootDir, '')
-    assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, projectKey: 'phc_test_key' }), /PostHog dist key is empty/)
+    assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, projectKey: 'phc_test_key' }), /PostHog dist key does not match/)
 
     createPosthogFixture(rootDir, 'phc_wrong_key')
     assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, projectKey: 'phc_test_key' }), /PostHog dist key does not match/)
@@ -68,7 +69,7 @@ test('validates staged analytics package PostHog runtime artifacts', async () =>
     assert.doesNotThrow(() => validatePosthogReleaseArtifacts({ rootDir, stagedDir, projectKey: 'phc_test_key' }))
 
     createPosthogFixture(stagedDir, '', 'analytics')
-    assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, stagedDir, projectKey: 'phc_test_key' }), /PostHog dist key is empty/)
+    assert.throws(() => validatePosthogReleaseArtifacts({ rootDir, stagedDir, projectKey: 'phc_test_key' }), /PostHog dist key does not match/)
   } finally {
     await rm(rootDir, { recursive: true, force: true })
     await rm(stagedDir, { recursive: true, force: true })
