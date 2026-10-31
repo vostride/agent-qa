@@ -451,10 +451,6 @@ test('a blank npm_target_version runs the full release and a version resumes it 
     release.jobs.npm.if,
     /needs\.ci\.result == 'success' \|\| \(inputs\.npm_target_version != '' && needs\.ci\.result == 'skipped'\)/,
   )
-  assert.equal(
-    step('Checkout').with.ref,
-    "${{ inputs.npm_target_version != '' && format('v{0}', inputs.npm_target_version) || '' }}",
-  )
   for (const name of [
     'Validate release push token',
     'Audit dependencies (fail on high)',
@@ -477,6 +473,20 @@ test('a blank npm_target_version runs the full release and a version resumes it 
       assert.ok(!String(candidate.run ?? '').includes('inputs.npm_target_version'), `${id}: ${candidate.name}`)
     }
   }
+})
+
+test('a resume publishes the commit it was dispatched on, and its input says to dispatch it on the tag', () => {
+  const release = loadWorkflow('release.yml')
+  const { inputs } = release.on.workflow_dispatch
+  const checkout = release.jobs.npm.steps.find((step) => step.name === 'Checkout')
+
+  assert.equal(checkout.with.ref, undefined, 'the npm job checks out the ref and commit the run was dispatched on')
+  assert.ok(
+    inputs.npm_target_version.description.includes(
+      'gh workflow run release.yml --ref v<version> -f npm_target_version=<version>',
+    ),
+  )
+  assert.equal(inputs.bump.default, 'patch', 'the resume command needs no bump')
 })
 
 test('docker release workflow is manual and reusable with Docker Hub preflight', () => {

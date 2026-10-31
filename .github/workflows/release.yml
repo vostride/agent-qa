@@ -7,11 +7,12 @@ on:
         description: Release bump
         required: true
         type: choice
+        default: patch
         options:
           - patch
           - minor
       npm_target_version:
-        description: Existing agent-qa version to finish publishing from its tag; leave blank for a full release. It publishes what npm lacks, subscription auth only if npm lacks it, then Docker and the GitHub release.
+        description: Existing agent-qa version to finish publishing from its tag; leave blank for a full release. Dispatch it on the tag, so npm provenance names the commit it publishes, with gh workflow run release.yml --ref v<version> -f npm_target_version=<version>. It publishes what npm lacks, subscription auth only if npm lacks it, then Docker and the GitHub release.
         required: false
         type: string
       subscription_auth_target_version:
@@ -53,7 +54,6 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
         with:
-          ref: ${{ inputs.npm_target_version != '' && format('v{0}', inputs.npm_target_version) || '' }}
           fetch-depth: 0
           persist-credentials: false
 

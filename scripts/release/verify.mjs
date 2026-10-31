@@ -116,12 +116,24 @@ async function runResumeVerification(options, rootDir, env) {
     throw new Error(`invalid resume version: ${targetVersion} (expected 0.x semver)`)
   }
   const tag = `v${targetVersion}`
+  // npm provenance names the run's ref and GITHUB_SHA, so both must be the tag being published.
+  const dispatch = `gh workflow run release.yml --ref ${tag} -f npm_target_version=${targetVersion}`
+  if (env.GITHUB_REF !== `refs/tags/${tag}`) {
+    throw new Error(
+      `a resume runs on refs/tags/${tag}, not ${env.GITHUB_REF || 'an unset GITHUB_REF'}; dispatch it with: ${dispatch}`,
+    )
+  }
   const readerOptions = { ...options, rootDir }
   const readTagCommit = options.readTagCommit ?? defaultReadTagCommit
   const readHeadCommit = options.readHeadCommit ?? defaultReadHeadCommit
   const tagCommit = await readTagCommit(targetVersion, readerOptions)
   const headCommit = await readHeadCommit(readerOptions)
   if (!tagCommit || tagCommit !== headCommit) throw new Error(`HEAD is not the commit of ${tag}`)
+  if (env.GITHUB_SHA !== tagCommit) {
+    throw new Error(
+      `a resume runs on ${tag}'s commit ${tagCommit}, not GITHUB_SHA ${env.GITHUB_SHA || '(unset)'}; dispatch it with: ${dispatch}`,
+    )
+  }
   const packageVersion = assertSharedPublicVersion(getPublicPackages({ rootDir }))
   if (packageVersion !== targetVersion) {
     throw new Error(`public package version ${packageVersion} does not match ${targetVersion}`)
@@ -153,6 +165,11 @@ export async function runReleaseVerification(options = {}) {
   assertAllowedBump(bump)
 
   if (stage === 'preflight') {
+    if (String(env.GITHUB_REF ?? '').startsWith('refs/tags/')) {
+      throw new Error(
+        `a full release pushes its commit to the branch it runs on, so it cannot run on ${env.GITHUB_REF}; dispatch it on a branch, or set npm_target_version to finish publishing a version from its tag`,
+      )
+    }
     if (!env.POSTHOG_PROJECT_KEY?.trim()) throw new Error('POSTHOG_PROJECT_KEY is required')
     const records = getPublicPackages({ rootDir })
     const currentVersion = assertSharedPublicVersion(records)
