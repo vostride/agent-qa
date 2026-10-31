@@ -504,10 +504,12 @@ it('SUITE-BROWSER-ANNOTATION: new recorded intervals align in normal, magnifier 
 const ARRANGED_TAIL_MS = 800
 
 it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continued rate', async () => {
-  const database = new DashboardDatabase({ dbPath: join(fixture.project.root, '.agent-qa', 'runs.db') })
-  const recorded = database.readRunDetailRows(fixture.drive.runId)!.members.find(member => member.testIndex === 0)!.recording
   const page = await fixture.browser.newPage({ viewport: { width: 1280, height: 900 } })
+  let database: DashboardDatabase | undefined
+  let restore: Parameters<DashboardDatabase['upsertRunMember']>[0]['recording'] | undefined
   try {
+    database = new DashboardDatabase({ dbPath: join(fixture.project.root, '.agent-qa', 'runs.db') })
+    const recorded = database.readRunDetailRows(fixture.drive.runId)!.members.find(member => member.testIndex === 0)!.recording
     await ready(page)
     await mediaReady(page)
     // Independently decode each actual artifact; presentation spans follow the decoded media,
@@ -527,6 +529,7 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     // in this isolated fixture database instead, and read it from the detail the reloaded page gets.
     const arranged = { ...recorded, durationMs: Math.round(durations[0]! * 1000) - ARRANGED_TAIL_MS }
     database.upsertRunMember({ runId: fixture.drive.runId, testIndex: 0, recording: arranged })
+    restore = recorded
     const detailUrl = `${fixture.dashboard.origin}/api/runs/${encodeURIComponent(fixture.drive.runId)}/detail`
     const served = page.waitForResponse(response => response.url() === detailUrl)
     await ready(page)
@@ -728,9 +731,15 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
     }
     observations.media = { durations, stored, recordedMs: recorded.durationMs, tail, target, local, rates, samples, cue: shown, continuation: true }
   } finally {
-    database.upsertRunMember({ runId: fixture.drive.runId, testIndex: 0, recording: recorded })
-    database.close()
-    await page.close()
+    try {
+      if (restore !== undefined) database?.upsertRunMember({ runId: fixture.drive.runId, testIndex: 0, recording: restore })
+    } finally {
+      try {
+        database?.close()
+      } finally {
+        await page.close()
+      }
+    }
   }
 }, 120_000)
 
