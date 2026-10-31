@@ -28,7 +28,10 @@ describe('agent-qa mcp --http port', () => {
     expect(httpPort('65535')).toBe(65535)
   })
 
-  it.each(['0x1f90', '0abc', '-0', '-1', '65536', '99999', '1e3', '+80', '80.0', ' 80', '80 ', ''])(
+  it.each([
+    '0x1f90', '0abc', '-0', '-1', '00', '08080', '65536', '99999', '1e3', '+80', '80.0', ' 80',
+    '80 ', '',
+  ])(
     'refuses %j rather than binding some other port',
     (value) => {
       expect(() => httpPort(value)).toThrow(
