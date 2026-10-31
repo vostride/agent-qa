@@ -49,7 +49,15 @@ const NEVER_AUTHORS: JobModelCapability = {
   generate: () => Promise.reject(new Error('the stand-in never authors')),
 }
 
-const clock = { now: (): string => new Date().toISOString() }
+// Strictly increasing: the store claims same-millisecond rows in id order, so two enqueues in one
+// millisecond would otherwise not claim in enqueue order.
+let lastTick = 0
+const clock = {
+  now: (): string => {
+    lastTick = Math.max(Date.now(), lastTick + 1)
+    return new Date(lastTick).toISOString()
+  },
+}
 
 interface Harness {
   readonly deps: AgentJobsOpsDeps
