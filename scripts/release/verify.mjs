@@ -6,7 +6,10 @@ import semver from 'semver'
 import { checkGitTagAbsent as defaultCheckGitTagAbsent } from './git.mjs'
 import { getPublicPackages } from './packages.mjs'
 import { assertTrustedPublishEnvironment as defaultAssertTrustedPublishEnvironment } from './publish.mjs'
-import { checkNpmVersionsAbsent as defaultCheckNpmVersionsAbsent } from './registry.mjs'
+import {
+  checkNpmVersionsAbsent as defaultCheckNpmVersionsAbsent,
+  npmVersionPresent,
+} from './registry.mjs'
 import { discoverStagedRecords, validateStagedPackageManifests as defaultValidateStagedPackageManifests } from './stage-packages.mjs'
 import { assertAllowedBump, assertSharedPublicVersion, computeTargetVersion } from './version.mjs'
 import { validatePosthogReleaseArtifacts as defaultValidatePosthogReleaseArtifacts } from './posthog.mjs'
@@ -123,8 +126,22 @@ async function runResumeVerification(options, rootDir, env) {
   if (packageVersion !== targetVersion) {
     throw new Error(`public package version ${packageVersion} does not match ${targetVersion}`)
   }
-  if (env.GITHUB_OUTPUT) appendFileSync(env.GITHUB_OUTPUT, `version=${targetVersion}\n`, 'utf8')
-  return { targetVersion }
+  const isNpmVersionPresent =
+    options.isNpmVersionPresent ??
+    ((name, version) => npmVersionPresent(name, version, { execFileSync: options.execFileSync }))
+  const subscriptionAuthOnNpm = isNpmVersionPresent(subscriptionAuthPackageName, targetVersion)
+  const log = options.log ?? console.log
+  if (subscriptionAuthOnNpm) {
+    log(`already on npm: ${subscriptionAuthPackageName}@${targetVersion}, so its release is skipped`)
+  }
+  if (env.GITHUB_OUTPUT) {
+    appendFileSync(
+      env.GITHUB_OUTPUT,
+      `version=${targetVersion}\nsubscription_auth_on_npm=${subscriptionAuthOnNpm}\n`,
+      'utf8',
+    )
+  }
+  return { targetVersion, subscriptionAuthOnNpm }
 }
 
 export async function runReleaseVerification(options = {}) {

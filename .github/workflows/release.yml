@@ -11,7 +11,7 @@ on:
           - patch
           - minor
       npm_target_version:
-        description: Existing agent-qa version to finish publishing to npm from its tag; leave blank for a full release. Subscription auth runs only if it is not yet on npm; for later steps use docker-release.yml or github_release_target_version.
+        description: Existing agent-qa version to finish publishing from its tag; leave blank for a full release. It publishes what npm lacks, subscription auth only if npm lacks it, then Docker and the GitHub release.
         required: false
         type: string
       subscription_auth_target_version:
@@ -47,6 +47,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.version.outputs.version || steps.resume.outputs.version }}
+      subscription_auth_on_npm: ${{ steps.resume.outputs.subscription_auth_on_npm }}
 
     steps:
       - name: Checkout
@@ -148,7 +149,7 @@ jobs:
   subscription-auth:
     name: Publish subscription auth
     needs: npm
-    if: ${{ always() && inputs.github_release_target_version == '' && (inputs.subscription_auth_target_version != '' || needs.npm.result == 'success') }}
+    if: ${{ always() && inputs.github_release_target_version == '' && (inputs.subscription_auth_target_version != '' || (needs.npm.result == 'success' && needs.npm.outputs.subscription_auth_on_npm != 'true')) }}
     runs-on: ubuntu-latest
     env:
       SUBSCRIPTION_AUTH_TARGET_VERSION: ${{ inputs.subscription_auth_target_version || needs.npm.outputs.version }}
@@ -203,7 +204,7 @@ jobs:
 
   docker:
     name: Publish Docker images
-    if: ${{ !cancelled() && inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' && needs.npm.result == 'success' && needs.subscription-auth.result == 'success' }}
+    if: ${{ !cancelled() && inputs.subscription_auth_target_version == '' && inputs.github_release_target_version == '' && needs.npm.result == 'success' && (needs.subscription-auth.result == 'success' || (needs.subscription-auth.result == 'skipped' && needs.npm.outputs.subscription_auth_on_npm == 'true')) }}
     needs:
       - npm
       - subscription-auth
@@ -215,7 +216,7 @@ jobs:
 
   github-release:
     name: Publish GitHub release
-    if: ${{ always() && (inputs.github_release_target_version != '' || (inputs.subscription_auth_target_version == '' && needs.npm.result == 'success' && needs.subscription-auth.result == 'success')) }}
+    if: ${{ always() && (inputs.github_release_target_version != '' || (inputs.subscription_auth_target_version == '' && needs.npm.result == 'success' && (needs.subscription-auth.result == 'success' || (needs.subscription-auth.result == 'skipped' && needs.npm.outputs.subscription_auth_on_npm == 'true')))) }}
     needs:
       - npm
       - subscription-auth

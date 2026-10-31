@@ -192,6 +192,8 @@ function resumeOptions(rootDir, githubOutput, overrides = {}) {
     env: { GITHUB_OUTPUT: githubOutput },
     readTagCommit: () => 'abc123',
     readHeadCommit: () => 'abc123',
+    isNpmVersionPresent: () => false,
+    log: () => {},
     ...overrides,
   }
 }
@@ -283,8 +285,72 @@ test('resume passes at the release tag and writes the version to GITHUB_OUTPUT',
       env: { GITHUB_OUTPUT: githubOutput },
       readTagCommit: () => 'abc123',
       readHeadCommit: () => 'abc123',
+      isNpmVersionPresent: () => false,
     })
-    assert.deepEqual(result, { targetVersion: '0.2.0' })
-    assert.equal(readFileSync(githubOutput, 'utf8'), 'version=0.2.0\n')
+    assert.deepEqual(result, { targetVersion: '0.2.0', subscriptionAuthOnNpm: false })
+    assert.equal(
+      readFileSync(githubOutput, 'utf8'),
+      'version=0.2.0\nsubscription_auth_on_npm=false\n',
+    )
+  })
+})
+
+test('a resume reports subscription auth npm already has, so its release is skipped', async () => {
+  await withResumeFixture('0.2.0', async ({ rootDir, githubOutput }) => {
+    const asked = []
+    const lines = []
+    await runReleaseVerification(
+      resumeOptions(rootDir, githubOutput, {
+        isNpmVersionPresent: (name, version) => {
+          asked.push(`${name}@${version}`)
+          return true
+        },
+        log: line => lines.push(line),
+      }),
+    )
+    assert.deepEqual(asked, ['@vostride/agent-qa-subscription-auth@0.2.0'])
+    assert.equal(
+      readFileSync(githubOutput, 'utf8'),
+      'version=0.2.0\nsubscription_auth_on_npm=true\n',
+    )
+    assert.deepEqual(lines, [
+      'already on npm: @vostride/agent-qa-subscription-auth@0.2.0, so its release is skipped',
+    ])
+  })
+})
+
+test('a resume reports subscription auth npm lacks, so its release runs', async () => {
+  await withResumeFixture('0.2.0', async ({ rootDir, githubOutput }) => {
+    const lines = []
+    await runReleaseVerification(
+      resumeOptions(rootDir, githubOutput, {
+        isNpmVersionPresent: () => false,
+        log: line => lines.push(line),
+      }),
+    )
+    assert.equal(
+      readFileSync(githubOutput, 'utf8'),
+      'version=0.2.0\nsubscription_auth_on_npm=false\n',
+    )
+    assert.deepEqual(lines, [])
+  })
+})
+
+test('a resume fails closed when npm cannot say whether it has subscription auth', async () => {
+  await withResumeFixture('0.2.0', async ({ rootDir, githubOutput }) => {
+    await assert.rejects(
+      runReleaseVerification(
+        resumeOptions(rootDir, githubOutput, {
+          isNpmVersionPresent: undefined,
+          execFileSync: (cmd, args) => {
+            assert.deepEqual([cmd, args[0]], ['npm', 'view'])
+            const stderr = 'npm error code ECONNRESET'
+            throw Object.assign(new Error('Command failed: npm view'), { stderr })
+          },
+        }),
+      ),
+      /could not verify npm version for @vostride\/agent-qa-subscription-auth@0\.2\.0/,
+    )
+    assert.equal(readFileSync(githubOutput, 'utf8'), '')
   })
 })

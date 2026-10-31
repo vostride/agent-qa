@@ -21,6 +21,140 @@ function assertBefore(text, before, after) {
   assert.ok(beforeIndex < afterIndex, `Expected ${before} before ${after}`)
 }
 
+const truthy = (value) => ![false, null, undefined, '', 0].includes(value) && !Number.isNaN(value)
+const folded = (value) => (typeof value === 'string' ? value.toLowerCase() : value)
+const equal = (left, right) =>
+  typeof left === typeof right
+    ? folded(left) === folded(right)
+    : Number(left ?? 0) === Number(right ?? 0)
+
+// The expression language as far as the release jobs' conditions use it. Anything else throws,
+// so a condition this cannot read never passes. The run is never cancelled.
+function evaluate(expression, context) {
+  const text = String(expression).trim().replace(/^\$\{\{([\s\S]*)\}\}$/, '$1').trim()
+  const lexer = /\s*(?:'((?:[^']|'')*)'|([A-Za-z_][\w-]*(?:\.[\w-]+)*)|(==|!=|&&|\|\||[!(),]))/y
+  const tokens = []
+  while (lexer.lastIndex < text.length) {
+    const at = lexer.lastIndex
+    const match = lexer.exec(text)
+    if (!match) throw new Error(`cannot read ${text.slice(at)} in ${text}`)
+    if (match[1] !== undefined) tokens.push({ value: match[1].replaceAll("''", "'") })
+    else if (match[2] !== undefined) tokens.push({ name: match[2] })
+    else tokens.push({ op: match[3] })
+  }
+  const functions = {
+    always: () => true,
+    cancelled: () => false,
+    contains: (items, item) => items.some((candidate) => equal(candidate, item)),
+    fromjson: (json) => JSON.parse(json),
+  }
+  let index = 0
+  const peek = () => tokens[index]?.op
+  const take = (op) => {
+    const token = tokens[index++]
+    if (token === undefined || (op !== undefined && token.op !== op)) {
+      throw new Error(`expected ${op ?? 'more'} in ${text}`)
+    }
+    return token
+  }
+  const primary = () => {
+    const token = take()
+    if ('value' in token) return token.value
+    if (token.op === '(') {
+      const value = or()
+      take(')')
+      return value
+    }
+    if (token.op !== undefined) throw new Error(`unexpected ${token.op} in ${text}`)
+    if (peek() !== '(') {
+      const [root, ...path] = token.name.split('.')
+      if (!Object.hasOwn(context, root)) throw new Error(`no ${root} context for ${text}`)
+      return path.reduce((value, key) => value?.[key], context[root])
+    }
+    take('(')
+    const args = []
+    while (peek() !== ')') {
+      args.push(or())
+      if (peek() === ',') take(',')
+    }
+    take(')')
+    const call = functions[token.name.toLowerCase()]
+    if (!call) throw new Error(`unsupported function ${token.name} in ${text}`)
+    return call(...args)
+  }
+  const unary = () => (peek() === '!' ? (take('!'), !truthy(unary())) : primary())
+  const comparison = () => {
+    let left = unary()
+    while (peek() === '==' || peek() === '!=') {
+      const negated = take().op === '!='
+      left = equal(left, unary()) !== negated
+    }
+    return left
+  }
+  const and = () => {
+    let left = comparison()
+    while (peek() === '&&') {
+      take('&&')
+      const right = comparison()
+      left = truthy(left) ? right : left
+    }
+    return left
+  }
+  const or = () => {
+    let left = and()
+    while (peek() === '||') {
+      take('||')
+      const right = and()
+      left = truthy(left) ? left : right
+    }
+    return left
+  }
+  const value = or()
+  if (index !== tokens.length) throw new Error(`unread input in ${text}`)
+  return value
+}
+
+// A job whose condition holds gets the result and outputs `given` names, success and none by
+// default; any other job is skipped. A condition without a status function also needs every job
+// it needs to have succeeded, as Actions prefixes success().
+function jobResults(workflow, inputs, given = {}) {
+  const results = {}
+  const outputs = {}
+  for (const [id, job] of Object.entries(workflow.jobs)) {
+    const needs = [job.needs ?? []].flat()
+    for (const need of needs) assert.ok(need in results, `${id} needs ${need}, defined after it`)
+    const condition = String(job.if ?? '')
+    const needed = needs.map((need) => [need, { result: results[need], outputs: outputs[need] }])
+    const context = { inputs, needs: Object.fromEntries(needed) }
+    const statusChecked = /\b(always|cancelled|success|failure)\(/.test(condition)
+    const runs =
+      (statusChecked || needs.every((need) => results[need] === 'success')) &&
+      (condition === '' || truthy(evaluate(condition, context)))
+    results[id] = runs ? (given[id]?.result ?? 'success') : 'skipped'
+    outputs[id] = runs ? (given[id]?.outputs ?? {}) : {}
+  }
+  return results
+}
+
+const releaseJobs = (ci, npm, subscriptionAuth, docker, githubRelease) => ({
+  ci,
+  npm,
+  'subscription-auth': subscriptionAuth,
+  docker,
+  'github-release': githubRelease,
+})
+const fullRelease = {
+  bump: 'patch',
+  npm_target_version: '',
+  subscription_auth_target_version: '',
+  github_release_target_version: '',
+}
+const resumeRelease = { ...fullRelease, npm_target_version: '0.2.0' }
+const resumedNpm = (subscriptionAuthOnNpm, result = 'success') => ({
+  result,
+  outputs: { version: '0.2.0', subscription_auth_on_npm: subscriptionAuthOnNpm },
+})
+
 test('release workflow is manual-only with patch/minor bump choices', () => {
   const workflow = readWorkflow()
 
@@ -118,7 +252,7 @@ test('release workflow publishes Docker from the release tag after npm publish',
   assert.match(workflow, /outputs:\s*\n\s+version:\s*\$\{\{ steps\.version\.outputs\.version \|\| steps\.resume\.outputs\.version \}\}/)
   assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+needs:\s*ci\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && \(needs\.ci\.result == 'success' \|\| \(inputs\.npm_target_version != '' && needs\.ci\.result == 'skipped'\)\) \}\}/)
   assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && needs\.subscription-auth\.result == 'success' \}\}/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && \(needs\.subscription-auth\.result == 'success' \|\| \(needs\.subscription-auth\.result == 'skipped' && needs\.npm\.outputs\.subscription_auth_on_npm == 'true'\)\) \}\}/)
   assert.match(workflow, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.match(workflow, /uses:\s*\.\/\.github\/workflows\/docker-release\.yml/)
   assert.match(workflow, /ref:\s*v\$\{\{ needs\.npm\.outputs\.version \}\}/)
@@ -139,12 +273,12 @@ test('release workflow publishes subscription auth from the main release version
   ]
 
   assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth/)
-  assert.match(workflow, /if:\s*\$\{\{ always\(\) && inputs\.github_release_target_version == '' && \(inputs\.subscription_auth_target_version != '' \|\| needs\.npm\.result == 'success'\) \}\}/)
+  assert.match(workflow, /if:\s*\$\{\{ always\(\) && inputs\.github_release_target_version == '' && \(inputs\.subscription_auth_target_version != '' \|\| \(needs\.npm\.result == 'success' && needs\.npm\.outputs\.subscription_auth_on_npm != 'true'\)\) \}\}/)
   assert.match(workflow, /SUBSCRIPTION_AUTH_TARGET_VERSION:\s*\$\{\{ inputs\.subscription_auth_target_version \|\| needs\.npm\.outputs\.version \}\}/)
   assert.match(workflow, /GH_TOKEN:\s*\$\{\{ secrets\.SUBSCRIPTION_AUTH_RELEASE_TOKEN \}\}/)
   assert.match(workflow, /Actions: read and write/)
   assert.doesNotMatch(workflow, /working-directory:\s*agent-qa-subscription-auth/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && needs\.subscription-auth\.result == 'success' \}\}\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && \(needs\.subscription-auth\.result == 'success' \|\| \(needs\.subscription-auth\.result == 'skipped' && needs\.npm\.outputs\.subscription_auth_on_npm == 'true'\)\) \}\}\s*\n\s+needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   for (const command of orderedCommands) assert.match(workflow, new RegExp(command.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
   for (let index = 0; index < orderedCommands.length - 1; index += 1) {
     assertBefore(workflow, orderedCommands[index], orderedCommands[index + 1])
@@ -158,7 +292,7 @@ test('release workflow publishes the GitHub Release after package and subscripti
   const job = workflow.slice(jobStart)
 
   assert.match(job, /github-release:\s*\n\s+name:\s*Publish GitHub release/)
-  assert.match(job, /if:\s*\$\{\{ always\(\) && \(inputs\.github_release_target_version != '' \|\| \(inputs\.subscription_auth_target_version == '' && needs\.npm\.result == 'success' && needs\.subscription-auth\.result == 'success'\)\) \}\}/)
+  assert.match(job, /if:\s*\$\{\{ always\(\) && \(inputs\.github_release_target_version != '' \|\| \(inputs\.subscription_auth_target_version == '' && needs\.npm\.result == 'success' && \(needs\.subscription-auth\.result == 'success' \|\| \(needs\.subscription-auth\.result == 'skipped' && needs\.npm\.outputs\.subscription_auth_on_npm == 'true'\)\)\)\) \}\}/)
   assert.match(job, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.doesNotMatch(job, /needs:\s*\n\s+- npm\s*\n\s+- subscription-auth\s*\n\s+- docker/)
   assert.match(job, /contents:\s*write/)
@@ -178,11 +312,77 @@ test('release workflow can repair a missing GitHub Release for an existing versi
   assert.match(workflow, /github_release_target_version:\s*\n\s+description:\s*Existing agent-qa version to publish only the GitHub Release/)
   assert.match(workflow, /npm:\s*\n\s+name:\s*Publish npm packages\s*\n\s+needs:\s*ci\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && \(needs\.ci\.result == 'success' \|\| \(inputs\.npm_target_version != '' && needs\.ci\.result == 'skipped'\)\) \}\}/)
   assert.match(workflow, /subscription-auth:\s*\n\s+name:\s*Publish subscription auth\s*\n\s+needs:\s*npm\s*\n\s+if:\s*\$\{\{ always\(\) && inputs\.github_release_target_version == ''/)
-  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && needs\.subscription-auth\.result == 'success' \}\}/)
+  assert.match(workflow, /docker:\s*\n\s+name:\s*Publish Docker images\s*\n\s+if:\s*\$\{\{ !cancelled\(\) && inputs\.subscription_auth_target_version == '' && inputs\.github_release_target_version == '' && needs\.npm\.result == 'success' && \(needs\.subscription-auth\.result == 'success' \|\| \(needs\.subscription-auth\.result == 'skipped' && needs\.npm\.outputs\.subscription_auth_on_npm == 'true'\)\) \}\}/)
   assert.match(workflow, /github-release:\s*\n\s+name:\s*Publish GitHub release\s*\n\s+if:\s*\$\{\{ always\(\) && \(inputs\.github_release_target_version != ''/)
   assert.match(workflow, /github-release:\s*\n\s+name:\s*Publish GitHub release[\s\S]*?needs:\s*\n\s+- npm\s*\n\s+- subscription-auth/)
   assert.match(workflow, /ref:\s*v\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
   assert.match(workflow, /GITHUB_RELEASE_TARGET_VERSION:\s*\$\{\{ inputs\.github_release_target_version \|\| needs\.npm\.outputs\.version \}\}/)
+})
+
+test('a resume whose subscription auth npm already has skips that release and still runs Docker and the GitHub release', () => {
+  const release = loadWorkflow('release.yml')
+
+  assert.equal(
+    release.jobs.npm.outputs.subscription_auth_on_npm,
+    '${{ steps.resume.outputs.subscription_auth_on_npm }}',
+  )
+  // Were it dispatched, the subscription-auth release would refuse a version npm already has.
+  const given = { npm: resumedNpm('true'), 'subscription-auth': { result: 'failure' } }
+  assert.deepEqual(
+    jobResults(release, resumeRelease, given),
+    releaseJobs('skipped', 'success', 'skipped', 'success', 'success'),
+  )
+})
+
+test('each dispatch runs the release jobs it asks for, and a failed job stops the jobs that need it', () => {
+  const release = loadWorkflow('release.yml')
+  const cases = [
+    [
+      'a full release',
+      fullRelease,
+      { npm: { outputs: { version: '0.2.1' } } },
+      releaseJobs('success', 'success', 'success', 'success', 'success'),
+    ],
+    [
+      'a full release whose CI fails',
+      fullRelease,
+      { ci: { result: 'failure' } },
+      releaseJobs('failure', 'skipped', 'skipped', 'skipped', 'skipped'),
+    ],
+    [
+      'a resume whose subscription auth npm lacks',
+      resumeRelease,
+      { npm: resumedNpm('false') },
+      releaseJobs('skipped', 'success', 'success', 'success', 'success'),
+    ],
+    [
+      'a resume whose subscription auth release fails',
+      resumeRelease,
+      { npm: resumedNpm('false'), 'subscription-auth': { result: 'failure' } },
+      releaseJobs('skipped', 'success', 'failure', 'skipped', 'skipped'),
+    ],
+    [
+      'a resume whose npm publish fails',
+      resumeRelease,
+      { npm: resumedNpm('true', 'failure') },
+      releaseJobs('skipped', 'failure', 'skipped', 'skipped', 'skipped'),
+    ],
+    [
+      'a subscription-auth repair',
+      { ...fullRelease, subscription_auth_target_version: '0.2.0' },
+      {},
+      releaseJobs('skipped', 'skipped', 'success', 'skipped', 'skipped'),
+    ],
+    [
+      'a GitHub release repair',
+      { ...fullRelease, github_release_target_version: '0.2.0' },
+      {},
+      releaseJobs('skipped', 'skipped', 'skipped', 'skipped', 'success'),
+    ],
+  ]
+  for (const [name, inputs, given, expected] of cases) {
+    assert.deepEqual(jobResults(release, inputs, given), expected, name)
+  }
 })
 
 test('release npm and GitHub release jobs take Node from .nvmrc and pnpm from a commit-pinned pnpm/action-setup, with no cache', () => {
