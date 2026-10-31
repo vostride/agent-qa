@@ -32,7 +32,9 @@
     "release:github": "node scripts/release/github-release.mjs"
   },
   "devDependencies": {
+    "@arethetypeswrong/core": "~0.18.5",
     "knip": "6.41.0",
+    "publint": "~0.3.25",
     "semver": "7.7.4",
     "turbo": "~2.11.10",
     "typescript": "~6.0.3",

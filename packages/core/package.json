@@ -30,14 +30,24 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./run-text-output": {
-      "types": "./dist/run-text-output.d.ts",
-      "import": "./dist/run-text-output.js",
-      "require": "./dist/run-text-output.cjs"
+      "import": {
+        "types": "./dist/run-text-output.d.ts",
+        "default": "./dist/run-text-output.js"
+      },
+      "require": {
+        "types": "./dist/run-text-output.d.cts",
+        "default": "./dist/run-text-output.cjs"
+      }
     }
   },
   "files": [
@@ -46,8 +56,8 @@
     "NOTICE.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
@@ -71,7 +81,7 @@
     "@types/ms": "~2.1.0",
     "@types/node": "~24.12.2",
     "@vostride/agent-qa-arch": "workspace:*",
-    "tsup": "~8.5.1",
+    "tsdown": "~0.23.4",
     "typescript": "~6.0.3",
     "vitest": "~5.0.5"
   }

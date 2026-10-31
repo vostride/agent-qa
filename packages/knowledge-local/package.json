@@ -29,14 +29,24 @@
   "type": "module",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
     },
     "./reader": {
-      "types": "./dist/reader.d.ts",
-      "import": "./dist/reader.js",
-      "require": "./dist/reader.cjs"
+      "import": {
+        "types": "./dist/reader.d.ts",
+        "default": "./dist/reader.js"
+      },
+      "require": {
+        "types": "./dist/reader.d.cts",
+        "default": "./dist/reader.cjs"
+      }
     }
   },
   "files": [
