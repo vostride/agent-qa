@@ -263,7 +263,14 @@ export function danglingSourceMapUrls(distDir) {
 export function builtPackageSourceMapErrors(records = publicPackageRecords()) {
   const errors = []
   for (const record of records) {
-    for (const { file, url } of danglingSourceMapUrls(join(record.dir, 'dist'))) {
+    const distDir = join(record.dir, 'dist')
+    if (!existsSync(distDir)) {
+      errors.push(
+        `${label(record)} has no dist to check source map URLs in; run \`pnpm build\` first`,
+      )
+      continue
+    }
+    for (const { file, url } of danglingSourceMapUrls(distDir)) {
       errors.push(`${label(record)} dist/${file} points at source map ${url}, which is not emitted`)
     }
   }

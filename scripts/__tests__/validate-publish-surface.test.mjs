@@ -68,7 +68,15 @@ test('a dangling source map URL fails the publish surface with the package and f
   })
 })
 
-test('every built package ships only source map URLs whose maps it ships', () => {
+test('a package with no dist fails the publish surface with a build instruction', () => {
+  withDist({ 'package.json': '{}' }, (dir) => {
+    assert.deepEqual(builtPackageSourceMapErrors([{ dir, pkg: { name: '@vostride/agent-qa-fixture' } }]), [
+      '@vostride/agent-qa-fixture has no dist to check source map URLs in; run `pnpm build` first',
+    ])
+  })
+})
+
+test('every public package is built and ships only source map URLs whose maps it ships', () => {
   assert.deepEqual(builtPackageSourceMapErrors(), [])
 })
 
