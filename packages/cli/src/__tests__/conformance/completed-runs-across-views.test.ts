@@ -30,7 +30,6 @@ import {
   CLI_ENTRY,
   cleanupTempRoots,
   hermeticEnv,
-  reserveEphemeralPort,
   spawnDashboard,
   type SpawnedDashboard,
 } from './spawned-chat.js'
@@ -236,8 +235,7 @@ async function rowsOnPage(page: Page, runIds: readonly string[]): Promise<TabRow
 }
 
 async function readCompletedTab(project: PopulatedRunProject, runIds: readonly string[]): Promise<Scene['completed']> {
-  const port = await reserveEphemeralPort()
-  const spawned = await spawnDashboard(project.root, project.configPath, port, 60_000, populatedRunSpawnEnv())
+  const spawned = await spawnDashboard(project.root, project.configPath, 60_000, populatedRunSpawnEnv())
   dashboard = spawned
   if (!spawned.ready) throw new Error(`the spawned dashboard never said it was listening: ${spawned.stderr()}`)
   browser = await chromium.launch({ headless: true })

@@ -30,7 +30,6 @@ import {
   PACKAGES_ROOT,
   buildFreshness,
   cleanupTempRoots,
-  reserveEphemeralPort,
   spawnDashboard,
 } from './spawned-chat.js'
 import type { SpawnedDashboard } from './spawned-chat.js'
@@ -59,7 +58,7 @@ const BROWSER_INSTALL_INSTRUCTION =
 /** How long the page has to mount, paint the tree and settle the overview. */
 const PAGE_BUDGET_MS = 60_000
 
-/** How long the respawned dashboard has to say it is listening on the same port. */
+/** How long the respawned dashboard has to say it is listening. */
 const RESPAWN_BUDGET_MS = 60_000
 
 /** How long the detached post-run tail is given before the dashboard is stopped for the scan. */
@@ -525,12 +524,9 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
       targetUrl: targetServer.url,
     })
 
-    // The same port across the restart, so only the process changes.
-    const port = await reserveEphemeralPort()
     dashboard = await spawnDashboard(
       project.root,
       project.configPath,
-      port,
       60_000,
       populatedRunSpawnEnv(),
     )
@@ -555,7 +551,6 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
       respawned = await spawnDashboard(
         project.root,
         project.configPath,
-        port,
         RESPAWN_BUDGET_MS,
         populatedRunSpawnEnv(),
       )

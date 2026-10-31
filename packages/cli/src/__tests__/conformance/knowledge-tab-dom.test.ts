@@ -53,7 +53,6 @@ import {
   PACKAGES_ROOT,
   buildFreshness,
   cleanupTempRoots,
-  reserveEphemeralPort,
   spawnDashboard,
 } from './spawned-chat.js'
 import type { SpawnedDashboard } from './spawned-chat.js'
@@ -1712,11 +1711,9 @@ async function driveFixture(
     recorded.seed = await seedServedRecord(project)
   }
 
-  const port = await reserveEphemeralPort()
   const dashboard = await spawnDashboard(
     project.root,
     project.configPath,
-    port,
     60_000,
     populatedRunSpawnEnv(),
   )

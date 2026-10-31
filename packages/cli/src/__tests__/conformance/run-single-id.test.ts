@@ -14,7 +14,7 @@ import {
   type RecordedDoorProject,
 } from './run-doors-fixture.js'
 import { populatedRunSpawnEnv } from './populated-run-fixture.js'
-import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard } from './spawned-chat.js'
+import { cleanupTempRoots, spawnDashboard } from './spawned-chat.js'
 
 const CELL_BUDGET_MS = 300_000
 
@@ -73,7 +73,7 @@ describe('the CLI test path', () => {
 
   it('the dashboard answers the printed id', async () => {
     const runId = runStoreIds(project)[0]!
-    const dashboard = await spawnDashboard(project.root, project.configPath, await reserveEphemeralPort(), 60_000,
+    const dashboard = await spawnDashboard(project.root, project.configPath, 60_000,
       populatedRunSpawnEnv())
     try {
       expect(dashboard.ready, `the dashboard started\n${dashboard.stderr()}`).toBe(true)

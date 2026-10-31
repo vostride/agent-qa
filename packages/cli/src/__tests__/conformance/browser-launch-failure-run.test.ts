@@ -48,7 +48,7 @@ import {
   type CliRunOutcome,
 } from './run-doors-fixture.js'
 import type { PopulatedRunProject } from './populated-run-fixture.js'
-import { reserveEphemeralPort, spawnDashboard } from './spawned-chat.js'
+import { spawnDashboard } from './spawned-chat.js'
 
 const TARGET_NAME = 'launch-target'
 const FIRST_TEST_NAME = 'The launch-failure first member'
@@ -301,7 +301,7 @@ describe('the dashboard door', () => {
   it('the dashboard door agrees', async () => {
     const target = await withTarget()
     const project = launchProject('dashboard', target.origin, 'http://127.0.0.1:1/v1')
-    const dashboard = await spawnDashboard(project.root, project.configPath, await reserveEphemeralPort(), 60_000,
+    const dashboard = await spawnDashboard(project.root, project.configPath, 60_000,
       { CI: 'true', NO_COLOR: '1', PLAYWRIGHT_BROWSERS_PATH: project.noBrowsers })
     cleanups.push(() => dashboard.stop())
     expect(dashboard.ready, `the dashboard started\n${dashboard.stderr()}`).toBe(true)

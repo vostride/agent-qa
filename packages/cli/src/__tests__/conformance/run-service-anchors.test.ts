@@ -18,7 +18,6 @@ import {
   RUN_SERVICE_ANCHORED_BUILDS,
   buildFreshness,
   cleanupTempRoots,
-  reserveEphemeralPort,
   runServiceFixtureProject,
   spawnDashboard,
   type SpawnedDashboard,
@@ -273,12 +272,10 @@ beforeAll(async () => {
   if (freshness.missing.length > 0 || freshness.stale.length > 0) return
 
   const fixture = runServiceFixtureProject('anchors')
-  const port = await reserveEphemeralPort()
   // No credential reaches the child; none is declared and none is read.
   const spawned = await spawnDashboard(
     fixture.root,
     fixture.configPath,
-    port,
     WIRE_BUDGET_MS,
   )
   door = spawned
@@ -417,8 +414,7 @@ describe('the run-service wire anchors', () => {
     expect(buildFreshness(RUN_SERVICE_ANCHORED_BUILDS), REBUILD_INSTRUCTION)
       .toEqual({ missing: [], stale: [] })
     const fixture = runServiceFixtureProject('anchors-no-token')
-    const port = await reserveEphemeralPort()
-    const child = await spawnDashboard(fixture.root, fixture.configPath, port, WIRE_BUDGET_MS)
+    const child = await spawnDashboard(fixture.root, fixture.configPath, WIRE_BUDGET_MS)
     try {
       expect(child.ready, `the token-less dashboard never listened.\n${child.stdout()}`).toBe(true)
       const response = await fetch(`${child.origin}/api/run-readiness`)

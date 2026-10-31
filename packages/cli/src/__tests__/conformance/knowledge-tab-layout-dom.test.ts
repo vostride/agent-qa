@@ -14,7 +14,7 @@ import { chromium, type BrowserContext, type CDPSession, type Page } from 'playw
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { recordingFixture, type RecordingFixture } from './recording-dom-fixture.js'
 import { populatedRunSpawnEnv, POPULATED_SECRET_ENV_VAR } from './populated-run-fixture.js'
-import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard, trackTempRoot } from './spawned-chat.js'
+import { cleanupTempRoots, spawnDashboard, trackTempRoot } from './spawned-chat.js'
 
 // The run, its detail read, the page and every pixel are the shipped runner's and the built
 // dashboard's. ONE read is substituted: `/api/runs/{id}/knowledge` answers a rich projection built
@@ -575,7 +575,7 @@ describe('the Knowledge tab on the shipped bundle at three geometries', () => {
       // A cold reader without the planted credential environment: the fixture's synthetic values
       // stay masked, so the captures carry nothing this repository did not invent.
       delete env[POPULATED_SECRET_ENV_VAR]
-      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, await reserveEphemeralPort(), 60_000, env)
+      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, 60_000, env)
       if (!reader.ready) throw new Error(reader.stderr())
       const url = `${reader.origin}/runs/${encodeURIComponent(runId)}`
 

@@ -626,15 +626,18 @@ export async function startServer(opts: StartServerOptions): Promise<{
     server.once('error', onError)
     server.listen(port, host, () => {
       server.off('error', onError)
+      // The port the socket holds, so `port: 0` names the one the OS picked.
+      const address = server.address()
+      const boundPort = typeof address === 'object' && address !== null ? address.port : port
       // Harnesses parse the port from this line; only a loopback bind names `localhost`.
       console.log(
         isLoopbackHost(host)
-          ? `Dashboard running at http://localhost:${port}`
-          : `Dashboard running at http://${host.includes(':') ? `[${host}]` : host}:${port}`,
+          ? `Dashboard running at http://localhost:${boundPort}`
+          : `Dashboard running at http://${host.includes(':') ? `[${host}]` : host}:${boundPort}`,
       )
       resolve({
         server,
-        port,
+        port: boundPort,
         close: () => {
           jobQueue.stop()
           executionBackend?.killAll()

@@ -23,7 +23,7 @@ import {
   startTargetPageServer,
 } from './populated-run-fixture.js'
 import type { FixtureServer, PopulatedRunDrive, StubModelServer } from './populated-run-fixture.js'
-import { buildFreshness, cleanupTempRoots, reserveEphemeralPort, spawnDashboard } from './spawned-chat.js'
+import { buildFreshness, cleanupTempRoots, spawnDashboard } from './spawned-chat.js'
 import type { SpawnedDashboard } from './spawned-chat.js'
 
 // NO PLATFORM SKIP, AND THAT IS THIS FILE'S OWN LAW APPLIED TO ITSELF. Its POSIX-only sibling
@@ -160,11 +160,9 @@ describe('the shipped binary produces a populated, masked run', () => {
       targetUrl: targetServer.url,
     })
 
-    const port = await reserveEphemeralPort()
     dashboard = await spawnDashboard(
       project.root,
       project.configPath,
-      port,
       60_000,
       populatedRunSpawnEnv(),
     )

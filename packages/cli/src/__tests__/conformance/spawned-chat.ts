@@ -356,37 +356,11 @@ export function dashboardFixtureProject(label: string): {
   return { root, configPath, knowledgeRoot }
 }
 
-/**
- * A port nothing is listening on, learned by binding one and letting it go.
- *
- * `--port 0` is NOT usable here even though the server accepts it: `startServer` reports the port
- * it was ASKED for rather than the one it bound, so a `0` would leave both this process and the
- * child's own `services.dashboard.baseUrl` overlay naming `http://localhost:0`. Reserving a real
- * port and handing it over keeps one number true on both sides. (The residual race — somebody else
- * taking the port between the close and the child's listen — announces itself as a child that
- * exited with an EADDRINUSE on its stderr, which every caller below quotes.)
- */
-export async function reserveEphemeralPort(): Promise<number> {
-  const { createServer } = await import('node:http')
-  return await new Promise<number>((settle, fail) => {
-    const probe = createServer()
-    probe.once('error', fail)
-    probe.listen(0, '127.0.0.1', () => {
-      const address = probe.address()
-      if (address === null || typeof address === 'string') {
-        probe.close(() => { fail(new TypeError('the probe bound no port')) })
-        return
-      }
-      const { port } = address
-      probe.close(() => { settle(port) })
-    })
-  })
-}
-
 /** A spawned dashboard, as the cells that drive it consume it. */
 export interface SpawnedDashboard {
   /** The origin a browser is pointed at. */
   readonly origin: string
+  /** The port the child bound, read from its ready line; `0` if it never said it was listening. */
   readonly port: number
   /** Everything the child has printed so far — quoted verbatim in every failure message. */
   stdout(): string
@@ -395,33 +369,33 @@ export interface SpawnedDashboard {
   stop(): Promise<void>
 }
 
-/** The line `startServer` prints once it is listening — the child's own readiness statement. */
-export function dashboardReadyLine(port: number): string {
-  return `Dashboard running at http://localhost:${String(port)}`
-}
+/** The line `startServer` prints once it is listening, naming the port the socket holds. */
+const DASHBOARD_READY_LINE = /Dashboard running at http:\/\/localhost:(\d+)\n/u
 
 /**
  * Start the SHIPPED `agent-qa dashboard` command and wait for it to say it is listening.
+ *
+ * THE CHILD BINDS PORT 0 AND NAMES THE PORT IT GOT. A port chosen here and handed over would stay
+ * free only until another process on the machine took it, and the child would exit with EADDRINUSE.
  *
  * READINESS IS THE CHILD'S OWN SENTENCE, not a poll of the port and not a sleep. A poll would go
  * green against any process that happened to hold the port; a sleep would be a number somebody
  * guessed, and the failure it produces (an empty page) reads like a product defect.
  *
- * IT RETURNS DATA AND NEVER ASSERTS, on this module's own law — `startedAt` is `undefined` when
- * the child died or the budget ran out, and the caller decides what that means with its own
- * message and its own quoted streams.
+ * IT RETURNS DATA AND NEVER ASSERTS, on this module's own law — `ready` is `false` when the child
+ * died or the budget ran out, and the caller decides what that means with its own message and its
+ * own quoted streams.
  */
 export async function spawnDashboard(
   root: string,
   configPath: string,
-  port: number,
   budgetMs = 60_000,
   // A parameter, not a second spawn helper; empty by default, so a caller's child stays hermetic.
   extraEnv: Readonly<Record<string, string>> = {},
 ): Promise<SpawnedDashboard & { readonly ready: boolean }> {
   const child = spawn(
     process.execPath,
-    [CLI_ENTRY, '--config', configPath, 'dashboard', '--port', String(port)],
+    [CLI_ENTRY, '--config', configPath, 'dashboard', '--port', '0'],
     {
       cwd: root,
       env: { ...hermeticEnv(root), ...extraEnv },
@@ -435,9 +409,12 @@ export async function spawnDashboard(
   child.stderr.on('data', (chunk: Buffer) => { stderr += chunk.toString('utf8') })
   child.once('close', () => { exited = true })
 
-  const readyLine = dashboardReadyLine(port)
+  const boundPort = (): number | undefined => {
+    const port = DASHBOARD_READY_LINE.exec(stdout)?.[1]
+    return port === undefined ? undefined : Number(port)
+  }
   const deadline = Date.now() + budgetMs
-  while (!stdout.includes(readyLine) && !exited && Date.now() < deadline) {
+  while (boundPort() === undefined && !exited && Date.now() < deadline) {
     await new Promise<void>((tick) => setTimeout(tick, 50))
   }
 
@@ -455,10 +432,11 @@ export async function spawnDashboard(
     await stopped
   }
 
+  const port = boundPort() ?? 0
   return {
     origin: `http://127.0.0.1:${String(port)}`,
     port,
-    ready: stdout.includes(readyLine),
+    ready: port !== 0,
     stdout: () => stdout,
     stderr: () => stderr,
     stop,

@@ -6,7 +6,7 @@ import { chromium, type BrowserContext, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { recordingFixture, zoomFixtureTab, type RecordingFixture } from './recording-dom-fixture.js'
 import { populatedRunSpawnEnv, POPULATED_SECRET_ENV_VAR } from './populated-run-fixture.js'
-import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard, trackTempRoot } from './spawned-chat.js'
+import { cleanupTempRoots, spawnDashboard, trackTempRoot } from './spawned-chat.js'
 
 // Real producer and shipped bundle, nothing mocked or skipped; captures go only to the capture dir.
 type Box = { x: number; y: number; right: number; bottom: number; width: number; height: number }
@@ -157,8 +157,7 @@ describe('run header layout on the shipped bundle', () => {
       // A cold reader without the planted credential environment: the fixture's synthetic values
       // stay masked, so the captures carry nothing this repository did not invent.
       delete env[POPULATED_SECRET_ENV_VAR]
-      const port = await reserveEphemeralPort()
-      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, port, 60_000, env)
+      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, 60_000, env)
       if (!reader.ready) throw new Error(reader.stderr())
       const url = `${reader.origin}/runs/${encodeURIComponent(fixture.drive.runId)}`
 

@@ -8,7 +8,7 @@ import { chromium, type BrowserContext, type Page } from 'playwright-core'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { capture, recordingFixture, zoomFixtureTab, type RecordingFixture } from './recording-dom-fixture.js'
 import { populatedRunSpawnEnv, POPULATED_SECRET_ENV_VAR } from './populated-run-fixture.js'
-import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard, trackTempRoot } from './spawned-chat.js'
+import { cleanupTempRoots, spawnDashboard, trackTempRoot } from './spawned-chat.js'
 
 // Real producer + shipped bundle. Only historical/orphan test arrangements edit the temporary
 // durable fixture, explicitly below; no route mocks, fake media, skips or user-workspace captures.
@@ -81,10 +81,10 @@ describe('evidence layout backstops on the shipped bundle', () => {
       const env = populatedRunSpawnEnv()
       // The fill value is no declared secret, so the page renders it as typed.
       delete env[POPULATED_SECRET_ENV_VAR]
-      const port = await reserveEphemeralPort()
-      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, port, 60_000, env)
+      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, 60_000, env)
       if (!reader.ready) throw new Error(reader.stderr())
-      const url = `${reader.origin}/runs/${encodeURIComponent(fixture.drive.runId)}`
+      const runPath = `/runs/${encodeURIComponent(fixture.drive.runId)}`
+      let url = `${reader.origin}${runPath}`
       const context = await fixture.browser.newContext({ viewport: { width: 400, height: 800 } })
       const page = await context.newPage()
       await page.goto(url)
@@ -154,7 +154,9 @@ describe('evidence layout backstops on the shipped bundle', () => {
       db.prepare('UPDATE run_steps SET evidence_json = NULL WHERE run_id = ?').run(fixture.drive.runId)
       db.prepare('UPDATE run_sub_actions SET evidence_state_json = NULL, recording_offset_ms = NULL WHERE run_id = ?').run(fixture.drive.runId)
       db.close()
-      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, port, 60_000, env)
+      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, 60_000, env)
+      if (!reader.ready) throw new Error(reader.stderr())
+      url = `${reader.origin}${runPath}`
       await page.goto(url)
       await page.locator('[data-run-notice]').waitFor()
       await page.getByRole('tab', { name: /^Variables/ }).click()
@@ -196,7 +198,9 @@ describe('evidence layout backstops on the shipped bundle', () => {
       artifact.parts = []
       guardRunAnalysisArtifact(artifact)
       writeFileSync(analysisPath, JSON.stringify(artifact))
-      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, port, 60_000, env)
+      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, 60_000, env)
+      if (!reader.ready) throw new Error(reader.stderr())
+      url = `${reader.origin}${runPath}`
       for (const width of [400, 1280]) {
         await page.setViewportSize({ width, height: 800 })
         await page.goto(url)

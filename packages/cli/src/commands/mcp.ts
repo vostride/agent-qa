@@ -216,12 +216,12 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
   return cmd
 }
 
-/** `--http` with no value is the default port; `--http 4000` is that port. */
+/** No value is the default port, `--http 4000` is that port and `--http 0` is any free one. */
 function httpPort(value: string | boolean): number {
   if (value === true) return MCP_HTTP_DEFAULT_PORT
   const parsed = Number.parseInt(String(value), 10)
-  if (!Number.isInteger(parsed) || parsed < 1 || parsed > 65535) {
-    throw new Error(`--http expects a port between 1 and 65535, received ${String(value)}`)
+  if (!Number.isInteger(parsed) || parsed < 0 || parsed > 65535) {
+    throw new Error(`--http expects a port between 0 and 65535, received ${String(value)}`)
   }
   return parsed
 }

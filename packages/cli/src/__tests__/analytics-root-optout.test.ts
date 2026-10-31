@@ -543,7 +543,7 @@ describe('an identity location that cannot be written', () => {
   })
 })
 
-// `--http 0` is refused inside the serve `try`, so analytics compose and nothing is served.
+// `--http 65536` is refused inside the serve `try`, so analytics compose and nothing is served.
 async function runMcp(
   configPath: string,
   deps: { composeAnalytics: typeof composeAnalyticsHost },
@@ -556,7 +556,7 @@ async function runMcp(
       .option('--config <path>', 'config file path')
       .addCommand((createMcpCommand as (deps: unknown) => Command)(deps))
     program.exitOverride()
-    await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'mcp', '--http', '0'])
+    await program.parseAsync(['node', 'agent-qa', '--config', configPath, 'mcp', '--http', '65536'])
   } finally {
     process.exitCode = previousExitCode
     error.mockRestore()

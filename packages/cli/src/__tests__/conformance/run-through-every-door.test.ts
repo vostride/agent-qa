@@ -49,7 +49,6 @@ import {
   CLI_ENTRY,
   cleanupTempRoots,
   hermeticEnv,
-  reserveEphemeralPort,
   spawnDashboard,
   type SpawnedDashboard,
 } from './spawned-chat.js'
@@ -197,8 +196,10 @@ async function spawnRunDoor(args: readonly string[]): Promise<{ pid: number | un
   }
 }
 
-async function spawnHttpMcp(port: number): Promise<{ pid: number | undefined; stderr: () => string; stop: () => Promise<void> }> {
-  const child = spawn(process.execPath, [CLI_ENTRY, '--config', project.configPath, 'mcp', '--http', String(port)], {
+const MCP_HTTP_LISTENING_LINE = /agent-qa MCP server listening on http:\/\/127\.0\.0\.1:(\d+)\//u
+
+async function spawnHttpMcp(): Promise<{ pid: number | undefined; port: number; stop: () => Promise<void> }> {
+  const child = spawn(process.execPath, [CLI_ENTRY, '--config', project.configPath, 'mcp', '--http', '0'], {
     cwd: project.root,
     env: spawnedEnv(),
     stdio: ['ignore', 'pipe', 'pipe'],
@@ -209,16 +210,17 @@ async function spawnHttpMcp(port: number): Promise<{ pid: number | undefined; st
   child.stdout.resume()
   child.once('close', () => { exited = true })
   const deadline = Date.now() + 60_000
-  while (!stderr.includes('agent-qa MCP server listening on http://') && !exited && Date.now() < deadline) {
+  while (!MCP_HTTP_LISTENING_LINE.test(stderr) && !exited && Date.now() < deadline) {
     await new Promise((tick) => setTimeout(tick, 50))
   }
-  if (!stderr.includes('agent-qa MCP server listening on http://')) {
+  const port = MCP_HTTP_LISTENING_LINE.exec(stderr)?.[1]
+  if (port === undefined) {
     child.kill('SIGKILL')
     throw new Error(`agent-qa mcp --http never said it was listening: ${stderr}`)
   }
   return {
     pid: child.pid,
-    stderr: () => stderr,
+    port: Number(port),
     stop: () => new Promise<void>((stopped) => {
       if (exited) { stopped(); return }
       child.once('close', () => stopped())
@@ -388,12 +390,11 @@ const DRIVERS: Readonly<Record<string, Driver>> = {
     }
   },
   'agent-qa mcp over HTTP': async (row, record) => {
-    const server = await spawnHttpMcp(await reserveEphemeralPort())
+    const server = await spawnHttpMcp()
     record.ownerPid = server.pid
     const client = new Client({ name: 'agent-qa-http', version: '0.0.0' })
     try {
-      const port = /listening on http:\/\/[^:]+:(\d+)/u.exec(server.stderr())?.[1]
-      await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${String(port)}/mcp`)))
+      await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${String(server.port)}/mcp`)))
       const result = await client.callTool(
         { name: 'agent_qa_start_run', arguments: { patterns: [testPathOf(row)] } },
         { timeout: RUN_FINISH_BUDGET_MS },
@@ -639,7 +640,7 @@ async function readEverything(): Promise<void> {
 }
 
 async function observePages(): Promise<void> {
-  pageDashboard = await spawnDashboard(project.root, project.configPath, await reserveEphemeralPort(), 60_000, populatedRunSpawnEnv())
+  pageDashboard = await spawnDashboard(project.root, project.configPath, 60_000, populatedRunSpawnEnv())
   if (!pageDashboard.ready) throw new Error(`the spawned dashboard never said it was listening: ${pageDashboard.stderr()}`)
   browser = await chromium.launch({ headless: true })
   const context = await browser.newContext()

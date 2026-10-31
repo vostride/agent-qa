@@ -23,7 +23,6 @@ import {
   buildFreshness,
   cleanupTempRoots,
   drainableSuiteFixtureProject,
-  reserveEphemeralPort,
   spawnCollecting,
   spawnDashboard,
 } from './spawned-chat.js'
@@ -776,8 +775,7 @@ beforeAll(async () => {
 
   const context = await browser.newContext()
   const project = drainableSuiteFixtureProject('post-processing-dom')
-  const port = await reserveEphemeralPort()
-  const dashboard = await spawnDashboard(project.root, project.configPath, port)
+  const dashboard = await spawnDashboard(project.root, project.configPath)
   fixture = { dashboard, root: project.root, configPath: project.configPath, browser, context }
   expect(
     dashboard.ready,
