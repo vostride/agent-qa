@@ -38,10 +38,10 @@ export const REBUILD_INSTRUCTION =
 /**
  * The built artifacts the spawned halves of these cells actually execute.
  *
- * `cli` is bundled from its own source; the other four arrive as their own dists because tsup leaves
- * workspace dependencies external. All five are listed because the enumeration a spawned binary
- * answers with is composed out of all five, and a guard that watched only the entry point would be
- * green while the registry the entry point lists was a revision behind.
+ * `cli` is bundled from its own source; the other four arrive as their own dists because tsdown
+ * leaves workspace dependencies external. All five are listed because the enumeration a spawned
+ * binary answers with is composed out of all five, and a guard that watched only the entry point
+ * would be green while the registry the entry point lists was a revision behind.
  */
 export const ANCHORED_BUILDS: readonly { readonly pkg: string; readonly artifact: string }[] =
   Object.freeze([

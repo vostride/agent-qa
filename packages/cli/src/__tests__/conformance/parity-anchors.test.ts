@@ -257,8 +257,8 @@ describe('the built-binary anchors', () => {
       // ONE FOLD CORE FOR BOTH SIDES, deliberately: a second expansion recipe written here could
       // disagree with the shipped mapping and would then be measuring itself. What makes the two
       // sides independent is the INPUT — two `tools/list` answers from two server instances in two
-      // processes, one of them built by tsup out of this package's source — and not the arithmetic
-      // applied to them.
+      // processes, one of them built by tsdown out of this package's source — and not the
+      // arithmetic applied to them.
       expect(
         anchorDifference(spawned.opIds, inProcess.opIds),
         `the shipped MCP binary and the in-process adapter disagree about which registry ops this `

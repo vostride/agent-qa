@@ -83,9 +83,9 @@
     ]
   },
   "scripts": {
-    "build": "tsup",
+    "build": "tsdown",
     "copy:skills": "node scripts/copy-skills.mjs",
-    "dev": "tsup --watch",
+    "dev": "tsdown --watch",
     "prepack": "pnpm run copy:skills",
     "test": "vitest run",
     "regen:run-parity": "vitest run src/commands/__tests__/run-parity.e2e.test.ts -u",
@@ -132,7 +132,7 @@
     "@vostride/agent-qa-safety": "workspace:*",
     "glob": "13.0.6",
     "jiti": "2.6.1",
-    "tsup": "~8.5.1",
+    "tsdown": "~0.23.4",
     "typescript": "~6.0.3",
     "vitest": "~5.0.5"
   }
