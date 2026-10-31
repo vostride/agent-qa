@@ -9,7 +9,7 @@ on:
         type: string
         default: ''
       move_latest:
-        description: Move latest tags after all immutable image pushes succeed
+        description: Move latest tags after all immutable image pushes succeed, unless Docker Hub already has a newer version
         required: false
         type: boolean
         default: true
@@ -43,6 +43,7 @@ jobs:
       images: ${{ steps.docker.outputs.images }}
       build: ${{ steps.docker.outputs.build }}
       retag: ${{ steps.docker.outputs.retag }}
+      may_move_latest: ${{ steps.docker.outputs.may_move_latest }}
       node_version: ${{ steps.docker.outputs.node_version }}
 
     steps:
@@ -152,7 +153,7 @@ jobs:
 
   latest:
     name: Move latest tag for ${{ matrix.image.id }}
-    if: ${{ !cancelled() && inputs.move_latest && needs.preflight.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.docker.result) && contains(fromJSON('["success","skipped"]'), needs.retag.result) }}
+    if: ${{ !cancelled() && inputs.move_latest && needs.preflight.result == 'success' && needs.preflight.outputs.may_move_latest == 'true' && contains(fromJSON('["success","skipped"]'), needs.docker.result) && contains(fromJSON('["success","skipped"]'), needs.retag.result) }}
     runs-on: ubuntu-latest
     needs: [preflight, docker, retag]
     strategy:

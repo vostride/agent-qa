@@ -356,14 +356,18 @@ test('docker release workflow adds a half-pushed image\'s missing version tag fr
   assert.match(workflow, /docker buildx imagetools create -t "\$\{\{ matrix\.retag\.image \}\}:\$\{\{ matrix\.retag\.missing \}\}" "\$\{\{ matrix\.retag\.image \}\}:\$\{\{ matrix\.retag\.present \}\}"/)
 })
 
-test('docker release workflow moves latest for all six images once the builds and retags succeeded or were skipped', () => {
+test('docker release workflow moves latest for all six images once the builds and retags succeeded or were skipped, and only when the preflight allows it', () => {
   const workflow = readWorkflow('docker-release.yml')
   const latest = workflow.slice(workflow.indexOf('\n  latest:\n'))
 
+  assert.equal(
+    loadWorkflow('docker-release.yml').jobs.preflight.outputs.may_move_latest,
+    '${{ steps.docker.outputs.may_move_latest }}',
+  )
   assert.match(latest, /needs:\s*\[preflight, docker, retag\]/)
   assert.ok(
-    latest.includes(`if: \${{ !cancelled() && inputs.move_latest && needs.preflight.result == 'success' && contains(fromJSON('["success","skipped"]'), needs.docker.result) && contains(fromJSON('["success","skipped"]'), needs.retag.result) }}`),
-    'latest must wait for preflight success and for the docker and retag jobs to succeed or be skipped',
+    latest.includes(`if: \${{ !cancelled() && inputs.move_latest && needs.preflight.result == 'success' && needs.preflight.outputs.may_move_latest == 'true' && contains(fromJSON('["success","skipped"]'), needs.docker.result) && contains(fromJSON('["success","skipped"]'), needs.retag.result) }}`),
+    'latest must wait for preflight success with may_move_latest true, and for the docker and retag jobs to succeed or be skipped',
   )
   assert.match(latest, /image: \$\{\{ fromJson\(needs\.preflight\.outputs\.images\) \}\}/)
   assert.match(latest, /docker buildx imagetools create -t "\$\{\{ matrix\.image\.image \}\}:latest" "\$\{\{ matrix\.image\.image \}\}:\$\{\{ needs\.preflight\.outputs\.version \}\}"/)

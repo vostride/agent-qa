@@ -188,8 +188,12 @@ test('requires Docker Hub environment for publishing', () => {
   assert.throws(() => assertDockerReleaseEnvironment({ env: { ...goodEnv, DOCKERHUB_NAMESPACE: 'agent-qa' } }), /vostride/)
 })
 
-function hubStatus(statuses) {
+function hubStatus(statuses, listed = []) {
   return async url => {
+    if (/\/repositories\/vostride\/[^/]+\/tags\?page_size=100$/.test(url)) {
+      const results = listed.map(name => ({ name }))
+      return { status: 200, json: async () => ({ results, next: null }) }
+    }
     const match = /\/repositories\/vostride\/([^/]+)\/tags\/([^/]+)$/.exec(url)
     assert.ok(match, `unexpected Docker Hub URL: ${url}`)
     return { status: statuses[`${match[1]}:${match[2]}`] ?? 200 }
@@ -261,7 +265,7 @@ function readGithubOutputs(text) {
   return outputs
 }
 
-async function runWithGithubOutput(argv, fetchImpl) {
+async function runWithGithubOutput(argv, fetchImpl, log = () => {}) {
   const tempDir = await mkdtemp(join(tmpdir(), 'agent-qa-docker-output-'))
   try {
     const outputPath = join(tempDir, 'github-output')
@@ -269,6 +273,7 @@ async function runWithGithubOutput(argv, fetchImpl) {
       rootDir,
       env: { GITHUB_OUTPUT: outputPath },
       fetchImpl,
+      log,
       output: { write: () => {} },
     })
     return readGithubOutputs(readFileSync(outputPath, 'utf8'))
@@ -326,12 +331,83 @@ test('a release with every version tag already pushed builds and retags nothing'
   assert.deepEqual(JSON.parse(outputs.images).map(image => image.image), imageNames)
 })
 
-test('without a tag check every image is built and none is retagged', async () => {
+test('without a tag check every image is built, none is retagged and latest stays', async () => {
   const outputs = await runWithGithubOutput(['--version', '0.1.1', '--namespace', 'vostride'], async () => {
     throw new Error('Docker Hub must not be queried without --check-tags')
   })
   assert.deepEqual(JSON.parse(outputs.build).map(image => image.image), imageNames)
   assert.deepEqual(JSON.parse(outputs.retag), [])
+  assert.equal(outputs.may_move_latest, 'false')
+})
+
+test('a version older than one Docker Hub already has leaves latest where it is and says so', async () => {
+  const others = ['latest', 'v0.1.2', '0.1.2', 'v0.1.0', '0.1.0']
+  const states = {
+    'fully pushed': [{}, [...others, 'v0.1.1', '0.1.1']],
+    'not yet pushed': [
+      Object.fromEntries(
+        imageNames.flatMap(image =>
+          ['0.1.1', 'v0.1.1'].map(tag => [`${image.split('/')[1]}:${tag}`, 404]),
+        ),
+      ),
+      others,
+    ],
+  }
+  for (const [state, [statuses, listed]] of Object.entries(states)) {
+    const lines = []
+    const outputs = await runWithGithubOutput(
+      ['--version', '0.1.1', '--namespace', 'vostride', '--check-tags'],
+      hubStatus(statuses, listed),
+      line => lines.push(line),
+    )
+    assert.equal(outputs.may_move_latest, 'false', state)
+    assert.deepEqual(lines, ['latest stays where it is: Docker Hub already has 0.1.2, newer than 0.1.1'], state)
+  }
+})
+
+test('the newest version moves latest, whether its images are already pushed or not', async () => {
+  for (const statuses of [{}, { 'agent-qa-web:0.1.1': 404, 'agent-qa-web:v0.1.1': 404 }]) {
+    const lines = []
+    const outputs = await runWithGithubOutput(
+      ['--version', '0.1.1', '--namespace', 'vostride', '--check-tags'],
+      hubStatus(statuses, ['latest', 'v0.1.1', '0.1.1', 'v0.1.0', '0.1.0', 'v0.0.9', '0.0.9']),
+      line => lines.push(line),
+    )
+    assert.equal(outputs.may_move_latest, 'true')
+    assert.deepEqual(lines, [])
+  }
+})
+
+test('the newest version is read across every page of every image\'s Docker Hub tags', async () => {
+  const bash = 'https://hub.docker.com/v2/repositories/vostride/agent-qa-hook-runner-bash/tags'
+  const pages = {
+    [`${bash}?page_size=100`]: {
+      results: [{ name: 'latest' }, { name: '0.1.1' }],
+      next: `${bash}?page=2&page_size=100`,
+    },
+    [`${bash}?page=2&page_size=100`]: { results: [{ name: 'v0.1.3' }], next: null },
+  }
+  const fetchImpl = async url => {
+    if (!url.includes('/tags?')) return { status: 200 }
+    return { status: 200, json: async () => pages[url] ?? { results: [], next: null } }
+  }
+  const lines = []
+  const outputs = await runWithGithubOutput(
+    ['--version', '0.1.1', '--namespace', 'vostride', '--check-tags'],
+    fetchImpl,
+    line => lines.push(line),
+  )
+  assert.equal(outputs.may_move_latest, 'false')
+  assert.deepEqual(lines, ['latest stays where it is: Docker Hub already has 0.1.3, newer than 0.1.1'])
+})
+
+test('fails closed when Docker Hub cannot list an image\'s tags', async () => {
+  const fetchImpl = async url =>
+    url.includes('/tags?') ? { status: 503, json: async () => ({}) } : { status: 200 }
+  await assert.rejects(
+    runWithGithubOutput(['--version', '0.1.1', '--namespace', 'vostride', '--check-tags'], fetchImpl),
+    /could not list Docker tags for vostride\/agent-qa-web/,
+  )
 })
 
 test('CLI prints a local Docker release plan', async () => {

@@ -184,20 +184,29 @@ function immutableTags(version) {
   return [normalized, `v${normalized}`]
 }
 
-export async function classifyDockerImages(matrix, version, options = {}) {
+function hubFetch(options) {
   const fetchImpl = options.fetchImpl ?? globalThis.fetch
   if (typeof fetchImpl !== 'function') throw new Error('fetch is required for Docker Hub tag checks')
+  return fetchImpl
+}
 
+function hubRepository(image) {
+  const namespace = normalizeDockerNamespace(image.namespace ?? image.image?.split('/')[0])
+  const repo = image.repo ?? image.image?.split('/')[1]
+  if (!repo) throw new Error('Docker image record missing repo')
+  const tagsUrl = `https://hub.docker.com/v2/repositories/${encodeURIComponent(namespace)}/${encodeURIComponent(repo)}/tags`
+  return { namespace, repo, tagsUrl }
+}
+
+export async function classifyDockerImages(matrix, version, options = {}) {
+  const fetchImpl = hubFetch(options)
   const result = []
   for (const image of matrix) {
-    const namespace = normalizeDockerNamespace(image.namespace ?? image.image?.split('/')[0])
-    const repo = image.repo ?? image.image?.split('/')[1]
-    if (!repo) throw new Error('Docker image record missing repo')
+    const { namespace, repo, tagsUrl } = hubRepository(image)
     const present = []
     const missing = []
     for (const tag of immutableTags(version)) {
-      const url = `https://hub.docker.com/v2/repositories/${encodeURIComponent(namespace)}/${encodeURIComponent(repo)}/tags/${encodeURIComponent(tag)}`
-      const response = await fetchImpl(url)
+      const response = await fetchImpl(`${tagsUrl}/${encodeURIComponent(tag)}`)
       if (response.status === 200) present.push(tag)
       else if (response.status === 404) missing.push(tag)
       else throw new Error(`could not verify Docker tag for ${namespace}/${repo}:${tag}`)
@@ -206,6 +215,29 @@ export async function classifyDockerImages(matrix, version, options = {}) {
     result.push({ id: image.id, image: `${namespace}/${repo}`, state, present, missing })
   }
   return result
+}
+
+async function newestDockerVersion(matrix, options = {}) {
+  const fetchImpl = hubFetch(options)
+  let newest = null
+  for (const image of matrix) {
+    const { namespace, repo, tagsUrl } = hubRepository(image)
+    let url = `${tagsUrl}?page_size=100`
+    while (url) {
+      const response = await fetchImpl(url)
+      const page = response.status === 200 ? await response.json() : null
+      if (!Array.isArray(page?.results)) {
+        throw new Error(`could not list Docker tags for ${namespace}/${repo}`)
+      }
+      for (const { name } of page.results) {
+        const version = String(name).replace(/^v/, '')
+        if (semver.valid(version) !== version) continue
+        if (!newest || semver.gt(version, newest)) newest = version
+      }
+      url = page.next ?? null
+    }
+  }
+  return newest
 }
 
 function dockerReleaseWork(matrix, classification) {
@@ -231,6 +263,7 @@ export function writeGithubOutputs(options = {}) {
   appendFileSync(outputPath, `images<<EOF\n${images}\nEOF\n`, 'utf8')
   appendFileSync(outputPath, `build<<EOF\n${build}\nEOF\n`, 'utf8')
   appendFileSync(outputPath, `retag<<EOF\n${retag}\nEOF\n`, 'utf8')
+  appendFileSync(outputPath, `may_move_latest=${options.mayMoveLatest === true}\n`, 'utf8')
   if (options.nodeVersion) appendFileSync(outputPath, `node_version=${options.nodeVersion}\n`, 'utf8')
 }
 
@@ -286,6 +319,16 @@ export async function runCli(argv = process.argv.slice(2), options = {}) {
         await classifyDockerImages(matrix, plan.version, { fetchImpl: options.fetchImpl }),
       )
     : { build: matrix, retag: [] }
+  // latest moves only once Docker Hub has been read and holds no newer version.
+  let mayMoveLatest = false
+  if (parsed.checkTags) {
+    const newest = await newestDockerVersion(matrix, { fetchImpl: options.fetchImpl })
+    mayMoveLatest = !newest || semver.gte(plan.version, newest)
+    if (!mayMoveLatest) {
+      const log = options.log ?? (line => process.stderr.write(`${line}\n`))
+      log(`latest stays where it is: Docker Hub already has ${newest}, newer than ${plan.version}`)
+    }
+  }
   if (parsed.githubOutput) {
     writeGithubOutputs({
       outputPath: env.GITHUB_OUTPUT,
@@ -294,6 +337,7 @@ export async function runCli(argv = process.argv.slice(2), options = {}) {
       matrix,
       build: work.build,
       retag: work.retag,
+      mayMoveLatest,
       nodeVersion: plan.nodeVersion,
     })
   }
