@@ -501,13 +501,17 @@ it('SUITE-BROWSER-ANNOTATION: new recorded intervals align in normal, magnifier 
   observations.newRecording = rows
 }, 120_000)
 
+const ARRANGED_TAIL_MS = 800
+
 it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continued rate', async () => {
+  const database = new DashboardDatabase({ dbPath: join(fixture.project.root, '.agent-qa', 'runs.db') })
+  const recorded = database.readRunDetailRows(fixture.drive.runId)!.members.find(member => member.testIndex === 0)!.recording
   const page = await fixture.browser.newPage({ viewport: { width: 1280, height: 900 } })
   try {
     await ready(page)
     await mediaReady(page)
-    // Independently decode each actual artifact; stored monotonic durations deliberately
-    // differ from the encoded media tail and must not control presentation spans.
+    // Independently decode each actual artifact; presentation spans follow the decoded media,
+    // never the stored monotonic durations.
     const sources = detail.members.map(member => member.recording?.state === 'present' ? `${fixture.dashboard.origin}/api/runs/${encodeURIComponent(fixture.drive.runId)}/artifacts/${member.recording.ref.sha}` : '')
     const durations = await page.evaluate(async sources => Promise.all(sources.map(src => new Promise<number>((resolve, reject) => {
       const media = document.createElement('video')
@@ -517,7 +521,19 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
       media.src = src
     }))), sources)
     expect(durations.every(duration => duration > 0)).toBe(true)
-    const stored = detail.members.map(member => member.recording?.state === 'present' ? member.recording.durationMs! / 1000 : 0)
+    if (recorded?.state !== 'present') throw new Error('member 0 has no present recording')
+    // The encoder holds the last frame up to a second past the stop, less however long the page
+    // sat unrepainted before it, so a slow runner leaves no tail. Arrange member 0's stored duration
+    // in this isolated fixture database instead, and read it from the detail the reloaded page gets.
+    const arranged = { ...recorded, durationMs: Math.round(durations[0]! * 1000) - ARRANGED_TAIL_MS }
+    database.upsertRunMember({ runId: fixture.drive.runId, testIndex: 0, recording: arranged })
+    const detailUrl = `${fixture.dashboard.origin}/api/runs/${encodeURIComponent(fixture.drive.runId)}/detail`
+    const served = page.waitForResponse(response => response.url() === detailUrl)
+    await ready(page)
+    await mediaReady(page)
+    const projection = await (await served).json() as RunDetailProjection
+    expect(projection.members[0]!.recording).toEqual(arranged)
+    const stored = projection.members.map(member => member.recording?.state === 'present' ? member.recording.durationMs! / 1000 : 0)
     expect(durations[0]! - stored[0]!).toBeGreaterThan(0.2)
     const track = page.locator('[data-timeline-track]')
     const bounds = (await track.boundingBox())!
@@ -702,8 +718,12 @@ it('SUITE-BROWSER-MEDIA: real progress, marker details, local seeks and continue
       }))).toEqual({ left: 50, circle: null, transparent: false })
       await capture(page, `free-playhead-${width}`)
     }
-    observations.media = { durations, stored, tail, target, local, rates, samples, cue: shown, continuation: true }
-  } finally { await page.close() }
+    observations.media = { durations, stored, recordedMs: recorded.durationMs, tail, target, local, rates, samples, cue: shown, continuation: true }
+  } finally {
+    database.upsertRunMember({ runId: fixture.drive.runId, testIndex: 0, recording: recorded })
+    database.close()
+    await page.close()
+  }
 }, 120_000)
 
 describe('the suite player\'s seek, span and clock helpers', () => {
