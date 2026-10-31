@@ -9,7 +9,6 @@ import {
   DASHBOARD_ANCHORED_BUILDS,
   buildFreshness,
   cleanupTempRoots,
-  reserveEphemeralPort,
   runServiceFixtureProject,
   spawnDashboard,
 } from './spawned-chat.js'
@@ -167,8 +166,7 @@ beforeAll(async () => {
   // project gets, and it is the arm in which a composition that only runs on the credentialed
   // branch hides.
   const project = runServiceFixtureProject('post-processing')
-  const port = await reserveEphemeralPort()
-  const dashboard = await spawnDashboard(project.root, project.configPath, port)
+  const dashboard = await spawnDashboard(project.root, project.configPath)
   expect(
     dashboard.ready,
     `the built \`agent-qa dashboard\` never reported that it was listening. ${childContext(dashboard)}`,

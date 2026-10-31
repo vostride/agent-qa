@@ -10,7 +10,6 @@ import {
   buildFreshness,
   cleanupTempRoots,
   dashboardFixtureProject,
-  reserveEphemeralPort,
   spawnDashboard,
 } from './spawned-chat.js'
 
@@ -146,8 +145,7 @@ async function survive(
     .toEqual({ missing: [], stale: [] })
 
   const project = dashboardFixtureProject(label)
-  const port = await reserveEphemeralPort()
-  const dashboard = await spawnDashboard(project.root, project.configPath, port)
+  const dashboard = await spawnDashboard(project.root, project.configPath)
   expect(
     dashboard.ready,
     `the built \`agent-qa dashboard\` command never reported that it was listening for the ${label} `
@@ -156,13 +154,13 @@ async function survive(
   ).toBe(true)
 
   try {
-    const before = await rawRequest(port, HEALTHY_LINE)
-    const hostile = await rawRequest(port, hostileLine, { headers: hostileHeaders })
+    const before = await rawRequest(dashboard.port, HEALTHY_LINE)
+    const hostile = await rawRequest(dashboard.port, hostileLine, { headers: hostileHeaders })
     // A process that is going to die from an unhandled rejection dies on a later tick than the one
     // that closed the socket, so the healthy drive is given a beat to find a dead port rather than
     // a live one that is about to stop being live.
     await new Promise<void>((tick) => setTimeout(tick, 500))
-    const after = await rawRequest(port, HEALTHY_LINE, { budgetMs: 5_000 })
+    const after = await rawRequest(dashboard.port, HEALTHY_LINE, { budgetMs: 5_000 })
     return {
       before,
       hostile,

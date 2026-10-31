@@ -31,7 +31,6 @@ import {
   PACKAGES_ROOT,
   buildFreshness,
   cleanupTempRoots,
-  reserveEphemeralPort,
   spawnDashboard,
 } from './spawned-chat.js'
 import type { SpawnedDashboard } from './spawned-chat.js'
@@ -609,11 +608,9 @@ describe('the shipped dashboard paints a FAILED run\'s summary as stored text', 
       { stepText: POPULATED_FAILURE_STEP_TEXT },
     )
 
-    const port = await reserveEphemeralPort()
     dashboard = await spawnDashboard(
       project.root,
       project.configPath,
-      port,
       60_000,
       populatedRunSpawnEnv(),
     )

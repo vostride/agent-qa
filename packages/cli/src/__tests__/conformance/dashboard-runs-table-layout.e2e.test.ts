@@ -20,7 +20,6 @@ import {
   buildFreshness,
   cleanupTempRoots,
   dashboardFixtureProject,
-  reserveEphemeralPort,
   spawnDashboard,
   type SpawnedDashboard,
 } from './spawned-chat.js'
@@ -258,8 +257,7 @@ async function drive(): Promise<void> {
   }
   const project = dashboardFixtureProject('runs-table')
   scene.seeded = seedRuns(project.root)
-  const port = await reserveEphemeralPort()
-  dashboard = await spawnDashboard(project.root, project.configPath, port)
+  dashboard = await spawnDashboard(project.root, project.configPath)
   if (!dashboard.stdout().includes('Dashboard running at')) {
     throw new Error(`the spawned dashboard never said it was listening: ${dashboard.stderr()}`)
   }

@@ -5,6 +5,7 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import { connect } from 'node:net'
+import type { AddressInfo } from 'node:net'
 import { basename, dirname } from 'node:path'
 
 import { chromium } from 'playwright-core'
@@ -16,7 +17,6 @@ import {
   DASHBOARD_ANCHORED_BUILDS,
   buildFreshness,
   cleanupTempRoots,
-  reserveEphemeralPort,
   runServiceFixtureProject,
   spawnDashboard,
 } from './spawned-chat.js'
@@ -349,12 +349,13 @@ function speakToFrameSocketRaw(input: {
 // ---- the second origin -------------------------------------------------------------------------
 
 /** A throwaway server on a SECOND loopback port. A different port is a different ORIGIN. */
-function serveAttackerPage(port: number, html: string): Promise<Server> {
+async function serveAttackerPage(html: string): Promise<{ server: Server; port: number }> {
   const server = createServer((_request, response) => {
     response.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' })
     response.end(html)
   })
-  return new Promise<Server>((ready) => { server.listen(port, '127.0.0.1', () => ready(server)) })
+  await new Promise<void>((ready) => { server.listen(0, '127.0.0.1', () => { ready() }) })
+  return { server, port: (server.address() as AddressInfo).port }
 }
 
 let browser: Browser | undefined
@@ -366,8 +367,7 @@ beforeAll(async () => {
     .toEqual({ missing: [], stale: [] })
 
   const project = runServiceFixtureProject('live-view-cross-site')
-  const port = await reserveEphemeralPort()
-  const dashboard = await spawnDashboard(project.root, project.configPath, port)
+  const dashboard = await spawnDashboard(project.root, project.configPath)
   expect(
     dashboard.ready,
     `the built \`agent-qa dashboard\` never reported that it was listening. ${childContext(dashboard)}`,
@@ -533,7 +533,6 @@ describe('the live-url mint door refuses a cross-site browser request', () => {
       }
     }
 
-    const attackerPort = await reserveEphemeralPort()
     const dash = `http://127.0.0.1:${String(f.dashboard.port)}`
     // The control proves the page, the browser and the door are live. No /api read is readable from
     // another origin, so it is a `no-cors` fetch: an opaque answer means the request reached the
@@ -560,7 +559,9 @@ describe('the live-url mint door refuses a cross-site browser request', () => {
       })();
     </script></body>`
 
-    attackerServer = await serveAttackerPage(attackerPort, html)
+    const attacker = await serveAttackerPage(html)
+    attackerServer = attacker.server
+    const attackerPort = attacker.port
 
     interface PageScriptReading {
       control: { type: string } | null
@@ -1019,12 +1020,10 @@ describe('the live-editor surface refuses a cross-site caller', () => {
     config.use = { ...((config.use ?? {}) as Record<string, unknown>), llm: EDITOR_MODEL_NAME }
     writeFileSync(project.configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
 
-    const port = await reserveEphemeralPort()
     const browsersRoot = playwrightBrowsersRoot()
     const dashboard = await spawnDashboard(
       project.root,
       project.configPath,
-      port,
       60_000,
       browsersRoot === undefined ? {} : { PLAYWRIGHT_BROWSERS_PATH: browsersRoot },
     )
@@ -1199,7 +1198,6 @@ describe('the live-editor surface refuses a cross-site caller', () => {
       }
     }
 
-    const attackerPort = await reserveEphemeralPort()
     const dash = `http://127.0.0.1:${String(port)}`
     // The control is the `no-cors` liveness read of cell (2).
     const controlUrl = `${dash}/api/stats`
@@ -1219,7 +1217,7 @@ describe('the live-editor surface refuses a cross-site caller', () => {
         window.__reading = reading;
       })();
     </script></body>`
-    const attacker = await serveAttackerPage(attackerPort, html)
+    const { server: attacker, port: attackerPort } = await serveAttackerPage(html)
 
     interface PageReading {
       control: { type: string } | null

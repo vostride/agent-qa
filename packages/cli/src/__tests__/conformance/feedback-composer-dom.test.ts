@@ -8,7 +8,7 @@ import { chromium, type Browser, type BrowserContext, type Page } from 'playwrig
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { recordingFixture, type RecordingFixture } from './recording-dom-fixture.js'
 import { populatedRunSpawnEnv, POPULATED_SECRET_ENV_VAR } from './populated-run-fixture.js'
-import { cleanupTempRoots, reserveEphemeralPort, spawnDashboard, trackTempRoot } from './spawned-chat.js'
+import { cleanupTempRoots, spawnDashboard, trackTempRoot } from './spawned-chat.js'
 
 // Real producer and shipped bundle, nothing mocked or skipped; captures go only to the capture dir.
 const DESKTOP = { width: 1280, height: 800 }
@@ -621,8 +621,7 @@ describe('contextual feedback on the shipped bundle', () => {
       // A cold reader without the planted credential environment: the fixture's synthetic values
       // stay masked, so the captures carry nothing this repository did not invent.
       delete env[POPULATED_SECRET_ENV_VAR]
-      const port = await reserveEphemeralPort()
-      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, port, 60_000, env)
+      reader = await spawnDashboard(fixture.project.root, fixture.project.configPath, 60_000, env)
       if (!reader.ready) throw new Error(reader.stderr())
       const runId = fixture.drive.runId
       const url = `${reader.origin}/runs/${encodeURIComponent(runId)}`

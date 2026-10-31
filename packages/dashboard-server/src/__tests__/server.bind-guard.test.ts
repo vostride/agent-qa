@@ -1,4 +1,4 @@
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { createServer, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
@@ -74,7 +74,7 @@ async function start(opts: {
   mountService?: boolean
   readiness?: Readiness
   legacyTokens?: boolean
-}): Promise<{ server: Server; close: () => void }> {
+}): Promise<{ server: Server; port: number; close: () => void }> {
   const db = new DashboardDatabase({ dbPath: ':memory:' })
   dbs.push(db)
   const readiness = opts.readiness ?? INERT_READINESS
@@ -122,6 +122,20 @@ describe('the dashboard bind contract', () => {
   it('binds LOOPBACK by default — read off the listening socket, not off the options', async () => {
     const { server } = await start({})
     expect(boundAddress(server)).toBe('127.0.0.1')
+  })
+
+  it('announces and resolves the port the socket holds when asked for port 0', async () => {
+    const log = vi.spyOn(console, 'log').mockImplementation(() => {})
+    try {
+      const { server, port } = await start({ port: 0 })
+      const bound = (server.address() as AddressInfo).port
+      expect(bound).toBeGreaterThan(0)
+      expect(port).toBe(bound)
+      expect(log.mock.calls.map((call) => String(call[0])))
+        .toContain(`Dashboard running at http://localhost:${String(bound)}`)
+    } finally {
+      log.mockRestore()
+    }
   })
 
   it.each(['localhost', '127.0.0.1', '::1'])(

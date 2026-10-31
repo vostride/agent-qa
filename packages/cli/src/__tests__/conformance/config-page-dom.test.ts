@@ -17,7 +17,6 @@ import {
   buildFreshness,
   cleanupTempRoots,
   hermeticEnv,
-  reserveEphemeralPort,
   spawnDashboard,
   trackTempRoot,
   type SpawnedDashboard,
@@ -299,7 +298,7 @@ describe('Config tabs, links, geometry, masking and names on the shipped bundle'
     project = writeProject('tabs', TASK1_CONFIG, {
       gpt: { type: 'api', provider: 'anthropic-compatible', key: SENTINELS.auth },
     })
-    const spawned = await spawnDashboard(project.root, project.configPath, await reserveEphemeralPort())
+    const spawned = await spawnDashboard(project.root, project.configPath)
     expect(spawned.ready, `the built dashboard never listened. stdout: ${spawned.stdout().slice(-1200)} stderr: ${spawned.stderr().slice(-1200)}`).toBe(true)
     dashboard = spawned
     harness = new Harness(await launchBrowser(spawned), spawned.origin)
@@ -603,7 +602,7 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
     realAuthBefore = realAuthFingerprint()
     stub = await startStubModelServer()
     project = writeProject('add', TASK2_CONFIG)
-    const spawned = await spawnDashboard(project.root, project.configPath, await reserveEphemeralPort())
+    const spawned = await spawnDashboard(project.root, project.configPath)
     expect(spawned.ready, `the built dashboard never listened. stdout: ${spawned.stdout().slice(-1200)} stderr: ${spawned.stderr().slice(-1200)}`).toBe(true)
     dashboard = spawned
     harness = new Harness(await launchBrowser(spawned), spawned.origin)

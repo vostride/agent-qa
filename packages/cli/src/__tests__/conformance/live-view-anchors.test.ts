@@ -18,7 +18,6 @@ import {
   buildFreshness,
   cleanupTempRoots,
   dashboardUiDist,
-  reserveEphemeralPort,
   runServiceFixtureProject,
   spawnDashboard,
 } from './spawned-chat.js'
@@ -176,8 +175,7 @@ beforeAll(async () => {
     .toEqual({ missing: [], stale: [] })
 
   const project = runServiceFixtureProject('live-view')
-  const port = await reserveEphemeralPort()
-  const dashboard = await spawnDashboard(project.root, project.configPath, port)
+  const dashboard = await spawnDashboard(project.root, project.configPath)
   expect(
     dashboard.ready,
     `the built \`agent-qa dashboard\` never reported that it was listening. ${childContext(dashboard)}`,

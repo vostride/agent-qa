@@ -40,7 +40,6 @@ import {
   PACKAGES_ROOT,
   buildFreshness,
   cleanupTempRoots,
-  reserveEphemeralPort,
   spawnDashboard,
 } from './spawned-chat.js'
 import type { SpawnedDashboard } from './spawned-chat.js'
@@ -713,11 +712,9 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
       // listening before the root is minted.
       redStub.citeEvidenceFrom(project.agentQaRoot)
 
-      const redPort = await reserveEphemeralPort()
       redDashboard = await spawnDashboard(
         project.root,
         project.configPath,
-        redPort,
         60_000,
         populatedRunSpawnEnv(),
       )
@@ -846,11 +843,9 @@ describe('the shipped dashboard paints a RED run\'s authored verdict, its eviden
         { modelBaseUrl: greenStub.baseUrl, targetUrl: greenTarget.url },
         { secondStepText: POPULATED_PASSING_STEP_TEXT },
       )
-      const greenPort = await reserveEphemeralPort()
       greenDashboard = await spawnDashboard(
         project.root,
         project.configPath,
-        greenPort,
         60_000,
         populatedRunSpawnEnv(),
       )

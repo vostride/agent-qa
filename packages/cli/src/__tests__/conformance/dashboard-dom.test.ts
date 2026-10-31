@@ -28,7 +28,6 @@ import {
   buildFreshness,
   cleanupTempRoots,
   dashboardFixtureProject,
-  reserveEphemeralPort,
   spawnDashboard,
   trackTempRoot,
 } from './spawned-chat.js'
@@ -69,8 +68,7 @@ beforeAll(async () => {
   expect(freshness, REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
 
   const project = dashboardFixtureProject('dom')
-  const port = await reserveEphemeralPort()
-  const dashboard = await spawnDashboard(project.root, project.configPath, port)
+  const dashboard = await spawnDashboard(project.root, project.configPath)
   expect(
     dashboard.ready,
     'the built `agent-qa dashboard` command never reported that it was listening. its stdout: '

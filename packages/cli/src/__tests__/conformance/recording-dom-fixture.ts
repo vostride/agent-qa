@@ -13,7 +13,7 @@ import {
   type PopulatedRunProject, type PopulatedRunDrive,
   POPULATED_SECRET_VALUE,
 } from './populated-run-fixture.js'
-import { buildFreshness, reserveEphemeralPort, spawnDashboard, type SpawnedDashboard } from './spawned-chat.js'
+import { buildFreshness, spawnDashboard, type SpawnedDashboard } from './spawned-chat.js'
 
 export interface RecordingFixture {
   browser: Browser
@@ -139,7 +139,7 @@ export async function recordingFixture(label: string, recordingOff = false, layo
       writeFileSync(project.configPath, JSON.stringify(config))
     }
     const dashboard = await spawnDashboard(project.root, project.configPath,
-      await reserveEphemeralPort(), 60_000, populatedRunSpawnEnv())
+      60_000, populatedRunSpawnEnv())
     cleanup.push(() => dashboard.stop())
     if (!dashboard.ready) throw new Error(`Dashboard did not start: ${dashboard.stderr()}`)
     const drive = await drivePopulatedRun(dashboard, project, RUN_BUDGET_MS)

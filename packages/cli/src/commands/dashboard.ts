@@ -834,7 +834,7 @@ async function startDashboardBackedServices(
     if (opts.open) {
       const { exec } = await import('node:child_process')
       const openCmd = process.platform === 'darwin' ? 'open' : process.platform === 'win32' ? 'start' : 'xdg-open'
-      exec(`${openCmd} http://localhost:${port}`)
+      exec(`${openCmd} http://localhost:${listeningPort}`)
     }
 
     let shuttingDown = false
