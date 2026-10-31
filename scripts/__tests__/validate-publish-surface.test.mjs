@@ -76,7 +76,7 @@ test('a package with no dist fails the publish surface with a build instruction'
   })
 })
 
-test('every public package is built and ships only source map URLs whose maps it ships', () => {
+test('every public package has a dist and ships only source map URLs whose maps it ships', () => {
   assert.deepEqual(builtPackageSourceMapErrors(), [])
 })
 
