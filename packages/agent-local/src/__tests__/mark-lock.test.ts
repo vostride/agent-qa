@@ -58,7 +58,7 @@ it('retains dead-G so a delayed competing reclaimer cannot remove newer live H',
   let output = ''
   const launch = (name: string, extra: Record<string, string> = {}) => {
     const entered = join(root, name + '.entered')
-    const child = spawn(process.execPath, ['--experimental-transform-types',
+    const child = spawn(process.execPath, [
       fileURLToPath(new URL('./fixtures/mark-lock-child.mjs', import.meta.url)),
       JSON.stringify({ lock, runId: 'run', entered, ...extra })], { stdio: ['ignore', 'pipe', 'pipe'] })
     child.stdout!.on('data', bytes => { output += String(bytes) })

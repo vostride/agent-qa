@@ -22,16 +22,19 @@ export const ADDRESSING_LEDGER_DB_FILE = 'entity-addresses.db'
 
 /** A ledger file this build cannot read. Refused before a single schema statement runs. */
 export class AddressingLedgerSchemaVersionError extends Error {
-  constructor(
-    readonly path: string,
-    readonly expected: number,
-    readonly found: number,
-  ) {
+  readonly path: string
+  readonly expected: number
+  readonly found: number
+
+  constructor(path: string, expected: number, found: number) {
     super(
       `The addressing ledger at ${path} is stamped schema version ${String(found)}, but this `
       + `build reads version ${String(expected)}. The ledger is never migrated and never `
       + 'rebuilt; move the file aside if it is a development artifact.',
     )
+    this.path = path
+    this.expected = expected
+    this.found = found
     this.name = 'AddressingLedgerSchemaVersionError'
   }
 }

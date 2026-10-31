@@ -56,20 +56,28 @@ function leaseHolderPhrase(holderPid: number): string {
 
 // A non-daemon agent-qa process holds the writer lease for the whole wait; nothing is written.
 export class MarkWriterLeaseBusyError extends Error {
-  constructor(readonly holderPid: number, readonly waitedMs: number) {
+  readonly holderPid: number
+  readonly waitedMs: number
+
+  constructor(holderPid: number, waitedMs: number) {
     super(`${leaseHolderPhrase(holderPid)}; waited ${waitedMs}ms and nothing was marked. Retry the `
       + 'mark when it finishes.')
+    this.holderPid = holderPid
+    this.waitedMs = waitedMs
     this.name = 'MarkWriterLeaseBusyError'
   }
 }
 
 // A change met the lease held by a non-daemon process; `holderPid` is absent if it released.
 export class KnowledgeWriterLeaseBusyError extends Error {
-  constructor(readonly holderPid: number | undefined) {
+  readonly holderPid: number | undefined
+
+  constructor(holderPid: number | undefined) {
     super(holderPid === undefined
       ? 'Another agent-qa process was writing to this knowledge store and has just finished; nothing was '
         + 'changed. Retry the change.'
       : `${leaseHolderPhrase(holderPid)}; nothing was changed. Retry the change when it finishes.`)
+    this.holderPid = holderPid
     this.name = 'KnowledgeWriterLeaseBusyError'
   }
 }
@@ -80,9 +88,12 @@ export class KnowledgeWriterLeaseBusyError extends Error {
  * (MARK_FIX_REFUSALS) never reaches here: the mark closes with a `not-applied` receipt instead.
  */
 export class MarkFixNotAppliedError extends Error {
-  constructor(readonly reason: string) {
+  readonly reason: string
+
+  constructor(reason: string) {
     super(`Mark fix was not applied (${reason}); evidence landed, no mark receipt appended. `
       + 'Retry the mark.')
+    this.reason = reason
     this.name = 'MarkFixNotAppliedError'
   }
 }
