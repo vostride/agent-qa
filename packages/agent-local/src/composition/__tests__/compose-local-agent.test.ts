@@ -1,8 +1,18 @@
 // Each member is exercised against real wiring, because typed nulls would pass a shape check.
 
-import { existsSync, mkdirSync, readFileSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  readdirSync,
+  mkdtempSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join } from 'node:path'
+import { dirname, join, relative } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { DatabaseSync } from 'node:sqlite'
 import { randomUUID } from 'node:crypto'
 
@@ -494,11 +504,40 @@ describe('composeLocalAgent', () => {
     }
   })
 
+  const PACKAGE_ROOT = fileURLToPath(new URL('../../../', import.meta.url))
+  const REBUILD_INSTRUCTION = 'run `pnpm --filter @vostride/agent-qa-agent-local build` or `pnpm build`'
+    + ' at the repository root first; a stale bundle certifies the previous revision'
+
+  function newestBundleInput(): { path: string; mtimeMs: number } {
+    const config = join(PACKAGE_ROOT, 'tsdown.config.ts')
+    let newest = { path: relative(PACKAGE_ROOT, config), mtimeMs: statSync(config).mtimeMs }
+    const walk = (dir: string): void => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name === '__tests__') continue
+        const full = join(dir, entry.name)
+        if (entry.isDirectory()) {
+          walk(full)
+          continue
+        }
+        if (!entry.isFile() || /\.test(?:-d)?\.ts$/u.test(entry.name)) continue
+        const { mtimeMs } = statSync(full)
+        if (mtimeMs > newest.mtimeMs) newest = { path: relative(PACKAGE_ROOT, full), mtimeMs }
+      }
+    }
+    walk(join(PACKAGE_ROOT, 'src'))
+    return newest
+  }
+
   // vitest resolves the source, so only the built bundle shows a lost `node:` prefix, and a bare
   // `sqlite` specifier resolves to nothing.
   it('keeps the node: protocol in the published bundle, or the store cannot be imported', () => {
+    const newest = newestBundleInput()
     for (const file of ['index.js', 'index.cjs']) {
-      const bundle = readFileSync(new URL(`../../../dist/${file}`, import.meta.url), 'utf8')
+      const path = join(PACKAGE_ROOT, 'dist', file)
+      expect(existsSync(path), `dist/${file} is missing; ${REBUILD_INSTRUCTION}`).toBe(true)
+      const stale = `${newest.path} is newer than dist/${file}; ${REBUILD_INSTRUCTION}`
+      expect(statSync(path).mtimeMs, stale).toBeGreaterThanOrEqual(newest.mtimeMs)
+      const bundle = readFileSync(path, 'utf8')
       expect(bundle).toContain('node:sqlite')
       expect(bundle).not.toMatch(/(?:from|import|require\()\s*["']sqlite["']/)
     }
