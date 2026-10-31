@@ -170,13 +170,13 @@ describe('configFilesFor', () => {
     const packageDir = 'packages/fixture'
     const packageRoot = join(repoRoot, packageDir)
     mkdirSync(join(packageRoot, 'src'), { recursive: true })
-    writeFileSync(join(packageRoot, 'tsup.config.ts'), 'import "tsup"\n')
+    writeFileSync(join(packageRoot, 'tsdown.config.ts'), 'import "tsdown"\n')
     writeFileSync(join(packageRoot, 'vitest.config.mjs'), 'import "vitest/config"\n')
     writeFileSync(join(packageRoot, 'vite.config.js'), 'import "vite"\n')
     writeFileSync(join(packageRoot, 'src', 'vite.config.ts'), 'import "node:fs"\n')
 
     expect(configFilesFor(packageDir, repoRoot)).toEqual([
-      join(packageRoot, 'tsup.config.ts'),
+      join(packageRoot, 'tsdown.config.ts'),
       join(packageRoot, 'vite.config.js'),
       join(packageRoot, 'vitest.config.mjs'),
     ])

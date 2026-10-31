@@ -45,8 +45,8 @@
     "NOTICE.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
@@ -62,7 +62,7 @@
     "@vostride/agent-qa-arch": "workspace:*",
     "@vostride/agent-qa-model": "workspace:*",
     "@vostride/agent-qa-safety": "workspace:*",
-    "tsup": "~8.5.1",
+    "tsdown": "~0.23.4",
     "typescript": "~6.0.3",
     "vitest": "~5.0.5",
     "yaml": "2.8.4"

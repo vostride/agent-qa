@@ -45,8 +45,8 @@
     "NOTICE.md"
   ],
   "scripts": {
-    "build": "tsup",
-    "dev": "tsup --watch",
+    "build": "tsdown",
+    "dev": "tsdown --watch",
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .turbo"
@@ -58,7 +58,7 @@
   "devDependencies": {
     "@types/node": "~24.12.2",
     "@vostride/agent-qa-arch": "workspace:*",
-    "tsup": "~8.5.1",
+    "tsdown": "~0.23.4",
     "typescript": "~6.0.3",
     "vitest": "~5.0.5"
   }
