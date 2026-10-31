@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-model",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": false,
   "description": "Model owner package for provider registry, provider SDK adapters, and language-model middleware.",
   "keywords": [

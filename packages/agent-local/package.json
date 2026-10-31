@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-agent-local",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": false,
   "description": "StorageImplementation shell for future local agent persistence stores in agent-qa.",
   "keywords": [

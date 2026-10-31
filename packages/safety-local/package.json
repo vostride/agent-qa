@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-safety-local",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": false,
   "description": "StorageImplementation shell for the local run-safety scope and execution-context detection in agent-qa.",
   "keywords": [

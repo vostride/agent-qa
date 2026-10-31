@@ -1,6 +1,6 @@
 {
   "name": "agent-qa",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": false,
   "description": "The self-improving Agentic QA harness with Memory",
   "keywords": [

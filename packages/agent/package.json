@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-agent",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": false,
   "description": "Provider-neutral and storage-neutral QA-agent package shell for agent-qa.",
   "keywords": [
