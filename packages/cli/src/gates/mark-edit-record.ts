@@ -40,11 +40,14 @@ export interface PendingTestWrite {
 const scope = new AsyncLocalStorage<MarkEditScope>()
 
 export class MarkEditRecordUnreadableError extends Error {
-  constructor(readonly recordPath: string) {
+  readonly recordPath: string
+
+  constructor(recordPath: string) {
     super(
       `The mark's edit record at ${recordPath} is unreadable; nothing was edited again. `
         + 'Inspect or remove it, then retry the mark.',
     )
+    this.recordPath = recordPath
     this.name = 'MarkEditRecordUnreadableError'
   }
 }

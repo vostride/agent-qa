@@ -10,7 +10,7 @@ import { markFixture, bundles, canonicalKnowledge, projectOutsideStores } from '
 async function killedAt(at: 'wording' | 'publication') {
   const f = markFixture()
   const ready = join(f.root, 'child-ready.json')
-  const child = spawn(process.execPath, ['--experimental-transform-types',
+  const child = spawn(process.execPath, [
     fileURLToPath(new URL('./fixtures/mark-crash-child.mjs', import.meta.url)),
     JSON.stringify({ configPath: f.configPath, agentQaRoot: f.agentQaRoot, runId: f.handoff.runId, ready, at })],
   { stdio: ['ignore', 'pipe', 'pipe'] })

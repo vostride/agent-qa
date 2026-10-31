@@ -77,7 +77,7 @@ describe('the addressing ledger', () => {
    * process cannot contend with itself for sqlite's write lock, which is the mechanism under
    * test.
    *
-   * The children load this module's SOURCE through Node's type transform, never its dist. A
+   * The children load this module's SOURCE with Node's type stripping, never its dist. A
    * cross-process probe against a workspace package's build output is a no-op until that build
    * runs, and this leg has to be exercising the code in the diff.
    */
@@ -99,7 +99,7 @@ describe('the addressing ledger', () => {
     )
 
     const mintInChild = (): Promise<string> => new Promise((resolve, reject) => {
-      const child = spawn(process.execPath, ['--experimental-transform-types', script], {
+      const child = spawn(process.execPath, [script], {
         stdio: ['ignore', 'pipe', 'pipe'],
       })
       let out = ''
