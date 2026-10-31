@@ -11,7 +11,7 @@ import {
 } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join, relative } from 'node:path'
-import { fileURLToPath } from 'node:url'
+import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const packagesRoot = join(root, 'packages')
@@ -235,6 +235,38 @@ function validateNoArchSymbolInDist(errors, records = publicPackageRecords()) {
       }
     }
   }
+}
+
+const sourceMapUrlPattern = /^(?:\/\/|\/\*)[#@] sourceMappingURL=([^\s*]+)/gm
+const sourceMappedFilePattern = /\.(?:[cm]?js|d\.[cm]?ts|css)$/
+
+function listFiles(dir) {
+  if (!existsSync(dir)) return []
+  return readdirSync(dir, { recursive: true })
+    .map(entry => join(dir, entry))
+    .filter(path => statSync(path).isFile())
+}
+
+export function danglingSourceMapUrls(distDir) {
+  const dangling = []
+  for (const path of listFiles(distDir)) {
+    if (!sourceMappedFilePattern.test(path)) continue
+    for (const [, url] of readFileSync(path, 'utf-8').matchAll(sourceMapUrlPattern)) {
+      if (url.startsWith('data:')) continue
+      if (!existsSync(join(dirname(path), url))) dangling.push({ file: relative(distDir, path), url })
+    }
+  }
+  return dangling
+}
+
+export function builtPackageSourceMapErrors(records = publicPackageRecords()) {
+  const errors = []
+  for (const record of records) {
+    for (const { file, url } of danglingSourceMapUrls(join(record.dir, 'dist'))) {
+      errors.push(`${label(record)} dist/${file} points at source map ${url}, which is not emitted`)
+    }
+  }
+  return errors
 }
 
 function validateCopiedSkills(errors, skillsRoot = join(root, 'packages/cli/skills')) {
@@ -485,6 +517,7 @@ function runValidation() {
   const errors = []
   validateManifestSurface(errors)
   validateNoArchSymbolInDist(errors)
+  errors.push(...builtPackageSourceMapErrors())
   validateCopiedSkills(errors)
   validateNoStaleMcpToolPrefix(errors)
   runSourceSkillsValidation(errors)
@@ -503,8 +536,10 @@ function runValidation() {
   console.log(`publish surface validation passed (${quick ? 'quick' : 'full'})`)
 }
 
-if (fixtures) {
-  runFixtures()
-} else {
-  runValidation()
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
+  if (fixtures) {
+    runFixtures()
+  } else {
+    runValidation()
+  }
 }
