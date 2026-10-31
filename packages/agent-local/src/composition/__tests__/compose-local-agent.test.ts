@@ -494,16 +494,14 @@ describe('composeLocalAgent', () => {
     }
   })
 
-  // Named here rather than left to the cross-package suite that caught it, because the failure is
-  // silent from inside this package: vitest resolves `../store/...` by source, so every test above
-  // passes while the PUBLISHED bundle is unloadable. esbuild rewrites `node:sqlite` to a bare
-  // `sqlite`, and unlike `node:fs` that specifier resolves to nothing at all.
+  // vitest resolves the source, so only the built bundle shows a lost `node:` prefix, and a bare
+  // `sqlite` specifier resolves to nothing.
   it('keeps the node: protocol in the published bundle, or the store cannot be imported', () => {
-    const config = readFileSync(
-      new URL('../../../tsup.config.ts', import.meta.url),
-      'utf8',
-    )
-    expect(config).toContain('removeNodeProtocol: false')
+    for (const file of ['index.js', 'index.cjs']) {
+      const bundle = readFileSync(new URL(`../../../dist/${file}`, import.meta.url), 'utf8')
+      expect(bundle).toContain('node:sqlite')
+      expect(bundle).not.toMatch(/(?:from|import|require\()\s*["']sqlite["']/)
+    }
   })
 
   // ---- the analysis bindings: analysis reader, recurrence, capability members ----------
