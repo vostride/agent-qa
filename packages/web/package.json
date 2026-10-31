@@ -60,11 +60,11 @@
     "playwright-core": "1.61.0"
   },
   "devDependencies": {
-    "@types/node": "~24.12.2",
+    "@types/node": "~24.19.2",
     "@vostride/agent-qa-arch": "workspace:*",
     "@vostride/agent-qa-core": "workspace:*",
     "tsdown": "~0.23.4",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "vitest": "~5.0.5"
   }
 }

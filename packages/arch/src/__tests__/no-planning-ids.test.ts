@@ -3,11 +3,11 @@
  * or test title carries a date outside backticks.
  *
  * The universe is what git lists as tracked or new and not ignored, so local run output never
- * reaches it. TS and JS comments come from the parser's leaf-token walk; titles are the first
- * argument of describe, it, test and suite, through their modifiers, factories, `extend` and
- * per-file aliases; strings are read only in non-test files under packages/ and scripts/. Shell, YAML,
- * Dockerfile and ignore files are read for `#` comments and CSS for block comments. JSON and
- * Markdown are data and docs, and are not read.
+ * reaches it. TS and JS comments come from scanning the text between the parser's nodes; titles
+ * are the first argument of describe, it, test and suite, through their modifiers, factories,
+ * `extend` and per-file aliases; strings are read only in non-test files under packages/ and
+ * scripts/. Shell, YAML, Dockerfile and ignore files are read for `#` comments and CSS for block
+ * comments. JSON and Markdown are data and docs, and are not read.
  *
  * Every ID and date in the planted sources below is assembled at run time, so this file passes
  * its own lint.
@@ -16,8 +16,10 @@ import { execFileSync } from 'node:child_process'
 import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join, relative, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import ts from 'typescript'
-import { describe, expect, it } from 'vitest'
+import * as ts from 'typescript/unstable/ast'
+import { createVirtualFileSystem } from 'typescript/unstable/fs'
+import { API, type Snapshot } from 'typescript/unstable/sync'
+import { afterAll, describe, expect, it } from 'vitest'
 import {
   type CommentParagraph,
   type LineHit,
@@ -61,30 +63,80 @@ function listFiles(): string[] {
     .sort()
 }
 
-const scriptKind = (file: string) =>
-  file.endsWith('.tsx')
-    ? ts.ScriptKind.TSX
-    : /\.[cm]?jsx?$/.test(file)
-      ? ts.ScriptKind.JS
-      : ts.ScriptKind.TS
+// TypeScript 7 parses in its own tsgo process; the virtual path keeps each file's extension,
+// which sets its script kind.
+const parserFiles = createVirtualFileSystem({})
+const parser = new API({ cwd: '/', fs: parserFiles })
+afterAll(() => parser.close())
 
-const isJsDoc = (node: ts.Node) =>
-  node.kind >= ts.SyntaxKind.FirstJSDocNode && node.kind <= ts.SyntaxKind.LastJSDocNode
+const sourceAt = (snapshot: Snapshot, path: string) => {
+  const source = snapshot.getDefaultProjectForFile(path)?.program.getSourceFile(path)
+  if (source === undefined) throw new Error(`TypeScript could not parse ${path}`)
+  return source
+}
 
-// The union of trailing and leading comment ranges at every leaf, JSDoc nodes and JSX text
-// skipped, so a `//` inside a string, template or regex is never read as a comment.
-function commentRanges(source: ts.SourceFile, text: string): ts.CommentRange[] {
+let planted = 0
+let lastPlanted: string | undefined
+
+function parseOne(file: string, text: string): ts.SourceFile {
+  const path = `/planted/${String(planted++)}/${file}`
+  parserFiles.writeFile?.(path, text)
+  const closeFiles = lastPlanted === undefined ? [] : [lastPlanted]
+  lastPlanted = path
+  return sourceAt(parser.updateSnapshot({ openFiles: [path], closeFiles }), path)
+}
+
+// One snapshot over every file: a snapshot per file is many times slower.
+function parseAll(texts: ReadonlyMap<string, string>): Map<string, ts.SourceFile> {
+  const paths = [...texts].map(([file, text]) => {
+    const path = `/tree/${file}`
+    parserFiles.writeFile?.(path, text)
+    return [file, path] as const
+  })
+  const snapshot = parser.updateSnapshot({ openFiles: paths.map(([, path]) => path) })
+  const sources = new Map(paths.map(([file, path]) => [file, sourceAt(snapshot, path)]))
+  parser.updateSnapshot({ closeFiles: paths.map(([, path]) => path) })
+  return sources
+}
+
+// Comments sit only in the text between a node's children, so scanning those gaps never
+// misreads a string, template, regex or JSX text as a comment.
+function commentRanges(source: ts.SourceFile): ts.CommentRange[] {
+  const text = source.text
+  const scanner = ts.createScanner(false, source.languageVariant)
   const ranges = new Map<number, ts.CommentRange>()
-  const visit = (node: ts.Node): void => {
-    const kids = node.getChildren(source)
-    if (kids.length === 0 || node.kind === ts.SyntaxKind.EndOfFileToken) {
-      if (node.kind !== ts.SyntaxKind.JsxText) {
-        for (const r of ts.getTrailingCommentRanges(text, node.pos) ?? []) ranges.set(r.pos, r)
-        for (const r of ts.getLeadingCommentRanges(text, node.pos) ?? []) ranges.set(r.pos, r)
+  const scanGap = (pos: number, end: number): void => {
+    if (end <= pos) return
+    scanner.setText(text, pos, end - pos)
+    for (let kind = scanner.scan(); kind !== ts.SyntaxKind.EndOfFile; kind = scanner.scan()) {
+      if (
+        kind === ts.SyntaxKind.SingleLineCommentTrivia ||
+        kind === ts.SyntaxKind.MultiLineCommentTrivia
+      ) {
+        const start = scanner.getTokenStart()
+        ranges.set(start, { pos: start, end: scanner.getTokenEnd(), kind })
       }
-      return
     }
-    for (const kid of kids) if (!isJsDoc(kid)) visit(kid)
+  }
+  const visit = (node: ts.Node): void => {
+    let cursor = node.pos
+    let leaf = true
+    const child = (kid: ts.Node): void => {
+      leaf = false
+      scanGap(cursor, kid.pos)
+      visit(kid)
+      cursor = kid.end
+    }
+    node.forEachChild(child, (kids) => {
+      leaf = false
+      for (const kid of kids) child(kid)
+      return undefined
+    })
+    // A token leaf owns only its leading trivia; a childless node such as `{/* c */}` owns its
+    // whole span.
+    if (leaf && node.kind <= ts.SyntaxKind.LastToken) {
+      if (node.kind !== ts.SyntaxKind.JsxText) scanGap(node.pos, node.getStart(source))
+    } else scanGap(cursor, node.end)
   }
   visit(source)
   return [...ranges.values()].sort((a, b) => a.pos - b.pos)
@@ -95,7 +147,7 @@ function commentRanges(source: ts.SourceFile, text: string): ts.CommentRange[] {
 function codeCommentParagraphs(source: ts.SourceFile, text: string): CommentParagraph[] {
   const groups: ts.CommentRange[][] = []
   let current: ts.CommentRange[] | null = null
-  for (const r of commentRanges(source, text)) {
+  for (const r of commentRanges(source)) {
     const last = current?.[current.length - 1]
     const joins =
       r.kind === ts.SyntaxKind.SingleLineCommentTrivia &&
@@ -173,7 +225,7 @@ function titleBases(source: ts.SourceFile): Set<string> {
     ) {
       decls.push({ name: node.name.text, init: node.initializer })
     }
-    ts.forEachChild(node, visit)
+    node.forEachChild(visit)
   }
   visit(source)
   for (let grew = true; grew; ) {
@@ -251,7 +303,7 @@ function titles(source: ts.SourceFile): { title: CommentParagraph; parts: ts.Nod
         out.push({ title: { line, text }, parts: titleParts(arg) })
       }
     }
-    ts.forEachChild(node, visit)
+    node.forEachChild(visit)
   }
   visit(source)
   return out
@@ -274,18 +326,18 @@ function stringLiterals(source: ts.SourceFile, skip: ReadonlySet<ts.Node>): Comm
       const line = source.getLineAndCharacterOfPosition(start).line + 1
       out.push({ line, text: (node as ts.LiteralLikeNode).text })
     }
-    ts.forEachChild(node, visit)
+    node.forEachChild(visit)
   }
   visit(source)
   return out
 }
 
-function scanFile(file: string, text: string): PlanningIdHit[] {
+function scanFile(file: string, text: string, parsed?: ts.SourceFile): PlanningIdHit[] {
   const tag =
     (kind: PlanningIdKind) =>
     (hit: LineHit): PlanningIdHit => ({ file, kind, ...hit })
   if (isCodePath(file)) {
-    const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, true, scriptKind(file))
+    const source = parsed ?? parseOne(file, text)
     const found = titles(source)
     const hits = [
       ...codeCommentParagraphs(source, text).flatMap(proseHits).map(tag('comment')),
@@ -318,9 +370,11 @@ function scanPaths(files: readonly string[]): PlanningIdHit[] {
 }
 
 function scanTree(files: readonly string[]): PlanningIdHit[] {
-  const hits = files
-    .filter(reads)
-    .flatMap((file) => scanFile(file, readFileSync(join(REPO_ROOT, file), 'utf8')))
+  const texts = new Map(
+    files.filter(reads).map((file) => [file, readFileSync(join(REPO_ROOT, file), 'utf8')]),
+  )
+  const sources = parseAll(new Map([...texts].filter(([file]) => isCodePath(file))))
+  const hits = [...texts].flatMap(([file, text]) => scanFile(file, text, sources.get(file)))
   return [...hits, ...scanPaths(files)]
 }
 

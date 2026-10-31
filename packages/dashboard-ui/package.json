@@ -71,13 +71,13 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "4.2.4",
-    "@types/node": "~24.12.2",
+    "@types/node": "~24.19.2",
     "@types/react": "~19.2.14",
     "@types/react-dom": "~19.2.3",
     "@vitejs/plugin-react": "~6.0.1",
     "@vostride/agent-qa-arch": "workspace:*",
     "jsdom": "~29.1.1",
-    "typescript": "~6.0.3",
+    "typescript": "~7.0.2",
     "vite": "~8.0.10",
     "vitest": "~5.0.5"
   }
