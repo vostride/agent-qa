@@ -11,7 +11,7 @@
     "url": "git+https://github.com/vostride/agent-qa.git"
   },
   "type": "module",
-  "packageManager": "pnpm@12.16.1",
+  "packageManager": "pnpm@12.17.0",
   "engines": {
     "node": ">=24"
   },
