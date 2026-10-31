@@ -58,7 +58,7 @@ FROM node:${NODE_VERSION}-slim
 # The remaining packages support Android SDK tools, emulator startup, and TLS.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
-    openjdk-17-jre-headless \
+    openjdk-21-jre-headless \
     wget \
     unzip \
     && rm -rf /var/lib/apt/lists/*
