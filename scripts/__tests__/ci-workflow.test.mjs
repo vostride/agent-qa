@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict'
+import { existsSync } from 'node:fs'
+import { join } from 'node:path'
 import test from 'node:test'
 
-import { loadWorkflow } from '../check-ci-matrix.mjs'
+import { loadWorkflow, REPO_ROOT } from '../check-ci-matrix.mjs'
 
 const ci = loadWorkflow('ci.yml')
 const jobs = Object.entries(ci.jobs)
@@ -99,11 +101,39 @@ test('every job that installs packages takes pnpm from packageManager, then sets
   }
 })
 
-test('the workspace legs run on the toolchain and the floor, and the other jobs run on .nvmrc only', () => {
-  assert.deepEqual(ci.jobs.workspace.strategy?.matrix?.node, ['toolchain', 'floor'])
-  for (const id of ['ps-hosts', 'checks', 'knip', 'audit', 'build']) {
+test('the workspace legs and MCP conformance run on the toolchain and the floor, and the other jobs run on .nvmrc only', () => {
+  for (const id of ['workspace', 'mcp-conformance']) {
+    assert.deepEqual(ci.jobs[id].strategy?.matrix?.node, ['toolchain', 'floor'], `${id} runs on both Node lines`)
+  }
+  for (const id of ['ps-hosts', 'checks', 'knip', 'audit', 'build', 'images']) {
     assert.equal(ci.jobs[id].strategy?.matrix?.node, undefined, `${id} has a node axis`)
   }
+})
+
+test('the images job builds the web and android images for linux/amd64 on .nvmrc without pushing, logging in or caching layers, and CI result needs it', () => {
+  const job = ci.jobs.images
+  assert.ok(job, 'ci.yml has an images job')
+  assert.deepEqual(job.strategy?.matrix?.image, ['web', 'android'])
+  for (const image of job.strategy.matrix.image) {
+    assert.ok(existsSync(join(REPO_ROOT, 'docker', `Dockerfile.${image}`)), `docker/Dockerfile.${image} exists`)
+  }
+  const steps = stepsOf(job)
+  assert.ok(!steps.some((step) => usesOf(step).startsWith('docker/login-action@')), 'the images job logs in to no registry')
+  const builds = steps.filter((step) => usesOf(step).startsWith('docker/build-push-action@'))
+  assert.equal(builds.length, 1, 'the images job has one build step')
+  const build = builds[0].with ?? {}
+  assert.equal(build.file, 'docker/Dockerfile.${{ matrix.image }}')
+  assert.equal(build.platforms, 'linux/amd64')
+  assert.equal(build.push, false)
+  assert.equal(build['cache-from'], undefined, 'the images job restores no layer cache')
+  assert.equal(build['cache-to'], undefined, 'the images job saves no layer cache')
+  const version = build['build-args']?.match(/^NODE_VERSION=\$\{\{ steps\.([\w-]+)\.outputs\.version \}\}$/)
+  assert.ok(version, `NODE_VERSION comes from a step output: ${build['build-args']}`)
+  const read = steps.find((step) => step.id === version[1])
+  assert.match(runOf(read), /\$\(cat \.nvmrc\)/, 'NODE_VERSION is read from .nvmrc')
+  assert.ok([ci.jobs['ci-result'].needs].flat().includes('images'), 'CI result needs the images job')
+  assert.equal(ci.jobs['ci-result'].name, 'CI result')
+  assert.equal(ci.jobs['ci-result'].if, 'always()')
 })
 
 test('the workspace and ps-hosts legs cache Playwright browsers under the installed playwright-core version', () => {
