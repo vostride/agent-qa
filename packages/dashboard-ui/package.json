@@ -47,7 +47,7 @@
     "@dnd-kit/utilities": "3.2.2",
     "@fontsource-variable/geist": "5.2.8",
     "@fontsource-variable/geist-mono": "5.2.7",
-    "@tanstack/react-table": "8.21.3",
+    "@tanstack/react-table": "9.3.1",
     "@vostride/agent-qa-ids": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
     "class-variance-authority": "0.7.1",
