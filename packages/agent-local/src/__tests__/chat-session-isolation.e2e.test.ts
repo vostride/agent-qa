@@ -357,7 +357,7 @@ function recordingModel(): RecordingModel {
   let gate: { pending: number; release: () => void; wait: Promise<void> } | undefined
 
   const model = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'fixture',
     modelId: 'fixture:recording-model',
     supportedUrls: {},

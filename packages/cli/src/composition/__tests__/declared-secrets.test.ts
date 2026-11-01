@@ -12,7 +12,7 @@ import {
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 import { generateText, simulateReadableStream, streamText, wrapLanguageModel } from 'ai'
-import { MockLanguageModelV3 } from 'ai/test'
+import { MockLanguageModelV4 } from 'ai/test'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { SecretStore } from '@vostride/agent-qa-runner'
 import { createMaskingMiddleware } from '@vostride/agent-qa-safety'
@@ -213,7 +213,7 @@ describe('a declared value at model egress', () => {
   it('a declared value reaches a recording model as its named marker', async () => {
     const { configPath } = project(`SHORT=q^7\nLONG=${LONG}\n`)
     const { mask } = createDeclaredSecretMask(configPath)
-    const recorder = new MockLanguageModelV3({
+    const recorder = new MockLanguageModelV4({
       doGenerate: {
         content: [{ type: 'text', text: 'ok' }],
         finishReason: { unified: 'stop', raw: 'stop' },

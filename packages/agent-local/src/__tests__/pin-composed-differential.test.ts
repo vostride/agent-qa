@@ -64,7 +64,7 @@ function plannerTripwire(): ChatLanguageModel {
     throw new Error('the planner tripwire refuses every clause')
   }
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'fixture',
     modelId: 'fixture:tripwire',
     supportedUrls: {},
