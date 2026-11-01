@@ -101,7 +101,7 @@ function registryFixture(middleware: string[]): string {
     '  auth: ResolvedModelAuth,',
     '  mask: MaskFn,',
     '  overrides: ModelProviderOverrides = {},',
-    '): LanguageModelV3 {',
+    '): LanguageModelV4 {',
     '  const middleware = [',
     ...middleware.map(entry => `    ${entry},`),
     '  ]',

@@ -1,7 +1,7 @@
 // The turn ends at one action call; degenerate output returns a structured failure, never a throw.
-import { generateText } from 'ai'
+import { generateText, ToolChoiceViolationError } from 'ai'
 import { withStepModelCall } from '../run/step-model-observations.js'
-import type { LanguageModel, ModelMessage, SystemModelMessage, Tool, ToolCallPart, ToolResultPart, ToolSet } from 'ai'
+import type { LanguageModel, LanguageModelUsage, ModelMessage, SystemModelMessage, Tool, ToolCallPart, ToolResultPart, ToolSet } from 'ai'
 import type {
   GroundingAttempt,
   ModelCallRecord,
@@ -225,7 +225,8 @@ export async function executePlanningTurn(
         callRecord: callRecord(),
       }
     }
-    // generateText errors (including abort) propagate to the caller untouched.
+    const callEnd: { usage?: LanguageModelUsage; modelId?: string } = {}
+    // A tool-choice violation is a text-only answer; any other error, abort included, propagates.
     const observed = await withStepModelCall(options.model, model => generateText({
       model,
       maxRetries: 0,
@@ -243,24 +244,33 @@ export async function executePlanningTurn(
       system: options.system,
       abortSignal: options.abortSignal,
       messages,
+      onLanguageModelCallEnd: (event) => {
+        callEnd.usage = event.usage
+        callEnd.modelId = event.modelId
+      },
+    }).catch((error: unknown) => {
+      if (!ToolChoiceViolationError.isInstance(error)) throw error
+      return undefined
     }))
     const result = observed.result
 
     // A scoped turn takes only the provider-observed id; unscoped callers keep the SDK response id.
     lastResponseModelId = observed.scoped
       ? observed.respondingModelId
-      : (observed.respondingModelId ?? observed.result.response?.modelId)
-    for (const w of result.warnings ?? []) {
+      : (observed.respondingModelId
+        ?? (result === undefined ? callEnd.modelId : result.response?.modelId))
+    for (const w of result?.warnings ?? []) {
       if (w.type === 'unsupported') unsupported.add(w.feature)
     }
 
-    if (result.usage) {
+    const usage = result === undefined ? callEnd.usage : result.usage
+    if (usage) {
       usageSeen = true
-      promptTokens += result.usage.inputTokens ?? 0
-      completionTokens += result.usage.outputTokens ?? 0
+      promptTokens += usage.inputTokens ?? 0
+      completionTokens += usage.outputTokens ?? 0
     }
 
-    const toolCalls = result.toolCalls ?? []
+    const toolCalls = result?.toolCalls ?? []
 
     // Text-only response: one re-prompt, then planning failure.
     if (toolCalls.length === 0) {

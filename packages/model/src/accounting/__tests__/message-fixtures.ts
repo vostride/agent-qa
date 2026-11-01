@@ -60,9 +60,9 @@ export function screenshotOutput(data = FIXTURE_IMAGE_DATA, mediaType = 'image/p
   return { type: 'content', value: [{ type: 'image-data', data, mediaType }] }
 }
 
-/** Historical screenshot tool result using the deprecated `media` part shape. */
-export function mediaOutput(data = FIXTURE_IMAGE_DATA, mediaType = 'image/png'): ToolOutput {
-  return { type: 'content', value: [{ type: 'media', data, mediaType }] }
+/** Historical screenshot tool result as a `file` part with inline data. */
+export function fileOutput(data = FIXTURE_IMAGE_DATA, mediaType = 'image/png'): ToolOutput {
+  return { type: 'content', value: [{ type: 'file', data: { type: 'data', data }, mediaType }] }
 }
 
 export interface ToolCallSpec {

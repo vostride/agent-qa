@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest'
 
-import type { ProviderV3 } from '@ai-sdk/provider'
+import type { ProviderV4 } from '@ai-sdk/provider'
 
 import { createModel } from '../registry.js'
 
 describe('gateway decline', () => {
-  it('returns a built-in v3 model object even when the AI SDK default provider throws', () => {
+  it('returns the built-in provider model even when the AI SDK default provider throws', () => {
     const globalWithDefaultProvider = globalThis as typeof globalThis & {
-      AI_SDK_DEFAULT_PROVIDER?: ProviderV3
+      AI_SDK_DEFAULT_PROVIDER?: ProviderV4
     }
     const original = globalWithDefaultProvider.AI_SDK_DEFAULT_PROVIDER
-    const throwingProvider: ProviderV3 = {
-      specificationVersion: 'v3',
+    const throwingProvider: ProviderV4 = {
+      specificationVersion: 'v4',
       languageModel(modelId) {
         throw new Error(`gateway should not resolve language model ${modelId}`)
       },
@@ -37,7 +37,7 @@ describe('gateway decline', () => {
         (text) => text,
       )
 
-      expect(model.specificationVersion).toBe('v3')
+      expect(model.specificationVersion).toBe('v4')
       expect(model.provider).toBe('openai.chat')
       expect(model.provider).not.toBe('gateway')
       expect(model.modelId).toBe('local-chat-model')

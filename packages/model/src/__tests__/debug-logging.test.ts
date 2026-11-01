@@ -3,14 +3,14 @@ import { describe, expect, it } from 'vitest'
 
 import type { LanguageModelMiddleware } from 'ai'
 import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3GenerateResult,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4GenerateResult,
 } from '@ai-sdk/provider'
 
 import { debugLoggingMiddleware } from '../middleware/debug-logging.js'
 
-const fakeModel = { modelId: 'test-model' } as LanguageModelV3
+const fakeModel = { modelId: 'test-model' } as LanguageModelV4
 
 // A benign successful generate result the wrapped `doGenerate` can resolve.
 const OK_RESULT = {
@@ -21,11 +21,11 @@ const OK_RESULT = {
     outputTokens: { total: 0, text: 0, reasoning: 0 },
   },
   warnings: [],
-} as unknown as LanguageModelV3GenerateResult
+} as unknown as LanguageModelV4GenerateResult
 
 // A request carrying a secret in message content AND the maxOutputTokens param — so we can
 // prove the surface logs the SHAPE (roles/counts/param keys) without leaking the secret.
-function paramsWithSecret(): LanguageModelV3CallOptions {
+function paramsWithSecret(): LanguageModelV4CallOptions {
   return {
     prompt: [
       { role: 'system', content: 'You are a tester. secret sk-SECRET123 must not leak' },
@@ -36,7 +36,7 @@ function paramsWithSecret(): LanguageModelV3CallOptions {
     temperature: 0.5,
     maxOutputTokens: 4096,
     headers: { authorization: 'Bearer sk-SECRET123' },
-  } as unknown as LanguageModelV3CallOptions
+  } as unknown as LanguageModelV4CallOptions
 }
 
 // A codex Responses 400 shaped like a live capture.
@@ -57,9 +57,9 @@ function makeApiCallError(): APICallError {
 // Mimic the SDK: if the middleware wraps generate, drive it; otherwise call through.
 async function runGenerate(
   middleware: LanguageModelMiddleware,
-  doGenerate: () => Promise<LanguageModelV3GenerateResult>,
-  params: LanguageModelV3CallOptions,
-): Promise<LanguageModelV3GenerateResult> {
+  doGenerate: () => Promise<LanguageModelV4GenerateResult>,
+  params: LanguageModelV4CallOptions,
+): Promise<LanguageModelV4GenerateResult> {
   if (!middleware.wrapGenerate) return doGenerate()
   return middleware.wrapGenerate({
     doGenerate,
@@ -144,7 +144,7 @@ describe('the debug log leaks no credential', () => {
     const params = {
       ...paramsWithSecret(),
       headers: { Authorization: 'Bearer K-HEADER-1' },
-    } as LanguageModelV3CallOptions
+    } as LanguageModelV4CallOptions
     const lines: string[] = []
     const middleware = debugLoggingMiddleware({ enabled: true, sink: (line) => lines.push(line) })
 

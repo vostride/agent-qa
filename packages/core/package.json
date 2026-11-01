@@ -66,7 +66,7 @@
     "@vostride/agent-qa-ids": "workspace:*",
     "@vostride/agent-qa-runner": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
-    "ai": "6.0.174",
+    "ai": "7.0.159",
     "bytes": "3.1.2",
     "fast-xml-parser": "5.7.2",
     "glob": "13.0.6",

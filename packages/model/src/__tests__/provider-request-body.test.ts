@@ -156,11 +156,11 @@ describe('the OpenAI Responses transport request body', () => {
     expect(body).toHaveProperty('tool_choice', 'required')
   })
 
-  it('sends no include, no tool strict flag and no temperature or output limit', async () => {
+  it('asks for encrypted reasoning, sends a non-strict tool and no temperature or output limit', async () => {
     const body = await toolCallBody('openai-subscription')
-    expect(body).not.toHaveProperty('include')
+    expect(body).toHaveProperty('include', ['reasoning.encrypted_content'])
     expect(body).toHaveProperty(['tools', 0, 'name'], 'click')
-    expect(body).not.toHaveProperty(['tools', 0, 'strict'])
+    expect(body).toHaveProperty(['tools', 0, 'strict'], false)
     expect(body).not.toHaveProperty('temperature')
     expect(body).not.toHaveProperty('max_output_tokens')
   })
@@ -174,44 +174,44 @@ describe('the OpenAI Responses transport request body', () => {
 })
 
 describe('the Anthropic Messages transport request body', () => {
-  it.each(['anthropic-compatible', 'anthropic-subscription'] as const)(
-    'over %s sends the system text in system and tool_choice any for a required tool',
-    async (provider) => {
+  // claude-sonnet-5-5 rejects forced tool use, so the provider sends auto for a required tool.
+  it.each([
+    ['anthropic-compatible', 'any'],
+    ['anthropic-subscription', 'auto'],
+  ] as const)(
+    'over %s sends the system text in system and tool_choice %s for a required tool',
+    async (provider, toolChoice) => {
       const body = await toolCallBody(provider)
       expect(body).toHaveProperty('system', [{ type: 'text', text: 'Act on the page.' }])
-      expect(body).toHaveProperty(['tool_choice', 'type'], 'any')
+      expect(body).toHaveProperty(['tool_choice', 'type'], toolChoice)
     },
   )
 
-  it('over anthropic-compatible sends structured output as output_config', async () => {
-    const body = await structuredOutputBody('anthropic-compatible')
-    expect(body).toHaveProperty(['output_config', 'format', 'type'], 'json_schema')
-    expect(body).toHaveProperty(
-      ['output_config', 'format', 'schema', 'properties', 'count', 'type'], ['number', 'null'])
-  })
-
-  it('over anthropic-subscription sends structured output as a forced json tool', async () => {
-    const body = await structuredOutputBody('anthropic-subscription')
-    expect(body).not.toHaveProperty('output_config')
-    expect(body).toHaveProperty(['tools', 0, 'name'], 'json')
-    expect(body).toHaveProperty(
-      ['tools', 0, 'input_schema', 'properties', 'count', 'type'], ['number', 'null'])
-  })
+  it.each(['anthropic-compatible', 'anthropic-subscription'] as const)(
+    'over %s sends structured output as output_config',
+    async (provider) => {
+      const body = await structuredOutputBody(provider)
+      expect(body).not.toHaveProperty('tools')
+      expect(body).toHaveProperty(['output_config', 'format', 'type'], 'json_schema')
+      expect(body).toHaveProperty(
+        ['output_config', 'format', 'schema', 'properties', 'count', 'type'], ['number', 'null'])
+    },
+  )
 })
 
 describe('the Gemini transport request body', () => {
-  it('sends the tool as an OpenAPI parameters declaration', async () => {
+  it('sends the tool as a JSON Schema parametersJsonSchema declaration', async () => {
     const body = await toolCallBody('gemini')
     const declaration = ['tools', 0, 'functionDeclarations', 0]
-    const ref = [...declaration, 'parameters', 'properties', 'ref']
+    const ref = [...declaration, 'parametersJsonSchema', 'properties', 'ref']
     expect(body).toHaveProperty(ref, { type: 'string' })
-    expect(body).not.toHaveProperty([...declaration, 'parametersJsonSchema'])
+    expect(body).not.toHaveProperty([...declaration, 'parameters'])
   })
 
-  it('sends structured output as an OpenAPI responseSchema with nullable true', async () => {
+  it('sends structured output as a JSON Schema responseJsonSchema with a number-or-null field', async () => {
     const body = await structuredOutputBody('gemini')
     expect(body).toHaveProperty(
-      ['generationConfig', 'responseSchema', 'properties', 'count', 'nullable'], true)
-    expect(body).not.toHaveProperty(['generationConfig', 'responseJsonSchema'])
+      ['generationConfig', 'responseJsonSchema', 'properties', 'count', 'type'], ['number', 'null'])
+    expect(body).not.toHaveProperty(['generationConfig', 'responseSchema'])
   })
 })

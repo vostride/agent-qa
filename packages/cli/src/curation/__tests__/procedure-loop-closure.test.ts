@@ -114,7 +114,7 @@ function generateResult(text: string): GenerateResult {
 /** Deterministic fixture model: every call returns the same whole-flow proposal (no live LLM). */
 function alwaysModel(output: string): CuratorModel {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'scripted',
     modelId: 'scripted',
     supportedUrls: {},

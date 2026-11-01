@@ -1,4 +1,4 @@
-import type { LanguageModelV3CallOptions } from '@ai-sdk/provider'
+import type { LanguageModelV4CallOptions } from '@ai-sdk/provider'
 import type { ModelProfile } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 
@@ -17,8 +17,8 @@ const modelProfile: ModelProfile = {
 
 describe('safety egress middleware', () => {
   it('routes generate params through the safety seam without changing them', async () => {
-    let captured: LanguageModelV3CallOptions | undefined
-    const request: LanguageModelV3CallOptions = {
+    let captured: LanguageModelV4CallOptions | undefined
+    const request: LanguageModelV4CallOptions = {
       prompt: [],
       providerOptions: {
         openai: {

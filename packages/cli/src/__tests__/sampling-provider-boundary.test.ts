@@ -42,7 +42,7 @@ function createCapturingModel(): {
 } {
   let captured: CapturedCallOptions | undefined
   const stub: StubLanguageModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'sampling-boundary-stub',
     modelId: 'sampling-boundary-stub',
     supportedUrls: {},

@@ -53,7 +53,7 @@
   },
   "dependencies": {
     "@vostride/agent-qa-schema": "workspace:*",
-    "ai": "6.0.174"
+    "ai": "7.0.159"
   },
   "devDependencies": {
     "@types/node": "~24.19.2",

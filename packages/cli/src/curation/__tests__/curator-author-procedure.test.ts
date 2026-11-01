@@ -90,7 +90,7 @@ function generateResult(text: string): GenerateResult {
 function scriptedModel(outputs: string[]): CuratorModel {
   let index = 0
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'scripted',
     modelId: 'scripted',
     supportedUrls: {},
@@ -121,7 +121,7 @@ function capturingModel(outputs: string[]): {
   const prompts: CapturedPrompt[] = []
   let index = 0
   const model = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'scripted',
     modelId: 'scripted',
     supportedUrls: {},

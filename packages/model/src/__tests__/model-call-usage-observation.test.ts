@@ -89,8 +89,8 @@ describe.each(transports)('call observation over the %s transport', (provider) =
   it('MODEL-SDK-FALLBACK never fills absent provider-result identity', async () => {
     const { raw } = transportModel(provider, 0)
     const result = await raw.doGenerate({ prompt: [] })
-    // Reproduce a transport that preserves usage but omits response identity at
-    // the model boundary. Some wire schemas require model even though V3 does not.
+    // Reproduce a transport that preserves usage but omits response identity at the model
+    // boundary. Some wire schemas require model even though the provider specification does not.
     result.response = undefined
     const origin = provider === 'openai-compatible' ? 'openai-chat'
       : provider === 'openai-subscription' ? 'openai-responses'

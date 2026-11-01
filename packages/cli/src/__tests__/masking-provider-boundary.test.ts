@@ -40,7 +40,7 @@ function createCapturingModel(mask: (text: string) => string): {
 } {
   let captured: CapturedCallOptions | undefined
   const stub: StubLanguageModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'stub',
     modelId: 'stub',
     supportedUrls: {},

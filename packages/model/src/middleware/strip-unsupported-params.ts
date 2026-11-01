@@ -1,11 +1,11 @@
 import type { LanguageModelMiddleware } from 'ai'
-import type { LanguageModelV3CallOptions } from '@ai-sdk/provider'
+import type { LanguageModelV4CallOptions } from '@ai-sdk/provider'
 
 // Deletes params the provider declares unsupported, just before the wire; others keep them.
 
 export function stripUnsupportedParamsMiddleware(params: readonly string[]): LanguageModelMiddleware {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
 
     transformParams: async ({ params: callOptions }) => {
       const present = params.filter((name) => name in (callOptions as Record<string, unknown>))
@@ -14,7 +14,7 @@ export function stripUnsupportedParamsMiddleware(params: readonly string[]): Lan
       for (const name of present) {
         delete next[name]
       }
-      return next as LanguageModelV3CallOptions
+      return next as LanguageModelV4CallOptions
     },
   }
 }
