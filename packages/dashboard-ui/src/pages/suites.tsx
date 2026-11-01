@@ -7,12 +7,19 @@ import {
   type ColumnDef,
   type ColumnFiltersState,
   type RowSelectionState,
+  columnFilteringFeature,
+  columnVisibilityFeature,
+  createFilteredRowModel,
+  createPaginatedRowModel,
+  createSortedRowModel,
   flexRender,
-  getCoreRowModel,
-  getSortedRowModel,
-  getFilteredRowModel,
-  getPaginationRowModel,
-  useReactTable,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_text,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table"
 import { Plus, FolderOpen, ArrowUpDown, Keyboard } from "lucide-react"
 import { RunStatusBadge } from "@/components/run-status-badge"
@@ -72,6 +79,18 @@ interface SuiteListRow {
 }
 
 const SUITES_TABLE_PAGE_SIZE = 50
+
+const suitesTableFeatures = tableFeatures({
+  columnFilteringFeature,
+  columnVisibilityFeature,
+  rowPaginationFeature,
+  rowSelectionFeature,
+  rowSortingFeature,
+  filteredRowModel: createFilteredRowModel(),
+  paginatedRowModel: createPaginatedRowModel(),
+  sortedRowModel: createSortedRowModel(),
+  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
+})
 
 function formatPlatformLabel(platform: string | null): string {
   if (!platform) return "\u2014"
@@ -195,7 +214,7 @@ export default function SuitesPage() {
     return result
   }, [data, status, platform])
 
-  const selectColumn: ColumnDef<SuiteListRow> = {
+  const selectColumn: ColumnDef<typeof suitesTableFeatures, SuiteListRow> = {
     id: "select",
     header: ({ table: t }) => (
       <div className="flex items-center justify-center">
@@ -213,10 +232,9 @@ export default function SuitesPage() {
       />
     ),
     enableSorting: false,
-    size: 48,
   }
 
-  const columns: ColumnDef<SuiteListRow>[] = useMemo(() => [
+  const columns: ColumnDef<typeof suitesTableFeatures, SuiteListRow>[] = useMemo(() => [
     {
       accessorKey: "name",
       header: ({ column }) => (
@@ -239,7 +257,6 @@ export default function SuitesPage() {
           </span>
         </div>
       ),
-      size: 400,
       filterFn: (row, _columnId, filterValue: string) => {
         const name = (row.getValue("name") as string).toLowerCase()
         const path = row.original.path.toLowerCase()
@@ -438,20 +455,17 @@ export default function SuitesPage() {
     }
   }, [selectedSuites])
 
-  const table = useReactTable({
+  const table = useTable({
+    features: suitesTableFeatures,
     data: filteredData,
     columns: [selectColumn, ...columns],
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange,
     onColumnFiltersChange: setColumnFilters,
     enableRowSelection: true,
     onRowSelectionChange: setRowSelection,
     getRowId: (row) => row.path,
     state: { sorting, columnFilters, rowSelection },
-    initialState: { pagination: { pageSize: SUITES_TABLE_PAGE_SIZE } },
+    initialState: { pagination: { pageIndex: 0, pageSize: SUITES_TABLE_PAGE_SIZE } },
   })
 
   const visibleRows = table.getRowModel().rows
@@ -522,8 +536,8 @@ export default function SuitesPage() {
   }
 
   const filteredCount = table.getFilteredRowModel().rows.length
-  const pageIndex = table.getState().pagination.pageIndex
-  const pageSize = table.getState().pagination.pageSize
+  const pageIndex = table.state.pagination.pageIndex
+  const pageSize = table.state.pagination.pageSize
   const start = pageIndex * pageSize + 1
   const end = Math.min(start + pageSize - 1, filteredCount)
 
