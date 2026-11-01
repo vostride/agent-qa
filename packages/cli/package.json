@@ -97,7 +97,7 @@
     "@inquirer/input": "5.0.12",
     "@inquirer/password": "5.0.12",
     "@inquirer/select": "5.1.4",
-    "@modelcontextprotocol/server": "2.3.1",
+    "@modelcontextprotocol/server": "2.4.0",
     "@vostride/agent-qa-agent": "workspace:*",
     "@vostride/agent-qa-agent-local": "workspace:*",
     "@vostride/agent-qa-analytics": "workspace:*",
@@ -126,7 +126,7 @@
   },
   "devDependencies": {
     "@inquirer/confirm": "6.0.12",
-    "@modelcontextprotocol/client": "2.3.1",
+    "@modelcontextprotocol/client": "~2.4.0",
     "@types/node": "~24.19.2",
     "@vostride/agent-qa-arch": "workspace:*",
     "@vostride/agent-qa-safety": "workspace:*",

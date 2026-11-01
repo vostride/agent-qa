@@ -31,7 +31,7 @@ import type { AppWrapperMint } from './app-wrapper.js'
 import { liveRunLinkOf } from './live-link.js'
 import type { LiveLinkSupplier } from './live-link.js'
 
-// Restated, not imported: ext-apps peer-depends on SDK v1, and this package ships the v2 split SDK.
+// Restated, not imported: ext-apps is only a dev dependency, checked against these in tests.
 export const MCP_APPS_EXTENSION_ID = 'io.modelcontextprotocol/ui'
 
 /** The media type an App resource is served as. Restated locally for the reason above. */

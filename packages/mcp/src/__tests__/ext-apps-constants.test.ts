@@ -18,7 +18,7 @@ const TESTS_DIR = resolve(SRC_ROOT, '__tests__')
 /** The package name, spelled ONCE — the boundary census and the manifest cells both key on it. */
 const EXT_APPS = '@modelcontextprotocol/ext-apps'
 
-const AUDITED_VERSION = '1.7.5'
+const AUDITED_VERSION = '2.0.4'
 
 const requireFrom = createRequire(join(SRC_ROOT, 'app-resource.ts'))
 
@@ -50,9 +50,9 @@ function installedPackageRoot(): string {
  *
  * Deliberately NOT a substring search for the package name: the production modules mention
  * `ext-apps` in PROSE, on purpose, to record why the boundary exists (`app-resource.ts` explains
- * the v1 peer, `app-wrapper.ts` explains why the handshake is hand-rolled). A census that counted
- * those would force the explanation out of the code to stay green, which is exactly backwards —
- * the comment is the thing keeping the next person from adding the import.
+ * why the constants are restated, `app-wrapper.ts` why the handshake is hand-rolled). A census
+ * that counted those would force the explanation out of the code to stay green, which is exactly
+ * backwards — the comment is the thing keeping the next person from adding the import.
  */
 function extAppsSpecifiers(source: string): readonly string[] {
   const pattern = /(?:\bfrom\s*|\bimport\s*\(\s*|\brequire\s*\(\s*)(['"])(@modelcontextprotocol\/ext-apps(?:\/[^'"]*)?)\1/gu
@@ -107,9 +107,9 @@ describe('our restated Apps vocabulary equals the official one, byte for byte', 
     const installed = JSON.parse(
       readFileSync(join(installedPackageRoot(), 'package.json'), 'utf8'),
     ) as { readonly version: string }
-    // The legitimacy audit (verdict OK, 3.59M weekly downloads, github.com/modelcontextprotocol/
-    // ext-apps, no postinstall) was performed against 1.7.5. A census that passed against some
-    // other version would be pinning our strings to a package nobody audited.
+    // The package check (github.com/modelcontextprotocol/ext-apps, no install script, provenance)
+    // was performed against AUDITED_VERSION. A census that passed against some other version
+    // would be pinning our strings to a package nobody audited.
     expect(installed.version).toBe(AUDITED_VERSION)
     expect(officialSchema.$id).toBe('https://modelcontextprotocol.io/ext-apps/schema.json')
   })
@@ -218,9 +218,8 @@ describe('ext-apps never crosses into production', () => {
 
     expect(
       offenders.map((row) => `${row.path.slice(PACKAGE_ROOT.length + 1)}: ${row.specifiers.join(', ')}`),
-      `${EXT_APPS} peer-depends on the v1 monolith SDK while this package ships on the 2.0.0 split `
-      + 'SDK — a production import would put two SDK generations in one bundle. It is a dev/test '
-      + 'dependency and nothing else.',
+      `${EXT_APPS} is a dev/test dependency and nothing else: the published package does not `
+      + 'declare it, so a production import fails wherever agent-qa is installed.',
     ).toEqual([])
   })
 
@@ -240,7 +239,7 @@ describe('ext-apps never crosses into production', () => {
   })
 
   it('(6) the manifest keeps it in devDependencies and out of dependencies', () => {
-    expect(manifest.devDependencies?.[EXT_APPS]).toBe(AUDITED_VERSION)
+    expect(manifest.devDependencies?.[EXT_APPS]).toBe(`~${AUDITED_VERSION}`)
     expect(manifest.dependencies?.[EXT_APPS]).toBeUndefined()
   })
 })

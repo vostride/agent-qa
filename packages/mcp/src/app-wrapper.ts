@@ -243,7 +243,7 @@ ${live && !expired ? '<iframe data-app-live-frame sandbox="allow-scripts" referr
 
   // ---- The minimal ui/initialize handshake (ext-apps spec shape) -------------------------------
   //
-  // Hand-rolled: ext-apps' app-bridge peers on the v1 SDK, and this page has no bundler.
+  // Hand-rolled: this page has no bundler to load ext-apps' app-bridge.
   try {
     if (window.parent !== window) {
       window.parent.postMessage({
