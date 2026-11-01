@@ -231,7 +231,12 @@ describe('the analytics sink allowlist', () => {
       'the door run outcome',
     ).toBe(ack.runId)
     for (const item of items) {
-      const { $lib: _lib, $lib_version: _libVersion, ...properties } = item.properties
+      const {
+        $lib: _lib,
+        $lib_version: _libVersion,
+        $is_server: _isServer,
+        ...properties
+      } = item.properties
       const parsed = ANALYTICS_EVENT_SCHEMA_BY_NAME[item.event].safeParse({ name: item.event, properties })
       expect(parsed.success, `${item.event}: ${JSON.stringify(parsed.error?.issues)}`).toBe(true)
       expect(item.distinct_id, `${item.event} distinct id`).toMatch(/^(u_|ci_)/)

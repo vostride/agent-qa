@@ -35,7 +35,7 @@
     "@arethetypeswrong/core": "~0.18.5",
     "knip": "6.41.0",
     "publint": "~0.3.25",
-    "semver": "7.7.4",
+    "semver": "7.8.5",
     "turbo": "~2.11.10",
     "typescript": "~7.0.2",
     "vitest": "~5.0.5"

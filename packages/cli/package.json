@@ -93,10 +93,10 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@inquirer/checkbox": "5.1.4",
-    "@inquirer/input": "5.0.12",
-    "@inquirer/password": "5.0.12",
-    "@inquirer/select": "5.1.4",
+    "@inquirer/checkbox": "5.2.8",
+    "@inquirer/input": "5.1.9",
+    "@inquirer/password": "5.2.5",
+    "@inquirer/select": "5.2.8",
     "@modelcontextprotocol/server": "2.4.0",
     "@vostride/agent-qa-agent": "workspace:*",
     "@vostride/agent-qa-agent-local": "workspace:*",
@@ -121,17 +121,17 @@
     "commander": "15.0.0",
     "picocolors": "1.1.1",
     "playwright-core": "1.64.1",
-    "yaml": "2.8.4",
+    "yaml": "2.9.1",
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@inquirer/confirm": "6.0.12",
+    "@inquirer/confirm": "6.3.5",
     "@modelcontextprotocol/client": "~2.4.0",
     "@types/node": "~24.19.2",
     "@vostride/agent-qa-arch": "workspace:*",
     "@vostride/agent-qa-safety": "workspace:*",
     "glob": "~14.0.3",
-    "jiti": "2.6.1",
+    "jiti": "2.7.0",
     "tsdown": "~0.23.4",
     "typescript": "~7.0.2",
     "vitest": "~5.0.5"
