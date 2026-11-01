@@ -341,7 +341,7 @@ describe('a chat model name holding a declared value', () => {
   const CHAT_MODEL_ID = `fixture:${DECLARED}`
 
   const declaredIdChatModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'fixture',
     modelId: CHAT_MODEL_ID,
     supportedUrls: {},

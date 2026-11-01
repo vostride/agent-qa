@@ -75,7 +75,7 @@ function git(...args: string[]): void {
 function scriptedWriteTestPlanner(): { model: unknown; calls: () => number } {
   let reached = 0
   const model = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'fixture',
     modelId: 'fixture:ask-present-road',
     supportedUrls: {},

@@ -129,13 +129,13 @@ function countingPlanner(plans: Parameters<typeof makePlanner>[0]): Planner & { 
   return planner
 }
 
-type V3Model = Extract<LanguageModel, { specificationVersion: 'v3' }>
+type V4Model = Extract<LanguageModel, { specificationVersion: 'v4' }>
 
 /** A model that throws the given error or answers with the given text, counting its calls. */
-function syntheticModel(answer: { error: Error } | { text: string }): V3Model & { calls: number } {
+function syntheticModel(answer: { error: Error } | { text: string }): V4Model & { calls: number } {
   const model = {
     calls: 0,
-    specificationVersion: 'v3' as const,
+    specificationVersion: 'v4' as const,
     provider: 'synthetic',
     modelId: 'synthetic-judge',
     supportedUrls: {},
@@ -263,7 +263,7 @@ describe('an assertAI judgment the model could not make ends the step', () => {
       stepComplete: true,
     })
 
-  async function run(model: V3Model & { calls: number }, extra: Partial<LoopPorts> = {}) {
+  async function run(model: V4Model & { calls: number }, extra: Partial<LoopPorts> = {}) {
     const planner = countingPlanner([claimPlan()])
     const verifier = realJudgeVerifier(model)
     const result = await executeStep(
@@ -442,7 +442,7 @@ describe('extractAI returns its declared types', () => {
     { name: 'notes', type: 'string', description: 'the delivery notes' },
   ]
 
-  async function run(model: V3Model & { calls: number }, extra: Partial<LoopPorts> = {}) {
+  async function run(model: V4Model & { calls: number }, extra: Partial<LoopPorts> = {}) {
     const planner = countingPlanner([
       makeActionPlan({
         action: { type: 'extractAI', query, schema: orderFields },
@@ -568,7 +568,7 @@ describe('an extractAI extraction the model could not make ends the step', () =>
       stepComplete: true,
     })
 
-  async function run(model: V3Model & { calls: number }) {
+  async function run(model: V4Model & { calls: number }) {
     const planner = countingPlanner([extractPlan()])
     const verifier = realJudgeVerifier(model)
     const workingMemory = recordingWorkingMemory()

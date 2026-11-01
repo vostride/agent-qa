@@ -10,7 +10,7 @@ import {
   type ExecutePlanningTurnOptions,
 } from '../planning-turn.js'
 
-type StubLanguageModel = Extract<LanguageModel, { readonly specificationVersion: 'v3' }>
+type StubLanguageModel = Extract<LanguageModel, { readonly specificationVersion: 'v4' }>
 type GenerateCall = Parameters<StubLanguageModel['doGenerate']>[0]
 type GenerateResult = Awaited<ReturnType<StubLanguageModel['doGenerate']>>
 
@@ -43,7 +43,7 @@ function generateResult(content: GenerateResult['content']): GenerateResult {
 function createCapturingModel(output: 'action' | 'no-tool' = 'action') {
   const calls: GenerateCall[] = []
   const bind = (observation?: StepModelObservation): StubLanguageModel => ({
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'runner-test',
     modelId: MODEL_ID,
     supportedUrls: {},

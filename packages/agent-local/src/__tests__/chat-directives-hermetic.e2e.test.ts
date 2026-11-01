@@ -52,7 +52,7 @@ function namedModel(modelId: string): ChatLanguageModel {
     throw new Error('no directive scenario consults the planner')
   }
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'fixture',
     modelId,
     supportedUrls: {},

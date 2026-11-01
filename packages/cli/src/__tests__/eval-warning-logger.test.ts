@@ -21,7 +21,7 @@ it('keeps the real installed SDK first warning off stdout and retains returned w
     const restore = installEvalWarningLogger();
     const warning = { type: 'unsupported', feature: 'seed' };
     const result = await generateText({ prompt: 'ok', seed: 11, model: {
-      specificationVersion: 'v3', provider: 'warning-fixture', modelId: 'warning-fixture', supportedUrls: {},
+      specificationVersion: 'v4', provider: 'warning-fixture', modelId: 'warning-fixture', supportedUrls: {},
       doStream() { throw new Error('stream forbidden'); },
       async doGenerate() { return { content: [{ type: 'text', text: 'ok' }],
         finishReason: { unified: 'stop', raw: 'stop' },

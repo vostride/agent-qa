@@ -82,7 +82,7 @@ function plannerTripwire(): { model: ChatLanguageModel; calls: () => number } {
     throw new Error('a deterministic-class scenario consulted the planner')
   }
   const model = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'fixture',
     modelId: 'fixture:never-called',
     supportedUrls: {},
@@ -98,7 +98,7 @@ function scriptedPlanner(
 ): { model: ChatLanguageModel; calls: () => number } {
   let reached = 0
   const model = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'fixture',
     modelId: 'fixture:scripted',
     supportedUrls: {},
