@@ -1,5 +1,5 @@
 import { Link } from 'react-router'
-import { ChevronRight, Keyboard, Pencil, PlayCircle, Save, Trash2 } from 'lucide-react'
+import { ChevronRight, Keyboard, Pencil, PlayCircle, Save, Trash } from 'lucide-react'
 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover'
 import { ShortcutKey, ShortcutLegend } from '@/components/shortcut-hints'
@@ -113,7 +113,7 @@ export function HookNavbar({
                 disabled={isDeleting}
                 className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash className="h-3.5 w-3.5" />
                 {isDeleting ? 'Deleting...' : 'Delete'}
               </Button>
             ) : null}
@@ -183,7 +183,7 @@ export function HookNavbar({
                 disabled={isDeleting}
                 className="text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
               >
-                <Trash2 className="h-3.5 w-3.5" />
+                <Trash className="h-3.5 w-3.5" />
                 {isDeleting ? 'Deleting...' : 'Delete'}
               </Button>
             ) : null}

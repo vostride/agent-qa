@@ -1,7 +1,7 @@
 // A key or header value lives in this component and saves through its own button, never as a draft.
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent, type RefObject } from "react"
-import { ChevronRight, CircleAlert, CircleCheck, LoaderCircle, LogOut, Plus, Trash2, TriangleAlert } from "lucide-react"
+import { ChevronRight, CircleAlert, CircleCheck, LoaderCircle, LogOut, Plus, Trash, TriangleAlert } from "lucide-react"
 import type { ConfigChange, ConfigPathSegment } from "@vostride/agent-qa-schema"
 
 import { ConfigField, type ConfigFieldTarget } from "@/components/config-manager/config-field"
@@ -789,7 +789,7 @@ function ModelPanel({
               className="text-muted-foreground hover:text-destructive"
               onClick={() => void deleteModel()}
             >
-              <Trash2 className="size-3.5" aria-hidden="true" />
+              <Trash className="size-3.5" aria-hidden="true" />
               {DELETE_MODEL_LABEL}
             </Button>
           )}

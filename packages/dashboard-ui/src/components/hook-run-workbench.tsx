@@ -1,4 +1,4 @@
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash } from 'lucide-react'
 
 import type { HookRunRecord, HookRunOverrideRow } from '@/hooks/use-hook-run-session'
 import { Button } from '@/components/ui/button'
@@ -142,7 +142,7 @@ export function HookRunWorkbench({
                             aria-label="Remove variable"
                             onClick={() => onRemoveOverride(row.id)}
                           >
-                            <Trash2 className="h-3.5 w-3.5" />
+                            <Trash className="h-3.5 w-3.5" />
                           </Button>
                         </div>
                         {overridesEnv ? (

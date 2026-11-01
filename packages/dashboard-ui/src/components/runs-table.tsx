@@ -22,7 +22,7 @@ import {
   tableFeatures,
   useTable,
 } from "@tanstack/react-table"
-import { ArrowUpDown, ChevronDown, ChevronRight, Plus, SlidersHorizontal, Trash2 } from "lucide-react"
+import { ArrowUpDown, ChevronDown, ChevronRight, Plus, SlidersHorizontal, Trash } from "lucide-react"
 
 import { ElapsedTimer } from "@/components/elapsed-timer"
 import { Badge } from "@/components/ui/badge"
@@ -400,7 +400,7 @@ function AttributeFilterControl({
                     aria-label={`Remove ${predicate.key} filter`}
                     onClick={() => removeFilter(index)}
                   >
-                    <Trash2 className="size-3.5" />
+                    <Trash className="size-3.5" />
                   </Button>
                 </div>
               ))}

@@ -1,7 +1,7 @@
 // The Knowledge used section: one content-led row per record, no ids.
 
 import { Fragment, useId, useState } from "react"
-import { ChevronRight, FlaskConical, History } from "lucide-react"
+import { ChevronRight, FlaskConical, RotateCcwClock } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
@@ -94,7 +94,7 @@ function UsedRecordRow({ record, stepRefs }: { record: UsedRecordView; stepRefs?
         {record.onTrial === undefined ? null : <OnTrialTag />}
         {record.sinceStatus === undefined ? null : (
           <Badge variant="outline" className="text-muted-foreground">
-            <History className="size-3" aria-hidden />
+            <RotateCcwClock className="size-3" aria-hidden />
             {SINCE_STATUS_TAGS[record.sinceStatus]}
           </Badge>
         )}

@@ -1,5 +1,5 @@
 import { createPortal } from "react-dom"
-import { Trash2 } from "lucide-react"
+import { Trash } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SplitButton } from "@/components/split-button"
 
@@ -66,7 +66,7 @@ export function BatchActionBar({
           onClick={onDelete}
           disabled={isRunning}
         >
-          <Trash2 className="size-4" />
+          <Trash className="size-4" />
           Delete
         </Button>
       ) : null}
