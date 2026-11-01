@@ -1,6 +1,6 @@
 // The Knowledge used section: one content-led row per record, no ids.
 
-import { Fragment, useId } from "react"
+import { Fragment, useId, useState } from "react"
 import { ChevronRight, FlaskConical, History } from "lucide-react"
 
 import { Badge } from "@/components/ui/badge"
@@ -124,11 +124,12 @@ function UsedRecordRow({ record, stepRefs }: { record: UsedRecordView; stepRefs?
 
 function OnTrialTag() {
   const meaningId = useId()
+  const [open, setOpen] = useState(false)
   return (
-    <Tooltip>
-      {/* The trigger's own described-by replaces Radix's open-time one, so the meaning is announced once, open or closed. */}
+    <Tooltip open={open} onOpenChange={setOpen}>
+      {/* Radix describes an open trigger by its tooltip, so the hidden meaning stands in only while closed: announced once either way. */}
       <TooltipTrigger asChild>
-        <button type="button" aria-describedby={meaningId} className={`inline-flex rounded-md ${FOCUS_RING}`}>
+        <button type="button" aria-describedby={open ? undefined : meaningId} className={`inline-flex rounded-md ${FOCUS_RING}`}>
           <Badge variant="outline" className="cursor-help text-muted-foreground">
             <FlaskConical className="size-3" aria-hidden />
             {ON_TRIAL_TAG}

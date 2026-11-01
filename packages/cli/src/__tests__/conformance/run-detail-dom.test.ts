@@ -157,7 +157,7 @@ interface PageObservation {
   readonly runTokens?: import('@vostride/agent-qa-schema').RunTokenTotals
   /** Whether focusing `[data-run-token-summary]` attached `[data-usage-card]` inside the budget. */
   readonly usageCardOpened?: boolean
-  /** Every visible `[data-usage-line]` in the opened card, in document order, kind beside text. */
+  /** Every `[data-usage-line]` in the opened card, in document order, kind beside text. */
   readonly usageCardLines?: readonly { readonly kind: string; readonly text: string }[]
   /** Recorded source fact, independent of its retired Overview chip. */
   readonly screenStateHash?: string
@@ -425,7 +425,7 @@ async function observeRunDetail(
       return (clone.textContent ?? '').trim()
     })
     const screenStateChip = await attributeOf('[data-screen-state]', 'data-screen-state')
-    // Opened by focus; hidden Radix copies in the portalled card are dropped, so lines read once.
+    // Opened by focus; Radix renders the portalled card once, as the tooltip itself.
     let usageCardOpened: boolean | undefined
     let usageCardLines: { kind: string; text: string }[] | undefined
     const usageTrigger = page.locator('[data-run-token-summary]').first()
@@ -438,7 +438,6 @@ async function observeRunDetail(
       if (usageCardOpened) {
         usageCardLines = await page.evaluate(() =>
           Array.from(document.querySelectorAll('[data-usage-card] [data-usage-line]'))
-            .filter((line) => line.closest('[role="tooltip"]') === null)
             .map((line) => ({
               kind: line.getAttribute('data-usage-line') ?? '?',
               text: (line as HTMLElement).innerText.trim(),
@@ -730,8 +729,8 @@ describe('the shipped dashboard renders run detail populated and unmasked', () =
     expect(
       totals.length,
       'the card must carry exactly one totals line: none means the one sentence every run has is '
-      + 'missing, and two means the card is stating the spend twice or the harvest read the '
-      + `screen-reader duplicate. lines: ${JSON.stringify(lines)}${context()}`,
+      + 'missing, and two means the card is stating the spend twice. '
+      + `lines: ${JSON.stringify(lines)}${context()}`,
     ).toBe(1)
 
     const full = new Intl.NumberFormat('en-US')
