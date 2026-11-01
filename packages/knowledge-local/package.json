@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-knowledge-local",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": false,
   "description": "StorageImplementation shell for the future local memidex knowledge store in agent-qa.",
   "keywords": [

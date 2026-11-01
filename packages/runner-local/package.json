@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-runner-local",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": false,
   "description": "StorageImplementation shell for the local filesystem + git-branch action-plan cache store behind the runner ActionPlanCache port in agent-qa.",
   "keywords": [

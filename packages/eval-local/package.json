@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-eval-local",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": false,
   "description": "StorageImplementation shell for local agent-qa cassette IO behind eval ports.",
   "keywords": [

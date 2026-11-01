@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-eval",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": false,
   "description": "Provider- and storage-neutral cassette contracts and deterministic extraction for agent-qa.",
   "keywords": [

@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-safety",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": false,
   "description": "Provider-neutral and storage-neutral safety core contracts for agent-qa execution safety.",
   "keywords": [

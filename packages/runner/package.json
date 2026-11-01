@@ -1,6 +1,6 @@
 {
   "name": "@vostride/agent-qa-runner",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": false,
   "description": "Provider-neutral runner contracts and platform-adapter boundary types for agent-qa.",
   "keywords": [
