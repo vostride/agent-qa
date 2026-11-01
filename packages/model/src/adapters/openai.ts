@@ -47,6 +47,7 @@ export function getProviderOptions(config: ProviderOptionsConfig): ProviderOptio
       openai: {
         instructions: 'You are a helpful assistant.',
         store: false,
+        systemMessageMode: 'system',
       },
     }
   }
