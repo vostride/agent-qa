@@ -2,7 +2,7 @@ import { APICallError } from '@ai-sdk/provider'
 import { simulateReadableStream } from 'ai'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider'
+import type { LanguageModelV4, LanguageModelV4CallOptions } from '@ai-sdk/provider'
 import type { ModelCapabilities, ModelProfile, ModelProviderId } from '@vostride/agent-qa-schema'
 
 import { capabilityKey, overrideStore } from '../capability/override-store.js'
@@ -21,7 +21,7 @@ interface RegistryCase {
 
 const noneAuth: ResolvedModelAuth = { kind: 'none' }
 
-type StreamPart = Awaited<ReturnType<LanguageModelV3['doStream']>>['stream'] extends ReadableStream<
+type StreamPart = Awaited<ReturnType<LanguageModelV4['doStream']>>['stream'] extends ReadableStream<
   infer Part
 >
   ? Part
@@ -38,11 +38,11 @@ function profile(testCase: RegistryCase): ModelProfile {
 }
 
 function fakeLanguageModel(
-  onGenerate: (params: LanguageModelV3CallOptions) => void,
+  onGenerate: (params: LanguageModelV4CallOptions) => void,
   streamChunks: StreamPart[] = [],
-): LanguageModelV3 {
+): LanguageModelV4 {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'override.test',
     modelId: 'override-model',
     supportedUrls: {},
@@ -91,13 +91,13 @@ function overrideProfile(): ModelProfile {
   }
 }
 
-function promptWithUserText(text: string): LanguageModelV3CallOptions['prompt'] {
+function promptWithUserText(text: string): LanguageModelV4CallOptions['prompt'] {
   return [
     {
       role: 'user',
       content: [{ type: 'text', text }],
     },
-  ] as LanguageModelV3CallOptions['prompt']
+  ] as LanguageModelV4CallOptions['prompt']
 }
 
 function textDelta(delta: string): StreamPart {
@@ -158,7 +158,7 @@ describe('createModel', () => {
     vi.spyOn(getProvider('openai-compatible')!, 'adapter').mockReturnValue(raw)
     const observed = createModel(overrideProfile(), noneAuth, (text) => text, {}, { onProviderCall })
     const ordinary = createModel(overrideProfile(), noneAuth, (text) => text)
-    const params: LanguageModelV3CallOptions = { prompt: promptWithUserText('hello') }
+    const params: LanguageModelV4CallOptions = { prompt: promptWithUserText('hello') }
     expect(await observed.doGenerate(params)).toEqual(await ordinary.doGenerate(params))
     expect(providerCall).toHaveBeenCalledTimes(2)
     expect(onProviderCall).toHaveBeenCalledTimes(1)
@@ -211,7 +211,7 @@ describe('createModel', () => {
     expect(onProviderCall).toHaveBeenCalledTimes(1)
   })
 
-  it('resolves a v3 model for each built-in provider through the registry', () => {
+  it('resolves a model on the current provider specification for each built-in provider through the registry', () => {
     const cases: RegistryCase[] = [
       {
         provider: 'openai-compatible',
@@ -246,7 +246,7 @@ describe('createModel', () => {
     for (const testCase of cases) {
       const model = createModel(profile(testCase), noneAuth, (text) => text)
 
-      expect(model.specificationVersion).toBe('v3')
+      expect(model.specificationVersion).toBe('v4')
       expect(model.provider).toBe(testCase.expectedProvider)
       expect(model.modelId).toBe(testCase.modelId)
     }
@@ -265,7 +265,7 @@ describe('createModel', () => {
   })
 
   it('applies tool schema middleware centrally through the registry', async () => {
-    let captured: LanguageModelV3CallOptions | undefined
+    let captured: LanguageModelV4CallOptions | undefined
     const model = createModel(
       {
         provider: 'openai-compatible',

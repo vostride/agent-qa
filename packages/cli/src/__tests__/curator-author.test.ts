@@ -8,7 +8,7 @@ import type {
   ModelProfile,
   ResolvedModelAuth,
 } from '@vostride/agent-qa-model'
-import { MockLanguageModelV3 } from 'ai/test'
+import { MockLanguageModelV4 } from 'ai/test'
 import { describe, expect, it, vi } from 'vitest'
 
 import {
@@ -95,7 +95,7 @@ function scriptedModel(
 ): CuratorModel {
   let index = 0
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'scripted',
     modelId: 'scripted',
     supportedUrls: {},
@@ -483,7 +483,7 @@ describe('aborted curator requests', () => {
     let called: () => void = () => undefined
     const inFlight = new Promise<void>((resolve) => { called = resolve })
     const seenSignals: Array<AbortSignal | undefined> = []
-    const recorder = new MockLanguageModelV3({
+    const recorder = new MockLanguageModelV4({
       doGenerate: async (options) => {
         seenSignals.push(options.abortSignal)
         called()

@@ -527,7 +527,7 @@ function replayStub(
 ): { captured: CapturedCallOptions[]; overrides: ModelProviderOverrides } {
   const captured: CapturedCallOptions[] = []
   const stub: StubLanguageModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'replay-cli-stub-provider',
     modelId,
     supportedUrls: {},

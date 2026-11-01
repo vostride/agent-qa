@@ -1,4 +1,4 @@
-import { APICallError, type LanguageModelV3CallOptions } from '@ai-sdk/provider'
+import { APICallError, type LanguageModelV4CallOptions } from '@ai-sdk/provider'
 import type { ModelProfile, ModelProviderId } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 
@@ -17,7 +17,7 @@ function profile(provider: ModelProviderId): ModelProfile {
   }
 }
 
-function stackModel(onGenerate: (params: LanguageModelV3CallOptions) => void) {
+function stackModel(onGenerate: (params: LanguageModelV4CallOptions) => void) {
   return stubModel({
     async doGenerate(params) {
       onGenerate(params)
@@ -56,7 +56,7 @@ function clickTool() {
 
 describe('registry middleware stack', () => {
   it('applies request and response reliability middleware through createModel', async () => {
-    let captured: LanguageModelV3CallOptions | undefined
+    let captured: LanguageModelV4CallOptions | undefined
     const model = createOverrideModel(
       'openai-compatible',
       stackModel((params) => {

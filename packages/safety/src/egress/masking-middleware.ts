@@ -7,7 +7,7 @@ const TEMPLATE_SPLIT = /(\{\{secret:\w+\}\})/
 export function createMaskingMiddleware(mask: (text: string) => string): LanguageModelMiddleware {
   const leaf = (text: string): string => maskKeepingTemplates(text, mask)
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     transformParams: async ({ params }) => mapPromptLeaves(params, leaf),
   }
 }

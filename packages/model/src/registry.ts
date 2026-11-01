@@ -7,7 +7,7 @@ import {
 } from 'ai'
 
 import type { LanguageModelMiddleware } from 'ai'
-import type { LanguageModelV3, LanguageModelV3StreamPart, ProviderV3 } from '@ai-sdk/provider'
+import type { LanguageModelV4, LanguageModelV4StreamPart, ProviderV4 } from '@ai-sdk/provider'
 import type { MaskFn, ModelProfile } from '@vostride/agent-qa-schema'
 import { createMaskingMiddleware } from '@vostride/agent-qa-safety'
 
@@ -48,7 +48,7 @@ const MIDDLEWARE: LanguageModelMiddleware[] = [
 ]
 
 export interface ModelProviderOverrides {
-  languageModels?: Record<string, LanguageModelV3>
+  languageModels?: Record<string, LanguageModelV4>
   /** Trusted custom/override adapter assertion; omitted means no cache/model authority. */
   providerReportOrigin?: ModelCallReportOrigin
 }
@@ -59,7 +59,7 @@ export function createModel(
   mask: MaskFn,
   overrides: ModelProviderOverrides = {},
   observation: ModelCallObservation = {},
-): LanguageModelV3 {
+): LanguageModelV4 {
   validateProfile(profile)
 
   profile.capabilities ??= resolveCapabilities(profile)
@@ -72,8 +72,8 @@ export function createModel(
     )
   }
 
-  const baseProvider = toProviderV3((modelId) => descriptor.adapter(transport, modelId))
-  const provider: ProviderV3 = customProvider({
+  const baseProvider = toProviderV4((modelId) => descriptor.adapter(transport, modelId))
+  const provider: ProviderV4 = customProvider({
     languageModels: overrides.languageModels ?? {},
     fallbackProvider: baseProvider,
   })
@@ -108,7 +108,7 @@ export function createModel(
   const observedProvider = onProviderCall === undefined && onCall === undefined ? provider : wrapProvider({
     provider,
     languageModelMiddleware: {
-      specificationVersion: 'v3',
+      specificationVersion: 'v4',
       wrapGenerate: async ({ doGenerate }) => {
         start()
         try {
@@ -141,7 +141,7 @@ export function createModel(
           }
           return {
             ...result,
-            stream: new ReadableStream<LanguageModelV3StreamPart>({
+            stream: new ReadableStream<LanguageModelV4StreamPart>({
               async pull(controller) {
                 try {
                   const next = await reader.read()
@@ -199,9 +199,9 @@ export function createModel(
   return registry.languageModel(`${profile.provider}:${profile.model}`)
 }
 
-function toProviderV3(build: (modelId: string) => LanguageModelV3): ProviderV3 {
+function toProviderV4(build: (modelId: string) => LanguageModelV4): ProviderV4 {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     languageModel: build,
     embeddingModel(modelId) {
       throw new Error(`No embedding model for provider model "${modelId}"`)

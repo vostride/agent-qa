@@ -62,7 +62,7 @@
     "@vostride/agent-qa-runner-local": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
     "@vostride/agent-qa-web": "workspace:*",
-    "ai": "6.0.174",
+    "ai": "7.0.159",
     "picocolors": "1.1.1",
     "tree-kill": "1.2.2",
     "ws": "8.21.0",

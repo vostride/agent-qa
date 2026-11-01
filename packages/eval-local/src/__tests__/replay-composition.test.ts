@@ -107,7 +107,7 @@ interface CapturingStub {
 function capturingStub(script: (call: number) => StubGenerateResult): CapturingStub {
   const captured: CapturedCallOptions[] = []
   const stub: StubLanguageModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'replay-composition-stub',
     modelId: STUB_MODEL_ID,
     supportedUrls: {},
@@ -446,7 +446,7 @@ describe('runCassetteReplay — production round-trip spine', () => {
     // A throwing stub proves no sample runs: a completeness refusal is filtered first.
     let doGenerateCalls = 0
     const throwingStub: StubLanguageModel = {
-      specificationVersion: 'v3',
+      specificationVersion: 'v4',
       provider: 'replay-composition-stub',
       modelId: STUB_MODEL_ID,
       supportedUrls: {},

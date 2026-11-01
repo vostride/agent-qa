@@ -104,9 +104,13 @@ function outputImageCount(output: unknown): number {
   if (!isRecord(output) || output.type !== 'content' || !Array.isArray(output.value)) return 0
   let count = 0
   for (const item of output.value) {
-    if (isRecord(item) && (item.type === 'image-data' || item.type === 'media')) count += 1
+    if (isRecord(item) && (item.type === 'image-data' || isInlineFile(item))) count += 1
   }
   return count
+}
+
+function isInlineFile(item: Record<string, unknown>): boolean {
+  return item.type === 'file' && isRecord(item.data) && item.data.type === 'data'
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

@@ -1,5 +1,5 @@
 import { wrapLanguageModel } from 'ai'
-import { MockLanguageModelV3 } from 'ai/test'
+import { MockLanguageModelV4 } from 'ai/test'
 import { describe, expect, it } from 'vitest'
 
 import type { ProviderRequestParams } from '../map-prompt-leaves'
@@ -7,8 +7,8 @@ import { createMaskingMiddleware } from '../masking-middleware'
 
 const upper = (text: string): string => text.toUpperCase()
 
-function recorder(): MockLanguageModelV3 {
-  return new MockLanguageModelV3({
+function recorder(): MockLanguageModelV4 {
+  return new MockLanguageModelV4({
     doGenerate: {
       content: [{ type: 'text', text: 'ok' }],
       finishReason: { unified: 'stop', raw: 'stop' },

@@ -1,8 +1,8 @@
 import type { LanguageModelMiddleware } from 'ai'
 import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Prompt,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Prompt,
 } from '@ai-sdk/provider'
 
 // Gated by `AGENT_QA_DEBUG_LLM`; a line carries no header value, query string or provider text.
@@ -24,7 +24,7 @@ function isEnvEnabled(): boolean {
   return value !== '' && value !== '0' && value !== 'false' && value !== 'off' && value !== 'no'
 }
 
-function modelIdOf(model: LanguageModelV3 | undefined): string {
+function modelIdOf(model: LanguageModelV4 | undefined): string {
   if (model && typeof model === 'object' && 'modelId' in model) {
     const id = (model as { modelId?: unknown }).modelId
     if (typeof id === 'string' && id.length > 0) return id
@@ -32,9 +32,9 @@ function modelIdOf(model: LanguageModelV3 | undefined): string {
   return 'unknown'
 }
 
-function requestShapeLine(params: LanguageModelV3CallOptions, model: LanguageModelV3 | undefined): string {
+function requestShapeLine(params: LanguageModelV4CallOptions, model: LanguageModelV4 | undefined): string {
   const record = params as unknown as Record<string, unknown>
-  const prompt = record.prompt as LanguageModelV3Prompt | undefined
+  const prompt = record.prompt as LanguageModelV4Prompt | undefined
   const messages = Array.isArray(prompt) ? prompt : []
   const roles = messages.map((message) => (message as { role?: unknown }).role ?? '?').join(',')
   const toolCount = Array.isArray(record.tools) ? record.tools.length : 0
@@ -130,14 +130,14 @@ export function debugLoggingMiddleware(options: DebugLoggingOptions = {}): Langu
   // Disabled ⇒ a pure passthrough: no wrap hooks at all, so behavior + performance are byte-
   // identical and the sink is never touched.
   if (!enabled) {
-    return { specificationVersion: 'v3' }
+    return { specificationVersion: 'v4' }
   }
 
   const sink = options.sink ?? ((line: string) => { process.stderr.write(`${line}\n`) })
   const emit = (line: string): void => { sink(line) }
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
 
     wrapGenerate: async ({ doGenerate, params, model }) => {
       emit(requestShapeLine(params, model))

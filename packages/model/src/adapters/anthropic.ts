@@ -1,11 +1,11 @@
 import { createAnthropic } from '@ai-sdk/anthropic'
 
-import type { LanguageModelV3 } from '@ai-sdk/provider'
+import type { LanguageModelV4 } from '@ai-sdk/provider'
 
 import { applyProviderOptions } from '../auth.js'
 import type { Transport } from '../auth.js'
 
-export function anthropicCompatible(transport: Transport, modelId: string): LanguageModelV3 {
+export function anthropicCompatible(transport: Transport, modelId: string): LanguageModelV4 {
   return applyProviderOptions(
     createAnthropic({
       baseURL: transport.baseURL,
@@ -19,7 +19,7 @@ export function anthropicCompatible(transport: Transport, modelId: string): Lang
   )
 }
 
-export function anthropicSubscription(transport: Transport, modelId: string): LanguageModelV3 {
+export function anthropicSubscription(transport: Transport, modelId: string): LanguageModelV4 {
   return applyProviderOptions(
     createAnthropic({
       apiKey: transport.apiKey ?? 'placeholder',

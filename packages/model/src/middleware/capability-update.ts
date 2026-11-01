@@ -20,7 +20,7 @@ export function capabilityUpdateMiddleware(profile: ModelProfile): LanguageModel
   }
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     wrapGenerate: ({ doGenerate }) => observe(doGenerate),
     wrapStream: ({ doStream }) => observe(doStream),
   }

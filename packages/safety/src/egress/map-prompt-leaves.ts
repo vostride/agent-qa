@@ -14,6 +14,9 @@ type ToolContentPart = ToolMessage['content'][number]
 type FileContentPart = Extract<UserContentPart | AssistantContentPart, { type: 'file' }>
 type ToolResultOutput = Extract<AssistantContentPart, { type: 'tool-result' }>['output']
 type ToolResultContentPart = Extract<ToolResultOutput, { type: 'content' }>['value'][number]
+type FileData = FileContentPart['data']
+type UrlFileData = Extract<FileData, { type: 'url' }>
+type ProviderReference = Extract<FileData, { type: 'reference' }>['reference']
 
 // The prompt walker the masking middleware delegates to; binary data never reaches `fn`.
 export function mapPromptLeaves(params: ProviderRequestParams, fn: LeafFn): ProviderRequestParams {
@@ -86,8 +89,39 @@ function mapToolPart(part: ToolContentPart, fn: LeafFn): ToolContentPart {
 function mapFilePart(part: FileContentPart, fn: LeafFn): FileContentPart {
   return {
     ...part,
+    data: mapFileData(part.data, fn),
     ...(part.filename === undefined ? {} : { filename: fn(part.filename) }),
   }
+}
+
+function mapFileData(data: FileData, fn: LeafFn): FileData {
+  switch (data.type) {
+    case 'data':
+      return data
+    case 'text':
+      return { ...data, text: fn(data.text) }
+    case 'url':
+      return mapUrlData(data, fn)
+    case 'reference':
+      return { ...data, reference: mapReference(data.reference, fn) }
+  }
+}
+
+// The raw string is masked, since URL parsing can percent-encode a declared value out of reach.
+function mapUrlData(data: UrlFileData, fn: LeafFn): UrlFileData {
+  const raw = data.originalUrl ?? data.url.toString()
+  const masked = fn(raw)
+  if (masked === raw) return data
+  if (!URL.canParse(masked)) throw new Error('a masked file URL is not a valid URL')
+  return {
+    ...data,
+    url: new URL(masked),
+    ...(data.originalUrl === undefined ? {} : { originalUrl: masked }),
+  }
+}
+
+function mapReference(reference: ProviderReference, fn: LeafFn): ProviderReference {
+  return Object.fromEntries(Object.entries(reference).map(([provider, id]) => [provider, fn(id)]))
 }
 
 function mapToolResultOutput(output: ToolResultOutput, fn: LeafFn): ToolResultOutput {
@@ -114,22 +148,15 @@ function mapToolResultContentPart(part: ToolResultContentPart, fn: LeafFn): Tool
   switch (part.type) {
     case 'text':
       return { ...part, text: fn(part.text) }
-    case 'file-data':
+    case 'file':
       return {
         ...part,
+        data: mapFileData(part.data, fn),
         ...(part.filename === undefined ? {} : { filename: fn(part.filename) }),
       }
-    case 'image-data':
+    case 'custom':
       return part
-    case 'file-url':
-    case 'image-url':
-      return { ...part, url: fn(part.url) }
-    case 'file-id':
-    case 'image-file-id':
-      return typeof part.fileId === 'string' ? { ...part, fileId: fn(part.fileId) } : part
   }
-
-  return part
 }
 
 function mapJsonLike<T>(value: T, fn: LeafFn): T {

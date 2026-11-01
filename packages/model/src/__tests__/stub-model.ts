@@ -1,17 +1,17 @@
 import type {
-  LanguageModelV3,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamResult,
+  LanguageModelV4,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamResult,
 } from '@ai-sdk/provider'
 
-export type StubModelOverrides = Partial<LanguageModelV3> & {
-  generate?: () => Promise<LanguageModelV3GenerateResult>
-  content?: LanguageModelV3GenerateResult['content']
+export type StubModelOverrides = Partial<LanguageModelV4> & {
+  generate?: () => Promise<LanguageModelV4GenerateResult>
+  content?: LanguageModelV4GenerateResult['content']
 }
 
 export function stubGenerateResult(
-  content: LanguageModelV3GenerateResult['content'] = [],
-): LanguageModelV3GenerateResult {
+  content: LanguageModelV4GenerateResult['content'] = [],
+): LanguageModelV4GenerateResult {
   return {
     content,
     finishReason: { unified: 'stop', raw: 'stop' },
@@ -23,15 +23,15 @@ export function stubGenerateResult(
   }
 }
 
-export function stubStreamResult(): LanguageModelV3StreamResult {
+export function stubStreamResult(): LanguageModelV4StreamResult {
   return { stream: new ReadableStream() }
 }
 
-export function stubModel(over: StubModelOverrides = {}): LanguageModelV3 {
+export function stubModel(over: StubModelOverrides = {}): LanguageModelV4 {
   const { generate, content, ...modelOverrides } = over
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'stub',
     modelId: 'stub',
     supportedUrls: {},

@@ -2,7 +2,7 @@ import { parsePartialJson, type LanguageModelMiddleware } from 'ai'
 
 export function repairMiddleware(): LanguageModelMiddleware {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
 
     async wrapGenerate({ doGenerate }) {
       const result = await doGenerate()

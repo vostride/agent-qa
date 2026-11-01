@@ -57,7 +57,7 @@
     "@vostride/agent-qa-runner": "workspace:*",
     "@vostride/agent-qa-runner-local": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
-    "ai": "6.0.174",
+    "ai": "7.0.159",
     "zod": "4.6.7"
   },
   "devDependencies": {

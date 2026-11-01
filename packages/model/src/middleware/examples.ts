@@ -10,7 +10,7 @@ type SampleInput = Record<string, unknown>
 
 export function deriveExamplesMiddleware(): LanguageModelMiddleware {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
 
     transformParams: async ({ params }) => {
       if (!params.tools) return params

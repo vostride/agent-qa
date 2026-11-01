@@ -47,7 +47,7 @@ function generated(text: string): GenerateResult {
 
 function scriptedModel(onCall: (options: CallOptions) => void): CuratorModel {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'curation-audit-scripted',
     modelId: 'curation-audit-scripted',
     supportedUrls: {},

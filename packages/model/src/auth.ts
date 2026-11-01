@@ -1,6 +1,6 @@
 import { defaultSettingsMiddleware, wrapLanguageModel } from 'ai'
 
-import type { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider'
+import type { LanguageModelV4, LanguageModelV4CallOptions } from '@ai-sdk/provider'
 import type { ModelProfile } from '@vostride/agent-qa-schema'
 
 export type ResolvedModelAuth =
@@ -41,14 +41,14 @@ export function deriveTransport(profile: ModelProfile, auth: ResolvedModelAuth):
   }
 }
 
-export function applyProviderOptions(model: LanguageModelV3, transport: Transport): LanguageModelV3 {
+export function applyProviderOptions(model: LanguageModelV4, transport: Transport): LanguageModelV4 {
   if (!transport.providerOptions) return model
 
   return wrapLanguageModel({
     model,
     middleware: defaultSettingsMiddleware({
       settings: {
-        providerOptions: transport.providerOptions as LanguageModelV3CallOptions['providerOptions'],
+        providerOptions: transport.providerOptions as LanguageModelV4CallOptions['providerOptions'],
       },
     }),
   })
