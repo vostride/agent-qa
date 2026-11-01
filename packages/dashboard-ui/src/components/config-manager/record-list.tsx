@@ -1,7 +1,7 @@
 // Delete is one undoable write; focus moves to the next row, else the previous, else Add.
 
 import { useEffect, useId, useRef, useState, type FocusEvent, type ReactNode, type RefObject } from "react"
-import { ChevronRight, CircleAlert, Trash2 } from "lucide-react"
+import { ChevronRight, CircleAlert, Trash } from "lucide-react"
 import type { ConfigChange } from "@vostride/agent-qa-schema"
 
 import { Button } from "@/components/ui/button"
@@ -124,7 +124,7 @@ export function RecordRow({ attr, name, summary, open, onToggle, deleteName, onD
           className="mt-2 hover:text-destructive"
           onClick={onDelete}
         >
-          <Trash2 className="size-3.5" aria-hidden="true" />
+          <Trash className="size-3.5" aria-hidden="true" />
         </Button>
       </div>
       {open ? (
