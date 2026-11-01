@@ -211,7 +211,7 @@ export function createCliCapabilityCatalogPort(
       try {
         const result = await generateText({
           model,
-          system: CITATION_SYSTEM_PROMPT,
+          instructions: CITATION_SYSTEM_PROMPT,
           prompt: `Capability catalog:\n${groundingLinesOf(rows)}\n\nQuestion: ${query}`,
         })
         text = result.text

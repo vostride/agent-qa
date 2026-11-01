@@ -320,7 +320,7 @@ export class LLMVerifier implements Verifier {
           maxRetries: 0,
           output: outputConfig,
           abortSignal,
-          system,
+          instructions: system,
           messages: fitted,
           maxOutputTokens,
           ...(this.profile?.sampling?.temperature !== undefined
@@ -471,7 +471,7 @@ export class LLMVerifier implements Verifier {
           maxRetries: 0,
           output: outputConfig,
           abortSignal,
-          system,
+          instructions: system,
           messages: fitted,
           maxOutputTokens,
           ...(this.profile?.sampling?.temperature !== undefined

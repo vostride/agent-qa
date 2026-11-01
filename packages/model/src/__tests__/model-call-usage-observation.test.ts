@@ -97,7 +97,7 @@ describe.each(transports)('call observation over the %s transport', (provider) =
       : provider === 'gemini' ? 'gemini' : 'anthropic-messages'
     const observed = custom(result, origin)
     const generated = await generateText({ model: observed.model, prompt: 'hello', maxRetries: 0 })
-    expect(generated.response.modelId).toBe(declared)
+    expect(generated.finalStep.response.modelId).toBe(declared)
     expect(observed.events[1]).toMatchObject({ kind: 'success', report: { cachedInputTokens: 0 } })
     expect(observed.events[1]).not.toHaveProperty('report.respondingModelId')
   })
@@ -113,7 +113,7 @@ it('MODEL-SDK-FALLBACK and CUSTOM-UNKNOWN reject normalized custom facts', async
     languageModels: { [declared]: stubModel({ modelId: declared, generate: async () => result }) },
   }, observation)
   const generated = await generateText({ model: raw, prompt: 'hello', maxRetries: 0 })
-  expect(generated.response.modelId).toBe(declared)
+  expect(generated.finalStep.response.modelId).toBe(declared)
   expect(events).toEqual([{ kind: 'start' }, { kind: 'success', report: { inputTokens: 100, outputTokens: 7 } }])
 })
 
@@ -198,7 +198,7 @@ it.each(['openai-responses', 'anthropic-messages'] as const)(
       outputTokens: { total: undefined, text: undefined, reasoning: undefined } }
     const { model, events } = custom(result, origin)
     const generated = await generateText({ model, prompt: 'hello', maxRetries: 0 })
-    expect(generated.response.modelId).toBe(declared)
+    expect(generated.finalStep.response.modelId).toBe(declared)
     expect(events[1]).toEqual({ kind: 'success', report: {} })
   },
 )

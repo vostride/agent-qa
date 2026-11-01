@@ -136,7 +136,7 @@ describe('LLMVerifier — stable tier and the per-call header', () => {
   function sent(): { text: string; system: any[] } {
     const call = vi.mocked(generateText).mock.calls[0][0] as any
     const turn = call.messages[call.messages.length - 1]
-    return { text: turn.content[0].text, system: call.system }
+    return { text: turn.content[0].text, system: call.instructions }
   }
 
   it('sends the pinned tier as the system content, and the turn opens with the text B header and the position', async () => {

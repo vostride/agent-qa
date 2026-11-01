@@ -270,7 +270,7 @@ test.each([undefined, 'requested-alias', 'raw-routed-model'])('MODEL-SDK-FALLBAC
 
 test('MODEL-SDK-FALLBACK-CONTROL: real SDK manufactures a response identity from an unreported model', async () => {
   const f = sdkFixture([{ text: 'synthetic' }])
-  expect((await generateText({ model: f.base, prompt: 'synthetic', maxRetries: 0 })).response.modelId)
+  expect((await generateText({ model: f.base, prompt: 'synthetic', maxRetries: 0 })).finalStep.response.modelId)
     .toBe('requested-alias')
 })
 
