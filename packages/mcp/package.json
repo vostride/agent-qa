@@ -53,14 +53,14 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@modelcontextprotocol/node": "2.1.1",
-    "@modelcontextprotocol/server": "2.3.1",
+    "@modelcontextprotocol/node": "2.1.2",
+    "@modelcontextprotocol/server": "2.4.0",
     "@vostride/agent-qa-agent": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*"
   },
   "devDependencies": {
-    "@modelcontextprotocol/client": "2.3.1",
-    "@modelcontextprotocol/ext-apps": "1.7.5",
+    "@modelcontextprotocol/client": "~2.4.0",
+    "@modelcontextprotocol/ext-apps": "~2.0.4",
     "@types/node": "~24.19.2",
     "@vostride/agent-qa-arch": "workspace:*",
     "tsdown": "~0.23.4",
