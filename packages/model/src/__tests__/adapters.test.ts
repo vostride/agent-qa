@@ -97,12 +97,14 @@ describe('ADAPTERS', () => {
       openai: {
         instructions: 'You are a helpful assistant.',
         store: false,
+        systemMessageMode: 'system',
       },
     })
     expect(getProviderOptions({ modelAdapter: 'openai-responses', fetch })).toEqual({
       openai: {
         instructions: 'You are a helpful assistant.',
         store: false,
+        systemMessageMode: 'system',
       },
     })
     expect(getProviderOptions({ provider: 'openai-compatible', fetch })).toBeUndefined()
