@@ -18,6 +18,13 @@ const CONTENT_ROLES = new Set([
   'progressbar', 'tabpanel', 'row', 'dialog', 'alertdialog',
 ])
 
+// Playwright prints these with an empty name when every child that names them is its own line.
+const NAME_FROM_CONTENT_ROLES = new Set([
+  'heading', 'button', 'link', 'cell', 'gridcell', 'row', 'columnheader', 'rowheader', 'tab',
+  'menuitem', 'menuitemcheckbox', 'menuitemradio', 'option', 'treeitem', 'checkbox', 'radio',
+  'switch', 'tooltip',
+])
+
 const LIMIT_KEYS = ['valuenow', 'valuemin', 'valuemax'] as const
 
 const LINE_PATTERN = /^(\s*-\s*)(\w+)(?:\s+"([^"]*)")?(.*)$/
@@ -51,16 +58,53 @@ function appendText(node: InterimNode, text: string | undefined): void {
   node.text = node.text === undefined ? tidy : `${node.text} ${tidy}`
 }
 
+interface SnapshotLine {
+  depth: number
+  // Into the FILTERED nodes array, only on kept lines.
+  index?: number
+  role: string
+  name?: string
+  // The names and text of the line's content, in document order.
+  parts: string[]
+  inChildFrame: boolean
+}
+
+function tidyText(text: string | undefined): string | undefined {
+  return text?.replace(/\s+/g, ' ').trim() || undefined
+}
+
+// An unnamed line passes its content up to its parent; a child frame's content stays inside it.
+function closeLine(line: SnapshotLine, nodes: InterimNode[], parent: SnapshotLine | undefined): void {
+  const node = line.index === undefined ? undefined : nodes[line.index]
+  if (node && !line.name && NAME_FROM_CONTENT_ROLES.has(line.role) && line.parts.length > 0) {
+    line.name = line.parts.join(' ')
+    node.name = line.name
+  }
+  if (parent === undefined) return
+  if (line.name) parent.parts.push(line.name)
+  else if (line.role !== 'iframe') parent.parts.push(...line.parts)
+}
+
+function closeLinesFrom(ancestors: SnapshotLine[], nodes: InterimNode[], depth: number): void {
+  let top = ancestors.at(-1)
+  while (top !== undefined && top.depth >= depth) {
+    ancestors.pop()
+    closeLine(top, nodes, ancestors.at(-1))
+    top = ancestors.at(-1)
+  }
+}
+
 // A dropped line still bounds its subtree; its name and text fold into the nearest kept ancestor.
 export function parseAriaSnapshot(ariaTree: string): {
   nodes: InterimNode[]
   nativeRefs: (string | undefined)[]
+  inChildFrame: boolean[]
 } {
   const lines = ariaTree.split('\n')
   const nodes: InterimNode[] = []
   const nativeRefs: (string | undefined)[] = []
-  // Every matched line's depth; `index` (into the FILTERED nodes array) only on kept lines.
-  const ancestors: Array<{ depth: number; index?: number }> = []
+  const inChildFrame: boolean[] = []
+  const ancestors: SnapshotLine[] = []
 
   for (const line of lines) {
     const match = line.match(LINE_PATTERN) || line.match(QUOTED_LINE_PATTERN)
@@ -73,9 +117,7 @@ export function parseAriaSnapshot(ariaTree: string): {
     const leadingSpaces = line.length - line.trimStart().length
     const depth = Math.floor(leadingSpaces / 2)
 
-    while (ancestors.length > 0 && ancestors[ancestors.length - 1].depth >= depth) {
-      ancestors.pop()
-    }
+    closeLinesFrom(ancestors, nodes, depth)
     let keptAncestor: number | undefined
     for (let k = ancestors.length - 1; k >= 0; k--) {
       if (ancestors[k].index !== undefined) {
@@ -84,12 +126,26 @@ export function parseAriaSnapshot(ariaTree: string): {
       }
     }
 
+    // Playwright prints a child frame's content beneath its iframe line.
+    const parentLine = ancestors.at(-1)
+    const snapshotLine: SnapshotLine = {
+      depth,
+      role: roleLower,
+      parts: [],
+      inChildFrame:
+        parentLine !== undefined && (parentLine.inChildFrame || parentLine.role === 'iframe'),
+    }
+    const ownName = tidyText(name)
+    if (ownName) snapshotLine.name = ownName
+    const ownText = tidyText(inlineText(suffix))
+    if (ownText) snapshotLine.parts.push(ownText)
+
     if (!INTERACTIVE_ROLES.has(roleLower) && !CONTENT_ROLES.has(roleLower)) {
       if (keptAncestor !== undefined) {
         appendText(nodes[keptAncestor], name)
         appendText(nodes[keptAncestor], inlineText(suffix))
       }
-      ancestors.push({ depth })
+      ancestors.push(snapshotLine)
       continue
     }
 
@@ -122,10 +178,14 @@ export function parseAriaSnapshot(ariaTree: string): {
     const index = nodes.length
     nodes.push(node)
     nativeRefs.push(nativeRef)
-    ancestors.push({ depth, index })
+    inChildFrame.push(snapshotLine.inChildFrame)
+    snapshotLine.index = index
+    ancestors.push(snapshotLine)
   }
 
-  return { nodes, nativeRefs }
+  closeLinesFrom(ancestors, nodes, 0)
+
+  return { nodes, nativeRefs, inChildFrame }
 }
 
 export async function captureWebScroll(page: Page): Promise<{
