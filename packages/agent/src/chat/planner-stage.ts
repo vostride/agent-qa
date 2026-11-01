@@ -67,7 +67,7 @@ export function createPlannerStage(deps: PlannerStageDeps): PlannerStagePort {
         const result = await generateText({
           model: deps.model,
           tools: deps.tools,
-          system,
+          instructions: system,
           prompt,
         })
         return readBackPlan(result.toolCalls)

@@ -81,7 +81,7 @@ export function bindJudgePort(input: JudgeBindingInput): JudgePort {
           maxRetries: 0,
           temperature: 0,
           output: verdictOutput,
-          system,
+          instructions: system,
           messages: [{ role: 'user', content: [{ type: 'text', text: request.prompt }] }],
         })
         const parsed = verdictSchema.safeParse(result.output)

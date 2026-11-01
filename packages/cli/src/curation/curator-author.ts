@@ -1184,7 +1184,7 @@ export function buildCuratorAuthor(deps: BuildCuratorAuthorDependencies): Curato
           maxRetries: 0,
           temperature: 0,
           maxOutputTokens: ceilings.maxOutput,
-          system: systemMessage.content,
+          instructions: systemMessage.content,
           messages: turnMessages,
           ...(deps.signal === undefined ? {} : { abortSignal: deps.signal }),
         })
@@ -1242,7 +1242,7 @@ export function buildCuratorAuthor(deps: BuildCuratorAuthorDependencies): Curato
           maxRetries: 0,
           temperature: 0,
           maxOutputTokens: prompt.maxOutputTokens,
-          system: systemMessage.content,
+          instructions: systemMessage.content,
           messages: turnMessages,
           ...(deps.signal === undefined ? {} : { abortSignal: deps.signal }),
         })

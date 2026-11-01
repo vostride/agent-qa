@@ -138,7 +138,7 @@ describe('LLMVerifier — author context', () => {
   function sentTurn(): { text: string; system: unknown } {
     const call = vi.mocked(generateText).mock.calls[0][0] as any
     const turn = call.messages[call.messages.length - 1]
-    return { text: turn.content[0].text, system: call.system }
+    return { text: turn.content[0].text, system: call.instructions }
   }
 
   it('sends the author section in the turn and leaves the system tier unchanged', async () => {

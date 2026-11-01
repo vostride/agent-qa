@@ -241,7 +241,7 @@ export async function executePlanningTurn(
       ...(options.sampling?.seed !== undefined ? { seed: options.sampling.seed } : {}),
       tools: combinedTools,
       toolChoice: 'required',
-      system: options.system,
+      instructions: options.system,
       abortSignal: options.abortSignal,
       messages,
       onLanguageModelCallEnd: (event) => {
@@ -258,7 +258,7 @@ export async function executePlanningTurn(
     lastResponseModelId = observed.scoped
       ? observed.respondingModelId
       : (observed.respondingModelId
-        ?? (result === undefined ? callEnd.modelId : result.response?.modelId))
+        ?? (result === undefined ? callEnd.modelId : result.finalStep?.response?.modelId))
     for (const w of result?.warnings ?? []) {
       if (w.type === 'unsupported') unsupported.add(w.feature)
     }

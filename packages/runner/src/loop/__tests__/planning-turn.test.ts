@@ -154,7 +154,7 @@ describe('executePlanningTurn', () => {
   })
 
   it.each([
-    ['reports', { response: { modelId: 'resolved-unscoped-model' } }],
+    ['reports', { finalStep: { response: { modelId: 'resolved-unscoped-model' } } }],
     ['omits', {}],
   ] as const)('PLANNING-TURN-UNSCOPED-IDENTITY: an unscoped turn keeps the SDK response model id when it %s one', async (_label, response) => {
     await scriptResponses([{
@@ -166,7 +166,7 @@ describe('executePlanningTurn', () => {
     const res = await executePlanningTurn(turnOptions())
 
     expect(res.ok).toBe(true)
-    if ('response' in response) expect(res.callRecord?.resolvedModelId).toBe('resolved-unscoped-model')
+    if ('finalStep' in response) expect(res.callRecord?.resolvedModelId).toBe('resolved-unscoped-model')
     else expect(res.callRecord).not.toHaveProperty('resolvedModelId')
   })
 

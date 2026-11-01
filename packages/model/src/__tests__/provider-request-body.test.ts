@@ -94,7 +94,7 @@ async function toolCallBody(provider: Transport): Promise<Body> {
   const { model, fetch } = transportModel(provider)
   const result = await generateText({
     model,
-    system: 'Act on the page.',
+    instructions: 'Act on the page.',
     prompt: 'Click the total.',
     tools: {
       click: tool({
@@ -117,7 +117,7 @@ async function structuredOutputBody(provider: Transport): Promise<Body> {
   const { model, fetch } = transportModel(provider)
   const result = await generateText({
     model,
-    system: 'Read the page.',
+    instructions: 'Read the page.',
     prompt: 'Extract the total.',
     output: Output.object({
       schema: jsonSchema<{ label: string; count: number | null }>({

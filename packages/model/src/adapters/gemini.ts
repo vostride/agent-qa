@@ -1,4 +1,4 @@
-import { createGoogleGenerativeAI } from '@ai-sdk/google'
+import { createGoogle } from '@ai-sdk/google'
 
 import type { LanguageModelV4 } from '@ai-sdk/provider'
 
@@ -7,7 +7,7 @@ import type { Transport } from '../auth.js'
 
 export function gemini(transport: Transport, modelId: string): LanguageModelV4 {
   return applyProviderOptions(
-    createGoogleGenerativeAI({
+    createGoogle({
       apiKey: transport.apiKey,
       fetch: transport.fetch,
     })(modelId),
