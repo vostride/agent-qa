@@ -585,12 +585,9 @@ describe("every indicator state is readable with the colour stripped out", () =>
 // The component composes NO prose: it paints the lines the projection built, keyed by kind, so the
 // reading order lives in one place and a cell can address a line without parsing a paragraph.
 describe("a card explains timing on its own line", () => {
-  // Radix paints the content TWICE — once visibly, once inside a visually-hidden `role="tooltip"`
-  // node for announcement — so an unfiltered walk reports every line twice and an order claim built
-  // on it would pass for the wrong reason.
+  // Radix paints the content once, as the `role="tooltip"` node itself, so every line is read once.
   function kindsOf(card: HTMLElement): (string | null)[] {
     return [...card.querySelectorAll("[data-stage-card-line]")]
-      .filter((el) => el.closest('[role="tooltip"]') === null)
       .map((el) => el.getAttribute("data-stage-card-line"))
   }
 

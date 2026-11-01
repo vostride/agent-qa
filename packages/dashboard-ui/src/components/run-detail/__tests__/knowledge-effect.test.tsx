@@ -238,7 +238,7 @@ describe("uncounted trials are one quiet, explained line", () => {
     expect(document.querySelector('[role="tooltip"]')?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP)
   })
 
-  it("TRIGGER-ACCESSIBLE-NAME: the uncounted line is a button named by its sentence, its meaning its one static description", async () => {
+  it("TRIGGER-ACCESSIBLE-NAME: the uncounted line is a button named by its sentence, its meaning its one description, open or closed", async () => {
     const view = mount(<KnowledgeEffect view={everyOutcome()} />)
     const line = view.querySelector<HTMLElement>('[data-effect-uncounted="2"]')
     const trigger = line?.querySelector<HTMLElement>('[data-slot="tooltip-trigger"]')
@@ -264,8 +264,10 @@ describe("uncounted trials are one quiet, explained line", () => {
     await act(async () => { trigger?.focus() })
     const tooltip = document.querySelector<HTMLElement>('[role="tooltip"]')
     expect(tooltip?.textContent).toBe(UNCOUNTED_TRIALS_TOOLTIP)
-    expect(trigger?.getAttribute("aria-describedby")).toBe(ids[0])
-    expect(trigger?.getAttribute("aria-describedby")).not.toBe(tooltip?.id)
+    expect(describedBy(trigger).ids).toEqual([tooltip?.id])
+
+    await act(async () => { trigger?.blur() })
+    expect(describedBy(trigger).ids).toEqual(ids)
   })
 
   it("EFFECT-UNCOUNTED-TOOLTIP: the uncounted line follows the absence sentence when nothing else was measured", () => {

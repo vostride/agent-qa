@@ -1,6 +1,6 @@
 // Paints whatever `learnedView` carries: rows or a sentence, with chain and read notes below.
 
-import { useId } from "react"
+import { useId, useState } from "react"
 import { Archive, Check, CornerDownRight, Inbox, Plus, Replace, type LucideIcon } from "lucide-react"
 import type { CurationBucket } from "@vostride/agent-qa-schema"
 
@@ -173,14 +173,15 @@ function BucketRow({ row }: { row: LearnedRowView }) {
 function BucketLabel({ bucket }: { bucket: CurationBucket }) {
   const Glyph = BUCKET_GLYPHS[bucket]
   const meaningId = useId()
+  const [open, setOpen] = useState(false)
   return (
-    <Tooltip>
-      {/* The trigger's own described-by replaces Radix's open-time one, so the meaning is announced once, open or closed. */}
+    <Tooltip open={open} onOpenChange={setOpen}>
+      {/* Radix describes an open trigger by its tooltip, so the hidden meaning stands in only while closed: announced once either way. */}
       <TooltipTrigger asChild>
         <button
           type="button"
           data-bucket-label={bucket}
-          aria-describedby={meaningId}
+          aria-describedby={open ? undefined : meaningId}
           className={`inline-flex items-center gap-1 cursor-help rounded-sm text-xs font-medium uppercase tracking-wider text-muted-foreground underline decoration-dotted underline-offset-4 ${FOCUS_RING}`}
         >
           <Glyph className="size-3" aria-hidden />

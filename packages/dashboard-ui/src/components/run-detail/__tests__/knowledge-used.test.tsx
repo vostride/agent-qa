@@ -352,7 +352,7 @@ describe("a record on trial says what that means, without the store's word for i
     expect(section?.textContent).not.toMatch(/canary/i)
   })
 
-  it("TRIGGER-ACCESSIBLE-NAME: the on-trial tag is a button named by its label, its meaning its one static description", async () => {
+  it("TRIGGER-ACCESSIBLE-NAME: the on-trial tag is a button named by its label, its meaning its one description, open or closed", async () => {
     const view = mountTrial()
     const [trial] = rows(view)
     const trigger = trial?.querySelector<HTMLElement>('[data-slot="tooltip-trigger"]')
@@ -375,8 +375,10 @@ describe("a record on trial says what that means, without the store's word for i
     await act(async () => { trigger?.focus() })
     const tooltip = document.querySelector<HTMLElement>('[role="tooltip"]')
     expect(tooltip?.textContent).toBe(ON_TRIAL_TOOLTIP)
-    expect(trigger?.getAttribute("aria-describedby")).toBe(ids[0])
-    expect(trigger?.getAttribute("aria-describedby")).not.toBe(tooltip?.id)
+    expect(describedBy(trigger).ids).toEqual([tooltip?.id])
+
+    await act(async () => { trigger?.blur() })
+    expect(describedBy(trigger).ids).toEqual(ids)
   })
 })
 

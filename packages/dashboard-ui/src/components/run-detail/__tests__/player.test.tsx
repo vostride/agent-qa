@@ -562,12 +562,15 @@ test('PLAYER-VIDEO-SPEED-AND-CLEANUP', async () => {
   act(() => media.fire('timeupdate', 15))
   expect(change).not.toHaveBeenCalled()
 })
-test('LIGHTBOX-OVERLAY-CLOSE', async () => {
+test('LIGHTBOX-OVERLAY-CLOSE: a press on the overlay closes the lightbox when it completes as a click', async () => {
   const close = vi.fn()
   lightbox(close)
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)) })
   const overlay = document.querySelector('[data-slot="dialog-overlay"]')!
   act(() => overlay.dispatchEvent(new MouseEvent('pointerdown', { bubbles: true, button: 0 })))
+  expect(close).not.toHaveBeenCalled()
+  act(() => overlay.dispatchEvent(new MouseEvent('click', { bubbles: true, button: 0 })))
+  expect(close).toHaveBeenCalledTimes(1)
   expect(close).toHaveBeenCalledWith(false)
 })
 test('LIGHTBOX-FRAME-LOAD-FAILURE', async () => {

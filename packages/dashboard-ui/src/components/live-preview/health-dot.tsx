@@ -1,6 +1,6 @@
 // It floats at the container's top-right, so its tooltip opens leftward into the pane.
 
-import { useId } from 'react'
+import { useId, useState } from 'react'
 
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { LIVE_DOT_MEANINGS, LIVE_DOT_NAMES, type LiveDotState } from '@/lib/live-preview'
@@ -8,19 +8,20 @@ import { LIVE_DOT_MEANINGS, LIVE_DOT_NAMES, type LiveDotState } from '@/lib/live
 const FOCUS_RING = 'focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50'
 
 /**
- * The dot has no visible word, so its name is the aria-label and its meaning is a hidden sentence
- * the button is described by, open or closed. The tooltip repeats that sentence for a pointer.
+ * The dot has no visible word, so its name is the aria-label. Closed, the button is described by a
+ * hidden sentence; open, Radix describes it by the tooltip, which says the same sentence.
  */
 export function HealthDot({ state }: { state: LiveDotState }) {
   const meaningId = useId()
+  const [open, setOpen] = useState(false)
   return (
-    <Tooltip>
+    <Tooltip open={open} onOpenChange={setOpen}>
       <TooltipTrigger asChild>
         <button
           type="button"
           data-live-dot={state}
           aria-label={LIVE_DOT_NAMES[state]}
-          aria-describedby={meaningId}
+          aria-describedby={open ? undefined : meaningId}
           className={`inline-flex size-5 shrink-0 cursor-help items-center justify-center rounded-full ${FOCUS_RING}`}
         >
           <span data-live-dot-mark aria-hidden className={`live-dot live-dot-${state}`} />

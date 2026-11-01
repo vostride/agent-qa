@@ -1,6 +1,6 @@
 // Effect on this run: measured effects only, problems first, each a sentence with its own glyph.
 
-import { useId } from "react"
+import { useId, useState } from "react"
 import {
   CircleCheck,
   CircleQuestionMark,
@@ -60,6 +60,7 @@ export function KnowledgeEffect({
 }) {
   const headingId = useId()
   const uncountedMeaningId = useId()
+  const [uncountedOpen, setUncountedOpen] = useState(false)
   return (
     <section data-knowledge-section="effect" aria-labelledby={headingId} className="space-y-2">
       <h4 id={headingId} className={HEADING_CLASS}>{EFFECT_HEADING}</h4>
@@ -74,12 +75,12 @@ export function KnowledgeEffect({
       )}
       {view.uncounted === undefined ? null : (
         <p data-effect-uncounted={String(view.uncounted.count)} className="text-xs text-muted-foreground">
-          <Tooltip>
-            {/* The trigger's own described-by replaces Radix's open-time one, so the meaning is announced once, open or closed. */}
+          <Tooltip open={uncountedOpen} onOpenChange={setUncountedOpen}>
+            {/* Radix describes an open trigger by its tooltip, so the hidden meaning stands in only while closed: announced once either way. */}
             <TooltipTrigger asChild>
               <button
                 type="button"
-                aria-describedby={uncountedMeaningId}
+                aria-describedby={uncountedOpen ? undefined : uncountedMeaningId}
                 className={`cursor-help rounded-sm text-left underline decoration-dotted underline-offset-4 ${FOCUS_RING}`}
               >
                 {view.uncounted.line}

@@ -611,9 +611,11 @@ describe("a curated NEW fact is painted, not denied", () => {
       expect(label?.contains(description)).toBe(false)
       expect(description?.textContent).toBe(BUCKET_MEANINGS[bucket])
       await act(async () => { label?.focus() })
-      expect(document.querySelector('[role="tooltip"]')?.textContent).toBe(BUCKET_MEANINGS[bucket])
-      expect(label?.getAttribute("aria-describedby")).toBe(ids[0])
+      const tooltip = document.querySelector<HTMLElement>('[role="tooltip"]')
+      expect(tooltip?.textContent).toBe(BUCKET_MEANINGS[bucket])
+      expect(label?.getAttribute("aria-describedby")).toBe(tooltip?.id)
       await act(async () => { label?.blur() })
+      expect(label?.getAttribute("aria-describedby")).toBe(ids[0])
     }
     // Nothing reviews a proposed record.
     expect(BUCKET_MEANINGS.proposed).toBe("Recorded, but not applied: agents are not given it.")
