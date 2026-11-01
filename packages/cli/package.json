@@ -130,7 +130,7 @@
     "@types/node": "~24.19.2",
     "@vostride/agent-qa-arch": "workspace:*",
     "@vostride/agent-qa-safety": "workspace:*",
-    "glob": "13.0.6",
+    "glob": "~14.0.3",
     "jiti": "2.6.1",
     "tsdown": "~0.23.4",
     "typescript": "~7.0.2",
