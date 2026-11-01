@@ -10,7 +10,11 @@ allowBuilds:
   sharp: true
 
 overrides:
+  # WebdriverIO's config pins a glob line with a moderate advisory
+  "@wdio/config>glob": 14.0.3
   # id-agent pins zod exactly, and that version has a high advisory
   id-agent>zod: 4.6.7
   # monaco-editor pins dompurify exactly, and that version has a high advisory
   monaco-editor>dompurify: 3.4.17
+  # archiver's readdir-glob pins a minimatch line with a moderate advisory
+  readdir-glob>minimatch: 11.0.3

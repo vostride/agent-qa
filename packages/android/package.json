@@ -57,7 +57,7 @@
     "@vostride/agent-qa-runner": "workspace:*",
     "@vostride/agent-qa-runner-local": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
-    "webdriverio": "9.24.0"
+    "webdriverio": "10.1.0"
   },
   "devDependencies": {
     "@types/node": "~24.19.2",
