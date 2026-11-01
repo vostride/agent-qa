@@ -32,7 +32,6 @@ type BindingEntry = RefMap[string]
 // The action lanes that name an observed element; each is re-checked before dispatch.
 const BINDING_LANES = ['ref', 'fromRef', 'toRef'] as const
 
-const FRAME_REF = /^f\d+e/
 const INVALID_FRAME = /invalid frame/i
 
 const WHAT_CHANGED: Record<BindingOutcome, string> = {
@@ -93,11 +92,6 @@ export async function disposeEpoch(epoch: ObservationEpoch | undefined): Promise
   }
 }
 
-/** Whether a native ref names an element inside a child frame (`f<n>e<m>`). */
-export function isChildFrameRef(nativeRef: string): boolean {
-  return FRAME_REF.test(nativeRef)
-}
-
 /** Whether the page still holds the observed document. */
 export async function checkDocument(
   page: Page,
@@ -112,10 +106,10 @@ export async function checkDocument(
   }
 }
 
-async function frameDetached(page: Page, nativeRef: string): Promise<boolean> {
-  if (!isChildFrameRef(nativeRef)) return false
+async function frameDetached(page: Page, entry: BindingEntry): Promise<boolean> {
+  if (entry.inChildFrame !== true) return false
   try {
-    await page.locator('aria-ref=' + nativeRef).count()
+    await page.locator('aria-ref=' + entry.nativeRef).count()
     return false
   } catch (error) {
     return error instanceof Error && INVALID_FRAME.test(error.message)
@@ -143,7 +137,7 @@ export async function checkBinding(
   const { nodes, nativeRefs } = parseAriaSnapshot(await snapshotRoot(page, snapshot))
   const index = nativeRefs.indexOf(entry.nativeRef)
   if (index < 0) {
-    const detached = await frameDetached(page, entry.nativeRef)
+    const detached = await frameDetached(page, entry)
     return { outcome: detached ? 'frame-detached' : 'binding-lost' }
   }
 

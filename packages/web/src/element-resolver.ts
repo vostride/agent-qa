@@ -12,6 +12,7 @@ export function buildRefMap(
   nodes: InterimNode[],
   nativeRefs: (string | undefined)[],
   elements: readonly ElementInfo[],
+  inChildFrame: readonly boolean[] = [],
 ): RefMap {
   const refs: RefMap = {}
   for (const [ref, bind] of Object.entries(binding)) {
@@ -23,6 +24,7 @@ export function buildRefMap(
     const rowText = rowTextOf(element, elements)
     if (rowText !== undefined) entry.rowText = rowText
     if (node.bounds !== undefined) entry.bounds = node.bounds
+    if (inChildFrame[bind.index] === true) entry.inChildFrame = true
     refs[ref] = entry
   }
   return refs

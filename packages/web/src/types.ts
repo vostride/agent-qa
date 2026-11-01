@@ -4,5 +4,6 @@ export type RefMap = Record<string, {
   role: string
   name: string
   rowText?: string
+  inChildFrame?: boolean
   bounds?: { x: number; y: number; width: number; height: number }
 }>

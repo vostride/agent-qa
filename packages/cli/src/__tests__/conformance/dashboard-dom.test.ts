@@ -12,6 +12,7 @@ import {
   utimesSync,
   writeFileSync,
 } from 'node:fs'
+import { createRequire } from 'node:module'
 import { tmpdir } from 'node:os'
 import { join, relative } from 'node:path'
 
@@ -263,7 +264,15 @@ describe('the instrument this file runs on, asserted rather than assumed', () =>
       declared,
       'this package no longer declares playwright-core, so the browser these cells launch is '
       + 'whatever a hoist happened to leave in node_modules — an unaudited artifact',
-    ).toBe('1.61.0')
+    ).toMatch(/^\d+\.\d+\.\d+$/)
+    const installed = (
+      createRequire(join(CLI_PACKAGE_ROOT, 'package.json'))('playwright-core/package.json') as {
+        version: string
+      }
+    ).version
+    expect(installed, 'the playwright-core these cells import is not the declared pin').toBe(
+      declared,
+    )
 
     // And the runtime the cells actually launched is that package's own browser, not a system one.
     expect(

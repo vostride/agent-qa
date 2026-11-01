@@ -2,7 +2,6 @@
 
 import type { Page } from 'playwright-core'
 import type { Ref } from '@vostride/agent-qa-schema'
-import { isChildFrameRef } from './binding.js'
 import { ElementResolver } from './element-resolver.js'
 import type { RefMap } from './types.js'
 
@@ -27,8 +26,7 @@ export async function scrollWithRef(
   deltaY: number,
   scrollAxis: 'horizontal' | 'vertical',
 ): Promise<ScrollResult> {
-  const nativeRef = lastRefs[ref]?.nativeRef
-  if (nativeRef !== undefined && isChildFrameRef(nativeRef)) return NOT_FOUND
+  if (lastRefs[ref]?.inChildFrame === true) return NOT_FOUND
   try {
     const locator = new ElementResolver(page, lastRefs).resolve(ref)
     if ((await locator.count()) === 0) return NOT_FOUND
