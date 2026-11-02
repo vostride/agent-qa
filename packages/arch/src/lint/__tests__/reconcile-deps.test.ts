@@ -11,7 +11,12 @@ function hit(specifier: string, line = 1): SpecifierHit {
 }
 
 function fixtureContract(
-  overrides: Partial<Pick<OwnershipContract, 'externalDependencies' | 'internalDependencies'>>,
+  overrides: Partial<
+    Pick<
+      OwnershipContract,
+      'externalDependencies' | 'internalDependencies' | 'publishesSelfContainedBundle'
+    >
+  >,
 ): OwnershipContract {
   return {
     packageName: '@vostride/agent-qa-fixture',
@@ -21,6 +26,7 @@ function fixtureContract(
     forbiddenResponsibilities: [],
     externalDependencies: overrides.externalDependencies ?? [],
     internalDependencies: overrides.internalDependencies ?? [],
+    publishesSelfContainedBundle: overrides.publishesSelfContainedBundle,
   }
 }
 
@@ -30,12 +36,18 @@ afterAll(() => {
   for (const root of roots.splice(0)) rmSync(root, { recursive: true, force: true })
 })
 
-function fixtureRepoRoot(dependencies: Record<string, string>): string {
+function fixtureRepoRoot(
+  dependencies: Record<string, string>,
+  devDependencies: Record<string, string> = {},
+): string {
   const repoRoot = mkdtempSync(join(tmpdir(), 'agent-qa-arch-reconcile-'))
   roots.push(repoRoot)
   const packageRoot = join(repoRoot, 'packages', 'fixture')
   mkdirSync(packageRoot, { recursive: true })
-  writeFileSync(join(packageRoot, 'package.json'), JSON.stringify({ dependencies }))
+  writeFileSync(
+    join(packageRoot, 'package.json'),
+    JSON.stringify({ dependencies, devDependencies }),
+  )
 
   return repoRoot
 }
@@ -107,5 +119,61 @@ describe('findDepReconciliationOffenders', () => {
     })
 
     expect(findDepReconciliationOffenders(contract, [hit('@types/node')], repoRoot)).toEqual([])
+  })
+
+  it('checks a package with no bundle against dependencies, never devDependencies', () => {
+    const repoRoot = fixtureRepoRoot({}, { zod: '~4.0.0' })
+    const contract = fixtureContract({ externalDependencies: ['zod'] })
+
+    expect(findDepReconciliationOffenders(contract, [hit('zod')], repoRoot)).toEqual([
+      'packages/fixture package.json vs contract: missing zod',
+    ])
+  })
+})
+
+describe('findDepReconciliationOffenders on a self-contained bundle', () => {
+  it('accepts its libraries in devDependencies beside build tools and internal packages', () => {
+    const repoRoot = fixtureRepoRoot(
+      { '@vostride/agent-qa-schema': 'workspace:*' },
+      { '@vostride/agent-qa-arch': 'workspace:*', react: '~19.0.0', vite: '~8.0.0' },
+    )
+    const contract = fixtureContract({
+      externalDependencies: ['react'],
+      internalDependencies: ['@vostride/agent-qa-schema'],
+      publishesSelfContainedBundle: true,
+    })
+
+    expect(
+      findDepReconciliationOffenders(
+        contract,
+        [hit('react'), hit('@vostride/agent-qa-schema')],
+        repoRoot,
+      ),
+    ).toEqual([])
+  })
+
+  it('flags an external package left in dependencies, bundled or not', () => {
+    const repoRoot = fixtureRepoRoot({ react: '19.0.0', 'left-pad': '1.3.0' }, { react: '~19.0.0' })
+    const contract = fixtureContract({
+      externalDependencies: ['react'],
+      publishesSelfContainedBundle: true,
+    })
+
+    expect(findDepReconciliationOffenders(contract, [hit('react')], repoRoot)).toEqual([
+      'packages/fixture dependencies of a self-contained bundle: unexpected left-pad',
+      'packages/fixture dependencies of a self-contained bundle: unexpected react',
+    ])
+  })
+
+  it('flags a bundled library that devDependencies does not declare', () => {
+    const repoRoot = fixtureRepoRoot({}, { react: '~19.0.0' })
+    const contract = fixtureContract({
+      externalDependencies: ['react', 'react-dom'],
+      publishesSelfContainedBundle: true,
+    })
+
+    expect(
+      findDepReconciliationOffenders(contract, [hit('react'), hit('react-dom')], repoRoot),
+    ).toEqual(['packages/fixture devDependencies vs contract: missing react-dom'])
   })
 })
