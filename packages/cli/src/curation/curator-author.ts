@@ -103,14 +103,13 @@ const anchorSchema: z.ZodType<Anchor> = z.discriminatedUnion('t', [
   z.object({ t: z.literal('error'), message: z.string() }).strict(),
 ])
 const wireBundleSchema = z
-  .object({
+  .looseObject({
     kind: bundleKindSchema,
     subtype: factSubtypeSchema.optional(),
     anchors: z.array(anchorSchema).min(1),
     summary: z.string(),
     body: z.string(),
   })
-  .passthrough()
   .superRefine((bundle, context) => {
     if (bundle.kind === 'fact' && bundle.subtype === undefined) {
       context.addIssue({
@@ -128,54 +127,40 @@ const wireBundleSchema = z
     }
   })
 const wireDeltaSchema = z.discriminatedUnion('kind', [
-  z
-    .object({
-      kind: z.literal('Add'),
-      citedAliases: citedAliasesSchema,
-      bundle: wireBundleSchema,
-    })
-    .passthrough(),
-  z
-    .object({
-      kind: z.literal('Confirm'),
-      citedAliases: citedAliasesSchema,
-      targetAlias: aliasSchema,
-    })
-    .passthrough(),
-  z
-    .object({
-      kind: z.literal('Supersede'),
-      citedAliases: citedAliasesSchema,
-      victimAlias: aliasSchema,
-      newBundle: wireBundleSchema,
-    })
-    .passthrough(),
-  z
-    .object({
-      kind: z.literal('Deprecate'),
-      citedAliases: citedAliasesSchema,
-      targetAlias: aliasSchema,
-      reason: z.string().min(1),
-    })
-    .passthrough(),
-  z
-    .object({
-      kind: z.literal('MintUnknown'),
-      citedAliases: citedAliasesSchema,
-      conflict: z
-        .object({
-          aliases: z.array(aliasSchema).min(1),
-          kind: z.enum(['contradiction', 'drift', 'clarification']),
-        })
-        .passthrough(),
-    })
-    .passthrough(),
-  z
-    .object({
-      kind: z.literal('Noop'),
-      citedAliases: citedAliasesSchema,
-    })
-    .passthrough(),
+  z.looseObject({
+    kind: z.literal('Add'),
+    citedAliases: citedAliasesSchema,
+    bundle: wireBundleSchema,
+  }),
+  z.looseObject({
+    kind: z.literal('Confirm'),
+    citedAliases: citedAliasesSchema,
+    targetAlias: aliasSchema,
+  }),
+  z.looseObject({
+    kind: z.literal('Supersede'),
+    citedAliases: citedAliasesSchema,
+    victimAlias: aliasSchema,
+    newBundle: wireBundleSchema,
+  }),
+  z.looseObject({
+    kind: z.literal('Deprecate'),
+    citedAliases: citedAliasesSchema,
+    targetAlias: aliasSchema,
+    reason: z.string().min(1),
+  }),
+  z.looseObject({
+    kind: z.literal('MintUnknown'),
+    citedAliases: citedAliasesSchema,
+    conflict: z.looseObject({
+      aliases: z.array(aliasSchema).min(1),
+      kind: z.enum(['contradiction', 'drift', 'clarification']),
+    }),
+  }),
+  z.looseObject({
+    kind: z.literal('Noop'),
+    citedAliases: citedAliasesSchema,
+  }),
 ])
 
 type WireDelta = z.infer<typeof wireDeltaSchema>
@@ -611,36 +596,30 @@ function parseAuthorOutput(
 
 const procedureParamTypeSchema = z.enum(['string', 'number', 'boolean', 'secret'])
 
-const extractionParameterSchema = z
-  .object({
-    name: z.string().min(1),
-    type: procedureParamTypeSchema,
-    required: z.boolean(),
-    appliesTo: z
-      .array(
-        z
-          .object({
-            stepOrdinal: z.number().int().nonnegative(),
-            field: z.string().min(1),
-          })
-          .passthrough(),
-      )
-      .min(1),
-  })
-  .passthrough()
+const extractionParameterSchema = z.looseObject({
+  name: z.string().min(1),
+  type: procedureParamTypeSchema,
+  required: z.boolean(),
+  appliesTo: z
+    .array(
+      z.looseObject({
+        stepOrdinal: z.number().int().nonnegative(),
+        field: z.string().min(1),
+      }),
+    )
+    .min(1),
+})
 
-const extractionCandidateSchema = z
-  .object({
-    flowName: z.string().min(1),
-    stepSpan: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]),
-    parameters: z.array(extractionParameterSchema),
-    successAssertion: z.string(),
-  })
-  .passthrough()
+const extractionCandidateSchema = z.looseObject({
+  flowName: z.string().min(1),
+  stepSpan: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]),
+  parameters: z.array(extractionParameterSchema),
+  successAssertion: z.string(),
+})
 
-const extractionProposalSchema = z
-  .object({ candidates: z.array(extractionCandidateSchema).min(1) })
-  .passthrough()
+const extractionProposalSchema = z.looseObject({
+  candidates: z.array(extractionCandidateSchema).min(1),
+})
 
 type ExtractionCandidate = z.infer<typeof extractionCandidateSchema>
 
