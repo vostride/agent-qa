@@ -93,6 +93,8 @@ export type {
 } from './composition/run-invocation-core.js'
 // The CLI drive's two symbols; see the module for why they stay out of the core.
 export { mapVerdictToExitCode, runSafetyScope } from './composition/run-drive-vocabulary.js'
+// Every host's AI SDK warning logger, installed once per process.
+export { installSdkWarningLogger, isSdkWarningLogger } from './composition/sdk-warning-logger.js'
 // One reader over the runner's store, shared by the analysis job, `runs.artifact` and dashboard.
 export { createEvidenceBlobReader, lookupEvidenceBlob, readEvidenceBlobBytes, statEvidenceBlob } from './composition/evidence-blob-reader.js'
 export type { CreateEvidenceBlobReaderInput } from './composition/evidence-blob-reader.js'

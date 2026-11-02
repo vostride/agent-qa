@@ -1,4 +1,5 @@
 import { spawnSync } from 'node:child_process'
+import { installSdkWarningLogger } from '@vostride/agent-qa-agent-local'
 import { reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import type { LogWarningsFunction } from 'ai'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -49,6 +50,18 @@ it('preserves deliberate logging configuration and restores the default after ev
   expect(globalThis.AI_SDK_LOG_WARNINGS).toBeTypeOf('function')
   restore()
   expect(globalThis.AI_SDK_LOG_WARNINGS).toBeUndefined()
+})
+
+it('takes over from the logger every command starts with, then hands it back', () => {
+  globalThis.AI_SDK_LOG_WARNINGS = undefined
+  installSdkWarningLogger()
+  const started = globalThis.AI_SDK_LOG_WARNINGS
+
+  const restore = installEvalWarningLogger()
+  expect(globalThis.AI_SDK_LOG_WARNINGS).toBeTypeOf('function')
+  expect(globalThis.AI_SDK_LOG_WARNINGS).not.toBe(started)
+  restore()
+  expect(globalThis.AI_SDK_LOG_WARNINGS).toBe(started)
 })
 
 describe('an AI SDK warning prints as text under GitHub Actions', () => {

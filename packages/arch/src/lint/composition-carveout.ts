@@ -16,7 +16,8 @@ export const COMPOSITION_SUBTREE = 'packages/agent-local/src/composition/'
  */
 export const COMPOSITION_ONLY_PACKAGES: Readonly<Record<string, string>> = {
   '@vostride/agent-qa-knowledge-local': 'run-scoped knowledge serving: the read-only reader binding the budgets size',
-  '@vostride/agent-qa-model': 'token-accounting ceilings and the canonical tool-output compaction',
+  '@vostride/agent-qa-model':
+    'token-accounting ceilings, the canonical tool-output compaction and the AI SDK warning logger',
   '@vostride/agent-qa-runner': 'the member run config the composition assembles and the ports it fills',
   '@vostride/agent-qa-runner-local': 'the concrete run persistence adapters and the screenshot compressor',
   '@vostride/agent-qa-safety': 'the execution-context resolver the composition installs and reads',
