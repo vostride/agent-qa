@@ -12,6 +12,7 @@ type UserContentPart = UserMessage['content'][number]
 type AssistantContentPart = AssistantMessage['content'][number]
 type ToolContentPart = ToolMessage['content'][number]
 type FileContentPart = Extract<UserContentPart | AssistantContentPart, { type: 'file' }>
+type ReasoningFileData = Extract<AssistantContentPart, { type: 'reasoning-file' }>['data']
 type ToolResultOutput = Extract<AssistantContentPart, { type: 'tool-result' }>['output']
 type ToolResultContentPart = Extract<ToolResultOutput, { type: 'content' }>['value'][number]
 type FileData = FileContentPart['data']
@@ -39,6 +40,10 @@ function mapMessage(message: PromptMessage, fn: LeafFn): PromptMessage {
       return { ...message, content: message.content.map((part) => mapAssistantPart(part, fn)) }
     case 'tool':
       return { ...message, content: message.content.map((part) => mapToolPart(part, fn)) }
+    default: {
+      const unknown: never = message
+      return refuse('message role', unknown, 'role')
+    }
   }
 }
 
@@ -51,7 +56,8 @@ function mapUserPart(part: UserContentPart, fn: LeafFn): UserContentPart {
     return mapFilePart(part, fn)
   }
 
-  return part
+  const unknown: never = part
+  return refuse('user part', unknown)
 }
 
 function mapAssistantPart(part: AssistantContentPart, fn: LeafFn): AssistantContentPart {
@@ -71,7 +77,16 @@ function mapAssistantPart(part: AssistantContentPart, fn: LeafFn): AssistantCont
     return { ...part, output: mapToolResultOutput(part.output, fn) }
   }
 
-  return part
+  if (part.type === 'reasoning-file') {
+    return { ...part, data: mapReasoningFileData(part.data, fn) }
+  }
+
+  if (part.type === 'custom') {
+    return part
+  }
+
+  const unknown: never = part
+  return refuse('assistant part', unknown)
 }
 
 function mapToolPart(part: ToolContentPart, fn: LeafFn): ToolContentPart {
@@ -83,7 +98,8 @@ function mapToolPart(part: ToolContentPart, fn: LeafFn): ToolContentPart {
     return part.reason === undefined ? part : { ...part, reason: fn(part.reason) }
   }
 
-  return part
+  const unknown: never = part
+  return refuse('tool part', unknown)
 }
 
 function mapFilePart(part: FileContentPart, fn: LeafFn): FileContentPart {
@@ -111,9 +127,22 @@ function mapFileData(data: FileData, fn: LeafFn): FileData {
   }
 }
 
+function mapReasoningFileData(data: ReasoningFileData, fn: LeafFn): ReasoningFileData {
+  switch (data.type) {
+    case 'data':
+      return data
+    case 'url':
+      return mapUrlData(data, fn)
+    default: {
+      const unknown: never = data
+      return refuse('reasoning file data', unknown)
+    }
+  }
+}
+
 // A part the walker does not know may carry text, so it is refused rather than sent unmasked.
-function refuse(kind: string, part: { type: unknown }): never {
-  throw new Error(`masking: unrecognized ${kind} ${String(part.type)}`)
+function refuse(kind: string, part: Record<string, unknown>, tag = 'type'): never {
+  throw new Error(`masking: unrecognized ${kind} ${String(part[tag])}`)
 }
 
 // The raw string is masked, since URL parsing can percent-encode a declared value out of reach.
@@ -150,7 +179,8 @@ function mapToolResultOutput(output: ToolResultOutput, fn: LeafFn): ToolResultOu
     return { ...output, value: output.value.map((part) => mapToolResultContentPart(part, fn)) }
   }
 
-  return output
+  const unknown: never = output
+  return refuse('tool-result output', unknown)
 }
 
 function mapToolResultContentPart(part: ToolResultContentPart, fn: LeafFn): ToolResultContentPart {
