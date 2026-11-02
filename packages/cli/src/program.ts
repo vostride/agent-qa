@@ -1,3 +1,4 @@
+import { installSdkWarningLogger } from '@vostride/agent-qa-agent-local'
 import { reserveStdoutForData } from '@vostride/agent-qa-core/run-text-output'
 import { Command } from 'commander'
 import { VERSION } from './index.js'
@@ -47,9 +48,11 @@ export function createAgentQaProgram(): Command {
     .option('--quiet', 'shorthand for --log-level silent')
 
   // A process runs one action, and a --json action's stdout stays reserved until the process
-  // exits: a detached run tail or host teardown can still print after the action returns.
+  // exits: a detached run tail or host teardown can still print after the action returns. The
+  // AI SDK warning logger stays for the same reason.
   program.hook('preAction', (_program, action) => {
     if (action.opts<{ json?: unknown }>().json === true) reserveStdoutForData()
+    installSdkWarningLogger()
   })
 
   program.addCommand(createRunCommand())

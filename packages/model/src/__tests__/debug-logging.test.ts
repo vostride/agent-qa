@@ -1,14 +1,14 @@
 import { APICallError } from '@ai-sdk/provider'
 import { describe, expect, it } from 'vitest'
 
-import type { LanguageModelMiddleware } from 'ai'
+import type { LanguageModelMiddleware, LogWarningsFunction, Warning } from 'ai'
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
   LanguageModelV4GenerateResult,
 } from '@ai-sdk/provider'
 
-import { debugLoggingMiddleware } from '../middleware/debug-logging.js'
+import { debugLoggingMiddleware, sdkWarningLogger } from '../middleware/debug-logging.js'
 
 const fakeModel = { modelId: 'test-model' } as LanguageModelV4
 
@@ -230,5 +230,50 @@ describe('debugLoggingMiddleware — disabled (default)', () => {
       runGenerate(middleware, async () => { throw apiError }, paramsWithSecret()),
     ).rejects.toBe(apiError)
     expect(lines).toHaveLength(0)
+  })
+})
+
+describe('sdkWarningLogger', () => {
+  const adapted: Warning[] = [
+    { type: 'unsupported', feature: 'toolChoice', details: "'required' is not supported" },
+    { type: 'unsupported', feature: 'temperature' },
+    { type: 'compatibility', feature: 'maxOutputTokens', details: 'The model is unknown.' },
+  ]
+  const others: Warning[] = [
+    { type: 'unsupported', feature: 'seed' },
+    { type: 'compatibility', feature: 'JSON Schema propertyNames' },
+  ]
+  const scope = { provider: 'anthropic.messages', model: 'claude-sonnet-5-5' }
+
+  function route(enabled: boolean, options: Parameters<LogWarningsFunction>[0]) {
+    const lines: string[] = []
+    const printed: Parameters<LogWarningsFunction>[0][] = []
+    const logger = sdkWarningLogger(
+      (passed) => { printed.push(passed) }, { enabled, sink: (line) => lines.push(line) })
+    logger(options)
+    return { lines, printed }
+  }
+
+  it("logs a provider's adapted call settings and passes every other warning on", () => {
+    const { lines, printed } = route(true, { warnings: [...adapted, ...others], ...scope })
+
+    expect(lines).toEqual(adapted.map((warning) =>
+      `[agent-qa:llm] provider-warning provider=anthropic.messages model=claude-sonnet-5-5 ${
+        JSON.stringify(warning)}`))
+    expect(printed).toEqual([{ warnings: others, ...scope }])
+  })
+
+  it('logs the adapted settings nowhere while the debug log is off', () => {
+    expect(route(false, { warnings: adapted, ...scope })).toEqual({ lines: [], printed: [] })
+  })
+
+  it('passes on a warning the SDK raises without a provider', () => {
+    const deprecated: Warning = { type: 'deprecated', setting: 'streamObject', message: 'Use it.' }
+    const unscoped: Warning = { type: 'unsupported', feature: 'temperature' }
+
+    const { lines, printed } = route(true, { warnings: [deprecated, unscoped] })
+
+    expect(lines).toEqual([])
+    expect(printed).toEqual([{ warnings: [deprecated, unscoped] }])
   })
 })

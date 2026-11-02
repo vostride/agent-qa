@@ -1,4 +1,4 @@
-import type { LanguageModelMiddleware } from 'ai'
+import type { LanguageModelMiddleware, LogWarningsFunction, Warning } from 'ai'
 import type {
   LanguageModelV4,
   LanguageModelV4CallOptions,
@@ -16,6 +16,12 @@ export interface DebugLoggingOptions {
 
 const REQUEST_PREFIX = '[agent-qa:llm] request'
 const ERROR_PREFIX = '[agent-qa:llm] provider-error'
+const WARNING_PREFIX = '[agent-qa:llm] provider-warning'
+
+// Sent to every model, adapted by a provider for one; the planner's call record keeps them.
+const ADAPTED_SETTINGS: ReadonlySet<string> = new Set([
+  'toolChoice', 'temperature', 'topP', 'topK', 'maxOutputTokens',
+])
 
 function isEnvEnabled(): boolean {
   const raw = typeof process !== 'undefined' ? process.env?.AGENT_QA_DEBUG_LLM : undefined
@@ -158,5 +164,30 @@ export function debugLoggingMiddleware(options: DebugLoggingOptions = {}): Langu
         throw err
       }
     },
+  }
+}
+
+function isAdaptedSetting(warning: Warning): boolean {
+  return (warning.type === 'unsupported' || warning.type === 'compatibility')
+    && ADAPTED_SETTINGS.has(warning.feature)
+}
+
+// An `AI_SDK_LOG_WARNINGS` logger: adapted call settings go to this log, the rest to `print`.
+export function sdkWarningLogger(
+  print: LogWarningsFunction,
+  options: DebugLoggingOptions = {},
+): LogWarningsFunction {
+  const sink = options.sink ?? ((line: string) => { process.stderr.write(`${line}\n`) })
+  return ({ warnings, provider, model }) => {
+    const rest: Warning[] = []
+    for (const warning of warnings) {
+      if (provider === undefined || !isAdaptedSetting(warning)) {
+        rest.push(warning)
+      } else if (options.enabled ?? isEnvEnabled()) {
+        sink(`${WARNING_PREFIX} provider=${provider} model=${model ?? 'unknown'} `
+          + JSON.stringify(warning))
+      }
+    }
+    if (rest.length > 0) print({ warnings: rest, provider, model })
   }
 }
