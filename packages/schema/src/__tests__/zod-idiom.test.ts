@@ -10,7 +10,9 @@ const sourceFiles = globSync('src/**/*.ts', { cwd: pkgRoot })
 
 describe('Zod idiom discipline', () => {
   it('does not use deprecated Zod issue-code compatibility tokens', () => {
-    const offenders = sourceFiles.filter(file => /\bZodIssue/.test(readFileSync(file, 'utf8')))
+    const offenders = sourceFiles.filter(file =>
+      /(?<!\$)\bZodIssue/.test(readFileSync(file, 'utf8')),
+    )
 
     expect(offenders).toEqual([])
   })
