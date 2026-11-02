@@ -6,6 +6,7 @@ import {
   FIXTURE_IMAGE_DATA,
   assistantReasoning,
   assistantText,
+  fileOutput,
   makeModelMessages,
   screenshotOutput,
   systemMessage,
@@ -83,6 +84,23 @@ describe('degrade — hygiene pass', () => {
     // Most recent screenshot: preserved verbatim (base64 intact).
     const recent = result.flatMap(toolResults).find(r => r.toolCallId === 'recent-shot')!
     expect(JSON.stringify(recent)).toContain(FIXTURE_IMAGE_DATA)
+  })
+
+  it('keeps a historical inline file whose media type is not an image', () => {
+    const messages: ModelMessage[] = [
+      systemMessage(),
+      userText('fetch'),
+      ...toolExchange([{
+        toolCallId: 'hist-pdf', toolName: 'download', output: fileOutput(FIXTURE_IMAGE_DATA, 'application/pdf'),
+      }]),
+      userText('again'),
+      ...toolExchange([{ toolCallId: 'recent-shot', toolName: 'screenshot', output: screenshotOutput() }]),
+    ]
+
+    const result = degrade(messages, HYGIENE_ONLY).messages
+
+    const historical = result.flatMap(toolResults).find(r => r.toolCallId === 'hist-pdf')!
+    expect(historical.output).toEqual(fileOutput(FIXTURE_IMAGE_DATA, 'application/pdf'))
   })
 
   it('hash-dedups content-identical historical tool results down to a one-liner', () => {
