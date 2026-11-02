@@ -6,17 +6,17 @@ function isAbsoluteAppPath(value: string): boolean {
   return value.startsWith('/') || /^[A-Za-z]:[\\/]/.test(value) || value.startsWith('\\\\')
 }
 
-export const AppInstallSchema = z.object({
+export const AppInstallSchema = z.strictObject({
   path: z.string()
-    .refine((v) => !isAbsoluteAppPath(v), { message: 'app.path must be relative' })
+    .refine((v) => !isAbsoluteAppPath(v), { error: 'app.path must be relative' })
     .optional(),
-}).strict()
+})
 
-export const TargetSchema = z.object({
+export const TargetSchema = z.strictObject({
   product: z.string()
     .refine(
       (v) => !/\.\./.test(v) && !/[/\\]/.test(v) && !/\0/.test(v),
-      { message: 'product must not contain "..", "/", "\\", or null bytes' }
+      { error: 'product must not contain "..", "/", "\\", or null bytes' }
     )
     .optional(),
   platform: z.enum(['web', 'android', 'ios']),
@@ -30,23 +30,23 @@ export const TargetSchema = z.object({
     .enum(['local', 'shared', 'production'])
     .optional()
     .describe("A label for this target's environment. agent-qa runs every target the same way."),
-}).strict().superRefine((val, ctx) => {
+}).superRefine((val, ctx) => {
   if (val.platform === 'web' && !val.url) {
-    ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Web targets must have a url' })
+    ctx.addIssue({ code: 'custom', message: 'Web targets must have a url' })
   }
 })
 
-export const DeviceProfileSchema = z.object({
+export const DeviceProfileSchema = z.strictObject({
   platform: z.enum(['android', 'ios']),
   match: z.record(z.string(), z.unknown()).optional().default({}),
-}).strict().superRefine((val, ctx) => {
+}).superRefine((val, ctx) => {
   const androidOnly = ['avd', 'serial', 'appPackage', 'appActivity', 'automationName', 'browserName', 'platformVersion']
   const iosOnly = ['udid', 'bundleId', 'automationName', 'platformVersion']
   const allowed = val.platform === 'android' ? androidOnly : iosOnly
   for (const key of Object.keys(val.match)) {
     if (!allowed.includes(key)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['match', key],
         message: `Match field "${key}" is not valid for an ${val.platform} device. Allowed: ${allowed.join(', ')}`,
       })
@@ -54,8 +54,8 @@ export const DeviceProfileSchema = z.object({
   }
 })
 
-export const RegistrySchema = z.object({
+export const RegistrySchema = z.strictObject({
   llms: z.array(NamedLLMConfigSchema).optional().default([]),
   targets: z.record(TargetNameSchema, TargetSchema).optional(),
   devices: z.record(z.string(), DeviceProfileSchema).optional(),
-}).strict()
+})

@@ -10,21 +10,21 @@ import { AuthStateNameSchema } from '../auth-state/schema.js'
 
 export const MobileAppStateSchema = z.enum(['preserve', 'reset'])
 
-export const MobileUseSchema = z.object({
+export const MobileUseSchema = z.strictObject({
   appState: MobileAppStateSchema,
-}).strict()
+})
 
-export const MobileUseOverrideSchema = z.object({
+export const MobileUseOverrideSchema = z.strictObject({
   appState: MobileAppStateSchema.optional(),
-}).strict()
+})
 
 export const AuthStateUseSchema = z.union([
   AuthStateNameSchema,
-  z.object({
+  z.strictObject({
     name: AuthStateNameSchema,
     load: z.boolean().optional(),
     capture: z.boolean().optional(),
-  }).strict(),
+  }),
 ])
 
 export interface NormalizedAuthStateUse {
@@ -54,7 +54,7 @@ export function normalizeAuthStateUse(
   }
 }
 
-export const UseSchema = z.object({
+export const UseSchema = z.strictObject({
   browser: BrowserConfigSchema.optional(),
   mobile: MobileUseSchema.optional(),
   timeout: TimeoutConfigSchema.optional(),
@@ -68,33 +68,33 @@ export const UseSchema = z.object({
   parallel: z.boolean().optional(),
   // Not defaulted, so the parsed type is unchanged; `resolveEffectiveWorkers` owns the default.
   workers: z.number().int().positive().optional(),
-}).strict()
+})
 
-export const UseOverrideSchema = z.object({
-  browser: z.object({
+export const UseOverrideSchema = z.strictObject({
+  browser: z.strictObject({
     name: z.enum(['chromium', 'firefox', 'webkit']).optional(),
     headless: z.boolean().optional(),
-    viewport: z.object({
+    viewport: z.strictObject({
       width: z.number().optional(),
       height: z.number().optional(),
-    }).strict().optional(),
-  }).strict().optional(),
-  timeout: z.object({
+    }).optional(),
+  }).optional(),
+  timeout: z.strictObject({
     step: DurationString.optional(),
     test: DurationString.optional(),
     navigation: DurationString.optional().describe(
       'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.',
     ),
-  }).strict().optional(),
-  planner: z.object({
+  }).optional(),
+  planner: z.strictObject({
     maxActions: z.number().int().positive().optional(),
     maxPlanningTurns: z.number().int().positive().optional(),
     previousStepCount: z.number().optional(),
-  }).strict().optional(),
-  logCapture: z.object({
+  }).optional(),
+  logCapture: z.strictObject({
     console: z.boolean().optional(),
     network: z.boolean().optional(),
-  }).strict().optional(),
+  }).optional(),
   cache: z.boolean().optional(),
   authState: AuthStateUseSchema.optional(),
   mobile: MobileUseOverrideSchema.optional(),
@@ -103,4 +103,4 @@ export const UseOverrideSchema = z.object({
   // The override half of `use.workers`, shaped like `UseSchema`'s.
   workers: z.number().int().positive().optional(),
   device: z.string().optional(),
-}).strict()
+})

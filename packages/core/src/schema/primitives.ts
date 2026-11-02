@@ -4,7 +4,7 @@ import bytes from 'bytes'
 
 export const DurationString = z.string()
   .refine((v) => ms(v as ms.StringValue) !== undefined, {
-    message: 'Invalid duration format (e.g., "30s", "5m", "1h")',
+    error: 'Invalid duration format (e.g., "30s", "5m", "1h")',
   })
   .transform((v) => ms(v as ms.StringValue) as number)
 
@@ -16,7 +16,7 @@ function normalizeSize(v: string): string {
 
 export const SizeString = z.string()
   .refine((v) => VALID_SIZE_RE.test(v.trim()) && bytes(normalizeSize(v)) !== null, {
-    message: 'Invalid size format (e.g., "256k", "1m", "5mb")',
+    error: 'Invalid size format (e.g., "256k", "1m", "5mb")',
   })
   .transform((v) => bytes(normalizeSize(v)) as number)
 
@@ -34,7 +34,7 @@ function validateProviderHeaders(headers: Record<string, string>, ctx: z.Refinem
 
     if (key === '') {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['providerHeaders'],
         message: 'Provider header keys cannot be empty.',
       })
@@ -43,7 +43,7 @@ function validateProviderHeaders(headers: Record<string, string>, ctx: z.Refinem
 
     if (seen.has(normalizedKey)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['providerHeaders'],
         message: `Duplicate provider header "${key}" is not allowed.`,
       })
@@ -52,7 +52,7 @@ function validateProviderHeaders(headers: Record<string, string>, ctx: z.Refinem
 
     if (CONTROL_CHARACTER_RE.test(key) || CONTROL_CHARACTER_RE.test(value)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['providerHeaders'],
         message: `Provider header "${key}" cannot contain control characters.`,
       })
@@ -61,7 +61,7 @@ function validateProviderHeaders(headers: Record<string, string>, ctx: z.Refinem
     const sensitiveTerm = SENSITIVE_HEADER_TERMS.find(term => normalizedKey.includes(term))
     if (sensitiveTerm) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['providerHeaders'],
         message: `Provider header "${key}" cannot contain auth-like term "${sensitiveTerm}".`,
       })
@@ -79,7 +79,7 @@ function validateModelConfig(
     && (!config.baseURL || config.baseURL.trim() === '')
   ) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['baseURL'],
       message: `Base URL is required for ${config.provider} providers.`,
     })
@@ -87,7 +87,7 @@ function validateModelConfig(
 
   if (config.providerHeaders !== undefined && config.provider !== 'anthropic-compatible') {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['providerHeaders'],
       message: 'providerHeaders can only be used with anthropic-compatible providers.',
     })
@@ -112,55 +112,56 @@ const LLMProviderIdSchema = z.string()
   .superRefine((provider, ctx) => {
     if (REMOVED_LLM_PROVIDER_VALUES.has(provider)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         message: `Provider "${provider}" has been removed. Use a compatible provider or an auth plugin provider ID.`,
       })
     }
   })
 
-const ModelConfigBaseSchema = z.object({
+const ModelConfigBaseSchema = z.strictObject({
   provider: LLMProviderIdSchema,
   model: z.string(),
   baseURL: z.string().optional(),
   providerHeaders: z.record(z.string(), z.string()).optional(),
   vision: z.boolean().default(true),
-}).strict()
+})
 
 export const ModelConfigSchema = ModelConfigBaseSchema.superRefine(validateModelConfig)
 
 export const NameSlugSchema = z.string()
   .regex(/^[a-z0-9][a-z0-9.-]*$/, 'Name must be lowercase letters, digits, hyphens and dots, starting with a letter or digit')
 
-export const NamedLLMConfigSchema = ModelConfigBaseSchema.extend({
+export const NamedLLMConfigSchema = z.strictObject({
+  ...ModelConfigBaseSchema.shape,
   name: NameSlugSchema,
   contextWindow: SizeString.optional(),
-}).strict().superRefine(validateModelConfig)
+}).superRefine(validateModelConfig)
 
-export const TimeoutConfigSchema = z.object({
+export const TimeoutConfigSchema = z.strictObject({
   step: DurationString,
   test: DurationString,
   navigation: DurationString.describe(
     'How long a web page load or URL wait can take. Default 2m. Android and iOS runs do not use it.',
   ),
-}).strict()
+})
 
-export const BrowserConfigSchema = z.object({
+export const BrowserConfigSchema = z.strictObject({
   name: z.enum(['chromium', 'firefox', 'webkit']),
   headless: z.boolean(),
-  viewport: z.object({
+  viewport: z.strictObject({
     width: z.number(),
     height: z.number(),
-  }).strict().optional(),
-}).strict()
+  }).optional(),
+})
 
 // Positive integers with no unlimited value; `resolvePlannerLimits` supplies the default.
-export const PlannerConfigSchema = z.object({
+export const PlannerConfigSchema = z.strictObject({
   maxActions: z.number().int().positive().optional(),
   maxPlanningTurns: z.number().int().positive().optional(),
   previousStepCount: z.number(),
-}).strict()
+})
 
-export const LogCaptureConfigSchema = z.object({
+export const LogCaptureConfigSchema = z.strictObject({
   console: z.boolean(),
   network: z.boolean(),
-}).strict()
+})

@@ -4,14 +4,14 @@ import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 import { refuseRetiredLocalBindings, yamlParseFailureMessage } from '@vostride/agent-qa-core'
 
-const LocalAppBindingSchema = z.object({
+const LocalAppBindingSchema = z.strictObject({
   path: z.string().optional(),
-}).strict()
+})
 
-const LocalDeviceBindingsSchema = z.object({
+const LocalDeviceBindingsSchema = z.strictObject({
   devices: z.record(z.string(), z.record(z.string(), z.unknown())).optional(),
   apps: z.record(z.string(), LocalAppBindingSchema).optional(),
-}).strict()
+})
 
 function normalizeLocalBindings(raw: unknown): unknown {
   if (!raw || typeof raw !== 'object' || Array.isArray(raw)) return raw ?? {}

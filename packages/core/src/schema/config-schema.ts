@@ -8,31 +8,31 @@ import { UseSchema } from './use-schema.js'
 import { AnalyticsSchema } from './analytics-schema.js'
 
 export const AuthPluginDeclarationSchema = z.union([
-  z.object({
+  z.strictObject({
     package: z.string().trim().min(1),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     path: z.string().trim().min(1),
-  }).strict(),
+  }),
 ])
 
 // Provider plugins load in-process with full Node access; keep them first-party-only
 // until a container sandbox exists.
 export const ProviderPluginDeclarationSchema = z.union([
-  z.object({
+  z.strictObject({
     package: z.string().trim().min(1),
-  }).strict(),
-  z.object({
+  }),
+  z.strictObject({
     path: z.string().trim().min(1),
-  }).strict(),
+  }),
 ])
 
-export const PluginsSchema = z.object({
+export const PluginsSchema = z.strictObject({
   auth: z.array(AuthPluginDeclarationSchema).optional().default([]),
   providers: z.array(ProviderPluginDeclarationSchema).optional().default([]),
-}).strict()
+})
 
-const AgentQaConfigSchemaInner = z.object({
+const AgentQaConfigSchemaInner = z.strictObject({
   workspace: WorkspaceSchema,
   services: ServicesSchema.prefault({}).optional(),
   // `.prefault` runs the inner defaults; zod 4's `.default()` short-circuits without parsing.
@@ -43,28 +43,28 @@ const AgentQaConfigSchemaInner = z.object({
   analytics: AnalyticsSchema.optional(),
   // There is no `safety` section: a file that still declares one gets the normal strict
   // unrecognized-key error.
-}).strict()
+})
 .superRefine((val, ctx) => {
   const llms = val.registry?.llms ?? []
   const names = llms.map(c => c.name)
   const dupes = names.filter((n, i) => names.indexOf(n) !== i)
   for (const dupe of new Set(dupes)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['registry', 'llms'],
       message: `Duplicate LLM config name: "${dupe}"`,
     })
   }
   if ((val.use as any)?.platform) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['use', 'platform'],
       message: 'use.platform cannot be set at global config level. Set platform in test or suite YAML instead.',
     })
   }
   if (val.use?.llm && !names.includes(val.use.llm)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       path: ['use', 'llm'],
       message: `use.llm "${val.use.llm}" does not match any name in registry.llms`,
     })
