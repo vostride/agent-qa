@@ -87,6 +87,21 @@ describe('objectRootSchema', () => {
     })
   })
 
+  it('reads only declared properties, never names inherited from Object', () => {
+    const merged = objectRootSchema({
+      oneOf: [
+        variant({ constructor: { type: 'string' }, toString: { type: 'number' } }, ['constructor']),
+        variant({ to: { type: 'string', const: 'back' } }, ['to']),
+      ],
+    })
+
+    expect(merged.properties).toEqual({
+      constructor: { type: 'string' },
+      toString: { type: 'number' },
+      to: { type: 'string', const: 'back' },
+    })
+  })
+
   it('leaves a root with both a oneOf and an anyOf as it is', () => {
     const both = {
       oneOf: [variant({ a: { type: 'string' } }, ['a']), variant({ b: { type: 'string' } }, ['b'])],

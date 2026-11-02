@@ -59,8 +59,9 @@ export function objectRootSchema(schema: Schema): Schema {
   const keys = [...new Set(variants.flatMap(variant => Object.keys(variant.properties)))]
   const merged = Object.fromEntries(keys.map(key => {
     const shapes = mergeProperty(
-      variants.flatMap(variant => key in variant.properties ? [variant.properties[key]] : []))
-    return [key, key in root ? { allOf: [root[key], shapes] } : shapes]
+      variants.flatMap(variant =>
+        Object.hasOwn(variant.properties, key) ? [variant.properties[key]] : []))
+    return [key, Object.hasOwn(root, key) ? { allOf: [root[key], shapes] } : shapes]
   }))
   const properties = { ...root, ...merged }
   const required = [...new Set([...requiredOf(schema), ...requiredOf(first)
