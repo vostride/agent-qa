@@ -77,7 +77,7 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
-    "@types/bytes": "~3.1.5",
+    "@types/bytes": "~3.1.6",
     "@types/ms": "~2.1.0",
     "@types/node": "~24.19.2",
     "@vostride/agent-qa-arch": "workspace:*",

@@ -71,7 +71,7 @@
   },
   "devDependencies": {
     "@types/node": "~24.19.2",
-    "@types/ws": "~8.18.1",
+    "@types/ws": "~8.18.2",
     "@vostride/agent-qa-agent": "workspace:*",
     "@vostride/agent-qa-agent-local": "workspace:*",
     "@vostride/agent-qa-arch": "workspace:*",
