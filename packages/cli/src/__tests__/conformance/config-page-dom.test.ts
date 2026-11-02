@@ -729,9 +729,16 @@ describe('the continuous add flow, keyboard recovery and outside edits on the sh
       const checked = await page.evaluate(() => document.querySelector('[role="radio"][aria-checked="true"]')?.getAttribute('value') ?? 'none')
       walked.push(`${now.value}:${checked}`)
       if (now.value === 'openai-compatible-key') break
-      // Held like a real keypress: Radix moves roving focus in a timeout and checks the radio only
-      // while the arrow is still down, so a zero-length press never checks anything.
-      await page.keyboard.press('ArrowDown', { delay: 60 })
+      // Held until focus moves: Radix checks the radio only if the arrow is down when it moves.
+      await page.keyboard.down('ArrowDown')
+      await page
+        .waitForFunction(
+          (from) => document.activeElement?.getAttribute('value') !== from,
+          now.value,
+          { timeout: 5_000 },
+        )
+        .catch(() => undefined)
+      await page.keyboard.up('ArrowDown')
       await frames(page)
     }
     const chosen = await activeSummary(page)
