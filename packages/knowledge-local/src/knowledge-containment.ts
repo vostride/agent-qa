@@ -1,5 +1,5 @@
 // Each existing component must resolve inside the root; a link swapped in after the check slips by.
-import { lstatSync, realpathSync } from 'node:fs'
+import { lstatSync, realpathSync, type Stats } from 'node:fs'
 import { isAbsolute, join, relative, sep } from 'node:path'
 
 export class KnowledgeRootContainmentError extends Error {
@@ -48,20 +48,38 @@ export function assertWithinKnowledgeRoot(knowledgeRoot: string, directory: stri
   let current = knowledgeRoot
   for (const part of rel.split(sep)) {
     current = join(current, part)
-    try {
-      lstatSync(current)
-    } catch (error) {
-      if (errnoOf(error) === 'ENOENT') return
-      throw error
-    }
-    let real: string | undefined
-    try {
-      real = realpathSync(current)
-    } catch (error) {
-      if (errnoOf(error) !== 'ENOENT' && errnoOf(error) !== 'ELOOP') throw error
-    }
+    const component = resolveComponent(current)
+    if (component.kind === 'absent') return
+    const real = component.kind === 'resolved' ? component.real : undefined
     if (real === undefined || (real !== realRoot && !real.startsWith(`${realRoot}${sep}`))) {
       throw new KnowledgeRootContainmentError(current, real, knowledgeRoot)
     }
+  }
+}
+
+type Component = { kind: 'absent' } | { kind: 'dangling' } | { kind: 'resolved'; real: string }
+
+function lstatOrAbsent(path: string): Stats | undefined {
+  try {
+    return lstatSync(path)
+  } catch (error) {
+    if (errnoOf(error) === 'ENOENT') return undefined
+    throw error
+  }
+}
+
+// Another section may remove or remake a directory between the reads; only a link is dangling.
+function resolveComponent(path: string): Component {
+  for (;;) {
+    if (lstatOrAbsent(path) === undefined) return { kind: 'absent' }
+    try {
+      return { kind: 'resolved', real: realpathSync(path) }
+    } catch (error) {
+      if (errnoOf(error) === 'ELOOP') return { kind: 'dangling' }
+      if (errnoOf(error) !== 'ENOENT') throw error
+    }
+    const stat = lstatOrAbsent(path)
+    if (stat === undefined) return { kind: 'absent' }
+    if (stat.isSymbolicLink()) return { kind: 'dangling' }
   }
 }
