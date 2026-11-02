@@ -50,4 +50,5 @@ export const AGENT_QA_DASHBOARD_UI_OWNERSHIP_CONTRACT = {
   forbiddenResponsibilities: AGENT_QA_DASHBOARD_UI_FORBIDDEN_RESPONSIBILITIES,
   externalDependencies: AGENT_QA_DASHBOARD_UI_EXTERNAL_DEPENDENCIES,
   internalDependencies: AGENT_QA_DASHBOARD_UI_INTERNAL_DEPENDENCIES,
+  publishesSelfContainedBundle: true,
 } as const satisfies OwnershipContract
