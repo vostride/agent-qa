@@ -190,7 +190,8 @@ export function createModel(
     ...(descriptor.unsupportedParams?.length
       ? [stripUnsupportedParamsMiddleware(descriptor.unsupportedParams)]
       : []),
-    // The Messages API refuses a tool input_schema with a top-level oneOf, anyOf or allOf.
+    // The Messages API refuses a tool input_schema with a top-level oneOf, anyOf or allOf; this
+    // flattens an object oneOf or anyOf, and an allOf still reaches the API as it is.
     ...(descriptor.modelAdapter === 'anthropic-messages' ? [objectRootToolSchemaMiddleware] : []),
     // Both OpenAI transports, Chat and Responses: the provider warns as it drops `propertyNames`.
     ...(descriptor.modelAdapter === 'openai-responses' ? [dropPropertyNamesMiddleware] : []),

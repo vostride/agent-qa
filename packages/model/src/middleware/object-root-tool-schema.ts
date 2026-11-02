@@ -47,17 +47,24 @@ function describeVariant(variant: ObjectVariant, shared: string[]): string {
 }
 
 export function objectRootSchema(schema: Schema): Schema {
+  // Two unions at the root would have to be met together, which one merged shape cannot say.
+  if (schema.oneOf !== undefined && schema.anyOf !== undefined) return schema
   const union: unknown = schema.oneOf ?? schema.anyOf
   if (!Array.isArray(union) || union.length === 0) return schema
   const variants = union.filter(isObjectVariant)
   const [first] = variants
   if (first === undefined || variants.length !== union.length) return schema
+  const root = isSchema(schema.properties) ? schema.properties : {}
 
   const keys = [...new Set(variants.flatMap(variant => Object.keys(variant.properties)))]
-  const properties = Object.fromEntries(keys.map(key => [key, mergeProperty(
-    variants.flatMap(variant => key in variant.properties ? [variant.properties[key]] : []))]))
-  const required = requiredOf(first)
-    .filter(key => variants.every(variant => requiredOf(variant).includes(key)))
+  const merged = Object.fromEntries(keys.map(key => {
+    const shapes = mergeProperty(
+      variants.flatMap(variant => key in variant.properties ? [variant.properties[key]] : []))
+    return [key, key in root ? { allOf: [root[key], shapes] } : shapes]
+  }))
+  const properties = { ...root, ...merged }
+  const required = [...new Set([...requiredOf(schema), ...requiredOf(first)
+    .filter(key => variants.every(variant => requiredOf(variant).includes(key)))])]
   const shapes = `Send exactly one of these shapes: ${
     variants.map(variant => describeVariant(variant, required)).join(' | ')}.`
 
