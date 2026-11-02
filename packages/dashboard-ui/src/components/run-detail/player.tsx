@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { createPortal } from 'react-dom'
+import { createPortal, flushSync } from 'react-dom'
 import { Pause, Play, Crosshair, Maximize2, Minimize2, Search } from 'lucide-react'
 import type { RecordingEntry, RunDetailArtifactRef } from '@vostride/agent-qa-schema'
 import { validRecordedAnnotation } from '@vostride/agent-qa-schema'
@@ -156,6 +156,8 @@ function PlayerVideo({ model, playhead, recording, runId, media, seekFraction, s
       setTime(facade.currentTime)
       setDimensions({ width: element.current?.videoWidth ?? 0, height: element.current?.videoHeight ?? 0 })
     }
+    // Chromium may fail later decodes if a suspended start's first seek waits for a later task.
+    const loadedInEvent = () => flushSync(loaded)
     const settle = () => {
       const target = pendingSeek.current
       if (target === undefined || !canSeek(facade)) return
@@ -195,7 +197,17 @@ function PlayerVideo({ model, playhead, recording, runId, media, seekFraction, s
     }
     const onPlay = () => { setPlaying(true); stopAnimation(); animation = requestAnimationFrame(tick) }
     const onPause = () => { setPlaying(false); stopAnimation() }
-    const events: Record<string, EventListener> = { loadedmetadata: loaded, resize: loaded, loadeddata: dataLoaded, timeupdate: update, seeked, ended, error: failed, play: onPlay, pause: onPause }
+    const events: Record<string, EventListener> = {
+      loadedmetadata: loadedInEvent,
+      resize: loadedInEvent,
+      loadeddata: dataLoaded,
+      timeupdate: update,
+      seeked,
+      ended,
+      error: failed,
+      play: onPlay,
+      pause: onPause,
+    }
     for (const [name, listener] of Object.entries(events)) facade.addEventListener(name, listener)
     if (!facade.paused) facade.pause()
     if (!media && element.current && element.current.readyState >= 1) loaded()
