@@ -1,7 +1,7 @@
 import type { LanguageModelMiddleware } from 'ai'
 
 export const toolSchemaMiddleware: LanguageModelMiddleware = {
-  specificationVersion: 'v3',
+  specificationVersion: 'v4',
 
   transformParams: async ({ params }) => {
     if (!params.tools) return params

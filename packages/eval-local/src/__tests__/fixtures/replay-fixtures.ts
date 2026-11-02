@@ -371,7 +371,7 @@ export function capturingStub(
 ): CapturingStub {
   const captured: CapturedCallOptions[] = []
   const stub: StubLanguageModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'replay-proof-stub',
     modelId,
     supportedUrls: {},
@@ -393,7 +393,7 @@ export function throwingStub(
 ): { languageModels: Record<string, StubLanguageModel>; calls: () => number } {
   let calls = 0
   const stub: StubLanguageModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'replay-proof-stub',
     modelId,
     supportedUrls: {},
@@ -427,14 +427,18 @@ export function allContentParts(captured: CapturedCallOptions): BoundaryContentP
   return parts
 }
 
-/** The image/file content parts at the boundary (v3 lowers an image to a `file` part). */
+/** The file content parts at the boundary, where the SDK lowers an image to a `file` part. */
 export function imageParts(captured: CapturedCallOptions): BoundaryContentPart[] {
-  return allContentParts(captured).filter((part) => part.type === 'image' || part.type === 'file')
+  return allContentParts(captured).filter((part) => part.type === 'file')
 }
 
-/** Coerce a boundary image/file part's payload to raw bytes for byte-exact comparison. */
+/** Coerce a boundary file part's inline data to raw bytes for byte-exact comparison. */
 export function imagePartBytes(part: BoundaryContentPart): Uint8Array {
-  const payload = part.type === 'image' ? part.image : part.data
+  const data = part.data as { type?: unknown; data?: unknown } | undefined
+  if (data?.type !== 'data') {
+    throw new Error(`unsupported boundary file data: ${String(data?.type)}`)
+  }
+  const payload = data.data
   if (payload instanceof Uint8Array) return new Uint8Array(payload)
   if (payload instanceof ArrayBuffer) return new Uint8Array(payload)
   if (typeof payload === 'string') return new Uint8Array(Buffer.from(payload, 'base64'))

@@ -1,6 +1,6 @@
 import { createOpenAI } from '@ai-sdk/openai'
 
-import type { LanguageModelV3 } from '@ai-sdk/provider'
+import type { LanguageModelV4 } from '@ai-sdk/provider'
 
 import { applyProviderOptions } from '../auth.js'
 import type { Transport } from '../auth.js'
@@ -15,7 +15,7 @@ export interface ProviderOptionsConfig {
   fetch?: typeof globalThis.fetch
 }
 
-export function openaiCompatible(transport: Transport, modelId: string): LanguageModelV3 {
+export function openaiCompatible(transport: Transport, modelId: string): LanguageModelV4 {
   return applyProviderOptions(
     createOpenAI({
       apiKey: transport.apiKey ?? 'openai-compatible',
@@ -27,7 +27,7 @@ export function openaiCompatible(transport: Transport, modelId: string): Languag
   )
 }
 
-export function openaiSubscription(transport: Transport, modelId: string): LanguageModelV3 {
+export function openaiSubscription(transport: Transport, modelId: string): LanguageModelV4 {
   return applyProviderOptions(
     createOpenAI({
       apiKey: transport.apiKey ?? 'placeholder',
@@ -47,6 +47,7 @@ export function getProviderOptions(config: ProviderOptionsConfig): ProviderOptio
       openai: {
         instructions: 'You are a helpful assistant.',
         store: false,
+        systemMessageMode: 'system',
       },
     }
   }

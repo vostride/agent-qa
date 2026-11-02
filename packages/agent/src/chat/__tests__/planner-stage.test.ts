@@ -10,14 +10,14 @@ import type { FunctionCaller } from '@vostride/agent-qa-schema'
 import type { FunctionDeclaration, FunctionSchemaProjection } from '../../functions/spec.js'
 
 /**
- * The V3 half of the model type the stage accepts, and the call options it is handed.
+ * The V4 half of the model type the stage accepts, and the call options it is handed.
  *
  * Both are DERIVED rather than imported: the shapes live in the provider-contract package, which
  * this package may not name (`providerNeutral` forbids the vendor-adapter namespace, and the chat
  * rollcall pins that). Deriving them off `ChatLanguageModel` also ties this stub to the exact type
  * the stage declares, so a widening there fails here rather than passing against a stale copy.
  */
-type StubLanguageModel = Extract<ChatLanguageModel, { specificationVersion: 'v3' }>
+type StubLanguageModel = Extract<ChatLanguageModel, { specificationVersion: 'v4' }>
 type StubCallOptions = Parameters<StubLanguageModel['doGenerate']>[0]
 type StubGenerateResult = Awaited<ReturnType<StubLanguageModel['doGenerate']>>
 
@@ -41,7 +41,7 @@ type ScriptedPart =
 /**
  * A language model that answers with exactly what it was handed.
  *
- * `doGenerate` is the whole surface `generateText` needs of a V3 model for a non-streaming call.
+ * `doGenerate` is the whole surface `generateText` needs of a V4 model for a non-streaming call.
  * The recorded call options are kept so the prompt-delivery assertions below read what the SDK
  * actually sent rather than what this file assumed it would.
  */
@@ -50,7 +50,7 @@ function stubModel(
   recorder?: { calls: StubCallOptions[] },
 ): ChatLanguageModel {
   const model: StubLanguageModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'stub',
     modelId: 'stub-planner',
     supportedUrls: {},
@@ -85,7 +85,7 @@ function stubModel(
 /** A model that refuses the call the way a transport failure does. */
 function failingModel(error: Error): ChatLanguageModel {
   const model: StubLanguageModel = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'stub',
     modelId: 'stub-planner',
     supportedUrls: {},

@@ -1,5 +1,5 @@
 import { tool } from 'ai'
-import type { Tool } from 'ai'
+import type { Tool, ToolSet } from 'ai'
 import { z } from 'zod'
 import type { Platform, ToolSurfaceEntry } from '@vostride/agent-qa-schema'
 import { workingMemoryEntrySchema } from '@vostride/agent-qa-schema'
@@ -58,7 +58,7 @@ export function buildTools(
   registry: ToolRegistry,
   options: { platform: Platform, categories?: ToolCategory[] },
 ) {
-  const tools: Record<string, ReturnType<typeof tool<any, any>>> = {}
+  const tools: ToolSet = {}
   const definitions = registry.getForPlatform(options.platform)
   const filtered = options.categories
     ? definitions.filter(def => options.categories?.includes(def.category))
@@ -87,7 +87,7 @@ export function describeBoundSurface(
   }))
   const nonActionSurface = Object.entries(options.nonActionTools ?? {}).map(([name, boundTool]) => ({
     name,
-    description: boundTool.description ?? '',
+    description: typeof boundTool.description === 'string' ? boundTool.description : '',
     parameters: z.toJSONSchema(boundTool.inputSchema as z.ZodType, conversionOptions),
   }))
 

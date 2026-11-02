@@ -258,12 +258,12 @@ function rewriteHistoricalPart(part: ToolPart, seenHashes: Set<string>): ToolPar
   return stripped === part.output ? part : { ...part, output: stripped }
 }
 
-/** Replace historical `image-data`/`media` content parts with a text marker (drop the base64). */
+/** Replace historical image parts (`image-data`, inline-data `file`) with a text marker. */
 function stripScreenshots(output: ToolOutput): ToolOutput {
   if (output.type !== 'content') return output
   let changed = false
   const value = output.value.map(item => {
-    if (item.type === 'image-data' || item.type === 'media') {
+    if (item.type === 'image-data' || (item.type === 'file' && item.data.type === 'data')) {
       changed = true
       return { type: 'text' as const, text: SCREENSHOT_OMITTED }
     }

@@ -284,7 +284,8 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
         })
       }
 
-      const description = tools[toToolName(id)]?.description ?? ''
+      const boundDescription = tools[toToolName(id)]?.description
+      const description = typeof boundDescription === 'string' ? boundDescription : ''
       // The sentence is appended, so `declaration.summary` stays what the MCP listing renders.
       expect({ id, startsWithSummary: description.startsWith(declaration!.summary) })
         .toEqual({ id, startsWithSummary: true })
@@ -328,7 +329,8 @@ describe('projectPlannerTools: the model is not shown what the host stamps', () 
       expect({ id, requiresScope: [...(declared.required ?? [])].includes('scope') })
         .toEqual({ id, requiresScope: false })
 
-      const description = tools[toToolName(id)]?.description ?? ''
+      const boundDescription = tools[toToolName(id)]?.description
+      const description = typeof boundDescription === 'string' ? boundDescription : ''
       // Appended, never a rewrite: `declaration.summary` is what the MCP listing renders.
       expect({ id, startsWithSummary: description.startsWith(declaration!.summary) })
         .toEqual({ id, startsWithSummary: true })

@@ -1,7 +1,7 @@
 // Privacy is a switch whose off state removes the key, because the schema allows it only as true.
 
 import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react"
-import { Plus, Trash2 } from "lucide-react"
+import { Plus, Trash } from "lucide-react"
 import type { ConfigChange, ConfigPathSegment } from "@vostride/agent-qa-schema"
 
 import { ConfigField } from "@/components/config-manager/config-field"
@@ -144,7 +144,7 @@ export function AnalyticsSection({ config }: AnalyticsSectionProps) {
                   className="hover:text-destructive"
                   onClick={() => void remove(row.key)}
                 >
-                  <Trash2 className="size-3.5" aria-hidden="true" />
+                  <Trash className="size-3.5" aria-hidden="true" />
                 </Button>
               </li>
             ))}

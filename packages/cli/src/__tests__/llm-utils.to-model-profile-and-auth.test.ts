@@ -177,6 +177,7 @@ describe('toModelProfileAndAuth', () => {
           openai: {
             instructions: 'You are a helpful assistant.',
             store: false,
+            systemMessageMode: 'system',
           },
         },
         auth: { mode: 'subscription', plugin: 'openai-subscription' },

@@ -89,15 +89,15 @@ describe.each(transports)('call observation over the %s transport', (provider) =
   it('MODEL-SDK-FALLBACK never fills absent provider-result identity', async () => {
     const { raw } = transportModel(provider, 0)
     const result = await raw.doGenerate({ prompt: [] })
-    // Reproduce a transport that preserves usage but omits response identity at
-    // the model boundary. Some wire schemas require model even though V3 does not.
+    // Reproduce a transport that preserves usage but omits response identity at the model
+    // boundary. Some wire schemas require model even though the provider specification does not.
     result.response = undefined
     const origin = provider === 'openai-compatible' ? 'openai-chat'
       : provider === 'openai-subscription' ? 'openai-responses'
       : provider === 'gemini' ? 'gemini' : 'anthropic-messages'
     const observed = custom(result, origin)
     const generated = await generateText({ model: observed.model, prompt: 'hello', maxRetries: 0 })
-    expect(generated.response.modelId).toBe(declared)
+    expect(generated.finalStep.response.modelId).toBe(declared)
     expect(observed.events[1]).toMatchObject({ kind: 'success', report: { cachedInputTokens: 0 } })
     expect(observed.events[1]).not.toHaveProperty('report.respondingModelId')
   })
@@ -113,7 +113,7 @@ it('MODEL-SDK-FALLBACK and CUSTOM-UNKNOWN reject normalized custom facts', async
     languageModels: { [declared]: stubModel({ modelId: declared, generate: async () => result }) },
   }, observation)
   const generated = await generateText({ model: raw, prompt: 'hello', maxRetries: 0 })
-  expect(generated.response.modelId).toBe(declared)
+  expect(generated.finalStep.response.modelId).toBe(declared)
   expect(events).toEqual([{ kind: 'start' }, { kind: 'success', report: { inputTokens: 100, outputTokens: 7 } }])
 })
 
@@ -198,7 +198,7 @@ it.each(['openai-responses', 'anthropic-messages'] as const)(
       outputTokens: { total: undefined, text: undefined, reasoning: undefined } }
     const { model, events } = custom(result, origin)
     const generated = await generateText({ model, prompt: 'hello', maxRetries: 0 })
-    expect(generated.response.modelId).toBe(declared)
+    expect(generated.finalStep.response.modelId).toBe(declared)
     expect(events[1]).toEqual({ kind: 'success', report: {} })
   },
 )

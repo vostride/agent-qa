@@ -4,11 +4,16 @@ import { routes } from "@/lib/routes"
 import { toast } from "sonner"
 import {
   type ColumnDef,
+  columnVisibilityFeature,
+  createPaginatedRowModel,
+  createSortedRowModel,
   flexRender,
-  getCoreRowModel,
-  getPaginationRowModel,
-  getSortedRowModel,
-  useReactTable,
+  rowPaginationFeature,
+  rowSortingFeature,
+  sortFn_alphanumeric,
+  sortFn_text,
+  tableFeatures,
+  useTable,
 } from "@tanstack/react-table"
 import { useTestsSearchParams } from "@/hooks/use-tests-search-params"
 import { Plus, FileText, ArrowUpDown, Keyboard, X } from "lucide-react"
@@ -121,7 +126,16 @@ function getRowClassName({
   )
 }
 
-const columns: ColumnDef<TestRow>[] = [
+const testsTableFeatures = tableFeatures({
+  columnVisibilityFeature,
+  rowSortingFeature,
+  rowPaginationFeature,
+  sortedRowModel: createSortedRowModel(),
+  paginatedRowModel: createPaginatedRowModel(),
+  sortFns: { alphanumeric: sortFn_alphanumeric, text: sortFn_text },
+})
+
+const columns: ColumnDef<typeof testsTableFeatures, TestRow>[] = [
   {
     accessorKey: "name",
     header: ({ column }) => (
@@ -144,12 +158,6 @@ const columns: ColumnDef<TestRow>[] = [
         </span>
       </div>
     ),
-    filterFn: (row, _columnId, filterValue: string) => {
-      const name = (row.getValue("name") as string).toLowerCase()
-      const path = row.original.path.toLowerCase()
-      const query = filterValue.toLowerCase()
-      return name.includes(query) || path.includes(query)
-    },
   },
   {
     accessorKey: "targetName",
@@ -257,7 +265,7 @@ const columns: ColumnDef<TestRow>[] = [
         </Link>
       )
     },
-    sortingFn: (rowA, rowB) => getRunTimestamp(rowA.original.lastRun).localeCompare(getRunTimestamp(rowB.original.lastRun)),
+    sortFn: (rowA, rowB) => getRunTimestamp(rowA.original.lastRun).localeCompare(getRunTimestamp(rowB.original.lastRun)),
   },
 ]
 
@@ -380,7 +388,7 @@ export default function TestsPage() {
     [data, target, targetOptions],
   )
 
-  const selectColumn: ColumnDef<TestRow> = {
+  const selectColumn: ColumnDef<typeof testsTableFeatures, TestRow> = {
     id: "select",
     header: ({ table: t }) => (
       <div className="flex items-center justify-center">
@@ -403,7 +411,6 @@ export default function TestsPage() {
       />
     ),
     enableSorting: false,
-    size: 48,
   }
 
   const selectedPaths = selectionQueue.selectedIds
@@ -484,12 +491,10 @@ export default function TestsPage() {
     }
   }, [selectedTests, selectionQueue])
 
-  const table = useReactTable({
+  const table = useTable({
+    features: testsTableFeatures,
     data: filteredData,
     columns: [selectColumn, ...columns],
-    getCoreRowModel: getCoreRowModel(),
-    getSortedRowModel: getSortedRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
     onSortingChange,
     onPaginationChange,
     getRowId: (row) => row.path,

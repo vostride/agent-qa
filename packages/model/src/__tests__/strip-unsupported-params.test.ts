@@ -2,7 +2,7 @@ import { generateText } from 'ai'
 import type { LanguageModelMiddleware } from 'ai'
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import type { LanguageModelV3, LanguageModelV3CallOptions } from '@ai-sdk/provider'
+import type { LanguageModelV4, LanguageModelV4CallOptions } from '@ai-sdk/provider'
 import type { ModelProfile, ModelProviderId } from '@vostride/agent-qa-schema'
 
 import { overrideStore } from '../capability/override-store.js'
@@ -11,19 +11,19 @@ import { getProvider } from '../providers/registry.js'
 import { createModel } from '../registry.js'
 import type { ResolvedModelAuth } from '../auth.js'
 
-const fakeModel = {} as LanguageModelV3
+const fakeModel = {} as LanguageModelV4
 
 async function transform(
   middleware: LanguageModelMiddleware,
-  params: LanguageModelV3CallOptions,
-): Promise<LanguageModelV3CallOptions> {
+  params: LanguageModelV4CallOptions,
+): Promise<LanguageModelV4CallOptions> {
   if (!middleware.transformParams) {
     throw new Error('expected a transformParams middleware')
   }
   return middleware.transformParams({ type: 'generate', params, model: fakeModel })
 }
 
-function paramsWithCap(): LanguageModelV3CallOptions {
+function paramsWithCap(): LanguageModelV4CallOptions {
   return {
     prompt: [{ role: 'user', content: [{ type: 'text', text: 'hi' }] }],
     tools: [
@@ -36,7 +36,7 @@ function paramsWithCap(): LanguageModelV3CallOptions {
     toolChoice: { type: 'required' },
     temperature: 0.5,
     maxOutputTokens: 4096,
-  } as LanguageModelV3CallOptions
+  } as LanguageModelV4CallOptions
 }
 
 describe('stripUnsupportedParamsMiddleware', () => {
@@ -76,7 +76,7 @@ describe('stripUnsupportedParamsMiddleware', () => {
 
   it('removes every named key that is present', async () => {
     const middleware = stripUnsupportedParamsMiddleware(['maxOutputTokens', 'topK'])
-    const params = { ...paramsWithCap(), topK: 40 } as LanguageModelV3CallOptions
+    const params = { ...paramsWithCap(), topK: 40 } as LanguageModelV4CallOptions
 
     const result = await transform(middleware, params)
 
@@ -88,9 +88,9 @@ describe('stripUnsupportedParamsMiddleware', () => {
 
 const noneAuth: ResolvedModelAuth = { kind: 'none' }
 
-function captureModel(onGenerate: (params: LanguageModelV3CallOptions) => void): LanguageModelV3 {
+function captureModel(onGenerate: (params: LanguageModelV4CallOptions) => void): LanguageModelV4 {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'capture.test',
     modelId: 'capture-model',
     supportedUrls: {},
@@ -123,7 +123,7 @@ function captureProfile(provider: ModelProviderId): ModelProfile {
 }
 
 async function captureMaxOutputTokens(provider: ModelProviderId): Promise<number | undefined> {
-  let captured: LanguageModelV3CallOptions | undefined
+  let captured: LanguageModelV4CallOptions | undefined
   const model = createModel(captureProfile(provider), noneAuth, (text) => text, {
     languageModels: { 'capture-model': captureModel((params) => { captured = params }) },
   })
@@ -161,7 +161,7 @@ interface TemperatureWire {
 }
 
 async function captureTemperature(provider: ModelProviderId): Promise<TemperatureWire> {
-  let captured: LanguageModelV3CallOptions | undefined
+  let captured: LanguageModelV4CallOptions | undefined
   const model = createModel(captureProfile(provider), noneAuth, (text) => text, {
     languageModels: { 'capture-model': captureModel((params) => { captured = params }) },
   })

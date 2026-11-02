@@ -131,7 +131,7 @@ test('USAGE-SCOPE-LIFETIME: member binds canonical indices before calls and disp
   expect(dispose).toHaveBeenCalledOnce()
 })
 
-type V3Model = Extract<LanguageModel, { specificationVersion: 'v3' }>
+type V4Model = Extract<LanguageModel, { specificationVersion: 'v4' }>
 interface ScriptedCall {
   report?: StepModelCallReport
   text?: string
@@ -150,8 +150,8 @@ const MET_TEXT = JSON.stringify({
 })
 function sdkFixture(rows: ScriptedCall[]) {
   const script = [...rows]
-  const raw = (observation?: StepModelObservation): V3Model => ({
-    specificationVersion: 'v3', provider: 'synthetic', modelId: 'requested-alias', supportedUrls: {},
+  const raw = (observation?: StepModelObservation): V4Model => ({
+    specificationVersion: 'v4', provider: 'synthetic', modelId: 'requested-alias', supportedUrls: {},
     async doGenerate() {
       const row = script.shift()
       if (!row) throw new Error('Synthetic script exhausted')
@@ -270,7 +270,7 @@ test.each([undefined, 'requested-alias', 'raw-routed-model'])('MODEL-SDK-FALLBAC
 
 test('MODEL-SDK-FALLBACK-CONTROL: real SDK manufactures a response identity from an unreported model', async () => {
   const f = sdkFixture([{ text: 'synthetic' }])
-  expect((await generateText({ model: f.base, prompt: 'synthetic', maxRetries: 0 })).response.modelId)
+  expect((await generateText({ model: f.base, prompt: 'synthetic', maxRetries: 0 })).finalStep.response.modelId)
     .toBe('requested-alias')
 })
 

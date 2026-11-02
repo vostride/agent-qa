@@ -19,7 +19,7 @@ import { join } from 'node:path'
 
 import { getCredential, resolveLLMAuth } from '@vostride/agent-qa-core'
 import { generateText as sdkGenerateText } from 'ai'
-import { MockLanguageModelV3 } from 'ai/test'
+import { MockLanguageModelV4 } from 'ai/test'
 import { createModel } from '@vostride/agent-qa-model'
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { loadConfigFile } from '../config.js'
@@ -424,7 +424,7 @@ describe('the daemon egress mechanism (verified parity)', () => {
       createModel(profile, auth, mask, {
         languageModels: {
           'job-model': {
-            specificationVersion: 'v3',
+            specificationVersion: 'v4',
             provider: 'stub',
             modelId: 'stub',
             supportedUrls: {},
@@ -521,7 +521,7 @@ describe('model egress masking', () => {
   }
 
   function recordingImpl() {
-    const recorder = new MockLanguageModelV3({
+    const recorder = new MockLanguageModelV4({
       doGenerate: {
         content: [{ type: 'text', text: 'ok' }],
         finishReason: { unified: 'stop', raw: 'stop' },

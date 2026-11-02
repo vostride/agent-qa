@@ -1,4 +1,4 @@
-import type { LanguageModelV3GenerateResult, LanguageModelV3Usage } from '@ai-sdk/provider'
+import type { LanguageModelV4GenerateResult, LanguageModelV4Usage } from '@ai-sdk/provider'
 import type { MaskFn } from '@vostride/agent-qa-schema'
 
 /** Neutral facts for one completed provider dispatch. Missing facts are omitted. */
@@ -48,7 +48,7 @@ function object(value: unknown): Record<string, unknown> | undefined {
 
 /** Model-owner only: never infer origin from a model/provider name supplied by a custom model. */
 export function providerCallReport(
-  result: Pick<LanguageModelV3GenerateResult, 'usage' | 'response'>,
+  result: Pick<LanguageModelV4GenerateResult, 'usage' | 'response'>,
   origin: ModelCallReportOrigin | undefined,
   mask: MaskFn,
 ): ModelCallReport {
@@ -69,7 +69,7 @@ export function providerCallReport(
   }
 }
 
-function rawCacheCount(usage: LanguageModelV3Usage, origin: ModelCallReportOrigin | undefined) {
+function rawCacheCount(usage: LanguageModelV4Usage, origin: ModelCallReportOrigin | undefined) {
   const raw = object(usage.raw)
   if (!raw) return undefined
   switch (origin) {

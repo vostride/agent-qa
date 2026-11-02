@@ -154,7 +154,7 @@ describe('executePlanningTurn', () => {
   })
 
   it.each([
-    ['reports', { response: { modelId: 'resolved-unscoped-model' } }],
+    ['reports', { finalStep: { response: { modelId: 'resolved-unscoped-model' } } }],
     ['omits', {}],
   ] as const)('PLANNING-TURN-UNSCOPED-IDENTITY: an unscoped turn keeps the SDK response model id when it %s one', async (_label, response) => {
     await scriptResponses([{
@@ -166,7 +166,7 @@ describe('executePlanningTurn', () => {
     const res = await executePlanningTurn(turnOptions())
 
     expect(res.ok).toBe(true)
-    if ('response' in response) expect(res.callRecord?.resolvedModelId).toBe('resolved-unscoped-model')
+    if ('finalStep' in response) expect(res.callRecord?.resolvedModelId).toBe('resolved-unscoped-model')
     else expect(res.callRecord).not.toHaveProperty('resolvedModelId')
   })
 
@@ -282,6 +282,43 @@ describe('executePlanningTurn', () => {
     expect(generateText).toHaveBeenCalledTimes(2)
     const calls = await generateTextCalls()
     expect(JSON.stringify(calls[1][0].messages)).toContain('must call exactly one action tool')
+  })
+
+  it('a tool-choice violation is a text-only answer: one re-prompt, then no_action_tool_called with its usage', async () => {
+    const { generateText, ToolChoiceViolationError } = await import('ai')
+    vi.mocked(generateText).mockImplementation(async (options) => {
+      await options.onLanguageModelCallEnd?.({
+        usage: USAGE,
+        modelId: 'responding-model',
+      } as never)
+      throw new ToolChoiceViolationError({
+        toolChoice: { type: 'required' },
+        finishReason: 'stop',
+        provider: 'test',
+        modelId: 'requested-model',
+        content: [{ type: 'text', text: 'I would click the button.' }],
+      })
+    })
+
+    const res = await executePlanningTurn(turnOptions())
+
+    expect(res.ok).toBe(false)
+    if (res.ok) throw new Error('expected failure')
+    expect(res.reason).toBe('no_action_tool_called')
+    expect(generateText).toHaveBeenCalledTimes(2)
+    const calls = await generateTextCalls()
+    expect(JSON.stringify(calls[1][0].messages)).toContain('must call exactly one action tool')
+    expect(res.tokenUsage).toEqual({ promptTokens: 20, completionTokens: 4, totalTokens: 24 })
+    expect(res.callRecord?.resolvedModelId).toBe('responding-model')
+  })
+
+  it('any other model error rejects the turn unchanged', async () => {
+    const { generateText } = await import('ai')
+    const failure = new Error('provider unavailable')
+    vi.mocked(generateText).mockRejectedValue(failure)
+
+    await expect(executePlanningTurn(turnOptions())).rejects.toBe(failure)
+    expect(generateText).toHaveBeenCalledTimes(1)
   })
 
   it('Test 5: [non-action, action, action] processes the first, terminates on the second, discards the third', async () => {

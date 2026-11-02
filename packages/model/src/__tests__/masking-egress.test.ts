@@ -1,4 +1,4 @@
-import type { LanguageModelV3CallOptions, LanguageModelV3StreamPart } from '@ai-sdk/provider'
+import type { LanguageModelV4CallOptions, LanguageModelV4StreamPart } from '@ai-sdk/provider'
 import type { MaskFn, ModelProfile } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 
@@ -72,7 +72,7 @@ describe('model egress applies the given mask and nothing else', () => {
     const credentialShaped =
       'card 4242 4242 4242 4242, Bearer abc123def456ghi789, AKIAIOSFODNN7EXAMPLE, qa@example.com'
     const request = promptRequest(credentialShaped)
-    const seen: LanguageModelV3CallOptions[] = []
+    const seen: LanguageModelV4CallOptions[] = []
     const model = createModel({ ...baseModelProfile }, noneAuth, nothingDeclared, {
       languageModels: {
         'override-model': stubModel({
@@ -121,10 +121,10 @@ describe('model egress applies the given mask and nothing else', () => {
 })
 
 function createCapturingModel(mask: MaskFn = (text) => text): {
-  captured: () => LanguageModelV3CallOptions | undefined
+  captured: () => LanguageModelV4CallOptions | undefined
   model: ReturnType<typeof createModel>
 } {
-  let captured: LanguageModelV3CallOptions | undefined
+  let captured: LanguageModelV4CallOptions | undefined
   const model = createModel({ ...baseModelProfile }, noneAuth, mask, {
     languageModels: {
       'override-model': stubModel({
@@ -142,7 +142,7 @@ function createCapturingModel(mask: MaskFn = (text) => text): {
   }
 }
 
-function promptRequest(text: string): LanguageModelV3CallOptions {
+function promptRequest(text: string): LanguageModelV4CallOptions {
   return {
     prompt: [
       {
@@ -153,7 +153,7 @@ function promptRequest(text: string): LanguageModelV3CallOptions {
   }
 }
 
-function capturedUserText(captured: LanguageModelV3CallOptions | undefined): string {
+function capturedUserText(captured: LanguageModelV4CallOptions | undefined): string {
   expect(captured).toBeDefined()
   const message = captured?.prompt[0]
   expect(message?.role).toBe('user')
@@ -166,8 +166,8 @@ function capturedUserText(captured: LanguageModelV3CallOptions | undefined): str
   return part.text
 }
 
-function streamOf(deltas: LanguageModelV3StreamPart[]): ReadableStream<LanguageModelV3StreamPart> {
-  const parts: LanguageModelV3StreamPart[] = [
+function streamOf(deltas: LanguageModelV4StreamPart[]): ReadableStream<LanguageModelV4StreamPart> {
+  const parts: LanguageModelV4StreamPart[] = [
     { type: 'stream-start', warnings: [] },
     { type: 'text-start', id: 't1' },
     ...deltas,
@@ -182,7 +182,7 @@ function streamOf(deltas: LanguageModelV3StreamPart[]): ReadableStream<LanguageM
   })
 }
 
-async function collectText(stream: ReadableStream<LanguageModelV3StreamPart>): Promise<string> {
+async function collectText(stream: ReadableStream<LanguageModelV4StreamPart>): Promise<string> {
   let text = ''
   for await (const part of stream) {
     if (part.type === 'text-delta') text += part.delta

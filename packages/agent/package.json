@@ -54,7 +54,7 @@
   "dependencies": {
     "@vostride/agent-qa-runner": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
-    "ai": "6.0.174",
+    "ai": "7.0.159",
     "zod": "4.6.7"
   },
   "devDependencies": {
@@ -65,6 +65,6 @@
     "tsdown": "~0.23.4",
     "typescript": "~7.0.2",
     "vitest": "~5.0.5",
-    "yaml": "2.8.4"
+    "yaml": "2.9.1"
   }
 }

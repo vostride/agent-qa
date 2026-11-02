@@ -72,7 +72,7 @@ function plannerTripwire(modelId: string): PlannerTripwire {
     throw new Error('the planner was consulted on an all-canonical utterance')
   }
   const model = {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     provider: 'fixture',
     modelId,
     supportedUrls: {},

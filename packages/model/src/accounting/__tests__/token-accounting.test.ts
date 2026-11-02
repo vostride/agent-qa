@@ -8,7 +8,7 @@ import { createTokenAccounting } from '../token-accounting.js'
 import {
   FIXTURE_IMAGE_DATA,
   assistantText,
-  mediaOutput,
+  fileOutput,
   screenshotOutput,
   systemMessage,
   toolExchange,
@@ -58,13 +58,13 @@ describe('createTokenAccounting — estimate two-signal (chars/4 + per-image)', 
     expect(withBig).toBe(Math.ceil('screen'.length / 4) + perImageTokens)
   })
 
-  it('charges per-image for BOTH image-data and media parts in historical tool results', () => {
+  it('charges per-image for BOTH image-data and inline file parts in historical tool results', () => {
     const perImageTokens = 1600
     const acc = createTokenAccounting({ getCapabilities: fixedCaps(KNOWN_CAPS), perImageTokens })
     const shot = toolExchange([{ toolCallId: 'c1', toolName: 'screenshot', output: screenshotOutput() }])
-    const media = toolExchange([{ toolCallId: 'c2', toolName: 'screenshot', output: mediaOutput() }])
+    const file = toolExchange([{ toolCallId: 'c2', toolName: 'screenshot', output: fileOutput() }])
     const before = acc.estimate([userText(TEXT)])
-    const after = acc.estimate([userText(TEXT), ...shot, ...media])
+    const after = acc.estimate([userText(TEXT), ...shot, ...file])
     expect(after - before).toBeGreaterThanOrEqual(2 * perImageTokens)
   })
 })

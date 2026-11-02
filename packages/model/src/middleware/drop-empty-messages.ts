@@ -1,5 +1,5 @@
 import type { LanguageModelMiddleware } from 'ai'
-import type { LanguageModelV3Message, LanguageModelV3Prompt } from '@ai-sdk/provider'
+import type { LanguageModelV4Message, LanguageModelV4Prompt } from '@ai-sdk/provider'
 
 // A second layer at egress: the OpenAI Responses API rejects empty message content with HTTP 400.
 
@@ -7,7 +7,7 @@ import type { LanguageModelV3Message, LanguageModelV3Prompt } from '@ai-sdk/prov
 //   - system: its string content trims to empty
 //   - user/assistant/tool: its content array has no part with non-empty text AND no
 //     non-text part (a file/tool/reasoning part always keeps the message)
-function isEmptyMessage(message: LanguageModelV3Message): boolean {
+function isEmptyMessage(message: LanguageModelV4Message): boolean {
   if (message.role === 'system') {
     return typeof message.content === 'string' && message.content.trim().length === 0
   }
@@ -26,10 +26,10 @@ function isEmptyMessage(message: LanguageModelV3Message): boolean {
 
 export function dropEmptyMessagesMiddleware(): LanguageModelMiddleware {
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
 
     transformParams: async ({ params }) => {
-      const prompt = params.prompt as LanguageModelV3Prompt | undefined
+      const prompt = params.prompt as LanguageModelV4Prompt | undefined
       if (!prompt) return params
       const filtered = prompt.filter((message) => !isEmptyMessage(message))
       if (filtered.length === prompt.length) return params

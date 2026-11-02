@@ -32,7 +32,7 @@ export function retryMiddleware({
   }
 
   return {
-    specificationVersion: 'v3',
+    specificationVersion: 'v4',
     wrapGenerate: ({ doGenerate }) => run(doGenerate),
     wrapStream: ({ doStream }) => run(doStream),
   }

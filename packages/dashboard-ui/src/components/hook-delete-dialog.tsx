@@ -1,4 +1,4 @@
-import { AlertTriangle, Trash2 } from 'lucide-react'
+import { AlertTriangle, Trash } from 'lucide-react'
 
 import type { HookDeleteReference, HookRuntime } from '@/lib/api'
 import { getHookRuntimeMeta } from '@/lib/hook-runtime'
@@ -123,7 +123,7 @@ export function HookDeleteDialog({
             onClick={isBlocked ? onForceDelete : onDelete}
             disabled={isDeleting}
           >
-            <Trash2 className="h-4 w-4" />
+            <Trash className="h-4 w-4" />
             {isDeleting ? 'Deleting...' : isBlocked ? 'Force Delete' : 'Delete Hook'}
           </Button>
         </DialogFooter>

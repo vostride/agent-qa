@@ -53,13 +53,13 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@ai-sdk/anthropic": "3.0.74",
-    "@ai-sdk/google": "3.0.67",
-    "@ai-sdk/openai": "3.0.58",
-    "@ai-sdk/provider": "3.0.10",
+    "@ai-sdk/anthropic": "4.0.94",
+    "@ai-sdk/google": "4.0.109",
+    "@ai-sdk/openai": "4.0.106",
+    "@ai-sdk/provider": "4.0.35",
     "@vostride/agent-qa-schema": "workspace:*",
     "@vostride/agent-qa-safety": "workspace:*",
-    "ai": "6.0.174"
+    "ai": "7.0.159"
   },
   "devDependencies": {
     "@types/node": "~24.19.2",

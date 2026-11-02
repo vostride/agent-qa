@@ -18,7 +18,7 @@ import type {
   ExplainCitation,
   ExplainOutput,
 } from '@vostride/agent-qa-schema'
-import { MockLanguageModelV3 } from 'ai/test'
+import { MockLanguageModelV4 } from 'ai/test'
 import { afterEach, beforeAll, describe, expect, it } from 'vitest'
 
 import {
@@ -372,7 +372,7 @@ describe('a composition with no catalog port refuses BY NAME', () => {
 // Module-level, so every cell that needs a model half shares one stub.
 function recordingModel(answer: string): { readonly model: ChatLanguageModel; prompts: string[] } {
   const prompts: string[] = []
-  const model = new MockLanguageModelV3({
+  const model = new MockLanguageModelV4({
     // Inferred: annotating it names the provider protocol package, which only `model` may import.
     doGenerate: async (options) => {
       prompts.push(JSON.stringify(options.prompt))

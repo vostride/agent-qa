@@ -54,10 +54,10 @@
     "clean": "rm -rf dist .turbo"
   },
   "dependencies": {
-    "@axe-core/playwright": "4.11.3",
+    "@axe-core/playwright": "4.14.0",
     "@vostride/agent-qa-runner": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
-    "playwright-core": "1.61.0"
+    "playwright-core": "1.64.1"
   },
   "devDependencies": {
     "@types/node": "~24.19.2",

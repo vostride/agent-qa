@@ -582,7 +582,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     // The snapshot's native `[ref=eN]` handles are adapter-private; aria-ref locators use them.
     const ariaTree = await snapshotRoot(page, OBSERVE_SNAPSHOT)
 
-    const { nodes, nativeRefs } = parseAriaSnapshot(ariaTree)
+    const { nodes, nativeRefs, inChildFrame } = parseAriaSnapshot(ariaTree)
     if (nodes.length > 0) {
       await enrichWebNodes(page, nodes, nativeRefs)
     }
@@ -600,7 +600,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       url: page.url(),
     })
 
-    this.lastRefs = buildRefMap(binding, nodes, nativeRefs, state.elements)
+    this.lastRefs = buildRefMap(binding, nodes, nativeRefs, state.elements, inChildFrame)
     return state
   }
 

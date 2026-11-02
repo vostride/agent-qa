@@ -27,7 +27,7 @@ function fakeFetchCounter(): { fetch: typeof globalThis.fetch; calls: () => numb
 }
 
 describe('ADAPTERS', () => {
-  it('constructs a v3 model for each built-in provider without making a request', () => {
+  it('constructs a model on the current provider specification for each built-in provider without making a request', () => {
     const { fetch, calls } = fakeFetchCounter()
     const cases: AdapterCase[] = [
       {
@@ -83,7 +83,7 @@ describe('ADAPTERS', () => {
     for (const testCase of cases) {
       const model = ADAPTERS[testCase.provider](testCase.transport, testCase.modelId)
 
-      expect(model.specificationVersion).toBe('v3')
+      expect(model.specificationVersion).toBe('v4')
       expect(model.provider).toBe(testCase.expectedProvider)
       expect(model.modelId).toBe(testCase.modelId)
     }
@@ -97,12 +97,14 @@ describe('ADAPTERS', () => {
       openai: {
         instructions: 'You are a helpful assistant.',
         store: false,
+        systemMessageMode: 'system',
       },
     })
     expect(getProviderOptions({ modelAdapter: 'openai-responses', fetch })).toEqual({
       openai: {
         instructions: 'You are a helpful assistant.',
         store: false,
+        systemMessageMode: 'system',
       },
     })
     expect(getProviderOptions({ provider: 'openai-compatible', fetch })).toBeUndefined()

@@ -55,17 +55,12 @@ async function openCard(tokens: RunTokenTotals, models?: RunModelSummary): Promi
 }
 
 /**
- * The card's VISIBLE lines, in render order, as `[kind, text]` pairs.
+ * The card's lines, in render order, as `[kind, text]` pairs.
  *
- * Radix renders the content twice — once for the eye and once inside a visually-hidden
- * `role="tooltip"` node so a screen reader announces it — so an unfiltered query returns every
- * line twice. The duplicate is the primitive's accessibility mechanism, not a second card: what
- * these cells are about is the line SET, so the announced copy is excluded here and the fact that
- * it exists at all is the primitive's own contract.
+ * Radix renders the content once, as the `role="tooltip"` node itself, so each line is read once.
  */
 function lines(card: HTMLElement): [string, string][] {
   return [...card.querySelectorAll<HTMLElement>("[data-usage-line]")]
-    .filter(el => el.closest('[role="tooltip"]') === null)
     .map(el => [el.getAttribute("data-usage-line") ?? "", el.textContent ?? ""])
 }
 
