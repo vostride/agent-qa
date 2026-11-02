@@ -1183,13 +1183,15 @@ function withLeaseGuard<T>(
   try {
     try {
       while (true) {
-        mkdirSync(parent, { recursive: true })
         try {
+          mkdirSync(parent, { recursive: true })
           mkdirSync(staged)
           break
         } catch (error) {
-          // Another section's cleanup removed the empty parent between the two calls.
-          if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error
+          // Another section's cleanup removed an empty ancestor mid-call; macOS reports EINVAL.
+          const code = errnoOf(error)
+          const raced = code === 'ENOENT' || (code === 'EINVAL' && !existsSync(parent))
+          if (!raced || monotonicElapsedMs(claimedAtNs) >= LEASE_GUARD_WAIT_MS) throw error
         }
       }
       writeFileSync(join(staged, ownerFile), raw, { encoding: 'utf8', flag: 'wx' })
