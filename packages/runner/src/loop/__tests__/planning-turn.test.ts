@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { tool } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
 import { z } from 'zod'
@@ -336,6 +336,78 @@ describe('executePlanningTurn', () => {
     expect(res.reason).toBe('no_action_tool_called')
     expect(model.doGenerateCalls).toHaveLength(2)
     expect(res.callRecord?.unsupportedFeatures).toEqual(['toolChoice'])
+  })
+
+  describe('the SDK warning logger', () => {
+    const warnings = [
+      { type: 'unsupported' as const, feature: 'toolChoice' },
+      { type: 'other' as const, message: 'tool use is emulated' },
+    ]
+    const usage = {
+      inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 },
+      outputTokens: { total: 2, text: 2, reasoning: 0 },
+    }
+    const installed = globalThis.AI_SDK_LOG_WARNINGS
+
+    async function useRealGenerateText() {
+      const { generateText } = await import('ai')
+      const actual = await vi.importActual<typeof import('ai')>('ai')
+      vi.mocked(generateText).mockImplementation(actual.generateText)
+    }
+
+    afterEach(() => {
+      globalThis.AI_SDK_LOG_WARNINGS = installed
+    })
+
+    it('receives the warnings of each call that ends in a tool-choice violation', async () => {
+      await useRealGenerateText()
+      const log = vi.fn()
+      globalThis.AI_SDK_LOG_WARNINGS = log
+      const model = new MockLanguageModelV4({
+        doGenerate: async () => ({
+          content: [{ type: 'text' as const, text: 'I would click the button.' }],
+          finishReason: { unified: 'stop' as const, raw: 'stop' },
+          usage,
+          warnings,
+        }),
+      })
+
+      const res = await executePlanningTurn(turnOptions({ model }))
+
+      expect(res.ok).toBe(false)
+      expect(log.mock.calls).toEqual([
+        [{ warnings, provider: 'mock-provider', model: 'mock-model-id' }],
+        [{ warnings, provider: 'mock-provider', model: 'mock-model-id' }],
+      ])
+    })
+
+    it('receives the warnings of a call that picks an action once', async () => {
+      await useRealGenerateText()
+      const log = vi.fn()
+      globalThis.AI_SDK_LOG_WARNINGS = log
+      const model = new MockLanguageModelV4({
+        doGenerate: async () => ({
+          content: [
+            {
+              type: 'tool-call' as const,
+              toolCallId: 'tc-1',
+              toolName: 'web_click',
+              input: JSON.stringify({ ref: 'e1', ...ENVELOPE }),
+            },
+          ],
+          finishReason: { unified: 'tool-calls' as const, raw: 'tool_use' },
+          usage,
+          warnings,
+        }),
+      })
+
+      const res = await executePlanningTurn(turnOptions({ model }))
+
+      expect(res.ok).toBe(true)
+      expect(log.mock.calls).toEqual([
+        [{ warnings, provider: 'mock-provider', model: 'mock-model-id' }],
+      ])
+    })
   })
 
   it('any other model error rejects the turn unchanged', async () => {
