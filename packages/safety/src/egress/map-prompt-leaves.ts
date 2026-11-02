@@ -104,7 +104,16 @@ function mapFileData(data: FileData, fn: LeafFn): FileData {
       return mapUrlData(data, fn)
     case 'reference':
       return { ...data, reference: mapReference(data.reference, fn) }
+    default: {
+      const unknown: never = data
+      return refuse('file data', unknown)
+    }
   }
+}
+
+// A part the walker does not know may carry text, so it is refused rather than sent unmasked.
+function refuse(kind: string, part: { type: unknown }): never {
+  throw new Error(`masking: unrecognized ${kind} ${String(part.type)}`)
 }
 
 // The raw string is masked, since URL parsing can percent-encode a declared value out of reach.
@@ -156,6 +165,10 @@ function mapToolResultContentPart(part: ToolResultContentPart, fn: LeafFn): Tool
       }
     case 'custom':
       return part
+    default: {
+      const unknown: never = part
+      return refuse('tool-result content part', unknown)
+    }
   }
 }
 
