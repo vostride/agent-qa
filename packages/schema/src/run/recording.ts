@@ -16,7 +16,7 @@ export const RecordingRefSchema = z.strictObject({
   sha: z.string().regex(/^[a-f0-9]{64}$/),
   evidenceIncomplete: z.boolean().optional(),
 }).refine(ref => ref.id === `${RECORDING_REF_PREFIX}${ref.sha}`, {
-  message: 'Recording ref id must contain its exact SHA and the recording prefix',
+  error: 'Recording ref id must contain its exact SHA and the recording prefix',
 })
 export type RecordingRef = z.infer<typeof RecordingRefSchema>
 
@@ -26,7 +26,7 @@ export const RecordingEntrySchema = z.union([
     ref: RecordingRefSchema,
     contentType: z.enum(RECORDING_CONTENT_TYPES),
     byteLength: z.number().int().nonnegative(),
-    durationMs: z.number().finite().nonnegative().optional(),
+    durationMs: z.number().nonnegative().optional(),
   }),
   z.strictObject({
     state: z.literal(RECORDING_STATES[1]),

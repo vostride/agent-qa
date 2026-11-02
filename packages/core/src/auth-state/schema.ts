@@ -18,7 +18,7 @@ export const AuthStateMetadataSchema = z.object({
   kind: z.literal('web'),
   target: TargetNameSchema,
   name: AuthStateNameSchema,
-  capturedAt: z.string().datetime(),
+  capturedAt: z.iso.datetime(),
 }).strict()
 
 export type AuthStateMetadata = z.infer<typeof AuthStateMetadataSchema>

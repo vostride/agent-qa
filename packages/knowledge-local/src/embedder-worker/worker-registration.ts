@@ -73,14 +73,14 @@ export const embeddingProfileSchema = z
     doc_prefix: z.string(),
     backend: z.enum(['node', 'static']),
     session_options: z.record(z.string(), z.unknown()),
-    tau_dense: z.number().finite(),
+    tau_dense: z.number(),
   })
   .strict()
 
 export const embedderWorkerRegistrationSchema = z
   .object({
     schemaVersion: z.literal(EMBEDDER_WORKER_REGISTRATION_SCHEMA_VERSION),
-    instanceId: z.string().uuid(),
+    instanceId: z.uuid(),
     pid: z.number().int().positive(),
     socketPath: z.string().min(1),
     profile: embeddingProfileSchema,
@@ -135,7 +135,7 @@ export type EmbedderWorkerRequest = z.infer<typeof embedderWorkerRequestSchema>
 export const embedderWorkerResponseSchema = z
   .object({
     schemaVersion: z.literal(EMBEDDER_WORKER_PROTOCOL_SCHEMA_VERSION),
-    vectors: z.array(z.array(z.number().finite())),
+    vectors: z.array(z.array(z.number())),
   })
   .strict()
 
@@ -154,7 +154,7 @@ export function embedderWorkerRegistrationPath(agentQaRoot: string): string {
 }
 
 function instanceDiscriminator(instanceId: string): string {
-  const validated = z.string().uuid().parse(instanceId)
+  const validated = z.uuid().parse(instanceId)
   return createHash('sha256').update(validated).digest('hex').slice(0, 12)
 }
 

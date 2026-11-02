@@ -10,7 +10,7 @@ import { composeLocalAgent } from '@vostride/agent-qa-agent-local'
 import type { LocalAgentHost } from '@vostride/agent-qa-agent-local'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION, canonicalJson } from '@vostride/agent-qa-schema'
 import { afterEach, describe, expect, it, vi } from 'vitest'
-import type { ZodTypeAny } from 'zod'
+import type { ZodType } from 'zod'
 
 import {
   MARK_EDIT_RECORD_FILE,
@@ -44,8 +44,8 @@ const workerProtocol = (await import(
     .href
 )) as {
   EMBEDDER_WORKER_PROTOCOL_SCHEMA_VERSION: number
-  embedderWorkerRequestSchema: ZodTypeAny
-  embedderWorkerResponseSchema: ZodTypeAny
+  embedderWorkerRequestSchema: ZodType
+  embedderWorkerResponseSchema: ZodType
 }
 
 const INSTANCE_ID = '44444444-4444-4444-8444-444444444444'

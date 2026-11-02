@@ -76,7 +76,7 @@ function siteKey(stepIndex: number, recordId: RecordId): string {
 
 const recordIdSchema = z.custom<RecordId>(
   (value) => typeof value === 'string' && value.length > 0,
-  { message: 'expected a non-empty RecordId' },
+  { error: 'expected a non-empty RecordId' },
 )
 
 /**

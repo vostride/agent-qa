@@ -86,7 +86,7 @@ const LEASE_GUARD_POLL_MS = 2
 
 const writerLeaseSchema = z
   .object({
-    leaseId: z.string().uuid(),
+    leaseId: z.uuid(),
     pid: z.number().int().positive(),
     epoch: z.number().int().positive(),
     heartbeatAtMs: z.number().int().nonnegative(),
@@ -976,7 +976,7 @@ const leaseGuardOwnerSchema = z
   .object({
     pid: z.number().int().positive(),
     threadId: z.number().int().nonnegative(),
-    token: z.string().uuid(),
+    token: z.uuid(),
     claimedAtNs: z.string().regex(/^[0-9]+$/),
   })
   .strict()

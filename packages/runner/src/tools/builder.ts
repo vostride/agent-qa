@@ -19,7 +19,7 @@ const failureEnvelopeSchema = z
     failureReason: failureReasonFieldSchema,
   })
   .refine((v) => v.failureKind === undefined || v.failureReason !== undefined, {
-    message: 'failureReason is required when failureKind is set',
+    error: 'failureReason is required when failureKind is set',
     path: ['failureReason'],
   })
 

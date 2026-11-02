@@ -59,7 +59,7 @@ export const nudgeEnvelopeSchema = z
 export type NudgeEnvelope = z.infer<typeof nudgeEnvelopeSchema>
 
 export const nudgeResponseSchema = z
-  .object({ sessionId: z.string().uuid() })
+  .object({ sessionId: z.uuid() })
   .strict()
 
 export type NudgeResponse = z.infer<typeof nudgeResponseSchema>
@@ -67,7 +67,7 @@ export type NudgeResponse = z.infer<typeof nudgeResponseSchema>
 export const daemonIdentitySchema = z
   .object({
     schemaVersion: z.literal(DAEMON_IDENTITY_SCHEMA_VERSION),
-    instanceId: z.string().uuid(),
+    instanceId: z.uuid(),
     pid: z.number().int().positive(),
   })
   .strict()
@@ -144,7 +144,7 @@ function projectHash(projectRoot: string): string {
 }
 
 function instanceDiscriminator(instanceId: string): string {
-  const validated = z.string().uuid().parse(instanceId)
+  const validated = z.uuid().parse(instanceId)
   return createHash('sha256').update(validated).digest('hex').slice(0, 12)
 }
 

@@ -29,7 +29,7 @@ export const ANALYTICS_KNOWN_ID_MARKER = 'known-id'
 function knownId(codec: string, accepts: (value: string) => boolean): z.ZodType<string> {
   return z
     .string()
-    .refine(accepts, { message: `expected a ${codec} id` })
+    .refine(accepts, { error: `expected a ${codec} id` })
     .meta({ [ANALYTICS_VOCABULARY_META_KEY]: ANALYTICS_KNOWN_ID_MARKER, analyticsCodec: codec })
 }
 

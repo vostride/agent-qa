@@ -377,7 +377,7 @@ export const ACTION_WIRE_SCHEMAS_BY_TYPE = {
     mode: z.enum(['press', 'down', 'up']),
     convertPlatformKeys: z.boolean().optional(),
   }),
-} satisfies { [K in Action['type']]: z.ZodTypeAny }
+} satisfies { [K in Action['type']]: z.ZodType }
 
 export const actionWireSchema = z
   .looseObject({ type: z.string().min(1) })
@@ -392,7 +392,7 @@ export const actionWireSchema = z
 
     const schema = ACTION_WIRE_SCHEMAS_BY_TYPE[
       value.type as keyof typeof ACTION_WIRE_SCHEMAS_BY_TYPE
-    ] as z.ZodTypeAny | undefined
+    ] as z.ZodType | undefined
 
     if (!Object.hasOwn(ACTION_WIRE_SCHEMAS_BY_TYPE, value.type) || schema === undefined) {
       ctx.addIssue({
