@@ -195,4 +195,12 @@ describe('no token controls', () => {
       [{ op: 'set', path: ['services', 'dashboard', 'port'], value: 4100 }],
     ])
   })
+
+  it('the MCP port takes 0, which asks the system for a free port', async () => {
+    await mount()
+
+    await typeAndBlur(control(['services', 'mcp', 'port']), '0')
+
+    expect(writeCalls()).toEqual([[{ op: 'set', path: ['services', 'mcp', 'port'], value: 0 }]])
+  })
 })
