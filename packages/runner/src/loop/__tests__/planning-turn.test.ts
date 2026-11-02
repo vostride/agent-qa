@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { tool } from 'ai'
+import { MockLanguageModelV4 } from 'ai/test'
 import { z } from 'zod'
 import { buildTools, defaultRegistry } from '../../tools/index.js'
 import {
@@ -310,6 +311,31 @@ describe('executePlanningTurn', () => {
     expect(JSON.stringify(calls[1][0].messages)).toContain('must call exactly one action tool')
     expect(res.tokenUsage).toEqual({ promptTokens: 20, completionTokens: 4, totalTokens: 24 })
     expect(res.callRecord?.resolvedModelId).toBe('responding-model')
+  })
+
+  it('records the unsupported features of a call that ends in a tool-choice violation', async () => {
+    const { generateText } = await import('ai')
+    const actual = await vi.importActual<typeof import('ai')>('ai')
+    vi.mocked(generateText).mockImplementation(actual.generateText)
+    const model = new MockLanguageModelV4({
+      doGenerate: async () => ({
+        content: [{ type: 'text' as const, text: 'I would click the button.' }],
+        finishReason: { unified: 'stop' as const, raw: 'stop' },
+        usage: {
+          inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: 2, text: 2, reasoning: 0 },
+        },
+        warnings: [{ type: 'unsupported' as const, feature: 'toolChoice' }],
+      }),
+    })
+
+    const res = await executePlanningTurn(turnOptions({ model }))
+
+    expect(res.ok).toBe(false)
+    if (res.ok) throw new Error('expected failure')
+    expect(res.reason).toBe('no_action_tool_called')
+    expect(model.doGenerateCalls).toHaveLength(2)
+    expect(res.callRecord?.unsupportedFeatures).toEqual(['toolChoice'])
   })
 
   it('any other model error rejects the turn unchanged', async () => {
