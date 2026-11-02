@@ -56,6 +56,46 @@ describe('objectRootSchema', () => {
       ['properties', 'amount'], { anyOf: [{ type: 'number' }, { type: 'string' }] })
   })
 
+  it('keeps the root properties and required keys beside the union', () => {
+    const merged = objectRootSchema({
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+      oneOf: [
+        variant({ to: { type: 'string', const: 'url' }, url: { type: 'string' } }, ['to', 'url']),
+        variant({ to: { type: 'string', const: 'back' } }, ['to']),
+      ],
+    })
+
+    expect(merged).toHaveProperty(['properties', 'id'], { type: 'string' })
+    expect(merged).toHaveProperty(['properties', 'url'], { type: 'string' })
+    expect(merged.required).toEqual(['id', 'to'])
+  })
+
+  it('sends a root property that a shape also declares as both schemas at once', () => {
+    const merged = objectRootSchema({
+      type: 'object',
+      properties: { to: { type: 'string', minLength: 1 } },
+      oneOf: [
+        variant({ to: { type: 'string', const: 'url' } }, ['to']),
+        variant({ to: { type: 'string', const: 'back' } }, ['to']),
+      ],
+    })
+
+    expect(merged).toHaveProperty(['properties', 'to'], {
+      allOf: [{ type: 'string', minLength: 1 }, { type: 'string', enum: ['url', 'back'] }],
+    })
+  })
+
+  it('leaves a root with both a oneOf and an anyOf as it is', () => {
+    const both = {
+      oneOf: [variant({ a: { type: 'string' } }, ['a']), variant({ b: { type: 'string' } }, ['b'])],
+      anyOf: [variant({ c: { type: 'string' } }, ['c']), variant({ d: { type: 'string' } }, ['d'])],
+    }
+
+    expect(objectRootSchema(both)).toBe(both)
+  })
+
   it('leaves an object schema and a union with a non-object option as they are', () => {
     const plain = { type: 'object', properties: { ref: { type: 'string' } } }
     const mixed = { anyOf: [{ type: 'object', properties: {} }, { type: 'string' }] }
