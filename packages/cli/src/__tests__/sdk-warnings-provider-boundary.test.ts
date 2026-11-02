@@ -33,6 +33,13 @@ const screenshot = Buffer.from(
   'base64',
 )
 
+const click = {
+  ref: 'e2',
+  reasoning: 'Click the requested Log in button',
+  confidence: 0.95,
+  stepComplete: true,
+  doesActionAdvanceUsTowardsGoal: true,
+}
 const verification = {
   conditions: [],
   dialogs: [],
@@ -153,6 +160,26 @@ describe('a screenshot call raises no AI SDK warning', () => {
     const result = await job.generate({ prompt: 'Explain the failure.', images: [screenshot] })
 
     expect(result.text).toBe('The total is wrong.')
+    expect(sentScreenshot(fetch)).toBe(true)
+    expect(raised).toEqual([])
+  })
+})
+
+describe('the web tool set raises no AI SDK warning', () => {
+  it.each(wires)('a planner turn with a screenshot over %s', async (wire) => {
+    const { model, fetch } = transport(wire, { toolCall: { name: 'web_click', input: click } })
+    const planner = new LLMPlanner(model, 'web', undefined, undefined, accounting())
+
+    const result = await planner.plan('Click the Log in button', makeScreenState(), {
+      stepInstruction: 'Click the Log in button',
+      testName: 'AI SDK warnings at the provider boundary',
+      previousSteps: [],
+      plannerModel: model,
+      verifierModel: model,
+      screenshot,
+    })
+
+    expect(result.plan.action).toMatchObject({ type: 'click', ref: 'e2' })
     expect(sentScreenshot(fetch)).toBe(true)
     expect(raised).toEqual([])
   })

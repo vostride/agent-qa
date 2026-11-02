@@ -1,6 +1,7 @@
 import { generateText, jsonSchema, Output, tool } from 'ai'
 import type { LogWarningsFunction } from 'ai'
 import { afterEach, describe, expect, it, vi } from 'vitest'
+import type { JSONSchema7 } from '@ai-sdk/provider'
 import type { ModelProfile } from '@vostride/agent-qa-schema'
 import type { ResolvedModelAuth } from '../auth.js'
 import { getProviderOptions } from '../adapters/openai.js'
@@ -30,6 +31,28 @@ const screenshot = Buffer.from(
   'base64',
 )
 const screenshotBase64 = screenshot.toString('base64')
+
+// What zod 4 emits for the web route tool's `headers: z.record(z.string(), z.string())`.
+const recordKeyed: JSONSchema7 = {
+  type: 'object',
+  properties: {
+    urlPattern: { type: 'string' },
+    headers: {
+      type: 'object', propertyNames: { type: 'string' }, additionalProperties: { type: 'string' },
+    },
+  },
+  required: ['urlPattern'],
+  additionalProperties: false,
+}
+const recordKeyedWithoutNames = {
+  type: 'object',
+  properties: {
+    urlPattern: { type: 'string' },
+    headers: { type: 'object', additionalProperties: { type: 'string' } },
+  },
+  required: ['urlPattern'],
+  additionalProperties: false,
+}
 
 function answer(provider: Transport, sent: string) {
   const navigate = sent.includes('"navigate"')
@@ -200,6 +223,20 @@ async function screenshotRequest(provider: Transport, part: 'file' | 'image'): P
   return String(fetch.mock.calls[0]![1]!.body)
 }
 
+async function recordKeyedToolRequest(provider: Transport): Promise<string> {
+  const { model, fetch } = transportModel(provider)
+  await generateText({
+    model,
+    prompt: 'Mock the shop API.',
+    tools: {
+      route: tool({ description: 'Mock a web route', inputSchema: jsonSchema(recordKeyed) }),
+    },
+    maxRetries: 0,
+  })
+  expect(fetch).toHaveBeenCalledTimes(1)
+  return String(fetch.mock.calls[0]![1]!.body)
+}
+
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('the OpenAI Chat transport request body', () => {
@@ -219,6 +256,11 @@ describe('the OpenAI Chat transport request body', () => {
   it('sends a screenshot as an image_url data URL', async () => {
     expect(await screenshotRequest('openai-compatible', 'file')).toContain(JSON.stringify(
       { type: 'image_url', image_url: { url: `data:image/png;base64,${screenshotBase64}` } }))
+  })
+
+  it('sends a record-keyed tool schema without propertyNames', async () => {
+    expect(await recordKeyedToolRequest('openai-compatible'))
+      .toContain(`"parameters":${JSON.stringify(recordKeyedWithoutNames)}`)
   })
 })
 
@@ -248,6 +290,11 @@ describe('the OpenAI Responses transport request body', () => {
   it('sends a screenshot as an input_image data URL', async () => {
     expect(await screenshotRequest('openai-subscription', 'file')).toContain(JSON.stringify(
       { type: 'input_image', image_url: `data:image/png;base64,${screenshotBase64}` }))
+  })
+
+  it('sends a record-keyed tool schema without propertyNames', async () => {
+    expect(await recordKeyedToolRequest('openai-subscription'))
+      .toContain(`"parameters":${JSON.stringify(recordKeyedWithoutNames)}`)
   })
 })
 
@@ -301,6 +348,14 @@ describe('the Anthropic Messages transport request body', () => {
       }))
     },
   )
+
+  it.each(['anthropic-compatible', 'anthropic-subscription'] as const)(
+    'over %s sends a record-keyed tool schema with its propertyNames',
+    async (provider) => {
+      expect(await recordKeyedToolRequest(provider))
+        .toContain(`"input_schema":${JSON.stringify(recordKeyed)}`)
+    },
+  )
 })
 
 describe('the Gemini transport request body', () => {
@@ -322,6 +377,11 @@ describe('the Gemini transport request body', () => {
   it('sends a screenshot as inline data', async () => {
     expect(await screenshotRequest('gemini', 'file')).toContain(JSON.stringify(
       { inlineData: { mimeType: 'image/png', data: screenshotBase64 } }))
+  })
+
+  it('sends a record-keyed tool schema with its propertyNames', async () => {
+    expect(await recordKeyedToolRequest('gemini'))
+      .toContain(`"parametersJsonSchema":${JSON.stringify(recordKeyed)}`)
   })
 })
 

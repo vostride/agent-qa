@@ -23,6 +23,7 @@ import { repairMiddleware } from './middleware/repair.js'
 import { retryMiddleware } from './middleware/retry.js'
 import { stripUnsupportedParamsMiddleware } from './middleware/strip-unsupported-params.js'
 import { objectRootToolSchemaMiddleware } from './middleware/object-root-tool-schema.js'
+import { dropPropertyNamesMiddleware } from './middleware/drop-property-names.js'
 import { toolSchemaMiddleware } from './middleware.js'
 import { getProvider, listProviders } from './providers/registry.js'
 import { validateProfile } from './validate.js'
@@ -191,6 +192,8 @@ export function createModel(
       : []),
     // The Messages API refuses a tool input_schema with a top-level oneOf, anyOf or allOf.
     ...(descriptor.modelAdapter === 'anthropic-messages' ? [objectRootToolSchemaMiddleware] : []),
+    // Both OpenAI transports, Chat and Responses: the provider warns as it drops `propertyNames`.
+    ...(descriptor.modelAdapter === 'openai-responses' ? [dropPropertyNamesMiddleware] : []),
     ...MIDDLEWARE,
     createMaskingMiddleware(mask),
   ]
