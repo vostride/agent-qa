@@ -1,5 +1,5 @@
 // The turn ends at one action call; degenerate output returns a structured failure, never a throw.
-import { generateText, ToolChoiceViolationError } from 'ai'
+import { generateText, ToolChoiceViolationError, wrapLanguageModel } from 'ai'
 import { withStepModelCall } from '../run/step-model-observations.js'
 import type { LanguageModel, LanguageModelUsage, ModelMessage, SystemModelMessage, Tool, ToolCallPart, ToolResultPart, ToolSet } from 'ai'
 import type {
@@ -21,6 +21,23 @@ export const DEFAULT_NON_ACTION_TOOL_BUDGET = 4
 
 const BUDGET_EXHAUSTED_MESSAGE =
   'Tool budget exhausted — you must now choose exactly one action tool.'
+
+// A tool-choice violation throws before the SDK returns the step's warnings, so read them here.
+function recordUnsupportedFeatures(model: LanguageModel, unsupported: Set<string>): LanguageModel {
+  if (typeof model === 'string') return model
+  return wrapLanguageModel({
+    model,
+    middleware: {
+      wrapGenerate: async ({ doGenerate }) => {
+        const out = await doGenerate()
+        for (const w of out.warnings) {
+          if (w.type === 'unsupported') unsupported.add(w.feature)
+        }
+        return out
+      },
+    },
+  })
+}
 
 // `tool` joins the always-send-all slice; `execute`'s result is appended as a tool message.
 export interface NonActionToolHandler {
@@ -228,7 +245,7 @@ export async function executePlanningTurn(
     const callEnd: { usage?: LanguageModelUsage; modelId?: string } = {}
     // A tool-choice violation is a text-only answer; any other error, abort included, propagates.
     const observed = await withStepModelCall(options.model, model => generateText({
-      model,
+      model: recordUnsupportedFeatures(model, unsupported),
       maxRetries: 0,
       maxOutputTokens: options.maxOutputTokens,
       ...(options.sampling?.temperature !== undefined
