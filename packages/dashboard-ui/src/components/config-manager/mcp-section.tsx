@@ -22,7 +22,7 @@ export function McpSection() {
         label={MCP_FIELD_LABELS.port}
         kind="number"
         placeholder="3471"
-        number={{ min: 1, max: 65535, integer: true }}
+        number={{ min: 0, max: 65535, integer: true }}
       />
     </>
   )
