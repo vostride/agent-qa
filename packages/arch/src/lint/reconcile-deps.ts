@@ -45,7 +45,7 @@ export function findDepReconciliationOffenders(
     }
   }
 
-  const packageJsonDeps = readPackageJsonDependencies(repoRoot, contract.packageDir)
+  const packageJsonDeps = readExternalPackageJsonDependencies(repoRoot, contract.packageDir)
 
   return [
     ...findSetMismatchOffenders(
@@ -58,20 +58,66 @@ export function findDepReconciliationOffenders(
       [...realInternal].sort(),
       [...contract.internalDependencies].sort(),
     ),
-    ...findSetMismatchOffenders(
-      `${contract.packageDir} package.json vs contract`,
-      packageJsonDeps,
-      [...contract.externalDependencies].sort(),
-    ),
+    ...(contract.publishesSelfContainedBundle
+      ? findSelfContainedBundleOffenders(contract, packageJsonDeps)
+      : findSetMismatchOffenders(
+          `${contract.packageDir} package.json vs contract`,
+          packageJsonDeps.dependencies,
+          [...contract.externalDependencies].sort(),
+        )),
   ]
 }
 
-function readPackageJsonDependencies(repoRoot: string, packageDir: string): string[] {
-  const packageJson = JSON.parse(
-    readFileSync(join(repoRoot, packageDir, 'package.json'), 'utf8'),
-  ) as { dependencies?: Record<string, string> }
+interface ExternalPackageJsonDependencies {
+  dependencies: string[]
+  devDependencies: string[]
+}
 
-  return Object.keys(packageJson.dependencies ?? {})
+function findSelfContainedBundleOffenders(
+  contract: OwnershipContract,
+  packageJsonDeps: ExternalPackageJsonDependencies,
+): string[] {
+  const label = contract.packageDir
+  const devDependencies = new Set(packageJsonDeps.devDependencies)
+  const missing = contract.externalDependencies.filter(
+    dependency => !devDependencies.has(dependency),
+  )
+
+  return [
+    ...missing.map(dependency => `${label} devDependencies vs contract: missing ${dependency}`),
+    ...packageJsonDeps.dependencies.map(
+      dependency => `${label} dependencies of a self-contained bundle: unexpected ${dependency}`,
+    ),
+  ].sort()
+}
+
+function readExternalPackageJsonDependencies(
+  repoRoot: string,
+  packageDir: string,
+): ExternalPackageJsonDependencies {
+  const packageJson: unknown = JSON.parse(
+    readFileSync(join(repoRoot, packageDir, 'package.json'), 'utf8'),
+  )
+  if (typeof packageJson !== 'object' || packageJson === null) {
+    return { dependencies: [], devDependencies: [] }
+  }
+
+  return {
+    dependencies: externalPackageNames(
+      'dependencies' in packageJson ? packageJson.dependencies : undefined,
+    ),
+    devDependencies: externalPackageNames(
+      'devDependencies' in packageJson ? packageJson.devDependencies : undefined,
+    ),
+  }
+}
+
+function externalPackageNames(block: unknown): string[] {
+  if (typeof block !== 'object' || block === null) {
+    return []
+  }
+
+  return Object.keys(block)
     .filter(dependency => !dependency.startsWith('@vostride/agent-qa-'))
     .sort()
 }

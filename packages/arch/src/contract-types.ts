@@ -24,6 +24,8 @@ export interface OwnershipContract {
   forbiddenResponsibilities: readonly string[]
   externalDependencies: readonly string[]
   internalDependencies: readonly string[]
+  // Its published build carries its external libraries, so they belong in devDependencies.
+  publishesSelfContainedBundle?: boolean
   ledger?: readonly LedgerEntry[]
 }
 

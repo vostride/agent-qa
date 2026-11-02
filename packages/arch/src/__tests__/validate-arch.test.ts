@@ -415,6 +415,21 @@ describe('arch lint held-out fixtures', () => {
     ])
   })
 
+  it('held-out bundle reconciliation reports a library devDependencies does not declare', () => {
+    expect(
+      findDepReconciliationOffenders(
+        fixtureContract({
+          packageDir: 'packages/arch',
+          publishesSelfContainedBundle: true,
+          // arch's real manifest declares typescript for development and no runtime dependency.
+          externalDependencies: ['typescript', 'declared-only'],
+        }),
+        [fixtureHit('typescript'), fixtureHit('declared-only')],
+        repoRoot,
+      ),
+    ).toEqual(['packages/arch devDependencies vs contract: missing declared-only'])
+  })
+
   it('held-out config hits feed class rules without becoming runtime dep drift', () => {
     const configAwareContract = fixtureContract({
       packageDir: 'packages/arch',
