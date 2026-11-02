@@ -3,7 +3,6 @@ packages:
 
 allowBuilds:
   edgedriver: false
-  esbuild: true
   geckodriver: false
   onnxruntime-node: false
   protobufjs: false
