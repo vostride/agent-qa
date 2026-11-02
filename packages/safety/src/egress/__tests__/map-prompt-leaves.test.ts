@@ -454,6 +454,25 @@ describe('masking file parts in tool results', () => {
 
     expect(() => mapPromptLeaves(params, breakHost)).toThrow('a masked file URL is not a valid URL')
   })
+
+  it('a tool-result content part of a type it does not know refuses the request', () => {
+    const params = contentResultParams([{ type: 'future-part', text: `note ${PW}` }])
+
+    expect(() => mapPromptLeaves(params, maskPw))
+      .toThrow('masking: unrecognized tool-result content part future-part')
+  })
+
+  it('file data of a type it does not know refuses the request', () => {
+    const params = asParams({
+      prompt: [{
+        role: 'user',
+        content: [{ type: 'file', data: { type: 'future-data', text: PW }, mediaType: 'text/plain' }],
+      }],
+    })
+
+    expect(() => mapPromptLeaves(params, maskPw))
+      .toThrow('masking: unrecognized file data future-data')
+  })
 })
 
 function toolCallParams(input: unknown): ProviderRequestParams {
