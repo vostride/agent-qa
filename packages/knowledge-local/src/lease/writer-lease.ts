@@ -1177,13 +1177,17 @@ function withLeaseGuard<T>(
   const parent = dirname(guard)
   // `memory/queue/` and `memory/` are created only when absent, and removed again only by `rmdir`
   // (so only while empty), keeping a lease round-trip from leaving anything under `memory/`.
-  const createdAncestors = [parent, dirname(parent)].filter((dir) => !existsSync(dir))
+  const createdAncestors = new Set<string>()
   const staged = `${guard}.tmp-${randomUUID()}`
   let contended = false
   try {
     try {
       while (true) {
         try {
+          // Checked on every attempt: a retry may recreate what another section's cleanup removed.
+          for (const dir of [dirname(parent), parent]) {
+            if (!existsSync(dir)) createdAncestors.add(dir)
+          }
           mkdirSync(parent, { recursive: true })
           mkdirSync(staged)
           break
@@ -1239,7 +1243,7 @@ function withLeaseGuard<T>(
       releaseLeaseGuard(guard, ownerFile)
     }
   } finally {
-    for (const dir of createdAncestors) {
+    for (const dir of [parent, dirname(parent)].filter((dir) => createdAncestors.has(dir))) {
       try {
         rmdirSync(dir)
       } catch {

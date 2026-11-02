@@ -1,6 +1,6 @@
 // A section removes the empty `memory/queue/` and `memory/` it created, while another thread's
 // section may be claiming the guard inside them.
-import { existsSync, mkdtempSync, rmdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, rmdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
@@ -71,6 +71,20 @@ describe('a lease-guard claim whose ancestors another section removes', () => {
       if (!recursive || path !== queue()) return
       fault.onMkdir = undefined
       throw errno('ENOENT', 'no such file or directory', path)
+    }
+
+    expect(heartbeatLease({ knowledgeRoot, leaseId })).toMatchObject({ kind: 'heartbeated' })
+    expect(existsSync(join(knowledgeRoot, 'memory'))).toBe(false)
+  })
+
+  it('removes the ancestors it recreates after another section removed the ones it found', () => {
+    mkdirSync(queue(), { recursive: true })
+    fault.onMkdir = (path, recursive) => {
+      if (recursive || !path.includes('lease-guard.tmp-')) return
+      fault.onMkdir = undefined
+      rmdirSync(queue())
+      rmdirSync(dirname(queue()))
+      throw errno('EINVAL', 'invalid argument', path)
     }
 
     expect(heartbeatLease({ knowledgeRoot, leaseId })).toMatchObject({ kind: 'heartbeated' })
