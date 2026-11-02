@@ -23,14 +23,14 @@ function isAbsoluteHttpUrl(value: string): boolean {
   }
 }
 
-export const DashboardConfigSchema = z.object({
+export const DashboardConfigSchema = z.strictObject({
   port: z.number().optional(),
   dbPath: z.string().optional(),
   artifactsDir: z.string().optional(),
   // Only an absolute http(s) URL: the base composes an `href` inside the served App document.
   baseUrl: z.string().refine(
     isAbsoluteHttpUrl,
-    { message: 'services.dashboard.baseUrl must be an absolute http(s) URL' },
+    { error: 'services.dashboard.baseUrl must be an absolute http(s) URL' },
   ).optional(),
   workspace: z.string().optional(),
   // The run service and the other local doors are tokenless, so this block declares no token key.
@@ -38,7 +38,7 @@ export const DashboardConfigSchema = z.object({
   // any non-loopback value at runtime, as the security refusal it is rather than a config-shape
   // error, and a loopback spelling other than the default (`localhost`, `::1`) stays configurable.
   host: z.string().trim().min(1).optional(),
-}).strict()
+})
 
 /**
  * The one member set for "this host is loopback", used by the dashboard's pre-listen bind guard in
@@ -52,43 +52,43 @@ export function isLoopbackHost(host: string): boolean {
 }
 
 // Whether the dashboard co-hosts the MCP endpoint, and the port it listens on.
-export const McpConfigSchema = z.object({
+export const McpConfigSchema = z.strictObject({
   enabled: z.boolean().optional(),
   port: z.number().int().min(1).max(65535).optional(),
-}).strict()
+})
 
-export const CacheConfigSchema = z.object({
+export const CacheConfigSchema = z.strictObject({
   dir: z.string(),
-}).strict()
+})
 
-export const AuthStateConfigSchema = z.object({
+export const AuthStateConfigSchema = z.strictObject({
   dir: z.string().trim().min(1),
-}).strict()
+})
 
-export const LoggingConfigSchema = z.object({
+export const LoggingConfigSchema = z.strictObject({
   level: z.enum(['silent', 'error', 'warn', 'info', 'debug']),
-}).strict()
+})
 
-export const RecordingConfigSchema = z.object({
+export const RecordingConfigSchema = z.strictObject({
   enabled: z.boolean().default(true),
   keepFailuresOnly: z.boolean().optional(),
-}).strict()
+})
 
-export const AccessibilityConfigSchema = z.object({
+export const AccessibilityConfigSchema = z.strictObject({
   enabled: z.boolean(),
   standard: z.enum(['wcag2a', 'wcag2aa', 'wcag2aaa']).optional(),
   runAfter: z.enum(['every-step', 'test-end']).optional(),
   failOnViolation: z.boolean().optional(),
   disableRules: z.array(z.string()).optional(),
   exclude: z.array(z.string()).optional(),
-}).strict()
+})
 
-export const VisionServiceSchema = z.object({
+export const VisionServiceSchema = z.strictObject({
   screenshotSize: SizeString.optional(),
   effectiveResolution: z.number().positive().int().optional(),
-}).strict()
+})
 
-export const ServicesSchema = z.object({
+export const ServicesSchema = z.strictObject({
   dashboard: DashboardConfigSchema.optional(),
   mcp: McpConfigSchema.optional(),
   cache: CacheConfigSchema.optional(),
@@ -98,4 +98,4 @@ export const ServicesSchema = z.object({
   recording: RecordingConfigSchema.prefault({}).optional(),
   accessibility: AccessibilityConfigSchema.optional(),
   vision: VisionServiceSchema.optional(),
-}).strict()
+})
