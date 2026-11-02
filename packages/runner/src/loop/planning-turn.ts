@@ -1,7 +1,7 @@
 // The turn ends at one action call; degenerate output returns a structured failure, never a throw.
 import { generateText, ToolChoiceViolationError, wrapLanguageModel } from 'ai'
 import { withStepModelCall } from '../run/step-model-observations.js'
-import type { LanguageModel, LanguageModelUsage, ModelMessage, SystemModelMessage, Tool, ToolCallPart, ToolResultPart, ToolSet } from 'ai'
+import type { LanguageModel, LanguageModelUsage, LogWarningsFunction, ModelMessage, SystemModelMessage, Tool, ToolCallPart, ToolResultPart, ToolSet } from 'ai'
 import type {
   GroundingAttempt,
   ModelCallRecord,
@@ -22,21 +22,34 @@ export const DEFAULT_NON_ACTION_TOOL_BUDGET = 4
 const BUDGET_EXHAUSTED_MESSAGE =
   'Tool budget exhausted — you must now choose exactly one action tool.'
 
-// A tool-choice violation throws before the SDK returns the step's warnings, so read them here.
-function recordUnsupportedFeatures(model: LanguageModel, unsupported: Set<string>): LanguageModel {
+type CallWarnings = Parameters<LogWarningsFunction>[0]
+
+// A tool-choice violation throws before the SDK records or logs the step's warnings.
+function observeCallWarnings(
+  model: LanguageModel,
+  unsupported: Set<string>,
+  last: { call?: CallWarnings },
+): LanguageModel {
   if (typeof model === 'string') return model
   return wrapLanguageModel({
     model,
     middleware: {
-      wrapGenerate: async ({ doGenerate }) => {
+      wrapGenerate: async ({ doGenerate, model: called }) => {
         const out = await doGenerate()
         for (const w of out.warnings) {
           if (w.type === 'unsupported') unsupported.add(w.feature)
         }
+        last.call = { warnings: out.warnings, provider: called.provider, model: called.modelId }
         return out
       },
     },
   })
+}
+
+// The SDK's default sink is not exported, so only an installed logger receives them.
+function logViolationWarnings(call: CallWarnings | undefined): void {
+  const log = globalThis.AI_SDK_LOG_WARNINGS
+  if (call !== undefined && call.warnings.length > 0 && typeof log === 'function') log(call)
 }
 
 // `tool` joins the always-send-all slice; `execute`'s result is appended as a tool message.
@@ -243,9 +256,10 @@ export async function executePlanningTurn(
       }
     }
     const callEnd: { usage?: LanguageModelUsage; modelId?: string } = {}
+    const lastCall: { call?: CallWarnings } = {}
     // A tool-choice violation is a text-only answer; any other error, abort included, propagates.
     const observed = await withStepModelCall(options.model, model => generateText({
-      model: recordUnsupportedFeatures(model, unsupported),
+      model: observeCallWarnings(model, unsupported, lastCall),
       maxRetries: 0,
       maxOutputTokens: options.maxOutputTokens,
       ...(options.sampling?.temperature !== undefined
@@ -267,6 +281,7 @@ export async function executePlanningTurn(
       },
     }).catch((error: unknown) => {
       if (!ToolChoiceViolationError.isInstance(error)) throw error
+      logViolationWarnings(lastCall.call)
       return undefined
     }))
     const result = observed.result
