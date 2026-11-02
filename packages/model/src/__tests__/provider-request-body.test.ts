@@ -20,20 +20,24 @@ const models: Record<Transport, string> = {
 }
 
 const clickArgs = { ref: 'e1' }
+const navigateArgs = { to: 'url', url: 'https://shop.example/' }
 const extracted = { label: 'Total', count: null }
 
 function answer(provider: Transport, sent: string) {
-  const toolCall = sent.includes('"click"')
+  const navigate = sent.includes('"navigate"')
+  const toolCall = navigate || sent.includes('"click"')
   const text = JSON.stringify(extracted)
   if (provider.startsWith('anthropic')) {
     const jsonTool = sent.includes('"name":"json"')
     return {
       id: 'msg_fixture', type: 'message', role: 'assistant', model: models[provider],
-      content: [toolCall
-        ? { type: 'tool_use', id: 'toolu_fixture', name: 'click', input: clickArgs }
-        : jsonTool
-          ? { type: 'tool_use', id: 'toolu_fixture', name: 'json', input: extracted }
-          : { type: 'text', text }],
+      content: [navigate
+        ? { type: 'tool_use', id: 'toolu_fixture', name: 'navigate', input: navigateArgs }
+        : toolCall
+          ? { type: 'tool_use', id: 'toolu_fixture', name: 'click', input: clickArgs }
+          : jsonTool
+            ? { type: 'tool_use', id: 'toolu_fixture', name: 'json', input: extracted }
+            : { type: 'text', text }],
       stop_reason: toolCall || jsonTool ? 'tool_use' : 'end_turn', stop_sequence: null,
       usage: { input_tokens: 10, output_tokens: 5 },
     }
@@ -113,6 +117,41 @@ async function toolCallBody(provider: Transport): Promise<Body> {
   return sentBody(fetch)
 }
 
+async function unionToolCall(provider: Transport) {
+  const { model, fetch } = transportModel(provider)
+  const result = await generateText({
+    model,
+    prompt: 'Open the shop.',
+    tools: {
+      navigate: tool({
+        description: 'Navigate the page',
+        inputSchema: jsonSchema<{ to: 'url'; url: string } | { to: 'back' }>({
+          oneOf: [
+            {
+              type: 'object',
+              properties: { to: { type: 'string', const: 'url' }, url: { type: 'string' } },
+              required: ['to', 'url'],
+              additionalProperties: false,
+            },
+            {
+              type: 'object',
+              properties: { to: { type: 'string', const: 'back' } },
+              required: ['to'],
+              additionalProperties: false,
+            },
+          ],
+        }),
+      }),
+    },
+    toolChoice: 'required',
+    maxRetries: 0,
+  })
+  return {
+    calls: result.toolCalls.map(call => [call.toolName, call.input]),
+    body: sentBody(fetch),
+  }
+}
+
 async function structuredOutputBody(provider: Transport): Promise<Body> {
   const { model, fetch } = transportModel(provider)
   const result = await generateText({
@@ -184,6 +223,23 @@ describe('the Anthropic Messages transport request body', () => {
       const body = await toolCallBody(provider)
       expect(body).toHaveProperty('system', [{ type: 'text', text: 'Act on the page.' }])
       expect(body).toHaveProperty(['tool_choice', 'type'], toolChoice)
+    },
+  )
+
+  // Anthropic refuses a tool input_schema with oneOf, anyOf or allOf at the top level.
+  it.each(['anthropic-compatible', 'anthropic-subscription'] as const)(
+    'over %s sends a union tool as one object schema and still reads its call',
+    async (provider) => {
+      const { calls, body } = await unionToolCall(provider)
+      const schema = ['tools', 0, 'input_schema']
+      expect(body).not.toHaveProperty([...schema, 'oneOf'])
+      expect(body).not.toHaveProperty([...schema, 'anyOf'])
+      expect(body).toHaveProperty([...schema, 'type'], 'object')
+      expect(body).toHaveProperty(
+        [...schema, 'properties', 'to'], { type: 'string', enum: ['url', 'back'] })
+      expect(body).toHaveProperty([...schema, 'properties', 'url'], { type: 'string' })
+      expect(body).toHaveProperty([...schema, 'required'], ['to'])
+      expect(calls).toEqual([['navigate', navigateArgs]])
     },
   )
 

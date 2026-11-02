@@ -22,6 +22,7 @@ import { extractJsonStrategy } from './middleware/extract-json.js'
 import { repairMiddleware } from './middleware/repair.js'
 import { retryMiddleware } from './middleware/retry.js'
 import { stripUnsupportedParamsMiddleware } from './middleware/strip-unsupported-params.js'
+import { objectRootToolSchemaMiddleware } from './middleware/object-root-tool-schema.js'
 import { toolSchemaMiddleware } from './middleware.js'
 import { getProvider, listProviders } from './providers/registry.js'
 import { validateProfile } from './validate.js'
@@ -188,6 +189,8 @@ export function createModel(
     ...(descriptor.unsupportedParams?.length
       ? [stripUnsupportedParamsMiddleware(descriptor.unsupportedParams)]
       : []),
+    // The Messages API refuses a tool input_schema with a top-level oneOf, anyOf or allOf.
+    ...(descriptor.modelAdapter === 'anthropic-messages' ? [objectRootToolSchemaMiddleware] : []),
     ...MIDDLEWARE,
     createMaskingMiddleware(mask),
   ]
