@@ -8,11 +8,13 @@ allowBuilds:
   protobufjs: false
   sharp: true
 
+minimumReleaseAgeExclude:
+  # Adopted inside pnpm's one-day release age; a fresh frozen install refuses it without this
+  - id-agent@1.2.0
+
 overrides:
   # WebdriverIO's config pins a glob line with a moderate advisory
   "@wdio/config>glob": 14.0.3
-  # id-agent pins zod exactly, and that version has a high advisory
-  id-agent>zod: 4.6.7
   # monaco-editor pins dompurify exactly, and that version has a critical and a high advisory
   monaco-editor>dompurify: 3.4.17
   # archiver's readdir-glob pins a minimatch line with a moderate advisory
