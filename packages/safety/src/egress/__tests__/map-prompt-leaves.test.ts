@@ -458,20 +458,140 @@ describe('masking file parts in tool results', () => {
   it('a tool-result content part of a type it does not know refuses the request', () => {
     const params = contentResultParams([{ type: 'future-part', text: `note ${PW}` }])
 
-    expect(() => mapPromptLeaves(params, maskPw))
-      .toThrow('masking: unrecognized tool-result content part future-part')
+    expect(() => mapPromptLeaves(params, maskPw)).toThrow(
+      'masking: unrecognized tool-result content part future-part',
+    )
   })
 
   it('file data of a type it does not know refuses the request', () => {
     const params = asParams({
-      prompt: [{
-        role: 'user',
-        content: [{ type: 'file', data: { type: 'future-data', text: PW }, mediaType: 'text/plain' }],
-      }],
+      prompt: [
+        {
+          role: 'user',
+          content: [
+            { type: 'file', data: { type: 'future-data', text: PW }, mediaType: 'text/plain' },
+          ],
+        },
+      ],
     })
 
-    expect(() => mapPromptLeaves(params, maskPw))
-      .toThrow('masking: unrecognized file data future-data')
+    expect(() => mapPromptLeaves(params, maskPw)).toThrow(
+      'masking: unrecognized file data future-data',
+    )
+  })
+})
+
+describe('parts the walker does not know', () => {
+  const unknownText = { type: 'future-part', text: `note ${PW}` }
+
+  it('a message with a role it does not know refuses the request', () => {
+    const params = asParams({ prompt: [{ role: 'future-role', content: `note ${PW}` }] })
+
+    expect(() => mapPromptLeaves(params, maskPw)).toThrow(
+      'masking: unrecognized message role future-role',
+    )
+  })
+
+  it('a user part of a type it does not know refuses the request', () => {
+    const params = asParams({ prompt: [{ role: 'user', content: [unknownText] }] })
+
+    expect(() => mapPromptLeaves(params, maskPw)).toThrow(
+      'masking: unrecognized user part future-part',
+    )
+  })
+
+  it('an assistant part of a type it does not know refuses the request', () => {
+    const params = asParams({ prompt: [{ role: 'assistant', content: [unknownText] }] })
+
+    expect(() => mapPromptLeaves(params, maskPw)).toThrow(
+      'masking: unrecognized assistant part future-part',
+    )
+  })
+
+  it('a tool part of a type it does not know refuses the request', () => {
+    const params = asParams({ prompt: [{ role: 'tool', content: [unknownText] }] })
+
+    expect(() => mapPromptLeaves(params, maskPw)).toThrow(
+      'masking: unrecognized tool part future-part',
+    )
+  })
+
+  it('a tool-result output of a type it does not know refuses the request', () => {
+    const params = asParams({
+      prompt: [
+        {
+          role: 'tool',
+          content: [
+            {
+              type: 'tool-result',
+              toolCallId: 'c1',
+              toolName: 'read',
+              output: { type: 'future-output', value: `note ${PW}` },
+            },
+          ],
+        },
+      ],
+    })
+
+    expect(() => mapPromptLeaves(params, maskPw)).toThrow(
+      'masking: unrecognized tool-result output future-output',
+    )
+  })
+
+  it('reasoning file data of a type it does not know refuses the request', () => {
+    const params = asParams({
+      prompt: [
+        {
+          role: 'assistant',
+          content: [
+            { type: 'reasoning-file', data: { type: 'text', text: PW }, mediaType: 'text/plain' },
+          ],
+        },
+      ],
+    })
+
+    expect(() => mapPromptLeaves(params, maskPw)).toThrow(
+      'masking: unrecognized reasoning file data text',
+    )
+  })
+})
+
+describe('masking reasoning files and custom assistant parts', () => {
+  const inline = 'aW5saW5lIGJ5dGVz'
+  const assistantParams = (content: unknown[]): ProviderRequestParams =>
+    asParams({ prompt: [{ role: 'assistant', content }] })
+  const sentAssistantParts = (params: ProviderRequestParams): unknown[] => {
+    const message = params.prompt[0]
+    if (message?.role !== 'assistant') throw new Error('expected assistant message')
+    return message.content
+  }
+
+  it('a reasoning file URL is masked through the raw URL, like a file part', () => {
+    const params = assistantParams([
+      { type: 'reasoning-file', data: urlData(`https://x.test/r/${PW}`), mediaType: 'image/png' },
+    ])
+
+    const [part] = sentAssistantParts(mapPromptLeaves(params, maskPw)) as {
+      data: { url: URL; originalUrl?: string }
+    }[]
+
+    expect(part?.data.originalUrl).toBe('https://x.test/r/[secret:PW]')
+    expect(part?.data.url.toString()).toBe('https://x.test/r/[secret:PW]')
+  })
+
+  it('reasoning file inline data and a custom part are sent as they are', () => {
+    const seen: string[] = []
+    const spy = (text: string): string => {
+      seen.push(text)
+      return bang(text)
+    }
+    const content = [
+      { type: 'reasoning-file', data: { type: 'data', data: inline }, mediaType: 'image/png' },
+      { type: 'custom', kind: 'test.opaque' },
+    ]
+
+    expect(sentAssistantParts(mapPromptLeaves(assistantParams(content), spy))).toEqual(content)
+    expect(seen).toEqual([])
   })
 })
 
@@ -492,7 +612,12 @@ function jsonResultParams(value: unknown): ProviderRequestParams {
       {
         role: 'tool',
         content: [
-          { type: 'tool-result', toolCallId: 'c1', toolName: 'read', output: { type: 'json', value } },
+          {
+            type: 'tool-result',
+            toolCallId: 'c1',
+            toolName: 'read',
+            output: { type: 'json', value },
+          },
         ],
       },
     ],
