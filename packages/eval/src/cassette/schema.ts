@@ -12,100 +12,88 @@ const digestSchema = z
   .string()
   .regex(LOWER_HEX_64, 'must be a 64-character lowercase hexadecimal digest')
 
-const pointSchema = z.object({ x: z.number(), y: z.number() }).passthrough()
-const boundingBoxSchema = z
-  .object({ x: z.number(), y: z.number(), width: z.number(), height: z.number() })
-  .passthrough()
-const viewportSchema = z.object({ width: z.number(), height: z.number() }).passthrough()
+const pointSchema = z.looseObject({ x: z.number(), y: z.number() })
+const boundingBoxSchema = z.looseObject({
+  x: z.number(),
+  y: z.number(),
+  width: z.number(),
+  height: z.number(),
+})
+const viewportSchema = z.looseObject({ width: z.number(), height: z.number() })
 
-const scopeSchema = z
-  .object({ tier: z.enum(['global', 'product', 'suite', 'test']), key: z.string() })
-  .passthrough()
+const scopeSchema = z.looseObject({
+  tier: z.enum(['global', 'product', 'suite', 'test']),
+  key: z.string(),
+})
 
 const anchorSchema = z.discriminatedUnion('t', [
-  z.object({ t: z.literal('page'), route: z.string() }).passthrough(),
-  z.object({ t: z.literal('flow'), name: z.string() }).passthrough(),
-  z
-    .object({
-      t: z.literal('el'),
-      role: z.string(),
-      name: z.string(),
-      ordinal: z.number().optional(),
-    })
-    .passthrough(),
-  z.object({ t: z.literal('platform'), platform: z.enum(['web', 'android', 'ios']) }).passthrough(),
-  z.object({ t: z.literal('selector'), literal: z.string() }).passthrough(),
-  z.object({ t: z.literal('error'), message: z.string() }).passthrough(),
-])
-
-const elementStateSchema = z
-  .object({
-    enabled: z.boolean(),
-    focused: z.boolean(),
-    visible: z.boolean(),
-    selected: z.boolean().optional(),
-    checked: z.boolean().optional(),
-    editable: z.boolean().optional(),
-    clickable: z.boolean().optional(),
-  })
-  .passthrough()
-
-const elementLabelsSchema = z
-  .object({
-    testId: z.string().optional(),
-    ariaLabel: z.string().optional(),
-    placeholder: z.string().optional(),
-    title: z.string().optional(),
-  })
-  .passthrough()
-
-const elementHierarchySchema = z
-  .object({
-    parentRef: z.string().optional(),
-    childRefs: z.array(z.string()).optional(),
-  })
-  .passthrough()
-
-const elementInfoSchema = z
-  .object({
-    ref: z.string(),
+  z.looseObject({ t: z.literal('page'), route: z.string() }),
+  z.looseObject({ t: z.literal('flow'), name: z.string() }),
+  z.looseObject({
+    t: z.literal('el'),
     role: z.string(),
     name: z.string(),
-    nameNormalized: z.string(),
-    value: z.string().optional(),
-    bounds: boundingBoxSchema.optional(),
-    center: pointSchema.optional(),
-    state: elementStateSchema,
-    labels: elementLabelsSchema,
-    hierarchy: elementHierarchySchema.optional(),
-    attributes: z.record(z.string(), z.string()),
-  })
-  .passthrough()
+    ordinal: z.number().optional(),
+  }),
+  z.looseObject({ t: z.literal('platform'), platform: z.enum(['web', 'android', 'ios']) }),
+  z.looseObject({ t: z.literal('selector'), literal: z.string() }),
+  z.looseObject({ t: z.literal('error'), message: z.string() }),
+])
 
-const scrollContextSchema = z
-  .object({
-    container: z.string().optional(),
-    offsetX: z.number(),
-    offsetY: z.number(),
-  })
-  .passthrough()
+const elementStateSchema = z.looseObject({
+  enabled: z.boolean(),
+  focused: z.boolean(),
+  visible: z.boolean(),
+  selected: z.boolean().optional(),
+  checked: z.boolean().optional(),
+  editable: z.boolean().optional(),
+  clickable: z.boolean().optional(),
+})
 
-const elementBoundsSchema = z
-  .object({
-    bounds: boundingBoxSchema,
-    center: pointSchema,
-    scrollContext: scrollContextSchema.optional(),
-  })
-  .passthrough()
+const elementLabelsSchema = z.looseObject({
+  testId: z.string().optional(),
+  ariaLabel: z.string().optional(),
+  placeholder: z.string().optional(),
+  title: z.string().optional(),
+})
 
-const screenScrollSchema = z
-  .object({
-    offsetX: z.number(),
-    offsetY: z.number(),
-    contentWidth: z.number(),
-    contentHeight: z.number(),
-  })
-  .passthrough()
+const elementHierarchySchema = z.looseObject({
+  parentRef: z.string().optional(),
+  childRefs: z.array(z.string()).optional(),
+})
+
+const elementInfoSchema = z.looseObject({
+  ref: z.string(),
+  role: z.string(),
+  name: z.string(),
+  nameNormalized: z.string(),
+  value: z.string().optional(),
+  bounds: boundingBoxSchema.optional(),
+  center: pointSchema.optional(),
+  state: elementStateSchema,
+  labels: elementLabelsSchema,
+  hierarchy: elementHierarchySchema.optional(),
+  attributes: z.record(z.string(), z.string()),
+})
+
+const scrollContextSchema = z.looseObject({
+  container: z.string().optional(),
+  offsetX: z.number(),
+  offsetY: z.number(),
+})
+
+const elementBoundsSchema = z.looseObject({
+  bounds: boundingBoxSchema,
+  center: pointSchema,
+  scrollContext: scrollContextSchema.optional(),
+})
+
+const screenScrollSchema = z.looseObject({
+  offsetX: z.number(),
+  offsetY: z.number(),
+  contentWidth: z.number(),
+  contentHeight: z.number(),
+})
 
 const metadataBaseShape = {
   coordSpace: z.enum(['viewport', 'content', 'screen']),
@@ -115,92 +103,81 @@ const metadataBaseShape = {
 }
 
 const screenMetadataSchema = z.discriminatedUnion('captureMode', [
-  z
-    .object({
-      ...metadataBaseShape,
-      captureMode: z.literal('full'),
-      imageWidth: z.number(),
-      imageHeight: z.number(),
-    })
-    .passthrough(),
-  z.object({ ...metadataBaseShape, captureMode: z.literal('textOnly') }).passthrough(),
+  z.looseObject({
+    ...metadataBaseShape,
+    captureMode: z.literal('full'),
+    imageWidth: z.number(),
+    imageHeight: z.number(),
+  }),
+  z.looseObject({ ...metadataBaseShape, captureMode: z.literal('textOnly') }),
 ])
 
-const screenStateSchema = z
-  .object({
-    platform: z.enum(['web', 'android', 'ios']),
-    tree: z.string(),
-    elements: z.array(elementInfoSchema),
-    refMap: z.record(z.string(), elementBoundsSchema),
-    url: z.string().optional(),
-    timestamp: z.number(),
-    metadata: screenMetadataSchema,
-  })
-  .passthrough()
+const screenStateSchema = z.looseObject({
+  platform: z.enum(['web', 'android', 'ios']),
+  tree: z.string(),
+  elements: z.array(elementInfoSchema),
+  refMap: z.record(z.string(), elementBoundsSchema),
+  url: z.string().optional(),
+  timestamp: z.number(),
+  metadata: screenMetadataSchema,
+})
 
-const briefLineSchema = z
-  .object({
-    id: z.string(),
-    kind: z.string(),
-    summary: z.string(),
-    trust: z.number(),
-    status: z.string(),
-    servedAsCanary: z.boolean(),
-    tier: z.string(),
-  })
-  .passthrough()
+const briefLineSchema = z.looseObject({
+  id: z.string(),
+  kind: z.string(),
+  summary: z.string(),
+  trust: z.number(),
+  status: z.string(),
+  servedAsCanary: z.boolean(),
+  tier: z.string(),
+})
 
-const readTraceSchema = z
-  .object({ id: z.string(), detailLevel: z.string(), bodyDigest: z.string() })
-  .passthrough()
+const readTraceSchema = z.looseObject({
+  id: z.string(),
+  detailLevel: z.string(),
+  bodyDigest: z.string(),
+})
 
-const cautionLineSchema = z
-  .object({ id: z.string(), anchors: z.array(anchorSchema), summary: z.string() })
-  .passthrough()
+const cautionLineSchema = z.looseObject({
+  id: z.string(),
+  anchors: z.array(anchorSchema),
+  summary: z.string(),
+})
 
-const servedBriefSchema = z
-  .object({
-    scope: scopeSchema,
-    asOfBuild: z.number(),
-    budget: z.number(),
-    truncation: z.string(),
-    channel1: z.array(briefLineSchema),
-    channel2: z.array(readTraceSchema),
-    channel3: z.array(cautionLineSchema),
-    briefDigest: z.string(),
-  })
-  .passthrough()
+const servedBriefSchema = z.looseObject({
+  scope: scopeSchema,
+  asOfBuild: z.number(),
+  budget: z.number(),
+  truncation: z.string(),
+  channel1: z.array(briefLineSchema),
+  channel2: z.array(readTraceSchema),
+  channel3: z.array(cautionLineSchema),
+  briefDigest: z.string(),
+})
 
-const samplingParamsSchema = z
-  .object({
-    temperature: z.number().optional(),
-    topP: z.number().optional(),
-    stop: z.array(z.string()).optional(),
-    seed: z.number().optional(),
-  })
-  .passthrough()
+const samplingParamsSchema = z.looseObject({
+  temperature: z.number().optional(),
+  topP: z.number().optional(),
+  stop: z.array(z.string()).optional(),
+  seed: z.number().optional(),
+})
 
-const modelIdentitySchema = z
-  .object({ provider: z.string(), modelId: z.string() })
-  .passthrough()
+const modelIdentitySchema = z.looseObject({ provider: z.string(), modelId: z.string() })
 
-const declaredModelProfileSchema = z
-  .object({
-    provider: z.string(),
-    modelId: z.string(),
-    vision: z.boolean(),
-    maxOutputTokens: z.number().optional(),
-    sampling: samplingParamsSchema.optional(),
-  })
-  .passthrough()
+const declaredModelProfileSchema = z.looseObject({
+  provider: z.string(),
+  modelId: z.string(),
+  vision: z.boolean(),
+  maxOutputTokens: z.number().optional(),
+  sampling: samplingParamsSchema.optional(),
+})
 
 const toolExchangeSchema = z
-  .object({
+  .looseObject({
     tool: z.string(),
     args: z.record(z.string(), z.unknown()),
     result: z.unknown(),
   })
-  .passthrough()
   .superRefine((exchange, context) => {
     if (!Object.prototype.hasOwnProperty.call(exchange, 'result')) {
       context.addIssue({
@@ -218,62 +195,51 @@ const annotationBaseShape = {
 }
 
 const actionAnnotationSchema = z.discriminatedUnion('kind', [
-  z
-    .object({
-      ...annotationBaseShape,
-      kind: z.literal('point'),
-      point: z
-        .object({ x: z.number(), y: z.number(), boundingBox: boundingBoxSchema.optional() })
-        .passthrough(),
-    })
-    .passthrough(),
-  z
-    .object({
-      ...annotationBaseShape,
-      kind: z.literal('path'),
-      path: z.object({ start: pointSchema, end: pointSchema }).passthrough(),
-    })
-    .passthrough(),
-  z
-    .object({
-      ...annotationBaseShape,
-      kind: z.literal('pinch'),
-      pinch: z.object({ center: pointSchema, scale: z.number() }).passthrough(),
-    })
-    .passthrough(),
-  z
-    .object({
-      ...annotationBaseShape,
-      kind: z.literal('region'),
-      region: z.object({ boundingBox: boundingBoxSchema }).passthrough(),
-    })
-    .passthrough(),
+  z.looseObject({
+    ...annotationBaseShape,
+    kind: z.literal('point'),
+    point: z.looseObject({
+      x: z.number(),
+      y: z.number(),
+      boundingBox: boundingBoxSchema.optional(),
+    }),
+  }),
+  z.looseObject({
+    ...annotationBaseShape,
+    kind: z.literal('path'),
+    path: z.looseObject({ start: pointSchema, end: pointSchema }),
+  }),
+  z.looseObject({
+    ...annotationBaseShape,
+    kind: z.literal('pinch'),
+    pinch: z.looseObject({ center: pointSchema, scale: z.number() }),
+  }),
+  z.looseObject({
+    ...annotationBaseShape,
+    kind: z.literal('region'),
+    region: z.looseObject({ boundingBox: boundingBoxSchema }),
+  }),
 ])
 
-const verifierVerdictSchema = z
-  .object({ pass: z.boolean(), reasoning: z.string() })
-  .passthrough()
+const verifierVerdictSchema = z.looseObject({ pass: z.boolean(), reasoning: z.string() })
 
-const artifactRefSchema = z
-  .object({
-    id: z.string().min(1),
-    sha: digestSchema,
-    evidenceIncomplete: z.boolean().optional(),
-  })
-  .passthrough()
+const artifactRefSchema = z.looseObject({
+  id: z.string().min(1),
+  sha: digestSchema,
+  evidenceIncomplete: z.boolean().optional(),
+})
 
-const verdictEvidenceSchema = z
-  .object({
-    citedSteps: z.array(z.number()),
-    citedAnchors: z.array(anchorSchema),
-    citedArtifacts: z.array(artifactRefSchema),
-    rationale: z.string(),
-  })
-  .passthrough()
+const verdictEvidenceSchema = z.looseObject({
+  citedSteps: z.array(z.number()),
+  citedAnchors: z.array(anchorSchema),
+  citedArtifacts: z.array(artifactRefSchema),
+  rationale: z.string(),
+})
 
-const verdictAttributionSchema = z
-  .object({ records: z.array(z.string()), anchors: z.array(anchorSchema) })
-  .passthrough()
+const verdictAttributionSchema = z.looseObject({
+  records: z.array(z.string()),
+  anchors: z.array(anchorSchema),
+})
 
 const verdictBaseShape = {
   // Mirrors the schema `verdict.ts` producer discriminator; both change together.
@@ -282,39 +248,35 @@ const verdictBaseShape = {
   evidence: verdictEvidenceSchema,
   attribution: verdictAttributionSchema.optional(),
   memoryMisdirectionRuledOut: z.boolean(),
-  // Validated, not passed through: the verdict object is `.passthrough()`.
+  // Validated, not passed through: the verdict object is loose.
   memoryOnPath: z.array(MemoryOnPathEntrySchema).optional(),
   perTest: z.number(),
 }
 
 const verdictSchema = z.discriminatedUnion('class', [
-  z
-    .object({
-      ...verdictBaseShape,
-      class: z.literal('test_bug'),
-      subtype: z
-        .enum(['stale_selector', 'outdated_flow', 'bad_assertion', 'wrong_expected_value'])
-        .optional(),
-    })
-    .passthrough(),
-  z.object({ ...verdictBaseShape, class: z.literal('app_bug') }).passthrough(),
-  z.object({ ...verdictBaseShape, class: z.literal('environment') }).passthrough(),
-  z.object({ ...verdictBaseShape, class: z.literal('flake') }).passthrough(),
-  z.object({ ...verdictBaseShape, class: z.literal('config_error') }).passthrough(),
-  z.object({ ...verdictBaseShape, class: z.literal('llm_error') }).passthrough(),
-  z.object({ ...verdictBaseShape, class: z.literal('unknown') }).passthrough(),
-  z.object({ ...verdictBaseShape, class: z.literal('timeout') }).passthrough(),
+  z.looseObject({
+    ...verdictBaseShape,
+    class: z.literal('test_bug'),
+    subtype: z
+      .enum(['stale_selector', 'outdated_flow', 'bad_assertion', 'wrong_expected_value'])
+      .optional(),
+  }),
+  z.looseObject({ ...verdictBaseShape, class: z.literal('app_bug') }),
+  z.looseObject({ ...verdictBaseShape, class: z.literal('environment') }),
+  z.looseObject({ ...verdictBaseShape, class: z.literal('flake') }),
+  z.looseObject({ ...verdictBaseShape, class: z.literal('config_error') }),
+  z.looseObject({ ...verdictBaseShape, class: z.literal('llm_error') }),
+  z.looseObject({ ...verdictBaseShape, class: z.literal('unknown') }),
+  z.looseObject({ ...verdictBaseShape, class: z.literal('timeout') }),
 ])
 
-const assertValueSchema = z
-  .object({
-    source: z.string(),
-    op: z.enum(['isNull', 'isDefined', 'equals', 'notEquals', 'gt', 'lt', 'contains']),
-    expected: z.string().optional(),
-    actual: z.union([z.string(), z.null()]).optional(),
-    passed: z.boolean(),
-  })
-  .passthrough()
+const assertValueSchema = z.looseObject({
+  source: z.string(),
+  op: z.enum(['isNull', 'isDefined', 'equals', 'notEquals', 'gt', 'lt', 'contains']),
+  expected: z.string().optional(),
+  actual: z.union([z.string(), z.null()]).optional(),
+  passed: z.boolean(),
+})
 
 const inputLegSchema = z
   .object({

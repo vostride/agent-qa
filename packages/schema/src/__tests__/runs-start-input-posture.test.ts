@@ -69,7 +69,7 @@ describe('RunsStartInput refuses a concurrency override', () => {
   it('never parses a concurrency key THROUGH — the refusal is not a silent drop', () => {
     // The other failure mode a strict object rules out: accepting the request and discarding the
     // field. Asserted on the parsed data of the ONE request that does parse, so a schema loosened
-    // to `.passthrough()` (which would carry the caller's field onward) reds here as well as above.
+    // to `.loose()` (which would carry the caller's field onward) reds here as well as above.
     const parsed = RunsStartInputSchema.safeParse(VALID_REQUEST)
 
     expect(parsed.success).toBe(true)

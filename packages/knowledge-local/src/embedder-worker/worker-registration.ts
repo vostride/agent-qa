@@ -423,10 +423,7 @@ function requestWorker(
             }
             const parsedBody = JSON.parse(Buffer.concat(chunks).toString('utf8')) as unknown
             if (response.statusCode !== 200) {
-              const message = z
-                .object({ error: z.string() })
-                .passthrough()
-                .safeParse(parsedBody)
+              const message = z.looseObject({ error: z.string() }).safeParse(parsedBody)
               throw new Error(
                 message.success
                   ? `Embedder worker rejected the request: ${message.data.error}`
