@@ -556,11 +556,10 @@ export function mcpMountPlanFor(config: unknown): McpCoHostMountPlan {
   }
 
   const enabled = block.enabled !== false
-  // The port clamp lives here so the port decision is drivable too. Anything that is not an integer
-  // inside the schema's own 1..65535 range falls back to the constant the standalone face binds.
+  // The schema's 0..65535 range, where 0 asks the OS for a port; anything else binds the default.
   const port = typeof block.port === 'number'
     && Number.isInteger(block.port)
-    && block.port >= 1
+    && block.port >= 0
     && block.port <= 65535
     ? block.port
     : MCP_HTTP_DEFAULT_PORT

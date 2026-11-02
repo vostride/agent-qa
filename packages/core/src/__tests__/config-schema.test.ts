@@ -1267,6 +1267,12 @@ describe('AgentQaConfigSchema — retired keys are strictly unknown', () => {
     expect(DashboardConfigSchema.safeParse({ baseUrl: 'javascript:alert(1)' }).success, 'the live-link base stays http(s)').toBe(false)
     expect(DashboardConfigSchema.safeParse({ host: '0.0.0.0' }).success, 'the bind refusal stays a runtime guard').toBe(true)
   })
+
+  it('services.mcp.port 0 asks for an ephemeral port', () => {
+    const result = AgentQaConfigSchema.safeParse(withWorkspace({ services: { mcp: { enabled: true, port: 0 } } }))
+    expect(result.success).toBe(true)
+    if (result.success) expect(result.data.services?.mcp).toEqual({ enabled: true, port: 0 })
+  })
 })
 
 // A target's `environment` is a label: local, shared, production or undeclared.
