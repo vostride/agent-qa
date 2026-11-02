@@ -21,10 +21,18 @@ export function createFakeMedia(duration = 60, { holdSeeks = false } = {}) {
   const seeks: number[] = []
   // Each write is recorded with the readyState and seeking flag it landed on.
   const writes: { at: number; readyState: number; seeking: boolean }[] = []
+  // The media event being dispatched when each write landed, or '' when none was.
+  const writtenDuring: string[] = []
+  let dispatching = ''
+  const dispatch = (type: string) => {
+    dispatching = type
+    try { events.dispatchEvent(new Event(type)) } finally { dispatching = '' }
+  }
   return {
     get currentTime() { return time },
     set currentTime(value: number) {
       writes.push({ at: value, readyState, seeking })
+      writtenDuring.push(dispatching)
       time = value; seeks.push(value)
       if (holdSeeks) seeking = true
     },
@@ -44,9 +52,21 @@ export function createFakeMedia(duration = 60, { holdSeeks = false } = {}) {
       if (type === 'loadeddata') readyState = Math.max(readyState, 2)
       if (type === 'seeked') seeking = false
       if (type === 'ended') paused = true
-      events.dispatchEvent(new Event(type))
+      dispatch(type)
+    },
+    // Chromium's preload='metadata' suspended start: HAVE_ENOUGH_DATA at once, then these in order.
+    suspendedStart() {
+      readyState = 4
+      for (const type of ['resize', 'loadedmetadata', 'loadeddata', 'canplay']) dispatch(type)
     },
     seeks,
     writes,
-  } satisfies MediaFacade & { fire: unknown; seeks: number[]; writes: unknown }
+    writtenDuring,
+  } satisfies MediaFacade & {
+    fire: unknown
+    suspendedStart: unknown
+    seeks: number[]
+    writes: unknown
+    writtenDuring: string[]
+  }
 }

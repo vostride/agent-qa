@@ -394,6 +394,13 @@ test('PLAYER-SEEK-AWAITS-DATA: a seek requested between loadedmetadata and loade
   expect(media.writes).toHaveLength(1)
 })
 
+test('PLAYER-SEEK-IN-MEDIA-EVENT: the waiting seek lands inside the first media event', () => {
+  const media = video({ playhead: null, seekFraction: 0.25, seekRevision: 1 })
+  act(() => media.suspendedStart())
+  expect(media.writes).toEqual([{ at: 5, readyState: 4, seeking: false }])
+  expect(media.writtenDuring).toEqual(['resize'])
+})
+
 test('PLAYER-SEEK-ONE-IN-FLIGHT: a seek requested while the media is seeking waits for seeked and applies only the latest target', () => {
   group.member.recording = recording()
   model = buildTimelineModel(group)
@@ -401,14 +408,14 @@ test('PLAYER-SEEK-ONE-IN-FLIGHT: a seek requested while the media is seeking wai
   const props = { source: 'video' as const, recording: recording(), media, playhead: model.markers[1]! }
   render({ ...props, seekFraction: 0.25, seekRevision: 1 })
   metadata(media)
-  expect(media.writes.map(write => write.at)).toEqual([10])
+  expect(media.writes.map(write => write.at)).toEqual([5])
   render({ ...props, seekFraction: 0.5, seekRevision: 2 })
   render({ ...props, seekFraction: 0.75, seekRevision: 3 })
-  expect(media.writes.map(write => write.at)).toEqual([10])
+  expect(media.writes.map(write => write.at)).toEqual([5])
   act(() => media.fire('seeked'))
-  expect(media.writes.map(write => write.at)).toEqual([10, 15])
+  expect(media.writes.map(write => write.at)).toEqual([5, 15])
   act(() => media.fire('seeked'))
-  expect(media.writes.map(write => write.at)).toEqual([10, 15])
+  expect(media.writes.map(write => write.at)).toEqual([5, 15])
   expect(media.writes.every(write => !write.seeking && write.readyState >= 2)).toBe(true)
   expect(media.currentTime).toBe(15)
 })
