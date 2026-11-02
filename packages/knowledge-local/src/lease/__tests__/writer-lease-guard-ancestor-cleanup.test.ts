@@ -91,6 +91,31 @@ describe('a lease-guard claim whose ancestors another section removes', () => {
     expect(existsSync(join(knowledgeRoot, 'memory'))).toBe(false)
   })
 
+  it('pauses before it retries a raced staging mkdir', () => {
+    const events: string[] = []
+    let raced = false
+    fault.onMkdir = (path, recursive) => {
+      if (recursive || !path.includes('lease-guard.tmp-')) return
+      events.push('stage')
+      if (raced) return
+      raced = true
+      rmdirSync(queue())
+      rmdirSync(dirname(queue()))
+      throw errno('EINVAL', 'invalid argument', path)
+    }
+    const wait = vi.spyOn(Atomics, 'wait').mockImplementation(() => {
+      events.push('wait')
+      return 'timed-out'
+    })
+
+    try {
+      expect(heartbeatLease({ knowledgeRoot, leaseId })).toMatchObject({ kind: 'heartbeated' })
+    } finally {
+      wait.mockRestore()
+    }
+    expect(events).toEqual(['stage', 'wait', 'stage'])
+  })
+
   it('throws an EINVAL from the staging mkdir while its parent still stands', () => {
     fault.onMkdir = (path, recursive) => {
       if (recursive || !path.includes('lease-guard.tmp-')) return
