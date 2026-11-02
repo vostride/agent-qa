@@ -2,16 +2,16 @@ import { z } from 'zod'
 
 export const AttributePredicateSchema = z.union([
   z.string(),
-  z.object({
+  z.strictObject({
     regex: z.string().min(1),
-  }).strict(),
+  }),
 ])
 
-export const AnalyticsSchema = z.object({
+export const AnalyticsSchema = z.strictObject({
   privacy: z.literal(true).optional(),
-  passRateScope: z.object({
+  passRateScope: z.strictObject({
     attributes: z.record(z.string(), AttributePredicateSchema).optional(),
-  }).strict().optional(),
-}).strict()
+  }).optional(),
+})
 
 export type AnalyticsConfig = z.infer<typeof AnalyticsSchema>

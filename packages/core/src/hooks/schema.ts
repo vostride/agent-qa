@@ -4,7 +4,7 @@ import { isCanonicalHookId } from '@vostride/agent-qa-ids'
 
 const HookDurationString = z.string()
   .refine((v) => ms(v as ms.StringValue) !== undefined, {
-    message: 'Invalid duration format (e.g., "30s", "2m", "1h")',
+    error: 'Invalid duration format (e.g., "30s", "2m", "1h")',
   })
   .transform((v) => ms(v as ms.StringValue) as number)
 
@@ -12,7 +12,7 @@ const HOOK_ID_MESSAGE = 'Hook ID must be h_ followed by 10 id-agent words'
 
 export const HookDefinitionSchema = z.object({
   id: z.string().refine((value) => isCanonicalHookId(value), {
-    message: HOOK_ID_MESSAGE,
+    error: HOOK_ID_MESSAGE,
   }),
   name: z.string().min(1),
   runtime: z.enum(['node', 'bun', 'python', 'bash']),
@@ -31,14 +31,14 @@ export const HooksFileSchema = z.object({
   for (let i = 0; i < val.hooks.length; i++) {
     if (ids.has(val.hooks[i].id)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['hooks', i, 'id'],
         message: `Duplicate hook id: "${val.hooks[i].id}"`,
       })
     }
     if (names.has(val.hooks[i].name)) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         path: ['hooks', i, 'name'],
         message: `Duplicate hook name: "${val.hooks[i].name}"`,
       })

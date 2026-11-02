@@ -1,8 +1,8 @@
 import { z } from 'zod'
 
 // Refusals for removed config keys. This scan is a zod pipe PRE-stage in front of the strict root
-// schema — a superRefine chained after .strict() never runs when strict rejects a value (verified
-// on zod 4.6.7), so these messages must fire first. The scan only ADDS issues; the strict stage-B
+// schema — a superRefine chained after a strict object never runs when strict rejects a value
+// (verified on zod 4.6.7), so these messages must fire first. The scan only ADDS issues; the strict stage-B
 // parse remains the acceptance authority. Every issue carries params.retired. Keys removed in v2
 // also carry params.hardCut, so the CLI closes the error with the hard-cut steps; any other removed
 // key closes with the ordinary key fix.
@@ -104,7 +104,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
 
   if (isPlainObject(value.services) && value.services.memory !== undefined) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true, hardCut: true },
       path: ['services', 'memory'],
       message: 'services.memory was removed in v2 — the memory config surface collapsed into the top-level knowledge block',
@@ -115,7 +115,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
         const message = RETIRED_MEMORY_KEY_MESSAGES[key]
         if (message) {
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             params: { retired: true, hardCut: true },
             path: ['services', 'memory', key],
             message,
@@ -127,7 +127,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
 
   if (isPlainObject(value.workspace) && value.workspace.agentRules !== undefined) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true, hardCut: true },
       path: ['workspace', 'agentRules'],
       message: 'workspace.agentRules was removed in v2 — rules dissolve into agent-qa-knowledge/policies/<scope>.md files',
@@ -141,7 +141,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
         if (Object.hasOwn(RETIRED_EVAL_KEY_MESSAGES, key)) {
           named++
           ctx.addIssue({
-            code: z.ZodIssueCode.custom,
+            code: 'custom',
             params: { retired: true },
             path: ['eval', key],
             message: RETIRED_EVAL_KEY_MESSAGES[key],
@@ -151,7 +151,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     }
     if (named === 0) {
       ctx.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: 'custom',
         params: { retired: true },
         path: ['eval'],
         message: RETIRED_EVAL_BLOCK_MESSAGE,
@@ -161,7 +161,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
 
   if (Object.hasOwn(value, 'allowProduction')) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true },
       path: ['allowProduction'],
       message: RETIRED_ALLOW_PRODUCTION_MESSAGE,
@@ -170,7 +170,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
 
   if (isPlainObject(value.registry) && Object.hasOwn(value.registry, 'providers')) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true },
       path: ['registry', 'providers'],
       message: RETIRED_REGISTRY_PROVIDERS_MESSAGE,
@@ -181,7 +181,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     for (const [name, device] of Object.entries(value.registry.devices)) {
       if (isPlainObject(device) && Object.hasOwn(device, 'transport')) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           params: { retired: true },
           path: ['registry', 'devices', name, 'transport'],
           message: RETIRED_DEVICE_TRANSPORT_MESSAGE,
@@ -194,7 +194,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     for (const [name, target] of Object.entries(value.registry.targets)) {
       if (isPlainObject(target) && isPlainObject(target.app) && Object.hasOwn(target.app, 'browserstack')) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           params: { retired: true },
           path: ['registry', 'targets', name, 'app', 'browserstack'],
           message: RETIRED_APP_BROWSERSTACK_MESSAGE,
@@ -209,7 +209,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     Object.hasOwn(value.services.cache, 'ttl')
   ) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true },
       path: ['services', 'cache', 'ttl'],
       message: RETIRED_CACHE_TTL_MESSAGE,
@@ -220,7 +220,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     for (const key of Object.keys(value.services.mcp)) {
       if (Object.hasOwn(RETIRED_MCP_KEY_MESSAGES, key)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           params: { retired: true },
           path: ['services', 'mcp', key],
           message: RETIRED_MCP_KEY_MESSAGES[key],
@@ -235,7 +235,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     value.services.accessibility.runAfter === 'navigation'
   ) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true },
       path: ['services', 'accessibility', 'runAfter'],
       message: RETIRED_RUN_AFTER_NAVIGATION_MESSAGE,
@@ -246,7 +246,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
     for (const key of Object.keys(value.knowledge)) {
       if (Object.hasOwn(RETIRED_KNOWLEDGE_KEY_MESSAGES, key)) {
         ctx.addIssue({
-          code: z.ZodIssueCode.custom,
+          code: 'custom',
           params: { retired: true },
           path: ['knowledge', key],
           message: RETIRED_KNOWLEDGE_KEY_MESSAGES[key],
@@ -257,7 +257,7 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
 
   if (hasRetiredPlannerKey(value.use)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true, hardCut: true },
       path: ['use', 'planner', RETIRED_PLANNER_KEY],
       message: RETIRED_MAX_SUB_ACTIONS_MESSAGE,
@@ -292,7 +292,7 @@ export function refuseRetiredLocalBindings(raw: unknown, filePath: string): void
 export const retiredUseKeyScan = z.any().superRefine((value, ctx) => {
   if (hasRetiredPlannerKey(value)) {
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true, hardCut: true },
       path: ['planner', RETIRED_PLANNER_KEY],
       message: RETIRED_MAX_SUB_ACTIONS_MESSAGE,
@@ -306,7 +306,7 @@ export const retiredStepKeyScan = z.any().superRefine((value, ctx) => {
   for (const [key, message] of Object.entries(RETIRED_STEP_KEY_MESSAGES)) {
     if (!Object.hasOwn(value, key)) continue
     ctx.addIssue({
-      code: z.ZodIssueCode.custom,
+      code: 'custom',
       params: { retired: true },
       path: [key],
       message,
