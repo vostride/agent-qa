@@ -2,7 +2,6 @@
 
 import { spawn, spawnSync, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
-import { createServer } from 'node:net'
 import { tmpdir } from 'node:os'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
@@ -114,18 +113,12 @@ function expectCleanTrap(path: string, stderr: string): void {
   expect(stderr).not.toContain(trap.TRAP_SENTINEL)
 }
 
-async function freePort(): Promise<number> {
-  const server = createServer()
-  await new Promise<void>((listening) => server.listen(0, '127.0.0.1', listening))
-  const address = server.address()
-  await new Promise<void>((closed) => server.close(() => closed()))
-  if (address === null || typeof address === 'string') throw new Error('no free port')
-  return address.port
-}
+const DASHBOARD_READY_LINE = /Dashboard running at http:\/\/localhost:(\d+)\n/u
+const MCP_LISTENING_LINE = /MCP endpoint listening on http:\/\/127\.0\.0\.1:(\d+)\//u
 
 // ---- The populated project ------------------------------------------------------------------------
 
-function discoveryProject(mcpPort: number) {
+function discoveryProject() {
   const f = markFixture()
   cleanups.push(() => rmSync(f.root, { recursive: true, force: true }))
   writeFileSync(f.configPath, [
@@ -133,7 +126,7 @@ function discoveryProject(mcpPort: number) {
     '  hooksFile: hooks.yaml', '  envFile: .env', '  secretsFile: .env.secrets.local',
     // No `safety` block and no MCP token list; a declared `services.mcp` block mounts the endpoint.
     'use:', '  mobile:', '    appState: preserve',
-    'services:', '  mcp:', `    port: ${String(mcpPort)}`, '',
+    'services:', '  mcp:', '    port: 0', '',
   ].join('\n'))
   writeFileSync(join(f.root, 'hooks.yaml'), 'hooks: []\n')
   writeFileSync(join(f.root, '.env'), '')
@@ -273,7 +266,7 @@ const ALL_ANSWERED = [...EIGHT_READS.map((read) => read.tool),
 describe('COLD-MCP-NO-RUNTIME', () => {
   it('the stdio `agent-qa mcp` door starts, lists and answers every populated read with no runtime load', async () => {
     expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}; run \`pnpm build\` first`).toBe(true)
-    const p = discoveryProject(await freePort())
+    const p = discoveryProject()
     const report = join(scratch('stdio'), 'trap.jsonl')
     const transport = new StdioClientTransport({
       command: process.execPath, args: ['--import', trap.TRAP_URL, CLI_ENTRY, 'mcp'], cwd: p.root,
@@ -296,11 +289,10 @@ describe('COLD-MCP-NO-RUNTIME', () => {
 
   it('the dashboard co-hosted MCP door answers every read and both evidence arms with no runtime load', async () => {
     expect(existsSync(CLI_ENTRY), `the built CLI entry is missing at ${CLI_ENTRY}; run \`pnpm build\` first`).toBe(true)
-    const [dashboardPort, mcpPort] = [await freePort(), await freePort()]
-    const p = discoveryProject(mcpPort)
+    const p = discoveryProject()
     const report = join(scratch('cohost'), 'trap.jsonl')
     const child: ChildProcess = spawn(process.execPath, [
-      '--import', trap.TRAP_URL, CLI_ENTRY, 'dashboard', '--port', String(dashboardPort), '--db', p.dbPath,
+      '--import', trap.TRAP_URL, CLI_ENTRY, 'dashboard', '--port', '0', '--db', p.dbPath,
     ], { cwd: p.root, env: trapEnv(report, scratch('models'), { AGENT_QA_READER: READER }),
       stdio: ['ignore', 'pipe', 'pipe'] })
     let stdout = ''
@@ -316,12 +308,17 @@ describe('COLD-MCP-NO-RUNTIME', () => {
     cleanups.push(() => client.close().catch(() => {}))
     await underTrap(report, () => stderr, async () => {
       const deadline = Date.now() + 45_000
-      while (!stdout.includes('MCP endpoint listening')) {
+      while (!MCP_LISTENING_LINE.test(stdout)) {
         if (child.exitCode !== null || Date.now() > deadline) {
           throw new Error(`the dashboard never mounted MCP (exit ${String(child.exitCode)})`)
         }
         await new Promise((tick) => setTimeout(tick, 100))
       }
+      const dashboardPort = Number(DASHBOARD_READY_LINE.exec(stdout)?.[1])
+      const mcpPort = Number(MCP_LISTENING_LINE.exec(stdout)?.[1])
+      expect(dashboardPort, `the dashboard names the port it bound: ${stdout}`).toBeGreaterThan(0)
+      expect(mcpPort, `the MCP endpoint names the port it bound: ${stdout}`).toBeGreaterThan(0)
+      expect(mcpPort, 'the MCP endpoint is its own listener').not.toBe(dashboardPort)
       await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${String(mcpPort)}/mcp`), {
         requestInit: { headers: { authorization: `Bearer ${READER}` } },
       }))
