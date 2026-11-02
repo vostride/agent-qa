@@ -78,6 +78,16 @@ describe('createTokenAccounting — estimate two-signal (chars/4 + per-image)', 
     const after = acc.estimate([userText(TEXT), ...shot, ...file])
     expect(after - before).toBeGreaterThanOrEqual(2 * perImageTokens)
   })
+
+  it('charges an inline file in a tool result as an image only when its media type is an image', () => {
+    const perImageTokens = 100_000
+    const acc = createTokenAccounting({ getCapabilities: fixedCaps(KNOWN_CAPS), perImageTokens })
+    const pdf = toolExchange([{
+      toolCallId: 'c1', toolName: 'download', output: fileOutput(FIXTURE_IMAGE_DATA, 'application/pdf'),
+    }])
+    const before = acc.estimate([userText(TEXT)])
+    expect(acc.estimate([userText(TEXT), ...pdf]) - before).toBeLessThan(perImageTokens)
+  })
 })
 
 describe('createTokenAccounting — recordUsage anchor', () => {

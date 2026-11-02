@@ -258,12 +258,17 @@ function rewriteHistoricalPart(part: ToolPart, seenHashes: Set<string>): ToolPar
   return stripped === part.output ? part : { ...part, output: stripped }
 }
 
-/** Replace historical image parts (`image-data`, inline-data `file`) with a text marker. */
+export function isImageMediaType(mediaType: unknown): boolean {
+  return typeof mediaType === 'string' && (mediaType === 'image' || mediaType.startsWith('image/'))
+}
+
+/** Replace historical image parts (`image-data`, inline-data image `file`) with a text marker. */
 function stripScreenshots(output: ToolOutput): ToolOutput {
   if (output.type !== 'content') return output
   let changed = false
   const value = output.value.map(item => {
-    if (item.type === 'image-data' || (item.type === 'file' && item.data.type === 'data')) {
+    if (item.type === 'image-data'
+      || (item.type === 'file' && item.data.type === 'data' && isImageMediaType(item.mediaType))) {
       changed = true
       return { type: 'text' as const, text: SCREENSHOT_OMITTED }
     }
