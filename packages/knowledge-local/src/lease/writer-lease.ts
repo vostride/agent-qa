@@ -1197,6 +1197,7 @@ function withLeaseGuard<T>(
           const raced = code === 'ENOENT' || (code === 'EINVAL' && !existsSync(parent))
           if (!raced || monotonicElapsedMs(claimedAtNs) >= LEASE_GUARD_WAIT_MS) throw error
         }
+        Atomics.wait(MUTATION_LOCK_TERMINATION_WAIT, 0, 0, LEASE_GUARD_POLL_MS)
       }
       writeFileSync(join(staged, ownerFile), raw, { encoding: 'utf8', flag: 'wx' })
       while (true) {
