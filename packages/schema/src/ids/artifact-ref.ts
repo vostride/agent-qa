@@ -26,7 +26,7 @@ export const EvidenceArtifactRefSchema = z.strictObject({
   sha: z.string().regex(/^[a-f0-9]{64}$/),
   evidenceIncomplete: z.boolean().optional(),
 }).refine(ref => EVIDENCE_REF_PREFIXES.some(prefix => ref.id === `${prefix}${ref.sha}`), {
-  message: 'Evidence ref id must contain its exact SHA and a known prefix',
+  error: 'Evidence ref id must contain its exact SHA and a known prefix',
 })
 
 export type EvidenceArtifactRef = z.infer<typeof EvidenceArtifactRefSchema>

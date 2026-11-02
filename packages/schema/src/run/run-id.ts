@@ -12,7 +12,7 @@ export const asRunId = (value: string): RunId => value as RunId
 export const runIdSchema = z
   .string()
   .refine((value) => slugBranch(value) === value, {
-    message:
+    error:
       'a run id must be usable, exactly as written, as the name of the run\'s own directory: '
       + 'it may not be empty, and may not carry path separators, parent-directory segments or '
       + 'control characters',

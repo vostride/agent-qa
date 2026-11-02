@@ -18,7 +18,7 @@ export type PatchOpKind = (typeof PATCH_OP_KINDS)[number]
 const JsonPointerSchema = z
   .string()
   .refine((value) => value === '' || value.startsWith('/'), {
-    message: 'path must be a JSON Pointer: the empty string, or a string starting with "/"',
+    error: 'path must be a JSON Pointer: the empty string, or a string starting with "/"',
   })
 
 // Always a string: the CST applier preserves untouched bytes only because each write is one scalar.

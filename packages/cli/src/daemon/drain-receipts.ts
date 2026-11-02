@@ -16,7 +16,7 @@ export const DRAIN_SESSION_RECEIPTS_FILE = 'drain-session-receipts.jsonl'
 export const drainSessionReceiptSchema = z
   .object({
     ts: z.string().min(1),
-    sessionId: z.string().uuid(),
+    sessionId: z.uuid(),
     holderPid: z.number().int().positive(),
     epoch: z.number().int().nonnegative(),
     candidateIds: z.array(z.string()).refine(

@@ -299,7 +299,7 @@ export const MarkPreviewBasisSchema = z.object({
   /** The addressed prior mark's ordinal as observed. Not a lock: runs.mark re-plans under its transaction. */
   priorMarkOrdinal: z.number().int().positive().optional(),
 }).strict().refine(basis => basis.priorMarkOrdinal === undefined || basis.priorMarkOrdinal <= basis.ledgerOrdinal,
-  { message: 'the prior mark lies inside the observed ledger', path: ['priorMarkOrdinal'] })
+  { error: 'the prior mark lies inside the observed ledger', path: ['priorMarkOrdinal'] })
 export type MarkPreviewBasis = z.infer<typeof MarkPreviewBasisSchema>
 
 export const MarkPreviewLatestSchema = z.discriminatedUnion('kind', [

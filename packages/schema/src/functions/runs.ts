@@ -126,7 +126,7 @@ export const RUNS_LIST_DEFAULT_LIMIT = 20
 export const RUNS_LIST_MAX_LIMIT = 200
 
 const listTextFilterSchema = z.string().refine((value) => value.trim().length > 0, {
-  message: 'must name something: an empty or whitespace-only filter matches nothing',
+  error: 'must name something: an empty or whitespace-only filter matches nothing',
 })
 
 // `.int()` is safe-integer bounded in zod 4, so an unrepresentable epoch or limit is refused
@@ -543,7 +543,7 @@ const VerifierVerdictSchema = z.object({
 }).strict() satisfies z.ZodType<VerifierVerdict>
 
 // Not an integer: the producer is a `performance.now()` delta, so `.int()` would refuse real runs.
-const durationMsSchema = z.number().finite().nonnegative()
+const durationMsSchema = z.number().nonnegative()
 
 export const RunDetailMemberSchema = z.object({
   testIndex: z.number().int().nonnegative(),
@@ -604,7 +604,7 @@ export const RunDetailSubActionSchema = z.object({
   screenStateHashAfter: z.string().optional(),
   artifactRefs: z.array(ArtifactRefSchema).optional(),
   ariaEvidence: evidenceEntryOfKind('aria').optional(),
-  recordingOffsetMs: z.number().finite().nonnegative().optional(),
+  recordingOffsetMs: z.number().nonnegative().optional(),
 }).strict() satisfies z.ZodType<RunDetailSubAction>
 
 export const RunTokenTotalsSchema = z.object({
@@ -635,7 +635,7 @@ export const RunsArtifactInputSchema = z.object({
     start: z.number().int().nonnegative(),
     end: z.number().int().nonnegative().optional(),
   }).refine(range => range.end === undefined || range.end >= range.start, {
-    message: 'Range end must not be below start',
+    error: 'Range end must not be below start',
   }).optional(),
 }).strict()
 
@@ -667,7 +667,7 @@ export const RunsEvidenceInputSchema = z.strictObject({
   subActionIndex: z.number().int().nonnegative().optional(),
   kind: EvidenceKindSchema,
 }).refine(value => value.kind === 'aria' || value.subActionIndex === undefined, {
-  message: 'Only ARIA evidence addresses a sub-action',
+  error: 'Only ARIA evidence addresses a sub-action',
 })
 export type RunsEvidenceInput = z.infer<typeof RunsEvidenceInputSchema>
 
@@ -704,7 +704,7 @@ export const RunsEvidenceResultSchema = z.union([
   if (value.outcome === 'read-error') return value.capture === undefined || value.capture.kind === value.address.kind
   if (value.evidence.kind !== value.address.kind) return false
   return value.outcome !== 'ready' || (value.evidence.state === 'present' && value.document.kind === value.address.kind)
-}, { message: 'Evidence, document and address must describe the same captured kind' })
+}, { error: 'Evidence, document and address must describe the same captured kind' })
 export type RunsEvidenceResult = z.infer<typeof RunsEvidenceResultSchema>
 
 // A captured variable map keeps an own `__proto__` key, which a record parser would skip.
@@ -882,7 +882,7 @@ export const RunKnowledgeProjectionSchema = z.discriminatedUnion('kind', [
         changes: z.array(RunKnowledgeLearnedChangeSchema),
         count: z.number().int().nonnegative(),
       }).strict().refine(section => section.count === section.changes.length, {
-        message: 'sinceThen.count must equal its change rows', path: ['count'],
+        error: 'sinceThen.count must equal its change rows', path: ['count'],
       }).optional(),
       // `true` or absent: with it, an empty `changes` means the scan failed, not nothing changed.
       scanIncomplete: z.literal(true).optional(),

@@ -11,7 +11,7 @@ export type LosslessServedBrief = ServedBrief & {
   proof: LosslessServedBriefProofV1
 }
 
-const finiteNumberSchema = z.number().finite()
+const finiteNumberSchema = z.number()
 const nonnegativeIntegerSchema = finiteNumberSchema.int().nonnegative()
 const nonemptyStringSchema = z.string().min(1)
 const digestSchema = z

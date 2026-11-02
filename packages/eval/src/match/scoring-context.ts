@@ -10,7 +10,7 @@ import { MATCHER_CONFIG } from './config'
 import { scoreCassetteReplay, type CassetteScore, type DecisionScoreEntry, type JudgeIdentityBlock } from './score'
 import { JUDGE_ABSTENTION_CAUSES } from './score'
 
-const count = z.number().int().nonnegative().safe()
+const count = z.number().int().nonnegative()
 const confidence = z.enum(['high', 'medium', 'low'])
 const memberIdentity = z.object({ judgeModelId: z.string().min(1), judgeFamily: z.string().min(1) }).strict()
 /** Explicit additive identity admission, shared by independent storage boundaries. */

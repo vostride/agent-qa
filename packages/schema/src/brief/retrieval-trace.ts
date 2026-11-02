@@ -47,7 +47,7 @@ export const TraceLineSchema = z.object({
   recordId: z.string().min(1),
   leg: z.enum(RETRIEVAL_TRACE_LEGS),
   rank: z.number().int().positive(),
-  score: z.number().finite(),
+  score: z.number(),
 }).strict()
 
 export type TraceLine = z.infer<typeof TraceLineSchema>

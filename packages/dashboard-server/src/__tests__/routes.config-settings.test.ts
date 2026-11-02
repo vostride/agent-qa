@@ -38,19 +38,19 @@ vi.mock('@vostride/agent-qa-core', async () => {
       const value = rawValue.trim()
       const normalizedKey = key.toLowerCase()
       if (!key) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Provider header keys cannot be empty.' })
+        ctx.addIssue({ code: 'custom', message: 'Provider header keys cannot be empty.' })
       }
       if (seen.has(normalizedKey)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Duplicate provider header "${key}" is not allowed.` })
+        ctx.addIssue({ code: 'custom', message: `Duplicate provider header "${key}" is not allowed.` })
       }
       seen.add(normalizedKey)
       if (/[\x00-\x1F\x7F]/.test(key) || /[\x00-\x1F\x7F]/.test(value)) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Provider header "${key}" cannot contain control characters.` })
+        ctx.addIssue({ code: 'custom', message: `Provider header "${key}" cannot contain control characters.` })
       }
       const sensitive = ['authorization', 'cookie', 'x-api-key', 'api-key', 'token', 'secret']
         .find((term) => normalizedKey.includes(term))
       if (sensitive) {
-        ctx.addIssue({ code: z.ZodIssueCode.custom, message: `Provider header "${key}" cannot contain auth-like term "${sensitive}".` })
+        ctx.addIssue({ code: 'custom', message: `Provider header "${key}" cannot contain auth-like term "${sensitive}".` })
       }
     }
   })
@@ -72,10 +72,10 @@ vi.mock('@vostride/agent-qa-core', async () => {
       (config.provider === 'openai-compatible' || config.provider === 'anthropic-compatible')
       && (!config.baseURL || config.baseURL.trim() === '')
     ) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['baseURL'], message: `Base URL is required for ${config.provider} providers.` })
+      ctx.addIssue({ code: 'custom', path: ['baseURL'], message: `Base URL is required for ${config.provider} providers.` })
     }
     if (config.providerHeaders !== undefined && config.provider !== 'anthropic-compatible') {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['providerHeaders'], message: 'providerHeaders can only be used with anthropic-compatible providers.' })
+      ctx.addIssue({ code: 'custom', path: ['providerHeaders'], message: 'providerHeaders can only be used with anthropic-compatible providers.' })
     }
   }
   const ModelConfigSchema = modelConfigBaseSchema.superRefine(validateModelConfig)

@@ -33,7 +33,7 @@ export const DAEMON_IDENTITY_HANDSHAKE_TIMEOUT_MS = 1_000
 export const daemonRegistrationSchema = z
   .object({
     schemaVersion: z.literal(DAEMON_REGISTRATION_SCHEMA_VERSION),
-    instanceId: z.string().uuid(),
+    instanceId: z.uuid(),
     pid: z.number().int().positive(),
     socketPath: z.string().min(1),
     startedAtMs: z.number().int().nonnegative(),

@@ -42,10 +42,10 @@ vi.mock('@vostride/agent-qa-core', async () => {
       (config.provider === 'openai-compatible' || config.provider === 'anthropic-compatible')
       && (!config.baseURL || config.baseURL.trim() === '')
     ) {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['baseURL'], message: `Base URL is required for ${config.provider} providers.` })
+      ctx.addIssue({ code: 'custom', path: ['baseURL'], message: `Base URL is required for ${config.provider} providers.` })
     }
     if (config.providerHeaders !== undefined && config.provider !== 'anthropic-compatible') {
-      ctx.addIssue({ code: z.ZodIssueCode.custom, path: ['providerHeaders'], message: 'providerHeaders can only be used with anthropic-compatible providers.' })
+      ctx.addIssue({ code: 'custom', path: ['providerHeaders'], message: 'providerHeaders can only be used with anthropic-compatible providers.' })
     }
   }
   const ModelConfigSchema = modelConfigBaseSchema.superRefine(validateModelConfig)

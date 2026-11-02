@@ -129,7 +129,7 @@ export const RunOverviewRecordSchema = z.object({
 }).strict().refine(
   (record) => (record.kind === undefined || record.summary === undefined)
     === (record.unavailable !== undefined),
-  { message: 'a record lacking its kind or summary must say why, and only then' },
+  { error: 'a record lacking its kind or summary must say why, and only then' },
 )
 
 export const RunOverviewBriefSchema = z.object({
@@ -171,7 +171,7 @@ export const RunOverviewRecordingSchema = z.union([
     address: RunOverviewArtifactAddressSchema,
     contentType: z.enum(RECORDING_CONTENT_TYPES),
     byteLength: count,
-    durationMs: z.number().finite().nonnegative().optional(),
+    durationMs: z.number().nonnegative().optional(),
     present,
     evidenceIncomplete: incomplete,
   }).strict(),
