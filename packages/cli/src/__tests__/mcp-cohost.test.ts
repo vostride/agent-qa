@@ -603,6 +603,22 @@ describe('a failed bind on the optional MCP endpoint leaves the primary surface 
   })
 })
 
+describe('a declared port of 0 binds whatever port the OS hands out', () => {
+  it('a port of 0 mounts the MCP endpoint on an ephemeral port', async () => {
+    const plan = mcpMountPlanFor({ services: { mcp: { enabled: true, port: 0 } } })
+    expect(plan).toEqual({ mount: true, port: 0 })
+    const server = createServer(() => {})
+    try {
+      const outcome = await mountCoHostedMcp({ server, port: plan.port, warn: () => {} })
+      expect(outcome.server).toBe(server)
+      expect(outcome.boundPort ?? 0).toBeGreaterThan(0)
+      expect(outcome.boundPort).toBe((server.address() as AddressInfo).port)
+    } finally {
+      await new Promise<void>((closed) => server.close(() => closed()))
+    }
+  })
+})
+
 // ---- 7. The two wiring facts, stated as source assertions and labelled as such -------------------
 
 describe('the shipped dashboard composition wires and closes the endpoint', () => {

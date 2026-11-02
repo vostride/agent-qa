@@ -54,7 +54,7 @@ export function isLoopbackHost(host: string): boolean {
 // Whether the dashboard co-hosts the MCP endpoint, and the port it listens on.
 export const McpConfigSchema = z.strictObject({
   enabled: z.boolean().optional(),
-  port: z.number().int().min(1).max(65535).optional(),
+  port: z.number().int().min(0).max(65535).optional(),
 })
 
 export const CacheConfigSchema = z.strictObject({
