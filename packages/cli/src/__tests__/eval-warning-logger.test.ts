@@ -64,6 +64,48 @@ it('takes over from the logger every command starts with, then hands it back', (
   expect(globalThis.AI_SDK_LOG_WARNINGS).toBe(started)
 })
 
+describe('the eval warning routing', () => {
+  function currentLogger(): LogWarningsFunction {
+    const logger = globalThis.AI_SDK_LOG_WARNINGS
+    if (typeof logger !== 'function') throw new Error('expected an AI SDK warning logger')
+    return logger
+  }
+
+  function logWarnings(calls: Parameters<LogWarningsFunction>[0][]): string[] {
+    const stderr: string[] = []
+    vi.stubEnv('GITHUB_ACTIONS', '')
+    vi.stubEnv('AGENT_QA_DEBUG_LLM', '')
+    vi.spyOn(process.stderr, 'write').mockImplementation((chunk) => {
+      stderr.push(String(chunk))
+      return true
+    })
+    globalThis.AI_SDK_LOG_WARNINGS = undefined
+    const restore = installEvalWarningLogger()
+    try {
+      const logger = currentLogger()
+      for (const call of calls) logger(call)
+    } finally {
+      restore()
+    }
+    return stderr
+  }
+
+  it('keeps a provider adaptation off the terminal', () => {
+    expect(logWarnings([{
+      warnings: [{ type: 'unsupported', feature: 'temperature' }],
+      provider: 'anthropic.messages',
+      model: 'claude-sonnet-5-5',
+    }])).toEqual([])
+  })
+
+  it('prints a deprecation once, without a provider scope', () => {
+    const deprecated = { type: 'deprecated', setting: 'streamObject', message: 'Use it.' } as const
+    expect(logWarnings([{ warnings: [deprecated] }, { warnings: [deprecated] }])).toEqual([
+      `AI SDK Warning: ${JSON.stringify(deprecated)}\n`,
+    ])
+  })
+})
+
 describe('an AI SDK warning prints as text under GitHub Actions', () => {
   const PAIR = /^::stop-commands::([0-9a-f]{32})\n[\s\S]*\n::\1::\n$/u
   const warnings = [{ type: 'other', message: '::add-mask::x' }] as const

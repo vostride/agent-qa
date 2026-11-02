@@ -8,21 +8,27 @@ export function isSdkWarningLogger(logger: unknown): boolean {
 }
 
 // Adapted call settings go to the AGENT_QA_DEBUG_LLM log; other warnings print, deprecations once.
-export function installSdkWarningLogger(): void {
-  // An operator's own logger, or `false`, stays.
-  if (globalThis.AI_SDK_LOG_WARNINGS !== undefined) return
+export function createSdkWarningLogger(
+  print: (line: string, deprecation: boolean) => void,
+): ReturnType<typeof sdkWarningLogger> {
   const deprecations = new Set<string>()
-  const logger = sdkWarningLogger(({ warnings, provider, model }) => {
+  return sdkWarningLogger(({ warnings, provider, model }) => {
     const scope = provider === undefined ? '' : ` (${provider} / ${model})`
     for (const warning of warnings) {
       if (warning.type === 'deprecated') {
         if (deprecations.has(warning.setting)) continue
         deprecations.add(warning.setting)
       }
-      process.emitWarning(`AI SDK Warning${scope}: ${JSON.stringify(warning)}`, {
-        type: warning.type === 'deprecated' ? 'DeprecationWarning' : 'Warning',
-      })
+      print(`AI SDK Warning${scope}: ${JSON.stringify(warning)}`, warning.type === 'deprecated')
     }
+  })
+}
+
+export function installSdkWarningLogger(): void {
+  // An operator's own logger, or `false`, stays.
+  if (globalThis.AI_SDK_LOG_WARNINGS !== undefined) return
+  const logger = createSdkWarningLogger((line, deprecation) => {
+    process.emitWarning(line, { type: deprecation ? 'DeprecationWarning' : 'Warning' })
   })
   installed.add(logger)
   globalThis.AI_SDK_LOG_WARNINGS = logger
