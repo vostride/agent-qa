@@ -80,9 +80,26 @@ function outputTextChars(output: unknown): number {
   if (output.type === 'content' && Array.isArray(output.value)) {
     let total = 0
     for (const item of output.value) {
-      if (isRecord(item) && item.type === 'text' && typeof item.text === 'string') total += item.text.length
+      if (!isRecord(item)) continue
+      if (item.type === 'text' && typeof item.text === 'string') {
+        total += item.text.length
+      } else if (item.type === 'file' && !isImageMediaType(item.mediaType)) {
+        total += fileDataChars(item.data)
+      }
     }
     return total
+  }
+  return 0
+}
+
+// Base64 carries six bits a character, so charging it as text over-charges the decoded bytes.
+function fileDataChars(data: unknown): number {
+  if (!isRecord(data)) return 0
+  if (data.type === 'text' && typeof data.text === 'string') return data.text.length
+  if (data.type !== 'data') return 0
+  if (typeof data.data === 'string') return data.data.length
+  if (data.data instanceof ArrayBuffer || ArrayBuffer.isView(data.data)) {
+    return Math.ceil(data.data.byteLength / 3) * 4
   }
   return 0
 }

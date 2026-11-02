@@ -1,5 +1,5 @@
 import type { ModelCapabilities, ModelProfile } from '@vostride/agent-qa-schema'
-import type { FilePart, ImagePart, LanguageModelUsage, ModelMessage } from 'ai'
+import type { FilePart, ImagePart, LanguageModelUsage, ModelMessage, ToolResultPart } from 'ai'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { resolveCapabilities } from '../../capability/resolve.js'
@@ -87,6 +87,35 @@ describe('createTokenAccounting — estimate two-signal (chars/4 + per-image)', 
     }])
     const before = acc.estimate([userText(TEXT)])
     expect(acc.estimate([userText(TEXT), ...pdf]) - before).toBeLessThan(perImageTokens)
+  })
+
+  it('charges a non-image inline file in a tool result as text of its base64 length', () => {
+    const acc = createTokenAccounting({ getCapabilities: fixedCaps(KNOWN_CAPS) })
+    const download = (output: ToolResultPart['output']) =>
+      acc.estimate(toolExchange([{ toolCallId: 'c1', toolName: 'download', output }]))
+    const base64Charge = Math.ceil(FIXTURE_IMAGE_DATA.length / 4)
+    const bytes = Uint8Array.from(atob(FIXTURE_IMAGE_DATA), (char) => char.charCodeAt(0))
+
+    expect(base64Charge).toBeGreaterThan(Math.ceil(bytes.byteLength / 4))
+    expect(download(fileOutput(FIXTURE_IMAGE_DATA, 'application/pdf'))).toBe(base64Charge)
+    expect(download({
+      type: 'content',
+      value: [{ type: 'file', data: { type: 'data', data: bytes }, mediaType: 'application/pdf' }],
+    })).toBe(base64Charge)
+  })
+
+  it('charges inline text file data in a tool result as its text', () => {
+    const acc = createTokenAccounting({ getCapabilities: fixedCaps(KNOWN_CAPS) })
+    const notes = toolExchange([{
+      toolCallId: 'c1',
+      toolName: 'read',
+      output: {
+        type: 'content',
+        value: [{ type: 'file', data: { type: 'text', text: TEXT }, mediaType: 'text/plain' }],
+      },
+    }])
+
+    expect(acc.estimate(notes)).toBe(Math.ceil(TEXT.length / 4))
   })
 })
 
