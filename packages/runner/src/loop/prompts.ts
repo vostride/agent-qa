@@ -587,7 +587,7 @@ export function composeTurnMessages(
       role: 'user',
       content: [
         { type: 'text', text: obsText },
-        { type: 'image', image: context.screenshot },
+        { type: 'file', mediaType: 'image', data: context.screenshot },
       ],
     })
   } else {

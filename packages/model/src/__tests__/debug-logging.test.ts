@@ -104,6 +104,27 @@ describe('debugLoggingMiddleware — enabled', () => {
     expect(errorLine).not.toContain('Unsupported parameter: max_output_tokens')
   })
 
+  it('logs a screenshot request without its image bytes', async () => {
+    const lines: string[] = []
+    const middleware = debugLoggingMiddleware({ enabled: true, sink: (line) => lines.push(line) })
+    const screenshot = Buffer.from('the checkout page screenshot').toString('base64')
+    const params: LanguageModelV4CallOptions = {
+      prompt: [{
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Current screen state:' },
+          { type: 'file', mediaType: 'image/png', data: { type: 'data', data: screenshot } },
+        ],
+      }],
+    }
+
+    await runGenerate(middleware, async () => OK_RESULT, params)
+
+    expect(lines).toEqual([
+      '[agent-qa:llm] request model=test-model messages=1 roles=[user] tools=0 params=[]',
+    ])
+  })
+
   it('does not log the response body on a successful call (shape-only surface)', async () => {
     const lines: string[] = []
     const middleware = debugLoggingMiddleware({ enabled: true, sink: (line) => lines.push(line) })

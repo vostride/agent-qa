@@ -62,6 +62,25 @@ describe('LLMVerifier', () => {
     expect(result.tokenUsage).toEqual({ promptTokens: 120, completionTokens: 30, totalTokens: 150 })
   })
 
+  it('sends the screenshot after the prompt as an image file part', async () => {
+    const { generateText } = await import('ai')
+    const mockGenerateText = vi.mocked(generateText)
+    mockGenerateText.mockRejectedValueOnce(new Error('only the request is read'))
+
+    await new LLMVerifier('fixture-model', makeFakeTokenAccounting())
+      .verify('log in', before, after, action, Buffer.from('png'))
+
+    expect(mockGenerateText).toHaveBeenCalledWith(expect.objectContaining({
+      messages: [{
+        role: 'user',
+        content: [
+          expect.objectContaining({ type: 'text' }),
+          { type: 'file', mediaType: 'image', data: Buffer.from('png') },
+        ],
+      }],
+    }))
+  })
+
   it('returns the failed-verification fallback on a non-abort model error, never throws', async () => {
     const { generateText } = await import('ai')
     const mockGenerateText = vi.mocked(generateText)
@@ -246,7 +265,7 @@ describe('LLMVerifier', () => {
       })
 
       const parts = turnParts(mockGenerateText.mock.calls[0][0])
-      expect(parts.some((part) => part.type === 'image')).toBe(false)
+      expect(parts.map((part) => part.type)).toEqual(['text'])
       expect(parts[0]?.text).toContain(
         'Judge it from the accessibility tree only; no screenshot is attached.',
       )
@@ -267,7 +286,8 @@ describe('LLMVerifier', () => {
       })
 
       const parts = turnParts(mockGenerateText.mock.calls[0][0])
-      expect(parts.some((part) => part.type === 'image')).toBe(true)
+      expect(parts.slice(1))
+        .toEqual([{ type: 'file', mediaType: 'image', data: Buffer.from('png') }])
       expect(parts[0]?.text).toContain(
         'Judge it from the attached screenshot together with the accessibility tree.',
       )

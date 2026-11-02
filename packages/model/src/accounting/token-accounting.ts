@@ -94,10 +94,15 @@ function messageImageCount(message: ModelMessage): number {
   let count = 0
   for (const part of content as unknown[]) {
     if (!isRecord(part)) continue
-    if (part.type === 'image') count += 1
+    if (part.type === 'image' || isImageFile(part)) count += 1
     else if (part.type === 'tool-result') count += outputImageCount(part.output)
   }
   return count
+}
+
+function isImageFile(part: Record<string, unknown>): boolean {
+  return part.type === 'file' && typeof part.mediaType === 'string'
+    && (part.mediaType === 'image' || part.mediaType.startsWith('image/'))
 }
 
 function outputImageCount(output: unknown): number {

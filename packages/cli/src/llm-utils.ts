@@ -270,7 +270,11 @@ export function buildJobModelCapability(
               role: 'user',
               content: [
                 { type: 'text' as const, text: request.prompt },
-                ...request.images.map((image) => ({ type: 'image' as const, image })),
+                ...request.images.map((data) => ({
+                  type: 'file' as const,
+                  mediaType: 'image',
+                  data,
+                })),
               ],
             },
           ],

@@ -237,6 +237,19 @@ describe('per-turn state placement', () => {
     expect(systemText).not.toContain(PREV_STEP_INSTRUCTION)
     expect(systemText).not.toContain('expand the accordion panel')
   })
+
+  it('attaches the screenshot to the observation as an image file part', () => {
+    const screenshot = Buffer.from('png')
+    const messages = composeTurnMessages(makeContext({ screenshot }), makeScreenState())
+
+    expect(messages.at(-2)).toEqual({
+      role: 'user',
+      content: [
+        { type: 'text', text: expect.stringContaining('Current screen state:') },
+        { type: 'file', mediaType: 'image', data: screenshot },
+      ],
+    })
+  })
 })
 
 describe('empty ingredient slots', () => {
