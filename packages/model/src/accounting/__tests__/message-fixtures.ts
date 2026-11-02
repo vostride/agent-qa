@@ -37,7 +37,7 @@ export function assistantReasoning(
   }
 }
 
-/** User turn with an inline `{ type:'image' }` part — one flat per-image cost, never base64. */
+/** User turn with a screenshot as an image `file` part: one flat image cost, never base64. */
 export function userWithImage(
   text = 'Here is the current screen.',
   image = FIXTURE_IMAGE_DATA,
@@ -46,7 +46,7 @@ export function userWithImage(
     role: 'user',
     content: [
       { type: 'text', text },
-      { type: 'image', image, mediaType: 'image/png' },
+      { type: 'file', mediaType: 'image', data: image },
     ],
   }
 }

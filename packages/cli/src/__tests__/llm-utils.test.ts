@@ -357,7 +357,7 @@ describe('buildJobModelCapability vision', () => {
     expect(buildJobModelCapability(JOB_PROFILE, NONE_AUTH, (text) => text, visionDeps(false).deps).vision).toBe(false)
   })
 
-  it('attaches image parts through the messages form when the gate allows', async () => {
+  it('attaches image file parts through the messages form when the gate allows', async () => {
     const { calls, deps } = visionDeps(true)
     const capability = buildJobModelCapability(JOB_PROFILE, NONE_AUTH, (text) => text, deps)
 
@@ -366,14 +366,14 @@ describe('buildJobModelCapability vision', () => {
     expect(calls).toHaveLength(1)
     const args = calls[0]!
     // The verifier turn-message precedent: ONE user message, one text part (the prompt)
-    // plus one image part per entry; system unchanged; the prompt form absent.
+    // plus one image file part per entry; system unchanged; the prompt form absent.
     expect(args.messages).toEqual([
       {
         role: 'user',
         content: [
           { type: 'text', text: 'explain' },
-          { type: 'image', image: IMAGE_A },
-          { type: 'image', image: IMAGE_B },
+          { type: 'file', mediaType: 'image', data: IMAGE_A },
+          { type: 'file', mediaType: 'image', data: IMAGE_B },
         ],
       },
     ])

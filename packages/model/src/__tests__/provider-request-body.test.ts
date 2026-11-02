@@ -1,4 +1,5 @@
 import { generateText, jsonSchema, Output, tool } from 'ai'
+import type { LogWarningsFunction } from 'ai'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { ModelProfile } from '@vostride/agent-qa-schema'
 import type { ResolvedModelAuth } from '../auth.js'
@@ -22,6 +23,13 @@ const models: Record<Transport, string> = {
 const clickArgs = { ref: 'e1' }
 const navigateArgs = { to: 'url', url: 'https://shop.example/' }
 const extracted = { label: 'Total', count: null }
+
+// A 1x1 PNG, sent the way every run sends a screenshot.
+const screenshot = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64',
+)
+const screenshotBase64 = screenshot.toString('base64')
 
 function answer(provider: Transport, sent: string) {
   const navigate = sent.includes('"navigate"')
@@ -171,6 +179,27 @@ async function structuredOutputBody(provider: Transport): Promise<Body> {
   return sentBody(fetch)
 }
 
+// The raw request text, so a cell can compare bodies byte for byte.
+async function screenshotRequest(provider: Transport, part: 'file' | 'image'): Promise<string> {
+  const { model, fetch } = transportModel(provider)
+  await generateText({
+    model,
+    instructions: 'Act on the page.',
+    messages: [{
+      role: 'user',
+      content: [
+        { type: 'text', text: 'Current screen state:' },
+        part === 'file'
+          ? { type: 'file', mediaType: 'image', data: screenshot }
+          : { type: 'image', image: screenshot },
+      ],
+    }],
+    maxRetries: 0,
+  })
+  expect(fetch).toHaveBeenCalledTimes(1)
+  return String(fetch.mock.calls[0]![1]!.body)
+}
+
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks() })
 
 describe('the OpenAI Chat transport request body', () => {
@@ -185,6 +214,11 @@ describe('the OpenAI Chat transport request body', () => {
     expect(body).toHaveProperty(['messages', 0, 'role'], 'system')
     const count = ['response_format', 'json_schema', 'schema', 'properties', 'count', 'type']
     expect(body).toHaveProperty(count, ['number', 'null'])
+  })
+
+  it('sends a screenshot as an image_url data URL', async () => {
+    expect(await screenshotRequest('openai-compatible', 'file')).toContain(JSON.stringify(
+      { type: 'image_url', image_url: { url: `data:image/png;base64,${screenshotBase64}` } }))
   })
 })
 
@@ -209,6 +243,11 @@ describe('the OpenAI Responses transport request body', () => {
     expect(body).toHaveProperty(['input', 0, 'role'], 'system')
     expect(body).toHaveProperty(
       ['text', 'format', 'schema', 'properties', 'count', 'type'], ['number', 'null'])
+  })
+
+  it('sends a screenshot as an input_image data URL', async () => {
+    expect(await screenshotRequest('openai-subscription', 'file')).toContain(JSON.stringify(
+      { type: 'input_image', image_url: `data:image/png;base64,${screenshotBase64}` }))
   })
 })
 
@@ -253,6 +292,15 @@ describe('the Anthropic Messages transport request body', () => {
         ['output_config', 'format', 'schema', 'properties', 'count', 'type'], ['number', 'null'])
     },
   )
+
+  it.each(['anthropic-compatible', 'anthropic-subscription'] as const)(
+    'over %s sends a screenshot as a base64 image source',
+    async (provider) => {
+      expect(await screenshotRequest(provider, 'file')).toContain(JSON.stringify({
+        type: 'image', source: { type: 'base64', media_type: 'image/png', data: screenshotBase64 },
+      }))
+    },
+  )
 })
 
 describe('the Gemini transport request body', () => {
@@ -270,4 +318,31 @@ describe('the Gemini transport request body', () => {
       ['generationConfig', 'responseJsonSchema', 'properties', 'count', 'type'], ['number', 'null'])
     expect(body).not.toHaveProperty(['generationConfig', 'responseSchema'])
   })
+
+  it('sends a screenshot as inline data', async () => {
+    expect(await screenshotRequest('gemini', 'file')).toContain(JSON.stringify(
+      { inlineData: { mimeType: 'image/png', data: screenshotBase64 } }))
+  })
+})
+
+describe('a screenshot request body', () => {
+  it.each([
+    'openai-compatible', 'openai-subscription', 'anthropic-compatible',
+    'anthropic-subscription', 'gemini',
+  ] as const)(
+    'over %s sends the same bytes for an image file part as for the deprecated image part',
+    async (provider) => {
+      const raised: string[] = []
+      const capture: LogWarningsFunction = ({ warnings }) => {
+        raised.push(...warnings.map(warning => warning.type))
+      }
+      vi.stubGlobal('AI_SDK_LOG_WARNINGS', capture)
+
+      const file = await screenshotRequest(provider, 'file')
+      expect(raised).toEqual([])
+      const image = await screenshotRequest(provider, 'image')
+      expect(raised).toEqual(['deprecated'])
+      expect(file).toBe(image)
+    },
+  )
 })

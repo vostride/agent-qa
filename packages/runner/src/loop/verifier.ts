@@ -246,14 +246,14 @@ export class LLMVerifier implements Verifier {
       }]
 
       // The single per-call turn message: before/after states + action as text, plus the
-      // screenshot image part when present. It is the only turn message (and the final
+      // screenshot image file part when present. It is the only turn message (and the final
       // message) — pinned by construction so the clamp never evicts the states/action.
       const turnMessage: ModelMessage = {
         role: 'user',
         content: screenshot
           ? [
               { type: 'text', text: promptText },
-              { type: 'image', image: screenshot },
+              { type: 'file', mediaType: 'image', data: screenshot },
             ]
           : [{ type: 'text', text: promptText }],
       }
@@ -453,7 +453,7 @@ export class LLMVerifier implements Verifier {
       content: screenshot
         ? [
             { type: 'text', text: promptText },
-            { type: 'image', image: screenshot },
+            { type: 'file', mediaType: 'image', data: screenshot },
           ]
         : [{ type: 'text', text: promptText }],
     }

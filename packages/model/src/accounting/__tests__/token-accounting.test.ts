@@ -1,5 +1,5 @@
 import type { ModelCapabilities, ModelProfile } from '@vostride/agent-qa-schema'
-import type { LanguageModelUsage, ModelMessage } from 'ai'
+import type { FilePart, ImagePart, LanguageModelUsage, ModelMessage } from 'ai'
 import { afterEach, describe, expect, it } from 'vitest'
 
 import { resolveCapabilities } from '../../capability/resolve.js'
@@ -56,6 +56,17 @@ describe('createTokenAccounting — estimate two-signal (chars/4 + per-image)', 
     expect(withBig).toBe(withSmall)
     // 'screen' text (6 chars → 2 tokens) + one flat image constant.
     expect(withBig).toBe(Math.ceil('screen'.length / 4) + perImageTokens)
+  })
+
+  it('charges an image file part, with either media type form, as much as an image part', () => {
+    const acc = createTokenAccounting({ getCapabilities: fixedCaps(KNOWN_CAPS) })
+    const turn = (image: FilePart | ImagePart): ModelMessage[] =>
+      [{ role: 'user', content: [{ type: 'text', text: 'screen' }, image] }]
+    const imagePart = acc.estimate(turn({ type: 'image', image: FIXTURE_IMAGE_DATA }))
+    expect(acc.estimate(turn({ type: 'file', mediaType: 'image', data: FIXTURE_IMAGE_DATA })))
+      .toBe(imagePart)
+    expect(acc.estimate(turn({ type: 'file', mediaType: 'image/png', data: FIXTURE_IMAGE_DATA })))
+      .toBe(imagePart)
   })
 
   it('charges per-image for BOTH image-data and inline file parts in historical tool results', () => {
