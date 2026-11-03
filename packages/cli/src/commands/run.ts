@@ -38,8 +38,8 @@ import type {
 import type { DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
-import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig } from '@vostride/agent-qa-runner'
-import { WorkingMemoryStore, runMemberTest, createStepModelScope, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
+import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteRefusalMemory } from '@vostride/agent-qa-runner'
+import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
 import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory } from '@vostride/agent-qa-runner'
@@ -302,6 +302,8 @@ export async function createPlatformAdapter(
     readonly connectionSecrets?: SecretResolver
     // `workspace.secretsFile` as written, which a credential refusal names.
     readonly secretsFile?: string
+    // The run's one memory, so a refused remote is never connected to twice in it.
+    readonly refusalMemory?: RemoteRefusalMemory
   } = {},
 ): Promise<PlatformAdapter> {
   if (platform === 'android') {
@@ -331,6 +333,7 @@ export async function createPlatformAdapter(
       ? {}
       : { connectionSecrets: options.connectionSecrets }),
     ...(options.secretsFile === undefined ? {} : { secretsFile: options.secretsFile }),
+    ...(options.refusalMemory === undefined ? {} : { refusalMemory: options.refusalMemory }),
   })
 }
 
@@ -440,7 +443,13 @@ function formatMissingBrowserFrameworkError(message: string): FormattedFramework
   }
 }
 
-function formatFrameworkError(message: string): FormattedFrameworkError {
+// By name, because the error can come from another copy of the runner package.
+function isRemoteRefusal(error: unknown): error is Error {
+  return error instanceof Error && error.name === 'RemoteRefusalError'
+}
+
+function formatFrameworkError(message: string, error?: unknown): FormattedFrameworkError {
+  if (isRemoteRefusal(error)) return { displayMessage: message, failureSummary: message }
   return formatMissingBrowserFrameworkError(message) ?? {
     displayMessage: `Framework error: ${message}`,
     failureSummary: `Framework error: ${message.slice(0, 200)}`,
@@ -2306,6 +2315,8 @@ export interface SuiteRunMemberProductionInput {
   readonly terminal?: RunTerminal
   // Only `agent-qa run` passes this; its controller owns SIGINT, SIGTERM and SIGHUP.
   readonly hostOwnsSignals?: true
+  // Absent, the run makes its own; `agent-qa run` shares one between its suite and direct halves.
+  readonly refusalMemory?: RemoteRefusalMemory
 }
 
 export interface SuiteVariableContext {
@@ -2371,6 +2382,7 @@ export async function produceSuiteRunMembers(
     ...hostSignals,
     ...(suiteConnectionSecrets === undefined ? {} : { connectionSecrets: suiteConnectionSecrets }),
     ...(suiteSecretsFile === undefined ? {} : { secretsFile: suiteSecretsFile }),
+    refusalMemory: input.refusalMemory ?? createRemoteRefusalMemory(),
   }
 
   // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
@@ -3422,6 +3434,8 @@ export interface DirectRunMemberProductionInput {
   readonly hostOwnsSignals?: true
   // Absent, `AGENT_QA_APPIUM_URL` then bundled auto-start; present, the host's URL wins.
   readonly resolveAppiumUrl?: AppiumUrlResolver
+  // Absent, the run makes its own; `agent-qa run` shares one between its suite and direct halves.
+  readonly refusalMemory?: RemoteRefusalMemory
 }
 
 /** A minimal view of the log manager, so a caller need not name `@vostride/agent-qa-core`'s class. */
@@ -3528,6 +3542,7 @@ export async function produceDirectRunMembers(
     connectionSecretStore: runtimeSecrets.connectionSecretStore,
   })
   const directSecretsFile = configuredSecretsFile(config)
+  const directRefusalMemory = input.refusalMemory ?? createRemoteRefusalMemory()
   const directRunAttributes = buildCliRunAttributes(
     userRunAttributes,
     directRunRunner(config, configDir, filtered, opts.browser),
@@ -3757,6 +3772,7 @@ export async function produceDirectRunMembers(
           ...(input.hostOwnsSignals === true ? { hostOwnsSignals: true as const } : {}),
           connectionSecrets: runtimeSecrets.connectionSecretStore,
           ...(directSecretsFile === undefined ? {} : { secretsFile: directSecretsFile }),
+          refusalMemory: directRefusalMemory,
         })
 
         const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
@@ -4144,7 +4160,7 @@ export async function produceDirectRunMembers(
     try {
       return await binding(ctx)
     } catch (err) {
-      const { failureSummary } = formatFrameworkError(err instanceof Error ? err.message : String(err))
+      const { failureSummary } = formatFrameworkError(err instanceof Error ? err.message : String(err), err)
       if (frameworkError === undefined) {
         frameworkError = err
         frameworkSkipReason = `Not run: "${member.name}" could not start. ${failureSummary}`
@@ -4721,6 +4737,17 @@ export function createRunCommand(): Command {
             pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
             (text) => console.error(text),
           )
+          await drainAnalytics()
+          process.exit(2)
+        }
+        // A remote refused before its test started: its one sentence, exit 2.
+        if (isRemoteRefusal(err)) {
+          printRunText(
+            pc.red(redactSecretValue(err.message, _crashSecretRedactor)),
+            (text) => console.error(text),
+          )
+          if (_startedRunId !== undefined) printRunId(_startedRunId)
+          try { _crashRecord?.close() } catch {}
           await drainAnalytics()
           process.exit(2)
         }
