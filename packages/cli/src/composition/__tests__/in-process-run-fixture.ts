@@ -97,6 +97,8 @@ export interface InProcessFixtureInput {
   readonly extraSecrets?: Readonly<Record<string, string>>
   /** One `print-env` hook in `hooks.yaml`, listed under the direct test's or the suite's `setup`. */
   readonly setupHook?: 'test' | 'suite'
+  /** An OpenAI-compatible model the config declares and uses in place of the unreachable one. */
+  readonly model?: { readonly baseUrl: string; readonly id: string }
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -181,10 +183,19 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
           ]
         : []),
       '  llms:',
-      '    - name: unreachable',
-      '      provider: openai-compatible',
-      '      model: gpt-4o-mini',
-      '      baseURL: http://127.0.0.1:1/v1',
+      ...(input.model === undefined
+        ? [
+            '    - name: unreachable',
+            '      provider: openai-compatible',
+            '      model: gpt-4o-mini',
+            '      baseURL: http://127.0.0.1:1/v1',
+          ]
+        : [
+            '    - name: reachable',
+            '      provider: openai-compatible',
+            `      model: ${input.model.id}`,
+            `      baseURL: ${input.model.baseUrl}`,
+          ]),
       ...(input.remote === undefined
         ? []
         : [
@@ -218,7 +229,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       ...(input.parallelRuns === true ? ['  parallel: true'] : []),
       ...(input.workerCount === undefined ? [] : [`  workers: ${input.workerCount}`]),
       ...(input.cacheOff === true ? ['  cache: false'] : []),
-      '  llm: unreachable',
+      `  llm: ${input.model === undefined ? 'unreachable' : 'reachable'}`,
       '  mobile:',
       '    appState: preserve',
       '',

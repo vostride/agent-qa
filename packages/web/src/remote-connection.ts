@@ -1,4 +1,5 @@
 import { createRequire } from 'node:module'
+import { connect } from 'node:net'
 
 import { basicAuthorizationValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
 import type {
@@ -99,6 +100,41 @@ export function rewriteConnectError(
     remote: remoteLabel(remote),
     kind,
   })
+}
+
+/** The longest the probe after a dropped session waits for the remote's host to answer. */
+export const REMOTE_DISCONNECT_PROBE_MS = 2_000
+
+export type RemoteDisconnectKind = Extract<RemoteFailureKind, 'ended' | 'lost'>
+
+// The close code is not public, so a host that still accepts a connection ended the session.
+export function classifyDisconnect(
+  remote: Pick<RemoteBrowserConfig, 'url'>,
+): Promise<RemoteDisconnectKind> {
+  const origin = remoteOrigin(remote.url)
+  if (origin === undefined) return Promise.resolve('lost')
+  return new Promise((settle) => {
+    const socket = connect({ host: origin.host, port: origin.port })
+    const done = (kind: RemoteDisconnectKind): void => {
+      clearTimeout(timer)
+      socket.destroy()
+      settle(kind)
+    }
+    const timer = setTimeout(() => done('lost'), REMOTE_DISCONNECT_PROBE_MS)
+    timer.unref?.()
+    socket.once('connect', () => done('ended'))
+    socket.once('error', () => done('lost'))
+  })
+}
+
+export function disconnectSentence(
+  kind: RemoteDisconnectKind,
+  remote: Pick<RemoteBrowserConfig, 'name' | 'protocol' | 'url'>,
+): string {
+  const label = remoteLabel(remote)
+  return kind === 'ended'
+    ? `Remote ${label} ended the session while this test ran.`
+    : `The connection to remote ${label} was lost while this test ran.`
 }
 
 export interface RemoteConnection {

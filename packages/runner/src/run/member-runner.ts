@@ -44,6 +44,20 @@ import { defaultRegistry } from '../tools/index.js'
 import { createStepReadFinalizer } from './step-read-finalization.js'
 
 const BROWSER_CLOSED_SUMMARY = 'The browser closed before this test finished.'
+// The longest a member waits for an adapter to classify a dropped remote session.
+const REMOTE_DISCONNECT_SETTLE_BOUND_MS = 3_000
+
+async function settleWithin(settling: () => Promise<void>, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const bound = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, ms)
+  })
+  try {
+    await Promise.race([Promise.resolve().then(settling).catch(() => undefined), bound])
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 /** A single member-test step — a bare instruction or an object carrying per-step knobs. */
 export interface MemberStepSpec {
@@ -1015,12 +1029,21 @@ async function runMemberAttempt(
     if (testDeadlineTimer) clearTimeout(testDeadlineTimer)
   }
 
-  const adapterFlags = config.adapter as { isBrowserDisconnected?: boolean }
+  const adapterFlags = config.adapter as {
+    isBrowserDisconnected?: boolean
+    disconnectSummary?: string
+    settleDisconnect?: () => Promise<void>
+  }
   const isDisconnected = adapterFlags.isBrowserDisconnected === true
+  // A dropped remote is named at once; waiting lets its probe say whether the service ended it.
+  if (isDisconnected && !cancelled && adapterFlags.disconnectSummary !== undefined
+    && typeof adapterFlags.settleDisconnect === 'function') {
+    await settleWithin(() => adapterFlags.settleDisconnect!(), REMOTE_DISCONNECT_SETTLE_BOUND_MS)
+  }
 
   // A closed browser is not a cancel; a disconnect alone fails the member without guessing a cause.
   const failureSummary = isDisconnected && !cancelled
-    ? BROWSER_CLOSED_SUMMARY
+    ? adapterFlags.disconnectSummary ?? BROWSER_CLOSED_SUMMARY
     : testFailed
       ? generateFailureSummary(steps)
       : cancelled

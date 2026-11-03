@@ -50,7 +50,9 @@ import { runWebFillCompound, runWebScrollCompound, webOpenAppError } from './com
 import type { RefMap } from './types.js'
 import { formatMissingBrowserError, isPlaywrightMissingBrowserError } from './browser-install-error.js'
 import {
+  classifyDisconnect,
   debugEnablesPlaywright,
+  disconnectSentence,
   resolveRemoteConnection,
   rewriteConnectError,
   scrubRemoteEndpoint,
@@ -59,6 +61,7 @@ import { createScreencastRecording, type ScreencastRecording } from './recording
 import { isHeadlessLaunch, OperationCapture } from './operation-capture.js'
 import { createRemoteHeartbeat } from './remote-heartbeat.js'
 import type { RemoteHeartbeat } from './remote-heartbeat.js'
+import type { RemoteDisconnectKind } from './remote-connection.js'
 import type { CapturedOperations } from './operation-capture.js'
 
 interface PageLogBuffers {
@@ -255,6 +258,9 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private navigationTimeoutMs = DEFAULT_NAVIGATION_TIMEOUT_MS
   private disconnected = false
   private intentionalClose = false
+  // Set the moment a remote session drops; the probe may turn `lost` into `ended`.
+  private disconnectKind: RemoteDisconnectKind | undefined
+  private disconnectSettled: Promise<void> | undefined
   // Routes persist until unroute and a dialog arm until its dialog; `cleanup()` drains both.
   private armedRoutes = new Set<string>()
   private pendingDialogArm: ((dialog: Dialog) => void) | null = null
@@ -329,10 +335,14 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
     this.disconnected = false
     this.intentionalClose = false
-    this.browser.on('disconnected', () => {
-      if (!this.intentionalClose) {
-        this.disconnected = true
-      }
+    this.disconnectKind = undefined
+    this.disconnectSettled = undefined
+    const browser = this.browser
+    // An earlier session's late event must not mark this adapter's next session.
+    browser.on('disconnected', () => {
+      if (this.browser !== browser || this.intentionalClose) return
+      this.disconnected = true
+      if (remote !== undefined) this.remoteDropped(remote)
     })
 
     const viewport = config.browser?.viewport ?? { width: 1280, height: 720 }
@@ -456,11 +466,39 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     }
   }
 
+  // Nothing reconnects: the test that held the session fails, naming the remote.
+  private remoteDropped(remote: RemoteBrowserConfig): void {
+    this.heartbeat?.stop()
+    this.disconnectKind = 'lost'
+    const settled: Promise<void> = classifyDisconnect(remote).then((kind) => {
+      if (this.disconnectSettled === settled) this.disconnectKind = kind
+    })
+    this.disconnectSettled = settled
+  }
+
   // Where this test ran; undefined before setup and after cleanup.
   get placeEvidence(): RemotePlaceEvidence | undefined {
     const place = this.place
-    if (place?.place !== 'remote' || this.heartbeat === undefined) return place
-    return { ...place, heartbeat: this.heartbeat.counts() }
+    if (place?.place !== 'remote') return place
+    if (this.heartbeat === undefined && this.disconnectKind === undefined) return place
+    return {
+      ...place,
+      ...(this.heartbeat !== undefined ? { heartbeat: this.heartbeat.counts() } : {}),
+      ...(this.disconnectKind !== undefined ? { failureKind: this.disconnectKind } : {}),
+    }
+  }
+
+  // The sentence a test whose remote session dropped fails with; undefined when none dropped.
+  get disconnectSummary(): string | undefined {
+    const remote = this.remote
+    const kind = this.disconnectKind
+    if (remote === undefined || kind === undefined) return undefined
+    return disconnectSentence(kind, remote)
+  }
+
+  // Resolves once a drop's kind is known, within the probe's bound; at once when nothing dropped.
+  settleDisconnect(): Promise<void> {
+    return this.disconnectSettled ?? Promise.resolve()
   }
 
   // Absence means no stream, not no preview: the runner's `liveStreamFor` wraps `screenshot()`.
@@ -770,6 +808,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.lastRefs = {}
     this.pageLogBuffers.clear()
     this.disconnected = false
+    this.disconnectKind = undefined
+    this.disconnectSettled = undefined
     this.intentionalClose = false
     this.screencast = null
     this.screencastOnFrame = null
