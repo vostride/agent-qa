@@ -62,6 +62,81 @@ describe('projectRemotesInConfigText', () => {
     })
   })
 
+  it('shows remotes aliased from an anchor elsewhere, and replaces that anchor too', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      match:',
+        '        avd: &r',
+        '          - name: grid',
+        '            protocol: playwright',
+        `            url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '  remotes: *r',
+        '',
+      ].join('\n'),
+    )
+
+    const grid = { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }
+    expect(shown).not.toContain(PATH_TOKEN)
+    expect(shown).not.toContain(QUERY_SECRET)
+    expect(parseYaml(shown)).toEqual({
+      registry: { devices: { pixel: { match: { avd: [grid] } } }, remotes: [grid] },
+    })
+  })
+
+  it('replaces every alias of an anchor inside the remotes block and keeps the file readable', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        '# kept',
+        'workspace:',
+        "  testMatch: ['tests/**/*.yaml']",
+        'registry:',
+        '  remotes: &r',
+        '    - name: grid',
+        '      protocol: playwright',
+        `      url: &u wss://grid.example.com/${PATH_TOKEN}`,
+        '      headers: &h',
+        `        X-Team: ${HEADER_VALUE}`,
+        '  devices:',
+        '    pixel:',
+        '      match:',
+        '        avd: *r',
+        '        serial: *u',
+        '        model: *h',
+        '',
+      ].join('\n'),
+    )
+
+    const grid = { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }
+    for (const hidden of [PATH_TOKEN, HEADER_VALUE, 'X-Team']) expect(shown).not.toContain(hidden)
+    expect(shown).toContain('# kept')
+    expect(shown).toContain("testMatch: ['tests/**/*.yaml']")
+    expect(parseYaml(shown)).toEqual({
+      workspace: { testMatch: ['tests/**/*.yaml'] },
+      registry: {
+        remotes: [grid],
+        devices: { pixel: { match: { avd: [grid], serial: null, model: null } } },
+      },
+    })
+  })
+
+  it('shows a remotes block that is not a list as an empty list', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  remotes:',
+        '    grid:',
+        `      url: wss://grid.example.com/${PATH_TOKEN}`,
+        '',
+      ].join('\n'),
+    )
+
+    expect(shown).not.toContain(PATH_TOKEN)
+    expect(parseYaml(shown)).toEqual({ registry: { remotes: [] } })
+  })
+
   it('returns a config with no remote list, or text that does not parse, unchanged', () => {
     const plain = '# notes\nuse:\n  browser:\n    name:   chromium\n'
     const broken = 'registry:\n  remotes: [\n'

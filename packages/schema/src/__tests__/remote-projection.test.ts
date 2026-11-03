@@ -83,4 +83,30 @@ describe('projectConfigRemotes', () => {
     expect(JSON.stringify(shown)).not.toContain('p4th-t0ken')
     expect(shown.registry.remotes).toEqual([{ url: 'invalid url' }])
   })
+
+  it('shows a remotes block that is not a list as an empty list', () => {
+    const shown = projectConfigRemotes({ registry: { remotes: { grid: PLANTED } } })
+
+    expect(shown.registry.remotes).toEqual([])
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('hides a copy of a remote, of its list or of a part of it found elsewhere in the config', () => {
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [PLANTED],
+        devices: {
+          pixel: { match: { avd: [PLANTED], serial: PLANTED, model: PLANTED.basicAuth } },
+          tablet: { match: { url: PLANTED.url } },
+        },
+      },
+    })
+
+    const grid = { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }
+    expect(shown.registry.devices).toEqual({
+      pixel: { match: { avd: [grid], serial: grid, model: null } },
+      tablet: { match: { url: 'wss://grid.example.com:443' } },
+    })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
 })

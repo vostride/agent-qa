@@ -380,13 +380,78 @@ export function closedConfigFieldsChanged(before: unknown, after: unknown): bool
   return !structurallyEqual(held.auth, next.auth) && !appendsSubscriptionAuth(held.auth, next.auth)
 }
 
+function fingerprint(value: unknown): string {
+  return JSON.stringify(value, (_key, inner: unknown) =>
+    isRecord(inner)
+      ? Object.fromEntries(
+          Object.entries(inner).sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+        )
+      : inner,
+  )
+}
+
+// A YAML anchor can copy a remote's entries, or a part of one, anywhere else in the config.
+function remoteCopies(remotes: unknown, shown: RemoteDisplay[]): Map<string, unknown> {
+  const copies = new Map<string, unknown>()
+  const add = (value: unknown, replacement: unknown) => {
+    if (typeof value !== 'string' && children(value).length === 0) return
+    copies.set(fingerprint(value), replacement)
+  }
+  const addNested = (value: unknown) => {
+    for (const [, child] of children(value)) {
+      if (children(child).length === 0) continue
+      add(child, null)
+      addNested(child)
+    }
+  }
+  add(remotes, shown)
+  if (!Array.isArray(remotes)) {
+    addNested(remotes)
+    return copies
+  }
+  remotes.forEach((entry, index) => {
+    const display = shown[index] as RemoteDisplay
+    add(entry, display)
+    addNested(entry)
+    if (isRecord(entry) && typeof entry.url === 'string' && entry.url !== '') {
+      add(entry.url, display.url)
+    }
+  })
+  return copies
+}
+
+function withoutCopies(value: unknown, copies: Map<string, unknown>): unknown {
+  if (typeof value === 'string' || children(value).length > 0) {
+    const key = fingerprint(value)
+    if (copies.has(key)) return copies.get(key)
+  }
+  if (Array.isArray(value)) return value.map(child => withoutCopies(child, copies))
+  if (isRecord(value)) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, child]) => [key, withoutCopies(child, copies)]),
+    )
+  }
+  return value
+}
+
 export function projectConfigRemotes<T>(config: T): T {
   if (!isRecord(config) || !isRecord(config.registry)) return config
   const remotes = config.registry.remotes
-  if (!Array.isArray(remotes)) return config
-  const shown = remotes.map(entry => {
-    const record: Record<string, unknown> = isRecord(entry) ? entry : {}
-    return { name: record.name, protocol: record.protocol, url: displayOrigin(record.url) }
-  })
-  return { ...config, registry: { ...config.registry, remotes: shown } }
+  if (remotes === undefined || remotes === null) return config
+  // A block that is not a list is invalid config, still served, and may hold an endpoint anywhere.
+  const shown: RemoteDisplay[] = Array.isArray(remotes)
+    ? remotes.map(entry => {
+        const record: Record<string, unknown> = isRecord(entry) ? entry : {}
+        return {
+          name: record.name as string,
+          protocol: record.protocol as string,
+          url: displayOrigin(record.url),
+        }
+      })
+    : []
+  const rest = withoutCopies(
+    { ...config, registry: { ...config.registry, remotes: [] } },
+    remoteCopies(remotes, shown),
+  ) as Record<string, unknown>
+  return { ...rest, registry: { ...(rest.registry as Record<string, unknown>), remotes: shown } } as T
 }
