@@ -219,6 +219,50 @@ describe('the run source lists every member', () => {
     ])
   })
 
+  it('a suite snapshot naming one member refiles that member and leaves the members before it alone', () => {
+    const SUITE = { id: 's_login', name: 'Login suite', target: 'login-target' }
+    const signIn = { name: 'Sign in', testId: 't_sign_in', filePath: 'tests/sign-in.yaml', suiteId: SUITE.id, suiteName: SUITE.name }
+    const signOut = { name: 'Sign out', testId: 't_sign_out', filePath: 'tests/sign-out.yaml', suiteId: SUITE.id, suiteName: SUITE.name }
+    const ingest = createDashboardRunIngest({ db, runId: RUN_ID, members: [signIn, signOut, LOGIN] })
+    ingest.handler(ev('runStarted', { memberTestCount: 3 }))
+    ingest.stageSnapshots(suiteSnapshot(SUITE, [signIn, signOut]))
+    ingest.stageSnapshots(testSnapshot(LOGIN, LOGIN_YAML, 'staging'))
+    const dropped = suiteSnapshot({ ...SUITE, target: 'remote-lost' }, [signIn, signOut])
+    ingest.stageSnapshots({ ...dropped, memberIndex: 1 })
+
+    const members = storedPayload().source.members as Array<Record<string, any>>
+    expect(members.map((member) => member.config.runtime.targetName)).toEqual([
+      'login-target',
+      'remote-lost',
+      'staging',
+    ])
+  })
+
+  it('a later snapshot of a test run twice refiles the member that sent it', () => {
+    const ingest = createDashboardRunIngest({ db, runId: RUN_ID, members: [LOGIN, LOGIN] })
+    ingest.handler(ev('runStarted', { memberTestCount: 2 }))
+    ingest.stageSnapshots({ ...testSnapshot(LOGIN, LOGIN_YAML, 'first'), memberIndex: 0 })
+    ingest.stageSnapshots({ ...testSnapshot(LOGIN, LOGIN_YAML, 'second'), memberIndex: 1 })
+    ingest.stageSnapshots({ ...testSnapshot(LOGIN, LOGIN_YAML, 'second-later'), memberIndex: 1 })
+
+    const members = storedPayload().source.members as Array<Record<string, any>>
+    expect(members.map((member) => member.index)).toEqual([0, 1])
+    expect(members.map((member) => member.config.runtime.targetName)).toEqual([
+      'first',
+      'second-later',
+    ])
+  })
+
+  it('a test snapshot files at the member that sent it whatever order the snapshots arrive in', () => {
+    const ingest = createDashboardRunIngest({ db, runId: RUN_ID, members: [LOGIN, LOGIN] })
+    ingest.handler(ev('runStarted', { memberTestCount: 2 }))
+    ingest.stageSnapshots({ ...testSnapshot(LOGIN, LOGIN_YAML, 'second'), memberIndex: 1 })
+    ingest.stageSnapshots({ ...testSnapshot(LOGIN, LOGIN_YAML, 'first'), memberIndex: 0 })
+
+    const members = storedPayload().source.members as Array<Record<string, any>>
+    expect(members.map((member) => member.config.runtime.targetName)).toEqual(['first', 'second'])
+  })
+
   it('a single-test run keeps its test source and config', () => {
     const ingest = createDashboardRunIngest({ db, runId: RUN_ID, members: [LOGIN] })
     ingest.handler(ev('runStarted', { memberTestCount: 1 }))

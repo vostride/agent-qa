@@ -663,6 +663,7 @@ function isSnapshotRecord(value: unknown): value is Record<string, unknown> {
 export interface RunArtifactSnapshot {
   readonly config?: Record<string, unknown>
   readonly source?: Record<string, unknown>
+  readonly memberIndex?: number
 }
 
 export type RunArtifactSnapshotListener = (snapshot: RunArtifactSnapshot) => void
@@ -3044,11 +3045,13 @@ export async function produceSuiteRunMembers(
     }
   }
 
-  // Every member of a suite carries the suite's place, through the suite's snapshot.
-  const emitSuitePlace = (prepared: PreparedSuite, place: RunArtifactPlace): void => {
+  // Every member of a suite carries the suite's place, through the suite's snapshot; a place one
+  // member saw, such as its remote dropping, is that member's alone.
+  const emitSuitePlace = (prepared: PreparedSuite, place: RunArtifactPlace, memberIndex?: number): void => {
     if (!isSnapshotRecord(prepared.suiteArtifact)) return
     const placed = withArtifactPlace(prepared.suiteArtifact, place)
-    suiteSnapshots.emit(maskRunArtifactSnapshot(placed, { mask: suiteRunMask }))
+    const snapshot = maskRunArtifactSnapshot(placed, { mask: suiteRunMask })
+    suiteSnapshots.emit(memberIndex === undefined ? snapshot : { ...snapshot, memberIndex })
   }
 
   // Suite-level SETUP the shell runs on the first member of each suite (lazy lifecycle). Fires
@@ -3367,7 +3370,7 @@ export async function produceSuiteRunMembers(
           const result = await runMemberTest(toMemberTest(patched, absolutePath), memberRunConfig)
           const memberEndPlace = adapterPlaceEvidence(suiteConfig.adapter)
           if (memberEndPlace?.place === 'remote' && memberEndPlace.failureKind !== undefined) {
-            emitSuitePlace(prepared, memberEndPlace)
+            emitSuitePlace(prepared, memberEndPlace, ctx.testIndex)
           }
 
           // Per-test TEARDOWN hooks (after each test).
@@ -3908,7 +3911,10 @@ export async function produceDirectRunMembers(
     }).artifact
     // This member's test and effective config, masked with the run's redactor, for ingest.
     const emitDirectSnapshot = (place: RunArtifactPlace | undefined): void => {
-      memberSnapshots.emit(maskRunArtifactSnapshot(directArtifact(place), { mask: singleRunMask }))
+      memberSnapshots.emit({
+        ...maskRunArtifactSnapshot(directArtifact(place), { mask: singleRunMask }),
+        memberIndex: ctx.testIndex,
+      })
     }
 
       // Each direct test owns its adapter so parallel batches cannot share mutable browser/mobile state.

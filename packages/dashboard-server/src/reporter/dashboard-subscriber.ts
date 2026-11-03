@@ -37,6 +37,8 @@ type ConfigSnapshot = RunArtifactConfigSnapshot | ArtifactRecord
 export interface DashboardRunIngestSnapshots {
   config?: ConfigSnapshot
   source?: SourceSnapshot
+  /** The one member a later snapshot speaks for, such as the member that saw its remote drop. */
+  memberIndex?: number
 }
 
 export interface DashboardRunIngestDeps {
@@ -184,11 +186,14 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     source: Record<string, unknown>,
     config: ConfigSnapshot | undefined,
     taken: ReadonlySet<number>,
+    memberIndex: number | undefined,
   ): RunArtifactSuiteMemberSnapshot | undefined {
     const testId = readString(source.testId)
     const filePath = readString(source.filePath)
     const index = pickMember(
-      runMembers.map((_, position) => position),
+      memberIndex !== undefined && runMembers[memberIndex] !== undefined
+        ? [memberIndex]
+        : runMembers.map((_, position) => position),
       { testId, name: readString(source.name), filePath },
       taken,
     )
@@ -245,13 +250,16 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
       .filter((entry): entry is RunArtifactSuiteMemberSnapshot => isRecord(entry) && typeof entry.index === 'number')
     const taken = new Set(entries.map((entry) => entry.index))
     const config = isRecord(input.config) ? input.config : undefined
+    const memberIndex = typeof input.memberIndex === 'number' ? input.memberIndex : undefined
     const added: RunArtifactSuiteMemberSnapshot[] = []
     // A member already filed takes a later snapshot of its own source as its config.
     let refiled: (entry: RunArtifactSuiteMemberSnapshot) => boolean = () => false
     if (isRecord(input.source) && input.source.kind === 'test') {
       const source = input.source
-      const entry = testMemberEntry(source, config, taken)
-      if (entry !== undefined) added.push(entry)
+      const own = entries.find((candidate) => candidate.index === memberIndex)
+      const entry = own === undefined ? testMemberEntry(source, config, taken, memberIndex) : undefined
+      if (own !== undefined) refiled = (candidate) => candidate === own
+      else if (entry !== undefined) added.push(entry)
       else {
         const testId = readString(source.testId)
         const filed = entries.find((candidate) =>
@@ -264,8 +272,11 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     if (isRecord(input.source) && input.source.kind === 'suite') {
       const suiteId = readString(input.source.suiteId)
       added.push(...suiteMemberEntries(input.source, config, new Set(taken)))
+      // A later snapshot naming one member, such as one whose remote dropped, refiles that member only.
       refiled = (candidate) =>
-        suiteId !== undefined && runMembers[candidate.index]?.suiteId === suiteId
+        memberIndex !== undefined
+          ? candidate.index === memberIndex
+          : suiteId !== undefined && runMembers[candidate.index]?.suiteId === suiteId
     }
     const kept = config === undefined
       ? entries
