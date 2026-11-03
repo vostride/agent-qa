@@ -18,6 +18,7 @@ export const SECRET_ADJACENT_CONFIG_FIELDS = [
   'plugins.auth',
   'plugins.providers',
   'registry.targets.*.authState',
+  'registry.remotes',
   'use.authState',
 ] as const
 

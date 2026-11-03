@@ -313,6 +313,8 @@ describe('the secret-adjacent field set is roots, and matching is by subtree', (
       'plugins.auth',
       'plugins.providers',
       'registry.targets.*.authState',
+      // A remote's url, query, headers and basicAuth carry a service's credentials by reference.
+      'registry.remotes',
       // The committed config binds an auth state at `use.authState`, not under targets.
       'use.authState',
     ])
@@ -343,6 +345,7 @@ describe('the secret-adjacent field set is roots, and matching is by subtree', (
       'plugins.providers.0.path',
       'use.authState.capture',
       'registry.targets.shop.authState.name',
+      'registry.remotes.0.headers.Authorization',
     ]) {
       expect({ path, flagged: isSecretAdjacentConfigField(path) }).toEqual({ path, flagged: true })
     }

@@ -2,6 +2,7 @@
 
 import {
   CONFIG_SET_GITIGNORE,
+  SUBSCRIPTION_AUTH_PACKAGE,
   UnrenderableConfigDiffError,
   base64Encode,
   isLegalConfigReference,
@@ -274,6 +275,17 @@ export async function setConfigAuth(
       : [{ field: 'envVarName', kind: 'env-var-name' as const, value: input.envVarName }]),
   ])
   if (refusal !== undefined) return refusal
+
+  // A plugin package is code the run loads, so this door names only the one package it may declare.
+  if (input.pluginPackage !== undefined && input.pluginPackage !== SUBSCRIPTION_AUTH_PACKAGE) {
+    return {
+      outcome: 'refused',
+      reason: 'unsupported-reference',
+      detail:
+        `config.auth.set declares only ${SUBSCRIPTION_AUTH_PACKAGE}. Declare any other auth plugin `
+        + 'by editing plugins.auth in the config file.',
+    }
+  }
 
   const entryPath = `${TARGETS_PATH}.${input.target}`
   const facts = await deps.configFiles.inspect({

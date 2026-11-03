@@ -14,6 +14,7 @@ import {
   GATE_RECEIPT_SCHEMA_VERSION,
   CURRENT_HANDOFF_SCHEMA_VERSION,
   MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
+  SUBSCRIPTION_AUTH_PACKAGE,
   stampReceiptDigest,
 } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
@@ -662,7 +663,7 @@ describe('the gate read and auth writer serve every caller', () => {
           { recordId: 'rec-9' }, caller))
         // The reference is a plugin package.
         answers.push(await invokeFunction(registry, 'config.auth.set',
-          { target: 'shop', pluginPackage: '@acme/auth' }, caller))
+          { target: 'shop', pluginPackage: SUBSCRIPTION_AUTH_PACKAGE }, caller))
         answers.push(await invokeFunction(registry, 'config.auth.set',
           { target: 'shop', pluginPackage: 'not a name; rm -rf' }, caller))
       }
@@ -679,9 +680,9 @@ describe('the gate read and auth writer serve every caller', () => {
     expect(answers[3]).toMatchObject({ outcome: 'refused', reason: 'refs-only' })
     // Only the named reference reaches construction, validation and the writer, once per attempt.
     expect(fieldsSet).toEqual(Array.from({ length: 6 }, () =>
-      ({ path: 'plugins.auth', value: [{ package: '@acme/auth' }] })))
+      ({ path: 'plugins.auth', value: [{ package: SUBSCRIPTION_AUTH_PACKAGE }] })))
     expect(validations).toBe(6)
     expect(written).toEqual(Array.from({ length: 6 }, () =>
-      [{ op: 'append', path: ['plugins', 'auth'], value: { package: '@acme/auth' } }]))
+      [{ op: 'append', path: ['plugins', 'auth'], value: { package: SUBSCRIPTION_AUTH_PACKAGE } }]))
   })
 })

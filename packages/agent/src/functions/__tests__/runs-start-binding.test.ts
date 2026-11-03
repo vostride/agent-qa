@@ -3,6 +3,7 @@
 import {
   CURRENT_HANDOFF_SCHEMA_VERSION,
   MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
+  SUBSCRIPTION_AUTH_PACKAGE,
 } from '@vostride/agent-qa-schema'
 import type {
   CompletedRunHandoff,
@@ -81,7 +82,7 @@ const BINDING_PARITY_INPUTS: Readonly<Record<string, unknown>> = {
   'proposals.show': { proposalId: 'prop_0123456789ab' },
   'proposals.reject': { proposalId: 'prop_0123456789ab' },
   'proposals.accept': { proposalId: 'prop_0123456789ab' },
-  'config.auth.set': { target: 'shop', pluginPackage: '@acme/auth' },
+  'config.auth.set': { target: 'shop', pluginPackage: SUBSCRIPTION_AUTH_PACKAGE },
   'config.field.set': { path: 'use.timeout', value: '45s' },
   'config.hook.add': { name: 'seed', runtime: 'node', file: 'scripts/seed.mjs' },
   'config.target.create': { name: 'shop', platform: 'web', url: 'https://shop.example.com' },

@@ -529,9 +529,11 @@ describe('the committed configuration binds no auth state, so no op takes one', 
     expect(writtenText()).not.toContain('authState')
   })
 
-  it('config.auth.set of any other package is refused as a write that cannot be made', async () => {
+  it('config.auth.set of any other package is refused and the file is left as it was', async () => {
     const answer = await call('config.auth.set', { target: 'local-form', pluginPackage: '@acme/auth' })
-    expect(answer).toMatchObject({ outcome: 'refused', reason: 'write-refused' })
+    expect(answer).toMatchObject({ outcome: 'refused', reason: 'unsupported-reference' })
+    if (answer.outcome !== 'refused') throw new Error('unreachable')
+    expect(answer.detail).toContain('declares only @vostride/agent-qa-subscription-auth')
     expect(writtenText()).toBe(SEEDED_CONFIG)
   })
 })
