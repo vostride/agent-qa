@@ -10,6 +10,7 @@ import type {
   PlatformAdapter,
   PlatformConfig,
   RecordingCapability,
+  RemoteRefusalMemory,
 } from '@vostride/agent-qa-runner'
 import type { LiveFrame } from '@vostride/agent-qa-schema'
 import { DEFAULT_NAVIGATION_TIMEOUT_MS } from '@vostride/agent-qa-schema'
@@ -38,6 +39,7 @@ import { waitForPageReady } from './smart-wait.js'
 import { runWebFillCompound, runWebScrollCompound, webOpenAppError } from './compound-web.js'
 import type { RefMap } from './types.js'
 import { formatMissingBrowserError, isPlaywrightMissingBrowserError } from './browser-install-error.js'
+import { rewriteConnectError } from './remote-connection.js'
 import { createScreencastRecording, type ScreencastRecording } from './recording.js'
 import { isHeadlessLaunch, OperationCapture } from './operation-capture.js'
 import type { CapturedOperations } from './operation-capture.js'
@@ -125,6 +127,10 @@ function decodeBase64(data: string): Uint8Array {
 export interface WebPlatformAdapterOptions {
   // Set only by a host with its own SIGINT, SIGTERM and SIGHUP handling, such as `agent-qa run`.
   readonly hostOwnsSignals?: true
+  // Shared by every adapter of one run, so a remote that refused is not asked again.
+  readonly refusalMemory?: RemoteRefusalMemory
+  // The configured secrets file a credential refusal names.
+  readonly secretsFile?: string
 }
 
 export class WebPlatformAdapter implements PlatformAdapter<'web'> {
@@ -181,11 +187,22 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
     this.onRemote = remote !== undefined
     if (remote !== undefined) {
-      // Headless, launch args and signal handling belong to a browser launched here.
-      this.browser =
-        remote.protocol === 'cdp'
-          ? await chromium.connectOverCDP(remote.url, { timeout: remote.connectTimeoutMs })
-          : await launcher.connect(remote.url, { timeout: remote.connectTimeoutMs })
+      const remembered = this.options.refusalMemory?.refusalFor(remote.name)
+      if (remembered !== undefined) throw remembered
+      try {
+        // Headless, launch args and signal handling belong to a browser launched here.
+        this.browser =
+          remote.protocol === 'cdp'
+            ? await chromium.connectOverCDP(remote.url, { timeout: remote.connectTimeoutMs })
+            : await launcher.connect(remote.url, { timeout: remote.connectTimeoutMs })
+      } catch (error) {
+        const refused = rewriteConnectError(
+          error,
+          remote,
+          this.options.secretsFile !== undefined ? { secretsFile: this.options.secretsFile } : {},
+        )
+        throw this.options.refusalMemory?.remember(remote.name, refused) ?? refused
+      }
     } else {
       try {
         this.browser = await launcher.launch({

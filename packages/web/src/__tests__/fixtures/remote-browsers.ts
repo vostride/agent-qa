@@ -1,8 +1,15 @@
-// Remote browsers on loopback: a Playwright server, a CDP Chromium and a session-counting proxy.
+// Remote browsers on loopback: a Playwright server, a CDP Chromium, a session-counting proxy and
+// services that refuse a connect.
 
+import { spawn } from 'node:child_process'
+import type { ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
+import { createServer as createHttpServer, STATUS_CODES } from 'node:http'
+import type { Server as HttpServer } from 'node:http'
+import { createRequire } from 'node:module'
 import { connect, createServer } from 'node:net'
 import type { AddressInfo, Server, Socket } from 'node:net'
+import { dirname, join } from 'node:path'
 
 import { chromium } from 'playwright-core'
 import type { Browser, BrowserServer } from 'playwright-core'
@@ -81,6 +88,8 @@ export interface CountingProxy {
   readonly port: number
   /** Connections whose first chunk asked for a WebSocket upgrade. */
   sessions(): number
+  /** Every TCP connection the proxy accepted. */
+  connections(): number
   close(): Promise<void>
 }
 
@@ -90,6 +99,7 @@ export async function startCountingProxy(targetPort: number): Promise<CountingPr
   let proxy: Server | undefined
   const sockets = new Set<Socket>()
   let sessions = 0
+  let connections = 0
 
   const close = async (): Promise<void> => {
     for (const socket of sockets) socket.destroy()
@@ -101,6 +111,7 @@ export async function startCountingProxy(targetPort: number): Promise<CountingPr
 
   try {
     proxy = createServer((client) => {
+      connections += 1
       const upstream = connect(targetPort, '127.0.0.1')
       sockets.add(client)
       sockets.add(upstream)
@@ -125,7 +136,134 @@ export async function startCountingProxy(targetPort: number): Promise<CountingPr
       listening.listen(0, '127.0.0.1', () => ready())
     })
     const { port } = listening.address() as AddressInfo
-    return { port, sessions: () => sessions, close }
+    return { port, sessions: () => sessions, connections: () => connections, close }
+  } catch (error) {
+    await close()
+    throw error
+  }
+}
+
+export interface LoopbackService {
+  readonly port: number
+  close(): Promise<void>
+}
+
+async function listenOnLoopback(server: Server | HttpServer): Promise<number> {
+  await new Promise<void>((ready, failed) => {
+    server.once('error', failed)
+    server.listen(0, '127.0.0.1', () => ready())
+  })
+  return (server.address() as AddressInfo).port
+}
+
+// Answers every WebSocket upgrade and every plain request, DevTools discovery included, with one status.
+export async function startStatusServer(
+  status: number,
+  body: string,
+): Promise<LoopbackService> {
+  const sockets = new Set<Socket>()
+  const reason = STATUS_CODES[status] ?? 'Refused'
+  const server = createHttpServer((_request, response) => {
+    response.writeHead(status, { 'content-type': 'text/plain', connection: 'close' })
+    response.end(body)
+  })
+  server.on('connection', (socket: Socket) => {
+    sockets.add(socket)
+    socket.on('close', () => sockets.delete(socket))
+  })
+  server.on('upgrade', (_request, socket: Socket) => {
+    const head = [
+      `HTTP/1.1 ${String(status)} ${reason}`,
+      'Content-Type: text/plain',
+      `Content-Length: ${String(Buffer.byteLength(body))}`,
+      'Connection: close',
+    ]
+    socket.end(`${head.join('\r\n')}\r\n\r\n${body}`)
+  })
+  const close = async (): Promise<void> => {
+    for (const socket of sockets) socket.destroy()
+    sockets.clear()
+    await new Promise<void>((closed) => server.close(() => closed()))
+  }
+  try {
+    return { port: await listenOnLoopback(server), close }
+  } catch (error) {
+    await close()
+    throw error
+  }
+}
+
+// Accepts connections and never answers, so a connect waits out its timeout.
+export async function startSilentSocket(): Promise<LoopbackService> {
+  const sockets = new Set<Socket>()
+  const server = createServer((socket) => {
+    sockets.add(socket)
+    socket.on('error', () => undefined)
+    socket.on('close', () => sockets.delete(socket))
+  })
+  const close = async (): Promise<void> => {
+    for (const socket of sockets) socket.destroy()
+    sockets.clear()
+    await new Promise<void>((closed) => server.close(() => closed()))
+  }
+  try {
+    return { port: await listenOnLoopback(server), close }
+  } catch (error) {
+    await close()
+    throw error
+  }
+}
+
+export interface MismatchedRunServer {
+  readonly wsEndpoint: string
+  close(): Promise<void>
+}
+
+const RUN_SERVER_LISTENING = /Listening on (ws:\/\/\S+)/
+
+// Playwright's own run-server, told it is another release, refuses this client's version.
+export async function startMismatchedRunServer(): Promise<MismatchedRunServer> {
+  const require = createRequire(import.meta.url)
+  const cli = join(dirname(require.resolve('playwright-core/package.json')), 'cli.js')
+  let child: ChildProcess | undefined
+  const close = async (): Promise<void> => {
+    const running = child
+    child = undefined
+    if (running === undefined || running.exitCode !== null || running.signalCode !== null) return
+    await new Promise<void>((exited) => {
+      running.once('exit', () => exited())
+      running.kill('SIGKILL')
+    })
+  }
+  try {
+    const started = spawn(
+      process.execPath,
+      [cli, 'run-server', '--host', '127.0.0.1', '--port', '0'],
+      { env: { ...process.env, PW_VERSION_OVERRIDE: '1.63.0' }, stdio: ['ignore', 'pipe', 'pipe'] },
+    )
+    child = started
+    const wsEndpoint = await new Promise<string>((listening, failed) => {
+      let output = ''
+      const timer = setTimeout(() => failed(new Error('run-server did not start')), 30_000)
+      started.stdout?.on('data', (chunk: Buffer) => {
+        output += chunk.toString('utf8')
+        const found = RUN_SERVER_LISTENING.exec(output)
+        if (found?.[1] !== undefined) {
+          clearTimeout(timer)
+          listening(found[1])
+        }
+      })
+      started.stderr?.resume()
+      started.once('error', (error) => {
+        clearTimeout(timer)
+        failed(error)
+      })
+      started.once('exit', (code) => {
+        clearTimeout(timer)
+        failed(new Error(`run-server exited with ${String(code)}`))
+      })
+    })
+    return { wsEndpoint, close }
   } catch (error) {
     await close()
     throw error

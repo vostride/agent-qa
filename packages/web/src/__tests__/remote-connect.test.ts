@@ -204,7 +204,9 @@ describe('the web adapter on a remote browser', () => {
       try {
         await expect(
           adapter.setup({ platform: 'web', browser: { name: 'chromium', remote } }),
-        ).rejects.toThrow('Timeout 1500ms exceeded')
+        ).rejects.toThrow(
+          `Remote grid (${protocol} ${scheme}://127.0.0.1:${String(silentPort)}) did not connect within 1500ms. Raise its connectTimeout or check the service.`,
+        )
       } finally {
         await adapter.cleanup()
       }
