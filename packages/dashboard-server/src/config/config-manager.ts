@@ -13,13 +13,14 @@ import {
   visit,
   type Node,
 } from 'yaml'
-import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
+import { AgentQaConfigSchema, projectRemotesInConfigText } from '@vostride/agent-qa-core'
 import {
   closedConfigFieldsChanged,
   CONFIG_NAMED_ARRAYS,
   CONFIG_REVISION_ABSENT,
   MARKER_WRITTEN_BACK_SENTENCE,
   maskPayloadTree,
+  projectConfigRemotes,
   type ConfigChange,
   type ConfigPathSegment,
   type ConfigWriteIssue,
@@ -152,7 +153,7 @@ export class ConfigManager {
     return { kind: 'ok', config: read.config, raw: read.raw, revision: read.revision }
   }
 
-  // The payload and the file view pass through the declared mask and nothing else.
+  // Both views pass the declared mask and show a remote only by name, protocol and origin.
   async readMasked(): Promise<MaskedConfigOutcome> {
     const read = await this.readParsed()
     if (read.kind === 'absent') {
@@ -160,12 +161,12 @@ export class ConfigManager {
     }
     if (read.kind === 'file_invalid') return { ...read, message: this.maskSummary(read.message) }
     const masked = maskDocument(read.doc, this.mask)
-    const config = (masked.toJSON() as Record<string, unknown> | null) ?? {}
+    const config = projectConfigRemotes((masked.toJSON() as Record<string, unknown> | null) ?? {})
     const parsed = AgentQaConfigSchema.safeParse(normalizeForValidation(read.config))
     const fileIssues = parsed.success
       ? []
       : parsed.error.issues.map((issue) => maskedIssue(issue, this.mask))
-    const lines = fileLines(this.mask(read.raw))
+    const lines = fileLines(this.mask(projectRemotesInConfigText(read.raw)))
     return { kind: 'ok', config, revision: read.revision, lines, fileIssues }
   }
 

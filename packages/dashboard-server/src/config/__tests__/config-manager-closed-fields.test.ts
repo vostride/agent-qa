@@ -153,6 +153,23 @@ describe("the config's closed fields", () => {
       .toEqual({ auth: [SUBSCRIPTION_AUTH] })
   })
 
+  it('the served config and its file lines show a remote by name, protocol and origin only', async () => {
+    const { manager } = await configFile(WITH_PLUGINS)
+    const read = await manager.readMasked()
+    if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+
+    const shown = { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }
+    expect((read.config.registry as { remotes: unknown }).remotes).toEqual([shown])
+    const text = read.lines.map((line) => line.text).join('\n')
+    expect(text).toContain('# owner notes: the grid is the team one')
+    expect(text).toContain('./auth-plugin.mjs')
+    for (const hidden of ['/playwright', 'Authorization', 'GRID_TOKEN', 'headers']) {
+      expect(JSON.stringify(read.config)).not.toContain(hidden)
+      expect(text).not.toContain(hidden)
+    }
+    expect((parseYaml(text) as { registry: { remotes: unknown } }).registry.remotes).toEqual([shown])
+  })
+
   it('on a config with no plugins block another package, a path or a second plugins change is refused', async () => {
     await expectRefused(WITHOUT_PLUGINS, [
       [{ op: 'append', path: ['plugins', 'auth'], value: { package: '@acme/other-auth' } }],
