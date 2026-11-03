@@ -42,6 +42,7 @@ test('config sections are an exact union', () => {
     | 'screenshot-size'
     | 'planner-limits'
     | 'targets'
+    | 'remotes'
     | 'devices'
     | 'login-states'
     | 'mobile-app-state'

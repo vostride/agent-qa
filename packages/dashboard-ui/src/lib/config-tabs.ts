@@ -17,6 +17,7 @@ export type ConfigSectionId =
   | 'screenshot-size'
   | 'planner-limits'
   | 'targets'
+  | 'remotes'
   | 'devices'
   | 'login-states'
   | 'mobile-app-state'
@@ -41,6 +42,7 @@ export const CONFIG_SECTION_IDS = [
   'screenshot-size',
   'planner-limits',
   'targets',
+  'remotes',
   'devices',
   'login-states',
   'mobile-app-state',
@@ -63,7 +65,7 @@ export const CONFIG_SECTION_IDS = [
 
 export const CONFIG_SECTIONS = {
   models: ['models', 'screenshot-size', 'planner-limits'],
-  targets: ['targets', 'devices', 'login-states', 'mobile-app-state'],
+  targets: ['targets', 'remotes', 'devices', 'login-states', 'mobile-app-state'],
   execution: ['browser', 'timeouts', 'runs', 'cache', 'recording', 'accessibility', 'log-capture'],
   project: ['test-discovery', 'files', 'knowledge', 'dashboard', 'logging', 'pass-rate-scope'],
   advanced: ['mcp', 'config-file'],
@@ -75,6 +77,7 @@ export const CONFIG_SECTION_ALIASES = {
   'screenshot-size': ['vision', 'screenshot', 'resolution'],
   'planner-limits': ['planner', 'sub actions', 'history limit'],
   targets: ['target', 'urls', 'bundle id', 'app package'],
+  remotes: ['remote', 'remote browser', 'where tests run'],
   devices: ['device', 'device profiles'],
   'login-states': ['login state', 'auth state', 'auth states', 'saved auth'],
   'mobile-app-state': ['mobile', 'app state', 'app data', 'reset app data', 'preserve app data'],

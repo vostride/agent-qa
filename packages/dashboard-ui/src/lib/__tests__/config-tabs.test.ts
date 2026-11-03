@@ -32,7 +32,7 @@ describe('the tabs and their sections', () => {
   it('each tab lists its sections in display order', () => {
     expect(CONFIG_SECTIONS).toEqual({
       models: ['models', 'screenshot-size', 'planner-limits'],
-      targets: ['targets', 'devices', 'login-states', 'mobile-app-state'],
+      targets: ['targets', 'remotes', 'devices', 'login-states', 'mobile-app-state'],
       execution: ['browser', 'timeouts', 'runs', 'cache', 'recording', 'accessibility', 'log-capture'],
       project: ['test-discovery', 'files', 'knowledge', 'dashboard', 'logging', 'pass-rate-scope'],
       advanced: ['mcp', 'config-file'],
@@ -156,6 +156,7 @@ describe('tab URLs and the section search', () => {
     expect(sectionsOf('time')).toEqual(['timeouts'])
     expect(sectionsOf('TIME')).toEqual(['timeouts'])
     expect(sectionsOf('device')).toEqual(['devices'])
+    expect(sectionsOf('where tests run')).toEqual(['remotes'])
     // No section is about tokens any more.
     expect(sectionsOf('tokens')).toEqual([])
     for (const entry of searchConfigSections('')) {

@@ -52,6 +52,7 @@ export const CONFIG_SECTION_LABELS = {
   'screenshot-size': 'Screenshot size',
   'planner-limits': 'Planner limits',
   targets: 'Targets',
+  remotes: 'Remotes',
   devices: 'Devices',
   'login-states': 'Saved login states',
   'mobile-app-state': 'Mobile app state',
@@ -641,6 +642,16 @@ export const LOG_CAPTURE_FIELD_LABELS = {
 } as const
 
 export const NO_TARGETS_TEXT = 'No targets yet.'
+
+export const REMOTES_COPY = {
+  columns: { name: 'Name', protocol: 'Protocol', origin: 'Origin' },
+  runsHere: 'Web tests run on this machine unless a suite or test picks a remote.',
+  empty: 'No remotes are listed. List them under remotes in the registry block of agent-qa.config.yaml.',
+} as const
+
+export function remoteDefaultLine(name: string): string {
+  return `Web tests run on ${name} unless a suite or test picks another place.`
+}
 export const NO_DEVICES_TEXT = 'No devices yet.'
 export const NO_LOGIN_STATES_TEXT = 'No saved login states yet. Save one from a web Live Mode session.'
 export const LOGIN_STATES_LOADING_TEXT = 'Loading saved login states…'
