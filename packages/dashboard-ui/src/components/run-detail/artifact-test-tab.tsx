@@ -2,7 +2,7 @@ import { ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import type { RunArtifactResponse } from "@/lib/api"
-import { DRAWER_COPY, ranAgainstParts } from "@/lib/drawer-view"
+import { DRAWER_COPY, ranAgainstParts, ranOnLine } from "@/lib/drawer-view"
 import { routes } from "@/lib/routes"
 import { ArtifactAttributeRows } from "./artifact-attribute-rows"
 import { formatArtifactValue, InspectorSection, isArtifactArray, isArtifactRecord, KeyValueRows, KeyValueTree, RawBlock } from "./artifact-renderers"
@@ -53,12 +53,11 @@ function getRunAttributes(response: RunArtifactResponse): Record<string, string>
 function placeLine(runtime: unknown): string | null {
   const place = recordAt(isArtifactRecord(runtime) ? runtime : null, "place")
   const kind = textAt(place, "place")
-  if (kind === "here") return "Ran here"
+  if (kind === "here") return DRAWER_COPY.ranHere
   const name = textAt(place, "name")
   if (kind !== "remote" || !name) return null
   const where = [textAt(place, "protocol"), textAt(place, "origin")].filter(Boolean).join(" ")
-  const version = textAt(place, "browserVersion")
-  return `Ran on ${name}${where ? ` (${where})` : ""}${version ? `, ${version}` : ""}`
+  return ranOnLine(name, where, textAt(place, "browserVersion"))
 }
 
 function MemberConfig({ config }: { config: Record<string, unknown> }) {

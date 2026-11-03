@@ -23,6 +23,25 @@ describe('drawer view', () => {
     expect((view.DRAWER_TITLE_FALLBACK as (id: string) => string)('sample')).toBe('Run sample')
   })
 
+  it('the place lines follow the same copy rules and name this machine as the Config page does', () => {
+    const view = drawer()
+    const ranOn = view.ranOnLine as (name: string, where: string, version: string | null) => string
+    const lines = [
+      (view.DRAWER_COPY as Record<string, string>).ranHere,
+      ranOn('lab', 'playwright ws://10.0.0.5:3000', '131.0.6778.33'),
+      ranOn('lab', '', null),
+    ]
+    for (const line of lines) {
+      expect(line?.trim()).not.toBe('')
+      expect(line).not.toMatch(/\b(finalized|open|here)\b/i)
+    }
+    expect(lines).toEqual([
+      'Ran on this machine',
+      'Ran on lab (playwright ws://10.0.0.5:3000), 131.0.6778.33',
+      'Ran on lab',
+    ])
+  })
+
   it('DRAWER-KIND-NARROWED', () => {
     expect(drawer().RUN_ARTIFACT_KIND_LABELS).toEqual({ test: 'Test', unknown: 'Not recorded' })
   })

@@ -110,9 +110,9 @@ describe("a test's place on the run page", () => {
     expect(config.textContent).toContain('launch flags')
   })
 
-  it('a test launched here reads Ran here', () => {
+  it('a test launched here reads Ran on this machine', () => {
     const card = memberCard({ place: 'here' })
-    expect(card.querySelector('[data-member-place]')?.textContent).toBe('Ran here')
+    expect(card.querySelector('[data-member-place]')?.textContent).toBe('Ran on this machine')
   })
 
   it('a test refused by its remote names the remote without a browser version', () => {

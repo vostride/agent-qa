@@ -23,7 +23,13 @@ export const DRAWER_COPY = {
   captureSealedAt: 'Capture sealed at',
   copyRunId: 'Copy run ID',
   retry: 'Retry loading run details',
+  ranHere: 'Ran on this machine',
 } as const
+
+/** Where a test ran: the remote's name, then its protocol and origin, then its browser version. */
+export function ranOnLine(name: string, where: string, version: string | null): string {
+  return `Ran on ${name}${where ? ` (${where})` : ''}${version ? `, ${version}` : ''}`
+}
 
 export const RUN_ARTIFACT_KIND_LABELS = {
   test: 'Test',
