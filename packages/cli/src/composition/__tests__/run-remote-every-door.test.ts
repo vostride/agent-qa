@@ -1,5 +1,5 @@
-// `fetch` is refused, so neither the baseline probe nor the model reaches the target: every hit
-// the target counts came from the remote browser.
+// `fetch` is refused, so the model never reaches the target: every hit the target counts came from
+// the remote browser. A member on a remote gets no baseline probe from this machine at all.
 
 import { Command } from 'commander'
 import { chromium } from 'playwright-core'
@@ -54,7 +54,8 @@ describe('a web test placed on a remote runs there from every door', () => {
         vi.spyOn(console, 'warn').mockImplementation(keep)
         vi.spyOn(console, 'error').mockImplementation(keep)
         vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('fixture command exit') })
-        vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('only the remote browser reaches the target'))
+        const fetched = vi.spyOn(globalThis, 'fetch')
+          .mockRejectedValue(new Error('only the remote browser reaches the target'))
         const launch = vi.spyOn(chromium, 'launch')
 
         const program = new Command().option('--config <path>').addCommand(createRunCommand())
@@ -65,6 +66,8 @@ describe('a web test placed on a remote runs there from every door', () => {
         expect(endpoint.sessions(), printed.join('\n')).toBe(1)
         expect(target.hits.length, printed.join('\n')).toBeGreaterThan(0)
         expect(launch).not.toHaveBeenCalled()
+        const probes = fetched.mock.calls.filter(([url]) => String(url).startsWith(target.origin))
+        expect(probes, printed.join('\n')).toEqual([])
       } finally {
         await endpoint.close()
       }
@@ -93,7 +96,8 @@ describe('a web test placed on a remote runs there from every door', () => {
         vi.spyOn(console, 'warn').mockImplementation(keep)
         vi.spyOn(console, 'error').mockImplementation(keep)
         vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('fixture command exit') })
-        vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('only the remote browser reaches the target'))
+        const fetched = vi.spyOn(globalThis, 'fetch')
+          .mockRejectedValue(new Error('only the remote browser reaches the target'))
         const launch = vi.spyOn(chromium, 'launch')
 
         const program = new Command().option('--config <path>').addCommand(createRunCommand())
@@ -104,6 +108,8 @@ describe('a web test placed on a remote runs there from every door', () => {
         expect(endpoint.sessions(), printed.join('\n')).toBe(1)
         expect(target.hits.length, printed.join('\n')).toBeGreaterThan(0)
         expect(launch).not.toHaveBeenCalled()
+        const probes = fetched.mock.calls.filter(([url]) => String(url).startsWith(target.origin))
+        expect(probes, printed.join('\n')).toEqual([])
       } finally {
         await endpoint.close()
       }

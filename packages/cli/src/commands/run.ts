@@ -2,7 +2,7 @@ import { AsyncLocalStorage } from 'node:async_hooks'
 import { randomUUID } from 'node:crypto'
 import { realpathSync } from 'node:fs'
 import { relative as relativePath, resolve as resolvePath, sep as pathSep } from 'node:path'
-import { Command } from 'commander'
+import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
@@ -145,8 +145,15 @@ export function requireSingleInvocationProduct(
  * INDEX-ALIGNED WITH THE MEMBER LIST, which is the whole point: `probeUrls` decides which health
  * reading belongs to which member. A run-level probe URL — the FIRST resolvable web member's,
  * applied to everyone — is what let a baseline taken against member B's target be recorded as
- * member A's environment failure. A member naming no target contributes `undefined`.
+ * member A's environment failure. A member naming no target contributes `undefined`, and so does a
+ * member placed on a remote browser: this machine's view of its target says nothing about where
+ * that browser stands.
  */
+export interface MemberTarget {
+  readonly target: string | undefined
+  readonly remote: boolean
+}
+
 export interface MemberTargetFacts {
   /** One entry per member, in member order: the URL to probe, or `undefined` for no probe. */
   readonly probeUrls: readonly (string | undefined)[]
@@ -156,12 +163,12 @@ export interface MemberTargetFacts {
 
 export function resolveMemberTargetFacts(
   config: AgentQaConfig,
-  memberTargetNames: readonly (string | undefined)[],
+  members: readonly MemberTarget[],
 ): MemberTargetFacts {
   const probeUrls: (string | undefined)[] = []
   let firstResolvedProduct: string | undefined
 
-  for (const targetName of memberTargetNames) {
+  for (const { target: targetName, remote } of members) {
     if (targetName === undefined) {
       probeUrls.push(undefined)
       continue
@@ -169,7 +176,8 @@ export function resolveMemberTargetFacts(
     try {
       const resolved = resolveTarget(config, targetName)
       // Web targets only: a mobile member's session-create failure is its environment signal.
-      probeUrls.push(resolved.platform === 'web' && resolved.url ? resolved.url : undefined)
+      const probeUrl = resolved.platform === 'web' && resolved.url ? resolved.url : undefined
+      probeUrls.push(remote ? undefined : probeUrl)
       firstResolvedProduct ??= resolved.product
     } catch {
       // Best-effort resolution: the member closure still surfaces the real target error as the
@@ -2290,11 +2298,12 @@ export async function produceSuiteRunMembers(
     let suiteFileContent = ''
     try { suiteFileContent = await readFile(suiteFile, 'utf-8') } catch { /* best-effort */ }
 
+    // The flag's engine is in place before the suite's place is checked against it.
     const mergedUse = mergeUseBlocks(
       config.use as Record<string, unknown>,
       suite.use as Record<string, unknown> | undefined,
       undefined,
-      {},
+      opts.browser ? { browser: { name: opts.browser } } : {},
     )
     const suiteAuthStateUse = getSelectedAuthStateUse(mergedUse as Record<string, unknown>)
 
@@ -3088,13 +3097,14 @@ export async function produceSuiteRunMembers(
   // `members` above was pushed in, so `facts.probeUrls[i]` belongs to `members[i]`. A suite-level
   // `target:` is what `patchTestForSuite` gives every one of that suite's members, so it is that
   // member's target.
-  const suiteMemberTargetNames: (string | undefined)[] = []
+  const suiteMemberTargets: MemberTarget[] = []
   for (const prepared of preparedSuites) {
+    const remote = prepared.suiteConfig.platformConfig.browser?.remote !== undefined
     for (const entry of prepared.testEntries) {
-      suiteMemberTargetNames.push(prepared.suite.target ?? entry.test.target)
+      suiteMemberTargets.push({ target: prepared.suite.target ?? entry.test.target, remote })
     }
   }
-  const suiteTargetFacts = resolveMemberTargetFacts(config, suiteMemberTargetNames)
+  const suiteTargetFacts = resolveMemberTargetFacts(config, suiteMemberTargets)
 
   // Assigned by the assembler; members and the knowledge bind read them only after it runs.
   let suiteBuildOrdinal = 0
@@ -3141,7 +3151,7 @@ export async function produceSuiteRunMembers(
       : { configuredRunsDbPath: config.services.dashboard.dbPath }),
     runArtifact: stagedRunArtifact(
       suiteRunSource(preparedSuites.map((prepared) => prepared.suiteArtifact)),
-      suiteMemberTargetNames,
+      suiteMemberTargets.map((member) => member.target),
       suiteRunMask,
     ),
     subscriberSeed: (() => {
@@ -3879,7 +3889,7 @@ export async function produceDirectRunMembers(
   // facts below are index-aligned with the member array and each member's probe URL is its own.
   const directTargetFacts = resolveMemberTargetFacts(
     config,
-    filtered.map((binding) => binding.test.target),
+    filtered.map((binding) => ({ target: binding.test.target, remote: directRemotes.has(binding) })),
   )
   // `requireSingleInvocationProduct` upstream already guarantees ONE product across the members, so
   // the first resolvable member's product is the invocation's product.
@@ -3982,7 +3992,9 @@ export function createRunCommand(): Command {
   const cmd = new Command('run')
     .description('Run test files')
     .argument('[patterns...]', 'glob patterns for test files')
-    .option('--browser <name>', 'override browser (chromium, firefox, webkit)')
+    .addOption(
+      new Option('--browser <name>', 'override browser').choices(['chromium', 'firefox', 'webkit']),
+    )
     .option('--platform <name>', 'filter by platform (web, android, ios)')
     .option(
       '--build-tag <tag>',
@@ -4049,13 +4061,8 @@ export function createRunCommand(): Command {
         const program = command.parent!
         const globalOpts = program.opts<{ config?: string; verbose?: boolean; quiet?: boolean; logLevel?: string }>()
 
+        // --browser and --headless apply per member, not to the root config.
         const flagOverrides: Record<string, unknown> = {}
-        if (opts.browser) {
-          flagOverrides.browsers = [{ name: opts.browser }]
-        }
-        if (opts.headless !== undefined) {
-          // headless is handled per-platform in platformConfig setup below
-        }
 
         // The producer throws `CliRunInputError`; this door prints its lines and exits its code.
         const inputs = await resolveRunInvocationInputs({
