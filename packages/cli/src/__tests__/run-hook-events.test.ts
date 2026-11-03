@@ -126,6 +126,8 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).selectSuitePlace,
   runnerForPlaces:
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).runnerForPlaces,
+  projectRemotesInConfigText:
+    (await importOriginal<typeof import('@vostride/agent-qa-core')>()).projectRemotesInConfigText,
   // From the real module: the run start refuses a remote's secret misused or undeclared.
   splitConnectionSecrets:
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).splitConnectionSecrets,

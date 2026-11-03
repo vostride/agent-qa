@@ -6,7 +6,8 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { connectionSecretMisuse, discoverWorkspaceFiles, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuitePlace, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { connectionSecretMisuse, discoverWorkspaceFiles, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuitePlace, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { formatRemoteOrigin, projectConfigRemotes, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
@@ -38,7 +39,7 @@ import type {
 import type { DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
-import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteRefusalMemory } from '@vostride/agent-qa-runner'
+import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory } from '@vostride/agent-qa-runner'
 import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
@@ -1680,6 +1681,51 @@ export async function resolveRunInvocationInputs(
   }
 }
 
+// Where a test ran: the adapter's evidence after setup, or the selector's choice before a session.
+type RunArtifactPlace =
+  | RemotePlaceEvidence
+  | {
+      place: 'remote'
+      name: string
+      protocol: RemoteProtocol
+      origin: string
+      failureKind?: RemoteFailureKind
+    }
+
+function selectedArtifactPlace(remote: RemoteBrowserConfig | undefined): RunArtifactPlace {
+  if (remote === undefined) return { place: 'here' }
+  const origin = remoteOrigin(remote.url)
+  return {
+    place: 'remote',
+    name: remote.name,
+    protocol: remote.protocol,
+    origin: origin === undefined ? 'invalid url' : formatRemoteOrigin(origin),
+  }
+}
+
+function refusedArtifactPlace(
+  remote: RemoteBrowserConfig | undefined,
+  refusal: Error,
+): RunArtifactPlace {
+  const place = selectedArtifactPlace(remote)
+  const kind = (refusal as { kind?: RemoteFailureKind }).kind
+  return place.place === 'remote' && kind !== undefined ? { ...place, failureKind: kind } : place
+}
+
+// Duck-typed like the member runner's adapter flags: only the web adapter reports a place.
+function adapterPlaceEvidence(adapter: unknown): RemotePlaceEvidence | undefined {
+  return (adapter as { placeEvidence?: RemotePlaceEvidence } | null | undefined)?.placeEvidence
+}
+
+function withArtifactPlace(
+  artifact: Record<string, unknown>,
+  place: RunArtifactPlace,
+): Record<string, unknown> {
+  const config = isSnapshotRecord(artifact.config) ? artifact.config : {}
+  const runtime = isSnapshotRecord(config.runtime) ? config.runtime : {}
+  return { ...artifact, config: { ...config, runtime: { ...runtime, place } } }
+}
+
 // Narrowed to the one kind this process produces; the schema keeps the others for old documents.
 function buildRunArtifactContext(input: {
   kind: 'test'
@@ -1698,6 +1744,7 @@ function buildRunArtifactContext(input: {
   platform: 'web' | 'android' | 'ios'
   target: ResolvedTarget
   deviceName?: string
+  place?: RunArtifactPlace
   attributes: RunAttributes
   timeouts: Record<string, unknown>
   cache: Record<string, unknown>
@@ -1708,9 +1755,10 @@ function buildRunArtifactContext(input: {
     artifact: {
       kind: input.kind,
       config: {
-        rawConfigContent: input.configContent,
-        parsedConfig: input.parsedConfig,
-        effectiveConfig: input.effectiveConfig,
+        // A stored remote shows its name, protocol and origin, never its path, query or headers.
+        rawConfigContent: projectRemotesInConfigText(input.configContent),
+        parsedConfig: projectConfigRemotes(input.parsedConfig),
+        effectiveConfig: projectConfigRemotes(input.effectiveConfig),
         envFile: {
           path: input.envFilePath,
           content: input.rawEnvFileContent,
@@ -1728,6 +1776,7 @@ function buildRunArtifactContext(input: {
           platform: input.platform,
           targetName: input.target.name,
           deviceName: input.deviceName,
+          ...(input.place === undefined ? {} : { place: input.place }),
         },
         timeouts: input.timeouts,
         cache: input.cache,
@@ -2860,6 +2909,7 @@ export async function produceSuiteRunMembers(
       platform: suitePlatform,
       target: suiteResolvedTarget,
       deviceName,
+      ...(suitePlatform === 'web' ? { place: selectedArtifactPlace(suiteRemote) } : {}),
       attributes: suiteAttributes,
       timeouts: testTimeouts,
       cache: {
@@ -2968,6 +3018,13 @@ export async function produceSuiteRunMembers(
     }
   }
 
+  // Every member of a suite carries the suite's place, through the suite's snapshot.
+  const emitSuitePlace = (prepared: PreparedSuite, place: RunArtifactPlace): void => {
+    if (!isSnapshotRecord(prepared.suiteArtifact)) return
+    const placed = withArtifactPlace(prepared.suiteArtifact, place)
+    suiteSnapshots.emit(maskRunArtifactSnapshot(placed, { mask: suiteRunMask }))
+  }
+
   // Suite-level SETUP the shell runs on the first member of each suite (lazy lifecycle). Fires
   // onSuiteStart/onRunStart, runs suite setup hooks (→ suiteHookVars), then adapter.setup + the
   // suite-URL navigation. A hook/nav failure records `bootstrapFailure` so the member closures
@@ -3007,6 +3064,8 @@ export async function produceSuiteRunMembers(
       }
     }
 
+    const { suitePlace } = prepared
+    const suiteRemote = suitePlace.kind === 'remote' ? suitePlace.remote : undefined
     try {
       await suiteConfig.adapter.setup(suiteConfig.platformConfig)
     } catch (err) {
@@ -3014,8 +3073,11 @@ export async function produceSuiteRunMembers(
       if (!isRemoteRefusal(err)) throw err
       suiteRemoteRefusal ??= err
       prepared.bootstrapFailure = err.message
+      emitSuitePlace(prepared, refusedArtifactPlace(suiteRemote, err))
       return
     }
+    const setUpPlace = adapterPlaceEvidence(suiteConfig.adapter)
+    if (setUpPlace !== undefined) emitSuitePlace(prepared, setUpPlace)
 
     const initialTargetName = suite.target ?? testEntries[0]?.test.target
     if (suiteConfig.resolveUrl && initialTargetName) {
@@ -3277,6 +3339,10 @@ export async function produceSuiteRunMembers(
             onEvidenceContext: ctx.setEvidenceContext,
           })
           const result = await runMemberTest(toMemberTest(patched, absolutePath), memberRunConfig)
+          const memberEndPlace = adapterPlaceEvidence(suiteConfig.adapter)
+          if (memberEndPlace?.place === 'remote' && memberEndPlace.failureKind !== undefined) {
+            emitSuitePlace(prepared, memberEndPlace)
+          }
 
           // Per-test TEARDOWN hooks (after each test).
           if ((patched as any).teardown?.length && suiteConfig.resolvedHooks && prepared.suiteSandboxOptions) {
@@ -3769,6 +3835,56 @@ export async function produceDirectRunMembers(
       appPath: testMobileResolved?.app.install?.path,
     })
 
+    const mergedForLLM = { registry: (config as any).registry, use: (testMergedConfig as any).use ?? (config as any).use }
+    const { planner: plannerCfg, verifier: verifierCfg, configName } = resolveLLMModels(mergedForLLM)
+
+    // Per-test timeouts from merged config
+    const testTimeouts = {
+      step: testMergedConfig.use?.timeout?.step,
+      test: testMergedConfig.use?.timeout?.test,
+      navigation: testMergedConfig.use?.timeout?.navigation ?? DEFAULT_NAVIGATION_TIMEOUT_MS,
+    }
+
+    const directArtifact = (place: RunArtifactPlace | undefined) => buildRunArtifactContext({
+      kind: 'test',
+      configContent,
+      parsedConfig: config,
+      effectiveConfig: testMergedConfig,
+      envFilePath: resolvedEnvFilePath,
+      rawEnvFileContent,
+      envFileVars,
+      secretsFileMetadata: runtimeSecrets.secretsFileMetadata,
+      cliVars,
+      inlineVars,
+      hooks: resolvedHooks,
+      planner: { provider: plannerCfg.provider, model: plannerCfg.model },
+      verifier: { provider: verifierCfg.provider, model: verifierCfg.model },
+      platform: testPlatform,
+      target: testResolvedTarget,
+      deviceName: testDeviceName,
+      ...(place === undefined ? {} : { place }),
+      attributes: testAttributes,
+      timeouts: testTimeouts,
+      cache: {
+        enabled: effectiveCacheEnabled,
+        dir: config.services?.cache?.dir,
+      },
+      source: {
+        kind: 'test',
+        testId: testDef['test-id'] ?? null,
+        name: testDef.name,
+        filePath,
+        rawYaml: testFileContent || null,
+        resolvedDefinition: testDef,
+        loadStatus: 'loaded',
+      },
+      secretRedactor: runtimeSecrets.secretRedactor,
+    }).artifact
+    // This member's test and effective config, masked with the run's redactor, for ingest.
+    const emitDirectSnapshot = (place: RunArtifactPlace | undefined): void => {
+      memberSnapshots.emit(maskRunArtifactSnapshot(directArtifact(place), { mask: singleRunMask }))
+    }
+
       // Each direct test owns its adapter so parallel batches cannot share mutable browser/mobile state.
       if (testPlatform !== currentPlatform || adapterKey !== currentAdapterKey) {
         currentPlatform = testPlatform
@@ -3821,7 +3937,13 @@ export async function produceDirectRunMembers(
           }
         }
 
-        await adapter.setup(platformConfig)
+        try {
+          await adapter.setup(platformConfig)
+        } catch (err) {
+          // The refused remote's kind is this test's evidence; the refusal still fails the member.
+          if (isRemoteRefusal(err)) emitDirectSnapshot(refusedArtifactPlace(testRemote, err))
+          throw err
+        }
 
         if (effectiveLogLevel === 'debug') {
           input.terminal?.printDebugLine(`  Platform: ${testPlatform}${testPlatform !== 'web' ? ' (adapter re-created)' : ''}`)
@@ -3829,8 +3951,6 @@ export async function produceDirectRunMembers(
       }
 
       // Per-test model creation using merged LLM config
-      const mergedForLLM = { registry: (config as any).registry, use: (testMergedConfig as any).use ?? (config as any).use }
-      const { planner: plannerCfg, verifier: verifierCfg, configName } = resolveLLMModels(mergedForLLM)
       const resolvedAuth = await resolveModelAuth(configName, plannerCfg)
       const { profile: plannerProfile, auth: plannerAuth } = toModelProfileAndAuth(plannerCfg, resolvedAuth)
       const { profile: verifierProfile, auth: verifierAuth } = toModelProfileAndAuth(verifierCfg, resolvedAuth)
@@ -3901,51 +4021,9 @@ export async function produceDirectRunMembers(
         createConsumers,
       })
 
-      // Per-test timeouts from merged config
-      const testTimeouts = {
-        step: testMergedConfig.use?.timeout?.step,
-        test: testMergedConfig.use?.timeout?.test,
-        navigation: testMergedConfig.use?.timeout?.navigation ?? DEFAULT_NAVIGATION_TIMEOUT_MS,
-      }
-
       const testRecording = resolveRecordingSetting(opts.record, config.services?.recording, testDef.meta?.record)
 
-      const artifactContext = buildRunArtifactContext({
-        kind: 'test',
-        configContent,
-        parsedConfig: config,
-        effectiveConfig: testMergedConfig,
-        envFilePath: resolvedEnvFilePath,
-        rawEnvFileContent,
-        envFileVars,
-        secretsFileMetadata: runtimeSecrets.secretsFileMetadata,
-        cliVars,
-        inlineVars,
-        hooks: resolvedHooks,
-        planner: { provider: plannerCfg.provider, model: plannerCfg.model },
-        verifier: { provider: verifierCfg.provider, model: verifierCfg.model },
-        platform: testPlatform,
-        target: testResolvedTarget,
-        deviceName: testDeviceName,
-        attributes: testAttributes,
-        timeouts: testTimeouts,
-        cache: {
-          enabled: effectiveCacheEnabled,
-          dir: config.services?.cache?.dir,
-        },
-        source: {
-          kind: 'test',
-          testId: testDef['test-id'] ?? null,
-          name: testDef.name,
-          filePath,
-          rawYaml: testFileContent || null,
-          resolvedDefinition: testDef,
-          loadStatus: 'loaded',
-        },
-        secretRedactor: runtimeSecrets.secretRedactor,
-      })
-      // This member's test and effective config, masked with the run's redactor, for ingest.
-      memberSnapshots.emit(maskRunArtifactSnapshot(artifactContext.artifact, { mask: singleRunMask }))
+      emitDirectSnapshot(adapterPlaceEvidence(adapter))
 
       const getAuthAwareSandboxOptions = () => sandboxOptions && activeTestAuthState
         ? { ...sandboxOptions, authState: activeTestAuthState }
@@ -4065,6 +4143,11 @@ export async function produceDirectRunMembers(
         onEvidenceContext: ctx.setEvidenceContext,
       })
       const result = await runMemberTest(toMemberTest(testDef, filePath), memberRunConfig)
+      // After a drop the member waited for the kind to settle; cleanup clears the evidence.
+      const endPlace = adapterPlaceEvidence(adapter)
+      if (endPlace?.place === 'remote' && endPlace.failureKind !== undefined) {
+        emitDirectSnapshot(endPlace)
+      }
 
       if (!result.runId) result.runId = runId
       completedResult = result
@@ -4497,9 +4580,9 @@ export function createRunCommand(): Command {
               kind: 'test',
               payload: redactSecretValue({
                 config: {
-                  rawConfigContent: configContent,
-                  parsedConfig: config,
-                  effectiveConfig: config,
+                  rawConfigContent: projectRemotesInConfigText(configContent),
+                  parsedConfig: projectConfigRemotes(config),
+                  effectiveConfig: projectConfigRemotes(config),
                   envFile: { path: resolvedEnvFilePath, content: rawEnvFileContent, variables: envFileVars },
                   secretsFile: runtimeSecrets.secretsFileMetadata,
                   cliVars,

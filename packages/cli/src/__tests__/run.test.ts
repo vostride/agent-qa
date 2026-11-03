@@ -223,6 +223,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   selectWebPlace: actual.selectWebPlace,
   selectSuitePlace: actual.selectSuitePlace,
   runnerForPlaces: actual.runnerForPlaces,
+  projectRemotesInConfigText: actual.projectRemotesInConfigText,
   // From the real module: the run start refuses a remote's secret misused or undeclared.
   splitConnectionSecrets: actual.splitConnectionSecrets,
   missingRemoteSecrets: actual.missingRemoteSecrets,

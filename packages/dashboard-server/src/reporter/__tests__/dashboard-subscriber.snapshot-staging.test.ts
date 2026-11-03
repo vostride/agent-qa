@@ -120,6 +120,22 @@ describe('staging the loaded snapshot', () => {
     expect(payload.config.effectiveConfig).toEqual({ use: { llm: 'gpt-first' } })
   })
 
+  it("a later snapshot of the same source replaces that source's config", async () => {
+    const runId = 'r_cli-door-alpha-bravo-charlie-delta-echo-foxtrot-golf'
+    const ingest = createDashboardRunIngest({ db, runId })
+    ingest.handler(ev('runStarted', { memberTestCount: 1 }))
+    ingest.stageSnapshots({ config: loadedConfig('gpt-first'), source: loadedSource(FIRST_YAML, 'Login Test') })
+    const later = {
+      ...loadedConfig('gpt-first'),
+      runtime: { platform: 'web', targetName: 'web', place: { place: 'here' } },
+    }
+    ingest.stageSnapshots({ config: later, source: loadedSource(FIRST_YAML, 'Login Test') })
+
+    const payload = storedPayload(runId)
+    expect(payload.config.runtime.place).toEqual({ place: 'here' })
+    expect(payload.source.rawYaml).toBe(FIRST_YAML)
+  })
+
   it('a finalized artifact is never re-staged', async () => {
     const runId = enqueueLikeTheQueue('tests/login.yaml')
     const ingest = createDashboardRunIngest({ db, runId })

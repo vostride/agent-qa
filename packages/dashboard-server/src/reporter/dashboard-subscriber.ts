@@ -66,7 +66,8 @@ export interface DashboardRunIngestFinalizeExtra {
 
 export interface DashboardRunIngest {
   handler(envelope: RunEventEnvelope): void
-  // Writes a section only where absent or still queued, so the first snapshot wins.
+  // Writes a section only where absent or still queued, so the first snapshot wins; a later
+  // snapshot of the same source replaces its config.
   stageSnapshots(input: DashboardRunIngestSnapshots): void
   finalize(extra?: DashboardRunIngestFinalizeExtra): Promise<void>
 }
@@ -157,6 +158,14 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     return stored === undefined || (isRecord(stored) && stored.loadStatus === 'queued')
   }
 
+  // A producer re-emits its own source when what it learned later changes the config it stored.
+  function sameLoadedSource(stored: unknown, incoming: unknown): boolean {
+    if (!isRecord(stored) || !isRecord(incoming)) return false
+    if (stored.loadStatus !== 'loaded' || stored.kind !== incoming.kind) return false
+    const keys = ['testId', 'suiteId', 'name', 'filePath'] as const
+    return keys.every((key) => stored[key] === incoming[key])
+  }
+
   function pickMember(
     pool: readonly number[],
     snapshot: { testId?: string; name?: string; filePath?: string },
@@ -237,17 +246,34 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
     const taken = new Set(entries.map((entry) => entry.index))
     const config = isRecord(input.config) ? input.config : undefined
     const added: RunArtifactSuiteMemberSnapshot[] = []
+    // A member already filed takes a later snapshot of its own source as its config.
+    let refiled: (entry: RunArtifactSuiteMemberSnapshot) => boolean = () => false
     if (isRecord(input.source) && input.source.kind === 'test') {
-      const entry = testMemberEntry(input.source, config, taken)
+      const source = input.source
+      const entry = testMemberEntry(source, config, taken)
       if (entry !== undefined) added.push(entry)
+      else {
+        const testId = readString(source.testId)
+        const filed = entries.find((candidate) =>
+          candidate.name === (readString(source.name) ?? null)
+          && candidate.filePath === (readString(source.filePath) ?? null)
+          && (testId === undefined || candidate.testId === testId))
+        refiled = (candidate) => candidate === filed
+      }
     }
     if (isRecord(input.source) && input.source.kind === 'suite') {
+      const suiteId = readString(input.source.suiteId)
       added.push(...suiteMemberEntries(input.source, config, new Set(taken)))
+      refiled = (candidate) =>
+        suiteId !== undefined && runMembers[candidate.index]?.suiteId === suiteId
     }
-    if (added.length === 0) return
+    const kept = config === undefined
+      ? entries
+      : entries.map((entry) => (refiled(entry) ? { ...entry, config } : entry))
+    if (added.length === 0 && kept.every((entry, position) => entry === entries[position])) return
     const source: RunArtifactTestsSourceSnapshot = {
       kind: 'tests',
-      members: [...entries, ...added].sort((a, b) => a.index - b.index),
+      members: [...kept, ...added].sort((a, b) => a.index - b.index),
     }
     db.stageRunArtifact(id, { source })
   }
@@ -266,7 +292,8 @@ export function createDashboardRunIngest(deps: DashboardRunIngestDeps): Dashboar
       if (!artifact || artifact.finalizedAt) return
       const stored = artifact.payload as unknown as Record<string, unknown>
       const patch: RunArtifactStageInput = {}
-      if (isRecord(input.config) && stored.config === undefined) {
+      const ownSource = sameLoadedSource(stored.source, input.source)
+      if (isRecord(input.config) && (stored.config === undefined || ownSource)) {
         patch.config = input.config as RunArtifactStageInput['config']
       }
       if (isRecord(input.source) && sourceReplaceable(stored.source)) {

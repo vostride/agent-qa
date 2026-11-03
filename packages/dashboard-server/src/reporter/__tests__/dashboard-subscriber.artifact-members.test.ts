@@ -185,6 +185,40 @@ describe('the run source lists every member', () => {
     expect(payload.config).toBeUndefined()
   })
 
+  it("a member's later snapshot replaces its own config and leaves the other member's alone", () => {
+    const ingest = startTwoTestRun()
+    ingest.stageSnapshots(testSnapshot(LOGIN, LOGIN_YAML, 'staging'))
+    ingest.stageSnapshots(testSnapshot(CHECKOUT, CHECKOUT_YAML, 'shop'))
+    ingest.stageSnapshots(testSnapshot(LOGIN, LOGIN_YAML, 'staging-later'))
+
+    const members = storedPayload().source.members as Array<Record<string, any>>
+    expect(members.map((member) => member.name)).toEqual(['Login', 'Checkout'])
+    expect(members.map((member) => member.config.runtime.targetName))
+      .toEqual(['staging-later', 'shop'])
+  })
+
+  it("a suite's later snapshot replaces the config of every member of that suite only", () => {
+    const LOGIN_SUITE = { id: 's_login', name: 'Login suite', target: 'login-target' }
+    const CHECKOUT_SUITE = { id: 's_checkout', name: 'Checkout suite', target: 'checkout-target' }
+    const signIn = { name: 'Sign in', testId: 't_sign_in', filePath: 'tests/sign-in.yaml', suiteId: LOGIN_SUITE.id, suiteName: LOGIN_SUITE.name }
+    const signOut = { name: 'Sign out', testId: 't_sign_out', filePath: 'tests/sign-out.yaml', suiteId: LOGIN_SUITE.id, suiteName: LOGIN_SUITE.name }
+    const pay = { name: 'Pay', testId: 't_pay', filePath: 'tests/pay.yaml', suiteId: CHECKOUT_SUITE.id, suiteName: CHECKOUT_SUITE.name }
+    const ingest = createDashboardRunIngest({ db, runId: RUN_ID, members: [signIn, signOut, pay] })
+    ingest.handler(ev('runStarted', { memberTestCount: 3 }))
+    ingest.stageSnapshots(suiteSnapshot(LOGIN_SUITE, [signIn, signOut]))
+    ingest.stageSnapshots(suiteSnapshot(CHECKOUT_SUITE, [pay]))
+    const later = suiteSnapshot({ ...LOGIN_SUITE, target: 'login-later' }, [signIn, signOut])
+    ingest.stageSnapshots(later)
+
+    const members = storedPayload().source.members as Array<Record<string, any>>
+    expect(members.map((member) => member.name)).toEqual(['Sign in', 'Sign out', 'Pay'])
+    expect(members.map((member) => member.config.runtime.targetName)).toEqual([
+      'login-later',
+      'login-later',
+      'checkout-target',
+    ])
+  })
+
   it('a single-test run keeps its test source and config', () => {
     const ingest = createDashboardRunIngest({ db, runId: RUN_ID, members: [LOGIN] })
     ingest.handler(ev('runStarted', { memberTestCount: 1 }))
