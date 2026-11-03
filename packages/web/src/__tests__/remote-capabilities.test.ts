@@ -3,6 +3,7 @@ import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
 import { chromium } from 'playwright-core'
+import type { Browser } from 'playwright-core'
 import type { ActionResult, RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -87,6 +88,42 @@ function capabilitiesOf(adapter: WebPlatformAdapter): string[] {
   const evidence = adapter.placeEvidence
   if (evidence?.place !== 'remote') throw new Error('the adapter reports no remote place')
   return evidence.unsupported.map((entry) => entry.capability)
+}
+
+async function devtoolsVersionStatus(endpoint: string): Promise<number> {
+  const response = await fetch(`${endpoint}/json/version`)
+  await response.body?.cancel()
+  return response.status
+}
+
+// What the browser holds once every client has gone, read through a fresh connection.
+async function pagesLeft(cdp: CdpBrowser): Promise<string[][]> {
+  const look = await chromium.connectOverCDP(cdp.endpoint, { timeout: CONNECT_TIMEOUT_MS })
+  try {
+    return look.contexts().map((context) => context.pages().map((page) => page.url()))
+  } finally {
+    await look.close()
+  }
+}
+
+// The browsers the adapter connects to, so a test can ask whether they are still connected.
+function recordConnections(): Browser[] {
+  const connected: Browser[] = []
+  const connect = chromium.connect.bind(chromium)
+  const connectOverCDP = chromium.connectOverCDP.bind(chromium)
+  vi.spyOn(chromium, 'connect').mockImplementation((async (...args: Parameters<typeof connect>) => {
+    const browser = await connect(...args)
+    connected.push(browser)
+    return browser
+  }) as typeof chromium.connect)
+  vi.spyOn(chromium, 'connectOverCDP').mockImplementation((async (
+    ...args: Parameters<typeof connectOverCDP>
+  ) => {
+    const browser = await connectOverCDP(...args)
+    connected.push(browser)
+    return browser
+  }) as typeof chromium.connectOverCDP)
+  return connected
 }
 
 async function cdpPlatform(cdp: CdpBrowser): Promise<string> {
@@ -261,4 +298,118 @@ describe('what a remote browser cannot give', () => {
     }
     expect(adapter.placeEvidence).toBeUndefined()
   }, 60_000)
+})
+
+describe('cleanup on a remote browser', () => {
+  it('closes only its own context and leaves the CDP service answering', async () => {
+    let cdp: CdpBrowser | undefined
+    const adapter = new WebPlatformAdapter()
+    try {
+      cdp = await startCdpBrowser()
+      await setUpOn(adapter, remoteOf('cdp', cdp.endpoint, { context: 'new' }))
+      await pressEnterOnPage(adapter)
+      await adapter.cleanup()
+
+      expect(await devtoolsVersionStatus(cdp.endpoint)).toBe(200)
+      expect(await pagesLeft(cdp)).toEqual([[]])
+    } finally {
+      await adapter.cleanup()
+      await cdp?.close()
+    }
+  }, 60_000)
+
+  it("in a reused context, closes the page it opened and keeps the service's context and page", async () => {
+    let cdp: CdpBrowser | undefined
+    const adapter = new WebPlatformAdapter()
+    try {
+      cdp = await startCdpBrowser()
+      const service = await chromium.connectOverCDP(cdp.endpoint, { timeout: CONNECT_TIMEOUT_MS })
+      try {
+        const [first] = service.contexts()
+        if (first === undefined) throw new Error('the CDP browser has no context')
+        await (await first.newPage()).goto(`${siteOrigin}/service`)
+      } finally {
+        await service.close()
+      }
+
+      await setUpOn(adapter, remoteOf('cdp', cdp.endpoint, { context: 'reuse' }))
+      await pressEnterOnPage(adapter)
+      await adapter.cleanup()
+
+      expect(await devtoolsVersionStatus(cdp.endpoint)).toBe(200)
+      expect(await pagesLeft(cdp)).toEqual([[`${siteOrigin}/service`]])
+    } finally {
+      await adapter.cleanup()
+      await cdp?.close()
+    }
+  }, 60_000)
+
+  // Sets up through a proxy, navigates, silences the proxy, then times the cleanup.
+  async function cleanUpSilenced(
+    remote: (proxyPort: number) => RemoteBrowserConfig,
+    proxy: CountingProxy,
+  ): Promise<{ elapsedMs: number; browser: Browser | undefined }> {
+    const connected = recordConnections()
+    const adapter = new WebPlatformAdapter()
+    try {
+      await setUpOn(adapter, remote(proxy.port))
+      const navigated = await adapter.execute({ type: 'navigate', to: 'url', url: `${siteOrigin}/` })
+      expect(navigated.success).toBe(true)
+      expect(connected).toHaveLength(1)
+      expect(proxy.closeFrames()).toBe(0)
+
+      proxy.blackhole()
+      const started = Date.now()
+      await adapter.cleanup()
+      return { elapsedMs: Date.now() - started, browser: connected[0] }
+    } finally {
+      await adapter.cleanup()
+    }
+  }
+
+  it('on a Playwright server that goes silent mid-session, cleanup finishes within its bound and disconnects', async () => {
+    let server: PlaywrightServer | undefined
+    let proxy: CountingProxy | undefined
+    try {
+      server = await startPlaywrightServer()
+      const upstream = new URL(server.wsEndpoint)
+      proxy = await startCountingProxy(Number(upstream.port))
+
+      const { elapsedMs, browser } = await cleanUpSilenced(
+        (port) => remoteOf('playwright', `ws://127.0.0.1:${String(port)}${upstream.pathname}`),
+        proxy,
+      )
+
+      expect(elapsedMs).toBeLessThan(3_500)
+      expect(browser?.isConnected()).toBe(false)
+      const silenced = proxy
+      await vi.waitFor(() => expect(silenced.closeFrames()).toBe(1), { timeout: 1_000 })
+    } finally {
+      await proxy?.close()
+      await server?.close()
+    }
+  }, 30_000)
+
+  // Playwright's CDP socket stays open until the silent peer answers its close, so the frame is the proof.
+  it('on a CDP endpoint that goes silent mid-session, cleanup finishes within its bound and sends its close', async () => {
+    let cdp: CdpBrowser | undefined
+    let proxy: CountingProxy | undefined
+    try {
+      cdp = await startCdpBrowser()
+      proxy = await startCountingProxy(cdp.port)
+
+      const { elapsedMs } = await cleanUpSilenced(
+        (port) => remoteOf('cdp', `http://127.0.0.1:${String(port)}`),
+        proxy,
+      )
+
+      expect(elapsedMs).toBeLessThan(3_500)
+      const silenced = proxy
+      await vi.waitFor(() => expect(silenced.closeFrames()).toBe(1), { timeout: 1_000 })
+      expect(await devtoolsVersionStatus(cdp.endpoint)).toBe(200)
+    } finally {
+      await proxy?.close()
+      await cdp?.close()
+    }
+  }, 30_000)
 })

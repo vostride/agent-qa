@@ -90,16 +90,57 @@ export interface CountingProxy {
   sessions(): number
   /** Every TCP connection the proxy accepted. */
   connections(): number
+  /** WebSocket close frames the clients sent, forwarded or not. */
+  closeFrames(): number
+  /** Stops forwarding in both directions and keeps every socket open, so the remote goes silent. */
+  blackhole(): void
   close(): Promise<void>
 }
 
 const WEBSOCKET_UPGRADE = /\r\nupgrade:\s*websocket\s*\r\n/i
+const WEBSOCKET_CLOSE_OPCODE = 0x8
+
+// Reads a client's frames after its upgrade request and reports each close frame.
+function closeFrameReader(onClose: () => void): (chunk: Buffer) => void {
+  let pending = Buffer.alloc(0)
+  let upgraded = false
+  return (chunk) => {
+    pending = Buffer.concat([pending, chunk])
+    if (!upgraded) {
+      const headersEnd = pending.indexOf('\r\n\r\n')
+      if (headersEnd < 0) return
+      upgraded = true
+      pending = pending.subarray(headersEnd + 4)
+    }
+    for (;;) {
+      if (pending.length < 2) return
+      const opcode = pending[0]! & 0x0f
+      let length = pending[1]! & 0x7f
+      let offset = 2
+      if (length === 126) {
+        if (pending.length < 4) return
+        length = pending.readUInt16BE(2)
+        offset = 4
+      } else if (length === 127) {
+        if (pending.length < 10) return
+        length = Number(pending.readBigUInt64BE(2))
+        offset = 10
+      }
+      if ((pending[1]! & 0x80) !== 0) offset += 4
+      if (pending.length < offset + length) return
+      if (opcode === WEBSOCKET_CLOSE_OPCODE) onClose()
+      pending = pending.subarray(offset + length)
+    }
+  }
+}
 
 export async function startCountingProxy(targetPort: number): Promise<CountingProxy> {
   let proxy: Server | undefined
   const sockets = new Set<Socket>()
   let sessions = 0
   let connections = 0
+  let closeFrames = 0
+  let silent = false
 
   const close = async (): Promise<void> => {
     for (const socket of sockets) socket.destroy()
@@ -123,12 +164,22 @@ export async function startCountingProxy(targetPort: number): Promise<CountingPr
       }
       client.on('error', end).on('close', end)
       upstream.on('error', end).on('close', end)
-      client.once('data', (chunk: Buffer) => {
-        if (WEBSOCKET_UPGRADE.test(chunk.toString('latin1'))) sessions += 1
-        upstream.write(chunk)
-        client.pipe(upstream)
+      let first = true
+      let readFrames: ((chunk: Buffer) => void) | undefined
+      client.on('data', (chunk: Buffer) => {
+        if (first && WEBSOCKET_UPGRADE.test(chunk.toString('latin1'))) {
+          sessions += 1
+          readFrames = closeFrameReader(() => {
+            closeFrames += 1
+          })
+        }
+        first = false
+        readFrames?.(chunk)
+        if (!silent) upstream.write(chunk)
       })
-      upstream.pipe(client)
+      upstream.on('data', (chunk: Buffer) => {
+        if (!silent) client.write(chunk)
+      })
     })
     const listening = proxy
     await new Promise<void>((ready, failed) => {
@@ -136,7 +187,17 @@ export async function startCountingProxy(targetPort: number): Promise<CountingPr
       listening.listen(0, '127.0.0.1', () => ready())
     })
     const { port } = listening.address() as AddressInfo
-    return { port, sessions: () => sessions, connections: () => connections, close }
+    const blackhole = (): void => {
+      silent = true
+    }
+    return {
+      port,
+      sessions: () => sessions,
+      connections: () => connections,
+      closeFrames: () => closeFrames,
+      blackhole,
+      close,
+    }
   } catch (error) {
     await close()
     throw error

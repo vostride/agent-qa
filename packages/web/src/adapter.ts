@@ -78,6 +78,24 @@ const OBSERVE_SNAPSHOT: SnapshotRootOptions = {
 }
 /** The longest screenshot() waits before it gives up and returns undefined. */
 export const SCREENSHOT_TIMEOUT_MS = 5_000
+/** The longest a remote cleanup waits on the remote before it disconnects anyway. */
+export const REMOTE_CLEANUP_BOUND_MS = 2_000
+// The disconnect's grace: a silent remote never answers its close, and what waited on it rejects.
+const REMOTE_CLEANUP_SETTLE_MS = 250
+
+// Waits for `work` or `ms`, whichever comes first; a step still running then is abandoned.
+async function withinBound(work: Promise<unknown>, ms: number): Promise<void> {
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const bound = new Promise<void>((resolve) => {
+    timer = setTimeout(resolve, ms)
+    timer.unref?.()
+  })
+  try {
+    await Promise.race([work.then(() => undefined, () => undefined), bound])
+  } finally {
+    clearTimeout(timer)
+  }
+}
 
 // The loop masks this metadata, moves it onto `operationEvidence` and drops both keys.
 function withOperationMetadata(result: ActionResult, captured: CapturedOperations | undefined): ActionResult {
@@ -678,41 +696,18 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
   async cleanup(): Promise<void> {
     this.intentionalClose = true
-    try { await this.recordingCapability?.stop() } catch { /* best-effort */ }
-    this.recordingCapability = undefined
-    this.recordingConfig = undefined
-    // Clear the consumer first so a queued re-bind no-ops; stop the screencast while CDP is up.
-    this.screencastOnFrame = null
-    await this.stopWithdrawnSnapshot()
-    try { await this.screencastCapability?.stop() } catch { /* best-effort */ }
-    this.screencastCapability = null
-    // Close the clipboard read-back probe context before the browser goes.
-    try { await this.operationCapture?.dispose() } catch { /* best-effort */ }
-    // Undo routes, offline mode and the dialog arm before closing, so the next test inherits none.
-    if (this.context) {
-      try { await this.context.unrouteAll({ behavior: 'ignoreErrors' }) } catch { /* best-effort */ }
-      try { await this.context.setOffline(false) } catch { /* best-effort */ }
-    }
-    if (this.page && this.pendingDialogArm) {
-      try { this.page.off('dialog', this.pendingDialogArm) } catch { /* best-effort */ }
-    }
-    this.armedRoutes.clear()
-    this.pendingDialogArm = null
-    await disposeEpoch(this.epoch)
-    this.epoch = undefined
-    // A remote browser is not ours: close only our pages and context, then disconnect.
-    if (this.remote !== undefined && this.context) {
-      if (this.ownsContext) {
-        try { await this.context.close() } catch { /* best-effort */ }
-      } else {
-        for (const page of this.context.pages()) {
-          if (this.borrowedPages.has(page)) continue
-          try { await page.close() } catch { /* best-effort */ }
-        }
+    if (this.remote === undefined) {
+      await this.releaseSession()
+      if (this.browser) {
+        await this.browser.close()
       }
-    }
-    if (this.browser) {
-      await this.browser.close()
+    } else {
+      // A silent remote never answers these steps, so they share one bound and the disconnect
+      // always follows; on a connected browser close() only disconnects.
+      const release = this.releaseSession()
+      await withinBound(release, REMOTE_CLEANUP_BOUND_MS)
+      const disconnect = this.browser?.close() ?? Promise.resolve()
+      await withinBound(Promise.all([disconnect, release]), REMOTE_CLEANUP_SETTLE_MS)
     }
     this.remote = undefined
     this.remoteIsMac = undefined
@@ -734,6 +729,48 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.lastScreencastSize = null
     this.screencastAckTokens.clear()
     this.screencastChain = Promise.resolve()
+  }
+
+  // Everything before the browser goes: recording, screencast, capture, the context's routes,
+  // offline mode and dialog arm, and on a remote the pages and context agent-qa opened.
+  private async releaseSession(): Promise<void> {
+    const remote = this.remote
+    const context = this.context
+    const ownsContext = this.ownsContext
+    const borrowedPages = this.borrowedPages
+    try { await this.recordingCapability?.stop() } catch { /* best-effort */ }
+    this.recordingCapability = undefined
+    this.recordingConfig = undefined
+    // Clear the consumer first so a queued re-bind no-ops; stop the screencast while CDP is up.
+    this.screencastOnFrame = null
+    await this.stopWithdrawnSnapshot()
+    try { await this.screencastCapability?.stop() } catch { /* best-effort */ }
+    this.screencastCapability = null
+    // Close the clipboard read-back probe context before the browser goes.
+    try { await this.operationCapture?.dispose() } catch { /* best-effort */ }
+    // Undo routes, offline mode and the dialog arm before closing, so the next test inherits none.
+    if (context) {
+      try { await context.unrouteAll({ behavior: 'ignoreErrors' }) } catch { /* best-effort */ }
+      try { await context.setOffline(false) } catch { /* best-effort */ }
+    }
+    if (this.page && this.pendingDialogArm) {
+      try { this.page.off('dialog', this.pendingDialogArm) } catch { /* best-effort */ }
+    }
+    this.armedRoutes.clear()
+    this.pendingDialogArm = null
+    await disposeEpoch(this.epoch)
+    this.epoch = undefined
+    // A remote browser is not ours: close only our pages and context; the caller disconnects.
+    if (remote !== undefined && context) {
+      if (ownsContext) {
+        try { await context.close() } catch { /* best-effort */ }
+      } else {
+        for (const page of context.pages()) {
+          if (borrowedPages.has(page)) continue
+          try { await page.close() } catch { /* best-effort */ }
+        }
+      }
+    }
   }
 
   get isBrowserDisconnected(): boolean {
