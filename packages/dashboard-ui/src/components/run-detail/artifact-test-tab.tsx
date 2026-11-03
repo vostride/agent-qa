@@ -50,12 +50,25 @@ function getRunAttributes(response: RunArtifactResponse): Record<string, string>
   return stringAttributesFrom(recordAt(metadata, "attributes"))
 }
 
+function placeLine(runtime: unknown): string | null {
+  const place = recordAt(isArtifactRecord(runtime) ? runtime : null, "place")
+  const kind = textAt(place, "place")
+  if (kind === "here") return "Ran here"
+  const name = textAt(place, "name")
+  if (kind !== "remote" || !name) return null
+  const where = [textAt(place, "protocol"), textAt(place, "origin")].filter(Boolean).join(" ")
+  const version = textAt(place, "browserVersion")
+  return `Ran on ${name}${where ? ` (${where})` : ""}${version ? `, ${version}` : ""}`
+}
+
 function MemberConfig({ config }: { config: Record<string, unknown> }) {
   const runtime = valueAt(config, "runtime")
   const timeouts = valueAt(config, "timeouts")
   const model = valueAt(config, "model")
+  const place = placeLine(runtime)
   return (
     <div data-member-config>
+      {place ? <div data-member-place className="py-1.5 text-xs text-foreground">{place}</div> : null}
       {runtime == null ? null : <KeyValueTree label="runtime" value={runtime} />}
       {timeouts == null ? null : <KeyValueTree label="timeouts" value={timeouts} />}
       {model == null ? null : <KeyValueTree label="model" value={model} />}
@@ -151,15 +164,20 @@ function SuiteMembers({
 
 export function ArtifactTestTab({ response }: { response: RunArtifactResponse }) {
   const payload = response.artifact?.payload
-  const source = recordAt(isArtifactRecord(payload) ? payload : null, "source")
+  const payloadRecord = isArtifactRecord(payload) ? payload : null
+  const source = recordAt(payloadRecord, "source")
   const capturedSource = response.missingSections.includes("source") ? null : source
   const kind = textAt(source, "kind")
   const rawYaml = textAt(capturedSource, "rawYaml")
   const definition = valueAt(capturedSource, "resolvedDefinition")
   const attributes = getRunAttributes(response)
+  const runConfig = response.missingSections.includes("config") ? null : recordAt(payloadRecord, "config")
+  // A run of several tests files each test's place on its own member.
+  const runPlace = kind === "tests" ? null : placeLine(valueAt(runConfig, "runtime"))
 
   return (
     <div className="space-y-4">
+      {runPlace ? <div data-run-place className="text-xs text-foreground">{runPlace}</div> : null}
       {kind === "tests" ? null : (
         <>
           <InspectorSection title={DRAWER_COPY.testAsWritten} data-drawer-section="test-as-written">
