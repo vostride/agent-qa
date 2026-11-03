@@ -173,20 +173,31 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.browserName = browserName
     const launcher = launchers[browserName]
     const headless = config.browser?.headless ?? true
+    const remote = config.browser?.remote
 
-    try {
-      this.browser = await launcher.launch({
-        headless,
-        ...(browserName === 'chromium' ? { args: ['--disable-blink-features=AutomationControlled'] } : {}),
-        ...(this.options.hostOwnsSignals === true
-          ? { handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false }
-          : {}),
-      })
-    } catch (error) {
-      if (isPlaywrightMissingBrowserError(error)) {
-        throw new Error(formatMissingBrowserError(browserName))
+    if (remote !== undefined) {
+      if (remote.protocol !== 'playwright') {
+        throw new Error(
+          `Remote ${remote.name} uses ${remote.protocol}; the web adapter connects to playwright remotes only.`,
+        )
       }
-      throw error
+      // Headless, launch args and signal handling belong to a browser launched here.
+      this.browser = await launcher.connect(remote.url, { timeout: remote.connectTimeoutMs })
+    } else {
+      try {
+        this.browser = await launcher.launch({
+          headless,
+          ...(browserName === 'chromium' ? { args: ['--disable-blink-features=AutomationControlled'] } : {}),
+          ...(this.options.hostOwnsSignals === true
+            ? { handleSIGINT: false, handleSIGTERM: false, handleSIGHUP: false }
+            : {}),
+        })
+      } catch (error) {
+        if (isPlaywrightMissingBrowserError(error)) {
+          throw new Error(formatMissingBrowserError(browserName))
+        }
+        throw error
+      }
     }
 
     this.disconnected = false

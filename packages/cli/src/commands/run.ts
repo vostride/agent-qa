@@ -6,7 +6,7 @@ import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, selectWebPlace, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AuthStateMetadata, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
@@ -38,7 +38,7 @@ import type {
 import type { DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
-import type { TestResult, PlatformAdapter, PlatformConfig } from '@vostride/agent-qa-runner'
+import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 import { WorkingMemoryStore, runMemberTest, createStepModelScope, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
@@ -326,6 +326,7 @@ export function buildPlatformConfig(
   globalBrowser?: { name?: string; headless?: boolean; viewport?: { width: number; height: number } },
   logCapture?: { console?: boolean; network?: boolean },
   mobileResolved?: ResolvedMobileRunConfig,
+  remote?: RemoteBrowserConfig,
 ): PlatformConfig {
   if (platform === 'web') {
     return {
@@ -334,6 +335,7 @@ export function buildPlatformConfig(
         name: (globalBrowser?.name as 'chromium' | 'firefox' | 'webkit') ?? 'chromium',
         headless: globalBrowser?.headless ?? true,
         viewport: globalBrowser?.viewport,
+        ...(remote === undefined ? {} : { remote }),
       },
       timeouts,
       logCapture,
@@ -1151,6 +1153,34 @@ function anyTargetRunsOnDevice(
       return false
     }
   })
+}
+
+function targetRunsInBrowser(config: AgentQaConfig, targetName: string | undefined): boolean {
+  if (targetName === undefined) return false
+  try {
+    return resolveTarget(config, targetName).platform === 'web'
+  } catch {
+    // The member closure reports an unresolvable target itself.
+    return false
+  }
+}
+
+// Refuses before any member starts; a test placed here gets no entry.
+function selectDirectRemotes(
+  config: AgentQaConfig,
+  bindings: readonly ParsedTestBinding[],
+): Map<ParsedTestBinding, RemoteBrowserConfig> {
+  const remotes = new Map<ParsedTestBinding, RemoteBrowserConfig>()
+  for (const binding of bindings) {
+    if (!targetRunsInBrowser(config, binding.test.target)) continue
+    const selected = selectWebPlace({
+      remotes: config.registry?.remotes ?? [],
+      config: config.use?.browser?.remote,
+    })
+    if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
+    if (selected.place.kind === 'remote') remotes.set(binding, selected.place.remote)
+  }
+  return remotes
 }
 
 async function loadRuntimeSecrets(input: {
@@ -3243,6 +3273,7 @@ export async function produceDirectRunMembers(
   // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
   const readLocalBindings = createRunLocalBindingsReader()
   if (anyTargetRunsOnDevice(config, filtered.map(({ test }) => test.target))) readLocalBindings()
+  const directRemotes = selectDirectRemotes(config, filtered)
 
   // The late-bound slots the run's own lifecycle fills. `singleRunProduct` and `singleBuildOrdinal` are declared with the block
   // below, exactly where the command declared them; these two are new only in the sense that the
@@ -3466,7 +3497,7 @@ export async function produceDirectRunMembers(
         )
 
         const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
-        const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testMobileResolved)
+        const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testMobileResolved, directRemotes.get(binding))
         platformConfig.authState = activeTestAuthState
         platformConfig.verbose = effectiveLogLevel === 'debug'
         if (opts.headless !== undefined) {

@@ -78,6 +78,8 @@ export interface InProcessFixtureInput {
   readonly cacheOff?: boolean
   /** With `secondTarget`, the suite's `target:` names the second target while its member keeps the first. */
   readonly suiteOnSecondTarget?: boolean
+  /** One `registry.remotes` entry, which the config's `use.browser.remote` picks. */
+  readonly remote?: { readonly name: string; readonly protocol: 'playwright' | 'cdp'; readonly url: string }
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -166,12 +168,25 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       '      provider: openai-compatible',
       '      model: gpt-4o-mini',
       '      baseURL: http://127.0.0.1:1/v1',
+      ...(input.remote === undefined
+        ? []
+        : [
+            '  remotes:',
+            `    - name: ${input.remote.name}`,
+            `      protocol: ${input.remote.protocol}`,
+            `      url: ${JSON.stringify(input.remote.url)}`,
+          ]),
       ...(input.declareUninstalledAuthPlugin === true
         ? ['plugins:', '  auth:', `    - package: '${UNINSTALLED_AUTH_PLUGIN_PACKAGE}'`]
         : []),
       'use:',
-      ...(input.headedBrowser === true
-        ? ['  browser:', '    name: chromium', '    headless: false']
+      ...(input.headedBrowser === true || input.remote !== undefined
+        ? [
+            '  browser:',
+            '    name: chromium',
+            `    headless: ${input.headedBrowser === true ? 'false' : 'true'}`,
+            ...(input.remote === undefined ? [] : [`    remote: ${input.remote.name}`]),
+          ]
         : []),
       ...(input.parallelRuns === true ? ['  parallel: true'] : []),
       ...(input.workerCount === undefined ? [] : [`  workers: ${input.workerCount}`]),
