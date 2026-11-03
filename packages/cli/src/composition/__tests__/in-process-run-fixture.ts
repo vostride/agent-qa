@@ -80,6 +80,8 @@ export interface InProcessFixtureInput {
   readonly suiteOnSecondTarget?: boolean
   /** One `registry.remotes` entry, which the config's `use.browser.remote` picks. */
   readonly remote?: { readonly name: string; readonly protocol: 'playwright' | 'cdp'; readonly url: string }
+  /** The direct test's own `use.browser.remote`. */
+  readonly directTestPick?: string
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -214,6 +216,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
           `test-id: ${directTestId}`,
           'name: the standalone test',
           `target: ${IN_PROCESS_TARGET_NAME}`,
+          ...(input.directTestPick === undefined
+            ? []
+            : ['use:', '  browser:', `    remote: ${input.directTestPick}`]),
           'steps:',
           step,
           '',

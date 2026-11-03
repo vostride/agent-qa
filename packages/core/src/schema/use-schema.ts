@@ -5,6 +5,7 @@ import {
   TimeoutConfigSchema,
   PlannerConfigSchema,
   LogCaptureConfigSchema,
+  NameSlugSchema,
 } from './primitives.js'
 import { AuthStateNameSchema } from '../auth-state/schema.js'
 
@@ -78,6 +79,7 @@ export const UseOverrideSchema = z.strictObject({
       width: z.number().optional(),
       height: z.number().optional(),
     }).optional(),
+    remote: NameSlugSchema.optional(),
   }).optional(),
   timeout: z.strictObject({
     step: DurationString.optional(),

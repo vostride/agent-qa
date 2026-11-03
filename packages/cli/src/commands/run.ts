@@ -1,14 +1,14 @@
 import { AsyncLocalStorage } from 'node:async_hooks'
 import { randomUUID } from 'node:crypto'
 import { realpathSync } from 'node:fs'
-import { resolve as resolvePath } from 'node:path'
+import { relative as relativePath, resolve as resolvePath, sep as pathSep } from 'node:path'
 import { Command } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, selectWebPlace, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, selectSuitePlace, selectWebPlace, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
-import type { AgentQaConfig, AuthStateMetadata, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
 import { loadLocalBindings, type LocalDeviceBindings } from '../devices.js'
@@ -1165,17 +1165,32 @@ function targetRunsInBrowser(config: AgentQaConfig, targetName: string | undefin
   }
 }
 
+// The selectors name files this way, so the run and validate print the same words.
+function configRelativeFile(configDir: string, filePath: string): string {
+  return relativePath(configDir, filePath).split(pathSep).join('/')
+}
+
+function browserEngine(name: unknown): BrowserEngine | undefined {
+  return name === 'chromium' || name === 'firefox' || name === 'webkit' ? name : undefined
+}
+
 // Refuses before any member starts; a test placed here gets no entry.
 function selectDirectRemotes(
   config: AgentQaConfig,
+  configDir: string,
   bindings: readonly ParsedTestBinding[],
+  browserFlag: string | undefined,
 ): Map<ParsedTestBinding, RemoteBrowserConfig> {
   const remotes = new Map<ParsedTestBinding, RemoteBrowserConfig>()
   for (const binding of bindings) {
     if (!targetRunsInBrowser(config, binding.test.target)) continue
+    const testBrowser = binding.test.use?.browser
     const selected = selectWebPlace({
       remotes: config.registry?.remotes ?? [],
+      test: testBrowser?.remote,
       config: config.use?.browser?.remote,
+      file: configRelativeFile(configDir, binding.filePath),
+      engine: browserEngine(browserFlag ?? testBrowser?.name ?? config.use?.browser?.name),
     })
     if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
     if (selected.place.kind === 'remote') remotes.set(binding, selected.place.remote)
@@ -2383,6 +2398,24 @@ export async function produceSuiteRunMembers(
       : resolveTarget(config, testEntries[0].test.target!)
     const suitePlatform: 'web' | 'android' | 'ios' = suiteResolvedTarget.platform
 
+    let suiteRemote: RemoteBrowserConfig | undefined
+    if (suitePlatform === 'web') {
+      const selected = selectSuitePlace({
+        remotes: config.registry?.remotes ?? [],
+        suiteName: suite.name,
+        suiteFile: configRelativeFile(configDir, suiteFile),
+        suite: suite.use?.browser?.remote,
+        config: config.use?.browser?.remote,
+        members: testEntries.map(({ test: member, absolutePath }) => ({
+          file: configRelativeFile(configDir, absolutePath),
+          pick: member.use?.browser?.remote,
+        })),
+        engine: browserEngine((mergedUse.browser as Record<string, unknown> | undefined)?.name),
+      })
+      if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
+      if (selected.place.kind === 'remote') suiteRemote = selected.place.remote
+    }
+
     const suiteAuthState = await resolveSelectedAuthStateForRun({
       config,
       configDir,
@@ -2478,7 +2511,7 @@ export async function produceSuiteRunMembers(
 
     const suiteBrowser = (mergedUse.browser as Record<string, unknown> | undefined) ?? config.use?.browser
     const suiteLogCapture = (mergedUse.logCapture as Record<string, unknown> | undefined) ?? (config as any).use?.logCapture
-    const platformConfig = buildPlatformConfig(suitePlatform, resolvedDevice, testTimeouts, suiteBrowser as any, suiteLogCapture, mobileResolved)
+    const platformConfig = buildPlatformConfig(suitePlatform, resolvedDevice, testTimeouts, suiteBrowser as any, suiteLogCapture, mobileResolved, suiteRemote)
     platformConfig.authState = suiteAuthState
     platformConfig.verbose = effectiveLogLevel === 'debug'
     if (opts.headless !== undefined && platformConfig.browser) {
@@ -3273,7 +3306,7 @@ export async function produceDirectRunMembers(
   // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
   const readLocalBindings = createRunLocalBindingsReader()
   if (anyTargetRunsOnDevice(config, filtered.map(({ test }) => test.target))) readLocalBindings()
-  const directRemotes = selectDirectRemotes(config, filtered)
+  const directRemotes = selectDirectRemotes(config, configDir, filtered, opts.browser)
 
   // The late-bound slots the run's own lifecycle fills. `singleRunProduct` and `singleBuildOrdinal` are declared with the block
   // below, exactly where the command declared them; these two are new only in the sense that the

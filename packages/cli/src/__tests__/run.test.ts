@@ -221,6 +221,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   DEFAULT_AGENT_QA_RUNS_DB_PATH: actual.DEFAULT_AGENT_QA_RUNS_DB_PATH,
   workspaceRelativeIdentityPath: actual.workspaceRelativeIdentityPath,
   selectWebPlace: actual.selectWebPlace,
+  selectSuitePlace: actual.selectSuitePlace,
   // The real version reader, because the union constrains `agent_qa_version` to a semver.
   getAgentQaVersion: actual.getAgentQaVersion,
   parseAllTests: mockParseAllTests,
