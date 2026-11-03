@@ -266,22 +266,23 @@ describe("a remote live-editor session's inactivity", () => {
     expect(socket.closes).toEqual([])
   })
 
-  // Each runs 45 minutes inside the session, as a slow step, test or hook on a remote would.
+  // The session's own work, standing in for a slow step, test or hook on a remote.
+  type SessionWork = 'executeStepInternal' | 'runLifecycleHooksCapturing' | 'runLifecycleHooks'
+  function holdWork(session: LiveSession, work: SessionWork, ms: number, result: unknown): void {
+    const internals = session as unknown as Record<SessionWork, () => Promise<unknown>>
+    vi.spyOn(internals, work).mockImplementation(
+      () => new Promise((done) => setTimeout(() => done(result), ms)),
+    )
+  }
+
   const LONG_WORK_MS = 45 * MINUTE
   const longWork: Record<string, (session: LiveSession) => Promise<unknown>> = {
     step: (session) => {
-      vi.spyOn(session as never, 'executeStepInternal').mockImplementation(
-        () => new Promise((done) => setTimeout(() => done({ status: 'passed' }), LONG_WORK_MS)) as never,
-      )
+      holdWork(session, 'executeStepInternal', LONG_WORK_MS, { status: 'passed' })
       return session.executeStepCommand('open the inbox', 0)
     },
     test: (session) => {
-      vi.spyOn(session as never, 'runLifecycleHooksCapturing').mockImplementation(
-        () =>
-          new Promise((done) =>
-            setTimeout(() => done({ allPassed: false, logs: [] }), LONG_WORK_MS),
-          ) as never,
-      )
+      holdWork(session, 'runLifecycleHooksCapturing', LONG_WORK_MS, { allPassed: false, logs: [] })
       return session.executeTestCommand('exec-1', {
         testIndex: 0,
         testId: '',
@@ -292,10 +293,7 @@ describe("a remote live-editor session's inactivity", () => {
       })
     },
     hook: (session) => {
-      vi.spyOn(session as never, 'runLifecycleHooks').mockImplementation(
-        () =>
-          new Promise((done) => setTimeout(() => done({ allPassed: true, logs: [] }), LONG_WORK_MS)) as never,
-      )
+      holdWork(session, 'runLifecycleHooks', LONG_WORK_MS, { allPassed: true, logs: [] })
       return session.executeHookCommand('setup', 'seed')
     },
   }
@@ -321,9 +319,7 @@ describe("a remote live-editor session's inactivity", () => {
   it('gives a person the whole window to read a step that ended at minute 29', async () => {
     const opened = await openSession(remote)
     opened.attach()
-    vi.spyOn(opened.session as never, 'executeStepInternal').mockImplementation(
-      () => new Promise((done) => setTimeout(() => done({ status: 'passed' }), 29 * MINUTE)) as never,
-    )
+    holdWork(opened.session, 'executeStepInternal', 29 * MINUTE, { status: 'passed' })
 
     const work = opened.session.executeStepCommand('open the inbox', 0)
     await vi.advanceTimersByTimeAsync(29 * MINUTE)
