@@ -135,6 +135,10 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private browser: Browser | null = null
   private context: BrowserContext | null = null
   private page: Page | null = null
+  private onRemote = false
+  private ownsContext = true
+  // Pages a reused context already had; cleanup leaves them open.
+  private borrowedPages = new Set<Page>()
   // Adapter-private: observe returns only the `ScreenState`, never the native binding.
   private lastRefs: RefMap = {}
   private epoch: ObservationEpoch | undefined
@@ -175,14 +179,13 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     const headless = config.browser?.headless ?? true
     const remote = config.browser?.remote
 
+    this.onRemote = remote !== undefined
     if (remote !== undefined) {
-      if (remote.protocol !== 'playwright') {
-        throw new Error(
-          `Remote ${remote.name} uses ${remote.protocol}; the web adapter connects to playwright remotes only.`,
-        )
-      }
       // Headless, launch args and signal handling belong to a browser launched here.
-      this.browser = await launcher.connect(remote.url, { timeout: remote.connectTimeoutMs })
+      this.browser =
+        remote.protocol === 'cdp'
+          ? await chromium.connectOverCDP(remote.url, { timeout: remote.connectTimeoutMs })
+          : await launcher.connect(remote.url, { timeout: remote.connectTimeoutMs })
     } else {
       try {
         this.browser = await launcher.launch({
@@ -208,13 +211,27 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       }
     })
 
-    const contextOptions: Record<string, unknown> = {
-      viewport: config.browser?.viewport ?? { width: 1280, height: 720 },
+    const viewport = config.browser?.viewport ?? { width: 1280, height: 720 }
+    const storageStatePath = config.authState?.storageStatePath
+    let reused: BrowserContext | undefined
+    if (remote?.protocol === 'cdp' && remote.context === 'reuse') {
+      reused = this.browser.contexts()[0]
+      if (reused === undefined) {
+        throw new Error(`Remote ${remote.name} has no browser context to reuse.`)
+      }
     }
-    if (config.authState?.storageStatePath) {
-      contextOptions.storageState = config.authState.storageStatePath
+    if (reused !== undefined) {
+      this.context = reused
+      this.ownsContext = false
+      this.borrowedPages = new Set(reused.pages())
+      if (storageStatePath) await reused.setStorageState(storageStatePath)
+    } else {
+      const contextOptions: Record<string, unknown> = { viewport }
+      if (storageStatePath) contextOptions.storageState = storageStatePath
+      this.context = await this.browser.newContext(contextOptions)
+      this.ownsContext = true
+      this.borrowedPages = new Set()
     }
-    this.context = await this.browser.newContext(contextOptions)
     this.navigationTimeoutMs = config.timeouts?.navigation ?? DEFAULT_NAVIGATION_TIMEOUT_MS
     this.context.setDefaultNavigationTimeout(this.navigationTimeoutMs)
 
@@ -231,6 +248,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     })
 
     this.page = await this.context.newPage()
+    if (reused !== undefined) await this.page.setViewportSize(viewport)
     this.attachLogListeners(this.page)
 
     if (browserName === 'chromium') {
@@ -544,9 +562,23 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.pendingDialogArm = null
     await disposeEpoch(this.epoch)
     this.epoch = undefined
+    // A remote browser is not ours: close only our pages and context, then disconnect.
+    if (this.onRemote && this.context) {
+      if (this.ownsContext) {
+        try { await this.context.close() } catch { /* best-effort */ }
+      } else {
+        for (const page of this.context.pages()) {
+          if (this.borrowedPages.has(page)) continue
+          try { await page.close() } catch { /* best-effort */ }
+        }
+      }
+    }
     if (this.browser) {
       await this.browser.close()
     }
+    this.onRemote = false
+    this.ownsContext = true
+    this.borrowedPages = new Set()
     this.browser = null
     this.context = null
     this.page = null
