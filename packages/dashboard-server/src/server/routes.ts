@@ -232,12 +232,12 @@ function withDeclaredMask<T>(mask: MaskFn | undefined, build: (mask: MaskFn) => 
   }
 }
 
-// The target list answers masked names, so a save whose target holds one writes the marker.
 // By name, because the error can come from another copy of the runner package.
 function isRemoteRefusal(error: unknown): boolean {
   return error instanceof Error && error.name === 'RemoteRefusalError'
 }
 
+// The target list answers masked names, so a save whose target holds one writes the marker.
 function suiteFileTarget(content: string): unknown {
   try {
     const parsed: unknown = parseYaml(content)
