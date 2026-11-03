@@ -8,6 +8,8 @@ import { SuiteDefinitionSchema } from '../schema/suite-schema.js'
 import { parseTestFile } from '../parser/yaml-parser.js'
 import { parseHooksFile } from '../hooks/parser.js'
 import { isPathInsideDir } from '../utils/path-validation.js'
+import { selectSuitePlace, selectWebPlace, type BrowserEngine } from '../remote/select-place.js'
+import type { AgentQaConfig } from '../types/config.js'
 import { yamlParseFailureMessage } from './yaml-fault.js'
 import {
   discoverWorkspaceFiles,
@@ -385,6 +387,107 @@ function appendDiagnostics(result: ValidationResult, diagnostics: ValidationDiag
   }
 }
 
+async function readConfigForPicks(configPath: string): Promise<AgentQaConfig | undefined> {
+  try {
+    const parsed = AgentQaConfigSchema.safeParse(parseYaml(await readFile(configPath, 'utf-8')))
+    return parsed.success ? (parsed.data as AgentQaConfig) : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function readSuiteForPicks(filePath: string) {
+  try {
+    const parsed = SuiteDefinitionSchema.safeParse(parseYaml(await readFile(filePath, 'utf-8')))
+    return parsed.success ? parsed.data : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function readTestsForPicks(filePath: string) {
+  try {
+    const parsed = parseTestFile(await readFile(filePath, 'utf-8'), filePath)
+    return parsed.errors.length > 0 ? [] : parsed.tests
+  } catch {
+    return []
+  }
+}
+
+function browserEngine(name: unknown): BrowserEngine | undefined {
+  return name === 'chromium' || name === 'firefox' || name === 'webkit' ? name : undefined
+}
+
+// The same picks, through the same selectors, as `agent-qa run`, so both print the same words.
+async function validateRemotePicks(
+  filePaths: readonly string[],
+  configPath: string,
+  configDir: string,
+): Promise<ValidationDiagnostic[]> {
+  const config = await readConfigForPicks(configPath)
+  if (config === undefined) return []
+  const remotes = config.registry?.remotes ?? []
+  const configBrowser = config.use?.browser
+  const runsInBrowser = (target: string | undefined) =>
+    target !== undefined && config.registry?.targets?.[target]?.platform === 'web'
+  const relative = (absolutePath: string) =>
+    path.relative(configDir, absolutePath).split(path.sep).join('/')
+
+  const diagnostics: ValidationDiagnostic[] = []
+  const reported = new Set<string>()
+  const report = (file: string, message: string) => {
+    const key = `${file}\0${message}`
+    if (reported.has(key)) return
+    reported.add(key)
+    diagnostics.push(buildDiagnostic(file, message))
+  }
+
+  for (const filePath of filePaths) {
+    if (!isSuiteFile(filePath)) {
+      for (const test of await readTestsForPicks(filePath)) {
+        if (!runsInBrowser(test.target)) continue
+        const selected = selectWebPlace({
+          remotes,
+          test: test.use?.browser?.remote,
+          config: configBrowser?.remote,
+          file: relative(filePath),
+          engine: browserEngine(test.use?.browser?.name ?? configBrowser?.name),
+        })
+        if ('refusal' in selected) report(filePath, selected.refusal)
+      }
+      continue
+    }
+
+    const suite = await readSuiteForPicks(filePath)
+    if (suite === undefined || !runsInBrowser(suite.target)) continue
+    const members: { absolutePath: string; file: string; pick?: string }[] = []
+    for (const entry of suite.tests) {
+      if (!isPathInsideDir(entry.test, configDir)) continue
+      const absolutePath = path.resolve(configDir, entry.test)
+      const [member] = await readTestsForPicks(absolutePath)
+      if (member === undefined) continue
+      const pick = member.use?.browser?.remote
+      members.push({ absolutePath, file: relative(absolutePath), pick })
+    }
+    const selected = selectSuitePlace({
+      remotes,
+      suiteName: suite.name,
+      suiteFile: relative(filePath),
+      suite: suite.use?.browser?.remote,
+      config: configBrowser?.remote,
+      members: members.map(({ file, pick }) => ({ file, pick })),
+      engine: browserEngine(suite.use?.browser?.name ?? configBrowser?.name),
+    })
+    if (!('refusal' in selected)) continue
+    // An unknown member pick names the member file; every other refusal is the suite's.
+    const named = selected.refusal.startsWith('Unknown remote ')
+      ? members.find(({ file }) => selected.refusal.includes(` in ${file}. `))
+      : undefined
+    report(named?.absolutePath ?? filePath, selected.refusal)
+  }
+  return diagnostics
+}
+
 function validateRequiredWorkspaceFiles(workspace: ResolvedWorkspacePaths): ValidationDiagnostic[] {
   const diagnostics: ValidationDiagnostic[] = []
   for (const [key, file] of [
@@ -442,6 +545,10 @@ export async function validateProject(options: {
     basedir: options.workspace?.configDir,
   })
   appendDiagnostics(result, preDiagnostics)
+  if (configPath) {
+    const configDir = options.workspace?.configDir ?? process.cwd()
+    appendDiagnostics(result, await validateRemotePicks(filePaths, configPath, configDir))
+  }
 
   const testPatterns = options.workspace?.testMatch ?? options.testMatch ?? []
   const suitePatterns = options.workspace?.suiteMatch ?? options.suiteMatch ?? []
