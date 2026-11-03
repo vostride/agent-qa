@@ -62,25 +62,58 @@ export interface CdpBrowser {
   close(): Promise<void>
 }
 
-// Launched through Playwright, whose default switches keep the macOS keychain out of it.
+const DEVTOOLS_WAIT_MS = 5_000
+const CDP_LAUNCH_TRIES = 3
+
+// True once the port answers DevTools discovery as this browser; false if it never does.
+async function answersAsDevTools(port: number, version: string): Promise<boolean> {
+  const deadline = Date.now() + DEVTOOLS_WAIT_MS
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(`http://127.0.0.1:${String(port)}/json/version`, {
+        signal: AbortSignal.timeout(1_000),
+      })
+      if (response.ok) {
+        const body = (await response.json()) as { Browser?: unknown }
+        return typeof body.Browser === 'string' && body.Browser.endsWith(`/${version}`)
+      }
+    } catch {
+      // Not listening yet, or the port went to another process.
+    }
+    await new Promise((settle) => setTimeout(settle, 100))
+  }
+  return false
+}
+
+// Launched through Playwright, whose default switches keep the macOS keychain out of it. The
+// free port can be taken before Chromium binds it, so a launch whose port does not answer as
+// this browser is closed and tried again on another port.
 export async function startCdpBrowser(): Promise<CdpBrowser> {
   refuseWithoutChromium()
-  let owner: Browser | undefined
-  const close = async (): Promise<void> => {
-    const running = owner
-    owner = undefined
-    await running?.close()
-  }
-  try {
-    const port = await freePort()
-    owner = await chromium.launch({
-      headless: true,
-      args: [`--remote-debugging-port=${String(port)}`],
-    })
-    return { endpoint: `http://127.0.0.1:${String(port)}`, port, owner, close }
-  } catch (error) {
-    await close()
-    throw error
+  for (let attempt = 1; ; attempt += 1) {
+    let owner: Browser | undefined
+    const close = async (): Promise<void> => {
+      const running = owner
+      owner = undefined
+      await running?.close()
+    }
+    try {
+      const port = await freePort()
+      owner = await chromium.launch({
+        headless: true,
+        args: [`--remote-debugging-port=${String(port)}`],
+      })
+      if (await answersAsDevTools(port, owner.version())) {
+        return { endpoint: `http://127.0.0.1:${String(port)}`, port, owner, close }
+      }
+      await close()
+    } catch (error) {
+      await close()
+      throw error
+    }
+    if (attempt === CDP_LAUNCH_TRIES) {
+      throw new Error(`Chromium did not open its DevTools port in ${String(attempt)} launches`)
+    }
   }
 }
 
