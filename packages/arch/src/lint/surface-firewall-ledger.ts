@@ -210,6 +210,13 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'the direct config writer shares the dashboard config transaction; rewired when the dashboards enter the firewall in M5',
   },
   {
+    // Moved out of run.ts so the daemon and MCP hosts release sessions without loading the run.
+    file: 'packages/cli/src/composition/remote-sessions.ts',
+    specifier: '@vostride/agent-qa-runner',
+    clearedBy: '386',
+    reason: "the process's remote-session registry, shared by the run, daemon and MCP hosts; relocates with the run-session composition root",
+  },
+  {
     file: 'packages/cli/src/config.ts',
     specifier: '@vostride/agent-qa-core',
     clearedBy: '395',
