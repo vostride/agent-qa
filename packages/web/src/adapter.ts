@@ -350,6 +350,21 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     })
     if (remote !== undefined) this.registerRelease(browser)
 
+    if (remote === undefined) return this.openSession(config, undefined, browserName, headless)
+    try {
+      await this.openSession(config, remote, browserName, headless)
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+  }
+
+  private async openSession(
+    config: PlatformConfig,
+    remote: RemoteBrowserConfig | undefined,
+    browserName: 'chromium' | 'firefox' | 'webkit',
+    headless: boolean,
+  ): Promise<void> {
+    if (this.browser === null) throw new Error('WebPlatformAdapter has no browser to open')
     const viewport = config.browser?.viewport ?? { width: 1280, height: 720 }
     const storageStatePath = config.authState?.storageStatePath
     let reused: BrowserContext | undefined

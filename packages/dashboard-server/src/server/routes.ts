@@ -4358,6 +4358,8 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
         return
       }
       ;(async () => {
+        // Error text can repeat a declared secret, so the reply passes the session's mask.
+        let replyRedactor: SecretRedactor | undefined
         try {
           const body = await readJsonBody<{
             platform?: string
@@ -4429,6 +4431,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             connectionSecretStore = declared
             connectionSecretNames = split.connectionNames
             secretRedactor = new SecretRedactor(declared, basicAuthMaskEntries(remotes, declared))
+            replyRedactor = secretRedactor
           } catch {
             json(res, { error: `workspace.secretsFile file could not be loaded: ${workspacePaths.secretsFile.workspaceRelativePath}` }, 400)
             return
@@ -4502,7 +4505,8 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           )
           json(res, { sessionId, sessionNumber }, 201)
         } catch (err: unknown) {
-          const message = err instanceof Error ? err.message : String(err)
+          const raw = err instanceof Error ? err.message : String(err)
+          const message = replyRedactor?.redactString(raw) ?? raw
           // A planner limit or navigation timeout the CLI refuses is refused here, before any
           // session exists.
           const refused =

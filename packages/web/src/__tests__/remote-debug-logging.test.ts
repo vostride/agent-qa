@@ -166,6 +166,35 @@ describe('error text from a remote-attached adapter', () => {
     expect(scrubRemoteEndpoint(text, remote)).toBe(text)
   })
 
+  it('scrubs an error from the work setup does after it connects', async () => {
+    let server: PlaywrightServer | undefined
+    const adapter = new WebPlatformAdapter()
+    try {
+      server = await startPlaywrightServer()
+      const endpoint = `${server.wsEndpoint}?k=SECRET`
+      const attached = remoteOf('playwright', endpoint)
+      const connect = chromium.connect.bind(chromium)
+      vi.spyOn(chromium, 'connect').mockImplementation(async (...args) => {
+        const browser = await connect(...args)
+        vi.spyOn(browser, 'newContext').mockRejectedValue(
+          new Error(`browser.newContext: Target closed at ${endpoint}`),
+        )
+        return browser
+      })
+
+      const failed = await setupError(adapter, attached)
+
+      expect(failed).toBeInstanceOf(Error)
+      expect((failed as Error).message).toBe(
+        `browser.newContext: Target closed at ${remoteLabel(attached)}`,
+      )
+      expect((failed as Error).stack).not.toContain('SECRET')
+    } finally {
+      await adapter.cleanup()
+      await server?.close()
+    }
+  }, 60_000)
+
   it('scrubs an action error naming the remote and keeps one naming an app beside it', async () => {
     let server: PlaywrightServer | undefined
     const adapter = new WebPlatformAdapter()

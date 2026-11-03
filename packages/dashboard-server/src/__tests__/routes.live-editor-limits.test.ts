@@ -74,6 +74,7 @@ function invoke(router: ReturnType<typeof createRouter>, body: Record<string, un
 async function workspaceWith(
   testPlanner: string,
   timeouts: { projectNavigation?: string; testNavigation?: string } = {},
+  secrets = '',
 ): Promise<{
   router: ReturnType<typeof createRouter>
   createSession: ReturnType<typeof vi.fn>
@@ -108,7 +109,7 @@ async function workspaceWith(
   await Promise.all([
     writeFile(join(dir, 'hooks.yaml'), 'hooks: []\n', 'utf-8'),
     writeFile(join(dir, '.env'), '', 'utf-8'),
-    writeFile(join(dir, '.env.secrets.local'), '', 'utf-8'),
+    writeFile(join(dir, '.env.secrets.local'), secrets, 'utf-8'),
   ])
   await mkdir(join(dir, 'tests'), { recursive: true })
   await writeFile(
@@ -238,5 +239,20 @@ describe('live door navigation timeout', () => {
     expect(error).toContain(`test file ${TEST_ID} sets use.timeout.navigation to "soon": `)
     expect(error).toContain('The CLI refuses this file too.')
     expect(createSession).not.toHaveBeenCalled()
+  })
+})
+
+describe('live door errors', () => {
+  it('masks a declared secret in the error a failed open returns', async () => {
+    const token = 'grid-token-5f1e9a'
+    const { router, createSession } = await workspaceWith('    maxActions: 80', {}, `GRID_TOKEN=${token}\n`)
+    createSession.mockRejectedValueOnce(new Error(`newContext failed at wss://grid.test/?token=${token}`))
+
+    const res = await invoke(router, { platform: 'web', entity: { type: 'test', id: TEST_ID } })
+
+    expect(res.status).toBe(500)
+    const { error } = JSON.parse(res.body) as { error: string }
+    expect(error).toBe('newContext failed at wss://grid.test/?token=[secret:GRID_TOKEN]')
+    expect(res.body).not.toContain(token)
   })
 })
