@@ -645,7 +645,8 @@ export const NO_TARGETS_TEXT = 'No targets yet.'
 
 export const REMOTES_COPY = {
   columns: { name: 'Name', protocol: 'Protocol', origin: 'Origin' },
-  runsHere: 'Web tests run on this machine unless a suite or test picks a remote.',
+  runsHere: 'Web tests run on this machine unless a suite or test picks another place.',
+  missingValue: '—',
   empty: 'No remotes are listed. List them under remotes in the registry block of agent-qa.config.yaml.',
 } as const
 

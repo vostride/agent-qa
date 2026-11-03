@@ -204,7 +204,7 @@ export function ArtifactTestTab({ response }: { response: RunArtifactResponse })
   return (
     <div className="space-y-4">
       {runPlace ? (
-        <div data-run-place className={`text-xs ${placeClass(runPlace)}`}>
+        <div data-run-place className={`py-1.5 text-xs ${placeClass(runPlace)}`}>
           {runPlace.text}
         </div>
       ) : null}

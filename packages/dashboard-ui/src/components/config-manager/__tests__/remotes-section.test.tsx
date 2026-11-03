@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { RemotesSection } from '@/components/config-manager/remotes-section'
-import { REMOTES_COPY, remoteDefaultLine, remoteNotListedLine } from '@/lib/config-copy'
+import { DEFAULT_BADGE, REMOTES_COPY, remoteDefaultLine, remoteNotListedLine } from '@/lib/config-copy'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -100,6 +100,29 @@ describe('the Remotes section', () => {
     ]) {
       expect(show(config).querySelector('[data-remote-unlisted]')).toBeNull()
     }
+  })
+
+  it("marks the default remote's row and no other", () => {
+    const section = show({ ...TWO_REMOTES, use: { browser: { remote: 'lab' } } })
+    const marked = Array.from(section.querySelectorAll('[data-remote-default-badge]'))
+    expect(marked.map((badge) => badge.closest('[data-remote]')?.getAttribute('data-remote'))).toEqual([
+      'lab',
+    ])
+    expect(marked[0]?.textContent).toBe(DEFAULT_BADGE)
+    expect(show(TWO_REMOTES).querySelector('[data-remote-default-badge]')).toBeNull()
+  })
+
+  it('shows a dash for a remote entry missing its name or protocol', () => {
+    const section = show({ registry: { remotes: [{ url: 'wss://grid.example.com' }] } })
+    expect(rows(section)).toEqual([
+      [REMOTES_COPY.missingValue, REMOTES_COPY.missingValue, 'wss://grid.example.com:443'],
+    ])
+  })
+
+  it('ends the default sentence the same way whether tests run here or on a remote', () => {
+    const ending = 'unless a suite or test picks another place.'
+    expect(REMOTES_COPY.runsHere.endsWith(ending)).toBe(true)
+    expect(remoteDefaultLine('grid').endsWith(ending)).toBe(true)
   })
 
   it('says tests run on this machine when the default is local or unset', () => {

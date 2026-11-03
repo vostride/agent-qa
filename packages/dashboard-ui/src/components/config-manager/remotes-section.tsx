@@ -2,8 +2,9 @@
 
 import { projectConfigRemotes } from "@vostride/agent-qa-schema"
 
+import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { REMOTES_COPY, remoteDefaultLine, remoteNotListedLine } from "@/lib/config-copy"
+import { DEFAULT_BADGE, REMOTES_COPY, remoteDefaultLine, remoteNotListedLine } from "@/lib/config-copy"
 
 interface RemotesSectionProps {
   config: Record<string, unknown>
@@ -22,7 +23,7 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 function text(value: unknown): string {
-  return typeof value === "string" ? value : ""
+  return typeof value === "string" && value !== "" ? value : REMOTES_COPY.missingValue
 }
 
 // The server already serves origins; projecting again keeps a path or query off the page regardless.
@@ -47,7 +48,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
   const pick = defaultRemoteOf(config)
   const unlisted = pick !== undefined && !remotes.some((remote) => remote.name === pick)
   return (
-    <div data-remotes className="space-y-3">
+    <div data-remotes className="space-y-4">
       <p data-remote-default={pick ?? "local"} className="text-sm">
         {pick === undefined ? REMOTES_COPY.runsHere : remoteDefaultLine(pick)}
       </p>
@@ -72,7 +73,16 @@ export function RemotesSection({ config }: RemotesSectionProps) {
           <TableBody>
             {remotes.map((remote, index) => (
               <TableRow key={`${index}:${remote.name}`} data-remote={remote.name}>
-                <TableCell className={CELL_CLASS}>{remote.name}</TableCell>
+                <TableCell className={CELL_CLASS}>
+                  <span className="flex min-w-0 flex-wrap items-center gap-2">
+                    <span>{remote.name}</span>
+                    {remote.name === pick ? (
+                      <Badge variant="outline" data-remote-default-badge>
+                        {DEFAULT_BADGE}
+                      </Badge>
+                    ) : null}
+                  </span>
+                </TableCell>
                 <TableCell className={CELL_CLASS}>{remote.protocol}</TableCell>
                 <TableCell className={CELL_CLASS}>{remote.origin}</TableCell>
               </TableRow>
