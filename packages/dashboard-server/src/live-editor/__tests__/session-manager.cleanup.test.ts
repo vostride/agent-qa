@@ -8,7 +8,10 @@ interface HeldCleanup {
   readonly done: Promise<void>
 }
 
-const { holds } = vi.hoisted(() => ({ holds: [] as HeldCleanup[] }))
+const { holds, opening } = vi.hoisted(() => ({
+  holds: [] as HeldCleanup[],
+  opening: { gate: undefined as Promise<void> | undefined },
+}))
 
 vi.mock('../live-session.js', async (importOriginal) => {
   const actual = await importOriginal<typeof import('../live-session.js')>()
@@ -25,7 +28,9 @@ vi.mock('../live-session.js', async (importOriginal) => {
       return entry
     })()
 
-    async initialize(): Promise<void> {}
+    async initialize(): Promise<void> {
+      await opening.gate
+    }
 
     cleanup(): Promise<void> {
       this.clearIdleTimer()
@@ -54,7 +59,42 @@ async function settleMicrotasks(): Promise<void> {
 
 describe('cleaning up every live-editor session', () => {
   afterEach(() => {
+    opening.gate = undefined
     for (const hold of holds.splice(0)) hold.release()
+  })
+
+  it('ends a session still opening when a pass starts once it has opened, and never lists it', async () => {
+    let open!: () => void
+    opening.gate = new Promise<void>((settle) => {
+      open = settle
+    })
+    const subjects = createLiveEditorSubjects()
+    const manager = new SessionManager({ liveEditorSubjects: subjects })
+    const creating = manager.createSession(config).then(
+      () => 'opened',
+      (error: Error) => error.message,
+    )
+    await settleMicrotasks()
+
+    let passed = false
+    const pass = manager.cleanupAll().then(() => {
+      passed = true
+    })
+    await settleMicrotasks()
+    const [hold] = holds as [HeldCleanup]
+    expect(hold.calls, 'not cleaned while it opens').toBe(0)
+    expect(passed).toBe(false)
+
+    open()
+    expect(await creating).toBe('The dashboard is shutting down, so the live session was not opened.')
+    await settleMicrotasks()
+    expect(hold.calls).toBe(1)
+    expect(manager.size).toBe(0)
+    expect(passed, 'the pass waits for that cleanup').toBe(false)
+
+    hold.release()
+    await pass
+    expect(passed).toBe(true)
   })
 
   it('cleans each session once when calls overlap, and every call waits for that one pass', async () => {

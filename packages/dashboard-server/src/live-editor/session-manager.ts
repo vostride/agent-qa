@@ -20,6 +20,9 @@ export class SessionManager {
   // Monotonic per entity and reset on restart, so a reopened entity gets the next number.
   private counters = new Map<string, number>()
   private cleanupInFlight: Promise<void> | undefined
+  // A session still opening when a cleanup pass starts is ended by that pass once it has opened.
+  private opening = new Map<LiveSession, Promise<void>>()
+  private ending = new WeakSet<LiveSession>()
 
   constructor(private deps: SessionManagerDeps = {}) {}
 
@@ -33,12 +36,25 @@ export class SessionManager {
 
     const sessionId = randomUUID()
     const session = new LiveSession(sessionId, this.deps)
+    const opened = session.initialize(config)
+    this.opening.set(
+      session,
+      opened.then(
+        () => undefined,
+        () => undefined,
+      ),
+    )
     try {
-      await session.initialize(config)
+      await opened
     } catch (error) {
       // A session that never opened still lets go of what it started, such as a remote browser.
       await session.cleanup().catch(() => undefined)
       throw error
+    } finally {
+      this.opening.delete(session)
+    }
+    if (this.ending.has(session)) {
+      throw new Error('The dashboard is shutting down, so the live session was not opened.')
     }
     this.sessions.set(sessionId, session)
     // The session is an editor subject for exactly its lifetime.
@@ -92,9 +108,18 @@ export class SessionManager {
   private async cleanupEverySession(): Promise<void> {
     const sessions = [...this.sessions]
     this.sessions.clear()
+    const opening = [...this.opening]
+    for (const [session] of opening) this.ending.add(session)
     for (const [sessionId] of sessions) this.deps.liveEditorSubjects?.unregister(sessionId)
     try {
-      await Promise.allSettled(sessions.map(async ([, session]) => session.cleanup()))
+      await Promise.allSettled([
+        ...sessions.map(async ([, session]) => session.cleanup()),
+        // Ended once open, since a cleanup mid-open would miss the browser the open then connects.
+        ...opening.map(async ([session, opened]) => {
+          await opened
+          await session.cleanup()
+        }),
+      ])
     } finally {
       this.cleanupInFlight = undefined
     }
