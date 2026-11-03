@@ -295,8 +295,8 @@ function releaseAppium(): void {
   _appiumManager?.release()
 }
 
-// Every remote session this process holds, whichever door started its run.
-const processRemoteSessions = createRemoteSessionRegistry()
+// Every remote session this process holds: each run door's and the dashboard's live editor's.
+export const processRemoteSessions: RemoteSessionRegistry = createRemoteSessionRegistry()
 let startedRemoteRelease: Promise<void> | undefined
 
 export { REMOTE_RELEASE_BOUND_MS }

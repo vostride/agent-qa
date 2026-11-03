@@ -50,6 +50,7 @@ import {
   type RunServicePorts,
 } from '../run-service/run-service-routes.js'
 import type { RunServiceReadiness } from '@vostride/agent-qa-schema'
+import { REMOTE_RELEASE_BOUND_MS, type RemoteSessionRegistry } from '@vostride/agent-qa-runner'
 
 const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html; charset=utf-8',
@@ -94,6 +95,8 @@ export const DEFAULT_DASHBOARD_HOST = '127.0.0.1'
 
 interface StartServerOptions {
   db: DashboardDatabase
+  // The host process's registry, handed to every live-editor adapter so a shutdown releases it.
+  remoteSessions?: RemoteSessionRegistry
   port?: number
   /** Defaults to loopback; any other value is refused before anything listens. */
   host?: string
@@ -135,6 +138,8 @@ export async function startServer(opts: StartServerOptions): Promise<{
   server: Server
   port: number
   close: () => void
+  // Settles once every live-editor session is cleaned up, or at the bound, whichever is first.
+  cleanupSessions: (boundMs: number) => Promise<void>
 }> {
   const { db, port = 3470, uiDir, workspacePaths, configPath, llmConfig, authFetch, agentHost, executionBackend, runService, runServiceReadiness, liveView, liveEditorSubjects, postProcessingRelay } = opts
   // The explicit port wins; `runService.attach` is the fallback for callers that pass only that.
@@ -354,6 +359,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
     configPath: resolvedConfigPath,
     // Each created session registers here, which is what the frame socket attaches.
     ...(liveEditorSubjects === undefined ? {} : { liveEditorSubjects }),
+    ...(opts.remoteSessions === undefined ? {} : { remoteSessions: opts.remoteSessions }),
   })
 
   // The proxy dispatches on the token's signed kind, so a missing registry only answers nothing.
@@ -603,8 +609,19 @@ export async function startServer(opts: StartServerOptions): Promise<{
     }
   })
 
-  const gracefulShutdown = () => {
-    sessionManager.cleanupAll()
+  const cleanupSessions = (boundMs: number): Promise<void> => {
+    let bound: ReturnType<typeof setTimeout> | undefined
+    return Promise.race([
+      sessionManager.cleanupAll(),
+      new Promise<void>((settled) => {
+        bound = setTimeout(settled, boundMs)
+        bound.unref()
+      }),
+    ]).finally(() => clearTimeout(bound))
+  }
+
+  const gracefulShutdown = async (): Promise<void> => {
+    await cleanupSessions(REMOTE_RELEASE_BOUND_MS)
   }
   process.on('SIGTERM', gracefulShutdown)
   process.on('SIGINT', gracefulShutdown)
@@ -614,7 +631,7 @@ export async function startServer(opts: StartServerOptions): Promise<{
     executionBackend?.killAll()
     releaseAllMobileAppiumLeases('server-startup-error')
     appiumManager.shutdown()
-    sessionManager.cleanupAll()
+    void sessionManager.cleanupAll()
     db.close()
   }
 
@@ -638,12 +655,13 @@ export async function startServer(opts: StartServerOptions): Promise<{
       resolve({
         server,
         port: boundPort,
+        cleanupSessions,
         close: () => {
           jobQueue.stop()
           executionBackend?.killAll()
           releaseAllMobileAppiumLeases('server-close')
           appiumManager.shutdown()
-          sessionManager.cleanupAll()
+          void sessionManager.cleanupAll()
           server.close()
           db.close()
         },

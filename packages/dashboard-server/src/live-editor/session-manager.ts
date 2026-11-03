@@ -4,18 +4,22 @@ import type { SessionState, LiveSessionConfig, EntityRef } from './types.js'
 import type { AppiumManager } from '../execution/appium-manager.js'
 import type { ConfigManager } from '../config/index.js'
 import type { LiveEditorSubjects } from '../live-view/editor-subjects.js'
+import type { RemoteSessionRegistry } from '@vostride/agent-qa-runner'
 
 export interface SessionManagerDeps {
   appiumManager?: AppiumManager
   configManager?: ConfigManager
   configPath?: string
   liveEditorSubjects?: LiveEditorSubjects
+  // The host's registry, so a shutdown releases a live session's remote beside its cleanup.
+  remoteSessions?: RemoteSessionRegistry
 }
 
 export class SessionManager {
   private sessions = new Map<string, LiveSession>()
   // Monotonic per entity and reset on restart, so a reopened entity gets the next number.
   private counters = new Map<string, number>()
+  private cleanupInFlight: Promise<void> | undefined
 
   constructor(private deps: SessionManagerDeps = {}) {}
 
@@ -70,12 +74,21 @@ export class SessionManager {
     return true
   }
 
-  async cleanupAll(): Promise<void> {
-    for (const [sessionId, session] of this.sessions) {
-      this.deps.liveEditorSubjects?.unregister(sessionId)
-      try { await session.cleanup() } catch {}
-    }
+  // Every shutdown path calls this on one signal, so overlapping calls share one pass.
+  cleanupAll(): Promise<void> {
+    this.cleanupInFlight ??= this.cleanupEverySession()
+    return this.cleanupInFlight
+  }
+
+  private async cleanupEverySession(): Promise<void> {
+    const sessions = [...this.sessions]
     this.sessions.clear()
+    for (const [sessionId] of sessions) this.deps.liveEditorSubjects?.unregister(sessionId)
+    try {
+      await Promise.allSettled(sessions.map(async ([, session]) => session.cleanup()))
+    } finally {
+      this.cleanupInFlight = undefined
+    }
   }
 
   getCounter(entity: EntityRef): number {

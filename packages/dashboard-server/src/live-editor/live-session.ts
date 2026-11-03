@@ -61,6 +61,7 @@ import type {
   SecretStore,
   StorageStatePort,
   LiveStreamHub,
+  RemoteSessionRegistry,
 } from '@vostride/agent-qa-runner'
 import type { LanguageModel } from 'ai'
 import { authFromFetch, authFromRuntimeConfig, toModelProfileAndAuth } from '../llm-model-mapping.js'
@@ -283,6 +284,8 @@ export interface LiveSessionDeps {
   appiumManager?: AppiumManager
   configManager?: ConfigManager
   configPath?: string
+  // The host's registry, which a dashboard shutdown releases beside the session's own cleanup.
+  remoteSessions?: RemoteSessionRegistry
 }
 
 export interface LiveStepExecutionResult extends StepResult {
@@ -890,6 +893,7 @@ export class LiveSession {
           ? {}
           : { connectionSecrets: config.connectionSecretStore }),
         ...(config.secretsFile === undefined ? {} : { secretsFile: config.secretsFile }),
+        ...(this.deps.remoteSessions === undefined ? {} : { sessions: this.deps.remoteSessions }),
       })
       await adapter.setup({
         platform: 'web',

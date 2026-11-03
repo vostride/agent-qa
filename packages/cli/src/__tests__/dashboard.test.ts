@@ -66,6 +66,7 @@ vi.mock('@vostride/agent-qa-core', async importOriginal => {
 })
 
 import { createDashboardCommand, createServeCommand } from '../commands/dashboard.js'
+import { processRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../commands/run.js'
 import { resolveLLMAuth } from '@vostride/agent-qa-core'
 
 let exitSpy: any
@@ -119,6 +120,7 @@ beforeEach(() => {
     server: {},
     port: 3470,
     close: vi.fn(),
+    cleanupSessions: vi.fn(async () => undefined),
   })
 })
 
@@ -300,10 +302,12 @@ describe('createDashboardCommand', () => {
     expect(exitSpy).not.toHaveBeenCalled()
   })
 
-  it('shuts down cleanly on a signal with no telemetry step left in the path', async () => {
-    // This cell measures the shutdown path, a clean close and exit 0; source pins cover analytics.
+  it('on a signal, waits for session cleanup, then closes and exits 0 with no telemetry step', async () => {
+    // This cell measures the shutdown path and the remote registry the server is handed; source
+    // pins cover analytics.
     const config = makeDashboardConfig({ analytics: { privacy: true } })
     const close = vi.fn()
+    const cleanupSessions = vi.fn(async () => undefined)
     const signalHandlers = new Map<string | symbol, (...args: any[]) => unknown>()
     const processOnSpy = vi.spyOn(process, 'on').mockImplementation(((event, listener) => {
       signalHandlers.set(event, listener as (...args: any[]) => unknown)
@@ -314,6 +318,7 @@ describe('createDashboardCommand', () => {
       server: {},
       port: 3470,
       close,
+      cleanupSessions,
     })
 
     try {
@@ -328,8 +333,12 @@ describe('createDashboardCommand', () => {
       const shutdown = signalHandlers.get('SIGINT')
       expect(shutdown).toBeDefined()
       await expect(Promise.resolve(shutdown?.())).rejects.toThrow('process.exit')
+      expect(cleanupSessions).toHaveBeenCalledExactlyOnceWith(REMOTE_RELEASE_BOUND_MS)
       expect(close).toHaveBeenCalledOnce()
       expect(exitSpy).toHaveBeenCalledWith(0)
+      expect(mockStartServer).toHaveBeenCalledWith(
+        expect.objectContaining({ remoteSessions: processRemoteSessions }),
+      )
     } finally {
       processOnSpy.mockRestore()
     }
@@ -384,6 +393,7 @@ describe('createServeCommand', () => {
 
   it('uses local services shutdown wording on signal cleanup', async () => {
     const close = vi.fn()
+    const cleanupSessions = vi.fn(async () => undefined)
     const signalHandlers = new Map<string | symbol, (...args: any[]) => unknown>()
     const processOnSpy = vi.spyOn(process, 'on').mockImplementation(((event, listener) => {
       signalHandlers.set(event, listener as (...args: any[]) => unknown)
@@ -393,6 +403,7 @@ describe('createServeCommand', () => {
       server: {},
       port: 3470,
       close,
+      cleanupSessions,
     })
 
     try {
