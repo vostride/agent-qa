@@ -797,8 +797,8 @@ describe('undeclared values pass unchanged', () => {
     }
   }, CELL_BUDGET_MS)
 
-  it('an empty secrets file changes nothing, and encoded or case-changed forms of a declared value '
-    + 'are not masked', async () => {
+  it('an empty secrets file changes nothing, and a case-changed form of a declared value is not '
+    + 'masked while its percent-encoded form is', async () => {
     const project = await recordedDoorProject('twin-forms', { fullBodies: true })
     const stub = await startChatModelStub()
     try {
@@ -826,7 +826,7 @@ describe('undeclared values pass unchanged', () => {
       expect(formBodies.length, transcript(chatForms)).toBeGreaterThan(0)
       const formBody = formBodies.join('\n')
       expect(formBody).toContain('Q^7')
-      expect(formBody).toContain('q%5E7')
+      expect(formBody).not.toContain('q%5E7')
       expect(formBody).toContain(SHORT_MARKER)
       expect(formBody.includes(SHORT)).toBe(false)
       rmSync(join(project.agentQaRoot, 'sessions'), { recursive: true, force: true })
@@ -836,7 +836,7 @@ describe('undeclared values pass unchanged', () => {
       const askSession = sessionEvents(project.agentQaRoot)
         .map((event) => JSON.stringify(event)).join('\n')
       expect(askSession).toContain('Q^7')
-      expect(askSession).toContain('q%5E7')
+      expect(askSession).not.toContain('q%5E7')
       expect(askSession).toContain(SHORT_MARKER)
       expect(askSession.includes(SHORT)).toBe(false)
 

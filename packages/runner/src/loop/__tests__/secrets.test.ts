@@ -177,12 +177,13 @@ describe('masking declared secret values', () => {
     expect(redactor.redactString('{{secret:x}} and q^7')).toBe('[secret:x] and q^7')
   })
 
-  it('encoded and case-changed forms are not masked', () => {
+  it('case-changed, slash-escaped, base64 and decomposed forms are not masked', () => {
     const redactor = new SecretRedactor(new SecretStore({ token: 'Ab/c d', accent: 'caf\u00e9' }))
-    for (const text of ['ab/c d', 'Ab%2Fc%20d', 'Ab\\/c d', btoa('Ab/c d'), 'cafe\u0301']) {
+    for (const text of ['ab/c d', 'Ab\\/c d', btoa('Ab/c d'), 'cafe\u0301']) {
       expect(redactor.redactString(text)).toBe(text)
     }
     expect(redactor.redactString('Ab/c d caf\u00e9')).toBe('[secret:token] [secret:accent]')
+    expect(redactor.redactString('Ab%2Fc%20d')).toBe('[secret:token]')
   })
 })
 

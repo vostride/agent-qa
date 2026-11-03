@@ -106,6 +106,10 @@ export class SecretStore implements SecretResolver {
       callback(name, value)
     }
   }
+
+  without(names: ReadonlySet<string>): SecretStore {
+    return new SecretStore([...this.storage].filter(([name]) => !names.has(name)))
+  }
 }
 
 export function findSecretTemplates(text: string): SecretTemplate[] {
@@ -125,6 +129,38 @@ export function basicAuthorizationValue(user: string, password: string): string 
     binary += String.fromCharCode(byte)
   }
   return btoa(binary)
+}
+
+function resolveReferences(text: string, store: SecretResolver): string | undefined {
+  let unresolved = false
+  const pattern = new RegExp(SECRET_TEMPLATE_RE.source, 'g')
+  const resolved = text.replace(pattern, (match, name: string) => {
+    const value = store.get(name)
+    if (value === undefined) unresolved = true
+    return value ?? match
+  })
+  return unresolved ? undefined : resolved
+}
+
+// A Basic value is masked whenever its user or password references a secret, named after the
+// password's first secret, else the user's.
+export function basicAuthMaskEntries(
+  remotes: readonly { basicAuth?: { user: string; password: string } }[],
+  store: SecretResolver,
+): Array<[string, string]> {
+  const entries: Array<[string, string]> = []
+  for (const { basicAuth } of remotes) {
+    if (basicAuth === undefined) continue
+    const [fromPassword] = findSecretTemplates(basicAuth.password)
+    const [fromUser] = findSecretTemplates(basicAuth.user)
+    const name = fromPassword?.name ?? fromUser?.name
+    if (name === undefined) continue
+    const user = resolveReferences(basicAuth.user, store)
+    const password = resolveReferences(basicAuth.password, store)
+    if (user === undefined || password === undefined) continue
+    entries.push([name, basicAuthorizationValue(user, password)])
+  }
+  return entries
 }
 
 export function interpolateSecretTemplates(template: string, store: SecretStore): string {
@@ -219,16 +255,40 @@ function isBufferLike(value: unknown): value is Buffer {
   return typeof Buffer !== 'undefined' && Buffer.isBuffer(value)
 }
 
+function percentEncoded(value: string): string | undefined {
+  try {
+    return encodeURIComponent(value)
+  } catch {
+    // A lone surrogate has no percent-encoded form.
+    return undefined
+  }
+}
+
+// The forms agent-qa itself writes a value in: a url, a JSON string body, and a url holding JSON.
+function encodedForms(value: string): string[] {
+  const json = JSON.stringify(value).slice(1, -1)
+  const forms = [percentEncoded(value), json, percentEncoded(json)]
+  return [...new Set(forms)].filter((form): form is string => form !== undefined && form !== value)
+}
+
 export class SecretRedactor implements SecretRedactorPort {
   private readonly pattern: RegExp
   private readonly valuePattern: RegExp | undefined
   private readonly nameByValue = new Map<string, string>()
 
-  constructor(private readonly store: SecretStore) {
+  constructor(
+    private readonly store: SecretStore,
+    extras: ReadonlyArray<readonly [string, string]> = [],
+  ) {
     const entries: Array<[string, string]> = []
     store.forEachSecret((name, value) => {
-      if (value.length > 0) entries.push([name, value])
+      if (value.length === 0) return
+      entries.push([name, value])
+      for (const form of encodedForms(value)) entries.push([name, form])
     })
+    for (const [name, value] of extras) {
+      if (value.length > 0) entries.push([name, value])
+    }
     entries.sort((a, b) => b[1].length - a[1].length)
     for (const [name, value] of entries) {
       if (!this.nameByValue.has(value)) this.nameByValue.set(value, name)
