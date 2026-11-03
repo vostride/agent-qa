@@ -118,6 +118,15 @@ export function findSecretTemplates(text: string): SecretTemplate[] {
   return templates
 }
 
+// The value after `Basic `: base64 of the UTF-8 bytes of `user:password`.
+export function basicAuthorizationValue(user: string, password: string): string {
+  let binary = ''
+  for (const byte of new TextEncoder().encode(`${user}:${password}`)) {
+    binary += String.fromCharCode(byte)
+  }
+  return btoa(binary)
+}
+
 export function interpolateSecretTemplates(template: string, store: SecretStore): string {
   return template.replace(SECRET_TEMPLATE_RE, (match, name: string) => {
     const value = store.get(name)

@@ -1,11 +1,11 @@
-// Remote browsers on loopback: a Playwright server, a CDP Chromium, a session-counting proxy and
-// services that refuse a connect.
+// Remote browsers on loopback: a Playwright server, a CDP Chromium, a session-counting proxy, a
+// credential-checking proxy and services that refuse a connect.
 
 import { spawn } from 'node:child_process'
 import type { ChildProcess } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { createServer as createHttpServer, STATUS_CODES } from 'node:http'
-import type { Server as HttpServer } from 'node:http'
+import type { IncomingMessage, Server as HttpServer } from 'node:http'
 import { createRequire } from 'node:module'
 import { connect, createServer } from 'node:net'
 import type { AddressInfo, Server, Socket } from 'node:net'
@@ -264,6 +264,106 @@ export async function startMismatchedRunServer(): Promise<MismatchedRunServer> {
       })
     })
     return { wsEndpoint, close }
+  } catch (error) {
+    await close()
+    throw error
+  }
+}
+
+export interface CredentialExpectation {
+  /** Header values by lower-case name. */
+  readonly headers?: Readonly<Record<string, string>>
+  /** Decoded query values by name. */
+  readonly query?: Readonly<Record<string, string>>
+}
+
+export interface RecordedUpgrade {
+  /** The request line as sent, query included. */
+  readonly requestLine: string
+  /** The path and query as sent. */
+  readonly url: string
+  /** Header values by lower-case name. */
+  readonly headers: Readonly<Record<string, string>>
+}
+
+export interface CredentialCheckingProxy {
+  readonly port: number
+  /** Every upgrade request the proxy received, accepted or not. */
+  requests(): readonly RecordedUpgrade[]
+  close(): Promise<void>
+}
+
+function meetsExpectation(request: RecordedUpgrade, expected: CredentialExpectation): boolean {
+  const query = new URL(request.url, 'http://127.0.0.1').searchParams
+  const headers = Object.entries(expected.headers ?? {})
+  const values = Object.entries(expected.query ?? {})
+  return (
+    headers.every(([name, value]) => request.headers[name] === value) &&
+    values.every(([name, value]) => query.get(name) === value)
+  )
+}
+
+function upgradeHead(request: IncomingMessage): string {
+  const lines = [`${request.method ?? 'GET'} ${request.url ?? '/'} HTTP/${request.httpVersion}`]
+  for (let index = 0; index < request.rawHeaders.length; index += 2) {
+    lines.push(`${request.rawHeaders[index] ?? ''}: ${request.rawHeaders[index + 1] ?? ''}`)
+  }
+  return `${lines.join('\r\n')}\r\n\r\n`
+}
+
+// Lets a WebSocket upgrade through to the target only when its headers and query match.
+export async function startCredentialCheckingProxy(options: {
+  target: number
+  expect: CredentialExpectation
+}): Promise<CredentialCheckingProxy> {
+  const sockets = new Set<Socket>()
+  const recorded: RecordedUpgrade[] = []
+  const track = (socket: Socket): void => {
+    sockets.add(socket)
+    socket.on('error', () => undefined)
+    socket.on('close', () => sockets.delete(socket))
+  }
+  const server = createHttpServer((_request, response) => {
+    response.writeHead(404, { connection: 'close' })
+    response.end()
+  })
+  server.on('connection', track)
+  server.on('upgrade', (request: IncomingMessage, client: Socket, head: Buffer) => {
+    const headers: Record<string, string> = {}
+    for (const [name, value] of Object.entries(request.headers)) {
+      if (value !== undefined) headers[name] = Array.isArray(value) ? value.join(', ') : value
+    }
+    const url = request.url ?? '/'
+    const upgrade = {
+      requestLine: `${request.method ?? 'GET'} ${url} HTTP/${request.httpVersion}`,
+      url,
+      headers,
+    }
+    recorded.push(upgrade)
+    if (!meetsExpectation(upgrade, options.expect)) {
+      client.end('HTTP/1.1 401 Unauthorized\r\nContent-Length: 0\r\nConnection: close\r\n\r\n')
+      return
+    }
+    const upstream = connect(options.target, '127.0.0.1')
+    track(upstream)
+    const end = (): void => {
+      client.destroy()
+      upstream.destroy()
+    }
+    client.on('close', end)
+    upstream.on('close', end)
+    upstream.write(upgradeHead(request))
+    if (head.length > 0) upstream.write(head)
+    upstream.pipe(client)
+    client.pipe(upstream)
+  })
+  const close = async (): Promise<void> => {
+    for (const socket of sockets) socket.destroy()
+    sockets.clear()
+    await new Promise<void>((closed) => server.close(() => closed()))
+  }
+  try {
+    return { port: await listenOnLoopback(server), requests: () => [...recorded], close }
   } catch (error) {
     await close()
     throw error

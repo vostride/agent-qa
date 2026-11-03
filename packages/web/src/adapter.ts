@@ -12,6 +12,7 @@ import type {
   RecordingCapability,
   RemoteBrowserConfig,
   RemoteRefusalMemory,
+  SecretResolver,
 } from '@vostride/agent-qa-runner'
 import type { LiveFrame } from '@vostride/agent-qa-schema'
 import { DEFAULT_NAVIGATION_TIMEOUT_MS, remoteLabel } from '@vostride/agent-qa-schema'
@@ -43,6 +44,7 @@ import type { RefMap } from './types.js'
 import { formatMissingBrowserError, isPlaywrightMissingBrowserError } from './browser-install-error.js'
 import {
   debugEnablesPlaywright,
+  resolveRemoteConnection,
   rewriteConnectError,
   scrubRemoteEndpoint,
 } from './remote-connection.js'
@@ -155,6 +157,8 @@ export interface WebPlatformAdapterOptions {
   readonly refusalMemory?: RemoteRefusalMemory
   // The configured secrets file a credential refusal names.
   readonly secretsFile?: string
+  // Every declared secret, so a remote's references resolve at connect and nowhere else.
+  readonly connectionSecrets?: SecretResolver
 }
 
 export class WebPlatformAdapter implements PlatformAdapter<'web'> {
@@ -214,12 +218,16 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     if (remote !== undefined) {
       const remembered = this.options.refusalMemory?.refusalFor(remote.name)
       if (remembered !== undefined) throw remembered
+      const { url, headers } = resolveRemoteConnection(remote, {
+        secrets: this.options.connectionSecrets,
+        secretsFile: this.options.secretsFile,
+      })
       try {
         // Headless, launch args and signal handling belong to a browser launched here.
         this.browser =
           remote.protocol === 'cdp'
-            ? await chromium.connectOverCDP(remote.url, { timeout: remote.connectTimeoutMs })
-            : await launcher.connect(remote.url, { timeout: remote.connectTimeoutMs })
+            ? await chromium.connectOverCDP(url, { headers, timeout: remote.connectTimeoutMs })
+            : await launcher.connect(url, { headers, timeout: remote.connectTimeoutMs })
       } catch (error) {
         const refused = rewriteConnectError(
           error,

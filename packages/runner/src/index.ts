@@ -328,6 +328,7 @@ export {
   SecretConfigError,
   MissingSecretError,
   findSecretTemplates,
+  basicAuthorizationValue,
   interpolateSecretTemplates,
   resolveSecretTemplatesInValue,
   redactSecretValue,

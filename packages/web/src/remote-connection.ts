@@ -1,12 +1,19 @@
 import { createRequire } from 'node:module'
 
-import { RemoteRefusalError } from '@vostride/agent-qa-runner'
+import { basicAuthorizationValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
 import type {
   RemoteBrowserConfig,
   RemoteFailureKind,
   RemoteProtocol,
+  SecretResolver,
 } from '@vostride/agent-qa-runner'
-import { connectionSecretNames, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
+import {
+  connectionSecretNames,
+  PLAYWRIGHT_VERSION_TOKEN,
+  remoteLabel,
+  remoteOrigin,
+  SECRET_REFERENCE_PATTERN,
+} from '@vostride/agent-qa-schema'
 
 const require = createRequire(typeof __filename === 'string' ? __filename : import.meta.url)
 
@@ -92,6 +99,97 @@ export function rewriteConnectError(
     remote: remoteLabel(remote),
     kind,
   })
+}
+
+export interface RemoteConnection {
+  readonly url: string
+  readonly headers: Record<string, string>
+}
+
+export interface RemoteConnectionOptions {
+  readonly secrets?: SecretResolver | undefined
+  readonly secretsFile?: string | undefined
+}
+
+function resolveTokens(
+  text: string,
+  secrets: SecretResolver,
+  encode: (value: string) => string = (value) => value,
+): string {
+  const pattern = new RegExp(SECRET_REFERENCE_PATTERN.source, 'g')
+  return text
+    .split(PLAYWRIGHT_VERSION_TOKEN)
+    .map((part) => part.replace(pattern, (_found, name: string) => encode(secrets.require(name))))
+    .join(encode(playwrightVersion()))
+}
+
+function resolveLeaves(value: unknown, secrets: SecretResolver): unknown {
+  if (typeof value === 'string') return resolveTokens(value, secrets)
+  if (Array.isArray(value)) return value.map((item) => resolveLeaves(item, secrets))
+  if (typeof value === 'object' && value !== null) {
+    return Object.fromEntries(
+      Object.entries(value).map(([key, item]) => [key, resolveLeaves(item, secrets)]),
+    )
+  }
+  return value
+}
+
+// Encoded by hand, so the wire holds exactly the forms the redactor masks.
+function withQuery(
+  url: string,
+  query: RemoteBrowserConfig['query'],
+  secrets: SecretResolver,
+): string {
+  const pairs = Object.entries(query ?? {}).map(([key, value]) => {
+    const resolved =
+      typeof value === 'string'
+        ? resolveTokens(value, secrets)
+        : JSON.stringify(resolveLeaves(value, secrets))
+    return `${encodeURIComponent(key)}=${encodeURIComponent(resolved)}`
+  })
+  if (pairs.length === 0) return url
+  const hashAt = url.indexOf('#')
+  const base = hashAt < 0 ? url : url.slice(0, hashAt)
+  const fragment = hashAt < 0 ? '' : url.slice(hashAt)
+  const separator = !base.includes('?') ? '?' : /[?&]$/.test(base) ? '' : '&'
+  return `${base}${separator}${pairs.join('&')}${fragment}`
+}
+
+const emptySecrets: SecretResolver = {
+  get: () => undefined,
+  has: () => false,
+  require: (name) => {
+    throw new Error(`Secret not found: ${name}`)
+  },
+}
+
+// Resolved at connect into fresh values; the remote config keeps its references.
+export function resolveRemoteConnection(
+  remote: RemoteBrowserConfig,
+  options: RemoteConnectionOptions = {},
+): RemoteConnection {
+  const secrets = options.secrets ?? emptySecrets
+  const missing = connectionSecretNames([remote]).find((name) => !secrets.has(name))
+  if (missing !== undefined) {
+    const label = remoteLabel(remote)
+    const secretsFile = options.secretsFile ?? 'workspace.secretsFile'
+    throw new RemoteRefusalError(
+      `Remote ${label} needs ${missing}, which ${secretsFile} does not declare. Add it there.`,
+      { remote: label },
+    )
+  }
+  const path = resolveTokens(remote.url, secrets, encodeURIComponent)
+  const url = withQuery(path, remote.query, secrets)
+  const headers: Record<string, string> = {}
+  for (const [name, value] of Object.entries(remote.headers ?? {})) {
+    headers[name] = resolveTokens(value, secrets)
+  }
+  if (remote.basicAuth !== undefined) {
+    const user = resolveTokens(remote.basicAuth.user, secrets)
+    const password = resolveTokens(remote.basicAuth.password, secrets)
+    headers.Authorization = `Basic ${basicAuthorizationValue(user, password)}`
+  }
+  return { url, headers }
 }
 
 const PLAYWRIGHT_LOGGERS = ['pw:api', 'pw:protocol'] as const

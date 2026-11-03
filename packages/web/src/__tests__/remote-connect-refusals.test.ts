@@ -1,4 +1,8 @@
-import { createRemoteRefusalMemory, RemoteRefusalError } from '@vostride/agent-qa-runner'
+import {
+  createRemoteRefusalMemory,
+  RemoteRefusalError,
+  SecretStore,
+} from '@vostride/agent-qa-runner'
 import type { RemoteBrowserConfig, RemoteFailureKind } from '@vostride/agent-qa-runner'
 import { afterEach, describe, expect, it } from 'vitest'
 
@@ -17,7 +21,20 @@ const PASSWORD_MARK = 'pw-userinfo-mark'
 const PATH_MARK = 'path-token-mark'
 const QUERY_MARK = 'query-secret-mark'
 const BODY_MARK = 'response-body-mark'
-const LEAK_MARKS = [PASSWORD_MARK, PATH_MARK, QUERY_MARK, BODY_MARK]
+const TOKEN_MARK = 'declared-token-mark'
+const SECRET_PASSWORD_MARK = 'declared-password-mark'
+const LEAK_MARKS = [
+  PASSWORD_MARK,
+  PATH_MARK,
+  QUERY_MARK,
+  BODY_MARK,
+  TOKEN_MARK,
+  SECRET_PASSWORD_MARK,
+]
+const connectionSecrets = new SecretStore({
+  GRID_TOKEN: TOKEN_MARK,
+  GRID_PASSWORD: SECRET_PASSWORD_MARK,
+})
 const SECRETS_FILE = '.env.secrets.local'
 const CONNECT_TIMEOUT_MS = 30_000
 
@@ -46,7 +63,7 @@ function remoteAt(
 
 async function refusalOf(
   remote: RemoteBrowserConfig,
-  options: WebPlatformAdapterOptions = { secretsFile: SECRETS_FILE },
+  options: WebPlatformAdapterOptions = { connectionSecrets, secretsFile: SECRETS_FILE },
 ): Promise<RemoteRefusalError> {
   const adapter = new WebPlatformAdapter(options)
   try {
@@ -109,7 +126,7 @@ describe('a remote that cannot connect', () => {
 
   it('names the configured secrets file setting when the run names no file', async () => {
     const port = await statusService(403)
-    const error = await refusalOf(remoteAt('playwright', 'ws', port), {})
+    const error = await refusalOf(remoteAt('playwright', 'ws', port), { connectionSecrets })
     expect(error.message).toBe(
       `Remote grid (playwright ws://127.0.0.1:${String(port)}) refused the credentials. Check GRID_PASSWORD and GRID_TOKEN in workspace.secretsFile.`,
     )
@@ -199,7 +216,7 @@ describe('a remote that cannot connect', () => {
     teardowns.push(() => proxy.close())
     const refusalMemory = createRemoteRefusalMemory()
     const remote = remoteAt('playwright', 'ws', proxy.port)
-    const options = { refusalMemory, secretsFile: SECRETS_FILE }
+    const options = { refusalMemory, connectionSecrets, secretsFile: SECRETS_FILE }
 
     const first = await refusalOf(remote, options)
     const second = await refusalOf(remote, options)
