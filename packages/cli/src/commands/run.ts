@@ -1863,6 +1863,12 @@ async function captureAuthStateForRun(input: {
   }
 }
 
+interface SuiteRunExit {
+  readonly exitCode: number
+  // A suite's remote refused it before its members started, which keeps the command's exit at 2.
+  readonly remoteRefused: boolean
+}
+
 async function executeSuites(
   suiteFiles: string[],
   opts: RunOptions,
@@ -1886,7 +1892,8 @@ async function executeSuites(
   // Memoised, so a command that starts no run never resolves the identity store.
   analytics: (() => Promise<CliAnalyticsHost>) | undefined,
   loadPlugins: () => Promise<void>,
-): Promise<number> {
+  refusalMemory: RemoteRefusalMemory,
+): Promise<SuiteRunExit> {
   const { parseSuiteFile, parseTestFile, patchTestForSuite } = await import('@vostride/agent-qa-core')
   // `startRun` is reached only through `createRunInvocationCore`, never bound here.
   const { LLMPlanner, LLMVerifier, mapVerdictToExitCode } = await import('@vostride/agent-qa-runner')
@@ -1916,7 +1923,7 @@ async function executeSuites(
       }
     }
     if (listing.length > 0) printRunText(listing.join('\n'), (text) => console.log(text))
-    return 0
+    return { exitCode: 0, remoteRefused: false }
   }
 
   let shutdownRequested = false
@@ -1971,6 +1978,7 @@ async function executeSuites(
   const runId = process.env.AGENT_QA_RUN_ID ?? generateRunId()
   const executionContext = resolveRunExecutionContext()
   let exitCode: number
+  let remoteRefusal: Error | undefined
   try {
     const reporterSelection = requireReporterSelection(opts)
     const produced = await produceSuiteRunMembers({
@@ -1987,6 +1995,7 @@ async function executeSuites(
       runRecord: record,
       terminal: RUN_TERMINAL,
       hostOwnsSignals: true,
+      refusalMemory,
       ...(variableContext === undefined ? {} : { variableContext }),
       ...(hooksContext === undefined ? {} : { hooksContext }),
       ...(analytics === undefined ? {} : { analytics }),
@@ -2091,6 +2100,7 @@ async function executeSuites(
       },
     )
     exitCode = outcome.exitCode
+    remoteRefusal = produced.takeRemoteRefusal?.()
   } finally {
     clearGraceTimer()
     shutdownController.dispose()
@@ -2101,7 +2111,12 @@ async function executeSuites(
   }
 
   releaseAppium()
-  return exitCode
+  if (remoteRefusal === undefined) return { exitCode, remoteRefused: false }
+  printRunText(
+    pc.red(redactSecretValue(remoteRefusal.message, variableContext?.secretRedactor)),
+    (text) => console.error(text),
+  )
+  return { exitCode: shutdownRequested ? exitCode : 2, remoteRefused: true }
 }
 
 /**
@@ -2410,6 +2425,7 @@ export async function produceSuiteRunMembers(
   let activeRunSession: { cancel(): void } | undefined
   void activeRunSession
   const suiteSnapshots = createRunArtifactSnapshotChannel()
+  let suiteRemoteRefusal: Error | undefined
 
   // A preparation failure is filed under this run's own id, once.
   const recordPreparationFailure = (row: {
@@ -2991,7 +3007,15 @@ export async function produceSuiteRunMembers(
       }
     }
 
-    await suiteConfig.adapter.setup(suiteConfig.platformConfig)
+    try {
+      await suiteConfig.adapter.setup(suiteConfig.platformConfig)
+    } catch (err) {
+      // A refused remote ends this suite's members with its sentence; later suites still run.
+      if (!isRemoteRefusal(err)) throw err
+      suiteRemoteRefusal ??= err
+      prepared.bootstrapFailure = err.message
+      return
+    }
 
     const initialTargetName = suite.target ?? testEntries[0]?.test.target
     if (suiteConfig.resolveUrl && initialTargetName) {
@@ -3381,6 +3405,7 @@ export async function produceSuiteRunMembers(
     },
     bindSession: (session) => { activeRunSession = session },
     takeFrameworkError: () => undefined,
+    takeRemoteRefusal: () => suiteRemoteRefusal,
     getCurationModelDeps: () => preparedSuites[0]?.curationModelDeps,
     finalize: () => lifecycle.finalize(),
     // Needs the ordinal the assembler just advanced, and rides the producer so both doors get it.
@@ -3485,6 +3510,8 @@ export interface ProducedCliRunMembers {
   bindSession(session: { cancel(): void }): void
   /** The first framework/setup error a member closure threw — the drive re-surfaces it. */
   takeFrameworkError(): unknown | undefined
+  // Suite runs only: the first remote that refused a suite's setup, which `agent-qa run` prints.
+  takeRemoteRefusal?(): Error | undefined
   /** The planner profile/auth the curation tail reuses, once a member has resolved one. */
   getCurationModelDeps(): CurationTailModelDeps | undefined
   /** Any teardown the producer owns. The suite half finalises its lifecycle here. */
@@ -4146,6 +4173,7 @@ export async function produceDirectRunMembers(
       throw new Error(`No test-member binding for testIndex ${ctx.testIndex} (testId ${member.testId})`)
     }
     // A member that could not start fails the run with its cause; later members skip and name it.
+    // A remote refusal skips nothing: later members on that remote meet it in the run's memory.
     if (frameworkSkipReason !== undefined) {
       return {
         runId: member.testId,
@@ -4161,8 +4189,11 @@ export async function produceDirectRunMembers(
       return await binding(ctx)
     } catch (err) {
       const { failureSummary } = formatFrameworkError(err instanceof Error ? err.message : String(err), err)
-      if (frameworkError === undefined) {
+      const refusal = isRemoteRefusal(err)
+      if (frameworkError === undefined || (!refusal && isRemoteRefusal(frameworkError))) {
         frameworkError = err
+      }
+      if (!refusal && frameworkSkipReason === undefined) {
         frameworkSkipReason = `Not run: "${member.name}" could not start. ${failureSummary}`
       }
       return {
@@ -4353,9 +4384,12 @@ export function createRunCommand(): Command {
           composedAnalytics ??= await composeAnalyticsHost({ surface: 'cli', config })
         )
 
+        // One memory for the command, so its suite and direct halves try a refused remote once.
+        const runRefusalMemory = createRemoteRefusalMemory()
+
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
-          const exitCode = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)
+          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory)
           const suiteReporterSelection = resolveReporterSelection(opts).selection
           if (suiteReporterSelection) {
             await maybePrintPostRunUpdateNotice({
@@ -4371,8 +4405,11 @@ export function createRunCommand(): Command {
 
         // Handle --all: run suites first, then fall through to test execution
         let suitesFailed = false
+        let suitesRemoteRefused = false
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length > 0) {
-          suitesFailed = (await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins)) !== 0
+          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory)
+          suitesFailed = suiteRun.exitCode !== 0
+          suitesRemoteRefused = suiteRun.remoteRefused
         }
 
         const files = discoveredTestFiles
@@ -4532,7 +4569,8 @@ export function createRunCommand(): Command {
         let frozenExitCode: number | undefined
         let activeRunSession: { cancel(): void } | undefined
         const curationAbortController = new AbortController()
-        // The first member throw fails that member, skips the rest and re-throws after `done`.
+        // The first member throw fails that member, skips the rest unless a remote refused it, and
+        // re-throws after `done`.
         let frameworkError: unknown | undefined
         // Armed on cancel; cleared after `session.done` and before any framework error re-throws.
         let graceTimer: ReturnType<typeof setTimeout> | undefined
@@ -4578,6 +4616,7 @@ export function createRunCommand(): Command {
           onMemberRunId: (memberRunId) => { currentRunId = memberRunId },
           terminal: RUN_TERMINAL,
           hostOwnsSignals: true,
+          refusalMemory: runRefusalMemory,
         })
         printPlannerLimits(produced.plannerLimits)
         const members = produced.members
@@ -4648,8 +4687,10 @@ export function createRunCommand(): Command {
                 const verdictExitCode = mapVerdictToExitCode(
                   shutdownRequested ? 'cancelled' : (verdict as never),
                 )
-                frozenExitCode =
-                  verdictExitCode !== 0 ? verdictExitCode : (suitesFailed ? 1 : 0)
+                // A suite refused on its remote keeps exit 2 unless the run was cancelled.
+                frozenExitCode = suitesRemoteRefused && !shutdownRequested
+                  ? 2
+                  : verdictExitCode !== 0 ? verdictExitCode : (suitesFailed ? 1 : 0)
                 return frozenExitCode
               },
               afterVerdict: async ({ exitCode, mask, postVerdict, postVerdictDeadlineMs }) => {

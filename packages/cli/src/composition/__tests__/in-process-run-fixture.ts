@@ -85,6 +85,10 @@ export interface InProcessFixtureInput {
     readonly url: string
     readonly headers?: Readonly<Record<string, string>>
   }
+  /** With `remote`, the config declares it but does not pick it, so tests launch here. */
+  readonly remoteUnpicked?: boolean
+  /** The suite's own `use.browser.remote`. */
+  readonly suitePick?: string
   /** The direct test's own `use.browser.remote`. */
   readonly directTestPick?: string
   /** With `secondTarget`, the second test's own `use.browser.remote`. */
@@ -206,7 +210,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             '  browser:',
             '    name: chromium',
             `    headless: ${input.headedBrowser === true ? 'false' : 'true'}`,
-            ...(input.remote === undefined ? [] : [`    remote: ${input.remote.name}`]),
+            ...(input.remote === undefined || input.remoteUnpicked === true
+              ? []
+              : [`    remote: ${input.remote.name}`]),
           ]
         : []),
       ...(input.parallelRuns === true ? ['  parallel: true'] : []),
@@ -326,6 +332,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
           ? SECOND_TARGET_NAME
           : IN_PROCESS_TARGET_NAME
       }`,
+      ...(input.suitePick === undefined
+        ? []
+        : ['use:', '  browser:', `    remote: ${input.suitePick}`]),
       ...setupLines('suite'),
       'tests:',
       '  - test: tests/member.yaml',
