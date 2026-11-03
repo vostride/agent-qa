@@ -15,6 +15,7 @@ import {
 } from 'yaml'
 import { AgentQaConfigSchema } from '@vostride/agent-qa-core'
 import {
+  closedConfigFieldsChanged,
   CONFIG_NAMED_ARRAYS,
   CONFIG_REVISION_ABSENT,
   MARKER_WRITTEN_BACK_SENTENCE,
@@ -297,6 +298,7 @@ export class ConfigManager {
     }
     // yaml recovers a partial tree from a broken file and refuses to stringify it: never rewrite one.
     if (doc.errors.length > 0) return { kind: 'refused', error: 'file_invalid' }
+    const asRead: unknown = doc.toJS()
     // Every expect is checked against the file as read, before anything applies.
     const expects = changes.filter((change) => change.op === 'expect')
     for (const change of expects) {
@@ -359,6 +361,11 @@ export class ConfigManager {
       if (capturePriors) {
         priors.push({ kind: 'path', path: [...LEGACY_HEADLESS_PATH], before, after: { present: false } })
       }
+    }
+
+    // Judged by effect, so an ancestor set, a move, an unset or a whole root cannot route around it.
+    if (closedConfigFieldsChanged(asRead, doc.toJS())) {
+      return { kind: 'refused', error: 'path_not_writable' }
     }
 
     const parsed = AgentQaConfigSchema.safeParse(normalizeForValidation(doc.toJSON()))

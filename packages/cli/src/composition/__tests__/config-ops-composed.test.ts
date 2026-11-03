@@ -339,8 +339,8 @@ const SIX_OPS: readonly (readonly [string, Record<string, unknown>])[] = [
   ['config.target.edit', { name: 'basket', changes: { url: 'https://basket.example.com/cart' } }],
   ['config.field.set', { path: 'use.parallel', value: true }],
   // The committed `use` block has no `authState` key (a per-test override only), so the auth op's
-  // road through whole-config validation is the plugin declaration.
-  ['config.auth.set', { target: 'basket', pluginPackage: '@acme/agent-qa-auth' }],
+  // road through whole-config validation is the one plugin declaration a write may add.
+  ['config.auth.set', { target: 'basket', pluginPackage: '@vostride/agent-qa-subscription-auth' }],
   ['config.hook.add', { name: 'Seed the cart', runtime: 'node', file: 'scripts/seed.mjs' }],
 ]
 
@@ -412,7 +412,7 @@ async function runAllSix(door: typeof viaHost): Promise<void> {
   expect(config).toContain('booking-com:')
   expect(config).toContain('url: https://basket.example.com/cart')
   expect(config).toContain('parallel: true')
-  expect(config).toContain('- package: "@acme/agent-qa-auth"')
+  expect(config).toContain('- package: "@vostride/agent-qa-subscription-auth"')
   expect(config).toContain('# agent-qa Configuration')
   const hooks = readFileSync(join(root, 'hooks.yaml'), 'utf8')
   expect(hooks).toContain('name: Seed the cart')
@@ -517,13 +517,22 @@ describe('the committed configuration binds no auth state, so no op takes one', 
     expect(filed).toHaveLength(0)
   })
 
-  it('config.auth.set still answers applied through the real validation for what the schema accepts', async () => {
-    const answer = await call('config.auth.set', { target: 'local-form', pluginPackage: '@acme/auth' })
+  it('config.auth.set answers applied through the real validation for the subscription-auth package', async () => {
+    const answer = await call('config.auth.set', {
+      target: 'local-form',
+      pluginPackage: '@vostride/agent-qa-subscription-auth',
+    })
     expect(answer.outcome).toBe('applied')
     if (answer.outcome !== 'applied') throw new Error('unreachable')
     expect(answer.fields).toEqual(['plugins.auth.0.package'])
-    expect(writtenText()).toContain('@acme/auth')
+    expect(writtenText()).toContain('@vostride/agent-qa-subscription-auth')
     expect(writtenText()).not.toContain('authState')
+  })
+
+  it('config.auth.set of any other package is refused as a write that cannot be made', async () => {
+    const answer = await call('config.auth.set', { target: 'local-form', pluginPackage: '@acme/auth' })
+    expect(answer).toMatchObject({ outcome: 'refused', reason: 'write-refused' })
+    expect(writtenText()).toBe(SEEDED_CONFIG)
   })
 })
 

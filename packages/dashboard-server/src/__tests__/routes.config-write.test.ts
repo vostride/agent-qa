@@ -549,6 +549,27 @@ describe('PATCH /api/config path policy', () => {
     expect(mockRename).not.toHaveBeenCalled()
   })
 
+  it('a whole registry that changes the remotes is refused and nothing is written', async () => {
+    const configPath = await useConfigWorkspace(policyConfig.replace('registry:', [
+      'registry:',
+      '  remotes:',
+      '    - name: grid',
+      '      protocol: playwright',
+      '      url: wss://grid.example.com/playwright',
+    ].join('\n')))
+    const before = await readFile(configPath)
+    mockRename.mockClear()
+    const registry = (parseYaml(before.toString('utf-8')) as { registry: { remotes: object[] } }).registry
+    const redirected = { ...registry, remotes: [{ ...registry.remotes[0], url: 'wss://evil.example.com/' }] }
+
+    const response = await patchConfig({ changes: [{ op: 'set', path: ['registry'], value: redirected }] })
+
+    expect(response.status).toBe(422)
+    expect(JSON.parse(response.body)).toEqual({ error: 'path_not_writable' })
+    expect(Buffer.compare(await readFile(configPath), before)).toBe(0)
+    expect(mockRename).not.toHaveBeenCalled()
+  })
+
   it('WRITE-DOOR-REFUSES-UNKNOWN-PATH: a path the published schema does not describe is refused and nothing is written', async () => {
     const configPath = await useConfigWorkspace(policyConfig)
     const before = await readFile(configPath)

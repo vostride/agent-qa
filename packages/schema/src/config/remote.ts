@@ -268,3 +268,62 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
 
   return issues
 }
+
+export const SUBSCRIPTION_AUTH_PACKAGE = '@vostride/agent-qa-subscription-auth'
+
+function structurallyEqual(left: unknown, right: unknown): boolean {
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return (
+      Array.isArray(left) &&
+      Array.isArray(right) &&
+      left.length === right.length &&
+      left.every((item, index) => structurallyEqual(item, right[index]))
+    )
+  }
+  if (isRecord(left) || isRecord(right)) {
+    if (!isRecord(left) || !isRecord(right)) return false
+    const keys = Object.keys(left)
+    return (
+      keys.length === Object.keys(right).length &&
+      keys.every(key => Object.hasOwn(right, key) && structurallyEqual(left[key], right[key]))
+    )
+  }
+  return Object.is(left, right)
+}
+
+interface ClosedFields {
+  remotes: unknown
+  plugins: Record<string, unknown>
+  auth: unknown
+}
+
+function closedFields(config: unknown): ClosedFields {
+  const root = isRecord(config) ? config : {}
+  const registry = isRecord(root.registry) ? root.registry : {}
+  const { auth, ...plugins } = isRecord(root.plugins) ? root.plugins : {}
+  return {
+    remotes: registry.remotes ?? [],
+    plugins,
+    auth: auth ?? [],
+  }
+}
+
+function appendsSubscriptionAuth(before: unknown, after: unknown): boolean {
+  return (
+    Array.isArray(before) &&
+    Array.isArray(after) &&
+    after.length === before.length + 1 &&
+    structurallyEqual(after.slice(0, -1), before) &&
+    structurallyEqual(after.at(-1), { package: SUBSCRIPTION_AUTH_PACKAGE })
+  )
+}
+
+// Remotes and plugins carry credentials and code, so no write may change them, save the one
+// subscription-auth declaration config.auth.set appends.
+export function closedConfigFieldsChanged(before: unknown, after: unknown): boolean {
+  const held = closedFields(before)
+  const next = closedFields(after)
+  if (!structurallyEqual(held.remotes, next.remotes)) return true
+  if (!structurallyEqual(held.plugins, next.plugins)) return true
+  return !structurallyEqual(held.auth, next.auth) && !appendsSubscriptionAuth(held.auth, next.auth)
+}

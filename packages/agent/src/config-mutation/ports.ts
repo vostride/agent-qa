@@ -134,6 +134,7 @@ export type ConfigFilePublishOutcome =
       | 'duplicate-path'
       | 'file-changed'
       | 'marker_written_back'
+      | 'path_not_writable'
     readonly path?: string
     readonly written: readonly []
   }

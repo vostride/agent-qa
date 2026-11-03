@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  closedConfigFieldsChanged,
   connectionSecretNames,
   formatRemoteOrigin,
   isLoopbackHost,
   remoteLabel,
   remoteOrigin,
   secretReferenceNames,
+  SUBSCRIPTION_AUTH_PACKAGE,
 } from '../config/remote'
 
 describe('remote origin and label', () => {
@@ -118,5 +120,44 @@ describe('secret references', () => {
       headers: { token: '{{secret:T}}' },
     }
     expect(connectionSecretNames([{ ...entry, name: 'a' }, { ...entry, name: 'b' }])).toEqual(['T'])
+  })
+})
+
+describe('closed config fields', () => {
+  const grid = { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com/' }
+  const subscription = { package: SUBSCRIPTION_AUTH_PACKAGE }
+
+  it('an absent list or block counts as empty, and key order is not a change', () => {
+    expect(closedConfigFieldsChanged(null, { registry: { remotes: [] }, plugins: { auth: null } }))
+      .toBe(false)
+    expect(closedConfigFieldsChanged(
+      { registry: { remotes: [grid] } },
+      { registry: { remotes: [{ url: grid.url, protocol: grid.protocol, name: grid.name }] } },
+    )).toBe(false)
+  })
+
+  it('any change to the remotes or to plugins beside auth is a change', () => {
+    expect(closedConfigFieldsChanged({}, { registry: { remotes: [grid] } })).toBe(true)
+    expect(closedConfigFieldsChanged({ registry: { remotes: [grid] } }, { registry: {} })).toBe(true)
+    expect(closedConfigFieldsChanged({}, { plugins: { providers: [] } })).toBe(true)
+  })
+
+  it('only one subscription-auth declaration appended at the end leaves auth open', () => {
+    const local = { path: './auth.mjs' }
+    expect(closedConfigFieldsChanged({}, { plugins: { auth: [subscription] } })).toBe(false)
+    expect(closedConfigFieldsChanged(
+      { plugins: { auth: [local] } },
+      { plugins: { auth: [local, subscription] } },
+    )).toBe(false)
+    expect(closedConfigFieldsChanged(
+      { plugins: { auth: [local] } },
+      { plugins: { auth: [subscription, local] } },
+    )).toBe(true)
+    expect(closedConfigFieldsChanged({}, { plugins: { auth: [subscription, subscription] } }))
+      .toBe(true)
+    expect(closedConfigFieldsChanged({}, { plugins: { auth: [{ package: '@acme/auth' }] } }))
+      .toBe(true)
+    expect(closedConfigFieldsChanged({ plugins: { auth: [local] } }, { plugins: { auth: [] } }))
+      .toBe(true)
   })
 })

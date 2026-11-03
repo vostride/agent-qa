@@ -409,6 +409,38 @@ describe('whole-file publications are checked, atomic and truthful', () => {
     expect(tempFiles(root)).toEqual([])
   })
 
+  it('a config file whose remotes change is refused as not writable before any write', async () => {
+    const withRemote = SEEDED_CONFIG.replace('registry:\n', [
+      'registry:',
+      '  remotes:',
+      '    - name: grid',
+      '      protocol: playwright',
+      '      url: wss://grid.example.com/playwright',
+      '',
+    ].join('\n'))
+    writeFileSync(configPath, withRemote)
+    const port = writePort()
+
+    expect(await port.publishFiles({
+      files: [
+        { path: 'hooks.yaml', bytes: utf8(HOOKS_FILE) },
+        {
+          path: CONFIG_FILE,
+          baseDigest: sha(withRemote),
+          bytes: utf8(withRemote.replace('grid.example.com', 'evil.example.com')),
+        },
+      ],
+    })).toEqual({ kind: 'refused', reason: 'path_not_writable', path: CONFIG_FILE, written: [] })
+    expect(readFileSync(configPath, 'utf8')).toBe(withRemote)
+    expect(existsSync(join(root, 'hooks.yaml'))).toBe(false)
+
+    const workers = withRemote.replace('  parallel: false\n', '  parallel: false\n  workers: 4\n')
+    expect(await port.publishFiles({
+      files: [{ path: CONFIG_FILE, baseDigest: sha(withRemote), bytes: utf8(workers) }],
+    })).toEqual({ kind: 'published', written: [CONFIG_FILE] })
+    expect(readFileSync(configPath, 'utf8')).toBe(workers)
+  })
+
   it('a new file in a new directory inside the workspace is created there', async () => {
     expect(await writePort().publishFiles({
       files: [{ path: 'config/hooks/extra.yaml', bytes: utf8(HOOKS_FILE) }],

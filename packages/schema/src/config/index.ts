@@ -39,6 +39,7 @@ export type { BrowserConfig } from './browser'
 export { appStateSchema, browserConfigSchema, viewportSchema } from './browser'
 export type { RemoteEntryIssue, RemoteEntryLike, RemoteOrigin } from './remote'
 export {
+  closedConfigFieldsChanged,
   connectionSecretNames,
   formatRemoteOrigin,
   isLoopbackHost,
@@ -48,6 +49,7 @@ export {
   remoteLabel,
   remoteOrigin,
   SECRET_REFERENCE_PATTERN,
+  SUBSCRIPTION_AUTH_PACKAGE,
   secretReferenceNames,
 } from './remote'
 export type { DeviceConfig } from './device'

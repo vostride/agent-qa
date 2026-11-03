@@ -746,14 +746,14 @@ function fileWriteRefusal(
         + 'again and ask again.',
     }
   }
-  // The fields arm's `marker_written_back` answer, for a whole file.
-  if (outcome.reason === 'marker_written_back') {
+  // The fields arm's `marker_written_back` and `path_not_writable` answers, for a whole file.
+  if (outcome.reason === 'marker_written_back' || outcome.reason === 'path_not_writable') {
     return {
       outcome: 'refused',
       reason: 'write-refused',
       detail:
         `${file} refused this change as it now stands: `
-        + `${FIELD_WRITE_REFUSAL_WORDS.marker_written_back}, so nothing was written.`,
+        + `${FIELD_WRITE_REFUSAL_WORDS[outcome.reason]}, so nothing was written.`,
     }
   }
   const words = {

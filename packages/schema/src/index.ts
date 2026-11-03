@@ -83,6 +83,7 @@ export type {
 export {
   appStateSchema,
   browserConfigSchema,
+  closedConfigFieldsChanged,
   CONFIG_ACTION_REFUSALS,
   CONFIG_NAMED_ARRAYS,
   CONFIG_REVISION_ABSENT,
@@ -115,6 +116,7 @@ export {
   resolveEffectiveWorkers,
   resolvePlannerLimits,
   SECRET_REFERENCE_PATTERN,
+  SUBSCRIPTION_AUTH_PACKAGE,
   secretReferenceNames,
   timeoutConfigSchema,
   viewportSchema,

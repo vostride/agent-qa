@@ -108,6 +108,7 @@ import type {
 import { buildScaffoldFileSet } from '../commands/scaffold-content.js'
 import { TARGET_GITIGNORE_ENTRIES } from '../commands/init-filesystem.js'
 import {
+  closedConfigFieldsChanged,
   CONFIG_REVISION_ABSENT,
   CONFIG_SET_DEFAULT_HOOKS_FILE,
   KnowledgeChangeOutputSchema,
@@ -1133,6 +1134,9 @@ export function createConfigWritePort(configPath: string, mask: MaskFn): ConfigW
         if (ConfigManager.addsShownMarker(existing, file.bytes)) {
           return { kind: 'refused', reason: 'marker_written_back', path: file.path, written: [] }
         }
+        if (identity === configIdentity && changesClosedConfigFields(existing, file.bytes)) {
+          return { kind: 'refused', reason: 'path_not_writable', path: file.path, written: [] }
+        }
         planned.push({
           identity,
           absolutePath,
@@ -1208,6 +1212,20 @@ export function createScaffoldContentPort(): ConfigScaffoldContentPortLike {
       })))
     },
   }
+}
+
+// New bytes that are not YAML are left to the write path; current bytes that are not YAML hold
+// nothing a write may keep, so any remote or plugin in the new bytes counts as a change.
+function changesClosedConfigFields(current: Uint8Array | undefined, next: Uint8Array): boolean {
+  const after = yamlValueOf(next)
+  if (after === undefined) return false
+  const before = current === undefined ? undefined : yamlValueOf(current)
+  return closedConfigFieldsChanged(before?.value ?? {}, after.value)
+}
+
+function yamlValueOf(bytes: Uint8Array): { value: unknown } | undefined {
+  const doc = parseDocument(Buffer.from(bytes).toString('utf-8'))
+  return doc.errors.length > 0 ? undefined : { value: doc.toJS() }
 }
 
 // Raw bytes, no decoding: the digest over this value is compared with one over the file's bytes.

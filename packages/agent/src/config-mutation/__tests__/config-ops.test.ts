@@ -1119,4 +1119,19 @@ describe('a partial publication is reported as exactly what happened', () => {
       expect(answer.detail).toContain(HOOKS_FILE)
       expect(answer.detail).toContain('nothing was written')
     })
+
+  it('a whole file that would change a closed field is answered as a refused write', async () => {
+    const test = harness({
+      config: null,
+      publish: () => ({ kind: 'refused', reason: 'path_not_writable', path: CONFIG_FILE, written: [] }),
+    })
+    const answer = await change(test, 'config.project.scaffold', { domain: 'booking.com' })
+    expect(answer).toEqual({
+      outcome: 'refused',
+      reason: 'write-refused',
+      detail:
+        `${CONFIG_FILE} refused this change as it now stands: a path the change names cannot be `
+        + 'written, so nothing was written.',
+    })
+  })
 })
