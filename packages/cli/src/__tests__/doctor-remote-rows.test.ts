@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { createServer, type IncomingMessage, type Server } from 'node:http'
@@ -142,7 +143,9 @@ function baseConfig(extra: { remotes?: unknown[]; remote?: string; targetUrl?: s
     },
     use: {
       llm: 'default',
-      ...(extra.remote ? { browser: { remote: extra.remote } } : {}),
+      ...(extra.remote
+        ? { browser: { name: 'chromium', headless: true, remote: extra.remote } }
+        : {}),
     },
   }
 }
@@ -195,6 +198,7 @@ describe("doctor's remote rows", () => {
 
   beforeEach(() => {
     printed = []
+    vi.mocked(execSync).mockClear()
     Object.defineProperty(process.stdout, 'columns', {
       value: 1000,
       configurable: true,
@@ -383,5 +387,126 @@ describe("doctor's remote rows", () => {
     } finally {
       await server.close()
     }
+  })
+
+  it('skips the local browser row when the config default names a remote and no test or suite says local', async () => {
+    const probe = await startProbeServer()
+    servers.push(probe)
+    const configPath = await writeProject({
+      config: baseConfig({
+        remotes: [{ name: 'grid', protocol: 'playwright', url: `ws://${probe.origin}/` }],
+        remote: 'grid',
+      }),
+      suites: {
+        'smoke.suite.yaml': {
+          name: 'Smoke',
+          target: 'web',
+          tests: ['tests/home.yaml'],
+          use: { browser: { remote: 'grid' } },
+        },
+      },
+    })
+
+    const output = await runDoctor(configPath)
+
+    expect(row(output, 'Playwright')).toEqual({
+      status: 'SKIP',
+      message: 'every web test runs on a remote',
+    })
+    expect(vi.mocked(execSync).mock.calls.map(([command]) => String(command))).not.toContainEqual(
+      expect.stringContaining('playwright'),
+    )
+  })
+
+  it('checks the local browser row when one test says local', async () => {
+    const probe = await startProbeServer()
+    servers.push(probe)
+    const configPath = await writeProject({
+      config: baseConfig({
+        remotes: [{ name: 'grid', protocol: 'playwright', url: `ws://${probe.origin}/` }],
+        remote: 'grid',
+      }),
+      tests: {
+        'home.yaml': { name: 'Home', target: 'web', steps: ['Open'] },
+        'checkout.yaml': {
+          name: 'Checkout',
+          target: 'web',
+          use: { browser: { remote: 'local' } },
+          steps: ['Open'],
+        },
+      },
+    })
+
+    const output = await runDoctor(configPath)
+
+    expect(row(output, 'Playwright')).toEqual({ status: 'PASS', message: 'installed' })
+    expect(vi.mocked(execSync)).toHaveBeenCalledWith('npx playwright --version', { stdio: 'pipe' })
+  })
+
+  it("warns on a remote's row when a target on this machine's loopback is placed on it", async () => {
+    const probe = await startProbeServer()
+    servers.push(probe)
+    const configPath = await writeProject({
+      config: baseConfig({
+        remotes: [
+          { name: 'grid', protocol: 'playwright', url: `ws://${probe.origin}/grid` },
+          { name: 'spare', protocol: 'playwright', url: `ws://${probe.origin}/spare` },
+        ],
+        remote: 'grid',
+        targetUrl: 'http://127.0.0.1:4173/app',
+      }),
+    })
+
+    const output = await runDoctor(configPath)
+
+    expect(row(output, 'Remote grid')).toEqual({
+      status: 'WARN',
+      message:
+        `grid (playwright ws://${probe.origin}) answers; target web is on this machine's loopback, ` +
+        'which the remote reaches only through a tunnel you run.',
+    })
+    expect(row(output, 'Remote spare')?.status).toBe('PASS')
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('shows only the named remote with --remote', async () => {
+    const probe = await startProbeServer()
+    servers.push(probe)
+    const configPath = await writeProject({
+      config: baseConfig({
+        remotes: [
+          { name: 'a', protocol: 'playwright', url: `ws://${probe.origin}/a` },
+          { name: 'b', protocol: 'playwright', url: `ws://${probe.origin}/b` },
+        ],
+      }),
+    })
+
+    const output = await runDoctor(configPath, '--remote', 'a')
+
+    expect(row(output, 'Remote a')?.status).toBe('PASS')
+    expect(output).not.toContain('Remote b')
+    expect(probe.requests.map((request) => request.path)).toEqual(['/a/json'])
+  })
+
+  it('refuses an unknown --remote name with the unknown-remote sentence and exit code 2', async () => {
+    const listed = await writeProject({
+      config: baseConfig({
+        remotes: [
+          { name: 'a', protocol: 'playwright', url: 'ws://127.0.0.1:9/a' },
+          { name: 'b', protocol: 'playwright', url: 'ws://127.0.0.1:9/b' },
+        ],
+      }),
+    })
+
+    const output = await runDoctor(listed, '--remote', 'nope')
+
+    expect(output).toBe('Unknown remote "nope". registry.remotes lists: a, b.')
+    expect(process.exitCode).toBe(2)
+
+    const none = await writeProject({ config: baseConfig() })
+    expect(await runDoctor(none, '--remote', 'nope')).toBe(
+      'Unknown remote "nope". registry.remotes lists no remotes.',
+    )
+    expect(process.exitCode).toBe(2)
   })
 })

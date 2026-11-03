@@ -1,8 +1,9 @@
 import { Command } from 'commander'
 import { execFileSync, execSync } from 'node:child_process'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, resolve } from 'node:path'
 import pc from 'picocolors'
+import { parse as parseYaml } from 'yaml'
 import { loadConfigFile } from '../config.js'
 import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isHardCutIssue } from '../hard-cut.js'
 import { loadAuthPluginsForRawConfig, toModelProfileAndAuth, type LLMModelAdapter } from '../llm-utils.js'
@@ -18,9 +19,10 @@ import {
   type ResolvedWorkspacePaths,
 } from '@vostride/agent-qa-core'
 import { isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { isLoopbackHost } from '@vostride/agent-qa-schema'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
-import { createRemoteChecks } from './doctor-remote-checks.js'
+import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
 import {
   composeRow,
   formatCheckRow,
@@ -401,15 +403,15 @@ function checkLLMConnection(config: Record<string, unknown> | null): DoctorCheck
   }
 }
 
-function checkPlaywright(config: Record<string, unknown> | null): DoctorCheck {
+function checkPlaywright(config: Record<string, unknown> | null, placement: WebPlacement): DoctorCheck {
   return {
     name: 'Playwright',
     fixInstructions: 'Run `agent-qa install-browsers --chromium`',
     check: async () => {
-      // Skip if no browser config (mobile-only)
-      const browsers = config?.browsers as unknown[] | undefined
-      const hasBrowsers = browsers && browsers.length > 0
-      if (!hasBrowsers && !isWebPlatform(config)) {
+      if (placement.everyWebTestRemote) {
+        return { status: 'skip', message: 'every web test runs on a remote' }
+      }
+      if (!isWebPlatform(config)) {
         return { status: 'skip', message: 'not configured' }
       }
 
@@ -589,12 +591,104 @@ function checkTestDiscovery(config: Record<string, unknown> | null, configPath: 
 }
 
 // Helpers to detect platform from config
-function getTargetPlatforms(config: Record<string, unknown> | null): string[] {
+function getTargets(config: Record<string, unknown> | null): Record<string, Record<string, unknown>> {
   const registry = config?.registry as { targets?: Record<string, Record<string, unknown>> } | undefined
-  const targets = registry?.targets
+  return registry?.targets
     ?? (config?.targets as Record<string, Record<string, unknown>> | undefined)
-  if (!targets) return []
-  return Object.values(targets).map((t) => (t.platform as string) ?? 'web')
+    ?? {}
+}
+
+function getTargetPlatforms(config: Record<string, unknown> | null): string[] {
+  return Object.values(getTargets(config)).map((t) => (t.platform as string) ?? 'web')
+}
+
+interface WebPlacement {
+  everyWebTestRemote: boolean
+  loopbackTargetsByRemote: ReadonlyMap<string, readonly string[]>
+}
+
+const LOCAL_PICK = 'local'
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+function rawRemotePick(value: unknown): string | undefined {
+  const use = isRecord(value) ? value.use : undefined
+  const browser = isRecord(use) ? use.browser : undefined
+  const remote = isRecord(browser) ? browser.remote : undefined
+  return typeof remote === 'string' ? remote : undefined
+}
+
+// The host is read by pattern so a url with a templated port still counts.
+const URL_HOST = /^[a-z][a-z0-9+.-]*:\/\/(?:[^@/?#]*@)?(\[[^\]]*\]|[^:/?#]+)/i
+
+function loopbackWebTargets(config: Record<string, unknown> | null): Set<string> {
+  const names = new Set<string>()
+  for (const [name, target] of Object.entries(getTargets(config))) {
+    if (((target.platform as string | undefined) ?? 'web') !== 'web') continue
+    const host = typeof target.url === 'string' ? URL_HOST.exec(target.url)?.[1] : undefined
+    if (host !== undefined && isLoopbackHost(host)) names.add(name)
+  }
+  return names
+}
+
+async function readPlacedFiles(
+  workspace: ResolvedWorkspacePaths | undefined,
+): Promise<{ pick?: string; target?: string }[]> {
+  if (!workspace) return []
+  try {
+    const records = (await Promise.all([
+      discoverWorkspaceFiles({ workspace, kind: 'test' }),
+      discoverWorkspaceFiles({ workspace, kind: 'suite' }),
+    ])).flat()
+    return records.flatMap((record) => {
+      try {
+        const parsed: unknown = parseYaml(readFileSync(record.absolutePath, 'utf-8'))
+        const target = isRecord(parsed) && typeof parsed.target === 'string' ? parsed.target : undefined
+        return [{ pick: rawRemotePick(parsed), target }]
+      } catch {
+        return []
+      }
+    })
+  } catch {
+    return []
+  }
+}
+
+async function resolveWebPlacement(
+  config: Record<string, unknown> | null,
+  workspace: ResolvedWorkspacePaths | undefined,
+): Promise<WebPlacement> {
+  if (!config) return { everyWebTestRemote: false, loopbackTargetsByRemote: new Map() }
+  const configPick = rawRemotePick(config)
+  const files = await readPlacedFiles(workspace)
+  const loopbackTargets = loopbackWebTargets(config)
+  const loopbackTargetsByRemote = new Map<string, string[]>()
+  for (const file of files) {
+    if (file.target === undefined || !loopbackTargets.has(file.target)) continue
+    const remote = file.pick ?? configPick
+    if (remote === undefined || remote === LOCAL_PICK) continue
+    const targets = loopbackTargetsByRemote.get(remote) ?? []
+    if (!targets.includes(file.target)) targets.push(file.target)
+    loopbackTargetsByRemote.set(remote, targets)
+  }
+  return {
+    everyWebTestRemote:
+      configPick !== undefined
+      && configPick !== LOCAL_PICK
+      && !files.some((file) => file.pick === LOCAL_PICK),
+    loopbackTargetsByRemote,
+  }
+}
+
+function unknownRemoteSentence(name: string, config: Record<string, unknown> | null): string | undefined {
+  const names = listedRemotes(config).map((remote) => remote.name)
+  if (names.includes(name)) return undefined
+  const listed = names.length === 0
+    ? 'registry.remotes lists no remotes.'
+    : `registry.remotes lists: ${names.join(', ')}.`
+  return `Unknown remote "${name}". ${listed}`
 }
 
 function isWebPlatform(config: Record<string, unknown> | null): boolean {
@@ -623,7 +717,8 @@ function getGlobalConfigPath(command: Command): string {
 export function createDoctorCommand(): Command {
   const cmd = new Command('doctor')
     .description('Validate environment and dependencies')
-    .action(async function (this: Command) {
+    .option('--remote <name>', 'Show only this remote among the remote rows')
+    .action(async function (this: Command, options: { remote?: string }) {
       const configPath = getGlobalConfigPath(this)
 
       // Try loading config (non-validated, just raw YAML)
@@ -639,8 +734,18 @@ export function createDoctorCommand(): Command {
         // Config load failed — doctor will report it
       }
 
-      const workspace = config ? resolveDoctorWorkspace(config, configPath) : undefined
-      const secretsFile = workspace?.ok ? workspace.workspace.secretsFile : undefined
+      if (options.remote !== undefined) {
+        const unknown = unknownRemoteSentence(options.remote, config)
+        if (unknown !== undefined) {
+          console.error(unknown)
+          process.exitCode = 2
+          return
+        }
+      }
+
+      const resolved = config ? resolveDoctorWorkspace(config, configPath) : undefined
+      const workspace = resolved?.ok ? resolved.workspace : undefined
+      const placement = await resolveWebPlacement(config, workspace)
 
       const checks: DoctorCheck[] = [
         checkNodeVersion(),
@@ -655,8 +760,14 @@ export function createDoctorCommand(): Command {
         checkLLMApiKey(config),
         checkSubscriptionAuth(config),
         checkLLMConnection(config),
-        checkPlaywright(config),
-        ...createRemoteChecks({ config, configPath, secretsFile }),
+        checkPlaywright(config, placement),
+        ...createRemoteChecks({
+          config,
+          configPath,
+          secretsFile: workspace?.secretsFile,
+          only: options.remote,
+          loopbackTargetsByRemote: placement.loopbackTargetsByRemote,
+        }),
         checkAppium(config, configPath),
         checkAppiumDrivers(config, configPath),
         checkAndroidSDK(config),
