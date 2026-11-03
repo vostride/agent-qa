@@ -251,3 +251,90 @@ describe('registry.remotes entries', () => {
     expect(codes).toContain('unrecognized_keys')
   })
 })
+
+describe('remote names, the default pick and target urls', () => {
+  function issues(config: Record<string, unknown>) {
+    const result = AgentQaConfigSchema.safeParse(config)
+    return result.success
+      ? []
+      : result.error.issues.map(issue => ({ path: issue.path.join('.'), message: issue.message }))
+  }
+
+  const secured = {
+    ...grid,
+    headers: { Authorization: 'Bearer {{secret:GRID_TOKEN}}' },
+  }
+
+  it('accepts unique remotes, a listed default pick and target urls with other secrets', () => {
+    const config = {
+      workspace,
+      registry: {
+        remotes: [secured, debuggerRemote],
+        targets: {
+          shop: { platform: 'web', url: 'https://shop.example.com/?key={{secret:SHOP_KEY}}' },
+        },
+      },
+      use: { browser: { name: 'chromium', headless: true, remote: 'grid' } },
+    }
+    expect(issues(config)).toEqual([])
+  })
+
+  it('accepts local as the default pick', () => {
+    const config = configWith([secured], {
+      use: { browser: { name: 'chromium', headless: true, remote: 'local' } },
+    })
+    expect(issues(config)).toEqual([])
+  })
+
+  it('refuses a duplicate remote name', () => {
+    expect(issues(configWith([grid, { ...debuggerRemote, name: 'grid' }]))).toContainEqual({
+      path: 'registry.remotes',
+      message: 'Duplicate remote name: "grid"',
+    })
+  })
+
+  it('refuses a remote named local', () => {
+    expect(issues(configWith([debuggerRemote, { ...grid, name: 'local' }]))).toContainEqual({
+      path: 'registry.remotes.1.name',
+      message: 'Remote name "local" is reserved: local means this machine. Rename the remote.',
+    })
+  })
+
+  it('refuses a default pick that names no listed remote', () => {
+    const config = configWith([grid, debuggerRemote], {
+      use: { browser: { name: 'chromium', headless: true, remote: 'gird' } },
+    })
+    expect(issues(config)).toContainEqual({
+      path: 'use.browser.remote',
+      message:
+        'Unknown remote "gird" in agent-qa.config.yaml. registry.remotes lists: grid, debugger.',
+    })
+  })
+
+  it('refuses a default pick when no remote is listed', () => {
+    const config = configWith([], {
+      use: { browser: { name: 'chromium', headless: true, remote: 'grid' } },
+    })
+    expect(issues(config)).toContainEqual({
+      path: 'use.browser.remote',
+      message: 'Unknown remote "grid" in agent-qa.config.yaml. registry.remotes lists no remotes.',
+    })
+  })
+
+  it("refuses a target url that uses a remote's secret", () => {
+    const config = {
+      workspace,
+      registry: {
+        remotes: [{ ...debuggerRemote, query: { caps: { accessKey: '{{secret:CDP_KEY}}' } } }],
+        targets: {
+          shop: { platform: 'web', url: 'https://shop.example.com/?key={{secret:CDP_KEY}}' },
+        },
+      },
+    }
+    expect(issues(config)).toContainEqual({
+      path: 'registry.targets.shop.url',
+      message:
+        "registry.targets.shop.url uses CDP_KEY, a remote's credential that only connects to it. Use another secret here.",
+    })
+  })
+})

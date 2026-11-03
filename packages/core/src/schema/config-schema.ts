@@ -1,4 +1,6 @@
 import { z } from 'zod'
+import { connectionSecretNames, secretReferenceNames } from '@vostride/agent-qa-schema'
+import { selectWebPlace } from '../remote/select-place.js'
 import { WorkspaceSchema } from './workspace-schema.js'
 import { ServicesSchema } from './services-schema.js'
 import { KnowledgeConfigSchema } from './knowledge-schema.js'
@@ -68,6 +70,49 @@ const AgentQaConfigSchemaInner = z.strictObject({
       path: ['use', 'llm'],
       message: `use.llm "${val.use.llm}" does not match any name in registry.llms`,
     })
+  }
+
+  const remotes = val.registry?.remotes ?? []
+  const remoteNames = remotes.map(remote => remote.name)
+  const remoteDupes = remoteNames.filter((n, i) => remoteNames.indexOf(n) !== i)
+  for (const dupe of new Set(remoteDupes)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['registry', 'remotes'],
+      message: `Duplicate remote name: "${dupe}"`,
+    })
+  }
+  remotes.forEach((remote, index) => {
+    if (remote.name === 'local') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['registry', 'remotes', index, 'name'],
+        message: 'Remote name "local" is reserved: local means this machine. Rename the remote.',
+      })
+    }
+  })
+  const pick = val.use?.browser?.remote
+  if (pick !== undefined) {
+    const selected = selectWebPlace({ remotes, config: pick, file: 'agent-qa.config.yaml' })
+    if ('refusal' in selected) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['use', 'browser', 'remote'],
+        message: selected.refusal,
+      })
+    }
+  }
+  const connectionSecrets = new Set(connectionSecretNames(remotes))
+  for (const [target, { url }] of Object.entries(val.registry?.targets ?? {})) {
+    if (url === undefined) continue
+    for (const name of new Set(secretReferenceNames(url))) {
+      if (!connectionSecrets.has(name)) continue
+      ctx.addIssue({
+        code: 'custom',
+        path: ['registry', 'targets', target, 'url'],
+        message: `registry.targets.${target}.url uses ${name}, a remote's credential that only connects to it. Use another secret here.`,
+      })
+    }
   }
 })
 
