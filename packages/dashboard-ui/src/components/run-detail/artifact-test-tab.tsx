@@ -2,7 +2,14 @@ import { ChevronRight } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import type { RunArtifactResponse } from "@/lib/api"
-import { DRAWER_COPY, ranAgainstParts, ranOnLine } from "@/lib/drawer-view"
+import {
+  couldNotRunOnLine,
+  DRAWER_COPY,
+  droppedOnLine,
+  isDroppedSessionKind,
+  ranAgainstParts,
+  ranOnLine,
+} from "@/lib/drawer-view"
 import { routes } from "@/lib/routes"
 import { ArtifactAttributeRows } from "./artifact-attribute-rows"
 import { formatArtifactValue, InspectorSection, isArtifactArray, isArtifactRecord, KeyValueRows, KeyValueTree, RawBlock } from "./artifact-renderers"
@@ -50,14 +57,30 @@ function getRunAttributes(response: RunArtifactResponse): Record<string, string>
   return stringAttributesFrom(recordAt(metadata, "attributes"))
 }
 
-function placeLine(runtime: unknown): string | null {
+interface PlaceLine {
+  text: string
+  // The remote refused the test or dropped its session.
+  failed: boolean
+}
+
+function placeLine(runtime: unknown): PlaceLine | null {
   const place = recordAt(isArtifactRecord(runtime) ? runtime : null, "place")
   const kind = textAt(place, "place")
-  if (kind === "here") return DRAWER_COPY.ranHere
+  if (kind === "here") return { text: DRAWER_COPY.ranHere, failed: false }
   const name = textAt(place, "name")
   if (kind !== "remote" || !name) return null
   const where = [textAt(place, "protocol"), textAt(place, "origin")].filter(Boolean).join(" ")
-  return ranOnLine(name, where, textAt(place, "browserVersion"))
+  const version = textAt(place, "browserVersion")
+  const failureKind = textAt(place, "failureKind")
+  if (failureKind === null) return { text: ranOnLine(name, where, version), failed: false }
+  if (isDroppedSessionKind(failureKind)) {
+    return { text: droppedOnLine(name, where, version, failureKind), failed: true }
+  }
+  return { text: couldNotRunOnLine(name, where, failureKind), failed: true }
+}
+
+function placeClass(place: PlaceLine): string {
+  return place.failed ? "text-destructive" : "text-foreground"
 }
 
 function MemberConfig({ config }: { config: Record<string, unknown> }) {
@@ -67,7 +90,11 @@ function MemberConfig({ config }: { config: Record<string, unknown> }) {
   const place = placeLine(runtime)
   return (
     <div data-member-config>
-      {place ? <div data-member-place className="py-1.5 text-xs text-foreground">{place}</div> : null}
+      {place ? (
+        <div data-member-place className={`py-1.5 text-xs ${placeClass(place)}`}>
+          {place.text}
+        </div>
+      ) : null}
       {runtime == null ? null : <KeyValueTree label="runtime" value={runtime} />}
       {timeouts == null ? null : <KeyValueTree label="timeouts" value={timeouts} />}
       {model == null ? null : <KeyValueTree label="model" value={model} />}
@@ -176,7 +203,11 @@ export function ArtifactTestTab({ response }: { response: RunArtifactResponse })
 
   return (
     <div className="space-y-4">
-      {runPlace ? <div data-run-place className="text-xs text-foreground">{runPlace}</div> : null}
+      {runPlace ? (
+        <div data-run-place className={`text-xs ${placeClass(runPlace)}`}>
+          {runPlace.text}
+        </div>
+      ) : null}
       {kind === "tests" ? null : (
         <>
           <InspectorSection title={DRAWER_COPY.testAsWritten} data-drawer-section="test-as-written">

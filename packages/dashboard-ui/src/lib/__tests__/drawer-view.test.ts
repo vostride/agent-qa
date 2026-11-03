@@ -26,10 +26,22 @@ describe('drawer view', () => {
   it('the place lines follow the same copy rules and name this machine as the Config page does', () => {
     const view = drawer()
     const ranOn = view.ranOnLine as (name: string, where: string, version: string | null) => string
+    const dropped = view.droppedOnLine as (
+      name: string,
+      where: string,
+      version: string | null,
+      kind: 'lost' | 'ended',
+    ) => string
+    const couldNotRun = view.couldNotRunOnLine as (name: string, where: string, kind: string) => string
+    const where = 'playwright ws://10.0.0.5:3000'
     const lines = [
       (view.DRAWER_COPY as Record<string, string>).ranHere,
-      ranOn('lab', 'playwright ws://10.0.0.5:3000', '131.0.6778.33'),
+      ranOn('lab', where, '131.0.6778.33'),
       ranOn('lab', '', null),
+      dropped('lab', where, '131.0.6778.33', 'lost'),
+      dropped('lab', where, '131.0.6778.33', 'ended'),
+      couldNotRun('lab', where, 'auth'),
+      couldNotRun('lab', '', 'unreachable'),
     ]
     for (const line of lines) {
       expect(line?.trim()).not.toBe('')
@@ -39,6 +51,10 @@ describe('drawer view', () => {
       'Ran on this machine',
       'Ran on lab (playwright ws://10.0.0.5:3000), 131.0.6778.33',
       'Ran on lab',
+      'Ran on lab (playwright ws://10.0.0.5:3000), 131.0.6778.33, until the connection was lost',
+      'Ran on lab (playwright ws://10.0.0.5:3000), 131.0.6778.33, until the remote ended the session',
+      'Could not run on lab (playwright ws://10.0.0.5:3000): auth',
+      'Could not run on lab: unreachable',
     ])
   })
 

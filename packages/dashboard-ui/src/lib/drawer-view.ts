@@ -31,6 +31,32 @@ export function ranOnLine(name: string, where: string, version: string | null): 
   return `Ran on ${name}${where ? ` (${where})` : ''}${version ? `, ${version}` : ''}`
 }
 
+const DROPPED_SESSION_ENDINGS = {
+  lost: 'until the connection was lost',
+  ended: 'until the remote ended the session',
+} as const
+
+export type DroppedSessionKind = keyof typeof DROPPED_SESSION_ENDINGS
+
+export function isDroppedSessionKind(kind: string): kind is DroppedSessionKind {
+  return Object.hasOwn(DROPPED_SESSION_ENDINGS, kind)
+}
+
+/** A test that ran on a remote until its session dropped. */
+export function droppedOnLine(
+  name: string,
+  where: string,
+  version: string | null,
+  kind: DroppedSessionKind,
+): string {
+  return `${ranOnLine(name, where, version)}, ${DROPPED_SESSION_ENDINGS[kind]}`
+}
+
+/** A remote that refused the test before it ran, and the failure kind its evidence records. */
+export function couldNotRunOnLine(name: string, where: string, failureKind: string): string {
+  return `Could not run on ${name}${where ? ` (${where})` : ''}: ${failureKind}`
+}
+
 export const RUN_ARTIFACT_KIND_LABELS = {
   test: 'Test',
   unknown: 'Not recorded',

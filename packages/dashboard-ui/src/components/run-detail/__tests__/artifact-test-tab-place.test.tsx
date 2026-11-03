@@ -10,7 +10,11 @@ import { ArtifactTestTab } from '../artifact-test-tab'
 
 const ORIGIN = 'ws://10.0.0.5:3000'
 const REMOTE_LINE = `Ran on lab (playwright ${ORIGIN}), 131.0.6778.33`
-const REFUSED_LINE = `Ran on lab (playwright ${ORIGIN})`
+const REFUSED_LINE = `Could not run on lab (playwright ${ORIGIN}): auth`
+const DROPPED_LINES = {
+  lost: `${REMOTE_LINE}, until the connection was lost`,
+  ended: `${REMOTE_LINE}, until the remote ended the session`,
+} as const
 
 const remotePlace = {
   place: 'remote',
@@ -23,6 +27,10 @@ const remotePlace = {
 }
 
 const refusedPlace = { place: 'remote', name: 'lab', protocol: 'playwright', origin: ORIGIN, failureKind: 'auth' }
+
+function droppedPlace(failureKind: 'lost' | 'ended') {
+  return { ...remotePlace, failureKind }
+}
 
 const run: RunRow = {
   id: generateRunId(), name: 'Login', filePath: null, status: 'passed', duration: 1,
@@ -115,16 +123,33 @@ describe("a test's place on the run page", () => {
     expect(card.querySelector('[data-member-place]')?.textContent).toBe('Ran on this machine')
   })
 
-  it('a test refused by its remote names the remote without a browser version', () => {
+  it('a test that ran on a remote reads in the plain text style', () => {
+    const card = memberCard(remotePlace)
+    expect(card.querySelector('[data-member-place]')?.className).toContain('text-foreground')
+    expect(card.querySelector('[data-member-place]')?.className).not.toContain('text-destructive')
+  })
+
+  it('a test refused by its remote says it could not run there and why, as a failure', () => {
     const card = memberCard(refusedPlace)
     const line = card.querySelector('[data-member-place]')
     expect(line?.textContent).toBe(REFUSED_LINE)
+    expect(line?.className).toContain('text-destructive')
     expect(line?.textContent).not.toContain('undefined')
     const config = card.querySelector('[data-member-config]')!
     open(config, 'place')
     expect(config.textContent).toContain('failureKind')
     expect(config.textContent).toContain('auth')
   })
+
+  it.each(['lost', 'ended'] as const)(
+    'a test whose remote session was %s says it ran there until then, as a failure',
+    (kind) => {
+      const card = memberCard(droppedPlace(kind))
+      const line = card.querySelector('[data-member-place]')
+      expect(line?.textContent).toBe(DROPPED_LINES[kind])
+      expect(line?.className).toContain('text-destructive')
+    },
+  )
 
   it('an artifact without a place shows no place line', () => {
     const card = memberCard(undefined)
@@ -140,6 +165,20 @@ describe("a test's place on the run page", () => {
     const line = tab.querySelector('[data-run-place]')
     expect(line?.textContent).toBe(REMOTE_LINE)
     expect(tab.firstElementChild?.firstElementChild).toBe(line)
+  })
+
+  it.each([
+    ['refused by its remote', refusedPlace, REFUSED_LINE],
+    ['whose remote session was lost', droppedPlace('lost'), DROPPED_LINES.lost],
+    ['whose remote ended the session', droppedPlace('ended'), DROPPED_LINES.ended],
+  ] as const)('a one-test run %s shows that above its source, as a failure', (_how, place, text) => {
+    const tab = mount(response({
+      source: { kind: 'test', rawYaml: 'name: Login\n', resolvedDefinition: { name: 'Login' } },
+      config: { runtime: runtime(place) },
+    }))
+    const line = tab.querySelector('[data-run-place]')
+    expect(line?.textContent).toBe(text)
+    expect(line?.className).toContain('text-destructive')
   })
 
   it('a one-test run without a place shows no place line', () => {
