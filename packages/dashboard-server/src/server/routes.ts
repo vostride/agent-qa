@@ -22,6 +22,7 @@ import { carriesNonJsonBody, readJsonBody } from './body-parser.js'
 import {
   LiveNavigationTimeoutRefusedError,
   LivePlannerLimitsRefusedError,
+  readLiveRemotes,
   resolveLiveNavigationTimeoutMs,
   resolveLivePlannerLimits,
 } from '../live-editor/live-session.js'
@@ -80,8 +81,8 @@ import {
 import { createConnectInFlight, registerLlmConnectRoute } from './llm-connect-route.js'
 import type { PostProcessingRelay } from '../execution/post-processing-relay.js'
 import type { LLMAuthProviderPlugin, OAuthTokens } from '@vostride/agent-qa-core'
-import { AuthStateNameSchema, buildInternalRunAttributes, DEFAULT_AGENT_QA_CACHE_DIR, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getAgentQaUpdateStatus, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NameSlugSchema, TimeoutConfigSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, hookRunnerImage, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, SizeString } from '@vostride/agent-qa-core'
-import { SecretStore, SecretRedactor } from '@vostride/agent-qa-runner'
+import { AuthStateNameSchema, buildInternalRunAttributes, DEFAULT_AGENT_QA_CACHE_DIR, mergeRunAttributes, readAuth, writeAuth, removeAuth, getAgentQaVersion, getAgentQaUpdateStatus, getLLMAuthProviderPlugin, listAuthStateMetadata, listLLMAuthProviderPlugins, ModelConfigSchema, NameSlugSchema, TimeoutConfigSchema, AgentQaConfigSchema, TestDefinitionSchema, SuiteDefinitionSchema, parseEnvFile, serializeEnvFile, parseHooksFile, hookRunnerImage, validateUserRunAttributes, discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, SizeString, splitConnectionSecrets } from '@vostride/agent-qa-core'
+import { SecretStore, SecretRedactor, basicAuthMaskEntries } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor, purgeActionCache } from '@vostride/agent-qa-runner-local'
 import type { ResolvedWorkspacePaths, RunAttributes, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, fetchLiveModels, getModelCatalog, listProviders, mergeCatalog, resolveVisionConfig, type ProviderDescriptor } from '@vostride/agent-qa-model'
@@ -4393,6 +4394,8 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           }
           let envVars: Record<string, string> | undefined
           let secretStore: SecretStore | undefined
+          let connectionSecretStore: SecretStore | undefined
+          let connectionSecretNames: ReadonlySet<string> | undefined
           let secretRedactor: SecretRedactor | undefined
           let resolvedHooks = new Map<string, import('@vostride/agent-qa-core').HookDefinition>()
           let hookRegistryError: string | undefined
@@ -4409,10 +4412,16 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             return
           }
 
+          const remotes = await readLiveRemotes(configManager)
           try {
             const secretsContent = await readFile(workspacePaths.secretsFile.absolutePath, 'utf-8')
-            secretStore = SecretStore.fromEnvContent(secretsContent)
-            secretRedactor = new SecretRedactor(secretStore)
+            const declared = SecretStore.fromEnvContent(secretsContent)
+            // Hooks, steps and the start url get the step store; the adapter and mask the full one.
+            const split = splitConnectionSecrets(declared, remotes)
+            secretStore = split.stepStore
+            connectionSecretStore = declared
+            connectionSecretNames = split.connectionNames
+            secretRedactor = new SecretRedactor(declared, basicAuthMaskEntries(remotes, declared))
           } catch {
             json(res, { error: `workspace.secretsFile file could not be loaded: ${workspacePaths.secretsFile.workspaceRelativePath}` }, 400)
             return
@@ -4453,6 +4462,9 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               authFetch: runtimeLLM.authFetch,
               envVars,
               secretStore,
+              connectionSecretStore,
+              connectionSecretNames,
+              secretsFile: workspacePaths.secretsFile.workspaceRelativePath,
               secretRedactor,
               setupHooks,
               teardownHooks,

@@ -85,6 +85,8 @@ vi.mock('@vostride/agent-qa-runner-local', async (importOriginal) => ({
 
 vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   printRunText: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).printRunText,
+  connectionSecretMisuse: (await importOriginal<typeof import('@vostride/agent-qa-core')>())
+    .connectionSecretMisuse,
   MobileSetupError: class MobileSetupError extends Error {
     category: string
     constructor(options: { category: string; message: string }) {

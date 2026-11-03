@@ -17,6 +17,7 @@ import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
 import { SecretStore } from '@vostride/agent-qa-runner'
 import { createMaskingMiddleware } from '@vostride/agent-qa-safety'
 
+import { composeMcpMasking } from '../../commands/mcp.js'
 import { createDeclaredSecretMask, DeclaredSecretsUnavailableError } from '../declared-secrets.js'
 
 const LONG = 'L0ng-Declared-Value-0123456789-abcdefghij'
@@ -201,6 +202,60 @@ describe('the loader follows a rewritten config', () => {
     expect(refusalOf(() => mask('alpha-value-1')).lines).toEqual([
       'Error: workspace.secretsFile is required. Run `agent-qa init` or set it in agent-qa.config.yaml.',
     ])
+  })
+})
+
+const GRID_PASSWORD = 'grid-pass-value-1'
+
+function remoteProject(user: string): Project {
+  const fixture = project(`GRID_PASSWORD=${GRID_PASSWORD}\n`)
+  appendFileSync(fixture.configPath, remotesYaml(user))
+  return fixture
+}
+
+function remotesYaml(user: string): string {
+  return [
+    'registry:',
+    '  remotes:',
+    '    - name: grid',
+    '      protocol: playwright',
+    "      url: 'ws://127.0.0.1:3000/'",
+    '      basicAuth:',
+    `        user: ${user}`,
+    "        password: '{{secret:GRID_PASSWORD}}'",
+    '',
+  ].join('\n')
+}
+
+describe("a remote's Basic value in the declared mask", () => {
+  it('is masked under the secret it names through the config path alone', () => {
+    const { configPath } = remoteProject('svc')
+    const basic = btoa(`svc:${GRID_PASSWORD}`)
+    const line = `Authorization: Basic ${basic}`
+
+    expect(createDeclaredSecretMask(configPath).mask(line)).toBe(
+      'Authorization: Basic [secret:GRID_PASSWORD]',
+    )
+    expect(composeMcpMasking({ configPath }).mask(line)).toBe(
+      'Authorization: Basic [secret:GRID_PASSWORD]',
+    )
+  })
+
+  it("follows an edited basicAuth user and stops recognising the old one's value", () => {
+    const { configPath } = remoteProject('svc')
+    const { mask } = createDeclaredSecretMask(configPath)
+    const before = btoa(`svc:${GRID_PASSWORD}`)
+    const after = btoa(`operator:${GRID_PASSWORD}`)
+
+    expect(mask(before)).toBe('[secret:GRID_PASSWORD]')
+
+    const body = readFileSync(configPath, 'utf8')
+    writeFileSync(configPath, body.replace('user: svc', 'user: operator'))
+    const later = new Date(statSync(configPath).mtimeMs + 5_000)
+    utimesSync(configPath, later, later)
+
+    expect(mask(after)).toBe('[secret:GRID_PASSWORD]')
+    expect(mask(before)).toBe(before)
   })
 })
 

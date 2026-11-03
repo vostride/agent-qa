@@ -200,6 +200,7 @@ vi.mock('@vostride/agent-qa-core', async () => {
     redactSecretValue,
     resolveSecretTemplatesInValue,
     PlannerConfigSchema: actual.PlannerConfigSchema,
+    connectionSecretMisuse: actual.connectionSecretMisuse,
     printRunText: actual.printRunText,
     TestDefinitionSchema: actual.TestDefinitionSchema,
     SuiteDefinitionSchema: actual.SuiteDefinitionSchema,

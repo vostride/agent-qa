@@ -8,6 +8,7 @@ import {
   SuiteDefinitionSchema,
   TestDefinitionSchema,
   TimeoutConfigSchema,
+  connectionSecretMisuse,
   getAgentQaVersion,
   printRunText,
   readAuthStateMetadata,
@@ -28,6 +29,7 @@ import {
   parseHookInline,
   stripHookInline,
   createLiveStreamHub,
+  createRemoteRefusalMemory,
   liveStreamFor,
 } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
@@ -43,6 +45,7 @@ import type {
   AuthStateMetadata,
   HookDefinition,
   MobilePlatform,
+  RemoteConnectionFields,
 } from '@vostride/agent-qa-core'
 import { resolvePlannerLimits } from '@vostride/agent-qa-schema'
 import type { DeclaredModelProfile, PlannerLimits } from '@vostride/agent-qa-schema'
@@ -231,6 +234,38 @@ export async function resolveLiveNavigationTimeoutMs(
     navigation = parsed.data
   }
   return navigation
+}
+
+function stringEntries(value: unknown): Record<string, string> | undefined {
+  if (!isConfigRecord(value)) return undefined
+  return Object.fromEntries(
+    Object.entries(value).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    ),
+  )
+}
+
+// The project's remotes, read as the run reads them; a malformed field carries no reference.
+export async function readLiveRemotes(
+  configManager: ConfigManager | undefined,
+): Promise<RemoteConnectionFields[]> {
+  const config = configManager === undefined ? {} : await readConfigValues(configManager)
+  const remotes = isConfigRecord(config.registry) ? config.registry.remotes : undefined
+  if (!Array.isArray(remotes)) return []
+  return remotes.filter(isConfigRecord).map((entry) => {
+    const headers = stringEntries(entry.headers)
+    const basicAuth = isConfigRecord(entry.basicAuth) ? entry.basicAuth : undefined
+    return {
+      name: typeof entry.name === 'string' ? entry.name : '',
+      protocol: typeof entry.protocol === 'string' ? entry.protocol : '',
+      url: typeof entry.url === 'string' ? entry.url : '',
+      ...(isConfigRecord(entry.query) ? { query: entry.query } : {}),
+      ...(headers === undefined ? {} : { headers }),
+      ...(typeof basicAuth?.user === 'string' && typeof basicAuth.password === 'string'
+        ? { basicAuth: { user: basicAuth.user, password: basicAuth.password } }
+        : {}),
+    }
+  })
 }
 
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000
@@ -446,6 +481,7 @@ export class LiveSession {
   private hookCaptures = new Set<LiveHookPayload[]>()
   private mobileAppiumLease: MobileLiveAppiumLease | null = null
   private secretStore: SecretStore | undefined
+  private connectionSecretNames: ReadonlySet<string> = new Set()
   private secretRedactor: SecretRedactor | undefined
   // One hub per session at handle 0, created once the adapter exists; no adapter means no hub.
   private liveHub: LiveStreamHub | null = null
@@ -816,6 +852,7 @@ export class LiveSession {
     this._modelName = config.llmConfig.model ?? 'unknown'
     this.variableStore = new VariableStore()
     this.secretStore = config.secretStore
+    this.connectionSecretNames = config.connectionSecretNames ?? new Set()
     this.secretRedactor = config.secretRedactor
     if (config.envVars) {
       this.variableStore.setAll(config.envVars, 'env')
@@ -846,10 +883,21 @@ export class LiveSession {
       this.currentUrl = null
     } else {
       const { WebPlatformAdapter } = await import('@vostride/agent-qa-web')
-      const adapter = new WebPlatformAdapter()
+      // Only the adapter gets the full store, so a remote's references resolve at connect alone.
+      const adapter = new WebPlatformAdapter({
+        refusalMemory: createRemoteRefusalMemory(),
+        ...(config.connectionSecretStore === undefined
+          ? {}
+          : { connectionSecrets: config.connectionSecretStore }),
+        ...(config.secretsFile === undefined ? {} : { secretsFile: config.secretsFile }),
+      })
       await adapter.setup({
         platform: 'web',
-        browser: { name: 'chromium', headless: config.headless ?? true },
+        browser: {
+          name: 'chromium',
+          headless: config.headless ?? true,
+          ...(config.remote === undefined ? {} : { remote: config.remote }),
+        },
         ...(config.navigationTimeoutMs === undefined
           ? {}
           : { timeouts: { navigation: config.navigationTimeoutMs } }),
@@ -1135,6 +1183,18 @@ export class LiveSession {
   ): Promise<LiveStepExecutionResult> {
     this.abortController = new AbortController()
     try {
+      // Refused before any inline hook runs or any template resolves.
+      const testName = draft?.testName?.trim()
+      const misuse = connectionSecretMisuse({
+        names: this.connectionSecretNames,
+        file: testName ? `the draft "${testName}"` : 'this draft',
+        steps: [stepInstruction],
+      })
+      if (misuse.length > 0) {
+        this.stepsExecuted++
+        const error = misuse.join('\n')
+        return this.buildPreparationFailureResult(stepInstruction, error, stepInstruction, [])
+      }
       const prepared = await this.resolveStepInstruction(stepInstruction)
       if (prepared.preparationError) {
         const result = this.buildPreparationFailureResult(

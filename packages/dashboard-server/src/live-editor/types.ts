@@ -4,6 +4,7 @@ import type {
 import type {
   ConsoleLogEntry,
   NetworkLogEntry,
+  RemoteBrowserConfig,
   StepAnnotation,
   SecretRedactor,
   SecretStore,
@@ -202,7 +203,15 @@ export interface LiveSessionConfig {
   llmConfig: LiveSessionLLMConfig
   authFetch?: typeof globalThis.fetch
   envVars?: Record<string, string>
+  // Without any secret a remote references: hooks, steps and the start url get this one.
   secretStore?: SecretStore
+  // Every declared secret; only the web adapter gets it, to connect to a remote.
+  connectionSecretStore?: SecretStore
+  // Every name any remote references; a step that uses one is refused.
+  connectionSecretNames?: ReadonlySet<string>
+  // workspace.secretsFile as the project names it, for the adapter's credential refusals.
+  secretsFile?: string
+  remote?: RemoteBrowserConfig
   secretRedactor?: SecretRedactor
   setupHooks?: string[]
   teardownHooks?: string[]

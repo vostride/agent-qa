@@ -2,7 +2,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs'
 import { parse as parseYaml } from 'yaml'
 import { resolveWorkspacePaths } from '@vostride/agent-qa-core'
 import type { AgentQaConfig } from '@vostride/agent-qa-core'
-import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
+import { basicAuthMaskEntries, SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import type { MaskFn } from '@vostride/agent-qa-schema'
 import { loadEnvOverrides, mergeConfigs } from '../config.js'
 
@@ -51,7 +51,27 @@ export function readDeclaredSecrets(secretsPath: string): SecretStore {
   }
 }
 
-function resolveSecretsPath(configPath: string): string {
+type RemoteBasicAuth = { basicAuth?: { user: string; password: string } }
+
+interface ResolvedConfig {
+  readonly secretsPath: string
+  readonly remotes: readonly RemoteBasicAuth[]
+}
+
+function basicAuthRemotes(remotes: unknown): RemoteBasicAuth[] {
+  if (!Array.isArray(remotes)) return []
+  return remotes.map((entry: unknown) => {
+    const basicAuth = (entry as { basicAuth?: { user?: unknown; password?: unknown } } | null)
+      ?.basicAuth
+    const user = basicAuth?.user
+    const password = basicAuth?.password
+    return typeof user === 'string' && typeof password === 'string'
+      ? { basicAuth: { user, password } }
+      : {}
+  })
+}
+
+function resolveConfig(configPath: string): ResolvedConfig {
   const file = parseYaml(readFileSync(configPath, 'utf-8')) ?? {}
   const config = mergeConfigs(file, loadEnvOverrides(), {}) as AgentQaConfig | null
   const configured: unknown = config?.workspace?.secretsFile
@@ -59,7 +79,10 @@ function resolveSecretsPath(configPath: string): string {
     throw DeclaredSecretsUnavailableError.required()
   }
   const workspace = resolveWorkspacePaths({ config: config!, configPath })
-  return workspace.secretsFile.absolutePath
+  return {
+    secretsPath: workspace.secretsFile.absolutePath,
+    remotes: basicAuthRemotes((config?.registry as { remotes?: unknown } | undefined)?.remotes),
+  }
 }
 
 function statKey(path: string): string {
@@ -67,30 +90,32 @@ function statKey(path: string): string {
   return `${stat.mtimeMs}:${stat.size}:${stat.ino}`
 }
 
-// The secrets path re-resolves when the config changes; an unreadable config is never cached.
+// The secrets path and the remotes re-resolve when the config changes; an unreadable config is
+// never cached. Each remote's Basic value is masked under the secret it names.
 export function createDeclaredSecretMask(configPath: string): DeclaredSecretMask {
-  let resolved: { configKey: string; secretsPath: string } | undefined
+  let resolved: (ResolvedConfig & { configKey: string }) | undefined
   let cached: { key: string; redactor: SecretRedactor } | undefined
 
-  const currentSecretsPath = (): string => {
+  const currentConfig = (): ResolvedConfig & { configKey: string } => {
     const configKey = statKey(configPath)
     if (resolved?.configKey !== configKey) {
       resolved = undefined
-      resolved = { configKey, secretsPath: resolveSecretsPath(configPath) }
+      resolved = { configKey, ...resolveConfig(configPath) }
     }
-    return resolved.secretsPath
+    return resolved
   }
 
   const redactor = (): SecretRedactor => {
-    const secretsPath = currentSecretsPath()
+    const { configKey, secretsPath, remotes } = currentConfig()
     let key: string | undefined
     try {
-      key = `${secretsPath}\0${statKey(secretsPath)}`
+      key = `${configKey}\0${secretsPath}\0${statKey(secretsPath)}`
     } catch {
       key = undefined
     }
     if (key !== undefined && cached?.key === key) return cached.redactor
-    const current = new SecretRedactor(readDeclaredSecrets(secretsPath))
+    const store = readDeclaredSecrets(secretsPath)
+    const current = new SecretRedactor(store, basicAuthMaskEntries(remotes, store))
     cached = key === undefined ? undefined : { key, redactor: current }
     return current
   }
