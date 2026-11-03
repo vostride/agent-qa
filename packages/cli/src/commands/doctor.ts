@@ -20,6 +20,7 @@ import {
 import { isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
+import { createRemoteChecks } from './doctor-remote-checks.js'
 import {
   composeRow,
   formatCheckRow,
@@ -638,6 +639,9 @@ export function createDoctorCommand(): Command {
         // Config load failed — doctor will report it
       }
 
+      const workspace = config ? resolveDoctorWorkspace(config, configPath) : undefined
+      const secretsFile = workspace?.ok ? workspace.workspace.secretsFile : undefined
+
       const checks: DoctorCheck[] = [
         checkNodeVersion(),
         checkConfigFile(configPath),
@@ -652,6 +656,7 @@ export function createDoctorCommand(): Command {
         checkSubscriptionAuth(config),
         checkLLMConnection(config),
         checkPlaywright(config),
+        ...createRemoteChecks({ config, configPath, secretsFile }),
         checkAppium(config, configPath),
         checkAppiumDrivers(config, configPath),
         checkAndroidSDK(config),
