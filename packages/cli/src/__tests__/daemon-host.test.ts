@@ -82,6 +82,7 @@ import {
   writeDaemonRegistration,
 } from '../daemon/registration.js'
 import type { DaemonRegistration } from '../daemon/registration.js'
+import { REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import { removeTempRoots } from './temp-roots.js'
 
 const CHILD_ROOT_ENV = 'AGENT_QA_DAEMON_HOST_ROOT'
@@ -2614,8 +2615,60 @@ describe('daemon shutdown and reclaim post-mortem', () => {
     'stopEmbedderWorker',
     'jobDispatcher.stop',
     'localAgent.close',
+    'remoteSessions.release',
     'releaseLease',
   ] as const
+
+  it('starts releasing remote sessions as the signal arrives and stops only once they are released', async () => {
+    const paths = makePaths('shutdown-remote-release')
+    const harness = hostHarness()
+    const order: string[] = []
+    let release: () => void = () => undefined
+    const released = new Promise<void>((settle) => {
+      release = settle
+    })
+    const releaseRemoteSessions = vi.fn((_boundMs: number) => {
+      order.push('remote release started')
+      return released
+    })
+    let stopped = false
+    const running = runDaemonHost({
+      agentQaRoot: paths.agentQaRoot,
+      knowledgeRoot: paths.knowledgeRoot,
+      config: TEST_CONFIG,
+      model: () => TEST_MODEL,
+      operations: {
+        ...harness.operations,
+        releaseRemoteSessions,
+        runShutdownStage: async (stage, action) => {
+          order.push(stage)
+          await action()
+        },
+        startInvokeServer: ({ socketPath }) => Promise.resolve({
+          socketPath,
+          close: () => Promise.resolve(),
+        }),
+      },
+      logger: { info: vi.fn(), error: vi.fn() },
+    }).then((code) => {
+      stopped = true
+      return code
+    })
+    await waitUntil(() => harness.signals.has('SIGTERM'), 'daemon did not become signalable')
+
+    harness.signal('SIGTERM')
+    await waitUntil(
+      () => order.includes('remoteSessions.release'),
+      'the shutdown never waited for the remote release',
+    )
+    expect(releaseRemoteSessions).toHaveBeenCalledTimes(1)
+    expect(releaseRemoteSessions).toHaveBeenCalledWith(REMOTE_RELEASE_BOUND_MS)
+    expect(order[0]).toBe('remote release started')
+    expect(stopped).toBe(false)
+
+    release()
+    await expect(running).resolves.toBe(0)
+  })
 
   it.each([
     { trigger: 'graceful signal', expectedCode: 0 },

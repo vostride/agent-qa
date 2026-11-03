@@ -22,6 +22,7 @@ import { analyticsEvent, composeAnalyticsHost } from '../composition/analytics-h
 import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
 import type { DeclaredSecretMask } from '../composition/declared-secrets.js'
 import { composeCliLocalAgent, withRunDoor } from '../composition/local-agent-host.js'
+import { releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import { readAnalyticsPrivacyDeclaration, resolveConfig } from '../config.js'
 
 /** The one line the stdio host prints, on stderr, once the server is listening. */
@@ -113,6 +114,52 @@ function refuse(res: ServerResponse, status: number, error: string): void {
 
 export interface McpCommandDeps {
   composeAnalytics?: typeof composeAnalyticsHost
+  exit?: (code: number) => void
+}
+
+export interface McpSignalSource {
+  once(signal: NodeJS.Signals, listener: () => void): unknown
+  off(signal: NodeJS.Signals, listener: () => void): unknown
+}
+
+export interface McpStopSignal {
+  /** Settles on the first SIGINT or SIGTERM. */
+  readonly stopped: Promise<void>
+  signalled(): boolean
+  /** The remote release the signal started, bounded per session. */
+  released(): Promise<void>
+  detach(): void
+}
+
+// The first signal releases every remote session at once, as `agent-qa run` does, and stops
+// serving; with no listener left, a second signal ends the process as it always did.
+export function listenForStopSignal(
+  signals: McpSignalSource = process,
+  release: (boundMs: number) => Promise<void> = releaseRemoteSessions,
+): McpStopSignal {
+  let settle: () => void = () => undefined
+  const stopped = new Promise<void>((done) => {
+    settle = done
+  })
+  let releasing: Promise<void> | undefined
+  const detach = (): void => {
+    signals.off('SIGINT', onSignal)
+    signals.off('SIGTERM', onSignal)
+  }
+  function onSignal(): void {
+    if (releasing !== undefined) return
+    detach()
+    releasing = release(REMOTE_RELEASE_BOUND_MS).catch(() => undefined)
+    settle()
+  }
+  signals.once('SIGINT', onSignal)
+  signals.once('SIGTERM', onSignal)
+  return {
+    stopped,
+    signalled: () => releasing !== undefined,
+    released: () => releasing ?? Promise.resolve(),
+    detach,
+  }
 }
 
 export function createMcpCommand(deps: McpCommandDeps = {}): Command {
@@ -190,17 +237,30 @@ export function createMcpCommand(deps: McpCommandDeps = {}): Command {
           emitLifecycle('started')
         }
 
+        const stop = listenForStopSignal()
         try {
+          const serve = {
+            registry: host.registry,
+            maskText,
+            liveLink,
+            onServing,
+            stopped: stop.stopped,
+          }
           if (port === undefined) {
-            await serveOverStdio({ registry: host.registry, maskText, liveLink, onServing })
+            await serveOverStdio(serve)
           } else {
-            await serveOverHttp({ port, registry: host.registry, maskText, liveLink, onServing })
+            await serveOverHttp({ port, ...serve })
           }
         } finally {
+          stop.detach()
           if (serving) emitLifecycle('stopped')
           await host.close().catch(() => {})
           // Drains the port this command composed and releases its timers, so the process can exit.
           await analytics.shutdown()
+        }
+        if (stop.signalled()) {
+          await stop.released()
+          ;(deps.exit ?? process.exit)(0)
         }
       } catch (err) {
         console.error(
@@ -233,6 +293,7 @@ async function serveOverStdio(input: {
   liveLink?: LiveLinkSupplier
   /** Fired once the entry is live — see the lifecycle note at the call site. */
   onServing?: () => void
+  stopped: Promise<void>
 }): Promise<void> {
   const releaseStdout = reserveStdoutForData()
   try {
@@ -253,6 +314,7 @@ async function serveOverStdio(input: {
     await new Promise<void>((settle) => {
       process.stdin.once('end', () => settle())
       process.stdin.once('close', () => settle())
+      void input.stopped.then(() => settle())
     })
     await handle.close()
   } finally {
@@ -268,6 +330,7 @@ async function serveOverHttp(input: {
   liveLink?: LiveLinkSupplier
   /** Fired once the socket is bound — see the lifecycle note at the call site. */
   onServing?: () => void
+  stopped: Promise<void>
 }): Promise<void> {
   const server = createServer(
     createMcpHttpRequestListener({
@@ -293,8 +356,7 @@ async function serveOverHttp(input: {
   )
   input.onServing?.()
   await new Promise<void>((settle) => {
-    process.once('SIGINT', () => settle())
-    process.once('SIGTERM', () => settle())
+    void input.stopped.then(() => settle())
     server.once('close', () => settle())
   })
   await new Promise<void>((closed) => server.close(() => closed()))

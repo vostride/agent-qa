@@ -40,7 +40,7 @@ import type { DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-da
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
 import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
-import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, createRemoteSessionRegistry, REMOTE_RELEASE_BOUND_MS, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
+import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
 import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory } from '@vostride/agent-qa-runner'
@@ -52,6 +52,12 @@ import { RunIdAlreadyInUseError, RunIdNotMintedError } from '@vostride/agent-qa-
 import type { runInProcessCliRun as RunInProcessCliRun } from '../composition/in-process-run-execution.js'
 // In a leaf module, because `in-process-run-execution.ts` imports this file's producers.
 import { CliRunInputError } from '../composition/cli-run-input-error.js'
+import {
+  processRemoteSessions,
+  releaseRemoteSessions,
+  REMOTE_RELEASE_BOUND_MS,
+  startedRemoteReleases,
+} from '../composition/remote-sessions.js'
 import { DeclaredSecretsUnavailableError, readDeclaredSecrets } from '../composition/declared-secrets.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 import {
@@ -295,25 +301,7 @@ function releaseAppium(): void {
   _appiumManager?.release()
 }
 
-// Every remote session this process holds: each run door's and the dashboard's live editor's.
-export const processRemoteSessions: RemoteSessionRegistry = createRemoteSessionRegistry()
-let startedRemoteRelease: Promise<void> | undefined
-
-export { REMOTE_RELEASE_BOUND_MS }
-
-/** Disconnects every open remote session at once, each within `boundMs`; never throws. */
-export function releaseRemoteSessions(boundMs: number): Promise<void> {
-  const releasing = processRemoteSessions.releaseAll(boundMs)
-  const earlier = startedRemoteRelease
-  startedRemoteRelease =
-    earlier === undefined ? releasing : Promise.all([earlier, releasing]).then(() => undefined)
-  return releasing
-}
-
-// A run's exit waits for the release its signal started, so exiting never cuts one short.
-function startedRemoteReleases(): Promise<void> {
-  return startedRemoteRelease ?? Promise.resolve()
-}
+export { processRemoteSessions, releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS }
 
 export async function createPlatformAdapter(
   platform: 'web' | 'android' | 'ios',

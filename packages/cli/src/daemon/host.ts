@@ -48,6 +48,7 @@ import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { analyticsEvent } from '../composition/analytics-host.js'
 import type { CliAnalyticsHost } from '../composition/analytics-host.js'
 import { createShutdownController } from '../commands/shutdown-controller.js'
+import { releaseRemoteSessions, REMOTE_RELEASE_BOUND_MS } from '../composition/remote-sessions.js'
 import {
   completedRunDir,
   completedRunHandoffPath,
@@ -171,6 +172,7 @@ export type DaemonShutdownStage =
   | 'stopEmbedderWorker'
   | 'jobDispatcher.stop'
   | 'localAgent.close'
+  | 'remoteSessions.release'
   | 'releaseLease'
 
 export interface DaemonHostOperations {
@@ -185,6 +187,8 @@ export interface DaemonHostOperations {
   onSignal(signal: NodeJS.Signals, listener: () => void): void
   offSignal(signal: NodeJS.Signals, listener: () => void): void
   hardExit(code: number): void
+  /** Disconnects every remote session the daemon's runs hold, each within `boundMs`. */
+  releaseRemoteSessions(boundMs: number): Promise<void>
   /** Focused failure-injection seam around each awaited shutdown stage. */
   runShutdownStage(
     stage: DaemonShutdownStage,
@@ -345,6 +349,7 @@ function defaultOperations(): DaemonHostOperations {
     onSignal: (signal, listener) => process.on(signal, listener),
     offSignal: (signal, listener) => process.off(signal, listener),
     hardExit: (code) => process.exit(code),
+    releaseRemoteSessions,
     runShutdownStage: async (_stage, action) => {
       await action()
     },
@@ -1631,7 +1636,12 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         }
       }
 
+      // Released at once, as `agent-qa run` does, and waited for before the shutdown completes.
+      let releasingRemotes: Promise<void> = Promise.resolve()
       try {
+        runSyncCleanup('remoteSessions.release', () => {
+          releasingRemotes = operations.releaseRemoteSessions(REMOTE_RELEASE_BOUND_MS)
+        })
         if (reason === 'lease-lost') {
           runSyncCleanup('shutdownGrace.arm', armShutdownGrace)
         }
@@ -1690,6 +1700,7 @@ export async function runDaemonHost(input: DaemonHostOptions): Promise<number> {
         const activeRecovery = recovery
         recovery = undefined
         runSyncCleanup('recovery.close', () => activeRecovery?.close())
+        await runStage('remoteSessions.release', () => releasingRemotes)
 
         if (releaseAuthority) {
           await runStage('releaseLease', () => {
