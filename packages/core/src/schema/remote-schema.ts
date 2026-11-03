@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { remoteEntryIssues } from '@vostride/agent-qa-schema'
 import { DurationString, NameSlugSchema } from './primitives.js'
 
 export const RemoteEntrySchema = z.strictObject({
@@ -13,6 +14,10 @@ export const RemoteEntrySchema = z.strictObject({
   }).optional(),
   connectTimeout: DurationString.optional(),
   context: z.enum(['new', 'reuse']).optional(),
+}).superRefine((entry, ctx) => {
+  for (const issue of remoteEntryIssues(entry)) {
+    ctx.addIssue({ code: 'custom', path: issue.path, message: issue.message })
+  }
 })
 
 export type RemoteEntry = z.infer<typeof RemoteEntrySchema>
