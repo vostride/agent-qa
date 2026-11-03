@@ -5,7 +5,7 @@ import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { RemotesSection } from '@/components/config-manager/remotes-section'
-import { REMOTES_COPY, remoteDefaultLine } from '@/lib/config-copy'
+import { REMOTES_COPY, remoteDefaultLine, remoteNotListedLine } from '@/lib/config-copy'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -75,6 +75,31 @@ describe('the Remotes section', () => {
     const section = show({ ...TWO_REMOTES, use: { browser: { remote: 'grid' } } })
     expect(section.querySelector('[data-remote-default]')?.textContent).toBe(remoteDefaultLine('grid'))
     expect(remoteDefaultLine('grid')).toBe('Web tests run on grid unless a suite or test picks another place.')
+  })
+
+  it('warns when the default names no listed remote, as a config that fails to parse can', () => {
+    for (const config of [
+      { ...TWO_REMOTES, use: { browser: { remote: 'gird' } } },
+      { use: { browser: { remote: 'gird' } } },
+    ]) {
+      const section = show(config)
+      const warning = section.querySelector('[data-remote-unlisted]')
+      expect(warning?.textContent).toBe(remoteNotListedLine('gird'))
+      expect(warning?.className).toContain('text-destructive')
+    }
+    expect(remoteNotListedLine('gird')).toBe(
+      'gird is not listed under remotes, so web tests that use this default cannot run. List it, or change the default.',
+    )
+  })
+
+  it('gives no warning when the default names a listed remote or this machine', () => {
+    for (const config of [
+      { ...TWO_REMOTES, use: { browser: { remote: 'grid' } } },
+      { ...TWO_REMOTES, use: { browser: { remote: 'local' } } },
+      TWO_REMOTES,
+    ]) {
+      expect(show(config).querySelector('[data-remote-unlisted]')).toBeNull()
+    }
   })
 
   it('says tests run on this machine when the default is local or unset', () => {

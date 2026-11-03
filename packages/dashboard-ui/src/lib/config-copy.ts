@@ -652,6 +652,11 @@ export const REMOTES_COPY = {
 export function remoteDefaultLine(name: string): string {
   return `Web tests run on ${name} unless a suite or test picks another place.`
 }
+
+// The strict parse refuses this default, but the page still shows a config that fails to parse.
+export function remoteNotListedLine(name: string): string {
+  return `${name} is not listed under remotes, so web tests that use this default cannot run. List it, or change the default.`
+}
 export const NO_DEVICES_TEXT = 'No devices yet.'
 export const NO_LOGIN_STATES_TEXT = 'No saved login states yet. Save one from a web Live Mode session.'
 export const LOGIN_STATES_LOADING_TEXT = 'Loading saved login states…'

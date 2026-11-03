@@ -3,7 +3,7 @@
 import { projectConfigRemotes } from "@vostride/agent-qa-schema"
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { REMOTES_COPY, remoteDefaultLine } from "@/lib/config-copy"
+import { REMOTES_COPY, remoteDefaultLine, remoteNotListedLine } from "@/lib/config-copy"
 
 interface RemotesSectionProps {
   config: Record<string, unknown>
@@ -45,11 +45,17 @@ function defaultRemoteOf(config: Record<string, unknown>): string | undefined {
 export function RemotesSection({ config }: RemotesSectionProps) {
   const remotes = remotesOf(config)
   const pick = defaultRemoteOf(config)
+  const unlisted = pick !== undefined && !remotes.some((remote) => remote.name === pick)
   return (
     <div data-remotes className="space-y-3">
       <p data-remote-default={pick ?? "local"} className="text-sm">
         {pick === undefined ? REMOTES_COPY.runsHere : remoteDefaultLine(pick)}
       </p>
+      {unlisted ? (
+        <p data-remote-unlisted className="text-sm text-destructive">
+          {remoteNotListedLine(pick)}
+        </p>
+      ) : null}
       {remotes.length === 0 ? (
         <p data-remotes-empty className="text-sm text-muted-foreground">
           {REMOTES_COPY.empty}
