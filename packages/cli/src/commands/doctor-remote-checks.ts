@@ -137,12 +137,17 @@ function remoteCheck(
     const loopback = input.loopbackTargetsByRemote?.get(entry.name) ?? []
     if (loopback.length > 0) {
       problems.push(
-        answered ? `${label} answers; ${loopbackNote(loopback)}` : `${label}: ${loopbackNote(loopback)}`,
+        answered
+          ? `${label} answers; ${loopbackNote(loopback)}`
+          : `${label}: ${loopbackNote(loopback)}`,
       )
     }
 
     if (problems.length > 0) return { status: 'warn', message: problems.join(' ') }
-    return { status: 'pass', message: `${label} answers; credentials are checked when a test connects.` }
+    return {
+      status: 'pass',
+      message: `${label} answers; credentials are checked when a test connects.`,
+    }
   }
 }
 

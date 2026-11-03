@@ -49,7 +49,7 @@ const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
 export function secretReferenceNames(text: string): string[] {
   // A fresh copy, so a caller's use of the exported global pattern cannot shift lastIndex here.
   const pattern = new RegExp(SECRET_REFERENCE_PATTERN.source, 'g')
-  return [...text.matchAll(pattern)].map(match => match[1] as string)
+  return [...text.matchAll(pattern)].map((match) => match[1] as string)
 }
 
 function parseUrl(url: string): URL | undefined {
@@ -112,7 +112,7 @@ export function isLoopbackHost(host: string): boolean {
   const normalized = unbracket(host.toLowerCase())
   if (normalized === 'localhost' || normalized === '::1') return true
   const octets = IPV4_RE.exec(normalized)
-  return octets !== null && octets[1] === '127' && octets.slice(1).every(o => Number(o) <= 255)
+  return octets !== null && octets[1] === '127' && octets.slice(1).every((o) => Number(o) <= 255)
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -141,7 +141,7 @@ function texts(value: unknown): string[] {
 function namesCredential(key: string | number): boolean {
   if (typeof key !== 'string') return false
   const lower = key.toLowerCase()
-  return REMOTE_CREDENTIAL_TERMS.some(term => lower.includes(term))
+  return REMOTE_CREDENTIAL_TERMS.some((term) => lower.includes(term))
 }
 
 function carriesReference(value: unknown): boolean {
@@ -152,7 +152,7 @@ function credentialKeys(value: unknown, path: KeyPath = []): { path: KeyPath; li
   return children(value).flatMap(([key, child]) => {
     const childPath = [...path, key]
     if (namesCredential(key)) {
-      return [{ path: childPath, literal: leaves(child).some(leaf => !carriesReference(leaf)) }]
+      return [{ path: childPath, literal: leaves(child).some((leaf) => !carriesReference(leaf)) }]
     }
     return credentialKeys(child, childPath)
   })
@@ -199,7 +199,7 @@ function decoded(text: string): string {
   }
 }
 
-// The parameters already written in the url, read from its raw text so a reference stays as written.
+// The parameters written in the url, read from its raw text so a reference stays as written.
 function urlQuery(url: string): Record<string, string> {
   const start = url.indexOf('?')
   if (start < 0) return {}
@@ -249,7 +249,7 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
   const headerCredentials = credentialKeys(entry.headers)
   const queryCredentials = credentialKeys(entry.query)
   const urlCredentials = credentialKeys(urlQuery(entry.url))
-  for (const credential of urlCredentials.filter(c => c.literal)) {
+  for (const credential of urlCredentials.filter((c) => c.literal)) {
     report(
       ['url'],
       `url query "${credential.path.join('.')}" names a credential, so its value must be a {{secret:NAME}} reference.`,
@@ -259,7 +259,7 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     ['headers', headerCredentials],
     ['query', queryCredentials],
   ] as const) {
-    for (const credential of found.filter(c => c.literal)) {
+    for (const credential of found.filter((c) => c.literal)) {
       report(
         [section, ...credential.path],
         `${section} "${credential.path.join('.')}" names a credential, so its value must be a {{secret:NAME}} reference.`,
@@ -293,7 +293,7 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
 
   if (entry.basicAuth) {
     const headerNames = Object.keys(entry.headers ?? {})
-    if (headerNames.some(name => name.trim().toLowerCase() === 'authorization')) {
+    if (headerNames.some((name) => name.trim().toLowerCase() === 'authorization')) {
       report(['basicAuth'], 'set basicAuth or an Authorization header, not both.')
     }
     for (const field of ['user', 'password'] as const) {
@@ -337,7 +337,7 @@ function structurallyEqual(left: unknown, right: unknown): boolean {
     const keys = Object.keys(left)
     return (
       keys.length === Object.keys(right).length &&
-      keys.every(key => Object.hasOwn(right, key) && structurallyEqual(left[key], right[key]))
+      keys.every((key) => Object.hasOwn(right, key) && structurallyEqual(left[key], right[key]))
     )
   }
   return Object.is(left, right)
@@ -384,7 +384,9 @@ function fingerprint(value: unknown): string {
   return JSON.stringify(value, (_key, inner: unknown) =>
     isRecord(inner)
       ? Object.fromEntries(
-          Object.entries(inner).sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0)),
+          Object.entries(inner).sort(([left], [right]) =>
+            left < right ? -1 : left > right ? 1 : 0,
+          ),
         )
       : inner,
   )
@@ -425,7 +427,7 @@ function withoutCopies(value: unknown, copies: Map<string, unknown>): unknown {
     const key = fingerprint(value)
     if (copies.has(key)) return copies.get(key)
   }
-  if (Array.isArray(value)) return value.map(child => withoutCopies(child, copies))
+  if (Array.isArray(value)) return value.map((child) => withoutCopies(child, copies))
   if (isRecord(value)) {
     return Object.fromEntries(
       Object.entries(value).map(([key, child]) => [key, withoutCopies(child, copies)]),
@@ -440,7 +442,7 @@ export function projectConfigRemotes<T>(config: T): T {
   if (remotes === undefined || remotes === null) return config
   // A block that is not a list is invalid config, still served, and may hold an endpoint anywhere.
   const shown: RemoteDisplay[] = Array.isArray(remotes)
-    ? remotes.map(entry => {
+    ? remotes.map((entry) => {
         const record: Record<string, unknown> = isRecord(entry) ? entry : {}
         return {
           name: record.name as string,
@@ -453,5 +455,8 @@ export function projectConfigRemotes<T>(config: T): T {
     { ...config, registry: { ...config.registry, remotes: [] } },
     remoteCopies(remotes, shown),
   ) as Record<string, unknown>
-  return { ...rest, registry: { ...(rest.registry as Record<string, unknown>), remotes: shown } } as T
+  return {
+    ...rest,
+    registry: { ...(rest.registry as Record<string, unknown>), remotes: shown },
+  } as T
 }
