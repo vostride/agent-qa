@@ -482,6 +482,40 @@ describe('config show and set with declared secrets', () => {
     expect(table).toContain('sk-env-only-cache')
     expect(table).not.toContain('<redacted>')
   })
+
+  it('the --debug table shows a remote by name, protocol and origin only', () => {
+    const globalConfig = makeValidConfig({
+      registry: {
+        remotes: [
+          {
+            name: 'grid',
+            protocol: 'playwright',
+            url: 'wss://grid.example.com/p4th-t0ken/session?q=QUERY_SECRET',
+            query: { tag: 'QUERY_VALUE' },
+            headers: { 'X-Team': 'HEADER_VALUE' },
+            basicAuth: { user: 'BASIC_USER', password: 'BASIC_PASS' },
+          },
+        ],
+      },
+    })
+
+    const table = formatConfigDebug(globalConfig, {}, {}, (text) => text)
+
+    expect(table).toContain('grid')
+    expect(table).toContain('playwright')
+    expect(table).toContain('wss://grid.example.com:443')
+    for (const hidden of [
+      'p4th-t0ken',
+      'QUERY_SECRET',
+      'QUERY_VALUE',
+      'HEADER_VALUE',
+      'X-Team',
+      'BASIC_USER',
+      'BASIC_PASS',
+    ]) {
+      expect(table, hidden).not.toContain(hidden)
+    }
+  })
 })
 
 describe('config set with a declared value', () => {

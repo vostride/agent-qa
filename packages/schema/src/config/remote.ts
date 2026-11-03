@@ -82,6 +82,25 @@ export function formatRemoteOrigin(origin: RemoteOrigin): string {
   return `${origin.scheme}://${formatHost(origin.host)}:${origin.port}`
 }
 
+export interface RemoteDisplay {
+  name: string
+  protocol: string
+  url: string
+}
+
+function displayOrigin(url: unknown): string {
+  const origin = typeof url === 'string' ? remoteOrigin(url) : undefined
+  return origin ? formatRemoteOrigin(origin) : 'invalid url'
+}
+
+// A served config shows a remote by name, protocol and origin; its path, query, headers and
+// basicAuth stay in the file.
+export function projectRemotesForDisplay(
+  remotes: readonly Pick<RemoteEntryLike, 'name' | 'protocol' | 'url'>[],
+): RemoteDisplay[] {
+  return remotes.map(({ name, protocol, url }) => ({ name, protocol, url: displayOrigin(url) }))
+}
+
 export function remoteLabel(entry: Pick<RemoteEntryLike, 'name' | 'protocol' | 'url'>): string {
   const origin = remoteOrigin(entry.url)
   return origin
@@ -326,4 +345,15 @@ export function closedConfigFieldsChanged(before: unknown, after: unknown): bool
   if (!structurallyEqual(held.remotes, next.remotes)) return true
   if (!structurallyEqual(held.plugins, next.plugins)) return true
   return !structurallyEqual(held.auth, next.auth) && !appendsSubscriptionAuth(held.auth, next.auth)
+}
+
+export function projectConfigRemotes<T>(config: T): T {
+  if (!isRecord(config) || !isRecord(config.registry)) return config
+  const remotes = config.registry.remotes
+  if (!Array.isArray(remotes)) return config
+  const shown = remotes.map(entry => {
+    const record: Record<string, unknown> = isRecord(entry) ? entry : {}
+    return { name: record.name, protocol: record.protocol, url: displayOrigin(record.url) }
+  })
+  return { ...config, registry: { ...config.registry, remotes: shown } }
 }

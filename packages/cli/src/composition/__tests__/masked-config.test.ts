@@ -1,7 +1,7 @@
 // The `config.get` view, asserted on the builder itself.
 //
-// Every value is rendered as written and passed through the host's declared-secret mask, and
-// nothing else: no path map, no URL reduction, no placeholder.
+// Every value is rendered as written and passed through the host's declared-secret mask. The one
+// reduction is a remote, which shows only its name, protocol and origin.
 
 import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
@@ -180,6 +180,52 @@ describe('buildMaskedResolvedConfig', () => {
     expect(bySource['services.logging.level']).toBe('env')
     // A key no layer supplied came from a schema default.
     expect(bySource['knowledge.dir']).toBe('default')
+  })
+
+  it('shows a remote as exactly its name, protocol and origin', () => {
+    const remote = {
+      name: 'grid',
+      protocol: 'playwright',
+      url: 'wss://grid.example.com/p4th-t0ken/session?q=QUERY_SECRET',
+      query: { tag: 'QUERY_VALUE' },
+      headers: { 'X-Team': 'HEADER_VALUE' },
+      basicAuth: { user: 'BASIC_USER', password: '{{secret:BASIC_PASS}}' },
+    }
+    const resolved = { registry: { remotes: [remote] }, use: { remote: 'grid' } }
+    const config = buildMaskedResolvedConfig({
+      configPath: 'agent-qa.config.yaml',
+      resolved,
+      layers: [{ source: 'config-file', values: resolved }],
+      mask: identity,
+    })
+
+    expect(config.entries.filter((entry) => entry.key.startsWith('registry.remotes.'))).toEqual([
+      { key: 'registry.remotes.0.name', value: 'grid', source: 'config-file', masked: false },
+      {
+        key: 'registry.remotes.0.protocol',
+        value: 'playwright',
+        source: 'config-file',
+        masked: false,
+      },
+      {
+        key: 'registry.remotes.0.url',
+        value: 'wss://grid.example.com:443',
+        source: 'config-file',
+        masked: false,
+      },
+    ])
+    const served = JSON.stringify(config)
+    for (const hidden of [
+      'p4th-t0ken',
+      'QUERY_SECRET',
+      'QUERY_VALUE',
+      'X-Team',
+      'HEADER_VALUE',
+      'BASIC_USER',
+      'BASIC_PASS',
+    ]) {
+      expect(served, hidden).not.toContain(hidden)
+    }
   })
 
   it('emits entries in a deterministic key order', () => {

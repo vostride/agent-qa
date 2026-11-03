@@ -37,13 +37,15 @@ export type { ConfigLeafPattern } from './leaves'
 export { CONFIG_SCHEMA_LEAVES, configLeafOwner, isConfigSchemaPath } from './leaves'
 export type { BrowserConfig } from './browser'
 export { appStateSchema, browserConfigSchema, viewportSchema } from './browser'
-export type { RemoteEntryIssue, RemoteEntryLike, RemoteOrigin } from './remote'
+export type { RemoteDisplay, RemoteEntryIssue, RemoteEntryLike, RemoteOrigin } from './remote'
 export {
   closedConfigFieldsChanged,
   connectionSecretNames,
   formatRemoteOrigin,
   isLoopbackHost,
   PLAYWRIGHT_VERSION_TOKEN,
+  projectConfigRemotes,
+  projectRemotesForDisplay,
   REMOTE_CREDENTIAL_TERMS,
   remoteEntryIssues,
   remoteLabel,

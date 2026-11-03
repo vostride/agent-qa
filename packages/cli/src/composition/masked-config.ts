@@ -1,6 +1,10 @@
-// Every leaf is stringified and passed through the declared-secret mask; nothing else decides.
+// Every leaf is stringified and passed through the declared-secret mask, after each remote is
+// reduced to its name, protocol and origin.
 
-import { MASKED_RESOLVED_CONFIG_SCHEMA_VERSION } from '@vostride/agent-qa-schema'
+import {
+  MASKED_RESOLVED_CONFIG_SCHEMA_VERSION,
+  projectConfigRemotes,
+} from '@vostride/agent-qa-schema'
 import type {
   ConfigValueSource,
   MaskFn,
@@ -64,10 +68,10 @@ export function buildMaskedResolvedConfig(
 ): MaskedResolvedConfig {
   const layers = input.layers.map((layer) => ({
     source: layer.source,
-    keys: new Set(flatten(layer.values).keys()),
+    keys: new Set(flatten(projectConfigRemotes(layer.values)).keys()),
   }))
 
-  const entries: MaskedConfigEntry[] = [...flatten(input.resolved).entries()]
+  const entries: MaskedConfigEntry[] = [...flatten(projectConfigRemotes(input.resolved)).entries()]
     .sort(([left], [right]) => (left < right ? -1 : left > right ? 1 : 0))
     .map(([key, leaf]) => {
       const rendered = renderValue(leaf)

@@ -10,6 +10,7 @@ import {
   yamlParseFailureMessage,
 } from '@vostride/agent-qa-core'
 import type { AgentQaConfig } from '@vostride/agent-qa-core'
+import { projectConfigRemotes } from '@vostride/agent-qa-schema'
 import type { MaskFn } from '@vostride/agent-qa-schema'
 import { HARD_CUT_STEPS, INVALID_CONFIG_FIX, isHardCutIssue } from './hard-cut.js'
 
@@ -217,20 +218,23 @@ function flattenObject(
 
 type ConfigSource = 'global config' | 'test yaml' | 'cli flag'
 
-// Values print as written, through the caller's declared-secret mask.
+// Values print as written, through the caller's declared-secret mask; a remote shows its origin.
 export function formatConfigDebug(
   globalConfig: unknown,
   testConfig: unknown,
   flagOverrides: Record<string, unknown>,
   mask: MaskFn,
 ): string {
+  const shownGlobal = projectConfigRemotes(globalConfig)
+  const shownTest = projectConfigRemotes(testConfig)
+  const shownFlags = projectConfigRemotes(flagOverrides)
   const layers: { flat: Record<string, unknown>; label: ConfigSource }[] = [
-    { flat: flattenObject(globalConfig), label: 'global config' },
-    { flat: flattenObject(testConfig), label: 'test yaml' },
-    { flat: flattenObject(flagOverrides), label: 'cli flag' },
+    { flat: flattenObject(shownGlobal), label: 'global config' },
+    { flat: flattenObject(shownTest), label: 'test yaml' },
+    { flat: flattenObject(shownFlags), label: 'cli flag' },
   ]
 
-  const merged = mergeWithTestConfig(globalConfig, testConfig, flagOverrides)
+  const merged = mergeWithTestConfig(shownGlobal, shownTest, shownFlags)
   const mergedFlat = flattenObject(merged)
 
   const colorize: Record<ConfigSource, (s: string) => string> = {
