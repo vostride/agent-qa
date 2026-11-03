@@ -105,7 +105,7 @@ for (const path of ['COMPOSED', 'DIRECT'] as const) {
     const opts = { disableCache: true, reporter: ['console'] }
     const inputs = {
       config, configDir: root, configFilePath, configContent,
-      runtimeSecrets: { secretStore, secretRedactor, secretsFileMetadata: { path: null, status: 'missing' } },
+      runtimeSecrets: { secretStore, connectionSecretStore: secretStore, secretRedactor, secretsFileMetadata: { path: null, status: 'missing' } },
       envFileVars: {}, inlineVars: {}, cliVars: {}, userRunAttributes: {},
       effectiveLogLevel: 'silent', resolvedHooks: new Map(),
       rawEnvFileContent: null, resolvedEnvFilePath: null,

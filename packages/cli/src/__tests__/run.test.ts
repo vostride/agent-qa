@@ -223,6 +223,11 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   selectWebPlace: actual.selectWebPlace,
   selectSuitePlace: actual.selectSuitePlace,
   runnerForPlaces: actual.runnerForPlaces,
+  // From the real module: the run start refuses a remote's secret misused or undeclared.
+  splitConnectionSecrets: actual.splitConnectionSecrets,
+  missingRemoteSecrets: actual.missingRemoteSecrets,
+  missingRemoteSecretSentence: actual.missingRemoteSecretSentence,
+  connectionSecretMisuse: actual.connectionSecretMisuse,
   // The real version reader, because the union constrains `agent_qa_version` to a semver.
   getAgentQaVersion: actual.getAgentQaVersion,
   parseAllTests: mockParseAllTests,

@@ -90,21 +90,40 @@ interface RemoteScene {
   readonly launch: MockInstance
 }
 
+// A bearer token the server requires and the remote's header names from the secrets file.
+interface RemoteCredential {
+  readonly name: string
+  readonly value: string
+}
+
 // Every door gets its own target, Playwright server and project whose config names that server.
 async function onRemote(
   knobs: Partial<InProcessFixtureInput>,
   drive: (scene: RemoteScene) => Promise<void>,
+  credential?: RemoteCredential,
 ): Promise<void> {
   refuseWithoutChromium()
   const target = new CountingTarget()
   await target.listen()
   try {
-    const endpoint = await startRemoteBrowserEndpoint()
+    const endpoint = await startRemoteBrowserEndpoint(
+      credential === undefined
+        ? {}
+        : { requireHeader: ['authorization', `Bearer ${credential.value}`] },
+    )
     try {
       const project = createInProcessFixture({
         origin: target.origin,
         environment: 'local',
-        remote: { name: 'grid', protocol: 'playwright', url: endpoint.wsEndpoint },
+        remote: {
+          name: 'grid',
+          protocol: 'playwright',
+          url: endpoint.wsEndpoint,
+          ...(credential === undefined
+            ? {}
+            : { headers: { Authorization: `Bearer {{secret:${credential.name}}}` } }),
+        },
+        ...(credential === undefined ? {} : { extraSecrets: { [credential.name]: credential.value } }),
         ...knobs,
       })
       vi.stubEnv('HOME', freshUpdateCheckHome())
@@ -367,6 +386,26 @@ describe('a web test placed on a remote runs there from every door', () => {
 
       expectReachedRemote(scene)
     })
+  }, RUN_BUDGET_MS)
+
+  it('fn connects a direct test to a remote whose header names a declared secret', async () => {
+    await onRemote({}, async (scene) => {
+      const host = composeCliLocalAgent({
+        agentQaRoot: scene.project.agentQaRoot,
+        configPath: scene.project.configPath,
+      })
+      opened.push(() => host.close())
+      const ack = await invokeFunction(
+        host.registry,
+        'runs.start',
+        { patterns: [scene.project.testPattern] },
+        CLI_FUNCTION_CALLER,
+      ) as RunStartAcknowledgement
+      await settledAt(scene.project, ack.runId)
+
+      expect(scene.endpoint.refusals(), scene.printed.join('\n')).toBe(0)
+      expectReachedRemote(scene)
+    }, { name: 'GRID_TOKEN', value: 'grid-token-value' })
   }, RUN_BUDGET_MS)
 
   it('the standalone MCP host connects a direct test to the Playwright server its config names', async () => {

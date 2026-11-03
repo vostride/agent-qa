@@ -132,7 +132,7 @@ for (const path of ['suite', 'direct'] as const) {
     const opts = { disableCache: true, reporter: ['console'], record: setting.flag }
     const inputs = {
       config, configDir: root, configFilePath, configContent,
-      runtimeSecrets: { secretStore, secretRedactor, secretsFileMetadata: { path: null, status: 'missing' } },
+      runtimeSecrets: { secretStore, connectionSecretStore: secretStore, secretRedactor, secretsFileMetadata: { path: null, status: 'missing' } },
       envFileVars: {}, inlineVars: {}, cliVars: {}, userRunAttributes: {},
       effectiveLogLevel: 'silent', resolvedHooks: new Map(),
       rawEnvFileContent: null, resolvedEnvFilePath: null,

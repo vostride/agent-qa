@@ -5,7 +5,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 
 import { getAgentQaVersion, getAgentQaVersionCheckCachePath } from '@vostride/agent-qa-core'
-import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
+import { generateHookId, generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
 
 import { createRunRecord, doorRunAttributes } from '../../commands/run.js'
 import type { RunRecord } from '../../commands/run.js'
@@ -79,11 +79,20 @@ export interface InProcessFixtureInput {
   /** With `secondTarget`, the suite's `target:` names the second target while its member keeps the first. */
   readonly suiteOnSecondTarget?: boolean
   /** One `registry.remotes` entry, which the config's `use.browser.remote` picks. */
-  readonly remote?: { readonly name: string; readonly protocol: 'playwright' | 'cdp'; readonly url: string }
+  readonly remote?: {
+    readonly name: string
+    readonly protocol: 'playwright' | 'cdp'
+    readonly url: string
+    readonly headers?: Readonly<Record<string, string>>
+  }
   /** The direct test's own `use.browser.remote`. */
   readonly directTestPick?: string
   /** With `secondTarget`, the second test's own `use.browser.remote`. */
   readonly secondTestPick?: string
+  /** More declared secrets, appended to the secrets file after `plantedSecret`. */
+  readonly extraSecrets?: Readonly<Record<string, string>>
+  /** One `print-env` hook in `hooks.yaml`, listed under the direct test's or the suite's `setup`. */
+  readonly setupHook?: 'test' | 'suite'
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -179,6 +188,14 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             `    - name: ${input.remote.name}`,
             `      protocol: ${input.remote.protocol}`,
             `      url: ${JSON.stringify(input.remote.url)}`,
+            ...(input.remote.headers === undefined
+              ? []
+              : [
+                  '      headers:',
+                  ...Object.entries(input.remote.headers).map(
+                    ([name, value]) => `        ${name}: ${JSON.stringify(value)}`,
+                  ),
+                ]),
           ]),
       ...(input.declareUninstalledAuthPlugin === true
         ? ['plugins:', '  auth:', `    - package: '${UNINSTALLED_AUTH_PLUGIN_PACKAGE}'`]
@@ -201,12 +218,41 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       '',
     ].join('\n'),
   )
-  if (input.omitHooksFile !== true) writeFileSync(join(project, 'hooks.yaml'), 'hooks: []\n')
+  const hookId = input.setupHook === undefined ? undefined : generateHookId()
+  if (input.omitHooksFile !== true) {
+    writeFileSync(
+      join(project, 'hooks.yaml'),
+      hookId === undefined
+        ? 'hooks: []\n'
+        : [
+            'hooks:',
+            `  - id: ${hookId}`,
+            '    name: print-env',
+            '    runtime: node',
+            '    file: hooks/print-env.js',
+            '    timeout: 30s',
+            '',
+          ].join('\n'),
+    )
+  }
+  if (hookId !== undefined) {
+    mkdirSync(join(project, 'hooks'), { recursive: true })
+    // Names only, so the hook's own output never carries a value.
+    writeFileSync(
+      join(project, 'hooks', 'print-env.js'),
+      "console.log(Object.keys(process.env).sort().join('\\n'))\n",
+    )
+  }
+  const setupLines = (scope: 'test' | 'suite'): string[] =>
+    hookId !== undefined && input.setupHook === scope ? ['setup:', `  - ${hookId}`] : []
   if (input.omitEnvFile !== true) writeFileSync(join(project, '.env'), '')
   if (input.omitSecretsFile !== true) {
     writeFileSync(
       join(project, '.env.secrets.local'),
-      input.plantedSecret === undefined ? '' : `${PLANTED_SECRET_NAME}=${input.plantedSecret}\n`,
+      [
+        ...(input.plantedSecret === undefined ? [] : [`${PLANTED_SECRET_NAME}=${input.plantedSecret}\n`]),
+        ...Object.entries(input.extraSecrets ?? {}).map(([name, value]) => `${name}=${value}\n`),
+      ].join(''),
     )
   }
 
@@ -221,6 +267,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
           ...(input.directTestPick === undefined
             ? []
             : ['use:', '  browser:', `    remote: ${input.directTestPick}`]),
+          ...setupLines('test'),
           'steps:',
           step,
           '',
@@ -279,6 +326,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
           ? SECOND_TARGET_NAME
           : IN_PROCESS_TARGET_NAME
       }`,
+      ...setupLines('suite'),
       'tests:',
       '  - test: tests/member.yaml',
       `    id: ${memberTestId}`,

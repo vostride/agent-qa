@@ -6,7 +6,7 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuitePlace, selectWebPlace, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { connectionSecretMisuse, discoverWorkspaceFiles, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuitePlace, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
@@ -36,7 +36,7 @@ import type {
   VerdictPayload,
 } from '@vostride/agent-qa-schema'
 import type { DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
-import type { SecretStore, SecretRedactor, SecretRedactorPort, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
+import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
 import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 import { WorkingMemoryStore, runMemberTest, createStepModelScope, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
@@ -296,7 +296,13 @@ function releaseAppium(): void {
 
 export async function createPlatformAdapter(
   platform: 'web' | 'android' | 'ios',
-  options: { readonly hostOwnsSignals?: true } = {},
+  options: {
+    readonly hostOwnsSignals?: true
+    // Every declared secret, so a remote's references resolve at connect and nowhere else.
+    readonly connectionSecrets?: SecretResolver
+    // `workspace.secretsFile` as written, which a credential refusal names.
+    readonly secretsFile?: string
+  } = {},
 ): Promise<PlatformAdapter> {
   if (platform === 'android') {
     try {
@@ -319,7 +325,13 @@ export async function createPlatformAdapter(
     }
   }
   const { WebPlatformAdapter } = await import('@vostride/agent-qa-web')
-  return new WebPlatformAdapter(options.hostOwnsSignals === true ? { hostOwnsSignals: true } : {})
+  return new WebPlatformAdapter({
+    ...(options.hostOwnsSignals === true ? { hostOwnsSignals: true as const } : {}),
+    ...(options.connectionSecrets === undefined
+      ? {}
+      : { connectionSecrets: options.connectionSecrets }),
+    ...(options.secretsFile === undefined ? {} : { secretsFile: options.secretsFile }),
+  })
 }
 
 const runWebAccessibilityCheck: NonNullable<RunSuiteConfig['accessibilityCheck']> = async (page, options) => {
@@ -526,7 +538,10 @@ export interface SecretsFileArtifactMetadata {
 }
 
 export interface RuntimeSecretsContext {
+  // Without the secrets a remote references: steps, hooks, target urls and the planner get this.
   secretStore: SecretStore
+  // Every declared secret, for the web adapter's connection only.
+  connectionSecretStore: SecretStore
   secretRedactor: SecretRedactor
   secretsFileMetadata: SecretsFileArtifactMetadata
 }
@@ -1261,22 +1276,24 @@ function placeSuite(input: {
   })
 }
 
-// Read from the parsed suites before the run is recorded; a refused or mobile suite places nothing.
-function suiteRunRunner(
+// Each parsed suite's members, and its place when it runs in a browser.
+function placePreflightSuites(
   preflight: SuitePreflight,
   config: AgentQaConfig,
   configDir: string,
   browserFlag: string | undefined,
-): RunAttributeRunner {
-  const places: WebPlace[] = []
-  for (const [suiteFile, suite] of preflight.definitions) {
+): Array<{
+  readonly members: readonly { readonly test: TestDefinition; readonly absolutePath: string }[]
+  readonly selected?: SelectWebPlaceResult
+}> {
+  return [...preflight.definitions].map(([suiteFile, suite]) => {
     const members = suite.tests.flatMap(({ test: memberFile }) => {
       const absolutePath = resolvePath(configDir, memberFile)
       const parsed = preflight.preloadedTests.get(absolutePath)?.parseResult
       const test = parsed?.errors.length === 0 ? parsed.tests[0] : undefined
       return test === undefined ? [] : [{ test, absolutePath }]
     })
-    if (!targetRunsInBrowser(config, suite.target ?? members[0]?.test.target)) continue
+    if (!targetRunsInBrowser(config, suite.target ?? members[0]?.test.target)) return { members }
     const selected = placeSuite({
       config,
       configDir,
@@ -1285,9 +1302,22 @@ function suiteRunRunner(
       members,
       engine: browserEngine(browserFlag ?? suite.use?.browser?.name ?? config.use?.browser?.name),
     })
-    if ('place' in selected) places.push(selected.place)
-  }
-  return runnerForPlaces(places)
+    return { members, selected }
+  })
+}
+
+// Read from the parsed suites before the run is recorded; a refused or mobile suite places nothing.
+function suiteRunRunner(
+  preflight: SuitePreflight,
+  config: AgentQaConfig,
+  configDir: string,
+  browserFlag: string | undefined,
+): RunAttributeRunner {
+  return runnerForPlaces(
+    placePreflightSuites(preflight, config, configDir, browserFlag).flatMap(({ selected }) =>
+      selected !== undefined && 'place' in selected ? [selected.place] : [],
+    ),
+  )
 }
 
 async function loadRuntimeSecrets(input: {
@@ -1301,23 +1331,57 @@ async function loadRuntimeSecrets(input: {
   }
 
   const secretsPath = input.secretsFilePath ?? resolvePath(input.configDir, configuredSecretsFile)
-  let secretStore: SecretStore
+  let declared: SecretStore
   try {
-    secretStore = readDeclaredSecrets(secretsPath)
+    declared = readDeclaredSecrets(secretsPath)
   } catch (err) {
     if (err instanceof DeclaredSecretsUnavailableError) throw secretsRefusal(err)
     throw err
   }
-  const { SecretRedactor } = await import('@vostride/agent-qa-runner')
+  const { SecretRedactor, basicAuthMaskEntries } = await import('@vostride/agent-qa-runner')
+  const remotes = input.config.registry?.remotes ?? []
   return {
-    secretStore,
-    secretRedactor: new SecretRedactor(secretStore),
+    secretStore: splitConnectionSecrets(declared, remotes).stepStore,
+    connectionSecretStore: declared,
+    secretRedactor: new SecretRedactor(declared, basicAuthMaskEntries(remotes, declared)),
     secretsFileMetadata: {
       path: secretsPath,
       status: 'loaded',
-      count: secretStore.count(),
+      count: declared.count(),
     },
   }
+}
+
+function configuredSecretsFile(config: AgentQaConfig): string | undefined {
+  const file = (config as { workspace?: { secretsFile?: unknown } }).workspace?.secretsFile
+  return typeof file === 'string' ? file : undefined
+}
+
+// Before the run is recorded: a remote this run uses lacks a secret, or a test names one.
+function refuseRemoteSecretProblems(input: {
+  readonly config: AgentQaConfig
+  readonly configDir: string
+  readonly usedRemotes: Iterable<RemoteBrowserConfig>
+  readonly tests: Iterable<{ readonly filePath: string; readonly steps: readonly unknown[] }>
+  readonly connectionSecretStore: SecretStore
+}): void {
+  const secretsFile = configuredSecretsFile(input.config)
+  const lines = missingRemoteSecrets([...input.usedRemotes], input.connectionSecretStore)
+    .map((missing) => missingRemoteSecretSentence(missing, secretsFile))
+  const { connectionNames } = splitConnectionSecrets(
+    input.connectionSecretStore,
+    input.config.registry?.remotes ?? [],
+  )
+  for (const test of input.tests) {
+    for (const sentence of connectionSecretMisuse({
+      names: connectionNames,
+      file: configRelativeFile(input.configDir, test.filePath),
+      steps: test.steps,
+    })) {
+      if (!lines.includes(sentence)) lines.push(sentence)
+    }
+  }
+  if (lines.length > 0) throw new CliRunInputError(lines.map((line) => pc.red(line)), 2)
 }
 
 // Zero runnable tests from resolved files refuses loudly, never a green `0 of 0` run.
@@ -1804,6 +1868,7 @@ async function executeSuites(
     rawEnvFileContent?: string | null
     resolvedEnvFilePath?: string | null
     secretStore?: SecretStore
+    connectionSecretStore?: SecretStore
     secretRedactor?: SecretRedactor
     secretsFileMetadata?: SecretsFileArtifactMetadata | null
     userRunAttributes: RunAttributes
@@ -2137,6 +2202,7 @@ export async function produceMembersFromPatterns(
         rawEnvFileContent: context.inputs.rawEnvFileContent,
         resolvedEnvFilePath: context.inputs.resolvedEnvFilePath,
         secretStore: context.inputs.runtimeSecrets.secretStore,
+        connectionSecretStore: context.inputs.runtimeSecrets.connectionSecretStore,
         secretRedactor: context.inputs.runtimeSecrets.secretRedactor,
         secretsFileMetadata: context.inputs.runtimeSecrets.secretsFileMetadata,
         userRunAttributes: context.inputs.userRunAttributes,
@@ -2249,6 +2315,8 @@ export interface SuiteVariableContext {
   rawEnvFileContent?: string | null
   resolvedEnvFilePath?: string | null
   secretStore?: SecretStore
+  // Every declared secret, for the web adapter's connection only.
+  connectionSecretStore?: SecretStore
   secretRedactor?: SecretRedactor
   secretsFileMetadata?: SecretsFileArtifactMetadata | null
   userRunAttributes: RunAttributes
@@ -2278,6 +2346,32 @@ export async function produceSuiteRunMembers(
   const preloadedSuiteTests = input.preflight.preloadedTests
   const suitePreflightProduct = input.preflight.product
   const preflightRunner = suiteRunRunner(input.preflight, config, configDir, opts.browser)
+  const suiteConnectionSecrets = variableContext?.connectionSecretStore
+  const suiteSecretsFile = configuredSecretsFile(config)
+  if (suiteConnectionSecrets !== undefined) {
+    const placedSuites = placePreflightSuites(input.preflight, config, configDir, opts.browser)
+    refuseRemoteSecretProblems({
+      config,
+      configDir,
+      usedRemotes: placedSuites.flatMap(({ selected }) =>
+        selected !== undefined && 'place' in selected && selected.place.kind === 'remote'
+          ? [selected.place.remote]
+          : [],
+      ),
+      tests: placedSuites.flatMap(({ members }) =>
+        members.map(({ test, absolutePath }) => ({
+          filePath: absolutePath,
+          steps: test.steps ?? [],
+        })),
+      ),
+      connectionSecretStore: suiteConnectionSecrets,
+    })
+  }
+  const suiteAdapterOptions: Parameters<typeof createPlatformAdapter>[1] = {
+    ...hostSignals,
+    ...(suiteConnectionSecrets === undefined ? {} : { connectionSecrets: suiteConnectionSecrets }),
+    ...(suiteSecretsFile === undefined ? {} : { secretsFile: suiteSecretsFile }),
+  }
 
   // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
   const readLocalBindings = createRunLocalBindingsReader()
@@ -2598,7 +2692,7 @@ export async function produceSuiteRunMembers(
       }
     }
 
-    const adapter = await createPlatformAdapter(suitePlatform, hostSignals)
+    const adapter = await createPlatformAdapter(suitePlatform, suiteAdapterOptions)
 
     const resolvedTarget = suite.target
       ? resolveTarget(config, suite.target)
@@ -2791,7 +2885,7 @@ export async function produceSuiteRunMembers(
             failureSummary: formatAuthStateCaptureFailure(suiteAuthStateCapturePaths),
           }
         : undefined,
-      createAdapter: () => createPlatformAdapter(suitePlatform, hostSignals),
+      createAdapter: () => createPlatformAdapter(suitePlatform, suiteAdapterOptions),
       resolveUrl: (targetName: string) => {
         try { return resolveTarget(config, targetName).url } catch { return undefined }
       },
@@ -2892,7 +2986,19 @@ export async function produceSuiteRunMembers(
       const rawSuiteUrl = suiteConfig.resolveUrl(initialTargetName)
       if (rawSuiteUrl) {
         try {
-          const navResult = await suiteConfig.adapter.execute({ type: 'navigate', to: 'url', url: rawSuiteUrl } as any)
+          // Resolved as a direct test's url is: variables, then the step secrets.
+          const { VariableStore, interpolateVariables, resolveSecretTemplatesInValue } =
+            await import('@vostride/agent-qa-runner')
+          const suiteUrlVariables = new VariableStore()
+          if (suiteConfig.envFileVars) suiteUrlVariables.setAll(suiteConfig.envFileVars, 'env')
+          if (suiteConfig.inlineVars) suiteUrlVariables.setAll(suiteConfig.inlineVars, 'inline')
+          suiteUrlVariables.setAll(prepared.suiteHookVars, 'suite')
+          if (suiteConfig.cliVars) suiteUrlVariables.setAll(suiteConfig.cliVars, 'cli')
+          const suiteUrl = resolveSecretTemplatesInValue(
+            interpolateVariables(rawSuiteUrl, suiteUrlVariables),
+            (suiteConfig as { secretStore?: SecretStore }).secretStore,
+          )
+          const navResult = await suiteConfig.adapter.execute({ type: 'navigate', to: 'url', url: suiteUrl } as any)
           if (navResult && navResult.success === false) {
             prepared.bootstrapFailure = navResult.error ?? `Failed to navigate to suite target URL "${rawSuiteUrl}"`
           }
@@ -3414,6 +3520,14 @@ export async function produceDirectRunMembers(
   const readLocalBindings = createRunLocalBindingsReader()
   if (anyTargetRunsOnDevice(config, filtered.map(({ test }) => test.target))) readLocalBindings()
   const directRemotes = selectDirectRemotes(config, configDir, filtered, opts.browser)
+  refuseRemoteSecretProblems({
+    config,
+    configDir,
+    usedRemotes: directRemotes.values(),
+    tests: filtered.map(({ test, filePath }) => ({ filePath, steps: test.steps ?? [] })),
+    connectionSecretStore: runtimeSecrets.connectionSecretStore,
+  })
+  const directSecretsFile = configuredSecretsFile(config)
   const directRunAttributes = buildCliRunAttributes(
     userRunAttributes,
     directRunRunner(config, configDir, filtered, opts.browser),
@@ -3639,10 +3753,11 @@ export async function produceDirectRunMembers(
           }
         }
 
-        adapter = await createPlatformAdapter(
-          testPlatform,
-          input.hostOwnsSignals === true ? { hostOwnsSignals: true } : {},
-        )
+        adapter = await createPlatformAdapter(testPlatform, {
+          ...(input.hostOwnsSignals === true ? { hostOwnsSignals: true as const } : {}),
+          connectionSecrets: runtimeSecrets.connectionSecretStore,
+          ...(directSecretsFile === undefined ? {} : { secretsFile: directSecretsFile }),
+        })
 
         const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
         const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testMobileResolved, directRemotes.get(binding))

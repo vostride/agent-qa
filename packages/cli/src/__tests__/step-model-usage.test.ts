@@ -157,7 +157,7 @@ async function executePath(path: 'DIRECT' | 'SUITE' | 'COMPOSED', options: { mis
   const secretRedactor = new SecretRedactor(secretStore)
   const inputs = {
     config, configDir: project, configFilePath, configContent,
-    runtimeSecrets: { secretStore, secretRedactor, secretsFileMetadata: { path: null, status: 'missing' } },
+    runtimeSecrets: { secretStore, connectionSecretStore: secretStore, secretRedactor, secretsFileMetadata: { path: null, status: 'missing' } },
     envFileVars: {}, inlineVars: {}, cliVars: {}, userRunAttributes: {}, effectiveLogLevel: 'silent',
     resolvedHooks: new Map(), rawEnvFileContent: null, resolvedEnvFilePath: null,
     discovered: { tests: [filePath], suites: [] }, loadPlugins: async () => {},
