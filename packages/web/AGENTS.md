@@ -4,12 +4,15 @@
 
 This package owns browser automation through Playwright, page observation (ARIA
 snapshot, element enrichment and scroll capture), action validation, smart
-waits, scrolling helpers, screenshots, and accessibility checks.
+waits, scrolling helpers, screenshots, and accessibility checks. It launches a
+browser here or connects to a remote one (a Playwright server or a CDP
+endpoint).
 
 ## Read First
 
 - `package.json`
 - `src/adapter.ts`
+- `src/remote-connection.ts`
 - `src/action-validator.ts`
 - `src/element-resolver.ts`
 - `src/observer.ts`

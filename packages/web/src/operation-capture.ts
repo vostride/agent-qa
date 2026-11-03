@@ -237,6 +237,8 @@ export interface OperationCaptureOptions {
   startGraceMs?: number
   /** True only when the adapter launched headless; anything else never reads the clipboard. */
   headless?: boolean
+  /** False where a download's bytes cannot be trusted; its downloads are then not recorded at all. */
+  downloads?: boolean
 }
 
 export class OperationCapture {
@@ -267,6 +269,7 @@ export class OperationCapture {
   private probeContext: BrowserContext | null = null
   private probeGeneration = 0
   private readonly readsClipboard: boolean
+  private readonly capturesDownloads: boolean
   /** The probe generation holding this action's pre-image; -1 when none was read. */
   private preImageGeneration = -1
   /** A probe generation whose read did not settle; skipped until resetProbe() replaces it. */
@@ -276,6 +279,7 @@ export class OperationCapture {
     this.completionCapMs = options.completionCapMs ?? DOWNLOAD_COMPLETION_CAP_MS
     this.startGraceMs = options.startGraceMs ?? DOWNLOAD_START_GRACE_MS
     this.readsClipboard = options.headless === true
+    this.capturesDownloads = options.downloads !== false
   }
 
   async attach(context: BrowserContext): Promise<void> {
@@ -299,7 +303,7 @@ export class OperationCapture {
     this.armed = true
     this.startWindow = true
     this.clipboardArmed = false
-    this.activation = isDownloadActivation(action)
+    this.activation = this.capturesDownloads && isDownloadActivation(action)
     this.navigationWindow = this.activation
     this.navigationSettledAt = 0
     this.navigationSettledMain = false
@@ -633,14 +637,16 @@ export class OperationCapture {
   private attachPage(page: Page): void {
     if (this.attachedPages.has(page)) return
     this.attachedPages.add(page)
-    page.on('download', (download) => {
-      if (!this.startWindow) {
-        this.held.push(download)
-        return
-      }
-      this.downloads.push({ download, late: false })
-      this.notify?.()
-    })
+    if (this.capturesDownloads) {
+      page.on('download', (download) => {
+        if (!this.startWindow) {
+          this.held.push(download)
+          return
+        }
+        this.downloads.push({ download, late: false })
+        this.notify?.()
+      })
+    }
     page.on('close', () => {
       for (const [request, pending] of this.pendingNavigations) if (pending.page === page) this.settleNavigation(request)
     })

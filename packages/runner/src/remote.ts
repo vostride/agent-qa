@@ -23,6 +23,26 @@ export type RemoteFailureKind =
   | 'ended'
   | 'lost'
 
+export interface RemoteUnsupported {
+  capability: string
+  reason: string
+}
+
+// Names the remote by its origin only: the path, query and header values may carry secrets.
+export type RemotePlaceEvidence =
+  | { place: 'here' }
+  | {
+      place: 'remote'
+      name: string
+      protocol: RemoteProtocol
+      origin: string
+      browserVersion: string
+      headless: 'decided by the remote'
+      unsupported: readonly RemoteUnsupported[]
+      heartbeat?: { sent: number; failed: number; suspect: boolean }
+      failureKind?: RemoteFailureKind
+    }
+
 // Built from the refusal sentence alone, so nothing from the failed connection rides along.
 export class RemoteRefusalError extends Error {
   readonly remote: string | undefined

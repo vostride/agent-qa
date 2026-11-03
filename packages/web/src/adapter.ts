@@ -11,11 +11,18 @@ import type {
   PlatformConfig,
   RecordingCapability,
   RemoteBrowserConfig,
+  RemotePlaceEvidence,
   RemoteRefusalMemory,
+  RemoteUnsupported,
   SecretResolver,
 } from '@vostride/agent-qa-runner'
 import type { LiveFrame } from '@vostride/agent-qa-schema'
-import { DEFAULT_NAVIGATION_TIMEOUT_MS, remoteLabel } from '@vostride/agent-qa-schema'
+import {
+  DEFAULT_NAVIGATION_TIMEOUT_MS,
+  formatRemoteOrigin,
+  remoteLabel,
+  remoteOrigin,
+} from '@vostride/agent-qa-schema'
 import {
   assertNever,
   buildScreenState,
@@ -150,6 +157,47 @@ function refuseLeakingEnvironment(remote: RemoteBrowserConfig | undefined): void
   }
 }
 
+const NO_DOWNLOAD_BYTES = 'a cdp remote returns no download bytes'
+const REMOTE_DECIDES_WINDOW = 'the remote decides whether its browser shows a window'
+const SHARED_CONTEXT = "the browser's own context is shared with other sessions"
+
+// What a connected browser cannot give, each with why, so evidence never reads it as an empty success.
+function remoteUnsupported(
+  remote: RemoteBrowserConfig,
+  browserName: 'chromium' | 'firefox' | 'webkit',
+): RemoteUnsupported[] {
+  const unsupported: RemoteUnsupported[] = [
+    { capability: 'launch flags', reason: "a remote browser starts with the service's own flags" },
+  ]
+  if (remote.protocol === 'cdp') unsupported.push({ capability: 'downloads', reason: NO_DOWNLOAD_BYTES })
+  unsupported.push({ capability: 'clipboard read-back', reason: REMOTE_DECIDES_WINDOW })
+  if (remote.protocol === 'cdp' && remote.context === 'reuse') {
+    unsupported.push({ capability: 'clipboard probe', reason: SHARED_CONTEXT })
+  }
+  if (browserName !== 'chromium') {
+    unsupported.push({
+      capability: 'live screencast',
+      reason: 'Firefox and WebKit show a one-second snapshot preview',
+    })
+  }
+  return unsupported
+}
+
+function remoteCaptureReason(remote: RemoteBrowserConfig): string {
+  const parts: string[] = []
+  if (remote.protocol === 'cdp') parts.push(NO_DOWNLOAD_BYTES)
+  parts.push(`clipboard read-back is off because ${REMOTE_DECIDES_WINDOW}`)
+  if (remote.protocol === 'cdp' && remote.context === 'reuse') {
+    parts.push(`the clipboard probe is off because ${SHARED_CONTEXT}`)
+  }
+  return parts.join('; ')
+}
+
+function remoteOriginText(url: string): string {
+  const origin = remoteOrigin(url)
+  return origin ? formatRemoteOrigin(origin) : 'invalid url'
+}
+
 export interface WebPlatformAdapterOptions {
   // Set only by a host with its own SIGINT, SIGTERM and SIGHUP handling, such as `agent-qa run`.
   readonly hostOwnsSignals?: true
@@ -173,6 +221,9 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private ownsContext = true
   // Pages a reused context already had; cleanup leaves them open.
   private borrowedPages = new Set<Page>()
+  // Read once from a remote browser at setup; a launch here asks this machine at each keypress.
+  private remoteIsMac: boolean | undefined
+  private place: RemotePlaceEvidence | undefined
   // Adapter-private: observe returns only the `ScreenState`, never the native binding.
   private lastRefs: RefMap = {}
   private epoch: ObservationEpoch | undefined
@@ -285,8 +336,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     this.navigationTimeoutMs = config.timeouts?.navigation ?? DEFAULT_NAVIGATION_TIMEOUT_MS
     this.context.setDefaultNavigationTimeout(this.navigationTimeoutMs)
 
-    // Clipboard write permission — chromium only (firefox/webkit reject this permission)
-    if (browserName === 'chromium') {
+    // Chromium only: Firefox and WebKit reject it. A borrowed context keeps no grant of ours.
+    if (browserName === 'chromium' && reused === undefined) {
       await this.context.grantPermissions(['clipboard-write'])
     }
 
@@ -299,16 +350,53 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
     this.page = await this.context.newPage()
     if (reused !== undefined) await this.page.setViewportSize(viewport)
+    if (remote !== undefined) {
+      const platform = await this.page.evaluate(() => navigator.platform)
+      this.remoteIsMac = /^Mac/.test(platform)
+    }
     this.attachLogListeners(this.page)
 
-    if (browserName === 'chromium') {
-      // A headed or undetermined launch never reads the clipboard.
-      this.operationCapture = new OperationCapture({ headless: isHeadlessLaunch({ headless }, process.env) })
-      await this.operationCapture.attach(this.context)
-      this.operationCaptureSupport = { download: true, clipboard: true }
+    if (remote !== undefined) {
+      // Headedness is the remote's, so the clipboard is never read back there.
+      if (browserName === 'chromium') {
+        this.operationCapture = new OperationCapture({
+          headless: false,
+          downloads: remote.protocol === 'playwright',
+        })
+        await this.operationCapture.attach(this.context)
+        this.operationCaptureSupport = {
+          download: remote.protocol === 'playwright',
+          clipboard: false,
+          reason: remoteCaptureReason(remote),
+        }
+      } else {
+        this.operationCaptureSupport = { download: false, clipboard: false, reason: browserName }
+      }
+      this.place = {
+        place: 'remote',
+        name: remote.name,
+        protocol: remote.protocol,
+        origin: remoteOriginText(remote.url),
+        browserVersion: this.browser.version(),
+        headless: 'decided by the remote',
+        unsupported: remoteUnsupported(remote, browserName),
+      }
     } else {
-      this.operationCaptureSupport = { download: false, clipboard: false, reason: browserName }
+      if (browserName === 'chromium') {
+        // A headed or undetermined launch never reads the clipboard.
+        this.operationCapture = new OperationCapture({ headless: isHeadlessLaunch({ headless }, process.env) })
+        await this.operationCapture.attach(this.context)
+        this.operationCaptureSupport = { download: true, clipboard: true }
+      } else {
+        this.operationCaptureSupport = { download: false, clipboard: false, reason: browserName }
+      }
+      this.place = { place: 'here' }
     }
+  }
+
+  // Where this test ran; undefined before setup and after cleanup.
+  get placeEvidence(): RemotePlaceEvidence | undefined {
+    return this.place
   }
 
   // Absence means no stream, not no preview: the runner's `liveStreamFor` wraps `screenshot()`.
@@ -627,6 +715,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       await this.browser.close()
     }
     this.remote = undefined
+    this.remoteIsMac = undefined
+    this.place = undefined
     this.ownsContext = true
     this.borrowedPages = new Set()
     this.browser = null
@@ -1065,7 +1155,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
         // platform-normalized keys.
         const effectiveKeys = convertKeysForPlatform(action.keys, {
           enabled: action.convertPlatformKeys !== false,
-          isMac: isMacPlatform(),
+          isMac: this.remoteIsMac ?? isMacPlatform(),
         })
         for (const key of effectiveKeys) {
           if (action.mode === 'down') {
