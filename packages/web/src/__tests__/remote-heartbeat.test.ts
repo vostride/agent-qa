@@ -6,11 +6,7 @@ import type { RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
 import { WebPlatformAdapter } from '../adapter.js'
-import {
-  createRemoteHeartbeat,
-  REMOTE_HEARTBEAT_INTERVAL_MS,
-  REMOTE_HEARTBEAT_TIMEOUT_MS,
-} from '../remote-heartbeat.js'
+import { createRemoteHeartbeat } from '../remote-heartbeat.js'
 import {
   refuseWithoutChromium,
   startCdpBrowser,
@@ -40,9 +36,24 @@ describe('the remote heartbeat', () => {
       vi.useRealTimers()
     })
 
-    it('beats every 30 seconds by default, each beat bounded at 10 seconds', () => {
-      expect(REMOTE_HEARTBEAT_INTERVAL_MS).toBe(30_000)
-      expect(REMOTE_HEARTBEAT_TIMEOUT_MS).toBe(10_000)
+    it('beats every 30 seconds by default and counts a beat unanswered after 10 seconds as failed', async () => {
+      vi.useFakeTimers()
+      const hung = deferred()
+      const beat = vi.fn(() => hung.promise)
+      const heartbeat = createRemoteHeartbeat({ beat })
+      heartbeat.start()
+
+      await vi.advanceTimersByTimeAsync(30_000 - 1)
+      expect(beat).not.toHaveBeenCalled()
+      await vi.advanceTimersByTimeAsync(1)
+      expect(beat).toHaveBeenCalledTimes(1)
+
+      await vi.advanceTimersByTimeAsync(10_000 - 1)
+      expect(heartbeat.counts()).toEqual({ sent: 1, failed: 0, suspect: false })
+      await vi.advanceTimersByTimeAsync(1)
+      expect(heartbeat.counts()).toEqual({ sent: 1, failed: 1, suspect: true })
+      heartbeat.stop()
+      hung.resolve()
     })
 
     it('beats at the interval while idle and not after stop', async () => {
@@ -317,7 +328,6 @@ describe('the remote heartbeat', () => {
       const adapter = new WebPlatformAdapter({ heartbeatIntervalMs: SHORT_INTERVAL_MS })
       try {
         await adapter.setup({ platform: 'web', browser: { name: 'chromium' } })
-        await pause(SHORT_INTERVAL_MS * 2)
         expect(adapter.placeEvidence).toEqual({ place: 'here' })
       } finally {
         await adapter.cleanup()
