@@ -141,13 +141,23 @@ describe('error text from a remote-attached adapter', () => {
     for (const secret of ['u:p', 't0k', 'SECRET']) expect(text).not.toContain(secret)
   })
 
-  it('replaces every scheme on the remote host and keeps the punctuation after it', () => {
+  it('replaces every scheme on the remote host and port and keeps the punctuation after it', () => {
     const text = scrubRemoteEndpoint(
-      'discovery http://GRID.example.com:9222/json?k=SECRET, then ws://grid.example.com/devtools.',
+      'discovery https://GRID.example.com/json?k=SECRET, then ws://grid.example.com:443/devtools.',
       remote,
     )
 
     expect(text).toBe(`discovery ${remoteLabel(remote)}, then ${remoteLabel(remote)}.`)
+  })
+
+  it('leaves a url on another port of the remote host as it is', () => {
+    const local = remoteOf('playwright', 'ws://localhost:3000/t0k')
+    const text = 'page.goto: net::ERR_CONNECTION_REFUSED at http://localhost:5173/login'
+
+    expect(scrubRemoteEndpoint(text, local)).toBe(text)
+    expect(scrubRemoteEndpoint('closed ws://localhost:3000/t0k', local)).toBe(
+      `closed ${remoteLabel(local)}`,
+    )
   })
 
   it('leaves other hosts and text that already holds the label as they are', () => {
@@ -156,25 +166,34 @@ describe('error text from a remote-attached adapter', () => {
     expect(scrubRemoteEndpoint(text, remote)).toBe(text)
   })
 
-  it('scrubs an action error on a remote browser', async () => {
+  it('scrubs an action error naming the remote and keeps one naming an app beside it', async () => {
     let server: PlaywrightServer | undefined
     const adapter = new WebPlatformAdapter()
     try {
       server = await startPlaywrightServer()
       const attached = remoteOf('playwright', server.wsEndpoint)
       await adapter.setup({ platform: 'web', browser: { name: 'chromium', remote: attached } })
+      const remotePort = new URL(server.wsEndpoint).port
       const closed = await freePort()
 
-      const result = await adapter.execute({
+      const onRemote = await adapter.execute({
         type: 'navigate',
         to: 'url',
-        url: `http://127.0.0.1:${String(closed)}/t0k?k=SECRET`,
+        url: `https://127.0.0.1:${remotePort}/t0k?k=SECRET`,
+      })
+      const beside = await adapter.execute({
+        type: 'navigate',
+        to: 'url',
+        url: `http://127.0.0.1:${String(closed)}/login`,
       })
 
-      expect(result.success).toBe(false)
-      expect(result.error).toContain(remoteLabel(attached))
-      expect(result.error).not.toContain('t0k')
-      expect(result.error).not.toContain('SECRET')
+      expect(onRemote.success).toBe(false)
+      expect(onRemote.error).toContain(remoteLabel(attached))
+      expect(onRemote.error).not.toContain('t0k')
+      expect(onRemote.error).not.toContain('SECRET')
+      expect(beside.success).toBe(false)
+      expect(beside.error).toContain(`http://127.0.0.1:${String(closed)}/login`)
+      expect(beside.error).not.toContain(remoteLabel(attached))
     } finally {
       await adapter.cleanup()
       await server?.close()

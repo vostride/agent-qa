@@ -273,14 +273,20 @@ export function debugEnablesPlaywright(debug: string | undefined): boolean {
 const ENDPOINT_URL = /\b(?:wss?|https?):\/\/[^\s'"`<>]+/gi
 const TRAILING_PUNCTUATION = /[.,;:!?)'"]+$/
 
-function urlHost(url: string): string | undefined {
+const DEFAULT_PORTS: Partial<Record<string, number>> = { ws: 80, http: 80, wss: 443, https: 443 }
+
+// Host and port, so a url on another port of the remote's host is not taken for the remote.
+function urlOrigin(url: string): string | undefined {
   const origin = remoteOrigin(url)
-  if (origin !== undefined) return origin.host.toLowerCase()
+  if (origin !== undefined) return `${origin.host.toLowerCase()}:${String(origin.port)}`
+  const scheme = /^([a-z]+):\/\//i.exec(url)?.[1]?.toLowerCase() ?? ''
   const authority = url.replace(/^[a-z]+:\/\//i, '').split(/[/?#]/, 1)[0] ?? ''
   const hostPort = authority.slice(authority.lastIndexOf('@') + 1)
-  const bracketed = /^\[([^\]]*)\]/.exec(hostPort)
-  const host = bracketed ? bracketed[1] : hostPort.split(':', 1)[0]
-  return host === undefined || host === '' ? undefined : host.toLowerCase()
+  const bracketed = /^\[([^\]]*)\](?::(\d+))?$/.exec(hostPort)
+  const [host, port] = bracketed ? [bracketed[1], bracketed[2]] : hostPort.split(':', 2)
+  const resolvedPort = port === undefined || port === '' ? DEFAULT_PORTS[scheme] : Number(port)
+  if (host === undefined || host === '' || resolvedPort === undefined) return undefined
+  return `${host.toLowerCase()}:${String(resolvedPort)}`
 }
 
 // A remote's endpoint can carry credentials in its userinfo, path or query; text shows its label.
@@ -289,8 +295,8 @@ export function scrubRemoteEndpoint(
   remote: Pick<RemoteBrowserConfig, 'name' | 'protocol' | 'url'>,
 ): string {
   const label = remoteLabel(remote)
-  const host = urlHost(remote.url)
-  if (host === undefined) return remote.url === '' ? text : text.split(remote.url).join(label)
+  const origin = urlOrigin(remote.url)
+  if (origin === undefined) return remote.url === '' ? text : text.split(remote.url).join(label)
   // The label itself holds the remote's origin, so it is kept as it is.
   return text
     .split(label)
@@ -298,7 +304,7 @@ export function scrubRemoteEndpoint(
       part.replace(ENDPOINT_URL, (found) => {
         const trailing = TRAILING_PUNCTUATION.exec(found)?.[0] ?? ''
         const url = found.slice(0, found.length - trailing.length)
-        return urlHost(url) === host ? `${label}${trailing}` : found
+        return urlOrigin(url) === origin ? `${label}${trailing}` : found
       }),
     )
     .join(label)
