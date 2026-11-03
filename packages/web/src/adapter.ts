@@ -57,6 +57,7 @@ import {
   resolveRemoteConnection,
   rewriteConnectError,
   scrubRemoteEndpoint,
+  withinConnectTimeout,
 } from './remote-connection.js'
 import { createScreencastRecording, type ScreencastRecording } from './recording.js'
 import { isHeadlessLaunch, OperationCapture } from './operation-capture.js'
@@ -352,9 +353,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
     if (remote === undefined) return this.openSession(config, undefined, browserName, headless)
     try {
-      await this.openSession(config, remote, browserName, headless)
+      await withinConnectTimeout(this.openSession(config, remote, browserName, headless), remote)
     } catch (error) {
-      throw this.withoutEndpoint(error)
+      const scrubbed = this.withoutEndpoint(error)
+      if (!(scrubbed instanceof RemoteRefusalError)) throw scrubbed
+      throw this.options.refusalMemory?.remember(remote.name, scrubbed) ?? scrubbed
     }
   }
 

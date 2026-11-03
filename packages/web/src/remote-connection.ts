@@ -102,6 +102,25 @@ export function rewriteConnectError(
   })
 }
 
+// A remote that goes silent after its handshake would hold setup with no test timeout running yet.
+export function withinConnectTimeout<T>(work: Promise<T>, remote: RemoteBrowserConfig): Promise<T> {
+  void work.catch(() => undefined)
+  let timer: ReturnType<typeof setTimeout> | undefined
+  const bound = new Promise<never>((_resolve, reject) => {
+    timer = setTimeout(() => {
+      const label = remoteLabel(remote)
+      reject(
+        new RemoteRefusalError(
+          `Remote ${label} connected but did not open a page within ${formatConnectTimeout(remote.connectTimeoutMs)}. Raise its connectTimeout or check the service.`,
+          { remote: label, kind: 'timeout' },
+        ),
+      )
+    }, remote.connectTimeoutMs)
+    timer.unref?.()
+  })
+  return Promise.race([work, bound]).finally(() => clearTimeout(timer))
+}
+
 /** The longest the probe after a dropped session waits for the remote's host to answer. */
 export const REMOTE_DISCONNECT_PROBE_MS = 2_000
 

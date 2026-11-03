@@ -1,10 +1,11 @@
+import { chromium } from 'playwright-core'
 import {
   createRemoteRefusalMemory,
   RemoteRefusalError,
   SecretStore,
 } from '@vostride/agent-qa-runner'
 import type { RemoteBrowserConfig, RemoteFailureKind } from '@vostride/agent-qa-runner'
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { WebPlatformAdapter } from '../adapter.js'
 import type { WebPlatformAdapterOptions } from '../adapter.js'
@@ -13,6 +14,7 @@ import {
   freePort,
   startCountingProxy,
   startMismatchedRunServer,
+  startPlaywrightServer,
   startSilentSocket,
   startStatusServer,
 } from './fixtures/remote-browsers.js'
@@ -41,6 +43,7 @@ const CONNECT_TIMEOUT_MS = 30_000
 const teardowns: Array<() => Promise<void>> = []
 
 afterEach(async () => {
+  vi.restoreAllMocks()
   for (const teardown of teardowns.splice(0).reverse()) await teardown()
 })
 
@@ -203,6 +206,34 @@ describe('a remote that cannot connect', () => {
       `Remote grid (playwright ws://127.0.0.1:${String(silent.port)}) did not connect within 1500ms. Raise its connectTimeout or check the service.`,
     )
   })
+
+  it('names the connect timeout when the remote goes silent right after its handshake', async () => {
+    const server = await startPlaywrightServer()
+    teardowns.push(() => server.close())
+    const upstream = new URL(server.wsEndpoint)
+    const proxy = await startCountingProxy(Number(upstream.port))
+    teardowns.push(() => proxy.close())
+    const connect = chromium.connect.bind(chromium)
+    vi.spyOn(chromium, 'connect').mockImplementation(async (...args) => {
+      const browser = await connect(...args)
+      proxy.blackhole()
+      return browser
+    })
+    const remote: RemoteBrowserConfig = {
+      name: 'grid',
+      protocol: 'playwright',
+      url: `ws://127.0.0.1:${String(proxy.port)}${upstream.pathname}`,
+      connectTimeoutMs: 1500,
+    }
+
+    const error = await refusalOf(remote, {})
+
+    expectRefusal(
+      error,
+      'timeout',
+      `Remote grid (playwright ws://127.0.0.1:${String(proxy.port)}) connected but did not open a page within 1500ms. Raise its connectTimeout or check the service.`,
+    )
+  }, 60_000)
 
   it('writes a connect timeout in whole minutes, whole seconds or milliseconds', () => {
     expect(formatConnectTimeout(300_000)).toBe('5m')
