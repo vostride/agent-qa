@@ -13,6 +13,7 @@ import type {
   RemoteBrowserConfig,
   RemotePlaceEvidence,
   RemoteRefusalMemory,
+  RemoteSessionRegistry,
   RemoteUnsupported,
   SecretResolver,
 } from '@vostride/agent-qa-runner'
@@ -230,6 +231,8 @@ export interface WebPlatformAdapterOptions {
   readonly secretsFile?: string
   // Every declared secret, so a remote's references resolve at connect and nowhere else.
   readonly connectionSecrets?: SecretResolver
+  // The host process's open sessions, so a signal can release this one without waiting for cleanup.
+  readonly sessions?: RemoteSessionRegistry
   // Tests only: a shorter heartbeat interval than the fixed one hosts get.
   readonly heartbeatIntervalMs?: number
 }
@@ -250,6 +253,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private remoteIsMac: boolean | undefined
   private place: RemotePlaceEvidence | undefined
   private heartbeat: RemoteHeartbeat | undefined
+  private unregisterRelease: (() => void) | undefined
   // Adapter-private: observe returns only the `ScreenState`, never the native binding.
   private lastRefs: RefMap = {}
   private epoch: ObservationEpoch | undefined
@@ -344,6 +348,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       this.disconnected = true
       if (remote !== undefined) this.remoteDropped(remote)
     })
+    if (remote !== undefined) this.registerRelease(browser)
 
     const viewport = config.browser?.viewport ?? { width: 1280, height: 720 }
     const storageStatePath = config.authState?.storageStatePath
@@ -451,7 +456,27 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     })
     this.heartbeat = heartbeat
     browser.on('disconnected', () => heartbeat.stop())
-    if (browser.isConnected()) heartbeat.start()
+    if (browser.isConnected() && !this.intentionalClose) heartbeat.start()
+  }
+
+  // Disconnects only: close() on a connected browser never stops the remote service.
+  private registerRelease(browser: Browser): void {
+    const sessions = this.options.sessions
+    if (sessions === undefined) return
+    this.unregisterRelease?.()
+    let released: Promise<void> | undefined
+    this.unregisterRelease = sessions.register(() => {
+      released ??= this.releaseRemote(browser)
+      return released
+    })
+  }
+
+  private async releaseRemote(browser: Browser): Promise<void> {
+    if (this.browser === browser) {
+      this.intentionalClose = true
+      this.heartbeat?.stop()
+    }
+    await browser.close()
   }
 
   // Every page operation holds the heartbeat off, so a beat never overlaps it.
@@ -779,6 +804,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   }
 
   async cleanup(): Promise<void> {
+    this.unregisterRelease?.()
+    this.unregisterRelease = undefined
     this.intentionalClose = true
     this.heartbeat?.stop()
     this.heartbeat = undefined

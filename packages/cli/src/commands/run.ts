@@ -39,8 +39,8 @@ import type {
 import type { DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
-import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory } from '@vostride/agent-qa-runner'
-import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
+import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
+import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, createRemoteSessionRegistry, REMOTE_RELEASE_BOUND_MS, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
 import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory } from '@vostride/agent-qa-runner'
@@ -295,6 +295,26 @@ function releaseAppium(): void {
   _appiumManager?.release()
 }
 
+// Every remote session this process holds, whichever door started its run.
+const processRemoteSessions = createRemoteSessionRegistry()
+let startedRemoteRelease: Promise<void> | undefined
+
+export { REMOTE_RELEASE_BOUND_MS }
+
+/** Disconnects every open remote session at once, each within `boundMs`; never throws. */
+export function releaseRemoteSessions(boundMs: number): Promise<void> {
+  const releasing = processRemoteSessions.releaseAll(boundMs)
+  const earlier = startedRemoteRelease
+  startedRemoteRelease =
+    earlier === undefined ? releasing : Promise.all([earlier, releasing]).then(() => undefined)
+  return releasing
+}
+
+// A run's exit waits for the release its signal started, so exiting never cuts one short.
+function startedRemoteReleases(): Promise<void> {
+  return startedRemoteRelease ?? Promise.resolve()
+}
+
 export async function createPlatformAdapter(
   platform: 'web' | 'android' | 'ios',
   options: {
@@ -305,6 +325,8 @@ export async function createPlatformAdapter(
     readonly secretsFile?: string
     // The run's one memory, so a refused remote is never connected to twice in it.
     readonly refusalMemory?: RemoteRefusalMemory
+    // Defaults to this process's registry, which a signal releases.
+    readonly sessions?: RemoteSessionRegistry
   } = {},
 ): Promise<PlatformAdapter> {
   if (platform === 'android') {
@@ -335,6 +357,7 @@ export async function createPlatformAdapter(
       : { connectionSecrets: options.connectionSecrets }),
     ...(options.secretsFile === undefined ? {} : { secretsFile: options.secretsFile }),
     ...(options.refusalMemory === undefined ? {} : { refusalMemory: options.refusalMemory }),
+    sessions: options.sessions ?? processRemoteSessions,
   })
 }
 
@@ -2004,6 +2027,8 @@ async function executeSuites(
   // A second Ctrl+C force-exits 130 at once, whatever the grace timer or a wedged `done` is doing.
   const shutdownController = createShutdownController({
     cancel: () => {
+      // Started first and not awaited, so each remote is released inside the grace below.
+      void releaseRemoteSessions(REMOTE_RELEASE_BOUND_MS)
       curationAbortController.abort()
       try { activeRunSession?.cancel() } catch { /* cancel is best-effort */ }
     },
@@ -2159,6 +2184,7 @@ async function executeSuites(
     record.close()
   }
 
+  await startedRemoteReleases()
   releaseAppium()
   if (remoteRefusal === undefined) return { exitCode, remoteRefused: false }
   printRunText(
@@ -4668,6 +4694,8 @@ export function createRunCommand(): Command {
         }
         const shutdownController = createShutdownController({
           cancel: () => {
+            // Started first and not awaited, so each remote is released inside the grace below.
+            void releaseRemoteSessions(REMOTE_RELEASE_BOUND_MS)
             curationAbortController.abort()
             try { activeRunSession?.cancel() } catch { /* cancel is best-effort */ }
           },
@@ -4824,6 +4852,7 @@ export function createRunCommand(): Command {
           process.removeListener('SIGHUP', shutdownController.handleSignal)
         }
 
+        await startedRemoteReleases()
         releaseAppium()
 
         record.close()
@@ -4839,6 +4868,7 @@ export function createRunCommand(): Command {
         await drainAnalytics() // The verdict path's terminal exit.
         process.exit(exitCode)
       } catch (err) {
+        await startedRemoteReleases()
         // Input refusals become output and an exit code only here, at the door with a terminal.
         if (err instanceof CliRunInputError) {
           if (err.lines.length > 0) {

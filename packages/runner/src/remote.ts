@@ -88,3 +88,47 @@ export function createRemoteRefusalMemory(): RemoteRefusalMemory {
     },
   }
 }
+
+/** How long each open remote session gets to release on a signal; all release at once. */
+export const REMOTE_RELEASE_BOUND_MS = 2_000
+
+// One per host process: an adapter registers its session's release after a connect.
+export interface RemoteSessionRegistry {
+  register(release: (boundMs: number) => Promise<void>): () => void
+  releaseAll(boundMs: number): Promise<void>
+}
+
+// Each release is raced against its own timer, so a silent remote never holds the others.
+function settleWithin(work: () => Promise<void>, boundMs: number): Promise<void> {
+  return new Promise<void>((settled) => {
+    const handle = setTimeout(settled, boundMs) as unknown as { unref?: () => void }
+    handle.unref?.()
+    const done = (): void => {
+      clearTimeout(handle as unknown as ReturnType<typeof setTimeout>)
+      settled()
+    }
+    try {
+      work().then(done, done)
+    } catch {
+      done()
+    }
+  })
+}
+
+export function createRemoteSessionRegistry(): RemoteSessionRegistry {
+  const releases = new Set<{ release: (boundMs: number) => Promise<void> }>()
+  return {
+    register(release) {
+      const entry = { release }
+      releases.add(entry)
+      return () => {
+        releases.delete(entry)
+      }
+    },
+    async releaseAll(boundMs) {
+      const due = [...releases]
+      releases.clear()
+      await Promise.all(due.map((entry) => settleWithin(() => entry.release(boundMs), boundMs)))
+    },
+  }
+}
