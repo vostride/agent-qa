@@ -228,7 +228,25 @@ export function resolveRemoteConnection(
   return { url, headers }
 }
 
-const PLAYWRIGHT_LOGGERS = ['pw:api', 'pw:protocol'] as const
+// Playwright's own loggers, any of which can print a connect call's endpoint and headers.
+const PLAYWRIGHT_LOGGERS = [
+  'pw:api',
+  'pw:protocol',
+  'pw:install',
+  'pw:download',
+  'pw:browser',
+  'pw:socks',
+  'pw:client-certificates',
+  'pw:error',
+  'pw:channel',
+  'pw:server',
+  'pw:server:channel',
+  'pw:server:metadata',
+  'pw:recorder',
+] as const
+
+// Stands for every `pw:` name not listed: only a skip that covers all of `pw:` excludes it.
+const UNLISTED_PLAYWRIGHT_LOGGER = 'pw:'
 
 function namespacePattern(pattern: string): RegExp {
   const parts = pattern.split('*').map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
@@ -242,7 +260,11 @@ export function debugEnablesPlaywright(debug: string | undefined): boolean {
   const skips = patterns
     .filter((pattern) => pattern.startsWith('-'))
     .map((pattern) => namespacePattern(pattern.slice(1)))
-  return PLAYWRIGHT_LOGGERS.some(
+  const named = patterns
+    .filter((pattern) => !pattern.startsWith('-'))
+    .map((pattern) => pattern.replace(/\*/g, ''))
+    .filter((name) => name.startsWith('pw:'))
+  return [...PLAYWRIGHT_LOGGERS, UNLISTED_PLAYWRIGHT_LOGGER, ...named].some(
     (name) =>
       !skips.some((skip) => skip.test(name)) && includes.some((include) => include.test(name)),
   )

@@ -33,14 +33,38 @@ async function setupError(adapter: WebPlatformAdapter, remote: RemoteBrowserConf
 }
 
 describe("Playwright's own logging on a remote", () => {
-  it.each(['*', 'pw:*', 'pw:api', 'pw:protocol', 'foo,pw:*', 'express:* pw:api'])(
+  it.each([
+    '*',
+    'pw:*',
+    'pw:api',
+    'pw:protocol',
+    'pw:channel',
+    'pw:server',
+    'pw:server:channel',
+    'pw:server:*',
+    'pw:a-name-playwright-adds-later',
+    'pw:*,-pw:api,-pw:protocol',
+    '*,-pw:api',
+    'p*',
+    'foo,pw:*',
+    'express:* pw:api',
+  ])(
     'DEBUG=%s turns it on',
     (debug) => {
       expect(debugEnablesPlaywright(debug)).toBe(true)
     },
   )
 
-  it.each([undefined, '', 'express:*', '*,-pw:*', 'pw:*,-pw:*'])(
+  it.each([
+    undefined,
+    '',
+    'express:*',
+    'express:*,agent-qa:*',
+    '*,-pw:*',
+    'pw:*,-pw:*',
+    'pw:channel,-pw:*',
+    '*,-p*',
+  ])(
     'DEBUG=%s leaves it off',
     (debug) => {
       expect(debugEnablesPlaywright(debug)).toBe(false)
