@@ -57,6 +57,8 @@ import {
 } from './remote-connection.js'
 import { createScreencastRecording, type ScreencastRecording } from './recording.js'
 import { isHeadlessLaunch, OperationCapture } from './operation-capture.js'
+import { createRemoteHeartbeat } from './remote-heartbeat.js'
+import type { RemoteHeartbeat } from './remote-heartbeat.js'
 import type { CapturedOperations } from './operation-capture.js'
 
 interface PageLogBuffers {
@@ -225,6 +227,8 @@ export interface WebPlatformAdapterOptions {
   readonly secretsFile?: string
   // Every declared secret, so a remote's references resolve at connect and nowhere else.
   readonly connectionSecrets?: SecretResolver
+  // Tests only: a shorter heartbeat interval than the fixed one hosts get.
+  readonly heartbeatIntervalMs?: number
 }
 
 export class WebPlatformAdapter implements PlatformAdapter<'web'> {
@@ -242,6 +246,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   // Read once from a remote browser at setup; a launch here asks this machine at each keypress.
   private remoteIsMac: boolean | undefined
   private place: RemotePlaceEvidence | undefined
+  private heartbeat: RemoteHeartbeat | undefined
   // Adapter-private: observe returns only the `ScreenState`, never the native binding.
   private lastRefs: RefMap = {}
   private epoch: ObservationEpoch | undefined
@@ -399,6 +404,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
         headless: 'decided by the remote',
         unsupported: remoteUnsupported(remote, browserName),
       }
+      await this.startHeartbeat(remote, this.browser, this.context)
     } else {
       if (browserName === 'chromium') {
         // A headed or undetermined launch never reads the clipboard.
@@ -412,9 +418,49 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     }
   }
 
+  // Keeps the service from closing an idle session; it touches neither the page nor the app.
+  private async startHeartbeat(
+    remote: RemoteBrowserConfig,
+    browser: Browser,
+    context: BrowserContext,
+  ): Promise<void> {
+    let beat: () => Promise<unknown> = () => context.cookies()
+    if (remote.protocol === 'cdp') {
+      try {
+        const session = await browser.newBrowserCDPSession()
+        beat = () => session.send('Browser.getVersion')
+      } catch {
+        // A service that refuses a browser-level session still answers the context's cookies.
+      }
+    }
+    const heartbeat = createRemoteHeartbeat({
+      ...(this.options.heartbeatIntervalMs !== undefined
+        ? { intervalMs: this.options.heartbeatIntervalMs }
+        : {}),
+      beat,
+    })
+    this.heartbeat = heartbeat
+    browser.on('disconnected', () => heartbeat.stop())
+    if (browser.isConnected()) heartbeat.start()
+  }
+
+  // Every page operation holds the heartbeat off, so a beat never overlaps it.
+  private async holdingHeartbeat<T>(work: () => Promise<T>): Promise<T> {
+    const heartbeat = this.heartbeat
+    if (heartbeat === undefined) return work()
+    await heartbeat.enter()
+    try {
+      return await work()
+    } finally {
+      heartbeat.leave()
+    }
+  }
+
   // Where this test ran; undefined before setup and after cleanup.
   get placeEvidence(): RemotePlaceEvidence | undefined {
-    return this.place
+    const place = this.place
+    if (place?.place !== 'remote' || this.heartbeat === undefined) return place
+    return { ...place, heartbeat: this.heartbeat.counts() }
   }
 
   // Absence means no stream, not no preview: the runner's `liveStreamFor` wraps `screenshot()`.
@@ -425,7 +471,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     const capability: LiveStreamCapability = {
       kind: 'cdp-screencast',
       start: (onFrame: (frame: LiveFrame) => void): Promise<void> =>
-        this.onScreencastChain(async () => {
+        this.holdingHeartbeat(() => this.onScreencastChain(async () => {
           if (this.screencastOnFrame !== null) return
           const page = this.page
           const context = this.context
@@ -445,7 +491,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
             throw error
           }
           if (this.screencast === cdp) this.armKeepalive(cdp)
-        }),
+        })),
       ack: async (frameId: number): Promise<void> => {
         const cdp = this.screencast
         if (!cdp) return
@@ -462,11 +508,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
         }
       },
       stop: (): Promise<void> =>
-        this.onScreencastChain(async () => {
+        this.holdingHeartbeat(() => this.onScreencastChain(async () => {
           this.screencastOnFrame = null
           await this.stopWithdrawnSnapshot()
           await this.detachScreencast()
-        }),
+        })),
     }
     this.screencastCapability = capability
     return capability
@@ -696,6 +742,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
   async cleanup(): Promise<void> {
     this.intentionalClose = true
+    this.heartbeat?.stop()
+    this.heartbeat = undefined
     if (this.remote === undefined) {
       await this.releaseSession()
       if (this.browser) {
@@ -779,7 +827,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
   async observe(): Promise<ScreenState> {
     try {
-      return await this.observePage()
+      return await this.holdingHeartbeat(() => this.observePage())
     } catch (error) {
       throw this.withoutEndpoint(error)
     }
@@ -834,7 +882,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
   async execute(action: ActionsFor<'web'>, options?: ExecuteOptions): Promise<ActionResult> {
     try {
-      const result = await this.executeOnPage(action, options)
+      const result = await this.holdingHeartbeat(() => this.executeOnPage(action, options))
       const remote = this.remote
       if (remote === undefined || result.error === undefined) return result
       return { ...result, error: scrubRemoteEndpoint(result.error, remote) }
@@ -926,10 +974,10 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
   async screenshot(): Promise<Buffer | undefined> {
     try {
-      if (this.page) {
-        return await this.page.screenshot({ scale: 'css', timeout: SCREENSHOT_TIMEOUT_MS })
-      }
-      return undefined
+      if (!this.page) return undefined
+      return await this.holdingHeartbeat(async () =>
+        this.page?.screenshot({ scale: 'css', timeout: SCREENSHOT_TIMEOUT_MS }),
+      )
     } catch {
       return undefined
     }

@@ -92,6 +92,8 @@ export interface CountingProxy {
   connections(): number
   /** WebSocket close frames the clients sent, forwarded or not. */
   closeFrames(): number
+  /** Every WebSocket frame the clients sent after their upgrade, forwarded or not. */
+  clientFrames(): number
   /** Stops forwarding in both directions and keeps every socket open, so the remote goes silent. */
   blackhole(): void
   close(): Promise<void>
@@ -100,8 +102,8 @@ export interface CountingProxy {
 const WEBSOCKET_UPGRADE = /\r\nupgrade:\s*websocket\s*\r\n/i
 const WEBSOCKET_CLOSE_OPCODE = 0x8
 
-// Reads a client's frames after its upgrade request and reports each close frame.
-function closeFrameReader(onClose: () => void): (chunk: Buffer) => void {
+// Reads a client's frames after its upgrade request and reports each frame's opcode.
+function frameReader(onFrame: (opcode: number) => void): (chunk: Buffer) => void {
   let pending = Buffer.alloc(0)
   let upgraded = false
   return (chunk) => {
@@ -128,7 +130,7 @@ function closeFrameReader(onClose: () => void): (chunk: Buffer) => void {
       }
       if ((pending[1]! & 0x80) !== 0) offset += 4
       if (pending.length < offset + length) return
-      if (opcode === WEBSOCKET_CLOSE_OPCODE) onClose()
+      onFrame(opcode)
       pending = pending.subarray(offset + length)
     }
   }
@@ -140,6 +142,7 @@ export async function startCountingProxy(targetPort: number): Promise<CountingPr
   let sessions = 0
   let connections = 0
   let closeFrames = 0
+  let clientFrames = 0
   let silent = false
 
   const close = async (): Promise<void> => {
@@ -169,8 +172,9 @@ export async function startCountingProxy(targetPort: number): Promise<CountingPr
       client.on('data', (chunk: Buffer) => {
         if (first && WEBSOCKET_UPGRADE.test(chunk.toString('latin1'))) {
           sessions += 1
-          readFrames = closeFrameReader(() => {
-            closeFrames += 1
+          readFrames = frameReader((opcode) => {
+            clientFrames += 1
+            if (opcode === WEBSOCKET_CLOSE_OPCODE) closeFrames += 1
           })
         }
         first = false
@@ -195,6 +199,7 @@ export async function startCountingProxy(targetPort: number): Promise<CountingPr
       sessions: () => sessions,
       connections: () => connections,
       closeFrames: () => closeFrames,
+      clientFrames: () => clientFrames,
       blackhole,
       close,
     }

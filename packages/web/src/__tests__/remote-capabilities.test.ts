@@ -168,6 +168,7 @@ describe('what a remote browser cannot give', () => {
             reason: 'the remote decides whether its browser shows a window',
           },
         ],
+        heartbeat: { sent: 0, failed: 0, suspect: false },
       })
 
       const pressed = await pressEnterOnPage(adapter)
