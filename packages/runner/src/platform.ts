@@ -12,6 +12,7 @@ import type {
   ScreenState,
 } from '@vostride/agent-qa-schema'
 import type { ConsoleLogEntry, NetworkLogEntry } from './result.js'
+import type { RemoteBrowserConfig } from './remote.js'
 
 // Runtime-owned schema action members outside the planner catalog; they add no union members.
 export type RunnerRuntimeVerbs =
@@ -131,6 +132,7 @@ export interface BrowserConfig {
   name: 'chromium' | 'firefox' | 'webkit'
   headless?: boolean
   viewport?: { width: number; height: number }
+  remote?: RemoteBrowserConfig
 }
 
 export interface DeviceConfig {

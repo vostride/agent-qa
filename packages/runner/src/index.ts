@@ -21,6 +21,7 @@ export type {
   ServedRunBrief,
 } from './knowledge-hint-reader.js'
 export { assertNever } from './platform.js'
+export * from './remote.js'
 // Lets runner consumers build branded refs without a direct schema dependency.
 export { asRef } from '@vostride/agent-qa-schema'
 export type { Ref } from '@vostride/agent-qa-schema'
