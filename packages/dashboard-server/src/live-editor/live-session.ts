@@ -1,10 +1,11 @@
 import { randomUUID } from 'node:crypto'
-import { dirname, resolve as resolvePath } from 'node:path'
+import { dirname, posix, resolve as resolvePath } from 'node:path'
 import { format } from 'node:util'
 import {
   AUTH_STATE_SCHEMA_VERSION,
   MobileSetupError,
   PlannerConfigSchema,
+  RemoteEntrySchema,
   SuiteDefinitionSchema,
   TestDefinitionSchema,
   TimeoutConfigSchema,
@@ -13,6 +14,8 @@ import {
   printRunText,
   readAuthStateMetadata,
   resolveAuthStatePaths,
+  selectSuitePlace,
+  selectWebPlace,
   writeAuthStateFiles,
 } from '@vostride/agent-qa-core'
 import {
@@ -46,6 +49,8 @@ import type {
   HookDefinition,
   MobilePlatform,
   RemoteConnectionFields,
+  RemoteEntry,
+  SelectWebPlaceResult,
 } from '@vostride/agent-qa-core'
 import { resolvePlannerLimits } from '@vostride/agent-qa-schema'
 import type { DeclaredModelProfile, PlannerLimits } from '@vostride/agent-qa-schema'
@@ -92,8 +97,10 @@ function isConfigRecord(value: unknown): value is Record<string, unknown> {
 
 /** The workspace readers the create door already holds, by canonical id. */
 export interface LiveEntityDefinitionReaders {
-  findTest?(testId: string): Promise<{ content: string } | null>
-  findSuite?(suiteId: string): Promise<{ content: string } | null>
+  findTest?(testId: string): Promise<{ path?: string; content: string } | null>
+  findSuite?(suiteId: string): Promise<{ path?: string; content: string } | null>
+  // A suite member, by the config-relative path the suite file lists.
+  readTest?(file: string): Promise<string>
 }
 
 async function readEntityUse(
@@ -266,6 +273,133 @@ export async function readLiveRemotes(
         ? { basicAuth: { user: basicAuth.user, password: basicAuth.password } }
         : {}),
     }
+  })
+}
+
+export class LiveRemotesRefusedError extends Error {
+  constructor(message: string) {
+    super(message)
+    this.name = 'LiveRemotesRefusedError'
+  }
+}
+
+// The live editor always launches Chromium, so a Chromium-only remote fits every session.
+const LIVE_ENGINE = 'chromium'
+
+function browserRemotePick(use: unknown): string | undefined {
+  if (!isConfigRecord(use) || !isConfigRecord(use.browser)) return undefined
+  return typeof use.browser.remote === 'string' ? use.browser.remote : undefined
+}
+
+function parsedRecord(content: string): Record<string, unknown> | undefined {
+  try {
+    const parsed: unknown = parseYaml(content)
+    return isConfigRecord(parsed) ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+async function findEntityFile(
+  find: ((id: string) => Promise<{ path?: string; content: string } | null>) | undefined,
+  id: string,
+): Promise<{ path?: string; record: Record<string, unknown> } | undefined> {
+  if (find === undefined) return undefined
+  try {
+    const found = await find(id)
+    if (found === null) return undefined
+    const record = parsedRecord(found.content)
+    return record === undefined ? undefined : { path: found.path, record }
+  } catch {
+    return undefined
+  }
+}
+
+// The remotes the strict config parse accepts; an entry it refuses refuses every session, as a run.
+function liveRemoteEntries(registry: unknown): RemoteEntry[] {
+  const remotes = isConfigRecord(registry) ? registry.remotes : undefined
+  if (remotes === undefined) return []
+  const parsed = RemoteEntrySchema.array().safeParse(remotes)
+  if (parsed.success) return parsed.data
+  const issue = parsed.error.issues[0]
+  const at = (issue?.path ?? [])
+    .map((key) => (typeof key === 'number' ? `[${key}]` : `.${String(key)}`))
+    .join('')
+  throw new LiveRemotesRefusedError(
+    `project config sets registry.remotes${at}: ${(issue?.message ?? 'invalid value').replace(/\.$/, '')}. The CLI refuses this file too.`,
+  )
+}
+
+function memberFile(file: string): string {
+  return posix.normalize(file.split('\\').join('/')).replace(/^\.\//, '')
+}
+
+/**
+ * Where a live web session runs, read from the files by the rule `agent-qa run` applies: a suite
+ * by the suite's pick and its members', a test by its own pick then the config's, no entity by
+ * the config's. Never from the request.
+ */
+export async function resolveLivePlace(
+  configManager: ConfigManager | undefined,
+  entity: EntityRef | undefined,
+  readers: LiveEntityDefinitionReaders,
+): Promise<SelectWebPlaceResult> {
+  const config = configManager === undefined ? {} : await readConfigValues(configManager)
+  const remotes = liveRemoteEntries(config.registry)
+  const configPick = browserRemotePick(config.use)
+
+  if (entity?.type === 'suite') {
+    const suite = await findEntityFile(readers.findSuite, entity.id)
+    if (suite !== undefined) {
+      const entries = Array.isArray(suite.record.tests) ? suite.record.tests : []
+      const members: Array<{ file: string; pick?: string }> = []
+      for (const entry of entries) {
+        if (!isConfigRecord(entry) || typeof entry.test !== 'string') continue
+        const file = memberFile(entry.test)
+        let content: string
+        try {
+          if (readers.readTest === undefined) continue
+          content = await readers.readTest(file)
+        } catch {
+          // A member the run cannot load is not placed, there or here.
+          continue
+        }
+        const member = parsedRecord(content)
+        if (member === undefined) continue
+        const pick = browserRemotePick(member.use)
+        members.push({ file, ...(pick === undefined ? {} : { pick }) })
+      }
+      const suitePick = browserRemotePick(suite.record.use)
+      return selectSuitePlace({
+        remotes,
+        suiteName: typeof suite.record.name === 'string' ? suite.record.name : entity.id,
+        suiteFile: suite.path ?? entity.id,
+        ...(suitePick === undefined ? {} : { suite: suitePick }),
+        ...(configPick === undefined ? {} : { config: configPick }),
+        members,
+        engine: LIVE_ENGINE,
+      })
+    }
+  }
+
+  if (entity?.type === 'test') {
+    const test = await findEntityFile(readers.findTest, entity.id)
+    if (test !== undefined) {
+      const testPick = browserRemotePick(test.record.use)
+      return selectWebPlace({
+        remotes,
+        ...(testPick === undefined ? {} : { test: testPick }),
+        ...(configPick === undefined ? {} : { config: configPick }),
+        ...(test.path === undefined ? {} : { file: test.path }),
+        engine: LIVE_ENGINE,
+      })
+    }
+  }
+
+  return selectWebPlace({
+    remotes,
+    ...(configPick === undefined ? {} : { config: configPick }),
+    engine: LIVE_ENGINE,
   })
 }
 

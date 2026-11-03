@@ -22,8 +22,10 @@ import { carriesNonJsonBody, readJsonBody } from './body-parser.js'
 import {
   LiveNavigationTimeoutRefusedError,
   LivePlannerLimitsRefusedError,
+  LiveRemotesRefusedError,
   readLiveRemotes,
   resolveLiveNavigationTimeoutMs,
+  resolveLivePlace,
   resolveLivePlannerLimits,
 } from '../live-editor/live-session.js'
 import { refuseCrossSiteRequest } from './cross-site.js'
@@ -231,6 +233,11 @@ function withDeclaredMask<T>(mask: MaskFn | undefined, build: (mask: MaskFn) => 
 }
 
 // The target list answers masked names, so a save whose target holds one writes the marker.
+// By name, because the error can come from another copy of the runner package.
+function isRemoteRefusal(error: unknown): boolean {
+  return error instanceof Error && error.name === 'RemoteRefusalError'
+}
+
 function suiteFileTarget(content: string): unknown {
   try {
     const parsed: unknown = parseYaml(content)
@@ -4434,6 +4441,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           const entityReaders = {
             ...(testFileManager === undefined ? {} : { findTest: (id: string) => testFileManager.findByTestId(id) }),
             ...(suiteFileManager === undefined ? {} : { findSuite: (id: string) => suiteFileManager.findBySuiteId(id) }),
+            ...(testFileManager === undefined ? {} : { readTest: (file: string) => testFileManager.read(file) }),
           }
           const plannerLimits = await resolveLivePlannerLimits(configManager, entityRef, entityReaders)
           const navigationTimeoutMs = await resolveLiveNavigationTimeoutMs(
@@ -4441,6 +4449,15 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
             entityRef,
             entityReaders,
           )
+          // The place comes from the files by the run's rule; nothing in the request names it.
+          const placed = platform === 'web'
+            ? await resolveLivePlace(configManager, entityRef, entityReaders)
+            : undefined
+          if (placed !== undefined && 'refusal' in placed) {
+            json(res, { error: placed.refusal }, 400)
+            return
+          }
+          const remote = placed?.place.kind === 'remote' ? placed.place.remote : undefined
           // Each test a session runs gets project, then the session's suite, then its own `use`:
           // the chain the CLI suite producer resolves per member.
           const sessionSuiteRef = entityRef?.type === 'suite' ? entityRef : undefined
@@ -4473,6 +4490,7 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
               url: body?.url,
               headless: body?.headless ?? false,
               navigationTimeoutMs,
+              ...(remote === undefined ? {} : { remote }),
               useDeviceName: typeof body?.useDeviceName === 'string' ? body.useDeviceName : undefined,
               appState: body?.appState === 'preserve' || body?.appState === 'reset' ? body.appState : undefined,
               bundleId: typeof body?.bundleId === 'string' ? body.bundleId : undefined,
@@ -4489,7 +4507,9 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           // session exists.
           const refused =
             err instanceof LivePlannerLimitsRefusedError ||
-            err instanceof LiveNavigationTimeoutRefusedError
+            err instanceof LiveNavigationTimeoutRefusedError ||
+            err instanceof LiveRemotesRefusedError ||
+            isRemoteRefusal(err)
           const status = refused ? 400 : 500
           json(res, { error: message }, status)
         }

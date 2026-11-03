@@ -33,7 +33,13 @@ export class SessionManager {
 
     const sessionId = randomUUID()
     const session = new LiveSession(sessionId, this.deps)
-    await session.initialize(config)
+    try {
+      await session.initialize(config)
+    } catch (error) {
+      // A session that never opened still lets go of what it started, such as a remote browser.
+      await session.cleanup().catch(() => undefined)
+      throw error
+    }
     this.sessions.set(sessionId, session)
     // The session is an editor subject for exactly its lifetime.
     this.deps.liveEditorSubjects?.register(sessionId, session.liveAttachment())

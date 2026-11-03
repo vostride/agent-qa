@@ -87,6 +87,11 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
   printRunText: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).printRunText,
   connectionSecretMisuse: (await importOriginal<typeof import('@vostride/agent-qa-core')>())
     .connectionSecretMisuse,
+  RemoteEntrySchema: (await importOriginal<typeof import('@vostride/agent-qa-core')>())
+    .RemoteEntrySchema,
+  selectSuitePlace: (await importOriginal<typeof import('@vostride/agent-qa-core')>())
+    .selectSuitePlace,
+  selectWebPlace: (await importOriginal<typeof import('@vostride/agent-qa-core')>()).selectWebPlace,
   MobileSetupError: class MobileSetupError extends Error {
     category: string
     constructor(options: { category: string; message: string }) {
