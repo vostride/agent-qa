@@ -7,6 +7,8 @@ import { AgentQaConfigSchema } from '../schema/config-schema.js'
 import { SuiteDefinitionSchema } from '../schema/suite-schema.js'
 import { parseTestFile } from '../parser/yaml-parser.js'
 import { parseHooksFile } from '../hooks/parser.js'
+import { connectionSecretNames } from '@vostride/agent-qa-schema'
+import { connectionSecretMisuse } from '../remote/connection-secrets.js'
 import { isPathInsideDir } from '../utils/path-validation.js'
 import { selectSuitePlace, selectWebPlace, type BrowserEngine } from '../remote/select-place.js'
 import type { AgentQaConfig } from '../types/config.js'
@@ -488,6 +490,48 @@ async function validateRemotePicks(
   return diagnostics
 }
 
+// The run-start refusal of a remote's secret in a step, with the same sentence.
+async function validateConnectionSecrets(
+  filePaths: readonly string[],
+  configPath: string,
+  configDir: string,
+): Promise<ValidationDiagnostic[]> {
+  const config = await readConfigForPicks(configPath)
+  if (config === undefined) return []
+  const names = new Set(connectionSecretNames(config.registry?.remotes ?? []))
+  if (names.size === 0) return []
+  const relative = (absolutePath: string) =>
+    path.relative(configDir, absolutePath).split(path.sep).join('/')
+
+  const diagnostics: ValidationDiagnostic[] = []
+  const reported = new Set<string>()
+  const check = async (absolutePath: string) => {
+    for (const test of await readTestsForPicks(absolutePath)) {
+      const steps = test.steps ?? []
+      for (const message of connectionSecretMisuse({ names, file: relative(absolutePath), steps })) {
+        const key = `${absolutePath}\0${message}`
+        if (reported.has(key)) continue
+        reported.add(key)
+        diagnostics.push(buildDiagnostic(absolutePath, message))
+      }
+    }
+  }
+
+  for (const filePath of filePaths) {
+    if (!isSuiteFile(filePath)) {
+      await check(filePath)
+      continue
+    }
+    const suite = await readSuiteForPicks(filePath)
+    if (suite === undefined) continue
+    for (const entry of suite.tests) {
+      if (!isPathInsideDir(entry.test, configDir)) continue
+      await check(path.resolve(configDir, entry.test))
+    }
+  }
+  return diagnostics
+}
+
 function validateRequiredWorkspaceFiles(workspace: ResolvedWorkspacePaths): ValidationDiagnostic[] {
   const diagnostics: ValidationDiagnostic[] = []
   for (const [key, file] of [
@@ -548,6 +592,7 @@ export async function validateProject(options: {
   if (configPath) {
     const configDir = options.workspace?.configDir ?? process.cwd()
     appendDiagnostics(result, await validateRemotePicks(filePaths, configPath, configDir))
+    appendDiagnostics(result, await validateConnectionSecrets(filePaths, configPath, configDir))
   }
 
   const testPatterns = options.workspace?.testMatch ?? options.testMatch ?? []
