@@ -266,6 +266,75 @@ describe("a remote live-editor session's inactivity", () => {
     expect(socket.closes).toEqual([])
   })
 
+  // Each runs 45 minutes inside the session, as a slow step, test or hook on a remote would.
+  const LONG_WORK_MS = 45 * MINUTE
+  const longWork: Record<string, (session: LiveSession) => Promise<unknown>> = {
+    step: (session) => {
+      vi.spyOn(session as never, 'executeStepInternal').mockImplementation(
+        () => new Promise((done) => setTimeout(() => done({ status: 'passed' }), LONG_WORK_MS)) as never,
+      )
+      return session.executeStepCommand('open the inbox', 0)
+    },
+    test: (session) => {
+      vi.spyOn(session as never, 'runLifecycleHooksCapturing').mockImplementation(
+        () =>
+          new Promise((done) =>
+            setTimeout(() => done({ allPassed: false, logs: [] }), LONG_WORK_MS),
+          ) as never,
+      )
+      return session.executeTestCommand('exec-1', {
+        testIndex: 0,
+        testId: '',
+        testName: 'inbox',
+        steps: ['open the inbox'],
+        setup: ['seed'],
+        teardown: [],
+      })
+    },
+    hook: (session) => {
+      vi.spyOn(session as never, 'runLifecycleHooks').mockImplementation(
+        () =>
+          new Promise((done) => setTimeout(() => done({ allPassed: true, logs: [] }), LONG_WORK_MS)) as never,
+      )
+      return session.executeHookCommand('setup', 'seed')
+    },
+  }
+
+  it.each(['step', 'test', 'hook'])(
+    'keeps the session through a %s that runs past 30 minutes and ends it 30 minutes after it finishes',
+    async (kind) => {
+      const opened = await openSession(remote)
+      opened.attach()
+
+      const work = longWork[kind]!(opened.session)
+      await vi.advanceTimersByTimeAsync(LONG_WORK_MS)
+      await work
+      expect(opened.open(), 'open when the work ends').toBe(true)
+
+      await vi.advanceTimersByTimeAsync(REMOTE_INACTIVITY_TIMEOUT_MS - 1)
+      expect(opened.open(), 'the window restarts when the work ends').toBe(true)
+      await vi.advanceTimersByTimeAsync(1)
+      expect(opened.open()).toBe(false)
+    },
+  )
+
+  it('gives a person the whole window to read a step that ended at minute 29', async () => {
+    const opened = await openSession(remote)
+    opened.attach()
+    vi.spyOn(opened.session as never, 'executeStepInternal').mockImplementation(
+      () => new Promise((done) => setTimeout(() => done({ status: 'passed' }), 29 * MINUTE)) as never,
+    )
+
+    const work = opened.session.executeStepCommand('open the inbox', 0)
+    await vi.advanceTimersByTimeAsync(29 * MINUTE)
+    await work
+
+    await vi.advanceTimersByTimeAsync(REMOTE_INACTIVITY_TIMEOUT_MS - 1)
+    expect(opened.open()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+  })
+
   it.each([
     { type: 'execute-step', stepInstruction: 'open the inbox', stepIndex: 0 },
     { type: 'execute-test', testExecutionId: 'exec-1', testId: 'test', path: 'tests/a.yaml', testIndex: 0 },

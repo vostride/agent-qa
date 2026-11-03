@@ -866,7 +866,7 @@ export class LiveSession {
       throw new Error('Live session is busy')
     }
 
-    this.executing = true
+    this.beginExecution()
     this.status = 'executing'
     const hookName = this.resolvedHooks.get(hookId)?.name ?? hookId
     this.currentStep = `${phase} hook: ${hookName}`
@@ -888,7 +888,7 @@ export class LiveSession {
         createdAt: new Date().toISOString(),
       }
     } finally {
-      this.executing = false
+      this.endExecution()
       this.currentStep = null
       this.status = 'idle'
     }
@@ -1428,7 +1428,7 @@ export class LiveSession {
       throw new Error('Step already executing')
     }
 
-    this.executing = true
+    this.beginExecution()
     this.status = 'executing'
     this.currentStep = stepInstruction
     try {
@@ -1440,7 +1440,7 @@ export class LiveSession {
         this.plannerLimits ?? resolvePlannerLimits(),
       )
     } finally {
-      this.executing = false
+      this.endExecution()
       this.currentStep = null
       this.status = 'idle'
     }
@@ -1467,7 +1467,7 @@ export class LiveSession {
       throw new Error('Test already executing')
     }
 
-    this.executing = true
+    this.beginExecution()
     this.status = 'executing'
     this.currentStep = `test: ${testDraft.testName}`
     const start = performance.now()
@@ -1634,7 +1634,7 @@ export class LiveSession {
         teardownHookExecutions: teardownHookPayloads,
       })
     } finally {
-      this.executing = false
+      this.endExecution()
       this.currentStep = null
       this.status = 'idle'
     }
@@ -1842,14 +1842,33 @@ export class LiveSession {
 
   // Only a command a person caused restarts the window; frames, pushes and heartbeats never do.
   noteUserActivity(): void {
+    this.restartRemoteInactivityWindow()
+  }
+
+  private restartRemoteInactivityWindow(): void {
     if (this.onRemoteInactivity === null || this.cleanupRun !== null) return
     this.armRemoteInactivityTimer()
   }
 
+  // A step, test or hook the person started holds the window; it restarts when the work ends.
+  private beginExecution(): void {
+    this.executing = true
+    if (this.remoteInactivityTimer) {
+      clearTimeout(this.remoteInactivityTimer)
+      this.remoteInactivityTimer = null
+    }
+  }
+
+  private endExecution(): void {
+    this.executing = false
+    this.restartRemoteInactivityWindow()
+  }
+
   private armRemoteInactivityTimer(): void {
     if (this.remoteInactivityTimer) clearTimeout(this.remoteInactivityTimer)
+    this.remoteInactivityTimer = null
     const onExpire = this.onRemoteInactivity
-    if (onExpire === null) return
+    if (onExpire === null || this.executing) return
     this.remoteInactivityTimer = setTimeout(onExpire, REMOTE_INACTIVITY_TIMEOUT_MS)
     this.remoteInactivityTimer.unref?.()
   }
