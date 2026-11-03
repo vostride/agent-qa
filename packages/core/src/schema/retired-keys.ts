@@ -50,7 +50,7 @@ const RETIRED_ALLOW_PRODUCTION_MESSAGE =
   'allowProduction was removed: production targets run like any other target. Delete this line.'
 
 const RETIRED_REGISTRY_PROVIDERS_MESSAGE =
-  'registry.providers was removed: BrowserStack is no longer supported; runs use local Playwright and Appium. Delete this block.'
+  'registry.providers was removed: list remote browsers under registry.remotes, with credentials as {{secret:NAME}} references to workspace.secretsFile. Delete this block.'
 
 const RETIRED_DEVICE_TRANSPORT_MESSAGE =
   'registry.devices.<name>.transport was removed: devices run on local Appium. Delete this line.'
@@ -79,7 +79,7 @@ const RETIRED_KNOWLEDGE_KEY_MESSAGES: Record<string, string> = {
 }
 
 const RETIRED_LOCAL_PROVIDERS_MESSAGE =
-  'providers was removed: BrowserStack is no longer supported. Delete this block.'
+  'providers was removed: list remote browsers under registry.remotes in agent-qa.config.yaml, with credentials in workspace.secretsFile. Delete this block.'
 
 const RETIRED_LOCAL_APP_BROWSERSTACK_MESSAGE =
   'apps.<name>.browserstack was removed: BrowserStack is no longer supported; apps.<name>.path is the app file. Delete this line.'

@@ -151,7 +151,7 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
       const config = { ...validBase, registry: { providers } }
       const label = JSON.stringify(providers)
       expect(issueMessageAt(config, 'registry.providers'), label).toBe(
-        'registry.providers was removed: BrowserStack is no longer supported; runs use local Playwright and Appium. Delete this block.',
+        'registry.providers was removed: list remote browsers under registry.remotes, with credentials as {{secret:NAME}} references to workspace.secretsFile. Delete this block.',
       )
       expect(paramsAt(config, 'registry.providers'), label).toEqual({ retired: true })
       const result = AgentQaConfigSchema.safeParse(config)
@@ -299,7 +299,7 @@ describe('agent-qa.local.yaml refusals', () => {
       { devices: {}, providers: { browserstack: { username: 'u', accessKey: 'k' } } },
     ]) {
       expect(thrownMessage(raw), JSON.stringify(raw)).toBe(
-        `${filePath}:\n  providers: providers was removed: BrowserStack is no longer supported. Delete this block.`,
+        `${filePath}:\n  providers: providers was removed: list remote browsers under registry.remotes in agent-qa.config.yaml, with credentials in workspace.secretsFile. Delete this block.`,
       )
     }
   })

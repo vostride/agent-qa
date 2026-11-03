@@ -243,6 +243,37 @@ describe('prepareMobileLiveSession', () => {
     })
   })
 
+  it('refuses a local providers block with its removal message', async () => {
+    const { dir, configPath } = await createTempWorkspace()
+    await writeFile(
+      join(dir, 'agent-qa.local.yaml'),
+      ['providers:', '  cloud:', '    username: someone', ''].join('\n'),
+      'utf-8',
+    )
+
+    const prepared = prepareMobileLiveSession({
+      sessionId: 'live-local-providers',
+      platform: 'android',
+      targetName: 'release-android-wikipedia',
+      useDeviceName: 'release-android-emu',
+      appState: 'preserve',
+      configManager: makeConfigManager(config),
+      configPath,
+      appiumManager: makeAppiumManager(),
+    })
+
+    await expect(prepared).rejects.toBeInstanceOf(MobileSetupError)
+    await expect(prepared).rejects.toMatchObject({
+      category: 'device-resolution',
+      message: expect.stringContaining('Failed to read local device bindings'),
+    })
+    await expect(prepared).rejects.toMatchObject({
+      message: expect.stringContaining(
+        'providers: providers was removed: list remote browsers under registry.remotes in agent-qa.config.yaml, with credentials in workspace.secretsFile. Delete this block.',
+      ),
+    })
+  })
+
   it('does not read agent-qa.devices.local.yaml for app install data', async () => {
     const { dir, configPath } = await createTempWorkspace()
     await mkdir(join(dir, 'apps'), { recursive: true })

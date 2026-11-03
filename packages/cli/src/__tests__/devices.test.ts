@@ -99,7 +99,7 @@ providers:
 
     try {
       expect(() => loadLocalBindings(dir)).toThrow(
-        `${filePath}:\n  providers: providers was removed: BrowserStack is no longer supported. Delete this block.`,
+        `${filePath}:\n  providers: providers was removed: list remote browsers under registry.remotes in agent-qa.config.yaml, with credentials in workspace.secretsFile. Delete this block.`,
       )
     } finally {
       rmSync(dir, { recursive: true, force: true })
