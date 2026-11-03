@@ -405,6 +405,9 @@ export async function resolveLivePlace(
 
 export const IDLE_TIMEOUT_MS = 5 * 60 * 1000
 
+// A session on a remote ends this long after the last command a person caused, attached or not.
+export const REMOTE_INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000
+
 /** How long teardown waits for the live hub to close before it tears the browser down anyway. */
 export const LIVE_HUB_CLOSE_LIMIT_MS = 2_000
 
@@ -602,6 +605,8 @@ export class LiveSession {
   private currentUrl: string | null = null
   private executing = false
   private idleTimer: ReturnType<typeof setTimeout> | null = null
+  private remoteInactivityTimer: ReturnType<typeof setTimeout> | null = null
+  private onRemoteInactivity: (() => void) | null = null
   private _modelName = 'unknown'
   private vision: { screenshotSize?: number; effectiveResolution?: number } | undefined
   private visionGate: VisionGate | undefined
@@ -1820,6 +1825,35 @@ export class LiveSession {
     }
   }
 
+  startRemoteInactivityTimer(onExpire: () => void): void {
+    this.clearRemoteInactivityTimer()
+    if (this.cleanupRun !== null) return
+    this.onRemoteInactivity = onExpire
+    this.armRemoteInactivityTimer()
+  }
+
+  clearRemoteInactivityTimer(): void {
+    this.onRemoteInactivity = null
+    if (this.remoteInactivityTimer) {
+      clearTimeout(this.remoteInactivityTimer)
+      this.remoteInactivityTimer = null
+    }
+  }
+
+  // Only a command a person caused restarts the window; frames, pushes and heartbeats never do.
+  noteUserActivity(): void {
+    if (this.onRemoteInactivity === null || this.cleanupRun !== null) return
+    this.armRemoteInactivityTimer()
+  }
+
+  private armRemoteInactivityTimer(): void {
+    if (this.remoteInactivityTimer) clearTimeout(this.remoteInactivityTimer)
+    const onExpire = this.onRemoteInactivity
+    if (onExpire === null) return
+    this.remoteInactivityTimer = setTimeout(onExpire, REMOTE_INACTIVITY_TIMEOUT_MS)
+    this.remoteInactivityTimer.unref?.()
+  }
+
   /** Idempotent: every later or concurrent call shares the first run, so teardown happens once. */
   cleanup(): Promise<void> {
     if (this.status === 'terminated') return Promise.resolve()
@@ -1829,6 +1863,7 @@ export class LiveSession {
 
   private async runCleanup(): Promise<void> {
     this.clearIdleTimer()
+    this.clearRemoteInactivityTimer()
     this.readyForInteraction = false
     // The attached control socket is told the session is gone, however it ended.
     const release = this.releaseAttachment

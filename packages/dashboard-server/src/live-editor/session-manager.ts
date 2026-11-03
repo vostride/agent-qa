@@ -43,12 +43,15 @@ export class SessionManager {
     this.sessions.set(sessionId, session)
     // The session is an editor subject for exactly its lifetime.
     this.deps.liveEditorSubjects?.register(sessionId, session.liveAttachment())
-    // The idle window runs until the first control socket attaches, so an unopened session ends.
-    session.startIdleTimer(() => {
+    const expire = (kind: string) => () => {
       void this.terminateSession(sessionId).catch((error: unknown) => {
-        console.error(`[live-editor] idle expiry could not end session ${sessionId}`, error)
+        console.error(`[live-editor] ${kind} expiry could not end session ${sessionId}`, error)
       })
-    })
+    }
+    // The idle window runs until the first control socket attaches, so an unopened session ends.
+    session.startIdleTimer(expire('idle'))
+    // A remote browser is billed while held, so it also ends after a span with no person's command.
+    if (config.remote !== undefined) session.startRemoteInactivityTimer(expire('inactivity'))
 
     // `sessionNumber` is for display only; authorization uses the session id.
     let sessionNumber: number | null = null

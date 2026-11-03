@@ -1,0 +1,306 @@
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+
+const { heartbeat } = vi.hoisted(() => ({ heartbeat: { beats: 0 } }))
+
+// The adapter beats on its own interval while it holds a remote, as the real one does.
+vi.mock('@vostride/agent-qa-web', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@vostride/agent-qa-web')>()),
+  WebPlatformAdapter: vi.fn().mockImplementation(function () {
+    let beat: ReturnType<typeof setInterval> | undefined
+    return {
+      platform: 'web',
+      setup: vi.fn(async (config: { browser?: { remote?: unknown } }) => {
+        if (config.browser?.remote === undefined) return
+        beat = setInterval(() => {
+          heartbeat.beats += 1
+        }, 30_000)
+      }),
+      cleanup: vi.fn(async () => clearInterval(beat)),
+      execute: vi.fn().mockResolvedValue({ success: true }),
+      screenshot: vi.fn().mockResolvedValue(Buffer.from('frame')),
+      observe: vi.fn().mockResolvedValue({ tree: 'main', elements: [], timestamp: 0, metadata: {} }),
+      drainConsoleLogs: vi.fn(() => []),
+      drainNetworkLogs: vi.fn(() => []),
+    }
+  }),
+}))
+
+vi.mock('@vostride/agent-qa-runner', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@vostride/agent-qa-runner')>()),
+  LLMPlanner: vi.fn().mockImplementation(function () {
+    return { plan: vi.fn() }
+  }),
+  LLMVerifier: vi.fn().mockImplementation(function () {
+    return { verify: vi.fn() }
+  }),
+}))
+
+vi.mock('@vostride/agent-qa-model', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@vostride/agent-qa-model')>()),
+  createModel: vi.fn().mockReturnValue({ modelId: 'test-model' }),
+}))
+
+import type { RemoteBrowserConfig } from '@vostride/agent-qa-runner'
+
+import { IDLE_TIMEOUT_MS, REMOTE_INACTIVITY_TIMEOUT_MS } from '../live-session.js'
+import type { LiveSession } from '../live-session.js'
+import { SessionManager } from '../session-manager.js'
+import { LIVE_EDITOR_UNKNOWN_SESSION_CLOSE_CODE } from '../types.js'
+import type { LiveSessionConfig } from '../types.js'
+import { createSessionHandler } from '../ws-handler.js'
+
+const MINUTE = 60_000
+
+const remote: RemoteBrowserConfig = {
+  name: 'grid',
+  protocol: 'playwright',
+  url: 'wss://grid.example.test/playwright',
+  connectTimeoutMs: 30_000,
+}
+
+class FakeSocket {
+  readyState = 1
+  OPEN = 1
+  readonly sent: Record<string, unknown>[] = []
+  readonly closes: Array<{ code?: number; reason?: string }> = []
+  private handlers = new Map<string, Array<(...args: unknown[]) => unknown>>()
+
+  send(data: string): void {
+    this.sent.push(JSON.parse(data) as Record<string, unknown>)
+  }
+
+  close(code?: number, reason?: string): void {
+    this.closes.push({ code, reason })
+    this.readyState = 3
+  }
+
+  on(event: string, handler: (...args: unknown[]) => unknown): void {
+    this.handlers.set(event, [...(this.handlers.get(event) ?? []), handler])
+  }
+
+  message(msg: object): void {
+    for (const handler of this.handlers.get('message') ?? []) void handler(Buffer.from(JSON.stringify(msg)))
+  }
+
+  drop(): void {
+    this.readyState = 3
+    for (const handler of this.handlers.get('close') ?? []) handler()
+  }
+}
+
+interface Opened {
+  manager: SessionManager
+  sessionId: string
+  session: LiveSession
+  attach(): FakeSocket
+  open(): boolean
+}
+
+let managers: SessionManager[] = []
+
+beforeEach(() => {
+  heartbeat.beats = 0
+  vi.useFakeTimers()
+})
+
+afterEach(async () => {
+  vi.useRealTimers()
+  await Promise.all(managers.map((manager) => manager.cleanupAll()))
+  managers = []
+  vi.restoreAllMocks()
+})
+
+async function openSession(place?: RemoteBrowserConfig): Promise<Opened> {
+  const manager = new SessionManager()
+  managers.push(manager)
+  const config: LiveSessionConfig = {
+    platform: 'web',
+    llmConfig: {
+      provider: 'anthropic-compatible',
+      model: 'test-model',
+      baseURL: 'http://127.0.0.1:1/',
+    },
+    headless: true,
+    ...(place === undefined ? {} : { remote: place }),
+  }
+  const { sessionId } = await manager.createSession(config)
+  const session = manager.getSession(sessionId)!
+  return {
+    manager,
+    sessionId,
+    session,
+    // The page's socket, which ends the session through the manager as the server wires it.
+    attach() {
+      const socket = new FakeSocket()
+      createSessionHandler(session, () => {
+        void manager.terminateSession(sessionId)
+      })(socket as never)
+      return socket
+    },
+    open: () => manager.getSession(sessionId) !== undefined,
+  }
+}
+
+describe("a remote live-editor session's inactivity", () => {
+  it('ends an attached session 30 minutes after it opened when no command arrives', async () => {
+    const opened = await openSession(remote)
+    const socket = opened.attach()
+
+    await vi.advanceTimersByTimeAsync(REMOTE_INACTIVITY_TIMEOUT_MS - 1)
+    expect(opened.open(), 'not one millisecond early').toBe(true)
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+    expect(socket.closes).toEqual([{ code: LIVE_EDITOR_UNKNOWN_SESSION_CLOSE_CODE, reason: 'session_ended' }])
+    expect(opened.session.status).toBe('terminated')
+  })
+
+  it('moves the end to minute 59 when a step runs at minute 29', async () => {
+    const opened = await openSession(remote)
+    vi.spyOn(opened.session, 'executeStepCommand').mockResolvedValue({
+      name: 'open the inbox',
+      status: 'passed',
+      duration: 1,
+    } as never)
+    const socket = opened.attach()
+
+    await vi.advanceTimersByTimeAsync(29 * MINUTE)
+    socket.message({ type: 'execute-step', stepInstruction: 'open the inbox', stepIndex: 0 })
+
+    await vi.advanceTimersByTimeAsync(30 * MINUTE - 1)
+    expect(opened.open()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+  })
+
+  it('moves the end when the ARIA panel fetches the tree at minute 29', async () => {
+    const opened = await openSession(remote)
+    const socket = opened.attach()
+
+    await vi.advanceTimersByTimeAsync(29 * MINUTE)
+    socket.message({ type: 'get-aria-tree' })
+
+    await vi.advanceTimersByTimeAsync(30 * MINUTE - 1)
+    expect(opened.open()).toBe(true)
+    expect(socket.sent).toContainEqual({ type: 'aria-tree', tree: 'main' })
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+  })
+
+  it('ends at minute 30 though a client asks for the state every minute', async () => {
+    const opened = await openSession(remote)
+    const socket = opened.attach()
+
+    for (let minute = 1; minute < 30; minute++) {
+      await vi.advanceTimersByTimeAsync(MINUTE)
+      socket.message({ type: 'get-state' })
+    }
+    expect(socket.sent.filter((message) => message.type === 'session-state').length).toBeGreaterThan(29)
+
+    await vi.advanceTimersByTimeAsync(MINUTE - 1)
+    expect(opened.open()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+  })
+
+  it('ends at minute 30 while preview frames, device-log pushes and heartbeats run throughout', async () => {
+    const opened = await openSession(remote)
+    const frames: unknown[] = []
+    opened.session.liveAttachment().subscribeFrames(0, (frame) => frames.push(frame))
+    // The device-log push runs for device sessions; it is driven on this one to show it counts for nothing.
+    const state = opened.session.getState.bind(opened.session)
+    vi.spyOn(opened.session, 'getState').mockImplementation(() => ({ ...state(), platform: 'android' }))
+    vi.spyOn(opened.session, 'drainDeviceLogs').mockResolvedValue([
+      { level: 'info', message: 'tick', timestamp: 0 },
+    ])
+    const socket = opened.attach()
+
+    await vi.advanceTimersByTimeAsync(REMOTE_INACTIVITY_TIMEOUT_MS - 1)
+    expect(opened.open()).toBe(true)
+    expect(frames.length).toBeGreaterThan(100)
+    expect(socket.sent.filter((message) => message.type === 'device-logs').length).toBeGreaterThan(100)
+    expect(heartbeat.beats).toBeGreaterThan(50)
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+  })
+
+  it('ends at minute 30 when the page drops and reconnects without a command', async () => {
+    const opened = await openSession(remote)
+    let socket = opened.attach()
+
+    for (let minute = 4; minute < 30; minute += 4) {
+      await vi.advanceTimersByTimeAsync(4 * MINUTE)
+      socket.drop()
+      socket = opened.attach()
+    }
+
+    await vi.advanceTimersByTimeAsync(2 * MINUTE - 1)
+    expect(opened.open()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+    expect(socket.closes).toEqual([{ code: LIVE_EDITOR_UNKNOWN_SESSION_CLOSE_CODE, reason: 'session_ended' }])
+  })
+
+  it.each([
+    ['on a remote', remote],
+    ['here', undefined],
+  ])('still ends a detached session %s after 5 minutes', async (_where, place) => {
+    const opened = await openSession(place)
+    const socket = opened.attach()
+    await vi.advanceTimersByTimeAsync(MINUTE)
+    socket.drop()
+
+    await vi.advanceTimersByTimeAsync(IDLE_TIMEOUT_MS - 1)
+    expect(opened.open()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+  })
+
+  it('gives a session here no 30-minute timer', async () => {
+    const opened = await openSession()
+    const socket = opened.attach()
+
+    await vi.advanceTimersByTimeAsync(4 * 60 * MINUTE)
+    expect(opened.open()).toBe(true)
+    expect(socket.closes).toEqual([])
+  })
+
+  it.each([
+    { type: 'execute-step', stepInstruction: 'open the inbox', stepIndex: 0 },
+    { type: 'execute-test', testExecutionId: 'exec-1', testId: 'test', path: 'tests/a.yaml', testIndex: 0 },
+    { type: 'execute-hook', phase: 'setup', hookId: 'hook' },
+    { type: 'cancel-step' },
+    { type: 'terminate-session' },
+    { type: 'navigate', url: 'https://example.test/' },
+    { type: 'refresh-page' },
+    { type: 'go-back' },
+    { type: 'go-forward' },
+    { type: 'get-aria-tree' },
+  ])('counts $type as a person\'s activity', async (command) => {
+    const opened = await openSession(remote)
+    vi.spyOn(opened.session, 'executeStepCommand').mockResolvedValue({
+      name: 'open the inbox',
+      status: 'passed',
+      duration: 1,
+    } as never)
+    vi.spyOn(opened.session, 'executeHookCommand').mockResolvedValue({} as never)
+    const noted = vi.spyOn(opened.session, 'noteUserActivity')
+    const socket = opened.attach()
+
+    socket.message(command)
+    expect(noted).toHaveBeenCalledTimes(1)
+  })
+
+  it.each([{ type: 'get-state' }, { type: 'no-such-command' }])(
+    'does not count $type as activity',
+    async (command) => {
+      const opened = await openSession(remote)
+      const noted = vi.spyOn(opened.session, 'noteUserActivity')
+      const socket = opened.attach()
+
+      socket.message(command)
+      expect(noted).not.toHaveBeenCalled()
+    },
+  )
+})

@@ -104,6 +104,7 @@ function createMockSession(overrides: Partial<LiveSession> = {}) {
     cleanup: vi.fn().mockResolvedValue(undefined),
     startIdleTimer: vi.fn(),
     clearIdleTimer: vi.fn(),
+    noteUserActivity: vi.fn(),
     attachMessageSink: vi.fn(),
     beginAttachment: vi.fn(() => ++generation),
     isCurrentAttachment: vi.fn((candidate: number) => candidate === generation),

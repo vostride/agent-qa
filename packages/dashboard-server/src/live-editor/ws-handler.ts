@@ -9,6 +9,20 @@ import type {
 } from './types.js'
 import type { TestFileManager } from '../tests/test-file-manager.js'
 
+// The page sends these only from a person's action. `get-state` is a read no page action sends.
+const USER_ACTIVITY_COMMANDS: ReadonlySet<unknown> = new Set([
+  'execute-step',
+  'execute-test',
+  'execute-hook',
+  'cancel-step',
+  'terminate-session',
+  'navigate',
+  'refresh-page',
+  'go-back',
+  'go-forward',
+  'get-aria-tree',
+])
+
 function send(ws: WebSocket, msg: ServerMessage): void {
   if (ws.readyState === ws.OPEN) {
     ws.send(JSON.stringify(msg))
@@ -113,6 +127,7 @@ export function createSessionHandler(
         send(ws, { type: 'error', message: 'Invalid JSON' })
         return
       }
+      if (USER_ACTIVITY_COMMANDS.has(msg?.type)) session.noteUserActivity()
 
       switch (msg.type) {
         case 'execute-step': {

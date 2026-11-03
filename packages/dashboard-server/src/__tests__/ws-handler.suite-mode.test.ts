@@ -151,6 +151,7 @@ function createMockSession(overrides: Partial<LiveSession> = {}) {
     cleanup: vi.fn().mockResolvedValue(undefined),
     startIdleTimer: vi.fn(),
     clearIdleTimer: vi.fn(),
+    noteUserActivity: vi.fn(),
     attachMessageSink: vi.fn().mockImplementation((nextSink: ((message: unknown) => void) | null) => {
       sink = nextSink
     }),
