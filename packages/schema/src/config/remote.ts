@@ -191,6 +191,31 @@ function urlHead(url: string): { scheme: string; userinfo: boolean; hostPort: st
   return { scheme: url.slice(0, separator), userinfo: at >= 0, hostPort: authority.slice(at + 1) }
 }
 
+function decoded(text: string): string {
+  try {
+    return decodeURIComponent(text.replace(/\+/g, ' '))
+  } catch {
+    return text
+  }
+}
+
+// The parameters already written in the url, read from its raw text so a reference stays as written.
+function urlQuery(url: string): Record<string, string> {
+  const start = url.indexOf('?')
+  if (start < 0) return {}
+  const hashAt = url.indexOf('#', start)
+  const search = url.slice(start + 1, hashAt < 0 ? undefined : hashAt)
+  const params: Record<string, string> = {}
+  for (const pair of search.split('&')) {
+    if (pair === '') continue
+    const equals = pair.indexOf('=')
+    const name = decoded(equals < 0 ? pair : pair.slice(0, equals))
+    const value = equals < 0 ? '' : pair.slice(equals + 1)
+    params[name] = carriesReference(value) ? value : decoded(value)
+  }
+  return params
+}
+
 export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
   const issues: RemoteEntryIssue[] = []
   const report = (path: KeyPath, sentence: string) => {
@@ -223,6 +248,13 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
 
   const headerCredentials = credentialKeys(entry.headers)
   const queryCredentials = credentialKeys(entry.query)
+  const urlCredentials = credentialKeys(urlQuery(entry.url))
+  for (const credential of urlCredentials.filter(c => c.literal)) {
+    report(
+      ['url'],
+      `url query "${credential.path.join('.')}" names a credential, so its value must be a {{secret:NAME}} reference.`,
+    )
+  }
   for (const [section, found] of [
     ['headers', headerCredentials],
     ['query', queryCredentials],
@@ -245,6 +277,7 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     entry.basicAuth !== undefined ||
     headerCredentials.length > 0 ||
     queryCredentials.length > 0 ||
+    urlCredentials.length > 0 ||
     entryTexts(entry).some(carriesReference)
   const protectedScheme = origin ? PROTECTED_SCHEMES[origin.scheme] : undefined
   if (origin && protectedScheme && carriesCredential && !isLoopbackHost(origin.host)) {

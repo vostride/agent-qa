@@ -130,6 +130,33 @@ describe('registry.remotes entries', () => {
     })
   })
 
+  it('needs a reference for a credential-named parameter written in the url itself', () => {
+    expectRefused(
+      { ...grid, url: 'wss://grid.example.com/?token=literal-abc123' },
+      'Remote grid: url query "token" names a credential, so its value must be a {{secret:NAME}} reference.',
+    )
+    expectRefused(
+      { ...grid, url: 'wss://grid.example.com/playwright?browser=chromium&api%4Bey=abc#top' },
+      'Remote grid: url query "apiKey" names a credential, so its value must be a {{secret:NAME}} reference.',
+    )
+    expectRefused(
+      { ...grid, url: 'wss://grid.example.com/?token' },
+      'Remote grid: url query "token" names a credential, so its value must be a {{secret:NAME}} reference.',
+    )
+    expectAccepted({
+      ...grid,
+      url: 'wss://grid.example.com/?token={{secret:GRID_TOKEN}}&browser=chromium',
+    })
+  })
+
+  it('counts a credential-named url parameter as a credential on a cleartext channel', () => {
+    expectRefused(
+      { ...grid, url: 'ws://grid.example.com/?token=abc' },
+      'Remote grid: credentials go over ws:// only to this machine. Use wss:// for grid.example.com.',
+    )
+    expectAccepted({ ...grid, url: 'ws://127.0.0.1:3000/?token={{secret:GRID_TOKEN}}' })
+  })
+
   it('refuses a nested query credential literal and accepts the same key as a reference', () => {
     expectRefused(
       { ...grid, query: { caps: { grid: { accessKey: 'abc' } } } },
