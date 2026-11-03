@@ -30,6 +30,7 @@ import {
   isMintedCliRunId,
   mintCliRunId,
   produceMembersFromPatterns,
+  producedRunner,
   resolveRunInvocationInputs,
 } from '../commands/run.js'
 import type {
@@ -82,6 +83,8 @@ export interface RunSubscriberAttachInput {
   readonly mask: MaskFn
   // A door's dashboard ingest registers here to stage each member's masked test and config.
   readonly onMemberSnapshot?: (listener: RunArtifactSnapshotListener) => () => void
+  // The runner the producer read from the files, so a door's analytics names it.
+  readonly runner?: string
 }
 
 /** What a door's post-verdict tail is handed, INSIDE the run's own safety scope. */
@@ -285,11 +288,13 @@ export async function runInProcessCliRun(
       startedSession = session
       produced.bindSession(session)
       options.onSession?.(session)
+      const runner = producedRunner(produced)
       startedSubscribers = options.subscribers?.({
         session,
         quarantined,
         mask,
         ...(produced.onMemberSnapshot === undefined ? {} : { onMemberSnapshot: produced.onMemberSnapshot }),
+        ...(runner === undefined ? {} : { runner }),
       })
       // Subscribed directly, never through `attachRunSubscribers`: its wire reporter can print to
       // stdout, which is the protocol on the MCP stdio server and `fn --json`.

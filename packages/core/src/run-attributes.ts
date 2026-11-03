@@ -6,7 +6,7 @@ export const ATTR_RUNNER = 'agent-qa.runner'
 export const ATTR_GATE_RUN = 'agent-qa.gate-run'
 
 export type RunAttributeTrigger = 'cli' | 'dashboard' | 'api' | 'mcp'
-export type RunAttributeRunner = 'local'
+export type RunAttributeRunner = 'local' | 'remote'
 
 export const RUN_ATTRIBUTE_KEY_MAX_LENGTH = 256
 export const RUN_ATTRIBUTE_VALUE_MAX_LENGTH = 4096

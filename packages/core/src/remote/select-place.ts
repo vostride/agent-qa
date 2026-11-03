@@ -2,6 +2,7 @@ import {
   DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
   type RemoteBrowserConfig,
 } from '@vostride/agent-qa-runner'
+import type { RunAttributeRunner } from '../run-attributes.js'
 import type { RemoteEntry } from '../schema/remote-schema.js'
 
 export type WebPlace = { kind: 'local' } | { kind: 'remote'; remote: RemoteBrowserConfig }
@@ -103,6 +104,11 @@ export function selectSuitePlace(input: SelectSuitePlaceInput): SelectWebPlaceRe
     }
   }
   return selectWebPlace({ remotes, test: agreed, engine })
+}
+
+// A run is remote when any of its tests runs on a remote.
+export function runnerForPlaces(places: readonly WebPlace[]): RunAttributeRunner {
+  return places.some((place) => place.kind === 'remote') ? 'remote' : 'local'
 }
 
 function pickedBy(input: SelectWebPlaceInput): string {

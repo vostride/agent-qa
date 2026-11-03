@@ -125,6 +125,7 @@ const PINNED_RUN_TS_IMPORTS = [
   'isMintedCliRunId',
   'mintCliRunId',
   'produceMembersFromPatterns',
+  'producedRunner',
   'resolveRunInvocationInputs',
 ] as const
 

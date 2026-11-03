@@ -3,7 +3,8 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { afterAll, afterEach, beforeAll, describe, expect, it } from 'vitest'
+import { Command } from 'commander'
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
 import { invokeFunction } from '@vostride/agent-qa-agent'
@@ -12,14 +13,19 @@ import { DashboardDatabase, resolveRunOwnerHost, startServer } from '@vostride/a
 import type { RunStartAcknowledgement, RunsStartInput } from '@vostride/agent-qa-schema'
 
 import { composeDashboardDoor, composeRunServicePorts, createDashboardRunDoor } from '../../commands/dashboard.js'
+import { createRunCommand } from '../../commands/run.js'
 import { CLI_FUNCTION_CALLER, composeCliLocalAgent } from '../local-agent-host.js'
 import { composeRunOwnership } from '../run-owner-probe.js'
 import {
   CountingTarget,
   createInProcessFixture,
+  freshUpdateCheckHome,
   runDirs,
   removeInProcessFixtures,
 } from './in-process-run-fixture.js'
+import type { InProcessFixtureInput } from './in-process-run-fixture.js'
+import { startRemoteBrowserEndpoint } from './remote-browser-endpoint.js'
+import type { RemoteBrowserEndpoint } from './remote-browser-endpoint.js'
 import { pinProcessTmpdir, removeTempRoots } from '../../__tests__/temp-roots.js'
 import type { PinnedTmpdir } from '../../__tests__/temp-roots.js'
 
@@ -225,4 +231,99 @@ describe('the runs.db a run record writes', () => {
     expect(scene.db.getRuns({}).map((row) => row.id).join(','), "the dashboard's own file").toBe(queuedId)
     expect(rowsAt(runsDbOf(project)).map((row) => row.id).join(','), "the config's runs.db").toBe(postedId)
   }, 2 * RUN_BUDGET_MS)
+})
+
+describe('the runner each run records', () => {
+  let endpoint: RemoteBrowserEndpoint | undefined
+
+  beforeAll(async () => {
+    // The server launches a real Chromium, which an earlier cell's empty browsers path would hide.
+    if (priorBrowsersPath === undefined) delete process.env.PLAYWRIGHT_BROWSERS_PATH
+    else process.env.PLAYWRIGHT_BROWSERS_PATH = priorBrowsersPath
+    endpoint = await startRemoteBrowserEndpoint()
+  })
+  afterAll(async () => { await endpoint?.close() })
+
+  function remoteFixture(knobs: Partial<InProcessFixtureInput> = {}): Fixture {
+    if (endpoint === undefined) throw new Error('the remote browser endpoint did not start')
+    return createInProcessFixture({
+      origin: target.origin,
+      environment: 'local',
+      remote: { name: 'grid', protocol: 'playwright', url: endpoint.wsEndpoint },
+      ...knobs,
+    })
+  }
+
+  function onlyRow(project: Fixture, runId: string): Record<string, string> {
+    const rows = rowsAt(runsDbOf(project))
+    expect(rows.map((row) => row.id).join(','), 'runs.db rows').toBe(runId)
+    return rows[0]!.attributes
+  }
+
+  it('a single test whose config names a remote records runner remote through runs.start', async () => {
+    const project = remoteFixture()
+    const ack = await startThroughHost(project, { patterns: [project.testPattern] })
+
+    const attributes = onlyRow(project, ack.runId)
+    expect(attributes['agent-qa.runner']).toBe('remote')
+    expect(attributes['agent-qa.trigger']).toBe('cli')
+  }, RUN_BUDGET_MS)
+
+  it('a single test whose config names a remote records runner remote through agent-qa run', async () => {
+    const project = remoteFixture()
+    vi.stubEnv('HOME', freshUpdateCheckHome())
+    const printed: string[] = []
+    const keep = (...args: unknown[]): void => { printed.push(args.map(String).join(' ')) }
+    vi.spyOn(console, 'log').mockImplementation(keep)
+    vi.spyOn(console, 'warn').mockImplementation(keep)
+    vi.spyOn(console, 'error').mockImplementation(keep)
+    vi.spyOn(process, 'exit').mockImplementation(() => { throw new Error('fixture command exit') })
+    try {
+      const program = new Command().option('--config <path>').addCommand(createRunCommand())
+      await expect(
+        program.parseAsync(['--config', project.configPath, 'run', project.testPattern], { from: 'user' }),
+      ).rejects.toThrow('fixture command exit')
+    } finally {
+      vi.restoreAllMocks()
+      vi.unstubAllEnvs()
+    }
+
+    const rows = rowsAt(runsDbOf(project))
+    expect(rows, printed.join('\n')).toHaveLength(1)
+    expect(rows[0]!.attributes['agent-qa.runner']).toBe('remote')
+    expect(rows[0]!.attributes['agent-qa.trigger']).toBe('cli')
+  }, RUN_BUDGET_MS)
+
+  it("a queued dashboard run's row records runner remote under the dashboard trigger", async () => {
+    const project = remoteFixture()
+    const scene = await openScene(project, runsDbOf(project))
+    const runId = await triggerQueued(scene, project)
+
+    const row = scene.db.getRun(runId)
+    expect(row?.attributes?.['agent-qa.runner']).toBe('remote')
+    expect(row?.attributes?.['agent-qa.trigger']).toBe('dashboard')
+  }, RUN_BUDGET_MS)
+
+  it('a run of two tests where one runs here and one on the remote records runner remote', async () => {
+    const project = remoteFixture({ secondTarget: true, secondTestPick: 'local' })
+    const ack = await startThroughHost(project, {
+      patterns: [project.testPattern, project.secondTestPattern!],
+    })
+
+    expect(onlyRow(project, ack.runId)['agent-qa.runner']).toBe('remote')
+  }, RUN_BUDGET_MS)
+
+  it('a suite placed on the remote records runner remote', async () => {
+    const project = remoteFixture()
+    const ack = await startThroughHost(project, { patterns: [project.suitePattern] })
+
+    expect(onlyRow(project, ack.runId)['agent-qa.runner']).toBe('remote')
+  }, RUN_BUDGET_MS)
+
+  it('a run whose tests all run here records runner local', async () => {
+    const project = fixture()
+    const ack = await startThroughHost(project, { patterns: [project.testPattern] })
+
+    expect(onlyRow(project, ack.runId)['agent-qa.runner']).toBe('local')
+  }, RUN_BUDGET_MS)
 })

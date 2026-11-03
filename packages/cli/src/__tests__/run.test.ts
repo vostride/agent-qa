@@ -222,6 +222,7 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   workspaceRelativeIdentityPath: actual.workspaceRelativeIdentityPath,
   selectWebPlace: actual.selectWebPlace,
   selectSuitePlace: actual.selectSuitePlace,
+  runnerForPlaces: actual.runnerForPlaces,
   // The real version reader, because the union constrains `agent_qa_version` to a semver.
   getAgentQaVersion: actual.getAgentQaVersion,
   parseAllTests: mockParseAllTests,

@@ -233,7 +233,7 @@ describe("a rejected run's record is finalized", () => {
 })
 
 describe("a queued run's record attributes", () => {
-  it("a queued run keeps its routes' attributes over the producer's", async () => {
+  it("a queued run keeps its routes' attributes over the producer's, but takes the producer's runner", async () => {
     posixOnly()
     const project = fixture()
     const real = openRunsDb(project)
@@ -246,12 +246,12 @@ describe("a queued run's record attributes", () => {
         host: { db: real, queueRun: () => ({ attributes: queued }) },
         override: (produced) => overriding(produced, 'subscriberSeed', (shipped) => ({
           ...shipped.subscriberSeed,
-          attributes: PRODUCER_SEED,
+          attributes: { ...PRODUCER_SEED, 'agent-qa.runner': 'remote' },
         })),
       })
 
       expect(outcome.runId, `the drive reported no session: ${messageOf(outcome.error)}`).toBeDefined()
-      expect(real.getRun(outcome.runId!)?.attributes).toEqual(queued)
+      expect(real.getRun(outcome.runId!)?.attributes).toEqual({ ...queued, 'agent-qa.runner': 'remote' })
     } finally {
       real.close()
     }

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest'
 
 import { RemoteEntrySchema } from '../../schema/remote-schema.js'
 import {
+  runnerForPlaces,
   selectSuitePlace,
   selectWebPlace,
   type SelectWebPlaceInput,
@@ -218,5 +219,18 @@ describe('where a web test runs', () => {
       })
     expect(connectTimeoutMs(suiteOn('grid'))).toBe(300000)
     expect(connectTimeoutMs(suiteOn('farm'))).toBe(45000)
+  })
+})
+
+describe('the runner a run records', () => {
+  it('is remote when any test runs on a remote, and local otherwise', () => {
+    const here = { kind: 'local' } as const
+    const placed = web({ config: 'grid' })
+    if ('refusal' in placed) throw new Error(placed.refusal)
+
+    expect(runnerForPlaces([here, placed.place, here])).toBe('remote')
+    expect(runnerForPlaces([placed.place])).toBe('remote')
+    expect(runnerForPlaces([here, here])).toBe('local')
+    expect(runnerForPlaces([])).toBe('local')
   })
 })

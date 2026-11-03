@@ -37,7 +37,7 @@ function envelope(type: RunEventType, payload: unknown): RunEventEnvelope {
   return { seq, ts: 1_700_000_000_000 + seq, runId, type, payload: payload as RunEventPayload }
 }
 
-function harness() {
+function harness(runner = 'local') {
   const transport = recordingTransport()
   const port = createAnalyticsPort<AgentQaAnalyticsEvent>({
     transport,
@@ -46,7 +46,7 @@ function harness() {
   const subscriber = createAnalyticsRunSubscriber({
     port,
     triggerSource: 'cli',
-    runner: 'local',
+    runner,
     standardProperties: { surface: 'cli', runtime_context: 'user' },
   })
   return { transport, subscriber }
@@ -163,5 +163,22 @@ describe('analytics token sums on a completed run', () => {
     expect(properties.output_tokens).toBe(5)
     expect(properties.total_tokens).toBe(15)
     expect(properties.step_count).toBe(1)
+  })
+})
+
+describe('the runner a completed run reports', () => {
+  it.each([
+    ['remote', 'remote'],
+    ['local', 'local'],
+    ['browserstack', 'unknown'],
+  ])('reports runner %s as %s', async (runner, reported) => {
+    const { transport, subscriber } = harness(runner)
+
+    subscriber.handler(envelope('testStarted', { testId, testIndex: 0, name: 'a test' }))
+    subscriber.handler(envelope('testFinished', { testId, testIndex: 0, outcome: 'passed', durationMs: 5 }))
+    subscriber.handler(envelope('runFinished', { aggregateVerdict: 'passed' }))
+    await subscriber.flush()
+
+    expect(completionProperties(transport).runner).toBe(reported)
   })
 })

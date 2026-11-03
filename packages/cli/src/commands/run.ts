@@ -6,9 +6,9 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, selectSuitePlace, selectWebPlace, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { discoverWorkspaceFiles, isWorkspacePathMatch, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuitePlace, selectWebPlace, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
-import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
 import { loadLocalBindings, type LocalDeviceBindings } from '../devices.js'
@@ -848,9 +848,13 @@ export function createRunRecord(input: {
       }
       const runId = openedFor
       const queued = input.host?.queueRun(runId)
-      // The queue's attributes win; else the producer's under the door's trigger; else the door's.
+      // The queue's attributes win, with the producer's runner, which only the files tell; else
+      // the producer's under the door's trigger; else the door's.
+      const producerRunner = attach.attributes?.[ATTR_RUNNER]
       const own = queued !== undefined
-        ? queued.attributes
+        ? producerRunner === undefined
+          ? queued.attributes
+          : { ...(queued.attributes ?? db.getRun(runId)?.attributes), [ATTR_RUNNER]: producerRunner }
         : attach.attributes === undefined
           ? input.attributes
           : { ...attach.attributes, [ATTR_TRIGGER]: input.attributes[ATTR_TRIGGER] }
@@ -1182,14 +1186,14 @@ function browserEngine(name: unknown): BrowserEngine | undefined {
   return name === 'chromium' || name === 'firefox' || name === 'webkit' ? name : undefined
 }
 
-// Refuses before any member starts; a test placed here gets no entry.
-function selectDirectRemotes(
+// One entry per web test: its place, or the sentence refusing its pick.
+function placeDirectTests(
   config: AgentQaConfig,
   configDir: string,
   bindings: readonly ParsedTestBinding[],
   browserFlag: string | undefined,
-): Map<ParsedTestBinding, RemoteBrowserConfig> {
-  const remotes = new Map<ParsedTestBinding, RemoteBrowserConfig>()
+): Array<{ readonly binding: ParsedTestBinding; readonly selected: SelectWebPlaceResult }> {
+  const placed: Array<{ binding: ParsedTestBinding; selected: SelectWebPlaceResult }> = []
   for (const binding of bindings) {
     if (!targetRunsInBrowser(config, binding.test.target)) continue
     const testBrowser = binding.test.use?.browser
@@ -1200,10 +1204,90 @@ function selectDirectRemotes(
       file: configRelativeFile(configDir, binding.filePath),
       engine: browserEngine(browserFlag ?? testBrowser?.name ?? config.use?.browser?.name),
     })
+    placed.push({ binding, selected })
+  }
+  return placed
+}
+
+// Refuses before any member starts; a test placed here gets no entry.
+function selectDirectRemotes(
+  config: AgentQaConfig,
+  configDir: string,
+  bindings: readonly ParsedTestBinding[],
+  browserFlag: string | undefined,
+): Map<ParsedTestBinding, RemoteBrowserConfig> {
+  const remotes = new Map<ParsedTestBinding, RemoteBrowserConfig>()
+  for (const { binding, selected } of placeDirectTests(config, configDir, bindings, browserFlag)) {
     if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
     if (selected.place.kind === 'remote') remotes.set(binding, selected.place.remote)
   }
   return remotes
+}
+
+// Read from the files before the run is recorded; a refused pick places nothing.
+function directRunRunner(
+  config: AgentQaConfig,
+  configDir: string,
+  bindings: readonly ParsedTestBinding[],
+  browserFlag: string | undefined,
+): RunAttributeRunner {
+  return runnerForPlaces(
+    placeDirectTests(config, configDir, bindings, browserFlag)
+      .flatMap(({ selected }) => ('place' in selected ? [selected.place] : [])),
+  )
+}
+
+// A suite shares one browser, so it is placed once for all its members.
+function placeSuite(input: {
+  readonly config: AgentQaConfig
+  readonly configDir: string
+  readonly suiteFile: string
+  readonly suite: SuiteDefinition
+  readonly members: readonly { readonly test: TestDefinition; readonly absolutePath: string }[]
+  readonly engine: BrowserEngine | undefined
+}): SelectWebPlaceResult {
+  const { config, configDir, suite } = input
+  return selectSuitePlace({
+    remotes: config.registry?.remotes ?? [],
+    suiteName: suite.name,
+    suiteFile: configRelativeFile(configDir, input.suiteFile),
+    suite: suite.use?.browser?.remote,
+    config: config.use?.browser?.remote,
+    members: input.members.map(({ test, absolutePath }) => ({
+      file: configRelativeFile(configDir, absolutePath),
+      pick: test.use?.browser?.remote,
+    })),
+    engine: input.engine,
+  })
+}
+
+// Read from the parsed suites before the run is recorded; a refused or mobile suite places nothing.
+function suiteRunRunner(
+  preflight: SuitePreflight,
+  config: AgentQaConfig,
+  configDir: string,
+  browserFlag: string | undefined,
+): RunAttributeRunner {
+  const places: WebPlace[] = []
+  for (const [suiteFile, suite] of preflight.definitions) {
+    const members = suite.tests.flatMap(({ test: memberFile }) => {
+      const absolutePath = resolvePath(configDir, memberFile)
+      const parsed = preflight.preloadedTests.get(absolutePath)?.parseResult
+      const test = parsed?.errors.length === 0 ? parsed.tests[0] : undefined
+      return test === undefined ? [] : [{ test, absolutePath }]
+    })
+    if (!targetRunsInBrowser(config, suite.target ?? members[0]?.test.target)) continue
+    const selected = placeSuite({
+      config,
+      configDir,
+      suiteFile,
+      suite,
+      members,
+      engine: browserEngine(browserFlag ?? suite.use?.browser?.name ?? config.use?.browser?.name),
+    })
+    if ('place' in selected) places.push(selected.place)
+  }
+  return runnerForPlaces(places)
 }
 
 async function loadRuntimeSecrets(input: {
@@ -1773,9 +1857,13 @@ async function executeSuites(
     graceTimer = undefined
   }
 
+  const runAttributes = buildCliRunAttributes(
+    variableContext?.userRunAttributes ?? {},
+    suiteRunRunner(preflight, config, configDir, opts.browser),
+  )
   // One record per invocation, written whatever the config holds.
   const record = createRunRecord({
-    attributes: buildCliRunAttributes(variableContext?.userRunAttributes ?? {}, 'local'),
+    attributes: runAttributes,
     warn: (line) => printRunText(pc.yellow(line), (text) => console.warn(text)),
   })
   const forceExit = (code: number): never => {
@@ -1845,9 +1933,7 @@ async function executeSuites(
     if (analyticsHost !== undefined) {
       extraSubscribers.push(buildAnalyticsRunSubscriber({
         analytics: analyticsHost,
-        ...analyticsRunAttribution(
-          buildCliRunAttributes(variableContext?.userRunAttributes ?? {}, 'local'),
-        ),
+        ...analyticsRunAttribution(runAttributes),
       }))
     }
 
@@ -2191,6 +2277,7 @@ export async function produceSuiteRunMembers(
   const parsedSuiteDefinitions = input.preflight.definitions
   const preloadedSuiteTests = input.preflight.preloadedTests
   const suitePreflightProduct = input.preflight.product
+  const preflightRunner = suiteRunRunner(input.preflight, config, configDir, opts.browser)
 
   // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
   const readLocalBindings = createRunLocalBindingsReader()
@@ -2279,6 +2366,7 @@ export async function produceSuiteRunMembers(
     bootstrapFailure: string | undefined
     // Teardown-time composition side effects.
     suiteWorkingMemory: WorkingMemoryStore
+    suitePlace: WebPlace
     suiteAttributes: RunAttributes
     knowledgeSeed: {
       accounting: ReturnType<typeof createTokenAccounting>
@@ -2293,7 +2381,7 @@ export async function produceSuiteRunMembers(
   const prepareSuite = async (suiteFile: string, suite: SuiteDefinition): Promise<PreparedSuite> => {
     const suiteFailureAttributes = buildCliRunAttributes(
       variableContext?.userRunAttributes ?? {},
-      'local',
+      preflightRunner,
     )
     let suiteFileContent = ''
     try { suiteFileContent = await readFile(suiteFile, 'utf-8') } catch { /* best-effort */ }
@@ -2407,23 +2495,20 @@ export async function produceSuiteRunMembers(
       : resolveTarget(config, testEntries[0].test.target!)
     const suitePlatform: 'web' | 'android' | 'ios' = suiteResolvedTarget.platform
 
-    let suiteRemote: RemoteBrowserConfig | undefined
+    let suitePlace: WebPlace = { kind: 'local' }
     if (suitePlatform === 'web') {
-      const selected = selectSuitePlace({
-        remotes: config.registry?.remotes ?? [],
-        suiteName: suite.name,
-        suiteFile: configRelativeFile(configDir, suiteFile),
-        suite: suite.use?.browser?.remote,
-        config: config.use?.browser?.remote,
-        members: testEntries.map(({ test: member, absolutePath }) => ({
-          file: configRelativeFile(configDir, absolutePath),
-          pick: member.use?.browser?.remote,
-        })),
+      const selected = placeSuite({
+        config,
+        configDir,
+        suiteFile,
+        suite,
+        members: testEntries,
         engine: browserEngine((mergedUse.browser as Record<string, unknown> | undefined)?.name),
       })
       if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
-      if (selected.place.kind === 'remote') suiteRemote = selected.place.remote
+      suitePlace = selected.place
     }
+    const suiteRemote = suitePlace.kind === 'remote' ? suitePlace.remote : undefined
 
     const suiteAuthState = await resolveSelectedAuthStateForRun({
       config,
@@ -2486,7 +2571,10 @@ export async function produceSuiteRunMembers(
       resolvedDevice = mobileResolved.device
     }
 
-    const suiteAttributes = buildCliRunAttributes(variableContext?.userRunAttributes ?? {}, 'local')
+    const suiteAttributes = buildCliRunAttributes(
+      variableContext?.userRunAttributes ?? {},
+      runnerForPlaces([suitePlace]),
+    )
 
     // Auto-start Appium for mobile platforms
     if (suitePlatform === 'ios' || suitePlatform === 'android') {
@@ -2739,6 +2827,7 @@ export async function produceSuiteRunMembers(
       perMemberDigests: [],
       bootstrapFailure: undefined,
       suiteWorkingMemory,
+      suitePlace,
       suiteAttributes,
       knowledgeSeed: {
         accounting: plannerAccounting,
@@ -3161,7 +3250,10 @@ export async function produceSuiteRunMembers(
       return {
         configSnapshot: suiteArtifact?.config,
         sourceSnapshot: suiteArtifact?.source,
-        attributes: first.suiteAttributes,
+        attributes: buildCliRunAttributes(
+          variableContext?.userRunAttributes ?? {},
+          runnerForPlaces(preparedSuites.map((prepared) => prepared.suitePlace)),
+        ),
       }
     })(),
     onMemberSnapshot: suiteSnapshots.subscribe,
@@ -3285,6 +3377,11 @@ export interface ProducedCliRunMembers {
   readonly runArtifact?: RunArtifactStageInput
 }
 
+// The runner the producer read from the files, for a door's analytics.
+export function producedRunner(produced: ProducedCliRunMembers): string | undefined {
+  return produced.subscriberSeed?.attributes?.[ATTR_RUNNER]
+}
+
 export async function produceDirectRunMembers(
   input: DirectRunMemberProductionInput,
 ): Promise<ProducedCliRunMembers> {
@@ -3317,6 +3414,10 @@ export async function produceDirectRunMembers(
   const readLocalBindings = createRunLocalBindingsReader()
   if (anyTargetRunsOnDevice(config, filtered.map(({ test }) => test.target))) readLocalBindings()
   const directRemotes = selectDirectRemotes(config, configDir, filtered, opts.browser)
+  const directRunAttributes = buildCliRunAttributes(
+    userRunAttributes,
+    directRunRunner(config, configDir, filtered, opts.browser),
+  )
 
   // The late-bound slots the run's own lifecycle fills. `singleRunProduct` and `singleBuildOrdinal` are declared with the block
   // below, exactly where the command declared them; these two are new only in the sense that the
@@ -3393,9 +3494,13 @@ export async function produceDirectRunMembers(
     let analyticsFilePath = filePath
     let analyticsPlatform: 'web' | 'android' | 'ios' | undefined
     let analyticsTestId: string | undefined
+    const testRemote = directRemotes.get(binding)
+    const testRunner = runnerForPlaces(
+      testRemote === undefined ? [] : [{ kind: 'remote', remote: testRemote }],
+    )
     let analyticsAttributes: RunAttributes | undefined = buildCliRunAttributes(
       userRunAttributes,
-      'local',
+      testRunner,
     )
     let analyticsAppState: string | undefined
     let analyticsStartedAt = Date.now()
@@ -3497,7 +3602,7 @@ export async function produceDirectRunMembers(
       testResolvedDevice = testMobileResolved.device
     }
 
-    const testAttributes = buildCliRunAttributes(userRunAttributes, 'local')
+    const testAttributes = buildCliRunAttributes(userRunAttributes, testRunner)
     analyticsAttributes = testAttributes
     const adapterKey = JSON.stringify({
       platform: testPlatform,
@@ -3976,6 +4081,7 @@ export async function produceDirectRunMembers(
     takeFrameworkError: () => frameworkError,
     getCurationModelDeps: () => singleCurationModelDeps,
     onMemberSnapshot: memberSnapshots.subscribe,
+    subscriberSeed: { attributes: directRunAttributes },
     loadPlugins: input.inputs.loadPlugins,
     ...(config.services?.dashboard?.dbPath === undefined
       ? {}
@@ -4162,9 +4268,13 @@ export function createRunCommand(): Command {
 
         const reporterSelection = requireReporterSelection(opts)
         let currentRunId: string | undefined
+        const directAttributes = buildCliRunAttributes(
+          userRunAttributes,
+          directRunRunner(config, configDir, parseResult.bindings, opts.browser),
+        )
         // One record for this path, written whatever the config holds.
         const record = createRunRecord({
-          attributes: buildCliRunAttributes(userRunAttributes, 'local'),
+          attributes: directAttributes,
           warn: (line) => printRunText(pc.yellow(line), (text) => console.warn(text)),
         })
         _crashRecord = record
@@ -4179,7 +4289,7 @@ export function createRunCommand(): Command {
             (text) => console.error(text),
           )
           const validationRunId = createTestRunId()
-          const validationAttributes = buildCliRunAttributes(userRunAttributes, 'local')
+          const validationAttributes = directAttributes
           // The failure row is filed under the id this command prints.
           await record.open({
             runId: validationRunId,
@@ -4357,7 +4467,7 @@ export function createRunCommand(): Command {
         const singleAnalytics = await analytics()
         singleExtraSubscribers.push(buildAnalyticsRunSubscriber({
           analytics: singleAnalytics,
-          ...analyticsRunAttribution(buildCliRunAttributes(userRunAttributes, 'local')),
+          ...analyticsRunAttribution(directAttributes),
         }))
 
         const { runInProcessCliRun } = await import('../composition/in-process-run-execution.js')
