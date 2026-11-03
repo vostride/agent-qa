@@ -4,6 +4,7 @@ import type { AddressInfo, Socket } from 'node:net'
 import { createServer as createSocketServer } from 'node:net'
 
 import { chromium } from 'playwright-core'
+import { RemoteRefusalError } from '@vostride/agent-qa-runner'
 import type { RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
 
@@ -169,6 +170,38 @@ describe('the web adapter on a remote browser', () => {
       expect(await pagesLeft(cdp)).toEqual([[`${siteOrigin}/service`]])
     } finally {
       await proxy?.close()
+      await cdp?.close()
+    }
+  }, 60_000)
+
+  it('refuses a reuse remote whose browser has no context, naming the remote by its label', async () => {
+    let cdp: CdpBrowser | undefined
+    const adapter = new WebPlatformAdapter()
+    try {
+      cdp = await startCdpBrowser()
+      const connect = chromium.connectOverCDP.bind(chromium)
+      vi.spyOn(chromium, 'connectOverCDP').mockImplementation(async (...args) => {
+        const browser = await connect(...args)
+        vi.spyOn(browser, 'contexts').mockReturnValue([])
+        return browser
+      })
+      const remote = remoteOf('cdp', cdp.endpoint, { context: 'reuse' })
+
+      const refused = await adapter
+        .setup({ platform: 'web', browser: { name: 'chromium', remote } })
+        .then(
+          () => undefined,
+          (error: unknown) => error,
+        )
+
+      const label = `grid (cdp http://127.0.0.1:${String(cdp.port)})`
+      expect(refused).toBeInstanceOf(RemoteRefusalError)
+      expect((refused as RemoteRefusalError).message).toBe(
+        `Remote ${label} has no browser context to reuse. Set its context to new in registry.remotes, or open a context in the service first.`,
+      )
+      expect((refused as RemoteRefusalError).remote).toBe(label)
+    } finally {
+      await adapter.cleanup()
       await cdp?.close()
     }
   }, 60_000)

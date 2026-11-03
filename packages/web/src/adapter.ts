@@ -371,7 +371,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     if (remote?.protocol === 'cdp' && remote.context === 'reuse') {
       reused = this.browser.contexts()[0]
       if (reused === undefined) {
-        throw new Error(`Remote ${remote.name} has no browser context to reuse.`)
+        const label = remoteLabel(remote)
+        throw new RemoteRefusalError(
+          `Remote ${label} has no browser context to reuse. Set its context to new in registry.remotes, or open a context in the service first.`,
+          { remote: label },
+        )
       }
     }
     if (reused !== undefined) {
