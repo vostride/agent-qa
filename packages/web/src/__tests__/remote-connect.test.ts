@@ -173,6 +173,23 @@ describe('the web adapter on a remote browser', () => {
     }
   }, 60_000)
 
+  it('a local launch refuses while SELENIUM_REMOTE_URL is set', async () => {
+    vi.stubEnv('SELENIUM_REMOTE_URL', 'http://127.0.0.1:4444/wd/hub')
+    const launch = vi.spyOn(chromium, 'launch')
+    const adapter = new WebPlatformAdapter()
+    try {
+      await expect(
+        adapter.setup({ platform: 'web', browser: { name: 'chromium', viewport: VIEWPORT } }),
+      ).rejects.toThrow(
+        "SELENIUM_REMOTE_URL would send this test's local browser to another machine. Unset it, or list that service under registry.remotes.",
+      )
+      expect(launch).not.toHaveBeenCalled()
+    } finally {
+      vi.unstubAllEnvs()
+      await adapter.cleanup()
+    }
+  })
+
   describe('against an endpoint that accepts and never answers', () => {
     let silent: ReturnType<typeof createSocketServer>
     let silentPort = 0

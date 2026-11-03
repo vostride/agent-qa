@@ -6,7 +6,7 @@ import type {
   RemoteFailureKind,
   RemoteProtocol,
 } from '@vostride/agent-qa-runner'
-import { connectionSecretNames, remoteLabel } from '@vostride/agent-qa-schema'
+import { connectionSecretNames, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 
 const require = createRequire(typeof __filename === 'string' ? __filename : import.meta.url)
 
@@ -92,4 +92,58 @@ export function rewriteConnectError(
     remote: remoteLabel(remote),
     kind,
   })
+}
+
+const PLAYWRIGHT_LOGGERS = ['pw:api', 'pw:protocol'] as const
+
+function namespacePattern(pattern: string): RegExp {
+  const parts = pattern.split('*').map((part) => part.replace(/[.+?^${}()|[\]\\]/g, '\\$&'))
+  return new RegExp(`^${parts.join('.*')}$`)
+}
+
+// The debug package's own rules: comma or whitespace separated, `-` skips, `*` matches anything.
+export function debugEnablesPlaywright(debug: string | undefined): boolean {
+  const patterns = (debug ?? '').split(/[\s,]+/).filter((pattern) => pattern !== '')
+  const includes = patterns.filter((pattern) => !pattern.startsWith('-')).map(namespacePattern)
+  const skips = patterns
+    .filter((pattern) => pattern.startsWith('-'))
+    .map((pattern) => namespacePattern(pattern.slice(1)))
+  return PLAYWRIGHT_LOGGERS.some(
+    (name) =>
+      !skips.some((skip) => skip.test(name)) && includes.some((include) => include.test(name)),
+  )
+}
+
+const ENDPOINT_URL = /\b(?:wss?|https?):\/\/[^\s'"`<>]+/gi
+const TRAILING_PUNCTUATION = /[.,;:!?)'"]+$/
+
+function urlHost(url: string): string | undefined {
+  const origin = remoteOrigin(url)
+  if (origin !== undefined) return origin.host.toLowerCase()
+  const authority = url.replace(/^[a-z]+:\/\//i, '').split(/[/?#]/, 1)[0] ?? ''
+  const hostPort = authority.slice(authority.lastIndexOf('@') + 1)
+  const bracketed = /^\[([^\]]*)\]/.exec(hostPort)
+  const host = bracketed ? bracketed[1] : hostPort.split(':', 1)[0]
+  return host === undefined || host === '' ? undefined : host.toLowerCase()
+}
+
+// A remote's endpoint can carry credentials in its userinfo, path or query; text shows its label.
+export function scrubRemoteEndpoint(
+  text: string,
+  remote: Pick<RemoteBrowserConfig, 'name' | 'protocol' | 'url'>,
+): string {
+  const label = remoteLabel(remote)
+  const host = urlHost(remote.url)
+  if (host === undefined) return remote.url === '' ? text : text.split(remote.url).join(label)
+  // The label itself holds the remote's origin, so it is kept as it is.
+  return text
+    .split(label)
+    .map((part) =>
+      part.replace(ENDPOINT_URL, (found) => {
+        const trailing = TRAILING_PUNCTUATION.exec(found)?.[0] ?? ''
+        const url = found.slice(0, found.length - trailing.length)
+        return urlHost(url) === host ? `${label}${trailing}` : found
+      }),
+    )
+    .join(label)
 }

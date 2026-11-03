@@ -10,15 +10,17 @@ import type {
   PlatformAdapter,
   PlatformConfig,
   RecordingCapability,
+  RemoteBrowserConfig,
   RemoteRefusalMemory,
 } from '@vostride/agent-qa-runner'
 import type { LiveFrame } from '@vostride/agent-qa-schema'
-import { DEFAULT_NAVIGATION_TIMEOUT_MS } from '@vostride/agent-qa-schema'
+import { DEFAULT_NAVIGATION_TIMEOUT_MS, remoteLabel } from '@vostride/agent-qa-schema'
 import {
   assertNever,
   buildScreenState,
   createSnapshotLiveStream,
   LIVE_KEEPALIVE_QUIET_MS,
+  RemoteRefusalError,
 } from '@vostride/agent-qa-runner'
 import type { ScreenState } from '@vostride/agent-qa-schema'
 import { convertKeysForPlatform, isMacPlatform } from '@vostride/agent-qa-runner'
@@ -39,7 +41,11 @@ import { waitForPageReady } from './smart-wait.js'
 import { runWebFillCompound, runWebScrollCompound, webOpenAppError } from './compound-web.js'
 import type { RefMap } from './types.js'
 import { formatMissingBrowserError, isPlaywrightMissingBrowserError } from './browser-install-error.js'
-import { rewriteConnectError } from './remote-connection.js'
+import {
+  debugEnablesPlaywright,
+  rewriteConnectError,
+  scrubRemoteEndpoint,
+} from './remote-connection.js'
 import { createScreencastRecording, type ScreencastRecording } from './recording.js'
 import { isHeadlessLaunch, OperationCapture } from './operation-capture.js'
 import type { CapturedOperations } from './operation-capture.js'
@@ -124,6 +130,24 @@ function decodeBase64(data: string): Uint8Array {
   return bytes
 }
 
+// Refused before Playwright loads: its own logging prints a remote's address and requests, and
+// SELENIUM_REMOTE_URL sends a local launch to another machine.
+function refuseLeakingEnvironment(remote: RemoteBrowserConfig | undefined): void {
+  if (remote !== undefined) {
+    if (!debugEnablesPlaywright(process.env.DEBUG)) return
+    const label = remoteLabel(remote)
+    throw new RemoteRefusalError(
+      `Remote ${label} cannot be used while DEBUG turns on Playwright's own logging, which would print its address and requests. Unset DEBUG to run this test.`,
+      { remote: label },
+    )
+  }
+  if ((process.env.SELENIUM_REMOTE_URL ?? '') !== '') {
+    throw new RemoteRefusalError(
+      "SELENIUM_REMOTE_URL would send this test's local browser to another machine. Unset it, or list that service under registry.remotes.",
+    )
+  }
+}
+
 export interface WebPlatformAdapterOptions {
   // Set only by a host with its own SIGINT, SIGTERM and SIGHUP handling, such as `agent-qa run`.
   readonly hostOwnsSignals?: true
@@ -141,7 +165,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private browser: Browser | null = null
   private context: BrowserContext | null = null
   private page: Page | null = null
-  private onRemote = false
+  private remote: RemoteBrowserConfig | undefined
   private ownsContext = true
   // Pages a reused context already had; cleanup leaves them open.
   private borrowedPages = new Set<Page>()
@@ -177,15 +201,16 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
 
   async setup(config: PlatformConfig): Promise<void> {
     this.recordingConfig = config.recording
+    const remote = config.browser?.remote
+    refuseLeakingEnvironment(remote)
     const { chromium, firefox, webkit } = await import('playwright-core')
     const launchers = { chromium, firefox, webkit } as const
     const browserName = config.browser?.name ?? 'chromium'
     this.browserName = browserName
     const launcher = launchers[browserName]
     const headless = config.browser?.headless ?? true
-    const remote = config.browser?.remote
 
-    this.onRemote = remote !== undefined
+    this.remote = remote
     if (remote !== undefined) {
       const remembered = this.options.refusalMemory?.refusalFor(remote.name)
       if (remembered !== undefined) throw remembered
@@ -580,7 +605,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     await disposeEpoch(this.epoch)
     this.epoch = undefined
     // A remote browser is not ours: close only our pages and context, then disconnect.
-    if (this.onRemote && this.context) {
+    if (this.remote !== undefined && this.context) {
       if (this.ownsContext) {
         try { await this.context.close() } catch { /* best-effort */ }
       } else {
@@ -593,7 +618,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     if (this.browser) {
       await this.browser.close()
     }
-    this.onRemote = false
+    this.remote = undefined
     this.ownsContext = true
     this.borrowedPages = new Set()
     this.browser = null
@@ -618,6 +643,14 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   }
 
   async observe(): Promise<ScreenState> {
+    try {
+      return await this.observePage()
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+  }
+
+  private async observePage(): Promise<ScreenState> {
     if (!this.page) {
       throw new Error('WebPlatformAdapter not initialized — call setup() first')
     }
@@ -665,6 +698,36 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   }
 
   async execute(action: ActionsFor<'web'>, options?: ExecuteOptions): Promise<ActionResult> {
+    try {
+      const result = await this.executeOnPage(action, options)
+      const remote = this.remote
+      if (remote === undefined || result.error === undefined) return result
+      return { ...result, error: scrubRemoteEndpoint(result.error, remote) }
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+  }
+
+  // Error text from a remote-attached adapter names the remote by its label, never its endpoint.
+  private withoutEndpoint(error: unknown): unknown {
+    const remote = this.remote
+    if (remote === undefined) return error
+    if (typeof error === 'string') return scrubRemoteEndpoint(error, remote)
+    let current: unknown = error
+    for (let depth = 0; current instanceof Error && depth < 8; depth += 1) {
+      current.message = scrubRemoteEndpoint(current.message, remote)
+      if (typeof current.stack === 'string') {
+        current.stack = scrubRemoteEndpoint(current.stack, remote)
+      }
+      current = current.cause
+    }
+    return error
+  }
+
+  private async executeOnPage(
+    action: ActionsFor<'web'>,
+    options?: ExecuteOptions,
+  ): Promise<ActionResult> {
     if (!this.page) {
       throw new Error('WebPlatformAdapter not initialized — call setup() first')
     }
