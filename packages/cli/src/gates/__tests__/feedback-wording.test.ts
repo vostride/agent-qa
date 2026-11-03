@@ -32,7 +32,7 @@ describe('bounded feedback wording', () => {
       runId: f.handoff.runId, runSlug: 'fixture', testIndex: 0, kind: 'false-fail' },
       handoff: f.handoff, resolvedStepIndex: 0, served: [facts] })
     const config = await resolveConfig({ configPath: f.configPath, loadAuthPlugins: false })
-    config.registry = { llms: [{ name: 'fixture', provider: 'openai-compatible', model: 'fixture-model', vision: false, baseURL: 'http://127.0.0.1:1/v1' }] }
+    config.registry = { llms: [{ name: 'fixture', provider: 'openai-compatible', model: 'fixture-model', vision: false, baseURL: 'http://127.0.0.1:1/v1' }], remotes: [] }
     config.use = { ...config.use, llm: 'fixture' }
     model = vi.fn<typeof createModel>(() => ({}) as ReturnType<typeof createModel>)
     input = { plan, config, executionContext: 'ci', mask: declaredMask,

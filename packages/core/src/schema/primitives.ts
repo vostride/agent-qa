@@ -152,6 +152,7 @@ export const BrowserConfigSchema = z.strictObject({
     width: z.number(),
     height: z.number(),
   }).optional(),
+  remote: NameSlugSchema.optional(),
 })
 
 // Positive integers with no unlimited value; `resolvePlannerLimits` supplies the default.

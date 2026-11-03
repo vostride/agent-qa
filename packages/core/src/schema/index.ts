@@ -26,6 +26,8 @@ export {
   SizeString,
 } from './config-schema.js'
 
+export { RemoteEntrySchema, type RemoteEntry } from './remote-schema.js'
+
 export {
   DashboardConfigSchema,
   McpConfigSchema,

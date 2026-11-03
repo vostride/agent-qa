@@ -76,14 +76,19 @@ export const CONFIG_WRITE_DENIED_ROOTS = [
   'plugins',
 ] as const satisfies readonly ConfigWriteDeniedRoot[]
 
+// The page shows remotes read-only; a remote is a file edit.
+const PAGE_DENIED_PREFIXES: readonly (readonly string[])[] = [['registry', 'remotes']]
+
 /**
  * True when the page's write door may change the path: a schema leaf or an ancestor of one,
- * outside the denied roots. A `{ name }` selector is read as an array item.
+ * outside the denied roots and not at or under `registry.remotes`. A `{ name }` selector is read
+ * as an array item.
  */
 export function isPageWritableConfigPath(path: readonly ConfigPathSegment[]): boolean {
   const root = path[0]
   if (typeof root !== 'string') return false
   if ((CONFIG_WRITE_DENIED_ROOTS as readonly string[]).includes(root)) return false
+  if (PAGE_DENIED_PREFIXES.some(prefix => prefix.every((key, at) => path[at] === key))) return false
   return isConfigSchemaPath(path.map(segment => (typeof segment === 'object' ? 0 : segment)))
 }
 

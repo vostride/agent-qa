@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { NamedLLMConfigSchema } from './primitives.js'
+import { RemoteEntrySchema } from './remote-schema.js'
 import { TargetNameSchema } from '../auth-state/schema.js'
 
 function isAbsoluteAppPath(value: string): boolean {
@@ -56,6 +57,7 @@ export const DeviceProfileSchema = z.strictObject({
 
 export const RegistrySchema = z.strictObject({
   llms: z.array(NamedLLMConfigSchema).optional().default([]),
+  remotes: z.array(RemoteEntrySchema).optional().default([]),
   targets: z.record(TargetNameSchema, TargetSchema).optional(),
   devices: z.record(z.string(), DeviceProfileSchema).optional(),
 })

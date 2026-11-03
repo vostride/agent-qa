@@ -428,10 +428,12 @@ async function assertConfigSectionShells(destinations: string[]) {
   }
 }
 
-// `plugins.*` is a file edit by design; the page and its write door read one denied-roots constant.
-const DENIED_ROOTS: readonly string[] = CONFIG_WRITE_DENIED_ROOTS
+// The page owns the leaves its write door admits. `use.browser.remote` is the one admitted leaf
+// with no page field: other doors pick a remote, and nothing on the page picks or edits one.
+const UNRENDERED_WRITABLE_LEAVES: readonly string[] = ['use.browser.remote']
 const PAGE_LEAVES = CONFIG_SCHEMA_LEAVES.filter(
-  (pattern) => !DENIED_ROOTS.includes(pattern.split('.')[0]!),
+  (pattern) =>
+    isPageWritableConfigPath(concretePath(pattern)) && !UNRENDERED_WRITABLE_LEAVES.includes(pattern),
 )
 
 /** A concrete path for a leaf pattern or list owner: each '*' becomes 'k' and each '[]' index 0. */
@@ -514,7 +516,7 @@ afterEach(() => {
 })
 
 describe('ConfigPage schema coverage', () => {
-  it('SCHEMA-COVERAGE-EVERY-LEAF: every schema leaf but plugins has a field or list owner on some tab', async () => {
+  it('SCHEMA-COVERAGE-EVERY-LEAF: every page-owned schema leaf has a field or list owner on some tab', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
@@ -526,9 +528,10 @@ describe('ConfigPage schema coverage', () => {
     }
   })
 
-  // The page-writable leaves are the strict leaves less the four plugin leaves; each has a
+  // The page-owned leaves are the strict leaves less the plugin and remote leaves, which the write
+  // door refuses, and less `use.browser.remote`, which it admits for other doors; each has a
   // rendered owner and the write door admits it.
-  it('exactly the page-writable leaves, each owned on the page, and only the four plugin leaves excluded', async () => {
+  it('exactly the page-writable leaves, each owned on the page, with the plugin leaves, the remote leaves and the remote pick excluded', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
@@ -539,6 +542,17 @@ describe('ConfigPage schema coverage', () => {
       'plugins.auth[].path',
       'plugins.providers[].package',
       'plugins.providers[].path',
+      'registry.remotes[].basicAuth.password',
+      'registry.remotes[].basicAuth.user',
+      'registry.remotes[].connectTimeout',
+      'registry.remotes[].context',
+      'registry.remotes[].headers.*',
+      'registry.remotes[].name',
+      'registry.remotes[].protocol',
+      'registry.remotes[].query.*',
+      'registry.remotes[].query.*.*',
+      'registry.remotes[].url',
+      'use.browser.remote',
     ])
     const marks = await collectFieldMarks()
     const owned = PAGE_LEAVES.filter((pattern) => marks.some((mark) => coversLeaf(mark, pattern)))
@@ -572,7 +586,7 @@ describe('ConfigPage schema coverage', () => {
     expect(shared, `fields rendered by more than one section: ${shared.join('; ')}`).toEqual([])
   })
 
-  it('WRITE-POLICY-MATCHES-COVERAGE: every field and list the page renders is writable through its door, and every leaf it leaves out is refused', async () => {
+  it('WRITE-POLICY-MATCHES-COVERAGE: every field and list the page renders is writable through its door, and every leaf it leaves out is refused except the remote pick', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
@@ -584,8 +598,11 @@ describe('ConfigPage schema coverage', () => {
 
     const excluded = CONFIG_SCHEMA_LEAVES.filter((pattern) => !PAGE_LEAVES.includes(pattern))
     expect(excluded.length, 'the witness: plugins leaves exist').toBeGreaterThan(0)
+    // Only the remote pick is admitted without a page field: MCP, chat and file edits pick a remote.
     const admitted = excluded.filter((pattern) => isPageWritableConfigPath(concretePath(pattern)))
-    expect(admitted, `leaves without a field that the door still admits: ${admitted.join(', ')}`).toEqual([])
+    expect(admitted, `leaves without a field that the door still admits: ${admitted.join(', ')}`).toEqual([
+      'use.browser.remote',
+    ])
   })
 
   it('EVERY-SECTION-RENDERS-EMPTY: with an empty config all five tabs and every section heading render, unset leaves show defaults only as placeholders, and Models shows its empty state', async () => {
