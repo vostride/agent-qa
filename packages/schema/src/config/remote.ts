@@ -1,3 +1,4 @@
+// Not sig, pass or auth: signal, design, bypass and author hold them and name no credential.
 export const REMOTE_CREDENTIAL_TERMS = [
   'authorization',
   'cookie',
@@ -5,6 +6,12 @@ export const REMOTE_CREDENTIAL_TERMS = [
   'secret',
   'key',
   'password',
+  'jwt',
+  'bearer',
+  'credential',
+  'signature',
+  'passwd',
+  'pwd',
 ] as const
 
 export const SECRET_REFERENCE_PATTERN = /\{\{secret:(\w+)\}\}/g

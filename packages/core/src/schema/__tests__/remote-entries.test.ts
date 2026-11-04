@@ -165,6 +165,28 @@ describe('registry.remotes entries', () => {
     expectAccepted({ ...grid, query: { caps: { grid: { accessKey: '{{secret:GRID_KEY}}' } } } })
   })
 
+  it('refuses a literal jwt in a cdp url at the entry url and accepts it as a reference', () => {
+    const result = parse({
+      ...debuggerRemote,
+      url: 'wss://cdp.example.com/browser/cdp?jwt=literal-1a2b',
+    })
+    expect(result.success).toBe(false)
+    const issues = result.success
+      ? []
+      : result.error.issues.map(issue => ({ path: issue.path, message: issue.message }))
+    expect(issues).toEqual([
+      {
+        path: ['registry', 'remotes', 0, 'url'],
+        message:
+          'Remote debugger: url query "jwt" names a credential, so its value must be a {{secret:NAME}} reference.',
+      },
+    ])
+    expectAccepted({
+      ...debuggerRemote,
+      url: 'wss://cdp.example.com/browser/cdp?jwt={{secret:CDP_JWT}}',
+    })
+  })
+
   it('refuses a credential-named query key with a non-string value under it', () => {
     expectRefused(
       { ...grid, query: { caps: { secret: { value: 42 } } } },
