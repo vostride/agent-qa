@@ -4,8 +4,8 @@ import { connect } from 'node:net'
 import { basicAuthorizationValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
 import type {
   RemoteBrowserConfig,
+  RemoteBrowserProtocol,
   RemoteFailureKind,
-  RemoteProtocol,
   SecretResolver,
 } from '@vostride/agent-qa-runner'
 import {
@@ -49,7 +49,10 @@ function connectStatus(error: unknown): number | undefined {
   return found ? Number(found[1]) : undefined
 }
 
-export function classifyConnectError(error: unknown, protocol: RemoteProtocol): RemoteFailureKind {
+export function classifyConnectError(
+  error: unknown,
+  protocol: RemoteBrowserProtocol,
+): RemoteFailureKind {
   if (isPlaywrightTimeout(error)) return 'timeout'
   const status = connectStatus(error)
   if (status === 401 || status === 403) return 'auth'

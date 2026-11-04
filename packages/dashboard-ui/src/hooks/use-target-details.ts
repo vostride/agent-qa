@@ -48,8 +48,9 @@ let cachedAt = 0
 const TTL = 30_000
 let pendingPromise: Promise<void> | null = null
 
-// The listed names a test or suite may pick; `local` is this machine, never a remote, and a name
-// the strict parse refuses is served as placeholder text, never a pick.
+// The listed names a test or suite may pick; `local` is this machine, never a remote, a name the
+// strict parse refuses is served as placeholder text, never a pick, and an appium remote serves
+// devices.
 function remoteChoices(remotes: unknown): RemoteChoice[] {
   if (!Array.isArray(remotes)) return []
   const choices: RemoteChoice[] = []
@@ -57,6 +58,7 @@ function remoteChoices(remotes: unknown): RemoteChoice[] {
     const name: unknown = entry?.name
     const protocol: unknown = entry?.protocol
     if (typeof name !== 'string' || !NAME_SLUG_PATTERN.test(name) || name === 'local') continue
+    if (protocol === 'appium') continue
     if (choices.some((choice) => choice.name === name)) continue
     choices.push(typeof protocol === 'string' && protocol !== '' ? { name, protocol } : { name })
   }

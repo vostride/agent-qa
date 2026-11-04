@@ -33,6 +33,7 @@ function expectRefused(remote: Record<string, unknown>, message: string) {
 
 const grid = { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com/playwright' }
 const debuggerRemote = { name: 'debugger', protocol: 'cdp', url: 'https://cdp.example.com' }
+const farm = { name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' }
 
 describe('registry.remotes entries', () => {
   it('accepts a playwright entry and a cdp entry', () => {
@@ -70,6 +71,21 @@ describe('registry.remotes entries', () => {
       { ...grid, url: 'https://grid.example.com/playwright' },
       'Remote grid: a playwright url starts with ws:// or wss://.',
     )
+  })
+
+  it('accepts an appium entry with an https url and referenced credentials', () => {
+    expectAccepted(farm)
+    expectAccepted({
+      ...farm,
+      basicAuth: { user: 'qa', password: '{{secret:FARM_KEY}}' },
+      connectTimeout: '45s',
+    })
+  })
+
+  it('refuses an appium url that is not http:// or https://', () => {
+    for (const url of ['ws://farm.example.com/wd/hub', 'wss://farm.example.com/wd/hub']) {
+      expectRefused({ ...farm, url }, 'Remote farm: an appium url starts with http:// or https://.')
+    }
   })
 
   it('accepts ws, wss, http and https on a cdp remote and refuses any other scheme', () => {
@@ -262,8 +278,9 @@ describe('registry.remotes entries', () => {
     expectAccepted({ ...grid, url: 'ws://grid.example.com/playwright' })
   })
 
-  it('refuses context on a playwright remote and accepts it on a cdp remote', () => {
+  it('refuses context on a playwright or appium remote and accepts it on a cdp remote', () => {
     expectRefused({ ...grid, context: 'new' }, 'Remote grid: context applies to cdp remotes only.')
+    expectRefused({ ...farm, context: 'new' }, 'Remote farm: context applies to cdp remotes only.')
     expectAccepted({ ...debuggerRemote, context: 'new' })
   })
 
@@ -380,6 +397,17 @@ describe('remote names, the default pick and target urls', () => {
       path: 'use.browser.remote',
       message:
         'Unknown remote "gird" in agent-qa.config.yaml. registry.remotes lists: grid, debugger.',
+    })
+  })
+
+  it('refuses a default pick that names an appium remote', () => {
+    const config = configWith([grid, farm], {
+      use: { browser: { name: 'chromium', headless: true, remote: 'farm' } },
+    })
+    expect(issues(config)).toContainEqual({
+      path: 'use.browser.remote',
+      message:
+        'Remote farm is an appium remote; use.browser.remote picks a playwright or cdp remote.',
     })
   })
 

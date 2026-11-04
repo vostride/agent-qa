@@ -201,6 +201,33 @@ describe('where a web test runs', () => {
     expect(placeName(web({ test: 'devtools', engine: 'chromium' }))).toBe('devtools')
   })
 
+  it('refuses an appium remote picked by a test, a suite or a suite member', () => {
+    const appium = RemoteEntrySchema.parse({
+      name: 'devices',
+      protocol: 'appium',
+      url: 'https://devices.example.com/wd/hub',
+    })
+    const withAppium = [...remotes, appium]
+    const sentence =
+      'Remote devices is an appium remote; use.browser.remote picks a playwright or cdp remote.'
+    expect(refusal(selectWebPlace({ remotes: withAppium, test: 'devices' }))).toBe(sentence)
+    const suite = selectSuitePlace({
+      remotes: withAppium,
+      suiteName: 'checkout',
+      suiteFile: 'suites/checkout.suite.yaml',
+      suite: 'devices',
+      members: [{ file: 'tests/a.test.yaml' }],
+    })
+    expect(refusal(suite)).toBe(sentence)
+    const member = selectSuitePlace({
+      remotes: withAppium,
+      suiteName: 'checkout',
+      suiteFile: 'suites/checkout.suite.yaml',
+      members: [{ file: 'tests/a.test.yaml', pick: 'devices' }],
+    })
+    expect(refusal(member)).toBe(sentence)
+  })
+
   it('accepts a playwright remote for firefox', () => {
     expect(placeName(web({ test: 'grid', engine: 'firefox' }))).toBe('grid')
   })

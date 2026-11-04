@@ -65,8 +65,14 @@ const GRID = {
 }
 const OTHER = { name: 'other', protocol: 'playwright', url: 'wss://other.example.test/' }
 
-const gridRemote = toRemoteBrowserConfig(RemoteEntrySchema.parse(GRID))
-const otherRemote = toRemoteBrowserConfig(RemoteEntrySchema.parse(OTHER))
+const gridRemote = toRemoteBrowserConfig({
+  ...RemoteEntrySchema.parse(GRID),
+  protocol: 'playwright',
+})
+const otherRemote = toRemoteBrowserConfig({
+  ...RemoteEntrySchema.parse(OTHER),
+  protocol: 'playwright',
+})
 
 interface TestFile {
   file: string

@@ -1,9 +1,11 @@
-export type RemoteProtocol = 'playwright' | 'cdp'
+export type RemoteProtocol = 'playwright' | 'cdp' | 'appium'
+
+export type RemoteBrowserProtocol = 'playwright' | 'cdp'
 
 // Connection values keep their `{{secret:NAME}}` references; the adapter resolves them at connect.
 export interface RemoteBrowserConfig {
   name: string
-  protocol: RemoteProtocol
+  protocol: RemoteBrowserProtocol
   url: string
   query?: Record<string, string | Record<string, unknown>>
   headers?: Record<string, string>

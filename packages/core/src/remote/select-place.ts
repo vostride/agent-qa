@@ -1,6 +1,7 @@
 import {
   DEFAULT_REMOTE_CONNECT_TIMEOUT_MS,
   type RemoteBrowserConfig,
+  type RemoteBrowserProtocol,
 } from '@vostride/agent-qa-runner'
 import type { RunAttributeRunner } from '../run-attributes.js'
 import type { RemoteEntry } from '../schema/remote-schema.js'
@@ -38,9 +39,11 @@ export interface SelectSuitePlaceInput {
 
 export type SelectWebPlaceResult = { place: WebPlace } | { refusal: string }
 
+export type BrowserRemoteEntry = RemoteEntry & { protocol: RemoteBrowserProtocol }
+
 const LOCAL_PICK = 'local'
 
-export function toRemoteBrowserConfig(entry: RemoteEntry): RemoteBrowserConfig {
+export function toRemoteBrowserConfig(entry: BrowserRemoteEntry): RemoteBrowserConfig {
   return {
     name: entry.name,
     protocol: entry.protocol,
@@ -66,12 +69,22 @@ export function selectWebPlace(input: SelectWebPlaceInput): SelectWebPlaceResult
         : `registry.remotes lists: ${input.remotes.map((remote) => remote.name).join(', ')}.`
     return { refusal: `Unknown remote "${pick}" in ${from}. ${listed}` }
   }
+  if (entry.protocol === 'appium') {
+    return {
+      refusal: `Remote ${entry.name} is an appium remote; use.browser.remote picks a playwright or cdp remote.`,
+    }
+  }
   if (entry.protocol === 'cdp' && input.engine !== undefined && input.engine !== 'chromium') {
     return {
       refusal: `Remote ${entry.name} serves Chromium only; this test asks for ${input.engine}.`,
     }
   }
-  return { place: { kind: 'remote', remote: toRemoteBrowserConfig(entry) } }
+  return {
+    place: {
+      kind: 'remote',
+      remote: toRemoteBrowserConfig({ ...entry, protocol: entry.protocol }),
+    },
+  }
 }
 
 // A suite shares one browser, so all its members run in one place.

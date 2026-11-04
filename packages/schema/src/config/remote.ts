@@ -46,10 +46,12 @@ const PROTECTED_SCHEMES: Partial<Record<string, string>> = { ws: 'wss', http: 'h
 const PROTOCOL_SCHEMES: Partial<Record<string, readonly string[]>> = {
   playwright: ['ws', 'wss'],
   cdp: ['ws', 'wss', 'http', 'https'],
+  appium: ['http', 'https'],
 }
 const PROTOCOL_SCHEME_SENTENCES: Partial<Record<string, string>> = {
   playwright: 'a playwright url starts with ws:// or wss://.',
   cdp: 'a cdp url starts with ws://, wss://, http:// or https://.',
+  appium: 'an appium url starts with http:// or https://.',
 }
 const IPV4_RE = /^(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.(\d{1,3})$/
 
@@ -102,7 +104,7 @@ function displayOrigin(url: unknown): string {
 
 export const NAME_SLUG_PATTERN = /^[a-z0-9][a-z0-9.-]*$/
 
-export const REMOTE_PROTOCOLS = ['playwright', 'cdp'] as const
+export const REMOTE_PROTOCOLS = ['playwright', 'cdp', 'appium'] as const
 
 function displayName(name: unknown): string | undefined {
   if (name === undefined) return undefined
@@ -352,7 +354,7 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     )
   }
 
-  if (entry.protocol === 'playwright' && entry.context !== undefined) {
+  if (entry.protocol !== 'cdp' && entry.context !== undefined) {
     report(['context'], 'context applies to cdp remotes only.')
   }
 

@@ -1268,6 +1268,21 @@ describe('ConfigPage task tabs shell', () => {
     await pressKey(document.activeElement!, 'Escape')
   })
 
+  it('the Remotes default offers no appium remote, which serves devices', async () => {
+    const config = configWithRemotes()
+    config.registry.remotes.push({ name: 'farm', protocol: 'appium', url: 'https://farm.example.com:443' })
+    vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config }))
+    await renderAt('/config/targets?section=remotes')
+
+    await pressKey(fieldControl(REMOTE_SEGMENTS)!, 'Enter')
+    expect((Array.from(document.body.querySelectorAll('[role="option"]')) as HTMLElement[]).map((option) => option.textContent)).toEqual([
+      REMOTES_COPY.thisMachine,
+      'grid (playwright)',
+      'lab (cdp)',
+    ])
+    await pressKey(document.activeElement!, 'Escape')
+  })
+
   it('the Remotes default shows a default no listed remote matches as not listed, beside the warning', async () => {
     vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes('gird') }))
     await renderAt('/config/targets?section=remotes')
