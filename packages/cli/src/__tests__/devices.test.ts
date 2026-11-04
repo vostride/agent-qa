@@ -1,152 +1,66 @@
-import { describe, it, expect } from 'vitest'
-import { loadLocalBindings } from '../devices.js'
+// Spawns the built `dist/cli.js`; run `pnpm build` at the repository root first.
 
-describe('loadLocalBindings', () => {
-  it('returns null when file does not exist', () => {
-    const result = loadLocalBindings('/tmp/nonexistent-dir-' + Date.now())
-    expect(result).toBeNull()
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { join } from 'node:path'
+
+import { afterEach, beforeAll, describe, expect, it } from 'vitest'
+
+import {
+  CLI_ENTRY,
+  REBUILD_INSTRUCTION,
+  buildFreshness,
+  cleanupTempRoots,
+  fixtureProject,
+  spawnCollecting,
+} from './conformance/spawned-chat.js'
+
+function devicesProject(label: string): string {
+  const { root, configPath } = fixtureProject(`devices-${label}`)
+  const config = JSON.parse(readFileSync(configPath, 'utf8')) as Record<string, unknown>
+  config.registry = {
+    remotes: [{ name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' }],
+    devices: {
+      pixel: { platform: 'android', model: 'Pixel 8' },
+      'galaxy-farm': { platform: 'android', model: 'Galaxy S24', remote: 'farm' },
+    },
+  }
+  writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`, 'utf8')
+  writeFileSync(join(root, '.env'), '', 'utf8')
+  writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n', 'utf8')
+  return root
+}
+
+describe('agent-qa devices', () => {
+  beforeAll(() => {
+    expect(buildFreshness(), REBUILD_INSTRUCTION).toEqual({ missing: [], stale: [] })
   })
 
-  it('parses valid YAML with devices + apps keys', async () => {
-    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs')
-    const { join } = await import('node:path')
-    const dir = `/tmp/test-bindings-${Date.now()}`
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(
-      join(dir, 'agent-qa.local.yaml'),
-      `devices:
-  pixel-7:
-    avd: Pixel_7_API_34
-apps:
-  release-android-wikipedia:
-    path: build/wikipedia.apk
-`,
-    )
-    try {
-      const result = loadLocalBindings(dir)
-      expect(result).not.toBeNull()
-      expect(result!.devices?.['pixel-7']).toEqual({ avd: 'Pixel_7_API_34' })
-      expect(result!.apps?.['release-android-wikipedia']).toEqual({
-        path: 'build/wikipedia.apk',
-      })
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
+  afterEach(() => {
+    cleanupTempRoots()
   })
 
-  it('parses generated-style comment-only local sections as empty bindings', async () => {
-    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs')
-    const { join } = await import('node:path')
-    const dir = `/tmp/test-bindings-empty-${Date.now()}`
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(
-      join(dir, 'agent-qa.local.yaml'),
-      `# This file is for machine-specific device and app bindings.
-# Keep it out of git.
-# Add agent-qa.local.yaml to .gitignore.
+  it('devices init is refused with what replaced it and writes no file', async () => {
+    const root = devicesProject('init')
+    const before = readdirSync(root).sort()
 
-devices:
-  # Example local device binding:
-  # android-emu:
-  #   avd: Pixel_8_API_35
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'devices', 'init'])
 
-apps:
-  # Example app install binding:
-  # example-android:
-  #   path: apps/example.apk
-`,
+    expect(outcome.code).toBe(1)
+    expect(outcome.stderr.trim()).toBe(
+      'agent-qa devices init was removed: devices are found by model and os, so nothing needs binding. Run agent-qa devices to see what this machine has.',
     )
-
-    try {
-      const result = loadLocalBindings(dir)
-      expect(result).not.toBeNull()
-      expect(result!.devices).toEqual({})
-      expect(result!.apps).toEqual({})
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
+    expect(readdirSync(root).sort()).toEqual(before)
   })
 
-  it('refuses a local file that an older init wrote with a providers block', async () => {
-    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs')
-    const { join } = await import('node:path')
-    const dir = `/tmp/test-bindings-old-init-${Date.now()}`
-    mkdirSync(dir, { recursive: true })
-    const filePath = join(dir, 'agent-qa.local.yaml')
-    writeFileSync(
-      filePath,
-      `# This file is for machine-specific device, app, and provider bindings.
-# Keep it out of git.
-# Add agent-qa.local.yaml to .gitignore.
+  it('bare devices lists each profile with its platform and the remote it runs on', async () => {
+    const root = devicesProject('list')
 
-devices:
-  # Example local device binding:
-  # android-emu:
-  #   avd: Pixel_8_API_35
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'devices'])
 
-apps:
-  # Example app install binding:
-  # example-android:
-  #   path: apps/example.apk
-
-providers:
-  # Example cloud provider credentials:
-  # browserstack:
-  #   username: \${BROWSERSTACK_USERNAME}
-  #   accessKey: \${BROWSERSTACK_ACCESS_KEY}
-`,
+    expect(outcome.code).toBe(0)
+    expect(outcome.stdout).toMatch(/^\s+pixel\s+android\s*$/mu)
+    expect(outcome.stdout).toMatch(
+      /^\s+galaxy-farm\s+android\s+farm \(appium https:\/\/farm\.example\.com:443\)$/mu,
     )
-
-    try {
-      expect(() => loadLocalBindings(dir)).toThrow(
-        `${filePath}:\n  providers: providers was removed: list remote browsers under registry.remotes in agent-qa.config.yaml, with credentials in workspace.secretsFile. Delete this block.`,
-      )
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
-  })
-
-  it("refuses a local app's browserstack with its removal message", async () => {
-    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs')
-    const { join } = await import('node:path')
-    const dir = `/tmp/test-bindings-app-browserstack-${Date.now()}`
-    mkdirSync(dir, { recursive: true })
-    const filePath = join(dir, 'agent-qa.local.yaml')
-    writeFileSync(
-      filePath,
-      `apps:
-  release-android-wikipedia:
-    path: build/wikipedia.apk
-    browserstack: bs://wikipedia
-`,
-    )
-
-    try {
-      expect(() => loadLocalBindings(dir)).toThrow(
-        `${filePath}:\n  apps.release-android-wikipedia.browserstack: apps.<name>.browserstack was removed: BrowserStack is no longer supported; apps.<name>.path is the app file. Delete this line.`,
-      )
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
-  })
-
-  it('does not fall back to agent-qa.devices.local.yaml', async () => {
-    const { writeFileSync, mkdirSync, rmSync } = await import('node:fs')
-    const { join } = await import('node:path')
-    const dir = `/tmp/test-bindings-no-fallback-${Date.now()}`
-    mkdirSync(dir, { recursive: true })
-    writeFileSync(
-      join(dir, 'agent-qa.devices.local.yaml'),
-      `devices:
-  pixel-7:
-    avd: Pixel_7_API_34
-`,
-    )
-
-    try {
-      expect(loadLocalBindings(dir)).toBeNull()
-    } finally {
-      rmSync(dir, { recursive: true, force: true })
-    }
   })
 })

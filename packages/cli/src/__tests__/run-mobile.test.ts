@@ -149,7 +149,7 @@ describe('buildPlatformConfig', () => {
     expect(config.appiumUrl).toBe('http://localhost:4723')
   })
 
-  it('passes resolved local app path into mobile platform config', () => {
+  it('passes the resolved app path into mobile platform config', () => {
     const resolvedDevice = {
       name: 'android-emu',
       platform: 'android' as const,
@@ -165,7 +165,9 @@ describe('buildPlatformConfig', () => {
         deepLinkAppId: 'org.wikipedia.alpha',
         install: {
           path: '/tmp/wikipedia.apk',
-          sourceTrace: { 'app.path': 'agent-qa.local.yaml apps.release-android-wikipedia.path' },
+          sourceTrace: {
+            'app.path': 'agent-qa.config.yaml registry.targets.release-android-wikipedia.app.path',
+          },
         },
         sourceTrace: {},
       },

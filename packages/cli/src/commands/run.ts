@@ -12,7 +12,6 @@ import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, DevicePlace, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
-import { loadLocalBindings, type LocalDeviceBindings } from '../devices.js'
 import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
 import { formatInstallBrowsersRetryCommand, type BrowserInstallSelection } from './install-browsers.js'
 import type { ParsedTestBinding, TestDefinition, ParseError, SuiteDefinition, SuiteResult, RunSuiteConfig } from '@vostride/agent-qa-core'
@@ -1173,29 +1172,6 @@ function buildHooksArtifact(hooks?: Map<string, HookDefinition>): Array<{ id: st
 function secretsRefusal(err: DeclaredSecretsUnavailableError): CliRunInputError {
   const [first = '', ...rest] = err.lines
   return new CliRunInputError([pc.red(first), ...rest.map((line) => pc.dim(line))], 1)
-}
-
-/**
- * `agent-qa.local.yaml`, read at most once per run. A file the loader refuses becomes an input
- * refusal, so the producer can read it before the run is recorded whenever a member runs on a
- * device.
- */
-function createRunLocalBindingsReader(): () => LocalDeviceBindings | null {
-  let read: { readonly bindings: LocalDeviceBindings | null } | undefined
-  return () => {
-    if (read === undefined) {
-      try {
-        read = { bindings: loadLocalBindings() }
-      } catch (err) {
-        const [first = '', ...rest] = (err instanceof Error ? err.message : String(err)).split('\n')
-        throw new CliRunInputError(
-          [pc.red(`Config error: ${first}`), ...rest.map((line) => pc.dim(line))],
-          1,
-        )
-      }
-    }
-    return read.bindings
-  }
 }
 
 function anyTargetRunsOnDevice(
@@ -2500,11 +2476,6 @@ export async function produceSuiteRunMembers(
     refusalMemory: input.refusalMemory ?? createRemoteRefusalMemory(),
   }
 
-  // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
-  const readLocalBindings = createRunLocalBindingsReader()
-  const suiteTargetNames = [...parsedSuiteDefinitions.values()].map((suite) => suite.target)
-  if (anyTargetRunsOnDevice(config, suiteTargetNames)) readLocalBindings()
-
   // The record opens here, before plugins; the drive's later open is a no-op.
   await input.runRecord?.open({
     runId,
@@ -2773,9 +2744,6 @@ export async function produceSuiteRunMembers(
       navigation: typeof suiteTimeoutConfig?.navigation === 'number' ? suiteTimeoutConfig.navigation : DEFAULT_NAVIGATION_TIMEOUT_MS,
     }
 
-    const suiteLocalBindings = suitePlatform === 'android' || suitePlatform === 'ios'
-      ? readLocalBindings()
-      : null
     let mobileResolved: ResolvedMobileRunConfig | undefined
     let resolvedDevice: ResolvedMobileDevice | undefined
     if (suitePlatform === 'android' || suitePlatform === 'ios') {
@@ -2786,9 +2754,7 @@ export async function produceSuiteRunMembers(
         explicitDeviceName: opts.device,
         useDeviceName: suiteDeviceName,
         appState: (mergedUse.mobile as Record<string, unknown> | undefined)?.appState as 'preserve' | 'reset' | undefined,
-        localBindings: suiteLocalBindings,
         configFilePath: path.resolve(configFilePath),
-        localConfigFilePath: suiteLocalBindings?.filePath,
         appiumUrl: resolveHostAppiumUrl(input.resolveAppiumUrl),
       })
       resolvedDevice = mobileResolved.device
@@ -3681,9 +3647,6 @@ export async function produceDirectRunMembers(
   const directRunProduct = input.product
   const singleRunMask: MaskFn = (text) => runtimeSecrets.secretRedactor.redactString(text)
 
-  // Read before the run is recorded, so a refused local file refuses the run instead of failing it.
-  const readLocalBindings = createRunLocalBindingsReader()
-  if (anyTargetRunsOnDevice(config, filtered.map(({ test }) => test.target))) readLocalBindings()
   const directRemotes = selectDirectRemotes(config, configDir, filtered, opts.browser)
   const directDevicePlaces = placeDirectDevices(config, configDir, filtered, opts.device)
   refuseRemoteSecretProblems({
@@ -3863,9 +3826,6 @@ export async function produceDirectRunMembers(
         DEFAULT_NAVIGATION_TIMEOUT_MS,
     }
 
-    const testLocalBindings = testPlatform === 'android' || testPlatform === 'ios'
-      ? readLocalBindings()
-      : null
     let testMobileResolved: ResolvedMobileRunConfig | undefined
     let testResolvedDevice: ResolvedMobileDevice | undefined
     if (testPlatform === 'android' || testPlatform === 'ios') {
@@ -3876,9 +3836,7 @@ export async function produceDirectRunMembers(
         explicitDeviceName: opts.device,
         useDeviceName: testMergedUse.device as string | undefined,
         appState: testMergedUse.mobile?.appState as 'preserve' | 'reset' | undefined,
-        localBindings: testLocalBindings,
         configFilePath: resolvePath(configFilePath),
-        localConfigFilePath: testLocalBindings?.filePath,
         appiumUrl: resolveHostAppiumUrl(input.resolveAppiumUrl),
       })
       analyticsAppState = testMobileResolved.appState
