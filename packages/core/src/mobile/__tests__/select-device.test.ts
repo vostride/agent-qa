@@ -4,8 +4,10 @@ import { runnerForPlaces } from '../../remote/select-place.js'
 import { RemoteEntrySchema } from '../../schema/remote-schema.js'
 import {
   selectDevicePlace,
+  selectTestDevice,
   type SelectDevicePlaceInput,
   type SelectDevicePlaceResult,
+  type SelectTestDeviceInput,
 } from '../select-device.js'
 
 const farm = RemoteEntrySchema.parse({
@@ -105,5 +107,77 @@ describe('the runner a run on devices records', () => {
     expect(runnerForPlaces([remote.place])).toBe('remote')
     expect(runnerForPlaces([here.place, remote.place])).toBe('remote')
     expect(runnerForPlaces([here.place])).toBe('local')
+  })
+})
+
+const profiles = {
+  pixel: { platform: 'android' },
+  'pixel-tablet': { platform: 'android' },
+  'galaxy-farm': { platform: 'android', remote: 'farm' },
+  iphone: { platform: 'ios' },
+}
+const android = { name: 'shop-android', platform: 'android', device: 'pixel' }
+
+function selectTest(input: Partial<SelectTestDeviceInput>) {
+  return selectTestDevice({ devices: profiles, remotes, target: android, ...input })
+}
+
+describe('the device a test runs on', () => {
+  it("is its target's device when neither the test nor --device picks one", () => {
+    expect(selectTest({})).toEqual({ place: { kind: 'local', device: 'pixel' } })
+  })
+
+  it("is the test's pick over its target's device", () => {
+    expect(selectTest({ test: 'pixel-tablet', file: 'tests/login.test.yaml' })).toEqual({
+      place: { kind: 'local', device: 'pixel-tablet' },
+    })
+    const remote = selectTest({ test: 'galaxy-farm' })
+    if ('refusal' in remote) throw new Error(remote.refusal)
+    expect(remote.place.kind).toBe('remote')
+  })
+
+  it("is the --device pick over the test's and the target's", () => {
+    expect(selectTest({ flag: 'pixel-tablet', test: 'pixel' })).toEqual({
+      place: { kind: 'local', device: 'pixel-tablet' },
+    })
+  })
+
+  it('runs here when --device names a device here, though the test picks a remote device', () => {
+    expect(
+      selectTest({ flag: 'pixel', test: 'galaxy-farm', file: 'tests/login.test.yaml' }),
+    ).toEqual({ place: { kind: 'local', device: 'pixel' } })
+  })
+
+  it('refuses --device naming a device on a remote', () => {
+    expect(refusal(selectTest({ flag: 'galaxy-farm' }))).toBe(
+      'Device galaxy-farm runs on remote farm; --device picks a device on this machine. Set use.device: galaxy-farm in a suite or test to run there.',
+    )
+  })
+
+  it('refuses a test with no device anywhere', () => {
+    expect(refusal(selectTest({ target: { name: 'shop-android', platform: 'android' } }))).toBe(
+      'No device specified for mobile target "shop-android". Set device on registry.targets.shop-android, or use.device in the test or its suite.',
+    )
+  })
+
+  it("refuses a device of another platform than the test's target", () => {
+    expect(refusal(selectTest({ test: 'iphone', file: 'tests/login.test.yaml' }))).toBe(
+      'Device "iphone" is ios, but target "shop-android" is android.',
+    )
+    expect(refusal(selectTest({ flag: 'iphone' }))).toBe(
+      'Device "iphone" is ios, but target "shop-android" is android.',
+    )
+  })
+
+  it('refuses an unknown device, naming where the name came from', () => {
+    expect(refusal(selectTest({ flag: 'pixle' }))).toBe(
+      'Unknown device "pixle" in --device. registry.devices lists: pixel, pixel-tablet, galaxy-farm, iphone.',
+    )
+    expect(refusal(selectTest({ test: 'pixle', file: 'tests/login.test.yaml' }))).toBe(
+      'Unknown device "pixle" in tests/login.test.yaml. registry.devices lists: pixel, pixel-tablet, galaxy-farm, iphone.',
+    )
+    expect(refusal(selectTest({ target: { ...android, device: 'pixle' } }))).toBe(
+      'Unknown device "pixle" in registry.targets.shop-android. registry.devices lists: pixel, pixel-tablet, galaxy-farm, iphone.',
+    )
   })
 })
