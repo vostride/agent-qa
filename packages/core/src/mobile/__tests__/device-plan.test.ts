@@ -4,12 +4,37 @@ import {
   W3C_STANDARD_CAPABILITIES,
   capabilityValue,
   mergeCapabilities,
+  remoteAppCapability,
+  remoteDerivedIdentity,
+  runStartCapabilityContradictions,
   staticCapabilityContradictions,
+  type RemoteAppInput,
+  type RunStartCapabilityInput,
   type StaticCapabilityInput,
 } from '../device-plan.js'
 
 function contradictions(input: Partial<StaticCapabilityInput>) {
   return staticCapabilityContradictions({ device: 'galaxy-farm', platform: 'android', ...input })
+}
+
+function runStart(input: Partial<RunStartCapabilityInput>) {
+  return runStartCapabilityContradictions({
+    device: 'galaxy-farm',
+    target: { name: 'shop-android', appPackage: 'com.example.shop', appActivity: '.MainActivity' },
+    appState: 'preserve',
+    browserMode: false,
+    ...input,
+  })
+}
+
+function remoteApp(input: Partial<RemoteAppInput>) {
+  return remoteAppCapability({
+    device: 'galaxy-farm',
+    remote: 'farm',
+    target: 'shop-android',
+    capabilities: {},
+    ...input,
+  })
 }
 
 describe('mergeCapabilities', () => {
@@ -222,5 +247,123 @@ describe('staticCapabilityContradictions', () => {
     expect(contradictions({ capabilities: { ...capabilities, platformName: 'Android' } })).toEqual(
       [],
     )
+  })
+})
+
+describe('runStartCapabilityContradictions', () => {
+  it('refuses an app id the target states differently', () => {
+    expect(
+      runStart({
+        capabilities: {
+          'appium:appPackage': 'com.example.other',
+          'appium:appActivity': '.LoginActivity',
+        },
+      }),
+    ).toEqual([
+      'Device galaxy-farm sets appium:appPackage "com.example.other" in its capabilities; target shop-android has appPackage com.example.shop.',
+      'Device galaxy-farm sets appium:appActivity ".LoginActivity" in its capabilities; target shop-android has appActivity .MainActivity.',
+    ])
+    expect(
+      runStart({
+        device: 'iphone-farm',
+        target: { name: 'shop-ios', bundleId: 'com.example.shop' },
+        remote: {
+          name: 'farm',
+          capabilities: { 'appium:options': { bundleId: 'com.example.beta' } },
+        },
+      }),
+    ).toEqual([
+      'Remote farm sets appium:options.bundleId "com.example.beta" in its capabilities; target shop-ios has bundleId com.example.shop.',
+    ])
+  })
+
+  it('lets matching app ids and ids the target does not state through', () => {
+    expect(
+      runStart({
+        capabilities: { 'appium:appPackage': ' com.example.shop ', 'appium:bundleId': 'any' },
+      }),
+    ).toEqual([])
+  })
+
+  it('refuses appium:noReset that differs from use.mobile.appState', () => {
+    expect(runStart({ appState: 'reset', capabilities: { 'appium:noReset': true } })).toEqual([
+      'Device galaxy-farm sets appium:noReset true in its capabilities; use.mobile.appState is reset.',
+    ])
+    expect(
+      runStart({ remote: { name: 'farm', capabilities: { 'appium:noReset': false } } }),
+    ).toEqual([
+      'Remote farm sets appium:noReset false in its capabilities; use.mobile.appState is preserve.',
+    ])
+    expect(runStart({ capabilities: { 'appium:noReset': true } })).toEqual([])
+    expect(runStart({ appState: 'reset', capabilities: { 'appium:noReset': false } })).toEqual([])
+  })
+
+  it('refuses appium:fullReset true when use.mobile.appState is preserve', () => {
+    expect(runStart({ capabilities: { 'appium:fullReset': true } })).toEqual([
+      'Device galaxy-farm sets appium:fullReset true in its capabilities; use.mobile.appState is preserve.',
+    ])
+    expect(runStart({ appState: 'reset', capabilities: { 'appium:fullReset': true } })).toEqual([])
+    expect(runStart({ capabilities: { 'appium:fullReset': false } })).toEqual([])
+  })
+
+  it('skips the app state checks in browser mode', () => {
+    expect(
+      runStart({
+        browserMode: true,
+        appState: 'reset',
+        capabilities: { 'appium:noReset': true, browserName: 'Chrome' },
+      }),
+    ).toEqual([])
+  })
+})
+
+describe('remoteAppCapability', () => {
+  it('installs the target app.ref as appium:app', () => {
+    expect(remoteApp({ appRef: 'storage:filename=shop.apk', appPath: 'build/shop.apk' })).toEqual({
+      app: 'storage:filename=shop.apk',
+    })
+  })
+
+  it('lets an appium:app in the capabilities win over app.ref', () => {
+    expect(
+      remoteApp({
+        appRef: 'storage:filename=shop.apk',
+        capabilities: { 'appium:app': 'bs://abc' },
+      }),
+    ).toEqual({})
+    expect(
+      remoteApp({
+        appPath: 'build/shop.apk',
+        capabilities: { 'appium:options': { app: 'bs://abc' } },
+      }),
+    ).toEqual({})
+  })
+
+  it('refuses a target with only app.path', () => {
+    expect(remoteApp({ appPath: 'build/shop.apk' })).toEqual({
+      refusal:
+        'Device galaxy-farm runs on remote farm, and target shop-android has only app.path. Set app.ref to the app the server installs.',
+    })
+  })
+
+  it('installs nothing when the target names no app', () => {
+    expect(remoteApp({})).toEqual({})
+  })
+})
+
+describe('remoteDerivedIdentity', () => {
+  it('sends model, os and id as deviceName, platformVersion and udid, each only when set', () => {
+    const identity = remoteDerivedIdentity({
+      model: 'Samsung Galaxy S.*',
+      os: '14',
+      id: 'R5CT1234',
+    })
+    expect(identity).toEqual({
+      'appium:deviceName': 'Samsung Galaxy S.*',
+      'appium:platformVersion': '14',
+      'appium:udid': 'R5CT1234',
+    })
+    expect(remoteDerivedIdentity({ os: '17' })).toEqual({ 'appium:platformVersion': '17' })
+    expect(remoteDerivedIdentity({})).toEqual({})
   })
 })

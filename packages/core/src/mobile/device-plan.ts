@@ -198,3 +198,77 @@ export function staticCapabilityContradictions(input: StaticCapabilityInput): st
   }
   return found
 }
+
+export interface RunStartCapabilityInput {
+  device: string
+  target: { name: string; appPackage?: string; appActivity?: string; bundleId?: string }
+  appState: 'preserve' | 'reset'
+  browserMode: boolean
+  remote?: { name: string; capabilities?: CapabilityMap }
+  capabilities?: CapabilityMap
+}
+
+const APP_ID_FIELDS = ['appPackage', 'appActivity', 'bundleId'] as const
+
+export function runStartCapabilityContradictions(input: RunStartCapabilityInput): string[] {
+  const found: string[] = []
+  const noReset = input.appState === 'preserve'
+  const appState = `use.mobile.appState is ${input.appState}`
+  for (const layer of layersOf(input)) {
+    for (const field of APP_ID_FIELDS) {
+      const stated = input.target[field]?.trim()
+      if (stated === undefined || stated === '') continue
+      const entry = capabilityEntry(layer.capabilities, field)
+      if (entry && differs(entry.value, stated)) {
+        found.push(`${sets(layer, entry)}; target ${input.target.name} has ${field} ${stated}.`)
+      }
+    }
+
+    if (input.browserMode) continue
+    const noResetEntry = capabilityEntry(layer.capabilities, 'noReset')
+    if (noResetEntry && differs(noResetEntry.value, String(noReset), true)) {
+      found.push(`${sets(layer, noResetEntry)}; ${appState}.`)
+    }
+    const fullReset = capabilityEntry(layer.capabilities, 'fullReset')
+    if (fullReset && noReset && asText(fullReset.value)?.toLowerCase() === 'true') {
+      found.push(`${sets(layer, fullReset)}; ${appState}.`)
+    }
+  }
+  return found
+}
+
+export interface RemoteAppInput {
+  device: string
+  remote: string
+  target: string
+  appRef?: string
+  appPath?: string
+  // The merged capabilities the session would send.
+  capabilities: CapabilityMap
+}
+
+export type RemoteAppResult = { app?: string } | { refusal: string }
+
+export function remoteAppCapability(input: RemoteAppInput): RemoteAppResult {
+  if (capabilityEntry(input.capabilities, 'app') !== undefined) return {}
+  const appRef = input.appRef?.trim()
+  if (appRef) return { app: appRef }
+  if (input.appPath?.trim()) {
+    return {
+      refusal: `Device ${input.device} runs on remote ${input.remote}, and target ${input.target} has only app.path. Set app.ref to the app the server installs.`,
+    }
+  }
+  return {}
+}
+
+export function remoteDerivedIdentity(input: {
+  model?: string
+  os?: string
+  id?: string
+}): CapabilityMap {
+  const identity: CapabilityMap = {}
+  if (input.model !== undefined) identity['appium:deviceName'] = input.model
+  if (input.os !== undefined) identity['appium:platformVersion'] = input.os
+  if (input.id !== undefined) identity['appium:udid'] = input.id
+  return identity
+}
