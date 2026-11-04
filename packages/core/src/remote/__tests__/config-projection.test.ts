@@ -42,6 +42,12 @@ const WORKSPACE = [
 
 const USE = ['use:', '  browser:', '    name: chromium', '    headless: true', '    remote: grid']
 
+const DEVICES = ['  devices:', '    pixel:', '      platform: android', '      match:']
+
+const GRID_MAP_ENTRY = '    grid: { protocol: playwright, url: "wss://grid.example.com/" }'
+
+const PLANTED_MAP_ENTRY = `{ protocol: playwright, url: "wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}", headers: { X-Team: ${HEADER_VALUE} } }`
+
 function plantedEntry(indent: number): string[] {
   return [
     '- name: grid',
@@ -54,6 +60,11 @@ function plantedEntry(indent: number): string[] {
 function loadedUrl(raw: string): unknown {
   const loaded = parseYaml(raw) as { registry?: { remotes?: Array<{ url?: unknown }> } }
   return loaded.registry?.remotes?.[0]?.url
+}
+
+function loadedMapUrl(raw: string, key: string): unknown {
+  const loaded = parseYaml(raw) as { registry: { remotes: Record<string, { url?: unknown }> } }
+  return loaded.registry.remotes[key]?.url
 }
 
 function expectNothingPlanted(shown: string): void {
@@ -574,5 +585,206 @@ describe('projectRemotesInConfigText', () => {
         remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
       },
     })
+  })
+
+  it('shows a config whose later remotes alias key merges in the remotes map and adds an entry as one unshowable line', () => {
+    const raw = [
+      '%YAML 1.1',
+      '---',
+      'registry:',
+      ...DEVICES,
+      '        avd: &k remotes',
+      '  remotes: &F',
+      GRID_MAP_ENTRY,
+      '  *k :',
+      '    <<: *F',
+      `    other: ${PLANTED_MAP_ENTRY}`,
+      '',
+    ].join('\n')
+
+    expect(loadedMapUrl(raw, 'other')).toContain(PATH_TOKEN)
+    expect(loadedMapUrl(raw, 'grid')).toBe('wss://grid.example.com/')
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose later remotes alias key merges in the remotes map through a merge tag as one unshowable line', () => {
+    const raw = [
+      'registry:',
+      ...DEVICES,
+      '        avd: &k remotes',
+      '  remotes: &F',
+      GRID_MAP_ENTRY,
+      '  *k :',
+      '    !!merge <<: *F',
+      `    other: ${PLANTED_MAP_ENTRY}`,
+      '',
+    ].join('\n')
+
+    expect(loadedMapUrl(raw, 'other')).toContain(PATH_TOKEN)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose later registry alias key merges in the remotes map as one unshowable line', () => {
+    const raw = [
+      '%YAML 1.1',
+      '---',
+      'use:',
+      '  browser:',
+      '    name: &g registry',
+      'registry:',
+      '  remotes: &F',
+      GRID_MAP_ENTRY,
+      '*g :',
+      '  remotes:',
+      '    <<: *F',
+      `    other: ${PLANTED_MAP_ENTRY}`,
+      '',
+    ].join('\n')
+
+    expect(loadedMapUrl(raw, 'other')).toContain(PATH_TOKEN)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose later remotes alias key merges in the remotes map and redefines its entry as one unshowable line', () => {
+    const raw = [
+      '%YAML 1.1',
+      '---',
+      'registry:',
+      ...DEVICES,
+      '        avd: &k remotes',
+      '  remotes: &F',
+      GRID_MAP_ENTRY,
+      '  *k :',
+      '    <<: *F',
+      `    grid: ${PLANTED_MAP_ENTRY}`,
+      '',
+    ].join('\n')
+
+    const loaded = parseYaml(raw) as { registry: { remotes: Record<string, unknown> } }
+    expect(Object.keys(loaded.registry.remotes)).toEqual(['grid'])
+    expect(loadedMapUrl(raw, 'grid')).toContain(PATH_TOKEN)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a remotes map that a merge copies elsewhere as one unshowable line, even when the merge adds nothing', () => {
+    const raw = [
+      '%YAML 1.1',
+      '---',
+      'registry:',
+      '  remotes: &F',
+      GRID_MAP_ENTRY,
+      ...DEVICES,
+      '        avd:',
+      '          <<: *F',
+      '',
+    ].join('\n')
+
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose registry key is an alias as one unshowable line', () => {
+    const raw = [
+      'use:',
+      '  browser:',
+      '    remote: grid',
+      '    name: &g registry',
+      '*g :',
+      '  remotes:',
+      ...plantedEntry(4),
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose registry alias key overrides a plain registry as one unshowable line', () => {
+    const raw = [
+      'use:',
+      '  browser:',
+      '    name: &g registry',
+      'registry:',
+      '  remotes: []',
+      '*g :',
+      '  remotes:',
+      ...plantedEntry(4),
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose remotes alias key overrides a plain remotes key as one unshowable line', () => {
+    const raw = [
+      ...WORKSPACE,
+      'registry:',
+      ...DEVICES,
+      '        avd: &k remotes',
+      '  remotes: []',
+      '  *k :',
+      ...plantedEntry(4),
+      ...USE,
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(AgentQaConfigSchema.safeParse(parseYaml(raw)).success).toBe(true)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose root merges in its registry through a merge tag as one unshowable line', () => {
+    const raw = [
+      'use:',
+      '  browser:',
+      '    remote: grid',
+      '  extra: &r',
+      '    registry:',
+      '      remotes:',
+      ...plantedEntry(8),
+      '!!merge <<: *r',
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose merge tag is spelled through a tag directive as one unshowable line', () => {
+    const raw = [
+      '%TAG !e! tag:yaml.org,2002:',
+      '---',
+      ...WORKSPACE,
+      'registry:',
+      ...DEVICES,
+      '        avd: &r',
+      '          remotes:',
+      ...plantedEntry(12),
+      '  !e!merge <<: *r',
+      ...USE,
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(AgentQaConfigSchema.safeParse(parseYaml(raw)).success).toBe(true)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose merge tag is written verbatim as one unshowable line', () => {
+    const raw = [
+      ...WORKSPACE,
+      'registry:',
+      ...DEVICES,
+      '        avd: &r',
+      '          remotes:',
+      ...plantedEntry(12),
+      '  !<tag:yaml.org,2002:merge> <<: *r',
+      ...USE,
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(AgentQaConfigSchema.safeParse(parseYaml(raw)).success).toBe(true)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
   })
 })

@@ -264,6 +264,49 @@ describe("the config's closed fields", () => {
     }
   })
 
+  it('the served file lines are one line for a remotes map that a later alias key merges in and extends', async () => {
+    const pathPart = 'routepart-9d1e'
+    const queryValue = 'queryvalue-4f60'
+    const headerValue = 'headervalue-b7a3'
+    const url = `wss://grid.example.com/${pathPart}?team=${queryValue}`
+    const { manager } = await configFile(
+      [
+        '%YAML 1.1',
+        '---',
+        ...WORKSPACE,
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        '        avd: &k remotes',
+        '  remotes: &F',
+        '    grid: { protocol: playwright, url: "wss://grid.example.com/" }',
+        '  *k :',
+        '    <<: *F',
+        `    other: { protocol: playwright, url: "${url}", headers: { X-Team: ${headerValue} } }`,
+        ...USE,
+        '',
+      ].join('\n'),
+    )
+    const read = await manager.readMasked()
+    if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+
+    expect(read.fileIssues).not.toEqual([])
+    expect(read.lines).toEqual([
+      { n: 1, text: '# This config cannot be shown without its remote endpoints.' },
+    ])
+    expect(read.config.registry).toEqual({
+      devices: { pixel: { platform: 'android', match: { avd: 'remotes' } } },
+      remotes: [],
+    })
+    const text = read.lines.map((line) => line.text).join('\n')
+    for (const hidden of [pathPart, queryValue, headerValue, 'X-Team']) {
+      expect(JSON.stringify(read.config)).not.toContain(hidden)
+      expect(text).not.toContain(hidden)
+    }
+  })
+
   it('on a config with no plugins block another package, a path or a second plugins change is refused', async () => {
     await expectRefused(WITHOUT_PLUGINS, [
       [{ op: 'append', path: ['plugins', 'auth'], value: { package: '@acme/other-auth' } }],

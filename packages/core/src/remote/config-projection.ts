@@ -68,9 +68,16 @@ function loadsFromBlock(doc: Document): boolean {
     return Array.isArray(loaded) && loaded[loaded.length - 1] === mark
   }
   if (isMap(block)) {
-    block.set(MARK_KEY, new Scalar(mark))
+    // A merge converts the map it copies again, so a second conversion means a merge reached it.
+    let conversions = 0
+    block.set(MARK_KEY, {
+      toJSON: () => {
+        conversions += 1
+        return mark
+      },
+    })
     const loaded = loadedRemotes(copy)
-    return isRecord(loaded) && loaded[MARK_KEY] === mark
+    return conversions === 1 && isRecord(loaded) && loaded[MARK_KEY] === mark
   }
   if (!isScalar(block)) return false
   const marker = new Scalar(mark)
@@ -89,7 +96,7 @@ function nodesUnder(node: Node): unknown[] {
 
 // The remotes block is replaced whole: comments inside it can sit beside endpoints and credentials.
 // Every anchor the block holds or reaches through aliases is replaced, and so is every alias of it.
-// Text whose loaded remotes are not that block, or that does not parse and names remotes: one line.
+// Text whose remotes may not be that block, or that does not parse and names remotes: one line.
 export function projectRemotesInConfigText(raw: string): string {
   const doc = parseDocument(raw)
   if (doc.errors.length > 0) return NAMES_REMOTES.test(raw) ? UNSHOWABLE : raw
