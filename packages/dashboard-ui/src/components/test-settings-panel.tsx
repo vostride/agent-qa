@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
+import { REMOTES_COPY } from '@/lib/config-copy'
 import {
   Select,
   SelectTrigger,
@@ -21,6 +22,9 @@ interface TestSettingsPanelProps {
   selectedTarget?: string
   showMeta?: boolean
 }
+
+// No remote name has parentheses, so this option can only mean "inherit".
+const INHERIT_PLACE = '(inherited)'
 
 const BROWSERS = [
   { value: 'chromium', label: 'Chromium' },
@@ -178,11 +182,12 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
     }
   }
 
-  const { targets: targetDetails, globalUse: g } = useTargetDetails()
+  const { targets: targetDetails, globalUse: g, remotes } = useTargetDetails()
   const targetPlatform = selectedTarget ? targetDetails[selectedTarget]?.platform : undefined
   const isMobile = targetPlatform === 'android' || targetPlatform === 'ios'
 
   const browser = getIn(['use', 'browser', 'name']) as string | undefined
+  const remote = getIn(['use', 'browser', 'remote']) as string | undefined
   const headless = getIn(['use', 'browser', 'headless']) as boolean | undefined
   const viewportWidth = getIn(['use', 'browser', 'viewport', 'width']) as number | undefined
   const viewportHeight = getIn(['use', 'browser', 'viewport', 'height']) as number | undefined
@@ -211,6 +216,8 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
   const record = getIn(['meta', 'record']) as boolean | undefined
 
   const gHeadless = g?.browser?.headless
+  const gRemote = g?.browser?.remote
+  const inheritedPlace = ih(gRemote === undefined || gRemote === 'local' ? REMOTES_COPY.thisMachine : gRemote)
   const gLogConsole = g?.logCapture?.console
   const gLogNetwork = g?.logCapture?.network
   const gParallel = g?.parallel
@@ -283,6 +290,29 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                   ))}
                 </SelectContent>
               </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-[11px] text-muted-foreground">Runs on</Label>
+              <Select
+                value={remote ?? ''}
+                onValueChange={(val) => handleSet(['use', 'browser', 'remote'], val === INHERIT_PLACE ? undefined : val)}
+              >
+                <SelectTrigger className="w-full h-7 text-xs">
+                  <SelectValue placeholder={inheritedPlace} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={INHERIT_PLACE}>{inheritedPlace}</SelectItem>
+                  <SelectItem value="local">{REMOTES_COPY.thisMachine}</SelectItem>
+                  {remotes.map((name) => (
+                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              {showMeta && (
+                <p className="text-[11px] text-muted-foreground">
+                  In a suite that picks a place, the suite&apos;s choice wins.
+                </p>
+              )}
             </div>
             <div className="flex items-center justify-between">
               <Label className="text-[11px] text-muted-foreground">Headless {headless === undefined && <span className="text-muted-foreground/50">{ihBool(gHeadless)}</span>}</Label>
