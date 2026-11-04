@@ -433,11 +433,18 @@ function mobileDriverInstallCommand(): string {
   return 'agent-qa install-mobile-drivers --all'
 }
 
-function checkAppium(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
+function checkAppium(
+  config: Record<string, unknown> | null,
+  configPath: string,
+  skips: DeviceToolSkips,
+): DoctorCheck {
   return {
     name: 'Appium',
     fixInstructions: `${formatAppiumInstallGuidance()} Then run \`${mobileDriverInstallCommand()}\`.`,
     check: async () => {
+      if (skips.appium !== undefined) {
+        return { status: 'skip', message: skips.appium }
+      }
       if (!isMobilePlatform(config)) {
         return { status: 'skip', message: 'not configured' }
       }
@@ -453,11 +460,18 @@ function checkAppium(config: Record<string, unknown> | null, configPath: string)
   }
 }
 
-function checkAppiumDrivers(config: Record<string, unknown> | null, configPath: string): DoctorCheck {
+function checkAppiumDrivers(
+  config: Record<string, unknown> | null,
+  configPath: string,
+  skips: DeviceToolSkips,
+): DoctorCheck {
   return {
     name: 'Appium drivers',
     fixInstructions: `Run \`${mobileDriverInstallCommand()}\``,
     check: async () => {
+      if (skips.appium !== undefined) {
+        return { status: 'skip', message: skips.appium }
+      }
       if (!isMobilePlatform(config)) {
         return { status: 'skip', message: 'not configured' }
       }
@@ -477,11 +491,17 @@ function checkAppiumDrivers(config: Record<string, unknown> | null, configPath: 
   }
 }
 
-function checkAndroidSDK(config: Record<string, unknown> | null): DoctorCheck {
+function checkAndroidSDK(
+  config: Record<string, unknown> | null,
+  skips: DeviceToolSkips,
+): DoctorCheck {
   return {
     name: 'Android SDK',
     fixInstructions: 'Install Android Studio and set ANDROID_HOME environment variable',
     check: async () => {
+      if (skips.androidSdk !== undefined) {
+        return { status: 'skip', message: skips.androidSdk }
+      }
       if (!hasAndroidPlatform(config)) {
         return { status: 'skip', message: 'not configured' }
       }
@@ -500,11 +520,14 @@ function checkAndroidSDK(config: Record<string, unknown> | null): DoctorCheck {
   }
 }
 
-function checkXcode(config: Record<string, unknown> | null): DoctorCheck {
+function checkXcode(config: Record<string, unknown> | null, skips: DeviceToolSkips): DoctorCheck {
   return {
     name: 'Xcode',
     fixInstructions: 'Install Xcode from the Mac App Store and run `xcode-select --install`',
     check: async () => {
+      if (skips.xcode !== undefined) {
+        return { status: 'skip', message: skips.xcode }
+      }
       if (!hasIOSPlatform(config)) {
         return { status: 'skip', message: 'not configured' }
       }
@@ -710,6 +733,30 @@ function hasIOSPlatform(config: Record<string, unknown> | null): boolean {
   return getTargetPlatforms(config).some((p) => p === 'ios')
 }
 
+interface DeviceToolSkips {
+  appium?: string
+  androidSdk?: string
+  xcode?: string
+}
+
+// A device with a remote runs on that server, so the local tools that drive a device are not
+// needed for it. A row skips only when the config lists devices and every one it covers is remote.
+function deviceToolSkips(config: Record<string, unknown> | null): DeviceToolSkips {
+  const registry = config?.registry
+  const listed = isRecord(registry) ? registry.devices : undefined
+  const devices = isRecord(listed) ? Object.values(listed).filter(isRecord) : []
+  const isRemote = (device: Record<string, unknown>): boolean =>
+    typeof device.remote === 'string' && device.remote !== ''
+  const everyRemote = (some: Record<string, unknown>[]): boolean =>
+    some.length > 0 && some.every(isRemote)
+  const onPlatform = (platform: string) => devices.filter((device) => device.platform === platform)
+  return {
+    ...(everyRemote(devices) ? { appium: 'every device is remote' } : {}),
+    ...(everyRemote(onPlatform('android')) ? { androidSdk: 'every android device is remote' } : {}),
+    ...(everyRemote(onPlatform('ios')) ? { xcode: 'every iOS device is remote' } : {}),
+  }
+}
+
 function getGlobalConfigPath(command: Command): string {
   return command.parent?.opts<{ config?: string }>().config ?? 'agent-qa.config.yaml'
 }
@@ -746,6 +793,7 @@ export function createDoctorCommand(): Command {
       const resolved = config ? resolveDoctorWorkspace(config, configPath) : undefined
       const workspace = resolved?.ok ? resolved.workspace : undefined
       const placement = await resolveWebPlacement(config, workspace)
+      const skips = deviceToolSkips(config)
 
       const checks: DoctorCheck[] = [
         checkNodeVersion(),
@@ -768,10 +816,10 @@ export function createDoctorCommand(): Command {
           only: options.remote,
           loopbackTargetsByRemote: placement.loopbackTargetsByRemote,
         }),
-        checkAppium(config, configPath),
-        checkAppiumDrivers(config, configPath),
-        checkAndroidSDK(config),
-        checkXcode(config),
+        checkAppium(config, configPath, skips),
+        checkAppiumDrivers(config, configPath, skips),
+        checkAndroidSDK(config, skips),
+        checkXcode(config, skips),
         checkTestDiscovery(config, configPath),
         checkValidation(config, configPath),
       ]

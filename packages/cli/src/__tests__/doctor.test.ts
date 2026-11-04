@@ -953,6 +953,127 @@ targets:
     expect(output).toContain('requires macOS')
   })
 
+  describe('mobile tool rows and remote devices', () => {
+    function deviceConfig(targets: string[], devices: string): string {
+      return `
+registry:
+  llms:
+    - name: default
+      provider: openai-compatible
+      model: model-name
+      baseURL: https://remote.example/api/v1
+  remotes:
+    - name: farm
+      protocol: appium
+      url: https://farm.example/wd/hub
+  targets:
+${targets.map((platform) => `    ${platform}-app:\n      platform: ${platform}`).join('\n')}
+${devices}
+use:
+  llm: default
+`
+    }
+
+    // A Linux host with no Appium, no Android SDK and no Xcode; the farm never answers.
+    function bareLinuxHost(): void {
+      Object.defineProperty(process, 'platform', { value: 'linux', configurable: true })
+      mockExecFileSync.mockImplementation(() => {
+        throw new Error('appium not found')
+      })
+      mockExecSync.mockImplementation(() => {
+        throw new Error('not found')
+      })
+      vi.stubGlobal('fetch', vi.fn(() => Promise.reject(new Error('offline'))))
+    }
+
+    afterEach(() => {
+      vi.unstubAllGlobals()
+    })
+
+    function statusOf(name: string): string | undefined {
+      return /(PASS|WARN|FAIL|SKIP)$/.exec(stripAnsi(rowFor(name)))?.[1]
+    }
+
+    it('skips Appium, the Appium drivers, the Android SDK and Xcode when every device is remote', async () => {
+      mockReadFile.mockResolvedValue(
+        deviceConfig(
+          ['android', 'ios'],
+          `  devices:
+    pixel:
+      platform: android
+      remote: farm
+    iphone:
+      platform: ios
+      remote: farm`,
+        ) as never,
+      )
+      bareLinuxHost()
+
+      await runDoctor()
+
+      expect(rowFor('Appium')).toMatch(/every device is remote {2}SKIP$/)
+      expect(rowFor('Appium drivers')).toMatch(/every device is remote {2}SKIP$/)
+      expect(rowFor('Android SDK')).toMatch(/every android device is remote {2}SKIP$/)
+      expect(rowFor('Xcode')).toMatch(/every iOS device is remote {2}SKIP$/)
+      expect(statusOf('Remote farm')).toBe('WARN')
+      for (const name of ['Appium', 'Appium drivers', 'Android SDK', 'Xcode', 'Remote farm']) {
+        expect(statusOf(name)).not.toBe('FAIL')
+      }
+      expect(mockExecFileSync).not.toHaveBeenCalled()
+    })
+
+    it('keeps the Appium and Android SDK rows when one android device runs here', async () => {
+      mockReadFile.mockResolvedValue(
+        deviceConfig(
+          ['android', 'ios'],
+          `  devices:
+    pixel:
+      platform: android
+    iphone:
+      platform: ios
+      remote: farm`,
+        ) as never,
+      )
+      bareLinuxHost()
+
+      await runDoctor()
+
+      expect(rowFor('Appium')).toMatch(/not installed {2}FAIL$/)
+      expect(rowFor('Appium drivers')).toMatch(/could not check drivers {2}FAIL$/)
+      expect(rowFor('Android SDK')).toMatch(/ANDROID_HOME not set {2}FAIL$/)
+      expect(rowFor('Xcode')).toMatch(/every iOS device is remote {2}SKIP$/)
+    })
+
+    it('keeps every mobile row when the config lists no devices', async () => {
+      mockReadFile.mockResolvedValue(deviceConfig(['android', 'ios'], '') as never)
+      bareLinuxHost()
+
+      await runDoctor()
+
+      expect(rowFor('Appium')).toMatch(/not installed {2}FAIL$/)
+      expect(rowFor('Android SDK')).toMatch(/ANDROID_HOME not set {2}FAIL$/)
+      expect(rowFor('Xcode')).toMatch(/iOS testing requires macOS {2}FAIL$/)
+    })
+
+    it('checks Xcode for an iOS target when only android devices are listed and all are remote', async () => {
+      const androidDevice = `  devices:
+    pixel:
+      platform: android
+      remote: farm`
+      bareLinuxHost()
+
+      mockReadFile.mockResolvedValue(deviceConfig(['android', 'ios'], androidDevice) as never)
+      await runDoctor()
+      expect(rowFor('Appium')).toMatch(/every device is remote {2}SKIP$/)
+      expect(rowFor('Android SDK')).toMatch(/every android device is remote {2}SKIP$/)
+      expect(rowFor('Xcode')).toMatch(/iOS testing requires macOS {2}FAIL$/)
+
+      mockReadFile.mockResolvedValue(deviceConfig(['android'], androidDevice) as never)
+      await runDoctor()
+      expect(rowFor('Xcode')).toMatch(/not configured {2}SKIP$/)
+    })
+  })
+
   it('Overall result: all pass → exit 0', async () => {
     Object.defineProperty(process, 'version', { value: 'v24.10.0', writable: true })
     mockExistsSync.mockReturnValue(true)
