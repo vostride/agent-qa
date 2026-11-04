@@ -292,7 +292,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
               </Select>
             </div>
             <div className="space-y-1.5">
-              <Label className="text-[11px] text-muted-foreground">Runs on</Label>
+              <Label className="text-[11px] text-muted-foreground">{REMOTES_COPY.runsOnLabel}</Label>
               <Select
                 value={remote ?? ''}
                 onValueChange={(val) => handleSet(['use', 'browser', 'remote'], val === INHERIT_PLACE ? undefined : val)}
@@ -309,9 +309,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                 </SelectContent>
               </Select>
               {showMeta && (
-                <p className="text-[11px] text-muted-foreground">
-                  In a suite that picks a place, the suite&apos;s choice wins.
-                </p>
+                <p className="text-[11px] text-muted-foreground">{REMOTES_COPY.suiteWinsHint}</p>
               )}
             </div>
             <div className="flex items-center justify-between">

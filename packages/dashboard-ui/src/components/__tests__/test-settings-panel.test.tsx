@@ -241,7 +241,7 @@ describe('the limit inputs', () => {
 
 describe('the Runs on select', () => {
   function runsOn(): HTMLElement {
-    const owner = Array.from(document.querySelectorAll('label')).find((el) => el.textContent === 'Runs on')
+    const owner = Array.from(document.querySelectorAll('label')).find((el) => el.textContent === REMOTES_COPY.runsOnLabel)
     const trigger = owner?.parentElement?.querySelector('[role="combobox"]')
     if (!(trigger instanceof HTMLElement)) throw new Error('Missing the Runs on select')
     return trigger
@@ -316,7 +316,7 @@ describe('the Runs on select', () => {
   })
 
   it("says in a test's settings that a suite's pick wins, and not in a suite's", () => {
-    const hint = "In a suite that picks a place, the suite's choice wins."
+    const hint = REMOTES_COPY.suiteWinsHint
     renderPanel('name: Demo\nsteps: []\n')
     expect(document.body.textContent).toContain(hint)
 
