@@ -283,15 +283,22 @@ describe('the Runs on select', () => {
     }
   })
 
-  it('offers the inherited place, this machine and each listed remote with its protocol, and no other name', () => {
+  it('offers the inherited place, this machine and each listed remote with its protocol, each name in mono, and no other name', () => {
     targetState.globalUse.browser.remote = 'grid'
     renderPanel('name: Demo\nsteps: []\n')
 
-    expect(open().map((option) => option.textContent)).toEqual([
+    const options = open()
+    expect(options.map((option) => option.textContent)).toEqual([
       'grid (inherited)',
       REMOTES_COPY.thisMachine,
       'grid (playwright)',
       'lab (cdp)',
+    ])
+    expect(options.map((option) => option.querySelector('[data-remote-name]')?.className)).toEqual([
+      'font-mono',
+      undefined,
+      'font-mono',
+      'font-mono',
     ])
   })
 

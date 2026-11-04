@@ -674,8 +674,8 @@ export function remoteNotListedParts<T>(name: T): [T, string] {
   ]
 }
 
-export function remoteChoiceLabel(name: string, protocol: string | undefined): string {
-  return protocol === undefined ? name : `${name} (${protocol})`
+export function remoteChoiceParts<T>(name: T, protocol: string | undefined): [T, string] {
+  return [name, protocol === undefined ? '' : ` (${protocol})`]
 }
 
 export function remoteCredentialsLine(secretsFile: string | undefined): string {

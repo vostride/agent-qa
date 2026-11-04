@@ -100,7 +100,7 @@ describe('the Remotes section', () => {
       const warning = section.querySelector('[data-remote-unlisted]')
       expect(warning?.textContent).toBe(sentence)
       expect(warning?.className).toContain('text-destructive')
-      expect(Array.from(warning?.querySelectorAll('.font-medium') ?? []).map((mark) => mark.textContent)).toEqual([
+      expect(Array.from(warning?.querySelectorAll('[data-remote-name]') ?? []).map((mark) => mark.textContent)).toEqual([
         'gird',
       ])
       expect(Array.from(warning?.querySelectorAll('code') ?? []).map((code) => code.textContent)).toEqual([
@@ -118,6 +118,13 @@ describe('the Remotes section', () => {
     ]) {
       expect(show(config).querySelector('[data-remote-unlisted]')).toBeNull()
     }
+  })
+
+  it('sets each remote name in the table and in the warning in the same mono style', () => {
+    const section = show({ ...TWO_REMOTES, use: { browser: { remote: 'gird' } } })
+    const names = Array.from(section.querySelectorAll('[data-remote-name]'))
+    expect(names.map((name) => name.textContent)).toEqual(['gird', 'grid', 'lab'])
+    expect(new Set(names.map((name) => name.className))).toEqual(new Set(['font-mono']))
   })
 
   it("marks the default remote's row and no other", () => {

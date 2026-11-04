@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import {
   DEFAULT_BADGE,
   REMOTES_COPY,
-  remoteChoiceLabel,
+  remoteChoiceParts,
   remoteCredentialsLine,
   remoteNotListedParts,
 } from "@/lib/config-copy"
@@ -82,12 +82,27 @@ function withName(parts: readonly ReactNode[]): ReactNode[] {
   )
 }
 
-function nameMark(name: string): ReactNode {
+// One style for a remote name wherever it appears: the table's, in the sentences and the selects too.
+export function RemoteName({ name }: { name: string }) {
   return (
-    <span key="name" className="font-medium">
+    <span data-remote-name className="font-mono">
       {name}
     </span>
   )
+}
+
+export function RemoteChoice({ name, protocol }: { name: string; protocol?: string }) {
+  const [mark, rest] = remoteChoiceParts(<RemoteName name={name} />, protocol)
+  return (
+    <>
+      {mark}
+      {rest}
+    </>
+  )
+}
+
+function nameMark(name: string): ReactNode {
+  return <RemoteName key="name" name={name} />
 }
 
 function text(value: unknown): string {
@@ -119,7 +134,7 @@ function defaultChoices(config: Record<string, unknown>): ConfigFieldOption[] {
     if (typeof name !== "string" || !NAME_SLUG_PATTERN.test(name)) continue
     if (choices.some((choice) => choice.value === name)) continue
     const known = typeof protocol === "string" && protocol !== "" ? protocol : undefined
-    choices.push({ value: name, label: remoteChoiceLabel(name, known) })
+    choices.push({ value: name, label: <RemoteChoice name={name} protocol={known} /> })
   }
   return choices
 }
@@ -190,7 +205,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
                 <TableRow key={`${index}:${remote.name}`} data-remote={remote.name}>
                   <TableCell className={CELL_CLASS}>
                     <span className="flex min-w-0 flex-wrap items-center gap-2">
-                      <span>{remote.name}</span>
+                      <RemoteName name={remote.name} />
                       {remote.name === pick ? (
                         <Badge variant="outline" data-remote-default-badge>
                           {DEFAULT_BADGE}

@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { REMOTES_COPY, remoteChoiceLabel } from '@/lib/config-copy'
+import { RemoteChoice, RemoteName } from '@/components/config-manager/remotes-section'
+import { REMOTES_COPY } from '@/lib/config-copy'
 import {
   Select,
   SelectTrigger,
@@ -217,7 +218,14 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
 
   const gHeadless = g?.browser?.headless
   const gRemote = g?.browser?.remote
-  const inheritedPlace = ih(gRemote === undefined || gRemote === 'local' ? REMOTES_COPY.thisMachine : gRemote)
+  const inheritedPlace =
+    gRemote === undefined || gRemote === 'local' ? (
+      ih(REMOTES_COPY.thisMachine)
+    ) : (
+      <>
+        <RemoteName name={gRemote} /> (inherited)
+      </>
+    )
   const gLogConsole = g?.logCapture?.console
   const gLogNetwork = g?.logCapture?.network
   const gParallel = g?.parallel
@@ -304,7 +312,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                   <SelectItem value={INHERIT_PLACE}>{inheritedPlace}</SelectItem>
                   <SelectItem value="local">{REMOTES_COPY.thisMachine}</SelectItem>
                   {remotes.map(({ name, protocol }) => (
-                    <SelectItem key={name} value={name}>{remoteChoiceLabel(name, protocol)}</SelectItem>
+                    <SelectItem key={name} value={name}><RemoteChoice name={name} protocol={protocol} /></SelectItem>
                   ))}
                 </SelectContent>
               </Select>

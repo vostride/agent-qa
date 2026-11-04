@@ -1228,7 +1228,7 @@ describe('ConfigPage task tabs shell', () => {
     expect(section('mobile-app-state')!.textContent).toContain(MOBILE_APP_STATE_LABELS.preserve)
   })
 
-  it('the Remotes default offers this machine and each listed remote with its protocol, and shows the current one', async () => {
+  it('the Remotes default offers this machine and each listed remote with its protocol, each name in mono, and shows the current one', async () => {
     vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes('grid') }))
     await renderAt('/config/targets?section=remotes')
 
@@ -1238,10 +1238,16 @@ describe('ConfigPage task tabs shell', () => {
     expect(trigger.getAttribute('role')).toBe('combobox')
     expect(trigger.textContent).toBe('grid (playwright)')
     await pressKey(trigger, 'Enter')
-    expect((Array.from(document.body.querySelectorAll('[role="option"]')) as HTMLElement[]).map((option) => option.textContent)).toEqual([
+    const options = Array.from(document.body.querySelectorAll('[role="option"]')) as HTMLElement[]
+    expect(options.map((option) => option.textContent)).toEqual([
       REMOTES_COPY.thisMachine,
       'grid (playwright)',
       'lab (cdp)',
+    ])
+    expect(options.map((option) => option.querySelector('[data-remote-name]')?.className)).toEqual([
+      undefined,
+      'font-mono',
+      'font-mono',
     ])
     await pressKey(document.activeElement!, 'Escape')
     expect(applyConfigChanges).not.toHaveBeenCalled()

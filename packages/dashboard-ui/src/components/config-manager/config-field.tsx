@@ -1,6 +1,6 @@
 // Every leaf renders here, so every leaf gets the same label, help, error and draft treatment.
 
-import type { KeyboardEvent } from "react"
+import type { KeyboardEvent, ReactNode } from "react"
 import { CircleAlert } from "lucide-react"
 import type { ConfigPathSegment } from "@vostride/agent-qa-schema"
 
@@ -32,7 +32,7 @@ export interface ConfigFieldTarget {
 
 export interface ConfigFieldOption {
   value: string
-  label: string
+  label: ReactNode
 }
 
 export interface ConfigNumberRules {
