@@ -674,10 +674,6 @@ export function remoteNotListedParts<T>(name: T): [T, string] {
   ]
 }
 
-export function remoteNotListedLine(name: string): string {
-  return remoteNotListedParts(name).join('')
-}
-
 export function remoteChoiceLabel(name: string, protocol: string | undefined): string {
   return protocol === undefined ? name : `${name} (${protocol})`
 }

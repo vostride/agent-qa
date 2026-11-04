@@ -17,7 +17,6 @@ import {
   DEFAULT_BADGE,
   REMOTES_COPY,
   remoteCredentialsLine,
-  remoteNotListedLine,
 } from '@/lib/config-copy'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
@@ -85,13 +84,15 @@ describe('the Remotes section', () => {
   })
 
   it('warns when the default names no listed remote, as a config that fails to parse can', () => {
+    const sentence =
+      'gird is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.'
     for (const config of [
       { ...TWO_REMOTES, use: { browser: { remote: 'gird' } } },
       { use: { browser: { remote: 'gird' } } },
     ]) {
       const section = show(config)
       const warning = section.querySelector('[data-remote-unlisted]')
-      expect(warning?.textContent).toBe(remoteNotListedLine('gird'))
+      expect(warning?.textContent).toBe(sentence)
       expect(warning?.className).toContain('text-destructive')
       expect(Array.from(warning?.querySelectorAll('.font-medium') ?? []).map((mark) => mark.textContent)).toEqual([
         'gird',
@@ -101,9 +102,6 @@ describe('the Remotes section', () => {
         'use.browser.remote',
       ])
     }
-    expect(remoteNotListedLine('gird')).toBe(
-      'gird is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.',
-    )
   })
 
   it('gives no warning when the default names a listed remote or this machine', () => {
