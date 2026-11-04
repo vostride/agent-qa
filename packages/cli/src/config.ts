@@ -77,7 +77,8 @@ export async function loadConfigFile(configPath: string): Promise<unknown> {
     throw err
   }
   try {
-    return parseYaml(content) ?? {}
+    // yaml's warnings quote the file's text, so only its errors are reported.
+    return parseYaml(content, { logLevel: 'error' }) ?? {}
   } catch (err: unknown) {
     throw new ConfigFileNotYamlError(configPath, err)
   }
@@ -105,7 +106,7 @@ export async function loadRequiredConfigFile(configPath: string): Promise<unknow
     throw err
   }
   try {
-    return parseYaml(content) ?? {}
+    return parseYaml(content, { logLevel: 'error' }) ?? {}
   } catch (err: unknown) {
     throw new ConfigFileNotYamlError(configPath, err)
   }

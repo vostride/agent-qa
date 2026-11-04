@@ -193,7 +193,8 @@ export class ConfigManager {
     }
     const revision = createHash('sha256').update(bytes).digest('hex')
     const raw = bytes.toString('utf-8')
-    const doc = parseDocument(raw)
+    // yaml's warnings quote the file's text, so only its errors are reported.
+    const doc = parseDocument(raw, { logLevel: 'error' })
     if (doc.errors.length > 0) {
       return { kind: 'file_invalid', message: parseErrorSummary(doc), revision }
     }
@@ -258,7 +259,7 @@ export class ConfigManager {
   private async restorePriorsOnce(priors: ConfigPriors): Promise<RestorePriorsOutcome> {
     let doc: Document
     try {
-      doc = parseDocument(await readFile(this.configPath, 'utf-8'))
+      doc = parseDocument(await readFile(this.configPath, 'utf-8'), { logLevel: 'error' })
     } catch (err: unknown) {
       if (isMissingFile(err)) return { kind: 'refused', error: 'undo_conflict' }
       throw err
@@ -290,7 +291,7 @@ export class ConfigManager {
     try {
       const bytes = await readFile(this.configPath)
       baseRevision = createHash('sha256').update(bytes).digest('hex')
-      doc = parseDocument(bytes.toString('utf-8'))
+      doc = parseDocument(bytes.toString('utf-8'), { logLevel: 'error' })
     } catch (err: unknown) {
       if (!isMissingFile(err)) throw err
       // A missing file starts empty and goes through `setIn`, so no dotted top-level key is made.

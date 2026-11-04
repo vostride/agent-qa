@@ -72,7 +72,8 @@ function basicAuthRemotes(remotes: unknown): RemoteBasicAuth[] {
 }
 
 function resolveConfig(configPath: string): ResolvedConfig {
-  const file = parseYaml(readFileSync(configPath, 'utf-8')) ?? {}
+  // yaml's warnings quote the file's text, so only its errors are reported.
+  const file = parseYaml(readFileSync(configPath, 'utf-8'), { logLevel: 'error' }) ?? {}
   const config = mergeConfigs(file, loadEnvOverrides(), {}) as AgentQaConfig | null
   const configured: unknown = config?.workspace?.secretsFile
   if (typeof configured !== 'string' || configured.trim().length === 0) {

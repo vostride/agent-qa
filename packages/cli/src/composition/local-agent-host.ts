@@ -1009,7 +1009,8 @@ export function createConfigValidatePort(): ConfigValidatePortLike {
 
         let parsed: unknown
         try {
-          parsed = parseYaml(Buffer.from(member.bytes).toString('utf8'))
+          // yaml's warnings quote the file's text, so only its errors are reported.
+          parsed = parseYaml(Buffer.from(member.bytes).toString('utf8'), { logLevel: 'error' })
         } catch (error) {
           // Position only: the yaml library's message quotes the person's source line.
           issues.push({ path: member.path, message: yamlParseFailureMessage(error) })
@@ -1224,7 +1225,7 @@ function changesClosedConfigFields(current: Uint8Array | undefined, next: Uint8A
 }
 
 function yamlValueOf(bytes: Uint8Array): { value: unknown } | undefined {
-  const doc = parseDocument(Buffer.from(bytes).toString('utf-8'))
+  const doc = parseDocument(Buffer.from(bytes).toString('utf-8'), { logLevel: 'error' })
   return doc.errors.length > 0 ? undefined : { value: doc.toJS() }
 }
 
@@ -1246,7 +1247,11 @@ function readTargetIfPresent(absolutePath: string): Buffer | undefined {
  */
 function projectRunsDbPath(configPath: string): string | undefined {
   try {
-    const merged = mergeConfigs(parseYaml(readFileSync(configPath, 'utf8')) ?? {}, loadEnvOverrides(), {})
+    const merged = mergeConfigs(
+      parseYaml(readFileSync(configPath, 'utf8'), { logLevel: 'error' }) ?? {},
+      loadEnvOverrides(),
+      {},
+    )
     const config = AgentQaConfigSchema.parse(normalizeConfigForValidation(merged))
     const configured = config.services?.dashboard?.dbPath?.trim()
     return resolve(dirname(resolve(configPath)), configured || DEFAULT_AGENT_QA_RUNS_DB_PATH)

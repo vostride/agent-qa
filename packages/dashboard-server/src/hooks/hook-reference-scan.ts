@@ -135,7 +135,8 @@ export async function scanHookReferences(
   let parsedConfig: unknown
 
   try {
-    parsedConfig = parseYaml(await readFile(configPath, 'utf-8'))
+    // yaml's warnings quote the file's text, so only its errors are reported.
+    parsedConfig = parseYaml(await readFile(configPath, 'utf-8'), { logLevel: 'error' })
   } catch {
     return []
   }

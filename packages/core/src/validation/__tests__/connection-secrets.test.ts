@@ -2,7 +2,7 @@ import { mkdirSync, mkdtempSync, realpathSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { generateSuiteId, generateTestId } from '@vostride/agent-qa-ids'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, describe, expect, it, vi } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
 import { connectionSecretMisuse } from '../../remote/connection-secrets.js'
@@ -185,5 +185,43 @@ describe("validateProject and a remote's secrets", () => {
       },
     )
     expect(await p.validate()).toEqual([])
+  })
+
+  it('validates a config whose remote url yaml would warn about without printing the warning', async () => {
+    const p = project({ remotes: false }, {})
+    writeFileSync(
+      p.configPath,
+      [
+        'workspace:',
+        '  testMatch:',
+        "    - 'tests/**/*.yaml'",
+        '  suiteMatch:',
+        "    - 'suites/**/*.suite.yaml'",
+        '  hooksFile: hooks.yaml',
+        '  envFile: .env',
+        '  secretsFile: .env.secrets.local',
+        'registry:',
+        '  llms:',
+        '    - name: judge',
+        '      provider: anthropic-compatible',
+        '      model: m',
+        '      baseURL: https://llm.example.com/v1',
+        '      providerHeaders:',
+        '        ? [ &u !endpoint wss://grid.example.com/routepart-5e21?team=queryvalue-a904 ]',
+        '        : x',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        '      url: *u',
+        '',
+      ].join('\n'),
+    )
+    const warned = vi.spyOn(process, 'emitWarning').mockImplementation(() => undefined)
+    try {
+      expect(await p.validate()).toEqual([])
+      expect(warned).not.toHaveBeenCalled()
+    } finally {
+      warned.mockRestore()
+    }
   })
 })

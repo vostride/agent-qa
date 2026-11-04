@@ -3,6 +3,7 @@ import { SecretRedactor, SecretStore } from '@vostride/agent-qa-runner'
 import { MARKER_WRITTEN_BACK_SENTENCE } from '@vostride/agent-qa-schema'
 import { formatConfigDebug, loadConfigFile, loadRequiredConfigFile, loadEnvOverrides, mergeConfigs, mergeWithTestConfig, mergeUseBlocks, resolveConfig } from '../config.js'
 import { HARD_CUT_STEPS, INVALID_CONFIG_FIX } from '../hard-cut.js'
+import { createDeclaredSecretMask } from '../composition/declared-secrets.js'
 import { readFile, writeFile, mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
@@ -92,6 +93,63 @@ describe('loadConfigFile', () => {
     const dir = join(TMP_DIR, 'is-a-dir.yaml')
     await mkdir(dir)
     await expect(loadConfigFile(dir)).rejects.toThrow()
+  })
+
+  it('reads a config whose remote url yaml would warn about without printing the warning, and still refuses text that does not parse', async () => {
+    const url = 'wss://grid.example.com/routepart-5e21?team=queryvalue-a904'
+    const configPath = join(TMP_DIR, 'agent-qa.config.yaml')
+    await writeFile(
+      configPath,
+      [
+        'workspace:',
+        '  testMatch:',
+        '    - "tests/**/*.yaml"',
+        '  suiteMatch:',
+        '    - "suites/**/*.suite.yaml"',
+        '  hooksFile: hooks.yaml',
+        '  envFile: .env',
+        '  secretsFile: .env.secrets.local',
+        'registry:',
+        '  llms:',
+        '    - name: judge',
+        '      provider: anthropic-compatible',
+        '      model: m',
+        '      baseURL: https://llm.example.com/v1',
+        '      providerHeaders:',
+        `        ? [ &u !endpoint ${url} ]`,
+        '        : x',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        '      url: *u',
+        'use:',
+        '  browser:',
+        '    name: chromium',
+        '    remote: grid',
+        '',
+      ].join('\n'),
+    )
+    await writeFile(join(TMP_DIR, '.env.secrets.local'), '')
+    const brokenPath = join(TMP_DIR, 'broken.config.yaml')
+    await writeFile(
+      brokenPath,
+      ['registry:', '  remotes: [', '    { url: wss://grid.example.com/'].join('\n'),
+    )
+    const warned = vi.spyOn(process, 'emitWarning').mockImplementation(() => undefined)
+    try {
+      const loads = [await loadConfigFile(configPath), await loadRequiredConfigFile(configPath)]
+      for (const loaded of loads) {
+        const remotes = (loaded as { registry: { remotes: { url: unknown }[] } }).registry.remotes
+        expect(remotes[0]?.url).toBe(url)
+      }
+      expect(createDeclaredSecretMask(configPath).mask('plain text')).toBe('plain text')
+      await expect(loadRequiredConfigFile(brokenPath)).rejects.toMatchObject({
+        name: 'ConfigFileNotYamlError',
+      })
+      expect(warned).not.toHaveBeenCalled()
+    } finally {
+      warned.mockRestore()
+    }
   })
 })
 

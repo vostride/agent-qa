@@ -2,7 +2,7 @@ import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
 
-import { afterEach, describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 import type { ConfigChange } from '@vostride/agent-qa-schema'
 
@@ -579,5 +579,48 @@ describe("the config's closed fields", () => {
         { op: 'append', path: ['plugins', 'auth'], value: SUBSCRIPTION_AUTH },
       ],
     ])
+  })
+
+  it('serves a config whose remote url yaml would warn about without printing the warning, and still names a file that does not parse', async () => {
+    const { manager } = await configFile(
+      [
+        ...WORKSPACE,
+        'registry:',
+        '  llms:',
+        '    - name: judge',
+        '      provider: anthropic-compatible',
+        '      model: m',
+        '      baseURL: https://llm.example.com/v1',
+        '      providerHeaders:',
+        '        ? [ &u !endpoint wss://grid.example.com/routepart-5e21?team=queryvalue-a904 ]',
+        '        : x',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        '      url: *u',
+        ...USE.slice(0, -2),
+        '    remote: grid',
+        ...USE.slice(-2),
+        '',
+      ].join('\n'),
+    )
+    const broken = await configFile(
+      ['registry:', '  remotes: [', '    { url: wss://grid.example.com/'].join('\n'),
+    )
+    const warned = vi.spyOn(process, 'emitWarning').mockImplementation(() => undefined)
+    try {
+      const read = await manager.readMasked()
+      if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+
+      expect(read.fileIssues).toEqual([])
+      const config = read.config.registry as { llms: { providerHeaders: unknown }[] }
+      expect(config.llms[0]?.providerHeaders).toEqual({
+        '[ &u !endpoint wss://grid.example.com:443 ]': 'x',
+      })
+      expect((await broken.manager.readMasked()).kind).toBe('file_invalid')
+      expect(warned).not.toHaveBeenCalled()
+    } finally {
+      warned.mockRestore()
+    }
   })
 })

@@ -98,7 +98,8 @@ function nodesUnder(node: Node): unknown[] {
 // Every anchor the block holds or reaches through aliases is replaced, and so is every alias of it.
 // Text whose remotes may not be that block, or that does not parse and names remotes: one line.
 export function projectRemotesInConfigText(raw: string): string {
-  const doc = parseDocument(raw)
+  // yaml's warnings quote the file's text, so only its errors are reported.
+  const doc = parseDocument(raw, { logLevel: 'error' })
   if (doc.errors.length > 0) return NAMES_REMOTES.test(raw) ? UNSHOWABLE : raw
   try {
     const found = remotesBlock(doc)

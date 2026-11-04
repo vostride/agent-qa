@@ -57,7 +57,8 @@ export async function validateConfig(configPath: string): Promise<ValidationDiag
 
   let parsed: unknown
   try {
-    parsed = parseYaml(content)
+    // yaml's warnings quote the file's text, so only its errors are reported.
+    parsed = parseYaml(content, { logLevel: 'error' })
   } catch (err) {
     // The `file` field names the file, so the message is the position; an excerpt can leak.
     diagnostics.push({
@@ -391,7 +392,9 @@ function appendDiagnostics(result: ValidationResult, diagnostics: ValidationDiag
 
 async function readConfigForPicks(configPath: string): Promise<AgentQaConfig | undefined> {
   try {
-    const parsed = AgentQaConfigSchema.safeParse(parseYaml(await readFile(configPath, 'utf-8')))
+    const parsed = AgentQaConfigSchema.safeParse(
+      parseYaml(await readFile(configPath, 'utf-8'), { logLevel: 'error' }),
+    )
     return parsed.success ? (parsed.data as AgentQaConfig) : undefined
   } catch {
     return undefined
