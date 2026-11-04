@@ -444,4 +444,135 @@ describe('projectRemotesInConfigText', () => {
     expect(shown).toBe(UNSHOWABLE)
     expectNothingPlanted(shown)
   })
+
+  it('shows a config whose remote aliases the document root as one unshowable line', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        '&root',
+        'registry:',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        `      url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '      headers: *root',
+        '',
+      ].join('\n'),
+    )
+
+    expect(shown).toBe(UNSHOWABLE)
+    expectNothingPlanted(shown)
+  })
+
+  it('shows a config whose remote reaches an alias of registry through an anchor as one unshowable line', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry: &reg',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match: &m',
+        '        avd: *reg',
+        `        serial: ${HEADER_VALUE}`,
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        `      url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '      headers: *m',
+        '',
+      ].join('\n'),
+    )
+
+    expect(shown).toBe(UNSHOWABLE)
+    expectNothingPlanted(shown)
+  })
+
+  it('replaces an anchor that aliases itself with null', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        '        serial: &a',
+        `          X-Team: ${HEADER_VALUE}`,
+        '          self: *a',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        `      url: wss://grid.example.com/${PATH_TOKEN}`,
+        '      headers: *a',
+        '',
+      ].join('\n'),
+    )
+
+    expectNothingPlanted(shown)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        devices: { pixel: { platform: 'android', match: { serial: null } } },
+        remotes: [],
+      },
+    })
+  })
+
+  it('replaces nested anchors that alias each other with null', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        '        serial: &a',
+        '          inner: &b',
+        `            X-Team: ${HEADER_VALUE}`,
+        '            back: *a',
+        '        avd: *b',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        `      url: wss://grid.example.com/${PATH_TOKEN}`,
+        '      headers: *b',
+        '',
+      ].join('\n'),
+    )
+
+    expectNothingPlanted(shown)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        devices: { pixel: { platform: 'android', match: { serial: null, avd: null } } },
+        remotes: [],
+      },
+    })
+  })
+
+  it('replaces a merge base anchored outside the block with null and still shows the entry', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        '%YAML 1.1',
+        '---',
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        '        serial: &base',
+        '          protocol: playwright',
+        `          url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        `          headers: { X-Team: ${HEADER_VALUE} }`,
+        '  remotes:',
+        '    - name: grid',
+        '      <<: *base',
+        '',
+      ].join('\n'),
+    )
+
+    expectNothingPlanted(shown)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        devices: { pixel: { platform: 'android', match: { serial: null } } },
+        remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
+      },
+    })
+  })
 })

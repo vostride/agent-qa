@@ -218,6 +218,52 @@ describe("the config's closed fields", () => {
     }
   })
 
+  it('the served config and its file lines hide a remotes map whose url and headers are aliased outside it', async () => {
+    const pathToken = 'pathtoken-3c9e'
+    const queryValue = 'queryvalue-d27a'
+    const headerValue = 'headervalue-6b14'
+    const { manager } = await configFile(
+      [
+        ...WORKSPACE,
+        'registry:',
+        '  remotes:',
+        '    grid:',
+        '      protocol: playwright',
+        `      url: &u wss://grid.example.com/${pathToken}?k=${queryValue}`,
+        '      headers: &h',
+        `        X-Team: ${headerValue}`,
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        '        avd: *u',
+        '        serial: *h',
+        ...USE,
+        '',
+      ].join('\n'),
+    )
+    const read = await manager.readMasked()
+    if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+
+    expect(read.fileIssues).not.toEqual([])
+    const config = read.config.registry as {
+      remotes: unknown
+      devices: { pixel: { match: unknown } }
+    }
+    expect(config.remotes).toEqual([])
+    expect(config.devices.pixel.match).toEqual({ avd: 'wss://grid.example.com:443', serial: null })
+    const text = read.lines.map((line) => line.text).join('\n')
+    const lines = parseYaml(text) as {
+      registry: { remotes: unknown; devices: { pixel: { match: unknown } } }
+    }
+    expect(lines.registry.remotes).toEqual([])
+    expect(lines.registry.devices.pixel.match).toEqual({ avd: null, serial: null })
+    for (const hidden of [pathToken, queryValue, headerValue, 'X-Team']) {
+      expect(JSON.stringify(read.config)).not.toContain(hidden)
+      expect(text).not.toContain(hidden)
+    }
+  })
+
   it('on a config with no plugins block another package, a path or a second plugins change is refused', async () => {
     await expectRefused(WITHOUT_PLUGINS, [
       [{ op: 'append', path: ['plugins', 'auth'], value: { package: '@acme/other-auth' } }],

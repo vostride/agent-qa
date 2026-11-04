@@ -109,4 +109,19 @@ describe('projectConfigRemotes', () => {
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
+
+  it('shows a url copied from a remotes block that is not a list as its origin', () => {
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: { grid: PLANTED },
+        devices: { tablet: { match: { url: PLANTED.url, serial: PLANTED.headers } } },
+      },
+    })
+
+    expect(shown.registry).toEqual({
+      remotes: [],
+      devices: { tablet: { match: { url: 'wss://grid.example.com:443', serial: null } } },
+    })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
 })

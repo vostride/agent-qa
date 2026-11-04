@@ -409,6 +409,15 @@ function remoteCopies(remotes: unknown, shown: RemoteDisplay[]): Map<string, unk
   add(remotes, shown)
   if (!Array.isArray(remotes)) {
     addNested(remotes)
+    const addUrls = (value: unknown) => {
+      for (const [key, child] of children(value)) {
+        if (typeof child === 'string' && (key === 'url' || remoteOrigin(child) !== undefined)) {
+          add(child, displayOrigin(child))
+        }
+        addUrls(child)
+      }
+    }
+    addUrls(remotes)
     return copies
   }
   remotes.forEach((entry, index) => {
