@@ -209,12 +209,12 @@ describe('registry.remotes entries', () => {
     })
   })
 
-  it('accepts a number, boolean or null under a credential-named query key and refuses a string beside it', () => {
-    expectAccepted({ ...grid, query: { caps: { secret: { value: 42, on: true, off: null } } } })
-    expectRefused(
-      { ...grid, query: { caps: { secret: { value: 42, note: 'literal' } } } },
-      'Remote grid: query "caps.secret" names a credential, so its value must be a {{secret:NAME}} reference.',
-    )
+  it('accepts true, false or null under a credential-named query key and refuses a string or number beside it', () => {
+    const refusal =
+      'Remote grid: query "caps.secret" names a credential, so its value must be a {{secret:NAME}} reference.'
+    expectAccepted({ ...grid, query: { caps: { secret: { on: true, off: false, unset: null } } } })
+    expectRefused({ ...grid, query: { caps: { secret: { value: 42, on: true } } } }, refusal)
+    expectRefused({ ...grid, query: { caps: { secret: { on: true, note: 'literal' } } } }, refusal)
   })
 
   it('accepts a non-credential query value as a literal', () => {

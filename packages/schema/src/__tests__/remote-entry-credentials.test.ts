@@ -166,12 +166,11 @@ describe('credential names inside a JSON query value', () => {
     expect(connectionSecretNames(entries).sort()).toEqual(['GRID_KEY', 'PLAIN_KEY', 'URL_KEY'])
   })
 
-  it('accepts a boolean, number or null under a credential name, in JSON and in the query map, and still refuses a text literal beside it', () => {
+  it('accepts true, false or null under a credential name, in JSON and in the query map, and refuses a string or number beside it', () => {
     const settings = {
       args: ['--no-sandbox'],
       prefs: { credentials_enable_service: false, 'profile.password_manager_enabled': false },
       signatureHelp: true,
-      tokenLimit: 4096,
       secret: null,
     }
     const launch = JSON.stringify(settings)
@@ -193,26 +192,55 @@ describe('credential names inside a JSON query value', () => {
         ...grid,
         query: {
           launch: JSON.stringify({ ...settings, accessKey: 'literal' }),
-          opts: { signatureHelp: true, proxy: { password: 'literal' } },
+          opts: { signatureHelp: true, tokenLimit: 4096, proxy: { password: 'literal' } },
         },
       }),
     ).toEqual([
       needsReference('grid', 'query', 'launch.accessKey'),
+      needsReference('grid', 'query', 'opts.tokenLimit'),
       needsReference('grid', 'query', 'opts.proxy.password'),
     ])
   })
 
-  it('refuses text written at a credential name whose JSON holds no string', () => {
+  it('refuses text written at a credential name whose JSON holds only true, false or null', () => {
     expect(
       messages({
         ...grid,
-        headers: { 'X-Api-Key': '[4815162342]' },
-        query: { token: '{"id":4815162342}', caps: '{"secret":[]}' },
+        headers: { 'X-Api-Key': '[null]' },
+        query: { token: '{"on":true}', caps: '{"secret":[]}' },
       }),
     ).toEqual([
       needsReference('grid', 'headers', 'X-Api-Key'),
       needsReference('grid', 'query', 'token'),
     ])
+  })
+
+  it('gives a value under a credential name the same verdict written as a map and as JSON text', () => {
+    const refused = [{ path: 'query.token', message: needsReference('grid', 'query', 'token') }]
+    for (const token of [{ id: 4815162342 }, { on: true }, {}]) {
+      expect(issues({ ...grid, query: { token } }), JSON.stringify(token)).toEqual(refused)
+      expect(issues({ ...grid, query: { token: JSON.stringify(token) } })).toEqual(refused)
+    }
+    const nested = [
+      { path: 'query.caps.secret', message: needsReference('grid', 'query', 'caps.secret') },
+    ]
+    expect(issues({ ...grid, query: { caps: { secret: { id: 42 } } } })).toEqual(nested)
+    expect(issues({ ...grid, query: { caps: '{"secret":{"id":42}}' } })).toEqual(nested)
+    expect(
+      messages({
+        ...grid,
+        url: `${grid.url}?caps=${encodeURIComponent('{"secret":{"id":42}}')}`,
+        headers: { 'X-Api-Key': '[4815162342]' },
+        query: { token: 4815162342 },
+      }),
+    ).toEqual([
+      needsReference('grid', 'url query', 'caps.secret'),
+      needsReference('grid', 'headers', 'X-Api-Key'),
+      needsReference('grid', 'query', 'token'),
+    ])
+    expect(messages({ ...grid, query: { token: true, caps: { secret: { on: null } } } })).toEqual(
+      [],
+    )
   })
 
   it('leaves a value that is not well-formed JSON as it is', () => {
@@ -240,6 +268,11 @@ describe('credential names inside a JSON query value', () => {
         query: { caps: '{"accessKey":"literal"}' },
       }),
     ).toEqual([needsReference('grid', 'query', 'caps.accessKey'), cleartext])
+    for (const caps of [{ apiKey: 1234 }, '{"apiKey":1234}']) {
+      expect(
+        messages({ ...grid, url: 'ws://grid.example.com/playwright', query: { caps } }),
+      ).toEqual([needsReference('grid', 'query', 'caps.apiKey'), cleartext])
+    }
     const json = encodeURIComponent('{"accessKey":"literal"}')
     expect(messages({ ...grid, url: `ws://grid.example.com/playwright?caps=${json}` })).toEqual([
       needsReference('grid', 'url query', 'caps.accessKey'),

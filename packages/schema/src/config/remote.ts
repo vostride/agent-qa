@@ -201,10 +201,16 @@ function credentialKeys(
     const childPath = [...path, key]
     const inner = (typeof child === 'string' ? readJson?.(child) : undefined) ?? child
     if (namesCredential(key)) {
-      // A reference only produces text, so a boolean, number or null is an option, not a secret.
-      // Text written at the name is sent as written, even when its JSON holds no string.
-      const strings = leaves(inner).filter((leaf) => typeof leaf === 'string')
-      const values = strings.length > 0 || typeof child !== 'string' ? strings : [child]
+      // true, false and null cannot carry a secret; a string or number must be a reference.
+      // Text at the name, and a map a header or query key sends as text, is judged as written
+      // when nothing inside it is judged.
+      const judged = leaves(inner).filter(
+        (leaf) => leaf !== true && leaf !== false && leaf !== null,
+      )
+      const sentAsText =
+        typeof child === 'string' ||
+        (path.length === 0 && typeof child === 'object' && child !== null)
+      const values = judged.length > 0 || !sentAsText ? judged : [child]
       if (values.length === 0) return []
       return [{ path: childPath, literal: values.some((leaf) => !carriesReference(leaf)) }]
     }
