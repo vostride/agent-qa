@@ -202,7 +202,10 @@ function credentialKeys(
     const childPath = [...path, key]
     const inner = (typeof child === 'string' ? readJson?.(child) : undefined) ?? child
     if (namesCredential(key)) {
-      return [{ path: childPath, literal: leaves(inner).some((leaf) => !carriesReference(leaf)) }]
+      // A reference only produces text, so a boolean, number or null is an option, not a credential.
+      const values = leaves(inner).filter((leaf) => typeof leaf === 'string')
+      if (values.length === 0) return []
+      return [{ path: childPath, literal: values.some((leaf) => !carriesReference(leaf)) }]
     }
     return credentialKeys(inner, readJson, childPath)
   })

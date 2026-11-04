@@ -157,6 +157,42 @@ describe('credential names inside a JSON query value', () => {
     expect(connectionSecretNames(entries).sort()).toEqual(['GRID_KEY', 'PLAIN_KEY', 'URL_KEY'])
   })
 
+  it('accepts a boolean, number or null under a credential name, in JSON and in the query map, and still refuses a text literal beside it', () => {
+    const settings = {
+      args: ['--no-sandbox'],
+      prefs: { credentials_enable_service: false, 'profile.password_manager_enabled': false },
+      signatureHelp: true,
+      tokenLimit: 4096,
+      secret: null,
+    }
+    const launch = JSON.stringify(settings)
+    expect(
+      messages({
+        ...grid,
+        url: `ws://grid.example.com/playwright?launch=${encodeURIComponent(launch)}`,
+        query: { launch, prefs: settings.prefs },
+      }),
+    ).toEqual([])
+    expect(
+      messages({
+        ...grid,
+        query: { launch: JSON.stringify({ ...settings, accessKey: '{{secret:GRID_KEY}}' }) },
+      }),
+    ).toEqual([])
+    expect(
+      messages({
+        ...grid,
+        query: {
+          launch: JSON.stringify({ ...settings, accessKey: 'literal' }),
+          opts: { signatureHelp: true, proxy: { password: 'literal' } },
+        },
+      }),
+    ).toEqual([
+      needsReference('grid', 'query', 'launch.accessKey'),
+      needsReference('grid', 'query', 'opts.proxy.password'),
+    ])
+  })
+
   it('leaves a value that is not well-formed JSON as it is', () => {
     expect(
       messages({

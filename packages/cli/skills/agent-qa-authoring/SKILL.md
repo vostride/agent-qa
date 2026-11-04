@@ -105,10 +105,10 @@ registry:
 Credentials:
 
 - Write every credential as a `{{secret:<name>}}` reference to a name in the file
-  `workspace.secretsFile` names, quoted in YAML. The strict parse refuses a literal value under a
+  `workspace.secretsFile` names, quoted in YAML. The strict parse refuses a literal string under a
   header or query name that carries a credential word such as `token`, `key`, `secret`,
   `password`, `cookie`, `authorization` or `jwt`: in nested maps, inside a JSON value and in the
-  url's own query.
+  url's own query. A boolean, number or null under such a name is an option and is accepted.
 - A credential goes over `ws://` or `http://` only to this machine; use `wss://` or `https://`.
 - A remote's secrets serve its connection only. Steps, expected values, target urls and hooks
   cannot use them.
