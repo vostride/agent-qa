@@ -570,6 +570,42 @@ describe('PATCH /api/config path policy', () => {
     expect(mockRename).not.toHaveBeenCalled()
   })
 
+  it('the default remote is set to a listed name and removed through the page door, while a remote entry stays refused', async () => {
+    const configPath = await useConfigWorkspace(policyConfig.replace('registry:', [
+      'registry:',
+      '  remotes:',
+      '    - name: grid',
+      '      protocol: playwright',
+      '      url: wss://grid.example.com/playwright',
+    ].join('\n')))
+    const remote = ['use', 'browser', 'remote']
+    const browserOf = async () =>
+      (parseYaml(await readFile(configPath, 'utf-8')) as { use: { browser: unknown } }).use.browser
+
+    const picked = await patchConfig({ changes: [{ op: 'set', path: remote, value: 'grid' }] })
+    expect(picked.status, picked.body).toBe(200)
+    expect(await browserOf()).toEqual({ name: 'chromium', headless: false, remote: 'grid' })
+
+    const unlisted = await patchConfig({ changes: [{ op: 'set', path: remote, value: 'gird' }] })
+    expect(unlisted.status).toBe(422)
+    expect(JSON.parse(unlisted.body).error).toBe('validation_failed')
+    expect(await browserOf()).toEqual({ name: 'chromium', headless: false, remote: 'grid' })
+
+    const removed = await patchConfig({ changes: [{ op: 'unset', path: remote }] })
+    expect(removed.status, removed.body).toBe(200)
+    expect(await browserOf()).toEqual({ name: 'chromium', headless: false })
+
+    const before = await readFile(configPath)
+    mockRename.mockClear()
+    const entry = await patchConfig({
+      changes: [{ op: 'set', path: ['registry', 'remotes', 0, 'url'], value: 'wss://evil.example.com/' }],
+    })
+    expect(entry.status).toBe(422)
+    expect(JSON.parse(entry.body)).toEqual({ error: 'path_not_writable' })
+    expect(Buffer.compare(await readFile(configPath), before)).toBe(0)
+    expect(mockRename).not.toHaveBeenCalled()
+  })
+
   it('WRITE-DOOR-REFUSES-UNKNOWN-PATH: a path the published schema does not describe is refused and nothing is written', async () => {
     const configPath = await useConfigWorkspace(policyConfig)
     const before = await readFile(configPath)
