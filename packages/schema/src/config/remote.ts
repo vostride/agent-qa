@@ -189,17 +189,15 @@ function jsonContainer(text: string): unknown {
   }
 }
 
-const valueJson: JsonReader = (text) => jsonContainer(text)
-
 // A header or query value written as JSON is sent as JSON, so its keys are read like a map's.
 function credentialKeys(
   value: unknown,
-  readJson?: JsonReader,
+  readJson: JsonReader,
   path: KeyPath = [],
 ): { path: KeyPath; literal: boolean }[] {
   return children(value).flatMap(([key, child]) => {
     const childPath = [...path, key]
-    const inner = (typeof child === 'string' ? readJson?.(child) : undefined) ?? child
+    const inner = (typeof child === 'string' ? readJson(child) : undefined) ?? child
     if (namesCredential(key)) {
       // true, false and null cannot carry a secret; a string or number must be a reference.
       // Text at the name, and a map a header or query key sends as text, is judged as written
@@ -312,8 +310,8 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     )
   }
 
-  const headerCredentials = credentialKeys(entry.headers, valueJson)
-  const queryCredentials = credentialKeys(entry.query, valueJson)
+  const headerCredentials = credentialKeys(entry.headers, jsonContainer)
+  const queryCredentials = credentialKeys(entry.query, jsonContainer)
   const query = urlQuery(entry.url)
   const urlCredentials = credentialKeys(query.params, query.readJson)
   for (const credential of urlCredentials.filter((c) => c.literal)) {
