@@ -11,7 +11,7 @@ vi.mock('@/lib/api', () => ({ fetchConfig: vi.fn() }))
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
-it('lists each named remote of the served config once with its protocol, never local, beside the global default', async () => {
+it('lists each validly named remote of the served config once with its protocol, never local, beside the global default', async () => {
   vi.mocked(fetchConfig).mockResolvedValue({
     config: {
       registry: {
@@ -20,6 +20,7 @@ it('lists each named remote of the served config once with its protocol, never l
           { protocol: 'cdp', url: 'ws://10.0.0.5:9222' },
           { name: 'lab', protocol: 'cdp', url: 'ws://10.0.0.6:9222' },
           { name: 'bare', url: 'ws://10.0.0.7:9222' },
+          { name: 'invalid name', protocol: 'invalid protocol', url: 'invalid url' },
           { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' },
           { name: 'local', protocol: 'cdp', url: 'ws://127.0.0.1:9222' },
         ],

@@ -1248,6 +1248,21 @@ describe('ConfigPage task tabs shell', () => {
     expect(applyConfigChanges).not.toHaveBeenCalled()
   })
 
+  it('the Remotes default offers no name the strict parse refuses, which the config serves as placeholder text', async () => {
+    const config = configWithRemotes()
+    config.registry.remotes.push({ name: 'invalid name', protocol: 'invalid protocol', url: 'invalid url' })
+    vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config }))
+    await renderAt('/config/targets?section=remotes')
+
+    await pressKey(fieldControl(REMOTE_SEGMENTS)!, 'Enter')
+    expect((Array.from(document.body.querySelectorAll('[role="option"]')) as HTMLElement[]).map((option) => option.textContent)).toEqual([
+      REMOTES_COPY.thisMachine,
+      'grid (playwright)',
+      'lab (cdp)',
+    ])
+    await pressKey(document.activeElement!, 'Escape')
+  })
+
   it('the Remotes default shows this machine when the config picks no remote', async () => {
     vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes() }))
     await renderAt('/config/targets?section=remotes')

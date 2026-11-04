@@ -1,3 +1,4 @@
+import { NAME_SLUG_PATTERN } from '@vostride/agent-qa-schema'
 import { useState, useEffect } from 'react'
 import { fetchConfig } from '@/lib/api'
 
@@ -47,14 +48,15 @@ let cachedAt = 0
 const TTL = 30_000
 let pendingPromise: Promise<void> | null = null
 
-// The listed names a test or suite may pick; `local` is this machine, never a remote.
+// The listed names a test or suite may pick; `local` is this machine, never a remote, and a name
+// the strict parse refuses is served as placeholder text, never a pick.
 function remoteChoices(remotes: unknown): RemoteChoice[] {
   if (!Array.isArray(remotes)) return []
   const choices: RemoteChoice[] = []
   for (const entry of remotes) {
     const name: unknown = entry?.name
     const protocol: unknown = entry?.protocol
-    if (typeof name !== 'string' || name === '' || name === 'local') continue
+    if (typeof name !== 'string' || !NAME_SLUG_PATTERN.test(name) || name === 'local') continue
     if (choices.some((choice) => choice.name === name)) continue
     choices.push(typeof protocol === 'string' && protocol !== '' ? { name, protocol } : { name })
   }

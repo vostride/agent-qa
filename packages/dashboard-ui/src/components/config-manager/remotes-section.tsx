@@ -1,6 +1,6 @@
 // The default is picked here; a remote entry is written in the config file, never from this page.
 
-import { projectConfigRemotes } from "@vostride/agent-qa-schema"
+import { NAME_SLUG_PATTERN, projectConfigRemotes } from "@vostride/agent-qa-schema"
 import type { ReactNode } from "react"
 
 import {
@@ -109,12 +109,13 @@ function remotesOf(config: Record<string, unknown>): RemoteRow[] {
   }))
 }
 
-// Only a listed name can be the default; this machine is the absent key.
+// Only a listed name can be the default, and a name the strict parse refuses is served as
+// placeholder text; this machine is the absent key.
 function defaultChoices(config: Record<string, unknown>): ConfigFieldOption[] {
   const choices: ConfigFieldOption[] = [{ value: LOCAL_PLACE, label: REMOTES_COPY.thisMachine }]
   for (const remote of remoteEntries(config)) {
     const { name, protocol } = remote
-    if (typeof name !== "string" || name === "") continue
+    if (typeof name !== "string" || !NAME_SLUG_PATTERN.test(name)) continue
     if (choices.some((choice) => choice.value === name)) continue
     const known = typeof protocol === "string" && protocol !== "" ? protocol : undefined
     choices.push({ value: name, label: remoteChoiceLabel(name, known) })
