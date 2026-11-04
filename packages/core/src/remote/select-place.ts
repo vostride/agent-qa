@@ -3,6 +3,7 @@ import {
   type RemoteBrowserConfig,
   type RemoteBrowserProtocol,
 } from '@vostride/agent-qa-runner'
+import type { DevicePlace } from '../mobile/select-device.js'
 import type { RunAttributeRunner } from '../run-attributes.js'
 import type { RemoteEntry } from '../schema/remote-schema.js'
 
@@ -119,8 +120,8 @@ export function selectSuitePlace(input: SelectSuitePlaceInput): SelectWebPlaceRe
   return selectWebPlace({ remotes, test: agreed, engine })
 }
 
-// A run is remote when any of its tests runs on a remote.
-export function runnerForPlaces(places: readonly WebPlace[]): RunAttributeRunner {
+// A run is remote when any of its tests runs on a remote, in a browser or on a device.
+export function runnerForPlaces(places: readonly (WebPlace | DevicePlace)[]): RunAttributeRunner {
   return places.some((place) => place.kind === 'remote') ? 'remote' : 'local'
 }
 

@@ -14,6 +14,16 @@ export interface RemoteBrowserConfig {
   context?: 'new' | 'reuse'
 }
 
+// The Appium server a device connects to, with its `{{secret:NAME}}` references unresolved.
+export interface RemoteDeviceConfig {
+  name: string
+  protocol: 'appium'
+  url: string
+  headers?: Record<string, string>
+  basicAuth?: { user: string; password: string }
+  connectTimeoutMs: number
+}
+
 export const DEFAULT_REMOTE_CONNECT_TIMEOUT_MS = 5 * 60 * 1000
 
 export type RemoteFailureKind =
