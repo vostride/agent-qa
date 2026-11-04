@@ -316,7 +316,7 @@ describe('the Runs on select', () => {
   })
 
   it("says in a test's settings that a suite's pick wins, and not in a suite's", () => {
-    const hint = REMOTES_COPY.suiteWinsHint
+    const hint = "When a suite picks where it runs, the suite's choice wins."
     renderPanel('name: Demo\nsteps: []\n')
     expect(document.body.textContent).toContain(hint)
 

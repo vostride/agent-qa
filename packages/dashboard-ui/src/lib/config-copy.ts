@@ -650,7 +650,7 @@ export const REMOTES_COPY = {
   defaultLabel: 'Default for web tests',
   thisMachine: 'This machine',
   runsOnLabel: 'Runs on',
-  suiteWinsHint: "In a suite that picks a place, the suite's choice wins.",
+  suiteWinsHint: "When a suite picks where it runs, the suite's choice wins.",
   columns: { name: 'Name', protocol: 'Protocol', origin: 'Origin' },
   runsHere: `Web tests run on this machine. ${REMOTE_INHERIT_SENTENCE}`,
   missingValue: '—',
