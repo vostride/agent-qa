@@ -1,8 +1,57 @@
 import { remote } from 'webdriverio'
-import { MobileSetupError } from '@vostride/agent-qa-core'
-import type { AndroidAdapterConfig } from './types.js'
+import { MobileSetupError, resolveRemoteDeviceConnection } from '@vostride/agent-qa-core'
+import type { RemoteDeviceConfig } from '@vostride/agent-qa-runner'
+import type { AndroidAdapterConfig, AndroidSessionOptions } from './types.js'
 
-export async function createAndroidSession(config: AndroidAdapterConfig) {
+const REMOTE_NEW_COMMAND_TIMEOUT_S = 90
+
+// Only what the config states goes to a remote: no match keys and no local-only defaults.
+async function createRemoteAndroidSession(
+  config: AndroidAdapterConfig,
+  remoteDevice: RemoteDeviceConfig,
+  options: AndroidSessionOptions,
+) {
+  const device = config.device
+  const connection = resolveRemoteDeviceConnection({
+    remote: remoteDevice,
+    device: device?.name ?? 'android',
+    secrets: options.connectionSecrets,
+    secretsFile: options.secretsFile,
+  })
+
+  const capabilities: Record<string, unknown> = {
+    platformName: 'Android',
+    'appium:automationName': 'UiAutomator2',
+    'appium:newCommandTimeout': REMOTE_NEW_COMMAND_TIMEOUT_S,
+  }
+  if (device?.model !== undefined) capabilities['appium:deviceName'] = device.model
+  if (device?.os !== undefined) capabilities['appium:platformVersion'] = device.os
+  if (config.appPackage) capabilities['appium:appPackage'] = config.appPackage
+  if (config.appActivity) capabilities['appium:appActivity'] = config.appActivity
+  if (config.appState === 'preserve') capabilities['appium:noReset'] = true
+  if (config.appState === 'reset') capabilities['appium:noReset'] = false
+
+  return remote({
+    protocol: connection.protocol,
+    hostname: connection.hostname,
+    port: connection.port,
+    path: connection.path,
+    headers: { ...connection.headers },
+    connectionRetryCount: 0,
+    enableDirectConnect: false,
+    logLevel: 'silent',
+    connectionRetryTimeout: remoteDevice.connectTimeoutMs,
+    capabilities: capabilities as WebdriverIO.Capabilities,
+  })
+}
+
+export async function createAndroidSession(
+  config: AndroidAdapterConfig,
+  options: AndroidSessionOptions = {},
+) {
+  const remoteDevice = config.device?.remote
+  if (remoteDevice !== undefined) return createRemoteAndroidSession(config, remoteDevice, options)
+
   const match = config.device?.match ?? {}
   const appiumUrl = process.env.AGENT_QA_APPIUM_URL ?? config.appiumUrl ?? 'http://localhost:4723'
   const url = new URL(appiumUrl)

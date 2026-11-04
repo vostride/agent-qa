@@ -47,7 +47,7 @@ import {
 } from '@vostride/agent-qa-core'
 import type { IdentifiedScrollOffsets, MobileRefMap } from '@vostride/agent-qa-core'
 import { createAndroidSession } from './session.js'
-import type { AndroidAdapterConfig } from './types.js'
+import type { AndroidAdapterConfig, AndroidAdapterOptions } from './types.js'
 
 const ANDROID_FILLABLE_ROLES = new Set(['textbox', 'searchbox', 'edittext', 'combobox'])
 
@@ -602,6 +602,8 @@ function gestureArea(
 export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   readonly platform = 'android' as const
 
+  constructor(private readonly options: AndroidAdapterOptions = {}) {}
+
   private driver: WebdriverIO.Browser | null = null
   private lastRefs: MobileRefMap = {}
   private config: AndroidAdapterConfig | null = null
@@ -625,7 +627,10 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
     this.captureConsole = config.logCapture?.console !== false
     this.appPackage = this.config.appPackage ?? (config.device?.match?.appPackage as string | undefined) ?? null
 
-    this.driver = await createAndroidSession(this.config)
+    this.driver = await createAndroidSession(this.config, {
+      connectionSecrets: this.options.connectionSecrets,
+      secretsFile: this.options.secretsFile,
+    })
 
     const appPackage = this.appPackage
     if (appPackage && !this.config.browserName && !this.config.device?.match?.browserName) {
