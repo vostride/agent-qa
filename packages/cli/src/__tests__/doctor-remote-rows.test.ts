@@ -59,6 +59,18 @@ vi.mock('ai', async (importOriginal) => ({
 import { createDoctorCommand } from '../commands/doctor.js'
 import { createRemoteChecks } from '../commands/doctor-remote-checks.js'
 
+const { startFakeAppiumServer } = (await import(
+  new URL('../../../android/src/__tests__/fixtures/fake-appium-server.js', import.meta.url).href
+)) as {
+  startFakeAppiumServer: (options?: { readonly status?: 'fail' }) => Promise<{
+    readonly url: string
+    readonly origin: string
+    readonly requests: readonly { method: string; path: string; headers: Record<string, string> }[]
+    sessionsCreated(): readonly string[]
+    close(): Promise<void>
+  }>
+}
+
 const SECRET_VALUE = 'probe-secret-value-7f3a'
 
 interface RecordedRequest {
@@ -104,7 +116,8 @@ async function closedLoopbackPort(): Promise<number> {
 }
 
 function refuseWithoutChromium(): void {
-  if (!existsSync(chromium.executablePath())) throw new Error('Playwright Chromium missing; never skip')
+  if (!existsSync(chromium.executablePath()))
+    throw new Error('Playwright Chromium missing; never skip')
 }
 
 interface ProjectFiles {
@@ -205,7 +218,12 @@ describe("doctor's remote rows", () => {
       writable: true,
     })
     const capture = (...parts: unknown[]) => {
-      printed.push(parts.map(String).join(' ').replace(/\u001b\[[0-9;]*m/g, ''))
+      printed.push(
+        parts
+          .map(String)
+          .join(' ')
+          .replace(/\u001b\[[0-9;]*m/g, ''),
+      )
     }
     consoleSpies = [
       vi.spyOn(console, 'log').mockImplementation(capture),
@@ -269,7 +287,9 @@ describe("doctor's remote rows", () => {
     const port = await closedLoopbackPort()
     const configPath = await writeProject({
       config: baseConfig({
-        remotes: [{ name: 'cloud', protocol: 'cdp', url: `wss://127.0.0.1:${String(port)}/chromium` }],
+        remotes: [
+          { name: 'cloud', protocol: 'cdp', url: `wss://127.0.0.1:${String(port)}/chromium` },
+        ],
       }),
     })
 
@@ -278,6 +298,74 @@ describe("doctor's remote rows", () => {
     expect(row(output, 'Remote cloud')).toEqual({
       status: 'WARN',
       message: `cloud (cdp wss://127.0.0.1:${String(port)}) did not answer within 3s.`,
+    })
+    expect(output).not.toContain('FAIL')
+    expect(process.exitCode).toBe(0)
+  })
+
+  it("reads an Appium remote's version from its /status without sending its headers or credentials", async () => {
+    const appium = await startFakeAppiumServer()
+    servers.push({ origin: appium.origin, port: 0, requests: [], close: () => appium.close() })
+    const configPath = await writeProject({
+      config: baseConfig({
+        remotes: [
+          {
+            name: 'farm',
+            protocol: 'appium',
+            url: appium.url,
+            headers: { 'X-Farm-Key': '{{secret:PROBE_TOKEN}}', 'X-Team': 'qa' },
+            basicAuth: { user: 'qa', password: '{{secret:PROBE_TOKEN}}' },
+          },
+        ],
+      }),
+      secrets: `PROBE_TOKEN=${SECRET_VALUE}\n`,
+    })
+
+    const output = await runDoctor(configPath)
+
+    expect(row(output, 'Remote farm')).toEqual({
+      status: 'PASS',
+      message: `farm (appium ${appium.origin}) answers (Appium 3.4.2); credentials are checked when a test connects.`,
+    })
+    expect(appium.requests.map((request) => `${request.method} ${request.path}`)).toEqual([
+      'GET /wd/hub/status',
+    ])
+    const [request] = appium.requests
+    expect(request?.headers).not.toHaveProperty('authorization')
+    expect(request?.headers).not.toHaveProperty('x-farm-key')
+    expect(request?.headers).not.toHaveProperty('x-team')
+    expect(JSON.stringify(request?.headers)).not.toContain(SECRET_VALUE)
+    expect(appium.sessionsCreated()).toEqual([])
+    expect(output).not.toContain(SECRET_VALUE)
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('says only that an Appium remote answers when its /status reply names no version', async () => {
+    const appium = await startFakeAppiumServer({ status: 'fail' })
+    servers.push({ origin: appium.origin, port: 0, requests: [], close: () => appium.close() })
+    const [check] = createRemoteChecks({
+      config: { registry: { remotes: [{ name: 'farm', protocol: 'appium', url: appium.url }] } },
+      configPath: join(pinned.root, 'agent-qa.config.yaml'),
+    })
+
+    expect(await check?.check()).toEqual({
+      status: 'pass',
+      message: `farm (appium ${appium.origin}) answers; credentials are checked when a test connects.`,
+    })
+  })
+
+  it('warns, never fails, when an Appium remote has stopped', async () => {
+    const appium = await startFakeAppiumServer()
+    await appium.close()
+    const configPath = await writeProject({
+      config: baseConfig({ remotes: [{ name: 'farm', protocol: 'appium', url: appium.url }] }),
+    })
+
+    const output = await runDoctor(configPath)
+
+    expect(row(output, 'Remote farm')).toEqual({
+      status: 'WARN',
+      message: `farm (appium ${appium.origin}) did not answer within 3s.`,
     })
     expect(output).not.toContain('FAIL')
     expect(process.exitCode).toBe(0)
@@ -383,7 +471,9 @@ describe("doctor's remote rows", () => {
       const result = await check?.check()
 
       expect(result?.status).toBe('pass')
-      expect(result?.message).toMatch(/^local-server \(playwright ws:\/\/127\.0\.0\.1:\d+\) answers; /)
+      expect(result?.message).toMatch(
+        /^local-server \(playwright ws:\/\/127\.0\.0\.1:\d+\) answers; /,
+      )
     } finally {
       await server.close()
     }

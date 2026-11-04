@@ -65,20 +65,52 @@ function probeUrl(entry: RemoteEntryLike): string | undefined {
   if (entry.protocol === 'cdp' && (origin.scheme === 'http' || origin.scheme === 'https')) {
     return `${base}${path}/json/version`
   }
+  if (entry.protocol === 'appium') {
+    return origin.scheme === 'http' || origin.scheme === 'https'
+      ? `${base}${path}/status`
+      : undefined
+  }
   return base
 }
 
-async function answers(url: string, timeoutMs: number): Promise<boolean> {
+// Only a plain version string is shown, so a reply cannot put control characters on the terminal.
+function appiumVersion(text: string): string | undefined {
   try {
-    const response = await fetch(url, {
+    const body = JSON.parse(text) as { value?: { build?: { version?: unknown } } } | null
+    const version = body?.value?.build?.version
+    return typeof version === 'string' && /^[\w.+-]{1,64}$/.test(version) ? version : undefined
+  } catch {
+    return undefined
+  }
+}
+
+interface Answer {
+  appiumVersion?: string
+}
+
+async function answers(
+  url: string,
+  timeoutMs: number,
+  readAppiumVersion: boolean,
+): Promise<Answer | undefined> {
+  let response: Response
+  try {
+    response = await fetch(url, {
       method: 'GET',
       redirect: 'manual',
       signal: AbortSignal.timeout(timeoutMs),
     })
-    await response.body?.cancel()
-    return true
   } catch {
-    return false
+    return undefined
+  }
+  if (!readAppiumVersion) {
+    await response.body?.cancel().catch(() => undefined)
+    return {}
+  }
+  try {
+    return { appiumVersion: appiumVersion(await response.text()) }
+  } catch {
+    return {}
   }
 }
 
@@ -130,15 +162,17 @@ function remoteCheck(
     if (secrets) problems.push(secrets)
 
     const url = probeUrl(entry)
-    const answered = url !== undefined && (await answers(url, timeoutMs))
+    const answer =
+      url === undefined ? undefined : await answers(url, timeoutMs, entry.protocol === 'appium')
     if (url === undefined) problems.push(`${label}: the url is not a valid url.`)
-    else if (!answered) problems.push(`${label} did not answer within ${formatBound(timeoutMs)}.`)
+    else if (!answer) problems.push(`${label} did not answer within ${formatBound(timeoutMs)}.`)
+    const answered = answer?.appiumVersion ? `answers (Appium ${answer.appiumVersion})` : 'answers'
 
     const loopback = input.loopbackTargetsByRemote?.get(entry.name) ?? []
     if (loopback.length > 0) {
       problems.push(
-        answered
-          ? `${label} answers; ${loopbackNote(loopback)}`
+        answer
+          ? `${label} ${answered}; ${loopbackNote(loopback)}`
           : `${label}: ${loopbackNote(loopback)}`,
       )
     }
@@ -146,12 +180,13 @@ function remoteCheck(
     if (problems.length > 0) return { status: 'warn', message: problems.join(' ') }
     return {
       status: 'pass',
-      message: `${label} answers; credentials are checked when a test connects.`,
+      message: `${label} ${answered}; credentials are checked when a test connects.`,
     }
   }
 }
 
-// Each row makes plain HTTP requests only, so it never opens a browser session, and it never fails.
+// Each row makes plain HTTP requests only, so it never opens a browser or device session, and it
+// never fails.
 export function createRemoteChecks(input: RemoteChecksInput): DoctorCheck[] {
   const timeoutMs = input.fetchTimeoutMs ?? REMOTE_PROBE_TIMEOUT_MS
   return listedRemotes(input.config)
