@@ -36,7 +36,9 @@ const REMOTE_DEFAULT_FIELD: ConfigFieldTarget = {
   pattern: "use.browser.remote",
 }
 
-const CELL_CLASS = "whitespace-normal font-mono text-xs [overflow-wrap:anywhere]"
+// Only an origin is long enough to break anywhere; a name or protocol stays whole.
+const CELL_CLASS = "font-mono text-xs"
+const ORIGIN_CELL_CLASS = "whitespace-normal font-mono text-xs [overflow-wrap:anywhere]"
 const EXAMPLE_CLASS =
   "rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs whitespace-pre-wrap [overflow-wrap:anywhere]"
 const NOTE_CLASS = "text-xs text-muted-foreground"
@@ -197,7 +199,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
                     </span>
                   </TableCell>
                   <TableCell className={CELL_CLASS}>{remote.protocol}</TableCell>
-                  <TableCell className={CELL_CLASS}>{remote.origin}</TableCell>
+                  <TableCell className={ORIGIN_CELL_CLASS}>{remote.origin}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

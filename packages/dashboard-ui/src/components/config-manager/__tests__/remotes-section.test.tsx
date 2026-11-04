@@ -71,6 +71,12 @@ describe('the Remotes section', () => {
     expect(section.querySelector('[data-remotes-empty]')).toBeNull()
   })
 
+  it('lets only the origin break anywhere, so a name or protocol stays whole on a narrow screen', () => {
+    const cells = Array.from(show(TWO_REMOTES).querySelectorAll('[data-remote="grid"] td'))
+    expect(cells.map((cell) => cell.className.includes('[overflow-wrap:anywhere]'))).toEqual([false, false, true])
+    expect(cells.map((cell) => cell.className.includes('whitespace-nowrap'))).toEqual([true, true, false])
+  })
+
   it('shows only the origin even when a served url carries a path, query or credentials', () => {
     const section = show({
       registry: {
