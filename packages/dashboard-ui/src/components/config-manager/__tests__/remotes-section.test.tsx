@@ -89,7 +89,9 @@ describe('the Remotes section', () => {
     const section = show({ ...TWO_REMOTES, use: { browser: { remote: 'grid' } } })
     const line = section.querySelector('[data-remote-default]')
     expect(line?.textContent).toBe(remoteDefaultLine('grid'))
-    expect(remoteDefaultLine('grid')).toBe('Web tests run on grid unless a suite or test picks another place.')
+    expect(remoteDefaultLine('grid')).toBe(
+      'Web tests run on grid. Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.',
+    )
     expect(Array.from(line?.querySelectorAll('.font-medium') ?? []).map((mark) => mark.textContent)).toEqual(['grid'])
   })
 
@@ -142,10 +144,16 @@ describe('the Remotes section', () => {
     ])
   })
 
-  it('ends the default sentence the same way whether tests run here or on a remote', () => {
-    const ending = 'unless a suite or test picks another place.'
-    expect(REMOTES_COPY.runsHere.endsWith(ending)).toBe(true)
-    expect(remoteDefaultLine('grid').endsWith(ending)).toBe(true)
+  it('says tests and suites inherit the default and can override it, whether it is this machine or a remote', () => {
+    const ending = 'Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.'
+    expect(REMOTES_COPY.runsHere).toBe(`Web tests run on this machine. ${ending}`)
+    expect(remoteDefaultLine('grid')).toBe(`Web tests run on grid. ${ending}`)
+    for (const config of [{}, { ...TWO_REMOTES, use: { browser: { remote: 'grid' } } }]) {
+      const line = show(config).querySelector('[data-remote-default]')
+      expect(Array.from(line?.querySelectorAll('code') ?? []).map((code) => code.textContent)).toEqual([
+        'agent-qa.config.yaml',
+      ])
+    }
   })
 
   it('says tests run on this machine when the default is local or unset', () => {
@@ -249,7 +257,7 @@ describe('the Remotes section', () => {
     ).toBeNull()
   })
 
-  it('renders no control and no field mark, so nothing here edits a remote', () => {
+  it('the list and the how-to render no control and no field mark, so no remote entry is edited here', () => {
     for (const config of [{ ...TWO_REMOTES, use: { browser: { remote: 'grid' } } }, {}]) {
       const section = show(config)
       expect(section.querySelector('input, select, button, textarea, [role="combobox"], [contenteditable]')).toBeNull()

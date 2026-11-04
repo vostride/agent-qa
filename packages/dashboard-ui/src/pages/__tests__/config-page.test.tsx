@@ -55,6 +55,7 @@ import {
   PORT_RESTART_HELP,
   PROVIDER_FALLBACK_LABELS,
   RELOAD_CONFIG_LABEL,
+  REMOTES_COPY,
   RETRY_LABEL,
   SAVE_STATUS_WORDS,
   SETTLE_DELAY_MS,
@@ -78,6 +79,7 @@ import {
   SUITE_MATCH_REQUIRED_ERROR,
   TEST_MATCH_REQUIRED_ERROR,
   attributeValueLabel,
+  remoteDefaultLine,
   replaceValueName,
   undoLine,
 } from '@/lib/config-copy'
@@ -492,6 +494,23 @@ function refusedWrite() {
  * then lands on the active tab).
  */
 const APP_STATE_SEGMENTS = ['use', 'mobile', 'appState']
+const REMOTE_SEGMENTS = ['use', 'browser', 'remote']
+
+// As GET /api/config serves remotes: name, protocol and origin only.
+function configWithRemotes(remote?: string) {
+  return {
+    ...sampleConfig,
+    registry: {
+      ...sampleConfig.registry,
+      remotes: [
+        { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+        { name: 'lab', protocol: 'cdp', url: 'ws://10.0.0.5:9222' },
+        { url: 'wss://unnamed.example.com:443' },
+      ],
+    },
+    use: { ...sampleConfig.use, browser: { ...sampleConfig.use.browser, ...(remote ? { remote } : {}) } },
+  }
+}
 
 function deferredValue<T>() {
   let resolve!: (value: T) => void
@@ -1208,6 +1227,46 @@ describe('ConfigPage task tabs shell', () => {
     ])
     expect(API_EXPORTS).not.toContain('updateSettings')
     expect(section('mobile-app-state')!.textContent).toContain(MOBILE_APP_STATE_LABELS.preserve)
+  })
+
+  it('the Remotes default offers this machine and each listed remote with its protocol, and shows the current one', async () => {
+    vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes('grid') }))
+    await renderAt('/config/targets?section=remotes')
+
+    const field = section('remotes')!.querySelector('[data-field-path="use.browser.remote"]')
+    expect(field?.querySelector('label')?.textContent).toBe(REMOTES_COPY.defaultLabel)
+    const trigger = fieldControl(REMOTE_SEGMENTS)!
+    expect(trigger.getAttribute('role')).toBe('combobox')
+    expect(trigger.textContent).toBe('grid (playwright)')
+    await pressKey(trigger, 'Enter')
+    expect((Array.from(document.body.querySelectorAll('[role="option"]')) as HTMLElement[]).map((option) => option.textContent)).toEqual([
+      REMOTES_COPY.thisMachine,
+      'grid (playwright)',
+      'lab (cdp)',
+    ])
+    await pressKey(document.activeElement!, 'Escape')
+    expect(applyConfigChanges).not.toHaveBeenCalled()
+  })
+
+  it('the Remotes default shows this machine when the config picks no remote', async () => {
+    vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes() }))
+    await renderAt('/config/targets?section=remotes')
+
+    expect(fieldControl(REMOTE_SEGMENTS)!.textContent).toBe(REMOTES_COPY.thisMachine)
+    expect(section('remotes')!.querySelector('[data-remote-default]')?.textContent).toBe(REMOTES_COPY.runsHere)
+  })
+
+  it('choosing a remote as the default writes use.browser.remote, and choosing this machine removes it', async () => {
+    vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes() }))
+    await renderAt('/config/targets?section=remotes')
+
+    await chooseOption(fieldControl(REMOTE_SEGMENTS), 'lab (cdp)')
+    expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([[[{ op: 'set', path: REMOTE_SEGMENTS, value: 'lab' }]]])
+    expect(section('remotes')!.querySelector('[data-remote-default]')?.textContent).toBe(remoteDefaultLine('lab'))
+
+    await chooseOption(fieldControl(REMOTE_SEGMENTS), REMOTES_COPY.thisMachine)
+    expect(vi.mocked(applyConfigChanges).mock.calls[1]).toEqual([[{ op: 'unset', path: REMOTE_SEGMENTS }]])
+    expect(section('remotes')!.querySelector('[data-remote-default]')?.textContent).toBe(REMOTES_COPY.runsHere)
   })
 
   it('keeps browser headless out of the Models tab defaults: the default model is a row badge, and Make default writes only the default model', async () => {

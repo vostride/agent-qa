@@ -1,13 +1,19 @@
-// Read-only: a remote is written in the config file, never from this page.
+// The default is picked here; a remote entry is written in the config file, never from this page.
 
 import { projectConfigRemotes } from "@vostride/agent-qa-schema"
 import type { ReactNode } from "react"
 
+import {
+  ConfigField,
+  type ConfigFieldOption,
+  type ConfigFieldTarget,
+} from "@/components/config-manager/config-field"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
   DEFAULT_BADGE,
   REMOTES_COPY,
+  remoteChoiceLabel,
   remoteCredentialsLine,
   remoteDefaultParts,
   remoteNotListedParts,
@@ -21,6 +27,14 @@ interface RemoteRow {
   name: string
   protocol: string
   origin: string
+}
+
+const LOCAL_PLACE = "local"
+const UNSET = { valid: true, unset: true } as const
+const REMOTE_DEFAULT_FIELD: ConfigFieldTarget = {
+  segments: ["use", "browser", "remote"],
+  tab: "targets",
+  pattern: "use.browser.remote",
 }
 
 const CELL_CLASS = "whitespace-normal font-mono text-xs [overflow-wrap:anywhere]"
@@ -80,25 +94,56 @@ function text(value: unknown): string {
 }
 
 // The server already serves origins; projecting again keeps a path or query off the page regardless.
-function remotesOf(config: Record<string, unknown>): RemoteRow[] {
+function remoteEntries(config: Record<string, unknown>): Record<string, unknown>[] {
   const registry = projectConfigRemotes(config).registry
   const remotes = isRecord(registry) ? registry.remotes : undefined
   if (!Array.isArray(remotes)) return []
-  return remotes.map((entry) => {
-    const remote = isRecord(entry) ? entry : {}
-    return { name: text(remote.name), protocol: text(remote.protocol), origin: text(remote.url) }
-  })
+  return remotes.map((entry) => (isRecord(entry) ? entry : {}))
+}
+
+function remotesOf(config: Record<string, unknown>): RemoteRow[] {
+  return remoteEntries(config).map((remote) => ({
+    name: text(remote.name),
+    protocol: text(remote.protocol),
+    origin: text(remote.url),
+  }))
+}
+
+// Only a listed name can be the default; this machine is the absent key.
+function defaultChoices(config: Record<string, unknown>): ConfigFieldOption[] {
+  const choices: ConfigFieldOption[] = [{ value: LOCAL_PLACE, label: REMOTES_COPY.thisMachine }]
+  for (const remote of remoteEntries(config)) {
+    const { name, protocol } = remote
+    if (typeof name !== "string" || name === "") continue
+    if (choices.some((choice) => choice.value === name)) continue
+    const known = typeof protocol === "string" && protocol !== "" ? protocol : undefined
+    choices.push({ value: name, label: remoteChoiceLabel(name, known) })
+  }
+  return choices
 }
 
 function defaultRemoteOf(config: Record<string, unknown>): string | undefined {
   const browser = isRecord(config.use) ? config.use.browser : undefined
   const remote = isRecord(browser) ? browser.remote : undefined
-  return typeof remote === "string" && remote !== "" && remote !== "local" ? remote : undefined
+  return typeof remote === "string" && remote !== "" && remote !== LOCAL_PLACE ? remote : undefined
 }
 
 function secretsFileOf(config: Record<string, unknown>): string | undefined {
   const file = isRecord(config.workspace) ? config.workspace.secretsFile : undefined
   return typeof file === "string" && file !== "" ? file : undefined
+}
+
+export function RemoteDefaultField({ config }: RemotesSectionProps) {
+  return (
+    <ConfigField
+      field={REMOTE_DEFAULT_FIELD}
+      label={REMOTES_COPY.defaultLabel}
+      kind="select"
+      options={defaultChoices(config)}
+      placeholder={REMOTES_COPY.thisMachine}
+      parse={(raw) => (raw === LOCAL_PLACE ? UNSET : { valid: true, value: raw })}
+    />
+  )
 }
 
 export function RemotesSection({ config }: RemotesSectionProps) {
@@ -108,7 +153,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
   return (
     <div data-remotes className="space-y-4">
       <p data-remote-default={pick ?? "local"} className="text-sm">
-        {pick === undefined ? REMOTES_COPY.runsHere : withName(remoteDefaultParts(nameMark(pick)))}
+        {pick === undefined ? withCode(REMOTES_COPY.runsHere) : withName(remoteDefaultParts(nameMark(pick)))}
       </p>
       {unlisted ? (
         <p data-remote-unlisted className="text-sm text-destructive">

@@ -52,7 +52,7 @@ import { MobileSection } from "@/components/config-manager/mobile-section"
 import { KnowledgeSection } from "@/components/config-manager/knowledge-section"
 import { VisionSection } from "@/components/config-manager/vision-section"
 import { TargetsSection } from "@/components/config-manager/targets-section"
-import { RemotesSection } from "@/components/config-manager/remotes-section"
+import { RemoteDefaultField, RemotesSection } from "@/components/config-manager/remotes-section"
 import { DevicesSection } from "@/components/config-manager/devices-section"
 import { AnalyticsSection } from "@/components/config-manager/analytics-section"
 import { McpSection } from "@/components/config-manager/mcp-section"
@@ -68,7 +68,7 @@ const SECTION_COMPONENTS: Partial<Record<ConfigSectionId, readonly ComponentType
   "screenshot-size": [VisionSection],
   "planner-limits": [PlannerSection],
   targets: [TargetsSection],
-  remotes: [RemotesSection],
+  remotes: [RemoteDefaultField, RemotesSection],
   devices: [DevicesSection],
   "login-states": [AuthStatesSection],
   "mobile-app-state": [MobileSection],

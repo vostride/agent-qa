@@ -56,6 +56,8 @@ function functionOutputs(): string[] {
     copy.targetNameTakenError('staging'),
     copy.remoteDefaultLine('grid'),
     copy.remoteNotListedLine('grid'),
+    copy.remoteChoiceLabel('grid', 'playwright'),
+    copy.remoteChoiceLabel('grid', undefined),
     copy.remoteCredentialsLine('.env.secrets.local'),
     copy.remoteCredentialsLine(undefined),
     copy.deviceNameTakenError('pixel'),
@@ -67,7 +69,8 @@ function functionOutputs(): string[] {
 
 const everyString = () => [...collectStrings(Object.values(copy)), ...functionOutputs()]
 
-// The Remotes section edits nothing; it points to the file, so it names the keys typed there.
+// The Remotes section picks only the default and points to the file for the rest, so it names
+// the keys typed there.
 const REMOTE_KEY_PATHS = ['registry.remotes', 'use.browser.remote'] as const
 
 function remotesStrings(): string[] {

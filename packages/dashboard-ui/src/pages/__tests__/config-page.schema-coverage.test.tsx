@@ -431,13 +431,8 @@ async function assertConfigSectionShells(destinations: string[]) {
   }
 }
 
-// The page owns the leaves its write door admits. `use.browser.remote` is the one admitted leaf
-// with no page field: other doors pick a remote, and the Remotes section only shows it.
-const UNRENDERED_WRITABLE_LEAVES: readonly string[] = ['use.browser.remote']
-const PAGE_LEAVES = CONFIG_SCHEMA_LEAVES.filter(
-  (pattern) =>
-    isPageWritableConfigPath(concretePath(pattern)) && !UNRENDERED_WRITABLE_LEAVES.includes(pattern),
-)
+// The page owns the leaves its write door admits.
+const PAGE_LEAVES = CONFIG_SCHEMA_LEAVES.filter((pattern) => isPageWritableConfigPath(concretePath(pattern)))
 
 /** A concrete path for a leaf pattern or list owner: each '*' becomes 'k' and each '[]' index 0. */
 function concretePath(pattern: string): ConfigPathSegment[] {
@@ -531,10 +526,9 @@ describe('ConfigPage schema coverage', () => {
     }
   })
 
-  // The page-owned leaves are the strict leaves less the plugin and remote leaves, which the write
-  // door refuses, and less `use.browser.remote`, which it admits for other doors; each has a
-  // rendered owner and the write door admits it.
-  it('exactly the page-writable leaves, each owned on the page, with the plugin leaves, the remote leaves and the remote pick excluded', async () => {
+  // The page-owned leaves are the strict leaves less the plugin and remote entry leaves, which the
+  // write door refuses; each has a rendered owner and the write door admits it.
+  it('exactly the page-writable leaves, each owned on the page, with the plugin leaves and the remote entry leaves excluded', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
@@ -555,7 +549,6 @@ describe('ConfigPage schema coverage', () => {
       'registry.remotes[].query.*',
       'registry.remotes[].query.*.*',
       'registry.remotes[].url',
-      'use.browser.remote',
     ])
     const marks = await collectFieldMarks()
     const owned = PAGE_LEAVES.filter((pattern) => marks.some((mark) => coversLeaf(mark, pattern)))
@@ -589,7 +582,7 @@ describe('ConfigPage schema coverage', () => {
     expect(shared, `fields rendered by more than one section: ${shared.join('; ')}`).toEqual([])
   })
 
-  it('WRITE-POLICY-MATCHES-COVERAGE: every field and list the page renders is writable through its door, and every leaf it leaves out is refused except the remote pick', async () => {
+  it('WRITE-POLICY-MATCHES-COVERAGE: every field and list the page renders is writable through its door, and every leaf it leaves out is refused', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
@@ -601,14 +594,11 @@ describe('ConfigPage schema coverage', () => {
 
     const excluded = CONFIG_SCHEMA_LEAVES.filter((pattern) => !PAGE_LEAVES.includes(pattern))
     expect(excluded.length, 'the witness: plugins leaves exist').toBeGreaterThan(0)
-    // Only the remote pick is admitted without a page field: MCP, chat and file edits pick a remote.
     const admitted = excluded.filter((pattern) => isPageWritableConfigPath(concretePath(pattern)))
-    expect(admitted, `leaves without a field that the door still admits: ${admitted.join(', ')}`).toEqual([
-      'use.browser.remote',
-    ])
+    expect(admitted, `leaves without a field that the door still admits: ${admitted.join(', ')}`).toEqual([])
   })
 
-  it('the Remotes section shows the listed remote and adds no field mark', async () => {
+  it('the Remotes section shows the listed remote, and its one field is the default remote', async () => {
     page.config = fullConfig
     await renderAt('/config/targets')
 
@@ -616,17 +606,20 @@ describe('ConfigPage schema coverage', () => {
     expect(section, 'the Remotes section renders on the Targets tab').not.toBeNull()
     expect(section!.querySelector('[data-remote="grid"]')?.textContent).toContain('wss://grid.example.com:443')
     expect(section!.textContent).toContain(remoteDefaultLine('grid'))
-    expect(section!.querySelector('[data-field-path], [data-field-list], [data-config-field]')).toBeNull()
-    expect(section!.querySelector('input, select, button, textarea, [role="combobox"]')).toBeNull()
+    const controls = Array.from(section!.querySelectorAll('input, select, button, textarea, [role="combobox"], [contenteditable]'))
+    expect(controls.map((control) => control.closest('[data-field-path]')?.getAttribute('data-field-path'))).toEqual([
+      'use.browser.remote',
+    ])
 
     const marks = await collectFieldMarks()
-    expect(marks.filter((mark) => mark.where.endsWith('/remotes'))).toEqual([])
-    const remoteLeaves = CONFIG_SCHEMA_LEAVES.filter(
-      (pattern) => pattern.startsWith('registry.remotes') || pattern === 'use.browser.remote',
-    )
-    expect(remoteLeaves.length, 'the witness: the schema has remote leaves').toBeGreaterThan(0)
-    const edited = remoteLeaves.filter((pattern) => marks.some((mark) => coversLeaf(mark, pattern)))
-    expect(edited, `remote leaves with a field on the page: ${edited.join(', ')}`).toEqual([])
+    const remoteMarks = marks.filter((mark) => mark.where.endsWith('/remotes'))
+    expect([...new Set(remoteMarks.map((mark) => `${mark.where} ${mark.kind}=${mark.value}`))]).toEqual([
+      'targets/remotes path=use.browser.remote',
+    ])
+    const entryLeaves = CONFIG_SCHEMA_LEAVES.filter((pattern) => pattern.startsWith('registry.remotes'))
+    expect(entryLeaves.length, 'the witness: the schema has remote entry leaves').toBeGreaterThan(0)
+    const edited = entryLeaves.filter((pattern) => marks.some((mark) => coversLeaf(mark, pattern)))
+    expect(edited, `remote entry leaves with a field on the page: ${edited.join(', ')}`).toEqual([])
   })
 
   it('EVERY-SECTION-RENDERS-EMPTY: with an empty config all five tabs and every section heading render, unset leaves show defaults only as placeholders, and Models shows its empty state', async () => {

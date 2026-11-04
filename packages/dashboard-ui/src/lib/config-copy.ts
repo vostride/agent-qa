@@ -643,9 +643,14 @@ export const LOG_CAPTURE_FIELD_LABELS = {
 
 export const NO_TARGETS_TEXT = 'No targets yet.'
 
+const REMOTE_INHERIT_SENTENCE =
+  'Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.'
+
 export const REMOTES_COPY = {
+  defaultLabel: 'Default for web tests',
+  thisMachine: 'This machine',
   columns: { name: 'Name', protocol: 'Protocol', origin: 'Origin' },
-  runsHere: 'Web tests run on this machine unless a suite or test picks another place.',
+  runsHere: `Web tests run on this machine. ${REMOTE_INHERIT_SENTENCE}`,
   missingValue: '—',
   empty: 'No remotes are listed. Add one under registry.remotes in agent-qa.config.yaml:',
   example: [
@@ -663,7 +668,7 @@ export const REMOTES_COPY = {
 
 // The parts keep the remote name apart, so the Remotes section can set it in another weight.
 export function remoteDefaultParts<T>(name: T): [string, T, string] {
-  return ['Web tests run on ', name, ' unless a suite or test picks another place.']
+  return ['Web tests run on ', name, `. ${REMOTE_INHERIT_SENTENCE}`]
 }
 
 export function remoteDefaultLine(name: string): string {
@@ -680,6 +685,10 @@ export function remoteNotListedParts<T>(name: T): [T, string] {
 
 export function remoteNotListedLine(name: string): string {
   return remoteNotListedParts(name).join('')
+}
+
+export function remoteChoiceLabel(name: string, protocol: string | undefined): string {
+  return protocol === undefined ? name : `${name} (${protocol})`
 }
 
 export function remoteCredentialsLine(secretsFile: string | undefined): string {
