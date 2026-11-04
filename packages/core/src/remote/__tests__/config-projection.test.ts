@@ -180,6 +180,95 @@ describe('projectRemotesInConfigText', () => {
     })
   })
 
+  it('replaces a whole entry anchored outside the block with null', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        '        appPackage: &entry',
+        '          name: grid',
+        '          protocol: playwright',
+        `          url: wss://grid.example.com/${PATH_TOKEN}`,
+        `          headers: { X-Team: ${HEADER_VALUE} }`,
+        '  remotes:',
+        '    - *entry',
+        '',
+      ].join('\n'),
+    )
+
+    for (const hidden of [PATH_TOKEN, HEADER_VALUE, 'X-Team']) expect(shown).not.toContain(hidden)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        devices: { pixel: { platform: 'android', match: { appPackage: null } } },
+        remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
+      },
+    })
+  })
+
+  it('follows an anchor chain to every anchor it reaches', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        `        avd: &lbl ${HEADER_VALUE}`,
+        '        serial: &hdrs',
+        '          X-Team: *lbl',
+        `        platformVersion: &ep wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '        appPackage: &entry',
+        '          name: grid',
+        '          protocol: playwright',
+        '          url: *ep',
+        '          headers: *hdrs',
+        '    tablet:',
+        '      platform: android',
+        '      match:',
+        '        avd: *lbl',
+        '  remotes:',
+        '    - *entry',
+        '',
+      ].join('\n'),
+    )
+
+    for (const hidden of [PATH_TOKEN, QUERY_SECRET, HEADER_VALUE, 'X-Team']) {
+      expect(shown).not.toContain(hidden)
+    }
+    const origin = 'wss://grid.example.com:443'
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        devices: {
+          pixel: {
+            platform: 'android',
+            match: { avd: null, serial: null, platformVersion: origin, appPackage: null },
+          },
+          tablet: { platform: 'android', match: { avd: null } },
+        },
+        remotes: [{ name: 'grid', protocol: 'playwright', url: origin }],
+      },
+    })
+  })
+
+  it('shows a config whose remote aliases a node that holds the block as one unshowable line', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry: &reg',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        `      url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '      headers: *reg',
+        '',
+      ].join('\n'),
+    )
+
+    expect(shown).toBe('# This config cannot be shown without its remote endpoints.\n')
+  })
+
   it('shows a remotes block that is not a list as an empty list', () => {
     const shown = projectRemotesInConfigText(
       [

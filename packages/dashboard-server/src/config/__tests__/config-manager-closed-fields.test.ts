@@ -170,6 +170,54 @@ describe("the config's closed fields", () => {
     expect((parseYaml(text) as { registry: { remotes: unknown } }).registry.remotes).toEqual([shown])
   })
 
+  it('the served config and its file lines hide a remote whose entry, url and headers alias anchors outside its block', async () => {
+    const pathToken = 'pathtoken-5e2b'
+    const queryValue = 'queryvalue-a41d'
+    const headerValue = 'headervalue-08f7'
+    const { manager } = await configFile(
+      [
+        ...WORKSPACE,
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        `        platformVersion: &ep wss://grid.example.com/${pathToken}?k=${queryValue}`,
+        '        serial: &hdrs',
+        `          X-Team: ${headerValue}`,
+        '        appPackage: &entry',
+        '          name: grid',
+        '          protocol: playwright',
+        '          url: *ep',
+        '          headers: *hdrs',
+        '  remotes:',
+        '    - *entry',
+        ...USE,
+        '',
+      ].join('\n'),
+    )
+    const read = await manager.readMasked()
+    if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+
+    const origin = 'wss://grid.example.com:443'
+    const shown = [{ name: 'grid', protocol: 'playwright', url: origin }]
+    const text = read.lines.map((line) => line.text).join('\n')
+    const lines = parseYaml(text) as {
+      registry: { remotes: unknown; devices: { pixel: { match: unknown } } }
+    }
+    expect((read.config.registry as { remotes: unknown }).remotes).toEqual(shown)
+    expect(lines.registry.remotes).toEqual(shown)
+    expect(lines.registry.devices.pixel.match).toEqual({
+      platformVersion: origin,
+      serial: null,
+      appPackage: null,
+    })
+    for (const hidden of [pathToken, queryValue, headerValue, 'X-Team']) {
+      expect(JSON.stringify(read.config)).not.toContain(hidden)
+      expect(text).not.toContain(hidden)
+    }
+  })
+
   it('on a config with no plugins block another package, a path or a second plugins change is refused', async () => {
     await expectRefused(WITHOUT_PLUGINS, [
       [{ op: 'append', path: ['plugins', 'auth'], value: { package: '@acme/other-auth' } }],
