@@ -100,6 +100,10 @@ describe('the Remotes section', () => {
       const warning = section.querySelector('[data-remote-unlisted]')
       expect(warning?.textContent).toBe(remoteNotListedLine('gird'))
       expect(warning?.className).toContain('text-destructive')
+      expect(Array.from(warning?.querySelectorAll('code') ?? []).map((code) => code.textContent)).toEqual([
+        'registry.remotes',
+        'use.browser.remote',
+      ])
     }
     expect(remoteNotListedLine('gird')).toBe(
       'gird is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.',
@@ -174,7 +178,7 @@ describe('the Remotes section', () => {
       'Write credentials as {{secret:NAME}} references to names declared in .env.secrets.local.',
     )
     expect(section.querySelector('[data-remotes-pick]')?.textContent).toBe(
-      'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test; the name local means this machine.',
+      'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test. Use local to run on this machine.',
     )
     expect(section.querySelector('[data-remotes-listed]')).toBeNull()
   })
@@ -190,6 +194,15 @@ describe('the Remotes section', () => {
         'Write credentials as {{secret:NAME}} references to names declared in your secrets file (set workspace.secretsFile).',
       )
     }
+  })
+
+  it('sets the key paths, the config file and local in code in the empty state', () => {
+    const section = show({})
+    const codes = (selector: string) =>
+      Array.from(section.querySelectorAll(`${selector} code`)).map((code) => code.textContent)
+    expect(codes('[data-remotes-empty]')).toEqual(['registry.remotes', 'agent-qa.config.yaml'])
+    expect(codes('[data-remotes-credentials]')).toEqual(['{{secret:NAME}}', 'workspace.secretsFile'])
+    expect(codes('[data-remotes-pick]')).toEqual(['use.browser.remote: <name>', 'agent-qa.config.yaml', 'local'])
   })
 
   it('leads into the example in foreground text and keeps the notes muted', () => {
@@ -221,6 +234,11 @@ describe('the Remotes section', () => {
     expect(section.querySelector('[data-remotes-listed]')?.textContent).toBe(
       'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
     )
+    expect(Array.from(section.querySelectorAll('[data-remotes-listed] code')).map((code) => code.textContent)).toEqual([
+      'registry.remotes',
+      'agent-qa.config.yaml',
+      'use.browser.remote',
+    ])
     expect(
       section.querySelector('[data-remotes-empty], [data-remotes-example], [data-remotes-credentials], [data-remotes-pick]'),
     ).toBeNull()

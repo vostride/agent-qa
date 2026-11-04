@@ -657,7 +657,7 @@ export const REMOTES_COPY = {
     '      query: # or headers, with the same {{secret:NAME}} values',
     '        token: "{{secret:GRID_TOKEN}}"',
   ].join('\n'),
-  pick: 'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test; the name local means this machine.',
+  pick: 'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test. Use local to run on this machine.',
   listed: 'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
 } as const
 

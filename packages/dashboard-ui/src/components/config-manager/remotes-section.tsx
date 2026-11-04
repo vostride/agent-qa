@@ -1,6 +1,7 @@
 // Read-only: a remote is written in the config file, never from this page.
 
 import { projectConfigRemotes } from "@vostride/agent-qa-schema"
+import type { ReactNode } from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -26,9 +27,37 @@ const CELL_CLASS = "whitespace-normal font-mono text-xs [overflow-wrap:anywhere]
 const EXAMPLE_CLASS =
   "rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs whitespace-pre-wrap [overflow-wrap:anywhere]"
 const NOTE_CLASS = "text-xs text-muted-foreground"
+const CODE_CLASS = "font-mono wrap-anywhere"
+// Longest first, so a key path is set as code whole rather than by a shorter path it starts with.
+const CODE_TERMS = [
+  "use.browser.remote: <name>",
+  "use.browser.remote",
+  "registry.remotes",
+  "workspace.secretsFile",
+  "agent-qa.config.yaml",
+  "{{secret:NAME}}",
+]
+const PICK_TERMS = [...CODE_TERMS, "local"]
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function escapeRegExp(term: string): string {
+  return term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+}
+
+function withCode(line: string, terms: readonly string[] = CODE_TERMS): ReactNode[] {
+  const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`)
+  return line.split(pattern).map((part, index) =>
+    index % 2 === 1 ? (
+      <code key={index} className={CODE_CLASS}>
+        {part}
+      </code>
+    ) : (
+      part
+    ),
+  )
 }
 
 function text(value: unknown): string {
@@ -68,22 +97,22 @@ export function RemotesSection({ config }: RemotesSectionProps) {
       </p>
       {unlisted ? (
         <p data-remote-unlisted className="text-sm text-destructive">
-          {remoteNotListedLine(pick)}
+          {withCode(remoteNotListedLine(pick))}
         </p>
       ) : null}
       {remotes.length === 0 ? (
         <div className="space-y-2">
           <p data-remotes-empty className="text-sm text-foreground">
-            {REMOTES_COPY.empty}
+            {withCode(REMOTES_COPY.empty)}
           </p>
           <pre data-remotes-example className={EXAMPLE_CLASS}>
             <code>{REMOTES_COPY.example}</code>
           </pre>
           <p data-remotes-credentials className={NOTE_CLASS}>
-            {remoteCredentialsLine(secretsFileOf(config))}
+            {withCode(remoteCredentialsLine(secretsFileOf(config)))}
           </p>
           <p data-remotes-pick className={NOTE_CLASS}>
-            {REMOTES_COPY.pick}
+            {withCode(REMOTES_COPY.pick, PICK_TERMS)}
           </p>
         </div>
       ) : (
@@ -116,7 +145,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
             </TableBody>
           </Table>
           <p data-remotes-listed className={NOTE_CLASS}>
-            {REMOTES_COPY.listed}
+            {withCode(REMOTES_COPY.listed)}
           </p>
         </div>
       )}
