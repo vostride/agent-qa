@@ -187,6 +187,28 @@ describe('registry.remotes entries', () => {
     })
   })
 
+  it('refuses a literal credential inside a JSON query value at the path of the same value written as a map', () => {
+    const result = parse({
+      ...grid,
+      query: { capabilities: '{"grid:options":{"accessKey":"literal-9f3e"}}' },
+    })
+    expect(result.success).toBe(false)
+    const issues = result.success
+      ? []
+      : result.error.issues.map(issue => ({ path: issue.path, message: issue.message }))
+    expect(issues).toEqual([
+      {
+        path: ['registry', 'remotes', 0, 'query', 'capabilities', 'grid:options', 'accessKey'],
+        message:
+          'Remote grid: query "capabilities.grid:options.accessKey" names a credential, so its value must be a {{secret:NAME}} reference.',
+      },
+    ])
+    expectAccepted({
+      ...grid,
+      query: { capabilities: '{"grid:options":{"accessKey":"{{secret:GRID_KEY}}"}}' },
+    })
+  })
+
   it('refuses a credential-named query key with a non-string value under it', () => {
     expectRefused(
       { ...grid, query: { caps: { secret: { value: 42 } } } },

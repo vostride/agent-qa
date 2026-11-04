@@ -177,13 +177,34 @@ function carriesReference(value: unknown): boolean {
   return typeof value === 'string' && secretReferenceNames(value).length > 0
 }
 
-function credentialKeys(value: unknown, path: KeyPath = []): { path: KeyPath; literal: boolean }[] {
+type JsonReader = (text: string) => unknown
+
+function jsonContainer(text: string): unknown {
+  if (!/^\s*[[{]/.test(text)) return undefined
+  try {
+    const parsed: unknown = JSON.parse(text)
+    return typeof parsed === 'object' && parsed !== null ? parsed : undefined
+  } catch {
+    return undefined
+  }
+}
+
+const queryJson: JsonReader = (text) => jsonContainer(text)
+const urlQueryJson: JsonReader = (text) => jsonContainer(text) ?? jsonContainer(decoded(text))
+
+// A query value written as JSON is sent as JSON, so its keys are read like a nested query's.
+function credentialKeys(
+  value: unknown,
+  readJson?: JsonReader,
+  path: KeyPath = [],
+): { path: KeyPath; literal: boolean }[] {
   return children(value).flatMap(([key, child]) => {
     const childPath = [...path, key]
+    const inner = (typeof child === 'string' ? readJson?.(child) : undefined) ?? child
     if (namesCredential(key)) {
-      return [{ path: childPath, literal: leaves(child).some((leaf) => !carriesReference(leaf)) }]
+      return [{ path: childPath, literal: leaves(inner).some((leaf) => !carriesReference(leaf)) }]
     }
-    return credentialKeys(child, childPath)
+    return credentialKeys(inner, readJson, childPath)
   })
 }
 
@@ -276,8 +297,8 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
   }
 
   const headerCredentials = credentialKeys(entry.headers)
-  const queryCredentials = credentialKeys(entry.query)
-  const urlCredentials = credentialKeys(urlQuery(entry.url))
+  const queryCredentials = credentialKeys(entry.query, queryJson)
+  const urlCredentials = credentialKeys(urlQuery(entry.url), urlQueryJson)
   for (const credential of urlCredentials.filter((c) => c.literal)) {
     report(
       ['url'],
