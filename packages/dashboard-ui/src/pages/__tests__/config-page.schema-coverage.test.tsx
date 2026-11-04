@@ -581,7 +581,7 @@ describe('ConfigPage schema coverage', () => {
     expect(shared, `fields rendered by more than one section: ${shared.join('; ')}`).toEqual([])
   })
 
-  it('WRITE-POLICY-MATCHES-COVERAGE: every field and list the page renders is writable through its door, and every leaf it leaves out is refused', async () => {
+  it('every field and list the page renders is writable through its door, and every leaf it leaves out is refused', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
