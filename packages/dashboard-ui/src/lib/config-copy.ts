@@ -671,7 +671,7 @@ export function remoteNotListedLine(name: string): string {
 }
 
 export function remoteCredentialsLine(secretsFile: string | undefined): string {
-  const file = secretsFile ?? 'the file workspace.secretsFile names'
+  const file = secretsFile ?? 'your secrets file (set workspace.secretsFile)'
   return `Write credentials as {{secret:NAME}} references to names declared in ${file}.`
 }
 export const NO_DEVICES_TEXT = 'No devices yet.'

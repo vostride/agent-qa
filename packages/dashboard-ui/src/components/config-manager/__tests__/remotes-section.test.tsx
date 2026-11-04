@@ -187,7 +187,7 @@ describe('the Remotes section', () => {
     expect(remoteCredentialsLine('secrets/remote.env')).toContain('secrets/remote.env.')
     for (const config of [{}, { workspace: { secretsFile: '' } }, { workspace: 'none' }]) {
       expect(show(config).querySelector('[data-remotes-credentials]')?.textContent).toBe(
-        'Write credentials as {{secret:NAME}} references to names declared in the file workspace.secretsFile names.',
+        'Write credentials as {{secret:NAME}} references to names declared in your secrets file (set workspace.secretsFile).',
       )
     }
   })
