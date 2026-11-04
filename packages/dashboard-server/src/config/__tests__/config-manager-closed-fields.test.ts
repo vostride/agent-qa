@@ -307,6 +307,158 @@ describe("the config's closed fields", () => {
     }
   })
 
+  it('the served config and its file lines show a name that aliases a url as invalid name', async () => {
+    const pathPart = 'routepart-9d1e'
+    const queryValue = 'queryvalue-4f60'
+    const headerValue = 'headervalue-b7a3'
+    const { manager } = await configFile(
+      [
+        ...WORKSPACE,
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        `        avd: &u wss://grid.example.com/${pathPart}?team=${queryValue}`,
+        '  remotes:',
+        '    - name: *u',
+        '      protocol: playwright',
+        '      url: wss://grid.example.com/',
+        ...USE,
+        '',
+      ].join('\n'),
+    )
+    const read = await manager.readMasked()
+    if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+
+    expect(read.fileIssues).not.toEqual([])
+    const remotes = [
+      { name: 'invalid name', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+    ]
+    const config = read.config.registry as {
+      remotes: unknown
+      devices: { pixel: { match: unknown } }
+    }
+    expect(config.remotes).toEqual(remotes)
+    expect(config.devices.pixel.match).toEqual({ avd: 'invalid name' })
+    const text = read.lines.map((line) => line.text).join('\n')
+    const lines = parseYaml(text) as {
+      registry: { remotes: unknown; devices: { pixel: { match: unknown } } }
+    }
+    expect(lines.registry.remotes).toEqual(remotes)
+    expect(lines.registry.devices.pixel.match).toEqual({ avd: null })
+    for (const hidden of [pathPart, queryValue, headerValue, 'X-Team']) {
+      expect(JSON.stringify(read.config)).not.toContain(hidden)
+      expect(text).not.toContain(hidden)
+    }
+  })
+
+  it('the served config and its file lines hide a url aliased out of an ordered map or set remotes block, or out of an ordered map entry', async () => {
+    const pathPart = 'routepart-9d1e'
+    const queryValue = 'queryvalue-4f60'
+    const headerValue = 'headervalue-b7a3'
+    const url = `wss://grid.example.com/${pathPart}?team=${queryValue}`
+    const devices = ['  devices:', '    pixel:', '      platform: android', '      match:']
+    const blockFile = (block: string[]): string =>
+      [...WORKSPACE, 'registry:', ...block, ...devices, '        avd: *u', ...USE, ''].join('\n')
+    const unshowable = [
+      { n: 1, text: '# This config cannot be shown without its remote endpoints.' },
+    ]
+    const blockRegistry = {
+      remotes: [],
+      devices: { pixel: { platform: 'android', match: { avd: 'wss://grid.example.com:443' } } },
+    }
+    const entryFile = [
+      ...WORKSPACE,
+      'registry:',
+      '  remotes:',
+      '    - !!omap',
+      '      - name: grid',
+      `      - url: &u ${url}`,
+      `      - headers: &h { X-Team: ${headerValue} }`,
+      ...devices,
+      '        avd: *u',
+      '        serial: *h',
+      ...USE,
+      '',
+    ].join('\n')
+
+    for (const file of [
+      blockFile(['  remotes: !!omap', `    - grid: &u ${url}`]),
+      blockFile(['  remotes: !!set', `    ? &u ${url}`]),
+      entryFile,
+    ]) {
+      const { manager } = await configFile(file)
+      const read = await manager.readMasked()
+      if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+
+      expect(read.fileIssues).not.toEqual([])
+      const text = read.lines.map((line) => line.text).join('\n')
+      if (file === entryFile) {
+        const config = read.config.registry as {
+          remotes: unknown
+          devices: { pixel: { match: unknown } }
+        }
+        expect(config.remotes).toEqual([{ url: 'invalid url' }])
+        expect(config.devices.pixel.match).toEqual({
+          avd: 'wss://grid.example.com:443',
+          serial: null,
+        })
+        const lines = parseYaml(text) as {
+          registry: { remotes: unknown; devices: { pixel: { match: unknown } } }
+        }
+        expect(lines.registry.remotes).toEqual([{ url: 'invalid url' }])
+        expect(lines.registry.devices.pixel.match).toEqual({ avd: null, serial: null })
+      } else {
+        expect(read.lines).toEqual(unshowable)
+        expect(read.config.registry).toEqual(blockRegistry)
+      }
+      for (const hidden of [pathPart, queryValue, headerValue, 'X-Team']) {
+        expect(JSON.stringify(read.config)).not.toContain(hidden)
+        expect(text).not.toContain(hidden)
+      }
+    }
+  })
+
+  it('the served config shows a remote url used as a key elsewhere by its origin, in a config the strict parse accepts', async () => {
+    const pathPart = 'routepart-9d1e'
+    const queryValue = 'queryvalue-4f60'
+    const { manager } = await configFile(
+      [
+        ...WORKSPACE,
+        'registry:',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        `      url: &u wss://grid.example.com/${pathPart}?team=${queryValue}`,
+        '  llms:',
+        '    - name: judge',
+        '      provider: anthropic-compatible',
+        '      model: m',
+        '      baseURL: https://llm.example.com/v1',
+        '      providerHeaders:',
+        '        *u : x',
+        ...USE.slice(0, -2),
+        '    remote: grid',
+        ...USE.slice(-2),
+        '',
+      ].join('\n'),
+    )
+    const read = await manager.readMasked()
+    if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+
+    expect(read.fileIssues).toEqual([])
+    const config = read.config.registry as { llms: { providerHeaders: unknown }[] }
+    expect(config.llms[0]?.providerHeaders).toEqual({ 'wss://grid.example.com:443': 'x' })
+    const text = read.lines.map((line) => line.text).join('\n')
+    const lines = parseYaml(text) as { registry: { llms: { providerHeaders: unknown }[] } }
+    expect(lines.registry.llms[0]?.providerHeaders).toEqual({ '': 'x' })
+    for (const hidden of [pathPart, queryValue, 'X-Team']) {
+      expect(JSON.stringify(read.config)).not.toContain(hidden)
+      expect(text).not.toContain(hidden)
+    }
+  })
+
   it('on a config with no plugins block another package, a path or a second plugins change is refused', async () => {
     await expectRefused(WITHOUT_PLUGINS, [
       [{ op: 'append', path: ['plugins', 'auth'], value: { package: '@acme/other-auth' } }],

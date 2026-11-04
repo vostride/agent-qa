@@ -93,6 +93,22 @@ function displayOrigin(url: unknown): string {
   return origin ? formatRemoteOrigin(origin) : 'invalid url'
 }
 
+export const NAME_SLUG_PATTERN = /^[a-z0-9][a-z0-9.-]*$/
+
+export const REMOTE_PROTOCOLS = ['playwright', 'cdp'] as const
+
+function displayName(name: unknown): string | undefined {
+  if (name === undefined) return undefined
+  return typeof name === 'string' && NAME_SLUG_PATTERN.test(name) ? name : 'invalid name'
+}
+
+function displayProtocol(protocol: unknown): string | undefined {
+  if (protocol === undefined) return undefined
+  return REMOTE_PROTOCOLS.some((allowed) => allowed === protocol)
+    ? (protocol as string)
+    : 'invalid protocol'
+}
+
 // A served config shows a remote by name, protocol and origin; its path, query, headers and
 // basicAuth stay in the file.
 export function projectRemotesForDisplay(
@@ -121,6 +137,12 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function children(value: unknown): [string | number, unknown][] {
   if (Array.isArray(value)) return value.map((child, index) => [index, child])
+  if (value instanceof Set) return [...value].map((child, index) => [index, child])
+  if (value instanceof Map) {
+    return [...value].flatMap(([key, child], index): [string | number, unknown][] =>
+      typeof key === 'string' ? [[key, child]] : [[index, key], [index, child]],
+    )
+  }
   if (isRecord(value)) return Object.entries(value)
   return []
 }
@@ -406,17 +428,18 @@ function remoteCopies(remotes: unknown, shown: RemoteDisplay[]): Map<string, unk
       addNested(child)
     }
   }
+  const addUrls = (value: unknown) => {
+    for (const [key, child] of children(value)) {
+      if (typeof key === 'string' && remoteOrigin(key) !== undefined) add(key, displayOrigin(key))
+      if (typeof child === 'string' && (key === 'url' || remoteOrigin(child) !== undefined)) {
+        add(child, displayOrigin(child))
+      }
+      addUrls(child)
+    }
+  }
   add(remotes, shown)
   if (!Array.isArray(remotes)) {
     addNested(remotes)
-    const addUrls = (value: unknown) => {
-      for (const [key, child] of children(value)) {
-        if (typeof child === 'string' && (key === 'url' || remoteOrigin(child) !== undefined)) {
-          add(child, displayOrigin(child))
-        }
-        addUrls(child)
-      }
-    }
     addUrls(remotes)
     return copies
   }
@@ -424,9 +447,13 @@ function remoteCopies(remotes: unknown, shown: RemoteDisplay[]): Map<string, unk
     const display = shown[index] as RemoteDisplay
     add(entry, display)
     addNested(entry)
-    if (isRecord(entry) && typeof entry.url === 'string' && entry.url !== '') {
-      add(entry.url, display.url)
+    if (!isRecord(entry) || entry instanceof Map || entry instanceof Set) {
+      addUrls(entry)
+      return
     }
+    if (typeof entry.name === 'string') add(entry.name, display.name)
+    if (typeof entry.protocol === 'string') add(entry.protocol, display.protocol)
+    if (typeof entry.url === 'string' && entry.url !== '') add(entry.url, display.url)
   })
   return copies
 }
@@ -438,11 +465,30 @@ function withoutCopies(value: unknown, copies: Map<string, unknown>): unknown {
   }
   if (Array.isArray(value)) return value.map((child) => withoutCopies(child, copies))
   if (isRecord(value)) {
+    const entries = Object.entries(value)
+    const shownKeys = entries.map(([key]) => shownKey(key, copies))
+    const taken = new Set(
+      entries.flatMap(([key], index) => (shownKeys[index] === key ? [key] : [])),
+    )
     return Object.fromEntries(
-      Object.entries(value).map(([key, child]) => [key, withoutCopies(child, copies)]),
+      entries.map(([key, child], index) => {
+        const base = shownKeys[index] as string
+        let shown = base
+        if (base !== key) {
+          for (let n = 2; taken.has(shown); n += 1) shown = `${base} (${n})`
+          taken.add(shown)
+        }
+        return [shown, withoutCopies(child, copies)]
+      }),
     )
   }
   return value
+}
+
+// A key can be a copy too: it shows as its replacement, or as its origin when that is not text.
+function shownKey(key: string, copies: Map<string, unknown>): string {
+  const shown = withoutCopies(key, copies)
+  return typeof shown === 'string' ? shown : displayOrigin(key)
 }
 
 export function projectConfigRemotes<T>(config: T): T {
@@ -454,8 +500,8 @@ export function projectConfigRemotes<T>(config: T): T {
     ? remotes.map((entry) => {
         const record: Record<string, unknown> = isRecord(entry) ? entry : {}
         return {
-          name: record.name as string,
-          protocol: record.protocol as string,
+          name: displayName(record.name) as string,
+          protocol: displayProtocol(record.protocol) as string,
           url: displayOrigin(record.url),
         }
       })

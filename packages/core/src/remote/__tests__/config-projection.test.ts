@@ -787,4 +787,98 @@ describe('projectRemotesInConfigText', () => {
     expect(AgentQaConfigSchema.safeParse(parseYaml(raw)).success).toBe(true)
     expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
   })
+
+  it('shows a remote whose name is an alias of its url as invalid name', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  remotes:',
+        `    - url: &u wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '      protocol: playwright',
+        '      name: *u',
+        '',
+      ].join('\n'),
+    )
+
+    expectNothingPlanted(shown)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        remotes: [
+          { name: 'invalid name', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+        ],
+      },
+    })
+  })
+
+  it('shows a remote whose protocol is an alias of its url as invalid protocol', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  remotes:',
+        `    - url: &u wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '      name: grid',
+        '      protocol: *u',
+        '',
+      ].join('\n'),
+    )
+
+    expectNothingPlanted(shown)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        remotes: [
+          { name: 'grid', protocol: 'invalid protocol', url: 'wss://grid.example.com:443' },
+        ],
+      },
+    })
+  })
+
+  it('shows a remote whose name aliases a url anchored outside the block as invalid name, and that anchor as null', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        ...DEVICES,
+        `        avd: &u wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '  remotes:',
+        '    - name: *u',
+        '      protocol: playwright',
+        '      url: wss://grid.example.com/',
+        '',
+      ].join('\n'),
+    )
+
+    expectNothingPlanted(shown)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        devices: { pixel: { platform: 'android', match: { avd: null } } },
+        remotes: [
+          { name: 'invalid name', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+        ],
+      },
+    })
+  })
+
+  it('shows a name anchored inside the block as invalid name, and its alias outside as null', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  remotes:',
+        `    - name: &n wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '      protocol: playwright',
+        '      url: wss://grid.example.com/',
+        ...DEVICES,
+        '        avd: *n',
+        '',
+      ].join('\n'),
+    )
+
+    expectNothingPlanted(shown)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        remotes: [
+          { name: 'invalid name', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+        ],
+        devices: { pixel: { platform: 'android', match: { avd: null } } },
+      },
+    })
+  })
 })

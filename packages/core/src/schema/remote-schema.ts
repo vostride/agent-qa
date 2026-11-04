@@ -1,11 +1,11 @@
 import { z } from 'zod'
-import { remoteEntryIssues } from '@vostride/agent-qa-schema'
+import { REMOTE_PROTOCOLS, remoteEntryIssues } from '@vostride/agent-qa-schema'
 import { DurationString, NameSlugSchema } from './primitives.js'
 
 export const RemoteEntrySchema = z
   .strictObject({
     name: NameSlugSchema,
-    protocol: z.enum(['playwright', 'cdp']),
+    protocol: z.enum(REMOTE_PROTOCOLS),
     url: z.string(),
     query: z
       .record(z.string(), z.union([z.string(), z.record(z.string(), z.unknown())]))

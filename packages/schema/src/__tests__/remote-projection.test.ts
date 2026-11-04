@@ -124,4 +124,171 @@ describe('projectConfigRemotes', () => {
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
+
+  it('shows a name that is not a slug as invalid name and a protocol outside the allowed ones as invalid protocol, wherever they are copied', () => {
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [
+          { name: PLANTED.url, protocol: 'playwright', url: 'wss://lab.example.com/' },
+          { name: 'grid', protocol: PLANTED.headers, url: 'wss://grid.example.com/' },
+          { name: 'grid.2', protocol: 'cdp', url: 'ws://127.0.0.1:9222/json' },
+          { url: 'wss://grid.example.com/' },
+        ],
+        devices: { tablet: { match: { avd: PLANTED.url, serial: PLANTED.headers } } },
+      },
+    })
+
+    expect(shown.registry.remotes).toEqual([
+      { name: 'invalid name', protocol: 'playwright', url: 'wss://lab.example.com:443' },
+      { name: 'grid', protocol: 'invalid protocol', url: 'wss://grid.example.com:443' },
+      { name: 'grid.2', protocol: 'cdp', url: 'ws://127.0.0.1:9222' },
+      { url: 'wss://grid.example.com:443' },
+    ])
+    expect(shown.registry.devices).toEqual({
+      tablet: { match: { avd: 'invalid name', serial: null } },
+    })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('hides what a remotes block that is an ordered map or a set, or an entry that is an ordered map, shares with the rest of the config', () => {
+    const blocks: [unknown, unknown][] = [
+      [new Map<string, unknown>([['grid', PLANTED]]), []],
+      [new Set<unknown>([PLANTED.url, PLANTED.headers]), []],
+      [
+        [
+          new Map<string, unknown>([
+            ['name', 'grid'],
+            ['url', PLANTED.url],
+            ['headers', PLANTED.headers],
+          ]),
+        ],
+        [{ url: 'invalid url' }],
+      ],
+    ]
+
+    for (const [remotes, shownRemotes] of blocks) {
+      const shown = projectConfigRemotes({
+        registry: {
+          remotes,
+          devices: { tablet: { match: { url: PLANTED.url, serial: PLANTED.headers } } },
+        },
+      })
+
+      expect(shown.registry.remotes).toEqual(shownRemotes)
+      expect(shown.registry.devices).toEqual({
+        tablet: { match: { url: 'wss://grid.example.com:443', serial: null } },
+      })
+      for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+    }
+  })
+
+  it("shows a remote's url as its origin where it is copied as a key, or where a url key of a block that is not a list is copied", () => {
+    const asKey = projectConfigRemotes({
+      registry: {
+        remotes: [PLANTED],
+        llms: [{ name: 'judge', providerHeaders: { [PLANTED.url]: 'x' } }],
+      },
+    })
+    const urlKey = projectConfigRemotes({
+      registry: {
+        remotes: { [PLANTED.url]: 'grid' },
+        devices: { tablet: { match: { url: PLANTED.url } } },
+      },
+    })
+    const entryKeys = projectConfigRemotes({
+      registry: {
+        remotes: ['wss://grid.example.com/p4th-t0ken', 'grid-p4th-t0ken'],
+        devices: {
+          'wss://grid.example.com/p4th-t0ken': { platform: 'web' },
+          'grid-p4th-t0ken': { platform: 'android' },
+        },
+      },
+    })
+
+    expect(asKey.registry.llms).toEqual([
+      { name: 'judge', providerHeaders: { 'wss://grid.example.com:443': 'x' } },
+    ])
+    expect(urlKey.registry).toEqual({
+      remotes: [],
+      devices: { tablet: { match: { url: 'wss://grid.example.com:443' } } },
+    })
+    expect(entryKeys.registry.devices).toEqual({
+      'wss://grid.example.com:443': { platform: 'web' },
+      'invalid url': { platform: 'android' },
+    })
+    for (const shown of [asKey, urlKey, entryKeys]) {
+      for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+    }
+  })
+
+  it('never renames a key written in the file, and numbers a copied url key that would take its name', () => {
+    const origin = 'wss://grid.example.com:443'
+    const headersOf = (providerHeaders: Record<string, string>): Record<string, string> => {
+      const shown = projectConfigRemotes({
+        registry: { remotes: [PLANTED], llms: [{ name: 'judge', providerHeaders }] },
+      })
+      for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+      return shown.registry.llms[0]!.providerHeaders
+    }
+
+    expect(
+      headersOf({
+        [origin]: 'written',
+        [PLANTED.url]: 'copied',
+        [`${origin} (2)`]: 'written second',
+      }),
+    ).toEqual({
+      [origin]: 'written',
+      [`${origin} (3)`]: 'copied',
+      [`${origin} (2)`]: 'written second',
+    })
+    const copiedFirst = headersOf({ [PLANTED.url]: 'copied', [origin]: 'written' })
+    expect(copiedFirst).toEqual({ [`${origin} (2)`]: 'copied', [origin]: 'written' })
+    expect(Object.keys(copiedFirst)).toEqual([`${origin} (2)`, origin])
+  })
+
+  it('numbers the second of two copied url keys that share an origin', () => {
+    const lab = {
+      name: 'lab',
+      protocol: 'playwright',
+      url: 'wss://grid.example.com/second-p4th-t0ken?q=QUERY_SECRET',
+    }
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [PLANTED, lab],
+        llms: [{ name: 'judge', providerHeaders: { [PLANTED.url]: 'first', [lab.url]: 'second' } }],
+      },
+    })
+
+    expect(shown.registry.llms).toEqual([
+      {
+        name: 'judge',
+        providerHeaders: {
+          'wss://grid.example.com:443': 'first',
+          'wss://grid.example.com:443 (2)': 'second',
+        },
+      },
+    ])
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('numbers a key copying an invalid name that would take the name of a written invalid name key', () => {
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [
+          { name: 'Grid p4th-t0ken', protocol: 'playwright', url: 'wss://grid.example.com/' },
+        ],
+        devices: {
+          'invalid name': { platform: 'web' },
+          'Grid p4th-t0ken': { platform: 'android' },
+        },
+      },
+    })
+
+    expect(shown.registry.devices).toEqual({
+      'invalid name': { platform: 'web' },
+      'invalid name (2)': { platform: 'android' },
+    })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
 })
