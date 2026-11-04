@@ -315,6 +315,17 @@ describe('the Runs on select', () => {
     expect(runsOn().textContent).toBe('grid (inherited)')
   })
 
+  it('choosing the inherited place while the file already inherits leaves the file as written', () => {
+    targetState.globalUse.browser.remote = 'grid'
+    const written = 'steps: []\nname: Demo\nuse: { browser: { name: firefox } }\n'
+    renderPanel(written)
+
+    choose('grid (inherited)')
+
+    expect(latestYaml).toBe(written)
+    expect(runsOn().textContent).toBe('grid (inherited)')
+  })
+
   it("says in a test's settings that a suite's pick wins, and not in a suite's", () => {
     const hint = "When a suite picks where it runs, the suite's choice wins."
     renderPanel('name: Demo\nsteps: []\n')

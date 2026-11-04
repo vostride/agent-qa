@@ -294,7 +294,7 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
             <div className="space-y-1.5">
               <Label className="text-[11px] text-muted-foreground">{REMOTES_COPY.runsOnLabel}</Label>
               <Select
-                value={remote ?? ''}
+                value={remote ?? INHERIT_PLACE}
                 onValueChange={(val) => handleSet(['use', 'browser', 'remote'], val === INHERIT_PLACE ? undefined : val)}
               >
                 <SelectTrigger className="w-full h-7 text-xs">
