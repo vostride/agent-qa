@@ -193,6 +193,19 @@ describe('credential names inside a JSON query value', () => {
     ])
   })
 
+  it('refuses text written at a credential name whose JSON holds no string', () => {
+    expect(
+      messages({
+        ...grid,
+        headers: { 'X-Api-Key': '[4815162342]' },
+        query: { token: '{"id":4815162342}', caps: '{"secret":[]}' },
+      }),
+    ).toEqual([
+      needsReference('grid', 'headers', 'X-Api-Key'),
+      needsReference('grid', 'query', 'token'),
+    ])
+  })
+
   it('leaves a value that is not well-formed JSON as it is', () => {
     expect(
       messages({

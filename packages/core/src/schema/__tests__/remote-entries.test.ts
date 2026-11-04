@@ -209,9 +209,10 @@ describe('registry.remotes entries', () => {
     })
   })
 
-  it('refuses a credential-named query key with a non-string value under it', () => {
+  it('accepts a number, boolean or null under a credential-named query key and refuses a string beside it', () => {
+    expectAccepted({ ...grid, query: { caps: { secret: { value: 42, on: true, off: null } } } })
     expectRefused(
-      { ...grid, query: { caps: { secret: { value: 42 } } } },
+      { ...grid, query: { caps: { secret: { value: 42, note: 'literal' } } } },
       'Remote grid: query "caps.secret" names a credential, so its value must be a {{secret:NAME}} reference.',
     )
   })
