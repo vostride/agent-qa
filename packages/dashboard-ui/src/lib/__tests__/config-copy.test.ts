@@ -57,6 +57,8 @@ function functionOutputs(): string[] {
     copy.remoteNotListedParts('grid').join(''),
     copy.remoteChoiceParts('grid', 'playwright').join(''),
     copy.remoteChoiceParts('grid', undefined).join(''),
+    copy.remoteUnlistedChoiceParts('gird').join(''),
+    copy.remotePickNotListedParts('gird').join(''),
     copy.remoteCredentialsLine('.env.secrets.local'),
     copy.remoteCredentialsLine(undefined),
     copy.deviceNameTakenError('pixel'),

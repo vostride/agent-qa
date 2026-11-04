@@ -674,6 +674,14 @@ export function remoteNotListedParts<T>(name: T): [T, string] {
   ]
 }
 
+export function remoteUnlistedChoiceParts<T>(name: T): [T, string] {
+  return [name, ' (not listed)']
+}
+
+export function remotePickNotListedParts<T>(name: T): [T, string] {
+  return [name, " is not listed under the config's remotes."]
+}
+
 export function remoteChoiceParts<T>(name: T, protocol: string | undefined): [T, string] {
   return [name, protocol === undefined ? '' : ` (${protocol})`]
 }

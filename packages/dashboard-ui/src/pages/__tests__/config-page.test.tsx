@@ -1268,6 +1268,24 @@ describe('ConfigPage task tabs shell', () => {
     await pressKey(document.activeElement!, 'Escape')
   })
 
+  it('the Remotes default shows a default no listed remote matches as not listed, beside the warning', async () => {
+    vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes('gird') }))
+    await renderAt('/config/targets?section=remotes')
+
+    const trigger = fieldControl(REMOTE_SEGMENTS)!
+    expect(trigger.textContent).toBe('gird (not listed)')
+    expect(section('remotes')!.querySelector('[data-remote-unlisted]')).not.toBeNull()
+    await pressKey(trigger, 'Enter')
+    expect((Array.from(document.body.querySelectorAll('[role="option"]')) as HTMLElement[]).map((option) => option.textContent)).toEqual([
+      REMOTES_COPY.thisMachine,
+      'grid (playwright)',
+      'lab (cdp)',
+      'gird (not listed)',
+    ])
+    await pressKey(document.activeElement!, 'Escape')
+    expect(applyConfigChanges).not.toHaveBeenCalled()
+  })
+
   it('the Remotes default shows this machine when the config picks no remote, with the inherit sentence as muted help', async () => {
     vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes() }))
     await renderAt('/config/targets?section=remotes')

@@ -27,6 +27,7 @@ const targetState = vi.hoisted(() => ({
     { name: 'grid', protocol: 'playwright' },
     { name: 'lab', protocol: 'cdp' },
   ],
+  isLoading: false,
 }))
 
 vi.mock('@/hooks/use-target-details', () => ({
@@ -34,7 +35,7 @@ vi.mock('@/hooks/use-target-details', () => ({
     targets: targetState.targets,
     globalUse: targetState.globalUse,
     remotes: targetState.remotes,
-    isLoading: false,
+    isLoading: targetState.isLoading,
   }),
 }))
 
@@ -97,6 +98,7 @@ function expectSwitchState(id: string, checked: boolean) {
 
 beforeEach(() => {
   targetState.globalUse.browser.remote = undefined
+  targetState.isLoading = false
   container = document.createElement('div')
   document.body.appendChild(container)
   root = createRoot(container)
@@ -334,6 +336,44 @@ describe('the Runs on select', () => {
 
     expect(latestYaml).toBe(written)
     expect(runsOn().textContent).toBe('grid (inherited)')
+  })
+
+  it('shows a pick no listed remote matches as not listed, with a hint, rather than an empty box', () => {
+    for (const pick of ['gird', 'Grid!']) {
+      renderPanel(`name: Demo\nuse:\n  browser:\n    remote: ${JSON.stringify(pick)}\nsteps: []\n`)
+      expect(runsOn().textContent).toBe(`${pick} (not listed)`)
+      const hint = document.querySelector('[data-remote-pick-unlisted]')
+      expect(hint?.textContent).toBe(`${pick} is not listed under the config's remotes.`)
+      expect(hint?.className).toContain('text-destructive')
+      expect(open().map((option) => option.textContent)).toEqual([
+        `${REMOTES_COPY.thisMachine} (inherited)`,
+        REMOTES_COPY.thisMachine,
+        'grid (playwright)',
+        'lab (cdp)',
+        `${pick} (not listed)`,
+      ])
+      act(() => {
+        document.activeElement?.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }))
+      })
+    }
+  })
+
+  it('shows the pick by name with no hint while the config is still loading', () => {
+    targetState.isLoading = true
+    renderPanel('name: Demo\nuse:\n  browser:\n    remote: grid\nsteps: []\n')
+    expect(runsOn().textContent).toBe('grid (playwright)')
+
+    targetState.remotes = []
+    try {
+      renderPanel('name: Demo\nuse:\n  browser:\n    remote: grid\nsteps: []\n')
+      expect(runsOn().textContent).toBe('grid')
+      expect(document.querySelector('[data-remote-pick-unlisted]')).toBeNull()
+    } finally {
+      targetState.remotes = [
+        { name: 'grid', protocol: 'playwright' },
+        { name: 'lab', protocol: 'cdp' },
+      ]
+    }
   })
 
   it("says in a test's settings that a suite's pick wins, and not in a suite's", () => {

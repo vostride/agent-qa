@@ -16,6 +16,7 @@ import {
   remoteChoiceParts,
   remoteCredentialsLine,
   remoteNotListedParts,
+  remoteUnlistedChoiceParts,
 } from "@/lib/config-copy"
 
 interface RemotesSectionProps {
@@ -101,6 +102,17 @@ export function RemoteChoice({ name, protocol }: { name: string; protocol?: stri
   )
 }
 
+// A pick no listed name matches still shows in its select, marked, rather than as an empty box.
+export function RemoteUnlistedChoice({ name }: { name: string }) {
+  const [mark, rest] = remoteUnlistedChoiceParts(<RemoteName name={name} />)
+  return (
+    <>
+      {mark}
+      {rest}
+    </>
+  )
+}
+
 function nameMark(name: string): ReactNode {
   return <RemoteName key="name" name={name} />
 }
@@ -135,6 +147,10 @@ function defaultChoices(config: Record<string, unknown>): ConfigFieldOption[] {
     if (choices.some((choice) => choice.value === name)) continue
     const known = typeof protocol === "string" && protocol !== "" ? protocol : undefined
     choices.push({ value: name, label: <RemoteChoice name={name} protocol={known} /> })
+  }
+  const pick = defaultRemoteOf(config)
+  if (pick !== undefined && !choices.some((choice) => choice.value === pick)) {
+    choices.push({ value: pick, label: <RemoteUnlistedChoice name={pick} /> })
   }
   return choices
 }

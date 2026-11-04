@@ -7,8 +7,8 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { RemoteChoice, RemoteName } from '@/components/config-manager/remotes-section'
-import { REMOTES_COPY } from '@/lib/config-copy'
+import { RemoteChoice, RemoteName, RemoteUnlistedChoice } from '@/components/config-manager/remotes-section'
+import { REMOTES_COPY, remotePickNotListedParts } from '@/lib/config-copy'
 import {
   Select,
   SelectTrigger,
@@ -183,12 +183,13 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
     }
   }
 
-  const { targets: targetDetails, globalUse: g, remotes } = useTargetDetails()
+  const { targets: targetDetails, globalUse: g, remotes, isLoading: detailsLoading } = useTargetDetails()
   const targetPlatform = selectedTarget ? targetDetails[selectedTarget]?.platform : undefined
   const isMobile = targetPlatform === 'android' || targetPlatform === 'ios'
 
   const browser = getIn(['use', 'browser', 'name']) as string | undefined
-  const remote = getIn(['use', 'browser', 'remote']) as string | undefined
+  const rawRemote = getIn(['use', 'browser', 'remote'])
+  const remote = rawRemote === undefined || rawRemote === null ? undefined : String(rawRemote)
   const headless = getIn(['use', 'browser', 'headless']) as boolean | undefined
   const viewportWidth = getIn(['use', 'browser', 'viewport', 'width']) as number | undefined
   const viewportHeight = getIn(['use', 'browser', 'viewport', 'height']) as number | undefined
@@ -226,6 +227,10 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
         <RemoteName name={gRemote} /> (inherited)
       </>
     )
+  const unlistedRemote =
+    remote !== undefined && remote !== '' && remote !== 'local' && !remotes.some(({ name }) => name === remote)
+      ? remote
+      : undefined
   const gLogConsole = g?.logCapture?.console
   const gLogNetwork = g?.logCapture?.network
   const gParallel = g?.parallel
@@ -314,8 +319,18 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                   {remotes.map(({ name, protocol }) => (
                     <SelectItem key={name} value={name}><RemoteChoice name={name} protocol={protocol} /></SelectItem>
                   ))}
+                  {unlistedRemote !== undefined && (
+                    <SelectItem value={unlistedRemote}>
+                      {detailsLoading ? <RemoteName name={unlistedRemote} /> : <RemoteUnlistedChoice name={unlistedRemote} />}
+                    </SelectItem>
+                  )}
                 </SelectContent>
               </Select>
+              {unlistedRemote !== undefined && !detailsLoading && (
+                <p data-remote-pick-unlisted className="text-[11px] text-destructive">
+                  {remotePickNotListedParts(<RemoteName key="name" name={unlistedRemote} />)}
+                </p>
+              )}
               {showMeta && (
                 <p className="text-[11px] text-muted-foreground">{REMOTES_COPY.suiteWinsHint}</p>
               )}
