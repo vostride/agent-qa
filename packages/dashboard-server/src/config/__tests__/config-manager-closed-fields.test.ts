@@ -525,6 +525,59 @@ describe("the config's closed fields", () => {
     }
   })
 
+  it('the served config shows a key yaml folds or escapes from a remote url whole as its origin when a shorter url of the block starts that url', async () => {
+    const pathPart = 'routepart-3c58'
+    const queryValue = 'queryvalue-e6b2'
+    const prefix = `wss://grid.example.com/${pathPart}`
+    const longUrl = `${prefix}/${pathPart}/${pathPart}/${pathPart}?team=${queryValue}&lane=${queryValue}`
+    const lab = (url: string) => [
+      '    - name: lab',
+      '      protocol: playwright',
+      `      url: ${url}`,
+    ]
+    const cases = [
+      { key: longUrl, extra: lab(prefix) },
+      { key: `${prefix}\\t${pathPart}?team=${queryValue}`, extra: lab(prefix) },
+      { key: longUrl, extra: ['      headers:', `        X-Lane: ${prefix}`] },
+      { key: longUrl, extra: lab(`${prefix}/${pathPart}`) },
+    ]
+    for (const { key, extra } of cases) {
+      const { manager } = await configFile(
+        [
+          ...WORKSPACE,
+          'registry:',
+          '  devices:',
+          '    pixel:',
+          '      platform: android',
+          '      match:',
+          '        avd:',
+          `          ? [ &u "${key}" ]`,
+          '          : x',
+          '  remotes:',
+          '    - name: grid',
+          '      protocol: playwright',
+          '      url: *u',
+          ...extra,
+          ...USE.slice(0, -2),
+          '    remote: grid',
+          ...USE.slice(-2),
+          '',
+        ].join('\n'),
+      )
+      const read = await manager.readMasked()
+      if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+      const registry = read.config.registry as { devices: { pixel: { match: unknown } } }
+
+      expect(read.fileIssues).toEqual([])
+      expect(registry.devices.pixel.match).toEqual({ avd: { 'wss://grid.example.com:443': 'x' } })
+      const shownText = read.lines.map((line) => line.text).join('\n')
+      for (const hidden of [pathPart, queryValue]) {
+        expect(JSON.stringify(read.config)).not.toContain(hidden)
+        expect(shownText).not.toContain(hidden)
+      }
+    }
+  })
+
   it('the served config and its file lines hide a url nested under another key of a list entry or of a pairs block', async () => {
     const pathPart = 'routepart-3c58'
     const queryValue = 'queryvalue-e6b2'

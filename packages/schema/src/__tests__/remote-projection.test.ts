@@ -332,6 +332,29 @@ describe('projectConfigRemotes', () => {
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
 
+  it('shows a key yaml folded or escaped from a url whole as its origin when a shorter url of the block starts that url', () => {
+    const tabbed = 'wss://grid.example.com/p4th-t0ken\tsession?q=QUERY_SECRET#FRAGMENT'
+    const folded =
+      '[\n  &u "wss://grid.example.com/p4th-t0ken/sess\\\n    ion?q=QUERY_SECRET#FRAGMENT"\n]'
+    const escaped = '[ &u "wss://grid.example.com/p4th-t0ken\\tsession?q=QUERY_SECRET#FRAGMENT" ]'
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [
+          PLANTED,
+          { name: 'lab', protocol: 'playwright', url: tabbed },
+          { name: 'edge', protocol: 'playwright', url: 'wss://grid.example.com/p4th-t0ken' },
+        ],
+        devices: { pixel: { match: { avd: { [folded]: 'folded', [escaped]: 'escaped' } } } },
+      },
+    })
+
+    expect(shown.registry.devices.pixel.match.avd).toEqual({
+      'wss://grid.example.com:443': 'folded',
+      'wss://grid.example.com:443 (2)': 'escaped',
+    })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
   it('shows a url the remotes block holds only inside a key yaml wrote from a collection by its origin where it is copied', () => {
     const shown = projectConfigRemotes({
       registry: {

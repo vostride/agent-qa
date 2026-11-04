@@ -983,4 +983,70 @@ describe('projectRemotesInConfigText', () => {
       expectNoKeyedUrl(projectRemotesInConfigText(raw))
     }
   })
+
+  describe('a key yaml folds or escapes from a url of the block that a shorter url of the block starts', () => {
+    const outside = (key: string, extra: string[]) =>
+      [
+        ...WORKSPACE,
+        'registry:',
+        ...DEVICES,
+        '        avd:',
+        `          ? [ &u "${key}" ]`,
+        '          : x',
+        ...REMOTE_ALIAS,
+        ...extra,
+        ...USE,
+        '',
+      ].join('\n')
+    const lab = (url: string) => [
+      '    - name: lab',
+      '      protocol: playwright',
+      `      url: ${url}`,
+    ]
+    const prefix = `wss://grid.example.com/${ROUTE_PART}`
+    const origin = 'wss://grid.example.com:443'
+    type Shown = {
+      registry: { remotes: unknown; devices: { pixel: { match: { avd: unknown } } } }
+    }
+    const projected = (raw: string): Shown => {
+      const loaded = parseYaml(raw, { logLevel: 'error' }) as Shown
+      expect(AgentQaConfigSchema.safeParse(loaded).success).toBe(true)
+      return projectConfigRemotes(loaded)
+    }
+
+    it('shows that key whole as its origin', () => {
+      const cases = [
+        { raw: outside(LONG_URL, lab(prefix)), remotes: 2 },
+        { raw: outside(`${prefix}\\t${ROUTE_PART}?team=${QUERY_VALUE}`, lab(prefix)), remotes: 2 },
+        { raw: outside(LONG_URL, ['      headers:', `        X-Lane: ${prefix}`]), remotes: 1 },
+        { raw: outside(LONG_URL, lab(`${prefix}/${ROUTE_PART}`)), remotes: 2 },
+      ]
+      for (const { raw, remotes } of cases) {
+        const shown = projected(raw)
+
+        expect(shown.registry.devices.pixel.match.avd).toEqual({ [origin]: 'x' })
+        expect(shown.registry.remotes).toEqual(
+          [
+            { name: 'grid', protocol: 'playwright', url: origin },
+            { name: 'lab', protocol: 'playwright', url: origin },
+          ].slice(0, remotes),
+        )
+        expectNoKeyedUrl(JSON.stringify(shown))
+        expectNoKeyedUrl(projectRemotesInConfigText(raw))
+      }
+    })
+
+    it('projects a key whose url no other url of the block starts as without that other url', () => {
+      const alone = projected(outside(LONG_URL, []))
+      const shown = projected(outside(LONG_URL, lab('wss://grid.example.com/other-path')))
+
+      expect(shown.registry.devices).toEqual(alone.registry.devices)
+      expect(shown.registry.devices.pixel.match.avd).toEqual({ [origin]: 'x' })
+      expect(shown.registry.remotes).toEqual([
+        { name: 'grid', protocol: 'playwright', url: origin },
+        { name: 'lab', protocol: 'playwright', url: origin },
+      ])
+      expectNoKeyedUrl(JSON.stringify(shown))
+    })
+  })
 })
