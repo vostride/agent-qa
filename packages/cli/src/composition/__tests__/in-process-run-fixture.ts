@@ -92,6 +92,11 @@ export interface InProcessFixtureInput {
    * `registry.devices.pixel.match`, and the entry aliases them.
    */
   readonly remoteAnchoredInDevices?: boolean
+  /**
+   * With `remote`, the `remotes` key is an alias of a scalar anchored under
+   * `registry.devices.pixel.match`.
+   */
+  readonly remotesKeyAliased?: boolean
   /** The suite's own `use.browser.remote`. */
   readonly suitePick?: string
   /** The direct test's own `use.browser.remote`. */
@@ -171,21 +176,27 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       '  envFile: .env',
       '  secretsFile: .env.secrets.local',
       'registry:',
-      ...(input.remote !== undefined && input.remoteAnchoredInDevices === true
+      ...(input.remote !== undefined &&
+      (input.remoteAnchoredInDevices === true || input.remotesKeyAliased === true)
         ? [
             '  devices:',
             '    pixel:',
             '      platform: android',
             '      match:',
-            `        avd: &grid ${JSON.stringify(input.remote.url)}`,
-            ...(input.remote.headers === undefined
-              ? []
-              : [
-                  '        serial: &hdrs',
-                  ...Object.entries(input.remote.headers).map(
-                    ([name, value]) => `          ${name}: ${JSON.stringify(value)}`,
-                  ),
-                ]),
+            ...(input.remoteAnchoredInDevices === true
+              ? [
+                  `        avd: &grid ${JSON.stringify(input.remote.url)}`,
+                  ...(input.remote.headers === undefined
+                    ? []
+                    : [
+                        '        serial: &hdrs',
+                        ...Object.entries(input.remote.headers).map(
+                          ([name, value]) => `          ${name}: ${JSON.stringify(value)}`,
+                        ),
+                      ]),
+                ]
+              : []),
+            ...(input.remotesKeyAliased === true ? ['        appPackage: &key remotes'] : []),
           ]
         : []),
       '  targets:',
@@ -221,7 +232,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       ...(input.remote === undefined
         ? []
         : [
-            '  remotes:',
+            input.remotesKeyAliased === true ? '  *key :' : '  remotes:',
             `    - name: ${input.remote.name}`,
             `      protocol: ${input.remote.protocol}`,
             input.remoteAnchoredInDevices === true

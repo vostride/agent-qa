@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
+import { AgentQaConfigSchema } from '../../schema/config-schema.js'
 import { projectRemotesInConfigText } from '../config-projection.js'
 
 const PATH_TOKEN = 'pathtoken-7f3a'
@@ -25,6 +26,41 @@ const CONFIG = [
   '    remote: grid',
   '',
 ].join('\n')
+
+const UNSHOWABLE = '# This config cannot be shown without its remote endpoints.\n'
+
+const WORKSPACE = [
+  'workspace:',
+  '  testMatch:',
+  "    - 'tests/**/*.yaml'",
+  '  suiteMatch:',
+  "    - 'suites/**/*.suite.yaml'",
+  '  hooksFile: hooks.yaml',
+  '  envFile: .env',
+  '  secretsFile: .env.secrets.local',
+]
+
+const USE = ['use:', '  browser:', '    name: chromium', '    headless: true', '    remote: grid']
+
+function plantedEntry(indent: number): string[] {
+  return [
+    '- name: grid',
+    '  protocol: playwright',
+    `  url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+    `  headers: { X-Team: ${HEADER_VALUE} }`,
+  ].map((line) => ' '.repeat(indent) + line)
+}
+
+function loadedUrl(raw: string): unknown {
+  const loaded = parseYaml(raw) as { registry?: { remotes?: Array<{ url?: unknown }> } }
+  return loaded.registry?.remotes?.[0]?.url
+}
+
+function expectNothingPlanted(shown: string): void {
+  for (const hidden of [PATH_TOKEN, QUERY_SECRET, HEADER_VALUE, 'X-Team']) {
+    expect(shown).not.toContain(hidden)
+  }
+}
 
 describe('projectRemotesInConfigText', () => {
   it('keeps every comment and key outside registry.remotes and shows a remote by name, protocol and origin only', () => {
@@ -284,11 +320,128 @@ describe('projectRemotesInConfigText', () => {
     expect(parseYaml(shown)).toEqual({ registry: { remotes: [] } })
   })
 
-  it('returns a config with no remote list, or text that does not parse, unchanged', () => {
+  it('returns a config with no remote list, or text with no remotes key that does not parse, unchanged', () => {
     const plain = '# notes\nuse:\n  browser:\n    name:   chromium\n'
-    const broken = 'registry:\n  remotes: [\n'
+    const broken = 'use:\n  browser:\n    name: chromium\n  timeout: [\n'
 
     expect(projectRemotesInConfigText(plain)).toBe(plain)
     expect(projectRemotesInConfigText(broken)).toBe(broken)
+  })
+
+  it('shows a config whose remotes key is an alias as one unshowable line', () => {
+    const raw = [
+      ...WORKSPACE,
+      'registry:',
+      '  devices:',
+      '    pixel:',
+      '      platform: android',
+      '      match:',
+      '        appPackage: &key remotes',
+      '  *key :',
+      ...plantedEntry(4),
+      ...USE,
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(AgentQaConfigSchema.safeParse(parseYaml(raw)).success).toBe(true)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a config whose registry merges in its remotes through a merge tag as one unshowable line', () => {
+    const raw = [
+      ...WORKSPACE,
+      'registry:',
+      '  devices:',
+      '    pixel:',
+      '      platform: android',
+      '      match:',
+      '        avd: &r',
+      '          remotes:',
+      ...plantedEntry(12),
+      '  !!merge <<: *r',
+      ...USE,
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(AgentQaConfigSchema.safeParse(parseYaml(raw)).success).toBe(true)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a YAML 1.1 config whose registry merges in its remotes as one unshowable line', () => {
+    const raw = [
+      '%YAML 1.1',
+      '---',
+      ...WORKSPACE,
+      'registry:',
+      '  devices:',
+      '    pixel:',
+      '      platform: android',
+      '      match:',
+      '        avd: &r',
+      '          remotes:',
+      ...plantedEntry(12),
+      '  <<: *r',
+      ...USE,
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(AgentQaConfigSchema.safeParse(parseYaml(raw)).success).toBe(true)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows a YAML 1.1 config whose root merges in its registry as one unshowable line', () => {
+    const raw = [
+      '%YAML 1.1',
+      '---',
+      ...WORKSPACE,
+      ...USE,
+      '  extra: &r',
+      '    registry:',
+      '      remotes:',
+      ...plantedEntry(8),
+      '<<: *r',
+      '',
+    ].join('\n')
+
+    expect(loadedUrl(raw)).toContain(PATH_TOKEN)
+    expect(projectRemotesInConfigText(raw)).toBe(UNSHOWABLE)
+  })
+
+  it('shows text with two remotes keys in one map as one unshowable line', () => {
+    const raw = [
+      'registry:',
+      '  remotes:',
+      ...plantedEntry(4),
+      '  remotes:',
+      '    - name: other',
+      '      protocol: playwright',
+      '      url: wss://other.example.com/',
+      '',
+    ].join('\n')
+
+    expect(() => parseYaml(raw)).toThrow()
+    const shown = projectRemotesInConfigText(raw)
+    expect(shown).toBe(UNSHOWABLE)
+    expectNothingPlanted(shown)
+  })
+
+  it('shows text that does not parse and holds a remotes key as one unshowable line', () => {
+    const raw = [
+      'registry:',
+      '  remotes:',
+      '    - name: grid',
+      '      protocol: playwright',
+      `      url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+      '      headers: [',
+      '',
+    ].join('\n')
+
+    expect(() => parseYaml(raw)).toThrow()
+    const shown = projectRemotesInConfigText(raw)
+    expect(shown).toBe(UNSHOWABLE)
+    expectNothingPlanted(shown)
   })
 })

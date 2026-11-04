@@ -1,8 +1,10 @@
-import { isAlias, isMap, isNode, isScalar, isSeq, parseDocument, visit } from 'yaml'
-import type { Document, Node } from 'yaml'
+import { isAlias, isMap, isNode, isScalar, isSeq, parseDocument, Scalar, visit } from 'yaml'
+import type { Document, Node, YAMLMap } from 'yaml'
 import { projectConfigRemotes } from '@vostride/agent-qa-schema'
 
 const UNSHOWABLE = '# This config cannot be shown without its remote endpoints.\n'
+const NAMES_REMOTES = /(?<![\w-])remotes(?![\w-])/
+const MARK_KEY = 'agent-qa-mark'
 
 function resolved(doc: Document, node: unknown): unknown {
   return isAlias(node) ? node.resolve(doc) : node
@@ -26,6 +28,57 @@ function entryUrls(doc: Document, remotes: Node): unknown[] {
   })
 }
 
+interface RemotesBlock {
+  readonly root: YAMLMap
+  readonly registry: YAMLMap
+  readonly remotes: Node
+}
+
+function remotesBlock(doc: Document): RemotesBlock | undefined {
+  const root = resolved(doc, doc.contents)
+  if (!isMap(root)) return undefined
+  const registry = resolved(doc, root.get('registry', true))
+  if (!isMap(registry)) return undefined
+  const remotes = resolved(doc, registry.get('remotes', true))
+  if (!isNode(remotes) || (isScalar(remotes) && remotes.value === null)) return undefined
+  return { root, registry, remotes }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+}
+
+// What the config loader reads: yaml's parse is parseDocument followed by toJS.
+function loadedRemotes(doc: Document): unknown {
+  const loaded: unknown = doc.toJS()
+  if (!isRecord(loaded) || !isRecord(loaded.registry)) return undefined
+  return loaded.registry.remotes
+}
+
+// The marker goes inside the block, not in its place, so every anchor in the block still resolves.
+function loadsFromBlock(doc: Document): boolean {
+  const copy = doc.clone()
+  const found = remotesBlock(copy)
+  if (found === undefined) return false
+  const mark = {}
+  const block = found.remotes
+  if (isSeq(block)) {
+    block.add(new Scalar(mark))
+    const loaded = loadedRemotes(copy)
+    return Array.isArray(loaded) && loaded[loaded.length - 1] === mark
+  }
+  if (isMap(block)) {
+    block.set(MARK_KEY, new Scalar(mark))
+    const loaded = loadedRemotes(copy)
+    return isRecord(loaded) && loaded[MARK_KEY] === mark
+  }
+  if (!isScalar(block)) return false
+  const marker = new Scalar(mark)
+  marker.anchor = block.anchor
+  found.registry.set('remotes', marker)
+  return loadedRemotes(copy) === mark
+}
+
 function nodesUnder(node: Node): unknown[] {
   const nodes: unknown[] = []
   visit(node, (_key, child) => {
@@ -36,16 +89,15 @@ function nodesUnder(node: Node): unknown[] {
 
 // The remotes block is replaced whole: comments inside it can sit beside endpoints and credentials.
 // Every anchor the block holds or reaches through aliases is replaced, and so is every alias of it.
+// Text whose loaded remotes are not that block, or that does not parse and names remotes: one line.
 export function projectRemotesInConfigText(raw: string): string {
   const doc = parseDocument(raw)
-  if (doc.errors.length > 0) return raw
+  if (doc.errors.length > 0) return NAMES_REMOTES.test(raw) ? UNSHOWABLE : raw
   try {
-    const root = resolved(doc, doc.contents)
-    if (!isMap(root)) return raw
-    const registry = resolved(doc, root.get('registry', true))
-    if (!isMap(registry)) return raw
-    const remotes = resolved(doc, registry.get('remotes', true))
-    if (!isNode(remotes) || (isScalar(remotes) && remotes.value === null)) return raw
+    const found = remotesBlock(doc)
+    if (found === undefined) return loadedRemotes(doc) == null ? raw : UNSHOWABLE
+    if (!loadsFromBlock(doc)) return UNSHOWABLE
+    const { root, registry, remotes } = found
 
     const hidden = new Set<unknown>(nodesUnder(remotes))
     const reached: Node[] = []

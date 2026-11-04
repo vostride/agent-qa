@@ -336,4 +336,29 @@ describe("a remote run's evidence", () => {
       }
     })
   }, RUN_BUDGET_MS)
+
+  it('the stored config is one unshowable line when its remotes key is an alias', async () => {
+    await onScene({}, async (scene) => {
+      const endpoint = scene.endpoint!
+      const pathToken = new URL(endpoint.wsEndpoint).pathname.replace(/^\//, '')
+      expect(pathToken.length).toBeGreaterThan(8)
+      const project = remoteProject(scene, { remotesKeyAliased: true }, {
+        url: `${endpoint.wsEndpoint}?label=${PLANTED_QUERY_VALUE}`,
+        headers: { 'x-grid-label': PLANTED_HEADER_VALUE },
+      })
+      const log = await runCli(project, [project.testPattern])
+      const stored = onlyRun(project, log)
+      expect(endpoint.sessions(), log).toBe(1)
+      const config = stored.payload.config as Record<string, any>
+      const remotes = [{ name: 'grid', protocol: 'playwright', url: originOf(endpoint) }]
+      expect(config.rawConfigContent, log).toBe(
+        '# This config cannot be shown without its remote endpoints.\n',
+      )
+      expect(config.parsedConfig?.registry?.remotes, log).toEqual(remotes)
+      expect(config.effectiveConfig?.registry?.remotes, log).toEqual(remotes)
+      for (const planted of [pathToken, PLANTED_QUERY_VALUE, PLANTED_HEADER_VALUE]) {
+        expect(stored.raw.includes(planted), `${planted} is stored\n${log}`).toBe(false)
+      }
+    })
+  }, RUN_BUDGET_MS)
 })
