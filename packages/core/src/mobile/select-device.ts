@@ -112,6 +112,68 @@ export function selectTestDevice(input: SelectTestDeviceInput): SelectDevicePlac
   }
 }
 
+export interface SuiteMemberDevice {
+  // The member file, relative to the config directory with forward slashes.
+  file: string
+  // The member's `use.device`.
+  pick?: string
+  target: DeviceTarget
+}
+
+export interface SelectSuiteDeviceInput {
+  devices: DeviceProfiles
+  remotes: readonly RemoteEntry[]
+  suiteName: string
+  suiteFile: string
+  flag?: string
+  // The suite's `use.device`.
+  suite?: string
+  members: readonly SuiteMemberDevice[]
+}
+
+// A suite runs on one device: `--device`, else the suite's pick, else the one its members agree on.
+export function selectSuiteDevice(input: SelectSuiteDeviceInput): SelectDevicePlaceResult {
+  const { devices, remotes, suiteName } = input
+  const targets = input.members.map((member) => member.target)
+  if (input.flag !== undefined) {
+    return placeDevice({ devices, remotes, targets, device: input.flag, from: FLAG })
+  }
+  if (input.suite !== undefined) {
+    return placeDevice({ devices, remotes, targets, device: input.suite, from: input.suiteFile })
+  }
+  const picks: { file: string; device: string; place: DevicePlace }[] = []
+  for (const member of input.members) {
+    const device = member.pick ?? member.target.device
+    if (device === undefined) {
+      return {
+        refusal:
+          `Suite ${suiteName} runs its tests on one device, but ${member.file} picks none. ` +
+          'Set use.device in the suite, or device on its target.',
+      }
+    }
+    const from = member.pick === undefined ? targetSource(member.target) : member.file
+    const selected = placeDevice({ devices, remotes, targets: [member.target], device, from })
+    if ('refusal' in selected) return selected
+    picks.push({ file: member.file, device, place: selected.place })
+  }
+  const first = picks[0]
+  if (first === undefined) {
+    return {
+      refusal: `Suite ${suiteName} has no tests to pick a device. Set use.device in the suite.`,
+    }
+  }
+  if (picks.some(({ device }) => device !== first.device)) {
+    const named = picks.map(({ file, device }) => `${file} picks ${device}`)
+    const listed = `${named.slice(0, -1).join(', ')} and ${named[named.length - 1]}`
+    return {
+      refusal:
+        `Suite ${suiteName} runs its tests on one device, but ${listed}. ` +
+        'Set use.device in the suite or make the tests agree.',
+    }
+  }
+  return { place: first.place }
+}
+
 function placeDevice(input: {
   devices: DeviceProfiles
   remotes: readonly RemoteEntry[]

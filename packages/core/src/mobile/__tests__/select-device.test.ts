@@ -4,9 +4,11 @@ import { runnerForPlaces } from '../../remote/select-place.js'
 import { RemoteEntrySchema } from '../../schema/remote-schema.js'
 import {
   selectDevicePlace,
+  selectSuiteDevice,
   selectTestDevice,
   type SelectDevicePlaceInput,
   type SelectDevicePlaceResult,
+  type SelectSuiteDeviceInput,
   type SelectTestDeviceInput,
 } from '../select-device.js'
 
@@ -178,6 +180,95 @@ describe('the device a test runs on', () => {
     )
     expect(refusal(selectTest({ target: { ...android, device: 'pixle' } }))).toBe(
       'Unknown device "pixle" in registry.targets.shop-android. registry.devices lists: pixel, pixel-tablet, galaxy-farm, iphone.',
+    )
+  })
+})
+
+const bare = { name: 'shop-android', platform: 'android' }
+
+function selectSuite(input: Partial<SelectSuiteDeviceInput>) {
+  return selectSuiteDevice({
+    devices: profiles,
+    remotes,
+    suiteName: 'nightly',
+    suiteFile: 'suites/nightly.suite.yaml',
+    members: [],
+    ...input,
+  })
+}
+
+describe('the one device a suite runs on', () => {
+  it("is the suite's pick, though its tests pick other devices", () => {
+    expect(
+      selectSuite({
+        suite: 'pixel-tablet',
+        members: [
+          { file: 'tests/login.test.yaml', pick: 'pixel', target: android },
+          { file: 'tests/pay.test.yaml', pick: 'galaxy-farm', target: android },
+        ],
+      }),
+    ).toEqual({ place: { kind: 'local', device: 'pixel-tablet' } })
+  })
+
+  it("is the device its tests' targets agree on when no test picks one", () => {
+    expect(
+      selectSuite({
+        members: [
+          { file: 'tests/login.test.yaml', target: android },
+          { file: 'tests/pay.test.yaml', pick: 'pixel', target: bare },
+        ],
+      }),
+    ).toEqual({ place: { kind: 'local', device: 'pixel' } })
+  })
+
+  it('refuses tests that pick different devices when the suite picks none', () => {
+    expect(
+      refusal(
+        selectSuite({
+          members: [
+            { file: 'tests/login.test.yaml', target: android },
+            { file: 'tests/search.test.yaml', pick: 'pixel', target: bare },
+            { file: 'tests/pay.test.yaml', pick: 'galaxy-farm', target: android },
+          ],
+        }),
+      ),
+    ).toBe(
+      'Suite nightly runs its tests on one device, but tests/login.test.yaml picks pixel, tests/search.test.yaml picks pixel and tests/pay.test.yaml picks galaxy-farm. Set use.device in the suite or make the tests agree.',
+    )
+  })
+
+  it('refuses a test that picks no device when the suite picks none', () => {
+    expect(
+      refusal(
+        selectSuite({
+          members: [
+            { file: 'tests/login.test.yaml', target: android },
+            { file: 'tests/pay.test.yaml', target: bare },
+          ],
+        }),
+      ),
+    ).toBe(
+      'Suite nightly runs its tests on one device, but tests/pay.test.yaml picks none. Set use.device in the suite, or device on its target.',
+    )
+  })
+
+  it('is the --device pick here, and refuses --device naming a device on a remote', () => {
+    const members = [{ file: 'tests/pay.test.yaml', pick: 'galaxy-farm', target: android }]
+    expect(selectSuite({ flag: 'pixel', suite: 'galaxy-farm', members })).toEqual({
+      place: { kind: 'local', device: 'pixel' },
+    })
+    expect(refusal(selectSuite({ flag: 'galaxy-farm', members }))).toBe(
+      'Device galaxy-farm runs on remote farm; --device picks a device on this machine. Set use.device: galaxy-farm in a suite or test to run there.',
+    )
+  })
+
+  it("refuses a suite pick that is unknown or of another platform than a test's target", () => {
+    const members = [{ file: 'tests/login.test.yaml', target: android }]
+    expect(refusal(selectSuite({ suite: 'pixle', members }))).toBe(
+      'Unknown device "pixle" in suites/nightly.suite.yaml. registry.devices lists: pixel, pixel-tablet, galaxy-farm, iphone.',
+    )
+    expect(refusal(selectSuite({ suite: 'iphone', members }))).toBe(
+      'Device "iphone" is ios, but target "shop-android" is android.',
     )
   })
 })
