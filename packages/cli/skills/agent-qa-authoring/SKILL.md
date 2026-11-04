@@ -72,6 +72,57 @@ metadata:
   connection check keeps the key or header value it is testing out of the provider's error message.
   Use temporary, limited test credentials.
 
+## Remote browsers
+
+A web test can run in a browser agent-qa does not launch: a Playwright server or a CDP (Chrome
+DevTools Protocol) endpoint, listed by name under `registry.remotes` in `agent-qa.config.yaml`.
+
+```yaml
+registry:
+  remotes:
+    - name: grid
+      protocol: playwright
+      url: wss://grid.example.com/playwright
+      query:
+        token: "{{secret:GRID_TOKEN}}"
+```
+
+- `name`: a lowercase slug, unique in the list. `local` is reserved for this machine.
+- `protocol`: `playwright` for a Playwright server (`ws://` or `wss://`), or `cdp` for a CDP
+  endpoint (`ws://`, `wss://`, `http://` or `https://`; Chromium only).
+- `url`: the endpoint, with its scheme, host and port written out. `{{secret:<name>}}` and
+  `{{playwright:version}}` may appear only in its path and query, never as `user:password@`.
+- `query` (optional): parameters added to the url when agent-qa connects. A value is a string, or
+  a nested map sent as JSON.
+- `headers` (optional): headers sent when agent-qa connects.
+- `basicAuth` (optional): `user` and `password`, the password a `{{secret:<name>}}` reference. Use
+  it or an `Authorization` header, not both.
+- `connectTimeout` (optional): a duration such as `45s` that bounds the connect only; `5m` by
+  default.
+- `context` (optional, `cdp` only): `new`, the default, opens agent-qa's own context; `reuse` uses
+  the browser's first context.
+
+Credentials:
+
+- Write every credential as a `{{secret:<name>}}` reference to a name in the file
+  `workspace.secretsFile` names, quoted in YAML. The strict parse refuses a literal value under a
+  header or query name that carries a credential word such as `token`, `key`, `secret`,
+  `password`, `cookie`, `authorization` or `jwt`: in nested maps, inside a JSON value and in the
+  url's own query.
+- A credential goes over `ws://` or `http://` only to this machine; use `wss://` or `https://`.
+- A remote's secrets serve its connection only. Steps, expected values, target urls and hooks
+  cannot use them.
+
+Picking a remote:
+
+- `use.browser.remote: <name>` picks a remote, and `local` means this machine. Set it under
+  `use.browser` in `agent-qa.config.yaml` (the project default), in a suite or in a test.
+- The suite's pick wins, then the test's, then the config's; with none, the test runs here. A suite
+  runs in one place, so when it names none, its members must agree.
+- No run flag or environment variable moves a test; the files decide.
+- `agent_qa_change_config` can set `use.browser.remote` but never changes `registry.remotes` or
+  `plugins`; a person edits those in the file.
+
 ## Do Not
 
 - Do not invent config keys.
