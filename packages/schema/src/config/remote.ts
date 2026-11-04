@@ -450,12 +450,11 @@ function withoutUrls(text: string, hidden: Hidden): string {
   let shown = text
   for (const url of hidden.urls) shown = shown.split(url).join(displayOrigin(url))
   const forms = skeletons(shown)
-  const written = skeletons(text)
   // A shorter url replaced first can remove the letters a longer, folded url needs.
   const folded =
     hidden.urls.find((url) => forms.some((form) => form.includes(skeleton(url)))) ??
-    hidden.urls.find(
-      (url) => !text.includes(url) && written.some((form) => form.includes(skeleton(url))),
+    hidden.urls.find((url) =>
+      skeletons(text.split(url).join(' ')).some((form) => form.includes(skeleton(url))),
     )
   return folded === undefined ? shown : displayOrigin(folded)
 }

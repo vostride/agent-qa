@@ -1049,4 +1049,65 @@ describe('projectRemotesInConfigText', () => {
       expectNoKeyedUrl(JSON.stringify(shown))
     })
   })
+
+  describe('a key that holds a url of the block both as written and as yaml folds it, when a shorter url of the block starts that url', () => {
+    const prefix = `wss://grid.example.com/${ROUTE_PART}`
+    const midUrl = `${prefix}/${ROUTE_PART}?team=${QUERY_VALUE}`
+    const origin = 'wss://grid.example.com:443'
+    const remote = (name: string, url: string, extra: string[] = []) => [
+      `    - name: ${name}`,
+      '      protocol: playwright',
+      `      url: ${url}`,
+      ...extra,
+    ]
+    const mirror = ['      headers:', '        X-Mirror: *b']
+    const config = (avd: string[], remotes: string[]) =>
+      [...WORKSPACE, 'registry:', ...DEVICES, ...avd, '  remotes:', ...remotes, ...USE, ''].join(
+        '\n',
+      )
+    const keyed = (key: string) => ['        avd:', `          ? ${key}`, '          : x']
+    type Shown = { registry: { devices: { pixel: { match: { avd: unknown } } } } }
+    const projected = (raw: string): Shown => {
+      const loaded = parseYaml(raw, { logLevel: 'error' }) as Shown
+      expect(AgentQaConfigSchema.safeParse(loaded).success).toBe(true)
+      return projectConfigRemotes(loaded)
+    }
+
+    it('shows that key whole as its origin', () => {
+      const lab = remote('lab', prefix)
+      const configs = [
+        config(keyed(`[ &a "${LONG_URL}", &b ${LONG_URL} ]`), [
+          ...remote('grid', '*a', mirror),
+          ...lab,
+        ]),
+        config(keyed(`[ &a "${midUrl}", [ [ [ [ &b "${midUrl}" ] ] ] ] ]`), [
+          ...remote('grid', '*a', mirror),
+          ...lab,
+        ]),
+        config(keyed(`[ &a ${LONG_URL}, &b "${LONG_URL}" ]`), [
+          ...remote('grid', '*a'),
+          ...remote('mirror', '*b'),
+          ...lab,
+        ]),
+        config(keyed(`[ "${LONG_URL}", ${LONG_URL} ]`), [...remote('grid', LONG_URL), ...lab]),
+      ]
+      for (const raw of configs) {
+        const shown = projected(raw)
+
+        expect(shown.registry.devices.pixel.match.avd).toEqual({ [origin]: 'x' })
+        expectNoKeyedUrl(JSON.stringify(shown))
+      }
+    })
+
+    it('keeps a value that holds the url once, as written, with that url shown by its origin', () => {
+      const shown = projected(
+        config(
+          [`        avd: connects to ${LONG_URL} for the pixel`],
+          [...remote('grid', LONG_URL), ...remote('lab', prefix)],
+        ),
+      )
+
+      expect(shown.registry.devices.pixel.match.avd).toBe(`connects to ${origin} for the pixel`)
+    })
+  })
 })

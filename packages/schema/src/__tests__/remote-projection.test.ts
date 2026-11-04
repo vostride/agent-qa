@@ -355,6 +355,22 @@ describe('projectConfigRemotes', () => {
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
 
+  it('shows a key that holds a url both as written and as yaml folds it whole as its origin when a shorter url of the block starts that url', () => {
+    const both = `[\n  &a "wss://grid.example.com/p4th-t0ken/sess\\\n    ion?q=QUERY_SECRET#FRAGMENT",\n  &b ${PLANTED.url}\n]`
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [
+          PLANTED,
+          { name: 'edge', protocol: 'playwright', url: 'wss://grid.example.com/p4th-t0ken' },
+        ],
+        devices: { pixel: { match: { avd: { [both]: 'x' } } } },
+      },
+    })
+
+    expect(shown.registry.devices.pixel.match.avd).toEqual({ 'wss://grid.example.com:443': 'x' })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
   it('shows a url the remotes block holds only inside a key yaml wrote from a collection by its origin where it is copied', () => {
     const shown = projectConfigRemotes({
       registry: {

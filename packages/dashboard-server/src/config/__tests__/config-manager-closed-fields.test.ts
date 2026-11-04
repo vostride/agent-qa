@@ -578,6 +578,94 @@ describe("the config's closed fields", () => {
     }
   })
 
+  describe('a key that holds a remote url both as written and as yaml folds it, when a shorter url of the block starts that url', () => {
+    const pathPart = 'routepart-3c58'
+    const queryValue = 'queryvalue-e6b2'
+    const prefix = `wss://grid.example.com/${pathPart}`
+    const midUrl = `${prefix}/${pathPart}?team=${queryValue}`
+    const longUrl = `${prefix}/${pathPart}/${pathPart}/${pathPart}?team=${queryValue}&lane=${queryValue}`
+    const remote = (name: string, url: string, extra: string[] = []) => [
+      `    - name: ${name}`,
+      '      protocol: playwright',
+      `      url: ${url}`,
+      ...extra,
+    ]
+    const mirror = ['      headers:', '        X-Mirror: *b']
+    const lab = remote('lab', prefix)
+    const served = async (avd: string[], remotes: string[]) => {
+      const { manager } = await configFile(
+        [
+          ...WORKSPACE,
+          'registry:',
+          '  devices:',
+          '    pixel:',
+          '      platform: android',
+          '      match:',
+          ...avd,
+          '  remotes:',
+          ...remotes,
+          ...USE.slice(0, -2),
+          '    remote: grid',
+          ...USE.slice(-2),
+          '',
+        ].join('\n'),
+      )
+      const read = await manager.readMasked()
+      if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
+      expect(read.fileIssues).toEqual([])
+      return read
+    }
+    const keyed = (key: string) => ['        avd:', `          ? ${key}`, '          : x']
+
+    it('the served config shows that key whole as its origin', async () => {
+      const cases = [
+        {
+          key: `[ &a "${longUrl}", &b ${longUrl} ]`,
+          remotes: [...remote('grid', '*a', mirror), ...lab],
+          aliased: true,
+        },
+        {
+          key: `[ &a "${midUrl}", [ [ [ [ &b "${midUrl}" ] ] ] ] ]`,
+          remotes: [...remote('grid', '*a', mirror), ...lab],
+          aliased: true,
+        },
+        {
+          key: `[ &a ${longUrl}, &b "${longUrl}" ]`,
+          remotes: [...remote('grid', '*a'), ...remote('mirror', '*b'), ...lab],
+          aliased: true,
+        },
+        {
+          key: `[ "${longUrl}", ${longUrl} ]`,
+          remotes: [...remote('grid', longUrl), ...lab],
+          aliased: false,
+        },
+      ]
+      for (const { key, remotes, aliased } of cases) {
+        const read = await served(keyed(key), remotes)
+        const registry = read.config.registry as { devices: { pixel: { match: unknown } } }
+
+        expect(registry.devices.pixel.match).toEqual({ avd: { 'wss://grid.example.com:443': 'x' } })
+        const shownText = read.lines.map((line) => line.text).join('\n')
+        for (const hidden of [pathPart, queryValue]) {
+          expect(JSON.stringify(read.config)).not.toContain(hidden)
+          if (aliased) expect(shownText).not.toContain(hidden)
+        }
+      }
+    })
+
+    it('the served config keeps a value that holds the url once, as written, with that url shown by its origin', async () => {
+      const read = await served(
+        [`        avd: connects to ${longUrl} for the pixel`],
+        [...remote('grid', longUrl), ...lab],
+      )
+      const registry = read.config.registry as { devices: { pixel: { match: unknown } } }
+
+      expect(registry.devices.pixel.match).toEqual({
+        avd: 'connects to wss://grid.example.com:443 for the pixel',
+      })
+    })
+  })
+
   it('the served config and its file lines hide a url nested under another key of a list entry or of a pairs block', async () => {
     const pathPart = 'routepart-3c58'
     const queryValue = 'queryvalue-e6b2'
