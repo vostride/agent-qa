@@ -32,6 +32,7 @@ import {
   type ConfigSaveStatus,
   type RestoredDraft,
 } from "@/lib/config-autosave"
+import { invalidateTargetDetails } from "@/hooks/use-target-details"
 import {
   FIELD_CHANGED_TEXT,
   REVISION_POLL_MS,
@@ -545,6 +546,7 @@ function createEngine(host: EngineHost) {
         emit({ type: "write-started", id, fieldKeys: keys })
         result = await send(changes)
       }
+      invalidateTargetDetails()
       if (!attached) return false
       // A write merged onto bytes never read here took in an outside edit; drop trust and re-read.
       const stale =
@@ -873,6 +875,7 @@ function createEngine(host: EngineHost) {
     if (!pending || Date.now() >= pending.expiresAt) return
     try {
       await undoConfigAction(pending.token)
+      invalidateTargetDetails()
       if (!attached) return
       emit({ type: "undo-finished" })
       await read()

@@ -15,6 +15,7 @@ import {
   type ConfigFieldParse,
   type ConfigFieldRef,
 } from "@/hooks/use-config-autosave"
+import { useTargetDetails } from "@/hooks/use-target-details"
 
 vi.mock("@/lib/api", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/api")>()),
@@ -954,5 +955,42 @@ describe("useConfigAutosave and masked secret fields", () => {
     expect(landed).toBe(true)
     expect(hook!.valueOf(accessHeader)).toBe("AKIA-NEW-1")
     expect(fetchConfig).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe("useConfigAutosave and the settings panels' config defaults", () => {
+  async function inheritedRemote(): Promise<string | undefined> {
+    let details: ReturnType<typeof useTargetDetails> | undefined
+    function Probe() {
+      details = useTargetDetails()
+      return null
+    }
+    const probeRoot = createRoot(document.createElement("div"))
+    await act(async () => {
+      probeRoot.render(<Probe />)
+    })
+    await flush()
+    await act(async () => probeRoot.unmount())
+    return details?.globalUse?.browser?.remote
+  }
+
+  it("a page write makes the next settings panel read the config again, so its inherited remote is current", async () => {
+    vi.mocked(fetchConfig).mockResolvedValue(answer({ ...baseConfig, use: { browser: { remote: "lab" } } }) as never)
+    expect(await inheritedRemote()).toBe("lab")
+    expect(await inheritedRemote()).toBe("lab")
+    expect(fetchConfig).toHaveBeenCalledTimes(1)
+
+    await mount()
+    const remote: ConfigFieldRef = { segments: ["use", "browser", "remote"], tab: "targets" }
+    vi.mocked(fetchConfig).mockResolvedValue(answer({ ...baseConfig, use: { browser: { remote: "grid" } } }) as never)
+    await run((h) => {
+      h.edit(remote, "grid", { valid: true, value: "grid" })
+      h.settle(remote)
+    })
+    expect(writeCalls()).toEqual([[{ op: "set", path: ["use", "browser", "remote"], value: "grid" }]])
+
+    const reads = vi.mocked(fetchConfig).mock.calls.length
+    expect(await inheritedRemote()).toBe("grid")
+    expect(fetchConfig).toHaveBeenCalledTimes(reads + 1)
   })
 })

@@ -63,6 +63,12 @@ function remoteChoices(remotes: unknown): RemoteChoice[] {
   return choices
 }
 
+// A config write can change the inherited defaults, so the next reader fetches afresh.
+export function invalidateTargetDetails(): void {
+  cached = null
+  cachedAt = 0
+}
+
 function isCacheValid(): boolean {
   return cached !== null && Date.now() - cachedAt < TTL
 }
