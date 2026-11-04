@@ -22,6 +22,7 @@ export interface RemoteDeviceConfig {
   headers?: Record<string, string>
   basicAuth?: { user: string; password: string }
   connectTimeoutMs: number
+  capabilities?: Record<string, unknown>
 }
 
 export const DEFAULT_REMOTE_CONNECT_TIMEOUT_MS = 5 * 60 * 1000
@@ -31,6 +32,7 @@ export type RemoteFailureKind =
   | 'auth'
   | 'capacity'
   | 'timeout'
+  | 'refused'
   | 'version'
   | 'ended'
   | 'lost'
@@ -40,19 +42,34 @@ export interface RemoteUnsupported {
   reason: string
 }
 
+export type IOSDeviceType = 'simulator' | 'real device' | 'unknown'
+
 // Names the remote by its origin only: the path, query and header values may carry secrets.
 export type RemotePlaceEvidence =
-  | { place: 'here' }
+  | { place: 'here'; deviceType?: IOSDeviceType }
   | {
       place: 'remote'
       name: string
-      protocol: RemoteProtocol
+      protocol: RemoteBrowserProtocol
       origin: string
       browserVersion: string
       headless: 'decided by the remote'
       unsupported: readonly RemoteUnsupported[]
       heartbeat?: { sent: number; failed: number; suspect: boolean }
       failureKind?: RemoteFailureKind
+    }
+  | {
+      place: 'remote'
+      name: string
+      protocol: 'appium'
+      origin: string
+      device: string
+      appiumVersion?: string
+      sessionId?: string
+      deviceType?: IOSDeviceType
+      heartbeat?: { sent: number; failed: number; suspect: boolean }
+      failureKind?: RemoteFailureKind
+      notes?: readonly string[]
     }
 
 // Built from the refusal sentence alone, so nothing from the failed connection rides along.
@@ -79,6 +96,7 @@ const REMEMBERED_KINDS: ReadonlySet<RemoteFailureKind> = new Set([
   'capacity',
   'version',
   'timeout',
+  'refused',
 ])
 
 export function createRemoteRefusalMemory(): RemoteRefusalMemory {

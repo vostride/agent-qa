@@ -112,6 +112,8 @@ export interface RuntimeAuthStateConfig {
 
 export interface PlatformConfig {
   platform: 'web' | 'android' | 'ios'
+  targetName?: string
+  appRef?: string
   browser?: BrowserConfig
   device?: DeviceConfig
   bundleId?: string
@@ -140,7 +142,10 @@ export interface DeviceConfig {
   platform: 'android' | 'ios'
   model?: string
   os?: string
+  id?: string
   remote?: RemoteDeviceConfig
+  capabilities?: Record<string, unknown>
+  here?: { udid?: string; avd?: string; name?: string; os?: string }
   match: Record<string, unknown>
 }
 

@@ -12,6 +12,7 @@ import type {
   RecordingCapability,
   RemoteBrowserConfig,
   RemotePlaceEvidence,
+  RemoteHeartbeat,
   RemoteRefusalMemory,
   RemoteSessionRegistry,
   RemoteUnsupported,
@@ -27,6 +28,7 @@ import {
 import {
   assertNever,
   buildScreenState,
+  createRemoteHeartbeat,
   createSnapshotLiveStream,
   LIVE_KEEPALIVE_QUIET_MS,
   RemoteRefusalError,
@@ -61,8 +63,6 @@ import {
 } from './remote-connection.js'
 import { createScreencastRecording, type ScreencastRecording } from './recording.js'
 import { isHeadlessLaunch, OperationCapture } from './operation-capture.js'
-import { createRemoteHeartbeat } from './remote-heartbeat.js'
-import type { RemoteHeartbeat } from './remote-heartbeat.js'
 import type { RemoteDisconnectKind } from './remote-connection.js'
 import type { CapturedOperations } from './operation-capture.js'
 

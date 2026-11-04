@@ -86,7 +86,9 @@ function downloadsOf(result: ActionResult): unknown {
 
 function capabilitiesOf(adapter: WebPlatformAdapter): string[] {
   const evidence = adapter.placeEvidence
-  if (evidence?.place !== 'remote') throw new Error('the adapter reports no remote place')
+  if (evidence?.place !== 'remote' || evidence.protocol === 'appium') {
+    throw new Error('the adapter reports no remote browser')
+  }
   return evidence.unsupported.map((entry) => entry.capability)
 }
 
@@ -194,7 +196,7 @@ describe('what a remote browser cannot give', () => {
         'clipboard probe',
       ])
       const evidence = adapter.placeEvidence
-      expect(evidence?.place === 'remote' ? evidence.unsupported[3] : undefined).toEqual({
+      expect(evidence?.place === 'remote' && evidence.protocol !== 'appium' ? evidence.unsupported[3] : undefined).toEqual({
         capability: 'clipboard probe',
         reason: "the browser's own context is shared with other sessions",
       })
@@ -292,7 +294,7 @@ describe('what a remote browser cannot give', () => {
           'live screencast',
         ])
         const evidence = adapter.placeEvidence
-        expect(evidence?.place === 'remote' ? evidence.unsupported[2] : undefined).toEqual({
+        expect(evidence?.place === 'remote' && evidence.protocol !== 'appium' ? evidence.unsupported[2] : undefined).toEqual({
           capability: 'live screencast',
           reason: 'Firefox and WebKit show a one-second snapshot preview',
         })
