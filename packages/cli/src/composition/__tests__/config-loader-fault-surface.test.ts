@@ -1,7 +1,15 @@
 // A yaml parse error reports a position only, because the library's message quotes the source.
 
 import { spawnSync } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  realpathSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -140,7 +148,7 @@ const PLANTED_SUITE_CREDENTIAL = 'sk-ant-api03-SUITEFIXTUREONLYnotarealkey'
 // A plain test yaml, the other arm of `isSuiteFile`; its own value says which member leaked.
 const PLANTED_TEST_CREDENTIAL = 'sk-ant-api03-TESTFIXTUREONLYnotarealkey'
 
-// The fifth member: `agent-qa.local.yaml`, read by `loadLocalBindings`.
+// A leftover `agent-qa.local.yaml` is refused without being read, so this value never shows.
 const PLANTED_LOCAL_CREDENTIAL = 'sk-ant-api03-LOCALFIXTUREONLYnotarealkey'
 
 /** The same adjacency mechanism as the config fixture, one file class over. */
@@ -178,13 +186,13 @@ apiToken: ${PLANTED_TEST_CREDENTIAL}
 apiToken: ${PLANTED_TEST_CREDENTIAL}
 `
 
-// `WELL_FORMED_CONFIG` plus a device, so `devices list` reaches `loadLocalBindings`.
+// `WELL_FORMED_CONFIG` plus a device, so `devices list` has a device to list.
 const CONFIG_WITH_DEVICE = WELL_FORMED_CONFIG.replace(
   'registry:\n  llms:',
   'registry:\n  devices:\n    handset:\n      platform: ios\n  llms:',
 )
 
-/** `agent-qa.local.yaml`, the same adjacency mechanism, on the file only this machine has. */
+/** A leftover `agent-qa.local.yaml` that does not parse, with the credential on a duplicated line. */
 const FAULTY_LOCAL_BINDINGS = `devices:
   handset:
     udid: 00008030-001A
@@ -594,11 +602,7 @@ describe('the other person-visible yaml-parse roads report position-only', () =>
     expect(combined, `the command's output:\n${combined}`).toMatch(/leak\.suite\.yaml/)
   })
 
-  it('the SHIPPED `agent-qa devices list` never crash-prints agent-qa.local.yaml', () => {
-    // `loadLocalBindings` (cli/src/devices.ts:67) parsed `agent-qa.local.yaml` unguarded, so the
-    // raw `YAMLParseError` left the process through Node's default uncaught printer — the excerpt,
-    // the stack, and the `linePos` object, all of it. The config below names a device so the
-    // command reaches the local-bindings road at all.
+  it('the SHIPPED `agent-qa devices list` refuses an unparseable agent-qa.local.yaml unread', () => {
     seedConfig(CONFIG_WITH_DEVICE)
     seedFile('agent-qa.local.yaml', FAULTY_LOCAL_BINDINGS)
 
@@ -613,12 +617,10 @@ describe('the other person-visible yaml-parse roads report position-only', () =>
       occurrences(combined, PLANTED_LOCAL_CREDENTIAL),
       `the command's output carried the planted credential:\n${combined}`,
     ).toBe(0)
-    expect(combined, `the command's output:\n${combined}`)
-      .toMatch(/not readable as YAML at line \d+, column \d+/)
-    expect(combined, `the command's output:\n${combined}`).toMatch(/agent-qa\.local\.yaml/)
-    // The uncaught printer's own marks. A report is not a crash.
+    expect(combined, `the command's output:\n${combined}`).toContain(leftoverLine(root))
     expect(combined, `the command's output:\n${combined}`).not.toMatch(/YAMLParseError/)
     expect(combined, `the command's output:\n${combined}`).not.toMatch(/linePos/)
+    expect(run.status, `the command's output:\n${combined}`).toBe(1)
   })
 })
 
@@ -660,17 +662,60 @@ function runShipped(args: readonly string[]): { status: number | null; combined:
   return { status: run.status, combined: `${run.stdout ?? ''}${run.stderr ?? ''}` }
 }
 
-function expectLocalFileRefusal(result: { status: number | null; combined: string }): void {
+const RETIRED_LOCAL_FILE =
+  'agent-qa.local.yaml is no longer read: describe each device under registry.devices with model and os (id pins one unit), and set app.path on the target. Delete the file.'
+
+// A spawned command's working directory is the real path, which differs from tmpdir() on macOS.
+function leftoverLine(dir: string): string {
+  return `${join(realpathSync(dir), 'agent-qa.local.yaml')}: ${RETIRED_LOCAL_FILE}`
+}
+
+// `run` reports a config that does not load as a framework error, with exit 2.
+function expectLocalFileRefusal(
+  result: { status: number | null; combined: string },
+  exitCode = 1,
+): void {
   const { status, combined } = result
-  expect(combined, `the command's output:\n${combined}`)
-    .toMatch(/agent-qa\.local\.yaml:\s+providers: providers was removed: .* Delete this block\./)
-  expect(status, `the command's output:\n${combined}`).toBe(1)
+  expect(combined, `the command's output:\n${combined}`).toContain(leftoverLine(root))
+  expect(combined, `the command's output:\n${combined}`).not.toMatch(/providers was removed/)
+  expect(status, `the command's output:\n${combined}`).toBe(exitCode)
   // Node's uncaught printer leaves a stack frame and its version line.
   expect(combined, `the command's output:\n${combined}`).not.toMatch(/^\s+at /m)
   expect(combined, `the command's output:\n${combined}`).not.toMatch(/Node\.js v\d+/)
 }
 
-describe('a refused agent-qa.local.yaml refuses the command that reads it', () => {
+describe('a leftover agent-qa.local.yaml refuses every command that loads the config', () => {
+  it('resolveConfig refuses a file beside the config with its path, never its content', async () => {
+    seedConfig(WELL_FORMED_CONFIG)
+    writeFileSync(
+      join(root, 'agent-qa.local.yaml'),
+      `providers:\n  browserstack:\n    accessKey: ${PLANTED_LOCAL_CREDENTIAL}\n`,
+    )
+
+    const error = await resolveConfig({ configPath, loadAuthPlugins: false }).then(
+      () => undefined,
+      (err: unknown) => err as Error,
+    )
+
+    expect(error?.message).toBe(`${join(root, 'agent-qa.local.yaml')}: ${RETIRED_LOCAL_FILE}`)
+    expect(occurrences(inspect(error), PLANTED_LOCAL_CREDENTIAL)).toBe(0)
+  })
+
+  it('resolveConfig loads the config when no leftover file is there', async () => {
+    seedConfig(WELL_FORMED_CONFIG)
+
+    await expect(resolveConfig({ configPath, loadAuthPlugins: false })).resolves.toBeDefined()
+  })
+
+  it('the SHIPPED command refuses a file in the working directory when --config is elsewhere', () => {
+    seedFile(join('project', CONFIG_FILE), CONFIG_WITH_DEVICE)
+    seedFile('agent-qa.local.yaml', OLDER_INIT_LOCAL_BINDINGS)
+
+    expectLocalFileRefusal(
+      runShipped(['--config', join('project', CONFIG_FILE), 'devices', 'list']),
+    )
+  })
+
   it('the SHIPPED `agent-qa devices list` reports the refusal and exits 1', () => {
     seedConfig(CONFIG_WITH_DEVICE)
     seedFile('agent-qa.local.yaml', OLDER_INIT_LOCAL_BINDINGS)
@@ -687,8 +732,7 @@ describe('a refused agent-qa.local.yaml refuses the command that reads it', () =
 
     const result = runShipped(['run', 'tests/probe.yaml'])
 
-    expectLocalFileRefusal(result)
-    expect(result.combined, `the command's output:\n${result.combined}`).not.toMatch(/Framework error/)
+    expectLocalFileRefusal(result, 2)
     expect(result.combined, `the command's output:\n${result.combined}`).not.toMatch(/Run ID:/)
     expect(existsSync(join(root, '.agent-qa', 'runs.db'))).toBe(false)
   })
@@ -707,8 +751,7 @@ describe('a refused agent-qa.local.yaml refuses the command that reads it', () =
 
     const result = runShipped(['run', '--suite', 'suites/device.suite.yaml'])
 
-    expectLocalFileRefusal(result)
-    expect(result.combined, `the command's output:\n${result.combined}`).not.toMatch(/Framework error/)
+    expectLocalFileRefusal(result, 2)
     expect(result.combined, `the command's output:\n${result.combined}`).not.toMatch(/Run ID:/)
     expect(existsSync(join(root, '.agent-qa', 'runs.db'))).toBe(false)
   })

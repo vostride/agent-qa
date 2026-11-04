@@ -13,7 +13,11 @@ import {
   visit,
   type Node,
 } from 'yaml'
-import { AgentQaConfigSchema, projectRemotesInConfigText } from '@vostride/agent-qa-core'
+import {
+  AgentQaConfigSchema,
+  leftoverLocalFileRefusal,
+  projectRemotesInConfigText,
+} from '@vostride/agent-qa-core'
 import {
   closedConfigFieldsChanged,
   CONFIG_NAMED_ARRAYS,
@@ -148,6 +152,8 @@ export class ConfigManager {
 
   // A half-edited file is named, never served as the partial config yaml recovers.
   async readWithRevision(): Promise<ConfigReadOutcome> {
+    const leftover = this.leftoverLocalFile()
+    if (leftover !== undefined) throw new Error(leftover)
     const read = await this.readParsed()
     if (read.kind !== 'ok') return read
     return { kind: 'ok', config: read.config, raw: read.raw, revision: read.revision }
@@ -156,6 +162,11 @@ export class ConfigManager {
   // Both views pass the declared mask and show a remote only by name, protocol and origin.
   async readMasked(): Promise<MaskedConfigOutcome> {
     const read = await this.readParsed()
+    const leftover = this.leftoverLocalFile()
+    if (leftover !== undefined) {
+      const revision = read.kind === 'absent' ? CONFIG_REVISION_ABSENT : read.revision
+      return { kind: 'file_invalid', message: this.maskSummary(leftover), revision }
+    }
     if (read.kind === 'absent') {
       return { kind: 'ok', config: {}, revision: CONFIG_REVISION_ABSENT, lines: [], fileIssues: [] }
     }
@@ -168,6 +179,10 @@ export class ConfigManager {
       : parsed.error.issues.map((issue) => maskedIssue(issue, this.mask))
     const lines = fileLines(this.mask(projectRemotesInConfigText(read.raw)))
     return { kind: 'ok', config, revision: read.revision, lines, fileIssues }
+  }
+
+  private leftoverLocalFile(): string | undefined {
+    return leftoverLocalFileRefusal([dirname(resolve(this.configPath))])
   }
 
   // A file that does not parse can leave the declared secrets unreadable; its message is then withheld.

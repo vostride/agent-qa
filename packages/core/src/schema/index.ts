@@ -48,6 +48,8 @@ export {
   refuseRetiredLocalBindings,
 } from './retired-keys.js'
 
+export { leftoverLocalFileRefusal } from './leftover-local-file.js'
+
 export {
   CaptureConfigSchema,
   TestStepSchema,

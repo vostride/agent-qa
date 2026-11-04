@@ -5,6 +5,7 @@ import pc from 'picocolors'
 import {
   AgentQaConfigSchema,
   KnowledgeConfigSchema,
+  leftoverLocalFileRefusal,
   loadLLMAuthPlugins,
   resolveKnowledgeRoot,
   yamlParseFailureMessage,
@@ -300,6 +301,8 @@ export async function resolveConfig(options: {
   loadAuthPlugins?: boolean
 }): Promise<AgentQaConfig> {
   const configPath = options.configPath ?? 'agent-qa.config.yaml'
+  const leftover = leftoverLocalFileRefusal([dirname(resolvePath(configPath)), process.cwd()])
+  if (leftover !== undefined) throw new Error(leftover)
   const fileConfig = await loadRequiredConfigFile(configPath)
   const envOverrides = loadEnvOverrides()
   const merged = mergeConfigs(fileConfig, envOverrides, options.flags ?? {})
