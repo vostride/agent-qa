@@ -149,6 +149,8 @@ export interface TestResult {
   retryCount?: number
   recording?: RecordingEntry
   failureSummary?: string
+  // Refused on its remote before it started; its fail-fast group runs on, each member records it.
+  remoteRefusal?: true
   /** One detached actual failure, retained only when a subsequent attempt runs. */
   firstFailedAttempt?: {
     /** Zero-based member attempt index, independently of the final retryCount. */

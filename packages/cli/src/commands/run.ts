@@ -2550,6 +2550,7 @@ export async function produceSuiteRunMembers(
     results: TestResult[]
     perMemberDigests: ConfigDigests[]
     bootstrapFailure: string | undefined
+    bootstrapRemoteRefusal: boolean
     // Teardown-time composition side effects.
     suiteWorkingMemory: WorkingMemoryStore
     suitePlace: WebPlace
@@ -3013,6 +3014,7 @@ export async function produceSuiteRunMembers(
       results: [],
       perMemberDigests: [],
       bootstrapFailure: undefined,
+      bootstrapRemoteRefusal: false,
       suiteWorkingMemory,
       suitePlace,
       suiteAttributes,
@@ -3045,7 +3047,8 @@ export async function produceSuiteRunMembers(
   // Suite-level SETUP the shell runs on the first member of each suite (lazy lifecycle). Fires
   // onSuiteStart/onRunStart, runs suite setup hooks (→ suiteHookVars), then adapter.setup + the
   // suite-URL navigation. A hook/nav failure records `bootstrapFailure` so the member closures
-  // synthesize a bootstrap failure (the shell then group-fail-fasts the remaining members).
+  // synthesize a bootstrap failure (the shell then group-fail-fasts the remaining members, except
+  // after a remote refusal, which every member records itself).
   const suiteSetup = async (prepared: PreparedSuite): Promise<void> => {
     const { suite, suiteConfig, testEntries } = prepared
 
@@ -3090,6 +3093,7 @@ export async function produceSuiteRunMembers(
       if (!isRemoteRefusal(err)) throw err
       suiteRemoteRefusal ??= err
       prepared.bootstrapFailure = err.message
+      prepared.bootstrapRemoteRefusal = true
       emitSuitePlace(prepared, refusedArtifactPlace(suiteRemote, err))
       return
     }
@@ -3247,6 +3251,7 @@ export async function produceSuiteRunMembers(
               runId: prepared.suiteRunId, name: test.name, filePath: absolutePath, status: 'failed',
               steps: [], duration: 0, failureSummary: prepared.bootstrapFailure,
               metadata: { phase: 'suite-bootstrap' },
+              ...(prepared.bootstrapRemoteRefusal ? { remoteRefusal: true as const } : {}),
             }
             prepared.results.push(bootstrapResult)
             return bootstrapResult

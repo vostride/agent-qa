@@ -300,7 +300,8 @@ export function startRun(config: RunConfig): RunSession {
       if (
         (outcome === 'failed' || outcome === 'timeout') &&
         member.failFastGroup !== undefined &&
-        !quarantined
+        !quarantined &&
+        result.remoteRefusal !== true
       ) {
         poisonedGroups.add(member.failFastGroup)
       }

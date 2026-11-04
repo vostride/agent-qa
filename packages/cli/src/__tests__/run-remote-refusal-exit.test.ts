@@ -297,4 +297,22 @@ describe('a suite refused on its remote ends only its members while a local test
       })
     })
   }, RUN_BUDGET_MS)
+
+  it('ends every member of the refused suite with its sentence, from one connect', async () => {
+    await onScene({ knobs: { secondSuiteMember: true } }, async (scene) => {
+      await runThroughCli(scene, scene.project.suitePattern)
+
+      const sentence = authSentence(scene.endpoint)
+      const log = scene.printed.join('\n')
+      expectOneLineRefusal(scene, sentence)
+      expect(scene.endpoint.refusals(), log).toBe(1)
+      expect(scene.target.hits, log).toEqual([])
+      for (const name of ['the suite member', 'the second suite member']) {
+        expect(storedMember(scene, name), name).toMatchObject({
+          outcome: 'failed',
+          failureSummary: sentence,
+        })
+      }
+    })
+  }, RUN_BUDGET_MS)
 })
