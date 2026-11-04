@@ -87,6 +87,11 @@ export interface InProcessFixtureInput {
   }
   /** With `remote`, the config declares it but does not pick it, so tests launch here. */
   readonly remoteUnpicked?: boolean
+  /**
+   * With `remote` and its `headers`, the remote's url and headers are anchors under
+   * `registry.devices.pixel.match`, and the entry aliases them.
+   */
+  readonly remoteAnchoredInDevices?: boolean
   /** The suite's own `use.browser.remote`. */
   readonly suitePick?: string
   /** The direct test's own `use.browser.remote`. */
@@ -166,6 +171,23 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       '  envFile: .env',
       '  secretsFile: .env.secrets.local',
       'registry:',
+      ...(input.remote !== undefined && input.remoteAnchoredInDevices === true
+        ? [
+            '  devices:',
+            '    pixel:',
+            '      platform: android',
+            '      match:',
+            `        avd: &grid ${JSON.stringify(input.remote.url)}`,
+            ...(input.remote.headers === undefined
+              ? []
+              : [
+                  '        serial: &hdrs',
+                  ...Object.entries(input.remote.headers).map(
+                    ([name, value]) => `          ${name}: ${JSON.stringify(value)}`,
+                  ),
+                ]),
+          ]
+        : []),
       '  targets:',
       `    ${IN_PROCESS_TARGET_NAME}:`,
       '      platform: web',
@@ -202,15 +224,19 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             '  remotes:',
             `    - name: ${input.remote.name}`,
             `      protocol: ${input.remote.protocol}`,
-            `      url: ${JSON.stringify(input.remote.url)}`,
+            input.remoteAnchoredInDevices === true
+              ? '      url: *grid'
+              : `      url: ${JSON.stringify(input.remote.url)}`,
             ...(input.remote.headers === undefined
               ? []
-              : [
-                  '      headers:',
-                  ...Object.entries(input.remote.headers).map(
-                    ([name, value]) => `        ${name}: ${JSON.stringify(value)}`,
-                  ),
-                ]),
+              : input.remoteAnchoredInDevices === true
+                ? ['      headers: *hdrs']
+                : [
+                    '      headers:',
+                    ...Object.entries(input.remote.headers).map(
+                      ([name, value]) => `        ${name}: ${JSON.stringify(value)}`,
+                    ),
+                  ]),
           ]),
       ...(input.declareUninstalledAuthPlugin === true
         ? ['plugins:', '  auth:', `    - package: '${UNINSTALLED_AUTH_PLUGIN_PACKAGE}'`]

@@ -122,6 +122,64 @@ describe('projectRemotesInConfigText', () => {
     })
   })
 
+  it('replaces a url anchored outside the block with its origin, wherever that anchor is aliased', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        `        avd: &grid wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '        serial: *grid',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        '      url: *grid',
+        '',
+      ].join('\n'),
+    )
+
+    const origin = 'wss://grid.example.com:443'
+    expect(shown).not.toContain(PATH_TOKEN)
+    expect(shown).not.toContain(QUERY_SECRET)
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        devices: { pixel: { platform: 'android', match: { avd: origin, serial: origin } } },
+        remotes: [{ name: 'grid', protocol: 'playwright', url: origin }],
+      },
+    })
+  })
+
+  it('replaces headers anchored outside the block with null', () => {
+    const shown = projectRemotesInConfigText(
+      [
+        'registry:',
+        '  devices:',
+        '    pixel:',
+        '      platform: android',
+        '      match:',
+        '        serial: &hdrs',
+        `          X-Team: ${HEADER_VALUE}`,
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright',
+        '      url: wss://grid.example.com/grid',
+        '      headers: *hdrs',
+        '',
+      ].join('\n'),
+    )
+
+    expect(shown).not.toContain(HEADER_VALUE)
+    expect(shown).not.toContain('X-Team')
+    expect(parseYaml(shown)).toEqual({
+      registry: {
+        devices: { pixel: { platform: 'android', match: { serial: null } } },
+        remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
+      },
+    })
+  })
+
   it('shows a remotes block that is not a list as an empty list', () => {
     const shown = projectRemotesInConfigText(
       [

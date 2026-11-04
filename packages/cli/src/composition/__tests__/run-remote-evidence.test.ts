@@ -5,6 +5,7 @@ import { join } from 'node:path'
 
 import { Command } from 'commander'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
+import { parse as parseYaml } from 'yaml'
 
 import { DashboardDatabase } from '@vostride/agent-qa-dashboard'
 import { generateSuiteId } from '@vostride/agent-qa-ids'
@@ -303,6 +304,33 @@ describe("a remote run's evidence", () => {
       expect(config.effectiveConfig?.registry?.remotes, log).toEqual([
         { name: 'grid', protocol: 'playwright', url: origin },
       ])
+      for (const planted of [pathToken, PLANTED_QUERY_VALUE, PLANTED_HEADER_VALUE]) {
+        expect(stored.raw.includes(planted), `${planted} is stored\n${log}`).toBe(false)
+      }
+    })
+  }, RUN_BUDGET_MS)
+
+  it('the stored config hides a remote whose url and headers alias anchors outside its block', async () => {
+    await onScene({}, async (scene) => {
+      const endpoint = scene.endpoint!
+      const pathToken = new URL(endpoint.wsEndpoint).pathname.replace(/^\//, '')
+      expect(pathToken.length).toBeGreaterThan(8)
+      const project = remoteProject(scene, { remoteAnchoredInDevices: true }, {
+        url: `${endpoint.wsEndpoint}?label=${PLANTED_QUERY_VALUE}`,
+        headers: { 'x-grid-label': PLANTED_HEADER_VALUE },
+      })
+      const log = await runCli(project, [project.testPattern])
+      const stored = onlyRun(project, log)
+      expect(endpoint.sessions(), log).toBe(1)
+      const config = stored.payload.config as Record<string, any>
+      const origin = originOf(endpoint)
+      const match = { avd: origin, serial: null }
+      const remotes = [{ name: 'grid', protocol: 'playwright', url: origin }]
+      const raw = parseYaml(config.rawConfigContent as string) as Record<string, any>
+      for (const shown of [raw, config.parsedConfig, config.effectiveConfig]) {
+        expect(shown?.registry?.devices?.pixel?.match, log).toEqual(match)
+        expect(shown?.registry?.remotes, log).toEqual(remotes)
+      }
       for (const planted of [pathToken, PLANTED_QUERY_VALUE, PLANTED_HEADER_VALUE]) {
         expect(stored.raw.includes(planted), `${planted} is stored\n${log}`).toBe(false)
       }
