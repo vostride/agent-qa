@@ -152,7 +152,9 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
     const expected =
       !denied.includes(pattern.split('.')[0]!) &&
       !pattern.startsWith('registry.remotes[]') &&
-      pattern !== 'registry.devices.*.remote'
+      pattern !== 'registry.devices.*.remote' &&
+      !pattern.startsWith('registry.devices.*.capabilities') &&
+      !pattern.startsWith('registry.targets.*.app.ref')
     for (const named of [false, true]) {
       const path = concreteLeafPath(pattern, named)
       expect({ pattern, path, writable: api.isPageWritableConfigPath(path) }).toEqual({
@@ -184,6 +186,9 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
     ['registry', 'remotes', { name: 'k' }, 'url'],
     ['registry', 'remotes', 0, 'headers', 'k'],
     ['registry', 'devices', 'pixel', 'remote'],
+    ['registry', 'devices', 'pixel', 'capabilities'],
+    ['registry', 'devices', 'pixel', 'capabilities', 'appium:noReset'],
+    ['registry', 'targets', 'shop', 'app', 'ref'],
     // A retired root is refused as an unknown path, not as a denied root.
     ['safety', 'trustMode'],
     ['registry', 'llms', { name: 'k' }, 'nope'],

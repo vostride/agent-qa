@@ -76,16 +76,19 @@ export const CONFIG_WRITE_DENIED_ROOTS = [
   'plugins',
 ] as const satisfies readonly ConfigWriteDeniedRoot[]
 
-// The page shows remotes and a device's remote read-only; both are file edits. A `*` is any key.
+// The page shows remotes, a device's remote and capabilities and a target's app reference
+// read-only; all are file edits. A `*` is any key.
 const PAGE_DENIED_PREFIXES: readonly (readonly string[])[] = [
   ['registry', 'remotes'],
   ['registry', 'devices', '*', 'remote'],
+  ['registry', 'devices', '*', 'capabilities'],
+  ['registry', 'targets', '*', 'app', 'ref'],
 ]
 
 /**
  * True when the page's write door may change the path: a schema leaf or an ancestor of one,
- * outside the denied roots and not at or under `registry.remotes` or a device's `remote`. A
- * `{ name }` selector is read as an array item.
+ * outside the denied roots and not at or under a denied prefix. A `{ name }` selector is read as
+ * an array item.
  */
 export function isPageWritableConfigPath(path: readonly ConfigPathSegment[]): boolean {
   const root = path[0]

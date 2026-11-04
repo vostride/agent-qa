@@ -765,3 +765,153 @@ describe("the config's closed fields", () => {
     }
   })
 })
+
+const FARM_REMOTE = [
+  '  remotes:',
+  '    - name: farm',
+  '      protocol: appium',
+  '      url: https://farm.example.com/wd/hub',
+  '      headers:',
+  '        Authorization: Bearer {{secret:FARM_TOKEN}}',
+]
+
+const LOCAL_PIXEL = [
+  '    pixel:',
+  '      platform: android',
+  '      model: Pixel 9',
+  '      os: "15"',
+]
+
+const WITH_PLACED_DEVICES = [
+  ...WORKSPACE,
+  'registry:',
+  ...FARM_REMOTE,
+  '  devices:',
+  '    galaxy-farm:',
+  '      platform: android',
+  '      remote: farm',
+  '      capabilities:',
+  '        "farm:options":',
+  '          accessKey: "{{secret:FARM_KEY}}"',
+  ...LOCAL_PIXEL,
+  '  targets:',
+  '    shop:',
+  '      platform: android',
+  '      appPackage: com.example.shop',
+  '      app:',
+  '        path: apps/shop.apk',
+  '        ref: https://files.example.com/shop.apk',
+  ...USE,
+  '',
+].join('\n')
+
+const WITH_REMOTE_DEVICE = [
+  ...WORKSPACE,
+  'registry:',
+  ...FARM_REMOTE,
+  '  devices:',
+  '    galaxy-farm:',
+  '      platform: android',
+  '      remote: farm',
+  ...LOCAL_PIXEL,
+  ...USE,
+  '',
+].join('\n')
+
+describe("a device's placement and a target's app reference", () => {
+  it('setting, changing, unsetting, moving or deleting a device remote, its capabilities or an app reference is refused', async () => {
+    const pixel = { platform: 'android', model: 'Pixel 9', os: '15' }
+    const registry = (parseYaml(WITH_PLACED_DEVICES) as { registry: Record<string, unknown> })
+      .registry
+    const devices = registry.devices as Record<string, unknown>
+    await expectRefused(WITH_PLACED_DEVICES, [
+      [{ op: 'set', path: ['registry', 'devices', 'pixel', 'remote'], value: 'farm' }],
+      [
+        {
+          op: 'set',
+          path: ['registry', 'devices', 'pixel'],
+          value: { ...pixel, remote: 'farm' },
+        },
+      ],
+      [
+        {
+          op: 'set',
+          path: ['registry'],
+          value: { ...registry, devices: { ...devices, pixel: { ...pixel, remote: 'farm' } } },
+        },
+      ],
+      [{ op: 'unset', path: ['registry', 'devices', 'galaxy-farm', 'remote'] }],
+      [
+        {
+          op: 'set',
+          path: ['registry', 'devices', 'galaxy-farm', 'capabilities', 'farm:options', 'accessKey'],
+          value: '{{secret:OTHER_KEY}}',
+        },
+      ],
+      [
+        {
+          op: 'set',
+          path: ['registry', 'devices', 'galaxy-farm', 'capabilities', 'appium:noReset'],
+          value: true,
+        },
+      ],
+      [{ op: 'unset', path: ['registry', 'devices', 'galaxy-farm', 'capabilities'] }],
+      [
+        {
+          op: 'set',
+          path: ['registry', 'devices', 'pixel', 'capabilities'],
+          value: { 'appium:udid': 'emulator-5554' },
+        },
+      ],
+      [{ op: 'unset', path: ['registry', 'devices', 'galaxy-farm'] }],
+      [
+        {
+          op: 'move',
+          from: ['registry', 'devices', 'galaxy-farm'],
+          path: ['registry', 'devices', 'galaxy-two'],
+        },
+      ],
+      [
+        {
+          op: 'set',
+          path: ['registry', 'targets', 'shop', 'app', 'ref'],
+          value: 'https://evil.example.com/shop.apk',
+        },
+      ],
+      [{ op: 'unset', path: ['registry', 'targets', 'shop', 'app', 'ref'] }],
+      [{ op: 'unset', path: ['registry', 'targets', 'shop'] }],
+      [
+        {
+          op: 'set',
+          path: ['registry', 'targets', 'other'],
+          value: { platform: 'android', app: { ref: 'https://evil.example.com/other.apk' } },
+        },
+      ],
+    ])
+  })
+
+  it("a local device's model and os are written, and a local device is deleted", async () => {
+    const { manager, path } = await configFile(WITH_REMOTE_DEVICE)
+    const accepted: ConfigChange[][] = [
+      [{ op: 'set', path: ['registry', 'devices', 'pixel', 'model'], value: 'Pixel 9 Pro' }],
+      [{ op: 'set', path: ['registry', 'devices', 'pixel', 'os'], value: '16' }],
+    ]
+    for (const changes of accepted) {
+      expect([changes, (await manager.applyChanges(changes)).kind]).toEqual([changes, 'ok'])
+    }
+    type Written = { registry: { devices: Record<string, unknown> } }
+    expect((parseYaml(await readFile(path, 'utf-8')) as Written).registry.devices.pixel).toEqual({
+      platform: 'android',
+      model: 'Pixel 9 Pro',
+      os: '16',
+    })
+
+    const deleted = await manager.applyChanges([
+      { op: 'unset', path: ['registry', 'devices', 'pixel'] },
+    ])
+    expect(deleted.kind).toBe('ok')
+    expect((parseYaml(await readFile(path, 'utf-8')) as Written).registry.devices).toEqual({
+      'galaxy-farm': { platform: 'android', remote: 'farm' },
+    })
+  })
+})

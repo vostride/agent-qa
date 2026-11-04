@@ -335,6 +335,53 @@ describe('closed config fields', () => {
     expect(closedConfigFieldsChanged({}, { plugins: { providers: [] } })).toBe(true)
   })
 
+  it("a device's remote or capabilities and a target's app reference are closed, a local device's other fields are not", () => {
+    const pixel = { platform: 'android', model: 'Pixel 9', os: '15' }
+    const galaxy = { platform: 'android', remote: 'farm', capabilities: { 'appium:noReset': true } }
+    const shop = { platform: 'android', app: { path: 'apps/shop.apk', ref: 'https://f.example/a' } }
+    const config = { registry: { devices: { pixel, 'galaxy-farm': galaxy }, targets: { shop } } }
+    const withRegistry = (registry: Record<string, unknown>) => ({
+      registry: { ...config.registry, ...registry },
+    })
+    const devices = (next: Record<string, unknown>) => withRegistry({ devices: next })
+
+    for (const changed of [
+      devices({ pixel: { ...pixel, remote: 'farm' }, 'galaxy-farm': galaxy }),
+      devices({ pixel: { ...pixel, capabilities: {} }, 'galaxy-farm': galaxy }),
+      devices({ pixel, 'galaxy-farm': { ...galaxy, remote: 'other' } }),
+      devices({ pixel, 'galaxy-farm': { ...galaxy, capabilities: { 'appium:noReset': false } } }),
+      devices({ pixel, 'galaxy-farm': { platform: 'android', remote: 'farm' } }),
+      devices({ pixel }),
+      devices({ pixel, 'galaxy-two': galaxy }),
+      withRegistry({
+        targets: { shop: { ...shop, app: { ...shop.app, ref: 'https://e.example/a' } } },
+      }),
+      withRegistry({ targets: { shop: { ...shop, app: { path: 'apps/shop.apk' } } } }),
+      withRegistry({ targets: { other: shop } }),
+    ]) {
+      expect({ changed, closed: closedConfigFieldsChanged(config, changed) }).toEqual({
+        changed,
+        closed: true,
+      })
+    }
+    for (const open of [
+      devices({
+        pixel: { ...pixel, model: 'Pixel 9 Pro', os: '16', id: 'emulator-5554' },
+        'galaxy-farm': galaxy,
+      }),
+      devices({ 'galaxy-farm': { ...galaxy, model: 'Galaxy S24' } }),
+      devices({ 'galaxy-farm': galaxy, pixel2: pixel }),
+      withRegistry({
+        targets: { shop: { ...shop, app: { ...shop.app, path: 'apps/shop-2.apk' } } },
+      }),
+    ]) {
+      expect({ open, closed: closedConfigFieldsChanged(config, open) }).toEqual({
+        open,
+        closed: false,
+      })
+    }
+  })
+
   it('only one subscription-auth declaration appended at the end leaves auth open', () => {
     const local = { path: './auth.mjs' }
     expect(closedConfigFieldsChanged({}, { plugins: { auth: [subscription] } })).toBe(false)

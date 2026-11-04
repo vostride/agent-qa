@@ -557,6 +557,34 @@ interface ClosedFields {
   remotes: unknown
   plugins: Record<string, unknown>
   auth: unknown
+  devicePlacement: Record<string, { remote: unknown; capabilities: unknown }>
+  appRefs: Record<string, unknown>
+}
+
+function entriesOf(value: unknown): [string, Record<string, unknown>][] {
+  return isRecord(value)
+    ? Object.entries(value).flatMap(([name, entry]): [string, Record<string, unknown>][] =>
+        isRecord(entry) ? [[name, entry]] : [],
+      )
+    : []
+}
+
+// A device without a remote or capabilities runs here and installs the target's app, so it is
+// left out and stays writable; any other device is in, so deleting or renaming it is a change.
+function devicePlacement(devices: unknown): ClosedFields['devicePlacement'] {
+  return Object.fromEntries(
+    entriesOf(devices).flatMap(([name, { remote, capabilities }]) =>
+      remote === undefined && capabilities === undefined ? [] : [[name, { remote, capabilities }]],
+    ),
+  )
+}
+
+function appRefs(targets: unknown): Record<string, unknown> {
+  return Object.fromEntries(
+    entriesOf(targets).flatMap(([name, { app }]) =>
+      isRecord(app) && app.ref !== undefined ? [[name, app.ref]] : [],
+    ),
+  )
 }
 
 function closedFields(config: unknown): ClosedFields {
@@ -567,6 +595,8 @@ function closedFields(config: unknown): ClosedFields {
     remotes: registry.remotes ?? [],
     plugins,
     auth: auth ?? [],
+    devicePlacement: devicePlacement(registry.devices),
+    appRefs: appRefs(registry.targets),
   }
 }
 
@@ -580,13 +610,16 @@ function appendsSubscriptionAuth(before: unknown, after: unknown): boolean {
   )
 }
 
-// Remotes and plugins carry credentials and code, so no write may change them, save the one
-// subscription-auth declaration config.auth.set appends.
+// Remotes and plugins carry credentials and code, and a device's remote, capabilities and its
+// target's app reference decide where it runs and what it installs, so no write may change them,
+// save the one subscription-auth declaration config.auth.set appends.
 export function closedConfigFieldsChanged(before: unknown, after: unknown): boolean {
   const held = closedFields(before)
   const next = closedFields(after)
   if (!structurallyEqual(held.remotes, next.remotes)) return true
   if (!structurallyEqual(held.plugins, next.plugins)) return true
+  if (!structurallyEqual(held.devicePlacement, next.devicePlacement)) return true
+  if (!structurallyEqual(held.appRefs, next.appRefs)) return true
   return !structurallyEqual(held.auth, next.auth) && !appendsSubscriptionAuth(held.auth, next.auth)
 }
 
