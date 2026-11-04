@@ -20,7 +20,7 @@ agent-qa runs plain-English tests against real web, Android and iOS apps, keeps 
 
 ## Names you'll see
 
-- `agent-qa.config.yaml`, `agent-qa.local.yaml`
+- `agent-qa.config.yaml`
 - `.agent-qa/` (runtime files)
 - `AGENT_QA_*` env vars, `agent_qa_*` MCP tools
 - npm: `agent-qa`, `@vostride/agent-qa-*`
