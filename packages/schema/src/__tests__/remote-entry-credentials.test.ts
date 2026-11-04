@@ -115,6 +115,15 @@ describe('credential names inside a JSON query value', () => {
     ])
   })
 
+  it('reads JSON in a url query value as the server receives it, decoded once', () => {
+    const twice = encodeURIComponent(encodeURIComponent('{"token":"literal"}'))
+    expect(messages({ ...grid, url: `${grid.url}?caps=${twice}` })).toEqual([])
+    const once = encodeURIComponent('{"token":"literal"}')
+    expect(messages({ ...grid, url: `${grid.url}?caps=${once}` })).toEqual([
+      needsReference('grid', 'url query', 'caps.token'),
+    ])
+  })
+
   it('refuses a JSON string under query with the path and sentence of the same value written as a map', () => {
     const asMap = issues({ ...grid, query: { capabilities: CAPS } })
     expect(asMap).toEqual([

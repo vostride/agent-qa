@@ -190,7 +190,6 @@ function jsonContainer(text: string): unknown {
 }
 
 const valueJson: JsonReader = (text) => jsonContainer(text)
-const urlQueryJson: JsonReader = (text) => jsonContainer(text) ?? jsonContainer(decoded(text))
 
 // A header or query value written as JSON is sent as JSON, so its keys are read like a map's.
 function credentialKeys(
@@ -202,7 +201,7 @@ function credentialKeys(
     const childPath = [...path, key]
     const inner = (typeof child === 'string' ? readJson?.(child) : undefined) ?? child
     if (namesCredential(key)) {
-      // A reference only produces text, so a boolean, number or null is an option, not a credential.
+      // A reference only produces text, so a boolean, number or null is an option, not a secret.
       // Text written at the name is sent as written, even when its JSON holds no string.
       const strings = leaves(inner).filter((leaf) => typeof leaf === 'string')
       const values = strings.length > 0 || typeof child !== 'string' ? strings : [child]
@@ -254,21 +253,27 @@ function decoded(text: string): string {
   }
 }
 
-// The parameters written in the url, read from its raw text so a reference stays as written.
-function urlQuery(url: string): Record<string, string> {
+// The parameters written in the url, read from its raw text so a reference stays as written. Every
+// value reaches the server decoded once, so only a value kept raw is decoded to read its JSON.
+function urlQuery(url: string): { params: Record<string, string>; readJson: JsonReader } {
+  const params: Record<string, string> = {}
+  const raw = new Set<string>()
+  const readJson: JsonReader = (text) =>
+    jsonContainer(text) ?? (raw.has(text) ? jsonContainer(decoded(text)) : undefined)
   const start = url.indexOf('?')
-  if (start < 0) return {}
+  if (start < 0) return { params, readJson }
   const hashAt = url.indexOf('#', start)
   const search = url.slice(start + 1, hashAt < 0 ? undefined : hashAt)
-  const params: Record<string, string> = {}
   for (const pair of search.split('&')) {
     if (pair === '') continue
     const equals = pair.indexOf('=')
     const name = decoded(equals < 0 ? pair : pair.slice(0, equals))
     const value = equals < 0 ? '' : pair.slice(equals + 1)
-    params[name] = carriesReference(value) ? value : decoded(value)
+    const kept = carriesReference(value)
+    if (kept) raw.add(value)
+    params[name] = kept ? value : decoded(value)
   }
-  return params
+  return { params, readJson }
 }
 
 export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
@@ -303,7 +308,8 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
 
   const headerCredentials = credentialKeys(entry.headers, valueJson)
   const queryCredentials = credentialKeys(entry.query, valueJson)
-  const urlCredentials = credentialKeys(urlQuery(entry.url), urlQueryJson)
+  const query = urlQuery(entry.url)
+  const urlCredentials = credentialKeys(query.params, query.readJson)
   for (const credential of urlCredentials.filter((c) => c.literal)) {
     report(
       ['url'],
