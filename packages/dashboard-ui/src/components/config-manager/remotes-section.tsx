@@ -9,8 +9,8 @@ import {
   DEFAULT_BADGE,
   REMOTES_COPY,
   remoteCredentialsLine,
-  remoteDefaultLine,
-  remoteNotListedLine,
+  remoteDefaultParts,
+  remoteNotListedParts,
 } from "@/lib/config-copy"
 
 interface RemotesSectionProps {
@@ -47,16 +47,31 @@ function escapeRegExp(term: string): string {
   return term.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
 }
 
-function withCode(line: string, terms: readonly string[] = CODE_TERMS): ReactNode[] {
+function withCode(line: string, terms: readonly string[] = CODE_TERMS, key = ""): ReactNode[] {
   const pattern = new RegExp(`(${terms.map(escapeRegExp).join("|")})`)
   return line.split(pattern).map((part, index) =>
     index % 2 === 1 ? (
-      <code key={index} className={CODE_CLASS}>
+      <code key={`${key}${index}`} className={CODE_CLASS}>
         {part}
       </code>
     ) : (
       part
     ),
+  )
+}
+
+// The remote name is the config's text, so only the sentence around it is read for key paths.
+function withName(parts: readonly ReactNode[]): ReactNode[] {
+  return parts.flatMap((part, index) =>
+    typeof part === "string" ? withCode(part, CODE_TERMS, `${index}:`) : [part],
+  )
+}
+
+function nameMark(name: string): ReactNode {
+  return (
+    <span key="name" className="font-medium">
+      {name}
+    </span>
   )
 }
 
@@ -93,11 +108,11 @@ export function RemotesSection({ config }: RemotesSectionProps) {
   return (
     <div data-remotes className="space-y-4">
       <p data-remote-default={pick ?? "local"} className="text-sm">
-        {pick === undefined ? REMOTES_COPY.runsHere : remoteDefaultLine(pick)}
+        {pick === undefined ? REMOTES_COPY.runsHere : withName(remoteDefaultParts(nameMark(pick)))}
       </p>
       {unlisted ? (
         <p data-remote-unlisted className="text-sm text-destructive">
-          {withCode(remoteNotListedLine(pick))}
+          {withName(remoteNotListedParts(nameMark(pick)))}
         </p>
       ) : null}
       {remotes.length === 0 ? (

@@ -661,13 +661,25 @@ export const REMOTES_COPY = {
   listed: 'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
 } as const
 
+// The parts keep the remote name apart, so the Remotes section can set it in another weight.
+export function remoteDefaultParts<T>(name: T): [string, T, string] {
+  return ['Web tests run on ', name, ' unless a suite or test picks another place.']
+}
+
 export function remoteDefaultLine(name: string): string {
-  return `Web tests run on ${name} unless a suite or test picks another place.`
+  return remoteDefaultParts(name).join('')
 }
 
 // The strict parse refuses this default, but the page still shows a config that fails to parse.
+export function remoteNotListedParts<T>(name: T): [T, string] {
+  return [
+    name,
+    ' is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.',
+  ]
+}
+
 export function remoteNotListedLine(name: string): string {
-  return `${name} is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.`
+  return remoteNotListedParts(name).join('')
 }
 
 export function remoteCredentialsLine(secretsFile: string | undefined): string {

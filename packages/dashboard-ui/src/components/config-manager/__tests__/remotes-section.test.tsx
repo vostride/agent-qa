@@ -85,10 +85,12 @@ describe('the Remotes section', () => {
     expect(section.textContent).not.toContain('user:pw')
   })
 
-  it('names the project default remote when use.browser.remote picks one', () => {
+  it('names the project default remote when use.browser.remote picks one, the name in medium weight', () => {
     const section = show({ ...TWO_REMOTES, use: { browser: { remote: 'grid' } } })
-    expect(section.querySelector('[data-remote-default]')?.textContent).toBe(remoteDefaultLine('grid'))
+    const line = section.querySelector('[data-remote-default]')
+    expect(line?.textContent).toBe(remoteDefaultLine('grid'))
     expect(remoteDefaultLine('grid')).toBe('Web tests run on grid unless a suite or test picks another place.')
+    expect(Array.from(line?.querySelectorAll('.font-medium') ?? []).map((mark) => mark.textContent)).toEqual(['grid'])
   })
 
   it('warns when the default names no listed remote, as a config that fails to parse can', () => {
@@ -100,6 +102,9 @@ describe('the Remotes section', () => {
       const warning = section.querySelector('[data-remote-unlisted]')
       expect(warning?.textContent).toBe(remoteNotListedLine('gird'))
       expect(warning?.className).toContain('text-destructive')
+      expect(Array.from(warning?.querySelectorAll('.font-medium') ?? []).map((mark) => mark.textContent)).toEqual([
+        'gird',
+      ])
       expect(Array.from(warning?.querySelectorAll('code') ?? []).map((code) => code.textContent)).toEqual([
         'registry.remotes',
         'use.browser.remote',
