@@ -23,7 +23,10 @@ const targetState = vi.hoisted(() => ({
     browser: { name: 'chromium', headless: true, remote: undefined as string | undefined },
     mobile: { appState: 'preserve' },
   },
-  remotes: ['grid', 'lab'],
+  remotes: [
+    { name: 'grid', protocol: 'playwright' },
+    { name: 'lab', protocol: 'cdp' },
+  ],
 }))
 
 vi.mock('@/hooks/use-target-details', () => ({
@@ -280,24 +283,24 @@ describe('the Runs on select', () => {
     }
   })
 
-  it('offers the inherited place, this machine and each listed remote, and no other name', () => {
+  it('offers the inherited place, this machine and each listed remote with its protocol, and no other name', () => {
     targetState.globalUse.browser.remote = 'grid'
     renderPanel('name: Demo\nsteps: []\n')
 
     expect(open().map((option) => option.textContent)).toEqual([
       'grid (inherited)',
       REMOTES_COPY.thisMachine,
-      'grid',
-      'lab',
+      'grid (playwright)',
+      'lab (cdp)',
     ])
   })
 
   it('choosing a listed remote writes its name, and this machine writes local', () => {
     renderPanel('name: Demo\nsteps: []\n')
 
-    choose('lab')
+    choose('lab (cdp)')
     expect(remoteOf(latestYaml)).toBe('lab')
-    expect(runsOn().textContent).toBe('lab')
+    expect(runsOn().textContent).toBe('lab (cdp)')
 
     choose(REMOTES_COPY.thisMachine)
     expect(remoteOf(latestYaml)).toBe('local')
@@ -307,7 +310,7 @@ describe('the Runs on select', () => {
   it('choosing the inherited place deletes use.browser.remote from the file', () => {
     targetState.globalUse.browser.remote = 'grid'
     renderPanel('name: Demo\nuse:\n  browser:\n    remote: lab\nsteps: []\n')
-    expect(runsOn().textContent).toBe('lab')
+    expect(runsOn().textContent).toBe('lab (cdp)')
 
     choose('grid (inherited)')
 

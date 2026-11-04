@@ -30,10 +30,15 @@ export interface GlobalUseConfig {
   parallel?: boolean
 }
 
+export interface RemoteChoice {
+  name: string
+  protocol?: string
+}
+
 interface TargetDetailsState {
   targets: Record<string, TargetDetail>
   globalUse: GlobalUseConfig | null
-  remotes: string[]
+  remotes: RemoteChoice[]
   isLoading: boolean
 }
 
@@ -43,14 +48,17 @@ const TTL = 30_000
 let pendingPromise: Promise<void> | null = null
 
 // The listed names a test or suite may pick; `local` is this machine, never a remote.
-function remoteNames(remotes: unknown): string[] {
+function remoteChoices(remotes: unknown): RemoteChoice[] {
   if (!Array.isArray(remotes)) return []
-  const names = new Set<string>()
+  const choices: RemoteChoice[] = []
   for (const entry of remotes) {
     const name: unknown = entry?.name
-    if (typeof name === 'string' && name !== '' && name !== 'local') names.add(name)
+    const protocol: unknown = entry?.protocol
+    if (typeof name !== 'string' || name === '' || name === 'local') continue
+    if (choices.some((choice) => choice.name === name)) continue
+    choices.push(typeof protocol === 'string' && protocol !== '' ? { name, protocol } : { name })
   }
-  return [...names]
+  return choices
 }
 
 function isCacheValid(): boolean {
@@ -102,7 +110,7 @@ export function useTargetDetails(): TargetDetailsState {
             }
           }
           const globalUse: GlobalUseConfig | null = cfg?.use ?? null
-          cached = { targets: parsed, globalUse, remotes: remoteNames(cfg?.registry?.remotes) }
+          cached = { targets: parsed, globalUse, remotes: remoteChoices(cfg?.registry?.remotes) }
           cachedAt = Date.now()
         })
         .catch(() => {

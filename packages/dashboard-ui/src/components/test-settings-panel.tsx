@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { Separator } from '@/components/ui/separator'
-import { REMOTES_COPY } from '@/lib/config-copy'
+import { REMOTES_COPY, remoteChoiceLabel } from '@/lib/config-copy'
 import {
   Select,
   SelectTrigger,
@@ -303,8 +303,8 @@ export function TestSettingsPanel({ content, onChange, selectedTarget, showMeta 
                 <SelectContent>
                   <SelectItem value={INHERIT_PLACE}>{inheritedPlace}</SelectItem>
                   <SelectItem value="local">{REMOTES_COPY.thisMachine}</SelectItem>
-                  {remotes.map((name) => (
-                    <SelectItem key={name} value={name}>{name}</SelectItem>
+                  {remotes.map(({ name, protocol }) => (
+                    <SelectItem key={name} value={name}>{remoteChoiceLabel(name, protocol)}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
