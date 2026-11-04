@@ -1,11 +1,25 @@
 // @vitest-environment jsdom
 
+import {
+  connectionSecretNames,
+  NAME_SLUG_PATTERN,
+  REMOTE_PROTOCOLS,
+  remoteEntryIssues,
+  remoteOrigin,
+} from '@vostride/agent-qa-schema'
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { parse } from 'yaml'
 
 import { RemotesSection } from '@/components/config-manager/remotes-section'
-import { DEFAULT_BADGE, REMOTES_COPY, remoteDefaultLine, remoteNotListedLine } from '@/lib/config-copy'
+import {
+  DEFAULT_BADGE,
+  REMOTES_COPY,
+  remoteCredentialsLine,
+  remoteDefaultLine,
+  remoteNotListedLine,
+} from '@/lib/config-copy'
 
 ;(globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true
 
@@ -88,7 +102,7 @@ describe('the Remotes section', () => {
       expect(warning?.className).toContain('text-destructive')
     }
     expect(remoteNotListedLine('gird')).toBe(
-      'gird is not listed under remotes, so web tests that use this default cannot run. List it, or change the default.',
+      'gird is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.',
     )
   })
 
@@ -138,6 +152,64 @@ describe('the Remotes section', () => {
       expect(section.querySelector('[data-remotes-empty]')?.textContent).toBe(REMOTES_COPY.empty)
       expect(rows(section)).toEqual([])
     }
+  })
+
+  it('shows how to define a remote when none is listed: an example entry, where credentials go and how one is picked', () => {
+    const section = show({ workspace: { secretsFile: '.env.secrets.local' } })
+    expect(section.querySelector('[data-remotes-empty]')?.textContent).toBe(
+      'No remotes are listed. Add one under registry.remotes in agent-qa.config.yaml:',
+    )
+    expect(section.querySelector('pre[data-remotes-example] code')?.textContent).toBe(
+      [
+        'registry:',
+        '  remotes:',
+        '    - name: grid',
+        '      protocol: playwright # or cdp',
+        '      url: wss://grid.example.com/playwright',
+        '      query:',
+        '        token: "{{secret:GRID_TOKEN}}"',
+      ].join('\n'),
+    )
+    expect(section.querySelector('[data-remotes-credentials]')?.textContent).toBe(
+      'Write credentials as {{secret:NAME}} references to names declared in .env.secrets.local.',
+    )
+    expect(section.querySelector('[data-remotes-pick]')?.textContent).toBe(
+      'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test; the name local means this machine.',
+    )
+    expect(section.querySelector('[data-remotes-listed]')).toBeNull()
+  })
+
+  it('names the workspace secrets file the config declares, and the workspace key when it declares none', () => {
+    const named = show({ workspace: { secretsFile: 'secrets/remote.env' } })
+    expect(named.querySelector('[data-remotes-credentials]')?.textContent).toBe(
+      remoteCredentialsLine('secrets/remote.env'),
+    )
+    expect(remoteCredentialsLine('secrets/remote.env')).toContain('secrets/remote.env.')
+    for (const config of [{}, { workspace: { secretsFile: '' } }, { workspace: 'none' }]) {
+      expect(show(config).querySelector('[data-remotes-credentials]')?.textContent).toBe(
+        'Write credentials as {{secret:NAME}} references to names declared in the file workspace.secretsFile names.',
+      )
+    }
+  })
+
+  it('the example is an entry the remote rules accept, with its credential as a reference', () => {
+    const entry = parse(REMOTES_COPY.example).registry.remotes[0]
+    expect(Object.keys(entry)).toEqual(['name', 'protocol', 'url', 'query'])
+    expect(NAME_SLUG_PATTERN.test(entry.name)).toBe(true)
+    expect(REMOTE_PROTOCOLS).toContain(entry.protocol)
+    expect(remoteOrigin(entry.url)?.host).toBe('grid.example.com')
+    expect(remoteEntryIssues(entry)).toEqual([])
+    expect(connectionSecretNames([entry])).toEqual(['GRID_TOKEN'])
+  })
+
+  it('points a listed section to registry.remotes and use.browser.remote, with no example', () => {
+    const section = show({ ...TWO_REMOTES, workspace: { secretsFile: '.env.secrets.local' } })
+    expect(section.querySelector('[data-remotes-listed]')?.textContent).toBe(
+      'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
+    )
+    expect(
+      section.querySelector('[data-remotes-empty], [data-remotes-example], [data-remotes-credentials], [data-remotes-pick]'),
+    ).toBeNull()
   })
 
   it('renders no control and no field mark, so nothing here edits a remote', () => {

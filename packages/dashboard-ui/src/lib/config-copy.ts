@@ -647,7 +647,18 @@ export const REMOTES_COPY = {
   columns: { name: 'Name', protocol: 'Protocol', origin: 'Origin' },
   runsHere: 'Web tests run on this machine unless a suite or test picks another place.',
   missingValue: '—',
-  empty: 'No remotes are listed. List them under remotes in the registry block of agent-qa.config.yaml.',
+  empty: 'No remotes are listed. Add one under registry.remotes in agent-qa.config.yaml:',
+  example: [
+    'registry:',
+    '  remotes:',
+    '    - name: grid',
+    '      protocol: playwright # or cdp',
+    '      url: wss://grid.example.com/playwright',
+    '      query:',
+    '        token: "{{secret:GRID_TOKEN}}"',
+  ].join('\n'),
+  pick: 'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test; the name local means this machine.',
+  listed: 'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
 } as const
 
 export function remoteDefaultLine(name: string): string {
@@ -656,7 +667,12 @@ export function remoteDefaultLine(name: string): string {
 
 // The strict parse refuses this default, but the page still shows a config that fails to parse.
 export function remoteNotListedLine(name: string): string {
-  return `${name} is not listed under remotes, so web tests that use this default cannot run. List it, or change the default.`
+  return `${name} is not listed under registry.remotes, so web tests that use this default cannot run. List it, or change use.browser.remote.`
+}
+
+export function remoteCredentialsLine(secretsFile: string | undefined): string {
+  const file = secretsFile ?? 'the file workspace.secretsFile names'
+  return `Write credentials as {{secret:NAME}} references to names declared in ${file}.`
 }
 export const NO_DEVICES_TEXT = 'No devices yet.'
 export const NO_LOGIN_STATES_TEXT = 'No saved login states yet. Save one from a web Live Mode session.'

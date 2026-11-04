@@ -4,7 +4,13 @@ import { projectConfigRemotes } from "@vostride/agent-qa-schema"
 
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { DEFAULT_BADGE, REMOTES_COPY, remoteDefaultLine, remoteNotListedLine } from "@/lib/config-copy"
+import {
+  DEFAULT_BADGE,
+  REMOTES_COPY,
+  remoteCredentialsLine,
+  remoteDefaultLine,
+  remoteNotListedLine,
+} from "@/lib/config-copy"
 
 interface RemotesSectionProps {
   config: Record<string, unknown>
@@ -17,6 +23,9 @@ interface RemoteRow {
 }
 
 const CELL_CLASS = "whitespace-normal font-mono text-xs [overflow-wrap:anywhere]"
+const EXAMPLE_CLASS =
+  "rounded-md border bg-muted/30 px-3 py-2 font-mono text-xs whitespace-pre-wrap [overflow-wrap:anywhere]"
+const NOTE_CLASS = "text-xs text-muted-foreground"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -43,6 +52,11 @@ function defaultRemoteOf(config: Record<string, unknown>): string | undefined {
   return typeof remote === "string" && remote !== "" && remote !== "local" ? remote : undefined
 }
 
+function secretsFileOf(config: Record<string, unknown>): string | undefined {
+  const file = isRecord(config.workspace) ? config.workspace.secretsFile : undefined
+  return typeof file === "string" && file !== "" ? file : undefined
+}
+
 export function RemotesSection({ config }: RemotesSectionProps) {
   const remotes = remotesOf(config)
   const pick = defaultRemoteOf(config)
@@ -58,37 +72,53 @@ export function RemotesSection({ config }: RemotesSectionProps) {
         </p>
       ) : null}
       {remotes.length === 0 ? (
-        <p data-remotes-empty className="text-sm text-muted-foreground">
-          {REMOTES_COPY.empty}
-        </p>
+        <div className="space-y-2">
+          <p data-remotes-empty className="text-sm text-muted-foreground">
+            {REMOTES_COPY.empty}
+          </p>
+          <pre data-remotes-example className={EXAMPLE_CLASS}>
+            <code>{REMOTES_COPY.example}</code>
+          </pre>
+          <p data-remotes-credentials className={NOTE_CLASS}>
+            {remoteCredentialsLine(secretsFileOf(config))}
+          </p>
+          <p data-remotes-pick className={NOTE_CLASS}>
+            {REMOTES_COPY.pick}
+          </p>
+        </div>
       ) : (
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>{REMOTES_COPY.columns.name}</TableHead>
-              <TableHead>{REMOTES_COPY.columns.protocol}</TableHead>
-              <TableHead>{REMOTES_COPY.columns.origin}</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {remotes.map((remote, index) => (
-              <TableRow key={`${index}:${remote.name}`} data-remote={remote.name}>
-                <TableCell className={CELL_CLASS}>
-                  <span className="flex min-w-0 flex-wrap items-center gap-2">
-                    <span>{remote.name}</span>
-                    {remote.name === pick ? (
-                      <Badge variant="outline" data-remote-default-badge>
-                        {DEFAULT_BADGE}
-                      </Badge>
-                    ) : null}
-                  </span>
-                </TableCell>
-                <TableCell className={CELL_CLASS}>{remote.protocol}</TableCell>
-                <TableCell className={CELL_CLASS}>{remote.origin}</TableCell>
+        <div className="space-y-2">
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>{REMOTES_COPY.columns.name}</TableHead>
+                <TableHead>{REMOTES_COPY.columns.protocol}</TableHead>
+                <TableHead>{REMOTES_COPY.columns.origin}</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {remotes.map((remote, index) => (
+                <TableRow key={`${index}:${remote.name}`} data-remote={remote.name}>
+                  <TableCell className={CELL_CLASS}>
+                    <span className="flex min-w-0 flex-wrap items-center gap-2">
+                      <span>{remote.name}</span>
+                      {remote.name === pick ? (
+                        <Badge variant="outline" data-remote-default-badge>
+                          {DEFAULT_BADGE}
+                        </Badge>
+                      ) : null}
+                    </span>
+                  </TableCell>
+                  <TableCell className={CELL_CLASS}>{remote.protocol}</TableCell>
+                  <TableCell className={CELL_CLASS}>{remote.origin}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+          <p data-remotes-listed className={NOTE_CLASS}>
+            {REMOTES_COPY.listed}
+          </p>
+        </div>
       )}
     </div>
   )
