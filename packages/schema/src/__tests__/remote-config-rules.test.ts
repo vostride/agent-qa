@@ -1,14 +1,18 @@
 import { describe, expect, it } from 'vitest'
 
 import {
+  appRefIssues,
   closedConfigFieldsChanged,
+  configConnectionSecretNames,
   connectionSecretNames,
   formatRemoteOrigin,
   isLoopbackHost,
   remoteLabel,
+  remoteEntryIssues,
   remoteOrigin,
   secretReferenceNames,
   SUBSCRIPTION_AUTH_PACKAGE,
+  type RemoteEntryLike,
 } from '../config/remote'
 
 describe('remote origin and label', () => {
@@ -120,6 +124,195 @@ describe('secret references', () => {
       headers: { token: '{{secret:T}}' },
     }
     expect(connectionSecretNames([{ ...entry, name: 'a' }, { ...entry, name: 'b' }])).toEqual(['T'])
+  })
+})
+
+describe('an appium remote', () => {
+  const farm: RemoteEntryLike = {
+    name: 'farm',
+    protocol: 'appium',
+    url: 'https://farm.example.com/wd/hub',
+    headers: { Authorization: 'Bearer {{secret:FARM_TOKEN}}' },
+  }
+  const noQuery =
+    'Remote farm: an appium remote takes no query parameters; send credentials as headers or basicAuth.'
+
+  function issues(entry: RemoteEntryLike): { path: string; message: string }[] {
+    return remoteEntryIssues(entry).map((issue) => ({
+      path: issue.path.join('.'),
+      message: issue.message,
+    }))
+  }
+
+  it('takes an https url with headers and capabilities whose credentials are references', () => {
+    expect(
+      issues({ ...farm, capabilities: { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } } }),
+    ).toEqual([])
+  })
+
+  it('refuses query parameters, in query or in its url', () => {
+    expect(issues({ ...farm, query: { region: 'eu' } })).toEqual([
+      { path: 'query', message: noQuery },
+    ])
+    expect(issues({ ...farm, url: `${farm.url}?region=eu` })).toEqual([
+      { path: 'url', message: noQuery },
+    ])
+  })
+
+  it('refuses a context', () => {
+    expect(issues({ ...farm, context: 'default' })).toEqual([
+      { path: 'context', message: 'Remote farm: context applies to cdp remotes only.' },
+    ])
+  })
+
+  it('refuses {{playwright:version}} in any of its values', () => {
+    const sentence =
+      'Remote farm: {{playwright:version}} applies to playwright and cdp remotes only.'
+    expect(issues({ ...farm, headers: { 'X-Client': 'pw-{{playwright:version}}' } })).toEqual([
+      { path: 'headers', message: sentence },
+    ])
+    expect(
+      issues({ ...farm, capabilities: { 'farm:options': { client: '{{playwright:version}}' } } }),
+    ).toEqual([{ path: 'capabilities', message: sentence }])
+    expect(
+      issues({
+        ...farm,
+        headers: undefined,
+        basicAuth: { user: '{{playwright:version}}', password: '{{secret:FARM_PASSWORD}}' },
+      }),
+    ).toEqual([{ path: 'basicAuth', message: sentence }])
+  })
+
+  it('refuses a literal under a credential name in its capabilities', () => {
+    expect(issues({ ...farm, capabilities: { 'farm:options': { accessKey: 'literal' } } })).toEqual(
+      [
+        {
+          path: 'capabilities.farm:options.accessKey',
+          message:
+            'Remote farm: capabilities "farm:options.accessKey" names a credential, so its value must be a {{secret:NAME}} reference.',
+        },
+      ],
+    )
+  })
+
+  it('sends capability credentials over http:// only to this machine', () => {
+    const capabilities = { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } }
+    expect(
+      issues({ ...farm, headers: undefined, url: 'http://farm.example.com/wd/hub', capabilities }),
+    ).toEqual([
+      {
+        path: 'url',
+        message:
+          'Remote farm: credentials go over http:// only to this machine. Use https:// for farm.example.com.',
+      },
+    ])
+    expect(
+      issues({ ...farm, headers: undefined, url: 'http://127.0.0.1:4723', capabilities }),
+    ).toEqual([])
+  })
+
+  it('a playwright or cdp remote takes no capabilities', () => {
+    for (const protocol of ['playwright', 'cdp']) {
+      expect(
+        issues({
+          name: 'grid',
+          protocol,
+          url: 'wss://grid.example.com/session',
+          capabilities: { browserName: 'chromium' },
+        }),
+      ).toEqual([
+        {
+          path: 'capabilities',
+          message: 'Remote grid: capabilities apply to appium remotes only.',
+        },
+      ])
+    }
+  })
+})
+
+describe('an app reference', () => {
+  const at = ['registry', 'targets', 'shop', 'app', 'ref']
+
+  function messages(ref: string): string[] {
+    return appRefIssues(ref, at).map((issue) => issue.message)
+  }
+
+  it('refuses a user name or password in an http(s) url, at the ref', () => {
+    expect(appRefIssues('https://qa:hunter2@files.example.com/shop.apk', at)).toEqual([
+      {
+        path: at,
+        message:
+          'app.ref carries a user name or password. Send credentials as {{secret:NAME}} references in its query.',
+      },
+    ])
+  })
+
+  it('refuses a literal under a credential-named query key, such as a presigned signature', () => {
+    expect(
+      messages('https://files.example.com/shop.apk?X-Amz-Expires=600&X-Amz-Signature=9f3e1a'),
+    ).toEqual([
+      'app.ref query "X-Amz-Signature" names a credential, so its value must be a {{secret:NAME}} reference.',
+    ])
+  })
+
+  it('takes a reference over https', () => {
+    expect(
+      messages('https://files.example.com/shop.apk?X-Amz-Signature={{secret:SHOP_APK_SIGNATURE}}'),
+    ).toEqual([])
+  })
+
+  it('sends a reference over http:// only to this machine', () => {
+    expect(messages('http://files.example.com/shop.apk?token={{secret:SHOP_TOKEN}}')).toEqual([
+      'credentials in app.ref go over http:// only to this machine. Use https:// for files.example.com.',
+    ])
+    expect(messages('http://localhost:8080/shop.apk?token={{secret:SHOP_TOKEN}}')).toEqual([])
+  })
+
+  it("takes a server's own reference, bare or as a reference, as written", () => {
+    expect(messages('farm://a1b2c3d4')).toEqual([])
+    expect(messages('{{secret:SHOP_APP_REF}}')).toEqual([])
+  })
+})
+
+describe('connection-only secret names across the config', () => {
+  it('names the secrets in remotes, device capabilities and target app references, sorted and once each', () => {
+    const config = {
+      registry: {
+        remotes: [
+          {
+            name: 'farm',
+            protocol: 'appium',
+            url: 'https://farm.example.com/wd/hub',
+            headers: { Authorization: 'Bearer {{secret:FARM_TOKEN}}' },
+            capabilities: { 'farm:options': { project: '{{secret:FARM_PROJECT}}' } },
+          },
+        ],
+        devices: {
+          'galaxy-farm': {
+            platform: 'android',
+            remote: 'farm',
+            capabilities: {
+              'farm:options': { accessKey: '{{secret:FARM_KEY}}', team: '{{secret:FARM_TOKEN}}' },
+            },
+          },
+          pixel: { platform: 'android', model: 'Pixel 9' },
+        },
+        targets: {
+          shop: {
+            platform: 'android',
+            app: { ref: 'https://files.example.com/shop.apk?sig={{secret:SHOP_APK_SIGNATURE}}' },
+          },
+          web: { platform: 'web', url: 'https://shop.example.com/{{secret:NOT_CONNECTION}}' },
+        },
+      },
+    }
+    expect(configConnectionSecretNames(config)).toEqual([
+      'FARM_KEY',
+      'FARM_PROJECT',
+      'FARM_TOKEN',
+      'SHOP_APK_SIGNATURE',
+    ])
+    expect(configConnectionSecretNames({})).toEqual([])
   })
 })
 

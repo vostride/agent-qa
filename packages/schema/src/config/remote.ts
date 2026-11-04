@@ -26,6 +26,7 @@ export interface RemoteEntryLike {
   headers?: Record<string, string>
   basicAuth?: { user: string; password: string }
   context?: string
+  capabilities?: unknown
 }
 
 export interface RemoteOrigin {
@@ -191,16 +192,49 @@ function jsonContainer(text: string): unknown {
   }
 }
 
+interface KeyWalk {
+  readJson: JsonReader
+  isCredential: (key: string | number) => boolean
+  mapsAsText: boolean
+}
+
+const SENT_AS_TEXT: KeyWalk = {
+  readJson: jsonContainer,
+  isCredential: namesCredential,
+  mapsAsText: true,
+}
+
+// Appium settings whose names hold a credential term but name a path, an alias or a strategy.
+const CAPABILITY_SETTINGS = new Set([
+  'keychainPath',
+  'keychainsExcludePatterns',
+  'sendKeyStrategy',
+  'keystorePath',
+  'keyAlias',
+])
+
+function namesCapabilityCredential(key: string | number): boolean {
+  if (typeof key !== 'string') return false
+  return !CAPABILITY_SETTINGS.has(key.slice(key.indexOf(':') + 1)) && namesCredential(key)
+}
+
+// Capabilities travel as JSON, so a map under a credential name is judged by its leaves.
+const CAPABILITY_WALK: KeyWalk = {
+  readJson: jsonContainer,
+  isCredential: namesCapabilityCredential,
+  mapsAsText: false,
+}
+
 // A header or query value written as JSON is sent as JSON, so its keys are read like a map's.
 function credentialKeys(
   value: unknown,
-  readJson: JsonReader,
+  walk: KeyWalk,
   path: KeyPath = [],
 ): { path: KeyPath; literal: boolean }[] {
   return children(value).flatMap(([key, child]) => {
     const childPath = [...path, key]
-    const inner = (typeof child === 'string' ? readJson(child) : undefined) ?? child
-    if (namesCredential(key)) {
+    const inner = (typeof child === 'string' ? walk.readJson(child) : undefined) ?? child
+    if (walk.isCredential(key)) {
       // true, false and null cannot carry a secret; a string or number must be a reference.
       // Text at the name, and a map a header or query key sends as text, is judged as written
       // when nothing inside it is judged.
@@ -209,13 +243,25 @@ function credentialKeys(
       )
       const sentAsText =
         typeof child === 'string' ||
-        (path.length === 0 && typeof child === 'object' && child !== null)
+        (walk.mapsAsText && path.length === 0 && typeof child === 'object' && child !== null)
       const values = judged.length > 0 || !sentAsText ? judged : [child]
       if (values.length === 0) return []
       return [{ path: childPath, literal: values.some((leaf) => !carriesReference(leaf)) }]
     }
-    return credentialKeys(inner, readJson, childPath)
+    return credentialKeys(inner, walk, childPath)
   })
+}
+
+export function capabilityCredentialIssues(
+  capabilities: unknown,
+  path: readonly (string | number)[],
+): RemoteEntryIssue[] {
+  return credentialKeys(capabilities, CAPABILITY_WALK)
+    .filter((credential) => credential.literal)
+    .map((credential) => ({
+      path: [...path, ...credential.path],
+      message: `capabilities "${credential.path.join('.')}" names a credential, so its value must be a {{secret:NAME}} reference.`,
+    }))
 }
 
 function tokenKeys(value: unknown, path: KeyPath = []): KeyPath[] {
@@ -227,7 +273,13 @@ function tokenKeys(value: unknown, path: KeyPath = []): KeyPath[] {
 }
 
 function entryTexts(entry: RemoteEntryLike): string[] {
-  return [entry.url, ...texts(entry.query), ...texts(entry.headers), ...texts(entry.basicAuth)]
+  return [
+    ...(typeof entry.url === 'string' ? [entry.url] : []),
+    ...texts(entry.query),
+    ...texts(entry.headers),
+    ...texts(entry.basicAuth),
+    ...texts(entry.capabilities),
+  ]
 }
 
 export function connectionSecretNames(remotes: readonly RemoteEntryLike[]): string[] {
@@ -238,6 +290,32 @@ export function connectionSecretNames(remotes: readonly RemoteEntryLike[]): stri
     }
   }
   return [...names]
+}
+
+function valuesOf(value: unknown): unknown[] {
+  return isRecord(value) ? Object.values(value) : []
+}
+
+// Every secret the config sends only to a server: remotes, device capabilities and app references.
+export function configConnectionSecretNames(config: unknown): string[] {
+  const root = isRecord(config) ? config : {}
+  const registry = isRecord(root.registry) ? root.registry : {}
+  const remotes = Array.isArray(registry.remotes) ? registry.remotes.filter(isRecord) : []
+  const names = new Set(connectionSecretNames(remotes as unknown as RemoteEntryLike[]))
+  const found = [
+    ...valuesOf(registry.devices).flatMap((device) =>
+      isRecord(device) ? texts(device.capabilities) : [],
+    ),
+    ...valuesOf(registry.targets).flatMap((target) =>
+      isRecord(target) && isRecord(target.app) && typeof target.app.ref === 'string'
+        ? [target.app.ref]
+        : [],
+    ),
+  ]
+  for (const text of found) {
+    for (const name of secretReferenceNames(text)) names.add(name)
+  }
+  return [...names].sort()
 }
 
 // The text between :// and the first /, ? or #, split at the last @ into userinfo and host:port.
@@ -282,6 +360,21 @@ function urlQuery(url: string): { params: Record<string, string>; readJson: Json
   return { params, readJson }
 }
 
+function versionTokenSection(entry: RemoteEntryLike): string | undefined {
+  const sections = [
+    ['url', entry.url],
+    ['query', entry.query],
+    ['headers', entry.headers],
+    ['basicAuth', entry.basicAuth],
+    ['capabilities', entry.capabilities],
+  ] as const
+  return sections.find(([, value]) =>
+    leaves(value).some(
+      (leaf) => typeof leaf === 'string' && leaf.includes(PLAYWRIGHT_VERSION_TOKEN),
+    ),
+  )?.[0]
+}
+
 export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
   const issues: RemoteEntryIssue[] = []
   const report = (path: KeyPath, sentence: string) => {
@@ -312,10 +405,12 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     )
   }
 
-  const headerCredentials = credentialKeys(entry.headers, jsonContainer)
-  const queryCredentials = credentialKeys(entry.query, jsonContainer)
+  const headerCredentials = credentialKeys(entry.headers, SENT_AS_TEXT)
+  const queryCredentials = credentialKeys(entry.query, SENT_AS_TEXT)
   const query = urlQuery(entry.url)
-  const urlCredentials = credentialKeys(query.params, query.readJson)
+  const urlCredentials = credentialKeys(query.params, { ...SENT_AS_TEXT, readJson: query.readJson })
+  const capabilityCredentials =
+    entry.protocol === 'appium' ? credentialKeys(entry.capabilities, CAPABILITY_WALK) : []
   for (const credential of urlCredentials.filter((c) => c.literal)) {
     report(
       ['url'],
@@ -345,6 +440,7 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     headerCredentials.length > 0 ||
     queryCredentials.length > 0 ||
     urlCredentials.length > 0 ||
+    capabilityCredentials.length > 0 ||
     entryTexts(entry).some(carriesReference)
   const protectedScheme = origin ? PROTECTED_SCHEMES[origin.scheme] : undefined
   if (origin && protectedScheme && carriesCredential && !isLoopbackHost(origin.host)) {
@@ -358,12 +454,28 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     report(['context'], 'context applies to cdp remotes only.')
   }
 
+  if (entry.protocol === 'appium') {
+    const noQuery =
+      'an appium remote takes no query parameters; send credentials as headers or basicAuth.'
+    if (entry.query !== undefined) report(['query'], noQuery)
+    if (Object.keys(query.params).length > 0) report(['url'], noQuery)
+    const tokenAt = versionTokenSection(entry)
+    if (tokenAt !== undefined) {
+      report([tokenAt], `${PLAYWRIGHT_VERSION_TOKEN} applies to playwright and cdp remotes only.`)
+    }
+    for (const issue of capabilityCredentialIssues(entry.capabilities, ['capabilities'])) {
+      report(issue.path, issue.message)
+    }
+  } else if (entry.capabilities !== undefined) {
+    report(['capabilities'], 'capabilities apply to appium remotes only.')
+  }
+
   if (entry.basicAuth) {
     const headerNames = Object.keys(entry.headers ?? {})
     if (headerNames.some((name) => name.trim().toLowerCase() === 'authorization')) {
       report(['basicAuth'], 'set basicAuth or an Authorization header, not both.')
     }
-    for (const field of ['user', 'password'] as const) {
+    for (const field of entry.protocol === 'appium' ? [] : (['user', 'password'] as const)) {
       if (entry.basicAuth[field].includes(PLAYWRIGHT_VERSION_TOKEN)) {
         report(
           ['basicAuth', field],
@@ -385,6 +497,37 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     }
   }
 
+  return issues
+}
+
+// An http(s) app reference is a download url, so it follows the remote url's credential rules; any
+// other text is the server's own reference and is sent as written.
+export function appRefIssues(ref: string, path: readonly (string | number)[]): RemoteEntryIssue[] {
+  const head = urlHead(ref)
+  const scheme = head?.scheme.toLowerCase()
+  if (!head || (scheme !== 'http' && scheme !== 'https')) return []
+  const issues: RemoteEntryIssue[] = []
+  const report = (message: string) => {
+    issues.push({ path: [...path], message })
+  }
+  if (head.userinfo) {
+    report(
+      'app.ref carries a user name or password. Send credentials as {{secret:NAME}} references in its query.',
+    )
+  }
+  const query = urlQuery(ref)
+  const credentials = credentialKeys(query.params, { ...SENT_AS_TEXT, readJson: query.readJson })
+  for (const credential of credentials.filter((c) => c.literal)) {
+    report(
+      `app.ref query "${credential.path.join('.')}" names a credential, so its value must be a {{secret:NAME}} reference.`,
+    )
+  }
+  const origin = remoteOrigin(ref)
+  const loopback = origin !== undefined && isLoopbackHost(origin.host)
+  if (scheme === 'http' && !loopback && (credentials.length > 0 || carriesReference(ref))) {
+    const host = origin ? formatHost(origin.host) : head.hostPort
+    report(`credentials in app.ref go over http:// only to this machine. Use https:// for ${host}.`)
+  }
   return issues
 }
 

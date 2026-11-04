@@ -82,8 +82,10 @@ export type {
   TimeoutConfig,
 } from './config/index'
 export {
+  appRefIssues,
   appStateSchema,
   browserConfigSchema,
+  capabilityCredentialIssues,
   closedConfigFieldsChanged,
   CONFIG_ACTION_REFUSALS,
   CONFIG_NAMED_ARRAYS,
@@ -97,6 +99,7 @@ export {
   ConfigPathSegmentSchema,
   ConfigUndoRequestSchema,
   ConfigWriteRequestSchema,
+  configConnectionSecretNames,
   connectionSecretNames,
   DEFAULT_NAVIGATION_TIMEOUT_MS,
   DEFAULT_PARALLEL_WORKERS,
