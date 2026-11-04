@@ -2,7 +2,7 @@ import { createServer } from 'node:http'
 import type { Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 
-import { chromium } from 'playwright-core'
+import { chromium, firefox, webkit } from 'playwright-core'
 import type { Browser } from 'playwright-core'
 import type { ActionResult, RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest'
@@ -257,6 +257,58 @@ describe('what a remote browser cannot give', () => {
       await server?.close()
     }
   }, 60_000)
+
+  it.each(['firefox', 'webkit'] as const)(
+    'a %s browser on a remote reports the live screencast unsupported and offers no screencast stream',
+    async (name) => {
+      let server: PlaywrightServer | undefined
+      const adapter = new WebPlatformAdapter()
+      try {
+        server = await startPlaywrightServer()
+        const engine = name === 'firefox' ? firefox : webkit
+        const connect = chromium.connect.bind(chromium)
+        // Only Chromium is installed; the adapter reports from the configured engine alone.
+        const engineConnect = vi
+          .spyOn(engine, 'connect')
+          .mockImplementation(((...args: Parameters<typeof connect>) =>
+            connect(...args)) as typeof engine.connect)
+        const launches = [chromium, firefox, webkit].map((type) => vi.spyOn(type, 'launch'))
+
+        await adapter.setup({
+          platform: 'web',
+          browser: {
+            name,
+            viewport: VIEWPORT,
+            headless: true,
+            remote: remoteOf('playwright', server.wsEndpoint),
+          },
+        })
+
+        expect(engineConnect).toHaveBeenCalledTimes(1)
+        for (const launch of launches) expect(launch).not.toHaveBeenCalled()
+        expect(capabilitiesOf(adapter)).toEqual([
+          'launch flags',
+          'clipboard read-back',
+          'live screencast',
+        ])
+        const evidence = adapter.placeEvidence
+        expect(evidence?.place === 'remote' ? evidence.unsupported[2] : undefined).toEqual({
+          capability: 'live screencast',
+          reason: 'Firefox and WebKit show a one-second snapshot preview',
+        })
+        expect(adapter.liveStream).toBeUndefined()
+        expect(adapter.operationCaptureSupport).toEqual({
+          download: false,
+          clipboard: false,
+          reason: name,
+        })
+      } finally {
+        await adapter.cleanup()
+        await server?.close()
+      }
+    },
+    60_000,
+  )
 
   it("keyboard shortcuts follow the remote browser's platform, not this machine's", async () => {
     let cdp: CdpBrowser | undefined
