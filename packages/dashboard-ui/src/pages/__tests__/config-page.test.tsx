@@ -79,7 +79,6 @@ import {
   SUITE_MATCH_REQUIRED_ERROR,
   TEST_MATCH_REQUIRED_ERROR,
   attributeValueLabel,
-  remoteDefaultLine,
   replaceValueName,
   undoLine,
 } from '@/lib/config-copy'
@@ -1263,12 +1262,17 @@ describe('ConfigPage task tabs shell', () => {
     await pressKey(document.activeElement!, 'Escape')
   })
 
-  it('the Remotes default shows this machine when the config picks no remote', async () => {
+  it('the Remotes default shows this machine when the config picks no remote, with the inherit sentence as muted help', async () => {
     vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({ config: configWithRemotes() }))
     await renderAt('/config/targets?section=remotes')
 
     expect(fieldControl(REMOTE_SEGMENTS)!.textContent).toBe(REMOTES_COPY.thisMachine)
-    expect(section('remotes')!.querySelector('[data-remote-default]')?.textContent).toBe(REMOTES_COPY.runsHere)
+    const help = section('remotes')!.querySelector('[data-field-path="use.browser.remote"] [data-field-help]')
+    expect(help?.textContent).toBe(
+      'Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.',
+    )
+    expect(help?.className).toContain('text-xs')
+    expect(help?.className).toContain('text-muted-foreground')
   })
 
   it('choosing a remote as the default writes use.browser.remote, and choosing this machine removes it', async () => {
@@ -1277,11 +1281,11 @@ describe('ConfigPage task tabs shell', () => {
 
     await chooseOption(fieldControl(REMOTE_SEGMENTS), 'lab (cdp)')
     expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([[[{ op: 'set', path: REMOTE_SEGMENTS, value: 'lab' }]]])
-    expect(section('remotes')!.querySelector('[data-remote-default]')?.textContent).toBe(remoteDefaultLine('lab'))
+    expect(fieldControl(REMOTE_SEGMENTS)!.textContent).toBe('lab (cdp)')
 
     await chooseOption(fieldControl(REMOTE_SEGMENTS), REMOTES_COPY.thisMachine)
     expect(vi.mocked(applyConfigChanges).mock.calls[1]).toEqual([[{ op: 'unset', path: REMOTE_SEGMENTS }]])
-    expect(section('remotes')!.querySelector('[data-remote-default]')?.textContent).toBe(REMOTES_COPY.runsHere)
+    expect(fieldControl(REMOTE_SEGMENTS)!.textContent).toBe(REMOTES_COPY.thisMachine)
   })
 
   it('keeps browser headless out of the Models tab defaults: the default model is a row badge, and Make default writes only the default model', async () => {

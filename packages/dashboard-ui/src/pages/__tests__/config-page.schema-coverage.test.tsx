@@ -53,7 +53,6 @@ import {
   REPLACE_KEY_LABEL,
   SAVE_KEY_AND_TEST_LABEL,
   VISION_FIELD_LABELS,
-  remoteDefaultLine,
   undoLine,
 } from '@/lib/config-copy'
 
@@ -605,7 +604,7 @@ describe('ConfigPage schema coverage', () => {
     const section = container!.querySelector('[data-config-panel="targets"] [data-config-section="remotes"]') as HTMLElement | null
     expect(section, 'the Remotes section renders on the Targets tab').not.toBeNull()
     expect(section!.querySelector('[data-remote="grid"]')?.textContent).toContain('wss://grid.example.com:443')
-    expect(section!.textContent).toContain(remoteDefaultLine('grid'))
+    expect(section!.querySelector('[role="combobox"]')?.textContent).toBe('grid (playwright)')
     const controls = Array.from(section!.querySelectorAll('input, select, button, textarea, [role="combobox"], [contenteditable]'))
     expect(controls.map((control) => control.closest('[data-field-path]')?.getAttribute('data-field-path'))).toEqual([
       'use.browser.remote',

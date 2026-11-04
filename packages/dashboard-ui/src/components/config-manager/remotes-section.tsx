@@ -15,7 +15,6 @@ import {
   REMOTES_COPY,
   remoteChoiceLabel,
   remoteCredentialsLine,
-  remoteDefaultParts,
   remoteNotListedParts,
 } from "@/lib/config-copy"
 
@@ -139,6 +138,7 @@ export function RemoteDefaultField({ config }: RemotesSectionProps) {
     <ConfigField
       field={REMOTE_DEFAULT_FIELD}
       label={REMOTES_COPY.defaultLabel}
+      help={REMOTES_COPY.inherit}
       kind="select"
       options={defaultChoices(config)}
       placeholder={REMOTES_COPY.thisMachine}
@@ -153,9 +153,6 @@ export function RemotesSection({ config }: RemotesSectionProps) {
   const unlisted = pick !== undefined && !remotes.some((remote) => remote.name === pick)
   return (
     <div data-remotes className="space-y-4">
-      <p data-remote-default={pick ?? "local"} className="text-sm">
-        {pick === undefined ? withCode(REMOTES_COPY.runsHere) : withName(remoteDefaultParts(nameMark(pick)))}
-      </p>
       {unlisted ? (
         <p data-remote-unlisted className="text-sm text-destructive">
           {withName(remoteNotListedParts(nameMark(pick)))}

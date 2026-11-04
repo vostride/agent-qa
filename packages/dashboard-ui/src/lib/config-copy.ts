@@ -643,16 +643,14 @@ export const LOG_CAPTURE_FIELD_LABELS = {
 
 export const NO_TARGETS_TEXT = 'No targets yet.'
 
-const REMOTE_INHERIT_SENTENCE =
-  'Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.'
-
 export const REMOTES_COPY = {
   defaultLabel: 'Default for web tests',
+  inherit:
+    'Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.',
   thisMachine: 'This machine',
   runsOnLabel: 'Runs on',
   suiteWinsHint: "When a suite picks where it runs, the suite's choice wins.",
   columns: { name: 'Name', protocol: 'Protocol', origin: 'Origin' },
-  runsHere: `Web tests run on this machine. ${REMOTE_INHERIT_SENTENCE}`,
   missingValue: '—',
   empty: 'No remotes are listed. Add one under registry.remotes in agent-qa.config.yaml:',
   example: [
@@ -667,15 +665,6 @@ export const REMOTES_COPY = {
   pick: 'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test. Use local to run on this machine.',
   listed: 'Remotes are defined under registry.remotes in agent-qa.config.yaml and picked with use.browser.remote.',
 } as const
-
-// The parts keep the remote name apart, so the Remotes section can set it in another weight.
-export function remoteDefaultParts<T>(name: T): [string, T, string] {
-  return ['Web tests run on ', name, `. ${REMOTE_INHERIT_SENTENCE}`]
-}
-
-export function remoteDefaultLine(name: string): string {
-  return remoteDefaultParts(name).join('')
-}
 
 // The strict parse refuses this default, but the page still shows a config that fails to parse.
 export function remoteNotListedParts<T>(name: T): [T, string] {

@@ -54,7 +54,6 @@ function functionOutputs(): string[] {
     copy.attributeValueLabel('git.branch'),
     copy.removeAttributeName('git.branch'),
     copy.targetNameTakenError('staging'),
-    copy.remoteDefaultLine('grid'),
     copy.remoteNotListedLine('grid'),
     copy.remoteChoiceLabel('grid', 'playwright'),
     copy.remoteChoiceLabel('grid', undefined),
@@ -76,7 +75,6 @@ const REMOTE_KEY_PATHS = ['registry.remotes', 'use.browser.remote'] as const
 function remotesStrings(): string[] {
   return [
     ...collectStrings(copy.REMOTES_COPY),
-    copy.remoteDefaultLine('grid'),
     copy.remoteNotListedLine('grid'),
     copy.remoteCredentialsLine('.env.secrets.local'),
     copy.remoteCredentialsLine(undefined),

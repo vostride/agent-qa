@@ -17,7 +17,6 @@ import {
   DEFAULT_BADGE,
   REMOTES_COPY,
   remoteCredentialsLine,
-  remoteDefaultLine,
   remoteNotListedLine,
 } from '@/lib/config-copy'
 
@@ -85,16 +84,6 @@ describe('the Remotes section', () => {
     expect(section.textContent).not.toContain('user:pw')
   })
 
-  it('names the project default remote when use.browser.remote picks one, the name in medium weight', () => {
-    const section = show({ ...TWO_REMOTES, use: { browser: { remote: 'grid' } } })
-    const line = section.querySelector('[data-remote-default]')
-    expect(line?.textContent).toBe(remoteDefaultLine('grid'))
-    expect(remoteDefaultLine('grid')).toBe(
-      'Web tests run on grid. Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.',
-    )
-    expect(Array.from(line?.querySelectorAll('.font-medium') ?? []).map((mark) => mark.textContent)).toEqual(['grid'])
-  })
-
   it('warns when the default names no listed remote, as a config that fails to parse can', () => {
     for (const config of [
       { ...TWO_REMOTES, use: { browser: { remote: 'gird' } } },
@@ -144,22 +133,9 @@ describe('the Remotes section', () => {
     ])
   })
 
-  it('says tests and suites inherit the default and can override it, whether it is this machine or a remote', () => {
-    const ending = 'Tests and suites inherit this default from agent-qa.config.yaml and can override it in their settings.'
-    expect(REMOTES_COPY.runsHere).toBe(`Web tests run on this machine. ${ending}`)
-    expect(remoteDefaultLine('grid')).toBe(`Web tests run on grid. ${ending}`)
-    for (const config of [{}, { ...TWO_REMOTES, use: { browser: { remote: 'grid' } } }]) {
-      const line = show(config).querySelector('[data-remote-default]')
-      expect(Array.from(line?.querySelectorAll('code') ?? []).map((code) => code.textContent)).toEqual([
-        'agent-qa.config.yaml',
-      ])
-    }
-  })
-
-  it('says tests run on this machine when the default is local or unset', () => {
-    for (const config of [{ ...TWO_REMOTES, use: { browser: { remote: 'local' } } }, TWO_REMOTES, {}]) {
-      const section = show(config)
-      expect(section.querySelector('[data-remote-default]')?.textContent).toBe(REMOTES_COPY.runsHere)
+  it('does not repeat the default the select above it shows', () => {
+    for (const config of [{ ...TWO_REMOTES, use: { browser: { remote: 'grid' } } }, TWO_REMOTES, {}]) {
+      expect(show(config).textContent).not.toContain('Web tests run on')
     }
   })
 
