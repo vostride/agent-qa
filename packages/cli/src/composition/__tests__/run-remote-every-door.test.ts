@@ -479,6 +479,33 @@ describe('a web test placed on a remote runs there from every door', () => {
     })
   }, RUN_BUDGET_MS)
 
+  it('the live editor connects its session to the Playwright server its config names', async () => {
+    await onRemote({}, async (scene) => {
+      const dashboard = await openDashboard(scene.project)
+      const endSession = (path: string): Promise<Response> =>
+        fetch(`${dashboard.origin}${path}`, { method: 'DELETE' })
+      let sessionPath: string | undefined
+      opened.push(async () => {
+        if (sessionPath !== undefined) await endSession(sessionPath).catch(() => undefined)
+      })
+      const sessionId = (
+        await postJson(dashboard, '/api/live-editor/sessions', {
+          platform: 'web',
+          targetName: scene.project.targetName,
+          url: `${scene.target.origin}/in-process-thing`,
+          headless: true,
+        })
+      )['sessionId']
+      expect(typeof sessionId, 'the live editor answered no session id').toBe('string')
+      sessionPath = `/api/live-editor/sessions/${sessionId as string}`
+      const ended = await endSession(sessionPath)
+      expect(ended.status, await ended.text()).toBeLessThan(300)
+      sessionPath = undefined
+
+      expectReachedRemote(scene)
+    })
+  }, RUN_BUDGET_MS)
+
   it('the daemon connects a direct test to the Playwright server its config names', async () => {
     await onRemote({}, async (scene) => {
       const runId = await startThroughDaemon(scene)
