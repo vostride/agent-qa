@@ -393,6 +393,7 @@ function buildGitignoreEntries(): string[] {
     // Spelled literally because the init suite mocks init-filesystem.js; a test pins both equal.
     'tests/.agent-qa-drafts/',
     'node_modules/',
+    // init no longer writes this file; the rule keeps one an older init wrote out of git.
     DEFAULT_LOCAL_CONFIG_FILE,
     DEFAULT_ENV_FILE,
     DEFAULT_SECRETS_FILE,
@@ -404,23 +405,6 @@ function buildGitignoreEntries(): string[] {
     // pinned together by the runtime-versus-defaults agreement test.
     '.*.agent-qa-init-*.tmp',
   ]
-}
-
-function buildLocalConfigTemplate(): string {
-  return `# This file is for machine-specific device and app bindings.
-# Keep it out of git.
-# Add agent-qa.local.yaml to .gitignore.
-
-devices:
-  # Example local device binding:
-  # android-emu:
-  #   avd: Pixel_8_API_35
-
-apps:
-  # Example app install binding:
-  # example-android:
-  #   path: apps/example.apk
-`
 }
 
 const KNOWLEDGE_ROOT_DIR = 'agent-qa-knowledge'
@@ -654,9 +638,6 @@ function initNextSteps(
     })
   }
   steps.push(...connectionSteps(config, dir))
-  if (!hasWeb(platform)) {
-    steps.push({ command: 'Edit agent-qa.local.yaml', description: 'Bind your mobile app' })
-  }
   steps.push({ command: 'npx agent-qa validate', description: 'Check the config and the tests' })
   if (hasWeb(platform)) {
     steps.push({
@@ -750,12 +731,6 @@ function buildScaffoldFilePlans(
       dir,
       DEFAULT_HOOKS_FILE,
       hasWeb(platform) ? buildExampleHooksFile() : buildHooksFile(platform),
-      force,
-    ),
-    scaffoldFilePlan(
-      dir,
-      DEFAULT_LOCAL_CONFIG_FILE,
-      buildLocalConfigTemplate(),
       force,
     ),
     // The knowledge root's own covering rule goes down BEFORE any other write inside the

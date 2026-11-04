@@ -326,7 +326,6 @@ function buildV1Workspace(): string {
     '    network: true',
     '',
   ].join('\n'))
-  write(root, 'agent-qa.local.yaml', 'devices:\napps:\nproviders:\n')
   write(root, '.gitignore', [
     '.agent-qa/',
     '.agent-qa/auth-states/',

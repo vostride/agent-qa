@@ -728,31 +728,17 @@ describe('init command', () => {
     expect(mockWriteFileSync.mock.calls.some((call) => (call[0] as string).endsWith('.env.secrets.local'))).toBe(true)
   })
 
-  it('creates an ignored local override template', async () => {
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
+  it.each(['web', 'android', 'ios'] as const)(
+    'a %s init writes no agent-qa.local.yaml and prints no step to edit one',
+    async (platform) => {
+      await runInit(['--dir', '/tmp/test-project', '--platform', platform])
 
-    const localCall = mockWriteFileSync.mock.calls.find(
-      (call) => (call[0] as string).endsWith('agent-qa.local.yaml'),
-    )
-    expect(localCall).toBeDefined()
-
-    const content = localCall![1] as string
-    expect(content.startsWith('# This file is for machine-specific device and app bindings.')).toBe(true)
-    expect(content).toContain('# Keep it out of git.')
-    expect(content).toContain('# Add agent-qa.local.yaml to .gitignore.')
-    expect(content).toContain('devices:\n')
-    expect(content).toContain('apps:\n')
-    expect(content).toContain('  # android-emu:')
-    expect(content).toContain('  #   avd: Pixel_8_API_35')
-    expect(content).toContain('  # example-android:')
-    expect(content).toContain('  #   path: apps/example.apk')
-    expect(content).not.toContain('devices: {}')
-    expect(content).not.toContain('# devices:')
-    expect(content).not.toContain('# apps:')
-
-    const output = consoleOutput()
-    expect(output).toContain('agent-qa.local.yaml')
-  })
+      expect(findWriteCallEndingWith('agent-qa.local.yaml')).toBeUndefined()
+      const plannedPaths = mockPreflightInitPlan.mock.calls[0]![0].map(plan => plan.path)
+      expect(plannedPaths).not.toContain('/tmp/test-project/agent-qa.local.yaml')
+      expect(consoleOutput()).not.toContain('Edit agent-qa.local.yaml')
+    },
+  )
 
   it('places a complete managed .gitignore block after existing entries', async () => {
     mockExistsSync.mockImplementation((p) => {
@@ -836,21 +822,7 @@ describe('init command', () => {
     expect(configCall).toBeDefined()
   })
 
-  it('preserves existing local override file without --force', async () => {
-    mockExistsSync.mockImplementation((p) => {
-      if ((p as string).endsWith('agent-qa.local.yaml')) return true
-      return false
-    })
-
-    await runInit(['--dir', '/tmp/test-project', '--platform', 'web'])
-
-    const localCall = mockWriteFileSync.mock.calls.find(
-      (call) => (call[0] as string).endsWith('agent-qa.local.yaml'),
-    )
-    expect(localCall).toBeUndefined()
-  })
-
-  it('overwrites existing local override file with --force', async () => {
+  it('init --force does not rewrite a leftover agent-qa.local.yaml', async () => {
     mockExistsSync.mockImplementation((p) => {
       if ((p as string).endsWith('agent-qa.config.yaml')) return true
       if ((p as string).endsWith('agent-qa.local.yaml')) return true
@@ -859,10 +831,8 @@ describe('init command', () => {
 
     await runInit(['--dir', '/tmp/test-project', '--platform', 'web', '--force'])
 
-    const localCall = mockWriteFileSync.mock.calls.find(
-      (call) => (call[0] as string).endsWith('agent-qa.local.yaml'),
-    )
-    expect(localCall).toBeDefined()
+    expect(findWriteCallEndingWith('agent-qa.local.yaml')).toBeUndefined()
+    expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeDefined()
   })
 
   describe('credential-file scaffold policy', () => {
@@ -977,13 +947,11 @@ describe('init command', () => {
         const path = p as string
         return path === envPath || path === secretsPath
           || path.endsWith('agent-qa.config.yaml')
-          || path.endsWith('agent-qa.local.yaml')
           || path.endsWith('hooks.yaml')
       })
 
       await runInit(['--dir', projectDir, '--platform', 'web', '--force'])
 
-      expect(findWriteCallEndingWith('agent-qa.local.yaml')).toBeDefined()
       expect(findWriteCallEndingWith('hooks.yaml')).toBeDefined()
       expect(findWriteCallEndingWith('agent-qa.config.yaml')).toBeDefined()
     })
@@ -1291,7 +1259,6 @@ skills/.staging/
       '/tmp/test-project/agent-qa-knowledge/README.md',
       '/tmp/test-project/agent-qa-knowledge/policies/global.md',
       '/tmp/test-project/agent-qa.config.yaml',
-      '/tmp/test-project/agent-qa.local.yaml',
       '/tmp/test-project/hooks.yaml',
       '/tmp/test-project/package.json',
       '/tmp/test-project/scripts/examples/make-shipping-address.mjs',
