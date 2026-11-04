@@ -11,6 +11,8 @@ export const CONFIG_SCHEMA_LEAVES = Object.freeze([
   'plugins.providers[].package',
   'plugins.providers[].path',
   'registry.devices.*.match.*',
+  'registry.devices.*.model',
+  'registry.devices.*.os',
   'registry.devices.*.platform',
   'registry.llms[].baseURL',
   'registry.llms[].contextWindow',

@@ -184,6 +184,16 @@ function DeviceFields({ name, device }: { name: string; device: DeviceEntry }) {
         kind="select"
         options={DEVICE_PLATFORM_OPTIONS}
       />
+      <ConfigField
+        field={{ ...at("model"), pattern: "registry.devices.*.model" }}
+        label={DEVICE_FIELD_LABELS.model}
+        kind="text"
+      />
+      <ConfigField
+        field={{ ...at("os"), pattern: "registry.devices.*.os" }}
+        label={DEVICE_FIELD_LABELS.os}
+        kind="text"
+      />
       <div className="space-y-2">
         {keys.length > 0 ? (
           <dl data-field-list="registry.devices.*.match" className="space-y-2">

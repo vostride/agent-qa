@@ -16,6 +16,34 @@ describe('DeviceProfileSchema', () => {
     expect(result.success).toBe(true)
   })
 
+  it('accepts a device described by model and a quoted os', async () => {
+    const schema = await getSchema()
+    const result = schema.safeParse({
+      platform: 'android',
+      model: 'Samsung Galaxy S24',
+      os: '14',
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data).toMatchObject({ model: 'Samsung Galaxy S24', os: '14' })
+    }
+  })
+
+  it('refuses os written as a number, with a hint to quote it', async () => {
+    const schema = await getSchema()
+    const result = schema.safeParse({
+      platform: 'ios',
+      model: 'iPhone 16',
+      os: 17.10,
+    })
+    expect(result.success).toBe(false)
+    if (!result.success) {
+      expect(result.error.issues.map(issue => ({ path: issue.path, message: issue.message }))).toEqual([
+        { path: ['os'], message: 'os must be text, so write it in quotes, such as os: "17.10".' },
+      ])
+    }
+  })
+
   it('refuses a match key outside the allowlist on any device, naming the platform', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({

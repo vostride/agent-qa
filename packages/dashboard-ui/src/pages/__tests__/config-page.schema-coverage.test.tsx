@@ -133,7 +133,7 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
           app: { path: 'apps/shop.apk' },
         },
       },
-      devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },
+      devices: { iosLocal: { platform: 'ios', model: 'iPhone 16', os: '18.0', match: { udid: 'abc' } } },
       // As GET /api/config serves it: name, protocol and origin only.
       remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
     },

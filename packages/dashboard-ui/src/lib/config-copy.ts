@@ -775,6 +775,8 @@ export function targetNameTakenError(name: string): string {
 export const DEVICE_FIELD_LABELS = {
   name: 'Name',
   platform: 'Platform',
+  model: 'Model',
+  os: 'OS version',
   key: 'Setting',
   value: 'Value',
 } as const satisfies Record<string, string>

@@ -39,6 +39,13 @@ export const TargetSchema = z.strictObject({
 
 export const DeviceProfileSchema = z.strictObject({
   platform: z.enum(['android', 'ios']),
+  model: z.string().trim().min(1).optional(),
+  // YAML reads os: 17.10 as the number 17.1, so a number is refused rather than coerced.
+  os: z
+    .string({ error: 'os must be text, so write it in quotes, such as os: "17.10".' })
+    .trim()
+    .min(1)
+    .optional(),
   match: z.record(z.string(), z.unknown()).optional().default({}),
 }).superRefine((val, ctx) => {
   const androidOnly = ['avd', 'serial', 'appPackage', 'appActivity', 'automationName', 'browserName', 'platformVersion']
