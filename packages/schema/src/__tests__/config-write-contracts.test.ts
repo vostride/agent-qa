@@ -81,9 +81,9 @@ test('lists plugins as the only denied write root', () => {
   expect(api.CONFIG_WRITE_DENIED_ROOTS).toEqual(['plugins'])
 })
 
-// The page write door admits exactly the page-owned leaves, refuses the plugin and remote leaves,
-// and refuses every retired key's path as an unknown path.
-test('the write policy admits the page-owned leaves and refuses the plugin, remote and retired paths', () => {
+// The page write door admits exactly the page-owned leaves, refuses the plugin, remote and device
+// remote leaves, and refuses every retired key's path as an unknown path.
+test('the write policy admits the page-owned leaves and refuses the plugin, remote, device remote and retired paths', () => {
   const writable = api.CONFIG_SCHEMA_LEAVES.filter(pattern => api.isPageWritableConfigPath(concreteLeafPath(pattern, true)))
   expect(writable).toEqual(expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns', 'use.browser.remote']))
   expect(api.CONFIG_SCHEMA_LEAVES.filter(pattern => !writable.includes(pattern))).toEqual([
@@ -91,6 +91,7 @@ test('the write policy admits the page-owned leaves and refuses the plugin, remo
     'plugins.auth[].path',
     'plugins.providers[].package',
     'plugins.providers[].path',
+    'registry.devices.*.remote',
     'registry.remotes[].basicAuth.password',
     'registry.remotes[].basicAuth.user',
     'registry.remotes[].connectTimeout',
@@ -148,7 +149,10 @@ function concreteLeafPath(pattern: string, named: boolean): api.ConfigPathSegmen
 test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
   const denied = api.CONFIG_WRITE_DENIED_ROOTS as readonly string[]
   for (const pattern of api.CONFIG_SCHEMA_LEAVES) {
-    const expected = !denied.includes(pattern.split('.')[0]!) && !pattern.startsWith('registry.remotes[]')
+    const expected =
+      !denied.includes(pattern.split('.')[0]!) &&
+      !pattern.startsWith('registry.remotes[]') &&
+      pattern !== 'registry.devices.*.remote'
     for (const named of [false, true]) {
       const path = concreteLeafPath(pattern, named)
       expect({ pattern, path, writable: api.isPageWritableConfigPath(path) }).toEqual({
@@ -166,6 +170,9 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
     ['workspace', 'testMatch'],
     ['use', 'timeout'],
     ['use', 'browser', 'remote'],
+    ['registry', 'devices'],
+    ['registry', 'devices', 'pixel'],
+    ['registry', 'devices', 'pixel', 'model'],
   ]
   const refused: api.ConfigPathSegment[][] = [
     [],
@@ -176,6 +183,7 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
     ['registry', 'remotes', 0],
     ['registry', 'remotes', { name: 'k' }, 'url'],
     ['registry', 'remotes', 0, 'headers', 'k'],
+    ['registry', 'devices', 'pixel', 'remote'],
     // A retired root is refused as an unknown path, not as a denied root.
     ['safety', 'trustMode'],
     ['registry', 'llms', { name: 'k' }, 'nope'],

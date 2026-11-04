@@ -133,9 +133,15 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
           app: { path: 'apps/shop.apk' },
         },
       },
-      devices: { iosLocal: { platform: 'ios', model: 'iPhone 16', os: '18.0', match: { udid: 'abc' } } },
+      devices: {
+        iosLocal: { platform: 'ios', model: 'iPhone 16', os: '18.0', match: { udid: 'abc' } },
+        'galaxy-farm': { platform: 'android', model: 'Samsung Galaxy S24', os: '14', remote: 'farm' },
+      },
       // As GET /api/config serves it: name, protocol and origin only.
-      remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
+      remotes: [
+        { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+        { name: 'farm', protocol: 'appium', url: 'https://farm.example.com:443' },
+      ],
     },
     use: {
       browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 }, remote: 'grid' },
@@ -525,9 +531,9 @@ describe('ConfigPage schema coverage', () => {
     }
   })
 
-  // The page-owned leaves are the strict leaves less the plugin and remote entry leaves, which the
-  // write door refuses; each has a rendered owner and the write door admits it.
-  it('exactly the page-writable leaves, each owned on the page, with the plugin leaves and the remote entry leaves excluded', async () => {
+  // The page-owned leaves are the strict leaves less the plugin, remote entry and device remote
+  // leaves, which the write door refuses; each has a rendered owner and the write door admits it.
+  it('exactly the page-writable leaves, each owned on the page, with the plugin, remote entry and device remote leaves excluded', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
@@ -538,6 +544,7 @@ describe('ConfigPage schema coverage', () => {
       'plugins.auth[].path',
       'plugins.providers[].package',
       'plugins.providers[].path',
+      'registry.devices.*.remote',
       'registry.remotes[].basicAuth.password',
       'registry.remotes[].basicAuth.user',
       'registry.remotes[].connectTimeout',
@@ -595,6 +602,27 @@ describe('ConfigPage schema coverage', () => {
     expect(excluded.length, 'the witness: plugins leaves exist').toBeGreaterThan(0)
     const admitted = excluded.filter((pattern) => isPageWritableConfigPath(concretePath(pattern)))
     expect(admitted, `leaves without a field that the door still admits: ${admitted.join(', ')}`).toEqual([])
+  })
+
+  it("the Devices section edits a device's model and os and shows its remote read-only", async () => {
+    page.config = fullConfig
+    await renderAt('/config/targets')
+
+    const marks = await collectFieldMarks()
+    const deviceMarks = [...new Set(marks.filter((mark) => mark.where.endsWith('/devices')).map((mark) => mark.value))]
+    expect(deviceMarks).toEqual(expect.arrayContaining(['registry.devices.*.model', 'registry.devices.*.os']))
+    expect(deviceMarks.filter((value) => value.startsWith('registry.devices.*.remote'))).toEqual([])
+
+    await activateTab('targets')
+    const header = container!.querySelector('[data-config-section="devices"] [data-device="galaxy-farm"] [data-row-header]') as HTMLElement | null
+    expect(header, 'the galaxy-farm row renders').not.toBeNull()
+    await act(async () => {
+      header!.click()
+    })
+    await flushRender()
+    const remote = container!.querySelector('[data-config-section="devices"] [data-device-remote="farm"]') as HTMLElement | null
+    expect(remote?.textContent).toBe('Runs on remote farm')
+    expect(remote!.querySelectorAll('input, select, button, textarea, [role="combobox"], [contenteditable]')).toHaveLength(0)
   })
 
   it('the Remotes section shows the listed remote, and its one field is the default remote', async () => {

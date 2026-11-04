@@ -171,6 +171,59 @@ describe('RegistrySchema with devices', () => {
   })
 })
 
+describe('a device on a remote', () => {
+  const workspace = {
+    testMatch: ['tests/**/*.yaml'],
+    suiteMatch: ['suites/**/*.suite.yaml'],
+    hooksFile: 'hooks.yaml',
+    envFile: '.env',
+    secretsFile: '.env.secrets.local',
+  }
+  const farm = { name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' }
+  const teamServer = { name: 'team-server', protocol: 'playwright', url: 'wss://grid.example.com/playwright' }
+  const galaxyFarm = { platform: 'android', model: 'Samsung Galaxy S24', os: '14', remote: 'farm' }
+
+  async function issues(remotes: unknown[], device: Record<string, unknown>) {
+    const { AgentQaConfigSchema } = await import('../config-schema.js')
+    const result = AgentQaConfigSchema.safeParse({
+      workspace,
+      registry: { remotes, devices: { 'galaxy-farm': device } },
+    })
+    return result.success ? [] : result.error.issues.map(issue => ({ path: issue.path, message: issue.message }))
+  }
+
+  it('parses a device described by model and os on a listed appium remote', async () => {
+    expect(await issues([farm, teamServer], galaxyFarm)).toEqual([])
+  })
+
+  it('refuses a remote that registry.remotes does not list, naming the device and what is listed', async () => {
+    expect(await issues([farm, teamServer], { ...galaxyFarm, remote: 'fram' })).toEqual([
+      {
+        path: ['registry', 'devices', 'galaxy-farm', 'remote'],
+        message:
+          'Device galaxy-farm names remote "fram", which registry.remotes does not list. registry.remotes lists: farm, team-server.',
+      },
+    ])
+    expect(await issues([], galaxyFarm)).toEqual([
+      {
+        path: ['registry', 'devices', 'galaxy-farm', 'remote'],
+        message:
+          'Device galaxy-farm names remote "farm", which registry.remotes does not list. registry.remotes lists no remotes.',
+      },
+    ])
+  })
+
+  it('refuses a remote that is not an appium remote', async () => {
+    expect(await issues([farm, teamServer], { ...galaxyFarm, remote: 'team-server' })).toEqual([
+      {
+        path: ['registry', 'devices', 'galaxy-farm', 'remote'],
+        message:
+          "Device galaxy-farm names remote team-server, a playwright remote; a device's remote needs protocol: appium.",
+      },
+    ])
+  })
+})
+
 describe('UseSchema mobile app state', () => {
   async function getSchema() {
     const mod = await import('../use-schema.js') as any

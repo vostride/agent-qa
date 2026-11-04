@@ -787,6 +787,11 @@ export function deviceNameTakenError(name: string): string {
   return `A device named ${name} already exists.`
 }
 
+/** A device's remote, shown read-only: pointing a device at a server is a file edit. */
+export function deviceRemoteText(remote: string): string {
+  return `Runs on remote ${remote}`
+}
+
 /** Under Add setting on a device: the settings that device can match on. */
 export function deviceMatchKeysHelp(platform: string, keys: readonly string[]): string {
   return `An ${platform} device can match on ${keys.join(', ')}.`

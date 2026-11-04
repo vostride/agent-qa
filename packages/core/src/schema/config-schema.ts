@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { connectionSecretNames, secretReferenceNames } from '@vostride/agent-qa-schema'
 import { selectWebPlace } from '../remote/select-place.js'
+import { selectDevicePlace } from '../mobile/select-device.js'
 import { WorkspaceSchema } from './workspace-schema.js'
 import { ServicesSchema } from './services-schema.js'
 import { KnowledgeConfigSchema } from './knowledge-schema.js'
@@ -98,6 +99,18 @@ const AgentQaConfigSchemaInner = z.strictObject({
       ctx.addIssue({
         code: 'custom',
         path: ['use', 'browser', 'remote'],
+        message: selected.refusal,
+      })
+    }
+  }
+  const devices = val.registry?.devices ?? {}
+  for (const [device, profile] of Object.entries(devices)) {
+    if (profile.remote === undefined) continue
+    const selected = selectDevicePlace({ devices, remotes, device })
+    if ('refusal' in selected) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['registry', 'devices', device, 'remote'],
         message: selected.refusal,
       })
     }

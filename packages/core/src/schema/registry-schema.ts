@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { NamedLLMConfigSchema } from './primitives.js'
+import { NameSlugSchema, NamedLLMConfigSchema } from './primitives.js'
 import { RemoteEntrySchema } from './remote-schema.js'
 import { TargetNameSchema } from '../auth-state/schema.js'
 
@@ -46,6 +46,7 @@ export const DeviceProfileSchema = z.strictObject({
     .trim()
     .min(1)
     .optional(),
+  remote: NameSlugSchema.optional(),
   match: z.record(z.string(), z.unknown()).optional().default({}),
 }).superRefine((val, ctx) => {
   const androidOnly = ['avd', 'serial', 'appPackage', 'appActivity', 'automationName', 'browserName', 'platformVersion']

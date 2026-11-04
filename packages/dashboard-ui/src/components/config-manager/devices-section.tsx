@@ -1,4 +1,5 @@
 // Match values show through `SecretValue` and save only through Save setting; delete has Undo.
+// A device's remote shows read-only: the write door refuses it.
 
 import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent } from "react"
 import { Plus, X } from "lucide-react"
@@ -39,6 +40,7 @@ import {
   deviceMatchKeysHelp,
   deviceMatchSettingLabel,
   deviceNameTakenError,
+  deviceRemoteText,
   removeMatchSettingName,
 } from "@/lib/config-copy"
 
@@ -55,6 +57,7 @@ const LOCAL_MATCH_FIELDS: Record<DevicePlatform, readonly string[]> = {
 
 interface DeviceEntry {
   platform?: string
+  remote?: unknown
   match?: Record<string, unknown>
 }
 
@@ -184,6 +187,11 @@ function DeviceFields({ name, device }: { name: string; device: DeviceEntry }) {
         kind="select"
         options={DEVICE_PLATFORM_OPTIONS}
       />
+      {typeof device.remote === "string" ? (
+        <p data-device-remote={device.remote} className="text-sm text-muted-foreground">
+          {deviceRemoteText(device.remote)}
+        </p>
+      ) : null}
       <ConfigField
         field={{ ...at("model"), pattern: "registry.devices.*.model" }}
         label={DEVICE_FIELD_LABELS.model}
