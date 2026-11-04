@@ -654,7 +654,7 @@ export const REMOTES_COPY = {
     '    - name: grid',
     '      protocol: playwright # or cdp',
     '      url: wss://grid.example.com/playwright',
-    '      query:',
+    '      query: # or headers, with the same {{secret:NAME}} values',
     '        token: "{{secret:GRID_TOKEN}}"',
   ].join('\n'),
   pick: 'Pick one with use.browser.remote: <name> in agent-qa.config.yaml, a suite or a test; the name local means this machine.',

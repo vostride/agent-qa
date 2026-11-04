@@ -166,7 +166,7 @@ describe('the Remotes section', () => {
         '    - name: grid',
         '      protocol: playwright # or cdp',
         '      url: wss://grid.example.com/playwright',
-        '      query:',
+        '      query: # or headers, with the same {{secret:NAME}} values',
         '        token: "{{secret:GRID_TOKEN}}"',
       ].join('\n'),
     )
@@ -199,6 +199,11 @@ describe('the Remotes section', () => {
     for (const note of ['[data-remotes-credentials]', '[data-remotes-pick]']) {
       expect(section.querySelector(note)?.className).toContain('text-muted-foreground')
     }
+  })
+
+  it('says in the example that a credential can go in headers instead of the query', () => {
+    const queryLine = REMOTES_COPY.example.split('\n').find((line) => line.trim().startsWith('query:'))
+    expect(queryLine).toBe('      query: # or headers, with the same {{secret:NAME}} values')
   })
 
   it('the example is an entry the remote rules accept, with its credential as a reference', () => {
