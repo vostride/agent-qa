@@ -414,6 +414,46 @@ function fingerprint(value: unknown): string {
   )
 }
 
+interface Hidden {
+  copies: Map<string, unknown>
+  urls: string[]
+  held: string[]
+}
+
+const BARE_ORIGIN = /^[a-z][a-z0-9+.-]*:\/\/[^/?#@\\]*\/?$/i
+
+function showsMoreThanOrigin(text: string): boolean {
+  return remoteOrigin(text) !== undefined && !BARE_ORIGIN.test(text)
+}
+
+function skeleton(text: string): string {
+  return text.replace(/[^a-z0-9]/gi, '')
+}
+
+// yaml can fold, quote or escape a url it writes into a key, so letters and digits are compared.
+function skeletons(text: string): string[] {
+  const unescaped = text.replace(/\\(?:x[0-9a-fA-F]{2}|u[0-9a-fA-F]{4}|U[0-9a-fA-F]{8}|[^])/g, '')
+  return [skeleton(text), skeleton(unescaped)]
+}
+
+function hiddenText(remotes: unknown, copies: Map<string, unknown>): Hidden {
+  const found = typeof remotes === 'string' ? [remotes] : texts(remotes)
+  const urls = [...new Set(found.filter(showsMoreThanOrigin))].sort((a, b) => b.length - a.length)
+  return { copies, urls, held: found.flatMap(skeletons) }
+}
+
+// Any text that holds a url of the block, or is a url the block holds, shows it by its origin.
+function withoutUrls(text: string, hidden: Hidden): string {
+  if (showsMoreThanOrigin(text) && hidden.held.some((held) => held.includes(skeleton(text)))) {
+    return displayOrigin(text)
+  }
+  let shown = text
+  for (const url of hidden.urls) shown = shown.split(url).join(displayOrigin(url))
+  const forms = skeletons(shown)
+  const folded = hidden.urls.find((url) => forms.some((form) => form.includes(skeleton(url))))
+  return folded === undefined ? shown : displayOrigin(folded)
+}
+
 // A YAML anchor can copy a remote's entries, or a part of one, anywhere else in the config.
 function remoteCopies(remotes: unknown, shown: RemoteDisplay[]): Map<string, unknown> {
   const copies = new Map<string, unknown>()
@@ -458,15 +498,16 @@ function remoteCopies(remotes: unknown, shown: RemoteDisplay[]): Map<string, unk
   return copies
 }
 
-function withoutCopies(value: unknown, copies: Map<string, unknown>): unknown {
+function withoutCopies(value: unknown, hidden: Hidden): unknown {
   if (typeof value === 'string' || children(value).length > 0) {
     const key = fingerprint(value)
-    if (copies.has(key)) return copies.get(key)
+    if (hidden.copies.has(key)) return hidden.copies.get(key)
   }
-  if (Array.isArray(value)) return value.map((child) => withoutCopies(child, copies))
+  if (typeof value === 'string') return withoutUrls(value, hidden)
+  if (Array.isArray(value)) return value.map((child) => withoutCopies(child, hidden))
   if (isRecord(value)) {
     const entries = Object.entries(value)
-    const shownKeys = entries.map(([key]) => shownKey(key, copies))
+    const shownKeys = entries.map(([key]) => shownKey(key, hidden))
     const taken = new Set(
       entries.flatMap(([key], index) => (shownKeys[index] === key ? [key] : [])),
     )
@@ -478,7 +519,7 @@ function withoutCopies(value: unknown, copies: Map<string, unknown>): unknown {
           for (let n = 2; taken.has(shown); n += 1) shown = `${base} (${n})`
           taken.add(shown)
         }
-        return [shown, withoutCopies(child, copies)]
+        return [shown, withoutCopies(child, hidden)]
       }),
     )
   }
@@ -486,8 +527,8 @@ function withoutCopies(value: unknown, copies: Map<string, unknown>): unknown {
 }
 
 // A key can be a copy too: it shows as its replacement, or as its origin when that is not text.
-function shownKey(key: string, copies: Map<string, unknown>): string {
-  const shown = withoutCopies(key, copies)
+function shownKey(key: string, hidden: Hidden): string {
+  const shown = withoutCopies(key, hidden)
   return typeof shown === 'string' ? shown : displayOrigin(key)
 }
 
@@ -508,7 +549,7 @@ export function projectConfigRemotes<T>(config: T): T {
     : []
   const rest = withoutCopies(
     { ...config, registry: { ...config.registry, remotes: [] } },
-    remoteCopies(remotes, shown),
+    hiddenText(remotes, remoteCopies(remotes, shown)),
   ) as Record<string, unknown>
   return {
     ...rest,

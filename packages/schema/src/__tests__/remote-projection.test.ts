@@ -291,4 +291,151 @@ describe('projectConfigRemotes', () => {
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
+
+  it("shows a remote's url by its origin inside any text that holds it, a key yaml wrote from a collection included", () => {
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [
+          { name: 'lab', protocol: 'playwright', url: 'wss://grid.example.com/p4th-t0ken' },
+          PLANTED,
+        ],
+        llms: [
+          {
+            name: 'judge',
+            providerHeaders: { [`[ &u ${PLANTED.url} ]`]: 'x', [`{ h: &u ${PLANTED.url} }`]: 'y' },
+          },
+        ],
+        devices: {
+          [`[ &u ${PLANTED.url} ]`]: {
+            platform: 'android',
+            match: { avd: `connects to ${PLANTED.url} for the pixel` },
+          },
+        },
+      },
+    })
+
+    expect(shown.registry.llms).toEqual([
+      {
+        name: 'judge',
+        providerHeaders: {
+          '[ &u wss://grid.example.com:443 ]': 'x',
+          '{ h: &u wss://grid.example.com:443 }': 'y',
+        },
+      },
+    ])
+    expect(shown.registry.devices).toEqual({
+      '[ &u wss://grid.example.com:443 ]': {
+        platform: 'android',
+        match: { avd: 'connects to wss://grid.example.com:443 for the pixel' },
+      },
+    })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('shows a url the remotes block holds only inside a key yaml wrote from a collection by its origin where it is copied', () => {
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [
+          {
+            name: 'grid',
+            protocol: 'playwright',
+            url: 'wss://grid.example.com/',
+            headers: { [`[ &u ${PLANTED.url} ]`]: 'v' },
+          },
+        ],
+        devices: { tablet: { match: { avd: PLANTED.url } } },
+      },
+    })
+
+    expect(shown.registry.devices).toEqual({
+      tablet: { match: { avd: 'wss://grid.example.com:443' } },
+    })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('shows a url nested under another key of a list entry by its origin where it is copied', () => {
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [{ grid: PLANTED }],
+        devices: { tablet: { match: { avd: PLANTED.url, serial: PLANTED.headers } } },
+      },
+    })
+
+    expect(shown.registry).toEqual({
+      remotes: [{ url: 'invalid url' }],
+      devices: { tablet: { match: { avd: 'wss://grid.example.com:443', serial: null } } },
+    })
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('leaves every text of a config that holds no url of its remotes as it was', () => {
+    const rest = {
+      targets: { shop: { platform: 'web', url: 'https://grid.example.com/shop?team=blue' } },
+      devices: {
+        tablet: {
+          match: {
+            avd: 'wss://edge.example.com/other',
+            serial: 'http://127.0.0.1:9222/json/version',
+          },
+        },
+      },
+      llms: [
+        {
+          name: 'judge',
+          providerHeaders: { 'X-Lane': 'grid', 'wss://grid.example.com/': 'bare' },
+        },
+      ],
+    }
+    const shown = projectConfigRemotes({
+      registry: {
+        ...rest,
+        remotes: [
+          PLANTED,
+          { name: 'lab', protocol: 'cdp', url: 'http://127.0.0.1:9222' },
+          { name: 'edge', protocol: 'playwright', url: 'wss://edge.example.com/' },
+        ],
+      },
+      use: { browser: { name: 'chromium', remote: 'grid' } },
+    })
+
+    expect(shown).toEqual({
+      registry: {
+        ...rest,
+        remotes: [
+          { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+          { name: 'lab', protocol: 'cdp', url: 'http://127.0.0.1:9222' },
+          { name: 'edge', protocol: 'playwright', url: 'wss://edge.example.com:443' },
+        ],
+      },
+      use: { browser: { name: 'chromium', remote: 'grid' } },
+    })
+  })
+
+  it('numbers a key whose url shows by its origin when a written key already holds that text', () => {
+    const shown = projectConfigRemotes({
+      registry: {
+        remotes: [PLANTED],
+        llms: [
+          {
+            name: 'judge',
+            providerHeaders: {
+              [`[ &u ${PLANTED.url} ]`]: 'copied',
+              '[ &u wss://grid.example.com:443 ]': 'written',
+            },
+          },
+        ],
+      },
+    })
+    const headers = shown.registry.llms[0]!.providerHeaders
+
+    expect(headers).toEqual({
+      '[ &u wss://grid.example.com:443 ] (2)': 'copied',
+      '[ &u wss://grid.example.com:443 ]': 'written',
+    })
+    expect(Object.keys(headers)).toEqual([
+      '[ &u wss://grid.example.com:443 ] (2)',
+      '[ &u wss://grid.example.com:443 ]',
+    ])
+    for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
 })

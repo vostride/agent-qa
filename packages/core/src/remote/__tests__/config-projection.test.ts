@@ -1,3 +1,4 @@
+import { projectConfigRemotes } from '@vostride/agent-qa-schema'
 import { describe, expect, it } from 'vitest'
 import { parse as parseYaml } from 'yaml'
 
@@ -44,6 +45,27 @@ const USE = ['use:', '  browser:', '    name: chromium', '    headless: true', '
 
 const DEVICES = ['  devices:', '    pixel:', '      platform: android', '      match:']
 
+const ROUTE_PART = 'routepart-5e21'
+const QUERY_VALUE = 'queryvalue-a904'
+const KEYED_URL = `wss://grid.example.com/${ROUTE_PART}?team=${QUERY_VALUE}`
+const LONG_URL = `wss://grid.example.com/${ROUTE_PART}/${ROUTE_PART}/${ROUTE_PART}/${ROUTE_PART}?team=${QUERY_VALUE}&lane=${QUERY_VALUE}`
+
+const LLM = [
+  '  llms:',
+  '    - name: judge',
+  '      provider: anthropic-compatible',
+  '      model: m',
+  '      baseURL: https://llm.example.com/v1',
+  '      providerHeaders:',
+]
+
+const REMOTE_ALIAS = [
+  '  remotes:',
+  '    - name: grid',
+  '      protocol: playwright',
+  '      url: *u',
+]
+
 const GRID_MAP_ENTRY = '    grid: { protocol: playwright, url: "wss://grid.example.com/" }'
 
 const PLANTED_MAP_ENTRY = `{ protocol: playwright, url: "wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}", headers: { X-Team: ${HEADER_VALUE} } }`
@@ -65,6 +87,10 @@ function loadedUrl(raw: string): unknown {
 function loadedMapUrl(raw: string, key: string): unknown {
   const loaded = parseYaml(raw) as { registry: { remotes: Record<string, { url?: unknown }> } }
   return loaded.registry.remotes[key]?.url
+}
+
+function expectNoKeyedUrl(text: string): void {
+  for (const hidden of [ROUTE_PART, QUERY_VALUE]) expect(text).not.toContain(hidden)
 }
 
 function expectNothingPlanted(shown: string): void {
@@ -880,5 +906,81 @@ describe('projectRemotesInConfigText', () => {
         devices: { pixel: { platform: 'android', match: { avd: null } } },
       },
     })
+  })
+
+  it('stores a config the strict parse accepts, whose remote url is anchored in a key yaml writes from a collection, with only its origin in that key', () => {
+    const files = [
+      {
+        lines: [...LLM, `        ? [ &u ${KEYED_URL} ]`, '        : x'],
+        key: '[ &u wss://grid.example.com:443 ]',
+      },
+      {
+        lines: [...LLM, `        ? { h: &u ${KEYED_URL} }`, '        : x'],
+        key: '{ h: &u wss://grid.example.com:443 }',
+      },
+      {
+        lines: ['  devices:', `    ? [ &u ${KEYED_URL} ]`, '    : { platform: android }'],
+        key: '[ &u wss://grid.example.com:443 ]',
+      },
+    ]
+    for (const { lines, key } of files) {
+      const raw = [...WORKSPACE, 'registry:', ...lines, ...REMOTE_ALIAS, ...USE, ''].join('\n')
+      const loaded = parseYaml(raw, { logLevel: 'error' }) as { registry: Record<string, unknown> }
+
+      expect(AgentQaConfigSchema.safeParse(loaded).success).toBe(true)
+      const shown = projectConfigRemotes(loaded)
+      const llms = shown.registry.llms as { providerHeaders: object }[] | undefined
+      const keyed = llms?.[0]?.providerHeaders ?? shown.registry.devices
+      expect(Object.keys(keyed as object)).toEqual([key])
+      expectNoKeyedUrl(JSON.stringify(shown))
+      expectNoKeyedUrl(projectRemotesInConfigText(raw))
+    }
+  })
+
+  it('shows a url aliased between the remotes block and a key yaml writes from a collection by its origin, however yaml folds or escapes that key', () => {
+    const outside = (key: string) => [
+      ...WORKSPACE,
+      'registry:',
+      ...DEVICES,
+      '        avd:',
+      `          ? [ &u "${key}" ]`,
+      '          : x',
+      ...REMOTE_ALIAS,
+      ...USE,
+      '',
+    ]
+    const inside = (url: string) => [
+      ...WORKSPACE,
+      'registry:',
+      '  remotes:',
+      '    - name: grid',
+      '      protocol: playwright',
+      '      url: wss://grid.example.com/',
+      '      headers:',
+      `        ? [ &u ${url} ]`,
+      '        : v',
+      ...DEVICES,
+      '        avd: *u',
+      ...USE,
+      '',
+    ]
+    const escaped = `wss://grid.example.com/${ROUTE_PART}\\t${ROUTE_PART}?team=${QUERY_VALUE}`
+    const cases = [
+      { raw: outside(LONG_URL).join('\n'), avd: { 'wss://grid.example.com:443': 'x' } },
+      { raw: outside(escaped).join('\n'), avd: { 'wss://grid.example.com:443': 'x' } },
+      { raw: inside(KEYED_URL).join('\n'), avd: 'wss://grid.example.com:443' },
+      { raw: inside(`"${LONG_URL}"`).join('\n'), avd: 'wss://grid.example.com:443' },
+    ]
+    for (const { raw, avd } of cases) {
+      const loaded = parseYaml(raw, { logLevel: 'error' }) as { registry: Record<string, unknown> }
+
+      expect(AgentQaConfigSchema.safeParse(loaded).success).toBe(true)
+      const shown = projectConfigRemotes(loaded) as {
+        registry: { devices: { pixel: { match: { avd: unknown } } } }
+      }
+      expect(shown.registry.devices.pixel.match.avd).toEqual(avd)
+      expectNoKeyedUrl(JSON.stringify(shown))
+      expectNoKeyedUrl(projectRemotesInConfigText(raw))
+    }
   })
 })
