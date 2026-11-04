@@ -1,4 +1,4 @@
-import type { Page } from 'playwright-core'
+import type { ElementHandle, Page } from 'playwright-core'
 import type { ElementState, ElementLabels } from '@vostride/agent-qa-schema'
 import type { InterimNode } from '@vostride/agent-qa-runner'
 
@@ -236,21 +236,22 @@ export async function enrichWebNodes(
   nativeRefs: (string | undefined)[],
 ): Promise<void> {
   try {
-    // Resolve element handles for nodes that carry a native ref.
-    const handles: unknown[] = []
-    const targetIndices: number[] = []
+    // Every lookup is sent at once, so an observe costs a few round trips, not a few per node.
+    const lookups: Promise<ElementHandle | null>[] = []
+    const lookedUp: number[] = []
     for (let i = 0; i < nodes.length; i++) {
       const ref = nativeRefs[i]
       if (!ref) continue
-      try {
-        const handle = await page.locator('aria-ref=' + ref).elementHandle()
-        if (handle) {
-          handles.push(handle)
-          targetIndices.push(i)
-        }
-      } catch {
-        // Unresolved ref → node keeps bounds absent (honest absence).
-      }
+      lookups.push(lookUpRef(page, ref))
+      lookedUp.push(i)
+    }
+    const found = await Promise.all(lookups)
+    const handles: unknown[] = []
+    const targetIndices: number[] = []
+    for (let k = 0; k < found.length; k++) {
+      if (!found[k]) continue
+      handles.push(found[k])
+      targetIndices.push(lookedUp[k])
     }
     if (handles.length === 0) return
 
@@ -333,6 +334,16 @@ export async function enrichWebNodes(
     }
   } catch {
     // Enrichment is best-effort — degrade to unenriched nodes, never throw.
+  }
+}
+
+// page.$ never waits: a ref whose element left the page answers null, and an unresolved ref
+// leaves its node without bounds.
+async function lookUpRef(page: Page, ref: string): Promise<ElementHandle | null> {
+  try {
+    return await page.$('aria-ref=' + ref)
+  } catch {
+    return null
   }
 }
 

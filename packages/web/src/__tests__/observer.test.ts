@@ -170,7 +170,7 @@ describe('captureWebScroll', () => {
   })
 })
 
-describe('enrichWebNodes — aria-ref locator enrichment', () => {
+describe('enrichWebNodes — aria-ref selector enrichment', () => {
   function nodesFrom(): InterimNode[] {
     return [
       { role: 'button', name: 'Submit' },
@@ -178,12 +178,12 @@ describe('enrichWebNodes — aria-ref locator enrichment', () => {
     ]
   }
 
-  it('fills bounds/state/labels for resolvable refs via aria-ref locators', async () => {
-    const locatorCalls: string[] = []
+  it('fills bounds/state/labels for resolvable refs via aria-ref selectors', async () => {
+    const selectors: string[] = []
     const mockPage = {
-      locator: vi.fn().mockImplementation((sel: string) => {
-        locatorCalls.push(sel)
-        return { elementHandle: vi.fn().mockResolvedValue({ __handle: sel }) }
+      $: vi.fn().mockImplementation(async (sel: string) => {
+        selectors.push(sel)
+        return { __handle: sel }
       }),
       evaluate: vi.fn().mockResolvedValue([
         {
@@ -202,8 +202,8 @@ describe('enrichWebNodes — aria-ref locator enrichment', () => {
     const nodes = nodesFrom()
     await enrichWebNodes(mockPage as any, nodes, ['e5', 'e12'])
 
-    // Resolution went through aria-ref locators.
-    expect(locatorCalls).toEqual(['aria-ref=e5', 'aria-ref=e12'])
+    // Resolution went through aria-ref selectors.
+    expect(selectors).toEqual(['aria-ref=e5', 'aria-ref=e12'])
 
     expect(nodes[0].bounds).toEqual({ x: 10, y: 20, width: 100, height: 40 })
     expect(nodes[0].state).toMatchObject({ enabled: true, focused: false, visible: true })
@@ -216,9 +216,7 @@ describe('enrichWebNodes — aria-ref locator enrichment', () => {
 
   it('leaves bounds absent (honest absence) for a null boundingBox — no zero geometry', async () => {
     const mockPage = {
-      locator: vi.fn().mockReturnValue({
-        elementHandle: vi.fn().mockResolvedValue({ __handle: true }),
-      }),
+      $: vi.fn().mockResolvedValue({ __handle: true }),
       evaluate: vi.fn().mockResolvedValue([
         { bounds: null, enabled: true, focused: false, visible: false,
           testId: null, ariaLabel: null, placeholder: null, title: null },
@@ -232,30 +230,106 @@ describe('enrichWebNodes — aria-ref locator enrichment', () => {
     expect(nodes[0].state).toMatchObject({ visible: false })
   })
 
-  it('skips nodes with no native ref and never resolves a locator for them', async () => {
+  it('skips nodes with no native ref and never resolves a selector for them', async () => {
     const mockPage = {
-      locator: vi.fn(),
+      $: vi.fn(),
       evaluate: vi.fn(),
     }
 
     const nodes = nodesFrom()
     await enrichWebNodes(mockPage as any, nodes, [undefined, undefined])
 
-    expect(mockPage.locator).not.toHaveBeenCalled()
+    expect(mockPage.$).not.toHaveBeenCalled()
     expect(mockPage.evaluate).not.toHaveBeenCalled()
     expect(nodes[0].bounds).toBeUndefined()
   })
 
   it('degrades to unenriched nodes when the batched evaluate throws (never throws out)', async () => {
     const mockPage = {
-      locator: vi.fn().mockReturnValue({
-        elementHandle: vi.fn().mockResolvedValue({ __handle: true }),
-      }),
+      $: vi.fn().mockResolvedValue({ __handle: true }),
       evaluate: vi.fn().mockRejectedValue(new Error('evaluate failed')),
     }
 
     const nodes: InterimNode[] = [{ role: 'button', name: 'Submit' }]
     await expect(enrichWebNodes(mockPage as any, nodes, ['e1'])).resolves.toBeUndefined()
     expect(nodes[0].bounds).toBeUndefined()
+  })
+
+  it('sends every lookup before any answers, and keeps node order when they answer out of order', async () => {
+    const answers = new Map<string, (handle: { __handle: string }) => void>()
+    const mockPage = {
+      $: vi.fn((sel: string) => new Promise(resolve => { answers.set(sel, resolve) })),
+      evaluate: vi.fn(async (_fn: unknown, els: { __handle: string }[]) =>
+        els.map(el => ({ bounds: { x: 0, y: 0, width: 10, height: 10 }, testId: el.__handle })),
+      ),
+    }
+    const nodes: InterimNode[] = [
+      { role: 'button', name: 'Save' },
+      { role: 'heading', name: 'Cart' },
+      { role: 'link', name: 'Help' },
+      { role: 'textbox', name: 'Coupon' },
+    ]
+
+    const enriched = enrichWebNodes(mockPage as any, nodes, ['e1', undefined, 'e3', 'e4'])
+    await new Promise(resolve => setImmediate(resolve))
+
+    expect(mockPage.$.mock.calls.map(([sel]) => sel)).toEqual([
+      'aria-ref=e1',
+      'aria-ref=e3',
+      'aria-ref=e4',
+    ])
+    expect(mockPage.evaluate).not.toHaveBeenCalled()
+
+    for (const sel of [...answers.keys()].reverse()) answers.get(sel)!({ __handle: sel })
+    await enriched
+
+    expect(mockPage.evaluate).toHaveBeenCalledTimes(1)
+    expect(mockPage.evaluate.mock.calls[0][1]).toEqual([
+      { __handle: 'aria-ref=e1' },
+      { __handle: 'aria-ref=e3' },
+      { __handle: 'aria-ref=e4' },
+    ])
+    expect(nodes.map(n => n.labels?.testId)).toEqual([
+      'aria-ref=e1',
+      undefined,
+      'aria-ref=e3',
+      'aria-ref=e4',
+    ])
+  })
+
+  it('leaves a node unenriched when its element left the page or its lookup fails, and enriches the rest', async () => {
+    const mockPage = {
+      $: vi.fn(async (sel: string) => {
+        if (sel === 'aria-ref=e2') return null
+        if (sel === 'aria-ref=f9e1') throw new Error('Invalid frame in aria-ref selector')
+        return { __handle: sel }
+      }),
+      evaluate: vi.fn(async (_fn: unknown, els: { __handle: string }[]) =>
+        els.map(el => ({ bounds: { x: 1, y: 2, width: 3, height: 4 }, testId: el.__handle })),
+      ),
+    }
+    const nodes: InterimNode[] = [
+      { role: 'button', name: 'Save' },
+      { role: 'dialog', name: 'Added to bag' },
+      { role: 'button', name: 'Approve' },
+      { role: 'link', name: 'Help' },
+    ]
+
+    await enrichWebNodes(mockPage as any, nodes, ['e1', 'e2', 'f9e1', 'e4'])
+
+    expect(mockPage.evaluate.mock.calls[0][1]).toEqual([
+      { __handle: 'aria-ref=e1' },
+      { __handle: 'aria-ref=e4' },
+    ])
+    expect(nodes[1]).toEqual({ role: 'dialog', name: 'Added to bag' })
+    expect(nodes[2]).toEqual({ role: 'button', name: 'Approve' })
+    expect(nodes[0]).toMatchObject({
+      bounds: { x: 1, y: 2, width: 3, height: 4 },
+      labels: { testId: 'aria-ref=e1' },
+    })
+    expect(nodes[3]).toMatchObject({
+      bounds: { x: 1, y: 2, width: 3, height: 4 },
+      labels: { testId: 'aria-ref=e4' },
+    })
   })
 })
