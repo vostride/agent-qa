@@ -255,3 +255,45 @@ describe('credential names inside a JSON query value', () => {
     ])
   })
 })
+
+describe('credential names inside a JSON header value', () => {
+  const LAUNCH = 'x-playwright-launch-options'
+
+  it('refuses a literal under a credential name inside a JSON header value, with its path', () => {
+    const proxy = { server: 'http://proxy.example.com:3128', password: 'literal' }
+    expect(issues({ ...grid, headers: { [LAUNCH]: JSON.stringify({ proxy }) } })).toEqual([
+      {
+        path: `headers.${LAUNCH}.proxy.password`,
+        message: needsReference('grid', 'headers', `${LAUNCH}.proxy.password`),
+      },
+    ])
+  })
+
+  it('accepts a reference inside a JSON header value and names it as a connection secret', () => {
+    const entry: RemoteEntryLike = {
+      ...grid,
+      headers: {
+        [LAUNCH]: JSON.stringify({
+          proxy: { password: '{{secret:PROXY_PASSWORD}}' },
+          headless: true,
+        }),
+      },
+    }
+    expect(messages(entry)).toEqual([])
+    expect(connectionSecretNames([entry])).toEqual(['PROXY_PASSWORD'])
+  })
+
+  it('leaves a header value that is not well-formed JSON as it is', () => {
+    expect(messages({ ...grid, headers: { [LAUNCH]: '{"proxy":{"password":"literal"}' } })).toEqual(
+      [],
+    )
+  })
+
+  it('counts a credential name inside a JSON header value toward the cleartext rule', () => {
+    const headers = { [LAUNCH]: '{"proxy":{"password":"literal"}}' }
+    expect(messages({ ...grid, url: 'ws://grid.example.com/playwright', headers })).toEqual([
+      needsReference('grid', 'headers', `${LAUNCH}.proxy.password`),
+      'Remote grid: credentials go over ws:// only to this machine. Use wss:// for grid.example.com.',
+    ])
+  })
+})

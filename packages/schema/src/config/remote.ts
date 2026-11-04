@@ -189,10 +189,10 @@ function jsonContainer(text: string): unknown {
   }
 }
 
-const queryJson: JsonReader = (text) => jsonContainer(text)
+const valueJson: JsonReader = (text) => jsonContainer(text)
 const urlQueryJson: JsonReader = (text) => jsonContainer(text) ?? jsonContainer(decoded(text))
 
-// A query value written as JSON is sent as JSON, so its keys are read like a nested query's.
+// A header or query value written as JSON is sent as JSON, so its keys are read like a map's.
 function credentialKeys(
   value: unknown,
   readJson?: JsonReader,
@@ -299,8 +299,8 @@ export function remoteEntryIssues(entry: RemoteEntryLike): RemoteEntryIssue[] {
     )
   }
 
-  const headerCredentials = credentialKeys(entry.headers)
-  const queryCredentials = credentialKeys(entry.query, queryJson)
+  const headerCredentials = credentialKeys(entry.headers, valueJson)
+  const queryCredentials = credentialKeys(entry.query, valueJson)
   const urlCredentials = credentialKeys(urlQuery(entry.url), urlQueryJson)
   for (const credential of urlCredentials.filter((c) => c.literal)) {
     report(
