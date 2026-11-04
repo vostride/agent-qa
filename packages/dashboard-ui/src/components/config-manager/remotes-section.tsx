@@ -73,7 +73,7 @@ export function RemotesSection({ config }: RemotesSectionProps) {
       ) : null}
       {remotes.length === 0 ? (
         <div className="space-y-2">
-          <p data-remotes-empty className="text-sm text-muted-foreground">
+          <p data-remotes-empty className="text-sm text-foreground">
             {REMOTES_COPY.empty}
           </p>
           <pre data-remotes-example className={EXAMPLE_CLASS}>

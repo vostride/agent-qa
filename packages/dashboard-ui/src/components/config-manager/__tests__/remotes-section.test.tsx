@@ -192,6 +192,15 @@ describe('the Remotes section', () => {
     }
   })
 
+  it('leads into the example in foreground text and keeps the notes muted', () => {
+    const section = show({})
+    expect(section.querySelector('[data-remotes-empty]')?.className).toContain('text-foreground')
+    expect(section.querySelector('[data-remotes-empty]')?.className).not.toContain('text-muted-foreground')
+    for (const note of ['[data-remotes-credentials]', '[data-remotes-pick]']) {
+      expect(section.querySelector(note)?.className).toContain('text-muted-foreground')
+    }
+  })
+
   it('the example is an entry the remote rules accept, with its credential as a reference', () => {
     const entry = parse(REMOTES_COPY.example).registry.remotes[0]
     expect(Object.keys(entry)).toEqual(['name', 'protocol', 'url', 'query'])
