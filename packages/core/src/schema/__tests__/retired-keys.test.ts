@@ -151,7 +151,7 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
       const config = { ...validBase, registry: { providers } }
       const label = JSON.stringify(providers)
       expect(issueMessageAt(config, 'registry.providers'), label).toBe(
-        'registry.providers was removed: list remote browsers under registry.remotes, with credentials as {{secret:NAME}} references to workspace.secretsFile. Delete this block.',
+        'registry.providers was removed: list remote browsers and Appium servers under registry.remotes, with credentials as {{secret:NAME}} references to workspace.secretsFile. Delete this block.',
       )
       expect(paramsAt(config, 'registry.providers'), label).toEqual({ retired: true })
       const result = AgentQaConfigSchema.safeParse(config)
@@ -161,7 +161,7 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
 
   it("a device's transport is refused with its removal message, local included", () => {
     const message =
-      'registry.devices.<name>.transport was removed: devices run on local Appium. Delete this line.'
+      "registry.devices.<name>.transport was removed: to use an Appium server agent-qa doesn't start, list it under registry.remotes with protocol: appium and set the device's remote to its name. Delete this line."
     const configs = [
       { devices: { 'android-emu': { platform: 'android', transport: 'local' } }, names: ['android-emu'] },
       { devices: { iphone: { platform: 'ios', transport: 'browserstack' } }, names: ['iphone'] },
@@ -198,7 +198,7 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
     }
     const path = 'registry.targets.release-android.app.browserstack'
     expect(issueMessageAt(config, path)).toBe(
-      'registry.targets.<name>.app.browserstack was removed: BrowserStack is no longer supported; app.path is the app file. Delete this line.',
+      "registry.targets.<name>.app.browserstack was removed: set app.ref to the app a remote device installs, an https URL or the server's own reference; app.path stays the file for devices here. Delete this line.",
     )
     expect(paramsAt(config, path)).toEqual({ retired: true })
   })

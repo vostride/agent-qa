@@ -50,13 +50,18 @@ const RETIRED_ALLOW_PRODUCTION_MESSAGE =
   'allowProduction was removed: production targets run like any other target. Delete this line.'
 
 const RETIRED_REGISTRY_PROVIDERS_MESSAGE =
-  'registry.providers was removed: list remote browsers under registry.remotes, with credentials as {{secret:NAME}} references to workspace.secretsFile. Delete this block.'
+  'registry.providers was removed: list remote browsers and Appium servers under registry.remotes, with credentials as {{secret:NAME}} references to workspace.secretsFile. Delete this block.'
 
 const RETIRED_DEVICE_TRANSPORT_MESSAGE =
-  'registry.devices.<name>.transport was removed: devices run on local Appium. Delete this line.'
+  "registry.devices.<name>.transport was removed: to use an Appium server agent-qa doesn't start, list it under registry.remotes with protocol: appium and set the device's remote to its name. Delete this line."
 
 const RETIRED_APP_BROWSERSTACK_MESSAGE =
-  'registry.targets.<name>.app.browserstack was removed: BrowserStack is no longer supported; app.path is the app file. Delete this line.'
+  "registry.targets.<name>.app.browserstack was removed: set app.ref to the app a remote device installs, an https URL or the server's own reference; app.path stays the file for devices here. Delete this line."
+
+export const LOCAL_FILE_NAME = 'agent-qa.local.yaml'
+
+export const RETIRED_LOCAL_FILE_MESSAGE =
+  'agent-qa.local.yaml is no longer read: describe each device under registry.devices with model and os (id pins one unit), and set app.path on the target. Delete the file.'
 
 const RETIRED_CACHE_TTL_MESSAGE =
   'services.cache.ttl was removed: cached plans do not expire by age. Delete this line.'

@@ -42,7 +42,11 @@ export {
 
 export { TargetSchema, DeviceProfileSchema } from './registry-schema.js'
 
-export { refuseRetiredLocalBindings } from './retired-keys.js'
+export {
+  LOCAL_FILE_NAME,
+  RETIRED_LOCAL_FILE_MESSAGE,
+  refuseRetiredLocalBindings,
+} from './retired-keys.js'
 
 export {
   CaptureConfigSchema,
