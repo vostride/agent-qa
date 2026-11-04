@@ -5,6 +5,7 @@ export { KEY_MAP, computeSwipe, computePinch, computeFingerPositions } from './g
 export * from './launch-resolver.js'
 export * from './appium-executable.js'
 export * from './select-device.js'
+export * from './device-plan.js'
 export type { MobileNode, MobileRefMap, ParsedMobileSource, RefEntry } from './types.js'
 export {
   WEBVIEW_SCROLLERS_SCRIPT,
