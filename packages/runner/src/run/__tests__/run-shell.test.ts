@@ -240,6 +240,44 @@ describe('run lifecycle emission (spec §2.2)', () => {
     expect(skipped).toContainEqual(expect.objectContaining({ testId: 'g1-b', outcome: 'skipped' }))
   })
 
+  it('a member refused on its remote leaves its fail-fast group running, and each later member records its own refusal', async () => {
+    const SENTENCE =
+      'Remote grid (playwright ws://127.0.0.1:9) refused the credentials. Check its headers, query and basicAuth in registry.remotes.'
+    const refused = (name: string): TestResult => ({
+      name,
+      filePath: `${name}.test.ts`,
+      status: 'failed',
+      steps: [],
+      duration: 0,
+      failureSummary: SENTENCE,
+      remoteRefusal: true,
+    })
+    const calls: string[] = []
+    const members: RunMemberDescriptor[] = [
+      { testId: 'g1-a', name: 'group 1 test a', filePath: 'g1-a.test.ts', failFastGroup: 'g1' },
+      { testId: 'g1-b', name: 'group 1 test b', filePath: 'g1-b.test.ts', failFastGroup: 'g1' },
+      { testId: 'g2-a', name: 'group 2 test a', filePath: 'g2-a.test.ts', failFastGroup: 'g2' },
+    ]
+    const session = startRun(
+      baseConfig({
+        members,
+        executor: scriptedExecutor({ 'g1-a': refused('g1-a'), 'g1-b': refused('g1-b') }, calls),
+      }),
+    )
+    const events = drain(session)
+    await done(session)
+
+    expect(calls).toEqual(['g1-a', 'g1-b', 'g2-a'])
+    const finished = events
+      .filter(e => e.type === 'testFinished')
+      .map(e => e.payload as { testId: string; outcome: string; failureSummary?: string })
+    for (const testId of ['g1-a', 'g1-b']) {
+      expect(finished).toContainEqual(
+        expect.objectContaining({ testId, outcome: 'failed', failureSummary: SENTENCE }),
+      )
+    }
+  })
+
   it('publishes verdict exactly once, before runFinished; runFinished is last, once, and with NO postVerdict port composed reads detached, with finalSeq = its own seq', async () => {
     const session = startRun(baseConfig())
     const events = drain(session)

@@ -1,5 +1,6 @@
 // A remote that refuses before a test starts prints one sentence, and agent-qa run exits 2.
 
+import { writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { Command } from 'commander'
@@ -314,5 +315,29 @@ describe('a suite refused on its remote ends only its members while a local test
         })
       }
     })
+  }, RUN_BUDGET_MS)
+})
+
+describe('a suite whose setup fails for another reason', () => {
+  it('still skips the later members of a suite whose setup hook fails', async () => {
+    await onScene(
+      { remote: false, knobs: { secondSuiteMember: true, setupHook: 'suite' } },
+      async (scene) => {
+        writeFileSync(join(scene.project.project, 'hooks', 'print-env.js'), 'process.exit(1)\n')
+        await runThroughCli(scene, scene.project.suitePattern)
+
+        const log = scene.printed.join('\n')
+        expect(storedMember(scene, 'the suite member'), log).toMatchObject({
+          outcome: 'failed',
+          failureSummary: 'Suite setup hook failed',
+        })
+        // A skipped member never starts, so its stored row has no name; the suite has one other.
+        const members = storedMembers(scene)
+        const skipped = members.filter((member) => member.outcome === 'skipped')
+        expect(skipped.map((member) => member.failureSummary), JSON.stringify(members))
+          .toEqual([undefined])
+        expect(scene.endpoint.sessions(), log).toBe(0)
+      },
+    )
   }, RUN_BUDGET_MS)
 })
