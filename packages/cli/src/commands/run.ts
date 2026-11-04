@@ -6,10 +6,10 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { connectionSecretMisuse, discoverWorkspaceFiles, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuitePlace, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { connectionSecretMisuse, discoverWorkspaceFiles, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectDevicePlace, selectSuitePlace, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
-import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, DevicePlace, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
 import { loadLocalBindings, type LocalDeviceBindings } from '../devices.js'
@@ -320,7 +320,14 @@ export async function createPlatformAdapter(
   if (platform === 'android') {
     try {
       const { AndroidPlatformAdapter } = await import('@vostride/agent-qa-android')
-      return new AndroidPlatformAdapter()
+      return new AndroidPlatformAdapter({
+        ...(options.connectionSecrets === undefined
+          ? {}
+          : { connectionSecrets: options.connectionSecrets }),
+        ...(options.secretsFile === undefined ? {} : { secretsFile: options.secretsFile }),
+        ...(options.refusalMemory === undefined ? {} : { refusalMemory: options.refusalMemory }),
+        sessions: options.sessions ?? processRemoteSessions,
+      })
     } catch {
       throw new Error(
         'Android adapter not available. Install @vostride/agent-qa-android: pnpm add @vostride/agent-qa-android',
@@ -381,6 +388,9 @@ export function buildPlatformConfig(
     device: resolvedDevice ? {
       name: resolvedDevice.name,
       platform: resolvedDevice.platform,
+      ...(resolvedDevice.model === undefined ? {} : { model: resolvedDevice.model }),
+      ...(resolvedDevice.os === undefined ? {} : { os: resolvedDevice.os }),
+      ...(resolvedDevice.remote === undefined ? {} : { remote: resolvedDevice.remote }),
       match: resolvedDevice.match,
     } : undefined,
     bundleId: mobileResolved?.app.bundleId,
@@ -1261,17 +1271,43 @@ function selectDirectRemotes(
   return remotes
 }
 
+// One entry per mobile test whose device is placed; a refused pick places nothing, and the member
+// reports it.
+function placeDirectDevices(
+  config: AgentQaConfig,
+  configDir: string,
+  bindings: readonly ParsedTestBinding[],
+  deviceFlag: string | undefined,
+): Map<ParsedTestBinding, DevicePlace> {
+  const places = new Map<ParsedTestBinding, DevicePlace>()
+  for (const binding of bindings) {
+    if (!anyTargetRunsOnDevice(config, [binding.test.target])) continue
+    const device = deviceFlag ?? binding.test.use?.device
+    if (device === undefined) continue
+    const selected = selectDevicePlace({
+      devices: config.registry?.devices ?? {},
+      remotes: config.registry?.remotes ?? [],
+      device,
+      file: configRelativeFile(configDir, binding.filePath),
+    })
+    if ('place' in selected) places.set(binding, selected.place)
+  }
+  return places
+}
+
 // Read from the files before the run is recorded; a refused pick places nothing.
 function directRunRunner(
   config: AgentQaConfig,
   configDir: string,
   bindings: readonly ParsedTestBinding[],
   browserFlag: string | undefined,
+  deviceFlag: string | undefined,
 ): RunAttributeRunner {
-  return runnerForPlaces(
-    placeDirectTests(config, configDir, bindings, browserFlag)
+  return runnerForPlaces([
+    ...placeDirectTests(config, configDir, bindings, browserFlag)
       .flatMap(({ selected }) => ('place' in selected ? [selected.place] : [])),
-  )
+    ...placeDirectDevices(config, configDir, bindings, deviceFlag).values(),
+  ])
 }
 
 // A suite shares one browser, so it is placed once for all its members.
@@ -3649,6 +3685,7 @@ export async function produceDirectRunMembers(
   const readLocalBindings = createRunLocalBindingsReader()
   if (anyTargetRunsOnDevice(config, filtered.map(({ test }) => test.target))) readLocalBindings()
   const directRemotes = selectDirectRemotes(config, configDir, filtered, opts.browser)
+  const directDevicePlaces = placeDirectDevices(config, configDir, filtered, opts.device)
   refuseRemoteSecretProblems({
     config,
     configDir,
@@ -3660,7 +3697,7 @@ export async function produceDirectRunMembers(
   const directRefusalMemory = input.refusalMemory ?? createRemoteRefusalMemory()
   const directRunAttributes = buildCliRunAttributes(
     userRunAttributes,
-    directRunRunner(config, configDir, filtered, opts.browser),
+    directRunRunner(config, configDir, filtered, opts.browser, opts.device),
   )
 
   // The late-bound slots the run's own lifecycle fills. `singleRunProduct` and `singleBuildOrdinal` are declared with the block
@@ -3739,9 +3776,11 @@ export async function produceDirectRunMembers(
     let analyticsPlatform: 'web' | 'android' | 'ios' | undefined
     let analyticsTestId: string | undefined
     const testRemote = directRemotes.get(binding)
-    const testRunner = runnerForPlaces(
-      testRemote === undefined ? [] : [{ kind: 'remote', remote: testRemote }],
-    )
+    const testDevicePlace = directDevicePlaces.get(binding)
+    const testRunner = runnerForPlaces([
+      ...(testRemote === undefined ? [] : [{ kind: 'remote' as const, remote: testRemote }]),
+      ...(testDevicePlace === undefined ? [] : [testDevicePlace]),
+    ])
     let analyticsAttributes: RunAttributes | undefined = buildCliRunAttributes(
       userRunAttributes,
       testRunner,
@@ -3915,8 +3954,11 @@ export async function produceDirectRunMembers(
         currentPlatform = testPlatform
         currentAdapterKey = adapterKey
 
-        // Auto-start Appium for mobile platforms (if not already running)
-        if (testPlatform === 'ios' || testPlatform === 'android') {
+        // Auto-start Appium for mobile platforms (if not already running); a remote device has its own.
+        if (
+          (testPlatform === 'ios' || testPlatform === 'android') &&
+          testMobileResolved?.device.remote === undefined
+        ) {
           try {
             const appiumUrl = await acquireAppium(effectiveLogLevel, input.resolveAppiumUrl)
             if (testMobileResolved) {
@@ -4546,7 +4588,7 @@ export function createRunCommand(): Command {
         let currentRunId: string | undefined
         const directAttributes = buildCliRunAttributes(
           userRunAttributes,
-          directRunRunner(config, configDir, parseResult.bindings, opts.browser),
+          directRunRunner(config, configDir, parseResult.bindings, opts.browser, opts.device),
         )
         // One record for this path, written whatever the config holds.
         const record = createRunRecord({

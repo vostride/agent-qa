@@ -124,6 +124,8 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).selectWebPlace,
   selectSuitePlace:
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).selectSuitePlace,
+  selectDevicePlace:
+    (await importOriginal<typeof import('@vostride/agent-qa-core')>()).selectDevicePlace,
   runnerForPlaces:
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).runnerForPlaces,
   projectRemotesInConfigText:

@@ -223,6 +223,57 @@ describe('resolveMobileRunConfig', () => {
     expect(resolved.app.appPackage).toBe('org.wikipedia.alpha')
   })
 
+  it('resolves a device on an appium remote to that remote, with no local Appium url', () => {
+    const config = {
+      ...makeConfig({
+        devices: {
+          'galaxy-farm': {
+            platform: 'android',
+            model: 'Samsung Galaxy S24',
+            os: '14',
+            remote: 'farm',
+          },
+        },
+      }),
+    }
+    const withRemotes = {
+      ...config,
+      registry: {
+        ...config.registry,
+        remotes: [{ name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' }],
+      },
+    }
+
+    const resolved = resolveMobileRunConfig({
+      config: withRemotes,
+      targetName: 'release-android-wikipedia',
+      useDeviceName: 'galaxy-farm',
+      appiumUrl: 'http://127.0.0.1:4723',
+    })
+
+    expect(resolved.device).toMatchObject({
+      name: 'galaxy-farm',
+      model: 'Samsung Galaxy S24',
+      os: '14',
+      remote: { name: 'farm', protocol: 'appium', url: 'https://farm.example.com/wd/hub' },
+    })
+    expect(resolved.appium).toEqual({ managed: false })
+  })
+
+  it('throws device-resolution for a device whose remote is not listed', () => {
+    const err = expectMobileSetupError(() =>
+      resolveMobileRunConfig({
+        config: makeConfig({ devices: { 'galaxy-farm': { platform: 'android', remote: 'farm' } } }),
+        targetName: 'release-android-wikipedia',
+        useDeviceName: 'galaxy-farm',
+      }),
+    )
+    expect(err.category).toBe('device-resolution')
+    expect(err.message).toBe(
+      'Device galaxy-farm names remote "farm", which registry.remotes does not list. registry.remotes lists no remotes.',
+    )
+  })
+
   it('throws for missing mobile device', () => {
     const err = expectMobileSetupError(() => resolveMobileRunConfig({
       config: makeConfig(),

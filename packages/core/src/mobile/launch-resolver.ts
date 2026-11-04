@@ -1,5 +1,8 @@
 import { existsSync } from 'node:fs'
 import { dirname, resolve as resolvePath } from 'node:path'
+import type { RemoteDeviceConfig } from '@vostride/agent-qa-runner'
+import type { RemoteEntry } from '../schema/remote-schema.js'
+import { selectDevicePlace } from './select-device.js'
 
 export type MobilePlatform = 'android' | 'ios'
 export type MobileAppState = 'preserve' | 'reset'
@@ -48,6 +51,9 @@ export class MobileSetupError extends Error {
 export interface ResolvedMobileDevice {
   name: string
   platform: MobilePlatform
+  model?: string
+  os?: string
+  remote?: RemoteDeviceConfig
   match: Record<string, unknown>
 }
 
@@ -106,6 +112,9 @@ interface TargetEntry {
 
 interface DeviceProfile {
   platform?: string
+  model?: string
+  os?: string
+  remote?: string
   match?: Record<string, unknown>
 }
 
@@ -314,6 +323,17 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     )
   }
 
+  let remote: RemoteDeviceConfig | undefined
+  if (deviceProfile.remote !== undefined) {
+    const selected = selectDevicePlace({
+      devices: devices ?? {},
+      remotes: (input.config.registry?.remotes ?? []) as readonly RemoteEntry[],
+      device: deviceName,
+    })
+    if ('refusal' in selected) throw setupError(selected.refusal, input, { platform, deviceName })
+    if (selected.place.kind === 'remote') remote = selected.place.remote
+  }
+
   const localMatch = input.localBindings?.devices?.[deviceName] ?? null
   const mergedMatch = { ...(deviceProfile.match ?? {}), ...(localMatch ?? {}) }
 
@@ -362,14 +382,18 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     device: {
       name: deviceName,
       platform,
+      ...(asOptionalString(deviceProfile.model) ? { model: deviceProfile.model } : {}),
+      ...(asOptionalString(deviceProfile.os) ? { os: deviceProfile.os } : {}),
+      ...(remote === undefined ? {} : { remote }),
       match: mergedMatch,
     },
     app,
     appState,
-    appium: {
-      url: input.appiumUrl,
-      managed: !input.appiumUrl,
-    },
+    // A remote device's Appium is its remote, so no local one is named or managed.
+    appium:
+      remote === undefined
+        ? { url: input.appiumUrl, managed: !input.appiumUrl }
+        : { managed: false },
     sourceTrace,
   }
 }

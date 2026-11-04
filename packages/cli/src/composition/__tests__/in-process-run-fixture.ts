@@ -109,6 +109,16 @@ export interface InProcessFixtureInput {
   readonly setupHook?: 'test' | 'suite'
   /** An OpenAI-compatible model the config declares and uses in place of the unreachable one. */
   readonly model?: { readonly baseUrl: string; readonly id: string }
+  /**
+   * An appium remote, a device described by model on it and an Android target; the standalone test
+   * targets that app on that device.
+   */
+  readonly remoteDevice?: {
+    readonly url: string
+    readonly headers?: Readonly<Record<string, string>>
+    readonly model: string
+    readonly os?: string
+  }
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -122,6 +132,12 @@ export const SECOND_TARGET_NAME = 'the-second-thing'
 
 /** The name `plantedSecret` declares its value under. One definition, so a cell need not retype it. */
 export const PLANTED_SECRET_NAME = 'AGENT_QA_PLANTED_SECRET'
+
+// The names `remoteDevice` writes, so cells read them rather than retyping them.
+export const REMOTE_DEVICE_REMOTE_NAME = 'farm'
+export const REMOTE_DEVICE_NAME = 'galaxy-farm'
+export const REMOTE_DEVICE_TARGET_NAME = 'shop-android'
+export const REMOTE_DEVICE_APP_PACKAGE = 'com.example.shop'
 
 const createdProjects: string[] = []
 
@@ -163,6 +179,28 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
 
   const directTestId = generateTestId()
   const memberTestId = generateTestId()
+  const remoteDevice = input.remoteDevice
+  const pixelDevice =
+    input.remote !== undefined &&
+    (input.remoteAnchoredInDevices === true || input.remotesKeyAliased === true)
+  const remoteEntryLines = (remote: {
+    readonly name: string
+    readonly protocol: string
+    readonly url: string
+    readonly headers?: Readonly<Record<string, string>>
+  }): string[] => [
+    `    - name: ${remote.name}`,
+    `      protocol: ${remote.protocol}`,
+    `      url: ${JSON.stringify(remote.url)}`,
+    ...(remote.headers === undefined
+      ? []
+      : [
+          '      headers:',
+          ...Object.entries(remote.headers).map(
+            ([name, value]) => `        ${name}: ${JSON.stringify(value)}`,
+          ),
+        ]),
+  ]
 
   writeFileSync(
     join(project, 'agent-qa.config.yaml'),
@@ -176,10 +214,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       '  envFile: .env',
       '  secretsFile: .env.secrets.local',
       'registry:',
-      ...(input.remote !== undefined &&
-      (input.remoteAnchoredInDevices === true || input.remotesKeyAliased === true)
+      ...(pixelDevice || remoteDevice !== undefined ? ['  devices:'] : []),
+      ...(input.remote !== undefined && pixelDevice
         ? [
-            '  devices:',
             '    pixel:',
             '      platform: android',
             '      match:',
@@ -199,6 +236,17 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             ...(input.remotesKeyAliased === true ? ['        appPackage: &key remotes'] : []),
           ]
         : []),
+      ...(remoteDevice === undefined
+        ? []
+        : [
+            `    ${REMOTE_DEVICE_NAME}:`,
+            '      platform: android',
+            `      model: ${JSON.stringify(remoteDevice.model)}`,
+            ...(remoteDevice.os === undefined
+              ? []
+              : [`      os: ${JSON.stringify(remoteDevice.os)}`]),
+            `      remote: ${REMOTE_DEVICE_REMOTE_NAME}`,
+          ]),
       '  targets:',
       `    ${IN_PROCESS_TARGET_NAME}:`,
       '      platform: web',
@@ -215,6 +263,13 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             '      product: one-product',
           ]
         : []),
+      ...(remoteDevice === undefined
+        ? []
+        : [
+            `    ${REMOTE_DEVICE_TARGET_NAME}:`,
+            '      platform: android',
+            `      appPackage: ${REMOTE_DEVICE_APP_PACKAGE}`,
+          ]),
       '  llms:',
       ...(input.model === undefined
         ? [
@@ -229,10 +284,20 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             `      model: ${input.model.id}`,
             `      baseURL: ${input.model.baseUrl}`,
           ]),
+      ...(input.remote === undefined && remoteDevice === undefined
+        ? []
+        : [input.remotesKeyAliased === true ? '  *key :' : '  remotes:']),
+      ...(remoteDevice === undefined
+        ? []
+        : remoteEntryLines({
+            name: REMOTE_DEVICE_REMOTE_NAME,
+            protocol: 'appium',
+            url: remoteDevice.url,
+            ...(remoteDevice.headers === undefined ? {} : { headers: remoteDevice.headers }),
+          })),
       ...(input.remote === undefined
         ? []
         : [
-            input.remotesKeyAliased === true ? '  *key :' : '  remotes:',
             `    - name: ${input.remote.name}`,
             `      protocol: ${input.remote.protocol}`,
             input.remoteAnchoredInDevices === true
@@ -317,10 +382,16 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       : [
           `test-id: ${directTestId}`,
           'name: the standalone test',
-          `target: ${IN_PROCESS_TARGET_NAME}`,
+          `target: ${
+            remoteDevice === undefined ? IN_PROCESS_TARGET_NAME : REMOTE_DEVICE_TARGET_NAME
+          }`,
+          ...(input.directTestPick === undefined && remoteDevice === undefined ? [] : ['use:']),
           ...(input.directTestPick === undefined
             ? []
-            : ['use:', '  browser:', `    remote: ${input.directTestPick}`]),
+            : ['  browser:', `    remote: ${input.directTestPick}`]),
+          ...(remoteDevice === undefined
+            ? []
+            : [`  device: ${REMOTE_DEVICE_NAME}`, '  mobile:', '    appState: preserve']),
           ...setupLines('test'),
           'steps:',
           step,
