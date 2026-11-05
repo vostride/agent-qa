@@ -43,9 +43,10 @@ export function checkPlaywrightVersion(version: string): void {
   if (listedPlaywright(version)) return
   const first = BROWSERSTACK_PLAYWRIGHT_VERSIONS[0]
   const last = BROWSERSTACK_PLAYWRIGHT_VERSIONS[BROWSERSTACK_PLAYWRIGHT_VERSIONS.length - 1]
-  const ours = playwrightMajorMinor(version) ?? `an unknown version (${version})`
+  const ours = playwrightMajorMinor(version)
+  const which = ours === undefined ? "and agent-qa's Playwright version is unknown" : `not ${ours}`
   throw new PluginError(
-    `BrowserStack lists Playwright ${first} to ${last}, not ${ours}, so web tests cannot run there yet; run this test here or on another remote.`,
+    `BrowserStack lists Playwright ${first} to ${last}, ${which}, so web tests cannot run there yet; run this test here or on another remote.`,
     { kind: 'version' },
   )
 }
