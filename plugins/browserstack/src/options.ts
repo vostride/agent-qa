@@ -27,6 +27,24 @@ export const options = z.strictObject({
     .url()
     .default('wss://cdp.browserstack.com/playwright')
     .describe("BrowserStack's Playwright endpoint, wss:// unless it points at this machine"),
+  local: z
+    .boolean()
+    .default(false)
+    .describe(
+      'Start a BrowserStack Local tunnel for this run, named by localIdentifier or a fresh one',
+    ),
+  localIdentifier: z
+    .string()
+    .min(1)
+    .optional()
+    .describe(
+      'The identifier of a BrowserStack Local tunnel; without local, a tunnel already running',
+    ),
+  localBinary: z
+    .string()
+    .min(1)
+    .optional()
+    .describe('The BrowserStackLocal binary to run instead of the one the wrapper downloads'),
 })
 
 export type BrowserStackOptions = z.output<typeof options>
@@ -81,6 +99,15 @@ function isLoopback(hostname: string): boolean {
   return (
     hostname === 'localhost' || hostname === '[::1]' || /^127(?:\.\d{1,3}){3}$/.test(hostname)
   )
+}
+
+export function checkLocal(input: BrowserStackOptions): void {
+  if (input.localBinary !== undefined && !input.local) {
+    throw new PluginError(
+      'localBinary names the tunnel the plugin starts, so it needs local: true.',
+      { kind: 'refused', path: 'localBinary' },
+    )
+  }
 }
 
 export function checkEndpoints(input: BrowserStackOptions): void {

@@ -26,6 +26,7 @@ export interface DeviceRequest {
   capabilities: Record<string, unknown>
   testName: string | undefined
   runId: string | undefined
+  localIdentifier: string | undefined
 }
 
 export interface DeviceAnswer {
@@ -68,6 +69,9 @@ export function deviceAnswer(request: DeviceRequest): DeviceAnswer {
         projectName: settings.project,
         ...(build === undefined ? {} : { buildName: build }),
         ...(name === undefined ? {} : { sessionName: name }),
+        ...(request.localIdentifier === undefined
+          ? {}
+          : { local: true, localIdentifier: request.localIdentifier }),
         ...settings.extra,
       },
     },

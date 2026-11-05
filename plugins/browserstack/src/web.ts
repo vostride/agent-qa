@@ -52,6 +52,7 @@ export interface WebRequest {
   playwrightVersion: string
   testName: string | undefined
   runId: string | undefined
+  localIdentifier: string | undefined
 }
 
 export interface WebAnswer {
@@ -94,6 +95,9 @@ export function webCapabilities(request: WebRequest): Record<string, unknown> {
     project: settings.project,
     ...(build === undefined ? {} : { build }),
     ...(request.testName === undefined ? {} : { name: request.testName }),
+    ...(request.localIdentifier === undefined
+      ? {}
+      : { 'browserstack.local': true, 'browserstack.localIdentifier': request.localIdentifier }),
     ...settings.extra,
   }
 }
