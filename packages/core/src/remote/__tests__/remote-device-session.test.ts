@@ -220,10 +220,8 @@ describe('scrubDeviceEndpoint', () => {
 })
 
 describe('createRemoteDeviceRequestBounds', () => {
-  it('leaves the new session unbounded and keeps its first reply only', () => {
-    const bounds = createRemoteDeviceRequestBounds({ commandBoundMs: 50 })
-    const request: { signal?: AbortSignal } = {}
-    expect(bounds.boundRequest(request).signal).toBeUndefined()
+  it('keeps the first reply before the session opens only', () => {
+    const bounds = createRemoteDeviceRequestBounds({ connectTimeoutMs: 50, commandBoundMs: 50 })
     bounds.captureReply(reply(401))
     bounds.captureReply(reply(500))
     expect(bounds.newSessionReply()?.statusCode).toBe(401)
@@ -233,8 +231,17 @@ describe('createRemoteDeviceRequestBounds', () => {
     expect(bounds.newSessionReply()?.statusCode).toBe(401)
   })
 
+  it('aborts the new session once the connect timeout passes', async () => {
+    const bounds = createRemoteDeviceRequestBounds({ connectTimeoutMs: 50, commandBoundMs: 60_000 })
+    const started = Date.now()
+    const signal = bounds.boundRequest<{ signal?: AbortSignal }>({}).signal
+    expect(signal?.aborted).toBe(false)
+    await new Promise<void>((aborted) => signal?.addEventListener('abort', () => aborted()))
+    expect(Date.now() - started).toBeLessThan(10_000)
+  })
+
   it('aborts a request after the session opens once the command bound passes', async () => {
-    const bounds = createRemoteDeviceRequestBounds({ commandBoundMs: 50 })
+    const bounds = createRemoteDeviceRequestBounds({ connectTimeoutMs: 60_000, commandBoundMs: 50 })
     bounds.markOpened()
     const signal = bounds.boundRequest<{ signal?: AbortSignal }>({}).signal
     expect(signal?.aborted).toBe(false)
@@ -243,13 +250,23 @@ describe('createRemoteDeviceRequestBounds', () => {
   })
 
   it("keeps a request's own signal alongside the bound", () => {
-    const bounds = createRemoteDeviceRequestBounds({ commandBoundMs: REMOTE_COMMAND_BOUND_MS })
+    const bounds = createRemoteDeviceRequestBounds({
+      connectTimeoutMs: 300_000,
+      commandBoundMs: REMOTE_COMMAND_BOUND_MS,
+    })
     bounds.markOpened()
     const own = new AbortController()
     const signal = bounds.boundRequest({ signal: own.signal }).signal
     expect(signal?.aborted).toBe(false)
     own.abort()
     expect(signal?.aborted).toBe(true)
+  })
+
+  it("gives WebdriverIO's own request timeout the larger of the two bounds", () => {
+    const short = { connectTimeoutMs: 30_000, commandBoundMs: REMOTE_COMMAND_BOUND_MS }
+    expect(createRemoteDeviceRequestBounds(short).clientTimeoutMs).toBe(REMOTE_COMMAND_BOUND_MS)
+    const long = { connectTimeoutMs: 300_000, commandBoundMs: REMOTE_COMMAND_BOUND_MS }
+    expect(createRemoteDeviceRequestBounds(long).clientTimeoutMs).toBe(300_000)
   })
 
   it('bounds every later command at two minutes', () => {

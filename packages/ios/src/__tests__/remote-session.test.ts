@@ -47,6 +47,7 @@ interface FakeAppiumOptions {
   readonly newSession?: readonly NewSessionScript[]
   readonly status?: { readonly version?: string } | 'fail'
   readonly hold?: RegExp
+  readonly slow?: { readonly pattern: RegExp; readonly ms: number }
   readonly execute?: Readonly<Record<string, unknown>>
   readonly releaseActions?: 'ok' | 'unknown command'
 }
@@ -435,6 +436,20 @@ describe("a remote iOS session's life", () => {
     expect(await adapter.execute(TAP)).toEqual({ success: false, error: lost })
     await expect(adapter.observe()).rejects.toThrow(lost)
     expect(server.requests).toHaveLength(before)
+  })
+
+  it('gives a command the command bound when the connect timeout is shorter', async () => {
+    const server = await fakeServer({ slow: { pattern: /^POST .*\/actions$/, ms: 600 } })
+    const adapter = adapterFor({
+      timing: { commandBoundMs: 5_000, heartbeatIntervalMs: QUIET_HEARTBEAT_MS },
+    })
+    await adapter.setup(deviceOn(farmAt(server, { connectTimeoutMs: 200 })))
+
+    const result = await adapter.execute(TAP)
+
+    expect(result.success).toBe(true)
+    expect(adapter.isBrowserDisconnected).toBe(false)
+    expect(sent(server, 'POST', '/actions')).toBe(1)
   })
 
   it('is released by the session registry within the release bound, and the server keeps running', async () => {

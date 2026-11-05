@@ -132,6 +132,22 @@ describe("a remote Android session's life", () => {
     expect(server.requests).toHaveLength(before)
   })
 
+  it('gives a command the command bound when the connect timeout is shorter', async () => {
+    const server = await fakeServer({ slow: { pattern: /^POST .*\/actions$/, ms: 600 } })
+    const adapter = new AndroidPlatformAdapter({
+      connectionSecrets,
+      timing: { commandBoundMs: 5_000, heartbeatIntervalMs: QUIET_HEARTBEAT_MS },
+    })
+    teardowns.push(() => adapter.cleanup())
+    await adapter.setup(deviceOn({ ...farmAt(server), connectTimeoutMs: 200 }))
+
+    const result = await adapter.execute(TAP)
+
+    expect(result.success).toBe(true)
+    expect(adapter.isBrowserDisconnected).toBe(false)
+    expect(sent(server, 'POST', '/actions')).toBe(1)
+  })
+
   it('ends the test as lost when a heartbeat goes unanswered past the command bound', async () => {
     const server = await fakeServer({ hold: /^GET .*\/timeouts$/ })
     const adapter = await opened(server, { commandBoundMs: 400, heartbeatIntervalMs: 50 })

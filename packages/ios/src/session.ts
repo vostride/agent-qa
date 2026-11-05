@@ -180,6 +180,7 @@ async function createRemoteIOSSession(
   })
   const capabilities = remoteCapabilities(config, remoteDevice, device, options)
   const bounds = createRemoteDeviceRequestBounds({
+    connectTimeoutMs: remoteDevice.connectTimeoutMs,
     commandBoundMs: options.commandBoundMs ?? REMOTE_COMMAND_BOUND_MS,
   })
 
@@ -194,7 +195,7 @@ async function createRemoteIOSSession(
       connectionRetryCount: 0,
       enableDirectConnect: false,
       logLevel: 'silent',
-      connectionRetryTimeout: remoteDevice.connectTimeoutMs,
+      connectionRetryTimeout: bounds.clientTimeoutMs,
       transformRequest: (request) => bounds.boundRequest(request),
       transformResponse: (response) => {
         bounds.captureReply({ statusCode: response.statusCode, body: response.body })

@@ -20,22 +20,25 @@ export interface RemoteDeviceReply {
 }
 
 export interface RemoteDeviceRequestBounds {
+  readonly clientTimeoutMs: number
   boundRequest<T extends { signal?: AbortSignal | null | undefined }>(request: T): T
   captureReply<T extends RemoteDeviceReply>(reply: T): T
   markOpened(): void
   newSessionReply(): RemoteDeviceReply | undefined
 }
 
-// The new session keeps the client's own request timeout; only later requests get the command bound.
+// The new session waits up to the connect timeout and every later request up to the command bound.
+// WebdriverIO's own per-request timeout must be at least the larger of the two.
 export function createRemoteDeviceRequestBounds(options: {
+  connectTimeoutMs: number
   commandBoundMs: number
 }): RemoteDeviceRequestBounds {
   let opened = false
   let reply: RemoteDeviceReply | undefined
   return {
+    clientTimeoutMs: Math.max(options.connectTimeoutMs, options.commandBoundMs),
     boundRequest(request) {
-      if (!opened) return request
-      const bound = AbortSignal.timeout(options.commandBoundMs)
+      const bound = AbortSignal.timeout(opened ? options.commandBoundMs : options.connectTimeoutMs)
       const existing = request.signal ?? undefined
       const signal = existing === undefined ? bound : AbortSignal.any([existing, bound])
       return Object.assign(request, { signal })

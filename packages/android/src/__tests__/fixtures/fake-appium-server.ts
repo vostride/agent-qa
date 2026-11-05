@@ -28,6 +28,8 @@ export interface FakeAppiumOptions {
   readonly status?: { readonly version?: string } | 'fail'
   // Tested against `<METHOD> <path>`; a matching command request is never answered.
   readonly hold?: RegExp
+  // Tested against `<METHOD> <path>`; a matching command request is answered after `ms`.
+  readonly slow?: { readonly pattern: RegExp; readonly ms: number }
   // Keyed by the `mobile:` script name posted to execute/sync.
   readonly execute?: Readonly<Record<string, unknown>>
   readonly releaseActions?: 'ok' | 'unknown command'
@@ -224,6 +226,11 @@ export async function startFakeAppiumServer(
       if (method === 'POST' && rest === '/session') return newSession(response, record)
       if (method === 'GET' && rest === '/status') return status(response)
       if (options.hold?.test(`${method} ${path}`) === true) return
+      const slow = options.slow
+      if (slow?.pattern.test(`${method} ${path}`) === true) {
+        setTimeout(() => command(response, method, rest, record.body), slow.ms)
+        return
+      }
       command(response, method, rest, record.body)
     })
   })
