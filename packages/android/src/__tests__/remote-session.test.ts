@@ -536,6 +536,31 @@ describe("a remote Android device's capabilities and app", () => {
     expect(alwaysMatch(server)).not.toHaveProperty('appium:appPackage')
   })
 
+  it.each([
+    ['device', { model: 'Samsung Galaxy S24', capabilities: { browserName: 'chrome' } }, {}],
+    ['remote', { model: 'Samsung Galaxy S24' }, { capabilities: { browserName: 'chrome' } }],
+  ] as const)(
+    "runs in browser mode on WebDriver classic when the %s's capabilities name a browser",
+    async (_place, device, remoteExtra) => {
+      const server = await fakeServer()
+
+      await adapterFor().setup(
+        deviceOn(farmAt(server, remoteExtra), device, { appPath: 'builds/shop.apk' }),
+      )
+
+      const capabilities = alwaysMatch(server)
+      expect(capabilities).toMatchObject({
+        browserName: 'chrome',
+        'appium:autoWebview': true,
+        'wdio:enforceWebDriverClassic': true,
+      })
+      expect(capabilities).not.toHaveProperty('appium:app')
+      expect(capabilities).not.toHaveProperty('appium:appPackage')
+      expect(capabilities).not.toHaveProperty('appium:noReset')
+      expect(capabilities).not.toHaveProperty('webSocketUrl')
+    },
+  )
+
   it('resolves a secret in the capabilities for the server and never shows it in a refusal', async () => {
     const server = await fakeServer({
       newSession: [

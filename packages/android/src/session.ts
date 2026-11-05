@@ -43,7 +43,9 @@ function statedText(capabilities: CapabilityMap | undefined, name: string): stri
 }
 
 export function browserModeName(config: AndroidAdapterConfig): string | undefined {
-  return statedText(config.device?.capabilities, 'browserName') ?? textOf(config.browserName)
+  const device = config.device
+  const stated = mergeCapabilities(device?.remote?.capabilities, device?.capabilities)
+  return statedText(stated, 'browserName') ?? textOf(config.browserName)
 }
 
 function referencedNames(value: unknown): string[] {
@@ -86,7 +88,7 @@ function remoteCapabilities(
     }),
     'appium:newCommandTimeout': REMOTE_NEW_COMMAND_TIMEOUT_S,
   }
-  const browserName = config.browserName
+  const browserName = browserModeName(config)
   if (browserName) {
     derived.browserName = browserName
     derived['appium:autoWebview'] = true
