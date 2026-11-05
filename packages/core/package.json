@@ -64,6 +64,7 @@
   },
   "dependencies": {
     "@vostride/agent-qa-ids": "workspace:*",
+    "@vostride/agent-qa-plugin-kit": "workspace:*",
     "@vostride/agent-qa-runner": "workspace:*",
     "@vostride/agent-qa-schema": "workspace:*",
     "ai": "7.0.159",

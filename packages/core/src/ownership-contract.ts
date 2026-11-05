@@ -8,7 +8,7 @@ export const AGENT_QA_CORE_ALLOWED_RESPONSIBILITIES = [
   'analytics subsystem: PostHog identity + core-owned bus-subscriber run feed (analytics)',
   'LLM provider auth + captured browser auth-state reuse: OAuth/PKCE plugin auth and auth-state redaction/resolution (auth, auth-state)',
   'mobile support: appium launch/element/gesture resolution (mobile)',
-  'provider + plugin loading (providers, plugin-loader-util)',
+  'provider + plugin loading, and reading plugins entries and their manifests without running them (providers, plugin-loader-util, plugins)',
   'agent token-budget/context helpers (agent)',
   'cross-cutting host-neutral helpers consumed by the CLI: run-id minting, run-attribute assembly, runtime path resolution, LogManager, version + update-check reporting, path-validation (ids, run-attributes, runtime-paths, logging, version, version-check, utils)',
 ] as const
@@ -28,6 +28,7 @@ export const AGENT_QA_CORE_EXTERNAL_DEPENDENCIES = [
 ] as const
 export const AGENT_QA_CORE_INTERNAL_DEPENDENCIES = [
   '@vostride/agent-qa-ids',
+  '@vostride/agent-qa-plugin-kit',
   '@vostride/agent-qa-runner',
   '@vostride/agent-qa-schema',
 ] as const

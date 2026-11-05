@@ -500,6 +500,9 @@ importers:
       '@vostride/agent-qa-ids':
         specifier: workspace:*
         version: link:../ids
+      '@vostride/agent-qa-plugin-kit':
+        specifier: workspace:*
+        version: link:../plugin-kit
       '@vostride/agent-qa-runner':
         specifier: workspace:*
         version: link:../runner
