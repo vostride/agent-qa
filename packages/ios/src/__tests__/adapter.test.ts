@@ -104,6 +104,7 @@ vi.mock('webdriverio', () => ({
 }))
 
 import { IOSPlatformAdapter } from '../adapter.js'
+import { resolveIOSSnapshotDepth } from '../session.js'
 import type { PlatformAdapter, PlatformConfig } from '@vostride/agent-qa-runner'
 import type { LiveFrame } from '@vostride/agent-qa-schema'
 import zlib from 'node:zlib'
@@ -310,6 +311,92 @@ describe('IOSPlatformAdapter', () => {
       const call = vi.mocked(remote).mock.calls[0][0] as any
       expect(call.capabilities['appium:deviceName']).toBe('ios-sim')
       expect(call.capabilities['appium:bundleId']).toBe('org.reactjs.native.example.wdiodemoapp')
+    })
+  })
+
+  describe('a local session dials the endpoint it is given and hands over the simulator that was found', () => {
+    const ENV = 'AGENT_QA_APPIUM_URL'
+    let savedEnv: string | undefined
+
+    beforeEach(() => {
+      savedEnv = process.env[ENV]
+    })
+
+    afterEach(() => {
+      if (savedEnv === undefined) delete process.env[ENV]
+      else process.env[ENV] = savedEnv
+    })
+
+    function device(fields: Partial<NonNullable<PlatformConfig['device']>> = {}): PlatformConfig['device'] {
+      return { name: 'iphone', platform: 'ios', match: {}, ...fields }
+    }
+
+    async function opened(config: Partial<PlatformConfig> & { appiumUrl?: string }) {
+      await adapter.setup({ platform: 'ios', ...config } as PlatformConfig)
+      const { remote } = await import('webdriverio')
+      return vi.mocked(remote).mock.calls[0][0] as any
+    }
+
+    it('an https endpoint is dialled over https with its port and path', async () => {
+      const call = await opened({ appiumUrl: 'https://127.0.0.1:8443/wd/hub' })
+      expect(call).toMatchObject({ protocol: 'https', hostname: '127.0.0.1', port: 8443, path: '/wd/hub' })
+    })
+
+    it('no endpoint dials the Appium on localhost port 4723', async () => {
+      const call = await opened({})
+      expect(call).toMatchObject({ protocol: 'http', hostname: 'localhost', port: 4723, path: '/' })
+    })
+
+    it('AGENT_QA_APPIUM_URL does not change the endpoint', async () => {
+      process.env[ENV] = 'https://127.0.0.2:9999/elsewhere'
+      const call = await opened({ appiumUrl: 'http://127.0.0.1:4724' })
+      expect(call).toMatchObject({ protocol: 'http', hostname: '127.0.0.1', port: 4724, path: '/' })
+    })
+
+    it('a simulator that was found is handed over by udid, name and version', async () => {
+      const call = await opened({
+        device: device({
+          model: 'iPhone 16',
+          os: '18',
+          here: { udid: 'A1B2C3D4-0000-1111-2222-333344445555', name: 'iPhone 16', os: '18.4' },
+        }),
+      })
+      expect(call.capabilities).toMatchObject({
+        'appium:udid': 'A1B2C3D4-0000-1111-2222-333344445555',
+        'appium:deviceName': 'iPhone 16',
+        'appium:platformVersion': '18.4',
+        'appium:showIOSLog': true,
+        'appium:settings[snapshotMaxDepth]': resolveIOSSnapshotDepth(),
+      })
+    })
+
+    it('a device id becomes the udid when nothing was found', async () => {
+      const call = await opened({ device: device({ id: 'A1B2C3D4-0000-1111-2222-333344445555' }) })
+      expect(call.capabilities['appium:udid']).toBe('A1B2C3D4-0000-1111-2222-333344445555')
+      expect(call.capabilities['appium:deviceName']).toBe('iphone')
+      expect(call.capabilities).not.toHaveProperty('appium:platformVersion')
+    })
+
+    it('a model names the simulator and an os is its version when nothing was found', async () => {
+      const call = await opened({ device: device({ model: 'iPhone 15', os: '17.5' }) })
+      expect(call.capabilities).toMatchObject({
+        'appium:deviceName': 'iPhone 15',
+        'appium:platformVersion': '17.5',
+      })
+      expect(call.capabilities).not.toHaveProperty('appium:udid')
+    })
+
+    it("the device's capabilities override the derived driver", async () => {
+      const call = await opened({
+        device: device({ capabilities: { 'appium:automationName': 'Flutter' } }),
+      })
+      expect(call.capabilities['appium:automationName']).toBe('Flutter')
+    })
+
+    it('a null capability removes the derived key', async () => {
+      const call = await opened({ device: device({ capabilities: { 'appium:showIOSLog': null } }) })
+      expect(call.capabilities).not.toHaveProperty('appium:showIOSLog')
+      expect(call.capabilities['appium:newCommandTimeout']).toBe(300)
     })
   })
 

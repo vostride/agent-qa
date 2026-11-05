@@ -1,5 +1,6 @@
 import { remote } from 'webdriverio'
 import {
+  capabilityValue,
   classifyNewSessionFailure,
   createRemoteDeviceRequestBounds,
   deviceDebugLoggingRefusal,
@@ -36,6 +37,26 @@ export function resolveIOSSnapshotDepth(): number {
 }
 
 const REMOTE_NEW_COMMAND_TIMEOUT_S = 90
+const LOCAL_APPIUM_URL = 'http://localhost:4723'
+
+function localEndpoint(appiumUrl: string | undefined) {
+  const url = new URL(appiumUrl ?? LOCAL_APPIUM_URL)
+  const protocol = url.protocol === 'https:' ? 'https' : 'http'
+  return {
+    protocol,
+    hostname: url.hostname,
+    port: url.port === '' ? (protocol === 'https' ? 443 : 80) : Number(url.port),
+    path: url.pathname === '' ? '/' : url.pathname,
+  }
+}
+
+function textOf(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
+}
+
+function statedText(capabilities: CapabilityMap | undefined, name: string): string | undefined {
+  return capabilities === undefined ? undefined : textOf(capabilityValue(capabilities, name))
+}
 
 function referencedNames(value: unknown): string[] {
   if (typeof value === 'string') return secretReferenceNames(value)
@@ -208,47 +229,40 @@ export async function createIOSSession(
   const remoteDevice = config.device?.remote
   if (remoteDevice !== undefined) return createRemoteIOSSession(config, remoteDevice, options)
 
-  const match = config.device?.match ?? {}
-  const appiumUrl = process.env.AGENT_QA_APPIUM_URL ?? config.appiumUrl ?? 'http://localhost:4723'
-  const url = new URL(appiumUrl)
-  const browserName = typeof match.browserName === 'string' && match.browserName.trim().length > 0
-    ? match.browserName.trim()
-    : undefined
-  const appStateNoReset =
-    config.appState === 'preserve' ? true :
-    config.appState === 'reset' ? false :
-    undefined
+  const profile = config.device
+  const match = profile?.match ?? {}
+  const here = profile?.here
+  const stated = profile?.capabilities
+  const browserName = statedText(stated, 'browserName') ?? textOf(match.browserName)
 
-  const capabilities: Record<string, unknown> = {
+  const udid = here?.udid ?? profile?.id ?? config.udid ?? textOf(match.udid)
+  // Without a version XCUITest picks the newest SDK, not the simulator that was found.
+  const platformVersion = here?.os ?? profile?.os ?? textOf(match.platformVersion)
+
+  const derived: CapabilityMap = {
     platformName: 'iOS',
-    'appium:automationName': (match.automationName as string) ?? 'XCUITest',
-    'appium:deviceName': config.device?.name ?? 'iPhone Simulator',
+    'appium:automationName': textOf(match.automationName) ?? 'XCUITest',
+    'appium:deviceName': here?.name ?? profile?.model ?? profile?.name ?? 'iPhone Simulator',
     'appium:showIOSLog': true,
     'appium:newCommandTimeout': config.timeouts?.test ? Math.ceil(config.timeouts.test / 1000) : 300,
     [IOS_SNAPSHOT_DEPTH_CAPABILITY]: resolveIOSSnapshotDepth(),
   }
+  if (udid !== undefined) derived['appium:udid'] = udid
+  if (platformVersion !== undefined) derived['appium:platformVersion'] = platformVersion
 
-  if (!browserName && appStateNoReset !== undefined) capabilities['appium:noReset'] = appStateNoReset
+  if (!browserName && config.appState === 'preserve') derived['appium:noReset'] = true
+  if (!browserName && config.appState === 'reset') derived['appium:noReset'] = false
+  const bundleId = config.bundleId ?? textOf(match.bundleId)
+  if (bundleId) derived['appium:bundleId'] = bundleId
+  if (config.appPath) derived['appium:app'] = config.appPath
 
-  if (match.platformVersion) capabilities['appium:platformVersion'] = match.platformVersion
-  if (match.bundleId) capabilities['appium:bundleId'] = match.bundleId
-  if (config.bundleId) capabilities['appium:bundleId'] = config.bundleId
-  if (config.appPath) capabilities['appium:app'] = config.appPath
-  if (match.udid) capabilities['appium:udid'] = match.udid
-  if (config.udid) capabilities['appium:udid'] = config.udid
-
-  // Strip undefined values
-  for (const key of Object.keys(capabilities)) {
-    if (capabilities[key] === undefined) {
-      delete capabilities[key]
-    }
-  }
-
+  const endpoint = localEndpoint(config.appiumUrl)
   return remote({
-    hostname: url.hostname,
-    port: parseInt(url.port || '4723', 10),
-    path: url.pathname === '/' ? '/' : url.pathname,
+    protocol: endpoint.protocol,
+    hostname: endpoint.hostname,
+    port: endpoint.port,
+    path: endpoint.path,
     logLevel: config.verbose ? 'info' : 'silent',
-    capabilities: capabilities as WebdriverIO.Capabilities,
+    capabilities: mergeCapabilities(derived, stated) as WebdriverIO.Capabilities,
   })
 }
