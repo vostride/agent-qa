@@ -43,7 +43,7 @@ const WORKSPACE = [
 
 const USE = ['use:', '  browser:', '    name: chromium', '    headless: true', '    remote: grid']
 
-const DEVICES = ['  devices:', '    pixel:', '      platform: android', '      match:']
+const DEVICES = ['  devices:', '    pixel:', '      platform: android', '      capabilities:']
 
 const ROUTE_PART = 'routepart-5e21'
 const QUERY_VALUE = 'queryvalue-a904'
@@ -141,8 +141,8 @@ describe('projectRemotesInConfigText', () => {
         'registry:',
         '  devices:',
         '    pixel:',
-        '      match:',
-        '        avd: &r',
+        '      capabilities:',
+        '        appium:avd: &r',
         '          - name: grid',
         '            protocol: playwright',
         `            url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
@@ -155,7 +155,7 @@ describe('projectRemotesInConfigText', () => {
     expect(shown).not.toContain(PATH_TOKEN)
     expect(shown).not.toContain(QUERY_SECRET)
     expect(parseYaml(shown)).toEqual({
-      registry: { devices: { pixel: { match: { avd: [grid] } } }, remotes: [grid] },
+      registry: { devices: { pixel: { capabilities: { 'appium:avd': [grid] } } }, remotes: [grid] },
     })
   })
 
@@ -174,10 +174,10 @@ describe('projectRemotesInConfigText', () => {
         `        X-Team: ${HEADER_VALUE}`,
         '  devices:',
         '    pixel:',
-        '      match:',
-        '        avd: *r',
-        '        serial: *u',
-        '        model: *h',
+        '      capabilities:',
+        '        appium:avd: *r',
+        '        appium:serial: *u',
+        '        appium:model: *h',
         '',
       ].join('\n'),
     )
@@ -190,7 +190,11 @@ describe('projectRemotesInConfigText', () => {
       workspace: { testMatch: ['tests/**/*.yaml'] },
       registry: {
         remotes: [grid],
-        devices: { pixel: { match: { avd: [grid], serial: null, model: null } } },
+        devices: {
+          pixel: {
+            capabilities: { 'appium:avd': [grid], 'appium:serial': null, 'appium:model': null },
+          },
+        },
       },
     })
   })
@@ -202,9 +206,9 @@ describe('projectRemotesInConfigText', () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        `        avd: &grid wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
-        '        serial: *grid',
+        '      capabilities:',
+        `        appium:avd: &grid wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '        appium:serial: *grid',
         '  remotes:',
         '    - name: grid',
         '      protocol: playwright',
@@ -218,7 +222,12 @@ describe('projectRemotesInConfigText', () => {
     expect(shown).not.toContain(QUERY_SECRET)
     expect(parseYaml(shown)).toEqual({
       registry: {
-        devices: { pixel: { platform: 'android', match: { avd: origin, serial: origin } } },
+        devices: {
+          pixel: {
+            platform: 'android',
+            capabilities: { 'appium:avd': origin, 'appium:serial': origin },
+          },
+        },
         remotes: [{ name: 'grid', protocol: 'playwright', url: origin }],
       },
     })
@@ -231,8 +240,8 @@ describe('projectRemotesInConfigText', () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        '        serial: &hdrs',
+        '      capabilities:',
+        '        appium:serial: &hdrs',
         `          X-Team: ${HEADER_VALUE}`,
         '  remotes:',
         '    - name: grid',
@@ -247,7 +256,7 @@ describe('projectRemotesInConfigText', () => {
     expect(shown).not.toContain('X-Team')
     expect(parseYaml(shown)).toEqual({
       registry: {
-        devices: { pixel: { platform: 'android', match: { serial: null } } },
+        devices: { pixel: { platform: 'android', capabilities: { 'appium:serial': null } } },
         remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
       },
     })
@@ -260,8 +269,8 @@ describe('projectRemotesInConfigText', () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        '        appPackage: &entry',
+        '      capabilities:',
+        '        appium:appPackage: &entry',
         '          name: grid',
         '          protocol: playwright',
         `          url: wss://grid.example.com/${PATH_TOKEN}`,
@@ -275,7 +284,7 @@ describe('projectRemotesInConfigText', () => {
     for (const hidden of [PATH_TOKEN, HEADER_VALUE, 'X-Team']) expect(shown).not.toContain(hidden)
     expect(parseYaml(shown)).toEqual({
       registry: {
-        devices: { pixel: { platform: 'android', match: { appPackage: null } } },
+        devices: { pixel: { platform: 'android', capabilities: { 'appium:appPackage': null } } },
         remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
       },
     })
@@ -288,20 +297,20 @@ describe('projectRemotesInConfigText', () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        `        avd: &lbl ${HEADER_VALUE}`,
-        '        serial: &hdrs',
+        '      capabilities:',
+        `        appium:avd: &lbl ${HEADER_VALUE}`,
+        '        appium:serial: &hdrs',
         '          X-Team: *lbl',
-        `        platformVersion: &ep wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
-        '        appPackage: &entry',
+        `        appium:platformVersion: &ep wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        '        appium:appPackage: &entry',
         '          name: grid',
         '          protocol: playwright',
         '          url: *ep',
         '          headers: *hdrs',
         '    tablet:',
         '      platform: android',
-        '      match:',
-        '        avd: *lbl',
+        '      capabilities:',
+        '        appium:avd: *lbl',
         '  remotes:',
         '    - *entry',
         '',
@@ -317,9 +326,14 @@ describe('projectRemotesInConfigText', () => {
         devices: {
           pixel: {
             platform: 'android',
-            match: { avd: null, serial: null, platformVersion: origin, appPackage: null },
+            capabilities: {
+              'appium:avd': null,
+              'appium:serial': null,
+              'appium:platformVersion': origin,
+              'appium:appPackage': null,
+            },
           },
-          tablet: { platform: 'android', match: { avd: null } },
+          tablet: { platform: 'android', capabilities: { 'appium:avd': null } },
         },
         remotes: [{ name: 'grid', protocol: 'playwright', url: origin }],
       },
@@ -372,8 +386,8 @@ describe('projectRemotesInConfigText', () => {
       '  devices:',
       '    pixel:',
       '      platform: android',
-      '      match:',
-      '        appPackage: &key remotes',
+      '      capabilities:',
+      '        appium:appPackage: &key remotes',
       '  *key :',
       ...plantedEntry(4),
       ...USE,
@@ -392,8 +406,8 @@ describe('projectRemotesInConfigText', () => {
       '  devices:',
       '    pixel:',
       '      platform: android',
-      '      match:',
-      '        avd: &r',
+      '      capabilities:',
+      '        appium:avd: &r',
       '          remotes:',
       ...plantedEntry(12),
       '  !!merge <<: *r',
@@ -415,8 +429,8 @@ describe('projectRemotesInConfigText', () => {
       '  devices:',
       '    pixel:',
       '      platform: android',
-      '      match:',
-      '        avd: &r',
+      '      capabilities:',
+      '        appium:avd: &r',
       '          remotes:',
       ...plantedEntry(12),
       '  <<: *r',
@@ -507,9 +521,9 @@ describe('projectRemotesInConfigText', () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match: &m',
-        '        avd: *reg',
-        `        serial: ${HEADER_VALUE}`,
+        '      capabilities: &m',
+        '        appium:avd: *reg',
+        `        appium:serial: ${HEADER_VALUE}`,
         '  remotes:',
         '    - name: grid',
         '      protocol: playwright',
@@ -530,8 +544,8 @@ describe('projectRemotesInConfigText', () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        '        serial: &a',
+        '      capabilities:',
+        '        appium:serial: &a',
         `          X-Team: ${HEADER_VALUE}`,
         '          self: *a',
         '  remotes:',
@@ -546,7 +560,7 @@ describe('projectRemotesInConfigText', () => {
     expectNothingPlanted(shown)
     expect(parseYaml(shown)).toEqual({
       registry: {
-        devices: { pixel: { platform: 'android', match: { serial: null } } },
+        devices: { pixel: { platform: 'android', capabilities: { 'appium:serial': null } } },
         remotes: [],
       },
     })
@@ -559,12 +573,12 @@ describe('projectRemotesInConfigText', () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        '        serial: &a',
+        '      capabilities:',
+        '        appium:serial: &a',
         '          inner: &b',
         `            X-Team: ${HEADER_VALUE}`,
         '            back: *a',
-        '        avd: *b',
+        '        appium:avd: *b',
         '  remotes:',
         '    - name: grid',
         '      protocol: playwright',
@@ -577,7 +591,12 @@ describe('projectRemotesInConfigText', () => {
     expectNothingPlanted(shown)
     expect(parseYaml(shown)).toEqual({
       registry: {
-        devices: { pixel: { platform: 'android', match: { serial: null, avd: null } } },
+        devices: {
+          pixel: {
+            platform: 'android',
+            capabilities: { 'appium:serial': null, 'appium:avd': null },
+          },
+        },
         remotes: [],
       },
     })
@@ -592,8 +611,8 @@ describe('projectRemotesInConfigText', () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        '        serial: &base',
+        '      capabilities:',
+        '        appium:serial: &base',
         '          protocol: playwright',
         `          url: wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
         `          headers: { X-Team: ${HEADER_VALUE} }`,
@@ -607,7 +626,7 @@ describe('projectRemotesInConfigText', () => {
     expectNothingPlanted(shown)
     expect(parseYaml(shown)).toEqual({
       registry: {
-        devices: { pixel: { platform: 'android', match: { serial: null } } },
+        devices: { pixel: { platform: 'android', capabilities: { 'appium:serial': null } } },
         remotes: [{ name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }],
       },
     })
@@ -619,7 +638,7 @@ describe('projectRemotesInConfigText', () => {
       '---',
       'registry:',
       ...DEVICES,
-      '        avd: &k remotes',
+      '        appium:avd: &k remotes',
       '  remotes: &F',
       GRID_MAP_ENTRY,
       '  *k :',
@@ -637,7 +656,7 @@ describe('projectRemotesInConfigText', () => {
     const raw = [
       'registry:',
       ...DEVICES,
-      '        avd: &k remotes',
+      '        appium:avd: &k remotes',
       '  remotes: &F',
       GRID_MAP_ENTRY,
       '  *k :',
@@ -677,7 +696,7 @@ describe('projectRemotesInConfigText', () => {
       '---',
       'registry:',
       ...DEVICES,
-      '        avd: &k remotes',
+      '        appium:avd: &k remotes',
       '  remotes: &F',
       GRID_MAP_ENTRY,
       '  *k :',
@@ -700,7 +719,7 @@ describe('projectRemotesInConfigText', () => {
       '  remotes: &F',
       GRID_MAP_ENTRY,
       ...DEVICES,
-      '        avd:',
+      '        appium:avd:',
       '          <<: *F',
       '',
     ].join('\n')
@@ -746,7 +765,7 @@ describe('projectRemotesInConfigText', () => {
       ...WORKSPACE,
       'registry:',
       ...DEVICES,
-      '        avd: &k remotes',
+      '        appium:avd: &k remotes',
       '  remotes: []',
       '  *k :',
       ...plantedEntry(4),
@@ -783,7 +802,7 @@ describe('projectRemotesInConfigText', () => {
       ...WORKSPACE,
       'registry:',
       ...DEVICES,
-      '        avd: &r',
+      '        appium:avd: &r',
       '          remotes:',
       ...plantedEntry(12),
       '  !e!merge <<: *r',
@@ -801,7 +820,7 @@ describe('projectRemotesInConfigText', () => {
       ...WORKSPACE,
       'registry:',
       ...DEVICES,
-      '        avd: &r',
+      '        appium:avd: &r',
       '          remotes:',
       ...plantedEntry(12),
       '  !<tag:yaml.org,2002:merge> <<: *r',
@@ -863,7 +882,7 @@ describe('projectRemotesInConfigText', () => {
       [
         'registry:',
         ...DEVICES,
-        `        avd: &u wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
+        `        appium:avd: &u wss://grid.example.com/${PATH_TOKEN}?k=${QUERY_SECRET}`,
         '  remotes:',
         '    - name: *u',
         '      protocol: playwright',
@@ -875,7 +894,7 @@ describe('projectRemotesInConfigText', () => {
     expectNothingPlanted(shown)
     expect(parseYaml(shown)).toEqual({
       registry: {
-        devices: { pixel: { platform: 'android', match: { avd: null } } },
+        devices: { pixel: { platform: 'android', capabilities: { 'appium:avd': null } } },
         remotes: [
           { name: 'invalid name', protocol: 'playwright', url: 'wss://grid.example.com:443' },
         ],
@@ -892,7 +911,7 @@ describe('projectRemotesInConfigText', () => {
         '      protocol: playwright',
         '      url: wss://grid.example.com/',
         ...DEVICES,
-        '        avd: *n',
+        '        appium:avd: *n',
         '',
       ].join('\n'),
     )
@@ -903,7 +922,7 @@ describe('projectRemotesInConfigText', () => {
         remotes: [
           { name: 'invalid name', protocol: 'playwright', url: 'wss://grid.example.com:443' },
         ],
-        devices: { pixel: { platform: 'android', match: { avd: null } } },
+        devices: { pixel: { platform: 'android', capabilities: { 'appium:avd': null } } },
       },
     })
   })
@@ -942,7 +961,7 @@ describe('projectRemotesInConfigText', () => {
       ...WORKSPACE,
       'registry:',
       ...DEVICES,
-      '        avd:',
+      '        appium:avd:',
       `          ? [ &u "${key}" ]`,
       '          : x',
       ...REMOTE_ALIAS,
@@ -960,7 +979,7 @@ describe('projectRemotesInConfigText', () => {
       `        ? [ &u ${url} ]`,
       '        : v',
       ...DEVICES,
-      '        avd: *u',
+      '        appium:avd: *u',
       ...USE,
       '',
     ]
@@ -976,9 +995,9 @@ describe('projectRemotesInConfigText', () => {
 
       expect(AgentQaConfigSchema.safeParse(loaded).success).toBe(true)
       const shown = projectConfigRemotes(loaded) as {
-        registry: { devices: { pixel: { match: { avd: unknown } } } }
+        registry: { devices: { pixel: { capabilities: { 'appium:avd': unknown } } } }
       }
-      expect(shown.registry.devices.pixel.match.avd).toEqual(avd)
+      expect(shown.registry.devices.pixel.capabilities['appium:avd']).toEqual(avd)
       expectNoKeyedUrl(JSON.stringify(shown))
       expectNoKeyedUrl(projectRemotesInConfigText(raw))
     }
@@ -990,7 +1009,7 @@ describe('projectRemotesInConfigText', () => {
         ...WORKSPACE,
         'registry:',
         ...DEVICES,
-        '        avd:',
+        '        appium:avd:',
         `          ? [ &u "${key}" ]`,
         '          : x',
         ...REMOTE_ALIAS,
@@ -1006,7 +1025,10 @@ describe('projectRemotesInConfigText', () => {
     const prefix = `wss://grid.example.com/${ROUTE_PART}`
     const origin = 'wss://grid.example.com:443'
     type Shown = {
-      registry: { remotes: unknown; devices: { pixel: { match: { avd: unknown } } } }
+      registry: {
+        remotes: unknown
+        devices: { pixel: { capabilities: { 'appium:avd': unknown } } }
+      }
     }
     const projected = (raw: string): Shown => {
       const loaded = parseYaml(raw, { logLevel: 'error' }) as Shown
@@ -1024,7 +1046,7 @@ describe('projectRemotesInConfigText', () => {
       for (const { raw, remotes } of cases) {
         const shown = projected(raw)
 
-        expect(shown.registry.devices.pixel.match.avd).toEqual({ [origin]: 'x' })
+        expect(shown.registry.devices.pixel.capabilities['appium:avd']).toEqual({ [origin]: 'x' })
         expect(shown.registry.remotes).toEqual(
           [
             { name: 'grid', protocol: 'playwright', url: origin },
@@ -1041,7 +1063,7 @@ describe('projectRemotesInConfigText', () => {
       const shown = projected(outside(LONG_URL, lab('wss://grid.example.com/other-path')))
 
       expect(shown.registry.devices).toEqual(alone.registry.devices)
-      expect(shown.registry.devices.pixel.match.avd).toEqual({ [origin]: 'x' })
+      expect(shown.registry.devices.pixel.capabilities['appium:avd']).toEqual({ [origin]: 'x' })
       expect(shown.registry.remotes).toEqual([
         { name: 'grid', protocol: 'playwright', url: origin },
         { name: 'lab', protocol: 'playwright', url: origin },
@@ -1065,8 +1087,8 @@ describe('projectRemotesInConfigText', () => {
       [...WORKSPACE, 'registry:', ...DEVICES, ...avd, '  remotes:', ...remotes, ...USE, ''].join(
         '\n',
       )
-    const keyed = (key: string) => ['        avd:', `          ? ${key}`, '          : x']
-    type Shown = { registry: { devices: { pixel: { match: { avd: unknown } } } } }
+    const keyed = (key: string) => ['        appium:avd:', `          ? ${key}`, '          : x']
+    type Shown = { registry: { devices: { pixel: { capabilities: { 'appium:avd': unknown } } } } }
     const projected = (raw: string): Shown => {
       const loaded = parseYaml(raw, { logLevel: 'error' }) as Shown
       expect(AgentQaConfigSchema.safeParse(loaded).success).toBe(true)
@@ -1094,7 +1116,7 @@ describe('projectRemotesInConfigText', () => {
       for (const raw of configs) {
         const shown = projected(raw)
 
-        expect(shown.registry.devices.pixel.match.avd).toEqual({ [origin]: 'x' })
+        expect(shown.registry.devices.pixel.capabilities['appium:avd']).toEqual({ [origin]: 'x' })
         expectNoKeyedUrl(JSON.stringify(shown))
       }
     })
@@ -1102,12 +1124,14 @@ describe('projectRemotesInConfigText', () => {
     it('keeps a value that holds the url once, as written, with that url shown by its origin', () => {
       const shown = projected(
         config(
-          [`        avd: connects to ${LONG_URL} for the pixel`],
+          [`        appium:avd: connects to ${LONG_URL} for the pixel`],
           [...remote('grid', LONG_URL), ...remote('lab', prefix)],
         ),
       )
 
-      expect(shown.registry.devices.pixel.match.avd).toBe(`connects to ${origin} for the pixel`)
+      expect(shown.registry.devices.pixel.capabilities['appium:avd']).toBe(
+        `connects to ${origin} for the pixel`,
+      )
     })
   })
 })

@@ -96,16 +96,24 @@ describe('projectConfigRemotes', () => {
       registry: {
         remotes: [PLANTED],
         devices: {
-          pixel: { match: { avd: [PLANTED], serial: PLANTED, model: PLANTED.basicAuth } },
-          tablet: { match: { url: PLANTED.url } },
+          pixel: {
+            capabilities: {
+              'appium:avd': [PLANTED],
+              'appium:serial': PLANTED,
+              'appium:model': PLANTED.basicAuth,
+            },
+          },
+          tablet: { capabilities: { 'appium:url': PLANTED.url } },
         },
       },
     })
 
     const grid = { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' }
     expect(shown.registry.devices).toEqual({
-      pixel: { match: { avd: [grid], serial: grid, model: null } },
-      tablet: { match: { url: 'wss://grid.example.com:443' } },
+      pixel: {
+        capabilities: { 'appium:avd': [grid], 'appium:serial': grid, 'appium:model': null },
+      },
+      tablet: { capabilities: { 'appium:url': 'wss://grid.example.com:443' } },
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
@@ -114,13 +122,19 @@ describe('projectConfigRemotes', () => {
     const shown = projectConfigRemotes({
       registry: {
         remotes: { grid: PLANTED },
-        devices: { tablet: { match: { url: PLANTED.url, serial: PLANTED.headers } } },
+        devices: {
+          tablet: { capabilities: { 'appium:url': PLANTED.url, 'appium:serial': PLANTED.headers } },
+        },
       },
     })
 
     expect(shown.registry).toEqual({
       remotes: [],
-      devices: { tablet: { match: { url: 'wss://grid.example.com:443', serial: null } } },
+      devices: {
+        tablet: {
+          capabilities: { 'appium:url': 'wss://grid.example.com:443', 'appium:serial': null },
+        },
+      },
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
@@ -134,7 +148,9 @@ describe('projectConfigRemotes', () => {
           { name: 'grid.2', protocol: 'cdp', url: 'ws://127.0.0.1:9222/json' },
           { url: 'wss://grid.example.com/' },
         ],
-        devices: { tablet: { match: { avd: PLANTED.url, serial: PLANTED.headers } } },
+        devices: {
+          tablet: { capabilities: { 'appium:avd': PLANTED.url, 'appium:serial': PLANTED.headers } },
+        },
       },
     })
 
@@ -145,7 +161,7 @@ describe('projectConfigRemotes', () => {
       { url: 'wss://grid.example.com:443' },
     ])
     expect(shown.registry.devices).toEqual({
-      tablet: { match: { avd: 'invalid name', serial: null } },
+      tablet: { capabilities: { 'appium:avd': 'invalid name', 'appium:serial': null } },
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
@@ -170,13 +186,19 @@ describe('projectConfigRemotes', () => {
       const shown = projectConfigRemotes({
         registry: {
           remotes,
-          devices: { tablet: { match: { url: PLANTED.url, serial: PLANTED.headers } } },
+          devices: {
+            tablet: {
+              capabilities: { 'appium:url': PLANTED.url, 'appium:serial': PLANTED.headers },
+            },
+          },
         },
       })
 
       expect(shown.registry.remotes).toEqual(shownRemotes)
       expect(shown.registry.devices).toEqual({
-        tablet: { match: { url: 'wss://grid.example.com:443', serial: null } },
+        tablet: {
+          capabilities: { 'appium:url': 'wss://grid.example.com:443', 'appium:serial': null },
+        },
       })
       for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
     }
@@ -192,7 +214,7 @@ describe('projectConfigRemotes', () => {
     const urlKey = projectConfigRemotes({
       registry: {
         remotes: { [PLANTED.url]: 'grid' },
-        devices: { tablet: { match: { url: PLANTED.url } } },
+        devices: { tablet: { capabilities: { 'appium:url': PLANTED.url } } },
       },
     })
     const entryKeys = projectConfigRemotes({
@@ -210,7 +232,7 @@ describe('projectConfigRemotes', () => {
     ])
     expect(urlKey.registry).toEqual({
       remotes: [],
-      devices: { tablet: { match: { url: 'wss://grid.example.com:443' } } },
+      devices: { tablet: { capabilities: { 'appium:url': 'wss://grid.example.com:443' } } },
     })
     expect(entryKeys.registry.devices).toEqual({
       'wss://grid.example.com:443': { platform: 'web' },
@@ -308,7 +330,7 @@ describe('projectConfigRemotes', () => {
         devices: {
           [`[ &u ${PLANTED.url} ]`]: {
             platform: 'android',
-            match: { avd: `connects to ${PLANTED.url} for the pixel` },
+            capabilities: { 'appium:avd': `connects to ${PLANTED.url} for the pixel` },
           },
         },
       },
@@ -326,7 +348,7 @@ describe('projectConfigRemotes', () => {
     expect(shown.registry.devices).toEqual({
       '[ &u wss://grid.example.com:443 ]': {
         platform: 'android',
-        match: { avd: 'connects to wss://grid.example.com:443 for the pixel' },
+        capabilities: { 'appium:avd': 'connects to wss://grid.example.com:443 for the pixel' },
       },
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
@@ -344,11 +366,13 @@ describe('projectConfigRemotes', () => {
           { name: 'lab', protocol: 'playwright', url: tabbed },
           { name: 'edge', protocol: 'playwright', url: 'wss://grid.example.com/p4th-t0ken' },
         ],
-        devices: { pixel: { match: { avd: { [folded]: 'folded', [escaped]: 'escaped' } } } },
+        devices: {
+          pixel: { capabilities: { 'appium:avd': { [folded]: 'folded', [escaped]: 'escaped' } } },
+        },
       },
     })
 
-    expect(shown.registry.devices.pixel.match.avd).toEqual({
+    expect(shown.registry.devices.pixel.capabilities['appium:avd']).toEqual({
       'wss://grid.example.com:443': 'folded',
       'wss://grid.example.com:443 (2)': 'escaped',
     })
@@ -363,11 +387,13 @@ describe('projectConfigRemotes', () => {
           PLANTED,
           { name: 'edge', protocol: 'playwright', url: 'wss://grid.example.com/p4th-t0ken' },
         ],
-        devices: { pixel: { match: { avd: { [both]: 'x' } } } },
+        devices: { pixel: { capabilities: { 'appium:avd': { [both]: 'x' } } } },
       },
     })
 
-    expect(shown.registry.devices.pixel.match.avd).toEqual({ 'wss://grid.example.com:443': 'x' })
+    expect(shown.registry.devices.pixel.capabilities['appium:avd']).toEqual({
+      'wss://grid.example.com:443': 'x',
+    })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
 
@@ -382,12 +408,12 @@ describe('projectConfigRemotes', () => {
             headers: { [`[ &u ${PLANTED.url} ]`]: 'v' },
           },
         ],
-        devices: { tablet: { match: { avd: PLANTED.url } } },
+        devices: { tablet: { capabilities: { 'appium:avd': PLANTED.url } } },
       },
     })
 
     expect(shown.registry.devices).toEqual({
-      tablet: { match: { avd: 'wss://grid.example.com:443' } },
+      tablet: { capabilities: { 'appium:avd': 'wss://grid.example.com:443' } },
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
@@ -396,13 +422,19 @@ describe('projectConfigRemotes', () => {
     const shown = projectConfigRemotes({
       registry: {
         remotes: [{ grid: PLANTED }],
-        devices: { tablet: { match: { avd: PLANTED.url, serial: PLANTED.headers } } },
+        devices: {
+          tablet: { capabilities: { 'appium:avd': PLANTED.url, 'appium:serial': PLANTED.headers } },
+        },
       },
     })
 
     expect(shown.registry).toEqual({
       remotes: [{ url: 'invalid url' }],
-      devices: { tablet: { match: { avd: 'wss://grid.example.com:443', serial: null } } },
+      devices: {
+        tablet: {
+          capabilities: { 'appium:avd': 'wss://grid.example.com:443', 'appium:serial': null },
+        },
+      },
     })
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
   })
@@ -412,9 +444,9 @@ describe('projectConfigRemotes', () => {
       targets: { shop: { platform: 'web', url: 'https://grid.example.com/shop?team=blue' } },
       devices: {
         tablet: {
-          match: {
-            avd: 'wss://edge.example.com/other',
-            serial: 'http://127.0.0.1:9222/json/version',
+          capabilities: {
+            'appium:avd': 'wss://edge.example.com/other',
+            'appium:serial': 'http://127.0.0.1:9222/json/version',
           },
         },
       },

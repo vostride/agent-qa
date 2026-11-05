@@ -181,11 +181,11 @@ describe("the config's closed fields", () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        `        platformVersion: &ep wss://grid.example.com/${pathToken}?k=${queryValue}`,
-        '        serial: &hdrs',
+        '      capabilities:',
+        `        appium:platformVersion: &ep wss://grid.example.com/${pathToken}?k=${queryValue}`,
+        '        appium:serial: &hdrs',
         `          X-Team: ${headerValue}`,
-        '        appPackage: &entry',
+        '        appium:appPackage: &entry',
         '          name: grid',
         '          protocol: playwright',
         '          url: *ep',
@@ -203,14 +203,14 @@ describe("the config's closed fields", () => {
     const shown = [{ name: 'grid', protocol: 'playwright', url: origin }]
     const text = read.lines.map((line) => line.text).join('\n')
     const lines = parseYaml(text) as {
-      registry: { remotes: unknown; devices: { pixel: { match: unknown } } }
+      registry: { remotes: unknown; devices: { pixel: { capabilities: unknown } } }
     }
     expect((read.config.registry as { remotes: unknown }).remotes).toEqual(shown)
     expect(lines.registry.remotes).toEqual(shown)
-    expect(lines.registry.devices.pixel.match).toEqual({
-      platformVersion: origin,
-      serial: null,
-      appPackage: null,
+    expect(lines.registry.devices.pixel.capabilities).toEqual({
+      'appium:platformVersion': origin,
+      'appium:serial': null,
+      'appium:appPackage': null,
     })
     for (const hidden of [pathToken, queryValue, headerValue, 'X-Team']) {
       expect(JSON.stringify(read.config)).not.toContain(hidden)
@@ -235,9 +235,9 @@ describe("the config's closed fields", () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        '        avd: *u',
-        '        serial: *h',
+        '      capabilities:',
+        '        appium:avd: *u',
+        '        appium:serial: *h',
         ...USE,
         '',
       ].join('\n'),
@@ -248,16 +248,22 @@ describe("the config's closed fields", () => {
     expect(read.fileIssues).not.toEqual([])
     const config = read.config.registry as {
       remotes: unknown
-      devices: { pixel: { match: unknown } }
+      devices: { pixel: { capabilities: unknown } }
     }
     expect(config.remotes).toEqual([])
-    expect(config.devices.pixel.match).toEqual({ avd: 'wss://grid.example.com:443', serial: null })
+    expect(config.devices.pixel.capabilities).toEqual({
+      'appium:avd': 'wss://grid.example.com:443',
+      'appium:serial': null,
+    })
     const text = read.lines.map((line) => line.text).join('\n')
     const lines = parseYaml(text) as {
-      registry: { remotes: unknown; devices: { pixel: { match: unknown } } }
+      registry: { remotes: unknown; devices: { pixel: { capabilities: unknown } } }
     }
     expect(lines.registry.remotes).toEqual([])
-    expect(lines.registry.devices.pixel.match).toEqual({ avd: null, serial: null })
+    expect(lines.registry.devices.pixel.capabilities).toEqual({
+      'appium:avd': null,
+      'appium:serial': null,
+    })
     for (const hidden of [pathToken, queryValue, headerValue, 'X-Team']) {
       expect(JSON.stringify(read.config)).not.toContain(hidden)
       expect(text).not.toContain(hidden)
@@ -278,8 +284,8 @@ describe("the config's closed fields", () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        '        avd: &k remotes',
+        '      capabilities:',
+        '        appium:avd: &k remotes',
         '  remotes: &F',
         '    grid: { protocol: playwright, url: "wss://grid.example.com/" }',
         '  *k :',
@@ -297,7 +303,7 @@ describe("the config's closed fields", () => {
       { n: 1, text: '# This config cannot be shown without its remote endpoints.' },
     ])
     expect(read.config.registry).toEqual({
-      devices: { pixel: { platform: 'android', match: { avd: 'remotes' } } },
+      devices: { pixel: { platform: 'android', capabilities: { 'appium:avd': 'remotes' } } },
       remotes: [],
     })
     const text = read.lines.map((line) => line.text).join('\n')
@@ -318,8 +324,8 @@ describe("the config's closed fields", () => {
         '  devices:',
         '    pixel:',
         '      platform: android',
-        '      match:',
-        `        avd: &u wss://grid.example.com/${pathPart}?team=${queryValue}`,
+        '      capabilities:',
+        `        appium:avd: &u wss://grid.example.com/${pathPart}?team=${queryValue}`,
         '  remotes:',
         '    - name: *u',
         '      protocol: playwright',
@@ -337,16 +343,16 @@ describe("the config's closed fields", () => {
     ]
     const config = read.config.registry as {
       remotes: unknown
-      devices: { pixel: { match: unknown } }
+      devices: { pixel: { capabilities: unknown } }
     }
     expect(config.remotes).toEqual(remotes)
-    expect(config.devices.pixel.match).toEqual({ avd: 'invalid name' })
+    expect(config.devices.pixel.capabilities).toEqual({ 'appium:avd': 'invalid name' })
     const text = read.lines.map((line) => line.text).join('\n')
     const lines = parseYaml(text) as {
-      registry: { remotes: unknown; devices: { pixel: { match: unknown } } }
+      registry: { remotes: unknown; devices: { pixel: { capabilities: unknown } } }
     }
     expect(lines.registry.remotes).toEqual(remotes)
-    expect(lines.registry.devices.pixel.match).toEqual({ avd: null })
+    expect(lines.registry.devices.pixel.capabilities).toEqual({ 'appium:avd': null })
     for (const hidden of [pathPart, queryValue, headerValue, 'X-Team']) {
       expect(JSON.stringify(read.config)).not.toContain(hidden)
       expect(text).not.toContain(hidden)
@@ -358,15 +364,22 @@ describe("the config's closed fields", () => {
     const queryValue = 'queryvalue-4f60'
     const headerValue = 'headervalue-b7a3'
     const url = `wss://grid.example.com/${pathPart}?team=${queryValue}`
-    const devices = ['  devices:', '    pixel:', '      platform: android', '      match:']
+    const devices = ['  devices:', '    pixel:', '      platform: android', '      capabilities:']
     const blockFile = (block: string[]): string =>
-      [...WORKSPACE, 'registry:', ...block, ...devices, '        avd: *u', ...USE, ''].join('\n')
+      [...WORKSPACE, 'registry:', ...block, ...devices, '        appium:avd: *u', ...USE, ''].join(
+        '\n',
+      )
     const unshowable = [
       { n: 1, text: '# This config cannot be shown without its remote endpoints.' },
     ]
     const blockRegistry = {
       remotes: [],
-      devices: { pixel: { platform: 'android', match: { avd: 'wss://grid.example.com:443' } } },
+      devices: {
+        pixel: {
+          platform: 'android',
+          capabilities: { 'appium:avd': 'wss://grid.example.com:443' },
+        },
+      },
     }
     const entryFile = [
       ...WORKSPACE,
@@ -377,8 +390,8 @@ describe("the config's closed fields", () => {
       `      - url: &u ${url}`,
       `      - headers: &h { X-Team: ${headerValue} }`,
       ...devices,
-      '        avd: *u',
-      '        serial: *h',
+      '        appium:avd: *u',
+      '        appium:serial: *h',
       ...USE,
       '',
     ].join('\n')
@@ -397,18 +410,21 @@ describe("the config's closed fields", () => {
       if (file === entryFile) {
         const config = read.config.registry as {
           remotes: unknown
-          devices: { pixel: { match: unknown } }
+          devices: { pixel: { capabilities: unknown } }
         }
         expect(config.remotes).toEqual([{ url: 'invalid url' }])
-        expect(config.devices.pixel.match).toEqual({
-          avd: 'wss://grid.example.com:443',
-          serial: null,
+        expect(config.devices.pixel.capabilities).toEqual({
+          'appium:avd': 'wss://grid.example.com:443',
+          'appium:serial': null,
         })
         const lines = parseYaml(text) as {
-          registry: { remotes: unknown; devices: { pixel: { match: unknown } } }
+          registry: { remotes: unknown; devices: { pixel: { capabilities: unknown } } }
         }
         expect(lines.registry.remotes).toEqual([{ url: 'invalid url' }])
-        expect(lines.registry.devices.pixel.match).toEqual({ avd: null, serial: null })
+        expect(lines.registry.devices.pixel.capabilities).toEqual({
+          'appium:avd': null,
+          'appium:serial': null,
+        })
       } else {
         expect(read.lines).toEqual(unshowable)
         expect(read.config.registry).toEqual(blockRegistry)
@@ -549,8 +565,8 @@ describe("the config's closed fields", () => {
           '  devices:',
           '    pixel:',
           '      platform: android',
-          '      match:',
-          '        avd:',
+          '      capabilities:',
+          '        appium:avd:',
           `          ? [ &u "${key}" ]`,
           '          : x',
           '  remotes:',
@@ -566,10 +582,12 @@ describe("the config's closed fields", () => {
       )
       const read = await manager.readMasked()
       if (read.kind !== 'ok') throw new Error(`expected a served config, got ${read.kind}`)
-      const registry = read.config.registry as { devices: { pixel: { match: unknown } } }
+      const registry = read.config.registry as { devices: { pixel: { capabilities: unknown } } }
 
       expect(read.fileIssues).toEqual([])
-      expect(registry.devices.pixel.match).toEqual({ avd: { 'wss://grid.example.com:443': 'x' } })
+      expect(registry.devices.pixel.capabilities).toEqual({
+        'appium:avd': { 'wss://grid.example.com:443': 'x' },
+      })
       const shownText = read.lines.map((line) => line.text).join('\n')
       for (const hidden of [pathPart, queryValue]) {
         expect(JSON.stringify(read.config)).not.toContain(hidden)
@@ -600,7 +618,7 @@ describe("the config's closed fields", () => {
           '  devices:',
           '    pixel:',
           '      platform: android',
-          '      match:',
+          '      capabilities:',
           ...avd,
           '  remotes:',
           ...remotes,
@@ -615,7 +633,7 @@ describe("the config's closed fields", () => {
       expect(read.fileIssues).toEqual([])
       return read
     }
-    const keyed = (key: string) => ['        avd:', `          ? ${key}`, '          : x']
+    const keyed = (key: string) => ['        appium:avd:', `          ? ${key}`, '          : x']
 
     it('the served config shows that key whole as its origin', async () => {
       const cases = [
@@ -642,9 +660,11 @@ describe("the config's closed fields", () => {
       ]
       for (const { key, remotes, aliased } of cases) {
         const read = await served(keyed(key), remotes)
-        const registry = read.config.registry as { devices: { pixel: { match: unknown } } }
+        const registry = read.config.registry as { devices: { pixel: { capabilities: unknown } } }
 
-        expect(registry.devices.pixel.match).toEqual({ avd: { 'wss://grid.example.com:443': 'x' } })
+        expect(registry.devices.pixel.capabilities).toEqual({
+          'appium:avd': { 'wss://grid.example.com:443': 'x' },
+        })
         const shownText = read.lines.map((line) => line.text).join('\n')
         for (const hidden of [pathPart, queryValue]) {
           expect(JSON.stringify(read.config)).not.toContain(hidden)
@@ -655,13 +675,13 @@ describe("the config's closed fields", () => {
 
     it('the served config keeps a value that holds the url once, as written, with that url shown by its origin', async () => {
       const read = await served(
-        [`        avd: connects to ${longUrl} for the pixel`],
+        [`        appium:avd: connects to ${longUrl} for the pixel`],
         [...remote('grid', longUrl), ...lab],
       )
-      const registry = read.config.registry as { devices: { pixel: { match: unknown } } }
+      const registry = read.config.registry as { devices: { pixel: { capabilities: unknown } } }
 
-      expect(registry.devices.pixel.match).toEqual({
-        avd: 'connects to wss://grid.example.com:443 for the pixel',
+      expect(registry.devices.pixel.capabilities).toEqual({
+        'appium:avd': 'connects to wss://grid.example.com:443 for the pixel',
       })
     })
   })
@@ -681,8 +701,8 @@ describe("the config's closed fields", () => {
           '  devices:',
           '    pixel:',
           '      platform: android',
-          '      match:',
-          '        avd: *u',
+          '      capabilities:',
+          '        appium:avd: *u',
           ...USE,
           '',
         ].join('\n'),
@@ -693,12 +713,17 @@ describe("the config's closed fields", () => {
       expect(read.fileIssues).not.toEqual([])
       expect(read.config.registry).toEqual({
         remotes: [{ url: 'invalid url' }],
-        devices: { pixel: { platform: 'android', match: { avd: 'wss://grid.example.com:443' } } },
+        devices: {
+          pixel: {
+            platform: 'android',
+            capabilities: { 'appium:avd': 'wss://grid.example.com:443' },
+          },
+        },
       })
       const text = read.lines.map((line) => line.text).join('\n')
       expect((parseYaml(text, { logLevel: 'error' }) as { registry: unknown }).registry).toEqual({
         remotes: [{ url: 'invalid url' }],
-        devices: { pixel: { platform: 'android', match: { avd: null } } },
+        devices: { pixel: { platform: 'android', capabilities: { 'appium:avd': null } } },
       })
       for (const hidden of [pathPart, queryValue, headerValue, 'X-Team']) {
         expect(JSON.stringify(read.config)).not.toContain(hidden)
