@@ -13,6 +13,7 @@ import {
   type RemotePluginManifest,
 } from '@vostride/agent-qa-plugin-kit/protocol'
 import {
+  PLUGIN_RELEASE_BOUND_MS,
   RemoteRefusalError,
   type RemoteFailureKind,
   type RemoteLease,
@@ -107,6 +108,8 @@ interface RunningEntry {
   process: PluginProcess
   evidence: RemotePluginEvidence
   leases: Set<OpenLease>
+  // Lease releases sent and not yet settled; shutdown waits for them.
+  releasing: Set<Promise<void>>
   // Every session handle this process gave out and has not answered a release for.
   held: Set<unknown>
   stopping: boolean
@@ -157,6 +160,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   const starts = new Map<string, Promise<EntryStart>>()
   const background = new Set<Promise<void>>()
   let closing: Promise<void> | undefined
+  let unregisterShutdown: (() => void) | undefined
 
   const debug = (line: string): void => input.debugLog?.(input.mask(line))
 
@@ -477,6 +481,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         origin: resolved.origin,
       },
       leases: new Set(),
+      releasing: new Set(),
       held: new Set(),
       stopping: false,
     }
@@ -491,6 +496,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   const entryStart = (name: string): Promise<EntryStart> => {
     let start = starts.get(name)
     if (start === undefined) {
+      // A signal shuts every started entry down after its leases' releases, in the same bound.
+      unregisterShutdown ??= input.sessions?.register(() => shutdown({ signal: true }), {
+        boundMs: PLUGIN_RELEASE_BOUND_MS,
+      })
       start = startEntry(name)
       starts.set(name, start)
     }
@@ -516,7 +525,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       if (releasing === undefined) {
         running.leases.delete(open)
         unregister?.()
-        releasing = releaseHandle(running, answer.handle, boundMs)
+        const sent = releaseHandle(running, answer.handle, boundMs)
+        releasing = sent
+        running.releasing.add(sent)
+        void sent.finally(() => running.releasing.delete(sent))
       }
       return releasing
     }
@@ -532,7 +544,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     }
     running.held.add(answer.handle)
     running.leases.add(open)
-    unregister = input.sessions?.register(release)
+    unregister = input.sessions?.register(release, { boundMs: PLUGIN_RELEASE_BOUND_MS })
 
     return {
       connection: {
@@ -729,7 +741,10 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   async function stopEntry(running: RunningEntry, signal: boolean): Promise<void> {
     const bound = (ms: number): number => (signal ? bounds.signalMs : ms)
     if (running.fault === undefined) {
-      await Promise.all([...running.leases].map((lease) => lease.release(bound(bounds.releaseMs))))
+      await Promise.all([
+        ...[...running.leases].map((lease) => lease.release(bound(bounds.releaseMs))),
+        ...running.releasing,
+      ])
     }
     if (running.fault !== undefined) {
       await running.restarted
@@ -741,6 +756,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
   }
 
   function shutdown(options: { signal?: boolean } = {}): Promise<void> {
+    unregisterShutdown?.()
     closing ??= (async () => {
       const signal = options.signal === true
       const started = await Promise.all(starts.values())

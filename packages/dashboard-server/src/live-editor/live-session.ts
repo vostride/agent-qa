@@ -1052,6 +1052,7 @@ export class LiveSession {
         config.secretsFile ?? 'workspace.secretsFile',
       ),
       mask: redactor === undefined ? configManager.mask : (text) => redactor.redactString(text),
+      ...(this.deps.remoteSessions === undefined ? {} : { sessions: this.deps.remoteSessions }),
     })
     return this.pluginPool
   }

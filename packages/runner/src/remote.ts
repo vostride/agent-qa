@@ -210,9 +210,16 @@ export function createRemoteRefusalMemory(): RemoteRefusalMemory {
 /** How long each open remote session gets to release on a signal; all release at once. */
 export const REMOTE_RELEASE_BOUND_MS = 2_000
 
-// One per host process: an adapter registers its session's release after a connect.
+/** How long a plugin's lease release and its shutdown each get on a signal. */
+export const PLUGIN_RELEASE_BOUND_MS = 5_000
+
+// One per host process: an adapter registers its session's release after a connect. An entry
+// registered with its own bound is handed and raced against that bound instead of releaseAll's.
 export interface RemoteSessionRegistry {
-  register(release: (boundMs: number) => Promise<void>): () => void
+  register(
+    release: (boundMs: number) => Promise<void>,
+    options?: { boundMs?: number },
+  ): () => void
   releaseAll(boundMs: number): Promise<void>
 }
 
@@ -234,10 +241,13 @@ function settleWithin(work: () => Promise<void>, boundMs: number): Promise<void>
 }
 
 export function createRemoteSessionRegistry(): RemoteSessionRegistry {
-  const releases = new Set<{ release: (boundMs: number) => Promise<void> }>()
+  const releases = new Set<{
+    release: (boundMs: number) => Promise<void>
+    boundMs: number | undefined
+  }>()
   return {
-    register(release) {
-      const entry = { release }
+    register(release, options) {
+      const entry = { release, boundMs: options?.boundMs }
       releases.add(entry)
       return () => {
         releases.delete(entry)
@@ -246,7 +256,12 @@ export function createRemoteSessionRegistry(): RemoteSessionRegistry {
     async releaseAll(boundMs) {
       const due = [...releases]
       releases.clear()
-      await Promise.all(due.map((entry) => settleWithin(() => entry.release(boundMs), boundMs)))
+      await Promise.all(
+        due.map((entry) => {
+          const bound = entry.boundMs ?? boundMs
+          return settleWithin(() => entry.release(bound), bound)
+        }),
+      )
     },
   }
 }

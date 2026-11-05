@@ -90,7 +90,13 @@ export async function until(
   }
 }
 
-export async function startPluginRunRig(input: { tmpdir: string }): Promise<PluginRunRig> {
+export interface PluginRunRigInput {
+  readonly tmpdir: string
+  // The scripted plugin's steps by method, such as a slow release.
+  readonly script?: Record<string, unknown>
+}
+
+export async function startPluginRunRig(input: PluginRunRigInput): Promise<PluginRunRig> {
   const closers: Array<() => Promise<void>> = []
   const children: ChildProcess[] = []
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'plugin-run-')))
@@ -164,6 +170,7 @@ export async function startPluginRunRig(input: { tmpdir: string }): Promise<Plug
         '    options:',
         `      ledgerFile: ${JSON.stringify(ledgerFile)}`,
         '      recordProcess: true',
+        ...(input.script === undefined ? [] : [`      script: ${JSON.stringify(input.script)}`]),
         '      answer:',
         '        protocol: playwright',
         `        url: ${JSON.stringify(endpoint.wsEndpoint)}`,

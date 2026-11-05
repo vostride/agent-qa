@@ -544,6 +544,8 @@ function producerPluginHost(input: {
     ...(input.runId === undefined ? {} : { runId: input.runId }),
     ...(input.connectionSecrets === undefined ? {} : { connectionSecrets: input.connectionSecrets }),
     mask: input.mask,
+    // The registry a signal releases, so each lease and the pool's shutdown get the plugin bound.
+    sessions: processRemoteSessions,
   })
   return { pluginSessions: pool, close: () => pool.shutdown() }
 }
