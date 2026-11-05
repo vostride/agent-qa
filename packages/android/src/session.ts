@@ -1,5 +1,6 @@
 import { remote } from 'webdriverio'
 import {
+  capabilityValue,
   classifyNewSessionFailure,
   createRemoteDeviceRequestBounds,
   deviceDebugLoggingRefusal,
@@ -20,6 +21,26 @@ import { connectionSecretNames, remoteLabel, secretReferenceNames } from '@vostr
 import type { AndroidAdapterConfig, AndroidSessionOptions } from './types.js'
 
 const REMOTE_NEW_COMMAND_TIMEOUT_S = 90
+const LOCAL_APPIUM_URL = 'http://localhost:4723'
+
+function localEndpoint(appiumUrl: string | undefined) {
+  const url = new URL(appiumUrl ?? LOCAL_APPIUM_URL)
+  const protocol = url.protocol === 'https:' ? 'https' : 'http'
+  return {
+    protocol,
+    hostname: url.hostname,
+    port: url.port === '' ? (protocol === 'https' ? 443 : 80) : Number(url.port),
+    path: url.pathname === '' ? '/' : url.pathname,
+  }
+}
+
+function textOf(value: unknown): string | undefined {
+  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined
+}
+
+function statedText(capabilities: CapabilityMap | undefined, name: string): string | undefined {
+  return capabilities === undefined ? undefined : textOf(capabilityValue(capabilities, name))
+}
 
 function referencedNames(value: unknown): string[] {
   if (typeof value === 'string') return secretReferenceNames(value)
@@ -179,64 +200,62 @@ export async function createAndroidSession(
   const remoteDevice = config.device?.remote
   if (remoteDevice !== undefined) return createRemoteAndroidSession(config, remoteDevice, options)
 
-  const match = config.device?.match ?? {}
-  const appiumUrl = process.env.AGENT_QA_APPIUM_URL ?? config.appiumUrl ?? 'http://localhost:4723'
-  const url = new URL(appiumUrl)
+  const profile = config.device
+  const match = profile?.match ?? {}
+  const here = profile?.here
+  const stated = profile?.capabilities
 
-  const browserName = config.browserName ?? (match.browserName as string | undefined)
+  const browserName =
+    statedText(stated, 'browserName') ?? config.browserName ?? textOf(match.browserName)
   const appPath = config.appPath
   if (browserName && appPath) {
     throw new MobileSetupError({
       category: 'app-install',
       message: 'Mobile browser mode cannot be combined with app.path',
       platform: 'android',
-      deviceName: config.device?.name,
+      deviceName: profile?.name,
       appId: appPath,
     })
   }
 
-  const appStateNoReset =
-    config.appState === 'preserve' ? true :
-    config.appState === 'reset' ? false :
-    undefined
+  const udid = here?.udid ?? profile?.id ?? textOf(match.serial)
+  const avd = here?.avd ?? config.avd ?? textOf(match.avd)
+  const platformVersion = profile?.os ?? textOf(match.platformVersion)
 
-  const capabilities: Record<string, unknown> = {
+  const derived: CapabilityMap = {
     platformName: 'Android',
-    'appium:automationName': (match.automationName as string) ?? 'UiAutomator2',
-    'appium:deviceName': config.device?.name ?? 'Android Emulator',
+    'appium:automationName': textOf(match.automationName) ?? 'UiAutomator2',
+    'appium:deviceName': here?.name ?? profile?.model ?? profile?.name ?? 'Android Emulator',
     'appium:newCommandTimeout': config.timeouts?.test ? Math.ceil(config.timeouts.test / 1000) : 300,
     'appium:chromedriverAutodownload': true,
   }
-
-  if (match.platformVersion) capabilities['appium:platformVersion'] = match.platformVersion
-  if (match.serial) capabilities['appium:udid'] = match.serial
-  if (match.avd) capabilities['appium:avd'] = match.avd
-  if (config.avd) capabilities['appium:avd'] = config.avd
-  if (appPath) capabilities['appium:app'] = appPath
+  // The udid or AVD names the device; a version beside it could only disagree.
+  if (udid !== undefined) derived['appium:udid'] = udid
+  if (avd !== undefined) derived['appium:avd'] = avd
+  if (udid === undefined && avd === undefined && platformVersion !== undefined) {
+    derived['appium:platformVersion'] = platformVersion
+  }
+  if (appPath) derived['appium:app'] = appPath
 
   if (browserName) {
-    capabilities.browserName = browserName
-    capabilities['appium:autoWebview'] = true
+    derived.browserName = browserName
+    derived['appium:autoWebview'] = true
   } else {
-    if (appStateNoReset !== undefined) capabilities['appium:noReset'] = appStateNoReset
-    if (match.appPackage) capabilities['appium:appPackage'] = match.appPackage
-    if (config.appPackage) capabilities['appium:appPackage'] = config.appPackage
-    if (match.appActivity) capabilities['appium:appActivity'] = match.appActivity
-    if (config.appActivity) capabilities['appium:appActivity'] = config.appActivity
+    if (config.appState === 'preserve') derived['appium:noReset'] = true
+    if (config.appState === 'reset') derived['appium:noReset'] = false
+    const appPackage = config.appPackage ?? textOf(match.appPackage)
+    const appActivity = config.appActivity ?? textOf(match.appActivity)
+    if (appPackage) derived['appium:appPackage'] = appPackage
+    if (appActivity) derived['appium:appActivity'] = appActivity
   }
 
-  // Strip undefined values
-  for (const key of Object.keys(capabilities)) {
-    if (capabilities[key] === undefined) {
-      delete capabilities[key]
-    }
-  }
-
+  const endpoint = localEndpoint(config.appiumUrl)
   return remote({
-    hostname: url.hostname,
-    port: parseInt(url.port || '4723', 10),
-    path: url.pathname === '/' ? '/' : url.pathname,
+    protocol: endpoint.protocol,
+    hostname: endpoint.hostname,
+    port: endpoint.port,
+    path: endpoint.path,
     logLevel: config.verbose ? 'info' : 'silent',
-    capabilities: capabilities as WebdriverIO.Capabilities,
+    capabilities: mergeCapabilities(derived, stated) as WebdriverIO.Capabilities,
   })
 }

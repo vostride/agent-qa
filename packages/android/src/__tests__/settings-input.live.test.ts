@@ -138,9 +138,9 @@ async function runStep(
   return { result, executed, planned }
 }
 
-async function openSettings(): Promise<AndroidPlatformAdapter> {
+async function openSettings(appiumUrl?: string): Promise<AndroidPlatformAdapter> {
   const created = new AndroidPlatformAdapter()
-  await created.setup({ platform: 'android', appPackage: SETTINGS, appActivity: '.Settings' } as Parameters<typeof created.setup>[0])
+  await created.setup({ platform: 'android', appPackage: SETTINGS, appActivity: '.Settings', ...(appiumUrl !== undefined ? { appiumUrl } : {}) } as Parameters<typeof created.setup>[0])
   const driver = (created as unknown as { driver: WebdriverIO.Browser }).driver
   await driver.terminateApp(SETTINGS)
   await driver.activateApp(SETTINGS)
@@ -254,12 +254,9 @@ describe.skipIf(!LIVE)('Settings rows and switches under desiredState on a live 
 
 describe.skipIf(!LIVE || SECURE_APPIUM_URL === undefined)('shell actions are recorded unavailable under secure Appium on a live emulator', () => {
   let adapter: AndroidPlatformAdapter | undefined
-  let savedUrl: string | undefined
 
   beforeEach(async () => {
-    savedUrl = process.env.AGENT_QA_APPIUM_URL
-    process.env.AGENT_QA_APPIUM_URL = SECURE_APPIUM_URL
-    adapter = await openSettings()
+    adapter = await openSettings(SECURE_APPIUM_URL)
   }, 120_000)
 
   afterEach(async () => {
@@ -267,8 +264,6 @@ describe.skipIf(!LIVE || SECURE_APPIUM_URL === undefined)('shell actions are rec
       await adapter?.cleanup()
     } finally {
       adapter = undefined
-      if (savedUrl === undefined) delete process.env.AGENT_QA_APPIUM_URL
-      else process.env.AGENT_QA_APPIUM_URL = savedUrl
     }
   }, 120_000)
 
