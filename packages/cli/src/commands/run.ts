@@ -6,10 +6,10 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { connectionSecretMisuse, discoverWorkspaceFiles, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectDevicePlace, selectSuitePlace, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { connectionSecretMisuse, discoverWorkspaceFiles, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
-import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, DevicePlace, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
 import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
@@ -1250,8 +1250,28 @@ function selectDirectRemotes(
   return remotes
 }
 
-// One entry per mobile test whose device is placed; a refused pick places nothing, and the member
-// reports it.
+// The target a mobile member runs on, as the device selectors read it.
+function mobileDeviceTarget(
+  config: AgentQaConfig,
+  targetName: string | undefined,
+): DeviceTarget | undefined {
+  if (targetName === undefined) return undefined
+  try {
+    const target = resolveTarget(config, targetName)
+    if (target.platform !== 'android' && target.platform !== 'ios') return undefined
+    return {
+      name: target.name,
+      platform: target.platform,
+      ...(target.device === undefined ? {} : { device: target.device }),
+    }
+  } catch {
+    // The member closure reports an unresolvable target itself.
+    return undefined
+  }
+}
+
+// Every mobile test's device, chosen from the files before the run is recorded; a refusal ends the
+// run there.
 function placeDirectDevices(
   config: AgentQaConfig,
   configDir: string,
@@ -1260,16 +1280,18 @@ function placeDirectDevices(
 ): Map<ParsedTestBinding, DevicePlace> {
   const places = new Map<ParsedTestBinding, DevicePlace>()
   for (const binding of bindings) {
-    if (!anyTargetRunsOnDevice(config, [binding.test.target])) continue
-    const device = deviceFlag ?? binding.test.use?.device
-    if (device === undefined) continue
-    const selected = selectDevicePlace({
+    const target = mobileDeviceTarget(config, binding.test.target)
+    if (target === undefined) continue
+    const selected = selectTestDevice({
       devices: config.registry?.devices ?? {},
       remotes: config.registry?.remotes ?? [],
-      device,
+      target,
+      ...(deviceFlag === undefined ? {} : { flag: deviceFlag }),
+      ...(binding.test.use?.device === undefined ? {} : { test: binding.test.use.device }),
       file: configRelativeFile(configDir, binding.filePath),
     })
-    if ('place' in selected) places.set(binding, selected.place)
+    if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
+    places.set(binding, selected.place)
   }
   return places
 }
@@ -1313,15 +1335,52 @@ function placeSuite(input: {
   })
 }
 
-// Each parsed suite's members, and its place when it runs in a browser.
+// A suite runs on one device, chosen before the run is recorded; a refusal ends the run there.
+function placeSuiteDevice(input: {
+  readonly config: AgentQaConfig
+  readonly configDir: string
+  readonly suiteFile: string
+  readonly suite: SuiteDefinition
+  readonly members: readonly { readonly test: TestDefinition; readonly absolutePath: string }[]
+  readonly deviceFlag: string | undefined
+}): DevicePlace {
+  const { config, configDir, suite } = input
+  const suiteDevice = suite.use?.device
+  const selected = selectSuiteDevice({
+    devices: config.registry?.devices ?? {},
+    remotes: config.registry?.remotes ?? [],
+    suiteName: suite.name,
+    suiteFile: configRelativeFile(configDir, input.suiteFile),
+    ...(input.deviceFlag === undefined ? {} : { flag: input.deviceFlag }),
+    ...(suiteDevice === undefined ? {} : { suite: suiteDevice }),
+    members: input.members.flatMap(({ test, absolutePath }) => {
+      const target = mobileDeviceTarget(config, test.target ?? suite.target)
+      if (target === undefined) return []
+      const pick = test.use?.device
+      return [
+        {
+          file: configRelativeFile(configDir, absolutePath),
+          ...(pick === undefined ? {} : { pick }),
+          target,
+        },
+      ]
+    }),
+  })
+  if ('refusal' in selected) throw new CliRunInputError([pc.red(selected.refusal)], 2)
+  return selected.place
+}
+
+// Each parsed suite's members, and its place when it runs in a browser or on a device.
 function placePreflightSuites(
   preflight: SuitePreflight,
   config: AgentQaConfig,
   configDir: string,
   browserFlag: string | undefined,
+  deviceFlag: string | undefined,
 ): Array<{
   readonly members: readonly { readonly test: TestDefinition; readonly absolutePath: string }[]
   readonly selected?: SelectWebPlaceResult
+  readonly device?: DevicePlace
 }> {
   return [...preflight.definitions].map(([suiteFile, suite]) => {
     const members = suite.tests.flatMap(({ test: memberFile }) => {
@@ -1330,7 +1389,12 @@ function placePreflightSuites(
       const test = parsed?.errors.length === 0 ? parsed.tests[0] : undefined
       return test === undefined ? [] : [{ test, absolutePath }]
     })
-    if (!targetRunsInBrowser(config, suite.target ?? members[0]?.test.target)) return { members }
+    const suiteTarget = suite.target ?? members[0]?.test.target
+    if (anyTargetRunsOnDevice(config, [suiteTarget])) {
+      const device = placeSuiteDevice({ config, configDir, suiteFile, suite, members, deviceFlag })
+      return { members, device }
+    }
+    if (!targetRunsInBrowser(config, suiteTarget)) return { members }
     const selected = placeSuite({
       config,
       configDir,
@@ -1343,16 +1407,20 @@ function placePreflightSuites(
   })
 }
 
-// Read from the parsed suites before the run is recorded; a refused or mobile suite places nothing.
+// Read from the parsed suites before the run is recorded; a refused web pick places nothing.
 function suiteRunRunner(
   preflight: SuitePreflight,
   config: AgentQaConfig,
   configDir: string,
   browserFlag: string | undefined,
+  deviceFlag: string | undefined,
 ): RunAttributeRunner {
   return runnerForPlaces(
-    placePreflightSuites(preflight, config, configDir, browserFlag).flatMap(({ selected }) =>
-      selected !== undefined && 'place' in selected ? [selected.place] : [],
+    placePreflightSuites(preflight, config, configDir, browserFlag, deviceFlag).flatMap(
+      ({ selected, device }) => [
+        ...(selected !== undefined && 'place' in selected ? [selected.place] : []),
+        ...(device === undefined ? [] : [device]),
+      ],
     ),
   )
 }
@@ -2016,7 +2084,7 @@ async function executeSuites(
 
   const runAttributes = buildCliRunAttributes(
     variableContext?.userRunAttributes ?? {},
-    suiteRunRunner(preflight, config, configDir, opts.browser),
+    suiteRunRunner(preflight, config, configDir, opts.browser, opts.device),
   )
   // One record per invocation, written whatever the config holds.
   const record = createRunRecord({
@@ -2450,11 +2518,17 @@ export async function produceSuiteRunMembers(
   const parsedSuiteDefinitions = input.preflight.definitions
   const preloadedSuiteTests = input.preflight.preloadedTests
   const suitePreflightProduct = input.preflight.product
-  const preflightRunner = suiteRunRunner(input.preflight, config, configDir, opts.browser)
+  const preflightRunner = suiteRunRunner(input.preflight, config, configDir, opts.browser, opts.device)
   const suiteConnectionSecrets = variableContext?.connectionSecretStore
   const suiteSecretsFile = configuredSecretsFile(config)
   if (suiteConnectionSecrets !== undefined) {
-    const placedSuites = placePreflightSuites(input.preflight, config, configDir, opts.browser)
+    const placedSuites = placePreflightSuites(
+      input.preflight,
+      config,
+      configDir,
+      opts.browser,
+      opts.device,
+    )
     refuseRemoteSecretProblems({
       config,
       configDir,
@@ -2564,6 +2638,7 @@ export async function produceSuiteRunMembers(
     // Teardown-time composition side effects.
     suiteWorkingMemory: WorkingMemoryStore
     suitePlace: WebPlace
+    suiteDevicePlace: DevicePlace | undefined
     suiteAttributes: RunAttributes
     knowledgeSeed: {
       accounting: ReturnType<typeof createTokenAccounting>
@@ -2720,25 +2795,18 @@ export async function produceSuiteRunMembers(
       authState: suiteAuthStateUse,
     })
     const suiteEffectiveCacheEnabled = !opts.disableCache && (mergedUse as Record<string, unknown>).cache !== false
-    let suiteDeviceName = opts.device ?? (mergedUse.device as string | undefined)
-
-    if ((suitePlatform === 'android' || suitePlatform === 'ios') && !suiteDeviceName) {
-      const childDeviceNames = testEntries.map(({ test: testDef }) => {
-        const device = (testDef.use as Record<string, unknown> | undefined)?.device
-        return typeof device === 'string' && device.trim().length > 0 ? device.trim() : undefined
-      })
-      const missingChildDevice = childDeviceNames.some((device) => !device)
-      const uniqueChildDevices = [...new Set(childDeviceNames.filter((device): device is string => Boolean(device)))]
-
-      if (missingChildDevice || uniqueChildDevices.length === 0) {
-        throw new Error(`Select a device for this mobile suite "${suite.name}" with suite use.device or every child test use.device.`)
-      }
-      if (uniqueChildDevices.length > 1) {
-        throw new Error(`Mobile suite child tests use multiple devices (${uniqueChildDevices.join(', ')}); set suite use.device or split the suite.`)
-      }
-      suiteDeviceName = uniqueChildDevices[0]
-    }
-    const deviceName = suiteDeviceName
+    const suiteDevicePlace =
+      suitePlatform === 'android' || suitePlatform === 'ios'
+        ? placeSuiteDevice({
+            config,
+            configDir,
+            suiteFile,
+            suite,
+            members: testEntries,
+            deviceFlag: opts.device,
+          })
+        : undefined
+    const deviceName = suiteDevicePlace?.device
 
     const suiteTimeoutConfig = mergedUse.timeout as Record<string, unknown> | undefined
     const testTimeouts = {
@@ -2755,7 +2823,7 @@ export async function produceSuiteRunMembers(
         targetName: suiteResolvedTarget.name,
         platform: suitePlatform,
         explicitDeviceName: opts.device,
-        useDeviceName: suiteDeviceName,
+        useDeviceName: deviceName,
         appState: (mergedUse.mobile as Record<string, unknown> | undefined)?.appState as 'preserve' | 'reset' | undefined,
         configFilePath: path.resolve(configFilePath),
         appiumUrl: resolveHostAppiumUrl(input.resolveAppiumUrl),
@@ -2765,11 +2833,11 @@ export async function produceSuiteRunMembers(
 
     const suiteAttributes = buildCliRunAttributes(
       variableContext?.userRunAttributes ?? {},
-      runnerForPlaces([suitePlace]),
+      runnerForPlaces([suitePlace, ...(suiteDevicePlace === undefined ? [] : [suiteDevicePlace])]),
     )
 
-    // Auto-start Appium for mobile platforms
-    if (suitePlatform === 'ios' || suitePlatform === 'android') {
+    // Auto-start Appium for mobile platforms; a remote device has its own.
+    if ((suitePlatform === 'ios' || suitePlatform === 'android') && suiteDevicePlace?.kind !== 'remote') {
       try {
         const appiumUrl = await acquireAppium(effectiveLogLevel, input.resolveAppiumUrl)
         if (mobileResolved) {
@@ -3022,6 +3090,7 @@ export async function produceSuiteRunMembers(
       bootstrapRemoteRefusal: false,
       suiteWorkingMemory,
       suitePlace,
+      suiteDevicePlace,
       suiteAttributes,
       knowledgeSeed: {
         accounting: plannerAccounting,
@@ -3487,7 +3556,12 @@ export async function produceSuiteRunMembers(
         sourceSnapshot: suiteArtifact?.source,
         attributes: buildCliRunAttributes(
           variableContext?.userRunAttributes ?? {},
-          runnerForPlaces(preparedSuites.map((prepared) => prepared.suitePlace)),
+          runnerForPlaces(
+            preparedSuites.flatMap((prepared) => [
+              prepared.suitePlace,
+              ...(prepared.suiteDevicePlace === undefined ? [] : [prepared.suiteDevicePlace]),
+            ]),
+          ),
         ),
       }
     })(),
@@ -3818,7 +3892,7 @@ export async function produceDirectRunMembers(
     let activeTestAuthState = testAuthState
 
     const testMergedUse = (testMergedConfig as any).use ?? (config as any).use ?? {}
-    const testDeviceName = opts.device ?? testMergedUse.device as string | undefined
+    const testDeviceName = testDevicePlace?.device ?? (testMergedUse.device as string | undefined)
 
     const testTimeoutsForSetup = {
       step: (testMergedConfig as any).use?.timeout?.step ?? config.use?.timeout?.step,
@@ -3837,7 +3911,7 @@ export async function produceDirectRunMembers(
         targetName: testResolvedTarget.name,
         platform: testPlatform,
         explicitDeviceName: opts.device,
-        useDeviceName: testMergedUse.device as string | undefined,
+        useDeviceName: testDeviceName,
         appState: testMergedUse.mobile?.appState as 'preserve' | 'reset' | undefined,
         configFilePath: resolvePath(configFilePath),
         appiumUrl: resolveHostAppiumUrl(input.resolveAppiumUrl),

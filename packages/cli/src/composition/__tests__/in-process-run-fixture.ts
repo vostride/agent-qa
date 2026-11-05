@@ -119,6 +119,17 @@ export interface InProcessFixtureInput {
     readonly model: string
     readonly os?: string
   }
+  /** With `remoteDevice`, its target names the remote device and the standalone test names none. */
+  readonly deviceOnTarget?: boolean
+  /** A device here, `pixel`, described by model `Pixel 8` with no remote. */
+  readonly localDevice?: boolean
+  /**
+   * With `remoteDevice`, the suite and two members run on its target, and each member's
+   * `use.device` is the name given (none when undefined).
+   */
+  readonly suiteMemberDevices?: readonly [string | undefined, string | undefined]
+  /** With `suiteMemberDevices`, the suite's own `use.device`. */
+  readonly suiteDevice?: string
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -138,6 +149,8 @@ export const REMOTE_DEVICE_REMOTE_NAME = 'farm'
 export const REMOTE_DEVICE_NAME = 'galaxy-farm'
 export const REMOTE_DEVICE_TARGET_NAME = 'shop-android'
 export const REMOTE_DEVICE_APP_PACKAGE = 'com.example.shop'
+export const LOCAL_DEVICE_NAME = 'pixel'
+export const LOCAL_DEVICE_MODEL = 'Pixel 8'
 
 const createdProjects: string[] = []
 
@@ -214,7 +227,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       '  envFile: .env',
       '  secretsFile: .env.secrets.local',
       'registry:',
-      ...(pixelDevice || remoteDevice !== undefined ? ['  devices:'] : []),
+      ...(pixelDevice || remoteDevice !== undefined || input.localDevice === true
+        ? ['  devices:']
+        : []),
       ...(input.remote !== undefined && pixelDevice
         ? [
             '    pixel:',
@@ -249,6 +264,13 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
               : [`      os: ${JSON.stringify(remoteDevice.os)}`]),
             `      remote: ${REMOTE_DEVICE_REMOTE_NAME}`,
           ]),
+      ...(input.localDevice === true
+        ? [
+            `    ${LOCAL_DEVICE_NAME}:`,
+            '      platform: android',
+            `      model: ${JSON.stringify(LOCAL_DEVICE_MODEL)}`,
+          ]
+        : []),
       '  targets:',
       `    ${IN_PROCESS_TARGET_NAME}:`,
       '      platform: web',
@@ -271,6 +293,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             `    ${REMOTE_DEVICE_TARGET_NAME}:`,
             '      platform: android',
             `      appPackage: ${REMOTE_DEVICE_APP_PACKAGE}`,
+            ...(input.deviceOnTarget === true ? [`      device: ${REMOTE_DEVICE_NAME}`] : []),
           ]),
       '  llms:',
       ...(input.model === undefined
@@ -393,7 +416,11 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             : ['  browser:', `    remote: ${input.directTestPick}`]),
           ...(remoteDevice === undefined
             ? []
-            : [`  device: ${REMOTE_DEVICE_NAME}`, '  mobile:', '    appState: preserve']),
+            : [
+                ...(input.deviceOnTarget === true ? [] : [`  device: ${REMOTE_DEVICE_NAME}`]),
+                '  mobile:',
+                '    appState: preserve',
+              ]),
           ...setupLines('test'),
           'steps:',
           step,
@@ -418,25 +445,32 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
     )
   }
 
+  const memberDevices = remoteDevice === undefined ? undefined : input.suiteMemberDevices
+  const memberTarget = memberDevices === undefined ? IN_PROCESS_TARGET_NAME : REMOTE_DEVICE_TARGET_NAME
+  const memberDeviceLines = (device: string | undefined): string[] =>
+    device === undefined ? [] : ['use:', `  device: ${device}`]
   writeFileSync(
     join(project, 'tests', 'member.yaml'),
     [
       `test-id: ${memberTestId}`,
       'name: the suite member',
-      `target: ${IN_PROCESS_TARGET_NAME}`,
+      `target: ${memberTarget}`,
+      ...memberDeviceLines(memberDevices?.[0]),
       'steps:',
       step,
       '',
     ].join('\n'),
   )
   const secondMemberTestId = generateTestId()
-  if (input.secondSuiteMember === true) {
+  const withSecondMember = input.secondSuiteMember === true || memberDevices !== undefined
+  if (withSecondMember) {
     writeFileSync(
       join(project, 'tests', 'member-2.yaml'),
       [
         `test-id: ${secondMemberTestId}`,
         'name: the second suite member',
-        `target: ${IN_PROCESS_TARGET_NAME}`,
+        `target: ${memberTarget}`,
+        ...memberDeviceLines(memberDevices?.[1]),
         'steps:',
         step,
         '',
@@ -449,18 +483,23 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       `suite-id: ${generateSuiteId()}`,
       'name: the in-process suite',
       `target: ${
-        input.secondTarget === true && input.suiteOnSecondTarget === true
-          ? SECOND_TARGET_NAME
-          : IN_PROCESS_TARGET_NAME
+        memberDevices !== undefined
+          ? REMOTE_DEVICE_TARGET_NAME
+          : input.secondTarget === true && input.suiteOnSecondTarget === true
+            ? SECOND_TARGET_NAME
+            : IN_PROCESS_TARGET_NAME
       }`,
       ...(input.suitePick === undefined
         ? []
         : ['use:', '  browser:', `    remote: ${input.suitePick}`]),
+      ...(memberDevices === undefined || input.suiteDevice === undefined
+        ? []
+        : ['use:', `  device: ${input.suiteDevice}`]),
       ...setupLines('suite'),
       'tests:',
       '  - test: tests/member.yaml',
       `    id: ${memberTestId}`,
-      ...(input.secondSuiteMember === true
+      ...(withSecondMember
         ? ['  - test: tests/member-2.yaml', `    id: ${secondMemberTestId}`]
         : []),
       '',
@@ -474,7 +513,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
     testPattern: 'tests/direct.yaml',
     suitePattern: 'suites/gate.suite.yaml',
     memberTestId,
-    ...(input.secondSuiteMember === true ? { secondMemberTestId } : {}),
+    ...(withSecondMember ? { secondMemberTestId } : {}),
     directTestId,
     targetName: IN_PROCESS_TARGET_NAME,
     ...(input.secondTarget === true
