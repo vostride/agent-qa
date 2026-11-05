@@ -57,15 +57,11 @@ const FIXTURE_CSS_SELECTOR = '#cookie-banner'
 
 const FIXTURE_CLEAN_TARGET_URL = 'https://clean.acme.test'
 
-/** Credential-shaped values under every key an android device's `match` allows. */
-const FIXTURE_DEVICE_MATCH_CREDENTIALS: Record<string, string> = {
-  avd: 'sk-live-AVD-DO-NOT-LEAK-0001',
-  serial: 'sk-live-SERIAL-DO-NOT-LEAK-0002',
-  appPackage: 'sk-live-APPPACKAGE-DO-NOT-LEAK-0003',
-  appActivity: 'sk-live-APPACTIVITY-DO-NOT-LEAK-0004',
-  automationName: 'sk-live-AUTOMATION-DO-NOT-LEAK-0005',
-  browserName: 'sk-live-BROWSER-DO-NOT-LEAK-0006',
-  platformVersion: 'sk-live-PLATFORMVERSION-DO-NOT-LEAK-0007',
+/** Credential-shaped values under every text key a device has. */
+const FIXTURE_DEVICE_TEXT_CREDENTIALS: Record<string, string> = {
+  model: 'sk-live-MODEL-DO-NOT-LEAK-0001',
+  os: 'sk-live-OS-DO-NOT-LEAK-0002',
+  id: 'sk-live-ID-DO-NOT-LEAK-0003',
 }
 
 // Two plugin package names: both load in-process with full Node access, so both are shown.
@@ -184,7 +180,7 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
         devices: {
           pixel: {
             platform: 'android',
-            match: FIXTURE_DEVICE_MATCH_CREDENTIALS,
+            ...FIXTURE_DEVICE_TEXT_CREDENTIALS,
           },
         },
       },
@@ -811,8 +807,8 @@ describe('agent-qa fn (generic function invoker)', () => {
       ['workspace.testMatch.0', FIXTURE_GLOB_WILDCARD],
       ['workspace.testPathIgnore.0', FIXTURE_IGNORE_GLOB],
       ['services.accessibility.exclude.0', FIXTURE_CSS_SELECTOR],
-      ...Object.entries(FIXTURE_DEVICE_MATCH_CREDENTIALS)
-        .map(([name, value]) => [`registry.devices.pixel.match.${name}`, value] as const),
+      ...Object.entries(FIXTURE_DEVICE_TEXT_CREDENTIALS)
+        .map(([name, value]) => [`registry.devices.pixel.${name}`, value] as const),
     ] as const) {
       expect(byKey[key], key).toEqual({ key, value, source: 'config-file', masked: false })
     }

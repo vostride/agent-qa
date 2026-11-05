@@ -89,12 +89,12 @@ export interface InProcessFixtureInput {
   readonly remoteUnpicked?: boolean
   /**
    * With `remote` and its `headers`, the remote's url and headers are anchors under
-   * `registry.devices.pixel.match`, and the entry aliases them.
+   * `registry.devices.pixel.capabilities`, and the entry aliases them.
    */
   readonly remoteAnchoredInDevices?: boolean
   /**
    * With `remote`, the `remotes` key is an alias of a scalar anchored under
-   * `registry.devices.pixel.match`.
+   * `registry.devices.pixel.capabilities`.
    */
   readonly remotesKeyAliased?: boolean
   /** The suite's own `use.browser.remote`. */
@@ -219,21 +219,23 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
         ? [
             '    pixel:',
             '      platform: android',
-            '      match:',
+            '      capabilities:',
             ...(input.remoteAnchoredInDevices === true
               ? [
-                  `        avd: &grid ${JSON.stringify(input.remote.url)}`,
+                  `        appium:avd: &grid ${JSON.stringify(input.remote.url)}`,
                   ...(input.remote.headers === undefined
                     ? []
                     : [
-                        '        serial: &hdrs',
+                        '        appium:serial: &hdrs',
                         ...Object.entries(input.remote.headers).map(
                           ([name, value]) => `          ${name}: ${JSON.stringify(value)}`,
                         ),
                       ]),
                 ]
               : []),
-            ...(input.remotesKeyAliased === true ? ['        appPackage: &key remotes'] : []),
+            ...(input.remotesKeyAliased === true
+              ? ['        appium:appPackage: &key remotes']
+              : []),
           ]
         : []),
       ...(remoteDevice === undefined

@@ -1726,7 +1726,7 @@ describe('run command — mobile app state and device resolution', () => {
     ;(cfg.registry as any).devices = {
       'android-emu': {
         platform: 'android',
-        match: { automationName: 'UiAutomator2' },
+        capabilities: { 'appium:automationName': 'UiAutomator2' },
       },
     }
     ;(cfg.use as any).mobile = { appState: 'preserve' }

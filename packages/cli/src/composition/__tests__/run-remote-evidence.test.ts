@@ -324,11 +324,11 @@ describe("a remote run's evidence", () => {
       expect(endpoint.sessions(), log).toBe(1)
       const config = stored.payload.config as Record<string, any>
       const origin = originOf(endpoint)
-      const match = { avd: origin, serial: null }
+      const capabilities = { 'appium:avd': origin, 'appium:serial': null }
       const remotes = [{ name: 'grid', protocol: 'playwright', url: origin }]
       const raw = parseYaml(config.rawConfigContent as string) as Record<string, any>
       for (const shown of [raw, config.parsedConfig, config.effectiveConfig]) {
-        expect(shown?.registry?.devices?.pixel?.match, log).toEqual(match)
+        expect(shown?.registry?.devices?.pixel?.capabilities, log).toEqual(capabilities)
         expect(shown?.registry?.remotes, log).toEqual(remotes)
       }
       for (const planted of [pathToken, PLANTED_QUERY_VALUE, PLANTED_HEADER_VALUE]) {

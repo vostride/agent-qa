@@ -312,7 +312,7 @@ describe('declared values in the config.get view', () => {
           baseURL: userinfoUrl,
           providerHeaders: { 'X-Api-Key': credentialShaped },
         }],
-        devices: { pixel: { platform: 'android', match: { jwt: credentialShaped } } },
+        devices: { pixel: { platform: 'android', id: credentialShaped } },
       },
     }
     const config = buildMaskedResolvedConfig({
@@ -325,7 +325,7 @@ describe('declared values in the config.get view', () => {
     for (const [key, value] of [
       ['registry.llms.0.baseURL', userinfoUrl],
       ['registry.llms.0.providerHeaders.X-Api-Key', credentialShaped],
-      ['registry.devices.pixel.match.jwt', credentialShaped],
+      ['registry.devices.pixel.id', credentialShaped],
     ] as const) {
       expect(config.entries, key).toContainEqual({ key, value, source: 'config-file', masked: false })
     }
