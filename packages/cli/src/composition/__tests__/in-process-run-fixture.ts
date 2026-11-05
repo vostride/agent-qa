@@ -132,6 +132,8 @@ export interface InProcessFixtureInput {
     readonly connectTimeout?: string
     /** The target's `app.path`, written as an empty file in the project, and no `app.ref`. */
     readonly appPath?: string
+    /** The target's `app.ref`. */
+    readonly appRef?: string
     /** A second standalone test, `tests/direct-2.yaml`, on the same device. */
     readonly secondTest?: boolean
   }
@@ -354,6 +356,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             ...(remoteDevice.appPath === undefined
               ? []
               : ['      app:', `        path: ${JSON.stringify(remoteDevice.appPath)}`]),
+            ...(remoteDevice.appRef === undefined
+              ? []
+              : ['      app:', `        ref: ${JSON.stringify(remoteDevice.appRef)}`]),
           ]),
       ...(keyed === undefined
         ? []

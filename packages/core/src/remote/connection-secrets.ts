@@ -57,27 +57,36 @@ export interface DeviceUse {
   readonly device: string
   // Absent for a device here, whose capabilities still resolve their references at connect.
   readonly remote?: RemoteConnectionFields | undefined
+  // The app.ref of a target the device runs; a remote device's server installs from it.
+  readonly appRef?: string | undefined
 }
 
-export interface MissingDeviceSecret extends DeviceUse {
+export interface MissingDeviceSecret {
+  readonly device: string
+  readonly remote?: RemoteConnectionFields | undefined
   readonly name: string
 }
 
-// What a used device's connection needs: its remote's values, if any, and its own capabilities.
+// What a used device's connection needs: its remote's values, if any, its own capabilities and,
+// on a remote, the app.ref of each target it runs.
 export function missingDeviceSecrets(
   used: readonly DeviceUse[],
   devices: Readonly<Record<string, { readonly capabilities?: unknown }>>,
   store: { has(name: string): boolean },
 ): MissingDeviceSecret[] {
+  const uses = new Map<string, { remote?: RemoteConnectionFields | undefined; appRefs: string[] }>()
+  for (const { device, remote, appRef } of used) {
+    const use = uses.get(device) ?? { remote, appRefs: [] }
+    if (appRef !== undefined) use.appRefs.push(appRef)
+    uses.set(device, use)
+  }
   const missing: MissingDeviceSecret[] = []
-  const seen = new Set<string>()
-  for (const { device, remote } of used) {
-    if (seen.has(device)) continue
-    seen.add(device)
+  for (const [device, { remote, appRefs }] of uses) {
     const capabilities = Object.hasOwn(devices, device) ? devices[device]?.capabilities : undefined
     const names = new Set([
       ...(remote === undefined ? [] : connectionSecretNames([remote])),
       ...secretReferenceNames(JSON.stringify(capabilities ?? {})),
+      ...(remote === undefined ? [] : appRefs.flatMap(secretReferenceNames)),
     ])
     for (const name of names) {
       if (!store.has(name)) missing.push({ device, remote, name })

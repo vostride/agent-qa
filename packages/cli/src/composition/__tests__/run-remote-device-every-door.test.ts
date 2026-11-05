@@ -543,6 +543,42 @@ describe('a test on a remote device runs there from every door', () => {
     RUN_BUDGET_MS,
   )
 
+  it.each([
+    ['a test', (project: InProcessFixture) => project.testPattern, {}],
+    [
+      'a suite',
+      (project: InProcessFixture) => project.suitePattern,
+      { suiteMemberDevices: [undefined, undefined], suiteDevice: REMOTE_DEVICE_NAME },
+    ],
+  ] as const)(
+    "agent-qa run refuses %s on a remote device whose target's app.ref needs an undeclared secret before the run is recorded",
+    async (_what, pattern, fixture) => {
+      await onRemoteDevice(
+        async ({ project, server, printed, acquire, acquireLease, exit }) => {
+          await runThroughCli(project, [pattern(project)])
+
+          const log = printed.join('\n')
+          const { port } = new URL(server.url)
+          expect(exit.mock.calls.at(-1)?.[0], log).toBe(2)
+          expect(
+            printed.filter((line) =>
+              line.includes(
+                `Device galaxy-farm on remote farm (appium http://127.0.0.1:${port}) needs SHOP_BUILD_REF, which .env.secrets.local does not declare. Add it there.`,
+              ),
+            ),
+            log,
+          ).toHaveLength(1)
+          expect(server.requests, log).toEqual([])
+          expect(storedRunners(project), log).toEqual([])
+          expect(acquire).not.toHaveBeenCalled()
+          expect(acquireLease).not.toHaveBeenCalled()
+        },
+        { device: { appRef: 'farm://{{secret:SHOP_BUILD_REF}}' }, fixture },
+      )
+    },
+    RUN_BUDGET_MS,
+  )
+
   it(
     'a queued dashboard run opens the session on the remote and leases no Appium',
     async () => {

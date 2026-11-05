@@ -1549,6 +1549,8 @@ function placePreflightSuites(
   readonly members: readonly { readonly test: TestDefinition; readonly absolutePath: string }[]
   readonly selected?: SelectWebPlaceResult
   readonly device?: DevicePlace
+  // The targets the suite's members run on its device.
+  readonly targets?: readonly (string | undefined)[]
 }> {
   return [...preflight.definitions].map(([suiteFile, suite]) => {
     const members = suite.tests.flatMap(({ test: memberFile }) => {
@@ -1560,7 +1562,8 @@ function placePreflightSuites(
     const suiteTarget = suite.target ?? members[0]?.test.target
     if (anyTargetRunsOnDevice(config, [suiteTarget])) {
       const device = placeSuiteDevice({ config, configDir, suiteFile, suite, members, deviceFlag })
-      return { members, device }
+      const targets = members.map(({ test }) => test.target ?? suite.target)
+      return { members, device, targets: targets.length > 0 ? targets : [suite.target] }
     }
     if (!targetRunsInBrowser(config, suiteTarget)) return { members }
     const selected = placeSuite({
@@ -1630,19 +1633,27 @@ function configuredSecretsFile(config: AgentQaConfig): string | undefined {
   return typeof file === 'string' ? file : undefined
 }
 
+function targetAppRef(config: AgentQaConfig, target: string | undefined): string | undefined {
+  const targets = config.registry?.targets
+  if (target === undefined || targets === undefined || !Object.hasOwn(targets, target)) {
+    return undefined
+  }
+  return targets[target]?.app?.ref
+}
+
 // Before the run is recorded: a remote or device this run uses lacks a secret, or a test names one.
 function refuseRemoteSecretProblems(input: {
   readonly config: AgentQaConfig
   readonly configDir: string
   readonly usedRemotes: Iterable<RemoteBrowserConfig>
-  readonly usedDevices: Iterable<DevicePlace>
+  readonly usedDevices: Iterable<{ readonly place: DevicePlace; readonly target?: string }>
   readonly tests: Iterable<{ readonly filePath: string; readonly steps: readonly unknown[] }>
   readonly connectionSecretStore: SecretStore
 }): void {
   const secretsFile = configuredSecretsFile(input.config)
-  const devices = [...input.usedDevices].map((place) =>
+  const devices = [...input.usedDevices].map(({ place, target }) =>
     place.kind === 'remote'
-      ? { device: place.device, remote: place.remote }
+      ? { device: place.device, remote: place.remote, appRef: targetAppRef(input.config, target) }
       : { device: place.device },
   )
   const lines = [
@@ -2750,7 +2761,9 @@ export async function produceSuiteRunMembers(
           ? [selected.place.remote]
           : [],
       ),
-      usedDevices: placedSuites.flatMap(({ device }) => (device === undefined ? [] : [device])),
+      usedDevices: placedSuites.flatMap(({ device, targets = [] }) =>
+        device === undefined ? [] : targets.map((target) => ({ place: device, target })),
+      ),
       tests: placedSuites.flatMap(({ members }) =>
         members.map(({ test, absolutePath }) => ({
           filePath: absolutePath,
@@ -3948,7 +3961,10 @@ export async function produceDirectRunMembers(
     config,
     configDir,
     usedRemotes: directRemotes.values(),
-    usedDevices: directDevicePlaces.values(),
+    usedDevices: [...directDevicePlaces].map(([binding, place]) => ({
+      place,
+      target: binding.test.target,
+    })),
     tests: filtered.map(({ test, filePath }) => ({ filePath, steps: test.steps ?? [] })),
     connectionSecretStore: runtimeSecrets.connectionSecretStore,
   })

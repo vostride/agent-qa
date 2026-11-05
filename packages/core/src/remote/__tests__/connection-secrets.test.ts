@@ -225,6 +225,24 @@ describe("a remote's connection-only secrets", () => {
     ).toEqual([])
   })
 
+  it('name each secret in the app.ref of the targets a remote device runs, once per device', () => {
+    const appiumFarm = RemoteEntrySchema.parse({
+      name: 'farm',
+      protocol: 'appium',
+      url: 'https://farm.example.com/wd/hub',
+    })
+    const used = [
+      { device: 'galaxy-farm', remote: appiumFarm, appRef: 'farm://{{secret:SHOP_BUILD}}' },
+      { device: 'galaxy-farm', remote: appiumFarm, appRef: 'farm://{{secret:ADMIN_BUILD}}' },
+      { device: 'galaxy-farm', remote: appiumFarm, appRef: 'farm://{{secret:SHOP_BUILD}}' },
+      { device: 'pixel', appRef: 'farm://{{secret:LOCAL_ONLY}}' },
+    ]
+    const missing = missingDeviceSecrets(used, {}, new SecretStore({ ADMIN_BUILD: 'a' }))
+    expect(missing.map(({ device, name }) => [device, name])).toEqual([
+      ['galaxy-farm', 'SHOP_BUILD'],
+    ])
+  })
+
   it('name each secret a used device here needs for its capabilities, naming no remote', () => {
     const devices = {
       'keyed-phone': {
