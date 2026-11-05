@@ -603,6 +603,8 @@ export interface StubModelServerOptions {
   readonly holdAnalysis?: boolean
   // A curator request with a neighbor gets a Supersede of the first; one with none, prose.
   readonly curatorOutcome?: 'supersede-first'
+  // Appended to every planner turn's reasoning, as a model that repeats what it saw would.
+  readonly plannerNote?: string
 }
 
 export async function startStubModelServer(
@@ -691,7 +693,9 @@ export async function startStubModelServer(
           const args = {
             ...targeting,
             elementDescription: POPULATED_BUTTON_LABEL,
-            reasoning: failing ? plannerFailureReasoning() : plannerReasoning(),
+            reasoning: `${failing ? plannerFailureReasoning() : plannerReasoning()}${
+              options.plannerNote === undefined ? '' : ` ${options.plannerNote}`
+            }`,
             confidence: 0.95,
             stepComplete: !failing,
             ...(failing ? { stepFailed: true } : {}),

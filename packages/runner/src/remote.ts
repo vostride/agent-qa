@@ -145,6 +145,8 @@ export type RemotePlaceEvidence =
       unsupported: readonly RemoteUnsupported[]
       heartbeat?: { sent: number; failed: number; suspect: boolean }
       failureKind?: RemoteFailureKind
+      plugin?: RemotePluginEvidence
+      link?: string
     }
   | {
       place: 'remote'
@@ -158,6 +160,8 @@ export type RemotePlaceEvidence =
       heartbeat?: { sent: number; failed: number; suspect: boolean }
       failureKind?: RemoteFailureKind
       notes?: readonly string[]
+      plugin?: RemotePluginEvidence
+      link?: string
     }
 
 // Built from the refusal sentence alone, so nothing from the failed connection rides along.

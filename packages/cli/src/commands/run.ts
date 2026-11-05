@@ -61,7 +61,11 @@ import {
   REMOTE_RELEASE_BOUND_MS,
   startedRemoteReleases,
 } from '../composition/remote-sessions.js'
-import { DeclaredSecretsUnavailableError, readDeclaredSecrets } from '../composition/declared-secrets.js'
+import {
+  DeclaredSecretsUnavailableError,
+  readDeclaredSecrets,
+  RunSecretRedactor,
+} from '../composition/declared-secrets.js'
 import { createRunPluginHost } from '../composition/plugin-host.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 import {
@@ -533,6 +537,7 @@ function producerPluginHost(input: {
   readonly runId: string | undefined
   readonly connectionSecrets: SecretResolver | undefined
   readonly mask: MaskFn
+  readonly redactor: SecretRedactor | undefined
 }): ProducerPluginHost {
   if ((input.config.plugins ?? []).length === 0) {
     return { pluginSessions: undefined, close: () => Promise.resolve() }
@@ -543,6 +548,9 @@ function producerPluginHost(input: {
     ...(input.runId === undefined ? {} : { runId: input.runId }),
     ...(input.connectionSecrets === undefined ? {} : { connectionSecrets: input.connectionSecrets }),
     mask: input.mask,
+    ...(input.redactor instanceof RunSecretRedactor
+      ? { addMaskExtras: input.redactor.addMaskExtras.bind(input.redactor) }
+      : {}),
     // The registry a signal releases, so each lease and the pool's shutdown get the plugin bound.
     sessions: processRemoteSessions,
   })
@@ -1667,12 +1675,12 @@ async function loadRuntimeSecrets(input: {
     if (err instanceof DeclaredSecretsUnavailableError) throw secretsRefusal(err)
     throw err
   }
-  const { SecretRedactor, basicAuthMaskEntries } = await import('@vostride/agent-qa-runner')
+  const { basicAuthMaskEntries } = await import('@vostride/agent-qa-runner')
   const remotes = input.config.registry?.remotes ?? []
   return {
     secretStore: splitConnectionSecrets(declared, input.config).stepStore,
     connectionSecretStore: declared,
-    secretRedactor: new SecretRedactor(
+    secretRedactor: new RunSecretRedactor(
       declared,
       basicAuthMaskEntries(remotes.filter(isUrlRemoteEntry), declared),
     ),
@@ -2934,6 +2942,7 @@ export async function produceSuiteRunMembers(
     runId,
     connectionSecrets: suiteConnectionSecrets,
     mask: suiteRunMask,
+    redactor: suiteRunSecretRedactor,
   })
   const suiteAdapterOptions: Parameters<typeof createPlatformAdapter>[1] = {
     ...hostSignals,
@@ -4164,6 +4173,7 @@ export async function produceDirectRunMembers(
     runId: producedRunId,
     connectionSecrets: runtimeSecrets.connectionSecretStore,
     mask: singleRunMask,
+    redactor: runtimeSecrets.secretRedactor,
   })
   const directRunAttributes = buildCliRunAttributes(
     userRunAttributes,

@@ -77,6 +77,8 @@ export interface PluginHostPoolInput {
   // The live editor marks none.
   marksSessions?: boolean
   mask: (text: string) => string
+  // Values an acquire answer asks to mask; they reach the run's mask before the session is used.
+  onMask?: (entry: string, values: readonly string[]) => void
   debugLog?: (line: string) => void
   sessions?: RemoteSessionRegistry
   bounds?: Partial<PluginHostBounds>
@@ -747,6 +749,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
         { remote, kind: 'refused' },
       )
     }
+    input.onMask?.(entry, parsed.data.mask ?? [])
     const unsafe = checkPluginAnswer(parsed.data, {
       serves: running.manifest.serves,
       place: request.session.platform === 'web' ? 'web' : 'device',

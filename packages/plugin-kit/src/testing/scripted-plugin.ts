@@ -46,7 +46,8 @@ description: A scripted agent-qa plugin that answers each call as its options sa
 Each call follows \`options.script[method]\`: \`ok\`, \`hold\`, \`ignoreCancel\`, \`crash\`,
 \`noise\`, \`consoleLog\`, \`{ delayMs }\`, \`{ error }\` or \`{ errorAfterCreate }\`. A list of
 steps gives each call the next one, and the last repeats. \`options.stderr[method]\` is written
-to stderr before the step.
+to stderr before the step. Acquire answers \`options.answer\`, or the JSON in the file
+\`options.answerFile\` names.
 With \`options.recordProcess\`, the initialize ledger line also records the process, its
 environment's names, its options, the host and the run facts. With \`options.recordParams\`, the
 acquire line also records the session and run, the started line the session id, and the end line

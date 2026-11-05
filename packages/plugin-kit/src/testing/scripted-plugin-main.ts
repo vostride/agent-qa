@@ -1,4 +1,4 @@
-import { appendFileSync, realpathSync, writeSync } from 'node:fs'
+import { appendFileSync, readFileSync, realpathSync, writeSync } from 'node:fs'
 import { dirname } from 'node:path'
 import { setTimeout as sleep } from 'node:timers/promises'
 import { z } from 'zod'
@@ -59,6 +59,8 @@ const ScriptedOptionsSchema = z.looseObject({
   recordProcess: z.boolean().optional(),
   recordParams: z.boolean().optional(),
   answer: AnswerSchema.optional(),
+  // An answer read from this JSON file at acquire, so its values never sit in the config.
+  answerFile: z.string().optional(),
   script: z.record(z.string(), ScriptSchema).optional(),
   stderr: z.record(z.string(), z.string()).optional(),
   progress: z.array(ProgressSchema).optional(),
@@ -193,13 +195,17 @@ export function startScriptedPlugin(timing: ScriptedPluginTiming = {}): void {
       })
       for (const update of options.progress ?? []) ctx.progress(update)
       await follow(options, 'acquire', ctx, handle)
-      if (options.answer === undefined) {
+      const answer =
+        options.answerFile === undefined
+          ? options.answer
+          : AnswerSchema.parse(JSON.parse(readFileSync(options.answerFile, 'utf8')))
+      if (answer === undefined) {
         throw new PluginError('the scripted plugin has no answer option', {
           kind: 'refused',
           path: 'answer',
         })
       }
-      return { handle, ...options.answer }
+      return { handle, ...answer }
     },
     async release({ options, handle }, ctx) {
       ledger(options, { method: 'release', handle })

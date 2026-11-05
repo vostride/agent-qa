@@ -667,10 +667,15 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   get placeEvidence(): RemotePlaceEvidence | undefined {
     const place = this.place
     if (place?.place !== 'remote') return place
-    if (this.heartbeat === undefined && this.disconnectKind === undefined) return place
+    const plugin = this.lease?.plugin
+    if (this.heartbeat === undefined && this.disconnectKind === undefined && plugin === undefined) {
+      return place
+    }
     const failureKind = this.leaseEnded?.kind ?? this.disconnectKind
     return {
       ...place,
+      ...(plugin !== undefined ? { plugin } : {}),
+      ...(plugin !== undefined && this.link !== undefined ? { link: this.link } : {}),
       ...(this.heartbeat !== undefined ? { heartbeat: this.heartbeat.counts() } : {}),
       ...(failureKind !== undefined ? { failureKind } : {}),
     }
