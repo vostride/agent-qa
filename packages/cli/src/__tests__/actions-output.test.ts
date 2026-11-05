@@ -71,6 +71,11 @@ function limitsProject(): string {
   )
 }
 
+// A PATH holding no adb or xcrun, so the spawned CLI lists nothing from this machine.
+function withoutDeviceTools(root: string): Record<string, string> {
+  return { PATH: join(root, 'no-device-tools') }
+}
+
 function configNamesProject(
   label: string,
   edit: { platform?: string; secretsFile?: string } = {},
@@ -193,22 +198,26 @@ describe('agent-qa devices list output under GitHub Actions', () => {
     const root = configNamesProject('devices')
     const outcome = await spawnCollecting(root, [CLI_ENTRY, 'devices', 'list'], {
       GITHUB_ACTIONS: 'true',
+      ...withoutDeviceTools(root),
     })
     expect(outcome.code).toBe(0)
     expect(
       wrappedBlocks(outcome.stdout).some(
-        (block) => block.includes(INJECTED_NAME) && block.includes('android'),
+        (block) => block.includes(INJECTED_NAME) && block.includes('names no model'),
       ),
     ).toBe(true)
     const outside = outsidePairs(outcome.stdout)
-    expect(outside).toContain('Configured Devices')
     expect(outside).not.toMatch(/^\s*::/mu)
     expect(outside).not.toContain('##[')
   })
 
   it('devices list prints the same rows with no stop-commands line off GitHub Actions', async () => {
     const root = configNamesProject('devices')
-    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'devices', 'list'])
+    const outcome = await spawnCollecting(
+      root,
+      [CLI_ENTRY, 'devices', 'list'],
+      withoutDeviceTools(root),
+    )
     expect(outcome.code).toBe(0)
     expect(outcome.stdout).toContain(INJECTED_NAME)
     expect(outcome.stdout).not.toContain('::stop-commands::')

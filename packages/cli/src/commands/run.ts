@@ -7,7 +7,7 @@ import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
 import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
-import { formatRemoteOrigin, projectConfigRemotes, remoteOrigin } from '@vostride/agent-qa-schema'
+import { formatRemoteOrigin, projectConfigRemotes, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
@@ -304,6 +304,63 @@ export function listDevicesHereOncePerRun(lister: DevicesHereLister): DevicesHer
     }
     return listing
   }
+}
+
+type DeviceProfile = NonNullable<NonNullable<AgentQaConfig['registry']>['devices']>[string]
+type RemoteEntry = NonNullable<AgentQaConfig['registry']>['remotes'][number]
+
+export interface DescribeDevicesHereOptions {
+  readonly listDevicesHere?: DevicesHereLister
+}
+
+// A refusal that wants a model this machine lacks reads `not here: wants ...`; a tie or a missing
+// model reads as the finder's sentence, without what this machine has.
+function deviceNotHere(device: string, refusal: string): string {
+  const prefix = `Device ${device} `
+  const reason = refusal.startsWith(prefix) ? refusal.slice(prefix.length) : refusal
+  const wants = /^wants ([^;]*);/u.exec(reason)
+  if (wants !== null) return `not here: wants ${wants[1]}`
+  return reason.replace(/ This (?:machine|Mac)(?: has|'s) .*$/u, '')
+}
+
+async function deviceWhere(
+  name: string,
+  profile: DeviceProfile,
+  remotes: readonly RemoteEntry[],
+  list: DevicesHereLister,
+): Promise<string> {
+  if (profile.remote !== undefined) {
+    const remote = remotes.find((entry) => entry.name === profile.remote)
+    return `remote ${remote === undefined ? profile.remote : remoteLabel(remote)}`
+  }
+  const listing = await list(profile.platform)
+  const finder = findDeviceHere({
+    device: name,
+    platform: profile.platform,
+    ...(profile.model === undefined ? {} : { model: profile.model }),
+    ...(profile.os === undefined ? {} : { os: profile.os }),
+    ...(profile.id === undefined ? {} : { id: profile.id }),
+    ...(profile.platform === 'ios'
+      ? { ios: listing as IOSHere }
+      : { android: listing as AndroidHere }),
+  })
+  if ('refusal' in finder) return deviceNotHere(name, finder.refusal)
+  return `here: ${finder.found.description}`
+}
+
+// The `agent-qa devices` view: one line per profile saying what it finds here or where it runs.
+export async function describeDevicesHere(
+  config: AgentQaConfig,
+  options: DescribeDevicesHereOptions = {},
+): Promise<string[]> {
+  const devices = Object.entries(config.registry?.devices ?? {})
+  const remotes = config.registry?.remotes ?? []
+  const list = listDevicesHereOncePerRun(options.listDevicesHere ?? listDevicesHereByDefault)
+  const width = Math.max(0, ...devices.map(([name]) => name.length))
+  const places = await Promise.all(
+    devices.map(([name, profile]) => deviceWhere(name, profile, remotes, list)),
+  )
+  return devices.map(([name], index) => `${name.padEnd(width)}  ${places[index]}`)
 }
 
 export interface PrepareMobileDeviceInput {
