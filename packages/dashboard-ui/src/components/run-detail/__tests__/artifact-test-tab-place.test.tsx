@@ -46,6 +46,9 @@ const devicePlace = {
   deviceType: 'real device',
 }
 
+const APP_DATA_NOTE =
+  'App data was not cleared: device iphone-farm is a real iPhone, and target shop-ios has no app.ref to reinstall from.'
+
 const refusedDevicePlace = {
   place: 'remote',
   name: 'farm',
@@ -213,6 +216,22 @@ describe("a test's place on the run page", () => {
     expect(card.querySelector('[data-member-place]')?.textContent).toBe('Ran on this machine')
   })
 
+  it("a test's place notes each show as their own line under the place line", () => {
+    const second = 'The heartbeat missed one beat.'
+    const card = memberCard({ ...devicePlace, notes: [APP_DATA_NOTE, second] })
+    const config = card.querySelector('[data-member-config]')!
+    const [line, ...rest] = Array.from(config.children)
+    expect(line?.hasAttribute('data-member-place')).toBe(true)
+    const notes = rest.slice(0, 2)
+    expect(notes.map((note) => note.hasAttribute('data-place-note'))).toEqual([true, true])
+    expect(notes.map((note) => note.textContent)).toEqual([APP_DATA_NOTE, second])
+  })
+
+  it('a place without notes shows nothing under the place line', () => {
+    const card = memberCard(devicePlace)
+    expect(card.querySelector('[data-place-note]')).toBeNull()
+  })
+
   it('an artifact without a place shows no place line', () => {
     const card = memberCard(undefined)
     expect(card.querySelector('[data-member-place]')).toBeNull()
@@ -226,7 +245,20 @@ describe("a test's place on the run page", () => {
     }))
     const line = tab.querySelector('[data-run-place]')
     expect(line?.textContent).toBe(REMOTE_LINE)
-    expect(tab.firstElementChild?.firstElementChild).toBe(line)
+    expect(tab.firstElementChild?.firstElementChild?.firstElementChild).toBe(line)
+    expect(tab.querySelector('[data-place-note]')).toBeNull()
+  })
+
+  it("a one-test run shows its place's notes under the place line, above the test's source", () => {
+    const tab = mount(response({
+      source: { kind: 'test', rawYaml: 'name: Login\n', resolvedDefinition: { name: 'Login' } },
+      config: { runtime: runtime({ ...devicePlace, notes: [APP_DATA_NOTE] }) },
+    }))
+    const block = tab.firstElementChild?.firstElementChild
+    expect(block?.firstElementChild).toBe(tab.querySelector('[data-run-place]'))
+    const notes = block?.querySelectorAll('[data-place-note]') ?? []
+    expect(Array.from(notes, (note) => note.textContent)).toEqual([APP_DATA_NOTE])
+    expect(notes[0]?.className).toContain('text-muted-foreground')
   })
 
   it.each([

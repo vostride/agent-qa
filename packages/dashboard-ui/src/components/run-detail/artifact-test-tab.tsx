@@ -63,12 +63,21 @@ interface PlaceLine {
   text: string
   // The remote refused the test or dropped its session.
   failed: boolean
+  notes: string[]
+}
+
+function placeNotes(place: Record<string, unknown> | null): string[] {
+  return arrayAt(place, "notes")
+    .filter((note): note is string => typeof note === "string" && note.length > 0)
 }
 
 function placeLine(runtime: unknown): PlaceLine | null {
   const place = recordAt(isArtifactRecord(runtime) ? runtime : null, "place")
   const kind = textAt(place, "place")
-  if (kind === "here") return { text: ranHereLine(textAt(place, "deviceType")), failed: false }
+  const notes = placeNotes(place)
+  if (kind === "here") {
+    return { text: ranHereLine(textAt(place, "deviceType")), failed: false, notes }
+  }
   const name = textAt(place, "name")
   if (kind !== "remote" || !name) return null
   const protocol = textAt(place, "protocol")
@@ -77,15 +86,23 @@ function placeLine(runtime: unknown): PlaceLine | null {
     ? deviceDetail(textAt(place, "appiumVersion"), textAt(place, "deviceType"))
     : textAt(place, "browserVersion")
   const failureKind = textAt(place, "failureKind")
-  if (failureKind === null) return { text: ranOnLine(name, where, version), failed: false }
+  if (failureKind === null) return { text: ranOnLine(name, where, version), failed: false, notes }
   if (isDroppedSessionKind(failureKind)) {
-    return { text: droppedOnLine(name, where, version, failureKind), failed: true }
+    return { text: droppedOnLine(name, where, version, failureKind), failed: true, notes }
   }
-  return { text: couldNotRunOnLine(name, where, failureKind), failed: true }
+  return { text: couldNotRunOnLine(name, where, failureKind), failed: true, notes }
 }
 
 function placeClass(place: PlaceLine): string {
   return place.failed ? "text-destructive" : "text-foreground"
+}
+
+function PlaceNotes({ notes }: { notes: string[] }) {
+  return notes.map((note, index) => (
+    <div key={index} data-place-note className="pb-1.5 text-xs text-muted-foreground">
+      {note}
+    </div>
+  ))
 }
 
 function MemberConfig({ config }: { config: Record<string, unknown> }) {
@@ -96,9 +113,12 @@ function MemberConfig({ config }: { config: Record<string, unknown> }) {
   return (
     <div data-member-config>
       {place ? (
-        <div data-member-place className={`py-1.5 text-xs ${placeClass(place)}`}>
-          {place.text}
-        </div>
+        <>
+          <div data-member-place className={`py-1.5 text-xs ${placeClass(place)}`}>
+            {place.text}
+          </div>
+          <PlaceNotes notes={place.notes} />
+        </>
       ) : null}
       {runtime == null ? null : <KeyValueTree label="runtime" value={runtime} />}
       {timeouts == null ? null : <KeyValueTree label="timeouts" value={timeouts} />}
@@ -209,8 +229,11 @@ export function ArtifactTestTab({ response }: { response: RunArtifactResponse })
   return (
     <div className="space-y-4">
       {runPlace ? (
-        <div data-run-place className={`py-1.5 text-xs ${placeClass(runPlace)}`}>
-          {runPlace.text}
+        <div>
+          <div data-run-place className={`py-1.5 text-xs ${placeClass(runPlace)}`}>
+            {runPlace.text}
+          </div>
+          <PlaceNotes notes={runPlace.notes} />
         </div>
       ) : null}
       {kind === "tests" ? null : (
