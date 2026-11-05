@@ -35,7 +35,11 @@ import type {
   RunStatus,
   VerdictPayload,
 } from '@vostride/agent-qa-schema'
-import type { AppiumProvider, DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
+import type {
+  AppiumProvider,
+  DashboardDatabase,
+  RunIdentityMember,
+} from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
 import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'

@@ -13,7 +13,12 @@ import {
   refuseUnparseableRequest,
   tryParseRequestUrl,
 } from './request-url.js'
-import type { AppiumProvider, ExecutionBackend, RunSettledDetails, RunSettledStatus } from '../execution/execution-backend.js'
+import type {
+  AppiumProvider,
+  ExecutionBackend,
+  RunSettledDetails,
+  RunSettledStatus,
+} from '../execution/execution-backend.js'
 import { JobQueue } from '../queue/job-queue.js'
 import { TestFileManager } from '../tests/test-file-manager.js'
 import { SuiteFileManager } from '../tests/suite-file-manager.js'

@@ -322,8 +322,9 @@ describe('dashboard Appium ownership', () => {
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(2))
     expect(appium.acquireLease).not.toHaveBeenCalled()
 
-    expect(await providerFor(runner, android.runId).acquire('android')).toBe('http://localhost:4723')
-    expect(await providerFor(runner, ios.runId).acquire('ios')).toBe('http://localhost:4723')
+    const androidUrl = await providerFor(runner, android.runId).acquire('android')
+    const iosUrl = await providerFor(runner, ios.runId).acquire('ios')
+    expect([androidUrl, iosUrl]).toEqual(['http://localhost:4723', 'http://localhost:4723'])
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: android.runId, platform: 'android' })
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: ios.runId, platform: 'ios' })
 
@@ -522,7 +523,10 @@ describe('dashboard Appium ownership', () => {
 
     await waitFor(() => expect(runner.execute).toHaveBeenCalledTimes(2))
     expect(appium.releases).toEqual([{ runId: first.runId, reason: 'cancelled' }])
-    expect(appium.acquireLease).not.toHaveBeenCalledWith({ runId: second.runId, platform: 'android' })
+    expect(appium.acquireLease).not.toHaveBeenCalledWith({
+      runId: second.runId,
+      platform: 'android',
+    })
     await providerFor(runner, second.runId).acquire('android')
     expect(appium.acquireLease).toHaveBeenCalledWith({ runId: second.runId, platform: 'android' })
     expect(currentDb!.getRun(second.runId)?.status).toBe('running')
