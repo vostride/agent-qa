@@ -287,7 +287,9 @@ export class SecretRedactor implements SecretRedactorPort {
       for (const form of encodedForms(value)) entries.push([name, form])
     })
     for (const [name, value] of extras) {
-      if (value.length > 0) entries.push([name, value])
+      if (value.length === 0) continue
+      entries.push([name, value])
+      for (const form of encodedForms(value)) entries.push([name, form])
     }
     entries.sort((a, b) => b[1].length - a[1].length)
     for (const [name, value] of entries) {

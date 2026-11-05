@@ -47,7 +47,17 @@ describe('the redactor and encoded secret forms', () => {
     )
   })
 
-  it('masks an extra pair as given', () => {
+  it.each([
+    ['raw', 'a b/c?d"e'],
+    ['percent-encoded', encodeURIComponent('a b/c?d"e')],
+    ['JSON-escaped', jsonBody('a b/c?d"e')],
+    ['percent-encoded JSON-escaped', encodeURIComponent(jsonBody('a b/c?d"e'))],
+  ])('masks the %s form of an extra value under its name', (_form, written) => {
+    const redactor = new SecretRedactor(store, [['PLUGIN_LAB', 'a b/c?d"e']])
+    expect(redactor.redactString(`sent <${written}> here`)).toBe('sent <[secret:PLUGIN_LAB]> here')
+  })
+
+  it('masks a Basic extra pair as given', () => {
     const basic = basicAuthorizationValue('agent', PASSWORD)
     expect(basic).toBe('YWdlbnQ6cMOkIHNzL3fDtnJk')
 

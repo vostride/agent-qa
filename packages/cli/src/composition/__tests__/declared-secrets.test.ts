@@ -14,11 +14,20 @@ import { join, relative } from 'node:path'
 import { generateText, simulateReadableStream, streamText, wrapLanguageModel } from 'ai'
 import { MockLanguageModelV4 } from 'ai/test'
 import { afterAll, afterEach, describe, expect, it, vi } from 'vitest'
+import type { AgentQaConfig } from '@vostride/agent-qa-core'
+import { writeScriptedPlugin } from '@vostride/agent-qa-plugin-kit/testing'
 import { SecretStore } from '@vostride/agent-qa-runner'
 import { createMaskingMiddleware } from '@vostride/agent-qa-safety'
 
 import { composeMcpMasking } from '../../commands/mcp.js'
-import { createDeclaredSecretMask, DeclaredSecretsUnavailableError } from '../declared-secrets.js'
+import {
+  createDeclaredSecretMask,
+  DeclaredSecretsUnavailableError,
+  pluginMaskName,
+  readDeclaredSecrets,
+  RunSecretRedactor,
+} from '../declared-secrets.js'
+import { createRunPluginHost } from '../plugin-host.js'
 
 const LONG = 'L0ng-Declared-Value-0123456789-abcdefghij'
 const roots: string[] = []
@@ -314,4 +323,85 @@ describe('a declared value at model egress', () => {
       expect(wire).not.toContain('q^7')
     }
   })
+})
+
+const HANDED = 'tok/abc 123'
+
+describe("a run's mask and the values handed over during the run", () => {
+  it('names a plugin entry PLUGIN_ and its name upper-cased with other characters as _', () => {
+    expect(pluginMaskName('lab')).toBe('PLUGIN_LAB')
+    expect(pluginMaskName('browser-stack.eu')).toBe('PLUGIN_BROWSER_STACK_EU')
+  })
+
+  it('masks a value added after the mask was built, and keeps masking values added before', () => {
+    const redactor = new RunSecretRedactor(new SecretStore([['LONG', LONG]]))
+    expect(redactor.redactString(`one ${HANDED}`)).toBe(`one ${HANDED}`)
+
+    redactor.addMaskExtras([['PLUGIN_LAB', HANDED]])
+    expect(redactor.redactString(`one ${HANDED}`)).toBe('one [secret:PLUGIN_LAB]')
+
+    redactor.addMaskExtras([['PLUGIN_FARM', 'farm-key-42']])
+    expect(redactor.redactString(`${LONG} ${HANDED} farm-key-42`)).toBe(
+      '[secret:LONG] [secret:PLUGIN_LAB] [secret:PLUGIN_FARM]',
+    )
+    expect(redactor.redactValue({ url: `ws://h/?t=${encodeURIComponent(HANDED)}` })).toEqual({
+      url: 'ws://h/?t=[secret:PLUGIN_LAB]',
+    })
+  })
+
+  it('keeps the declared name for a handed-over value that is also a declared secret', () => {
+    const redactor = new RunSecretRedactor(new SecretStore([['LONG', LONG]]))
+    redactor.addMaskExtras([['PLUGIN_LAB', LONG]])
+    expect(redactor.redactString(LONG)).toBe('[secret:LONG]')
+  })
+
+  it("masks an option secret and an answer's mask value, in every form, in the plugin's stderr", async () => {
+    const { root, configPath, secretsPath } = project(`LAB_KEY=${LONG}\n`)
+    writeScriptedPlugin(join(root, 'tools', 'lab'), { methods: [] })
+    const config = {
+      workspace: { secretsFile: '.secrets.local' },
+      plugins: [
+        {
+          name: 'lab',
+          path: './tools/lab',
+          options: {
+            answer: { protocol: 'playwright', url: 'ws://127.0.0.1:9/', mask: [HANDED] },
+            stderr: {
+              initialize: 'signed in with {{secret:LAB_KEY}}',
+              release: `handing back ${encodeURIComponent(HANDED)}`,
+            },
+          },
+        },
+      ],
+    } as unknown as AgentQaConfig
+    const store = readDeclaredSecrets(secretsPath)
+    const redactor = new RunSecretRedactor(store)
+    const logged: string[] = []
+    const pool = createRunPluginHost({
+      config,
+      configPath,
+      connectionSecrets: store,
+      mask: (text) => redactor.redactString(text),
+      addMaskExtras: (entries) => redactor.addMaskExtras(entries),
+      debugLog: (line) => logged.push(line),
+    })
+    try {
+      const lease = await pool.acquire({
+        remote: 'lab-chrome',
+        plugin: { entry: 'lab' },
+        deadlineMs: 10_000,
+        session: { platform: 'web', engine: 'chromium', context: 'new' },
+      })
+      await lease.release()
+    } finally {
+      await pool.shutdown()
+    }
+
+    expect(logged).toContain('signed in with [secret:LAB_KEY]')
+    expect(logged).toContain('handing back [secret:PLUGIN_LAB]')
+    const log = logged.join('\n')
+    for (const value of [LONG, HANDED, encodeURIComponent(HANDED)]) {
+      expect(log.includes(value), 'the debug log holds a value').toBe(false)
+    }
+  }, 30_000)
 })
