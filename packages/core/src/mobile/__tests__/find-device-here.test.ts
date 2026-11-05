@@ -263,6 +263,48 @@ describe('findDeviceHere on Android', () => {
     ).toHaveProperty('refusal')
   })
 
+  it('reads the Android version from the API level of an AVD whose image has no build.prop', () => {
+    const android: AndroidHere = {
+      attached: [],
+      avds: [
+        { name: 'Pixel_8_API_34', profile: 'pixel_8', displayName: 'Pixel 8', apiLevel: '34' },
+        { name: 'Pixel_8_API_35', profile: 'pixel_8', displayName: 'Pixel 8', apiLevel: '35' },
+      ],
+    }
+    expect(
+      findDeviceHere({ device: 'pixel', platform: 'android', model: 'Pixel 8', os: '14', android }),
+    ).toEqual({
+      found: {
+        avd: 'Pixel_8_API_34',
+        os: '14',
+        running: false,
+        description: 'Pixel_8_API_34 (Pixel 8, API 34), not running',
+      },
+    })
+    expect(
+      findDeviceHere({ device: 'pixel', platform: 'android', model: 'Pixel 8', android }),
+    ).toMatchObject({ found: { avd: 'Pixel_8_API_35', os: '15' } })
+  })
+
+  it('leaves an AVD without a version when its API level has no published version', () => {
+    const android: AndroidHere = {
+      attached: [],
+      avds: [{ name: 'Preview', profile: 'pixel_8', displayName: 'Pixel 8', apiLevel: '99' }],
+    }
+    expect(
+      findDeviceHere({ device: 'pixel', platform: 'android', model: 'Pixel 8', os: '99', android }),
+    ).toHaveProperty('refusal')
+    expect(
+      findDeviceHere({ device: 'pixel', platform: 'android', model: 'Pixel 8', android }),
+    ).toEqual({
+      found: {
+        avd: 'Preview',
+        running: false,
+        description: 'Preview (Pixel 8, API 99), not running',
+      },
+    })
+  })
+
   it('picks the newest Android, then a running device', () => {
     const android: AndroidHere = {
       attached: [{ serial: 'P8', state: 'device', model: 'Pixel 8', os: '15' }],

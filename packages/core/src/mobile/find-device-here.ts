@@ -108,6 +108,33 @@ function joinParts(parts: (string | undefined)[]): string {
   return parts.filter((part): part is string => part !== undefined && part !== '').join(', ')
 }
 
+// Android's published version for each API level, for an AVD whose image has no build.prop.
+const ANDROID_VERSION_BY_API_LEVEL: Readonly<Record<string, string>> = {
+  '21': '5.0',
+  '22': '5.1',
+  '23': '6.0',
+  '24': '7.0',
+  '25': '7.1',
+  '26': '8.0',
+  '27': '8.1',
+  '28': '9',
+  '29': '10',
+  '30': '11',
+  '31': '12',
+  '32': '12',
+  '33': '13',
+  '34': '14',
+  '35': '15',
+  '36': '16',
+}
+
+function avdOs(avd: AvdHere | undefined): string | undefined {
+  if (avd?.os !== undefined) return avd.os
+  const level = avd?.apiLevel?.trim()
+  if (level === undefined || !Object.hasOwn(ANDROID_VERSION_BY_API_LEVEL, level)) return undefined
+  return ANDROID_VERSION_BY_API_LEVEL[level]
+}
+
 function avdDetail(avd: AvdHere): string {
   const version =
     avd.os !== undefined
@@ -151,7 +178,7 @@ function androidCandidates(listing: AndroidHere): Candidate[] {
     .filter((device) => device.state === 'device')
     .map((device): Candidate => {
       const avd = device.avd === undefined ? undefined : avds.get(device.avd)
-      const os = device.os ?? avd?.os
+      const os = device.os ?? avdOs(avd)
       const kind = isEmulator(device) ? 'emulator' : 'phone'
       const head = (kind === 'emulator' ? device.avd : undefined) ?? device.model ?? 'device'
       return {
@@ -174,24 +201,25 @@ function androidCandidates(listing: AndroidHere): Candidate[] {
     })
   const idle = listing.avds
     .filter((avd) => !runningAvds.has(avd.name))
-    .map(
-      (avd): Candidate => ({
+    .map((avd): Candidate => {
+      const os = avdOs(avd)
+      return {
         kind: 'avd',
         names: [avd.name, avd.profile, avd.displayName].filter(
           (name): name is string => name !== undefined,
         ),
         model: avd.displayName ?? avd.name,
-        os: avd.os,
+        os,
         running: false,
         label: avdLabel(avd),
         found: {
           avd: avd.name,
-          ...(avd.os === undefined ? {} : { os: avd.os }),
+          ...(os === undefined ? {} : { os }),
           running: false,
           description: `${avdLabel(avd)}, not running`,
         },
-      }),
-    )
+      }
+    })
   return [...attached, ...idle]
 }
 
