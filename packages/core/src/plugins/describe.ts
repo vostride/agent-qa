@@ -110,12 +110,16 @@ function collectFields(
   }
 }
 
+export function schemaFieldsOf(schema: JsonObject): PluginField[] {
+  const fields: PluginField[] = []
+  collectFields(schema, { node: schema, refs: new Set() }, '', fields)
+  return fields
+}
+
 function schemaFields(resolved: ResolvedPluginEntry, packageDir: string, file: string) {
   const loaded = loadPluginSchema(packageDir, file)
   if (!loaded.ok) throw new Error(`Plugin entry ${resolved.name}: ${loaded.message}.`)
-  const fields: PluginField[] = []
-  collectFields(loaded.schema, { node: loaded.schema, refs: new Set() }, '', fields)
-  return fields
+  return schemaFieldsOf(loaded.schema)
 }
 
 export function describePlugin(resolved: ResolvedPluginEntry): PluginDescription {

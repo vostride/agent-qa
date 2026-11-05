@@ -1,4 +1,4 @@
-// Reads plugins from their manifests and shipped schemas; nothing here imports a plugin.
+// list and describe read manifests and shipped schemas only; nothing here imports a plugin.
 
 import { dirname, resolve } from 'node:path'
 
@@ -8,11 +8,13 @@ import {
   isPluginRemoteEntry,
   resolvePluginEntries,
   resolvePluginEntry,
+  validatePluginPackage,
   type AgentQaConfig,
   type PluginDescription,
   type PluginEntryState,
   type PluginField,
   type PluginOrigin,
+  type PluginPackageCheck,
   type PluginRemoteInput,
   type ResolvedPluginEntry,
 } from '@vostride/agent-qa-core'
@@ -22,6 +24,7 @@ import {
   reserveStdoutForData,
 } from '@vostride/agent-qa-core/run-text-output'
 import type { PluginManifest } from '@vostride/agent-qa-plugin-kit/protocol'
+import { runConformance } from '@vostride/agent-qa-plugin-kit/testing'
 import { Command } from 'commander'
 import pc from 'picocolors'
 
@@ -185,10 +188,12 @@ async function printResult<T>(
   options: JsonOption,
   produce: () => Promise<T>,
   lines: (value: T) => string[],
+  failed: (value: T) => boolean = () => false,
 ): Promise<void> {
   const releaseStdout = options.json === true ? reserveStdoutForData() : undefined
   try {
     const value = await produce()
+    if (failed(value)) process.exitCode = 1
     if (options.json === true) {
       console.log(guardJsonText(JSON.stringify(value, null, 2)))
       return
@@ -235,4 +240,57 @@ export function createPluginsCommand(): Command {
     .description('Read the plugins entries without running plugin code')
     .addCommand(createListCommand())
     .addCommand(createDescribeCommand())
+}
+
+interface PluginValidation {
+  ok: boolean
+  checks: PluginPackageCheck[]
+}
+
+// The static checks read files only; the quick conformance pass is the one step that runs the
+// plugin, and it sends no vendor options and never acquires.
+async function validatePlugin(command: Command, target: string): Promise<PluginValidation> {
+  const report = validatePluginPackage(target, {
+    configDir: dirname(configPathOf(command)),
+    agentQaVersion: getAgentQaVersion(),
+  })
+  const checks = [...report.checks]
+  const passed = (name: string) => checks.some((check) => check.name === name && check.ok)
+  if (report.packageDir !== undefined && report.remote && passed('manifest') && passed('schemas')) {
+    const conformance = await runConformance({
+      packageDir: report.packageDir,
+      options: {},
+      quick: true,
+    })
+    checks.push(...conformance.checks.filter((check) => check.name !== 'manifest' || !check.ok))
+  }
+  return { ok: checks.every((check) => check.ok), checks }
+}
+
+function checkLines(validation: PluginValidation): string[] {
+  return validation.checks.map((check) => {
+    const status = !check.ok ? pc.red('fail') : check.warning === true ? pc.yellow('warn') : 'ok  '
+    return `${status}  ${check.name}${check.detail === undefined ? '' : `  ${check.detail}`}`
+  })
+}
+
+function createValidatePluginCommand(): Command {
+  return new Command('validate')
+    .description('Check a plugin package, its skill and a quick conformance pass')
+    .argument('<target>', 'a plugin folder (./path) or an installed package name')
+    .option('--json', 'emit the checks as JSON')
+    .action(async (target: string, options: JsonOption, command: Command) => {
+      await printResult(
+        options,
+        () => validatePlugin(command, target),
+        checkLines,
+        (validation) => !validation.ok,
+      )
+    })
+}
+
+export function createPluginCommand(): Command {
+  return new Command('plugin')
+    .description('Check a plugin package as its author')
+    .addCommand(createValidatePluginCommand())
 }

@@ -37,3 +37,9 @@ export {
   type ResolvedPluginEntry,
   type ResolvePluginEntryOptions,
 } from './resolve-entries.js'
+export {
+  validatePluginPackage,
+  type PluginPackageCheck,
+  type PluginPackageReport,
+  type ValidatePluginPackageOptions,
+} from './validate-package.js'

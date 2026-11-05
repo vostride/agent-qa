@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
@@ -7,8 +7,9 @@ import { Command } from 'commander'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getAgentQaVersion } from '@vostride/agent-qa-core'
+import { writeScriptedPlugin } from '@vostride/agent-qa-plugin-kit/testing'
 
-import { createPluginsCommand } from '../commands/plugins.js'
+import { createPluginCommand, createPluginsCommand } from '../commands/plugins.js'
 
 const DRAFT = 'https://json-schema.org/draft/2020-12/schema'
 
@@ -99,19 +100,23 @@ async function writeConfig(lines: {
   )
 }
 
-async function runPlugins(...args: string[]): Promise<void> {
+async function runCli(...args: string[]): Promise<void> {
   const program = new Command()
   program.exitOverride()
   program.option('--config <path>', 'config file path', 'agent-qa.config.yaml')
   program.addCommand(createPluginsCommand())
+  program.addCommand(createPluginCommand())
   await program.parseAsync([
     'node',
     'agent-qa',
     '--config',
     path.join(workspaceDir, 'agent-qa.config.yaml'),
-    'plugins',
     ...args,
   ])
+}
+
+async function runPlugins(...args: string[]): Promise<void> {
+  await runCli('plugins', ...args)
 }
 
 function stripAnsi(text: string): string {
@@ -454,6 +459,229 @@ describe('agent-qa plugins describe', () => {
     expect(stderr()).toBe(
       'Plugin entry absent names @acme/agent-qa-plugin-absent, which is not installed. Run npm '
         + 'install --save-dev @acme/agent-qa-plugin-absent.',
+    )
+    expect(process.exitCode).toBe(1)
+  })
+})
+
+describe('agent-qa plugin validate', () => {
+  const escape = (text: string) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const statusLine = (status: string, name: string, detail?: string) =>
+    new RegExp(`^${status}\\s+${name}${detail === undefined ? '' : `\\s+${escape(detail)}`}$`, 'm')
+  let originalCwd: string
+
+  beforeEach(() => {
+    originalCwd = process.cwd()
+    process.chdir(workspaceDir)
+  })
+
+  afterEach(() => {
+    process.chdir(originalCwd)
+  })
+
+  function scripted(dir = path.join(workspaceDir, 'tools', 'scripted')): string {
+    return writeScriptedPlugin(dir).dir
+  }
+
+  async function validate(target: string, ...flags: string[]): Promise<void> {
+    await runCli('plugin', 'validate', target, ...flags)
+  }
+
+  it('passes the scripted plugin on every check and exits 0', async () => {
+    scripted()
+
+    await validate('./tools/scripted')
+
+    for (const name of [
+      'manifest',
+      'schemas',
+      'credential-marks',
+      'skill',
+      'package',
+      'handshake',
+      'unknown-method',
+      'clean-stdout',
+      'exit-on-stdin-close',
+    ]) {
+      expect(stdout()).toMatch(statusLine('ok', name))
+    }
+    expect(stdout()).not.toMatch(/^(warn|fail)/m)
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('emits the checks as JSON', async () => {
+    scripted()
+
+    await validate('./tools/scripted', '--json')
+
+    const report = jsonOut() as { ok: boolean; checks: { name: string; ok: boolean }[] }
+    expect(report.ok).toBe(true)
+    expect(report.checks.map((check) => check.name)).toEqual([
+      'manifest',
+      'schemas',
+      'credential-marks',
+      'skill',
+      'package',
+      'handshake',
+      'unknown-method',
+      'clean-stdout',
+      'exit-on-stdin-close',
+    ])
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('finds an installed package from the config folder', async () => {
+    scripted(path.join(workspaceDir, 'node_modules', '@acme', 'agent-qa-plugin-scripted'))
+    await mkdir(path.join(workspaceDir, 'elsewhere'))
+    process.chdir(path.join(workspaceDir, 'elsewhere'))
+
+    await validate('@acme/agent-qa-plugin-scripted')
+
+    expect(stdout()).toMatch(statusLine('ok', 'manifest'))
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('fails a skill folder that holds code', async () => {
+    const dir = scripted()
+    await writeFile(path.join(dir, 'skill', 'run.sh'), 'echo hi\n')
+
+    await validate(dir)
+
+    expect(stdout()).toMatch(
+      statusLine('fail', 'skill', 'the skill folder holds code (run.sh); a skill is plain files'),
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('fails a SKILL.md without a description', async () => {
+    const dir = scripted()
+    await writeFile(path.join(dir, 'skill', 'SKILL.md'), '---\nname: scripted\n---\n\n# Scripted\n')
+
+    await validate(dir)
+
+    expect(stdout()).toMatch(
+      statusLine('fail', 'skill', 'skill/SKILL.md has no description in its frontmatter'),
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('warns about a credential-looking option with no credential mark and exits 0', async () => {
+    const dir = scripted()
+    await writeFile(
+      path.join(dir, 'options.schema.json'),
+      JSON.stringify({ $schema: DRAFT, type: 'object', properties: { token: { type: 'string' } } }),
+    )
+
+    await validate(dir)
+
+    expect(stdout()).toMatch(
+      statusLine(
+        'warn',
+        'credential-marks',
+        'options.token looks like a credential and has no credential mark; mark it with '
+          + 'credential() so config must hold a {{secret:NAME}} reference',
+      ),
+    )
+    expect(stdout()).not.toMatch(/^fail/m)
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('warns about install scripts, an agent-qa peer dependency and a missing keyword', async () => {
+    const dir = scripted()
+    const pkg = JSON.parse(readFileSync(path.join(dir, 'package.json'), 'utf8'))
+    await writeFile(
+      path.join(dir, 'package.json'),
+      JSON.stringify({
+        ...pkg,
+        keywords: [],
+        scripts: { postinstall: 'node setup.js' },
+        peerDependencies: { 'agent-qa': '*' },
+      }),
+    )
+
+    await validate(dir)
+
+    expect(stdout()).toMatch(
+      statusLine(
+        'warn',
+        'package',
+        'package.json runs postinstall on install; a plugin installs with no scripts; '
+          + 'package.json lists agent-qa in peerDependencies; agent-qa checks a plugin by its '
+          + 'protocol, not peerDependencies; package.json keywords lack agent-qa-plugin, which npm '
+          + 'search finds plugins by',
+      ),
+    )
+    expect(process.exitCode).toBe(0)
+  })
+
+  it('fails a schema that does not name draft 2020-12', async () => {
+    const dir = scripted()
+    await writeFile(
+      path.join(dir, 'settings.schema.json'),
+      JSON.stringify({ $schema: 'http://json-schema.org/draft-07/schema#', type: 'object' }),
+    )
+
+    await validate(dir)
+
+    expect(stdout()).toMatch(
+      statusLine(
+        'fail',
+        'schemas',
+        './settings.schema.json names http://json-schema.org/draft-07/schema#, not JSON Schema '
+          + 'draft 2020-12',
+      ),
+    )
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('fails clean-stdout for a plugin that prints to stdout, and never acquires', async () => {
+    const dir = writeScriptedPlugin(path.join(workspaceDir, 'tools', 'noisy'), {
+      serves: ['cdp'],
+      methods: [],
+    }).dir
+    const ledger = path.join(workspaceDir, 'noisy.ledger')
+    await writeFile(
+      path.join(dir, 'main.mjs'),
+      [
+        "import { appendFileSync } from 'node:fs'",
+        "import { createInterface } from 'node:readline'",
+        "process.stdout.write('hello\\n')",
+        "const send = (m) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...m }) + '\\n')",
+        'const lines = createInterface({ input: process.stdin })',
+        "lines.on('line', (line) => {",
+        '  const message = JSON.parse(line)',
+        '  if (message.id === undefined) return',
+        `  appendFileSync(${JSON.stringify(ledger)}, message.method + '\\n')`,
+        "  if (message.method === 'initialize') {",
+        "    const plugin = { name: 'noisy', version: '1.0.0' }",
+        "    const result = { protocolVersion: 1, plugin, serves: ['cdp'], methods: [] }",
+        '    return send({ id: message.id, result })',
+        '  }',
+        "  send({ id: message.id, error: { code: -32601, message: 'no ' + message.method } })",
+        '})',
+        "lines.on('close', () => process.exit(0))",
+        '',
+      ].join('\n'),
+    )
+
+    await validate(dir)
+
+    expect(stdout()).toMatch(/^fail\s+clean-stdout\s+.*hello$/m)
+    expect(stdout()).toMatch(statusLine('ok', 'handshake'))
+    expect(readFileSync(ledger, 'utf8')).not.toContain('acquire')
+    expect(process.exitCode).toBe(1)
+  })
+
+  it('prints the install line for a package that is not installed and exits 1', async () => {
+    await validate('@acme/agent-qa-plugin-absent')
+
+    expect(stdout()).toMatch(
+      statusLine(
+        'fail',
+        'package',
+        '@acme/agent-qa-plugin-absent is not installed in this project. Run npm install '
+          + '--save-dev @acme/agent-qa-plugin-absent.',
+      ),
     )
     expect(process.exitCode).toBe(1)
   })
