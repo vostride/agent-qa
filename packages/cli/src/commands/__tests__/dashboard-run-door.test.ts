@@ -3,10 +3,14 @@
 import { existsSync, mkdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DashboardDatabase } from '@vostride/agent-qa-dashboard'
-import type { AppiumProvider, ExecuteOptions, RunSettledDetails } from '@vostride/agent-qa-dashboard'
+import type {
+  AppiumProvider,
+  ExecuteOptions,
+  RunSettledDetails,
+} from '@vostride/agent-qa-dashboard'
 import {
   getActiveExecutionContext,
   setActiveExecutionContextResolver,
@@ -17,7 +21,7 @@ import {
   createDashboardRunDoor,
   partitionDashboardRunArgs,
 } from '../dashboard.js'
-import { prepareMobileDevice } from '../run.js'
+import { buildPlatformConfig, prepareMobileDevice } from '../run.js'
 import type { ResolvedMobileRunConfig } from '@vostride/agent-qa-core'
 import {
   CountingTarget,
@@ -331,30 +335,76 @@ describe('the queue’s argv operands, read rather than forwarded', () => {
   }, 180_000)
 })
 
-describe('the Appium lease travels as data, not as a child’s environment', () => {
+const FARM = {
+  name: 'farm',
+  protocol: 'appium' as const,
+  url: 'https://farm.example.com/wd/hub',
+  connectTimeoutMs: 300_000,
+}
+
+const PIXEL_HERE: ResolvedMobileRunConfig = {
+  platform: 'android',
+  targetName: 'shop-android',
+  deviceName: 'pixel',
+  device: { name: 'pixel', platform: 'android', model: 'Pixel 8' },
+  plan: { kind: 'here', search: { model: 'Pixel 8' } },
+  app: { sourceTrace: {} },
+  appState: 'preserve',
+  appium: {},
+  sourceTrace: [],
+}
+
+const PIXEL_ON_FARM: ResolvedMobileRunConfig = {
+  ...PIXEL_HERE,
+  device: { ...PIXEL_HERE.device, remote: FARM },
+  plan: { kind: 'remote', remote: FARM },
+}
+
+// The phone this machine has in these cells, so no cell runs adb.
+const listPixelHere = async () => ({
+  attached: [{ serial: 'R58M41ABCDE', state: 'device', model: 'Pixel 8', os: '15' }],
+  avds: [],
+})
+
+// A stand-in for the dashboard's lease that records each ask.
+function recordingProvider(url: string): AppiumProvider & { asked: Array<'android' | 'ios'> } {
+  const asked: Array<'android' | 'ios'> = []
+  return {
+    asked,
+    acquire: async (platform) => {
+      asked.push(platform)
+      return url
+    },
+  }
+}
+
+// A member on a device here, prepared the way the producers prepare it, reading the variable.
+async function platformConfigHere(hostAppium: AppiumProvider | undefined) {
+  const prepared = await prepareMobileDevice({
+    resolved: PIXEL_HERE,
+    envUrl: process.env.AGENT_QA_APPIUM_URL,
+    ...(hostAppium === undefined ? {} : { hostAppium }),
+    startAppium: async () => {
+      throw new Error('a dashboard run starts no Appium of its own')
+    },
+    listDevicesHere: listPixelHere,
+  })
+  return buildPlatformConfig(
+    'android',
+    PIXEL_HERE.device,
+    undefined,
+    undefined,
+    undefined,
+    PIXEL_HERE,
+    undefined,
+    prepared,
+  )
+}
+
+describe("the dashboard's Appium is a provider each run asks only for a device here", () => {
+  afterEach(() => { vi.unstubAllEnvs() })
+
   it("ORDER — a device's remote, then AGENT_QA_APPIUM_URL, then the host's Appium, then the one agent-qa starts", async () => {
-    const remote = {
-      name: 'farm',
-      protocol: 'appium' as const,
-      url: 'https://farm.example.com/wd/hub',
-      connectTimeoutMs: 300_000,
-    }
-    const here: ResolvedMobileRunConfig = {
-      platform: 'android',
-      targetName: 'shop-android',
-      deviceName: 'pixel',
-      device: { name: 'pixel', platform: 'android', model: 'Pixel 8' },
-      plan: { kind: 'here', search: { model: 'Pixel 8' } },
-      app: { sourceTrace: {} },
-      appState: 'preserve',
-      appium: {},
-      sourceTrace: [],
-    }
-    const onRemote: ResolvedMobileRunConfig = {
-      ...here,
-      device: { ...here.device, remote },
-      plan: { kind: 'remote', remote },
-    }
     const asked: string[] = []
     const prepare = (
       resolved: ResolvedMobileRunConfig,
@@ -378,61 +428,92 @@ describe('the Appium lease travels as data, not as a child’s environment', () 
           asked.push('start')
           return 'http://127.0.0.1:4723'
         },
-        listDevicesHere: async () => ({
-          attached: [{ serial: 'R58M41ABCDE', state: 'device', model: 'Pixel 8', os: '15' }],
-          avds: [],
-        }),
+        listDevicesHere: listPixelHere,
       })
 
     // 1. A device with a remote uses it, whatever the environment and the host offer.
-    expect((await prepare(onRemote, 'http://127.0.0.1:4724', 'http://127.0.0.1:4800')).remote)
-      .toEqual(remote)
+    expect((await prepare(PIXEL_ON_FARM, 'http://127.0.0.1:4724', 'http://127.0.0.1:4800')).remote)
+      .toEqual(FARM)
     expect(asked).toEqual([])
     // 2. A device here takes AGENT_QA_APPIUM_URL before the host's Appium.
-    expect((await prepare(here, 'http://127.0.0.1:4724', 'http://127.0.0.1:4800')).appiumUrl)
+    expect((await prepare(PIXEL_HERE, 'http://127.0.0.1:4724', 'http://127.0.0.1:4800')).appiumUrl)
       .toBe('http://127.0.0.1:4724/')
     expect(asked).toEqual([])
     // 3. Then the host's Appium, such as the dashboard's lease.
-    expect((await prepare(here, undefined, 'http://127.0.0.1:4800')).appiumUrl)
+    expect((await prepare(PIXEL_HERE, undefined, 'http://127.0.0.1:4800')).appiumUrl)
       .toBe('http://127.0.0.1:4800')
     expect(asked).toEqual(['host'])
     // 4. Then the one agent-qa starts, which only this process manages.
-    const started = await prepare(here, undefined, undefined)
+    const started = await prepare(PIXEL_HERE, undefined, undefined)
     expect(started.appiumUrl).toBe('http://127.0.0.1:4723')
     expect(started.managed).toBe(true)
     expect(asked).toEqual(['host', 'start'])
   })
 
-  it('THE DOOR ANSWERS PER RUN, WHILE THE RUN IS IN FLIGHT — a lease belongs to one run', async () => {
+  it('with AGENT_QA_APPIUM_URL set, a device here dials it and asks the provider nothing', async () => {
+    vi.stubEnv('AGENT_QA_APPIUM_URL', 'http://127.0.0.1:4799')
+    const provider = recordingProvider('http://localhost:4723')
+
+    const platformConfig = await platformConfigHere(provider)
+
+    expect(platformConfig.appiumUrl).toBe('http://127.0.0.1:4799/')
+    expect(platformConfig.device?.here).toEqual({ udid: 'R58M41ABCDE', os: '15' })
+    // Never asked, so the dashboard neither starts Appium nor leases it for this run.
+    expect(provider.asked).toEqual([])
+  })
+
+  it('without the variable, a device here asks its run’s provider once and dials what it answers', async () => {
+    vi.stubEnv('AGENT_QA_APPIUM_URL', undefined)
+    const provider = recordingProvider('http://localhost:4723')
+
+    const platformConfig = await platformConfigHere(provider)
+
+    expect(platformConfig.appiumUrl).toBe('http://localhost:4723')
+    expect(provider.asked).toEqual(['android'])
+  })
+
+  it('TWO CONCURRENT RUNS EACH HOLD THEIR OWN PROVIDER — a lease belongs to one run', async () => {
+    vi.stubEnv('AGENT_QA_APPIUM_URL', undefined)
     const target = new CountingTarget()
     await target.listen()
     try {
       const fixture = createInProcessFixture({ origin: target.origin, environment: 'local' })
       const driven = await composeDoor(fixture)
       const runA = enqueue(driven.db, 'mobile A')
-      const runB = enqueue(driven.db, 'web B')
+      const runB = enqueue(driven.db, 'mobile B')
 
       // Before either run exists the door knows about neither — the entry is per run and is created
-      // by the starter, so a resolver that answered a process-global would be visible right here.
+      // by the starter, so a provider that answered for the process would be visible right here.
       expect(driven.appiumFor(runA)).toBeUndefined()
 
-      const providerA: AppiumProvider = { acquire: async () => 'http://leased-for-a:4723' }
+      const providerA = recordingProvider('http://localhost:4723')
+      const providerB = recordingProvider('http://localhost:4723')
       driven.backend.execute({
         runId: runA,
         args: [fixture.testPattern],
         source: 'dashboard',
         appium: providerA,
       })
-      driven.backend.execute({ runId: runB, args: [fixture.testPattern], source: 'dashboard' })
+      driven.backend.execute({
+        runId: runB,
+        args: [fixture.testPattern],
+        source: 'dashboard',
+        appium: providerB,
+      })
 
-      await waitFor(() => { expect(driven.appiumFor(runA)).toBe(providerA) })
-      // The other concurrent run gets ITS answer, which is that it was handed none — a shared box
-      // would hand a web run the mobile run's Appium.
-      expect(driven.appiumFor(runB)).toBeUndefined()
+      await waitFor(() => {
+        expect(driven.appiumFor(runA)).toBe(providerA)
+        expect(driven.appiumFor(runB)).toBe(providerB)
+      })
+      // Run A's member asks through the provider the door serves for run A, and only that one.
+      await platformConfigHere(driven.appiumFor(runA))
+      expect(providerA.asked).toEqual(['android'])
+      expect(providerB.asked).toEqual([])
 
       await waitFor(() => { expect(driven.settled).toHaveLength(2) }, 240_000)
       // And the entry is released when the run is over, so a later run cannot inherit it.
       expect(driven.appiumFor(runA)).toBeUndefined()
+      expect(driven.appiumFor(runB)).toBeUndefined()
     } finally {
       await target.close()
     }
