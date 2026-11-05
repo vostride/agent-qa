@@ -1,3 +1,5 @@
 export { IOSPlatformAdapter } from './adapter.js'
 export type { IOSAdapterConfig } from './types.js'
 export { createIOSSession } from './session.js'
+export { listIOSSimulatorsHere } from './simulators-here.js'
+export type { ListIOSSimulatorsHereOptions, ListingExec } from './simulators-here.js'
