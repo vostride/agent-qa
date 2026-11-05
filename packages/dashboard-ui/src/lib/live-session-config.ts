@@ -6,12 +6,8 @@ export interface LiveSessionBootstrap {
   targetName?: string
   url?: string
   headless?: boolean
-  device?: Record<string, unknown>
   useDeviceName?: string
   appState?: 'preserve' | 'reset'
-  bundleId?: string
-  appPackage?: string
-  appActivity?: string
 }
 
 const AUTH_STATE_NAME_PATTERN = /^[a-z][a-z0-9-]*[a-z0-9]$/
@@ -99,9 +95,6 @@ export function buildLiveSessionConfig(opts: {
     targetName: opts.targetName,
     useDeviceName: draftUse.device,
     appState: draftUse.appState ?? opts.globalUse?.mobile?.appState,
-    bundleId: target.bundleId,
-    appPackage: target.appPackage,
-    appActivity: target.appActivity,
     headless,
   }
 }

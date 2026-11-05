@@ -1388,12 +1388,8 @@ export async function createLiveEditorSession(
     targetName?: string
     url?: string
     headless?: boolean
-    device?: Record<string, unknown>
     useDeviceName?: string
     appState?: 'preserve' | 'reset'
-    bundleId?: string
-    appPackage?: string
-    appActivity?: string
     setupHooks?: string[]
     teardownHooks?: string[]
     entity?: { type: 'suite' | 'test'; id: string }

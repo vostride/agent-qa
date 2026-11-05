@@ -26,7 +26,7 @@ describe('buildLiveSessionConfig', () => {
     })
   })
 
-  it('builds an iOS mobile bootstrap payload without target device settings', () => {
+  it('builds an iOS mobile bootstrap payload that leaves the device and app to the server', () => {
     const targets: Record<string, TargetDetail> = {
       'release-ios-wdio': {
         platform: 'ios',
@@ -46,9 +46,6 @@ describe('buildLiveSessionConfig', () => {
       targetName: 'release-ios-wdio',
       useDeviceName: 'release-ios-sim',
       appState: undefined,
-      bundleId: 'org.reactjs.native.example.wdiodemoapp',
-      appPackage: undefined,
-      appActivity: undefined,
       headless: undefined,
     })
   })
@@ -120,13 +117,12 @@ describe('buildLiveSessionConfig', () => {
       globalUse: { mobile: { appState: 'preserve' } },
     })
 
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       platform: 'android',
       targetName: 'release-android-wikipedia',
       useDeviceName: 'release-android-emu',
       appState: 'preserve',
-      appPackage: 'org.wikipedia.alpha',
-      appActivity: 'org.wikipedia.main.MainActivity',
+      headless: undefined,
     })
   })
 
@@ -154,7 +150,7 @@ describe('buildLiveSessionConfig', () => {
     expect('configDefaultDeviceName' in result).toBe(false)
   })
 
-  it('keeps mobile app install fields server-side for live bootstrap', () => {
+  it('sends no app ids or install path for a mobile target', () => {
     const targets: Record<string, TargetDetail> = {
       'release-android-wikipedia': {
         platform: 'android',
@@ -173,15 +169,13 @@ describe('buildLiveSessionConfig', () => {
       globalUse: { mobile: { appState: 'reset' } },
     })
 
-    expect(result).toMatchObject({
+    expect(result).toEqual({
       platform: 'android',
       targetName: 'release-android-wikipedia',
       useDeviceName: 'release-android-emu',
       appState: 'reset',
-      appPackage: 'org.wikipedia.alpha',
-      appActivity: 'org.wikipedia.main.MainActivity',
+      headless: undefined,
     })
-    expect('appPath' in result).toBe(false)
   })
 })
 
