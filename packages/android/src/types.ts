@@ -28,6 +28,7 @@ export interface AndroidAdapterOptions {
   readonly timing?: {
     readonly heartbeatIntervalMs?: number
     readonly commandBoundMs?: number
+    readonly cleanupReleaseBoundMs?: number
   }
 }
 

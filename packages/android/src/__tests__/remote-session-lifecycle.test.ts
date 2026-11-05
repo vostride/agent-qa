@@ -193,6 +193,44 @@ describe("a remote Android session's life", () => {
     expect(server.sessionsDeleted()).toEqual([sessionId])
   })
 
+  it('is released by the session registry while the server has not yet answered its status', async () => {
+    const server = await fakeServer({ status: 'hold' })
+    const sessions = createRemoteSessionRegistry()
+    const adapter = new AndroidPlatformAdapter({
+      connectionSecrets,
+      sessions,
+      timing: { commandBoundMs: 1_000, heartbeatIntervalMs: QUIET_HEARTBEAT_MS },
+    })
+    teardowns.push(() => adapter.cleanup())
+    const setup = adapter.setup(deviceOn(farmAt(server)))
+    await until(() => sent(server, 'GET', '/status') === 1, 2_000)
+
+    await sessions.releaseAll(REMOTE_RELEASE_BOUND_MS)
+
+    expect(server.sessionsCreated()).toHaveLength(1)
+    expect(server.sessionsDeleted()).toEqual(server.sessionsCreated())
+    await setup.catch(() => undefined)
+  })
+
+  it('stops waiting for a delete the server leaves unanswered at cleanup', async () => {
+    const server = await fakeServer({ hold: /^DELETE .*\/session\/[^/]+$/ })
+    const adapter = new AndroidPlatformAdapter({
+      connectionSecrets,
+      timing: {
+        commandBoundMs: 60_000,
+        heartbeatIntervalMs: QUIET_HEARTBEAT_MS,
+        cleanupReleaseBoundMs: 300,
+      },
+    })
+    await adapter.setup(deviceOn(farmAt(server)))
+
+    const started = Date.now()
+    await adapter.cleanup()
+
+    expect(Date.now() - started).toBeLessThan(3_000)
+    expect(sent(server, 'DELETE', `/session/${String(server.sessionsCreated()[0])}`)).toBe(1)
+  })
+
   it("records the remote, the Appium version and the session id in the place's evidence", async () => {
     const server = await fakeServer()
     const adapter = await opened(server, { heartbeatIntervalMs: QUIET_HEARTBEAT_MS })

@@ -25,7 +25,7 @@ export interface FakeAppiumOptions {
   readonly newSession?: readonly NewSessionScript[]
   readonly sessionCapabilities?: Readonly<Record<string, unknown>>
   readonly sessionIdStyle?: 'uuid' | 'mixed'
-  readonly status?: { readonly version?: string } | 'fail'
+  readonly status?: { readonly version?: string } | 'fail' | 'hold'
   // Tested against `<METHOD> <path>`; a matching command request is never answered.
   readonly hold?: RegExp
   // Tested against `<METHOD> <path>`; a matching command request is answered after `ms`.
@@ -152,6 +152,7 @@ export async function startFakeAppiumServer(
   }
 
   const status = (response: ServerResponse): void => {
+    if (options.status === 'hold') return
     if (options.status === 'fail') {
       sendW3cError(response, 500, 'unknown error', 'The server is not ready')
       return

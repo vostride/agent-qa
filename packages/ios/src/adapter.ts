@@ -172,6 +172,9 @@ function remoteOriginText(url: string): string {
   return origin ? formatRemoteOrigin(origin) : 'invalid url'
 }
 
+// A healthy server's delete may take longer than a signal's release, but far less than a command.
+const CLEANUP_RELEASE_BOUND_MS = 10 * REMOTE_RELEASE_BOUND_MS
+
 function withinBound(work: Promise<unknown>, boundMs: number): Promise<void> {
   return new Promise<void>((settled) => {
     const timer = setTimeout(settled, boundMs)
@@ -493,7 +496,8 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       if (this.disconnectKind === 'lost') {
         await withinBound(this.releaseRemote(driver), REMOTE_RELEASE_BOUND_MS)
       } else if (this.disconnectKind === undefined) {
-        try { await this.releaseRemote(driver) } catch { /* session may already be closed */ }
+        const boundMs = this.options.timing?.cleanupReleaseBoundMs ?? CLEANUP_RELEASE_BOUND_MS
+        await withinBound(this.releaseRemote(driver), boundMs)
       }
     } else {
       try {
@@ -686,6 +690,11 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
     driver: WebdriverIO.Browser,
     remote: RemoteDeviceConfig,
   ): Promise<void> {
+    // Registered before any further request, so a signal releases a session that just opened.
+    const sessions = this.options.sessions
+    if (sessions !== undefined) {
+      this.unregisterRelease = sessions.register(() => this.releaseRemote(driver))
+    }
     driver.on('result', (event: { command?: string; result?: unknown }) => {
       if (this.driver !== driver) return
       if (event.command === 'deleteSession' || event.command === 'status') return
@@ -710,10 +719,6 @@ export class IOSPlatformAdapter implements PlatformAdapter<'ios'> {
       device: this.deviceName,
       ...(appiumVersion !== undefined ? { appiumVersion } : {}),
       ...(driver.sessionId ? { sessionId: driver.sessionId } : {}),
-    }
-    const sessions = this.options.sessions
-    if (sessions !== undefined) {
-      this.unregisterRelease = sessions.register(() => this.releaseRemote(driver))
     }
     const intervalMs = this.options.timing?.heartbeatIntervalMs
     // Appium answers the timeouts from memory: it touches neither the device nor the app.
