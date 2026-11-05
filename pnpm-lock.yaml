@@ -430,6 +430,9 @@ importers:
       '@vostride/agent-qa-model':
         specifier: workspace:*
         version: link:../model
+      '@vostride/agent-qa-plugin-kit':
+        specifier: workspace:*
+        version: link:../plugin-kit
       '@vostride/agent-qa-runner':
         specifier: workspace:*
         version: link:../runner
@@ -476,9 +479,6 @@ importers:
       '@vostride/agent-qa-arch':
         specifier: workspace:*
         version: link:../arch
-      '@vostride/agent-qa-plugin-kit':
-        specifier: workspace:*
-        version: link:../plugin-kit
       '@vostride/agent-qa-safety':
         specifier: workspace:*
         version: link:../safety

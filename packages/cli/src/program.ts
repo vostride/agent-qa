@@ -23,6 +23,7 @@ import {
   createInstallMobileDriversCommand,
   createKnowledgeCommand,
   createMcpCommand,
+  createPluginsCommand,
   createQueueCommand,
   createRunCommand,
   createServeCommand,
@@ -70,6 +71,7 @@ export function createAgentQaProgram(): Command {
   program.addCommand(createKnowledgeCommand())
   program.addCommand(createCacheCommand())
   program.addCommand(createValidateCommand())
+  program.addCommand(createPluginsCommand())
   program.addCommand(createAuthCommand())
   program.addCommand(createAuthStateCommand())
   program.addCommand(createDevicesCommand())

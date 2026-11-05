@@ -130,6 +130,12 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'spawns the v1 MCP server; rewritten with the SDK re-derivation',
   },
   {
+    file: 'packages/cli/src/commands/plugins.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: 'plugins list, describe and validate read plugin entries, manifests and shipped schemas through core directly; joins the typed config action class',
+  },
+  {
     file: 'packages/cli/src/commands/run.ts',
     specifier: '@vostride/agent-qa-android',
     clearedBy: '386',

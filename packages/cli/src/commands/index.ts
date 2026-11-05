@@ -23,5 +23,7 @@ export { createFnCommand } from './fn.js'
 // The on-demand per-run digest.
 export { createDigestCommand } from './digest.js'
 export { createDaemonCommand } from './daemon.js'
+// Plugins read from their manifests and schemas.
+export { createPluginsCommand } from './plugins.js'
 // The agent job queue's operator verbs: list, the kind-filtered pump and cancel.
 export { createAgentJobsCommand } from './agent-jobs.js'

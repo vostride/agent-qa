@@ -13,6 +13,8 @@ export const SURFACE_ALLOWED_INTERNAL_PACKAGES = [
   '@vostride/agent-qa-agent-local',
   // Telemetry is composed at a host's root; the package publishes a port and one opt-out site.
   '@vostride/agent-qa-analytics',
+  // The public plugin protocol and conformance runner third-party authors use.
+  '@vostride/agent-qa-plugin-kit',
   '@vostride/agent-qa-schema',
 ] as const
 

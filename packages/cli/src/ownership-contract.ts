@@ -40,6 +40,8 @@ export const AGENT_QA_CLI_INTERNAL_DEPENDENCIES = [
   // A surface may not name the ids package; `analyticsRunId` comes from the analytics package.
   '@vostride/agent-qa-mcp',
   '@vostride/agent-qa-model',
+  // The public plugin protocol; `plugin validate` runs the kit's conformance runner.
+  '@vostride/agent-qa-plugin-kit',
   '@vostride/agent-qa-runner',
   '@vostride/agent-qa-runner-local',
   '@vostride/agent-qa-safety-local',

@@ -795,6 +795,8 @@ describe('arch lint composition carve-out registration and scope', () => {
       '@vostride/agent-qa-agent-local',
       // Telemetry is a host concern: a host composes it at its root and holds a port.
       '@vostride/agent-qa-analytics',
+      // The public plugin protocol and conformance runner third-party authors use.
+      '@vostride/agent-qa-plugin-kit',
       '@vostride/agent-qa-schema',
     ])
   })
