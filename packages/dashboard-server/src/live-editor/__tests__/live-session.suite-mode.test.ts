@@ -234,7 +234,7 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
       device: {
         name: 'release-android-emu',
         platform: 'android',
-        match: {},
+        model: 'Pixel 8',
       },
       app: {
         appPackage: 'org.wikipedia.alpha',
@@ -495,7 +495,7 @@ describe('LiveSession.executeTestCommand (suite-mode orchestration)', () => {
               devices: {
                 'release-android-emu': {
                   platform: 'android',
-                  match: {},
+                  model: 'Pixel 8',
                 },
               },
             },

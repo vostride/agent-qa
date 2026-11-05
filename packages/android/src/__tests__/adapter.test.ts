@@ -98,7 +98,6 @@ describe('AndroidPlatformAdapter', () => {
           platform: 'android',
           id: 'RZCT90BCMWW',
           os: '14',
-          match: {},
         },
       }
 
@@ -141,7 +140,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: {},
         },
         appPath: '/tmp/wikipedia.apk',
       })
@@ -159,7 +157,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: {},
         },
       })
 
@@ -176,7 +173,6 @@ describe('AndroidPlatformAdapter', () => {
           name: 'android-chrome',
           platform: 'android',
           capabilities: { browserName: 'Chrome' },
-          match: {},
         },
       })
 
@@ -192,7 +188,6 @@ describe('AndroidPlatformAdapter', () => {
           name: 'android-chrome',
           platform: 'android',
           capabilities: { browserName: 'Chrome' },
-          match: {},
         },
         appPath: '/tmp/wikipedia.apk',
       })).rejects.toMatchObject({ category: 'app-install' })
@@ -207,7 +202,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: {},
         },
         appPackage: 'org.wikipedia.alpha',
       })
@@ -221,7 +215,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: {},
         },
         appPackage: 'app.linear',
       })
@@ -240,7 +233,6 @@ describe('AndroidPlatformAdapter', () => {
           device: {
             name: 'android-emu',
             platform: 'android',
-            match: {},
           },
           appPackage: 'app.linear',
         })
@@ -276,7 +268,7 @@ describe('AndroidPlatformAdapter', () => {
     })
 
     function device(fields: Partial<NonNullable<PlatformConfig['device']>> = {}): PlatformConfig['device'] {
-      return { name: 'pixel', platform: 'android', match: {}, ...fields }
+      return { name: 'pixel', platform: 'android', ...fields }
     }
 
     async function opened(config: Partial<PlatformConfig> & { appiumUrl?: string }) {
@@ -471,7 +463,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: {},
         },
         appPackage: 'app.linear',
       })
@@ -503,7 +494,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: {},
         },
         appPackage: 'app.linear',
       })
@@ -541,7 +531,6 @@ describe('AndroidPlatformAdapter', () => {
           name: 'android-chrome',
           platform: 'android',
           capabilities: { browserName: 'Chrome' },
-          match: {},
         },
       })
       const state = await adapter.observe()
@@ -562,7 +551,6 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: {},
         },
         appPackage: 'app.linear',
       })

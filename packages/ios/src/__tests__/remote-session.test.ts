@@ -116,7 +116,7 @@ function deviceOn(
     bundleId: 'com.example.shop',
     appState: 'preserve',
     ...extra,
-    device: { name: 'iphone-farm', platform: 'ios', ...device, remote, match: {} },
+    device: { name: 'iphone-farm', platform: 'ios', ...device, remote },
   }
 }
 

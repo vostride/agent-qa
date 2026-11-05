@@ -55,7 +55,6 @@ function deviceOn(
       platform: 'android',
       model: 'Samsung Galaxy S24',
       ...(remote !== undefined ? { remote } : {}),
-      match: {},
     },
   }
 }

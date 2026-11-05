@@ -109,13 +109,21 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'pixel-7',
       platform: 'android' as const,
-      match: { avd: 'Pixel_7_API_34', appPackage: 'com.example.app' },
+      model: 'Pixel 7',
+      os: '14',
+      id: 'emulator-5554',
+      capabilities: { 'appium:automationName': 'UiAutomator2' },
+      remote: {
+        name: 'farm',
+        protocol: 'appium' as const,
+        url: 'https://farm.example/wd/hub',
+        connectTimeoutMs: 300_000,
+      },
     }
     const config = buildPlatformConfig('android', resolvedDevice, { step: 15000 })
 
     expect(config.platform).toBe('android')
-    expect(config.device?.name).toBe('pixel-7')
-    expect(config.device?.match.avd).toBe('Pixel_7_API_34')
+    expect(config.device).toEqual(resolvedDevice)
     expect(config.browser).toBeUndefined()
     expect(config.timeouts).toEqual({ step: 15000 })
   })
@@ -124,7 +132,7 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'android-emu',
       platform: 'android' as const,
-      match: { automationName: 'UiAutomator2' },
+      capabilities: { 'appium:automationName': 'UiAutomator2' },
     }
     const config = buildPlatformConfig('android', resolvedDevice, undefined, undefined, undefined, {
       platform: 'android',
@@ -153,7 +161,7 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'android-emu',
       platform: 'android' as const,
-      match: { automationName: 'UiAutomator2' },
+      capabilities: { 'appium:automationName': 'UiAutomator2' },
     }
     const config = buildPlatformConfig('android', resolvedDevice, undefined, undefined, undefined, {
       platform: 'android',
@@ -184,7 +192,7 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'android-emu',
       platform: 'android' as const,
-      match: { automationName: 'UiAutomator2' },
+      capabilities: { 'appium:automationName': 'UiAutomator2' },
     }
     const config = buildPlatformConfig('android', resolvedDevice, undefined, undefined, undefined, {
       platform: 'android',
@@ -209,13 +217,13 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'iphone-15',
       platform: 'ios' as const,
-      match: { udid: '00008120-001E44F11ABC001E', bundleId: 'com.example.ios' },
+      id: '00008120-001E44F11ABC001E',
     }
     const config = buildPlatformConfig('ios', resolvedDevice, undefined)
 
     expect(config.platform).toBe('ios')
     expect(config.device?.name).toBe('iphone-15')
-    expect(config.device?.match.bundleId).toBe('com.example.ios')
+    expect(config.device?.id).toBe('00008120-001E44F11ABC001E')
     expect(config.browser).toBeUndefined()
   })
 
@@ -223,7 +231,7 @@ describe('buildPlatformConfig', () => {
     const resolvedDevice = {
       name: 'ios-sim',
       platform: 'ios' as const,
-      match: { automationName: 'XCUITest' },
+      capabilities: { 'appium:automationName': 'XCUITest' },
     }
     const config = buildPlatformConfig('ios', resolvedDevice, undefined, undefined, undefined, {
       platform: 'ios',

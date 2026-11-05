@@ -162,7 +162,7 @@ describe('the reconciliation strategy is reachable from no configuration key', (
     expect(keys.length).toBeGreaterThan(100)
     // And it must reach the config schemas, not only the DTOs: one key each from the browser,
     // device and platform-base schemas the hand-written walk in the compound e2e names.
-    for (const key of ['headless', 'match', 'timeouts']) expect(keys).toContain(key)
+    for (const key of ['headless', 'os', 'timeouts']) expect(keys).toContain(key)
   })
 
   it('no published schema exposes a strategy switch', () => {

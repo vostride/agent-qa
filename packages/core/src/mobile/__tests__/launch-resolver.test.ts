@@ -29,27 +29,27 @@ function makeConfig(overrides?: {
       devices: {
         'android-emu': {
           platform: 'android',
-          match: { automationName: 'UiAutomator2' },
+          capabilities: { 'appium:automationName': 'UiAutomator2' },
         },
         'ios-sim': {
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          capabilities: { 'appium:automationName': 'XCUITest' },
         },
         'explicit-ios': {
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          capabilities: { 'appium:automationName': 'XCUITest' },
         },
         'use-ios': {
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          capabilities: { 'appium:automationName': 'XCUITest' },
         },
         'target-ios': {
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          capabilities: { 'appium:automationName': 'XCUITest' },
         },
         'config-ios': {
           platform: 'ios',
-          match: { automationName: 'XCUITest' },
+          capabilities: { 'appium:automationName': 'XCUITest' },
         },
         ...(overrides?.devices ?? {}),
       },
@@ -92,7 +92,7 @@ describe('resolveMobileRunConfig', () => {
     expect(resolved.app.appPackage).toBe('org.wikipedia.alpha')
     expect(resolved.app.deepLinkAppId).toBe('org.wikipedia.alpha')
     expect(resolved.device.name).toBe('android-emu')
-    expect(resolved.device.match.automationName).toBe('UiAutomator2')
+    expect(resolved.device.capabilities).toEqual({ 'appium:automationName': 'UiAutomator2' })
     expect(resolved.appState).toBe('preserve')
     expect(resolved.sourceTrace).toContain('appState=use.mobile.appState:preserve')
   })
@@ -119,7 +119,7 @@ describe('resolveMobileRunConfig', () => {
     expect(resolved.app.bundleId).toBe('org.reactjs.native.example.wdiodemoapp')
     expect(resolved.app.deepLinkAppId).toBe('org.reactjs.native.example.wdiodemoapp')
     expect(resolved.device.name).toBe('ios-sim')
-    expect(resolved.device.match.automationName).toBe('XCUITest')
+    expect(resolved.device.capabilities).toEqual({ 'appium:automationName': 'XCUITest' })
   })
 
   it('prefers explicit device override over use.device', () => {
@@ -154,54 +154,35 @@ describe('resolveMobileRunConfig', () => {
     expect(err.message).toContain('No device specified for mobile target')
   })
 
-  it('throws device-resolution for conflicting iOS app identity', () => {
-    const err = expectMobileSetupError(() => resolveMobileRunConfig({
+  it('carries the device model, os, id and capabilities, and takes app ids from the target', () => {
+    const resolved = resolveMobileRunConfig({
       config: makeConfig({
-        targets: {
-          conflict: {
-            platform: 'ios',
-            bundleId: 'com.example.target',
-          },
-        },
         devices: {
-          conflictDevice: {
-            platform: 'ios',
-            match: { bundleId: 'com.example.device' },
+          pixel: {
+            platform: 'android',
+            model: 'Pixel 8',
+            os: '14',
+            id: 'emulator-5554',
+            capabilities: { 'appium:automationName': 'Espresso' },
           },
         },
       }),
-      targetName: 'conflict',
-      useDeviceName: 'conflictDevice',
-    }))
+      targetName: 'release-android-wikipedia',
+      useDeviceName: 'pixel',
+    })
 
-    expect(err.category).toBe('device-resolution')
-    expect(err.message).toContain('com.example.target')
-    expect(err.message).toContain('com.example.device')
-  })
-
-  it('throws device-resolution for conflicting Android app identity', () => {
-    const err = expectMobileSetupError(() => resolveMobileRunConfig({
-      config: makeConfig({
-        targets: {
-          conflict: {
-            platform: 'android',
-            appPackage: 'com.example.target',
-          },
-        },
-        devices: {
-          conflictDevice: {
-            platform: 'android',
-            match: { appPackage: 'com.example.device' },
-          },
-        },
-      }),
-      targetName: 'conflict',
-      useDeviceName: 'conflictDevice',
-    }))
-
-    expect(err.category).toBe('device-resolution')
-    expect(err.message).toContain('com.example.target')
-    expect(err.message).toContain('com.example.device')
+    expect(resolved.device).toEqual({
+      name: 'pixel',
+      platform: 'android',
+      model: 'Pixel 8',
+      os: '14',
+      id: 'emulator-5554',
+      capabilities: { 'appium:automationName': 'Espresso' },
+    })
+    expect(resolved.app.appPackage).toBe('org.wikipedia.alpha')
+    expect(resolved.app.sourceTrace.appPackage).toBe(
+      'registry.targets.release-android-wikipedia.appPackage',
+    )
   })
 
   it('resolves a device on an appium remote to that remote, with no local Appium url', () => {

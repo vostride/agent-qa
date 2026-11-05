@@ -146,7 +146,6 @@ export interface DeviceConfig {
   remote?: RemoteDeviceConfig
   capabilities?: Record<string, unknown>
   here?: { udid?: string; avd?: string; name?: string; os?: string }
-  match: Record<string, unknown>
 }
 
 export interface TimeoutConfig {

@@ -175,7 +175,7 @@ describe('IOSPlatformAdapter', () => {
       const config: PlatformConfig = {
         platform: 'ios',
         appState: 'preserve',
-        device: { name: 'iphone-15', platform: 'ios', os: '17.0', match: {} },
+        device: { name: 'iphone-15', platform: 'ios', os: '17.0' },
       }
 
       await adapter.setup(config)
@@ -213,7 +213,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: {},
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
         appPath: '/tmp/wdio.app',
@@ -232,7 +231,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: {},
         },
       })
 
@@ -248,7 +246,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: {},
         },
       })
 
@@ -263,7 +260,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: {},
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
       })
@@ -286,7 +282,6 @@ describe('IOSPlatformAdapter', () => {
         device: {
           name: 'ios-sim',
           platform: 'ios',
-          match: {},
         },
         bundleId: 'org.reactjs.native.example.wdiodemoapp',
       })
@@ -312,7 +307,7 @@ describe('IOSPlatformAdapter', () => {
     })
 
     function device(fields: Partial<NonNullable<PlatformConfig['device']>> = {}): PlatformConfig['device'] {
-      return { name: 'iphone', platform: 'ios', match: {}, ...fields }
+      return { name: 'iphone', platform: 'ios', ...fields }
     }
 
     async function opened(config: Partial<PlatformConfig> & { appiumUrl?: string }) {

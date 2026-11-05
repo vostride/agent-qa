@@ -3,15 +3,19 @@ import { z } from 'zod'
 export interface DeviceConfig {
   name: string
   platform: 'android' | 'ios'
-  /**
-   * Permissive Appium capability and selector bag.
-   * Common keys include deviceName, osVersion, and platformVersion.
-   */
-  match: Record<string, unknown>
+  model?: string
+  os?: string
+  id?: string
+  capabilities?: Record<string, unknown>
+  remote?: string
 }
 
-export const deviceConfigSchema = z.object({
+export const deviceConfigSchema = z.strictObject({
   name: z.string(),
   platform: z.enum(['android', 'ios']),
-  match: z.record(z.string(), z.unknown()),
-}).strict()
+  model: z.string().optional(),
+  os: z.string().optional(),
+  id: z.string().optional(),
+  capabilities: z.record(z.string(), z.unknown()).optional(),
+  remote: z.string().optional(),
+})

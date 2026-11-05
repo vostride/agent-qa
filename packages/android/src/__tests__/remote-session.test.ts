@@ -79,7 +79,7 @@ function deviceOn(
     appPackage: 'com.example.shop',
     appState: 'preserve',
     ...extra,
-    device: { name: 'galaxy-farm', platform: 'android', ...device, remote, match: {} },
+    device: { name: 'galaxy-farm', platform: 'android', ...device, remote },
   }
 }
 

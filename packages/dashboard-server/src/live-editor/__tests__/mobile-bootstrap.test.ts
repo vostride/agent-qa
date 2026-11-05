@@ -39,11 +39,11 @@ const config = {
     devices: {
       'release-android-emu': {
         platform: 'android',
-        match: { platformVersion: '15' },
+        os: '15',
       },
       'ios-sim': {
         platform: 'ios',
-        match: { platformVersion: '26.2' },
+        os: '26.2',
       },
     },
   },
@@ -96,7 +96,7 @@ describe('prepareMobileLiveSession', () => {
       appPackage: 'org.wikipedia.alpha',
       appActivity: 'org.wikipedia.main.MainActivity',
       appiumUrl: 'http://localhost:4723',
-      device: { name: 'release-android-emu' },
+      device: { name: 'release-android-emu', os: '15' },
       appState: 'preserve',
     })
   })
@@ -120,7 +120,7 @@ describe('prepareMobileLiveSession', () => {
       platform: 'ios',
       bundleId: 'org.reactjs.native.example.wdiodemoapp',
       appiumUrl: 'http://localhost:4723',
-      device: { name: 'ios-sim' },
+      device: { name: 'ios-sim', os: '26.2' },
       appState: 'reset',
     })
   })

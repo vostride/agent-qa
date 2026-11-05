@@ -53,8 +53,9 @@ export interface ResolvedMobileDevice {
   platform: MobilePlatform
   model?: string
   os?: string
+  id?: string
+  capabilities?: Record<string, unknown>
   remote?: RemoteDeviceConfig
-  match: Record<string, unknown>
 }
 
 export interface ResolvedMobileAppInstall {
@@ -108,8 +109,9 @@ interface DeviceProfile {
   platform?: string
   model?: string
   os?: string
+  id?: string
+  capabilities?: Record<string, unknown>
   remote?: string
-  match?: Record<string, unknown>
 }
 
 function isMobilePlatform(value: unknown): value is MobilePlatform {
@@ -118,6 +120,10 @@ function isMobilePlatform(value: unknown): value is MobilePlatform {
 
 function asOptionalString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
 function isAbsoluteAppInstallValue(value: string): boolean {
@@ -171,38 +177,10 @@ function chooseDeviceName(input: ResolveMobileRunConfigInput): { name?: string; 
 function resolveAppField(
   field: 'bundleId' | 'appPackage' | 'appActivity',
   targetValue: unknown,
-  deviceValue: unknown,
   targetName: string,
-  deviceName: string,
-  input: ResolveMobileRunConfigInput,
 ): { value?: string; source?: string } {
-  const targetString = asOptionalString(targetValue)
-  const deviceString = asOptionalString(deviceValue)
-
-  if (targetString && deviceString && targetString !== deviceString) {
-    throw setupError(
-      `Conflicting ${field} for mobile target "${targetName}" and device "${deviceName}": target has "${targetString}", device has "${deviceString}"`,
-      input,
-      {
-        deviceName,
-        appId: targetString,
-      },
-    )
-  }
-
-  if (targetString) {
-    return {
-      value: targetString,
-      source: `registry.targets.${targetName}.${field}`,
-    }
-  }
-  if (deviceString) {
-    return {
-      value: deviceString,
-      source: `registry.devices.${deviceName}.match.${field}`,
-    }
-  }
-  return {}
+  const value = asOptionalString(targetValue)
+  return value ? { value, source: `registry.targets.${targetName}.${field}` } : {}
 }
 
 function resolveAppInstall(
@@ -313,8 +291,6 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     if (selected.place.kind === 'remote') remote = selected.place.remote
   }
 
-  const match = deviceProfile.match ?? {}
-
   const appSourceTrace: Record<string, string> = {}
   const sourceTrace = [
     `target=registry.targets.${input.targetName}`,
@@ -325,8 +301,8 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
 
   let app: ResolvedMobileApp
   if (platform === 'android') {
-    const appPackage = resolveAppField('appPackage', target.appPackage, match.appPackage, input.targetName, deviceName, input)
-    const appActivity = resolveAppField('appActivity', target.appActivity, match.appActivity, input.targetName, deviceName, input)
+    const appPackage = resolveAppField('appPackage', target.appPackage, input.targetName)
+    const appActivity = resolveAppField('appActivity', target.appActivity, input.targetName)
     if (appPackage.source) appSourceTrace.appPackage = appPackage.source
     if (appActivity.source) appSourceTrace.appActivity = appActivity.source
     app = {
@@ -338,7 +314,7 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     if (appPackage.source) sourceTrace.push(`app.appPackage=${appPackage.source}`)
     if (appActivity.source) sourceTrace.push(`app.appActivity=${appActivity.source}`)
   } else {
-    const bundleId = resolveAppField('bundleId', target.bundleId, match.bundleId, input.targetName, deviceName, input)
+    const bundleId = resolveAppField('bundleId', target.bundleId, input.targetName)
     if (bundleId.source) appSourceTrace.bundleId = bundleId.source
     app = {
       bundleId: bundleId.value,
@@ -362,8 +338,9 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
       platform,
       ...(asOptionalString(deviceProfile.model) ? { model: deviceProfile.model } : {}),
       ...(asOptionalString(deviceProfile.os) ? { os: deviceProfile.os } : {}),
+      ...(asOptionalString(deviceProfile.id) ? { id: deviceProfile.id } : {}),
+      ...(isRecord(deviceProfile.capabilities) ? { capabilities: deviceProfile.capabilities } : {}),
       ...(remote === undefined ? {} : { remote }),
-      match,
     },
     app,
     appState,

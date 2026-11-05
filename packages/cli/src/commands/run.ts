@@ -389,8 +389,11 @@ export function buildPlatformConfig(
       platform: resolvedDevice.platform,
       ...(resolvedDevice.model === undefined ? {} : { model: resolvedDevice.model }),
       ...(resolvedDevice.os === undefined ? {} : { os: resolvedDevice.os }),
+      ...(resolvedDevice.id === undefined ? {} : { id: resolvedDevice.id }),
+      ...(resolvedDevice.capabilities === undefined
+        ? {}
+        : { capabilities: resolvedDevice.capabilities }),
       ...(resolvedDevice.remote === undefined ? {} : { remote: resolvedDevice.remote }),
-      match: resolvedDevice.match,
     } : undefined,
     bundleId: mobileResolved?.app.bundleId,
     appPackage: mobileResolved?.app.appPackage,

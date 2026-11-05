@@ -366,7 +366,6 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
     device: {
       name: input.explicitDeviceName ?? input.useDeviceName,
       platform: input.platform,
-      match: {},
     },
     app: {},
     appState: input.appState,

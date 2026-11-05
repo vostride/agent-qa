@@ -61,7 +61,7 @@ function here(server: FakeAppiumServer): IOSAdapterConfig {
     targetName: 'shop-ios',
     bundleId: 'com.example.shop',
     appiumUrl: server.url,
-    device: { name: 'iphone-here', platform: 'ios', match: {} },
+    device: { name: 'iphone-here', platform: 'ios' },
   }
 }
 
@@ -81,7 +81,7 @@ function onFarm(
     bundleId: 'com.example.shop',
     appState: 'reset',
     ...extra,
-    device: { name: 'iphone-farm', platform: 'ios', model: 'iPhone 16', remote, match: {} },
+    device: { name: 'iphone-farm', platform: 'ios', model: 'iPhone 16', remote },
   }
 }
 
