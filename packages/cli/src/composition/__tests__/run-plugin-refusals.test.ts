@@ -1,7 +1,7 @@
 // A remote whose plugin is not installed is refused before its test starts, in one line with the
 // install line, while a test that runs here still runs.
 
-import { readFileSync, writeFileSync } from 'node:fs'
+import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 
 import { Command } from 'commander'
@@ -11,7 +11,7 @@ import { parse as parseYaml, stringify as stringifyYaml } from 'yaml'
 import { getAgentQaVersion } from '@vostride/agent-qa-core'
 import { DashboardDatabase } from '@vostride/agent-qa-dashboard'
 
-import { createRunCommand } from '../../commands/run.js'
+import { createRunCommand, failedToStartResult } from '../../commands/run.js'
 import { pinProcessTmpdir, removeTempRoots } from '../../__tests__/temp-roots.js'
 import type { PinnedTmpdir } from '../../__tests__/temp-roots.js'
 import {
@@ -81,6 +81,15 @@ function storedMembers(
   }
 }
 
+function storedRootCauses(project: InProcessFixture): Record<string, unknown> {
+  const runsDir = join(project.agentQaRoot, 'runs')
+  const [runDir] = readdirSync(runsDir)
+  const handoff = JSON.parse(readFileSync(join(runsDir, runDir!, 'handoff.json'), 'utf8')) as {
+    tests: { testName: string; rootCause?: unknown }[]
+  }
+  return Object.fromEntries(handoff.tests.map((test) => [test.testName, test.rootCause]))
+}
+
 describe('a remote whose plugin cannot serve the run', () => {
   it('refuses only that remote, in one line with the install line, and exits 2', async () => {
     const page = await startTargetPageServer()
@@ -141,9 +150,48 @@ describe('a remote whose plugin cannot serve the run', () => {
         `Remote ${REMOTE_NAME} cannot start: Plugin entry ${ENTRY_NAME} names ${UNINSTALLED_PLUGIN}`,
       )
       expect(members["the second target's test"]?.outcome, log).toBe('passed')
+      const rootCauses = storedRootCauses(project)
+      expect(rootCauses['the standalone test'], log).toMatchObject({
+        class: 'environment',
+        producer: 'deterministic-classifier',
+        evidence: {
+          rationale: expect.stringMatching(
+            new RegExp(`^remote refused: Remote ${REMOTE_NAME} cannot start: `),
+          ),
+        },
+      })
+      expect(rootCauses["the second target's test"], log).toBeUndefined()
     } finally {
       await model.close()
       await page.close()
     }
   }, RUN_BUDGET_MS)
+})
+
+describe('a direct member that could not start', () => {
+  const member = { testId: 'the-test', name: 'a test', filePath: 'tests/a.yaml' }
+
+  it('records a remote refusal as one', () => {
+    const refusal = Object.assign(new Error('Remote farm cannot start: it is gone.'), {
+      name: 'RemoteRefusalError',
+    })
+
+    expect(failedToStartResult(member, refusal)).toEqual({
+      runId: 'the-test',
+      name: 'a test',
+      filePath: 'tests/a.yaml',
+      status: 'failed',
+      steps: [],
+      duration: 0,
+      failureSummary: 'Remote farm cannot start: it is gone.',
+      remoteRefusal: true,
+    })
+  })
+
+  it('records any other error as a framework error, not a remote refusal', () => {
+    const result = failedToStartResult(member, new Error('the adapter broke'))
+
+    expect(result.failureSummary).toBe('Framework error: the adapter broke')
+    expect(result).not.toHaveProperty('remoteRefusal')
+  })
 })

@@ -677,6 +677,27 @@ function formatFrameworkError(message: string, error?: unknown): FormattedFramew
   }
 }
 
+// A direct member that threw before it ran; a remote refusal is marked so analysis reads it as one.
+export function failedToStartResult(
+  member: { readonly testId: string; readonly name: string; readonly filePath: string },
+  err: unknown,
+): TestResult {
+  const { failureSummary } = formatFrameworkError(
+    err instanceof Error ? err.message : String(err),
+    err,
+  )
+  return {
+    runId: member.testId,
+    name: member.name,
+    filePath: member.filePath,
+    status: 'failed',
+    steps: [],
+    duration: 0,
+    failureSummary,
+    ...(isRemoteRefusal(err) ? { remoteRefusal: true as const } : {}),
+  }
+}
+
 // The terminal copy is masked like the copy written to the database.
 export function frameworkErrorTerminalLine(
   message: string,
@@ -4730,23 +4751,15 @@ export async function produceDirectRunMembers(
     try {
       return await binding(ctx)
     } catch (err) {
-      const { failureSummary } = formatFrameworkError(err instanceof Error ? err.message : String(err), err)
-      const refusal = isRemoteRefusal(err)
+      const failed = failedToStartResult(member, err)
+      const refusal = failed.remoteRefusal === true
       if (frameworkError === undefined || (!refusal && isRemoteRefusal(frameworkError))) {
         frameworkError = err
       }
       if (!refusal && frameworkSkipReason === undefined) {
-        frameworkSkipReason = `Not run: "${member.name}" could not start. ${failureSummary}`
+        frameworkSkipReason = `Not run: "${member.name}" could not start. ${failed.failureSummary}`
       }
-      return {
-        runId: member.testId,
-        name: member.name,
-        filePath: member.filePath,
-        status: 'failed',
-        steps: [],
-        duration: 0,
-        failureSummary,
-      }
+      return failed
     }
   }
 

@@ -322,3 +322,44 @@ describe('classifyRootCause — limit stop', () => {
     }
   })
 })
+
+describe('classifyRootCause — a member its remote refused', () => {
+  const REFUSAL =
+    'Remote farm cannot start: plugin entry kit uses secret GRID_TOKEN, which workspace.secretsFile does not declare.'
+
+  function refused(overrides: Partial<TestResult> = {}): TestResult {
+    return test({ status: 'failed', steps: [], failureSummary: REFUSAL, remoteRefusal: true, ...overrides })
+  }
+
+  it('is environment with the refusal line as the rationale, citing no steps', () => {
+    const verdict = classifyRootCause(input({ result: refused() }))
+
+    expect(verdict).toEqual(deterministicVerdict('environment', `remote refused: ${REFUSAL}`, [], 0))
+  })
+
+  it('passes the refusal line through the run mask', () => {
+    const verdict = classifyRootCause(input({
+      result: refused(),
+      mask: (text) => text.replaceAll('GRID_TOKEN', '[MASKED]'),
+    }))
+
+    expect(verdict?.evidence.rationale).toBe(
+      'remote refused: Remote farm cannot start: plugin entry kit uses secret [MASKED], which workspace.secretsFile does not declare.',
+    )
+  })
+
+  it('wins over a failed health probe', () => {
+    const verdict = classifyRootCause(input({
+      result: refused(),
+      baselineProbe: { error: 'ECONNREFUSED 127.0.0.1:3000', elapsedMs: 3 },
+    }))
+
+    expect(verdict?.evidence.rationale).toBe(`remote refused: ${REFUSAL}`)
+  })
+
+  it('is unknown when the same line was not recorded as a remote refusal', () => {
+    const verdict = classifyRootCause(input({ result: refused({ remoteRefusal: undefined }) }))
+
+    expect(verdict?.class).toBe('unknown')
+  })
+})

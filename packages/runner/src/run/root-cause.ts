@@ -1,4 +1,5 @@
-// Branch order: presence, timeout, environment, limit stop, unproven, flake, then unknown.
+// Branch order: presence, flake, timeout, remote refusal, environment, limit stop, unproven, then
+// unknown.
 
 import { stepOutcomeUnproven } from '@vostride/agent-qa-schema'
 import type { MemberTestOutcome, Verdict } from '@vostride/agent-qa-schema'
@@ -169,7 +170,17 @@ export function classifyRootCause(input: RootCauseInput): Verdict | undefined {
     )
   }
 
-  // 2. environment — probe first (run-scoped signal), then failing-error token scans.
+  const mask = input.mask ?? ((text: string) => text)
+
+  // 2. environment — a recorded remote refusal first, then the probe, then error token scans.
+  if (result.remoteRefusal === true) {
+    return deterministicVerdict(
+      'environment',
+      `remote refused: ${mask(result.failureSummary ?? '')}`,
+      citedSteps,
+      testIndex,
+    )
+  }
   if (baselineProbe !== undefined) {
     if (baselineProbe.error !== undefined) {
       return deterministicVerdict(
@@ -192,7 +203,7 @@ export function classifyRootCause(input: RootCauseInput): Verdict | undefined {
   const limitStopped = limitStoppedSteps(result)
   if (limitStopped.length > 0) return unknownFromSteps(limitStopped, testIndex)
 
-  const unproven = unprovenSteps(result, input.mask ?? ((text) => text))
+  const unproven = unprovenSteps(result, mask)
   if (unproven.length > 0) return unknownFromSteps(unproven, testIndex)
 
   const texts = failureErrorTexts(result)

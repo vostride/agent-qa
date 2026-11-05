@@ -128,10 +128,15 @@ function expectNoStack(scene: Scene): void {
   expect(scene.stderr.filter((line) => /^\s+at /.test(line)), scene.stderr.join('\n')).toEqual([])
 }
 
+// The refusal's own line; the post-run analysis may quote the sentence after its own prefix.
+function refusalLines(scene: Scene, sentence: string): string[] {
+  return scene.stderr.filter((line) => line.trim() === sentence)
+}
+
 function expectOneLineRefusal(scene: Scene, sentence: string): void {
   const stderr = scene.stderr.join('\n')
   expect(exitCode(scene), stderr).toBe(2)
-  expect(scene.stderr.filter((line) => line.includes(sentence)), stderr).toHaveLength(1)
+  expect(refusalLines(scene, sentence), stderr).toHaveLength(1)
   expectNoStack(scene)
   expect(scene.printed.filter((line) => line.includes('Framework error:')), stderr).toEqual([])
 }
@@ -244,7 +249,7 @@ describe('a suite refused on its remote ends only its members while a local test
       const stderr = scene.stderr.join('\n')
       const log = scene.printed.join('\n')
       expect(exitCode(scene), log).toBe(2)
-      expect(scene.stderr.filter((line) => line.includes(sentence)), stderr).toHaveLength(1)
+      expect(refusalLines(scene, sentence), stderr).toHaveLength(1)
       expectNoStack(scene)
       expect(scene.endpoint.refusals(), log).toBe(1)
       expect(scene.endpoint.sessions(), log).toBe(0)
