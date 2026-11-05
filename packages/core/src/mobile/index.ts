@@ -7,6 +7,7 @@ export * from './appium-executable.js'
 export * from './select-device.js'
 export * from './device-plan.js'
 export * from './find-device-here.js'
+export * from './appium-endpoint.js'
 export type { MobileNode, MobileRefMap, ParsedMobileSource, RefEntry } from './types.js'
 export {
   WEBVIEW_SCROLLERS_SCRIPT,
