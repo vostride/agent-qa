@@ -81,6 +81,9 @@ interface TestFile {
 
 interface Workspace {
   configPick?: string
+  // A device on an appium remote whose capabilities reference FARM_KEY, and an android target
+  // whose app.ref references SHOP_APK_SIGNATURE.
+  devices?: boolean
   tests: TestFile[]
   suite?: { name: string; pick?: string; members: string[] }
 }
@@ -138,6 +141,27 @@ async function openWorkspace(workspace: Workspace): Promise<Opened> {
       `    - name: ${OTHER.name}`,
       `      protocol: ${OTHER.protocol}`,
       `      url: ${OTHER.url}`,
+      ...(workspace.devices === true
+        ? [
+            '    - name: farm',
+            '      protocol: appium',
+            '      url: https://farm.example.com/wd/hub',
+            '  devices:',
+            '    galaxy-farm:',
+            '      platform: android',
+            '      model: Samsung Galaxy S24',
+            '      remote: farm',
+            '      capabilities:',
+            '        farm:options:',
+            '          accessKey: "{{secret:FARM_KEY}}"',
+            '  targets:',
+            '    shop-android:',
+            '      platform: android',
+            '      appPackage: com.example.shop',
+            '      app:',
+            '        ref: "https://files.example.com/shop.apk?sig={{secret:SHOP_APK_SIGNATURE}}"',
+          ]
+        : []),
       ...useBrowserRemote(workspace.configPick),
       '',
     ].join('\n'),
@@ -146,7 +170,13 @@ async function openWorkspace(workspace: Workspace): Promise<Opened> {
   await Promise.all([
     writeFile(join(dir, 'hooks.yaml'), 'hooks: []\n', 'utf-8'),
     writeFile(join(dir, '.env'), '', 'utf-8'),
-    writeFile(join(dir, '.env.secrets.local'), 'GRID_TOKEN=grid-token-41c7\n', 'utf-8'),
+    writeFile(
+      join(dir, '.env.secrets.local'),
+      workspace.devices === true
+        ? 'GRID_TOKEN=grid-token-41c7\nFARM_KEY=farm-key-0b52\nSHOP_APK_SIGNATURE=apk-sig-9e14\n'
+        : 'GRID_TOKEN=grid-token-41c7\n',
+      'utf-8',
+    ),
     mkdir(join(dir, 'tests'), { recursive: true }),
     mkdir(join(dir, 'suites'), { recursive: true }),
   ])
@@ -294,6 +324,41 @@ describe('the live editor on a remote', () => {
     expect(secretNames(options.connectionSecrets)).toEqual(['GRID_TOKEN'])
     expect(options.secretsFile).toBe('.env.secrets.local')
     expect(options.refusalMemory).toBeDefined()
+  })
+
+  it("keeps a device's capability and app.ref secrets for the connection, out of every step", async () => {
+    const opened = await openWorkspace({
+      configPick: 'grid',
+      devices: true,
+      tests: [{ file: 'tests/a.yaml' }],
+    })
+    const res = await opened.invoke({
+      platform: 'web',
+      entity: { type: 'test', id: opened.testIds.get('tests/a.yaml') },
+    })
+
+    expect(res.status).toBe(201)
+    const options = adapterOptions[0] as { connectionSecrets?: SecretStore }
+    expect(secretNames(options.connectionSecrets)).toEqual([
+      'FARM_KEY',
+      'GRID_TOKEN',
+      'SHOP_APK_SIGNATURE',
+    ])
+    const session = opened.sessionManager.getSession(
+      (JSON.parse(res.body) as { sessionId: string }).sessionId,
+    )
+    for (const name of ['FARM_KEY', 'SHOP_APK_SIGNATURE']) {
+      const result = await session!.executeStepCommand(
+        `Type {{secret:${name}}} into the field`,
+        0,
+        undefined,
+        { testName: 'checkout' },
+      )
+      expect(result.status).toBe('failed')
+      expect(result.error).toBe(
+        `${name} is a remote's or device's credential and only connects to it; the draft "checkout" uses it in a step. Use another secret there.`,
+      )
+    }
   })
 
   it('launches here for a test that picks local over the config default', async () => {

@@ -1550,7 +1550,7 @@ async function loadRuntimeSecrets(input: {
   const { SecretRedactor, basicAuthMaskEntries } = await import('@vostride/agent-qa-runner')
   const remotes = input.config.registry?.remotes ?? []
   return {
-    secretStore: splitConnectionSecrets(declared, remotes).stepStore,
+    secretStore: splitConnectionSecrets(declared, input.config).stepStore,
     connectionSecretStore: declared,
     secretRedactor: new SecretRedactor(declared, basicAuthMaskEntries(remotes, declared)),
     secretsFileMetadata: {
@@ -1577,10 +1577,7 @@ function refuseRemoteSecretProblems(input: {
   const secretsFile = configuredSecretsFile(input.config)
   const lines = missingRemoteSecrets([...input.usedRemotes], input.connectionSecretStore)
     .map((missing) => missingRemoteSecretSentence(missing, secretsFile))
-  const { connectionNames } = splitConnectionSecrets(
-    input.connectionSecretStore,
-    input.config.registry?.remotes ?? [],
-  )
+  const { connectionNames } = splitConnectionSecrets(input.connectionSecretStore, input.config)
   for (const test of input.tests) {
     for (const sentence of connectionSecretMisuse({
       names: connectionNames,

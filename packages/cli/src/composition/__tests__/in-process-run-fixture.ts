@@ -134,6 +134,11 @@ export interface InProcessFixtureInput {
   readonly suiteMemberDevices?: readonly [string | undefined, string | undefined]
   /** With `suiteMemberDevices`, the suite's own `use.device`. */
   readonly suiteDevice?: string
+  /**
+   * A device here, `keyed-phone`, whose `appium:keystorePassword` capability is this text, and an
+   * android target, `keyed-shop`, whose app.ref is that text; no test the fixture writes uses them.
+   */
+  readonly connectionOnlyReferences?: { readonly capability: string; readonly appRef: string }
 }
 
 /** The package name the knob above declares. Not installed, and named so a reader can tell. */
@@ -205,6 +210,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
   const pixelDevice =
     input.remote !== undefined &&
     (input.remoteAnchoredInDevices === true || input.remotesKeyAliased === true)
+  const keyed = input.connectionOnlyReferences
+  const anyDevice =
+    pixelDevice || remoteDevice !== undefined || input.localDevice === true || keyed !== undefined
   const remoteEntryLines = (remote: {
     readonly name: string
     readonly protocol: string
@@ -236,9 +244,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
       '  envFile: .env',
       '  secretsFile: .env.secrets.local',
       'registry:',
-      ...(pixelDevice || remoteDevice !== undefined || input.localDevice === true
-        ? ['  devices:']
-        : []),
+      ...(anyDevice ? ['  devices:'] : []),
       ...(input.remote !== undefined && pixelDevice
         ? [
             '    pixel:',
@@ -280,6 +286,15 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
             `      model: ${JSON.stringify(LOCAL_DEVICE_MODEL)}`,
           ]
         : []),
+      ...(keyed === undefined
+        ? []
+        : [
+            '    keyed-phone:',
+            '      platform: android',
+            '      model: Pixel 9',
+            '      capabilities:',
+            `        appium:keystorePassword: ${JSON.stringify(keyed.capability)}`,
+          ]),
       '  targets:',
       `    ${IN_PROCESS_TARGET_NAME}:`,
       '      platform: web',
@@ -304,6 +319,15 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
               ? ['      platform: ios', `      bundleId: ${REMOTE_DEVICE_APP_PACKAGE}`]
               : ['      platform: android', `      appPackage: ${REMOTE_DEVICE_APP_PACKAGE}`]),
             ...(input.deviceOnTarget === true ? [`      device: ${remoteDeviceName}`] : []),
+          ]),
+      ...(keyed === undefined
+        ? []
+        : [
+            '    keyed-shop:',
+            '      platform: android',
+            '      appPackage: com.example.keyed',
+            '      app:',
+            `        ref: ${JSON.stringify(keyed.appRef)}`,
           ]),
       '  llms:',
       ...(input.model === undefined

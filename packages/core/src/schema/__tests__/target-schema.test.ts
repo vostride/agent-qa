@@ -162,4 +162,34 @@ describe("a target's device and app reference in the strict parse", () => {
     ])
     expect(issues({ 'shop-android': target })).toEqual([])
   })
+
+  it("refuses a target url that uses a secret only a device's capabilities or an app.ref references", () => {
+    const keyed = {
+      ...devices['galaxy-farm'],
+      capabilities: { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } },
+    }
+    const result = AgentQaConfigSchema.safeParse({
+      workspace,
+      registry: {
+        remotes: [farm],
+        devices: { ...devices, 'galaxy-farm': keyed },
+        targets: {
+          'shop-android': { ...shop, app: { ref: 'storage:{{secret:SHOP_APP}}' } },
+          web: {
+            platform: 'web',
+            url: 'https://shop.example.com/?k={{secret:FARM_KEY}}&a={{secret:SHOP_APP}}',
+          },
+        },
+      },
+    })
+    const found = result.success
+      ? []
+      : result.error.issues.map((issue) => ({ path: issue.path, message: issue.message }))
+    expect(found).toEqual(
+      ['FARM_KEY', 'SHOP_APP'].map((name) => ({
+        path: ['registry', 'targets', 'web', 'url'],
+        message: `registry.targets.web.url uses ${name}, a remote's or device's credential that only connects to it. Use another secret here.`,
+      })),
+    )
+  })
 })

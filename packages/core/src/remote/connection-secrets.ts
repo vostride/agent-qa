@@ -1,5 +1,10 @@
 import type { SecretStore } from '@vostride/agent-qa-runner'
-import { connectionSecretNames, remoteLabel, secretReferenceNames } from '@vostride/agent-qa-schema'
+import {
+  configConnectionSecretNames,
+  connectionSecretNames,
+  remoteLabel,
+  secretReferenceNames,
+} from '@vostride/agent-qa-schema'
 import type { RemoteEntryLike } from '@vostride/agent-qa-schema'
 
 export type RemoteConnectionFields = Pick<
@@ -10,15 +15,12 @@ export type RemoteConnectionFields = Pick<
 export interface ConnectionSecretSplit {
   // Everything a step, a hook, a target url or the planner may reach.
   readonly stepStore: SecretStore
-  // Every name any remote references, whichever remote a run uses.
+  // Every name a remote, a device's capabilities or a target's app.ref references.
   readonly connectionNames: ReadonlySet<string>
 }
 
-export function splitConnectionSecrets(
-  store: SecretStore,
-  remotes: readonly RemoteConnectionFields[],
-): ConnectionSecretSplit {
-  const connectionNames = new Set(connectionSecretNames(remotes))
+export function splitConnectionSecrets(store: SecretStore, config: unknown): ConnectionSecretSplit {
+  const connectionNames = new Set(configConnectionSecretNames(config))
   return { stepStore: store.without(connectionNames), connectionNames }
 }
 
@@ -78,7 +80,7 @@ function misusedNames(texts: readonly string[], names: ReadonlySet<string>): str
 export function connectionSecretMisuse(input: ConnectionSecretMisuseInput): string[] {
   if (input.names.size === 0) return []
   const sentence = (name: string, place: string): string =>
-    `${name} is a remote's credential and only connects to it; ${input.file} uses it in ${place}. Use another secret there.`
+    `${name} is a remote's or device's credential and only connects to it; ${input.file} uses it in ${place}. Use another secret there.`
   return [
     ...misusedNames(input.steps.flatMap(stringLeaves), input.names).map((name) =>
       sentence(name, 'a step'),

@@ -106,7 +106,7 @@ function sessionConfig(
   remote: RemoteBrowserConfig,
   extra: Partial<LiveSessionConfig> = {},
 ): LiveSessionConfig {
-  const { stepStore, connectionNames } = splitConnectionSecrets(declared, [remote])
+  const { stepStore, connectionNames } = splitConnectionSecrets(declared, { registry: { remotes: [remote] } })
   return {
     platform: 'web',
     llmConfig: {
@@ -156,7 +156,7 @@ function secretNames(store: unknown): string[] {
 }
 
 const misuseSentence =
-  "REMOTE_TOKEN is a remote's credential and only connects to it; the draft \"checkout\" uses it in a step. Use another secret there."
+  "REMOTE_TOKEN is a remote's or device's credential and only connects to it; the draft \"checkout\" uses it in a step. Use another secret there."
 
 beforeEach(() => {
   adapterOptions.length = 0
@@ -255,7 +255,7 @@ describe("the live editor and a remote's secrets", () => {
       `{{runHook:"${hook.id}"}} Verify the banner reads "{{secret:REMOTE_TOKEN}}"`,
     )
     expect(inline.error).toBe(
-      "REMOTE_TOKEN is a remote's credential and only connects to it; this draft uses it in a step. Use another secret there.",
+      "REMOTE_TOKEN is a remote's or device's credential and only connects to it; this draft uses it in a step. Use another secret there.",
     )
     expect(mockHookExecute).not.toHaveBeenCalled()
     expect(mockExecuteStep).not.toHaveBeenCalled()

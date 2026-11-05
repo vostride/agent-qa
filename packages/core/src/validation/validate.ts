@@ -7,7 +7,7 @@ import { AgentQaConfigSchema } from '../schema/config-schema.js'
 import { SuiteDefinitionSchema } from '../schema/suite-schema.js'
 import { parseTestFile } from '../parser/yaml-parser.js'
 import { parseHooksFile } from '../hooks/parser.js'
-import { connectionSecretNames } from '@vostride/agent-qa-schema'
+import { configConnectionSecretNames } from '@vostride/agent-qa-schema'
 import { connectionSecretMisuse } from '../remote/connection-secrets.js'
 import { isPathInsideDir } from '../utils/path-validation.js'
 import { selectSuitePlace, selectWebPlace, type BrowserEngine } from '../remote/select-place.js'
@@ -493,7 +493,7 @@ async function validateRemotePicks(
   return diagnostics
 }
 
-// The run-start refusal of a remote's secret in a step, with the same sentence.
+// The run-start refusal of a connection-only secret in a step, with the same sentence.
 async function validateConnectionSecrets(
   filePaths: readonly string[],
   configPath: string,
@@ -501,7 +501,7 @@ async function validateConnectionSecrets(
 ): Promise<ValidationDiagnostic[]> {
   const config = await readConfigForPicks(configPath)
   if (config === undefined) return []
-  const names = new Set(connectionSecretNames(config.registry?.remotes ?? []))
+  const names = new Set(configConnectionSecretNames(config))
   if (names.size === 0) return []
   const relative = (absolutePath: string) =>
     path.relative(configDir, absolutePath).split(path.sep).join('/')

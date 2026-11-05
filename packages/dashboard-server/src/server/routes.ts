@@ -4422,11 +4422,12 @@ export function createRouter(dbOrDeps: DashboardDatabase | RouterDeps): (req: In
           }
 
           const remotes = await readLiveRemotes(configManager)
+          const liveConfig = configManager === undefined ? {} : await readConfigValues(configManager)
           try {
             const secretsContent = await readFile(workspacePaths.secretsFile.absolutePath, 'utf-8')
             const declared = SecretStore.fromEnvContent(secretsContent)
             // Hooks, steps and the start url get the step store; the adapter and mask the full one.
-            const split = splitConnectionSecrets(declared, remotes)
+            const split = splitConnectionSecrets(declared, liveConfig)
             secretStore = split.stepStore
             connectionSecretStore = declared
             connectionSecretNames = split.connectionNames

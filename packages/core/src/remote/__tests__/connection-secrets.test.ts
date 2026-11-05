@@ -26,6 +26,7 @@ const farm = RemoteEntrySchema.parse({
   basicAuth: { user: '{{secret:FARM_USER}}', password: '{{secret:FARM_PASSWORD}}' },
 })
 const remotes = [grid, farm]
+const config = { registry: { remotes } }
 
 const store = new SecretStore({
   REMOTE_TOKEN: 'remote-token-value',
@@ -33,14 +34,14 @@ const store = new SecretStore({
   FARM_PASSWORD: 'farm-password',
   LOGIN_PASSWORD: 'login-password',
 })
-const names = splitConnectionSecrets(store, remotes).connectionNames
+const names = splitConnectionSecrets(store, config).connectionNames
 
 const misuse = (name: string, file: string, place: string): string =>
-  `${name} is a remote's credential and only connects to it; ${file} uses it in ${place}. Use another secret there.`
+  `${name} is a remote's or device's credential and only connects to it; ${file} uses it in ${place}. Use another secret there.`
 
 describe("a remote's connection-only secrets", () => {
   it('leave the step store every secret no remote references', () => {
-    const { stepStore, connectionNames } = splitConnectionSecrets(store, remotes)
+    const { stepStore, connectionNames } = splitConnectionSecrets(store, config)
     expect([...connectionNames].sort()).toEqual(['FARM_PASSWORD', 'FARM_USER', 'REMOTE_TOKEN'])
     const kept: string[] = []
     stepStore.forEachSecret((name) => kept.push(name))
@@ -49,11 +50,54 @@ describe("a remote's connection-only secrets", () => {
   })
 
   it('cannot resolve in an expected value planned at run time, while the full store can', () => {
-    const { stepStore } = splitConnectionSecrets(store, remotes)
+    const { stepStore } = splitConnectionSecrets(store, config)
     const planned = '{{secret:REMOTE_TOKEN}}'
     expect(() => resolveSecretTemplatesInValue(planned, stepStore)).toThrow(MissingSecretError)
     expect(() => resolveSecretTemplatesInValue(planned, stepStore)).toThrow(/REMOTE_TOKEN/)
     expect(resolveSecretTemplatesInValue(planned, store)).toBe('remote-token-value')
+  })
+
+  it("leave the step store a name only a device's capabilities or a target's app.ref references", () => {
+    const deviceStore = new SecretStore({
+      FARM_KEY: 'farm-key-value',
+      SHOP_APK_SIGNATURE: 'apk-signature-value',
+      LOGIN_PASSWORD: 'login-password',
+    })
+    const { stepStore, connectionNames } = splitConnectionSecrets(deviceStore, {
+      registry: {
+        devices: {
+          'galaxy-farm': {
+            platform: 'android',
+            remote: 'farm',
+            capabilities: { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } },
+          },
+        },
+        targets: {
+          shop: {
+            platform: 'android',
+            app: { ref: 'https://files.example.com/shop.apk?sig={{secret:SHOP_APK_SIGNATURE}}' },
+          },
+        },
+      },
+    })
+    expect([...connectionNames]).toEqual(['FARM_KEY', 'SHOP_APK_SIGNATURE'])
+    const kept: string[] = []
+    stepStore.forEachSecret((name) => kept.push(name))
+    expect(kept).toEqual(['LOGIN_PASSWORD'])
+    expect(() => resolveSecretTemplatesInValue('{{secret:FARM_KEY}}', stepStore)).toThrow(
+      MissingSecretError,
+    )
+    expect(
+      connectionSecretMisuse({
+        names: connectionNames,
+        file: 'tests/login.yaml',
+        steps: ['Type {{secret:FARM_KEY}} into the field'],
+        target: 'https://app.test/?s={{secret:SHOP_APK_SIGNATURE}}',
+      }),
+    ).toEqual([
+      misuse('FARM_KEY', 'tests/login.yaml', 'a step'),
+      misuse('SHOP_APK_SIGNATURE', 'tests/login.yaml', 'its target url'),
+    ])
   })
 
   it('refuse a bare step that names one', () => {

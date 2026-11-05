@@ -2,7 +2,7 @@ import { z } from 'zod'
 import {
   appRefIssues,
   capabilityCredentialIssues,
-  connectionSecretNames,
+  configConnectionSecretNames,
   isLoopbackHost,
   remoteOrigin,
   secretReferenceNames,
@@ -204,7 +204,7 @@ const AgentQaConfigSchemaInner = z.strictObject({
       )
     }
   }
-  const connectionSecrets = new Set(connectionSecretNames(remotes))
+  const connectionSecrets = new Set(configConnectionSecretNames(val))
   for (const [target, { url }] of Object.entries(val.registry?.targets ?? {})) {
     if (url === undefined) continue
     for (const name of new Set(secretReferenceNames(url))) {
@@ -212,7 +212,7 @@ const AgentQaConfigSchemaInner = z.strictObject({
       ctx.addIssue({
         code: 'custom',
         path: ['registry', 'targets', target, 'url'],
-        message: `registry.targets.${target}.url uses ${name}, a remote's credential that only connects to it. Use another secret here.`,
+        message: `registry.targets.${target}.url uses ${name}, a remote's or device's credential that only connects to it. Use another secret here.`,
       })
     }
   }

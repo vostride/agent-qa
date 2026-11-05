@@ -456,7 +456,7 @@ describe('remote names, the default pick and target urls', () => {
     expect(issues(config)).toContainEqual({
       path: 'registry.targets.shop.url',
       message:
-        "registry.targets.shop.url uses CDP_KEY, a remote's credential that only connects to it. Use another secret here.",
+        "registry.targets.shop.url uses CDP_KEY, a remote's or device's credential that only connects to it. Use another secret here.",
     })
   })
 })

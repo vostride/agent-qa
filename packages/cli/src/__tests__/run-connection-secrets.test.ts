@@ -1,4 +1,4 @@
-// A remote's secrets reach its connection and the mask, and nothing a test or a hook can touch.
+// Connection-only secrets reach the connection and the mask, and nothing a test or a hook can touch.
 
 import {
   chmodSync,
@@ -42,6 +42,8 @@ const RUN_BUDGET_MS = 180_000
 const REMOTE_TOKEN = 'r3m0te/t0ken+v@lue'
 const PLANTED = 'step-secret-planted'
 const BEARER = { Authorization: 'Bearer {{secret:REMOTE_TOKEN}}' }
+const KEYSTORE_PASSWORD = 'k3ystore-pass-value'
+const APK_SIGNATURE = 'apk-signature-value'
 
 const roots: string[] = []
 let pinnedTmpdir: PinnedTmpdir | undefined
@@ -135,7 +137,7 @@ function remoteLabel(endpoint: RemoteBrowserEndpoint): string {
 }
 
 function misuse(name: string, file: string): string {
-  return `${name} is a remote's credential and only connects to it; ${file} uses it in a step. Use another secret there.`
+  return `${name} is a remote's or device's credential and only connects to it; ${file} uses it in a step. Use another secret there.`
 }
 
 function expectRefusedBeforeStart(scene: Scene, sentence: string): void {
@@ -239,13 +241,21 @@ describe("a remote's secrets at run start", () => {
     )
   }, RUN_BUDGET_MS)
 
-  it("never reach a setup hook's environment, for a direct test or a suite, while the step secrets do", async () => {
+  it("never reach a setup hook's environment, nor do a device's capability or app.ref secrets, while the step secrets do", async () => {
     for (const scope of ['test', 'suite'] as const) {
       await onRemote(
         {
           headers: BEARER,
           requireHeader: ['authorization', `Bearer ${REMOTE_TOKEN}`],
-          knobs: { extraSecrets: { REMOTE_TOKEN }, plantedSecret: PLANTED, setupHook: scope },
+          knobs: {
+            extraSecrets: { REMOTE_TOKEN, KEYSTORE_PASSWORD, APK_SIGNATURE },
+            plantedSecret: PLANTED,
+            setupHook: scope,
+            connectionOnlyReferences: {
+              capability: '{{secret:KEYSTORE_PASSWORD}}',
+              appRef: 'https://files.example.com/keyed.apk?sig={{secret:APK_SIGNATURE}}',
+            },
+          },
         },
         async (scene) => {
           const captured = plantFakeDocker()
@@ -263,8 +273,14 @@ describe("a remote's secrets at run start", () => {
             args.some((arg, index) => arg === planted && args[index - 1] === '-e'),
             `${log}\n${args.join('\n')}`,
           ).toBe(true)
-          expect(args.filter((arg) => arg.startsWith('REMOTE_TOKEN=')), log).toEqual([])
-          expect(args.filter((arg) => arg.includes(REMOTE_TOKEN)), log).toEqual([])
+          for (const [name, value] of Object.entries({
+            REMOTE_TOKEN,
+            KEYSTORE_PASSWORD,
+            APK_SIGNATURE,
+          })) {
+            expect(args.filter((arg) => arg.startsWith(`${name}=`)), log).toEqual([])
+            expect(args.filter((arg) => arg.includes(value)), log).toEqual([])
+          }
           expect(scene.endpoint.sessions(), log).toBe(1)
         },
       )

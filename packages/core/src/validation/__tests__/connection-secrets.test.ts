@@ -18,7 +18,15 @@ afterAll(() => {
 
 const remoteToken = new Set(['REMOTE_TOKEN'])
 
-function configYaml(options: { remotes: boolean; targetUrl?: string }): string {
+interface ConfigOptions {
+  remotes: boolean
+  // A device on an appium remote whose capabilities reference FARM_KEY, and an android target
+  // whose app.ref references SHOP_APK_SIGNATURE.
+  devices?: boolean
+  targetUrl?: string
+}
+
+function configYaml(options: ConfigOptions): string {
   return [
     'workspace:',
     '  testMatch:',
@@ -33,6 +41,27 @@ function configYaml(options: { remotes: boolean; targetUrl?: string }): string {
     '    shop:',
     '      platform: web',
     `      url: ${JSON.stringify(options.targetUrl ?? 'http://127.0.0.1:8080')}`,
+    ...(options.devices === true
+      ? [
+          '    shop-android:',
+          '      platform: android',
+          '      appPackage: com.example.shop',
+          '      app:',
+          '        ref: "https://files.example.com/shop.apk?sig={{secret:SHOP_APK_SIGNATURE}}"',
+          '  devices:',
+          '    galaxy-farm:',
+          '      platform: android',
+          '      model: Samsung Galaxy S24',
+          '      remote: farm',
+          '      capabilities:',
+          '        farm:options:',
+          '          accessKey: "{{secret:FARM_KEY}}"',
+          '  remotes:',
+          '    - name: farm',
+          '      protocol: appium',
+          '      url: https://farm.example.com/wd/hub',
+        ]
+      : []),
     ...(options.remotes
       ? [
           '  remotes:',
@@ -74,7 +103,7 @@ interface Project {
 }
 
 function project(
-  options: { remotes: boolean; targetUrl?: string },
+  options: ConfigOptions,
   files: Record<string, string>,
 ): Project {
   const dir = realpathSync(mkdtempSync(path.join(tmpdir(), 'connection-secrets-')))
@@ -85,13 +114,16 @@ function project(
   writeFileSync(configPath, configYaml(options))
   writeFileSync(path.join(dir, 'hooks.yaml'), 'hooks: []\n')
   writeFileSync(path.join(dir, '.env'), '')
-  writeFileSync(path.join(dir, '.env.secrets.local'), 'REMOTE_TOKEN=t0ken\nLOGIN_PASSWORD=pw\n')
+  writeFileSync(
+    path.join(dir, '.env.secrets.local'),
+    'REMOTE_TOKEN=t0ken\nLOGIN_PASSWORD=pw\nFARM_KEY=f4rm\nSHOP_APK_SIGNATURE=s1g\n',
+  )
   for (const [relative, content] of Object.entries(files)) {
     writeFileSync(path.join(dir, relative), content)
   }
   // The workspace paths come from the config without its target refinement.
   const config = AgentQaConfigSchema.parse(
-    parseYaml(configYaml({ remotes: options.remotes })),
+    parseYaml(configYaml({ remotes: options.remotes, devices: options.devices })),
   ) as AgentQaConfig
   const workspace = resolveWorkspacePaths({ config, configPath })
   return {
@@ -108,17 +140,21 @@ function diagnostic(file: string, message: string): ValidationDiagnostic {
   return { file, line: 1, column: 1, message, severity: 'error' }
 }
 
-function runStartSentence(file: string, steps: readonly string[]): string[] {
-  return connectionSecretMisuse({ names: remoteToken, file, steps })
+function runStartSentence(
+  file: string,
+  steps: readonly string[],
+  names: ReadonlySet<string> = remoteToken,
+): string[] {
+  return connectionSecretMisuse({ names, file, steps })
 }
 
-describe("validateProject and a remote's secrets", () => {
+describe("validateProject and connection-only secrets", () => {
   it('reports a step that uses a remote secret on the test file with the run-start sentence', async () => {
     const steps = ['Type {{secret:REMOTE_TOKEN}} into the field']
     const p = project({ remotes: true }, { 'tests/a.test.yaml': testYaml(generateTestId(), steps) })
     const [message] = runStartSentence('tests/a.test.yaml', steps)
     expect(message).toBe(
-      "REMOTE_TOKEN is a remote's credential and only connects to it; tests/a.test.yaml uses it in a step. Use another secret there.",
+      "REMOTE_TOKEN is a remote's or device's credential and only connects to it; tests/a.test.yaml uses it in a step. Use another secret there.",
     )
     expect(await p.validate()).toEqual([diagnostic(p.file('tests/a.test.yaml'), message!)])
   })
@@ -158,7 +194,7 @@ describe("validateProject and a remote's secrets", () => {
     expect(await p.validate()).toEqual([
       diagnostic(
         p.configPath,
-        "registry.targets.shop.url: registry.targets.shop.url uses REMOTE_TOKEN, a remote's credential that only connects to it. Use another secret here.",
+        "registry.targets.shop.url: registry.targets.shop.url uses REMOTE_TOKEN, a remote's or device's credential that only connects to it. Use another secret here.",
       ),
     ])
   })
@@ -185,6 +221,36 @@ describe("validateProject and a remote's secrets", () => {
       },
     )
     expect(await p.validate()).toEqual([])
+  })
+
+  it("reports a step that uses a secret only a device's capabilities or a target's app.ref references", async () => {
+    for (const name of ['FARM_KEY', 'SHOP_APK_SIGNATURE']) {
+      const steps = [`Type {{secret:${name}}} into the field`]
+      const p = project(
+        { remotes: false, devices: true },
+        { 'tests/a.test.yaml': testYaml(generateTestId(), steps) },
+      )
+      const [message] = runStartSentence('tests/a.test.yaml', steps, new Set([name]))
+      expect(message).toBe(
+        `${name} is a remote's or device's credential and only connects to it; tests/a.test.yaml uses it in a step. Use another secret there.`,
+      )
+      expect(await p.validate()).toEqual([diagnostic(p.file('tests/a.test.yaml'), message!)])
+    }
+  })
+
+  it("reports a target url naming a device capability or app.ref secret through the config's own refusal", async () => {
+    for (const name of ['FARM_KEY', 'SHOP_APK_SIGNATURE']) {
+      const p = project(
+        { remotes: false, devices: true, targetUrl: `http://127.0.0.1:8080/?k={{secret:${name}}}` },
+        { 'tests/a.test.yaml': testYaml(generateTestId(), ['Open the home page']) },
+      )
+      expect(await p.validate()).toEqual([
+        diagnostic(
+          p.configPath,
+          `registry.targets.shop.url: registry.targets.shop.url uses ${name}, a remote's or device's credential that only connects to it. Use another secret here.`,
+        ),
+      ])
+    }
   })
 
   it('validates a config whose remote url yaml would warn about without printing the warning', async () => {
