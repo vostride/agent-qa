@@ -92,10 +92,21 @@ export function formatRemoteOrigin(origin: RemoteOrigin): string {
   return `${origin.scheme}://${formatHost(origin.host)}:${origin.port}`
 }
 
+// A url remote shows its protocol and origin; a plugin remote shows the plugins entry it names.
 export interface RemoteDisplay {
   name: string
-  protocol: string
-  url: string
+  protocol?: string
+  url?: string
+  plugin?: string
+}
+
+export interface PluginRemoteLike {
+  name: string
+  plugin: string
+}
+
+function isPluginRemoteLike(entry: object): entry is PluginRemoteLike {
+  return 'plugin' in entry
 }
 
 function displayOrigin(url: unknown): string {
@@ -119,15 +130,22 @@ function displayProtocol(protocol: unknown): string | undefined {
     : 'invalid protocol'
 }
 
-// A served config shows a remote by name, protocol and origin; its path, query, headers and
-// basicAuth stay in the file.
+// A served config shows a url remote by name, protocol and origin; its path, query, headers and
+// basicAuth stay in the file. A plugin remote shows by name and entry; its settings stay there too.
 export function projectRemotesForDisplay(
-  remotes: readonly Pick<RemoteEntryLike, 'name' | 'protocol' | 'url'>[],
+  remotes: readonly (Pick<RemoteEntryLike, 'name' | 'protocol' | 'url'> | PluginRemoteLike)[],
 ): RemoteDisplay[] {
-  return remotes.map(({ name, protocol, url }) => ({ name, protocol, url: displayOrigin(url) }))
+  return remotes.map((entry) =>
+    isPluginRemoteLike(entry)
+      ? { name: entry.name, plugin: entry.plugin }
+      : { name: entry.name, protocol: entry.protocol, url: displayOrigin(entry.url) },
+  )
 }
 
-export function remoteLabel(entry: Pick<RemoteEntryLike, 'name' | 'protocol' | 'url'>): string {
+export function remoteLabel(
+  entry: Pick<RemoteEntryLike, 'name' | 'protocol' | 'url'> | PluginRemoteLike,
+): string {
+  if (isPluginRemoteLike(entry)) return `${entry.name} (plugin ${entry.plugin})`
   const origin = remoteOrigin(entry.url)
   return origin
     ? `${entry.name} (${entry.protocol} ${formatRemoteOrigin(origin)})`
@@ -309,13 +327,17 @@ function valuesOf(value: unknown): unknown[] {
   return isRecord(value) ? Object.values(value) : []
 }
 
-// Every secret the config sends only to a server: remotes, device capabilities and app references.
+// Every secret the config sends only to a server: remotes, plugin settings and options, device
+// capabilities and app references.
 export function configConnectionSecretNames(config: unknown): string[] {
   const root = isRecord(config) ? config : {}
   const registry = isRecord(root.registry) ? root.registry : {}
   const remotes = Array.isArray(registry.remotes) ? registry.remotes.filter(isRecord) : []
+  const plugins = Array.isArray(root.plugins) ? root.plugins.filter(isRecord) : []
   const names = new Set(connectionSecretNames(remotes as unknown as RemoteEntryLike[]))
   const found = [
+    ...remotes.flatMap((remote) => texts(remote.settings)),
+    ...plugins.flatMap((entry) => texts(entry.options)),
     ...valuesOf(registry.devices).flatMap((device) =>
       isRecord(device) ? texts(device.capabilities) : [],
     ),
@@ -736,6 +758,7 @@ function remoteCopies(remotes: unknown, shown: RemoteDisplay[]): Map<string, unk
     }
     if (typeof entry.name === 'string') add(entry.name, display.name)
     if (typeof entry.protocol === 'string') add(entry.protocol, display.protocol)
+    if (typeof entry.plugin === 'string') add(entry.plugin, display.plugin)
     if (typeof entry.url === 'string' && entry.url !== '') add(entry.url, display.url)
   })
   return copies
@@ -783,6 +806,12 @@ export function projectConfigRemotes<T>(config: T): T {
   const shown: RemoteDisplay[] = Array.isArray(remotes)
     ? remotes.map((entry) => {
         const record: Record<string, unknown> = isRecord(entry) ? entry : {}
+        if (Object.hasOwn(record, 'plugin')) {
+          return {
+            name: displayName(record.name) as string,
+            plugin: displayName(record.plugin) ?? 'invalid name',
+          }
+        }
         return {
           name: displayName(record.name) as string,
           protocol: displayProtocol(record.protocol) as string,

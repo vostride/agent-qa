@@ -331,10 +331,7 @@ async function deviceWhere(
 ): Promise<string> {
   if (profile.remote !== undefined) {
     const remote = remotes.find((entry) => entry.name === profile.remote)
-    if (remote === undefined) return `remote ${profile.remote}`
-    return isUrlRemoteEntry(remote)
-      ? `remote ${remoteLabel(remote)}`
-      : `remote ${remote.name} (plugin ${remote.plugin})`
+    return `remote ${remote === undefined ? profile.remote : remoteLabel(remote)}`
   }
   const listing = await list(profile.platform)
   const finder = findDeviceHere({

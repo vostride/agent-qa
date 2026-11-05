@@ -30,7 +30,8 @@ const grid = RemoteEntrySchema.parse({
   protocol: 'playwright',
   url: 'wss://grid.example.com/playwright',
 })
-const remotes = [farm, lab, grid]
+const cloud = RemoteEntrySchema.parse({ name: 'cloud', plugin: 'kernel' })
+const remotes = [farm, lab, grid, cloud]
 const devices = {
   pixel: {},
   'galaxy-farm': { remote: 'farm' },
@@ -88,7 +89,7 @@ describe('where a device runs', () => {
 
   it('refuses a device whose remote is not listed or is not an appium remote', () => {
     expect(refusal(select({ devices: { phone: { remote: 'fram' } }, device: 'phone' }))).toBe(
-      'Device phone names remote "fram", which registry.remotes does not list. registry.remotes lists: farm, lab, grid.',
+      'Device phone names remote "fram", which registry.remotes does not list. registry.remotes lists: farm, lab, grid, cloud.',
     )
     expect(
       refusal(select({ devices: { phone: { remote: 'farm' } }, remotes: [], device: 'phone' })),
@@ -97,6 +98,12 @@ describe('where a device runs', () => {
     )
     expect(refusal(select({ devices: { phone: { remote: 'grid' } }, device: 'phone' }))).toBe(
       "Device phone names remote grid, a playwright remote; a device's remote needs protocol: appium.",
+    )
+  })
+
+  it('refuses a device on a plugin remote, naming what a device remote needs', () => {
+    expect(refusal(select({ devices: { phone: { remote: 'cloud' } }, device: 'phone' }))).toBe(
+      "Device phone names remote cloud, a plugin remote; a device's remote needs protocol: appium or a plugin that serves appium.",
     )
   })
 })

@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { projectConfigRemotes, projectRemotesForDisplay } from '../config/remote'
+import {
+  configConnectionSecretNames,
+  projectConfigRemotes,
+  projectRemotesForDisplay,
+  remoteLabel,
+} from '../config/remote'
 
 const PLANTED = {
   name: 'grid',
@@ -508,5 +513,82 @@ describe('projectConfigRemotes', () => {
       '[ &u wss://grid.example.com:443 ]',
     ])
     for (const text of HIDDEN) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+})
+
+describe('a remote that names a plugins entry', () => {
+  const CLOUD = {
+    name: 'cloud',
+    plugin: 'kernel',
+    settings: { region: 'SETTING_VALUE', auth: { token: '{{secret:SETTING_TOKEN}}' } },
+    connectTimeout: '45s',
+    uploadTimeout: '15m',
+    context: 'reuse',
+    capabilities: { 'farm:options': { project: 'CAPABILITY_VALUE' } },
+  }
+  const SHOWN_NOWHERE = ['SETTING_VALUE', 'SETTING_TOKEN', '45s', '15m', 'reuse', 'CAPABILITY_VALUE']
+
+  it('shows in a served config as its name and plugins entry only', () => {
+    const shown = projectConfigRemotes({ registry: { remotes: [CLOUD, PLANTED] } })
+
+    expect(shown.registry.remotes).toEqual([
+      { name: 'cloud', plugin: 'kernel' },
+      { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+    ])
+    for (const text of [...SHOWN_NOWHERE, ...HIDDEN]) {
+      expect(JSON.stringify(shown)).not.toContain(text)
+    }
+  })
+
+  it('shows a plugins entry name that is not a slug as invalid name', () => {
+    const shown = projectConfigRemotes({
+      registry: { remotes: [{ name: 'cloud', plugin: 'Bearer SETTING_TOKEN' }] },
+    })
+
+    expect(shown.registry.remotes).toEqual([{ name: 'cloud', plugin: 'invalid name' }])
+  })
+
+  it('hides a copy of its settings found elsewhere in the config', () => {
+    const shown = projectConfigRemotes({
+      registry: { remotes: [CLOUD] },
+      use: { browser: { copied: CLOUD.settings } },
+    })
+
+    for (const text of SHOWN_NOWHERE) expect(JSON.stringify(shown)).not.toContain(text)
+  })
+
+  it('shows for display as its name and plugins entry', () => {
+    expect(projectRemotesForDisplay([CLOUD, PLANTED])).toEqual([
+      { name: 'cloud', plugin: 'kernel' },
+      { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com:443' },
+    ])
+  })
+
+  it('is labelled by its name and plugins entry, and a url remote by its protocol and origin', () => {
+    expect(remoteLabel(CLOUD)).toBe('cloud (plugin kernel)')
+    expect(remoteLabel(PLANTED)).toBe('grid (playwright wss://grid.example.com:443)')
+  })
+
+  it("counts the secrets in a plugin remote's settings and a plugins entry's options as connection-only", () => {
+    const names = configConnectionSecretNames({
+      plugins: [
+        {
+          name: 'kernel',
+          package: '@vostride/agent-qa-plugin-kernel',
+          options: {
+            apiKey: '{{secret:KERNEL_API_KEY}}',
+            account: { id: 'acct-{{secret:KERNEL_ACCOUNT}}' },
+          },
+        },
+      ],
+      registry: {
+        remotes: [CLOUD, PLANTED],
+        targets: {
+          shop: { platform: 'web', url: 'https://shop.example.com/{{secret:SHOP_KEY}}' },
+        },
+      },
+    })
+
+    expect(names).toEqual(['BASIC_PASS', 'KERNEL_ACCOUNT', 'KERNEL_API_KEY', 'SETTING_TOKEN'])
   })
 })

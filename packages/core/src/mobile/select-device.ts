@@ -52,10 +52,14 @@ export function selectDevicePlace(input: SelectDevicePlaceInput): SelectDevicePl
       refusal: `Device ${device} names remote "${profile.remote}", which registry.remotes does not list. ${listed}`,
     }
   }
-  if (!isUrlRemoteEntry(entry) || entry.protocol !== 'appium') {
-    const kind = isUrlRemoteEntry(entry) ? entry.protocol : 'plugin'
+  if (!isUrlRemoteEntry(entry)) {
     return {
-      refusal: `Device ${device} names remote ${entry.name}, a ${kind} remote; a device's remote needs protocol: appium.`,
+      refusal: `Device ${device} names remote ${entry.name}, a plugin remote; a device's remote needs protocol: appium or a plugin that serves appium.`,
+    }
+  }
+  if (entry.protocol !== 'appium') {
+    return {
+      refusal: `Device ${device} names remote ${entry.name}, a ${entry.protocol} remote; a device's remote needs protocol: appium.`,
     }
   }
   return { place: { kind: 'remote', device, remote: toRemoteDeviceConfig(entry) } }
