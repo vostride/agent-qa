@@ -18,10 +18,11 @@ import {
   type AgentQaConfig,
   type ResolvedWorkspacePaths,
 } from '@vostride/agent-qa-core'
-import { isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
+import { guardJsonText, isGitHubActions, printRunText } from '@vostride/agent-qa-core/run-text-output'
 import { isLoopbackHost } from '@vostride/agent-qa-schema'
 import { createModel, getProvider } from '@vostride/agent-qa-model'
 import { createKnowledgeChecks } from './doctor-knowledge-checks.js'
+import { createPluginChecks } from './doctor-plugin-checks.js'
 import { createRemoteChecks, listedRemotes } from './doctor-remote-checks.js'
 import {
   composeRow,
@@ -765,7 +766,8 @@ export function createDoctorCommand(): Command {
   const cmd = new Command('doctor')
     .description('Validate environment and dependencies')
     .option('--remote <name>', 'Show only this remote among the remote rows')
-    .action(async function (this: Command, options: { remote?: string }) {
+    .option('--json', 'emit the checks as JSON')
+    .action(async function (this: Command, options: { remote?: string; json?: boolean }) {
       const configPath = getGlobalConfigPath(this)
 
       // Try loading config (non-validated, just raw YAML)
@@ -816,6 +818,12 @@ export function createDoctorCommand(): Command {
           only: options.remote,
           loopbackTargetsByRemote: placement.loopbackTargetsByRemote,
         }),
+        ...createPluginChecks({
+          config,
+          configDir: dirname(resolve(configPath)),
+          secretsFile: workspace?.secretsFile,
+          only: options.remote,
+        }),
         checkAppium(config, configPath, skips),
         checkAppiumDrivers(config, configPath, skips),
         checkAndroidSDK(config, skips),
@@ -824,12 +832,31 @@ export function createDoctorCommand(): Command {
         checkValidation(config, configPath),
       ]
 
+      let hasFailure = false
+      const results: { check: DoctorCheck; result: CheckResult }[] = []
+
+      if (options.json === true) {
+        for (const check of checks) {
+          const result = await check.check()
+          results.push({ check, result })
+          if (result.status === 'fail') hasFailure = true
+        }
+        const document = {
+          ok: !hasFailure,
+          checks: results.map(({ check, result }) => ({
+            name: check.name,
+            status: result.status,
+            message: result.message,
+          })),
+        }
+        console.log(guardJsonText(JSON.stringify(document, null, 2)))
+        if (hasFailure) process.exitCode = 1
+        return
+      }
+
       console.log('')
       console.log(pc.bold('  agent-qa doctor'))
       console.log('')
-
-      let hasFailure = false
-      const results: { check: DoctorCheck; result: CheckResult }[] = []
 
       // Colour is applied only here, through the `composeRow` the formatter uses for plain lines.
       const width = resolveTerminalWidth()

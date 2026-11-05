@@ -51,6 +51,11 @@ export function readDeclaredSecrets(secretsPath: string): SecretStore {
   }
 }
 
+export function maskWithDeclaredSecrets(store: SecretStore): MaskFn {
+  const redactor = new SecretRedactor(store)
+  return (text) => redactor.redactString(text)
+}
+
 type RemoteBasicAuth = { basicAuth?: { user: string; password: string } }
 
 interface ResolvedConfig {
