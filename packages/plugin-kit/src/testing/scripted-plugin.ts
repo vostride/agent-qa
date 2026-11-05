@@ -45,6 +45,8 @@ description: A scripted agent-qa plugin that answers each call as its options sa
 
 Each call follows \`options.script[method]\`: \`ok\`, \`hold\`, \`ignoreCancel\`, \`crash\`,
 \`noise\`, \`consoleLog\`, \`{ delayMs }\`, \`{ error }\` or \`{ errorAfterCreate }\`.
+With \`options.recordProcess\`, the initialize ledger line also records the process, its
+environment's names, its options, the host and the run facts.
 `
 
 function scriptedMainFile(): string {

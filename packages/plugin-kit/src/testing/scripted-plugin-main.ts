@@ -52,6 +52,7 @@ const ProgressSchema = z.object({
 
 const ScriptedOptionsSchema = z.looseObject({
   ledgerFile: z.string().optional(),
+  recordProcess: z.boolean().optional(),
   answer: AnswerSchema.optional(),
   script: z.record(z.string(), ScriptStepSchema).optional(),
   progress: z.array(ProgressSchema).optional(),
@@ -145,8 +146,20 @@ export function startScriptedPlugin(timing: ScriptedPluginTiming = {}): void {
     settings: z.looseObject({}),
     serves: manifest.serves,
     ...(manifest.runFacts === undefined ? {} : { runFacts: manifest.runFacts }),
-    async initialize({ options }, ctx) {
-      ledger(options, { method: 'initialize' })
+    async initialize({ options, host, runFacts }, ctx) {
+      ledger(options, {
+        method: 'initialize',
+        ...(options.recordProcess === true
+          ? {
+              execPath: process.execPath,
+              pid: process.pid,
+              envKeys: Object.keys(process.env),
+              options,
+              host,
+              ...(runFacts === undefined ? {} : { runFacts }),
+            }
+          : {}),
+      })
       await follow(options, 'initialize', ctx)
     },
     async acquire({ options, remote }, ctx) {
