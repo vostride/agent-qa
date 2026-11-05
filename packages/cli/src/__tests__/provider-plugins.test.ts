@@ -53,7 +53,7 @@ describe('loadProviderPluginsForRawConfig', () => {
     `)
 
     await loadProviderPluginsForRawConfig(
-      { plugins: { providers: [{ package: '@vostride/agent-qa-acme-gateway' }] } },
+      { plugins: [{ name: 'gateway', package: '@vostride/agent-qa-acme-gateway' }] },
       join(tempDir, 'agent-qa.config.yaml'),
     )
 
@@ -95,12 +95,10 @@ describe('loadProviderPluginsForRawConfig', () => {
 
     await loadProviderPluginsForRawConfig(
       {
-        plugins: {
-          providers: [
-            { package: '@vostride/agent-qa-acme-gateway' },
-            { package: '@vostride/agent-qa-acme-second-gateway' },
-          ],
-        },
+        plugins: [
+          { name: 'gateway', package: '@vostride/agent-qa-acme-gateway' },
+          { name: 'second-gateway', package: '@vostride/agent-qa-acme-second-gateway' },
+        ],
       },
       join(tempDir, 'agent-qa.config.yaml'),
     )

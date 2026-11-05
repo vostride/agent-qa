@@ -1,14 +1,7 @@
-import {
-  declarationKey,
-  declarationLabel,
-  importDeclaredPluginModule,
-  packageDeclarationValue,
-  pathDeclarationValue,
-} from '../plugin-loader-util.js'
-
-export type ProviderPluginDeclaration =
-  | { package: string; path?: never }
-  | { path: string; package?: never }
+import { declarationKey, importDeclaredPluginModule } from '../plugin-loader-util.js'
+import { selectInProcessPluginEntries } from '../plugins/resolve-entries.js'
+import type { PluginEntry } from '../schema/config-schema.js'
+import { getAgentQaVersion } from '../version.js'
 
 export interface ProviderPluginDescriptor {
   id: string
@@ -34,16 +27,6 @@ type ProviderPluginModule = {
 }
 
 const loadedDeclarations = new Set<string>()
-let warnedFirstParty = false
-
-function warnFirstPartyProviderPlugins(): void {
-  if (warnedFirstParty) return
-  console.warn(
-    '[agent-qa] plugins.providers modules run in-process with full Node access and can read credentials or screenshots. Use first-party provider plugins only until the container sandbox exists.',
-  )
-  warnedFirstParty = true
-}
-
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null
 }
@@ -107,38 +90,31 @@ function extractDescriptors(module: ProviderPluginModule, source: string): Provi
   throw new Error(`Provider plugin "${source}" must export a provider descriptor or providers array.`)
 }
 
-function validateDeclaration(declaration: ProviderPluginDeclaration): void {
-  const packageName = packageDeclarationValue(declaration)
-  const pluginPath = pathDeclarationValue(declaration)
-
-  if (packageName && pluginPath) {
-    throw new Error('Provider plugin declaration must specify either package or path, not both.')
-  }
-  if (!packageName && !pluginPath) {
-    throw new Error('Provider plugin declaration must specify package or path.')
-  }
-}
-
 export async function loadProviderPlugins(
-  declarations: ProviderPluginDeclaration[] | undefined,
+  entries: readonly PluginEntry[] | undefined,
   options: LoadProviderPluginsOptions = {},
 ): Promise<ProviderPluginDescriptor[]> {
-  if (!declarations?.length) return []
-
-  warnFirstPartyProviderPlugins()
-
+  if (!entries?.length) return []
   const baseDir = options.baseDir ?? process.cwd()
-  const loadedProviders: ProviderPluginDescriptor[] = []
+  const { load, refusals } = selectInProcessPluginEntries(entries, 'model-provider', {
+    configDir: baseDir,
+    agentQaVersion: getAgentQaVersion(),
+  })
+  const [refused] = refusals
+  if (refused) throw new Error(refused.reason)
 
-  for (const declaration of declarations) {
-    validateDeclaration(declaration)
+  const loadedProviders: ProviderPluginDescriptor[] = []
+  for (const resolved of load) {
+    const declaration = { name: resolved.name, package: resolved.label }
     const key = declarationKey(declaration, baseDir)
     if (loadedDeclarations.has(key)) continue
 
-    // The provider road shares the auth road's resolve-and-import, so it shares the guard.
-    const module = await importDeclaredPluginModule<ProviderPluginModule>(declaration, baseDir, 'provider')
-    // Descriptors interpolate this label into messages, which must not carry the absolute key.
-    const descriptors = extractDescriptors(module, declarationLabel(declaration, baseDir))
+    const module = await importDeclaredPluginModule<ProviderPluginModule>(
+      declaration,
+      baseDir,
+      'provider',
+    )
+    const descriptors = extractDescriptors(module, resolved.label)
 
     loadedDeclarations.add(key)
     loadedProviders.push(...descriptors)
@@ -149,5 +125,4 @@ export async function loadProviderPlugins(
 
 export function clearLoadedProviderPluginModules(): void {
   loadedDeclarations.clear()
-  warnedFirstParty = false
 }

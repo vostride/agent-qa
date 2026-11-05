@@ -412,7 +412,9 @@ async function runAllSix(door: typeof viaHost): Promise<void> {
   expect(config).toContain('booking-com:')
   expect(config).toContain('url: https://basket.example.com/cart')
   expect(config).toContain('parallel: true')
-  expect(config).toContain('- package: "@vostride/agent-qa-subscription-auth"')
+  expect(config).toContain(
+    '- name: subscription\n    package: "@vostride/agent-qa-subscription-auth"',
+  )
   expect(config).toContain('# agent-qa Configuration')
   const hooks = readFileSync(join(root, 'hooks.yaml'), 'utf8')
   expect(hooks).toContain('name: Seed the cart')
@@ -524,7 +526,7 @@ describe('the committed configuration binds no auth state, so no op takes one', 
     })
     expect(answer.outcome).toBe('applied')
     if (answer.outcome !== 'applied') throw new Error('unreachable')
-    expect(answer.fields).toEqual(['plugins.auth.0.package'])
+    expect(answer.fields).toEqual(['plugins.0.name', 'plugins.0.package'])
     expect(writtenText()).toContain('@vostride/agent-qa-subscription-auth')
     expect(writtenText()).not.toContain('authState')
   })

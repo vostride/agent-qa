@@ -4,6 +4,7 @@ import { dirname, isAbsolute, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 export type PluginDeclarationLike = {
+  name: string
   package?: string
   path?: string
 }
@@ -134,18 +135,18 @@ export class PluginNotInstalledError extends Error {
     const label = kind === 'auth' ? 'Auth' : 'Provider'
     const packageName = packageDeclarationValue(declaration)
     const pluginPath = pathDeclarationValue(declaration)
+    const removal = `remove the plugins entry ${declaration.name}.`
     const remedy = NPM_PACKAGE_NAME.test(packageName)
-      ? `Install it with your package manager (for example: npm install ${packageName}), or remove `
-        + `the plugins.${kind} entry that declares it.`
-      : `Install it with your package manager, or remove the plugins.${kind} entry that declares it.`
+      ? `Install it with your package manager (for example: npm install ${packageName}), or `
+        + removal
+      : `Install it with your package manager, or ${removal}`
     // No `cause`: the wrapped error's require stack holds absolute paths `util.inspect` prints.
     super(
       packageName
         ? `${label} plugin package "${packageName}" is declared in agent-qa.config.yaml but is not `
           + `installed. ${remedy}`
         : `${label} plugin file "${pluginPath}" is declared in agent-qa.config.yaml but could not be `
-          + `loaded. Check that the path is correct and the file exists, or remove the `
-          + `plugins.${kind} entry that declares it.`,
+          + `loaded. Check that the path is correct and the file exists, or ${removal}`,
     )
     this.name = 'PluginNotInstalledError'
     this.pluginKind = kind

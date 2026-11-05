@@ -318,21 +318,19 @@ describe('connection-only secret names across the config', () => {
 
 describe('closed config fields', () => {
   const grid = { name: 'grid', protocol: 'playwright', url: 'wss://grid.example.com/' }
-  const subscription = { package: SUBSCRIPTION_AUTH_PACKAGE }
+  const subscription = { name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }
 
   it('an absent list or block counts as empty, and key order is not a change', () => {
-    expect(closedConfigFieldsChanged(null, { registry: { remotes: [] }, plugins: { auth: null } }))
-      .toBe(false)
+    expect(closedConfigFieldsChanged(null, { registry: { remotes: [] }, plugins: [] })).toBe(false)
     expect(closedConfigFieldsChanged(
       { registry: { remotes: [grid] } },
       { registry: { remotes: [{ url: grid.url, protocol: grid.protocol, name: grid.name }] } },
     )).toBe(false)
   })
 
-  it('any change to the remotes or to plugins beside auth is a change', () => {
+  it('any change to the remotes is a change', () => {
     expect(closedConfigFieldsChanged({}, { registry: { remotes: [grid] } })).toBe(true)
     expect(closedConfigFieldsChanged({ registry: { remotes: [grid] } }, { registry: {} })).toBe(true)
-    expect(closedConfigFieldsChanged({}, { plugins: { providers: [] } })).toBe(true)
   })
 
   it("a device's remote or capabilities and a target's app reference are closed, a local device's other fields are not", () => {
@@ -382,22 +380,33 @@ describe('closed config fields', () => {
     }
   })
 
-  it('only one subscription-auth declaration appended at the end leaves auth open', () => {
-    const local = { path: './auth.mjs' }
-    expect(closedConfigFieldsChanged({}, { plugins: { auth: [subscription] } })).toBe(false)
-    expect(closedConfigFieldsChanged(
-      { plugins: { auth: [local] } },
-      { plugins: { auth: [local, subscription] } },
-    )).toBe(false)
-    expect(closedConfigFieldsChanged(
-      { plugins: { auth: [local] } },
-      { plugins: { auth: [subscription, local] } },
-    )).toBe(true)
-    expect(closedConfigFieldsChanged({}, { plugins: { auth: [subscription, subscription] } }))
-      .toBe(true)
-    expect(closedConfigFieldsChanged({}, { plugins: { auth: [{ package: '@acme/auth' }] } }))
-      .toBe(true)
-    expect(closedConfigFieldsChanged({ plugins: { auth: [local] } }, { plugins: { auth: [] } }))
-      .toBe(true)
+  it('appending the one subscription entry is the only change plugins allows', () => {
+    const local = { name: 'local', path: './plugins/local' }
+    for (const [before, after] of [
+      [{ plugins: [] }, { plugins: [subscription] }],
+      [{}, { plugins: [subscription] }],
+      [{ plugins: [local] }, { plugins: [local, subscription] }],
+    ]) {
+      expect({ before, after, closed: closedConfigFieldsChanged(before, after) }).toEqual({
+        before,
+        after,
+        closed: false,
+      })
+    }
+    for (const [before, after] of [
+      [{}, { plugins: [{ name: 'subscription', package: '@acme/auth' }] }],
+      [{}, { plugins: [{ name: 'sign-in', package: SUBSCRIPTION_AUTH_PACKAGE }] }],
+      [{}, { plugins: [{ ...subscription, options: { region: 'eu' } }] }],
+      [{ plugins: [local] }, { plugins: [subscription, local] }],
+      [{}, { plugins: [subscription, subscription] }],
+      [{ plugins: [local] }, { plugins: [] }],
+      [{ plugins: [local] }, { plugins: [{ ...local, path: './plugins/other' }] }],
+    ]) {
+      expect({ before, after, closed: closedConfigFieldsChanged(before, after) }).toEqual({
+        before,
+        after,
+        closed: true,
+      })
+    }
   })
 })

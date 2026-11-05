@@ -146,8 +146,8 @@ describe('init generated config schema compatibility', () => {
     expect(parsed.use?.logCapture?.console).toBe(true)
     expect(parsed.use?.logCapture?.network).toBe(true)
     expect(parsed.use?.parallel).toBe(false)
-    expect(parsed.plugins?.auth).toEqual([
-      { package: '@vostride/agent-qa-subscription-auth' },
+    expect(parsed.plugins).toEqual([
+      { name: 'subscription', package: '@vostride/agent-qa-subscription-auth' },
     ])
     expectCompressionDefaults(config)
   })

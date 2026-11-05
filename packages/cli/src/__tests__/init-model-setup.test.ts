@@ -165,7 +165,7 @@ describe('init model connection flags', () => {
       { name: 'codex', provider: 'openai-subscription', model: registryDefault('openai-subscription') },
     ])
     expect(config.use.llm).toBe('codex')
-    expect(config.plugins.auth).toEqual([{ package: SUBSCRIPTION_AUTH_PACKAGE }])
+    expect(config.plugins).toEqual([{ name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }])
     expectNoPrompt()
   })
 
@@ -181,7 +181,7 @@ describe('init model connection flags', () => {
       },
     ])
     expect(config.use.llm).toBe('claude-code')
-    expect(config.plugins.auth).toEqual([{ package: SUBSCRIPTION_AUTH_PACKAGE }])
+    expect(config.plugins).toEqual([{ name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }])
     for (const path of [
       'tests/examples/komazon-checkout.yaml',
       'tests/examples/komazon-cart-total-bug.yaml',

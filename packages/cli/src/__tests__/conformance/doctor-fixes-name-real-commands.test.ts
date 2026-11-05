@@ -30,7 +30,7 @@ const COMMANDS = [
   'knowledge rebuild-index',
   'daemon stop',
 ]
-const KEYS = ['workspace.secretsFile', 'workspace.hooksFile', 'workspace.envFile', 'plugins.auth']
+const KEYS = ['workspace.secretsFile', 'workspace.hooksFile', 'workspace.envFile']
 const PLANTED =
   'Run `agent-qa embedder set --profile bge`, then `agent-qa auth set --typ api-key`, and set `embedder.profile`.'
 const HELP_BUDGET_MS = 180_000

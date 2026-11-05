@@ -4,6 +4,7 @@ import {
   capabilityCredentialIssues,
   configConnectionSecretNames,
   isLoopbackHost,
+  pluginValueCredentialIssues,
   remoteOrigin,
   secretReferenceNames,
 } from '@vostride/agent-qa-schema'
@@ -14,34 +15,30 @@ import { WorkspaceSchema } from './workspace-schema.js'
 import { ServicesSchema } from './services-schema.js'
 import { KnowledgeConfigSchema } from './knowledge-schema.js'
 import { retiredKeyScan } from './retired-keys.js'
+import { configShapeScan } from './config-shape-scan.js'
+import { NameSlugSchema } from './primitives.js'
 import { RegistrySchema } from './registry-schema.js'
 import { UseSchema } from './use-schema.js'
 import { AnalyticsSchema } from './analytics-schema.js'
 
-export const AuthPluginDeclarationSchema = z.union([
+const PluginOptionsSchema = z.record(z.string(), z.unknown()).optional()
+
+export const PluginEntrySchema = z.union([
   z.strictObject({
+    name: NameSlugSchema,
     package: z.string().trim().min(1),
+    options: PluginOptionsSchema,
   }),
   z.strictObject({
+    name: NameSlugSchema,
     path: z.string().trim().min(1),
+    options: PluginOptionsSchema,
   }),
 ])
 
-// Provider plugins load in-process with full Node access; keep them first-party-only
-// until a container sandbox exists.
-export const ProviderPluginDeclarationSchema = z.union([
-  z.strictObject({
-    package: z.string().trim().min(1),
-  }),
-  z.strictObject({
-    path: z.string().trim().min(1),
-  }),
-])
+export type PluginEntry = z.infer<typeof PluginEntrySchema>
 
-export const PluginsSchema = z.strictObject({
-  auth: z.array(AuthPluginDeclarationSchema).optional().default([]),
-  providers: z.array(ProviderPluginDeclarationSchema).optional().default([]),
-})
+export const PluginsSchema = z.array(PluginEntrySchema)
 
 const AgentQaConfigSchemaInner = z.strictObject({
   workspace: WorkspaceSchema,
@@ -66,6 +63,24 @@ const AgentQaConfigSchemaInner = z.strictObject({
       message: `Duplicate LLM config name: "${dupe}"`,
     })
   }
+  const plugins = val.plugins ?? []
+  const pluginNames = plugins.map(entry => entry.name)
+  const pluginDupes = pluginNames.filter((n, i) => pluginNames.indexOf(n) !== i)
+  for (const dupe of new Set(pluginDupes)) {
+    ctx.addIssue({
+      code: 'custom',
+      path: ['plugins'],
+      message: `Duplicate plugin entry name: "${dupe}"`,
+    })
+  }
+  plugins.forEach((entry, index) => {
+    if (entry.options === undefined) return
+    const path = ['plugins', index, 'options']
+    const label = `Plugin entry ${entry.name}: options`
+    for (const issue of pluginValueCredentialIssues(entry.options, path, label)) {
+      ctx.addIssue({ code: 'custom', path: [...issue.path], message: issue.message })
+    }
+  })
   if ((val.use as any)?.platform) {
     ctx.addIssue({
       code: 'custom',
@@ -232,7 +247,8 @@ function cleartextHost(url: string): string | undefined {
 }
 
 // The scan runs before the strict object: zod skips refinements after a strict parse rejects.
-export const AgentQaConfigSchema = retiredKeyScan.pipe(AgentQaConfigSchemaInner)
+export const AgentQaConfigSchema =
+  retiredKeyScan.pipe(configShapeScan).pipe(AgentQaConfigSchemaInner)
 
 export { WorkspaceSchema } from './workspace-schema.js'
 export { AuthStateConfigSchema, ServicesSchema } from './services-schema.js'

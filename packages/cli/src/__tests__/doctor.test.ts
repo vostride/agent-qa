@@ -602,10 +602,10 @@ use:
   it('loads declared auth plugins and forwards auth-fetch modelAdapter to createModel', async () => {
     const subscriptionConfig = `
 plugins:
-  auth:
-    - package: "@vostride/agent-qa-subscription-auth"
-  providers:
-    - path: ./providers/sixth-provider.js
+  - name: subscription
+    package: "@vostride/agent-qa-subscription-auth"
+  - name: provider
+    path: ./providers/sixth-provider.js
 registry:
   llms:
     - name: codex
@@ -626,16 +626,16 @@ use:
 
     await runDoctor('agent-qa.config.yaml')
 
+    const entries = [
+      { name: 'subscription', package: '@vostride/agent-qa-subscription-auth' },
+      { name: 'provider', path: './providers/sixth-provider.js' },
+    ]
     expect(mockLoadLLMAuthPlugins).toHaveBeenCalledWith(
-      [{ package: '@vostride/agent-qa-subscription-auth' }],
+      entries,
       expect.objectContaining({ baseDir: expect.any(String) }),
     )
     expect(mockLoadProviderPluginsForRawConfig).toHaveBeenCalledWith(
-      expect.objectContaining({
-        plugins: expect.objectContaining({
-          providers: [{ path: './providers/sixth-provider.js' }],
-        }),
-      }),
+      expect.objectContaining({ plugins: entries }),
       'agent-qa.config.yaml',
     )
     expect(mockCreateModel).toHaveBeenCalledWith(

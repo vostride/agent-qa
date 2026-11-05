@@ -310,14 +310,14 @@ describe('auth provider mode contract', () => {
     await expect(runAuthCommand(['login', '--config', 'codex'])).resolves.toBeUndefined()
     expect(getOutput()).toContain('Provider "openai-subscription" is configured for "codex", but no auth plugin is registered.')
     expect(getOutput()).toContain('"devDependencies": { "@vostride/agent-qa-subscription-auth": "<agent-qa version>" }')
-    expect(getOutput()).toContain('plugins.auth')
+    expect(getOutput()).toContain('    - name: subscription')
     expect(getOutput()).toContain('Then run: agent-qa auth login --config codex')
     expect(getOutput()).not.toContain('requires an auth plugin')
 
     await expect(runAuthCommand(['login', '--config', 'claude'])).resolves.toBeUndefined()
     expect(getOutput()).toContain('Provider "anthropic-subscription" is configured for "claude", but no auth plugin is registered.')
     expect(getOutput()).toContain('"devDependencies": { "@vostride/agent-qa-subscription-auth": "<agent-qa version>" }')
-    expect(getOutput()).toContain('plugins.auth')
+    expect(getOutput()).toContain('    - name: subscription')
     expect(getOutput()).toContain('Then run: agent-qa auth login --config claude')
     expect(getOutput()).not.toContain('requires an auth plugin')
 

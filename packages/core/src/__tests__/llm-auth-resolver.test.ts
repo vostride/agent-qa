@@ -543,7 +543,9 @@ describe('a missing credential names the auth command to run', () => {
     expect(withoutPlugin.kind).toBe('missing')
     if (withoutPlugin.kind !== 'missing') throw new Error('Expected missing result')
     expect(withoutPlugin.message).toContain('npm install -D @vostride/agent-qa-subscription-auth')
-    expect(withoutPlugin.message).toContain('plugins.auth')
+    expect(withoutPlugin.message).toContain(
+      'as name: subscription with package: @vostride/agent-qa-subscription-auth.',
+    )
 
     registerLLMAuthProviderPlugin({
       providerId: 'anthropic-subscription',

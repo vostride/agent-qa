@@ -27,10 +27,10 @@ describe('computeCrossBoundary — one reason per boundary, decided from values'
   it('flags a secret-adjacent field through the SHIPPED matcher, in both directions', () => {
     // Under a root: the obvious case.
     expect(computeCrossBoundary(facts({
-      fieldEdits: [{ configPath: 'plugins.auth.0.package', newValue: '@acme/auth' }],
+      fieldEdits: [{ configPath: 'plugins.0.package', newValue: '@acme/auth' }],
     })).reasons).toEqual(['secret-adjacent-field'])
 
-    // Above a root: `plugins` replaces the whole subtree, auth declarations included.
+    // The root itself: setting `plugins` replaces every entry.
     expect(computeCrossBoundary(facts({
       fieldEdits: [{ configPath: 'plugins', newValue: 'anything' }],
     })).reasons).toEqual(['secret-adjacent-field'])
@@ -148,9 +148,9 @@ describe('computeCrossBoundary — one reason per boundary, decided from values'
     const verdict = computeCrossBoundary({
       fieldEdits: [
         { configPath: 'registry.targets.shop.url', newValue: 'https://new.example/' },
-        { configPath: 'plugins.auth', newValue: 'x' },
+        { configPath: 'plugins', newValue: 'x' },
         // A second edit that flags the same way must not produce a second reason.
-        { configPath: 'plugins.providers', newValue: 'y' },
+        { configPath: 'plugins', newValue: 'y' },
       ],
       addsHook: true,
       filesTouched: ['agent-qa.config.yaml', 'somewhere/else.yaml'],

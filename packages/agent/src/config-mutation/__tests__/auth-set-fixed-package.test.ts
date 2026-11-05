@@ -22,9 +22,11 @@ registry:
 
 const FIXED_PACKAGE_ONLY =
   'config.auth.set declares only @vostride/agent-qa-subscription-auth. Declare any other auth '
-  + 'plugin by editing plugins.auth in the config file.'
+  + 'plugin by editing plugins in the config file.'
 
-function harness() {
+const SUBSCRIPTION_ENTRY = { name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }
+
+function harness(config = CONFIG) {
   const inspected: string[][] = []
   const written: (readonly ConfigChange[])[] = []
 
@@ -33,7 +35,7 @@ function harness() {
       read: () => Promise.resolve({
         configFile: CONFIG_FILE,
         hooksFile: 'hooks.yaml',
-        files: [{ path: CONFIG_FILE, bytes: utf8Encode(CONFIG) }, { path: 'hooks.yaml' }],
+        files: [{ path: CONFIG_FILE, bytes: utf8Encode(config) }, { path: 'hooks.yaml' }],
       }),
       inspect: ({ bytes, paths }) => {
         inspected.push([...paths])
@@ -62,8 +64,14 @@ function harness() {
         value: ConfigStructuredValue
       }) => {
         const document = parseDocument(bytes === undefined ? '' : utf8Decode(bytes))
+        const previous = document.getIn(path.split('.')) as unknown
         document.setIn(path.split('.'), value)
-        return Promise.resolve({ bytes: utf8Encode(document.toString()) })
+        const mutated = utf8Encode(document.toString())
+        return Promise.resolve(
+          typeof previous === 'string'
+            ? { bytes: mutated, previousValue: previous }
+            : { bytes: mutated },
+        )
       },
       mintHookId: () => {
         throw new Error('config.auth.set must not mint a hook id')
@@ -103,11 +111,54 @@ describe('config.auth.set and auth plugin packages', () => {
     const answer = await authSet(test, SUBSCRIPTION_AUTH_PACKAGE)
 
     expect(SUBSCRIPTION_AUTH_PACKAGE).toBe('@vostride/agent-qa-subscription-auth')
-    expect(answer).toMatchObject({ outcome: 'applied', fields: ['plugins.auth.0.package'] })
+    expect(answer).toMatchObject({
+      outcome: 'applied',
+      fields: ['plugins.0.name', 'plugins.0.package'],
+    })
     expect(test.inspected).toHaveLength(1)
-    expect(test.written).toEqual([[
-      { op: 'append', path: ['plugins', 'auth'], value: { package: SUBSCRIPTION_AUTH_PACKAGE } },
-    ]])
+    expect(test.written).toEqual([[{ op: 'append', path: ['plugins'], value: SUBSCRIPTION_ENTRY }]])
+  })
+
+  it('appends the subscription entry after the entries already listed', async () => {
+    const test = harness(
+      `${CONFIG}plugins:\n  - name: acme\n    package: "@vostride/agent-qa-acme-auth"\n`,
+    )
+
+    const answer = await authSet(test, SUBSCRIPTION_AUTH_PACKAGE)
+
+    expect(answer).toMatchObject({
+      outcome: 'applied',
+      fields: ['plugins.1.name', 'plugins.1.package'],
+    })
+    expect(test.written).toEqual([[{ op: 'append', path: ['plugins'], value: SUBSCRIPTION_ENTRY }]])
+  })
+
+  it('changes nothing when an entry already names the subscription-auth package', async () => {
+    const test = harness(
+      `${CONFIG}plugins:\n  - name: sign-in\n    package: "${SUBSCRIPTION_AUTH_PACKAGE}"\n`,
+    )
+
+    const answer = await authSet(test, SUBSCRIPTION_AUTH_PACKAGE)
+
+    expect(answer).toEqual({ outcome: 'no-change', path: 'bind auth for target shop' })
+    expect(test.written).toEqual([])
+  })
+
+  it('refuses when an entry named subscription names another plugin', async () => {
+    for (const entry of ['package: "@vostride/agent-qa-acme-auth"', 'path: ./plugins/auth']) {
+      const test = harness(`${CONFIG}plugins:\n  - name: subscription\n    ${entry}\n`)
+
+      const answer = await authSet(test, SUBSCRIPTION_AUTH_PACKAGE)
+
+      expect(answer).toEqual({
+        outcome: 'refused',
+        reason: 'unsupported-reference',
+        detail:
+          'an entry named subscription already names another plugin; rename it or edit plugins '
+          + 'in the config file.',
+      })
+      expect(test.written).toEqual([])
+    }
   })
 
   it('refuses any other package before the document is inspected, and writes nothing', async () => {

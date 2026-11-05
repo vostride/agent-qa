@@ -421,7 +421,7 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
                   ]),
           ]),
       ...(input.declareUninstalledAuthPlugin === true
-        ? ['plugins:', '  auth:', `    - package: '${UNINSTALLED_AUTH_PLUGIN_PACKAGE}'`]
+        ? ['plugins:', '  - name: subscription', `    package: '${UNINSTALLED_AUTH_PLUGIN_PACKAGE}'`]
         : []),
       'use:',
       ...(input.headedBrowser === true || input.remote !== undefined
@@ -662,7 +662,7 @@ export function declareMarkerAuthPlugin(fixture: InProcessFixture): string {
   )
   appendFileSync(
     fixture.configPath,
-    `plugins:\n  auth:\n    - package: "${MARKER_AUTH_PLUGIN_PACKAGE}"\n`,
+    `plugins:\n  - name: marker\n    package: "${MARKER_AUTH_PLUGIN_PACKAGE}"\n`,
   )
   return marker
 }

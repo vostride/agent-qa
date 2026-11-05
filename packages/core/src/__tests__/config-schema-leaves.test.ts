@@ -80,7 +80,7 @@ describe('config schema leaves', () => {
       'use.timeout.step',
       'registry.llms[].name',
       'workspace.secretsFile',
-      'plugins.auth[].package',
+      'plugins[].package',
     ]) {
       expect(walked).toContain(witness)
     }
@@ -125,11 +125,11 @@ describe('config schema leaves', () => {
       'services.mcp.enabled',
       'services.mcp.port',
     ])
-    expect(walked.filter(leaf => leaf.split('.')[0] === 'plugins')).toEqual([
-      'plugins.auth[].package',
-      'plugins.auth[].path',
-      'plugins.providers[].package',
-      'plugins.providers[].path',
+    expect(walked.filter(leaf => leaf.startsWith('plugins[]'))).toEqual([
+      'plugins[].name',
+      'plugins[].options.*',
+      'plugins[].package',
+      'plugins[].path',
     ])
   })
 })

@@ -273,10 +273,8 @@ function objectRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function configUsesSubscriptionAuth(config: Record<string, unknown>): boolean {
-  const plugins = objectRecord(config.plugins)
-  const authPlugins = plugins?.auth
-  if (!Array.isArray(authPlugins)) return false
-  return authPlugins.some(plugin => objectRecord(plugin)?.package === SUBSCRIPTION_AUTH_PACKAGE)
+  if (!Array.isArray(config.plugins)) return false
+  return config.plugins.some(entry => objectRecord(entry)?.package === SUBSCRIPTION_AUTH_PACKAGE)
 }
 
 type SubscriptionAuthDependencyPlan = {

@@ -463,9 +463,9 @@ describe('init command', () => {
       expect(config.services).not.toHaveProperty('memory')
       expect(config.workspace).not.toHaveProperty('agentRules')
       expect(config.services).not.toHaveProperty('mcp')
-      expect(config.plugins).toEqual({
-        auth: [{ package: '@vostride/agent-qa-subscription-auth' }],
-      })
+      expect(config.plugins).toEqual([
+        { name: 'subscription', package: '@vostride/agent-qa-subscription-auth' },
+      ])
       if (platform === 'web' || platform === 'web+android' || platform === 'web+ios') {
         expect(config.services.accessibility).toEqual({
           enabled: true,

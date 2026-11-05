@@ -88,10 +88,10 @@ test('the write policy admits the page-owned leaves and refuses the plugin, remo
   const writable = api.CONFIG_SCHEMA_LEAVES.filter(pattern => api.isPageWritableConfigPath(concreteLeafPath(pattern, true)))
   expect(writable).toEqual(expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns', 'use.browser.remote']))
   expect(api.CONFIG_SCHEMA_LEAVES.filter(pattern => !writable.includes(pattern))).toEqual([
-    'plugins.auth[].package',
-    'plugins.auth[].path',
-    'plugins.providers[].package',
-    'plugins.providers[].path',
+    'plugins[].name',
+    'plugins[].options.*',
+    'plugins[].package',
+    'plugins[].path',
     'registry.devices.*.capabilities.*',
     'registry.devices.*.remote',
     'registry.remotes[].basicAuth.password',
@@ -154,7 +154,7 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
   const denied = api.CONFIG_WRITE_DENIED_ROOTS as readonly string[]
   for (const pattern of api.CONFIG_SCHEMA_LEAVES) {
     const expected =
-      !denied.includes(pattern.split('.')[0]!) &&
+      !denied.includes(pattern.split(/[.[]/)[0]!) &&
       !pattern.startsWith('registry.remotes[]') &&
       pattern !== 'registry.devices.*.remote' &&
       !pattern.startsWith('registry.devices.*.capabilities') &&
@@ -184,7 +184,7 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
     [],
     ['use', 'bogus'],
     ['plugins'],
-    ['plugins', 'auth', 0, 'path'],
+    ['plugins', 0, 'path'],
     ['registry', 'remotes'],
     ['registry', 'remotes', 0],
     ['registry', 'remotes', { name: 'k' }, 'url'],
@@ -206,7 +206,7 @@ test('PAGE-WRITABLE-EVERY-RENDERED-LEAF', () => {
   for (const path of refused) {
     expect({ path, writable: api.isPageWritableConfigPath(path) }).toEqual({ path, writable: false })
   }
-  expect(api.isConfigSchemaPath(['plugins', 'auth', 0, 'path'])).toBe(true)
+  expect(api.isConfigSchemaPath(['plugins', 0, 'path'])).toBe(true)
   expect(api.isConfigSchemaPath(['use', 'bogus'])).toBe(false)
 })
 

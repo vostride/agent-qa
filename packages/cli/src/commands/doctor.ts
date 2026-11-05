@@ -319,7 +319,7 @@ function checkSubscriptionAuth(config: Record<string, unknown> | null): DoctorCh
   const name = configuredLLMName(config)
   return {
     name: 'Subscription Auth',
-    fixInstructions: `Install \`@vostride/agent-qa-subscription-auth\` (\`npm install -D @vostride/agent-qa-subscription-auth\`), declare it in plugins.auth, then run \`agent-qa auth login --config ${name}\``,
+    fixInstructions: `Install \`@vostride/agent-qa-subscription-auth\` (\`npm install -D @vostride/agent-qa-subscription-auth\`), add it to plugins as name: subscription with that package, then run \`agent-qa auth login --config ${name}\``,
     check: async () => {
       const llm = getActiveLLMConfig(config)
       if (getProvider(llm.provider)?.subscription !== true) {

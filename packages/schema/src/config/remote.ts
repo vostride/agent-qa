@@ -583,8 +583,7 @@ export function appendsSubscriptionEntry(before: unknown, after: unknown): boole
 
 interface ClosedFields {
   remotes: unknown
-  plugins: Record<string, unknown>
-  auth: unknown
+  plugins: unknown
   devicePlacement: Record<string, { remote: unknown; capabilities: unknown }>
   appRefs: Record<string, unknown>
 }
@@ -618,37 +617,27 @@ function appRefs(targets: unknown): Record<string, unknown> {
 function closedFields(config: unknown): ClosedFields {
   const root = isRecord(config) ? config : {}
   const registry = isRecord(root.registry) ? root.registry : {}
-  const { auth, ...plugins } = isRecord(root.plugins) ? root.plugins : {}
   return {
     remotes: registry.remotes ?? [],
-    plugins,
-    auth: auth ?? [],
+    plugins: root.plugins ?? [],
     devicePlacement: devicePlacement(registry.devices),
     appRefs: appRefs(registry.targets),
   }
 }
 
-function appendsSubscriptionAuth(before: unknown, after: unknown): boolean {
-  return (
-    Array.isArray(before) &&
-    Array.isArray(after) &&
-    after.length === before.length + 1 &&
-    structurallyEqual(after.slice(0, -1), before) &&
-    structurallyEqual(after.at(-1), { package: SUBSCRIPTION_AUTH_PACKAGE })
-  )
-}
-
 // Remotes and plugins carry credentials and code, and a device's remote, capabilities and its
 // target's app reference decide where it runs and what it installs, so no write may change them,
-// save the one subscription-auth declaration config.auth.set appends.
+// save the one subscription entry config.auth.set appends.
 export function closedConfigFieldsChanged(before: unknown, after: unknown): boolean {
   const held = closedFields(before)
   const next = closedFields(after)
   if (!structurallyEqual(held.remotes, next.remotes)) return true
-  if (!structurallyEqual(held.plugins, next.plugins)) return true
   if (!structurallyEqual(held.devicePlacement, next.devicePlacement)) return true
   if (!structurallyEqual(held.appRefs, next.appRefs)) return true
-  return !structurallyEqual(held.auth, next.auth) && !appendsSubscriptionAuth(held.auth, next.auth)
+  return (
+    !structurallyEqual(held.plugins, next.plugins) &&
+    !appendsSubscriptionEntry(held.plugins, next.plugins)
+  )
 }
 
 function fingerprint(value: unknown): string {

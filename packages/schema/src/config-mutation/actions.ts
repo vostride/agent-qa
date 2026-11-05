@@ -55,7 +55,7 @@ export type ConfigTargetEditInput = z.infer<typeof ConfigTargetEditInputSchema>
 export const ConfigAuthSetInputSchema = z.object({
   /** Which target this auth applies to, by registry name. */
   target: z.string().min(1),
-  /** The NAME of an auth plugin package to declare under `plugins.auth`. */
+  /** The NAME of an auth plugin package, declared as the `plugins` entry `subscription`. */
   pluginPackage: z.string().min(1).optional(),
   /** The NAME of an environment variable the plugin reads. Never its value. */
   envVarName: z.string().min(1).optional(),

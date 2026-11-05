@@ -82,11 +82,11 @@ function normalizeLLMConfig(raw: NamedLLMConfigLike & Record<string, unknown>): 
 }
 
 export async function loadAuthPluginsForRawConfig(raw: unknown, configPath = 'agent-qa.config.yaml'): Promise<void> {
-  const declarations = (raw as { plugins?: { auth?: unknown } } | null)?.plugins?.auth
-  if (!Array.isArray(declarations) || declarations.length === 0) return
+  const entries = (raw as { plugins?: unknown } | null)?.plugins
+  if (!Array.isArray(entries) || entries.length === 0) return
 
   const { loadLLMAuthPlugins } = await import('@vostride/agent-qa-core')
-  await loadLLMAuthPlugins(declarations as Parameters<typeof loadLLMAuthPlugins>[0], {
+  await loadLLMAuthPlugins(entries as Parameters<typeof loadLLMAuthPlugins>[0], {
     baseDir: dirname(resolvePath(configPath)),
   })
 }

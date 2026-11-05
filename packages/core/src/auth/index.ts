@@ -39,7 +39,6 @@ export {
 
 export type {
   AuthPluginBundle,
-  AuthPluginDeclaration,
   LoadLLMAuthPluginsOptions,
 } from './plugin-loader.js'
 

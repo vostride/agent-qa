@@ -117,10 +117,10 @@ function printMissingSubscriptionPluginGuidance(configName: string, provider: Su
   console.log(pc.dim(`Provider: ${provider}`))
   console.log(pc.dim('Add the subscription auth plugin to package.json and install with your package manager:'))
   console.log(pc.dim('  "devDependencies": { "@vostride/agent-qa-subscription-auth": "<agent-qa version>" }'))
-  console.log(pc.dim('Declare it in agent-qa.config.yaml under plugins.auth:'))
+  console.log(pc.dim('Declare it in agent-qa.config.yaml as a plugins entry:'))
   console.log(pc.dim('  plugins:'))
-  console.log(pc.dim('    auth:'))
-  console.log(pc.dim('      - package: @vostride/agent-qa-subscription-auth'))
+  console.log(pc.dim('    - name: subscription'))
+  console.log(pc.dim('      package: "@vostride/agent-qa-subscription-auth"'))
   console.log(pc.dim(`Then run: agent-qa auth login --config ${configName}`))
 }
 

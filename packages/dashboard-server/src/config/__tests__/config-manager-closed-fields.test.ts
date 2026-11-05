@@ -8,7 +8,7 @@ import type { ConfigChange } from '@vostride/agent-qa-schema'
 
 import { ConfigManager } from '../index.js'
 
-const SUBSCRIPTION_AUTH = { package: '@vostride/agent-qa-subscription-auth' }
+const SUBSCRIPTION_AUTH = { name: 'subscription', package: '@vostride/agent-qa-subscription-auth' }
 
 const WORKSPACE = [
   '# owner notes: the grid is the team one',
@@ -48,8 +48,8 @@ const WITH_PLUGINS = [
   '    remote: grid',
   ...USE.slice(-2),
   'plugins:',
-  '  auth:',
-  '    - path: ./auth-plugin.mjs',
+  '  - name: local',
+  '    path: ./auth-plugin.mjs',
   '',
 ].join('\n')
 
@@ -102,9 +102,9 @@ describe("the config's closed fields", () => {
       [{ op: 'move', from: ['registry', 'remotes'], path: ['use', 'timeout', 'step'] }],
       [{ op: 'unset', path: ['registry', 'remotes'] }],
       [{ op: 'append', path: ['registry', 'remotes'], value: { ...EVIL_GRID, name: 'second' } }],
-      [{ op: 'set', path: ['plugins', 'providers'], value: [{ package: '@acme/provider' }] }],
-      [{ op: 'append', path: ['plugins', 'auth'], value: { package: '@acme/other-auth' } }],
-      [{ op: 'set', path: ['plugins', 'auth', 0, 'path'], value: './other-plugin.mjs' }],
+      [{ op: 'set', path: ['plugins'], value: [{ name: 'provider', package: '@acme/provider' }] }],
+      [{ op: 'append', path: ['plugins'], value: { name: 'acme', package: '@acme/other-auth' } }],
+      [{ op: 'set', path: ['plugins', 0, 'path'], value: './other-plugin.mjs' }],
       [{ op: 'unset', path: ['plugins'] }],
     ])
   })
@@ -112,7 +112,7 @@ describe("the config's closed fields", () => {
   it('the subscription-auth append, the remote pick and unrelated fields are written', async () => {
     const { manager, path } = await configFile(WITH_PLUGINS)
     const accepted: ConfigChange[][] = [
-      [{ op: 'append', path: ['plugins', 'auth'], value: SUBSCRIPTION_AUTH }],
+      [{ op: 'append', path: ['plugins'], value: SUBSCRIPTION_AUTH }],
       [{ op: 'set', path: ['use', 'browser', 'remote'], value: 'local' }],
       [{ op: 'set', path: ['use', 'browser', 'remote'], value: 'grid' }],
       [{ op: 'set', path: ['use', 'workers'], value: 4 }],
@@ -126,7 +126,10 @@ describe("the config's closed fields", () => {
       use: { browser: { remote?: unknown }; workers: unknown }
     }
     expect(written.registry).toEqual((parseYaml(WITH_PLUGINS) as { registry: unknown }).registry)
-    expect(written.plugins).toEqual({ auth: [{ path: './auth-plugin.mjs' }, SUBSCRIPTION_AUTH] })
+    expect(written.plugins).toEqual([
+      { name: 'local', path: './auth-plugin.mjs' },
+      SUBSCRIPTION_AUTH,
+    ])
     expect(written.use.browser.remote).toBe('grid')
     expect(written.use.workers).toBe(4)
   })
@@ -143,14 +146,14 @@ describe("the config's closed fields", () => {
       .toEqual({ ...registry, llms: [llm] })
   })
 
-  it('on a config with no plugins block the subscription-auth append creates plugins.auth with that one entry', async () => {
+  it('on a config with no plugins block the subscription-auth append creates plugins with that one entry', async () => {
     const { manager, path } = await configFile(WITHOUT_PLUGINS)
     const outcome = await manager.applyChanges([
-      { op: 'append', path: ['plugins', 'auth'], value: SUBSCRIPTION_AUTH },
+      { op: 'append', path: ['plugins'], value: SUBSCRIPTION_AUTH },
     ])
     expect(outcome).toMatchObject({ kind: 'ok' })
     expect((parseYaml(await readFile(path, 'utf-8')) as { plugins: unknown }).plugins)
-      .toEqual({ auth: [SUBSCRIPTION_AUTH] })
+      .toEqual([SUBSCRIPTION_AUTH])
   })
 
   it('the served config and its file lines show a remote by name, protocol and origin only', async () => {
@@ -734,15 +737,15 @@ describe("the config's closed fields", () => {
 
   it('on a config with no plugins block another package, a path or a second plugins change is refused', async () => {
     await expectRefused(WITHOUT_PLUGINS, [
-      [{ op: 'append', path: ['plugins', 'auth'], value: { package: '@acme/other-auth' } }],
-      [{ op: 'append', path: ['plugins', 'auth'], value: { path: './local/plugin.js' } }],
+      [{ op: 'append', path: ['plugins'], value: { name: 'acme', package: '@acme/other-auth' } }],
+      [{ op: 'append', path: ['plugins'], value: { name: 'local', path: './local/plugin.js' } }],
       [
-        { op: 'append', path: ['plugins', 'auth'], value: SUBSCRIPTION_AUTH },
-        { op: 'set', path: ['plugins', 'providers'], value: [{ package: '@acme/provider' }] },
+        { op: 'append', path: ['plugins'], value: SUBSCRIPTION_AUTH },
+        { op: 'set', path: ['plugins'], value: [{ name: 'provider', package: '@acme/provider' }] },
       ],
       [
-        { op: 'append', path: ['plugins', 'auth'], value: SUBSCRIPTION_AUTH },
-        { op: 'append', path: ['plugins', 'auth'], value: SUBSCRIPTION_AUTH },
+        { op: 'append', path: ['plugins'], value: SUBSCRIPTION_AUTH },
+        { op: 'append', path: ['plugins'], value: SUBSCRIPTION_AUTH },
       ],
     ])
   })

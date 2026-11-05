@@ -30,15 +30,15 @@ describe('buildMaskedResolvedConfig', () => {
     const config = buildMaskedResolvedConfig({
       configPath: 'agent-qa.config.yaml',
       resolved: {
-        plugins: { auth: [{ package: SCOPED_PACKAGE_NAME }] },
+        plugins: [{ name: 'subscription', package: SCOPED_PACKAGE_NAME }],
         knowledge: { dir: 'agent-qa-knowledge' },
       },
       layers: [],
       mask: declaredMask,
     })
 
-    expect(config.entries.find((entry) => entry.key === 'plugins.auth.0.package')).toEqual({
-      key: 'plugins.auth.0.package',
+    expect(config.entries.find((entry) => entry.key === 'plugins.0.package')).toEqual({
+      key: 'plugins.0.package',
       value: SCOPED_PACKAGE_NAME,
       source: 'default',
       masked: false,
@@ -99,7 +99,7 @@ describe('buildMaskedResolvedConfig', () => {
       resolved: {
         workspace: { testMatch: [GLOB_WILDCARD_VALUE], testPathIgnore: [IGNORE_GLOB_VALUE] },
         services: { accessibility: { exclude: [CSS_SELECTOR_VALUE] } },
-        plugins: { providers: [{ package: OVER_MASK_PACKAGE_VALUE }] },
+        plugins: [{ name: 'provider', package: OVER_MASK_PACKAGE_VALUE }],
       },
       layers: [],
       mask: declaredMask,
@@ -109,7 +109,7 @@ describe('buildMaskedResolvedConfig', () => {
       ['workspace.testMatch.0', GLOB_WILDCARD_VALUE],
       ['workspace.testPathIgnore.0', IGNORE_GLOB_VALUE],
       ['services.accessibility.exclude.0', CSS_SELECTOR_VALUE],
-      ['plugins.providers.0.package', OVER_MASK_PACKAGE_VALUE],
+      ['plugins.0.package', OVER_MASK_PACKAGE_VALUE],
     ] as const) {
       expect(config.entries.find((entry) => entry.key === key), key)
         .toMatchObject({ value, masked: false })

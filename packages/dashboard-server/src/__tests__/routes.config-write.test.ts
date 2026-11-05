@@ -515,8 +515,8 @@ const policyConfig = baseConfig.replace('registry: {}', [
   '      baseURL: https://llm.example.test/v1',
 ].join('\n')) + [
   'plugins:',
-  '  auth:',
-  '    - path: ./auth-plugin.mjs',
+  '  - name: local',
+  '    path: ./auth-plugin.mjs',
   '',
 ].join('\n')
 
@@ -527,10 +527,10 @@ describe('PATCH /api/config path policy', () => {
     const before = await readFile(configPath)
     mockRename.mockClear()
     const denied = [
-      { op: 'set', path: ['plugins', 'auth', 0, 'path'], value: './evil.mjs' },
-      { op: 'append', path: ['plugins', 'providers'], value: { path: './evil-provider.mjs' } },
+      { op: 'set', path: ['plugins', 0, 'path'], value: './evil.mjs' },
+      { op: 'append', path: ['plugins'], value: { name: 'evil', path: './evil-provider.mjs' } },
       { op: 'set', path: ['safety', 'trustMode'], value: true },
-      { op: 'move', from: ['use', 'timeout', 'step'], path: ['plugins', 'auth', 0, 'package'] },
+      { op: 'move', from: ['use', 'timeout', 'step'], path: ['plugins', 0, 'package'] },
       { op: 'expect', path: ['safety', 'trustMode'], value: false },
     ]
 

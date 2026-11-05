@@ -587,9 +587,9 @@ describe('config.auth.set — refs only, refused on the INPUT', () => {
     expect(answer.blockedReason).toBe('schema-fail')
   })
 
-  it('appends a plugin declaration past the end rather than over the last one', async () => {
+  it('appends the subscription entry past the end rather than over the last one', async () => {
     const withPlugins = harness({
-      config: `${CONFIG}plugins:\n  auth:\n    - package: "@acme/auth"\n`,
+      config: `${CONFIG}plugins:\n  - name: acme\n    package: "@acme/auth"\n`,
     })
     const answer = await call(withPlugins, 'config.auth.set', {
       target: 'shop',
@@ -597,12 +597,12 @@ describe('config.auth.set — refs only, refused on the INPUT', () => {
     })
     if (answer.outcome !== 'applied') throw new Error('unreachable')
     const content = withPlugins.text(CONFIG_FILE) ?? ''
-    // BOTH declarations, in order. This reds on a write at a fixed index (the existing one is gone)
+    // BOTH entries, in order. This reds on a write at a fixed index (the existing one is gone)
     // and on writing the whole sequence back (the existing one is gone too, differently).
     expect(content.indexOf('@acme/auth'))
       .toBeLessThan(content.indexOf(SUBSCRIPTION_AUTH_PACKAGE))
-    expect(content).toContain('- package: "@acme/auth"')
-    expect(content).toContain(`- package: "${SUBSCRIPTION_AUTH_PACKAGE}"`)
+    expect(content).toContain('- name: acme\n    package: "@acme/auth"')
+    expect(content).toContain(`- name: subscription\n    package: "${SUBSCRIPTION_AUTH_PACKAGE}"`)
     expect(answer.crossBoundaryReasons).toEqual(['secret-adjacent-field'])
   })
 
@@ -622,7 +622,7 @@ describe('config.auth.set — refs only, refused on the INPUT', () => {
     // codebase's summary channel really does print values it is given.
     expect(test.filed).toHaveLength(0)
     expect(test.written).toHaveLength(0)
-    expect(configFieldSetSummaryLine('plugins.auth', unnamed)).toContain(unnamed)
+    expect(configFieldSetSummaryLine('plugins', unnamed)).toContain(unnamed)
     for (const window of windows(unnamed)) expect(answer.detail).not.toContain(window)
 
     // THE GUARD REJECTS SOMETHING ITS OWN ASSUMPTION ADMITS, in the other direction: a legal
@@ -983,13 +983,13 @@ describe('auth, hook and scaffold write in the call as well', () => {
       expect(answer).toMatchObject({
         outcome: 'applied',
         files: [CONFIG_FILE],
-        fields: ['plugins.auth.0.package'],
+        fields: ['plugins.0.name', 'plugins.0.package'],
         crossBoundaryReasons: ['secret-adjacent-field'],
       })
       expect(test.written).toEqual([{
         kind: 'fields',
         changes: [
-          { op: 'append', path: ['plugins', 'auth'], value: { package: SUBSCRIPTION_AUTH_PACKAGE } },
+          { op: 'append', path: ['plugins'], value: { name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE } },
         ],
       }])
       expect(test.filed).toHaveLength(0)

@@ -144,6 +144,42 @@ describe('retired-key pre-scan: removed production keys', () => {
   })
 })
 
+const PLUGINS_AUTH_MESSAGE =
+  'plugins.auth was removed: plugins is now a list of entries, each with a name and a package. For subscription sign-in, add name: subscription with package: @vostride/agent-qa-subscription-auth. Delete this block.'
+const PLUGINS_PROVIDERS_MESSAGE =
+  'plugins.providers was removed: plugins is now a list of entries, each with a name and a package. Model-provider plugins load only from @vostride/agent-qa-* packages. Delete this block.'
+
+describe('retired-key pre-scan: per-kind plugin keys', () => {
+  it('plugins.auth and plugins.providers are refused with their removal messages', () => {
+    const config = {
+      ...validBase,
+      plugins: {
+        auth: [{ package: '@vostride/agent-qa-subscription-auth' }],
+        providers: [{ package: '@vostride/agent-qa-acme-provider' }],
+      },
+    }
+    expect(issueMessageAt(config, 'plugins.auth')).toBe(PLUGINS_AUTH_MESSAGE)
+    expect(paramsAt(config, 'plugins.auth')).toEqual({ retired: true })
+    expect(issueMessageAt(config, 'plugins.providers')).toBe(PLUGINS_PROVIDERS_MESSAGE)
+    expect(paramsAt(config, 'plugins.providers')).toEqual({ retired: true })
+  })
+
+  it('a 0.2 config declaring subscription auth under plugins.auth is refused, not read', () => {
+    const config = {
+      ...validBase,
+      registry: {
+        llms: [{ name: 'claude', provider: 'anthropic-subscription', model: 'claude-sonnet' }],
+      },
+      use: { ...validBase.use, llm: 'claude' },
+      plugins: { auth: [{ package: '@vostride/agent-qa-subscription-auth' }] },
+    }
+    const result = AgentQaConfigSchema.safeParse(config)
+    expect(result.success).toBe(false)
+    expect(issueMessageAt(config, 'plugins.auth')).toBe(PLUGINS_AUTH_MESSAGE)
+    expect(issueAt(config, 'plugins.providers')).toBeUndefined()
+  })
+})
+
 describe('retired-key pre-scan: removed BrowserStack keys', () => {
   it('registry.providers is refused with its removal message, an empty block included', () => {
     for (const providers of [null, {}, { browserstack: { username: 'u', accessKey: 'k' } }]) {

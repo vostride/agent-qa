@@ -52,6 +52,12 @@ const RETIRED_ALLOW_PRODUCTION_MESSAGE =
 const RETIRED_REGISTRY_PROVIDERS_MESSAGE =
   'registry.providers was removed: list remote browsers and Appium servers under registry.remotes, with credentials as {{secret:NAME}} references to workspace.secretsFile. Delete this block.'
 
+const RETIRED_PLUGINS_AUTH_MESSAGE =
+  'plugins.auth was removed: plugins is now a list of entries, each with a name and a package. For subscription sign-in, add name: subscription with package: @vostride/agent-qa-subscription-auth. Delete this block.'
+
+const RETIRED_PLUGINS_PROVIDERS_MESSAGE =
+  'plugins.providers was removed: plugins is now a list of entries, each with a name and a package. Model-provider plugins load only from @vostride/agent-qa-* packages. Delete this block.'
+
 const RETIRED_DEVICE_MATCH_MESSAGE =
   'registry.devices.<name>.match was removed: describe the device with model and os (id pins one unit), move appPackage, appActivity and bundleId to the target, and put other Appium settings in capabilities. Delete this block.'
 
@@ -177,6 +183,25 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
       path: ['registry', 'providers'],
       message: RETIRED_REGISTRY_PROVIDERS_MESSAGE,
     })
+  }
+
+  if (isPlainObject(value.plugins)) {
+    if (Object.hasOwn(value.plugins, 'auth')) {
+      ctx.addIssue({
+        code: 'custom',
+        params: { retired: true },
+        path: ['plugins', 'auth'],
+        message: RETIRED_PLUGINS_AUTH_MESSAGE,
+      })
+    }
+    if (Object.hasOwn(value.plugins, 'providers')) {
+      ctx.addIssue({
+        code: 'custom',
+        params: { retired: true },
+        path: ['plugins', 'providers'],
+        message: RETIRED_PLUGINS_PROVIDERS_MESSAGE,
+      })
+    }
   }
 
   if (isPlainObject(value.registry) && isPlainObject(value.registry.devices)) {

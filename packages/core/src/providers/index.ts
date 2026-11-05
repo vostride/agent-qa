@@ -1,7 +1,4 @@
-export type {
-  ProviderPluginDeclaration,
-  ProviderPluginDescriptor,
-} from './plugin-loader.js'
+export type { ProviderPluginDescriptor } from './plugin-loader.js'
 
 export {
   clearLoadedProviderPluginModules,

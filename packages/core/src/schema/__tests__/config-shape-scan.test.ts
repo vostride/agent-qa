@@ -71,7 +71,7 @@ describe('plugin entry shape sentences', () => {
   })
 
   it('adds nothing for an object plugins, a non-object item or a config without plugins', () => {
-    expect(issues({ plugins: { auth: [{ package: '@acme/agent-qa-auth' }] } })).toEqual([])
+    expect(issues({ plugins: { entries: [{ package: '@acme/agent-qa-plugin' }] } })).toEqual([])
     expect(issues({ plugins: ['acme', 3, null] })).toEqual([])
     expect(issues({ workspace: {} })).toEqual([])
     expect(issues('not a config')).toEqual([])

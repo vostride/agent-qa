@@ -184,10 +184,10 @@ function fixtureWorkspace(roots: string[]): FixtureWorkspace {
           },
         },
       },
-      plugins: {
-        auth: [{ package: FIXTURE_AUTH_PLUGIN_PACKAGE }],
-        providers: [{ package: FIXTURE_PROVIDER_PLUGIN_PACKAGE }],
-      },
+      plugins: [
+        { name: 'acme', package: FIXTURE_AUTH_PLUGIN_PACKAGE },
+        { name: 'provider', package: FIXTURE_PROVIDER_PLUGIN_PACKAGE },
+      ],
       // The config schema's superRefine requires this leaf, so a resolvable fixture
       // must carry it before `config.get` can read anything at all.
       use: { mobile: { appState: 'preserve' } },
@@ -830,14 +830,14 @@ describe('agent-qa fn (generic function invoker)', () => {
 
     const config = JSON.parse(result.stdout) as MaskedResolvedConfig
     const byKey = Object.fromEntries(config.entries.map((entry) => [entry.key, entry]))
-    expect(byKey['plugins.auth.0.package']).toEqual({
-      key: 'plugins.auth.0.package',
+    expect(byKey['plugins.0.package']).toEqual({
+      key: 'plugins.0.package',
       value: FIXTURE_AUTH_PLUGIN_PACKAGE,
       source: 'config-file',
       masked: false,
     })
-    expect(byKey['plugins.providers.0.package']).toEqual({
-      key: 'plugins.providers.0.package',
+    expect(byKey['plugins.1.package']).toEqual({
+      key: 'plugins.1.package',
       value: FIXTURE_PROVIDER_PLUGIN_PACKAGE,
       source: 'config-file',
       masked: false,

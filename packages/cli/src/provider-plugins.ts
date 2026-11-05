@@ -5,12 +5,12 @@ export async function loadProviderPluginsForRawConfig(
   raw: unknown,
   configPath = 'agent-qa.config.yaml',
 ): Promise<void> {
-  const declarations = (raw as { plugins?: { providers?: unknown } } | null)?.plugins?.providers
-  if (!Array.isArray(declarations) || declarations.length === 0) return
+  const entries = (raw as { plugins?: unknown } | null)?.plugins
+  if (!Array.isArray(entries) || entries.length === 0) return
 
   const { loadProviderPlugins } = await import('@vostride/agent-qa-core')
   const { registerProvider } = await import('@vostride/agent-qa-model')
-  const descriptors = await loadProviderPlugins(declarations as Parameters<typeof loadProviderPlugins>[0], {
+  const descriptors = await loadProviderPlugins(entries as Parameters<typeof loadProviderPlugins>[0], {
     baseDir: dirname(resolvePath(configPath)),
   })
 

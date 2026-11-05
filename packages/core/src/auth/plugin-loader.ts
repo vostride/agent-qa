@@ -1,15 +1,12 @@
 import { registerLLMAuthProviderPlugins, type LLMAuthProviderPlugin } from './plugin-registry.js'
 import {
+  PluginNotInstalledError,
   declarationKey,
-  declarationLabel,
   importDeclaredPluginModule,
-  packageDeclarationValue,
-  pathDeclarationValue,
 } from '../plugin-loader-util.js'
-
-export type AuthPluginDeclaration =
-  | { package: string; path?: never }
-  | { path: string; package?: never }
+import { selectInProcessPluginEntries } from '../plugins/resolve-entries.js'
+import type { PluginEntry } from '../schema/config-schema.js'
+import { getAgentQaVersion } from '../version.js'
 
 export interface AuthPluginBundle {
   providers: LLMAuthProviderPlugin[]
@@ -57,35 +54,33 @@ async function resolvePluginBundle(module: AuthPluginModule, source: string): Pr
   throw new Error(`Auth plugin "${source}" must export createSubscriptionAuthPlugin(), createAuthPlugin(), default, or providers.`)
 }
 
-function validateDeclaration(declaration: AuthPluginDeclaration): void {
-  const packageName = packageDeclarationValue(declaration)
-  const pluginPath = pathDeclarationValue(declaration)
-
-  if (packageName && pluginPath) {
-    throw new Error('Auth plugin declaration must specify either package or path, not both.')
-  }
-  if (!packageName && !pluginPath) {
-    throw new Error('Auth plugin declaration must specify package or path.')
-  }
-}
-
 export async function loadLLMAuthPlugins(
-  declarations: AuthPluginDeclaration[] | undefined,
+  entries: readonly PluginEntry[] | undefined,
   options: LoadLLMAuthPluginsOptions = {},
 ): Promise<LLMAuthProviderPlugin[]> {
-  if (!declarations?.length) return []
+  if (!entries?.length) return []
   const baseDir = options.baseDir ?? process.cwd()
-  const loadedProviders: LLMAuthProviderPlugin[] = []
+  const { load, refusals } = selectInProcessPluginEntries(entries, 'model-auth', {
+    configDir: baseDir,
+    agentQaVersion: getAgentQaVersion(),
+  })
+  const [refused] = refusals
+  if (refused) {
+    if (refused.state === 'not_installed') {
+      const entry = entries.find((candidate) => candidate.name === refused.entry)
+      throw new PluginNotInstalledError(entry ?? { name: refused.entry }, 'auth')
+    }
+    throw new Error(refused.reason)
+  }
 
-  for (const declaration of declarations) {
-    validateDeclaration(declaration)
+  const loadedProviders: LLMAuthProviderPlugin[] = []
+  for (const resolved of load) {
+    const declaration = { name: resolved.name, package: resolved.label }
     const key = declarationKey(declaration, baseDir)
     if (loadedDeclarations.has(key)) continue
 
-    // A declared plugin the project lacks gets the package name and install step, not a stack.
     const module = await importDeclaredPluginModule<AuthPluginModule>(declaration, baseDir, 'auth')
-    // The map key is absolute and prefixed for collisions; the message uses the person's own label.
-    const bundle = await resolvePluginBundle(module, declarationLabel(declaration, baseDir))
+    const bundle = await resolvePluginBundle(module, resolved.label)
 
     registerLLMAuthProviderPlugins(bundle.providers)
     loadedDeclarations.add(key)

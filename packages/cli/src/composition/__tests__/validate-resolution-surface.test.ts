@@ -94,8 +94,11 @@ function scaffoldWithShippedInit(): string {
   // never had the problem.
   expect(
     configText,
-    'the default `init --platform web` scaffold must declare the auth plugin for F-05 to exist',
-  ).toMatch(/plugins:\s*\n\s*auth:\s*\n\s*-\s*package:/)
+    'the default `init --platform web` scaffold declares the subscription entry, or the cells below '
+      + 'measure a project without the plugin',
+  ).toMatch(
+    /plugins:\s*\n\s*-\s*name:\s*subscription\s*\n\s*package:\s*["']?@vostride\/agent-qa-subscription-auth/,
+  )
   return configText
 }
 

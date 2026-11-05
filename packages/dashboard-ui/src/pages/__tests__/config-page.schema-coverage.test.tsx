@@ -548,10 +548,10 @@ describe('ConfigPage schema coverage', () => {
     expect(PAGE_LEAVES).toEqual(expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns']))
     expect(CONFIG_WRITE_DENIED_ROOTS).toEqual(['plugins'])
     expect(CONFIG_SCHEMA_LEAVES.filter((pattern) => !PAGE_LEAVES.includes(pattern))).toEqual([
-      'plugins.auth[].package',
-      'plugins.auth[].path',
-      'plugins.providers[].package',
-      'plugins.providers[].path',
+      'plugins[].name',
+      'plugins[].options.*',
+      'plugins[].package',
+      'plugins[].path',
       'registry.devices.*.capabilities.*',
       'registry.devices.*.remote',
       'registry.remotes[].basicAuth.password',

@@ -614,7 +614,7 @@ describe('the gate read and auth writer serve every caller', () => {
         ) => {
           fieldsSet.push({ path, value })
           const before = bytes === undefined ? '' : decoder.decode(bytes)
-          const after = `${before}plugins:\n  auth: ${JSON.stringify(value)}\n`
+          const after = `${before}plugins: ${JSON.stringify(value)}\n`
           return Promise.resolve({ bytes: encoder.encode(after) })
         },
         mintHookId: () => 'h_unused',
@@ -675,14 +675,14 @@ describe('the gate read and auth writer serve every caller', () => {
     expect(answers[1]).toEqual({ kind: 'not-found', recordId: 'rec-9' })
     const applied = answers[2] as ConfigChangeOutput
     expect(applied).toMatchObject({
-      outcome: 'applied', files: [configFile], fields: ['plugins.auth.0.package'],
+      outcome: 'applied', files: [configFile], fields: ['plugins.0.name', 'plugins.0.package'],
     })
     expect(answers[3]).toMatchObject({ outcome: 'refused', reason: 'refs-only' })
     // Only the named reference reaches construction, validation and the writer, once per attempt.
     expect(fieldsSet).toEqual(Array.from({ length: 6 }, () =>
-      ({ path: 'plugins.auth', value: [{ package: SUBSCRIPTION_AUTH_PACKAGE }] })))
+      ({ path: 'plugins', value: [{ name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE }] })))
     expect(validations).toBe(6)
     expect(written).toEqual(Array.from({ length: 6 }, () =>
-      [{ op: 'append', path: ['plugins', 'auth'], value: { package: SUBSCRIPTION_AUTH_PACKAGE } }]))
+      [{ op: 'append', path: ['plugins'], value: { name: 'subscription', package: SUBSCRIPTION_AUTH_PACKAGE } }]))
   })
 })

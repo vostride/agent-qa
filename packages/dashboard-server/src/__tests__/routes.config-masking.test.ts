@@ -167,8 +167,8 @@ const secretConfig = [
   `        ${SENTINELS.certificate}-one`,
   `        ${SENTINELS.certificate}-two`,
   'plugins:',
-  '  auth:',
-  '    - package: "@example/agent-qa-auth"',
+  '  - name: acme',
+  '    package: "@example/agent-qa-auth"',
   'use:',
   '  llm: gpt',
   '  mobile:',
@@ -272,7 +272,7 @@ describe('GET /api/config through the declared mask', () => {
     expect(lines.map((line) => line.n)).toEqual(lines.map((_, i) => i + 1))
     expect(lines.map((line) => line.text)).toEqual(onDisk.trimEnd().split('\n'))
     expect(lines[0]).toEqual({ n: 1, text: '# owner notes: the access key rotates monthly' })
-    expect(lineHolding(lines, 'package:').text).toBe('    - package: "@example/agent-qa-auth"')
+    expect(lineHolding(lines, 'package:').text).toBe('    package: "@example/agent-qa-auth"')
     expect(body).not.toHaveProperty('fileIssues')
   })
 

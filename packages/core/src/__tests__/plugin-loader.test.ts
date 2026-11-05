@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { tmpdir } from 'node:os'
+import { PluginNotInstalledError } from '../plugin-loader-util.js'
 import {
   clearLLMAuthProviderPlugins,
   clearLoadedLLMAuthPluginModules,
@@ -43,30 +44,7 @@ describe('loadLLMAuthPlugins', () => {
     await rm(tempDir, { recursive: true, force: true })
   })
 
-  it('loads auth providers from an explicit path declaration', async () => {
-    const pluginPath = join(tempDir, 'path-plugin.mjs')
-    await writeFile(pluginPath, `
-      export function createAuthPlugin() {
-        return {
-          providers: [{
-            providerId: 'path-provider',
-            credentialProviderId: 'path-credential',
-            label: 'Path provider',
-            modelAdapter: 'openai-responses',
-            dashboardAuth: { mode: 'browser-poll' },
-            createAuthFetch() { return globalThis.fetch },
-          }],
-        }
-      }
-    `)
-
-    const providers = await loadLLMAuthPlugins([{ path: pluginPath }], { baseDir: tempDir })
-
-    expect(providers.map((provider) => provider.providerId)).toEqual(['path-provider'])
-    expect(getLLMAuthProviderPlugin('path-provider')?.credentialProviderId).toBe('path-credential')
-  })
-
-  it('loads auth providers from a package declaration resolved from config directory', async () => {
+  it('loads auth providers from a package entry resolved from the config directory', async () => {
     await writeAuthPackage(tempDir, '@vostride/agent-qa-acme-auth', `
       export default {
         providers: [{
@@ -80,7 +58,9 @@ describe('loadLLMAuthPlugins', () => {
       }
     `)
 
-    await loadLLMAuthPlugins([{ package: '@vostride/agent-qa-acme-auth' }], { baseDir: tempDir })
+    await loadLLMAuthPlugins([{ name: 'acme', package: '@vostride/agent-qa-acme-auth' }], {
+      baseDir: tempDir,
+    })
 
     expect(getLLMAuthProviderPlugin('package-provider')?.label).toBe('Package provider')
   })
@@ -101,14 +81,14 @@ describe('loadLLMAuthPlugins', () => {
       }
     `, { '.': { import: './index.mjs' } })
 
-    await loadLLMAuthPlugins([{ package: '@vostride/agent-qa-acme-esm-auth' }], {
+    await loadLLMAuthPlugins([{ name: 'acme', package: '@vostride/agent-qa-acme-esm-auth' }], {
       baseDir: tempDir,
     })
 
     expect(getLLMAuthProviderPlugin('esm-package-provider')?.label).toBe('ESM package provider')
   })
 
-  it('does not register the same declaration twice', async () => {
+  it('does not register the same entry twice', async () => {
     await writeAuthPackage(tempDir, '@vostride/agent-qa-acme-once-auth', `
       export const providers = [{
         providerId: 'once-provider',
@@ -120,11 +100,41 @@ describe('loadLLMAuthPlugins', () => {
       }]
     `)
 
-    const declarations = [{ package: '@vostride/agent-qa-acme-once-auth' }]
-    const first = await loadLLMAuthPlugins(declarations, { baseDir: tempDir })
-    const second = await loadLLMAuthPlugins(declarations, { baseDir: tempDir })
+    const entries = [{ name: 'acme', package: '@vostride/agent-qa-acme-once-auth' }]
+    const first = await loadLLMAuthPlugins(entries, { baseDir: tempDir })
+    const second = await loadLLMAuthPlugins(entries, { baseDir: tempDir })
 
     expect(first).toHaveLength(1)
     expect(second).toHaveLength(0)
+  })
+
+  it('refuses a third-party package with an in-process manifest and registers nothing', async () => {
+    await writeAuthPackage(tempDir, '@acme/agent-qa-auth', `
+      export const providers = [{
+        providerId: 'third-party-provider',
+        credentialProviderId: 'third-party-credential',
+        label: 'Third-party provider',
+        modelAdapter: 'openai-responses',
+        dashboardAuth: { mode: 'browser-poll' },
+        createAuthFetch() { return globalThis.fetch },
+      }]
+    `)
+
+    await expect(
+      loadLLMAuthPlugins([{ name: 'acme', package: '@acme/agent-qa-auth' }], { baseDir: tempDir }),
+    ).rejects.toThrow(
+      'Plugin entry acme names @acme/agent-qa-auth, which declares a model-auth plugin; only '
+        + '@vostride/agent-qa-* packages load inside agent-qa. Remove the entry.',
+    )
+    expect(getLLMAuthProviderPlugin('third-party-provider')).toBeUndefined()
+  })
+
+  it('throws PluginNotInstalledError naming the entry when subscription-auth is missing', async () => {
+    const entries = [{ name: 'subscription', package: '@vostride/agent-qa-subscription-auth' }]
+
+    const error = await loadLLMAuthPlugins(entries, { baseDir: tempDir }).catch((err) => err)
+
+    expect(error).toBeInstanceOf(PluginNotInstalledError)
+    expect(error.message).toContain('remove the plugins entry subscription.')
   })
 })
