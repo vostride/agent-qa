@@ -32,6 +32,29 @@ function droppedPlace(failureKind: 'lost' | 'ended') {
   return { ...remotePlace, failureKind }
 }
 
+const FARM_ORIGIN = 'https://farm.example.com:443'
+const DEVICE_LINE = `Ran on farm (appium ${FARM_ORIGIN}), Appium 2.11.3, real device`
+
+const devicePlace = {
+  place: 'remote',
+  name: 'farm',
+  protocol: 'appium',
+  origin: FARM_ORIGIN,
+  device: 'iphone-farm',
+  appiumVersion: '2.11.3',
+  sessionId: 'a1b2c3',
+  deviceType: 'real device',
+}
+
+const refusedDevicePlace = {
+  place: 'remote',
+  name: 'farm',
+  protocol: 'appium',
+  origin: FARM_ORIGIN,
+  device: 'iphone-farm',
+  failureKind: 'refused',
+}
+
 const run: RunRow = {
   id: generateRunId(), name: 'Login', filePath: null, status: 'passed', duration: 1,
   attributes: {}, environment: null, metadata: null, startedAt: null, endedAt: null,
@@ -150,6 +173,45 @@ describe("a test's place on the run page", () => {
       expect(line?.className).toContain('text-destructive')
     },
   )
+
+  it('a test that ran on a remote device names the server, its Appium version and the device type', () => {
+    const card = memberCard(devicePlace)
+    const line = card.querySelector('[data-member-place]')
+    expect(line?.textContent).toBe(DEVICE_LINE)
+    expect(line?.className).toContain('text-foreground')
+  })
+
+  it('a remote device without a recorded version or device type names only the server', () => {
+    const { appiumVersion: _version, deviceType: _type, ...bare } = devicePlace
+    const card = memberCard({ ...bare, deviceType: 'unknown' })
+    expect(card.querySelector('[data-member-place]')?.textContent).toBe(
+      `Ran on farm (appium ${FARM_ORIGIN})`,
+    )
+  })
+
+  it('a test refused by its device server says the session was refused, as a failure', () => {
+    const card = memberCard(refusedDevicePlace)
+    const line = card.querySelector('[data-member-place]')
+    expect(line?.textContent).toBe(`Could not run on farm (appium ${FARM_ORIGIN}): session refused`)
+    expect(line?.className).toContain('text-destructive')
+  })
+
+  it('a test whose device session was lost says it ran there until then, as a failure', () => {
+    const card = memberCard({ ...devicePlace, failureKind: 'lost' })
+    const line = card.querySelector('[data-member-place]')
+    expect(line?.textContent).toBe(`${DEVICE_LINE}, until the connection was lost`)
+    expect(line?.className).toContain('text-destructive')
+  })
+
+  it('an iOS test launched here reads Ran on this machine with its device type', () => {
+    const card = memberCard({ place: 'here', deviceType: 'simulator' })
+    expect(card.querySelector('[data-member-place]')?.textContent).toBe('Ran on this machine, simulator')
+  })
+
+  it('a test launched here with an unknown device type reads Ran on this machine', () => {
+    const card = memberCard({ place: 'here', deviceType: 'unknown' })
+    expect(card.querySelector('[data-member-place]')?.textContent).toBe('Ran on this machine')
+  })
 
   it('an artifact without a place shows no place line', () => {
     const card = memberCard(undefined)

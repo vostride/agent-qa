@@ -4,10 +4,12 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/component
 import type { RunArtifactResponse } from "@/lib/api"
 import {
   couldNotRunOnLine,
+  deviceDetail,
   DRAWER_COPY,
   droppedOnLine,
   isDroppedSessionKind,
   ranAgainstParts,
+  ranHereLine,
   ranOnLine,
 } from "@/lib/drawer-view"
 import { routes } from "@/lib/routes"
@@ -66,11 +68,14 @@ interface PlaceLine {
 function placeLine(runtime: unknown): PlaceLine | null {
   const place = recordAt(isArtifactRecord(runtime) ? runtime : null, "place")
   const kind = textAt(place, "place")
-  if (kind === "here") return { text: DRAWER_COPY.ranHere, failed: false }
+  if (kind === "here") return { text: ranHereLine(textAt(place, "deviceType")), failed: false }
   const name = textAt(place, "name")
   if (kind !== "remote" || !name) return null
-  const where = [textAt(place, "protocol"), textAt(place, "origin")].filter(Boolean).join(" ")
-  const version = textAt(place, "browserVersion")
+  const protocol = textAt(place, "protocol")
+  const where = [protocol, textAt(place, "origin")].filter(Boolean).join(" ")
+  const version = protocol === "appium"
+    ? deviceDetail(textAt(place, "appiumVersion"), textAt(place, "deviceType"))
+    : textAt(place, "browserVersion")
   const failureKind = textAt(place, "failureKind")
   if (failureKind === null) return { text: ranOnLine(name, where, version), failed: false }
   if (isDroppedSessionKind(failureKind)) {

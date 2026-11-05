@@ -52,9 +52,39 @@ export function droppedOnLine(
   return `${ranOnLine(name, where, version)}, ${DROPPED_SESSION_ENDINGS[kind]}`
 }
 
+const REFUSAL_WORDING: ReadonlyMap<string, string> = new Map([['refused', 'session refused']])
+
 /** A remote that refused the test before it ran, and the failure kind its evidence records. */
 export function couldNotRunOnLine(name: string, where: string, failureKind: string): string {
-  return `Could not run on ${name}${where ? ` (${where})` : ''}: ${failureKind}`
+  const reason = REFUSAL_WORDING.get(failureKind) ?? failureKind
+  return `Could not run on ${name}${where ? ` (${where})` : ''}: ${reason}`
+}
+
+const DEVICE_TYPES = ['simulator', 'real device'] as const
+
+export type ShownDeviceType = (typeof DEVICE_TYPES)[number]
+
+export function isShownDeviceType(value: string | null): value is ShownDeviceType {
+  return DEVICE_TYPES.some((type) => type === value)
+}
+
+/** What a device session ran on: the Appium server's version, then the iOS device type. */
+export function deviceDetail(
+  appiumVersion: string | null,
+  deviceType: string | null,
+): string | null {
+  const parts = [
+    appiumVersion ? `Appium ${appiumVersion}` : null,
+    isShownDeviceType(deviceType) ? deviceType : null,
+  ].filter((part): part is string => part !== null)
+  return parts.length > 0 ? parts.join(', ') : null
+}
+
+/** A test that ran here, with its iOS device type when one was recorded. */
+export function ranHereLine(deviceType: string | null): string {
+  return isShownDeviceType(deviceType)
+    ? `${DRAWER_COPY.ranHere}, ${deviceType}`
+    : DRAWER_COPY.ranHere
 }
 
 export const RUN_ARTIFACT_KIND_LABELS = {
