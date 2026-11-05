@@ -376,6 +376,7 @@ function columns(rows: string[][]): string[] {
   return rows.map((row) =>
     row
       .map((cell, index) => (index === row.length - 1 ? cell : cell.padEnd(widths[index] ?? 0)))
+      .filter((_, index) => (widths[index] ?? 0) > 0)
       .join('  ')
       .trimEnd(),
   )

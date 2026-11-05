@@ -97,6 +97,81 @@ describe('describeDevicesHere', () => {
     expect(calls.filter((platform) => platform === 'ios')).toEqual(['ios'])
   })
 
+  it("then lists this machine's phones, AVDs and simulators to copy a model from", async () => {
+    const { list } = lister(
+      {
+        attached: [
+          { serial: 'R58M41ABCDE', state: 'device', model: 'SM-S921B', os: '14' },
+          { serial: '37121FDJH000', state: 'device', model: 'Pixel 8', os: '15' },
+        ],
+        avds: [{ name: 'Pixel_8_API_35', profile: 'pixel_8', displayName: 'Pixel 8', os: '15' }],
+      },
+      { simulators: [simulator('iPhone 16', '18.4'), simulator('iPhone 15', '17.5')] },
+    )
+    const lines = await describeDevicesHere(
+      config({
+        remotes: [FARM],
+        devices: {
+          pixel: { platform: 'android', model: 'Pixel 8' },
+          iphone: { platform: 'ios', model: 'iPhone 16', os: '18.4' },
+          'galaxy-farm': {
+            platform: 'android',
+            remote: 'farm',
+            model: 'Samsung Galaxy S24',
+            os: '14',
+          },
+        },
+      }),
+      { listDevicesHere: list },
+    )
+
+    expect(lines).toEqual([
+      'pixel        here: Pixel 8 phone 37121FDJH000',
+      'iphone       here: iPhone 16 (18.4), shut down',
+      'galaxy-farm  remote farm (appium https://farm.example.com:443)',
+      'Attached:   SM-S921B  Android 14  R58M41ABCDE',
+      '            Pixel 8   Android 15  37121FDJH000',
+      'Emulators:  Pixel_8_API_35 (Pixel 8, Android 15)',
+      'Simulators: iPhone 16 (18.4), iPhone 15 (17.5)',
+    ])
+  })
+
+  it("prints a missing tool's listing problem on its line", async () => {
+    const { list } = lister(
+      { attached: [], avds: [], problem: 'adb not found (set ANDROID_HOME)' },
+      { simulators: [], problem: 'simulators need macOS' },
+    )
+    const lines = await describeDevicesHere(
+      config({ devices: { pixel: { platform: 'android', model: 'Pixel 8' } } }),
+      { listDevicesHere: list },
+    )
+
+    expect(lines).toEqual([
+      'pixel  not here: wants a Pixel 8',
+      'Attached:   adb not found (set ANDROID_HOME)',
+      'Emulators:  none',
+      'Simulators: simulators need macOS',
+    ])
+  })
+
+  it('lists this machine when no profile is configured', async () => {
+    const { list, calls } = lister(
+      {
+        attached: [{ serial: 'R58M41ABCDE', state: 'unauthorized' }],
+        avds: [{ name: 'Pixel_8_API_35', displayName: 'Pixel 8', os: '15' }],
+      },
+      { simulators: [] },
+    )
+    const lines = await describeDevicesHere(config({}), { listDevicesHere: list })
+
+    expect(lines).toEqual([
+      'Attached:   R58M41ABCDE unauthorized',
+      'Emulators:  Pixel_8_API_35 (Pixel 8, Android 15)',
+      'Simulators: none',
+    ])
+    expect([...calls].sort()).toEqual(['android', 'ios'])
+  })
+
   it('says a local profile that matches nothing is not here, with what it wants', async () => {
     const { list } = lister(
       { attached: [], avds: [] },
@@ -179,5 +254,20 @@ describe('agent-qa devices', () => {
     expect(outcome.stdout).toMatch(
       /^ {2}galaxy-farm {2}remote farm \(appium https:\/\/farm\.example\.com:443\)$/mu,
     )
+    expect(outcome.stdout).toMatch(/^ {2}Attached: {3}adb not found \(set ANDROID_HOME\)$/mu)
+    expect(outcome.stdout).toMatch(/^ {2}Emulators: {2}none$/mu)
+    expect(outcome.stdout).toMatch(/^ {2}Simulators: /mu)
+  })
+
+  it('bare devices with no profile says so and still lists this machine', async () => {
+    const { root } = fixtureProject('devices-none')
+    writeFileSync(join(root, '.env'), '', 'utf8')
+    writeFileSync(join(root, 'hooks.yaml'), 'hooks: []\n', 'utf8')
+
+    const outcome = await spawnCollecting(root, [CLI_ENTRY, 'devices'], withoutDeviceTools(root))
+
+    expect(outcome.code).toBe(0)
+    expect(outcome.stdout).toContain('No devices configured in registry.devices')
+    expect(outcome.stdout).toMatch(/^ {2}Attached: {3}adb not found \(set ANDROID_HOME\)$/mu)
   })
 })

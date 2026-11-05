@@ -6,7 +6,7 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, describeAndroidHere, describeIOSHere, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, remoteLabel, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
@@ -348,7 +348,8 @@ async function deviceWhere(
   return `here: ${finder.found.description}`
 }
 
-// The `agent-qa devices` view: one line per profile saying what it finds here or where it runs.
+// The `agent-qa devices` view: one line per profile saying what it finds here or where it runs,
+// then this machine's phones, AVDs and simulators.
 export async function describeDevicesHere(
   config: AgentQaConfig,
   options: DescribeDevicesHereOptions = {},
@@ -357,10 +358,16 @@ export async function describeDevicesHere(
   const remotes = config.registry?.remotes ?? []
   const list = listDevicesHereOncePerRun(options.listDevicesHere ?? listDevicesHereByDefault)
   const width = Math.max(0, ...devices.map(([name]) => name.length))
-  const places = await Promise.all(
-    devices.map(([name, profile]) => deviceWhere(name, profile, remotes, list)),
-  )
-  return devices.map(([name], index) => `${name.padEnd(width)}  ${places[index]}`)
+  const [places, android, ios] = await Promise.all([
+    Promise.all(devices.map(([name, profile]) => deviceWhere(name, profile, remotes, list))),
+    list('android'),
+    list('ios'),
+  ])
+  return [
+    ...devices.map(([name], index) => `${name.padEnd(width)}  ${places[index]}`),
+    ...describeAndroidHere(android as AndroidHere),
+    ...describeIOSHere(ios as IOSHere),
+  ]
 }
 
 export interface PrepareMobileDeviceInput {

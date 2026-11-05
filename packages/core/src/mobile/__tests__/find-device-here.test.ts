@@ -436,6 +436,12 @@ describe('describeAndroidHere and describeIOSHere', () => {
     expect(
       describeAndroidHere({ attached: [], avds: [], problem: 'adb not found (set ANDROID_HOME)' }),
     ).toEqual(['Attached:   adb not found (set ANDROID_HOME)', 'Emulators:  none'])
+    expect(
+      describeAndroidHere({
+        attached: [{ serial: 'R58M41ABCDE', state: 'unauthorized' }],
+        avds: [],
+      }),
+    ).toEqual(['Attached:   R58M41ABCDE unauthorized', 'Emulators:  none'])
     expect(describeIOSHere({ simulators: [], problem: 'none (simulators need macOS)' })).toEqual([
       'Simulators: none (simulators need macOS)',
     ])

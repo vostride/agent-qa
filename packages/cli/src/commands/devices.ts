@@ -25,7 +25,6 @@ async function listDevices(options: DevicesCommandOptions): Promise<void> {
   const devices = config.registry?.devices
   if (!devices || Object.keys(devices).length === 0) {
     console.log(pc.yellow('No devices configured in registry.devices'))
-    return
   }
 
   const lines = await describeDevicesHere(config, {
