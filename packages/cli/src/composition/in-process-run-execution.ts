@@ -445,6 +445,9 @@ export async function runInProcessCliRun(
         try {
           await startedRecord?.flush()
         } catch {}
+        try {
+          await produced.closePluginHosts?.()
+        } catch {}
         if (!preparationDisclosureOwnedByDoor && postVerdictHandoff?.completion !== undefined) {
           const handoff = postVerdictHandoff
           if (handoff.enqueueState === undefined) {

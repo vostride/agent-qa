@@ -11,6 +11,7 @@ import type {
   PlatformConfig,
   RecordingCapability,
   RemoteBrowserConfig,
+  RemoteLease,
   RemoteLeaseSource,
   RemotePlaceEvidence,
   RemotePluginBrowserConfig,
@@ -169,10 +170,14 @@ function decodeBase64(data: string): Uint8Array {
 
 // Refused before Playwright loads: its own logging prints a remote's address and requests, and
 // SELENIUM_REMOTE_URL sends a local launch to another machine.
-function refuseLeakingEnvironment(remote: RemoteBrowserConfig | undefined): void {
+function refuseLeakingEnvironment(
+  remote: RemoteBrowserConfig | RemotePluginBrowserConfig | undefined,
+): void {
   if (remote !== undefined) {
     if (!debugEnablesPlaywright(process.env.DEBUG)) return
-    const label = remoteLabel(remote)
+    const label = isPluginRemote(remote)
+      ? remoteLabel({ name: remote.name, plugin: remote.plugin.entry })
+      : remoteLabel(remote)
     throw new RemoteRefusalError(
       `Remote ${label} cannot be used while DEBUG turns on Playwright's own logging, which would print its address and requests. Unset DEBUG to run this test.`,
       { remote: label },
@@ -221,6 +226,14 @@ function remoteCaptureReason(remote: RemoteBrowserConfig): string {
   return parts.join('; ')
 }
 
+// A plugin's acquire spends the remote's connect budget; the connect still gets this much.
+export const MIN_PLUGIN_CONNECT_MS = 1_000
+
+function releasingOnce(lease: RemoteLease): () => Promise<void> {
+  let released: Promise<void> | undefined
+  return () => (released ??= lease.release().catch(() => undefined))
+}
+
 function remoteOriginText(url: string): string {
   const origin = remoteOrigin(url)
   return origin ? formatRemoteOrigin(origin) : 'invalid url'
@@ -260,6 +273,8 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private place: RemotePlaceEvidence | undefined
   private heartbeat: RemoteHeartbeat | undefined
   private unregisterRelease: (() => void) | undefined
+  private lease: RemoteLease | undefined
+  private releaseLease: (() => Promise<void>) | undefined
   // Adapter-private: observe returns only the `ScreenState`, never the native binding.
   private lastRefs: RefMap = {}
   private epoch: ObservationEpoch | undefined
@@ -296,26 +311,39 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   async setup(config: PlatformConfig): Promise<void> {
     this.recordingConfig = config.recording
     const configured = config.browser?.remote
+    refuseLeakingEnvironment(configured)
+    const browserName = config.browser?.name ?? 'chromium'
+    let remote: RemoteBrowserConfig | undefined
+    let releaseLease: (() => Promise<void>) | undefined
     if (configured !== undefined && isPluginRemote(configured)) {
-      throw this.pluginRemoteRefusal(configured)
+      const leased = await this.leaseSession(configured, browserName)
+      remote = leased.remote
+      releaseLease = releasingOnce(leased.lease)
+      this.lease = leased.lease
+      this.releaseLease = releaseLease
+    } else {
+      remote = configured
     }
-    const remote = configured
-    refuseLeakingEnvironment(remote)
     const { chromium, firefox, webkit } = await import('playwright-core')
     const launchers = { chromium, firefox, webkit } as const
-    const browserName = config.browser?.name ?? 'chromium'
     this.browserName = browserName
     const launcher = launchers[browserName]
     const headless = config.browser?.headless ?? true
 
     this.remote = remote
     if (remote !== undefined) {
-      const remembered = this.options.refusalMemory?.refusalFor(remote.name)
+      // A leased remote was checked before its acquire, and its lease must not be dropped here.
+      const remembered =
+        releaseLease === undefined ? this.options.refusalMemory?.refusalFor(remote.name) : undefined
       if (remembered !== undefined) throw remembered
-      const { url, headers } = resolveRemoteConnection(remote, {
-        secrets: this.options.connectionSecrets,
-        secretsFile: this.options.secretsFile,
-      })
+      // A plugin's answer is already resolved: it carries values, not references.
+      const { url, headers } =
+        releaseLease !== undefined
+          ? { url: remote.url, headers: remote.headers ?? {} }
+          : resolveRemoteConnection(remote, {
+              secrets: this.options.connectionSecrets,
+              secretsFile: this.options.secretsFile,
+            })
       try {
         // Headless, launch args and signal handling belong to a browser launched here.
         this.browser =
@@ -328,6 +356,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
           remote,
           this.options.secretsFile !== undefined ? { secretsFile: this.options.secretsFile } : {},
         )
+        if (releaseLease !== undefined) {
+          this.lease = undefined
+          this.releaseLease = undefined
+          await releaseLease()
+        }
         throw this.options.refusalMemory?.remember(remote.name, refused) ?? refused
       }
     } else {
@@ -358,7 +391,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       this.disconnected = true
       if (remote !== undefined) this.remoteDropped(remote)
     })
-    if (remote !== undefined) this.registerRelease(browser)
+    if (remote !== undefined) this.registerRelease(browser, releaseLease)
 
     if (remote === undefined) return this.openSession(config, undefined, browserName, headless)
     try {
@@ -368,16 +401,70 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       if (!(scrubbed instanceof RemoteRefusalError)) throw scrubbed
       throw this.options.refusalMemory?.remember(remote.name, scrubbed) ?? scrubbed
     }
+    if (this.lease !== undefined) {
+      try {
+        await this.lease.started({})
+      } catch {
+        // A plugin's started is a courtesy; the session it leased is already open.
+      }
+    }
   }
 
-  private pluginRemoteRefusal(remote: RemotePluginBrowserConfig): RemoteRefusalError {
-    const named = `Remote ${remote.name} names plugin entry ${remote.plugin.entry}`
-    return new RemoteRefusalError(
-      this.options.pluginSessions === undefined
-        ? `${named}, and this host started no plugin host for it.`
-        : `${named}, and this browser adapter cannot lease a session from a plugin host.`,
-      { remote: remote.name, kind: 'refused' },
-    )
+  // The plugin's answer becomes a url remote; the acquire's time comes out of its connect budget.
+  private async leaseSession(
+    configured: RemotePluginBrowserConfig,
+    engine: 'chromium' | 'firefox' | 'webkit',
+  ): Promise<{ lease: RemoteLease; remote: RemoteBrowserConfig }> {
+    const { name } = configured
+    const sessions = this.options.pluginSessions
+    if (sessions === undefined) {
+      throw new RemoteRefusalError(
+        `Remote ${name} names plugin entry ${configured.plugin.entry}, and this host started no plugin host for it.`,
+        { remote: name, kind: 'refused' },
+      )
+    }
+    const memory = this.options.refusalMemory
+    const remembered = memory?.refusalFor(name)
+    if (remembered !== undefined) throw remembered
+    const startedAt = Date.now()
+    let lease: RemoteLease
+    try {
+      lease = await sessions.acquire({
+        remote: name,
+        plugin: configured.plugin,
+        deadlineMs: configured.connectTimeoutMs,
+        session: { platform: 'web', engine, context: configured.context ?? 'new' },
+      })
+    } catch (error) {
+      if (!(error instanceof RemoteRefusalError)) throw error
+      throw memory?.remember(name, error) ?? error
+    }
+    const answer = lease.connection
+    if (answer.protocol === 'appium') {
+      await releasingOnce(lease)()
+      const refused = new RemoteRefusalError(
+        `Remote ${name}: plugin entry ${configured.plugin.entry} answered a web test with an appium session.`,
+        { remote: name, kind: 'refused' },
+      )
+      throw memory?.remember(name, refused) ?? refused
+    }
+    const remaining = configured.connectTimeoutMs - (Date.now() - startedAt)
+    return {
+      lease,
+      remote: {
+        name,
+        protocol: answer.protocol,
+        url: answer.url,
+        ...(answer.headers === undefined ? {} : { headers: answer.headers }),
+        connectTimeoutMs: Math.max(MIN_PLUGIN_CONNECT_MS, remaining),
+        ...(configured.context === undefined ? {} : { context: configured.context }),
+      },
+    }
+  }
+
+  // The session a plugin leased for this test; undefined on a url remote, here, and after cleanup.
+  get remoteLease(): RemoteLease | undefined {
+    return this.lease
   }
 
   private async openSession(
@@ -500,14 +587,15 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     if (browser.isConnected() && !this.intentionalClose) heartbeat.start()
   }
 
-  // Disconnects only: close() on a connected browser never stops the remote service.
-  private registerRelease(browser: Browser): void {
+  // Disconnects only: close() on a connected browser never stops the remote service. A leased
+  // session goes back to its plugin after the browser has closed.
+  private registerRelease(browser: Browser, releaseLease?: () => Promise<void>): void {
     const sessions = this.options.sessions
     if (sessions === undefined) return
     this.unregisterRelease?.()
     let released: Promise<void> | undefined
     this.unregisterRelease = sessions.register(() => {
-      released ??= this.releaseRemote(browser)
+      released ??= this.releaseRemote(browser).finally(() => releaseLease?.())
       return released
     })
   }
@@ -863,6 +951,10 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       const disconnect = this.browser?.close() ?? Promise.resolve()
       await withinBound(Promise.all([disconnect, release]), REMOTE_CLEANUP_SETTLE_MS)
     }
+    const releaseLease = this.releaseLease
+    this.lease = undefined
+    this.releaseLease = undefined
+    await releaseLease?.()
     this.remote = undefined
     this.remoteIsMac = undefined
     this.place = undefined

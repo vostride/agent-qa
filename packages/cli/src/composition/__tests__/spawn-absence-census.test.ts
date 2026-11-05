@@ -267,10 +267,15 @@ const REACHED_BUT_UNPINNED = [
   // `execFile(dockerBin, …)` — the USER'S hooks and their container. Design-of-record: a hook is a
   // subprocess by definition, and it is not a run.
   'runner-local/src/hook-executor.ts',
+  // `spawn(process.execPath, [entryFile])` — a remote plugin's own entry, run with agent-qa's Node.
+  'core/src/remote/plugins/plugin-process.ts',
 ].sort()
 
-/** The one launch call on the whole run path whose own arguments name the node binary. */
-const SELF_LAUNCH_SURVIVORS = ['cli/src/commands/install-browsers.ts']
+/** The launch calls on the run path whose own arguments name the node binary; neither is a run. */
+const SELF_LAUNCH_SURVIVORS = [
+  'cli/src/commands/install-browsers.ts',
+  'core/src/remote/plugins/plugin-process.ts',
+].sort()
 
 /**
  * …and every module that could point a child at the node binary through an indirection.
@@ -281,6 +286,7 @@ const SELF_LAUNCH_SURVIVORS = ['cli/src/commands/install-browsers.ts']
 const INDIRECT_SELF_LAUNCHERS = [
   'cli/src/commands/install-browsers.ts',
   'cli/src/daemon/host.ts',
+  'core/src/remote/plugins/plugin-process.ts',
 ].sort()
 
 /** The two surviving emitters of the retired wire prefix. Nothing else may hold it. */
@@ -377,7 +383,7 @@ describe('the pinned run-path set holds no unaccounted child', () => {
 })
 
 describe('nothing a run can reach launches this product as a child', () => {
-  it('one launch call names the node binary, and it is not a run', () => {
+  it('the launch calls that name the node binary are the named survivors', () => {
     const offenders = CLOSURE.modules
       .filter((path) => launchSpans(readFileSync(path, 'utf8')).some(launchesThisProduct))
       .map(rel)
@@ -482,6 +488,16 @@ describe('every allowed survivor has its shape pinned', () => {
     expect(spans[0]).not.toContain("'run'")
     // The first argv element is Playwright's own CLI path, resolved by name.
     expect(source).toContain('resolvePlaywrightCoreCli')
+  })
+
+  it('the plugin child is a remote plugin\u2019s own entry file, run by the node binary', () => {
+    const source = read('core/src/remote/plugins/plugin-process.ts')
+    const spans = launchSpans(source)
+    expect(spans).toHaveLength(1)
+    expect(spans[0]).toMatch(/^\(process\.execPath, \[input\.entryFile\],/)
+    expect(namesTheRunVerb(spans[0]!)).toBe(false)
+    expect(source).not.toContain('process.argv')
+    expect(source).not.toContain('cliEntry')
   })
 })
 

@@ -210,6 +210,18 @@ export const SURFACE_FIREWALL_LEDGER: readonly SurfaceLedgerEntry[] = [
     reason: 'the direct config writer shares the dashboard config transaction; rewired when the dashboards enter the firewall in M5',
   },
   {
+    file: 'packages/cli/src/composition/plugin-host.ts',
+    specifier: '@vostride/agent-qa-core',
+    clearedBy: '395',
+    reason: "the run's plugin host composes core's plugin host pool with the config's plugins entries, host versions and declared secrets; joins the typed config action class",
+  },
+  {
+    file: 'packages/cli/src/composition/plugin-host.ts',
+    specifier: '@vostride/agent-qa-runner',
+    clearedBy: '395',
+    reason: "the run's plugin host refuses an undeclared secret in a plugin value with the runner's RemoteRefusalError; joins the typed config action class",
+  },
+  {
     // Moved out of run.ts so the daemon and MCP hosts release sessions without loading the run.
     file: 'packages/cli/src/composition/remote-sessions.ts',
     specifier: '@vostride/agent-qa-runner',

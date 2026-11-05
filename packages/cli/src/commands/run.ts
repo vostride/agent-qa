@@ -42,7 +42,7 @@ import type {
 } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
-import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemotePluginBrowserConfig, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
+import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteLeaseSource, RemotePluginBrowserConfig, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
 import { isPluginRemote, WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
@@ -62,6 +62,7 @@ import {
   startedRemoteReleases,
 } from '../composition/remote-sessions.js'
 import { DeclaredSecretsUnavailableError, readDeclaredSecrets } from '../composition/declared-secrets.js'
+import { createRunPluginHost } from '../composition/plugin-host.js'
 import { composeRunOwnership } from '../composition/run-owner-probe.js'
 import {
   buildMemberRunConfig,
@@ -479,6 +480,8 @@ export async function createPlatformAdapter(
     readonly sessions?: RemoteSessionRegistry
     // The run's declared mask, which a device server's refusal reason passes through.
     readonly mask?: (text: string) => string
+    // The run's plugin hosts, which lease a session for a remote that names a plugins entry.
+    readonly pluginSessions?: RemoteLeaseSource
   } = {},
 ): Promise<PlatformAdapter> {
   const connection = {
@@ -514,7 +517,35 @@ export async function createPlatformAdapter(
   return new WebPlatformAdapter({
     ...(options.hostOwnsSignals === true ? { hostOwnsSignals: true as const } : {}),
     ...connection,
+    ...(options.pluginSessions === undefined ? {} : { pluginSessions: options.pluginSessions }),
   })
+}
+
+interface ProducerPluginHost {
+  readonly pluginSessions: RemoteLeaseSource | undefined
+  close(): Promise<void>
+}
+
+// A producer handed no plugin host makes its own when the config lists plugins, and closes it.
+function producerPluginHost(input: {
+  readonly given: RemoteLeaseSource | undefined
+  readonly config: AgentQaConfig
+  readonly configPath: string
+  readonly runId: string | undefined
+  readonly connectionSecrets: SecretResolver | undefined
+  readonly mask: MaskFn
+}): ProducerPluginHost {
+  if (input.given !== undefined || (input.config.plugins ?? []).length === 0) {
+    return { pluginSessions: input.given, close: () => Promise.resolve() }
+  }
+  const pool = createRunPluginHost({
+    config: input.config,
+    configPath: input.configPath,
+    ...(input.runId === undefined ? {} : { runId: input.runId }),
+    ...(input.connectionSecrets === undefined ? {} : { connectionSecrets: input.connectionSecrets }),
+    mask: input.mask,
+  })
+  return { pluginSessions: pool, close: () => pool.shutdown() }
 }
 
 const runWebAccessibilityCheck: NonNullable<RunSuiteConfig['accessibilityCheck']> = async (page, options) => {
@@ -2270,6 +2301,7 @@ async function executeSuites(
   loadPlugins: () => Promise<void>,
   refusalMemory: RemoteRefusalMemory,
   listDevicesHere: DevicesHereLister,
+  pluginSessions: RemoteLeaseSource | undefined,
 ): Promise<SuiteRunExit> {
   const { parseSuiteFile, parseTestFile, patchTestForSuite } = await import('@vostride/agent-qa-core')
   // `startRun` is reached only through `createRunInvocationCore`, never bound here.
@@ -2376,6 +2408,7 @@ async function executeSuites(
       hostOwnsSignals: true,
       refusalMemory,
       listDevicesHere,
+      ...(pluginSessions === undefined ? {} : { pluginSessions }),
       ...(variableContext === undefined ? {} : { variableContext }),
       ...(hooksContext === undefined ? {} : { hooksContext }),
       ...(analytics === undefined ? {} : { analytics }),
@@ -2719,6 +2752,8 @@ export interface SuiteRunMemberProductionInput {
   readonly hostOwnsSignals?: true
   // Absent, the run makes its own; `agent-qa run` shares one between its suite and direct halves.
   readonly refusalMemory?: RemoteRefusalMemory
+  // Absent, the producer starts its own when the config lists plugins, and closes it at the end.
+  readonly pluginSessions?: RemoteLeaseSource
 }
 
 export interface SuiteVariableContext {
@@ -2790,12 +2825,23 @@ export async function produceSuiteRunMembers(
       connectionSecretStore: suiteConnectionSecrets,
     })
   }
+  const suitePluginHost = producerPluginHost({
+    given: input.pluginSessions,
+    config,
+    configPath: configFilePath,
+    runId,
+    connectionSecrets: suiteConnectionSecrets,
+    mask: suiteRunMask,
+  })
   const suiteAdapterOptions: Parameters<typeof createPlatformAdapter>[1] = {
     ...hostSignals,
     ...(suiteConnectionSecrets === undefined ? {} : { connectionSecrets: suiteConnectionSecrets }),
     ...(suiteSecretsFile === undefined ? {} : { secretsFile: suiteSecretsFile }),
     refusalMemory: input.refusalMemory ?? createRemoteRefusalMemory(),
     mask: suiteRunMask,
+    ...(suitePluginHost.pluginSessions === undefined
+      ? {}
+      : { pluginSessions: suitePluginHost.pluginSessions }),
   }
 
   // The record opens here, before plugins; the drive's later open is a no-op.
@@ -3818,6 +3864,7 @@ export async function produceSuiteRunMembers(
     bindSession: (session) => { activeRunSession = session },
     takeFrameworkError: () => undefined,
     takeRemoteRefusal: () => suiteRemoteRefusal,
+    closePluginHosts: () => suitePluginHost.close(),
     getCurationModelDeps: () => preparedSuites[0]?.curationModelDeps,
     finalize: () => lifecycle.finalize(),
     // Needs the ordinal the assembler just advanced, and rides the producer so both doors get it.
@@ -3875,6 +3922,8 @@ export interface DirectRunMemberProductionInput {
   readonly listDevicesHere?: DevicesHereLister
   // Absent, the run makes its own; `agent-qa run` shares one between its suite and direct halves.
   readonly refusalMemory?: RemoteRefusalMemory
+  // Absent, the producer starts its own when the config lists plugins, and closes it at the end.
+  readonly pluginSessions?: RemoteLeaseSource
 }
 
 /** A minimal view of the log manager, so a caller need not name `@vostride/agent-qa-core`'s class. */
@@ -3930,6 +3979,8 @@ export interface ProducedCliRunMembers {
   getCurationModelDeps(): CurationTailModelDeps | undefined
   /** Any teardown the producer owns. The suite half finalises its lifecycle here. */
   finalize?(): Promise<void>
+  // Shuts down a plugin host the producer started itself, on every path out of the run.
+  closePluginHosts?(): Promise<void>
   /** The run's plugin load, which the core awaits once the request and its run id are allowed. */
   readonly loadPlugins: () => Promise<void>
   /** The run's own config's `services.dashboard.dbPath`, resolved only when the record opens. */
@@ -3987,6 +4038,14 @@ export async function produceDirectRunMembers(
   })
   const directSecretsFile = configuredSecretsFile(config)
   const directRefusalMemory = input.refusalMemory ?? createRemoteRefusalMemory()
+  const directPluginHost = producerPluginHost({
+    given: input.pluginSessions,
+    config,
+    configPath: configFilePath,
+    runId: producedRunId,
+    connectionSecrets: runtimeSecrets.connectionSecretStore,
+    mask: singleRunMask,
+  })
   const directRunAttributes = buildCliRunAttributes(
     userRunAttributes,
     directRunRunner(config, configDir, filtered, opts.browser, opts.device),
@@ -4262,6 +4321,9 @@ export async function produceDirectRunMembers(
           ...(directSecretsFile === undefined ? {} : { secretsFile: directSecretsFile }),
           refusalMemory: directRefusalMemory,
           mask: singleRunMask,
+          ...(directPluginHost.pluginSessions === undefined
+            ? {}
+            : { pluginSessions: directPluginHost.pluginSessions }),
         })
 
         const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
@@ -4679,6 +4741,7 @@ export async function produceDirectRunMembers(
     },
     bindSession: (session) => { activeRunSession = session },
     takeFrameworkError: () => frameworkError,
+    closePluginHosts: () => directPluginHost.close(),
     getCurationModelDeps: () => singleCurationModelDeps,
     onMemberSnapshot: memberSnapshots.subscribe,
     subscriberSeed: { attributes: directRunAttributes },
@@ -4744,6 +4807,8 @@ export function createRunCommand(
       let _crashSecretRedactor: SecretRedactor | undefined
       // The run this invocation started, so a framework error names the id it recorded.
       let _startedRunId: string | undefined
+      // The command's plugin host, so the catch can shut it down.
+      let _runPluginHost: ProducerPluginHost | undefined
 
       // Awaited before each terminal exit, as `process.exit` skips `finally`; cancels skip it.
       let composedAnalytics: CliAnalyticsHost | undefined
@@ -4826,13 +4891,23 @@ export function createRunCommand(
 
         // One memory for the command, so its suite and direct halves try a refused remote once.
         const runRefusalMemory = createRemoteRefusalMemory()
+        // One plugin host for the command too, started only when a remote asks its plugin.
+        const runPluginHost = producerPluginHost({
+          given: undefined,
+          config,
+          configPath: configFilePath,
+          runId: undefined,
+          connectionSecrets: runtimeSecrets.connectionSecretStore,
+          mask: (text) => runtimeSecrets.secretRedactor.redactString(text),
+        })
+        _runPluginHost = runPluginHost
         const runDevicesHere = listDevicesHereOncePerRun(
           options.listDevicesHere ?? listDevicesHereByDefault,
         )
 
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
-          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere)
+          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere, runPluginHost.pluginSessions)
           const suiteReporterSelection = resolveReporterSelection(opts).selection
           if (suiteReporterSelection) {
             await maybePrintPostRunUpdateNotice({
@@ -4842,6 +4917,7 @@ export function createRunCommand(
               cwd: process.cwd(),
             })
           }
+          await runPluginHost.close()
           await drainAnalytics() // The suite-only path's terminal exit.
           process.exit(exitCode)
         }
@@ -4850,7 +4926,7 @@ export function createRunCommand(
         let suitesFailed = false
         let suitesRemoteRefused = false
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length > 0) {
-          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere)
+          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere, runPluginHost.pluginSessions)
           suitesFailed = suiteRun.exitCode !== 0
           suitesRemoteRefused = suiteRun.remoteRefused
         }
@@ -5063,6 +5139,9 @@ export function createRunCommand(
           hostOwnsSignals: true,
           refusalMemory: runRefusalMemory,
           listDevicesHere: runDevicesHere,
+          ...(runPluginHost.pluginSessions === undefined
+            ? {}
+            : { pluginSessions: runPluginHost.pluginSessions }),
         })
         printPlannerLimits(produced.plannerLimits)
         const members = produced.members
@@ -5188,6 +5267,7 @@ export function createRunCommand(
         }
 
         await startedRemoteReleases()
+        await runPluginHost.close()
         releaseAppium()
 
         record.close()
@@ -5204,6 +5284,7 @@ export function createRunCommand(
         process.exit(exitCode)
       } catch (err) {
         await startedRemoteReleases()
+        await _runPluginHost?.close()
         // Input refusals become output and an exit code only here, at the door with a terminal.
         if (err instanceof CliRunInputError) {
           if (err.lines.length > 0) {
