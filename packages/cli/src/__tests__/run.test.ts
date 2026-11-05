@@ -226,6 +226,9 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   selectTestDevice: actual.selectTestDevice,
   selectSuiteDevice: actual.selectSuiteDevice,
   runnerForPlaces: actual.runnerForPlaces,
+  // From the real module: whether a session may log is decided by the config's devices.
+  anyRemoteDevice: actual.anyRemoteDevice,
+  webdriverLogLevel: actual.webdriverLogLevel,
   projectRemotesInConfigText: actual.projectRemotesInConfigText,
   // From the real module: the run start refuses a remote's secret misused or undeclared.
   splitConnectionSecrets: actual.splitConnectionSecrets,
