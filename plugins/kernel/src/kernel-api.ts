@@ -13,9 +13,17 @@ interface KernelApiInput {
   apiKey: string
 }
 
-interface KernelApi {
+export type PoolAcquireAnswer = { acquired: true; browser: unknown } | { acquired: false }
+
+export interface KernelApi {
   createBrowser(body: Record<string, unknown>, signal?: AbortSignal): Promise<unknown>
   deleteBrowser(id: string, signal?: AbortSignal): Promise<void>
+  acquireFromPool(
+    pool: string,
+    body: Record<string, unknown>,
+    signal?: AbortSignal,
+  ): Promise<PoolAcquireAnswer>
+  releaseToPool(pool: string, sessionId: string, reuse: boolean, signal?: AbortSignal): Promise<void>
 }
 
 export function kernelFailureKind(status: number | undefined): KernelFailureKind {
@@ -61,6 +69,15 @@ async function statusFailure(response: Response, request: string): Promise<Plugi
   })
 }
 
+async function jsonOf(response: Response): Promise<unknown> {
+  const text = await response.text()
+  try {
+    return JSON.parse(text) as unknown
+  } catch {
+    return undefined
+  }
+}
+
 function causeText(error: unknown): string {
   if (!(error instanceof Error)) return String(error)
   const cause = error.cause
@@ -92,20 +109,19 @@ export function createKernelApi(input: KernelApiInput): KernelApi {
     }
   }
 
+  const jsonHeaders = { 'content-type': 'application/json', accept: 'application/json' }
+  const poolPath = (pool: string, action = '') =>
+    `browser_pools/${encodeURIComponent(pool)}${action === '' ? '' : `/${action}`}`
+
   return {
     async createBrowser(body, signal) {
       const response = await send('POST', 'browsers', {
-        headers: { 'content-type': 'application/json', accept: 'application/json' },
+        headers: jsonHeaders,
         body: JSON.stringify(body),
         signal,
       })
       if (!response.ok) throw await statusFailure(response, 'POST /browsers')
-      const text = await response.text()
-      try {
-        return JSON.parse(text) as unknown
-      } catch {
-        return undefined
-      }
+      return jsonOf(response)
     },
 
     async deleteBrowser(id, signal) {
@@ -115,6 +131,33 @@ export function createKernelApi(input: KernelApiInput): KernelApi {
         return
       }
       throw await statusFailure(response, 'DELETE /browsers/{id}')
+    },
+
+    async acquireFromPool(pool, body, signal) {
+      const response = await send('POST', poolPath(pool, 'acquire'), {
+        headers: jsonHeaders,
+        body: JSON.stringify(body),
+        signal,
+      })
+      if (response.status === 204) {
+        await response.body?.cancel()
+        return { acquired: false }
+      }
+      if (!response.ok) throw await statusFailure(response, 'POST /browser_pools/{pool}/acquire')
+      return { acquired: true, browser: await jsonOf(response) }
+    },
+
+    async releaseToPool(pool, sessionId, reuse, signal) {
+      const response = await send('POST', poolPath(pool, 'release'), {
+        headers: jsonHeaders,
+        body: JSON.stringify({ session_id: sessionId, reuse }),
+        signal,
+      })
+      if (response.ok || response.status === 404) {
+        await response.body?.cancel()
+        return
+      }
+      throw await statusFailure(response, 'POST /browser_pools/{pool}/release')
     },
   }
 }

@@ -7,11 +7,18 @@ import {
 
 export const CREATE_ROUTE = 'POST /browsers'
 export const DELETE_ROUTE = 'DELETE /browsers/:id'
+export const POOL_ACQUIRE_ROUTE = 'POST /browser_pools/:pool/acquire'
+export const POOL_RELEASE_ROUTE = 'POST /browser_pools/:pool/release'
 
 export interface FakeKernelApiInput {
   // Served one per create before the fake falls back to answering a fresh browser.
   create?: readonly LoopbackReply[]
   delete?: readonly LoopbackReply[]
+  // Served one per pool acquire before the fake falls back to handing out a pooled browser.
+  poolAcquire?: readonly LoopbackReply[]
+  // Every pool acquire answers 204, as for a pool with no free browser.
+  poolEmpty?: boolean
+  poolRelease?: readonly LoopbackReply[]
 }
 
 export interface FakeKernelApi extends LoopbackFake {
@@ -41,6 +48,8 @@ function sentHeadless(request: LoopbackRequest): boolean {
 
 export async function startFakeKernelApi(input: FakeKernelApiInput = {}): Promise<FakeKernelApi> {
   const scripted = [...(input.create ?? [])]
+  const scriptedPool = [...(input.poolAcquire ?? [])]
+  let pooled = 0
   const created: string[] = []
   const live = new Set<string>()
   const fake = await startLoopbackFake({
@@ -61,6 +70,15 @@ export async function startFakeKernelApi(input: FakeKernelApiInput = {}): Promis
           if (!live.delete(id)) return { status: 404, json: { message: 'browser not found' } }
           return { status: 204 }
         }),
+      [POOL_ACQUIRE_ROUTE]: (request) => {
+        if (input.poolEmpty === true) return { status: 204 }
+        const reply = scriptedPool.shift()
+        if (reply !== undefined) return reply
+        pooled += 1
+        const id = `${request.params.pool ?? ''}-browser-${String(pooled)}`
+        return { status: 200, json: kernelBrowser(id, true) }
+      },
+      [POOL_RELEASE_ROUTE]: input.poolRelease ?? [{ status: 204 }],
     },
   })
   return {

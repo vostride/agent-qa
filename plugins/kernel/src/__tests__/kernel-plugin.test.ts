@@ -1,10 +1,3 @@
-import { spawn } from 'node:child_process'
-import { fileURLToPath } from 'node:url'
-import {
-  createLineDecoder,
-  encodeMessage,
-  MAX_MESSAGE_BYTES,
-} from '@vostride/agent-qa-plugin-kit/protocol'
 import { afterEach, describe, expect, it } from 'vitest'
 import { kernelFailureKind } from '../kernel-api.js'
 import {
@@ -13,75 +6,18 @@ import {
   startFakeKernelApi,
   type FakeKernelApi,
 } from './fake-kernel-api.js'
+import { initializeKernel, spawnKernelPlugin, type SpawnedKernel } from './spawned-kernel.js'
 
-const ENTRY = fileURLToPath(new URL('../../dist/main.js', import.meta.url))
 const API_KEY = 'kernel-test-key'
 const WEB_SESSION = { platform: 'web', engine: 'chromium', context: 'new' } as const
 
-interface RpcErrorData {
-  kind?: string
-  path?: string
-  handle?: unknown
-}
-
-interface RpcAnswer {
-  result?: unknown
-  error?: { code: number; message: string; data?: RpcErrorData }
-}
-
-interface PluginHost {
-  request(method: string, params?: unknown): Promise<RpcAnswer>
-  stderr(): string
-  close(): Promise<void>
-}
-
 const fakes: FakeKernelApi[] = []
-const hosts: PluginHost[] = []
+const hosts: SpawnedKernel[] = []
 
 afterEach(async () => {
   await Promise.all(hosts.splice(0).map((host) => host.close()))
   await Promise.all(fakes.splice(0).map((fake) => fake.close()))
 })
-
-function startPlugin(): PluginHost {
-  const child = spawn(process.execPath, [ENTRY], { stdio: ['pipe', 'pipe', 'pipe'] })
-  const waiting = new Map<number, (answer: RpcAnswer) => void>()
-  let stderr = ''
-  let next = 0
-  child.stderr.on('data', (chunk: Buffer) => {
-    stderr += chunk.toString()
-  })
-  const decoder = createLineDecoder({
-    maxLineBytes: MAX_MESSAGE_BYTES,
-    onLine: (line) => {
-      const message = JSON.parse(line) as RpcAnswer & { id?: number }
-      if (typeof message.id !== 'number') return
-      waiting.get(message.id)?.(message)
-      waiting.delete(message.id)
-    },
-    onOverflow: () => {
-      throw new Error('the plugin wrote an oversized line')
-    },
-  })
-  child.stdout.on('data', (chunk: Buffer) => decoder.push(chunk))
-  const exited = new Promise<void>((resolve) => child.on('exit', () => resolve()))
-  const host: PluginHost = {
-    request(method, params) {
-      next += 1
-      const id = next
-      const answered = new Promise<RpcAnswer>((resolve) => waiting.set(id, resolve))
-      child.stdin.write(encodeMessage({ jsonrpc: '2.0', id, method, params }))
-      return answered
-    },
-    stderr: () => stderr,
-    close() {
-      child.stdin.end()
-      return exited
-    },
-  }
-  hosts.push(host)
-  return host
-}
 
 async function startApi(input?: Parameters<typeof startFakeKernelApi>[0]) {
   const api = await startFakeKernelApi(input)
@@ -90,18 +26,9 @@ async function startApi(input?: Parameters<typeof startFakeKernelApi>[0]) {
 }
 
 async function initialized(options: Record<string, unknown>) {
-  const plugin = startPlugin()
-  const answer = await plugin.request('initialize', {
-    protocolVersions: [1],
-    host: {
-      pid: process.pid,
-      agentQaVersion: '0.0.0',
-      playwrightVersion: 'unknown',
-      webdriverioVersion: 'unknown',
-    },
-    entry: 'kernel',
-    options,
-  })
+  const plugin = spawnKernelPlugin()
+  hosts.push(plugin)
+  const answer = await initializeKernel(plugin, options)
   return { plugin, answer }
 }
 
@@ -111,8 +38,8 @@ async function kernelPlugin(api: FakeKernelApi) {
   return plugin
 }
 
-function acquire(plugin: PluginHost, settings: Record<string, unknown> = {}) {
-  return plugin.request('acquire', { remote: 'kernel', settings, session: WEB_SESSION })
+function acquire(plugin: SpawnedKernel, settings: Record<string, unknown> = {}) {
+  return plugin.call('acquire', { remote: 'kernel', settings, session: WEB_SESSION })
 }
 
 function createBodies(api: FakeKernelApi) {
@@ -200,7 +127,7 @@ describe('deleting a Kernel browser', () => {
     const plugin = await kernelPlugin(api)
     const acquired = await acquire(plugin)
 
-    const released = await plugin.request('release', {
+    const released = await plugin.call('release', {
       handle: (acquired.result as { handle: unknown }).handle,
     })
 
@@ -213,7 +140,7 @@ describe('deleting a Kernel browser', () => {
     const api = await startApi({ delete: [{ status: 404, json: { message: 'not found' } }] })
     const plugin = await kernelPlugin(api)
 
-    const released = await plugin.request('release', { handle: { sessionId: 'gone' } })
+    const released = await plugin.call('release', { handle: { sessionId: 'gone' } })
 
     expect(released).toMatchObject({ result: {} })
     expect(api.deletedIds()).toEqual(['gone'])
