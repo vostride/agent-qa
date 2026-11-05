@@ -22,6 +22,8 @@ the `bstack:options` the host masks and the basic auth header, and are never log
 ## Read First
 
 - `package.json`
+- `README.md`
+- `skill/SKILL.md`
 - `src/plugin.ts`
 - `src/options.ts`
 - `src/web.ts`
