@@ -188,6 +188,8 @@ Capabilities:
   refuses a literal under a capability name that carries a credential word, at any depth.
   `appium:keystorePath`, `appium:keyAlias` and `appium:sendKeyStrategy` are settings, not
   credentials; `appium:keystorePassword` and `appium:keyPassword` are credentials.
+- Secrets in a device's `capabilities` or a target's app `ref` serve the connection only. Steps,
+  expected values, target urls and hooks cannot use them.
 - A capability that contradicts the device or its target is refused before the session opens,
   with one line naming both places: `platformName` or a driver for the other platform;
   `appium:deviceName`, `appium:platformVersion` or `appium:udid` against `model`, `os` or `id`;
