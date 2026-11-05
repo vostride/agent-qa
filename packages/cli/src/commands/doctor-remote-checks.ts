@@ -133,7 +133,14 @@ function secretsProblem(
   label: string,
   secretsFile: RemoteChecksInput['secretsFile'],
 ): string | undefined {
-  const names = connectionSecretNames([entry])
+  return undeclaredSecretsProblem(connectionSecretNames([entry]), label, secretsFile)
+}
+
+export function undeclaredSecretsProblem(
+  names: readonly string[],
+  label: string,
+  secretsFile: RemoteChecksInput['secretsFile'],
+): string | undefined {
   if (names.length === 0) return undefined
   if (!secretsFile) {
     return `${label}: ${names.join(', ')} cannot be checked; workspace.secretsFile is not set.`

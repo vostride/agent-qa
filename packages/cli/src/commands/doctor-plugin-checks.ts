@@ -1,16 +1,18 @@
 import {
+  checkPluginConfig,
   createPluginHostPool,
   getAgentQaVersion,
   pluginHostVersions,
   pluginSecretResolver,
-  resolvePluginEntry,
+  resolvePluginEntries,
   type PluginEntryInput,
   type ResolvedPluginEntry,
 } from '@vostride/agent-qa-core'
+import { secretReferenceNames } from '@vostride/agent-qa-schema'
 
 import { maskWithDeclaredSecrets, readDeclaredSecrets } from '../composition/declared-secrets.js'
 import type { CheckResult, DoctorCheck } from './doctor.js'
-import { listedRemotes } from './doctor-remote-checks.js'
+import { listedRemotes, undeclaredSecretsProblem } from './doctor-remote-checks.js'
 
 export const PLUGIN_CHECK_TIMEOUT_MS = 15_000
 
@@ -64,6 +66,13 @@ function pluginRemotes(config: Record<string, unknown> | null): PluginRemote[] {
       },
     ]
   })
+}
+
+function referenceNames(value: unknown): string[] {
+  if (typeof value === 'string') return secretReferenceNames(value)
+  if (Array.isArray(value)) return value.flatMap(referenceNames)
+  if (isRecord(value)) return Object.values(value).flatMap(referenceNames)
+  return []
 }
 
 // Plugin text reaches a terminal and a coding agent, so it is masked and kept to one line.
@@ -134,7 +143,8 @@ async function accountCheck(
     if (lines.length > 0) return { warn, lines }
     return { warn, lines: [warn ? 'the account check warned' : 'the account check passed'] }
   } catch (error) {
-    return { warn: true, lines: [oneLine(error instanceof Error ? error.message : String(error), mask)] }
+    const reason = error instanceof Error ? error.message : String(error)
+    return { warn: true, lines: [oneLine(reason, mask)] }
   } finally {
     await pool.shutdown().catch(() => undefined)
   }
@@ -143,23 +153,44 @@ async function accountCheck(
 async function pluginRow(
   entry: PluginEntryInput,
   using: readonly PluginRemote[],
+  remotes: readonly PluginRemote[],
   input: PluginChecksInput,
   timeoutMs: number,
 ): Promise<CheckResult> {
-  const resolved = resolvePluginEntry(entry, {
-    configDir: input.configDir,
-    agentQaVersion: getAgentQaVersion(),
-  })
+  // Resolved against every plugin remote, so an entry none of them names is flagged unused.
+  const resolved = resolvePluginEntries(
+    { plugins: [entry], remotes },
+    { configDir: input.configDir, agentQaVersion: getAgentQaVersion() },
+  )[0]!
   const parts = [identity(resolved)]
   const problems: string[] = []
   let checked: AccountCheck | undefined
 
-  if (resolved.state !== 'ok') problems.push(resolved.state)
+  // The reason carries the install line for a package and the path for a path plugin.
+  if (resolved.state !== 'ok') problems.push(resolved.reason ?? resolved.state)
+  const secretNames = [
+    ...new Set([
+      ...referenceNames(entry.options),
+      ...using.flatMap((remote) => referenceNames(remote.settings)),
+    ]),
+  ]
+  const secrets = undeclaredSecretsProblem(
+    secretNames,
+    `Plugin entry ${entry.name}`,
+    input.secretsFile,
+  )
+  if (secrets) problems.push(secrets)
+  if (resolved.state === 'ok' || resolved.state === 'unused') {
+    const issues = checkPluginConfig(resolved, { options: entry.options, remotes: using })
+    problems.push(...issues.map((issue) => issue.message))
+  }
+
   const manifest = resolved.manifest
   if (manifest?.kind === 'remote') {
     const facts = manifest.runFacts ?? []
     parts.push(`receives ${facts.length === 0 ? 'session facts only' : facts.join(', ')}`)
-    parts.push(`remotes ${using.length === 0 ? 'none' : using.map((remote) => remote.name).join(', ')}`)
+    const remoteNames = using.map((remote) => remote.name)
+    parts.push(`remotes ${remoteNames.length === 0 ? 'none' : remoteNames.join(', ')}`)
     if (problems.length === 0) {
       checked = manifest.methods.includes('check')
         ? await accountCheck(entry, using, input, timeoutMs)
@@ -180,22 +211,20 @@ async function pluginRow(
 // starts the plugin for `check` alone. A row never fails.
 export function createPluginChecks(input: PluginChecksInput): DoctorCheck[] {
   const timeoutMs = input.checkTimeoutMs ?? PLUGIN_CHECK_TIMEOUT_MS
-  const remotes = pluginRemotes(input.config).filter(
-    (remote) => input.only === undefined || remote.name === input.only,
-  )
+  const remotes = pluginRemotes(input.config)
+  const shown = remotes.filter((remote) => input.only === undefined || remote.name === input.only)
   return listedPlugins(input.config)
     .filter(
-      (entry) =>
-        input.only === undefined || remotes.some((remote) => remote.plugin === entry.name),
+      (entry) => input.only === undefined || shown.some((remote) => remote.plugin === entry.name),
     )
     .map((entry) => {
-      const using = remotes.filter((remote) => remote.plugin === entry.name)
+      const using = shown.filter((remote) => remote.plugin === entry.name)
       return {
         name: `Plugin ${entry.name}`,
         fixInstructions: PLUGIN_FIX,
         check: async () => {
           try {
-            return await pluginRow(entry, using, input, timeoutMs)
+            return await pluginRow(entry, using, remotes, input, timeoutMs)
           } catch (error) {
             const reason = error instanceof Error ? error.message : String(error)
             return { status: 'warn', message: oneLine(reason, (text) => text) }

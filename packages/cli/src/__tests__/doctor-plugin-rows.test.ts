@@ -1,4 +1,4 @@
-import { existsSync, readFileSync } from 'node:fs'
+import { existsSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdir, mkdtemp, writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 
@@ -7,7 +7,11 @@ import { stringify } from 'yaml'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getAgentQaVersion } from '@vostride/agent-qa-core'
-import { writeScriptedPlugin, type ScriptedPluginInput } from '@vostride/agent-qa-plugin-kit/testing'
+import {
+  startLoopbackFake,
+  writeScriptedPlugin,
+  type ScriptedPluginInput,
+} from '@vostride/agent-qa-plugin-kit/testing'
 
 import { pinProcessTmpdir, removeTempRoots, type PinnedTmpdir } from './temp-roots.js'
 
@@ -133,7 +137,11 @@ function config(
   }
 }
 
-async function rows(project: Project, raw: Record<string, unknown>, extra: Partial<PluginChecksInput> = {}): Promise<Row[]> {
+async function rows(
+  project: Project,
+  raw: Record<string, unknown>,
+  extra: Partial<PluginChecksInput> = {},
+): Promise<Row[]> {
   const found: Row[] = []
   for (const check of createPluginChecks({
     config: raw,
@@ -152,6 +160,41 @@ function ledgerMethods(project: Project): string[] {
     .split('\n')
     .filter((line) => line.trim() !== '')
     .map((line) => (JSON.parse(line) as { method: string }).method)
+}
+
+// Speaks the protocol by hand; its check asks the vendor named in its options, as a real one would.
+function writeVendorPlugin(dir: string): void {
+  writeScriptedPlugin(dir, { serves: ['playwright'], methods: ['check'] })
+  writeFileSync(
+    join(dir, 'main.mjs'),
+    `let options = {}
+const send = (message) => process.stdout.write(JSON.stringify({ jsonrpc: '2.0', ...message }) + '\\n')
+async function answer(message) {
+  if (message.method === 'initialize') {
+    options = message.params.options
+    return { protocolVersion: 1, plugin: { name: 'vendor', version: '1.0.0' }, serves: ['playwright'], methods: ['check'] }
+  }
+  if (message.method === 'check') {
+    const reply = await fetch(options.vendor + '/v1/plan')
+    return { state: 'ok', lines: [(await reply.json()).line] }
+  }
+  return {}
+}
+let pending = ''
+process.stdin.setEncoding('utf8')
+process.stdin.on('end', () => process.exit(0))
+process.stdin.on('data', (chunk) => {
+  pending += chunk
+  for (let end = pending.indexOf('\\n'); end >= 0; end = pending.indexOf('\\n')) {
+    const line = pending.slice(0, end)
+    pending = pending.slice(end + 1)
+    if (line.trim() === '') continue
+    const message = JSON.parse(line)
+    if (message.id !== undefined) answer(message).then((result) => send({ id: message.id, result }))
+  }
+})
+`,
+  )
 }
 
 async function runDoctorJson(project: Project, raw: Record<string, unknown>, ...args: string[]) {
@@ -226,7 +269,10 @@ describe("doctor's plugin rows", () => {
       runFacts: ['testName', 'runId', 'failure'],
       methods: [],
     })
-    const raw = config([{ name: 'facts', path: './plugins/facts' }], [{ name: 'farm', plugin: 'facts' }])
+    const raw = config(
+      [{ name: 'facts', path: './plugins/facts' }],
+      [{ name: 'farm', plugin: 'facts' }],
+    )
 
     const [row] = await rows(project, raw)
 
@@ -263,7 +309,9 @@ describe("doctor's plugin rows", () => {
         {
           name: 'lab',
           package: FIRST_PARTY,
-          options: { script: { check: { error: { kind: 'auth', message: 'the lab key was rejected' } } } },
+          options: {
+            script: { check: { error: { kind: 'auth', message: 'the lab key was rejected' } } },
+          },
         },
       ],
       [{ name: 'farm', plugin: 'lab' }],
@@ -359,5 +407,198 @@ describe("doctor's plugin rows", () => {
     expect(pluginRows[0]?.message).toContain(`${FIRST_PARTY}, first-party, version`)
     expect(result.checks.some((row) => row.name === 'Node.js')).toBe(true)
     expect(ledgerMethods(project)).toEqual(['initialize', 'check', 'shutdown'])
+  })
+})
+
+
+describe("doctor's plugin rows for setup problems", () => {
+  beforeAll(() => {
+    pinned = pinProcessTmpdir()
+  })
+
+  afterAll(() => {
+    pinned.restore()
+    removeTempRoots([pinned.root])
+  })
+
+  beforeEach(() => {
+    printed = []
+    consoleSpies = [
+      vi.spyOn(console, 'log').mockImplementation((...parts: unknown[]) => {
+        printed.push(parts.map(String).join(' '))
+      }),
+      vi.spyOn(console, 'error').mockImplementation(() => {}),
+    ]
+  })
+
+  afterEach(() => {
+    for (const spy of consoleSpies) spy.mockRestore()
+    vi.restoreAllMocks()
+    process.exitCode = 0
+  })
+
+  it('gives a missing first-party plugin the exact pinned install line', async () => {
+    const project = await newProject()
+    const raw = config([{ name: 'lab', package: FIRST_PARTY }], [{ name: 'farm', plugin: 'lab' }])
+
+    const [row] = await rows(project, raw)
+
+    expect(row?.status).toBe('warn')
+    expect(row?.message).toContain(
+      `Run npm install --save-dev --save-exact ${FIRST_PARTY}@${getAgentQaVersion()}.`,
+    )
+  })
+
+  it('gives a first-party plugin at another version the exact pinned install line', async () => {
+    const project = await newProject()
+    installFirstParty(project, { version: '0.0.1' })
+    const raw = config([{ name: 'lab', package: FIRST_PARTY }], [{ name: 'farm', plugin: 'lab' }])
+
+    const [row] = await rows(project, raw)
+
+    expect(row?.status).toBe('warn')
+    expect(row?.message).toContain('version 0.0.1')
+    expect(row?.message).toContain(
+      `Run npm install --save-dev --save-exact ${FIRST_PARTY}@${getAgentQaVersion()}.`,
+    )
+  })
+
+  it('gives a missing third-party package its install line without a version', async () => {
+    const project = await newProject()
+    const raw = config(
+      [{ name: 'grid', package: '@acme/agent-qa-plugin-grid' }],
+      [{ name: 'farm', plugin: 'grid' }],
+    )
+
+    const [row] = await rows(project, raw)
+
+    expect(row?.status).toBe('warn')
+    expect(row?.message).toContain('third-party')
+    expect(row?.message).toContain('Run npm install --save-dev @acme/agent-qa-plugin-grid.')
+    expect(row?.message).not.toContain('--save-exact')
+  })
+
+  it('names the path of a path plugin that is missing', async () => {
+    const project = await newProject()
+    const raw = config([{ name: 'lab', path: './plugins/lab' }], [{ name: 'farm', plugin: 'lab' }])
+
+    const [row] = await rows(project, raw)
+
+    expect(row?.status).toBe('warn')
+    expect(row?.message).toContain('names the path ./plugins/lab, which has no package.json')
+    expect(row?.message).not.toContain('npm install')
+  })
+
+  it('warns about secrets its options and its remotes\' settings name that the secrets file does not declare, and runs no check', async () => {
+    const project = await newProject('OTHER_KEY=other-secret-5d1e\n')
+    installFirstParty(project)
+    const raw = config(
+      [
+        {
+          name: 'lab',
+          package: FIRST_PARTY,
+          options: { ledgerFile: project.ledger, key: '{{secret:LAB_KEY}}' },
+        },
+      ],
+      [{ name: 'farm', plugin: 'lab', settings: { token: '{{secret:FARM_TOKEN}}' } }],
+    )
+
+    const [row] = await rows(project, raw)
+
+    expect(row?.status).toBe('warn')
+    expect(row?.message).toContain(
+      'Plugin entry lab: LAB_KEY, FARM_TOKEN not declared in .env.secrets.local.',
+    )
+    expect(ledgerMethods(project)).toEqual([])
+  })
+
+  it('says the secrets cannot be checked when workspace.secretsFile is not set', async () => {
+    const project = await newProject()
+    installFirstParty(project)
+    const raw = config(
+      [{ name: 'lab', package: FIRST_PARTY, options: { key: '{{secret:LAB_KEY}}' } }],
+      [{ name: 'farm', plugin: 'lab' }],
+    )
+
+    const found = await createPluginChecks({ config: raw, configDir: project.dir })[0]?.check()
+
+    expect(found?.status).toBe('warn')
+    expect(found?.message).toContain(
+      'Plugin entry lab: LAB_KEY cannot be checked; workspace.secretsFile is not set.',
+    )
+  })
+
+  it('flags an entry no remote uses, and starts no process for it', async () => {
+    const project = await newProject()
+    installFirstParty(project)
+    const raw = config(
+      [{ name: 'lab', package: FIRST_PARTY, options: { ledgerFile: project.ledger } }],
+      [],
+    )
+
+    const [row] = await rows(project, raw)
+
+    expect(row?.status).toBe('warn')
+    expect(row?.message).toContain(`${FIRST_PARTY}, first-party, version`)
+    expect(row?.message).toContain('used by no remote')
+    expect(ledgerMethods(project)).toEqual([])
+  })
+
+  it("makes no request of its own for provenance: the vendor sees only the plugin's check", async () => {
+    const vendor = await startLoopbackFake({
+      routes: { 'GET /v1/plan': [{ status: 200, json: { line: '3 parallel sessions' } }] },
+    })
+    try {
+      const project = await newProject()
+      writeVendorPlugin(join(project.dir, 'node_modules', '@acme', 'agent-qa-plugin-vendor'))
+      const raw = config(
+        [
+          {
+            name: 'vendor',
+            package: '@acme/agent-qa-plugin-vendor',
+            options: { vendor: vendor.url },
+          },
+        ],
+        [{ name: 'farm', plugin: 'vendor' }],
+      )
+      const fetches = vi.spyOn(globalThis, 'fetch')
+
+      const [row] = await rows(project, raw)
+
+      expect(row).toMatchObject({ status: 'pass' })
+      expect(row?.message).toContain('@acme/agent-qa-plugin-vendor, third-party, version 1.0.0')
+      expect(row?.message).toMatch(/; 3 parallel sessions$/)
+      expect(vendor.requests.map((request) => `${request.method} ${request.path}`)).toEqual([
+        'GET /v1/plan',
+      ])
+      expect(fetches).not.toHaveBeenCalled()
+    } finally {
+      await vendor.close()
+    }
+  })
+
+  it('still skips the local Appium, driver, Android SDK and Xcode rows when the only device is on a plugin remote', async () => {
+    const project = await newProject()
+    installFirstParty(project, { methods: [] })
+    const raw = config(
+      [{ name: 'lab', package: FIRST_PARTY }],
+      [{ name: 'farm', plugin: 'lab' }],
+      {
+        targets: { app: { platform: 'android', appPackage: 'com.example', appActivity: '.Main' } },
+        devices: { pixel: { platform: 'android', remote: 'farm' } },
+      },
+    )
+
+    const result = await runDoctorJson(project, raw)
+
+    const status = (name: string) => result.checks.find((row) => row.name === name)?.status
+    expect(['Appium', 'Appium drivers', 'Android SDK', 'Xcode'].map(status)).toEqual([
+      'skip',
+      'skip',
+      'skip',
+      'skip',
+    ])
+    expect(result.checks.filter((row) => row.name.startsWith('Plugin ')).map((row) => row.status))
+      .toEqual(['pass'])
   })
 })
