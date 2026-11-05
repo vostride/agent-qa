@@ -182,6 +182,8 @@ function createMockDriver() {
     getWindowSize: vi.fn().mockResolvedValue({ width: 1080, height: 1920 }),
     takeScreenshot: vi.fn().mockResolvedValue(''),
     deleteSession: vi.fn().mockResolvedValue(undefined),
+    releaseActions: vi.fn().mockResolvedValue(undefined),
+    performActions: vi.fn().mockResolvedValue(undefined),
     activateApp: vi.fn().mockResolvedValue(undefined),
     action: vi.fn().mockReturnValue(chain),
     keys: vi.fn().mockResolvedValue(undefined),

@@ -15,6 +15,9 @@ import type {
   LiveStreamCapability,
   PlatformConfig,
   RecordingCapability,
+  RemoteDeviceConfig,
+  RemoteHeartbeat,
+  RemotePlaceEvidence,
   ScrollPrimitives,
   ShellActionMeta,
   SwipeSignal,
@@ -23,25 +26,32 @@ import {
   assertNever,
   buildScreenState,
   compareFillReread,
+  createRemoteHeartbeat,
   createSnapshotLiveStream,
+  REMOTE_RELEASE_BOUND_MS,
   resolveAppName,
   runDirectionScroll,
   runToEndScroll,
   runUntilVisibleLoop,
 } from '@vostride/agent-qa-runner'
 import type { ElementLabels, ElementState, Ref, ScreenState } from '@vostride/agent-qa-schema'
+import { formatRemoteOrigin, remoteOrigin } from '@vostride/agent-qa-schema'
 import {
   KEY_MAP,
   MobileElementResolver,
   MobileSetupError,
   WEBVIEW_SCROLLERS_SCRIPT,
   buildRefEntries,
+  classifyCommandFailure,
   computeFingerPositions,
   computePinch,
   computeSwipe,
   deriveMobileScroll,
+  isUnknownCommandError,
   parseMobileSource,
   parseWebViewScrollers,
+  remoteDeviceLostSentence,
+  scrubDeviceEndpoint,
   warnIfOutOfBounds,
   webViewSwipeSignal,
 } from '@vostride/agent-qa-core'
@@ -108,14 +118,50 @@ const ANDROID_NATIVE_SELECT_TYPES = new Set([
   'androidx.recyclerview.widget.RecyclerView',
 ])
 
-async function safePerform(chain: { perform: () => Promise<void> }): Promise<void> {
+type TouchDriver = Pick<WebdriverIO.Browser, 'releaseActions'>
+
+// The touch has run once perform resolves; a server that does not know the release has none to do.
+async function releaseTouch(driver: TouchDriver): Promise<void> {
   try {
-    await chain.perform()
-  } catch (err: unknown) {
-    const msg = err instanceof Error ? err.message : String(err)
-    if (msg.includes('actions') && msg.includes('DELETE')) return
-    throw err
+    await driver.releaseActions()
+  } catch (error) {
+    if (!isUnknownCommandError(error)) throw error
   }
+}
+
+async function performTouch(
+  driver: TouchDriver,
+  chain: { perform: (skipRelease?: boolean) => Promise<void> },
+): Promise<void> {
+  await chain.perform(true)
+  await releaseTouch(driver)
+}
+
+async function performTouches(
+  driver: TouchDriver & Pick<WebdriverIO.Browser, 'performActions'>,
+  chains: ReadonlyArray<{ toJSON: () => unknown }>,
+): Promise<void> {
+  await driver.performActions(
+    chains.map((chain) => chain.toJSON()) as Parameters<WebdriverIO.Browser['performActions']>[0],
+  )
+  await releaseTouch(driver)
+}
+
+function remoteOriginText(url: string): string {
+  const origin = remoteOrigin(url)
+  return origin ? formatRemoteOrigin(origin) : 'invalid url'
+}
+
+function withinBound(work: Promise<unknown>, boundMs: number): Promise<void> {
+  return new Promise<void>((settled) => {
+    const timer = setTimeout(settled, boundMs)
+    timer.unref?.()
+    const done = (): void => {
+      clearTimeout(timer)
+      settled()
+    }
+    work.then(done, done)
+  })
 }
 
 const LOGCAT_REGEX = /^(\d{2}-\d{2})\s+(\d{2}:\d{2}:\d{2}\.\d{3})\s+(\d+)\s+(\d+)\s+([VDIWEF])\s+(.+?)\s*:\s+(.*)/
@@ -621,11 +667,25 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   private appPid: string | null = null
   // Enumerated once per session; `null` is not yet enumerated or retryable; reset in `cleanup()`.
   private appRegistry: AppRegistryEntry[] | null = null
+  private remote: RemoteDeviceConfig | undefined
+  private deviceName = 'android'
+  private place: RemotePlaceEvidence | undefined
+  private heartbeat: RemoteHeartbeat | undefined
+  private unregisterRelease: (() => void) | undefined
+  private released: Promise<void> | undefined
+  // Set by the first command a remote leaves unanswered or ends; nothing is sent again after it.
+  private disconnectKind: 'lost' | 'ended' | undefined
+  private disconnectError: unknown
 
   async setup(config: PlatformConfig): Promise<void> {
     this.config = config as AndroidAdapterConfig
     this.captureConsole = config.logCapture?.console !== false
     this.appPackage = this.config.appPackage ?? (config.device?.match?.appPackage as string | undefined) ?? null
+    this.remote = config.device?.remote
+    this.deviceName = config.device?.name ?? 'android'
+    this.disconnectKind = undefined
+    this.disconnectError = undefined
+    this.released = undefined
 
     this.driver = await createAndroidSession(this.config, {
       connectionSecrets: this.options.connectionSecrets,
@@ -634,7 +694,22 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
       mask: this.options.mask,
       commandBoundMs: this.options.timing?.commandBoundMs,
     })
+    const remote = this.remote
+    if (remote === undefined) {
+      this.place = { place: 'here' }
+      return this.prepareSession(config)
+    }
+    await this.openedRemote(this.driver, remote)
+    try {
+      await this.prepareSession(config)
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+    this.heartbeat?.start()
+  }
 
+  private async prepareSession(config: PlatformConfig): Promise<void> {
+    if (!this.driver || !this.config) return
     const appPackage = this.appPackage
     if (appPackage && !this.config.browserName && !this.config.device?.match?.browserName) {
       let state: number | undefined
@@ -686,14 +761,30 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
     try { await this.liveStreamCapability?.stop() } catch { /* best-effort */ }
     this.liveStreamCapability = undefined
 
-    try {
-      if (this.driver) {
-        await this.driver.deleteSession()
+    this.heartbeat?.stop()
+    this.unregisterRelease?.()
+    this.unregisterRelease = undefined
+    const driver = this.driver
+    if (driver && this.remote !== undefined) {
+      // An ended session has nothing to delete; a lost one gets only the release bound.
+      if (this.disconnectKind === 'lost') {
+        await withinBound(this.releaseRemote(driver), REMOTE_RELEASE_BOUND_MS)
+      } else if (this.disconnectKind === undefined) {
+        try { await this.releaseRemote(driver) } catch { /* session may already be closed */ }
       }
-    } catch {
-      // session may already be closed
+    } else {
+      try {
+        if (driver) {
+          await driver.deleteSession()
+        }
+      } catch {
+        // session may already be closed
+      }
     }
     this.driver = null
+    this.heartbeat = undefined
+    this.place = undefined
+    this.remote = undefined
     this.lastRefs = {}
     this.config = null
     this.consoleLogs = []
@@ -710,6 +801,18 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   private hasSeenWebContext = false
 
   async observe(): Promise<ScreenState> {
+    if (!this.driver) {
+      throw new Error('AndroidPlatformAdapter not initialized — call setup() first')
+    }
+    this.refuseAfterDisconnect()
+    try {
+      return await this.holdingHeartbeat(() => this.observeScreen())
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+  }
+
+  private async observeScreen(): Promise<ScreenState> {
     if (!this.driver) {
       throw new Error('AndroidPlatformAdapter not initialized — call setup() first')
     }
@@ -762,7 +865,14 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
     if (!this.driver) {
       throw new Error('AndroidPlatformAdapter not initialized — call setup() first')
     }
+    const lost = this.disconnectSummary
+    if (lost !== undefined) return { success: false, error: lost }
+    const result = await this.holdingHeartbeat(() => this.executeOnDevice(action))
+    if (this.remote === undefined || result.error === undefined) return result
+    return { ...result, error: scrubDeviceEndpoint(result.error, this.remote) }
+  }
 
+  private async executeOnDevice(action: ActionsFor<'android'>): Promise<ActionResult> {
     try {
       // Ensure we're in the right context before acting
       if (this.activeWebContext) {
@@ -770,11 +880,14 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
       }
       return await this.executeAction(action)
     } catch (err) {
+      this.remoteCommandFailed(err)
       let screenshot: Buffer | undefined
-      try {
-        screenshot = await this.captureScreenshot()
-      } catch {
-        // ignore screenshot failure
+      if (this.disconnectKind === undefined) {
+        try {
+          screenshot = await this.captureScreenshot()
+        } catch {
+          // ignore screenshot failure
+        }
       }
       return {
         success: false,
@@ -785,6 +898,15 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   }
 
   async screenshot(): Promise<Buffer | undefined> {
+    this.refuseAfterDisconnect()
+    try {
+      return await this.holdingHeartbeat(() => this.screenshotScreen())
+    } catch (error) {
+      throw this.withoutEndpoint(error)
+    }
+  }
+
+  private async screenshotScreen(): Promise<Buffer | undefined> {
     if (this.activeWebContext) {
       await this.ensureContext(this.activeWebContext)
     } else {
@@ -812,9 +934,12 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
 
   async pollDeviceLogs(): Promise<void> {
     if (!this.captureConsole) return
-    if (!this.driver) return
+    if (!this.driver || this.disconnectKind !== undefined) return
+    const driver = this.driver
     try {
-      const logs = await this.driver.getLogs('logcat') as { message: string; timestamp?: number }[]
+      const logs = await this.holdingHeartbeat(
+        () => driver.getLogs('logcat') as Promise<{ message: string; timestamp?: number }[]>,
+      )
       for (const entry of logs) {
         const parsed = parseLogcatLine(entry.message, entry.timestamp ?? Date.now(), this.appPid)
         if (!parsed) continue
@@ -837,7 +962,9 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
 
   // `takeScreenshot()` only: `screenshot()` switches the Appium context mid-step.
   get liveStream(): LiveStreamCapability {
-    this.liveStreamCapability ??= createSnapshotLiveStream({ capture: () => this.captureScreenshot() })
+    this.liveStreamCapability ??= createSnapshotLiveStream({
+      capture: () => this.holdingHeartbeat(() => this.captureScreenshot()),
+    })
     return this.liveStreamCapability
   }
 
@@ -846,6 +973,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
     const config = this.config?.recording
     if (!driver || !config) return undefined
     if (this.recordingCapability) return this.recordingCapability
+    const hold = <T>(work: () => Promise<T>): Promise<T> => this.holdingHeartbeat(work)
     let running = false
     let busy = false
     let needsCleanup = false
@@ -865,7 +993,9 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
             : undefined
           needsCleanup = true
           try {
-            await driver.startRecordingScreen({ videoSize, timeLimit: 1800, forceRestart: true })
+            await hold(() =>
+              driver.startRecordingScreen({ videoSize, timeLimit: 1800, forceRestart: true }),
+            )
           } catch (error) {
             try { await recover() } catch { /* Retry driver cleanup before reuse. */ }
             throw error
@@ -883,7 +1013,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
           running = false
           let base64Video: string
           try {
-            base64Video = await driver.stopRecordingScreen()
+            base64Video = await hold(() => driver.stopRecordingScreen())
           } catch (error) {
             needsCleanup = true
             try { await recover() } catch { /* Retry driver cleanup before reuse. */ }
@@ -903,6 +1033,123 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
       },
     }
     return this.recordingCapability
+  }
+
+  // Where this test ran; undefined before setup and after cleanup.
+  get placeEvidence(): RemotePlaceEvidence | undefined {
+    const place = this.place
+    if (place?.place !== 'remote') return place
+    return {
+      ...place,
+      ...(this.heartbeat !== undefined ? { heartbeat: this.heartbeat.counts() } : {}),
+      ...(this.disconnectKind !== undefined ? { failureKind: this.disconnectKind } : {}),
+    }
+  }
+
+  get isBrowserDisconnected(): boolean {
+    return this.disconnectKind !== undefined
+  }
+
+  // The sentence a test whose remote session was lost or ended fails with.
+  get disconnectSummary(): string | undefined {
+    const remote = this.remote
+    const kind = this.disconnectKind
+    if (remote === undefined || kind === undefined) return undefined
+    return remoteDeviceLostSentence(kind, {
+      remote,
+      device: this.deviceName,
+      ...(this.disconnectError !== undefined ? { error: this.disconnectError } : {}),
+    })
+  }
+
+  private async openedRemote(
+    driver: WebdriverIO.Browser,
+    remote: RemoteDeviceConfig,
+  ): Promise<void> {
+    driver.on('result', (event: { command?: string; result?: unknown }) => {
+      if (this.driver !== driver) return
+      if (event.command === 'deleteSession' || event.command === 'status') return
+      const result = event.result
+      if (typeof result === 'object' && result !== null && 'error' in result) {
+        this.remoteCommandFailed((result as { error: unknown }).error)
+      }
+    })
+    let appiumVersion: string | undefined
+    try {
+      const status = (await driver.status()) as { build?: { version?: unknown } } | undefined
+      const version = status?.build?.version
+      if (typeof version === 'string' && version !== '') appiumVersion = version
+    } catch {
+      // A server without a status still runs the test; only the version goes unrecorded.
+    }
+    this.place = {
+      place: 'remote',
+      name: remote.name,
+      protocol: 'appium',
+      origin: remoteOriginText(remote.url),
+      device: this.deviceName,
+      ...(appiumVersion !== undefined ? { appiumVersion } : {}),
+      ...(driver.sessionId ? { sessionId: driver.sessionId } : {}),
+    }
+    const sessions = this.options.sessions
+    if (sessions !== undefined) {
+      this.unregisterRelease = sessions.register(() => this.releaseRemote(driver))
+    }
+    const intervalMs = this.options.timing?.heartbeatIntervalMs
+    // Appium answers the timeouts from memory: it touches neither the device nor the app.
+    this.heartbeat = createRemoteHeartbeat({
+      ...(intervalMs !== undefined ? { intervalMs } : {}),
+      beat: () => driver.getTimeouts(),
+    })
+  }
+
+  // Deletes the session once, whether a signal or cleanup asks first; the server keeps running.
+  private releaseRemote(driver: WebdriverIO.Browser): Promise<void> {
+    this.heartbeat?.stop()
+    this.released ??= driver.deleteSession()
+    return this.released
+  }
+
+  private remoteCommandFailed(error: unknown): void {
+    if (this.remote === undefined || this.disconnectKind !== undefined) return
+    const kind = classifyCommandFailure(error)
+    if (kind === undefined) return
+    this.disconnectKind = kind
+    this.disconnectError = error
+    this.heartbeat?.stop()
+  }
+
+  private refuseAfterDisconnect(): void {
+    const lost = this.disconnectSummary
+    if (lost !== undefined) throw new Error(lost)
+  }
+
+  // Every device operation holds the heartbeat off, so a beat never overlaps it.
+  private async holdingHeartbeat<T>(work: () => Promise<T>): Promise<T> {
+    const heartbeat = this.heartbeat
+    if (heartbeat === undefined) return work()
+    await heartbeat.enter()
+    try {
+      return await work()
+    } finally {
+      heartbeat.leave()
+    }
+  }
+
+  // WebdriverIO's errors repeat the full request url, with its path and session id.
+  private withoutEndpoint(error: unknown): unknown {
+    const remote = this.remote
+    if (remote === undefined) return error
+    if (typeof error === 'string') return scrubDeviceEndpoint(error, remote)
+    let current: unknown = error
+    for (let depth = 0; current instanceof Error && depth < 8; depth += 1) {
+      current.message = scrubDeviceEndpoint(current.message, remote)
+      if (typeof current.stack === 'string') {
+        current.stack = scrubDeviceEndpoint(current.stack, remote)
+      }
+      current = current.cause
+    }
+    return error
   }
 
   // ---------------------------------------------------------------------------
@@ -1348,7 +1595,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
 
   /** A real W3C touch tap in the WebView context at the ref's CSS-pixel centre. */
   private async trustedWebTap(center: { x: number; y: number }): Promise<void> {
-    await safePerform(this.driver!.action('pointer', { parameters: { pointerType: 'touch' } })
+    await performTouch(this.driver!, this.driver!.action('pointer', { parameters: { pointerType: 'touch' } })
       .move({ x: Math.round(center.x), y: Math.round(center.y), origin: 'viewport' })
       .down({ button: 0 })
       .up({ button: 0 })
@@ -1520,7 +1767,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
       }
       const before = await this.readWebViewScrollers()
       const pts = computeSwipe(sx, sy, fingerDirectionFor(direction), distance)
-      await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+      await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
         .move({ x: pts.startX, y: pts.startY })
         .down({ button: 0 })
         .move({ x: pts.endX, y: pts.endY, duration: 300 })
@@ -1726,7 +1973,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
             center.x, center.y,
           )
         } else {
-          await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+          await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
             .move({ x: Math.round(center.x), y: Math.round(center.y) })
             .down({ button: 0 })
             .up({ button: 0 })
@@ -1751,7 +1998,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
           return await this.fillWebViewCompound(action, box, center)
         }
         // Native fill — tap to focus, then run the compound from the focused-element handle.
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(center.x), y: Math.round(center.y) })
           .down({ button: 0 })
           .up({ button: 0 })
@@ -1778,7 +2025,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
           }
         }
 
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(center.x), y: Math.round(center.y) })
           .down({ button: 0 })
           .up({ button: 0 })
@@ -1881,7 +2128,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         warnIfOutOfBounds({ x: pts.endX, y: pts.endY }, { width, height }, 'swipe')
         const swipeDuration = action.durationMs
 
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: pts.startX, y: pts.startY })
           .down({ button: 0 })
           .move({ x: pts.endX, y: pts.endY, duration: swipeDuration })
@@ -1915,7 +2162,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         const { finger1Start, finger1End, finger2Start, finger2End } = computePinch(pcx, pcy, action.scale)
         const pinchDuration = 500
 
-        await driver.actions([
+        await performTouches(driver, [
           driver.action('pointer', { parameters: { pointerType: 'touch' } })
             .move({ x: Math.round(finger1Start.x), y: Math.round(finger1Start.y) })
             .down({ button: 0 })
@@ -1946,7 +2193,8 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         warnIfOutOfBounds({ x: mtcx, y: mtcy }, { width: mtW, height: mtH }, 'multiTap')
 
         const positions = computeFingerPositions(mtcx, mtcy, action.fingers)
-        await driver.actions(
+        await performTouches(
+          driver,
           positions.map(pos =>
             driver.action('pointer', { parameters: { pointerType: 'touch' } })
               .move({ x: Math.round(pos.x), y: Math.round(pos.y) })
@@ -1960,7 +2208,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
 
       case 'longpress': {
         const { center } = resolver.resolve(action.ref)
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(center.x), y: Math.round(center.y) })
           .down({ button: 0 })
           .pause(action.duration ?? 1000)
@@ -2046,7 +2294,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
             boundingBox: bounds,
           })
         }
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(center.x), y: Math.round(center.y) })
           .down({ button: 0 })
           .up({ button: 0 })
@@ -2165,7 +2413,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         const from = resolver.resolve(action.fromRef)
         const to = resolver.resolve(action.toRef)
         if (inWeb) await this.ensureContext('NATIVE_APP')
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x: Math.round(from.center.x), y: Math.round(from.center.y) })
           .down({ button: 0 })
           .pause(300)
@@ -2180,7 +2428,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
         const { center, bounds } = resolver.resolve(action.ref)
         const x = Math.round(center.x)
         const y = Math.round(center.y)
-        await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+        await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
           .move({ x, y })
           .down({ button: 0 })
           .up({ button: 0 })
@@ -2220,7 +2468,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
             x, y,
           )
         } else {
-          await safePerform(driver.action('pointer', { parameters: { pointerType: 'touch' } })
+          await performTouch(driver, driver.action('pointer', { parameters: { pointerType: 'touch' } })
             .move({ x, y })
             .down({ button: 0 })
             .up({ button: 0 })

@@ -34,6 +34,7 @@ function createMockPointerAction() {
   chain.up = vi.fn().mockReturnValue(chain)
   chain.pause = vi.fn().mockReturnValue(chain)
   chain.perform = vi.fn().mockResolvedValue(undefined)
+  chain.toJSON = vi.fn().mockReturnValue({ type: 'pointer', actions: [] })
   return chain
 }
 
@@ -45,8 +46,9 @@ function createMockDriver() {
     getWindowSize: vi.fn().mockResolvedValue({ width: 1080, height: 1920 }),
     takeScreenshot: vi.fn().mockResolvedValue(SCREENSHOT_BASE64),
     deleteSession: vi.fn().mockResolvedValue(undefined),
+    releaseActions: vi.fn().mockResolvedValue(undefined),
+    performActions: vi.fn().mockResolvedValue(undefined),
     action: vi.fn().mockReturnValue(pointerAction),
-    actions: vi.fn().mockResolvedValue(undefined),
     keys: vi.fn().mockResolvedValue(undefined),
     pause: vi.fn().mockResolvedValue(undefined),
     activateApp: vi.fn().mockResolvedValue(undefined),

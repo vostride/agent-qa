@@ -23,6 +23,7 @@ function createMockPointerAction() {
   chain.up = vi.fn().mockReturnValue(chain)
   chain.pause = vi.fn().mockReturnValue(chain)
   chain.perform = vi.fn().mockResolvedValue(undefined)
+  chain.toJSON = vi.fn().mockReturnValue({ type: 'pointer', actions: [] })
   return chain
 }
 
@@ -45,8 +46,9 @@ function createMockDriver() {
     getWindowSize: vi.fn().mockResolvedValue({ width: 1080, height: 1920 }),
     takeScreenshot: vi.fn().mockResolvedValue(SCREENSHOT_BASE64),
     deleteSession: vi.fn().mockResolvedValue(undefined),
+    releaseActions: vi.fn().mockResolvedValue(undefined),
+    performActions: vi.fn().mockResolvedValue(undefined),
     action: vi.fn().mockReturnValue(pointerAction),
-    actions: vi.fn().mockImplementation(() => { calls.push('actions'); return Promise.resolve(undefined) }),
     keys: vi.fn().mockImplementation((k: unknown) => { calls.push(`keys:${JSON.stringify(k)}`); return Promise.resolve() }),
     pause: vi.fn().mockImplementation((ms: number) => { calls.push(`pause:${ms}`); return Promise.resolve() }),
     hideKeyboard: vi.fn().mockResolvedValue(undefined),
@@ -219,7 +221,7 @@ describe('AndroidPlatformAdapter catalog', () => {
       reset()
       const r = await adapter.execute({ type: 'multiTap', fingers: 3, x: 200, y: 400, coordSpace: 'viewport' } as unknown as ExecAction)
       expect(r.success).toBe(true)
-      expect(mockDriver.actions).toHaveBeenCalled()
+      expect(mockDriver.performActions).toHaveBeenCalled()
     })
     it('tapCoordinate {x, y, coordSpace} taps the coordinate', async () => {
       reset()
