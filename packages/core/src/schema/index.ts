@@ -45,7 +45,6 @@ export { TargetSchema, DeviceProfileSchema } from './registry-schema.js'
 export {
   LOCAL_FILE_NAME,
   RETIRED_LOCAL_FILE_MESSAGE,
-  refuseRetiredLocalBindings,
 } from './retired-keys.js'
 
 export { leftoverLocalFileRefusal } from './leftover-local-file.js'

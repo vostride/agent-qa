@@ -1,24 +1,8 @@
-import { readFile } from 'node:fs/promises'
-import { dirname, join } from 'node:path'
-import { parse as parseYaml } from 'yaml'
-import {
-  MobileSetupError,
-  refuseRetiredLocalBindings,
-  resolveMobileRunConfig,
-} from '@vostride/agent-qa-core'
-import type {
-  MobilePlatform,
-  ResolvedMobileRunConfig,
-} from '@vostride/agent-qa-core'
+import { MobileSetupError, resolveMobileRunConfig } from '@vostride/agent-qa-core'
+import type { MobilePlatform, ResolvedMobileRunConfig } from '@vostride/agent-qa-core'
 import type { PlatformConfig } from '@vostride/agent-qa-runner'
 import type { AppiumManager } from '../execution/appium-manager.js'
 import { readConfigValues, type ConfigManager } from '../config/index.js'
-
-interface LocalMobileBindings {
-  devices?: Record<string, Record<string, unknown>>
-  apps?: Record<string, { path?: string }>
-  filePath?: string
-}
 
 export interface MobileLiveAppiumLease {
   runId: string
@@ -41,21 +25,6 @@ export interface PrepareMobileLiveSessionInput {
   configManager: ConfigManager
   configPath: string
   appiumManager: AppiumManager
-}
-
-async function loadLocalBindings(configPath: string): Promise<LocalMobileBindings | null> {
-  const filePath = join(dirname(configPath), 'agent-qa.local.yaml')
-  try {
-    const content = await readFile(filePath, 'utf-8')
-    const parsed: unknown = parseYaml(content)
-    refuseRetiredLocalBindings(parsed, filePath)
-    if (!parsed || typeof parsed !== 'object') return { filePath }
-    const bindings = parsed as LocalMobileBindings
-    return { devices: bindings.devices, apps: bindings.apps, filePath }
-  } catch (err: unknown) {
-    if ((err as NodeJS.ErrnoException).code === 'ENOENT') return null
-    throw err
-  }
 }
 
 function asMobileSetupError(
@@ -86,15 +55,9 @@ export async function prepareMobileLiveSession(
   }
 
   const config = await readConfigValues(input.configManager)
-  let localBindings: LocalMobileBindings | null = null
-
-  try {
-    localBindings = await loadLocalBindings(input.configPath)
-  } catch (err) {
-    throw asMobileSetupError(err, 'device-resolution', 'Failed to read local device bindings', input)
-  }
-
-  const configuredAppState = (config.use as { mobile?: { appState?: 'preserve' | 'reset' } } | undefined)?.mobile?.appState
+  const configuredAppState = (
+    config.use as { mobile?: { appState?: 'preserve' | 'reset' } } | undefined
+  )?.mobile?.appState
 
   let resolved: ResolvedMobileRunConfig
   try {
@@ -104,12 +67,15 @@ export async function prepareMobileLiveSession(
       platform: input.platform,
       useDeviceName: input.useDeviceName,
       appState: input.appState ?? configuredAppState,
-      localBindings,
       configFilePath: input.configPath,
-      localConfigFilePath: localBindings?.filePath,
     })
   } catch (err) {
-    throw asMobileSetupError(err, 'device-resolution', 'Failed to resolve mobile live target', input)
+    throw asMobileSetupError(
+      err,
+      'device-resolution',
+      'Failed to resolve mobile live target',
+      input,
+    )
   }
 
   try {

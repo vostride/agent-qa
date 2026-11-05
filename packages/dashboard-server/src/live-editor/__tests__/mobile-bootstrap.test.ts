@@ -2,7 +2,6 @@ import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-import { MobileSetupError } from '@vostride/agent-qa-core'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { prepareMobileLiveSession } from '../mobile-bootstrap.js'
 
@@ -48,6 +47,19 @@ const config = {
       },
     },
   },
+}
+
+function withAppPath(path: string) {
+  const targets = config.registry.targets
+  return {
+    registry: {
+      ...config.registry,
+      targets: {
+        ...targets,
+        'release-android-wikipedia': { ...targets['release-android-wikipedia'], app: { path } },
+      },
+    },
+  }
 }
 
 let tempDirs: string[] = []
@@ -175,20 +187,10 @@ describe('prepareMobileLiveSession', () => {
     expect(releaseLease).toHaveBeenCalledWith('live-release', 'setup-failed')
   })
 
-  it('resolves live session app path from agent-qa.local.yaml', async () => {
+  it("resolves the live session app path from the target's app.path beside the config", async () => {
     const { dir, configPath } = await createTempWorkspace()
     await mkdir(join(dir, 'apps'), { recursive: true })
     await writeFile(join(dir, 'apps', 'wikipedia.apk'), 'apk', 'utf-8')
-    await writeFile(
-      join(dir, 'agent-qa.local.yaml'),
-      [
-        'apps:',
-        '  release-android-wikipedia:',
-        '    path: apps/wikipedia.apk',
-        '',
-      ].join('\n'),
-      'utf-8',
-    )
 
     const result = await prepareMobileLiveSession({
       sessionId: 'live-app-path',
@@ -196,7 +198,7 @@ describe('prepareMobileLiveSession', () => {
       targetName: 'release-android-wikipedia',
       useDeviceName: 'release-android-emu',
       appState: 'preserve',
-      configManager: makeConfigManager(config),
+      configManager: makeConfigManager(withAppPath('apps/wikipedia.apk')),
       configPath,
       appiumManager: makeAppiumManager(),
     })
@@ -206,115 +208,8 @@ describe('prepareMobileLiveSession', () => {
     })
   })
 
-  it("refuses a local app's browserstack with its removal message", async () => {
-    const { dir, configPath } = await createTempWorkspace()
-    await writeFile(
-      join(dir, 'agent-qa.local.yaml'),
-      [
-        'apps:',
-        '  release-android-wikipedia:',
-        '    path: apps/wikipedia.apk',
-        '    browserstack: bs://wikipedia',
-        '',
-      ].join('\n'),
-      'utf-8',
-    )
-
-    const prepared = prepareMobileLiveSession({
-      sessionId: 'live-app-browserstack',
-      platform: 'android',
-      targetName: 'release-android-wikipedia',
-      useDeviceName: 'release-android-emu',
-      appState: 'preserve',
-      configManager: makeConfigManager(config),
-      configPath,
-      appiumManager: makeAppiumManager(),
-    })
-
-    await expect(prepared).rejects.toBeInstanceOf(MobileSetupError)
-    await expect(prepared).rejects.toMatchObject({
-      category: 'device-resolution',
-      message: expect.stringContaining('Failed to read local device bindings'),
-    })
-    await expect(prepared).rejects.toMatchObject({
-      message: expect.stringContaining(
-        'apps.release-android-wikipedia.browserstack: apps.<name>.browserstack was removed: BrowserStack is no longer supported; apps.<name>.path is the app file. Delete this line.',
-      ),
-    })
-  })
-
-  it('refuses a local providers block with its removal message', async () => {
-    const { dir, configPath } = await createTempWorkspace()
-    await writeFile(
-      join(dir, 'agent-qa.local.yaml'),
-      ['providers:', '  cloud:', '    username: someone', ''].join('\n'),
-      'utf-8',
-    )
-
-    const prepared = prepareMobileLiveSession({
-      sessionId: 'live-local-providers',
-      platform: 'android',
-      targetName: 'release-android-wikipedia',
-      useDeviceName: 'release-android-emu',
-      appState: 'preserve',
-      configManager: makeConfigManager(config),
-      configPath,
-      appiumManager: makeAppiumManager(),
-    })
-
-    await expect(prepared).rejects.toBeInstanceOf(MobileSetupError)
-    await expect(prepared).rejects.toMatchObject({
-      category: 'device-resolution',
-      message: expect.stringContaining('Failed to read local device bindings'),
-    })
-    await expect(prepared).rejects.toMatchObject({
-      message: expect.stringContaining(
-        'providers: providers was removed: list remote browsers under registry.remotes in agent-qa.config.yaml, with credentials in workspace.secretsFile. Delete this block.',
-      ),
-    })
-  })
-
-  it('does not read agent-qa.devices.local.yaml for app install data', async () => {
-    const { dir, configPath } = await createTempWorkspace()
-    await mkdir(join(dir, 'apps'), { recursive: true })
-    await writeFile(join(dir, 'apps', 'ignored.apk'), 'apk', 'utf-8')
-    await writeFile(
-      join(dir, 'agent-qa.devices.local.yaml'),
-      [
-        'apps:',
-        '  release-android-wikipedia:',
-        '    path: apps/ignored.apk',
-        '',
-      ].join('\n'),
-      'utf-8',
-    )
-
-    const result = await prepareMobileLiveSession({
-      sessionId: 'live-old-local',
-      platform: 'android',
-      targetName: 'release-android-wikipedia',
-      useDeviceName: 'release-android-emu',
-      appState: 'preserve',
-      configManager: makeConfigManager(config),
-      configPath,
-      appiumManager: makeAppiumManager(),
-    })
-
-    expect(result.platformConfig.appPath).toBeUndefined()
-  })
-
   it('surfaces missing live app path as app-install', async () => {
     const { dir, configPath } = await createTempWorkspace()
-    await writeFile(
-      join(dir, 'agent-qa.local.yaml'),
-      [
-        'apps:',
-        '  release-android-wikipedia:',
-        '    path: apps/missing.apk',
-        '',
-      ].join('\n'),
-      'utf-8',
-    )
 
     await expect(
       prepareMobileLiveSession({
@@ -323,7 +218,7 @@ describe('prepareMobileLiveSession', () => {
         targetName: 'release-android-wikipedia',
         useDeviceName: 'release-android-emu',
         appState: 'preserve',
-        configManager: makeConfigManager(config),
+        configManager: makeConfigManager(withAppPath('apps/missing.apk')),
         configPath,
         appiumManager: makeAppiumManager(),
       }),

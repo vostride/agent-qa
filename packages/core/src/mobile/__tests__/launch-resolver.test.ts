@@ -204,25 +204,6 @@ describe('resolveMobileRunConfig', () => {
     expect(err.message).toContain('com.example.device')
   })
 
-  it('merges local binding values without overriding target app identity unless they conflict', () => {
-    const resolved = resolveMobileRunConfig({
-      config: makeConfig(),
-      targetName: 'release-android-wikipedia',
-      useDeviceName: 'android-emu',
-      localBindings: {
-        devices: {
-          'android-emu': {
-            avd: 'Pixel_7_API_34',
-            automationName: 'UiAutomator2',
-          },
-        },
-      },
-    })
-
-    expect(resolved.device.match.avd).toBe('Pixel_7_API_34')
-    expect(resolved.app.appPackage).toBe('org.wikipedia.alpha')
-  })
-
   it('resolves a device on an appium remote to that remote, with no local Appium url', () => {
     const config = {
       ...makeConfig({
@@ -317,37 +298,7 @@ describe('resolveMobileRunConfig', () => {
     expect(err.message).toContain('is not a mobile target')
   })
 
-  it('prefers local app path over target app path', () => withTempDir((dir) => {
-    const targetApp = join(dir, 'target.apk')
-    const localApp = join(dir, 'local.apk')
-    writeFileSync(targetApp, 'target')
-    writeFileSync(localApp, 'local')
-
-    const resolved = resolveMobileRunConfig({
-      config: makeConfig({
-        targets: {
-          'release-android-wikipedia': {
-            platform: 'android',
-            appPackage: 'org.wikipedia.alpha',
-            app: { path: 'target.apk' },
-          },
-        },
-      }),
-      targetName: 'release-android-wikipedia',
-      useDeviceName: 'android-emu',
-      configFilePath: join(dir, 'agent-qa.config.yaml'),
-      localConfigFilePath: join(dir, 'agent-qa.local.yaml'),
-      localBindings: {
-        apps: {
-          'release-android-wikipedia': { path: 'local.apk' },
-        },
-      },
-    })
-
-    expect(resolved.app.install?.path).toBe(localApp)
-  }))
-
-  it('falls back to target app path when local app override is absent', () => withTempDir((dir) => {
+  it('resolves the target app path relative to the config file', () => withTempDir((dir) => {
     const targetApp = join(dir, 'target.apk')
     writeFileSync(targetApp, 'target')
 
@@ -380,17 +331,20 @@ describe('resolveMobileRunConfig', () => {
     expect(resolved.app.appPackage).toBe('org.wikipedia.alpha')
   })
 
-  it('throws app-install for missing local app path', () => withTempDir((dir) => {
+  it('throws app-install for a missing target app path', () => withTempDir((dir) => {
     const err = expectMobileSetupError(() => resolveMobileRunConfig({
-      config: makeConfig(),
+      config: makeConfig({
+        targets: {
+          'release-android-wikipedia': {
+            platform: 'android',
+            appPackage: 'org.wikipedia.alpha',
+            app: { path: 'missing.apk' },
+          },
+        },
+      }),
       targetName: 'release-android-wikipedia',
       useDeviceName: 'android-emu',
-      localConfigFilePath: join(dir, 'agent-qa.local.yaml'),
-      localBindings: {
-        apps: {
-          'release-android-wikipedia': { path: 'missing.apk' },
-        },
-      },
+      configFilePath: join(dir, 'agent-qa.config.yaml'),
     }))
 
     expect(err.category).toBe('app-install')
@@ -441,26 +395,28 @@ describe('resolveMobileRunConfig', () => {
   }))
 
   it('records app install source trace', () => withTempDir((dir) => {
-    const appFile = join(dir, 'local.apk')
-    writeFileSync(appFile, 'local')
+    writeFileSync(join(dir, 'release.apk'), 'target')
 
     const resolved = resolveMobileRunConfig({
-      config: makeConfig(),
+      config: makeConfig({
+        targets: {
+          'release-android-wikipedia': {
+            platform: 'android',
+            appPackage: 'org.wikipedia.alpha',
+            app: { path: 'release.apk' },
+          },
+        },
+      }),
       targetName: 'release-android-wikipedia',
       useDeviceName: 'android-emu',
-      localConfigFilePath: join(dir, 'agent-qa.local.yaml'),
-      localBindings: {
-        apps: {
-          'release-android-wikipedia': { path: 'local.apk' },
-        },
-      },
+      configFilePath: join(dir, 'agent-qa.config.yaml'),
     })
 
     expect(resolved.app.install?.sourceTrace['app.path']).toBe(
-      'agent-qa.local.yaml apps.release-android-wikipedia.path',
+      'agent-qa.config.yaml registry.targets.release-android-wikipedia.app.path',
     )
     expect(resolved.sourceTrace).toContain(
-      'app.path=agent-qa.local.yaml apps.release-android-wikipedia.path',
+      'app.path=agent-qa.config.yaml registry.targets.release-android-wikipedia.app.path',
     )
   }))
 })

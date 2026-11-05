@@ -89,13 +89,7 @@ export interface ResolveMobileRunConfigInput {
   explicitDeviceName?: string
   useDeviceName?: string
   appState?: MobileAppState
-  localBindings?: {
-    devices?: Record<string, Record<string, unknown>>
-    apps?: Record<string, { path?: string }>
-    filePath?: string
-  } | null
   configFilePath?: string
-  localConfigFilePath?: string
   appiumUrl?: string
 }
 
@@ -218,22 +212,9 @@ function resolveAppInstall(
   deviceName: string,
   sourceTrace: string[],
 ): ResolvedMobileAppInstall | undefined {
-  const localApp = input.localBindings?.apps?.[input.targetName]
   const installSourceTrace: Record<string, string> = {}
-
-  const localPath = asOptionalString(localApp?.path)
-  const targetPath = asOptionalString(target.app?.path)
-  const pathValue = localPath ?? targetPath
-  const pathSource = localPath
-    ? `agent-qa.local.yaml apps.${input.targetName}.path`
-    : targetPath
-      ? `agent-qa.config.yaml registry.targets.${input.targetName}.app.path`
-      : undefined
-  const pathBaseDir = localPath
-    ? baseDirFor(input.localConfigFilePath ?? input.localBindings?.filePath)
-    : targetPath
-      ? baseDirFor(input.configFilePath)
-      : undefined
+  const pathValue = asOptionalString(target.app?.path)
+  const pathSource = `agent-qa.config.yaml registry.targets.${input.targetName}.app.path`
 
   const install: ResolvedMobileAppInstall = { sourceTrace: installSourceTrace }
 
@@ -246,7 +227,7 @@ function resolveAppInstall(
         sourceTrace: [...sourceTrace, `app.path=${pathSource}`],
       })
     }
-    const resolvedPath = resolvePath(pathBaseDir ?? process.cwd(), pathValue)
+    const resolvedPath = resolvePath(baseDirFor(input.configFilePath), pathValue)
     if (!existsSync(resolvedPath)) {
       throw appInstallError(`Configured app path not found: ${resolvedPath}`, input, {
         platform,
@@ -256,10 +237,8 @@ function resolveAppInstall(
       })
     }
     install.path = resolvedPath
-    if (pathSource) {
-      installSourceTrace['app.path'] = pathSource
-      sourceTrace.push(`app.path=${pathSource}`)
-    }
+    installSourceTrace['app.path'] = pathSource
+    sourceTrace.push(`app.path=${pathSource}`)
   }
 
   return install.path ? install : undefined
@@ -334,8 +313,7 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     if (selected.place.kind === 'remote') remote = selected.place.remote
   }
 
-  const localMatch = input.localBindings?.devices?.[deviceName] ?? null
-  const mergedMatch = { ...(deviceProfile.match ?? {}), ...(localMatch ?? {}) }
+  const match = deviceProfile.match ?? {}
 
   const appSourceTrace: Record<string, string> = {}
   const sourceTrace = [
@@ -347,8 +325,8 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
 
   let app: ResolvedMobileApp
   if (platform === 'android') {
-    const appPackage = resolveAppField('appPackage', target.appPackage, mergedMatch.appPackage, input.targetName, deviceName, input)
-    const appActivity = resolveAppField('appActivity', target.appActivity, mergedMatch.appActivity, input.targetName, deviceName, input)
+    const appPackage = resolveAppField('appPackage', target.appPackage, match.appPackage, input.targetName, deviceName, input)
+    const appActivity = resolveAppField('appActivity', target.appActivity, match.appActivity, input.targetName, deviceName, input)
     if (appPackage.source) appSourceTrace.appPackage = appPackage.source
     if (appActivity.source) appSourceTrace.appActivity = appActivity.source
     app = {
@@ -360,7 +338,7 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     if (appPackage.source) sourceTrace.push(`app.appPackage=${appPackage.source}`)
     if (appActivity.source) sourceTrace.push(`app.appActivity=${appActivity.source}`)
   } else {
-    const bundleId = resolveAppField('bundleId', target.bundleId, mergedMatch.bundleId, input.targetName, deviceName, input)
+    const bundleId = resolveAppField('bundleId', target.bundleId, match.bundleId, input.targetName, deviceName, input)
     if (bundleId.source) appSourceTrace.bundleId = bundleId.source
     app = {
       bundleId: bundleId.value,
@@ -385,7 +363,7 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
       ...(asOptionalString(deviceProfile.model) ? { model: deviceProfile.model } : {}),
       ...(asOptionalString(deviceProfile.os) ? { os: deviceProfile.os } : {}),
       ...(remote === undefined ? {} : { remote }),
-      match: mergedMatch,
+      match,
     },
     app,
     appState,
