@@ -36,6 +36,9 @@ const requiredSkillReferences = {
   'agent-qa-knowledge': ['references/knowledge-reads.md'],
 }
 const ownershipContractMarker = '_OWNERSHIP_CONTRACT'
+const pluginKitPackageName = '@vostride/agent-qa-plugin-kit'
+const pluginKitSubpaths = ['protocol', 'testing']
+const pluginKitPackFiles = ['dist/protocol.js', 'dist/testing.js', 'dist/scripted-plugin.js']
 const forbiddenPackPatterns = [
   /^\.env($|\.)/,
   /^\.npmrc$/,
@@ -188,6 +191,18 @@ function validatePublicPackage(record, allVersions, errors, options = { checkFil
     assert(record.pkg.exports?.['./reader']?.import?.default === './dist/reader.js', `${name} reader must export dist ESM`, errors)
     assert(record.pkg.exports?.['./reader']?.require?.types === './dist/reader.d.cts', `${name} reader must export dist CJS types`, errors)
     assert(record.pkg.exports?.['./reader']?.require?.default === './dist/reader.cjs', `${name} reader must export dist CJS`, errors)
+  }
+
+  // The plugin kit publishes its protocol and testing helpers as subpaths, and its package.json for hosts.
+  if (record.pkg.name === pluginKitPackageName) {
+    for (const subpath of pluginKitSubpaths) {
+      const entry = record.pkg.exports?.[`./${subpath}`]
+      assert(entry?.import?.types === `./dist/${subpath}.d.ts`, `${name} ${subpath} must export dist ESM types`, errors)
+      assert(entry?.import?.default === `./dist/${subpath}.js`, `${name} ${subpath} must export dist ESM`, errors)
+      assert(entry?.require?.types === `./dist/${subpath}.d.cts`, `${name} ${subpath} must export dist CJS types`, errors)
+      assert(entry?.require?.default === `./dist/${subpath}.cjs`, `${name} ${subpath} must export dist CJS`, errors)
+    }
+    assert(record.pkg.exports?.['./package.json'] === './package.json', `${name} must export ./package.json`, errors)
   }
 
   // Core publishes its run-text output helper as a subpath the firewalled surfaces may import.
@@ -380,6 +395,12 @@ function validatePackFiles(record, files, errors) {
   if (record.pkg.name === entryPackageName) {
     for (const skillName of requiredSkills) {
       assert(files.some(file => file.startsWith(`skills/${skillName}/`)), `agent-qa tarball must include skills/${skillName}`, errors)
+    }
+  }
+
+  if (record.pkg.name === pluginKitPackageName) {
+    for (const file of pluginKitPackFiles) {
+      assert(files.includes(file), `${name} tarball must include ${file}`, errors)
     }
   }
 

@@ -311,7 +311,12 @@ export function runPlugin<OptionsSchema extends z.ZodType, SettingsSchema extend
   const decoder = createLineDecoder({
     maxLineBytes: MAX_MESSAGE_BYTES,
     onLine: handleLine,
-    onOverflow: () => {},
+    onOverflow: () =>
+      fail(
+        null,
+        PLUGIN_ERROR_CODES.invalidRequest,
+        `a message is longer than ${MAX_MESSAGE_BYTES} bytes`,
+      ),
   })
 
   const finish = () => {

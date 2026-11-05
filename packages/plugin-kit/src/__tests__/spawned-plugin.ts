@@ -18,7 +18,7 @@ export interface SpawnedPlugin {
   request(method: string, params?: unknown): Promise<RpcMessage>
   initialize(options?: Record<string, unknown>, protocolVersions?: number[]): Promise<RpcMessage>
   writeRaw(text: string): void
-  nextUnaddressed(): Promise<RpcMessage>
+  takeUnaddressed(): RpcMessage[]
   ledger(): Record<string, unknown>[]
   close(): Promise<number | null>
   kill(): void
@@ -42,7 +42,6 @@ export function spawnScriptedPlugin(input?: ScriptedPluginInput): SpawnedPlugin 
   const child = spawn(process.execPath, [entry], { cwd: dir, stdio: ['pipe', 'pipe', 'pipe'] })
   const waiting = new Map<string | number, (message: RpcMessage) => void>()
   const unaddressed: RpcMessage[] = []
-  const unaddressedWaiters: ((message: RpcMessage) => void)[] = []
   let stderr = ''
   child.stderr.on('data', (chunk: Buffer) => {
     stderr += chunk.toString()
@@ -57,9 +56,7 @@ export function spawnScriptedPlugin(input?: ScriptedPluginInput): SpawnedPlugin 
         resolve(message)
         return
       }
-      const waiter = unaddressedWaiters.shift()
-      if (waiter === undefined) unaddressed.push(message)
-      else waiter(message)
+      unaddressed.push(message)
     },
     onOverflow: () => {
       throw new Error('the plugin wrote an oversized line')
@@ -95,10 +92,8 @@ export function spawnScriptedPlugin(input?: ScriptedPluginInput): SpawnedPlugin 
     writeRaw(text) {
       child.stdin.write(text)
     },
-    nextUnaddressed() {
-      const queued = unaddressed.shift()
-      if (queued !== undefined) return Promise.resolve(queued)
-      return new Promise((resolve) => unaddressedWaiters.push(resolve))
+    takeUnaddressed() {
+      return unaddressed.splice(0)
     },
     ledger() {
       return readFileSync(ledgerFile, 'utf8')
