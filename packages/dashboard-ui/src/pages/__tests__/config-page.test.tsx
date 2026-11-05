@@ -139,7 +139,7 @@ const { sampleConfig, CONFIG_FILE_PATH } = vi.hoisted(() => ({
       contextWindow: '128k',
     }],
     targets: { staging: { platform: 'web', url: 'https://example.com' } },
-    devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },
+    devices: { iosLocal: { platform: 'ios', model: 'iPhone 16' } },
   },
   use: {
     browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },

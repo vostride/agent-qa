@@ -158,8 +158,7 @@ const secretConfig = [
   '  devices:',
   '    phone:',
   '      platform: ios',
-  '      match:',
-  `        udid: ${SENTINELS.udid}`,
+  `      id: ${SENTINELS.udid}`,
   'analytics:',
   '  passRateScope:',
   '    attributes:',
@@ -237,7 +236,7 @@ describe('GET /api/config through the declared mask', () => {
     expect(config.registry.llms[0].providerHeaders['x-org-access']).toBe('[secret:ACCESS_KEY]')
     expect(config.analytics.passRateScope.attributes.certificate)
       .toBe(`${SENTINELS.certificate}-one\n${SENTINELS.certificate}-two\n`)
-    expect(config.registry.devices.phone.match.udid).toBe(SENTINELS.udid)
+    expect(config.registry.devices.phone.id).toBe(SENTINELS.udid)
     expect(config.analytics.passRateScope.attributes.branch).toBe(SENTINELS.attribute)
     expect(config.workspace.secretsFile).toBe(SENTINELS.secretsFile)
     expect(config.registry.llms[0].baseURL).toBe('https://llm.example.test/v1')
@@ -288,7 +287,7 @@ describe('GET /api/config through the declared mask', () => {
     const certificate = lineHolding(lines, 'certificate:')
     expect(lines[certificate.n]!.text).toBe('        [secret:CERT]-one')
     expect(lines[certificate.n + 1]!.text).toBe('        [secret:CERT]-two')
-    expect(lineHolding(lines, 'udid:').text).toBe(`        udid: ${SENTINELS.udid}`)
+    expect(lineHolding(lines, ' id:').text).toBe(`      id: ${SENTINELS.udid}`)
   })
 
   it('REVISION-CHANGES-ON-OUTSIDE-EDIT: the revision read follows the bytes and matches a PATCH answer', async () => {

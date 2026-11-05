@@ -80,7 +80,7 @@ const { fullConfig } = vi.hoisted(() => ({
           app: { path: 'apps/shop.apk' },
         },
       },
-      devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },
+      devices: { iosLocal: { platform: 'ios', model: 'iPhone 16' } },
     },
     use: {
       browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },

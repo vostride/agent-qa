@@ -190,7 +190,6 @@ registry:
   devices:
     release-android-emu:
       platform: android
-      match: {}
 `
 
 function createConfigPath(content = MOBILE_CONFIG): { configPath: string; workspacePaths: ReturnType<typeof resolveWorkspacePaths> } {
