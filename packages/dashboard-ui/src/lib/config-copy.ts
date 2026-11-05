@@ -754,8 +754,21 @@ export const TARGET_FIELD_LABELS = {
   appPackage: 'App package',
   appActivity: 'App activity',
   appPath: 'App file',
+  appRef: 'App reference',
+  device: 'Default device',
   environment: 'Environment',
 } as const satisfies Record<string, string>
+
+export const TARGET_DEVICE_NONE = 'None'
+export const TARGET_DEVICE_HELP =
+  'Tests on this target run on this device unless a suite or test picks another.'
+export const TARGET_APP_REF_NOTE =
+  'The app a remote device installs. Set it in agent-qa.config.yaml; this page shows it read-only.'
+
+/** A target's device that no device of the target's platform matches, kept in its select. */
+export function targetDeviceUnlistedChoice(name: string): string {
+  return `${name} (not listed for this platform)`
+}
 
 /** Before an app file in a mobile target's summary. */
 export const TARGET_APP_SUMMARY_PREFIX = 'App'
@@ -777,6 +790,8 @@ export const DEVICE_FIELD_LABELS = {
   platform: 'Platform',
   model: 'Model',
   os: 'OS version',
+  id: 'Device ID',
+  capabilities: 'Capabilities',
   key: 'Setting',
   value: 'Value',
 } as const satisfies Record<string, string>
@@ -785,6 +800,16 @@ export const DEVICE_NAME_REQUIRED_ERROR = 'Add a name for the device.'
 
 export function deviceNameTakenError(name: string): string {
   return `A device named ${name} already exists.`
+}
+
+export const DEVICE_ID_HELP =
+  'Needed only when two identical devices are attached at once: an Android serial or an iOS simulator udid.'
+export const DEVICE_CAPABILITIES_NOTE =
+  'Set capabilities in agent-qa.config.yaml; this page shows them read-only.'
+
+/** A capability's accessible label, so each value names its own device and key. */
+export function deviceCapabilityLabel(device: string, key: string): string {
+  return `${device} capability ${key}`
 }
 
 /** A device's remote, shown read-only: pointing a device at a server is a file edit. */

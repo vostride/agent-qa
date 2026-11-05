@@ -82,6 +82,28 @@ describe('registry.remotes entries', () => {
     })
   })
 
+  it('accepts capabilities on an appium entry, with credentials as references', () => {
+    const result = parse({
+      ...farm,
+      capabilities: {
+        'appium:newCommandTimeout': 120,
+        'farm:options': { project: 'shop', accessKey: '{{secret:FARM_KEY}}' },
+      },
+    })
+    expect(result.success ? [] : result.error.issues.map(issue => issue.message)).toEqual([])
+    expect(result.success && result.data.registry?.remotes[0]?.capabilities).toEqual({
+      'appium:newCommandTimeout': 120,
+      'farm:options': { project: 'shop', accessKey: '{{secret:FARM_KEY}}' },
+    })
+  })
+
+  it('refuses capabilities on a playwright remote', () => {
+    expectRefused(
+      { ...grid, capabilities: { 'grid:options': { project: 'shop' } } },
+      'Remote grid: capabilities apply to appium remotes only.',
+    )
+  })
+
   it('refuses an appium url that is not http:// or https://', () => {
     for (const url of ['ws://farm.example.com/wd/hub', 'wss://farm.example.com/wd/hub']) {
       expectRefused({ ...farm, url }, 'Remote farm: an appium url starts with http:// or https://.')

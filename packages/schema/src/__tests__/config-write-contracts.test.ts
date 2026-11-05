@@ -81,9 +81,10 @@ test('lists plugins as the only denied write root', () => {
   expect(api.CONFIG_WRITE_DENIED_ROOTS).toEqual(['plugins'])
 })
 
-// The page write door admits exactly the page-owned leaves, refuses the plugin, remote and device
-// remote leaves, and refuses every retired key's path as an unknown path.
-test('the write policy admits the page-owned leaves and refuses the plugin, remote, device remote and retired paths', () => {
+// The page write door admits exactly the page-owned leaves, refuses the plugin, remote entry, device
+// remote and capabilities and app reference leaves, and refuses every retired key's path as an
+// unknown path.
+test('the write policy admits the page-owned leaves and refuses the plugin, remote, device placement, app reference and retired paths', () => {
   const writable = api.CONFIG_SCHEMA_LEAVES.filter(pattern => api.isPageWritableConfigPath(concreteLeafPath(pattern, true)))
   expect(writable).toEqual(expect.arrayContaining(['use.planner.maxActions', 'use.planner.maxPlanningTurns', 'use.browser.remote']))
   expect(api.CONFIG_SCHEMA_LEAVES.filter(pattern => !writable.includes(pattern))).toEqual([
@@ -91,9 +92,11 @@ test('the write policy admits the page-owned leaves and refuses the plugin, remo
     'plugins.auth[].path',
     'plugins.providers[].package',
     'plugins.providers[].path',
+    'registry.devices.*.capabilities.*',
     'registry.devices.*.remote',
     'registry.remotes[].basicAuth.password',
     'registry.remotes[].basicAuth.user',
+    'registry.remotes[].capabilities.*',
     'registry.remotes[].connectTimeout',
     'registry.remotes[].context',
     'registry.remotes[].headers.*',
@@ -102,6 +105,7 @@ test('the write policy admits the page-owned leaves and refuses the plugin, remo
     'registry.remotes[].query.*',
     'registry.remotes[].query.*.*',
     'registry.remotes[].url',
+    'registry.targets.*.app.ref',
   ])
   const retired: api.ConfigPathSegment[][] = [
     ['safety'],

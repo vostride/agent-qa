@@ -1,4 +1,5 @@
 // Replace-only: the input starts empty, never holding the shown text, so no mask is written back.
+// Read-only values render no control and no field path, since the page's write door refuses them.
 
 import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import type { ConfigPathSegment } from "@vostride/agent-qa-schema"
@@ -25,9 +26,10 @@ export interface SecretValueProps {
   field: SecretValueTarget
   label: string
   maskedText: string
+  readOnly?: boolean
 }
 
-export function SecretValue({ field, label, maskedText }: SecretValueProps) {
+export function SecretValue({ field, label, maskedText, readOnly = false }: SecretValueProps) {
   const autosave = useConfigAutosaveContext()
   const [replacing, setReplacing] = useState(false)
   const [typed, setTyped] = useState("")
@@ -81,6 +83,14 @@ export function SecretValue({ field, label, maskedText }: SecretValueProps) {
       event.preventDefault()
       closeReplace()
     }
+  }
+
+  if (readOnly) {
+    return (
+      <div data-secret-field data-read-only-path={field.pattern} className="flex max-w-md items-center">
+        <code className="min-w-0 flex-1 font-mono text-sm wrap-anywhere">{maskedText}</code>
+      </div>
+    )
   }
 
   return (

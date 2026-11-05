@@ -1,5 +1,5 @@
 // Match values show through `SecretValue` and save only through Save setting; delete has Undo.
-// A device's remote shows read-only: the write door refuses it.
+// A device's remote and capabilities show read-only: the write door refuses them.
 
 import { useEffect, useId, useRef, useState, type FocusEvent, type KeyboardEvent } from "react"
 import { Plus, X } from "lucide-react"
@@ -29,7 +29,9 @@ import {
 import {
   ADD_DEVICE_LABEL,
   ADD_SETTING_LABEL,
+  DEVICE_CAPABILITIES_NOTE,
   DEVICE_FIELD_LABELS,
+  DEVICE_ID_HELP,
   DEVICE_NAME_REQUIRED_ERROR,
   DISCARD_DEVICE_LABEL,
   DISCARD_SETTING_LABEL,
@@ -37,6 +39,7 @@ import {
   SAVE_SETTING_LABEL,
   TARGET_PLATFORM_LABELS,
   deleteActionName,
+  deviceCapabilityLabel,
   deviceMatchKeysHelp,
   deviceMatchSettingLabel,
   deviceNameTakenError,
@@ -58,6 +61,7 @@ const LOCAL_MATCH_FIELDS: Record<DevicePlatform, readonly string[]> = {
 interface DeviceEntry {
   platform?: string
   remote?: unknown
+  capabilities?: unknown
   match?: Record<string, unknown>
 }
 
@@ -68,6 +72,7 @@ interface DevicesSectionProps {
 
 const LIST_REF: ConfigFieldRef = { segments: ["registry", "devices"], tab: "targets" }
 const MATCH_PATTERN = "registry.devices.*.match.*"
+const CAPABILITY_PATTERN = "registry.devices.*.capabilities.*"
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
@@ -202,6 +207,15 @@ function DeviceFields({ name, device }: { name: string; device: DeviceEntry }) {
         label={DEVICE_FIELD_LABELS.os}
         kind="text"
       />
+      <ConfigField
+        field={{ ...at("id"), pattern: "registry.devices.*.id" }}
+        label={DEVICE_FIELD_LABELS.id}
+        help={DEVICE_ID_HELP}
+        kind="text"
+      />
+      {isRecord(device.capabilities) && Object.keys(device.capabilities).length > 0 ? (
+        <DeviceCapabilities name={name} capabilities={device.capabilities} />
+      ) : null}
       <div className="space-y-2">
         {keys.length > 0 ? (
           <dl data-field-list="registry.devices.*.match" className="space-y-2">
@@ -238,6 +252,30 @@ function DeviceFields({ name, device }: { name: string; device: DeviceEntry }) {
         />
       </div>
     </>
+  )
+}
+
+function DeviceCapabilities({ name, capabilities }: { name: string; capabilities: Record<string, unknown> }) {
+  return (
+    <div data-device-capabilities className="space-y-2">
+      <p className="text-sm font-medium">{DEVICE_FIELD_LABELS.capabilities}</p>
+      <dl className="space-y-2">
+        {Object.entries(capabilities).map(([key, value]) => (
+          <div key={key} className="grid items-center gap-1 sm:grid-cols-[minmax(8rem,auto)_1fr] sm:gap-3">
+            <dt className="font-mono text-xs text-muted-foreground wrap-anywhere">{key}</dt>
+            <dd className="min-w-0">
+              <SecretValue
+                field={{ segments: ["registry", "devices", name, "capabilities", key], pattern: CAPABILITY_PATTERN }}
+                label={deviceCapabilityLabel(name, key)}
+                maskedText={maskedTextOf(value)}
+                readOnly
+              />
+            </dd>
+          </div>
+        ))}
+      </dl>
+      <p className="text-xs text-muted-foreground">{DEVICE_CAPABILITIES_NOTE}</p>
+    </div>
   )
 }
 

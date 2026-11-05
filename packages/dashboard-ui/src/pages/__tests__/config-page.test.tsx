@@ -50,6 +50,7 @@ import {
   MOBILE_APP_STATE_LABELS,
   MOBILE_FIELD_LABELS,
   RELOAD_LOGIN_STATES_LABEL,
+  TARGET_DEVICE_NONE,
   TARGET_FIELD_LABELS,
   DEVICE_FIELD_LABELS,
   PORT_RESTART_HELP,
@@ -2306,6 +2307,75 @@ describe('ConfigPage task tabs shell', () => {
     expect(section('targets')?.textContent).toContain('App: apps/wikipedia-alpha.apk')
     expect(API_EXPORTS).not.toContain('updateSettings')
     expect(document.body.querySelector('[role="dialog"]')).toBeNull()
+  })
+
+  it("a mobile target's default device is picked from its platform's devices, and its app reference shows read-only", async () => {
+    vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({
+      config: {
+        ...sampleConfig,
+        registry: {
+          ...sampleConfig.registry,
+          targets: {
+            shopIos: { platform: 'ios', bundleId: 'com.example.shop', app: { path: 'builds/Shop.app', ref: '[secret:SHOP_REF]' } },
+          },
+          devices: {
+            iosLocal: { platform: 'ios', model: 'iPhone 16' },
+            pixel: { platform: 'android', model: 'Pixel 8' },
+          },
+        },
+      },
+    }))
+    await renderAt('/config/targets')
+    await openRow(section('targets')!.querySelector('[data-target="shopIos"]'))
+
+    const device = fieldControl(['registry', 'targets', 'shopIos', 'device'])
+    expect(device?.textContent).toBe(TARGET_DEVICE_NONE)
+    await pressKey(device!, 'Enter')
+    expect((Array.from(document.body.querySelectorAll('[role="option"]')) as HTMLElement[]).map((option) => option.textContent)).toEqual([
+      TARGET_DEVICE_NONE,
+      'iosLocal',
+    ])
+    await pressKey(document.activeElement!, 'Escape')
+    await chooseOption(fieldControl(['registry', 'targets', 'shopIos', 'device']), 'iosLocal')
+    expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([
+      [[{ op: 'set', path: ['registry', 'targets', 'shopIos', 'device'], value: 'iosLocal' }]],
+    ])
+
+    const ref = section('targets')!.querySelector('[data-target="shopIos"] [data-target-app-ref]')
+    expect(ref?.querySelector('code')?.textContent).toBe('[secret:SHOP_REF]')
+    expect(ref?.querySelectorAll('input, button, [role="combobox"]')).toHaveLength(0)
+  })
+
+  it("a device's id autosaves by leaf, and its capabilities show read-only with no control", async () => {
+    vi.mocked(fetchConfig).mockResolvedValueOnce(readAnswer({
+      config: {
+        ...sampleConfig,
+        registry: {
+          ...sampleConfig.registry,
+          devices: {
+            rack: {
+              platform: 'android',
+              model: 'SM-S921B',
+              capabilities: { 'appium:automationName': 'Espresso' },
+            },
+          },
+        },
+      },
+    }))
+    await renderAt('/config/targets?section=devices')
+    await openRow(section('devices')!.querySelector('[data-device="rack"]'))
+
+    const capabilities = section('devices')!.querySelector('[data-device="rack"] [data-device-capabilities]')
+    expect(capabilities?.querySelector('dt')?.textContent).toBe('appium:automationName')
+    expect(capabilities?.querySelector('code')?.textContent).toBe('Espresso')
+    expect(capabilities?.querySelectorAll('input, button, [role="combobox"]')).toHaveLength(0)
+
+    const id = fieldControl<HTMLInputElement>(['registry', 'devices', 'rack', 'id'])
+    expect(id).not.toBeNull()
+    await typeTextAndBlur(id!, 'R58M41ABCDE')
+    expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([
+      [[{ op: 'set', path: ['registry', 'devices', 'rack', 'id'], value: 'R58M41ABCDE' }]],
+    ])
   })
 })
 

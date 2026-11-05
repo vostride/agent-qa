@@ -2,12 +2,13 @@
 //
 // Each target is a row: its name and summary, opened in place to edit its fields, which autosave
 // by leaf. Add target opens an inline draft row that writes the whole target once it is valid.
-// Delete acts at once and offers Undo.
+// Delete acts at once and offers Undo. A mobile target's app reference shows read-only: the write
+// door refuses it.
 
 import { useEffect, useId, useRef, useState, type FocusEvent } from "react"
 import { Plus } from "lucide-react"
 
-import { ConfigField } from "@/components/config-manager/config-field"
+import { ConfigField, type ConfigFieldOption } from "@/components/config-manager/config-field"
 import {
   DraftTextField,
   RecordRow,
@@ -17,6 +18,7 @@ import {
   useOpenRows,
   useRecordDeletes,
 } from "@/components/config-manager/record-list"
+import { SecretValue } from "@/components/config-manager/secret-value"
 import { Button } from "@/components/ui/button"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
@@ -33,7 +35,10 @@ import {
   DISCARD_TARGET_LABEL,
   NO_TARGETS_TEXT,
   TARGET_APP_PATH_ERROR,
+  TARGET_APP_REF_NOTE,
   TARGET_APP_SUMMARY_PREFIX,
+  TARGET_DEVICE_HELP,
+  TARGET_DEVICE_NONE,
   TARGET_ENVIRONMENT_CHOICE_LABELS,
   TARGET_ENVIRONMENT_LABELS,
   TARGET_ENVIRONMENT_PLACEHOLDER,
@@ -45,6 +50,7 @@ import {
   TARGET_URL_REQUIRED_ERROR,
   TARGET_WEB_NEEDS_URL_ERROR,
   deleteActionName,
+  targetDeviceUnlistedChoice,
   targetNameTakenError,
 } from "@/lib/config-copy"
 import { selectApprovedSaasPlaceholderSlug } from "@/lib/product-placeholders"
@@ -57,7 +63,8 @@ interface TargetEntry {
   bundleId?: string
   appPackage?: string
   appActivity?: string
-  app?: { path?: string }
+  app?: { path?: string; ref?: string }
+  device?: string
   url?: string
   environment?: string
 }
@@ -72,6 +79,8 @@ const LIST_REF: ConfigFieldRef = { segments: ["registry", "targets"], tab: "targ
 const TARGET_NAME_PATTERN = /^[a-z][a-z0-9-]*[a-z0-9]$/
 const TARGET_PRODUCT_PLACEHOLDER = selectApprovedSaasPlaceholderSlug("dashboard.config.targets.product")
 const UNSET: ConfigFieldParse = { valid: true, unset: true }
+// A select item needs a non-empty value, and no device name starts with a NUL.
+const NO_DEVICE = "\u0000none"
 
 const PLATFORM_OPTIONS = (Object.keys(TARGET_PLATFORM_LABELS) as TargetPlatform[]).map((value) => ({
   value,
@@ -92,6 +101,35 @@ export function isTargetEnvironment(value: string): value is TargetEnvironment {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function devicePlatforms(config: Record<string, unknown>): [string, unknown][] {
+  const registry = config.registry
+  const devices = isRecord(registry) ? registry.devices : undefined
+  if (!isRecord(devices)) return []
+  return Object.entries(devices).map(([name, entry]) => [name, isRecord(entry) ? entry.platform : undefined])
+}
+
+function deviceChoices(
+  config: Record<string, unknown>,
+  platform: TargetPlatform,
+  current: unknown,
+): ConfigFieldOption[] {
+  const names = devicePlatforms(config)
+    .filter(([, devicePlatform]) => devicePlatform === platform)
+    .map(([name]) => name)
+  const choices: ConfigFieldOption[] = [
+    { value: NO_DEVICE, label: TARGET_DEVICE_NONE },
+    ...names.map((name) => ({ value: name, label: <span className="font-mono">{name}</span> })),
+  ]
+  if (typeof current === "string" && current !== "" && current !== NO_DEVICE && !names.includes(current)) {
+    choices.push({ value: current, label: targetDeviceUnlistedChoice(current) })
+  }
+  return choices
+}
+
+function parseDevice(raw: string): ConfigFieldParse {
+  return raw === NO_DEVICE ? UNSET : { valid: true, value: raw }
 }
 
 function targetsOf(config: Record<string, unknown>): [string, TargetEntry][] {
@@ -181,7 +219,7 @@ export function TargetsSection({ config }: TargetsSectionProps) {
               deleteName={deleteActionName("delete-target", name)}
               onDelete={() => void remove(name, ["registry", "targets", name])}
             >
-              <TargetFields name={name} target={target} />
+              <TargetFields name={name} target={target} config={config} />
             </RecordRow>
           ))}
         </ul>
@@ -215,13 +253,21 @@ export function TargetsSection({ config }: TargetsSectionProps) {
   )
 }
 
-function TargetFields({ name, target }: { name: string; target: TargetEntry }) {
+interface TargetFieldsProps {
+  name: string
+  target: TargetEntry
+  config: Record<string, unknown>
+}
+
+function TargetFields({ name, target, config }: TargetFieldsProps) {
   const autosave = useConfigAutosaveContext()
   const at = (...rest: string[]) => ({ segments: ["registry", "targets", name, ...rest], tab: "targets" as const })
   const platformField = at("platform")
   const shown = autosave.valueOf(platformField)
   const platform: TargetPlatform = isPlatform(shown) ? shown : isPlatform(target.platform) ? target.platform : "web"
   const hasUrl = typeof target.url === "string" && target.url !== ""
+  const appRef = typeof target.app?.ref === "string" && target.app.ref !== "" ? target.app.ref : undefined
+  const deviceField = at("device")
 
   // A switch to web waits for a URL; once one lands in the file, the held switch is written.
   useEffect(() => {
@@ -279,13 +325,36 @@ function TargetFields({ name, target }: { name: string; target: TargetEntry }) {
         </>
       ) : null}
       {platform === "web" ? null : (
-        <ConfigField
-          field={{ ...at("app", "path"), pattern: "registry.targets.*.app.path" }}
-          label={TARGET_FIELD_LABELS.appPath}
-          kind="text"
-          placeholder="apps/app.apk"
-          parse={parseAppPath}
-        />
+        <>
+          <ConfigField
+            field={{ ...deviceField, pattern: "registry.targets.*.device" }}
+            label={TARGET_FIELD_LABELS.device}
+            help={TARGET_DEVICE_HELP}
+            kind="select"
+            placeholder={TARGET_DEVICE_NONE}
+            options={deviceChoices(config, platform, autosave.valueOf(deviceField))}
+            parse={parseDevice}
+          />
+          <ConfigField
+            field={{ ...at("app", "path"), pattern: "registry.targets.*.app.path" }}
+            label={TARGET_FIELD_LABELS.appPath}
+            kind="text"
+            placeholder="apps/app.apk"
+            parse={parseAppPath}
+          />
+          {appRef === undefined ? null : (
+            <div data-target-app-ref className="space-y-1">
+              <p className="text-sm font-medium">{TARGET_FIELD_LABELS.appRef}</p>
+              <SecretValue
+                field={{ segments: ["registry", "targets", name, "app", "ref"], pattern: "registry.targets.*.app.ref" }}
+                label={`${name} ${TARGET_FIELD_LABELS.appRef}`}
+                maskedText={appRef}
+                readOnly
+              />
+              <p className="text-xs text-muted-foreground">{TARGET_APP_REF_NOTE}</p>
+            </div>
+          )}
+        </>
       )}
       <ConfigField
         field={{ ...at("product"), pattern: "registry.targets.*.product" }}

@@ -130,12 +130,19 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
           platform: 'android',
           appPackage: 'com.example.shop',
           appActivity: '.MainActivity',
-          app: { path: 'apps/shop.apk' },
+          device: 'galaxy-farm',
+          app: { path: 'apps/shop.apk', ref: 'shop-latest' },
         },
       },
       devices: {
-        iosLocal: { platform: 'ios', model: 'iPhone 16', os: '18.0', match: { udid: 'abc' } },
-        'galaxy-farm': { platform: 'android', model: 'Samsung Galaxy S24', os: '14', remote: 'farm' },
+        iosLocal: { platform: 'ios', model: 'iPhone 16', os: '18.0', id: 'ABCD-1234', match: { udid: 'abc' } },
+        'galaxy-farm': {
+          platform: 'android',
+          model: 'Samsung Galaxy S24',
+          os: '14',
+          remote: 'farm',
+          capabilities: { 'farm:options': { accessKey: '[secret:FARM_KEY]' } },
+        },
       },
       // As GET /api/config serves it: name, protocol and origin only.
       remotes: [
@@ -531,9 +538,10 @@ describe('ConfigPage schema coverage', () => {
     }
   })
 
-  // The page-owned leaves are the strict leaves less the plugin, remote entry and device remote
-  // leaves, which the write door refuses; each has a rendered owner and the write door admits it.
-  it('exactly the page-writable leaves, each owned on the page, with the plugin, remote entry and device remote leaves excluded', async () => {
+  // The page-owned leaves are the strict leaves less the plugin, remote entry, device remote and
+  // capabilities and app reference leaves, which the write door refuses; each has a rendered owner
+  // and the write door admits it.
+  it('exactly the page-writable leaves, each owned on the page, with the plugin, remote entry, device placement and app reference leaves excluded', async () => {
     page.config = fullConfig
     await renderAt('/config/models')
 
@@ -544,9 +552,11 @@ describe('ConfigPage schema coverage', () => {
       'plugins.auth[].path',
       'plugins.providers[].package',
       'plugins.providers[].path',
+      'registry.devices.*.capabilities.*',
       'registry.devices.*.remote',
       'registry.remotes[].basicAuth.password',
       'registry.remotes[].basicAuth.user',
+      'registry.remotes[].capabilities.*',
       'registry.remotes[].connectTimeout',
       'registry.remotes[].context',
       'registry.remotes[].headers.*',
@@ -555,6 +565,7 @@ describe('ConfigPage schema coverage', () => {
       'registry.remotes[].query.*',
       'registry.remotes[].query.*.*',
       'registry.remotes[].url',
+      'registry.targets.*.app.ref',
     ])
     const marks = await collectFieldMarks()
     const owned = PAGE_LEAVES.filter((pattern) => marks.some((mark) => coversLeaf(mark, pattern)))
@@ -604,14 +615,17 @@ describe('ConfigPage schema coverage', () => {
     expect(admitted, `leaves without a field that the door still admits: ${admitted.join(', ')}`).toEqual([])
   })
 
-  it("the Devices section edits a device's model and os and shows its remote read-only", async () => {
+  it("the Devices section edits a device's model, os and id and shows its remote and capabilities read-only", async () => {
     page.config = fullConfig
     await renderAt('/config/targets')
 
     const marks = await collectFieldMarks()
     const deviceMarks = [...new Set(marks.filter((mark) => mark.where.endsWith('/devices')).map((mark) => mark.value))]
-    expect(deviceMarks).toEqual(expect.arrayContaining(['registry.devices.*.model', 'registry.devices.*.os']))
+    expect(deviceMarks).toEqual(
+      expect.arrayContaining(['registry.devices.*.model', 'registry.devices.*.os', 'registry.devices.*.id']),
+    )
     expect(deviceMarks.filter((value) => value.startsWith('registry.devices.*.remote'))).toEqual([])
+    expect(deviceMarks.filter((value) => value.startsWith('registry.devices.*.capabilities'))).toEqual([])
 
     await activateTab('targets')
     const header = container!.querySelector('[data-config-section="devices"] [data-device="galaxy-farm"] [data-row-header]') as HTMLElement | null
@@ -623,6 +637,37 @@ describe('ConfigPage schema coverage', () => {
     const remote = container!.querySelector('[data-config-section="devices"] [data-device-remote="farm"]') as HTMLElement | null
     expect(remote?.textContent).toBe('Runs on remote farm')
     expect(remote!.querySelectorAll('input, select, button, textarea, [role="combobox"], [contenteditable]')).toHaveLength(0)
+    const capabilities = container!.querySelector(
+      '[data-config-section="devices"] [data-device="galaxy-farm"] [data-device-capabilities]',
+    ) as HTMLElement | null
+    expect(capabilities?.querySelector('dt')?.textContent).toBe('farm:options')
+    expect(capabilities?.querySelector('code')?.textContent).toBe('{"accessKey":"[secret:FARM_KEY]"}')
+    expect(capabilities!.querySelectorAll('input, select, button, textarea, [role="combobox"], [contenteditable]')).toHaveLength(0)
+  })
+
+  it("the Targets section edits a mobile target's device and shows its app reference read-only", async () => {
+    page.config = fullConfig
+    await renderAt('/config/targets')
+
+    const marks = await collectFieldMarks()
+    const targetMarks = [...new Set(marks.filter((mark) => mark.where.endsWith('/targets')).map((mark) => mark.value))]
+    expect(targetMarks).toContain('registry.targets.*.device')
+    expect(targetMarks.filter((value) => value.startsWith('registry.targets.*.app.ref'))).toEqual([])
+    expect(isPageWritableConfigPath(['registry', 'targets', 'shop', 'device'])).toBe(true)
+    expect(isPageWritableConfigPath(['registry', 'targets', 'shop', 'app', 'ref'])).toBe(false)
+    expect(isPageWritableConfigPath(['registry', 'devices', 'galaxy-farm', 'capabilities', 'farm:options'])).toBe(false)
+    expect(isPageWritableConfigPath(['registry', 'devices', 'galaxy-farm', 'id'])).toBe(true)
+
+    await activateTab('targets')
+    const header = container!.querySelector('[data-config-section="targets"] [data-target="shop"] [data-row-header]') as HTMLElement | null
+    expect(header, 'the shop row renders').not.toBeNull()
+    await act(async () => {
+      header!.click()
+    })
+    await flushRender()
+    const ref = container!.querySelector('[data-config-section="targets"] [data-target="shop"] [data-target-app-ref]') as HTMLElement | null
+    expect(ref?.querySelector('code')?.textContent).toBe('shop-latest')
+    expect(ref!.querySelectorAll('input, select, button, textarea, [role="combobox"], [contenteditable]')).toHaveLength(0)
   })
 
   it('the Remotes section shows the listed remote, and its one field is the default remote', async () => {

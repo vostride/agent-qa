@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest'
+import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 
 describe('DeviceProfileSchema', () => {
@@ -287,12 +288,100 @@ describe('DeviceConfigSchema removed from primitives', () => {
   })
 })
 
-describe('TargetSchema no longer has device field', () => {
-  it('rejects device field on target', async () => {
+describe('the device config, here and on a remote', () => {
+  const example = `
+workspace:
+  testMatch: ['tests/**/*.yaml']
+  suiteMatch: ['suites/**/*.suite.yaml']
+  hooksFile: hooks.yaml
+  envFile: .env
+  secretsFile: .env.secrets.local
+use:
+  mobile:
+    appState: reset
+registry:
+  remotes:
+    - name: farm
+      protocol: appium
+      url: https://farm.example.com/wd/hub
+      basicAuth:
+        user: "{{secret:FARM_USER}}"
+        password: "{{secret:FARM_KEY}}"
+  devices:
+    pixel:
+      platform: android
+      model: Pixel 8
+    iphone:
+      platform: ios
+      model: iPhone 16
+      os: "18.4"
+    galaxy-farm:
+      platform: android
+      remote: farm
+      model: Samsung Galaxy S24
+      os: "14"
+    rack-s24-b:
+      platform: android
+      model: SM-S921B
+      id: R58M41ABCDE
+  targets:
+    shop-android:
+      platform: android
+      appPackage: com.example.shop
+      device: pixel
+      app:
+        path: builds/shop.apk
+        ref: shop-latest
+    shop-ios:
+      platform: ios
+      bundleId: com.example.shop
+      device: iphone
+      app:
+        path: builds/Shop.app
+`
+
+  it('parses the example config with local and remote devices and each target naming its device', async () => {
+    const { AgentQaConfigSchema } = await import('../config-schema.js')
+    const result = AgentQaConfigSchema.safeParse(parseYaml(example))
+    expect(result.success ? [] : result.error.issues.map(issue => issue.message)).toEqual([])
+    if (!result.success) return
+    expect(result.data.registry?.devices?.['rack-s24-b']).toMatchObject({ id: 'R58M41ABCDE' })
+    expect(result.data.registry?.devices?.['galaxy-farm']).toMatchObject({
+      remote: 'farm',
+      os: '14',
+    })
+    expect(result.data.registry?.targets?.['shop-android']).toMatchObject({
+      device: 'pixel',
+      app: { path: 'builds/shop.apk', ref: 'shop-latest' },
+    })
+    expect(result.data.registry?.targets?.['shop-ios']?.device).toBe('iphone')
+  })
+
+  it('accepts capabilities on a device, here or remote', async () => {
     const mod = await import('../registry-schema.js') as any
-    const result = mod.TargetSchema.safeParse({
+    const result = mod.DeviceProfileSchema.safeParse({
       platform: 'android',
-      device: 'some-device',
+      model: 'Pixel 8',
+      capabilities: {
+        'appium:automationName': 'Espresso',
+        'farm:options': { realDevice: true, accessKey: '{{secret:FARM_KEY}}' },
+      },
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.capabilities['farm:options']).toEqual({
+        realDevice: true,
+        accessKey: '{{secret:FARM_KEY}}',
+      })
+    }
+  })
+
+  it('refuses an empty id', async () => {
+    const mod = await import('../registry-schema.js') as any
+    const result = mod.DeviceProfileSchema.safeParse({
+      platform: 'android',
+      model: 'Pixel 8',
+      id: ' ',
     })
     expect(result.success).toBe(false)
   })

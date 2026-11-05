@@ -11,6 +11,7 @@ export const AppInstallSchema = z.strictObject({
   path: z.string()
     .refine((v) => !isAbsoluteAppPath(v), { error: 'app.path must be relative' })
     .optional(),
+  ref: z.string().trim().min(1).optional(),
 })
 
 export const TargetSchema = z.strictObject({
@@ -25,6 +26,7 @@ export const TargetSchema = z.strictObject({
   appPackage: z.string().optional(),
   appActivity: z.string().optional(),
   app: AppInstallSchema.optional(),
+  device: z.string().trim().min(1).optional(),
   url: z.string().optional(),
   // A label only: agent-qa runs every target the same way, whatever it declares.
   environment: z
@@ -46,7 +48,9 @@ export const DeviceProfileSchema = z.strictObject({
     .trim()
     .min(1)
     .optional(),
+  id: z.string().trim().min(1).optional(),
   remote: NameSlugSchema.optional(),
+  capabilities: z.record(z.string(), z.unknown()).optional(),
   match: z.record(z.string(), z.unknown()).optional().default({}),
 }).superRefine((val, ctx) => {
   const androidOnly = ['avd', 'serial', 'appPackage', 'appActivity', 'automationName', 'browserName', 'platformVersion']

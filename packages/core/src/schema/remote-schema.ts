@@ -19,6 +19,7 @@ export const RemoteEntrySchema = z
       .optional(),
     connectTimeout: DurationString.optional(),
     context: z.enum(['new', 'reuse']).optional(),
+    capabilities: z.record(z.string(), z.unknown()).optional(),
   })
   .superRefine((entry, ctx) => {
     for (const issue of remoteEntryIssues(entry)) {

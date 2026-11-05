@@ -44,7 +44,7 @@
   "remotes": {
     "path": "registry.remotes",
     "requiredKeys": ["name", "protocol", "url"],
-    "optionalKeys": ["query", "headers", "basicAuth", "connectTimeout", "context"],
+    "optionalKeys": ["query", "headers", "basicAuth", "connectTimeout", "context", "capabilities"],
     "keys": {
       "name": "A lowercase slug, unique in the list. local is reserved for this machine.",
       "protocol": "playwright for a Playwright server (ws:// or wss://), cdp for a CDP endpoint (ws://, wss://, http:// or https://; Chromium only), or appium for an Appium server devices run on (http:// or https://). use.browser.remote picks a playwright or cdp remote only.",
@@ -53,7 +53,8 @@
       "headers": "Headers sent when agent-qa connects.",
       "basicAuth": "user and password; the password is a {{secret:<name>}} reference. Use it or an Authorization header, not both.",
       "connectTimeout": "A duration such as 45s that bounds the connect only; 5m by default.",
-      "context": "cdp only: new (the default) opens agent-qa's own context; reuse uses the browser's first context."
+      "context": "cdp only: new (the default) opens agent-qa's own context; reuse uses the browser's first context.",
+      "capabilities": "appium only: Appium capabilities sent for every device on this remote; a device's own capabilities win over them. A key that names a credential holds a {{secret:<name>}} reference."
     },
     "protocols": ["playwright", "cdp", "appium"],
     "credentials": "Every credential is a {{secret:<name>}} reference to a name in workspace.secretsFile. The strict parse refuses a literal string or number under a header or query name that carries a credential word such as token, key, secret, password, cookie, authorization or jwt: in nested maps, inside a JSON value and in the url's own query. Strings and numbers there must be references; true, false or null under such a name is accepted. A credential goes over ws:// or http:// only to this machine. A remote's secrets serve its connection only; steps, expected values, target urls and hooks cannot use them.",

@@ -45,3 +45,34 @@ describe('TargetSchema.environment, the target class', () => {
     expect(result.success).toBe(false)
   })
 })
+
+describe('TargetSchema device and app reference', () => {
+  const android = { platform: 'android' as const, appPackage: 'com.example.shop' }
+
+  it('accepts the default device and an app reference beside the app file', () => {
+    const result = TargetSchema.safeParse({
+      ...android,
+      device: 'pixel',
+      app: { path: 'builds/shop.apk', ref: 'shop-latest' },
+    })
+    expect(result.success).toBe(true)
+    expect(result.success && result.data.device).toBe('pixel')
+    expect(result.success && result.data.app).toEqual({
+      path: 'builds/shop.apk',
+      ref: 'shop-latest',
+    })
+  })
+
+  it('accepts an app reference without an app file', () => {
+    const result = TargetSchema.safeParse({
+      ...android,
+      app: { ref: 'https://apps.example.com/shop.apk' },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it('refuses an empty device or app reference', () => {
+    expect(TargetSchema.safeParse({ ...android, device: '' }).success).toBe(false)
+    expect(TargetSchema.safeParse({ ...android, app: { ref: '  ' } }).success).toBe(false)
+  })
+})
