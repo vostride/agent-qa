@@ -117,6 +117,11 @@ vi.mock('@vostride/agent-qa-model', async () => {
 })
 
 vi.mock('@vostride/agent-qa-android', () => ({
+  // The one running emulator, so a live session on a device here never runs adb.
+  listAndroidDevicesHere: vi.fn(async () => ({
+    attached: [{ serial: 'emulator-5554', state: 'device', avd: 'Pixel_8_API_35' }],
+    avds: [],
+  })),
   AndroidPlatformAdapter: vi.fn().mockImplementation(function () {
     return {
       platform: 'android',
@@ -167,6 +172,7 @@ afterEach(async () => {
     tempDir = undefined
   }
   currentDb = undefined
+  vi.unstubAllEnvs()
   mockState.appiumInstances.length = 0
   mockState.runnerInstances.length = 0
   mockState.events.length = 0
@@ -533,6 +539,7 @@ describe('dashboard Appium ownership', () => {
   })
 
   it('shares Appium ownership between queued and live mobile sessions', async () => {
+    vi.stubEnv('AGENT_QA_APPIUM_URL', '')
     const port = await startDashboard({ configContent: MOBILE_CONFIG, llm: true })
     const queued = await postJson<QueueResponse>(port, '/api/queue/enqueue', {
       name: 'Queued Android',
