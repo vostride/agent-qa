@@ -143,6 +143,10 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => ({
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).missingRemoteSecrets,
   missingRemoteSecretSentence:
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).missingRemoteSecretSentence,
+  missingDeviceSecrets:
+    (await importOriginal<typeof import('@vostride/agent-qa-core')>()).missingDeviceSecrets,
+  missingDeviceSecretSentence:
+    (await importOriginal<typeof import('@vostride/agent-qa-core')>()).missingDeviceSecretSentence,
   connectionSecretMisuse:
     (await importOriginal<typeof import('@vostride/agent-qa-core')>()).connectionSecretMisuse,
   // The two run-attribute KEYS, from the real module: `run.ts` reads the resolved attributes to

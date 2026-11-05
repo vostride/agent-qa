@@ -122,6 +122,8 @@ export interface InProcessFixtureInput {
     readonly platform?: 'ios'
     /** The standalone test's `use.mobile.appState`; `preserve` when absent. */
     readonly appState?: 'reset'
+    /** The device's own `capabilities`, written as JSON. */
+    readonly capabilities?: Readonly<Record<string, unknown>>
   }
   /** With `remoteDevice`, its target names the remote device and the standalone test names none. */
   readonly deviceOnTarget?: boolean
@@ -278,6 +280,9 @@ export function createInProcessFixture(input: InProcessFixtureInput): InProcessF
               ? []
               : [`      os: ${JSON.stringify(remoteDevice.os)}`]),
             `      remote: ${REMOTE_DEVICE_REMOTE_NAME}`,
+            ...(remoteDevice.capabilities === undefined
+              ? []
+              : [`      capabilities: ${JSON.stringify(remoteDevice.capabilities)}`]),
           ]),
       ...(input.localDevice === true
         ? [

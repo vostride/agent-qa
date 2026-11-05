@@ -82,6 +82,7 @@ interface DeviceScene {
   readonly printed: string[]
   readonly acquire: ReturnType<typeof vi.spyOn>
   readonly acquireLease: ReturnType<typeof vi.spyOn>
+  readonly exit: ReturnType<typeof vi.spyOn>
 }
 
 async function onRemoteDevice(
@@ -114,7 +115,7 @@ async function onRemoteDevice(
   vi.spyOn(console, 'log').mockImplementation(keep)
   vi.spyOn(console, 'warn').mockImplementation(keep)
   vi.spyOn(console, 'error').mockImplementation(keep)
-  vi.spyOn(process, 'exit').mockImplementation(() => {
+  const exit = vi.spyOn(process, 'exit').mockImplementation(() => {
     throw new Error('fixture command exit')
   })
   const noLocalAppium = (): Promise<never> =>
@@ -123,7 +124,7 @@ async function onRemoteDevice(
   const acquireLease = vi
     .spyOn(AppiumManager.prototype, 'acquireLease')
     .mockImplementation(noLocalAppium)
-  await drive({ project, server, printed, acquire, acquireLease })
+  await drive({ project, server, printed, acquire, acquireLease, exit })
 }
 
 async function runThroughCli(
@@ -271,6 +272,35 @@ describe('a test on a remote device runs there from every door', () => {
           expect(newSessionsOn(server), printed.join('\n')).toHaveLength(1)
         },
         { fixture: { localDevice: true } },
+      )
+    },
+    RUN_BUDGET_MS,
+  )
+
+  it(
+    "agent-qa run refuses a remote device whose capabilities need an undeclared secret before the run is recorded",
+    async () => {
+      await onRemoteDevice(
+        async ({ project, server, printed, acquire, acquireLease, exit }) => {
+          await runThroughCli(project, [project.testPattern])
+
+          const log = printed.join('\n')
+          const { port } = new URL(server.url)
+          expect(exit.mock.calls.at(-1)?.[0], log).toBe(2)
+          expect(
+            printed.filter((line) =>
+              line.includes(
+                `Device galaxy-farm on remote farm (appium http://127.0.0.1:${port}) needs FARM_KEY, which .env.secrets.local does not declare. Add it there.`,
+              ),
+            ),
+            log,
+          ).toHaveLength(1)
+          expect(server.requests, log).toEqual([])
+          expect(storedRunners(project), log).toEqual([])
+          expect(acquire).not.toHaveBeenCalled()
+          expect(acquireLease).not.toHaveBeenCalled()
+        },
+        { device: { capabilities: { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } } } },
       )
     },
     RUN_BUDGET_MS,

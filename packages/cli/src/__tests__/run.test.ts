@@ -234,6 +234,8 @@ vi.mock('@vostride/agent-qa-core', async (importOriginal) => {
   splitConnectionSecrets: actual.splitConnectionSecrets,
   missingRemoteSecrets: actual.missingRemoteSecrets,
   missingRemoteSecretSentence: actual.missingRemoteSecretSentence,
+  missingDeviceSecrets: actual.missingDeviceSecrets,
+  missingDeviceSecretSentence: actual.missingDeviceSecretSentence,
   connectionSecretMisuse: actual.connectionSecretMisuse,
   // The real version reader, because the union constrains `agent_qa_version` to a semver.
   getAgentQaVersion: actual.getAgentQaVersion,

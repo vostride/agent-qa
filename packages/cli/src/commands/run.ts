@@ -6,7 +6,7 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { anyRemoteDevice, chooseAppiumEndpoint, connectionSecretMisuse, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingDeviceSecrets, missingDeviceSecretSentence, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, webdriverLogLevel, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
 import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
@@ -1566,17 +1566,30 @@ function configuredSecretsFile(config: AgentQaConfig): string | undefined {
   return typeof file === 'string' ? file : undefined
 }
 
-// Before the run is recorded: a remote this run uses lacks a secret, or a test names one.
+// Before the run is recorded: a remote or remote device this run uses lacks a secret, or a test
+// names one.
 function refuseRemoteSecretProblems(input: {
   readonly config: AgentQaConfig
   readonly configDir: string
   readonly usedRemotes: Iterable<RemoteBrowserConfig>
+  readonly usedDevices: Iterable<DevicePlace>
   readonly tests: Iterable<{ readonly filePath: string; readonly steps: readonly unknown[] }>
   readonly connectionSecretStore: SecretStore
 }): void {
   const secretsFile = configuredSecretsFile(input.config)
-  const lines = missingRemoteSecrets([...input.usedRemotes], input.connectionSecretStore)
-    .map((missing) => missingRemoteSecretSentence(missing, secretsFile))
+  const remoteDevices = [...input.usedDevices].flatMap((place) =>
+    place.kind === 'remote' ? [{ device: place.device, remote: place.remote }] : [],
+  )
+  const lines = [
+    ...missingRemoteSecrets([...input.usedRemotes], input.connectionSecretStore).map((missing) =>
+      missingRemoteSecretSentence(missing, secretsFile),
+    ),
+    ...missingDeviceSecrets(
+      remoteDevices,
+      input.config.registry?.devices ?? {},
+      input.connectionSecretStore,
+    ).map((missing) => missingDeviceSecretSentence(missing, secretsFile)),
+  ]
   const { connectionNames } = splitConnectionSecrets(input.connectionSecretStore, input.config)
   for (const test of input.tests) {
     for (const sentence of connectionSecretMisuse({
@@ -2672,6 +2685,7 @@ export async function produceSuiteRunMembers(
           ? [selected.place.remote]
           : [],
       ),
+      usedDevices: placedSuites.flatMap(({ device }) => (device === undefined ? [] : [device])),
       tests: placedSuites.flatMap(({ members }) =>
         members.map(({ test, absolutePath }) => ({
           filePath: absolutePath,
@@ -3869,6 +3883,7 @@ export async function produceDirectRunMembers(
     config,
     configDir,
     usedRemotes: directRemotes.values(),
+    usedDevices: directDevicePlaces.values(),
     tests: filtered.map(({ test, filePath }) => ({ filePath, steps: test.steps ?? [] })),
     connectionSecretStore: runtimeSecrets.connectionSecretStore,
   })

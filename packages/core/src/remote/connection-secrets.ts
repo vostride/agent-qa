@@ -53,6 +53,46 @@ export function missingRemoteSecretSentence(
   return `Remote ${remoteLabel(missing.remote)} needs ${missing.name}, which ${file} does not declare. Add it there.`
 }
 
+export interface RemoteDeviceUse {
+  readonly device: string
+  readonly remote: RemoteConnectionFields
+}
+
+export interface MissingDeviceSecret extends RemoteDeviceUse {
+  readonly name: string
+}
+
+// What a used remote device's connection needs: its remote's values and its own capabilities.
+export function missingDeviceSecrets(
+  used: readonly RemoteDeviceUse[],
+  devices: Readonly<Record<string, { readonly capabilities?: unknown }>>,
+  store: { has(name: string): boolean },
+): MissingDeviceSecret[] {
+  const missing: MissingDeviceSecret[] = []
+  const seen = new Set<string>()
+  for (const { device, remote } of used) {
+    if (seen.has(device)) continue
+    seen.add(device)
+    const capabilities = Object.hasOwn(devices, device) ? devices[device]?.capabilities : undefined
+    const names = new Set([
+      ...connectionSecretNames([remote]),
+      ...secretReferenceNames(JSON.stringify(capabilities ?? {})),
+    ])
+    for (const name of names) {
+      if (!store.has(name)) missing.push({ device, remote, name })
+    }
+  }
+  return missing
+}
+
+export function missingDeviceSecretSentence(
+  missing: MissingDeviceSecret,
+  secretsFile: string | undefined,
+): string {
+  const file = secretsFile ?? 'workspace.secretsFile'
+  return `Device ${missing.device} on remote ${remoteLabel(missing.remote)} needs ${missing.name}, which ${file} does not declare. Add it there.`
+}
+
 export interface ConnectionSecretMisuseInput {
   readonly names: ReadonlySet<string>
   // The file the sentence names, as the run and validate print it.

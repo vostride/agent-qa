@@ -8,6 +8,8 @@ import { describe, expect, it } from 'vitest'
 import { RemoteEntrySchema } from '../../schema/remote-schema.js'
 import {
   connectionSecretMisuse,
+  missingDeviceSecrets,
+  missingDeviceSecretSentence,
   missingRemoteSecrets,
   missingRemoteSecretSentence,
   splitConnectionSecrets,
@@ -182,5 +184,44 @@ describe("a remote's connection-only secrets", () => {
       'Remote grid (playwright ws://127.0.0.1:3000) needs REMOTE_TOKEN, which .env.secrets.local does not declare. Add it there.',
     )
     expect(missingRemoteSecrets(remotes, store)).toEqual([])
+  })
+
+  it('name each secret a used remote device needs that the store does not declare, naming the device', () => {
+    const appiumFarm = RemoteEntrySchema.parse({
+      name: 'farm',
+      protocol: 'appium',
+      url: 'https://farm.example.com/wd/hub',
+      headers: { 'x-farm-token': '{{secret:FARM_TOKEN}}' },
+    })
+    const devices = {
+      'galaxy-farm': {
+        capabilities: { 'farm:options': { accessKey: '{{secret:FARM_KEY}}' } },
+      },
+      'pixel-farm': {},
+    }
+    const used = [
+      { device: 'galaxy-farm', remote: appiumFarm },
+      { device: 'pixel-farm', remote: appiumFarm },
+      { device: 'galaxy-farm', remote: appiumFarm },
+    ]
+    const partial = new SecretStore({ FARM_TOKEN: 'farm-token' })
+    const missing = missingDeviceSecrets(used, devices, partial)
+    expect(missing.map(({ device, name }) => [device, name])).toEqual([['galaxy-farm', 'FARM_KEY']])
+    expect(missingDeviceSecretSentence(missing[0]!, '.env.secrets.local')).toBe(
+      'Device galaxy-farm on remote farm (appium https://farm.example.com:443) needs FARM_KEY, which .env.secrets.local does not declare. Add it there.',
+    )
+    expect(
+      missingDeviceSecrets(used, devices, new SecretStore({})).map(({ device, name }) => [
+        device,
+        name,
+      ]),
+    ).toEqual([
+      ['galaxy-farm', 'FARM_TOKEN'],
+      ['galaxy-farm', 'FARM_KEY'],
+      ['pixel-farm', 'FARM_TOKEN'],
+    ])
+    expect(
+      missingDeviceSecrets(used, devices, new SecretStore({ FARM_TOKEN: 't', FARM_KEY: 'k' })),
+    ).toEqual([])
   })
 })
