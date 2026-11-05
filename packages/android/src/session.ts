@@ -42,6 +42,10 @@ function statedText(capabilities: CapabilityMap | undefined, name: string): stri
   return capabilities === undefined ? undefined : textOf(capabilityValue(capabilities, name))
 }
 
+export function browserModeName(config: AndroidAdapterConfig): string | undefined {
+  return statedText(config.device?.capabilities, 'browserName') ?? textOf(config.browserName)
+}
+
 function referencedNames(value: unknown): string[] {
   if (typeof value === 'string') return secretReferenceNames(value)
   if (Array.isArray(value)) return value.flatMap(referencedNames)
@@ -201,12 +205,10 @@ export async function createAndroidSession(
   if (remoteDevice !== undefined) return createRemoteAndroidSession(config, remoteDevice, options)
 
   const profile = config.device
-  const match = profile?.match ?? {}
   const here = profile?.here
   const stated = profile?.capabilities
 
-  const browserName =
-    statedText(stated, 'browserName') ?? config.browserName ?? textOf(match.browserName)
+  const browserName = browserModeName(config)
   const appPath = config.appPath
   if (browserName && appPath) {
     throw new MobileSetupError({
@@ -218,13 +220,13 @@ export async function createAndroidSession(
     })
   }
 
-  const udid = here?.udid ?? profile?.id ?? textOf(match.serial)
-  const avd = here?.avd ?? config.avd ?? textOf(match.avd)
-  const platformVersion = profile?.os ?? textOf(match.platformVersion)
+  const udid = here?.udid ?? profile?.id
+  const avd = here?.avd ?? config.avd
+  const platformVersion = profile?.os
 
   const derived: CapabilityMap = {
     platformName: 'Android',
-    'appium:automationName': textOf(match.automationName) ?? 'UiAutomator2',
+    'appium:automationName': 'UiAutomator2',
     'appium:deviceName': here?.name ?? profile?.model ?? profile?.name ?? 'Android Emulator',
     'appium:newCommandTimeout': config.timeouts?.test ? Math.ceil(config.timeouts.test / 1000) : 300,
     'appium:chromedriverAutodownload': true,
@@ -243,10 +245,8 @@ export async function createAndroidSession(
   } else {
     if (config.appState === 'preserve') derived['appium:noReset'] = true
     if (config.appState === 'reset') derived['appium:noReset'] = false
-    const appPackage = config.appPackage ?? textOf(match.appPackage)
-    const appActivity = config.appActivity ?? textOf(match.appActivity)
-    if (appPackage) derived['appium:appPackage'] = appPackage
-    if (appActivity) derived['appium:appActivity'] = appActivity
+    if (config.appPackage) derived['appium:appPackage'] = config.appPackage
+    if (config.appActivity) derived['appium:appActivity'] = config.appActivity
   }
 
   const endpoint = localEndpoint(config.appiumUrl)

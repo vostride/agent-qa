@@ -96,7 +96,9 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'pixel-7',
           platform: 'android',
-          match: { automationName: 'UiAutomator2', platformVersion: '14', serial: 'RZCT90BCMWW' },
+          id: 'RZCT90BCMWW',
+          os: '14',
+          match: {},
         },
       }
 
@@ -139,7 +141,7 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: { automationName: 'UiAutomator2' },
+          match: {},
         },
         appPath: '/tmp/wikipedia.apk',
       })
@@ -157,7 +159,7 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: { automationName: 'UiAutomator2' },
+          match: {},
         },
       })
 
@@ -173,7 +175,8 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-chrome',
           platform: 'android',
-          match: { automationName: 'UiAutomator2', browserName: 'Chrome' },
+          capabilities: { browserName: 'Chrome' },
+          match: {},
         },
       })
 
@@ -182,29 +185,14 @@ describe('AndroidPlatformAdapter', () => {
       expect(call.capabilities).not.toHaveProperty('appium:noReset')
     })
 
-    it('uses appState instead of stale match.noReset', async () => {
-      await adapter.setup({
-        platform: 'android',
-        appState: 'reset',
-        device: {
-          name: 'android-emu',
-          platform: 'android',
-          match: { automationName: 'UiAutomator2', noReset: true },
-        },
-      })
-
-      const { remote } = await import('webdriverio')
-      const call = vi.mocked(remote).mock.calls[0][0] as any
-      expect(call.capabilities['appium:noReset']).toBe(false)
-    })
-
     it('rejects browserName with app path before session creation', async () => {
       await expect(adapter.setup({
         platform: 'android',
         device: {
           name: 'android-chrome',
           platform: 'android',
-          match: { automationName: 'UiAutomator2', browserName: 'Chrome' },
+          capabilities: { browserName: 'Chrome' },
+          match: {},
         },
         appPath: '/tmp/wikipedia.apk',
       })).rejects.toMatchObject({ category: 'app-install' })
@@ -219,7 +207,7 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: { automationName: 'UiAutomator2' },
+          match: {},
         },
         appPackage: 'org.wikipedia.alpha',
       })
@@ -233,7 +221,7 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: { automationName: 'UiAutomator2' },
+          match: {},
         },
         appPackage: 'app.linear',
       })
@@ -252,7 +240,7 @@ describe('AndroidPlatformAdapter', () => {
           device: {
             name: 'android-emu',
             platform: 'android',
-            match: { automationName: 'UiAutomator2' },
+            match: {},
           },
           appPackage: 'app.linear',
         })
@@ -483,7 +471,7 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: { automationName: 'UiAutomator2' },
+          match: {},
         },
         appPackage: 'app.linear',
       })
@@ -515,7 +503,7 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: { automationName: 'UiAutomator2' },
+          match: {},
         },
         appPackage: 'app.linear',
       })
@@ -552,7 +540,8 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-chrome',
           platform: 'android',
-          match: { automationName: 'UiAutomator2', browserName: 'Chrome' },
+          capabilities: { browserName: 'Chrome' },
+          match: {},
         },
       })
       const state = await adapter.observe()
@@ -573,7 +562,7 @@ describe('AndroidPlatformAdapter', () => {
         device: {
           name: 'android-emu',
           platform: 'android',
-          match: { automationName: 'UiAutomator2' },
+          match: {},
         },
         appPackage: 'app.linear',
       })

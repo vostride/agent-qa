@@ -56,7 +56,7 @@ import {
   webViewSwipeSignal,
 } from '@vostride/agent-qa-core'
 import type { IdentifiedScrollOffsets, MobileRefMap } from '@vostride/agent-qa-core'
-import { createAndroidSession } from './session.js'
+import { browserModeName, createAndroidSession } from './session.js'
 import type { AndroidAdapterConfig, AndroidAdapterOptions } from './types.js'
 
 const ANDROID_FILLABLE_ROLES = new Set(['textbox', 'searchbox', 'edittext', 'combobox'])
@@ -680,7 +680,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   async setup(config: PlatformConfig): Promise<void> {
     this.config = config as AndroidAdapterConfig
     this.captureConsole = config.logCapture?.console !== false
-    this.appPackage = this.config.appPackage ?? (config.device?.match?.appPackage as string | undefined) ?? null
+    this.appPackage = this.config.appPackage ?? null
     this.remote = config.device?.remote
     this.deviceName = config.device?.name ?? 'android'
     this.disconnectKind = undefined
@@ -711,7 +711,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
   private async prepareSession(config: PlatformConfig): Promise<void> {
     if (!this.driver || !this.config) return
     const appPackage = this.appPackage
-    if (appPackage && !this.config.browserName && !this.config.device?.match?.browserName) {
+    if (appPackage && !browserModeName(this.config)) {
       let state: number | undefined
       try {
         state = await this.driver.queryAppState(appPackage)
@@ -1160,7 +1160,7 @@ export class AndroidPlatformAdapter implements PlatformAdapter<'android'> {
     const driver = this.driver!
     try {
       const contexts = await driver.getContexts() as string[]
-      const explicitBrowserMode = Boolean(this.config?.browserName || this.config?.device?.match?.browserName)
+      const explicitBrowserMode = this.config !== null && browserModeName(this.config) !== undefined
       const webCtx = contexts.find(c =>
         typeof c === 'string' && isTargetWebContext(c, this.appPackage, explicitBrowserMode)
       )
