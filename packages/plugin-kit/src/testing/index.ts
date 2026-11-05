@@ -7,6 +7,14 @@ export {
   type ConformanceReport,
 } from './conformance.js'
 export {
+  startLoopbackFake,
+  type LoopbackFake,
+  type LoopbackFakeInput,
+  type LoopbackReply,
+  type LoopbackRequest,
+  type LoopbackRoute,
+} from './loopback-fake.js'
+export {
   writeScriptedPlugin,
   type ScriptedPlugin,
   type ScriptedPluginInput,
