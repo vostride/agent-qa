@@ -37,6 +37,7 @@ COPY packages/safety/package.json packages/safety/
 COPY packages/safety-local/package.json packages/safety-local/
 COPY packages/schema/package.json packages/schema/
 COPY packages/web/package.json packages/web/
+COPY plugins/browserstack/package.json plugins/browserstack/
 COPY plugins/kernel/package.json plugins/kernel/
 
 RUN pnpm install --frozen-lockfile

@@ -7,6 +7,7 @@ export const publicPackageNames = [
   '@vostride/agent-qa-schema',
   '@vostride/agent-qa-plugin-kit',
   '@vostride/agent-qa-plugin-kernel',
+  '@vostride/agent-qa-plugin-browserstack',
   '@vostride/agent-qa-safety',
   '@vostride/agent-qa-runner',
   '@vostride/agent-qa-runner-local',
