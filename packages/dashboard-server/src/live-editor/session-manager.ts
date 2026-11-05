@@ -69,8 +69,9 @@ export class SessionManager {
     }
     // The idle window runs until the first control socket attaches, so an unopened session ends.
     session.startIdleTimer(expire('idle'))
-    // A remote browser is billed while held, so it also ends after a span with no person's command.
-    if (config.remote !== undefined) session.startRemoteInactivityTimer(expire('inactivity'))
+    // A remote browser or device is billed while held, so it also ends after a span with no
+    // person's command.
+    if (session.runsOnRemote) session.startRemoteInactivityTimer(expire('inactivity'))
 
     // `sessionNumber` is for display only; authorization uses the session id.
     let sessionNumber: number | null = null

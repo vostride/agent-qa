@@ -626,6 +626,7 @@ export class LiveSession {
   private messageSink: ((message: ServerMessage) => void) | null = null
   private hookCaptures = new Set<LiveHookPayload[]>()
   private mobileAppiumLease: MobileLiveAppiumLease | null = null
+  private onRemote = false
   private secretStore: SecretStore | undefined
   private connectionSecretNames: ReadonlySet<string> = new Set()
   private secretRedactor: SecretRedactor | undefined
@@ -648,6 +649,11 @@ export class LiveSession {
 
   get modelName(): string {
     return this._modelName
+  }
+
+  // A remote browser or device is billed while held.
+  get runsOnRemote(): boolean {
+    return this.onRemote
   }
 
   /** What the editor-subject registry holds for this session: its hub, read at call time. */
@@ -945,14 +951,30 @@ export class LiveSession {
     let adapter: PlatformAdapter | null = null
     try {
       const platformConfig = await this.resolveMobilePlatformConfig(config)
+      this.onRemote = platformConfig.device?.remote !== undefined
       const platformLabel = platform === 'android' ? 'Android' : 'iOS'
+      const redactor = config.secretRedactor
+      const mask =
+        redactor === undefined
+          ? this.deps.configManager?.mask
+          : (text: string) => redactor.redactString(text)
+      // The same connection options the web adapter gets, plus the declared mask.
+      const options = {
+        refusalMemory: createRemoteRefusalMemory(),
+        ...(config.connectionSecretStore === undefined
+          ? {}
+          : { connectionSecrets: config.connectionSecretStore }),
+        ...(config.secretsFile === undefined ? {} : { secretsFile: config.secretsFile }),
+        ...(this.deps.remoteSessions === undefined ? {} : { sessions: this.deps.remoteSessions }),
+        ...(mask === undefined ? {} : { mask }),
+      }
       try {
         if (platform === 'android') {
           const { AndroidPlatformAdapter } = await import('@vostride/agent-qa-android')
-          adapter = new AndroidPlatformAdapter()
+          adapter = new AndroidPlatformAdapter(options)
         } else {
           const { IOSPlatformAdapter } = await import('@vostride/agent-qa-ios')
-          adapter = new IOSPlatformAdapter()
+          adapter = new IOSPlatformAdapter(options)
         }
       } catch (err) {
         throw new MobileSetupError({
@@ -986,6 +1008,7 @@ export class LiveSession {
 
   async initialize(config: LiveSessionConfig): Promise<void> {
     this.platform = config.platform
+    this.onRemote = config.platform === 'web' && config.remote !== undefined
     this.targetName = typeof config.targetName === 'string' && config.targetName.trim().length > 0
       ? config.targetName.trim()
       : null

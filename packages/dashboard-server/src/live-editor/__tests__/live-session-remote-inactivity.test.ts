@@ -1,6 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-const { heartbeat } = vi.hoisted(() => ({ heartbeat: { beats: 0 } }))
+const { heartbeat, deviceAdapters } = vi.hoisted(() => ({
+  heartbeat: { beats: 0 },
+  deviceAdapters: [] as Array<{ options: Record<string, unknown>; setupConfig?: unknown }>,
+}))
 
 // The adapter beats on its own interval while it holds a remote, as the real one does.
 vi.mock('@vostride/agent-qa-web', async (importOriginal) => ({
@@ -25,6 +28,26 @@ vi.mock('@vostride/agent-qa-web', async (importOriginal) => ({
   }),
 }))
 
+vi.mock('@vostride/agent-qa-android', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@vostride/agent-qa-android')>()),
+  AndroidPlatformAdapter: vi.fn().mockImplementation(function (options: Record<string, unknown>) {
+    const built: (typeof deviceAdapters)[number] = { options }
+    deviceAdapters.push(built)
+    return {
+      platform: 'android',
+      setup: vi.fn(async (config: unknown) => {
+        built.setupConfig = config
+      }),
+      cleanup: vi.fn(async () => undefined),
+      execute: vi.fn().mockResolvedValue({ success: true }),
+      screenshot: vi.fn().mockResolvedValue(Buffer.from('frame')),
+      observe: vi.fn().mockResolvedValue({ tree: 'main', elements: [], timestamp: 0, metadata: {} }),
+      drainConsoleLogs: vi.fn(() => []),
+      drainNetworkLogs: vi.fn(() => []),
+    }
+  }),
+}))
+
 vi.mock('@vostride/agent-qa-runner', async (importOriginal) => ({
   ...(await importOriginal<typeof import('@vostride/agent-qa-runner')>()),
   LLMPlanner: vi.fn().mockImplementation(function () {
@@ -40,6 +63,7 @@ vi.mock('@vostride/agent-qa-model', async (importOriginal) => ({
   createModel: vi.fn().mockReturnValue({ modelId: 'test-model' }),
 }))
 
+import { SecretRedactor, SecretStore, createRemoteSessionRegistry } from '@vostride/agent-qa-runner'
 import type { RemoteBrowserConfig } from '@vostride/agent-qa-runner'
 
 import { IDLE_TIMEOUT_MS, REMOTE_INACTIVITY_TIMEOUT_MS } from '../live-session.js'
@@ -100,6 +124,7 @@ let managers: SessionManager[] = []
 
 beforeEach(() => {
   heartbeat.beats = 0
+  deviceAdapters.length = 0
   vi.useFakeTimers()
 })
 
@@ -140,6 +165,155 @@ async function openSession(place?: RemoteBrowserConfig): Promise<Opened> {
     open: () => manager.getSession(sessionId) !== undefined,
   }
 }
+
+const deviceConfig = {
+  use: { mobile: { appState: 'preserve' } },
+  registry: {
+    remotes: [{ name: 'farm', protocol: 'appium', url: 'https://farm.example.test/wd/hub' }],
+    targets: {
+      'shop-android': { platform: 'android', appPackage: 'com.example.shop', device: 'pixel' },
+    },
+    devices: {
+      pixel: { platform: 'android', model: 'Pixel 8' },
+      'galaxy-farm': { platform: 'android', model: 'Samsung Galaxy S24', remote: 'farm' },
+    },
+  },
+}
+
+interface OpenedDevice extends Opened {
+  acquireLease: ReturnType<typeof vi.fn>
+}
+
+// A mobile session built from the project config; the device here is one running phone.
+async function openDeviceSession(
+  device: 'pixel' | 'galaxy-farm',
+  extra: Partial<LiveSessionConfig> = {},
+  remoteSessions = createRemoteSessionRegistry(),
+): Promise<OpenedDevice> {
+  const acquireLease = vi.fn().mockResolvedValue(undefined)
+  const manager = new SessionManager({
+    appiumManager: {
+      acquireLease,
+      releaseLease: vi.fn().mockReturnValue(true),
+      getUrl: vi.fn(() => 'http://127.0.0.1:4723'),
+    } as never,
+    configManager: {
+      readWithRevision: vi.fn().mockResolvedValue({
+        kind: 'ok',
+        config: deviceConfig,
+        raw: '',
+        revision: 'fixture',
+      }),
+    } as never,
+    configPath: '/tmp/agent-qa.config.yaml',
+    remoteSessions,
+    listDevicesHere: async () => ({
+      attached: [{ serial: '37121FDJH000', state: 'device', model: 'Pixel 8' }],
+      avds: [],
+    }),
+    appiumEnvUrl: '',
+  })
+  managers.push(manager)
+  const { sessionId } = await manager.createSession({
+    platform: 'android',
+    targetName: 'shop-android',
+    useDeviceName: device,
+    llmConfig: {
+      provider: 'anthropic-compatible',
+      model: 'test-model',
+      baseURL: 'http://127.0.0.1:1/',
+    },
+    ...extra,
+  })
+  const session = manager.getSession(sessionId)!
+  return {
+    manager,
+    sessionId,
+    session,
+    acquireLease,
+    attach() {
+      const socket = new FakeSocket()
+      createSessionHandler(session, () => {
+        void manager.terminateSession(sessionId)
+      })(socket as never)
+      return socket
+    },
+    open: () => manager.getSession(sessionId) !== undefined,
+  }
+}
+
+describe("a live-editor session on a remote device", () => {
+  it('ends an attached session 30 minutes after it opened when no command arrives', async () => {
+    const opened = await openDeviceSession('galaxy-farm')
+    const socket = opened.attach()
+    expect(opened.session.runsOnRemote).toBe(true)
+
+    await vi.advanceTimersByTimeAsync(REMOTE_INACTIVITY_TIMEOUT_MS - 1)
+    expect(opened.open(), 'not one millisecond early').toBe(true)
+
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+    expect(socket.closes).toEqual([{ code: LIVE_EDITOR_UNKNOWN_SESSION_CLOSE_CODE, reason: 'session_ended' }])
+    expect(opened.session.status).toBe('terminated')
+  })
+
+  it('moves the end to minute 59 when a step runs at minute 29', async () => {
+    const opened = await openDeviceSession('galaxy-farm')
+    vi.spyOn(opened.session, 'executeStepCommand').mockResolvedValue({
+      name: 'open the cart',
+      status: 'passed',
+      duration: 1,
+    } as never)
+    const socket = opened.attach()
+
+    await vi.advanceTimersByTimeAsync(29 * MINUTE)
+    socket.message({ type: 'execute-step', stepInstruction: 'open the cart', stepIndex: 0 })
+
+    await vi.advanceTimersByTimeAsync(30 * MINUTE - 1)
+    expect(opened.open()).toBe(true)
+    await vi.advanceTimersByTimeAsync(1)
+    expect(opened.open()).toBe(false)
+  })
+
+  it('builds the device adapter with the connection options a remote browser gets', async () => {
+    const remoteSessions = createRemoteSessionRegistry()
+    const declared = new SecretStore({ FARM_KEY: 'farm-key-value' })
+    const opened = await openDeviceSession(
+      'galaxy-farm',
+      {
+        connectionSecretStore: declared,
+        secretsFile: '.env.secrets.local',
+        secretRedactor: new SecretRedactor(declared),
+      },
+      remoteSessions,
+    )
+
+    expect(opened.acquireLease).not.toHaveBeenCalled()
+    const [built] = deviceAdapters
+    expect(built?.options).toMatchObject({
+      connectionSecrets: declared,
+      secretsFile: '.env.secrets.local',
+      sessions: remoteSessions,
+      refusalMemory: expect.any(Object),
+    })
+    const mask = built?.options.mask as (text: string) => string
+    expect(mask('the farm said farm-key-value')).not.toContain('farm-key-value')
+    expect(built?.setupConfig).toMatchObject({
+      device: { name: 'galaxy-farm', remote: { name: 'farm', protocol: 'appium' } },
+    })
+  })
+
+  it('gives a session on a device here no 30-minute timer', async () => {
+    const opened = await openDeviceSession('pixel')
+    const socket = opened.attach()
+    expect(opened.session.runsOnRemote).toBe(false)
+    expect(opened.acquireLease).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(4 * 60 * MINUTE)
+    expect(opened.open()).toBe(true)
+    expect(socket.closes).toEqual([])
+  })
+})
 
 describe("a remote live-editor session's inactivity", () => {
   it('ends an attached session 30 minutes after it opened when no command arrives', async () => {
