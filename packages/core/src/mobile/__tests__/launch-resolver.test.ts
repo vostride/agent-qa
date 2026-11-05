@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { RemoteRefusalError } from '@vostride/agent-qa-runner'
 import { MobileSetupError, resolveMobileRunConfig as resolveMobileRunConfigBase } from '../launch-resolver.js'
 
 function makeConfig(overrides?: {
@@ -64,6 +65,54 @@ function iosTargetWithDevice() {
       'release-ios-wdio': { platform: 'ios', bundleId: 'com.example', device: 'target-ios' },
     },
   })
+}
+
+function farmConfig(input: {
+  app?: Record<string, unknown>
+  capabilities?: Record<string, unknown>
+  remoteCapabilities?: Record<string, unknown>
+}) {
+  const config = makeConfig({
+    targets: {
+      'shop-android': {
+        platform: 'android',
+        appPackage: 'com.example.shop',
+        ...(input.app ? { app: input.app } : {}),
+      },
+    },
+    devices: {
+      'galaxy-farm': {
+        platform: 'android',
+        model: 'Samsung Galaxy S24',
+        remote: 'farm',
+        ...(input.capabilities ? { capabilities: input.capabilities } : {}),
+      },
+    },
+  })
+  return {
+    ...config,
+    registry: {
+      ...config.registry,
+      remotes: [
+        {
+          name: 'farm',
+          protocol: 'appium',
+          url: 'https://farm.example.com/wd/hub',
+          ...(input.remoteCapabilities ? { capabilities: input.remoteCapabilities } : {}),
+        },
+      ],
+    },
+  }
+}
+
+function expectRemoteRefusal(fn: () => unknown) {
+  try {
+    fn()
+    expect.unreachable()
+  } catch (err) {
+    expect(err).toBeInstanceOf(RemoteRefusalError)
+    return err as RemoteRefusalError
+  }
 }
 
 function expectMobileSetupError(fn: () => unknown) {
@@ -529,4 +578,196 @@ describe('resolveMobileRunConfig', () => {
       'app.path=agent-qa.config.yaml registry.targets.release-android-wikipedia.app.path',
     )
   }))
+
+  describe('the app a remote device installs', () => {
+    it('refuses a remote device whose target has only app.path, with no app file needed', () =>
+      withTempDir((dir) => {
+        const err = expectRemoteRefusal(() =>
+          resolveMobileRunConfig({
+            config: farmConfig({ app: { path: 'builds/shop.apk' } }),
+            targetName: 'shop-android',
+            useDeviceName: 'galaxy-farm',
+            configFilePath: join(dir, 'agent-qa.config.yaml'),
+          }),
+        )
+
+        expect(err.message).toBe(
+          'Device galaxy-farm runs on remote farm, and target shop-android has only app.path. ' +
+            'Set app.ref to the app the server installs.',
+        )
+        expect(err.remote).toBe('farm')
+      }))
+
+    it('accepts app.ref with no app file on this machine', () =>
+      withTempDir((dir) => {
+        const resolved = resolveMobileRunConfig({
+          config: farmConfig({
+            app: { path: 'builds/shop.apk', ref: 'https://builds.example.com/shop.apk' },
+          }),
+          targetName: 'shop-android',
+          useDeviceName: 'galaxy-farm',
+          configFilePath: join(dir, 'agent-qa.config.yaml'),
+        })
+
+        expect(resolved.plan.kind).toBe('remote')
+        expect(resolved.app.ref).toBe('https://builds.example.com/shop.apk')
+      }))
+
+    it("accepts a device's own appium:app over a target with only app.path", () =>
+      withTempDir((dir) => {
+        const resolved = resolveMobileRunConfig({
+          config: farmConfig({
+            app: { path: 'builds/shop.apk' },
+            capabilities: { 'appium:app': 'farm://shop-build' },
+          }),
+          targetName: 'shop-android',
+          useDeviceName: 'galaxy-farm',
+          configFilePath: join(dir, 'agent-qa.config.yaml'),
+        })
+
+        expect(resolved.plan.kind).toBe('remote')
+        expect(resolved.app.ref).toBeUndefined()
+      }))
+
+    it("accepts a remote's appium:app over a target with only app.path", () => {
+      const resolved = resolveMobileRunConfig({
+        config: farmConfig({
+          app: { path: 'builds/shop.apk' },
+          remoteCapabilities: { 'appium:options': { app: 'farm://shop-build' } },
+        }),
+        targetName: 'shop-android',
+        useDeviceName: 'galaxy-farm',
+      })
+
+      expect(resolved.plan.kind).toBe('remote')
+    })
+
+    it('still refuses a missing app.path file for a device here', () =>
+      withTempDir((dir) => {
+        const err = expectMobileSetupError(() =>
+          resolveMobileRunConfig({
+            config: makeConfig({
+              targets: {
+                'shop-android': {
+                  platform: 'android',
+                  appPackage: 'com.example.shop',
+                  app: { path: 'builds/shop.apk', ref: 'https://builds.example.com/shop.apk' },
+                },
+              },
+            }),
+            targetName: 'shop-android',
+            useDeviceName: 'android-emu',
+            configFilePath: join(dir, 'agent-qa.config.yaml'),
+          }),
+        )
+
+        expect(err.category).toBe('app-install')
+        expect(err.message).toBe(`Configured app path not found: ${join(dir, 'builds/shop.apk')}`)
+      }))
+  })
+
+  describe('capabilities that contradict the config at run start', () => {
+    it("refuses a remote device's appium:appPackage that differs from the target's", () => {
+      const err = expectRemoteRefusal(() =>
+        resolveMobileRunConfig({
+          config: farmConfig({
+            app: { ref: 'https://builds.example.com/shop.apk' },
+            capabilities: { 'appium:appPackage': 'com.example.other' },
+          }),
+          targetName: 'shop-android',
+          useDeviceName: 'galaxy-farm',
+        }),
+      )
+
+      expect(err.message).toBe(
+        'Device galaxy-farm sets appium:appPackage "com.example.other" in its capabilities; ' +
+          'target shop-android has appPackage com.example.shop.',
+      )
+      expect(err.remote).toBe('farm')
+    })
+
+    it('refuses appium:noReset on a device here when use.mobile.appState is reset', () => {
+      const err = expectRemoteRefusal(() =>
+        resolveMobileRunConfigBase({
+          appState: 'reset',
+          config: makeConfig({
+            devices: {
+              pixel: {
+                platform: 'android',
+                model: 'Pixel 8',
+                capabilities: { 'appium:noReset': true },
+              },
+            },
+          }),
+          targetName: 'release-android-wikipedia',
+          useDeviceName: 'pixel',
+        }),
+      )
+
+      expect(err.message).toBe(
+        'Device pixel sets appium:noReset true in its capabilities; use.mobile.appState is reset.',
+      )
+      expect(err.remote).toBeUndefined()
+    })
+
+    it("names the remote and the device when a remote's capabilities contradict", () => {
+      const err = expectRemoteRefusal(() =>
+        resolveMobileRunConfigBase({
+          appState: 'preserve',
+          config: farmConfig({
+            app: { ref: 'https://builds.example.com/shop.apk' },
+            remoteCapabilities: { 'appium:fullReset': true },
+          }),
+          targetName: 'shop-android',
+          useDeviceName: 'galaxy-farm',
+        }),
+      )
+
+      expect(err.message).toBe(
+        'Remote farm sets appium:fullReset true in its capabilities; ' +
+          'use.mobile.appState is preserve.',
+      )
+    })
+
+    it('puts each contradiction on its own line', () => {
+      const err = expectRemoteRefusal(() =>
+        resolveMobileRunConfigBase({
+          appState: 'reset',
+          config: makeConfig({
+            devices: {
+              pixel: {
+                platform: 'android',
+                capabilities: {
+                  'appium:appPackage': 'com.example.other',
+                  'appium:noReset': true,
+                },
+              },
+            },
+          }),
+          targetName: 'release-android-wikipedia',
+          useDeviceName: 'pixel',
+        }),
+      )
+
+      expect(err.message.split('\n')).toEqual([
+        'Device pixel sets appium:appPackage "com.example.other" in its capabilities; ' +
+          'target release-android-wikipedia has appPackage org.wikipedia.alpha.',
+        'Device pixel sets appium:noReset true in its capabilities; use.mobile.appState is reset.',
+      ])
+    })
+
+    it('leaves the app state to a mobile browser, whose device sets no app', () => {
+      const resolved = resolveMobileRunConfigBase({
+        appState: 'reset',
+        config: farmConfig({
+          app: { path: 'builds/shop.apk' },
+          capabilities: { browserName: 'Chrome', 'appium:noReset': true },
+        }),
+        targetName: 'shop-android',
+        useDeviceName: 'galaxy-farm',
+      })
+
+      expect(resolved.plan.kind).toBe('remote')
+    })
+  })
 })

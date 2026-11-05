@@ -1,7 +1,13 @@
 import { existsSync } from 'node:fs'
 import { dirname, resolve as resolvePath } from 'node:path'
-import type { RemoteDeviceConfig } from '@vostride/agent-qa-runner'
+import { RemoteRefusalError, type RemoteDeviceConfig } from '@vostride/agent-qa-runner'
 import type { RemoteEntry } from '../schema/remote-schema.js'
+import {
+  capabilityValue,
+  mergeCapabilities,
+  remoteAppCapability,
+  runStartCapabilityContradictions,
+} from './device-plan.js'
 import { selectDevicePlace } from './select-device.js'
 
 export type MobilePlatform = 'android' | 'ios'
@@ -195,12 +201,14 @@ function resolveAppField(
   return value ? { value, source: `registry.targets.${targetName}.${field}` } : {}
 }
 
+// The server installs a remote device's app, so its file is only needed here.
 function resolveAppInstall(
   target: TargetEntry,
   input: ResolveMobileRunConfigInput,
   platform: MobilePlatform,
   deviceName: string,
   sourceTrace: string[],
+  here: boolean,
 ): ResolvedMobileAppInstall | undefined {
   const installSourceTrace: Record<string, string> = {}
   const pathValue = asOptionalString(target.app?.path)
@@ -218,7 +226,7 @@ function resolveAppInstall(
       })
     }
     const resolvedPath = resolvePath(baseDirFor(input.configFilePath), pathValue)
-    if (!existsSync(resolvedPath)) {
+    if (here && !existsSync(resolvedPath)) {
       throw appInstallError(`Configured app path not found: ${resolvedPath}`, input, {
         platform,
         deviceName,
@@ -344,7 +352,57 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
     appSourceTrace['app.ref'] = `registry.targets.${input.targetName}.app.ref`
   }
 
-  const install = resolveAppInstall(target, input, platform, deviceName, sourceTrace)
+  const deviceCapabilities = isRecord(deviceProfile.capabilities)
+    ? deviceProfile.capabilities
+    : undefined
+  const stated = mergeCapabilities(remote?.capabilities, deviceCapabilities)
+  const browserMode = asOptionalString(capabilityValue(stated, 'browserName')) !== undefined
+  const refusalDetails = remote === undefined ? {} : { remote: remote.name }
+  const contradictions = runStartCapabilityContradictions({
+    device: deviceName,
+    target: {
+      name: input.targetName,
+      ...(app.appPackage ? { appPackage: app.appPackage } : {}),
+      ...(app.appActivity ? { appActivity: app.appActivity } : {}),
+      ...(app.bundleId ? { bundleId: app.bundleId } : {}),
+    },
+    appState,
+    browserMode,
+    ...(remote === undefined
+      ? {}
+      : {
+          remote: {
+            name: remote.name,
+            ...(remote.capabilities ? { capabilities: remote.capabilities } : {}),
+          },
+        }),
+    ...(deviceCapabilities ? { capabilities: deviceCapabilities } : {}),
+  })
+  if (contradictions.length > 0) {
+    throw new RemoteRefusalError(contradictions.join('\n'), refusalDetails)
+  }
+
+  if (remote !== undefined && !browserMode) {
+    const pathValue = asOptionalString(target.app?.path)
+    const remoteApp = remoteAppCapability({
+      device: deviceName,
+      remote: remote.name,
+      target: input.targetName,
+      ...(appRef ? { appRef } : {}),
+      ...(pathValue ? { appPath: pathValue } : {}),
+      capabilities: stated,
+    })
+    if ('refusal' in remoteApp) throw new RemoteRefusalError(remoteApp.refusal, refusalDetails)
+  }
+
+  const install = resolveAppInstall(
+    target,
+    input,
+    platform,
+    deviceName,
+    sourceTrace,
+    remote === undefined,
+  )
   if (install) {
     app.install = install
   }
@@ -374,7 +432,7 @@ export function resolveMobileRunConfig(input: ResolveMobileRunConfigInput): Reso
       ...(model ? { model } : {}),
       ...(os ? { os } : {}),
       ...(id ? { id } : {}),
-      ...(isRecord(deviceProfile.capabilities) ? { capabilities: deviceProfile.capabilities } : {}),
+      ...(deviceCapabilities ? { capabilities: deviceCapabilities } : {}),
       ...(remote === undefined ? {} : { remote }),
     },
     plan,
