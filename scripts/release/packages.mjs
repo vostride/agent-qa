@@ -34,6 +34,24 @@ export function readJson(path) {
   return JSON.parse(readFileSync(path, 'utf8'))
 }
 
+const workspaceRoots = ['packages', 'plugins']
+
+// Every workspace member with a package.json, as root-relative paths such as `plugins/kernel`.
+export function workspacePackageDirs(rootDir = defaultRootDir) {
+  return workspaceRoots
+    .flatMap(root => {
+      const rootPath = join(rootDir, root)
+      if (!existsSync(rootPath)) return []
+      return readdirSync(rootPath)
+        .filter(name => {
+          const dir = join(rootPath, name)
+          return statSync(dir).isDirectory() && existsSync(join(dir, 'package.json'))
+        })
+        .map(name => `${root}/${name}`)
+    })
+    .sort()
+}
+
 export function getPublicPackages(options = {}) {
   const rootDir = options.rootDir ?? defaultRootDir
   const packagesRoot = join(rootDir, 'packages')
@@ -41,9 +59,8 @@ export function getPublicPackages(options = {}) {
     throw new Error(`public packages root is missing: ${packagesRoot}`)
   }
 
-  const records = readdirSync(packagesRoot)
-    .map(name => join(packagesRoot, name))
-    .filter(dir => statSync(dir).isDirectory() && existsSync(join(dir, 'package.json')))
+  const records = workspacePackageDirs(rootDir)
+    .map(packageDir => join(rootDir, packageDir))
     .map(dir => {
       const manifestPath = join(dir, 'package.json')
       const pkg = readJson(manifestPath)

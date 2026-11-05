@@ -11,11 +11,11 @@ import {
   writeFileSync,
 } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative } from 'node:path'
+import { basename, dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { workspacePackageDirs } from './release/packages.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
-const packagesRoot = join(root, 'packages')
 const entryPackageName = 'agent-qa'
 const scopedPrefix = '@vostride/agent-qa'
 const repositoryHostPath = 'github.com/vostride/agent-qa'
@@ -39,6 +39,8 @@ const ownershipContractMarker = '_OWNERSHIP_CONTRACT'
 const pluginKitPackageName = '@vostride/agent-qa-plugin-kit'
 const pluginKitSubpaths = ['protocol', 'testing']
 const pluginKitPackFiles = ['dist/protocol.js', 'dist/testing.js', 'dist/scripted-plugin.js']
+const pluginKeyword = 'agent-qa-plugin'
+const pluginInstallScripts = ['preinstall', 'install', 'postinstall']
 const forbiddenPackPatterns = [
   /^\.env($|\.)/,
   /^\.npmrc$/,
@@ -60,11 +62,14 @@ function readJson(path) {
 }
 
 function packageRecords() {
-  return readdirSync(packagesRoot)
-    .map(name => join(packagesRoot, name))
-    .filter(dir => statSync(dir).isDirectory() && existsSync(join(dir, 'package.json')))
-    .sort()
-    .map(dir => ({ dir, pkg: readJson(join(dir, 'package.json')) }))
+  return workspacePackageDirs(root).map(packageDir => {
+    const dir = join(root, packageDir)
+    return { dir, pkg: readJson(join(dir, 'package.json')) }
+  })
+}
+
+function isPluginRecord(record) {
+  return relative(root, record.dir).split(/[\\/]/)[0] === 'plugins'
 }
 
 function publicPackageRecords() {
@@ -150,6 +155,56 @@ function validateFilesAllowlist(record, errors) {
   }
 }
 
+// A plugin is spawned by path, never imported: it exports only its manifest, runs no install
+// scripts and reaches agent-qa only through the kit.
+export function pluginPackageErrors(record) {
+  const errors = []
+  const pkg = record.pkg
+  const name = label(record)
+  const files = Array.isArray(pkg.files) ? pkg.files : []
+  const exportKeys = pkg.exports && typeof pkg.exports === 'object' ? Object.keys(pkg.exports) : []
+  const manifest = pkg['agent-qa']?.plugin
+
+  assert(pkg.private === false, `${name} must be public with private: false`, errors)
+  assert(pkg.license === requiredLicense, `${name} license must be ${requiredLicense}`, errors)
+  assert(!Object.hasOwn(pkg, 'main'), `${name} must not declare main`, errors)
+  assert(
+    exportKeys.length === 1 && pkg.exports['./package.json'] === './package.json',
+    `${name} must export only ./package.json`,
+    errors,
+  )
+  for (const file of ['dist', 'skill', 'LICENSE.md', 'NOTICE.md']) {
+    assert(files.includes(file), `${name} files must include ${file}`, errors)
+  }
+  assert(pkg.keywords?.includes(pluginKeyword), `${name} keywords must include ${pluginKeyword}`, errors)
+  for (const script of pluginInstallScripts) {
+    assert(!Object.hasOwn(pkg.scripts ?? {}, script), `${name} must not declare a ${script} script`, errors)
+  }
+  assert(!Object.hasOwn(pkg, 'peerDependencies'), `${name} must not declare peerDependencies`, errors)
+  if (manifest?.kind === 'remote') {
+    assert(
+      typeof manifest.entry === 'string' && manifest.entry.startsWith('./dist/'),
+      `${name} agent-qa.plugin entry must sit under ./dist/`,
+      errors,
+    )
+  } else {
+    errors.push(`${name} agent-qa.plugin must be a remote plugin manifest`)
+  }
+  for (const blockName of ['dependencies', 'optionalDependencies']) {
+    for (const [dependency, range] of Object.entries(pkg[blockName] ?? {})) {
+      if (!dependency.startsWith(scopedPrefix)) continue
+      if (dependency !== pluginKitPackageName) {
+        errors.push(`${name} ${blockName}.${dependency} is an agent-qa package other than the plugin kit`)
+      } else {
+        assert(range === 'workspace:*', `${name} ${blockName}.${dependency} must remain workspace:*`, errors)
+      }
+    }
+  }
+  const directory = `plugins/${basename(record.dir)}`
+  assert(pkg.repository?.directory === directory, `${name} repository.directory must be ${directory}`, errors)
+  return errors
+}
+
 function validatePublicPackage(record, allVersions, errors, options = { checkFiles: true }) {
   const name = label(record)
   assert(record.pkg.private === false, `${name} must be public with private: false`, errors)
@@ -177,7 +232,11 @@ function validatePublicPackage(record, allVersions, errors, options = { checkFil
   validateFilesAllowlist(record, errors)
   validateWorkspaceRanges(record, errors)
 
-  if (record.pkg.name !== entryPackageName && record.pkg.name !== '@vostride/agent-qa-dashboard-ui') {
+  if (
+    record.pkg.name !== entryPackageName &&
+    record.pkg.name !== '@vostride/agent-qa-dashboard-ui' &&
+    !isPluginRecord(record)
+  ) {
     assert(record.pkg.exports?.['.']?.import?.types === './dist/index.d.ts', `${name} must export dist ESM types`, errors)
     assert(record.pkg.exports?.['.']?.import?.default === './dist/index.js', `${name} must export dist ESM`, errors)
     assert(record.pkg.exports?.['.']?.require?.types === './dist/index.d.cts', `${name} must export dist CJS types`, errors)
@@ -233,6 +292,9 @@ function validateManifestSurface(errors, options = { checkFiles: true }) {
   const allVersions = new Set()
   for (const record of records) {
     validatePublicPackage(record, allVersions, errors, options)
+  }
+  for (const record of packageRecords().filter(isPluginRecord)) {
+    errors.push(...pluginPackageErrors(record))
   }
   assert(allVersions.size === 1, `public package versions must match, found: ${[...allVersions].join(', ')}`, errors)
 }
@@ -396,6 +458,10 @@ function validatePackFiles(record, files, errors) {
     for (const skillName of requiredSkills) {
       assert(files.some(file => file.startsWith(`skills/${skillName}/`)), `agent-qa tarball must include skills/${skillName}`, errors)
     }
+  }
+
+  if (isPluginRecord(record)) {
+    assert(files.some(file => file.startsWith('skill/')), `${name} tarball must include skill`, errors)
   }
 
   if (record.pkg.name === pluginKitPackageName) {

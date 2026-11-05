@@ -1,4 +1,5 @@
 import { execFileSync as defaultExecFileSync } from 'node:child_process'
+import { relative } from 'node:path'
 import { getPublicPackages } from './packages.mjs'
 import { assertSharedPublicVersion } from './version.mjs'
 
@@ -20,12 +21,12 @@ export function checkGitTagAbsent(version, options = {}) {
   }
 }
 
-export function createReleaseCommitAndTag(version, options = {}) {
+export function createReleaseCommitAndTag(version, manifestPaths, options = {}) {
   const execFileSync = options.execFileSync ?? defaultExecFileSync
   const cwd = options.rootDir ?? process.cwd()
   execFileSync('git', ['config', 'user.name', options.gitUserName ?? 'github-actions[bot]'], { cwd })
   execFileSync('git', ['config', 'user.email', options.gitUserEmail ?? '41898282+github-actions[bot]@users.noreply.github.com'], { cwd })
-  execFileSync('git', ['add', '--', 'packages/*/package.json'], { cwd })
+  execFileSync('git', ['add', '--', ...manifestPaths], { cwd })
   execFileSync('git', ['commit', '-m', `release: agent-qa v${version}`], { cwd })
   execFileSync('git', ['tag', '-a', `v${version}`, '-m', `agent-qa v${version}`], { cwd })
 }
@@ -41,7 +42,9 @@ export async function runCli(argv = process.argv.slice(2), options = {}) {
   parseReleaseArgs(argv)
   const records = getPublicPackages({ rootDir: options.rootDir })
   const version = assertSharedPublicVersion(records)
-  createReleaseCommitAndTag(version, options)
+  const cwd = options.rootDir ?? process.cwd()
+  const manifestPaths = records.map(record => relative(cwd, record.manifestPath))
+  createReleaseCommitAndTag(version, manifestPaths, options)
   return version
 }
 

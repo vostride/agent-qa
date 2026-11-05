@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import semver from 'semver'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { dirname, join } from 'node:path'
@@ -21,6 +21,7 @@ import {
   validateDockerReleasePlan,
   writeGithubOutputs,
 } from '../release/docker.mjs'
+import { workspacePackageDirs } from '../release/packages.mjs'
 
 const rootDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 const imageNames = [
@@ -428,24 +429,21 @@ test('Dockerfiles include license metadata and avoid secret build args', () => {
 const workspaceDockerfiles = ['docker/Dockerfile.web', 'docker/Dockerfile.android']
 
 function packageDirs() {
-  return readdirSync(join(rootDir, 'packages'), { withFileTypes: true })
-    .filter(entry => entry.isDirectory())
-    .filter(entry => existsSync(join(rootDir, 'packages', entry.name, 'package.json')))
-    .map(entry => entry.name)
+  return workspacePackageDirs(rootDir)
 }
 
 function readDockerfile(dockerfile) {
   return readFileSync(join(rootDir, dockerfile), 'utf8')
 }
 
-test('workspace Dockerfiles copy the manifest of every package and nothing else under packages', () => {
+test('workspace Dockerfiles copy the manifest of every workspace package and nothing else under packages or plugins', () => {
   const dirs = packageDirs()
   for (const dockerfile of workspaceDockerfiles) {
     const drift = dockerfileManifestDrift(readDockerfile(dockerfile), dirs)
     assert.deepEqual(
       drift,
       { missing: [], extra: [] },
-      `${dockerfile} manifest COPY lines drift from packages/: ${JSON.stringify(drift)}`,
+      `${dockerfile} manifest COPY lines drift from the workspace: ${JSON.stringify(drift)}`,
     )
   }
 })
@@ -455,7 +453,7 @@ test('manifest drift names a package whose manifest line is removed', () => {
     .split('\n')
     .filter(line => line.trim() !== 'COPY packages/web/package.json packages/web/')
     .join('\n')
-  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()).missing, ['web'])
+  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()).missing, ['packages/web'])
 })
 
 test('manifest drift names an unknown package whose manifest is copied', () => {
@@ -463,7 +461,7 @@ test('manifest drift names an unknown package whose manifest is copied', () => {
     'COPY packages/web/package.json packages/web/',
     'COPY packages/web/package.json packages/web/\nCOPY packages/ghost/package.json packages/ghost/',
   )
-  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()), { missing: [], extra: ['ghost'] })
+  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()), { missing: [], extra: ['packages/ghost'] })
 })
 
 test('manifest drift names any other copy from packages by its directory', () => {
@@ -471,7 +469,37 @@ test('manifest drift names any other copy from packages by its directory', () =>
     'COPY packages/web/package.json packages/web/',
     'COPY packages/web/package.json packages/web/\nCOPY packages/core/src packages/core/src',
   )
-  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()), { missing: [], extra: ['core'] })
+  assert.deepEqual(dockerfileManifestDrift(text, packageDirs()), { missing: [], extra: ['packages/core'] })
+})
+
+test('manifest drift names a plugin whose manifest line is missing', () => {
+  const text = readDockerfile('docker/Dockerfile.web')
+  assert.deepEqual(dockerfileManifestDrift(text, [...packageDirs(), 'plugins/acme']), {
+    missing: ['plugins/acme'],
+    extra: [],
+  })
+})
+
+test('manifest drift accepts a plugin whose manifest is copied', () => {
+  const text = readDockerfile('docker/Dockerfile.web').replace(
+    'COPY packages/web/package.json packages/web/',
+    'COPY packages/web/package.json packages/web/\nCOPY plugins/acme/package.json plugins/acme/',
+  )
+  assert.deepEqual(dockerfileManifestDrift(text, [...packageDirs(), 'plugins/acme']), {
+    missing: [],
+    extra: [],
+  })
+})
+
+test('manifest drift names an unknown plugin and any other copy from plugins', () => {
+  const text = readDockerfile('docker/Dockerfile.web').replace(
+    'COPY packages/web/package.json packages/web/',
+    'COPY packages/web/package.json packages/web/\nCOPY plugins/ghost/package.json plugins/ghost/\nCOPY plugins/acme/src plugins/acme/src',
+  )
+  assert.deepEqual(dockerfileManifestDrift(text, [...packageDirs(), 'plugins/acme']), {
+    missing: ['plugins/acme'],
+    extra: ['plugins/acme', 'plugins/ghost'],
+  })
 })
 
 const nodeDockerfiles = ['docker/Dockerfile.web', 'docker/Dockerfile.android', 'docker/Dockerfile.hooks-node']

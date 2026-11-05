@@ -3,6 +3,9 @@
   "workspaces": {
     "packages/*": {
       "entry": ["src/**/*.test-d.ts"]
+    },
+    "plugins/*": {
+      "entry": ["src/**/*.test-d.ts", "scripts/*.mjs"]
     }
   },
   "ignoreBinaries": ["adb", "mkfifo"],

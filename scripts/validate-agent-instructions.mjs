@@ -1,6 +1,7 @@
-import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs'
+import { existsSync, readFileSync, readdirSync } from 'node:fs'
 import { dirname, join, relative } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+import { workspacePackageDirs } from './release/packages.mjs'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 const ignoredDirs = new Set(['.git', '.turbo', '.pnpm-store', '.release', 'dist', 'node_modules'])
@@ -30,14 +31,10 @@ function walkFiles(dir, visitor) {
 }
 
 function packageRecords(rootDir) {
-  const packagesRoot = join(rootDir, 'packages')
-  if (!existsSync(packagesRoot)) return []
-
-  return readdirSync(packagesRoot)
-    .map(name => join(packagesRoot, name))
-    .filter(dir => statSync(dir).isDirectory() && existsSync(join(dir, 'package.json')))
-    .sort()
-    .map(dir => ({ dir, pkg: readJson(join(dir, 'package.json')) }))
+  return workspacePackageDirs(rootDir).map(packageDir => {
+    const dir = join(rootDir, packageDir)
+    return { dir, pkg: readJson(join(dir, 'package.json')) }
+  })
 }
 
 function validateAgentFileNames(rootDir, errors) {

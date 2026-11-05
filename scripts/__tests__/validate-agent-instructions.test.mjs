@@ -106,6 +106,45 @@ test('forbidden branding in an AGENTS.md file is reported', () => {
   })
 })
 
+function writePluginFixture(rootDir, agentsBody) {
+  const pluginDir = join(rootDir, 'plugins/acme')
+  mkdirSync(pluginDir, { recursive: true })
+  writeFileSync(
+    join(pluginDir, 'package.json'),
+    JSON.stringify({ name: '@vostride/agent-qa-plugin-acme' }, null, 2),
+  )
+  if (agentsBody !== undefined) writeFileSync(join(pluginDir, 'AGENTS.md'), agentsBody)
+}
+
+test('a plugin package without AGENTS.md is reported with the package name', () => {
+  withFixture(rootDir => {
+    writePluginFixture(rootDir)
+
+    assert.deepEqual(validateOnePackage(rootDir), [
+      '@vostride/agent-qa-plugin-acme AGENTS.md is missing',
+    ])
+  })
+})
+
+test('forbidden branding in a plugin AGENTS.md is reported', () => {
+  withFixture(rootDir => {
+    writePluginFixture(
+      rootDir,
+      [
+        '# agent-qa plugin instructions: @vostride/agent-qa-plugin-acme',
+        '',
+        'pnpm --filter @vostride/agent-qa-plugin-acme test',
+        'Do not write AgentQA here.',
+        '',
+      ].join('\n'),
+    )
+
+    assert.deepEqual(validateOnePackage(rootDir), [
+      'plugins/acme/AGENTS.md contains forbidden branding: AgentQA',
+    ])
+  })
+})
+
 test('generated instructions are linted as the bytes init writes', async () => {
   const generated = await loadGeneratedInstructions()
   assert.deepEqual(generated.map(document => document.label), [

@@ -1,19 +1,22 @@
 import assert from 'node:assert/strict'
-import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import test from 'node:test'
 import { fileURLToPath } from 'node:url'
-import { derivePublishOrder, getPublicPackages, publicPackageNames } from '../release/packages.mjs'
+import {
+  derivePublishOrder,
+  getPublicPackages,
+  publicPackageNames,
+  workspacePackageDirs,
+} from '../release/packages.mjs'
 
-const packagesDir = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'packages')
+const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..')
 
 function publishableManifestNames() {
-  return readdirSync(packagesDir)
-    .map(dirName => join(packagesDir, dirName, 'package.json'))
-    .filter(manifestPath => existsSync(manifestPath))
-    .map(manifestPath => JSON.parse(readFileSync(manifestPath, 'utf8')))
+  return workspacePackageDirs(repoRoot)
+    .map(dir => JSON.parse(readFileSync(join(repoRoot, dir, 'package.json'), 'utf8')))
     .filter(pkg => pkg.private !== true)
     .map(pkg => pkg.name)
 }
@@ -87,4 +90,46 @@ test('a manifest with no private field counts as publishable and must be in the 
   } finally {
     await rm(rootDir, { recursive: true, force: true })
   }
+})
+
+async function withPublicPackages(placements, fn) {
+  const rootDir = await mkdtemp(join(tmpdir(), 'agent-qa-release-roots-'))
+  try {
+    for (const name of publicPackageNames) {
+      const dir = placements[name] ?? join('packages', name.replace('@vostride/', ''))
+      mkdirSync(join(rootDir, dir), { recursive: true })
+      writeFileSync(join(rootDir, dir, 'package.json'), JSON.stringify({ name, version: '0.1.1', private: false }))
+    }
+    return await fn(rootDir)
+  } finally {
+    await rm(rootDir, { recursive: true, force: true })
+  }
+}
+
+test('public packages are read from packages/ and plugins/', async () => {
+  const name = publicPackageNames[0]
+  await withPublicPackages({ [name]: join('plugins', 'acme') }, rootDir => {
+    const records = getPublicPackages({ rootDir })
+    assert.deepEqual(records.map(record => record.name), publicPackageNames)
+    assert.equal(records[0].manifestPath, join(rootDir, 'plugins', 'acme', 'package.json'))
+  })
+})
+
+test('public packages are read from packages/ alone when plugins/ is absent', async () => {
+  await withPublicPackages({}, rootDir => {
+    const records = getPublicPackages({ rootDir })
+    assert.deepEqual(records.map(record => record.name), publicPackageNames)
+    assert.ok(records.every(record => record.manifestPath.startsWith(join(rootDir, 'packages'))))
+  })
+})
+
+test('an unlisted public package under plugins/ is refused as extra', async () => {
+  await withPublicPackages({}, rootDir => {
+    mkdirSync(join(rootDir, 'plugins', 'acme'), { recursive: true })
+    writeFileSync(
+      join(rootDir, 'plugins', 'acme', 'package.json'),
+      JSON.stringify({ name: '@vostride/agent-qa-plugin-acme', version: '0.1.1', private: false }),
+    )
+    assert.throws(() => getPublicPackages({ rootDir }), /extra public package: @vostride\/agent-qa-plugin-acme/)
+  })
 })

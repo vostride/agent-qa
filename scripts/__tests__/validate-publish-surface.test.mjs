@@ -8,6 +8,7 @@ import { fileURLToPath, pathToFileURL } from 'node:url'
 import {
   builtPackageSourceMapErrors,
   danglingSourceMapUrls,
+  pluginPackageErrors,
 } from '../validate-publish-surface.mjs'
 
 const scriptsDir = join(dirname(fileURLToPath(import.meta.url)), '..')
@@ -105,4 +106,93 @@ test('importing the validator without a script path neither throws nor runs the 
   )
   assert.equal(result.status, 0, result.stderr)
   assert.equal(result.stdout, '')
+})
+
+function pluginRecord(overrides = {}) {
+  const pkg = {
+    name: '@vostride/agent-qa-plugin-acme',
+    version: '0.2.6',
+    private: false,
+    license: 'FSL-1.1-ALv2',
+    keywords: ['agent-qa', 'agent-qa-plugin'],
+    repository: {
+      type: 'git',
+      url: 'git+https://github.com/vostride/agent-qa.git',
+      directory: 'plugins/acme',
+    },
+    type: 'module',
+    exports: { './package.json': './package.json' },
+    files: ['dist', 'skill', 'LICENSE.md', 'NOTICE.md'],
+    dependencies: { '@vostride/agent-qa-plugin-kit': 'workspace:*', 'acme-sdk': '1.2.3' },
+    'agent-qa': {
+      plugin: {
+        kind: 'remote',
+        runs: 'process',
+        protocol: 1,
+        entry: './dist/main.js',
+        serves: ['web'],
+        methods: [],
+        options: './dist/options.schema.json',
+        settings: './dist/settings.schema.json',
+        skill: './skill',
+      },
+    },
+    ...overrides,
+  }
+  return { dir: join(tmpdir(), 'plugins', 'acme'), pkg }
+}
+
+function withoutKey(object, key) {
+  const { [key]: _removed, ...rest } = object
+  return rest
+}
+
+test('a plugin package that exports only its manifest and ships dist and skill passes', () => {
+  assert.deepEqual(pluginPackageErrors(pluginRecord()), [])
+})
+
+test('a plugin package is refused for each publish rule it breaks', () => {
+  const name = '@vostride/agent-qa-plugin-acme'
+  const base = pluginRecord().pkg
+  const cases = [
+    [{ main: './dist/main.js' }, `${name} must not declare main`],
+    [
+      { exports: { './package.json': './package.json', '.': './dist/main.js' } },
+      `${name} must export only ./package.json`,
+    ],
+    [{ files: ['dist', 'LICENSE.md', 'NOTICE.md'] }, `${name} files must include skill`],
+    [{ keywords: ['agent-qa'] }, `${name} keywords must include agent-qa-plugin`],
+    [{ scripts: { postinstall: 'node setup.js' } }, `${name} must not declare a postinstall script`],
+    [{ peerDependencies: { 'acme-sdk': '^1' } }, `${name} must not declare peerDependencies`],
+    [
+      { 'agent-qa': { plugin: { kind: 'model-auth', runs: 'in-process', entry: './dist/main.js' } } },
+      `${name} agent-qa.plugin must be a remote plugin manifest`,
+    ],
+    [
+      { 'agent-qa': { plugin: { ...base['agent-qa'].plugin, entry: './main.js' } } },
+      `${name} agent-qa.plugin entry must sit under ./dist/`,
+    ],
+    [{ private: true }, `${name} must be public with private: false`],
+    [
+      { dependencies: { ...base.dependencies, '@vostride/agent-qa-core': 'workspace:*' } },
+      `${name} dependencies.@vostride/agent-qa-core is an agent-qa package other than the plugin kit`,
+    ],
+    [
+      { repository: { ...base.repository, directory: 'packages/acme' } },
+      `${name} repository.directory must be plugins/acme`,
+    ],
+  ]
+  for (const [overrides, expected] of cases) {
+    assert.deepEqual(pluginPackageErrors(pluginRecord(overrides)), [expected], expected)
+  }
+})
+
+test('a plugin package without exports or a manifest is refused', () => {
+  const name = '@vostride/agent-qa-plugin-acme'
+  const record = pluginRecord()
+  record.pkg = withoutKey(withoutKey(record.pkg, 'exports'), 'agent-qa')
+  assert.deepEqual(pluginPackageErrors(record), [
+    `${name} must export only ./package.json`,
+    `${name} agent-qa.plugin must be a remote plugin manifest`,
+  ])
 })
