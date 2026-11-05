@@ -1,7 +1,6 @@
 // @vitest-environment jsdom
 
-// Device match values are secret-class: keys in clear, values saved only through Save setting.
-// Capabilities and an app reference are file edits, shown read-only.
+// A device's capabilities and a target's app reference are file edits, shown read-only.
 
 import { act } from 'react'
 import { createRoot, type Root } from 'react-dom/client'
@@ -19,14 +18,12 @@ import {
 import { applyConfigChanges, fetchConfig, fetchConfigRevision, undoConfigAction } from '@/lib/api'
 import {
   ADD_DEVICE_LABEL,
-  ADD_SETTING_LABEL,
   ADD_TARGET_LABEL,
   DEVICE_CAPABILITIES_NOTE,
   DEVICE_FIELD_LABELS,
   DEVICE_ID_HELP,
   NO_DEVICES_TEXT,
   NO_TARGETS_TEXT,
-  SAVE_SETTING_LABEL,
   SETTLE_DELAY_MS,
   TARGET_ENVIRONMENT_CHOICE_LABELS,
   TARGET_APP_REF_NOTE,
@@ -35,8 +32,6 @@ import {
   TARGET_FIELD_LABELS,
   TARGET_URL_REQUIRED_ERROR,
   deleteActionName,
-  deviceMatchSettingLabel,
-  replaceValueName,
   undoLine,
 } from '@/lib/config-copy'
 
@@ -58,7 +53,6 @@ if (!Element.prototype.scrollIntoView) {
 }
 
 const CONFIG_PATH = '/work/agent-qa.config.yaml'
-const MASK = '[masked]'
 
 const records = {
   registry: {
@@ -72,11 +66,10 @@ const records = {
       },
     },
     devices: {
-      iosLocal: { platform: 'ios', match: { udid: MASK } },
+      iosLocal: { platform: 'ios', model: 'iPhone 16' },
       pixel: {
         platform: 'android',
         model: 'Pixel 8',
-        match: {},
         capabilities: { 'appium:automationName': 'Espresso', 'farm:options': { accessKey: '[secret:FARM_KEY]' } },
       },
     },
@@ -158,11 +151,6 @@ function rowHeader(row: HTMLElement | null) {
 function buttonIn(scope: ParentNode | null | undefined, text: string) {
   const buttons = Array.from(scope?.querySelectorAll('button') ?? []) as HTMLButtonElement[]
   return buttons.find((button) => button.textContent?.trim() === text || button.getAttribute('aria-label') === text) ?? null
-}
-
-function inputLabelled(scope: ParentNode | null | undefined, label: string) {
-  const inputs = Array.from(scope?.querySelectorAll('input') ?? []) as HTMLInputElement[]
-  return inputs.find((input) => input.getAttribute('aria-label') === label) ?? null
 }
 
 function fieldInput(segments: readonly string[]) {
@@ -370,43 +358,6 @@ describe('TargetsSection and DevicesSection', () => {
     await click(buttonIn(deviceRow('pixel'), deleteActionName('delete-device', 'pixel')))
     expect(section('devices')!.textContent).toContain(NO_DEVICES_TEXT)
     expect(document.activeElement).toBe(buttonIn(section('devices'), ADD_DEVICE_LABEL))
-  })
-
-  it('DEVICE-MATCH-SECRET-ROWS: each match key is in clear with its value through SecretValue, and Add setting writes only on Save setting', async () => {
-    await mount()
-
-    await click(rowHeader(deviceRow('iosLocal')))
-    const row = deviceRow('iosLocal')!
-    const secret = row.querySelector('[data-secret-field]') as HTMLElement | null
-    expect(secret?.getAttribute('data-field-path')).toBe('registry.devices.*.match.*')
-    expect(secret?.querySelector('code')?.textContent).toBe(MASK)
-    expect(secret?.querySelectorAll('button')).toHaveLength(1)
-    expect(row.querySelector('dt')?.textContent).toBe('udid')
-    expect(buttonIn(row, replaceValueName(deviceMatchSettingLabel('iosLocal', 'udid')))).not.toBeNull()
-    expect(row.querySelector('input[type="password"], textarea, pre')).toBeNull()
-
-    await click(buttonIn(row, ADD_SETTING_LABEL))
-    const key = inputLabelled(deviceRow('iosLocal'), DEVICE_FIELD_LABELS.key)
-    const value = inputLabelled(deviceRow('iosLocal'), DEVICE_FIELD_LABELS.value)
-    expect(value?.type).toBe('password')
-
-    await type(key, 'serial')
-    await type(value, 'device-secret')
-    expect(buttonIn(deviceRow('iosLocal'), SAVE_SETTING_LABEL)?.disabled).toBe(true)
-
-    await type(key, 'bundleId')
-    await waitPastSettle()
-    expect(applyConfigChanges).not.toHaveBeenCalled()
-    expect(localStorage.length).toBe(0)
-
-    await click(buttonIn(deviceRow('iosLocal'), SAVE_SETTING_LABEL))
-
-    expect(vi.mocked(applyConfigChanges).mock.calls).toEqual([
-      [[{ op: 'set', path: ['registry', 'devices', 'iosLocal', 'match', 'bundleId'], value: 'device-secret' }]],
-    ])
-    expect(deviceRow('iosLocal')!.querySelectorAll('[data-secret-field]')).toHaveLength(2)
-    // The landed write is mirrored as written.
-    expect(container!.textContent).toContain('device-secret')
   })
 
   it("a mobile target's default device is a select of that platform's devices, with none allowed", async () => {

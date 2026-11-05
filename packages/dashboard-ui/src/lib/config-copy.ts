@@ -792,8 +792,6 @@ export const DEVICE_FIELD_LABELS = {
   os: 'OS version',
   id: 'Device ID',
   capabilities: 'Capabilities',
-  key: 'Setting',
-  value: 'Value',
 } as const satisfies Record<string, string>
 
 export const DEVICE_NAME_REQUIRED_ERROR = 'Add a name for the device.'
@@ -815,20 +813,6 @@ export function deviceCapabilityLabel(device: string, key: string): string {
 /** A device's remote, shown read-only: pointing a device at a server is a file edit. */
 export function deviceRemoteText(remote: string): string {
   return `Runs on remote ${remote}`
-}
-
-/** Under Add setting on a device: the settings that device can match on. */
-export function deviceMatchKeysHelp(platform: string, keys: readonly string[]): string {
-  return `An ${platform} device can match on ${keys.join(', ')}.`
-}
-
-/** A device setting's accessible label, so each eye and Replace value names its own device and key. */
-export function deviceMatchSettingLabel(device: string, key: string): string {
-  return `${device} ${key}`
-}
-
-export function removeMatchSettingName(device: string, key: string): string {
-  return `Remove setting ${key} from ${device}`
 }
 
 export const MCP_FIELD_LABELS = {
@@ -868,7 +852,6 @@ export function keepValueName(label: string): string {
 
 export const SAVE_SETTING_LABEL = 'Save setting'
 export const DISCARD_SETTING_LABEL = 'Discard setting'
-export const ADD_SETTING_LABEL = 'Add setting'
 
 export const TOUR_LLM_SETUP_BODY =
   "A run needs a model. Add one: choose how you connect, and it's tested and saved as soon as it works."

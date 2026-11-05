@@ -62,9 +62,6 @@ function functionOutputs(): string[] {
     copy.remoteCredentialsLine('.env.secrets.local'),
     copy.remoteCredentialsLine(undefined),
     copy.deviceNameTakenError('pixel'),
-    copy.deviceMatchKeysHelp('iOS', ['udid', 'bundleId']),
-    copy.deviceMatchSettingLabel('pixel', 'serial'),
-    copy.removeMatchSettingName('pixel', 'serial'),
   ]
 }
 

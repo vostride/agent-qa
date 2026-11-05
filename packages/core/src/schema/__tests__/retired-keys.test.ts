@@ -166,7 +166,7 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
       { devices: { iphone: { platform: 'ios', transport: 'browserstack' } }, names: ['iphone'] },
       {
         devices: {
-          pixel: { platform: 'android', transport: 'local', match: { avd: 'Pixel_7' } },
+          pixel: { platform: 'android', transport: 'local', model: 'Pixel 7' },
           sim: { platform: 'ios', transport: 'local' },
         },
         names: ['pixel', 'sim'],
@@ -180,6 +180,24 @@ describe('retired-key pre-scan: removed BrowserStack keys', () => {
         expect(paramsAt(config, path), path).toEqual({ retired: true })
       }
     }
+  })
+
+  it("a device's match is refused with what replaces it, whatever the block holds", () => {
+    const message =
+      'registry.devices.<name>.match was removed: describe the device with model and os (id pins one unit), move appPackage, appActivity and bundleId to the target, and put other Appium settings in capabilities. Delete this block.'
+    const devices = {
+      pixel: { platform: 'android', match: { avd: 'Pixel_7', appPackage: 'org.wikipedia.alpha' } },
+      iphone: { platform: 'ios', model: 'iPhone 16', match: {} },
+      sim: { platform: 'ios', match: { udid: 'sim-udid', noReset: true } },
+    }
+    const config = { ...validBase, registry: { devices } }
+    for (const name of Object.keys(devices)) {
+      const path = `registry.devices.${name}.match`
+      expect(issueMessageAt(config, path), path).toBe(message)
+      expect(paramsAt(config, path), path).toEqual({ retired: true })
+    }
+    const result = AgentQaConfigSchema.safeParse(config)
+    expect(result.error?.issues.filter(i => i.code === 'unrecognized_keys')).toEqual([])
   })
 
   it("a target's app.browserstack is refused with its removal message", () => {

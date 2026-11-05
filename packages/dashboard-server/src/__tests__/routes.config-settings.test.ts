@@ -582,10 +582,8 @@ describe('settings writes through PATCH /api/config', () => {
       }),
       set(['registry', 'devices', 'simulator'], {
         platform: 'ios',
-        match: {
-          udid: 'iphone-17',
-          bundleId: 'com.example.app',
-        },
+        model: 'iPhone 17',
+        id: 'iphone-17',
       }),
       set(['analytics', 'passRateScope'], {
         attributes: {
@@ -629,10 +627,8 @@ describe('settings writes through PATCH /api/config', () => {
         devices: {
           simulator: {
             platform: 'ios',
-            match: {
-              udid: 'iphone-17',
-              bundleId: 'com.example.app',
-            },
+            model: 'iPhone 17',
+            id: 'iphone-17',
           },
         },
       },
@@ -943,21 +939,6 @@ describe('settings writes through PATCH /api/config', () => {
       dotted(issue).startsWith('registry.targets.bad-android.app')
       && issue.message.includes('fallback'),
     )).toBe(true)
-  })
-
-  it('rejects invalid device match fields with segment validation paths', async () => {
-    const issues = await expectPatchRefused([
-      set(['registry', 'devices', 'iosSimulator'], {
-        platform: 'ios',
-        match: {
-          serial: 'android-only',
-        },
-      }),
-    ])
-
-    expect(issues.map((issue) => `${dotted(issue)}: ${issue.message}`)).toContain(
-      'registry.devices.iosSimulator.match.serial: Match field "serial" is not valid for an ios device. Allowed: udid, bundleId, automationName, platformVersion',
-    )
   })
 })
 

@@ -51,20 +51,6 @@ export const DeviceProfileSchema = z.strictObject({
   id: z.string().trim().min(1).optional(),
   remote: NameSlugSchema.optional(),
   capabilities: z.record(z.string(), z.unknown()).optional(),
-  match: z.record(z.string(), z.unknown()).optional().default({}),
-}).superRefine((val, ctx) => {
-  const androidOnly = ['avd', 'serial', 'appPackage', 'appActivity', 'automationName', 'browserName', 'platformVersion']
-  const iosOnly = ['udid', 'bundleId', 'automationName', 'platformVersion']
-  const allowed = val.platform === 'android' ? androidOnly : iosOnly
-  for (const key of Object.keys(val.match)) {
-    if (!allowed.includes(key)) {
-      ctx.addIssue({
-        code: 'custom',
-        path: ['match', key],
-        message: `Match field "${key}" is not valid for an ${val.platform} device. Allowed: ${allowed.join(', ')}`,
-      })
-    }
-  }
 })
 
 export const RegistrySchema = z.strictObject({

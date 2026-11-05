@@ -135,7 +135,7 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
         },
       },
       devices: {
-        iosLocal: { platform: 'ios', model: 'iPhone 16', os: '18.0', id: 'ABCD-1234', match: { udid: 'abc' } },
+        iosLocal: { platform: 'ios', model: 'iPhone 16', os: '18.0', id: 'ABCD-1234' },
         'galaxy-farm': {
           platform: 'android',
           model: 'Samsung Galaxy S24',
@@ -219,7 +219,7 @@ const { sampleConfig, fullConfig, page } = vi.hoisted(() => ({
       { name: 'claude-subscription', provider: 'anthropic-subscription', model: 'claude-sonnet-4-20250514' },
     ],
     targets: { staging: { platform: 'web', url: 'https://example.com' } },
-    devices: { iosLocal: { platform: 'ios', match: { udid: 'abc' } } },
+    devices: { iosLocal: { platform: 'ios', id: 'abc' } },
   },
   use: {
     browser: { name: 'chromium', headless: true, viewport: { width: 1280, height: 720 } },

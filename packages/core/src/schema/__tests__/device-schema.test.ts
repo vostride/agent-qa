@@ -5,17 +5,8 @@ import { z } from 'zod'
 describe('DeviceProfileSchema', () => {
   async function getSchema() {
     const mod = await import('../registry-schema.js') as any
-    return mod.DeviceProfileSchema as z.ZodType<{ match: Record<string, unknown> }>
+    return mod.DeviceProfileSchema as z.ZodType
   }
-
-  it('accepts an android device with a valid match', async () => {
-    const schema = await getSchema()
-    const result = schema.safeParse({
-      platform: 'android',
-      match: { avd: 'Pixel_7' },
-    })
-    expect(result.success).toBe(true)
-  })
 
   it('accepts a device described by model and a quoted os', async () => {
     const schema = await getSchema()
@@ -45,83 +36,35 @@ describe('DeviceProfileSchema', () => {
     }
   })
 
-  it('refuses a match key outside the allowlist on any device, naming the platform', async () => {
-    const schema = await getSchema()
-    const result = schema.safeParse({
-      platform: 'ios',
-      match: { deviceName: 'iPhone 15' },
-    })
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      expect(result.error.issues.map(issue => issue.message)).toEqual([
-        'Match field "deviceName" is not valid for an ios device. Allowed: udid, bundleId, automationName, platformVersion',
-      ])
-    }
-  })
-
-  it('rejects an android device with the iOS-only field udid', async () => {
-    const schema = await getSchema()
-    const result = schema.safeParse({
-      platform: 'android',
-      match: { udid: 'xxx' },
-    })
-    expect(result.success).toBe(false)
-  })
-
-  it('rejects an ios device with the Android-only field avd', async () => {
-    const schema = await getSchema()
-    const result = schema.safeParse({
-      platform: 'ios',
-      match: { avd: 'xxx' },
-    })
-    expect(result.success).toBe(false)
-  })
-
-  it('defaults match to empty object', async () => {
-    const schema = await getSchema()
-    const result = schema.safeParse({
-      platform: 'android',
-    })
-    expect(result.success).toBe(true)
-    if (result.success) {
-      expect(result.data.match).toEqual({})
-    }
-  })
-
   it('rejects unknown platform', async () => {
     const schema = await getSchema()
     const result = schema.safeParse({
       platform: 'windows',
-      match: {},
     })
     expect(result.success).toBe(false)
   })
 
-  it('rejects match.noReset on an android device', async () => {
-    const schema = await getSchema()
-    const result = schema.safeParse({
-      platform: 'android',
-      match: { noReset: true },
+  it('refuses a leftover match block in the config, naming model, os, id and capabilities', async () => {
+    const { AgentQaConfigSchema } = await import('../config-schema.js')
+    const result = AgentQaConfigSchema.safeParse({
+      workspace: {
+        testMatch: ['tests/**/*.yaml'],
+        suiteMatch: ['suites/**/*.suite.yaml'],
+        hooksFile: 'hooks.yaml',
+        envFile: '.env',
+        secretsFile: '.env.secrets.local',
+      },
+      registry: { devices: { pixel: { platform: 'android', match: { avd: 'Pixel_7' } } } },
     })
     expect(result.success).toBe(false)
     if (!result.success) {
-      const message = result.error.issues.map(issue => issue.message).join('\n')
-      expect(message).toContain('Allowed: avd, serial, appPackage, appActivity, automationName, browserName, platformVersion')
-      expect(message).not.toContain('noReset,')
-    }
-  })
-
-  it('rejects match.noReset on an ios device', async () => {
-    const schema = await getSchema()
-    const result = schema.safeParse({
-      platform: 'ios',
-      match: { noReset: true },
-    })
-    expect(result.success).toBe(false)
-    if (!result.success) {
-      const message = result.error.issues.map(issue => issue.message).join('\n')
-      expect(message).toContain('Allowed: udid, bundleId, automationName, platformVersion')
-      expect(message).not.toContain('noReset,')
+      expect(result.error.issues.map(issue => ({ path: issue.path, message: issue.message }))).toEqual([
+        {
+          path: ['registry', 'devices', 'pixel', 'match'],
+          message:
+            'registry.devices.<name>.match was removed: describe the device with model and os (id pins one unit), move appPackage, appActivity and bundleId to the target, and put other Appium settings in capabilities. Delete this block.',
+        },
+      ])
     }
   })
 })
@@ -137,7 +80,7 @@ describe('RegistrySchema with devices', () => {
     const result = schema.safeParse({
       llms: [],
       devices: {
-        pixel: { platform: 'android', match: {} },
+        pixel: { platform: 'android', model: 'Pixel 7' },
       },
     })
     expect(result.success).toBe(true)

@@ -52,6 +52,9 @@ const RETIRED_ALLOW_PRODUCTION_MESSAGE =
 const RETIRED_REGISTRY_PROVIDERS_MESSAGE =
   'registry.providers was removed: list remote browsers and Appium servers under registry.remotes, with credentials as {{secret:NAME}} references to workspace.secretsFile. Delete this block.'
 
+const RETIRED_DEVICE_MATCH_MESSAGE =
+  'registry.devices.<name>.match was removed: describe the device with model and os (id pins one unit), move appPackage, appActivity and bundleId to the target, and put other Appium settings in capabilities. Delete this block.'
+
 const RETIRED_DEVICE_TRANSPORT_MESSAGE =
   "registry.devices.<name>.transport was removed: to use an Appium server agent-qa doesn't start, list it under registry.remotes with protocol: appium and set the device's remote to its name. Delete this line."
 
@@ -178,6 +181,14 @@ export const retiredKeyScan = z.any().superRefine((value, ctx) => {
 
   if (isPlainObject(value.registry) && isPlainObject(value.registry.devices)) {
     for (const [name, device] of Object.entries(value.registry.devices)) {
+      if (isPlainObject(device) && Object.hasOwn(device, 'match')) {
+        ctx.addIssue({
+          code: 'custom',
+          params: { retired: true },
+          path: ['registry', 'devices', name, 'match'],
+          message: RETIRED_DEVICE_MATCH_MESSAGE,
+        })
+      }
       if (isPlainObject(device) && Object.hasOwn(device, 'transport')) {
         ctx.addIssue({
           code: 'custom',

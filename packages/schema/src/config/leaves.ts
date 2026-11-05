@@ -12,7 +12,6 @@ export const CONFIG_SCHEMA_LEAVES = Object.freeze([
   'plugins.providers[].path',
   'registry.devices.*.capabilities.*',
   'registry.devices.*.id',
-  'registry.devices.*.match.*',
   'registry.devices.*.model',
   'registry.devices.*.os',
   'registry.devices.*.platform',
