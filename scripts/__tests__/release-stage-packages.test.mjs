@@ -32,7 +32,7 @@ function filesUnder(dir) {
 async function fixtureRepo(tempDir, mutateSkills) {
   const fixture = join(tempDir, 'repo')
   for (const record of getPublicPackages({ rootDir })) {
-    const dir = join(fixture, 'packages', record.packageDirName)
+    const dir = join(fixture, relative(rootDir, record.dir))
     await mkdir(dir, { recursive: true })
     await cp(record.manifestPath, join(dir, 'package.json'))
   }
@@ -198,5 +198,31 @@ test('staging copies no package-local .agent-qa runtime folder', async () => {
       .map(file => relative(cliDir, file).split('\\').join('/'))
       .filter(file => file.split('/').includes('.agent-qa'))
     assert.deepEqual(runtimeCopies, [])
+  })
+})
+
+test('stages a plugin as plugins-<folder> and every packages/ member under its own folder name', async () => {
+  await withTemp(async (tempDir) => {
+    const stagedDir = join(tempDir, 'staged')
+    await stagePublishPackages({ rootDir: await fixtureRepo(tempDir), targetVersion: '0.1.1', outputDir: stagedDir })
+
+    assert.equal(readJson(join(stagedDir, 'plugins-kernel', 'package.json')).name, '@vostride/agent-qa-plugin-kernel')
+    assert.equal(readJson(join(stagedDir, 'plugin-kit', 'package.json')).name, '@vostride/agent-qa-plugin-kit')
+    assert.equal(readJson(join(stagedDir, 'cli', 'package.json')).name, 'agent-qa')
+    assert.equal(existsSync(join(stagedDir, 'kernel')), false)
+  })
+})
+
+test('refuses to stage when a packages/ folder and a plugin claim the same staged folder', async () => {
+  await withTemp(async (tempDir) => {
+    const fixture = await fixtureRepo(tempDir)
+    const clash = join(fixture, 'packages', 'plugins-kernel')
+    await mkdir(clash, { recursive: true })
+    await writeFile(join(clash, 'package.json'), `${JSON.stringify({ name: '@vostride/agent-qa-clash', private: false })}\n`)
+
+    await assert.rejects(
+      stagePublishPackages({ rootDir: fixture, targetVersion: '0.1.1', outputDir: join(tempDir, 'staged') }),
+      /staged folder plugins-kernel is claimed by both @vostride\/agent-qa-clash and @vostride\/agent-qa-plugin-kernel/,
+    )
   })
 })

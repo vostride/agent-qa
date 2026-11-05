@@ -1,11 +1,12 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs'
-import { basename, dirname, join } from 'node:path'
+import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 export const publicPackageNames = [
   '@vostride/agent-qa-ids',
   '@vostride/agent-qa-schema',
   '@vostride/agent-qa-plugin-kit',
+  '@vostride/agent-qa-plugin-kernel',
   '@vostride/agent-qa-safety',
   '@vostride/agent-qa-runner',
   '@vostride/agent-qa-runner-local',
@@ -52,6 +53,25 @@ export function workspacePackageDirs(rootDir = defaultRootDir) {
     .sort()
 }
 
+// A plugin stages as `plugins-<folder>`, apart from any `packages/<folder>` of the same name.
+export function stagedDirName(packageDir) {
+  const [root, name] = packageDir.split('/')
+  return root === 'plugins' ? `plugins-${name}` : name
+}
+
+function refuseStagedDirCollisions(records) {
+  const claimed = new Map()
+  for (const record of records) {
+    const other = claimed.get(record.packageDirName)
+    if (other !== undefined) {
+      throw new Error(
+        `staged folder ${record.packageDirName} is claimed by both ${other} and ${record.name}; rename one of their folders`,
+      )
+    }
+    claimed.set(record.packageDirName, record.name)
+  }
+}
+
 export function getPublicPackages(options = {}) {
   const rootDir = options.rootDir ?? defaultRootDir
   const packagesRoot = join(rootDir, 'packages')
@@ -60,14 +80,15 @@ export function getPublicPackages(options = {}) {
   }
 
   const records = workspacePackageDirs(rootDir)
-    .map(packageDir => join(rootDir, packageDir))
-    .map(dir => {
+    .map(packageDir => {
+      const dir = join(rootDir, packageDir)
       const manifestPath = join(dir, 'package.json')
       const pkg = readJson(manifestPath)
-      return { name: pkg.name, dir, manifestPath, packageDirName: basename(dir), pkg }
+      return { name: pkg.name, dir, manifestPath, packageDirName: stagedDirName(packageDir), pkg }
     })
     .filter(record => record.pkg.private !== true)
 
+  refuseStagedDirCollisions(records)
   return derivePublishOrder(records)
 }
 

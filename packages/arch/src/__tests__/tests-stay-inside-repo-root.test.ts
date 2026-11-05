@@ -5,9 +5,9 @@
  * passes inside the super-repository and fails only in the release layout, so this census walks
  * every test and test-helper file and fails on any path it resolves above the repository root.
  *
- * THE UNIVERSE is every .ts/.tsx/.mts/.mjs/.js file under packages/<name>/src and
- * scripts/__tests__ that sits in a __tests__ directory or carries a .test. name. Build output
- * and dependencies are skipped.
+ * THE UNIVERSE is every .ts/.tsx/.mts/.mjs/.js file under packages/<name>/src,
+ * plugins/<name>/src and scripts/__tests__ that sits in a __tests__ directory or carries a
+ * .test. name. Build output and dependencies are skipped.
  *
  * ONLY CALL AND `new` EXPRESSIONS ARE READ, through the TypeScript AST, plus declared names for
  * the parent-root naming rule. Comments never reach the AST, and a string held as an object
@@ -39,6 +39,7 @@ interface Hit {
   rule: Rule
 }
 
+const WORKSPACE_ROOTS = ['packages', 'plugins']
 const SKIPPED_DIRS = new Set(['node_modules', 'dist', '.turbo', 'coverage'])
 const EXTENSIONS = /\.(?:ts|tsx|mts|mjs|js)$/
 
@@ -53,12 +54,20 @@ function walkFiles(dir: string, out: string[]): void {
 
 function universe(): string[] {
   const roots: string[] = []
-  for (const name of readdirSync(join(REPO_ROOT, 'packages'))) {
-    const src = join(REPO_ROOT, 'packages', name, 'src')
+  for (const workspaceRoot of WORKSPACE_ROOTS) {
+    let names: string[]
     try {
-      if (statSync(src).isDirectory()) roots.push(src)
+      names = readdirSync(join(REPO_ROOT, workspaceRoot))
     } catch {
-      // a member without src has nothing to scan
+      continue
+    }
+    for (const name of names) {
+      const src = join(REPO_ROOT, workspaceRoot, name, 'src')
+      try {
+        if (statSync(src).isDirectory()) roots.push(src)
+      } catch {
+        // a member without src has nothing to scan
+      }
     }
   }
   roots.push(join(REPO_ROOT, 'scripts', '__tests__'))
@@ -228,6 +237,7 @@ describe('test code reads nothing outside the agent-qa root', () => {
   it('the scan universe is the workspace\'s test and test-helper code', () => {
     expect(UNIVERSE.length).toBeGreaterThanOrEqual(1_500)
     expect(UNIVERSE).toContain('packages/eval-local/src/__tests__/replay-composition.test.ts')
+    expect(UNIVERSE).toContain('plugins/kernel/src/__tests__/kernel-plugin.test.ts')
   })
 
   it('every detection rule fires on its planted shape and ignores comments and data strings', () => {
