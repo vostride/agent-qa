@@ -256,6 +256,10 @@ const REACHED_BUT_UNPINNED = [
   'cli/src/commands/init-filesystem.ts',
   // `spawnSync('/usr/sbin/ioreg', …)` — the macOS hardware UUID that names a run owner's host.
   'dashboard-server/src/db/run-owner-host.ts',
+  // `execFile(adb, …)`, bounded at 10 s with no shell — the Android devices this machine has.
+  'android/src/devices-here.ts',
+  // `execFile('xcrun', ['simctl', …])`, bounded at 10 s with no shell — this Mac's simulators.
+  'ios/src/simulators-here.ts',
   // `spawnSync('ps', …)` — is the process holding this writer lease still alive?
   'knowledge-local/src/lease/writer-lease.ts',
   // `execFileSync` git reads. Its own header declares it the only sanctioned home for them.
