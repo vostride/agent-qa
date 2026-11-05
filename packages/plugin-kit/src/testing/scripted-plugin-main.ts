@@ -57,6 +57,7 @@ const ProgressSchema = z.object({
 const ScriptedOptionsSchema = z.looseObject({
   ledgerFile: z.string().optional(),
   recordProcess: z.boolean().optional(),
+  recordParams: z.boolean().optional(),
   answer: AnswerSchema.optional(),
   script: z.record(z.string(), ScriptSchema).optional(),
   stderr: z.record(z.string(), z.string()).optional(),
@@ -179,10 +180,15 @@ export function startScriptedPlugin(timing: ScriptedPluginTiming = {}): void {
       })
       await follow(options, 'initialize', ctx)
     },
-    async acquire({ options, remote }, ctx) {
+    async acquire({ options, remote, session, run }, ctx) {
       issued += 1
       const handle = { n: issued }
-      ledger(options, { method: 'acquire', handle, remote })
+      ledger(options, {
+        method: 'acquire',
+        handle,
+        remote,
+        ...(options.recordParams === true ? { session, ...(run === undefined ? {} : { run }) } : {}),
+      })
       for (const update of options.progress ?? []) ctx.progress(update)
       await follow(options, 'acquire', ctx, handle)
       if (options.answer === undefined) {
@@ -225,10 +231,18 @@ export function startScriptedPlugin(timing: ScriptedPluginTiming = {}): void {
     ...(declares('started')
       ? {
           async started(
-            { options, handle }: { options: ScriptedOptions; handle: unknown },
+            {
+              options,
+              handle,
+              sessionId,
+            }: { options: ScriptedOptions; handle: unknown; sessionId?: string },
             ctx: PluginCallContext,
           ) {
-            ledger(options, { method: 'started', handle })
+            ledger(options, {
+              method: 'started',
+              handle,
+              ...(options.recordParams === true && sessionId !== undefined ? { sessionId } : {}),
+            })
             await follow(options, 'started', ctx)
             return options.started ?? {}
           },
@@ -237,10 +251,21 @@ export function startScriptedPlugin(timing: ScriptedPluginTiming = {}): void {
     ...(declares('end')
       ? {
           async end(
-            { options, handle }: { options: ScriptedOptions; handle: unknown },
+            {
+              options,
+              handle,
+              outcome,
+              reason,
+            }: { options: ScriptedOptions; handle: unknown; outcome: string; reason?: string },
             ctx: PluginCallContext,
           ) {
-            ledger(options, { method: 'end', handle })
+            ledger(options, {
+              method: 'end',
+              handle,
+              ...(options.recordParams === true
+                ? { outcome, ...(reason === undefined ? {} : { reason }) }
+                : {}),
+            })
             await follow(options, 'end', ctx)
           },
         }

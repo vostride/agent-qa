@@ -275,6 +275,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private heartbeat: RemoteHeartbeat | undefined
   private unregisterRelease: (() => void) | undefined
   private lease: RemoteLease | undefined
+  private link: string | undefined
   private releaseLease: (() => Promise<void>) | undefined
   private unwatchLease: (() => void) | undefined
   // Set when the plugin that leased this session stopped under the test.
@@ -320,7 +321,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     let remote: RemoteBrowserConfig | undefined
     let releaseLease: (() => Promise<void>) | undefined
     if (configured !== undefined && isPluginRemote(configured)) {
-      const leased = await this.leaseSession(configured, browserName)
+      const leased = await this.leaseSession(configured, browserName, config.runFacts?.testName)
       remote = leased.remote
       releaseLease = releasingOnce(leased.lease)
       this.lease = leased.lease
@@ -409,11 +410,13 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
       throw this.options.refusalMemory?.remember(remote.name, scrubbed) ?? scrubbed
     }
     if (this.lease !== undefined) {
+      let started: { link?: string } = {}
       try {
-        await this.lease.started({})
+        started = await this.lease.started({})
       } catch {
         // A plugin's started is a courtesy; the session it leased is already open.
       }
+      this.link = started.link ?? this.lease.link
     }
   }
 
@@ -421,6 +424,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   private async leaseSession(
     configured: RemotePluginBrowserConfig,
     engine: 'chromium' | 'firefox' | 'webkit',
+    testName: string | undefined,
   ): Promise<{ lease: RemoteLease; remote: RemoteBrowserConfig }> {
     const { name } = configured
     const sessions = this.options.pluginSessions
@@ -441,6 +445,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
         plugin: configured.plugin,
         deadlineMs: configured.connectTimeoutMs,
         session: { platform: 'web', engine, context: configured.context ?? 'new' },
+        ...(testName === undefined ? {} : { testName }),
       })
     } catch (error) {
       if (!(error instanceof RemoteRefusalError)) throw error
@@ -472,6 +477,11 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
   // The session a plugin leased for this test; undefined on a url remote, here, and after cleanup.
   get remoteLease(): RemoteLease | undefined {
     return this.lease
+  }
+
+  // The session's page at the plugin's vendor, from started or else the acquire's answer.
+  get remoteLink(): string | undefined {
+    return this.link
   }
 
   private async openSession(
@@ -979,6 +989,7 @@ export class WebPlatformAdapter implements PlatformAdapter<'web'> {
     }
     const releaseLease = this.releaseLease
     this.lease = undefined
+    this.link = undefined
     this.releaseLease = undefined
     await releaseLease?.()
     this.remote = undefined

@@ -48,7 +48,9 @@ Each call follows \`options.script[method]\`: \`ok\`, \`hold\`, \`ignoreCancel\`
 steps gives each call the next one, and the last repeats. \`options.stderr[method]\` is written
 to stderr before the step.
 With \`options.recordProcess\`, the initialize ledger line also records the process, its
-environment's names, its options, the host and the run facts.
+environment's names, its options, the host and the run facts. With \`options.recordParams\`, the
+acquire line also records the session and run, the started line the session id, and the end line
+the outcome and reason.
 `
 
 function scriptedMainFile(): string {

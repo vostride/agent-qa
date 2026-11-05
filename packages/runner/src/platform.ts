@@ -128,6 +128,8 @@ export interface PlatformConfig {
   verbose?: boolean
   logCapture?: { console?: boolean; network?: boolean }
   authState?: RuntimeAuthStateConfig
+  // What a remote's plugin may be told about the run; the host sends only what it declares.
+  runFacts?: { testName?: string }
 }
 
 export interface BrowserConfig {
