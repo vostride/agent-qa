@@ -57,6 +57,8 @@ const TERMINAL = ['passed', 'failed', 'cancelled', 'skipped']
 const RUN_ID = /\br_[a-z]+(?:-[a-z]+)+/u
 const REMOTE_NAME = 'lab-chrome'
 const ENTRY_NAME = 'lab'
+// A run marks its session before releasing it; the live editor's session ends unmarked.
+const MARKED_ONCE = ['initialize', 'acquire', 'end', 'release', 'shutdown']
 const LEASED_ONCE = ['initialize', 'acquire', 'release', 'shutdown']
 
 const opened: Array<() => Promise<void> | void> = []
@@ -95,6 +97,7 @@ async function waitFor(
 interface LedgerLine {
   readonly method: string
   readonly pid?: number
+  readonly outcome?: string
 }
 
 interface PluginScene {
@@ -109,7 +112,7 @@ interface PluginScene {
 
 // The fixture's url remote becomes a remote that names a path plugins entry under the same pick.
 function placeOnPlugin(project: InProcessFixture, wsEndpoint: string): string {
-  writeScriptedPlugin(join(project.project, 'tools', ENTRY_NAME), { methods: [] })
+  writeScriptedPlugin(join(project.project, 'tools', ENTRY_NAME), { methods: ['end'] })
   const ledgerFile = join(project.project, 'plugin-ledger.jsonl')
   const config = parseYaml(readFileSync(project.configPath, 'utf8')) as {
     registry: { remotes?: unknown }
@@ -124,6 +127,7 @@ function placeOnPlugin(project: InProcessFixture, wsEndpoint: string): string {
         answer: { protocol: 'playwright', url: wsEndpoint },
         ledgerFile,
         recordProcess: true,
+        recordParams: true,
       },
     },
   ]
@@ -232,7 +236,8 @@ async function expectPassedOnPlugin(scene: PluginScene, members = 1): Promise<vo
   expect(
     ledgerOf(scene).map((line) => line.method),
     log,
-  ).toEqual(LEASED_ONCE)
+  ).toEqual(MARKED_ONCE)
+  expect(ledgerOf(scene).find((line) => line.method === 'end')?.outcome, log).toBe('passed')
 }
 
 async function runThroughCli(scene: PluginScene, pattern: string): Promise<void> {

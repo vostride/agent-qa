@@ -34,6 +34,7 @@ export function createRunPluginHost(input: RunPluginHostInput): PluginHostPool {
     hostVersions: pluginHostVersions(import.meta.url),
     resolveSecrets: pluginSecretResolver(input.connectionSecrets, secretsFileOf(input.config)),
     runFacts: input.runId === undefined ? {} : { runId: input.runId },
+    marksSessions: true,
     mask: input.mask,
     ...(input.debugLog === undefined ? {} : { debugLog: input.debugLog }),
     ...(input.sessions === undefined ? {} : { sessions: input.sessions }),

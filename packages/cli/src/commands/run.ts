@@ -2168,7 +2168,8 @@ async function markRemoteSession(
   try {
     await lease.end(mark.outcome, mark.reason)
   } catch (error) {
-    debug(`  The remote's plugin did not take the session's outcome: ${error instanceof Error ? error.message : String(error)}`)
+    const message = error instanceof Error ? error.message : String(error)
+    debug(`  The remote's plugin did not take the session's outcome: ${message}`)
   }
 }
 
@@ -3027,6 +3028,8 @@ export async function produceSuiteRunMembers(
     perMemberDigests: ConfigDigests[]
     bootstrapFailure: string | undefined
     bootstrapRemoteRefusal: boolean
+    // The latest member's signal, which a cancel of the run aborts.
+    memberSignal: AbortSignal | undefined
     // Teardown-time composition side effects.
     suiteWorkingMemory: WorkingMemoryStore
     suitePlace: WebPlace
@@ -3479,6 +3482,7 @@ export async function produceSuiteRunMembers(
       perMemberDigests: [],
       bootstrapFailure: undefined,
       bootstrapRemoteRefusal: false,
+      memberSignal: undefined,
       suiteWorkingMemory,
       suitePlace,
       suiteDevicePlace,
@@ -3642,6 +3646,14 @@ export async function produceSuiteRunMembers(
       }
     }
 
+    // The suite's one session gets one mark before cleanup releases it.
+    await markRemoteSession(
+      suiteConfig.adapter,
+      sessionMarkOf(results, prepared.memberSignal?.aborted === true, suiteRunMask),
+      (line) => {
+        if (effectiveLogLevel === 'debug') input.terminal?.printDebugLine(suiteRunMask(line))
+      },
+    )
     try { await suiteConfig.adapter.cleanup() } catch {}
 
     await flushWorkingMemory(prepared.suiteWorkingMemory, {
@@ -3713,6 +3725,7 @@ export async function produceSuiteRunMembers(
         // Read only for the live-stream declaration, after `ensureReady` ran `adapter.setup()`.
         adapter: prepared.suiteConfig.adapter,
         run: async (ctx) => {
+          prepared.memberSignal = ctx.abortSignal
           if (prepared.bootstrapFailure) {
             const bootstrapResult: TestResult = {
               runId: prepared.suiteRunId, name: test.name, filePath: absolutePath, status: 'failed',

@@ -14,7 +14,10 @@ import { writeScriptedPlugin } from '@vostride/agent-qa-plugin-kit/testing'
 import { createRunCommand } from '../../commands/run.js'
 import { pinProcessTmpdir, removeTempRoots } from '../../__tests__/temp-roots.js'
 import type { PinnedTmpdir } from '../../__tests__/temp-roots.js'
+import { CLI_DIST, parked, startPluginRunRig } from '../../__tests__/spawned-plugin-run.js'
+import type { PluginRunRig } from '../../__tests__/spawned-plugin-run.js'
 import {
+  POPULATED_BUTTON_LABEL,
   POPULATED_DECLARED_SECRET_VALUE,
   POPULATED_MODEL_ID,
   POPULATED_PASSING_STEP_TEXT,
@@ -35,17 +38,23 @@ const REMOTE_NAME = 'lab-chrome'
 const ENTRY_NAME = 'lab'
 const LINK = 'https://lab.invalid/sessions/1'
 const DIRECT_TEST_NAME = 'the standalone test'
+const SUITE_NAME = 'the in-process suite'
+const SECOND_MEMBER_MARKER = 'the receipt banner appeared'
+const SECOND_MEMBER_STEP = `Click the ${POPULATED_BUTTON_LABEL} button and confirm ${SECOND_MEMBER_MARKER}.`
 
 type LedgerLine = Record<string, unknown> & { method: string }
 
 let pinnedTmpdir: PinnedTmpdir | undefined
+let rig: PluginRunRig | undefined
 beforeAll(() => {
   refuseWithoutChromium()
   pinnedTmpdir = pinProcessTmpdir()
 })
-afterEach(() => {
+afterEach(async () => {
   vi.restoreAllMocks()
   vi.unstubAllEnvs()
+  await rig?.close()
+  rig = undefined
 })
 afterAll(() => {
   removeInProcessFixtures()
@@ -130,6 +139,7 @@ async function runOnPlugin(
   pattern: (project: InProcessFixture) => string,
   knobs: Partial<InProcessFixtureInput> = {},
   model: StubModelServerOptions = {},
+  prepare: (project: InProcessFixture) => void = () => {},
 ): Promise<MarkedRun> {
   const page = await startTargetPageServer()
   const stub = await startStubModelServer(model)
@@ -144,6 +154,7 @@ async function runOnPlugin(
       ...knobs,
     })
     const ledgerFile = placeOnPlugin(project, endpoint.wsEndpoint)
+    prepare(project)
     vi.stubEnv('HOME', freshUpdateCheckHome())
     const printed: string[] = []
     let exited = false
@@ -226,5 +237,69 @@ describe('a plugin that declares started, end and every run fact', () => {
       run.ledger.map((line) => line.method),
       run.log,
     ).toEqual(['initialize', 'acquire', 'started', 'end', 'release', 'shutdown'])
+  }, RUN_BUDGET_MS)
+
+  it("is told once how a suite's session went, under the suite's name, failed with its failing member's line", async () => {
+    const run = await runOnPlugin(
+      (project) => project.suitePattern,
+      { secondSuiteMember: true, plantedSecret: POPULATED_DECLARED_SECRET_VALUE },
+      { plannerOutcome: 'stepFailed', failOnlyStepText: SECOND_MEMBER_MARKER },
+      (project) => {
+        const second = join(project.project, 'tests', 'member-2.yaml')
+        const written = readFileSync(second, 'utf8')
+        expect(written).toContain(POPULATED_PASSING_STEP_TEXT)
+        writeFileSync(second, written.replace(POPULATED_PASSING_STEP_TEXT, SECOND_MEMBER_STEP))
+      },
+    )
+
+    expect(run.exitCode, run.log).toBe(1)
+    expect(
+      run.runs[0]?.members.map((member) => member.outcome),
+      run.log,
+    ).toEqual(['passed', 'failed'])
+    expect(
+      run.ledger.map((line) => line.method),
+      run.log,
+    ).toEqual(['initialize', 'acquire', 'started', 'end', 'release', 'shutdown'])
+    expect(lineOf(run.ledger, 'acquire')?.run, run.log).toEqual({ testName: SUITE_NAME })
+    const summary = run.runs[0]?.members[1]?.failureSummary ?? ''
+    expect(summary, run.log).not.toBe('')
+    const end = lineOf(run.ledger, 'end')
+    expect(end?.outcome, run.log).toBe('failed')
+    expect(end?.reason, run.log).toBe(summary.split(/\r?\n/, 1)[0]?.trim())
+    expect(JSON.stringify(run.ledger), run.log).not.toContain(POPULATED_DECLARED_SECRET_VALUE)
+    expect(
+      run.printed.filter((line) => line.includes(`Remote ${REMOTE_NAME}: ${LINK}`)),
+      run.log,
+    ).toHaveLength(1)
+  }, RUN_BUDGET_MS)
+})
+
+// Process groups and their signals are POSIX; CI runs macOS and Linux.
+describe.skipIf(process.platform === 'win32')('a run cancelled on a plugin remote', () => {
+  it('tells a plugin that declares end its session was cancelled, with no reason, before releasing it', async () => {
+    if (!existsSync(CLI_DIST)) throw new Error(`No built CLI at ${CLI_DIST}; run pnpm build`)
+    rig = await startPluginRunRig({
+      tmpdir: pinnedTmpdir!.root,
+      methods: ['end'],
+      runFacts: ['failure'],
+    })
+    const run = rig.spawnRun()
+    await parked(rig, run)
+
+    run.child.kill('SIGINT')
+    const exited = await run.exit
+
+    expect(exited.code, run.output()).toBe(130)
+    const ledger = rig.ledger()
+    expect(
+      ledger.map((line) => line.method),
+      run.output(),
+    ).toEqual(['initialize', 'acquire', 'end', 'release', 'shutdown'])
+    expect(lineOf(ledger, 'end'), run.output()).toEqual({
+      method: 'end',
+      handle: { n: 1 },
+      outcome: 'cancelled',
+    })
   }, RUN_BUDGET_MS)
 })

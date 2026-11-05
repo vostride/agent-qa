@@ -11,6 +11,7 @@ import {
   webAnswer,
   webSession,
   type HostProject,
+  type LedgerLine,
 } from './plugin-host-fixtures.js'
 
 let project: HostProject | undefined
@@ -27,6 +28,10 @@ afterEach(async () => {
 
 function request(remote: string, entry: string, extra: Record<string, unknown> = {}) {
   return { remote, plugin: { entry }, deadlineMs: 10_000, session: webSession, ...extra }
+}
+
+function lineOf(ledger: readonly LedgerLine[], method: string): LedgerLine | undefined {
+  return ledger.find((line) => line.method === method)
 }
 
 describe('the plugin environment', () => {
@@ -161,6 +166,63 @@ describe('the plugin host pool', () => {
       p.ledger(entry).find((line) => line.method === 'initialize')
     expect(initializeOf(declares)?.runFacts).toEqual({ runId: 'run-7' })
     expect(initializeOf(silent)).not.toHaveProperty('runFacts')
+  })
+
+  it('sends a plugin that declares no run facts the session only, never the test name, the run id or a reason', async () => {
+    const p = host()
+    const bare = p.entry('bare', { recordProcess: true, recordParams: true }, { methods: ['end'] })
+    const pool = p.pool([bare], { runFacts: { runId: 'run-7' } })
+
+    const lease = await pool.acquire(request('lab-a', 'bare', { testName: 'the checkout test' }))
+    await lease.end('failed', 'the basket stayed empty')
+
+    const ledger = p.ledger(bare)
+    expect(lineOf(ledger, 'initialize')).not.toHaveProperty('runFacts')
+    expect(lineOf(ledger, 'acquire')).not.toHaveProperty('run')
+    expect(lineOf(ledger, 'acquire')?.session).toEqual(webSession)
+    expect(lineOf(ledger, 'end')).toEqual({ method: 'end', handle: { n: 1 }, outcome: 'failed' })
+  })
+
+  it('sends the test name, the run id and the masked reason to a plugin that declares them', async () => {
+    const p = host()
+    const marks = p.entry(
+      'marks',
+      { recordProcess: true, recordParams: true },
+      { methods: ['end'], runFacts: ['testName', 'runId', 'failure'] },
+    )
+    const pool = p.pool([marks], {
+      runFacts: { runId: 'run-7' },
+      mask: (text) => text.replaceAll('lab-key-value', '[secret:LAB_KEY]'),
+    })
+
+    const lease = await pool.acquire(request('lab-a', 'marks', { testName: 'the checkout test' }))
+    await lease.end('failed', 'the basket refused lab-key-value')
+
+    const ledger = p.ledger(marks)
+    expect(lineOf(ledger, 'initialize')?.runFacts).toEqual({ runId: 'run-7' })
+    expect(lineOf(ledger, 'acquire')?.run).toEqual({ testName: 'the checkout test' })
+    expect(lineOf(ledger, 'end')).toEqual({
+      method: 'end',
+      handle: { n: 1 },
+      outcome: 'failed',
+      reason: 'the basket refused [secret:LAB_KEY]',
+    })
+  })
+
+  it('sends end once for a lease, and never once its release has begun', async () => {
+    const p = host()
+    const marks = p.entry('marks', { recordParams: true }, { methods: ['end'] })
+    const pool = p.pool([marks])
+
+    const marked = await pool.acquire(request('lab-a', 'marks'))
+    await marked.end('passed')
+    await marked.end('failed', 'a second outcome')
+    const released = await pool.acquire(request('lab-b', 'marks'))
+    await released.release()
+    await released.end('passed')
+
+    const ends = p.ledger(marks).filter((line) => line.method === 'end')
+    expect(ends).toEqual([{ method: 'end', handle: { n: 1 }, outcome: 'passed' }])
   })
 
   it('calls started and end only when the plugin declares them', async () => {

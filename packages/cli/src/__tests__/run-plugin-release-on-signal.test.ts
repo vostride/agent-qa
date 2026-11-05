@@ -75,6 +75,37 @@ describe.skipIf(process.platform === 'win32')('agent-qa run on a plugin remote, 
     ])
   }, CELL_BUDGET_MS)
 
+  it('on SIGINT, a plugin that never answers its release still lets the run exit 130 within the plugin bound', async () => {
+    const current = await startRig({ script: { release: 'ignoreCancel' } })
+    const run = current.spawnRun()
+    await parked(current, run)
+    const pluginPid = current.pluginPid()!
+
+    const signalledAt = Date.now()
+    run.child.kill('SIGINT')
+    const exited = await run.exit
+
+    expect({ code: exited.code, signal: exited.signal }, run.output()).toEqual({
+      code: 130,
+      signal: null,
+    })
+    expect(exited.at - signalledAt, run.output()).toBeLessThan(
+      PLUGIN_RELEASE_BOUND_MS + CANCEL_GRACE_MS,
+    )
+    await until('the plugin to exit', () => !isAlive(pluginPid), PLUGIN_GONE_MS)
+    expect(
+      current
+        .ledger()
+        .map((line) => line.method)
+        .slice(0, 3),
+      run.output(),
+    ).toEqual(['initialize', 'acquire', 'release'])
+    expect(
+      current.ledger().filter((line) => line.method === 'initialize'),
+      run.output(),
+    ).toHaveLength(1)
+  }, CELL_BUDGET_MS)
+
   for (const signal of ['SIGINT', 'SIGTERM'] as const) {
     it(`on ${signal}, a plugin that takes four seconds to release gets them before its shutdown, and the run exits 130`, async () => {
       const current = await startRig({ script: { release: { delayMs: SLOW_RELEASE_MS } } })

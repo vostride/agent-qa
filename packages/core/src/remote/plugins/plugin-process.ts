@@ -43,6 +43,8 @@ export type PluginLateAnswer = Extract<PluginCallOutcome, { status: 'result' | '
 
 export interface PluginRequestOptions {
   timeoutMs: number
+  // In place of the process's own cancel grace, such as what a signal's bound leaves.
+  cancelGraceMs?: number
   onProgress?: (progress: ProgressParams) => void
   // An answer that arrives after the grace, when the call has already been given up on.
   onLate?: (answer: PluginLateAnswer) => void
@@ -58,7 +60,8 @@ export interface PluginProcess {
     params: unknown,
     options: PluginRequestOptions,
   ): Promise<PluginCallOutcome>
-  stop(killAfterMs?: number): Promise<void>
+  // stdin closes, then SIGTERM after killAfterMs, then SIGKILL after termMs.
+  stop(killAfterMs?: number, termMs?: number): Promise<void>
 }
 
 interface Pending {
@@ -255,9 +258,13 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
     stderrRest = ''
   })
 
+  // Two stops can overlap, such as a signal's kill and a stop already under way; each signal
+  // still reaches the group once.
+  const signalled = new Set<NodeJS.Signals>()
   const signalGroup = (signal: NodeJS.Signals): void => {
     const pid = child.pid
-    if (pid === undefined) return
+    if (pid === undefined || signalled.has(signal)) return
+    signalled.add(signal)
     try {
       if (process.platform === 'win32') child.kill()
       else process.kill(-pid, signal)
@@ -303,14 +310,14 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
                 pending.delete(id)
                 if (options.onLate !== undefined) late.set(id, options.onLate)
                 settle({ status: 'silent' })
-              }, input.cancelGraceMs),
+              }, options.cancelGraceMs ?? input.cancelGraceMs),
             )
           }, options.timeoutMs),
         )
         send({ jsonrpc: '2.0', id, method, params })
       })
     },
-    async stop(killAfterMs = input.killAfterMs) {
+    async stop(killAfterMs = input.killAfterMs, termMs = killAfterMs) {
       if (!child.stdin.destroyed) child.stdin.end()
       if (await exitsWithin(killAfterMs)) {
         // A grandchild the plugin started can outlive it in its group.
@@ -318,9 +325,9 @@ export function startPluginProcess(input: PluginProcessInput): PluginProcess {
         return
       }
       signalGroup('SIGTERM')
-      if (await exitsWithin(killAfterMs)) return
+      if (await exitsWithin(termMs)) return
       signalGroup('SIGKILL')
-      await exitsWithin(killAfterMs)
+      await exitsWithin(termMs)
     },
   }
 }

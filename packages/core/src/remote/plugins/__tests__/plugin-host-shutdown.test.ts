@@ -140,6 +140,8 @@ function groupAlive(pgid: number): boolean {
 
 // Timers start a moment before the plugin notices what they time, so allow that moment.
 const SLACK_MS = 100
+// After signalMs: SIGTERM, SIGKILL a moment later, and the exit's stdio drain.
+const SIGNAL_KILL_SLACK_MS = 1_500
 
 // Counts the registrations that are still live, so a cell sees what is left registered.
 function countingRegistry(): RemoteSessionRegistry & { live(): number } {
@@ -202,7 +204,7 @@ describe.skipIf(process.platform === 'win32')('the plugin host pool shutting a p
     expect(groupAlive(pid)).toBe(false)
   })
 
-  it('on a signal gives every step signalMs, whatever the normal bounds say', async () => {
+  it('on a signal gives its steps signalMs between them, then SIGTERM, whatever the normal bounds say', async () => {
     const p = host()
     const stubborn = stubbornEntry(p, { answersShutdown: false })
     const signalMs = 300
@@ -237,11 +239,68 @@ describe.skipIf(process.platform === 'win32')('the plugin host pool shutting a p
     expect(at(events, 'stdin-end') - at(events, 'shutdown')).toBeGreaterThanOrEqual(
       signalMs - SLACK_MS,
     )
-    expect(at(events, 'SIGTERM') - at(events, 'stdin-end')).toBeGreaterThanOrEqual(
-      signalMs - SLACK_MS,
-    )
-    expect(shutDownAt - startedAt).toBeLessThan(5_000)
+    expect(at(events, 'SIGTERM') - startedAt).toBeGreaterThanOrEqual(signalMs - SLACK_MS)
+    expect(shutDownAt - startedAt).toBeLessThan(signalMs + SIGNAL_KILL_SLACK_MS)
     expect(groupAlive(pid)).toBe(false)
+  })
+
+  it('on a signal stops a plugin that never answers a release within signalMs, and restarts nothing', async () => {
+    const p = host()
+    const lab = p.entry('lab', { recordProcess: true, script: { release: 'ignoreCancel' } })
+    const signalMs = 1_000
+    const pool = p.pool([lab], {
+      bounds: {
+        releaseMs: 30_000,
+        shutdownMs: 30_000,
+        killAfterMs: 30_000,
+        cancelGraceMs: 30_000,
+        signalMs,
+      },
+    })
+
+    await pool.acquire(request('lab-a', 'lab'))
+    const pid = p.ledger(lab)[0]?.pid as number
+    strays.push(pid)
+    const startedAt = Date.now()
+    await pool.shutdown({ signal: true })
+
+    expect(Date.now() - startedAt).toBeLessThan(signalMs + SIGNAL_KILL_SLACK_MS)
+    expect(isAlive(pid)).toBe(false)
+    expect(p.ledger(lab).filter((line) => line.method === 'initialize')).toHaveLength(1)
+  })
+
+  it('on a signal cuts a release-only restart already under way at what is left of signalMs', async () => {
+    const p = host()
+    const lab = p.entry(
+      'lab',
+      { recordProcess: true, script: { started: 'crash', release: 'ignoreCancel' } },
+      { methods: ['started'] },
+    )
+    const signalMs = 1_000
+    const pool = p.pool([lab], {
+      bounds: {
+        initializeMs: 30_000,
+        releaseMs: 30_000,
+        shutdownMs: 30_000,
+        killAfterMs: 1_000,
+        cancelGraceMs: 30_000,
+        signalMs,
+      },
+    })
+
+    const lease = await pool.acquire(request('lab-a', 'lab'))
+    strays.push(p.ledger(lab)[0]?.pid as number)
+    await lease.started({})
+    await waitFor(() => p.ledger(lab).filter((line) => line.method === 'release').length > 0)
+    const restarted = p.ledger(lab).filter((line) => line.method === 'initialize')[1]
+    const restartPid = restarted?.pid as number
+    expect(typeof restartPid).toBe('number')
+    strays.push(restartPid)
+    const startedAt = Date.now()
+    await pool.shutdown({ signal: true })
+
+    expect(Date.now() - startedAt).toBeLessThan(signalMs + SIGNAL_KILL_SLACK_MS)
+    expect(isAlive(restartPid)).toBe(false)
   })
 
   it('waits for a release already under way before it sends shutdown', async () => {
@@ -277,6 +336,37 @@ describe('the plugin host pool on the session registry', () => {
     expect(methodsOf(p.ledger(lab))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
     expect(isAlive(pid)).toBe(false)
   }, 15_000)
+
+  it('on a signal tells a plugin that declares end that a session the run never marked was cancelled, then releases it', async () => {
+    const p = host()
+    const marks = p.entry('marks', { recordParams: true }, { methods: ['end'] })
+    const sessions = createRemoteSessionRegistry()
+    const pool = p.pool([marks], { sessions, marksSessions: true })
+
+    const lease = await pool.acquire(request('lab-a', 'marks'))
+    await sessions.releaseAll(REMOTE_RELEASE_BOUND_MS)
+    await lease.end('failed', 'too late to say')
+
+    const ledger = p.ledger(marks)
+    expect(methodsOf(ledger)).toEqual(['initialize', 'acquire', 'end', 'release', 'shutdown'])
+    expect(ledger.find((line) => line.method === 'end')).toEqual({
+      method: 'end',
+      handle: { n: 1 },
+      outcome: 'cancelled',
+    })
+  })
+
+  it('on a signal sends no end for a session nothing marks, such as a live-editor session', async () => {
+    const p = host()
+    const marks = p.entry('marks', {}, { methods: ['end'] })
+    const sessions = createRemoteSessionRegistry()
+    const pool = p.pool([marks], { sessions })
+
+    await pool.acquire(request('lab-a', 'marks'))
+    await sessions.releaseAll(REMOTE_RELEASE_BOUND_MS)
+
+    expect(methodsOf(p.ledger(marks))).toEqual(['initialize', 'acquire', 'release', 'shutdown'])
+  })
 
   it('sends one release for a lease that the adapter and the pool both registered', async () => {
     const p = host()

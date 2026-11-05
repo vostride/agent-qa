@@ -187,7 +187,9 @@ export function startScriptedPlugin(timing: ScriptedPluginTiming = {}): void {
         method: 'acquire',
         handle,
         remote,
-        ...(options.recordParams === true ? { session, ...(run === undefined ? {} : { run }) } : {}),
+        ...(options.recordParams === true
+          ? { session, ...(run === undefined ? {} : { run }) }
+          : {}),
       })
       for (const update of options.progress ?? []) ctx.progress(update)
       await follow(options, 'acquire', ctx, handle)

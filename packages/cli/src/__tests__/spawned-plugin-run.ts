@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 
 import { generateTestId } from '@vostride/agent-qa-ids'
 import { writeScriptedPlugin } from '@vostride/agent-qa-plugin-kit/testing'
+import type { ScriptedPluginInput } from '@vostride/agent-qa-plugin-kit/testing'
 
 import { startRemoteBrowserEndpoint } from '../composition/__tests__/remote-browser-endpoint.js'
 import type { RemoteBrowserEndpoint } from '../composition/__tests__/remote-browser-endpoint.js'
@@ -94,6 +95,9 @@ export interface PluginRunRigInput {
   readonly tmpdir: string
   // The scripted plugin's steps by method, such as a slow release.
   readonly script?: Record<string, unknown>
+  // What the plugin declares beyond the required methods; nothing when absent.
+  readonly methods?: ScriptedPluginInput['methods']
+  readonly runFacts?: ScriptedPluginInput['runFacts']
 }
 
 export async function startPluginRunRig(input: PluginRunRigInput): Promise<PluginRunRig> {
@@ -134,7 +138,10 @@ export async function startPluginRunRig(input: PluginRunRigInput): Promise<Plugi
     const endpoint = await startRemoteBrowserEndpoint()
     closers.push(() => endpoint.close())
 
-    writeScriptedPlugin(join(root, 'tools', 'lab'), { methods: [] })
+    writeScriptedPlugin(join(root, 'tools', 'lab'), {
+      methods: input.methods ?? [],
+      ...(input.runFacts === undefined ? {} : { runFacts: input.runFacts }),
+    })
     const ledgerFile = join(root, 'plugin-ledger.jsonl')
     mkdirSync(join(root, 'tests'))
     const configPath = join(root, 'agent-qa.config.yaml')
@@ -170,6 +177,7 @@ export async function startPluginRunRig(input: PluginRunRigInput): Promise<Plugi
         '    options:',
         `      ledgerFile: ${JSON.stringify(ledgerFile)}`,
         '      recordProcess: true',
+        '      recordParams: true',
         ...(input.script === undefined ? [] : [`      script: ${JSON.stringify(input.script)}`]),
         '      answer:',
         '        protocol: playwright',
