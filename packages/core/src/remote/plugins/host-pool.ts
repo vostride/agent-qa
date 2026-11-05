@@ -10,6 +10,7 @@ import {
   type AcquireResult,
   type CheckResult,
   type OptionalPluginMethod,
+  type ProgressParams,
   type RemotePluginManifest,
 } from '@vostride/agent-qa-plugin-kit/protocol'
 import {
@@ -22,6 +23,7 @@ import {
   type RemoteLeaseRequest,
   type RemoteLeaseSource,
   type RemotePluginEvidence,
+  type RemoteProgress,
   type RemoteSessionRegistry,
 } from '@vostride/agent-qa-runner'
 
@@ -65,6 +67,13 @@ export const DEFAULT_PLUGIN_HOST_BOUNDS: PluginHostBounds = {
 // On a signal, once SIGTERM is sent, how long a plugin's group has before SIGKILL.
 const SIGNAL_KILL_AFTER_MS = 500
 
+const PROGRESS_LINE_MAX = 200
+
+export interface PluginHostProgress extends RemoteProgress {
+  remote: string
+  entry: string
+}
+
 export interface PluginHostPoolInput {
   configDir: string
   plugins: readonly PluginEntryInput[]
@@ -79,6 +88,8 @@ export interface PluginHostPoolInput {
   mask: (text: string) => string
   // Values an acquire answer asks to mask; they reach the run's mask before the session is used.
   onMask?: (entry: string, values: readonly string[]) => void
+  // Every call's progress, masked and cut to one line, after the call's own onProgress.
+  onProgress?: (event: PluginHostProgress) => void
   debugLog?: (line: string) => void
   sessions?: RemoteSessionRegistry
   bounds?: Partial<PluginHostBounds>
@@ -260,6 +271,29 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
     }
     return `${line} Check settings.${path.replace(/^settings\./, '')} in remote ${scope.remote}.`
   }
+
+  // A progress report reaches its own request's listener and the pool's; neither touches the
+  // call's deadline, and a listener that throws only reaches the debug log.
+  const progressRelay =
+    (remote: string, entry: string, own: ((progress: RemoteProgress) => void) | undefined) =>
+    (update: ProgressParams): void => {
+      const progress: RemoteProgress = {
+        message: (input.mask(update.message).split(/\r?\n/, 1)[0] ?? '')
+          .trim()
+          .slice(0, PROGRESS_LINE_MAX),
+        ...(update.queued === undefined ? {} : { queued: update.queued }),
+        ...(update.percent === undefined ? {} : { percent: update.percent }),
+      }
+      const tell = (send: () => void): void => {
+        try {
+          send()
+        } catch (error) {
+          debug(`a progress listener for remote ${remote} failed: ${String(error)}`)
+        }
+      }
+      tell(() => own?.(progress))
+      tell(() => input.onProgress?.({ remote, entry, ...progress }))
+    }
 
   const asRefusal = (error: unknown, remote: string, entry: string): RemoteRefusalError => {
     if (error instanceof RemoteRefusalError) {
@@ -716,6 +750,7 @@ export function createPluginHostPool(input: PluginHostPoolInput): PluginHostPool
       },
       {
         timeoutMs: request.deadlineMs,
+        onProgress: progressRelay(remote, entry, request.onProgress?.bind(request)),
         onLate: (late) => void releaseCarried(running, late),
       },
     )

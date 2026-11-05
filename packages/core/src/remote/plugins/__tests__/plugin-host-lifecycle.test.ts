@@ -1,4 +1,8 @@
-import { RemoteRefusalError, type RemoteLeaseEnded } from '@vostride/agent-qa-runner'
+import {
+  RemoteRefusalError,
+  type RemoteLeaseEnded,
+  type RemoteProgress,
+} from '@vostride/agent-qa-runner'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import {
@@ -10,6 +14,7 @@ import {
   type HostProject,
   type LedgerLine,
 } from './plugin-host-fixtures.js'
+import type { PluginHostProgress } from '../host-pool.js'
 
 let project: HostProject | undefined
 
@@ -266,5 +271,86 @@ describe("a plugin's stderr", () => {
       'Remote lab-a: plugin entry lab stopped unexpectedly: '
         + 'tunnel died for token=[secret:LAB_TOKEN].',
     )
+  })
+})
+
+describe("a plugin's progress", () => {
+  it('never extends a deadline: an acquire reporting every 100ms is cancelled at its deadline', async () => {
+    const p = host()
+    const lab = p.entry('lab', {
+      script: { acquire: { delayMs: 2_000 } },
+      progress: [{ message: 'queued, 3 ahead', queued: 3 }],
+      progressEveryMs: 100,
+    })
+    const pool = p.pool([lab])
+    await pool.check('lab', [{ name: 'lab-a' }])
+    const seen: RemoteProgress[] = []
+    const started = Date.now()
+
+    const refused = await refusalOf(
+      pool.acquire(
+        request('lab-a', 'lab', {
+          deadlineMs: 500,
+          onProgress: (progress: RemoteProgress) => seen.push(progress),
+        }),
+      ),
+    )
+
+    const elapsed = Date.now() - started
+    expect(refused.kind).toBe('timeout')
+    expect(refused.message).toBe('Remote lab-a: plugin entry lab did not answer acquire within 500ms.')
+    expect(elapsed).toBeGreaterThanOrEqual(450)
+    expect(elapsed).toBeLessThan(1_500)
+    expect(seen.length).toBeGreaterThanOrEqual(3)
+    expect(seen[0]).toEqual({ message: 'queued, 3 ahead', queued: 3 })
+  })
+
+  it("reaches only the request that sent it, while the pool's listener hears every request", async () => {
+    const p = host()
+    const lab = p.entry('lab', {
+      script: { acquire: { delayMs: 300 } },
+      progressByRemote: {
+        'lab-a': [{ message: 'queued, 3 ahead', queued: 3 }],
+        'lab-b': [{ message: 'uploading app (12 MB)', percent: 40 }],
+      },
+    })
+    const heard: PluginHostProgress[] = []
+    const pool = p.pool([lab], { onProgress: (event) => heard.push(event) })
+    const seenA: RemoteProgress[] = []
+    const seenB: RemoteProgress[] = []
+
+    await Promise.all([
+      pool.acquire(request('lab-a', 'lab', { onProgress: (update: RemoteProgress) => seenA.push(update) })),
+      pool.acquire(request('lab-b', 'lab', { onProgress: (update: RemoteProgress) => seenB.push(update) })),
+    ])
+
+    expect(seenA).toEqual([{ message: 'queued, 3 ahead', queued: 3 }])
+    expect(seenB).toEqual([{ message: 'uploading app (12 MB)', percent: 40 }])
+    expect(heard).toHaveLength(2)
+    expect(heard).toEqual(
+      expect.arrayContaining([
+        { remote: 'lab-a', entry: 'lab', message: 'queued, 3 ahead', queued: 3 },
+        { remote: 'lab-b', entry: 'lab', message: 'uploading app (12 MB)', percent: 40 },
+      ]),
+    )
+  })
+
+  it('is masked and cut to its first line of at most 200 characters', async () => {
+    const p = host()
+    const long = 'x'.repeat(300)
+    const lab = p.entry('lab', {
+      progress: [{ message: 'waiting for pool token=abc123\nsecond line' }, { message: long }],
+    })
+    const heard: PluginHostProgress[] = []
+    const pool = p.pool([lab], { mask, onProgress: (event) => heard.push(event) })
+    const seen: RemoteProgress[] = []
+
+    await pool.acquire(request('lab-a', 'lab', { onProgress: (update: RemoteProgress) => seen.push(update) }))
+
+    expect(seen).toEqual([
+      { message: 'waiting for pool token=[secret:LAB_TOKEN]' },
+      { message: 'x'.repeat(200) },
+    ])
+    expect(heard.map((event) => event.message)).toEqual(seen.map((event) => event.message))
   })
 })

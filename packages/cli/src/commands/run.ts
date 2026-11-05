@@ -102,6 +102,7 @@ import {
 import { composeCliPostRunTail } from '../curation/post-run-tail-composition.js'
 import { flushWorkingMemory } from '../wm-flush.js'
 import { isPathInsideDir } from '@vostride/agent-qa-core'
+import type { PluginHostProgress } from '@vostride/agent-qa-core'
 import { createShutdownController } from './shutdown-controller.js'
 import { buildDirectRunMembers } from './direct-run-members.js'
 import { resolveRecordingSetting, resolveRecordingStagingDir } from './recording-setting.js'
@@ -530,6 +531,20 @@ interface ProducerPluginHost {
   close(): Promise<void>
 }
 
+// A plugin's progress prints once for each change of its line on that remote.
+function remoteProgressPrinter(
+  terminal: RunTerminal | undefined,
+  mask: MaskFn,
+): ((event: PluginHostProgress) => void) | undefined {
+  if (terminal === undefined) return undefined
+  const printed = new Map<string, string>()
+  return (event) => {
+    if (event.message === '' || printed.get(event.remote) === event.message) return
+    printed.set(event.remote, event.message)
+    terminal.printPlaceNote(mask(`Remote ${event.remote}: ${event.message}`))
+  }
+}
+
 // A producer starts its own plugin host when the config lists plugins, and closes it at the end.
 function producerPluginHost(input: {
   readonly config: AgentQaConfig
@@ -538,10 +553,12 @@ function producerPluginHost(input: {
   readonly connectionSecrets: SecretResolver | undefined
   readonly mask: MaskFn
   readonly redactor: SecretRedactor | undefined
+  readonly terminal: RunTerminal | undefined
 }): ProducerPluginHost {
   if ((input.config.plugins ?? []).length === 0) {
     return { pluginSessions: undefined, close: () => Promise.resolve() }
   }
+  const onProgress = remoteProgressPrinter(input.terminal, input.mask)
   const pool = createRunPluginHost({
     config: input.config,
     configPath: input.configPath,
@@ -551,6 +568,7 @@ function producerPluginHost(input: {
     ...(input.redactor instanceof RunSecretRedactor
       ? { addMaskExtras: input.redactor.addMaskExtras.bind(input.redactor) }
       : {}),
+    ...(onProgress === undefined ? {} : { onProgress }),
     // The registry a signal releases, so each lease and the pool's shutdown get the plugin bound.
     sessions: processRemoteSessions,
   })
@@ -2943,6 +2961,7 @@ export async function produceSuiteRunMembers(
     connectionSecrets: suiteConnectionSecrets,
     mask: suiteRunMask,
     redactor: suiteRunSecretRedactor,
+    terminal: input.terminal,
   })
   const suiteAdapterOptions: Parameters<typeof createPlatformAdapter>[1] = {
     ...hostSignals,
@@ -4174,6 +4193,7 @@ export async function produceDirectRunMembers(
     connectionSecrets: runtimeSecrets.connectionSecretStore,
     mask: singleRunMask,
     redactor: runtimeSecrets.secretRedactor,
+    terminal: input.terminal,
   })
   const directRunAttributes = buildCliRunAttributes(
     userRunAttributes,

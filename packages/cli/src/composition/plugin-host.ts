@@ -6,7 +6,7 @@ import {
   pluginHostVersions,
   pluginSecretResolver,
 } from '@vostride/agent-qa-core'
-import type { AgentQaConfig, PluginHostPool } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, PluginHostPool, PluginHostProgress } from '@vostride/agent-qa-core'
 import type { RemoteSessionRegistry, SecretResolver } from '@vostride/agent-qa-runner'
 
 import { pluginMaskName } from './declared-secrets.js'
@@ -21,6 +21,8 @@ export interface RunPluginHostInput {
   readonly mask: (text: string) => string
   // Joins an answer's mask values to the run's mask, each under PLUGIN_<ENTRY>.
   readonly addMaskExtras?: (entries: readonly MaskExtra[]) => void
+  // Each call's progress, masked and cut to one line.
+  readonly onProgress?: (event: PluginHostProgress) => void
   readonly debugLog?: (line: string) => void
   readonly sessions?: RemoteSessionRegistry
 }
@@ -32,7 +34,7 @@ function secretsFileOf(config: AgentQaConfig): string {
 
 // One per run invocation: it starts nothing until a remote asks its plugin for a session.
 export function createRunPluginHost(input: RunPluginHostInput): PluginHostPool {
-  const { addMaskExtras } = input
+  const { addMaskExtras, onProgress } = input
   return createPluginHostPool({
     configDir: dirname(resolve(input.configPath)),
     plugins: input.config.plugins ?? [],
@@ -48,6 +50,7 @@ export function createRunPluginHost(input: RunPluginHostInput): PluginHostPool {
           onMask: (entry: string, values: readonly string[]) =>
             addMaskExtras(values.map((value): MaskExtra => [pluginMaskName(entry), value])),
         }),
+    ...(onProgress === undefined ? {} : { onProgress }),
     ...(input.debugLog === undefined ? {} : { debugLog: input.debugLog }),
     ...(input.sessions === undefined ? {} : { sessions: input.sessions }),
   })

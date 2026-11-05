@@ -77,6 +77,14 @@ export interface RemoteLeaseAnswer {
   capabilities?: Record<string, unknown>
 }
 
+// A plugin's report on a call still under way, such as a farm queue position or an upload's
+// percentage. It never extends the call's deadline.
+export interface RemoteProgress {
+  message: string
+  queued?: number
+  percent?: number
+}
+
 export interface RemoteLeaseRequest {
   remote: string
   plugin: RemotePluginRef
@@ -85,6 +93,7 @@ export interface RemoteLeaseRequest {
     | { platform: 'web'; engine: 'chromium' | 'firefox' | 'webkit'; context: 'new' | 'reuse' }
     | { platform: 'android' | 'ios'; capabilities: Record<string, unknown> }
   testName?: string
+  onProgress?(progress: RemoteProgress): void
 }
 
 export interface RemoteLeaseEnded {
@@ -112,6 +121,7 @@ export interface RemoteLeaseSource {
     platform: 'android' | 'ios'
     path: string
     deadlineMs: number
+    onProgress?(progress: RemoteProgress): void
   }): Promise<{ ref: string }>
 }
 

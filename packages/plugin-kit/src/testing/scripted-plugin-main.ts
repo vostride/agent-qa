@@ -64,6 +64,10 @@ const ScriptedOptionsSchema = z.looseObject({
   script: z.record(z.string(), ScriptSchema).optional(),
   stderr: z.record(z.string(), z.string()).optional(),
   progress: z.array(ProgressSchema).optional(),
+  // Sent in place of `progress` by an acquire for that remote.
+  progressByRemote: z.record(z.string(), z.array(ProgressSchema)).optional(),
+  // Sends the progress list again, one update each interval, until the call ends.
+  progressEveryMs: z.number().int().positive().optional(),
   started: StartedResultSchema.optional(),
   upload: UploadAppResultSchema.optional(),
   check: CheckResultSchema.optional(),
@@ -98,6 +102,23 @@ function cancelled(method: PluginMethod, handle: Handle | undefined): PluginErro
 }
 
 const callsSoFar = new Map<string, number>()
+
+function reportProgress(
+  options: ScriptedOptions,
+  remote: string,
+  ctx: PluginCallContext,
+): () => void {
+  const updates = options.progressByRemote?.[remote] ?? options.progress ?? []
+  for (const update of updates) ctx.progress(update)
+  if (options.progressEveryMs === undefined || updates.length === 0) return () => {}
+  let next = 0
+  const timer = setInterval(() => {
+    const update = updates[next % updates.length]
+    next += 1
+    if (update !== undefined) ctx.progress(update)
+  }, options.progressEveryMs)
+  return () => clearInterval(timer)
+}
 
 function stepFor(options: ScriptedOptions, method: PluginMethod): ScriptStep {
   const planned = options.script?.[method] ?? 'ok'
@@ -193,8 +214,12 @@ export function startScriptedPlugin(timing: ScriptedPluginTiming = {}): void {
           ? { session, ...(run === undefined ? {} : { run }) }
           : {}),
       })
-      for (const update of options.progress ?? []) ctx.progress(update)
-      await follow(options, 'acquire', ctx, handle)
+      const stopProgress = reportProgress(options, remote, ctx)
+      try {
+        await follow(options, 'acquire', ctx, handle)
+      } finally {
+        stopProgress()
+      }
       const answer =
         options.answerFile === undefined
           ? options.answer
