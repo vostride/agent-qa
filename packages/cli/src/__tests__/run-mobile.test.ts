@@ -155,7 +155,33 @@ describe('buildPlatformConfig', () => {
     expect(config.appPackage).toBe('org.wikipedia.alpha')
     expect(config.appActivity).toBe('.main.MainActivity')
     expect(config.appState).toBe('reset')
-    expect(config.appiumUrl).toBe('http://localhost:4723')
+  })
+
+  it('hands the session the device found here and the Appium chosen for it', () => {
+    const resolvedDevice = { name: 'pixel', platform: 'android' as const, model: 'Pixel 8' }
+    const config = buildPlatformConfig(
+      'android',
+      resolvedDevice,
+      undefined,
+      undefined,
+      undefined,
+      {
+        platform: 'android',
+        targetName: 'shop-android',
+        deviceName: 'pixel',
+        device: resolvedDevice,
+        plan: { kind: 'here', search: { model: 'Pixel 8' } },
+        app: { appPackage: 'com.example.shop', sourceTrace: {} },
+        appState: 'preserve',
+        appium: { url: 'http://127.0.0.1:9999', managed: false },
+        sourceTrace: [],
+      },
+      undefined,
+      { here: { avd: 'Pixel_8_API_35' }, appiumUrl: 'http://127.0.0.1:4723', managed: true },
+    )
+
+    expect(config.device?.here).toEqual({ avd: 'Pixel_8_API_35' })
+    expect(config.appiumUrl).toBe('http://127.0.0.1:4723')
   })
 
   it('passes the resolved app path into mobile platform config', () => {

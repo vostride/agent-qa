@@ -6,10 +6,10 @@ import { Command, Option } from 'commander'
 import pc from 'picocolors'
 import { resolveConfig, loadConfigPlugins, mergeWithTestConfig, mergeUseBlocks, formatConfigDebug, loadEnvOverrides } from '../config.js'
 import { ATTR_GATE_RUN, ATTR_RUNNER, ATTR_TRIGGER, AUTH_STATE_SCHEMA_VERSION, buildInternalRunAttributes, DEFAULT_AGENT_QA_ARTIFACTS_DIR, DEFAULT_AGENT_QA_RUNS_DB_PATH, DEFAULT_AGENT_QA_CACHE_DIR, formatRunAttributesBlock, generateRunId, getAgentQaVersion, isCanonicalRunId, mergeRunAttributes, MobileSetupError, normalizeAuthStateUse, parseRunAttrFlags, resolveAuthStateForRun, resolveAuthStatePaths, resolveKnowledgeRoot, resolveMobileRunConfig } from '@vostride/agent-qa-core'
-import { connectionSecretMisuse, discoverWorkspaceFiles, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
+import { chooseAppiumEndpoint, connectionSecretMisuse, discoverWorkspaceFiles, findDeviceHere, isWorkspacePathMatch, missingRemoteSecrets, missingRemoteSecretSentence, projectRemotesInConfigText, resolveWorkspaceFileTarget, resolveWorkspacePaths, runnerForPlaces, selectSuiteDevice, selectSuitePlace, selectTestDevice, selectWebPlace, splitConnectionSecrets, workspaceRelativeIdentityPath } from '@vostride/agent-qa-core'
 import { formatRemoteOrigin, projectConfigRemotes, remoteOrigin } from '@vostride/agent-qa-schema'
 import { printRunText } from '@vostride/agent-qa-core/run-text-output'
-import type { AgentQaConfig, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
+import type { AgentQaConfig, AndroidHere, AuthStateMetadata, BrowserEngine, DevicePlace, DeviceTarget, IOSHere, MemberLogScope, NormalizedAuthStateUse, ResolvedAuthStateForRun, ResolvedAuthStatePaths, ResolvedMobileDevice, ResolvedMobileRunConfig, ResolvedWorkspacePaths, RunAttributes, RunAttributeRunner, RunAttributeTrigger, SelectWebPlaceResult, WebPlace, WorkspaceFileKind, WorkspaceFileRecord } from '@vostride/agent-qa-core'
 import { createModel, createTokenAccounting, resolveCapabilities, resolveVisionConfig, resolveVisionGate, visionFromConfig } from '@vostride/agent-qa-model'
 import { resolveTarget, type ResolvedTarget } from '../targets.js'
 import { resolveLLMModels, resolveModelAuth, toModelProfileAndAuth } from '../llm-utils.js'
@@ -38,8 +38,8 @@ import type {
 import type { DashboardDatabase, RunIdentityMember } from '@vostride/agent-qa-dashboard'
 import type { SecretStore, SecretRedactor, SecretRedactorPort, SecretResolver, HookDefinition, NonActionToolMap, SandboxRunnerOptions } from '@vostride/agent-qa-runner'
 import { DockerHookExecutor } from '@vostride/agent-qa-runner-local'
-import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
-import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue } from '@vostride/agent-qa-runner'
+import type { TestResult, PlatformAdapter, PlatformConfig, RemoteBrowserConfig, RemoteDeviceConfig, RemoteFailureKind, RemotePlaceEvidence, RemoteProtocol, RemoteRefusalMemory, RemoteSessionRegistry } from '@vostride/agent-qa-runner'
+import { WorkingMemoryStore, runMemberTest, createStepModelScope, createRemoteRefusalMemory, memberStepText, redactSecretValue, RemoteRefusalError } from '@vostride/agent-qa-runner'
 import { createCliStepModelScopeFactory } from '../composition/step-model-scope.js'
 import type { CliStepModelScopeOptions } from '../composition/step-model-scope.js'
 import type { RunMemberDescriptor, ConfigDigests, MemberTestRunContext, MemberTestExecutor, StepModelScopeFactory } from '@vostride/agent-qa-runner'
@@ -267,25 +267,10 @@ async function buildStorageStateStore(configDir: string): Promise<import('@vostr
 
 let _appiumManager: InstanceType<typeof import('@vostride/agent-qa-dashboard').AppiumManager> | null = null
 
-// Injected first, then `AGENT_QA_APPIUM_URL`, then bundled: the most specific answer wins.
+// The Appium the host already runs for this run, such as the dashboard's lease.
 export type AppiumUrlResolver = () => string | undefined
 
-/**
- * THE ONE PRECEDENCE RULE for "which Appium is this run talking to": injected, then the
- * environment, then the bundled auto-start below. Exported so the order is a cell's subject rather
- * than three copies of an `??` chain — it is read at four sites, and three of them decide the
- * `managed` flag, which is what tells a teardown whether it owns the server it is talking to.
- */
-export function resolveHostAppiumUrl(resolveAppiumUrl?: AppiumUrlResolver): string | undefined {
-  return resolveAppiumUrl?.() ?? process.env.AGENT_QA_APPIUM_URL
-}
-
-async function acquireAppium(
-  logLevel: string,
-  resolveAppiumUrl?: AppiumUrlResolver,
-): Promise<string | undefined> {
-  const provided = resolveHostAppiumUrl(resolveAppiumUrl)
-  if (provided) return provided
+async function acquireAppium(logLevel: string): Promise<string | undefined> {
   const { AppiumManager } = await import('@vostride/agent-qa-dashboard')
   if (!_appiumManager) {
     _appiumManager = new AppiumManager({
@@ -294,6 +279,96 @@ async function acquireAppium(
   }
   await _appiumManager.acquire()
   return _appiumManager.getUrl()
+}
+
+export type DevicesHereLister = (platform: 'android' | 'ios') => Promise<AndroidHere | IOSHere>
+
+export const listDevicesHereByDefault: DevicesHereLister = async (platform) => {
+  if (platform === 'android') {
+    const { listAndroidDevicesHere } = await import('@vostride/agent-qa-android')
+    return listAndroidDevicesHere()
+  }
+  const { listIOSSimulatorsHere } = await import('@vostride/agent-qa-ios')
+  return listIOSSimulatorsHere()
+}
+
+// A run lists this machine once per platform, however many members it has.
+export function listDevicesHereOncePerRun(lister: DevicesHereLister): DevicesHereLister {
+  const listings = new Map<'android' | 'ios', Promise<AndroidHere | IOSHere>>()
+  return (platform) => {
+    let listing = listings.get(platform)
+    if (listing === undefined) {
+      listing = lister(platform)
+      listings.set(platform, listing)
+    }
+    return listing
+  }
+}
+
+export interface PrepareMobileDeviceInput {
+  readonly resolved: ResolvedMobileRunConfig
+  // The value of AGENT_QA_APPIUM_URL.
+  readonly envUrl: string | undefined
+  readonly hostAppiumUrl?: AppiumUrlResolver
+  readonly startAppium: () => Promise<string | undefined>
+  readonly listDevicesHere: DevicesHereLister
+}
+
+export interface PreparedMobileDevice {
+  readonly remote?: RemoteDeviceConfig
+  readonly here?: { udid?: string; avd?: string; name?: string; os?: string }
+  readonly appiumUrl?: string
+  // True only when this process started the Appium it talks to.
+  readonly managed: boolean
+}
+
+// A device here is found before any Appium is asked for; its Appium is AGENT_QA_APPIUM_URL, else
+// the host's, else the one agent-qa starts. A remote device asks for neither.
+export async function prepareMobileDevice(
+  input: PrepareMobileDeviceInput,
+): Promise<PreparedMobileDevice> {
+  const { resolved } = input
+  if (resolved.plan.kind === 'remote') return { remote: resolved.plan.remote, managed: false }
+  const listing = await input.listDevicesHere(resolved.platform)
+  const finder = findDeviceHere({
+    device: resolved.deviceName,
+    platform: resolved.platform,
+    ...resolved.plan.search,
+    ...(resolved.platform === 'ios'
+      ? { ios: listing as IOSHere }
+      : { android: listing as AndroidHere }),
+  })
+  if ('refusal' in finder) throw new RemoteRefusalError(finder.refusal)
+  const { udid, avd, name, os } = finder.found
+  const here = {
+    ...(udid === undefined ? {} : { udid }),
+    ...(avd === undefined ? {} : { avd }),
+    ...(name === undefined ? {} : { name }),
+    ...(os === undefined ? {} : { os }),
+  }
+  const choice = chooseAppiumEndpoint({ device: resolved.device, envUrl: input.envUrl })
+  if ('refusal' in choice) throw new RemoteRefusalError(choice.refusal)
+  if (choice.kind === 'given') return { here, appiumUrl: choice.url, managed: false }
+  const hostUrl = input.hostAppiumUrl?.()
+  if (hostUrl) return { here, appiumUrl: hostUrl, managed: false }
+  const started = await input.startAppium()
+  return { here, ...(started === undefined ? {} : { appiumUrl: started }), managed: true }
+}
+
+async function startAppiumOrThrow(
+  logLevel: string,
+  setup: { platform: 'android' | 'ios'; targetName: string; deviceName: string | undefined },
+): Promise<string | undefined> {
+  try {
+    return await acquireAppium(logLevel)
+  } catch (err) {
+    throw new MobileSetupError({
+      category: 'appium-startup',
+      message: `Could not auto-start Appium: ${err instanceof Error ? err.message : String(err)}`,
+      ...setup,
+      cause: err,
+    })
+  }
 }
 
 function releaseAppium(): void {
@@ -368,6 +443,7 @@ export function buildPlatformConfig(
   logCapture?: { console?: boolean; network?: boolean },
   mobileResolved?: ResolvedMobileRunConfig,
   remote?: RemoteBrowserConfig,
+  prepared?: PreparedMobileDevice,
 ): PlatformConfig {
   if (platform === 'web') {
     return {
@@ -394,6 +470,7 @@ export function buildPlatformConfig(
         ? {}
         : { capabilities: resolvedDevice.capabilities }),
       ...(resolvedDevice.remote === undefined ? {} : { remote: resolvedDevice.remote }),
+      ...(prepared?.here === undefined ? {} : { here: prepared.here }),
     } : undefined,
     bundleId: mobileResolved?.app.bundleId,
     appPackage: mobileResolved?.app.appPackage,
@@ -401,7 +478,7 @@ export function buildPlatformConfig(
     deepLinkAppId: mobileResolved?.app.deepLinkAppId,
     appState: mobileResolved?.appState,
     appPath: mobileResolved?.app.install?.path,
-    appiumUrl: mobileResolved?.appium.url,
+    appiumUrl: prepared?.appiumUrl,
     timeouts,
     logCapture,
   }
@@ -2037,6 +2114,7 @@ async function executeSuites(
   analytics: (() => Promise<CliAnalyticsHost>) | undefined,
   loadPlugins: () => Promise<void>,
   refusalMemory: RemoteRefusalMemory,
+  listDevicesHere: DevicesHereLister,
 ): Promise<SuiteRunExit> {
   const { parseSuiteFile, parseTestFile, patchTestForSuite } = await import('@vostride/agent-qa-core')
   // `startRun` is reached only through `createRunInvocationCore`, never bound here.
@@ -2142,6 +2220,7 @@ async function executeSuites(
       terminal: RUN_TERMINAL,
       hostOwnsSignals: true,
       refusalMemory,
+      listDevicesHere,
       ...(variableContext === undefined ? {} : { variableContext }),
       ...(hooksContext === undefined ? {} : { hooksContext }),
       ...(analytics === undefined ? {} : { analytics }),
@@ -2303,8 +2382,10 @@ export interface PatternMemberProductionContext {
   readonly runRecord?: RunRecord
   readonly opts?: RunOptions
   readonly analytics?: () => Promise<CliAnalyticsHost>
-  // Absent, `AGENT_QA_APPIUM_URL` then bundled auto-start; present, the host's URL wins.
+  // The host's own Appium, asked for a device here only when AGENT_QA_APPIUM_URL is unset.
   readonly resolveAppiumUrl?: AppiumUrlResolver
+  // Absent, this machine's adb and simctl are listed.
+  readonly listDevicesHere?: DevicesHereLister
 }
 
 // Test files win when any resolve, mirroring the command; suites run only when no tests resolved.
@@ -2345,6 +2426,7 @@ export async function produceMembersFromPatterns(
       ...(context.opts === undefined ? {} : { opts: context.opts }),
       ...(context.analytics === undefined ? {} : { analytics: context.analytics }),
       ...(context.resolveAppiumUrl === undefined ? {} : { resolveAppiumUrl: context.resolveAppiumUrl }),
+      ...(context.listDevicesHere === undefined ? {} : { listDevicesHere: context.listDevicesHere }),
     })
   }
 
@@ -2384,6 +2466,7 @@ export async function produceMembersFromPatterns(
       },
       ...(context.analytics === undefined ? {} : { analytics: context.analytics }),
       ...(context.resolveAppiumUrl === undefined ? {} : { resolveAppiumUrl: context.resolveAppiumUrl }),
+      ...(context.listDevicesHere === undefined ? {} : { listDevicesHere: context.listDevicesHere }),
     })
   }
 
@@ -2468,8 +2551,10 @@ export interface SuiteRunMemberProductionInput {
   readonly variableContext?: SuiteVariableContext
   readonly hooksContext?: { resolvedHooks: Map<string, HookDefinition>; sandboxOptions: SandboxRunnerOptions }
   readonly analytics?: () => Promise<CliAnalyticsHost>
-  // Absent, `AGENT_QA_APPIUM_URL` then bundled auto-start; present, the host's URL wins.
+  // The host's own Appium, asked for a device here only when AGENT_QA_APPIUM_URL is unset.
   readonly resolveAppiumUrl?: AppiumUrlResolver
+  // Absent, this machine's adb and simctl are listed.
+  readonly listDevicesHere?: DevicesHereLister
   /** `RunInvocationInputs.loadPlugins`, awaited once the run's record is open. */
   readonly loadPlugins: () => Promise<void>
   /** The run's record, opened before this producer loads its plugins or prepares a suite. */
@@ -2519,6 +2604,7 @@ export async function produceSuiteRunMembers(
   const preloadedSuiteTests = input.preflight.preloadedTests
   const suitePreflightProduct = input.preflight.product
   const preflightRunner = suiteRunRunner(input.preflight, config, configDir, opts.browser, opts.device)
+  const suiteDevicesHere = listDevicesHereOncePerRun(input.listDevicesHere ?? listDevicesHereByDefault)
   const suiteConnectionSecrets = variableContext?.connectionSecretStore
   const suiteSecretsFile = configuredSecretsFile(config)
   if (suiteConnectionSecrets !== undefined) {
@@ -2826,7 +2912,6 @@ export async function produceSuiteRunMembers(
         useDeviceName: deviceName,
         appState: (mergedUse.mobile as Record<string, unknown> | undefined)?.appState as 'preserve' | 'reset' | undefined,
         configFilePath: path.resolve(configFilePath),
-        appiumUrl: resolveHostAppiumUrl(input.resolveAppiumUrl),
       })
       resolvedDevice = mobileResolved.device
     }
@@ -2836,27 +2921,23 @@ export async function produceSuiteRunMembers(
       runnerForPlaces([suitePlace, ...(suiteDevicePlace === undefined ? [] : [suiteDevicePlace])]),
     )
 
-    // Auto-start Appium for mobile platforms; a remote device has its own.
-    if ((suitePlatform === 'ios' || suitePlatform === 'android') && suiteDevicePlace?.kind !== 'remote') {
-      try {
-        const appiumUrl = await acquireAppium(effectiveLogLevel, input.resolveAppiumUrl)
-        if (mobileResolved) {
-          // `managed` means THIS process started the Appium it is talking to. A host-leased URL is
-          // no more managed here than an env-supplied one — the dashboard owns that lifecycle.
-          const provided = resolveHostAppiumUrl(input.resolveAppiumUrl)
-          mobileResolved = { ...mobileResolved, appium: { url: appiumUrl, managed: !provided } }
-        }
-      } catch (err) {
-        throw new MobileSetupError({
-          category: 'appium-startup',
-          message: `Could not auto-start Appium: ${err instanceof Error ? err.message : String(err)}`,
-          platform: suitePlatform,
-          targetName: suiteResolvedTarget.name,
-          deviceName,
-          cause: err,
-        })
-      }
-    }
+    const suitePrepared =
+      mobileResolved === undefined
+        ? undefined
+        : await prepareMobileDevice({
+            resolved: mobileResolved,
+            envUrl: process.env.AGENT_QA_APPIUM_URL,
+            ...(input.resolveAppiumUrl === undefined
+              ? {}
+              : { hostAppiumUrl: input.resolveAppiumUrl }),
+            startAppium: () =>
+              startAppiumOrThrow(effectiveLogLevel, {
+                platform: suitePlatform as 'android' | 'ios',
+                targetName: suiteResolvedTarget.name,
+                deviceName,
+              }),
+            listDevicesHere: suiteDevicesHere,
+          })
 
     const adapter = await createPlatformAdapter(suitePlatform, suiteAdapterOptions)
 
@@ -2868,7 +2949,7 @@ export async function produceSuiteRunMembers(
 
     const suiteBrowser = (mergedUse.browser as Record<string, unknown> | undefined) ?? config.use?.browser
     const suiteLogCapture = (mergedUse.logCapture as Record<string, unknown> | undefined) ?? (config as any).use?.logCapture
-    const platformConfig = buildPlatformConfig(suitePlatform, resolvedDevice, testTimeouts, suiteBrowser as any, suiteLogCapture, mobileResolved, suiteRemote)
+    const platformConfig = buildPlatformConfig(suitePlatform, resolvedDevice, testTimeouts, suiteBrowser as any, suiteLogCapture, mobileResolved, suiteRemote, suitePrepared)
     platformConfig.authState = suiteAuthState
     platformConfig.verbose = effectiveLogLevel === 'debug'
     if (opts.headless !== undefined && platformConfig.browser) {
@@ -3624,8 +3705,10 @@ export interface DirectRunMemberProductionInput {
   readonly terminal?: RunTerminal
   // Only `agent-qa run` passes this; its controller owns SIGINT, SIGTERM and SIGHUP.
   readonly hostOwnsSignals?: true
-  // Absent, `AGENT_QA_APPIUM_URL` then bundled auto-start; present, the host's URL wins.
+  // The host's own Appium, asked for a device here only when AGENT_QA_APPIUM_URL is unset.
   readonly resolveAppiumUrl?: AppiumUrlResolver
+  // Absent, this machine's adb and simctl are listed.
+  readonly listDevicesHere?: DevicesHereLister
   // Absent, the run makes its own; `agent-qa run` shares one between its suite and direct halves.
   readonly refusalMemory?: RemoteRefusalMemory
 }
@@ -3726,6 +3809,7 @@ export async function produceDirectRunMembers(
 
   const directRemotes = selectDirectRemotes(config, configDir, filtered, opts.browser)
   const directDevicePlaces = placeDirectDevices(config, configDir, filtered, opts.device)
+  const directDevicesHere = listDevicesHereOncePerRun(input.listDevicesHere ?? listDevicesHereByDefault)
   refuseRemoteSecretProblems({
     config,
     configDir,
@@ -3914,7 +3998,6 @@ export async function produceDirectRunMembers(
         useDeviceName: testDeviceName,
         appState: testMergedUse.mobile?.appState as 'preserve' | 'reset' | undefined,
         configFilePath: resolvePath(configFilePath),
-        appiumUrl: resolveHostAppiumUrl(input.resolveAppiumUrl),
       })
       analyticsAppState = testMobileResolved.appState
       testResolvedDevice = testMobileResolved.device
@@ -3989,29 +4072,23 @@ export async function produceDirectRunMembers(
         currentPlatform = testPlatform
         currentAdapterKey = adapterKey
 
-        // Auto-start Appium for mobile platforms (if not already running); a remote device has its own.
-        if (
-          (testPlatform === 'ios' || testPlatform === 'android') &&
-          testMobileResolved?.device.remote === undefined
-        ) {
-          try {
-            const appiumUrl = await acquireAppium(effectiveLogLevel, input.resolveAppiumUrl)
-            if (testMobileResolved) {
-              // See the suite half: a host-leased URL is not this process's to manage.
-              const provided = resolveHostAppiumUrl(input.resolveAppiumUrl)
-              testMobileResolved = { ...testMobileResolved, appium: { url: appiumUrl, managed: !provided } }
-            }
-          } catch (err) {
-            throw new MobileSetupError({
-              category: 'appium-startup',
-              message: `Could not auto-start Appium: ${err instanceof Error ? err.message : String(err)}`,
-              platform: testPlatform,
-              targetName: testResolvedTarget.name,
-              deviceName: testDeviceName,
-              cause: err,
-            })
-          }
-        }
+        const testPrepared =
+          testMobileResolved === undefined
+            ? undefined
+            : await prepareMobileDevice({
+                resolved: testMobileResolved,
+                envUrl: process.env.AGENT_QA_APPIUM_URL,
+                ...(input.resolveAppiumUrl === undefined
+                  ? {}
+                  : { hostAppiumUrl: input.resolveAppiumUrl }),
+                startAppium: () =>
+                  startAppiumOrThrow(effectiveLogLevel, {
+                    platform: testMobileResolved.platform,
+                    targetName: testResolvedTarget.name,
+                    deviceName: testDeviceName,
+                  }),
+                listDevicesHere: directDevicesHere,
+              })
 
         adapter = await createPlatformAdapter(testPlatform, {
           ...(input.hostOwnsSignals === true ? { hostOwnsSignals: true as const } : {}),
@@ -4021,7 +4098,7 @@ export async function produceDirectRunMembers(
         })
 
         const mergedBrowser = (mergedUse as Record<string, unknown>).browser as Record<string, unknown> | undefined
-        const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testMobileResolved, directRemotes.get(binding))
+        const platformConfig = buildPlatformConfig(testPlatform, testResolvedDevice, testTimeoutsForSetup, mergedBrowser ?? config.use?.browser, (testMergedConfig as any).use?.logCapture ?? config.use?.logCapture, testMobileResolved, directRemotes.get(binding), testPrepared)
         platformConfig.authState = activeTestAuthState
         platformConfig.verbose = effectiveLogLevel === 'debug'
         if (opts.headless !== undefined) {
@@ -4441,7 +4518,9 @@ export async function produceDirectRunMembers(
   }
 }
 
-export function createRunCommand(): Command {
+export function createRunCommand(
+  options: { readonly listDevicesHere?: DevicesHereLister } = {},
+): Command {
   const cmd = new Command('run')
     .description('Run test files')
     .argument('[patterns...]', 'glob patterns for test files')
@@ -4571,10 +4650,13 @@ export function createRunCommand(): Command {
 
         // One memory for the command, so its suite and direct halves try a refused remote once.
         const runRefusalMemory = createRemoteRefusalMemory()
+        const runDevicesHere = listDevicesHereOncePerRun(
+          options.listDevicesHere ?? listDevicesHereByDefault,
+        )
 
         // Handle suite execution (early return)
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length === 0) {
-          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory)
+          const { exitCode } = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere)
           const suiteReporterSelection = resolveReporterSelection(opts).selection
           if (suiteReporterSelection) {
             await maybePrintPostRunUpdateNotice({
@@ -4592,7 +4674,7 @@ export function createRunCommand(): Command {
         let suitesFailed = false
         let suitesRemoteRefused = false
         if (discoveredSuiteFiles.length > 0 && discoveredTestFiles.length > 0) {
-          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory)
+          const suiteRun = await executeSuites(discoveredSuiteFiles, opts, config, globalOpts, configContent, effectiveLogLevel, { envFileVars, inlineVars, cliVars, rawEnvFileContent, resolvedEnvFilePath, userRunAttributes, ...runtimeSecrets }, resolvedHooks && sandboxOptions ? { resolvedHooks, sandboxOptions } : undefined, analytics, inputs.loadPlugins, runRefusalMemory, runDevicesHere)
           suitesFailed = suiteRun.exitCode !== 0
           suitesRemoteRefused = suiteRun.remoteRefused
         }
@@ -4804,6 +4886,7 @@ export function createRunCommand(): Command {
           terminal: RUN_TERMINAL,
           hostOwnsSignals: true,
           refusalMemory: runRefusalMemory,
+          listDevicesHere: runDevicesHere,
         })
         printPlannerLimits(produced.plannerLimits)
         const members = produced.members

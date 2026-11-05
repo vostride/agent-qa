@@ -17,7 +17,8 @@ import {
   createDashboardRunDoor,
   partitionDashboardRunArgs,
 } from '../dashboard.js'
-import { resolveHostAppiumUrl } from '../run.js'
+import { prepareMobileDevice } from '../run.js'
+import type { ResolvedMobileRunConfig } from '@vostride/agent-qa-core'
 import {
   CountingTarget,
   auditRows,
@@ -331,22 +332,69 @@ describe('the queue’s argv operands, read rather than forwarded', () => {
 })
 
 describe('the Appium lease travels as data, not as a child’s environment', () => {
-  const priorEnv = process.env.AGENT_QA_APPIUM_URL
-  afterEach(() => {
-    if (priorEnv === undefined) delete process.env.AGENT_QA_APPIUM_URL
-    else process.env.AGENT_QA_APPIUM_URL = priorEnv
-  })
+  it("ORDER — a device's remote, then AGENT_QA_APPIUM_URL, then the host's Appium, then the one agent-qa starts", async () => {
+    const remote = {
+      name: 'farm',
+      protocol: 'appium' as const,
+      url: 'https://farm.example.com/wd/hub',
+      connectTimeoutMs: 300_000,
+    }
+    const here: ResolvedMobileRunConfig = {
+      platform: 'android',
+      targetName: 'shop-android',
+      deviceName: 'pixel',
+      device: { name: 'pixel', platform: 'android', model: 'Pixel 8' },
+      plan: { kind: 'here', search: { model: 'Pixel 8' } },
+      app: { sourceTrace: {} },
+      appState: 'preserve',
+      appium: {},
+      sourceTrace: [],
+    }
+    const onRemote: ResolvedMobileRunConfig = {
+      ...here,
+      device: { ...here.device, remote },
+      plan: { kind: 'remote', remote },
+    }
+    const asked: string[] = []
+    const prepare = (
+      resolved: ResolvedMobileRunConfig,
+      envUrl: string | undefined,
+      host: string | undefined,
+    ) =>
+      prepareMobileDevice({
+        resolved,
+        envUrl,
+        hostAppiumUrl: () => {
+          asked.push('host')
+          return host
+        },
+        startAppium: async () => {
+          asked.push('start')
+          return 'http://127.0.0.1:4723'
+        },
+        listDevicesHere: async () => ({
+          attached: [{ serial: 'R58M41ABCDE', state: 'device', model: 'Pixel 8', os: '15' }],
+          avds: [],
+        }),
+      })
 
-  it('PRECEDENCE — injected beats the environment, and the environment beats the bundled default', () => {
-    process.env.AGENT_QA_APPIUM_URL = 'http://env:4723'
-    expect(resolveHostAppiumUrl(() => 'http://leased:4723')).toBe('http://leased:4723')
-    expect(resolveHostAppiumUrl(() => undefined)).toBe('http://env:4723')
-    expect(resolveHostAppiumUrl()).toBe('http://env:4723')
-    delete process.env.AGENT_QA_APPIUM_URL
-    // Nothing injected and nothing in the environment ⇒ `undefined`, which is what makes
-    // `acquireAppium` fall through to the BUNDLED auto-start. The three rungs, in order.
-    expect(resolveHostAppiumUrl()).toBeUndefined()
-    expect(resolveHostAppiumUrl(() => undefined)).toBeUndefined()
+    // 1. A device with a remote uses it, whatever the environment and the host offer.
+    expect((await prepare(onRemote, 'http://127.0.0.1:4724', 'http://127.0.0.1:4800')).remote)
+      .toEqual(remote)
+    expect(asked).toEqual([])
+    // 2. A device here takes AGENT_QA_APPIUM_URL before the host's Appium.
+    expect((await prepare(here, 'http://127.0.0.1:4724', 'http://127.0.0.1:4800')).appiumUrl)
+      .toBe('http://127.0.0.1:4724/')
+    expect(asked).toEqual([])
+    // 3. Then the host's Appium, such as the dashboard's lease.
+    expect((await prepare(here, undefined, 'http://127.0.0.1:4800')).appiumUrl)
+      .toBe('http://127.0.0.1:4800')
+    expect(asked).toEqual(['host'])
+    // 4. Then the one agent-qa starts, which only this process manages.
+    const started = await prepare(here, undefined, undefined)
+    expect(started.appiumUrl).toBe('http://127.0.0.1:4723')
+    expect(started.managed).toBe(true)
+    expect(asked).toEqual(['host', 'host', 'start'])
   })
 
   it('THE DOOR ANSWERS PER RUN, WHILE THE RUN IS IN FLIGHT — a lease belongs to one run', async () => {
